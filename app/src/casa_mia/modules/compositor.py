@@ -52,6 +52,8 @@ FETCH_TIMEOUT = 5
 JPEG_QUALITY = 70
 JPEG_QUALITY_OVERVIEW = 65
 BAR = 30  # height of the name bar at the foot of each tile
+LATEST_SIZE = (640, 360)  # the kept still of each camera (keep_stills), a tile's size
+LATEST_AT_ONCE = 4  # cameras fetched together in a round
 
 Group = dict[str, Any]
 Build = Callable[[], Awaitable[bytes]]
@@ -300,10 +302,18 @@ class Compositor:
         ws_path: str = "/websocket",
         store: str = LIVE_STORE,
         prewarm: bool = True,
+        keep_stills: float | None = None,
+        needs: str = "groups.json in the app's config folder",
     ) -> None:
         self.config_dir = config_dir
         self.store = store  # which Camera Dashboard store it serves (live or draft)
         self.prewarm = prewarm  # build every composite at start (not for previews)
+        # Keep the latest still of every camera, refreshed this often (seconds), so the
+        # Camera Dashboard's thumbnails and previews are ready at once.
+        self.keep_stills = keep_stills
+        self.needs = (
+            needs  # what to set up when there are no groups (shown on the tile)
+        )
         self.ha_url = ha_url.rstrip("/")  # the Supervisor proxy, or http://host:8123
         self.ws_url = self.ha_url.replace("http", "ws", 1) + ws_path
         self.token = token
@@ -324,6 +334,11 @@ class Compositor:
         self._last_request = time.monotonic()
         self._seen: set[tuple[str, bool]] = set()
         self._http: aiohttp.ClientSession | None = None
+        self._latest: dict[str, bytes] = {}  # camera -> its latest still (keep_stills)
+        self._thumbs: dict[
+            tuple[str, int], tuple[bytes, bytes]
+        ] = {}  # -> (source, thumb)
+        self._round_now: asyncio.Event | None = None
 
     def start(self) -> None:
         """Never raises: a failure shows up as state `offline` in health()."""
@@ -335,7 +350,7 @@ class Compositor:
             return
         if not self.cfg.groups:
             _LOGGER.warning(
-                "no groups.json in %s; nothing to composite", self.config_dir
+                "compositor (%s): no groups yet; it needs %s", self.store, self.needs
             )
         threading.Thread(target=lambda: asyncio.run(self._serve()), daemon=True).start()
         self._ready.wait(10)
@@ -354,6 +369,8 @@ class Compositor:
             self.cfg, self._error = cfg, None
             self._cache.clear()
             self._seen = {(n, p) for n, p in self._seen if self._known(n, p)}
+            if self._round_now:
+                self._round_now.set()  # fetch any camera just added
 
         if self._loop and self._running:
             self._loop.call_soon_threadsafe(apply)
@@ -374,22 +391,34 @@ class Compositor:
         return future.result(FETCH_TIMEOUT * 4)
 
     def still(self, entity: str, width: int) -> bytes | None:
-        """One camera's still, width wide (16:9), for the Camera Dashboard's thumbnails;
-        None if HA has none. Thread-safe."""
+        """One camera's latest still, width wide (16:9), for the Camera Dashboard's
+        thumbnails; None if HA has none. Served from the kept stills at once (only a
+        camera never seen waits for HA); resized here, off the compositor's loop, and
+        kept until the still changes. Thread-safe."""
         if not (self._loop and self._running):
             raise RuntimeError("the compositor is not running")
-
-        async def fetch() -> bytes | None:
-            return await self._fetch(entity, (width, width * 9 // 16))
-
-        future = asyncio.run_coroutine_threadsafe(fetch(), self._loop)
-        return future.result(FETCH_TIMEOUT * 2)
+        future = asyncio.run_coroutine_threadsafe(self._ready_still(entity), self._loop)
+        source = future.result(FETCH_TIMEOUT * 2)
+        if source is None:
+            return None
+        hit = self._thumbs.get((entity, width))
+        if hit and hit[0] is source:
+            return hit[1]
+        try:
+            img = ImageOps.fit(
+                Image.open(io.BytesIO(source)).convert("RGB"), (width, width * 9 // 16)
+            )
+        except OSError:
+            return None
+        thumb = to_jpeg(img, JPEG_QUALITY)
+        self._thumbs[(entity, width)] = (source, thumb)
+        return thumb
 
     async def _render(self, cfg: Config, name: str, portrait: bool) -> bytes:
         if name != "overview":
             if not cfg.groups[name]["cameras"]:
                 raise ValueError(f"{name} has no cameras")
-            return await self._compose(cfg.groups[name], portrait)
+            return await self._compose(cfg.groups[name], portrait, ready=True)
         layout = cfg.overview_for(portrait)
         names = overview_groups(layout)
         if not names:
@@ -397,7 +426,9 @@ class Compositor:
         for n in names:
             if not cfg.groups[n]["cameras"]:
                 raise ValueError(f"{n} has no cameras")
-        frames = await asyncio.gather(*(self._compose(cfg.groups[n]) for n in names))
+        frames = await asyncio.gather(
+            *(self._compose(cfg.groups[n], ready=True) for n in names)
+        )
         return overview(dict(zip(names, frames, strict=True)), layout, cfg.groups)
 
     def stop(self) -> None:
@@ -414,6 +445,7 @@ class Compositor:
             "port": self.port,
             "groups": len(self.cfg.groups),
             "streams": sum(len(v) for v in self._streams.values()),
+            "needs": self.needs if state == "unconfigured" else None,
             "error": self._error,
         }
 
@@ -455,10 +487,14 @@ class Compositor:
             _LOGGER.info(
                 "compositing %d groups on :%d", len(self.cfg.groups), self.port
             )
-            warm = asyncio.create_task(self._keep_warm())
+            tasks = [asyncio.create_task(self._keep_warm())]
+            if self.keep_stills:
+                self._round_now = asyncio.Event()
+                tasks.append(asyncio.create_task(self._keep_stills(self.keep_stills)))
             self._ready.set()
             await self._stop.wait()
-            warm.cancel()
+            for task in tasks:
+                task.cancel()
         except OSError as exc:
             self._error = f"cannot serve on :{self.port}: {exc}"
             _LOGGER.error(self._error)
@@ -497,6 +533,56 @@ class Compositor:
         except (aiohttp.ClientError, TimeoutError):
             return None
 
+    def _cameras(self) -> list[str]:
+        """Every camera of the config: in a group, or chosen and in no group yet."""
+        out = dict.fromkeys(
+            c["entity"] for g in self.cfg.groups.values() for c in g["cameras"]
+        )
+        return list(out | dict.fromkeys(self.cfg.entities))
+
+    async def _keep_stills(self, every: float) -> None:
+        """Fetch the latest still of every camera, every `every` seconds (or at once after
+        a reload), a few at a time; what is kept is served while the next is fetched."""
+        assert self._round_now
+        _LOGGER.info(
+            "compositor (%s): keeping the latest still of each camera, every %.0f s",
+            self.store,
+            every,
+        )
+        limit = asyncio.Semaphore(LATEST_AT_ONCE)
+
+        async def one(entity: str) -> bool:
+            async with limit:
+                image = await self._fetch_now(entity, LATEST_SIZE)
+            if image is not None:
+                self._latest[entity] = image
+            return image is not None
+
+        while True:
+            self._round_now.clear()
+            cams, start = self._cameras(), time.monotonic()
+            got = await asyncio.gather(*(one(e) for e in cams))
+            _LOGGER.debug(
+                "compositor (%s): %d of %d stills fetched in %.1f s",
+                self.store,
+                sum(got),
+                len(cams),
+                time.monotonic() - start,
+            )
+            try:
+                await asyncio.wait_for(self._round_now.wait(), every)
+            except TimeoutError:
+                pass
+
+    async def _ready_still(self, entity: str) -> bytes | None:
+        """The kept still of a camera, at once; one never seen is fetched now, and kept."""
+        if entity not in self._latest:
+            image = await self._fetch(entity, LATEST_SIZE)
+            if image is None:
+                return None
+            self._latest[entity] = image
+        return self._latest[entity]
+
     def _refresh(self, key: str, build: Build) -> asyncio.Task:
         """Start (or join) the one rebuild in flight for `key`; the result lands in the cache."""
         task = self._inflight.get(key)
@@ -530,13 +616,24 @@ class Compositor:
     async def _build_group(self, name: str, portrait: bool = False) -> bytes:
         return await self._compose(self.cfg.groups[name], portrait)
 
-    async def _compose(self, group: Group, portrait: bool = False) -> bytes:
+    async def _compose(
+        self, group: Group, portrait: bool = False, ready: bool = False
+    ) -> bytes:
+        """A group's composite. `ready`: from the kept stills (the Camera Dashboard's
+        previews, at once) rather than fresh ones (what the wall tablets see)."""
         cams, size = group["cameras"], group["tile"]
         still = (
             size[0],
             size[0] * 9 // 16,
         )  # a true 16:9 still from HA, cropped to the tile
-        images = await asyncio.gather(*(self._fetch(c["entity"], still) for c in cams))
+        images = await asyncio.gather(
+            *(
+                self._ready_still(c["entity"])
+                if ready
+                else self._fetch(c["entity"], still)
+                for c in cams
+            )
+        )
         if portrait:  # one column of whole 16:9 tiles, for a phone held upright
             return tile(cams, images, still, "cover", cols=1)
         return tile(cams, images, size, group["fit"])

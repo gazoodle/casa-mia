@@ -105,6 +105,7 @@ export const MODULES: Record<string, ModuleInfo> = {
     facts: (h) => [
       ["Camera groups", String(h.groups ?? 0)],
       ["Live streams", String(h.streams ?? 0)],
+      ["Needs", (h.needs as string | null) ?? undefined],
     ],
   },
   camera_dashboard: {

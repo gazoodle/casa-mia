@@ -134,3 +134,42 @@ def test_seed_config_never_overwrites(tmp_path):
     seed_config(seed, live)
     assert (live / "groups.json").read_text() == '{"edited": []}'
     assert (live / "entities.json").exists()
+
+
+def test_keeps_the_latest_still_of_every_camera(tmp_path):
+    write_config(tmp_path)
+    ha = ThreadingHTTPServer(("127.0.0.1", 0), FakeHA)
+    threading.Thread(target=ha.serve_forever, daemon=True).start()
+    comp = Compositor(
+        tmp_path,
+        f"http://127.0.0.1:{ha.server_port}",
+        "token",
+        port=0,
+        prewarm=False,
+        keep_stills=60,
+    )
+    comp.start()
+    try:
+        for _ in range(50):  # the first round runs at start, unasked
+            if set(comp._latest) == {"camera.a", "camera.b"}:
+                break
+            time.sleep(0.05)
+        assert set(comp._latest) == {"camera.a", "camera.b"}
+        thumb = comp.still("camera.a", 160)
+        assert thumb and Image.open(io.BytesIO(thumb)).size == (160, 90)
+        assert comp.still("camera.a", 160) is thumb  # resized once per still
+    finally:
+        comp.stop()
+        time.sleep(0.2)
+        ha.shutdown()
+        ha.server_close()
+
+
+def test_unconfigured_says_what_it_needs(tmp_path):
+    comp = Compositor(tmp_path, "http://127.0.0.1:1", "token", port=0, needs="a deploy")
+    comp.start()
+    try:
+        assert comp.health()["state"] == "unconfigured"
+        assert comp.health()["needs"] == "a deploy"
+    finally:
+        comp.stop()

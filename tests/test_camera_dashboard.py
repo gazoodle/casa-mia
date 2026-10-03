@@ -238,6 +238,18 @@ def test_edit_preview_then_deploy(cd, tmp_path):
     assert cd.ha.boards["dashboard-cams"] == {"views": ["old"]}
 
 
+def test_save_drops_page_controls_with_no_entity(cd):
+    _, view = call(cd, "GET", "")
+    store = view["store"]
+    store["groups"]["Shed"]["controls"] = [{"entity": " "}]
+    store["cameras"]["camera.a_low"]["controls"].append({"entity": "", "name": "x"})
+    _, view = call(cd, "PUT", "", store)
+    assert "controls" not in view["store"]["groups"]["Shed"]
+    assert view["store"]["cameras"]["camera.a_low"]["controls"] == [
+        {"entity": "button.gate"}
+    ]
+
+
 def test_refuses_to_deploy_a_broken_store(cd):
     _, view = call(cd, "GET", "")
     view["store"]["groups"]["Shed"]["cameras"] = []

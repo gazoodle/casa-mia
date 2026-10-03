@@ -663,6 +663,7 @@ function LivePreview({ store, name, portrait = false }: { store: Store; name: st
   const latest = useRef(store);
   latest.current = store;
   const shown = useRef<string | undefined>(undefined);
+  const drawn = useRef(false); // the first picture at once; after edits, a short pause
   useEffect(
     () => () => {
       if (shown.current) URL.revokeObjectURL(shown.current);
@@ -693,7 +694,8 @@ function LivePreview({ store, name, portrait = false }: { store: Store; name: st
       } finally {
         if (!gone) setBusy(false);
       }
-    }, 400);
+    }, drawn.current ? 400 : 0);
+    drawn.current = true;
     return () => {
       gone = true;
       clearTimeout(timer);
@@ -919,18 +921,20 @@ function LiveView({ entity, title, onClose }: { entity: string; title: string; o
   );
 }
 
-/** Closes a popup (calls `close`) on a tap or click outside the returned ref. */
+/** Closes a popup (calls `close`) on a tap or click outside the returned ref. On the
+ * finished click, not the press: closing a tall list moves the page, and a press that
+ * closed it would leave the release over something else, losing the click (a control's ✕). */
 function useClickAway<T extends HTMLElement>(open: boolean, close: () => void) {
   const ref = useRef<T>(null);
   const latest = useRef(close);
   latest.current = close;
   useEffect(() => {
     if (!open) return;
-    const away = (e: PointerEvent) => {
+    const away = (e: MouseEvent) => {
       if (!ref.current?.contains(e.target as Node)) latest.current();
     };
-    addEventListener("pointerdown", away);
-    return () => removeEventListener("pointerdown", away);
+    addEventListener("click", away);
+    return () => removeEventListener("click", away);
   }, [open]);
   return ref;
 }

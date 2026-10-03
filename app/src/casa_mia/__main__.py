@@ -13,7 +13,7 @@ from .components import ask_for_restart, install_bundled
 from .ha import HA
 from .install_count import count_install
 from .log import configure_logging
-from .modules.camera_dashboard import DRAFT_PORT, CameraDashboard
+from .modules.camera_dashboard import DRAFT_PORT, KEEP_STILLS_EVERY, CameraDashboard
 from .modules.compositor import DRAFT_STORE, Compositor
 from .modules.fona import EVENT as FONA_EVENT
 from .modules.fona import Fona
@@ -150,7 +150,15 @@ def main() -> int:
     if options.get("compositor_enabled", False):
         if not cameras_on:  # the Camera Dashboard starts empty instead of an example
             seed_config(SEED / "compositor", CONFIG)
-        compositor = Compositor(CONFIG, ha_url, ha_token, ws_path=ws_path)
+        compositor = Compositor(
+            CONFIG,
+            ha_url,
+            ha_token,
+            ws_path=ws_path,
+            needs="a Deploy live from the Camera Dashboard page"
+            if cameras_on
+            else "groups.json in the app's config folder",
+        )
     if cameras_on:
         # The draft's compositor, for previews; only draws what someone looks at.
         draft = Compositor(
@@ -161,6 +169,7 @@ def main() -> int:
             ws_path=ws_path,
             store=DRAFT_STORE,
             prewarm=False,
+            keep_stills=KEEP_STILLS_EVERY,
         )
         cameras = CameraDashboard(CONFIG, ha, lan_ip, live=compositor, draft=draft)
         cameras.start()  # first: it may import groups.json into the store

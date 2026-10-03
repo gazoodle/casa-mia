@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.10.1-b11
+
+- Camera Dashboard: the ✕ on a page control removes it every time. With an entity field's list open, pressing ✕ closed the list, the dialog's content moved, and the click was lost, so the row stayed. Lists and menus now close on the finished click instead.
+- Camera Dashboard: saving drops page-control rows with no entity, so a leftover empty row no longer adds a warning.
+- Camera Dashboard: the page opens with its pictures already there. Its compositor keeps the latest still of every chosen camera, fetched every minute in the background, and draws the camera pictures and the group and overview previews from those at once; before, each was fetched from Home Assistant as the page asked, so they filled in one by one. The wall tablets' composites are unchanged (fresh stills while they are viewed).
+- Compose camera groups: "Needs setup" on its tile now says what it needs: a **Deploy live** from the Camera Dashboard page (with the Camera Dashboard on), or `groups.json` (without it).
+
 ## 2026.10.1-b10
 
 - Camera Dashboard: entity fields (page controls; a camera's medium, high and zoom; the tile entity) work as in Home Assistant: type part of an entity id or name, such as `switch.` or `gate`, and pick from the matching entities, each word narrowing the list; arrow keys, Enter and Esc work. Camera channels list only cameras, zoom only numbers. This replaces the browser's own suggestion list, which on Safari could swallow the click on a control's ✕.

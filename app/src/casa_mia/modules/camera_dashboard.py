@@ -61,6 +61,9 @@ _LOGGER = logging.getLogger(__name__)
 
 DRAFT_PORT = 8098
 THUMB_WIDTH = 160  # the page's camera thumbnails
+# The draft compositor keeps the latest still of every chosen camera, fetched this often
+# (seconds), so the page's thumbnails and previews are ready at once.
+KEEP_STILLS_EVERY = 60.0
 # ponytail: a live view open longer than this is ended, in case a closed popup's stream
 # was never dropped by the browser; make it a setting if anyone watches for longer.
 MAX_LIVE_VIEW = 600.0
@@ -856,6 +859,22 @@ class CameraDashboard:
             store["groups"], dict
         ):
             raise BadRequest("cameras and groups must be objects.")
+        dropped = 0
+        for page in [*store["cameras"].values(), *store["groups"].values()]:
+            if isinstance(page, dict) and isinstance(page.get("controls"), list):
+                kept = [
+                    c
+                    for c in page["controls"]
+                    if isinstance(c, dict) and str(c.get("entity") or "").strip()
+                ]
+                dropped += len(page["controls"]) - len(kept)
+                page["controls"] = kept
+                if not kept:
+                    del page["controls"]
+        if dropped:
+            _LOGGER.info(
+                "camera dashboard: dropped %d page controls with no entity", dropped
+            )
         try:
             found = problems(store)
         except (AttributeError, KeyError, TypeError) as exc:
