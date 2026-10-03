@@ -259,6 +259,23 @@ def problems(store: Store) -> list[str]:
                 out.append(
                     f"The commander's {panel} panel: {e} is not one of the cameras."
                 )
+    if cmd.get("main_fit", "fit") not in ("fit", "fill", "crop"):
+        out.append("The commander's main camera: fit must be fit, fill or crop.")
+    for panel in ("top", "bottom"):
+        for end in ("anchor_left", "anchor_right"):
+            if not isinstance((cmd.get(panel) or {}).get(end, False), bool):
+                out.append(
+                    f"The commander's {panel} panel: {end} must be true or false."
+                )
+    placed: dict[str, str] = {}
+    for panel in PANELS:
+        for e in (cmd.get(panel) or {}).get("cameras", []):
+            if e in placed:
+                title = cams.get(e, {}).get("title", e)
+                out.append(
+                    f"The commander shows {title} in both its {placed[e]} and {panel} panels."
+                )
+            placed.setdefault(e, panel)
     if cmd.get("main") and cmd["main"] not in commander_cameras(cmd):
         out.append("The commander's main camera must be one of its cameras.")
     if store.get("overview_mode") == "commander" and not commander_cameras(cmd):
@@ -811,7 +828,9 @@ class CameraDashboard:
             except (OSError, ValueError, AttributeError):
                 main = None
             if main:
-                self.live.set_main(main)
+                for comp in (self.live, self.draft):
+                    if comp:
+                        comp.set_main(main)
                 _LOGGER.info("commander: main camera %s (as it was)", main)
         try:
             if self.draft_path.exists():
@@ -856,36 +875,48 @@ class CameraDashboard:
             if comp:
                 comp.reload()
 
+    def _commanders(self) -> list[Compositor]:
+        """The compositors drawing a commander: the live one (the dashboard) and the draft
+        one (the preview dashboard). One choice of main camera moves both."""
+        return [c for c in (self.live, self.draft) if c and c.cfg.commander]
+
     def commander(self) -> dict[str, Any]:
-        """The live commander for the integration: its cameras' titles (the select's
-        options) and the main one now. Empty while it has no cameras."""
-        if not self.live:
-            return {"options": [], "main": None}
-        cfg = self.live.cfg
-        main = self.live.main_camera()
-        return {
-            "options": [cfg.titles.get(e, e) for e in commander_cameras(cfg.commander)]
-            if cfg.commander
-            else [],
-            "main": cfg.titles.get(main, main) if main else None,
-        }
+        """For the integration: the commander's cameras' titles (the select's options),
+        live and draft, and the main one now. Empty while neither has cameras."""
+        options: dict[str, None] = {}
+        main = None
+        for comp in self._commanders():
+            cfg = comp.cfg
+            options |= dict.fromkeys(
+                cfg.titles.get(e, e) for e in commander_cameras(cfg.commander)
+            )
+            if main is None and (now := comp.main_camera()):
+                main = cfg.titles.get(now, now)
+        return {"options": list(options), "main": main}
 
     def control(self, path: str, body: bytes) -> int:
         """The integration: POST /camera-dashboard/commander {"main": <title or entity>}
-        shows that camera as the commander's main one."""
-        if path.strip("/") != "commander" or not self.live:
+        shows that camera as the commander's main one, live and in the preview."""
+        if path.strip("/") != "commander":
             return 404
         try:
             wanted = str(json.loads(body or b"{}").get("main") or "")
         except (ValueError, AttributeError):
             return 400
-        cfg = self.live.cfg
-        cams = commander_cameras(cfg.commander) if cfg.commander else []
-        entity = next((e for e in cams if wanted in (e, cfg.titles.get(e))), None)
+        entity = next(
+            (
+                e
+                for comp in self._commanders()
+                for e in commander_cameras(comp.cfg.commander)
+                if wanted in (e, comp.cfg.titles.get(e))
+            ),
+            None,
+        )
         if entity is None:
             _LOGGER.warning("commander: %r is not one of its cameras", wanted)
             return 400
-        self.live.set_main(entity)
+        for comp in self._commanders():
+            comp.set_main(entity)
         _LOGGER.info("commander: main camera %s (from Home Assistant)", entity)
         if self.state_path:
             try:

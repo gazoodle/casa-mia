@@ -90,10 +90,25 @@ EMPTY_COMMANDER = {
     "height": 1080,
     "gap": 4,
     "main": "",  # the main camera at start; blank: the first of the panels
+    "main_fit": "fit",  # fit (whole, black borders), fill (stretched), crop (filled)
     "left": {"cameras": [], "size": 15, "fit": "cover"},
-    "top": {"cameras": [], "size": 18, "fit": "cover"},
+    # Top and bottom: an anchored end runs to the view's edge, and the side panel stops
+    # at it; an end not anchored stops at the side panel, which runs to the view's edge.
+    "top": {
+        "cameras": [],
+        "size": 18,
+        "fit": "cover",
+        "anchor_left": False,
+        "anchor_right": False,
+    },
     "right": {"cameras": [], "size": 15, "fit": "cover"},
-    "bottom": {"cameras": [], "size": 20, "fit": "cover"},
+    "bottom": {
+        "cameras": [],
+        "size": 20,
+        "fit": "cover",
+        "anchor_left": True,
+        "anchor_right": True,
+    },
 }
 
 
@@ -330,30 +345,45 @@ def _line(rect: Rect, n: int, down: bool, gap: int) -> list[Rect]:
 
 
 def commander_layout(cmd: dict) -> tuple[tuple[int, int], Rect, dict[str, list[Rect]]]:
-    """Canvas size, the main camera's area, and each panel's tile rects. The bottom panel
-    is full width; left and right stand on it; the top fits between them; the main camera
-    fills what is left. An empty panel takes no room. Shared with the dashboard generator,
-    so its tap zones line up."""
+    """Canvas size, the main camera's area, and each panel's tile rects. Top and bottom
+    run to the view's edge at an anchored end (the side panel stops at them there), else
+    stop at the side panel; the main camera fills what is left. An empty panel takes no
+    room. Shared with the dashboard generator, so its tap zones line up."""
     w, h, gap = cmd["width"], cmd["height"], cmd["gap"]
 
     def size(panel: str, of: int) -> int:
         return round(of * cmd[panel]["size"] / 100) if cmd[panel]["cameras"] else 0
 
-    bottom, left, right, top = (
-        size("bottom", h),
+    def anchored(panel: str, end: str) -> bool:
+        key = f"anchor_{end}"
+        return bool(cmd[panel].get(key, EMPTY_COMMANDER[panel][key]))
+
+    left, right, top, bottom = (
         size("left", w),
         size("right", w),
         size("top", h),
+        size("bottom", h),
     )
-    above = h - bottom - (gap if bottom else 0)
-    x0 = left + (gap if left else 0)
+    x0 = left + (gap if left else 0)  # the main camera's columns
     x1 = w - right - (gap if right else 0)
-    y0 = top + (gap if top else 0)
+    y0 = top + (gap if top else 0)  # and rows
+    y1 = h - bottom - (gap if bottom else 0)
+
+    def across(panel: str, y: int, height: int) -> Rect:
+        a = 0 if anchored(panel, "left") else x0
+        b = w if anchored(panel, "right") else x1
+        return (a, y, b - a, height)
+
+    def down(x: int, width: int, end: str) -> Rect:
+        a = y0 if top and anchored("top", end) else 0
+        b = y1 if bottom and anchored("bottom", end) else h
+        return (x, a, width, b - a)
+
     areas = {
-        "left": (0, 0, left, above),
-        "right": (w - right, 0, right, above),
-        "top": (x0, 0, x1 - x0, top),
-        "bottom": (0, h - bottom, w, bottom),
+        "top": across("top", 0, top),
+        "bottom": across("bottom", h - bottom, bottom),
+        "left": down(0, left, "left"),
+        "right": down(w - right, right, "right"),
     }
     tiles = {
         p: _line(areas[p], len(cmd[p]["cameras"]), p in ("left", "right"), gap)
@@ -361,7 +391,7 @@ def commander_layout(cmd: dict) -> tuple[tuple[int, int], Rect, dict[str, list[R
         else []
         for p in PANELS
     }
-    return (w, h), (x0, y0, x1 - x0, above - y0), tiles
+    return (w, h), (x0, y0, x1 - x0, y1 - y0), tiles
 
 
 SMALL_FONT = ImageFont.load_default(size=16)
@@ -418,17 +448,24 @@ def commander(
             )
             if entity == main:
                 draw.rectangle(
-                    (x + 1, y + 1, x + w - 2, y + h - 2), outline=MAIN_FRAME, width=4
+                    (x, y, x + w - 1, y + h - 1), outline=MAIN_FRAME, width=1
                 )
     x, y, w, h = main_rect
     if w > 0 and h > 0:
-        # The picture as large as fits, centred; its label and time go on the picture.
+        # Fit: whole, as large as fits, centred (black borders); fill: stretched to the
+        # area; crop: filling it, the overflow cut off. Its name and the time go along
+        # the foot of the picture, clear of the camera's own caption at the top.
         px, py, pw, ph = x, y, w, h
         if main_image:
             try:
-                img = ImageOps.contain(
-                    Image.open(io.BytesIO(main_image)).convert("RGB"), (w, h)
-                )
+                src = Image.open(io.BytesIO(main_image)).convert("RGB")
+                fit = cmd.get("main_fit", "fit")
+                if fit == "fill":
+                    img = src.resize((w, h))
+                elif fit == "crop":
+                    img = ImageOps.fit(src, (w, h))
+                else:
+                    img = ImageOps.contain(src, (w, h))
                 px, py, pw, ph = (
                     x + (w - img.width) // 2,
                     y + (h - img.height) // 2,
@@ -446,14 +483,15 @@ def commander(
                 font=FONT,
                 anchor="mm",
             )
+        foot = py + ph - 18
         label = titles.get(main, main)
-        pill = draw.textbbox((px + 10, py + 10), label, font=FONT)
+        pill = draw.textbbox((px + 10, foot), label, font=FONT, anchor="lm")
         draw.rectangle(
             (pill[0] - 6, pill[1] - 4, pill[2] + 6, pill[3] + 4), fill=(0, 0, 0, 160)
         )
-        draw.text((px + 10, py + 10), label, fill="white", font=FONT)
+        draw.text((px + 10, foot), label, fill="white", font=FONT, anchor="lm")
         draw.text(
-            (px + pw - 10, py + ph - 15),
+            (px + pw - 10, foot),
             datetime.now().strftime("%H:%M:%S"),
             fill="white",
             font=FONT,

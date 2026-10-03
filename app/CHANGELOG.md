@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.10.1-b14
+
+- Commander: taps work on the preview dashboard too. The Main camera select offered only the cameras deployed live, so with the commander only previewed it had no options, and every tap (choosing a camera, or opening the main one) did nothing. It now offers the live and the draft commander's cameras, and a choice moves both.
+- Commander: Top and Bottom can each run to the view's left and right edges (the side panel then stops at them) or stop at the side panels (which then run to the edge). By default Bottom runs edge to edge and Top fits between the sides, as before.
+- Commander: the main camera can be shown whole with black borders (Fit), stretched to its space (Fill) or filling it with the edges cut off (Crop).
+- Commander: the current camera's frame is a single pixel; the main camera's name is at the foot of its picture, clear of the camera's own caption at the top.
+- Commander: a panel's **+ Add…** offers only cameras in no panel yet, and a camera in two panels is a problem to fix before deploying.
+
 ## 2026.10.1-b13
 
 - Camera Dashboard: new **Commander**: one landscape picture with a main camera in its natural shape, framed by four panels of cameras (bottom full width, left and right standing on it, top between them; each panel's cameras and size are set on the page, with a live preview, and the canvas size too). Choose it as the **landscape overview** (phones keep the portrait group overview). Tapping a camera in a panel makes it the main one, framed in its panel; tapping the main camera opens its live page.

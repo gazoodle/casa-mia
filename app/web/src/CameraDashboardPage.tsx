@@ -42,9 +42,22 @@ type Group = {
 };
 type Row = { groups?: string[]; strip?: string[] };
 type Overview = { width: number; gap: number; cell_aspect: number; strip_aspect: number; rows: Row[] };
-type Panel = { cameras: string[]; size: number; fit: "cover" | "contain" };
+type Panel = {
+  cameras: string[];
+  size: number;
+  fit: "cover" | "contain";
+  /** Top and bottom: run to the view's edge at that end (the side panel stops at them). */
+  anchor_left?: boolean;
+  anchor_right?: boolean;
+};
 const PANELS = ["left", "top", "right", "bottom"] as const;
-type Commander = { width: number; height: number; gap: number; main: string } & Record<(typeof PANELS)[number], Panel>;
+type Commander = {
+  width: number;
+  height: number;
+  gap: number;
+  main: string;
+  main_fit: "fit" | "fill" | "crop";
+} & Record<(typeof PANELS)[number], Panel>;
 type Store = {
   dashboard: string;
   title: string;
@@ -652,6 +665,19 @@ function CommanderEditor({
           <Num label="Height" value={value.height} onChange={(n) => set((c) => (c.height = n))} />
           <Num label="Gap" value={value.gap} onChange={(n) => set((c) => (c.gap = n))} />
           <div className={css.wide}>
+            <Field label="Main camera" help="Fit: whole, with black borders. Fill: stretched to the space. Crop: fills it, edges cut off.">
+              <Segmented
+                value={value.main_fit ?? "fit"}
+                options={[
+                  ["fit", "Fit"],
+                  ["fill", "Fill"],
+                  ["crop", "Crop"],
+                ]}
+                onChange={(f) => set((c) => (c.main_fit = f))}
+              />
+            </Field>
+          </div>
+          <div className={css.wide}>
             <Field label="Main camera at start">
               <select value={value.main} onChange={(e) => set((c) => (c.main = e.target.value))}>
                 <option value="">The first one</option>
@@ -673,7 +699,7 @@ function CommanderEditor({
               items={value[p].cameras}
               label={(e) => cameras[e]?.title ?? e}
               thumb={(e) => <Thumb entity={e} />}
-              choices={Object.keys(cameras).filter((e) => !value[p].cameras.includes(e))}
+              choices={Object.keys(cameras).filter((e) => !inPanels.includes(e))}
               onChange={(items) => set((c) => (c[p].cameras = items))}
             />
             <div className={css.numbers}>
@@ -688,6 +714,24 @@ function CommanderEditor({
                   onChange={(f) => set((c) => (c[p].fit = f))}
                 />
               </Field>
+              {(p === "top" || p === "bottom") &&
+                (["anchor_left", "anchor_right"] as const).map((end) => (
+                  <Field
+                    key={end}
+                    label={end === "anchor_left" ? "To the left edge" : "To the right edge"}
+                    help={
+                      end === "anchor_left"
+                        ? "On: it runs to the view's edge and Left stops at it. Off: it stops at Left."
+                        : "On: it runs to the view's edge and Right stops at it. Off: it stops at Right."
+                    }
+                  >
+                    <Switch
+                      on={value[p][end] ?? p === "bottom"}
+                      label={end === "anchor_left" ? "To the left edge" : "To the right edge"}
+                      onChange={(on) => set((c) => (c[p][end] = on))}
+                    />
+                  </Field>
+                ))}
             </div>
           </div>
         ))}

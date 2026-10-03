@@ -401,7 +401,7 @@ def commander_store():
         "left": {"cameras": ["camera.a_low"], "size": 10, "fit": "cover"},
         "top": {"cameras": [], "size": 20, "fit": "cover"},
         "right": {"cameras": [], "size": 10, "fit": "cover"},
-        "bottom": {"cameras": ["camera.b", "camera.a_low"], "size": 20, "fit": "cover"},
+        "bottom": {"cameras": ["camera.b"], "size": 20, "fit": "cover"},
     }
     return store
 
@@ -433,7 +433,7 @@ def test_commander_overview_taps_choose_and_open():
     assert landscape["image"] == "http://h:8099/g/commander.mjpg"
     assert portrait["image"] == "http://h:8099/g/overview.mjpg?layout=portrait"
     taps = [e for e in landscape["elements"] if e["type"] == "image"]
-    assert [t["tap_action"]["data"]["option"] for t in taps] == ["Bay", "Tablet", "Bay"]
+    assert [t["tap_action"]["data"]["option"] for t in taps] == ["Bay", "Tablet"]
     mains = [e for e in landscape["elements"] if e["type"] == "conditional"]
     assert [m["conditions"][0]["state"] for m in mains] == ["Bay", "Tablet"]
     assert (
@@ -447,7 +447,9 @@ def test_commander_problems():
     store["commander"]["left"]["cameras"].append("camera.gone")
     store["commander"]["main"] = "camera.elsewhere"
     store["commander"]["top"]["size"] = 80
+    store["commander"]["bottom"]["cameras"].append("camera.a_low")
     found = " ".join(problems(store))
+    assert "shows Bay in both its left and bottom panels" in found
     assert "camera.gone is not one of the cameras" in found
     assert "main camera must be one of its cameras" in found
     assert "top panel: size must be 0-45%" in found
@@ -493,3 +495,40 @@ def test_integration_chooses_the_main_camera(tmp_path):
         time.sleep(0.2)
         cameras.shutdown()
         cameras.server_close()
+
+
+def test_commander_anchors():
+    from casa_mia.modules.compositor import EMPTY_COMMANDER, commander_layout
+
+    one = {"cameras": ["camera.x"], "fit": "cover"}
+    cmd = {**EMPTY_COMMANDER, "width": 1000, "height": 500, "gap": 0}
+    cmd["left"] = {**one, "size": 10}
+    cmd["right"] = {**one, "size": 10}
+    cmd["top"] = {**one, "size": 20, "anchor_left": True, "anchor_right": False}
+    cmd["bottom"] = {**one, "size": 20, "anchor_left": False, "anchor_right": True}
+    _, main, tiles = commander_layout(cmd)
+    assert tiles["top"] == [(0, 0, 900, 100)]  # to the left edge, stopping at Right
+    assert tiles["bottom"] == [(100, 400, 900, 100)]  # from Left, to the right edge
+    assert tiles["left"] == [
+        (0, 100, 100, 400)
+    ]  # under the top, down to the view's foot
+    assert tiles["right"] == [
+        (900, 0, 100, 400)
+    ]  # from the view's top, onto the bottom
+    assert main == (100, 100, 800, 300)  # the middle is the same whatever the anchors
+
+
+def test_a_choice_moves_the_preview_too(tmp_path):
+    from casa_mia.modules.compositor import DRAFT_STORE, Compositor
+
+    (tmp_path / DRAFT_STORE).write_text(json.dumps(commander_store()))  # nothing live
+    draft = Compositor(tmp_path, "http://127.0.0.1:1", "t", port=0, store=DRAFT_STORE)
+    cd = CameraDashboard(tmp_path, None, lambda: None, draft=draft)
+    cd.start()
+    draft.start()
+    try:
+        assert cd.health()["commander"] == {"options": ["Bay", "Tablet"], "main": "Bay"}
+        assert cd.control("commander", b'{"main": "Tablet"}') == 200
+        assert draft.main_camera() == "camera.b"
+    finally:
+        draft.stop()
