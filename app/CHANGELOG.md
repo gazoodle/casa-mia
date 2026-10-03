@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.1-b15
+
+- Commander: the four panel editors sit two to a row, each half the section's width, instead of three to a row with a gap beside the fourth.
+
 ## 2026.10.1-b14
 
 - Commander: taps work on the preview dashboard too. The Main camera select offered only the cameras deployed live, so with the commander only previewed it had no options, and every tap (choosing a camera, or opening the main one) did nothing. It now offers the live and the draft commander's cameras, and a choice moves both.

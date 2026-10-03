@@ -110,6 +110,7 @@
 .overview,
 .group {
   display: grid;
+  align-content: start; /* a shorter editor beside a taller one keeps its rows together */
   gap: 10px;
   min-width: 0;
   padding: 14px;
@@ -127,6 +128,7 @@
 .numbers {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  align-items: start;
   gap: 8px;
 }
 
@@ -173,14 +175,16 @@
   grid-column: 1 / -1;
 }
 
+/* The commander's four panels: two to a row, half the editor each. */
 .panels {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
 
 @media (max-width: 760px) {
-  .commanderTop {
+  .commanderTop,
+  .panels {
     grid-template-columns: 1fr;
   }
 }
