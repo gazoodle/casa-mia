@@ -129,6 +129,7 @@ def config_from_store(store: dict) -> Config:
             "tile": tuple(g.get("tile", DEFAULT_TILE)),
             "fit": g.get("fit", "cover"),
             "menu": g.get("menu", True),
+            "gap": g.get("gap", 0),
         }
     cfg.entities = {
         e: {k: c[k] for k in ("medium", "high", "zoom") if c.get(k)}
@@ -180,10 +181,26 @@ def tile_grid(n: int) -> tuple[int, int]:
     return cols, math.ceil(n / cols)
 
 
-def to_jpeg(img: Image.Image, quality: int) -> bytes:
+def encode(img: Image.Image, quality: int) -> bytes:
+    """JPEG; or WebP when the picture has transparent gaps (RGBA), so a dashboard's own
+    background shows through them. Both play in an <img>, single or streamed."""
     out = io.BytesIO()
-    img.save(out, "JPEG", quality=quality)
+    if img.mode == "RGBA":
+        img.save(out, "WEBP", quality=quality, method=0)  # method 0: the fastest
+    else:
+        img.save(out, "JPEG", quality=quality)
     return out.getvalue()
+
+
+def mime(data: bytes) -> str:
+    return "image/webp" if data[:4] == b"RIFF" else "image/jpeg"
+
+
+def blank(size: tuple[int, int], gap: int, colour: str = "black") -> Image.Image:
+    """A canvas: transparent where gaps will be (when there are any), else `colour`."""
+    return (
+        Image.new("RGBA", size, (0, 0, 0, 0)) if gap else Image.new("RGB", size, colour)
+    )
 
 
 def tile(
@@ -192,15 +209,19 @@ def tile(
     size: tuple[int, int] = DEFAULT_TILE,
     fit: str = "contain",
     cols: int | None = None,
+    gap: int = 0,
 ) -> bytes:
-    """Compose one JPEG from the cameras' still images (None = camera failed)."""
+    """Compose one picture from the cameras' still images (None = camera failed), with
+    `gap` transparent pixels between tiles."""
     tw, th = size
     cols = cols or tile_grid(len(cams))[0]
     rows = math.ceil(len(cams) / cols)
-    canvas = Image.new("RGB", (cols * tw, rows * th), "black")
+    canvas = blank((cols * tw + (cols - 1) * gap, rows * th + (rows - 1) * gap), gap)
     draw = ImageDraw.Draw(canvas, "RGBA")
     for i, (cam, raw) in enumerate(zip(cams, images, strict=False)):
-        x, y = (i % cols) * tw, (i // cols) * th
+        x, y = (i % cols) * (tw + gap), (i // cols) * (th + gap)
+        if gap:
+            draw.rectangle((x, y, x + tw - 1, y + th - 1), fill="black")
         if raw:
             try:
                 src = Image.open(io.BytesIO(raw)).convert("RGB")
@@ -233,7 +254,7 @@ def tile(
         font=FONT,
         anchor="rm",
     )
-    return to_jpeg(canvas, JPEG_QUALITY)
+    return encode(canvas, JPEG_QUALITY)
 
 
 def overview_groups(cfg: dict) -> list[str]:
@@ -293,22 +314,19 @@ def overview_layout(
 def overview(frames: dict[str, bytes], cfg: dict, groups: dict[str, Group]) -> bytes:
     """Compose the group composites into one image: each camera's picture is cropped out
     of its group composite (name bar left off) and cropped again to fill its place.
-    White gaps between groups, no outer margin."""
+    Transparent gaps between groups (the dashboard's background), no outer margin."""
     size, items = overview_layout(cfg, groups)
-    canvas = Image.new("RGB", size, "white")
+    canvas = blank(size, cfg["gap"], "white")
     draw = ImageDraw.Draw(canvas, "RGBA")
     for it in items:
         x, y = it["rect"][:2]
         comp = Image.open(io.BytesIO(frames[it["group"]])).convert("RGB")
         group = groups[it["group"]]
         (tw, th), cols = group["tile"], tile_grid(len(group["cameras"]))[0]
+        g = group.get("gap", 0)  # between the tiles of the group's own composite
         for j, (tx, ty, w2, h2) in enumerate(it["tiles"]):
-            box = (
-                (j % cols) * tw,
-                (j // cols) * th,
-                (j % cols + 1) * tw,
-                (j // cols + 1) * th - BAR,
-            )
+            left, top = (j % cols) * (tw + g), (j // cols) * (th + g)
+            box = (left, top, left + tw, top + th - BAR)
             canvas.paste(ImageOps.fit(comp.crop(box), (w2, h2)), (tx, ty))
         label = it["group"]
         pill = draw.textbbox((x + 6, y + 6), label, font=FONT)
@@ -316,7 +334,7 @@ def overview(frames: dict[str, bytes], cfg: dict, groups: dict[str, Group]) -> b
             (pill[0] - 5, pill[1] - 3, pill[2] + 5, pill[3] + 3), fill=(0, 0, 0, 160)
         )
         draw.text((x + 6, y + 6), label, fill="white", font=FONT)
-    return to_jpeg(canvas, JPEG_QUALITY_OVERVIEW)
+    return encode(canvas, JPEG_QUALITY_OVERVIEW)
 
 
 # --- the commander -------------------------------------------------------------------
@@ -409,8 +427,14 @@ def commander(
     """Draw the commander: each panel's cameras (the main one framed), and the main camera
     in its natural shape, as large as fits its area, centred."""
     size, main_rect, rects = commander_layout(cmd)
-    canvas = Image.new("RGB", size, "black")
+    canvas = blank(
+        size, cmd["gap"]
+    )  # the gaps transparent: the dashboard shows through
     draw = ImageDraw.Draw(canvas, "RGBA")
+    if cmd["gap"]:  # every tile and the main area black; only the gaps are clear
+        for x, y, w, h in [main_rect, *(r for p in PANELS for r in rects[p])]:
+            if w > 0 and h > 0:
+                draw.rectangle((x, y, x + w - 1, y + h - 1), fill="black")
     for panel in PANELS:
         fit = cmd[panel].get("fit", "cover")
         for entity, (x, y, w, h) in zip(
@@ -497,7 +521,7 @@ def commander(
             font=FONT,
             anchor="rm",
         )
-    return to_jpeg(canvas, JPEG_QUALITY)
+    return encode(canvas, JPEG_QUALITY)
 
 
 # --- the service ----------------------------------------------------------------------
@@ -652,7 +676,7 @@ class Compositor:
             )
         except OSError:
             return None
-        thumb = to_jpeg(img, JPEG_QUALITY)
+        thumb = encode(img, JPEG_QUALITY)
         self._thumbs[(entity, width)] = (source, thumb)
         return thumb
 
@@ -885,8 +909,8 @@ class Compositor:
             )
         )
         if portrait:  # one column of whole 16:9 tiles, for a phone held upright
-            return tile(cams, images, still, "cover", cols=1)
-        return tile(cams, images, size, group["fit"])
+            return tile(cams, images, still, "cover", cols=1, gap=group.get("gap", 0))
+        return tile(cams, images, size, group["fit"], gap=group.get("gap", 0))
 
     async def _build_commander(
         self, cfg: Config | None = None, ready: bool = False
@@ -1057,10 +1081,9 @@ class Compositor:
         if not self._known(name, portrait):
             raise web.HTTPNotFound()
         self._warm_in_background(name)
+        data = await self._frame(name, portrait=portrait)
         return web.Response(
-            body=await self._frame(name, portrait=portrait),
-            content_type="image/jpeg",
-            headers={"Cache-Control": "no-store"},
+            body=data, content_type=mime(data), headers={"Cache-Control": "no-store"}
         )
 
     async def _mjpg(self, request: web.Request) -> web.StreamResponse:
@@ -1090,13 +1113,16 @@ class Compositor:
             # lone frame would sit unseen for a whole interval. So every write ends by
             # opening the following part (boundary + header, no body yet): the frame just
             # sent is drawn at once, and the next one fills the part already open.
-            part = b"--frame\r\nContent-Type: image/jpeg\r\n\r\n"
+            # The parts' type (JPEG, or WebP with transparent gaps) is set by the first
+            # picture; a deploy that changes it ends the stream (the dashboard reloads).
+            self._warm_in_background(name)
+            data = await self._frame(name, portrait=portrait)
+            kind = mime(data)
+            part = f"--frame\r\nContent-Type: {kind}\r\n\r\n".encode()
             await resp.write(part)
-            first = True
             while not stop.is_set():
-                self._warm_in_background(name)
-                data = await self._frame(name, fresh=not first, portrait=portrait)
-                first = False
+                if mime(data) != kind:
+                    break
                 await resp.write(data + b"\r\n" + part)
                 # The next frame after the interval, or at once when the picture changes
                 # (the commander's main camera was switched).
@@ -1111,6 +1137,10 @@ class Compositor:
                 )
                 for w in waits:
                     w.cancel()
+                if stop.is_set():
+                    break
+                self._warm_in_background(name)
+                data = await self._frame(name, fresh=True, portrait=portrait)
         except (ConnectionResetError, asyncio.CancelledError):
             pass
         finally:

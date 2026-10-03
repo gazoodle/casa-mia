@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.1-b17
+
+- Camera Dashboard: groups have a **Gap** (in pixels) between their pictures, like the commander. Gaps are transparent, so the dashboard's own background shows through them (dark or light with the theme); each picture's own space stays black. A composite with gaps is sent as WebP (JPEG can't be transparent): smaller than the JPEG, a little slower to make. Without gaps it stays JPEG, as before. The tap zones follow the gaps.
+- Camera Dashboard: the overview's gaps between groups are transparent too, where they were white.
+
 ## 2026.10.1-b16
 
 - Commander: when its taps can't work, the Commander section says so in red at its top: Home Assistant has no `select.camera_commander_main_camera` yet (it needs a restart after the app updates the integration), or the select is unavailable (the integration can't reach the app, or the commander has no saved cameras). Taps were silently doing nothing in that state.

@@ -53,6 +53,7 @@ from .compositor import (
     commander_cameras,
     commander_layout,
     config_from_store,
+    mime,
     overview_layout,
     tile_grid,
 )
@@ -231,6 +232,8 @@ def problems(store: Store) -> list[str]:
             out.append(f"Group {name!r}: tile size must be 80-1920 by 45-1920.")
         if g.get("fit", "cover") not in ("cover", "contain"):
             out.append(f"Group {name!r}: fit must be cover or contain.")
+        if not isinstance(g.get("gap", 0), int) or g.get("gap", 0) < 0:
+            out.append(f"Group {name!r}: the gap must be 0 px or more.")
     menu = [n for n, g in groups.items() if g.get("menu", True)]
     for kind, names in (
         ("group", menu),
@@ -244,9 +247,11 @@ def problems(store: Store) -> list[str]:
     if store.get("overview_mode", "groups") not in ("groups", "commander"):
         out.append("The landscape overview must be the groups or the commander.")
     cmd = commander_of(store)
-    for key, low, high in (("width", 320, 3840), ("height", 240, 2160), ("gap", 0, 40)):
+    for key, low, high in (("width", 320, 3840), ("height", 240, 2160)):
         if not isinstance(cmd.get(key), int) or not low <= cmd[key] <= high:
             out.append(f"The commander's {key} must be {low}-{high}.")
+    if not isinstance(cmd.get("gap"), int) or cmd["gap"] < 0:
+        out.append("The commander's gap must be 0 px or more.")
     for panel in PANELS:
         pane = cmd.get(panel) or {}
         size = pane.get("size")
@@ -583,14 +588,14 @@ def build_dashboard(store: Store, image_base: str, url_path: str) -> dict:
 
     def group_zones(name: str, upright: bool) -> list[dict]:
         g = groups[name]
-        (tw, th), n = g["tile"], len(g["cameras"])
+        (tw, th), n, gap = g["tile"], len(g["cameras"]), g.get("gap", 0)
         cols, rows = tile_grid(n)
         if upright:  # a single column of whole 16:9 tiles, as the compositor draws it
             th, cols, rows = tw * 9 // 16, 1, n
         return [
             zone(
-                ((i % cols) * tw, (i // cols) * th, tw, th),
-                (cols * tw, rows * th),
+                ((i % cols) * (tw + gap), (i // cols) * (th + gap), tw, th),
+                (cols * tw + (cols - 1) * gap, rows * th + (rows - 1) * gap),
                 f"cam-{slug(c['title'])}",
             )
             for i, c in enumerate(g["cameras"])
@@ -1315,7 +1320,7 @@ class CameraDashboard:
             return _json(422, {"error": str(exc)})
         except (RuntimeError, TimeoutError) as exc:
             return _json(502, {"error": f"The draft compositor: {exc}"})
-        return 200, "image/jpeg", image
+        return 200, mime(image), image  # WebP when it has transparent gaps
 
     def _write(self, path: Path, store: Store) -> None:
         """Save atomically."""

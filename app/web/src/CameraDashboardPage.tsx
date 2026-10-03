@@ -37,6 +37,8 @@ type Group = {
   cameras: string[];
   tile: [number, number];
   fit: "cover" | "contain";
+  /** Pixels between its pictures, left transparent: the dashboard shows through. */
+  gap?: number;
   menu: boolean;
   controls?: Control[];
 };
@@ -692,7 +694,10 @@ function CommanderEditor({
         <div className={css.numbers}>
           <Num label="Width" value={value.width} onChange={(n) => set((c) => (c.width = n))} />
           <Num label="Height" value={value.height} onChange={(n) => set((c) => (c.height = n))} />
-          <Num label="Gap" value={value.gap} onChange={(n) => set((c) => (c.gap = n))} />
+          <Num label="Gap, px" value={value.gap} onChange={(n) => set((c) => (c.gap = n))} />
+          <p className={`${css.hint} ${css.wide}`}>
+            Gaps (in groups too) are transparent: the dashboard's background shows through them.
+          </p>
           <div className={css.wide}>
             <Field label="Main camera" help="Fit: whole, with black borders. Fill: stretched to the space. Crop: fills it, edges cut off.">
               <Segmented
@@ -828,6 +833,7 @@ function GroupCard({
       <div className={css.numbers}>
         <Num label="Tile width" value={group.tile[0]} onChange={(n) => set((g) => (g.tile = [n, g.tile[1]]))} />
         <Num label="Tile height" value={group.tile[1]} onChange={(n) => set((g) => (g.tile = [g.tile[0], n]))} />
+        <Num label="Gap, px" value={group.gap ?? 0} onChange={(n) => set((g) => (g.gap = n))} />
         <Field label="Fit">
           <Segmented
             value={group.fit}

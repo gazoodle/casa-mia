@@ -532,3 +532,17 @@ def test_a_choice_moves_the_preview_too(tmp_path):
         assert draft.main_camera() == "camera.b"
     finally:
         draft.stop()
+
+
+def test_group_gap_moves_its_tap_zones():
+    store = import_legacy(GROUPS, ENTITIES, DASH)
+    store["groups"]["Shed"]["gap"] = 10
+    assert problems(store) == []
+    views = build_dashboard(store, "http://h:8099", "dashboard-cams")["views"]
+    second = views[1]["sections"][0]["cards"][0]["elements"][1]["style"]
+    # two 640 px tiles and a 10 px gap: the second starts at 650 of 1290
+    assert second["left"] == f"{(650 + 320) / 1290 * 100:.2f}%"
+    store["groups"]["Shed"]["gap"] = 40  # no upper limit
+    assert problems(store) == []
+    store["groups"]["Shed"]["gap"] = -1
+    assert "the gap must be 0 px or more" in " ".join(problems(store))

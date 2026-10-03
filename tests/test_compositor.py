@@ -107,7 +107,9 @@ def test_serves_group_and_overview(compositor):
         assert r.headers["Content-Type"] == "image/jpeg"
         assert Image.open(io.BytesIO(r.read())).size == (640, 340)
     with urllib.request.urlopen(f"{base}/g/overview.jpg") as r:
-        assert Image.open(io.BytesIO(r.read())).format == "JPEG"
+        # its groups have an 8 px gap, kept transparent: so WebP, labelled as such
+        assert r.headers["Content-Type"] == "image/webp"
+        assert Image.open(io.BytesIO(r.read())).format == "WEBP"
     with pytest.raises(urllib.error.HTTPError) as err:
         urllib.request.urlopen(f"{base}/g/nope.jpg")
     assert err.value.code == 404
@@ -173,3 +175,34 @@ def test_unconfigured_says_what_it_needs(tmp_path):
         assert comp.health()["needs"] == "a deploy"
     finally:
         comp.stop()
+
+
+def alpha(img: Image.Image, xy: tuple[int, int]) -> int:
+    """How opaque one pixel is: 0 clear, 255 solid."""
+    value = img.getchannel("A").getpixel(xy)
+    assert isinstance(value, int)
+    return value
+
+
+def test_gaps_are_transparent():
+    from casa_mia.modules.compositor import EMPTY_COMMANDER, commander, commander_layout
+
+    cams = [{"title": "A"}, {"title": "B"}]
+    plain = Image.open(io.BytesIO(tile(cams, [jpeg(), jpeg()], (200, 120))))
+    assert plain.format == "JPEG"  # no gap: as before
+    gapped = Image.open(io.BytesIO(tile(cams, [jpeg(), jpeg()], (200, 120), gap=6)))
+    assert gapped.format == "WEBP" and gapped.size == (406, 120)
+    rgba = gapped.convert("RGBA")
+    assert alpha(rgba, (202, 60)) == 0  # the gap: clear
+    assert alpha(rgba, (100, 60)) == 255 and alpha(rgba, (300, 60)) == 255
+
+    one = {"cameras": ["camera.a"], "size": 20, "fit": "contain"}
+    cmd = {**EMPTY_COMMANDER, "width": 400, "height": 200, "gap": 4, "bottom": one}
+    _, (mx, my, mw, mh), _ = commander_layout(cmd)
+    pic = Image.open(
+        io.BytesIO(commander(cmd, {}, {"camera.a": jpeg()}, "camera.a", None))
+    )
+    rgba = pic.convert("RGBA")
+    assert pic.format == "WEBP"
+    assert alpha(rgba, (5, my + mh + 1)) == 0  # between the main area and the panel
+    assert alpha(rgba, (mx + 2, my + 2)) == 255  # the main area stays black
