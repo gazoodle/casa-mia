@@ -66,6 +66,7 @@ MODULE_DEVICES = {
     "fona": "FONA",
     "gitproxy": "Firmware server",
     "guest_login": "Guest login",
+    "camera_dashboard": "Camera Commander",
 }
 
 

@@ -25,6 +25,7 @@
   },
   "entity": {
     "switch": { "access": { "name": "Access" } },
+    "select": { "commander_main": { "name": "Main camera" } },
     "event": {
       "login": { "name": "Login", "state_attributes": { "event_type": { "state": { "login": "Login" } } } },
       "fona_call": { "name": "Call", "state_attributes": { "event_type": { "state": { "authorised": "Authorised", "intrusion": "Intrusion" } } } },

@@ -42,6 +42,9 @@ type Group = {
 };
 type Row = { groups?: string[]; strip?: string[] };
 type Overview = { width: number; gap: number; cell_aspect: number; strip_aspect: number; rows: Row[] };
+type Panel = { cameras: string[]; size: number; fit: "cover" | "contain" };
+const PANELS = ["left", "top", "right", "bottom"] as const;
+type Commander = { width: number; height: number; gap: number; main: string } & Record<(typeof PANELS)[number], Panel>;
 type Store = {
   dashboard: string;
   title: string;
@@ -60,6 +63,8 @@ type Store = {
   groups: Record<string, Group>;
   overview: Overview;
   overview_portrait: Overview;
+  overview_mode: "groups" | "commander";
+  commander: Commander;
 };
 type View = {
   store: Store;
@@ -274,9 +279,28 @@ export function CameraDashboardPage({ state }: { state?: string }) {
         <AreaHead
           title="Overview"
           blurb="The first page: every group's composite in one picture. Tap a group to open its page. Landscape for tablets and computers, portrait for phones held upright."
+          action={
+            <Field label="Landscape overview">
+              <Segmented
+                value={draft.overview_mode}
+                options={[
+                  ["groups", "Groups"],
+                  ["commander", "Commander"],
+                ]}
+                onChange={(m) => edit((s) => (s.overview_mode = m))}
+              />
+            </Field>
+          }
         />
         <div className={css.overviews}>
-          {(["overview", "overview_portrait"] as const).map((key) => (
+          {(["overview", "overview_portrait"] as const).map((key) =>
+            key === "overview" && draft.overview_mode === "commander" ? (
+              <div key={key} className={css.overview}>
+                <h3>Landscape: the commander</h3>
+                <LivePreview store={draft} name="commander" />
+                <p className={css.hint}>The commander is the landscape overview; set it up under Commander below.</p>
+              </div>
+            ) : (
             <OverviewEditor
               key={key}
               title={key === "overview" ? "Landscape" : "Portrait"}
@@ -286,8 +310,31 @@ export function CameraDashboardPage({ state }: { state?: string }) {
               preview={<LivePreview store={draft} name="overview" portrait={key !== "overview"} />}
               onChange={(o) => edit((s) => (s[key] = o))}
             />
-          ))}
+            ),
+          )}
         </div>
+      </section>
+
+      <section className={guest.area}>
+        <AreaHead
+          title="Commander"
+          blurb={
+            <>
+              One landscape picture: a main camera in its natural shape, framed by panels of cameras. Tapping a camera makes it
+              the main one; tapping the main one opens its live page. Automations choose it too, with the Camera Commander's
+              Main camera in Home Assistant.{" "}
+              {draft.overview_mode === "commander"
+                ? "It is the landscape overview."
+                : "Choose Commander as the landscape overview to show it."}
+            </>
+          }
+        />
+        <CommanderEditor
+          value={draft.commander}
+          cameras={draft.cameras}
+          preview={<LivePreview store={draft} name="commander" />}
+          onChange={(c) => edit((s) => (s.commander = c))}
+        />
       </section>
 
       <section className={guest.area}>
@@ -571,6 +618,84 @@ function OverviewEditor({
   );
 }
 
+const PANEL_NAMES: Record<(typeof PANELS)[number], [title: string, size: string]> = {
+  left: ["Left", "Width, % of the picture"],
+  top: ["Top", "Height, % of the picture"],
+  right: ["Right", "Width, % of the picture"],
+  bottom: ["Bottom", "Height, % of the picture"],
+};
+
+/** The commander's layout: its size, the main camera at start, and its four panels. */
+function CommanderEditor({
+  value,
+  cameras,
+  preview,
+  onChange,
+}: {
+  value: Commander;
+  cameras: Record<string, Camera>;
+  preview: ReactNode;
+  onChange: (c: Commander) => void;
+}) {
+  const set = (change: (c: Commander) => void) => {
+    const next = structuredClone(value);
+    change(next);
+    onChange(next);
+  };
+  const inPanels = [...new Set(PANELS.flatMap((p) => value[p].cameras))];
+  return (
+    <div className={css.commander}>
+      <div className={css.commanderTop}>
+        <div className={css.commanderPreview}>{preview}</div>
+        <div className={css.numbers}>
+          <Num label="Width" value={value.width} onChange={(n) => set((c) => (c.width = n))} />
+          <Num label="Height" value={value.height} onChange={(n) => set((c) => (c.height = n))} />
+          <Num label="Gap" value={value.gap} onChange={(n) => set((c) => (c.gap = n))} />
+          <div className={css.wide}>
+            <Field label="Main camera at start">
+              <select value={value.main} onChange={(e) => set((c) => (c.main = e.target.value))}>
+                <option value="">The first one</option>
+                {inPanels.map((e) => (
+                  <option key={e} value={e}>
+                    {cameras[e]?.title ?? e}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
+        </div>
+      </div>
+      <div className={css.panels}>
+        {PANELS.map((p) => (
+          <div key={p} className={css.overview}>
+            <h3>{PANEL_NAMES[p][0]}</h3>
+            <Chips
+              items={value[p].cameras}
+              label={(e) => cameras[e]?.title ?? e}
+              thumb={(e) => <Thumb entity={e} />}
+              choices={Object.keys(cameras).filter((e) => !value[p].cameras.includes(e))}
+              onChange={(items) => set((c) => (c[p].cameras = items))}
+            />
+            <div className={css.numbers}>
+              <Num label={PANEL_NAMES[p][1]} value={value[p].size} onChange={(n) => set((c) => (c[p].size = n))} />
+              <Field label="Fit">
+                <Segmented
+                  value={value[p].fit}
+                  options={[
+                    ["cover", "Fill"],
+                    ["contain", "Whole"],
+                  ]}
+                  onChange={(f) => set((c) => (c[p].fit = f))}
+                />
+              </Field>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function GroupCard({
   name,
   group,
@@ -708,6 +833,10 @@ function LivePreview({ store, name, portrait = false }: { store: Store; name: st
 
 /** Everything a composite depends on, so a preview is redrawn only when that changes. */
 function previewKey(store: Store, name: string, portrait: boolean): string {
+  if (name === "commander") {
+    const cams = PANELS.flatMap((p) => store.commander[p].cameras);
+    return JSON.stringify([store.commander, cams.map((e) => store.cameras[e]?.title)]);
+  }
   const group = (n: string) => {
     const g = store.groups[n];
     return g && [g.cameras.map((e) => [e, store.cameras[e]?.title]), g.tile, g.fit];

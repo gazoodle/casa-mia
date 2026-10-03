@@ -65,6 +65,8 @@ class Config:
     overview: dict = field(default_factory=dict)
     overview_portrait: dict = field(default_factory=dict)
     entities: dict[str, dict[str, str]] = field(default_factory=dict)
+    commander: dict = field(default_factory=dict)
+    titles: dict[str, str] = field(default_factory=dict)  # camera -> its title
 
     def overview_for(self, portrait: bool) -> dict:
         return self.overview_portrait if portrait else self.overview
@@ -79,6 +81,19 @@ EMPTY_OVERVIEW = {
     "cell_aspect": 1.7,
     "strip_aspect": 1.5,
     "rows": [],
+}
+# The commander: one landscape picture, a main camera framed by four panels of cameras.
+# Left and right sizes are % of the width, top and bottom % of the height.
+PANELS = ("left", "top", "right", "bottom")
+EMPTY_COMMANDER = {
+    "width": 1920,
+    "height": 1080,
+    "gap": 4,
+    "main": "",  # the main camera at start; blank: the first of the panels
+    "left": {"cameras": [], "size": 15, "fit": "cover"},
+    "top": {"cameras": [], "size": 18, "fit": "cover"},
+    "right": {"cameras": [], "size": 15, "fit": "cover"},
+    "bottom": {"cameras": [], "size": 20, "fit": "cover"},
 }
 
 
@@ -104,6 +119,8 @@ def config_from_store(store: dict) -> Config:
         e: {k: c[k] for k in ("medium", "high", "zoom") if c.get(k)}
         for e, c in cams.items()
     }
+    cfg.commander = {**EMPTY_COMMANDER, **(store.get("commander") or {})}
+    cfg.titles = {e: c.get("title", e) for e, c in cams.items()}
     return cfg
 
 
@@ -287,6 +304,164 @@ def overview(frames: dict[str, bytes], cfg: dict, groups: dict[str, Group]) -> b
     return to_jpeg(canvas, JPEG_QUALITY_OVERVIEW)
 
 
+# --- the commander -------------------------------------------------------------------
+
+Rect = tuple[int, int, int, int]
+
+
+def commander_cameras(cmd: dict) -> list[str]:
+    """The commander's cameras, each once, panel by panel (left, top, right, bottom)."""
+    return list(
+        dict.fromkeys(e for p in PANELS for e in cmd.get(p, {}).get("cameras", []))
+    )
+
+
+def _line(rect: Rect, n: int, down: bool, gap: int) -> list[Rect]:
+    """n tiles in a line filling rect: down a column, or across a row."""
+    x, y, w, h = rect
+    span = h if down else w
+    edges = [round(i * (span - (n - 1) * gap) / n + i * gap) for i in range(n + 1)]
+    cells = [
+        (edges[i], edges[i + 1] - edges[i] - (gap if i < n - 1 else 0))
+        for i in range(n)
+    ]
+    cells[-1] = (cells[-1][0], span - cells[-1][0])
+    return [(x, y + a, w, b) if down else (x + a, y, b, h) for a, b in cells]
+
+
+def commander_layout(cmd: dict) -> tuple[tuple[int, int], Rect, dict[str, list[Rect]]]:
+    """Canvas size, the main camera's area, and each panel's tile rects. The bottom panel
+    is full width; left and right stand on it; the top fits between them; the main camera
+    fills what is left. An empty panel takes no room. Shared with the dashboard generator,
+    so its tap zones line up."""
+    w, h, gap = cmd["width"], cmd["height"], cmd["gap"]
+
+    def size(panel: str, of: int) -> int:
+        return round(of * cmd[panel]["size"] / 100) if cmd[panel]["cameras"] else 0
+
+    bottom, left, right, top = (
+        size("bottom", h),
+        size("left", w),
+        size("right", w),
+        size("top", h),
+    )
+    above = h - bottom - (gap if bottom else 0)
+    x0 = left + (gap if left else 0)
+    x1 = w - right - (gap if right else 0)
+    y0 = top + (gap if top else 0)
+    areas = {
+        "left": (0, 0, left, above),
+        "right": (w - right, 0, right, above),
+        "top": (x0, 0, x1 - x0, top),
+        "bottom": (0, h - bottom, w, bottom),
+    }
+    tiles = {
+        p: _line(areas[p], len(cmd[p]["cameras"]), p in ("left", "right"), gap)
+        if cmd[p]["cameras"]
+        else []
+        for p in PANELS
+    }
+    return (w, h), (x0, y0, x1 - x0, above - y0), tiles
+
+
+SMALL_FONT = ImageFont.load_default(size=16)
+SMALL_BAR = 22
+MAIN_FRAME = (123, 209, 160)  # the accent green: the tile shown as the main camera
+
+
+def commander(
+    cmd: dict,
+    titles: dict[str, str],
+    tiles: dict[str, bytes | None],
+    main: str,
+    main_image: bytes | None,
+) -> bytes:
+    """Draw the commander: each panel's cameras (the main one framed), and the main camera
+    in its natural shape, as large as fits its area, centred."""
+    size, main_rect, rects = commander_layout(cmd)
+    canvas = Image.new("RGB", size, "black")
+    draw = ImageDraw.Draw(canvas, "RGBA")
+    for panel in PANELS:
+        fit = cmd[panel].get("fit", "cover")
+        for entity, (x, y, w, h) in zip(
+            cmd[panel]["cameras"], rects[panel], strict=True
+        ):
+            raw = tiles.get(entity)
+            if raw:
+                try:
+                    src = Image.open(io.BytesIO(raw)).convert("RGB")
+                    img = (
+                        ImageOps.fit(src, (w, h))
+                        if fit == "cover"
+                        else ImageOps.contain(src, (w, h))
+                    )
+                    canvas.paste(
+                        img, (x + (w - img.width) // 2, y + (h - img.height) // 2)
+                    )
+                except OSError:
+                    raw = None
+            if not raw:
+                draw.text(
+                    (x + w // 2, y + h // 2),
+                    "no signal",
+                    fill="white",
+                    font=SMALL_FONT,
+                    anchor="mm",
+                )
+            draw.rectangle((x, y + h - SMALL_BAR, x + w, y + h), fill=(0, 0, 0, 140))
+            draw.text(
+                (x + 6, y + h - SMALL_BAR // 2),
+                str(titles.get(entity) or entity),
+                fill="white",
+                font=SMALL_FONT,
+                anchor="lm",
+            )
+            if entity == main:
+                draw.rectangle(
+                    (x + 1, y + 1, x + w - 2, y + h - 2), outline=MAIN_FRAME, width=4
+                )
+    x, y, w, h = main_rect
+    if w > 0 and h > 0:
+        # The picture as large as fits, centred; its label and time go on the picture.
+        px, py, pw, ph = x, y, w, h
+        if main_image:
+            try:
+                img = ImageOps.contain(
+                    Image.open(io.BytesIO(main_image)).convert("RGB"), (w, h)
+                )
+                px, py, pw, ph = (
+                    x + (w - img.width) // 2,
+                    y + (h - img.height) // 2,
+                    img.width,
+                    img.height,
+                )
+                canvas.paste(img, (px, py))
+            except OSError:
+                main_image = None
+        if not main_image:
+            draw.text(
+                (x + w // 2, y + h // 2),
+                "no signal",
+                fill="white",
+                font=FONT,
+                anchor="mm",
+            )
+        label = titles.get(main, main)
+        pill = draw.textbbox((px + 10, py + 10), label, font=FONT)
+        draw.rectangle(
+            (pill[0] - 6, pill[1] - 4, pill[2] + 6, pill[3] + 4), fill=(0, 0, 0, 160)
+        )
+        draw.text((px + 10, py + 10), label, fill="white", font=FONT)
+        draw.text(
+            (px + pw - 10, py + ph - 15),
+            datetime.now().strftime("%H:%M:%S"),
+            fill="white",
+            font=FONT,
+            anchor="rm",
+        )
+    return to_jpeg(canvas, JPEG_QUALITY)
+
+
 # --- the service ----------------------------------------------------------------------
 
 
@@ -339,6 +514,8 @@ class Compositor:
             tuple[str, int], tuple[bytes, bytes]
         ] = {}  # -> (source, thumb)
         self._round_now: asyncio.Event | None = None
+        self.main: str | None = None  # the commander's main camera, as last chosen
+        self._wake: dict[str, asyncio.Event] = {}  # a stream's picture changed: send it
 
     def start(self) -> None:
         """Never raises: a failure shows up as state `offline` in health()."""
@@ -378,6 +555,33 @@ class Compositor:
             self.cfg = cfg
         _LOGGER.info("compositor (%s) reloaded: %d groups", self.store, len(cfg.groups))
 
+    def main_camera(self, cfg: Config | None = None) -> str | None:
+        """The commander's main camera: the one last chosen if it is still in a panel,
+        else the configured one, else the first of the panels."""
+        cfg = cfg or self.cfg
+        cams = commander_cameras(cfg.commander) if cfg.commander else []
+        for choice in (
+            self.main if cfg is self.cfg else None,
+            cfg.commander.get("main"),
+        ):
+            if choice in cams:
+                return choice
+        return cams[0] if cams else None
+
+    def set_main(self, entity: str) -> None:
+        """Show this camera as the commander's main one: the picture is redrawn and sent to
+        open streams at once. Thread-safe."""
+        self.main = entity
+
+        def apply() -> None:
+            self._cache.pop("commander", None)
+            self._inflight.pop("commander", None)  # a drawing of the old one: not used
+            if wake := self._wake.pop("commander", None):
+                wake.set()
+
+        if self._loop and self._running:
+            self._loop.call_soon_threadsafe(apply)
+
     def render(self, cfg: Config, name: str, portrait: bool = False) -> bytes:
         """Draw one composite (a group, or "overview") from a config that is not the one
         being served: the Camera Dashboard's unsaved edits, for its live previews. Stills
@@ -415,6 +619,10 @@ class Compositor:
         return thumb
 
     async def _render(self, cfg: Config, name: str, portrait: bool) -> bytes:
+        if name == "commander":
+            if not commander_cameras(cfg.commander):
+                raise ValueError("the commander has no cameras")
+            return await self._build_commander(cfg, ready=True)
         if name != "overview":
             if not cfg.groups[name]["cameras"]:
                 raise ValueError(f"{name} has no cameras")
@@ -465,6 +673,7 @@ class Compositor:
                     for p in (False, True)
                     if self.cfg.overview_for(p)["rows"]
                 }
+                | ({("commander", False)} if self._known("commander") else set())
                 if self.prewarm
                 else set()
             )
@@ -589,7 +798,10 @@ class Compositor:
         if task is None or task.done():
 
             async def run() -> None:
-                self._cache[key] = (time.monotonic(), await build())
+                frame = await build()
+                # Dropped while drawing (the commander's main camera switched): not kept.
+                if self._inflight.get(key) is task:
+                    self._cache[key] = (time.monotonic(), frame)
 
             task = self._inflight[key] = asyncio.create_task(run())
             task.add_done_callback(
@@ -638,6 +850,43 @@ class Compositor:
             return tile(cams, images, still, "cover", cols=1)
         return tile(cams, images, size, group["fit"])
 
+    async def _build_commander(
+        self, cfg: Config | None = None, ready: bool = False
+    ) -> bytes:
+        """The commander: tiles from each camera's composite still, the main camera from
+        its medium channel (sharper at that size) in its natural shape. `ready`: from the
+        kept stills, for previews."""
+        cfg = cfg or self.cfg
+        cmd, main = cfg.commander, self.main_camera(cfg) or ""
+        _, (_, _, mw, mh), rects = commander_layout(cmd)
+        wanted: dict[str, int] = {}  # camera -> the widest tile it has
+        for panel in PANELS:
+            for e, (_, _, w, _) in zip(
+                cmd[panel]["cameras"], rects[panel], strict=True
+            ):
+                wanted[e] = max(wanted.get(e, 0), w)
+
+        async def tile_still(e: str, w: int) -> bytes | None:
+            return await (
+                self._ready_still(e) if ready else self._fetch(e, (w, w * 9 // 16))
+            )
+
+        async def main_still() -> bytes | None:
+            if ready:
+                return await self._ready_still(main)
+            channel = cfg.entities.get(main, {}).get("medium") or main
+            return await self._fetch(
+                channel, (mw, mh)
+            )  # HA keeps the camera's own shape
+
+        names = list(wanted)
+        images = await asyncio.gather(
+            main_still(), *(tile_still(e, wanted[e]) for e in names)
+        )
+        return commander(
+            cmd, cfg.titles, dict(zip(names, images[1:], strict=True)), main, images[0]
+        )
+
     async def _build_overview(self, portrait: bool = False) -> bytes:
         """Compose from the group composites we have (each carries its own timestamp);
         groups are served from cache, so this only waits for a group never built."""
@@ -651,6 +900,8 @@ class Compositor:
         return name + (":p" if portrait else "")
 
     def _builder(self, name: str, portrait: bool) -> Build:
+        if name == "commander":
+            return lambda: self._build_commander()
         if name == "overview":
             return lambda: self._build_overview(portrait)
         return lambda: self._build_group(name, portrait)
@@ -754,6 +1005,8 @@ class Compositor:
     # -- HTTP handlers
 
     def _known(self, name: str, portrait: bool = False) -> bool:
+        if name == "commander":  # landscape only
+            return not portrait and bool(commander_cameras(self.cfg.commander))
         return name in self.cfg.groups or (
             name == "overview" and bool(self.cfg.overview_for(portrait)["rows"])
         )
@@ -807,11 +1060,19 @@ class Compositor:
                 data = await self._frame(name, fresh=not first, portrait=portrait)
                 first = False
                 await resp.write(data + b"\r\n" + part)
-                try:
-                    wait = OVERVIEW_INTERVAL if name == "overview" else INTERVAL
-                    await asyncio.wait_for(stop.wait(), wait)
-                except TimeoutError:
-                    pass
+                # The next frame after the interval, or at once when the picture changes
+                # (the commander's main camera was switched).
+                wait = OVERVIEW_INTERVAL if name == "overview" else INTERVAL
+                wake = self._wake.setdefault(name, asyncio.Event())
+                waits = [
+                    asyncio.ensure_future(stop.wait()),
+                    asyncio.ensure_future(wake.wait()),
+                ]
+                await asyncio.wait(
+                    waits, timeout=wait, return_when=asyncio.FIRST_COMPLETED
+                )
+                for w in waits:
+                    w.cancel()
         except (ConnectionResetError, asyncio.CancelledError):
             pass
         finally:

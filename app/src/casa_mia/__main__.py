@@ -171,11 +171,19 @@ def main() -> int:
             prewarm=False,
             keep_stills=KEEP_STILLS_EVERY,
         )
-        cameras = CameraDashboard(CONFIG, ha, lan_ip, live=compositor, draft=draft)
+        cameras = CameraDashboard(
+            CONFIG,
+            ha,
+            lan_ip,
+            live=compositor,
+            draft=draft,
+            state_path=OPTIONS.parent / "camera_dashboard_state.json",
+        )
         cameras.start()  # first: it may import groups.json into the store
         draft.start()
         modules["camera_dashboard"] = cameras.health
         api["/api/camera-dashboard/"] = cameras.handle
+        post_handlers["/camera-dashboard/"] = cameras.control  # the commander's select
     else:
         modules["camera_dashboard"] = lambda: {"state": "disabled"}
     if compositor:

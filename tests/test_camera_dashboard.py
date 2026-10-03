@@ -1,8 +1,12 @@
+import io
 import json
 import re
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 import pytest
+from PIL import Image
 
 from casa_mia.ha import HAError
 from casa_mia.modules.camera_dashboard import (
@@ -384,3 +388,108 @@ def test_live_view_gives_each_channel_from_ha(cd):
         },
     ]  # camera.a_high has no state in HA, so it is left out
     assert call(cd, "GET", "live/camera.nope")[0] == 400
+
+
+def commander_store():
+    store = import_legacy(GROUPS, ENTITIES, DASH)
+    store["overview_mode"] = "commander"
+    store["commander"] = {
+        "width": 1000,
+        "height": 500,
+        "gap": 0,
+        "main": "",
+        "left": {"cameras": ["camera.a_low"], "size": 10, "fit": "cover"},
+        "top": {"cameras": [], "size": 20, "fit": "cover"},
+        "right": {"cameras": [], "size": 10, "fit": "cover"},
+        "bottom": {"cameras": ["camera.b", "camera.a_low"], "size": 20, "fit": "cover"},
+    }
+    return store
+
+
+def test_commander_layout():
+    from casa_mia.modules.compositor import EMPTY_COMMANDER, commander_layout
+
+    one = {"cameras": ["camera.x"], "size": 0, "fit": "cover"}
+    cmd = {**EMPTY_COMMANDER, "width": 1000, "height": 500, "gap": 0}
+    for panel, size in (("left", 10), ("right", 10), ("top", 20), ("bottom", 20)):
+        cmd[panel] = {**one, "size": size}
+    size, main, tiles = commander_layout(cmd)
+    assert size == (1000, 500)
+    assert tiles["bottom"] == [(0, 400, 1000, 100)]  # full width
+    assert tiles["left"] == [(0, 0, 100, 400)] and tiles["right"] == [
+        (900, 0, 100, 400)
+    ]
+    assert tiles["top"] == [(100, 0, 800, 100)]  # between left and right
+    assert main == (100, 100, 800, 300)
+    cmd["left"] = cmd["right"] = cmd["top"] = {**one, "cameras": []}  # empty: no room
+    assert commander_layout(cmd)[1] == (0, 0, 1000, 400)
+
+
+def test_commander_overview_taps_choose_and_open():
+    store = commander_store()
+    assert problems(store) == []
+    views = build_dashboard(store, "http://h:8099", "dashboard-cams")["views"]
+    landscape, portrait = views[0]["sections"][0]["cards"]
+    assert landscape["image"] == "http://h:8099/g/commander.mjpg"
+    assert portrait["image"] == "http://h:8099/g/overview.mjpg?layout=portrait"
+    taps = [e for e in landscape["elements"] if e["type"] == "image"]
+    assert [t["tap_action"]["data"]["option"] for t in taps] == ["Bay", "Tablet", "Bay"]
+    mains = [e for e in landscape["elements"] if e["type"] == "conditional"]
+    assert [m["conditions"][0]["state"] for m in mains] == ["Bay", "Tablet"]
+    assert (
+        mains[0]["elements"][0]["tap_action"]["navigation_path"]
+        == "/dashboard-cams/cam-bay"
+    )
+
+
+def test_commander_problems():
+    store = commander_store()
+    store["commander"]["left"]["cameras"].append("camera.gone")
+    store["commander"]["main"] = "camera.elsewhere"
+    store["commander"]["top"]["size"] = 80
+    found = " ".join(problems(store))
+    assert "camera.gone is not one of the cameras" in found
+    assert "main camera must be one of its cameras" in found
+    assert "top panel: size must be 0-45%" in found
+
+
+def test_integration_chooses_the_main_camera(tmp_path):
+    import threading
+    import time
+    from http.server import ThreadingHTTPServer
+
+    from casa_mia.modules.compositor import Compositor
+    from test_compositor import FakeHA as FakeCameras
+
+    (tmp_path / "camera-dashboard-live.json").write_text(json.dumps(commander_store()))
+    cameras = ThreadingHTTPServer(("127.0.0.1", 0), FakeCameras)
+    threading.Thread(target=cameras.serve_forever, daemon=True).start()
+    live = Compositor(
+        tmp_path, f"http://127.0.0.1:{cameras.server_port}", "token", port=0
+    )
+    state = tmp_path / "state.json"
+    cd = CameraDashboard(tmp_path, None, lambda: None, live=live, state_path=state)
+    cd.start()
+    live.start()
+    try:
+        assert cd.health()["commander"] == {"options": ["Bay", "Tablet"], "main": "Bay"}
+        assert cd.control("commander", b'{"main": "Tablet"}') == 200
+        assert cd.health()["commander"]["main"] == "Tablet"
+        assert json.loads(state.read_text()) == {"main": "camera.b"}
+        assert cd.control("commander", b'{"main": "Nope"}') == 400
+        base = f"http://127.0.0.1:{live.port}/g/commander"
+        with urllib.request.urlopen(base + ".jpg") as r:
+            assert Image.open(io.BytesIO(r.read())).size == (1000, 500)
+        with pytest.raises(urllib.error.HTTPError):
+            urllib.request.urlopen(base + ".jpg?layout=portrait")  # landscape only
+        again = CameraDashboard(
+            tmp_path, None, lambda: None, live=live, state_path=state
+        )
+        live.main = None
+        again.start()  # the choice is kept over a restart
+        assert live.main == "camera.b"
+    finally:
+        live.stop()
+        time.sleep(0.2)
+        cameras.shutdown()
+        cameras.server_close()

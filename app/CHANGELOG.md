@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.1-b13
+
+- Camera Dashboard: new **Commander**: one landscape picture with a main camera in its natural shape, framed by four panels of cameras (bottom full width, left and right standing on it, top between them; each panel's cameras and size are set on the page, with a live preview, and the canvas size too). Choose it as the **landscape overview** (phones keep the portrait group overview). Tapping a camera in a panel makes it the main one, framed in its panel; tapping the main camera opens its live page.
+- Integration: new **Camera Commander** device with a **Main camera** select (`select.camera_commander_main_camera`): the commander's taps set it, and so can automations (`select.select_option` for motion or the gates, `select.select_next` for a carousel). The app keeps the choice over restarts and shows a change at once.
+
 ## 2026.10.1-b12
 
 - Camera Dashboard: the live view plays. It sat on "Connecting…" and timed out on a real install: the stream went through the app and the Supervisor's proxy, which holds a response until it ends, and a stream never ends. The browser now plays Home Assistant's own MJPEG stream directly, as HA's camera cards do (with the camera's short-lived access token), and the app only hands out the address.

@@ -44,10 +44,14 @@ from ..ha import HA, HAError
 from .compositor import (
     DEFAULT_TILE,
     DRAFT_STORE,
+    EMPTY_COMMANDER,
     EMPTY_OVERVIEW,
     LIVE_STORE,
+    PANELS,
     PORT,
     Compositor,
+    commander_cameras,
+    commander_layout,
     config_from_store,
     overview_layout,
     tile_grid,
@@ -61,6 +65,9 @@ THUMB_WIDTH = 160  # the page's camera thumbnails
 # (seconds), so the page's thumbnails and previews are ready at once.
 KEEP_STILLS_EVERY = 60.0
 CAMERA = re.compile(r"camera\.[a-z0-9_]+")
+# The integration's Camera Commander device: its Main camera select (options: the
+# commander's camera titles). Its taps and automations choose the main camera.
+COMMANDER_SELECT = "select.camera_commander_main_camera"
 BACKUPS = "camera-dashboard-backups"
 DEPLOYS = "camera-dashboard-deploys.json"  # when each was last deployed: live, preview
 KEEP_BACKUPS = 20  # per dashboard
@@ -91,6 +98,8 @@ DEFAULTS: dict[str, Any] = {
     "groups": {},
     "overview": EMPTY_OVERVIEW,
     "overview_portrait": EMPTY_OVERVIEW,
+    "overview_mode": "groups",  # the landscape overview: the groups, or the commander
+    "commander": EMPTY_COMMANDER,
 }
 
 Response = tuple[int, str, bytes]
@@ -232,6 +241,28 @@ def problems(store: Store) -> list[str]:
             if slug(n) in seen:
                 out.append(f"The {kind} pages {seen[slug(n)]!r} and {n!r} clash.")
             seen[slug(n)] = n
+    if store.get("overview_mode", "groups") not in ("groups", "commander"):
+        out.append("The landscape overview must be the groups or the commander.")
+    cmd = commander_of(store)
+    for key, low, high in (("width", 320, 3840), ("height", 240, 2160), ("gap", 0, 40)):
+        if not isinstance(cmd.get(key), int) or not low <= cmd[key] <= high:
+            out.append(f"The commander's {key} must be {low}-{high}.")
+    for panel in PANELS:
+        pane = cmd.get(panel) or {}
+        size = pane.get("size")
+        if not isinstance(size, (int, float)) or not 0 <= size <= 45:
+            out.append(f"The commander's {panel} panel: size must be 0-45%.")
+        if pane.get("fit", "cover") not in ("cover", "contain"):
+            out.append(f"The commander's {panel} panel: fit must be cover or contain.")
+        for e in pane.get("cameras", []):
+            if e not in cams:
+                out.append(
+                    f"The commander's {panel} panel: {e} is not one of the cameras."
+                )
+    if cmd.get("main") and cmd["main"] not in commander_cameras(cmd):
+        out.append("The commander's main camera must be one of its cameras.")
+    if store.get("overview_mode") == "commander" and not commander_cameras(cmd):
+        out.append("The commander is the landscape overview but has no cameras.")
     for which in ("overview", "overview_portrait"):
         for row in store.get(which, {}).get("rows", []):
             names = row.get("groups") or row.get("strip") or []
@@ -288,6 +319,11 @@ def warnings(
     ):
         if card in cards and look not in urls:
             out.append(f"The {card} card is not among the dashboard resources.")
+    if s["overview_mode"] == "commander" and COMMANDER_SELECT not in entities:
+        out.append(
+            f"{COMMANDER_SELECT} (the commander's taps) is not in Home Assistant: it "
+            "comes with the Casa Mia integration while Camera Dashboard is on."
+        )
     if "nav_back" not in urls:
         out.append(
             "Back needs nav_back_helper.js among the dashboard resources (it turns "
@@ -296,12 +332,19 @@ def warnings(
     return out
 
 
+def commander_of(store: Store) -> dict:
+    return {**EMPTY_COMMANDER, **(store.get("commander") or {})}
+
+
 def menu_cameras(store: Store) -> list[str]:
-    """The cameras that get a live page: those in menu groups, in order of appearance."""
+    """The cameras that get a live page: those in menu groups, in order of appearance,
+    then the commander's (when it is the overview)."""
     out: dict[str, None] = {}
     for g in store.get("groups", {}).values():
         if g.get("menu", True):
             out |= dict.fromkeys(g["cameras"])
+    if store.get("overview_mode") == "commander":
+        out |= dict.fromkeys(commander_cameras(commander_of(store)))
     return list(out)
 
 
@@ -425,14 +468,17 @@ def build_dashboard(store: Store, image_base: str, url_path: str) -> dict:
             view["sections"].insert(0, sec)
         return view
 
-    def zone(rect: tuple[int, int, int, int], canvas: tuple[int, int], to: str) -> dict:
-        """A transparent tap zone over rect (x, y, w, h); HA positions by centre."""
+    def zone(
+        rect: tuple[int, int, int, int], canvas: tuple[int, int], to: str | dict
+    ) -> dict:
+        """A transparent tap zone over rect (x, y, w, h), going to a view of this
+        dashboard (or doing an action); HA positions by centre."""
         x, y, w, h = rect
         cw, ch = canvas
         return {
             "type": "image",
             "image": BLANK,
-            "tap_action": navigate(f"/{url_path}/{to}"),
+            "tap_action": to if isinstance(to, dict) else navigate(f"/{url_path}/{to}"),
             "style": {
                 "left": f"{(x + w / 2) / cw * 100:.2f}%",
                 "top": f"{(y + h / 2) / ch * 100:.2f}%",
@@ -451,10 +497,17 @@ def build_dashboard(store: Store, image_base: str, url_path: str) -> dict:
         }
 
     def picture_view(
-        path: str, title: str, name: str, zones: dict, controls: list[dict]
+        path: str,
+        title: str,
+        name: str,
+        zones: dict,
+        controls: list[dict],
+        landscape_name: str | None = None,
     ) -> dict:
-        """The nav, then the composite in both layouts (one shown) with tap zones."""
+        """The nav, then the composite in both layouts (one shown) with tap zones. The
+        landscape picture can be another composite (the commander)."""
         url = f"{image_base}/g/{urllib.parse.quote(name)}.mjpg"
+        land = f"{image_base}/g/{urllib.parse.quote(landscape_name or name)}.mjpg"
         v: dict[str, Any] = {
             "type": "sections",
             "max_columns": 3,
@@ -465,7 +518,7 @@ def build_dashboard(store: Store, image_base: str, url_path: str) -> dict:
                     "type": "grid",
                     "column_span": 3,
                     "cards": [
-                        picture(url, zones[False], False),
+                        picture(land, zones[False], False),
                         picture(url + "?layout=portrait", zones[True], True),
                     ],
                 }
@@ -475,6 +528,41 @@ def build_dashboard(store: Store, image_base: str, url_path: str) -> dict:
         if theme:
             v["theme"] = theme
         return header(v, None, controls)
+
+    def commander_zones(cmd: dict) -> list[dict]:
+        """A tap on a panel's camera makes it the main one (the integration's select); a
+        tap on the main camera opens its live page: one zone per camera over the main
+        area, each shown only while that camera is the main one."""
+        size, main_rect, rects = commander_layout(cmd)
+        title = lambda e: cams[e]["title"]  # noqa: E731
+        out = [
+            zone(
+                rect,
+                size,
+                {
+                    "action": "perform-action",
+                    "perform_action": "select.select_option",
+                    "target": {"entity_id": COMMANDER_SELECT},
+                    "data": {"option": title(e)},
+                },
+            )
+            for panel in PANELS
+            for e, rect in zip(cmd[panel]["cameras"], rects[panel], strict=True)
+        ]
+        return out + [
+            {
+                "type": "conditional",
+                "conditions": [
+                    {
+                        "condition": "state",
+                        "entity": COMMANDER_SELECT,
+                        "state": title(e),
+                    }
+                ],
+                "elements": [zone(main_rect, size, f"cam-{slug(title(e))}")],
+            }
+            for e in commander_cameras(cmd)
+        ]
 
     def group_zones(name: str, upright: bool) -> list[dict]:
         g = groups[name]
@@ -577,8 +665,21 @@ def build_dashboard(store: Store, image_base: str, url_path: str) -> dict:
         zones[upright] = [
             zone(i["rect"], size, f"cameras-{slug(i['group'])}") for i in items
         ]
-    if s["overview"].get("rows") or s["overview_portrait"].get("rows"):
-        views.append(picture_view("cameras", s["title"], "overview", zones, []))
+    cmd = commander_of(s)
+    use_commander = s["overview_mode"] == "commander" and commander_cameras(cmd)
+    if use_commander:  # the landscape overview is the commander
+        zones[False] = commander_zones(cmd)
+    if use_commander or s["overview"].get("rows") or s["overview_portrait"].get("rows"):
+        views.append(
+            picture_view(
+                "cameras",
+                s["title"],
+                "overview",
+                zones,
+                [],
+                "commander" if use_commander else None,
+            )
+        )
     # 2. one page per menu group: one tap zone per camera, into that camera's page
     for name, g in s["groups"].items():
         if g.get("menu", True):
@@ -682,8 +783,10 @@ class CameraDashboard:
         lan_host: Callable[[], str | None],
         live: Compositor | None = None,
         draft: Compositor | None = None,
+        state_path: Path | None = None,
     ) -> None:
         self.dir = config_dir
+        self.state_path = state_path  # the commander's main camera, kept over restarts
         self.ha = ha
         self.lan_host = lan_host
         self.live = live
@@ -702,6 +805,14 @@ class CameraDashboard:
 
     def start(self) -> None:
         """Load the draft; on first start import the older files, as draft and live."""
+        if self.live and self.state_path and self.state_path.exists():
+            try:
+                main = json.loads(self.state_path.read_text()).get("main")
+            except (OSError, ValueError, AttributeError):
+                main = None
+            if main:
+                self.live.set_main(main)
+                _LOGGER.info("commander: main camera %s (as it was)", main)
         try:
             if self.draft_path.exists():
                 self.store = with_defaults(json.loads(self.draft_path.read_text()))
@@ -745,6 +856,44 @@ class CameraDashboard:
             if comp:
                 comp.reload()
 
+    def commander(self) -> dict[str, Any]:
+        """The live commander for the integration: its cameras' titles (the select's
+        options) and the main one now. Empty while it has no cameras."""
+        if not self.live:
+            return {"options": [], "main": None}
+        cfg = self.live.cfg
+        main = self.live.main_camera()
+        return {
+            "options": [cfg.titles.get(e, e) for e in commander_cameras(cfg.commander)]
+            if cfg.commander
+            else [],
+            "main": cfg.titles.get(main, main) if main else None,
+        }
+
+    def control(self, path: str, body: bytes) -> int:
+        """The integration: POST /camera-dashboard/commander {"main": <title or entity>}
+        shows that camera as the commander's main one."""
+        if path.strip("/") != "commander" or not self.live:
+            return 404
+        try:
+            wanted = str(json.loads(body or b"{}").get("main") or "")
+        except (ValueError, AttributeError):
+            return 400
+        cfg = self.live.cfg
+        cams = commander_cameras(cfg.commander) if cfg.commander else []
+        entity = next((e for e in cams if wanted in (e, cfg.titles.get(e))), None)
+        if entity is None:
+            _LOGGER.warning("commander: %r is not one of its cameras", wanted)
+            return 400
+        self.live.set_main(entity)
+        _LOGGER.info("commander: main camera %s (from Home Assistant)", entity)
+        if self.state_path:
+            try:
+                self._write(self.state_path, {"main": entity})
+            except OSError as exc:
+                _LOGGER.warning("commander: main camera not kept: %s", exc)
+        return 200
+
     def deploys(self) -> dict[str, str]:
         """When the live and preview dashboards were last deployed from here."""
         try:
@@ -761,6 +910,7 @@ class CameraDashboard:
                 "groups": len(self.store["groups"]),
                 "deployed": self.deploys().get("live"),
                 "changed": self._changed(),
+                "commander": self.commander(),
             }
 
     def _changed(self) -> bool:
