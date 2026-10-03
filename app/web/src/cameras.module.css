@@ -244,6 +244,35 @@
   cursor: pointer;
 }
 
+.combo {
+  position: relative;
+  min-width: 0;
+}
+
+.combo .menu {
+  right: 0;
+  min-width: 280px;
+}
+
+.entity {
+  display: grid;
+  min-width: 0;
+}
+
+.entity code {
+  overflow: hidden;
+  color: var(--muted);
+  font: 12px var(--mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menu li.menuNote {
+  color: var(--muted);
+  font-size: 12.5px;
+  cursor: default;
+}
+
 .menuOn {
   background: color-mix(in srgb, var(--accent) 16%, transparent);
 }

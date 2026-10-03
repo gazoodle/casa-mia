@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.1-b10
+
+- Camera Dashboard: entity fields (page controls; a camera's medium, high and zoom; the tile entity) work as in Home Assistant: type part of an entity id or name, such as `switch.` or `gate`, and pick from the matching entities, each word narrowing the list; arrow keys, Enter and Esc work. Camera channels list only cameras, zoom only numbers. This replaces the browser's own suggestion list, which on Safari could swallow the click on a control's ✕.
+
 ## 2026.10.1-b9
 
 - Camera Dashboard: each camera has a small picture beside it in the Cameras list, and in a group's **+ Add…** menu; the overview's **+ Add…** menu shows each group as its cameras' pictures on the group's grid. The pictures are fetched again every 5 minutes, not live. **+ Add…** is now a menu rather than a drop-down list (a list can't show pictures): arrow keys, Enter and Esc work as before.
