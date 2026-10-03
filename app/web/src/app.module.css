@@ -1,0 +1,495 @@
+/* The admin home: a hero header that fades into the page, then a deck of module tiles. */
+
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 16px 40px;
+}
+
+.hero {
+  position: relative;
+  overflow: hidden; /* the zoomed photo */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: min(340px, 40vh);
+  mask-image: linear-gradient(to bottom, #000 0%, rgb(0 0 0 / 70%) 60%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, rgb(0 0 0 / 70%) 60%, transparent 100%);
+}
+
+/* The house photo (photo.tsx): fills its parent, framed by inline position and zoom. */
+.photo {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.heroEdit {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgb(255 255 255 / 35%);
+  border-radius: 50%;
+  background: rgb(0 0 0 / 35%);
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 140ms ease;
+}
+
+.hero:hover .heroEdit,
+.heroEdit:focus-visible {
+  opacity: 1;
+}
+
+/* The house photo's edit panel. */
+.editor {
+  position: relative;
+  margin-top: -28px;
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.editorHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.editorHead h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.editorHead p,
+.framing p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.editorActions,
+.editorFoot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.frames {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 22px;
+  margin-top: 16px;
+}
+
+.framingHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.framing h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.slider {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) 52px;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  font-size: 13.5px;
+}
+
+.slider input {
+  accent-color: var(--accent);
+}
+
+.slider output {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  text-align: right;
+}
+
+.welcomeFrame {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.welcomeFrame .framing {
+  flex: 1;
+  min-width: 0;
+}
+
+/* A phone (390 x 844) at half size, showing the welcome page's photo (390 x 439, 52vh). */
+.miniPhone {
+  flex: none;
+  width: 195px;
+  height: 260px;
+  overflow: hidden;
+  border: 6px solid #111;
+  border-radius: 22px;
+  background: var(--bg);
+}
+
+.miniHero {
+  position: relative;
+  height: 220px;
+  overflow: hidden;
+  mask-image: linear-gradient(#000 50%, transparent);
+  -webkit-mask-image: linear-gradient(#000 50%, transparent);
+}
+
+.editorFoot {
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.heroTitle {
+  position: relative;
+  margin: 0 0 6%;
+  font-size: clamp(24px, 5vw, 38px);
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  color: #fff;
+  text-shadow: 0 2px 14px rgb(0 0 0 / 80%);
+}
+
+.page > :first-child {
+  margin-top: -28px; /* tuck the first row up under the hero's fade */
+  position: relative;
+}
+
+.banner {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border: 1px solid color-mix(in srgb, var(--bad) 50%, var(--border));
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--bad) 12%, var(--surface));
+}
+
+.loading {
+  margin-top: 30px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.section {
+  margin-top: 22px;
+}
+
+.sectionHead {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+/* auto-fill, not auto-fit: one tile stays tile-sized instead of filling the row. */
+.deck {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: linear-gradient(165deg, var(--surface-2), var(--surface) 60%);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 4%) inset, 0 8px 24px rgb(0 0 0 / 18%);
+  transition: border-color 140ms ease, transform 140ms ease;
+}
+
+.tile:hover {
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--border));
+  transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile,
+  .tile:hover {
+    transition: none;
+    transform: none;
+  }
+}
+
+.tileLink {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.more {
+  margin-top: auto;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tileHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+}
+
+.tileTitle {
+  margin: 0;
+  font-size: 16.5px;
+  font-weight: 620;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.good {
+  color: var(--good);
+}
+
+.good .dot {
+  box-shadow: 0 0 0 0 currentColor;
+  animation: pulse 2.4s ease-out infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 60%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .good .dot {
+    animation: none;
+  }
+}
+
+.warn {
+  color: var(--warn);
+}
+
+.bad {
+  color: var(--bad);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.blurb {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.facts {
+  display: grid;
+  gap: 6px;
+  margin: 2px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.fact {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13.5px;
+}
+
+.fact dt {
+  color: var(--muted);
+  white-space: nowrap; /* "Last call" stays one label; a long value wraps instead */
+}
+
+.fact dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  text-align: right;
+}
+
+.bar {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--border);
+}
+
+.barFill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--sun));
+  transition: width 400ms ease;
+}
+
+.error {
+  margin: 0;
+  color: var(--bad);
+  font-size: 12.5px;
+  overflow-wrap: anywhere; /* errors carry URLs and paths with no spaces */
+}
+
+.empty {
+  max-width: 640px;
+  margin: 26px auto 0;
+  padding: 22px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.empty h2 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+
+.empty p {
+  margin: 0 0 14px;
+  color: var(--muted);
+}
+
+.offList {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.offList li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.offBlurb {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.footer {
+  margin-top: 30px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.integration {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 6px 8px 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  font-size: 12.5px;
+}
+
+.integration code {
+  color: var(--text);
+  font-family: var(--mono);
+}
+
+.integration button {
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  cursor: pointer;
+}
+
+.footer {
+  display: grid;
+  justify-items: center;
+}
+
+@media (max-width: 700px) {
+  .hero {
+    height: min(180px, 28vh);
+  }
+
+  .welcomeFrame {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .welcomeFrame .framing {
+    align-self: stretch;
+  }
+
+  .deck {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Phones: a long fact (who last called) drops under its label instead of squeezing it. */
+@media (max-width: 640px) {
+  .fact {
+    flex-wrap: wrap;
+    row-gap: 0;
+  }
+
+  .fact dd {
+    margin-left: auto;
+  }
+}

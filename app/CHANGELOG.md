@@ -1,0 +1,251 @@
+# Changelog
+
+## 2026.10.1-b7
+
+- The panel and the guest welcome page go back to the deep green colours: calmer than the terracotta. The new icon and logo stay.
+- Kiosk Satellites: in the Home Assistant app on iPhone, iPad or Mac, Download now says the app can't save downloads and to open the panel in a browser (it failed with NSURLErrorDomain -999). Safari, Chrome and the Android app download as before.
+
+## 2026.10.1-b6
+
+- An open panel reloads itself when the app is updated, so it never keeps showing the old version's pages. (Pages already open from b5 or earlier need one manual reload to pick this up.)
+- Kiosk Satellites: downloading a kept copy of a tablet's setup works in Safari and the Home Assistant app on Apple devices (it was cancelled, NSURLErrorDomain -999), and a failed download now says so.
+
+## 2026.10.1-b5
+
+- The alarm panel's device is named after your house (House name option): for example "Villa Rosa alarm", so a new install's entity is `alarm_control_panel.villa_rosa_alarm`. Renaming the house renames the device at once (the integration reloads); HA keeps entity ids it has already made.
+- The back link on every panel page names your house instead of Casa Mia.
+- New **Count this install** option (on by default): once per version the app downloads that release's notes from GitHub, so the project's download count shows how many homes use it. Anonymous, and explained in the app's Documentation tab; switch it off and nothing else changes.
+
+## 2026.10.1-b4
+
+- When the app installs its integration for the first time, Home Assistant shows a notification asking for a restart (there is no Repair for it yet, as the integration is not loaded until then), and where to add Casa Mia afterwards.
+
+## 2026.10.1-b3
+
+- **Renamed to Casa Mia.** This is a new app and a new integration (`casa_mia`) to Home Assistant: an earlier build under its working name does not update to it, so install this one, set it up afresh, then remove the old app and its integration. The FONA event is now `casa_mia_fona`, the guest login event `casa_mia_guest_login`, the text service `casa_mia.send_sms`, and QR codes are saved under `/media/casa-mia/`.
+- New **House name** option: shown over the house photo on the panel's home page and on the guest welcome page, whose default title is now "Welcome to <house name>".
+- Guest login: the "Printed QR code" tick is now **Legacy QR code (ha-auto-guest-login)**, for QR codes made for that app.
+- New icon and logo (a house with a heart), in the app store, on the integration and in the sidebar; the panel and the guest welcome page take their colours from it (terracotta, cream and garden green), in dark and light.
+- Integration 2026.10.1-b3.
+
+## 2026.10.1-b2
+
+- New **Alarm panel** option (default off): the alarm panel can now be switched off like every other feature, and has a tile in the panel. **Switch it on after this update if you use the alarm.**
+- Integration: a feature switched off in the app no longer has a device in Home Assistant. Its device and entities are removed (guest endpoints included), and come back when it is switched on again; the integration reloads by itself when a feature is switched on or off.
+- The app's log says at start which features are on and which are off, and whether the alarm panel is switched on.
+- Integration 2026.10.1-b2 (restart Home Assistant when asked).
+
+## 2026.10.1-b1
+
+- Versions now follow Home Assistant's style: YYYY.M.R for releases, YYYY.M.R-bN for the test builds before one.
+- The integration's version is now the app version it last changed in (from its next change; it stays 0.5.2 until then), so it still only asks for a restart when it really changed.
+- The Network section of the app's Configuration tab now says which feature each port belongs to, so the ports of features that are off can be blanked.
+- Preparing for a public release: private details (addresses, names) removed from the code and docs; the camera layout shipped with the app is now an example.
+
+## 0.1.42
+
+- Kiosk Satellites: Export and Import are replaced by backups the app keeps itself.
+  - Choose what (settings only or full config), how many to keep per tablet (1 to 6) and how often to check (6 hours, 12 hours, daily or weekly; daily by default).
+  - Each check takes the tablet's setup into the app's data and keeps it only if something changed, apart from the export time. The log names the keys that changed, so other noise can be left out too.
+  - Each row shows how many backups a tablet has and when it last changed. Click a tablet to see its backups, newest first, with what changed in each; **Get latest** takes one now, and each can be downloaded or restored to the tablet.
+  - **Update** appears on a tablet behind the latest release: it installs the release from the firmware server, as the tablet's own Updates button does.
+  - Fixed: a kiosk opened in the panel could stick at "Reconnecting...". Through Home Assistant its websocket reconnected with the kiosk's path added twice, and the kiosk refused it.
+  - The kiosk page in the panel no longer has the New tab and On the LAN links; Visit on the list does that.
+
+## 0.1.41
+
+- Kiosk Satellites: followers are now listed indented under their leader. A kiosk names its leader by name, not by id, so no follower was ever matched and all of them were listed at the top level.
+
+## 0.1.40
+
+- House photo editor: Cancel now undoes everything, the photo included. Choosing a photo or **Use the original** only previews it; the change is saved with Save, together with the framing. Before, the photo change was saved at once and Cancel kept it.
+
+## 0.1.39
+
+- Kiosk Satellites:
+  - Fixed: commands from a kiosk's admin page opened in the panel reached the tablet with their first letter missing ("estartApp"). The app no longer edits the page's scripts; a small script on the page redirects its requests instead.
+  - Leaders are listed first, each with the kiosks that follow it indented beneath; several leaders are fine.
+  - **Visit ↗** opens a kiosk's admin page directly in a new browser tab, for use at home.
+  - **Log out** forgets the app's long-lived login for one tablet (nothing changes on the tablet).
+  - Hover tips on every action. Export is tablet to you, Import is you to tablet, and the dialogs now say so.
+  - The app looks for new kiosks when it starts and when you press Look now, no longer every 10 minutes. Known kiosks are still checked every minute.
+- Green buttons use whichever text colour reads best: white on the darker green of the light theme, dark on the lighter green of the dark theme.
+
+## 0.1.38
+
+- New module, Kiosk Satellites (switch on **Kiosk Satellites** in Configuration). It finds the wall tablets through Home Assistant's ESPHome devices and through each other, and shows each one's version (flagged when behind the firmware server's latest), IP, battery and Wi-Fi.
+  - **Log in** once with the kiosks' remote-admin password; the app keeps a long-lived login for each kiosk, never the password.
+  - **Export** downloads a kiosk's settings or full config and keeps the latest copy in the app's data, so Home Assistant backups include it. **Import** applies an export file, or the kept copy.
+  - **Open** shows the kiosk's own admin page inside the panel, logged in, through Home Assistant, so it works away from home too. A direct link for use at home is next to it.
+
+## 0.1.37
+
+- House photo editor: a Reset button for the home page and for the welcome page puts back that page's last saved framing, so you can try a change and undo it.
+- New default framing for the photo the app comes with: home page zoom 1.0, centred left to right, 49% down; welcome page zoom 1.35, 21% across, 89% down. A framing you have already saved is kept.
+
+## 0.1.36
+
+- The house photo is now a setting. The pencil on the home page's photo opens an editor: upload your own photo (or go back to the original), and set the zoom and framing for the home page and for the guest welcome page, with a live preview. Saved in the app's config folder; nothing is rebuilt.
+
+## 0.1.35
+
+- Firmware server: the release list the tablets read only names releases whose APKs are on disk. GitHub listed 2026.10.3 before its files were attached, and tablets were being offered an update they could not download.
+- Guest login: the log no longer shows the printed QR codes' secret dashboard ids (at start-up and in refusals); it shows `/guest-dashboards/<printed QR id>` instead.
+
+## 0.1.34
+
+- Phones: the People table shows Name, Call and Text above the ticks, with the number under each name; text boxes no longer make iPhones zoom in; long tile values wrap instead of widening the page; an area's button sits under its description.
+- Long errors (URLs, file paths) wrap inside their tile or banner instead of running out of it, on every screen; tile labels such as "Last call" no longer break in two beside a long value.
+
+## 0.1.33
+
+- Guest login devices are named "Guest: <label>" (or "Engineer: <label>"), so they stand apart from the house's own devices. Existing entity ids are not changed.
+- Phone and SMS: the signal gets a quality word as well as dBm (excellent, good, OK, bad, terrible, from the usual GSM bands: -73 dBm or better is excellent, -93 is still OK, below -109 is terrible), on the tile and as a new Signal quality sensor (integration 0.5.2).
+
+## 0.1.32
+
+- Wording: People is everyone known to the home; the FONA option is **Phone and SMS**, a way to reach the house without the internet.
+- The Phone and SMS tile (and the integration's State sensor) shows who last called and texted, with the time; intrusions show the number and why.
+- Logging: every call and text is logged with who, the number and the message; texts sent and their result too. Raw serial traffic moved to debug. Every change made on the admin page and every request from the integration is logged. The start line is boxed, so each restart stands out.
+- Dialogs: Tab and Shift+Tab move through every field and button, Enter saves, Esc cancels. (Enter used to press Cancel.)
+- People: the Call and Text headings line up with their ticks.
+
+## 0.1.31
+
+- New: **People** page in the Casa Mia panel: everyone known to the home; today one phone number each (type it as you would dial it), with a Call and a Text tick and an optional link to a Home Assistant person. A "Check a number" box shows what the line would do. Saved in `people.json` in the app's config folder.
+- New: **Phone and SMS (FONA)** option. The app talks to the FONA's Arduino itself (found by its stable USB id, reconnects on its own, probes a quiet line), answers PING with "PONG from App", checks each call and text against People, and passes it to Home Assistant as authorised or intrusion. Off until you switch it on.
+- Integration 0.5.0: a FONA device with State, Signal, Reset and Call and Text events (authorised or intrusion), the `casa_mia.send_sms` service, and "PONG from Integration".
+
+## 0.1.30
+
+- The app logs its version when it starts.
+
+## 0.1.29
+
+- Firmware server: the tablet URL is just `http://<host>:8000`; Kiosk Satellite does not need `/releases.json` on the end.
+- Firmware server: each tablet's update check and APK download is logged (with the tablet's address), and the tile shows when a tablet last checked.
+
+## 0.1.28
+
+- Firmware server page in the Casa Mia panel: the tablets' URL (with copy), Check now, how many older releases to keep, and the firmware files on disk with dates and sizes.
+
+## 0.1.27
+
+- Integration 0.4.0: the house alarm moves in from the separate `casa_mia_alarm` integration, as a "Casa Mia alarm" panel (arm away, disarm, triggered) driven by the alarm panel's sensors and toggle button. Its code is set in the Casa Mia integration's options; until it is set the panel refuses to arm or disarm (the old one fell back to a default). A wrong code is now reported instead of silently ignored, and arming while the alarm is triggered no longer presses the toggle (which would have disarmed it).
+
+## 0.1.26
+
+- Fix: Try it failed ("server dropped the connection") when it moved to the box's .local name: that name resolves to IPv6 first, and the app's ports only answer on IPv4. It now keeps the IP for the guest page and only sends the browser to Home Assistant under the other name; the guest server accepts only names the box really has.
+
+## 0.1.25
+
+- The landing dashboard picker leaves out admin-only dashboards: guests and engineers are never administrators, so they could not open them.
+- A "Try it" button beside each endpoint's QR code opens its address in a new tab and runs the whole sign-in, as a scan would. When that address is the one your browser uses for Home Assistant, it opens under the box's other name (its IP or its .local name), so the trial login never replaces your own.
+
+## 0.1.24
+
+- Remove the welcome page preview's "Open in new tab" button: a tab outside Home Assistant's ingress cannot load it. The Preview window stays.
+
+## 0.1.23
+
+- Fix: the welcome page preview's "Open in new tab" said unauthorised. The tab now opens a self-contained copy of the page (photo included) instead of going back through Home Assistant's ingress.
+
+## 0.1.22
+
+- The guest welcome page has the admin panel's look: the house photo fading into the page, a card with the title and message, and follows the phone's light or dark setting.
+- The app logs the exact URL to set the Casa Mia integration up with, and the admin panel shows it with a copy button. The integration's setup form (0.3.2) fills it in by itself when it finds the app.
+- Guest login Settings has a Preview: the welcome page with the values you are editing, in a phone-sized window or a new browser tab.
+
+## 0.1.21
+
+- Fix: Add login → Existing Home Assistant user listed no users (the username was read from the wrong place in HA's user list).
+
+## 0.1.20
+
+- Guest login page in the admin panel: logins (HA users, created or linked, with a credential test) and endpoints (landing dashboard picked from every dashboard and view in HA), each endpoint's QR code to download or save into HA's media folder, on/off and timed opening. Changes apply at once, with no app restart.
+- Guest login config moves from the app options into `guest-login.json` in the app's config folder; the `guest_*` options are gone except the on/off switch. Re-enter logins and endpoints in the new page.
+
+## 0.1.19
+
+- Casa Mia admin panel (Open web UI, and in the sidebar): a tile per switched-on module with its live state; says what to switch on when nothing is.
+
+## 0.1.18
+
+- The integration (0.3.1) removes the device and entities of a guest endpoint that no longer exists (renamed or deleted), so nothing stale is left behind. `login` is now a reserved endpoint id.
+
+## 0.1.17
+
+- Guest login endpoints keep their on/off state (and any timed opening) across app restarts and updates; the state is kept in the app's data folder.
+
+## 0.1.16
+
+- The guest welcome page has a configurable delay, title and message, app-wide (`guest_welcome_*`) and per endpoint (`delay`, `title`, `message`).
+- Help text on every guest login option, including each field of the Add account and Add endpoint dialogs (what the label, ID, slug and account are for).
+
+## 0.1.15
+
+- Guest login logs every request it refuses (unknown or switched-off endpoint, with the client address) and, in each case, what to change to fix it, including a ready-to-paste `guest_endpoints` entry. It also reports its configuration at start and says exactly why a login failed. The page itself still reveals nothing.
+
+## 0.1.14
+
+- Guest login endpoints are now the `guest_endpoints` app option (edited in the Configuration tab) instead of a file in the config folder; `guest_default_account` sets the default account.
+
+## 0.1.13
+
+- Add the `guest-login` module: guest and engineer QR endpoints that log a visitor into Home Assistant, each off until enabled (`guest_login_enabled` option, accounts in `guest_accounts`). The integration (0.3.0) adds a "Guest login" device with a child device per endpoint: access switch, last login, login count and a login event.
+
+## 0.1.12
+
+- Keep Pillow's own debug output out of the log, even at `log_level: debug`.
+
+## 0.1.11
+
+- Add the `compositor` module: tiles Home Assistant camera stills into one image per camera group and serves them on port 8099 (`compositor_enabled` option, config in the app's config folder).
+- The house `groups.json` and `entities.json` ship in the app and are copied into its config folder when missing (never overwritten).
+- Start through `run.sh` so the app receives `SUPERVISOR_TOKEN`.
+
+## 0.1.10
+
+- The integration gives each module its own device (starting with "Firmware server").
+- gitproxy reports download progress (downloading, bytes, percent); the integration shows it (integration 0.2.4).
+
+## 0.1.9
+
+- Add the `gitproxy` module: mirrors the Kiosk Satellite firmware and serves it to the tablets on port 8000, with an on/off option (integration 0.2.1 shows its state and latest version, and has a Force Check button).
+
+## 0.1.8
+
+- Fix a translation error in the Casa Mia integration's setup dialog (integration 0.1.1).
+
+## 0.1.7
+
+- Colour log lines by level, as Home Assistant does (set `NO_COLOR` to turn it off).
+
+## 0.1.6
+
+- Log in Home Assistant's format (timestamp with milliseconds, level, thread, logger name).
+
+## 0.1.5
+
+- Fix the integration install failing to find the bundled components (the container's environment variables do not reach the app under s6).
+
+## 0.1.4
+
+- Fix the build reusing a cached, stale source clone, which left the integrations out of the image.
+
+## 0.1.3
+
+- Add a placeholder Documentation tab.
+
+## 0.1.2
+
+- Add this changelog, shown in the Supervisor's update dialog.
+
+## 0.1.1
+
+- Install the bundled Home Assistant integrations into `/config/custom_components` on start, and let each one raise its own "restart required" Repair.
+- `/health` now reports the local API version.
+
+## 0.1.0
+
+- First skeleton: `/health` endpoint and icon.

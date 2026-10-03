@@ -1,0 +1,221 @@
+/* The Kiosk Satellites page: one row per kiosk, and a kiosk's admin page in a frame.
+   The page frame and areas come from guest.module.css. */
+
+.headActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.list {
+  display: grid;
+  gap: 4px;
+}
+
+.kiosk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  padding: 10px 12px;
+  border-radius: 12px;
+}
+
+.kiosk:hover {
+  background: var(--surface-2);
+}
+
+/* A follower sits under its leader, indented, with a line back to it. */
+.follower {
+  margin-left: 26px;
+  border-left: 2px solid var(--border);
+  border-radius: 0 12px 12px 0;
+}
+
+.leader {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+}
+
+.offline .main {
+  opacity: 0.6;
+}
+
+.main {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.backupBad {
+  color: var(--warn);
+}
+
+.backupSettings {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  justify-items: start;
+  gap: 10px 14px;
+  margin-bottom: 10px;
+  font-size: 13.5px;
+}
+
+.panelHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.backups {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.backups li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 14px;
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+
+.backups li:hover {
+  background: var(--surface-2);
+}
+
+.backupMain {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.changes {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 50%;
+}
+
+.on {
+  background: var(--good);
+}
+
+.off {
+  background: var(--bad);
+}
+
+.version {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--good) 14%, transparent);
+  color: var(--good);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.behind {
+  background: color-mix(in srgb, var(--warn) 18%, transparent);
+  color: var(--warn);
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.ip {
+  font-family: var(--mono);
+  font-size: 12.5px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.actions a {
+  text-decoration: none;
+}
+
+.actions a[aria-disabled="true"] {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.addRow {
+  display: flex;
+  gap: 8px;
+  max-width: 420px;
+}
+
+.addRow input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* A kiosk's admin page: a slim bar, then the page filling the rest of the panel. */
+.frame {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.frameBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.frame iframe {
+  flex: 1;
+  width: 100%;
+  border: 0;
+  background: #fff;
+}
+
+@media (max-width: 640px) {
+  .follower {
+    margin-left: 14px;
+  }
+
+  .actions {
+    width: 100%;
+  }
+}

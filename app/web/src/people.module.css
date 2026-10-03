@@ -1,0 +1,146 @@
+/* The People page: one row per person with Call and Text ticks, and the number checker.
+   The page frame and areas come from guest.module.css. */
+
+/* One grid for the whole table, rows on its columns (subgrid), so the headings line up
+   with the ticks whatever the buttons' width. */
+.table {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 52px 52px auto;
+  row-gap: 4px;
+}
+
+.row {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+
+.row:not(.head):hover {
+  background: var(--surface-2);
+}
+
+.head {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.number {
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+.tick {
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.tick input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+  /* Name and the two ticks on the first line, the number under the name, the buttons
+     last; the heading row keeps only Name, Call and Text. */
+  .table {
+    grid-template-columns: minmax(0, 1fr) 44px 44px;
+  }
+
+  .row > .name {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .row > .tick:nth-of-type(1) {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .row > .tick:nth-of-type(2) {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .row > .number {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .row > .actions {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    justify-content: flex-start;
+  }
+
+  .head > span:nth-child(2),
+  .head > span:last-child {
+    display: none;
+  }
+
+  .head > span:nth-child(3) {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .head > span:nth-child(4) {
+    grid-column: 3;
+    grid-row: 1;
+  }
+}
+
+.checker {
+  display: grid;
+  gap: 10px;
+}
+
+.checkRow {
+  display: flex;
+  gap: 8px;
+  max-width: 420px;
+}
+
+.results {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13.5px;
+}
+
+.allowed {
+  color: var(--good);
+}
+
+.refused {
+  color: var(--bad);
+}
+
+.normal {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 12px;
+}

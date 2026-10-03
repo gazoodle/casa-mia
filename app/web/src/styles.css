@@ -1,0 +1,90 @@
+/* Casa Mia theme tokens: deep forest green, chosen over the icon's terracotta because it
+   reads calmer and more professional. Dark by default; light follows the viewer's system
+   setting. */
+:root {
+  --bg: #07170f;
+  --surface: #0f2419;
+  --surface-2: #143022;
+  --border: #21402f;
+  --text: #eef5ef;
+  --muted: #9db3a4;
+  --accent: #7bd1a0;
+  --on-accent: #062117; /* text on an accent button: 9.3:1 here, white would be 1.8:1 */
+  --sun: #fbbf24;
+  --bark: #d8885a;
+  --good: #6ee7a8;
+  --warn: #fbbf24;
+  --bad: #ff7a6b;
+  --radius: 14px;
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f4f6f1;
+    --surface: #ffffff;
+    --surface-2: #eef4ee;
+    --border: #d9e3da;
+    --text: #13241a;
+    --muted: #5d7064;
+    --accent: #1f7a4d;
+    --on-accent: #fff; /* 5.3:1 on this darker green */
+    --good: #1f9d5c;
+    --warn: #b7791f;
+    --bad: #c2412d;
+    color-scheme: light;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.45 var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: var(--accent);
+}
+
+/* Phones: iOS Safari zooms the page into any field under 16px; this stops it. */
+@media (max-width: 640px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}

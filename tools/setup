@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Create or refresh .venv. Python 3.11 matches the HA base image (Debian bookworm), and the
+# venv keeps Homebrew/system Python upgrades from touching this project's runtime.
+# Safe to re-run. Everything runs via .venv/bin/..., never the system python.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+[ -x .venv/bin/python ] || "${PYTHON:-python3.11}" -m venv .venv
+.venv/bin/python -m pip install -q -U pip
+.venv/bin/python -m pip install -q -e '.[dev,test]'

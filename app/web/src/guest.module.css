@@ -1,0 +1,455 @@
+/* The guest login page: two areas, Endpoints (list + the selected one's QR code) and
+   Logins (cards). */
+
+.page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 14px 16px 60px;
+}
+
+.top {
+  margin-bottom: 10px;
+}
+
+.back {
+  color: var(--muted);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.back:hover {
+  color: var(--accent);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.head h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.head p {
+  margin: 2px 0 0;
+  color: var(--muted);
+}
+
+.headIcon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+}
+
+.settings {
+  margin-left: auto;
+}
+
+.offChip {
+  margin-left: auto;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--warn) 18%, transparent);
+  color: var(--warn);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.notice {
+  color: var(--muted);
+}
+
+.warning {
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border: 1px solid color-mix(in srgb, var(--warn) 45%, var(--border));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--warn) 10%, var(--surface));
+  font-size: 13.5px;
+  overflow-wrap: anywhere; /* errors carry URLs and paths with no spaces */
+}
+
+.area {
+  margin-bottom: 26px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+}
+
+.areaHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.areaHead h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.areaHead p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.empty {
+  margin: 0;
+  padding: 18px;
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* Endpoints: the list beside the selected endpoint's QR code. */
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(300px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg);
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.row:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+
+.rowOn {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg));
+}
+
+.rowMain {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.rowTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.rowMeta {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stateText {
+  color: var(--muted);
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.badgeEng {
+  composes: badge;
+  background: color-mix(in srgb, var(--bark) 20%, transparent);
+  color: var(--bark);
+}
+
+.detail {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: linear-gradient(170deg, var(--surface-2), var(--surface) 70%);
+  position: sticky;
+  top: 12px;
+}
+
+.detailHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.detailHead h3 {
+  margin: 0 0 2px;
+  font-size: 17px;
+}
+
+.open {
+  color: var(--good);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.closed {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.qrFrame {
+  display: grid;
+  place-items: center;
+  padding: 8px;
+}
+
+.qr {
+  width: min(260px, 100%);
+  aspect-ratio: 1;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 30%);
+}
+
+.url {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  font-family: var(--mono);
+  font-size: 12px;
+  text-align: left;
+  word-break: break-all;
+  cursor: copy;
+}
+
+.lands {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tryRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.tryHelp {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.openRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.openFor {
+  margin-left: 6px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.delete {
+  justify-self: start;
+}
+
+/* Logins */
+.logins {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.login {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg);
+}
+
+.loginHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.loginHead h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 15px;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--sun) 25%, transparent);
+  color: var(--sun);
+  font-weight: 700;
+}
+
+.adminWarn {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bad) 12%, transparent);
+  color: var(--bad);
+  font-size: 12.5px;
+}
+
+.login p {
+  margin: 0;
+}
+
+/* Dialog pieces */
+.fieldset {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.fieldset legend {
+  padding: 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.check input {
+  width: auto;
+  margin-top: 3px;
+  accent-color: var(--accent);
+}
+
+.checkHelp {
+  display: block;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.slugRow {
+  display: flex;
+  gap: 8px;
+}
+
+.slugRow input {
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+@media (max-width: 820px) {
+  .split {
+    grid-template-columns: 1fr;
+  }
+
+  .detail {
+    position: static;
+  }
+
+  .stateText {
+    display: none;
+  }
+}
+
+/* Welcome page preview */
+.previewRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.previewRow > span {
+  flex: 1 1 220px;
+}
+
+.phoneStage {
+  display: flex;
+  justify-content: center;
+  padding-top: 12px;
+  overflow: hidden;
+}
+
+.phone {
+  flex: none;
+  transform-origin: top center;
+  overflow: hidden;
+  border: 10px solid #000;
+  border-radius: 38px;
+  background: #000;
+  box-shadow: 0 18px 50px rgb(0 0 0 / 50%);
+}
+
+.phone iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 28px;
+}
+
+/* Phones: an area's button goes under its description rather than squeezing it. */
+@media (max-width: 640px) {
+  .areaHead {
+    flex-wrap: wrap;
+  }
+}

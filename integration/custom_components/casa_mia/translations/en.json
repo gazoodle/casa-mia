@@ -1,0 +1,93 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Casa Mia app",
+        "description": "Address of the Casa Mia app on the Supervisor network. It is filled in when the app is found; otherwise copy it from the Casa Mia panel (the Integration URL at the foot of its home page) or the app's log, for example http://a6aa04a6-casa-mia:8780.",
+        "data": { "url": "URL" }
+      }
+    },
+    "error": { "cannot_connect": "The Casa Mia app did not answer at that address." },
+    "abort": { "already_configured": "Casa Mia is already set up." }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Casa Mia",
+        "description": "The code the alarm panel asks for when arming and disarming. Until one is set, the panel refuses both.",
+        "data": { "alarm_code": "Alarm code" }
+      }
+    }
+  },
+  "exceptions": {
+    "alarm_no_code": { "message": "No alarm code is set. Set one in the Casa Mia integration's options." },
+    "alarm_wrong_code": { "message": "Wrong alarm code." }
+  },
+  "entity": {
+    "switch": { "access": { "name": "Access" } },
+    "event": {
+      "login": { "name": "Login", "state_attributes": { "event_type": { "state": { "login": "Login" } } } },
+      "fona_call": { "name": "Call", "state_attributes": { "event_type": { "state": { "authorised": "Authorised", "intrusion": "Intrusion" } } } },
+      "fona_text": { "name": "Text", "state_attributes": { "event_type": { "state": { "authorised": "Authorised", "intrusion": "Intrusion" } } } }
+    },
+    "binary_sensor": { "gitproxy_downloading": { "name": "Downloading firmware" } },
+    "button": { "gitproxy_check": { "name": "Force firmware check" }, "fona_reset": { "name": "Reset" } },
+    "sensor": {
+      "app_version": { "name": "App version" },
+      "fona_state": {
+        "name": "State",
+        "state": { "connected": "Connected", "starting": "Starting", "offline": "Offline", "disabled": "Disabled" }
+      },
+      "fona_signal": { "name": "Signal" },
+      "fona_signal_quality": {
+        "name": "Signal quality",
+        "state": { "excellent": "Excellent", "good": "Good", "ok": "OK", "bad": "Bad", "terrible": "Terrible" }
+      },
+      "gitproxy_state": {
+        "name": "State",
+        "state": { "running": "Running", "offline": "Offline", "disabled": "Disabled" }
+      },
+      "guest_state": {
+        "name": "State",
+        "state": { "running": "Running", "offline": "Offline", "disabled": "Disabled" }
+      },
+      "last_login": { "name": "Last login" },
+      "logins": { "name": "Logins" },
+      "gitproxy_latest": { "name": "Latest firmware" },
+      "gitproxy_bytes": { "name": "Firmware downloaded" },
+      "gitproxy_percent": { "name": "Firmware download progress" }
+    }
+  },
+  "issues": {
+    "restart_required": {
+      "title": "Restart needed for Casa Mia",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Restart Home Assistant",
+            "description": "The Casa Mia integration was updated from {from_version} to {to_version}. Restart Home Assistant to load it."
+          }
+        }
+      }
+    },
+    "api_mismatch": {
+      "title": "Casa Mia app and integration disagree",
+      "description": "The app speaks API {app_api} but this integration expects API {expected_api}. Update the app and the integration together."
+    }
+  },
+  "services": {
+    "send_sms": {
+      "name": "Send text",
+      "description": "Send a text message through the FONA.",
+      "fields": {
+        "number": { "name": "Number", "description": "Phone number, as 07700 900123 or +44 7700 900123." },
+        "message": { "name": "Message", "description": "The text, up to 160 characters." }
+      }
+    },
+    "enable_for": {
+      "name": "Open for a time",
+      "description": "Open a guest or engineer login endpoint, then close it again after the given time.",
+      "fields": { "minutes": { "name": "Minutes", "description": "How long the endpoint stays open (1 to 1440)." } }
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+ "camera.front_door_low_resolution_channel": {
+  "high": "camera.front_door_high_resolution_channel",
+  "medium": "camera.front_door_medium_resolution_channel"
+ }
+}

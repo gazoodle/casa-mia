@@ -1,0 +1,27 @@
+# A pushed release tag (YYYY.M.R, made by `tools/versioning.py release`) becomes a GitHub
+# release whose notes are that version's changelog section: every build's notes since the
+# last release, merged by the release step. The notes are also attached as release-notes.md:
+# each app fetches it once per version (the count_install option), and GitHub's download
+# count of it is the README's Downloads badge.
+name: Release
+
+on:
+  push:
+    tags: ["20[0-9][0-9].[0-9]*.[0-9]*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: ${{ !contains(github.ref_name, '-') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: The tag is the version in pyproject.toml
+        run: grep -qx "version = \"$GITHUB_REF_NAME\"" pyproject.toml
+      - run: python3 tools/versioning.py notes "$GITHUB_REF_NAME" > notes.md
+      - run: gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md \
+          "notes.md#release-notes.md"
+        env:
+          GH_TOKEN: ${{ github.token }}

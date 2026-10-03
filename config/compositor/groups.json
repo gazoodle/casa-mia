@@ -1,0 +1,33 @@
+{
+ "Outside": [
+  {"entity": "camera.front_door_low_resolution_channel", "title": "Front Door"},
+  {"entity": "camera.drive_low_resolution_channel", "title": "Drive"}
+ ],
+ "Garden": [
+  {"entity": "camera.patio_low_resolution_channel", "title": "Patio"},
+  {"entity": "camera.back_garden_low_resolution_channel", "title": "Back Garden"}
+ ],
+ "Wall 2x2": {
+  "cameras": [
+   {"entity": "camera.front_door_low_resolution_channel", "title": "Front Door"},
+   {"entity": "camera.drive_low_resolution_channel", "title": "Drive"},
+   {"entity": "camera.patio_low_resolution_channel", "title": "Patio"},
+   {"entity": "camera.back_garden_low_resolution_channel", "title": "Back Garden"}
+  ],
+  "tile": [640, 360]
+ },
+ "_overview": {
+  "width": 1280,
+  "gap": 8,
+  "cell_aspect": 1.7,
+  "strip_aspect": 1.5,
+  "rows": [{"groups": ["Outside", "Garden"]}]
+ },
+ "_overview_portrait": {
+  "width": 720,
+  "gap": 8,
+  "cell_aspect": 1.7,
+  "strip_aspect": 1.5,
+  "rows": [{"groups": ["Outside"]}, {"groups": ["Garden"]}]
+ }
+}

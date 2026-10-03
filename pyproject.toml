@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=77"]  # 77: SPDX `license` strings
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "casa-mia"
+version = "2026.10.1-b7"
+description = "Casa Mia Home Assistant app: FONA, alarm, deployment and generators"
+license = "MIT"
+license-files = ["LICENSE"]
+# 3.11 is what the HA base image's Debian bookworm ships; the venv matches it.
+requires-python = ">=3.11"
+dependencies = ["aiohttp>=3.10,<4", "pillow>=10.1", "pyserial>=3.5,<4", "segno>=1.6,<2"]
+
+[project.optional-dependencies]
+test = ["pytest>=9,<10", "pyyaml>=6,<7"]
+dev = [
+    "pyright[nodejs]>=1.1,<2",
+    "ruff>=0.15,<0.16",
+]
+
+[tool.setuptools.packages.find]
+where = ["app/src"]
+
+[tool.setuptools.package-data]
+# The built admin UI ships inside the package (see tools/build_web).
+casa_mia = ["web/*", "web/**/*"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+src = ["app/src", "tools", "tests"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Source tree on the path so tests need no installed package.
+pythonpath = ["app/src"]
