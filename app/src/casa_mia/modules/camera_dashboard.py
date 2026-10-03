@@ -1115,11 +1115,13 @@ class CameraDashboard:
                         "entity": s["entity_id"],
                         "name": s.get("attributes", {}).get("friendly_name")
                         or s["entity_id"],
+                        "state": s.get("state"),
                     }
                     for s in states
                 ),
                 key=lambda e: e["entity"],
             ),
+            "commander_select": COMMANDER_SELECT,
             "error": None,
         }
 

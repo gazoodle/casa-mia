@@ -93,7 +93,9 @@ type HAUser = { id: string; name: string; is_active: boolean };
 type HA = {
   cameras?: HACamera[];
   users?: HAUser[];
-  entities?: { entity: string; name: string }[];
+  entities?: { entity: string; name: string; state?: string }[];
+  /** The integration's Main camera select, which the commander's taps set. */
+  commander_select?: string;
   /** What the saved draft needs that Home Assistant seems to lack. */
   warnings?: string[];
   error: string | null;
@@ -110,7 +112,7 @@ const THUMB_EVERY_MS = 5 * 60_000;
 /** Which round of thumbnails to show: bumped every THUMB_EVERY_MS. */
 const ThumbRound = createContext(0);
 /** Home Assistant's entities, for the entity fields. */
-const Entities = createContext<{ entity: string; name: string }[]>([]);
+const Entities = createContext<{ entity: string; name: string; state?: string }[]>([]);
 
 const DEFAULT_PTZ: Ptz = { action: "unifiprotect.ptz_goto_preset", data: {}, presets: [] };
 
@@ -342,6 +344,7 @@ export function CameraDashboardPage({ state }: { state?: string }) {
             </>
           }
         />
+        <CommanderSelectCheck ha={ha} />
         <CommanderEditor
           value={draft.commander}
           cameras={draft.cameras}
@@ -627,6 +630,32 @@ function OverviewEditor({
       <p className={css.hint}>
         <b>Groups</b>: each group's composite as one cell. <b>Strip</b>: those groups' cameras side by side in one line.
       </p>
+    </div>
+  );
+}
+
+/** Whether the commander's taps can work: they set the integration's Main camera select,
+ * so say plainly when Home Assistant doesn't have it (yet), or has it with no cameras. */
+function CommanderSelectCheck({ ha }: { ha?: HA }) {
+  if (!ha?.entities || !ha.commander_select) return null;
+  const select = ha.entities.find((e) => e.entity === ha.commander_select);
+  if (select && select.state !== "unavailable") return null;
+  return (
+    <div className={css.alarm} role="alert">
+      <strong>Taps on the commander do nothing yet.</strong>{" "}
+      {select ? (
+        <>
+          <code>{ha.commander_select}</code> is unavailable in Home Assistant: either the integration can't reach this
+          app, or the commander has no saved cameras yet (save a draft with cameras in its panels; Home Assistant picks
+          them up within 30 seconds).
+        </>
+      ) : (
+        <>
+          Home Assistant has no <code>{ha.commander_select}</code>, which every tap sets. It comes with the Casa Mia
+          integration: after the app updates the integration, Home Assistant needs a restart to load it (Settings →
+          Repairs, or Settings → System → Restart).
+        </>
+      )}
     </div>
   );
 }

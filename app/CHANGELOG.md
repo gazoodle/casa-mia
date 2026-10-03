@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.1-b16
+
+- Commander: when its taps can't work, the Commander section says so in red at its top: Home Assistant has no `select.camera_commander_main_camera` yet (it needs a restart after the app updates the integration), or the select is unavailable (the integration can't reach the app, or the commander has no saved cameras). Taps were silently doing nothing in that state.
+- Integration: the restart Repair now says what waits for the restart: until Home Assistant restarts, nothing new in the updated integration works, including new devices and entities such as the Camera Commander's Main camera.
+
 ## 2026.10.1-b15
 
 - Commander: the four panel editors sit two to a row, each half the section's width, instead of three to a row with a gap beside the fourth.

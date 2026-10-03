@@ -53,6 +53,17 @@
   font-weight: 600;
 }
 
+/* A problem that stops something working, shown where it matters. */
+.alarm {
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border: 1px solid color-mix(in srgb, var(--bad) 55%, var(--border));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bad) 12%, var(--surface));
+  font-size: 13.5px;
+  overflow-wrap: anywhere;
+}
+
 .problems {
   margin: 6px 0 0;
   padding-left: 18px;

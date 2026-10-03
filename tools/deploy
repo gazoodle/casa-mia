@@ -5,7 +5,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 HOST=${CM_HA_SSH:-hassio@homeassistant.local}
-SLUG=${CM_APP_SLUG:-a6aa04a6_casa_mia}
+SLUG=${CM_APP_SLUG:-4e358812_casa_mia}
 
 if [ -n "$(git status --porcelain)" ]; then
     echo "NOTE: uncommitted changes will NOT be deployed (the fake git host serves commits only)." >&2

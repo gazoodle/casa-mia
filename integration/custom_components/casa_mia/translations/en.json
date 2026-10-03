@@ -61,12 +61,12 @@
   },
   "issues": {
     "restart_required": {
-      "title": "Restart needed for Casa Mia",
+      "title": "Restart Home Assistant to finish updating Casa Mia",
       "fix_flow": {
         "step": {
           "confirm": {
             "title": "Restart Home Assistant",
-            "description": "The Casa Mia integration was updated from {from_version} to {to_version}. Restart Home Assistant to load it."
+            "description": "The Casa Mia integration was updated from {from_version} to {to_version}, but Home Assistant is still running {from_version}. Until it restarts, nothing new in {to_version} works: new devices and entities (such as the Camera Commander's Main camera, which the commander's taps use) do not exist yet. Restart Home Assistant to load it."
           }
         }
       }
