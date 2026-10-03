@@ -145,6 +145,7 @@ def main() -> int:
     else:
         modules["gitproxy"] = lambda: {"state": "disabled"}
     proxies = {}
+    helpers: set[str] = set()  # the integration's dashboard helpers (from /health)
     cameras_on = options.get("camera_dashboard_enabled", False)
     compositor = None
     if options.get("compositor_enabled", False):
@@ -178,6 +179,7 @@ def main() -> int:
             live=compositor,
             draft=draft,
             state_path=OPTIONS.parent / "camera_dashboard_state.json",
+            helpers=lambda: helpers,
         )
         cameras.start()  # first: it may import groups.json into the store
         draft.start()
@@ -232,6 +234,7 @@ def main() -> int:
             post_handlers=post_handlers,
             api=api,
             proxies=proxies,
+            helpers=helpers,
         ).serve_forever()
     except KeyboardInterrupt:
         pass

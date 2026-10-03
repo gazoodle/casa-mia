@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 import aiohttp
 import voluptuous as vol
+from homeassistant.components import frontend
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import Event, HomeAssistant, ServiceCall, callback
@@ -13,7 +16,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 
-from .const import DOMAIN, FONA_EVENT
+from .const import DOMAIN, FONA_EVENT, SCRIPTS, SCRIPTS_URL
 from .coordinator import CasaMiaCoordinator, async_post
 from .guest import async_prune_endpoint_devices
 from .restart_notice import manifest_version
@@ -75,6 +78,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.info("%s is switched off in the app: removing its device", name)
             registry.async_remove_device(device.id)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    await _load_scripts(hass, entry, loaded_version)
+    # Saving the options (a script switched on or off) reloads, which applies it.
+    entry.async_on_unload(entry.add_update_listener(_options_saved))
 
     @callback
     def reload_on_switch() -> None:
@@ -97,6 +103,36 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hass.services.async_register(DOMAIN, "send_sms", send_sms, schema=SEND_SMS_SCHEMA)
     return True
+
+
+def scripts_on(entry: ConfigEntry) -> list[str]:
+    """The dashboard helper scripts switched on in the options (else their defaults)."""
+    return [k for k, (_, default) in SCRIPTS.items() if entry.options.get(k, default)]
+
+
+async def _load_scripts(
+    hass: HomeAssistant, entry: ConfigEntry, version: str | None
+) -> None:
+    """Serve www/ at /casa_mia (once per HA run) and load the scripts switched on into
+    every HA page; each comes off again when the entry unloads. ?v= changes with each
+    update, so browsers fetch the new copy."""
+    if not hass.data.get(f"{DOMAIN}_www"):
+        await hass.http.async_register_static_paths(
+            [StaticPathConfig(SCRIPTS_URL, str(Path(__file__).parent / "www"), False)]
+        )
+        hass.data[f"{DOMAIN}_www"] = True
+    for key in scripts_on(entry):
+        url = f"{SCRIPTS_URL}/{SCRIPTS[key][0]}?v={version}"
+        frontend.add_extra_js_url(hass, url)
+        entry.async_on_unload(lambda u=url: frontend.remove_extra_js_url(hass, u))
+    _LOGGER.info(
+        "dashboard helpers loaded: %s",
+        ", ".join(SCRIPTS[k][0] for k in scripts_on(entry)) or "none",
+    )
+
+
+async def _options_saved(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def _send(

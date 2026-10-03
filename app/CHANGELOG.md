@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.10.1-b18
+
+- Camera pictures no longer freeze or fail to appear when you go back through the camera dashboards. Home Assistant keeps the pages you leave alive, camera streams and all, and the compositor ended a device's oldest streams past 3 (browsers allow only 6 connections to one address), so coming Back three pages could show a stopped picture. The integration now loads **Keep camera pictures live**, a small script that stops the streams of pages not on screen and starts a fresh one for the page shown.
+- Integration: Casa Mia's options (Settings → Devices & services → Casa Mia → Configure) switch its dashboard helpers on and off: **Keep camera pictures live** (on), **Back button helper** (`#BACK` goes back; the camera dashboards' Back buttons need it) and **Reload dashboards when they change** (wall tablets show a deployed dashboard without a reload). The last two are the box's `nav_back_helper.js` and `auto_refresh.js`, brought in unchanged; they start off, so switch each on as you remove the hand-added copy from the dashboard resources, or Back goes back twice. The integration serves them itself and loads them into every Home Assistant page: nothing is added to your configuration. The alarm code in the options is now optional to fill in.
+- Camera Dashboard: its Back warning knows about the integration's Back helper, and warns when it and a hand-added `nav_back_helper.js` are both on (Back would go back twice).
+- Commander: a tap on a panel camera shows at once. The moment the switch arrives, the commander shows the new camera's last still, blurred, with "Changing to <camera>…" over it, made from pictures already to hand; the sharp picture follows when its snapshot arrives. Before, nothing changed until then (a second or two).
+
 ## 2026.10.1-b17
 
 - Camera Dashboard: groups have a **Gap** (in pixels) between their pictures, like the commander. Gaps are transparent, so the dashboard's own background shows through them (dark or light with the theme); each picture's own space stays black. A composite with gaps is sent as WebP (JPEG can't be transparent): smaller than the JPEG, a little slower to make. Without gaps it stays JPEG, as before. The tap zones follow the gaps.

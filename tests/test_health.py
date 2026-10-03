@@ -45,3 +45,20 @@ def test_version_is_shown_as_the_supervisor_shows_it(monkeypatch):
     assert app_version() == "2026.10.1-b2"
     monkeypatch.setattr(casa_mia, "version", lambda _: "2026.10.1")
     assert app_version() == "2026.10.1"
+
+
+def test_health_records_the_integrations_helpers():
+    helpers: set[str] = set()
+    server = make_server(0, helpers=helpers)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        url = f"http://127.0.0.1:{server.server_port}/health"
+        urllib.request.urlopen(f"{url}?helpers=cm-streams.js,cm-back.js").close()
+        assert helpers == {"cm-streams.js", "cm-back.js"}
+        urllib.request.urlopen(f"{url}?helpers=").close()  # all switched off
+        assert helpers == set()
+        urllib.request.urlopen(url).close()  # an older integration says nothing
+        assert helpers == set()
+    finally:
+        server.shutdown()
+        server.server_close()

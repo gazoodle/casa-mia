@@ -369,7 +369,15 @@ def test_warns_about_what_ha_lacks():
         "The advanced-camera-card card is not among the dashboard resources." in found
     )
     assert not any("webrtc-camera card" in w or "user" in w for w in found)
-    assert any("nav_back_helper.js" in w for w in found)
+    assert any("needs a Back button helper" in w for w in found)
+    ours = warnings(
+        store, have, ["/hacsfiles/webrtc/webrtc-camera.js"], {"u1"}, {"cm-back.js"}
+    )
+    assert not any("Back" in w for w in ours)  # the integration's helper is on
+    both = warnings(
+        store, have, ["/local/scripts/nav_back_helper.js"], {"u1"}, {"cm-back.js"}
+    )
+    assert any("Back goes back twice" in w for w in both)
 
 
 def test_live_view_gives_each_channel_from_ha(cd):

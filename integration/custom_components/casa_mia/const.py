@@ -10,3 +10,12 @@ GUEST_LOGIN_EVENT = "casa_mia_guest_login"
 FONA_EVENT = "casa_mia_fona"
 # Options key: the code the alarm panel asks for (no default; unset refuses arm/disarm).
 CONF_ALARM_CODE = "alarm_code"
+# The dashboard helper scripts the integration loads into HA's frontend (www/): options
+# key -> (file, on by default). Back and refresh start off: the box ran its own copies,
+# and two Back helpers would go back twice.
+SCRIPTS = {
+    "script_streams": ("cm-streams.js", True),
+    "script_back": ("cm-back.js", False),
+    "script_refresh": ("cm-refresh.js", False),
+}
+SCRIPTS_URL = "/casa_mia"

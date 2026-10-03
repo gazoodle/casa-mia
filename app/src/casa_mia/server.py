@@ -122,6 +122,14 @@ class Handler(BaseHTTPRequestHandler):
         if self.path.split("?")[0] != "/health":
             self._web()
             return
+        # The integration says which dashboard helper scripts it loads into HA.
+        query = urllib.parse.parse_qs(
+            urllib.parse.urlparse(self.path).query, keep_blank_values=True
+        )
+        if "helpers" in query:  # empty when all are off
+            helpers = self.server.helpers  # type: ignore[attr-defined]
+            helpers.clear()
+            helpers.update(h for h in query["helpers"][0].split(",") if h)
         from . import header  # here: header imports this module
 
         modules = {name: health() for name, health in self.server.modules.items()}  # type: ignore[attr-defined]
@@ -219,6 +227,7 @@ def make_server(
     api: dict[str, ApiHandler] | None = None,
     web_dir: Path = WEB_DIR,
     proxies: dict[str, ProxyHandler] | None = None,
+    helpers: set[str] | None = None,
 ) -> ThreadingHTTPServer:
     """`modules` maps a module name to its health() callable, reported under /health.
     `actions` maps a POST path (e.g. /gitproxy/check) to a callable run in the background.
@@ -232,4 +241,6 @@ def make_server(
     server.web_dir = web_dir  # type: ignore[attr-defined]
     server.api = api or {}  # type: ignore[attr-defined]
     server.proxies = proxies or {}  # type: ignore[attr-defined]
+    # The dashboard helpers the integration loads (it says at each /health), kept in place.
+    server.helpers = helpers if helpers is not None else set()  # type: ignore[attr-defined]
     return server

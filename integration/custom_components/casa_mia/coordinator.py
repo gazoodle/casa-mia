@@ -15,17 +15,22 @@ from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import API_VERSION, DOMAIN
+from .const import API_VERSION, DOMAIN, SCRIPTS
 from .restart_notice import async_check_restart
 
 _LOGGER = logging.getLogger(__name__)
 API_MISMATCH = "api_mismatch"
 
 
-async def async_fetch_health(hass: HomeAssistant, url: str) -> dict[str, Any]:
+async def async_fetch_health(
+    hass: HomeAssistant, url: str, helpers: list[str] | None = None
+) -> dict[str, Any]:
+    """The app's /health. `helpers`: the dashboard helper scripts loaded, told to the app
+    so its Camera Dashboard page knows (e.g. that Back works)."""
     session = async_get_clientsession(hass)
+    params = {"helpers": ",".join(helpers)} if helpers is not None else None
     async with session.get(
-        f"{url}/health", timeout=aiohttp.ClientTimeout(total=10)
+        f"{url}/health", params=params, timeout=aiohttp.ClientTimeout(total=10)
     ) as response:
         response.raise_for_status()
         return await response.json()
@@ -49,7 +54,9 @@ class CasaMiaCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Before the fetch, so a restart prompt still appears while the app is down.
         await async_check_restart(self.hass, self.loaded_version)
         try:
-            data = await async_fetch_health(self.hass, self.url)
+            options = self.config_entry.options if self.config_entry else {}
+            loaded = [f for k, (f, on) in SCRIPTS.items() if options.get(k, on)]
+            data = await async_fetch_health(self.hass, self.url, loaded)
         except (aiohttp.ClientError, TimeoutError, ValueError) as exc:
             raise UpdateFailed(f"Casa Mia app unreachable: {exc}") from exc
         self._check_api(data.get("api"))

@@ -14,8 +14,18 @@
     "step": {
       "init": {
         "title": "Casa Mia",
-        "description": "The code the alarm panel asks for when arming and disarming. Until one is set, the panel refuses both.",
-        "data": { "alarm_code": "Alarm code" }
+        "description": "The code the alarm panel asks for when arming and disarming (until one is set, the panel refuses both), and the dashboard helpers Casa Mia loads into Home Assistant.",
+        "data": {
+          "alarm_code": "Alarm code",
+          "script_streams": "Keep camera pictures live",
+          "script_back": "Back button helper (#BACK goes back)",
+          "script_refresh": "Reload dashboards when they change"
+        },
+        "data_description": {
+          "script_streams": "Stops the camera streams of pages not on screen and restarts those shown, so a page you come back to has a live picture.",
+          "script_back": "The camera dashboard's Back buttons need it. Switch it on once any copy added by hand (nav_back_helper.js among the dashboard resources) is removed, or Back goes back twice.",
+          "script_refresh": "Wall tablets show a deployed dashboard without a reload. Replaces auto_refresh.js among the dashboard resources: remove that one when switching this on."
+        }
       }
     }
   },

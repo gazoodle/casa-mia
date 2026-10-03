@@ -206,3 +206,14 @@ def test_gaps_are_transparent():
     assert pic.format == "WEBP"
     assert alpha(rgba, (5, my + mh + 1)) == 0  # between the main area and the panel
     assert alpha(rgba, (mx + 2, my + 2)) == 255  # the main area stays black
+
+
+def test_changing_picture_is_drawn_from_what_is_to_hand():
+    from casa_mia.modules.compositor import EMPTY_COMMANDER, commander
+
+    one = {"cameras": ["camera.a", "camera.b"], "size": 20, "fit": "cover"}
+    cmd = {**EMPTY_COMMANDER, "width": 640, "height": 360, "gap": 0, "bottom": one}
+    still: dict[str, bytes | None] = {"camera.a": jpeg("red"), "camera.b": jpeg("blue")}
+    sharp = commander(cmd, {}, still, "camera.b", jpeg("blue"))
+    quick = commander(cmd, {}, still, "camera.b", jpeg("blue"), changing=True)
+    assert Image.open(io.BytesIO(quick)).size == (640, 360) and quick != sharp

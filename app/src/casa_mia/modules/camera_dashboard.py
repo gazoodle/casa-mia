@@ -297,7 +297,11 @@ def problems(store: Store) -> list[str]:
 
 
 def warnings(
-    store: Store, entities: set[str], resources: list[str], users: set[str]
+    store: Store,
+    entities: set[str],
+    resources: list[str],
+    users: set[str],
+    helpers: set[str] | frozenset[str] = frozenset(),
 ) -> list[str]:
     """What the dashboard needs that this HA seems to lack: entities, wall tablet users,
     and the custom cards and the Back helper among the dashboard resources (a card can
@@ -346,10 +350,17 @@ def warnings(
             f"{COMMANDER_SELECT} (the commander's taps) is not in Home Assistant: it "
             "comes with the Casa Mia integration while Camera Dashboard is on."
         )
-    if "nav_back" not in urls:
+    by_hand, ours = "nav_back" in urls, "cm-back.js" in helpers
+    if not by_hand and not ours:
         out.append(
-            "Back needs nav_back_helper.js among the dashboard resources (it turns "
-            "#BACK into the browser's Back)."
+            "Back needs a Back button helper: switch on the Casa Mia integration's "
+            "Back button helper (it turns #BACK into the browser's Back)."
+        )
+    elif by_hand and ours:
+        out.append(
+            "Back goes back twice: nav_back_helper.js is among the dashboard resources "
+            "and the Casa Mia integration's Back button helper is on. Remove the "
+            "resource."
         )
     return out
 
@@ -806,8 +817,10 @@ class CameraDashboard:
         live: Compositor | None = None,
         draft: Compositor | None = None,
         state_path: Path | None = None,
+        helpers: Callable[[], set[str]] = set,
     ) -> None:
         self.dir = config_dir
+        self.helpers = helpers  # the integration's dashboard helper scripts, as it says
         self.state_path = state_path  # the commander's main camera, kept over restarts
         self.ha = ha
         self.lan_host = lan_host
@@ -1113,6 +1126,7 @@ class CameraDashboard:
                 {s["entity_id"] for s in states},
                 [r.get("url", "") for r in resources or []],
                 {u["id"] for u in users},
+                self.helpers(),
             ),
             "entities": sorted(
                 (

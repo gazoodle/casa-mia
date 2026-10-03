@@ -33,7 +33,7 @@ from typing import Any
 
 import aiohttp
 from aiohttp import web
-from PIL import Image, ImageDraw, ImageFont, ImageOps
+from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageOps
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -413,6 +413,7 @@ def commander_layout(cmd: dict) -> tuple[tuple[int, int], Rect, dict[str, list[R
 
 
 SMALL_FONT = ImageFont.load_default(size=16)
+BIG_FONT = ImageFont.load_default(size=40)
 SMALL_BAR = 22
 MAIN_FRAME = (123, 209, 160)  # the accent green: the tile shown as the main camera
 
@@ -423,9 +424,12 @@ def commander(
     tiles: dict[str, bytes | None],
     main: str,
     main_image: bytes | None,
+    changing: bool = False,
 ) -> bytes:
     """Draw the commander: each panel's cameras (the main one framed), and the main camera
-    in its natural shape, as large as fits its area, centred."""
+    in its natural shape, as large as fits its area, centred. `changing`: the picture
+    shown the moment the main camera is switched, from stills already to hand: blurred,
+    with "Changing to <camera>" over it, until the sharp one is ready."""
     size, main_rect, rects = commander_layout(cmd)
     canvas = blank(
         size, cmd["gap"]
@@ -507,8 +511,29 @@ def commander(
                 font=FONT,
                 anchor="mm",
             )
-        foot = py + ph - 18
         label = titles.get(main, main)
+        if changing:
+            area = (px, py, px + pw, py + ph)
+            canvas.paste(
+                canvas.crop(area).filter(ImageFilter.GaussianBlur(14)), area[:2]
+            )
+            text = f"Changing to {label}…"
+            box = draw.textbbox(
+                (px + pw // 2, py + ph // 2), text, font=BIG_FONT, anchor="mm"
+            )
+            draw.rounded_rectangle(
+                (box[0] - 18, box[1] - 12, box[2] + 18, box[3] + 12),
+                radius=12,
+                fill=(0, 0, 0, 170),
+            )
+            draw.text(
+                (px + pw // 2, py + ph // 2),
+                text,
+                fill="white",
+                font=BIG_FONT,
+                anchor="mm",
+            )
+        foot = py + ph - 18
         pill = draw.textbbox((px + 10, foot), label, font=FONT, anchor="lm")
         draw.rectangle(
             (pill[0] - 6, pill[1] - 4, pill[2] + 6, pill[3] + 4), fill=(0, 0, 0, 160)
@@ -636,13 +661,55 @@ class Compositor:
         self.main = entity
 
         def apply() -> None:
-            self._cache.pop("commander", None)
             self._inflight.pop("commander", None)  # a drawing of the old one: not used
-            if wake := self._wake.pop("commander", None):
-                wake.set()
+            task = asyncio.ensure_future(self._switch(entity))
+            self._bg.add(task)
+            task.add_done_callback(self._bg.discard)
 
         if self._loop and self._running:
             self._loop.call_soon_threadsafe(apply)
+
+    def _wake_streams(self, name: str) -> None:
+        """Send `name`'s picture to its open streams now, not at their next interval."""
+        if wake := self._wake.pop(name, None):
+            wake.set()
+
+    def _last_still(self, entity: str) -> bytes | None:
+        """The newest still already to hand for a camera (any size), without asking HA."""
+        if entity in self._latest:
+            return self._latest[entity]
+        done = [
+            (size[0], hit[1].result())
+            for (e, size), hit in self._stills.items()
+            if e == entity and hit[1].done() and not hit[1].cancelled()
+        ]
+        done = [d for d in done if d[1]]
+        return max(done, key=lambda d: d[0])[1] if done else None
+
+    async def _switch(self, entity: str) -> None:
+        """The main camera changed: at once, a picture from the stills already to hand
+        (the new camera blurred, "Changing to ..."), then the sharp one when it's drawn."""
+        cfg = self.cfg
+        if not cfg.commander:
+            return
+        cams = commander_cameras(cfg.commander)
+        try:
+            quick = await asyncio.to_thread(
+                commander,
+                cfg.commander,
+                cfg.titles,
+                {e: self._last_still(e) for e in cams},
+                entity,
+                self._last_still(entity),
+                True,
+            )
+            self._cache["commander"] = (time.monotonic(), quick)
+            self._wake_streams("commander")
+        except (OSError, ValueError) as exc:
+            _LOGGER.debug("commander: no quick picture: %s", exc)
+            self._cache.pop("commander", None)
+        await self._refresh("commander", self._builder("commander", False))
+        self._wake_streams("commander")
 
     def render(self, cfg: Config, name: str, portrait: bool = False) -> bytes:
         """Draw one composite (a group, or "overview") from a config that is not the one
@@ -1132,7 +1199,7 @@ class Compositor:
                     asyncio.ensure_future(stop.wait()),
                     asyncio.ensure_future(wake.wait()),
                 ]
-                await asyncio.wait(
+                done, _ = await asyncio.wait(
                     waits, timeout=wait, return_when=asyncio.FIRST_COMPLETED
                 )
                 for w in waits:
@@ -1140,7 +1207,9 @@ class Compositor:
                 if stop.is_set():
                     break
                 self._warm_in_background(name)
-                data = await self._frame(name, fresh=True, portrait=portrait)
+                # Woken (a new picture is ready): send it as it is, without a rebuild.
+                woken = waits[1] in done
+                data = await self._frame(name, fresh=not woken, portrait=portrait)
         except (ConnectionResetError, asyncio.CancelledError):
             pass
         finally:
