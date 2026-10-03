@@ -879,17 +879,42 @@ function AddMenu({
   );
 }
 
-/** One camera's live picture: Home Assistant's MJPEG stream, through the app. */
+type Channel = { channel: "camera" | "low" | "medium" | "high"; entity: string; url: string };
+
+const CHANNELS: Record<Channel["channel"], [label: string, about: string]> = {
+  camera: ["The camera", "the camera itself (it has no separate channels)"],
+  low: ["Low", "the low channel, the one the composites are made from"],
+  medium: ["Medium", "the medium channel, the one the wall tablets and phones play"],
+  high: ["High", "the high channel, the one everyone else plays; the slowest to come through here"],
+};
+
+/** One camera's live picture, each of its channels to choose from: Home Assistant's MJPEG
+ * stream, played from HA directly as its camera cards do (the app only gives the address). */
 function LiveView({ entity, title, onClose }: { entity: string; title: string; onClose: () => void }) {
   const img = useRef<HTMLImageElement>(null);
+  const [channels, setChannels] = useState<Channel[]>();
+  const [chosen, setChosen] = useState<Channel["channel"]>();
   const [state, setState] = useState<"connecting" | "live" | "failed">("connecting");
-  // Blank the image on close: a browser can keep an <img> stream open after it is gone.
+  const [error, setError] = useState<string>();
+  useEffect(() => {
+    get<{ channels: Channel[] }>(`live/${encodeURIComponent(entity)}`).then(
+      (r) => {
+        setChannels(r.channels);
+        setChosen(r.channels[0]?.channel);
+      },
+      (err) => setError((err as Error).message),
+    );
+  }, [entity]);
+  const shown = channels?.find((c) => c.channel === chosen);
+  // Blank the image on a change of channel and on close: a browser can keep an <img>
+  // stream open after the image is gone.
   useEffect(() => {
     const el = img.current;
     return () => {
       if (el) el.src = "";
     };
-  }, []);
+  }, [shown?.url]);
+  const note = error ?? (channels && !shown ? "Home Assistant has no stream of this camera." : undefined);
   return (
     <Dialog
       title={title}
@@ -901,22 +926,39 @@ function LiveView({ entity, title, onClose }: { entity: string; title: string; o
         </button>
       }
     >
-      <div className={css.live}>
-        <img
-          ref={img}
-          src={`api/camera-dashboard/stream/${encodeURIComponent(entity)}`}
-          alt={`${title}, live`}
-          onLoad={() => setState("live")}
-          onError={() => setState("failed")}
+      {channels && channels.length > 1 && (
+        <Segmented
+          value={chosen ?? channels[0].channel}
+          options={channels.map((c) => [c.channel, CHANNELS[c.channel][0]])}
+          onChange={(c) => {
+            setState("connecting");
+            setChosen(c);
+          }}
         />
-        {state !== "live" && (
-          <span className={css.liveNote}>{state === "failed" ? "No live picture from this camera." : "Connecting…"}</span>
+      )}
+      <div className={css.live}>
+        {shown && (
+          <img
+            key={shown.url}
+            ref={img}
+            src={shown.url}
+            alt={`${title}, live`}
+            onLoad={() => setState("live")}
+            onError={() => setState("failed")}
+          />
+        )}
+        {(note || state !== "live") && (
+          <span className={css.liveNote}>
+            {note ?? (state === "failed" ? "No live picture from this channel." : "Connecting…")}
+          </span>
         )}
       </div>
-      <p className={css.muted}>
-        <code>{entity}</code>, as Home Assistant streams it (MJPEG): smooth for cameras that make MJPEG, a few frames a second
-        for the others.
-      </p>
+      {shown && (
+        <p className={css.muted}>
+          <code>{shown.entity}</code>: {CHANNELS[shown.channel][1]}. Home Assistant's MJPEG stream, made from the camera's
+          snapshots: a few pictures a second, not video.
+        </p>
+      )}
     </Dialog>
   );
 }

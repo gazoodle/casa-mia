@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.1-b12
+
+- Camera Dashboard: the live view plays. It sat on "Connecting…" and timed out on a real install: the stream went through the app and the Supervisor's proxy, which holds a response until it ends, and a stream never ends. The browser now plays Home Assistant's own MJPEG stream directly, as HA's camera cards do (with the camera's short-lived access token), and the app only hands out the address.
+- Camera Dashboard: the live view has a channel selector (Low, Medium, High, as the camera has them; Low first, the quickest) and says what it is showing: which entity, which channel, and that it is HA's MJPEG made from snapshots (a few pictures a second, not video).
+
 ## 2026.10.1-b11
 
 - Camera Dashboard: the ✕ on a page control removes it every time. With an entity field's list open, pressing ✕ closed the list, the dialog's content moved, and the click was lost, so the row stayed. Lists and menus now close on the finished click instead.

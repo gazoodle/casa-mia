@@ -176,7 +176,6 @@ def main() -> int:
         draft.start()
         modules["camera_dashboard"] = cameras.health
         api["/api/camera-dashboard/"] = cameras.handle
-        proxies["/api/camera-dashboard/stream/"] = cameras.stream  # live views
     else:
         modules["camera_dashboard"] = lambda: {"state": "disabled"}
     if compositor:
