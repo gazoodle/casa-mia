@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { CameraDashboardPage } from "./CameraDashboardPage";
 import { FirmwarePage } from "./FirmwarePage";
 import { GuestPage } from "./GuestPage";
 import { KioskFrame, KiosksPage } from "./KiosksPage";
@@ -31,7 +32,13 @@ function useRoute(): string {
 }
 
 /** Module pages behind the tiles. */
-const PAGES: Record<string, string> = { guest_login: "/guest", gitproxy: "/firmware", people: "/people", kiosks: "/kiosks" };
+const PAGES: Record<string, string> = {
+  guest_login: "/guest",
+  gitproxy: "/firmware",
+  people: "/people",
+  kiosks: "/kiosks",
+  camera_dashboard: "/cameras",
+};
 
 export function App() {
   const { health, error } = useHealth();
@@ -45,6 +52,7 @@ export function App() {
   if (route === "/people") return <PeoplePage />;
   if (route === "/kiosks") return <KiosksPage state={health?.modules.kiosks?.state} />;
   if (route.startsWith("/kiosks/")) return <KioskFrame id={route.slice("/kiosks/".length)} />;
+  if (route === "/cameras") return <CameraDashboardPage state={health?.modules.camera_dashboard?.state} />;
   if (route === "/firmware") return <FirmwarePage state={health?.modules.gitproxy?.state} />;
   const modules = Object.entries(health?.modules ?? {});
   const on = modules.filter(([, h]) => h.state && h.state !== "disabled");

@@ -13,7 +13,8 @@ from .components import ask_for_restart, install_bundled
 from .ha import HA
 from .install_count import count_install
 from .log import configure_logging
-from .modules.compositor import Compositor
+from .modules.camera_dashboard import DRAFT_PORT, CameraDashboard
+from .modules.compositor import DRAFT_STORE, Compositor
 from .modules.fona import EVENT as FONA_EVENT
 from .modules.fona import Fona
 from .modules.gitproxy import GitProxy
@@ -80,7 +81,13 @@ def main() -> int:
     header.HOUSE = options.get("house_name") or header.HOUSE
     log.info("house name: %s", header.HOUSE)
     api["/api/header/"] = header.handle  # the house photo, set on the home page
-    ha = HA("ws://supervisor/core/websocket", token)
+    # Under s6 SUPERVISOR_TOKEN reaches us only via run.sh (with-contenv).
+    # CM_HA_URL/CM_HA_TOKEN point a dev run at a real HA instead of the Supervisor proxy.
+    direct = os.environ.get("CM_HA_URL")
+    ha_url = direct or "http://supervisor/core"
+    ha_token = os.environ.get("CM_HA_TOKEN", "") if direct else token
+    ws_path = "/api/websocket" if direct else "/websocket"
+    ha = HA(ha_url.replace("http", "ws", 1) + ws_path, ha_token)
     # Always on: it is only a list, and FONA (and later guest login) look people up in it.
     people = People(PEOPLE_STORE, ha)
     modules["people"] = people.health
@@ -137,17 +144,31 @@ def main() -> int:
         api["/api/gitproxy/"] = gitproxy.handle
     else:
         modules["gitproxy"] = lambda: {"state": "disabled"}
+    cameras_on = options.get("camera_dashboard_enabled", False)
+    compositor = None
     if options.get("compositor_enabled", False):
-        # Under s6 SUPERVISOR_TOKEN reaches us only via run.sh (with-contenv).
-        # CM_HA_URL/CM_HA_TOKEN point a dev run at a real HA instead of the Supervisor proxy.
-        direct = os.environ.get("CM_HA_URL")
-        seed_config(SEED / "compositor", CONFIG)
-        compositor = Compositor(
+        if not cameras_on:  # the Camera Dashboard starts empty instead of an example
+            seed_config(SEED / "compositor", CONFIG)
+        compositor = Compositor(CONFIG, ha_url, ha_token, ws_path=ws_path)
+    if cameras_on:
+        # The draft's compositor, for previews; only draws what someone looks at.
+        draft = Compositor(
             CONFIG,
-            direct or "http://supervisor/core",
-            os.environ.get("CM_HA_TOKEN" if direct else "SUPERVISOR_TOKEN", ""),
-            ws_path="/api/websocket" if direct else "/websocket",
+            ha_url,
+            ha_token,
+            port=DRAFT_PORT,
+            ws_path=ws_path,
+            store=DRAFT_STORE,
+            prewarm=False,
         )
+        cameras = CameraDashboard(CONFIG, ha, lan_ip, live=compositor, draft=draft)
+        cameras.start()  # first: it may import groups.json into the store
+        draft.start()
+        modules["camera_dashboard"] = cameras.health
+        api["/api/camera-dashboard/"] = cameras.handle
+    else:
+        modules["camera_dashboard"] = lambda: {"state": "disabled"}
+    if compositor:
         compositor.start()
         modules["compositor"] = compositor.health
     else:

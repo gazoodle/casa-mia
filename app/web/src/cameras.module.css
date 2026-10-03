@@ -1,0 +1,382 @@
+/* The Camera Dashboard page: the action bar, overview and group editors, cameras table. */
+
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 -4px 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(6px);
+}
+
+.barState {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+}
+
+.barActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.goodDot {
+  background: var(--good);
+}
+
+.warnDot {
+  background: var(--warn);
+}
+
+.problemCount {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bad) 18%, transparent);
+  color: var(--bad);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.problems {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.warnings summary {
+  cursor: pointer;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.start {
+  justify-self: start;
+}
+
+.hint {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+/* Previews: the draft compositor's pictures. */
+.preview {
+  display: block;
+  width: 100%;
+  border-radius: 10px;
+  background: #000;
+}
+
+.stale {
+  opacity: 0.55;
+  transition: opacity 150ms ease;
+}
+
+.noPreview {
+  display: grid;
+  place-items: center;
+  min-height: 120px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.overviews {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.overview,
+.group {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg);
+}
+
+.overview h3,
+.group h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.numbers {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 8px;
+}
+
+.rows {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.rowTools {
+  display: flex;
+  margin-left: auto;
+}
+
+.groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 14px;
+}
+
+.groupHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px 2px 2px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 13px;
+}
+
+.chipTool {
+  padding: 0 5px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.chipTool:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.chipTool:hover:not(:disabled) {
+  color: var(--accent);
+}
+
+.add {
+  width: auto;
+  padding: 4px 8px;
+  font-size: 13px;
+}
+
+.more summary {
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.controls {
+  display: grid;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.control {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr auto;
+  gap: 6px;
+}
+
+/* Cameras: one row each. */
+.table {
+  display: grid;
+  gap: 6px;
+}
+
+.camRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.head {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.camName {
+  display: grid;
+  min-width: 0;
+}
+
+.camName code,
+.pick code {
+  overflow: hidden;
+  color: var(--muted);
+  font: 12px var(--mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actions {
+  display: flex;
+  gap: 6px;
+}
+
+.pick {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pick label {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.pick input {
+  width: auto;
+  margin-top: 3px;
+}
+
+.pick span {
+  display: grid;
+  min-width: 0;
+}
+
+.pick small {
+  color: var(--muted);
+}
+
+.two {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  align-items: start;
+  gap: 12px;
+}
+
+.settings {
+  display: grid;
+  gap: 14px;
+}
+
+.users {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+
+.user {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.user input {
+  width: auto;
+}
+
+.yaml {
+  max-height: 55vh;
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  font: 12px/1.4 var(--mono);
+}
+
+.backups {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.backups li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+@media (max-width: 760px) {
+  .overviews {
+    grid-template-columns: 1fr;
+  }
+
+  .camRow {
+    grid-template-columns: 1fr auto;
+  }
+
+  .camRow > span:nth-child(2),
+  .camRow > span:nth-child(3),
+  .camRow > span:nth-child(4) {
+    display: none;
+  }
+
+  .control {
+    grid-template-columns: 1fr auto;
+  }
+}

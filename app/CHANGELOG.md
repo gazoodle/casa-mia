@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.1-b8
+
+- New **Camera Dashboard** option and panel page: one place for the cameras (chosen from Home Assistant's list, each with its medium and high channels, zoom, PTZ presets and page controls), the groups the compositor tiles them into, the overview's layout (landscape and portrait), and the camera dashboard itself (its address, Back / Home / Help, wall tablet users, live cards). Edits are a draft with live previews of every composite; **Deploy preview** puts the dashboard on `/dashboard-cameras-preview` with the draft composites, **Deploy live** replaces the real one and makes the draft what the wall tablets see. Each deploy keeps the dashboard it replaces (Backups, with Restore), YAML shows it for copy and paste, and the page warns about entities, users and custom cards Home Assistant seems to lack. On first start it takes over an existing `groups.json` / `entities.json` (and the old generator's `dashboard_config.json`, if copied into the app's config folder) and rebuilds today's dashboard exactly. Previews are served on port 8098.
+- Compose camera groups: while the Camera Dashboard is on, the live composites come from its last live deploy, so editing never disturbs the wall tablets; they change without an app restart.
+
 ## 2026.10.1-b7
 
 - The panel and the guest welcome page go back to the deep green colours: calmer than the terracotta. The new icon and logo stay.

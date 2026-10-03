@@ -1,5 +1,5 @@
 name: Casa Mia
-version: "2026.10.1-b7"
+version: "2026.10.1-b8"
 slug: casa_mia
 description: "Casa Mia house services: phone and SMS (FONA), people, guest login, tablet firmware, Kiosk Satellites, camera composites."
 url: "https://github.com/gazoodle/casa-mia"
@@ -18,6 +18,7 @@ init: false
 # `homeassistant_config` lets the app push its integrations into /config/custom_components.
 # Port 8000 serves the tablet firmware (gitproxy module) to the kiosks on the LAN.
 # Port 8099 serves the camera composites (compositor module); its config is in /config.
+# Port 8098 serves the Camera Dashboard's draft composites, for its preview dashboard.
 # Port 8675 serves the guest login QR endpoints (guest-login module); the integration
 # enables and disables each endpoint through the local API on 8780.
 # `uart` gives the fona module the Arduino's serial port, found by /dev/serial/by-id.
@@ -37,6 +38,7 @@ panel_title: Casa Mia
 panel_admin: true
 ports:
   8000/tcp: 8000
+  8098/tcp: 8098
   8099/tcp: 8099
   8675/tcp: 8675
 
@@ -52,6 +54,7 @@ options:
   count_install: true
   gitproxy_enabled: false
   compositor_enabled: false
+  camera_dashboard_enabled: false
   guest_login_enabled: false
   fona_enabled: false
   kiosks_enabled: false
@@ -62,6 +65,7 @@ schema:
   count_install: bool
   gitproxy_enabled: bool
   compositor_enabled: bool
+  camera_dashboard_enabled: bool
   guest_login_enabled: bool
   fona_enabled: bool
   kiosks_enabled: bool

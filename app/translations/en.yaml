@@ -16,7 +16,14 @@ configuration:
     description: "Mirror the Kiosk Satellite firmware and serve it to the tablets at http://<this host>:8000 (the Custom repository address in Kiosk Satellite)."
   compositor_enabled:
     name: Compose camera groups
-    description: "Tile Home Assistant camera stills into one image per group, served at http://<this host>:8099/. Needs groups.json in the app's config folder."
+    description: "Tile Home Assistant camera stills into one image per group, served at http://<this host>:8099/. Its groups are set up on the Camera Dashboard page (or, without it, groups.json in the app's config folder)."
+  camera_dashboard_enabled:
+    name: Camera Dashboard
+    description: >-
+      Set up the cameras, their composites and the camera dashboard on the Camera
+      Dashboard page of the Casa Mia panel, preview them, and deploy the dashboard into
+      Home Assistant. Previews are served on port 8098; the live composites need Compose
+      camera groups on.
   guest_login_enabled:
     name: Guest login
     description: >-
@@ -43,5 +50,6 @@ configuration:
       code; off removes its device and entity.
 network:
   8000/tcp: "Firmware server (Serve tablet firmware): the tablets fetch Kiosk Satellite updates here. Blank it if that option is off."
+  8098/tcp: "Camera Dashboard previews: the draft composites its preview dashboard shows. Blank it if that option is off."
   8099/tcp: "Camera composites (Compose camera groups): the tablets' camera images. Blank it if that option is off."
   8675/tcp: "Guest login: the address the QR codes point at. Blank it if that option is off."

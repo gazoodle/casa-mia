@@ -10,8 +10,10 @@ share one fetch per INTERVAL. Ported from tablet-provision/composite-test/server
                         (add ?layout=portrait for the phone layout)
   GET /                 list of groups; GET /status  cache ages and open streams
 
-Config lives in the app's config folder: groups.json (see `load_config`) and
-entities.json (low entity -> {medium, high}, from discover_entities.py).
+Config lives in the app's config folder: the Camera Dashboard's store when there is one
+(camera-dashboard-live.json, what was last deployed; the draft compositor reads the draft,
+camera-dashboard.json), else the older groups.json (see `load_config`) and entities.json
+(low entity -> {medium, high, zoom}).
 """
 
 from __future__ import annotations
@@ -66,19 +68,53 @@ class Config:
         return self.overview_portrait if portrait else self.overview
 
 
-def load_config(directory: Path) -> Config:
-    """groups.json: group -> camera list, or {"cameras": [...], "tile": [w, h],
+# The Camera Dashboard's stores (see camera_dashboard.py): what is deployed, and the draft.
+LIVE_STORE = "camera-dashboard-live.json"
+DRAFT_STORE = "camera-dashboard.json"
+EMPTY_OVERVIEW = {
+    "width": 1280,
+    "gap": 8,
+    "cell_aspect": 1.7,
+    "strip_aspect": 1.5,
+    "rows": [],
+}
+
+
+def config_from_store(store: dict) -> Config:
+    """The compositor's view of a Camera Dashboard store: groups name their cameras by
+    entity, and each camera's title and channels live once, under "cameras"."""
+    cams = store.get("cameras", {})
+    cfg = Config(
+        overview=store.get("overview") or EMPTY_OVERVIEW,
+        overview_portrait=store.get("overview_portrait") or EMPTY_OVERVIEW,
+    )
+    for name, g in store.get("groups", {}).items():
+        cfg.groups[name] = {
+            "cameras": [
+                {"entity": e, "title": cams.get(e, {}).get("title", e)}
+                for e in g["cameras"]
+            ],
+            "tile": tuple(g.get("tile", DEFAULT_TILE)),
+            "fit": g.get("fit", "cover"),
+            "menu": g.get("menu", True),
+        }
+    cfg.entities = {
+        e: {k: c[k] for k in ("medium", "high", "zoom") if c.get(k)}
+        for e, c in cams.items()
+    }
+    return cfg
+
+
+def load_config(directory: Path, store: str = LIVE_STORE) -> Config:
+    """The store when there is one (see `config_from_store`), else groups.json: group -> camera list, or {"cameras": [...], "tile": [w, h],
     "fit": "contain" | "cover"}. The reserved "_overview" (landscape) and
     "_overview_portrait" (phones) keys are {"width": w, "gap": n, "cell_aspect": r,
     "strip_aspect": r, "rows": [...]}, each row {"groups": [...]} (each group's
-    composite as one cell) or {"strip": [...]} (those groups' cameras in one line)."""
-    empty = {
-        "width": 1280,
-        "gap": 8,
-        "cell_aspect": 1.7,
-        "strip_aspect": 1.5,
-        "rows": [],
-    }
+    composite as one cell) or {"strip": [...]} (those groups' cameras in one line).
+    Groups named "Wall..." are viewed directly, not part of the menu tree."""
+    if (directory / store).exists():
+        return config_from_store(json.loads((directory / store).read_text()))
+    empty = EMPTY_OVERVIEW
     cfg = Config(overview=empty, overview_portrait=empty)
     path = directory / "groups.json"
     if not path.exists():
@@ -92,6 +128,7 @@ def load_config(directory: Path) -> Config:
             "cameras": v["cameras"],
             "tile": tuple(v.get("tile", DEFAULT_TILE)),
             "fit": v.get("fit", "cover"),
+            "menu": not name.startswith("Wall"),
         }
     entities = directory / "entities.json"
     if entities.exists():
@@ -261,8 +298,12 @@ class Compositor:
         token: str,
         port: int = PORT,
         ws_path: str = "/websocket",
+        store: str = LIVE_STORE,
+        prewarm: bool = True,
     ) -> None:
         self.config_dir = config_dir
+        self.store = store  # which Camera Dashboard store it serves (live or draft)
+        self.prewarm = prewarm  # build every composite at start (not for previews)
         self.ha_url = ha_url.rstrip("/")  # the Supervisor proxy, or http://host:8123
         self.ws_url = self.ha_url.replace("http", "ws", 1) + ws_path
         self.token = token
@@ -287,7 +328,7 @@ class Compositor:
     def start(self) -> None:
         """Never raises: a failure shows up as state `offline` in health()."""
         try:
-            self.cfg = load_config(self.config_dir)
+            self.cfg = load_config(self.config_dir, self.store)
         except (OSError, ValueError, KeyError, TypeError) as exc:
             self._error = f"bad config in {self.config_dir}: {exc}"
             _LOGGER.error(self._error)
@@ -298,6 +339,54 @@ class Compositor:
             )
         threading.Thread(target=lambda: asyncio.run(self._serve()), daemon=True).start()
         self._ready.wait(10)
+
+    def reload(self) -> None:
+        """Re-read the config (after the Camera Dashboard saved it); composites already
+        built are dropped, so the next request draws the new layout."""
+        try:
+            cfg = load_config(self.config_dir, self.store)
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            self._error = f"bad config in {self.config_dir}: {exc}"
+            _LOGGER.error(self._error)
+            return
+
+        def apply() -> None:
+            self.cfg, self._error = cfg, None
+            self._cache.clear()
+            self._seen = {(n, p) for n, p in self._seen if self._known(n, p)}
+
+        if self._loop and self._running:
+            self._loop.call_soon_threadsafe(apply)
+        else:
+            self.cfg = cfg
+        _LOGGER.info("compositor (%s) reloaded: %d groups", self.store, len(cfg.groups))
+
+    def render(self, cfg: Config, name: str, portrait: bool = False) -> bytes:
+        """Draw one composite (a group, or "overview") from a config that is not the one
+        being served: the Camera Dashboard's unsaved edits, for its live previews. Stills
+        are shared with the composites being served. Thread-safe; KeyError for a group
+        that isn't there, ValueError for one that can't be drawn."""
+        if not (self._loop and self._running):
+            raise RuntimeError("the compositor is not running")
+        future = asyncio.run_coroutine_threadsafe(
+            self._render(cfg, name, portrait), self._loop
+        )
+        return future.result(FETCH_TIMEOUT * 4)
+
+    async def _render(self, cfg: Config, name: str, portrait: bool) -> bytes:
+        if name != "overview":
+            if not cfg.groups[name]["cameras"]:
+                raise ValueError(f"{name} has no cameras")
+            return await self._compose(cfg.groups[name], portrait)
+        layout = cfg.overview_for(portrait)
+        names = overview_groups(layout)
+        if not names:
+            raise ValueError("the overview has no rows")
+        for n in names:
+            if not cfg.groups[n]["cameras"]:
+                raise ValueError(f"{n} has no cameras")
+        frames = await asyncio.gather(*(self._compose(cfg.groups[n]) for n in names))
+        return overview(dict(zip(names, frames, strict=True)), layout, cfg.groups)
 
     def stop(self) -> None:
         if self._loop and self._stop:
@@ -323,14 +412,18 @@ class Compositor:
             self._http = aiohttp.ClientSession(
                 headers={"Authorization": f"Bearer {self.token}"}
             )
-            self._last_request = time.monotonic()  # the first WARM_WINDOW is pre-warmed
-            self._seen = {
-                (n, p) for n in self._menu_groups() for p in (False, True)
-            } | {
-                ("overview", p)
-                for p in (False, True)
-                if self.cfg.overview_for(p)["rows"]
-            }
+            # the first WARM_WINDOW is pre-warmed
+            self._last_request = time.monotonic() if self.prewarm else -WARM_WINDOW
+            self._seen = (
+                {(n, p) for n in self._menu_groups() for p in (False, True)}
+                | {
+                    ("overview", p)
+                    for p in (False, True)
+                    if self.cfg.overview_for(p)["rows"]
+                }
+                if self.prewarm
+                else set()
+            )
             app = web.Application()
             app.add_routes(
                 [
@@ -423,7 +516,9 @@ class Compositor:
         return self._cache[key][1]
 
     async def _build_group(self, name: str, portrait: bool = False) -> bytes:
-        group = self.cfg.groups[name]
+        return await self._compose(self.cfg.groups[name], portrait)
+
+    async def _compose(self, group: Group, portrait: bool = False) -> bytes:
         cams, size = group["cameras"], group["tile"]
         still = (
             size[0],
@@ -478,7 +573,7 @@ class Compositor:
             "camera."
             + self.cfg.entities[c["entity"]][WARM_STREAM_TIER].replace("camera.", "")
             for c in self.cfg.groups[name]["cameras"]
-            if c["entity"] in self.cfg.entities
+            if WARM_STREAM_TIER in self.cfg.entities.get(c["entity"], {})
         ]
         if not ents:
             return
@@ -527,14 +622,14 @@ class Compositor:
             pass
 
     def _warm_in_background(self, name: str) -> None:
-        if name in self.cfg.groups and not name.startswith("Wall"):
+        if name in self.cfg.groups and self.cfg.groups[name].get("menu", True):
             task = asyncio.ensure_future(self._warm_streams(name))
             self._bg.add(task)
             task.add_done_callback(self._bg.discard)
 
     def _menu_groups(self) -> list[str]:
         # The walls are viewed directly, not part of the menu tree.
-        return [n for n in self.cfg.groups if not n.startswith("Wall")]
+        return [n for n, g in self.cfg.groups.items() if g.get("menu", True)]
 
     async def _keep_warm(self) -> None:
         """While someone has looked recently, keep what has been asked for fresh so every

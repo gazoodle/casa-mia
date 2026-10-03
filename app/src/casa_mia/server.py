@@ -26,6 +26,9 @@ API_VERSION = 1
 WEB_DIR = Path(__file__).parent / "web"
 # Ingress requests all come from the Supervisor's gateway; nothing else gets the UI.
 INGRESS_GATEWAY = "172.30.32.2"
+# POSTs that only read (the Camera Dashboard's live previews, one per edit): not logged
+# at INFO with the admin page's changes.
+READS = ("/api/camera-dashboard/render",)
 
 
 def integration_url() -> str:
@@ -79,8 +82,10 @@ class Handler(BaseHTTPRequestHandler):
                 )
                 # Every change made on the admin page is logged (never the body: it can
                 # hold passwords); reads are not, the page polls.
-                if method != "GET":
+                if method != "GET" and url.path not in READS:
                     _LOGGER.info("admin page: %s %s -> %d", method, url.path, status)
+                else:
+                    _LOGGER.debug("admin page: %s %s -> %d", method, url.path, status)
                 self.send_response(status)
                 self.send_header("Content-Type", ctype)
                 self.send_header("Content-Length", str(len(data)))

@@ -28,6 +28,14 @@ export const CameraGridIcon = () => (
   </svg>
 );
 
+export const CameraIcon = () => (
+  <svg {...base}>
+    <rect x="2.5" y="6" width="13" height="12" rx="2" />
+    <path d="M15.5 10.5 21 7.5v9l-5.5-3" />
+    <circle cx="9" cy="12" r="2.5" />
+  </svg>
+);
+
 export const GuestIcon = () => (
   <svg {...base}>
     <rect x="3" y="3" width="7" height="7" rx="1" />

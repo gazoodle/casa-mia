@@ -5,7 +5,7 @@
 import type { ReactNode } from "react";
 import type { ModuleHealth } from "./health";
 import { ago, megabytes } from "./format";
-import { CameraGridIcon, FirmwareIcon, GuestIcon, PeopleIcon, PhoneIcon, ShieldIcon, TabletIcon } from "./icons";
+import { CameraGridIcon, CameraIcon, FirmwareIcon, GuestIcon, PeopleIcon, PhoneIcon, ShieldIcon, TabletIcon } from "./icons";
 
 export type Fact = [label: string, value: string | undefined];
 
@@ -105,6 +105,18 @@ export const MODULES: Record<string, ModuleInfo> = {
     facts: (h) => [
       ["Camera groups", String(h.groups ?? 0)],
       ["Live streams", String(h.streams ?? 0)],
+    ],
+  },
+  camera_dashboard: {
+    title: "Camera Dashboard",
+    option: "Camera Dashboard",
+    blurb: "Sets up the cameras, their composites and the camera dashboard, with previews, and deploys it.",
+    icon: <CameraIcon />,
+    facts: (h) => [
+      ["Cameras", String(h.cameras ?? 0)],
+      ["Groups", String(h.groups ?? 0)],
+      ["Deployed", ago(h.deployed) ?? "never"],
+      ["Draft", h.changed ? "differs from live" : "same as live"],
     ],
   },
   guest_login: {
