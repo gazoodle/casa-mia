@@ -3,7 +3,7 @@
  * sends the dashboard to HA, to the preview dashboard or the live one. Live also makes
  * the draft what the wall tablets' compositor draws. */
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api } from "./api";
 import { ago } from "./format";
 import { CameraIcon } from "./icons";
@@ -87,6 +87,11 @@ const CARDS: [string, string][] = [
   ["webrtc-camera", "WebRTC camera (custom)"],
   ["advanced-camera-card", "Advanced camera card (custom)"],
 ];
+/** How often the camera thumbnails are fetched again. */
+const THUMB_EVERY_MS = 5 * 60_000;
+/** Which round of thumbnails to show: bumped every THUMB_EVERY_MS. */
+const ThumbRound = createContext(0);
+
 const DEFAULT_PTZ: Ptz = { action: "unifiprotect.ptz_goto_preset", data: {}, presets: [] };
 
 export function CameraDashboardPage({ state }: { state?: string }) {
@@ -94,6 +99,11 @@ export function CameraDashboardPage({ state }: { state?: string }) {
   const [draft, setDraft] = useState<Store>();
   const [ha, setHa] = useState<HA>();
   const [stamp, setStamp] = useState(Date.now()); // bumps the warnings and backups after a save
+  const [thumbRound, setThumbRound] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setThumbRound((n) => n + 1), THUMB_EVERY_MS);
+    return () => clearInterval(timer);
+  }, []);
   const [busy, setBusy] = useState("");
   const [dialog, setDialog] = useState<ReactNode>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -179,6 +189,7 @@ export function CameraDashboardPage({ state }: { state?: string }) {
     );
 
   return (
+    <ThumbRound.Provider value={thumbRound}>
     <Shell {...HEAD} state={state}>
       <datalist id="cd-entities">
         {ha?.entities?.map((e) => (
@@ -275,6 +286,7 @@ export function CameraDashboardPage({ state }: { state?: string }) {
               title={key === "overview" ? "Landscape" : "Portrait"}
               value={draft[key]}
               groups={names.groups}
+              thumb={(g) => <GroupThumb entities={draft.groups[g]?.cameras ?? []} />}
               preview={<LivePreview store={draft} name="overview" portrait={key !== "overview"} />}
               onChange={(o) => edit((s) => (s[key] = o))}
             />
@@ -392,10 +404,17 @@ export function CameraDashboardPage({ state }: { state?: string }) {
                 .map(([n]) => n);
               return (
                 <div key={entity} className={css.camRow}>
-                  <span className={css.camName}>
-                    <strong>{cam.title}</strong>
-                    <code>{entity}</code>
-                  </span>
+                  <button
+                    className={css.camCell}
+                    title="Watch it live"
+                    onClick={() => setDialog(<LiveView entity={entity} title={cam.title} onClose={() => setDialog(null)} />)}
+                  >
+                    <Thumb entity={entity} />
+                    <span className={css.camName}>
+                      <strong>{cam.title}</strong>
+                      <code>{entity}</code>
+                    </span>
+                  </button>
                   <span className={css.muted}>
                     {[cam.medium && "medium", cam.high && "high"].filter(Boolean).join(", ") || "itself only"}
                     {cam.live && ` · ${cam.live}`}
@@ -477,6 +496,7 @@ export function CameraDashboardPage({ state }: { state?: string }) {
       {dialog}
       <Toasts toasts={toasts} />
     </Shell>
+    </ThumbRound.Provider>
   );
 }
 
@@ -485,12 +505,14 @@ function OverviewEditor({
   title,
   value,
   groups,
+  thumb,
   preview,
   onChange,
 }: {
   title: string;
   value: Overview;
   groups: string[];
+  thumb: (group: string) => ReactNode;
   preview: ReactNode;
   onChange: (o: Overview) => void;
 }) {
@@ -526,6 +548,7 @@ function OverviewEditor({
               <Chips
                 items={names}
                 label={(n) => n}
+                thumb={thumb}
                 choices={groups.filter((g) => !names.includes(g))}
                 onChange={(items) => set((o) => (o.rows[i] = { [kind]: items }))}
               />
@@ -603,6 +626,7 @@ function GroupCard({
       <Chips
         items={group.cameras}
         label={(e) => cameras[e]?.title ?? e}
+        thumb={(e) => <Thumb entity={e} />}
         choices={Object.keys(cameras).filter((e) => !group.cameras.includes(e))}
         onChange={(items) => set((g) => (g.cameras = items))}
       />
@@ -739,11 +763,13 @@ function NameDialog({
 function Chips({
   items,
   label,
+  thumb,
   choices,
   onChange,
 }: {
   items: string[];
   label: (item: string) => string;
+  thumb: (item: string) => ReactNode;
   choices: string[];
   onChange: (items: string[]) => void;
 }) {
@@ -769,16 +795,167 @@ function Chips({
         </span>
       ))}
       {choices.length > 0 && (
-        <select className={css.add} value="" onChange={(e) => e.target.value && onChange([...items, e.target.value])}>
-          <option value="">+ Add…</option>
-          {choices.map((c) => (
-            <option key={c} value={c}>
-              {label(c)}
-            </option>
-          ))}
-        </select>
+        <AddMenu choices={choices} label={label} thumb={thumb} onPick={(c) => onChange([...items, c])} />
       )}
     </div>
+  );
+}
+
+/** "+ Add…" as a menu with a picture against each choice (a native select can't show
+ * pictures). Keys as a select: arrows, Enter, Escape; a tap or click outside closes it. */
+function AddMenu({
+  choices,
+  label,
+  thumb,
+  onPick,
+}: {
+  choices: string[];
+  label: (item: string) => string;
+  thumb: (item: string) => ReactNode;
+  onPick: (item: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [at, setAt] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: PointerEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    addEventListener("pointerdown", away);
+    return () => removeEventListener("pointerdown", away);
+  }, [open]);
+  const pick = (c: string) => {
+    onPick(c);
+    setOpen(false);
+  };
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (!open) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setAt(0);
+        setOpen(true);
+      }
+      return;
+    }
+    const keys: Record<string, () => void> = {
+      Escape: () => setOpen(false),
+      ArrowDown: () => setAt((a) => Math.min(a + 1, choices.length - 1)),
+      ArrowUp: () => setAt((a) => Math.max(a - 1, 0)),
+      Home: () => setAt(0),
+      End: () => setAt(choices.length - 1),
+      Enter: () => pick(choices[Math.min(at, choices.length - 1)]),
+    };
+    if (keys[e.key]) {
+      e.preventDefault();
+      e.stopPropagation();
+      keys[e.key]();
+    } else if (e.key === "Tab") setOpen(false);
+  };
+  return (
+    <div className={css.addMenu} ref={ref} onKeyDown={onKeyDown}>
+      <button
+        type="button"
+        className={css.add}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => {
+          setAt(0);
+          setOpen((o) => !o);
+        }}
+      >
+        + Add…
+      </button>
+      {open && (
+        <ul role="listbox" className={css.menu} aria-label="Add">
+          {choices.map((c, i) => (
+            <li
+              key={c}
+              role="option"
+              aria-selected={i === at}
+              className={i === at ? css.menuOn : ""}
+              ref={i === at ? (el) => el?.scrollIntoView({ block: "nearest" }) : undefined}
+              onPointerEnter={() => setAt(i)}
+              onClick={() => pick(c)}
+            >
+              {thumb(c)}
+              <span>{label(c)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/** One camera's live picture: Home Assistant's MJPEG stream, through the app. */
+function LiveView({ entity, title, onClose }: { entity: string; title: string; onClose: () => void }) {
+  const img = useRef<HTMLImageElement>(null);
+  const [state, setState] = useState<"connecting" | "live" | "failed">("connecting");
+  // Blank the image on close: a browser can keep an <img> stream open after it is gone.
+  useEffect(() => {
+    const el = img.current;
+    return () => {
+      if (el) el.src = "";
+    };
+  }, []);
+  return (
+    <Dialog
+      title={title}
+      wide
+      onClose={onClose}
+      footer={
+        <button className={ui.primary} onClick={onClose}>
+          Close
+        </button>
+      }
+    >
+      <div className={css.live}>
+        <img
+          ref={img}
+          src={`api/camera-dashboard/stream/${encodeURIComponent(entity)}`}
+          alt={`${title}, live`}
+          onLoad={() => setState("live")}
+          onError={() => setState("failed")}
+        />
+        {state !== "live" && (
+          <span className={css.liveNote}>{state === "failed" ? "No live picture from this camera." : "Connecting…"}</span>
+        )}
+      </div>
+      <p className={css.muted}>
+        <code>{entity}</code>, as Home Assistant streams it (MJPEG): smooth for cameras that make MJPEG, a few frames a second
+        for the others.
+      </p>
+    </Dialog>
+  );
+}
+
+/** A camera's small still, fetched again each thumbnail round; a blank frame if it has none. */
+function Thumb({ entity }: { entity: string }) {
+  const round = useContext(ThumbRound);
+  const [failed, setFailed] = useState<number>();
+  if (failed === round) return <span className={css.thumb} aria-hidden="true" />;
+  return (
+    <img
+      className={css.thumb}
+      src={`api/camera-dashboard/thumb/${encodeURIComponent(entity)}?r=${round}`}
+      alt=""
+      loading="lazy"
+      onError={() => setFailed(round)}
+    />
+  );
+}
+
+/** A group's cameras as thumbnails on the compositor's grid (as many columns as the
+ * square root, rounded up), so a group is recognisable before its composite is drawn. */
+function GroupThumb({ entities }: { entities: string[] }) {
+  const cols = Math.max(1, Math.ceil(Math.sqrt(entities.length)));
+  return (
+    <span className={css.groupThumb} style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }} aria-hidden="true">
+      {entities.map((e) => (
+        <Thumb key={e} entity={e} />
+      ))}
+    </span>
   );
 }
 

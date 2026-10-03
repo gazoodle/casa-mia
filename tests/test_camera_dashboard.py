@@ -269,7 +269,7 @@ def test_starts_empty_without_old_files(tmp_path):
     )
 
 
-def test_live_preview_draws_unsaved_edits(tmp_path):
+def test_live_previews_and_thumbnails(tmp_path):
     import io
     import threading
     import time
@@ -317,6 +317,9 @@ def test_live_preview_draws_unsaved_edits(tmp_path):
         )
         assert render(store, "overview")[0] == 200
         assert render(store, "Nope")[0] == 404
+        status, ctype, body = cd.handle("GET", "thumb/camera.a", {}, b"")
+        assert (status, ctype) == (200, "image/jpeg") and body[:2] == b"\xff\xd8"
+        assert cd.handle("GET", "thumb/..%2Fetc", {}, b"")[0] == 400
         store["groups"]["Orchard Walk"]["cameras"] = []
         status, _, body = render(store, "Orchard Walk")
         assert status == 422 and b"no cameras" in body
@@ -341,3 +344,51 @@ def test_warns_about_what_ha_lacks():
     )
     assert not any("webrtc-camera card" in w or "user" in w for w in found)
     assert any("nav_back_helper.js" in w for w in found)
+
+
+def test_live_view_passes_ha_stream_through(tmp_path):
+    import threading
+    import types
+    import urllib.error
+    import urllib.request
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    from casa_mia.server import make_server
+
+    class FakeStream(BaseHTTPRequestHandler):
+        def do_GET(self):
+            ok = self.path == "/api/camera_proxy_stream/camera.a"
+            ok = ok and self.headers["Authorization"] == "Bearer token"
+            self.send_response(200 if ok else 404)
+            self.send_header("Content-Type", "multipart/x-mixed-replace;boundary=frame")
+            self.end_headers()
+            for n in range(3):
+                self.wfile.write(
+                    b"--frame\r\nContent-Type: image/jpeg\r\n\r\nJPEG%d\r\n" % n
+                )
+
+        def log_message(self, *args):
+            pass
+
+    ha = ThreadingHTTPServer(("127.0.0.1", 0), FakeStream)
+    threading.Thread(target=ha.serve_forever, daemon=True).start()
+    draft = types.SimpleNamespace(
+        ha_url=f"http://127.0.0.1:{ha.server_port}", token="token"
+    )
+    cd = CameraDashboard(tmp_path, None, lambda: None, draft=draft)  # type: ignore[arg-type]
+    app = make_server(
+        port=0, admin_from=None, proxies={"/api/camera-dashboard/stream/": cd.stream}
+    )
+    threading.Thread(target=app.serve_forever, daemon=True).start()
+    base = f"http://127.0.0.1:{app.server_port}/api/camera-dashboard/stream/"
+    try:
+        with urllib.request.urlopen(base + "camera.a") as r:
+            assert r.headers["Content-Type"].startswith("multipart/x-mixed-replace")
+            assert r.read().count(b"JPEG") == 3
+        with pytest.raises(urllib.error.HTTPError) as err:
+            urllib.request.urlopen(base + "..%2Fsecrets")
+        assert err.value.code == 404
+    finally:
+        for server in (app, ha):
+            server.shutdown()
+            server.server_close()

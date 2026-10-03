@@ -81,9 +81,11 @@ function focusables(dialog: HTMLDialogElement): HTMLElement[] {
   );
 }
 
-/** The dialog's main action: the last primary button in its own footer (Save, Add...). */
+/** The dialog's main action: the last primary button in its own footer (Save, Add...).
+ * css.primary composes css.button, so it holds two class names; select by its own. */
 function primaryButton(dialog: HTMLDialogElement): HTMLButtonElement | undefined {
-  return [...dialog.querySelectorAll<HTMLButtonElement>(`:scope > form > footer .${css.primary}`)].at(-1);
+  const primary = css.primary.split(" ")[0];
+  return [...dialog.querySelectorAll<HTMLButtonElement>(`:scope > form > footer .${primary}`)].at(-1);
 }
 
 export function Field({ label, help, children }: { label: string; help?: ReactNode; children: ReactNode }) {

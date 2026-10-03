@@ -144,6 +144,7 @@ def main() -> int:
         api["/api/gitproxy/"] = gitproxy.handle
     else:
         modules["gitproxy"] = lambda: {"state": "disabled"}
+    proxies = {}
     cameras_on = options.get("camera_dashboard_enabled", False)
     compositor = None
     if options.get("compositor_enabled", False):
@@ -166,6 +167,7 @@ def main() -> int:
         draft.start()
         modules["camera_dashboard"] = cameras.health
         api["/api/camera-dashboard/"] = cameras.handle
+        proxies["/api/camera-dashboard/stream/"] = cameras.stream  # live views
     else:
         modules["camera_dashboard"] = lambda: {"state": "disabled"}
     if compositor:
@@ -173,7 +175,6 @@ def main() -> int:
         modules["compositor"] = compositor.health
     else:
         modules["compositor"] = lambda: {"state": "disabled"}
-    proxies = {}
     if options.get("kiosks_enabled", False):
         firmware = gitproxy.health if gitproxy else dict
         kiosks = Kiosks(

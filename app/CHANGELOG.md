@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.10.1-b9
+
+- Camera Dashboard: each camera has a small picture beside it in the Cameras list, and in a group's **+ Add…** menu; the overview's **+ Add…** menu shows each group as its cameras' pictures on the group's grid. The pictures are fetched again every 5 minutes, not live. **+ Add…** is now a menu rather than a drop-down list (a list can't show pictures): arrow keys, Enter and Esc work as before.
+- Camera Dashboard: click a camera's picture or name in the Cameras list to watch it live in a popup (Home Assistant's MJPEG stream, through the app, so it works remotely too): smooth for cameras that make MJPEG, a few frames a second for the others. Each live view is logged when it opens and closes.
+- Every dialog in the panel: Enter now presses the main button (Save, Add...) as intended; it did nothing.
+
 ## 2026.10.1-b8
 
 - New **Camera Dashboard** option and panel page: one place for the cameras (chosen from Home Assistant's list, each with its medium and high channels, zoom, PTZ presets and page controls), the groups the compositor tiles them into, the overview's layout (landscape and portrait), and the camera dashboard itself (its address, Back / Home / Help, wall tablet users, live cards). Edits are a draft with live previews of every composite; **Deploy preview** puts the dashboard on `/dashboard-cameras-preview` with the draft composites, **Deploy live** replaces the real one and makes the draft what the wall tablets see. Each deploy keeps the dashboard it replaces (Backups, with Restore), YAML shows it for copy and paste, and the page warns about entities, users and custom cards Home Assistant seems to lack. On first start it takes over an existing `groups.json` / `entities.json` (and the old generator's `dashboard_config.json`, if copied into the app's config folder) and rebuilds today's dashboard exactly. Previews are served on port 8098.

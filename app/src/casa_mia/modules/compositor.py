@@ -373,6 +373,18 @@ class Compositor:
         )
         return future.result(FETCH_TIMEOUT * 4)
 
+    def still(self, entity: str, width: int) -> bytes | None:
+        """One camera's still, width wide (16:9), for the Camera Dashboard's thumbnails;
+        None if HA has none. Thread-safe."""
+        if not (self._loop and self._running):
+            raise RuntimeError("the compositor is not running")
+
+        async def fetch() -> bytes | None:
+            return await self._fetch(entity, (width, width * 9 // 16))
+
+        future = asyncio.run_coroutine_threadsafe(fetch(), self._loop)
+        return future.result(FETCH_TIMEOUT * 2)
+
     async def _render(self, cfg: Config, name: str, portrait: bool) -> bytes:
         if name != "overview":
             if not cfg.groups[name]["cameras"]:

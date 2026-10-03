@@ -32,9 +32,13 @@ import json
 import logging
 import re
 import threading
+import time
+import urllib.error
 import urllib.parse
+import urllib.request
 from collections.abc import Callable
 from datetime import datetime
+from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 from typing import Any
 
@@ -56,6 +60,11 @@ from .compositor import (
 _LOGGER = logging.getLogger(__name__)
 
 DRAFT_PORT = 8098
+THUMB_WIDTH = 160  # the page's camera thumbnails
+# ponytail: a live view open longer than this is ended, in case a closed popup's stream
+# was never dropped by the browser; make it a setting if anyone watches for longer.
+MAX_LIVE_VIEW = 600.0
+CAMERA = re.compile(r"camera\.[a-z0-9_]+")
 BACKUPS = "camera-dashboard-backups"
 DEPLOYS = "camera-dashboard-deploys.json"  # when each was last deployed: live, preview
 KEEP_BACKUPS = 20  # per dashboard
@@ -802,6 +811,8 @@ class CameraDashboard:
             url_path, base = self._target(store, live)
             text = to_yaml(build_dashboard(store, base, url_path))
             return 200, "text/yaml; charset=utf-8", text.encode()
+        if method == "GET" and len(parts) == 2 and parts[0] == "thumb":
+            return self._thumb(urllib.parse.unquote(parts[1]))
         if method == "POST" and parts == ["render"]:
             return self._render(body)
         if method == "POST" and parts == ["deploy"]:
@@ -1031,6 +1042,61 @@ class CameraDashboard:
         return {"backups": self.backups()}
 
     # -- previews
+
+    def _thumb(self, entity: str) -> Response:
+        """A small still of one camera, for the page's thumbnails (the page decides how
+        often to ask)."""
+        if not self.draft:
+            return _json(404, {"error": "No thumbnails: the draft compositor is off."})
+        if not CAMERA.fullmatch(entity):
+            return _json(400, {"error": "Not a camera."})
+        try:
+            image = self.draft.still(entity, THUMB_WIDTH)
+        except (RuntimeError, TimeoutError) as exc:
+            return _json(502, {"error": f"The draft compositor: {exc}"})
+        if image is None:
+            return _json(404, {"error": f"No picture from {entity}."})
+        return 200, "image/jpeg", image
+
+    def stream(self, h: BaseHTTPRequestHandler, rest: str) -> None:
+        """/api/camera-dashboard/stream/<camera>: HA's MJPEG stream of one camera, passed
+        through for the page's live view until the viewer closes it (or MAX_LIVE_VIEW)."""
+        entity = urllib.parse.unquote(rest.split("?")[0])
+        if not self.draft or not CAMERA.fullmatch(entity):
+            h.send_error(404, "No such camera")
+            return
+        req = urllib.request.Request(
+            f"{self.draft.ha_url}/api/camera_proxy_stream/{entity}",
+            headers={"Authorization": f"Bearer {self.draft.token}"},
+        )
+        try:
+            upstream = urllib.request.urlopen(req, timeout=15)
+        except (urllib.error.URLError, OSError) as exc:
+            _LOGGER.warning("camera dashboard: no live view of %s: %s", entity, exc)
+            h.send_error(502, f"No live view of {entity}")
+            return
+        _LOGGER.info("camera dashboard: live view of %s opened", entity)
+        start, sent = time.monotonic(), 0
+        with upstream:
+            h.send_response(200)
+            h.send_header("Content-Type", upstream.headers.get("Content-Type", ""))
+            h.send_header("Cache-Control", "no-store")
+            h.end_headers()
+            try:
+                while time.monotonic() - start < MAX_LIVE_VIEW:
+                    chunk = upstream.read1(65536)
+                    if not chunk:
+                        break
+                    h.wfile.write(chunk)
+                    sent += len(chunk)
+            except (OSError, ValueError):
+                pass  # the viewer closed it, or HA ended it
+        _LOGGER.info(
+            "camera dashboard: live view of %s closed after %.0f s (%d KB)",
+            entity,
+            time.monotonic() - start,
+            sent // 1024,
+        )
 
     def _render(self, body: dict[str, Any]) -> Response:
         """A live preview: one composite ("overview" or a group) drawn by the draft
