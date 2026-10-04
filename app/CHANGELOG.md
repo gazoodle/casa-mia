@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.1-b28
+
+- Camera Dashboard: **+ Copy** and **+ Blank commander** did nothing when Home Assistant is opened over plain http (the companion app, Safari): the new commander's id came from a browser call that only exists on secure pages.
+
 ## 2026.10.1-b27
 
 - Camera Dashboard: **several commanders** (#4). The first is Cameras; a new one is a **copy** of the one open, or **blank** (no cameras, every setting at its default). They are listed as an accordion, one open at a time, and can be renamed, moved up and down (in front of Cameras too) and deleted, as long as one is left. Each is a page of the dashboard, in that order, named after it; the camera pages follow, one per camera in any of them. A commander's **Dashboard page** switch, off, leaves it off the dashboard: it is still drawn and keeps its device, for showing elsewhere (the Camera Commander card to come).

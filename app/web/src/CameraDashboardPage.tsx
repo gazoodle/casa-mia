@@ -674,7 +674,9 @@ function Commanders({
     const names = new Set(list.map((c) => c.name));
     let n = list.length + 1;
     while (names.has(`Commander ${n}`)) n++;
-    const id = crypto.randomUUID().replace(/-/g, "").slice(0, 8); // its device: never reused
+    // its device: never reused. getRandomValues, not randomUUID: HA is often plain http on
+    // the LAN, where randomUUID doesn't exist (secure contexts only).
+    const id = Array.from(crypto.getRandomValues(new Uint8Array(4)), (b) => b.toString(16).padStart(2, "0")).join("");
     change([...list, { ...structuredClone(from), name: `Commander ${n}`, id }], list.length);
   };
   const remove = (i: number) =>
