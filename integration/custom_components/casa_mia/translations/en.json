@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Casa Mia app",
-        "description": "Address of the Casa Mia app on the Supervisor network. Leave it empty to use the app found here ({found}); otherwise copy it from the Casa Mia panel (the Integration URL at the foot of its home page) or the app's log, for example http://a6aa04a6-casa-mia:8780.",
+        "description": "Address of the Casa Mia app on the Supervisor network. Leave it empty to use the app found here ({found}); otherwise paste the Integration URL from the foot of the Casa Mia panel's home page (it is also in the app's log).",
         "data": { "url": "URL" }
       }
     },

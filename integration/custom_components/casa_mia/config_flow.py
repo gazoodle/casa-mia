@@ -63,8 +63,9 @@ class CasaMiaConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         found = app_url(self.hass)
         if user_input is not None:
-            # empty: the app found on the Supervisor network
-            url = (user_input.get(CONF_URL) or "").strip().rstrip("/") or found
+            # empty: the app found on the Supervisor network; a paste may carry a
+            # sentence's full stop or stray spaces
+            url = (user_input.get(CONF_URL) or "").strip().rstrip("/.") or found
             if not url:
                 errors["base"] = "not_found"
             else:

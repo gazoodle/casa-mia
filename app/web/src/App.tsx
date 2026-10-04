@@ -9,6 +9,7 @@ import { ModuleIcon } from "./icons";
 import { MODULES, type ModuleInfo } from "./modules";
 import type { HeaderView } from "./api";
 import { Photo, PhotoEditor, photoApi, photoUrl, type PhotoDraft } from "./photo";
+import { CopyButton } from "./ui";
 import css from "./app.module.css";
 
 const STATES: Record<string, [label: string, tone: string]> = {
@@ -116,21 +117,11 @@ export function App() {
 
 /** The address the Casa Mia integration is set up with, ready to copy. */
 function IntegrationUrl({ url }: { url: string }) {
-  const [copied, setCopied] = useState(false);
   return (
     <div className={css.integration}>
       <span>Integration URL</span>
       <code>{url}</code>
-      <button
-        onClick={() =>
-          navigator.clipboard?.writeText(url).then(() => {
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-          })
-        }
-      >
-        {copied ? "Copied" : "Copy"}
-      </button>
+      <CopyButton text={url} />
     </div>
   );
 }
