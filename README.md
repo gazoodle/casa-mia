@@ -39,15 +39,13 @@ of them for more information
 ## Casa Mia Screenshots
 
 <p align="center">
-<img src="docs/screenshots/home.webp" alt="The Casa Mia panel's home page: the house photo and a tile for each module" width="300">
-<a href="#kiosk-satellite-firmware"><img src="docs/screenshots/firmware.webp" alt="The Firmware server page: the address for the tablets and the mirrored Kiosk Satellite releases" width="300"></a>
-<a href="#kiosk-satellite-manager"><img src="docs/screenshots/kiosks.webp" alt="The Kiosk Satellites page: each wall tablet with its version, battery and Wi-Fi, and its backups" width="300"></a>
-</p>
-<p align="center">
-<a href="#kiosk-satellite-manager"><img src="docs/screenshots/kiosk-backups.webp" alt="A wall tablet's kept backups: what changed in each, ready to download or restore" width="300"></a>
-<a href="#people"><img src="docs/screenshots/people.webp" alt="The People page: who may call and text the house, each linked to a Home Assistant person" width="300"></a>
-<a href="#guest-login"><img src="docs/screenshots/guest-login.webp" alt="The Guest login page: QR code endpoints opened and closed by switch, and the logins guests are signed in as" width="300"></a>
-<a href="#guest-login"><img src="docs/screenshots/guest-endpoint.webp" alt="Adding a guest login endpoint: its label, landing dashboard, type, login and secret QR code address" width="300"></a>
+<img src="docs/screenshots/home.webp" alt="The Casa Mia panel's home page: the house photo and a tile for each module" width="400">
+<a href="#kiosk-satellite-firmware"><img src="docs/screenshots/firmware.webp" alt="The Firmware server page: the address for the tablets and the mirrored Kiosk Satellite releases" width="400"></a>
+<a href="#kiosk-satellite-manager"><img src="docs/screenshots/kiosks.webp" alt="The Kiosk Satellites page: each wall tablet with its version, battery and Wi-Fi, and its backups" width="400"></a>
+<a href="#kiosk-satellite-manager"><img src="docs/screenshots/kiosk-backups.webp" alt="A wall tablet's kept backups: what changed in each, ready to download or restore" width="400"></a>
+<a href="#people"><img src="docs/screenshots/people.webp" alt="The People page: who may call and text the house, each linked to a Home Assistant person" width="400"></a>
+<a href="#guest-login"><img src="docs/screenshots/guest-login.webp" alt="The Guest login page: QR code endpoints opened and closed by switch, and the logins guests are signed in as" width="400"></a>
+<a href="#guest-login"><img src="docs/screenshots/guest-endpoint.webp" alt="Adding a guest login endpoint: its label, landing dashboard, type, login and secret QR code address" width="400"></a>
 </p>
 [Casa Mia ]
 
