@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.2-b6
+
+- Screenshot swap: `camera_images` in swap.json gives a camera a picture in place of its feed (in the composites, the Camera Dashboard's previews and thumbnails), and the camera names drawn into the composites are swapped too.
+
 ## 2026.10.2-b5
 
 - Screenshot swap: a name is no longer replaced inside a longer word ("Ann" leaves "Annex" alone); numbers and entity ids still match.

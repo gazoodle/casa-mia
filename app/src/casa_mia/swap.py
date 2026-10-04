@@ -15,6 +15,7 @@ import re
 import urllib.parse
 from collections.abc import Callable
 from pathlib import Path
+from typing import NamedTuple
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -27,13 +28,23 @@ def _same(text: str) -> str:
     return text
 
 
-# Settings in swap.json beside the strings.
-SETTINGS = ("swap", "original_photo")
+# Settings in swap.json beside the strings: `original_photo` (true: the shipped house
+# photo), `camera_images` (a camera's real title -> a picture shown in place of its feed,
+# a path beside swap.json, e.g. "swap/backyard.jpg").
+SETTINGS = ("swap", "original_photo", "camera_images")
 
-# (file mtime, out, back, stamp, original photo); replaced whole, so the server's threads
-# see one or the other.
-State = tuple[int | None, Rule, Rule, str, bool]
-_state: State = (None, _same, _same, "", False)
+
+class State(NamedTuple):
+    mtime: int | None
+    out: Rule
+    back: Rule
+    stamp: str
+    photo: bool
+    images: dict[str, Path]
+
+
+# Replaced whole, so the server's threads see one or the other.
+_state = State(None, _same, _same, "", False, {})
 
 
 def _rule(pairs: dict[str, str]) -> Rule:
@@ -47,24 +58,47 @@ def _rule(pairs: dict[str, str]) -> Rule:
     return lambda text: pattern.sub(lambda m: pairs[m.group(0)], text)
 
 
-def _read(path: Path) -> tuple[dict[str, str], bool]:
-    """The swapped strings, and whether the shipped house photo stands in for yours."""
+def _images(found: object, folder: Path) -> dict[str, Path]:
+    """`camera_images` as paths, each kept inside swap.json's folder."""
+    if not isinstance(found, dict):
+        return {}
+    out = {}
+    for title, name in found.items():
+        path = (folder / str(name)).resolve()
+        if not path.is_relative_to(folder.resolve()):
+            _LOGGER.warning("screenshot swap: %s is outside %s, not used", name, folder)
+        elif not path.is_file():
+            _LOGGER.warning("screenshot swap: no picture %s for a camera", name)
+        else:
+            out[str(title)] = path
+    return out
+
+
+def _read(path: Path) -> State:
+    """The swap as swap.json says (off when it is unreadable or says so)."""
+    mtime = path.stat().st_mtime_ns
     try:
         data = json.loads(path.read_text())
     except (OSError, ValueError) as exc:
         _LOGGER.warning(
             "screenshot swap: %s is unreadable, so it is off (%s)", path, exc
         )
-        return {}, False
+        return State(mtime, _same, _same, "", False, {})
     if not isinstance(data, dict) or data.get("swap") is not True:
-        return {}, False
+        return State(mtime, _same, _same, "", False, {})
     pairs = {
         k: v for k, v in data.items() if k not in SETTINGS and k and isinstance(v, str)
     }
     # JSON answers send non-ASCII as escapes (é as a backslash-u code): match those too.
     for k, v in list(pairs.items()):
         pairs.setdefault(json.dumps(k)[1:-1], json.dumps(v)[1:-1])
-    return pairs, data.get("original_photo") is True
+    back = {v: k for k, v in pairs.items() if v}
+    photo = data.get("original_photo") is True
+    images = _images(data.get("camera_images"), path.parent)
+    on = bool(pairs or photo or images)
+    return State(
+        mtime, _rule(pairs), _rule(back), str(mtime) if on else "", photo, images
+    )
 
 
 def _current() -> State:
@@ -73,17 +107,21 @@ def _current() -> State:
         mtime: int | None = PATH.stat().st_mtime_ns
     except OSError:
         mtime = None
-    if mtime == _state[0]:
+    if mtime == _state.mtime:
         return _state
-    pairs, photo = _read(PATH) if mtime is not None else ({}, False)
-    back = {v: k for k, v in pairs.items() if v}
-    on = bool(pairs) or photo
-    _state = (mtime, _rule(pairs), _rule(back), str(mtime) if on else "", photo)
-    if on:
+    try:
+        _state = (
+            _read(PATH)
+            if mtime is not None
+            else State(None, _same, _same, "", False, {})
+        )
+    except OSError:  # gone between the two looks
+        _state = State(None, _same, _same, "", False, {})
+    if _state.stamp:
         _LOGGER.info(
-            "screenshot swap on: %d strings replaced%s",
-            len(pairs),
-            ", the shipped house photo shown" if photo else "",
+            "screenshot swap on: strings replaced%s%s",
+            ", the shipped house photo shown" if _state.photo else "",
+            f", {len(_state.images)} camera pictures" if _state.images else "",
         )
     else:
         _LOGGER.info("screenshot swap off")
@@ -92,22 +130,27 @@ def _current() -> State:
 
 def out(text: str) -> str:
     """Real strings as their stand-ins, on the way to a page."""
-    return _current()[1](text)
+    return _current().out(text)
 
 
 def back(text: str) -> str:
     """Stand-ins as the real strings, on the way in from a page."""
-    return _current()[2](text)
+    return _current().back(text)
 
 
 def stamp() -> str:
     """Changes whenever the swap does ("" while off), so an open panel can reload."""
-    return _current()[3]
+    return _current().stamp
 
 
 def original_photo() -> bool:
     """The shipped house photo is shown in place of the uploaded one (which is kept)."""
-    return _current()[4]
+    return _current().photo
+
+
+def camera_image(title: str) -> Path | None:
+    """The picture shown in place of the camera titled `title`, if the swap has one."""
+    return _current().images.get(title)
 
 
 def out_bytes(data: bytes, ctype: str) -> bytes:

@@ -41,3 +41,20 @@ def test_swap_both_ways(tmp_path, monkeypatch):
     path.write_text(json.dumps({"swap": False, "Jo": "X", "original_photo": True}))
     os.utime(path, ns=(1, 1))  # a new mtime even within the filesystem's resolution
     assert swap.out("Jo") == "Jo" and swap.stamp() == "" and not swap.original_photo()
+
+
+def test_camera_images(tmp_path, monkeypatch):
+    path = tmp_path / "swap.json"
+    monkeypatch.setattr(swap, "PATH", path)
+    (tmp_path / "swap").mkdir()
+    (tmp_path / "swap" / "yard.jpg").write_bytes(b"jpeg")
+    images = {
+        "Oak Tree": "swap/yard.jpg",
+        "Shed": "swap/none.jpg",
+        "Barn": "../x.jpg",
+    }
+    path.write_text(json.dumps({"swap": True, "camera_images": images}))
+    # Kept only when the picture is there and inside swap.json's folder; not a string.
+    assert swap.camera_image("Oak Tree") == (tmp_path / "swap" / "yard.jpg").resolve()
+    assert swap.camera_image("Shed") is None and swap.camera_image("Barn") is None
+    assert swap.out("camera_images") == "camera_images" and swap.stamp()
