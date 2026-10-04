@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.2-b10
+
+- Screenshot swap: the Kiosk Satellite page (proxied) shows the stand-ins in its text too, as it is drawn; its form fields keep the real values.
+
 ## 2026.10.2-b9
 
 - Screenshot swap: a dashboard deployed while it is on shows the stand-in names on its camera pages too (their addresses keep the real ones).

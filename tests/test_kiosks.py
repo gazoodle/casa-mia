@@ -9,8 +9,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
 
+from casa_mia import swap
 from casa_mia.ha import HAError
-from casa_mia.modules.kiosks import PAGE_SHIM, PAGE_TOKEN, Kiosks
+from casa_mia.modules.kiosks import PAGE_SHIM, PAGE_TOKEN, Kiosks, page_head
 from casa_mia.server import make_server
 
 PASSWORD = "sesame"
@@ -471,3 +472,12 @@ def test_page_script_prefixes_api_calls_once_under_ingress():
         f"wss://ha{base}api/ws?token=x",
         f"wss://ha{base}api/ws?token=x",
     ]
+
+
+def test_page_head_swaps_the_page_only_while_the_swap_is_on(monkeypatch):
+    monkeypatch.setattr(swap, "pairs", lambda: {})
+    assert page_head(False) == PAGE_SHIM.encode()
+    monkeypatch.setattr(swap, "pairs", lambda: {"Ann": "Bea", "a</script>": "x"})
+    head = page_head(False).decode()
+    assert '"Ann": "Bea"' in head and "MutationObserver" in head
+    assert head.count("</script>") == 2  # a pair can't close the script early

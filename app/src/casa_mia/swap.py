@@ -41,6 +41,7 @@ class State(NamedTuple):
     stamp: str
     photo: bool
     images: dict[str, Path]
+    pairs: dict[str, str] = {}  # real -> stand-in, as swap.json says
 
 
 # Replaced whole, so the server's threads see one or the other.
@@ -88,6 +89,7 @@ def _read(path: Path) -> State:
     pairs = {
         k: v for k, v in data.items() if k not in SETTINGS and k and isinstance(v, str)
     }
+    plain = dict(pairs)
     # JSON answers send non-ASCII as escapes (é as a backslash-u code): match those too.
     for k, v in list(pairs.items()):
         pairs.setdefault(json.dumps(k)[1:-1], json.dumps(v)[1:-1])
@@ -96,7 +98,13 @@ def _read(path: Path) -> State:
     images = _images(data.get("camera_images"), path.parent)
     on = bool(pairs or photo or images)
     return State(
-        mtime, _rule(pairs), _rule(back), str(mtime) if on else "", photo, images
+        mtime,
+        _rule(pairs),
+        _rule(back),
+        str(mtime) if on else "",
+        photo,
+        images,
+        plain,
     )
 
 
@@ -152,6 +160,11 @@ def camera_image(title: str) -> Path | None:
     and it is there."""
     path = _current().images.get(title)
     return path if path and path.is_file() else None
+
+
+def pairs() -> dict[str, str]:
+    """Real -> stand-in, as swap.json says ({} while off): for a page to swap itself."""
+    return _current().pairs
 
 
 def out_bytes(data: bytes, ctype: str) -> bytes:

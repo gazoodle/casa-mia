@@ -39,6 +39,7 @@ from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 from typing import Any
 
+from .. import swap
 from ..ha import HA, HAError
 
 _LOGGER = logging.getLogger(__name__)
@@ -105,12 +106,36 @@ PAGE_SHIM = (
 )
 
 
+# While the screenshot swap is on: the page's text shows the stand-ins (PAIRS: real ->
+# stand-in), as it is drawn and redrawn, matched as swap.py does (not inside a longer
+# word). Only the text shown: form fields keep the real values, so a save never writes a
+# stand-in to the tablet.
+SWAP_SHIM = (
+    "<script>(()=>{const P=PAIRS,"
+    "k=Object.keys(P).sort((a,b)=>b.length-a.length)"
+    '.map(s=>s.replace(/[.*+?^${}()|[\\]\\\\]/g,"\\\\$&")),'
+    'r=new RegExp("(?<!\\\\p{L})(?:"+k.join("|")+")(?!\\\\p{L})","gu"),'
+    "done=new WeakMap(),"
+    "fix=n=>{if(n.nodeType==3){if(done.get(n)===n.data)return;"
+    "const t=n.data.replace(r,m=>P[m]);if(t!==n.data)n.data=t;done.set(n,t)}"
+    "else if(n.nodeType==1&&!/^(SCRIPT|STYLE|TEXTAREA)$/.test(n.tagName))"
+    "n.childNodes.forEach(fix)};"
+    "new MutationObserver(ms=>ms.forEach(m=>m.type=='characterData'?fix(m.target)"
+    ":m.addedNodes.forEach(fix))).observe(document,"
+    "{subtree:true,childList:true,characterData:true})"
+    "})()</script>"
+)
+
+
 def page_head(logged_in: bool) -> bytes:
-    """What goes straight after the page's <head>: the shim, and when the app holds a
-    login for the kiosk, the placeholder token that skips their login screen."""
+    """What goes straight after the page's <head>: the shim, when the app holds a login
+    for the kiosk the placeholder token that skips their login screen, and while the
+    screenshot swap is on its shim."""
     head = PAGE_SHIM
     if logged_in:
         head += f'<script>localStorage.setItem("ks_token","{PAGE_TOKEN}")</script>'
+    if pairs := swap.pairs():
+        head += SWAP_SHIM.replace("PAIRS", json.dumps(pairs).replace("</", "<\\/"))
     return head.encode()
 
 
