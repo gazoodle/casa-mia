@@ -106,7 +106,10 @@ EMPTY_COMMANDER = {
         "style": "breathe",
     },
     "aspects": {},  # camera -> its natural shape (width / height), recorded when saved
-    "left": {"cameras": [], "size": 15, "fit": "cover"},
+    # Each panel: its cameras, size, fit; `lines`, the rows (top, bottom) or columns
+    # (left, right) its cameras are shared between; `hidden`, off the view entirely
+    # (no room, no tiles; its cameras kept for when it is shown again).
+    "left": {"cameras": [], "size": 15, "fit": "cover", "lines": 1, "hidden": False},
     # Top and bottom: an anchored end runs to the view's edge, and the side panel stops
     # at it; an end not anchored stops at the side panel, which runs to the view's edge.
     "top": {
@@ -115,14 +118,18 @@ EMPTY_COMMANDER = {
         "fit": "cover",
         "anchor_left": False,
         "anchor_right": False,
+        "lines": 1,
+        "hidden": False,
     },
-    "right": {"cameras": [], "size": 15, "fit": "cover"},
+    "right": {"cameras": [], "size": 15, "fit": "cover", "lines": 1, "hidden": False},
     "bottom": {
         "cameras": [],
         "size": 20,
         "fit": "cover",
         "anchor_left": True,
         "anchor_right": True,
+        "lines": 1,
+        "hidden": False,
     },
 }
 
@@ -136,7 +143,7 @@ def config_from_store(store: dict) -> Config:
         e: {k: c[k] for k in ("medium", "high", "zoom") if c.get(k)}
         for e, c in cams.items()
     }
-    cfg.commander = {**EMPTY_COMMANDER, **(store.get("commander") or {})}
+    cfg.commander = visible({**EMPTY_COMMANDER, **(store.get("commander") or {})})
     cfg.titles = {e: c.get("title", e) for e, c in cams.items()}
     return cfg
 
@@ -173,6 +180,19 @@ def mime(data: bytes) -> str:
 Rect = tuple[int, int, int, int]
 
 
+def visible(cmd: dict) -> dict:
+    """The commander as it is shown: a hidden panel's cameras left out (it takes no
+    room, has no tiles, and its cameras are not the commander's until it is shown)."""
+    return {
+        **cmd,
+        **{
+            p: {**cmd[p], "cameras": []}
+            for p in PANELS
+            if p in cmd and cmd[p].get("hidden")
+        },
+    }
+
+
 def commander_cameras(cmd: dict) -> list[str]:
     """The commander's cameras, each once, panel by panel (left, top, right, bottom)."""
     return list(
@@ -191,6 +211,20 @@ def _line(rect: Rect, n: int, down: bool, gap: int) -> list[Rect]:
     ]
     cells[-1] = (cells[-1][0], span - cells[-1][0])
     return [(x, y + a, w, b) if down else (x + a, y, b, h) for a, b in cells]
+
+
+def _lines(rect: Rect, n: int, lines: int, down: bool, gap: int) -> list[Rect]:
+    """n tiles in `lines` lines filling rect: columns side by side when the tiles run
+    down (left, right), rows one above another when they run across (top, bottom). The
+    cameras fill the lines in turn, the first lines taking one more when they don't
+    share evenly; each line spreads its own across its length."""
+    lines = max(1, min(lines, n))
+    strips = _line(rect, lines, not down, gap)
+    out: list[Rect] = []
+    for i, strip in enumerate(strips):
+        count = n // lines + (1 if i < n % lines else 0)
+        out += _line(strip, count, down, gap)
+    return out
 
 
 SIZED = ("own", "fixed")  # main camera fits that set its size, and the panels' sizes
@@ -291,7 +325,13 @@ def commander_layout(
         "right": down(w - right, right, "right"),
     }
     tiles = {
-        p: _line(areas[p], len(cmd[p]["cameras"]), p in ("left", "right"), gap)
+        p: _lines(
+            areas[p],
+            len(cmd[p]["cameras"]),
+            int(cmd[p].get("lines", 1)),
+            p in ("left", "right"),
+            gap,
+        )
         if cmd[p]["cameras"]
         else []
         for p in PANELS

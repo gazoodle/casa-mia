@@ -51,6 +51,7 @@ from .compositor import (
     config_from_store,
     mime,
     ratio,
+    visible,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -172,6 +173,15 @@ def problems(store: Store) -> list[str]:
         size = pane.get("size")
         if not isinstance(size, (int, float)) or not 0 <= size <= 45:
             out.append(f"The commander's {panel} panel: size must be 0-45%.")
+        lines = pane.get("lines", 1)
+        if (
+            not isinstance(lines, int)
+            or isinstance(lines, bool)
+            or not 1 <= lines <= 10
+        ):
+            out.append(f"The commander's {panel} panel: rows or columns must be 1-10.")
+        if not isinstance(pane.get("hidden", False), bool):
+            out.append(f"The commander's {panel} panel: hidden must be true or false.")
         if pane.get("fit", "cover") not in ("cover", "contain"):
             out.append(f"The commander's {panel} panel: fit must be cover or contain.")
         for e in pane.get("cameras", []):
@@ -227,8 +237,8 @@ def problems(store: Store) -> list[str]:
             out.append(f"The commander's Track motion {key} must be 0 seconds or more.")
     if cmd.get("main") and cmd["main"] not in commander_cameras(cmd):
         out.append("The commander's main camera must be one of its cameras.")
-    if not commander_cameras(cmd):
-        out.append("The commander has no cameras: put some in its panels.")
+    if not commander_cameras(visible(cmd)):
+        out.append("The commander has no cameras: put some in its panels (shown).")
     return out
 
 
@@ -305,8 +315,8 @@ def commander_of(store: Store) -> dict:
 
 
 def menu_cameras(store: Store) -> list[str]:
-    """The cameras that get a live page: the commander's."""
-    return commander_cameras(commander_of(store))
+    """The cameras that get a live page: the commander's (in the panels shown)."""
+    return commander_cameras(visible(commander_of(store)))
 
 
 # --- the dashboard ---------------------------------------------------------------------
@@ -630,7 +640,7 @@ def build_dashboard(store: Store, image_base: str, url_path: str) -> dict:
             view["theme"] = theme
         return header(view, cam.get("zoom"), cam.get("controls", []))
 
-    cmd = commander_of(s)
+    cmd = visible(commander_of(s))
     if not commander_cameras(cmd):
         return {"views": []}
     # the commander, then one live page per camera in it

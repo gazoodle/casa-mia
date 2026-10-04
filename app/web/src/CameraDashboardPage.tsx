@@ -53,6 +53,10 @@ type Panel = {
   /** Top and bottom: run to the view's edge at that end (the side panel stops at them). */
   anchor_left?: boolean;
   anchor_right?: boolean;
+  /** Rows (top, bottom) or columns (left, right) its cameras are shared between. */
+  lines?: number;
+  /** Off the view: no room, no tiles; its cameras kept for when it is shown again. */
+  hidden?: boolean;
 };
 const PANELS = ["left", "top", "right", "bottom"] as const;
 type Commander = {
@@ -800,8 +804,16 @@ function CommanderEditor({
       </div>
       <div className={css.panels}>
         {PANELS.map((p) => (
-          <div key={p} className={css.overview}>
-            <h3>{PANEL_NAMES[p][0]}</h3>
+          <div key={p} className={`${css.overview} ${value[p].hidden ? css.hiddenPanel : ""}`}>
+            <header className={css.panelHead}>
+              <h3>{PANEL_NAMES[p][0]}</h3>
+              <Switch
+                on={!value[p].hidden}
+                label={value[p].hidden ? "Hidden" : "Shown"}
+                onChange={(on) => set((c) => (c[p].hidden = !on))}
+              />
+              <span className={css.muted}>{value[p].hidden ? "Hidden: not on the view" : "Shown"}</span>
+            </header>
             <Chips
               items={value[p].cameras}
               label={(e) => cameras[e]?.title ?? e}
@@ -809,13 +821,19 @@ function CommanderEditor({
               choices={Object.keys(cameras).filter((e) => !inPanels.includes(e))}
               onChange={(items) => set((c) => (c[p].cameras = items))}
             />
-            <div className={css.numbers}>
+            <div className={css.panelOptions}>
               <Num
                 label={PANEL_NAMES[p][1]}
                 value={value[p].size}
                 disabled={sized}
                 help={sized ? "Set by the main camera's size." : undefined}
                 onChange={(n) => set((c) => (c[p].size = n))}
+              />
+              <Num
+                label={p === "left" || p === "right" ? "Columns" : "Rows"}
+                value={value[p].lines ?? 1}
+                help="Its cameras shared between them, the first taking one more when they don't share evenly."
+                onChange={(n) => set((c) => (c[p].lines = Math.max(1, Math.round(n))))}
               />
               <Field label="Fit">
                 <Segmented

@@ -253,6 +253,31 @@
   grid-column: 1 / -1;
 }
 
+/* A panel's title, with its Shown switch beside it. */
+.panelHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* A hidden panel: its cameras and settings kept, shown faded. */
+.hiddenPanel > :not(.panelHead) {
+  opacity: 0.5;
+}
+
+/* A panel's settings, spread along the row; long help wraps within its own field. */
+.panelOptions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  gap: 12px 24px;
+}
+
+.panelOptions > * {
+  flex: 0 1 180px;
+  min-width: 140px;
+}
+
 /* The commander's four panels, one to a row: room for many cameras each. */
 .panels {
   display: grid;

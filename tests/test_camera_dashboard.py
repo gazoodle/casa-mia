@@ -660,3 +660,45 @@ def test_the_page_flips_only_the_commanders_switches(cd):
     assert (
         call(cd, "POST", "switch", {"entity": "switch.kitchen", "on": True})[0] == 400
     )
+
+
+def test_panel_rows_share_its_cameras():
+    from casa_mia.modules.compositor import EMPTY_COMMANDER, commander_layout
+
+    cmd = {**EMPTY_COMMANDER, "width": 1000, "height": 500, "gap": 0}
+    cams = [f"camera.{n}" for n in "abcde"]
+    cmd["bottom"] = {"cameras": cams, "size": 20, "fit": "cover", "lines": 2}
+    _, _, tiles = commander_layout(cmd)
+    # 5 cameras in 2 rows: 3 then 2, each row spread across the full width
+    assert tiles["bottom"] == [
+        (0, 400, 333, 50),
+        (333, 400, 334, 50),
+        (667, 400, 333, 50),
+        (0, 450, 500, 50),
+        (500, 450, 500, 50),
+    ]
+    cmd["left"] = {"cameras": cams[:3], "size": 20, "fit": "cover", "lines": 5}
+    _, _, tiles = commander_layout(cmd)
+    assert len(tiles["left"]) == 3 and {t[3] for t in tiles["left"]} == {
+        400
+    }  # 3 columns
+
+
+def test_a_hidden_panel_is_off_the_view():
+    store = commander_store()
+    store["commander"]["bottom"]["hidden"] = True
+    assert problems(store) == []
+    views = build_dashboard(store, "http://h:8099", "dashboard-cams")["views"]
+    assert [v["path"] for v in views] == ["cameras", "cam-bay"]  # no Tablet page
+    (card,) = views[0]["sections"][0]["cards"]
+    taps = [e for e in card["elements"] if e["type"] == "image"]
+    assert [t["tap_action"]["data"]["option"] for t in taps] == ["Bay"]
+    from casa_mia.modules.compositor import commander_layout, config_from_store
+
+    cfg = config_from_store(store)
+    assert commander_layout(cfg.commander)[2]["bottom"] == []  # takes no room
+    assert store["commander"]["bottom"]["cameras"] == ["camera.b"]  # kept
+    store["commander"]["left"]["hidden"] = True
+    assert "has no cameras" in " ".join(problems(store))
+    store["commander"]["left"]["lines"] = 0
+    assert "rows or columns must be 1-10" in " ".join(problems(store))

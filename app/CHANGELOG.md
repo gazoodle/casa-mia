@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.10.1-b24
+
+- Camera Commander: each panel can be **hidden**: it leaves the view (no room, no tiles, its cameras not among the commander's), and keeps its cameras and settings for when it is shown again.
+- Camera Commander: each panel has **Rows** (top, bottom) or **Columns** (left, right). Its cameras are shared between them, the first taking one more when they don't share evenly (7 in 2 rows: 4 then 3), each spread across its own row or column. One, as before, by default.
+- Camera Dashboard: a panel's settings are spread along its row rather than bunched up.
+
 ## 2026.10.1-b23
 
 - Camera Dashboard: the commander editor's options are in four groups (Picture, Main camera, Highlight, Track motion) that flow around the preview, beside it and then under it, where a tall column left empty space below the picture. The Left, Top, Right and Bottom panels are full width, one to a row, so a panel with many cameras isn't cramped.
