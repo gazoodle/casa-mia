@@ -399,3 +399,7 @@ above).
    config, or discovery through the Supervisor?
 9. How are module health and "last heard" surfaced so a silent failure pages someone?
 10. What is the module enable flag's shape (one boolean option per module in the app's options, default off for modules that replace a live integration)?
+
+## Footnote
+
+🦶 🎵
