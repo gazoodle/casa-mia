@@ -5,7 +5,7 @@
 // show a stopped picture, and a new one might not load at all. This stops the streams of
 // pictures not on screen and gives those on screen a fresh one. It also gives them the
 // Security look (a CSS filter: monochrome, tinted) while the Camera Commander's Security
-// look switch is on, and makes the commander's highlight (the outline on the main
+// look switch is on, and makes each commander's highlight (the outline on the main
 // camera's tile) pulse. Loaded by the Casa Mia integration (its options switch it on); it
 // touches nothing but those pictures and that outline.
 
@@ -14,7 +14,18 @@ const STREAM = /\/g\/[^/?#]+\.mjpg/;
 const BLANK = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 const known = new Set(); // every stream picture seen; pages left alive keep theirs
 const LOOK = "switch.camera_commander_security_look";
-const MAIN = "select.camera_commander_main_camera"; // a new main camera: a new highlight
+// The commanders' Main camera selects (the Security look switch lists them): a new main
+// camera is a new highlight, whose pulse is started at once.
+let mains = "";
+let unfollowMains;
+function followMains(conn, selects) {
+  if (selects.join(" ") === mains) return;
+  mains = selects.join(" ");
+  unfollowMains?.then((stop) => stop());
+  unfollowMains = selects.length
+    ? conn.subscribeMessage((msg) => msg.c && soon(), { type: "subscribe_entities", entity_ids: selects })
+    : undefined;
+}
 let look = ""; // the CSS filter while the Security look is on
 
 /** Every <img> in the page, inside HA's components (shadow roots) too. */
@@ -123,14 +134,15 @@ window.hassConnection.then(({ conn }) =>
       if (changed?.s !== undefined) lookNow.on = changed.s === "on";
       if (changed?.a && "css_filter" in changed.a) lookNow.css = changed.a.css_filter || "";
       if (msg.r?.includes(LOOK)) Object.assign(lookNow, { on: false, css: "" });
-      if (msg.c?.[MAIN]) soon(); // HA draws the new highlight: start its pulse
+      const selects = added?.a?.main_selects ?? changed?.a?.main_selects;
+      if (Array.isArray(selects)) followMains(conn, selects);
       const wanted = lookNow.on ? lookNow.css : "";
       if (wanted !== look) {
         look = wanted;
         check();
       }
     },
-    { type: "subscribe_entities", entity_ids: [LOOK, MAIN] },
+    { type: "subscribe_entities", entity_ids: [LOOK] },
   ),
 );
 

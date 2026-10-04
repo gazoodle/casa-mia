@@ -65,7 +65,9 @@ def test_serves_the_commander(compositor):
     assert compositor.health()["state"] == "running"
     assert compositor.health()["cameras"] == 2
     base = f"http://127.0.0.1:{compositor.port}"
-    with urllib.request.urlopen(f"{base}/g/commander.jpg") as r:
+    with urllib.request.urlopen(f"{base}/g/commander.jpg") as r:  # before several
+        assert r.status == 200
+    with urllib.request.urlopen(f"{base}/g/cameras.jpg") as r:
         assert r.headers["Content-Type"] == "image/jpeg"  # no gaps: JPEG
         assert Image.open(io.BytesIO(r.read())).size == (640, 360)
     for gone in ("nope", "overview"):  # nothing else, groups and overviews are gone
@@ -179,7 +181,7 @@ def test_a_camera_that_keeps_missing_sits_out(tmp_path):
 
     async def rounds(n):
         for _ in range(n):
-            await comp._round()
+            await comp._round(comp.cfg.commanders)
 
     asyncio.run(rounds(mod.STRIKES))
     assert "camera.b" in comp._benched and asked.count("camera.b") == mod.STRIKES
@@ -204,13 +206,13 @@ def test_gathers_only_while_watched_and_serves_at_once_after(tmp_path, monkeypat
         tmp_path, f"http://127.0.0.1:{ha.server_port}", "token", port=0, prewarm=False
     )
     comp.start()
-    url = f"http://127.0.0.1:{comp.port}/g/commander.jpg"
+    url = f"http://127.0.0.1:{comp.port}/g/cameras.jpg"
     try:
         assert comp.health()["gathering"] is False  # nobody watching: nothing fetched
         urllib.request.urlopen(url).close()
         assert comp._shots  # the first round was awaited: the cache was empty
         for _ in range(40):
-            if not comp.health()["gathering"] and comp._picture:
+            if not comp.health()["gathering"] and comp._pictures:
                 break
             time.sleep(0.1)
         assert comp.health()["gathering"] is False  # stopped once nobody watched

@@ -7,16 +7,17 @@ Three parts, all on one asyncio loop in the compositor's own thread:
     Assistant, all at once, each with its own timeout, into a cache that is never
     emptied. A camera that misses STRIKES rounds in a row sits out (its picture goes
     stale) and is tried again after BENCH seconds. Nobody watching: nothing is fetched.
-  * the drawing: after each round the commander is drawn from the cache, in a worker
-    thread (the loop keeps serving meanwhile); a camera picture older than the
-    commander's `stale` seconds is marked Stale. Open streams are told a new picture is
-    ready.
+  * the drawing: after each round each commander being watched is drawn from the
+    cache, in a worker thread (the loop keeps serving meanwhile); a camera picture older
+    than the commander's `stale` seconds is marked Stale. Open streams are told a new
+    picture is ready. Only the cameras of the commanders being watched are fetched.
   * the HTTP server: serves the latest picture, to any number of viewers.
 
 Ported from tablet-provision/composite-test/server.py.
 
-  GET /g/commander.jpg    latest picture (poll it, or view it once)
-  GET /g/commander.mjpg   self-updating multipart stream, one frame per interval
+  GET /g/<name>.jpg       a commander's latest picture (poll it, or view it once); its
+                          name as a slug: /g/cameras.jpg for the commander Cameras
+  GET /g/<name>.mjpg      self-updating multipart stream, one frame per interval
   GET /                   links; GET /status  cache ages and open streams
 
 Config is the Camera Dashboard's store in the app's config folder:
@@ -27,10 +28,12 @@ camera-dashboard.json.
 from __future__ import annotations
 
 import asyncio
+import html
 import io
 import json
 import logging
 import math
+import re
 import threading
 import time
 from dataclasses import dataclass, field
@@ -67,17 +70,33 @@ LATEST_AT_ONCE = 4  # cameras fetched together in a round
 @dataclass
 class Config:
     entities: dict[str, dict[str, str]] = field(default_factory=dict)
-    commander: dict = field(default_factory=dict)
+    # The commanders, in order, each with every setting, as shown (see `visible`).
+    commanders: list[dict] = field(default_factory=list)
     titles: dict[str, str] = field(default_factory=dict)  # camera -> its title
+
+    def named(self, name: str) -> dict | None:
+        """The commander served as /g/<name>: its name as a slug. /g/commander, the
+        address before there were several (a dashboard deployed then), is the first."""
+        if name == "commander" and self.commanders:
+            return self.commanders[0]
+        return next((c for c in self.commanders if slug(c["name"]) == name), None)
 
 
 # The Camera Dashboard's stores (see camera_dashboard.py): what is deployed, and the draft.
 LIVE_STORE = "camera-dashboard-live.json"
 DRAFT_STORE = "camera-dashboard.json"
-# The commander: one landscape picture, a main camera framed by four panels of cameras.
-# Left and right sizes are % of the width, top and bottom % of the height.
+# A commander: one landscape picture, a main camera framed by four panels of cameras.
+# Left and right sizes are % of the width, top and bottom % of the height. There are one
+# or more, each a page of the dashboard named after it.
 PANELS = ("left", "top", "right", "bottom")
 EMPTY_COMMANDER = {
+    "name": "Cameras",  # its page's title; as a slug, its page's path and picture's
+    # Never changes: its device in the integration (Main camera, Track motion). "": the
+    # first commander there was, on the integration's Camera Commander device itself.
+    "id": "",
+    # A page of its own on the dashboard; off: only drawn (and its device kept), for a
+    # place other than the dashboard, such as a card to come.
+    "page": True,
     "width": 1920,
     "height": 1080,
     "gap": 4,
@@ -134,16 +153,29 @@ EMPTY_COMMANDER = {
 }
 
 
+def slug(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", str(text).lower()).strip("-")
+
+
+def commanders_of(store: dict) -> list[dict]:
+    """A store's commanders, in order, each with every setting. A store saved before
+    there were several has its one commander (named Cameras)."""
+    found = store.get("commanders")
+    if not isinstance(found, list):
+        found = [store.get("commander") or {}]
+    return [{**EMPTY_COMMANDER, **c} for c in found if isinstance(c, dict)]
+
+
 def config_from_store(store: dict) -> Config:
-    """The compositor's view of a Camera Dashboard store: the commander names its cameras
-    by entity, and each camera's title and channels live once, under "cameras"."""
+    """The compositor's view of a Camera Dashboard store: the commanders name their
+    cameras by entity, and each camera's title and channels live once, under "cameras"."""
     cams = store.get("cameras", {})
     cfg = Config()
     cfg.entities = {
         e: {k: c[k] for k in ("medium", "high", "zoom") if c.get(k)}
         for e, c in cams.items()
     }
-    cfg.commander = visible({**EMPTY_COMMANDER, **(store.get("commander") or {})})
+    cfg.commanders = [visible(c) for c in commanders_of(store)]
     cfg.titles = {e: c.get("title", e) for e, c in cams.items()}
     return cfg
 
@@ -198,6 +230,11 @@ def commander_cameras(cmd: dict) -> list[str]:
     return list(
         dict.fromkeys(e for p in PANELS for e in cmd.get(p, {}).get("cameras", []))
     )
+
+
+def cameras_of(commanders: list[dict]) -> list[str]:
+    """Every commander's cameras, each once, commander by commander."""
+    return list(dict.fromkeys(e for c in commanders for e in commander_cameras(c)))
 
 
 def _line(rect: Rect, n: int, down: bool, gap: int) -> list[Rect]:
@@ -551,10 +588,10 @@ class Compositor:
         self._shots: dict[tuple[str, tuple[int, int]], tuple[float, bytes]] = {}
         self._misses: dict[str, int] = {}  # camera -> rounds missed in a row
         self._benched: dict[str, float] = {}  # camera -> when it is tried again
-        self._picture: tuple[float, bytes] | None = None  # the latest commander drawn
-        self._fresh: asyncio.Event | None = (
-            None  # set (and replaced) at each new picture
-        )
+        # Each commander (by its slug): its latest picture, and an event set (and
+        # replaced) at each new one.
+        self._pictures: dict[str, tuple[float, bytes]] = {}
+        self._fresh: dict[str, asyncio.Event] = {}
         self._watching: asyncio.Event | None = None  # someone asked: gather
         self._next_round: asyncio.Event | None = None  # gather now, don't wait
         self._draw_lock: asyncio.Lock | None = None
@@ -562,15 +599,19 @@ class Compositor:
         self._warmed: dict[str, float] = {}
         self._bg: set[asyncio.Task] = set()
         self._streams: dict[str | None, list[asyncio.Event]] = {}
-        self._last_request = -LINGER
+        self._open: dict[str, int] = {}  # commander -> streams open
+        self._asked: dict[str, float] = {}  # commander -> its last request
+        self._warm_until = -LINGER  # prewarm: every commander gathered until then
         self._http: aiohttp.ClientSession | None = None
         self._latest: dict[str, bytes] = {}  # camera -> its latest still (keep_stills)
         self._thumbs: dict[
             tuple[str, int], tuple[bytes, bytes]
         ] = {}  # -> (source, thumb)
         self._round_now: asyncio.Event | None = None
-        self.main: str | None = None  # the commander's main camera, as last chosen
-        self.motion: frozenset[str] = frozenset()  # cameras seeing motion (red dots)
+        # Per commander (by id): its main camera as last chosen, and its cameras seeing
+        # motion (red dots).
+        self.mains: dict[str, str] = {}
+        self.motion: dict[str, frozenset[str]] = {}
 
     def start(self) -> None:
         """Never raises: a failure shows up as state `offline` in health()."""
@@ -580,7 +621,7 @@ class Compositor:
             self._error = f"bad config in {self.config_dir}: {exc}"
             _LOGGER.error(self._error)
             return
-        if not self._known("commander"):
+        if not cameras_of(self.cfg.commanders):
             _LOGGER.warning(
                 "compositor (%s): no cameras yet; it needs %s", self.store, self.needs
             )
@@ -599,7 +640,7 @@ class Compositor:
 
         def apply() -> None:
             self.cfg, self._error = cfg, None
-            self._picture = None
+            self._pictures.clear()
             if self._next_round:
                 self._next_round.set()
             if self._round_now:
@@ -610,36 +651,36 @@ class Compositor:
         else:
             self.cfg = cfg
         _LOGGER.info(
-            "compositor (%s) reloaded: %d commander cameras",
+            "compositor (%s) reloaded: %d commanders (%s), %d cameras",
             self.store,
-            len(commander_cameras(cfg.commander)),
+            len(cfg.commanders),
+            ", ".join(c["name"] for c in cfg.commanders),
+            len(cameras_of(cfg.commanders)),
         )
 
-    def main_camera(self, cfg: Config | None = None) -> str | None:
-        """The commander's main camera: the one last chosen if it is still in a panel,
-        else the configured one, else the first of the panels."""
-        cfg = cfg or self.cfg
-        cams = commander_cameras(cfg.commander) if cfg.commander else []
-        for choice in (
-            self.main if cfg is self.cfg else None,
-            cfg.commander.get("main"),
-        ):
+    def main_camera(self, cmd: dict, chosen: bool = True) -> str | None:
+        """A commander's main camera: the one last chosen for it if it is in its panels
+        (`chosen` False: not that), else its configured one, else the first of them."""
+        cams = commander_cameras(cmd)
+        for choice in (self.mains.get(cmd["id"]) if chosen else None, cmd.get("main")):
             if choice in cams:
                 return choice
         return cams[0] if cams else None
 
-    def set_motion(self, cameras: frozenset[str]) -> None:
-        """The cameras seeing motion now: their tiles get a red dot from the next
-        picture on. Thread-safe."""
-        self.motion = cameras
+    def set_motion(self, cameras: frozenset[str], commander: str | None) -> None:
+        """A commander's cameras seeing motion now (None: every commander's): their
+        tiles get a red dot from the next picture on. Thread-safe."""
+        for cmd in self.cfg.commanders:
+            if commander in (None, cmd["id"]):
+                self.motion = {**self.motion, cmd["id"]: cameras}
 
-    def set_main(self, entity: str) -> None:
-        """Show this camera as the commander's main one: the picture is redrawn and sent to
-        open streams at once. Thread-safe."""
-        self.main = entity
+    def set_main(self, entity: str, commander: str) -> None:
+        """Show this camera as a commander's (by id) main one: its picture is redrawn
+        and sent to open streams at once. Thread-safe."""
+        self.mains = {**self.mains, commander: entity}
 
         def apply() -> None:
-            task = asyncio.ensure_future(self._switch(entity))
+            task = asyncio.ensure_future(self._switch(commander))
             self._bg.add(task)
             task.add_done_callback(self._bg.discard)
 
@@ -671,28 +712,41 @@ class Compositor:
         found = [d for d in shots + done if d[1]]
         return max(found, key=lambda d: d[0])[1] if found else None
 
-    async def _switch(self, entity: str) -> None:
-        """The main camera changed: at once, a picture from the stills already to hand
-        (the new camera blurred, "Changing to ..."), then a round for the sharp one."""
-        if not self._known("commander"):
-            return
-        try:
-            await self._draw(changing=True)
-        except (OSError, ValueError) as exc:
-            _LOGGER.debug("commander: no quick picture: %s", exc)
-            self._picture = None
+    async def _switch(self, commander: str) -> None:
+        """A commander's main camera changed: at once, while it is watched, a picture
+        from the stills already to hand (the new camera blurred, "Changing to ..."), then
+        a round for the sharp one. Not watched: its picture is dropped (it is redrawn
+        when next asked for)."""
+        watched = self._watched()
+        for cmd in self.cfg.commanders:
+            if cmd["id"] != commander:
+                continue
+            if cmd not in watched:
+                self._pictures.pop(slug(cmd["name"]), None)
+                continue
+            try:
+                await self._draw(cmd, changing=True)
+            except (OSError, ValueError) as exc:
+                _LOGGER.debug("%s: no quick picture: %s", cmd["name"], exc)
+                self._pictures.pop(slug(cmd["name"]), None)
         if self._next_round:
             self._next_round.set()
 
-    def render(self, cfg: Config) -> bytes:
-        """Draw the commander from a config that is not the one being served: the Camera
-        Dashboard's unsaved edits, for its live preview. Stills are shared with the
-        picture being served. Thread-safe; ValueError when it has no cameras."""
+    def render(self, cfg: Config, index: int = 0) -> bytes:
+        """Draw one commander (by its place) from a config that is not the one being
+        served: the Camera Dashboard's unsaved edits, for its live preview. Stills are
+        shared with the pictures being served. Thread-safe; ValueError when it has no
+        cameras."""
         if not (self._loop and self._running):
             raise RuntimeError("the compositor is not running")
-        if not commander_cameras(cfg.commander):
-            raise ValueError("the commander has no cameras")
-        future = asyncio.run_coroutine_threadsafe(self._preview(cfg), self._loop)
+        if not 0 <= index < len(cfg.commanders):
+            raise ValueError("no such commander")
+        cmd = cfg.commanders[index]
+        if not commander_cameras(cmd):
+            raise ValueError(
+                f"{cmd['name']} has no cameras yet: put some in its panels"
+            )
+        future = asyncio.run_coroutine_threadsafe(self._preview(cfg, cmd), self._loop)
         return future.result(FETCH_TIMEOUT * 4)
 
     def still(self, entity: str, width: int) -> bytes | None:
@@ -725,13 +779,14 @@ class Compositor:
 
     def health(self) -> dict[str, Any]:
         if self._running:
-            state = "running" if self._known("commander") else "unconfigured"
+            state = "running" if cameras_of(self.cfg.commanders) else "unconfigured"
         else:
             state = "offline"
         return {
             "state": state,
             "port": self.port,
-            "cameras": len(commander_cameras(self.cfg.commander)),
+            "commanders": len(self.cfg.commanders),
+            "cameras": len(cameras_of(self.cfg.commanders)),
             "streams": self._stream_count(),
             "gathering": self._gathering,
             "sitting_out": sorted(self._benched),
@@ -746,10 +801,11 @@ class Compositor:
             self._http = aiohttp.ClientSession(
                 headers={"Authorization": f"Bearer {self.token}"}
             )
-            self._fresh, self._draw_lock = asyncio.Event(), asyncio.Lock()
+            self._draw_lock = asyncio.Lock()
             self._watching, self._next_round = asyncio.Event(), asyncio.Event()
             if self.prewarm:  # the first LINGER gathers, so the first viewer waits less
-                self._touch()
+                self._warm_until = time.monotonic() + LINGER
+                self._watching.set()
             app = web.Application()
             app.add_routes(
                 [
@@ -814,8 +870,8 @@ class Compositor:
             return None
 
     def _cameras(self) -> list[str]:
-        """Every camera of the config: in the commander, or chosen and not in it yet."""
-        out = dict.fromkeys(commander_cameras(self.cfg.commander))
+        """Every camera of the config: in a commander, or chosen and not in one yet."""
+        out = dict.fromkeys(cameras_of(self.cfg.commanders))
         return list(out | dict.fromkeys(self.cfg.entities))
 
     async def _keep_stills(self, every: float) -> None:
@@ -866,24 +922,37 @@ class Compositor:
     def _stream_count(self) -> int:
         return sum(len(v) for v in self._streams.values())
 
-    def _watched(self) -> bool:
-        return bool(self._stream_count()) or (
-            time.monotonic() - self._last_request < LINGER
-        )
+    def _watched(self) -> list[dict]:
+        """The commanders with cameras someone is watching: a stream open, or a picture
+        asked for in the last LINGER seconds."""
+        now = time.monotonic()
+        return [
+            c
+            for c in self.cfg.commanders
+            if commander_cameras(c)
+            and (
+                self._open.get(key := slug(c["name"]))
+                or now - self._asked.get(key, -LINGER) < LINGER
+                or now < self._warm_until
+            )
+        ]
 
-    def _touch(self) -> None:
-        """Someone asked for the picture: gather (from now, for LINGER at least)."""
-        self._last_request = time.monotonic()
+    def _touch(self, name: str) -> None:
+        """Someone asked for a commander's picture: gather (from now, for LINGER at
+        least)."""
+        self._asked[name] = time.monotonic()
         if self._watching:
             self._watching.set()
 
+    def _fresh_of(self, name: str) -> asyncio.Event:
+        return self._fresh.setdefault(name, asyncio.Event())
+
     def _wants(
-        self, cfg: Config, main: str
+        self, cfg: Config, cmd: dict, main: str
     ) -> tuple[dict[str, tuple[int, int]], tuple[str, tuple[int, int]]]:
-        """What to fetch: each tile's camera at its widest tile (16:9, HA keeps the
-        camera's shape), and the main camera from its medium channel (sharper at that
-        size) at the main area's size."""
-        cmd = cfg.commander
+        """What to fetch for a commander: each tile's camera at its widest tile (16:9,
+        HA keeps the camera's shape), and the main camera from its medium channel
+        (sharper at that size) at the main area's size."""
         _, (_, _, mw, mh), rects = commander_layout(cmd, main)
         widest: dict[str, int] = {}
         for panel in PANELS:
@@ -897,14 +966,17 @@ class Compositor:
             (channel, (max(mw, 16), max(mh, 9))),
         )
 
-    async def _round(self) -> None:
-        """Fetch every camera of the commander at once, each within FETCH_TIMEOUT. A miss
-        keeps the picture already cached (it goes stale); STRIKES in a row and the camera
-        sits out until BENCH seconds have passed."""
-        tiles, main = self._wants(self.cfg, self.main_camera() or "")
+    async def _round(self, cmds: list[dict]) -> None:
+        """Fetch every camera of these commanders at once, each within FETCH_TIMEOUT. A
+        miss keeps the picture already cached (it goes stale); STRIKES in a row and the
+        camera sits out until BENCH seconds have passed."""
+        wanted: dict[tuple[str, tuple[int, int]], None] = {}
+        for cmd in cmds:
+            tiles, main = self._wants(self.cfg, cmd, self.main_camera(cmd) or "")
+            wanted |= dict.fromkeys([*tiles.items(), main])
         now = started = time.monotonic()
         jobs = []
-        for e, size in [*tiles.items(), main]:
+        for e, size in wanted:
             if e in self._benched:
                 if now < self._benched[e]:
                     continue
@@ -916,6 +988,9 @@ class Compositor:
         for (e, size), image in zip(jobs, got, strict=True):
             if image:
                 self._shots[(e, size)] = (now, image)
+        hit = {e for (e, _), image in zip(jobs, got, strict=True) if image}
+        for e in dict.fromkeys(e for e, _ in jobs):  # a camera fetched at two sizes
+            if e in hit:
                 self._misses.pop(e, None)
                 continue
             self._misses[e] = self._misses.get(e, 0) + 1
@@ -951,14 +1026,14 @@ class Compositor:
             return hit[1], time.monotonic() - hit[0]
         return self._latest.get(entity), math.inf
 
-    async def _draw(self, changing: bool = False) -> bytes:
-        """Draw the commander from the cache (in a worker thread), keep it as the latest
-        picture and tell the open streams."""
-        assert self._draw_lock and self._fresh
+    async def _draw(self, cmd: dict, changing: bool = False) -> bytes:
+        """Draw a commander from the cache (in a worker thread), keep it as its latest
+        picture and tell its open streams."""
+        assert self._draw_lock
         cfg = self.cfg
-        main = self.main_camera() or ""
-        tiles, (channel, size) = self._wants(cfg, main)
-        limit = float(cfg.commander.get("stale", EMPTY_COMMANDER["stale"]))
+        main = self.main_camera(cmd) or ""
+        tiles, (channel, size) = self._wants(cfg, cmd, main)
+        limit = float(cmd.get("stale", EMPTY_COMMANDER["stale"]))
         images, stale = {}, set()
         for e, tile_size in tiles.items():
             images[e], age = self._pick(e, tile_size)
@@ -970,27 +1045,30 @@ class Compositor:
         async with self._draw_lock:
             picture = await asyncio.to_thread(
                 commander,
-                cfg.commander,
+                cmd,
                 cfg.titles,
                 images,
                 main,
                 main_image,
                 changing,
-                self.motion,
+                self.motion.get(cmd["id"], frozenset()),
                 frozenset(stale),
                 age > limit,
             )
-        self._picture = (time.monotonic(), picture)
-        fresh, self._fresh = self._fresh, asyncio.Event()
+        name = slug(cmd["name"])
+        self._pictures[name] = (time.monotonic(), picture)
+        fresh, self._fresh[name] = self._fresh_of(name), asyncio.Event()
         fresh.set()
         return picture
 
     async def _gather(self) -> None:
-        """While someone is watching: a round, a picture, every INTERVAL (or at once when
-        the main camera changes). Nobody watching: it waits, fetching nothing."""
+        """While someone is watching: a round, a picture of each commander watched, every
+        INTERVAL (or at once when the main camera changes). Nobody watching: it waits,
+        fetching nothing."""
         assert self._watching and self._next_round
         while True:
-            if not (self._watched() and self._known("commander")):
+            watched = self._watched()
+            if not watched:
                 if self._gathering:
                     self._gathering = False
                     _LOGGER.info(
@@ -1011,11 +1089,17 @@ class Compositor:
                 )
             start = time.monotonic()
             self._next_round.clear()
-            await self._round()
-            try:
-                await self._draw()
-            except (OSError, ValueError) as exc:
-                _LOGGER.warning("compositor (%s): cannot draw: %s", self.store, exc)
+            await self._round(watched)
+            for cmd in watched:
+                try:
+                    await self._draw(cmd)
+                except (OSError, ValueError) as exc:
+                    _LOGGER.warning(
+                        "compositor (%s): cannot draw %s: %s",
+                        self.store,
+                        cmd["name"],
+                        exc,
+                    )
             try:
                 await asyncio.wait_for(
                     self._next_round.wait(),
@@ -1024,42 +1108,46 @@ class Compositor:
             except TimeoutError:
                 pass
 
-    async def _preview(self, cfg: Config) -> bytes:
-        """The commander for a preview: from the kept stills, drawn in a worker thread."""
-        main = self.main_camera(cfg) or ""
-        cams = commander_cameras(cfg.commander)
+    async def _preview(self, cfg: Config, cmd: dict) -> bytes:
+        """A commander for a preview: from the kept stills, drawn in a worker thread."""
+        main = self.main_camera(cmd, chosen=False) or ""
+        cams = commander_cameras(cmd)
         images = await asyncio.gather(*(self._ready_still(e) for e in [main, *cams]))
         return await asyncio.to_thread(
             commander,
-            cfg.commander,
+            cmd,
             cfg.titles,
             dict(zip(cams, images[1:], strict=True)),
             main,
             images[0],
         )
 
-    async def _frame(self) -> bytes:
-        """The latest picture, at once. After a quiet spell (none, or older than the
-        stale limit) it is drawn now from the cache, Stale marks and all, while the
-        gather loop starts up; with nothing cached at all, the first round is awaited."""
-        self._touch()
-        limit = float(self.cfg.commander.get("stale", EMPTY_COMMANDER["stale"]))
-        if self._picture and time.monotonic() - self._picture[0] < min(limit, LINGER):
-            return self._picture[1]
-        if not self._shots and not self._latest and self._fresh:
-            fresh = self._fresh
+    async def _frame(self, cmd: dict) -> bytes:
+        """A commander's latest picture, at once. After a quiet spell (none, or older
+        than the stale limit) it is drawn now from the cache, Stale marks and all, while
+        the gather loop starts up; with nothing cached at all, the first round is
+        awaited."""
+        name = slug(cmd["name"])
+        self._touch(name)
+        limit = float(cmd.get("stale", EMPTY_COMMANDER["stale"]))
+        picture = self._pictures.get(name)
+        if picture and time.monotonic() - picture[0] < min(limit, LINGER):
+            return picture[1]
+        if not self._shots and not self._latest:
             try:
-                await asyncio.wait_for(fresh.wait(), FETCH_TIMEOUT + INTERVAL)
+                await asyncio.wait_for(
+                    self._fresh_of(name).wait(), FETCH_TIMEOUT + INTERVAL
+                )
             except TimeoutError:
                 pass
-            if self._picture:
-                return self._picture[1]
-        return await self._draw()
+            if picture := self._pictures.get(name):
+                return picture[1]
+        return await self._draw(cmd)
 
     # -- keeping HA's live streams warm
 
     async def _warm_streams(self, name: str) -> None:
-        """Start HA's HLS streams for the commander's cameras, so a tap into a live page
+        """Start HA's HLS streams for a commander's cameras, so a tap into a live page
         finds them already running. A cold HLS stream takes 7-9 s to become playable; a
         running one ~10 ms. Rate-limited; cameras without channels are skipped."""
         assert self._http
@@ -1069,7 +1157,7 @@ class Compositor:
         self._warmed[name] = now
         ents = [
             "camera." + self.cfg.entities[e][WARM_STREAM_TIER].replace("camera.", "")
-            for e in commander_cameras(self.cfg.commander)
+            for e in commander_cameras(self.cfg.named(name) or {})
             if WARM_STREAM_TIER in self.cfg.entities.get(e, {})
         ]
         if not ents:
@@ -1125,22 +1213,24 @@ class Compositor:
 
     # -- HTTP handlers
 
-    def _known(self, name: str) -> bool:
-        return name == "commander" and bool(commander_cameras(self.cfg.commander))
+    def _known(self, name: str) -> dict | None:
+        """The commander served as /g/<name>, when it has cameras."""
+        cmd = self.cfg.named(name)
+        return cmd if cmd and commander_cameras(cmd) else None
 
     async def _jpg(self, request: web.Request) -> web.Response:
         name = request.match_info["name"]
-        if not self._known(name):
+        if not (cmd := self._known(name)):
             raise web.HTTPNotFound()
         self._warm_in_background(name)
-        data = await self._frame()
+        data = await self._frame(cmd)
         return web.Response(
             body=data, content_type=mime(data), headers={"Cache-Control": "no-store"}
         )
 
     async def _mjpg(self, request: web.Request) -> web.StreamResponse:
         name = request.match_info["name"]
-        if not self._known(name):
+        if not (cmd := self._known(name)):
             raise web.HTTPNotFound()
         resp = web.StreamResponse(
             headers={
@@ -1156,6 +1246,7 @@ class Compositor:
         streams.append(stop)
         while len(streams) > MAX_STREAMS:
             streams.pop(0).set()
+        self._open[name] = self._open.get(name, 0) + 1
         await resp.prepare(request)
         try:
             # Chrome draws a multipart frame only when it sees the *next* part begin, so a
@@ -1165,7 +1256,7 @@ class Compositor:
             # The parts' type (JPEG, or WebP with transparent gaps) is set by the first
             # picture; a deploy that changes it ends the stream (the dashboard reloads).
             self._warm_in_background(name)
-            data = await self._frame()
+            data = await self._frame(cmd)
             kind = mime(data)
             part = f"--frame\r\nContent-Type: {kind}\r\n\r\n".encode()
             await resp.write(part)
@@ -1175,10 +1266,9 @@ class Compositor:
                 await resp.write(data + b"\r\n" + part)
                 # The next picture as soon as one is drawn (or the same again after
                 # KEEPALIVE, should drawing stop).
-                assert self._fresh
                 waits = [
                     asyncio.ensure_future(stop.wait()),
-                    asyncio.ensure_future(self._fresh.wait()),
+                    asyncio.ensure_future(self._fresh_of(name).wait()),
                 ]
                 await asyncio.wait(
                     waits, timeout=KEEPALIVE, return_when=asyncio.FIRST_COMPLETED
@@ -1188,12 +1278,16 @@ class Compositor:
                 if stop.is_set():
                     break
                 self._warm_in_background(name)
-                data = await self._frame()
+                cmd = self._known(name)  # a reload may have changed it, or removed it
+                if not cmd:
+                    break
+                data = await self._frame(cmd)
         except (ConnectionResetError, asyncio.CancelledError):
             pass
         finally:
             if stop in streams:
                 streams.remove(stop)
+            self._open[name] -= 1
         return resp
 
     async def _status(self, request: web.Request) -> web.Response:
@@ -1202,9 +1296,9 @@ class Compositor:
             {
                 "streams": {ip: len(v) for ip, v in self._streams.items() if v},
                 "gathering": self._gathering,
-                "picture_age_s": round(now - self._picture[0], 1)
-                if self._picture
-                else None,
+                "picture_age_s": {
+                    name: round(now - t, 1) for name, (t, _) in self._pictures.items()
+                },
                 "still_age_s": {
                     f"{e} {w}x{h}": round(now - t, 1)
                     for (e, (w, h)), (t, _) in sorted(self._shots.items())
@@ -1214,10 +1308,10 @@ class Compositor:
         )
 
     async def _index(self, request: web.Request) -> web.Response:
-        links = (
-            '<li>commander: <a href="/g/commander.jpg">jpg</a> '
-            '<a href="/g/commander.mjpg">mjpg</a></li>'
-            if self._known("commander")
-            else ""
+        links = "".join(
+            f'<li>{html.escape(c["name"])}: <a href="/g/{slug(c["name"])}.jpg">jpg</a> '
+            f'<a href="/g/{slug(c["name"])}.mjpg">mjpg</a></li>'
+            for c in self.cfg.commanders
+            if commander_cameras(c)
         )
         return web.Response(text=f"<ul>{links}</ul>", content_type="text/html")

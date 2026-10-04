@@ -1,10 +1,11 @@
-"""Track motion: while the Camera Commander's Track motion switch is on, a commander
-camera that sees motion becomes the main one. Rules (seconds from the commander's
+"""Track motion, one tracker per commander: while a commander's Track motion switch is
+on, a camera of it that sees motion becomes its main one. Rules (seconds from the commander's
 settings on the Camera Dashboard page): the newest motion wins; a switch holds `hold`
 seconds before motion elsewhere takes over (that camera waits its turn); `back` seconds
 after all motion stops it goes back to the camera chosen by hand (0: it stays); and a
 choice by hand (a tap, or an automation) pauses tracking for `pause` seconds. Whatever
-the switch, the cameras seeing motion are told to the app, which marks their tiles.
+the switch, the commander's cameras seeing motion are told to the app, which marks their
+tiles.
 
 A camera's motion sensor is a binary_sensor of device class motion on its device, else
 one named after it (binary_sensor.<camera, less its channel>_motion)."""
@@ -27,6 +28,29 @@ from .coordinator import CasaMiaCoordinator, async_post
 _LOGGER = logging.getLogger(__name__)
 CHANNEL = re.compile(r"_(high|medium|low)_resolution_channel$")
 SETTINGS = {"hold": 10, "back": 30, "pause": 120}
+
+
+def commanders(coordinator: CasaMiaCoordinator) -> list[dict[str, Any]]:
+    """The app's commanders, each with its id, name, cameras, main camera and Track
+    motion settings (see the app's CameraDashboard.commanders)."""
+    module = coordinator.data.get("modules", {}).get("camera_dashboard", {})
+    found = module.get("commanders")
+    if found is None:  # an app from before there were several: its one
+        one = module.get("commander")
+        return [{"name": "Cameras", **one, "id": ""}] if one else []
+    return found
+
+
+def commander(coordinator: CasaMiaCoordinator, cid: str) -> dict[str, Any]:
+    """One commander, by id; empty while the app has no such commander."""
+    return next((c for c in commanders(coordinator) if c.get("id") == cid), {})
+
+
+def tracker(coordinator: CasaMiaCoordinator, cid: str) -> MotionTracker:
+    """A commander's tracker, made the first time it is asked for."""
+    if cid not in coordinator.motion:
+        coordinator.motion[cid] = MotionTracker(coordinator.hass, coordinator, cid)
+    return coordinator.motion[cid]
 
 
 def motion_sensors(hass: HomeAssistant, cameras: list[str]) -> dict[str, str]:
@@ -64,9 +88,12 @@ def motion_sensors(hass: HomeAssistant, cameras: list[str]) -> dict[str, str]:
 
 
 class MotionTracker:
-    def __init__(self, hass: HomeAssistant, coordinator: CasaMiaCoordinator) -> None:
+    def __init__(
+        self, hass: HomeAssistant, coordinator: CasaMiaCoordinator, cid: str
+    ) -> None:
         self.hass = hass
         self.coordinator = coordinator
+        self.cid = cid  # its commander's id
         self.enabled = False  # the Track motion switch
         self.sensors: dict[str, str] = {}  # sensor -> camera
         self.moving: set[str] = set()  # cameras seeing motion now
@@ -84,8 +111,11 @@ class MotionTracker:
     # -- what the app says about the commander
 
     def _commander(self) -> dict[str, Any]:
-        module = self.coordinator.data.get("modules", {}).get("camera_dashboard", {})
-        return module.get("commander") or {}
+        return commander(self.coordinator, self.cid)
+
+    @property
+    def _who(self) -> str:
+        return self._commander().get("name") or repr(self.cid)
 
     def _settings(self) -> dict[str, float]:
         return SETTINGS | (self._commander().get("motion") or {})
@@ -117,7 +147,8 @@ class MotionTracker:
             if (state := self.hass.states.get(sensor)) and state.state == "on"
         }
         _LOGGER.info(
-            "track motion: watching %s",
+            "track motion (%s): watching %s",
+            self._who,
             ", ".join(f"{s} ({self._title(c)})" for s, c in sensors.items())
             or "nothing",
         )
@@ -136,7 +167,9 @@ class MotionTracker:
         if on == (cam in self.moving):
             return
         (self.moving.add if on else self.moving.discard)(cam)
-        _LOGGER.debug("track motion: %s %s", sensor, "on" if on else "off")
+        _LOGGER.debug(
+            "track motion (%s): %s %s", self._who, sensor, "on" if on else "off"
+        )
         self._tell_app()
         if not self.enabled:
             return
@@ -150,7 +183,9 @@ class MotionTracker:
     def _motion(self, cam: str, why: str) -> None:
         now = time.monotonic()
         if now < self.paused_until:
-            _LOGGER.debug("track motion: %s ignored (paused after a choice)", why)
+            _LOGGER.debug(
+                "track motion (%s): %s ignored (paused after a choice)", self._who, why
+            )
             return
         if cam == self.main:
             return
@@ -184,11 +219,13 @@ class MotionTracker:
         self.main = cam
         self.hold_until = time.monotonic() + self._settings()["hold"]
         self.waiting = None
-        _LOGGER.info("track motion: main camera %s (%s)", title, why)
+        _LOGGER.info("track motion (%s): main camera %s (%s)", self._who, title, why)
         for show in self.shown:
             show(title)
         self.hass.async_create_task(
-            self._post("/camera-dashboard/commander", {"main": title})
+            self._post(
+                "/camera-dashboard/commander", {"main": title, "commander": self.cid}
+            )
         )
 
     # -- a choice by hand
@@ -210,14 +247,19 @@ class MotionTracker:
     @callback
     def _tell_app(self) -> None:
         self.hass.async_create_task(
-            self._post("/camera-dashboard/motion", {"cameras": sorted(self.moving)})
+            self._post(
+                "/camera-dashboard/motion",
+                {"cameras": sorted(self.moving), "commander": self.cid},
+            )
         )
 
     async def _post(self, path: str, body: dict[str, Any]) -> None:
         try:
             await async_post(self.hass, self.coordinator.url, path, body)
         except aiohttp.ClientError as exc:
-            _LOGGER.warning("track motion: the app did not take %s: %s", path, exc)
+            _LOGGER.warning(
+                "track motion (%s): the app did not take %s: %s", self._who, path, exc
+            )
 
     # -- timers
 

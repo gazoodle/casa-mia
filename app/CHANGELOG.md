@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.10.1-b27
+
+- Camera Dashboard: **several commanders** (#4). The first is Cameras; a new one is a **copy** of the one open, or **blank** (no cameras, every setting at its default). They are listed as an accordion, one open at a time, and can be renamed, moved up and down (in front of Cameras too) and deleted, as long as one is left. Each is a page of the dashboard, in that order, named after it; the camera pages follow, one per camera in any of them. A commander's **Dashboard page** switch, off, leaves it off the dashboard: it is still drawn and keeps its device, for showing elsewhere (the Camera Commander card to come).
+- **Each commander is a device** in the integration, with its own **Main camera** select (its taps set it, and automations can) and **Track motion** switch (its own timings). The first commander stays on the Camera Commander device, so its entities keep their ids; each new one gets a device of its own, Camera Commander <name>, as soon as the draft is saved. Deleting a commander removes its device. After this update, restart Home Assistant (Repairs) so the integration loads.
+- The compositor serves each commander at `/g/<name>.jpg` and `.mjpg` (Cameras: `/g/cameras.mjpg`), fetching only the cameras of the commanders being watched. A config saved before becomes the one commander Cameras, and the old address `/g/commander.mjpg` still shows the first commander, so a dashboard deployed before keeps working until the next deploy.
+
 ## 2026.10.1-b26
 
 - Kiosk Satellite manager: **Check now** on the Backups panel, after how often: checks every logged-in, online tablet at once, keeping a copy where something changed, and says how many changed or failed.

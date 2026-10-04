@@ -139,6 +139,46 @@
   gap: 14px;
 }
 
+/* The commanders: an accordion, one open at a time. */
+.folds {
+  display: grid;
+  gap: 10px;
+}
+
+.fold {
+  display: grid;
+  gap: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.foldHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.foldToggle {
+  display: flex;
+  flex: 1;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.chevron {
+  width: 1em;
+  color: var(--muted);
+}
+
 /* The preview, with the option groups flowing around it: the picture's own settings
    beside it, the rest in a row under it; each row's boxes as tall as the tallest, so
    no room is left empty below the picture. */

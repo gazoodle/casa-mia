@@ -1,14 +1,15 @@
 """camera_dashboard: one source for the Camera Commander and its HA dashboard.
 
 The store describes everything: the cameras (chosen from HA, each with its channels,
-zoom entity, PTZ presets and page controls), the commander (a main camera framed by
-panels of cameras, drawn as one picture by the compositor), and the dashboard's settings
+zoom entity, PTZ presets and page controls), the commanders (each a main camera framed
+by panels of cameras, drawn as one picture by the compositor; one or more, in order, each
+a page of the dashboard), and the dashboard's settings
 (url, Back / Home / Help, wall tablet users, phones, live cards). From it come:
 
   * the compositor's config: the draft compositor (DRAFT_PORT) draws the draft for
     previews; the live one (compositor.PORT) draws only what was last deployed, so
     editing never disturbs the wall tablets;
-  * the dashboard: the commander -> live camera pages, in ONE dashboard that adapts to
+  * the dashboard: the commanders -> live camera pages, in ONE dashboard that adapts to
     whoever is looking with card visibility conditions (wall tablet users and phones get
     the medium channel, everyone else the high one). Tap zones come from the
     compositor's own layout function, so they always line up.
@@ -46,11 +47,14 @@ from .compositor import (
     PANELS,
     PORT,
     Compositor,
+    cameras_of,
     commander_cameras,
     commander_layout,
+    commanders_of,
     config_from_store,
     mime,
     ratio,
+    slug,
     visible,
 )
 
@@ -62,19 +66,58 @@ THUMB_WIDTH = 160  # the page's camera thumbnails
 # (seconds), so the page's thumbnails and previews are ready at once.
 KEEP_STILLS_EVERY = 60.0
 CAMERA = re.compile(r"camera\.[a-z0-9_]+")
-# The integration's Camera Commander device: its Main camera select (options: the
-# commander's camera titles). Its taps and automations choose the main camera.
+# The integration's Camera Commander devices, one per commander: each one's Main camera
+# select (options: its camera titles), which its taps and automations set. The first
+# commander there was (id "") is on the Camera Commander device itself; the others on a
+# device each, "Camera Commander <name>". Found in HA's entity registry by unique id.
 COMMANDER_SELECT = "select.camera_commander_main_camera"
+
+
+# The integration's unique ids for a commander's entities, after its entry id and "_":
+# the first commander's (id ""), and any other's.
+UNIQUE_IDS = {
+    "select": ("commander_main", "commander_{}_main"),
+    "switch": ("track_motion", "commander_{}_track_motion"),
+}
+
+
+def commander_entities(
+    store: Store, registry: list[dict] | None, kind: str = "select"
+) -> dict[str, str]:
+    """Each commander's (by id) Main camera select (`kind` "select") or Track motion
+    switch ("switch"): as HA's entity registry has it (by unique id), else the entity id
+    the integration gives a new one (from its device's name)."""
+    found = {
+        e.get("unique_id", "").partition("_")[2]: e["entity_id"]
+        for e in registry or []
+        if e.get("platform") == "casa_mia" and e["entity_id"].startswith(kind + ".")
+    }
+    first, other = UNIQUE_IDS[kind]
+    out = {}
+    for cmd in commanders_of(store):
+        cid = cmd["id"]
+        device = "camera_commander" + (
+            "_" + slug(cmd["name"]).replace("-", "_") if cid else ""
+        )
+        name = "main_camera" if kind == "select" else "track_motion"
+        out[cid] = found.get(other.format(cid) if cid else first) or (
+            f"{kind}.{device}_{name}"
+        )
+    return out
+
+
+def commander_selects(store: Store, registry: list[dict] | None) -> dict[str, str]:
+    return commander_entities(store, registry, "select")
+
+
 # The look of every camera picture on the dashboards when the integration's Security look
 # switch is on: a CSS filter, made by the page from a tint (applied by the browser).
 # The default tint's filter (as the page makes it for #3d7bff, strength 3, 20% darker):
 # a look left at its defaults, or saved before it had a filter, uses this.
 DEFAULT_LOOK_CSS = "grayscale(1) sepia(1) hue-rotate(186deg) saturate(3) brightness(0.80) contrast(1.1)"
-# The integration's switches the page can flip (Home Assistant keeps their state).
-COMMANDER_SWITCHES = (
-    "switch.camera_commander_security_look",
-    "switch.camera_commander_track_motion",
-)
+# The integration's Security look switch, which the page can flip (Home Assistant keeps
+# its state), as it can each commander's Track motion switch.
+SECURITY_LOOK = "switch.camera_commander_security_look"
 LOOK_CSS = re.compile(
     r"^(\s*(grayscale|sepia|hue-rotate|saturate|brightness|contrast|invert|opacity|blur)"
     r"\(\s*-?[0-9.]+(deg|%|px)?\s*\))*\s*$"
@@ -111,20 +154,19 @@ DEFAULTS: dict[str, Any] = {
     "cameras": {},
     # The Security look: a tint (and how strong, how dark) and the CSS filter made of it.
     "look": {"tint": "#3d7bff", "strength": 3, "darkness": 20, "css": DEFAULT_LOOK_CSS},
-    "commander": EMPTY_COMMANDER,
+    "commanders": [EMPTY_COMMANDER],  # in order: the dashboard's first pages
 }
 
 Response = tuple[int, str, bytes]
 Store = dict[str, Any]
 
 
-def slug(text: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
-
-
 def with_defaults(store: Store) -> Store:
     """A store with every setting and nothing else (settings since dropped, such as the
-    groups, are left out); its own copy, sharing nothing with DEFAULTS."""
+    groups, are left out); its own copy, sharing nothing with DEFAULTS. A store from
+    before there were several commanders gets its one as the first (named Cameras)."""
+    if "commanders" not in store and isinstance(store.get("commander"), dict):
+        store = {**store, "commanders": commanders_of(store)}
     return copy.deepcopy(
         {**DEFAULTS, **{k: v for k, v in store.items() if k in DEFAULTS}}
     )
@@ -162,83 +204,99 @@ def problems(store: Store) -> list[str]:
     look_css = (store.get("look") or {}).get("css", "")
     if not isinstance(look_css, str) or not LOOK_CSS.match(look_css):
         out.append("The Security look is not a CSS filter the dashboards can use.")
-    cmd = commander_of(store)
-    for key, low, high in (("width", 320, 3840), ("height", 240, 2160)):
-        if not isinstance(cmd.get(key), int) or not low <= cmd[key] <= high:
-            out.append(f"The commander's {key} must be {low}-{high}.")
-    if not isinstance(cmd.get("gap"), int) or cmd["gap"] < 0:
-        out.append("The commander's gap must be 0 px or more.")
-    for panel in PANELS:
-        pane = cmd.get(panel) or {}
-        size = pane.get("size")
-        if not isinstance(size, (int, float)) or not 0 <= size <= 45:
-            out.append(f"The commander's {panel} panel: size must be 0-45%.")
-        lines = pane.get("lines", 1)
-        if (
-            not isinstance(lines, int)
-            or isinstance(lines, bool)
-            or not 1 <= lines <= 10
-        ):
-            out.append(f"The commander's {panel} panel: rows or columns must be 1-10.")
-        if not isinstance(pane.get("hidden", False), bool):
-            out.append(f"The commander's {panel} panel: hidden must be true or false.")
-        if pane.get("fit", "cover") not in ("cover", "contain"):
-            out.append(f"The commander's {panel} panel: fit must be cover or contain.")
-        for e in pane.get("cameras", []):
-            if e not in cams:
-                out.append(
-                    f"The commander's {panel} panel: {e} is not one of the cameras."
-                )
-    if cmd.get("main_fit", "fit") not in ("fit", "fill", "crop", "own", "fixed"):
-        out.append(
-            "The commander's main camera: fit must be fit, fill, crop, own or fixed."
-        )
-    stale = cmd.get("stale", 30)
-    if not isinstance(stale, (int, float)) or stale <= 0:
-        out.append("The commander's Stale after must be more than 0 seconds.")
-    smallest = cmd.get("panel_min", 8)
-    if not isinstance(smallest, (int, float)) or not 0 <= smallest <= 40:
-        out.append("The commander's smallest panel must be 0-40% of the picture.")
-    width = cmd.get("main_width", 70)
-    if not isinstance(width, (int, float)) or not 10 <= width <= 100:
-        out.append("The commander's main width must be 10-100% of the picture.")
-    try:
-        ratio(cmd.get("main_ratio", "16:9"))
-    except (ValueError, ZeroDivisionError):
-        out.append(
-            f"The commander's main shape {cmd.get('main_ratio')!r} is not a shape."
-        )
-    for panel in ("top", "bottom"):
-        for end in ("anchor_left", "anchor_right"):
-            if not isinstance((cmd.get(panel) or {}).get(end, False), bool):
-                out.append(
-                    f"The commander's {panel} panel: {end} must be true or false."
-                )
-    placed: dict[str, str] = {}
-    for panel in PANELS:
-        for e in (cmd.get(panel) or {}).get("cameras", []):
-            if e in placed:
-                title = cams.get(e, {}).get("title", e)
-                out.append(
-                    f"The commander shows {title} in both its {placed[e]} and {panel} panels."
-                )
-            placed.setdefault(e, panel)
-    lit = cmd.get("highlight") or {}
-    if not re.fullmatch(r"#[0-9a-fA-F]{6}", str(lit.get("colour", "#7bd1a0"))):
-        out.append("The commander's highlight colour must be like #7bd1a0.")
-    if lit.get("style", "breathe") not in ("breathe", "ripple"):
-        out.append("The commander's highlight pulse must breathe or ripple.")
-    for key in ("width", "blur", "pulse"):
-        value = lit.get(key, 0)
-        if not isinstance(value, (int, float)) or value < 0:
-            out.append(f"The commander's highlight {key} must be 0 or more.")
-    for key, value in (cmd.get("motion") or {}).items():
-        if not isinstance(value, (int, float)) or value < 0:
-            out.append(f"The commander's Track motion {key} must be 0 seconds or more.")
-    if cmd.get("main") and cmd["main"] not in commander_cameras(cmd):
-        out.append("The commander's main camera must be one of its cameras.")
-    if not commander_cameras(visible(cmd)):
-        out.append("The commander has no cameras: put some in its panels (shown).")
+    cmds = store.get("commanders")
+    if not isinstance(cmds, list) or not cmds:
+        out.append("There must be at least one commander.")
+        cmds = []
+    paths: dict[str, str] = {}
+    ids = [c.get("id", "") if isinstance(c, dict) else "" for c in cmds]
+    if any(not isinstance(i, str) or not re.fullmatch(r"[a-z0-9]*", i) for i in ids):
+        out.append("A commander's id must be lower case letters and digits.")
+    elif len(set(ids)) < len(ids):
+        out.append("Two commanders share an id: give the copy a new one.")
+    for c in cmds:
+        name = str(c.get("name") or "").strip() if isinstance(c, dict) else ""
+        if not name or not slug(name):
+            out.append("Every commander needs a name (with letters or digits).")
+        elif slug(name) in paths:
+            out.append(f"The commanders {paths[slug(name)]!r} and {name!r} clash.")
+        elif slug(name).startswith("cam-"):
+            out.append(f"The commander {name!r} would clash with the camera pages.")
+        paths.setdefault(slug(name), name)
+    for cmd in commanders_of({"commanders": cmds}):
+        the = f"The {cmd['name']} commander"
+        if not isinstance(cmd.get("page", True), bool):
+            out.append(f"{the}'s dashboard page must be true or false.")
+        for key, low, high in (("width", 320, 3840), ("height", 240, 2160)):
+            if not isinstance(cmd.get(key), int) or not low <= cmd[key] <= high:
+                out.append(f"{the}'s {key} must be {low}-{high}.")
+        if not isinstance(cmd.get("gap"), int) or cmd["gap"] < 0:
+            out.append(f"{the}'s gap must be 0 px or more.")
+        for panel in PANELS:
+            pane = cmd.get(panel) or {}
+            size = pane.get("size")
+            if not isinstance(size, (int, float)) or not 0 <= size <= 45:
+                out.append(f"{the}'s {panel} panel: size must be 0-45%.")
+            lines = pane.get("lines", 1)
+            if (
+                not isinstance(lines, int)
+                or isinstance(lines, bool)
+                or not 1 <= lines <= 10
+            ):
+                out.append(f"{the}'s {panel} panel: rows or columns must be 1-10.")
+            if not isinstance(pane.get("hidden", False), bool):
+                out.append(f"{the}'s {panel} panel: hidden must be true or false.")
+            if pane.get("fit", "cover") not in ("cover", "contain"):
+                out.append(f"{the}'s {panel} panel: fit must be cover or contain.")
+            for e in pane.get("cameras", []):
+                if e not in cams:
+                    out.append(f"{the}'s {panel} panel: {e} is not one of the cameras.")
+        if cmd.get("main_fit", "fit") not in ("fit", "fill", "crop", "own", "fixed"):
+            out.append(
+                f"{the}'s main camera: fit must be fit, fill, crop, own or fixed."
+            )
+        stale = cmd.get("stale", 30)
+        if not isinstance(stale, (int, float)) or stale <= 0:
+            out.append(f"{the}'s Stale after must be more than 0 seconds.")
+        smallest = cmd.get("panel_min", 8)
+        if not isinstance(smallest, (int, float)) or not 0 <= smallest <= 40:
+            out.append(f"{the}'s smallest panel must be 0-40% of the picture.")
+        width = cmd.get("main_width", 70)
+        if not isinstance(width, (int, float)) or not 10 <= width <= 100:
+            out.append(f"{the}'s main width must be 10-100% of the picture.")
+        try:
+            ratio(cmd.get("main_ratio", "16:9"))
+        except (ValueError, ZeroDivisionError):
+            out.append(f"{the}'s main shape {cmd.get('main_ratio')!r} is not a shape.")
+        for panel in ("top", "bottom"):
+            for end in ("anchor_left", "anchor_right"):
+                if not isinstance((cmd.get(panel) or {}).get(end, False), bool):
+                    out.append(f"{the}'s {panel} panel: {end} must be true or false.")
+        placed: dict[str, str] = {}
+        for panel in PANELS:
+            for e in (cmd.get(panel) or {}).get("cameras", []):
+                if e in placed:
+                    title = cams.get(e, {}).get("title", e)
+                    out.append(
+                        f"{the} shows {title} in both its {placed[e]} and {panel} panels."
+                    )
+                placed.setdefault(e, panel)
+        lit = cmd.get("highlight") or {}
+        if not re.fullmatch(r"#[0-9a-fA-F]{6}", str(lit.get("colour", "#7bd1a0"))):
+            out.append(f"{the}'s highlight colour must be like #7bd1a0.")
+        if lit.get("style", "breathe") not in ("breathe", "ripple"):
+            out.append(f"{the}'s highlight pulse must breathe or ripple.")
+        for key in ("width", "blur", "pulse"):
+            value = lit.get(key, 0)
+            if not isinstance(value, (int, float)) or value < 0:
+                out.append(f"{the}'s highlight {key} must be 0 or more.")
+        for key, value in (cmd.get("motion") or {}).items():
+            if not isinstance(value, (int, float)) or value < 0:
+                out.append(f"{the}'s Track motion {key} must be 0 seconds or more.")
+        if cmd.get("main") and cmd["main"] not in commander_cameras(cmd):
+            out.append(f"{the}'s main camera must be one of its cameras.")
+        if not commander_cameras(visible(cmd)):
+            out.append(f"{the} has no cameras: put some in its panels (shown).")
     return out
 
 
@@ -248,6 +306,7 @@ def warnings(
     resources: list[str],
     users: set[str],
     helpers: set[str] | frozenset[str] | None = frozenset(),
+    selects: dict[str, str] | None = None,
 ) -> list[str]:
     """What the dashboard needs that this HA seems to lack: entities, wall tablet users,
     and the custom cards and the Back helper among the dashboard resources (a card can
@@ -288,11 +347,15 @@ def warnings(
     ):
         if card in cards and look not in urls:
             out.append(f"The {card} card is not among the dashboard resources.")
-    if COMMANDER_SELECT not in entities:
-        out.append(
-            f"{COMMANDER_SELECT} (the commander's taps) is not in Home Assistant: it "
-            "comes with the Casa Mia integration while Camera Dashboard is on."
-        )
+    names = {c["id"]: c["name"] for c in commanders_of(s)}
+    for cid, select in (selects or commander_selects(s, None)).items():
+        if select not in entities:
+            out.append(
+                f"{select} ({names.get(cid, cid)}'s taps) is not in Home Assistant: it "
+                "comes with the Casa Mia integration while Camera Dashboard is on (a "
+                "new commander's once the draft is saved; restart Home Assistant if the "
+                "integration was just updated)."
+            )
     if helpers is None:  # the integration hasn't said yet since the app started
         return out
     by_hand, ours = "nav_back" in urls, "cm-back.js" in helpers
@@ -310,13 +373,9 @@ def warnings(
     return out
 
 
-def commander_of(store: Store) -> dict:
-    return {**EMPTY_COMMANDER, **(store.get("commander") or {})}
-
-
 def menu_cameras(store: Store) -> list[str]:
-    """The cameras that get a live page: the commander's (in the panels shown)."""
-    return commander_cameras(visible(commander_of(store)))
+    """The cameras that get a live page: the commanders' (in the panels shown)."""
+    return cameras_of([visible(c) for c in commanders_of(store)])
 
 
 # --- the dashboard ---------------------------------------------------------------------
@@ -326,10 +385,18 @@ def navigate(path: str) -> dict:
     return {"action": "navigate", "navigation_path": path}
 
 
-def build_dashboard(store: Store, image_base: str, url_path: str) -> dict:
+def build_dashboard(
+    store: Store,
+    image_base: str,
+    url_path: str,
+    selects: dict[str, str] | None = None,
+) -> dict:
     """The whole dashboard config for HA (`views`), with the composites served from
-    image_base (http://host:port) and the tap zones navigating inside url_path."""
+    image_base (http://host:port), the tap zones navigating inside url_path and setting
+    each commander's Main camera select (`selects`: id -> entity, see
+    `commander_selects`)."""
     s = with_defaults(store)
+    selects = selects or commander_selects(s, None)
     cams = s["cameras"]
     theme = s["theme"] or None
     # the wall tablets (by user) and phones can't take the big streams
@@ -461,8 +528,8 @@ def build_dashboard(store: Store, image_base: str, url_path: str) -> dict:
         v: dict[str, Any] = {
             "type": "sections",
             "max_columns": 3,
-            "title": s["title"],
-            "path": "cameras",
+            "title": cmd["name"],
+            "path": slug(cmd["name"]),
             "sections": [
                 {
                     "type": "grid",
@@ -470,7 +537,7 @@ def build_dashboard(store: Store, image_base: str, url_path: str) -> dict:
                     "cards": [
                         {
                             "type": "picture-elements",
-                            "image": f"{image_base}/g/commander.mjpg",
+                            "image": f"{image_base}/g/{slug(cmd['name'])}.mjpg",
                             "grid_options": {"columns": "full"},
                             "elements": commander_zones(cmd),
                         }
@@ -488,35 +555,39 @@ def build_dashboard(store: Store, image_base: str, url_path: str) -> dict:
         tap on the main camera opens its live page: one zone per camera over the main
         area, each shown only while that camera is the main one. With the main camera
         at its own shape the whole layout follows it, so then every zone is in one set
-        per main camera, each shown while that camera is the main one."""
+        per main camera, each shown while that camera is the main one. While its select
+        holds none of its cameras (nothing yet, or unavailable), the commander shows its
+        own main camera, and so do its zones."""
         title = lambda e: cams[e]["title"]  # noqa: E731
+        select = selects.get(cmd["id"], COMMANDER_SELECT)
+        mine = commander_cameras(cmd)
+        own = cmd["main"] if cmd.get("main") in mine else mine[0]
 
-        def shown_while(e: str, elements: list[dict]) -> dict:
+        def shown_while(e: str | None, elements: list[dict]) -> dict:
+            test = (
+                {"state": title(e)}
+                if e
+                else {"state_not": [title(c) for c in mine]}  # its own main camera
+            )
             return {
                 "type": "conditional",
-                "conditions": [
-                    {
-                        "condition": "state",
-                        "entity": COMMANDER_SELECT,
-                        "state": title(e),
-                    }
-                ],
+                "conditions": [{"condition": "state", "entity": select} | test],
                 "elements": elements,
             }
 
         if cmd.get("main_fit") == "own":
             return [
-                shown_while(e, highlight(cmd, e, e) + layout_zones(cmd, e))
-                for e in commander_cameras(cmd)
+                shown_while(e, highlight(cmd, m, m) + layout_zones(cmd, m, select))
+                for e, m in [*((e, e) for e in mine), (None, own)]
             ]
         size, main_rect, _ = commander_layout(cmd)
-        return layout_zones(cmd, None) + [
+        return layout_zones(cmd, None, select) + [
             shown_while(
                 e,
-                highlight(cmd, e, None)
-                + [zone(main_rect, size, f"cam-{slug(title(e))}")],
+                highlight(cmd, m, None)
+                + [zone(main_rect, size, f"cam-{slug(title(m))}")],
             )
-            for e in commander_cameras(cmd)
+            for e, m in [*((e, e) for e in mine), (None, own)]
         ]
 
     def highlight(cmd: dict, e: str, main: str | None) -> list[dict]:
@@ -543,7 +614,7 @@ def build_dashboard(store: Store, image_base: str, url_path: str) -> dict:
                     return [mark]
         return []
 
-    def layout_zones(cmd: dict, main: str | None) -> list[dict]:
+    def layout_zones(cmd: dict, main: str | None, select: str) -> list[dict]:
         """The panels' tap zones (and, given the main camera, its own) for one layout."""
         size, main_rect, rects = commander_layout(cmd, main)
         title = lambda e: cams[e]["title"]  # noqa: E731
@@ -554,7 +625,7 @@ def build_dashboard(store: Store, image_base: str, url_path: str) -> dict:
                 {
                     "action": "perform-action",
                     "perform_action": "select.select_option",
-                    "target": {"entity_id": COMMANDER_SELECT},
+                    "target": {"entity_id": select},
                     "data": {"option": title(e)},
                 },
             )
@@ -640,11 +711,17 @@ def build_dashboard(store: Store, image_base: str, url_path: str) -> dict:
             view["theme"] = theme
         return header(view, cam.get("zoom"), cam.get("controls", []))
 
-    cmd = visible(commander_of(s))
-    if not commander_cameras(cmd):
-        return {"views": []}
-    # the commander, then one live page per camera in it
-    return {"views": [commander_view(cmd)] + [camera_view(e) for e in menu_cameras(s)]}
+    cmds = [
+        c
+        for c in map(visible, commanders_of(s))
+        if commander_cameras(c) and c.get("page", True)
+    ]
+    # the commanders with a page, then one live page per camera in any commander (a tap
+    # on a main camera opens its page, wherever the commander is shown)
+    return {
+        "views": [commander_view(c) for c in cmds]
+        + [camera_view(e) for e in menu_cameras(s)]
+    }
 
 
 def preset_entries(ptz: dict) -> list[tuple[str, str]]:
@@ -781,6 +858,7 @@ class CameraDashboard:
         self.draft = draft
         self._lock = threading.Lock()
         self._error: str | None = None
+        self._mains: dict[str, str] = {}  # commander id -> main camera, as chosen
         self.store: Store = with_defaults({})
 
     @property
@@ -792,17 +870,22 @@ class CameraDashboard:
         return self.dir / LIVE_STORE
 
     def start(self) -> None:
-        """Load the draft; on first start import the older files, as draft and live."""
+        """Load the draft, and each commander's main camera as it was."""
         if self.live and self.state_path and self.state_path.exists():
             try:
-                main = json.loads(self.state_path.read_text()).get("main")
+                kept = json.loads(self.state_path.read_text())
+                # {"main": camera}: kept before there were several (the first one's)
+                mains = kept.get("mains") or (
+                    {"": kept["main"]} if kept.get("main") else {}
+                )
             except (OSError, ValueError, AttributeError):
-                main = None
-            if main:
+                mains = {}
+            self._mains = {str(k): str(v) for k, v in mains.items()}
+            for cid, main in self._mains.items():
                 for comp in (self.live, self.draft):
                     if comp:
-                        comp.set_main(main)
-                _LOGGER.info("commander: main camera %s (as it was)", main)
+                        comp.set_main(main, cid)
+                _LOGGER.info("commander %r: main camera %s (as it was)", cid, main)
         try:
             if self.draft_path.exists():
                 self.store = with_defaults(json.loads(self.draft_path.read_text()))
@@ -814,85 +897,106 @@ class CameraDashboard:
             _LOGGER.error("camera dashboard: %s", self._error)
             return
         _LOGGER.info(
-            "camera dashboard: %d cameras, %d in the commander, dashboard /%s",
+            "camera dashboard: %d cameras, %d commanders (%d cameras in them), "
+            "dashboard /%s",
             len(self.store["cameras"]),
+            len(self.store["commanders"]),
             len(menu_cameras(self.store)),
             self.store["dashboard"],
         )
 
     def _commanders(self) -> list[Compositor]:
-        """The compositors drawing a commander: the live one (the dashboard) and the draft
+        """The compositors drawing commanders: the live one (the dashboard) and the draft
         one (the preview dashboard). One choice of main camera moves both."""
-        return [c for c in (self.live, self.draft) if c and c.cfg.commander]
+        return [c for c in (self.live, self.draft) if c and c.cfg.commanders]
 
-    def commander(self) -> dict[str, Any]:
-        """For the integration: the commander's cameras (entity -> title; the titles are
-        the select's options), live and draft, the main one now, and how Track motion
+    def commanders(self) -> list[dict[str, Any]]:
+        """For the integration, a device each: every commander (by id; live and draft,
+        the live one's name and settings winning), its cameras (entity -> title; the
+        titles are its select's options), its main one now, and how its Track motion
         behaves (seconds: hold a switch, go back after, pause after a choice by hand)."""
-        cameras: dict[str, str] = {}
-        main = None
-        motion = dict(EMPTY_COMMANDER["motion"])
-        for comp in reversed(self._commanders()):  # the live one's settings win
-            motion |= comp.cfg.commander.get("motion") or {}
+        out: dict[str, dict[str, Any]] = {}
         for comp in self._commanders():
             cfg = comp.cfg
-            for e in commander_cameras(cfg.commander):
-                cameras.setdefault(e, cfg.titles.get(e, e))
-            if main is None and (now := comp.main_camera()):
-                main = cfg.titles.get(now, now)
-        return {
-            "options": list(dict.fromkeys(cameras.values())),
-            "main": main,
-            "cameras": cameras,
-            "motion": motion,
-        }
+            for cmd in cfg.commanders:
+                one = out.setdefault(
+                    cmd["id"],
+                    {
+                        "id": cmd["id"],
+                        "name": cmd["name"],
+                        "cameras": {},
+                        "main": None,
+                        "motion": {**EMPTY_COMMANDER["motion"], **cmd["motion"]},
+                    },
+                )
+                for e in commander_cameras(cmd):
+                    one["cameras"].setdefault(e, cfg.titles.get(e, e))
+                if one["main"] is None and (now := comp.main_camera(cmd)):
+                    one["main"] = cfg.titles.get(now, now)
+        for one in out.values():
+            one["options"] = list(dict.fromkeys(one["cameras"].values()))
+        return list(out.values())
+
+    def commander(self) -> dict[str, Any]:
+        """The first commander there was (id ""), as an integration from before there
+        were several reads it."""
+        found = [c for c in self.commanders() if not c["id"]]
+        return found[0] if found else {}
 
     def control(self, path: str, body: bytes) -> int:
-        """The integration: POST /camera-dashboard/commander {"main": <title or entity>}
-        shows that camera as the commander's main one, live and in the preview;
-        POST /camera-dashboard/motion {"cameras": [...]}: the cameras seeing motion now
-        (a red dot on their tiles)."""
+        """The integration: POST /camera-dashboard/commander {"main": <title or entity>,
+        "commander": <id>} shows that camera as that commander's main one, live and in
+        the preview (no id: the first commander there was, id "");
+        POST /camera-dashboard/motion {"cameras": [...], "commander": <id>}: its cameras
+        seeing motion now (a red dot on their tiles; no id: every commander's)."""
         if path.strip("/") == "motion":
             return self._motion(body)
         if path.strip("/") != "commander":
             return 404
         try:
-            wanted = str(json.loads(body or b"{}").get("main") or "")
+            data = json.loads(body or b"{}")
+            wanted, cid = str(data.get("main") or ""), str(data.get("commander") or "")
         except (ValueError, AttributeError):
             return 400
         entity = next(
             (
                 e
                 for comp in self._commanders()
-                for e in commander_cameras(comp.cfg.commander)
+                for cmd in comp.cfg.commanders
+                if cmd["id"] == cid
+                for e in commander_cameras(cmd)
                 if wanted in (e, comp.cfg.titles.get(e))
             ),
             None,
         )
         if entity is None:
-            _LOGGER.warning("commander: %r is not one of its cameras", wanted)
+            _LOGGER.warning("commander %r: %r is not one of its cameras", cid, wanted)
             return 400
         for comp in self._commanders():
-            comp.set_main(entity)
-        _LOGGER.info("commander: main camera %s (from Home Assistant)", entity)
+            comp.set_main(entity, cid)
+        _LOGGER.info("commander %r: main camera %s (from Home Assistant)", cid, entity)
+        self._mains[cid] = entity
         if self.state_path:
             try:
-                self._write(self.state_path, {"main": entity})
+                self._write(self.state_path, {"mains": self._mains})
             except OSError as exc:
                 _LOGGER.warning("commander: main camera not kept: %s", exc)
         return 200
 
     def _motion(self, body: bytes) -> int:
         try:
-            seen = json.loads(body or b"{}").get("cameras") or []
+            data = json.loads(body or b"{}")
+            seen, cid = data.get("cameras") or [], data.get("commander")
         except (ValueError, AttributeError):
             return 400
-        if not isinstance(seen, list):
+        if not isinstance(seen, list) or not isinstance(cid, (str, type(None))):
             return 400
         moving = frozenset(str(e) for e in seen)
         for comp in self._commanders():
-            comp.set_motion(moving)
-        _LOGGER.debug("commander: motion on %s", ", ".join(sorted(moving)) or "none")
+            comp.set_motion(moving, cid)
+        _LOGGER.debug(
+            "commander %r: motion on %s", cid, ", ".join(sorted(moving)) or "none"
+        )
         return 200
 
     def deploys(self) -> dict[str, str]:
@@ -911,6 +1015,7 @@ class CameraDashboard:
                 "deployed": self.deploys().get("live"),
                 "changed": self._changed(),
                 "commander": self.commander(),
+                "commanders": self.commanders(),
                 # The Security look follows the saved draft: it is only how the
                 # pictures look, best seen as soon as it is saved.
                 "look_css": self.store["look"].get("css") or DEFAULT_LOOK_CSS,
@@ -958,7 +1063,7 @@ class CameraDashboard:
             if found := problems(store):
                 raise BadRequest("Fix these first: " + " ".join(found))
             url_path, base = self._target(store, live)
-            text = to_yaml(build_dashboard(store, base, url_path))
+            text = to_yaml(build_dashboard(store, base, url_path, self._selects(store)))
             return 200, "text/yaml; charset=utf-8", text.encode()
         if method == "GET" and len(parts) == 2 and parts[0] == "live":
             return _json(200, self.live_view(urllib.parse.unquote(parts[1])))
@@ -996,6 +1101,7 @@ class CameraDashboard:
             "problems": problems(store),
             "preview_dashboard": store["dashboard"] + "-preview",
             "previewed": self.deploys().get("preview"),
+            "empty_commander": EMPTY_COMMANDER,  # what a blank new one starts as
             "compositor": {
                 "live": up(self.live),
                 "draft": up(self.draft),
@@ -1004,9 +1110,7 @@ class CameraDashboard:
         }
 
     def _save(self, body: Store) -> Response:
-        store = with_defaults(
-            {k: v for k, v in body.items() if k in DEFAULTS}
-        )  # only known settings: the page sends back what it was given
+        store = with_defaults(body)  # only known settings: the page sends back all
         if not isinstance(store["cameras"], dict):
             raise BadRequest("cameras must be an object.")
         dropped = 0
@@ -1074,6 +1178,7 @@ class CameraDashboard:
         users = self.ha.users()
         with self._lock:
             store = self.store
+        selects = commander_selects(store, registry)
         return {
             "cameras": ha_cameras(registry, states),
             "motion": motion_sensors(registry, states, list(store["cameras"])),
@@ -1084,6 +1189,7 @@ class CameraDashboard:
                 [r.get("url", "") for r in resources or []],
                 {u["id"] for u in users},
                 self.helpers(),
+                selects,
             ),
             "entities": sorted(
                 (
@@ -1097,9 +1203,17 @@ class CameraDashboard:
                 ),
                 key=lambda e: e["entity"],
             ),
-            "commander_select": COMMANDER_SELECT,
+            "commander_selects": selects,
+            "commander_switches": commander_entities(store, registry, "switch"),
             "error": None,
         }
+
+    def _selects(self, store: Store) -> dict[str, str]:
+        """Each commander's Main camera select, from HA's entity registry."""
+        if self.ha is None:
+            return commander_selects(store, None)
+        (registry,) = self.ha.call({"type": "config/entity_registry/list"})
+        return commander_selects(store, registry)
 
     def _target(self, store: Store, live: bool) -> tuple[str, str]:
         """The dashboard's url_path and the composites' address for a deploy."""
@@ -1124,7 +1238,7 @@ class CameraDashboard:
             raise BadRequest("Fix these first: " + " ".join(found))
         url_path, base = self._target(store, live)
         target = "live" if live else "preview"
-        config = build_dashboard(store, base, url_path)
+        config = build_dashboard(store, base, url_path, self._selects(store))
         (boards,) = self.ha.call({"type": "lovelace/dashboards/list"})
         if url_path not in [b.get("url_path") for b in boards]:
             self.ha.call(
@@ -1307,10 +1421,17 @@ class CameraDashboard:
         """Turn one of the integration's commander switches (Security look, Track
         motion) on or off, through Home Assistant, which keeps its state."""
         entity, on = body.get("entity"), body.get("on")
-        if entity not in COMMANDER_SWITCHES or not isinstance(on, bool):
-            raise BadRequest("Not one of the commander's switches.")
         if self.ha is None:
             raise BadRequest("Home Assistant is not reachable.")
+        with self._lock:
+            store = self.store
+        (registry,) = self.ha.call({"type": "config/entity_registry/list"})
+        switches = {
+            SECURITY_LOOK,
+            *commander_entities(store, registry, "switch").values(),
+        }
+        if entity not in switches or not isinstance(on, bool):
+            raise BadRequest("Not one of the commanders' switches.")
         self.ha.call(
             {
                 "type": "call_service",
@@ -1327,24 +1448,30 @@ class CameraDashboard:
         draft compositor keeps), so the picture and the dashboard's tap zones lay out
         the same way when the main camera sets its own size. A shape not known yet keeps
         the one recorded before (16:9 until there is one)."""
-        cmd = store.get("commander")
-        if not isinstance(cmd, dict) or not self.draft:
+        cmds = store.get("commanders")
+        if not isinstance(cmds, list) or not self.draft:
             return
-        shapes = dict(cmd.get("aspects") or {})
-        for e in commander_cameras({**EMPTY_COMMANDER, **cmd}):
-            if (shape := self.draft.aspect(e)) is not None:
-                shapes[e] = shape
-        cmd["aspects"] = shapes
+        for cmd in cmds:
+            if not isinstance(cmd, dict):
+                continue
+            shapes = dict(cmd.get("aspects") or {})
+            for e in commander_cameras({**EMPTY_COMMANDER, **cmd}):
+                if (shape := self.draft.aspect(e)) is not None:
+                    shapes[e] = shape
+            cmd["aspects"] = shapes
 
     def _render(self, body: dict[str, Any]) -> Response:
-        """A live preview: the commander drawn by the draft compositor from the page's
-        unsaved edits ({"store"})."""
+        """A live preview: one commander (`index`, its place) drawn by the draft
+        compositor from the page's unsaved edits ({"store", "index"})."""
         if not self.draft:
             return _json(404, {"error": "No previews: the draft compositor is off."})
         try:
             store = with_defaults(body.get("store") or {})
             self._record_shapes(store)
-            image = self.draft.render(config_from_store(store))
+            index = body.get("index", 0)
+            if not isinstance(index, int):
+                raise ValueError("index must be a number")
+            image = self.draft.render(config_from_store(store), index)
         except (ValueError, TypeError, AttributeError, KeyError) as exc:
             return _json(422, {"error": str(exc)})
         except (RuntimeError, TimeoutError) as exc:

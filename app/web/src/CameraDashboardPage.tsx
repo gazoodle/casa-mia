@@ -38,7 +38,6 @@ const HIGHLIGHT: Highlight = { colour: "#7bd1a0", width: 2, blur: 13, pulse: 1.8
 const MOTION = { hold: 10, back: 30, pause: 120 };
 // The integration's switches (Camera Commander device), flipped from here through the app.
 const SECURITY_LOOK = "switch.camera_commander_security_look";
-const TRACK_MOTION = "switch.camera_commander_track_motion";
 const SHOW_LOOK = "casa-mia:show-look"; // localStorage: the look on this page's previews
 
 /** The Security look: a tint, how strong and how dark, and the CSS filter made of them. */
@@ -60,6 +59,12 @@ type Panel = {
 };
 const PANELS = ["left", "top", "right", "bottom"] as const;
 type Commander = {
+  /** Its page's title on the dashboard; as a slug, the page's address. */
+  name: string;
+  /** Never changes: its device in the integration. "": the first there was. */
+  id?: string;
+  /** A page of its own on the dashboard; off: only drawn, for elsewhere (a card to come). */
+  page?: boolean;
   width: number;
   height: number;
   gap: number;
@@ -92,7 +97,8 @@ type Store = {
   hi_live_card: string;
   compositor_host: string;
   cameras: Record<string, Camera>;
-  commander: Commander;
+  /** In order: the dashboard's first pages. Always at least one. */
+  commanders: Commander[];
   look: Look;
 };
 type View = {
@@ -104,6 +110,8 @@ type View = {
   preview_dashboard: string;
   /** When the preview dashboard was last deployed; null when there is none. */
   previewed: string | null;
+  /** What a blank new commander starts as. */
+  empty_commander: Commander;
   compositor: { live: boolean; draft: boolean; host: string | null };
 };
 type HACamera = { entity: string; name: string; device_id: string | null; medium?: string; high?: string; zoom?: string };
@@ -112,8 +120,10 @@ type HA = {
   cameras?: HACamera[];
   users?: HAUser[];
   entities?: { entity: string; name: string; state?: string }[];
-  /** The integration's Main camera select, which the commander's taps set. */
-  commander_select?: string;
+  /** Each commander's (by id) Main camera select in the integration, which its taps set. */
+  commander_selects?: Record<string, string>;
+  /** Each commander's Track motion switch. */
+  commander_switches?: Record<string, string>;
   /** Each camera's motion sensor (for the commander's Track motion), where it has one. */
   motion?: Record<string, string>;
   /** What the saved draft needs that Home Assistant seems to lack. */
@@ -344,23 +354,26 @@ export function CameraDashboardPage({ state }: { state?: string }) {
 
       <section className={guest.area}>
         <AreaHead
-          title="Commander"
+          title="Commanders"
           blurb={
             <>
-              One landscape picture: a main camera in its natural shape, framed by panels of cameras. Tapping a camera makes it
-              the main one; tapping the main one opens its live page. Automations choose it too, with the Camera Commander's
-              Main camera in Home Assistant. It is the dashboard's first page.
+              Each one landscape picture: a main camera in its natural shape, framed by panels of cameras. Tapping a camera
+              makes it the main one; tapping the main one opens its live page. Each commander is a device in Home Assistant
+              (Camera Commander, then Camera Commander and its name), so automations choose it too, with its Main camera, and
+              its Track motion switch. Each is a page of the dashboard, the first pages, in this order; the camera pages
+              follow.
             </>
           }
         />
-        <CommanderSelectCheck ha={ha} />
-        <CommanderEditor
-          value={draft.commander}
-          cameras={draft.cameras}
-          preview={<LivePreview store={draft} />}
-          trackMotion={haSwitch(TRACK_MOTION)}
-          onTrackMotion={(on) => flip(TRACK_MOTION, on, "Track motion")}
-          onChange={(c) => edit((s) => (s.commander = c))}
+        <Commanders
+          store={draft}
+          blank={view.empty_commander}
+          ha={ha}
+          trackMotion={(id) => haSwitch(ha?.commander_switches?.[id] ?? "")}
+          onTrackMotion={(id, on) =>
+            ha?.commander_switches?.[id] && flip(ha.commander_switches[id], on, "Track motion")
+          }
+          onChange={(c) => edit((s) => (s.commanders = c))}
         />
       </section>
 
@@ -405,12 +418,12 @@ export function CameraDashboardPage({ state }: { state?: string }) {
             <div className={`${css.camRow} ${css.head}`}>
               <span>Camera</span>
               <span>Channels</span>
-              <span>In the commander</span>
+              <span>In commanders</span>
               <span>Extras</span>
               <span />
             </div>
             {Object.entries(draft.cameras).map(([entity, cam]) => {
-              const panel = PANELS.find((p) => draft.commander[p].cameras.includes(entity));
+              const shownIn = draft.commanders.filter((c) => PANELS.some((p) => c[p].cameras.includes(entity)));
               return (
                 <div key={entity} className={css.camRow}>
                   <button
@@ -428,7 +441,7 @@ export function CameraDashboardPage({ state }: { state?: string }) {
                     {[cam.medium && "medium", cam.high && "high"].filter(Boolean).join(", ") || "itself only"}
                     {cam.live && ` · ${cam.live}`}
                   </span>
-                  <span className={css.muted}>{panel ? PANEL_NAMES[panel][0] : "no"}</span>
+                  <span className={css.muted}>{shownIn.map((c) => c.name).join(", ") || "none"}</span>
                   <span className={css.muted}>
                     {[
                       cam.zoom && "zoom",
@@ -464,7 +477,8 @@ export function CameraDashboardPage({ state }: { state?: string }) {
                       onClick={() =>
                         edit((s) => {
                           delete s.cameras[entity];
-                          for (const p of PANELS) s.commander[p].cameras = s.commander[p].cameras.filter((e) => e !== entity);
+                          for (const c of s.commanders)
+                            for (const p of PANELS) c[p].cameras = c[p].cameras.filter((e) => e !== entity);
                         })
                       }
                     >
@@ -527,26 +541,27 @@ export function CameraDashboardPage({ state }: { state?: string }) {
   );
 }
 
-/** Whether the commander's taps can work: they set the integration's Main camera select,
+/** Whether a commander's taps can work: they set its Main camera select in the integration,
  * so say plainly when Home Assistant doesn't have it (yet), or has it with no cameras. */
-function CommanderSelectCheck({ ha }: { ha?: HA }) {
-  if (!ha?.entities || !ha.commander_select) return null;
-  const select = ha.entities.find((e) => e.entity === ha.commander_select);
+function CommanderSelectCheck({ ha, id }: { ha?: HA; id: string }) {
+  const entity = ha?.commander_selects?.[id];
+  if (!ha?.entities || !entity) return null;
+  const select = ha.entities.find((e) => e.entity === entity);
   if (select && select.state !== "unavailable") return null;
   return (
     <div className={css.alarm} role="alert">
       <strong>Taps on the commander do nothing yet.</strong>{" "}
       {select ? (
         <>
-          <code>{ha.commander_select}</code> is unavailable in Home Assistant: either the integration can't reach this
+          <code>{entity}</code> is unavailable in Home Assistant: either the integration can't reach this
           app, or the commander has no saved cameras yet (save a draft with cameras in its panels; Home Assistant picks
           them up within 30 seconds).
         </>
       ) : (
         <>
-          Home Assistant has no <code>{ha.commander_select}</code>, which every tap sets. It comes with the Casa Mia
-          integration: after the app updates the integration, Home Assistant needs a restart to load it (Settings →
-          Repairs, or Settings → System → Restart).
+          Home Assistant has no <code>{entity}</code>, which every tap sets. It comes with the Casa Mia integration (a
+          new commander's once the draft is saved): after the app updates the integration, Home Assistant needs a
+          restart to load it (Settings → Repairs, or Settings → System → Restart).
         </>
       )}
     </div>
@@ -624,7 +639,122 @@ const PANEL_NAMES: Record<(typeof PANELS)[number], [title: string, size: string]
   bottom: ["Bottom", "Height, % of the picture"],
 };
 
-/** The commander's layout: its size, the main camera at start, and its four panels. */
+/** The commanders as an accordion: one open at a time (only its preview is drawn). Each
+ * can be moved up and down (the dashboard's pages follow), deleted while another is left,
+ * and a new one starts as a copy of the one open. */
+function Commanders({
+  store,
+  blank,
+  ha,
+  trackMotion,
+  onTrackMotion,
+  onChange,
+}: {
+  store: Store;
+  blank: Commander;
+  ha?: HA;
+  /** A commander's (by id) Track motion switch's state in Home Assistant. */
+  trackMotion: (id: string) => string | undefined;
+  onTrackMotion: (id: string, on: boolean) => void;
+  onChange: (c: Commander[]) => void;
+}) {
+  const [open, setOpen] = useState(0);
+  const list = store.commanders;
+  const change = (next: Commander[], opened = open) => {
+    onChange(next);
+    setOpen(opened);
+  };
+  const move = (i: number, to: number) => {
+    const next = [...list];
+    next.splice(to, 0, ...next.splice(i, 1));
+    change(next, open === i ? to : open === to ? i : open);
+  };
+  /** A new commander: a copy of the one open, or blank (no cameras, every setting at its default). */
+  const add = (from: Commander) => {
+    const names = new Set(list.map((c) => c.name));
+    let n = list.length + 1;
+    while (names.has(`Commander ${n}`)) n++;
+    const id = crypto.randomUUID().replace(/-/g, "").slice(0, 8); // its device: never reused
+    change([...list, { ...structuredClone(from), name: `Commander ${n}`, id }], list.length);
+  };
+  const remove = (i: number) =>
+    confirm(`Delete the ${list[i].name} commander?`) &&
+    change(
+      list.filter((_, j) => j !== i),
+      Math.min(open > i ? open - 1 : open, list.length - 2),
+    );
+  return (
+    <div className={css.folds}>
+      {list.map((c, i) => (
+        <div key={i} className={css.fold}>
+          <header className={css.foldHead}>
+            <button className={css.foldToggle} aria-expanded={open === i} onClick={() => setOpen(open === i ? -1 : i)}>
+              <span className={css.chevron}>{open === i ? "▾" : "▸"}</span>
+              <strong>{c.name.trim() || "(no name)"}</strong>
+              <span className={css.muted}>
+                {plural(new Set(PANELS.flatMap((p) => (c[p].hidden ? [] : c[p].cameras))).size, "camera")}
+                {c.page === false && " · no dashboard page"}
+              </span>
+            </button>
+            <span className={css.actions}>
+              <button
+                className={`${ui.button} ${ui.small}`}
+                disabled={i === 0}
+                title="Earlier on the dashboard"
+                aria-label={`Move ${c.name} up`}
+                onClick={() => move(i, i - 1)}
+              >
+                ↑
+              </button>
+              <button
+                className={`${ui.button} ${ui.small}`}
+                disabled={i === list.length - 1}
+                title="Later on the dashboard"
+                aria-label={`Move ${c.name} down`}
+                onClick={() => move(i, i + 1)}
+              >
+                ↓
+              </button>
+              <button
+                className={`${ui.danger} ${ui.small}`}
+                disabled={list.length === 1}
+                title={list.length === 1 ? "There must always be one commander." : undefined}
+                onClick={() => remove(i)}
+              >
+                Delete
+              </button>
+            </span>
+          </header>
+          {open === i && <CommanderSelectCheck ha={ha} id={c.id ?? ""} />}
+          {open === i && (
+            <CommanderEditor
+              value={c}
+              cameras={store.cameras}
+              preview={<LivePreview store={store} index={i} />}
+              trackMotion={trackMotion(c.id ?? "")}
+              onTrackMotion={(on) => onTrackMotion(c.id ?? "", on)}
+              onChange={(v) => change(list.map((x, j) => (j === i ? v : x)))}
+            />
+          )}
+        </div>
+      ))}
+      <div className={css.actions}>
+        <button
+          className={ui.button}
+          onClick={() => add(list[open] ?? list[0])}
+          title={`A copy of ${(list[open] ?? list[0]).name}, to change`}
+        >
+          + Copy of {(list[open] ?? list[0]).name}
+        </button>
+        <button className={ui.button} onClick={() => add(blank)} title="No cameras, every setting at its default">
+          + Blank commander
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** A commander's layout: its name, size, the main camera at start, and its four panels. */
 function CommanderEditor({
   value,
   cameras,
@@ -656,6 +786,23 @@ function CommanderEditor({
         <div className={css.commanderPreview}>{preview}</div>
         <section className={`${css.options} ${css.numbers}`}>
           <h4 className={css.sub}>Picture</h4>
+          <div className={css.wide}>
+            <Field label="Name" help="Its page's title on the dashboard; the page's address is made from it.">
+              <input value={value.name} onChange={(e) => set((c) => (c.name = e.target.value))} />
+            </Field>
+          </div>
+          <div className={css.wide}>
+            <Field
+              label="Dashboard page"
+              help="Off: no page of its own on the dashboard. It is still drawn and keeps its device in Home Assistant, for showing elsewhere (a card to come); its cameras keep their live pages."
+            >
+              <Switch
+                on={value.page !== false}
+                label="Dashboard page"
+                onChange={(on) => set((c) => (c.page = on))}
+              />
+            </Field>
+          </div>
           <Num label="Width" value={value.width} onChange={(n) => set((c) => (c.width = n))} />
           <Num label="Height" value={value.height} onChange={(n) => set((c) => (c.height = n))} />
           <Num label="Gap, px" value={value.gap} onChange={(n) => set((c) => (c.gap = n))} />
@@ -772,7 +919,7 @@ function CommanderEditor({
               help={
                 trackMotion === undefined
                   ? "Home Assistant has no Track motion switch yet (the Casa Mia integration adds it)."
-                  : "The Camera Commander's Track motion switch in Home Assistant: automations can flip it too."
+                  : "This commander's Track motion switch in Home Assistant (on its Camera Commander device): automations can flip it too."
               }
             >
               <Switch on={trackMotion === "on"} label="Track motion" busy={trackMotion === undefined} onChange={onTrackMotion} />
@@ -874,8 +1021,8 @@ function CommanderEditor({
 /** The commander drawn from the unsaved draft, redrawn a moment after an edit that changes
  * it (and only then: the key is what the picture depends on). The last picture stays,
  * dimmed, while the next is drawn. */
-function LivePreview({ store }: { store: Store }) {
-  const key = previewKey(store);
+function LivePreview({ store, index }: { store: Store; index: number }) {
+  const key = previewKey(store, index);
   const [src, setSrc] = useState<string>();
   const [note, setNote] = useState<string>();
   const [busy, setBusy] = useState(true);
@@ -899,7 +1046,7 @@ function LivePreview({ store }: { store: Store }) {
           method: "POST",
           cache: "no-store",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ store: latest.current }),
+          body: JSON.stringify({ store: latest.current, index }),
         });
         if (gone) return;
         if (r.ok) {
@@ -933,10 +1080,12 @@ function LivePreview({ store }: { store: Store }) {
   );
 }
 
-/** Everything the commander depends on, so the preview is redrawn only when that changes. */
-function previewKey(store: Store): string {
-  const cams = PANELS.flatMap((p) => store.commander[p].cameras);
-  return JSON.stringify([store.commander, cams.map((e) => store.cameras[e]?.title)]);
+/** Everything a commander's picture depends on, so its preview is redrawn only when that
+ * changes (not its name). */
+function previewKey(store: Store, index: number): string {
+  const cmd = store.commanders[index];
+  const cams = PANELS.flatMap((p) => cmd[p].cameras);
+  return JSON.stringify([{ ...cmd, name: "" }, index, cams.map((e) => store.cameras[e]?.title)]);
 }
 
 /** An ordered list as chips: move, remove, and add from the choices. */
