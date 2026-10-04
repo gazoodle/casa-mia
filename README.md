@@ -33,33 +33,159 @@ stale repos; so I thought Claude and I could pull them together and clean them u
 During that process I realised that there was quite a bit of stuff that other people might
 find useful too, so ... this project got created, and now, since every time I go looking for
 useful stuff and inspiration, I'm interested in what it looks like and what I can create
-with it, here are some screen shots of what you get and what you can acheive; click any
-of them for more information
+with it, here are some screenshots of what you get and what you can achieve. Click any of
+them to see it full size.
 
-## Casa Mia Screenshots
+## The Casa Mia panel
 
-<p align="center">
-<img src="docs/screenshots/home.webp" alt="The Casa Mia panel's home page: the house photo and a tile for each module" width="400">
-<a href="#kiosk-satellite-firmware"><img src="docs/screenshots/firmware.webp" alt="The Firmware server page: the address for the tablets and the mirrored Kiosk Satellite releases" width="400"></a>
-<a href="#kiosk-satellite-manager"><img src="docs/screenshots/kiosks.webp" alt="The Kiosk Satellites page: each wall tablet with its version, battery and Wi-Fi, and its backups" width="400"></a>
-<a href="#kiosk-satellite-manager"><img src="docs/screenshots/kiosk-backups.webp" alt="A wall tablet's kept backups: what changed in each, ready to download or restore" width="400"></a>
-<a href="#people"><img src="docs/screenshots/people.webp" alt="The People page: who may call and text the house, each linked to a Home Assistant person" width="400"></a>
-<a href="#guest-login"><img src="docs/screenshots/guest-login.webp" alt="The Guest login page: QR code endpoints opened and closed by switch, and the logins guests are signed in as" width="400"></a>
-<a href="#guest-login"><img src="docs/screenshots/guest-endpoint.webp" alt="Adding a guest login endpoint: its label, landing dashboard, type, login and secret QR code address" width="400"></a>
-</p>
-[Casa Mia ]
+Everything lives in one panel in Home Assistant's sidebar, served through ingress, so it is
+there wherever Home Assistant is: on the sofa, at the office, or on a beach on the other side
+of the world. No ports to open, no extra logins, no VPN.
 
-## HA Dashboard Screenshots
+<table>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/screenshots/home.webp" alt="The Casa Mia panel's home page: the house photo and a tile for each module">
+<h3>Your house, at a glance</h3>
+Your own house across the top, then a tile for every module, each with its vital signs:
+what's running, what it's seen and when. One look tells you the whole place is humming.
+</td>
+<td width="50%" valign="top">
+<img src="docs/screenshots/firmware.webp" alt="The Firmware server page: the address for the tablets and the mirrored Kiosk Satellite releases">
+<h3>Firmware, on tap</h3>
+Your wall tablets live on a locked-down network, but they still deserve the latest Kiosk
+Satellite. Casa Mia fetches every release and serves it to them locally: they update
+themselves, and never need the internet.
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/screenshots/kiosks.webp" alt="The Kiosk Satellites page: each wall tablet with its version, battery and Wi-Fi, and its backups">
+<h3>Every tablet, one page</h3>
+Every Kiosk Satellite in the house, found by itself: its version, battery, Wi-Fi and last
+backup. Bring any of them up to date with a single press.
+</td>
+<td width="50%" valign="top">
+<img src="docs/screenshots/kiosk-backups.webp" alt="A wall tablet's kept backups: what changed in each, ready to download or restore">
+<h3>Backups that tell you what changed</h3>
+Each tablet's settings are backed up whenever they change, and every backup says exactly
+what changed. Fiddled with something and regretted it? Restore it in one click.
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/screenshots/kiosk-satellite.webp" alt="A wall tablet's own Kiosk Satellite settings, reached through Home Assistant: its screen showing the camera commander, its status and quick controls">
+<h3>Your tablet, from anywhere</h3>
+Open any tablet's own Kiosk Satellite control page straight through Home Assistant: see its
+screen live, reload it, wake it, tweak its settings. From your kitchen, or from another
+continent.
+</td>
+<td width="50%" valign="top">
+<img src="docs/screenshots/people.webp" alt="The People page: who may call and text the house, each linked to a Home Assistant person">
+<h3>Who can call the house</h3>
+The guest list for your home's own phone line: who may ring it, who may text it, each
+linked to their Home Assistant person. Type a number the way you'd dial it; Casa Mia works
+out the rest.
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/screenshots/guest-login.webp" alt="The Guest login page: QR code endpoints opened and closed by switch, and the logins guests are signed in as">
+<h3>Guests, signed in with a scan</h3>
+One QR code per kind of visitor. Guests scan it and land on their own dashboard: no app, no
+password, no fuss. Each code has a switch, so your automations open it when guests arrive
+and close it when they leave.
+</td>
+<td width="50%" valign="top">
+<img src="docs/screenshots/guest-endpoint.webp" alt="Adding a guest login endpoint: its label, landing dashboard, type, login and secret QR code address">
+<h3>A code for every visitor</h3>
+Family, friends, the pool engineer: each code chooses which login a visitor gets and which
+dashboard they land on. Codes you've already printed for ha-auto-guest-login keep working.
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/screenshots/guest-welcome.webp" alt="The guest welcome page previewed on a phone: the house, a welcome, and signing in">
+<h3>A proper welcome</h3>
+While they're signed in, your guests see your house and a warm welcome, not a login screen.
+Preview it on a phone, a small phone or a tablet before anyone scans a thing.
+</td>
+<td width="50%" valign="top">
+<img src="docs/screenshots/camera-dashboard.webp" alt="The Camera Dashboard page: a commander's composite of every camera around the main one, with its picture and layout settings">
+<h3>Design your control room</h3>
+Lay out a camera commander: a big main camera framed by every other camera in the house, all
+in one picture. Tune the size, the highlight and the motion tracking, preview it on a
+dashboard, then deploy it live.
+</td>
+</tr>
+</table>
 
+## On your Home Assistant dashboards
 
-
-
+<table>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/screenshots/dashboard-commander.webp" alt="A camera commander on a Home Assistant dashboard: the main camera framed by every other camera, each a tap to make it the main one">
+<h3>The camera commander</h3>
+Every camera in the house in one live picture, and one stream for the tablet to play, so even
+a modest wall tablet stays snappy. Tap the main camera to open its live page.
+</td>
+<td width="50%" valign="top">
+<img src="docs/screenshots/dashboard-commander-loft.webp" alt="The same commander after a tap on the Loft tile: Loft is now the main camera, its tile outlined">
+<h3>Tap, and it's on the big screen</h3>
+Tap any tile and it becomes the main camera, in an instant. Switch on Track motion and the
+commander does it for you, following whatever moves around your home.
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/screenshots/dashboard-security-look.webp" alt="The commander with its Security look switched on: you want to feel like you work for MI5!">
+<h3>You want to feel like you work for MI5!</h3>
+Flip the Security look switch and every camera takes on the cool blue of a government
+control room. Automations can flip it too: at night, when the alarm is set, or just because.
+</td>
+<td width="50%" valign="top">
+</td>
+</tr>
+</table>
 
 ## Installation
 
+You need Home Assistant OS or a Supervised install (apps need the Supervisor), on a 64-bit
+machine (aarch64 or amd64).
 
+1. **Add the repository.** In Home Assistant, go to **Settings → Apps → App store**, open the
+   **⋮** menu at the top right, choose **Repositories**, and add:
 
+   ```text
+   https://github.com/gazoodle/casa-mia
+   ```
 
+2. **Install the app.** Close the dialog, find **Casa Mia** in the store (refresh the page if
+   it isn't there yet), open it and press **Install**. It downloads the ready-built app from
+   the GitHub Container Registry, so there's nothing to compile.
+
+3. **Choose your modules.** On the app's **Configuration** tab, give your house its name and
+   switch on the modules you want (they all start off): the firmware server, Kiosk
+   Satellites, guest login, the camera compositor and Camera Dashboard, phone and SMS (FONA),
+   the alarm panel. Press **Save**. You can come back and change these at any time.
+
+4. **Start it.** On the **Info** tab, switch on **Show in sidebar** and press **Start**.
+   **Casa Mia** appears in the sidebar.
+
+5. **Restart Home Assistant.** On its first start the app installs its integration into your
+   `custom_components` folder, and Home Assistant only loads it after a restart: **Settings →
+   System → ⋮ → Restart Home Assistant**. A Repair tells you whenever an update needs another.
+
+6. **Add the integration.** Go to **Settings → Devices & services → Add integration**, search
+   for **Casa Mia**, and press **Submit**: it finds the app by itself. (If it doesn't, copy the
+   **Integration URL** from the foot of the Casa Mia panel's home page and paste it in.)
+
+7. **Make yourself at home.** Open **Casa Mia** from the sidebar and visit each module's page
+   to set it up. Its devices and entities appear in Home Assistant as you go.
+
+Updates arrive like any other app's: Home Assistant offers them under **Settings → Updates**,
+and the integration is updated along with the app.
 
 ## What's in here?
 
