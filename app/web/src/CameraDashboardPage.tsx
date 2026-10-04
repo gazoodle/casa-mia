@@ -8,7 +8,7 @@ import { api } from "./api";
 import { ago } from "./format";
 import { CameraIcon } from "./icons";
 import { AreaHead, Empty, Shell } from "./page";
-import { Dialog, Field, Segmented, Switch, Toasts, type Toast } from "./ui";
+import { CopyButton, Dialog, Field, Segmented, Switch, Toasts, type Toast } from "./ui";
 import css from "./cameras.module.css";
 import guest from "./guest.module.css";
 import ui from "./ui.module.css";
@@ -1805,9 +1805,7 @@ function YamlDialog({ onClose }: { onClose: () => void }) {
       onClose={onClose}
       footer={
         <>
-          <button className={ui.button} onClick={() => navigator.clipboard?.writeText(text)} disabled={!text}>
-            Copy
-          </button>
+          <CopyButton className={ui.button} text={text} disabled={!text} />
           <button className={ui.primary} onClick={onClose}>
             Close
           </button>

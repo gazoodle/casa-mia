@@ -2,6 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## RULE MINUS ONE: NO REAL PRIVATE DATA IN THE REPO. EVER.
+
+**This repo is public.** Nothing that came from the owner's real life may be committed: not in code, comments, docstrings, tests, fixtures, `app/CHANGELOG.md`, docs, or **commit messages**. That means real people's names, phone numbers, the house's name, addresses and IPs, camera and room names, tablet names, guest slugs, tokens, serials, anything in `swap.json`, `people.json` or the box's config. **A real example the owner typed in chat is still real.**
+
+Use invented examples only: Ofcom's drama numbers (`07700 900000`–`07700 900999`), made-up names ("Ann", "Annex"), made-up places ("Oak Tree", "Barn").
+
+**The check, before every commit, no exceptions:** read the staged diff *and* the commit message, and ask of each name, number and place: did I invent this, or did it come from the owner's data? If in doubt, replace it. If something real ever reaches GitHub, say so at once; the fix is a history rewrite and a force-push, with the owner's go-ahead.
+
+Why: in 2026.10.2 Claude put the owner's real mobile number into a test and a family member's name into the changelog, a docstring and a commit message, and pushed them. Phone numbers in public repos get scraped for spam. It took a history rewrite to get them out.
+
 ## RULE ZERO: bump the version FIRST
 
 From a clean repo, **before making any change** that touches `app/` or `integration/`, bump the version: `.venv/bin/python tools/versioning.py bump` (2026.10.1-b3 → 2026.10.1-b4; it also syncs `app/config.yaml` and adds the `## <version>` heading at the top of `app/CHANGELOG.md`), then write that version's changelog lines under it (a test fails without the heading; the Supervisor shows that file in the update dialog). Bump only if HEAD already holds the current version (`git show HEAD:pyproject.toml`): one build number per deploy, not per edit. (A changed component then gets `tools/component_versions.py --update`; see Commands.) Do this before reading further, before editing, every time. Claude and Codex both forget this constantly.

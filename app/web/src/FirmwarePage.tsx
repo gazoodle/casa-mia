@@ -6,7 +6,7 @@ import { api, type FirmwareFile, type FirmwareStatus } from "./api";
 import { ago, megabytes } from "./format";
 import { FirmwareIcon } from "./icons";
 import { AreaHead, Empty, Shell } from "./page";
-import { Segmented, Toasts, type Toast } from "./ui";
+import { copyText, Segmented, Toasts, type Toast } from "./ui";
 import css from "./firmware.module.css";
 import guest from "./guest.module.css";
 import ui from "./ui.module.css";
@@ -78,7 +78,7 @@ export function FirmwarePage({ state }: { state?: string }) {
         <button
           className={guest.url}
           title="Copy the address"
-          onClick={() => navigator.clipboard?.writeText(status.url).then(() => toast("Address copied"))}
+          onClick={() => copyText(status.url).then(() => toast("Address copied"), () => toast("Couldn't copy: select it by hand", "bad"))}
         >
           {status.url}
         </button>

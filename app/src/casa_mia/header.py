@@ -17,6 +17,7 @@ from typing import Any
 
 from PIL import Image, ImageOps, UnidentifiedImageError
 
+from . import swap
 from .server import WEB_DIR
 
 _LOGGER = logging.getLogger(__name__)
@@ -47,9 +48,14 @@ def _store() -> Path:
     return FOLDER / "header.json"
 
 
+def _custom() -> bool:
+    """An uploaded photo is in use (not hidden by the screenshot swap)."""
+    return _image().is_file() and not swap.original_photo()
+
+
 def photo() -> Path | None:
     """The photo in use: the uploaded one, else the UI's bundled one (None if neither)."""
-    if _image().is_file():
+    if _custom():
         return _image()
     found = sorted((WEB_DIR / "assets").glob("header-*.jpg"))
     return found[0] if found else None
@@ -80,12 +86,13 @@ def framing() -> dict[str, dict[str, float]]:
 
 def view() -> dict[str, Any]:
     image = _image()
-    custom = image.is_file()
+    custom = _custom()
     return {
         "house": HOUSE,
         "custom": custom,
         "stamp": int(image.stat().st_mtime) if custom else 0,
-        **framing(),
+        # The screenshot swap's shipped photo, framed as shipped (yours stays as saved).
+        **(framing() if custom or not image.is_file() else DEFAULT),
     }
 
 
@@ -154,7 +161,7 @@ def handle(method: str, rest: str, query: dict, body: bytes) -> Response:
     if method == "GET" and rest == "":
         return _json(200, view())
     if method == "GET" and rest == "image":
-        if not _image().is_file():
+        if not _custom():
             return _json(404, {"error": "No uploaded photo."})
         return 200, "image/jpeg", _image().read_bytes()
     if method == "PUT" and rest == "":

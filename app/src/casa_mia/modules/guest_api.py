@@ -17,7 +17,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from .. import qr
+from .. import qr, swap
 from ..ha import HA, HAError
 from .guest_login import (
     MAX_DELAY,
@@ -488,10 +488,11 @@ class GuestAPI:
             return _json(404, {"error": "No such endpoint."})
         text = self.qr_text(ep)
         if method == "GET":
+            shown = swap.out(text)  # a screenshot's code must not scan to the real one
             return (
-                (200, "image/svg+xml", qr.svg(text))
+                (200, "image/svg+xml", qr.svg(shown))
                 if kind == "svg"
-                else (200, "image/png", qr.png(text))
+                else (200, "image/png", qr.png(shown))
             )
         if method == "POST" and rest[1:] == ["media"]:
             folder = self.media_dir / "casa-mia" / "guest-qr"
