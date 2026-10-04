@@ -28,6 +28,7 @@ camera-dashboard.json.
 from __future__ import annotations
 
 import asyncio
+import functools
 import html
 import io
 import json
@@ -44,6 +45,8 @@ from typing import Any
 import aiohttp
 from aiohttp import web
 from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageOps
+
+from .. import swap
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -194,6 +197,15 @@ def load_config(directory: Path, store: str = LIVE_STORE) -> Config:
 # --- drawing: pure functions of the config and the images -----------------------------
 
 FONT = ImageFont.load_default(size=20)
+
+
+@functools.lru_cache(maxsize=64)
+def _stand_in(path: Path, _mtime: int, size: tuple[int, int]) -> bytes:
+    """A screenshot swap picture as a camera still: scaled down to fit `size` in its own
+    shape, as HA scales a still."""
+    img = Image.open(path).convert("RGB")
+    img.thumbnail(size)
+    return encode(img, JPEG_QUALITY)
 
 
 def encode(img: Image.Image, quality: int) -> bytes:
@@ -506,7 +518,7 @@ def commander(
             draw.rectangle((x, y + h - SMALL_BAR, x + w, y + h), fill=(0, 0, 0, 140))
             draw.text(
                 (x + 6, y + h - SMALL_BAR // 2),
-                str(titles.get(entity) or entity),
+                swap.out(str(titles.get(entity) or entity)),
                 fill="white",
                 font=SMALL_FONT,
                 anchor="lm",
@@ -552,7 +564,7 @@ def commander(
                 font=FONT,
                 anchor="mm",
             )
-        label = titles.get(main, main)
+        label = swap.out(titles.get(main, main))
         if changing:
             area = (px, py, px + pw, py + ph)
             canvas.paste(
@@ -910,8 +922,26 @@ class Compositor:
             )
         return hit[1]
 
+    def _swapped(self, entity: str) -> Path | None:
+        """The screenshot swap's picture for a camera (any of its channels), if any."""
+        title = self.cfg.titles.get(entity) or next(
+            (
+                self.cfg.titles.get(e)
+                for e, chans in self.cfg.entities.items()
+                if entity in chans.values()
+            ),
+            None,
+        )
+        return swap.camera_image(title) if title else None
+
     async def _fetch_now(self, entity: str, size: tuple[int, int]) -> bytes | None:
         assert self._http
+        picture = self._swapped(entity)
+        if picture:
+            try:
+                return _stand_in(picture, picture.stat().st_mtime_ns, size)
+            except OSError:
+                pass  # gone or unreadable: the camera's own picture
         url = (
             f"{self.ha_url}/api/camera_proxy/{entity}?width={size[0]}&height={size[1]}"
         )

@@ -1,5 +1,5 @@
-"""Config flow: ask for the app's URL (pre-filled when the app is found) and check it
-answers. Options: the alarm code, and which dashboard helper scripts are loaded."""
+"""Config flow: ask for the app's URL (pre-filled when the app is found, and left empty
+means that one) and check it answers. Options: the alarm code, and which dashboard helper scripts are loaded."""
 
 from __future__ import annotations
 
@@ -32,13 +32,18 @@ def app_url(hass: HomeAssistant) -> str | None:
     """The installed Casa Mia app's address on the Supervisor network, if there is one.
     The app's slug carries its repository's hash (a6aa04a6_casa_mia); its hostname is
     the slug with dashes."""
-    try:
-        from homeassistant.components.hassio import get_addons_info, is_hassio
+    try:  # is_hassio moved to helpers; importing it from hassio failed silently
+        from homeassistant.components.hassio import get_addons_info
+        from homeassistant.helpers.hassio import is_hassio
     except ImportError:
         return None
     if not is_hassio(hass):
         return None
-    for slug in get_addons_info(hass) or {}:
+    try:
+        apps = get_addons_info(hass) or {}
+    except Exception:  # noqa: BLE001 (2026.9 raises HassioNotReadyError until loaded)
+        return None  # not known yet: the address is typed instead
+    for slug in apps:
         if slug == "casa_mia" or slug.endswith("_casa_mia"):
             return f"http://{slug.replace('_', '-')}:{APP_PORT}"
     return None
@@ -56,25 +61,31 @@ class CasaMiaConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         errors: dict[str, str] = {}
+        found = app_url(self.hass)
         if user_input is not None:
-            url = user_input[CONF_URL].rstrip("/")
-            try:
-                await async_fetch_health(self.hass, url)
-            except (aiohttp.ClientError, TimeoutError, ValueError):
-                errors["base"] = "cannot_connect"
+            # empty: the app found on the Supervisor network; a paste may carry a
+            # sentence's full stop or stray spaces
+            url = (user_input.get(CONF_URL) or "").strip().rstrip("/.") or found
+            if not url:
+                errors["base"] = "not_found"
             else:
-                await self.async_set_unique_id(DOMAIN)
-                self._abort_if_unique_id_configured()
-                return self.async_create_entry(title="Casa Mia", data={CONF_URL: url})
-        default = (user_input or {}).get(CONF_URL) or app_url(self.hass)
-        field = (
-            vol.Required(CONF_URL, default=default)
-            if default
-            else vol.Required(CONF_URL)
-        )
+                try:
+                    await async_fetch_health(self.hass, url)
+                except (aiohttp.ClientError, TimeoutError, ValueError):
+                    errors["base"] = "cannot_connect"
+                else:
+                    await self.async_set_unique_id(DOMAIN)
+                    self._abort_if_unique_id_configured()
+                    return self.async_create_entry(
+                        title="Casa Mia", data={CONF_URL: url}
+                    )
+        typed = (user_input or {}).get(CONF_URL) or found
         return self.async_show_form(
             step_id="user",
-            data_schema=vol.Schema({field: str}),
+            data_schema=vol.Schema(
+                {vol.Optional(CONF_URL, description={"suggested_value": typed}): str}
+            ),
+            description_placeholders={"found": found or "not found"},
             errors=errors,
         )
 

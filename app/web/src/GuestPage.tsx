@@ -7,7 +7,7 @@ import { ago } from "./format";
 import { EndpointDialog, LoginDialog, PasswordDialog, SettingsDialog } from "./GuestDialogs";
 import { GuestIcon } from "./icons";
 import { AreaHead, Empty, Shell } from "./page";
-import { Switch, Toasts, type Toast } from "./ui";
+import { copyText, Switch, Toasts, type Toast } from "./ui";
 import css from "./guest.module.css";
 import ui from "./ui.module.css";
 
@@ -304,7 +304,7 @@ function Detail({
   const saveToMedia = async () => {
     try {
       const out = await post<{ file: string; media_source: string }>(`qr/${e.id}/media`);
-      await navigator.clipboard?.writeText(out.media_source).catch(() => undefined);
+      await copyText(out.media_source).catch(() => undefined);
       toast(`Saved to ${out.file}. Its media-source address is copied, ready for a dashboard picture card.`);
     } catch (err) {
       toast((err as Error).message, "bad");
@@ -327,7 +327,7 @@ function Detail({
       <button
         className={css.url}
         title="Copy the address"
-        onClick={() => navigator.clipboard?.writeText(e.url).then(() => toast("Address copied"))}
+        onClick={() => copyText(e.url).then(() => toast("Address copied"), () => toast("Couldn't copy: select it by hand", "bad"))}
       >
         {e.url}
       </button>

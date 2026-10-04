@@ -15,7 +15,7 @@ from collections.abc import Callable
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import app_version
+from . import app_version, swap
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -74,12 +74,15 @@ class Handler(BaseHTTPRequestHandler):
             if url.path.startswith(prefix):
                 length = int(self.headers.get("Content-Length") or 0)
                 body = self.rfile.read(length) if length else b""
+                # Screenshot swap: stand-ins in, real strings out of the handler.
+                query = urllib.parse.parse_qs(url.query)
                 status, ctype, data = handle(
                     method,
-                    url.path[len(prefix) :],
-                    urllib.parse.parse_qs(url.query),
-                    body,
+                    swap.back_path(url.path[len(prefix) :]),
+                    {k: [swap.back(v) for v in vs] for k, vs in query.items()},
+                    swap.back_bytes(body),
                 )
+                data = swap.out_bytes(data, ctype)
                 # Every change made on the admin page is logged (never the body: it can
                 # hold passwords); reads are not, the page polls.
                 if method != "GET" and url.path not in READS:
@@ -143,7 +146,11 @@ class Handler(BaseHTTPRequestHandler):
                 "house": header.HOUSE,
                 "modules": modules,
             }
-        ).encode()
+        )
+        # Swapped before the stamp is added, so the stamp itself never is.
+        answer = json.loads(swap.out(body))
+        answer["swap"] = swap.stamp()
+        body = json.dumps(answer).encode()
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
@@ -158,7 +165,9 @@ class Handler(BaseHTTPRequestHandler):
             if self.path.startswith(prefix):
                 length = int(self.headers.get("Content-Length") or 0)
                 body = self.rfile.read(length) if length else b""
-                status = handle(self.path[len(prefix) :], body)
+                status = handle(
+                    swap.back_path(self.path[len(prefix) :]), swap.back_bytes(body)
+                )
                 _LOGGER.info("integration: POST %s -> %d", self.path, status)
                 self.send_response(status)
                 self.send_header("Content-Length", "0")

@@ -54,7 +54,8 @@ def is_ignored(path: Path) -> bool:
     return (
         "__pycache__" in path.parts
         or path.suffix in {".pyc", ".pyo"}
-        or path.name in {".DS_Store", MARKER}
+        or path.name in {".DS_Store", MARKER, "swap.json"}  # swap: screenshots, by hand
+        or "swap" in path.parts  # and the screenshot swap's camera pictures
         or path.name.startswith("._")
     )
 

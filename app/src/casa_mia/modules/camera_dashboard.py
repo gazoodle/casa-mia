@@ -39,6 +39,7 @@ from typing import Any
 
 import yaml
 
+from .. import swap
 from ..ha import HA, HAError
 from .compositor import (
     DRAFT_STORE,
@@ -579,15 +580,17 @@ def build_dashboard(
         holds none of its cameras (nothing yet, or unavailable), the commander shows its
         own main camera, and so do its zones."""
         title = lambda e: cams[e]["title"]  # noqa: E731
+        # The select's options come through the screenshot swap: its stand-ins.
+        option = lambda e: swap.out(cams[e]["title"])  # noqa: E731
         select = selects.get(cmd["id"], COMMANDER_SELECT)
         mine = commander_cameras(cmd)
         own = cmd["main"] if cmd.get("main") in mine else mine[0]
 
         def shown_while(e: str | None, elements: list[dict]) -> dict:
             test = (
-                {"state": title(e)}
+                {"state": option(e)}
                 if e
-                else {"state_not": [title(c) for c in mine]}  # its own main camera
+                else {"state_not": [option(c) for c in mine]}  # its own main camera
             )
             return {
                 "type": "conditional",
@@ -646,7 +649,7 @@ def build_dashboard(
                     "action": "perform-action",
                     "perform_action": "select.select_option",
                     "target": {"entity_id": select},
-                    "data": {"option": title(e)},
+                    "data": {"option": swap.out(title(e))},
                 },
             )
             for panel in PANELS
@@ -698,15 +701,16 @@ def build_dashboard(
         """A live page: the medium channel for wall tablets and phones, the high one for
         everyone else, then the PTZ presets; header as header()."""
         cam = cams[entity]
+        shown = swap.out(cam["title"])  # its path keeps the real title
         mid_e, hi_e = cam.get("medium") or entity, cam.get("high") or entity
         mid_kind = cam.get("live") or s["live_card"]
         hi_kind = cam.get("live") or s["hi_live_card"] or mid_kind
         cards = (
-            [live_card(mid_e, cam["title"], None, mid_kind)]
+            [live_card(mid_e, shown, None, mid_kind)]
             if mid_e == hi_e
             else [
-                live_card(mid_e, cam["title"], mid, mid_kind),
-                live_card(hi_e, cam["title"], hi, hi_kind),
+                live_card(mid_e, shown, mid, mid_kind),
+                live_card(hi_e, shown, hi, hi_kind),
             ]
         )
         sections = [{"type": "grid", "cards": cards, "column_span": 3}]
@@ -722,7 +726,7 @@ def build_dashboard(
         view: dict[str, Any] = {
             "type": "sections",
             "max_columns": 3,
-            "title": cam["title"],
+            "title": shown,
             "path": f"cam-{slug(cam['title'])}",
             "sections": sections,
             "cards": [],
