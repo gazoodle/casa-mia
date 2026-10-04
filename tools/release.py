@@ -257,7 +257,14 @@ def review(release: str) -> None:
             raise Stop(
                 "Aborted: pyproject.toml, app/config.yaml and the changelog put back."
             )
-        editor = os.environ.get("VISUAL") or os.environ.get("EDITOR") or "nano"
+        # nano when there is one (friendlier than a vi from $EDITOR); CM_EDITOR wins
+        editor = (
+            os.environ.get("CM_EDITOR")
+            or ("nano" if shutil.which("nano") else None)
+            or os.environ.get("VISUAL")
+            or os.environ.get("EDITOR")
+            or "vi"
+        )
         say(f"  {DIM}Opening {editor} (save and quit to come back here){OFF}")
         subprocess.run([*editor.split(), str(ROOT / "app/CHANGELOG.md")], check=False)
 
