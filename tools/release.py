@@ -1,23 +1,27 @@
 #!/usr/bin/env python3
-"""Make a release, step by step: `tools/release.py`.
+"""Make a release, step by step: `tools/release.py`, run on your working branch (dev).
 
 A walk through the whole process, the same every time, for whoever runs it (on this repo or
 a fork). It checks, prepares and shows; nothing is published until you say yes, and it can
-be stopped at any prompt and run again: it works out where it got to from the version on
-origin/main, a `release-<version>` branch, and the tags on origin.
+be stopped at any prompt and run again: it works out where it got to from the versions on
+your branch and on origin/main, and the tags on origin.
 
-`main` takes changes only through pull requests with the checks passing (a ruleset), so
-the release goes through one too:
+Work is done on a working branch (dev) and served to the boxes from there by the fake git
+host; `main` moves only at a release, through a pull request with the checks passing (a
+repository ruleset). The release rides on the working branch into that pull request:
 
-  1. The checkout: on main, nothing uncommitted, level with origin.
+  1. The checkout: on the working branch (not main), nothing uncommitted, holding
+     everything main has.
   2. The checks CI runs: ruff, pyright, pytest (the web build and component versions too).
   3. Prepare: `tools/versioning.py release` (2026.10.1-b30 -> 2026.10.1, the builds'
      changelog sections merged into one), then you review the release notes, editing them
-     if you like. Abort puts everything back.
-  4. Pull request, after your OK: the release committed on a `release-<version>` branch,
-     pushed, and a pull request opened; then it waits for the checks.
-  5. Publish, after your OK: merge the pull request, tag the merged commit with the version
-     and push the tag, which starts the Release workflow.
+     if you like; then "Release <version>" is committed on the branch. Abort puts
+     everything back.
+  4. Pull request, after your OK: the branch pushed and a pull request into main opened
+     (or the open one updated); then it waits for the checks. Nothing is published yet.
+  5. Publish, after your OK: merge the pull request (the branch is kept), tag the merged
+     commit with the version and push the tag, which starts the Release workflow; then
+     the branch is brought up to main (a fast-forward: it is already in the merge).
   6. GitHub: the Release workflow builds the images, publishes the release and updates the
      `stable` branch. What to do there (the first time: make the GHCR packages public).
 
@@ -102,13 +106,22 @@ def ask(question: str, choices: str = "yn") -> str:
             return answer[:1]
 
 
-def stage(main_version: str, tagged: bool, branch: str | None) -> str:
-    """Where the release got to, from origin/main's version, whether that version's tag
-    is on origin, and any release branch: "prepare" (start), "pull request" (a release
-    branch is waiting to be merged), "tag" (merged, not tagged) or "released"."""
-    if versioning.parse(main_version)[3] is not None:
-        return "pull request" if branch else "prepare"
-    return "released" if tagged else "tag"
+def is_build(version: str) -> bool:
+    return versioning.parse(version)[3] is not None
+
+
+def stage(
+    branch_version: str, main_version: str, branch_tagged: bool, main_tagged: bool
+) -> str:
+    """Where the release got to, from the working branch's version, origin/main's, and
+    whether each has its tag on origin: "tag" (main holds a release not tagged yet),
+    "prepare" (start), "pull request" (prepared on the branch, not merged yet) or
+    "released"."""
+    if not is_build(main_version) and not main_tagged:
+        return "tag"
+    if is_build(branch_version):
+        return "prepare"
+    return "released" if branch_tagged else "pull request"
 
 
 def github_repo() -> str | None:
@@ -118,30 +131,15 @@ def github_repo() -> str | None:
     return found.group(1) if found else None
 
 
-def origin_version() -> str:
-    match = versioning.PYPROJECT_RE.search(git("show", "origin/main:pyproject.toml"))
+def version_at(ref: str) -> str:
+    match = versioning.PYPROJECT_RE.search(git("show", f"{ref}:pyproject.toml"))
     if not match:
-        raise Stop("origin/main's pyproject.toml has no version.")
+        raise Stop(f"{ref}'s pyproject.toml has no version.")
     return match.group(1)
 
 
 def tagged_on_origin(version: str) -> bool:
     return bool(git("ls-remote", "--tags", "origin", f"refs/tags/{version}"))
-
-
-def release_branch() -> str | None:
-    """A `release-<version>` branch here or on origin: a release under way."""
-    names = git("branch", "--list", "release-*", "--format=%(refname:short)").split()
-    names += [
-        line.split("refs/heads/")[1]
-        for line in git("ls-remote", "--heads", "origin", "release-*").splitlines()
-    ]
-    found = sorted(set(names))
-    if len(found) > 1:
-        raise Stop(
-            f"More than one release branch: {', '.join(found)}. Delete the stale ones."
-        )
-    return found[0] if found else None
 
 
 # -- the steps
@@ -162,28 +160,38 @@ def check_tools() -> str:
     return repo
 
 
-def check_checkout() -> None:
+def check_checkout() -> str:
+    """The working branch, checked: not main, nothing uncommitted, not behind its copy on
+    origin, and holding everything main has."""
     step(1, "The checkout")
     branch = git("rev-parse", "--abbrev-ref", "HEAD")
-    if branch != "main":
-        raise Stop(f"You are on {branch}; releases are made from main: git switch main")
-    good("on main")
+    if branch in ("main", "HEAD"):
+        raise Stop(
+            "Run this on your working branch (git switch dev): main moves only through "
+            "the release's pull request."
+        )
+    good(f"on {branch}")
     if dirty := git("status", "--porcelain"):
         raise Stop(
             "There are uncommitted changes; commit or stash them first:\n" + dirty
         )
     good("nothing uncommitted")
-    ahead, behind = git(
-        "rev-list", "--left-right", "--count", "HEAD...origin/main"
-    ).split()
-    if int(behind):
-        raise Stop(f"origin/main has {behind} commits you don't: git pull first.")
-    if int(ahead):
+    if git("rev-parse", "--verify", "--quiet", f"origin/{branch}", check=False):
+        behind = git("rev-list", "--count", f"HEAD..origin/{branch}")
+        if int(behind):
+            raise Stop(
+                f"origin/{branch} has {behind} commits you don't: git pull first."
+            )
+    holds_main = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", "origin/main", "HEAD"], cwd=ROOT
+    )
+    if holds_main.returncode:
         raise Stop(
-            f"You have {ahead} commits origin/main doesn't. They go through a pull "
-            "request first; merge it, git pull, then run this again."
+            f"origin/main has commits {branch} doesn't: git merge origin/main, then run "
+            "this again."
         )
-    good("level with origin/main")
+    good(f"{branch} holds everything on origin/main")
+    return branch
 
 
 def run_checks() -> None:
@@ -195,7 +203,7 @@ def run_checks() -> None:
         )
         if done.returncode:
             say((done.stdout + done.stderr).strip()[-3000:])
-            raise Stop(f"{name} failed: fix it on main first (nothing was changed).")
+            raise Stop(f"{name} failed: fix it first (nothing was changed).")
         good(name)
 
 
@@ -204,6 +212,7 @@ def restore() -> None:
 
 
 def prepare(version: str) -> str:
+    """The release prepared, reviewed and committed on the working branch."""
     release = versioning.release_of(version, dt.date.today())
     step(3, f"Prepare {version} -> {release}")
     if tagged_on_origin(release):
@@ -220,6 +229,9 @@ def prepare(version: str) -> str:
     good(f"pyproject.toml and app/config.yaml say {release}")
     good("the builds' changelog sections merged into one")
     review(release)
+    git("add", "--", *RELEASE_FILES)
+    git("commit", "-q", "-m", f"Release {release}")
+    good(f"committed Release {release} (here only; undo with git reset --hard HEAD~1)")
     return release
 
 
@@ -250,53 +262,42 @@ def review(release: str) -> None:
         subprocess.run([*editor.split(), str(ROOT / "app/CHANGELOG.md")], check=False)
 
 
-def open_pull_request(release: str, repo: str) -> str:
-    """Commit the prepared release on its branch and open its pull request; back on
-    main afterwards (main itself unchanged)."""
-    branch = f"release-{release}"
+def pull_request(branch: str, release: str, repo: str) -> str:
+    """Push the branch, open its pull request into main (or use the open one), and wait
+    for the checks. Returns the pull request's number."""
     step(4, "Pull request")
     say(
         "  This will run:\n"
-        f"    git switch -c {branch}\n"
-        f'    git commit -m "Release {release}" (the three files)\n'
         f"    git push origin {branch}\n"
-        f"    gh pr create (into main)\n"
-        "  Nothing is published yet: the pull request is only proposed."
+        f"    gh pr create --base main --head {branch}   (unless one is open)\n"
+        "  then wait for the checks. Nothing is published yet."
     )
-    if ask("Open the pull request?", "ny") != "y":
-        restore()
-        raise Stop("Stopped: the release files put back, nothing committed.")
-    git("switch", "-q", "-c", branch)
-    git("add", "--", *RELEASE_FILES)
-    git("commit", "-q", "-m", f"Release {release}")
-    good(f"committed Release {release} on {branch}")
-    git("switch", "-q", "main")
-    return branch
-
-
-def wait_for_pull_request(branch: str, repo: str) -> str:
-    """Push the release branch, open its pull request if there is none, and wait for its
-    checks. Returns the pull request's number."""
-    release = branch.removeprefix("release-")
-    here = git("rev-parse", "--verify", "--quiet", branch, check=False)
-    there = git("rev-parse", "--verify", "--quiet", f"origin/{branch}", check=False)
-    if here and here != there:  # made here, or changed here since (a fix)
-        git("push", "-q", "origin", f"{branch}:refs/heads/{branch}")
-        good(f"pushed {branch}")
+    if ask("Push and open the pull request?", "ny") != "y":
+        raise Stop(
+            "Stopped; the release is committed here only. Run this again to carry on, "
+            "or undo it with git reset --hard HEAD~1."
+        )
+    git("push", "-q", "origin", f"{branch}:refs/heads/{branch}")
+    good(f"pushed {branch}")
     number = run(
-        "gh", "pr", "list", "--repo", repo, "--head", branch, "--state", "open",
-        "--json", "number", "--jq", ".[0].number",
+        "gh", "pr", "list", "--repo", repo, "--head", branch, "--base", "main",
+        "--state", "open", "--json", "number", "--jq", ".[0].number",
     )  # fmt: skip
-    if not number:
-        notes = versioning.notes(git("show", f"{branch}:app/CHANGELOG.md"), release)
+    if number:
+        run(
+            "gh", "pr", "edit", number, "--repo", repo,
+            "--title", f"Release {release}",
+            "--body", versioning.notes(git("show", "HEAD:app/CHANGELOG.md"), release),
+        )  # fmt: skip
+        good(f"pull request #{number} updated: Release {release}")
+    else:
         url = run(
             "gh", "pr", "create", "--repo", repo, "--base", "main", "--head", branch,
-            "--title", f"Release {release}", "--body", notes,
+            "--title", f"Release {release}",
+            "--body", versioning.notes(git("show", "HEAD:app/CHANGELOG.md"), release),
         )  # fmt: skip
         number = url.rstrip("/").rsplit("/", 1)[1]
         good(f"pull request #{number}: {url}")
-    else:
-        good(f"pull request #{number} is open")
     say(
         f"  {DIM}Waiting for its checks (a few minutes; Ctrl-C stops waiting, not them){OFF}"
     )
@@ -306,34 +307,31 @@ def wait_for_pull_request(branch: str, repo: str) -> str:
     )
     if watched.returncode:
         raise Stop(
-            f"A check failed on #{number}. Fix it on {branch} (or abandon the release: "
-            f"close #{number} and delete {branch} here and on origin), then run this "
-            "again."
+            f"A check failed on #{number}. Fix it on {branch} (commit, nothing more), "
+            "then run this again: it pushes the fix and waits again."
         )
     good("the checks passed")
     return number
 
 
-def merge_and_tag(release: str, number: str | None, repo: str) -> None:
+def publish(branch: str, release: str, number: str | None, repo: str) -> None:
     step(5, f"Publish {release}")
     say(
         "  This will run:\n"
-        + (f"    gh pr merge {number} --merge --delete-branch\n" if number else "")
-        + "    git pull (main)\n"
-        + f"    git tag {release}   (on the merged commit)\n"
+        + (f"    gh pr merge {number} --merge   ({branch} is kept)\n" if number else "")
+        + f"    git tag {release} origin/main   (the merged commit)\n"
         + f"    git push origin {release}     <- starts the Release workflow on GitHub\n"
+        + f"    git merge --ff-only origin/main   (on {branch}), git push\n"
         "\n  After this the version is public. A mistake needs a new release; never move"
         "\n  or reuse a release tag."
     )
     if ask("Go ahead?", "ny") != "y":
         raise Stop("Stopped; run tools/release.py again to carry on from here.")
     if number:
-        run("gh", "pr", "merge", number, "--repo", repo, "--merge", "--delete-branch")
+        run("gh", "pr", "merge", number, "--repo", repo, "--merge")
         good(f"merged #{number}")
-    git("switch", "-q", "main")
-    git("pull", "-q", "--ff-only", "origin", "main")
-    git("branch", "-q", "-D", f"release-{release}", check=False)
-    if origin_version() != release:
+    git("fetch", "-q", "origin", "main")
+    if version_at("origin/main") != release:
         raise Stop(
             f"origin/main is not at {release} after the merge: look before tagging."
         )
@@ -341,6 +339,9 @@ def merge_and_tag(release: str, number: str | None, repo: str) -> None:
         git("tag", release, "origin/main")
     git("push", "-q", "origin", f"refs/tags/{release}")
     good(f"tagged origin/main {release} and pushed the tag")
+    git("merge", "-q", "--ff-only", "origin/main")
+    git("push", "-q", "origin", f"{branch}:refs/heads/{branch}")
+    good(f"{branch} brought up to main and pushed")
 
 
 def on_github(release: str, repo: str) -> None:
@@ -376,9 +377,8 @@ def on_github(release: str, repo: str) -> None:
         else:
             warn("No Release run yet; open the link above.")
     say(
-        "\n  Then carry on as usual. Bring your working branch up to date with main"
-        "\n  (git merge origin/main), and the next change starts the next release's"
-        "\n  builds (tools/versioning.py bump, Rule Zero)."
+        "\n  Then carry on as usual on your branch: the next change starts the next"
+        "\n  release's builds (tools/versioning.py bump, Rule Zero)."
     )
 
 
@@ -387,29 +387,29 @@ def main() -> int:
     try:
         repo = check_tools()
         git("fetch", "-q", "--tags", "--prune", "origin")
-        version = origin_version()
-        branch = release_branch()
-        where = stage(version, tagged_on_origin(version), branch)
+        branch = check_checkout()
+        version = versioning.current()
+        main_version = version_at("origin/main")
+        where = stage(
+            version,
+            main_version,
+            tagged_on_origin(version),
+            tagged_on_origin(main_version),
+        )
         if where == "released":
             say(f"\n  {version} is already released (its tag is on origin).")
-            on_github(version, repo)
-            return 0
-        if where == "tag":
+        elif where == "tag":
+            version = main_version
             warn(f"origin/main is at {version}, merged but not tagged: carrying on.")
-            merge_and_tag(version, None, repo)
+            publish(branch, version, None, repo)
         else:
             if where == "prepare":
-                check_checkout()
                 run_checks()
-                release = prepare(version)
-                branch = open_pull_request(release, repo)
+                version = prepare(version)
             else:
-                assert branch
-                warn(f"The release on {branch} is under way: carrying on.")
-            release = branch.removeprefix("release-")
-            number = wait_for_pull_request(branch, repo)
-            merge_and_tag(release, number, repo)
-            version = release
+                warn(f"Release {version} is prepared on {branch}: carrying on.")
+            number = pull_request(branch, version, repo)
+            publish(branch, version, number, repo)
         on_github(version, repo)
         return 0
     except Stop as stop:
@@ -417,9 +417,7 @@ def main() -> int:
         return 1
     except KeyboardInterrupt:
         say(f"\n  {RED}■{OFF} Stopped.")
-        if git("rev-parse", "--abbrev-ref", "HEAD", check=False) == "main" and git(
-            "status", "--porcelain", "--", *RELEASE_FILES, check=False
-        ):
+        if git("status", "--porcelain", "--", *RELEASE_FILES, check=False):
             restore()
             say("  The release files were put back.")
         return 1
