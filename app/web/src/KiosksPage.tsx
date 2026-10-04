@@ -43,6 +43,7 @@ export function KiosksPage({ state }: { state?: string }) {
     return () => clearInterval(timer);
   }, [state, load]);
 
+  const [checking, setChecking] = useState(false); // Check now, running
   const change = async (action: () => Promise<KiosksView>, done: string) => {
     try {
       setView(await action());
@@ -165,6 +166,31 @@ export function KiosksPage({ state }: { state?: string }) {
               change(() => put<KiosksView>("backup", { ...view.backup, every_hours: Number(every) }), `Checking ${(EVERY[Number(every)] ?? every).toLowerCase()}`)
             }
           />
+          <button
+            className={`${ui.button} ${ui.small}`}
+            disabled={checking}
+            title="Check every logged-in tablet now; a copy is kept where something changed"
+            onClick={async () => {
+              setChecking(true);
+              try {
+                const r = await post<KiosksView & { check: { checked: number; saved: number; failed: number } }>("backup/check");
+                setView(r);
+                const { checked, saved, failed } = r.check;
+                toast(
+                  checked === 0
+                    ? "No logged-in tablet is online to check"
+                    : `Checked ${checked}: ${saved} changed and kept${failed ? `, ${failed} failed` : ""}`,
+                  failed ? "bad" : "good",
+                );
+              } catch (err) {
+                toast((err as Error).message, "bad");
+              } finally {
+                setChecking(false);
+              }
+            }}
+          >
+            {checking ? "Checking…" : "Check now"}
+          </button>
         </div>
         <p className={guest.checkHelp}>
           {view.kinds.config}: every setting with its secrets (the Home Assistant token too) and the page's stored data.{" "}

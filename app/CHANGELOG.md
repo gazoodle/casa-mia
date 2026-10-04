@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.1-b26
+
+- Kiosk Satellite manager: **Check now** on the Backups panel, after how often: checks every logged-in, online tablet at once, keeping a copy where something changed, and says how many changed or failed.
+
 ## 2026.10.1-b25
 
 - Kiosk Satellite manager: a **Use firmware server** button on each fleet leader (logged in, online, with the firmware server on). It sets the leader's Update source to Custom repository at the firmware server's address; its followers take the same settings from it.

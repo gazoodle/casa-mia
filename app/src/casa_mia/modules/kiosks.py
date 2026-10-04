@@ -751,6 +751,26 @@ class Kiosks:
                 continue
             self.backup(kid)
 
+    def check_all(self) -> dict[str, Any]:
+        """Check every logged-in, online kiosk now, whatever the interval: a copy is
+        kept where something changed. How many were checked, saved, and failed."""
+        kids = [
+            kid
+            for kid, k in list(self.kiosks.items())
+            if kid in self.tokens and k.get("online")
+        ]
+        results = [self.backup(kid) for kid in kids]
+        saved = sum(1 for r in results if r.get("saved"))
+        failed = sum(1 for r in results if "error" in r)
+        _LOGGER.info(
+            "kiosk backups checked now (asked on the admin page): %d kiosks, %d saved, "
+            "%d failed",
+            len(kids),
+            saved,
+            failed,
+        )
+        return {"checked": len(kids), "saved": saved, "failed": failed}
+
     def set_backup(self, body: dict[str, Any]) -> Response:
         kind, keep, every = body.get("kind"), body.get("keep"), body.get("every_hours")
         if kind not in KINDS:
@@ -775,6 +795,8 @@ class Kiosks:
         if method == "POST" and parts == ["scan"]:
             self._wake.set()
             return _json(202, {})
+        if method == "POST" and parts == ["backup", "check"]:
+            return _json(200, {**self.view(), "check": self.check_all()})
         if method == "PUT" and parts == ["backup"]:
             try:
                 return self.set_backup(json.loads(body or b"{}"))

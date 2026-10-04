@@ -410,6 +410,19 @@ def test_update_asks_the_kiosk_to_check_then_install(two):
     ]
 
 
+def test_check_now_backs_up_every_logged_in_kiosk(two):
+    k, _, _ = two
+    k.scan()
+    assert call(k, "POST", "backup/check")[1]["check"]["checked"] == 0  # none logged in
+    k.login(PASSWORD)
+    status, view = call(k, "POST", "backup/check")
+    first = view["check"]
+    assert status == 200 and first["checked"] >= 1
+    assert first["saved"] == first["checked"] and first["failed"] == 0
+    again = call(k, "POST", "backup/check")[1]["check"]  # nothing changed: none kept
+    assert again == {**first, "saved": 0}
+
+
 def test_a_leader_is_pointed_at_the_firmware_server(two):
     k, (h1, _), _ = two
     k.scan()
