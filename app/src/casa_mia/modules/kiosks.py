@@ -169,14 +169,17 @@ class Kiosks:
         latest: Callable[[], str | None] = lambda: None,
         seeds: Callable[[], list[str]] = lambda: [],
         timeout: float = TIMEOUT,
+        firmware_url: Callable[[], str | None] = lambda: None,
     ) -> None:
         """`latest` is the newest Kiosk Satellite release (from the firmware server);
-        `seeds` are more addresses to try (tablets seen checking the firmware server)."""
+        `seeds` are more addresses to try (tablets seen checking the firmware server);
+        `firmware_url` is the firmware server's address for the tablets (None: off)."""
         self.store_path = store_path
         self.backup_dir = backup_dir
         self.ha = ha
         self.latest = latest
         self.seeds = seeds
+        self.firmware_url = firmware_url
         self.timeout = timeout
         self._lock = threading.Lock()
         self._stop = threading.Event()
@@ -473,6 +476,7 @@ class Kiosks:
             "kiosks": sorted(rows, key=lambda r: r.get("name", "").lower()),
             "addresses": self.addresses,
             "latest": self.latest(),
+            "firmware_url": self.firmware_url(),
             "last_scan": self.last_scan,
             "ha_error": self.ha_error,
             "kinds": KINDS,
@@ -702,6 +706,39 @@ class Kiosks:
         )
         return _json(200, {"started": True, "version": available})
 
+    def use_firmware_server(self, kid: str) -> Response:
+        """Point a fleet leader's updates at the firmware server (Update source: Custom
+        repository, at the server's address). Its followers take both settings from it."""
+        k, token, url = self.kiosks.get(kid), self.tokens.get(kid), self.firmware_url()
+        if not k or not token:
+            return _json(409, {"error": "Not logged in to that kiosk."})
+        if not k.get("leader"):
+            return _json(409, {"error": f"{k['name']} does not lead a fleet."})
+        if not url:
+            return _json(409, {"error": "The firmware server is off."})
+        body = {"update.source": "custom", "update.source_url": url}
+        try:
+            status, data = self._request(
+                k["address"], "/api/settings", "PATCH", json.dumps(body).encode(), token
+            )
+        except OSError as exc:
+            status, data = 0, str(exc).encode()
+        if status != 200:
+            _LOGGER.warning(
+                "kiosk %s: updates not pointed at %s: %s %r",
+                k["name"],
+                url,
+                status or "no answer",
+                data[:200],
+            )
+            return _json(502, {"error": f"The kiosk answered {status or 'nothing'}."})
+        _LOGGER.info(
+            "kiosk %s: updates now from the firmware server at %s (its fleet follows)",
+            k["name"],
+            url,
+        )
+        return _json(200, {"url": url})
+
     def _due(self) -> None:
         """Back up each logged-in kiosk whose last check is older than the interval."""
         every = self.settings["every_hours"] * 3600
@@ -794,6 +831,8 @@ class Kiosks:
             return _json(200, self.view())
         if method == "POST" and len(parts) == 2 and parts[1] == "update":
             return self.update(parts[0])
+        if method == "POST" and len(parts) == 2 and parts[1] == "firmware-server":
+            return self.use_firmware_server(parts[0])
         if len(parts) >= 2 and parts[1] == "backups" and parts[0] in self.kiosks:
             kid = parts[0]
             if method == "GET" and len(parts) == 2:

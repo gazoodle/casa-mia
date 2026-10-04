@@ -146,6 +146,8 @@ export type KiosksView = {
   kiosks: Kiosk[];
   addresses: string[];
   latest: string | null;
+  /** The firmware server's address for the tablets; null when it is off. */
+  firmware_url: string | null;
   last_scan: string | null;
   ha_error: string | null;
   kinds: Record<KioskKind, string>;

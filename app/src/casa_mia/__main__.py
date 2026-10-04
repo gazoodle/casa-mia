@@ -204,6 +204,7 @@ def main() -> int:
             ha,
             latest=lambda: firmware().get("latest"),
             seeds=lambda: [ip for ip in [firmware().get("last_tablet")] if ip],
+            firmware_url=gitproxy.tablet_url if gitproxy else lambda: None,
         )
         kiosks.start()
         modules["kiosks"] = kiosks.health

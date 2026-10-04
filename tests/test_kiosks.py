@@ -126,6 +126,16 @@ class FakeKiosk(BaseHTTPRequestHandler):
         else:
             self._send(404, {})
 
+    def do_PATCH(self):
+        body = self.rfile.read(int(self.headers.get("Content-Length") or 0))
+        self.seen.append(("PATCH", self.path, self.headers.get("Authorization")))
+        if self.path != "/api/settings":
+            return self._send(404, {})
+        if not self._authorised():
+            return self._send(401, {})
+        self.imported.append((self.path, json.loads(body)))
+        self._send(200, {"ok": True})
+
 
 def kiosk(kiosk_id, name, peers=()):
     handler = type(
@@ -398,6 +408,22 @@ def test_update_asks_the_kiosk_to_check_then_install(two):
         "/api/commands/checkUpdateNow",
         "/api/commands/installUpdate",
     ]
+
+
+def test_a_leader_is_pointed_at_the_firmware_server(two):
+    k, (h1, _), _ = two
+    k.scan()
+    k.login(PASSWORD)
+    assert call(k, "POST", "k1/firmware-server")[0] == 409  # the server is off
+    k.firmware_url = lambda: "http://10.0.0.2:8000"
+    assert call(k, "GET", "")[1]["firmware_url"] == "http://10.0.0.2:8000"
+    status, result = call(k, "POST", "k1/firmware-server")
+    assert status == 200 and result == {"url": "http://10.0.0.2:8000"}
+    assert h1.imported[-1] == (
+        "/api/settings",
+        {"update.source": "custom", "update.source_url": "http://10.0.0.2:8000"},
+    )
+    assert call(k, "POST", "k2/firmware-server")[0] == 409  # a follower
 
 
 NODE_CHECK = """

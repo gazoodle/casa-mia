@@ -107,7 +107,16 @@ export function KiosksPage({ state }: { state?: string }) {
                 follower={follower}
                 leaderName={view.kiosks.find((l) => follows(k, l))?.name ?? k.follows ?? undefined}
                 latest={view.latest}
+                firmwareUrl={view.firmware_url}
                 onPanel={() => setPanel(k.id)}
+                onFirmwareServer={async () => {
+                  try {
+                    const r = await post<{ url: string }>(`${k.id}/firmware-server`);
+                    toast(`${k.name} and its fleet now update from ${r.url}`);
+                  } catch (err) {
+                    toast((err as Error).message, "bad");
+                  }
+                }}
                 onUpdate={async () => {
                   try {
                     const r = await post<{ version: string | null }>(`${k.id}/update`);
@@ -232,7 +241,9 @@ function KioskRow({
   follower,
   leaderName,
   latest,
+  firmwareUrl,
   onPanel,
+  onFirmwareServer,
   onUpdate,
   onLogout,
   onForget,
@@ -241,7 +252,10 @@ function KioskRow({
   follower: boolean;
   leaderName?: string;
   latest: string | null;
+  /** The firmware server's address for the tablets; null when it is off. */
+  firmwareUrl?: string | null;
   onPanel: () => void;
+  onFirmwareServer: () => void;
   onUpdate: () => void;
   onLogout: () => void;
   onForget: () => void;
@@ -312,6 +326,19 @@ function KioskRow({
             title={`Install ${latest} from the firmware server; the tablet restarts`}
           >
             Update
+          </button>
+        )}
+        {k.leader && k.logged_in && k.online && firmwareUrl && (
+          <button
+            className={`${ui.button} ${ui.small}`}
+            onClick={() =>
+              confirm(
+                `Set ${k.name}'s updates to Custom repository at ${firmwareUrl}? Its followers take the same settings from it.`,
+              ) && onFirmwareServer()
+            }
+            title={`Update source: Custom repository, ${firmwareUrl} (the firmware server); its fleet follows`}
+          >
+            Use firmware server
           </button>
         )}
         {k.logged_in && (

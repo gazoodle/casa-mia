@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.1-b25
+
+- Kiosk Satellite manager: a **Use firmware server** button on each fleet leader (logged in, online, with the firmware server on). It sets the leader's Update source to Custom repository at the firmware server's address; its followers take the same settings from it.
+
 ## 2026.10.1-b24
 
 - Camera Commander: each panel can be **hidden**: it leaves the view (no room, no tiles, its cameras not among the commander's), and keeps its cameras and settings for when it is shown again.
