@@ -60,10 +60,12 @@ no re-paste.
 The Supervisor offers an update only when `version` in `app/config.yaml` changes, and people
 and coding agents keep forgetting to bump it. So the same loop that syncs `app-dev` also
 checks every new HEAD: if the latest commit changed `app/` or `integration/` and left the
-`pyproject.toml` version as it was in its parent, it bumps the patch number in
-`pyproject.toml` and `app/config.yaml`, commits just those two files itself, and shouts
-(banner, terminal bell, macOS notification). The fix is to bump first, from a clean repo.
-It refuses, and still shouts, when you have uncommitted edits to those two files.
+`pyproject.toml` version as it was in its parent, it bumps the build number in
+`pyproject.toml` and `app/config.yaml`, adds its `## <version>` heading to
+`app/CHANGELOG.md`, commits just those three files itself, and shouts (banner, terminal
+bell, macOS notification). The fix is to bump first, from a clean repo. It refuses, and
+still shouts, when you have uncommitted edits to those files. A commit that only touches
+the changelog is not a change to the app and needs no bump.
 
 ## Releases from GitHub
 
@@ -112,7 +114,9 @@ RELEASE_CHECK_SECONDS = 600  # GitHub allows 60 unauthenticated API calls an hou
 RELEASE_RE = re.compile(r"^\d{4}\.\d{1,2}\.\d+$")  # a release: YYYY.M.R, no -bN
 # Paths whose change must come with a version bump, and the files that hold the version.
 WATCHED_PATHS = ("app", "integration")
-VERSION_FILES = ("pyproject.toml", "app/config.yaml")
+VERSION_FILES = ("pyproject.toml", "app/config.yaml", "app/CHANGELOG.md")
+# A commit that only touches these (a changelog line, say) needs no bump of its own.
+NEEDS_NO_BUMP = ("app/CHANGELOG.md",)
 _BOT_ENV = {
     "GIT_AUTHOR_NAME": "fake_git_host.py",
     "GIT_AUTHOR_EMAIL": "fake-git-host@localhost",
@@ -336,7 +340,10 @@ def ensure_version_bumped() -> str | None:
     parent = _run("rev-parse", "--verify", "--quiet", "HEAD~1", check=False)
     if not head or not parent:
         return None
-    if not _run("diff", "--name-only", parent, head, "--", *WATCHED_PATHS, check=False):
+    changed = _run(
+        "diff", "--name-only", parent, head, "--", *WATCHED_PATHS, check=False
+    ).split()
+    if not [path for path in changed if path not in NEEDS_NO_BUMP]:
         return None
     now = _pyproject_version(_run("show", f"{head}:pyproject.toml", check=False))
     before = _pyproject_version(_run("show", f"{parent}:pyproject.toml", check=False))
@@ -348,13 +355,16 @@ def ensure_version_bumped() -> str | None:
             _warned_head = head
             _shout(
                 f"COMMIT {head[:8]} CHANGED THE APP WITHOUT A VERSION BUMP and "
-                "pyproject.toml/app/config.yaml have uncommitted edits, so I cannot "
+                "pyproject.toml/app/config.yaml/app/CHANGELOG.md have uncommitted "
+                "edits, so I cannot "
                 "fix it. Bump the version yourself."
             )
         return None
 
     version = versioning.next_build(now, dt.date.today())
     versioning.write(version, REPO)
+    log = REPO / "app" / "CHANGELOG.md"  # its heading, or the changelog test fails
+    log.write_text(versioning.add_heading(log.read_text(encoding="utf-8"), version))
     _run(
         "commit",
         "-q",

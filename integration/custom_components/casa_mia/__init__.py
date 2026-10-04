@@ -16,10 +16,11 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 
+from .commanders import async_prune_commander_devices
 from .const import DOMAIN, FONA_EVENT, SCRIPTS, SCRIPTS_URL
 from .coordinator import CasaMiaCoordinator, async_post
 from .guest import async_prune_endpoint_devices
-from .motion import MotionTracker
+from .motion import commanders, tracker
 from .restart_notice import manifest_version
 from .sensor import MODULE_DEVICES, device_name, modules_off
 
@@ -51,8 +52,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator = CasaMiaCoordinator(hass, entry, loaded_version)
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = coordinator
-    # Track motion (the commander), while Camera Dashboard is on in the app.
-    coordinator.motion = MotionTracker(hass, coordinator)
     # Register the parent devices first, so child devices can name them in via_device.
     registry = dr.async_get(hass)
     app = (DOMAIN, entry.entry_id)
@@ -82,11 +81,25 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             registry.async_remove_device(device.id)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     if "camera_dashboard" not in off:
-        coordinator.motion.refresh()
-        entry.async_on_unload(
-            coordinator.async_add_listener(coordinator.motion.refresh)
-        )
-        entry.async_on_unload(coordinator.motion.unload)
+        # Track motion, a tracker per commander, while Camera Dashboard is on in the app.
+
+        @callback
+        def follow_commanders() -> None:
+            ids = {c["id"] for c in commanders(coordinator)}
+            for cid in set(coordinator.motion) - ids:  # deleted on the page
+                coordinator.motion.pop(cid).unload()
+            for cid in ids:
+                tracker(coordinator, cid).refresh()
+
+        @callback
+        def stop_tracking() -> None:
+            for one in coordinator.motion.values():
+                one.unload()
+            coordinator.motion.clear()
+
+        follow_commanders()
+        entry.async_on_unload(coordinator.async_add_listener(follow_commanders))
+        entry.async_on_unload(stop_tracking)
     await _load_scripts(hass, entry, loaded_version)
     # Saving the options (a script switched on or off) reloads, which applies it.
     entry.async_on_unload(entry.add_update_listener(_options_saved))
@@ -105,6 +118,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     prune = lambda: async_prune_endpoint_devices(hass, entry, coordinator)  # noqa: E731
     prune()
     entry.async_on_unload(coordinator.async_add_listener(prune))
+    # And of commanders deleted on the Camera Dashboard page.
+    prune_commanders = lambda: async_prune_commander_devices(hass, entry, coordinator)  # noqa: E731
+    prune_commanders()
+    entry.async_on_unload(coordinator.async_add_listener(prune_commanders))
     entry.async_on_unload(hass.bus.async_listen(FONA_EVENT, _pong(hass, coordinator)))
 
     async def send_sms(call: ServiceCall) -> None:

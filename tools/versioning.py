@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""The app's version: YYYY.MM.REL for releases (as Home Assistant does), YYYY.MM.REL-bN for the
+"""The app's version: YYYY.M.R for releases (as Home Assistant does: month unpadded), YYYY.M.R-bN for the
 private builds on the way to one. pyproject.toml is the one source.
 
   bump     next build: 2026.10.1-b3 -> 2026.10.1-b4; after a release (or the old 0.1.x
            numbers) the first build of the next release, 2026.10.1 -> 2026.10.2-b1, or
-           YYYY.MM.1-b1 in a new month. Syncs app/config.yaml, adds the changelog heading.
-  release  drop the -bN, preserving the release number, and merge the
+           YYYY.M.1-b1 in a new month. Syncs app/config.yaml, adds the changelog heading.
+  release  drop the -bN (the month of the release, if it has moved on) and merge the
            changelog sections of every build since the last release into one.
   notes V  print release V's changelog section (the GitHub release body).
 """
@@ -37,17 +37,19 @@ def parse(version: str) -> tuple[int, int, int, int | None]:
 def next_build(version: str, today: dt.date) -> str:
     y, m, r, b = parse(version)
     if b is not None:
-        return f"{y}.{m:02d}.{r}-b{b + 1}"
+        return f"{y}.{m}.{r}-b{b + 1}"
     if (y, m) == (today.year, today.month):
-        return f"{y}.{m:02d}.{r + 1}-b1"
-    return f"{today.year}.{today.month:02d}.1-b1"
+        return f"{y}.{m}.{r + 1}-b1"
+    return f"{today.year}.{today.month}.1-b1"
 
 
 def release_of(version: str, today: dt.date) -> str:
     y, m, r, b = parse(version)
     if b is None:
         raise ValueError(f"{version} is already a release")
-    return f"{y}.{m:02d}.{r}"
+    if (y, m) != (today.year, today.month):
+        y, m, r = today.year, today.month, 1
+    return f"{y}.{m}.{r}"
 
 
 def sections(text: str) -> list[tuple[str, str]]:
@@ -88,6 +90,12 @@ def current() -> str:
     return match.group(1)
 
 
+def add_heading(text: str, version: str) -> str:
+    """The changelog with an empty `## version` section on top, for a new build."""
+    title = text.index("\n## ") + 1 if "\n## " in text else len(text)
+    return f"{text[:title]}## {version}\n\n{text[title:]}"
+
+
 def write(version: str, root: Path = ROOT) -> None:
     """Set the version in pyproject.toml and app/config.yaml."""
     for name, regex, line in (
@@ -116,10 +124,7 @@ def main() -> int:
         return 0
     if args.action == "bump":
         new = next_build(current(), today)
-        title = log.index("\n## ") + 1 if "\n## " in log else len(log)
-        CHANGELOG.write_text(
-            f"{log[:title]}## {new}\n\n{log[title:]}", encoding="utf-8"
-        )
+        CHANGELOG.write_text(add_heading(log, new), encoding="utf-8")
     else:
         new = release_of(current(), today)
         CHANGELOG.write_text(merge_builds(log, new), encoding="utf-8")

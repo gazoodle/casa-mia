@@ -20,6 +20,7 @@ def make_repo(tmp_path):
     (tmp_path / "app").mkdir()
     (tmp_path / "pyproject.toml").write_text('[project]\nversion = "0.1.0"\n')
     (tmp_path / "app" / "config.yaml").write_text('name: x\nversion: "0.1.0"\n')
+    (tmp_path / "app" / "CHANGELOG.md").write_text("# Changelog\n\n## 0.1.0\n\n- x\n")
     git(tmp_path, "add", "-A")
     git(tmp_path, "commit", "-qm", "base")
     return tmp_path
@@ -39,6 +40,8 @@ def test_unbumped_app_change_is_bumped_and_committed(tmp_path, monkeypatch):
     assert fake_git_host.ensure_version_bumped() == first
     assert f'version = "{first}"' in (repo / "pyproject.toml").read_text()
     assert f'version: "{first}"' in (repo / "app" / "config.yaml").read_text()
+    log = (repo / "app" / "CHANGELOG.md").read_text()
+    assert log.startswith(f"# Changelog\n\n## {first}\n\n## 0.1.0")  # its heading
     assert git(repo, "status", "--porcelain") == ""
     assert f"Bump version to {first}" in git(repo, "log", "-1", "--format=%s")
     # The bump commit itself is a bump: no loop.
@@ -53,6 +56,11 @@ def test_bumped_or_unrelated_commits_are_left_alone(tmp_path, monkeypatch):
     (repo / "README.md").write_text("docs only\n")
     git(repo, "add", "-A")
     git(repo, "commit", "-qm", "docs")
+    assert fake_git_host.ensure_version_bumped() is None
+    # a changelog line alone is not a change to the app
+    (repo / "app" / "CHANGELOG.md").write_text("# Changelog\n\n## 0.1.0\n\n- x\n- y\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "changelog")
     assert fake_git_host.ensure_version_bumped() is None
 
 

@@ -1,4 +1,4 @@
-"""Select: the Camera Commander's main camera. Taps on the commander's other cameras
+"""Select: each Camera Commander's main camera. Taps on the commander's other cameras
 set it, and so can automations (select.select_option, select.select_next)."""
 
 from __future__ import annotations
@@ -10,42 +10,44 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .commanders import CommanderEntity, add_commander_entities, unique_id
 from .coordinator import CasaMiaCoordinator, async_post
-from .sensor import CasaMiaEntity, only_on
+from .motion import tracker
 
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     coordinator = entry.runtime_data
-    async_add_entities(only_on(coordinator, [CommanderMainSelect(coordinator, entry)]))
+    add_commander_entities(
+        coordinator,
+        entry,
+        async_add_entities,
+        lambda cid: [CommanderMainSelect(coordinator, entry, cid)],
+    )
 
 
-class CommanderMainSelect(CasaMiaEntity, SelectEntity):
-    _module = "camera_dashboard"
+class CommanderMainSelect(CommanderEntity, SelectEntity):
     _attr_translation_key = "commander_main"
 
-    def __init__(self, coordinator: CasaMiaCoordinator, entry: ConfigEntry) -> None:
-        super().__init__(coordinator, entry)
-        self._attr_unique_id = f"{entry.entry_id}_commander_main"
+    def __init__(
+        self, coordinator: CasaMiaCoordinator, entry: ConfigEntry, cid: str
+    ) -> None:
+        super().__init__(coordinator, entry, cid)
+        self._attr_unique_id = unique_id(entry, cid, "commander_main", "main")
         self._chosen: str | None = None  # shown until the app's next report
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
-        if self.coordinator.motion:  # Track motion's switches show at once
 
-            @callback
-            def show(option: str) -> None:
-                self._chosen = option
-                self.async_write_ha_state()
+        @callback  # Track motion's switches show at once
+        def show(option: str) -> None:
+            self._chosen = option
+            self.async_write_ha_state()
 
-            self.coordinator.motion.shown.append(show)
-            self.async_on_remove(lambda: self.coordinator.motion.shown.remove(show))
-
-    @property
-    def commander(self) -> dict:
-        module = self.coordinator.data.get("modules", {}).get("camera_dashboard", {})
-        return module.get("commander") or {}
+        shown = tracker(self.coordinator, self.cid).shown
+        shown.append(show)
+        self.async_on_remove(lambda: shown.remove(show))
 
     @property
     def available(self) -> bool:
@@ -70,12 +72,13 @@ class CommanderMainSelect(CasaMiaEntity, SelectEntity):
                 self.hass,
                 self.coordinator.url,
                 "/camera-dashboard/commander",
-                {"main": option},
+                {"main": option, "commander": self.cid},
             )
         except aiohttp.ClientError as exc:
             raise HomeAssistantError(f"Main camera not changed: {exc}") from exc
         self._chosen = option
         self.async_write_ha_state()
-        if self.coordinator.motion:  # a choice by hand: Track motion pauses
-            self.coordinator.motion.chosen_by_hand(option)
+        tracker(self.coordinator, self.cid).chosen_by_hand(
+            option
+        )  # Track motion pauses
         await self.coordinator.async_request_refresh()

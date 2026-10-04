@@ -167,8 +167,8 @@ module is a candidate for the public release (the Public column); each is off un
 | `people` | Everyone known to the home. Today one phone number each with Call and Text ticks, optionally linked to an HA person. Always on; People page in the panel. Built in app 0.1.31 | No | An earlier allowlist (a to-do list plus a pyscript, replaced) | Candidate | ⬜ |
 | `alarm` | Intruder alarm panel (arm away, disarm, triggered) in the integration only, driven by the panel's ESPHome sensors and toggle button; code in the integration's options; `alarm_enabled` app option (default off) switches it on. **Complete (integration 0.4.0, app 0.1.27).** The sensor and switch entity ids are fixed in `alarm.py` today; they must become options before release | Likely | An earlier alarm-panel custom component | Candidate | ✅ |
 | Firmware Server (`gitproxy`) | Mirrors the Kiosk Satellite firmware and serves it to the tablets on port 8000 (`gitproxy_enabled` app option, default off); the integration shows its state and latest version. **Built (app 0.1.10).** Includes a Force check button and download progress, on its own "Firmware server" device. | Yes (deployment path) | `tablet-provision/fake_git_host.py` | Candidate | ✅ |
-| `compositor` | Camera compositing and the adaptive dashboard. App module built (app 0.1.11): serves the Camera Commander's picture on port 8099 from the Camera Dashboard's live config, `compositor_enabled` option (default off) | No | composite-test server | Candidate | ✅ |
-| `camera_dashboard` | Camera Dashboard: one source (`camera-dashboard.json`, the draft, and `camera-dashboard-live.json`, what was deployed) for the cameras, the Camera Commander, and the camera dashboard. Admin page with previews (a second compositor on 8098 draws the draft), deploys the dashboard into HA over the websocket (storage mode: preview to `<dashboard>-preview`, live to the dashboard, keeping what it replaces), `camera_dashboard_enabled` option (default off). Was `dashboard-gen` | No | `tablet-provision/composite-test/gen_dashboard.py`, `discover_entities.py` | Candidate | ✅ |
+| `compositor` | Camera compositing and the adaptive dashboard. App module built (app 0.1.11): serves each Camera Commander's picture on port 8099 from the Camera Dashboard's live config, `compositor_enabled` option (default off) | No | composite-test server | Candidate | ✅ |
+| `camera_dashboard` | Camera Dashboard: one source (`camera-dashboard.json`, the draft, and `camera-dashboard-live.json`, what was deployed) for the cameras, the Camera Commanders (one or more, each a page), and the camera dashboard. Admin page with previews (a second compositor on 8098 draws the draft), deploys the dashboard into HA over the websocket (storage mode: preview to `<dashboard>-preview`, live to the dashboard, keeping what it replaces), `camera_dashboard_enabled` option (default off). Was `dashboard-gen` | No | `tablet-provision/composite-test/gen_dashboard.py`, `discover_entities.py` | Candidate | ✅ |
 | `knx` | KNX project (ETS export) consumed to generate HA entities/config and drive control | Likely | KNX project (TBD) | Candidate | ⬜ |
 | `knx-bms` | A Raspberry Pi KNX machine: BMS programming control over the KNX bus, like logic modules but with better programming. First job: bring the Hue lights into the BMS, out of HA (backlog) | TBD | The Pi's existing code (to be located) | Candidate | ⬜ |
 | `esphome-gen` | Python generator that deterministically builds the ESPHome YAML for every Shelly and other ESP device in the automation system | No (devices it configures may be) | The current ESPHome generator script | Candidate | ⬜ |
@@ -260,7 +260,7 @@ casa-mia/
 ## Versioning
 
 See [Releases and CI](docs/releases.md) for GitHub checks, GHCR images, stable installation,
-and the first release procedure. Public releases use a two-digit month (`YYYY.MM.REL`).
+and making a release (`tools/release.py`). Public releases are `YYYY.M.R`, the month unpadded as Home Assistant's own (2027.1.1).
 
 **Rule Zero: bump the version first.** The Supervisor offers an app update only when `version`
 in `app/config.yaml` changes. So before any change to `app/` or `integration/`, from a clean
@@ -270,12 +270,10 @@ changelog lines (a test fails without the heading; the Supervisor shows the file
 dialog). If it is forgotten, `tools/fake_git_host.py` bumps the build itself, commits it, and
 shouts. That is a failure of the rule, not a feature.
 
-**Version numbers follow Home Assistant:** a release is `YYYY.MM.REL` (2026.10.1, the first release
-of October 2026). The private builds deployed on the way to it are `YYYY.MM.REL-bN` (2026.10.1-b1,
+**Version numbers follow Home Assistant:** a release is `YYYY.M.R` (2026.10.1, the first release
+of October 2026). The private builds deployed on the way to it are `YYYY.M.R-bN` (2026.10.1-b1,
 -b2, ...), one per deploy. The Supervisor orders them correctly: b9 before b10, every build
-before its release. To release, `tools/versioning.py release` drops the `-bN` and merges every build's changelog section into the
-release's; commit, tag the version, push the tag, and `.github/workflows/release.yml` makes the
-GitHub release with those notes. The next bump starts the next release's builds.
+before its release. To release, run `tools/release.py`: a step-by-step walkthrough (checks, `tools/versioning.py release`, a review of the notes, a release pull request, then merge and tag after your OK) that `.github/workflows/release.yml` takes from there. See [Releases and CI](docs/releases.md). The next bump starts the next release's builds.
 
 **Each integration component's version is the app version it last changed in.** After changing
 a component, `tools/component_versions.py --update` stamps its `manifest.json` with the current
@@ -302,7 +300,7 @@ Three loops, fastest first:
    Settings, Apps, App store, Repositories; the Supervisor then sees each new version. `tools/deploy`
    does the rest: over SSH it runs `ha store reload`, `ha apps update` and shows the app's log
    (`CM_HA_SSH` sets the login, default `hassio@homeassistant.local`).
-3. **Release (tagged `YYYY.MM.REL`):** see Versioning. Tags mark known-good versions for rollback.
+3. **Release (tagged `YYYY.M.R`):** see Versioning. Tags mark known-good versions for rollback.
 
 **No staging environment: work goes straight to the live box** (`homeassistant.local:8123`).
 

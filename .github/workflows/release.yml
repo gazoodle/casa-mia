@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Existing release tag (YYYY.MM.REL) to retry"
+        description: "Existing release tag (YYYY.M.R, month unpadded) to retry"
         required: true
         type: string
 permissions:
@@ -19,14 +19,17 @@ jobs:
     outputs:
       version: ${{ steps.validate.outputs.version }}
       sha: ${{ steps.source.outputs.sha }}
+      image: ${{ steps.validate.outputs.image }}
     steps:
       - name: Validate requested tag
         id: validate
         env:
           VERSION: ${{ inputs.version || github.ref_name }}
         run: |
-          [[ "$VERSION" =~ ^20[0-9]{2}\.(0[1-9]|1[0-2])\.[1-9][0-9]*$ ]]
+          [[ "$VERSION" =~ ^20[0-9]{2}\.([1-9]|1[0-2])\.[1-9][0-9]*$ ]]
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          # This repository's images (a fork publishes its own); GHCR names are lower case.
+          echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
         with:
           ref: refs/tags/${{ steps.validate.outputs.version }}
@@ -92,23 +95,23 @@ jobs:
           file: app/Dockerfile.release
           platforms: ${{ matrix.platform }}
           push: true
-          tags: ghcr.io/gazoodle/casa-mia-${{ matrix.arch }}:${{ needs.validate.outputs.version }}
+          tags: ${{ needs.validate.outputs.image }}-${{ matrix.arch }}:${{ needs.validate.outputs.version }}
           labels: |
-            org.opencontainers.image.source=https://github.com/gazoodle/casa-mia
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ needs.validate.outputs.sha }}
             org.opencontainers.image.version=${{ needs.validate.outputs.version }}
           cache-from: type=gha,scope=${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
       - name: Verify public pull
         env:
-          IMAGE: ghcr.io/gazoodle/casa-mia-${{ matrix.arch }}:${{ needs.validate.outputs.version }}
+          IMAGE: ${{ needs.validate.outputs.image }}-${{ matrix.arch }}:${{ needs.validate.outputs.version }}
           PLATFORM: ${{ matrix.platform }}
         run: |
           docker logout ghcr.io
           docker pull --platform "$PLATFORM" "$IMAGE"
       - name: Record digest
         env:
-          IMAGE: ghcr.io/gazoodle/casa-mia-${{ matrix.arch }}:${{ needs.validate.outputs.version }}
+          IMAGE: ${{ needs.validate.outputs.image }}-${{ matrix.arch }}:${{ needs.validate.outputs.version }}
           DIGEST: ${{ steps.image.outputs.digest }}
           SOURCE: ${{ needs.validate.outputs.sha }}
         run: |
@@ -136,6 +139,7 @@ jobs:
         env:
           VERSION: ${{ needs.validate.outputs.version }}
           SOURCE: ${{ needs.validate.outputs.sha }}
+          IMAGE: ${{ needs.validate.outputs.image }}
           GH_TOKEN: ${{ github.token }}
         run: |
           python3 -m venv .venv
@@ -156,11 +160,12 @@ jobs:
             git checkout -B stable "$SOURCE"
           fi
           .venv/bin/python - <<'PY'
+          import os
           from pathlib import Path
           path = Path("app/config.yaml")
           text = path.read_text()
           text = "\n".join(line for line in text.split("\n") if not line.startswith(("image:", "# No `image:`", "# without a registry.")))
-          text += '\n# Public images built by the release workflow.\nimage: "ghcr.io/gazoodle/casa-mia-{arch}"\n'
+          text += f'\n# Public images built by the release workflow.\nimage: "{os.environ["IMAGE"]}-{{arch}}"\n'
           path.write_text(text)
           PY
           git add -A app/config.yaml

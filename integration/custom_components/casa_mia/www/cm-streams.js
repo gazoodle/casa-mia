@@ -3,19 +3,22 @@
 // pictures and streams too, while a browser allows only 6 connections to one address and
 // the compositor ends a device's oldest streams past 3; so a page you come Back to could
 // show a stopped picture, and a new one might not load at all. This stops the streams of
-// pictures not on screen and gives those on screen a fresh one. It also gives them the
-// Security look (a CSS filter: monochrome, tinted) while the Camera Commander's Security
-// look switch is on, and makes the commander's highlight (the outline on the main
-// camera's tile) pulse. Loaded by the Casa Mia integration (its options switch it on); it
+// pictures not on screen and gives those on screen a fresh one. It also gives each
+// commander's picture the Security look (a CSS filter: monochrome, tinted) while that
+// commander's Security look switch is on, and makes each commander's highlight (the
+// outline on the main camera's tile) pulse. Loaded by the Casa Mia integration (its options switch it on); it
 // touches nothing but those pictures and that outline.
 
 const STREAM = /\/g\/[^/?#]+\.mjpg/;
 // A 1x1 transparent image: a stopped picture's source (dropping a stream's connection).
 const BLANK = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 const known = new Set(); // every stream picture seen; pages left alive keep theirs
-const LOOK = "switch.camera_commander_security_look";
-const MAIN = "select.camera_commander_main_camera"; // a new main camera: a new highlight
-let look = ""; // the CSS filter while the Security look is on
+// The first commander's Security look switch, always there: its `looks` attribute lists
+// every commander's, and each one's attributes say which pictures are its (`pictures`),
+// its look (`css_filter`) and its Main camera select (`main_select`: a new main camera is
+// a new highlight, whose pulse is started at once).
+const FIRST_LOOK = "switch.camera_commander_security_look";
+const states = {}; // entity -> { s: state, a: attributes }, as Home Assistant pushes them
 
 /** Every <img> in the page, inside HA's components (shadow roots) too. */
 function* images(root) {
@@ -23,6 +26,14 @@ function* images(root) {
     if (el.tagName === "IMG") yield el;
     if (el.shadowRoot) yield* images(el.shadowRoot);
   }
+}
+
+/** The Security look's filter for a picture: its commander's, while that one is on. */
+function lookOf(img) {
+  const path = new URL(img.dataset.cmStream || img.src, location.href).pathname;
+  for (const st of Object.values(states))
+    if (st.s === "on" && st.a?.pictures?.includes(path)) return st.a.css_filter || "";
+  return "";
 }
 
 function onScreen(img) {
@@ -80,7 +91,8 @@ function check() {
     else if (img.src.endsWith("#cm-highlight")) pulse(img);
   }
   for (const img of known) {
-    if (img.style.filter !== look) img.style.filter = look;
+    const wanted = lookOf(img);
+    if (img.style.filter !== wanted) img.style.filter = wanted;
     if (!onScreen(img)) {
       if (!img.dataset.cmStream) {
         img.dataset.cmStream = img.src; // remembered, to start again when shown
@@ -110,29 +122,41 @@ document.addEventListener("visibilitychange", soon);
 setInterval(check, 4000);
 soon();
 
-// The Security look switch, pushed by Home Assistant as it changes (by hand, or an
-// automation): its state and filter at once, then each change (subscribe_entities sends
-// the entity in full under "a", changes under "c" as "+" (new values), removal under "r").
-const lookNow = { on: false, css: "" };
-window.hassConnection.then(({ conn }) =>
-  conn.subscribeMessage(
+// The Security look switches and Main camera selects, pushed by Home Assistant as they
+// change (by hand, or an automation): in full at once, then each change
+// (subscribe_entities sends an entity in full under "a", changes under "c" as "+" (new
+// values) and "-" (attributes gone), removal under "r"). Followed again whenever the
+// switches list another set of entities (a commander added or deleted).
+let watching = "";
+let unsubscribe;
+function follow(conn) {
+  const ids = new Set([FIRST_LOOK]);
+  for (const st of Object.values(states)) {
+    for (const id of st.a?.looks || []) ids.add(id);
+    if (st.a?.main_select) ids.add(st.a.main_select);
+  }
+  const key = [...ids].sort().join(" ");
+  if (key === watching) return;
+  watching = key;
+  unsubscribe?.then((stop) => stop());
+  unsubscribe = conn.subscribeMessage(
     (msg) => {
-      const added = msg.a?.[LOOK];
-      if (added) Object.assign(lookNow, { on: added.s === "on", css: added.a?.css_filter || "" });
-      const changed = msg.c?.[LOOK]?.["+"];
-      if (changed?.s !== undefined) lookNow.on = changed.s === "on";
-      if (changed?.a && "css_filter" in changed.a) lookNow.css = changed.a.css_filter || "";
-      if (msg.r?.includes(LOOK)) Object.assign(lookNow, { on: false, css: "" });
-      if (msg.c?.[MAIN]) soon(); // HA draws the new highlight: start its pulse
-      const wanted = lookNow.on ? lookNow.css : "";
-      if (wanted !== look) {
-        look = wanted;
-        check();
+      for (const [id, st] of Object.entries(msg.a || {})) states[id] = st;
+      for (const [id, diff] of Object.entries(msg.c || {})) {
+        const st = (states[id] ||= { a: {} });
+        if (diff["+"]?.s !== undefined) st.s = diff["+"].s;
+        if (diff["+"]?.a) st.a = { ...st.a, ...diff["+"].a };
+        for (const k of diff["-"]?.a || []) delete st.a[k];
+        if (id.startsWith("select.")) soon(); // HA draws the new highlight: start its pulse
       }
+      for (const id of msg.r || []) delete states[id];
+      follow(conn);
+      check();
     },
-    { type: "subscribe_entities", entity_ids: [LOOK, MAIN] },
-  ),
-);
+    { type: "subscribe_entities", entity_ids: [...ids] },
+  );
+}
+window.hassConnection.then(({ conn }) => follow(conn));
 
 console.info(
   `%cCASA-MIA STREAMS\n%ckeeps camera pictures live (${new URL(import.meta.url).searchParams.get("v") || "dev"})`,

@@ -17,8 +17,8 @@ def test_builds_count_up_then_release():
     assert versioning.release_of("2026.10.1-b10", OCT) == "2026.10.1"
     assert versioning.next_build("2026.10.1", OCT) == "2026.10.2-b1"
     assert versioning.next_build("2026.10.2", NOV) == "2026.11.1-b1"
-    # Release preparation only removes the build suffix, even in a later month.
-    assert versioning.release_of("2026.10.2-b3", NOV) == "2026.10.2"
+    # Builds started in October and released in November are November's first.
+    assert versioning.release_of("2026.10.2-b3", NOV) == "2026.11.1"
     with pytest.raises(ValueError):
         versioning.release_of("2026.10.1", OCT)
 
@@ -38,7 +38,7 @@ def test_release_merges_the_build_notes():
         versioning.merge_builds(merged, "2026.10.3")
 
 
-def test_release_uses_two_digit_month():
+def test_month_is_unpadded():
     january = dt.date(2027, 1, 3)
-    assert versioning.release_of("2027.1.1-b3", january) == "2027.01.1"
-    assert versioning.next_build("2026.12.1", january) == "2027.01.1-b1"
+    assert versioning.release_of("2026.12.4-b3", january) == "2027.1.1"
+    assert versioning.next_build("2026.12.1", january) == "2027.1.1-b1"

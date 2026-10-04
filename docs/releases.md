@@ -1,6 +1,6 @@
 # Releases and CI
 
-Public versions are `YYYY.MM.REL`, with a two-digit month and a release number starting at 1 (for example `2026.10.1`). Development builds append `-b<n>`.
+Public versions are `YYYY.M.R`, the month unpadded as Home Assistant's own and a release number starting at 1 (for example `2026.10.1`, `2027.1.1`). Development builds append `-b<n>`.
 
 ## Checks
 
@@ -8,35 +8,42 @@ CI runs Ruff lint and formatting, Pyright, pytest, the locked npm/TypeScript/Vit
 
 The release image uses `app/Dockerfile.release` with the repository root as its context. It packages the checked-out app, committed web assets and bundled integrations together, without cloning a moving branch. The existing `app/Dockerfile` remains the local fake-git-host build path.
 
-## Prepare the first release
+## Make a release
 
-After the release-prep PR is reviewed and merged, fix any existing failing checks separately before publishing. There are currently no published releases.
+Run the walkthrough and follow its prompts:
 
 ```sh
-tools/setup
-.venv/bin/python tools/versioning.py release
-git diff -- pyproject.toml app/config.yaml app/CHANGELOG.md
-git add pyproject.toml app/config.yaml app/CHANGELOG.md
-git commit -m "Prepare release 2026.10.1"
-git push origin main
-git tag 2026.10.1
-git push origin 2026.10.1
+tools/setup              # once, or after dependencies change
+gh auth login            # once: the GitHub CLI, https://cli.github.com
+git switch main && git pull
+tools/release.py
 ```
 
-Use the version printed by the release command, rather than copying the example if the development version has changed. Release preparation removes the trailing development suffix and coalesces development changelog sections; it does not increment the release number or move it to another month.
+`main` takes changes only through pull requests with the required checks passing (a repository ruleset), so the release goes through one too. The walkthrough does the same steps every time, on this repository or a fork, and publishes nothing until you say yes:
+
+1. **The checkout:** on `main`, nothing uncommitted, level with `origin/main`. Everything to be released must already be merged into `main`.
+2. **The checks CI runs:** Ruff lint and formatting, Pyright, pytest (which also checks the web build and the component versions).
+3. **Prepare:** `tools/versioning.py release` drops the `-bN` (2026.10.1-b30 becomes 2026.10.1) and merges every build's changelog section since the last release into one. If the month has moved on since the builds began, the release is that month's first (builds of 2026.10.2 released in November become 2026.11.1). It then shows the release notes for review: they are the GitHub release's text and what the Supervisor shows in its update dialog, so keep what someone installing or updating needs and drop build-to-build detail. Edit them there (it opens `$EDITOR`), or abort, which puts everything back.
+4. **Pull request, after your first OK:** the release is committed on a `release-<version>` branch, pushed, and a pull request opened with the notes as its description; then it waits for the required checks. Nothing is published yet.
+5. **Publish, after your second OK:** merges the pull request, pulls `main`, tags the merged commit with the version and pushes the tag, which starts the Release workflow. From here the version is public.
+6. **On GitHub:** links to the workflow run, the first release's package step (below), and the release and `stable` URLs, and it can follow the run in the terminal.
+
+Stop at any prompt (or Ctrl-C) and run it again: it works out where it got to from `origin/main`'s version, a `release-<version>` branch and the tags on `origin`, and carries on. If a check fails on the release pull request, fix it on that branch and run it again; to give up instead, close the pull request and delete the branch here and on `origin`.
 
 The tagged workflow validates versions and nonempty notes, reruns all checks against that source commit, and builds/publishes:
 
-- `ghcr.io/gazoodle/casa-mia-amd64:<version>`
-- `ghcr.io/gazoodle/casa-mia-aarch64:<version>`
+- `ghcr.io/<owner>/<repo>-amd64:<version>`
+- `ghcr.io/<owner>/<repo>-aarch64:<version>`
+
+named after the repository the workflow runs in (lower case), so a fork publishes its own images and its `stable` branch points at them.
 
 Each image records its source commit and version in OCI labels. Digest records are attached to the GitHub release along with `release-notes.md`, whose name must remain unchanged for installation counting.
 
 ## Repository setup
 
-Enable GitHub Actions and allow workflows to write repository contents and packages. The workflow requests these permissions explicitly. No personal access token is required.
+Enable GitHub Actions and allow workflows to write repository contents and packages (Settings → Actions → General → Workflow permissions: **Read and write**; a stricter repository setting overrides what the workflow asks for, and the `stable` push fails). The workflow requests these permissions explicitly. No personal access token is required.
 
-GHCR packages may be private when first created. After the first successful image push, set **both packages** to public in their package settings and retain the repository's Actions access. If the anonymous pull check fails because visibility is private, change visibility and rerun failed jobs. Publication of the GitHub release and stable manifest waits for successful anonymous pulls for both architectures. The Release workflow also offers a manual retry for an existing release tag.
+GHCR packages may be private when first created. After the first successful image push, set **both packages** to public in their package settings and retain the repository's Actions access: open `https://github.com/<owner>?tab=packages`, then for each package Package settings → Danger Zone → Change visibility → Public. If the anonymous pull check fails because visibility is private, change visibility and choose **Re-run failed jobs** on the workflow run. Publication of the GitHub release and stable manifest waits for successful anonymous pulls for both architectures. The Release workflow also offers a manual retry for an existing release tag.
 
 Once CI check names appear in the PR, require workflow syntax and all Python, frontend and container checks in a ruleset for `main`. Branch protection and package visibility require repository administration settings; they are not configured by these workflow files.
 
@@ -52,7 +59,7 @@ https://github.com/gazoodle/casa-mia#stable
 
 The workflow creates/updates `stable` from the release source after all images are available, adding the Supervisor `image:` reference. Supervisor substitutes `{arch}` and pulls the app version's prebuilt image. Raspberry Pi and Home Assistant Blue do not need to rebuild it. The integration is bundled in the same image and delivered by the existing installer.
 
-The normal repository branch remains the development source. Keep local development on the fake-git-host `#app-dev` URL, which continues to build locally.
+The normal repository branch remains the development source. Keep local development on the fake-git-host `#app-dev` URL, which continues to build locally (and follows published releases). Don't move a box between repository URLs: the app's slug comes from the URL, so another URL is another app, installed afresh with none of the old one's settings.
 
 Each release also gets a `stable-<version>` delivery tag containing the image manifest. For rollback, use a backup/restore or explicitly select the earlier `#stable-<version>` repository and reinstall that app version, preserving/restoring app data as appropriate. Supervisor may not offer a downgrade as a normal update. The raw source release tag alone does not contain the generated GHCR manifest.
 
