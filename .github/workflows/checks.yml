@@ -1,0 +1,90 @@
+name: Checks
+on:
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        default: ""
+permissions:
+  contents: read
+jobs:
+  python:
+    name: Python / ${{ matrix.check }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        check: [lint, format, types, tests]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: bash tools/setup
+      - name: Run check
+        env:
+          CHECK: ${{ matrix.check }}
+        run: |
+          case "$CHECK" in
+            lint) .venv/bin/ruff check . ;;
+            format) .venv/bin/ruff format --check . ;;
+            types) .venv/bin/pyright ;;
+            tests) .venv/bin/pytest ;;
+          esac
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: app/web/package-lock.json
+      - run: npm ci
+        working-directory: app/web
+      - run: npm run build
+        working-directory: app/web
+  containers:
+    name: Container / ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-latest
+          - arch: aarch64
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: app/Dockerfile.release
+          platforms: ${{ matrix.platform }}
+          push: false
+          cache-from: type=gha,scope=${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
+  workflows:
+    name: Workflow syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+      - name: Validate GitHub Actions workflows
+        run: |
+          docker run --rm -v "$PWD:/work" -w /work \
+            rhysd/actionlint:1.7.7 -color -shellcheck="" -pyflakes=""

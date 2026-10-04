@@ -259,6 +259,9 @@ casa-mia/
 
 ## Versioning
 
+See [Releases and CI](docs/releases.md) for GitHub checks, GHCR images, stable installation,
+and the first release procedure. Public releases use a two-digit month (`YYYY.MM.REL`).
+
 **Rule Zero: bump the version first.** The Supervisor offers an app update only when `version`
 in `app/config.yaml` changes. So before any change to `app/` or `integration/`, from a clean
 repo: run `tools/versioning.py bump` (it sets `pyproject.toml`, the one source, and
@@ -267,11 +270,10 @@ changelog lines (a test fails without the heading; the Supervisor shows the file
 dialog). If it is forgotten, `tools/fake_git_host.py` bumps the build itself, commits it, and
 shouts. That is a failure of the rule, not a feature.
 
-**Version numbers follow Home Assistant:** a release is `YYYY.M.R` (2026.10.1, the first release
-of October 2026). The private builds deployed on the way to it are `YYYY.M.R-bN` (2026.10.1-b1,
+**Version numbers follow Home Assistant:** a release is `YYYY.MM.REL` (2026.10.1, the first release
+of October 2026). The private builds deployed on the way to it are `YYYY.MM.REL-bN` (2026.10.1-b1,
 -b2, ...), one per deploy. The Supervisor orders them correctly: b9 before b10, every build
-before its release. To release, `tools/versioning.py release` drops the `-bN` (taking the
-current month if it has moved on) and merges every build's changelog section into the
+before its release. To release, `tools/versioning.py release` drops the `-bN` and merges every build's changelog section into the
 release's; commit, tag the version, push the tag, and `.github/workflows/release.yml` makes the
 GitHub release with those notes. The next bump starts the next release's builds.
 
@@ -300,7 +302,7 @@ Three loops, fastest first:
    Settings, Apps, App store, Repositories; the Supervisor then sees each new version. `tools/deploy`
    does the rest: over SSH it runs `ha store reload`, `ha apps update` and shows the app's log
    (`CM_HA_SSH` sets the login, default `hassio@homeassistant.local`).
-3. **Release (tagged `YYYY.M.R`):** see Versioning. Tags mark known-good versions for rollback.
+3. **Release (tagged `YYYY.MM.REL`):** see Versioning. Tags mark known-good versions for rollback.
 
 **No staging environment: work goes straight to the live box** (`homeassistant.local:8123`).
 
@@ -321,7 +323,8 @@ proven, retire the old integration. The same pattern applies to anything else we
 - A colon inside an unquoted YAML value in `config.yaml` makes the Supervisor silently skip the
   app. A test now parses the manifests.
 
-**Rollback:** every deploy is a git tag; rolling back is deploying the previous tag.
+**Rollback:** public releases retain versioned GHCR images and `stable-<version>` delivery tags.
+See [Releases and CI](docs/releases.md) for rollback; Supervisor downgrades may require reinstall or restore.
 
 ## Facts learned on a live system
 
