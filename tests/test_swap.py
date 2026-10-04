@@ -58,3 +58,6 @@ def test_camera_images(tmp_path, monkeypatch):
     assert swap.camera_image("Oak Tree") == (tmp_path / "swap" / "yard.jpg").resolve()
     assert swap.camera_image("Shed") is None and swap.camera_image("Barn") is None
     assert swap.out("camera_images") == "camera_images" and swap.stamp()
+    # A picture added after swap.json was saved is used too.
+    (tmp_path / "swap" / "none.jpg").write_bytes(b"jpeg")
+    assert swap.camera_image("Shed") == (tmp_path / "swap" / "none.jpg").resolve()

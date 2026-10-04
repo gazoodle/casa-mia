@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.2-b7
+
+- Screenshot swap: a camera picture added after swap.json was last saved is used too (it was skipped until swap.json was saved again).
+
 ## 2026.10.2-b6
 
 - Screenshot swap: `camera_images` in swap.json gives a camera a picture in place of its feed (in the composites, the Camera Dashboard's previews and thumbnails), and the camera names drawn into the composites are swapped too.

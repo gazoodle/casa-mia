@@ -59,7 +59,8 @@ def _rule(pairs: dict[str, str]) -> Rule:
 
 
 def _images(found: object, folder: Path) -> dict[str, Path]:
-    """`camera_images` as paths, each kept inside swap.json's folder."""
+    """`camera_images` as paths, each kept inside swap.json's folder. Whether the
+    picture is there is asked when it is used: pictures often arrive after swap.json."""
     if not isinstance(found, dict):
         return {}
     out = {}
@@ -67,8 +68,6 @@ def _images(found: object, folder: Path) -> dict[str, Path]:
         path = (folder / str(name)).resolve()
         if not path.is_relative_to(folder.resolve()):
             _LOGGER.warning("screenshot swap: %s is outside %s, not used", name, folder)
-        elif not path.is_file():
-            _LOGGER.warning("screenshot swap: no picture %s for a camera", name)
         else:
             out[str(title)] = path
     return out
@@ -149,8 +148,10 @@ def original_photo() -> bool:
 
 
 def camera_image(title: str) -> Path | None:
-    """The picture shown in place of the camera titled `title`, if the swap has one."""
-    return _current().images.get(title)
+    """The picture shown in place of the camera titled `title`, if the swap has one
+    and it is there."""
+    path = _current().images.get(title)
+    return path if path and path.is_file() else None
 
 
 def out_bytes(data: bytes, ctype: str) -> bytes:
