@@ -30,7 +30,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
-from .. import header
+from .. import header, swap
 from .guest_page import header_jpeg, render_welcome  # noqa: E402
 
 _LOGGER = logging.getLogger(__name__)
@@ -462,8 +462,8 @@ class GuestLogin:
         """The welcome page for an endpoint: its own settings, else the app-wide ones."""
         title, message, delay = self.welcome
         delay = ep.delay if ep.delay is not None else delay
-        return render_welcome(
-            ep.title or title, ep.message or message, delay, HEADER_URL
+        return swap.out(
+            render_welcome(ep.title or title, ep.message or message, delay, HEADER_URL)
         )
 
     def _why(self, path: str, raw_query: str) -> str:

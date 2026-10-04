@@ -9,12 +9,14 @@ export type Health = {
   version: string;
   api: number;
   integration_url?: string;
+  swap?: string;
   modules: Record<string, ModuleHealth>;
 };
 
 const POLL_MS = 5000;
-/** The app version this page was loaded from. An open page outlives an app update, and
- * would keep running the old UI: when the version changes, reload the whole page. */
+/** The app version (and screenshot swap) this page was loaded from. An open page outlives
+ * an app update, and would keep running the old UI: when the version changes, reload the
+ * whole page; the same when the swap changes, so every string on it is swapped afresh. */
 let loadedVersion: string | undefined;
 
 export function useHealth(): { health?: Health; error?: string } {
@@ -27,8 +29,9 @@ export function useHealth(): { health?: Health; error?: string } {
         const response = await fetch("health", { cache: "no-store" });
         if (!response.ok) throw new Error(`the app answered ${response.status}`);
         const body = (await response.json()) as Health;
-        loadedVersion ??= body.version;
-        if (body.version !== loadedVersion) {
+        const loaded = `${body.version} ${body.swap ?? ""}`;
+        loadedVersion ??= loaded;
+        if (loaded !== loadedVersion) {
           location.reload();
           return;
         }
