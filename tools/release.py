@@ -199,13 +199,12 @@ def run_checks() -> None:
     step(2, "The checks CI runs")
     for name, command in CHECKS:
         say(f"  {DIM}{name}…{OFF}")
-        done = subprocess.run(
-            [str(c) for c in command], cwd=ROOT, capture_output=True, text=True
-        )
+        started = time.monotonic()
+        # their own output, as it comes: pytest's dots and [ 39%] show how far along
+        done = subprocess.run([str(c) for c in command], cwd=ROOT)
         if done.returncode:
-            say((done.stdout + done.stderr).strip()[-3000:])
-            raise Stop(f"{name} failed: fix it first (nothing was changed).")
-        good(name)
+            raise Stop(f"{name} failed (above): fix it first (nothing was changed).")
+        good(f"{name} ({time.monotonic() - started:.0f} s)")
 
 
 def restore() -> None:
@@ -367,7 +366,14 @@ def publish(branch: str, release: str, number: str | None, repo: str) -> None:
         git("tag", release, "origin/main")
     git("push", "-q", "origin", f"refs/tags/{release}")
     good(f"tagged origin/main {release} and pushed the tag")
-    git("merge", "-q", "--ff-only", "origin/main")
+    inside = (
+        subprocess.run(
+            ["git", "merge-base", "--is-ancestor", "HEAD", "origin/main"], cwd=ROOT
+        ).returncode
+        == 0
+    )
+    # a fast-forward; a merge when work was committed on the branch while it waited
+    git("merge", "-q", "--ff-only" if inside else "--no-edit", "origin/main")
     git("push", "-q", "origin", f"{branch}:refs/heads/{branch}")
     good(f"{branch} brought up to main and pushed")
 
