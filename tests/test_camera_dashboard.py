@@ -1,9 +1,7 @@
 import io
 import json
-import re
 import urllib.error
 import urllib.request
-from pathlib import Path
 
 import pytest
 from PIL import Image
@@ -13,99 +11,55 @@ from casa_mia.modules.camera_dashboard import (
     CameraDashboard,
     build_dashboard,
     ha_cameras,
-    import_legacy,
     problems,
-    to_yaml,
     warnings,
+    with_defaults,
 )
 from casa_mia.modules.compositor import load_config
 
-# tablet-provision's generator and the dashboard it made, the one live today. Only on
-# the author's machine (it names the house's cameras and users), so skipped elsewhere.
-LEGACY = Path(__file__).parents[2] / "tablet-provision" / "composite-test"
-
-GROUPS = {
-    "Shed": [
-        {"entity": "camera.a_low", "title": "Bay"},
-        {"entity": "camera.b", "title": "Tablet", "live": "picture-entity"},
-    ],
-    "Wall": {
-        "cameras": [{"entity": "camera.a_low", "title": "Bay"}],
-        "tile": [320, 180],
-    },
-    "_overview": {
-        "width": 640,
-        "gap": 8,
-        "cell_aspect": 1.7,
-        "strip_aspect": 1.5,
-        "rows": [{"groups": ["Shed"]}],
-    },
-}
-ENTITIES = {"camera.a_low": {"medium": "camera.a_med", "high": "camera.a_high"}}
-DASH = {
-    "dash": "dashboard-cams",
+STORE = {
+    "dashboard": "dashboard-cams",
     "wall_users": ["u1"],
     "live_card": "webrtc-camera",
     "hi_live_card": "advanced-camera-card",
-    "ptz": {
-        "Bay": {
-            "device_id": "d1",
-            "presets": ["Door", {"preset": "Home", "label": "Home view"}],
-        }
+    "cameras": {
+        "camera.a_low": {
+            "title": "Bay",
+            "medium": "camera.a_med",
+            "high": "camera.a_high",
+            "ptz": {
+                "action": "unifiprotect.ptz_goto_preset",
+                "data": {"device_id": "d1"},
+                "presets": ["Door", {"preset": "Home", "label": "Home view"}],
+            },
+            "controls": [{"entity": "button.gate"}],
+        },
+        "camera.b": {"title": "Tablet", "live": "picture-entity"},
     },
-    "gates": {
-        "cameras": ["Bay"],
-        "groups": ["Shed"],
-        "controls": [{"entity": "button.gate"}],
-    },
-    "lights": {
-        "controls": {"l": {"entity": "light.bay", "name": "Bay"}},
-        "pages": {"Shed": ["l"]},
+    "commander": {
+        "width": 1000,
+        "height": 500,
+        "gap": 0,
+        "main": "",
+        "left": {"cameras": ["camera.a_low"], "size": 10, "fit": "cover"},
+        "top": {"cameras": [], "size": 20, "fit": "cover"},
+        "right": {"cameras": [], "size": 10, "fit": "cover"},
+        "bottom": {"cameras": ["camera.b"], "size": 20, "fit": "cover"},
     },
 }
 
 
-@pytest.mark.skipif(not LEGACY.is_dir(), reason="tablet-provision is not alongside")
-def test_rebuilds_the_live_dashboard_exactly():
-    def read(name):
-        return json.loads((LEGACY / name).read_text())
+def commander_store():
+    return with_defaults(STORE)
 
-    store = import_legacy(
-        read("groups.json"), read("entities.json"), read("dashboard_config.json")
-    )
+
+def test_build():
+    store = commander_store()
     assert problems(store) == []
-    live = (LEGACY / "dashboard.yaml").read_text()
-    host = re.search(r"image: (http://[^/]+)/g/", live)
-    assert host, "no composite address in dashboard.yaml"
-    built = build_dashboard(store, host[1], "dashboard-cameras")
-    assert to_yaml(built) == live
-
-
-def test_import_and_build():
-    store = import_legacy(GROUPS, ENTITIES, DASH)
-    assert problems(store) == []
-    assert store["groups"]["Wall"]["menu"] is False
-    bay = store["cameras"]["camera.a_low"]
-    assert bay["ptz"]["data"] == {"device_id": "d1"}
-    assert bay["controls"] == [{"entity": "button.gate"}]
-    assert store["groups"]["Shed"]["controls"] == [
-        {"entity": "button.gate"},
-        {"entity": "light.bay", "name": "Bay"},
-    ]
     views = build_dashboard(store, "http://h:8099", "dashboard-cams")["views"]
-    # overview, the one menu group (not the wall), then each of its cameras
-    assert [v["path"] for v in views] == [
-        "cameras",
-        "cameras-shed",
-        "cam-bay",
-        "cam-tablet",
-    ]
-    zones = views[1]["sections"][0]["cards"][0]["elements"]
-    assert [z["tap_action"]["navigation_path"] for z in zones] == [
-        "/dashboard-cams/cam-bay",
-        "/dashboard-cams/cam-tablet",
-    ]
-    bay_view, tablet_view = views[2], views[3]
+    # the commander, then each of its cameras
+    assert [v["path"] for v in views] == ["cameras", "cam-bay", "cam-tablet"]
+    bay_view, tablet_view = views[1], views[2]
     cards = bay_view["sections"][0]["cards"]
     assert [c["type"] for c in cards] == [
         "custom:webrtc-camera",
@@ -115,19 +69,23 @@ def test_import_and_build():
     assert [p["name"] for p in presets] == ["Door", "Home view"]
     assert presets[1]["tap_action"]["data"] == {"device_id": "d1", "preset": "Home"}
     assert tablet_view["sections"][0]["cards"][0]["type"] == "picture-entity"
+    # settings since dropped (the groups) are left out of a store
+    assert "groups" not in with_defaults({**store, "groups": {"Shed": {}}})
 
 
 def test_problems_are_found():
-    store = import_legacy(GROUPS, ENTITIES, DASH)
+    store = commander_store()
     store["dashboard"] = "Cameras"
-    store["groups"]["Shed"]["cameras"].append("camera.gone")
-    store["groups"]["Shed!"] = {"cameras": ["camera.b"]}
-    store["overview"]["rows"].append({"strip": ["Nope"]})
+    store["commander"]["left"]["cameras"].append("camera.gone")
+    store["cameras"]["camera.c"] = {"title": "Bay!"}
+    store["commander"]["top"]["cameras"].append("camera.c")
     found = " ".join(problems(store))
     assert "hyphen" in found
     assert "camera.gone is not one of the cameras" in found
-    assert "'Shed' and 'Shed!' clash" in found
-    assert "missing 'Nope'" in found
+    assert "'Bay' and 'Bay!' clash" in found
+    for panel in ("left", "top", "bottom"):
+        store["commander"][panel]["cameras"] = []
+    assert "The commander has no cameras" in " ".join(problems(store))
 
 
 def test_ha_cameras_matches_channels_by_device():
@@ -205,45 +163,35 @@ def call(cd, method, path, body=None, query=None):
 
 @pytest.fixture
 def cd(tmp_path):
-    (tmp_path / "groups.json").write_text(json.dumps(GROUPS))
-    (tmp_path / "entities.json").write_text(json.dumps(ENTITIES))
-    (tmp_path / "dashboard_config.json").write_text(json.dumps(DASH))
+    for name in ("camera-dashboard.json", "camera-dashboard-live.json"):
+        (tmp_path / name).write_text(json.dumps(STORE))
     cd = CameraDashboard(tmp_path, FakeHA(), lambda: "10.0.0.2")  # type: ignore[arg-type]
     cd.start()
     return cd
 
 
-def test_first_start_imports_into_draft_and_live(cd, tmp_path):
-    assert (tmp_path / "camera-dashboard.json").exists()
-    assert load_config(tmp_path).groups["Shed"]["menu"] is True  # the live store
-    assert cd.health()["changed"] is False
-    assert cd.health()["deployed"] is None  # imported, not deployed
-
-
 def test_edit_preview_then_deploy(cd, tmp_path):
     status, view = call(cd, "GET", "")
     store = view["store"]
-    store["groups"]["Shed"]["cameras"].reverse()
+    store["commander"]["main"] = "camera.b"
     status, view = call(cd, "PUT", "", store)
     assert status == 200 and view["changed"] is True
     # the live compositor still draws what was deployed
-    assert (
-        load_config(tmp_path).groups["Shed"]["cameras"][0]["entity"] == "camera.a_low"
-    )
+    assert load_config(tmp_path).commander["main"] == ""
 
     status, out = call(cd, "POST", "deploy", {"target": "preview"})
     assert status == 200 and out["url_path"] == "dashboard-cams-preview"
     preview = cd.ha.boards["dashboard-cams-preview"]
-    assert "http://10.0.0.2:8098/g/overview.mjpg" in json.dumps(preview)
-    assert "/dashboard-cams-preview/cameras-shed" in json.dumps(preview)
+    assert "http://10.0.0.2:8098/g/commander.mjpg" in json.dumps(preview)
+    assert "/dashboard-cams-preview/cam-bay" in json.dumps(preview)
     assert out["changed"] is True  # a preview changes nothing live
 
     status, out = call(cd, "POST", "deploy", {"target": "live"})
     assert status == 200 and out["changed"] is False and out["deployed"]
-    assert "http://10.0.0.2:8099/g/overview.mjpg" in json.dumps(
+    assert "http://10.0.0.2:8099/g/commander.mjpg" in json.dumps(
         cd.ha.boards["dashboard-cams"]
     )
-    assert load_config(tmp_path).groups["Shed"]["cameras"][0]["entity"] == "camera.b"
+    assert load_config(tmp_path).commander["main"] == "camera.b"
     # what it replaced was kept, and can be put back
     status, out = call(cd, "GET", "backups")
     (kept,) = out["backups"]
@@ -255,10 +203,10 @@ def test_edit_preview_then_deploy(cd, tmp_path):
 def test_save_drops_page_controls_with_no_entity(cd):
     _, view = call(cd, "GET", "")
     store = view["store"]
-    store["groups"]["Shed"]["controls"] = [{"entity": " "}]
+    store["cameras"]["camera.b"]["controls"] = [{"entity": " "}]
     store["cameras"]["camera.a_low"]["controls"].append({"entity": "", "name": "x"})
     _, view = call(cd, "PUT", "", store)
-    assert "controls" not in view["store"]["groups"]["Shed"]
+    assert "controls" not in view["store"]["cameras"]["camera.b"]
     assert view["store"]["cameras"]["camera.a_low"]["controls"] == [
         {"entity": "button.gate"}
     ]
@@ -266,7 +214,8 @@ def test_save_drops_page_controls_with_no_entity(cd):
 
 def test_refuses_to_deploy_a_broken_store(cd):
     _, view = call(cd, "GET", "")
-    view["store"]["groups"]["Shed"]["cameras"] = []
+    for panel in ("left", "bottom"):
+        view["store"]["commander"][panel]["cameras"] = []
     assert call(cd, "PUT", "", view["store"])[0] == 200  # a draft may be unfinished
     status, out = call(cd, "POST", "deploy", {"target": "live"})
     assert status == 400 and "no cameras" in out["error"]
@@ -284,14 +233,15 @@ def test_revert_throws_the_draft_away(cd):
 def test_yaml_for_copy_and_paste(cd):
     status, ctype, body = cd.handle("GET", "yaml", {"target": ["live"]}, b"")
     assert status == 200 and ctype.startswith("text/yaml")
-    assert b"http://10.0.0.2:8099/g/Shed.mjpg" in body
+    assert b"http://10.0.0.2:8099/g/commander.mjpg" in body
 
 
 def test_starts_empty_without_old_files(tmp_path):
     cd = CameraDashboard(tmp_path, None, lambda: None)
     cd.start()
     assert (
-        cd.health()["groups"] == 0 and not (tmp_path / "camera-dashboard.json").exists()
+        cd.health()["cameras"] == 0
+        and not (tmp_path / "camera-dashboard.json").exists()
     )
 
 
@@ -320,34 +270,32 @@ def test_live_previews_and_thumbnails(tmp_path):
     cd.start()  # empty: nothing saved
     draft.start()
 
-    def render(store, name, portrait=False):
-        body = json.dumps({"store": store, "name": name, "portrait": portrait})
-        return cd.handle("POST", "render", {}, body.encode())
+    def render(store):
+        return cd.handle("POST", "render", {}, json.dumps({"store": store}).encode())
 
     store = {
         "cameras": {"camera.a": {"title": "A"}, "camera.b": {"title": "B"}},
-        "groups": {"Orchard Walk": {"cameras": ["camera.a", "camera.b"]}},
-        "overview": {**GROUPS["_overview"], "rows": [{"groups": ["Orchard Walk"]}]},
+        "commander": {
+            "width": 640,
+            "height": 360,
+            "gap": 0,
+            "left": {"cameras": ["camera.a"], "size": 20, "fit": "cover"},
+            "bottom": {"cameras": ["camera.b"], "size": 20, "fit": "cover"},
+        },
     }
     try:
-        status, ctype, body = render(store, "Orchard Walk")
+        status, ctype, body = render(store)
         assert (status, ctype) == (200, "image/jpeg")
-        assert Image.open(io.BytesIO(body)).size == (
-            1280,
-            340,
-        )  # two tiles side by side
-        store["groups"]["Orchard Walk"]["tile"] = [320, 180]  # an edit, not saved
-        assert Image.open(io.BytesIO(render(store, "Orchard Walk")[2])).size == (
-            640,
-            180,
-        )
-        assert render(store, "overview")[0] == 200
-        assert render(store, "Nope")[0] == 404
+        assert Image.open(io.BytesIO(body)).size == (640, 360)
+        store["commander"]["width"] = 800  # an edit, not saved
+        assert Image.open(io.BytesIO(render(store)[2])).size == (800, 360)
         status, ctype, body = cd.handle("GET", "thumb/camera.a", {}, b"")
         assert (status, ctype) == (200, "image/jpeg") and body[:2] == b"\xff\xd8"
         assert cd.handle("GET", "thumb/..%2Fetc", {}, b"")[0] == 400
-        store["groups"]["Orchard Walk"]["cameras"] = []
-        status, _, body = render(store, "Orchard Walk")
+        store["commander"]["left"]["cameras"] = store["commander"]["bottom"][
+            "cameras"
+        ] = []
+        status, _, body = render(store)
         assert status == 422 and b"no cameras" in body
     finally:
         draft.stop()
@@ -357,7 +305,7 @@ def test_live_previews_and_thumbnails(tmp_path):
 
 
 def test_warns_about_what_ha_lacks():
-    store = import_legacy(GROUPS, ENTITIES, DASH)
+    store = commander_store()
     have = {"camera.a_low", "camera.a_med", "camera.a_high", "camera.b"}
     found = warnings(store, have, ["/hacsfiles/webrtc/webrtc-camera.js"], {"u1"})
     assert "button.gate (on Bay's page) is not in Home Assistant." in found
@@ -398,22 +346,6 @@ def test_live_view_gives_each_channel_from_ha(cd):
     assert call(cd, "GET", "live/camera.nope")[0] == 400
 
 
-def commander_store():
-    store = import_legacy(GROUPS, ENTITIES, DASH)
-    store["overview_mode"] = "commander"
-    store["commander"] = {
-        "width": 1000,
-        "height": 500,
-        "gap": 0,
-        "main": "",
-        "left": {"cameras": ["camera.a_low"], "size": 10, "fit": "cover"},
-        "top": {"cameras": [], "size": 20, "fit": "cover"},
-        "right": {"cameras": [], "size": 10, "fit": "cover"},
-        "bottom": {"cameras": ["camera.b"], "size": 20, "fit": "cover"},
-    }
-    return store
-
-
 def test_commander_layout():
     from casa_mia.modules.compositor import EMPTY_COMMANDER, commander_layout
 
@@ -437,9 +369,9 @@ def test_commander_overview_taps_choose_and_open():
     store = commander_store()
     assert problems(store) == []
     views = build_dashboard(store, "http://h:8099", "dashboard-cams")["views"]
-    landscape, portrait = views[0]["sections"][0]["cards"]
+    (landscape,) = views[0]["sections"][0]["cards"]  # one picture, for every screen
     assert landscape["image"] == "http://h:8099/g/commander.mjpg"
-    assert portrait["image"] == "http://h:8099/g/overview.mjpg?layout=portrait"
+    assert "visibility" not in landscape
     taps = [e for e in landscape["elements"] if e["type"] == "image"]
     assert [t["tap_action"]["data"]["option"] for t in taps] == ["Bay", "Tablet"]
     mains = [e for e in landscape["elements"] if e["type"] == "conditional"]
@@ -497,8 +429,6 @@ def test_integration_chooses_the_main_camera(tmp_path):
         base = f"http://127.0.0.1:{live.port}/g/commander"
         with urllib.request.urlopen(base + ".jpg") as r:
             assert Image.open(io.BytesIO(r.read())).size == (1000, 500)
-        with pytest.raises(urllib.error.HTTPError):
-            urllib.request.urlopen(base + ".jpg?layout=portrait")  # landscape only
         again = CameraDashboard(
             tmp_path, None, lambda: None, live=live, state_path=state
         )
@@ -552,20 +482,6 @@ def test_a_choice_moves_the_preview_too(tmp_path):
         assert draft.main_camera() == "camera.b"
     finally:
         draft.stop()
-
-
-def test_group_gap_moves_its_tap_zones():
-    store = import_legacy(GROUPS, ENTITIES, DASH)
-    store["groups"]["Shed"]["gap"] = 10
-    assert problems(store) == []
-    views = build_dashboard(store, "http://h:8099", "dashboard-cams")["views"]
-    second = views[1]["sections"][0]["cards"][0]["elements"][1]["style"]
-    # two 640 px tiles and a 10 px gap: the second starts at 650 of 1290
-    assert second["left"] == f"{(650 + 320) / 1290 * 100:.2f}%"
-    store["groups"]["Shed"]["gap"] = 40  # no upper limit
-    assert problems(store) == []
-    store["groups"]["Shed"]["gap"] = -1
-    assert "the gap must be 0 px or more" in " ".join(problems(store))
 
 
 def test_shapes_are_numbers_or_ratios():

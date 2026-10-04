@@ -100,10 +100,10 @@ export const MODULES: Record<string, ModuleInfo> = {
   compositor: {
     title: "Camera compositor",
     option: "Compose camera groups",
-    blurb: "Tiles each camera group into one live picture for the dashboards and wall tablets.",
+    blurb: "Draws the Camera Commander as one live picture for the dashboards and wall tablets.",
     icon: <CameraGridIcon />,
     facts: (h) => [
-      ["Camera groups", String(h.groups ?? 0)],
+      ["Cameras", String(h.cameras ?? 0)],
       ["Live streams", String(h.streams ?? 0)],
       ["Needs", (h.needs as string | null) ?? undefined],
     ],
@@ -111,11 +111,10 @@ export const MODULES: Record<string, ModuleInfo> = {
   camera_dashboard: {
     title: "Camera Dashboard",
     option: "Camera Dashboard",
-    blurb: "Sets up the cameras, their composites and the camera dashboard, with previews, and deploys it.",
+    blurb: "Sets up the cameras, the Camera Commander and the camera dashboard, with previews, and deploys it.",
     icon: <CameraIcon />,
     facts: (h) => [
       ["Cameras", String(h.cameras ?? 0)],
-      ["Groups", String(h.groups ?? 0)],
       ["Deployed", ago(h.deployed) ?? "never"],
       ["Draft", h.changed ? "differs from live" : "same as live"],
     ],

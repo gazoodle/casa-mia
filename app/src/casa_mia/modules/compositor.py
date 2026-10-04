@@ -1,19 +1,17 @@
-"""compositor: on-demand camera-group compositor.
+"""compositor: on-demand camera compositor: the Camera Commander's picture.
 
-Fetches low-res stills from Home Assistant, tiles each group into one JPEG and serves
-it over HTTP. Nothing is fetched while nobody is asking, and any number of viewers
-share one fetch per INTERVAL. Ported from tablet-provision/composite-test/server.py.
+Fetches low-res stills from Home Assistant, draws the commander (a main camera framed by
+panels of cameras) and serves it over HTTP. Nothing is fetched while nobody is asking, and
+any number of viewers share one fetch per INTERVAL. Ported from
+tablet-provision/composite-test/server.py.
 
-  GET /g/<group>.jpg    latest composite (poll it, or view it once)
-  GET /g/<group>.mjpg   self-updating multipart stream, one frame per interval
-  GET /g/overview.*     the same, for the composite of composites (slower refresh)
-                        (add ?layout=portrait for the phone layout)
-  GET /                 list of groups; GET /status  cache ages and open streams
+  GET /g/commander.jpg    latest picture (poll it, or view it once)
+  GET /g/commander.mjpg   self-updating multipart stream, one frame per interval
+  GET /                   links; GET /status  cache ages and open streams
 
-Config lives in the app's config folder: the Camera Dashboard's store when there is one
-(camera-dashboard-live.json, what was last deployed; the draft compositor reads the draft,
-camera-dashboard.json), else the older groups.json (see `load_config`) and entities.json
-(low entity -> {medium, high, zoom}).
+Config is the Camera Dashboard's store in the app's config folder:
+camera-dashboard-live.json (what was last deployed); the draft compositor reads the draft,
+camera-dashboard.json.
 """
 
 from __future__ import annotations
@@ -22,7 +20,6 @@ import asyncio
 import io
 import json
 import logging
-import math
 import threading
 import time
 from collections.abc import Awaitable, Callable
@@ -38,50 +35,34 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageOps
 _LOGGER = logging.getLogger(__name__)
 
 PORT = 8099
-INTERVAL = 2.0  # seconds a group composite is reused before it is rebuilt
-OVERVIEW_INTERVAL = 5.0
+INTERVAL = 2.0  # seconds a picture is reused before it is rebuilt
 MAX_STALE = 30.0  # older than this, the caller waits for a fresh one
 WARM_EVERY = 10.0  # while someone looked in the last WARM_WINDOW, rebuild this often
 WARM_WINDOW = 300.0
 MAX_STREAMS = 3  # per client address: older ones are images the browser abandoned
-WARM_STREAM_EVERY = 90.0  # re-start a viewed group's live streams (HA drops idle ones)
+WARM_STREAM_EVERY = (
+    90.0  # re-start the viewed cameras' live streams (HA drops idle ones)
+)
 WARM_STREAM_TIER = "medium"  # the channel the wall tablets play
 STILL_TTL = 1.5  # a fetched still is shared by every composite built within this time
-DEFAULT_TILE = (640, 340)  # a shade shorter than 16:9 so a group page fits a tablet
 FETCH_TIMEOUT = 5
 JPEG_QUALITY = 70
-JPEG_QUALITY_OVERVIEW = 65
-BAR = 30  # height of the name bar at the foot of each tile
-LATEST_SIZE = (640, 360)  # the kept still of each camera (keep_stills), a tile's size
+LATEST_SIZE = (640, 360)  # the kept still of each camera (keep_stills)
 LATEST_AT_ONCE = 4  # cameras fetched together in a round
 
-Group = dict[str, Any]
 Build = Callable[[], Awaitable[bytes]]
 
 
 @dataclass
 class Config:
-    groups: dict[str, Group] = field(default_factory=dict)
-    overview: dict = field(default_factory=dict)
-    overview_portrait: dict = field(default_factory=dict)
     entities: dict[str, dict[str, str]] = field(default_factory=dict)
     commander: dict = field(default_factory=dict)
     titles: dict[str, str] = field(default_factory=dict)  # camera -> its title
-
-    def overview_for(self, portrait: bool) -> dict:
-        return self.overview_portrait if portrait else self.overview
 
 
 # The Camera Dashboard's stores (see camera_dashboard.py): what is deployed, and the draft.
 LIVE_STORE = "camera-dashboard-live.json"
 DRAFT_STORE = "camera-dashboard.json"
-EMPTY_OVERVIEW = {
-    "width": 1280,
-    "gap": 8,
-    "cell_aspect": 1.7,
-    "strip_aspect": 1.5,
-    "rows": [],
-}
 # The commander: one landscape picture, a main camera framed by four panels of cameras.
 # Left and right sizes are % of the width, top and bottom % of the height.
 PANELS = ("left", "top", "right", "bottom")
@@ -135,24 +116,10 @@ EMPTY_COMMANDER = {
 
 
 def config_from_store(store: dict) -> Config:
-    """The compositor's view of a Camera Dashboard store: groups name their cameras by
-    entity, and each camera's title and channels live once, under "cameras"."""
+    """The compositor's view of a Camera Dashboard store: the commander names its cameras
+    by entity, and each camera's title and channels live once, under "cameras"."""
     cams = store.get("cameras", {})
-    cfg = Config(
-        overview=store.get("overview") or EMPTY_OVERVIEW,
-        overview_portrait=store.get("overview_portrait") or EMPTY_OVERVIEW,
-    )
-    for name, g in store.get("groups", {}).items():
-        cfg.groups[name] = {
-            "cameras": [
-                {"entity": e, "title": cams.get(e, {}).get("title", e)}
-                for e in g["cameras"]
-            ],
-            "tile": tuple(g.get("tile", DEFAULT_TILE)),
-            "fit": g.get("fit", "cover"),
-            "menu": g.get("menu", True),
-            "gap": g.get("gap", 0),
-        }
+    cfg = Config()
     cfg.entities = {
         e: {k: c[k] for k in ("medium", "high", "zoom") if c.get(k)}
         for e, c in cams.items()
@@ -163,44 +130,15 @@ def config_from_store(store: dict) -> Config:
 
 
 def load_config(directory: Path, store: str = LIVE_STORE) -> Config:
-    """The store when there is one (see `config_from_store`), else groups.json: group -> camera list, or {"cameras": [...], "tile": [w, h],
-    "fit": "contain" | "cover"}. The reserved "_overview" (landscape) and
-    "_overview_portrait" (phones) keys are {"width": w, "gap": n, "cell_aspect": r,
-    "strip_aspect": r, "rows": [...]}, each row {"groups": [...]} (each group's
-    composite as one cell) or {"strip": [...]} (those groups' cameras in one line).
-    Groups named "Wall..." are viewed directly, not part of the menu tree."""
+    """The store (see `config_from_store`); an empty config until there is one."""
     if (directory / store).exists():
         return config_from_store(json.loads((directory / store).read_text()))
-    empty = EMPTY_OVERVIEW
-    cfg = Config(overview=empty, overview_portrait=empty)
-    path = directory / "groups.json"
-    if not path.exists():
-        return cfg
-    raw = json.loads(path.read_text())
-    cfg.overview = raw.pop("_overview", empty)
-    cfg.overview_portrait = raw.pop("_overview_portrait", empty)
-    for name, v in raw.items():
-        v = {"cameras": v} if isinstance(v, list) else v
-        cfg.groups[name] = {
-            "cameras": v["cameras"],
-            "tile": tuple(v.get("tile", DEFAULT_TILE)),
-            "fit": v.get("fit", "cover"),
-            "menu": not name.startswith("Wall"),
-        }
-    entities = directory / "entities.json"
-    if entities.exists():
-        cfg.entities = json.loads(entities.read_text())
-    return cfg
+    return Config()
 
 
 # --- drawing: pure functions of the config and the images -----------------------------
 
 FONT = ImageFont.load_default(size=20)
-
-
-def tile_grid(n: int) -> tuple[int, int]:
-    cols = math.ceil(math.sqrt(n))
-    return cols, math.ceil(n / cols)
 
 
 def encode(img: Image.Image, quality: int) -> bytes:
@@ -216,147 +154,6 @@ def encode(img: Image.Image, quality: int) -> bytes:
 
 def mime(data: bytes) -> str:
     return "image/webp" if data[:4] == b"RIFF" else "image/jpeg"
-
-
-def blank(size: tuple[int, int], gap: int, colour: str = "black") -> Image.Image:
-    """A canvas: transparent where gaps will be (when there are any), else `colour`."""
-    return (
-        Image.new("RGBA", size, (0, 0, 0, 0)) if gap else Image.new("RGB", size, colour)
-    )
-
-
-def tile(
-    cams: list[dict],
-    images: list[bytes | None],
-    size: tuple[int, int] = DEFAULT_TILE,
-    fit: str = "contain",
-    cols: int | None = None,
-    gap: int = 0,
-) -> bytes:
-    """Compose one picture from the cameras' still images (None = camera failed), with
-    `gap` transparent pixels between tiles."""
-    tw, th = size
-    cols = cols or tile_grid(len(cams))[0]
-    rows = math.ceil(len(cams) / cols)
-    canvas = blank((cols * tw + (cols - 1) * gap, rows * th + (rows - 1) * gap), gap)
-    draw = ImageDraw.Draw(canvas, "RGBA")
-    for i, (cam, raw) in enumerate(zip(cams, images, strict=False)):
-        x, y = (i % cols) * (tw + gap), (i // cols) * (th + gap)
-        if gap:
-            draw.rectangle((x, y, x + tw - 1, y + th - 1), fill="black")
-        if raw:
-            try:
-                src = Image.open(io.BytesIO(raw)).convert("RGB")
-                img = (
-                    ImageOps.fit(src, size)
-                    if fit == "cover"
-                    else ImageOps.contain(src, size)
-                )
-                canvas.paste(
-                    img, (x + (tw - img.width) // 2, y + (th - img.height) // 2)
-                )
-            except OSError:
-                raw = None
-        if not raw:
-            draw.text(
-                (x + tw // 2, y + th // 2),
-                "no signal",
-                fill="white",
-                font=FONT,
-                anchor="mm",
-            )
-        draw.rectangle((x, y + th - BAR, x + tw, y + th), fill=(0, 0, 0, 140))
-        draw.text(
-            (x + 10, y + th - 15), cam["title"], fill="white", font=FONT, anchor="lm"
-        )
-    draw.text(
-        (canvas.width - 10, canvas.height - 15),
-        datetime.now().strftime("%H:%M:%S"),
-        fill="white",
-        font=FONT,
-        anchor="rm",
-    )
-    return encode(canvas, JPEG_QUALITY)
-
-
-def overview_groups(cfg: dict) -> list[str]:
-    return [n for row in cfg["rows"] for n in row.get("groups") or row["strip"]]
-
-
-def subtiles(
-    rect: tuple[int, int, int, int], n: int
-) -> list[tuple[int, int, int, int]]:
-    """The n camera tiles of a group, on the same grid as its composite, filling rect."""
-    x, y, w, h = rect
-    cols, rows = tile_grid(n)
-
-    def edge(i: int, span: int, k: int) -> int:
-        return round(i * span / k)
-
-    return [
-        (
-            x + edge(c, w, cols),
-            y + edge(r, h, rows),
-            edge(c + 1, w, cols) - edge(c, w, cols),
-            edge(r + 1, h, rows) - edge(r, h, rows),
-        )
-        for r, c in (divmod(i, cols) for i in range(n))
-    ]
-
-
-def overview_layout(
-    cfg: dict, groups: dict[str, Group]
-) -> tuple[tuple[int, int], list[dict]]:
-    """Canvas size and, per group, its rect (x, y, w, h) and each camera's tile rect.
-    No outer margin; only `gap` between neighbouring groups. `cell_aspect` shapes a
-    group cell, `strip_aspect` a strip tile. Shared with the dashboard generator so
-    tap zones line up."""
-    width, gap, items, y = cfg["width"], cfg["gap"], [], 0
-    for row in cfg["rows"]:
-        if "groups" in row:
-            n = len(row["groups"])
-            w = (width - (n - 1) * gap) // n
-            h = round(w / ratio(cfg["cell_aspect"]))
-            for i, g in enumerate(row["groups"]):
-                rect = (i * (w + gap), y, w, h)
-                tiles = subtiles(rect, len(groups[g]["cameras"]))
-                items.append({"group": g, "rect": rect, "tiles": tiles})
-        else:
-            counts = [len(groups[g]["cameras"]) for g in row["strip"]]
-            w = (width - (len(counts) - 1) * gap) // sum(counts)
-            h, x = round(w / ratio(cfg["strip_aspect"])), 0
-            for g, c in zip(row["strip"], counts, strict=True):
-                tiles = [(x + j * w, y, w, h) for j in range(c)]
-                items.append({"group": g, "rect": (x, y, w * c, h), "tiles": tiles})
-                x += w * c + gap
-        y += h + gap
-    return (max(i["rect"][0] + i["rect"][2] for i in items), y - gap), items
-
-
-def overview(frames: dict[str, bytes], cfg: dict, groups: dict[str, Group]) -> bytes:
-    """Compose the group composites into one image: each camera's picture is cropped out
-    of its group composite (name bar left off) and cropped again to fill its place.
-    Transparent gaps between groups (the dashboard's background), no outer margin."""
-    size, items = overview_layout(cfg, groups)
-    canvas = blank(size, cfg["gap"], "white")
-    draw = ImageDraw.Draw(canvas, "RGBA")
-    for it in items:
-        x, y = it["rect"][:2]
-        comp = Image.open(io.BytesIO(frames[it["group"]])).convert("RGB")
-        group = groups[it["group"]]
-        (tw, th), cols = group["tile"], tile_grid(len(group["cameras"]))[0]
-        g = group.get("gap", 0)  # between the tiles of the group's own composite
-        for j, (tx, ty, w2, h2) in enumerate(it["tiles"]):
-            left, top = (j % cols) * (tw + g), (j // cols) * (th + g)
-            box = (left, top, left + tw, top + th - BAR)
-            canvas.paste(ImageOps.fit(comp.crop(box), (w2, h2)), (tx, ty))
-        label = it["group"]
-        pill = draw.textbbox((x + 6, y + 6), label, font=FONT)
-        draw.rectangle(
-            (pill[0] - 5, pill[1] - 3, pill[2] + 5, pill[3] + 3), fill=(0, 0, 0, 160)
-        )
-        draw.text((x + 6, y + 6), label, fill="white", font=FONT)
-    return encode(canvas, JPEG_QUALITY_OVERVIEW)
 
 
 # --- the commander -------------------------------------------------------------------
@@ -514,14 +311,11 @@ def commander(
     shown the moment the main camera is switched, from stills already to hand: blurred,
     with "Changing to <camera>" over it, until the sharp one is ready."""
     size, main_rect, rects = commander_layout(cmd, main)
-    canvas = blank(
-        size, cmd["gap"]
-    )  # the gaps transparent: the dashboard shows through
+    # Drawn solid, so the name bars and labels shade the picture under them; the gaps
+    # are cut out at the end. (Drawn on a transparent canvas, a see-through bar would
+    # replace the picture under it, and the dashboard's background would show through.)
+    canvas = Image.new("RGB", size, "black")
     draw = ImageDraw.Draw(canvas, "RGBA")
-    if cmd["gap"]:  # every tile and the main area black; only the gaps are clear
-        for x, y, w, h in [main_rect, *(r for p in PANELS for r in rects[p])]:
-            if w > 0 and h > 0:
-                draw.rectangle((x, y, x + w - 1, y + h - 1), fill="black")
     for panel in PANELS:
         fit = cmd[panel].get("fit", "cover")
         for entity, (x, y, w, h) in zip(
@@ -633,6 +427,13 @@ def commander(
             font=FONT,
             anchor="rm",
         )
+    if cmd["gap"]:  # every tile and the main area solid; only the gaps are clear
+        mask = Image.new("L", size, 0)
+        solid = ImageDraw.Draw(mask)
+        for x, y, w, h in [main_rect, *(r for p in PANELS for r in rects[p])]:
+            if w > 0 and h > 0:
+                solid.rectangle((x, y, x + w - 1, y + h - 1), fill=255)
+        canvas.putalpha(mask)
     return encode(canvas, JPEG_QUALITY)
 
 
@@ -652,7 +453,7 @@ class Compositor:
         store: str = LIVE_STORE,
         prewarm: bool = True,
         keep_stills: float | None = None,
-        needs: str = "groups.json in the app's config folder",
+        needs: str = "a Deploy live from the Camera Dashboard page",
     ) -> None:
         self.config_dir = config_dir
         self.store = store  # which Camera Dashboard store it serves (live or draft)
@@ -660,9 +461,7 @@ class Compositor:
         # Keep the latest still of every camera, refreshed this often (seconds), so the
         # Camera Dashboard's thumbnails and previews are ready at once.
         self.keep_stills = keep_stills
-        self.needs = (
-            needs  # what to set up when there are no groups (shown on the tile)
-        )
+        self.needs = needs  # what to set up when it has no cameras (shown on the tile)
         self.ha_url = ha_url.rstrip("/")  # the Supervisor proxy, or http://host:8123
         self.ws_url = self.ha_url.replace("http", "ws", 1) + ws_path
         self.token = token
@@ -681,7 +480,7 @@ class Compositor:
         self._bg: set[asyncio.Task] = set()
         self._streams: dict[str | None, list[asyncio.Event]] = {}
         self._last_request = time.monotonic()
-        self._seen: set[tuple[str, bool]] = set()
+        self._seen: set[str] = set()
         self._http: aiohttp.ClientSession | None = None
         self._latest: dict[str, bytes] = {}  # camera -> its latest still (keep_stills)
         self._thumbs: dict[
@@ -700,9 +499,9 @@ class Compositor:
             self._error = f"bad config in {self.config_dir}: {exc}"
             _LOGGER.error(self._error)
             return
-        if not self.cfg.groups:
+        if not self._known("commander"):
             _LOGGER.warning(
-                "compositor (%s): no groups yet; it needs %s", self.store, self.needs
+                "compositor (%s): no cameras yet; it needs %s", self.store, self.needs
             )
         threading.Thread(target=lambda: asyncio.run(self._serve()), daemon=True).start()
         self._ready.wait(10)
@@ -720,7 +519,7 @@ class Compositor:
         def apply() -> None:
             self.cfg, self._error = cfg, None
             self._cache.clear()
-            self._seen = {(n, p) for n, p in self._seen if self._known(n, p)}
+            self._seen = {n for n in self._seen if self._known(n)}
             if self._round_now:
                 self._round_now.set()  # fetch any camera just added
 
@@ -728,7 +527,11 @@ class Compositor:
             self._loop.call_soon_threadsafe(apply)
         else:
             self.cfg = cfg
-        _LOGGER.info("compositor (%s) reloaded: %d groups", self.store, len(cfg.groups))
+        _LOGGER.info(
+            "compositor (%s) reloaded: %d commander cameras",
+            self.store,
+            len(commander_cameras(cfg.commander)),
+        )
 
     def main_camera(self, cfg: Config | None = None) -> str | None:
         """The commander's main camera: the one last chosen if it is still in a panel,
@@ -814,18 +617,19 @@ class Compositor:
         except (OSError, ValueError) as exc:
             _LOGGER.debug("commander: no quick picture: %s", exc)
             self._cache.pop("commander", None)
-        await self._refresh("commander", self._builder("commander", False))
+        await self._refresh("commander", self._build_commander)
         self._wake_streams("commander")
 
-    def render(self, cfg: Config, name: str, portrait: bool = False) -> bytes:
-        """Draw one composite (a group, or "overview") from a config that is not the one
-        being served: the Camera Dashboard's unsaved edits, for its live previews. Stills
-        are shared with the composites being served. Thread-safe; KeyError for a group
-        that isn't there, ValueError for one that can't be drawn."""
+    def render(self, cfg: Config) -> bytes:
+        """Draw the commander from a config that is not the one being served: the Camera
+        Dashboard's unsaved edits, for its live preview. Stills are shared with the
+        picture being served. Thread-safe; ValueError when it has no cameras."""
         if not (self._loop and self._running):
             raise RuntimeError("the compositor is not running")
+        if not commander_cameras(cfg.commander):
+            raise ValueError("the commander has no cameras")
         future = asyncio.run_coroutine_threadsafe(
-            self._render(cfg, name, portrait), self._loop
+            self._build_commander(cfg, ready=True), self._loop
         )
         return future.result(FETCH_TIMEOUT * 4)
 
@@ -853,40 +657,19 @@ class Compositor:
         self._thumbs[(entity, width)] = (source, thumb)
         return thumb
 
-    async def _render(self, cfg: Config, name: str, portrait: bool) -> bytes:
-        if name == "commander":
-            if not commander_cameras(cfg.commander):
-                raise ValueError("the commander has no cameras")
-            return await self._build_commander(cfg, ready=True)
-        if name != "overview":
-            if not cfg.groups[name]["cameras"]:
-                raise ValueError(f"{name} has no cameras")
-            return await self._compose(cfg.groups[name], portrait, ready=True)
-        layout = cfg.overview_for(portrait)
-        names = overview_groups(layout)
-        if not names:
-            raise ValueError("the overview has no rows")
-        for n in names:
-            if not cfg.groups[n]["cameras"]:
-                raise ValueError(f"{n} has no cameras")
-        frames = await asyncio.gather(
-            *(self._compose(cfg.groups[n], ready=True) for n in names)
-        )
-        return overview(dict(zip(names, frames, strict=True)), layout, cfg.groups)
-
     def stop(self) -> None:
         if self._loop and self._stop:
             self._loop.call_soon_threadsafe(self._stop.set)
 
     def health(self) -> dict[str, Any]:
         if self._running:
-            state = "running" if self.cfg.groups else "unconfigured"
+            state = "running" if self._known("commander") else "unconfigured"
         else:
             state = "offline"
         return {
             "state": state,
             "port": self.port,
-            "groups": len(self.cfg.groups),
+            "cameras": len(commander_cameras(self.cfg.commander)),
             "streams": sum(len(v) for v in self._streams.values()),
             "needs": self.needs if state == "unconfigured" else None,
             "error": self._error,
@@ -902,15 +685,7 @@ class Compositor:
             # the first WARM_WINDOW is pre-warmed
             self._last_request = time.monotonic() if self.prewarm else -WARM_WINDOW
             self._seen = (
-                {(n, p) for n in self._menu_groups() for p in (False, True)}
-                | {
-                    ("overview", p)
-                    for p in (False, True)
-                    if self.cfg.overview_for(p)["rows"]
-                }
-                | ({("commander", False)} if self._known("commander") else set())
-                if self.prewarm
-                else set()
+                {"commander"} if self.prewarm and self._known("commander") else set()
             )
             app = web.Application()
             app.add_routes(
@@ -928,9 +703,7 @@ class Compositor:
             if self.port == 0:
                 self.port = site._server.sockets[0].getsockname()[1]  # type: ignore[union-attr]
             self._running = True
-            _LOGGER.info(
-                "compositing %d groups on :%d", len(self.cfg.groups), self.port
-            )
+            _LOGGER.info("compositor (%s) serving on :%d", self.store, self.port)
             tasks = [asyncio.create_task(self._keep_warm())]
             if self.keep_stills:
                 self._round_now = asyncio.Event()
@@ -953,8 +726,8 @@ class Compositor:
     # -- fetching and caching
 
     def _fetch(self, entity: str, size: tuple[int, int]) -> asyncio.Future:
-        """A camera still, shared: composites built together (landscape and portrait of
-        one group) fetch it once."""
+        """A camera still, shared: pictures built together (the live one and a preview)
+        fetch it once."""
         key, now = (entity, size), time.monotonic()
         hit = self._stills.get(key)
         if hit is None or now - hit[0] > STILL_TTL:
@@ -978,10 +751,8 @@ class Compositor:
             return None
 
     def _cameras(self) -> list[str]:
-        """Every camera of the config: in a group, or chosen and in no group yet."""
-        out = dict.fromkeys(
-            c["entity"] for g in self.cfg.groups.values() for c in g["cameras"]
-        )
+        """Every camera of the config: in the commander, or chosen and not in it yet."""
+        out = dict.fromkeys(commander_cameras(self.cfg.commander))
         return list(out | dict.fromkeys(self.cfg.entities))
 
     async def _keep_stills(self, every: float) -> None:
@@ -1060,31 +831,6 @@ class Compositor:
         await task
         return self._cache[key][1]
 
-    async def _build_group(self, name: str, portrait: bool = False) -> bytes:
-        return await self._compose(self.cfg.groups[name], portrait)
-
-    async def _compose(
-        self, group: Group, portrait: bool = False, ready: bool = False
-    ) -> bytes:
-        """A group's composite. `ready`: from the kept stills (the Camera Dashboard's
-        previews, at once) rather than fresh ones (what the wall tablets see)."""
-        cams, size = group["cameras"], group["tile"]
-        still = (
-            size[0],
-            size[0] * 9 // 16,
-        )  # a true 16:9 still from HA, cropped to the tile
-        images = await asyncio.gather(
-            *(
-                self._ready_still(c["entity"])
-                if ready
-                else self._fetch(c["entity"], still)
-                for c in cams
-            )
-        )
-        if portrait:  # one column of whole 16:9 tiles, for a phone held upright
-            return tile(cams, images, still, "cover", cols=1, gap=group.get("gap", 0))
-        return tile(cams, images, size, group["fit"], gap=group.get("gap", 0))
-
     async def _build_commander(
         self, cfg: Config | None = None, ready: bool = False
     ) -> bytes:
@@ -1126,53 +872,26 @@ class Compositor:
             motion=self.motion if cfg is self.cfg else frozenset(),
         )
 
-    async def _build_overview(self, portrait: bool = False) -> bytes:
-        """Compose from the group composites we have (each carries its own timestamp);
-        groups are served from cache, so this only waits for a group never built."""
-        cfg = self.cfg.overview_for(portrait)
-        names = overview_groups(cfg)
-        frames = await asyncio.gather(*(self._frame(n) for n in names))
-        return overview(dict(zip(names, frames, strict=True)), cfg, self.cfg.groups)
-
-    @staticmethod
-    def _key(name: str, portrait: bool) -> str:
-        return name + (":p" if portrait else "")
-
-    def _builder(self, name: str, portrait: bool) -> Build:
-        if name == "commander":
-            return lambda: self._build_commander()
-        if name == "overview":
-            return lambda: self._build_overview(portrait)
-        return lambda: self._build_group(name, portrait)
-
-    async def _frame(
-        self, name: str, fresh: bool = False, portrait: bool = False
-    ) -> bytes:
+    async def _frame(self, name: str, fresh: bool = False) -> bytes:
         self._last_request = time.monotonic()
-        self._seen.add(
-            (name, portrait)
-        )  # what has been asked for is what gets kept warm
-        interval = OVERVIEW_INTERVAL if name == "overview" else INTERVAL
-        return await self._cached(
-            self._key(name, portrait), interval, self._builder(name, portrait), fresh
-        )
+        self._seen.add(name)  # what has been asked for is what gets kept warm
+        return await self._cached(name, INTERVAL, self._build_commander, fresh)
 
     # -- keeping HA's live streams warm
 
     async def _warm_streams(self, name: str) -> None:
-        """Start HA's HLS streams for a group's cameras, so a tap into a live page finds
-        them already running. A cold HLS stream takes 7-9 s to become playable; a running
-        one ~10 ms. Rate-limited per group; cameras without channels are skipped."""
+        """Start HA's HLS streams for the commander's cameras, so a tap into a live page
+        finds them already running. A cold HLS stream takes 7-9 s to become playable; a
+        running one ~10 ms. Rate-limited; cameras without channels are skipped."""
         assert self._http
         now = time.monotonic()
         if now - self._warmed.get(name, -1e9) < WARM_STREAM_EVERY:
             return
         self._warmed[name] = now
         ents = [
-            "camera."
-            + self.cfg.entities[c["entity"]][WARM_STREAM_TIER].replace("camera.", "")
-            for c in self.cfg.groups[name]["cameras"]
-            if WARM_STREAM_TIER in self.cfg.entities.get(c["entity"], {})
+            "camera." + self.cfg.entities[e][WARM_STREAM_TIER].replace("camera.", "")
+            for e in commander_cameras(self.cfg.commander)
+            if WARM_STREAM_TIER in self.cfg.entities.get(e, {})
         ]
         if not ents:
             return
@@ -1221,54 +940,37 @@ class Compositor:
             pass
 
     def _warm_in_background(self, name: str) -> None:
-        if name in self.cfg.groups and self.cfg.groups[name].get("menu", True):
-            task = asyncio.ensure_future(self._warm_streams(name))
-            self._bg.add(task)
-            task.add_done_callback(self._bg.discard)
-
-    def _menu_groups(self) -> list[str]:
-        # The walls are viewed directly, not part of the menu tree.
-        return [n for n, g in self.cfg.groups.items() if g.get("menu", True)]
+        task = asyncio.ensure_future(self._warm_streams(name))
+        self._bg.add(task)
+        task.add_done_callback(self._bg.discard)
 
     async def _keep_warm(self) -> None:
         """While someone has looked recently, keep what has been asked for fresh so every
         page snaps into view."""
         while True:
             if time.monotonic() - self._last_request < WARM_WINDOW:
-                for name, portrait in list(self._seen):
-                    self._refresh(
-                        self._key(name, portrait), self._builder(name, portrait)
-                    )
+                for name in list(self._seen):
+                    self._refresh(name, self._build_commander)
             await asyncio.sleep(WARM_EVERY)
 
     # -- HTTP handlers
 
-    def _known(self, name: str, portrait: bool = False) -> bool:
-        if name == "commander":  # landscape only
-            return not portrait and bool(commander_cameras(self.cfg.commander))
-        return name in self.cfg.groups or (
-            name == "overview" and bool(self.cfg.overview_for(portrait)["rows"])
-        )
+    def _known(self, name: str) -> bool:
+        return name == "commander" and bool(commander_cameras(self.cfg.commander))
 
     async def _jpg(self, request: web.Request) -> web.Response:
-        name, portrait = (
-            request.match_info["name"],
-            request.query.get("layout") == "portrait",
-        )
-        if not self._known(name, portrait):
+        name = request.match_info["name"]
+        if not self._known(name):
             raise web.HTTPNotFound()
         self._warm_in_background(name)
-        data = await self._frame(name, portrait=portrait)
+        data = await self._frame(name)
         return web.Response(
             body=data, content_type=mime(data), headers={"Cache-Control": "no-store"}
         )
 
     async def _mjpg(self, request: web.Request) -> web.StreamResponse:
-        name, portrait = (
-            request.match_info["name"],
-            request.query.get("layout") == "portrait",
-        )
-        if not self._known(name, portrait):
+        name = request.match_info["name"]
+        if not self._known(name):
             raise web.HTTPNotFound()
         resp = web.StreamResponse(
             headers={
@@ -1293,7 +995,7 @@ class Compositor:
             # The parts' type (JPEG, or WebP with transparent gaps) is set by the first
             # picture; a deploy that changes it ends the stream (the dashboard reloads).
             self._warm_in_background(name)
-            data = await self._frame(name, portrait=portrait)
+            data = await self._frame(name)
             kind = mime(data)
             part = f"--frame\r\nContent-Type: {kind}\r\n\r\n".encode()
             await resp.write(part)
@@ -1303,7 +1005,7 @@ class Compositor:
                 await resp.write(data + b"\r\n" + part)
                 # The next frame after the interval, or at once when the picture changes
                 # (the commander's main camera was switched).
-                wait = OVERVIEW_INTERVAL if name == "overview" else INTERVAL
+                wait = INTERVAL
                 wake = self._wake.setdefault(name, asyncio.Event())
                 waits = [
                     asyncio.ensure_future(stop.wait()),
@@ -1319,7 +1021,7 @@ class Compositor:
                 self._warm_in_background(name)
                 # Woken (a new picture is ready): send it as it is, without a rebuild.
                 woken = waits[1] in done
-                data = await self._frame(name, fresh=not woken, portrait=portrait)
+                data = await self._frame(name, fresh=not woken)
         except (ConnectionResetError, asyncio.CancelledError):
             pass
         finally:
@@ -1339,13 +1041,10 @@ class Compositor:
         )
 
     async def _index(self, request: web.Request) -> web.Response:
-        names = (["overview"] if self.cfg.overview["rows"] else []) + list(
-            self.cfg.groups
-        )
-        links = "".join(
-            f'<li>{n}: <a href="/g/{n}.jpg">jpg</a> <a href="/g/{n}.mjpg">mjpg</a> '
-            f'<a href="/g/{n}.jpg?layout=portrait">portrait jpg</a> '
-            f'<a href="/g/{n}.mjpg?layout=portrait">portrait mjpg</a></li>'
-            for n in names
+        links = (
+            '<li>commander: <a href="/g/commander.jpg">jpg</a> '
+            '<a href="/g/commander.mjpg">mjpg</a></li>'
+            if self._known("commander")
+            else ""
         )
         return web.Response(text=f"<ul>{links}</ul>", content_type="text/html")

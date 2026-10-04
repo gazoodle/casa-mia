@@ -16,11 +16,11 @@ configuration:
     description: "Mirror the Kiosk Satellite firmware and serve it to the tablets at http://<this host>:8000 (the Custom repository address in Kiosk Satellite)."
   compositor_enabled:
     name: Compose camera groups
-    description: "Tile Home Assistant camera stills into one image per group, served at http://<this host>:8099/. Its groups are set up on the Camera Dashboard page (or, without it, groups.json in the app's config folder)."
+    description: "Draw the Camera Commander from Home Assistant camera stills, served at http://<this host>:8099/. It is set up on the Camera Dashboard page (which needs to be on)."
   camera_dashboard_enabled:
     name: Camera Dashboard
     description: >-
-      Set up the cameras, their composites and the camera dashboard on the Camera
+      Set up the cameras, the Camera Commander and the camera dashboard on the Camera
       Dashboard page of the Casa Mia panel, preview them, and deploy the dashboard into
       Home Assistant. Previews are served on port 8098; the live composites need Compose
       camera groups on.

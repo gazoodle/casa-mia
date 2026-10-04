@@ -9,14 +9,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import pytest
 from PIL import Image
 
-from casa_mia.modules.compositor import (
-    Compositor,
-    load_config,
-    overview,
-    overview_layout,
-    tile,
-    tile_grid,
-)
+from casa_mia.modules.compositor import LIVE_STORE, Compositor
 
 
 def jpeg(colour: str = "red") -> bytes:
@@ -25,53 +18,21 @@ def jpeg(colour: str = "red") -> bytes:
     return out.getvalue()
 
 
-def test_tile_grid():
-    assert tile_grid(1) == (1, 1)
-    assert tile_grid(4) == (2, 2)
-    assert tile_grid(5) == (3, 2)
-
-
-def test_tile_size_and_missing_camera():
-    cams = [{"title": "A"}, {"title": "B"}]
-    img = Image.open(io.BytesIO(tile(cams, [jpeg(), None], (200, 120))))
-    assert img.size == (
-        400,
-        120,
-    )  # two cameras, two columns; the failed one is "no signal"
-
-
 def write_config(directory):
-    (directory / "groups.json").write_text(
+    """A live store: the commander, Garage on the left and Pool along the bottom."""
+    (directory / LIVE_STORE).write_text(
         json.dumps(
             {
-                "Garage": [{"entity": "camera.a", "title": "A"}],
-                "Pool": {
-                    "cameras": [{"entity": "camera.b", "title": "B"}],
-                    "tile": [320, 180],
-                },
-                "_overview": {
+                "cameras": {"camera.a": {"title": "A"}, "camera.b": {"title": "B"}},
+                "commander": {
                     "width": 640,
-                    "gap": 8,
-                    "cell_aspect": 1.7,
-                    "strip_aspect": 1.5,
-                    "rows": [{"groups": ["Garage", "Pool"]}],
+                    "height": 360,
+                    "gap": 0,
+                    "left": {"cameras": ["camera.a"], "size": 20, "fit": "cover"},
+                    "bottom": {"cameras": ["camera.b"], "size": 20, "fit": "cover"},
                 },
             }
         )
-    )
-
-
-def test_config_and_overview(tmp_path):
-    write_config(tmp_path)
-    cfg = load_config(tmp_path)
-    assert cfg.groups["Garage"]["tile"] == (640, 340) and cfg.groups["Pool"][
-        "tile"
-    ] == (320, 180)
-    size, items = overview_layout(cfg.overview, cfg.groups)
-    assert [i["group"] for i in items] == ["Garage", "Pool"]
-    frames = {n: tile(g["cameras"], [jpeg()], g["tile"]) for n, g in cfg.groups.items()}
-    assert (
-        Image.open(io.BytesIO(overview(frames, cfg.overview, cfg.groups))).size == size
     )
 
 
@@ -100,19 +61,17 @@ def compositor(tmp_path):
     ha.server_close()
 
 
-def test_serves_group_and_overview(compositor):
+def test_serves_the_commander(compositor):
     assert compositor.health()["state"] == "running"
+    assert compositor.health()["cameras"] == 2
     base = f"http://127.0.0.1:{compositor.port}"
-    with urllib.request.urlopen(f"{base}/g/Garage.jpg") as r:
-        assert r.headers["Content-Type"] == "image/jpeg"
-        assert Image.open(io.BytesIO(r.read())).size == (640, 340)
-    with urllib.request.urlopen(f"{base}/g/overview.jpg") as r:
-        # its groups have an 8 px gap, kept transparent: so WebP, labelled as such
-        assert r.headers["Content-Type"] == "image/webp"
-        assert Image.open(io.BytesIO(r.read())).format == "WEBP"
-    with pytest.raises(urllib.error.HTTPError) as err:
-        urllib.request.urlopen(f"{base}/g/nope.jpg")
-    assert err.value.code == 404
+    with urllib.request.urlopen(f"{base}/g/commander.jpg") as r:
+        assert r.headers["Content-Type"] == "image/jpeg"  # no gaps: JPEG
+        assert Image.open(io.BytesIO(r.read())).size == (640, 360)
+    for gone in ("nope", "overview"):  # nothing else, groups and overviews are gone
+        with pytest.raises(urllib.error.HTTPError) as err:
+            urllib.request.urlopen(f"{base}/g/{gone}.jpg")
+        assert err.value.code == 404
 
 
 def test_no_config_is_unconfigured(tmp_path):
@@ -122,20 +81,6 @@ def test_no_config_is_unconfigured(tmp_path):
         assert comp.health()["state"] == "unconfigured"
     finally:
         comp.stop()
-
-
-def test_seed_config_never_overwrites(tmp_path):
-    from casa_mia.seed import seed_config
-
-    seed, live = tmp_path / "seed", tmp_path / "live"
-    seed.mkdir()
-    (seed / "groups.json").write_text("{}")
-    (seed / "entities.json").write_text("{}")
-    live.mkdir()
-    (live / "groups.json").write_text('{"edited": []}')
-    seed_config(seed, live)
-    assert (live / "groups.json").read_text() == '{"edited": []}'
-    assert (live / "entities.json").exists()
 
 
 def test_keeps_the_latest_still_of_every_camera(tmp_path):
@@ -187,15 +132,6 @@ def alpha(img: Image.Image, xy: tuple[int, int]) -> int:
 def test_gaps_are_transparent():
     from casa_mia.modules.compositor import EMPTY_COMMANDER, commander, commander_layout
 
-    cams = [{"title": "A"}, {"title": "B"}]
-    plain = Image.open(io.BytesIO(tile(cams, [jpeg(), jpeg()], (200, 120))))
-    assert plain.format == "JPEG"  # no gap: as before
-    gapped = Image.open(io.BytesIO(tile(cams, [jpeg(), jpeg()], (200, 120), gap=6)))
-    assert gapped.format == "WEBP" and gapped.size == (406, 120)
-    rgba = gapped.convert("RGBA")
-    assert alpha(rgba, (202, 60)) == 0  # the gap: clear
-    assert alpha(rgba, (100, 60)) == 255 and alpha(rgba, (300, 60)) == 255
-
     one = {"cameras": ["camera.a"], "size": 20, "fit": "contain"}
     cmd = {**EMPTY_COMMANDER, "width": 400, "height": 200, "gap": 4, "bottom": one}
     _, (mx, my, mw, mh), _ = commander_layout(cmd)
@@ -206,6 +142,10 @@ def test_gaps_are_transparent():
     assert pic.format == "WEBP"
     assert alpha(rgba, (5, my + mh + 1)) == 0  # between the main area and the panel
     assert alpha(rgba, (mx + 2, my + 2)) == 255  # the main area stays black
+    # a name bar shades the tile under it, never makes it see-through
+    _, _, rects = commander_layout(cmd)
+    x, y, w, h = rects["bottom"][0]
+    assert alpha(rgba, (x + w // 2, y + h - 5)) == 255
 
 
 def test_changing_picture_is_drawn_from_what_is_to_hand():

@@ -29,15 +29,12 @@ from .modules.guest_login import (
 )
 from .modules.kiosks import Kiosks
 from .modules.people import People
-from .seed import seed_config
 from .server import PORT, integration_url, make_server
 
 # HA writes the app's options here; absent on the Mac, so defaults apply.
 OPTIONS = Path("/data/options.json")
-# The app's config folder (map addon_config): groups.json etc., backed up with the app.
+# The app's config folder (map addon_config): the module stores, backed up with the app.
 CONFIG = Path("/config")
-# House config bundled in the image by the Dockerfile (config/compositor in the repo).
-SEED = Path("/seed")
 # Guest login's config store (logins, endpoints), edited on the admin page.
 GUEST_STORE = CONFIG / "guest-login.json"
 # The firmware server's settings (how many older releases to keep), set on the admin page.
@@ -149,8 +146,6 @@ def main() -> int:
     cameras_on = options.get("camera_dashboard_enabled", False)
     compositor = None
     if options.get("compositor_enabled", False):
-        if not cameras_on:  # the Camera Dashboard starts empty instead of an example
-            seed_config(SEED / "compositor", CONFIG)
         compositor = Compositor(
             CONFIG,
             ha_url,
@@ -158,7 +153,7 @@ def main() -> int:
             ws_path=ws_path,
             needs="a Deploy live from the Camera Dashboard page"
             if cameras_on
-            else "groups.json in the app's config folder",
+            else "the Camera Dashboard option on",
         )
     if cameras_on:
         # The draft's compositor, for previews; only draws what someone looks at.
@@ -181,7 +176,7 @@ def main() -> int:
             state_path=OPTIONS.parent / "camera_dashboard_state.json",
             helpers=lambda: helpers,
         )
-        cameras.start()  # first: it may import groups.json into the store
+        cameras.start()
         draft.start()
         modules["camera_dashboard"] = cameras.health
         api["/api/camera-dashboard/"] = cameras.handle

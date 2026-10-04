@@ -27,7 +27,6 @@ COPY --from=source /src /src
 # this one install, so a venv buys nothing.
 RUN pip install --no-cache-dir --break-system-packages /src \
     && cp -r /src/integration/custom_components /components \
-    && cp -r /src/config /seed \
     && rm -rf /src
 # Components land in /components; the app finds them there itself. An ENV would not reach it:
 # s6-overlay gives the app a clean environment.

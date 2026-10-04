@@ -1,28 +1,26 @@
-"""camera_dashboard: one source for the camera composites and their HA dashboard.
+"""camera_dashboard: one source for the Camera Commander and its HA dashboard.
 
 The store describes everything: the cameras (chosen from HA, each with its channels,
-zoom entity, PTZ presets and page controls), the groups the compositor tiles them into,
-the overview's layout (landscape and portrait), and the dashboard's settings (url, Back /
-Home / Help, wall tablet users, live cards). From it come:
+zoom entity, PTZ presets and page controls), the commander (a main camera framed by
+panels of cameras, drawn as one picture by the compositor), and the dashboard's settings
+(url, Back / Home / Help, wall tablet users, phones, live cards). From it come:
 
   * the compositor's config: the draft compositor (DRAFT_PORT) draws the draft for
     previews; the live one (compositor.PORT) draws only what was last deployed, so
     editing never disturbs the wall tablets;
-  * the dashboard: overview -> group pages -> live camera pages, in ONE dashboard that
-    adapts to whoever is looking with card visibility conditions (portrait screens get
-    the portrait composites; wall tablet users and phones the medium channel, everyone
-    else the high one). Tap zones come from the compositor's own layout functions, so
-    they always line up. Ported from tablet-provision/composite-test/gen_dashboard.py.
+  * the dashboard: the commander -> live camera pages, in ONE dashboard that adapts to
+    whoever is looking with card visibility conditions (wall tablet users and phones get
+    the medium channel, everyone else the high one). Tap zones come from the
+    compositor's own layout function, so they always line up.
 
 Deploying saves the dashboard into HA over the websocket (a storage-mode dashboard: no
 configuration.yaml change, no restart), after keeping a copy of what it replaces. A
-preview deploy goes to `<dashboard>-preview` and shows the draft composites; a live one
+preview deploy goes to `<dashboard>-preview` and shows the draft commander; a live one
 goes to the dashboard itself and makes the draft the live compositor's config.
 
 Files in the app's config folder: camera-dashboard.json (the draft, edited on the admin
 page), camera-dashboard-live.json (what was last deployed live) and
-camera-dashboard-backups/ (the dashboards' configs before each deploy). On first start an
-older groups.json / entities.json / dashboard_config.json is imported.
+camera-dashboard-backups/ (the dashboards' configs before each deploy).
 """
 
 from __future__ import annotations
@@ -42,10 +40,8 @@ import yaml
 
 from ..ha import HA, HAError
 from .compositor import (
-    DEFAULT_TILE,
     DRAFT_STORE,
     EMPTY_COMMANDER,
-    EMPTY_OVERVIEW,
     LIVE_STORE,
     PANELS,
     PORT,
@@ -54,9 +50,7 @@ from .compositor import (
     commander_layout,
     config_from_store,
     mime,
-    overview_layout,
     ratio,
-    tile_grid,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -87,7 +81,6 @@ LOOK_CSS = re.compile(
 BACKUPS = "camera-dashboard-backups"
 DEPLOYS = "camera-dashboard-deploys.json"  # when each was last deployed: live, preview
 KEEP_BACKUPS = 20  # per dashboard
-LEGACY_DASHBOARD = "dashboard_config.json"  # tablet-provision's generator settings
 # A 1x1 transparent image: the tap zones over a composite.
 BLANK = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
 # The same, marked: the commander's highlight, which Keep camera pictures live pulses.
@@ -106,6 +99,8 @@ DEFAULTS: dict[str, Any] = {
     "theme": "",
     # Tiles need an entity; this one is only a placeholder (an input_button helper).
     "placeholder": "input_button.navigate_placeholder",
+    # Screens by media query: portrait ones (for the commanders to come, each shown to
+    # the screens it suits) and phones (the medium channel).
     "portrait_query": "(orientation: portrait)",
     "phone_query": "(max-width: 767px)",
     "wall_users": [],  # HA user ids of the wall tablets: they get the medium channel
@@ -113,10 +108,6 @@ DEFAULTS: dict[str, Any] = {
     "hi_live_card": "",  # everyone else; blank = the same as live_card
     "compositor_host": "",  # blank = this box's LAN address
     "cameras": {},
-    "groups": {},
-    "overview": EMPTY_OVERVIEW,
-    "overview_portrait": EMPTY_OVERVIEW,
-    "overview_mode": "groups",  # the landscape overview: the groups, or the commander
     # The Security look: a tint (and how strong, how dark) and the CSS filter made of it.
     "look": {"tint": "#3d7bff", "strength": 3, "darkness": 20, "css": DEFAULT_LOOK_CSS},
     "commander": EMPTY_COMMANDER,
@@ -131,82 +122,11 @@ def slug(text: str) -> str:
 
 
 def with_defaults(store: Store) -> Store:
-    """A store with every setting; its own copy, sharing nothing with DEFAULTS."""
-    return copy.deepcopy({**DEFAULTS, **store})
-
-
-# --- importing tablet-provision's files ------------------------------------------------
-
-
-def import_legacy(
-    groups: dict, entities: dict[str, dict], dash: dict | None = None
-) -> Store:
-    """A store from groups.json, entities.json and (if there is one) the old generator's
-    dashboard_config.json. Its PTZ presets, gate and light controls were keyed by page
-    title; here they belong to the camera or group whose page they are on."""
-    dash = copy.deepcopy(dash or {})
-    groups = copy.deepcopy(groups)
-    store: Store = with_defaults(
-        {
-            "overview": groups.pop("_overview", EMPTY_OVERVIEW),
-            "overview_portrait": groups.pop("_overview_portrait", EMPTY_OVERVIEW),
-            "cameras": {},
-            "groups": {},
-        }
+    """A store with every setting and nothing else (settings since dropped, such as the
+    groups, are left out); its own copy, sharing nothing with DEFAULTS."""
+    return copy.deepcopy(
+        {**DEFAULTS, **{k: v for k, v in store.items() if k in DEFAULTS}}
     )
-    if dash:  # the old generator's settings, and what it had hardcoded
-        store |= {
-            "dashboard": dash.get("dash", DEFAULTS["dashboard"]),
-            "theme": "WallTablets",
-            **{
-                k: dash[k]
-                for k in (
-                    "portrait_query",
-                    "phone_query",
-                    "wall_users",
-                    "live_card",
-                    "hi_live_card",
-                    "nav_style",
-                )
-                if k in dash
-            },
-        }
-    cams: dict[str, dict] = store["cameras"]
-    for name, v in groups.items():
-        v = {"cameras": v} if isinstance(v, list) else v
-        for c in v["cameras"]:
-            cam = cams.setdefault(c["entity"], {"title": c["title"]})
-            if c.get("live"):
-                cam["live"] = c["live"]
-            cam |= entities.get(c["entity"], {})
-        store["groups"][name] = {
-            "cameras": [c["entity"] for c in v["cameras"]],
-            "tile": list(v.get("tile", DEFAULT_TILE)),
-            "fit": v.get("fit", "cover"),
-            "menu": not name.startswith("Wall"),
-        }
-    by_title = {c["title"]: c for c in cams.values()}
-    for title, ptz in dash.get("ptz", {}).items():
-        if title in by_title:
-            by_title[title]["ptz"] = {
-                "action": "unifiprotect.ptz_goto_preset",
-                "data": {"device_id": ptz["device_id"]},
-                "presets": ptz["presets"],
-            }
-    gates = dash.get("gates", {})
-    for title in gates.get("cameras", []):
-        if title in by_title:
-            by_title[title].setdefault("controls", []).extend(gates["controls"])
-    for name in gates.get("groups", []):
-        if name in store["groups"]:
-            store["groups"][name].setdefault("controls", []).extend(gates["controls"])
-    lights = dash.get("lights", {})
-    for title, keys in lights.get("pages", {}).items():
-        controls = [lights["controls"][k] for k in keys]
-        for page in (store["groups"].get(title), by_title.get(title)):
-            if page is not None:
-                page.setdefault("controls", []).extend(controls)
-    return store
 
 
 # --- checking a store ------------------------------------------------------------------
@@ -215,7 +135,7 @@ def import_legacy(
 def problems(store: Store) -> list[str]:
     """What is wrong with a store, in words for the admin page; empty when it is fine."""
     out: list[str] = []
-    cams, groups = store.get("cameras", {}), store.get("groups", {})
+    cams = store.get("cameras", {})
     if not URL_PATH.match(store.get("dashboard", "")):
         out.append(
             "The dashboard's URL must be lower case letters and digits with a hyphen, "
@@ -233,41 +153,14 @@ def problems(store: Store) -> list[str]:
             out.append(
                 f"{cam.get('title', entity)}: unknown live card {cam['live']!r}."
             )
-    for name, g in groups.items():
-        if not name.strip():
-            out.append("A group needs a name.")
-        if not g.get("cameras"):
-            out.append(f"Group {name!r} has no cameras.")
-        for e in g.get("cameras", []):
-            if e not in cams:
-                out.append(f"Group {name!r}: {e} is not one of the cameras.")
-        size = list(g.get("tile", DEFAULT_TILE))
-        if not (
-            len(size) == 2
-            and all(isinstance(n, int) for n in size)
-            and 80 <= size[0] <= 1920
-            and 45 <= size[1] <= 1920
-        ):
-            out.append(f"Group {name!r}: tile size must be 80-1920 by 45-1920.")
-        if g.get("fit", "cover") not in ("cover", "contain"):
-            out.append(f"Group {name!r}: fit must be cover or contain.")
-        if not isinstance(g.get("gap", 0), int) or g.get("gap", 0) < 0:
-            out.append(f"Group {name!r}: the gap must be 0 px or more.")
-    menu = [n for n, g in groups.items() if g.get("menu", True)]
-    for kind, names in (
-        ("group", menu),
-        ("camera", [cams[e]["title"] for e in menu_cameras(store) if e in cams]),
-    ):
-        seen: dict[str, str] = {}
-        for n in names:
-            if slug(n) in seen:
-                out.append(f"The {kind} pages {seen[slug(n)]!r} and {n!r} clash.")
-            seen[slug(n)] = n
+    seen: dict[str, str] = {}
+    for n in [cams[e]["title"] for e in menu_cameras(store) if e in cams]:
+        if slug(n) in seen:
+            out.append(f"The camera pages {seen[slug(n)]!r} and {n!r} clash.")
+        seen[slug(n)] = n
     look_css = (store.get("look") or {}).get("css", "")
     if not isinstance(look_css, str) or not LOOK_CSS.match(look_css):
         out.append("The Security look is not a CSS filter the dashboards can use.")
-    if store.get("overview_mode", "groups") not in ("groups", "commander"):
-        out.append("The landscape overview must be the groups or the commander.")
     cmd = commander_of(store)
     for key, low, high in (("width", 320, 3840), ("height", 240, 2160)):
         if not isinstance(cmd.get(key), int) or not low <= cmd[key] <= high:
@@ -331,23 +224,8 @@ def problems(store: Store) -> list[str]:
             out.append(f"The commander's Track motion {key} must be 0 seconds or more.")
     if cmd.get("main") and cmd["main"] not in commander_cameras(cmd):
         out.append("The commander's main camera must be one of its cameras.")
-    if store.get("overview_mode") == "commander" and not commander_cameras(cmd):
-        out.append("The commander is the landscape overview but has no cameras.")
-    for which in ("overview", "overview_portrait"):
-        for key in ("cell_aspect", "strip_aspect"):
-            try:
-                ratio(store.get(which, {}).get(key, 1.7))
-            except (ValueError, ZeroDivisionError):
-                out.append(
-                    f"The {which.replace('_', ' ')}'s {key.replace('_', ' ')} is not a shape."
-                )
-        for row in store.get(which, {}).get("rows", []):
-            names = row.get("groups") or row.get("strip") or []
-            if not names:
-                out.append(f"An empty row in the {which.replace('_', ' ')}.")
-            for n in names:
-                if n not in groups:
-                    out.append(f"The {which.replace('_', ' ')} names a missing {n!r}.")
+    if not commander_cameras(cmd):
+        out.append("The commander has no cameras: put some in its panels.")
     return out
 
 
@@ -371,9 +249,6 @@ def warnings(
                 wanted.setdefault(ent, cam["title"])
         for c in cam.get("controls", []):
             wanted.setdefault(c["entity"], f"{cam['title']}'s page")
-    for name, g in s["groups"].items():
-        for c in g.get("controls", []):
-            wanted.setdefault(c["entity"], f"{name}'s page")
     tiles = s["nav_style"] == "tiles"
     if tiles or any(c.get("ptz") for c in s["cameras"].values()):
         wanted.setdefault(s["placeholder"], "the tiles")
@@ -400,7 +275,7 @@ def warnings(
     ):
         if card in cards and look not in urls:
             out.append(f"The {card} card is not among the dashboard resources.")
-    if s["overview_mode"] == "commander" and COMMANDER_SELECT not in entities:
+    if COMMANDER_SELECT not in entities:
         out.append(
             f"{COMMANDER_SELECT} (the commander's taps) is not in Home Assistant: it "
             "comes with the Casa Mia integration while Camera Dashboard is on."
@@ -425,15 +300,8 @@ def commander_of(store: Store) -> dict:
 
 
 def menu_cameras(store: Store) -> list[str]:
-    """The cameras that get a live page: those in menu groups, in order of appearance,
-    then the commander's (when it is the overview)."""
-    out: dict[str, None] = {}
-    for g in store.get("groups", {}).values():
-        if g.get("menu", True):
-            out |= dict.fromkeys(g["cameras"])
-    if store.get("overview_mode") == "commander":
-        out |= dict.fromkeys(commander_cameras(commander_of(store)))
-    return list(out)
+    """The cameras that get a live page: the commander's."""
+    return commander_cameras(commander_of(store))
 
 
 # --- the dashboard ---------------------------------------------------------------------
@@ -447,10 +315,8 @@ def build_dashboard(store: Store, image_base: str, url_path: str) -> dict:
     """The whole dashboard config for HA (`views`), with the composites served from
     image_base (http://host:port) and the tap zones navigating inside url_path."""
     s = with_defaults(store)
-    cams, groups = s["cameras"], config_from_store(s).groups
+    cams = s["cameras"]
     theme = s["theme"] or None
-    portrait = {"condition": "screen", "media_query": s["portrait_query"]}
-    landscape = {"condition": "not", "conditions": [portrait]}
     # the wall tablets (by user) and phones can't take the big streams
     mid = {
         "condition": "or",
@@ -575,39 +441,24 @@ def build_dashboard(store: Store, image_base: str, url_path: str) -> dict:
             },
         }
 
-    def picture(image: str, zones: list[dict], upright: bool) -> dict:
-        return {
-            "type": "picture-elements",
-            "image": image,
-            "grid_options": {"columns": "full"},
-            "visibility": [portrait if upright else landscape],
-            "elements": zones,
-        }
-
-    def picture_view(
-        path: str,
-        title: str,
-        name: str,
-        zones: dict,
-        controls: list[dict],
-        landscape_name: str | None = None,
-    ) -> dict:
-        """The nav, then the composite in both layouts (one shown) with tap zones. The
-        landscape picture can be another composite (the commander)."""
-        url = f"{image_base}/g/{urllib.parse.quote(name)}.mjpg"
-        land = f"{image_base}/g/{urllib.parse.quote(landscape_name or name)}.mjpg"
+    def commander_view(cmd: dict) -> dict:
+        """The nav, then the commander's picture with its tap zones."""
         v: dict[str, Any] = {
             "type": "sections",
             "max_columns": 3,
-            "title": title,
-            "path": path,
+            "title": s["title"],
+            "path": "cameras",
             "sections": [
                 {
                     "type": "grid",
                     "column_span": 3,
                     "cards": [
-                        picture(land, zones[False], False),
-                        picture(url + "?layout=portrait", zones[True], True),
+                        {
+                            "type": "picture-elements",
+                            "image": f"{image_base}/g/commander.mjpg",
+                            "grid_options": {"columns": "full"},
+                            "elements": commander_zones(cmd),
+                        }
                     ],
                 }
             ],
@@ -615,7 +466,7 @@ def build_dashboard(store: Store, image_base: str, url_path: str) -> dict:
         }
         if theme:
             v["theme"] = theme
-        return header(v, None, controls)
+        return header(v, None, [])
 
     def commander_zones(cmd: dict) -> list[dict]:
         """A tap on a panel's camera makes it the main one (the integration's select); a
@@ -700,21 +551,6 @@ def build_dashboard(store: Store, image_base: str, url_path: str) -> dict:
             out.append(zone(main_rect, size, f"cam-{slug(title(main))}"))
         return out
 
-    def group_zones(name: str, upright: bool) -> list[dict]:
-        g = groups[name]
-        (tw, th), n, gap = g["tile"], len(g["cameras"]), g.get("gap", 0)
-        cols, rows = tile_grid(n)
-        if upright:  # a single column of whole 16:9 tiles, as the compositor draws it
-            th, cols, rows = tw * 9 // 16, 1, n
-        return [
-            zone(
-                ((i % cols) * (tw + gap), (i // cols) * (th + gap), tw, th),
-                (cols * tw + (cols - 1) * gap, rows * th + (rows - 1) * gap),
-                f"cam-{slug(c['title'])}",
-            )
-            for i, c in enumerate(g["cameras"])
-        ]
-
     def live_card(entity: str, title: str, condition: dict | None, kind: str) -> dict:
         if kind == "advanced-camera-card":
             # retries by itself when the stream drops, e.g. while a PTZ camera slews
@@ -789,48 +625,11 @@ def build_dashboard(store: Store, image_base: str, url_path: str) -> dict:
             view["theme"] = theme
         return header(view, cam.get("zoom"), cam.get("controls", []))
 
-    views = []
-    # 1. the overview: one tap zone per group, into that group's page
-    zones = {}
-    for upright in (False, True):
-        cfg = s["overview_portrait" if upright else "overview"]
-        if not cfg.get("rows"):
-            zones[upright] = []
-            continue
-        size, items = overview_layout(cfg, groups)
-        zones[upright] = [
-            zone(i["rect"], size, f"cameras-{slug(i['group'])}") for i in items
-        ]
     cmd = commander_of(s)
-    use_commander = s["overview_mode"] == "commander" and commander_cameras(cmd)
-    if use_commander:  # the landscape overview is the commander
-        zones[False] = commander_zones(cmd)
-    if use_commander or s["overview"].get("rows") or s["overview_portrait"].get("rows"):
-        views.append(
-            picture_view(
-                "cameras",
-                s["title"],
-                "overview",
-                zones,
-                [],
-                "commander" if use_commander else None,
-            )
-        )
-    # 2. one page per menu group: one tap zone per camera, into that camera's page
-    for name, g in s["groups"].items():
-        if g.get("menu", True):
-            views.append(
-                picture_view(
-                    f"cameras-{slug(name)}",
-                    name,
-                    name,
-                    {u: group_zones(name, u) for u in (False, True)},
-                    g.get("controls", []),
-                )
-            )
-    # 3. one live page per camera in a menu group
-    views += [camera_view(e) for e in menu_cameras(s)]
-    return {"views": views}
+    if not commander_cameras(cmd):
+        return {"views": []}
+    # the commander, then one live page per camera in it
+    return {"views": [commander_view(cmd)] + [camera_view(e) for e in menu_cameras(s)]}
 
 
 def preset_entries(ptz: dict) -> list[tuple[str, str]]:
@@ -991,8 +790,6 @@ class CameraDashboard:
         try:
             if self.draft_path.exists():
                 self.store = with_defaults(json.loads(self.draft_path.read_text()))
-            elif (self.dir / "groups.json").exists():
-                self._import()
             else:
                 _LOGGER.info("camera dashboard: starting empty")
         except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
@@ -1001,35 +798,11 @@ class CameraDashboard:
             _LOGGER.error("camera dashboard: %s", self._error)
             return
         _LOGGER.info(
-            "camera dashboard: %d cameras, %d groups, dashboard /%s",
+            "camera dashboard: %d cameras, %d in the commander, dashboard /%s",
             len(self.store["cameras"]),
-            len(self.store["groups"]),
+            len(menu_cameras(self.store)),
             self.store["dashboard"],
         )
-
-    def _import(self) -> None:
-        def read(name: str) -> Any:
-            path = self.dir / name
-            return json.loads(path.read_text()) if path.exists() else None
-
-        self.store = import_legacy(
-            read("groups.json"), read("entities.json") or {}, read(LEGACY_DASHBOARD)
-        )
-        self._write(self.draft_path, self.store)
-        if not self.live_path.exists():
-            self._write(self.live_path, self.store)
-        _LOGGER.info(
-            "camera dashboard: imported groups.json%s (%d cameras, %d groups); "
-            "groups.json and entities.json are no longer read",
-            " and " + LEGACY_DASHBOARD
-            if (self.dir / LEGACY_DASHBOARD).exists()
-            else "",
-            len(self.store["cameras"]),
-            len(self.store["groups"]),
-        )
-        for comp in (self.live, self.draft):
-            if comp:
-                comp.reload()
 
     def _commanders(self) -> list[Compositor]:
         """The compositors drawing a commander: the live one (the dashboard) and the draft
@@ -1119,7 +892,6 @@ class CameraDashboard:
                 "state": "offline" if self._error else "running",
                 "error": self._error,
                 "cameras": len(self.store["cameras"]),
-                "groups": len(self.store["groups"]),
                 "deployed": self.deploys().get("live"),
                 "changed": self._changed(),
                 "commander": self.commander(),
@@ -1217,12 +989,10 @@ class CameraDashboard:
         store = with_defaults(
             {k: v for k, v in body.items() if k in DEFAULTS}
         )  # only known settings: the page sends back what it was given
-        if not isinstance(store["cameras"], dict) or not isinstance(
-            store["groups"], dict
-        ):
-            raise BadRequest("cameras and groups must be objects.")
+        if not isinstance(store["cameras"], dict):
+            raise BadRequest("cameras must be an object.")
         dropped = 0
-        for page in [*store["cameras"].values(), *store["groups"].values()]:
+        for page in store["cameras"].values():
             if isinstance(page, dict) and isinstance(page.get("controls"), list):
                 kept = [
                     c
@@ -1251,9 +1021,8 @@ class CameraDashboard:
             self.store = store
             self._write(self.draft_path, store)
         _LOGGER.info(
-            "camera dashboard: draft saved (%d cameras, %d groups; changed: %s)%s",
+            "camera dashboard: draft saved (%d cameras; changed: %s)%s",
             len(store["cameras"]),
-            len(store["groups"]),
             ", ".join(k for k in DEFAULTS if before.get(k) != store.get(k))
             or "nothing",
             f"; {len(found)} problems" if found else "",
@@ -1523,19 +1292,15 @@ class CameraDashboard:
         cmd["aspects"] = shapes
 
     def _render(self, body: dict[str, Any]) -> Response:
-        """A live preview: one composite ("overview" or a group) drawn by the draft
-        compositor from the page's unsaved edits ({"store", "name", "portrait"})."""
+        """A live preview: the commander drawn by the draft compositor from the page's
+        unsaved edits ({"store"})."""
         if not self.draft:
             return _json(404, {"error": "No previews: the draft compositor is off."})
-        name = str(body.get("name") or "")
         try:
             store = with_defaults(body.get("store") or {})
             self._record_shapes(store)
-            cfg = config_from_store(store)
-            image = self.draft.render(cfg, name, bool(body.get("portrait")))
-        except KeyError as exc:
-            return _json(404, {"error": f"No group {exc.args[0]!r}."})
-        except (ValueError, TypeError, AttributeError) as exc:
+            image = self.draft.render(config_from_store(store))
+        except (ValueError, TypeError, AttributeError, KeyError) as exc:
             return _json(422, {"error": str(exc)})
         except (RuntimeError, TimeoutError) as exc:
             return _json(502, {"error": f"The draft compositor: {exc}"})

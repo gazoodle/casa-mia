@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.10.1-b21
+
+- Camera Dashboard: the Camera Commander is the camera dashboard. Groups are gone: the group editor, the group pages, the group and overview composites (landscape and portrait), and the choice of landscape overview. The dashboard is now the commander, then a live page for each of its cameras. The Cameras list says which commander panel each camera is in. The Portrait screens and Phones settings stay: phones still get the medium channel, and portrait screens are for the commanders to come.
+- **Deploy live after updating:** the dashboard deployed before still points at the group and overview pictures, which are no longer served.
+- Settings saved for groups and overviews are dropped from the draft and live configs when they are next read.
+- Camera Commander: with gaps, the camera names' bars (and the main camera's name, the time and "Changing to") were see-through on the dashboard, showing its background (grey on a light theme, and the Security look didn't tint them). They now shade the picture, as in the page's preview.
+- Camera composites: serve only the commander (`/g/commander.mjpg`). They no longer read `groups.json` or `entities.json`, and the example copies of them that used to ship with the app are gone. Without the Camera Dashboard there is nothing to draw.
+
 ## 2026.10.1-b20
 
 - Security look: works at its default tint. Its filter was only made when the tint, strength or darkness was changed, so a look left at its defaults (or saved before) had none, and switching it on did nothing. Such looks now use the default tint's filter.

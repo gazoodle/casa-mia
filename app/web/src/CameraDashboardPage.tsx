@@ -1,7 +1,7 @@
-/** Camera Dashboard: one source for the camera composites and their HA dashboard. Edits
- * are a draft (Save draft); the draft compositor draws it for the previews, and Deploy
- * sends the dashboard to HA, to the preview dashboard or the live one. Live also makes
- * the draft what the wall tablets' compositor draws. */
+/** Camera Dashboard: one source for the Camera Commander and its HA dashboard. Edits are
+ * a draft (Save draft); the draft compositor draws it for the preview, and Deploy sends
+ * the dashboard to HA, to the preview dashboard or the live one. Live also makes the
+ * draft what the wall tablets' compositor draws. */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api } from "./api";
@@ -18,7 +18,7 @@ const { get, post, put } = api("camera-dashboard");
 const HEAD = {
   icon: <CameraIcon />,
   title: "Camera Dashboard",
-  blurb: "The cameras, how they are composed, and the dashboard that shows them.",
+  blurb: "The cameras, the commander that shows them, and its dashboard.",
 };
 
 type Control = { entity: string; name?: string; icon?: string };
@@ -33,16 +33,6 @@ type Camera = {
   ptz?: Ptz;
   controls?: Control[];
 };
-type Group = {
-  cameras: string[];
-  tile: [number, number];
-  fit: "cover" | "contain";
-  /** Pixels between its pictures, left transparent: the dashboard shows through. */
-  gap?: number;
-  menu: boolean;
-  controls?: Control[];
-};
-type Row = { groups?: string[]; strip?: string[] };
 type Highlight = { colour: string; width: number; blur: number; pulse: number; style: "breathe" | "ripple" };
 const HIGHLIGHT: Highlight = { colour: "#7bd1a0", width: 2, blur: 13, pulse: 1.8, style: "breathe" };
 const MOTION = { hold: 10, back: 30, pause: 120 };
@@ -56,7 +46,6 @@ type Look = { tint: string; strength: number; darkness: number; css: string };
 
 /** A shape, width over height: a number (1.78) or a ratio as written ("16:9"). */
 type Shape = number | string;
-type Overview = { width: number; gap: number; cell_aspect: Shape; strip_aspect: Shape; rows: Row[] };
 type Panel = {
   cameras: string[];
   size: number;
@@ -97,10 +86,6 @@ type Store = {
   hi_live_card: string;
   compositor_host: string;
   cameras: Record<string, Camera>;
-  groups: Record<string, Group>;
-  overview: Overview;
-  overview_portrait: Overview;
-  overview_mode: "groups" | "commander";
   commander: Commander;
   look: Look;
 };
@@ -252,21 +237,6 @@ export function CameraDashboardPage({ state }: { state?: string }) {
       target === "live" ? `Deployed to /${draft.dashboard}` : `Deployed to /${view.preview_dashboard}`,
     );
 
-  const names = { cameras: draft.cameras, groups: Object.keys(draft.groups) };
-  const nameGroup = (title: string, initial: string, save: (name: string) => void) =>
-    setDialog(
-      <NameDialog
-        title={title}
-        initial={initial}
-        taken={names.groups}
-        onClose={() => setDialog(null)}
-        onSave={(name) => {
-          save(name);
-          setDialog(null);
-        }}
-      />,
-    );
-
   return (
     <LookPreview.Provider
       value={showLook ? draft.look?.css || lookCss(draft.look.tint, draft.look.strength, draft.look.darkness) : ""}
@@ -352,55 +322,12 @@ export function CameraDashboardPage({ state }: { state?: string }) {
 
       <section className={guest.area}>
         <AreaHead
-          title="Overview"
-          blurb="The first page: every group's composite in one picture. Tap a group to open its page. Landscape for tablets and computers, portrait for phones held upright."
-          action={
-            <Field label="Landscape overview">
-              <Segmented
-                value={draft.overview_mode}
-                options={[
-                  ["groups", "Groups"],
-                  ["commander", "Commander"],
-                ]}
-                onChange={(m) => edit((s) => (s.overview_mode = m))}
-              />
-            </Field>
-          }
-        />
-        <div className={css.overviews}>
-          {(["overview", "overview_portrait"] as const).map((key) =>
-            key === "overview" && draft.overview_mode === "commander" ? (
-              <div key={key} className={css.overview}>
-                <h3>Landscape: the commander</h3>
-                <LivePreview store={draft} name="commander" />
-                <p className={css.hint}>The commander is the landscape overview; set it up under Commander below.</p>
-              </div>
-            ) : (
-            <OverviewEditor
-              key={key}
-              title={key === "overview" ? "Landscape" : "Portrait"}
-              value={draft[key]}
-              groups={names.groups}
-              thumb={(g) => <GroupThumb entities={draft.groups[g]?.cameras ?? []} />}
-              preview={<LivePreview store={draft} name="overview" portrait={key !== "overview"} />}
-              onChange={(o) => edit((s) => (s[key] = o))}
-            />
-            ),
-          )}
-        </div>
-      </section>
-
-      <section className={guest.area}>
-        <AreaHead
           title="Commander"
           blurb={
             <>
               One landscape picture: a main camera in its natural shape, framed by panels of cameras. Tapping a camera makes it
               the main one; tapping the main one opens its live page. Automations choose it too, with the Camera Commander's
-              Main camera in Home Assistant.{" "}
-              {draft.overview_mode === "commander"
-                ? "It is the landscape overview."
-                : "Choose Commander as the landscape overview to show it."}
+              Main camera in Home Assistant. It is the dashboard's first page.
             </>
           }
         />
@@ -408,7 +335,7 @@ export function CameraDashboardPage({ state }: { state?: string }) {
         <CommanderEditor
           value={draft.commander}
           cameras={draft.cameras}
-          preview={<LivePreview store={draft} name="commander" />}
+          preview={<LivePreview store={draft} />}
           trackMotion={haSwitch(TRACK_MOTION)}
           onTrackMotion={(on) => flip(TRACK_MOTION, on, "Track motion")}
           onChange={(c) => edit((s) => (s.commander = c))}
@@ -417,67 +344,8 @@ export function CameraDashboardPage({ state }: { state?: string }) {
 
       <section className={guest.area}>
         <AreaHead
-          title="Groups"
-          blurb="Each group is one composite and one dashboard page; tap a camera on it to open the camera's live page. Groups out of the menu (the wall composites) are only for viewing."
-          action={
-            <button
-              className={ui.primary}
-              disabled={Object.keys(draft.cameras).length === 0}
-              onClick={() =>
-                nameGroup("New group", "", (name) =>
-                  edit((s) => (s.groups[name] = { cameras: [], tile: [640, 340], fit: "cover", menu: true })),
-                )
-              }
-            >
-              + Add group
-            </button>
-          }
-        />
-        {Object.keys(draft.groups).length === 0 ? (
-          <Empty>No groups yet. Add the cameras first, then group them.</Empty>
-        ) : (
-          <div className={css.groups}>
-            {Object.entries(draft.groups).map(([name, g], i, all) => (
-              <GroupCard
-                key={name}
-                name={name}
-                group={g}
-                cameras={draft.cameras}
-                preview={<LivePreview store={draft} name={name} />}
-                first={i === 0}
-                last={i === all.length - 1}
-                onChange={(next) => edit((s) => (s.groups[name] = next))}
-                onRename={() =>
-                  nameGroup("Rename group", name, (to) =>
-                    edit((s) => {
-                    s.groups = renameKey(s.groups, name, to);
-                    for (const o of [s.overview, s.overview_portrait])
-                      for (const row of o.rows)
-                        for (const k of ["groups", "strip"] as const)
-                          if (row[k]) row[k] = row[k]!.map((n) => (n === name ? to : n));
-                    }),
-                  )
-                }
-                onMove={(by) => edit((s) => (s.groups = moveKey(s.groups, name, by)))}
-                onRemove={() =>
-                  edit((s) => {
-                    delete s.groups[name];
-                    for (const o of [s.overview, s.overview_portrait])
-                      o.rows = o.rows
-                        .map((r) => (r.groups ? { groups: r.groups.filter((n) => n !== name) } : { strip: r.strip!.filter((n) => n !== name) }))
-                        .filter((r) => (r.groups ?? r.strip)!.length > 0);
-                  })
-                }
-              />
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className={guest.area}>
-        <AreaHead
           title="Cameras"
-          blurb="The cameras the composites and live pages use, chosen from Home Assistant. Each camera's medium channel goes to the wall tablets and phones, its high channel to everyone else."
+          blurb="The cameras the commander and live pages use, chosen from Home Assistant. Each camera's medium channel goes to the wall tablets and phones, its high channel to everyone else."
           action={
             <button
               className={ui.primary}
@@ -515,14 +383,12 @@ export function CameraDashboardPage({ state }: { state?: string }) {
             <div className={`${css.camRow} ${css.head}`}>
               <span>Camera</span>
               <span>Channels</span>
-              <span>In groups</span>
+              <span>In the commander</span>
               <span>Extras</span>
               <span />
             </div>
             {Object.entries(draft.cameras).map(([entity, cam]) => {
-              const inGroups = Object.entries(draft.groups)
-                .filter(([, g]) => g.cameras.includes(entity))
-                .map(([n]) => n);
+              const panel = PANELS.find((p) => draft.commander[p].cameras.includes(entity));
               return (
                 <div key={entity} className={css.camRow}>
                   <button
@@ -540,7 +406,7 @@ export function CameraDashboardPage({ state }: { state?: string }) {
                     {[cam.medium && "medium", cam.high && "high"].filter(Boolean).join(", ") || "itself only"}
                     {cam.live && ` · ${cam.live}`}
                   </span>
-                  <span className={css.muted}>{inGroups.join(", ") || "none"}</span>
+                  <span className={css.muted}>{panel ? PANEL_NAMES[panel][0] : "no"}</span>
                   <span className={css.muted}>
                     {[
                       cam.zoom && "zoom",
@@ -576,7 +442,7 @@ export function CameraDashboardPage({ state }: { state?: string }) {
                       onClick={() =>
                         edit((s) => {
                           delete s.cameras[entity];
-                          for (const g of Object.values(s.groups)) g.cameras = g.cameras.filter((e) => e !== entity);
+                          for (const p of PANELS) s.commander[p].cameras = s.commander[p].cameras.filter((e) => e !== entity);
                         })
                       }
                     >
@@ -636,80 +502,6 @@ export function CameraDashboardPage({ state }: { state?: string }) {
     </Entities.Provider>
     </ThumbRound.Provider>
     </LookPreview.Provider>
-  );
-}
-
-/** One overview layout: its rows of groups, its sizes and its preview. */
-function OverviewEditor({
-  title,
-  value,
-  groups,
-  thumb,
-  preview,
-  onChange,
-}: {
-  title: string;
-  value: Overview;
-  groups: string[];
-  thumb: (group: string) => ReactNode;
-  preview: ReactNode;
-  onChange: (o: Overview) => void;
-}) {
-  const set = (change: (o: Overview) => void) => {
-    const next = structuredClone(value);
-    change(next);
-    onChange(next);
-  };
-  return (
-    <div className={css.overview}>
-      <h3>{title}</h3>
-      {preview}
-      <div className={css.numbers}>
-        <Num label="Width" value={value.width} onChange={(n) => set((o) => (o.width = n))} />
-        <Num label="Gap" value={value.gap} onChange={(n) => set((o) => (o.gap = n))} />
-        <RatioInput label="Cell shape" value={value.cell_aspect} onChange={(r) => set((o) => (o.cell_aspect = r))} />
-        <RatioInput label="Strip shape" value={value.strip_aspect} onChange={(r) => set((o) => (o.strip_aspect = r))} />
-      </div>
-      <ol className={css.rows}>
-        {value.rows.map((row, i) => {
-          const kind = row.groups ? "groups" : "strip";
-          const names = (row.groups ?? row.strip)!;
-          return (
-            <li key={i} className={css.row}>
-              <Segmented
-                value={kind}
-                options={[
-                  ["groups", "Groups"],
-                  ["strip", "Strip"],
-                ]}
-                onChange={(k) => set((o) => (o.rows[i] = { [k]: names }))}
-              />
-              <Chips
-                items={names}
-                label={(n) => n}
-                thumb={thumb}
-                choices={groups.filter((g) => !names.includes(g))}
-                onChange={(items) => set((o) => (o.rows[i] = { [kind]: items }))}
-              />
-              <span className={css.rowTools}>
-                <button className={ui.iconButton} disabled={i === 0} onClick={() => set((o) => o.rows.splice(i - 1, 0, ...o.rows.splice(i, 1)))} aria-label="Move row up">
-                  ↑
-                </button>
-                <button className={ui.iconButton} onClick={() => set((o) => o.rows.splice(i, 1))} aria-label="Remove row">
-                  ✕
-                </button>
-              </span>
-            </li>
-          );
-        })}
-      </ol>
-      <button className={`${ui.button} ${ui.small} ${css.start}`} disabled={!groups.length} onClick={() => set((o) => o.rows.push({ groups: [] }))}>
-        + Row
-      </button>
-      <p className={css.hint}>
-        <b>Groups</b>: each group's composite as one cell. <b>Strip</b>: those groups' cameras side by side in one line.
-      </p>
-    </div>
   );
 }
 
@@ -845,7 +637,7 @@ function CommanderEditor({
           <Num label="Height" value={value.height} onChange={(n) => set((c) => (c.height = n))} />
           <Num label="Gap, px" value={value.gap} onChange={(n) => set((c) => (c.gap = n))} />
           <p className={`${css.hint} ${css.wide}`}>
-            Gaps (in groups too) are transparent: the dashboard's background shows through them.
+            Gaps are transparent: the dashboard's background shows through them.
           </p>
           <div className={css.wide}>
             <Field
@@ -1027,93 +819,11 @@ function CommanderEditor({
   );
 }
 
-function GroupCard({
-  name,
-  group,
-  cameras,
-  preview,
-  first,
-  last,
-  onChange,
-  onRename,
-  onMove,
-  onRemove,
-}: {
-  name: string;
-  group: Group;
-  cameras: Record<string, Camera>;
-  preview: ReactNode;
-  first: boolean;
-  last: boolean;
-  onChange: (g: Group) => void;
-  onRename: () => void;
-  onMove: (by: number) => void;
-  onRemove: () => void;
-}) {
-  const set = (change: (g: Group) => void) => {
-    const next = structuredClone(group);
-    change(next);
-    onChange(next);
-  };
-  return (
-    <article className={css.group}>
-      <header className={css.groupHead}>
-        <h3>{name}</h3>
-        {!group.menu && <span className={guest.badge}>wall</span>}
-        <span className={css.rowTools}>
-          <button className={ui.iconButton} disabled={first} onClick={() => onMove(-1)} aria-label="Move earlier">
-            ↑
-          </button>
-          <button className={ui.iconButton} disabled={last} onClick={() => onMove(1)} aria-label="Move later">
-            ↓
-          </button>
-          <button className={ui.iconButton} onClick={onRename} aria-label="Rename">
-            ✎
-          </button>
-          <button className={ui.iconButton} onClick={onRemove} aria-label="Remove">
-            ✕
-          </button>
-        </span>
-      </header>
-      {preview}
-      <Chips
-        items={group.cameras}
-        label={(e) => cameras[e]?.title ?? e}
-        thumb={(e) => <Thumb entity={e} />}
-        choices={Object.keys(cameras).filter((e) => !group.cameras.includes(e))}
-        onChange={(items) => set((g) => (g.cameras = items))}
-      />
-      <div className={css.numbers}>
-        <Num label="Tile width" value={group.tile[0]} onChange={(n) => set((g) => (g.tile = [n, g.tile[1]]))} />
-        <Num label="Tile height" value={group.tile[1]} onChange={(n) => set((g) => (g.tile = [g.tile[0], n]))} />
-        <Num label="Gap, px" value={group.gap ?? 0} onChange={(n) => set((g) => (g.gap = n))} />
-        <Field label="Fit">
-          <Segmented
-            value={group.fit}
-            options={[
-              ["cover", "Fill"],
-              ["contain", "Whole"],
-            ]}
-            onChange={(f) => set((g) => (g.fit = f))}
-          />
-        </Field>
-        <Field label="In the menu">
-          <Switch on={group.menu} label="In the menu" onChange={(on) => set((g) => (g.menu = on))} />
-        </Field>
-      </div>
-      <details className={css.more}>
-        <summary>Page controls ({group.controls?.length ?? 0})</summary>
-        <Controls value={group.controls ?? []} onChange={(c) => set((g) => (g.controls = c))} />
-      </details>
-    </article>
-  );
-}
-
-/** A composite drawn from the unsaved draft, redrawn a moment after an edit that changes
+/** The commander drawn from the unsaved draft, redrawn a moment after an edit that changes
  * it (and only then: the key is what the picture depends on). The last picture stays,
  * dimmed, while the next is drawn. */
-function LivePreview({ store, name, portrait = false }: { store: Store; name: string; portrait?: boolean }) {
-  const key = previewKey(store, name, portrait);
+function LivePreview({ store }: { store: Store }) {
+  const key = previewKey(store);
   const [src, setSrc] = useState<string>();
   const [note, setNote] = useState<string>();
   const [busy, setBusy] = useState(true);
@@ -1137,7 +847,7 @@ function LivePreview({ store, name, portrait = false }: { store: Store; name: st
           method: "POST",
           cache: "no-store",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ store: latest.current, name, portrait }),
+          body: JSON.stringify({ store: latest.current }),
         });
         if (gone) return;
         if (r.ok) {
@@ -1158,73 +868,23 @@ function LivePreview({ store, name, portrait = false }: { store: Store; name: st
       gone = true;
       clearTimeout(timer);
     };
-  }, [key, name, portrait]);
+  }, [key]);
   if (note) return <div className={css.noPreview}>{note}</div>;
   if (!src) return <div className={css.noPreview}>Drawing…</div>;
   return (
     <img
       className={`${css.preview} ${busy ? css.stale : ""}`}
       src={src}
-      alt={`${name} composite`}
+      alt="The commander"
       style={{ filter: look || undefined }}
     />
   );
 }
 
-/** Everything a composite depends on, so a preview is redrawn only when that changes. */
-function previewKey(store: Store, name: string, portrait: boolean): string {
-  if (name === "commander") {
-    const cams = PANELS.flatMap((p) => store.commander[p].cameras);
-    return JSON.stringify([store.commander, cams.map((e) => store.cameras[e]?.title)]);
-  }
-  const group = (n: string) => {
-    const g = store.groups[n];
-    return g && [g.cameras.map((e) => [e, store.cameras[e]?.title]), g.tile, g.fit];
-  };
-  if (name !== "overview") return JSON.stringify([group(name), portrait]);
-  const layout = portrait ? store.overview_portrait : store.overview;
-  return JSON.stringify([layout, layout.rows.flatMap((r) => r.groups ?? r.strip ?? []).map(group)]);
-}
-
-function NameDialog({
-  title,
-  initial,
-  taken,
-  onClose,
-  onSave,
-}: {
-  title: string;
-  initial: string;
-  taken: string[];
-  onClose: () => void;
-  onSave: (name: string) => void;
-}) {
-  const [name, setName] = useState(initial);
-  const clean = name.trim();
-  const clash = clean !== initial && taken.includes(clean);
-  return (
-    <Dialog
-      title={title}
-      onClose={onClose}
-      footer={
-        <>
-          <button className={ui.button} onClick={onClose}>
-            Cancel
-          </button>
-          <button className={ui.primary} disabled={!clean || clash || clean === initial} onClick={() => onSave(clean)}>
-            {initial ? "Rename" : "Add"}
-          </button>
-        </>
-      }
-    >
-      <Field
-        label="Name"
-        help={clash ? `There is already a group called ${clean}.` : "On the group's picture in the overview, and as its page's name."}
-      >
-        <input value={name} onChange={(e) => setName(e.target.value)} />
-      </Field>
-    </Dialog>
-  );
+/** Everything the commander depends on, so the preview is redrawn only when that changes. */
+function previewKey(store: Store): string {
+  const cams = PANELS.flatMap((p) => store.commander[p].cameras);
+  return JSON.stringify([store.commander, cams.map((e) => store.cameras[e]?.title)]);
 }
 
 /** An ordered list as chips: move, remove, and add from the choices. */
@@ -1352,7 +1012,7 @@ type Channel = { channel: "camera" | "low" | "medium" | "high"; entity: string; 
 
 const CHANNELS: Record<Channel["channel"], [label: string, about: string]> = {
   camera: ["The camera", "the camera itself (it has no separate channels)"],
-  low: ["Low", "the low channel, the one the composites are made from"],
+  low: ["Low", "the low channel, the one the commander is made from"],
   medium: ["Medium", "the medium channel, the one the wall tablets and phones play"],
   high: ["High", "the high channel, the one everyone else plays; the slowest to come through here"],
 };
@@ -1557,19 +1217,6 @@ function Thumb({ entity }: { entity: string }) {
       loading="lazy"
       onError={() => setFailed(round)}
     />
-  );
-}
-
-/** A group's cameras as thumbnails on the compositor's grid (as many columns as the
- * square root, rounded up), so a group is recognisable before its composite is drawn. */
-function GroupThumb({ entities }: { entities: string[] }) {
-  const cols = Math.max(1, Math.ceil(Math.sqrt(entities.length)));
-  return (
-    <span className={css.groupThumb} style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }} aria-hidden="true">
-      {entities.map((e) => (
-        <Thumb key={e} entity={e} />
-      ))}
-    </span>
   );
 }
 
@@ -1878,7 +1525,7 @@ function Settings({
             ))}
           </select>
         </Field>
-        {text("portrait_query", "Portrait screens", "A media query: these get the portrait composites.")}
+        {text("portrait_query", "Portrait screens", "A media query: the screens held upright (for commanders made for them).")}
         {text("phone_query", "Phones", "A media query: these get the medium channel.")}
       </div>
       <Field label="Wall tablets" help="Home Assistant users that are wall tablets: they get the medium channel.">
@@ -1991,15 +1638,4 @@ function Backups({ toast, stamp }: { toast: (t: string, tone?: Toast["tone"]) =>
 
 function plural(n: number, word: string): string {
   return `${n} ${word}${n === 1 ? "" : "s"}`;
-}
-
-function renameKey<T>(obj: Record<string, T>, from: string, to: string): Record<string, T> {
-  return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k === from ? to : k, v]));
-}
-
-function moveKey<T>(obj: Record<string, T>, key: string, by: number): Record<string, T> {
-  const entries = Object.entries(obj);
-  const i = entries.findIndex(([k]) => k === key);
-  entries.splice(i + by, 0, ...entries.splice(i, 1));
-  return Object.fromEntries(entries);
 }
