@@ -1,0 +1,14 @@
+name: CI
+on:
+  push:
+    branches: [main, release-prep]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  checks:
+    uses: ./.github/workflows/checks.yml

@@ -1,0 +1,12 @@
+**
+!pyproject.toml
+!LICENSE
+!app/
+!app/src/
+!app/src/**
+!app/run.sh
+!integration/
+!integration/custom_components/
+!integration/custom_components/**
+**/__pycache__
+**/*.pyc
