@@ -650,7 +650,8 @@ function CommanderEditor({
     <div className={css.commander}>
       <div className={css.commanderTop}>
         <div className={css.commanderPreview}>{preview}</div>
-        <div className={css.numbers}>
+        <section className={`${css.options} ${css.numbers}`}>
+          <h4 className={css.sub}>Picture</h4>
           <Num label="Width" value={value.width} onChange={(n) => set((c) => (c.width = n))} />
           <Num label="Height" value={value.height} onChange={(n) => set((c) => (c.height = n))} />
           <Num label="Gap, px" value={value.gap} onChange={(n) => set((c) => (c.gap = n))} />
@@ -663,9 +664,12 @@ function CommanderEditor({
           <p className={`${css.hint} ${css.wide}`}>
             Gaps are transparent: the dashboard's background shows through them.
           </p>
+        </section>
+        <section className={`${css.options} ${css.numbers}`}>
+          <h4 className={css.sub}>Main camera</h4>
           <div className={css.wide}>
             <Field
-              label="Main camera"
+              label="Fit"
               help="Fit: whole, with black borders. Fill: stretched to the space. Crop: fills it, edges cut off. Own shape: Main width wide at the camera's own shape, the panels around it (they move when a camera of another shape is shown). Fixed shape: Main width wide at the shape set, the camera whole within it."
             >
               <Segmented
@@ -711,6 +715,8 @@ function CommanderEditor({
               </select>
             </Field>
           </div>
+        </section>
+        <section className={`${css.options} ${css.numbers}`}>
           <h4 className={css.sub}>Highlight on the main camera's tile</h4>
           <Field label="Colour">
             <input
@@ -753,17 +759,21 @@ function CommanderEditor({
               }
             />
           </Field>
+        </section>
+        <section className={`${css.options} ${css.numbers}`}>
           <h4 className={css.sub}>Track motion</h4>
-          <Field
-            label="Track motion"
-            help={
-              trackMotion === undefined
-                ? "Home Assistant has no Track motion switch yet (the Casa Mia integration adds it)."
-                : "The Camera Commander's Track motion switch in Home Assistant: automations can flip it too."
-            }
-          >
-            <Switch on={trackMotion === "on"} label="Track motion" busy={trackMotion === undefined} onChange={onTrackMotion} />
-          </Field>
+          <div className={css.wide}>
+            <Field
+              label="Track motion"
+              help={
+                trackMotion === undefined
+                  ? "Home Assistant has no Track motion switch yet (the Casa Mia integration adds it)."
+                  : "The Camera Commander's Track motion switch in Home Assistant: automations can flip it too."
+              }
+            >
+              <Switch on={trackMotion === "on"} label="Track motion" busy={trackMotion === undefined} onChange={onTrackMotion} />
+            </Field>
+          </div>
           <p className={`${css.hint} ${css.wide}`}>
             While it is on, a camera that sees motion becomes the main one (its tile gets a red dot whenever it sees motion,
             on or off).
@@ -786,7 +796,7 @@ function CommanderEditor({
             help="Choosing a camera yourself (a tap) pauses tracking this long."
             onChange={(n) => set((c) => (c.motion = { ...moves, pause: n }))}
           />
-        </div>
+        </section>
       </div>
       <div className={css.panels}>
         {PANELS.map((p) => (

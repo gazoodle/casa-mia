@@ -139,16 +139,34 @@
   gap: 14px;
 }
 
+/* The preview, with the option groups flowing around it: the picture's own settings
+   beside it, the rest in a row under it; each row's boxes as tall as the tallest, so
+   no room is left empty below the picture. */
 .commanderTop {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(220px, 1fr);
-  gap: 16px;
-  align-items: start;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
 }
 
 .commanderPreview {
+  grid-column: span 2;
   min-width: 0;
 }
+
+/* One group of the commander's options. */
+.options {
+  align-content: start;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg);
+}
+
+.options .sub {
+  margin-top: 0;
+}
+
 
 .numbers input:disabled {
   opacity: 0.45;
@@ -235,16 +253,24 @@
   grid-column: 1 / -1;
 }
 
-/* The commander's four panels: two to a row, half the editor each. */
+/* The commander's four panels, one to a row: room for many cameras each. */
 .panels {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
 
+@media (max-width: 1100px) {
+  .commanderTop {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .commanderPreview {
+    grid-column: 1 / -1;
+  }
+}
+
 @media (max-width: 760px) {
-  .commanderTop,
-  .panels {
+  .commanderTop {
     grid-template-columns: 1fr;
   }
 }

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.1-b23
+
+- Camera Dashboard: the commander editor's options are in four groups (Picture, Main camera, Highlight, Track motion) that flow around the preview, beside it and then under it, where a tall column left empty space below the picture. The Left, Top, Right and Bottom panels are full width, one to a row, so a panel with many cameras isn't cramped.
+
 ## 2026.10.1-b22
 
 - Camera composites: rebuilt around a gather loop. While anyone is watching (and for 30 seconds after), every camera's picture is fetched every 2 seconds, all at once, each with its own 5-second limit, into a cache that is always kept. The commander is drawn from that cache after each round and sent to every open stream. Drawing now runs off the server's loop, so streams no longer stall while a picture is drawn. Nobody watching: nothing is fetched, as before.
