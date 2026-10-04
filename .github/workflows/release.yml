@@ -1,27 +1,174 @@
-# A pushed release tag (YYYY.M.R, made by `tools/versioning.py release`) becomes a GitHub
-# release whose notes are that version's changelog section: every build's notes since the
-# last release, merged by the release step. The notes are also attached as release-notes.md:
-# each app fetches it once per version (the count_install option), and GitHub's download
-# count of it is the README's Downloads badge.
 name: Release
-
 on:
   push:
-    tags: ["20[0-9][0-9].[0-9]*.[0-9]*"]
-
+    tags: ["20*.*.*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Existing release tag (YYYY.MM.REL) to retry"
+        required: true
+        type: string
 permissions:
-  contents: write
-
+  contents: read
+concurrency:
+  group: release
+  cancel-in-progress: false
 jobs:
-  release:
-    if: ${{ !contains(github.ref_name, '-') }}
+  validate:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.validate.outputs.version }}
+      sha: ${{ steps.source.outputs.sha }}
+    steps:
+      - name: Validate requested tag
+        id: validate
+        env:
+          VERSION: ${{ inputs.version || github.ref_name }}
+        run: |
+          [[ "$VERSION" =~ ^20[0-9]{2}\.(0[1-9]|1[0-2])\.[1-9][0-9]*$ ]]
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ steps.validate.outputs.version }}
+          fetch-depth: 0
+      - name: Verify versions and notes
+        env:
+          VERSION: ${{ steps.validate.outputs.version }}
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install 'pyyaml>=6,<7'
+          .venv/bin/python - <<'PY'
+          import os
+          import tomllib
+          from pathlib import Path
+          import yaml
+          version = os.environ["VERSION"]
+          assert tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"] == version
+          assert yaml.safe_load(Path("app/config.yaml").read_text())["version"] == version
+          PY
+          .venv/bin/python tools/versioning.py notes "$VERSION" > release-notes.md
+          test -s release-notes.md
+          test -n "$(tr -d '[:space:]' < release-notes.md)"
+      - name: Record source
+        id: source
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+  checks:
+    needs: validate
+    # A tag retry must run checks on the requested tag, not the dispatch branch.
+    uses: ./.github/workflows/checks.yml
+    with:
+      ref: ${{ needs.validate.outputs.sha }}
+  publish:
+    needs: [validate, checks]
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-latest
+          - arch: aarch64
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
-      - name: The tag is the version in pyproject.toml
-        run: grep -qx "version = \"$GITHUB_REF_NAME\"" pyproject.toml
-      - run: python3 tools/versioning.py notes "$GITHUB_REF_NAME" > notes.md
-      - run: gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md \
-          "notes.md#release-notes.md"
+        with:
+          ref: ${{ needs.validate.outputs.sha }}
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and publish
+        id: image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: app/Dockerfile.release
+          platforms: ${{ matrix.platform }}
+          push: true
+          tags: ghcr.io/gazoodle/casa-mia-${{ matrix.arch }}:${{ needs.validate.outputs.version }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/gazoodle/casa-mia
+            org.opencontainers.image.revision=${{ needs.validate.outputs.sha }}
+            org.opencontainers.image.version=${{ needs.validate.outputs.version }}
+          cache-from: type=gha,scope=${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
+      - name: Verify public pull
         env:
+          IMAGE: ghcr.io/gazoodle/casa-mia-${{ matrix.arch }}:${{ needs.validate.outputs.version }}
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          docker logout ghcr.io
+          docker pull --platform "$PLATFORM" "$IMAGE"
+      - name: Record digest
+        env:
+          IMAGE: ghcr.io/gazoodle/casa-mia-${{ matrix.arch }}:${{ needs.validate.outputs.version }}
+          DIGEST: ${{ steps.image.outputs.digest }}
+          SOURCE: ${{ needs.validate.outputs.sha }}
+        run: |
+          echo "$IMAGE@$DIGEST source=$SOURCE" > image-${{ matrix.arch }}.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: image-${{ matrix.arch }}
+          path: image-${{ matrix.arch }}.txt
+  release:
+    needs: [validate, checks, publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.validate.outputs.sha }}
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: image-*
+          merge-multiple: true
+          path: release-assets
+      - name: Publish notes and update stable delivery
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+          SOURCE: ${{ needs.validate.outputs.sha }}
           GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 -m venv .venv
+          .venv/bin/python tools/versioning.py notes "$VERSION" > release-assets/release-notes.md
+          if gh release view "$VERSION" > /dev/null 2>&1; then
+            gh release upload "$VERSION" release-assets/* --clobber
+          else
+            gh release create "$VERSION" --verify-tag --title "$VERSION" \
+              --notes-file release-assets/release-notes.md release-assets/*
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git ls-remote --exit-code --heads origin stable > /dev/null; then
+            git fetch origin stable
+            git checkout -B stable FETCH_HEAD
+            git read-tree --reset -u "$SOURCE"
+          else
+            git checkout -B stable "$SOURCE"
+          fi
+          .venv/bin/python - <<'PY'
+          from pathlib import Path
+          path = Path("app/config.yaml")
+          text = path.read_text()
+          text = "\n".join(line for line in text.split("\n") if not line.startswith(("image:", "# No `image:`", "# without a registry.")))
+          text += '\n# Public images built by the release workflow.\nimage: "ghcr.io/gazoodle/casa-mia-{arch}"\n'
+          path.write_text(text)
+          PY
+          git add -A app/config.yaml
+          if ! git diff --cached --quiet; then
+            git commit -m "Stable release $VERSION ($SOURCE)"
+          fi
+          git push origin HEAD:refs/heads/stable
+          if ! git rev-parse --verify "refs/tags/stable-$VERSION" > /dev/null 2>&1; then
+            git tag "stable-$VERSION"
+          fi
+          git push origin "refs/tags/stable-$VERSION"
