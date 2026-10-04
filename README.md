@@ -28,25 +28,25 @@ And that's just the start.
 It's a collection of useful functionality that I've gathered and written over years of being
 an HA enthusiast. It was getting to the point where it was unmanageable as there were so many
 little pieces, some in source control, others tucked into community notes, some deployed from
-stale repos; so I thought Claude and I could pull them together and clean them up, and in the
-process have a truck load of fun building stuff that I normally can't be bothered to do.
+stale repos; so I thought Claude, Codex and I could pull them together and clean them up, and
+in the process have a truckload of fun building stuff that I normally can't be bothered to do.
 
 During that process I realised that there was quite a bit of stuff that other people might
-find useful too, so ... this project got created, and now, Claude, Codex and I have built
-an entire Home Assistant app to host parts of it, a integratioin to expose parts of it for
-automation, and we even built an entire release system so I don't forget steps to do it, and
-now I've got a heap of neat ideas to keep going with, so if you're interested, come along
-for the ride, give me feedback, ask for features. 
+find useful too, so ... this project got created. Between us we've now built an entire
+Home Assistant app to host parts of it, an integration to expose parts of it for automation,
+and even an entire release system so I don't forget any of the steps. I've got a heap of
+neat ideas to keep going with, so if you're interested, come along for the ride, give me
+feedback, and ask for features.
 
-I've been writing software for decades, actually nearly 1/2 century [yikes] and so I spend
+I've been writing software for decades, actually nearly half a century [yikes], so I spend
 quite a bit of my time shouting at AI dev tools because they keep making the same idiotic
 mistakes, but my-oh-my when they are marshalled in the correct direction, they build some
-lovely software. I do curate everything they do and I often berate them on DRY, YAGNI, 
-optimisations so it's not totally AI slop ... well, there might be a smidgen of it :-)
+lovely software. I do curate everything they do, and I often berate them about DRY, YAGNI
+and optimisation, so it's not totally AI slop ... well, there might be a smidgen of it :-)
 
-Anyway, moving on, every time I go looking for useful stuff and inspiration, I'm interested in 
-what it looks like and what I can create with it, here are some screenshots of what you get 
-and what you can achieve.
+Anyway, moving on. Every time I go looking for useful stuff and inspiration, I'm interested
+in what it looks like and what I can create with it, so here are some screenshots of what you
+get and what you can achieve. Click any of them to see it full size.
 
 ## Your house, at a glance
 
@@ -340,7 +340,7 @@ Custom pieces built one at a time each re-solve the same things:
 - A camera compositor and its adaptive dashboard.
 - An alarm panel, a firmware mirror for the wall tablets, and other ideas.
 - Arduino firmware for FONA, an ESPHome generator, a tablet provisioner, a KNX project.
-- Third-party apps that may no longer maintained: `ha-auto-guest-login`
+- Third-party apps that may no longer be maintained: `ha-auto-guest-login`
   (MIT, last update 2025) is taken over and rewritten as a module.
 
 **Out of scope by design:** other projects (public, shared or someone else's, such as
