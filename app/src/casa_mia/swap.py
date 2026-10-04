@@ -27,8 +27,13 @@ def _same(text: str) -> str:
     return text
 
 
-# (file mtime, out, back, stamp); replaced whole, so the server's threads see one or the other.
-_state: tuple[int | None, Rule, Rule, str] = (None, _same, _same, "")
+# Settings in swap.json beside the strings.
+SETTINGS = ("swap", "original_photo")
+
+# (file mtime, out, back, stamp, original photo); replaced whole, so the server's threads
+# see one or the other.
+State = tuple[int | None, Rule, Rule, str, bool]
+_state: State = (None, _same, _same, "", False)
 
 
 def _rule(pairs: dict[str, str]) -> Rule:
@@ -41,24 +46,27 @@ def _rule(pairs: dict[str, str]) -> Rule:
     return lambda text: pattern.sub(lambda m: pairs[m.group(0)], text)
 
 
-def _pairs(path: Path) -> dict[str, str]:
+def _read(path: Path) -> tuple[dict[str, str], bool]:
+    """The swapped strings, and whether the shipped house photo stands in for yours."""
     try:
         data = json.loads(path.read_text())
     except (OSError, ValueError) as exc:
         _LOGGER.warning(
             "screenshot swap: %s is unreadable, so it is off (%s)", path, exc
         )
-        return {}
+        return {}, False
     if not isinstance(data, dict) or data.get("swap") is not True:
-        return {}
-    pairs = {k: v for k, v in data.items() if k != "swap" and k and isinstance(v, str)}
+        return {}, False
+    pairs = {
+        k: v for k, v in data.items() if k not in SETTINGS and k and isinstance(v, str)
+    }
     # JSON answers send non-ASCII as escapes (é as a backslash-u code): match those too.
     for k, v in list(pairs.items()):
         pairs.setdefault(json.dumps(k)[1:-1], json.dumps(v)[1:-1])
-    return pairs
+    return pairs, data.get("original_photo") is True
 
 
-def _current() -> tuple[int | None, Rule, Rule, str]:
+def _current() -> State:
     global _state
     try:
         mtime: int | None = PATH.stat().st_mtime_ns
@@ -66,11 +74,16 @@ def _current() -> tuple[int | None, Rule, Rule, str]:
         mtime = None
     if mtime == _state[0]:
         return _state
-    pairs = _pairs(PATH) if mtime is not None else {}
+    pairs, photo = _read(PATH) if mtime is not None else ({}, False)
     back = {v: k for k, v in pairs.items() if v}
-    _state = (mtime, _rule(pairs), _rule(back), str(mtime) if pairs else "")
-    if pairs:
-        _LOGGER.info("screenshot swap on: %d strings replaced", len(pairs))
+    on = bool(pairs) or photo
+    _state = (mtime, _rule(pairs), _rule(back), str(mtime) if on else "", photo)
+    if on:
+        _LOGGER.info(
+            "screenshot swap on: %d strings replaced%s",
+            len(pairs),
+            ", the shipped house photo shown" if photo else "",
+        )
     else:
         _LOGGER.info("screenshot swap off")
     return _state
@@ -89,6 +102,11 @@ def back(text: str) -> str:
 def stamp() -> str:
     """Changes whenever the swap does ("" while off), so an open panel can reload."""
     return _current()[3]
+
+
+def original_photo() -> bool:
+    """The shipped house photo is shown in place of the uploaded one (which is kept)."""
+    return _current()[4]
 
 
 def out_bytes(data: bytes, ctype: str) -> bytes:

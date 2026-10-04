@@ -28,6 +28,12 @@ def test_swap_both_ways(tmp_path, monkeypatch):
     on = swap.stamp()
     assert on
 
-    path.write_text(json.dumps({"swap": False, "Jo": "X"}))
+    assert not swap.original_photo()
+
+    path.write_text(json.dumps({"swap": True, "original_photo": True}))
+    os.utime(path, ns=(2, 2))
+    assert swap.original_photo() and swap.stamp() and swap.out("Jo") == "Jo"
+
+    path.write_text(json.dumps({"swap": False, "Jo": "X", "original_photo": True}))
     os.utime(path, ns=(1, 1))  # a new mtime even within the filesystem's resolution
-    assert swap.out("Jo") == "Jo" and swap.stamp() == ""
+    assert swap.out("Jo") == "Jo" and swap.stamp() == "" and not swap.original_photo()

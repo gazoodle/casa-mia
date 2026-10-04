@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.2-b4
+
+- Screenshot swap: `"original_photo": true` in swap.json shows the shipped house photo in place of yours (which stays saved).
+
 ## 2026.10.2-b3
 
 - Screenshot swap: while `custom_components/casa_mia/swap.json` says so, the panel, the integration's entities, the guest QR codes and the welcome page show stand-ins for real names, numbers and addresses, so screenshots give nothing private away. Each save shows on the panel within seconds.
