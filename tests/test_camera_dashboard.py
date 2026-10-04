@@ -444,10 +444,12 @@ def test_commander_overview_taps_choose_and_open():
     assert [t["tap_action"]["data"]["option"] for t in taps] == ["Bay", "Tablet"]
     mains = [e for e in landscape["elements"] if e["type"] == "conditional"]
     assert [m["conditions"][0]["state"] for m in mains] == ["Bay", "Tablet"]
-    assert (
-        mains[0]["elements"][0]["tap_action"]["navigation_path"]
-        == "/dashboard-cams/cam-bay"
-    )
+    lit, opens = mains[0]["elements"]
+    assert opens["tap_action"]["navigation_path"] == "/dashboard-cams/cam-bay"
+    # Bay's own tile is outlined (the browser draws it) while Bay is the main camera
+    assert lit["image"].endswith("#cm-highlight")
+    assert lit["style"]["pointer-events"] == "none"
+    assert lit["style"]["border"] == "2px solid #7bd1a0"
 
 
 def test_commander_problems():
@@ -482,7 +484,12 @@ def test_integration_chooses_the_main_camera(tmp_path):
     cd.start()
     live.start()
     try:
-        assert cd.health()["commander"] == {"options": ["Bay", "Tablet"], "main": "Bay"}
+        assert cd.health()["commander"] | {"cameras": None, "motion": None} == {
+            "options": ["Bay", "Tablet"],
+            "main": "Bay",
+            "cameras": None,
+            "motion": None,
+        }
         assert cd.control("commander", b'{"main": "Tablet"}') == 200
         assert cd.health()["commander"]["main"] == "Tablet"
         assert json.loads(state.read_text()) == {"main": "camera.b"}
@@ -535,7 +542,12 @@ def test_a_choice_moves_the_preview_too(tmp_path):
     cd.start()
     draft.start()
     try:
-        assert cd.health()["commander"] == {"options": ["Bay", "Tablet"], "main": "Bay"}
+        assert cd.health()["commander"] | {"cameras": None, "motion": None} == {
+            "options": ["Bay", "Tablet"],
+            "main": "Bay",
+            "cameras": None,
+            "motion": None,
+        }
         assert cd.control("commander", b'{"main": "Tablet"}') == 200
         assert draft.main_camera() == "camera.b"
     finally:
@@ -554,3 +566,156 @@ def test_group_gap_moves_its_tap_zones():
     assert problems(store) == []
     store["groups"]["Shed"]["gap"] = -1
     assert "the gap must be 0 px or more" in " ".join(problems(store))
+
+
+def test_shapes_are_numbers_or_ratios():
+    from casa_mia.modules.compositor import ratio
+
+    assert ratio("16:9") == pytest.approx(16 / 9)
+    assert ratio("4/3") == pytest.approx(4 / 3)
+    assert ratio(1.85) == ratio("1.85") == 1.85
+    for bad in ("wide", "0:1", "-2"):
+        with pytest.raises((ValueError, ZeroDivisionError)):
+            ratio(bad)
+
+
+def test_main_camera_at_its_own_shape():
+    from casa_mia.modules.compositor import EMPTY_COMMANDER, commander_layout
+
+    one = {"cameras": ["camera.x"], "size": 10, "fit": "cover"}
+    cmd = {**EMPTY_COMMANDER, "width": 1000, "height": 500, "gap": 0}
+    cmd |= {
+        "main_fit": "own",
+        "main_width": 50,
+        "aspects": {"camera.a": 4 / 3, "camera.t": 9 / 16},
+    }
+    for panel in ("left", "right", "top", "bottom"):
+        cmd[panel] = {**one, "anchor_left": False, "anchor_right": False}
+    _, main, tiles = commander_layout(cmd, "camera.a")
+    assert main == (
+        250,
+        62,
+        500,
+        375,
+    )  # half the width, at 4:3; the panels take the rest
+    assert tiles["left"][0][2] == 250 and tiles["top"][0][3] == 62
+    _, main, tiles = commander_layout(
+        cmd, "camera.t"
+    )  # a tall one: smaller, same shape
+    assert main[3] == 500 - 2 * 40 and main[2] == round(420 * 9 / 16)
+    assert tiles["top"][0][3] == 40  # top and bottom keep 8% of the height each
+    cmd |= {"main_fit": "fixed", "main_ratio": "2:1"}
+    assert commander_layout(cmd, "camera.t")[1] == (250, 125, 500, 250)  # the shape set
+
+
+def test_own_shape_gives_a_tap_zone_set_per_main_camera():
+    store = commander_store()
+    store["commander"] |= {
+        "main_fit": "own",
+        "main_width": 60,
+        "aspects": {"camera.a_low": 16 / 9, "camera.b": 4 / 3},
+    }
+    assert problems(store) == []
+    landscape = build_dashboard(store, "http://h:8099", "dashboard-cams")["views"][0]
+    sets = landscape["sections"][0]["cards"][0]["elements"]
+    assert [s["conditions"][0]["state"] for s in sets] == ["Bay", "Tablet"]
+    bay, tablet = (s["elements"] for s in sets)
+    assert bay[-1]["tap_action"]["navigation_path"].endswith("/cam-bay")  # the main one
+    assert bay[0]["style"] != tablet[0]["style"]  # the panels moved with the shape
+
+
+def test_saving_records_each_commander_cameras_shape(tmp_path):
+    import types
+
+    from casa_mia.modules.compositor import Config
+
+    draft = types.SimpleNamespace(
+        aspect=lambda e: {"camera.a_low": 1.3333}.get(e),
+        reload=lambda: None,
+        health=lambda: {"state": "running"},
+        cfg=Config(),
+    )
+    cd = CameraDashboard(tmp_path, None, lambda: None, draft=draft)  # type: ignore[arg-type]
+    cd.start()
+    status, view = call(cd, "PUT", "", commander_store())
+    assert status == 200
+    assert view["store"]["commander"]["aspects"] == {"camera.a_low": 1.3333}
+
+
+def test_security_look_is_a_css_filter_and_follows_live(cd):
+    _, view = call(cd, "GET", "")
+    store = view["store"]
+    store["look"]["css"] = "grayscale(1); background: url(x)"
+    call(cd, "PUT", "", store)
+    assert "not a CSS filter" in " ".join(problems(cd.store))
+    tinted = "grayscale(1) sepia(1) hue-rotate(184deg) saturate(3) brightness(0.80)"
+    store["look"]["css"] = tinted
+    call(cd, "PUT", "", store)
+    assert (
+        problems(cd.store) == [] and cd.health()["look_css"] == ""
+    )  # not deployed yet
+    call(cd, "POST", "deploy", {"target": "live"})
+    assert cd.health()["look_css"] == tinted
+
+
+def test_motion_sensors_by_device_then_by_name():
+    from casa_mia.modules.camera_dashboard import motion_sensors
+
+    registry = [
+        {"entity_id": "camera.drive_low_resolution_channel", "device_id": "d"},
+        {
+            "entity_id": "binary_sensor.drive_motion",
+            "device_id": "d",
+            "original_device_class": "motion",
+        },
+        {
+            "entity_id": "binary_sensor.drive_doorbell",
+            "device_id": "d",
+            "original_device_class": "occupancy",
+        },
+        {"entity_id": "camera.pool", "device_id": None},
+    ]
+    states = [
+        {
+            "entity_id": "binary_sensor.pool_motion",
+            "attributes": {"device_class": "motion"},
+        },
+        {
+            "entity_id": "binary_sensor.shed_motion",
+            "attributes": {"device_class": "motion"},
+        },
+    ]
+    cams = ["camera.drive_low_resolution_channel", "camera.pool", "camera.shed_cam"]
+    assert (
+        motion_sensors(registry, states, cams)
+        == {
+            "camera.drive_low_resolution_channel": "binary_sensor.drive_motion",  # its device
+            "camera.pool": "binary_sensor.pool_motion",  # by name
+        }
+    )
+
+
+def test_motion_marks_the_commanders_cameras(tmp_path):
+    import types
+
+    seen = []
+    comp = types.SimpleNamespace(
+        cfg=types.SimpleNamespace(commander={"left": {}}), set_motion=seen.append
+    )
+    cd = CameraDashboard(tmp_path, None, lambda: None, live=comp)  # type: ignore[arg-type]
+    assert cd.control("motion", b'{"cameras": ["camera.a_low"]}') == 200
+    assert seen == [frozenset({"camera.a_low"})]
+    assert cd.control("motion", b'{"cameras": "nope"}') == 400
+
+
+def test_highlight_settings_are_checked():
+    store = commander_store()
+    store["commander"]["highlight"] = {
+        "colour": "green",
+        "width": -1,
+        "style": "wobble",
+    }
+    found = " ".join(problems(store))
+    assert "highlight colour must be like #7bd1a0" in found
+    assert "highlight width must be 0 or more" in found
+    assert "must breathe or ripple" in found

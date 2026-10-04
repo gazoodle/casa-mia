@@ -17,12 +17,12 @@
         "description": "The code the alarm panel asks for when arming and disarming (until one is set, the panel refuses both), and the dashboard helpers Casa Mia loads into Home Assistant.",
         "data": {
           "alarm_code": "Alarm code",
-          "script_streams": "Keep camera pictures live",
+          "script_streams": "Keep camera pictures live (and the Security look)",
           "script_back": "Back button helper (#BACK goes back)",
           "script_refresh": "Reload dashboards when they change"
         },
         "data_description": {
-          "script_streams": "Stops the camera streams of pages not on screen and restarts those shown, so a page you come back to has a live picture.",
+          "script_streams": "Stops the camera streams of pages not on screen and restarts those shown, so a page you come back to has a live picture; and gives the camera pictures the Security look while the Camera Commander's Security look switch is on.",
           "script_back": "The camera dashboard's Back buttons need it. Switch it on once any copy added by hand (nav_back_helper.js among the dashboard resources) is removed, or Back goes back twice.",
           "script_refresh": "Wall tablets show a deployed dashboard without a reload. Replaces auto_refresh.js among the dashboard resources: remove that one when switching this on."
         }
@@ -34,7 +34,7 @@
     "alarm_wrong_code": { "message": "Wrong alarm code." }
   },
   "entity": {
-    "switch": { "access": { "name": "Access" } },
+    "switch": { "access": { "name": "Access" }, "security_look": { "name": "Security look" }, "track_motion": { "name": "Track motion" } },
     "select": { "commander_main": { "name": "Main camera" } },
     "event": {
       "login": { "name": "Login", "state_attributes": { "event_type": { "state": { "login": "Login" } } } },

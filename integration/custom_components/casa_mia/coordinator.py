@@ -49,6 +49,7 @@ class CasaMiaCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         self.url: str = entry.data[CONF_URL]
         self.loaded_version = loaded_version
+        self.motion: Any = None  # the commander's Track motion (motion.MotionTracker)
 
     async def _async_update_data(self) -> dict[str, Any]:
         # Before the fetch, so a restart prompt still appears while the app is down.

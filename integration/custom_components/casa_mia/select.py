@@ -30,6 +30,18 @@ class CommanderMainSelect(CasaMiaEntity, SelectEntity):
         self._attr_unique_id = f"{entry.entry_id}_commander_main"
         self._chosen: str | None = None  # shown until the app's next report
 
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        if self.coordinator.motion:  # Track motion's switches show at once
+
+            @callback
+            def show(option: str) -> None:
+                self._chosen = option
+                self.async_write_ha_state()
+
+            self.coordinator.motion.shown.append(show)
+            self.async_on_remove(lambda: self.coordinator.motion.shown.remove(show))
+
     @property
     def commander(self) -> dict:
         module = self.coordinator.data.get("modules", {}).get("camera_dashboard", {})
@@ -64,4 +76,6 @@ class CommanderMainSelect(CasaMiaEntity, SelectEntity):
             raise HomeAssistantError(f"Main camera not changed: {exc}") from exc
         self._chosen = option
         self.async_write_ha_state()
+        if self.coordinator.motion:  # a choice by hand: Track motion pauses
+            self.coordinator.motion.chosen_by_hand(option)
         await self.coordinator.async_request_refresh()

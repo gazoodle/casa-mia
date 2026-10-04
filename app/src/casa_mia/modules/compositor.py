@@ -90,7 +90,29 @@ EMPTY_COMMANDER = {
     "height": 1080,
     "gap": 4,
     "main": "",  # the main camera at start; blank: the first of the panels
-    "main_fit": "fit",  # fit (whole, black borders), fill (stretched), crop (filled)
+    # fit (whole, black borders), fill (stretched), crop (filled), or the main camera
+    # sized by main_width (% of the picture's width) with the panels sharing the room
+    # around it: own (its own shape, from `aspects`, so the panels move with the camera
+    # shown) or fixed (the main_ratio shape; the camera fitted whole within it)
+    "main_fit": "fit",
+    "main_width": 70,
+    "main_ratio": "16:9",
+    "panel_min": 8,  # own, fixed: the % a panel with cameras keeps beside the main one
+    # Track motion (done by the integration), seconds: how long a switch holds before
+    # another, how long after the last motion it goes back to the camera chosen by hand
+    # (0: it stays), and how long a choice by hand pauses tracking.
+    "motion": {"hold": 10, "back": 30, "pause": 120},
+    # The outline the dashboard lays over the main camera's tile (the browser draws it):
+    # colour, width and blur (glow) in px, and a pulse every `pulse` seconds (0: steady)
+    # in a style: breathe (the glow swells and fades) or ripple (a ring spreads out).
+    "highlight": {
+        "colour": "#7bd1a0",
+        "width": 2,
+        "blur": 13,
+        "pulse": 1.8,
+        "style": "breathe",
+    },
+    "aspects": {},  # camera -> its natural shape (width / height), recorded when saved
     "left": {"cameras": [], "size": 15, "fit": "cover"},
     # Top and bottom: an anchored end runs to the view's edge, and the side panel stops
     # at it; an end not anchored stops at the side panel, which runs to the view's edge.
@@ -294,7 +316,7 @@ def overview_layout(
         if "groups" in row:
             n = len(row["groups"])
             w = (width - (n - 1) * gap) // n
-            h = round(w / cfg["cell_aspect"])
+            h = round(w / ratio(cfg["cell_aspect"]))
             for i, g in enumerate(row["groups"]):
                 rect = (i * (w + gap), y, w, h)
                 tiles = subtiles(rect, len(groups[g]["cameras"]))
@@ -302,7 +324,7 @@ def overview_layout(
         else:
             counts = [len(groups[g]["cameras"]) for g in row["strip"]]
             w = (width - (len(counts) - 1) * gap) // sum(counts)
-            h, x = round(w / cfg["strip_aspect"]), 0
+            h, x = round(w / ratio(cfg["strip_aspect"])), 0
             for g, c in zip(row["strip"], counts, strict=True):
                 tiles = [(x + j * w, y, w, h) for j in range(c)]
                 items.append({"group": g, "rect": (x, y, w * c, h), "tiles": tiles})
@@ -362,12 +384,43 @@ def _line(rect: Rect, n: int, down: bool, gap: int) -> list[Rect]:
     return [(x, y + a, w, b) if down else (x + a, y, b, h) for a, b in cells]
 
 
-def commander_layout(cmd: dict) -> tuple[tuple[int, int], Rect, dict[str, list[Rect]]]:
+SIZED = ("own", "fixed")  # main camera fits that set its size, and the panels' sizes
+
+
+def ratio(value: object) -> float:
+    """A shape as a number: 1.78, "1.78", "16:9" or "16/9" (width over height)."""
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        number = float(value)
+    else:
+        text = str(value).strip().replace("/", ":")
+        a, _, b = text.partition(":")
+        number = float(a) / float(b) if b else float(a)
+    if not number > 0:
+        raise ValueError(f"not a shape: {value!r}")
+    return number
+
+
+def main_shape(cmd: dict, main: str | None) -> float | None:
+    """The main camera's shape when it sets its own size (own, fixed), else None."""
+    fit = cmd.get("main_fit", "fit")
+    if fit == "fixed":
+        return ratio(cmd.get("main_ratio", "16:9"))
+    if fit == "own":
+        return float((cmd.get("aspects") or {}).get(main or "") or 16 / 9)
+    return None
+
+
+def commander_layout(
+    cmd: dict, main: str | None = None
+) -> tuple[tuple[int, int], Rect, dict[str, list[Rect]]]:
     """Canvas size, the main camera's area, and each panel's tile rects. Top and bottom
     run to the view's edge at an anchored end (the side panel stops at them there), else
     stop at the side panel; the main camera fills what is left. An empty panel takes no
-    room. Shared with the dashboard generator, so its tap zones line up."""
+    room. With a sized main camera (own, fixed) it is main_width wide at its shape, and
+    the panels share the room around it (so with own, the layout follows `main`).
+    Shared with the dashboard generator, so its tap zones line up."""
     w, h, gap = cmd["width"], cmd["height"], cmd["gap"]
+    shape = main_shape(cmd, main)
 
     def size(panel: str, of: int) -> int:
         return round(of * cmd[panel]["size"] / 100) if cmd[panel]["cameras"] else 0
@@ -376,12 +429,37 @@ def commander_layout(cmd: dict) -> tuple[tuple[int, int], Rect, dict[str, list[R
         key = f"anchor_{end}"
         return bool(cmd[panel].get(key, EMPTY_COMMANDER[panel][key]))
 
-    left, right, top, bottom = (
-        size("left", w),
-        size("right", w),
-        size("top", h),
-        size("bottom", h),
-    )
+    if shape is None:
+        left, right, top, bottom = (
+            size("left", w),
+            size("right", w),
+            size("top", h),
+            size("bottom", h),
+        )
+    else:
+        smallest = cmd.get("panel_min", 8)  # % a panel with cameras always keeps
+
+        def kept(of: int, a: str, b: str) -> int:
+            """The room the panels either side of the main camera keep, at the least."""
+            n = bool(cmd[a]["cameras"]) + bool(cmd[b]["cameras"])
+            return n * (round(of * smallest / 100) + gap)
+
+        most_w, most_h = w - kept(w, "left", "right"), h - kept(h, "top", "bottom")
+        mw = min(round(w * cmd.get("main_width", 70) / 100), most_w)
+        mh = round(mw / shape)
+        if mh > most_h:  # a tall camera (or a wide main width): smaller, same shape
+            mh, mw = most_h, round(most_h * shape)
+
+        def share(space: int, a: str, b: str) -> tuple[int, int]:
+            """The room beside the main camera, to the panels either side of it."""
+            ha, hb = bool(cmd[a]["cameras"]), bool(cmd[b]["cameras"])
+            room = max(space - gap * (ha + hb), 0)
+            if ha and hb:
+                return room // 2, room - room // 2
+            return (room, 0) if ha else (0, room) if hb else (0, 0)
+
+        left, right = share(w - mw, "left", "right")
+        top, bottom = share(h - mh, "top", "bottom")
     x0 = left + (gap if left else 0)  # the main camera's columns
     x1 = w - right - (gap if right else 0)
     y0 = top + (gap if top else 0)  # and rows
@@ -409,13 +487,17 @@ def commander_layout(cmd: dict) -> tuple[tuple[int, int], Rect, dict[str, list[R
         else []
         for p in PANELS
     }
-    return (w, h), (x0, y0, x1 - x0, y1 - y0), tiles
+    main_area = (x0, y0, x1 - x0, y1 - y0)
+    if shape is not None:  # exactly its size, centred where the panels left room
+        mw, mh = min(mw, x1 - x0), min(mh, y1 - y0)
+        main_area = (x0 + (x1 - x0 - mw) // 2, y0 + (y1 - y0 - mh) // 2, mw, mh)
+    return (w, h), main_area, tiles
 
 
 SMALL_FONT = ImageFont.load_default(size=16)
 BIG_FONT = ImageFont.load_default(size=40)
 SMALL_BAR = 22
-MAIN_FRAME = (123, 209, 160)  # the accent green: the tile shown as the main camera
+MOTION_DOT = (235, 50, 40)  # the accent green: the tile shown as the main camera
 
 
 def commander(
@@ -425,12 +507,13 @@ def commander(
     main: str,
     main_image: bytes | None,
     changing: bool = False,
+    motion: frozenset[str] = frozenset(),
 ) -> bytes:
     """Draw the commander: each panel's cameras (the main one framed), and the main camera
     in its natural shape, as large as fits its area, centred. `changing`: the picture
     shown the moment the main camera is switched, from stills already to hand: blurred,
     with "Changing to <camera>" over it, until the sharp one is ready."""
-    size, main_rect, rects = commander_layout(cmd)
+    size, main_rect, rects = commander_layout(cmd, main)
     canvas = blank(
         size, cmd["gap"]
     )  # the gaps transparent: the dashboard shows through
@@ -444,6 +527,8 @@ def commander(
         for entity, (x, y, w, h) in zip(
             cmd[panel]["cameras"], rects[panel], strict=True
         ):
+            if w <= 0 or h <= 0:  # no room left beside a large main camera
+                continue
             raw = tiles.get(entity)
             if raw:
                 try:
@@ -474,9 +559,11 @@ def commander(
                 font=SMALL_FONT,
                 anchor="lm",
             )
-            if entity == main:
-                draw.rectangle(
-                    (x, y, x + w - 1, y + h - 1), outline=MAIN_FRAME, width=1
+            if entity in motion:  # a red dot: this camera sees motion now
+                r = max(5, min(w, h) // 18)
+                cx, cy = x + w - r - 6, y + r + 6
+                draw.ellipse(
+                    (cx - r, cy - r, cx + r, cy + r), fill=MOTION_DOT, outline="white"
                 )
     x, y, w, h = main_rect
     if w > 0 and h > 0:
@@ -602,6 +689,7 @@ class Compositor:
         ] = {}  # -> (source, thumb)
         self._round_now: asyncio.Event | None = None
         self.main: str | None = None  # the commander's main camera, as last chosen
+        self.motion: frozenset[str] = frozenset()  # cameras seeing motion (red dots)
         self._wake: dict[str, asyncio.Event] = {}  # a stream's picture changed: send it
 
     def start(self) -> None:
@@ -655,6 +743,11 @@ class Compositor:
                 return choice
         return cams[0] if cams else None
 
+    def set_motion(self, cameras: frozenset[str]) -> None:
+        """The cameras seeing motion now: their tiles get a red dot from the next
+        picture on. Thread-safe."""
+        self.motion = cameras
+
     def set_main(self, entity: str) -> None:
         """Show this camera as the commander's main one: the picture is redrawn and sent to
         open streams at once. Thread-safe."""
@@ -668,6 +761,18 @@ class Compositor:
 
         if self._loop and self._running:
             self._loop.call_soon_threadsafe(apply)
+
+    def aspect(self, entity: str) -> float | None:
+        """A camera's natural shape (width / height), from the stills already to hand
+        (HA keeps a camera's shape when it scales a still); None until one is."""
+        raw = self._last_still(entity)
+        if not raw:
+            return None
+        try:
+            w, h = Image.open(io.BytesIO(raw)).size
+        except OSError:
+            return None
+        return round(w / h, 4) if h else None
 
     def _wake_streams(self, name: str) -> None:
         """Send `name`'s picture to its open streams now, not at their next interval."""
@@ -702,6 +807,7 @@ class Compositor:
                 entity,
                 self._last_still(entity),
                 True,
+                self.motion,
             )
             self._cache["commander"] = (time.monotonic(), quick)
             self._wake_streams("commander")
@@ -987,13 +1093,13 @@ class Compositor:
         kept stills, for previews."""
         cfg = cfg or self.cfg
         cmd, main = cfg.commander, self.main_camera(cfg) or ""
-        _, (_, _, mw, mh), rects = commander_layout(cmd)
+        _, (_, _, mw, mh), rects = commander_layout(cmd, main)
         wanted: dict[str, int] = {}  # camera -> the widest tile it has
         for panel in PANELS:
             for e, (_, _, w, _) in zip(
                 cmd[panel]["cameras"], rects[panel], strict=True
             ):
-                wanted[e] = max(wanted.get(e, 0), w)
+                wanted[e] = max(wanted.get(e, 0), w, 16)
 
         async def tile_still(e: str, w: int) -> bytes | None:
             return await (
@@ -1004,16 +1110,20 @@ class Compositor:
             if ready:
                 return await self._ready_still(main)
             channel = cfg.entities.get(main, {}).get("medium") or main
-            return await self._fetch(
-                channel, (mw, mh)
-            )  # HA keeps the camera's own shape
+            # HA keeps the camera's own shape
+            return await self._fetch(channel, (max(mw, 16), max(mh, 9)))
 
         names = list(wanted)
         images = await asyncio.gather(
             main_still(), *(tile_still(e, wanted[e]) for e in names)
         )
         return commander(
-            cmd, cfg.titles, dict(zip(names, images[1:], strict=True)), main, images[0]
+            cmd,
+            cfg.titles,
+            dict(zip(names, images[1:], strict=True)),
+            main,
+            images[0],
+            motion=self.motion if cfg is self.cfg else frozenset(),
         )
 
     async def _build_overview(self, portrait: bool = False) -> bytes:

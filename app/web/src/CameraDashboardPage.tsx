@@ -43,7 +43,16 @@ type Group = {
   controls?: Control[];
 };
 type Row = { groups?: string[]; strip?: string[] };
-type Overview = { width: number; gap: number; cell_aspect: number; strip_aspect: number; rows: Row[] };
+type Highlight = { colour: string; width: number; blur: number; pulse: number; style: "breathe" | "ripple" };
+const HIGHLIGHT: Highlight = { colour: "#7bd1a0", width: 2, blur: 13, pulse: 1.8, style: "breathe" };
+const MOTION = { hold: 10, back: 30, pause: 120 };
+
+/** The Security look: a tint, how strong and how dark, and the CSS filter made of them. */
+type Look = { tint: string; strength: number; darkness: number; css: string };
+
+/** A shape, width over height: a number (1.78) or a ratio as written ("16:9"). */
+type Shape = number | string;
+type Overview = { width: number; gap: number; cell_aspect: Shape; strip_aspect: Shape; rows: Row[] };
 type Panel = {
   cameras: string[];
   size: number;
@@ -58,7 +67,16 @@ type Commander = {
   height: number;
   gap: number;
   main: string;
-  main_fit: "fit" | "fill" | "crop";
+  /** own and fixed: the main camera is main_width % wide; the panels take the rest. */
+  main_fit: "fit" | "fill" | "crop" | "own" | "fixed";
+  main_width?: number;
+  main_ratio?: Shape;
+  /** own, fixed: the % of the picture a panel with cameras keeps beside the main camera. */
+  panel_min?: number;
+  /** The outline on the main camera's tile, drawn by the browser on the dashboard. */
+  highlight?: Highlight;
+  /** Track motion (done by the integration), seconds. back 0: stays on the motion camera. */
+  motion?: { hold: number; back: number; pause: number };
 } & Record<(typeof PANELS)[number], Panel>;
 type Store = {
   dashboard: string;
@@ -80,6 +98,7 @@ type Store = {
   overview_portrait: Overview;
   overview_mode: "groups" | "commander";
   commander: Commander;
+  look: Look;
 };
 type View = {
   store: Store;
@@ -98,6 +117,8 @@ type HA = {
   entities?: { entity: string; name: string; state?: string }[];
   /** The integration's Main camera select, which the commander's taps set. */
   commander_select?: string;
+  /** Each camera's motion sensor (for the commander's Track motion), where it has one. */
+  motion?: Record<string, string>;
   /** What the saved draft needs that Home Assistant seems to lack. */
   warnings?: string[];
   error: string | null;
@@ -113,6 +134,8 @@ const CARDS: [string, string][] = [
 const THUMB_EVERY_MS = 5 * 60_000;
 /** Which round of thumbnails to show: bumped every THUMB_EVERY_MS. */
 const ThumbRound = createContext(0);
+/** The Security look's filter while it's shown on this page's previews, else "". */
+const LookPreview = createContext("");
 /** Home Assistant's entities, for the entity fields. */
 const Entities = createContext<{ entity: string; name: string; state?: string }[]>([]);
 
@@ -124,6 +147,7 @@ export function CameraDashboardPage({ state }: { state?: string }) {
   const [ha, setHa] = useState<HA>();
   const [stamp, setStamp] = useState(Date.now()); // bumps the warnings and backups after a save
   const [thumbRound, setThumbRound] = useState(0);
+  const [showLook, setShowLook] = useState(false); // the Security look on the previews
   useEffect(() => {
     const timer = setInterval(() => setThumbRound((n) => n + 1), THUMB_EVERY_MS);
     return () => clearInterval(timer);
@@ -213,6 +237,7 @@ export function CameraDashboardPage({ state }: { state?: string }) {
     );
 
   return (
+    <LookPreview.Provider value={showLook ? (draft.look?.css ?? "") : ""}>
     <ThumbRound.Provider value={thumbRound}>
     <Entities.Provider value={ha?.entities ?? []}>
     <Shell {...HEAD} state={state}>
@@ -484,6 +509,7 @@ export function CameraDashboardPage({ state }: { state?: string }) {
                   <span className={css.muted}>
                     {[
                       cam.zoom && "zoom",
+                      ha?.motion?.[entity] && "motion",
                       cam.ptz && plural(cam.ptz.presets.length, "preset"),
                       cam.controls?.length && plural(cam.controls.length, "control"),
                     ]
@@ -536,6 +562,19 @@ export function CameraDashboardPage({ state }: { state?: string }) {
 
       <section className={guest.area}>
         <AreaHead
+          title="Security look"
+          blurb="Every camera picture on the dashboards in monochrome, tinted, like a security control room: done by the browser, switched on and off with the Camera Commander's Security look switch in Home Assistant (by hand, or an automation at night). The look deployed live is the one used."
+        />
+        <LookEditor
+          value={draft.look}
+          shown={showLook}
+          onShow={setShowLook}
+          onChange={(l) => edit((s) => (s.look = l))}
+        />
+      </section>
+
+      <section className={guest.area}>
+        <AreaHead
           title="Backups"
           blurb="Every deploy keeps the dashboard config it replaces. Restore puts one back (the composites are unchanged: use Revert draft and deploy for those)."
           action={
@@ -559,6 +598,7 @@ export function CameraDashboardPage({ state }: { state?: string }) {
     </Shell>
     </Entities.Provider>
     </ThumbRound.Provider>
+    </LookPreview.Provider>
   );
 }
 
@@ -590,8 +630,8 @@ function OverviewEditor({
       <div className={css.numbers}>
         <Num label="Width" value={value.width} onChange={(n) => set((o) => (o.width = n))} />
         <Num label="Gap" value={value.gap} onChange={(n) => set((o) => (o.gap = n))} />
-        <Num label="Cell aspect" step={0.05} value={value.cell_aspect} onChange={(n) => set((o) => (o.cell_aspect = n))} />
-        <Num label="Strip aspect" step={0.05} value={value.strip_aspect} onChange={(n) => set((o) => (o.strip_aspect = n))} />
+        <RatioInput label="Cell shape" value={value.cell_aspect} onChange={(r) => set((o) => (o.cell_aspect = r))} />
+        <RatioInput label="Strip shape" value={value.strip_aspect} onChange={(r) => set((o) => (o.strip_aspect = r))} />
       </div>
       <ol className={css.rows}>
         {value.rows.map((row, i) => {
@@ -662,6 +702,54 @@ function CommanderSelectCheck({ ha }: { ha?: HA }) {
   );
 }
 
+/** The CSS filter of a look: monochrome, then tinted (sepia's own hue is about 35°, turned
+ * to the tint's), saturated by `strength`, darkened by `darkness` %. */
+function lookCss(tint: string, strength: number, darkness: number): string {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(tint.slice(i, i + 2), 16) / 255);
+  const max = Math.max(r, g, b);
+  const span = max - Math.min(r, g, b);
+  let hue = 0;
+  if (span) hue = max === r ? ((g - b) / span) % 6 : max === g ? (b - r) / span + 2 : (r - g) / span + 4;
+  const turn = Math.round(hue * 60 - 35);
+  const bright = Math.max(0.1, 1 - darkness / 100).toFixed(2);
+  return `grayscale(1) sepia(1) hue-rotate(${turn}deg) saturate(${strength}) brightness(${bright}) contrast(1.1)`;
+}
+
+function LookEditor({
+  value,
+  shown,
+  onShow,
+  onChange,
+}: {
+  value: Look;
+  shown: boolean;
+  onShow: (on: boolean) => void;
+  onChange: (l: Look) => void;
+}) {
+  const look = value; // the app fills in the defaults
+  const set = (change: Partial<Look>) => {
+    const next = { ...look, ...change };
+    onChange({ ...next, css: lookCss(next.tint, next.strength, next.darkness) });
+  };
+  return (
+    <div className={css.settings}>
+      <div className={css.numbers}>
+        <Field label="Tint">
+          <input type="color" className={css.colour} value={look.tint} onChange={(e) => set({ tint: e.target.value })} />
+        </Field>
+        <Num label="Strength" step={0.5} value={look.strength} onChange={(n) => set({ strength: n })} />
+        <Num label="Darker, %" value={look.darkness} onChange={(n) => set({ darkness: n })} />
+        <Field label="Show on the previews here">
+          <Switch on={shown} label="Show on the previews here" onChange={onShow} />
+        </Field>
+      </div>
+      <p className={css.hint}>
+        The filter: <code>{look.css || lookCss(look.tint, look.strength, look.darkness)}</code>
+      </p>
+    </div>
+  );
+}
+
 const PANEL_NAMES: Record<(typeof PANELS)[number], [title: string, size: string]> = {
   left: ["Left", "Width, % of the picture"],
   top: ["Top", "Height, % of the picture"],
@@ -687,6 +775,9 @@ function CommanderEditor({
     onChange(next);
   };
   const inPanels = [...new Set(PANELS.flatMap((p) => value[p].cameras))];
+  const sized = value.main_fit === "own" || value.main_fit === "fixed"; // the panels take the rest
+  const lit = { ...HIGHLIGHT, ...value.highlight };
+  const moves = { ...MOTION, ...value.motion };
   return (
     <div className={css.commander}>
       <div className={css.commanderTop}>
@@ -699,18 +790,41 @@ function CommanderEditor({
             Gaps (in groups too) are transparent: the dashboard's background shows through them.
           </p>
           <div className={css.wide}>
-            <Field label="Main camera" help="Fit: whole, with black borders. Fill: stretched to the space. Crop: fills it, edges cut off.">
+            <Field
+              label="Main camera"
+              help="Fit: whole, with black borders. Fill: stretched to the space. Crop: fills it, edges cut off. Own shape: Main width wide at the camera's own shape, the panels around it (they move when a camera of another shape is shown). Fixed shape: Main width wide at the shape set, the camera whole within it."
+            >
               <Segmented
                 value={value.main_fit ?? "fit"}
                 options={[
                   ["fit", "Fit"],
                   ["fill", "Fill"],
                   ["crop", "Crop"],
+                  ["own", "Own shape"],
+                  ["fixed", "Fixed shape"],
                 ]}
                 onChange={(f) => set((c) => (c.main_fit = f))}
               />
             </Field>
           </div>
+          {sized && (
+            <Num
+              label="Main width, % of the picture"
+              value={value.main_width ?? 70}
+              onChange={(n) => set((c) => (c.main_width = n))}
+            />
+          )}
+          {sized && (
+            <Num
+              label="Smallest panel, %"
+              value={value.panel_min ?? 8}
+              help="A panel with cameras keeps at least this much of the picture; the main camera shrinks (same shape) rather than squeeze it out."
+              onChange={(n) => set((c) => (c.panel_min = n))}
+            />
+          )}
+          {value.main_fit === "fixed" && (
+            <RatioInput label="Main shape" value={value.main_ratio ?? "16:9"} onChange={(r) => set((c) => (c.main_ratio = r))} />
+          )}
           <div className={css.wide}>
             <Field label="Main camera at start">
               <select value={value.main} onChange={(e) => set((c) => (c.main = e.target.value))}>
@@ -723,6 +837,71 @@ function CommanderEditor({
               </select>
             </Field>
           </div>
+          <h4 className={css.sub}>Highlight on the main camera's tile</h4>
+          <Field label="Colour">
+            <input
+              type="color"
+              className={css.colour}
+              value={lit.colour}
+              onChange={(e) => set((c) => (c.highlight = { ...lit, colour: e.target.value }))}
+            />
+          </Field>
+          <Num label="Width, px" value={lit.width} onChange={(n) => set((c) => (c.highlight = { ...lit, width: n }))} />
+          <Num label="Blur, px" value={lit.blur} onChange={(n) => set((c) => (c.highlight = { ...lit, blur: n }))} />
+          <Num
+            label="Pulse, s"
+            step={0.1}
+            value={lit.pulse}
+            help="0: steady."
+            onChange={(n) => set((c) => (c.highlight = { ...lit, pulse: n }))}
+          />
+          <Field label="Pulse style" help="Breathe: the glow swells and fades. Ripple: a ring spreads out and fades.">
+            <Segmented
+              value={lit.style}
+              options={[
+                ["breathe", "Breathe"],
+                ["ripple", "Ripple"],
+              ]}
+              onChange={(st) => set((c) => (c.highlight = { ...lit, style: st }))}
+            />
+          </Field>
+          <Field label="As it looks">
+            <span
+              className={`${css.swatch} ${lit.pulse > 0 ? (lit.style === "ripple" ? css.ripple : css.breathe) : ""}`}
+              style={
+                {
+                  border: `${lit.width}px solid ${lit.colour}`,
+                  boxShadow: `0 0 ${lit.blur}px ${lit.colour}`,
+                  "--cm-colour": lit.colour,
+                  "--cm-blur": `${lit.blur}px`,
+                  "--cm-pulse": `${lit.pulse}s`,
+                } as React.CSSProperties
+              }
+            />
+          </Field>
+          <h4 className={css.sub}>Track motion</h4>
+          <p className={`${css.hint} ${css.wide}`}>
+            With the Camera Commander's Track motion switch on in Home Assistant, a camera that sees motion becomes the main
+            one (its tile gets a red dot whenever it sees motion).
+          </p>
+          <Num
+            label="Hold, s"
+            value={moves.hold}
+            help="A switch stays this long before motion elsewhere can take over."
+            onChange={(n) => set((c) => (c.motion = { ...moves, hold: n }))}
+          />
+          <Num
+            label="Go back after, s"
+            value={moves.back}
+            help="Once all motion stops, back to the camera chosen by hand. 0: stay."
+            onChange={(n) => set((c) => (c.motion = { ...moves, back: n }))}
+          />
+          <Num
+            label="Pause after a choice, s"
+            value={moves.pause}
+            help="Choosing a camera yourself (a tap) pauses tracking this long."
+            onChange={(n) => set((c) => (c.motion = { ...moves, pause: n }))}
+          />
         </div>
       </div>
       <div className={css.panels}>
@@ -737,7 +916,13 @@ function CommanderEditor({
               onChange={(items) => set((c) => (c[p].cameras = items))}
             />
             <div className={css.numbers}>
-              <Num label={PANEL_NAMES[p][1]} value={value[p].size} onChange={(n) => set((c) => (c[p].size = n))} />
+              <Num
+                label={PANEL_NAMES[p][1]}
+                value={value[p].size}
+                disabled={sized}
+                help={sized ? "Set by the main camera's size." : undefined}
+                onChange={(n) => set((c) => (c[p].size = n))}
+              />
               <Field label="Fit">
                 <Segmented
                   value={value[p].fit}
@@ -868,6 +1053,7 @@ function LivePreview({ store, name, portrait = false }: { store: Store; name: st
   latest.current = store;
   const shown = useRef<string | undefined>(undefined);
   const drawn = useRef(false); // the first picture at once; after edits, a short pause
+  const look = useContext(LookPreview);
   useEffect(
     () => () => {
       if (shown.current) URL.revokeObjectURL(shown.current);
@@ -907,7 +1093,14 @@ function LivePreview({ store, name, portrait = false }: { store: Store; name: st
   }, [key, name, portrait]);
   if (note) return <div className={css.noPreview}>{note}</div>;
   if (!src) return <div className={css.noPreview}>Drawing…</div>;
-  return <img className={`${css.preview} ${busy ? css.stale : ""}`} src={src} alt={`${name} composite`} />;
+  return (
+    <img
+      className={`${css.preview} ${busy ? css.stale : ""}`}
+      src={src}
+      alt={`${name} composite`}
+      style={{ filter: look || undefined }}
+    />
+  );
 }
 
 /** Everything a composite depends on, so a preview is redrawn only when that changes. */
@@ -1312,10 +1505,47 @@ function GroupThumb({ entities }: { entities: string[] }) {
   );
 }
 
-function Num({ label, value, step = 1, onChange }: { label: string; value: number; step?: number; onChange: (n: number) => void }) {
+function Num({
+  label,
+  value,
+  step = 1,
+  disabled,
+  help,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  step?: number;
+  disabled?: boolean;
+  help?: ReactNode;
+  onChange: (n: number) => void;
+}) {
+  return (
+    <Field label={label} help={help}>
+      <input type="number" step={step} value={value} disabled={disabled} onChange={(e) => onChange(Number(e.target.value))} />
+    </Field>
+  );
+}
+
+/** The usual shapes, width:height. */
+const RATIOS = ["1:1", "5:4", "4:3", "3:2", "16:10", "16:9", "1.85:1", "2:1", "21:9", "2.39:1", "3:4", "9:16"];
+
+/** A shape: typed as a number (1.78) or a ratio (16:9), or picked from the usual ones,
+ * which puts the ratio itself in the box (kept as written; the app works out the number). */
+function RatioInput({ label, value, onChange }: { label: string; value: Shape; onChange: (r: Shape) => void }) {
   return (
     <Field label={label}>
-      <input type="number" step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} />
+      <span className={css.ratio}>
+        <input value={String(value)} spellCheck={false} onChange={(e) => onChange(e.target.value)} />
+        <select value="" aria-label={`${label}: the usual shapes`} onChange={(e) => e.target.value && onChange(e.target.value)}>
+          <option value="">▾</option>
+          {RATIOS.map((r) => (
+            <option key={r} value={r}>
+              {r}
+            </option>
+          ))}
+        </select>
+      </span>
     </Field>
   );
 }

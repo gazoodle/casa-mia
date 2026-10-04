@@ -182,6 +182,87 @@
   min-width: 0;
 }
 
+.numbers input:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* A shape: the box, and beside it the usual shapes to pick from. */
+.ratio {
+  display: flex;
+  gap: 4px;
+}
+
+.ratio input {
+  min-width: 0;
+}
+
+.ratio select {
+  flex: none;
+  width: 44px;
+  padding: 0 4px;
+}
+
+.sub {
+  grid-column: 1 / -1;
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* The highlight as the dashboard draws it, pulsing as it will there. */
+.swatch {
+  display: block;
+  width: 96px;
+  height: 54px;
+  margin: 6px 0;
+  border-radius: 2px;
+  background: #223;
+}
+
+.breathe {
+  animation: breathe var(--cm-pulse) ease-in-out infinite;
+}
+
+.ripple {
+  animation: ripple var(--cm-pulse) ease-out infinite;
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 calc(var(--cm-blur) / 4) 0 color-mix(in srgb, var(--cm-colour) 30%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 var(--cm-blur) 2px color-mix(in srgb, var(--cm-colour) 70%, transparent);
+  }
+}
+
+@keyframes ripple {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--cm-colour) 60%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 max(6px, var(--cm-blur)) transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .breathe,
+  .ripple {
+    animation: none;
+  }
+}
+
+.colour {
+  height: 40px;
+  padding: 2px;
+  cursor: pointer;
+}
+
 .wide {
   grid-column: 1 / -1;
 }
