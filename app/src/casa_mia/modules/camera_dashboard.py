@@ -72,6 +72,14 @@ CAMERA = re.compile(r"camera\.[a-z0-9_]+")
 COMMANDER_SELECT = "select.camera_commander_main_camera"
 # The look of every camera picture on the dashboards when the integration's Security look
 # switch is on: a CSS filter, made by the page from a tint (applied by the browser).
+# The default tint's filter (as the page makes it for #3d7bff, strength 3, 20% darker):
+# a look left at its defaults, or saved before it had a filter, uses this.
+DEFAULT_LOOK_CSS = "grayscale(1) sepia(1) hue-rotate(186deg) saturate(3) brightness(0.80) contrast(1.1)"
+# The integration's switches the page can flip (Home Assistant keeps their state).
+COMMANDER_SWITCHES = (
+    "switch.camera_commander_security_look",
+    "switch.camera_commander_track_motion",
+)
 LOOK_CSS = re.compile(
     r"^(\s*(grayscale|sepia|hue-rotate|saturate|brightness|contrast|invert|opacity|blur)"
     r"\(\s*-?[0-9.]+(deg|%|px)?\s*\))*\s*$"
@@ -110,7 +118,7 @@ DEFAULTS: dict[str, Any] = {
     "overview_portrait": EMPTY_OVERVIEW,
     "overview_mode": "groups",  # the landscape overview: the groups, or the commander
     # The Security look: a tint (and how strong, how dark) and the CSS filter made of it.
-    "look": {"tint": "#3d7bff", "strength": 3, "darkness": 20, "css": ""},
+    "look": {"tint": "#3d7bff", "strength": 3, "darkness": 20, "css": DEFAULT_LOOK_CSS},
     "commander": EMPTY_COMMANDER,
 }
 
@@ -959,7 +967,6 @@ class CameraDashboard:
         self._lock = threading.Lock()
         self._error: str | None = None
         self.store: Store = with_defaults({})
-        self._live_look = ""  # the deployed Security look, for the integration
 
     @property
     def draft_path(self) -> Path:
@@ -993,11 +1000,6 @@ class CameraDashboard:
             self._error = f"cannot read {self.draft_path.name}: {exc}"
             _LOGGER.error("camera dashboard: %s", self._error)
             return
-        try:  # the deployed Security look, for the integration's switch
-            live = json.loads(self.live_path.read_text())
-            self._live_look = str((live.get("look") or {}).get("css") or "")
-        except (OSError, ValueError, AttributeError):
-            self._live_look = ""
         _LOGGER.info(
             "camera dashboard: %d cameras, %d groups, dashboard /%s",
             len(self.store["cameras"]),
@@ -1121,7 +1123,9 @@ class CameraDashboard:
                 "deployed": self.deploys().get("live"),
                 "changed": self._changed(),
                 "commander": self.commander(),
-                "look_css": self._live_look,
+                # The Security look follows the saved draft: it is only how the
+                # pictures look, best seen as soon as it is saved.
+                "look_css": self.store["look"].get("css") or DEFAULT_LOOK_CSS,
             }
 
     def _changed(self) -> bool:
@@ -1172,6 +1176,8 @@ class CameraDashboard:
             return _json(200, self.live_view(urllib.parse.unquote(parts[1])))
         if method == "GET" and len(parts) == 2 and parts[0] == "thumb":
             return self._thumb(urllib.parse.unquote(parts[1]))
+        if method == "POST" and parts == ["switch"]:
+            return _json(200, self._flip(body))
         if method == "POST" and parts == ["render"]:
             return self._render(body)
         if method == "POST" and parts == ["deploy"]:
@@ -1361,7 +1367,6 @@ class CameraDashboard:
             self._write(self.dir / DEPLOYS, self.deploys() | {target: stamp})
             if live:
                 self._write(self.live_path, store)
-                self._live_look = store["look"].get("css", "")
         if live and self.live:
             self.live.reload()
         return {"url_path": url_path, "views": len(config["views"]), **self.view()}
@@ -1483,6 +1488,25 @@ class CameraDashboard:
             ", ".join(c["channel"] for c in out) or "no stream",
         )
         return {"channels": out}
+
+    def _flip(self, body: dict[str, Any]) -> dict[str, Any]:
+        """Turn one of the integration's commander switches (Security look, Track
+        motion) on or off, through Home Assistant, which keeps its state."""
+        entity, on = body.get("entity"), body.get("on")
+        if entity not in COMMANDER_SWITCHES or not isinstance(on, bool):
+            raise BadRequest("Not one of the commander's switches.")
+        if self.ha is None:
+            raise BadRequest("Home Assistant is not reachable.")
+        self.ha.call(
+            {
+                "type": "call_service",
+                "domain": "switch",
+                "service": "turn_on" if on else "turn_off",
+                "target": {"entity_id": entity},
+            }
+        )
+        _LOGGER.info("camera dashboard: %s switched %s", entity, "on" if on else "off")
+        return {"entity": entity, "on": on}
 
     def _record_shapes(self, store: Store) -> None:
         """Note each commander camera's natural shape in the store (from the stills the

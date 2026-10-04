@@ -46,6 +46,10 @@ type Row = { groups?: string[]; strip?: string[] };
 type Highlight = { colour: string; width: number; blur: number; pulse: number; style: "breathe" | "ripple" };
 const HIGHLIGHT: Highlight = { colour: "#7bd1a0", width: 2, blur: 13, pulse: 1.8, style: "breathe" };
 const MOTION = { hold: 10, back: 30, pause: 120 };
+// The integration's switches (Camera Commander device), flipped from here through the app.
+const SECURITY_LOOK = "switch.camera_commander_security_look";
+const TRACK_MOTION = "switch.camera_commander_track_motion";
+const SHOW_LOOK = "casa-mia:show-look"; // localStorage: the look on this page's previews
 
 /** The Security look: a tint, how strong and how dark, and the CSS filter made of them. */
 type Look = { tint: string; strength: number; darkness: number; css: string };
@@ -147,7 +151,22 @@ export function CameraDashboardPage({ state }: { state?: string }) {
   const [ha, setHa] = useState<HA>();
   const [stamp, setStamp] = useState(Date.now()); // bumps the warnings and backups after a save
   const [thumbRound, setThumbRound] = useState(0);
-  const [showLook, setShowLook] = useState(false); // the Security look on the previews
+  // The Security look on this page's previews: remembered in this browser.
+  const [showLook, setShowLookNow] = useState(() => {
+    try {
+      return localStorage.getItem(SHOW_LOOK) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const setShowLook = (on: boolean) => {
+    setShowLookNow(on);
+    try {
+      localStorage.setItem(SHOW_LOOK, on ? "1" : "0");
+    } catch {
+      // private window: just this visit
+    }
+  };
   useEffect(() => {
     const timer = setInterval(() => setThumbRound((n) => n + 1), THUMB_EVERY_MS);
     return () => clearInterval(timer);
@@ -170,10 +189,22 @@ export function CameraDashboardPage({ state }: { state?: string }) {
   useEffect(() => {
     get<View>("").then(load, (err) => toast((err as Error).message, "bad"));
   }, [load, toast]);
+  const [haRound, setHaRound] = useState(0); // ask HA again (after flipping a switch)
   useEffect(() => {
     // Again after each save: the warnings are about the saved draft.
     get<HA>("ha").then(setHa, (err) => setHa({ error: (err as Error).message }));
-  }, [stamp]);
+  }, [stamp, haRound]);
+  /** One of the commander's switches in Home Assistant, as HA has it now. */
+  const haSwitch = (entity: string) => ha?.entities?.find((e) => e.entity === entity)?.state;
+  const flip = async (entity: string, on: boolean, what: string) => {
+    try {
+      await post("switch", { entity, on });
+      toast(`${what} ${on ? "on" : "off"}`);
+    } catch (err) {
+      toast((err as Error).message, "bad");
+    }
+    setHaRound((n) => n + 1);
+  };
 
   const dirty = useMemo(
     () => !!view && !!draft && JSON.stringify(view.store) !== JSON.stringify(draft),
@@ -237,7 +268,9 @@ export function CameraDashboardPage({ state }: { state?: string }) {
     );
 
   return (
-    <LookPreview.Provider value={showLook ? (draft.look?.css ?? "") : ""}>
+    <LookPreview.Provider
+      value={showLook ? draft.look?.css || lookCss(draft.look.tint, draft.look.strength, draft.look.darkness) : ""}
+    >
     <ThumbRound.Provider value={thumbRound}>
     <Entities.Provider value={ha?.entities ?? []}>
     <Shell {...HEAD} state={state}>
@@ -376,6 +409,8 @@ export function CameraDashboardPage({ state }: { state?: string }) {
           value={draft.commander}
           cameras={draft.cameras}
           preview={<LivePreview store={draft} name="commander" />}
+          trackMotion={haSwitch(TRACK_MOTION)}
+          onTrackMotion={(on) => flip(TRACK_MOTION, on, "Track motion")}
           onChange={(c) => edit((s) => (s.commander = c))}
         />
       </section>
@@ -569,6 +604,8 @@ export function CameraDashboardPage({ state }: { state?: string }) {
           value={draft.look}
           shown={showLook}
           onShow={setShowLook}
+          live={haSwitch(SECURITY_LOOK)}
+          onLive={(on) => flip(SECURITY_LOOK, on, "Security look")}
           onChange={(l) => edit((s) => (s.look = l))}
         />
       </section>
@@ -719,11 +756,16 @@ function LookEditor({
   value,
   shown,
   onShow,
+  live,
+  onLive,
   onChange,
 }: {
   value: Look;
   shown: boolean;
   onShow: (on: boolean) => void;
+  /** The Security look switch's state in Home Assistant (undefined: HA hasn't it). */
+  live?: string;
+  onLive: (on: boolean) => void;
   onChange: (l: Look) => void;
 }) {
   const look = value; // the app fills in the defaults
@@ -739,12 +781,23 @@ function LookEditor({
         </Field>
         <Num label="Strength" step={0.5} value={look.strength} onChange={(n) => set({ strength: n })} />
         <Num label="Darker, %" value={look.darkness} onChange={(n) => set({ darkness: n })} />
-        <Field label="Show on the previews here">
-          <Switch on={shown} label="Show on the previews here" onChange={onShow} />
+        <Field
+          label="On the dashboards"
+          help={
+            live === undefined
+              ? "Home Assistant has no Security look switch yet (the Casa Mia integration adds it)."
+              : "The Camera Commander's Security look switch: every dashboard, every screen. Automations can flip it too."
+          }
+        >
+          <Switch on={live === "on"} label="On the dashboards" busy={live === undefined} onChange={onLive} />
+        </Field>
+        <Field label="On the previews here" help="Only this page, in this browser.">
+          <Switch on={shown} label="On the previews here" onChange={onShow} />
         </Field>
       </div>
       <p className={css.hint}>
-        The filter: <code>{look.css || lookCss(look.tint, look.strength, look.darkness)}</code>
+        The filter: <code>{look.css || lookCss(look.tint, look.strength, look.darkness)}</code>. The dashboards use
+        the saved draft's look.
       </p>
     </div>
   );
@@ -762,11 +815,16 @@ function CommanderEditor({
   value,
   cameras,
   preview,
+  trackMotion,
+  onTrackMotion,
   onChange,
 }: {
   value: Commander;
   cameras: Record<string, Camera>;
   preview: ReactNode;
+  /** The Track motion switch's state in Home Assistant (undefined: HA hasn't it). */
+  trackMotion?: string;
+  onTrackMotion: (on: boolean) => void;
   onChange: (c: Commander) => void;
 }) {
   const set = (change: (c: Commander) => void) => {
@@ -880,9 +938,19 @@ function CommanderEditor({
             />
           </Field>
           <h4 className={css.sub}>Track motion</h4>
+          <Field
+            label="Track motion"
+            help={
+              trackMotion === undefined
+                ? "Home Assistant has no Track motion switch yet (the Casa Mia integration adds it)."
+                : "The Camera Commander's Track motion switch in Home Assistant: automations can flip it too."
+            }
+          >
+            <Switch on={trackMotion === "on"} label="Track motion" busy={trackMotion === undefined} onChange={onTrackMotion} />
+          </Field>
           <p className={`${css.hint} ${css.wide}`}>
-            With the Camera Commander's Track motion switch on in Home Assistant, a camera that sees motion becomes the main
-            one (its tile gets a red dot whenever it sees motion).
+            While it is on, a camera that sees motion becomes the main one (its tile gets a red dot whenever it sees motion,
+            on or off).
           </p>
           <Num
             label="Hold, s"

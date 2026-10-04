@@ -642,7 +642,7 @@ def test_saving_records_each_commander_cameras_shape(tmp_path):
     assert view["store"]["commander"]["aspects"] == {"camera.a_low": 1.3333}
 
 
-def test_security_look_is_a_css_filter_and_follows_live(cd):
+def test_security_look_is_a_css_filter_and_follows_the_saved_draft(cd):
     _, view = call(cd, "GET", "")
     store = view["store"]
     store["look"]["css"] = "grayscale(1); background: url(x)"
@@ -651,11 +651,10 @@ def test_security_look_is_a_css_filter_and_follows_live(cd):
     tinted = "grayscale(1) sepia(1) hue-rotate(184deg) saturate(3) brightness(0.80)"
     store["look"]["css"] = tinted
     call(cd, "PUT", "", store)
-    assert (
-        problems(cd.store) == [] and cd.health()["look_css"] == ""
-    )  # not deployed yet
-    call(cd, "POST", "deploy", {"target": "live"})
-    assert cd.health()["look_css"] == tinted
+    assert problems(cd.store) == [] and cd.health()["look_css"] == tinted  # once saved
+    store["look"]["css"] = ""  # saved before looks had a filter: the default's
+    call(cd, "PUT", "", store)
+    assert cd.health()["look_css"].startswith("grayscale(1) sepia(1)")
 
 
 def test_motion_sensors_by_device_then_by_name():
@@ -719,3 +718,18 @@ def test_highlight_settings_are_checked():
     assert "highlight colour must be like #7bd1a0" in found
     assert "highlight width must be 0 or more" in found
     assert "must breathe or ripple" in found
+
+
+def test_the_page_flips_only_the_commanders_switches(cd):
+    entity = "switch.camera_commander_track_motion"
+    status, out = call(cd, "POST", "switch", {"entity": entity, "on": True})
+    assert status == 200 and out == {"entity": entity, "on": True}
+    assert cd.ha.sent[-1] == {
+        "type": "call_service",
+        "domain": "switch",
+        "service": "turn_on",
+        "target": {"entity_id": entity},
+    }
+    assert (
+        call(cd, "POST", "switch", {"entity": "switch.kitchen", "on": True})[0] == 400
+    )

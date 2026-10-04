@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.10.1-b20
+
+- Security look: works at its default tint. Its filter was only made when the tint, strength or darkness was changed, so a look left at its defaults (or saved before) had none, and switching it on did nothing. Such looks now use the default tint's filter.
+- Security look: the dashboards use the saved draft's look, so it shows as soon as it is saved (it used the one last deployed live, and there may be none).
+- Camera Dashboard: the Camera Commander's **Security look** and **Track motion** switches are on the page too (they flip Home Assistant's switches, which automations still can), and "On the previews here" is remembered in this browser.
+
 ## 2026.10.1-b19
 
 - Commander: two more ways to show the main camera, each with a **Main width** (% of the picture, 70 to start), the four panels then sharing the room around it (their own sizes are set by it): **Own shape**, the camera at its own shape, so the panels move when a camera of another shape is shown, live (tall cameras are as high as the picture, narrower); and **Fixed shape**, a shape you set, the camera whole within it. Each camera's shape is noted from its stills when the draft is saved, so the picture and the dashboard's tap zones always agree; with Own shape the dashboard has one set of tap zones per main camera.
