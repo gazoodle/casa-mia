@@ -75,39 +75,52 @@ COMMANDER_SELECT = "select.camera_commander_main_camera"
 
 # The integration's unique ids for a commander's entities, after its entry id and "_":
 # the first commander's (id ""), and any other's.
+# Per entity: its domain, its unique id for the first commander (id "") and for any
+# other, and the end of the entity id the integration gives it.
 UNIQUE_IDS = {
-    "select": ("commander_main", "commander_{}_main"),
-    "switch": ("track_motion", "commander_{}_track_motion"),
+    "main": ("select", "commander_main", "commander_{}_main", "main_camera"),
+    "track_motion": (
+        "switch",
+        "track_motion",
+        "commander_{}_track_motion",
+        "track_motion",
+    ),
+    "security_look": (
+        "switch",
+        "security_look",
+        "commander_{}_security_look",
+        "security_look",
+    ),
 }
 
 
 def commander_entities(
-    store: Store, registry: list[dict] | None, kind: str = "select"
+    store: Store, registry: list[dict] | None, what: str = "main"
 ) -> dict[str, str]:
-    """Each commander's (by id) Main camera select (`kind` "select") or Track motion
-    switch ("switch"): as HA's entity registry has it (by unique id), else the entity id
-    the integration gives a new one (from its device's name)."""
+    """Each commander's (by id) Main camera select (`what` "main"), Track motion switch
+    ("track_motion") or Security look switch ("security_look"): as HA's entity registry
+    has it (by unique id), else the entity id the integration gives a new one (from its
+    device's name)."""
+    domain, first, other, name = UNIQUE_IDS[what]
     found = {
         e.get("unique_id", "").partition("_")[2]: e["entity_id"]
         for e in registry or []
-        if e.get("platform") == "casa_mia" and e["entity_id"].startswith(kind + ".")
+        if e.get("platform") == "casa_mia" and e["entity_id"].startswith(domain + ".")
     }
-    first, other = UNIQUE_IDS[kind]
     out = {}
     for cmd in commanders_of(store):
         cid = cmd["id"]
         device = "camera_commander" + (
             "_" + slug(cmd["name"]).replace("-", "_") if cid else ""
         )
-        name = "main_camera" if kind == "select" else "track_motion"
         out[cid] = found.get(other.format(cid) if cid else first) or (
-            f"{kind}.{device}_{name}"
+            f"{domain}.{device}_{name}"
         )
     return out
 
 
 def commander_selects(store: Store, registry: list[dict] | None) -> dict[str, str]:
-    return commander_entities(store, registry, "select")
+    return commander_entities(store, registry, "main")
 
 
 # The look of every camera picture on the dashboards when the integration's Security look
@@ -115,9 +128,6 @@ def commander_selects(store: Store, registry: list[dict] | None) -> dict[str, st
 # The default tint's filter (as the page makes it for #3d7bff, strength 3, 20% darker):
 # a look left at its defaults, or saved before it had a filter, uses this.
 DEFAULT_LOOK_CSS = "grayscale(1) sepia(1) hue-rotate(186deg) saturate(3) brightness(0.80) contrast(1.1)"
-# The integration's Security look switch, which the page can flip (Home Assistant keeps
-# its state), as it can each commander's Track motion switch.
-SECURITY_LOOK = "switch.camera_commander_security_look"
 LOOK_CSS = re.compile(
     r"^(\s*(grayscale|sepia|hue-rotate|saturate|brightness|contrast|invert|opacity|blur)"
     r"\(\s*-?[0-9.]+(deg|%|px)?\s*\))*\s*$"
@@ -132,6 +142,13 @@ HIGHLIGHT = BLANK + "#cm-highlight"
 CHANNEL = re.compile(r"_(high|medium|low)_resolution_channel$")
 ZOOM = re.compile(r"^number\..*_zoom_level$")
 URL_PATH = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)+$")  # HA wants a hyphen in it
+FITS = (
+    "cover",
+    "contain",
+    "stack",
+    "reverse",
+    "centre",
+)  # a panel's (see EMPTY_COMMANDER)
 CARDS = ("picture-entity", "webrtc-camera", "advanced-camera-card")
 
 DEFAULTS: dict[str, Any] = {
@@ -246,8 +263,11 @@ def problems(store: Store) -> list[str]:
                 out.append(f"{the}'s {panel} panel: rows or columns must be 1-10.")
             if not isinstance(pane.get("hidden", False), bool):
                 out.append(f"{the}'s {panel} panel: hidden must be true or false.")
-            if pane.get("fit", "cover") not in ("cover", "contain"):
-                out.append(f"{the}'s {panel} panel: fit must be cover or contain.")
+            if pane.get("fit", "cover") not in FITS:
+                out.append(
+                    f"{the}'s {panel} panel: fit must be cover, contain, stack, "
+                    "reverse or centre."
+                )
             for e in pane.get("cameras", []):
                 if e not in cams:
                     out.append(f"{the}'s {panel} panel: {e} is not one of the cameras.")
@@ -924,6 +944,8 @@ class CameraDashboard:
                     {
                         "id": cmd["id"],
                         "name": cmd["name"],
+                        # its picture's address (the Security look finds it by this)
+                        "picture": f"/g/{slug(cmd['name'])}.mjpg",
                         "cameras": {},
                         "main": None,
                         "motion": {**EMPTY_COMMANDER["motion"], **cmd["motion"]},
@@ -1204,7 +1226,8 @@ class CameraDashboard:
                 key=lambda e: e["entity"],
             ),
             "commander_selects": selects,
-            "commander_switches": commander_entities(store, registry, "switch"),
+            "commander_switches": commander_entities(store, registry, "track_motion"),
+            "commander_looks": commander_entities(store, registry, "security_look"),
             "error": None,
         }
 
@@ -1427,8 +1450,8 @@ class CameraDashboard:
             store = self.store
         (registry,) = self.ha.call({"type": "config/entity_registry/list"})
         switches = {
-            SECURITY_LOOK,
-            *commander_entities(store, registry, "switch").values(),
+            *commander_entities(store, registry, "track_motion").values(),
+            *commander_entities(store, registry, "security_look").values(),
         }
         if entity not in switches or not isinstance(on, bool):
             raise BadRequest("Not one of the commanders' switches.")

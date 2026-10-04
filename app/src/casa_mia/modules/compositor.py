@@ -125,7 +125,11 @@ EMPTY_COMMANDER = {
         "style": "breathe",
     },
     "aspects": {},  # camera -> its natural shape (width / height), recorded when saved
-    # Each panel: its cameras, size, fit; `lines`, the rows (top, bottom) or columns
+    # Each panel: its cameras, size, fit (cover: filling equal tiles, cropped; contain:
+    # whole in equal tiles; stack: whole at its own shape, edge to edge from the top or
+    # left, spare room at the far end; reverse: the same, against the bottom or right;
+    # centre: the same, in the middle, the spare room shared at both ends);
+    # `lines`, the rows (top, bottom) or columns
     # (left, right) its cameras are shared between; `hidden`, off the view entirely
     # (no room, no tiles; its cameras kept for when it is shown again).
     "left": {"cameras": [], "size": 15, "fit": "cover", "lines": 1, "hidden": False},
@@ -250,20 +254,60 @@ def _line(rect: Rect, n: int, down: bool, gap: int) -> list[Rect]:
     return [(x, y + a, w, b) if down else (x + a, y, b, h) for a, b in cells]
 
 
-def _lines(rect: Rect, n: int, lines: int, down: bool, gap: int) -> list[Rect]:
-    """n tiles in `lines` lines filling rect: columns side by side when the tiles run
-    down (left, right), rows one above another when they run across (top, bottom). The
-    cameras fill the lines in turn, the first lines taking one more when they don't
-    share evenly; each line spreads its own across its length."""
-    lines = max(1, min(lines, n))
-    strips = _line(rect, lines, not down, gap)
-    out: list[Rect] = []
-    for i, strip in enumerate(strips):
-        count = n // lines + (1 if i < n % lines else 0)
-        out += _line(strip, count, down, gap)
+def _stack(
+    rect: Rect, shapes: list[float], down: bool, gap: int, place: str
+) -> list[Rect]:
+    """Tiles at their own shapes (width / height) in a line, edge to edge (`gap`
+    apart): as wide as rect when they run down, as tall when across. `place`: they
+    start at the top or left (stack), end at the bottom or right (reverse), or sit in
+    the middle (centre). Too long for rect: all shrink by the same factor, centred
+    across it."""
+    x, y, w, h = rect
+    across, span = (w, h) if down else (h, w)
+    lengths = [across / a if down else across * a for a in shapes]
+    room = span - gap * (len(shapes) - 1)
+    scale = min(1.0, room / sum(lengths)) if sum(lengths) > 0 and room > 0 else 0.0
+    side = int(across * scale)
+    lengths = [int(n * scale) for n in lengths]  # down, so they never overrun
+    total = sum(lengths) + gap * (len(shapes) - 1)
+    at = {"reverse": span - total, "centre": (span - total) // 2}.get(place, 0)
+    off = (across - side) // 2
+    out = []
+    for n in lengths:
+        out.append((x + off, y + at, side, n) if down else (x + at, y + off, n, side))
+        at += n + gap
     return out
 
 
+def _lines(
+    rect: Rect,
+    n: int,
+    lines: int,
+    down: bool,
+    gap: int,
+    shapes: list[float] | None = None,
+    place: str = "stack",
+) -> list[Rect]:
+    """n tiles in `lines` lines filling rect: columns side by side when the tiles run
+    down (left, right), rows one above another when they run across (top, bottom). The
+    cameras fill the lines in turn, the first lines taking one more when they don't
+    share evenly; each line spreads its own across its length, or, given each camera's
+    shape, stacks them (see `_stack`)."""
+    lines = max(1, min(lines, n))
+    strips = _line(rect, lines, not down, gap)
+    out: list[Rect] = []
+    first = 0
+    for i, strip in enumerate(strips):
+        count = n // lines + (1 if i < n % lines else 0)
+        if shapes is None:
+            out += _line(strip, count, down, gap)
+        else:
+            out += _stack(strip, shapes[first : first + count], down, gap, place)
+        first += count
+    return out
+
+
+STACKS = ("stack", "reverse", "centre")  # panel fits: each camera at its own shape
 SIZED = ("own", "fixed")  # main camera fits that set its size, and the panels' sizes
 
 
@@ -361,6 +405,14 @@ def commander_layout(
         "left": down(0, left, "left"),
         "right": down(w - right, right, "right"),
     }
+
+    def shapes(panel: str) -> list[float] | None:
+        """Each camera's own shape, for a panel that stacks them."""
+        if cmd[panel].get("fit") not in STACKS:
+            return None
+        known = cmd.get("aspects") or {}
+        return [float(known.get(e) or 16 / 9) for e in cmd[panel]["cameras"]]
+
     tiles = {
         p: _lines(
             areas[p],
@@ -368,6 +420,8 @@ def commander_layout(
             int(cmd[p].get("lines", 1)),
             p in ("left", "right"),
             gap,
+            shapes(p),
+            cmd[p].get("fit", "cover"),
         )
         if cmd[p]["cameras"]
         else []

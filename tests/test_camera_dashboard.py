@@ -791,3 +791,25 @@ def test_each_commander_has_its_own_main_camera(tmp_path):
         assert cd.control("commander", b'{"main": "Tablet", "commander": "x"}') == 400
     finally:
         draft.stop()
+
+
+def test_stacked_panels_keep_each_cameras_shape():
+    from casa_mia.modules.compositor import EMPTY_COMMANDER, commander_layout
+
+    cmd = {**EMPTY_COMMANDER, "width": 1000, "height": 500, "gap": 0}
+    cmd["aspects"] = {"camera.a": 2.0, "camera.b": 1.0}
+    cmd["left"] = {"cameras": ["camera.a", "camera.b"], "size": 20, "fit": "stack"}
+
+    def left(fit: str) -> list:
+        cmd["left"]["fit"] = fit
+        return commander_layout(cmd)[2]["left"]
+
+    # 200 wide: a 2:1 camera is 100 tall, a square one 200; 200 spare at the far end
+    assert left("stack") == [(0, 0, 200, 100), (0, 100, 200, 200)]
+    assert left("reverse") == [(0, 200, 200, 100), (0, 300, 200, 200)]  # same order
+    assert left("centre") == [(0, 100, 200, 100), (0, 200, 200, 200)]
+    # too tall for the panel: all shrink alike, centred across it, never overrunning
+    cmd["aspects"] = {"camera.a": 0.5, "camera.b": 0.5}
+    tiles = left("reverse")
+    assert all(t[2] == tiles[0][2] < 200 for t in tiles)
+    assert tiles[0][1] >= 0 and tiles[-1][1] + tiles[-1][3] <= 500

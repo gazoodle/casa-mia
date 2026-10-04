@@ -37,7 +37,6 @@ type Highlight = { colour: string; width: number; blur: number; pulse: number; s
 const HIGHLIGHT: Highlight = { colour: "#7bd1a0", width: 2, blur: 13, pulse: 1.8, style: "breathe" };
 const MOTION = { hold: 10, back: 30, pause: 120 };
 // The integration's switches (Camera Commander device), flipped from here through the app.
-const SECURITY_LOOK = "switch.camera_commander_security_look";
 const SHOW_LOOK = "casa-mia:show-look"; // localStorage: the look on this page's previews
 
 /** The Security look: a tint, how strong and how dark, and the CSS filter made of them. */
@@ -48,7 +47,9 @@ type Shape = number | string;
 type Panel = {
   cameras: string[];
   size: number;
-  fit: "cover" | "contain";
+  /** Fill (cover) or Whole (contain) equal tiles; or each camera at its own shape, edge to
+   * edge, from the start (stack), against the end (reverse) or in the middle (centre). */
+  fit: "cover" | "contain" | "stack" | "reverse" | "centre";
   /** Top and bottom: run to the view's edge at that end (the side panel stops at them). */
   anchor_left?: boolean;
   anchor_right?: boolean;
@@ -124,6 +125,8 @@ type HA = {
   commander_selects?: Record<string, string>;
   /** Each commander's Track motion switch. */
   commander_switches?: Record<string, string>;
+  /** Each commander's Security look switch. */
+  commander_looks?: Record<string, string>;
   /** Each camera's motion sensor (for the commander's Track motion), where it has one. */
   motion?: Record<string, string>;
   /** What the saved draft needs that Home Assistant seems to lack. */
@@ -369,6 +372,8 @@ export function CameraDashboardPage({ state }: { state?: string }) {
           store={draft}
           blank={view.empty_commander}
           ha={ha}
+          securityLook={(id) => haSwitch(ha?.commander_looks?.[id] ?? "")}
+          onSecurityLook={(id, on) => ha?.commander_looks?.[id] && flip(ha.commander_looks[id], on, "Security look")}
           trackMotion={(id) => haSwitch(ha?.commander_switches?.[id] ?? "")}
           onTrackMotion={(id, on) =>
             ha?.commander_switches?.[id] && flip(ha.commander_switches[id], on, "Track motion")
@@ -500,14 +505,12 @@ export function CameraDashboardPage({ state }: { state?: string }) {
       <section className={guest.area}>
         <AreaHead
           title="Security look"
-          blurb="Every camera picture on the dashboards in monochrome, tinted, like a security control room: done by the browser, switched on and off with the Camera Commander's Security look switch in Home Assistant (by hand, or an automation at night). The look deployed live is the one used."
+          blurb="A commander's picture in monochrome, tinted, like a security control room: done by the browser, switched on and off per commander with its Security look switch in Home Assistant (by hand, or an automation at night; also on each commander, above). One look for them all."
         />
         <LookEditor
           value={draft.look}
           shown={showLook}
           onShow={setShowLook}
-          live={haSwitch(SECURITY_LOOK)}
-          onLive={(on) => flip(SECURITY_LOOK, on, "Security look")}
           onChange={(l) => edit((s) => (s.look = l))}
         />
       </section>
@@ -585,16 +588,11 @@ function LookEditor({
   value,
   shown,
   onShow,
-  live,
-  onLive,
   onChange,
 }: {
   value: Look;
   shown: boolean;
   onShow: (on: boolean) => void;
-  /** The Security look switch's state in Home Assistant (undefined: HA hasn't it). */
-  live?: string;
-  onLive: (on: boolean) => void;
   onChange: (l: Look) => void;
 }) {
   const look = value; // the app fills in the defaults
@@ -610,16 +608,6 @@ function LookEditor({
         </Field>
         <Num label="Strength" step={0.5} value={look.strength} onChange={(n) => set({ strength: n })} />
         <Num label="Darker, %" value={look.darkness} onChange={(n) => set({ darkness: n })} />
-        <Field
-          label="On the dashboards"
-          help={
-            live === undefined
-              ? "Home Assistant has no Security look switch yet (the Casa Mia integration adds it)."
-              : "The Camera Commander's Security look switch: every dashboard, every screen. Automations can flip it too."
-          }
-        >
-          <Switch on={live === "on"} label="On the dashboards" busy={live === undefined} onChange={onLive} />
-        </Field>
         <Field label="On the previews here" help="Only this page, in this browser.">
           <Switch on={shown} label="On the previews here" onChange={onShow} />
         </Field>
@@ -646,6 +634,8 @@ function Commanders({
   store,
   blank,
   ha,
+  securityLook,
+  onSecurityLook,
   trackMotion,
   onTrackMotion,
   onChange,
@@ -653,6 +643,9 @@ function Commanders({
   store: Store;
   blank: Commander;
   ha?: HA;
+  /** A commander's (by id) Security look switch's state in Home Assistant. */
+  securityLook: (id: string) => string | undefined;
+  onSecurityLook: (id: string, on: boolean) => void;
   /** A commander's (by id) Track motion switch's state in Home Assistant. */
   trackMotion: (id: string) => string | undefined;
   onTrackMotion: (id: string, on: boolean) => void;
@@ -733,6 +726,8 @@ function Commanders({
               value={c}
               cameras={store.cameras}
               preview={<LivePreview store={store} index={i} />}
+              securityLook={securityLook(c.id ?? "")}
+              onSecurityLook={(on) => onSecurityLook(c.id ?? "", on)}
               trackMotion={trackMotion(c.id ?? "")}
               onTrackMotion={(on) => onTrackMotion(c.id ?? "", on)}
               onChange={(v) => change(list.map((x, j) => (j === i ? v : x)))}
@@ -761,6 +756,8 @@ function CommanderEditor({
   value,
   cameras,
   preview,
+  securityLook,
+  onSecurityLook,
   trackMotion,
   onTrackMotion,
   onChange,
@@ -768,6 +765,9 @@ function CommanderEditor({
   value: Commander;
   cameras: Record<string, Camera>;
   preview: ReactNode;
+  /** Its Security look switch's state in Home Assistant (undefined: HA hasn't it). */
+  securityLook?: string;
+  onSecurityLook: (on: boolean) => void;
   /** The Track motion switch's state in Home Assistant (undefined: HA hasn't it). */
   trackMotion?: string;
   onTrackMotion: (on: boolean) => void;
@@ -802,6 +802,23 @@ function CommanderEditor({
                 on={value.page !== false}
                 label="Dashboard page"
                 onChange={(on) => set((c) => (c.page = on))}
+              />
+            </Field>
+          </div>
+          <div className={css.wide}>
+            <Field
+              label="Security look"
+              help={
+                securityLook === undefined
+                  ? "Home Assistant has no Security look switch for it yet (the Casa Mia integration adds it once the draft is saved)."
+                  : "This commander's Security look switch in Home Assistant, on every screen showing it; automations can flip it too. The look itself is set under Security look, below."
+              }
+            >
+              <Switch
+                on={securityLook === "on"}
+                label="Security look"
+                busy={securityLook === undefined}
+                onChange={onSecurityLook}
               />
             </Field>
           </div>
@@ -984,16 +1001,26 @@ function CommanderEditor({
                 help="Its cameras shared between them, the first taking one more when they don't share evenly."
                 onChange={(n) => set((c) => (c[p].lines = Math.max(1, Math.round(n))))}
               />
-              <Field label="Fit">
+              <div className={css.fitOption}>
+              <Field
+                label="Fit"
+                help={`Fill: equal tiles, cropped to fill them. Whole: equal tiles, each camera whole in its own. Stack, Reverse, Centre: each camera whole at its own shape, edge to edge, ${
+                  p === "left" || p === "right" ? "from the top, against the bottom, or in the middle" : "from the left, against the right, or in the middle"
+                }; the spare room is left clear (too many to fit: all shrink alike).`}
+              >
                 <Segmented
                   value={value[p].fit}
                   options={[
                     ["cover", "Fill"],
                     ["contain", "Whole"],
+                    ["stack", "Stack"],
+                    ["reverse", "Reverse"],
+                    ["centre", "Centre"],
                   ]}
                   onChange={(f) => set((c) => (c[p].fit = f))}
                 />
               </Field>
+              </div>
               {(p === "top" || p === "bottom") &&
                 (["anchor_left", "anchor_right"] as const).map((end) => (
                   <Field

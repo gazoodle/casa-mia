@@ -318,6 +318,11 @@
   min-width: 140px;
 }
 
+/* The panel's Fit: five choices, so room for them in one row. */
+.panelOptions > .fitOption {
+  flex: 1 1 420px;
+}
+
 /* The commander's four panels, one to a row: room for many cameras each. */
 .panels {
   display: grid;

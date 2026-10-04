@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.1-b29
+
+- Camera Commander panels: three more **Fit** choices, each camera whole at its own shape, edge to edge (one gap apart) rather than in equal tiles: **Stack** from the top (side panels) or left (top and bottom), **Reverse** against the bottom or right (same order), **Centre** in the middle. The spare room is left clear; too many to fit and they all shrink alike, centred across the panel. With several rows or columns, each stacks its own. Taps and the highlight follow the tiles.
+- **Security look per commander**: each commander's device has its own Security look switch (the first keeps `switch.camera_commander_security_look`), so automations set it per commander; the page has it on each commander too. The look itself (tint, strength, darkness) stays one for all. Restart Home Assistant after this update so the integration loads.
+
 ## 2026.10.1-b28
 
 - Camera Dashboard: **+ Copy** and **+ Blank commander** did nothing when Home Assistant is opened over plain http (the companion app, Safari): the new commander's id came from a browser call that only exists on secure pages.
