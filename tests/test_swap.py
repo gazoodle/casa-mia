@@ -17,6 +17,10 @@ def test_swap_both_ways(tmp_path, monkeypatch):
     # Longest first, one pass; JSON's escaped spelling too; binary left alone.
     assert swap.out("José on 07700 900123, Jo") == "Al on 07700 900456, X"
     assert (
+        swap.out("Joe, +4407700 900123, cam_Jo_1, Jo2")
+        == "Joe, +4407700 900456, cam_X_1, X2"
+    )
+    assert (
         swap.out_bytes(json.dumps({"n": "José"}).encode(), "application/json")
         == b'{"n": "Al"}'
     )

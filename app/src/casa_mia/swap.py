@@ -37,12 +37,13 @@ _state: State = (None, _same, _same, "", False)
 
 
 def _rule(pairs: dict[str, str]) -> Rule:
-    """One pass, longest first, so a replacement is never replaced again."""
+    """One pass, longest first, so a replacement is never replaced again. Not inside a
+    longer word ("Ann" leaves "Annex"), but digits and _ are no word: a number still
+    matches inside "+44...", a name inside "camera.oak_tree_main"."""
     if not pairs:
         return _same
-    pattern = re.compile(
-        "|".join(re.escape(k) for k in sorted(pairs, key=len, reverse=True))
-    )
+    keys = "|".join(re.escape(k) for k in sorted(pairs, key=len, reverse=True))
+    pattern = re.compile(rf"(?<![^\W\d_])(?:{keys})(?![^\W\d_])")
     return lambda text: pattern.sub(lambda m: pairs[m.group(0)], text)
 
 

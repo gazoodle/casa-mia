@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.2-b5
+
+- Screenshot swap: a name is no longer replaced inside a longer word ("Ann" leaves "Annex" alone); numbers and entity ids still match.
+
 ## 2026.10.2-b4
 
 - Screenshot swap: `"original_photo": true` in swap.json shows the shipped house photo in place of yours (which stays saved).
