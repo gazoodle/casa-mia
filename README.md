@@ -1,4 +1,20 @@
-# Casa Mia
+<h1 align="center">
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="integration/custom_components/casa_mia/brand/dark_logo@2x.png">
+<img src="branding/logo-master.png" alt="Casa Mia" width="400">
+</picture>
+</h1>
+
+<p align="center"><strong><em>Make yourself at home, assistant!</em></strong></p>
+
+<p align="center">
+A Home Assistant app and integration that take your home from smart to spectacular.<br>
+Dazzling home pages for every wall tablet. Guests signed in with a single scan.<br>
+Every Kiosk Satellite managed from one place, and at your fingertips wherever you are.<br>
+Interactions at jet-rapid speed. Camera dashboards MI5 would envy.<br>
+Secure phone and SMS access to your home, even when the internet has left the building.<br>
+And that's just the start.
+</p>
 
 <p align="center">
 <img src="https://img.shields.io/github/stars/gazoodle/casa-mia?style=for-the-badge&label=Stars&color=d6a102" alt="Stars">
@@ -10,14 +26,49 @@
 ## What is it?
 
 It's a collection of useful functionality that I've gathered and written over years of being
-an HA enthusiast. It was getting to the point where it was unmanageable as there were many
-little pieces, some in source control, others tucked into community notes; so I thought
-Claude and I could pull them together and clean them up.
+an HA enthusiast. It was getting to the point where it was unmanageable as there were so many
+little pieces, some in source control, others tucked into community notes, some deployed from
+stale repos; so I thought Claude and I could pull them together and clean them up.
 
 During that process I realised that there was quite a bit of stuff that other people might
-find useful too, so ... this project got created.
+find useful too, so ... this project got created, and now, since every time I go looking for
+useful stuff and inspiration, I'm interested in what it looks like and what I can create
+with it, here are some screen shots of what you get and what you can acheive; click any
+of them for more information
+
+## Casa Mia Screenshots
+
+<p align="center">
+<img src="docs/screenshots/home.webp" alt="The Casa Mia panel's home page: the house photo and a tile for each module" width="300">
+<a href="#kiosk-satellite-firmware"><img src="docs/screenshots/firmware.webp" alt="The Firmware server page: the address for the tablets and the mirrored Kiosk Satellite releases" width="300"></a>
+<a href="#kiosk-satellite-manager"><img src="docs/screenshots/kiosks.webp" alt="The Kiosk Satellites page: each wall tablet with its version, battery and Wi-Fi, and its backups" width="300"></a>
+</p>
+<p align="center">
+<a href="#kiosk-satellite-manager"><img src="docs/screenshots/kiosk-backups.webp" alt="A wall tablet's kept backups: what changed in each, ready to download or restore" width="300"></a>
+<a href="#people"><img src="docs/screenshots/people.webp" alt="The People page: who may call and text the house, each linked to a Home Assistant person" width="300"></a>
+<a href="#guest-login"><img src="docs/screenshots/guest-login.webp" alt="The Guest login page: QR code endpoints opened and closed by switch, and the logins guests are signed in as" width="300"></a>
+<a href="#guest-login"><img src="docs/screenshots/guest-endpoint.webp" alt="Adding a guest login endpoint: its label, landing dashboard, type, login and secret QR code address" width="300"></a>
+</p>
+[Casa Mia ]
+
+## HA Dashboard Screenshots
+
+
+
+
+
+## Installation
+
+
+
+
 
 ## What's in here?
+
+### Kiosk Satellite Home Page
+
+
+
 
 ### Kiosk Satellite Firmware
 
