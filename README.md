@@ -21,7 +21,11 @@ And that's just the start.
 <a href="https://github.com/gazoodle/casa-mia/releases"><img src="https://img.shields.io/github/downloads/gazoodle/casa-mia/total?style=for-the-badge&label=Downloads&color=e8604c" alt="Downloads"></a>
 <a href="https://github.com/gazoodle/casa-mia/releases/latest"><img src="https://shields.io/github/v/release/gazoodle/casa-mia?style=for-the-badge&color=5da3a6" alt="version"></a>
 <a href="https://github.com/gazoodle/casa-mia/actions/workflows/release.yml"><img src="https://img.shields.io/github/actions/workflow/status/gazoodle/casa-mia/release.yml?style=for-the-badge&label=Build&color=3fbf5f" alt="Build"></a>
+<a href="#licence"><img src="https://img.shields.io/badge/licence-MIT-5da3a6?style=for-the-badge" alt="Licence: MIT"></a>
 </p>
+
+<p align="center"><strong>Free and open source, MIT licensed. Forever.</strong><br>
+No premium tier, no subscription, no catch. <a href="#licence">Here's the promise.</a></p>
 
 ## What is it?
 
@@ -314,7 +318,14 @@ and the integration is updated along with the app.
 
 ## Licence
 
-[MIT](LICENSE), © 2026 Gazoodle. Use it, change it, share it; just keep the notice.
+**Casa Mia is free, open source, and MIT licensed. Forever.**
+
+No "community edition". No premium tier waiting in the wings. No gathering users now and
+slapping a licence fee on it later, like so much else on the internet. There's nothing to
+buy, nothing to subscribe to, and no account to sign up for; every line of it is right here.
+
+Use it, change it, share it, fork it, build on it; just keep the [MIT](LICENSE) notice.
+© 2026 Gazoodle.
 
 ## Under the hood
 
