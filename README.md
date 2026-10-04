@@ -260,7 +260,7 @@ casa-mia/
 ## Versioning
 
 See [Releases and CI](docs/releases.md) for GitHub checks, GHCR images, stable installation,
-and the first release procedure. Public releases use a two-digit month (`YYYY.MM.REL`).
+and making a release (`tools/release.py`). Public releases are `YYYY.M.R`, the month unpadded as Home Assistant's own (2027.1.1).
 
 **Rule Zero: bump the version first.** The Supervisor offers an app update only when `version`
 in `app/config.yaml` changes. So before any change to `app/` or `integration/`, from a clean
@@ -270,12 +270,10 @@ changelog lines (a test fails without the heading; the Supervisor shows the file
 dialog). If it is forgotten, `tools/fake_git_host.py` bumps the build itself, commits it, and
 shouts. That is a failure of the rule, not a feature.
 
-**Version numbers follow Home Assistant:** a release is `YYYY.MM.REL` (2026.10.1, the first release
-of October 2026). The private builds deployed on the way to it are `YYYY.MM.REL-bN` (2026.10.1-b1,
+**Version numbers follow Home Assistant:** a release is `YYYY.M.R` (2026.10.1, the first release
+of October 2026). The private builds deployed on the way to it are `YYYY.M.R-bN` (2026.10.1-b1,
 -b2, ...), one per deploy. The Supervisor orders them correctly: b9 before b10, every build
-before its release. To release, `tools/versioning.py release` drops the `-bN` and merges every build's changelog section into the
-release's; commit, tag the version, push the tag, and `.github/workflows/release.yml` makes the
-GitHub release with those notes. The next bump starts the next release's builds.
+before its release. To release, run `tools/release.py`: a step-by-step walkthrough (checks, `tools/versioning.py release`, a review of the notes, then commit, tag and push after your OK) that `.github/workflows/release.yml` takes from there. See [Releases and CI](docs/releases.md). The next bump starts the next release's builds.
 
 **Each integration component's version is the app version it last changed in.** After changing
 a component, `tools/component_versions.py --update` stamps its `manifest.json` with the current
@@ -302,7 +300,7 @@ Three loops, fastest first:
    Settings, Apps, App store, Repositories; the Supervisor then sees each new version. `tools/deploy`
    does the rest: over SSH it runs `ha store reload`, `ha apps update` and shows the app's log
    (`CM_HA_SSH` sets the login, default `hassio@homeassistant.local`).
-3. **Release (tagged `YYYY.MM.REL`):** see Versioning. Tags mark known-good versions for rollback.
+3. **Release (tagged `YYYY.M.R`):** see Versioning. Tags mark known-good versions for rollback.
 
 **No staging environment: work goes straight to the live box** (`homeassistant.local:8123`).
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.1-b30
+
+- Merged the CI and release delivery work: checks on every push, and releases built as ready-made images on GHCR (`app/Dockerfile.release`, `docs/releases.md`).
+
 ## 2026.10.1-b29
 
 - Camera Commander panels: three more **Fit** choices, each camera whole at its own shape, edge to edge (one gap apart) rather than in equal tiles: **Stack** from the top (side panels) or left (top and bottom), **Reverse** against the bottom or right (same order), **Centre** in the middle. The spare room is left clear; too many to fit and they all shrink alike, centred across the panel. With several rows or columns, each stacks its own. Taps and the highlight follow the tiles.
