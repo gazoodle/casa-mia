@@ -39,6 +39,7 @@ from typing import Any
 
 import yaml
 
+from .. import swap
 from ..ha import HA, HAError
 from .compositor import (
     DRAFT_STORE,
@@ -579,15 +580,17 @@ def build_dashboard(
         holds none of its cameras (nothing yet, or unavailable), the commander shows its
         own main camera, and so do its zones."""
         title = lambda e: cams[e]["title"]  # noqa: E731
+        # The select's options come through the screenshot swap: its stand-ins.
+        option = lambda e: swap.out(cams[e]["title"])  # noqa: E731
         select = selects.get(cmd["id"], COMMANDER_SELECT)
         mine = commander_cameras(cmd)
         own = cmd["main"] if cmd.get("main") in mine else mine[0]
 
         def shown_while(e: str | None, elements: list[dict]) -> dict:
             test = (
-                {"state": title(e)}
+                {"state": option(e)}
                 if e
-                else {"state_not": [title(c) for c in mine]}  # its own main camera
+                else {"state_not": [option(c) for c in mine]}  # its own main camera
             )
             return {
                 "type": "conditional",
@@ -646,7 +649,7 @@ def build_dashboard(
                     "action": "perform-action",
                     "perform_action": "select.select_option",
                     "target": {"entity_id": select},
-                    "data": {"option": title(e)},
+                    "data": {"option": swap.out(title(e))},
                 },
             )
             for panel in PANELS

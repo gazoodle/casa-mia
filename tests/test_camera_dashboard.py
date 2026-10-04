@@ -405,6 +405,25 @@ def test_commander_overview_taps_choose_and_open():
     assert lit["style"]["border"] == "2px solid #7bd1a0"
 
 
+def test_commander_taps_use_the_screenshot_swaps_names(monkeypatch):
+    """The select's options come through the swap, so taps and conditions match them;
+    the camera pages keep their real paths."""
+    from casa_mia import swap
+
+    monkeypatch.setattr(swap, "out", lambda t: {"Bay": "Barn"}.get(t, t))
+    views = build_dashboard(commander_store(), "http://h:8099", "dashboard-cams")[
+        "views"
+    ]
+    (landscape,) = views[0]["sections"][0]["cards"]
+    taps = [e for e in landscape["elements"] if e["type"] == "image"]
+    assert [t["tap_action"]["data"]["option"] for t in taps] == ["Barn", "Tablet"]
+    mains = [e for e in landscape["elements"] if e["type"] == "conditional"]
+    assert mains[0]["conditions"][0]["state"] == "Barn"
+    assert mains[2]["conditions"][0]["state_not"] == ["Barn", "Tablet"]
+    opens = mains[0]["elements"][1]["tap_action"]["navigation_path"]
+    assert opens == "/dashboard-cams/cam-bay"
+
+
 def test_commander_problems():
     store = commander_store()
     store["commanders"][0]["left"]["cameras"].append("camera.gone")

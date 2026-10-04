@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.2-b8
+
+- Screenshot swap: a dashboard deployed while it is on taps and follows the Main camera select by the stand-in names its options show (it refused the real ones). Deploy again with the swap off.
+
 ## 2026.10.2-b7
 
 - Screenshot swap: a camera picture added after swap.json was last saved is used too (it was skipped until swap.json was saved again).
