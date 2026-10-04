@@ -37,6 +37,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -269,6 +270,17 @@ def review(release: str) -> None:
         subprocess.run([*editor.split(), str(ROOT / "app/CHANGELOG.md")], check=False)
 
 
+def checks(number: str, repo: str) -> list[tuple[str, str]]:
+    """A pull request's required checks: (name, bucket), the bucket being pass, fail,
+    pending, skipping or cancel."""
+    out = run(
+        "gh", "pr", "checks", number, "--repo", repo, "--required",
+        "--json", "name,bucket", "--jq", '.[] | .name + "\\t" + .bucket',
+        check=False,
+    )  # fmt: skip
+    return [tuple(line.split("\t", 1)) for line in out.splitlines() if "\t" in line]  # type: ignore[misc]
+
+
 def pull_request(branch: str, release: str, repo: str) -> str:
     """Push the branch, open its pull request into main (or use the open one), and wait
     for the checks. Returns the pull request's number."""
@@ -308,15 +320,24 @@ def pull_request(branch: str, release: str, repo: str) -> str:
     say(
         f"  {DIM}Waiting for its checks (a few minutes; Ctrl-C stops waiting, not them){OFF}"
     )
-    watched = subprocess.run(
+    for _ in range(36):  # a just-opened pull request has no checks for a moment
+        if checks(number, repo):
+            break
+        time.sleep(5)
+    subprocess.run(
         ["gh", "pr", "checks", number, "--repo", repo, "--watch", "--required"],
         cwd=ROOT,
     )
-    if watched.returncode:
+    # gh's exit code also means "none yet" or "still running": go by what they say
+    found = checks(number, repo)
+    failed = [name for name, bucket in found if bucket in ("fail", "cancel")]
+    if failed:
         raise Stop(
-            f"A check failed on #{number}. Fix it on {branch} (commit, nothing more), "
-            "then run this again: it pushes the fix and waits again."
+            f"On #{number}, {', '.join(failed)} failed. Fix it on {branch} (commit, "
+            "nothing more), then run this again: it pushes the fix and waits again."
         )
+    if not found or any(bucket == "pending" for _, bucket in found):
+        raise Stop(f"#{number}'s checks have not finished: run this again to wait on.")
     good("the checks passed")
     return number
 
