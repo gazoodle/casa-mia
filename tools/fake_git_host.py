@@ -65,6 +65,19 @@ checks every new HEAD: if the latest commit changed `app/` or `integration/` and
 (banner, terminal bell, macOS notification). The fix is to bump first, from a clean repo.
 It refuses, and still shouts, when you have uncommitted edits to those two files.
 
+## Releases from GitHub
+
+Once the repo makes releases on GitHub, the box should get them without its App store
+repository changing (a new address means a new app slug: a new app, config folder and
+options). So every RELEASE_CHECK_SECONDS this also asks GitHub for the latest published
+release (drafts and prereleases are not "latest"), whose tag must be a release version,
+YYYY.M.R. When that is higher than the local HEAD's version, it fetches the repo from
+`origin` and builds `app-dev` from the release's tag instead of HEAD; otherwise (equal,
+lower, none, or GitHub unreachable) from HEAD as before. Versions order as releases do:
+2026.10.1 is above its own builds (2026.10.1-b26) and below the next ones (2026.10.2-b1),
+so the box follows whichever is newer: your builds, a release, your next builds. Each
+switch of source is announced in the terminal.
+
 Two things to remember while using it regardless. Only committed work is
 served, from whatever branch HEAD is on -- the App you install is the one you
 committed, not the one in the editor. And macOS may want to allow incoming
@@ -75,12 +88,15 @@ holding shut.
 from __future__ import annotations
 
 import datetime as dt
+import json
+import math
 import os
 import re
 import socket
 import subprocess
 import tempfile
 import threading
+import urllib.request
 from pathlib import Path
 
 import versioning  # tools/, next to this script
@@ -92,6 +108,8 @@ PORT = 9419
 DEV_BRANCH = "app-dev"
 DOCKERFILE_PATH = "app/Dockerfile"
 _SYNC_INTERVAL_SECONDS = 2
+RELEASE_CHECK_SECONDS = 600  # GitHub allows 60 unauthenticated API calls an hour
+RELEASE_RE = re.compile(r"^\d{4}\.\d{1,2}\.\d+$")  # a release: YYYY.M.R, no -bN
 # Paths whose change must come with a version bump, and the files that hold the version.
 WATCHED_PATHS = ("app", "integration")
 VERSION_FILES = ("pyproject.toml", "app/config.yaml")
@@ -147,15 +165,93 @@ def _patched_dockerfile(content: str, lan_url: str) -> str:
     return content
 
 
-def _sync_dev_branch() -> str | None:
-    """Recreate DEV_BRANCH from current HEAD with the Dockerfile's clone
-    target swapped to point at this daemon. Returns the new commit sha if
-    anything changed, else None. Plumbing only: never touches the working
-    tree or `.git/index`, so it is safe to run against a checkout mid-edit.
-    """
+def _order(version: str) -> tuple[float, ...]:
+    """A version's place: a release above its own builds, below the next release's."""
+    y, m, r, b = versioning.parse(version)
+    return (y, m, r, math.inf if b is None else b)
+
+
+def _github_repo() -> str | None:
+    """owner/name of `origin` on GitHub, from its URL; None if it is elsewhere."""
+    url = _run("remote", "get-url", "origin", check=False)
+    match = re.search(r"github\.com[:/]([^/]+/[^/]+?)(?:\.git)?/?$", url)
+    return match.group(1) if match else None
+
+
+def latest_release() -> str | None:
+    """The tag of the latest published release on GitHub, when it is a release version;
+    None when there is none, or GitHub can't be asked."""
+    repo = _github_repo()
+    if not repo:
+        return None
+    request = urllib.request.Request(
+        f"https://api.github.com/repos/{repo}/releases/latest",
+        headers={"Accept": "application/vnd.github+json"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=10) as answer:
+            tag = str(json.load(answer).get("tag_name") or "")
+    except (OSError, ValueError) as exc:  # 404: no release yet
+        print(f"    release check: none ({exc})", flush=True)
+        return None
+    return tag if RELEASE_RE.match(tag) else None
+
+
+_release: str | None = None  # the latest release seen, already fetched
+_release_checked = -math.inf
+_serving: str | None = None  # what app-dev was last built from, for the announcements
+
+
+def _base() -> tuple[str, str] | None:
+    """The commit to build app-dev from, and what it is: the latest release when its
+    version is above HEAD's (fetched from origin first), else HEAD."""
+    global _release, _release_checked
     head = _run("rev-parse", "HEAD", check=False)
     if not head:
         return None
+    local = _pyproject_version(_run("show", f"{head}:pyproject.toml", check=False))
+    now = dt.datetime.now().timestamp()
+    if now - _release_checked >= RELEASE_CHECK_SECONDS:
+        _release_checked = now
+        tag = latest_release()
+        if tag and tag != _release:
+            fetched = subprocess.run(
+                ("git", "fetch", "--quiet", "--tags", "origin"),
+                cwd=REPO,
+                capture_output=True,
+                text=True,
+            )
+            if fetched.returncode != 0:
+                print(f"    release check: fetch failed: {fetched.stderr.strip()}")
+                tag = None
+        if tag:
+            _release = tag
+    if _release and local:
+        try:
+            newer = _order(_release) > _order(local)
+        except ValueError:
+            newer = False
+        if newer:
+            commit = _run("rev-parse", f"{_release}^{{commit}}", check=False)
+            if commit:
+                return commit, f"release {_release} from GitHub (local is {local})"
+    return head, f"local HEAD, {local or 'no version'}"
+
+
+def _sync_dev_branch() -> str | None:
+    """Recreate DEV_BRANCH from the base (HEAD, or a newer GitHub release) with the
+    Dockerfile's clone target swapped to point at this daemon. Returns the new commit
+    sha if anything changed, else None. Plumbing only: never touches the working
+    tree or `.git/index`, so it is safe to run against a checkout mid-edit.
+    """
+    global _serving
+    base = _base()
+    if not base:
+        return None
+    head, what = base
+    if what.split(",")[0] != (_serving or "").split(",")[0]:
+        print(f"    serving {what}", flush=True)
+    _serving = what
     try:
         original = _run("show", f"{head}:{DOCKERFILE_PATH}")
     except subprocess.CalledProcessError:
@@ -292,6 +388,10 @@ def main() -> int:
     print(f"Serving {REPO}")
     print(f"    URL     {url}")
     print(f"    Branch  {_run('rev-parse', '--abbrev-ref', 'HEAD', check=False)}")
+    print(
+        f"    Release the latest on GitHub instead, when newer (checked every "
+        f"{RELEASE_CHECK_SECONDS // 60} min)"
+    )
     if dirty:
         print(
             f"    NOTE    {len(dirty.splitlines())} uncommitted "
