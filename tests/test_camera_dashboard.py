@@ -422,6 +422,8 @@ def test_commander_taps_use_the_screenshot_swaps_names(monkeypatch):
     assert mains[2]["conditions"][0]["state_not"] == ["Barn", "Tablet"]
     opens = mains[0]["elements"][1]["tap_action"]["navigation_path"]
     assert opens == "/dashboard-cams/cam-bay"
+    bay = next(v for v in views if v["path"] == "cam-bay")
+    assert bay["title"] == "Barn"
 
 
 def test_commander_problems():

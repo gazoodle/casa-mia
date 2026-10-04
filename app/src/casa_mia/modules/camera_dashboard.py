@@ -701,15 +701,16 @@ def build_dashboard(
         """A live page: the medium channel for wall tablets and phones, the high one for
         everyone else, then the PTZ presets; header as header()."""
         cam = cams[entity]
+        shown = swap.out(cam["title"])  # its path keeps the real title
         mid_e, hi_e = cam.get("medium") or entity, cam.get("high") or entity
         mid_kind = cam.get("live") or s["live_card"]
         hi_kind = cam.get("live") or s["hi_live_card"] or mid_kind
         cards = (
-            [live_card(mid_e, cam["title"], None, mid_kind)]
+            [live_card(mid_e, shown, None, mid_kind)]
             if mid_e == hi_e
             else [
-                live_card(mid_e, cam["title"], mid, mid_kind),
-                live_card(hi_e, cam["title"], hi, hi_kind),
+                live_card(mid_e, shown, mid, mid_kind),
+                live_card(hi_e, shown, hi, hi_kind),
             ]
         )
         sections = [{"type": "grid", "cards": cards, "column_span": 3}]
@@ -725,7 +726,7 @@ def build_dashboard(
         view: dict[str, Any] = {
             "type": "sections",
             "max_columns": 3,
-            "title": cam["title"],
+            "title": shown,
             "path": f"cam-{slug(cam['title'])}",
             "sections": sections,
             "cards": [],

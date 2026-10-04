@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.2-b9
+
+- Screenshot swap: a dashboard deployed while it is on shows the stand-in names on its camera pages too (their addresses keep the real ones).
+
 ## 2026.10.2-b8
 
 - Screenshot swap: a dashboard deployed while it is on taps and follows the Main camera select by the stand-in names its options show (it refused the real ones). Deploy again with the swap off.
