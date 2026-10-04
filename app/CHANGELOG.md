@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.1-b31
+
+- No change to the app: the release walkthrough (`tools/release.py`) and its docs.
+
 ## 2026.10.1-b30
 
 - Merged the CI and release delivery work: checks on every push, and releases built as ready-made images on GHCR (`app/Dockerfile.release`, `docs/releases.md`).

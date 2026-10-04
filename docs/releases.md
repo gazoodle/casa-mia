@@ -14,18 +14,21 @@ Run the walkthrough and follow its prompts:
 
 ```sh
 tools/setup              # once, or after dependencies change
+gh auth login            # once: the GitHub CLI, https://cli.github.com
+git switch main && git pull
 tools/release.py
 ```
 
-It does the same steps every time, on this repository or a fork, and changes nothing on GitHub until you say yes:
+`main` takes changes only through pull requests with the required checks passing (a repository ruleset), so the release goes through one too. The walkthrough does the same steps every time, on this repository or a fork, and publishes nothing until you say yes:
 
-1. **The checkout:** on `main`, nothing uncommitted, level with `origin/main` (push your work and let CI pass first).
+1. **The checkout:** on `main`, nothing uncommitted, level with `origin/main`. Everything to be released must already be merged into `main`.
 2. **The checks CI runs:** Ruff lint and formatting, Pyright, pytest (which also checks the web build and the component versions).
 3. **Prepare:** `tools/versioning.py release` drops the `-bN` (2026.10.1-b30 becomes 2026.10.1) and merges every build's changelog section since the last release into one. If the month has moved on since the builds began, the release is that month's first (builds of 2026.10.2 released in November become 2026.11.1). It then shows the release notes for review: they are the GitHub release's text and what the Supervisor shows in its update dialog, so keep what someone installing or updating needs and drop build-to-build detail. Edit them there (it opens `$EDITOR`), or abort, which puts everything back.
-4. **Publish, after your OK:** commits `Release <version>`, pushes `main`, tags the version and pushes the tag, which starts the Release workflow.
-5. **On GitHub:** links to the workflow run, the first release's package step (below), and the release and `stable` URLs. With the `gh` CLI installed it can follow the run in the terminal.
+4. **Pull request, after your first OK:** the release is committed on a `release-<version>` branch, pushed, and a pull request opened with the notes as its description; then it waits for the required checks. Nothing is published yet.
+5. **Publish, after your second OK:** merges the pull request, pulls `main`, tags the merged commit with the version and pushes the tag, which starts the Release workflow. From here the version is public.
+6. **On GitHub:** links to the workflow run, the first release's package step (below), and the release and `stable` URLs, and it can follow the run in the terminal.
 
-Stop at any prompt (or Ctrl-C) and run it again: it works out where it got to from the version and the tags on `origin`, and carries on (a release committed but not pushed is pushed; one already tagged is reported as released).
+Stop at any prompt (or Ctrl-C) and run it again: it works out where it got to from `origin/main`'s version, a `release-<version>` branch and the tags on `origin`, and carries on. If a check fails on the release pull request, fix it on that branch and run it again; to give up instead, close the pull request and delete the branch here and on `origin`.
 
 The tagged workflow validates versions and nonempty notes, reruns all checks against that source commit, and builds/publishes:
 

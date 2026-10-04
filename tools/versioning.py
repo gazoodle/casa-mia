@@ -90,6 +90,12 @@ def current() -> str:
     return match.group(1)
 
 
+def add_heading(text: str, version: str) -> str:
+    """The changelog with an empty `## version` section on top, for a new build."""
+    title = text.index("\n## ") + 1 if "\n## " in text else len(text)
+    return f"{text[:title]}## {version}\n\n{text[title:]}"
+
+
 def write(version: str, root: Path = ROOT) -> None:
     """Set the version in pyproject.toml and app/config.yaml."""
     for name, regex, line in (
@@ -118,10 +124,7 @@ def main() -> int:
         return 0
     if args.action == "bump":
         new = next_build(current(), today)
-        title = log.index("\n## ") + 1 if "\n## " in log else len(log)
-        CHANGELOG.write_text(
-            f"{log[:title]}## {new}\n\n{log[title:]}", encoding="utf-8"
-        )
+        CHANGELOG.write_text(add_heading(log, new), encoding="utf-8")
     else:
         new = release_of(current(), today)
         CHANGELOG.write_text(merge_builds(log, new), encoding="utf-8")

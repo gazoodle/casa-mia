@@ -273,7 +273,7 @@ shouts. That is a failure of the rule, not a feature.
 **Version numbers follow Home Assistant:** a release is `YYYY.M.R` (2026.10.1, the first release
 of October 2026). The private builds deployed on the way to it are `YYYY.M.R-bN` (2026.10.1-b1,
 -b2, ...), one per deploy. The Supervisor orders them correctly: b9 before b10, every build
-before its release. To release, run `tools/release.py`: a step-by-step walkthrough (checks, `tools/versioning.py release`, a review of the notes, then commit, tag and push after your OK) that `.github/workflows/release.yml` takes from there. See [Releases and CI](docs/releases.md). The next bump starts the next release's builds.
+before its release. To release, run `tools/release.py`: a step-by-step walkthrough (checks, `tools/versioning.py release`, a review of the notes, a release pull request, then merge and tag after your OK) that `.github/workflows/release.yml` takes from there. See [Releases and CI](docs/releases.md). The next bump starts the next release's builds.
 
 **Each integration component's version is the app version it last changed in.** After changing
 a component, `tools/component_versions.py --update` stamps its `manifest.json` with the current
