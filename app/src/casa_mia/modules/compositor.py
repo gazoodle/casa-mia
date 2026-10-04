@@ -1,9 +1,19 @@
 """compositor: on-demand camera compositor: the Camera Commander's picture.
 
-Fetches low-res stills from Home Assistant, draws the commander (a main camera framed by
-panels of cameras) and serves it over HTTP. Nothing is fetched while nobody is asking, and
-any number of viewers share one fetch per INTERVAL. Ported from
-tablet-provision/composite-test/server.py.
+Three parts, all on one asyncio loop in the compositor's own thread:
+
+  * the gather loop: while someone is watching (a stream open, or a picture asked for in
+    the last LINGER seconds), every INTERVAL it fetches each camera's still from Home
+    Assistant, all at once, each with its own timeout, into a cache that is never
+    emptied. A camera that misses STRIKES rounds in a row sits out (its picture goes
+    stale) and is tried again after BENCH seconds. Nobody watching: nothing is fetched.
+  * the drawing: after each round the commander is drawn from the cache, in a worker
+    thread (the loop keeps serving meanwhile); a camera picture older than the
+    commander's `stale` seconds is marked Stale. Open streams are told a new picture is
+    ready.
+  * the HTTP server: serves the latest picture, to any number of viewers.
+
+Ported from tablet-provision/composite-test/server.py.
 
   GET /g/commander.jpg    latest picture (poll it, or view it once)
   GET /g/commander.mjpg   self-updating multipart stream, one frame per interval
@@ -20,9 +30,9 @@ import asyncio
 import io
 import json
 import logging
+import math
 import threading
 import time
-from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -35,22 +45,23 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageOps
 _LOGGER = logging.getLogger(__name__)
 
 PORT = 8099
-INTERVAL = 2.0  # seconds a picture is reused before it is rebuilt
-MAX_STALE = 30.0  # older than this, the caller waits for a fresh one
-WARM_EVERY = 10.0  # while someone looked in the last WARM_WINDOW, rebuild this often
-WARM_WINDOW = 300.0
+INTERVAL = 2.0  # seconds between gather rounds while someone is watching
+LINGER = (
+    30.0  # gathering goes on this long after the last request: a quick return is fresh
+)
+STRIKES = 3  # rounds a camera may miss in a row before it sits out
+BENCH = 600.0  # seconds a camera sits out before it is tried again
+KEEPALIVE = 10.0  # a stream is sent its picture again this often, even unchanged
 MAX_STREAMS = 3  # per client address: older ones are images the browser abandoned
 WARM_STREAM_EVERY = (
     90.0  # re-start the viewed cameras' live streams (HA drops idle ones)
 )
 WARM_STREAM_TIER = "medium"  # the channel the wall tablets play
-STILL_TTL = 1.5  # a fetched still is shared by every composite built within this time
-FETCH_TIMEOUT = 5
+STILL_TTL = 1.5  # a fetched still is shared by every preview drawn within this time
+FETCH_TIMEOUT = 5  # seconds one camera's still may take
 JPEG_QUALITY = 70
 LATEST_SIZE = (640, 360)  # the kept still of each camera (keep_stills)
 LATEST_AT_ONCE = 4  # cameras fetched together in a round
-
-Build = Callable[[], Awaitable[bytes]]
 
 
 @dataclass
@@ -79,6 +90,7 @@ EMPTY_COMMANDER = {
     "main_width": 70,
     "main_ratio": "16:9",
     "panel_min": 8,  # own, fixed: the % a panel with cameras keeps beside the main one
+    "stale": 30,  # seconds: a camera picture older than this is marked Stale
     # Track motion (done by the integration), seconds: how long a switch holds before
     # another, how long after the last motion it goes back to the camera chosen by hand
     # (0: it stays), and how long a choice by hand pauses tracking.
@@ -291,6 +303,18 @@ def commander_layout(
     return (w, h), main_area, tiles
 
 
+STALE = (245, 166, 35)  # the Stale mark: amber
+
+
+def _stale_mark(draw: ImageDraw.ImageDraw, at: tuple[int, int], font: Any) -> None:
+    """ "Stale" in an amber pill, its right end at `at` (vertically centred there)."""
+    box = draw.textbbox(at, "Stale", font=font, anchor="rm")
+    draw.rounded_rectangle(
+        (box[0] - 6, box[1] - 3, box[2] + 6, box[3] + 3), radius=6, fill=STALE
+    )
+    draw.text(at, "Stale", fill="black", font=font, anchor="rm")
+
+
 SMALL_FONT = ImageFont.load_default(size=16)
 BIG_FONT = ImageFont.load_default(size=40)
 SMALL_BAR = 22
@@ -305,11 +329,14 @@ def commander(
     main_image: bytes | None,
     changing: bool = False,
     motion: frozenset[str] = frozenset(),
+    stale: frozenset[str] = frozenset(),
+    main_stale: bool = False,
 ) -> bytes:
     """Draw the commander: each panel's cameras (the main one framed), and the main camera
     in its natural shape, as large as fits its area, centred. `changing`: the picture
     shown the moment the main camera is switched, from stills already to hand: blurred,
-    with "Changing to <camera>" over it, until the sharp one is ready."""
+    with "Changing to <camera>" over it, until the sharp one is ready. `stale`: the
+    cameras whose tile picture is old (marked Stale); `main_stale`: the main picture is."""
     size, main_rect, rects = commander_layout(cmd, main)
     # Drawn solid, so the name bars and labels shade the picture under them; the gaps
     # are cut out at the end. (Drawn on a transparent canvas, a see-through bar would
@@ -353,6 +380,8 @@ def commander(
                 font=SMALL_FONT,
                 anchor="lm",
             )
+            if raw and entity in stale:
+                _stale_mark(draw, (x + w - 6, y + h - SMALL_BAR // 2), SMALL_FONT)
             if entity in motion:  # a red dot: this camera sees motion now
                 r = max(5, min(w, h) // 18)
                 cx, cy = x + w - r - 6, y + r + 6
@@ -414,6 +443,8 @@ def commander(
                 font=BIG_FONT,
                 anchor="mm",
             )
+        if main_image and main_stale:
+            _stale_mark(draw, (px + pw - 10, py + 22), FONT)
         foot = py + ph - 18
         pill = draw.textbbox((px + 10, foot), label, font=FONT, anchor="lm")
         draw.rectangle(
@@ -457,7 +488,7 @@ class Compositor:
     ) -> None:
         self.config_dir = config_dir
         self.store = store  # which Camera Dashboard store it serves (live or draft)
-        self.prewarm = prewarm  # build every composite at start (not for previews)
+        self.prewarm = prewarm  # gather for LINGER from the start (not for previews)
         # Keep the latest still of every camera, refreshed this often (seconds), so the
         # Camera Dashboard's thumbnails and previews are ready at once.
         self.keep_stills = keep_stills
@@ -473,14 +504,25 @@ class Compositor:
         self._loop: asyncio.AbstractEventLoop | None = None
         self._stop: asyncio.Event | None = None
         # Per-run state, touched only on the loop thread.
-        self._cache: dict[str, tuple[float, bytes]] = {}
-        self._inflight: dict[str, asyncio.Task] = {}
-        self._stills: dict[tuple, tuple[float, asyncio.Future]] = {}
+        self._stills: dict[
+            tuple, tuple[float, asyncio.Future]
+        ] = {}  # previews' fetches
+        # The gathered stills, never emptied: (camera, size) -> (when, picture).
+        self._shots: dict[tuple[str, tuple[int, int]], tuple[float, bytes]] = {}
+        self._misses: dict[str, int] = {}  # camera -> rounds missed in a row
+        self._benched: dict[str, float] = {}  # camera -> when it is tried again
+        self._picture: tuple[float, bytes] | None = None  # the latest commander drawn
+        self._fresh: asyncio.Event | None = (
+            None  # set (and replaced) at each new picture
+        )
+        self._watching: asyncio.Event | None = None  # someone asked: gather
+        self._next_round: asyncio.Event | None = None  # gather now, don't wait
+        self._draw_lock: asyncio.Lock | None = None
+        self._gathering = False
         self._warmed: dict[str, float] = {}
         self._bg: set[asyncio.Task] = set()
         self._streams: dict[str | None, list[asyncio.Event]] = {}
-        self._last_request = time.monotonic()
-        self._seen: set[str] = set()
+        self._last_request = -LINGER
         self._http: aiohttp.ClientSession | None = None
         self._latest: dict[str, bytes] = {}  # camera -> its latest still (keep_stills)
         self._thumbs: dict[
@@ -489,7 +531,6 @@ class Compositor:
         self._round_now: asyncio.Event | None = None
         self.main: str | None = None  # the commander's main camera, as last chosen
         self.motion: frozenset[str] = frozenset()  # cameras seeing motion (red dots)
-        self._wake: dict[str, asyncio.Event] = {}  # a stream's picture changed: send it
 
     def start(self) -> None:
         """Never raises: a failure shows up as state `offline` in health()."""
@@ -507,8 +548,8 @@ class Compositor:
         self._ready.wait(10)
 
     def reload(self) -> None:
-        """Re-read the config (after the Camera Dashboard saved it); composites already
-        built are dropped, so the next request draws the new layout."""
+        """Re-read the config (after the Camera Dashboard saved it); the picture already
+        drawn is dropped, so the next request draws the new layout."""
         try:
             cfg = load_config(self.config_dir, self.store)
         except (OSError, ValueError, KeyError, TypeError) as exc:
@@ -518,8 +559,9 @@ class Compositor:
 
         def apply() -> None:
             self.cfg, self._error = cfg, None
-            self._cache.clear()
-            self._seen = {n for n in self._seen if self._known(n)}
+            self._picture = None
+            if self._next_round:
+                self._next_round.set()
             if self._round_now:
                 self._round_now.set()  # fetch any camera just added
 
@@ -557,7 +599,6 @@ class Compositor:
         self.main = entity
 
         def apply() -> None:
-            self._inflight.pop("commander", None)  # a drawing of the old one: not used
             task = asyncio.ensure_future(self._switch(entity))
             self._bg.add(task)
             task.add_done_callback(self._bg.discard)
@@ -577,48 +618,31 @@ class Compositor:
             return None
         return round(w / h, 4) if h else None
 
-    def _wake_streams(self, name: str) -> None:
-        """Send `name`'s picture to its open streams now, not at their next interval."""
-        if wake := self._wake.pop(name, None):
-            wake.set()
-
     def _last_still(self, entity: str) -> bytes | None:
-        """The newest still already to hand for a camera (any size), without asking HA."""
+        """The newest still already to hand for a camera (the largest), without asking HA."""
         if entity in self._latest:
             return self._latest[entity]
+        shots = [(size[0], v[1]) for (e, size), v in self._shots.items() if e == entity]
         done = [
             (size[0], hit[1].result())
             for (e, size), hit in self._stills.items()
             if e == entity and hit[1].done() and not hit[1].cancelled()
         ]
-        done = [d for d in done if d[1]]
-        return max(done, key=lambda d: d[0])[1] if done else None
+        found = [d for d in shots + done if d[1]]
+        return max(found, key=lambda d: d[0])[1] if found else None
 
     async def _switch(self, entity: str) -> None:
         """The main camera changed: at once, a picture from the stills already to hand
-        (the new camera blurred, "Changing to ..."), then the sharp one when it's drawn."""
-        cfg = self.cfg
-        if not cfg.commander:
+        (the new camera blurred, "Changing to ..."), then a round for the sharp one."""
+        if not self._known("commander"):
             return
-        cams = commander_cameras(cfg.commander)
         try:
-            quick = await asyncio.to_thread(
-                commander,
-                cfg.commander,
-                cfg.titles,
-                {e: self._last_still(e) for e in cams},
-                entity,
-                self._last_still(entity),
-                True,
-                self.motion,
-            )
-            self._cache["commander"] = (time.monotonic(), quick)
-            self._wake_streams("commander")
+            await self._draw(changing=True)
         except (OSError, ValueError) as exc:
             _LOGGER.debug("commander: no quick picture: %s", exc)
-            self._cache.pop("commander", None)
-        await self._refresh("commander", self._build_commander)
-        self._wake_streams("commander")
+            self._picture = None
+        if self._next_round:
+            self._next_round.set()
 
     def render(self, cfg: Config) -> bytes:
         """Draw the commander from a config that is not the one being served: the Camera
@@ -628,9 +652,7 @@ class Compositor:
             raise RuntimeError("the compositor is not running")
         if not commander_cameras(cfg.commander):
             raise ValueError("the commander has no cameras")
-        future = asyncio.run_coroutine_threadsafe(
-            self._build_commander(cfg, ready=True), self._loop
-        )
+        future = asyncio.run_coroutine_threadsafe(self._preview(cfg), self._loop)
         return future.result(FETCH_TIMEOUT * 4)
 
     def still(self, entity: str, width: int) -> bytes | None:
@@ -670,7 +692,9 @@ class Compositor:
             "state": state,
             "port": self.port,
             "cameras": len(commander_cameras(self.cfg.commander)),
-            "streams": sum(len(v) for v in self._streams.values()),
+            "streams": self._stream_count(),
+            "gathering": self._gathering,
+            "sitting_out": sorted(self._benched),
             "needs": self.needs if state == "unconfigured" else None,
             "error": self._error,
         }
@@ -682,11 +706,10 @@ class Compositor:
             self._http = aiohttp.ClientSession(
                 headers={"Authorization": f"Bearer {self.token}"}
             )
-            # the first WARM_WINDOW is pre-warmed
-            self._last_request = time.monotonic() if self.prewarm else -WARM_WINDOW
-            self._seen = (
-                {"commander"} if self.prewarm and self._known("commander") else set()
-            )
+            self._fresh, self._draw_lock = asyncio.Event(), asyncio.Lock()
+            self._watching, self._next_round = asyncio.Event(), asyncio.Event()
+            if self.prewarm:  # the first LINGER gathers, so the first viewer waits less
+                self._touch()
             app = web.Application()
             app.add_routes(
                 [
@@ -704,7 +727,7 @@ class Compositor:
                 self.port = site._server.sockets[0].getsockname()[1]  # type: ignore[union-attr]
             self._running = True
             _LOGGER.info("compositor (%s) serving on :%d", self.store, self.port)
-            tasks = [asyncio.create_task(self._keep_warm())]
+            tasks = [asyncio.create_task(self._gather())]
             if self.keep_stills:
                 self._round_now = asyncio.Event()
                 tasks.append(asyncio.create_task(self._keep_stills(self.keep_stills)))
@@ -798,84 +821,200 @@ class Compositor:
             self._latest[entity] = image
         return self._latest[entity]
 
-    def _refresh(self, key: str, build: Build) -> asyncio.Task:
-        """Start (or join) the one rebuild in flight for `key`; the result lands in the cache."""
-        task = self._inflight.get(key)
-        if task is None or task.done():
+    # -- gathering and drawing
 
-            async def run() -> None:
-                frame = await build()
-                # Dropped while drawing (the commander's main camera switched): not kept.
-                if self._inflight.get(key) is task:
-                    self._cache[key] = (time.monotonic(), frame)
+    def _stream_count(self) -> int:
+        return sum(len(v) for v in self._streams.values())
 
-            task = self._inflight[key] = asyncio.create_task(run())
-            task.add_done_callback(
-                lambda t: t.cancelled() or t.exception()
-            )  # mark seen
-        return task
+    def _watched(self) -> bool:
+        return bool(self._stream_count()) or (
+            time.monotonic() - self._last_request < LINGER
+        )
 
-    async def _cached(
-        self, key: str, interval: float, build: Build, fresh: bool = False
-    ) -> bytes:
-        """Serve what we already have, at once. Once older than `interval` it is rebuilt
-        in the background; the caller only waits when nothing usable exists (never built,
-        or older than MAX_STALE) or fresh=True."""
-        entry = self._cache.get(key)
-        age = time.monotonic() - entry[0] if entry else None
-        if entry and age is not None and age < interval:
-            return entry[1]
-        task = self._refresh(key, build)
-        if entry and age is not None and age < MAX_STALE and not fresh:
-            return entry[1]
-        await task
-        return self._cache[key][1]
+    def _touch(self) -> None:
+        """Someone asked for the picture: gather (from now, for LINGER at least)."""
+        self._last_request = time.monotonic()
+        if self._watching:
+            self._watching.set()
 
-    async def _build_commander(
-        self, cfg: Config | None = None, ready: bool = False
-    ) -> bytes:
-        """The commander: tiles from each camera's composite still, the main camera from
-        its medium channel (sharper at that size) in its natural shape. `ready`: from the
-        kept stills, for previews."""
-        cfg = cfg or self.cfg
-        cmd, main = cfg.commander, self.main_camera(cfg) or ""
+    def _wants(
+        self, cfg: Config, main: str
+    ) -> tuple[dict[str, tuple[int, int]], tuple[str, tuple[int, int]]]:
+        """What to fetch: each tile's camera at its widest tile (16:9, HA keeps the
+        camera's shape), and the main camera from its medium channel (sharper at that
+        size) at the main area's size."""
+        cmd = cfg.commander
         _, (_, _, mw, mh), rects = commander_layout(cmd, main)
-        wanted: dict[str, int] = {}  # camera -> the widest tile it has
+        widest: dict[str, int] = {}
         for panel in PANELS:
             for e, (_, _, w, _) in zip(
                 cmd[panel]["cameras"], rects[panel], strict=True
             ):
-                wanted[e] = max(wanted.get(e, 0), w, 16)
-
-        async def tile_still(e: str, w: int) -> bytes | None:
-            return await (
-                self._ready_still(e) if ready else self._fetch(e, (w, w * 9 // 16))
-            )
-
-        async def main_still() -> bytes | None:
-            if ready:
-                return await self._ready_still(main)
-            channel = cfg.entities.get(main, {}).get("medium") or main
-            # HA keeps the camera's own shape
-            return await self._fetch(channel, (max(mw, 16), max(mh, 9)))
-
-        names = list(wanted)
-        images = await asyncio.gather(
-            main_still(), *(tile_still(e, wanted[e]) for e in names)
+                widest[e] = max(widest.get(e, 0), w, 16)
+        channel = cfg.entities.get(main, {}).get("medium") or main
+        return (
+            {e: (w, w * 9 // 16) for e, w in widest.items()},
+            (channel, (max(mw, 16), max(mh, 9))),
         )
-        return commander(
-            cmd,
+
+    async def _round(self) -> None:
+        """Fetch every camera of the commander at once, each within FETCH_TIMEOUT. A miss
+        keeps the picture already cached (it goes stale); STRIKES in a row and the camera
+        sits out until BENCH seconds have passed."""
+        tiles, main = self._wants(self.cfg, self.main_camera() or "")
+        now = started = time.monotonic()
+        jobs = []
+        for e, size in [*tiles.items(), main]:
+            if e in self._benched:
+                if now < self._benched[e]:
+                    continue
+                del self._benched[e]
+                _LOGGER.info("compositor (%s): trying %s again", self.store, e)
+            jobs.append((e, size))
+        got = await asyncio.gather(*(self._fetch_now(e, size) for e, size in jobs))
+        now = time.monotonic()
+        for (e, size), image in zip(jobs, got, strict=True):
+            if image:
+                self._shots[(e, size)] = (now, image)
+                self._misses.pop(e, None)
+                continue
+            self._misses[e] = self._misses.get(e, 0) + 1
+            if self._misses[e] >= STRIKES:
+                del self._misses[e]
+                self._benched[e] = now + BENCH
+                _LOGGER.warning(
+                    "compositor (%s): %s missed %d rounds in a row; it sits out "
+                    "(its picture goes stale) and is tried again in %.0f min",
+                    self.store,
+                    e,
+                    STRIKES,
+                    BENCH / 60,
+                )
+        _LOGGER.debug(
+            "compositor (%s): %d of %d stills in %.1f s",
+            self.store,
+            sum(1 for g in got if g),
+            len(jobs),
+            time.monotonic() - started,
+        )
+
+    def _pick(
+        self, entity: str, size: tuple[int, int] | None
+    ) -> tuple[bytes | None, float]:
+        """A camera's cached still at that size, else its largest at any size: the
+        picture and its age in seconds (inf when its age is unknown)."""
+        hit = self._shots.get((entity, size)) if size else None
+        if hit is None:
+            others = [v for (e, _), v in self._shots.items() if e == entity]
+            hit = max(others, key=lambda v: v[0]) if others else None
+        if hit is not None:
+            return hit[1], time.monotonic() - hit[0]
+        return self._latest.get(entity), math.inf
+
+    async def _draw(self, changing: bool = False) -> bytes:
+        """Draw the commander from the cache (in a worker thread), keep it as the latest
+        picture and tell the open streams."""
+        assert self._draw_lock and self._fresh
+        cfg = self.cfg
+        main = self.main_camera() or ""
+        tiles, (channel, size) = self._wants(cfg, main)
+        limit = float(cfg.commander.get("stale", EMPTY_COMMANDER["stale"]))
+        images, stale = {}, set()
+        for e, tile_size in tiles.items():
+            images[e], age = self._pick(e, tile_size)
+            if age > limit:
+                stale.add(e)
+        main_image, age = self._pick(channel, size)
+        if main_image is None:  # the main channel not fetched yet: its tile's still
+            main_image, age = self._pick(main, tiles.get(main))
+        async with self._draw_lock:
+            picture = await asyncio.to_thread(
+                commander,
+                cfg.commander,
+                cfg.titles,
+                images,
+                main,
+                main_image,
+                changing,
+                self.motion,
+                frozenset(stale),
+                age > limit,
+            )
+        self._picture = (time.monotonic(), picture)
+        fresh, self._fresh = self._fresh, asyncio.Event()
+        fresh.set()
+        return picture
+
+    async def _gather(self) -> None:
+        """While someone is watching: a round, a picture, every INTERVAL (or at once when
+        the main camera changes). Nobody watching: it waits, fetching nothing."""
+        assert self._watching and self._next_round
+        while True:
+            if not (self._watched() and self._known("commander")):
+                if self._gathering:
+                    self._gathering = False
+                    _LOGGER.info(
+                        "compositor (%s): nobody watching; fetching stopped", self.store
+                    )
+                self._watching.clear()
+                try:  # a request sets it; the timeout notices a stream just closed
+                    await asyncio.wait_for(self._watching.wait(), LINGER)
+                except TimeoutError:
+                    pass
+                continue
+            if not self._gathering:
+                self._gathering = True
+                _LOGGER.info(
+                    "compositor (%s): someone is watching; fetching every %.0f s",
+                    self.store,
+                    INTERVAL,
+                )
+            start = time.monotonic()
+            self._next_round.clear()
+            await self._round()
+            try:
+                await self._draw()
+            except (OSError, ValueError) as exc:
+                _LOGGER.warning("compositor (%s): cannot draw: %s", self.store, exc)
+            try:
+                await asyncio.wait_for(
+                    self._next_round.wait(),
+                    max(0.0, INTERVAL - (time.monotonic() - start)),
+                )
+            except TimeoutError:
+                pass
+
+    async def _preview(self, cfg: Config) -> bytes:
+        """The commander for a preview: from the kept stills, drawn in a worker thread."""
+        main = self.main_camera(cfg) or ""
+        cams = commander_cameras(cfg.commander)
+        images = await asyncio.gather(*(self._ready_still(e) for e in [main, *cams]))
+        return await asyncio.to_thread(
+            commander,
+            cfg.commander,
             cfg.titles,
-            dict(zip(names, images[1:], strict=True)),
+            dict(zip(cams, images[1:], strict=True)),
             main,
             images[0],
-            motion=self.motion if cfg is self.cfg else frozenset(),
         )
 
-    async def _frame(self, name: str, fresh: bool = False) -> bytes:
-        self._last_request = time.monotonic()
-        self._seen.add(name)  # what has been asked for is what gets kept warm
-        return await self._cached(name, INTERVAL, self._build_commander, fresh)
+    async def _frame(self) -> bytes:
+        """The latest picture, at once. After a quiet spell (none, or older than the
+        stale limit) it is drawn now from the cache, Stale marks and all, while the
+        gather loop starts up; with nothing cached at all, the first round is awaited."""
+        self._touch()
+        limit = float(self.cfg.commander.get("stale", EMPTY_COMMANDER["stale"]))
+        if self._picture and time.monotonic() - self._picture[0] < min(limit, LINGER):
+            return self._picture[1]
+        if not self._shots and not self._latest and self._fresh:
+            fresh = self._fresh
+            try:
+                await asyncio.wait_for(fresh.wait(), FETCH_TIMEOUT + INTERVAL)
+            except TimeoutError:
+                pass
+            if self._picture:
+                return self._picture[1]
+        return await self._draw()
 
     # -- keeping HA's live streams warm
 
@@ -944,15 +1083,6 @@ class Compositor:
         self._bg.add(task)
         task.add_done_callback(self._bg.discard)
 
-    async def _keep_warm(self) -> None:
-        """While someone has looked recently, keep what has been asked for fresh so every
-        page snaps into view."""
-        while True:
-            if time.monotonic() - self._last_request < WARM_WINDOW:
-                for name in list(self._seen):
-                    self._refresh(name, self._build_commander)
-            await asyncio.sleep(WARM_EVERY)
-
     # -- HTTP handlers
 
     def _known(self, name: str) -> bool:
@@ -963,7 +1093,7 @@ class Compositor:
         if not self._known(name):
             raise web.HTTPNotFound()
         self._warm_in_background(name)
-        data = await self._frame(name)
+        data = await self._frame()
         return web.Response(
             body=data, content_type=mime(data), headers={"Cache-Control": "no-store"}
         )
@@ -995,7 +1125,7 @@ class Compositor:
             # The parts' type (JPEG, or WebP with transparent gaps) is set by the first
             # picture; a deploy that changes it ends the stream (the dashboard reloads).
             self._warm_in_background(name)
-            data = await self._frame(name)
+            data = await self._frame()
             kind = mime(data)
             part = f"--frame\r\nContent-Type: {kind}\r\n\r\n".encode()
             await resp.write(part)
@@ -1003,25 +1133,22 @@ class Compositor:
                 if mime(data) != kind:
                     break
                 await resp.write(data + b"\r\n" + part)
-                # The next frame after the interval, or at once when the picture changes
-                # (the commander's main camera was switched).
-                wait = INTERVAL
-                wake = self._wake.setdefault(name, asyncio.Event())
+                # The next picture as soon as one is drawn (or the same again after
+                # KEEPALIVE, should drawing stop).
+                assert self._fresh
                 waits = [
                     asyncio.ensure_future(stop.wait()),
-                    asyncio.ensure_future(wake.wait()),
+                    asyncio.ensure_future(self._fresh.wait()),
                 ]
-                done, _ = await asyncio.wait(
-                    waits, timeout=wait, return_when=asyncio.FIRST_COMPLETED
+                await asyncio.wait(
+                    waits, timeout=KEEPALIVE, return_when=asyncio.FIRST_COMPLETED
                 )
                 for w in waits:
                     w.cancel()
                 if stop.is_set():
                     break
                 self._warm_in_background(name)
-                # Woken (a new picture is ready): send it as it is, without a rebuild.
-                woken = waits[1] in done
-                data = await self._frame(name, fresh=not woken)
+                data = await self._frame()
         except (ConnectionResetError, asyncio.CancelledError):
             pass
         finally:
@@ -1034,9 +1161,15 @@ class Compositor:
         return web.json_response(
             {
                 "streams": {ip: len(v) for ip, v in self._streams.items() if v},
-                "cache_age_s": {
-                    k: round(now - t, 1) for k, (t, _) in sorted(self._cache.items())
+                "gathering": self._gathering,
+                "picture_age_s": round(now - self._picture[0], 1)
+                if self._picture
+                else None,
+                "still_age_s": {
+                    f"{e} {w}x{h}": round(now - t, 1)
+                    for (e, (w, h)), (t, _) in sorted(self._shots.items())
                 },
+                "sitting_out": {e: round(t - now) for e, t in self._benched.items()},
             }
         )
 

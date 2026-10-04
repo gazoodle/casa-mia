@@ -148,6 +148,83 @@ def test_gaps_are_transparent():
     assert alpha(rgba, (x + w // 2, y + h - 5)) == 255
 
 
+def test_stale_pictures_are_marked():
+    from casa_mia.modules.compositor import EMPTY_COMMANDER, commander
+
+    one = {"cameras": ["camera.a"], "size": 20, "fit": "cover"}
+    cmd = {**EMPTY_COMMANDER, "width": 640, "height": 360, "gap": 0, "bottom": one}
+    still: dict[str, bytes | None] = {"camera.a": jpeg("red")}
+    fresh = commander(cmd, {}, still, "camera.a", jpeg("blue"))
+    old = commander(
+        cmd, {}, still, "camera.a", jpeg("blue"), stale=frozenset({"camera.a"})
+    )
+    assert fresh != old
+
+
+def test_a_camera_that_keeps_missing_sits_out(tmp_path):
+    import asyncio
+
+    from casa_mia.modules import compositor as mod
+
+    write_config(tmp_path)
+    comp = Compositor(tmp_path, "http://127.0.0.1:1", "token", port=0)
+    comp.cfg = mod.load_config(tmp_path)
+    asked: list[str] = []
+
+    async def fetch(entity, size):
+        asked.append(entity)
+        return None if entity == "camera.b" else jpeg()
+
+    comp._fetch_now = fetch  # type: ignore[method-assign]
+
+    async def rounds(n):
+        for _ in range(n):
+            await comp._round()
+
+    asyncio.run(rounds(mod.STRIKES))
+    assert "camera.b" in comp._benched and asked.count("camera.b") == mod.STRIKES
+    asked.clear()
+    asyncio.run(rounds(1))
+    assert "camera.b" not in asked and "camera.a" in asked  # sitting out
+    comp._benched["camera.b"] = 0  # its time is up
+    asyncio.run(rounds(1))
+    assert "camera.b" in asked and "camera.b" not in comp._benched
+    # its picture never came, and camera.a's is cached
+    assert any(e == "camera.a" for e, _ in comp._shots)
+
+
+def test_gathers_only_while_watched_and_serves_at_once_after(tmp_path, monkeypatch):
+    from casa_mia.modules import compositor as mod
+
+    monkeypatch.setattr(mod, "LINGER", 0.5)
+    write_config(tmp_path)
+    ha = ThreadingHTTPServer(("127.0.0.1", 0), FakeHA)
+    threading.Thread(target=ha.serve_forever, daemon=True).start()
+    comp = Compositor(
+        tmp_path, f"http://127.0.0.1:{ha.server_port}", "token", port=0, prewarm=False
+    )
+    comp.start()
+    url = f"http://127.0.0.1:{comp.port}/g/commander.jpg"
+    try:
+        assert comp.health()["gathering"] is False  # nobody watching: nothing fetched
+        urllib.request.urlopen(url).close()
+        assert comp._shots  # the first round was awaited: the cache was empty
+        for _ in range(40):
+            if not comp.health()["gathering"] and comp._picture:
+                break
+            time.sleep(0.1)
+        assert comp.health()["gathering"] is False  # stopped once nobody watched
+        start = time.monotonic()
+        with urllib.request.urlopen(url) as r:  # after a quiet spell: from the cache
+            assert Image.open(io.BytesIO(r.read())).size == (640, 360)
+        assert time.monotonic() - start < 1
+    finally:
+        comp.stop()
+        time.sleep(0.2)
+        ha.shutdown()
+        ha.server_close()
+
+
 def test_changing_picture_is_drawn_from_what_is_to_hand():
     from casa_mia.modules.compositor import EMPTY_COMMANDER, commander
 

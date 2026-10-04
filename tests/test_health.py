@@ -53,7 +53,9 @@ def test_health_records_the_integrations_helpers():
     threading.Thread(target=server.serve_forever, daemon=True).start()
     try:
         url = f"http://127.0.0.1:{server.server_port}/health"
+        assert server.helpers_heard is False  # type: ignore[attr-defined]
         urllib.request.urlopen(f"{url}?helpers=cm-streams.js,cm-back.js").close()
+        assert server.helpers_heard is True  # type: ignore[attr-defined]
         assert helpers == {"cm-streams.js", "cm-back.js"}
         urllib.request.urlopen(f"{url}?helpers=").close()  # all switched off
         assert helpers == set()

@@ -7,6 +7,7 @@ import logging
 import os
 import threading
 from pathlib import Path
+from typing import Any
 
 from . import app_version, header
 from .components import ask_for_restart, install_bundled
@@ -143,6 +144,12 @@ def main() -> int:
         modules["gitproxy"] = lambda: {"state": "disabled"}
     proxies = {}
     helpers: set[str] = set()  # the integration's dashboard helpers (from /health)
+    http: Any = None  # the admin and integration server, made last
+
+    def helpers_known() -> set[str] | None:
+        """The integration's helpers, or None until it has said since this start."""
+        return helpers if http is not None and http.helpers_heard else None
+
     cameras_on = options.get("camera_dashboard_enabled", False)
     compositor = None
     if options.get("compositor_enabled", False):
@@ -174,7 +181,7 @@ def main() -> int:
             live=compositor,
             draft=draft,
             state_path=OPTIONS.parent / "camera_dashboard_state.json",
-            helpers=lambda: helpers,
+            helpers=helpers_known,
         )
         cameras.start()
         draft.start()
@@ -223,14 +230,15 @@ def main() -> int:
         integration_url(),
     )
     try:
-        make_server(
+        http = make_server(
             modules=modules,
             actions=actions,
             post_handlers=post_handlers,
             api=api,
             proxies=proxies,
             helpers=helpers,
-        ).serve_forever()
+        )
+        http.serve_forever()
     except KeyboardInterrupt:
         pass
     return 0

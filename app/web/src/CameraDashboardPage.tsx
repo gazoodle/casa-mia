@@ -66,6 +66,8 @@ type Commander = {
   main_ratio?: Shape;
   /** own, fixed: the % of the picture a panel with cameras keeps beside the main camera. */
   panel_min?: number;
+  /** Seconds: a camera picture older than this is marked Stale. */
+  stale?: number;
   /** The outline on the main camera's tile, drawn by the browser on the dashboard. */
   highlight?: Highlight;
   /** Track motion (done by the integration), seconds. back 0: stays on the motion camera. */
@@ -96,6 +98,8 @@ type View = {
   changed: boolean;
   deployed: string | null;
   preview_dashboard: string;
+  /** When the preview dashboard was last deployed; null when there is none. */
+  previewed: string | null;
   compositor: { live: boolean; draft: boolean; host: string | null };
 };
 type HACamera = { entity: string; name: string; device_id: string | null; medium?: string; high?: string; zoom?: string };
@@ -276,6 +280,20 @@ export function CameraDashboardPage({ state }: { state?: string }) {
           >
             {busy === "preview" ? "Deploying…" : "Deploy preview"}
           </button>
+          {view.previewed && (
+            <button
+              className={ui.button}
+              disabled={!!busy}
+              title={`Delete the preview dashboard /${view.preview_dashboard} from Home Assistant`}
+              onClick={() =>
+                confirm(
+                  `Remove the preview dashboard /${view.preview_dashboard} from Home Assistant? Its config is kept (Backups); the live dashboard and the draft are untouched.`,
+                ) && act("unpreview", () => post<View>("remove-preview"), `Removed /${view.preview_dashboard}`)
+              }
+            >
+              {busy === "unpreview" ? "Removing…" : "Remove preview"}
+            </button>
+          )}
           <button
             className={ui.button}
             disabled={dirty || !!busy || view.problems.length > 0 || !view.changed}
@@ -636,6 +654,12 @@ function CommanderEditor({
           <Num label="Width" value={value.width} onChange={(n) => set((c) => (c.width = n))} />
           <Num label="Height" value={value.height} onChange={(n) => set((c) => (c.height = n))} />
           <Num label="Gap, px" value={value.gap} onChange={(n) => set((c) => (c.gap = n))} />
+          <Num
+            label="Stale after, s"
+            value={value.stale ?? 30}
+            help="A camera picture older than this is marked Stale (the camera is slow or not answering)."
+            onChange={(n) => set((c) => (c.stale = n))}
+          />
           <p className={`${css.hint} ${css.wide}`}>
             Gaps are transparent: the dashboard's background shows through them.
           </p>

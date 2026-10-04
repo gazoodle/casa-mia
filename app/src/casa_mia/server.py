@@ -130,6 +130,7 @@ class Handler(BaseHTTPRequestHandler):
             helpers = self.server.helpers  # type: ignore[attr-defined]
             helpers.clear()
             helpers.update(h for h in query["helpers"][0].split(",") if h)
+            self.server.helpers_heard = True  # type: ignore[attr-defined]
         from . import header  # here: header imports this module
 
         modules = {name: health() for name, health in self.server.modules.items()}  # type: ignore[attr-defined]
@@ -243,4 +244,7 @@ def make_server(
     server.proxies = proxies or {}  # type: ignore[attr-defined]
     # The dashboard helpers the integration loads (it says at each /health), kept in place.
     server.helpers = helpers if helpers is not None else set()  # type: ignore[attr-defined]
+    # Until the integration's first /health since this start, which may be 30 s away,
+    # nobody knows which helpers it loads: not "none".
+    server.helpers_heard = False  # type: ignore[attr-defined]
     return server

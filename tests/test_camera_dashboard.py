@@ -131,7 +131,9 @@ class FakeHA:
         for c in commands:
             self.sent.append(c)
             if c["type"] == "lovelace/dashboards/list":
-                out.append([{"url_path": u} for u in self.boards])
+                out.append([{"id": f"id-{u}", "url_path": u} for u in self.boards])
+            elif c["type"] == "lovelace/dashboards/delete":
+                del self.boards[c["dashboard_id"].removeprefix("id-")]
             elif c["type"] == "lovelace/dashboards/create":
                 self.boards[c["url_path"]] = None
             elif c["type"] == "lovelace/config":
@@ -185,6 +187,13 @@ def test_edit_preview_then_deploy(cd, tmp_path):
     assert "http://10.0.0.2:8098/g/commander.mjpg" in json.dumps(preview)
     assert "/dashboard-cams-preview/cam-bay" in json.dumps(preview)
     assert out["changed"] is True  # a preview changes nothing live
+    assert out["previewed"]
+    status, out = call(cd, "POST", "remove-preview")
+    assert status == 200 and out["previewed"] is None
+    assert "dashboard-cams-preview" not in cd.ha.boards
+    assert "dashboard-cams" in cd.ha.boards  # live untouched
+    assert call(cd, "POST", "remove-preview")[0] == 200  # nothing there: fine
+    call(cd, "POST", "deploy", {"target": "preview"})
 
     status, out = call(cd, "POST", "deploy", {"target": "live"})
     assert status == 200 and out["changed"] is False and out["deployed"]
@@ -194,7 +203,7 @@ def test_edit_preview_then_deploy(cd, tmp_path):
     assert load_config(tmp_path).commander["main"] == "camera.b"
     # what it replaced was kept, and can be put back
     status, out = call(cd, "GET", "backups")
-    (kept,) = out["backups"]
+    (kept,) = [b for b in out["backups"] if b["url_path"] == "dashboard-cams"]
     assert kept["url_path"] == "dashboard-cams"
     call(cd, "POST", "restore", {"name": kept["name"]})
     assert cd.ha.boards["dashboard-cams"] == {"views": ["old"]}
@@ -322,6 +331,8 @@ def test_warns_about_what_ha_lacks():
         store, have, ["/hacsfiles/webrtc/webrtc-camera.js"], {"u1"}, {"cm-back.js"}
     )
     assert not any("Back" in w for w in ours)  # the integration's helper is on
+    unknown = warnings(store, have, [], {"u1"}, None)  # not heard since the app started
+    assert not any("Back" in w for w in unknown)
     both = warnings(
         store, have, ["/local/scripts/nav_back_helper.js"], {"u1"}, {"cm-back.js"}
     )

@@ -183,6 +183,9 @@ def problems(store: Store) -> list[str]:
         out.append(
             "The commander's main camera: fit must be fit, fill, crop, own or fixed."
         )
+    stale = cmd.get("stale", 30)
+    if not isinstance(stale, (int, float)) or stale <= 0:
+        out.append("The commander's Stale after must be more than 0 seconds.")
     smallest = cmd.get("panel_min", 8)
     if not isinstance(smallest, (int, float)) or not 0 <= smallest <= 40:
         out.append("The commander's smallest panel must be 0-40% of the picture.")
@@ -234,7 +237,7 @@ def warnings(
     entities: set[str],
     resources: list[str],
     users: set[str],
-    helpers: set[str] | frozenset[str] = frozenset(),
+    helpers: set[str] | frozenset[str] | None = frozenset(),
 ) -> list[str]:
     """What the dashboard needs that this HA seems to lack: entities, wall tablet users,
     and the custom cards and the Back helper among the dashboard resources (a card can
@@ -280,6 +283,8 @@ def warnings(
             f"{COMMANDER_SELECT} (the commander's taps) is not in Home Assistant: it "
             "comes with the Casa Mia integration while Camera Dashboard is on."
         )
+    if helpers is None:  # the integration hasn't said yet since the app started
+        return out
     by_hand, ours = "nav_back" in urls, "cm-back.js" in helpers
     if not by_hand and not ours:
         out.append(
@@ -754,10 +759,11 @@ class CameraDashboard:
         live: Compositor | None = None,
         draft: Compositor | None = None,
         state_path: Path | None = None,
-        helpers: Callable[[], set[str]] = set,
+        helpers: Callable[[], set[str] | None] = set,
     ) -> None:
         self.dir = config_dir
-        self.helpers = helpers  # the integration's dashboard helper scripts, as it says
+        # the integration's dashboard helper scripts, as it says (None: not said yet)
+        self.helpers = helpers
         self.state_path = state_path  # the commander's main camera, kept over restarts
         self.ha = ha
         self.lan_host = lan_host
@@ -957,6 +963,8 @@ class CameraDashboard:
             if target not in ("preview", "live"):
                 raise BadRequest("target must be preview or live.")
             return _json(200, self.deploy(target == "live"))
+        if method == "POST" and parts == ["remove-preview"]:
+            return _json(200, self.remove_preview())
         if method == "GET" and parts == ["backups"]:
             return _json(200, {"backups": self.backups()})
         if method == "POST" and parts == ["restore"]:
@@ -1139,6 +1147,33 @@ class CameraDashboard:
         if live and self.live:
             self.live.reload()
         return {"url_path": url_path, "views": len(config["views"]), **self.view()}
+
+    def remove_preview(self) -> dict[str, Any]:
+        """Delete the preview dashboard from HA (keeping its config first, as a deploy
+        does). The live dashboard and the draft are untouched."""
+        if self.ha is None:
+            raise BadRequest("Home Assistant is not reachable.")
+        with self._lock:
+            url_path = self.store["dashboard"] + "-preview"
+        (boards,) = self.ha.call({"type": "lovelace/dashboards/list"})
+        board = next((b for b in boards if b.get("url_path") == url_path), None)
+        if board is not None:
+            self._backup(url_path)
+            self.ha.call(
+                {"type": "lovelace/dashboards/delete", "dashboard_id": board["id"]}
+            )
+            _LOGGER.info(
+                "camera dashboard: removed the preview dashboard /%s", url_path
+            )
+        else:
+            _LOGGER.info(
+                "camera dashboard: no preview dashboard /%s to remove", url_path
+            )
+        with self._lock:
+            deploys = self.deploys()
+            deploys.pop("preview", None)
+            self._write(self.dir / DEPLOYS, deploys)
+        return self.view()
 
     # -- the dashboards' configs before each deploy
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.10.1-b22
+
+- Camera composites: rebuilt around a gather loop. While anyone is watching (and for 30 seconds after), every camera's picture is fetched every 2 seconds, all at once, each with its own 5-second limit, into a cache that is always kept. The commander is drawn from that cache after each round and sent to every open stream. Drawing now runs off the server's loop, so streams no longer stall while a picture is drawn. Nobody watching: nothing is fetched, as before.
+- Camera Commander: coming back to it after a while shows a picture at once (from the cache, then fresh within a round) instead of a blank screen while every camera is fetched.
+- Camera Commander: one slow camera no longer holds up the whole picture. A camera picture older than **Stale after** (30 seconds by default, on the Camera Dashboard page) is marked **Stale**; a camera that misses 3 rounds in a row sits out (logged) and is tried again after 10 minutes.
+- Camera Dashboard: **Remove preview** deletes the preview dashboard from Home Assistant (shown once there is one). Its config is kept among the Backups first; the live dashboard and the draft are untouched.
+- Camera Dashboard: just after the app restarted, the page warned that Back needs a Back button helper even with the integration's helper on (a refresh a little later cleared it). The app learns which helpers the integration loads from its next check-in, up to 30 seconds after a start; until then the page no longer guesses "none".
+
 ## 2026.10.1-b21
 
 - Camera Dashboard: the Camera Commander is the camera dashboard. Groups are gone: the group editor, the group pages, the group and overview composites (landscape and portrait), and the choice of landscape overview. The dashboard is now the commander, then a live page for each of its cameras. The Cameras list says which commander panel each camera is in. The Portrait screens and Phones settings stay: phones still get the medium channel, and portrait screens are for the commanders to come.
