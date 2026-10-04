@@ -3,8 +3,6 @@ version: "2026.10.1"
 slug: casa_mia
 description: "Casa Mia house services: phone and SMS (FONA), people, guest login, tablet firmware, Kiosk Satellites, camera composites."
 url: "https://github.com/gazoodle/casa-mia"
-# No `image:` key: the Supervisor builds ./Dockerfile on the box itself, so this ships
-# without a registry. Only aarch64/amd64 are valid Supervisor architectures.
 arch:
   - aarch64
   - amd64
@@ -70,3 +68,6 @@ schema:
   fona_enabled: bool
   kiosks_enabled: bool
   alarm_enabled: bool
+
+# Public images built by the release workflow.
+image: "ghcr.io/gazoodle/casa-mia-{arch}"
