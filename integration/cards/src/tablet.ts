@@ -8,6 +8,7 @@
 import { LitElement, css, html, nothing, type PropertyValues } from "lit";
 import {
   type CardConfig,
+  define,
   editingPanelView,
   fire,
   fitOf,
@@ -47,7 +48,7 @@ type Item = { place: Place; el: HuiCard };
 class Probe extends HTMLElement {
   setConfig() {}
 }
-customElements.define("casa-mia-probe", Probe);
+define("casa-mia-probe", Probe);
 
 const SHAPE = "16:10"; // its own shape, where not locked to the screen (`aspect`)
 
@@ -354,8 +355,8 @@ class TabletLayoutEditor extends LitElement {
   `;
 }
 
-customElements.define("casa-mia-tablet-layout", TabletLayout);
-customElements.define("casa-mia-tablet-layout-editor", TabletLayoutEditor);
+define("casa-mia-tablet-layout", TabletLayout);
+define("casa-mia-tablet-layout-editor", TabletLayoutEditor);
 register(
   "casa-mia-tablet-layout",
   "Casa Mia tablet layout",

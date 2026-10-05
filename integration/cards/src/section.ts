@@ -6,7 +6,7 @@
 // tells its parent (hui-card hides it; a Tablet layout panel that hides when empty then
 // takes no room). In edit mode everything shows.
 import { LitElement, css, html, nothing, type PropertyValues } from "lit";
-import { type CardConfig, fire, type Hass, type HuiCard, huiCard, register, shown, type StackEditor, stackEditor } from "./ha.ts";
+import { type CardConfig, define, fire, type Hass, type HuiCard, huiCard, register, shown, type StackEditor, stackEditor } from "./ha.ts";
 
 type Config = { type: string; cards: CardConfig[] };
 export const counts = (c: CardConfig) => c.view_layout?.counts !== false;
@@ -256,6 +256,6 @@ class SectionEditor extends LitElement {
   `;
 }
 
-customElements.define("casa-mia-section", SectionCard);
-customElements.define("casa-mia-section-editor", SectionEditor);
+define("casa-mia-section", SectionCard);
+define("casa-mia-section-editor", SectionEditor);
 register("casa-mia-section", "Casa Mia section", "A section's grid of cards that hides itself while none of the cards that count is showing.");

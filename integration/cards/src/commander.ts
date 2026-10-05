@@ -13,7 +13,7 @@
 // layout tile, the tile; in a column, the commander's own shape (16:9) from its width, at
 // most the screen below its top edge.
 import { LitElement, css, html, nothing } from "lit";
-import { type Fit, fire, fitOf, type Hass, navigate, register, watchRoom } from "./ha.ts";
+import { define, type Fit, fire, fitOf, type Hass, navigate, register, watchRoom } from "./ha.ts";
 import { layout, PANELS, pyRound, type Rect, type Settings } from "./layout.ts";
 
 type Config = { type: string; entity?: string; draft?: boolean; tap_main?: "live" | "more-info" | "none" };
@@ -311,6 +311,6 @@ class CommanderEditor extends LitElement {
   }
 }
 
-customElements.define("casa-mia-commander", CommanderCard);
-customElements.define("casa-mia-commander-editor", CommanderEditor);
+define("casa-mia-commander", CommanderCard);
+define("casa-mia-commander-editor", CommanderEditor);
 register("casa-mia-commander", "Casa Mia Camera Commander", "One of the Camera Dashboard's commanders: tap a camera to make it the main one.");

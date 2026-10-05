@@ -158,6 +158,38 @@ function follow(conn) {
 }
 window.hassConnection.then(({ conn }) => follow(conn));
 
+// The Casa Mia cards (cm-cards.js, loaded by the integration like this file) once failed to
+// load on a wall tablet: fetched whole, yet no card defined, and HA loads each script only
+// once per page, so the page showed red errors until it was reloaded. So a few seconds
+// after the page loads, if the cards are still missing, load them once more (HA then puts
+// each card in place of its error) and say so in the console, with the reason if the
+// second try fails too (Kiosk Satellite keeps the console: getConsole).
+const CARDS = ["casa-mia-tablet-layout", "casa-mia-commander", "casa-mia-section"];
+setTimeout(() => {
+  if (CARDS.every((tag) => customElements.get(tag))) return;
+  const url = new URL("cm-cards.js", import.meta.url);
+  url.search = new URL(import.meta.url).search;
+  url.searchParams.set("retry", Date.now().toString(36));
+  const failed = [];
+  const caught = (e) => {
+    if ((e.filename || "").includes("cm-cards.js")) failed.push(`${e.message} (line ${e.lineno})`);
+  };
+  window.addEventListener("error", caught, true);
+  const done = (how) => {
+    window.removeEventListener("error", caught, true);
+    const ok = CARDS.every((tag) => customElements.get(tag));
+    (ok ? console.warn : console.error)(
+      ok ? "CASA-MIA CARDS were missing; loaded on a second try" : `CASA-MIA CARDS failed again (${how}): ${failed.join("; ") || "no error given"}`,
+    );
+  };
+  const script = document.createElement("script");
+  script.type = "module";
+  script.src = url.toString();
+  script.onload = () => setTimeout(() => done("loaded"), 0);
+  script.onerror = () => done("not fetched");
+  document.head.appendChild(script);
+}, 5000);
+
 console.info(
   `%cCASA-MIA STREAMS\n%ckeeps camera pictures live (${new URL(import.meta.url).searchParams.get("v") || "dev"})`,
   "color: green; font-weight: bold;",

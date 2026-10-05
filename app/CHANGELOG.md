@@ -5,6 +5,7 @@
 - Cards: the Commander and the Tablet layout now size themselves by one shared rule. Alone in a Panel view, a card is exactly the screen below its top edge, so nothing scrolls. In a Tablet layout tile it fills the tile. Anywhere else (a column, say) it takes its own shape from its width, but is never taller than the screen. Scrolling no longer changes its size, and on a phone the toolbars coming and going are allowed for.
 - Tablet layout card: a Shape setting (default 16:10), for when it isn't the whole screen. The editor hides it on a Panel view.
 - Fixed: a Camera Commander inside a Tablet layout on a Panel view took the screen's height instead of its tile's.
+- Cards: if the Casa Mia cards fail to load with a page (seen once on a wall tablet, which then showed red errors until reloaded), the page loads them once more after 5 seconds, and HA replaces the errors with the cards. Each failure writes a "CASA-MIA CARDS" line to the browser console with its reason. This needs the "Keep camera pictures live" helper on, which it is by default.
 
 ## 2026.10.3-b14
 

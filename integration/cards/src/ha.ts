@@ -45,6 +45,18 @@ export async function stackEditor(): Promise<StackEditor> {
   return (customElements.get("hui-vertical-stack-card") as any).getConfigElement();
 }
 
+/** Define a custom element, once: a second copy of this file (cm-streams.js loads it
+ * again when the first load failed) finds it defined and leaves it. A failure says so in
+ * the console, which Kiosk Satellite keeps (getConsole), so a dead card has a reason. */
+export function define(tag: string, element: CustomElementConstructor): void {
+  if (customElements.get(tag)) return;
+  try {
+    customElements.define(tag, element);
+  } catch (err) {
+    console.error(`CASA-MIA CARDS failed: defining ${tag}: ${err}`);
+  }
+}
+
 export function register(type: string, name: string, description: string): void {
   const w = window as any;
   w.customCards ||= [];
