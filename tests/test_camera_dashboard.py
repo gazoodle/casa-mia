@@ -341,10 +341,13 @@ def test_live_previews_and_thumbnails(tmp_path):
     }
     try:
         status, ctype, body = render(store)
-        assert (status, ctype) == (200, "image/jpeg")
-        assert Image.open(io.BytesIO(body)).size == (640, 360)
-        store["commanders"][0]["width"] = 800  # an edit, not saved
-        assert Image.open(io.BytesIO(render(store)[2])).size == (800, 360)
+        assert (status, ctype) == (200, "image/webp")  # fit: clear borders possible
+        assert Image.open(io.BytesIO(body)).size == (
+            1920,
+            1080,
+        )  # its own size: always the default
+        store["commanders"][0]["width"] = 800  # a size from before: no longer set here
+        assert Image.open(io.BytesIO(render(store)[2])).size == (1920, 1080)
         status, ctype, body = cd.handle("GET", "thumb/camera.a", {}, b"")
         assert (status, ctype) == (200, "image/jpeg") and body[:2] == b"\xff\xd8"
         assert cd.handle("GET", "thumb/..%2Fetc", {}, b"")[0] == 400
@@ -510,7 +513,10 @@ def test_integration_chooses_the_main_camera(tmp_path):
         assert cd.control("commander", b'{"main": "Nope"}') == 400
         base = f"http://127.0.0.1:{live.port}/g/cameras"
         with urllib.request.urlopen(base + ".jpg") as r:
-            assert Image.open(io.BytesIO(r.read())).size == (1000, 500)
+            assert Image.open(io.BytesIO(r.read())).size == (
+                1920,
+                1080,
+            )  # its own size: always the default
         again = CameraDashboard(
             tmp_path, None, lambda: None, live=live, state_path=state
         )

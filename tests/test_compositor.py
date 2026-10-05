@@ -68,16 +68,22 @@ def test_serves_the_commander(compositor):
     with urllib.request.urlopen(f"{base}/g/commander.jpg") as r:  # before several
         assert r.status == 200
     with urllib.request.urlopen(f"{base}/g/cameras.jpg") as r:
-        assert r.headers["Content-Type"] == "image/jpeg"  # no gaps: JPEG
-        assert Image.open(io.BytesIO(r.read())).size == (640, 360)
+        assert r.headers["Content-Type"] == "image/webp"  # fit: clear borders possible
+        assert Image.open(io.BytesIO(r.read())).size == (
+            1920,
+            1080,
+        )  # its own size: always the default
     # a card asks for exactly its size (device pixels); out of bounds: its own size
-    for asked, drawn in (("w=800&h=1280&dpr=2", (800, 1280)), ("w=9&h=9", (640, 360))):
+    for asked, drawn in (
+        ("w=800&h=1280&dpr=2", (800, 1280)),
+        ("w=9&h=9", (1920, 1080)),
+    ):
         with urllib.request.urlopen(f"{base}/g/cameras.jpg?{asked}") as r:
             assert Image.open(io.BytesIO(r.read())).size == drawn
     # the admin page's view: each picture drawn (own size, and the size a card asked)
     status = compositor.status()
     assert {(p["width"], p["height"], p["asked"]) for p in status["pictures"]} == {
-        (640, 360, False),
+        (1920, 1080, False),
         (800, 1280, True),
     }
     assert {s["title"] for s in status["stills"]} == {"A", "B"}
@@ -161,6 +167,25 @@ def test_gaps_are_transparent():
     assert alpha(rgba, (x + w // 2, y + h - 5)) == 255
 
 
+def test_main_cameras_borders_are_transparent():
+    from casa_mia.modules.compositor import EMPTY_COMMANDER, commander, commander_layout
+
+    # A 16:9 camera fitted whole into a wide main area: clear either side of it
+    cmd = {**EMPTY_COMMANDER, "width": 800, "height": 200, "gap": 0}
+    cmd["bottom"] = {"cameras": ["camera.a"], "size": 20, "fit": "cover"}
+    _, (mx, my, mw, mh), _ = commander_layout(cmd)
+    pic = Image.open(io.BytesIO(commander(cmd, {}, {}, "camera.a", jpeg())))
+    assert pic.format == "WEBP"  # fit: always with clear parts, whichever camera
+    rgba = pic.convert("RGBA")
+    assert alpha(rgba, (mx + 2, my + mh // 2)) == 0  # the border beside the camera
+    assert alpha(rgba, (mx + mw // 2, my + mh // 2)) == 255  # the camera itself
+    # crop fills the area, and no gap: nothing clear, so JPEG
+    pic = Image.open(
+        io.BytesIO(commander({**cmd, "main_fit": "crop"}, {}, {}, "camera.a", jpeg()))
+    )
+    assert pic.format == "JPEG"
+
+
 def test_stale_pictures_are_marked():
     from casa_mia.modules.compositor import EMPTY_COMMANDER, commander
 
@@ -204,6 +229,12 @@ def test_a_camera_that_keeps_missing_sits_out(tmp_path):
     assert "camera.b" in asked and "camera.b" not in comp._benched
     # its picture never came, and camera.a's is cached
     assert any(e == "camera.a" for e, _ in comp._shots)
+    # Home Assistant down (no camera answers): nobody's fault, nobody sits out
+    comp._benched.clear()
+    comp._misses.clear()
+    comp._fetch_now = lambda entity, size: asyncio.sleep(0)  # type: ignore[method-assign,assignment]
+    asyncio.run(rounds(mod.STRIKES + 1))
+    assert not comp._benched and not comp._misses
 
 
 def test_gathers_only_while_watched_and_serves_at_once_after(tmp_path, monkeypatch):
@@ -230,7 +261,7 @@ def test_gathers_only_while_watched_and_serves_at_once_after(tmp_path, monkeypat
         assert comp.health()["gathering"] is False  # stopped once nobody watched
         start = time.monotonic()
         with urllib.request.urlopen(url) as r:  # after a quiet spell: from the cache
-            assert Image.open(io.BytesIO(r.read())).size == (640, 360)
+            assert Image.open(io.BytesIO(r.read())).size == (1920, 1080)
         assert time.monotonic() - start < 1
     finally:
         comp.stop()

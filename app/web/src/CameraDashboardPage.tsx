@@ -873,7 +873,7 @@ function CommanderEditor({
             onChange={(n) => set((c) => (c.stale = n))}
           />
           <p className={`${css.hint} ${css.wide}`}>
-            Gaps are transparent: the dashboard's background shows through them. The Camera Commander card draws it
+            Gaps, and the borders beside a main camera kept whole, are transparent: the dashboard's background shows through them. The Camera Commander card draws it
             exactly the size it is shown (its shape too); the preview here and the generated dashboard draw it at a fixed size.
           </p>
         </section>

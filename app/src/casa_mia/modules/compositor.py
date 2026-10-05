@@ -193,11 +193,14 @@ def key_of(cmd: dict) -> str:
 
 def commanders_of(store: dict) -> list[dict]:
     """A store's commanders, in order, each with every setting. A store saved before
-    there were several has its one commander (named Cameras)."""
+    there were several has its one commander (named Cameras). Its own size is always
+    the default: a card asks for the size it is shown, and the page no longer sets one
+    (a size saved before then is ignored)."""
     found = store.get("commanders")
     if not isinstance(found, list):
         found = [store.get("commander") or {}]
-    return [{**EMPTY_COMMANDER, **c} for c in found if isinstance(c, dict)]
+    own = {k: EMPTY_COMMANDER[k] for k in ("width", "height")}
+    return [{**EMPTY_COMMANDER, **c, **own} for c in found if isinstance(c, dict)]
 
 
 def config_from_store(store: dict) -> Config:
@@ -501,6 +504,14 @@ def _fonts(scale: float) -> tuple[Any, Any, Any]:
 MOTION_DOT = (235, 50, 40)  # the accent green: the tile shown as the main camera
 
 
+def see_through(cmd: dict) -> bool:
+    """Whether a commander's picture has clear parts, where the dashboard's background
+    shows: its gaps, and the borders beside a main camera kept whole (fit, fixed, own).
+    Decided by its settings, not each picture, so its stream keeps one format (WebP
+    with clear parts, else JPEG) whichever camera is the main one."""
+    return bool(cmd["gap"]) or cmd.get("main_fit", "fit") in ("fit", "fixed", "own")
+
+
 def commander(
     cmd: dict,
     titles: dict[str, str],
@@ -577,6 +588,7 @@ def commander(
                     (cx - r, cy - r, cx + r, cy + r), fill=MOTION_DOT, outline="white"
                 )
     x, y, w, h = main_rect
+    shown = main_rect  # the main area that is solid: the camera's picture, once drawn
     if w > 0 and h > 0:
         # Fit: whole, as large as fits, centred (black borders); fill: stretched to the
         # area; crop: filling it, the overflow cut off. Its name and the time go along
@@ -599,6 +611,7 @@ def commander(
                     img.height,
                 )
                 canvas.paste(img, (px, py))
+                shown = (px, py, pw, ph)
             except OSError:
                 main_image = None
         if not main_image:
@@ -647,10 +660,10 @@ def commander(
             font=font,
             anchor="rm",
         )
-    if cmd["gap"]:  # every tile and the main area solid; only the gaps are clear
+    if see_through(cmd):  # every tile and the main picture solid; the rest is clear
         mask = Image.new("L", size, 0)
         solid = ImageDraw.Draw(mask)
-        for x, y, w, h in [main_rect, *(r for p in PANELS for r in rects[p])]:
+        for x, y, w, h in [shown, *(r for p in PANELS for r in rects[p])]:
             if w > 0 and h > 0:
                 solid.rectangle((x, y, x + w - 1, y + h - 1), fill=255)
         canvas.putalpha(mask)
@@ -1141,6 +1154,17 @@ class Compositor:
             if image:
                 self._shots[(e, size)] = (now, image)
         hit = {e for (e, _), image in zip(jobs, got, strict=True) if image}
+        if jobs and not hit:
+            # Not one camera answered: Home Assistant (or the way to it) is down, a
+            # restart say; that is no camera's fault, so none is counted a miss (or all
+            # would sit out together, and the picture stay empty for BENCH seconds).
+            _LOGGER.warning(
+                "compositor (%s): no camera answered (%d asked); Home Assistant "
+                "unreachable? Trying again next round",
+                self.store,
+                len(jobs),
+            )
+            return
         for e in dict.fromkeys(e for e, _ in jobs):  # a camera fetched at two sizes
             if e in hit:
                 self._misses.pop(e, None)

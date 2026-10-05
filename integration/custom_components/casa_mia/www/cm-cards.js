@@ -528,7 +528,7 @@ var W = {
 				["own", "Own shape"],
 				["fixed", "Fixed shape"]
 			],
-			help: "Fit: the {item} whole, in the middle of the space. Fill: stretched to the space. Crop: fills it, edges cut off. Own shape: Main width wide at the {item}'s own shape, the panels around it (they move when its shape changes). Fixed shape: Main width wide at the shape set, the {item} whole within it."
+			help: "Fit: the {item} whole, in the middle of the space (around it, the background shows through). Fill: stretched to the space. Crop: fills it, edges cut off. Own shape: Main width wide at the {item}'s own shape, the panels around it (they move when its shape changes). Fixed shape: Main width wide at the shape set, the {item} whole within it."
 		},
 		main_width: {
 			label: "Main width, %",
