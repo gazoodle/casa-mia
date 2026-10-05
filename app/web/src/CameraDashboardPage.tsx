@@ -111,6 +111,11 @@ type View = {
   preview_dashboard: string;
   /** When the preview dashboard was last deployed; null when there is none. */
   previewed: string | null;
+  /** When the config the last preview deploy replaced was kept; null when none is. */
+  preview_backup: string | null;
+  /** How many older versions of the live dashboard are kept, and the most it can be. */
+  keep: number;
+  max_keep: number;
   /** What a blank new commander starts as. */
   empty_commander: Commander;
   compositor: { live: boolean; draft: boolean; host: string | null };
@@ -304,7 +309,7 @@ export function CameraDashboardPage({ state }: { state?: string }) {
               title={`Delete the preview dashboard /${view.preview_dashboard} from Home Assistant`}
               onClick={() =>
                 confirm(
-                  `Remove the preview dashboard /${view.preview_dashboard} from Home Assistant? Its config is kept (Backups); the live dashboard and the draft are untouched.`,
+                  `Remove the preview dashboard /${view.preview_dashboard} from Home Assistant? The live dashboard and the draft are untouched.`,
                 ) && act("unpreview", () => post<View>("remove-preview"), `Removed /${view.preview_dashboard}`)
               }
             >
@@ -317,7 +322,7 @@ export function CameraDashboardPage({ state }: { state?: string }) {
             title={`Deploy the draft to /${draft.dashboard}, and make it the live composites`}
             onClick={() =>
               confirm(
-                `Replace the dashboard /${draft.dashboard} and the live composites with this draft? What it replaces is kept (Backups).`,
+                `Replace the dashboard /${draft.dashboard} and the live composites with this draft? ${view.keep ? `The dashboard it replaces is kept as an older version (Backups).` : "Older versions are not being kept (Backups)."}`,
               ) && deploy("live")
             }
           >
@@ -518,20 +523,52 @@ export function CameraDashboardPage({ state }: { state?: string }) {
       <section className={guest.area}>
         <AreaHead
           title="Backups"
-          blurb="Every deploy keeps the dashboard config it replaces. Restore puts one back (the composites are unchanged: use Revert draft and deploy for those)."
+          blurb="Revert draft goes back to what is live. Revert preview puts the preview dashboard back as it was before its last deploy (again to undo). Older live versions: Restore puts one back (the composites are unchanged: use Revert draft and deploy for those)."
           action={
-            <button
-              className={ui.button}
-              disabled={!!busy || !view.deployed}
-              onClick={() =>
-                confirm("Throw the draft away and go back to what is live?") &&
-                act("revert", () => post<View>("revert"), "Draft reverted to live")
-              }
-            >
-              Revert draft
-            </button>
+            <div className={css.revertButtons}>
+              <button
+                className={ui.button}
+                disabled={!!busy || !view.deployed}
+                onClick={() =>
+                  confirm("Throw the draft away and go back to what is live?") &&
+                  act("revert", () => post<View>("revert"), "Draft reverted to live")
+                }
+              >
+                Revert draft
+              </button>
+              <button
+                className={ui.button}
+                disabled={!!busy || !view.preview_backup}
+                title={
+                  view.preview_backup
+                    ? `Put /${view.preview_dashboard} back as it was ${ago(view.preview_backup)}`
+                    : "The preview has no earlier version yet: the second preview deploy keeps the first."
+                }
+                onClick={() =>
+                  confirm(`Put /${view.preview_dashboard} back as it was before its last deploy?`) &&
+                  act("revert-preview", () => post<View>("revert-preview"), `Reverted /${view.preview_dashboard}`)
+                }
+              >
+                Revert preview
+              </button>
+            </div>
           }
         />
+        <div className={css.keep}>
+          <span>Keep older versions</span>
+          <Segmented
+            value={String(view.keep)}
+            options={Array.from({ length: view.max_keep + 1 }, (_, n) => [String(n), String(n)])}
+            onChange={(v) =>
+              act("keep", () => put<View>("keep", { keep: Number(v) }), `Keeping ${plural(Number(v), "older version")}`).then(
+                () => setStamp(Date.now()),
+              )
+            }
+          />
+          <span className={css.keepHelp}>
+            Of the live dashboard's config, each deploy keeps the one it replaces. Lowering it deletes the extras now.
+          </span>
+        </div>
         <Backups toast={toast} stamp={stamp} />
       </section>
 
@@ -1835,7 +1872,7 @@ function Backups({ toast, stamp }: { toast: (t: string, tone?: Toast["tone"]) =>
     get<{ backups: Backup[] }>("backups").then((b) => setBackups(b.backups), () => setBackups([]));
   }, [stamp]);
   if (!backups) return null;
-  if (!backups.length) return <Empty>None yet: the first deploy keeps one.</Empty>;
+  if (!backups.length) return <Empty>None kept yet: each live deploy keeps the config it replaces.</Empty>;
   return (
     <ul className={css.backups}>
       {backups.map((b) => (

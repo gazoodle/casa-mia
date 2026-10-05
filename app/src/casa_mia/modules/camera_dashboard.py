@@ -21,7 +21,8 @@ goes to the dashboard itself and makes the draft the live compositor's config.
 
 Files in the app's config folder: camera-dashboard.json (the draft, edited on the admin
 page), camera-dashboard-live.json (what was last deployed live) and
-camera-dashboard-backups/ (the dashboards' configs before each deploy).
+camera-dashboard-backups/ (the live dashboard's last few configs before each deploy, as
+many as camera-dashboard-settings.json says to keep; the preview keeps just one).
 """
 
 from __future__ import annotations
@@ -135,7 +136,12 @@ LOOK_CSS = re.compile(
 )
 BACKUPS = "camera-dashboard-backups"
 DEPLOYS = "camera-dashboard-deploys.json"  # when each was last deployed: live, preview
-KEEP_BACKUPS = 20  # per dashboard
+SETTINGS = "camera-dashboard-settings.json"  # {"keep": older live versions to keep}
+MAX_KEEP = 5
+DEFAULT_KEEP = 3
+PREVIEW = (
+    "-preview"  # a preview dashboard's url_path ends with this; it keeps one backup
+)
 # A 1x1 transparent image: the tap zones over a composite.
 BLANK = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
 # The same, marked: the commander's highlight, which Keep camera pictures live pulses.
@@ -895,6 +901,7 @@ class CameraDashboard:
 
     def start(self) -> None:
         """Load the draft, and each commander's main camera as it was."""
+        self._prune()  # to what is kept now (it used to be 20 each)
         if self.live and self.state_path and self.state_path.exists():
             try:
                 kept = json.loads(self.state_path.read_text())
@@ -1110,6 +1117,10 @@ class CameraDashboard:
             return _json(200, {"backups": self.backups()})
         if method == "POST" and parts == ["restore"]:
             return _json(200, self.restore(str(body.get("name") or "")))
+        if method == "POST" and parts == ["revert-preview"]:
+            return _json(200, self.revert_preview())
+        if method == "PUT" and parts == ["keep"]:
+            return _json(200, self.set_keep(body.get("keep")))
         if method == "POST" and parts == ["revert"]:
             return self._revert()
         return _json(404, {"error": "Not found."})
@@ -1127,6 +1138,11 @@ class CameraDashboard:
             "problems": problems(store),
             "preview_dashboard": store["dashboard"] + "-preview",
             "previewed": self.deploys().get("preview"),
+            "preview_backup": next(
+                (b["saved"] for b in self._kept(preview=True)), None
+            ),
+            "keep": self.keep(),
+            "max_keep": MAX_KEEP,
             "empty_commander": EMPTY_COMMANDER,  # what a blank new one starts as
             "compositor": {
                 "live": up(self.live),
@@ -1300,8 +1316,8 @@ class CameraDashboard:
         return {"url_path": url_path, "views": len(config["views"]), **self.view()}
 
     def remove_preview(self) -> dict[str, Any]:
-        """Delete the preview dashboard from HA (keeping its config first, as a deploy
-        does). The live dashboard and the draft are untouched."""
+        """Delete the preview dashboard from HA, and the backup of it (there would be
+        nothing to put it back on). The live dashboard and the draft are untouched."""
         if self.ha is None:
             raise BadRequest("Home Assistant is not reachable.")
         with self._lock:
@@ -1309,7 +1325,6 @@ class CameraDashboard:
         (boards,) = self.ha.call({"type": "lovelace/dashboards/list"})
         board = next((b for b in boards if b.get("url_path") == url_path), None)
         if board is not None:
-            self._backup(url_path)
             self.ha.call(
                 {"type": "lovelace/dashboards/delete", "dashboard_id": board["id"]}
             )
@@ -1324,12 +1339,53 @@ class CameraDashboard:
             deploys = self.deploys()
             deploys.pop("preview", None)
             self._write(self.dir / DEPLOYS, deploys)
+        for p in self._files(url_path):
+            p.unlink()
         return self.view()
 
     # -- the dashboards' configs before each deploy
 
+    def keep(self) -> int:
+        """How many older versions of the live dashboard are kept (0 to MAX_KEEP)."""
+        try:
+            keep = int(json.loads((self.dir / SETTINGS).read_text())["keep"])
+        except (OSError, ValueError, KeyError, TypeError):
+            return DEFAULT_KEEP
+        return min(max(keep, 0), MAX_KEEP)
+
+    def set_keep(self, keep: Any) -> dict[str, Any]:
+        if (
+            not isinstance(keep, int)
+            or isinstance(keep, bool)
+            or not 0 <= keep <= MAX_KEEP
+        ):
+            raise BadRequest(f"keep must be a whole number from 0 to {MAX_KEEP}.")
+        self._write(self.dir / SETTINGS, {"keep": keep})
+        _LOGGER.info("camera dashboard: keeping %d older live versions", keep)
+        self._prune()
+        return self.view()
+
+    def _files(self, url_path: str) -> list[Path]:
+        folder = self.dir / BACKUPS
+        return sorted(folder.glob(f"{url_path}-[0-9]*.json")) if folder.is_dir() else []
+
+    def _prune(self) -> None:
+        """Drop the backups beyond what is kept: one per preview, `keep` per live."""
+        folder = self.dir / BACKUPS
+        found: dict[str, list[Path]] = {}
+        for p in sorted(folder.glob("*.json")) if folder.is_dir() else []:
+            found.setdefault(p.name[: -len("-YYYYmmdd-HHMMSS.json")], []).append(p)
+        for url_path, files in found.items():
+            keep = 1 if url_path.endswith(PREVIEW) else self.keep()
+            for p in files[: -keep or None]:
+                p.unlink()
+                _LOGGER.info("camera dashboard: pruned %s", p.name)
+
     def _backup(self, url_path: str) -> None:
         assert self.ha
+        preview = url_path.endswith(PREVIEW)
+        if not preview and self.keep() == 0:
+            return
         try:
             (config,) = self.ha.call({"type": "lovelace/config", "url_path": url_path})
         except HAError as exc:  # an empty dashboard has no config yet
@@ -1341,12 +1397,10 @@ class CameraDashboard:
         path = folder / f"{url_path}-{stamp}.json"
         path.write_text(json.dumps({"url_path": url_path, "config": config}))
         _LOGGER.info("camera dashboard: kept /%s's config as %s", url_path, path.name)
-        old = sorted(folder.glob(f"{url_path}-[0-9]*.json"))[:-KEEP_BACKUPS]
-        for p in old:
-            p.unlink()
-            _LOGGER.info("camera dashboard: pruned %s", p.name)
+        self._prune()
 
-    def backups(self) -> list[dict[str, Any]]:
+    def _kept(self, preview: bool) -> list[dict[str, Any]]:
+        """The kept configs, newest first: the preview's, or the live dashboard's."""
         folder = self.dir / BACKUPS
         return (
             [
@@ -1358,18 +1412,18 @@ class CameraDashboard:
                     ),
                 }
                 for p in sorted(folder.glob("*.json"), reverse=True)
+                if p.name[: -len("-YYYYmmdd-HHMMSS.json")].endswith(PREVIEW) == preview
             ]
             if folder.is_dir()
             else []
         )
 
-    def restore(self, name: str) -> dict[str, Any]:
-        """Put a kept dashboard config back (keeping the current one first). The
-        compositor's config is not changed: revert the draft and deploy for that."""
-        if self.ha is None:
-            raise BadRequest("Home Assistant is not reachable.")
-        if name not in [b["name"] for b in self.backups()]:
-            raise BadRequest("No such backup.")
+    def backups(self) -> list[dict[str, Any]]:
+        """The live dashboard's kept configs (the preview's one is revert_preview's)."""
+        return self._kept(preview=False)
+
+    def _put_back(self, name: str) -> None:
+        assert self.ha
         kept = json.loads((self.dir / BACKUPS / name).read_text())
         self._backup(kept["url_path"])
         self.ha.call(
@@ -1380,7 +1434,27 @@ class CameraDashboard:
             }
         )
         _LOGGER.info("camera dashboard: restored /%s from %s", kept["url_path"], name)
+
+    def restore(self, name: str) -> dict[str, Any]:
+        """Put a kept live dashboard config back (keeping the current one first, if
+        any are kept). The compositor's config is not changed: revert the draft and
+        deploy for that."""
+        if self.ha is None:
+            raise BadRequest("Home Assistant is not reachable.")
+        if name not in [b["name"] for b in self.backups()]:
+            raise BadRequest("No such backup.")
+        self._put_back(name)
         return {"backups": self.backups()}
+
+    def revert_preview(self) -> dict[str, Any]:
+        """Put the preview dashboard back as it was before its last deploy. Doing it
+        again puts it forward, as the config it replaces is kept."""
+        if self.ha is None:
+            raise BadRequest("Home Assistant is not reachable.")
+        if not (kept := self._kept(preview=True)):
+            raise BadRequest("The preview has no earlier version.")
+        self._put_back(kept[0]["name"])
+        return self.view()
 
     # -- previews
 

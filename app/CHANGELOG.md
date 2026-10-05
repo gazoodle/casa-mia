@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.3-b3
+
+- Camera Dashboard: the preview dashboard keeps just one earlier version, and a single Revert preview button puts it back (press again to undo), like Revert draft. This removes the long list of preview backups at the bottom of the page.
+- Camera Dashboard: new "Keep older versions" setting (0 to 5, default 3) for how many earlier versions of the live dashboard each deploy keeps; lowering it deletes the extras. It was a fixed 20 before, and the extra ones are removed when the app starts.
+
 ## 2026.10.3-b2
 
 - Kiosk Satellite 2026.10.8 and later work through Home Assistant on their own, so the app no longer patches their admin page for them; older ones still get the patch.
@@ -13,7 +18,6 @@
 
 - Screenshot swap: the Kiosk Satellite page (proxied) shows the stand-ins in its text too, as it is drawn; its form fields keep the real values.
 - Screenshot swap: a dashboard deployed while it is on shows the stand-in names on its camera pages too (their addresses keep the real ones).
-
 - Adding the Casa Mia integration fills in the app's address again: it had stopped finding the app on current Home Assistant (a function it uses had moved), so the field came up empty. Leaving the field empty now also means the app found here.
 - The integration setup dialog no longer shows a made-up example address, and a pasted address with a trailing full stop or spaces is accepted.
 - The panel's Copy buttons now work in the Home Assistant companion app and say whether the copy worked (they did nothing there before).

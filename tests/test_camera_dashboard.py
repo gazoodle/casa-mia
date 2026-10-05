@@ -1,5 +1,6 @@
 import io
 import json
+import time
 import urllib.error
 import urllib.request
 
@@ -212,6 +213,42 @@ def test_edit_preview_then_deploy(cd, tmp_path):
     assert kept["url_path"] == "dashboard-cams"
     call(cd, "POST", "restore", {"name": kept["name"]})
     assert cd.ha.boards["dashboard-cams"] == {"views": ["old"]}
+
+
+def test_preview_keeps_one_backup_and_reverts_to_it(cd):
+    assert call(cd, "POST", "revert-preview")[0] == 400  # nothing yet
+    call(cd, "POST", "deploy", {"target": "preview"})  # creates it: nothing to keep
+    assert call(cd, "GET", "")[1]["preview_backup"] is None
+    cd.ha.boards["dashboard-cams-preview"] = {"views": ["first"]}
+    call(cd, "POST", "deploy", {"target": "preview"})
+    cd.ha.boards["dashboard-cams-preview"] = {"views": ["second"]}
+    call(cd, "POST", "deploy", {"target": "preview"})
+    assert call(cd, "GET", "")[1]["preview_backup"]
+    assert call(cd, "GET", "backups")[1]["backups"] == []  # the list is live's only
+    assert len(list((cd.dir / "camera-dashboard-backups").glob("*preview*"))) == 1
+    status, view = call(cd, "POST", "revert-preview")
+    assert status == 200 and cd.ha.boards["dashboard-cams-preview"] == {
+        "views": ["second"]
+    }
+    call(cd, "POST", "remove-preview")  # its backup goes with it
+    assert call(cd, "GET", "")[1]["preview_backup"] is None
+
+
+def test_keep_older_versions_setting(cd):
+    assert call(cd, "GET", "")[1]["keep"] == 3
+    for n in range(6):
+        cd.ha.boards["dashboard-cams"] = {"views": [n]}
+        time.sleep(1.1)  # backups are named to the second
+        call(cd, "POST", "deploy", {"target": "live"})
+    assert len(call(cd, "GET", "backups")[1]["backups"]) == 3
+    assert call(cd, "PUT", "keep", {"keep": 1})[1]["keep"] == 1  # prunes now
+    assert len(call(cd, "GET", "backups")[1]["backups"]) == 1
+    call(cd, "PUT", "keep", {"keep": 0})
+    assert call(cd, "GET", "backups")[1]["backups"] == []
+    cd.ha.boards["dashboard-cams"] = {"views": ["x"]}
+    call(cd, "POST", "deploy", {"target": "live"})  # nothing kept at 0
+    assert call(cd, "GET", "backups")[1]["backups"] == []
+    assert call(cd, "PUT", "keep", {"keep": 6})[0] == 400
 
 
 def test_save_drops_page_controls_with_no_entity(cd):
