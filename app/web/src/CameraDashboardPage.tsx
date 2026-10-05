@@ -12,6 +12,12 @@ import { CopyButton, Dialog, Field, Segmented, Switch, Toasts, type Toast } from
 import css from "./cameras.module.css";
 import guest from "./guest.module.css";
 import ui from "./ui.module.css";
+import LAYOUT from "../../src/casa_mia/layout.json";
+
+// The layout options' labels, help and defaults, shared with the Tablet layout card.
+const L = LAYOUT.main;
+const P = LAYOUT.panel;
+const help = (o: { help?: string }) => o.help?.replaceAll("{item}", "camera");
 
 const { get, post, put } = api("camera-dashboard");
 
@@ -861,7 +867,7 @@ function CommanderEditor({
           </div>
           <Num label="Width" value={value.width} onChange={(n) => set((c) => (c.width = n))} />
           <Num label="Height" value={value.height} onChange={(n) => set((c) => (c.height = n))} />
-          <Num label="Gap, px" value={value.gap} onChange={(n) => set((c) => (c.gap = n))} />
+          <Num label={L.gap.label} value={value.gap} help={help(L.gap)} onChange={(n) => set((c) => (c.gap = n))} />
           <Num
             label="Stale after, s"
             value={value.stale ?? 30}
@@ -875,40 +881,32 @@ function CommanderEditor({
         <section className={`${css.options} ${css.numbers}`}>
           <h4 className={css.sub}>Main camera</h4>
           <div className={css.wide}>
-            <Field
-              label="Fit"
-              help="Fit: whole, with black borders. Fill: stretched to the space. Crop: fills it, edges cut off. Own shape: Main width wide at the camera's own shape, the panels around it (they move when a camera of another shape is shown). Fixed shape: Main width wide at the shape set, the camera whole within it."
-            >
+            <Field label={L.main_fit.label} help={help(L.main_fit)}>
               <Segmented
-                value={value.main_fit ?? "fit"}
-                options={[
-                  ["fit", "Fit"],
-                  ["fill", "Fill"],
-                  ["crop", "Crop"],
-                  ["own", "Own shape"],
-                  ["fixed", "Fixed shape"],
-                ]}
+                value={value.main_fit ?? (L.main_fit.default as Commander["main_fit"])}
+                options={L.main_fit.options as [Commander["main_fit"], string][]}
                 onChange={(f) => set((c) => (c.main_fit = f))}
               />
             </Field>
           </div>
           {sized && (
             <Num
-              label="Main width, % of the picture"
-              value={value.main_width ?? 70}
+              label={L.main_width.label}
+              value={value.main_width ?? L.main_width.default}
+              help={help(L.main_width)}
               onChange={(n) => set((c) => (c.main_width = n))}
             />
           )}
           {sized && (
             <Num
-              label="Smallest panel, %"
-              value={value.panel_min ?? 8}
-              help="A panel with cameras keeps at least this much of the picture; the main camera shrinks (same shape) rather than squeeze it out."
+              label={L.panel_min.label}
+              value={value.panel_min ?? L.panel_min.default}
+              help={help(L.panel_min)}
               onChange={(n) => set((c) => (c.panel_min = n))}
             />
           )}
           {value.main_fit === "fixed" && (
-            <RatioInput label="Main shape" value={value.main_ratio ?? "16:9"} onChange={(r) => set((c) => (c.main_ratio = r))} />
+            <RatioInput label={L.main_ratio.label} value={value.main_ratio ?? L.main_ratio.default} onChange={(r) => set((c) => (c.main_ratio = r))} />
           )}
           <div className={css.wide}>
             <Field label="Main camera at start">
@@ -1035,43 +1033,24 @@ function CommanderEditor({
               <Num
                 label={p === "left" || p === "right" ? "Columns" : "Rows"}
                 value={value[p].lines ?? 1}
-                help="Its cameras shared between them, the first taking one more when they don't share evenly."
+                help={help(P.lines)}
                 onChange={(n) => set((c) => (c[p].lines = Math.max(1, Math.round(n))))}
               />
               <div className={css.fitOption}>
-              <Field
-                label="Fit"
-                help={`Fill: equal tiles, cropped to fill them. Whole: equal tiles, each camera whole in its own. Stack, Reverse, Centre: each camera whole at its own shape, edge to edge, ${
-                  p === "left" || p === "right" ? "from the top, against the bottom, or in the middle" : "from the left, against the right, or in the middle"
-                }; the spare room is left clear (too many to fit: all shrink alike).`}
-              >
+              <Field label={P.fit.label} help={help(P.fit)}>
                 <Segmented
                   value={value[p].fit}
-                  options={[
-                    ["cover", "Fill"],
-                    ["contain", "Whole"],
-                    ["stack", "Stack"],
-                    ["reverse", "Reverse"],
-                    ["centre", "Centre"],
-                  ]}
+                  options={P.fit.options as [Panel["fit"], string][]}
                   onChange={(f) => set((c) => (c[p].fit = f))}
                 />
               </Field>
               </div>
               {(p === "top" || p === "bottom") &&
                 (["anchor_left", "anchor_right"] as const).map((end) => (
-                  <Field
-                    key={end}
-                    label={end === "anchor_left" ? "To the left edge" : "To the right edge"}
-                    help={
-                      end === "anchor_left"
-                        ? "On: it runs to the view's edge and Left stops at it. Off: it stops at Left."
-                        : "On: it runs to the view's edge and Right stops at it. Off: it stops at Right."
-                    }
-                  >
+                  <Field key={end} label={P[end].label} help={help(P[end])}>
                     <Switch
-                      on={value[p][end] ?? p === "bottom"}
-                      label={end === "anchor_left" ? "To the left edge" : "To the right edge"}
+                      on={value[p][end] ?? Boolean(LAYOUT.panels[p][end])}
+                      label={P[end].label}
                       onChange={(on) => set((c) => (c[p][end] = on))}
                     />
                   </Field>

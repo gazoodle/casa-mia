@@ -17,7 +17,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 
 from .commanders import async_prune_commander_devices
-from .const import DOMAIN, FONA_EVENT, SCRIPTS, SCRIPTS_URL
+from .const import CARDS_JS, DOMAIN, FONA_EVENT, SCRIPTS, SCRIPTS_URL
 from .coordinator import CasaMiaCoordinator, async_post
 from .guest import async_prune_endpoint_devices
 from .motion import commanders, tracker
@@ -139,20 +139,21 @@ def scripts_on(entry: ConfigEntry) -> list[str]:
 async def _load_scripts(
     hass: HomeAssistant, entry: ConfigEntry, version: str | None
 ) -> None:
-    """Serve www/ at /casa_mia (once per HA run) and load the scripts switched on into
-    every HA page; each comes off again when the entry unloads. ?v= changes with each
+    """Serve www/ at /casa_mia (once per HA run) and load the cards (always) and the
+    scripts switched on into every HA page; each comes off again when the entry unloads. ?v= changes with each
     update, so browsers fetch the new copy."""
     if not hass.data.get(f"{DOMAIN}_www"):
         await hass.http.async_register_static_paths(
             [StaticPathConfig(SCRIPTS_URL, str(Path(__file__).parent / "www"), False)]
         )
         hass.data[f"{DOMAIN}_www"] = True
-    for key in scripts_on(entry):
-        url = f"{SCRIPTS_URL}/{SCRIPTS[key][0]}?v={version}"
+    for name in [CARDS_JS, *(SCRIPTS[k][0] for k in scripts_on(entry))]:
+        url = f"{SCRIPTS_URL}/{name}?v={version}"
         frontend.add_extra_js_url(hass, url)
         entry.async_on_unload(lambda u=url: frontend.remove_extra_js_url(hass, u))
     _LOGGER.info(
-        "dashboard helpers loaded: %s",
+        "dashboard cards loaded (%s); helpers: %s",
+        CARDS_JS,
         ", ".join(SCRIPTS[k][0] for k in scripts_on(entry)) or "none",
     )
 

@@ -19,3 +19,6 @@ SCRIPTS = {
     "script_refresh": ("cm-refresh.js", False),
 }
 SCRIPTS_URL = "/casa_mia"
+# The Lovelace cards (Tablet layout, Camera Commander, Section), built from
+# integration/cards by tools/build_cards; always loaded, an unused card does nothing.
+CARDS_JS = "cm-cards.js"

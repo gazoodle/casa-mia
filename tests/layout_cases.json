@@ -1,0 +1,3044 @@
+[
+ {
+  "name": "defaults",
+  "cmd": {
+   "name": "Cameras",
+   "id": "",
+   "page": true,
+   "width": 1920,
+   "height": 1080,
+   "main": "",
+   "gap": 4,
+   "main_fit": "fit",
+   "main_width": 70,
+   "panel_min": 8,
+   "main_ratio": "16:9",
+   "stale": 30,
+   "motion": {
+    "hold": 10,
+    "back": 30,
+    "pause": 120
+   },
+   "highlight": {
+    "colour": "#7bd1a0",
+    "width": 2,
+    "blur": 13,
+    "pulse": 1.8,
+    "style": "breathe"
+   },
+   "aspects": {},
+   "left": {
+    "cameras": [
+     "left0",
+     "left1",
+     "left2"
+    ],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "top": {
+    "cameras": [
+     "top0",
+     "top1"
+    ],
+    "size": 18,
+    "fit": "cover",
+    "anchor_left": false,
+    "anchor_right": false,
+    "lines": 1,
+    "hidden": false
+   },
+   "right": {
+    "cameras": [
+     "right0",
+     "right1",
+     "right2"
+    ],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "bottom": {
+    "cameras": [
+     "bottom0",
+     "bottom1",
+     "bottom2",
+     "bottom3"
+    ],
+    "size": 20,
+    "fit": "cover",
+    "anchor_left": true,
+    "anchor_right": true,
+    "lines": 1,
+    "hidden": false
+   }
+  },
+  "main_camera": null,
+  "expect": {
+   "size": [
+    1920,
+    1080
+   ],
+   "main": [
+    292,
+    198,
+    1336,
+    662
+   ],
+   "tiles": {
+    "left": [
+     [
+      0,
+      0,
+      288,
+      284
+     ],
+     [
+      0,
+      288,
+      288,
+      284
+     ],
+     [
+      0,
+      576,
+      288,
+      284
+     ]
+    ],
+    "top": [
+     [
+      292,
+      0,
+      666,
+      194
+     ],
+     [
+      962,
+      0,
+      666,
+      194
+     ]
+    ],
+    "right": [
+     [
+      1632,
+      0,
+      288,
+      284
+     ],
+     [
+      1632,
+      288,
+      288,
+      284
+     ],
+     [
+      1632,
+      576,
+      288,
+      284
+     ]
+    ],
+    "bottom": [
+     [
+      0,
+      864,
+      477,
+      216
+     ],
+     [
+      481,
+      864,
+      477,
+      216
+     ],
+     [
+      962,
+      864,
+      477,
+      216
+     ],
+     [
+      1443,
+      864,
+      477,
+      216
+     ]
+    ]
+   }
+  }
+ },
+ {
+  "name": "odd size",
+  "cmd": {
+   "name": "Cameras",
+   "id": "",
+   "page": true,
+   "width": 1366,
+   "height": 769,
+   "main": "",
+   "gap": 5,
+   "main_fit": "fit",
+   "main_width": 70,
+   "panel_min": 8,
+   "main_ratio": "16:9",
+   "stale": 30,
+   "motion": {
+    "hold": 10,
+    "back": 30,
+    "pause": 120
+   },
+   "highlight": {
+    "colour": "#7bd1a0",
+    "width": 2,
+    "blur": 13,
+    "pulse": 1.8,
+    "style": "breathe"
+   },
+   "aspects": {},
+   "left": {
+    "cameras": [
+     "left0",
+     "left1",
+     "left2"
+    ],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "top": {
+    "cameras": [
+     "top0",
+     "top1"
+    ],
+    "size": 18,
+    "fit": "cover",
+    "anchor_left": false,
+    "anchor_right": false,
+    "lines": 1,
+    "hidden": false
+   },
+   "right": {
+    "cameras": [
+     "right0",
+     "right1",
+     "right2"
+    ],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "bottom": {
+    "cameras": [
+     "bottom0",
+     "bottom1",
+     "bottom2",
+     "bottom3"
+    ],
+    "size": 20,
+    "fit": "cover",
+    "anchor_left": true,
+    "anchor_right": true,
+    "lines": 1,
+    "hidden": false
+   }
+  },
+  "main_camera": null,
+  "expect": {
+   "size": [
+    1366,
+    769
+   ],
+   "main": [
+    210,
+    143,
+    946,
+    467
+   ],
+   "tiles": {
+    "left": [
+     [
+      0,
+      0,
+      205,
+      200
+     ],
+     [
+      0,
+      205,
+      205,
+      200
+     ],
+     [
+      0,
+      410,
+      205,
+      200
+     ]
+    ],
+    "top": [
+     [
+      210,
+      0,
+      471,
+      138
+     ],
+     [
+      686,
+      0,
+      470,
+      138
+     ]
+    ],
+    "right": [
+     [
+      1161,
+      0,
+      205,
+      200
+     ],
+     [
+      1161,
+      205,
+      205,
+      200
+     ],
+     [
+      1161,
+      410,
+      205,
+      200
+     ]
+    ],
+    "bottom": [
+     [
+      0,
+      615,
+      338,
+      154
+     ],
+     [
+      343,
+      615,
+      338,
+      154
+     ],
+     [
+      686,
+      615,
+      337,
+      154
+     ],
+     [
+      1028,
+      615,
+      338,
+      154
+     ]
+    ]
+   }
+  }
+ },
+ {
+  "name": "no gap",
+  "cmd": {
+   "name": "Cameras",
+   "id": "",
+   "page": true,
+   "width": 1920,
+   "height": 1080,
+   "main": "",
+   "gap": 0,
+   "main_fit": "fit",
+   "main_width": 70,
+   "panel_min": 8,
+   "main_ratio": "16:9",
+   "stale": 30,
+   "motion": {
+    "hold": 10,
+    "back": 30,
+    "pause": 120
+   },
+   "highlight": {
+    "colour": "#7bd1a0",
+    "width": 2,
+    "blur": 13,
+    "pulse": 1.8,
+    "style": "breathe"
+   },
+   "aspects": {},
+   "left": {
+    "cameras": [
+     "left0",
+     "left1",
+     "left2"
+    ],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "top": {
+    "cameras": [
+     "top0",
+     "top1"
+    ],
+    "size": 18,
+    "fit": "cover",
+    "anchor_left": false,
+    "anchor_right": false,
+    "lines": 1,
+    "hidden": false
+   },
+   "right": {
+    "cameras": [
+     "right0",
+     "right1",
+     "right2"
+    ],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "bottom": {
+    "cameras": [
+     "bottom0",
+     "bottom1",
+     "bottom2",
+     "bottom3"
+    ],
+    "size": 20,
+    "fit": "cover",
+    "anchor_left": true,
+    "anchor_right": true,
+    "lines": 1,
+    "hidden": false
+   }
+  },
+  "main_camera": null,
+  "expect": {
+   "size": [
+    1920,
+    1080
+   ],
+   "main": [
+    288,
+    194,
+    1344,
+    670
+   ],
+   "tiles": {
+    "left": [
+     [
+      0,
+      0,
+      288,
+      288
+     ],
+     [
+      0,
+      288,
+      288,
+      288
+     ],
+     [
+      0,
+      576,
+      288,
+      288
+     ]
+    ],
+    "top": [
+     [
+      288,
+      0,
+      672,
+      194
+     ],
+     [
+      960,
+      0,
+      672,
+      194
+     ]
+    ],
+    "right": [
+     [
+      1632,
+      0,
+      288,
+      288
+     ],
+     [
+      1632,
+      288,
+      288,
+      288
+     ],
+     [
+      1632,
+      576,
+      288,
+      288
+     ]
+    ],
+    "bottom": [
+     [
+      0,
+      864,
+      480,
+      216
+     ],
+     [
+      480,
+      864,
+      480,
+      216
+     ],
+     [
+      960,
+      864,
+      480,
+      216
+     ],
+     [
+      1440,
+      864,
+      480,
+      216
+     ]
+    ]
+   }
+  }
+ },
+ {
+  "name": "empty panels take no room",
+  "cmd": {
+   "name": "Cameras",
+   "id": "",
+   "page": true,
+   "width": 1920,
+   "height": 1080,
+   "main": "",
+   "gap": 4,
+   "main_fit": "fit",
+   "main_width": 70,
+   "panel_min": 8,
+   "main_ratio": "16:9",
+   "stale": 30,
+   "motion": {
+    "hold": 10,
+    "back": 30,
+    "pause": 120
+   },
+   "highlight": {
+    "colour": "#7bd1a0",
+    "width": 2,
+    "blur": 13,
+    "pulse": 1.8,
+    "style": "breathe"
+   },
+   "aspects": {},
+   "left": {
+    "cameras": [
+     "left0",
+     "left1",
+     "left2"
+    ],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "top": {
+    "cameras": [],
+    "size": 18,
+    "fit": "cover",
+    "anchor_left": false,
+    "anchor_right": false,
+    "lines": 1,
+    "hidden": false
+   },
+   "right": {
+    "cameras": [],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "bottom": {
+    "cameras": [
+     "bottom0",
+     "bottom1",
+     "bottom2",
+     "bottom3"
+    ],
+    "size": 20,
+    "fit": "cover",
+    "anchor_left": true,
+    "anchor_right": true,
+    "lines": 1,
+    "hidden": false
+   }
+  },
+  "main_camera": null,
+  "expect": {
+   "size": [
+    1920,
+    1080
+   ],
+   "main": [
+    292,
+    0,
+    1628,
+    860
+   ],
+   "tiles": {
+    "left": [
+     [
+      0,
+      0,
+      288,
+      284
+     ],
+     [
+      0,
+      288,
+      288,
+      284
+     ],
+     [
+      0,
+      576,
+      288,
+      284
+     ]
+    ],
+    "top": [],
+    "right": [],
+    "bottom": [
+     [
+      0,
+      864,
+      477,
+      216
+     ],
+     [
+      481,
+      864,
+      477,
+      216
+     ],
+     [
+      962,
+      864,
+      477,
+      216
+     ],
+     [
+      1443,
+      864,
+      477,
+      216
+     ]
+    ]
+   }
+  }
+ },
+ {
+  "name": "nothing but main",
+  "cmd": {
+   "name": "Cameras",
+   "id": "",
+   "page": true,
+   "width": 1920,
+   "height": 1080,
+   "main": "",
+   "gap": 4,
+   "main_fit": "fit",
+   "main_width": 70,
+   "panel_min": 8,
+   "main_ratio": "16:9",
+   "stale": 30,
+   "motion": {
+    "hold": 10,
+    "back": 30,
+    "pause": 120
+   },
+   "highlight": {
+    "colour": "#7bd1a0",
+    "width": 2,
+    "blur": 13,
+    "pulse": 1.8,
+    "style": "breathe"
+   },
+   "aspects": {},
+   "left": {
+    "cameras": [],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "top": {
+    "cameras": [],
+    "size": 18,
+    "fit": "cover",
+    "anchor_left": false,
+    "anchor_right": false,
+    "lines": 1,
+    "hidden": false
+   },
+   "right": {
+    "cameras": [],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "bottom": {
+    "cameras": [],
+    "size": 20,
+    "fit": "cover",
+    "anchor_left": true,
+    "anchor_right": true,
+    "lines": 1,
+    "hidden": false
+   }
+  },
+  "main_camera": null,
+  "expect": {
+   "size": [
+    1920,
+    1080
+   ],
+   "main": [
+    0,
+    0,
+    1920,
+    1080
+   ],
+   "tiles": {
+    "left": [],
+    "top": [],
+    "right": [],
+    "bottom": []
+   }
+  }
+ },
+ {
+  "name": "lines",
+  "cmd": {
+   "name": "Cameras",
+   "id": "",
+   "page": true,
+   "width": 1920,
+   "height": 1080,
+   "main": "",
+   "gap": 4,
+   "main_fit": "fit",
+   "main_width": 70,
+   "panel_min": 8,
+   "main_ratio": "16:9",
+   "stale": 30,
+   "motion": {
+    "hold": 10,
+    "back": 30,
+    "pause": 120
+   },
+   "highlight": {
+    "colour": "#7bd1a0",
+    "width": 2,
+    "blur": 13,
+    "pulse": 1.8,
+    "style": "breathe"
+   },
+   "aspects": {},
+   "left": {
+    "cameras": [
+     "left0",
+     "left1",
+     "left2"
+    ],
+    "size": 15,
+    "fit": "cover",
+    "lines": 2,
+    "hidden": false
+   },
+   "top": {
+    "cameras": [
+     "top0",
+     "top1"
+    ],
+    "size": 18,
+    "fit": "cover",
+    "anchor_left": false,
+    "anchor_right": false,
+    "lines": 1,
+    "hidden": false
+   },
+   "right": {
+    "cameras": [
+     "right0",
+     "right1",
+     "right2"
+    ],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "bottom": {
+    "cameras": [
+     "b0",
+     "b1",
+     "b2",
+     "b3",
+     "b4",
+     "b5",
+     "b6"
+    ],
+    "size": 20,
+    "fit": "cover",
+    "anchor_left": true,
+    "anchor_right": true,
+    "lines": 3,
+    "hidden": false
+   }
+  },
+  "main_camera": null,
+  "expect": {
+   "size": [
+    1920,
+    1080
+   ],
+   "main": [
+    292,
+    198,
+    1336,
+    662
+   ],
+   "tiles": {
+    "left": [
+     [
+      0,
+      0,
+      142,
+      428
+     ],
+     [
+      0,
+      432,
+      142,
+      428
+     ],
+     [
+      146,
+      0,
+      142,
+      860
+     ]
+    ],
+    "top": [
+     [
+      292,
+      0,
+      666,
+      194
+     ],
+     [
+      962,
+      0,
+      666,
+      194
+     ]
+    ],
+    "right": [
+     [
+      1632,
+      0,
+      288,
+      284
+     ],
+     [
+      1632,
+      288,
+      288,
+      284
+     ],
+     [
+      1632,
+      576,
+      288,
+      284
+     ]
+    ],
+    "bottom": [
+     [
+      0,
+      864,
+      637,
+      69
+     ],
+     [
+      641,
+      864,
+      638,
+      69
+     ],
+     [
+      1283,
+      864,
+      637,
+      69
+     ],
+     [
+      0,
+      937,
+      958,
+      70
+     ],
+     [
+      962,
+      937,
+      958,
+      70
+     ],
+     [
+      0,
+      1011,
+      958,
+      69
+     ],
+     [
+      962,
+      1011,
+      958,
+      69
+     ]
+    ]
+   }
+  }
+ },
+ {
+  "name": "anchors",
+  "cmd": {
+   "name": "Cameras",
+   "id": "",
+   "page": true,
+   "width": 1920,
+   "height": 1080,
+   "main": "",
+   "gap": 4,
+   "main_fit": "fit",
+   "main_width": 70,
+   "panel_min": 8,
+   "main_ratio": "16:9",
+   "stale": 30,
+   "motion": {
+    "hold": 10,
+    "back": 30,
+    "pause": 120
+   },
+   "highlight": {
+    "colour": "#7bd1a0",
+    "width": 2,
+    "blur": 13,
+    "pulse": 1.8,
+    "style": "breathe"
+   },
+   "aspects": {},
+   "left": {
+    "cameras": [
+     "left0",
+     "left1",
+     "left2"
+    ],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "top": {
+    "cameras": [
+     "top0",
+     "top1"
+    ],
+    "size": 18,
+    "fit": "cover",
+    "anchor_left": true,
+    "anchor_right": false,
+    "lines": 1,
+    "hidden": false
+   },
+   "right": {
+    "cameras": [
+     "right0",
+     "right1",
+     "right2"
+    ],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "bottom": {
+    "cameras": [
+     "bottom0",
+     "bottom1",
+     "bottom2",
+     "bottom3"
+    ],
+    "size": 20,
+    "fit": "cover",
+    "anchor_left": false,
+    "anchor_right": false,
+    "lines": 1,
+    "hidden": false
+   }
+  },
+  "main_camera": null,
+  "expect": {
+   "size": [
+    1920,
+    1080
+   ],
+   "main": [
+    292,
+    198,
+    1336,
+    662
+   ],
+   "tiles": {
+    "left": [
+     [
+      0,
+      198,
+      288,
+      291
+     ],
+     [
+      0,
+      493,
+      288,
+      292
+     ],
+     [
+      0,
+      789,
+      288,
+      291
+     ]
+    ],
+    "top": [
+     [
+      0,
+      0,
+      812,
+      194
+     ],
+     [
+      816,
+      0,
+      812,
+      194
+     ]
+    ],
+    "right": [
+     [
+      1632,
+      0,
+      288,
+      357
+     ],
+     [
+      1632,
+      361,
+      288,
+      358
+     ],
+     [
+      1632,
+      723,
+      288,
+      357
+     ]
+    ],
+    "bottom": [
+     [
+      292,
+      864,
+      331,
+      216
+     ],
+     [
+      627,
+      864,
+      331,
+      216
+     ],
+     [
+      962,
+      864,
+      331,
+      216
+     ],
+     [
+      1297,
+      864,
+      331,
+      216
+     ]
+    ]
+   }
+  }
+ },
+ {
+  "name": "stack",
+  "cmd": {
+   "name": "Cameras",
+   "id": "",
+   "page": true,
+   "width": 1920,
+   "height": 1080,
+   "main": "",
+   "gap": 4,
+   "main_fit": "fit",
+   "main_width": 70,
+   "panel_min": 8,
+   "main_ratio": "16:9",
+   "stale": 30,
+   "motion": {
+    "hold": 10,
+    "back": 30,
+    "pause": 120
+   },
+   "highlight": {
+    "colour": "#7bd1a0",
+    "width": 2,
+    "blur": 13,
+    "pulse": 1.8,
+    "style": "breathe"
+   },
+   "aspects": {
+    "left0": 0.56,
+    "left1": 1.33,
+    "left2": 1.78,
+    "main": 0.75
+   },
+   "left": {
+    "cameras": [
+     "left0",
+     "left1",
+     "left2"
+    ],
+    "size": 15,
+    "fit": "stack",
+    "lines": 1,
+    "hidden": false
+   },
+   "top": {
+    "cameras": [
+     "top0",
+     "top1"
+    ],
+    "size": 18,
+    "fit": "cover",
+    "anchor_left": false,
+    "anchor_right": false,
+    "lines": 1,
+    "hidden": false
+   },
+   "right": {
+    "cameras": [
+     "right0",
+     "right1",
+     "right2"
+    ],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "bottom": {
+    "cameras": [
+     "bottom0",
+     "bottom1",
+     "bottom2",
+     "bottom3"
+    ],
+    "size": 20,
+    "fit": "stack",
+    "anchor_left": true,
+    "anchor_right": true,
+    "lines": 1,
+    "hidden": false
+   }
+  },
+  "main_camera": null,
+  "expect": {
+   "size": [
+    1920,
+    1080
+   ],
+   "main": [
+    292,
+    198,
+    1336,
+    662
+   ],
+   "tiles": {
+    "left": [
+     [
+      7,
+      0,
+      274,
+      490
+     ],
+     [
+      7,
+      494,
+      274,
+      206
+     ],
+     [
+      7,
+      704,
+      274,
+      154
+     ]
+    ],
+    "top": [
+     [
+      292,
+      0,
+      666,
+      194
+     ],
+     [
+      962,
+      0,
+      666,
+      194
+     ]
+    ],
+    "right": [
+     [
+      1632,
+      0,
+      288,
+      284
+     ],
+     [
+      1632,
+      288,
+      288,
+      284
+     ],
+     [
+      1632,
+      576,
+      288,
+      284
+     ]
+    ],
+    "bottom": [
+     [
+      0,
+      864,
+      384,
+      216
+     ],
+     [
+      388,
+      864,
+      384,
+      216
+     ],
+     [
+      776,
+      864,
+      384,
+      216
+     ],
+     [
+      1164,
+      864,
+      384,
+      216
+     ]
+    ]
+   }
+  }
+ },
+ {
+  "name": "reverse",
+  "cmd": {
+   "name": "Cameras",
+   "id": "",
+   "page": true,
+   "width": 1920,
+   "height": 1080,
+   "main": "",
+   "gap": 4,
+   "main_fit": "fit",
+   "main_width": 70,
+   "panel_min": 8,
+   "main_ratio": "16:9",
+   "stale": 30,
+   "motion": {
+    "hold": 10,
+    "back": 30,
+    "pause": 120
+   },
+   "highlight": {
+    "colour": "#7bd1a0",
+    "width": 2,
+    "blur": 13,
+    "pulse": 1.8,
+    "style": "breathe"
+   },
+   "aspects": {
+    "left0": 0.56,
+    "left1": 1.33,
+    "left2": 1.78,
+    "main": 0.75
+   },
+   "left": {
+    "cameras": [
+     "left0",
+     "left1",
+     "left2"
+    ],
+    "size": 15,
+    "fit": "reverse",
+    "lines": 1,
+    "hidden": false
+   },
+   "top": {
+    "cameras": [
+     "top0",
+     "top1"
+    ],
+    "size": 18,
+    "fit": "reverse",
+    "anchor_left": false,
+    "anchor_right": false,
+    "lines": 1,
+    "hidden": false
+   },
+   "right": {
+    "cameras": [
+     "right0",
+     "right1",
+     "right2"
+    ],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "bottom": {
+    "cameras": [
+     "bottom0",
+     "bottom1",
+     "bottom2",
+     "bottom3"
+    ],
+    "size": 20,
+    "fit": "cover",
+    "anchor_left": true,
+    "anchor_right": true,
+    "lines": 1,
+    "hidden": false
+   }
+  },
+  "main_camera": null,
+  "expect": {
+   "size": [
+    1920,
+    1080
+   ],
+   "main": [
+    292,
+    198,
+    1336,
+    662
+   ],
+   "tiles": {
+    "left": [
+     [
+      7,
+      2,
+      274,
+      490
+     ],
+     [
+      7,
+      496,
+      274,
+      206
+     ],
+     [
+      7,
+      706,
+      274,
+      154
+     ]
+    ],
+    "top": [
+     [
+      936,
+      0,
+      344,
+      194
+     ],
+     [
+      1284,
+      0,
+      344,
+      194
+     ]
+    ],
+    "right": [
+     [
+      1632,
+      0,
+      288,
+      284
+     ],
+     [
+      1632,
+      288,
+      288,
+      284
+     ],
+     [
+      1632,
+      576,
+      288,
+      284
+     ]
+    ],
+    "bottom": [
+     [
+      0,
+      864,
+      477,
+      216
+     ],
+     [
+      481,
+      864,
+      477,
+      216
+     ],
+     [
+      962,
+      864,
+      477,
+      216
+     ],
+     [
+      1443,
+      864,
+      477,
+      216
+     ]
+    ]
+   }
+  }
+ },
+ {
+  "name": "centre",
+  "cmd": {
+   "name": "Cameras",
+   "id": "",
+   "page": true,
+   "width": 1920,
+   "height": 1080,
+   "main": "",
+   "gap": 4,
+   "main_fit": "fit",
+   "main_width": 70,
+   "panel_min": 8,
+   "main_ratio": "16:9",
+   "stale": 30,
+   "motion": {
+    "hold": 10,
+    "back": 30,
+    "pause": 120
+   },
+   "highlight": {
+    "colour": "#7bd1a0",
+    "width": 2,
+    "blur": 13,
+    "pulse": 1.8,
+    "style": "breathe"
+   },
+   "aspects": {
+    "left0": 0.56,
+    "left1": 1.33,
+    "left2": 1.78,
+    "main": 0.75
+   },
+   "left": {
+    "cameras": [
+     "left0",
+     "left1",
+     "left2"
+    ],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "top": {
+    "cameras": [
+     "top0",
+     "top1"
+    ],
+    "size": 18,
+    "fit": "cover",
+    "anchor_left": false,
+    "anchor_right": false,
+    "lines": 1,
+    "hidden": false
+   },
+   "right": {
+    "cameras": [
+     "right0",
+     "right1",
+     "right2"
+    ],
+    "size": 15,
+    "fit": "centre",
+    "lines": 1,
+    "hidden": false
+   },
+   "bottom": {
+    "cameras": [
+     "bottom0",
+     "bottom1",
+     "bottom2",
+     "bottom3"
+    ],
+    "size": 20,
+    "fit": "centre",
+    "anchor_left": true,
+    "anchor_right": true,
+    "lines": 1,
+    "hidden": false
+   }
+  },
+  "main_camera": null,
+  "expect": {
+   "size": [
+    1920,
+    1080
+   ],
+   "main": [
+    292,
+    198,
+    1336,
+    662
+   ],
+   "tiles": {
+    "left": [
+     [
+      0,
+      0,
+      288,
+      284
+     ],
+     [
+      0,
+      288,
+      288,
+      284
+     ],
+     [
+      0,
+      576,
+      288,
+      284
+     ]
+    ],
+    "top": [
+     [
+      292,
+      0,
+      666,
+      194
+     ],
+     [
+      962,
+      0,
+      666,
+      194
+     ]
+    ],
+    "right": [
+     [
+      1632,
+      183,
+      288,
+      162
+     ],
+     [
+      1632,
+      349,
+      288,
+      162
+     ],
+     [
+      1632,
+      515,
+      288,
+      162
+     ]
+    ],
+    "bottom": [
+     [
+      186,
+      864,
+      384,
+      216
+     ],
+     [
+      574,
+      864,
+      384,
+      216
+     ],
+     [
+      962,
+      864,
+      384,
+      216
+     ],
+     [
+      1350,
+      864,
+      384,
+      216
+     ]
+    ]
+   }
+  }
+ },
+ {
+  "name": "stack overflows",
+  "cmd": {
+   "name": "Cameras",
+   "id": "",
+   "page": true,
+   "width": 1920,
+   "height": 1080,
+   "main": "",
+   "gap": 4,
+   "main_fit": "fit",
+   "main_width": 70,
+   "panel_min": 8,
+   "main_ratio": "16:9",
+   "stale": 30,
+   "motion": {
+    "hold": 10,
+    "back": 30,
+    "pause": 120
+   },
+   "highlight": {
+    "colour": "#7bd1a0",
+    "width": 2,
+    "blur": 13,
+    "pulse": 1.8,
+    "style": "breathe"
+   },
+   "aspects": {},
+   "left": {
+    "cameras": [
+     "l0",
+     "l1",
+     "l2",
+     "l3",
+     "l4",
+     "l5",
+     "l6",
+     "l7",
+     "l8"
+    ],
+    "size": 40,
+    "fit": "stack",
+    "lines": 1,
+    "hidden": false
+   },
+   "top": {
+    "cameras": [
+     "top0",
+     "top1"
+    ],
+    "size": 18,
+    "fit": "cover",
+    "anchor_left": false,
+    "anchor_right": false,
+    "lines": 1,
+    "hidden": false
+   },
+   "right": {
+    "cameras": [
+     "right0",
+     "right1",
+     "right2"
+    ],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "bottom": {
+    "cameras": [
+     "bottom0",
+     "bottom1",
+     "bottom2",
+     "bottom3"
+    ],
+    "size": 20,
+    "fit": "cover",
+    "anchor_left": true,
+    "anchor_right": true,
+    "lines": 1,
+    "hidden": false
+   }
+  },
+  "main_camera": null,
+  "expect": {
+   "size": [
+    1920,
+    1080
+   ],
+   "main": [
+    772,
+    198,
+    856,
+    662
+   ],
+   "tiles": {
+    "left": [
+     [
+      302,
+      0,
+      163,
+      92
+     ],
+     [
+      302,
+      96,
+      163,
+      92
+     ],
+     [
+      302,
+      192,
+      163,
+      92
+     ],
+     [
+      302,
+      288,
+      163,
+      92
+     ],
+     [
+      302,
+      384,
+      163,
+      92
+     ],
+     [
+      302,
+      480,
+      163,
+      92
+     ],
+     [
+      302,
+      576,
+      163,
+      92
+     ],
+     [
+      302,
+      672,
+      163,
+      92
+     ],
+     [
+      302,
+      768,
+      163,
+      92
+     ]
+    ],
+    "top": [
+     [
+      772,
+      0,
+      426,
+      194
+     ],
+     [
+      1202,
+      0,
+      426,
+      194
+     ]
+    ],
+    "right": [
+     [
+      1632,
+      0,
+      288,
+      284
+     ],
+     [
+      1632,
+      288,
+      288,
+      284
+     ],
+     [
+      1632,
+      576,
+      288,
+      284
+     ]
+    ],
+    "bottom": [
+     [
+      0,
+      864,
+      477,
+      216
+     ],
+     [
+      481,
+      864,
+      477,
+      216
+     ],
+     [
+      962,
+      864,
+      477,
+      216
+     ],
+     [
+      1443,
+      864,
+      477,
+      216
+     ]
+    ]
+   }
+  }
+ },
+ {
+  "name": "own",
+  "cmd": {
+   "name": "Cameras",
+   "id": "",
+   "page": true,
+   "width": 1920,
+   "height": 1080,
+   "main": "",
+   "gap": 4,
+   "main_fit": "own",
+   "main_width": 70,
+   "panel_min": 8,
+   "main_ratio": "16:9",
+   "stale": 30,
+   "motion": {
+    "hold": 10,
+    "back": 30,
+    "pause": 120
+   },
+   "highlight": {
+    "colour": "#7bd1a0",
+    "width": 2,
+    "blur": 13,
+    "pulse": 1.8,
+    "style": "breathe"
+   },
+   "aspects": {
+    "left0": 0.56,
+    "left1": 1.78,
+    "left2": 1.78,
+    "main": 0.75
+   },
+   "left": {
+    "cameras": [
+     "left0",
+     "left1",
+     "left2"
+    ],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "top": {
+    "cameras": [
+     "top0",
+     "top1"
+    ],
+    "size": 18,
+    "fit": "cover",
+    "anchor_left": false,
+    "anchor_right": false,
+    "lines": 1,
+    "hidden": false
+   },
+   "right": {
+    "cameras": [
+     "right0",
+     "right1",
+     "right2"
+    ],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "bottom": {
+    "cameras": [
+     "bottom0",
+     "bottom1",
+     "bottom2",
+     "bottom3"
+    ],
+    "size": 20,
+    "fit": "cover",
+    "anchor_left": true,
+    "anchor_right": true,
+    "lines": 1,
+    "hidden": false
+   }
+  },
+  "main_camera": "left1",
+  "expect": {
+   "size": [
+    1920,
+    1080
+   ],
+   "main": [
+    288,
+    162,
+    1344,
+    755
+   ],
+   "tiles": {
+    "left": [
+     [
+      0,
+      0,
+      284,
+      303
+     ],
+     [
+      0,
+      307,
+      284,
+      303
+     ],
+     [
+      0,
+      614,
+      284,
+      303
+     ]
+    ],
+    "top": [
+     [
+      288,
+      0,
+      670,
+      158
+     ],
+     [
+      962,
+      0,
+      670,
+      158
+     ]
+    ],
+    "right": [
+     [
+      1636,
+      0,
+      284,
+      303
+     ],
+     [
+      1636,
+      307,
+      284,
+      303
+     ],
+     [
+      1636,
+      614,
+      284,
+      303
+     ]
+    ],
+    "bottom": [
+     [
+      0,
+      921,
+      477,
+      159
+     ],
+     [
+      481,
+      921,
+      477,
+      159
+     ],
+     [
+      962,
+      921,
+      477,
+      159
+     ],
+     [
+      1443,
+      921,
+      477,
+      159
+     ]
+    ]
+   }
+  }
+ },
+ {
+  "name": "own tall",
+  "cmd": {
+   "name": "Cameras",
+   "id": "",
+   "page": true,
+   "width": 1920,
+   "height": 1080,
+   "main": "",
+   "gap": 4,
+   "main_fit": "own",
+   "main_width": 70,
+   "panel_min": 8,
+   "main_ratio": "16:9",
+   "stale": 30,
+   "motion": {
+    "hold": 10,
+    "back": 30,
+    "pause": 120
+   },
+   "highlight": {
+    "colour": "#7bd1a0",
+    "width": 2,
+    "blur": 13,
+    "pulse": 1.8,
+    "style": "breathe"
+   },
+   "aspects": {
+    "left0": 0.56,
+    "left1": 1.33,
+    "left2": 1.78,
+    "main": 0.75
+   },
+   "left": {
+    "cameras": [
+     "left0",
+     "left1",
+     "left2"
+    ],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "top": {
+    "cameras": [
+     "top0",
+     "top1"
+    ],
+    "size": 18,
+    "fit": "cover",
+    "anchor_left": false,
+    "anchor_right": false,
+    "lines": 1,
+    "hidden": false
+   },
+   "right": {
+    "cameras": [
+     "right0",
+     "right1",
+     "right2"
+    ],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "bottom": {
+    "cameras": [
+     "bottom0",
+     "bottom1",
+     "bottom2",
+     "bottom3"
+    ],
+    "size": 20,
+    "fit": "cover",
+    "anchor_left": true,
+    "anchor_right": true,
+    "lines": 1,
+    "hidden": false
+   }
+  },
+  "main_camera": "left0",
+  "expect": {
+   "size": [
+    1920,
+    1080
+   ],
+   "main": [
+    708,
+    90,
+    504,
+    900
+   ],
+   "tiles": {
+    "left": [
+     [
+      0,
+      0,
+      704,
+      327
+     ],
+     [
+      0,
+      331,
+      704,
+      328
+     ],
+     [
+      0,
+      663,
+      704,
+      327
+     ]
+    ],
+    "top": [
+     [
+      708,
+      0,
+      250,
+      86
+     ],
+     [
+      962,
+      0,
+      250,
+      86
+     ]
+    ],
+    "right": [
+     [
+      1216,
+      0,
+      704,
+      327
+     ],
+     [
+      1216,
+      331,
+      704,
+      328
+     ],
+     [
+      1216,
+      663,
+      704,
+      327
+     ]
+    ],
+    "bottom": [
+     [
+      0,
+      994,
+      477,
+      86
+     ],
+     [
+      481,
+      994,
+      477,
+      86
+     ],
+     [
+      962,
+      994,
+      477,
+      86
+     ],
+     [
+      1443,
+      994,
+      477,
+      86
+     ]
+    ]
+   }
+  }
+ },
+ {
+  "name": "own one side",
+  "cmd": {
+   "name": "Cameras",
+   "id": "",
+   "page": true,
+   "width": 1920,
+   "height": 1080,
+   "main": "",
+   "gap": 4,
+   "main_fit": "own",
+   "main_width": 70,
+   "panel_min": 8,
+   "main_ratio": "16:9",
+   "stale": 30,
+   "motion": {
+    "hold": 10,
+    "back": 30,
+    "pause": 120
+   },
+   "highlight": {
+    "colour": "#7bd1a0",
+    "width": 2,
+    "blur": 13,
+    "pulse": 1.8,
+    "style": "breathe"
+   },
+   "aspects": {
+    "left0": 0.56,
+    "left1": 1.33,
+    "left2": 1.78,
+    "main": 0.75
+   },
+   "left": {
+    "cameras": [
+     "left0",
+     "left1",
+     "left2"
+    ],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "top": {
+    "cameras": [],
+    "size": 18,
+    "fit": "cover",
+    "anchor_left": false,
+    "anchor_right": false,
+    "lines": 1,
+    "hidden": false
+   },
+   "right": {
+    "cameras": [],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "bottom": {
+    "cameras": [
+     "bottom0",
+     "bottom1",
+     "bottom2",
+     "bottom3"
+    ],
+    "size": 20,
+    "fit": "cover",
+    "anchor_left": true,
+    "anchor_right": true,
+    "lines": 1,
+    "hidden": false
+   }
+  },
+  "main_camera": "left2",
+  "expect": {
+   "size": [
+    1920,
+    1080
+   ],
+   "main": [
+    576,
+    0,
+    1344,
+    755
+   ],
+   "tiles": {
+    "left": [
+     [
+      0,
+      0,
+      572,
+      249
+     ],
+     [
+      0,
+      253,
+      572,
+      249
+     ],
+     [
+      0,
+      506,
+      572,
+      249
+     ]
+    ],
+    "top": [],
+    "right": [],
+    "bottom": [
+     [
+      0,
+      759,
+      477,
+      321
+     ],
+     [
+      481,
+      759,
+      477,
+      321
+     ],
+     [
+      962,
+      759,
+      477,
+      321
+     ],
+     [
+      1443,
+      759,
+      477,
+      321
+     ]
+    ]
+   }
+  }
+ },
+ {
+  "name": "fixed",
+  "cmd": {
+   "name": "Cameras",
+   "id": "",
+   "page": true,
+   "width": 1920,
+   "height": 1080,
+   "main": "",
+   "gap": 4,
+   "main_fit": "fixed",
+   "main_width": 60,
+   "panel_min": 8,
+   "main_ratio": "4:3",
+   "stale": 30,
+   "motion": {
+    "hold": 10,
+    "back": 30,
+    "pause": 120
+   },
+   "highlight": {
+    "colour": "#7bd1a0",
+    "width": 2,
+    "blur": 13,
+    "pulse": 1.8,
+    "style": "breathe"
+   },
+   "aspects": {},
+   "left": {
+    "cameras": [
+     "left0",
+     "left1",
+     "left2"
+    ],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "top": {
+    "cameras": [
+     "top0",
+     "top1"
+    ],
+    "size": 18,
+    "fit": "cover",
+    "anchor_left": false,
+    "anchor_right": false,
+    "lines": 1,
+    "hidden": false
+   },
+   "right": {
+    "cameras": [
+     "right0",
+     "right1",
+     "right2"
+    ],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "bottom": {
+    "cameras": [
+     "bottom0",
+     "bottom1",
+     "bottom2",
+     "bottom3"
+    ],
+    "size": 20,
+    "fit": "cover",
+    "anchor_left": true,
+    "anchor_right": true,
+    "lines": 1,
+    "hidden": false
+   }
+  },
+  "main_camera": null,
+  "expect": {
+   "size": [
+    1920,
+    1080
+   ],
+   "main": [
+    384,
+    108,
+    1152,
+    864
+   ],
+   "tiles": {
+    "left": [
+     [
+      0,
+      0,
+      380,
+      321
+     ],
+     [
+      0,
+      325,
+      380,
+      322
+     ],
+     [
+      0,
+      651,
+      380,
+      321
+     ]
+    ],
+    "top": [
+     [
+      384,
+      0,
+      574,
+      104
+     ],
+     [
+      962,
+      0,
+      574,
+      104
+     ]
+    ],
+    "right": [
+     [
+      1540,
+      0,
+      380,
+      321
+     ],
+     [
+      1540,
+      325,
+      380,
+      322
+     ],
+     [
+      1540,
+      651,
+      380,
+      321
+     ]
+    ],
+    "bottom": [
+     [
+      0,
+      976,
+      477,
+      104
+     ],
+     [
+      481,
+      976,
+      477,
+      104
+     ],
+     [
+      962,
+      976,
+      477,
+      104
+     ],
+     [
+      1443,
+      976,
+      477,
+      104
+     ]
+    ]
+   }
+  }
+ },
+ {
+  "name": "fixed wide",
+  "cmd": {
+   "name": "Cameras",
+   "id": "",
+   "page": true,
+   "width": 1920,
+   "height": 1080,
+   "main": "",
+   "gap": 4,
+   "main_fit": "fixed",
+   "main_width": 95,
+   "panel_min": 12,
+   "main_ratio": "21:9",
+   "stale": 30,
+   "motion": {
+    "hold": 10,
+    "back": 30,
+    "pause": 120
+   },
+   "highlight": {
+    "colour": "#7bd1a0",
+    "width": 2,
+    "blur": 13,
+    "pulse": 1.8,
+    "style": "breathe"
+   },
+   "aspects": {},
+   "left": {
+    "cameras": [
+     "left0",
+     "left1",
+     "left2"
+    ],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "top": {
+    "cameras": [
+     "top0",
+     "top1"
+    ],
+    "size": 18,
+    "fit": "cover",
+    "anchor_left": false,
+    "anchor_right": false,
+    "lines": 1,
+    "hidden": false
+   },
+   "right": {
+    "cameras": [
+     "right0",
+     "right1",
+     "right2"
+    ],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "bottom": {
+    "cameras": [
+     "bottom0",
+     "bottom1",
+     "bottom2",
+     "bottom3"
+    ],
+    "size": 20,
+    "fit": "cover",
+    "anchor_left": true,
+    "anchor_right": true,
+    "lines": 1,
+    "hidden": false
+   }
+  },
+  "main_camera": null,
+  "expect": {
+   "size": [
+    1920,
+    1080
+   ],
+   "main": [
+    234,
+    229,
+    1452,
+    622
+   ],
+   "tiles": {
+    "left": [
+     [
+      0,
+      0,
+      230,
+      281
+     ],
+     [
+      0,
+      285,
+      230,
+      281
+     ],
+     [
+      0,
+      570,
+      230,
+      281
+     ]
+    ],
+    "top": [
+     [
+      234,
+      0,
+      724,
+      225
+     ],
+     [
+      962,
+      0,
+      724,
+      225
+     ]
+    ],
+    "right": [
+     [
+      1690,
+      0,
+      230,
+      281
+     ],
+     [
+      1690,
+      285,
+      230,
+      281
+     ],
+     [
+      1690,
+      570,
+      230,
+      281
+     ]
+    ],
+    "bottom": [
+     [
+      0,
+      855,
+      477,
+      225
+     ],
+     [
+      481,
+      855,
+      477,
+      225
+     ],
+     [
+      962,
+      855,
+      477,
+      225
+     ],
+     [
+      1443,
+      855,
+      477,
+      225
+     ]
+    ]
+   }
+  }
+ },
+ {
+  "name": "portrait",
+  "cmd": {
+   "name": "Cameras",
+   "id": "",
+   "page": true,
+   "width": 800,
+   "height": 1280,
+   "main": "",
+   "gap": 8,
+   "main_fit": "fit",
+   "main_width": 70,
+   "panel_min": 8,
+   "main_ratio": "16:9",
+   "stale": 30,
+   "motion": {
+    "hold": 10,
+    "back": 30,
+    "pause": 120
+   },
+   "highlight": {
+    "colour": "#7bd1a0",
+    "width": 2,
+    "blur": 13,
+    "pulse": 1.8,
+    "style": "breathe"
+   },
+   "aspects": {},
+   "left": {
+    "cameras": [
+     "left0",
+     "left1",
+     "left2"
+    ],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "top": {
+    "cameras": [
+     "top0",
+     "top1"
+    ],
+    "size": 18,
+    "fit": "cover",
+    "anchor_left": false,
+    "anchor_right": false,
+    "lines": 1,
+    "hidden": false
+   },
+   "right": {
+    "cameras": [
+     "right0",
+     "right1",
+     "right2"
+    ],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "bottom": {
+    "cameras": [
+     "bottom0",
+     "bottom1",
+     "bottom2",
+     "bottom3"
+    ],
+    "size": 20,
+    "fit": "cover",
+    "anchor_left": true,
+    "anchor_right": true,
+    "lines": 1,
+    "hidden": false
+   }
+  },
+  "main_camera": null,
+  "expect": {
+   "size": [
+    800,
+    1280
+   ],
+   "main": [
+    128,
+    238,
+    544,
+    778
+   ],
+   "tiles": {
+    "left": [
+     [
+      0,
+      0,
+      120,
+      333
+     ],
+     [
+      0,
+      341,
+      120,
+      334
+     ],
+     [
+      0,
+      683,
+      120,
+      333
+     ]
+    ],
+    "top": [
+     [
+      128,
+      0,
+      268,
+      230
+     ],
+     [
+      404,
+      0,
+      268,
+      230
+     ]
+    ],
+    "right": [
+     [
+      680,
+      0,
+      120,
+      333
+     ],
+     [
+      680,
+      341,
+      120,
+      334
+     ],
+     [
+      680,
+      683,
+      120,
+      333
+     ]
+    ],
+    "bottom": [
+     [
+      0,
+      1024,
+      194,
+      256
+     ],
+     [
+      202,
+      1024,
+      194,
+      256
+     ],
+     [
+      404,
+      1024,
+      194,
+      256
+     ],
+     [
+      606,
+      1024,
+      194,
+      256
+     ]
+    ]
+   }
+  }
+ },
+ {
+  "name": "portrait own",
+  "cmd": {
+   "name": "Cameras",
+   "id": "",
+   "page": true,
+   "width": 800,
+   "height": 1280,
+   "main": "",
+   "gap": 4,
+   "main_fit": "own",
+   "main_width": 70,
+   "panel_min": 8,
+   "main_ratio": "16:9",
+   "stale": 30,
+   "motion": {
+    "hold": 10,
+    "back": 30,
+    "pause": 120
+   },
+   "highlight": {
+    "colour": "#7bd1a0",
+    "width": 2,
+    "blur": 13,
+    "pulse": 1.8,
+    "style": "breathe"
+   },
+   "aspects": {
+    "left0": 0.56,
+    "left1": 1.33,
+    "left2": 1.78,
+    "main": 0.75
+   },
+   "left": {
+    "cameras": [
+     "left0",
+     "left1",
+     "left2"
+    ],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "top": {
+    "cameras": [
+     "top0",
+     "top1"
+    ],
+    "size": 18,
+    "fit": "cover",
+    "anchor_left": false,
+    "anchor_right": false,
+    "lines": 1,
+    "hidden": false
+   },
+   "right": {
+    "cameras": [
+     "right0",
+     "right1",
+     "right2"
+    ],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "bottom": {
+    "cameras": [
+     "bottom0",
+     "bottom1",
+     "bottom2",
+     "bottom3"
+    ],
+    "size": 20,
+    "fit": "cover",
+    "anchor_left": true,
+    "anchor_right": true,
+    "lines": 1,
+    "hidden": false
+   }
+  },
+  "main_camera": "left1",
+  "expect": {
+   "size": [
+    800,
+    1280
+   ],
+   "main": [
+    120,
+    429,
+    560,
+    421
+   ],
+   "tiles": {
+    "left": [
+     [
+      0,
+      0,
+      116,
+      281
+     ],
+     [
+      0,
+      285,
+      116,
+      280
+     ],
+     [
+      0,
+      569,
+      116,
+      281
+     ]
+    ],
+    "top": [
+     [
+      120,
+      0,
+      278,
+      425
+     ],
+     [
+      402,
+      0,
+      278,
+      425
+     ]
+    ],
+    "right": [
+     [
+      684,
+      0,
+      116,
+      281
+     ],
+     [
+      684,
+      285,
+      116,
+      280
+     ],
+     [
+      684,
+      569,
+      116,
+      281
+     ]
+    ],
+    "bottom": [
+     [
+      0,
+      854,
+      197,
+      426
+     ],
+     [
+      201,
+      854,
+      197,
+      426
+     ],
+     [
+      402,
+      854,
+      197,
+      426
+     ],
+     [
+      603,
+      854,
+      197,
+      426
+     ]
+    ]
+   }
+  }
+ }
+]

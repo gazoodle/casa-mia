@@ -46,11 +46,19 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: app/web/package-lock.json
+          cache-dependency-path: |
+            app/web/package-lock.json
+            integration/cards/package-lock.json
       - run: npm ci
         working-directory: app/web
       - run: npm run build
         working-directory: app/web
+      - run: npm ci
+        working-directory: integration/cards
+      - run: npm run build
+        working-directory: integration/cards
+      - run: npm test
+        working-directory: integration/cards
   containers:
     name: Container / ${{ matrix.arch }}
     strategy:

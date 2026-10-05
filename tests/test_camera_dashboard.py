@@ -838,11 +838,19 @@ def test_each_commander_has_its_own_main_camera(tmp_path):
     store["commanders"].append({**store["commanders"][0], "name": "Phone", "id": "p1"})
     (tmp_path / DRAFT_STORE).write_text(json.dumps(store))
     draft = Compositor(tmp_path, "http://127.0.0.1:1", "t", port=0, store=DRAFT_STORE)
-    cd = CameraDashboard(tmp_path, None, lambda: None, draft=draft)
+    cd = CameraDashboard(tmp_path, None, lambda: "10.0.0.2", draft=draft)
     cd.start()
     draft.start()
     try:
         assert [c["id"] for c in cd.health()["commanders"]] == ["", "p1"]
+        # what the Camera Commander card draws it from (its select's `card` attribute)
+        card = cd.health()["commanders"][1]["card"]
+        assert card["picture"] == "http://10.0.0.2:8099/g/phone.mjpg"
+        assert card["cameras"]["camera.b"] == {
+            "title": "Tablet",
+            "live": "/dashboard-cams/cam-tablet",
+        }
+        assert card["layout"]["main_fit"] == "fit" and "left" in card["layout"]
         body = b'{"main": "Tablet", "commander": "p1"}'
         assert cd.control("commander", body) == 200
         first, phone = draft.cfg.commanders

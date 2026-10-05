@@ -92,6 +92,7 @@ DRAFT_STORE = "camera-dashboard.json"
 # Left and right sizes are % of the width, top and bottom % of the height. There are one
 # or more, each a page of the dashboard named after it.
 PANELS = ("left", "top", "right", "bottom")
+LAYOUT = json.loads((Path(__file__).parents[1] / "layout.json").read_text())
 EMPTY_COMMANDER = {
     "name": "Cameras",  # its page's title; as a slug, its page's path and picture's
     # Never changes: its device in the integration (Main camera, Track motion). "": the
@@ -102,16 +103,15 @@ EMPTY_COMMANDER = {
     "page": True,
     "width": 1920,
     "height": 1080,
-    "gap": 4,
     "main": "",  # the main camera at start; blank: the first of the panels
-    # fit (whole, black borders), fill (stretched), crop (filled), or the main camera
-    # sized by main_width (% of the picture's width) with the panels sharing the room
-    # around it: own (its own shape, from `aspects`, so the panels move with the camera
-    # shown) or fixed (the main_ratio shape; the camera fitted whole within it)
-    "main_fit": "fit",
-    "main_width": 70,
-    "main_ratio": "16:9",
-    "panel_min": 8,  # own, fixed: the % a panel with cameras keeps beside the main one
+    # The layout, shared with the Tablet layout card (casa_mia/layout.json, defaults and
+    # labels): gap; main_fit: fit (whole, black borders), fill (stretched), crop
+    # (filled), or the main camera sized by main_width (% of the picture's width) with
+    # the panels sharing the room around it: own (its own shape, from `aspects`, so the
+    # panels move with the camera shown) or fixed (the main_ratio shape; the camera
+    # fitted whole within it); panel_min: own, fixed: the % a panel with cameras keeps
+    # beside the main one.
+    **{k: o["default"] for k, o in LAYOUT["main"].items()},
     "stale": 30,  # seconds: a camera picture older than this is marked Stale
     # Track motion (done by the integration), seconds: how long a switch holds before
     # another, how long after the last motion it goes back to the camera chosen by hand
@@ -134,29 +134,10 @@ EMPTY_COMMANDER = {
     # centre: the same, in the middle, the spare room shared at both ends);
     # `lines`, the rows (top, bottom) or columns
     # (left, right) its cameras are shared between; `hidden`, off the view entirely
-    # (no room, no tiles; its cameras kept for when it is shown again).
-    "left": {"cameras": [], "size": 15, "fit": "cover", "lines": 1, "hidden": False},
-    # Top and bottom: an anchored end runs to the view's edge, and the side panel stops
-    # at it; an end not anchored stops at the side panel, which runs to the view's edge.
-    "top": {
-        "cameras": [],
-        "size": 18,
-        "fit": "cover",
-        "anchor_left": False,
-        "anchor_right": False,
-        "lines": 1,
-        "hidden": False,
-    },
-    "right": {"cameras": [], "size": 15, "fit": "cover", "lines": 1, "hidden": False},
-    "bottom": {
-        "cameras": [],
-        "size": 20,
-        "fit": "cover",
-        "anchor_left": True,
-        "anchor_right": True,
-        "lines": 1,
-        "hidden": False,
-    },
+    # (no room, no tiles; its cameras kept for when it is shown again). Top and bottom:
+    # an anchored end runs to the view's edge, and the side panel stops at it; an end
+    # not anchored stops at the side panel, which runs to the view's edge.
+    **{p: {"cameras": [], **d} for p, d in LAYOUT["panels"].items()},
 }
 
 

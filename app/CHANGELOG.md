@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.10.3-b5
+
+- New Lovelace cards, installed with the integration (first version, for testing):
+  - **Casa Mia tablet layout** fills the screen exactly, with nothing to scroll. Panels of cards on the left, top, right and bottom sit around a main card, using the same layout options as a Camera Commander. A panel can have visibility conditions, and an empty one takes no room.
+  - **Casa Mia Camera Commander** shows any commander on any dashboard. Tap a camera to make it the main one, or tap the main camera to open its live page.
+  - **Casa Mia section** is a section's grid of cards that hides while none of its counting cards is showing, so a "Warnings" heading needs no condition of its own.
+- Camera Dashboard: the commander layout options now share their names, help and defaults with the tablet layout card.
+
 ## 2026.10.3-b4
 
 - Camera Dashboard: the Revert draft and Revert preview buttons sit on one line.

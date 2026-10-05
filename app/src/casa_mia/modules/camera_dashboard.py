@@ -45,6 +45,7 @@ from ..ha import HA, HAError
 from .compositor import (
     DRAFT_STORE,
     EMPTY_COMMANDER,
+    LAYOUT,
     LIVE_STORE,
     PANELS,
     PORT,
@@ -960,6 +961,7 @@ class CameraDashboard:
                         "cameras": {},
                         "main": None,
                         "motion": {**EMPTY_COMMANDER["motion"], **cmd["motion"]},
+                        "card": self._card(cmd, cfg.titles),
                     },
                 )
                 for e in commander_cameras(cmd):
@@ -969,6 +971,34 @@ class CameraDashboard:
         for one in out.values():
             one["options"] = list(dict.fromkeys(one["cameras"].values()))
         return list(out.values())
+
+    def _card(self, cmd: dict, titles: dict[str, str]) -> dict[str, Any]:
+        """What the Camera Commander card draws a commander from (its Main camera
+        select's `card` attribute): the layout (it lays it out with the same engine, so
+        its taps line up), its picture's address, the main camera at start, and each
+        camera's title (its select's option) and live page on the dashboard."""
+        try:
+            url_path, base = self._target(self.store, True)
+        except BadRequest:  # the LAN address not known yet: no picture until it is
+            url_path, base = self.store["dashboard"], ""
+        mine = commander_cameras(cmd)
+        keys = ("width", "height", "aspects", "highlight", *LAYOUT["main"], *PANELS)
+        return {
+            "picture": f"{base}/g/{slug(cmd['name'])}.mjpg" if base else "",
+            "layout": {k: cmd[k] for k in keys},
+            "start": cmd["main"]
+            if cmd.get("main") in mine
+            else mine[0]
+            if mine
+            else "",
+            "cameras": {
+                e: {
+                    "title": titles.get(e, e),
+                    "live": f"/{url_path}/cam-{slug(titles.get(e, e))}",
+                }
+                for e in mine
+            },
+        }
 
     def commander(self) -> dict[str, Any]:
         """The first commander there was (id ""), as an integration from before there

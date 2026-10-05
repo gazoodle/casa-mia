@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Build the Lovelace cards (integration/cards) into the integration's www/cm-cards.js and
+# stamp them with their source hash. The output is committed: the box needs no Node.
+# tests/test_web_build.py fails if the sources change without running this.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+(cd integration/cards && { [ -d node_modules ] || npm ci --no-audit --no-fund; } && npm run build && npm test)
+.venv/bin/python tools/web_hash.py --write cards
+echo "built integration/custom_components/casa_mia/www/cm-cards.js; commit it with the sources"
