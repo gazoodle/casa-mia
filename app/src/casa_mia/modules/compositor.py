@@ -19,6 +19,7 @@ Ported from tablet-provision/composite-test/server.py.
                           name as a slug: /g/cameras.jpg for the commander Cameras
   GET /g/<name>.mjpg      self-updating multipart stream, one frame per interval
   GET /                   links; GET /status  cache ages and open streams
+  GET /size-test          a commander at exactly the window's size, with the figures
 
 Config is the Camera Dashboard's store in the app's config folder:
 camera-dashboard-live.json (what was last deployed); the draft compositor reads the draft,
@@ -118,6 +119,11 @@ EMPTY_COMMANDER = {
     # another, how long after the last motion it goes back to the camera chosen by hand
     # (0: it stays), and how long a choice by hand pauses tracking.
     "motion": {"hold": 10, "back": 30, "pause": 120},
+    # Debug options: the whole picture dimmed to `dim` %, an L in each corner (`corner`
+    # px long) and both diagonals, `width` px wide in `colour`, and over it the picture's
+    # ID (name, size, scale) and when it was drawn. The Camera Commander card adds its
+    # own numbers while it is on. px are CSS px (grown by the scale, as the text is).
+    "debug": {"on": False, "dim": 20, "corner": 40, "width": 2, "colour": "#ffd60a"},
     # The outline the dashboard lays over the main camera's tile (the browser draws it):
     # colour, width and blur (glow) in px, and a pulse every `pulse` seconds (0: steady)
     # in a style: breathe (the glow swells and fades) or ripple (a ring spreads out).
@@ -668,7 +674,48 @@ def commander(
             if w > 0 and h > 0:
                 solid.rectangle((x, y, x + w - 1, y + h - 1), fill=255)
         canvas.putalpha(mask)
+    debug = {**EMPTY_COMMANDER["debug"], **(cmd.get("debug") or {})}
+    if debug["on"]:
+        canvas = _debug(canvas, cmd, debug, scale)
     return encode(canvas, JPEG_QUALITY)
+
+
+def _debug(canvas: Image.Image, cmd: dict, debug: dict, scale: float) -> Image.Image:
+    """The debug overlay (see EMPTY_COMMANDER["debug"]): everything dimmed (the clear
+    parts stay clear), corner Ls and diagonals to show the picture's true edges, and
+    its ID and draw time 30% down the middle, clear of the corners and the crossing."""
+    w, h = canvas.size
+    rgb = canvas.convert("RGB").point(lambda v: v * float(debug["dim"]) / 100)
+    if canvas.mode == "RGBA":
+        rgb.putalpha(canvas.getchannel("A"))
+    canvas = rgb
+    draw = ImageDraw.Draw(canvas)
+    colour, lw = debug["colour"], max(1, round(float(debug["width"]) * scale))
+    arm, edge = round(float(debug["corner"]) * scale), lw // 2
+    for x, y, dx, dy in (
+        (0, 0, 1, 1),
+        (w - 1, 0, -1, 1),
+        (0, h - 1, 1, -1),
+        (w - 1, h - 1, -1, -1),
+    ):
+        cx, cy = x + dx * edge, y + dy * edge
+        draw.line((cx, cy, cx + dx * arm, cy), fill=colour, width=lw)
+        draw.line((cx, cy, cx, cy + dy * arm), fill=colour, width=lw)
+    draw.line((0, 0, w - 1, h - 1), fill=colour, width=lw)
+    draw.line((w - 1, 0, 0, h - 1), fill=colour, width=lw)
+    font = _fonts(scale)[1]
+    text = (
+        f"{cmd['name']}  {w} x {h}  @{scale:g}x\n"
+        f"drawn {datetime.now().strftime('%H:%M:%S.%f')[:-3]}"
+    )
+    at = (w // 2, round(h * 0.3))
+    box = draw.multiline_textbbox(at, text, font=font, anchor="mm", align="center")
+    pad = round(10 * scale)
+    draw.rectangle(
+        (box[0] - pad, box[1] - pad, box[2] + pad, box[3] + pad), fill=(0, 0, 0)
+    )
+    draw.multiline_text(at, text, fill=colour, font=font, anchor="mm", align="center")
+    return canvas
 
 
 # --- the service ----------------------------------------------------------------------
@@ -1006,6 +1053,7 @@ class Compositor:
                 [
                     web.get("/", self._index),
                     web.get("/status", self._status),
+                    web.get("/size-test", self._size_test),
                     web.get("/g/{name}.jpg", self._jpg),
                     web.get("/g/{name}.mjpg", self._mjpg),
                 ]
@@ -1536,6 +1584,12 @@ class Compositor:
             self._open[key] -= 1
         return resp
 
+    async def _size_test(self, request: web.Request) -> web.Response:
+        """A page asking for a commander at exactly the window's size, as a card does,
+        showing what it asked for and what came back (resize it to test end to end)."""
+        page = Path(__file__).with_name("size-test.html").read_text()
+        return web.Response(text=page, content_type="text/html")
+
     async def _status(self, request: web.Request) -> web.Response:
         return web.json_response(self._status_now())
 
@@ -1616,15 +1670,25 @@ class Compositor:
 # --- the Camera compositor page and the integration's buttons ------------------------
 
 
-def admin_api(live: Compositor, draft: Compositor | None):
+def admin_api(
+    live: Compositor,
+    draft: Compositor | None,
+    host: Callable[[], str | None] = lambda: None,
+):
     """The Camera compositor page's API (/api/compositor/): GET / is what the live
     compositor (dashboards, wall tablets) and the draft one (previews, Show the draft
-    cards) serve now; POST restart (both engines), <live|draft>/flush, and
-    <live|draft>/forget {"camera": <entity>} answer with it afresh."""
+    cards) serve now, each with its size test page's address on the LAN (`host`: this
+    box's LAN address, when known); POST restart (both engines), <live|draft>/flush,
+    and <live|draft>/forget {"camera": <entity>} answer with it afresh."""
     engines = {"live": live, "draft": draft}
 
+    def one(engine: Compositor) -> dict[str, Any]:
+        at = host()
+        test = f"http://{at}:{engine.port}/size-test" if at else None
+        return {**engine.status(), "size_test": test}
+
     def status() -> tuple[int, str, bytes]:
-        data = {"live": live.status(), "draft": draft.status() if draft else None}
+        data = {"live": one(live), "draft": one(draft) if draft else None}
         return 200, "application/json", json.dumps(data).encode()
 
     def fail(code: int, error: str) -> tuple[int, str, bytes]:

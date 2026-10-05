@@ -987,7 +987,15 @@ class CameraDashboard:
         except BadRequest:  # the LAN address not known yet: no picture until it is
             url_path, base = self.store["dashboard"], ""
         mine = commander_cameras(cmd)
-        keys = ("width", "height", "aspects", "highlight", *LAYOUT["main"], *PANELS)
+        keys = (
+            "width",
+            "height",
+            "aspects",
+            "highlight",
+            "debug",
+            *LAYOUT["main"],
+            *PANELS,
+        )
         return {
             "picture": f"{base}/g/{slug(cmd['name'])}.mjpg" if base else "",
             "layout": {k: cmd[k] for k in keys},

@@ -29,6 +29,8 @@ type Status = {
   pictures?: Picture[];
   devices?: Record<string, number>;
   stills?: Still[];
+  /** Its size test page on the LAN (the box's address known), for a new window. */
+  size_test?: string | null;
 };
 
 export function CompositorPage({ state }: { state?: string }) {
@@ -145,6 +147,16 @@ function Compositor({
           </button>
         }
       />
+      {s.size_test && (
+        <p>
+          <a href={s.size_test} target="_blank" rel="noopener">
+            Size test ↗
+          </a>{" "}
+          <span className={guest.rowMeta}>
+            a commander at exactly a browser window's size, with what was asked for and what came back (on this network only)
+          </span>
+        </p>
+      )}
       {s.error && <p className={guest.empty}>{s.error}</p>}
       {s.needs && <Empty>It needs {s.needs}.</Empty>}
       <h3>Pictures</h3>

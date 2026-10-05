@@ -87,6 +87,10 @@ def test_serves_the_commander(compositor):
         (800, 1280, True),
     }
     assert {s["title"] for s in status["stills"]} == {"A", "B"}
+    with urllib.request.urlopen(f"{base}/size-test") as r:  # the end-to-end size page
+        assert b"askFor" in r.read() and r.headers["Content-Type"].startswith(
+            "text/html"
+        )
     for gone in ("nope", "overview"):  # nothing else, groups and overviews are gone
         with pytest.raises(urllib.error.HTTPError) as err:
             urllib.request.urlopen(f"{base}/g/{gone}.jpg")
@@ -315,11 +319,12 @@ def test_a_kept_still_has_its_real_age(tmp_path):
 def test_the_pages_controls_restart_flush_and_forget(compositor):
     from casa_mia.modules.compositor import admin_api, control
 
-    api = admin_api(compositor, None)
+    api = admin_api(compositor, None, lambda: "10.0.0.2")
     base = f"http://127.0.0.1:{compositor.port}"
     urllib.request.urlopen(f"{base}/g/cameras.jpg").read()  # something cached
     status = json.loads(api("GET", "", {}, b"")[2])["live"]
     assert status["stills"] and status["pictures"]
+    assert status["size_test"] == f"http://10.0.0.2:{compositor.port}/size-test"
     # one camera's stills forgotten; the rest kept
     out = json.loads(api("POST", "live/forget", {}, b'{"camera": "camera.a"}')[2])
     assert "camera.a" not in {s["camera"] for s in out["live"]["stills"]}
@@ -333,3 +338,32 @@ def test_the_pages_controls_restart_flush_and_forget(compositor):
     with urllib.request.urlopen(f"{base}/g/cameras.jpg") as r:
         assert r.status == 200
     assert control(compositor, None)("flush", b'{"which": "live"}') == 200
+
+
+def rgb(img: Image.Image, at: tuple[int, int]) -> tuple[int, ...]:
+    pixel = img.getpixel(at)
+    assert isinstance(pixel, tuple)
+    return pixel
+
+
+def test_debug_overlay_dims_and_marks_the_true_edges():
+    from casa_mia.modules.compositor import EMPTY_COMMANDER, commander
+
+    cmd = {**EMPTY_COMMANDER, "width": 400, "height": 200, "gap": 0, "main_fit": "crop"}
+    cmd["bottom"] = {"cameras": ["camera.a"], "size": 20, "fit": "cover"}
+    white = io.BytesIO()
+    Image.new("RGB", (160, 90), "white").save(white, "JPEG")
+    on = {"on": True, "dim": 20, "colour": "#ff0000", "width": 4, "corner": 40}
+    pic = Image.open(
+        io.BytesIO(
+            commander({**cmd, "debug": on}, {}, {}, "camera.a", white.getvalue())
+        )
+    ).convert("RGB")
+    r, g, b = rgb(pic, (20, 2))  # along the top-left L
+    assert r > 200 and g < 60 and b < 60
+    r, g, b = rgb(pic, (200, 20))  # the main camera, white dimmed to ~20%
+    assert 30 < r < 80 and abs(r - g) < 10
+    off = Image.open(
+        io.BytesIO(commander(cmd, {}, {}, "camera.a", white.getvalue()))
+    ).convert("RGB")
+    assert rgb(off, (200, 20))[0] > 200  # off: as it was

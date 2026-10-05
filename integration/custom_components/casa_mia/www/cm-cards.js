@@ -1066,8 +1066,10 @@ function Xe(e) {
 }
 var Ze = class extends U {
 	constructor(...e) {
-		super(...e), this._size = null, this.settle = 0, this.resize = new ResizeObserver(([e]) => {
-			let { width: t, height: n } = e.contentRect, r = Ye(t, n, window.devicePixelRatio || 1);
+		super(...e), this._natural = "", this._size = null, this._box = [0, 0], this.settle = 0, this.resize = new ResizeObserver(([e]) => {
+			let { width: t, height: n } = e.contentRect;
+			this._box = [Math.round(t * 10) / 10, Math.round(n * 10) / 10], this.debugOn() && this.requestUpdate();
+			let r = Ye(t, n, window.devicePixelRatio || 1);
 			clearTimeout(this.settle), String(r) !== String(this._size) && (this._size ? this.settle = window.setTimeout(() => this._size = r, Je) : this._size = r);
 		});
 	}
@@ -1075,8 +1077,12 @@ var Ze = class extends U {
 		this.properties = {
 			hass: { attribute: !1 },
 			_config: { state: !0 },
-			_size: { state: !0 }
+			_size: { state: !0 },
+			_natural: { state: !0 }
 		};
+	}
+	debugOn() {
+		return !!((this._config?.entity ? this.hass?.states[this._config.entity] : void 0)?.attributes[this._config?.draft ? "draft_card" : "card"])?.layout.debug?.on;
 	}
 	disconnectedCallback() {
 		super.disconnectedCallback(), this.resize.disconnect(), clearTimeout(this.settle);
@@ -1084,6 +1090,8 @@ var Ze = class extends U {
 	updated() {
 		let e = this.renderRoot.querySelector(".box");
 		e && this.resize.observe(e);
+		let t = this.renderRoot.querySelector(".picture"), n = t?.naturalWidth ? `${t.naturalWidth} x ${t.naturalHeight}` : "";
+		this.debugOn() && n && n !== this._natural && (this._natural = n);
 	}
 	static getConfigElement() {
 		return document.createElement("casa-mia-commander-editor");
@@ -1127,7 +1135,19 @@ var Ze = class extends U {
 		} : r, [[c, l], u, d] = $(s, n), f = ([e, t, n, r]) => `left:${e / c * 100}%;top:${t / l * 100}%;width:${n / c * 100}%;height:${r / l * 100}%`, p = s.highlight ?? {}, m = Y.flatMap((e) => s[e].cameras.map((t, n) => [t, d[e][n]])).find(([e]) => e === n)?.[1];
 		return P`<ha-card style="aspect-ratio:${r.width}/${r.height}">
       <div class="box">
-        ${this._size ? P`<img class="picture" src="${t.picture}?w=${i}&h=${a}&dpr=${o}" alt="" />` : I}
+        ${this._size ? P`<img
+              class="picture"
+              src="${t.picture}?w=${i}&h=${a}&dpr=${o}"
+              alt=""
+              @load=${(e) => {
+			let t = e.target;
+			this._natural = `${t.naturalWidth} x ${t.naturalHeight}`;
+		}}
+            />` : I}
+        ${r.debug?.on ? P`<div class="debug" style="color:${r.debug.colour ?? "#ffd60a"}">
+              card box ${this._box[0]} x ${this._box[1]} CSS px, screen ${window.devicePixelRatio}x<br />
+              asked ${this._size ? `${i} x ${a} @${o}x` : "nothing yet"}; picture ${this._natural || "not loaded"}
+            </div>` : I}
         ${Y.flatMap((e) => s[e].cameras.map((r, i) => d[e][i][2] > 0 && r !== n ? P`<div class="zone" style=${f(d[e][i])} title=${t.cameras[r]?.title ?? r} @click=${() => this.choose(t, r)}></div>` : I))}
         <div class="zone" style=${f(u)} @click=${() => this.open(t, n)}></div>
         ${m && m[2] > 0 ? P`<img
@@ -1179,6 +1199,20 @@ var Ze = class extends U {
       cursor: pointer;
     }
     .highlight {
+      pointer-events: none;
+    }
+    /* Debug: the card's own figures, 70% down the middle (the compositor's are 30% down),
+       clear of the corners and the crossing. */
+    .debug {
+      position: absolute;
+      left: 50%;
+      top: 70%;
+      transform: translate(-50%, -50%);
+      padding: 4px 10px;
+      background: #000;
+      font: 13px/1.4 ui-monospace, monospace;
+      text-align: center;
+      white-space: nowrap;
       pointer-events: none;
     }
     .note {

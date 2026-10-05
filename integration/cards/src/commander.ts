@@ -17,7 +17,7 @@ import { layout, PANELS, pyRound, type Rect, type Settings } from "./layout.ts";
 type Config = { type: string; entity?: string; draft?: boolean; tap_main?: "live" | "more-info" | "none" };
 type Card = {
   picture: string;
-  layout: Settings & { highlight?: Record<string, string | number> };
+  layout: Settings & { highlight?: Record<string, string | number>; debug?: { on?: boolean; colour?: string } };
   start: string;
   cameras: Record<string, { title: string; live: string }>;
 };
@@ -45,13 +45,22 @@ export function commanders(hass: Hass): { value: string; label: string }[] {
 }
 
 class CommanderCard extends LitElement {
-  static properties = { hass: { attribute: false }, _config: { state: true }, _size: { state: true } };
+  static properties = { hass: { attribute: false }, _config: { state: true }, _size: { state: true }, _natural: { state: true } };
+  _natural = ""; // the picture's own size as the browser decoded it (debug)
+
+  private debugOn(): boolean {
+    const st = this._config?.entity ? this.hass?.states[this._config.entity] : undefined;
+    return Boolean((st?.attributes[this._config?.draft ? "draft_card" : "card"] as Card | undefined)?.layout.debug?.on);
+  }
   hass?: Hass;
   _config?: Config;
   _size: Size | null = null; // the picture asked for: this card's size, once it settles
+  _box: [number, number] = [0, 0]; // this card's box now, CSS px (for the debug figures)
   private settle = 0;
   private resize = new ResizeObserver(([entry]) => {
     const { width, height } = entry.contentRect;
+    this._box = [Math.round(width * 10) / 10, Math.round(height * 10) / 10];
+    if (this.debugOn()) this.requestUpdate();
     const size = askFor(width, height, window.devicePixelRatio || 1);
     clearTimeout(this.settle);
     if (String(size) === String(this._size)) return;
@@ -67,6 +76,10 @@ class CommanderCard extends LitElement {
   updated() {
     const box = this.renderRoot.querySelector(".box");
     if (box) this.resize.observe(box);
+    // Debug: the picture's own size as decoded (a stream may never fire load)
+    const img = this.renderRoot.querySelector<HTMLImageElement>(".picture");
+    const natural = img?.naturalWidth ? `${img.naturalWidth} x ${img.naturalHeight}` : "";
+    if (this.debugOn() && natural && natural !== this._natural) this._natural = natural;
   }
 
   static getConfigElement() {
@@ -118,7 +131,23 @@ class CommanderCard extends LitElement {
     const mark = PANELS.flatMap((p) => s[p].cameras.map((e, i) => [e, tiles[p][i]] as const)).find(([e]) => e === main)?.[1];
     return html`<ha-card style="aspect-ratio:${own.width}/${own.height}">
       <div class="box">
-        ${this._size ? html`<img class="picture" src="${card.picture}?w=${W}&h=${H}&dpr=${scale}" alt="" />` : nothing}
+        ${this._size
+          ? html`<img
+              class="picture"
+              src="${card.picture}?w=${W}&h=${H}&dpr=${scale}"
+              alt=""
+              @load=${(ev: Event) => {
+                const img = ev.target as HTMLImageElement;
+                this._natural = `${img.naturalWidth} x ${img.naturalHeight}`;
+              }}
+            />`
+          : nothing}
+        ${own.debug?.on
+          ? html`<div class="debug" style="color:${own.debug.colour ?? "#ffd60a"}">
+              card box ${this._box[0]} x ${this._box[1]} CSS px, screen ${window.devicePixelRatio}x<br />
+              asked ${this._size ? `${W} x ${H} @${scale}x` : "nothing yet"}; picture ${this._natural || "not loaded"}
+            </div>`
+          : nothing}
         ${PANELS.flatMap((p) =>
           s[p].cameras.map((e, i) =>
             tiles[p][i][2] > 0 && e !== main
@@ -181,6 +210,20 @@ class CommanderCard extends LitElement {
       cursor: pointer;
     }
     .highlight {
+      pointer-events: none;
+    }
+    /* Debug: the card's own figures, 70% down the middle (the compositor's are 30% down),
+       clear of the corners and the crossing. */
+    .debug {
+      position: absolute;
+      left: 50%;
+      top: 70%;
+      transform: translate(-50%, -50%);
+      padding: 4px 10px;
+      background: #000;
+      font: 13px/1.4 ui-monospace, monospace;
+      text-align: center;
+      white-space: nowrap;
       pointer-events: none;
     }
     .note {

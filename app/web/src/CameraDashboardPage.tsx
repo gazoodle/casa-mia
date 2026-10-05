@@ -42,6 +42,8 @@ type Camera = {
 type Highlight = { colour: string; width: number; blur: number; pulse: number; style: "breathe" | "ripple" };
 const HIGHLIGHT: Highlight = { colour: "#7bd1a0", width: 2, blur: 13, pulse: 1.8, style: "breathe" };
 const MOTION = { hold: 10, back: 30, pause: 120 };
+type Debug = { on: boolean; dim: number; corner: number; width: number; colour: string };
+const DEBUG: Debug = { on: false, dim: 20, corner: 40, width: 2, colour: "#ffd60a" };
 // The integration's switches (Camera Commander device), flipped from here through the app.
 const SHOW_LOOK = "casa-mia:show-look"; // localStorage: the look on this page's previews
 
@@ -86,6 +88,8 @@ type Commander = {
   stale?: number;
   /** The outline on the main camera's tile, drawn by the browser on the dashboard. */
   highlight?: Highlight;
+  /** Debug options: the picture dimmed, corner Ls and diagonals, its ID and draw time. */
+  debug?: Debug;
   /** Track motion (done by the integration), seconds. back 0: stays on the motion camera. */
   motion?: { hold: number; back: number; pause: number };
 } & Record<(typeof PANELS)[number], Panel>;
@@ -824,6 +828,7 @@ function CommanderEditor({
   const inPanels = [...new Set(PANELS.flatMap((p) => value[p].cameras))];
   const sized = value.main_fit === "own" || value.main_fit === "fixed"; // the panels take the rest
   const lit = { ...HIGHLIGHT, ...value.highlight };
+  const dbg = { ...DEBUG, ...value.debug };
   const moves = { ...MOTION, ...value.motion };
   return (
     <div className={css.commander}>
@@ -963,6 +968,32 @@ function CommanderEditor({
               }
             />
           </Field>
+        </section>
+        <section className={`${css.options} ${css.numbers}`}>
+          <h4 className={css.sub}>Debug options</h4>
+          <div className={css.wide}>
+            <Field
+              label="Debug"
+              help="Dims the whole picture and draws an L in each corner and both diagonals, so its true edges show, with its ID (name, size, scale) and when it was drawn. Camera Commander cards add their own figures. Saved in the draft, it shows on the preview and Show the draft cards first."
+            >
+              <Switch on={dbg.on} label="Debug" onChange={(on) => set((c) => (c.debug = { ...dbg, on }))} />
+            </Field>
+          </div>
+          {dbg.on && (
+            <>
+              <Num label="Dim to, %" value={dbg.dim} onChange={(n) => set((c) => (c.debug = { ...dbg, dim: Math.min(100, Math.max(0, n)) }))} />
+              <Num label="Corner L, px" value={dbg.corner} onChange={(n) => set((c) => (c.debug = { ...dbg, corner: n }))} />
+              <Num label="Line width, px" value={dbg.width} onChange={(n) => set((c) => (c.debug = { ...dbg, width: n }))} />
+              <Field label="Line colour">
+                <input
+                  type="color"
+                  className={css.colour}
+                  value={dbg.colour}
+                  onChange={(e) => set((c) => (c.debug = { ...dbg, colour: e.target.value }))}
+                />
+              </Field>
+            </>
+          )}
         </section>
         <section className={`${css.options} ${css.numbers}`}>
           <h4 className={css.sub}>Track motion</h4>

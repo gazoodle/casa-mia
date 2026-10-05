@@ -193,7 +193,14 @@ def main() -> int:
     if compositor:
         compositor.start()
         modules["compositor"] = compositor.health
-        api["/api/compositor/"] = admin_api(compositor, draft)
+        # The size test pages' address: the compositor host set on the Camera Dashboard
+        # page, else this box's LAN address.
+        dashboard = cameras if cameras_on else None
+        api["/api/compositor/"] = admin_api(
+            compositor,
+            draft,
+            lambda: (dashboard and dashboard.store["compositor_host"]) or lan_ip(),
+        )
         post_handlers["/compositor/"] = control(compositor, draft)  # its buttons
     else:
         modules["compositor"] = lambda: {"state": "disabled"}
