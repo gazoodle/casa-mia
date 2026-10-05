@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b18
+
+- Tablet view (first step): a new dashboard view type, `custom:casa-mia-tablet-view`. It is Home Assistant's Sections view locked to the screen below the header, so the page never scrolls, Safari's toolbars included; in edit mode it scrolls inside itself. `debug: true` shows its size.
+
 ## 2026.10.3-b17
 
 - Cards: alone in a Panel view, the Camera Commander and the Tablet layout are given the whole space (from the sidebar's edge to the screen's right, from the header's foot to the screen's bottom) and only fill it. A Commander card is always the full width of its space. On a phone it could come out narrower, when its shape was capped to fit the screen's height.

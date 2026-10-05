@@ -45,6 +45,22 @@ export async function stackEditor(): Promise<StackEditor> {
   return (customElements.get("hui-vertical-stack-card") as any).getConfigElement();
 }
 
+/** HA's Sections view class. HA loads it only when a Sections view is first shown, so a
+ * hidden hui-view showing an empty one makes it load. */
+export async function sectionsView(): Promise<CustomElementConstructor> {
+  if (!customElements.get("hui-sections-view")) {
+    await customElements.whenDefined("hui-view");
+    const view = document.createElement("hui-view") as any;
+    view.style.display = "none";
+    view.lovelace = { config: { views: [{ type: "sections", sections: [] }] }, editMode: false };
+    view.index = 0;
+    document.body.append(view);
+    await customElements.whenDefined("hui-sections-view");
+    view.remove();
+  }
+  return customElements.get("hui-sections-view")!;
+}
+
 /** Define a custom element, once: a second copy of this file (cm-streams.js loads it
  * again when the first load failed) finds it defined and leaves it. A failure says so in
  * the console, which Kiosk Satellite keeps (getConsole), so a dead card has a reason. */
