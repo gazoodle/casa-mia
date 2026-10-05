@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b1
+
+- Admin UI build tools updated: Vite 8 and the React plugin 6. The panel looks and works the same.
+
 ## 2026.10.2
 
 - Screenshot swap: the Kiosk Satellite page (proxied) shows the stand-ins in its text too, as it is drawn; its form fields keep the real values.
