@@ -717,7 +717,8 @@ class Compositor:
         self._sizes: dict[str, dict[Size | None, None]] = {}
         self._warm_until = -LINGER  # prewarm: every commander gathered until then
         self._http: aiohttp.ClientSession | None = None
-        self._latest: dict[str, bytes] = {}  # camera -> its latest still (keep_stills)
+        # Camera -> its latest still (keep_stills) and when it was fetched.
+        self._latest: dict[str, tuple[float, bytes]] = {}
         self._thumbs: dict[
             tuple[str, int], tuple[bytes, bytes]
         ] = {}  # -> (source, thumb)
@@ -816,7 +817,7 @@ class Compositor:
     def _last_still(self, entity: str) -> bytes | None:
         """The newest still already to hand for a camera (the largest), without asking HA."""
         if entity in self._latest:
-            return self._latest[entity]
+            return self._latest[entity][1]
         shots = [(size[0], v[1]) for (e, size), v in self._shots.items() if e == entity]
         done = [
             (size[0], hit[1].result())
@@ -1024,7 +1025,7 @@ class Compositor:
             async with limit:
                 image = await self._fetch_now(entity, LATEST_SIZE)
             if image is not None:
-                self._latest[entity] = image
+                self._latest[entity] = (time.monotonic(), image)
             return image is not None
 
         while True:
@@ -1049,8 +1050,8 @@ class Compositor:
             image = await self._fetch(entity, LATEST_SIZE)
             if image is None:
                 return None
-            self._latest[entity] = image
-        return self._latest[entity]
+            self._latest[entity] = (time.monotonic(), image)
+        return self._latest[entity][1]
 
     # -- gathering and drawing
 
@@ -1175,7 +1176,9 @@ class Compositor:
             hit = max(others, key=lambda v: v[0]) if others else None
         if hit is not None:
             return hit[1], time.monotonic() - hit[0]
-        return self._latest.get(entity), math.inf
+        if kept := self._latest.get(entity):  # a kept still: its real age
+            return kept[1], time.monotonic() - kept[0]
+        return None, math.inf
 
     async def _draw(self, cmd: dict, changing: bool = False) -> bytes:
         """Draw a commander from the cache (in a worker thread), keep it as its latest

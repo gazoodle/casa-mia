@@ -269,3 +269,13 @@ def test_a_size_asked_for_grows_gap_and_text_by_the_screens_scale():
         1.5,
     )
     assert cmd["view"] == "cameras@1280x800x1.5"
+
+
+def test_a_kept_still_has_its_real_age(tmp_path):
+    # The draft compositor's first picture may come from the kept stills (every 60 s):
+    # their age is known, so a fresh one is not marked Stale.
+    comp = Compositor(tmp_path, "http://127.0.0.1:1", "t", port=0)
+    comp._latest["camera.a"] = (time.monotonic() - 10, jpeg())
+    image, age = comp._pick("camera.a", (160, 90))
+    assert image and 9 < age < 11
+    assert comp._pick("camera.b", None) == (None, float("inf"))
