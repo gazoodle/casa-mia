@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.3-b11
+
+- Camera compositor page: Restart stops both engines (live and draft) and starts them again. Flush cache on each panel forgets every still and picture, then fetches and draws only what is asked for. A bin at the start of each camera still's row forgets just that still, which is fetched again next round.
+- Integration: new Camera compositor device with Restart, Flush live cache and Flush preview cache buttons, for automations too.
+
 ## 2026.10.3-b10
 
 - Camera compositor: when no camera answers at all (Home Assistant restarting, or out of reach), no camera is counted as missing. Before, every camera could be sidelined together for 10 minutes, and the pictures stayed half empty.

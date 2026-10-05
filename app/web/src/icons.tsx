@@ -80,3 +80,10 @@ export const TabletIcon = () => (
     <path d="M6.5 9h6M6.5 12.5h9M18 12h.01" />
   </svg>
 );
+
+/** A rubbish bin, small: for removing one thing from a list. */
+export const BinIcon = () => (
+  <svg {...base} width={16} height={16}>
+    <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
+  </svg>
+);

@@ -67,6 +67,7 @@ MODULE_DEVICES = {
     "gitproxy": "Firmware server",
     "guest_login": "Guest login",
     "camera_dashboard": "Camera Commander",
+    "compositor": "Camera compositor",
 }
 
 

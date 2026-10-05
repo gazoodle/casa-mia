@@ -310,3 +310,26 @@ def test_a_kept_still_has_its_real_age(tmp_path):
     image, age = comp._pick("camera.a", (160, 90))
     assert image and 9 < age < 11
     assert comp._pick("camera.b", None) == (None, float("inf"))
+
+
+def test_the_pages_controls_restart_flush_and_forget(compositor):
+    from casa_mia.modules.compositor import admin_api, control
+
+    api = admin_api(compositor, None)
+    base = f"http://127.0.0.1:{compositor.port}"
+    urllib.request.urlopen(f"{base}/g/cameras.jpg").read()  # something cached
+    status = json.loads(api("GET", "", {}, b"")[2])["live"]
+    assert status["stills"] and status["pictures"]
+    # one camera's stills forgotten; the rest kept
+    out = json.loads(api("POST", "live/forget", {}, b'{"camera": "camera.a"}')[2])
+    assert "camera.a" not in {s["camera"] for s in out["live"]["stills"]}
+    assert api("POST", "live/forget", {}, b"{}")[0] == 400
+    # flushed: nothing kept, drawn afresh when asked
+    out = json.loads(api("POST", "live/flush", {}, b"")[2])
+    assert not out["live"]["stills"] and not out["live"]["pictures"]
+    assert api("POST", "draft/flush", {}, b"")[0] == 404  # no draft engine here
+    # restarted (the integration's button): serving again, on the same port
+    assert control(compositor, None)("restart", b"") == 200
+    with urllib.request.urlopen(f"{base}/g/cameras.jpg") as r:
+        assert r.status == 200
+    assert control(compositor, None)("flush", b'{"which": "live"}') == 200

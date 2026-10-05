@@ -45,7 +45,13 @@
       "fona_text": { "name": "Text", "state_attributes": { "event_type": { "state": { "authorised": "Authorised", "intrusion": "Intrusion" } } } }
     },
     "binary_sensor": { "gitproxy_downloading": { "name": "Downloading firmware" } },
-    "button": { "gitproxy_check": { "name": "Force firmware check" }, "fona_reset": { "name": "Reset" } },
+    "button": {
+      "gitproxy_check": { "name": "Force firmware check" },
+      "fona_reset": { "name": "Reset" },
+      "compositor_restart": { "name": "Restart" },
+      "compositor_flush_live": { "name": "Flush live cache" },
+      "compositor_flush_preview": { "name": "Flush preview cache" }
+    },
     "sensor": {
       "app_version": { "name": "App version" },
       "fona_state": {

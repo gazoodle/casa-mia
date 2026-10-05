@@ -1,16 +1,20 @@
 /** Camera compositor: what the live compositor (the dashboards, the wall tablets) and the
  * draft one (previews, Show the draft cards) are serving now: each picture drawn, at each
  * size asked for, the streams open on it and per device, and each camera still with its
- * age. Polled while open. */
+ * age. Polled while open. Restart (both engines), Flush cache (one engine), and a bin per
+ * still (forget it: fetched again next round). */
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "./api";
-import { CameraGridIcon } from "./icons";
+import { BinIcon, CameraGridIcon } from "./icons";
 import { AreaHead, Empty, Shell } from "./page";
+import { Toasts, type Toast } from "./ui";
 import css from "./firmware.module.css";
 import guest from "./guest.module.css";
+import ui from "./ui.module.css";
 
-const { get } = api("compositor");
+const { get, post } = api("compositor");
+type Both = { live: Status; draft: Status | null };
 const POLL_MS = 2000;
 
 type Picture = { commander: string; width: number; height: number; scale: number; asked: boolean; age_s: number; streams: number };
@@ -28,12 +32,18 @@ type Status = {
 };
 
 export function CompositorPage({ state }: { state?: string }) {
-  const [status, setStatus] = useState<{ live: Status; draft: Status | null }>();
+  const [status, setStatus] = useState<Both>();
   const [error, setError] = useState<string>();
+  const [busy, setBusy] = useState(false);
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const toast = useCallback((text: string, tone: Toast["tone"] = "good") => {
+    setToasts((t) => [...t, { text, tone }]);
+    setTimeout(() => setToasts((t) => t.slice(1)), 5000);
+  }, []);
   useEffect(() => {
     if (state !== "running" && state !== "unconfigured") return;
     const load = () =>
-      get<{ live: Status; draft: Status | null }>("").then(
+      get<Both>("").then(
         (s) => (setStatus(s), setError(undefined)),
         (e) => setError((e as Error).message),
       );
@@ -42,24 +52,81 @@ export function CompositorPage({ state }: { state?: string }) {
     return () => clearInterval(timer);
   }, [state]);
 
+  /** A control, then the status it answers with. */
+  const act = async (path: string, done: string, body?: unknown) => {
+    setBusy(true);
+    try {
+      setStatus(await post<Both>(path, body));
+      toast(done);
+    } catch (err) {
+      toast((err as Error).message, "bad");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <Shell
       icon={<CameraGridIcon />}
       title="Camera compositor"
       blurb="What it is drawing and serving now, refreshed every 2 seconds."
       state={state}
+      action={
+        <button
+          className={ui.button}
+          disabled={busy || !status}
+          title="Stop both engines (live and draft) and start them again: settings re-read, every still, picture and stream gone"
+          onClick={() =>
+            confirm("Restart the camera compositor? Every picture on screen stops for a moment.") &&
+            act("restart", "Restarted")
+          }
+        >
+          Restart
+        </button>
+      }
     >
       {error && <p className={guest.empty}>{error}</p>}
       {!status && !error && <Empty>Loading…</Empty>}
-      {status && <Compositor title="Live" blurb="The dashboards and the wall tablets (Camera Commander cards)." s={status.live} />}
-      {status?.draft && (
-        <Compositor title="Draft" blurb="The Camera Dashboard page's previews, and cards with Show the draft." s={status.draft} />
+      {status && (
+        <Compositor
+          title="Live"
+          blurb="The dashboards and the wall tablets (Camera Commander cards)."
+          s={status.live}
+          busy={busy}
+          onFlush={() => act("live/flush", "Live cache flushed")}
+          onForget={(c) => act("live/forget", `Forgot ${c.title}`, { camera: c.camera })}
+        />
       )}
+      {status?.draft && (
+        <Compositor
+          title="Draft"
+          blurb="The Camera Dashboard page's previews, and cards with Show the draft."
+          s={status.draft}
+          busy={busy}
+          onFlush={() => act("draft/flush", "Draft cache flushed")}
+          onForget={(c) => act("draft/forget", `Forgot ${c.title}`, { camera: c.camera })}
+        />
+      )}
+      <Toasts toasts={toasts} />
     </Shell>
   );
 }
 
-function Compositor({ title, blurb, s }: { title: string; blurb: string; s: Status }) {
+function Compositor({
+  title,
+  blurb,
+  s,
+  busy,
+  onFlush,
+  onForget,
+}: {
+  title: string;
+  blurb: string;
+  s: Status;
+  busy: boolean;
+  onFlush: () => void;
+  onForget: (still: Still) => void;
+}) {
   const stale = s.stale_s ?? 30;
   const devices = Object.entries(s.devices ?? {});
   return (
@@ -67,6 +134,16 @@ function Compositor({ title, blurb, s }: { title: string; blurb: string; s: Stat
       <AreaHead
         title={title}
         blurb={`${blurb} Port ${s.port}; ${s.gathering ? "someone is watching: fetching every 2 s" : "nobody watching: fetching nothing"}.`}
+        action={
+          <button
+            className={ui.button}
+            disabled={busy}
+            title="Forget every still and picture: each is fetched and drawn afresh, only as it is asked for"
+            onClick={onFlush}
+          >
+            Flush cache
+          </button>
+        }
       />
       {s.error && <p className={guest.empty}>{s.error}</p>}
       {s.needs && <Empty>It needs {s.needs}.</Empty>}
@@ -103,9 +180,20 @@ function Compositor({ title, blurb, s }: { title: string; blurb: string; s: Stat
       )}
       <h3>Camera stills</h3>
       {s.stills?.length ? (
-        <Table head={["Camera", "Fetched at", "Age", "Missed"]}>
+        <Table head={["", "Camera", "Fetched at", "Age", "Missed"]}>
           {s.stills.map((c) => (
             <tr key={`${c.camera} ${c.width}`}>
+              <td>
+                <button
+                  className={ui.iconButton}
+                  disabled={busy}
+                  onClick={() => onForget(c)}
+                  title="Forget this still: fetched again next round (one sitting out is tried again)"
+                  aria-label={`Forget ${c.title}`}
+                >
+                  <BinIcon />
+                </button>
+              </td>
               <td title={c.camera}>{c.title}</td>
               <td>
                 {c.width} × {c.height}

@@ -37,6 +37,7 @@ import math
 import re
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -908,6 +909,69 @@ class Compositor:
         if self._loop and self._stop:
             self._loop.call_soon_threadsafe(self._stop.set)
 
+    # -- controls (the Camera compositor page, the integration's buttons)
+
+    def _clear(self, entity: str | None = None) -> None:
+        """Forget every still and picture, or one camera's stills (on its loop); they
+        are fetched and drawn afresh, only as they are asked for. A camera sitting out
+        is tried again."""
+        if entity is None:
+            for cache in (self._stills, self._shots, self._pictures, self._latest):
+                cache.clear()
+            self._thumbs.clear()
+            self._misses.clear()
+            self._benched.clear()
+        else:
+            for key in [k for k in self._shots if k[0] == entity]:
+                del self._shots[key]
+            for key in [k for k in self._stills if k[0] == entity]:
+                del self._stills[key]
+            for d in (self._latest, self._misses, self._benched):
+                d.pop(entity, None)
+        for event in (self._next_round, self._round_now):
+            if event:
+                event.set()
+
+    def _on_loop(self, fn: Callable[[], None]) -> None:
+        """Run fn on its loop and wait for it (directly while it is not running)."""
+        if not (self._loop and self._running):
+            fn()
+            return
+
+        async def run() -> None:
+            fn()
+
+        asyncio.run_coroutine_threadsafe(run(), self._loop).result(2)
+
+    def flush(self) -> None:
+        """Empty the cache: every still and picture fetched and drawn afresh."""
+        _LOGGER.info(
+            "compositor (%s): cache flushed; stills and pictures fetched afresh as "
+            "they are asked for",
+            self.store,
+        )
+        self._on_loop(self._clear)
+
+    def forget(self, entity: str) -> None:
+        """Drop one camera's stills (fetched again next round)."""
+        _LOGGER.info("compositor (%s): forgot the stills of %s", self.store, entity)
+        self._on_loop(lambda: self._clear(entity))
+
+    def restart(self) -> None:
+        """Stop the whole engine and start it again: config re-read, every cache and
+        stream gone, the server bound afresh."""
+        _LOGGER.info("compositor (%s): restarting", self.store)
+        self.stop()
+        deadline = time.monotonic() + 10
+        while self._running and time.monotonic() < deadline:
+            time.sleep(0.05)
+        self._loop = None
+        self._clear()
+        for state in (self._streams, self._open, self._asked, self._sizes):
+            state.clear()
+        self._ready.clear()
+        self.start()
+
     def health(self) -> dict[str, Any]:
         if self._running:
             state = "running" if cameras_of(self.cfg.commanders) else "unconfigured"
@@ -1547,3 +1611,68 @@ class Compositor:
             if commander_cameras(c)
         )
         return web.Response(text=f"<ul>{links}</ul>", content_type="text/html")
+
+
+# --- the Camera compositor page and the integration's buttons ------------------------
+
+
+def admin_api(live: Compositor, draft: Compositor | None):
+    """The Camera compositor page's API (/api/compositor/): GET / is what the live
+    compositor (dashboards, wall tablets) and the draft one (previews, Show the draft
+    cards) serve now; POST restart (both engines), <live|draft>/flush, and
+    <live|draft>/forget {"camera": <entity>} answer with it afresh."""
+    engines = {"live": live, "draft": draft}
+
+    def status() -> tuple[int, str, bytes]:
+        data = {"live": live.status(), "draft": draft.status() if draft else None}
+        return 200, "application/json", json.dumps(data).encode()
+
+    def fail(code: int, error: str) -> tuple[int, str, bytes]:
+        return code, "application/json", json.dumps({"error": error}).encode()
+
+    def handle(
+        method: str, path: str, query: dict[str, list[str]], body: bytes
+    ) -> tuple[int, str, bytes]:
+        parts = [p for p in path.split("/") if p]
+        if method == "GET" and not parts:
+            return status()
+        if method != "POST":
+            return fail(404, "not found")
+        if parts == ["restart"]:
+            for engine in (live, draft):
+                if engine:
+                    engine.restart()
+            return status()
+        engine = engines.get(parts[0]) if parts else None
+        if not engine or len(parts) != 2:
+            return fail(404, "not found")
+        if parts[1] == "flush":
+            engine.flush()
+            return status()
+        if parts[1] == "forget":
+            try:
+                camera = str(json.loads(body or b"{}")["camera"])
+            except (ValueError, KeyError, TypeError):
+                return fail(400, "which camera?")
+            engine.forget(camera)
+            return status()
+        return fail(404, "not found")
+
+    return handle
+
+
+def control(live: Compositor, draft: Compositor | None) -> Callable[[str, bytes], int]:
+    """The integration's buttons: POST /compositor/restart (both engines), and
+    /compositor/flush {"which": "live" | "draft"}."""
+    api = admin_api(live, draft)
+
+    def handle(path: str, body: bytes) -> int:
+        if path.strip("/") == "flush":
+            try:
+                which = str(json.loads(body or b"{}").get("which") or "live")
+            except (ValueError, AttributeError):
+                return 400
+            return api("POST", f"{which}/flush", {}, b"")[0]
+        return api("POST", path, {}, body)[0]
+
+    return handle

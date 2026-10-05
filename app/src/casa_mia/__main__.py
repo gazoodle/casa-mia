@@ -15,7 +15,7 @@ from .ha import HA
 from .install_count import count_install
 from .log import configure_logging
 from .modules.camera_dashboard import DRAFT_PORT, KEEP_STILLS_EVERY, CameraDashboard
-from .modules.compositor import DRAFT_STORE, Compositor
+from .modules.compositor import DRAFT_STORE, Compositor, admin_api, control
 from .modules.fona import EVENT as FONA_EVENT
 from .modules.fona import Fona
 from .modules.gitproxy import GitProxy
@@ -52,22 +52,6 @@ def banner(text: str) -> list[str]:
     """A box around the start line, so each restart stands out in the log."""
     rule = "━" * (len(text) + 4)
     return [f"┏{rule}┓", f"┃  {text}  ┃", f"┗{rule}┛"]
-
-
-def compositor_api(live: Compositor, draft: Compositor | None):
-    """The Camera compositor page's API: GET / is what the live compositor (the
-    dashboards and wall tablets) and the draft one (previews, Show the draft cards) are
-    serving now."""
-
-    def handle(
-        method: str, path: str, query: dict[str, list[str]], body: bytes
-    ) -> tuple[int, str, bytes]:
-        if method != "GET" or path.strip("/"):
-            return 404, "application/json", b'{"error": "not found"}'
-        data = {"live": live.status(), "draft": draft.status() if draft else None}
-        return 200, "application/json", json.dumps(data).encode()
-
-    return handle
 
 
 def main() -> int:
@@ -209,7 +193,8 @@ def main() -> int:
     if compositor:
         compositor.start()
         modules["compositor"] = compositor.health
-        api["/api/compositor/"] = compositor_api(compositor, draft)
+        api["/api/compositor/"] = admin_api(compositor, draft)
+        post_handlers["/compositor/"] = control(compositor, draft)  # its buttons
     else:
         modules["compositor"] = lambda: {"state": "disabled"}
     if options.get("kiosks_enabled", False):
