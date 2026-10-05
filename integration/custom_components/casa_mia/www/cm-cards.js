@@ -1172,9 +1172,12 @@ var Ze = class extends U {
       display: block;
       height: 100%;
     }
-    /* As tall as it is given (a Tablet layout tile); given nothing, its aspect-ratio. */
+    /* Exactly the space it is given (a panel view, a Tablet layout tile); given no height,
+       its aspect-ratio sets one. The width must be set too: with only the height set,
+       aspect-ratio would make the width (16:9 of the height), wider than the screen. */
     ha-card {
       position: relative;
+      width: 100%;
       height: 100%;
       overflow: hidden;
       background: none;

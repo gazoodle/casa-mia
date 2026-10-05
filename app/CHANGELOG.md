@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b13
+
+- Camera Commander card: on a panel view (or anywhere the card is given a height) it was as wide as 16:9 of that height, so it ran off the side of a wider or narrower screen and was cut off. It now fills exactly the space it's given.
+
 ## 2026.10.3-b12
 
 - Camera Dashboard: new Debug options for each commander. When on, the whole picture is dimmed (20% by default) and an L is drawn in each corner plus both diagonals, so the picture's true edges show. The picture's ID (name, size in pixels, scale) and the time it was drawn go 30% down the middle. You can set the dim level, the corner L length, the line width and the line colour. Camera Commander cards add their own figures 70% down: the card's size, what it asked for, and the picture's size as the browser decoded it.
