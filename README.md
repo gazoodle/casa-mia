@@ -343,7 +343,7 @@ It is built for one real house and offered as-is to anyone who wants the same: e
 switched off until you enable it, so take the parts you need. Your house's name is an app
 option (`house_name`), shown wherever the UI names the house.
 
-**Status:** the app, the integration, the delivery loop (`tools/deploy`, app update, integration
+**Status:** the app, the integration, the delivery loop (commit, App store refresh, app update, integration
 pushed into `/config/custom_components`, "restart required" Repair) and the modules marked ✅
 below run on a live box. This file is the charter; unscheduled work is in
 [BACKLOG.md](BACKLOG.md), and the open questions at the bottom are turned into decisions as we go.
@@ -527,9 +527,8 @@ Three loops, fastest first:
    (matching the HA image, and isolated from Homebrew upgrades); `.venv/bin/ruff`, `pyright` and
    `pytest` are the checks. `.venv/bin/python tools/fake_git_host.py` serves the committed work
    over `git://<mac>:9419/casa-mia#app-dev`. Add that URL under
-   Settings, Apps, App store, Repositories; the Supervisor then sees each new version. `tools/deploy`
-   does the rest: over SSH it runs `ha store reload`, `ha apps update` and shows the app's log
-   (`CM_HA_SSH` sets the login, default `hassio@homeassistant.local`).
+   Settings, Apps, App store, Repositories; the Supervisor then sees each new version. A refresh
+   of the App store offers the update almost at once.
 3. **Release (tagged `YYYY.M.R`):** see Versioning. Tags mark known-good versions for rollback.
 
 **No staging environment: work goes straight to the live box** (`homeassistant.local:8123`).
