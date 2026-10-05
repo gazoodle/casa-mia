@@ -2,14 +2,15 @@
 // the select's `card` attribute says (the app's CameraDashboard._card): the compositor's
 // picture, and over it the tap zones laid out by the same engine the compositor draws with.
 // A tap on a panel camera makes it the main one; a tap on the main camera opens its live
-// page (or its more-info). The highlight on the main camera's tile is an <img> marked
-// #cm-highlight, as on the generated dashboard, so cm-streams.js pulses it (and gives the
+// page (or its more-info). With `draft`, it follows the saved draft (`draft_card`, the draft
+// compositor) instead of what is live. The highlight on the main camera's tile is an <img>
+// marked #cm-highlight, as on the generated dashboard, so cm-streams.js pulses it (and gives the
 // picture its Security look, and stops it while off screen).
 import { LitElement, css, html, nothing } from "lit";
 import { fire, type Hass, navigate, register } from "./ha.ts";
 import { layout, PANELS, type Rect, type Settings } from "./layout.ts";
 
-type Config = { type: string; entity?: string; tap_main?: "live" | "more-info" | "none" };
+type Config = { type: string; entity?: string; draft?: boolean; tap_main?: "live" | "more-info" | "none" };
 type Card = {
   picture: string;
   layout: Settings & { highlight?: Record<string, string | number> };
@@ -21,7 +22,7 @@ const BLANK = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAA
 /** The commanders HA knows: their Main camera selects, by name. */
 export function commanders(hass: Hass): { value: string; label: string }[] {
   return Object.entries(hass.states)
-    .filter(([id, st]) => id.startsWith("select.") && st.attributes.card)
+    .filter(([id, st]) => id.startsWith("select.") && (st.attributes.card || st.attributes.draft_card))
     .map(([id, st]) => ({ value: id, label: String(st.attributes.friendly_name ?? id) }));
 }
 
@@ -54,8 +55,18 @@ class CommanderCard extends LitElement {
 
   render() {
     const st = this._config?.entity ? this.hass?.states[this._config.entity] : undefined;
-    const card = st?.attributes.card as Card | undefined;
-    if (!card) return html`<ha-card><div class="note">${this._config?.entity ? `No commander at ${this._config.entity}` : "Choose a commander"}</div></ha-card>`;
+    // As deployed, or (draft) as the Camera Dashboard page's draft was last saved.
+    const card = st?.attributes[this._config?.draft ? "draft_card" : "card"] as Card | undefined;
+    if (!card)
+      return html`<ha-card
+        ><div class="note">
+          ${!this._config?.entity
+            ? "Choose a commander"
+            : st
+              ? `${this._config.draft ? "No saved draft" : "Not deployed live yet"} for this commander`
+              : `No commander at ${this._config.entity}`}
+        </div></ha-card
+      >`;
     if (!card.picture) return html`<ha-card><div class="note">Its picture's address is not known yet (the app has no LAN address).</div></ha-card>`;
     const s = card.layout;
     const main = this.main(card, st!.state);
@@ -144,6 +155,7 @@ class CommanderEditor extends LitElement {
     if (!this.hass || !this._config) return nothing;
     const schema = [
       { name: "entity", selector: { select: { mode: "dropdown", options: commanders(this.hass) } } },
+      { name: "draft", selector: { boolean: {} } },
       {
         name: "tap_main",
         selector: {
@@ -158,14 +170,18 @@ class CommanderEditor extends LitElement {
         },
       },
     ];
-    const labels: Record<string, string> = { entity: "Commander", tap_main: "A tap on the main camera" };
+    const labels: Record<string, string> = { entity: "Commander", draft: "Show the draft", tap_main: "A tap on the main camera" };
     return html`<ha-form
       .hass=${this.hass}
       .data=${{ tap_main: "live", ...this._config }}
       .schema=${schema}
       .computeLabel=${(s: { name: string }) => labels[s.name]}
       .computeHelper=${(s: { name: string }) =>
-        s.name === "entity" ? "The commanders built on the Camera Dashboard page (each one's Main camera select)." : undefined}
+        s.name === "entity"
+          ? "The commanders built on the Camera Dashboard page (each one's Main camera select)."
+          : s.name === "draft"
+            ? "As saved on the Camera Dashboard page (Save draft), before it is deployed live: for trying changes out. Off: as deployed live."
+            : undefined}
       @value-changed=${(ev: CustomEvent) => {
         ev.stopPropagation();
         this._config = ev.detail.value;

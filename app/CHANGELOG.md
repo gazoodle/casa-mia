@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b6
+
+- Camera Commander card: new "Show the draft" option, so the card follows the commander as saved on the Camera Dashboard page (Save draft) without deploying it live. Use it for trying out changes on a test page.
+
 ## 2026.10.3-b5
 
 - New Lovelace cards, installed with the integration (first version, for testing):

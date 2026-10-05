@@ -844,11 +844,12 @@ def test_each_commander_has_its_own_main_camera(tmp_path):
     try:
         assert [c["id"] for c in cd.health()["commanders"]] == ["", "p1"]
         # what the Camera Commander card draws it from (its select's `card` attribute)
-        card = cd.health()["commanders"][1]["card"]
-        assert card["picture"] == "http://10.0.0.2:8099/g/phone.mjpg"
+        # (no live compositor here: only the draft, from the draft compositor)
+        card = cd.health()["commanders"][1]["draft_card"]
+        assert card["picture"] == f"http://10.0.0.2:{draft.port}/g/phone.mjpg"
         assert card["cameras"]["camera.b"] == {
             "title": "Tablet",
-            "live": "/dashboard-cams/cam-tablet",
+            "live": "/dashboard-cams-preview/cam-tablet",
         }
         assert card["layout"]["main_fit"] == "fit" and "left" in card["layout"]
         body = b'{"main": "Tablet", "commander": "p1"}'

@@ -961,8 +961,12 @@ class CameraDashboard:
                         "cameras": {},
                         "main": None,
                         "motion": {**EMPTY_COMMANDER["motion"], **cmd["motion"]},
-                        "card": self._card(cmd, cfg.titles),
                     },
+                )
+                # The card's view of it: as deployed, and as the saved draft is
+                live = comp is not self.draft
+                one.setdefault(
+                    "card" if live else "draft_card", self._card(cmd, cfg.titles, live)
                 )
                 for e in commander_cameras(cmd):
                     one["cameras"].setdefault(e, cfg.titles.get(e, e))
@@ -972,13 +976,14 @@ class CameraDashboard:
             one["options"] = list(dict.fromkeys(one["cameras"].values()))
         return list(out.values())
 
-    def _card(self, cmd: dict, titles: dict[str, str]) -> dict[str, Any]:
+    def _card(self, cmd: dict, titles: dict[str, str], live: bool) -> dict[str, Any]:
         """What the Camera Commander card draws a commander from (its Main camera
-        select's `card` attribute): the layout (it lays it out with the same engine, so
-        its taps line up), its picture's address, the main camera at start, and each
-        camera's title (its select's option) and live page on the dashboard."""
+        select's `card` attribute, or `draft_card` for the saved draft, from the draft
+        compositor): the layout (it lays it out with the same engine, so its taps line
+        up), its picture's address, the main camera at start, and each camera's title
+        (its select's option) and live page on the dashboard (or the preview one)."""
         try:
-            url_path, base = self._target(self.store, True)
+            url_path, base = self._target(self.store, live)
         except BadRequest:  # the LAN address not known yet: no picture until it is
             url_path, base = self.store["dashboard"], ""
         mine = commander_cameras(cmd)

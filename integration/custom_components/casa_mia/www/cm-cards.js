@@ -1051,7 +1051,7 @@ function $(e, t = null) {
 //#region src/commander.ts
 var Ge = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 function Ke(e) {
-	return Object.entries(e.states).filter(([e, t]) => e.startsWith("select.") && t.attributes.card).map(([e, t]) => ({
+	return Object.entries(e.states).filter(([e, t]) => e.startsWith("select.") && (t.attributes.card || t.attributes.draft_card)).map(([e, t]) => ({
 		value: e,
 		label: String(t.attributes.friendly_name ?? e)
 	}));
@@ -1086,8 +1086,12 @@ var qe = class extends U {
 		return n ? n[0] : e.start;
 	}
 	render() {
-		let e = this._config?.entity ? this.hass?.states[this._config.entity] : void 0, t = e?.attributes.card;
-		if (!t) return P`<ha-card><div class="note">${this._config?.entity ? `No commander at ${this._config.entity}` : "Choose a commander"}</div></ha-card>`;
+		let e = this._config?.entity ? this.hass?.states[this._config.entity] : void 0, t = e?.attributes[this._config?.draft ? "draft_card" : "card"];
+		if (!t) return P`<ha-card
+        ><div class="note">
+          ${this._config?.entity ? e ? `${this._config.draft ? "No saved draft" : "Not deployed live yet"} for this commander` : `No commander at ${this._config.entity}` : "Choose a commander"}
+        </div></ha-card
+      >`;
 		if (!t.picture) return P`<ha-card><div class="note">Its picture's address is not known yet (the app has no LAN address).</div></ha-card>`;
 		let n = t.layout, r = this.main(t, e.state), [[i, a], o, s] = $(n, r), c = ([e, t, n, r]) => `left:${e / i * 100}%;top:${t / a * 100}%;width:${n / i * 100}%;height:${r / a * 100}%`, l = n.highlight ?? {}, u = Y.flatMap((e) => n[e].cameras.map((t, n) => [t, s[e][n]])).find(([e]) => e === r)?.[1];
 		return P`<ha-card>
@@ -1157,33 +1161,41 @@ var qe = class extends U {
 	}
 	render() {
 		if (!this.hass || !this._config) return I;
-		let e = [{
-			name: "entity",
-			selector: { select: {
-				mode: "dropdown",
-				options: Ke(this.hass)
-			} }
-		}, {
-			name: "tap_main",
-			selector: { select: {
-				mode: "dropdown",
-				options: [
-					{
-						value: "live",
-						label: "Opens its live page"
-					},
-					{
-						value: "more-info",
-						label: "Opens its more-info"
-					},
-					{
-						value: "none",
-						label: "Nothing"
-					}
-				]
-			} }
-		}], t = {
+		let e = [
+			{
+				name: "entity",
+				selector: { select: {
+					mode: "dropdown",
+					options: Ke(this.hass)
+				} }
+			},
+			{
+				name: "draft",
+				selector: { boolean: {} }
+			},
+			{
+				name: "tap_main",
+				selector: { select: {
+					mode: "dropdown",
+					options: [
+						{
+							value: "live",
+							label: "Opens its live page"
+						},
+						{
+							value: "more-info",
+							label: "Opens its more-info"
+						},
+						{
+							value: "none",
+							label: "Nothing"
+						}
+					]
+				} }
+			}
+		], t = {
 			entity: "Commander",
+			draft: "Show the draft",
 			tap_main: "A tap on the main camera"
 		};
 		return P`<ha-form
@@ -1194,7 +1206,7 @@ var qe = class extends U {
 		}}
       .schema=${e}
       .computeLabel=${(e) => t[e.name]}
-      .computeHelper=${(e) => e.name === "entity" ? "The commanders built on the Camera Dashboard page (each one's Main camera select)." : void 0}
+      .computeHelper=${(e) => e.name === "entity" ? "The commanders built on the Camera Dashboard page (each one's Main camera select)." : e.name === "draft" ? "As saved on the Camera Dashboard page (Save draft), before it is deployed live: for trying changes out. Off: as deployed live." : void 0}
       @value-changed=${(e) => {
 			e.stopPropagation(), this._config = e.detail.value, G(this, "config-changed", { config: this._config });
 		}}
