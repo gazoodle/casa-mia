@@ -52,7 +52,8 @@ Planned but unscheduled work lives in `BACKLOG.md`; add ideas there, do not star
 
 Always use the venv, never system python: `tools/setup` (re-runnable) creates `.venv` on Python 3.11 (matches the HA base image).
 
-- Tests: `.venv/bin/pytest`
+- Tests, while working on `dev`: run only the **affected** tests, not the full suite (it takes about a minute, and that friction slows rapid development). That means the test file(s) of the module you changed (`tests/test_<module>.py`; `tokensave_affected` finds them when unsure) plus the fast guards `tests/test_changelog.py tests/test_version_sync.py tests/test_component_versions.py tests/test_web_build.py` after any edit that could trip them. Do not run the full suite per change or before each commit. Accepted risk: a bug in an unaffected area can wait until the release. Ruff (`ruff check .`) is still run before each commit.
+- Tests, in full: `.venv/bin/pytest`, only when preparing a release (`tools/release.py` runs it, as CI does), or when the user asks, or after a change that touches shared code many modules use (`server.py`, `log.py`, `swap.py`, `config`).
 - Lint/format: `.venv/bin/ruff check .` and `.venv/bin/ruff format .`
 - Types: `.venv/bin/pyright`
 - Branches: work on `dev`; never commit to `main`. `main` is protected (pull requests only, the 8 CI checks required) and moves only at a release, through `tools/release.py`. "Push to GitHub" means `git push origin dev`.
