@@ -367,3 +367,25 @@ def test_debug_overlay_dims_and_marks_the_true_edges():
         io.BytesIO(commander(cmd, {}, {}, "camera.a", white.getvalue()))
     ).convert("RGB")
     assert rgb(off, (200, 20))[0] > 200  # off: as it was
+
+
+def test_a_cameras_newest_still_replaces_its_others(tmp_path):
+    # Rounds fetch each camera once, at the largest size any picture wants; a still left
+    # from an earlier round at another size must not be drawn in place of the new one.
+    import asyncio
+
+    from casa_mia.modules import compositor as mod
+
+    write_config(tmp_path)
+    comp = Compositor(tmp_path, "http://127.0.0.1:1", "token", port=0)
+    comp.cfg = mod.load_config(tmp_path)
+    comp._shots[("camera.a", (100, 56))] = (time.monotonic() - 999, jpeg("red"))
+
+    async def fetch(entity, size):
+        return jpeg()
+
+    comp._fetch_now = fetch  # type: ignore[method-assign]
+    asyncio.run(comp._round(comp.cfg.commanders))
+    assert [k for k in comp._shots if k[0] == "camera.a"] != [("camera.a", (100, 56))]
+    _, age = comp._pick("camera.a", (100, 56))
+    assert age < 5  # the new still, not the 999 s old one at that exact size

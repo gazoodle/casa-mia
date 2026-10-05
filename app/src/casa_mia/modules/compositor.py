@@ -1264,6 +1264,11 @@ class Compositor:
         now = time.monotonic()
         for (e, size), image in zip(jobs, got, strict=True):
             if image:
+                # Only its newest kept: a still left at another size (an older round's
+                # largest) would otherwise match a tile's size exactly and be drawn in
+                # place of this one, ever staler.
+                for old in [k for k in self._shots if k[0] == e and k[1] != size]:
+                    del self._shots[old]
                 self._shots[(e, size)] = (now, image)
         hit = {e for (e, _), image in zip(jobs, got, strict=True) if image}
         if jobs and not hit:

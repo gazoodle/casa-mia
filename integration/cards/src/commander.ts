@@ -8,8 +8,10 @@
 // picture its Security look, and stops it while off screen).
 // The picture is drawn exactly the size the card is shown: the card asks the compositor for
 // its own size (device pixels, ?w=&h=&dpr=), and lays its taps out for the same canvas, so
-// nothing is scaled, cropped or bordered on the screen. Its shape is the space it is given
-// (a Tablet layout's tile); in a normal column, the commander's own width:height.
+// nothing is scaled, cropped or bordered on the screen. Never taller than the screen: alone
+// in a Panel view it is exactly the screen below its top edge (HA's panel view sets only
+// the width); in a Tablet layout tile, the tile; in a normal column, 16:9 of its width, at
+// most the screen below its top edge. Measured again on every resize and rotation.
 import { LitElement, css, html, nothing } from "lit";
 import { fire, type Hass, navigate, register } from "./ha.ts";
 import { layout, PANELS, pyRound, type Rect, type Settings } from "./layout.ts";
@@ -37,6 +39,13 @@ export function askFor(w: number, h: number, dpr: number): Size | null {
   return Math.min(W, H) >= MIN_SIDE ? [W, H, Math.round(dpr * k * 100) / 100 || 1] : null;
 }
 
+/** Inside HA's Panel view (a single card on the page). */
+function inPanel(el: Element): boolean {
+  for (let n: Node | null = el; n; n = (n as Element).parentElement ?? ((n.getRootNode() as ShadowRoot).host || null))
+    if ((n as Element).tagName === "HUI-PANEL-VIEW") return true;
+  return false;
+}
+
 /** The commanders HA knows: their Main camera selects, by name. */
 export function commanders(hass: Hass): { value: string; label: string }[] {
   return Object.entries(hass.states)
@@ -45,7 +54,14 @@ export function commanders(hass: Hass): { value: string; label: string }[] {
 }
 
 class CommanderCard extends LitElement {
-  static properties = { hass: { attribute: false }, _config: { state: true }, _size: { state: true }, _natural: { state: true } };
+  static properties = {
+    hass: { attribute: false },
+    _config: { state: true },
+    _size: { state: true },
+    _natural: { state: true },
+    _room: { state: true },
+    _panel: { state: true },
+  };
   _natural = ""; // the picture's own size as the browser decoded it (debug)
 
   private debugOn(): boolean {
@@ -56,10 +72,13 @@ class CommanderCard extends LitElement {
   _config?: Config;
   _size: Size | null = null; // the picture asked for: this card's size, once it settles
   _box: [number, number] = [0, 0]; // this card's box now, CSS px (for the debug figures)
+  _room = 0; // CSS px from its top edge to the bottom of the window: its most height
+  _panel = false; // alone in a Panel view: exactly that height
   private settle = 0;
   private resize = new ResizeObserver(([entry]) => {
     const { width, height } = entry.contentRect;
     this._box = [Math.round(width * 10) / 10, Math.round(height * 10) / 10];
+    this.measure();
     if (this.debugOn()) this.requestUpdate();
     const size = askFor(width, height, window.devicePixelRatio || 1);
     clearTimeout(this.settle);
@@ -68,8 +87,23 @@ class CommanderCard extends LitElement {
     else this.settle = window.setTimeout(() => (this._size = size), SETTLE_MS);
   });
 
+  /** Its room: from its top edge (in the page, scrolled or not) to the window's bottom. */
+  private measure = () => {
+    const top = this.getBoundingClientRect().top + window.scrollY;
+    const room = Math.max(100, Math.floor(window.innerHeight - top));
+    if (room !== this._room) this._room = room;
+    const panel = inPanel(this);
+    if (panel !== this._panel) this._panel = panel;
+  };
+
+  connectedCallback() {
+    super.connectedCallback();
+    window.addEventListener("resize", this.measure);
+    requestAnimationFrame(this.measure);
+  }
   disconnectedCallback() {
     super.disconnectedCallback();
+    window.removeEventListener("resize", this.measure);
     this.resize.disconnect();
     clearTimeout(this.settle);
   }
@@ -129,7 +163,8 @@ class CommanderCard extends LitElement {
       `left:${(x / w) * 100}%;top:${(y / h) * 100}%;width:${(rw / w) * 100}%;height:${(rh / h) * 100}%`;
     const lit = s.highlight ?? {};
     const mark = PANELS.flatMap((p) => s[p].cameras.map((e, i) => [e, tiles[p][i]] as const)).find(([e]) => e === main)?.[1];
-    return html`<ha-card style="aspect-ratio:${own.width}/${own.height}">
+    const fit = !this._room ? "" : this._panel ? `;height:${this._room}px` : `;max-height:${this._room}px`;
+    return html`<ha-card style="aspect-ratio:${own.width}/${own.height}${fit}">
       <div class="box">
         ${this._size
           ? html`<img

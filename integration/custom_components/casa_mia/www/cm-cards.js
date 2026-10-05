@@ -1059,33 +1059,47 @@ function Ye(e, t, n) {
 	] : null;
 }
 function Xe(e) {
+	for (let t = e; t; t = t.parentElement ?? (t.getRootNode().host || null)) if (t.tagName === "HUI-PANEL-VIEW") return !0;
+	return !1;
+}
+function Ze(e) {
 	return Object.entries(e.states).filter(([e, t]) => e.startsWith("select.") && (t.attributes.card || t.attributes.draft_card)).map(([e, t]) => ({
 		value: e,
 		label: String(t.attributes.friendly_name ?? e)
 	}));
 }
-var Ze = class extends U {
+var Qe = class extends U {
 	constructor(...e) {
-		super(...e), this._natural = "", this._size = null, this._box = [0, 0], this.settle = 0, this.resize = new ResizeObserver(([e]) => {
+		super(...e), this._natural = "", this._size = null, this._box = [0, 0], this._room = 0, this._panel = !1, this.settle = 0, this.resize = new ResizeObserver(([e]) => {
 			let { width: t, height: n } = e.contentRect;
-			this._box = [Math.round(t * 10) / 10, Math.round(n * 10) / 10], this.debugOn() && this.requestUpdate();
+			this._box = [Math.round(t * 10) / 10, Math.round(n * 10) / 10], this.measure(), this.debugOn() && this.requestUpdate();
 			let r = Ye(t, n, window.devicePixelRatio || 1);
 			clearTimeout(this.settle), String(r) !== String(this._size) && (this._size ? this.settle = window.setTimeout(() => this._size = r, Je) : this._size = r);
-		});
+		}), this.measure = () => {
+			let e = this.getBoundingClientRect().top + window.scrollY, t = Math.max(100, Math.floor(window.innerHeight - e));
+			t !== this._room && (this._room = t);
+			let n = Xe(this);
+			n !== this._panel && (this._panel = n);
+		};
 	}
 	static {
 		this.properties = {
 			hass: { attribute: !1 },
 			_config: { state: !0 },
 			_size: { state: !0 },
-			_natural: { state: !0 }
+			_natural: { state: !0 },
+			_room: { state: !0 },
+			_panel: { state: !0 }
 		};
 	}
 	debugOn() {
 		return !!((this._config?.entity ? this.hass?.states[this._config.entity] : void 0)?.attributes[this._config?.draft ? "draft_card" : "card"])?.layout.debug?.on;
 	}
+	connectedCallback() {
+		super.connectedCallback(), window.addEventListener("resize", this.measure), requestAnimationFrame(this.measure);
+	}
 	disconnectedCallback() {
-		super.disconnectedCallback(), this.resize.disconnect(), clearTimeout(this.settle);
+		super.disconnectedCallback(), window.removeEventListener("resize", this.measure), this.resize.disconnect(), clearTimeout(this.settle);
 	}
 	updated() {
 		let e = this.renderRoot.querySelector(".box");
@@ -1097,7 +1111,7 @@ var Ze = class extends U {
 		return document.createElement("casa-mia-commander-editor");
 	}
 	static getStubConfig(e) {
-		return { entity: Xe(e)[0]?.value ?? "" };
+		return { entity: Ze(e)[0]?.value ?? "" };
 	}
 	setConfig(e) {
 		this._config = e;
@@ -1132,8 +1146,8 @@ var Ze = class extends U {
 			width: i,
 			height: a,
 			gap: X(r.gap * o)
-		} : r, [[c, l], u, d] = $(s, n), f = ([e, t, n, r]) => `left:${e / c * 100}%;top:${t / l * 100}%;width:${n / c * 100}%;height:${r / l * 100}%`, p = s.highlight ?? {}, m = Y.flatMap((e) => s[e].cameras.map((t, n) => [t, d[e][n]])).find(([e]) => e === n)?.[1];
-		return P`<ha-card style="aspect-ratio:${r.width}/${r.height}">
+		} : r, [[c, l], u, d] = $(s, n), f = ([e, t, n, r]) => `left:${e / c * 100}%;top:${t / l * 100}%;width:${n / c * 100}%;height:${r / l * 100}%`, p = s.highlight ?? {}, m = Y.flatMap((e) => s[e].cameras.map((t, n) => [t, d[e][n]])).find(([e]) => e === n)?.[1], h = this._room ? this._panel ? `;height:${this._room}px` : `;max-height:${this._room}px` : "";
+		return P`<ha-card style="aspect-ratio:${r.width}/${r.height}${h}">
       <div class="box">
         ${this._size ? P`<img
               class="picture"
@@ -1224,7 +1238,7 @@ var Ze = class extends U {
     }
   `;
 	}
-}, Qe = class extends U {
+}, $e = class extends U {
 	static {
 		this.properties = {
 			hass: { attribute: !1 },
@@ -1241,7 +1255,7 @@ var Ze = class extends U {
 				name: "entity",
 				selector: { select: {
 					mode: "dropdown",
-					options: Xe(this.hass)
+					options: Ze(this.hass)
 				} }
 			},
 			{
@@ -1288,18 +1302,18 @@ var Ze = class extends U {
     ></ha-form>`;
 	}
 };
-customElements.define("casa-mia-commander", Ze), customElements.define("casa-mia-commander-editor", Qe), J("casa-mia-commander", "Casa Mia Camera Commander", "One of the Camera Dashboard's commanders: tap a camera to make it the main one.");
+customElements.define("casa-mia-commander", Qe), customElements.define("casa-mia-commander-editor", $e), J("casa-mia-commander", "Casa Mia Camera Commander", "One of the Camera Dashboard's commanders: tap a camera to make it the main one.");
 //#endregion
 //#region src/tablet.ts
-var $e = class extends HTMLElement {
+var et = class extends HTMLElement {
 	setConfig() {}
 };
-customElements.define("casa-mia-probe", $e);
-function et(e) {
+customElements.define("casa-mia-probe", et);
+function tt(e) {
 	for (let t = e; t; t = t.parentElement ?? (t.getRootNode().host || null)) if (t.tagName?.startsWith("HUI-DIALOG") || t.tagName === "HA-DIALOG") return !0;
 	return !1;
 }
-var tt = class extends U {
+var nt = class extends U {
 	constructor(...e) {
 		super(...e), this.preview = !1, this._items = [], this.probes = {}, this.frame = 0, this.resize = new ResizeObserver(() => this.schedule()), this.changed = (e) => {
 			e.stopPropagation(), this.schedule();
@@ -1390,7 +1404,7 @@ var tt = class extends U {
 		let e = this.renderRoot.querySelector(".view");
 		if (!e || !this._config) return;
 		let t = this.clientWidth, n = Math.floor(window.innerHeight - this.getBoundingClientRect().top);
-		if ((n < 200 || et(this)) && (n = Math.round(t * 10 / 16)), e.style.height = `${n}px`, !t) return;
+		if ((n < 200 || tt(this)) && (n = Math.round(t * 10 / 16)), e.style.height = `${n}px`, !t) return;
 		let r = this.settings(t, n), i = this._items.findIndex((e) => e.place === "main"), a = i >= 0 && q(this._items[i].el) ? String(i) : null, o = (e) => this._items[e].el.parentElement, s = (e) => {
 			for (let [t, n] of e) Object.assign(o(t).style, {
 				width: `${n}px`,
@@ -1471,14 +1485,14 @@ var tt = class extends U {
     }
   `;
 	}
-}, nt = [
+}, rt = [
 	["layout", "Layout"],
 	["main", "Main"],
 	["left", "Left"],
 	["top", "Top"],
 	["right", "Right"],
 	["bottom", "Bottom"]
-], rt = class extends U {
+], it = class extends U {
 	constructor(...e) {
 		super(...e), this._tab = "layout", this.mounted = "";
 	}
@@ -1560,7 +1574,7 @@ var tt = class extends U {
 	}
 	render() {
 		return this._config ? P`<div class="tabs">
-        ${nt.map(([e, t]) => P`<button class=${e === this._tab ? "on" : ""} @click=${() => (this._tab = e, this.mounted = "")}>${t}</button>`)}
+        ${rt.map(([e, t]) => P`<button class=${e === this._tab ? "on" : ""} @click=${() => (this._tab = e, this.mounted = "")}>${t}</button>`)}
       </div>
       ${this.body()}` : I;
 	}
@@ -1594,5 +1608,5 @@ var tt = class extends U {
 };
 //#endregion
 //#region src/main.ts
-customElements.define("casa-mia-tablet-layout", tt), customElements.define("casa-mia-tablet-layout-editor", rt), J("casa-mia-tablet-layout", "Casa Mia tablet layout", "A whole screen and never more: panels of cards around a main card, fitted with no scroll bars and no gaps."), console.info(`%cCASA-MIA CARDS\n%ctablet layout, commander, section (${new URL(import.meta.url).searchParams.get("v") || "dev"})`, "color: green; font-weight: bold;", "");
+customElements.define("casa-mia-tablet-layout", nt), customElements.define("casa-mia-tablet-layout-editor", it), J("casa-mia-tablet-layout", "Casa Mia tablet layout", "A whole screen and never more: panels of cards around a main card, fitted with no scroll bars and no gaps."), console.info(`%cCASA-MIA CARDS\n%ctablet layout, commander, section (${new URL(import.meta.url).searchParams.get("v") || "dev"})`, "color: green; font-weight: bold;", "");
 //#endregion
