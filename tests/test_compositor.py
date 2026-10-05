@@ -198,7 +198,8 @@ def test_a_camera_that_keeps_missing_sits_out(tmp_path):
 def test_gathers_only_while_watched_and_serves_at_once_after(tmp_path, monkeypatch):
     from casa_mia.modules import compositor as mod
 
-    monkeypatch.setattr(mod, "LINGER", 0.5)
+    monkeypatch.setattr(mod, "LINGER", 0.1)
+    monkeypatch.setattr(mod, "INTERVAL", 0.1)
     write_config(tmp_path)
     ha = ThreadingHTTPServer(("127.0.0.1", 0), FakeHA)
     threading.Thread(target=ha.serve_forever, daemon=True).start()
@@ -211,10 +212,10 @@ def test_gathers_only_while_watched_and_serves_at_once_after(tmp_path, monkeypat
         assert comp.health()["gathering"] is False  # nobody watching: nothing fetched
         urllib.request.urlopen(url).close()
         assert comp._shots  # the first round was awaited: the cache was empty
-        for _ in range(40):
+        for _ in range(200):
             if not comp.health()["gathering"] and comp._pictures:
                 break
-            time.sleep(0.1)
+            time.sleep(0.02)
         assert comp.health()["gathering"] is False  # stopped once nobody watched
         start = time.monotonic()
         with urllib.request.urlopen(url) as r:  # after a quiet spell: from the cache

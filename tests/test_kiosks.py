@@ -333,15 +333,12 @@ class _Clock:
 
 
 @pytest.fixture
-def proxied(two):
+def proxied(two, serve):
     k, (h1, a1), _ = two
     k.scan()
     k.login(PASSWORD)
-    server = make_server(0, admin_from=None, proxies={"/kiosk/": k.proxy})
-    threading.Thread(target=server.serve_forever, daemon=True).start()
-    yield f"127.0.0.1:{server.server_port}", h1
-    server.shutdown()
-    server.server_close()
+    base = serve(make_server(0, admin_from=None, proxies={"/kiosk/": k.proxy}))
+    return base.removeprefix("http://"), h1
 
 
 def test_proxy_logs_in_for_the_page_and_leaves_its_scripts_alone(proxied):

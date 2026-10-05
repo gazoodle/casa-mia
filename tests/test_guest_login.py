@@ -1,6 +1,5 @@
 import base64
 import json
-import threading
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -33,12 +32,8 @@ class FakeHA(BaseHTTPRequestHandler):
 
 
 @pytest.fixture
-def ha():
-    server = ThreadingHTTPServer(("127.0.0.1", 0), FakeHA)
-    threading.Thread(target=server.serve_forever, daemon=True).start()
-    yield f"http://127.0.0.1:{server.server_port}"
-    server.shutdown()
-    server.server_close()
+def ha(serve):
+    return serve(ThreadingHTTPServer(("127.0.0.1", 0), FakeHA))
 
 
 def make(ha, accounts=None, **kw):

@@ -236,10 +236,14 @@ def test_preview_keeps_one_backup_and_reverts_to_it(cd):
 
 def test_keep_older_versions_setting(cd):
     assert call(cd, "GET", "")[1]["keep"] == 3
-    for n in range(6):
-        cd.ha.boards["dashboard-cams"] = {"views": [n]}
-        time.sleep(1.1)  # backups are named to the second
-        call(cd, "POST", "deploy", {"target": "live"})
+    folder = cd.dir / "camera-dashboard-backups"
+    folder.mkdir()
+    for n in range(5):  # kept by earlier deploys
+        (folder / f"dashboard-cams-2026100{n}-120000.json").write_text(
+            json.dumps({"url_path": "dashboard-cams", "config": {"views": [n]}})
+        )
+    cd.ha.boards["dashboard-cams"] = {"views": ["now"]}
+    call(cd, "POST", "deploy", {"target": "live"})  # keeps this one, prunes to 3
     assert len(call(cd, "GET", "backups")[1]["backups"]) == 3
     assert call(cd, "PUT", "keep", {"keep": 1})[1]["keep"] == 1  # prunes now
     assert len(call(cd, "GET", "backups")[1]["backups"]) == 1
@@ -299,7 +303,6 @@ def test_starts_empty_without_old_files(tmp_path):
 def test_live_previews_and_thumbnails(tmp_path):
     import io
     import threading
-    import time
     from http.server import ThreadingHTTPServer
 
     from PIL import Image
@@ -478,7 +481,6 @@ def test_commander_problems():
 
 def test_integration_chooses_the_main_camera(tmp_path):
     import threading
-    import time
     from http.server import ThreadingHTTPServer
 
     from casa_mia.modules.compositor import Compositor
