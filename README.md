@@ -270,8 +270,13 @@ its own switch in the integration's options.
 You need Home Assistant OS or a Supervised install (apps need the Supervisor), on a 64-bit
 machine (aarch64 or amd64).
 
-1. **Add the repository.** In Home Assistant, go to **Settings → Apps → App store**, open the
-   **⋮** menu at the top right, choose **Repositories**, and add:
+1. **Add the repository.** The quick way is this button, which opens your Home Assistant with
+   the repository filled in:
+
+   [![Open your Home Assistant instance and show the add app repository dialog with this repository URL pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fgazoodle%2Fcasa-mia)
+
+   Or do it by hand: go to **Settings → Apps → App store**, open the **⋮** menu at the top
+   right, choose **Repositories**, and add:
 
    ```text
    https://github.com/gazoodle/casa-mia
