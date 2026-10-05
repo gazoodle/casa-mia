@@ -21,6 +21,8 @@ The admin page proxy (/kiosk/<id>/...): passes everything to the kiosk with the 
 token. Their page loads its files relatively but calls its API at absolute /api/...
 paths, which under ingress would reach Home Assistant; a small script added to the page
 (PAGE_SHIM) sends those under the page's path, and the proxy tunnels the websocket.
+Kiosk Satellite 2026.10.8 and later do this themselves, so the script is added only for
+older ones.
 """
 
 from __future__ import annotations
@@ -127,13 +129,31 @@ SWAP_SHIM = (
 )
 
 
-def page_head(logged_in: bool) -> bytes:
-    """What goes straight after the page's <head>: the shim, when the app holds a login
-    for the kiosk the placeholder token that skips their login screen, and while the
-    screenshot swap is on its shim."""
-    head = PAGE_SHIM
+# From this Kiosk Satellite version the admin page works under a sub-path itself (its API
+# and websocket follow the page's path, its token is kept per path), so no shim.
+SUBPATH_VERSION = (2026, 10, 8)
+
+
+def _needs_shim(version: Any) -> bool:
+    """True for a kiosk older than SUBPATH_VERSION, or whose version is not known."""
+    parts = re.match(r"(\d+)\.(\d+)\.(\d+)", str(version or ""))
+    return not parts or tuple(map(int, parts.groups())) < SUBPATH_VERSION
+
+
+def page_head(logged_in: bool, version: Any = None) -> bytes:
+    """What goes straight after the page's <head>: the shim (only for a kiosk too old to
+    work under a sub-path), when the app holds a login for the kiosk the placeholder
+    token that skips their login screen, and while the screenshot swap is on its shim."""
+    shim = _needs_shim(version)
+    head = PAGE_SHIM if shim else ""
     if logged_in:
-        head += f'<script>localStorage.setItem("ks_token","{PAGE_TOKEN}")</script>'
+        head += f'<script>localStorage.setItem("ks_token","{PAGE_TOKEN}")'
+        if not shim:  # newer pages keep the token per path
+            head += (
+                'localStorage.setItem("ks_token:"+location.pathname.replace(/[^/]*$/,""),'
+                f'"{PAGE_TOKEN}")'
+            )
+        head += "</script>"
     if pairs := swap.pairs():
         head += SWAP_SHIM.replace("PAIRS", json.dumps(pairs).replace("</", "<\\/"))
     return head.encode()
@@ -957,8 +977,15 @@ class Kiosks:
         plain = path.split("?")[0]
         _LOGGER.debug("kiosk %s: %s /%s -> %d", k["name"], h.command, path, status)
         if ctype.startswith("text/html") and plain in ("", "index.html"):
-            _LOGGER.info("kiosk %s: admin page opened through the app", k["name"])
-            data = data.replace(b"<head>", b"<head>" + page_head(bool(token)), 1)
+            _LOGGER.info(
+                "kiosk %s: admin page opened through the app (version %s, %s)",
+                k["name"],
+                k.get("version"),
+                "shim added" if _needs_shim(k.get("version")) else "no shim needed",
+            )
+            data = data.replace(
+                b"<head>", b"<head>" + page_head(bool(token), k.get("version")), 1
+            )
         h.send_response(status)
         for name, value in out_headers.items():
             if name.lower() not in HOP:

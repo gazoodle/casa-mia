@@ -481,3 +481,17 @@ def test_page_head_swaps_the_page_only_while_the_swap_is_on(monkeypatch):
     head = page_head(False).decode()
     assert '"Ann": "Bea"' in head and "MutationObserver" in head
     assert head.count("</script>") == 2  # a pair can't close the script early
+
+
+def test_page_head_adds_the_shim_only_for_kiosks_older_than_subpath_support(
+    monkeypatch,
+):
+    monkeypatch.setattr(swap, "pairs", lambda: {})
+    for old in ("2026.9.98", "2026.10.7", None, "dev"):
+        assert PAGE_SHIM in page_head(True, old).decode()
+    for new in ("2026.10.8", "2026.10.9", "2026.11.1", "2027.1.1-b2"):
+        head = page_head(True, new).decode()
+        assert PAGE_SHIM not in head
+        assert f'localStorage.setItem("ks_token","{PAGE_TOKEN}")' in head
+        assert '"ks_token:"+location.pathname' in head
+    assert page_head(False, "2026.10.8") == b""
