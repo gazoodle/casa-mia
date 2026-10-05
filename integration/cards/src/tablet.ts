@@ -6,8 +6,24 @@
 // A panel can have visibility conditions, and with Hide when empty (on unless switched off)
 // a panel with no card showing takes no room.
 import { LitElement, css, html, nothing, type PropertyValues } from "lit";
-import { type CardConfig, fire, type Hass, helper, type HuiCard, huiCard, label, mainSchema, panelSchema, register, shown } from "./ha.ts";
-import { LAYOUT, layout, PANELS, type Panel, type Rect, type Settings, STACKS } from "./layout.ts";
+import {
+  type CardConfig,
+  editingPanelView,
+  fire,
+  fitOf,
+  type Hass,
+  heightFor,
+  helper,
+  type HuiCard,
+  huiCard,
+  label,
+  mainSchema,
+  panelSchema,
+  register,
+  shown,
+  watchRoom,
+} from "./ha.ts";
+import { LAYOUT, layout, PANELS, type Panel, type Rect, ratio, type Settings, STACKS } from "./layout.ts";
 import { describe, mountStack } from "./section.ts";
 
 type PanelConfig = {
@@ -21,7 +37,7 @@ type PanelConfig = {
   visibility?: object[];
   cards?: CardConfig[];
 };
-type Config = { type: string; main?: CardConfig; gap?: number; main_fit?: string; main_width?: number; main_ratio?: string; panel_min?: number } & Partial<
+type Config = { type: string; aspect?: string; main?: CardConfig; gap?: number; main_fit?: string; main_width?: number; main_ratio?: string; panel_min?: number } & Partial<
   Record<Panel, PanelConfig>
 >;
 type Place = "main" | Panel;
@@ -33,12 +49,7 @@ class Probe extends HTMLElement {
 }
 customElements.define("casa-mia-probe", Probe);
 
-/** Inside one of HA's dialogs (the card editor's preview), not on the dashboard. */
-function inDialog(el: Element): boolean {
-  for (let n: Node | null = el; n; n = (n as Element).parentElement ?? ((n.getRootNode() as ShadowRoot).host || null))
-    if ((n as Element).tagName?.startsWith("HUI-DIALOG") || (n as Element).tagName === "HA-DIALOG") return true;
-  return false;
-}
+const SHAPE = "16:10"; // its own shape, where not locked to the screen (`aspect`)
 
 class TabletLayout extends LitElement {
   static properties = { hass: { attribute: false }, preview: { type: Boolean }, _items: { state: true } };
@@ -85,13 +96,14 @@ class TabletLayout extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     this.renderRoot.addEventListener("card-visibility-changed", this.changed);
-    window.addEventListener("resize", this.later);
+    this.unwatch = watchRoom(this.later);
     this.resize.observe(this);
   }
+  private unwatch?: () => void;
   disconnectedCallback() {
     super.disconnectedCallback();
     this.renderRoot.removeEventListener("card-visibility-changed", this.changed);
-    window.removeEventListener("resize", this.later);
+    this.unwatch?.();
     this.resize.disconnect();
     cancelAnimationFrame(this.frame);
   }
@@ -133,9 +145,16 @@ class TabletLayout extends LitElement {
   private place() {
     const view = this.renderRoot.querySelector<HTMLElement>(".view");
     if (!view || !this._config) return;
+    // The cards' one rule (ha.ts): locked (alone in a Panel view), exactly the screen below
+    // its top edge; otherwise its own shape from its width, at most that.
     const width = this.clientWidth;
-    let height = Math.floor(window.innerHeight - this.getBoundingClientRect().top);
-    if (height < 200 || inDialog(this)) height = Math.round((width * 10) / 16);
+    let shape = 16 / 10;
+    try {
+      shape = ratio(this._config.aspect ?? SHAPE);
+    } catch {
+      // not a shape: the default
+    }
+    const height = heightFor(fitOf(this), width, shape);
     view.style.height = `${height}px`;
     if (!width) return;
     const s = this.settings(width, height);
@@ -276,8 +295,15 @@ class TabletLayoutEditor extends LitElement {
   private body() {
     const c = this._config!;
     if (this._tab === "layout") {
-      const data = Object.fromEntries(Object.entries(LAYOUT.main).map(([k, o]) => [k, (c as Record<string, unknown>)[k] ?? o.default]));
-      return this.form(mainSchema(String(data.main_fit)), data, (v) => this.save({ ...c, ...v }));
+      const data: Record<string, unknown> = Object.fromEntries(Object.entries(LAYOUT.main).map(([k, o]) => [k, (c as Record<string, unknown>)[k] ?? o.default]));
+      // Its shape: only where it is not locked to the screen (alone in a Panel view, it is
+      // the whole screen).
+      const lockedHere = editingPanelView(this.lovelace);
+      const shape = lockedHere ? [] : [{ name: "aspect", selector: { text: {} } }];
+      if (!lockedHere) data.aspect = c.aspect ?? SHAPE;
+      return html`${lockedHere
+          ? html`<p class="help">Alone in a Panel view, it is exactly the screen: nothing scrolls.</p>`
+          : nothing}${this.form([...shape, ...mainSchema(String(data.main_fit))], data, (v) => this.save({ ...c, ...v }))}`;
     }
     if (this._tab === "main")
       return html`<p class="help">The card between the panels (one; a Camera Commander suits it). Its fit is on the Layout tab.</p>

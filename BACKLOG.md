@@ -119,6 +119,7 @@ Decided (2026-10-02): **ship everything.** It is one real house's system, offere
 ## Housekeeping
 
 - `DOCS.md` is a placeholder; extend it as modules land.
+- Docs, the cards: **the Tablet layout card brings responsive design to HA dashboards.** Lead with that (README and DOCS.md): HA gives a card its width and never a height, so dashboards scroll; this card makes a view exactly the screen, on any device or size, and fits everything in it (panels as % of the screen, the main card taking what is left, cards stretched, shrunk or stacked to fit), with no scroll bars and no gaps. Then the Commander (drawn at exactly its card's size) and the Section card (hides when nothing in it counts), and the sizing rule they all share (alone in a Panel view: the screen; in a layout tile: the tile; in a column: their own shape, at most the screen). Screenshots per the README rule.
 - Check `restart_notice.py` / `repairs.py` copies stay identical once a second component exists.
 - Real-HA integration tests (second venv on Python 3.13, or a trixie base image); pyright excludes `integration/` until then.
 - `fake_git_host` version-bump check only compares HEAD with HEAD~1; two quick commits inside one poll can slip past.

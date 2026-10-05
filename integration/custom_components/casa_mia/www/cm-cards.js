@@ -700,9 +700,51 @@ function Oe(e) {
 }
 var ke = {
 	...we,
-	...Te
-}, Ae = (e) => ke[e.name]?.label ?? e.name, je = (e) => ke[e.name]?.help?.replaceAll("{item}", "card"), Me = (e) => e.view_layout?.counts !== !1;
+	...Te,
+	aspect: {
+		label: "Shape",
+		help: "Width:height where it is not the whole screen (in a column): e.g. 16:10, 4:3."
+	}
+}, Ae = (e) => ke[e.name]?.label ?? e.name, je = (e) => ke[e.name]?.help?.replaceAll("{item}", "card"), Me = 100, Y = (e) => e.parentElement ?? (e.getRootNode().host || null);
 function Ne(e) {
+	for (let t = Y(e); t; t = Y(t)) {
+		let e = t.tagName ?? "";
+		if (e === "HUI-PANEL-VIEW") return !0;
+		if (e.includes("-") && e !== "HUI-CARD") return !1;
+	}
+	return !1;
+}
+function Pe(e) {
+	for (let t = e; t; t = Y(t)) if (t.tagName?.startsWith("HUI-DIALOG") || t.tagName === "HA-DIALOG") return !0;
+	return !1;
+}
+function Fe(e) {
+	let t = e.getBoundingClientRect().top + window.scrollY, n = window.visualViewport?.height ?? window.innerHeight;
+	return Math.max(Me, Math.floor(n - t));
+}
+function Ie(e) {
+	return {
+		locked: Ne(e),
+		room: Fe(e),
+		preview: Pe(e)
+	};
+}
+function Le(e, t, n) {
+	return e.preview ? Math.round(t / n) : e.locked ? e.room : Math.min(Math.round(t / n), e.room);
+}
+function Re(e) {
+	return window.addEventListener("resize", e), window.visualViewport?.addEventListener("resize", e), () => {
+		window.removeEventListener("resize", e), window.visualViewport?.removeEventListener("resize", e);
+	};
+}
+function ze(e) {
+	let t = e?.config?.views ?? [], n = decodeURIComponent(location.pathname.split("/").filter(Boolean)[1] ?? "");
+	return (t.find((e, t) => (e.path ?? String(t)) === n) ?? t[Number(n)] ?? t[0])?.type === "panel";
+}
+//#endregion
+//#region src/section.ts
+var Be = (e) => e.view_layout?.counts !== !1;
+function Ve(e) {
 	let t = e, n = {
 		...t.getGridOptions?.() ?? t._element?.getGridOptions?.() ?? {},
 		...e.config?.grid_options
@@ -712,7 +754,7 @@ function Ne(e) {
 		rows: typeof n.rows == "number" ? n.rows : "auto"
 	};
 }
-var Pe = class extends U {
+var He = class extends U {
 	constructor(...e) {
 		super(...e), this.preview = !1, this._cards = [], this.frame = 0, this.changed = (e) => {
 			e.stopPropagation(), this.schedule();
@@ -770,10 +812,10 @@ var Pe = class extends U {
 		this._cards.forEach((e) => {
 			let t = e.parentElement;
 			if (!t) return;
-			let n = Ne(e);
+			let n = Ve(e);
 			t.style.gridColumn = `span ${n.columns}`, t.style.gridRow = n.rows === "auto" ? "" : `span ${n.rows}`, t.style.height = n.rows === "auto" ? "" : `calc(${n.rows} * var(--row-height, 56px) + ${n.rows - 1} * var(--row-gap, 8px))`, t.hidden = !q(e);
 		});
-		let e = this.preview || this._cards.some((e, t) => Me(this._config.cards[t]) && q(e));
+		let e = this.preview || this._cards.some((e, t) => Be(this._config.cards[t]) && q(e));
 		this.hidden === e && (this.hidden = !e, G(this, "card-visibility-changed", { value: e }));
 	}
 	render() {
@@ -798,7 +840,7 @@ var Pe = class extends U {
     }
   `;
 	}
-}, Fe = [
+}, Ue = [
 	["", "Its own"],
 	["3", "Quarter"],
 	["4", "Third"],
@@ -806,11 +848,11 @@ var Pe = class extends U {
 	["8", "Two thirds"],
 	["12", "Full"]
 ];
-function Ie(e) {
+function We(e) {
 	let t = e.heading ?? e.title ?? e.name ?? e.entity ?? (e.content ? String(e.content).slice(0, 30) : "");
 	return `${String(e.type).replace(/^custom:/, "")}${t ? `: ${t}` : ""}`;
 }
-async function Le(e, t, n, r, i) {
+async function Ge(e, t, n, r, i) {
 	let a = await Ce();
 	return a.hass = t, a.lovelace = n, a.setConfig({
 		type: "vertical-stack",
@@ -819,7 +861,7 @@ async function Le(e, t, n, r, i) {
 		e.stopPropagation(), i(e.detail.config.cards ?? []);
 	}), e.replaceChildren(a), a;
 }
-var Re = class extends U {
+var Ke = class extends U {
 	static {
 		this.properties = {
 			hass: { attribute: !1 },
@@ -834,7 +876,7 @@ var Re = class extends U {
 		});
 	}
 	firstUpdated() {
-		Le(this.renderRoot.querySelector(".stack"), this.hass, this.lovelace, this._config?.cards ?? [], (e) => this.save({
+		Ge(this.renderRoot.querySelector(".stack"), this.hass, this.lovelace, this._config?.cards ?? [], (e) => this.save({
 			...this._config,
 			cards: e
 		})).then((e) => this.stack = e);
@@ -860,11 +902,11 @@ var Re = class extends U {
       <p class="help">The section hides while none of the cards that count is showing (each card's own visibility). A heading that should only show with them: switch off Counts.</p>
       <div class="rows">
         ${this._config.cards.map((e, t) => P`<div class="row">
-            <span class="name">${t + 1}. ${Ie(e)}</span>
+            <span class="name">${t + 1}. ${We(e)}</span>
             <label
               >Counts
               <ha-switch
-                .checked=${Me(e)}
+                .checked=${Be(e)}
                 @change=${(e) => this.setCard(t, (t) => {
 			let n = e.target.checked;
 			t.view_layout = { ...t.view_layout }, n ? delete t.view_layout.counts : t.view_layout.counts = !1;
@@ -878,7 +920,7 @@ var Re = class extends U {
 			t.grid_options = { ...t.grid_options }, n ? t.grid_options.columns = Number(n) : delete t.grid_options.columns;
 		})}
             >
-              ${Fe.map(([e, t]) => P`<option value=${e}>${t}</option>`)}
+              ${Ue.map(([e, t]) => P`<option value=${e}>${t}</option>`)}
             </select>
           </div>`)}
       </div>
@@ -915,26 +957,26 @@ var Re = class extends U {
   `;
 	}
 };
-customElements.define("casa-mia-section", Pe), customElements.define("casa-mia-section-editor", Re), J("casa-mia-section", "Casa Mia section", "A section's grid of cards that hides itself while none of the cards that count is showing.");
+customElements.define("casa-mia-section", He), customElements.define("casa-mia-section-editor", Ke), J("casa-mia-section", "Casa Mia section", "A section's grid of cards that hides itself while none of the cards that count is showing.");
 //#endregion
 //#region src/layout.ts
-var Y = [
+var X = [
 	"left",
 	"top",
 	"right",
 	"bottom"
-], ze = [
+], qe = [
 	"stack",
 	"reverse",
 	"centre"
 ];
-function X(e) {
+function Z(e) {
 	let t = Math.floor(e), n = e - t;
 	return n > .5 ? t + 1 : n < .5 || t % 2 == 0 ? t : t + 1;
 }
-var Z = (e, t) => Math.floor(e / t);
-function Be(e, t, n, r) {
-	let [i, a, o, s] = e, c = n ? s : o, l = Array.from({ length: t + 1 }, (e, n) => X(n * (c - (t - 1) * r) / t + n * r)), u = Array.from({ length: t }, (e, n) => [l[n], l[n + 1] - l[n] - (n < t - 1 ? r : 0)]);
+var Q = (e, t) => Math.floor(e / t);
+function Je(e, t, n, r) {
+	let [i, a, o, s] = e, c = n ? s : o, l = Array.from({ length: t + 1 }, (e, n) => Z(n * (c - (t - 1) * r) / t + n * r)), u = Array.from({ length: t }, (e, n) => [l[n], l[n + 1] - l[n] - (n < t - 1 ? r : 0)]);
 	return u[t - 1] = [u[t - 1][0], c - u[t - 1][0]], u.map(([e, t]) => n ? [
 		i,
 		a + e,
@@ -947,10 +989,10 @@ function Be(e, t, n, r) {
 		s
 	]);
 }
-function Ve(e, t, n, r, i) {
+function Ye(e, t, n, r, i) {
 	let [a, o, s, c] = e, [l, u] = n ? [s, c] : [c, s], d = t.map((e) => n ? l / e : l * e), f = u - r * (t.length - 1), p = d.reduce((e, t) => e + t, 0), m = p > 0 && f > 0 ? Math.min(1, f / p) : 0, h = Math.trunc(l * m);
 	d = d.map((e) => Math.trunc(e * m));
-	let g = d.reduce((e, t) => e + t, 0) + r * (t.length - 1), _ = i === "reverse" ? u - g : i === "centre" ? Z(u - g, 2) : 0, v = Z(l - h, 2);
+	let g = d.reduce((e, t) => e + t, 0) + r * (t.length - 1), _ = i === "reverse" ? u - g : i === "centre" ? Q(u - g, 2) : 0, v = Q(l - h, 2);
 	return d.map((e) => {
 		let t = n ? [
 			a + v,
@@ -966,15 +1008,15 @@ function Ve(e, t, n, r, i) {
 		return _ += e + r, t;
 	});
 }
-function He(e, t, n, r, i, a, o) {
+function Xe(e, t, n, r, i, a, o) {
 	n = Math.max(1, Math.min(n, t));
-	let s = Be(e, n, !r, i), c = [], l = 0;
+	let s = Je(e, n, !r, i), c = [], l = 0;
 	return s.forEach((e, s) => {
 		let u = Math.floor(t / n) + +(s < t % n);
-		c.push(...a === null ? Be(e, u, r, i) : Ve(e, a.slice(l, l + u), r, i, o)), l += u;
+		c.push(...a === null ? Je(e, u, r, i) : Ye(e, a.slice(l, l + u), r, i, o)), l += u;
 	}), c;
 }
-function Ue(e) {
+function Ze(e) {
 	let t;
 	if (typeof e == "number") t = e;
 	else {
@@ -984,13 +1026,13 @@ function Ue(e) {
 	if (!(t > 0)) throw Error(`not a shape: ${e}`);
 	return t;
 }
-var Q = (e) => W.main[e].default;
-function We(e, t) {
-	let n = e.main_fit ?? Q("main_fit");
-	return n === "fixed" ? Ue(e.main_ratio ?? Q("main_ratio")) : n === "own" ? Number((e.aspects ?? {})[t ?? ""] || 16 / 9) : null;
+var $ = (e) => W.main[e].default;
+function Qe(e, t) {
+	let n = e.main_fit ?? $("main_fit");
+	return n === "fixed" ? Ze(e.main_ratio ?? $("main_ratio")) : n === "own" ? Number((e.aspects ?? {})[t ?? ""] || 16 / 9) : null;
 }
-function $(e, t = null) {
-	let { width: n, height: r, gap: i } = e, a = We(e, t), o = (t) => e[t].cameras.length > 0, s = (t, n) => o(t) ? X(n * e[t].size / 100) : 0, c = (t, n) => {
+function $e(e, t = null) {
+	let { width: n, height: r, gap: i } = e, a = Qe(e, t), o = (t) => e[t].cameras.length > 0, s = (t, n) => o(t) ? Z(n * e[t].size / 100) : 0, c = (t, n) => {
 		let r = `anchor_${n}`;
 		return !!(e[t][r] ?? W.panels[t][r]);
 	}, l, u, d, f, p = 0, m = 0;
@@ -1001,11 +1043,11 @@ function $(e, t = null) {
 		s("bottom", r)
 	];
 	else {
-		let t = Number(e.panel_min ?? Q("panel_min")), s = (e, n, r) => (Number(o(n)) + Number(o(r))) * (X(e * t / 100) + i), c = n - s(n, "left", "right"), h = r - s(r, "top", "bottom");
-		p = Math.min(X(n * Number(e.main_width ?? Q("main_width")) / 100), c), m = X(p / a), m > h && ([m, p] = [h, X(h * a)]);
+		let t = Number(e.panel_min ?? $("panel_min")), s = (e, n, r) => (Number(o(n)) + Number(o(r))) * (Z(e * t / 100) + i), c = n - s(n, "left", "right"), h = r - s(r, "top", "bottom");
+		p = Math.min(Z(n * Number(e.main_width ?? $("main_width")) / 100), c), m = Z(p / a), m > h && ([m, p] = [h, Z(h * a)]);
 		let g = (e, t, n) => {
 			let [r, a] = [o(t), o(n)], s = Math.max(e - i * (Number(r) + Number(a)), 0);
-			return r && a ? [Z(s, 2), s - Z(s, 2)] : r ? [s, 0] : a ? [0, s] : [0, 0];
+			return r && a ? [Q(s, 2), s - Q(s, 2)] : r ? [s, 0] : a ? [0, s] : [0, 0];
 		};
 		[l, u] = g(n - p, "left", "right"), [d, f] = g(r - m, "top", "bottom");
 	}
@@ -1030,15 +1072,15 @@ function $(e, t = null) {
 		bottom: y("bottom", r - f, f),
 		left: b(0, l, "left"),
 		right: b(n - u, u, "right")
-	}, S = (t) => ze.includes(e[t].fit ?? "") ? e[t].cameras.map((t) => Number((e.aspects ?? {})[t] || 16 / 9)) : null, C = Object.fromEntries(Y.map((t) => [t, o(t) ? He(x[t], e[t].cameras.length, Math.trunc(Number(e[t].lines ?? 1)), t === "left" || t === "right", i, S(t), e[t].fit ?? "cover") : []])), w = [
+	}, S = (t) => qe.includes(e[t].fit ?? "") ? e[t].cameras.map((t) => Number((e.aspects ?? {})[t] || 16 / 9)) : null, C = Object.fromEntries(X.map((t) => [t, o(t) ? Xe(x[t], e[t].cameras.length, Math.trunc(Number(e[t].lines ?? 1)), t === "left" || t === "right", i, S(t), e[t].fit ?? "cover") : []])), w = [
 		h,
 		_,
 		g - h,
 		v - _
 	];
 	return a !== null && (p = Math.min(p, g - h), m = Math.min(m, v - _), w = [
-		h + Z(g - h - p, 2),
-		_ + Z(v - _ - m, 2),
+		h + Q(g - h - p, 2),
+		_ + Q(v - _ - m, 2),
 		p,
 		m
 	]), [
@@ -1049,37 +1091,31 @@ function $(e, t = null) {
 }
 //#endregion
 //#region src/commander.ts
-var Ge = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", Ke = 4096e3, qe = 64, Je = 400;
-function Ye(e, t, n) {
-	let r = Math.min(1, Math.sqrt(Ke / (e * n * t * n))), [i, a] = [8 * X(e * n * r / 8), 8 * X(t * n * r / 8)];
-	return Math.min(i, a) >= qe ? [
+var et = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", tt = 4096e3, nt = 64, rt = 400;
+function it(e, t, n) {
+	let r = Math.min(1, Math.sqrt(tt / (e * n * t * n))), [i, a] = [8 * Z(e * n * r / 8), 8 * Z(t * n * r / 8)];
+	return Math.min(i, a) >= nt ? [
 		i,
 		a,
 		Math.round(n * r * 100) / 100 || 1
 	] : null;
 }
-function Xe(e) {
-	for (let t = e; t; t = t.parentElement ?? (t.getRootNode().host || null)) if (t.tagName === "HUI-PANEL-VIEW") return !0;
-	return !1;
-}
-function Ze(e) {
+function at(e) {
 	return Object.entries(e.states).filter(([e, t]) => e.startsWith("select.") && (t.attributes.card || t.attributes.draft_card)).map(([e, t]) => ({
 		value: e,
 		label: String(t.attributes.friendly_name ?? e)
 	}));
 }
-var Qe = class extends U {
+var ot = class extends U {
 	constructor(...e) {
-		super(...e), this._natural = "", this._size = null, this._box = [0, 0], this._room = 0, this._panel = !1, this.settle = 0, this.resize = new ResizeObserver(([e]) => {
+		super(...e), this._natural = "", this._size = null, this._box = [0, 0], this._fit = null, this.settle = 0, this.resize = new ResizeObserver(([e]) => {
 			let { width: t, height: n } = e.contentRect;
 			this._box = [Math.round(t * 10) / 10, Math.round(n * 10) / 10], this.measure(), this.debugOn() && this.requestUpdate();
-			let r = Ye(t, n, window.devicePixelRatio || 1);
-			clearTimeout(this.settle), String(r) !== String(this._size) && (this._size ? this.settle = window.setTimeout(() => this._size = r, Je) : this._size = r);
+			let r = it(t, n, window.devicePixelRatio || 1);
+			clearTimeout(this.settle), String(r) !== String(this._size) && (this._size ? this.settle = window.setTimeout(() => this._size = r, rt) : this._size = r);
 		}), this.measure = () => {
-			let e = this.getBoundingClientRect().top + window.scrollY, t = Math.max(100, Math.floor(window.innerHeight - e));
-			t !== this._room && (this._room = t);
-			let n = Xe(this);
-			n !== this._panel && (this._panel = n);
+			let e = Ie(this);
+			JSON.stringify(e) !== JSON.stringify(this._fit) && (this._fit = e);
 		};
 	}
 	static {
@@ -1088,18 +1124,17 @@ var Qe = class extends U {
 			_config: { state: !0 },
 			_size: { state: !0 },
 			_natural: { state: !0 },
-			_room: { state: !0 },
-			_panel: { state: !0 }
+			_fit: { state: !0 }
 		};
 	}
 	debugOn() {
 		return !!((this._config?.entity ? this.hass?.states[this._config.entity] : void 0)?.attributes[this._config?.draft ? "draft_card" : "card"])?.layout.debug?.on;
 	}
 	connectedCallback() {
-		super.connectedCallback(), window.addEventListener("resize", this.measure), requestAnimationFrame(this.measure);
+		super.connectedCallback(), this.unwatch = Re(this.measure), requestAnimationFrame(this.measure);
 	}
 	disconnectedCallback() {
-		super.disconnectedCallback(), window.removeEventListener("resize", this.measure), this.resize.disconnect(), clearTimeout(this.settle);
+		super.disconnectedCallback(), this.unwatch?.(), this.resize.disconnect(), clearTimeout(this.settle);
 	}
 	updated() {
 		let e = this.renderRoot.querySelector(".box");
@@ -1111,7 +1146,7 @@ var Qe = class extends U {
 		return document.createElement("casa-mia-commander-editor");
 	}
 	static getStubConfig(e) {
-		return { entity: Ze(e)[0]?.value ?? "" };
+		return { entity: at(e)[0]?.value ?? "" };
 	}
 	setConfig(e) {
 		this._config = e;
@@ -1145,9 +1180,9 @@ var Qe = class extends U {
 			...r,
 			width: i,
 			height: a,
-			gap: X(r.gap * o)
-		} : r, [[c, l], u, d] = $(s, n), f = ([e, t, n, r]) => `left:${e / c * 100}%;top:${t / l * 100}%;width:${n / c * 100}%;height:${r / l * 100}%`, p = s.highlight ?? {}, m = Y.flatMap((e) => s[e].cameras.map((t, n) => [t, d[e][n]])).find(([e]) => e === n)?.[1], h = this._room ? this._panel ? `;height:${this._room}px` : `;max-height:${this._room}px` : "";
-		return P`<ha-card style="aspect-ratio:${r.width}/${r.height}${h}">
+			gap: Z(r.gap * o)
+		} : r, [[c, l], u, d] = $e(s, n), f = ([e, t, n, r]) => `left:${e / c * 100}%;top:${t / l * 100}%;width:${n / c * 100}%;height:${r / l * 100}%`, p = s.highlight ?? {}, m = X.flatMap((e) => s[e].cameras.map((t, n) => [t, d[e][n]])).find(([e]) => e === n)?.[1], h = this._fit, g = !h || h.preview ? "" : h.locked ? `;height:${h.room}px` : `;max-height:${h.room}px`;
+		return P`<ha-card style="aspect-ratio:${r.width}/${r.height}${g}">
       <div class="box">
         ${this._size ? P`<img
               class="picture"
@@ -1162,11 +1197,11 @@ var Qe = class extends U {
               card box ${this._box[0]} x ${this._box[1]} CSS px, screen ${window.devicePixelRatio}x<br />
               asked ${this._size ? `${i} x ${a} @${o}x` : "nothing yet"}; picture ${this._natural || "not loaded"}
             </div>` : I}
-        ${Y.flatMap((e) => s[e].cameras.map((r, i) => d[e][i][2] > 0 && r !== n ? P`<div class="zone" style=${f(d[e][i])} title=${t.cameras[r]?.title ?? r} @click=${() => this.choose(t, r)}></div>` : I))}
+        ${X.flatMap((e) => s[e].cameras.map((r, i) => d[e][i][2] > 0 && r !== n ? P`<div class="zone" style=${f(d[e][i])} title=${t.cameras[r]?.title ?? r} @click=${() => this.choose(t, r)}></div>` : I))}
         <div class="zone" style=${f(u)} @click=${() => this.open(t, n)}></div>
         ${m && m[2] > 0 ? P`<img
               class="highlight"
-              src="${Ge}#cm-highlight"
+              src="${et}#cm-highlight"
               alt=""
               style="${f(m)};border:${p.width}px solid ${p.colour};box-shadow:0 0 ${p.blur}px ${p.colour};--cm-colour:${p.colour};--cm-blur:${p.blur}px;--cm-pulse:${p.pulse}s;--cm-style:${p.style}"
             />` : I}
@@ -1238,7 +1273,7 @@ var Qe = class extends U {
     }
   `;
 	}
-}, $e = class extends U {
+}, st = class extends U {
 	static {
 		this.properties = {
 			hass: { attribute: !1 },
@@ -1255,7 +1290,7 @@ var Qe = class extends U {
 				name: "entity",
 				selector: { select: {
 					mode: "dropdown",
-					options: Ze(this.hass)
+					options: at(this.hass)
 				} }
 			},
 			{
@@ -1302,18 +1337,14 @@ var Qe = class extends U {
     ></ha-form>`;
 	}
 };
-customElements.define("casa-mia-commander", Qe), customElements.define("casa-mia-commander-editor", $e), J("casa-mia-commander", "Casa Mia Camera Commander", "One of the Camera Dashboard's commanders: tap a camera to make it the main one.");
+customElements.define("casa-mia-commander", ot), customElements.define("casa-mia-commander-editor", st), J("casa-mia-commander", "Casa Mia Camera Commander", "One of the Camera Dashboard's commanders: tap a camera to make it the main one.");
 //#endregion
 //#region src/tablet.ts
-var et = class extends HTMLElement {
+var ct = class extends HTMLElement {
 	setConfig() {}
 };
-customElements.define("casa-mia-probe", et);
-function tt(e) {
-	for (let t = e; t; t = t.parentElement ?? (t.getRootNode().host || null)) if (t.tagName?.startsWith("HUI-DIALOG") || t.tagName === "HA-DIALOG") return !0;
-	return !1;
-}
-var nt = class extends U {
+customElements.define("casa-mia-probe", ct);
+var lt = "16:10", ut = class extends U {
 	constructor(...e) {
 		super(...e), this.preview = !1, this._items = [], this.probes = {}, this.frame = 0, this.resize = new ResizeObserver(() => this.schedule()), this.changed = (e) => {
 			e.stopPropagation(), this.schedule();
@@ -1347,10 +1378,10 @@ var nt = class extends U {
 	}
 	setConfig(e) {
 		this._config = e;
-		let t = [...e.main ? [["main", e.main]] : [], ...Y.flatMap((t) => (e[t]?.cards ?? []).map((e) => [t, e]))];
+		let t = [...e.main ? [["main", e.main]] : [], ...X.flatMap((t) => (e[t]?.cards ?? []).map((e) => [t, e]))];
 		Promise.all(t.map(([, e]) => K(e, this.hass, this.preview))).then(async (n) => {
 			let r = {};
-			for (let t of Y) e[t]?.visibility?.length && (r[t] = await K({
+			for (let t of X) e[t]?.visibility?.length && (r[t] = await K({
 				type: "custom:casa-mia-probe",
 				visibility: e[t].visibility
 			}, this.hass, this.preview));
@@ -1370,10 +1401,10 @@ var nt = class extends U {
 		};
 	}
 	connectedCallback() {
-		super.connectedCallback(), this.renderRoot.addEventListener("card-visibility-changed", this.changed), window.addEventListener("resize", this.later), this.resize.observe(this);
+		super.connectedCallback(), this.renderRoot.addEventListener("card-visibility-changed", this.changed), this.unwatch = Re(this.later), this.resize.observe(this);
 	}
 	disconnectedCallback() {
-		super.disconnectedCallback(), this.renderRoot.removeEventListener("card-visibility-changed", this.changed), window.removeEventListener("resize", this.later), this.resize.disconnect(), cancelAnimationFrame(this.frame);
+		super.disconnectedCallback(), this.renderRoot.removeEventListener("card-visibility-changed", this.changed), this.unwatch?.(), this.resize.disconnect(), cancelAnimationFrame(this.frame);
 	}
 	schedule() {
 		cancelAnimationFrame(this.frame), this.frame = requestAnimationFrame(() => this.place());
@@ -1390,7 +1421,7 @@ var nt = class extends U {
 			aspects: {}
 		};
 		for (let e of Object.keys(W.main)) r[e] = n[e] ?? W.main[e].default;
-		for (let e of Y) {
+		for (let e of X) {
 			let t = n[e] ?? {}, i = !t.hidden && (!this.probes[e] || q(this.probes[e])), a = i ? this._items.flatMap((t, n) => t.place === e && q(t.el) ? [String(n)] : []) : [], o = i && !a.length && t.hide_empty === !1 && (t.cards?.length ?? 0) > 0;
 			r[e] = {
 				...W.panels[e],
@@ -1403,51 +1434,55 @@ var nt = class extends U {
 	place() {
 		let e = this.renderRoot.querySelector(".view");
 		if (!e || !this._config) return;
-		let t = this.clientWidth, n = Math.floor(window.innerHeight - this.getBoundingClientRect().top);
-		if ((n < 200 || tt(this)) && (n = Math.round(t * 10 / 16)), e.style.height = `${n}px`, !t) return;
-		let r = this.settings(t, n), i = this._items.findIndex((e) => e.place === "main"), a = i >= 0 && q(this._items[i].el) ? String(i) : null, o = (e) => this._items[e].el.parentElement, s = (e) => {
-			for (let [t, n] of e) Object.assign(o(t).style, {
+		let t = this.clientWidth, n = 16 / 10;
+		try {
+			n = Ze(this._config.aspect ?? lt);
+		} catch {}
+		let r = Le(Ie(this), t, n);
+		if (e.style.height = `${r}px`, !t) return;
+		let i = this.settings(t, r), a = this._items.findIndex((e) => e.place === "main"), o = a >= 0 && q(this._items[a].el) ? String(a) : null, s = (e) => this._items[e].el.parentElement, c = (e) => {
+			for (let [t, n] of e) Object.assign(s(t).style, {
 				width: `${n}px`,
 				height: "auto"
 			});
-			return e.map(([e]) => o(e).offsetHeight || 1);
-		}, [, c, l] = $({
-			...r,
-			...Object.fromEntries(Y.map((e) => [e, {
-				...r[e],
+			return e.map(([e]) => s(e).offsetHeight || 1);
+		}, [, l, u] = $e({
+			...i,
+			...Object.fromEntries(X.map((e) => [e, {
+				...i[e],
 				fit: "cover"
 			}]))
-		}, a), u = [];
-		for (let e of Y) ze.includes(r[e].fit ?? "") && r[e].cameras.forEach((t, n) => Number.isInteger(Number(t)) && u.push([Number(t), l[e][n][2]]));
-		a && r.main_fit === "own" && u.push([Number(a), c[2]]), s(u).forEach((e, t) => r.aspects[String(u[t][0])] = u[t][1] / e);
-		let [, d, f] = $(r, a), p = /* @__PURE__ */ new Map(), m = (e) => e === "cover" || e === "fill" || e === "crop";
-		for (let e of Y) r[e].cameras.forEach((t, n) => Number.isInteger(Number(t)) && p.set(Number(t), [f[e][n], m(r[e].fit)]));
-		a && p.set(Number(a), [d, m(r.main_fit)]);
-		let h = [...p].filter(([, [, e]]) => !e), g = s(h.map(([e, [t]]) => [e, t[2]])), _ = new Map(h.map(([e], t) => [e, g[t]]));
+		}, o), d = [];
+		for (let e of X) qe.includes(i[e].fit ?? "") && i[e].cameras.forEach((t, n) => Number.isInteger(Number(t)) && d.push([Number(t), u[e][n][2]]));
+		o && i.main_fit === "own" && d.push([Number(o), l[2]]), c(d).forEach((e, t) => i.aspects[String(d[t][0])] = d[t][1] / e);
+		let [, f, p] = $e(i, o), m = /* @__PURE__ */ new Map(), h = (e) => e === "cover" || e === "fill" || e === "crop";
+		for (let e of X) i[e].cameras.forEach((t, n) => Number.isInteger(Number(t)) && m.set(Number(t), [p[e][n], h(i[e].fit)]));
+		o && m.set(Number(o), [f, h(i.main_fit)]);
+		let g = [...m].filter(([, [, e]]) => !e), _ = c(g.map(([e, [t]]) => [e, t[2]])), v = new Map(g.map(([e], t) => [e, _[t]]));
 		this._items.forEach((e, t) => {
-			let n = o(t).parentElement, r = p.get(t);
+			let n = s(t).parentElement, r = m.get(t);
 			if (n.hidden = !r || r[0][2] <= 0 || r[0][3] <= 0, n.hidden) return;
-			let [[i, a, s, c], l] = r;
+			let [[i, a, o, c], l] = r;
 			Object.assign(n.style, {
 				left: `${i}px`,
 				top: `${a}px`,
-				width: `${s}px`,
+				width: `${o}px`,
 				height: `${c}px`
 			});
-			let u = o(t);
+			let u = s(t);
 			if (u.classList.toggle("stretch", l), l) Object.assign(u.style, {
-				width: `${s}px`,
+				width: `${o}px`,
 				height: `${c}px`,
 				left: "0",
 				top: "0",
 				transform: ""
 			});
 			else {
-				let e = _.get(t), n = Math.min(1, c / e);
+				let e = v.get(t), n = Math.min(1, c / e);
 				Object.assign(u.style, {
-					width: `${s}px`,
+					width: `${o}px`,
 					height: "auto",
-					left: `${(s - s * n) / 2}px`,
+					left: `${(o - o * n) / 2}px`,
 					top: `${(c - e * n) / 2}px`,
 					transform: n < 1 ? `scale(${n})` : ""
 				});
@@ -1485,14 +1520,14 @@ var nt = class extends U {
     }
   `;
 	}
-}, rt = [
+}, dt = [
 	["layout", "Layout"],
 	["main", "Main"],
 	["left", "Left"],
 	["top", "Top"],
 	["right", "Right"],
 	["bottom", "Bottom"]
-], it = class extends U {
+], ft = class extends U {
 	constructor(...e) {
 		super(...e), this._tab = "layout", this.mounted = "";
 	}
@@ -1515,7 +1550,7 @@ var nt = class extends U {
 		if (!e || this.mounted === this._tab) return;
 		this.mounted = this._tab;
 		let t = this._tab, n = t === "main" ? this._config.main ? [this._config.main] : [] : this._config[t]?.cards ?? [];
-		Le(e, this.hass, this.lovelace, n, (e) => {
+		Ge(e, this.hass, this.lovelace, n, (e) => {
 			if (t === "main") {
 				let { main: t, ...n } = this._config;
 				this.save(e[0] ? {
@@ -1546,11 +1581,14 @@ var nt = class extends U {
 	body() {
 		let e = this._config;
 		if (this._tab === "layout") {
-			let t = Object.fromEntries(Object.entries(W.main).map(([t, n]) => [t, e[t] ?? n.default]));
-			return this.form(De(String(t.main_fit)), t, (t) => this.save({
+			let t = Object.fromEntries(Object.entries(W.main).map(([t, n]) => [t, e[t] ?? n.default])), n = ze(this.lovelace), r = n ? [] : [{
+				name: "aspect",
+				selector: { text: {} }
+			}];
+			return n || (t.aspect = e.aspect ?? lt), P`${n ? P`<p class="help">Alone in a Panel view, it is exactly the screen: nothing scrolls.</p>` : I}${this.form([...r, ...De(String(t.main_fit))], t, (t) => this.save({
 				...e,
 				...t
-			}));
+			}))}`;
 		}
 		if (this._tab === "main") return P`<p class="help">The card between the panels (one; a Camera Commander suits it). Its fit is on the Layout tab.</p>
         <div class="stack"></div>`;
@@ -1569,12 +1607,12 @@ var nt = class extends U {
 				cards: n
 			}
 		}))}
-      <p class="help">${(n ?? []).length} cards${(n ?? []).length ? `: ${(n ?? []).map(Ie).join(", ")}` : ""}.</p>
+      <p class="help">${(n ?? []).length} cards${(n ?? []).length ? `: ${(n ?? []).map(We).join(", ")}` : ""}.</p>
       <div class="stack"></div>`;
 	}
 	render() {
 		return this._config ? P`<div class="tabs">
-        ${rt.map(([e, t]) => P`<button class=${e === this._tab ? "on" : ""} @click=${() => (this._tab = e, this.mounted = "")}>${t}</button>`)}
+        ${dt.map(([e, t]) => P`<button class=${e === this._tab ? "on" : ""} @click=${() => (this._tab = e, this.mounted = "")}>${t}</button>`)}
       </div>
       ${this.body()}` : I;
 	}
@@ -1608,5 +1646,5 @@ var nt = class extends U {
 };
 //#endregion
 //#region src/main.ts
-customElements.define("casa-mia-tablet-layout", nt), customElements.define("casa-mia-tablet-layout-editor", it), J("casa-mia-tablet-layout", "Casa Mia tablet layout", "A whole screen and never more: panels of cards around a main card, fitted with no scroll bars and no gaps."), console.info(`%cCASA-MIA CARDS\n%ctablet layout, commander, section (${new URL(import.meta.url).searchParams.get("v") || "dev"})`, "color: green; font-weight: bold;", "");
+customElements.define("casa-mia-tablet-layout", ut), customElements.define("casa-mia-tablet-layout-editor", ft), J("casa-mia-tablet-layout", "Casa Mia tablet layout", "A whole screen and never more: panels of cards around a main card, fitted with no scroll bars and no gaps."), console.info(`%cCASA-MIA CARDS\n%ctablet layout, commander, section (${new URL(import.meta.url).searchParams.get("v") || "dev"})`, "color: green; font-weight: bold;", "");
 //#endregion
