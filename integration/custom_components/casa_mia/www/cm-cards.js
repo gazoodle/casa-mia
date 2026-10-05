@@ -1049,25 +1049,47 @@ function $(e, t = null) {
 }
 //#endregion
 //#region src/commander.ts
-var Ge = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-function Ke(e) {
+var Ge = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", Ke = 4096e3, qe = 64, Je = 400;
+function Ye(e, t, n) {
+	let r = Math.min(1, Math.sqrt(Ke / (e * n * t * n))), [i, a] = [8 * X(e * n * r / 8), 8 * X(t * n * r / 8)];
+	return Math.min(i, a) >= qe ? [
+		i,
+		a,
+		Math.round(n * r * 100) / 100 || 1
+	] : null;
+}
+function Xe(e) {
 	return Object.entries(e.states).filter(([e, t]) => e.startsWith("select.") && (t.attributes.card || t.attributes.draft_card)).map(([e, t]) => ({
 		value: e,
 		label: String(t.attributes.friendly_name ?? e)
 	}));
 }
-var qe = class extends U {
+var Ze = class extends U {
+	constructor(...e) {
+		super(...e), this._size = null, this.settle = 0, this.resize = new ResizeObserver(([e]) => {
+			let { width: t, height: n } = e.contentRect, r = Ye(t, n, window.devicePixelRatio || 1);
+			clearTimeout(this.settle), String(r) !== String(this._size) && (this._size ? this.settle = window.setTimeout(() => this._size = r, Je) : this._size = r);
+		});
+	}
 	static {
 		this.properties = {
 			hass: { attribute: !1 },
-			_config: { state: !0 }
+			_config: { state: !0 },
+			_size: { state: !0 }
 		};
+	}
+	disconnectedCallback() {
+		super.disconnectedCallback(), this.resize.disconnect(), clearTimeout(this.settle);
+	}
+	updated() {
+		let e = this.renderRoot.querySelector(".box");
+		e && this.resize.observe(e);
 	}
 	static getConfigElement() {
 		return document.createElement("casa-mia-commander-editor");
 	}
 	static getStubConfig(e) {
-		return { entity: Ke(e)[0]?.value ?? "" };
+		return { entity: Xe(e)[0]?.value ?? "" };
 	}
 	setConfig(e) {
 		this._config = e;
@@ -1093,17 +1115,26 @@ var qe = class extends U {
         </div></ha-card
       >`;
 		if (!t.picture) return P`<ha-card><div class="note">Its picture's address is not known yet (the app has no LAN address).</div></ha-card>`;
-		let n = t.layout, r = this.main(t, e.state), [[i, a], o, s] = $(n, r), c = ([e, t, n, r]) => `left:${e / i * 100}%;top:${t / a * 100}%;width:${n / i * 100}%;height:${r / a * 100}%`, l = n.highlight ?? {}, u = Y.flatMap((e) => n[e].cameras.map((t, n) => [t, s[e][n]])).find(([e]) => e === r)?.[1];
-		return P`<ha-card>
-      <div class="box" style="aspect-ratio:${i}/${a}">
-        <img class="picture" src=${t.picture} alt="" />
-        ${Y.flatMap((e) => n[e].cameras.map((n, i) => s[e][i][2] > 0 && n !== r ? P`<div class="zone" style=${c(s[e][i])} title=${t.cameras[n]?.title ?? n} @click=${() => this.choose(t, n)}></div>` : I))}
-        <div class="zone" style=${c(o)} @click=${() => this.open(t, r)}></div>
-        ${u && u[2] > 0 ? P`<img
+		let n = this.main(t, e.state), r = t.layout, [i, a, o] = this._size ?? [
+			r.width,
+			r.height,
+			1
+		], s = this._size ? {
+			...r,
+			width: i,
+			height: a,
+			gap: X(r.gap * o)
+		} : r, [[c, l], u, d] = $(s, n), f = ([e, t, n, r]) => `left:${e / c * 100}%;top:${t / l * 100}%;width:${n / c * 100}%;height:${r / l * 100}%`, p = s.highlight ?? {}, m = Y.flatMap((e) => s[e].cameras.map((t, n) => [t, d[e][n]])).find(([e]) => e === n)?.[1];
+		return P`<ha-card style="aspect-ratio:${r.width}/${r.height}">
+      <div class="box">
+        ${this._size ? P`<img class="picture" src="${t.picture}?w=${i}&h=${a}&dpr=${o}" alt="" />` : I}
+        ${Y.flatMap((e) => s[e].cameras.map((r, i) => d[e][i][2] > 0 && r !== n ? P`<div class="zone" style=${f(d[e][i])} title=${t.cameras[r]?.title ?? r} @click=${() => this.choose(t, r)}></div>` : I))}
+        <div class="zone" style=${f(u)} @click=${() => this.open(t, n)}></div>
+        ${m && m[2] > 0 ? P`<img
               class="highlight"
               src="${Ge}#cm-highlight"
               alt=""
-              style="${c(u)};border:${l.width}px solid ${l.colour};box-shadow:0 0 ${l.blur}px ${l.colour};--cm-colour:${l.colour};--cm-blur:${l.blur}px;--cm-pulse:${l.pulse}s;--cm-style:${l.style}"
+              style="${f(m)};border:${p.width}px solid ${p.colour};box-shadow:0 0 ${p.blur}px ${p.colour};--cm-colour:${p.colour};--cm-blur:${p.blur}px;--cm-pulse:${p.pulse}s;--cm-style:${p.style}"
             />` : I}
       </div>
     </ha-card>`;
@@ -1117,15 +1148,22 @@ var qe = class extends U {
 	}
 	static {
 		this.styles = o`
+    :host {
+      display: block;
+      height: 100%;
+    }
+    /* As tall as it is given (a Tablet layout tile); given nothing, its aspect-ratio. */
     ha-card {
+      position: relative;
+      height: 100%;
       overflow: hidden;
       background: none;
       border: none;
       box-shadow: none;
     }
     .box {
-      position: relative;
-      width: 100%;
+      position: absolute;
+      inset: 0;
     }
     .picture {
       display: block;
@@ -1149,7 +1187,7 @@ var qe = class extends U {
     }
   `;
 	}
-}, Je = class extends U {
+}, Qe = class extends U {
 	static {
 		this.properties = {
 			hass: { attribute: !1 },
@@ -1166,7 +1204,7 @@ var qe = class extends U {
 				name: "entity",
 				selector: { select: {
 					mode: "dropdown",
-					options: Ke(this.hass)
+					options: Xe(this.hass)
 				} }
 			},
 			{
@@ -1213,18 +1251,18 @@ var qe = class extends U {
     ></ha-form>`;
 	}
 };
-customElements.define("casa-mia-commander", qe), customElements.define("casa-mia-commander-editor", Je), J("casa-mia-commander", "Casa Mia Camera Commander", "One of the Camera Dashboard's commanders: tap a camera to make it the main one.");
+customElements.define("casa-mia-commander", Ze), customElements.define("casa-mia-commander-editor", Qe), J("casa-mia-commander", "Casa Mia Camera Commander", "One of the Camera Dashboard's commanders: tap a camera to make it the main one.");
 //#endregion
 //#region src/tablet.ts
-var Ye = class extends HTMLElement {
+var $e = class extends HTMLElement {
 	setConfig() {}
 };
-customElements.define("casa-mia-probe", Ye);
-function Xe(e) {
+customElements.define("casa-mia-probe", $e);
+function et(e) {
 	for (let t = e; t; t = t.parentElement ?? (t.getRootNode().host || null)) if (t.tagName?.startsWith("HUI-DIALOG") || t.tagName === "HA-DIALOG") return !0;
 	return !1;
 }
-var Ze = class extends U {
+var tt = class extends U {
 	constructor(...e) {
 		super(...e), this.preview = !1, this._items = [], this.probes = {}, this.frame = 0, this.resize = new ResizeObserver(() => this.schedule()), this.changed = (e) => {
 			e.stopPropagation(), this.schedule();
@@ -1315,7 +1353,7 @@ var Ze = class extends U {
 		let e = this.renderRoot.querySelector(".view");
 		if (!e || !this._config) return;
 		let t = this.clientWidth, n = Math.floor(window.innerHeight - this.getBoundingClientRect().top);
-		if ((n < 200 || Xe(this)) && (n = Math.round(t * 10 / 16)), e.style.height = `${n}px`, !t) return;
+		if ((n < 200 || et(this)) && (n = Math.round(t * 10 / 16)), e.style.height = `${n}px`, !t) return;
 		let r = this.settings(t, n), i = this._items.findIndex((e) => e.place === "main"), a = i >= 0 && q(this._items[i].el) ? String(i) : null, o = (e) => this._items[e].el.parentElement, s = (e) => {
 			for (let [t, n] of e) Object.assign(o(t).style, {
 				width: `${n}px`,
@@ -1396,14 +1434,14 @@ var Ze = class extends U {
     }
   `;
 	}
-}, Qe = [
+}, nt = [
 	["layout", "Layout"],
 	["main", "Main"],
 	["left", "Left"],
 	["top", "Top"],
 	["right", "Right"],
 	["bottom", "Bottom"]
-], $e = class extends U {
+], rt = class extends U {
 	constructor(...e) {
 		super(...e), this._tab = "layout", this.mounted = "";
 	}
@@ -1485,7 +1523,7 @@ var Ze = class extends U {
 	}
 	render() {
 		return this._config ? P`<div class="tabs">
-        ${Qe.map(([e, t]) => P`<button class=${e === this._tab ? "on" : ""} @click=${() => (this._tab = e, this.mounted = "")}>${t}</button>`)}
+        ${nt.map(([e, t]) => P`<button class=${e === this._tab ? "on" : ""} @click=${() => (this._tab = e, this.mounted = "")}>${t}</button>`)}
       </div>
       ${this.body()}` : I;
 	}
@@ -1519,5 +1557,5 @@ var Ze = class extends U {
 };
 //#endregion
 //#region src/main.ts
-customElements.define("casa-mia-tablet-layout", Ze), customElements.define("casa-mia-tablet-layout-editor", $e), J("casa-mia-tablet-layout", "Casa Mia tablet layout", "A whole screen and never more: panels of cards around a main card, fitted with no scroll bars and no gaps."), console.info(`%cCASA-MIA CARDS\n%ctablet layout, commander, section (${new URL(import.meta.url).searchParams.get("v") || "dev"})`, "color: green; font-weight: bold;", "");
+customElements.define("casa-mia-tablet-layout", tt), customElements.define("casa-mia-tablet-layout-editor", rt), J("casa-mia-tablet-layout", "Casa Mia tablet layout", "A whole screen and never more: panels of cards around a main card, fitted with no scroll bars and no gaps."), console.info(`%cCASA-MIA CARDS\n%ctablet layout, commander, section (${new URL(import.meta.url).searchParams.get("v") || "dev"})`, "color: green; font-weight: bold;", "");
 //#endregion

@@ -865,8 +865,6 @@ function CommanderEditor({
               />
             </Field>
           </div>
-          <Num label="Width" value={value.width} onChange={(n) => set((c) => (c.width = n))} />
-          <Num label="Height" value={value.height} onChange={(n) => set((c) => (c.height = n))} />
           <Num label={L.gap.label} value={value.gap} help={help(L.gap)} onChange={(n) => set((c) => (c.gap = n))} />
           <Num
             label="Stale after, s"
@@ -875,7 +873,8 @@ function CommanderEditor({
             onChange={(n) => set((c) => (c.stale = n))}
           />
           <p className={`${css.hint} ${css.wide}`}>
-            Gaps are transparent: the dashboard's background shows through them.
+            Gaps are transparent: the dashboard's background shows through them. The Camera Commander card draws it
+            exactly the size it is shown (its shape too); the preview here and the generated dashboard draw it at a fixed size.
           </p>
         </section>
         <section className={`${css.options} ${css.numbers}`}>

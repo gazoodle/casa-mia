@@ -70,6 +70,10 @@ def test_serves_the_commander(compositor):
     with urllib.request.urlopen(f"{base}/g/cameras.jpg") as r:
         assert r.headers["Content-Type"] == "image/jpeg"  # no gaps: JPEG
         assert Image.open(io.BytesIO(r.read())).size == (640, 360)
+    # a card asks for exactly its size (device pixels); out of bounds: its own size
+    for asked, drawn in (("w=800&h=1280&dpr=2", (800, 1280)), ("w=9&h=9", (640, 360))):
+        with urllib.request.urlopen(f"{base}/g/cameras.jpg?{asked}") as r:
+            assert Image.open(io.BytesIO(r.read())).size == drawn
     for gone in ("nope", "overview"):  # nothing else, groups and overviews are gone
         with pytest.raises(urllib.error.HTTPError) as err:
             urllib.request.urlopen(f"{base}/g/{gone}.jpg")
@@ -237,3 +241,24 @@ def test_changing_picture_is_drawn_from_what_is_to_hand():
     sharp = commander(cmd, {}, still, "camera.b", jpeg("blue"))
     quick = commander(cmd, {}, still, "camera.b", jpeg("blue"), changing=True)
     assert Image.open(io.BytesIO(quick)).size == (640, 360) and quick != sharp
+
+
+def test_a_size_asked_for_grows_gap_and_text_by_the_screens_scale():
+    from casa_mia.modules.compositor import EMPTY_COMMANDER, asked_size, sized
+
+    assert asked_size({"w": "1280", "h": "800", "dpr": "1.5"}) == (1280, 800, 1.5)
+    for nonsense in (
+        {},
+        {"w": "x", "h": "1"},
+        {"w": "50", "h": "800"},
+        {"w": "9000", "h": "9000"},
+    ):
+        assert asked_size(nonsense) is None
+    cmd = sized({**EMPTY_COMMANDER, "gap": 4}, (1280, 800, 1.5))
+    assert (cmd["width"], cmd["height"], cmd["gap"], cmd["scale"]) == (
+        1280,
+        800,
+        6,
+        1.5,
+    )
+    assert cmd["view"] == "cameras@1280x800x1.5"

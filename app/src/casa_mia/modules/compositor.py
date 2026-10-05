@@ -145,6 +145,52 @@ def slug(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", str(text).lower()).strip("-")
 
 
+# A picture asked for at a size (a card drawing it exactly the size it is shown): no more
+# pixels than this, and no side under MIN_SIDE. The card caps and rounds the size itself
+# (see integration/cards/src/commander.ts), so it lays its taps out for the same canvas.
+MAX_PIXELS = 2560 * 1600
+MIN_SIDE = 64
+Size = tuple[int, int, float]  # width and height in device pixels, and the scale (dpr)
+
+
+def asked_size(query: Any) -> Size | None:
+    """The size in a picture's address (?w=&h= in device pixels, dpr: the screen's
+    pixels per CSS pixel); None when there is none, or it is out of bounds."""
+    try:
+        w, h = int(query["w"]), int(query["h"])
+        dpr = float(query.get("dpr", 1))
+    except (KeyError, ValueError, TypeError):
+        return None
+    ok = MIN_SIDE <= min(w, h) and w * h <= MAX_PIXELS * 1.1 and 0.5 <= dpr <= 4
+    return (w, h, dpr) if ok else None
+
+
+def view_key(name: str, size: Size | None) -> str:
+    """A commander's picture at a size: its own key (its slug alone at its set size)."""
+    return name if size is None else f"{name}@{size[0]}x{size[1]}x{size[2]:g}"
+
+
+def sized(cmd: dict, size: Size | None) -> dict:
+    """The commander drawn at a size asked for: that canvas, its gap, text and bars grown
+    by the scale, so they look the same in CSS pixels on any screen."""
+    if size is None:
+        return cmd
+    w, h, dpr = size
+    return {
+        **cmd,
+        "width": w,
+        "height": h,
+        "gap": round(cmd["gap"] * dpr),
+        "scale": dpr,
+        "view": view_key(slug(cmd["name"]), size),
+    }
+
+
+def key_of(cmd: dict) -> str:
+    """The key a commander's picture is kept under: its view's, or its slug's."""
+    return cmd.get("view") or slug(cmd["name"])
+
+
 def commanders_of(store: dict) -> list[dict]:
     """A store's commanders, in order, each with every setting. A store saved before
     there were several has its one commander (named Cameras)."""
@@ -430,18 +476,28 @@ def commander_layout(
 STALE = (245, 166, 35)  # the Stale mark: amber
 
 
-def _stale_mark(draw: ImageDraw.ImageDraw, at: tuple[int, int], font: Any) -> None:
+def _stale_mark(
+    draw: ImageDraw.ImageDraw, at: tuple[int, int], font: Any, scale: float = 1
+) -> None:
     """ "Stale" in an amber pill, its right end at `at` (vertically centred there)."""
     box = draw.textbbox(at, "Stale", font=font, anchor="rm")
+    x, y = round(6 * scale), round(3 * scale)
     draw.rounded_rectangle(
-        (box[0] - 6, box[1] - 3, box[2] + 6, box[3] + 3), radius=6, fill=STALE
+        (box[0] - x, box[1] - y, box[2] + x, box[3] + y), radius=x, fill=STALE
     )
     draw.text(at, "Stale", fill="black", font=font, anchor="rm")
 
 
-SMALL_FONT = ImageFont.load_default(size=16)
-BIG_FONT = ImageFont.load_default(size=40)
 SMALL_BAR = 22
+
+
+@functools.lru_cache(maxsize=16)
+def _fonts(scale: float) -> tuple[Any, Any, Any]:
+    """The small, normal and big fonts, grown by `scale` (a screen's pixels per CSS
+    pixel, for a picture drawn at a size asked for)."""
+    return tuple(ImageFont.load_default(size=round(n * scale)) for n in (16, 20, 40))  # type: ignore[return-value]
+
+
 MOTION_DOT = (235, 50, 40)  # the accent green: the tile shown as the main camera
 
 
@@ -462,6 +518,14 @@ def commander(
     with "Changing to <camera>" over it, until the sharp one is ready. `stale`: the
     cameras whose tile picture is old (marked Stale); `main_stale`: the main picture is."""
     size, main_rect, rects = commander_layout(cmd, main)
+    # Drawn at a size asked for (see `sized`), text, bars and margins grow by its scale.
+    scale = float(cmd.get("scale", 1))
+    small, font, big = _fonts(scale)
+
+    def u(n: float) -> int:
+        return round(n * scale)
+
+    bar = u(SMALL_BAR)
     # Drawn solid, so the name bars and labels shade the picture under them; the gaps
     # are cut out at the end. (Drawn on a transparent canvas, a see-through bar would
     # replace the picture under it, and the dashboard's background would show through.)
@@ -493,22 +557,22 @@ def commander(
                     (x + w // 2, y + h // 2),
                     "no signal",
                     fill="white",
-                    font=SMALL_FONT,
+                    font=small,
                     anchor="mm",
                 )
-            draw.rectangle((x, y + h - SMALL_BAR, x + w, y + h), fill=(0, 0, 0, 140))
+            draw.rectangle((x, y + h - bar, x + w, y + h), fill=(0, 0, 0, 140))
             draw.text(
-                (x + 6, y + h - SMALL_BAR // 2),
+                (x + u(6), y + h - bar // 2),
                 swap.out(str(titles.get(entity) or entity)),
                 fill="white",
-                font=SMALL_FONT,
+                font=small,
                 anchor="lm",
             )
             if raw and entity in stale:
-                _stale_mark(draw, (x + w - 6, y + h - SMALL_BAR // 2), SMALL_FONT)
+                _stale_mark(draw, (x + w - u(6), y + h - bar // 2), small, scale)
             if entity in motion:  # a red dot: this camera sees motion now
-                r = max(5, min(w, h) // 18)
-                cx, cy = x + w - r - 6, y + r + 6
+                r = max(u(5), min(w, h) // 18)
+                cx, cy = x + w - r - u(6), y + r + u(6)
                 draw.ellipse(
                     (cx - r, cy - r, cx + r, cy + r), fill=MOTION_DOT, outline="white"
                 )
@@ -542,44 +606,45 @@ def commander(
                 (x + w // 2, y + h // 2),
                 "no signal",
                 fill="white",
-                font=FONT,
+                font=font,
                 anchor="mm",
             )
         label = swap.out(titles.get(main, main))
         if changing:
             area = (px, py, px + pw, py + ph)
             canvas.paste(
-                canvas.crop(area).filter(ImageFilter.GaussianBlur(14)), area[:2]
+                canvas.crop(area).filter(ImageFilter.GaussianBlur(u(14))), area[:2]
             )
             text = f"Changing to {label}…"
             box = draw.textbbox(
-                (px + pw // 2, py + ph // 2), text, font=BIG_FONT, anchor="mm"
+                (px + pw // 2, py + ph // 2), text, font=big, anchor="mm"
             )
             draw.rounded_rectangle(
-                (box[0] - 18, box[1] - 12, box[2] + 18, box[3] + 12),
-                radius=12,
+                (box[0] - u(18), box[1] - u(12), box[2] + u(18), box[3] + u(12)),
+                radius=u(12),
                 fill=(0, 0, 0, 170),
             )
             draw.text(
                 (px + pw // 2, py + ph // 2),
                 text,
                 fill="white",
-                font=BIG_FONT,
+                font=big,
                 anchor="mm",
             )
         if main_image and main_stale:
-            _stale_mark(draw, (px + pw - 10, py + 22), FONT)
-        foot = py + ph - 18
-        pill = draw.textbbox((px + 10, foot), label, font=FONT, anchor="lm")
+            _stale_mark(draw, (px + pw - u(10), py + u(22)), font, scale)
+        foot = py + ph - u(18)
+        pill = draw.textbbox((px + u(10), foot), label, font=font, anchor="lm")
         draw.rectangle(
-            (pill[0] - 6, pill[1] - 4, pill[2] + 6, pill[3] + 4), fill=(0, 0, 0, 160)
+            (pill[0] - u(6), pill[1] - u(4), pill[2] + u(6), pill[3] + u(4)),
+            fill=(0, 0, 0, 160),
         )
-        draw.text((px + 10, foot), label, fill="white", font=FONT, anchor="lm")
+        draw.text((px + u(10), foot), label, fill="white", font=font, anchor="lm")
         draw.text(
-            (px + pw - 10, foot),
+            (px + pw - u(10), foot),
             datetime.now().strftime("%H:%M:%S"),
             fill="white",
-            font=FONT,
+            font=font,
             anchor="rm",
         )
     if cmd["gap"]:  # every tile and the main area solid; only the gaps are clear
@@ -648,6 +713,8 @@ class Compositor:
         self._streams: dict[str | None, list[asyncio.Event]] = {}
         self._open: dict[str, int] = {}  # commander -> streams open
         self._asked: dict[str, float] = {}  # commander -> its last request
+        # Commander (slug) -> the sizes its picture is asked for (None: its own size).
+        self._sizes: dict[str, dict[Size | None, None]] = {}
         self._warm_until = -LINGER  # prewarm: every commander gathered until then
         self._http: aiohttp.ClientSession | None = None
         self._latest: dict[str, bytes] = {}  # camera -> its latest still (keep_stills)
@@ -768,14 +835,17 @@ class Compositor:
         for cmd in self.cfg.commanders:
             if cmd["id"] != commander:
                 continue
-            if cmd not in watched:
-                self._pictures.pop(slug(cmd["name"]), None)
-                continue
-            try:
-                await self._draw(cmd, changing=True)
-            except (OSError, ValueError) as exc:
-                _LOGGER.debug("%s: no quick picture: %s", cmd["name"], exc)
-                self._pictures.pop(slug(cmd["name"]), None)
+            name = slug(cmd["name"])
+            views = {key_of(v): v for v in watched if slug(v["name"]) == name}
+            for key in [k for k in self._pictures if k.split("@")[0] == name]:
+                if key not in views:
+                    self._pictures.pop(key, None)
+            for key, view in views.items():
+                try:
+                    await self._draw(view, changing=True)
+                except (OSError, ValueError) as exc:
+                    _LOGGER.debug("%s: no quick picture: %s", cmd["name"], exc)
+                    self._pictures.pop(key, None)
         if self._next_round:
             self._next_round.set()
 
@@ -988,24 +1058,35 @@ class Compositor:
         return sum(len(v) for v in self._streams.values())
 
     def _watched(self) -> list[dict]:
-        """The commanders with cameras someone is watching: a stream open, or a picture
-        asked for in the last LINGER seconds."""
+        """The commanders with cameras someone is watching, at each size watched: a
+        stream open, or a picture asked for in the last LINGER seconds. A size nobody
+        watches any more is forgotten, its picture too."""
         now = time.monotonic()
-        return [
-            c
-            for c in self.cfg.commanders
-            if commander_cameras(c)
-            and (
-                self._open.get(key := slug(c["name"]))
-                or now - self._asked.get(key, -LINGER) < LINGER
-                or now < self._warm_until
-            )
-        ]
+        out = []
+        for c in self.cfg.commanders:
+            if not commander_cameras(c):
+                continue
+            name = slug(c["name"])
+            sizes = self._sizes.setdefault(name, {None: None})
+            for size in list(sizes):
+                key = view_key(name, size)
+                if (
+                    self._open.get(key)
+                    or now - self._asked.get(key, -LINGER) < LINGER
+                    or (size is None and now < self._warm_until)
+                ):
+                    out.append(sized(c, size))
+                elif size is not None:
+                    del sizes[size]
+                    self._pictures.pop(key, None)
+                    self._asked.pop(key, None)
+        return out
 
-    def _touch(self, name: str) -> None:
-        """Someone asked for a commander's picture: gather (from now, for LINGER at
-        least)."""
-        self._asked[name] = time.monotonic()
+    def _touch(self, name: str, size: Size | None = None) -> None:
+        """Someone asked for a commander's picture (at a size): gather (from now, for
+        LINGER at least)."""
+        self._sizes.setdefault(name, {None: None})[size] = None
+        self._asked[view_key(name, size)] = time.monotonic()
         if self._watching:
             self._watching.set()
 
@@ -1035,10 +1116,15 @@ class Compositor:
         """Fetch every camera of these commanders at once, each within FETCH_TIMEOUT. A
         miss keeps the picture already cached (it goes stale); STRIKES in a row and the
         camera sits out until BENCH seconds have passed."""
-        wanted: dict[tuple[str, tuple[int, int]], None] = {}
+        # Each camera once, at the largest size any picture wants it (pictures of one
+        # commander at several sizes share the fetch, and scale it to their tiles).
+        largest: dict[str, tuple[int, int]] = {}
         for cmd in cmds:
             tiles, main = self._wants(self.cfg, cmd, self.main_camera(cmd) or "")
-            wanted |= dict.fromkeys([*tiles.items(), main])
+            for e, size in [*tiles.items(), main]:
+                if size[0] > largest.get(e, (0, 0))[0]:
+                    largest[e] = size
+        wanted = dict.fromkeys(largest.items())
         now = started = time.monotonic()
         jobs = []
         for e, size in wanted:
@@ -1120,7 +1206,7 @@ class Compositor:
                 frozenset(stale),
                 age > limit,
             )
-        name = slug(cmd["name"])
+        name = key_of(cmd)
         self._pictures[name] = (time.monotonic(), picture)
         fresh, self._fresh[name] = self._fresh_of(name), asyncio.Event()
         fresh.set()
@@ -1187,13 +1273,14 @@ class Compositor:
             images[0],
         )
 
-    async def _frame(self, cmd: dict) -> bytes:
-        """A commander's latest picture, at once. After a quiet spell (none, or older
-        than the stale limit) it is drawn now from the cache, Stale marks and all, while
-        the gather loop starts up; with nothing cached at all, the first round is
-        awaited."""
-        name = slug(cmd["name"])
-        self._touch(name)
+    async def _frame(self, cmd: dict, size: Size | None = None) -> bytes:
+        """A commander's latest picture (at a size asked for), at once. After a quiet
+        spell (none, or older than the stale limit) it is drawn now from the cache, Stale
+        marks and all, while the gather loop starts up; with nothing cached at all, the
+        first round is awaited."""
+        self._touch(slug(cmd["name"]), size)
+        cmd = sized(cmd, size)
+        name = key_of(cmd)
         limit = float(cmd.get("stale", EMPTY_COMMANDER["stale"]))
         picture = self._pictures.get(name)
         if picture and time.monotonic() - picture[0] < min(limit, LINGER):
@@ -1288,7 +1375,7 @@ class Compositor:
         if not (cmd := self._known(name)):
             raise web.HTTPNotFound()
         self._warm_in_background(name)
-        data = await self._frame(cmd)
+        data = await self._frame(cmd, asked_size(request.query))
         return web.Response(
             body=data, content_type=mime(data), headers={"Cache-Control": "no-store"}
         )
@@ -1311,7 +1398,10 @@ class Compositor:
         streams.append(stop)
         while len(streams) > MAX_STREAMS:
             streams.pop(0).set()
-        self._open[name] = self._open.get(name, 0) + 1
+        # Drawn at the size its address asks for (a card's exact size), else its own.
+        size = asked_size(request.query)
+        key = view_key(name, size)
+        self._open[key] = self._open.get(key, 0) + 1
         await resp.prepare(request)
         try:
             # Chrome draws a multipart frame only when it sees the *next* part begin, so a
@@ -1321,7 +1411,7 @@ class Compositor:
             # The parts' type (JPEG, or WebP with transparent gaps) is set by the first
             # picture; a deploy that changes it ends the stream (the dashboard reloads).
             self._warm_in_background(name)
-            data = await self._frame(cmd)
+            data = await self._frame(cmd, size)
             kind = mime(data)
             part = f"--frame\r\nContent-Type: {kind}\r\n\r\n".encode()
             await resp.write(part)
@@ -1333,7 +1423,7 @@ class Compositor:
                 # KEEPALIVE, should drawing stop).
                 waits = [
                     asyncio.ensure_future(stop.wait()),
-                    asyncio.ensure_future(self._fresh_of(name).wait()),
+                    asyncio.ensure_future(self._fresh_of(key).wait()),
                 ]
                 await asyncio.wait(
                     waits, timeout=KEEPALIVE, return_when=asyncio.FIRST_COMPLETED
@@ -1346,13 +1436,13 @@ class Compositor:
                 cmd = self._known(name)  # a reload may have changed it, or removed it
                 if not cmd:
                     break
-                data = await self._frame(cmd)
+                data = await self._frame(cmd, size)
         except (ConnectionResetError, asyncio.CancelledError):
             pass
         finally:
             if stop in streams:
                 streams.remove(stop)
-            self._open[name] -= 1
+            self._open[key] -= 1
         return resp
 
     async def _status(self, request: web.Request) -> web.Response:

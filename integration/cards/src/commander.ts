@@ -6,9 +6,13 @@
 // compositor) instead of what is live. The highlight on the main camera's tile is an <img>
 // marked #cm-highlight, as on the generated dashboard, so cm-streams.js pulses it (and gives the
 // picture its Security look, and stops it while off screen).
+// The picture is drawn exactly the size the card is shown: the card asks the compositor for
+// its own size (device pixels, ?w=&h=&dpr=), and lays its taps out for the same canvas, so
+// nothing is scaled, cropped or bordered on the screen. Its shape is the space it is given
+// (a Tablet layout's tile); in a normal column, the commander's own width:height.
 import { LitElement, css, html, nothing } from "lit";
 import { fire, type Hass, navigate, register } from "./ha.ts";
-import { layout, PANELS, type Rect, type Settings } from "./layout.ts";
+import { layout, PANELS, pyRound, type Rect, type Settings } from "./layout.ts";
 
 type Config = { type: string; entity?: string; draft?: boolean; tap_main?: "live" | "more-info" | "none" };
 type Card = {
@@ -18,6 +22,20 @@ type Card = {
   cameras: Record<string, { title: string; live: string }>;
 };
 const BLANK = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+// As the compositor's (compositor.py: MAX_PIXELS, MIN_SIDE, asked_size).
+const MAX_PIXELS = 2560 * 1600;
+const MIN_SIDE = 64;
+const SETTLE_MS = 400; // a size must hold this long before a new picture is asked for
+type Size = [w: number, h: number, scale: number];
+
+/** The picture to ask for, for a box w x h CSS pixels: in device pixels, capped at
+ * MAX_PIXELS (same shape; text and gaps then shrink with it), rounded to 8 so near sizes
+ * share one picture. Null when too small to draw. */
+export function askFor(w: number, h: number, dpr: number): Size | null {
+  const k = Math.min(1, Math.sqrt(MAX_PIXELS / (w * dpr * h * dpr)));
+  const [W, H] = [8 * pyRound((w * dpr * k) / 8), 8 * pyRound((h * dpr * k) / 8)];
+  return Math.min(W, H) >= MIN_SIDE ? [W, H, Math.round(dpr * k * 100) / 100 || 1] : null;
+}
 
 /** The commanders HA knows: their Main camera selects, by name. */
 export function commanders(hass: Hass): { value: string; label: string }[] {
@@ -27,9 +45,29 @@ export function commanders(hass: Hass): { value: string; label: string }[] {
 }
 
 class CommanderCard extends LitElement {
-  static properties = { hass: { attribute: false }, _config: { state: true } };
+  static properties = { hass: { attribute: false }, _config: { state: true }, _size: { state: true } };
   hass?: Hass;
   _config?: Config;
+  _size: Size | null = null; // the picture asked for: this card's size, once it settles
+  private settle = 0;
+  private resize = new ResizeObserver(([entry]) => {
+    const { width, height } = entry.contentRect;
+    const size = askFor(width, height, window.devicePixelRatio || 1);
+    clearTimeout(this.settle);
+    if (String(size) === String(this._size)) return;
+    if (!this._size) this._size = size; // the first at once; then each once it holds
+    else this.settle = window.setTimeout(() => (this._size = size), SETTLE_MS);
+  });
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.resize.disconnect();
+    clearTimeout(this.settle);
+  }
+  updated() {
+    const box = this.renderRoot.querySelector(".box");
+    if (box) this.resize.observe(box);
+  }
 
   static getConfigElement() {
     return document.createElement("casa-mia-commander-editor");
@@ -68,16 +106,19 @@ class CommanderCard extends LitElement {
         </div></ha-card
       >`;
     if (!card.picture) return html`<ha-card><div class="note">Its picture's address is not known yet (the app has no LAN address).</div></ha-card>`;
-    const s = card.layout;
     const main = this.main(card, st!.state);
+    // Laid out for the picture asked for, as the compositor draws it (compositor.sized).
+    const own = card.layout;
+    const [W, H, scale] = this._size ?? [own.width, own.height, 1];
+    const s = this._size ? { ...own, width: W, height: H, gap: pyRound(own.gap * scale) } : own;
     const [[w, h], mainRect, tiles] = layout(s, main);
     const at = ([x, y, rw, rh]: Rect) =>
       `left:${(x / w) * 100}%;top:${(y / h) * 100}%;width:${(rw / w) * 100}%;height:${(rh / h) * 100}%`;
     const lit = s.highlight ?? {};
     const mark = PANELS.flatMap((p) => s[p].cameras.map((e, i) => [e, tiles[p][i]] as const)).find(([e]) => e === main)?.[1];
-    return html`<ha-card>
-      <div class="box" style="aspect-ratio:${w}/${h}">
-        <img class="picture" src=${card.picture} alt="" />
+    return html`<ha-card style="aspect-ratio:${own.width}/${own.height}">
+      <div class="box">
+        ${this._size ? html`<img class="picture" src="${card.picture}?w=${W}&h=${H}&dpr=${scale}" alt="" />` : nothing}
         ${PANELS.flatMap((p) =>
           s[p].cameras.map((e, i) =>
             tiles[p][i][2] > 0 && e !== main
@@ -109,15 +150,22 @@ class CommanderCard extends LitElement {
   }
 
   static styles = css`
+    :host {
+      display: block;
+      height: 100%;
+    }
+    /* As tall as it is given (a Tablet layout tile); given nothing, its aspect-ratio. */
     ha-card {
+      position: relative;
+      height: 100%;
       overflow: hidden;
       background: none;
       border: none;
       box-shadow: none;
     }
     .box {
-      position: relative;
-      width: 100%;
+      position: absolute;
+      inset: 0;
     }
     .picture {
       display: block;
