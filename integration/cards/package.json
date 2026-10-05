@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc --noEmit && vite build",
     "dev": "vite build --watch",
-    "test": "node --experimental-strip-types --no-warnings --test src/layout.test.ts"
+    "test": "node --experimental-strip-types --no-warnings --test src/layout.test.ts src/sizing.test.ts"
   },
   "dependencies": {
     "lit": "^3.3.3"

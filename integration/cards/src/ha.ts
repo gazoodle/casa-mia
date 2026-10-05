@@ -102,26 +102,31 @@ export const helper = (s: { name: string }) => all[s.name]?.help?.replaceAll("{i
 
 // --- how big a card may be: one rule for every Casa Mia card ----------------------------
 // HA passes a card its width, never a height: a dashboard is a page that scrolls. So each
-// card sizes itself, all the same way:
-//   locked (alone in a Panel view): exactly the screen below its top edge;
-//   given a size by a container (a Tablet layout tile): that size;
-//   otherwise (a column): its own shape from its width, at most the screen below its top.
-// In an editor's preview: its own shape, uncapped.
+// card sizes itself, all the same way, by where it stands (its mode):
+//   screen:  alone in a Panel view. It is given the whole space, from the sidebar's edge to
+//            the screen's right and from the header's foot to the screen's bottom, and only
+//            fills it: no shape, aspect or fit of its own;
+//   tile:    in a Tablet layout tile: it fills the tile;
+//   column:  anywhere else: its own shape from its width, never taller than the screen
+//            below its top edge;
+//   preview: in an editor's preview: its own shape from its width.
+// Its width is always all of its space: only the height is decided here.
 
+export type Mode = "screen" | "tile" | "column" | "preview";
+export type Fit = { mode: Mode; room: number; container: string };
 const MIN_ROOM = 100; // px: never squeezed below this, however low on the page it sits
 
 /** The element above `el` that holds it: its parent, or its shadow root's host. */
 const up = (el: Node): Node | null => (el as Element).parentElement ?? ((el.getRootNode() as ShadowRoot).host || null);
 
-/** Alone in a Panel view: the first card container above it (past its own hui-card and
- * plain wrappers) is HA's panel view. A card inside a Tablet layout is not. */
-export function locked(el: Element): boolean {
+/** The card container holding `el`: the first custom element above it past its own
+ * hui-card (HUI-PANEL-VIEW, CASA-MIA-TABLET-LAYOUT, a sections grid...). */
+export function container(el: Element): string {
   for (let n = up(el); n; n = up(n)) {
     const tag = (n as Element).tagName ?? "";
-    if (tag === "HUI-PANEL-VIEW") return true;
-    if (tag.includes("-") && tag !== "HUI-CARD") return false; // some other container
+    if (tag.includes("-") && tag !== "HUI-CARD") return tag;
   }
-  return false;
+  return "";
 }
 
 /** Inside one of HA's dialogs (the card editor's preview), not on the dashboard. */
@@ -139,16 +144,32 @@ export function room(el: Element): number {
   return Math.max(MIN_ROOM, Math.floor(tall - top));
 }
 
-/** Where a card stands now: locked to the screen, and the room it has. */
-export type Fit = { locked: boolean; room: number; preview: boolean };
-export function fitOf(el: Element): Fit {
-  return { locked: locked(el), room: room(el), preview: inDialog(el) };
+/** The mode for a card's container (see above). */
+export function modeOf(holder: string, preview: boolean): Mode {
+  if (preview) return "preview";
+  if (holder === "HUI-PANEL-VIEW") return "screen";
+  return holder === "CASA-MIA-TABLET-LAYOUT" ? "tile" : "column";
 }
 
-/** Its height for a width and its own shape (width / height), by the rule above. */
-export function heightFor(fit: Fit, width: number, shape: number): number {
-  if (fit.preview) return Math.round(width / shape);
-  return fit.locked ? fit.room : Math.min(Math.round(width / shape), fit.room);
+/** Where a card stands now, and the room below it. */
+export function fitOf(el: Element): Fit {
+  const holder = container(el);
+  return { mode: modeOf(holder, inDialog(el)), room: room(el), container: holder.toLowerCase() };
+}
+
+/** Its height for its width and its own shape (width / height); null in a tile, which it
+ * fills whatever its shape. */
+export function heightFor(fit: Pick<Fit, "mode" | "room">, width: number, shape: number): number | null {
+  switch (fit.mode) {
+    case "screen":
+      return fit.room;
+    case "tile":
+      return null;
+    case "preview":
+      return Math.round(width / shape);
+    default:
+      return Math.min(Math.round(width / shape), fit.room);
+  }
 }
 
 /** Call `on` whenever the room may have changed: the window resized or rotated, or a

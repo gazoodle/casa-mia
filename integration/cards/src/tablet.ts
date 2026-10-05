@@ -146,8 +146,8 @@ class TabletLayout extends LitElement {
   private place() {
     const view = this.renderRoot.querySelector<HTMLElement>(".view");
     if (!view || !this._config) return;
-    // The cards' one rule (ha.ts): locked (alone in a Panel view), exactly the screen below
-    // its top edge; otherwise its own shape from its width, at most that.
+    // The cards' one rule (ha.ts: heightFor): alone in a Panel view, all of the screen below
+    // its top edge; otherwise its own shape (Shape) from its width, at most that.
     const width = this.clientWidth;
     let shape = 16 / 10;
     try {
@@ -155,7 +155,8 @@ class TabletLayout extends LitElement {
     } catch {
       // not a shape: the default
     }
-    const height = heightFor(fitOf(this), width, shape);
+    // (In a tile of another layout, its own shape.)
+    const height = heightFor(fitOf(this), width, shape) ?? Math.round(width / shape);
     view.style.height = `${height}px`;
     if (!width) return;
     const s = this.settings(width, height);

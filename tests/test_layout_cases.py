@@ -147,6 +147,7 @@ def test_typescript_engine_matches_the_cases():
             "--no-warnings",
             "--test",
             "src/layout.test.ts",
+            "src/sizing.test.ts",  # the cards' sizing rule, alongside
         ],
         cwd=CARDS,
         capture_output=True,

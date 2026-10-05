@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.3-b17
+
+- Cards: alone in a Panel view, the Camera Commander and the Tablet layout are given the whole space (from the sidebar's edge to the screen's right, from the header's foot to the screen's bottom) and only fill it. A Commander card is always the full width of its space. On a phone it could come out narrower, when its shape was capped to fit the screen's height.
+- Camera Commander card: its debug figures now show how it is sizing itself (screen, tile, column or preview), what holds it, and the space it has.
+
 ## 2026.10.3-b16
 
 - Cards: if the Casa Mia cards fail to load with a page (seen once on a wall tablet, which then showed red errors until reloaded), the page loads them once more after 5 seconds, and HA replaces the errors with the cards. Each failure writes a "CASA-MIA CARDS" line to the browser console with its reason. This needs the "Keep camera pictures live" helper on, which it is by default.

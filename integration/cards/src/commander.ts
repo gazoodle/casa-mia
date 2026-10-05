@@ -9,11 +9,11 @@
 // The picture is drawn exactly the size the card is shown: the card asks the compositor for
 // its own size (device pixels, ?w=&h=&dpr=), and lays its taps out for the same canvas, so
 // nothing is scaled, cropped or bordered on the screen. Its size follows the cards' one rule
-// (ha.ts: fitOf): alone in a Panel view, exactly the screen below its top edge; in a Tablet
-// layout tile, the tile; in a column, the commander's own shape (16:9) from its width, at
-// most the screen below its top edge.
+// (ha.ts: fitOf, heightFor): always all of its width; alone in a Panel view, all of the
+// screen below its top edge; in a Tablet layout tile, the tile; in a column, the commander's
+// own shape (16:9) from its width, at most the screen below its top edge.
 import { LitElement, css, html, nothing } from "lit";
-import { define, type Fit, fire, fitOf, type Hass, navigate, register, watchRoom } from "./ha.ts";
+import { define, type Fit, fire, fitOf, type Hass, heightFor, navigate, register, watchRoom } from "./ha.ts";
 import { layout, PANELS, pyRound, type Rect, type Settings } from "./layout.ts";
 
 type Config = { type: string; entity?: string; draft?: boolean; tap_main?: "live" | "more-info" | "none" };
@@ -53,6 +53,7 @@ class CommanderCard extends LitElement {
     _size: { state: true },
     _natural: { state: true },
     _fit: { state: true },
+    _width: { state: true },
   };
   _natural = ""; // the picture's own size as the browser decoded it (debug)
 
@@ -78,20 +79,25 @@ class CommanderCard extends LitElement {
     else this.settle = window.setTimeout(() => (this._size = size), SETTLE_MS);
   });
 
+  _width = 0; // its width now (all of its space), CSS px
   private measure = () => {
     const fit = fitOf(this);
     if (JSON.stringify(fit) !== JSON.stringify(this._fit)) this._fit = fit;
+    if (this.clientWidth !== this._width) this._width = this.clientWidth;
   };
+  private widthWatch = new ResizeObserver(() => this.measure());
   private unwatch?: () => void;
 
   connectedCallback() {
     super.connectedCallback();
     this.unwatch = watchRoom(this.measure);
+    this.widthWatch.observe(this);
     requestAnimationFrame(this.measure);
   }
   disconnectedCallback() {
     super.disconnectedCallback();
     this.unwatch?.();
+    this.widthWatch.disconnect();
     this.resize.disconnect();
     clearTimeout(this.settle);
   }
@@ -151,11 +157,12 @@ class CommanderCard extends LitElement {
       `left:${(x / w) * 100}%;top:${(y / h) * 100}%;width:${(rw / w) * 100}%;height:${(rh / h) * 100}%`;
     const lit = s.highlight ?? {};
     const mark = PANELS.flatMap((p) => s[p].cameras.map((e, i) => [e, tiles[p][i]] as const)).find(([e]) => e === main)?.[1];
-    // The rule (ha.ts): locked, exactly the room; in a preview, its own shape; otherwise its
-    // own shape (or a container's height: height 100% below), at most the room.
+    // The rule (ha.ts: heightFor). In a tile, CSS: the tile's height when it gives one, else
+    // its own shape (a Tablet layout measures that to fit it whole).
     const f = this._fit;
-    const fit = !f || f.preview ? "" : f.locked ? `;height:${f.room}px` : `;max-height:${f.room}px`;
-    return html`<ha-card style="aspect-ratio:${own.width}/${own.height}${fit}">
+    const tall = f && this._width ? heightFor(f, this._width, own.width / own.height) : null;
+    const size = !f || f.mode === "tile" ? `height:100%;aspect-ratio:${own.width}/${own.height}` : tall ? `height:${tall}px` : "";
+    return html`<ha-card style=${size}>
       <div class="box">
         ${this._size
           ? html`<img
@@ -170,6 +177,7 @@ class CommanderCard extends LitElement {
           : nothing}
         ${own.debug?.on
           ? html`<div class="debug" style="color:${own.debug.colour ?? "#ffd60a"}">
+              ${this._fit?.mode ?? "?"} (in ${this._fit?.container || "?"}), room ${this._fit?.room ?? "?"} px<br />
               card box ${this._box[0]} x ${this._box[1]} CSS px, screen ${window.devicePixelRatio}x<br />
               asked ${this._size ? `${W} x ${H} @${scale}x` : "nothing yet"}; picture ${this._natural || "not loaded"}
             </div>`
@@ -209,13 +217,11 @@ class CommanderCard extends LitElement {
       display: block;
       height: 100%;
     }
-    /* Exactly the space it is given (a panel view, a Tablet layout tile); given no height,
-       its aspect-ratio sets one. The width must be set too: with only the height set,
-       aspect-ratio would make the width (16:9 of the height), wider than the screen. */
+    /* All of its width; its height from the rule (render). Width set: with only a height,
+       aspect-ratio would make the width from it (wider than its space). */
     ha-card {
       position: relative;
       width: 100%;
-      height: 100%;
       overflow: hidden;
       background: none;
       border: none;
