@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { CameraDashboardPage } from "./CameraDashboardPage";
+import { CompositorPage } from "./CompositorPage";
 import { FirmwarePage } from "./FirmwarePage";
 import { GuestPage } from "./GuestPage";
 import { KioskFrame, KiosksPage } from "./KiosksPage";
@@ -39,6 +40,7 @@ const PAGES: Record<string, string> = {
   people: "/people",
   kiosks: "/kiosks",
   camera_dashboard: "/cameras",
+  compositor: "/compositor",
 };
 
 export function App() {
@@ -54,6 +56,7 @@ export function App() {
   if (route === "/kiosks") return <KiosksPage state={health?.modules.kiosks?.state} />;
   if (route.startsWith("/kiosks/")) return <KioskFrame id={route.slice("/kiosks/".length)} />;
   if (route === "/cameras") return <CameraDashboardPage state={health?.modules.camera_dashboard?.state} />;
+  if (route === "/compositor") return <CompositorPage state={health?.modules.compositor?.state} />;
   if (route === "/firmware") return <FirmwarePage state={health?.modules.gitproxy?.state} />;
   const modules = Object.entries(health?.modules ?? {});
   const on = modules.filter(([, h]) => h.state && h.state !== "disabled");

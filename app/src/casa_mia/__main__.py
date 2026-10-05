@@ -54,6 +54,22 @@ def banner(text: str) -> list[str]:
     return [f"┏{rule}┓", f"┃  {text}  ┃", f"┗{rule}┛"]
 
 
+def compositor_api(live: Compositor, draft: Compositor | None):
+    """The Camera compositor page's API: GET / is what the live compositor (the
+    dashboards and wall tablets) and the draft one (previews, Show the draft cards) are
+    serving now."""
+
+    def handle(
+        method: str, path: str, query: dict[str, list[str]], body: bytes
+    ) -> tuple[int, str, bytes]:
+        if method != "GET" or path.strip("/"):
+            return 404, "application/json", b'{"error": "not found"}'
+        data = {"live": live.status(), "draft": draft.status() if draft else None}
+        return 200, "application/json", json.dumps(data).encode()
+
+    return handle
+
+
 def main() -> int:
     options = json.loads(OPTIONS.read_text()) if OPTIONS.exists() else {}
     configure_logging(options.get("log_level", "info"))
@@ -151,7 +167,7 @@ def main() -> int:
         return helpers if http is not None and http.helpers_heard else None
 
     cameras_on = options.get("camera_dashboard_enabled", False)
-    compositor = None
+    compositor = draft = None
     if options.get("compositor_enabled", False):
         compositor = Compositor(
             CONFIG,
@@ -193,6 +209,7 @@ def main() -> int:
     if compositor:
         compositor.start()
         modules["compositor"] = compositor.health
+        api["/api/compositor/"] = compositor_api(compositor, draft)
     else:
         modules["compositor"] = lambda: {"state": "disabled"}
     if options.get("kiosks_enabled", False):

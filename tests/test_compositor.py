@@ -74,6 +74,13 @@ def test_serves_the_commander(compositor):
     for asked, drawn in (("w=800&h=1280&dpr=2", (800, 1280)), ("w=9&h=9", (640, 360))):
         with urllib.request.urlopen(f"{base}/g/cameras.jpg?{asked}") as r:
             assert Image.open(io.BytesIO(r.read())).size == drawn
+    # the admin page's view: each picture drawn (own size, and the size a card asked)
+    status = compositor.status()
+    assert {(p["width"], p["height"], p["asked"]) for p in status["pictures"]} == {
+        (640, 360, False),
+        (800, 1280, True),
+    }
+    assert {s["title"] for s in status["stills"]} == {"A", "B"}
     for gone in ("nope", "overview"):  # nothing else, groups and overviews are gone
         with pytest.raises(urllib.error.HTTPError) as err:
             urllib.request.urlopen(f"{base}/g/{gone}.jpg")

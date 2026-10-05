@@ -1446,21 +1446,71 @@ class Compositor:
         return resp
 
     async def _status(self, request: web.Request) -> web.Response:
+        return web.json_response(self._status_now())
+
+    def status(self) -> dict[str, Any]:
+        """What it serves now (see _status_now), for the admin page's Camera compositor
+        page. Thread-safe: read on its own loop."""
+        if not (self._loop and self._running):
+            return self.health()
+
+        async def read() -> dict[str, Any]:
+            return self._status_now()
+
+        return asyncio.run_coroutine_threadsafe(read(), self._loop).result(2)
+
+    def _title(self, entity: str) -> str:
+        """A camera's title, for any of its channels too."""
+        for e, chans in self.cfg.entities.items():
+            if entity == e or entity in chans.values():
+                return self.cfg.titles.get(e, e)
+        return self.cfg.titles.get(entity, entity)
+
+    def _status_now(self) -> dict[str, Any]:
+        """Its health, and: each picture drawn (a commander at a size: its own, or one
+        a card asked for), its age and the streams open on it; the streams open per
+        device; each camera still kept (its size, age, rounds missed in a row, and
+        when one sitting out is tried again)."""
         now = time.monotonic()
-        return web.json_response(
-            {
-                "streams": {ip: len(v) for ip, v in self._streams.items() if v},
-                "gathering": self._gathering,
-                "picture_age_s": {
-                    name: round(now - t, 1) for name, (t, _) in self._pictures.items()
-                },
-                "still_age_s": {
-                    f"{e} {w}x{h}": round(now - t, 1)
-                    for (e, (w, h)), (t, _) in sorted(self._shots.items())
-                },
-                "sitting_out": {e: round(t - now) for e, t in self._benched.items()},
+
+        def picture(key: str, at: float) -> dict[str, Any]:
+            name, _, size = key.partition("@")
+            cmd = self.cfg.named(name) or {}
+            w, h, scale = (
+                size.split("x") if size else (cmd.get("width"), cmd.get("height"), 1)
+            )
+            return {
+                "commander": cmd.get("name", name),
+                "width": int(w or 0),
+                "height": int(h or 0),
+                "scale": float(scale),
+                "asked": bool(size),  # a card's own size, not the commander's
+                "age_s": round(now - at, 1),
+                "streams": self._open.get(key, 0),
             }
-        )
+
+        return {
+            **self.health(),
+            "stale_s": min(
+                (float(c.get("stale", 30)) for c in self.cfg.commanders), default=30
+            ),
+            "pictures": [picture(k, t) for k, (t, _) in sorted(self._pictures.items())],
+            "devices": {ip: len(v) for ip, v in self._streams.items() if v},
+            "stills": [
+                {
+                    "camera": e,
+                    "title": self._title(e),
+                    "width": w,
+                    "height": h,
+                    "age_s": round(now - t, 1),
+                    "missed": self._misses.get(e, 0),
+                    "back_in_s": round(self._benched[e] - now)
+                    if e in self._benched
+                    else None,
+                }
+                for (e, (w, h)), (t, _) in sorted(self._shots.items())
+            ],
+        }
 
     async def _index(self, request: web.Request) -> web.Response:
         links = "".join(
