@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b4
+
+- Camera Dashboard: the Revert draft and Revert preview buttons sit on one line.
+
 ## 2026.10.3-b3
 
 - Camera Dashboard: the preview dashboard keeps just one earlier version, and a single Revert preview button puts it back (press again to undo), like Revert draft. This removes the long list of preview backups at the bottom of the page.

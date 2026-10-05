@@ -646,8 +646,9 @@
 
 .revertButtons {
   display: flex;
-  flex-wrap: wrap;
+  flex: none; /* the blurb gives way, so the buttons stay on one line */
   gap: 8px;
+  white-space: nowrap;
 }
 
 .keep {
