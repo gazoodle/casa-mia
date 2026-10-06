@@ -1,5 +1,5 @@
 """One layout engine, two places: the compositor draws commanders in Python
-(compositor.commander_layout), the Tablet layout card lays out cards in the browser
+(compositor.commander_layout), the Tablet Layout lays out its panels in the browser
 (integration/cards/src/layout.ts). Both must give the same rectangles for the same
 settings, so both are checked against tests/layout_cases.json.
 
@@ -107,6 +107,8 @@ def inputs() -> list[tuple[str, dict, str | None]]:
             None,
         ),
         ("portrait", cmd(width=800, height=1280, gap=8), None),
+        ("margin", cmd(margin=24, width=1366, height=769), None),
+        ("margin own", cmd(margin=9, main_fit="own", aspects=tall), "left1"),
         (
             "portrait own",
             cmd(width=800, height=1280, main_fit="own", aspects=tall),

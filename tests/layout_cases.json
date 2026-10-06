@@ -9,6 +9,7 @@
    "height": 1080,
    "main": "",
    "gap": 4,
+   "margin": 0,
    "main_fit": "fit",
    "main_width": 70,
    "panel_min": 8,
@@ -18,6 +19,13 @@
     "hold": 10,
     "back": 30,
     "pause": 120
+   },
+   "debug": {
+    "on": false,
+    "dim": 20,
+    "corner": 40,
+    "width": 2,
+    "colour": "#ffd60a"
    },
    "highlight": {
     "colour": "#7bd1a0",
@@ -182,6 +190,7 @@
    "height": 769,
    "main": "",
    "gap": 5,
+   "margin": 0,
    "main_fit": "fit",
    "main_width": 70,
    "panel_min": 8,
@@ -191,6 +200,13 @@
     "hold": 10,
     "back": 30,
     "pause": 120
+   },
+   "debug": {
+    "on": false,
+    "dim": 20,
+    "corner": 40,
+    "width": 2,
+    "colour": "#ffd60a"
    },
    "highlight": {
     "colour": "#7bd1a0",
@@ -355,6 +371,7 @@
    "height": 1080,
    "main": "",
    "gap": 0,
+   "margin": 0,
    "main_fit": "fit",
    "main_width": 70,
    "panel_min": 8,
@@ -364,6 +381,13 @@
     "hold": 10,
     "back": 30,
     "pause": 120
+   },
+   "debug": {
+    "on": false,
+    "dim": 20,
+    "corner": 40,
+    "width": 2,
+    "colour": "#ffd60a"
    },
    "highlight": {
     "colour": "#7bd1a0",
@@ -528,6 +552,7 @@
    "height": 1080,
    "main": "",
    "gap": 4,
+   "margin": 0,
    "main_fit": "fit",
    "main_width": 70,
    "panel_min": 8,
@@ -537,6 +562,13 @@
     "hold": 10,
     "back": 30,
     "pause": 120
+   },
+   "debug": {
+    "on": false,
+    "dim": 20,
+    "corner": 40,
+    "width": 2,
+    "colour": "#ffd60a"
    },
    "highlight": {
     "colour": "#7bd1a0",
@@ -662,6 +694,7 @@
    "height": 1080,
    "main": "",
    "gap": 4,
+   "margin": 0,
    "main_fit": "fit",
    "main_width": 70,
    "panel_min": 8,
@@ -671,6 +704,13 @@
     "hold": 10,
     "back": 30,
     "pause": 120
+   },
+   "debug": {
+    "on": false,
+    "dim": 20,
+    "corner": 40,
+    "width": 2,
+    "colour": "#ffd60a"
    },
    "highlight": {
     "colour": "#7bd1a0",
@@ -743,6 +783,7 @@
    "height": 1080,
    "main": "",
    "gap": 4,
+   "margin": 0,
    "main_fit": "fit",
    "main_width": 70,
    "panel_min": 8,
@@ -752,6 +793,13 @@
     "hold": 10,
     "back": 30,
     "pause": 120
+   },
+   "debug": {
+    "on": false,
+    "dim": 20,
+    "corner": 40,
+    "width": 2,
+    "colour": "#ffd60a"
    },
    "highlight": {
     "colour": "#7bd1a0",
@@ -937,6 +985,7 @@
    "height": 1080,
    "main": "",
    "gap": 4,
+   "margin": 0,
    "main_fit": "fit",
    "main_width": 70,
    "panel_min": 8,
@@ -946,6 +995,13 @@
     "hold": 10,
     "back": 30,
     "pause": 120
+   },
+   "debug": {
+    "on": false,
+    "dim": 20,
+    "corner": 40,
+    "width": 2,
+    "colour": "#ffd60a"
    },
    "highlight": {
     "colour": "#7bd1a0",
@@ -1110,6 +1166,7 @@
    "height": 1080,
    "main": "",
    "gap": 4,
+   "margin": 0,
    "main_fit": "fit",
    "main_width": 70,
    "panel_min": 8,
@@ -1119,6 +1176,13 @@
     "hold": 10,
     "back": 30,
     "pause": 120
+   },
+   "debug": {
+    "on": false,
+    "dim": 20,
+    "corner": 40,
+    "width": 2,
+    "colour": "#ffd60a"
    },
    "highlight": {
     "colour": "#7bd1a0",
@@ -1288,6 +1352,7 @@
    "height": 1080,
    "main": "",
    "gap": 4,
+   "margin": 0,
    "main_fit": "fit",
    "main_width": 70,
    "panel_min": 8,
@@ -1297,6 +1362,13 @@
     "hold": 10,
     "back": 30,
     "pause": 120
+   },
+   "debug": {
+    "on": false,
+    "dim": 20,
+    "corner": 40,
+    "width": 2,
+    "colour": "#ffd60a"
    },
    "highlight": {
     "colour": "#7bd1a0",
@@ -1466,6 +1538,7 @@
    "height": 1080,
    "main": "",
    "gap": 4,
+   "margin": 0,
    "main_fit": "fit",
    "main_width": 70,
    "panel_min": 8,
@@ -1475,6 +1548,13 @@
     "hold": 10,
     "back": 30,
     "pause": 120
+   },
+   "debug": {
+    "on": false,
+    "dim": 20,
+    "corner": 40,
+    "width": 2,
+    "colour": "#ffd60a"
    },
    "highlight": {
     "colour": "#7bd1a0",
@@ -1644,6 +1724,7 @@
    "height": 1080,
    "main": "",
    "gap": 4,
+   "margin": 0,
    "main_fit": "fit",
    "main_width": 70,
    "panel_min": 8,
@@ -1653,6 +1734,13 @@
     "hold": 10,
     "back": 30,
     "pause": 120
+   },
+   "debug": {
+    "on": false,
+    "dim": 20,
+    "corner": 40,
+    "width": 2,
+    "colour": "#ffd60a"
    },
    "highlight": {
     "colour": "#7bd1a0",
@@ -1859,6 +1947,7 @@
    "height": 1080,
    "main": "",
    "gap": 4,
+   "margin": 0,
    "main_fit": "own",
    "main_width": 70,
    "panel_min": 8,
@@ -1868,6 +1957,13 @@
     "hold": 10,
     "back": 30,
     "pause": 120
+   },
+   "debug": {
+    "on": false,
+    "dim": 20,
+    "corner": 40,
+    "width": 2,
+    "colour": "#ffd60a"
    },
    "highlight": {
     "colour": "#7bd1a0",
@@ -2037,6 +2133,7 @@
    "height": 1080,
    "main": "",
    "gap": 4,
+   "margin": 0,
    "main_fit": "own",
    "main_width": 70,
    "panel_min": 8,
@@ -2046,6 +2143,13 @@
     "hold": 10,
     "back": 30,
     "pause": 120
+   },
+   "debug": {
+    "on": false,
+    "dim": 20,
+    "corner": 40,
+    "width": 2,
+    "colour": "#ffd60a"
    },
    "highlight": {
     "colour": "#7bd1a0",
@@ -2215,6 +2319,7 @@
    "height": 1080,
    "main": "",
    "gap": 4,
+   "margin": 0,
    "main_fit": "own",
    "main_width": 70,
    "panel_min": 8,
@@ -2224,6 +2329,13 @@
     "hold": 10,
     "back": 30,
     "pause": 120
+   },
+   "debug": {
+    "on": false,
+    "dim": 20,
+    "corner": 40,
+    "width": 2,
+    "colour": "#ffd60a"
    },
    "highlight": {
     "colour": "#7bd1a0",
@@ -2354,6 +2466,7 @@
    "height": 1080,
    "main": "",
    "gap": 4,
+   "margin": 0,
    "main_fit": "fixed",
    "main_width": 60,
    "panel_min": 8,
@@ -2363,6 +2476,13 @@
     "hold": 10,
     "back": 30,
     "pause": 120
+   },
+   "debug": {
+    "on": false,
+    "dim": 20,
+    "corner": 40,
+    "width": 2,
+    "colour": "#ffd60a"
    },
    "highlight": {
     "colour": "#7bd1a0",
@@ -2527,6 +2647,7 @@
    "height": 1080,
    "main": "",
    "gap": 4,
+   "margin": 0,
    "main_fit": "fixed",
    "main_width": 95,
    "panel_min": 12,
@@ -2536,6 +2657,13 @@
     "hold": 10,
     "back": 30,
     "pause": 120
+   },
+   "debug": {
+    "on": false,
+    "dim": 20,
+    "corner": 40,
+    "width": 2,
+    "colour": "#ffd60a"
    },
    "highlight": {
     "colour": "#7bd1a0",
@@ -2700,6 +2828,7 @@
    "height": 1280,
    "main": "",
    "gap": 8,
+   "margin": 0,
    "main_fit": "fit",
    "main_width": 70,
    "panel_min": 8,
@@ -2709,6 +2838,13 @@
     "hold": 10,
     "back": 30,
     "pause": 120
+   },
+   "debug": {
+    "on": false,
+    "dim": 20,
+    "corner": 40,
+    "width": 2,
+    "colour": "#ffd60a"
    },
    "highlight": {
     "colour": "#7bd1a0",
@@ -2864,15 +3000,197 @@
   }
  },
  {
-  "name": "portrait own",
+  "name": "margin",
   "cmd": {
    "name": "Cameras",
    "id": "",
    "page": true,
-   "width": 800,
-   "height": 1280,
+   "width": 1366,
+   "height": 769,
    "main": "",
    "gap": 4,
+   "margin": 24,
+   "main_fit": "fit",
+   "main_width": 70,
+   "panel_min": 8,
+   "main_ratio": "16:9",
+   "stale": 30,
+   "motion": {
+    "hold": 10,
+    "back": 30,
+    "pause": 120
+   },
+   "debug": {
+    "on": false,
+    "dim": 20,
+    "corner": 40,
+    "width": 2,
+    "colour": "#ffd60a"
+   },
+   "highlight": {
+    "colour": "#7bd1a0",
+    "width": 2,
+    "blur": 13,
+    "pulse": 1.8,
+    "style": "breathe"
+   },
+   "aspects": {},
+   "left": {
+    "cameras": [
+     "left0",
+     "left1",
+     "left2"
+    ],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "top": {
+    "cameras": [
+     "top0",
+     "top1"
+    ],
+    "size": 18,
+    "fit": "cover",
+    "anchor_left": false,
+    "anchor_right": false,
+    "lines": 1,
+    "hidden": false
+   },
+   "right": {
+    "cameras": [
+     "right0",
+     "right1",
+     "right2"
+    ],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "bottom": {
+    "cameras": [
+     "bottom0",
+     "bottom1",
+     "bottom2",
+     "bottom3"
+    ],
+    "size": 20,
+    "fit": "cover",
+    "anchor_left": true,
+    "anchor_right": true,
+    "lines": 1,
+    "hidden": false
+   }
+  },
+  "main_camera": null,
+  "expect": {
+   "size": [
+    1366,
+    769
+   ],
+   "main": [
+    226,
+    158,
+    914,
+    439
+   ],
+   "tiles": {
+    "left": [
+     [
+      24,
+      24,
+      198,
+      188
+     ],
+     [
+      24,
+      216,
+      198,
+      189
+     ],
+     [
+      24,
+      409,
+      198,
+      188
+     ]
+    ],
+    "top": [
+     [
+      226,
+      24,
+      455,
+      130
+     ],
+     [
+      685,
+      24,
+      455,
+      130
+     ]
+    ],
+    "right": [
+     [
+      1144,
+      24,
+      198,
+      188
+     ],
+     [
+      1144,
+      216,
+      198,
+      189
+     ],
+     [
+      1144,
+      409,
+      198,
+      188
+     ]
+    ],
+    "bottom": [
+     [
+      24,
+      601,
+      326,
+      144
+     ],
+     [
+      354,
+      601,
+      327,
+      144
+     ],
+     [
+      685,
+      601,
+      327,
+      144
+     ],
+     [
+      1016,
+      601,
+      326,
+      144
+     ]
+    ]
+   }
+  }
+ },
+ {
+  "name": "margin own",
+  "cmd": {
+   "name": "Cameras",
+   "id": "",
+   "page": true,
+   "width": 1920,
+   "height": 1080,
+   "main": "",
+   "gap": 4,
+   "margin": 9,
    "main_fit": "own",
    "main_width": 70,
    "panel_min": 8,
@@ -2882,6 +3200,199 @@
     "hold": 10,
     "back": 30,
     "pause": 120
+   },
+   "debug": {
+    "on": false,
+    "dim": 20,
+    "corner": 40,
+    "width": 2,
+    "colour": "#ffd60a"
+   },
+   "highlight": {
+    "colour": "#7bd1a0",
+    "width": 2,
+    "blur": 13,
+    "pulse": 1.8,
+    "style": "breathe"
+   },
+   "aspects": {
+    "left0": 0.56,
+    "left1": 1.33,
+    "left2": 1.78,
+    "main": 0.75
+   },
+   "left": {
+    "cameras": [
+     "left0",
+     "left1",
+     "left2"
+    ],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "top": {
+    "cameras": [
+     "top0",
+     "top1"
+    ],
+    "size": 18,
+    "fit": "cover",
+    "anchor_left": false,
+    "anchor_right": false,
+    "lines": 1,
+    "hidden": false
+   },
+   "right": {
+    "cameras": [
+     "right0",
+     "right1",
+     "right2"
+    ],
+    "size": 15,
+    "fit": "cover",
+    "lines": 1,
+    "hidden": false
+   },
+   "bottom": {
+    "cameras": [
+     "bottom0",
+     "bottom1",
+     "bottom2",
+     "bottom3"
+    ],
+    "size": 20,
+    "fit": "cover",
+    "anchor_left": true,
+    "anchor_right": true,
+    "lines": 1,
+    "hidden": false
+   }
+  },
+  "main_camera": "left1",
+  "expect": {
+   "size": [
+    1920,
+    1080
+   ],
+   "main": [
+    372,
+    98,
+    1176,
+    884
+   ],
+   "tiles": {
+    "left": [
+     [
+      9,
+      9,
+      359,
+      322
+     ],
+     [
+      9,
+      335,
+      359,
+      321
+     ],
+     [
+      9,
+      660,
+      359,
+      322
+     ]
+    ],
+    "top": [
+     [
+      372,
+      9,
+      586,
+      85
+     ],
+     [
+      962,
+      9,
+      586,
+      85
+     ]
+    ],
+    "right": [
+     [
+      1552,
+      9,
+      359,
+      322
+     ],
+     [
+      1552,
+      335,
+      359,
+      321
+     ],
+     [
+      1552,
+      660,
+      359,
+      322
+     ]
+    ],
+    "bottom": [
+     [
+      9,
+      986,
+      472,
+      85
+     ],
+     [
+      485,
+      986,
+      473,
+      85
+     ],
+     [
+      962,
+      986,
+      473,
+      85
+     ],
+     [
+      1439,
+      986,
+      472,
+      85
+     ]
+    ]
+   }
+  }
+ },
+ {
+  "name": "portrait own",
+  "cmd": {
+   "name": "Cameras",
+   "id": "",
+   "page": true,
+   "width": 800,
+   "height": 1280,
+   "main": "",
+   "gap": 4,
+   "margin": 0,
+   "main_fit": "own",
+   "main_width": 70,
+   "panel_min": 8,
+   "main_ratio": "16:9",
+   "stale": 30,
+   "motion": {
+    "hold": 10,
+    "back": 30,
+    "pause": 120
+   },
+   "debug": {
+    "on": false,
+    "dim": 20,
+    "corner": 40,
+    "width": 2,
+    "colour": "#ffd60a"
    },
    "highlight": {
     "colour": "#7bd1a0",

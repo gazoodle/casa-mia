@@ -72,11 +72,11 @@ export function SettingsPage() {
             <span className={css.devChip}>Developer · debugging</span>
           </div>
           <AreaHead
-            title="Tablet view debugging"
-            blurb="Aids for building a Tablet view (custom:casa-mia-tablet-view) and finding layout problems. Not for everyday use."
+            title="Tablet Layout debugging"
+            blurb="Aids for building a Tablet Layout (custom:casa-mia-tablet-view) and finding layout problems. Not for everyday use."
           />
           <p className={css.devWarn}>
-            While one is on, it shows on <strong>every</strong> Tablet view, on every tablet and browser, until it is
+            While one is on, it shows on <strong>every</strong> Tablet Layout, on every tablet and browser, until it is
             switched off again here.
           </p>
           <div className={css.rows}>

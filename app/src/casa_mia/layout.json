@@ -1,7 +1,8 @@
 {
-  "about": "The layout options shared by the Camera Commander (drawn by the compositor, edited on the Camera Dashboard page) and the Tablet layout card (laid out in the browser, edited in Lovelace): one engine, two places (compositor.commander_layout, integration/cards/src/layout.ts, checked against tests/layout_cases.json). Each option: label, help ({item} is camera or card), default, and `for` when only one of them has it. Read by the compositor's defaults, the admin page and the cards' editors.",
+  "about": "The layout options shared by the Camera Commander (drawn by the compositor, edited on the Camera Dashboard page) and the Tablet Layout (laid out in the browser, edited in Lovelace): one engine, two places (compositor.commander_layout, integration/cards/src/layout.ts, checked against tests/layout_cases.json). Each option: label, help ({item} is camera or card), default, and `for` when only one of them has it. Read by the compositor's defaults, the admin page and the cards' editors.",
   "main": {
     "gap": { "label": "Gap, px", "default": 4, "min": 0, "max": 64, "help": "The room between tiles and panels." },
+    "margin": { "label": "Margin, px", "default": 0, "min": 0, "max": 64, "help": "Room left clear all round the whole area, like the gap but at its edges." },
     "main_fit": {
       "label": "Fit",
       "default": "fit",
@@ -47,7 +48,7 @@
     "hide_empty": {
       "label": "Hide when empty",
       "default": true,
-      "for": "tablet",
+      "for": "view",
       "help": "No card of it showing (each card's own visibility, or a Casa Mia section with nothing to show): it takes no room. Off: its room is kept, empty."
     }
   },

@@ -10,7 +10,7 @@
 // its own size (device pixels, ?w=&h=&dpr=), and lays its taps out for the same canvas, so
 // nothing is scaled, cropped or bordered on the screen. Its size follows the cards' one rule
 // (ha.ts: fitOf, heightFor): always all of its width; alone in a Panel view, all of the
-// screen below its top edge; in a Tablet layout tile, the tile; in a column, the commander's
+// screen below its top edge; filling a Tablet Layout's panel, the panel; in a column, the commander's
 // own shape (16:9) from its width, at most the screen below its top edge.
 import { LitElement, css, html, nothing } from "lit";
 import { define, type Fit, fire, fitOf, type Hass, heightFor, navigate, register, watchRoom } from "./ha.ts";
@@ -151,14 +151,14 @@ class CommanderCard extends LitElement {
     // Laid out for the picture asked for, as the compositor draws it (compositor.sized).
     const own = card.layout;
     const [W, H, scale] = this._size ?? [own.width, own.height, 1];
-    const s = this._size ? { ...own, width: W, height: H, gap: pyRound(own.gap * scale) } : own;
+    const s = this._size ? { ...own, width: W, height: H, gap: pyRound(own.gap * scale), margin: pyRound((own.margin ?? 0) * scale) } : own;
     const [[w, h], mainRect, tiles] = layout(s, main);
     const at = ([x, y, rw, rh]: Rect) =>
       `left:${(x / w) * 100}%;top:${(y / h) * 100}%;width:${(rw / w) * 100}%;height:${(rh / h) * 100}%`;
     const lit = s.highlight ?? {};
     const mark = PANELS.flatMap((p) => s[p].cameras.map((e, i) => [e, tiles[p][i]] as const)).find(([e]) => e === main)?.[1];
     // The rule (ha.ts: heightFor). In a tile, CSS: the tile's height when it gives one, else
-    // its own shape (a Tablet layout measures that to fit it whole).
+    // its own shape.
     const f = this._fit;
     const tall = f && this._width ? heightFor(f, this._width, own.width / own.height) : null;
     const size = !f || f.mode === "tile" ? `height:100%;aspect-ratio:${own.width}/${own.height}` : tall ? `height:${tall}px` : "";

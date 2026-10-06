@@ -1,5 +1,5 @@
 // The layout engine, line for line the compositor's (app/src/casa_mia/modules/compositor.py:
-// commander_layout and its helpers), so a commander and a Tablet layout lay out alike. Both
+// commander_layout and its helpers), so a commander and a Tablet Layout lay out alike. Both
 // are checked against tests/layout_cases.json: change one, change the other. Python's
 // rounding is kept (round half to even, int() towards zero, // down), or a pixel drifts.
 import LAYOUT from "../../../app/src/casa_mia/layout.json" with { type: "json" };
@@ -22,6 +22,7 @@ export type Settings = {
   width: number;
   height: number;
   gap: number;
+  margin?: number;
   main_fit?: string;
   main_width?: number;
   main_ratio?: string | number;
@@ -111,6 +112,12 @@ export function mainShape(s: Settings, main: string | null): number | null {
 /** Canvas size, the main area, and each panel's tile rects: see commander_layout. */
 export function layout(s: Settings, main: string | null = null): [[number, number], Rect, Record<Panel, Rect[]>] {
   const { width: w, height: h, gap } = s;
+  const m = Math.max(0, Math.min(Math.trunc(Number(s.margin ?? 0)), floorDiv(Math.min(w, h) - 1, 2)));
+  if (m) {
+    const [, area, tiles] = layout({ ...s, width: w - 2 * m, height: h - 2 * m, margin: 0 }, main);
+    const moved = (r: Rect): Rect => [r[0] + m, r[1] + m, r[2], r[3]];
+    return [[w, h], moved(area), Object.fromEntries(PANELS.map((p) => [p, tiles[p].map(moved)])) as Record<Panel, Rect[]>];
+  }
   const shape = mainShape(s, main);
   const has = (p: Panel) => s[p].cameras.length > 0;
   const size = (p: Panel, of: number) => (has(p) ? pyRound((of * s[p].size) / 100) : 0);

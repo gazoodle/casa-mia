@@ -106,10 +106,10 @@ EMPTY_COMMANDER = {
     "width": 1920,
     "height": 1080,
     "main": "",  # the main camera at start; blank: the first of the panels
-    # The layout, shared with the Tablet layout card (casa_mia/layout.json, defaults and
-    # labels): gap; main_fit: fit (whole, black borders), fill (stretched), crop
-    # (filled), or the main camera sized by main_width (% of the picture's width) with
-    # the panels sharing the room around it: own (its own shape, from `aspects`, so the
+    # The layout, shared with the Tablet Layout (casa_mia/layout.json, defaults and
+    # labels): gap; margin (clear all round); main_fit: fit (whole, black borders),
+    # fill (stretched), crop (filled), or the main camera sized by main_width (% of the
+    # picture's width) with the panels sharing the room around it: own (its own shape, from `aspects`, so the
     # panels move with the camera shown) or fixed (the main_ratio shape; the camera
     # fitted whole within it); panel_min: own, fixed: the % a panel with cameras keeps
     # beside the main one.
@@ -188,6 +188,7 @@ def sized(cmd: dict, size: Size | None) -> dict:
         "width": w,
         "height": h,
         "gap": round(cmd["gap"] * dpr),
+        "margin": round(cmd.get("margin", 0) * dpr),
         "scale": dpr,
         "view": view_key(slug(cmd["name"]), size),
     }
@@ -391,8 +392,22 @@ def commander_layout(
     stop at the side panel; the main camera fills what is left. An empty panel takes no
     room. With a sized main camera (own, fixed) it is main_width wide at its shape, and
     the panels share the room around it (so with own, the layout follows `main`).
-    Shared with the dashboard generator, so its tap zones line up."""
+    Shared with the dashboard generator, so its tap zones line up. A margin leaves that
+    much clear all round: the layout is made inside it."""
     w, h, gap = cmd["width"], cmd["height"], cmd["gap"]
+    m = max(0, min(int(cmd.get("margin", 0)), (min(w, h) - 1) // 2))
+    if m:
+        inside = {**cmd, "width": w - 2 * m, "height": h - 2 * m, "margin": 0}
+        _, area, tiles = commander_layout(inside, main)
+
+        def moved(r: Rect) -> Rect:
+            return (r[0] + m, r[1] + m, r[2], r[3])
+
+        return (
+            (w, h),
+            moved(area),
+            {p: [moved(r) for r in rs] for p, rs in tiles.items()},
+        )
     shape = main_shape(cmd, main)
 
     def size(panel: str, of: int) -> int:
@@ -516,7 +531,11 @@ def see_through(cmd: dict) -> bool:
     shows: its gaps, and the borders beside a main camera kept whole (fit, fixed, own).
     Decided by its settings, not each picture, so its stream keeps one format (WebP
     with clear parts, else JPEG) whichever camera is the main one."""
-    return bool(cmd["gap"]) or cmd.get("main_fit", "fit") in ("fit", "fixed", "own")
+    return bool(cmd["gap"] or cmd.get("margin")) or cmd.get("main_fit", "fit") in (
+        "fit",
+        "fixed",
+        "own",
+    )
 
 
 def commander(

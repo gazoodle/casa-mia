@@ -106,22 +106,20 @@ function field(name: string, o: Option): object {
 /** The main options for a layout, those that apply to its main fit now. */
 export function mainSchema(fit: string): object[] {
   return Object.entries(main)
-    .filter(([, o]) => (!o.when || o.when.includes(fit)) && (!o.for || o.for === "tablet"))
+    .filter(([, o]) => (!o.when || o.when.includes(fit)) && (!o.for || o.for === "view"))
     .map(([k, o]) => field(k, o));
 }
 
 /** A panel's options: top and bottom have their anchors. */
 export function panelSchema(p: string): object[] {
   return Object.entries(panel)
-    .filter(([, o]) => (!o.edge || p === "top" || p === "bottom") && (!o.for || o.for === "tablet"))
+    .filter(([, o]) => (!o.edge || p === "top" || p === "bottom") && (!o.for || o.for === "view"))
     .map(([k, o]) => field(k, o));
 }
 
 const all: Record<string, Option> = {
   ...main,
   ...panel,
-  // The Tablet layout's own shape (not a commander option: a commander's card sizes itself)
-  aspect: { label: "Shape", help: "Width:height where it is not the whole screen (in a column): e.g. 16:10, 4:3." },
 };
 export const label = (s: { name: string }) => all[s.name]?.label ?? s.name;
 export const helper = (s: { name: string }) => all[s.name]?.help?.replaceAll("{item}", "card");
@@ -132,7 +130,7 @@ export const helper = (s: { name: string }) => all[s.name]?.help?.replaceAll("{i
 //   screen:  alone in a Panel view. It is given the whole space, from the sidebar's edge to
 //            the screen's right and from the header's foot to the screen's bottom, and only
 //            fills it: no shape, aspect or fit of its own;
-//   tile:    in a Tablet layout tile, or filling a Tablet view's panel: it fills it;
+//   tile:    filling a Tablet Layout's panel: it fills it;
 //   column:  anywhere else: its own shape from its width, never taller than the screen
 //            below its top edge;
 //   preview: in an editor's preview: its own shape from its width.
@@ -146,7 +144,7 @@ const MIN_ROOM = 100; // px: never squeezed below this, however low on the page 
 const up = (el: Node): Node | null => (el as Element).parentElement ?? ((el.getRootNode() as ShadowRoot).host || null);
 
 /** The card container holding `el`: the first custom element above it past its own
- * hui-card (HUI-PANEL-VIEW, CASA-MIA-TABLET-LAYOUT, a sections grid...). */
+ * hui-card (HUI-PANEL-VIEW, a sections grid...). */
 export function container(el: Element): string {
   for (let n = up(el); n; n = up(n)) {
     const tag = (n as Element).tagName ?? "";
@@ -155,7 +153,7 @@ export function container(el: Element): string {
   return "";
 }
 
-/** Filling a Tablet view's panel: its hui-card is marked so (view.ts, cm-fill). */
+/** Filling a Tablet Layout's panel: its hui-card is marked so (view.ts, cm-fill). */
 function filling(el: Element): boolean {
   for (let n = up(el); n; n = up(n)) if ((n as Element).tagName === "HUI-CARD") return (n as Element).hasAttribute("cm-fill");
   return false;
@@ -180,7 +178,7 @@ export function room(el: Element): number {
 export function modeOf(holder: string, preview: boolean): Mode {
   if (preview) return "preview";
   if (holder === "HUI-PANEL-VIEW") return "screen";
-  return holder === "CASA-MIA-TABLET-LAYOUT" || holder === "CASA-MIA-TABLET-VIEW" ? "tile" : "column";
+  return holder === "CASA-MIA-TABLET-VIEW" ? "tile" : "column";
 }
 
 /** Where a card stands now, and the room below it. */

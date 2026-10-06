@@ -3,7 +3,7 @@
 // cards that set rows), hidden while none of the cards that count is showing. A card counts
 // unless it says `view_layout: {counts: false}`: a "Warnings" heading over conditional
 // warnings shows only while one of them does, with no condition of its own. Hidden, it
-// tells its parent (hui-card hides it; a Tablet layout panel that hides when empty then
+// tells its parent (hui-card hides it; a Tablet Layout panel that hides when empty then
 // takes no room). In edit mode everything shows.
 import { LitElement, css, html, nothing, type PropertyValues } from "lit";
 import { type CardConfig, define, fire, type Hass, type HuiCard, huiCard, register, shown, type StackEditor, stackEditor } from "./ha.ts";

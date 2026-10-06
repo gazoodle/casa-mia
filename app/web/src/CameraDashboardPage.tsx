@@ -15,7 +15,7 @@ import guest from "./guest.module.css";
 import ui from "./ui.module.css";
 import LAYOUT from "../../src/casa_mia/layout.json";
 
-// The layout options' labels, help and defaults, shared with the Tablet layout card.
+// The layout options' labels, help and defaults, shared with the Tablet Layout.
 const L = LAYOUT.main;
 const P = LAYOUT.panel;
 const help = (o: { help?: string }) => o.help?.replaceAll("{item}", "camera");
@@ -78,6 +78,7 @@ type Commander = {
   width: number;
   height: number;
   gap: number;
+  margin?: number;
   main: string;
   /** own and fixed: the main camera is main_width % wide; the panels take the rest. */
   main_fit: "fit" | "fill" | "crop" | "own" | "fixed";
@@ -873,6 +874,12 @@ function CommanderEditor({
             </Field>
           </div>
           <Num label={L.gap.label} value={value.gap} help={help(L.gap)} onChange={(n) => set((c) => (c.gap = n))} />
+          <Num
+            label={L.margin.label}
+            value={value.margin ?? L.margin.default}
+            help={help(L.margin)}
+            onChange={(n) => set((c) => (c.margin = Math.max(0, n)))}
+          />
           <Num
             label="Stale after, s"
             value={value.stale ?? 30}

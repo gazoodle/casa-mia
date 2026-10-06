@@ -1,4 +1,4 @@
-// The Tablet view's settings dialog (its `layout:`), opened from the view in edit mode: a map
+// The Tablet Layout's settings dialog (its `layout:`), opened from the view in edit mode: a map
 // of this screen with each panel where it lands, laid out live as the options change (the
 // view behind it too); a panel, or the middle for the layout's own options, is picked on the
 // map. Options, labels and help come from layout.json (ha.ts: mainSchema, panelSchema), less
@@ -154,9 +154,9 @@ class ViewSettings extends LitElement {
   render() {
     if (!this.settings) return nothing;
     return html`<div class="backdrop" @click=${this.cancel}></div>
-      <div class="dialog" role="dialog" aria-label="Tablet layout">
+      <div class="dialog" role="dialog" aria-label="Tablet Layout">
         <header>
-          <h2>Tablet layout</h2>
+          <h2>Tablet Layout</h2>
           <p class="help">How this view's panels share the screen. Pick a panel, or the middle for the whole layout.</p>
         </header>
         <div class="body">${this.map()}${this.options()}</div>

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.10.3-b25
+
+- The Tablet Layout (what was called the Tablet view) is in Home Assistant's view editor: Edit view (or Add view) → View type → Tablet Layout (Casa Mia), so a view no longer starts as YAML. A Sections view changes to it, and back, with its sections kept. Its YAML type stays `custom:casa-mia-tablet-view`.
+
+- The old Tablet layout card is gone: the Tablet Layout view type does its job better, its panels edited as Home Assistant's own sections. A dashboard still using `custom:casa-mia-tablet-layout` shows Home Assistant's card error; move its cards into a Tablet Layout.
+
+- Layout: a Margin option (px, 0 by default), room left clear all round the whole area, like the gap at its edges. A commander's picture gets it (clear, so the dashboard's background shows, and its tap zones follow); so does the Tablet Layout (in its Tablet layout dialog; edit mode keeps Home Assistant's own spacing instead).
+
 ## 2026.10.3-b24
 
 - New app option, Developer mode (Configuration tab, with the feature switches): it shows the debugging aids in the Casa Mia panel, the Settings page's developer options and a commander's Debug options on the Camera Dashboard page. Off, the tablets get none of the Settings page's aids, whatever is saved there.

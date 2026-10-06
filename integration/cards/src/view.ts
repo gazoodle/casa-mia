@@ -1,4 +1,4 @@
-// Tablet view (view type custom:casa-mia-tablet-view): HA's own Sections view, so its header,
+// Tablet Layout (view type custom:casa-mia-tablet-view): HA's own Sections view, so its header,
 // footer, badges and section editing are HA's, locked to the screen. HA puts every view in a
 // container at least the screen tall with the header padded off; this view takes exactly
 // that (flex basis 0, never its content's height) and clips, so the page never scrolls.
@@ -95,7 +95,7 @@ const LOCK = css`
   :host(:not([editing])) hui-grid-section {
     display: flex;
   }
-  /* Edit mode: the Tablet layout button over the panels, and each panel's name. */
+  /* Edit mode: the Tablet Layout button over the panels, and each panel's name. */
   .cm-bar {
     display: flex;
     justify-content: center;
@@ -321,7 +321,7 @@ sectionsView().then((Base: any) => {
       return Promise.resolve(this.lovelace.saveConfig({ ...config, views }));
     }
 
-    /** In edit mode, the Tablet layout button above the panels (outside Lit's part, as the
+    /** In edit mode, the Tablet Layout button above the panels (outside Lit's part, as the
      * debug label). */
     private cmBar(editing: boolean) {
       const root = this.shadowRoot as ShadowRoot | null;
@@ -330,7 +330,7 @@ sectionsView().then((Base: any) => {
       if (bar || !root) return;
       bar = document.createElement("div");
       bar.className = "cm-bar";
-      bar.innerHTML = `<button type="button"><svg viewBox="0 0 24 24"><path d="${GEAR}"/></svg>Tablet layout</button>`;
+      bar.innerHTML = `<button type="button"><svg viewBox="0 0 24 24"><path d="${GEAR}"/></svg>Tablet Layout</button>`;
       bar.querySelector("button")!.addEventListener("click", () => this.cmSettings());
       root.prepend(bar);
     }
@@ -387,8 +387,13 @@ sectionsView().then((Base: any) => {
       if (!grid) return;
       const editing = !!this.lovelace?.editMode;
       this.cmBar(editing);
-      const [w, h] = this.cmArea();
-      if (!editing) this.cmShown = [w, h];
+      const [aw, ah] = this.cmArea();
+      if (!editing) this.cmShown = [aw, ah];
+      // The margin is the grid's inset (none in edit mode, which has HA's own spacing), so
+      // the engine lays out inside it.
+      const m = editing ? 0 : Math.max(0, Math.min(Math.trunc(Number(this.cmLayout.margin ?? 0)), Math.floor((Math.min(aw, ah) - 1) / 2)));
+      grid.style.inset = editing ? "" : `${m}px`;
+      const [w, h] = [aw - 2 * m, ah - 2 * m];
       const showing = (p: string) => {
         const section = this.sections[PLACES.indexOf(p as (typeof PLACES)[number])];
         if (!section || section.hidden) return false;
@@ -397,7 +402,7 @@ sectionsView().then((Base: any) => {
         return counting(section).length > 0;
       };
       const counting = (section: any): HuiCard[] => (section._cards ?? []).filter((c: HuiCard) => counts(c.config ?? { type: "" }) && !c.hidden);
-      const s = settingsOf(this.cmLayout, w, h, showing, (p) => this.cmNatural(p));
+      const s = { ...settingsOf(this.cmLayout, w, h, showing, (p) => this.cmNatural(p)), margin: 0 };
       const [, main, tiles] = layout(s, showing("main") ? "main" : null);
       const at = (p: (typeof PANELS)[number]) => tiles[p][0] ?? [0, 0, 0, 0];
       const [l, t, r, b] = [at("left")[2], at("top")[3], at("right")[2], at("bottom")[3]];
@@ -472,4 +477,37 @@ sectionsView().then((Base: any) => {
     }
   }
   define("casa-mia-tablet-view", TabletView as unknown as CustomElementConstructor);
+});
+
+// HA's view editor (Edit view, and Add view) lists only its own types; Tablet Layout joins
+// them, as layout-card's do (it patches the same method). Its dialog keeps a Sections view's
+// sections from going to another type (it would lose them, so Save is off); this view is a
+// Sections view, so to the dialog it is one.
+const TYPE = "custom:casa-mia-tablet-view";
+customElements.whenDefined("hui-view-editor").then(() => {
+  const proto = (customElements.get("hui-view-editor") as any).prototype;
+  const first = proto.firstUpdated;
+  proto.firstUpdated = function (this: any, ...args: unknown[]) {
+    first?.apply(this, args);
+    const schema = this._schema;
+    if (typeof schema !== "function") return;
+    this._schema = (...a: unknown[]) =>
+      schema(...a).map((f: any) => {
+        const options = f.name === "type" ? f.selector?.select?.options : undefined;
+        if (!options || options.some((o: any) => o.value === TYPE)) return f;
+        return { ...f, selector: { select: { ...f.selector.select, options: [...options, { value: TYPE, label: "Tablet Layout (Casa Mia)" }] } } };
+      });
+    this.requestUpdate();
+  };
+});
+customElements.whenDefined("hui-dialog-edit-view").then(() => {
+  const proto = (customElements.get("hui-dialog-edit-view") as any).prototype;
+  const type = Object.getOwnPropertyDescriptor(proto, "_type");
+  if (!type?.get) return;
+  Object.defineProperty(proto, "_type", {
+    ...type,
+    get(this: any) {
+      return this._config?.type === TYPE ? "sections" : type.get!.call(this);
+    },
+  });
 });

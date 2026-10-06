@@ -257,6 +257,8 @@ def problems(store: Store) -> list[str]:
                 out.append(f"{the}'s {key} must be {low}-{high}.")
         if not isinstance(cmd.get("gap"), int) or cmd["gap"] < 0:
             out.append(f"{the}'s gap must be 0 px or more.")
+        if not isinstance(cmd.get("margin", 0), int) or cmd.get("margin", 0) < 0:
+            out.append(f"{the}'s margin must be 0 px or more.")
         for panel in PANELS:
             pane = cmd.get(panel) or {}
             size = pane.get("size")

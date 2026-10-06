@@ -1,5 +1,5 @@
 // The cards' sizing rule (ha.ts: modeOf, heightFor), shared by the Camera Commander and the
-// Tablet layout. Where a card stands decides its mode; the mode and its room decide its
+// Tablet Layout. Where a card stands decides its mode; the mode and its room decide its
 // height; its width is always all of its space. (Which container holds a card is read off
 // HA's page, so that part shows on the debug overlay instead: "screen (in hui-panel-view)".)
 import assert from "node:assert/strict";
@@ -10,8 +10,7 @@ const WIDE = 16 / 9;
 
 test("the container decides the mode", () => {
   assert.equal(modeOf("HUI-PANEL-VIEW", false), "screen");
-  assert.equal(modeOf("CASA-MIA-TABLET-LAYOUT", false), "tile");
-  assert.equal(modeOf("CASA-MIA-TABLET-VIEW", false), "tile"); // filling a Tablet view's panel
+  assert.equal(modeOf("CASA-MIA-TABLET-VIEW", false), "tile"); // filling a Tablet Layout's panel
   for (const other of ["HUI-GRID-SECTION", "HUI-MASONRY-VIEW", "HUI-VERTICAL-STACK-CARD", ""])
     assert.equal(modeOf(other, false), "column");
   assert.equal(modeOf("HUI-PANEL-VIEW", true), "preview"); // an editor's preview wins
