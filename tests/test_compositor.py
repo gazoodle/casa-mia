@@ -1,3 +1,4 @@
+import asyncio
 import io
 import json
 import threading
@@ -15,8 +16,10 @@ from casa_mia.modules.compositor import LIVE_STORE, Compositor, Sending
 async def gather_round(comp) -> None:
     """One round of a compositor's commanders: what it wants, fetched by its gatherer."""
     comp._want(comp.cfg.commanders)
-    comp.gather.uses = comp.gather._wants[comp.store][1]
-    await comp.gather._round(list(comp.gather.uses))
+    g = comp.gather
+    g.uses = g._wants[comp.store][1]
+    g._survey(list(g.uses))
+    await asyncio.gather(*(g._once(e) for e in g.uses))
 
 
 def jpeg(colour: str = "red") -> bytes:
@@ -127,11 +130,13 @@ def test_keeps_the_latest_still_of_every_camera(tmp_path):
     )
     comp.start()
     try:
-        for _ in range(50):  # the first round runs at start, unasked
-            if set(comp.gather.shots) == {"camera.a", "camera.b"}:
+        # "(Waiting …)" for each at once; the first kept stills come unasked
+        assert set(comp.gather.shots) == {"camera.a", "camera.b"}
+        for _ in range(50):
+            if not comp.gather._waiting:
                 break
             time.sleep(0.05)
-        assert set(comp.gather.shots) == {"camera.a", "camera.b"}
+        assert not comp.gather._waiting
         assert comp.gather.res["camera.a"] == (160, 90)  # its size, as it came
         thumb = comp.still("camera.a", 160)
         assert thumb and Image.open(io.BytesIO(thumb)).size == (160, 90)
@@ -245,6 +250,7 @@ def test_a_camera_that_keeps_missing_sits_out(tmp_path):
     # Home Assistant down (no camera answers): nobody's fault, nobody sits out
     comp.gather._benched.clear()
     comp.gather._misses.clear()
+    comp.gather._answered = 0.0  # the last answer long ago
     comp.gather._fetch_now = lambda entity: asyncio.sleep(0)  # type: ignore[method-assign,assignment]
     asyncio.run(rounds(mod.STRIKES + 1))
     assert not comp.gather._benched and not comp.gather._misses
@@ -334,13 +340,15 @@ def test_the_pages_controls_restart_flush_and_forget(compositor):
     status = json.loads(api("GET", "", {}, b"")[2])["live"]
     assert status["stills"] and status["pictures"]
     assert status["size_test"] == f"http://10.0.0.2:{compositor.port}/size-test"
-    # one camera's stills forgotten; the rest kept
+    # one channel's picture purged: "(Waiting …)" again (its size kept); the rest kept
     out = json.loads(api("POST", "live/forget", {}, b'{"camera": "camera.a"}')[2])
-    assert "camera.a" not in {s["camera"] for s in out["live"]["stills"]}
+    waiting = {s["camera"] for s in out["live"]["stills"] if s["waiting"]}
+    assert "camera.a" in waiting
     assert api("POST", "live/forget", {}, b"{}")[0] == 400
-    # flushed: nothing kept, drawn afresh when asked
+    # flushed: every channel waiting again, nothing drawn kept; drawn afresh when asked
     out = json.loads(api("POST", "live/flush", {}, b"")[2])
-    assert not out["live"]["stills"] and not out["live"]["pictures"]
+    assert all(s["waiting"] for s in out["live"]["stills"])
+    assert not out["live"]["pictures"]
     assert api("POST", "draft/flush", {}, b"")[0] == 404  # no draft engine here
     # restarted (the integration's button): serving again, on the same port
     assert control(compositor, None)("restart", b"") == 200
@@ -526,7 +534,7 @@ def test_two_compositors_share_one_gatherer(tmp_path):
         live._want(live.cfg.commanders)
         draft._want(draft.cfg.commanders)
         gather.uses = {c: [] for at, w in gather._wants.values() for c in w}
-        await gather._round(list(gather.uses))
+        await asyncio.gather(*(gather._once(e) for e in gather.uses))
 
     asyncio.run(both())
     assert sorted(asked) == [

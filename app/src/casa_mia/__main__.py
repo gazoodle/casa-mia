@@ -172,7 +172,11 @@ def main() -> int:
     compositor = draft = None
     # The cameras' pictures, fetched once for both compositors (live and the draft's).
     gather = Gatherer(
-        ha_url, ha_token, ws_path, keep_stills=KEEP_STILLS_EVERY if cameras_on else None
+        ha_url,
+        ha_token,
+        ws_path,
+        keep_stills=KEEP_STILLS_EVERY if cameras_on else None,
+        sizes_path=CONFIG / "camera_sizes.json",  # each channel's size, kept
     )
     if options.get("compositor_enabled", False):
         compositor = Compositor(

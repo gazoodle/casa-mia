@@ -129,6 +129,7 @@ class StubReader:
     def __init__(self, entity, url, size=(2560, 1440)):
         self.entity, self.url, self.alive, self.error = entity, url, True, None
         self.frame = Image.new("RGB", size, "green")
+        self.at = time.monotonic()
 
     def image(self):
         return self.frame, time.monotonic()
@@ -201,8 +202,10 @@ def test_a_round_draws_from_the_channels_streams(tmp_path, monkeypatch):
     async def round_and_survey():
         comp.gather._bg = set()
         comp._want(comp.cfg.commanders)
-        comp.gather.uses = comp.gather._wants[comp.store][1]
-        await comp.gather._round(list(comp.gather.uses))
+        g = comp.gather
+        g.uses = g._wants[comp.store][1]
+        g._survey(list(g.uses))
+        await asyncio.gather(*(g._once(e) for e in g.uses))
         await asyncio.gather(*comp.gather._bg)
 
     asyncio.run(round_and_survey())

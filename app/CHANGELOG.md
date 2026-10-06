@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.10.3-b40
+
+- Camera compositor, a pipeline whose stages never wait on each other: the gatherer fetches each channel wanted in a loop of its own (its stream's newest frame, converted once and only when a new one has come, else a snapshot), so a slow or dead camera holds up only itself; each compositor draws on its own timer from whatever the cache holds; the server always sends the latest picture. After a main camera switch, the sharp picture is drawn as soon as its channel's first new picture comes.
+- Camera compositor: every channel has a picture from the start, white with "(Waiting …)", so the first picture is drawn at once; a purge brings them back.
+- Camera compositor: each channel's size (its stream's, else its snapshot's) is kept across restarts (camera_sizes.json in the app's config), so the right channel is chosen from the first picture and a stream already sized is not read again for it; a change is logged and kept.
+- Camera compositor: pause and run the gatherer, and each compositor's drawing and serving, on their own (the admin API; the page to come). A purge keeps the channels' sizes.
+- Camera compositor: a missed fetch counts against a channel only while others answer, so an outage of Home Assistant costs each channel one miss at most.
+
 ## 2026.10.3-b39
 
 - Camera compositor: one gatherer for the live and the preview compositors. Each camera channel is fetched, or its stream read and decoded, once for both, into one cache both draw from (before, each compositor fetched and decoded its own, so a channel both used cost twice). Each compositor says every round what its pictures are drawn from; a channel nobody has wanted for a minute is no longer fetched or read. Both run on the gatherer's one loop.
