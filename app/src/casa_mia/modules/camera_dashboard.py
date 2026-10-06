@@ -391,14 +391,14 @@ def warnings(
     by_hand, ours = "nav_back" in urls, "cm-back.js" in helpers
     if not by_hand and not ours:
         out.append(
-            "Back needs a Back button helper: switch on the Casa Mia integration's "
-            "Back button helper (it turns #BACK into the browser's Back)."
+            "Back needs a Back button helper: switch on the Back button helper on "
+            "the Settings page (the cog on the home page; it turns #BACK into the "
+            "browser's Back)."
         )
     elif by_hand and ours:
         out.append(
             "Back goes back twice: nav_back_helper.js is among the dashboard resources "
-            "and the Casa Mia integration's Back button helper is on. Remove the "
-            "resource."
+            "and the Back button helper (Settings page) is on. Remove the resource."
         )
     return out
 

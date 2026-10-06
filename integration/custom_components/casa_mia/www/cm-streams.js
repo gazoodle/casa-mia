@@ -6,7 +6,7 @@
 // pictures not on screen and gives those on screen a fresh one. It also gives each
 // commander's picture the Security look (a CSS filter: monochrome, tinted) while that
 // commander's Security look switch is on, and makes each commander's highlight (the
-// outline on the main camera's tile) pulse. Loaded by the Casa Mia integration (its options switch it on); it
+// outline on the main camera's tile) pulse. Loaded by the Casa Mia integration (switched on on the Casa Mia panel's Settings page); it
 // touches nothing but those pictures and that outline.
 
 const STREAM = /\/g\/[^/?#]+\.mjpg/;

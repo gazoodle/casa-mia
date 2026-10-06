@@ -136,6 +136,9 @@ class Handler(BaseHTTPRequestHandler):
             self.server.helpers_heard = True  # type: ignore[attr-defined]
         from . import header, settings  # here: header imports this module
 
+        if "helpers" in query:
+            settings.adopt_helpers(set(self.server.helpers))  # type: ignore[attr-defined]
+
         modules = {name: health() for name, health in self.server.modules.items()}  # type: ignore[attr-defined]
         body = json.dumps(
             {

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b28
+
+- The dashboard helpers (Reload dashboards when they change, Back button helper, Keep camera pictures live) are switched on the Casa Mia panel's Settings page (the cog by the house photo), no longer in the integration's options, which keep only the alarm code. Your current choices carry over on their own: the app takes them from the integration the first time it hears from it after this update. A change reaches Home Assistant within a minute (the integration reloads to load or drop the script); open pages get it at their next reload.
+
 ## 2026.10.3-b27
 
 - The Camera Commander card works away from home. At home its picture still comes straight from the compositor; away (or with Home Assistant opened over HTTPS, where the browser blocks an http:// picture) it comes through Home Assistant, behind its login, for any signed-in user. Home is told by how the page reached Home Assistant (plain http at a home address), which the companion app already picks by the Wi-Fi it is on. The card's new "The picture" option can force either route. Needs a Home Assistant restart after updating, for the integration's new picture route.

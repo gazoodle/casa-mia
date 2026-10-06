@@ -252,7 +252,7 @@ alarm well alone. It lives in the integration, so it keeps working while the app
 ## Dashboard helpers
 
 A few small scripts Casa Mia can load into Home Assistant's frontend for you. Each one has
-its own switch in the integration's options.
+its own switch on the Casa Mia panel's Settings page (the cog by the house photo).
 
 - **Back button (`#BACK`).** A dashboard button that navigates to `#BACK` goes back, like
   the browser's own Back. The camera dashboard's Back buttons use it.

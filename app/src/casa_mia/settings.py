@@ -20,6 +20,13 @@ _LOGGER = logging.getLogger(__name__)
 FOLDER = Path("/config")
 # Every setting, by section, with its default (which also gives its type).
 DEFAULTS: dict[str, dict[str, Any]] = {
+    # The dashboard helper scripts the integration loads into every HA page (its www/);
+    # a change reloads the integration, which loads or drops them.
+    "helpers": {
+        "streams": True,  # cm-streams.js: keep camera pictures live, the Security look
+        "back": False,  # cm-back.js: #BACK goes back
+        "refresh": False,  # cm-refresh.js: reload a dashboard when it is saved
+    },
     "tablet_view": {
         "identify_panels": False,  # an outline round each panel
         "identify_outline": "1px solid red",  # CSS: the outline drawn
@@ -71,6 +78,43 @@ def for_cards() -> dict[str, dict[str, Any]]:
     }
 
 
+# The helpers by the file the integration names in /health (?helpers=).
+HELPER_FILES = {
+    "cm-streams.js": "streams",
+    "cm-back.js": "back",
+    "cm-refresh.js": "refresh",
+}
+
+
+def adopt_helpers(files: set[str]) -> None:
+    """Until helpers are set here, take the ones the integration loads: an integration from
+    before 2026.10.3-b28 chose them in its own options, so the first /health after the
+    update carries the owner's choice over."""
+    try:
+        saved = json.loads(_store().read_text())
+    except (OSError, ValueError):
+        saved = {}
+    if isinstance(saved, dict) and "helpers" in saved:
+        return
+    current = _clean(saved)
+    current["helpers"] = {k: f in files for f, k in HELPER_FILES.items()}
+    try:
+        _write(current)
+    except OSError as exc:
+        _LOGGER.warning("dashboard helpers not saved: %s", exc)
+        return
+    _LOGGER.info(
+        "dashboard helpers taken from the integration's options: %s",
+        ", ".join(sorted(files)) or "none",
+    )
+
+
+def _write(current: dict) -> None:
+    tmp = _store().with_suffix(".tmp")
+    tmp.write_text(json.dumps(current, indent=2))
+    tmp.replace(_store())
+
+
 def _json(status: int, data: dict) -> Response:
     return status, "application/json", json.dumps(data).encode()
 
@@ -95,9 +139,7 @@ def _save(body: bytes) -> Response:
             if current[section][key] != value:
                 _LOGGER.info("setting %s.%s: %r", section, key, value)
             current[section][key] = value
-    tmp = _store().with_suffix(".tmp")
-    tmp.write_text(json.dumps(current, indent=2))
-    tmp.replace(_store())
+    _write(current)
     return _json(200, current)
 
 
