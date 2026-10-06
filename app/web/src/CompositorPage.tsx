@@ -9,7 +9,8 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "./api";
 import { BinIcon, CameraGridIcon } from "./icons";
 import { AreaHead, Empty, Shell } from "./page";
-import { Dialog, Toasts, type Toast } from "./ui";
+import { LiveView } from "./LiveView";
+import { Dialog, Segmented, Toasts, type Toast } from "./ui";
 import css from "./firmware.module.css";
 import guest from "./guest.module.css";
 import pipe from "./pipeline.module.css";
@@ -25,6 +26,8 @@ type State = "live" | "snapshots" | "starting" | "sitting out" | "stopped";
 /** One channel of a camera (low, medium, high), as the gatherer has it. */
 type Channel = {
   camera: string;
+  /** The camera it is a channel of. */
+  of: string;
   title: string;
   channel: string;
   state: State;
@@ -45,6 +48,7 @@ type Channel = {
 };
 type Gatherer = { paused: boolean; gathering: boolean; go2rtc: boolean | null; streams_read: number; channels: Channel[] };
 type Picture = {
+  key: string;
   commander: string;
   width: number;
   height: number;
@@ -82,7 +86,8 @@ export function CompositorPage({ state }: { state?: string }) {
   const [status, setStatus] = useState<Status>();
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
-  const [shown, setShown] = useState<string>(); // the channel previewed
+  const [shown, setShown] = useState<string>(); // the cache item previewed, by id
+  const [live, setLive] = useState<Channel>(); // the channel in a live view
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toast = useCallback((text: string, tone: Toast["tone"] = "good") => {
     setToasts((t) => [...t, { text, tone }]);
@@ -113,7 +118,8 @@ export function CompositorPage({ state }: { state?: string }) {
     }
   };
   const g = status?.gatherer;
-  const preview = g?.channels.find((c) => c.camera === shown);
+  const items = status ? cacheItems(status, act) : [];
+  const preview = items.find((i) => i.id === shown);
 
   return (
     <Shell
@@ -139,11 +145,13 @@ export function CompositorPage({ state }: { state?: string }) {
       {status && g && (
         <>
           <Strip status={status} busy={busy} act={act} />
-          <GathererArea g={g} busy={busy} act={act} />
-          <CacheArea g={g} stale={status.live.stale_s ?? 30} busy={busy} act={act} onShow={setShown} />
+          <GathererArea g={g} busy={busy} act={act} onLive={setLive} />
+          <CacheArea items={items} stale={status.live.stale_s ?? 30} busy={busy} act={act} onShow={setShown} />
           {ENGINES.map(([key, name, blurb]) => {
             const e = status[key];
-            return e && <GeneratorArea key={key} which={key} name={name} blurb={blurb} e={e} busy={busy} act={act} />;
+            return (
+              e && <GeneratorArea key={key} which={key} name={name} blurb={blurb} e={e} busy={busy} act={act} onShow={setShown} />
+            );
           })}
           {ENGINES.map(([key, name]) => {
             const e = status[key];
@@ -151,7 +159,8 @@ export function CompositorPage({ state }: { state?: string }) {
           })}
         </>
       )}
-      {preview && <Preview c={preview} onClose={() => setShown(undefined)} />}
+      {preview && <Preview item={preview} onClose={() => setShown(undefined)} />}
+      {live && <LiveView entity={live.of} title={live.title} initial={live.camera} onClose={() => setLive(undefined)} />}
       <Toasts toasts={toasts} />
     </Shell>
   );
@@ -223,7 +232,13 @@ function Stage({ name, on, note, children }: { name: string; on: boolean; note: 
   );
 }
 
-function GathererArea({ g, busy, act }: { g: Gatherer; busy: boolean; act: Act }) {
+const TIERS = ["high", "medium", "low"];
+
+/** By camera name, then its channels from high to low. */
+const byCamera = (a: Channel, b: Channel) =>
+  a.title.localeCompare(b.title) || TIERS.indexOf(a.channel) - TIERS.indexOf(b.channel);
+
+function GathererArea({ g, busy, act, onLive }: { g: Gatherer; busy: boolean; act: Act; onLive: (c: Channel) => void }) {
   return (
     <section className={guest.area}>
       <AreaHead
@@ -232,19 +247,38 @@ function GathererArea({ g, busy, act }: { g: Gatherer; busy: boolean; act: Act }
         action={<PauseButton paused={g.paused} path="gatherer" name="Gatherer" busy={busy} act={act} />}
       />
       {g.channels.length ? (
-        <Table head={["Camera", "Channel", "State", "Size", "Rate", "Wanted by", "Missed"]}>
-          {g.channels.map((c) => (
+        <Table head={["Camera", "Channel", "State", "Size", "Rate", "Wanted by", "Missed", ""]}>
+          {[...g.channels].sort(byCamera).map((c) => (
             <tr key={c.camera}>
               <td>{c.title}</td>
               <td title={c.camera}>{c.channel}</td>
               <td title={c.no_stream ? `Not its stream: ${c.no_stream}` : undefined}>
                 <StateBadge state={c.state} />
               </td>
-              <td>{c.width ? `${c.width} × ${c.height}${c.size_from === "stream" ? " (stream)" : ""}` : "?"}</td>
+              <td>
+                {c.width ? `${c.width} × ${c.height} ` : "? "}
+                {c.size_from && (
+                  <span
+                    className={guest.badge}
+                    title={
+                      c.size_from === "stream"
+                        ? "Its size as its stream gives it (read from its video)"
+                        : "Its size as its snapshot gives it: not yet read from its stream, which may differ"
+                    }
+                  >
+                    {c.size_from}
+                  </span>
+                )}
+              </td>
               <td>{c.fps != null ? `${c.fps} fps` : c.fetch_ms != null ? `${ms(c.fetch_ms)} a still` : ""}</td>
               <td>{c.wanted_by.map(owner).join(", ")}</td>
               <td style={c.back_in_s != null ? { color: "var(--bad)" } : undefined}>
                 {c.back_in_s != null ? `back in ${seconds(c.back_in_s)}` : c.missed ? `${c.missed} in a row` : ""}
+              </td>
+              <td>
+                <button className={ui.iconButton} onClick={() => onLive(c)} title="A live view of this channel's stream" aria-label={`Live view of ${c.title}, ${c.channel}`}>
+                  ↗
+                </button>
               </td>
             </tr>
           ))}
@@ -260,74 +294,177 @@ function StateBadge({ state }: { state: State }) {
   return <span className={`${pipe.state} ${pipe[state.replace(" ", "_")] ?? ""}`}>{state}</span>;
 }
 
-/** A cached picture's thumbnail address: it changes only when a new picture comes (so the
- * browser fetches one only then). */
-function thumbUrl(c: Channel, width: number): string {
-  const born = c.waiting || c.age_s == null ? "w" : Math.round(Date.now() / 1000 - c.age_s);
-  return `api/compositor/thumb/${encodeURIComponent(c.camera)}?w=${width}&whole=1&r=${born}`;
+/** A picture in the cache: a camera channel's (from the gatherer) or a composite (a
+ * picture a generator drew). */
+type Item = {
+  id: string;
+  name: string;
+  sub: string;
+  kind: "camera" | "composite";
+  age: number | null; // s; null while waiting for its first
+  size: string;
+  state?: State;
+  note: string;
+  uses: Use[];
+  /** Its thumbnail's address, width wide: it changes only when a new picture comes (so the
+   * browser fetches one only then). */
+  src: (width: number) => string;
+  purge: () => void;
+};
+
+function born(age: number | null): string {
+  return age == null ? "w" : String(Math.round(Date.now() / 1000 - age));
 }
 
-function CacheArea({ g, stale, busy, act, onShow }: { g: Gatherer; stale: number; busy: boolean; act: Act; onShow: (camera: string) => void }) {
+function cacheItems(status: Status, act: Act): Item[] {
+  const cameras = status.gatherer.channels.map(
+    (c): Item => ({
+      id: `c ${c.camera}`,
+      name: c.title,
+      sub: c.channel,
+      kind: "camera",
+      age: c.waiting ? null : c.age_s,
+      size: c.width ? `${c.width} × ${c.height}` : "size ?",
+      state: c.state,
+      note: c.waiting ? "waiting for its first" : c.source === "stream" ? "stream" : "snapshot",
+      uses: c.uses,
+      src: (w) => `api/compositor/thumb/${encodeURIComponent(c.camera)}?w=${w}&whole=1&r=${born(c.waiting ? null : c.age_s)}`,
+      purge: () => act("cache/forget", `Purged ${c.title} (${c.channel})`, { camera: c.camera }),
+    }),
+  );
+  const composites = ENGINES.flatMap(([key, name]) =>
+    (status[key]?.pictures ?? []).map(
+      (p): Item => ({
+        id: `p ${key} ${p.key}`,
+        name: p.commander,
+        sub: `${name.toLowerCase()}, ${p.width} × ${p.height}${p.asked ? ` at ${p.scale}×` : ""}`,
+        kind: "composite",
+        age: p.age_s,
+        size: `${p.width} × ${p.height}`,
+        note: `${p.kb} kB, drawn in ${p.draw_ms} ms`,
+        uses: [],
+        src: (w) => `api/compositor/thumb/${encodeURIComponent(p.key)}?engine=${key}&w=${w}&whole=1&r=${born(p.age_s)}`,
+        purge: () => act("cache/forget", `Purged ${p.commander} (${name.toLowerCase()})`, { engine: key, picture: p.key }),
+      }),
+    ),
+  );
+  return [...cameras, ...composites];
+}
+
+type View = "tiles" | "list";
+type Sort = "name" | "age";
+
+/** A per-viewer choice kept in this browser (try: storage may be blocked). */
+function useKept<T extends string>(key: string, fallback: T): [T, (v: T) => void] {
+  const [value, setValue] = useState<T>(() => {
+    try {
+      return (localStorage.getItem(key) as T) || fallback;
+    } catch {
+      return fallback;
+    }
+  });
+  const set = (v: T) => {
+    setValue(v);
+    try {
+      localStorage.setItem(key, v);
+    } catch {
+      /* not kept: fine */
+    }
+  };
+  return [value, set];
+}
+
+function CacheArea({ items, stale, busy, act, onShow }: { items: Item[]; stale: number; busy: boolean; act: Act; onShow: (id: string) => void }) {
+  const [view, setView] = useKept<View>("cm.cache.view", "tiles");
+  const [sort, setSort] = useKept<Sort>("cm.cache.sort", "name");
+  const sorted = [...items].sort((a, b) =>
+    sort === "age" ? (a.age ?? Infinity) - (b.age ?? Infinity) : a.name.localeCompare(b.name) || a.sub.localeCompare(b.sub),
+  );
+  const ageNote = (i: Item) => (i.age == null ? "" : `${seconds(i.age)} old`);
+  const ageStyle = (i: Item) => (i.age != null && i.age > stale ? { color: "var(--warn)" } : undefined);
+  const bin = (i: Item) => (
+    <button
+      className={ui.iconButton}
+      disabled={busy}
+      onClick={i.purge}
+      title={i.kind === "camera" ? "Purge this picture: fetched afresh, “(Waiting …)” until then (its size is kept)" : "Purge this picture: drawn afresh at its next turn"}
+      aria-label={`Purge ${i.name}, ${i.sub}`}
+    >
+      <BinIcon />
+    </button>
+  );
   return (
     <section className={guest.area}>
       <AreaHead
         title="Cache"
-        blurb={`Each channel's newest picture, kept for the generators: "(Waiting …)" until its first comes. Tap one for a live view; a bin purges it (fetched afresh; its size is kept).`}
+        blurb={`Every picture kept: each camera channel's newest (“(Waiting …)” until its first comes) and each composite the generators drew. Tap one for a live view; a bin purges it.`}
         action={
           <button className={ui.button} disabled={busy} onClick={() => act("cache/purge", "Cache purged")}>
             Purge all
           </button>
         }
       />
-      <div className={pipe.grid}>
-        {g.channels.map((c) => (
-          <div key={c.camera} className={pipe.card}>
-            <button className={pipe.thumb} onClick={() => onShow(c.camera)} title="A live view of this picture">
-              <img src={thumbUrl(c, 240)} alt={`${c.title}, ${c.channel}`} loading="lazy" />
-            </button>
-            <div className={pipe.meta}>
-              <strong>
-                {c.title} <span className={guest.rowMeta}>{c.channel}</span>
-              </strong>
-              <span>
-                <StateBadge state={c.state} /> {c.width ? `${c.width} × ${c.height}` : "size ?"}
-              </span>
-              <span className={guest.rowMeta} style={c.age_s != null && c.age_s > stale ? { color: "var(--warn)" } : undefined}>
-                {c.waiting ? "waiting for its first" : c.age_s != null ? `${seconds(c.age_s)} old` : ""}
-                {c.source === "stream" ? " · stream" : c.waiting ? "" : " · snapshot"}
-              </span>
-              {c.uses.map((u) => (
-                <span
-                  key={`${u.picture} ${u.place}`}
-                  className={pipe.use}
-                  style={u.enlarged != null && u.enlarged > 1 ? { color: "var(--bad)" } : undefined}
-                >
-                  {u.picture}, {u.place} {u.width} × {u.height}
-                  {u.enlarged == null ? "" : ` ×${u.enlarged}`}
-                </span>
-              ))}
-            </div>
-            <button
-              className={ui.iconButton}
-              disabled={busy}
-              onClick={() => act("cache/forget", `Purged ${c.title} (${c.channel})`, { camera: c.camera })}
-              title="Purge this picture: fetched afresh, “(Waiting …)” until then (its size is kept)"
-              aria-label={`Purge ${c.title}, ${c.channel}`}
-            >
-              <BinIcon />
-            </button>
-          </div>
-        ))}
+      <div className={pipe.controls}>
+        <Segmented value={view} options={[["tiles", "Tiles"], ["list", "List"]]} onChange={setView} />
+        <Segmented value={sort} options={[["name", "By name"], ["age", "Newest first"]]} onChange={setSort} />
       </div>
+      {view === "tiles" ? (
+        <div className={pipe.grid}>
+          {sorted.map((i) => (
+            <div key={i.id} className={pipe.card}>
+              <button className={pipe.thumb} onClick={() => onShow(i.id)} title="A live view of this picture">
+                <img src={i.src(240)} alt={`${i.name}, ${i.sub}`} loading="lazy" />
+              </button>
+              <div className={pipe.meta}>
+                <strong>
+                  {i.name} <span className={guest.rowMeta}>{i.sub}</span>
+                </strong>
+                <span>
+                  {i.state ? <StateBadge state={i.state} /> : <span className={guest.badge}>composite</span>} {i.size}
+                </span>
+                <span className={guest.rowMeta} style={ageStyle(i)}>
+                  {[ageNote(i), i.note].filter(Boolean).join(" · ")}
+                </span>
+                {i.uses.map((u) => (
+                  <span key={`${u.picture} ${u.place}`} className={pipe.use} style={u.enlarged != null && u.enlarged > 1 ? { color: "var(--bad)" } : undefined}>
+                    {u.picture}, {u.place} {u.width} × {u.height}
+                    {u.enlarged == null ? "" : ` ×${u.enlarged}`}
+                  </span>
+                ))}
+              </div>
+              {bin(i)}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <Table head={["", "Name", "", "Kind", "Size", "Age", "", ""]}>
+          {sorted.map((i) => (
+            <tr key={i.id}>
+              <td>
+                <button className={pipe.mini} onClick={() => onShow(i.id)} title="A live view of this picture">
+                  <img src={i.src(64)} alt="" loading="lazy" />
+                </button>
+              </td>
+              <td>{i.name}</td>
+              <td>{i.sub}</td>
+              <td>{i.state ? <StateBadge state={i.state} /> : <span className={guest.badge}>composite</span>}</td>
+              <td>{i.size}</td>
+              <td style={ageStyle(i)}>{i.age == null ? "waiting" : seconds(i.age)}</td>
+              <td className={guest.rowMeta}>{i.note}</td>
+              <td>{bin(i)}</td>
+            </tr>
+          ))}
+        </Table>
+      )}
     </section>
   );
 }
 
 /** One cached picture, larger, as it changes (with the page's polling). */
-function Preview({ c, onClose }: { c: Channel; onClose: () => void }) {
+function Preview({ item, onClose }: { item: Item; onClose: () => void }) {
   return (
     <Dialog
-      title={`${c.title}, ${c.channel}`}
+      title={`${item.name}, ${item.sub}`}
       wide
       onClose={onClose}
       footer={
@@ -336,18 +473,32 @@ function Preview({ c, onClose }: { c: Channel; onClose: () => void }) {
         </button>
       }
     >
-      <img className={pipe.big} src={thumbUrl(c, 1280)} alt={`${c.title}, ${c.channel}`} />
+      <img className={pipe.big} src={item.src(1280)} alt={`${item.name}, ${item.sub}`} />
       <p className={guest.rowMeta}>
-        <code>{c.camera}</code>: <StateBadge state={c.state} /> {c.width ? `${c.width} × ${c.height}` : "size ?"}
-        {c.size_from ? ` (from its ${c.size_from})` : ""}, {c.waiting ? "waiting for its first picture" : `${seconds(c.age_s ?? 0)} old`}
-        {c.fps != null ? `, ${c.fps} fps` : ""}
-        {c.no_stream ? `; not its stream: ${c.no_stream}` : ""}.
+        {item.state ? <StateBadge state={item.state} /> : <span className={guest.badge}>composite</span>} {item.size},{" "}
+        {item.age == null ? "waiting for its first picture" : `${seconds(item.age)} old`}, {item.note}.
       </p>
     </Dialog>
   );
 }
 
-function GeneratorArea({ which, name, blurb, e, busy, act }: { which: string; name: string; blurb: string; e: Engine; busy: boolean; act: Act }) {
+function GeneratorArea({
+  which,
+  name,
+  blurb,
+  e,
+  busy,
+  act,
+  onShow,
+}: {
+  which: string;
+  name: string;
+  blurb: string;
+  e: Engine;
+  busy: boolean;
+  act: Act;
+  onShow: (id: string) => void;
+}) {
   return (
     <section className={guest.area}>
       <AreaHead
@@ -358,7 +509,7 @@ function GeneratorArea({ which, name, blurb, e, busy, act }: { which: string; na
       {e.error && <p className={guest.empty}>{e.error}</p>}
       {e.needs && <Empty>It needs {e.needs}.</Empty>}
       {e.pictures?.length ? (
-        <Table head={["Commander", "Size", "Drawn", "Draw", "Picture"]}>
+        <Table head={["Commander", "Size", "Drawn", "Draw", "Picture", ""]}>
           {e.pictures.map((p) => (
             <tr key={`${p.commander} ${p.width}x${p.height} ${p.scale}`}>
               <td>{p.commander}</td>
@@ -369,6 +520,11 @@ function GeneratorArea({ which, name, blurb, e, busy, act }: { which: string; na
               <td>{seconds(p.age_s)} ago</td>
               <td>{p.draw_ms} ms</td>
               <td>{p.kb} kB</td>
+              <td>
+                <button className={ui.iconButton} onClick={() => onShow(`p ${which} ${p.key}`)} title="A live view of this picture" aria-label={`Live view of ${p.commander}`}>
+                  ↗
+                </button>
+              </td>
             </tr>
           ))}
         </Table>

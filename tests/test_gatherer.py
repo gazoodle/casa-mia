@@ -140,3 +140,50 @@ def test_generator_and_server_pause_on_their_own(served):
     assert urllib.request.urlopen(url).status == 200
     status = served.status()
     assert not (status["generator_paused"] or status["server_paused"])
+
+
+def test_a_paused_gatherer_keeps_no_stills_and_sizes_every_camera(
+    tmp_path, monkeypatch
+):
+    # Paused, the kept stills fetch nothing (a purge wakes them, and must not refill the
+    # cache); running, every camera's channels are sized from their streams, in use or
+    # not.
+    g = gatherer(tmp_path, keep_stills=60)
+    g.go2rtc = True
+    asked: list[str] = []
+    probed: list[str] = []
+
+    async def fetch(entity):
+        asked.append(entity)
+        return jpeg()
+
+    async def name(entity):
+        return entity
+
+    g._fetch_now = fetch  # type: ignore[method-assign]
+    g._name = name  # type: ignore[method-assign]
+    monkeypatch.setattr(
+        mod.streams,
+        "first_frame",
+        lambda url: probed.append(url) or Image.new("RGB", (1280, 720)),
+    )
+
+    async def run():
+        g._round_now = asyncio.Event()
+        g.pause(True)
+        kept = asyncio.ensure_future(g._keep_stills(60))
+        g.clear()  # a purge while paused
+        await asyncio.sleep(0.1)
+        paused_asked = list(asked)
+        g.pause(False)
+        g._round_now.set()
+        await asyncio.sleep(0.1)
+        g._survey()
+        await asyncio.gather(*g._bg)
+        kept.cancel()
+        await asyncio.gather(kept, return_exceptions=True)
+        return paused_asked
+
+    assert asyncio.run(run()) == []  # nothing fetched while paused
+    assert set(asked) == {"camera.a", "camera.b"}  # running again: the kept stills
+    assert g._streamed == {"camera.a", "camera.b"}  # every camera sized by its stream

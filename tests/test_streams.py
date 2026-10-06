@@ -204,7 +204,7 @@ def test_a_round_draws_from_the_channels_streams(tmp_path, monkeypatch):
         comp._want(comp.cfg.commanders)
         g = comp.gather
         g.uses = g._wants[comp.store][1]
-        g._survey(list(g.uses))
+        g._survey()
         await asyncio.gather(*(g._once(e) for e in g.uses))
         await asyncio.gather(*comp.gather._bg)
 

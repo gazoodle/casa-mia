@@ -49,6 +49,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote
 
 import aiohttp
 from aiohttp import web
@@ -947,6 +948,7 @@ class Gatherer:
         self._names: dict[str, str] = {}
         self._no_stream: dict[str, tuple[float, str]] = {}
         self._probing: set[str] = set()
+        self._probe_limit: asyncio.Semaphore | None = None  # probes at once, shared
         self._misses: dict[str, int] = {}  # channel -> fetches missed in a row
         self._benched: dict[str, float] = {}  # channel -> when it is tried again
         self._answered = 0.0  # when any channel last answered (HA up)
@@ -1052,7 +1054,13 @@ class Gatherer:
         _LOGGER.info(
             "compositor (cameras): %s", "paused" if paused else "running again"
         )
-        self._soon(lambda: self._wake.set() if self._wake else None)
+
+        def wake() -> None:
+            for event in (self._wake, self._round_now):
+                if event:
+                    event.set()
+
+        self._soon(wake)
 
     def want(self, owner: str, uses: dict[str, list[Use]]) -> None:
         """What a compositor draws from, as of now: each channel and its places. A
@@ -1099,10 +1107,11 @@ class Gatherer:
                 for c in live - set(self._feeds):
                     task = asyncio.ensure_future(self._feed(c))
                     self._feeds[c] = task
-                self._survey(list(live))
             elif self.gathering:
                 self.gathering = False
                 _LOGGER.info("compositor (cameras): nothing wanted; fetching stopped")
+            if not self.paused:
+                self._survey()
             self._wake.clear()
             try:
                 await asyncio.wait_for(self._wake.wait(), 1.0)
@@ -1337,6 +1346,7 @@ class Gatherer:
             reader = self._readers.get(e)
             return {
                 "camera": e,
+                "of": camera,  # the camera it is a channel of
                 "title": self.cfg.titles.get(camera, camera),
                 "channel": tier,
                 "state": self.state(e),
@@ -1574,11 +1584,13 @@ class Gatherer:
         finally:
             self._probing.discard(entity)
 
-    def _survey(self, used: list[str]) -> None:
-        """Size, from its stream, each channel of the cameras in use not sized so yet, in
-        the background, a few at a time."""
-        limit = asyncio.Semaphore(PROBES_AT_ONCE)
-        for camera in dict.fromkeys(self._channel(e)[0] for e in used):
+    def _survey(self) -> None:
+        """Size, from its stream, each channel of every camera not sized so yet (once:
+        the sizes are kept across restarts), in the background, a few at a time."""
+        if self._probe_limit is None:
+            self._probe_limit = asyncio.Semaphore(PROBES_AT_ONCE)
+        limit = self._probe_limit
+        for camera in self._cameras():
             for entity in channels(self.cfg, camera).values():
                 if (
                     entity in self._streamed
@@ -1620,6 +1632,9 @@ class Gatherer:
 
         while True:
             self._round_now.clear()
+            if self.paused:  # nothing fetched; woken when run again
+                await self._round_now.wait()
+                continue
             start = time.monotonic()
             cams = [
                 e
@@ -1923,8 +1938,14 @@ class Compositor:
         )
         self._on_loop(self._clear)
 
+    def forget_picture(self, key: str) -> None:
+        """Drop one picture it drew (a commander at a size): drawn afresh at its next
+        turn."""
+        _LOGGER.info("compositor (%s): purged the picture %s", self.store, key)
+        self._on_loop(lambda: self._pictures.pop(key, None) and None)
+
     def forget(self, entity: str) -> None:
-        """Drop one channel's still and size (fetched again next round)."""
+        """Purge one channel's picture (fetched afresh; its size is kept)."""
         _LOGGER.info("compositor (%s): forgot the stills of %s", self.store, entity)
         self._on_loop(lambda: self._clear(entity))
 
@@ -2457,6 +2478,7 @@ class Compositor:
                 size.split("x") if size else (cmd.get("width"), cmd.get("height"), 1)
             )
             return {
+                "key": key,
                 "commander": cmd.get("name", name),
                 "width": int(w or 0),
                 "height": int(h or 0),
@@ -2533,14 +2555,23 @@ def admin_api(
         if method == "GET" and not parts:
             return status()
         if method == "GET" and len(parts) == 2 and parts[0] == "thumb":
+            parts[1] = unquote(parts[1])  # a composite's key has an @ in it
             # A cached picture, width wide (whole: at its shape, else cut to 16:9).
             try:
                 width = max(32, min(int((query.get("w") or ["320"])[0]), 1920))
             except ValueError:
                 return fail(400, "w: a width in px")
             whole = (query.get("whole") or ["0"])[0] == "1"
-            made = live.gather.thumb(parts[1], width, whole)
-            return (200, "image/jpeg", made) if made else fail(404, "no such picture")
+            which = (query.get("engine") or [""])[0]
+            if which:  # a composite: a picture a compositor drew
+                drawer = engines.get(which)
+                drawn = drawer._pictures.get(parts[1]) if drawer else None
+                if not drawn:
+                    return fail(404, "no such picture")
+                made = live.gather.thumb(f"{which}/{parts[1]}", width, whole, drawn[1])
+            else:
+                made = live.gather.thumb(parts[1], width, whole)
+            return (200, mime(made), made) if made else fail(404, "no such picture")
         if method != "POST":
             return fail(404, "not found")
         if parts[:1] == ["gatherer"] and parts[1:] in (["pause"], ["run"]):
@@ -2562,9 +2593,16 @@ def admin_api(
             return status()
         if parts == ["cache", "forget"]:
             try:
-                camera = str(json.loads(body or b"{}")["camera"])
+                asked = json.loads(body or b"{}")
+                if "picture" in asked:  # a composite: redrawn at its next turn
+                    drawer = engines[str(asked["engine"])]
+                    if not drawer:
+                        return fail(404, "no such engine")
+                    drawer.forget_picture(str(asked["picture"]))
+                    return status()
+                camera = str(asked["camera"])
             except (ValueError, KeyError, TypeError):
-                return fail(400, "which channel?")
+                return fail(400, "which picture?")
             live.forget(camera)
             return status()
         if parts == ["restart"]:

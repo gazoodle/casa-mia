@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.3-b42
+
+- Camera compositor page: the cache holds the composites too (each picture the generators drew, with its thumbnail, live view and purge), beside the camera channels' pictures; a list view (small thumbnails) besides the tiles, sorted by name or newest first, the choice kept in the browser. The gatherer's channels are sorted by camera, then high, medium, low; each size says whether it is the stream's or the snapshot's; and a ↗ opens a live view of the channel's stream (the Camera Dashboard page's live view, shared). Each generator's picture has a ↗ to its live view.
+- Camera compositor: a paused gatherer fetches nothing at all (the kept stills were still fetched, and a purge refilled the cache at once). Every camera's channels are sized from their streams once (cameras in no commander included), so their real sizes show: a UniFi Protect camera gives every channel the same snapshot. At most two streams are read at once for it (the limit was not shared).
+
 ## 2026.10.3-b41
 
 - Camera compositor page: its pipeline, as it runs. A strip of the four stages (gatherer, cache, the live and preview generators, the live and preview servers), each with its state and a Pause or Run; the gatherer's channels (state, size and whether its stream's, rate, who wants it, misses); the cache as thumbnails, each with its age, source and the places drawn from it (red where enlarged), a bin to purge it and a tap for a live view; each generator's pictures (draw time, size); each server's viewers (rate, time spent waiting to send). Purge all replaces the per-engine Flush cache.

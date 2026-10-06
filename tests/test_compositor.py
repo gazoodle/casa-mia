@@ -4,6 +4,7 @@ import json
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -18,7 +19,7 @@ async def gather_round(comp) -> None:
     comp._want(comp.cfg.commanders)
     g = comp.gather
     g.uses = g._wants[comp.store][1]
-    g._survey(list(g.uses))
+    g._survey()
     await asyncio.gather(*(g._once(e) for e in g.uses))
 
 
@@ -342,9 +343,18 @@ def test_the_pages_controls_restart_flush_and_forget(compositor):
     assert both["gatherer"]["channels"] and status["pictures"]
     assert status["size_test"] == f"http://10.0.0.2:{compositor.port}/size-test"
     # a cached picture as a thumbnail, whole or cut to 16:9; the stages paused and run
-    code, kind, thumb = api("GET", "thumb/camera.a", {"w": ["120"], "whole": ["1"]}, b"")
-    assert (code, kind) == (200, "image/jpeg") and Image.open(io.BytesIO(thumb)).width == 120
+    code, kind, thumb = api(
+        "GET", "thumb/camera.a", {"w": ["120"], "whole": ["1"]}, b""
+    )
+    assert (code, kind) == (200, "image/jpeg") and Image.open(
+        io.BytesIO(thumb)
+    ).width == 120
     assert api("GET", "thumb/camera.none", {}, b"")[0] == 404
+    # a composite's (the key a card's size: its @ comes URL-encoded)
+    urllib.request.urlopen(f"{base}/g/cameras.jpg?w=800&h=600").read()
+    key = urllib.parse.quote(next(k for k in compositor._pictures if "@" in k))
+    code, _, thumb = api("GET", f"thumb/{key}", {"engine": ["live"], "w": ["100"]}, b"")
+    assert code == 200 and Image.open(io.BytesIO(thumb)).width == 100
     paused = json.loads(api("POST", "live/server/pause", {}, b"")[2])
     assert paused["live"]["server_paused"] and not paused["live"]["generator_paused"]
     assert json.loads(api("POST", "gatherer/pause", {}, b"")[2])["gatherer"]["paused"]

@@ -110,6 +110,29 @@
   overflow-wrap: anywhere;
 }
 
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.mini {
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #000;
+  cursor: pointer;
+}
+
+.mini img {
+  display: block;
+  width: 48px;
+  height: 27px;
+  object-fit: contain;
+}
+
 .big {
   display: block;
   width: 100%;
