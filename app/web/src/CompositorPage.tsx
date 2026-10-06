@@ -46,8 +46,13 @@ type Channel = {
   missed: number;
   back_in_s: number | null;
   wanted_by: string[];
+  /** Its last few surveys, newest first. */
+  surveys: SurveyRecord[];
   uses: Use[];
 };
+/** One survey of a channel: when (epoch s), what came of it, why not its stream, how
+ * long it took, and the size it gave. */
+type SurveyRecord = { at: number; outcome: "stream" | "snapshot" | "read" | "nothing"; why: string; took_s: number; size: [number, number] | null };
 /** The survey: a pass over every channel of every camera (its stream's first frame, or a
  * snapshot), then a sleep at its pace. */
 type Survey = { running: boolean; done: number; of: number; pace: number; took_s?: number; next_in: number | null };
@@ -103,6 +108,7 @@ export function CompositorPage({ state }: { state?: string }) {
   const [busy, setBusy] = useState(false);
   const [shown, setShown] = useState<string>(); // the cache item previewed, by id
   const [live, setLive] = useState<Channel>(); // the channel in a live view
+  const [surveys, setSurveys] = useState<string>(); // the channel whose surveys show
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toast = useCallback((text: string, tone: Toast["tone"] = "good") => {
     setToasts((t) => [...t, { text, tone }]);
@@ -160,7 +166,7 @@ export function CompositorPage({ state }: { state?: string }) {
       {status && g && (
         <>
           <Strip status={status} busy={busy} act={act} />
-          <GathererArea g={g} busy={busy} act={act} onLive={setLive} />
+          <GathererArea g={g} busy={busy} act={act} onLive={setLive} onSurveys={setSurveys} />
           <CacheArea items={items} stale={status.live.stale_s ?? 30} busy={busy} act={act} onShow={setShown} />
           {ENGINES.map(([key, name, blurb]) => {
             const e = status[key];
@@ -175,6 +181,7 @@ export function CompositorPage({ state }: { state?: string }) {
         </>
       )}
       {preview && <Preview item={preview} onClose={() => setShown(undefined)} />}
+      {surveys && g && <Surveys c={g.channels.find((c) => c.camera === surveys)} onClose={() => setSurveys(undefined)} />}
       {live && <LiveView entity={live.of} title={live.title} initial={live.camera} onClose={() => setLive(undefined)} />}
       <Toasts toasts={toasts} />
     </Shell>
@@ -253,7 +260,19 @@ const TIERS = ["high", "medium", "low"];
 const byCamera = (a: Channel, b: Channel) =>
   a.title.localeCompare(b.title) || TIERS.indexOf(a.channel) - TIERS.indexOf(b.channel);
 
-function GathererArea({ g, busy, act, onLive }: { g: Gatherer; busy: boolean; act: Act; onLive: (c: Channel) => void }) {
+function GathererArea({
+  g,
+  busy,
+  act,
+  onLive,
+  onSurveys,
+}: {
+  g: Gatherer;
+  busy: boolean;
+  act: Act;
+  onLive: (c: Channel) => void;
+  onSurveys: (camera: string) => void;
+}) {
   return (
     <section className={guest.area}>
       <AreaHead
@@ -275,7 +294,7 @@ function GathererArea({ g, busy, act, onLive }: { g: Gatherer; busy: boolean; ac
       </p>
       <PaceSlider which="survey" label="Survey pause" value={g.survey.pace} steps={SURVEY_STEPS} act={act} />
       {g.channels.length ? (
-        <Table head={["Camera", "Channel", "State", "Size", "Rate", "Wanted by", "Missed", ""]}>
+        <Table head={["Camera", "Channel", "State", "Size", "Rate", "Wanted by", "Missed", "Survey", ""]}>
           {[...g.channels].sort(byCamera).map((c) => (
             <tr key={c.camera}>
               <td>{c.title}</td>
@@ -302,6 +321,20 @@ function GathererArea({ g, busy, act, onLive }: { g: Gatherer; busy: boolean; ac
               <td>{c.wanted_by.map(owner).join(", ")}</td>
               <td style={c.back_in_s != null ? { color: "var(--bad)" } : undefined}>
                 {c.back_in_s != null ? `back in ${seconds(c.back_in_s)}` : c.missed ? `${c.missed} in a row` : ""}
+              </td>
+              <td>
+                {c.surveys.length ? (
+                  <button
+                    className={pipe.link}
+                    onClick={() => onSurveys(c.camera)}
+                    style={c.surveys[0].outcome === "stream" || c.surveys[0].outcome === "read" ? undefined : { color: "var(--warn)" }}
+                    title="Its last surveys: what came of each, and why"
+                  >
+                    {c.surveys[0].outcome}
+                  </button>
+                ) : (
+                  ""
+                )}
               </td>
               <td>
                 <button className={ui.iconButton} onClick={() => onLive(c)} title="A live view of this channel's stream" aria-label={`Live view of ${c.title}, ${c.channel}`}>
@@ -554,6 +587,41 @@ function CacheArea({ items, stale, busy, act, onShow }: { items: Item[]; stale: 
         </Table>
       )}
     </section>
+  );
+}
+
+/** A channel's last surveys: what came of each, and why not its stream. */
+function Surveys({ c, onClose }: { c?: Channel; onClose: () => void }) {
+  if (!c) return null;
+  return (
+    <Dialog
+      title={`${c.title}, ${c.channel}: its surveys`}
+      wide
+      onClose={onClose}
+      footer={
+        <button className={ui.primary} onClick={onClose}>
+          Close
+        </button>
+      }
+    >
+      <p className={guest.rowMeta}>
+        <code>{c.camera}</code>: each survey opens its stream for a first frame (through Home Assistant's go2rtc), else
+        takes its snapshot. Newest first.
+      </p>
+      <Table head={["When", "Came", "Took", "Size", "Why not its stream"]}>
+        {c.surveys.map((r) => (
+          <tr key={r.at}>
+            <td>{new Date(r.at * 1000).toLocaleTimeString()}</td>
+            <td style={r.outcome === "stream" || r.outcome === "read" ? undefined : { color: "var(--warn)" }}>
+              {r.outcome === "read" ? "being read anyway" : r.outcome}
+            </td>
+            <td>{seconds(r.took_s)}</td>
+            <td>{r.size ? `${r.size[0]} × ${r.size[1]}` : ""}</td>
+            <td style={{ whiteSpace: "normal" }}>{r.why}</td>
+          </tr>
+        ))}
+      </Table>
+    </Dialog>
   );
 }
 

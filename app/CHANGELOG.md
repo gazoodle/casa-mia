@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.3-b48
+
+- Camera compositor: each channel's last five surveys are kept: when, what came of it (its stream, a snapshot, being read anyway, nothing), how long it took, the size it gave and, when not its stream, exactly why. The Camera compositor page's gatherer has a Survey column (amber where it was not the stream), each opening that channel's record.
+- Camera compositor: a camera whose stream is H.265 is no longer taken for one Home Assistant cannot stream. The app asks HA for each camera with a throwaway WebRTC offer of H.264 only, which such a camera turns down; HA has put the camera on its go2rtc by then, so only "no stream source" and "not supported" now count, and reading the stream decides. A stream that gave no frame is put on go2rtc afresh when next tried.
+
 ## 2026.10.3-b47
 
 - Camera compositor page: the pace sliders send their value on release only (a finger lifted, a key let go), and hold it until the box confirms, so the page's refresh no longer snaps them back mid-drag; their readout has a fixed width, so the slider no longer resizes under the finger as the text changes.

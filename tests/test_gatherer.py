@@ -270,3 +270,30 @@ def test_paces_are_kept_checked_and_taken_up_at_once(tmp_path):
         return time.monotonic() - started
 
     assert asyncio.run(taken_up()) < 1  # ended by the new pace, not after 15 s
+
+
+def test_each_survey_is_recorded_with_why(tmp_path, monkeypatch):
+    g = gatherer(tmp_path)
+    g.go2rtc = True
+
+    async def name(entity):
+        return entity
+
+    async def fetch(entity):
+        return jpeg((640, 360))
+
+    g._name = name  # type: ignore[method-assign]
+    g._fetch_now = fetch  # type: ignore[method-assign]
+    monkeypatch.setattr(
+        mod.streams, "first_frame", lambda url: (None, "no video frame for 15 s")
+    )
+    assert asyncio.run(g._survey_one("camera.a")) == "snapshot"
+    record = g.status()["channels"][0]["surveys"][0]
+    assert (
+        record["outcome"] == "snapshot" and record["why"] == "no video frame for 15 s"
+    )
+    assert record["size"] == [640, 360] and record["took_s"] >= 0
+    # not tried again for a while, and the record says so
+    asyncio.run(g._survey_one("camera.a"))
+    again = g.status()["channels"][0]["surveys"][0]
+    assert again["why"].startswith("no video frame for 15 s (its stream tried again in")

@@ -154,6 +154,16 @@
   object-fit: contain;
 }
 
+.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .big {
   display: block;
   width: 100%;

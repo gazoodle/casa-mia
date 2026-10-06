@@ -38,6 +38,7 @@ camera-dashboard.json.
 from __future__ import annotations
 
 import asyncio
+import collections
 import functools
 import html
 import io
@@ -975,6 +976,9 @@ class Gatherer:
         self._no_stream: dict[str, tuple[float, str]] = {}
         # The survey (see _survey_loop): the channels it is reading now, and its pass.
         self._surveying: set[str] = set()
+        # Each channel's last few surveys (newest last): when, what came of it, why
+        # not its stream, how long it took, and the size it gave.
+        self._surveyed: dict[str, collections.deque[dict[str, Any]]] = {}
         self.survey: dict[str, Any] = {"running": False, "done": 0, "of": 0}
         self._misses: dict[str, int] = {}  # channel -> fetches missed in a row
         self._benched: dict[str, float] = {}  # channel -> when it is tried again
@@ -1473,6 +1477,7 @@ class Gatherer:
                 if e in self._benched
                 else None,
                 "wanted_by": owners.get(e, []),
+                "surveys": list(reversed(self._surveyed.get(e, []))),
                 "uses": [
                     {
                         "picture": picture,
@@ -1738,33 +1743,67 @@ class Gatherer:
             await self._sleep_or(self._survey_now, self.pace("survey"))
 
     async def _survey_one(self, entity: str) -> str:
-        """Survey a channel: what it gave ("stream", "snapshot", "read" anyway, or
-        "nothing"). A stream that gives no frame is logged once and not tried again
-        for BENCH seconds (its snapshot meanwhile)."""
+        """Survey a channel and record it (see _surveyed): what it gave ("stream",
+        "snapshot", "read" anyway, or "nothing")."""
+        started = time.monotonic()
+        outcome, why, size = await self._survey_try(entity)
+        self._surveyed.setdefault(entity, collections.deque(maxlen=5)).append(
+            {
+                "at": time.time(),
+                "outcome": outcome,
+                "why": why,
+                "took_s": round(time.monotonic() - started, 1),
+                "size": list(size) if size else None,
+            }
+        )
+        return outcome
+
+    async def _survey_try(self, entity: str) -> tuple[str, str, tuple[int, int] | None]:
+        """Survey a channel: what came of it, why not its stream (if it was not), and
+        the size it gave. A stream that gives no frame is logged and not tried again for
+        BENCH seconds (its snapshot meanwhile)."""
         reader = self._readers.get(entity)
         if reader and reader.alive and reader.frame is not None:
-            return "read"
-        if self._streamable(entity) and (name := await self._name(entity)):
-            image, why = await asyncio.to_thread(streams.first_frame, self._rtsp(name))
+            return "read", "", (reader.frame.width, reader.frame.height)
+        why = ""
+        if not self.go2rtc:
+            why = "Home Assistant's go2rtc is out of reach"
+        elif not self._streamable(entity):
+            until, reason = self._no_stream[entity]
+            why = f"{reason} (its stream tried again in {max(0, until - time.monotonic()) / 60:.0f} min)"
+        elif not (name := await self._name(entity)):
+            why = self._no_stream.get(entity, (0.0, "Home Assistant cannot stream it"))[
+                1
+            ]
+        else:
+            image, failed = await asyncio.to_thread(
+                streams.first_frame, self._rtsp(name)
+            )
             if image is not None:
                 self.keep(entity, image, streamed=True)
-                return "stream"
-            self._no_stream[entity] = (time.monotonic() + BENCH, why)
+                return "stream", "", image.size
+            why = failed
+            self._no_stream[entity] = (time.monotonic() + BENCH, failed)
+            self._names.pop(entity, None)  # put on go2rtc afresh next time
             _LOGGER.info(
                 "compositor (cameras): %s, %s channel: its stream gave no frame (%s); "
                 "its snapshot instead, its stream tried again in %.0f min",
                 self._title(entity),
                 self._channel(entity)[1],
-                why,
+                failed,
                 BENCH / 60,
             )
         if entity in self._snap_wrong:
-            return "nothing"  # its snapshot is not it
+            return "nothing", f"{why}; its snapshot is not its size", None
         image = await self._fetch_now(entity)
         if image is None:
-            return "nothing"
+            return "nothing", f"{why}; no snapshot either", None
         self.keep(entity, image)
-        return "snapshot"
+        try:
+            size = Image.open(io.BytesIO(image)).size
+        except OSError:
+            size = None
+        return "snapshot", why, size
 
     async def _sleep_or(self, event: asyncio.Event, seconds: float) -> None:
         """Sleep that long, or less when the event is set or a pace changes."""

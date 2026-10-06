@@ -123,6 +123,10 @@ def test_register_puts_a_camera_on_go2rtc(monkeypatch):
         monkeypatch,
     )
     assert name is None and why == "no stream source"
+    # the throwaway offer turned down (it offers H.264 only; an H.265 camera): no
+    # matter, HA put the camera on go2rtc before passing the offer on
+    codecs = [{"type": "session"}, {"type": "error", "message": "codecs not matched"}]
+    assert register(codecs, reg, monkeypatch) == ("generic_x1", "")
 
 
 class StubReader:

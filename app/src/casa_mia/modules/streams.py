@@ -46,6 +46,11 @@ OFFER = (
 )
 
 
+# What HA's go2rtc says when it cannot take a camera at all (an error about the throwaway
+# offer itself is no reason).
+NOT_ON_GO2RTC = ("no stream source", "not supported")
+
+
 def go2rtc_name(registry: dict) -> str:
     """A camera's name on HA's go2rtc, from its entity registry entry."""
     if registry.get("unique_id") is None:
@@ -59,7 +64,10 @@ async def register(
     http: aiohttp.ClientSession, ws_url: str, token: str, entity: str
 ) -> tuple[str | None, str]:
     """Ask HA to put a camera channel on its go2rtc: its name there, or None and why not
-    (no WebRTC: an MJPEG camera; a camera with WebRTC of its own; no stream source)."""
+    (no WebRTC: an MJPEG camera; a camera with WebRTC of its own; no stream source, or
+    one go2rtc cannot take). HA puts the camera on go2rtc before passing the offer on,
+    so the offer's own failure (it offers H.264 only: an H.265 camera turns it down)
+    says nothing of the restream: only those reasons count; the RTSP read decides."""
     async with http.ws_connect(ws_url, max_msg_size=0) as ws:
         await ws.receive_json()  # auth_required
         await ws.send_json({"type": "auth", "access_token": token})
@@ -93,7 +101,10 @@ async def register(
             elif msg.get("id") == 2 and msg.get("type") == "event":
                 event = msg.get("event") or {}
                 if event.get("type") == "error":
-                    return None, str(event.get("message", "error"))
+                    message = str(event.get("message", "error"))
+                    if any(n in message.lower() for n in NOT_ON_GO2RTC):
+                        return None, message
+                    deadline = deadline or time.monotonic()  # the offer's: no matter
                 if event.get("type") == "session":
                     # Put on go2rtc now; an error (no stream source, not supported)
                     # follows at once if there is one.
