@@ -1964,7 +1964,7 @@ function Nt(e) {
 ke().then((e) => {
 	class t extends e {
 		constructor(...e) {
-			super(...e), this.cmDebug = !1, this.cmApp = {}, this.cmLayout = {}, this.cmFrame = 0, this.cmAdding = !1, this.cmSeen = new ResizeObserver(() => this.cmLater()), this.cmLater = () => {
+			super(...e), this.cmDebug = !1, this.cmApp = {}, this.cmLayout = {}, this.cmFrame = 0, this.cmAdding = !1, this.cmNaturals = {}, this.cmSeen = new ResizeObserver(() => this.cmLater()), this.cmLater = () => {
 				cancelAnimationFrame(this.cmFrame), this.cmFrame = requestAnimationFrame(() => this.cmPlace());
 			};
 		}
@@ -2054,8 +2054,11 @@ ke().then((e) => {
 			return [this.clientWidth, this.clientHeight - i - r - t.reduce((e, t) => e + t.offsetHeight, 0)];
 		}
 		cmNatural(e) {
+			if (this.lovelace?.editMode && e in this.cmNaturals) return this.cmNaturals[e];
 			let t = this.sections[$.indexOf(e)], n = t?.querySelector("hui-grid-section")?.shadowRoot?.querySelector(".container");
-			return n && this.cmSeen.observe(n), Nt(t);
+			n && this.cmSeen.observe(n);
+			let r = Nt(t);
+			return this.lovelace?.editMode || (this.cmNaturals[e] = r), r;
 		}
 		cmPlace() {
 			let e = this.shadowRoot, t = e?.querySelector(".content");
@@ -2064,7 +2067,7 @@ ke().then((e) => {
 			this.cmBar(n);
 			let r = e.querySelector("hui-view-header"), i = this.cmLayout.header_space === void 0 ? void 0 : jt(this.cmLayout);
 			r?.style.setProperty("padding-top", n || i === void 0 ? "" : `${i}px`);
-			let [a, o] = this.cmArea();
+			let [a, o] = n && this.cmShown ? this.cmShown : this.cmArea();
 			n || (this.cmShown = [a, o], this.cmTop = r && !r.hidden ? jt(this.cmLayout) : void 0);
 			let s = n ? 0 : Math.max(0, Math.min(Math.trunc(Number(this.cmLayout.margin ?? 0)), Math.floor((Math.min(a, o) - 1) / 2)));
 			t.style.inset = n ? "" : `${s}px`;

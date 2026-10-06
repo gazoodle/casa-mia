@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b32
+
+- Tablet Layout: in edit mode the panels keep the sizes they have out of it, and the view scrolls to the header's and footer's editors; a top or bottom panel of size auto keeps its height too. The main panel was squeezed into a thin strip when the header or footer held something, shrank a step at a time on entering edit mode (the auto panels grew with HA's editors), and stepped back on leaving it.
+
 ## 2026.10.3-b31
 
 - Camera Commander: through Home Assistant (away from home) the picture is asked for at no more than 1.5x the pixels a side by default, not the screen's own 2x or 3x, for about half the bytes; the card's new Sharpness through Home Assistant option offers Full, Balanced (1.5x), Light (1x) and Data saver (0.75x). Direct at home it is unchanged.

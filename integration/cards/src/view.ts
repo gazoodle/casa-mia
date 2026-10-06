@@ -250,6 +250,7 @@ sectionsView().then((Base: any) => {
     private cmAdding = false;
     private cmShown?: [number, number]; // the panels' area, out of edit mode
     private cmTop?: number; // and the space above the header then (none: no header)
+    private cmNaturals: Record<string, number> = {}; // size: auto panels' heights then
     private cmSeen = new ResizeObserver(() => this.cmLater());
 
     setConfig(config: any) {
@@ -380,8 +381,9 @@ sectionsView().then((Base: any) => {
     }
 
     /** The panels' area: the container, the room between the view's header and footer; in
-     * edit mode it grows, so then what it would be. The header and footer are watched, as
-     * their cards and badges come and go or change height. */
+     * edit mode it grows, so then what it would be (for a view opened in edit mode, until it
+     * is seen out of it). The header and footer are watched, as their cards and badges come
+     * and go or change height. */
     private cmArea(): [number, number] {
       const root = this.shadowRoot as ShadowRoot;
       const ends = [...root.querySelectorAll<HTMLElement>("hui-view-header, hui-view-footer")];
@@ -393,12 +395,17 @@ sectionsView().then((Base: any) => {
       return [this.clientWidth, this.clientHeight - bar - pad - ends.reduce((n, e) => n + e.offsetHeight, 0)];
     }
 
-    /** How tall a panel's cards are (for size: auto), watching them for changes. */
+    /** How tall a panel's cards are (for size: auto), watching them for changes. In edit mode
+     * as last measured out of it: there its cards carry HA's editors, which took the main
+     * panel's room a step at a time. */
     private cmNatural(p: string): number {
+      if (this.lovelace?.editMode && p in this.cmNaturals) return this.cmNaturals[p];
       const section = this.sections[PLACES.indexOf(p as (typeof PLACES)[number])];
       const grid = section?.querySelector("hui-grid-section")?.shadowRoot?.querySelector(".container");
       if (grid) this.cmSeen.observe(grid); // its cards come and go, or change height
-      return cardsHeight(section);
+      const h = cardsHeight(section);
+      if (!this.lovelace?.editMode) this.cmNaturals[p] = h;
+      return h;
     }
 
     /** Each section to its panel's place: a 5 x 5 grid (panel, gap, middle, gap, panel each
@@ -413,7 +420,9 @@ sectionsView().then((Base: any) => {
       const header = root!.querySelector("hui-view-header") as HTMLElement | null;
       const space = this.cmLayout.header_space === undefined ? undefined : headerSpace(this.cmLayout);
       header?.style.setProperty("padding-top", editing || space === undefined ? "" : `${space}px`);
-      const [aw, ah] = this.cmArea();
+      // Edit mode sizes the panels as they show out of it: its header and footer are taller
+      // (their editors), and the view scrolls, so its own room only letterboxed them.
+      const [aw, ah] = editing && this.cmShown ? this.cmShown : this.cmArea();
       if (!editing) {
         this.cmShown = [aw, ah];
         this.cmTop = header && !header.hidden ? headerSpace(this.cmLayout) : undefined;
