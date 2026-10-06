@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b23
+
+- New Settings page (the cog by the house photo's pencil) for settings with no other home. First, the Tablet view's setup aids, for every Tablet view: Identify sections panels (an outline round each panel, its CSS editable, `1px solid red` by default) and Show the view size (the size label, now see-through so what is under it shows). The integration hands them to the cards (needs a Home Assistant restart after this update); a tablet picks up a change at its next view change or reload. A view's own `debug: true` still turns both on.
+
 ## 2026.10.3-b22
 
 - New page, Kiosk mode: kiosk-mode's settings for each dashboard without the YAML. The dashboards with kiosk mode are listed (add one, or remove it); each opens as a grid of kiosk-mode's options (hide the header, the sidebar, menus, more-info parts and more, in groups) by who they apply to: everyone, non-admins, admins, and columns of named users. Anything else (mobile settings, entity settings, templates) goes in a YAML box that takes kiosk-mode's README examples as they are, and is checked as YAML before it can be saved. The page says when kiosk-mode itself is not installed, and which dashboards it cannot apply to (those Home Assistant makes, and YAML dashboards).

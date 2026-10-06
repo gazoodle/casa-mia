@@ -6,8 +6,9 @@ import { GuestPage } from "./GuestPage";
 import { KioskFrame, KiosksPage } from "./KiosksPage";
 import { KioskModePage } from "./KioskModePage";
 import { PeoplePage } from "./PeoplePage";
+import { SettingsPage } from "./SettingsPage";
 import { useHealth, type ModuleHealth } from "./health";
-import { ModuleIcon } from "./icons";
+import { ModuleIcon, SettingsIcon } from "./icons";
 import { MODULES, type ModuleInfo } from "./modules";
 import type { HeaderView } from "./api";
 import { Photo, PhotoEditor, photoApi, photoUrl, type PhotoDraft } from "./photo";
@@ -60,6 +61,7 @@ export function App() {
   if (route === "/cameras") return <CameraDashboardPage state={health?.modules.camera_dashboard?.state} />;
   if (route === "/compositor") return <CompositorPage state={health?.modules.compositor?.state} />;
   if (route === "/kiosk-mode") return <KioskModePage state={health?.modules.kiosk_mode?.state} />;
+  if (route === "/settings") return <SettingsPage />;
   if (route === "/firmware") return <FirmwarePage state={health?.modules.gitproxy?.state} />;
   const modules = Object.entries(health?.modules ?? {});
   const on = modules.filter(([, h]) => h.state && h.state !== "disabled");
@@ -71,9 +73,14 @@ export function App() {
         {(draft ?? photo) && <Photo src={photoUrl((draft ?? photo)!)} frame={(draft ?? photo)!.home} />}
         {photo && <h1 className={css.heroTitle}>{photo.house}</h1>}
         {photo && !draft && (
-          <button className={css.heroEdit} onClick={() => setDraft(photo)} title="Change the house photo" aria-label="Change the house photo">
-            ✎
-          </button>
+          <div className={css.heroButtons}>
+            <a className={css.heroEdit} href="#/settings" title="Settings" aria-label="Settings">
+              <SettingsIcon size={17} />
+            </a>
+            <button className={css.heroEdit} onClick={() => setDraft(photo)} title="Change the house photo" aria-label="Change the house photo">
+              ✎
+            </button>
+          </div>
         )}
       </header>
       <div className={css.page}>

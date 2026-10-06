@@ -15,7 +15,10 @@
 // counts showing is filled by it (headings above it keep their height; not in a top or bottom
 // panel of `size: auto`, which is as tall as its cards instead): a Camera Commander
 // there is in tile mode (ha.ts). Otherwise HA's grid places the cards, by their rows.
-// `debug: true` in the view's config shows its size and anything still scrolling the page.
+// Casa Mia's Settings page (through the integration, read each time the view shows) can
+// outline each panel (identify_panels, with its CSS) and label the view's size, the room
+// below its top and anything still scrolling the page (show_size); `debug: true` in the
+// view's config does both.
 import { css } from "lit";
 import { define, type HuiCard, room, sectionsView, watchRoom } from "./ha.ts";
 import { LAYOUT, layout, PANELS, type Rect, type Settings } from "./layout.ts";
@@ -135,8 +138,8 @@ const LOCK = css`
     background: var(--primary-color);
     pointer-events: none;
   }
-  :host([cm-debug]) .section {
-    outline: 1px solid red;
+  :host([cm-identify]) .section {
+    outline: var(--cm-outline, 1px solid red);
     outline-offset: -1px;
   }
   .section.cm-off,
@@ -151,7 +154,7 @@ const LOCK = css`
     padding: 2px 6px;
     font: 12px monospace;
     color: #000;
-    background: #ffd60a;
+    background: rgb(255 214 10 / 0.7); /* see-through enough for what is under it */
     pointer-events: none;
     white-space: pre-wrap;
     max-width: calc(100% - 16px);
@@ -201,6 +204,16 @@ export function settingsOf(
   return s as Settings;
 }
 
+/** The app's settings for this view (its Settings page, through the integration); none
+ * without the integration. */
+async function appSettings(hass: any): Promise<Record<string, any>> {
+  try {
+    return (await hass.callWS({ type: "casa_mia/settings" }))?.tablet_view ?? {};
+  } catch {
+    return {};
+  }
+}
+
 /** A top or bottom panel sized to its cards. */
 const autoSized = (config: Record<string, any>, p: string) => (p === "top" || p === "bottom") && config[p]?.size === "auto";
 
@@ -213,7 +226,9 @@ function cardsHeight(section: any): number {
 sectionsView().then((Base: any) => {
   class TabletView extends Base {
     static styles = [Base.styles, LOCK];
-    private cmDebug = false;
+    private cmDebug = false; // debug: true in the view's config
+    private cmApp: Record<string, any> = {}; // the app's settings, appSettings
+    private cmAsked = false; // since the view last showed
     private cmLayout: Record<string, any> = {};
     private cmLabel?: HTMLElement;
     private cmStop?: () => void;
@@ -225,7 +240,7 @@ sectionsView().then((Base: any) => {
     setConfig(config: any) {
       super.setConfig(config);
       this.cmDebug = !!config.debug;
-      this.toggleAttribute("cm-debug", this.cmDebug);
+      this.cmMarks();
       this.cmLayout = config.layout ?? {};
     }
 
@@ -255,6 +270,13 @@ sectionsView().then((Base: any) => {
       this.removeEventListener("section-visibility-changed", this.cmLater);
       this.removeEventListener("card-visibility-changed", this.cmLater);
       cancelAnimationFrame(this.cmFrame);
+      this.cmAsked = false; // asked again next time it shows
+    }
+
+    /** The panels' outline, on and its CSS, from the view's config and the app's settings. */
+    private cmMarks() {
+      this.toggleAttribute("cm-identify", this.cmDebug || !!this.cmApp.identify_panels);
+      (this as unknown as HTMLElement).style.setProperty("--cm-outline", this.cmApp.identify_outline || "1px solid red");
     }
 
     updated(changed: Map<string, unknown>) {
@@ -265,6 +287,14 @@ sectionsView().then((Base: any) => {
       const sortable = this.shadowRoot?.querySelector(".container > ha-sortable");
       if (sortable) sortable.disabled = true;
       if (editing) this.cmComplete();
+      if (!this.cmAsked && this.hass) {
+        this.cmAsked = true;
+        appSettings(this.hass).then((s) => {
+          this.cmApp = s;
+          this.cmMarks();
+          this.cmLater();
+        });
+      }
       this.cmLater();
     }
 
@@ -427,7 +457,7 @@ sectionsView().then((Base: any) => {
     /** The debug label: this view's size, the room below its top, and how far the page
      * still scrolls (should be 0 x 0). */
     private cmShow() {
-      if (!this.cmDebug) return this.cmLabel?.remove();
+      if (!this.cmDebug && !this.cmApp.show_size) return this.cmLabel?.remove();
       if (!this.cmLabel?.isConnected) {
         this.cmLabel = document.createElement("div");
         this.cmLabel.className = "cm-debug";

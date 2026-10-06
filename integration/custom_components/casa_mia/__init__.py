@@ -7,7 +7,7 @@ from pathlib import Path
 
 import aiohttp
 import voluptuous as vol
-from homeassistant.components import frontend
+from homeassistant.components import frontend, websocket_api
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -139,14 +139,16 @@ def scripts_on(entry: ConfigEntry) -> list[str]:
 async def _load_scripts(
     hass: HomeAssistant, entry: ConfigEntry, version: str | None
 ) -> None:
-    """Serve www/ at /casa_mia (once per HA run) and load the cards (always) and the
-    scripts switched on into every HA page; each comes off again when the entry unloads. ?v= changes with each
-    update, so browsers fetch the new copy."""
+    """Serve www/ at /casa_mia and the cards' settings command (once per HA run), and
+    load the cards (always) and the scripts switched on into every HA page; each comes off
+    again when the entry unloads. ?v= changes with each update, so browsers fetch the new
+    copy."""
     if not hass.data.get(f"{DOMAIN}_www"):
         await hass.http.async_register_static_paths(
             [StaticPathConfig(SCRIPTS_URL, str(Path(__file__).parent / "www"), False)]
         )
         hass.data[f"{DOMAIN}_www"] = True
+        websocket_api.async_register_command(hass, _ws_settings)
     for name in [CARDS_JS, *(SCRIPTS[k][0] for k in scripts_on(entry))]:
         url = f"{SCRIPTS_URL}/{name}?v={version}"
         frontend.add_extra_js_url(hass, url)
@@ -156,6 +158,21 @@ async def _load_scripts(
         CARDS_JS,
         ", ".join(SCRIPTS[k][0] for k in scripts_on(entry)) or "none",
     )
+
+
+@websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/settings"})
+@callback
+def _ws_settings(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    """The app's settings for the cards (its Settings page), as last polled; any user."""
+    entries = [
+        e
+        for e in hass.config_entries.async_entries(DOMAIN)
+        if isinstance(getattr(e, "runtime_data", None), CasaMiaCoordinator)
+    ]
+    data = (entries[0].runtime_data.data or {}) if entries else {}
+    connection.send_result(msg["id"], data.get("settings", {}))
 
 
 async def _options_saved(hass: HomeAssistant, entry: ConfigEntry) -> None:

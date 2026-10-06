@@ -2078,8 +2078,8 @@ var $ = ["main", ...q], wt = [
     background: var(--primary-color);
     pointer-events: none;
   }
-  :host([cm-debug]) .section {
-    outline: 1px solid red;
+  :host([cm-identify]) .section {
+    outline: var(--cm-outline, 1px solid red);
     outline-offset: -1px;
   }
   .section.cm-off,
@@ -2094,7 +2094,7 @@ var $ = ["main", ...q], wt = [
     padding: 2px 6px;
     font: 12px monospace;
     color: #000;
-    background: #ffd60a;
+    background: rgb(255 214 10 / 0.7); /* see-through enough for what is under it */
     pointer-events: none;
     white-space: pre-wrap;
     max-width: calc(100% - 16px);
@@ -2117,7 +2117,7 @@ function kt(e, t, n, r, i = () => 0) {
 	};
 	for (let [t, n] of Object.entries(B.main)) a[t] = e[t] ?? n.default;
 	for (let t of q) {
-		let o = e[t] ?? {}, s = At(e, t) ? n > 0 ? i(t) / n * 100 : 0 : o.size;
+		let o = e[t] ?? {}, s = jt(e, t) ? n > 0 ? i(t) / n * 100 : 0 : o.size;
 		a[t] = {
 			...B.panels[t],
 			...o,
@@ -2129,8 +2129,15 @@ function kt(e, t, n, r, i = () => 0) {
 	}
 	return a;
 }
-var At = (e, t) => (t === "top" || t === "bottom") && e[t]?.size === "auto";
-function jt(e) {
+async function At(e) {
+	try {
+		return (await e.callWS({ type: "casa_mia/settings" }))?.tablet_view ?? {};
+	} catch {
+		return {};
+	}
+}
+var jt = (e, t) => (t === "top" || t === "bottom") && e[t]?.size === "auto";
+function Mt(e) {
 	return (e?.querySelector("hui-grid-section"))?.shadowRoot?.querySelector(".container")?.offsetHeight ?? 0;
 }
 //#endregion
@@ -2138,7 +2145,7 @@ function jt(e) {
 Ae().then((e) => {
 	class t extends e {
 		constructor(...e) {
-			super(...e), this.cmDebug = !1, this.cmLayout = {}, this.cmFrame = 0, this.cmAdding = !1, this.cmSeen = new ResizeObserver(() => this.cmLater()), this.cmLater = () => {
+			super(...e), this.cmDebug = !1, this.cmApp = {}, this.cmAsked = !1, this.cmLayout = {}, this.cmFrame = 0, this.cmAdding = !1, this.cmSeen = new ResizeObserver(() => this.cmLater()), this.cmLater = () => {
 				cancelAnimationFrame(this.cmFrame), this.cmFrame = requestAnimationFrame(() => this.cmPlace());
 			};
 		}
@@ -2146,20 +2153,25 @@ Ae().then((e) => {
 			this.styles = [e.styles, Et];
 		}
 		setConfig(e) {
-			super.setConfig(e), this.cmDebug = !!e.debug, this.toggleAttribute("cm-debug", this.cmDebug), this.cmLayout = e.layout ?? {};
+			super.setConfig(e), this.cmDebug = !!e.debug, this.cmMarks(), this.cmLayout = e.layout ?? {};
 		}
 		connectedCallback() {
 			super.connectedCallback(), this.cmHolder = this.parentElement?.parentElement, this.cmHolder?.style.setProperty("min-height", "100dvh"), document.documentElement.style.setProperty("height", "100dvh"), this.cmSeen.observe(this), this.cmStop = G(() => this.cmLater()), this.addEventListener("section-visibility-changed", this.cmLater), this.addEventListener("card-visibility-changed", this.cmLater);
 		}
 		disconnectedCallback() {
-			super.disconnectedCallback(), this.cmHolder?.style.removeProperty("min-height"), document.documentElement.style.removeProperty("height"), this.cmSeen.disconnect(), this.cmStop?.(), this.removeEventListener("section-visibility-changed", this.cmLater), this.removeEventListener("card-visibility-changed", this.cmLater), cancelAnimationFrame(this.cmFrame);
+			super.disconnectedCallback(), this.cmHolder?.style.removeProperty("min-height"), document.documentElement.style.removeProperty("height"), this.cmSeen.disconnect(), this.cmStop?.(), this.removeEventListener("section-visibility-changed", this.cmLater), this.removeEventListener("card-visibility-changed", this.cmLater), cancelAnimationFrame(this.cmFrame), this.cmAsked = !1;
+		}
+		cmMarks() {
+			this.toggleAttribute("cm-identify", this.cmDebug || !!this.cmApp.identify_panels), this.style.setProperty("--cm-outline", this.cmApp.identify_outline || "1px solid red");
 		}
 		updated(e) {
 			super.updated?.(e);
 			let t = !!this.lovelace?.editMode;
 			this.toggleAttribute("editing", t);
 			let n = this.shadowRoot?.querySelector(".container > ha-sortable");
-			n && (n.disabled = !0), t && this.cmComplete(), this.cmLater();
+			n && (n.disabled = !0), t && this.cmComplete(), !this.cmAsked && this.hass && (this.cmAsked = !0, At(this.hass).then((e) => {
+				this.cmApp = e, this.cmMarks(), this.cmLater();
+			})), this.cmLater();
 		}
 		cmComplete() {
 			let e = this.lovelace.config.views[this.index].sections?.length ?? 0;
@@ -2220,7 +2232,7 @@ Ae().then((e) => {
 		}
 		cmNatural(e) {
 			let t = this.sections[$.indexOf(e)], n = t?.querySelector("hui-grid-section")?.shadowRoot?.querySelector(".container");
-			return n && this.cmSeen.observe(n), jt(t);
+			return n && this.cmSeen.observe(n), Mt(t);
 		}
 		cmPlace() {
 			let e = this.shadowRoot, t = e?.querySelector(".content");
@@ -2263,7 +2275,7 @@ Ae().then((e) => {
 				let r = $[t], i = r === "main" ? a("main") ? c : void 0 : l[r]?.[0];
 				e.classList.toggle("cm-off", !i);
 				let s = e.querySelector(":scope > .cm-name");
-				if (n ? !s && wt[t] && (s = document.createElement("div"), s.className = "cm-name", s.textContent = wt[t], e.append(s)) : s?.remove(), this.cmFill(this.sections[t], n || At(this.cmLayout, r) ? [] : o(this.sections[t])), i) {
+				if (n ? !s && wt[t] && (s = document.createElement("div"), s.className = "cm-name", s.textContent = wt[t], e.append(s)) : s?.remove(), this.cmFill(this.sections[t], n || jt(this.cmLayout, r) ? [] : o(this.sections[t])), i) {
 					if (r === "main") {
 						let t = i[2] < g[3] - g[2] || i[3] < _[3] - _[2];
 						Object.assign(e.style, {
@@ -2291,7 +2303,7 @@ Ae().then((e) => {
 			for (let t of e._cards ?? []) t.toggleAttribute("cm-fill", t === i);
 		}
 		cmShow() {
-			if (!this.cmDebug) return this.cmLabel?.remove();
+			if (!this.cmDebug && !this.cmApp.show_size) return this.cmLabel?.remove();
 			this.cmLabel?.isConnected || (this.cmLabel = document.createElement("div"), this.cmLabel.className = "cm-debug", this.shadowRoot?.prepend(this.cmLabel));
 			let e = this.getBoundingClientRect(), t = document.documentElement;
 			this.cmLabel.textContent = `view ${Math.round(e.width)} x ${Math.round(e.height)}, room ${We(this)}\npage scrolls ${t.scrollWidth - t.clientWidth} x ${t.scrollHeight - t.clientHeight}` + Ot(this, t.clientHeight);

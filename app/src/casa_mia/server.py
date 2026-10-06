@@ -134,7 +134,7 @@ class Handler(BaseHTTPRequestHandler):
             helpers.clear()
             helpers.update(h for h in query["helpers"][0].split(",") if h)
             self.server.helpers_heard = True  # type: ignore[attr-defined]
-        from . import header  # here: header imports this module
+        from . import header, settings  # here: header imports this module
 
         modules = {name: health() for name, health in self.server.modules.items()}  # type: ignore[attr-defined]
         body = json.dumps(
@@ -145,6 +145,7 @@ class Handler(BaseHTTPRequestHandler):
                 "integration_url": integration_url(),
                 "house": header.HOUSE,
                 "modules": modules,
+                "settings": settings.values(),  # for the cards
             }
         )
         # Swapped before the stamp is added, so the stamp itself never is.

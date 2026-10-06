@@ -1,0 +1,59 @@
+/* The Settings page: rows of a name, its help and a switch, a sub-row for a value. The
+   page frame and areas come from guest.module.css. */
+
+.rows {
+  display: grid;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 14px;
+}
+
+.rows > * + * {
+  border-top: 1px solid var(--border);
+}
+
+.rows > .sub {
+  border-top: 1px dashed color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+.text {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+}
+
+.text span,
+.sub span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.sub {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px 12px 28px;
+}
+
+.css {
+  flex: 1;
+  max-width: 260px;
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+/* What the outline looks like. */
+.swatch {
+  flex: none;
+  width: 44px;
+  height: 28px;
+  outline-offset: -1px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--muted) 12%, transparent);
+}

@@ -7,7 +7,7 @@ import urllib.request
 import pytest
 
 import casa_mia
-from casa_mia import app_version
+from casa_mia import app_version, settings
 from casa_mia.server import make_server
 
 
@@ -29,6 +29,7 @@ def test_health_reports_ok_and_version(base_url):
             "integration_url": f"http://{socket.gethostname()}:8780",
             "house": "Casa Mia",
             "modules": {},
+            "settings": settings.DEFAULTS,  # none saved (no /config here)
             "swap": "",
         }
 

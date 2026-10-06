@@ -9,7 +9,7 @@ import threading
 from pathlib import Path
 from typing import Any
 
-from . import app_version, header
+from . import app_version, header, settings
 from .components import ask_for_restart, install_bundled
 from .ha import HA
 from .install_count import count_install
@@ -80,6 +80,10 @@ def main() -> int:
     header.HOUSE = options.get("house_name") or header.HOUSE
     log.info("house name: %s", header.HOUSE)
     api["/api/header/"] = header.handle  # the house photo, set on the home page
+    settings.FOLDER = CONFIG
+    api["/api/settings/"] = (
+        settings.handle
+    )  # settings with no other home (home page cog)
     # Under s6 SUPERVISOR_TOKEN reaches us only via run.sh (with-contenv).
     # CM_HA_URL/CM_HA_TOKEN point a dev run at a real HA instead of the Supervisor proxy.
     direct = os.environ.get("CM_HA_URL")
