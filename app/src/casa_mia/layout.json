@@ -36,7 +36,8 @@
     }
   },
   "panel": {
-    "size": { "label": "Size, %", "min": 0, "max": 100, "help": "Left and right: % of the width. Top and bottom: % of the height." },
+    "size": { "label": "Size", "min": 0, "max": 100, "help": "Left and right: its width. Top and bottom: its height. In % of the view's, or in px (at most 45% of the view's: a smaller screen gets less)." },
+    "unit": { "label": "Size in", "default": "%", "options": [["%", "% of the view"], ["px", "px"]], "help": "% of the view: grows and shrinks with the screen. px: the same on any screen." },
     "lines": {
       "label": "Lines",
       "default": 1,

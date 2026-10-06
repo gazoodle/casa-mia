@@ -474,12 +474,16 @@ def test_commander_problems():
     store["commanders"][0]["left"]["cameras"].append("camera.gone")
     store["commanders"][0]["main"] = "camera.elsewhere"
     store["commanders"][0]["top"]["size"] = 80
+    store["commanders"][0]["right"].update(unit="px", size=150)  # fine
+    store["commanders"][0]["left"].update(unit="em")
     store["commanders"][0]["bottom"]["cameras"].append("camera.a_low")
     found = " ".join(problems(store))
     assert "shows Bay in both its left and bottom panels" in found
     assert "camera.gone is not one of the cameras" in found
     assert "main camera must be one of its cameras" in found
     assert "top panel: size must be 0-45%" in found
+    assert "left panel: size must be in % or px" in found
+    assert "right panel" not in found
 
 
 def test_integration_chooses_the_main_camera(tmp_path):

@@ -261,9 +261,12 @@ def problems(store: Store) -> list[str]:
             out.append(f"{the}'s margin must be 0 px or more.")
         for panel in PANELS:
             pane = cmd.get(panel) or {}
-            size = pane.get("size")
-            if not isinstance(size, (int, float)) or not 0 <= size <= 45:
-                out.append(f"{the}'s {panel} panel: size must be 0-45%.")
+            size, unit = pane.get("size"), pane.get("unit", "%")
+            most = 2000 if unit == "px" else 45
+            if unit not in ("%", "px"):
+                out.append(f"{the}'s {panel} panel: size must be in % or px.")
+            elif not isinstance(size, (int, float)) or not 0 <= size <= most:
+                out.append(f"{the}'s {panel} panel: size must be 0-{most}{unit}.")
             lines = pane.get("lines", 1)
             if (
                 not isinstance(lines, int)

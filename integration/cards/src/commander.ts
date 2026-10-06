@@ -209,7 +209,7 @@ class CommanderCard extends LitElement {
     const own = card.layout;
     const [W, H, scale] = this._size ?? [own.width, own.height, 1];
     const src = this._size ? this.pictureUrl(card, this._size) : "";
-    const s = this._size ? { ...own, width: W, height: H, gap: pyRound(own.gap * scale), margin: pyRound((own.margin ?? 0) * scale) } : own;
+    const s = this._size ? { ...own, width: W, height: H, gap: pyRound(own.gap * scale), margin: pyRound((own.margin ?? 0) * scale), scale } : own;
     const [[w, h], mainRect, tiles] = layout(s, main);
     const at = ([x, y, rw, rh]: Rect) =>
       `left:${(x / w) * 100}%;top:${(y / h) * 100}%;width:${(rw / w) * 100}%;height:${(rh / h) * 100}%`;

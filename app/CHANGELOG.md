@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b33
+
+- Commanders and the Tablet Layout: a panel's size can be in px as well as %, with its new Size in option (`unit: px`), so a panel stays the same size on any screen. A px panel takes at most 45% of the view, so a small screen still has a main panel; a commander drawn for a high-density screen grows it as it does the gap. Switching the unit in an editor keeps the panel's size.
+
 ## 2026.10.3-b32
 
 - Tablet Layout: in edit mode the panels keep the sizes they have out of it, and the view scrolls to the header's and footer's editors; a top or bottom panel of size auto keeps its height too. The main panel was squeezed into a thin strip when the header or footer held something, shrank a step at a time on entering edit mode (the auto panels grew with HA's editors), and stepped back on leaving it.

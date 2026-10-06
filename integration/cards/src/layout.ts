@@ -13,6 +13,7 @@ export const STACKS = ["stack", "reverse", "centre"];
 export type PanelSettings = {
   cameras: string[]; // what it holds, by key (a commander's cameras, a layout's cards)
   size: number;
+  unit?: string; // of size: % (the default) or px
   fit?: string;
   lines?: number;
   anchor_left?: boolean;
@@ -23,6 +24,7 @@ export type Settings = {
   height: number;
   gap: number;
   margin?: number;
+  scale?: number; // px sizes grow by it, as the gap and margin do
   main_fit?: string;
   main_width?: number;
   main_ratio?: string | number;
@@ -120,7 +122,8 @@ export function layout(s: Settings, main: string | null = null): [[number, numbe
   }
   const shape = mainShape(s, main);
   const has = (p: Panel) => s[p].cameras.length > 0;
-  const size = (p: Panel, of: number) => (has(p) ? pyRound((of * s[p].size) / 100) : 0);
+  const size = (p: Panel, of: number) =>
+    !has(p) ? 0 : s[p].unit === "px" ? Math.min(pyRound(s[p].size * (s.scale ?? 1)), floorDiv(of * 45, 100)) : pyRound((of * s[p].size) / 100);
   const anchored = (p: Panel, end: "left" | "right") => {
     const key = `anchor_${end}` as const;
     return Boolean(s[p][key] ?? (LAYOUT.panels[p] as Record<string, unknown>)[key]);

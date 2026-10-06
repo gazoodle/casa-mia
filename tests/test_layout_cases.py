@@ -106,6 +106,22 @@ def inputs() -> list[tuple[str, dict, str | None]]:
             cmd(main_fit="fixed", main_ratio="21:9", main_width=95, panel_min=12),
             None,
         ),
+        (
+            "px",
+            cmd(left={"unit": "px", "size": 300}, top={"unit": "px", "size": 101}),
+            None,
+        ),
+        (
+            "px scaled, at most 45%",
+            cmd(
+                width=750,
+                height=1000,
+                scale=2,
+                left={"unit": "px", "size": 200},
+                bottom={"unit": "px", "size": 90},
+            ),
+            None,
+        ),
         ("portrait", cmd(width=800, height=1280, gap=8), None),
         ("margin", cmd(margin=24, width=1366, height=769), None),
         ("margin own", cmd(margin=9, main_fit="own", aspects=tall), "left1"),

@@ -570,10 +570,16 @@ var H = {
 	},
 	panel: {
 		size: {
-			label: "Size, %",
+			label: "Size",
 			min: 0,
 			max: 100,
-			help: "Left and right: % of the width. Top and bottom: % of the height."
+			help: "Left and right: its width. Top and bottom: its height. In % of the view's, or in px (at most 45% of the view's: a smaller screen gets less)."
+		},
+		unit: {
+			label: "Size in",
+			default: "%",
+			options: [["%", "% of the view"], ["px", "px"]],
+			help: "% of the view: grows and shrinks with the screen. px: the same on any screen."
 		},
 		lines: {
 			label: "Lines",
@@ -1110,7 +1116,7 @@ function X(e, t = null) {
 			Object.fromEntries(K.map((e) => [e, o[e].map(s)]))
 		];
 	}
-	let o = lt(e, t), s = (t) => e[t].cameras.length > 0, c = (t, n) => s(t) ? q(n * e[t].size / 100) : 0, l = (t, n) => {
+	let o = lt(e, t), s = (t) => e[t].cameras.length > 0, c = (t, n) => s(t) ? e[t].unit === "px" ? Math.min(q(e[t].size * (e.scale ?? 1)), J(n * 45, 100)) : q(n * e[t].size / 100) : 0, l = (t, n) => {
 		let r = `anchor_${n}`;
 		return !!(e[t][r] ?? H.panels[t][r]);
 	}, u, d, f, p, m = 0, h = 0;
@@ -1289,7 +1295,8 @@ var _t = class extends V {
 			width: i,
 			height: a,
 			gap: q(r.gap * o),
-			margin: q((r.margin ?? 0) * o)
+			margin: q((r.margin ?? 0) * o),
+			scale: o
 		} : r, [[l, u], d, f] = X(c, n), p = ([e, t, n, r]) => `left:${e / l * 100}%;top:${t / u * 100}%;width:${n / l * 100}%;height:${r / u * 100}%`, m = c.highlight ?? {}, h = K.flatMap((e) => c[e].cameras.map((t, n) => [t, f[e][n]])).find(([e]) => e === n)?.[1], g = this._fit, _ = g && this._width ? Ke(g, this._width, r.width / r.height) : null;
 		return P`<ha-card style=${!g || g.mode === "tile" ? `height:100%;aspect-ratio:${r.width}/${r.height}` : _ ? `height:${_}px` : ""}>
       <div class="box">
@@ -1506,6 +1513,7 @@ var yt = {
 	bottom: "Bottom"
 }, Q = "auto", bt = /* @__PURE__ */ new Set(["fit", "lines"]), xt = (e) => ({
 	...H.panels[e],
+	unit: "%",
 	hide_empty: !0
 });
 function St(e) {
@@ -1585,18 +1593,28 @@ W("casa-mia-view-settings", class extends V {
 			...r && { [Q]: i }
 		};
 		i && (a.size = H.panels[t].size);
-		let o = [...r ? [{
+		let o = a.unit === "px", s = [...r ? [{
 			name: Q,
 			selector: { boolean: {} }
-		}] : [], ...Fe(t).filter((e) => !bt.has(e.name) && !(i && e.name === "size"))];
+		}] : [], ...Fe(t).filter((e) => !bt.has(e.name) && (!i || e.name !== "size" && e.name !== "unit")).map((e) => e.name === "size" && o ? {
+			...e,
+			selector: { number: {
+				...e.selector.number,
+				max: 2e3
+			} }
+		} : e)];
 		return P`<p class="help">Its cards are the view's ${yt[t].toLowerCase()} section: add and edit them on the view.</p>
-      ${this.form(o, a, (n) => {
-			let { [Q]: r, ...i } = n, a = r ? Q : i.size === Q ? H.panels[t].size : i.size;
+      ${this.form(s, a, (n) => {
+			let { [Q]: i, ...o } = n, s = i ? Q : o.size === Q ? H.panels[t].size : o.size;
+			if (!i && o.unit !== a.unit) {
+				let { width: t, height: n } = this.settings.preview(e), i = r ? n : t;
+				i > 0 && (s = Math.round(o.unit === "px" ? i * s / 100 : Math.min(100, s * 100 / i)));
+			}
 			this.change({
 				...e,
 				[t]: {
-					...i,
-					size: a
+					...o,
+					size: s
 				}
 			});
 		})}`;

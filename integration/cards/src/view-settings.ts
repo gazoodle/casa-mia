@@ -23,7 +23,7 @@ export type Settings = {
 const NAMES: Record<Place, string> = { main: "Main", left: "Left", top: "Top", right: "Right", bottom: "Bottom" };
 const AUTO = "auto"; // the form's field for size: auto (top and bottom)
 const SKIP = new Set(["fit", "lines"]);
-const defaults = (p: Panel): Layout => ({ ...LAYOUT.panels[p], hide_empty: true });
+const defaults = (p: Panel): Layout => ({ ...LAYOUT.panels[p], unit: "%", hide_empty: true });
 
 /** A layout without what equals its default, so the view's YAML holds only real choices. */
 export function compact(layout: Layout): Layout {
@@ -114,14 +114,23 @@ class ViewSettings extends LitElement {
     const auto = edge && mine.size === AUTO;
     const data: Layout = { ...defaults(p), ...mine, ...(edge && { [AUTO]: auto }) };
     if (auto) data.size = LAYOUT.panels[p].size;
+    const px = data.unit === "px";
     const schema = [
       ...(edge ? [{ name: AUTO, selector: { boolean: {} } }] : []),
-      ...panelSchema(p).filter((f: any) => !SKIP.has(f.name) && !(auto && f.name === "size")),
+      ...panelSchema(p)
+        .filter((f: any) => !SKIP.has(f.name) && !(auto && (f.name === "size" || f.name === "unit")))
+        .map((f: any) => (f.name === "size" && px ? { ...f, selector: { number: { ...f.selector.number, max: 2000 } } } : f)),
     ];
     return html`<p class="help">Its cards are the view's ${NAMES[p].toLowerCase()} section: add and edit them on the view.</p>
       ${this.form(schema, data, (v) => {
         const { [AUTO]: isAuto, ...rest } = v;
-        const size = isAuto ? AUTO : rest.size === AUTO ? LAYOUT.panels[p].size : rest.size;
+        let size = isAuto ? AUTO : rest.size === AUTO ? LAYOUT.panels[p].size : rest.size;
+        if (!isAuto && rest.unit !== data.unit) {
+          // The same size in the other unit, on this screen.
+          const { width, height } = this.settings.preview(l);
+          const of = edge ? height : width;
+          if (of > 0) size = Math.round(rest.unit === "px" ? (of * size) / 100 : Math.min(100, (size * 100) / of));
+        }
         this.change({ ...l, [p]: { ...rest, size } });
       })}`;
   }

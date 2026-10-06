@@ -452,7 +452,14 @@ def commander_layout(
     shape = main_shape(cmd, main)
 
     def size(panel: str, of: int) -> int:
-        return round(of * cmd[panel]["size"] / 100) if cmd[panel]["cameras"] else 0
+        """Its width or height: % of the view's, or px (CSS px, grown by the scale, as
+        the gap is) up to 45% of it, so a small screen still has a main camera."""
+        pane = cmd[panel]
+        if not pane["cameras"]:
+            return 0
+        if pane.get("unit") == "px":
+            return min(round(pane["size"] * cmd.get("scale", 1)), of * 45 // 100)
+        return round(of * pane["size"] / 100)
 
     def anchored(panel: str, end: str) -> bool:
         key = f"anchor_{end}"

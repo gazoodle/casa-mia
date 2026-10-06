@@ -56,6 +56,8 @@ type Shape = number | string;
 type Panel = {
   cameras: string[];
   size: number;
+  /** Of size: % of the picture's width (left, right) or height (top, bottom), or px. */
+  unit?: "%" | "px";
   /** Fill (cover) or Whole (contain) equal tiles; or each camera at its own shape, edge to
    * edge, from the start (stack), against the end (reverse) or in the middle (centre). */
   fit: "cover" | "contain" | "stack" | "reverse" | "centre";
@@ -670,10 +672,10 @@ function LookEditor({
 }
 
 const PANEL_NAMES: Record<(typeof PANELS)[number], [title: string, size: string]> = {
-  left: ["Left", "Width, % of the picture"],
-  top: ["Top", "Height, % of the picture"],
-  right: ["Right", "Width, % of the picture"],
-  bottom: ["Bottom", "Height, % of the picture"],
+  left: ["Left", "Width"],
+  top: ["Top", "Height"],
+  right: ["Right", "Width"],
+  bottom: ["Bottom", "Height"],
 };
 
 /** The commanders as an accordion: one open at a time (only its preview is drawn). Each
@@ -1065,12 +1067,29 @@ function CommanderEditor({
             />
             <div className={css.panelOptions}>
               <Num
-                label={PANEL_NAMES[p][1]}
+                label={`${PANEL_NAMES[p][1]}, ${value[p].unit === "px" ? "px" : "% of the picture"}`}
                 value={value[p].size}
                 disabled={sized}
                 help={sized ? "Set by the main camera's size." : undefined}
                 onChange={(n) => set((c) => (c[p].size = n))}
               />
+              {!sized && (
+                <Field label={P.unit.label} help={help(P.unit)}>
+                  <Segmented
+                    value={value[p].unit ?? "%"}
+                    options={P.unit.options as ["%" | "px", string][]}
+                    onChange={(u) =>
+                      set((c) => {
+                        // The same size in the other unit, at the commander's own size.
+                        const of = p === "left" || p === "right" ? c.width : c.height;
+                        const was = c[p].unit ?? "%";
+                        if (u !== was) c[p].size = Math.round(u === "px" ? (of * c[p].size) / 100 : Math.min(45, (c[p].size * 100) / of));
+                        c[p].unit = u;
+                      })
+                    }
+                  />
+                </Field>
+              )}
               <Num
                 label={p === "left" || p === "right" ? "Columns" : "Rows"}
                 value={value[p].lines ?? 1}
