@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b50
+
+- Camera compositor page: the survey dialog says it lists a channel's last five surveys, and its text (and the page's other longer notes: the survey line, a picture's details, the size test) wraps instead of being cut short with "…".
+
 ## 2026.10.3-b49
 
 - Camera compositor: how many streams the survey reads at once is a setting, 1 to 8, 4 by default (it was 2, so a few slow streams held up a pass for long): a slider on the Camera compositor page and the integration's Survey streams at once. Kept across restarts; taken up from the next pass, which a change starts at once.

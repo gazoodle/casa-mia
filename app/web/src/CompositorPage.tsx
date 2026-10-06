@@ -281,7 +281,7 @@ function GathererArea({
         action={<PauseButton paused={g.paused} path="gatherer" name="Gatherer" busy={busy} act={act} />}
       />
       <PaceSlider which="gatherer" value={g.pace} steps={GATHER_STEPS} act={act} />
-      <p className={guest.rowMeta}>
+      <p className={pipe.use}>
         Survey: every channel of every camera, from its stream's first frame (a snapshot where there is no stream), for
         each one's picture and size.{" "}
         {g.paused
@@ -615,9 +615,9 @@ function Surveys({ c, onClose }: { c?: Channel; onClose: () => void }) {
         </button>
       }
     >
-      <p className={guest.rowMeta}>
-        <code>{c.camera}</code>: each survey opens its stream for a first frame (through Home Assistant's go2rtc), else
-        takes its snapshot. Newest first.
+      <p className={pipe.use}>
+        <code>{c.camera}</code>: its last five surveys, newest first. Each opens its stream for a first frame (through
+        Home Assistant's go2rtc), else takes its snapshot.
       </p>
       <Table head={["When", "Came", "Took", "Size", "Why not its stream"]}>
         {c.surveys.map((r) => (
@@ -650,7 +650,7 @@ function Preview({ item, onClose }: { item: Item; onClose: () => void }) {
       }
     >
       <img className={pipe.big} src={item.src(1280)} alt={`${item.name}, ${item.sub}`} />
-      <p className={guest.rowMeta}>
+      <p className={pipe.use}>
         {item.state ? <StateBadge state={item.state} /> : <span className={guest.badge}>composite</span>} {item.size},{" "}
         {item.age == null ? "waiting for its first picture" : `${seconds(item.age)} old`}, {item.note}.
       </p>
@@ -725,7 +725,7 @@ function ServerArea({ which, name, e, busy, act }: { which: string; name: string
           <a href={e.size_test} target="_blank" rel="noopener">
             Size test ↗
           </a>{" "}
-          <span className={guest.rowMeta}>a commander at exactly a browser window's size, with what was asked for and what came back (on this network only)</span>
+          <span className={pipe.use}>a commander at exactly a browser window's size, with what was asked for and what came back (on this network only)</span>
         </p>
       )}
       {e.sending?.length ? (
