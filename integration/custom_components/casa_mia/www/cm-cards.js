@@ -1717,12 +1717,16 @@ var $ = ["main", ...J], _t = o`
   :host([editing]) .wrapper {
     height: auto;
     min-height: 100%;
+    padding: 0 var(--column-gap); /* HA's spacing back, for its editors */
   }
   :host([editing]) .container {
     flex: none;
+    padding: var(--row-gap) 0;
   }
   :host([editing]) .content {
     position: relative;
+    /* half each side of the engine's own gap track, so HA's spacing between two panels */
+    gap: calc(var(--row-gap) / 2) calc(var(--column-gap) / 2);
   }
   :host([editing]) .section {
     overflow: visible;
@@ -1768,24 +1772,29 @@ function yt(e, t) {
 	}
 	return n.length ? `\ntoo tall: ${n.join("\n")}` : "";
 }
-function bt(e, t, n, r) {
-	let i = {
+function bt(e, t, n, r, i = () => 0) {
+	let a = {
 		width: t,
 		height: n,
 		aspects: {}
 	};
-	for (let [t, n] of Object.entries(H.main)) i[t] = e[t] ?? n.default;
+	for (let [t, n] of Object.entries(H.main)) a[t] = e[t] ?? n.default;
 	for (let t of J) {
-		let n = e[t] ?? {};
-		i[t] = {
+		let o = e[t] ?? {}, s = xt(e, t) ? n > 0 ? i(t) / n * 100 : 0 : o.size;
+		a[t] = {
 			...H.panels[t],
-			...n,
+			...o,
+			...s !== void 0 && { size: s },
 			fit: "cover",
 			lines: 1,
-			cameras: !n.hidden && r(t) ? [t] : []
+			cameras: !o.hidden && r(t) ? [t] : []
 		};
 	}
-	return i;
+	return a;
+}
+var xt = (e, t) => (t === "top" || t === "bottom") && e[t]?.size === "auto";
+function St(e) {
+	return (e?.querySelector("hui-grid-section"))?.shadowRoot?.querySelector(".container")?.offsetHeight ?? 0;
 }
 //#endregion
 //#region src/main.ts
@@ -1840,7 +1849,10 @@ Ee().then((e) => {
 			let n = (t) => e.querySelector(t)?.offsetHeight ?? 0, r = !!this.lovelace?.editMode, i = e.querySelector(".container"), a = this.clientWidth, o = r ? this.clientHeight - n("hui-view-header") - n("hui-view-footer") : i.clientHeight, s = (e) => {
 				let t = this.sections[$.indexOf(e)];
 				return !t || t.hidden ? !1 : r || this.cmLayout[e]?.hide_empty === !1 ? !0 : c(t).length > 0;
-			}, c = (e) => (e._cards ?? []).filter((e) => Ke(e.config ?? { type: "" }) && !e.hidden), l = bt(this.cmLayout, a, o, s), [, u, d] = Q(l, s("main") ? "main" : null), f = (e) => d[e][0] ?? [
+			}, c = (e) => (e._cards ?? []).filter((e) => Ke(e.config ?? { type: "" }) && !e.hidden), l = bt(this.cmLayout, a, o, s, (e) => {
+				let t = this.sections[$.indexOf(e)], n = t?.querySelector("hui-grid-section")?.shadowRoot?.querySelector(".container");
+				return n && this.cmSeen.observe(n), St(t);
+			}), [, u, d] = Q(l, s("main") ? "main" : null), f = (e) => d[e][0] ?? [
 				0,
 				0,
 				0,
@@ -1864,12 +1876,12 @@ Ee().then((e) => {
 				o - (g && g + _),
 				o - g,
 				o
-			], b = (e, t) => e.slice(1).map((n, r) => `${t ? "minmax(" : ""}${n - e[r]}px${t ? ", auto)" : ""}`).join(" ");
-			t.style.gridTemplateColumns = b(v, !1), t.style.gridTemplateRows = b(y, r);
+			], b = (e, t) => e.slice(1).map((n, r) => t(n - e[r])).join(" ");
+			t.style.gridTemplateColumns = b(v, (e) => r ? `minmax(0, ${e}fr)` : `${e}px`), t.style.gridTemplateRows = b(y, (e) => r ? `minmax(${e}px, auto)` : `${e}px`);
 			let x = (e, t, n) => `${e.indexOf(t) + 1} / ${e.lastIndexOf(t + n) + 1}`;
 			[...e.querySelectorAll(".content > .section")].forEach((e, t) => {
 				let n = $[t], i = n === "main" ? s("main") ? u : void 0 : d[n]?.[0];
-				if (e.classList.toggle("cm-off", !i || i[2] <= 0 || i[3] <= 0), this.cmFill(this.sections[t], r ? [] : c(this.sections[t])), i) {
+				if (e.classList.toggle("cm-off", !i), this.cmFill(this.sections[t], r || xt(this.cmLayout, n) ? [] : c(this.sections[t])), i) {
 					if (n === "main") {
 						let t = i[2] < v[3] - v[2] || i[3] < y[3] - y[2];
 						Object.assign(e.style, {

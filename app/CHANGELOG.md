@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.3-b20
+
+- Tablet view: edit mode has Home Assistant's own spacing again (around and between the panels), with the panels in proportion across the width.
+- Tablet view: a top or bottom panel can be `size: auto`, as tall as its cards (and following them as they show or hide).
+
 ## 2026.10.3-b19
 
 - Tablet view: its sections are its panels (main, left, top, right, bottom), placed by the layout engine from the view's `layout:` options; edit mode adds any missing, and sections can no longer be added or moved there (cards still move between them). A panel hides when no card that counts is showing (as the Section card), and a panel with one such card is filled by it (a Camera Commander there fills the panel). In edit mode the panels grow to their editors and the view scrolls. `debug: true` also outlines each section in red.

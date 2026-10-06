@@ -11,7 +11,8 @@
 // visibility hides its panel, and so does having no card showing that counts (a heading
 // marked `view_layout: {counts: false}` does not; panel option hide_empty: false keeps it);
 // a hidden panel takes no room. In edit mode every panel shows. A panel with one card that
-// counts showing is filled by it (headings above it keep their height): a Camera Commander
+// counts showing is filled by it (headings above it keep their height; not in a top or bottom
+// panel of `size: auto`, which is as tall as its cards instead): a Camera Commander
 // there is in tile mode (ha.ts). Otherwise HA's grid places the cards, by their rows.
 // `debug: true` in the view's config shows its size and anything still scrolling the page.
 import { css } from "lit";
@@ -62,12 +63,16 @@ const LOCK = css`
   :host([editing]) .wrapper {
     height: auto;
     min-height: 100%;
+    padding: 0 var(--column-gap); /* HA's spacing back, for its editors */
   }
   :host([editing]) .container {
     flex: none;
+    padding: var(--row-gap) 0;
   }
   :host([editing]) .content {
     position: relative;
+    /* half each side of the engine's own gap track, so HA's spacing between two panels */
+    gap: calc(var(--row-gap) / 2) calc(var(--column-gap) / 2);
   }
   :host([editing]) .section {
     overflow: visible;
@@ -129,15 +134,32 @@ function tooTall(el: Element, tall: number): string {
 }
 
 /** The engine's settings for a `layout:` config at this size: each panel one item while its
- * section shows (it fills its panel), the main one too. */
-export function settingsOf(config: Record<string, any>, width: number, height: number, showing: (place: string) => boolean): Settings {
+ * section shows (it fills its panel), the main one too. A top or bottom panel of `size:
+ * auto` is as tall as its cards (`natural`, px), given to the engine as its share. */
+export function settingsOf(
+  config: Record<string, any>,
+  width: number,
+  height: number,
+  showing: (place: string) => boolean,
+  natural: (place: string) => number = () => 0,
+): Settings {
   const s: Record<string, unknown> = { width, height, aspects: {} };
   for (const [k, o] of Object.entries(LAYOUT.main)) s[k] = config[k] ?? (o as { default: unknown }).default;
   for (const p of PANELS) {
     const pc = config[p] ?? {};
-    s[p] = { ...LAYOUT.panels[p], ...pc, fit: "cover", lines: 1, cameras: !pc.hidden && showing(p) ? [p] : [] };
+    const size = autoSized(config, p) ? (height > 0 ? (natural(p) / height) * 100 : 0) : pc.size;
+    s[p] = { ...LAYOUT.panels[p], ...pc, ...(size !== undefined && { size }), fit: "cover", lines: 1, cameras: !pc.hidden && showing(p) ? [p] : [] };
   }
   return s as Settings;
+}
+
+/** A top or bottom panel sized to its cards. */
+const autoSized = (config: Record<string, any>, p: string) => (p === "top" || p === "bottom") && config[p]?.size === "auto";
+
+/** How tall a section's cards are, laid out at its width (HA's grid in the section). */
+function cardsHeight(section: any): number {
+  const grid = section?.querySelector("hui-grid-section") as HTMLElement | null;
+  return (grid?.shadowRoot?.querySelector(".container") as HTMLElement | null)?.offsetHeight ?? 0;
 }
 
 sectionsView().then((Base: any) => {
@@ -237,24 +259,33 @@ sectionsView().then((Base: any) => {
         return counting(section).length > 0;
       };
       const counting = (section: any): HuiCard[] => (section._cards ?? []).filter((c: HuiCard) => counts(c.config ?? { type: "" }) && !c.hidden);
-      const s = settingsOf(this.cmLayout, w, h, showing);
+      const natural = (p: string) => {
+        const section = this.sections[PLACES.indexOf(p as (typeof PLACES)[number])];
+        const grid = section?.querySelector("hui-grid-section")?.shadowRoot?.querySelector(".container");
+        if (grid) this.cmSeen.observe(grid); // its cards come and go, or change height
+        return cardsHeight(section);
+      };
+      const s = settingsOf(this.cmLayout, w, h, showing, natural);
       const [, main, tiles] = layout(s, showing("main") ? "main" : null);
       const at = (p: (typeof PANELS)[number]) => tiles[p][0] ?? [0, 0, 0, 0];
       const [l, t, r, b] = [at("left")[2], at("top")[3], at("right")[2], at("bottom")[3]];
       const gap = s.gap;
       const xs = [0, l, l && l + gap, w - (r && r + gap), w - r, w]; // column lines
       const ys = [0, t, t && t + gap, h - (b && b + gap), h - b, h]; // row lines
-      const tracks = (lines: number[], grow: boolean) =>
-        lines.slice(1).map((v, i) => `${grow ? "minmax(" : ""}${v - lines[i]}px${grow ? ", auto)" : ""}`).join(" ");
-      grid.style.gridTemplateColumns = tracks(xs, false);
-      grid.style.gridTemplateRows = tracks(ys, editing);
+      // Exact pixels; in edit mode, with HA's gaps between them, columns in proportion and
+      // rows at least that tall.
+      const tracks = (lines: number[], unit: (size: number) => string) => lines.slice(1).map((v, i) => unit(v - lines[i])).join(" ");
+      grid.style.gridTemplateColumns = tracks(xs, (n) => (editing ? `minmax(0, ${n}fr)` : `${n}px`));
+      grid.style.gridTemplateRows = tracks(ys, (n) => (editing ? `minmax(${n}px, auto)` : `${n}px`));
       const span = (lines: number[], from: number, size: number) => `${lines.indexOf(from) + 1} / ${lines.lastIndexOf(from + size) + 1}`;
       const boxes = [...root!.querySelectorAll<HTMLElement>(".content > .section")];
       boxes.forEach((box, n) => {
         const place = PLACES[n];
         const rect: Rect | undefined = place === "main" ? (showing("main") ? main : undefined) : tiles[place]?.[0];
-        box.classList.toggle("cm-off", !rect || rect[2] <= 0 || rect[3] <= 0);
-        this.cmFill(this.sections[n], editing ? [] : counting(this.sections[n]));
+        // Off only when it is not to show: one that shows but is no size yet (size: auto,
+        // its cards not laid out) must stay laid out, or it measures 0 for ever.
+        box.classList.toggle("cm-off", !rect);
+        this.cmFill(this.sections[n], editing || autoSized(this.cmLayout, place) ? [] : counting(this.sections[n]));
         if (!rect) return;
         if (place === "main") {
           // The middle cell; a main with a shape of its own (fit: fixed) is centred in it.
