@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b45
+
+- Camera compositor: reading the cameras' sizes from their streams no longer stops part-way. A stream that sent data but never a picture kept its probe waiting for ever; two such and the survey stopped for good (15 of 24 cameras were left with their snapshot sizes, 640 x 360 for every UniFi Protect channel). A probe now gives up after 15 s without a video frame, says why in the log and on the Camera compositor page, and is tried again in 10 minutes; a stream being read that stops giving pictures counts as lost and is read again.
+
 ## 2026.10.3-b44
 
 - Camera compositor: the paces are settable, each on its own: the gatherer's (each channel fetched every 15 s down to continuous, again as soon as it answers) and each generator's (drawings every 15 s down to 8 a second). Sliders on the Camera compositor page; kept across restarts (compositor_pace.json in the app's config); a new pace is taken up at once. The page and the log give the actual paces, not "every 2 s".

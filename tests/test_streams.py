@@ -37,9 +37,10 @@ def h264_file(path, size=(64, 48), frames=5) -> str:
 
 def test_reads_a_stream_at_its_own_size(tmp_path):
     url = h264_file(tmp_path / "s.ts")
-    first = streams.first_frame(url)
+    first, _ = streams.first_frame(url)
     assert first is not None and first.size == (64, 48)
-    assert streams.first_frame(str(tmp_path / "none.ts")) is None
+    none, why = streams.first_frame(str(tmp_path / "none.ts"))
+    assert none is None and why
     reader = streams.Reader("camera.a", url)
     for _ in range(100):
         if not reader.alive:
@@ -196,7 +197,7 @@ def test_a_round_draws_from_the_channels_streams(tmp_path, monkeypatch):
     monkeypatch.setattr(
         streams,
         "first_frame",
-        lambda url: Image.new("RGB", sizes["camera." + url.rsplit("cam_", 1)[1]]),
+        lambda url: (Image.new("RGB", sizes["camera." + url.rsplit("cam_", 1)[1]]), ""),
     )
 
     async def round_and_survey():
@@ -225,3 +226,40 @@ def test_a_round_draws_from_the_channels_streams(tmp_path, monkeypatch):
     assert comp.gather.res["camera.a_m"] == (1280, 720)
     comp.gather._stop_readers()
     assert not comp.gather._readers
+
+
+class Chatty:
+    """A stream that sends packets for ever (audio, say) but never a video frame."""
+
+    def __init__(self):
+        self.video = type("Video", (), {"thread_type": None})()
+        self.streams = type("Streams", (), {"video": [self.video]})()
+
+    def demux(self):
+        other = object()
+        while True:
+            time.sleep(0.01)
+            yield type("Packet", (), {"stream": other})()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+def test_a_stream_with_no_picture_is_given_up(monkeypatch):
+    # The probes were waiting for ever on such a stream, two at a time: the survey
+    # stopped for good. Now a probe gives up, and a reader counts the stream lost.
+    monkeypatch.setattr(streams, "FRAME_TIMEOUT", 0.2)
+    monkeypatch.setattr(streams, "_open", lambda url: Chatty())
+    started = time.monotonic()
+    image, why = streams.first_frame("rtsp://x")
+    assert image is None and "no video frame" in why
+    assert time.monotonic() - started < 2
+    reader = streams.Reader("camera.a", "rtsp://x")
+    for _ in range(200):
+        if not reader.alive:
+            break
+        time.sleep(0.01)
+    assert not reader.alive and "no video frame" in (reader.error or "")

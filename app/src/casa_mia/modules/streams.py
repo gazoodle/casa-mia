@@ -16,6 +16,7 @@ import logging
 import string
 import threading
 import time
+from collections.abc import Iterator
 from urllib.parse import quote
 
 import aiohttp
@@ -27,7 +28,10 @@ from PIL import Image
 _LOGGER = logging.getLogger(__name__)
 
 OPEN_TIMEOUT = 10.0  # seconds to connect and get the first frame
-READ_TIMEOUT = 5.0  # seconds without a frame before a stream counts as lost
+READ_TIMEOUT = 5.0  # seconds without any data before a stream counts as lost
+# Seconds without a video frame (while other data, such as audio, still comes) before a
+# stream counts as lost: the timeouts above see only data, not frames.
+FRAME_TIMEOUT = 15.0
 REGISTER_WAIT = 2.0  # seconds HA has to say it cannot stream a camera
 _SAFE = string.ascii_letters + string.digits + "._-"  # as HA's go2rtc names cameras
 # A WebRTC offer for video only, never meant to connect: HA puts the camera on its go2rtc
@@ -105,15 +109,37 @@ def _open(url: str) -> InputContainer:
     )
 
 
-def first_frame(url: str) -> Image.Image | None:
-    """One frame of a stream, at its own size; None if it gives none. Blocking."""
+def _frames(
+    c: InputContainer, stop: threading.Event | None = None
+) -> Iterator[av.VideoFrame]:
+    """A stream's video frames as they come; an error when none has come for
+    FRAME_TIMEOUT seconds (every packet is looked at, video or not, so a stream that
+    sends audio but no picture is noticed too); ends when `stop` is set."""
+    video = c.streams.video[0]
+    video.thread_type = "AUTO"  # decoded on several cores
+    last = time.monotonic()
+    for packet in c.demux():
+        if stop and stop.is_set():
+            return
+        if packet.stream is video:
+            for frame in packet.decode():
+                if isinstance(frame, av.VideoFrame):
+                    last = time.monotonic()
+                    yield frame
+        if time.monotonic() - last > FRAME_TIMEOUT:
+            raise TimeoutError(f"no video frame for {FRAME_TIMEOUT:.0f} s")
+
+
+def first_frame(url: str) -> tuple[Image.Image | None, str]:
+    """One frame of a stream, at its own size, or None and why not. Blocking, for at
+    most about OPEN_TIMEOUT + FRAME_TIMEOUT seconds."""
     try:
         with _open(url) as c:
-            for frame in c.decode(c.streams.video[0]):
-                return frame.to_image()
-    except (FFmpegError, OSError, IndexError):
-        return None
-    return None
+            for frame in _frames(c):
+                return frame.to_image(), ""
+    except (FFmpegError, OSError, IndexError, TimeoutError) as exc:
+        return None, str(exc) or type(exc).__name__
+    return None, "the stream ended before a frame"
 
 
 class Reader:
@@ -135,23 +161,20 @@ class Reader:
     def _run(self) -> None:
         try:
             with _open(self.url) as c:
-                video = c.streams.video[0]
-                video.thread_type = "AUTO"  # decoded on several cores
-                for frame in c.decode(video):
-                    if self._stop.is_set():
-                        return
+                for frame in _frames(c, self._stop):
                     self.frame, self.at = frame, time.monotonic()
                     self.frames += 1
-            self.error = "the stream ended"
-        except (FFmpegError, OSError, IndexError) as exc:
-            self.error = str(exc)
+            if not self._stop.is_set():
+                self.error = "the stream ended"
+        except (FFmpegError, OSError, IndexError, TimeoutError) as exc:
+            self.error = str(exc) or type(exc).__name__
 
     @property
     def alive(self) -> bool:
         return self._thread.is_alive()
 
     def stop(self) -> None:
-        """Stops at its next frame (a lost stream at its read timeout)."""
+        """Stops at its next packet (a lost stream at its read timeout)."""
         self._stop.set()
 
     def image(self) -> tuple[Image.Image, float] | None:

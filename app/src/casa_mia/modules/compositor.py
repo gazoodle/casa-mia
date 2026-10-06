@@ -1677,9 +1677,21 @@ class Gatherer:
                 name = await self._name(entity)
                 if not name:
                     return
-                image = await asyncio.to_thread(streams.first_frame, self._rtsp(name))
+                image, why = await asyncio.to_thread(
+                    streams.first_frame, self._rtsp(name)
+                )
             if image is not None:
                 self.keep(entity, image, streamed=True)
+            else:  # not tried again for a while: say why, once
+                self._no_stream[entity] = (time.monotonic() + BENCH, why)
+                _LOGGER.info(
+                    "compositor (cameras): %s, %s channel: its stream gave no frame "
+                    "(%s); its size not read, tried again in %.0f min",
+                    self._title(entity),
+                    self._channel(entity)[1],
+                    why,
+                    BENCH / 60,
+                )
         finally:
             self._probing.discard(entity)
 

@@ -165,7 +165,7 @@ def test_a_paused_gatherer_keeps_no_stills_and_sizes_every_camera(
     monkeypatch.setattr(
         mod.streams,
         "first_frame",
-        lambda url: probed.append(url) or Image.new("RGB", (1280, 720)),
+        lambda url: (probed.append(url) or Image.new("RGB", (1280, 720)), ""),
     )
 
     async def run():
