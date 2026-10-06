@@ -16,7 +16,8 @@ import logging
 import string
 import threading
 import time
-from collections.abc import Callable, Iterator
+from collections.abc import Awaitable, Callable, Iterator
+from typing import TypeVar
 from urllib.parse import quote
 
 import aiohttp
@@ -26,6 +27,7 @@ from av.error import FFmpegError
 from PIL import Image
 
 _LOGGER = logging.getLogger(__name__)
+T = TypeVar("T")
 
 OPEN_TIMEOUT = 10.0  # seconds to connect and get the first frame
 READ_TIMEOUT = 5.0  # seconds without any data before a stream counts as lost
@@ -49,6 +51,14 @@ OFFER = (
 # What HA's go2rtc says when it cannot take a camera at all (an error about the throwaway
 # offer itself is no reason).
 NOT_ON_GO2RTC = ("no stream source", "not supported")
+
+
+async def within(awaitable: Awaitable[T], seconds: float) -> T:
+    """asyncio.wait_for, without its Python 3.11 fault: there a cancellation that comes
+    as the awaited thing finishes is lost, so the task runs on (a compositor's stop
+    then hung). asyncio.timeout does not lose it. TimeoutError when it runs out."""
+    async with asyncio.timeout(seconds):
+        return await awaitable
 
 
 def go2rtc_name(registry: dict) -> str:
@@ -88,7 +98,7 @@ async def register(
         while deadline is None or time.monotonic() < deadline:
             wait = READ_TIMEOUT if deadline is None else deadline - time.monotonic()
             try:
-                msg = await asyncio.wait_for(ws.receive_json(), max(wait, 0.01))
+                msg = await within(ws.receive_json(), max(wait, 0.01))
             except TimeoutError:
                 break
             if msg.get("id") == 1 and msg.get("type") == "result":

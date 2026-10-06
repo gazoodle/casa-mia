@@ -282,3 +282,21 @@ def test_a_stream_with_no_picture_is_given_up(monkeypatch):
             break
         time.sleep(0.01)
     assert not reader.alive and "no video frame" in (reader.error or "")
+
+
+def test_within_keeps_a_cancellation_that_comes_as_the_wait_ends():
+    # asyncio.wait_for (Python 3.11) loses a cancellation that comes as the awaited
+    # thing finishes, so a compositor's generator ran on and its stop hung for 5 s.
+    async def race(wait):
+        event = asyncio.Event()
+        task = asyncio.ensure_future(wait(event.wait(), 10))
+        await asyncio.sleep(0)
+        event.set()  # it finishes ...
+        task.cancel()  # ... as it is cancelled
+        try:
+            await task
+        except asyncio.CancelledError:
+            return "cancelled"
+        return "ran on"
+
+    assert asyncio.run(race(streams.within)) == "cancelled"

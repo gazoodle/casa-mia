@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.3-b53
+
+- Camera compositor: stopping or restarting a compositor no longer hangs for 5 s now and then. Python 3.11's asyncio.wait_for can lose a cancellation that comes as what it waits for finishes, so the generator ran on after being stopped; every such wait now uses asyncio.timeout, which keeps it.
+- Camera compositor: the cache is counted: its pictures (the cameras' and the composites'), the channels still waiting, the thumbnails, and the memory it all takes. On the Camera compositor page (the cache's box and section), and in the integration as two sensors on the Camera compositor device: Cache pictures (with the parts as attributes) and Cache size (MB).
+
 ## 2026.10.3-b52
 
 - Camera compositor: a stream is decoded only as much as its pace needs. While the gatherer takes pictures no faster than a stream's keyframes come (measured per stream; typically every 1-2 s), only its keyframes are decoded, each whole on its own: about one frame in 15-50, where every frame was decoded and almost all thrown away. Every frame is decoded only when the pace asks for fresher pictures than that (continuous, or faster than its keyframes). The survey reads keyframes only too.

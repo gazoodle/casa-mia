@@ -988,6 +988,9 @@ class Gatherer:
         self._wake: asyncio.Event | None = None  # look at the wants now
         self._survey_now: asyncio.Event | None = None  # a survey pass now
         self._bg: set[asyncio.Task] = set()
+        # The compositors' drawn pictures (each one's own store, by its role), so the
+        # cache's size counts them too.
+        self._drawers: dict[str, dict[str, tuple[float, bytes]]] = {}
         # The CPU seen at the last status (when, how much), for each reader's share and
         # the whole app's since then.
         self._cpu_seen: dict[str, tuple[float, float]] = {}
@@ -1149,7 +1152,7 @@ class Gatherer:
             await asyncio.sleep(max(seconds, 0))
             return
         try:
-            await asyncio.wait_for(self._repaced.wait(), seconds)
+            await streams.within(self._repaced.wait(), seconds)
         except TimeoutError:
             pass
 
@@ -1168,7 +1171,7 @@ class Gatherer:
         """Wait for a channel's next picture (at most timeout seconds): whether it came."""
         event = self._fresh.setdefault(entity, asyncio.Event())
         try:
-            await asyncio.wait_for(event.wait(), timeout)
+            await streams.within(event.wait(), timeout)
             return True
         except TimeoutError:
             return False
@@ -1203,7 +1206,7 @@ class Gatherer:
                 _LOGGER.info("compositor (cameras): nothing wanted; fetching stopped")
             self._wake.clear()
             try:
-                await asyncio.wait_for(self._wake.wait(), 1.0)
+                await streams.within(self._wake.wait(), 1.0)
             except TimeoutError:
                 pass
 
@@ -1440,6 +1443,39 @@ class Gatherer:
             return "starting"
         return "snapshots" if entity in self._feeds else "stopped"
 
+    def register_pictures(self, owner: str, pictures: dict) -> None:
+        """A compositor's drawn pictures, counted in the cache's size."""
+        self._drawers[owner] = pictures
+
+    def cache_stats(self) -> dict[str, int]:
+        """The cache, counted: the pictures in it (the cameras' and the composites'),
+        the camera channels still waiting for their first, the thumbnails made from
+        them, and the memory it all takes (bytes; a shared waiting picture once)."""
+
+        def size(picture: Any) -> int:
+            if isinstance(picture, (bytes, bytearray)):
+                return len(picture)
+            return picture.width * picture.height * len(picture.getbands())
+
+        shots = list(self.shots.items())
+        cameras = [pic for e, (_, pic) in shots if e not in self._waiting]
+        waiting = {id(pic): pic for e, (_, pic) in shots if e in self._waiting}
+        composites = [
+            pic
+            for drawn in list(self._drawers.values())
+            for _, pic in list(drawn.values())
+        ]
+        thumbs = [made for _, made in list(self._thumbs.values())]
+        return {
+            "pictures": len(cameras) + len(composites),
+            "cameras": len(cameras),
+            "waiting": len(shots) - len(cameras),
+            "composites": len(composites),
+            "thumbnails": len(thumbs),
+            "bytes": sum(map(size, [*cameras, *waiting.values(), *composites]))
+            + sum(map(len, thumbs)),
+        }
+
     def _cpu_pct(self, key: str, cpu_s: float, now: float) -> float:
         """The share of one CPU used since the last status (%)."""
         then = self._cpu_seen.get(key)
@@ -1530,6 +1566,7 @@ class Gatherer:
         return {
             # the whole app's share of a CPU since the last status (%)
             "cpu_pct": self._cpu_pct("app", time.process_time(), now),
+            "cache": self.cache_stats(),
             "paused": self.paused,
             "gathering": self.gathering,
             "pace": self.pace("gatherer"),
@@ -1951,6 +1988,7 @@ class Compositor:
         # replaced) at each new one.
         self._pictures: dict[str, tuple[float, bytes]] = {}
         self._fresh: dict[str, asyncio.Event] = {}
+        self.gather.register_pictures(self.role, self._pictures)
         self._watching: asyncio.Event | None = None  # someone asked: gather
         # Its two stages, each paused and run on its own: drawing (the generator) and
         # serving (the server); and a redraw now (a reload, a sharp main camera).
@@ -2218,6 +2256,7 @@ class Compositor:
             "generator_paused": self.drawing_paused,
             "server_paused": self.serving_paused,
             "paces": {w: self.gather.pace(w) for w in PACES},
+            "cache": self.gather.cache_stats(),  # (shared: the whole cache)
             "streams_read": sum(1 for r in self.gather._readers.values() if r.alive),
             "needs": self.needs if state == "unconfigured" else None,
             "error": self._error,
@@ -2420,7 +2459,7 @@ class Compositor:
                     )
                 self._watching.clear()
                 try:  # a request sets it; the timeout notices a stream just closed
-                    await asyncio.wait_for(self._watching.wait(), LINGER)
+                    await streams.within(self._watching.wait(), LINGER)
                 except TimeoutError:
                     pass
                 continue
@@ -2445,7 +2484,7 @@ class Compositor:
                         exc,
                     )
             try:
-                await asyncio.wait_for(
+                await streams.within(
                     self._tick.wait(),
                     max(
                         0.0, self.gather.pace(self.role) - (time.monotonic() - started)
@@ -2491,7 +2530,7 @@ class Compositor:
         if self._tick:
             self._tick.set()
         try:
-            await asyncio.wait_for(fresh.wait(), FETCH_TIMEOUT)
+            await streams.within(fresh.wait(), FETCH_TIMEOUT)
         except TimeoutError:
             pass
         drawn = self._pictures.get(name)
@@ -2572,7 +2611,7 @@ class Compositor:
                     )
                 urls = []
                 while len(urls) < len(ents):
-                    m = await asyncio.wait_for(ws.receive_json(), FETCH_TIMEOUT)
+                    m = await streams.within(ws.receive_json(), FETCH_TIMEOUT)
                     if m.get("type") == "result" and m.get("success"):
                         urls.append(self.ha_url + m["result"]["url"])
                     elif m.get("type") == "result":

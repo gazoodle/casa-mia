@@ -358,3 +358,18 @@ def test_a_stream_is_decoded_only_as_much_as_its_pace_needs(tmp_path):
     assert not g._keys_only(reader)  # fresher than its keyframes: every frame
     g.paces["gatherer"] = 0.0
     assert not g._keys_only(reader)  # continuous: every frame
+
+
+def test_the_cache_is_counted(tmp_path):
+    g = gatherer(tmp_path)
+    drawn: dict = {}
+    g.register_pictures("live", drawn)
+    assert g.cache_stats()["pictures"] == 0 and g.cache_stats()["waiting"] == 2
+    g.keep("camera.a", Image.new("RGB", (100, 50)))  # a frame: 100 x 50 x 3 bytes
+    drawn["cameras"] = (time.monotonic(), b"x" * 1000)  # a composite
+    stats = g.cache_stats()
+    assert (stats["pictures"], stats["cameras"], stats["composites"]) == (2, 1, 1)
+    assert stats["waiting"] == 1
+    placeholder = waiting_picture(round(16 / 9, 2))
+    expected = 100 * 50 * 3 + 1000 + placeholder.width * placeholder.height * 3
+    assert stats["bytes"] == expected  # a shared waiting picture counted once

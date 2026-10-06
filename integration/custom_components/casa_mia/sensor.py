@@ -1,5 +1,5 @@
-"""Sensors: the app version, the tablet firmware server (gitproxy), guest login and
-phone and SMS (fona)."""
+"""Sensors: the app version, the tablet firmware server (gitproxy), guest login,
+phone and SMS (fona), and the camera compositor's cache (its pictures, its size)."""
 
 from __future__ import annotations
 
@@ -45,6 +45,8 @@ async def async_setup_entry(
                 FonaStateSensor(coordinator, entry),
                 FonaSignalSensor(coordinator, entry),
                 FonaSignalQualitySensor(coordinator, entry),
+                CachePicturesSensor(coordinator, entry),
+                CacheSizeSensor(coordinator, entry),
             ],
         )
     )
@@ -330,3 +332,55 @@ class GuestLoginsSensor(GuestEndpointEntity, SensorEntity):
     @property
     def native_value(self) -> int | None:
         return self.endpoint.get("logins")
+
+
+class CachePicturesSensor(CasaMiaEntity, SensorEntity):
+    """The camera compositor's cache: the pictures in it (the cameras' and the
+    composites'); the parts as attributes."""
+
+    _module = "compositor"
+    _attr_translation_key = "cache_pictures"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator: CasaMiaCoordinator, entry: ConfigEntry) -> None:
+        super().__init__(coordinator, entry)
+        self._attr_unique_id = f"{entry.entry_id}_{self._attr_translation_key}"
+
+    @property
+    def cache(self) -> dict:
+        health = self.coordinator.data.get("modules", {}).get("compositor", {})
+        return health.get("cache") or {}
+
+    @property
+    def available(self) -> bool:
+        return super().available and bool(self.cache)
+
+    @property
+    def native_value(self) -> int | None:
+        return self.cache.get("pictures")
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        return {
+            k: self.cache.get(k)
+            for k in ("cameras", "waiting", "composites", "thumbnails")
+        }
+
+
+class CacheSizeSensor(CachePicturesSensor):
+    """The memory the camera compositor's cache takes."""
+
+    _attr_translation_key = "cache_size"
+    _attr_device_class = SensorDeviceClass.DATA_SIZE
+    _attr_native_unit_of_measurement = UnitOfInformation.MEGABYTES
+    _attr_suggested_display_precision = 1
+
+    @property
+    def native_value(self) -> float | None:  # type: ignore[override]
+        size = self.cache.get("bytes")
+        return None if size is None else round(size / 1_000_000, 2)
+
+    @property
+    def extra_state_attributes(self) -> None:  # type: ignore[override]
+        return None

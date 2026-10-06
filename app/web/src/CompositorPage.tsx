@@ -77,9 +77,13 @@ type Survey = {
   cpu_s?: number;
   next_in: number | null;
 };
+/** The cache, counted: its pictures (the cameras' and the composites'), the channels still
+ * waiting, the thumbnails, and the memory it takes. */
+type Cache = { pictures: number; cameras: number; waiting: number; composites: number; thumbnails: number; bytes: number };
 type Gatherer = {
   /** The whole app's share of a CPU (%), since the last look. */
   cpu_pct: number;
+  cache: Cache;
   paused: boolean;
   gathering: boolean;
   pace: number;
@@ -190,7 +194,7 @@ export function CompositorPage({ state }: { state?: string }) {
         <>
           <Strip status={status} busy={busy} act={act} />
           <GathererArea g={g} busy={busy} act={act} onLive={setLive} onSurveys={setSurveys} />
-          <CacheArea items={items} stale={status.live.stale_s ?? 30} busy={busy} act={act} onShow={setShown} />
+          <CacheArea items={items} cache={g.cache} stale={status.live.stale_s ?? 30} busy={busy} act={act} onShow={setShown} />
           {ENGINES.map(([key, name, blurb]) => {
             const e = status[key];
             return (
@@ -240,7 +244,7 @@ function Strip({ status, busy, act }: { status: Status; busy: boolean; act: Act 
       >
         <PauseButton paused={g.paused} path="gatherer" name="Gatherer" busy={busy} act={act} />
       </Stage>
-      <Stage name="Cache" on note={`${g.channels.filter((c) => !c.waiting).length} of ${g.channels.length} pictures`}>
+      <Stage name="Cache" on note={`${plural(g.cache.pictures, "picture")} · ${mb(g.cache.bytes)}`}>
         <button className={ui.button} disabled={busy} onClick={() => act("cache/purge", "Cache purged")}>
           Purge
         </button>
@@ -541,7 +545,21 @@ function useKept<T extends string>(key: string, fallback: T): [T, (v: T) => void
   return [value, set];
 }
 
-function CacheArea({ items, stale, busy, act, onShow }: { items: Item[]; stale: number; busy: boolean; act: Act; onShow: (id: string) => void }) {
+function CacheArea({
+  items,
+  cache,
+  stale,
+  busy,
+  act,
+  onShow,
+}: {
+  items: Item[];
+  cache: Cache;
+  stale: number;
+  busy: boolean;
+  act: Act;
+  onShow: (id: string) => void;
+}) {
   const [view, setView] = useKept<View>("cm.cache.view", "tiles");
   const [sort, setSort] = useKept<Sort>("cm.cache.sort", "name");
   const sorted = [...items].sort((a, b) =>
@@ -564,7 +582,7 @@ function CacheArea({ items, stale, busy, act, onShow }: { items: Item[]; stale: 
     <section className={guest.area}>
       <AreaHead
         title="Cache"
-        blurb={`Every picture kept: each camera channel's newest (“(Waiting …)” until its first comes) and each composite the generators drew. Tap one for a live view; a bin purges it.`}
+        blurb={`Every picture kept: each camera channel's newest (“(Waiting …)” until its first comes) and each composite the generators drew. ${plural(cache.pictures, "picture")} (${cache.cameras} cameras', ${cache.composites} composites; ${cache.waiting} channels waiting) and ${plural(cache.thumbnails, "thumbnail")}: ${mb(cache.bytes)}. Tap one for a live view; a bin purges it.`}
         action={
           <button className={ui.button} disabled={busy} onClick={() => act("cache/purge", "Cache purged")}>
             Purge all
@@ -797,6 +815,9 @@ function Table({ head, children }: { head: string[]; children: React.ReactNode }
 const owner = (store: string) => (store.includes("live") ? "Live" : "Preview");
 
 const plural = (n: number, what: string) => `${n} ${what}${n === 1 ? "" : "s"}`;
+
+/** 12.3 MB */
+const mb = (bytes: number) => `${(bytes / 1_000_000).toFixed(1)} MB`;
 
 /** 40 ms, 1.2 s */
 const ms = (n: number) => (n < 1000 ? `${n} ms` : `${(n / 1000).toFixed(1)} s`);

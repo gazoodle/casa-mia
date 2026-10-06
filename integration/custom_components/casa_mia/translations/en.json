@@ -66,6 +66,8 @@
         "state": { "connected": "Connected", "starting": "Starting", "offline": "Offline", "disabled": "Disabled" }
       },
       "fona_signal": { "name": "Signal" },
+      "cache_pictures": { "name": "Cache pictures" },
+      "cache_size": { "name": "Cache size" },
       "fona_signal_quality": {
         "name": "Signal quality",
         "state": { "excellent": "Excellent", "good": "Good", "ok": "OK", "bad": "Bad", "terrible": "Terrible" }
