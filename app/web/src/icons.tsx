@@ -81,6 +81,14 @@ export const TabletIcon = () => (
   </svg>
 );
 
+/** A screen with its corners drawn in: a dashboard with Home Assistant's bars taken away. */
+export const KioskModeIcon = () => (
+  <svg {...base}>
+    <rect x="2.5" y="4" width="19" height="14" rx="2" />
+    <path d="M6 8V7h2M18 8V7h-2M6 14v1h2M18 14v1h-2M9 21h6M12 18v3" />
+  </svg>
+);
+
 /** A rubbish bin, small: for removing one thing from a list. */
 export const BinIcon = () => (
   <svg {...base} width={16} height={16}>

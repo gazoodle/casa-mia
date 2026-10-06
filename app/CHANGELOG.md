@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b22
+
+- New page, Kiosk mode: kiosk-mode's settings for each dashboard without the YAML. The dashboards with kiosk mode are listed (add one, or remove it); each opens as a grid of kiosk-mode's options (hide the header, the sidebar, menus, more-info parts and more, in groups) by who they apply to: everyone, non-admins, admins, and columns of named users. Anything else (mobile settings, entity settings, templates) goes in a YAML box that takes kiosk-mode's README examples as they are, and is checked as YAML before it can be saved. The page says when kiosk-mode itself is not installed, and which dashboards it cannot apply to (those Home Assistant makes, and YAML dashboards).
+
 ## 2026.10.3-b21
 
 - Tablet view: a settings dialog for its layout (the Tablet layout button in edit mode): a live map of the screen with each panel where it lands, the panel or the middle picked on it, and the options with their help (the same as the Commander's), `size: auto` included; the view behind follows as they change. Cancel puts it back; Save writes the view's `layout:`. In edit mode each panel is named, and the panel sections it adds start empty.

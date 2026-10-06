@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "casa-mia"
-version = "2026.10.3-b21"
+version = "2026.10.3-b22"
 description = "Casa Mia Home Assistant app: FONA, alarm, deployment and generators"
 license = "MIT"
 license-files = ["LICENSE"]
@@ -24,7 +24,7 @@ where = ["app/src"]
 
 [tool.setuptools.package-data]
 # The built admin UI ships inside the package (see tools/build_web).
-casa_mia = ["web/*", "web/**/*", "layout.json", "modules/size-test.html"]
+casa_mia = ["web/*", "web/**/*", "layout.json", "kiosk_mode.json", "modules/size-test.html"]
 
 [tool.ruff]
 line-length = 88

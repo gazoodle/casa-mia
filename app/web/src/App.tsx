@@ -4,6 +4,7 @@ import { CompositorPage } from "./CompositorPage";
 import { FirmwarePage } from "./FirmwarePage";
 import { GuestPage } from "./GuestPage";
 import { KioskFrame, KiosksPage } from "./KiosksPage";
+import { KioskModePage } from "./KioskModePage";
 import { PeoplePage } from "./PeoplePage";
 import { useHealth, type ModuleHealth } from "./health";
 import { ModuleIcon } from "./icons";
@@ -41,6 +42,7 @@ const PAGES: Record<string, string> = {
   kiosks: "/kiosks",
   camera_dashboard: "/cameras",
   compositor: "/compositor",
+  kiosk_mode: "/kiosk-mode",
 };
 
 export function App() {
@@ -57,6 +59,7 @@ export function App() {
   if (route.startsWith("/kiosks/")) return <KioskFrame id={route.slice("/kiosks/".length)} />;
   if (route === "/cameras") return <CameraDashboardPage state={health?.modules.camera_dashboard?.state} />;
   if (route === "/compositor") return <CompositorPage state={health?.modules.compositor?.state} />;
+  if (route === "/kiosk-mode") return <KioskModePage state={health?.modules.kiosk_mode?.state} />;
   if (route === "/firmware") return <FirmwarePage state={health?.modules.gitproxy?.state} />;
   const modules = Object.entries(health?.modules ?? {});
   const on = modules.filter(([, h]) => h.state && h.state !== "disabled");

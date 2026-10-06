@@ -5,7 +5,7 @@
 import type { ReactNode } from "react";
 import type { ModuleHealth } from "./health";
 import { ago, megabytes } from "./format";
-import { CameraGridIcon, CameraIcon, FirmwareIcon, GuestIcon, PeopleIcon, PhoneIcon, ShieldIcon, TabletIcon } from "./icons";
+import { CameraGridIcon, CameraIcon, FirmwareIcon, GuestIcon, KioskModeIcon, PeopleIcon, PhoneIcon, ShieldIcon, TabletIcon } from "./icons";
 
 export type Fact = [label: string, value: string | undefined];
 
@@ -117,6 +117,17 @@ export const MODULES: Record<string, ModuleInfo> = {
       ["Cameras", String(h.cameras ?? 0)],
       ["Deployed", ago(h.deployed) ?? "never"],
       ["Draft", h.changed ? "differs from live" : "same as live"],
+    ],
+  },
+  kiosk_mode: {
+    title: "Kiosk mode",
+    option: "Kiosk mode",
+    blurb: "What each dashboard hides, and from whom: the header, sidebar and more, through kiosk-mode.",
+    icon: <KioskModeIcon />,
+    facts: (h) => [
+      ["kiosk-mode", h.installed ? "installed" : h.state === "unconfigured" ? "not found" : undefined],
+      ["Dashboards", h.dashboards != null ? String(h.dashboards) : undefined],
+      ["On", (h.names as string[] | undefined)?.join(", ") || undefined],
     ],
   },
   guest_login: {

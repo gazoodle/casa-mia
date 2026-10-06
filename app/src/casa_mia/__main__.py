@@ -28,6 +28,7 @@ from .modules.guest_login import (
     supervisor_lan_ip,
     supervisor_mdns_name,
 )
+from .modules.kiosk_mode import KioskMode
 from .modules.kiosks import Kiosks
 from .modules.people import People
 from .server import PORT, integration_url, make_server
@@ -90,6 +91,11 @@ def main() -> int:
     people = People(PEOPLE_STORE, ha)
     modules["people"] = people.health
     api["/api/people/"] = people.handle
+    # Always on: an editor for kiosk-mode's settings in the dashboards (nothing runs).
+    kiosk_mode = KioskMode(ha)
+    kiosk_mode.start()
+    modules["kiosk_mode"] = kiosk_mode.health
+    api["/api/kiosk-mode/"] = kiosk_mode.handle
     # The alarm panel runs in the integration; the app only says whether it is switched on.
     alarm_on = options.get("alarm_enabled", False)
     log.info(
