@@ -1331,6 +1331,7 @@ function LiveView({ entity, title, onClose }: { entity: string; title: string; o
   const [chosen, setChosen] = useState<Channel["channel"]>();
   const [state, setState] = useState<"connecting" | "live" | "failed">("connecting");
   const [error, setError] = useState<string>();
+  const [size, setSize] = useState<string>(); // the frames' own size, as they come
   useEffect(() => {
     get<{ channels: Channel[] }>(`live/${encodeURIComponent(entity)}`).then(
       (r) => {
@@ -1345,7 +1346,13 @@ function LiveView({ entity, title, onClose }: { entity: string; title: string; o
   // stream open after the image is gone.
   useEffect(() => {
     const el = img.current;
+    setSize(undefined);
+    // The stream's resolution, read each second: a channel can change it mid-stream.
+    const look = setInterval(() => {
+      if (el?.naturalWidth) setSize(`${el.naturalWidth} × ${el.naturalHeight}`);
+    }, 1000);
     return () => {
+      clearInterval(look);
       if (el) el.src = "";
     };
   }, [shown?.url]);
@@ -1378,7 +1385,10 @@ function LiveView({ entity, title, onClose }: { entity: string; title: string; o
             ref={img}
             src={shown.url}
             alt={`${title}, live`}
-            onLoad={() => setState("live")}
+            onLoad={(e) => {
+              setState("live");
+              setSize(`${e.currentTarget.naturalWidth} × ${e.currentTarget.naturalHeight}`);
+            }}
             onError={() => setState("failed")}
           />
         )}
@@ -1390,7 +1400,13 @@ function LiveView({ entity, title, onClose }: { entity: string; title: string; o
       </div>
       {shown && (
         <p className={css.muted}>
-          <code>{shown.entity}</code>: {CHANNELS[shown.channel][1]}. Home Assistant's MJPEG stream, made from the camera's
+          <code>{shown.entity}</code>
+          {size && (
+            <>
+              , <strong>{size}</strong>
+            </>
+          )}
+          : {CHANNELS[shown.channel][1]}. Home Assistant's MJPEG stream, made from the camera's
           snapshots: a few pictures a second, not video.
         </p>
       )}
