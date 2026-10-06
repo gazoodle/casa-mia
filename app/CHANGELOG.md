@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b21
+
+- Tablet view: a settings dialog for its layout (the Tablet layout button in edit mode): a live map of the screen with each panel where it lands, the panel or the middle picked on it, and the options with their help (the same as the Commander's), `size: auto` included; the view behind follows as they change. Cancel puts it back; Save writes the view's `layout:`. In edit mode each panel is named, and the panel sections it adds start empty.
+
 ## 2026.10.3-b20
 
 - Tablet view: edit mode has Home Assistant's own spacing again (around and between the panels), with the panels in proportion across the width.

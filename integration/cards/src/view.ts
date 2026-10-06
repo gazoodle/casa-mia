@@ -4,9 +4,10 @@
 // that (flex basis 0, never its content's height) and clips, so the page never scrolls.
 //
 // Its sections are its panels, by position: main, left, top, right, bottom (edit mode adds
-// the missing ones, headed with their names; sections past five are not shown). The layout
-// engine (layout.ts) places them, one item a panel, by the view's `layout:` options (those
-// of layout.json); HA's grid places the cards in each. No adding or moving sections, so a
+// the missing ones, empty, and names each panel; sections past five are not shown). The
+// layout engine (layout.ts) places them, one item a panel, by the view's `layout:` options
+// (those of layout.json; set in its settings dialog, view-settings.ts, from the Tablet
+// layout button in edit mode); HA's grid places the cards in each. No adding or moving sections, so a
 // section stays its panel; cards move between them as in any Sections view. A section's own
 // visibility hides its panel, and so does having no card showing that counts (a heading
 // marked `view_layout: {counts: false}` does not; panel option hide_empty: false keeps it);
@@ -19,8 +20,12 @@ import { css } from "lit";
 import { define, type HuiCard, room, sectionsView, watchRoom } from "./ha.ts";
 import { LAYOUT, layout, PANELS, type Rect, type Settings } from "./layout.ts";
 import { counts } from "./section.ts";
+import { compact, openSettings, type Preview } from "./view-settings.ts";
 
 const PLACES = ["main", ...PANELS] as const;
+const NAMES = ["Main", "Left", "Top", "Right", "Bottom"];
+const GEAR =
+  "M3,3H11V11H3V3M13,3H21V11H13V3M3,13H11V21H3V13M18,13H16V16H13V18H16V21H18V18H21V16H18V13Z"; // mdi view-grid-plus
 
 const LOCK = css`
   :host {
@@ -86,6 +91,49 @@ const LOCK = css`
   }
   :host(:not([editing])) hui-grid-section {
     display: flex;
+  }
+  /* Edit mode: the Tablet layout button over the panels, and each panel's name. */
+  .cm-bar {
+    display: flex;
+    justify-content: center;
+    padding: 12px 0 0;
+  }
+  .cm-bar button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 8px 20px;
+    border-radius: 20px;
+    border: 1px solid var(--primary-color);
+    background: none;
+    color: var(--primary-color);
+    cursor: pointer;
+  }
+  .cm-bar svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+  }
+  :host([editing]) .section {
+    position: relative;
+  }
+  .cm-name {
+    position: absolute;
+    top: 8px;
+    left: 12px;
+    z-index: 2;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-primary-color, #fff);
+    background: var(--primary-color);
+    pointer-events: none;
   }
   :host([cm-debug]) .section {
     outline: 1px solid red;
@@ -171,6 +219,7 @@ sectionsView().then((Base: any) => {
     private cmStop?: () => void;
     private cmFrame = 0;
     private cmAdding = false;
+    private cmShown?: [number, number]; // the panels' area, out of edit mode
     private cmSeen = new ResizeObserver(() => this.cmLater());
 
     setConfig(config: any) {
@@ -231,12 +280,73 @@ sectionsView().then((Base: any) => {
       const have = view.sections?.length ?? 0;
       if (this.isStrategy || this.cmAdding || have >= PLACES.length) return;
       this.cmAdding = true;
-      const added = PLACES.slice(have).map((p) => ({
-        type: "grid",
-        cards: [{ type: "heading", heading: p[0].toUpperCase() + p.slice(1) }],
-      }));
-      const views = config.views.map((v: any, i: number) => (i === this.index ? { ...v, sections: [...(v.sections ?? []), ...added] } : v));
-      Promise.resolve(this.lovelace.saveConfig({ ...config, views })).finally(() => (this.cmAdding = false));
+      const added = PLACES.slice(have).map(() => ({ type: "grid", cards: [] }));
+      this.cmSaveView((v) => ({ ...v, sections: [...(v.sections ?? []), ...added] })).finally(() => (this.cmAdding = false));
+    }
+
+    /** Save this view's config, changed by `change`. */
+    private cmSaveView(change: (view: any) => any): Promise<unknown> {
+      const config = this.lovelace.config;
+      const views = config.views.map((v: any, i: number) => (i === this.index ? change(v) : v));
+      return Promise.resolve(this.lovelace.saveConfig({ ...config, views }));
+    }
+
+    /** In edit mode, the Tablet layout button above the panels (outside Lit's part, as the
+     * debug label). */
+    private cmBar(editing: boolean) {
+      const root = this.shadowRoot as ShadowRoot | null;
+      let bar = root?.querySelector(".cm-bar");
+      if (!editing || this.isStrategy) return bar?.remove();
+      if (bar || !root) return;
+      bar = document.createElement("div");
+      bar.className = "cm-bar";
+      bar.innerHTML = `<button type="button"><svg viewBox="0 0 24 24"><path d="${GEAR}"/></svg>Tablet layout</button>`;
+      bar.querySelector("button")!.addEventListener("click", () => this.cmSettings());
+      root.prepend(bar);
+    }
+
+    private cmSettings() {
+      openSettings({
+        hass: this.hass,
+        layout: this.cmLayout,
+        preview: (l) => this.cmPreview(l),
+        apply: (l) => {
+          this.cmLayout = l;
+          this.cmLater();
+        },
+        save: (l) =>
+          this.cmSaveView((v) => {
+            const { layout: _, ...rest } = v;
+            return Object.keys(l).length ? { ...rest, layout: l } : rest;
+          }),
+      });
+    }
+
+    /** Where each panel lands for `l` on this screen, every panel that is not hidden shown
+     * (for the dialog's map). */
+    private cmPreview(l: Record<string, any>): Preview {
+      // The screen it shows on: as last seen out of edit mode (edit mode's own is shorter).
+      const [w, h] = this.cmShown ?? this.cmArea();
+      const s = settingsOf(compact(l), w, h, (p) => p === "main" || !l[p]?.hidden, (p) => this.cmNatural(p));
+      const [, main, tiles] = layout(s, "main");
+      return { width: w, height: h, rects: { main, ...Object.fromEntries(PANELS.flatMap((p) => (tiles[p][0] ? [[p, tiles[p][0]]] : []))) } };
+    }
+
+    /** The panels' area: the container, which in edit mode grows, so then what it would be. */
+    private cmArea(): [number, number] {
+      const root = this.shadowRoot as ShadowRoot;
+      const tall = (sel: string) => (root.querySelector(sel) as HTMLElement | null)?.offsetHeight ?? 0;
+      const area = root.querySelector(".container") as HTMLElement | null;
+      const h = this.lovelace?.editMode || !area ? this.clientHeight - tall(".cm-bar") - tall("hui-view-header") - tall("hui-view-footer") : area.clientHeight;
+      return [this.clientWidth, h];
+    }
+
+    /** How tall a panel's cards are (for size: auto), watching them for changes. */
+    private cmNatural(p: string): number {
+      const section = this.sections[PLACES.indexOf(p as (typeof PLACES)[number])];
+      const grid = section?.querySelector("hui-grid-section")?.shadowRoot?.querySelector(".container");
+      if (grid) this.cmSeen.observe(grid); // its cards come and go, or change height
+      return cardsHeight(section);
     }
 
     /** Each section to its panel's place: a 5 x 5 grid (panel, gap, middle, gap, panel each
@@ -245,12 +355,10 @@ sectionsView().then((Base: any) => {
       const root = this.shadowRoot as ShadowRoot | null;
       const grid = root?.querySelector(".content") as HTMLElement | null;
       if (!grid) return;
-      const tall = (sel: string) => (root!.querySelector(sel) as HTMLElement | null)?.offsetHeight ?? 0;
       const editing = !!this.lovelace?.editMode;
-      // The panels' area: the container, which in edit mode grows, so then what it would be.
-      const area = root!.querySelector(".container") as HTMLElement;
-      const w = this.clientWidth;
-      const h = editing ? this.clientHeight - tall("hui-view-header") - tall("hui-view-footer") : area.clientHeight;
+      this.cmBar(editing);
+      const [w, h] = this.cmArea();
+      if (!editing) this.cmShown = [w, h];
       const showing = (p: string) => {
         const section = this.sections[PLACES.indexOf(p as (typeof PLACES)[number])];
         if (!section || section.hidden) return false;
@@ -259,13 +367,7 @@ sectionsView().then((Base: any) => {
         return counting(section).length > 0;
       };
       const counting = (section: any): HuiCard[] => (section._cards ?? []).filter((c: HuiCard) => counts(c.config ?? { type: "" }) && !c.hidden);
-      const natural = (p: string) => {
-        const section = this.sections[PLACES.indexOf(p as (typeof PLACES)[number])];
-        const grid = section?.querySelector("hui-grid-section")?.shadowRoot?.querySelector(".container");
-        if (grid) this.cmSeen.observe(grid); // its cards come and go, or change height
-        return cardsHeight(section);
-      };
-      const s = settingsOf(this.cmLayout, w, h, showing, natural);
+      const s = settingsOf(this.cmLayout, w, h, showing, (p) => this.cmNatural(p));
       const [, main, tiles] = layout(s, showing("main") ? "main" : null);
       const at = (p: (typeof PANELS)[number]) => tiles[p][0] ?? [0, 0, 0, 0];
       const [l, t, r, b] = [at("left")[2], at("top")[3], at("right")[2], at("bottom")[3]];
@@ -285,6 +387,14 @@ sectionsView().then((Base: any) => {
         // Off only when it is not to show: one that shows but is no size yet (size: auto,
         // its cards not laid out) must stay laid out, or it measures 0 for ever.
         box.classList.toggle("cm-off", !rect);
+        let name = box.querySelector(":scope > .cm-name");
+        if (!editing) name?.remove();
+        else if (!name && NAMES[n]) {
+          name = document.createElement("div");
+          name.className = "cm-name";
+          name.textContent = NAMES[n];
+          box.append(name); // after Lit's part in the box, so Lit leaves it alone
+        }
         this.cmFill(this.sections[n], editing || autoSized(this.cmLayout, place) ? [] : counting(this.sections[n]));
         if (!rect) return;
         if (place === "main") {

@@ -45,6 +45,16 @@ export async function stackEditor(): Promise<StackEditor> {
   return (customElements.get("hui-vertical-stack-card") as any).getConfigElement();
 }
 
+/** HA's ha-form, loaded: HA loads it with its card editors, so ask for one (the entities
+ * card's) and its module brings ha-form with it. */
+export async function haForm(): Promise<void> {
+  if (customElements.get("ha-form")) return;
+  const helpers = await (window as any).loadCardHelpers();
+  const card = await helpers.createCardElement({ type: "entities", entities: [] });
+  await (card.constructor as any).getConfigElement?.();
+  await customElements.whenDefined("ha-form");
+}
+
 /** HA's Sections view class. HA loads it only when a Sections view is first shown, so a
  * hidden hui-view showing an empty one makes it load. */
 export async function sectionsView(): Promise<CustomElementConstructor> {
