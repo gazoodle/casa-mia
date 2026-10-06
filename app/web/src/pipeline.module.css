@@ -125,6 +125,12 @@
   accent-color: var(--accent);
 }
 
+/* A fixed width, so the slider does not resize under the finger as the text changes. */
+.pace strong {
+  flex: none;
+  width: 9em;
+}
+
 .controls {
   display: flex;
   flex-wrap: wrap;

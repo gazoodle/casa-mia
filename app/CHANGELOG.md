@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b47
+
+- Camera compositor page: the pace sliders send their value on release only (a finger lifted, a key let go), and hold it until the box confirms, so the page's refresh no longer snaps them back mid-drag; their readout has a fixed width, so the slider no longer resizes under the finger as the text changes.
+
 ## 2026.10.3-b46
 
 - Camera compositor: the survey. From the app's start, a pass over every channel of every camera, two at a time: each one's stream opened for its first frame (15 s at most), kept as its picture in the cache, and its size (a snapshot where it cannot be streamed); then a pause (60 s by default, 10 s to 1 h, on the Camera compositor page and as the integration's Survey pause) and another pass. A channel being read anyway is passed over. Paused with the gatherer; a purge or a new camera starts a pass at once. It replaces the one-off size probes and the 60 s kept snapshots, so every channel's picture and size come from its stream, and the page shows the pass as it goes.

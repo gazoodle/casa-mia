@@ -326,7 +326,7 @@ const SURVEY_STEPS = [10, 15, 30, 60, 120, 300, 600, 1800, 3600];
 
 /** 0: continuous; 0.25: 4 a second; 2: every 2 s. */
 function paceText(seconds: number): string {
-  if (seconds === 0) return "continuous, as fast as each answers";
+  if (seconds === 0) return "continuous";
   if (seconds < 1) return `${Math.round(1 / seconds)} a second`;
   return seconds < 60 ? `every ${seconds} s` : `every ${seconds / 60} min`;
 }
@@ -345,22 +345,37 @@ function PaceSlider({
   steps: number[];
   act: Act;
 }) {
-  const [held, setHeld] = useState<number>(); // the step shown while it moves
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const [held, setHeld] = useState<number>(); // the step under the finger, until set
+  const sent = useRef<number>(undefined); // the step last sent
   const nearest = steps.reduce((best, s, i) => (Math.abs(s - value) < Math.abs(steps[best] - value) ? i : best), 0);
+  // Held until the box says the new pace (the page's refresh would snap it back).
+  useEffect(() => {
+    if (held != null && steps[held] === value) setHeld(undefined);
+  }, [value, held, steps]);
   const at = held ?? nearest;
-  const move = (i: number) => {
-    setHeld(i);
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      act("pace", `Pace: ${paceText(steps[i])}`, { which, seconds: steps[i] });
-      setHeld(undefined);
-    }, 400);
+  /** Sent on release only: a finger lifted, a pointer let go, an arrow key let go. */
+  const release = () => {
+    if (held == null || steps[held] === value || sent.current === held) return;
+    sent.current = held;
+    act("pace", `${label}: ${paceText(steps[held])}`, { which, seconds: steps[held] });
   };
   return (
     <label className={pipe.pace}>
       <span>{label}</span>
-      <input type="range" min={0} max={steps.length - 1} step={1} value={at} onChange={(e) => move(Number(e.target.value))} />
+      <input
+        type="range"
+        min={0}
+        max={steps.length - 1}
+        step={1}
+        value={at}
+        onChange={(e) => {
+          sent.current = undefined;
+          setHeld(Number(e.target.value));
+        }}
+        onPointerUp={release}
+        onKeyUp={release}
+        onBlur={release}
+      />
       <strong>{paceText(steps[at])}</strong>
     </label>
   );
