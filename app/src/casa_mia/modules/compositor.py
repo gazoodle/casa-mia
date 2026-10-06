@@ -241,6 +241,38 @@ def load_config(directory: Path, store: str = LIVE_STORE) -> Config:
     return Config()
 
 
+@dataclass
+class Sending:
+    """An open stream, measured: what it sent, and how long writes waited for the
+    network to take it (a slow link shows as waiting; a busy box as slow drawing)."""
+
+    picture: str
+    viewer: str
+    since: float
+    frames: int = 0
+    sent: int = 0
+    waiting: float = 0.0
+
+    async def write(self, resp: web.StreamResponse, data: bytes) -> None:
+        began = time.monotonic()
+        await resp.write(data)
+        self.waiting += time.monotonic() - began
+        self.frames += 1
+        self.sent += len(data)
+
+    def figures(self, now: float) -> dict[str, Any]:
+        open_s = max(now - self.since, 0.001)
+        return {
+            "picture": self.picture,
+            "viewer": self.viewer,
+            "open_s": round(open_s),
+            "frames": self.frames,
+            "kb_frame": round(self.sent / max(self.frames, 1) / 1000),
+            "kbit_s": round(self.sent * 8 / 1000 / open_s),
+            "waiting_pct": round(100 * self.waiting / open_s),
+        }
+
+
 # --- drawing: pure functions of the config and the images -----------------------------
 
 FONT = ImageFont.load_default(size=20)
@@ -801,6 +833,11 @@ class Compositor:
         self._bg: set[asyncio.Task] = set()
         self._streams: dict[str | None, list[asyncio.Event]] = {}
         self._open: dict[str, int] = {}  # commander -> streams open
+        # Where the time goes, for /status and the log: each picture's size (bytes) and
+        # how long it took to draw (s); the last round's fetch (s); each open stream.
+        self._drawn: dict[str, tuple[int, float]] = {}
+        self._round_s = 0.0
+        self._sending: list[Sending] = []
         self._asked: dict[str, float] = {}  # commander -> its last request
         # Commander (slug) -> the sizes its picture is asked for (None: its own size).
         self._sizes: dict[str, dict[Size | None, None]] = {}
@@ -1290,6 +1327,7 @@ class Compositor:
             jobs.append((e, size))
         got = await asyncio.gather(*(self._fetch_now(e, size) for e, size in jobs))
         now = time.monotonic()
+        self._round_s = now - started
         for (e, size), image in zip(jobs, got, strict=True):
             if image:
                 # Only its newest kept: a still left at another size (an older round's
@@ -1366,6 +1404,7 @@ class Compositor:
         if main_image is None:  # the main channel not fetched yet: its tile's still
             main_image, age = self._pick(main, tiles.get(main))
         async with self._draw_lock:
+            began = time.monotonic()
             picture = await asyncio.to_thread(
                 commander,
                 cmd,
@@ -1379,6 +1418,7 @@ class Compositor:
                 age > limit,
             )
         name = key_of(cmd)
+        self._drawn[name] = (len(picture), time.monotonic() - began)
         self._pictures[name] = (time.monotonic(), picture)
         fresh, self._fresh[name] = self._fresh_of(name), asyncio.Event()
         fresh.set()
@@ -1574,6 +1614,11 @@ class Compositor:
         size = asked_size(request.query)
         key = view_key(name, size)
         self._open[key] = self._open.get(key, 0) + 1
+        sending = Sending(key, viewer(request) or "", time.monotonic())
+        self._sending.append(sending)
+        _LOGGER.info(
+            "compositor (%s): stream %s to %s opened", self.store, key, sending.viewer
+        )
         await resp.prepare(request)
         try:
             # Chrome draws a multipart frame only when it sees the *next* part begin, so a
@@ -1590,7 +1635,7 @@ class Compositor:
             while not stop.is_set():
                 if mime(data) != kind:
                     break
-                await resp.write(data + b"\r\n" + part)
+                await sending.write(resp, data + b"\r\n" + part)
                 # The next picture as soon as one is drawn (or the same again after
                 # KEEPALIVE, should drawing stop).
                 waits = [
@@ -1615,6 +1660,20 @@ class Compositor:
             if stop in streams:
                 streams.remove(stop)
             self._open[key] -= 1
+            self._sending.remove(sending)
+            f = sending.figures(time.monotonic())
+            _LOGGER.info(
+                "compositor (%s): stream %s to %s ended after %.0f s: %d frames, "
+                "%.0f kB a frame, %.0f kbit/s, %.0f%% of the time waiting to send",
+                self.store,
+                key,
+                sending.viewer,
+                f["open_s"],
+                f["frames"],
+                f["kb_frame"],
+                f["kbit_s"],
+                f["waiting_pct"],
+            )
         return resp
 
     async def _size_test(self, request: web.Request) -> web.Response:
@@ -1665,6 +1724,8 @@ class Compositor:
                 "asked": bool(size),  # a card's own size, not the commander's
                 "age_s": round(now - at, 1),
                 "streams": self._open.get(key, 0),
+                "kb": round(self._drawn.get(key, (0, 0))[0] / 1000),
+                "draw_ms": round(self._drawn.get(key, (0, 0))[1] * 1000),
             }
 
         return {
@@ -1674,6 +1735,8 @@ class Compositor:
             ),
             "pictures": [picture(k, t) for k, (t, _) in sorted(self._pictures.items())],
             "devices": {ip: len(v) for ip, v in self._streams.items() if v},
+            "round_s": round(self._round_s, 2),
+            "sending": [s.figures(now) for s in self._sending],
             "stills": [
                 {
                     "camera": e,

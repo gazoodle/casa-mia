@@ -9,7 +9,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import pytest
 from PIL import Image
 
-from casa_mia.modules.compositor import LIVE_STORE, Compositor
+from casa_mia.modules.compositor import LIVE_STORE, Compositor, Sending
 
 
 def jpeg(colour: str = "red") -> bytes:
@@ -402,3 +402,15 @@ def test_viewer_is_the_one_home_assistant_names():
         "GET", "/g/x.mjpg", headers={"X-Forwarded-For": "203.0.113.7, 10.0.0.1"}
     )
     assert viewer(via_ha) == "203.0.113.7"
+
+
+def test_a_stream_measures_what_it_sent_and_how_long_it_waited():
+    sending = Sending("cameras@800x600x1", "203.0.113.7", since=100.0)
+    sending.frames, sending.sent, sending.waiting = 10, 1_000_000, 5.0
+    f = sending.figures(110.0)
+    assert (f["frames"], f["kb_frame"], f["kbit_s"], f["waiting_pct"]) == (
+        10,
+        100,
+        800,
+        50,
+    )

@@ -17,10 +17,11 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 
 from .commanders import async_prune_commander_devices
-from .const import CARDS_JS, DOMAIN, FONA_EVENT, SCRIPTS_URL
+from .const import CARDS_JS, DOMAIN, FONA_EVENT, SCRIPTS_URL, SETTINGS_EVENT
 from .coordinator import CasaMiaCoordinator, async_post, helpers_on
 from .guest import async_prune_endpoint_devices
 from .motion import commanders, tracker
+from .pictures import running_coordinator
 from .pictures import setup as setup_pictures
 from .restart_notice import manifest_version
 from .sensor import MODULE_DEVICES, device_name, modules_off
@@ -127,6 +128,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.async_on_unload(coordinator.async_add_listener(prune_commanders))
     entry.async_on_unload(hass.bus.async_listen(FONA_EVENT, _pong(hass, coordinator)))
 
+    async def _settings_changed(_event: Event) -> None:
+        # A save on the app's Settings page: poll now, not within 30 s.
+        await coordinator.async_request_refresh()
+
+    entry.async_on_unload(hass.bus.async_listen(SETTINGS_EVENT, _settings_changed))
+
     async def send_sms(call: ServiceCall) -> None:
         await _send(hass, coordinator, call.data["number"], call.data["message"])
 
@@ -148,6 +155,7 @@ async def _load_scripts(
         )
         hass.data[f"{DOMAIN}_www"] = True
         websocket_api.async_register_command(hass, _ws_settings)
+        websocket_api.async_register_command(hass, _ws_settings_subscribe)
         setup_pictures(hass)  # the commanders' pictures, for viewers away from home
     for name in [CARDS_JS, *helpers]:
         url = f"{SCRIPTS_URL}/{name}?v={version}"
@@ -173,6 +181,32 @@ def _ws_settings(
     ]
     data = (entries[0].runtime_data.data or {}) if entries else {}
     connection.send_result(msg["id"], data.get("settings", {}))
+
+
+@websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/settings/subscribe"})
+@callback
+def _ws_settings_subscribe(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    """The same, now and again at each change (the app fires casa_mia_settings_changed on a
+    save, so the coordinator polls at once); any user.
+    ponytail: follows the coordinator running when it subscribes; a page that outlives an
+    integration reload gets nothing more until it shows again."""
+    coordinator = running_coordinator(hass)
+    last: list[dict] = []
+
+    @callback
+    def send() -> None:
+        now = ((coordinator.data if coordinator else None) or {}).get("settings", {})
+        if not last or last[0] != now:
+            last[:] = [now]
+            connection.send_message(websocket_api.event_message(msg["id"], now))
+
+    connection.subscriptions[msg["id"]] = (
+        coordinator.async_add_listener(send) if coordinator else lambda: None
+    )
+    connection.send_result(msg["id"])
+    send()
 
 
 async def _send(

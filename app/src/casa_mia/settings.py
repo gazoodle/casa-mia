@@ -1,8 +1,8 @@
 """Settings that have no other home, set on the admin page's Settings page (the cog by the
 house photo's pencil). The integration gets them in /health and hands them to the dashboard
-cards (its websocket command casa_mia/settings; the developer sections only in developer
-mode, the app option), so a change reaches a tablet within the
-integration's poll (30 s) and its next view change or page load.
+cards (its websocket command casa_mia/settings/subscribe; the developer sections only in
+developer mode, the app option). A save fires casa_mia_settings_changed, so the integration
+polls at once and an open Tablet Layout shows the change within a second or two.
 
 Admin API (/api/settings/): GET "" the values, PUT "" a change (known keys only, each of
 its default's type)."""
@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -38,6 +40,7 @@ DEFAULTS: dict[str, dict[str, Any]] = {
 DEVELOPER_SECTIONS = {"tablet_view"}
 DEVELOPER = False
 MAX_TEXT = 100
+CHANGED_EVENT = "casa_mia_settings_changed"  # the integration polls at once
 
 Response = tuple[int, str, bytes]
 
@@ -140,6 +143,12 @@ def _save(body: bytes) -> Response:
                 _LOGGER.info("setting %s.%s: %r", section, key, value)
             current[section][key] = value
     _write(current)
+    if token := os.environ.get("SUPERVISOR_TOKEN"):
+        from .modules.guest_login import fire_event
+
+        threading.Thread(
+            target=fire_event, args=(token, CHANGED_EVENT, {}), daemon=True
+        ).start()
     return _json(200, current)
 
 

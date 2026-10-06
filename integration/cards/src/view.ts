@@ -15,7 +15,7 @@
 // counts showing is filled by it (headings above it keep their height; not in a top or bottom
 // panel of `size: auto`, which is as tall as its cards instead): a Camera Commander
 // there is in tile mode (ha.ts). Otherwise HA's grid places the cards, by their rows.
-// Casa Mia's Settings page (through the integration, read each time the view shows) can
+// Casa Mia's Settings page (through the integration, followed while the view shows) can
 // outline each panel and the view's header and footer (identify_panels, with its CSS) and
 // label the view's size, the room below its top and anything still scrolling the page
 // (show_size); `debug: true` in the view's config does both.
@@ -210,14 +210,19 @@ export function settingsOf(
   return s as Settings;
 }
 
-/** The app's settings for this view (its Settings page, through the integration); none
- * without the integration. */
-async function appSettings(hass: any): Promise<Record<string, any>> {
-  try {
-    return (await hass.callWS({ type: "casa_mia/settings" }))?.tablet_view ?? {};
-  } catch {
-    return {};
-  }
+/** The app's settings for this view (its Settings page, through the integration), now and
+ * at each change; none without the integration. Returns the unsubscribe. */
+function watchAppSettings(hass: any, got: (s: Record<string, any>) => void): () => void {
+  let unsub: (() => void) | undefined;
+  let gone = false;
+  hass.connection
+    .subscribeMessage((s: any) => got(s?.tablet_view ?? {}), { type: "casa_mia/settings/subscribe" })
+    .then((u: () => void) => (gone ? u() : (unsub = u)))
+    .catch(() => got({}));
+  return () => {
+    gone = true;
+    unsub?.();
+  };
 }
 
 /** The space above the view's header, px (header_space; HA's own row gap by default). */
@@ -236,8 +241,8 @@ sectionsView().then((Base: any) => {
   class TabletView extends Base {
     static styles = [Base.styles, LOCK];
     private cmDebug = false; // debug: true in the view's config
-    private cmApp: Record<string, any> = {}; // the app's settings, appSettings
-    private cmAsked = false; // since the view last showed
+    private cmApp: Record<string, any> = {}; // the app's settings, watchAppSettings
+    private cmUnwatch?: () => void; // while the view shows
     private cmLayout: Record<string, any> = {};
     private cmLabel?: HTMLElement;
     private cmStop?: () => void;
@@ -280,7 +285,8 @@ sectionsView().then((Base: any) => {
       this.removeEventListener("section-visibility-changed", this.cmLater);
       this.removeEventListener("card-visibility-changed", this.cmLater);
       cancelAnimationFrame(this.cmFrame);
-      this.cmAsked = false; // asked again next time it shows
+      this.cmUnwatch?.();
+      this.cmUnwatch = undefined; // watched again next time it shows
     }
 
     /** The panels' outline, on and its CSS, from the view's config and the app's settings. */
@@ -297,9 +303,8 @@ sectionsView().then((Base: any) => {
       const sortable = this.shadowRoot?.querySelector(".container > ha-sortable");
       if (sortable) sortable.disabled = true;
       if (editing) this.cmComplete();
-      if (!this.cmAsked && this.hass) {
-        this.cmAsked = true;
-        appSettings(this.hass).then((s) => {
+      if (!this.cmUnwatch && this.hass) {
+        this.cmUnwatch = watchAppSettings(this.hass, (s) => {
           this.cmApp = s;
           this.cmMarks();
           this.cmLater();

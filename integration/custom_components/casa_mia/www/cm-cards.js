@@ -1916,12 +1916,11 @@ function Dt(e, t, n, r, i = () => 0) {
 	}
 	return a;
 }
-async function Ot(e) {
-	try {
-		return (await e.callWS({ type: "casa_mia/settings" }))?.tablet_view ?? {};
-	} catch {
-		return {};
-	}
+function Ot(e, t) {
+	let n, r = !1;
+	return e.connection.subscribeMessage((e) => t(e?.tablet_view ?? {}), { type: "casa_mia/settings/subscribe" }).then((e) => r ? e() : n = e).catch(() => t({})), () => {
+		r = !0, n?.();
+	};
 }
 var kt = (e) => Math.max(0, Number(e.header_space ?? H.main.header_space.default) || 0), At = (e, t) => (t === "top" || t === "bottom") && e[t]?.size === "auto";
 function jt(e) {
@@ -1930,7 +1929,7 @@ function jt(e) {
 ke().then((e) => {
 	class t extends e {
 		constructor(...e) {
-			super(...e), this.cmDebug = !1, this.cmApp = {}, this.cmAsked = !1, this.cmLayout = {}, this.cmFrame = 0, this.cmAdding = !1, this.cmSeen = new ResizeObserver(() => this.cmLater()), this.cmLater = () => {
+			super(...e), this.cmDebug = !1, this.cmApp = {}, this.cmLayout = {}, this.cmFrame = 0, this.cmAdding = !1, this.cmSeen = new ResizeObserver(() => this.cmLater()), this.cmLater = () => {
 				cancelAnimationFrame(this.cmFrame), this.cmFrame = requestAnimationFrame(() => this.cmPlace());
 			};
 		}
@@ -1944,7 +1943,7 @@ ke().then((e) => {
 			super.connectedCallback(), this.cmHolder = this.parentElement?.parentElement, this.cmHolder?.style.setProperty("min-height", "100dvh"), document.documentElement.style.setProperty("height", "100dvh"), this.cmSeen.observe(this), this.cmStop = qe(() => this.cmLater()), this.addEventListener("section-visibility-changed", this.cmLater), this.addEventListener("card-visibility-changed", this.cmLater);
 		}
 		disconnectedCallback() {
-			super.disconnectedCallback(), this.cmHolder?.style.removeProperty("min-height"), document.documentElement.style.removeProperty("height"), this.cmSeen.disconnect(), this.cmStop?.(), this.removeEventListener("section-visibility-changed", this.cmLater), this.removeEventListener("card-visibility-changed", this.cmLater), cancelAnimationFrame(this.cmFrame), this.cmAsked = !1;
+			super.disconnectedCallback(), this.cmHolder?.style.removeProperty("min-height"), document.documentElement.style.removeProperty("height"), this.cmSeen.disconnect(), this.cmStop?.(), this.removeEventListener("section-visibility-changed", this.cmLater), this.removeEventListener("card-visibility-changed", this.cmLater), cancelAnimationFrame(this.cmFrame), this.cmUnwatch?.(), this.cmUnwatch = void 0;
 		}
 		cmMarks() {
 			this.toggleAttribute("cm-identify", this.cmDebug || !!this.cmApp.identify_panels), this.style.setProperty("--cm-outline", this.cmApp.identify_outline || "1px solid red");
@@ -1954,7 +1953,7 @@ ke().then((e) => {
 			let t = !!this.lovelace?.editMode;
 			this.toggleAttribute("editing", t);
 			let n = this.shadowRoot?.querySelector(".container > ha-sortable");
-			n && (n.disabled = !0), t && this.cmComplete(), !this.cmAsked && this.hass && (this.cmAsked = !0, Ot(this.hass).then((e) => {
+			n && (n.disabled = !0), t && this.cmComplete(), !this.cmUnwatch && this.hass && (this.cmUnwatch = Ot(this.hass, (e) => {
 				this.cmApp = e, this.cmMarks(), this.cmLater();
 			})), this.cmLater();
 		}

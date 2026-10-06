@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.3-b30
+
+- Camera compositor: measures where the time goes. Its status shows each picture's size and drawing time, the last round's fetch time, and each open stream's frames, kB a frame, kbit/s and the share of time spent waiting for the network; the log records each stream's opening and the same figures at its end. Pictures through Home Assistant log their kbit/s and waiting too.
+- Settings page: a change to the Tablet Layout debugging options shows on open Tablet Layouts within a few seconds (it waited for the integration's next poll and the view's next showing).
+
 ## 2026.10.3-b29
 
 - Tablet Layout: the panels fit between the view's header and footer. The footer sat a row gap up from the bottom, over the panels, and a header or footer that changed height (a card loading, badges shown or hidden) left the panels at the old size until the next resize.

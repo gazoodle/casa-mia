@@ -73,7 +73,7 @@ export function SettingsPage() {
   if (!settings) return <Shell {...HEAD}><p className={guest.notice}>Loading…</p></Shell>;
   const tv = settings.tablet_view;
   const saveView = (change: Partial<TabletView>) =>
-    save({ tablet_view: change as TabletView }, "Saved. Tablets pick it up within a minute, at their next view change or reload.");
+    save({ tablet_view: change as TabletView }, "Saved. Open Tablet Layouts show it within a few seconds.");
   const saveOutline = () => {
     const value = outline.trim() || "1px solid red";
     if (value !== tv.identify_outline) saveView({ identify_outline: value });

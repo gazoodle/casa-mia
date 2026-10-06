@@ -58,7 +58,7 @@ def _ws_token(
     connection.send_result(msg["id"], {"token": token, "expires_in": TOKEN_LIFE})
 
 
-def _coordinator(hass: HomeAssistant) -> CasaMiaCoordinator | None:
+def running_coordinator(hass: HomeAssistant) -> CasaMiaCoordinator | None:
     for entry in hass.config_entries.async_entries(DOMAIN):
         if isinstance(
             found := getattr(entry, "runtime_data", None), CasaMiaCoordinator
@@ -70,7 +70,7 @@ def _coordinator(hass: HomeAssistant) -> CasaMiaCoordinator | None:
 def source(hass: HomeAssistant, which: str, name: str) -> str | None:
     """The app's own address for a commander's picture, live or draft; None if no
     commander has it."""
-    coordinator = _coordinator(hass)
+    coordinator = running_coordinator(hass)
     key = "card" if which == "live" else "draft_card"
     for cmd in commanders(coordinator) if coordinator and coordinator.data else []:
         picture = (cmd.get(key) or {}).get("picture") or ""
@@ -119,6 +119,7 @@ class PictureView(HomeAssistantView):
             request.remote,
         )
         resp: web.StreamResponse | None = None
+        began, sent, waiting = time.monotonic(), 0, 0.0
         try:
             async with session.get(
                 url,
@@ -142,7 +143,10 @@ class PictureView(HomeAssistantView):
                 )
                 await resp.prepare(request)
                 async for chunk in upstream.content.iter_any():
+                    at = time.monotonic()
                     await resp.write(chunk)
+                    waiting += time.monotonic() - at
+                    sent += len(chunk)
         except ConnectionResetError:  # the viewer left
             pass
         except aiohttp.ClientError as exc:
@@ -150,5 +154,15 @@ class PictureView(HomeAssistantView):
                 "picture %s/%s: the app is not reachable: %s", which, name, exc
             )
         finally:
-            _LOGGER.info("picture %s/%s to %s ended", which, name, user)
+            took = max(time.monotonic() - began, 0.001)
+            _LOGGER.info(
+                "picture %s/%s to %s ended after %.0f s: %.0f kbit/s, %.0f%% of the "
+                "time waiting to send",
+                which,
+                name,
+                user,
+                took,
+                sent * 8 / 1000 / took,
+                100 * waiting / took,
+            )
         return resp if resp is not None else web.Response(status=502)
