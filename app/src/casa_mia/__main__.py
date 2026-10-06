@@ -177,6 +177,7 @@ def main() -> int:
         ws_path,
         keep_stills=KEEP_STILLS_EVERY if cameras_on else None,
         sizes_path=CONFIG / "camera_sizes.json",  # each channel's size, kept
+        pace_path=CONFIG / "compositor_pace.json",  # its paces, as set on its page
     )
     if options.get("compositor_enabled", False):
         compositor = Compositor(
@@ -219,7 +220,16 @@ def main() -> int:
         modules["camera_dashboard"] = lambda: {"state": "disabled"}
     if compositor:
         compositor.start()
-        modules["compositor"] = compositor.health
+        # The live engine's, with the preview's generator and server (the integration's
+        # pipeline switches).
+        modules["compositor"] = lambda: {
+            **compositor.health(),
+            "preview": {
+                k: draft.health()[k] for k in ("generator_paused", "server_paused")
+            }
+            if draft
+            else None,
+        }
         # The size test pages' address: the compositor host set on the Camera Dashboard
         # page, else this box's LAN address.
         dashboard = cameras if cameras_on else None

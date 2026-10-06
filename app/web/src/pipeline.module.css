@@ -110,6 +110,21 @@
   overflow-wrap: anywhere;
 }
 
+.pace {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  font-size: 14px;
+}
+
+.pace input {
+  flex: 1 1 180px;
+  max-width: 360px;
+  accent-color: var(--accent);
+}
+
 .controls {
   display: flex;
   flex-wrap: wrap;

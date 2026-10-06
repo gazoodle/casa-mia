@@ -5,7 +5,7 @@
  * Each stage pauses and runs on its own; the cache purges whole or a picture at a time;
  * Restart restarts both engines. */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api";
 import { BinIcon, CameraGridIcon } from "./icons";
 import { AreaHead, Empty, Shell } from "./page";
@@ -48,7 +48,7 @@ type Channel = {
   wanted_by: string[];
   uses: Use[];
 };
-type Gatherer = { paused: boolean; gathering: boolean; go2rtc: boolean | null; streams_read: number; channels: Channel[] };
+type Gatherer = { paused: boolean; gathering: boolean; pace: number; go2rtc: boolean | null; streams_read: number; channels: Channel[] };
 type Picture = {
   key: string;
   commander: string;
@@ -67,6 +67,8 @@ type Engine = {
   port: number;
   drawing?: boolean;
   generator_paused?: boolean;
+  /** Seconds between its drawings. */
+  pace?: number;
   server_paused?: boolean;
   error?: string | null;
   needs?: string | null;
@@ -127,7 +129,7 @@ export function CompositorPage({ state }: { state?: string }) {
     <Shell
       icon={<CameraGridIcon />}
       title="Camera compositor"
-      blurb="Its pipeline as it runs now, refreshed every 2 seconds: gatherer, cache, generators, servers."
+      blurb={`Its pipeline as it runs now, refreshed every ${POLL_MS / 1000} s: gatherer, cache, generators, servers.`}
       state={state}
       action={
         <button
@@ -245,9 +247,10 @@ function GathererArea({ g, busy, act, onLive }: { g: Gatherer; busy: boolean; ac
     <section className={guest.area}>
       <AreaHead
         title="Gatherer"
-        blurb={`Each camera channel wanted is fetched on its own, every 2 s: its stream's frames where Home Assistant's go2rtc carries it (${g.go2rtc ? "reachable" : "not reachable"}), else snapshots. ${g.paused ? "Paused: nothing is fetched." : ""}`}
+        blurb={`Each camera channel wanted is fetched on its own, ${paceText(g.pace)}: its stream's frames where Home Assistant's go2rtc carries it (${g.go2rtc ? "reachable" : "not reachable"}), else snapshots. ${g.paused ? "Paused: nothing is fetched." : ""}`}
         action={<PauseButton paused={g.paused} path="gatherer" name="Gatherer" busy={busy} act={act} />}
       />
+      <PaceSlider which="gatherer" value={g.pace} steps={GATHER_STEPS} act={act} />
       {g.channels.length ? (
         <Table head={["Camera", "Channel", "State", "Size", "Rate", "Wanted by", "Missed", ""]}>
           {[...g.channels].sort(byCamera).map((c) => (
@@ -289,6 +292,40 @@ function GathererArea({ g, busy, act, onLive }: { g: Gatherer; busy: boolean; ac
         <Empty>No cameras yet.</Empty>
       )}
     </section>
+  );
+}
+
+/** The paces to choose from, seconds between: the gatherer's down to continuous (0), a
+ * generator's down to 8 a second. */
+const GATHER_STEPS = [0, 0.125, 0.25, 0.5, 1, 2, 3, 5, 10, 15];
+const DRAW_STEPS = [0.125, 0.25, 0.5, 1, 2, 3, 5, 10, 15];
+
+/** 0: continuous; 0.25: 4 a second; 2: every 2 s. */
+function paceText(seconds: number): string {
+  if (seconds === 0) return "continuous, as fast as each answers";
+  return seconds < 1 ? `${Math.round(1 / seconds)} a second` : `every ${seconds} s`;
+}
+
+/** A pace, set on the box a moment after the slider stops moving. */
+function PaceSlider({ which, value, steps, act }: { which: string; value: number; steps: number[]; act: Act }) {
+  const [held, setHeld] = useState<number>(); // the step shown while it moves
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const nearest = steps.reduce((best, s, i) => (Math.abs(s - value) < Math.abs(steps[best] - value) ? i : best), 0);
+  const at = held ?? nearest;
+  const move = (i: number) => {
+    setHeld(i);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      act("pace", `Pace: ${paceText(steps[i])}`, { which, seconds: steps[i] });
+      setHeld(undefined);
+    }, 400);
+  };
+  return (
+    <label className={pipe.pace}>
+      <span>Pace</span>
+      <input type="range" min={0} max={steps.length - 1} step={1} value={at} onChange={(e) => move(Number(e.target.value))} />
+      <strong>{paceText(steps[at])}</strong>
+    </label>
   );
 }
 
@@ -511,9 +548,10 @@ function GeneratorArea({
     <section className={guest.area}>
       <AreaHead
         title={`${name} generator`}
-        blurb={`${blurb} Draws each commander watched every 2 s from the cache${e.generator_paused ? "; paused: the last pictures are served on" : ""}.`}
+        blurb={`${blurb} Draws each commander watched from the cache, ${paceText(e.pace ?? 2)}${e.generator_paused ? "; paused: the last pictures are served on" : ""}.`}
         action={<PauseButton paused={!!e.generator_paused} path={`${which}/generator`} name={`${name} generator`} busy={busy} act={act} />}
       />
+      <PaceSlider which={which} value={e.pace ?? 2} steps={DRAW_STEPS} act={act} />
       {e.error && <p className={guest.empty}>{e.error}</p>}
       {e.needs && <Empty>It needs {e.needs}.</Empty>}
       {e.pictures?.length ? (

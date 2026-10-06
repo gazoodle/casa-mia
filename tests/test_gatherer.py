@@ -225,3 +225,28 @@ def test_a_paused_generator_draws_nothing_even_when_asked(served):
     assert err.value.code == 503 and not served._pictures
     served.pause("generator", False)
     assert urllib.request.urlopen(url).status == 200  # asked of the generator, at once
+
+
+def test_paces_are_kept_checked_and_taken_up_at_once(tmp_path):
+    paces = tmp_path / "pace.json"
+    g = gatherer(tmp_path, pace_path=paces)
+    assert g.pace("gatherer") == mod.INTERVAL and g.pace("live") == mod.INTERVAL
+    g.set_pace("gatherer", 0)  # continuous
+    g.set_pace("live", 0.125)  # 8 a second
+    with pytest.raises(ValueError):
+        g.set_pace("live", 0.1)  # faster than 8 a second
+    with pytest.raises(ValueError):
+        g.set_pace("gatherer", 16)
+    again = gatherer(tmp_path, pace_path=paces)
+    assert (again.pace("gatherer"), again.pace("live")) == (0, 0.125)
+
+    async def taken_up():
+        g._repaced = asyncio.Event()
+        started = time.monotonic()
+        waiting = asyncio.ensure_future(g.paced(15))  # a 15 s wait in progress
+        await asyncio.sleep(0.05)
+        g.set_pace("gatherer", 1)  # (not started: set on the spot)
+        await waiting
+        return time.monotonic() - started
+
+    assert asyncio.run(taken_up()) < 1  # ended by the new pace, not after 15 s

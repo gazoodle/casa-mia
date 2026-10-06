@@ -1,5 +1,5 @@
 """Buttons: force a firmware check now; reset the FONA's Arduino; restart the camera
-compositor, or flush its live or preview cache."""
+compositor, or purge its cache (shared by the live and preview engines)."""
 
 from __future__ import annotations
 
@@ -24,9 +24,10 @@ async def async_setup_entry(
             [
                 GitProxyCheckButton(coordinator, entry),
                 FonaResetButton(coordinator, entry),
-                CompositorButton(coordinator, entry, "restart", None),
-                CompositorButton(coordinator, entry, "flush_live", "live"),
-                CompositorButton(coordinator, entry, "flush_preview", "draft"),
+                CompositorButton(coordinator, entry, "restart", "/compositor/restart"),
+                CompositorButton(
+                    coordinator, entry, "purge", "/compositor/cache/purge"
+                ),
             ],
         )
     )
@@ -67,8 +68,8 @@ class FonaResetButton(CasaMiaEntity, ButtonEntity):
 
 
 class CompositorButton(CasaMiaEntity, ButtonEntity):
-    """Restart the camera compositor (both engines, live and preview), or flush one's
-    cache: every still and picture fetched and drawn afresh, as they are asked for."""
+    """Restart the camera compositor (both engines, live and preview), or purge its
+    cache: every picture fetched and drawn afresh, as they are wanted."""
 
     _module = "compositor"
 
@@ -77,21 +78,16 @@ class CompositorButton(CasaMiaEntity, ButtonEntity):
         coordinator: CasaMiaCoordinator,
         entry: ConfigEntry,
         action: str,
-        which: str | None,
+        path: str,
     ) -> None:
         super().__init__(coordinator, entry)
         self._attr_translation_key = f"compositor_{action}"
         self._attr_unique_id = f"{entry.entry_id}_compositor_{action}"
-        self._which = which
+        self._path = path
 
     async def async_press(self) -> None:
-        path, body = (
-            ("/compositor/restart", None)
-            if self._which is None
-            else ("/compositor/flush", {"which": self._which})
-        )
         try:
-            await async_post(self.hass, self.coordinator.url, path, body)
+            await async_post(self.hass, self.coordinator.url, self._path)
         except aiohttp.ClientError as exc:
             raise HomeAssistantError(
                 f"Not done (is the camera compositor switched on in the app?): {exc}"

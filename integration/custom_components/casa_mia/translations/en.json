@@ -29,7 +29,21 @@
     "alarm_wrong_code": { "message": "Wrong alarm code." }
   },
   "entity": {
-    "switch": { "access": { "name": "Access" }, "security_look": { "name": "Security look" }, "track_motion": { "name": "Track motion" } },
+    "switch": {
+      "access": { "name": "Access" },
+      "security_look": { "name": "Security look" },
+      "track_motion": { "name": "Track motion" },
+      "pipeline_gatherer": { "name": "Gatherer" },
+      "pipeline_live_generator": { "name": "Live generator" },
+      "pipeline_live_server": { "name": "Live server" },
+      "pipeline_preview_generator": { "name": "Preview generator" },
+      "pipeline_preview_server": { "name": "Preview server" }
+    },
+    "number": {
+      "gatherer_pace": { "name": "Gatherer pace" },
+      "live_generator_pace": { "name": "Live generator pace" },
+      "preview_generator_pace": { "name": "Preview generator pace" }
+    },
     "select": { "commander_main": { "name": "Main camera" } },
     "event": {
       "login": { "name": "Login", "state_attributes": { "event_type": { "state": { "login": "Login" } } } },
@@ -41,8 +55,7 @@
       "gitproxy_check": { "name": "Force firmware check" },
       "fona_reset": { "name": "Reset" },
       "compositor_restart": { "name": "Restart" },
-      "compositor_flush_live": { "name": "Flush live cache" },
-      "compositor_flush_preview": { "name": "Flush preview cache" }
+      "compositor_purge": { "name": "Purge cache" }
     },
     "sensor": {
       "app_version": { "name": "App version" },

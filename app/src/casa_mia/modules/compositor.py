@@ -1,28 +1,32 @@
 """compositor: on-demand camera compositor: the Camera Commander's picture.
 
-Three parts, all on one asyncio loop in the compositor's own thread:
+A pipeline of stages that never wait on each other, all on one asyncio loop (the
+gatherer's, shared by the live and the draft compositor), each paused and run on its own
+and each at its own pace, settable on the Camera compositor page and by the integration
+(PACES; INTERVAL until set):
 
-  * the gather loop: while someone is watching (a stream open, or a picture asked for in
-    the last LINGER seconds), every INTERVAL it fetches from Home Assistant the still of
-    each channel the watched pictures are drawn from, all at once, each with its own
-    timeout, into a cache that is never emptied. Stills come at the channel's own size;
-    each place (a tile, the main area) is drawn from the first of its camera's channels,
-    low, medium, high, whose still is at least its size, so it is only made smaller
-    (`choose`). The channels' sizes are learned as their stills come (the kept stills
-    fetch every channel not yet sized). A channel that misses STRIKES rounds in a row
-    sits out (its picture goes stale) and is tried again after BENCH seconds. Nobody
-    watching: nothing is fetched.
-  * the drawing: after each round each commander being watched is drawn from the
-    cache, in a worker thread (the loop keeps serving meanwhile); a camera picture older
-    than the commander's `stale` seconds is marked Stale. Open streams are told a new
-    picture is ready. Only the cameras of the commanders being watched are fetched.
-  * the HTTP server: serves the latest picture, to any number of viewers.
+  * the gatherer (Gatherer, one for both compositors): each camera channel wanted is
+    fetched by a loop of its own at the gatherer's pace (0: continuous), from its stream
+    where Home Assistant's go2rtc carries it, else as snapshots, into a cache that is
+    never emptied ("(Waiting …)" until a channel's first picture). Each place (a tile,
+    the main area) is drawn from the first of its camera's channels, low, medium, high,
+    whose picture is at least its size, so it is only made smaller (`choose`); the
+    channels' sizes are read once from their streams and kept across restarts. A channel
+    that misses STRIKES times in a row (while others answer) sits out for BENCH seconds.
+    A channel nobody wants is not fetched.
+  * the generator (each compositor): while someone is watching (a stream open, or a
+    picture asked for in the last LINGER seconds), each commander watched is drawn from
+    the cache at the generator's pace, in a worker thread; a camera picture older than
+    the commander's `stale` seconds is marked Stale. Open streams are told a new picture
+    is ready.
+  * the server (each compositor): sends the latest picture to any number of viewers; it
+    never draws, it asks the generator.
 
 Ported from tablet-provision/composite-test/server.py.
 
   GET /g/<name>.jpg       a commander's latest picture (poll it, or view it once); its
                           name as a slug: /g/cameras.jpg for the commander Cameras
-  GET /g/<name>.mjpg      self-updating multipart stream, one frame per interval
+  GET /g/<name>.mjpg      self-updating multipart stream, a frame per drawing
   GET /                   links; GET /status  cache ages and open streams
   GET /size-test          a commander at exactly the window's size, with the figures
 
@@ -61,7 +65,7 @@ from . import streams
 _LOGGER = logging.getLogger(__name__)
 
 PORT = 8099
-INTERVAL = 2.0  # seconds between gather rounds while someone is watching
+INTERVAL = 2.0  # the paces until set (see PACES): seconds between fetches, drawings
 LINGER = (
     30.0  # gathering goes on this long after the last request: a quick return is fresh
 )
@@ -80,6 +84,11 @@ JPEG_QUALITY = 70
 # only and without a login (named by the camera's platform and unique id); the app reaches
 # it on the host network.
 GO2RTC_RTSP = ("127.0.0.1", 18554)
+# The paces, settable on the Camera compositor page (seconds between): the gatherer's
+# fetches of each channel (0: continuous, as fast as each one answers), and each
+# generator's drawings; INTERVAL until set.
+PACES = {"gatherer": (0.0, 15.0), "live": (0.125, 15.0), "draft": (0.125, 15.0)}
+IDLE = 0.02  # continuous: a stream with no new frame yet is looked at again this soon
 STREAM_RETRY = 30.0  # seconds before a lost stream is read again (snapshots meanwhile)
 PROBES_AT_ONCE = 2  # channels read at once for their size
 LATEST_AT_ONCE = 4  # cameras fetched together in a round
@@ -886,7 +895,7 @@ class Gatherer:
     compositors share, in a thread of its own.
 
     Each compositor says, as it draws, which channel each of its places is drawn from
-    (`want`). Each channel wanted is then fetched by a loop of its own, every INTERVAL:
+    (`want`). Each channel wanted is then fetched by a loop of its own, at its pace:
     a frame of its stream where Home Assistant's go2rtc carries it (converted once, when
     a new one has come), else a snapshot. A slow or dead camera holds up only itself; a
     channel that misses STRIKES times in a row (while others answer) sits out for BENCH
@@ -906,6 +915,7 @@ class Gatherer:
         ws_path: str = "/websocket",
         keep_stills: float | None = None,
         sizes_path: Path | None = None,
+        pace_path: Path | None = None,
     ) -> None:
         self.ha_url = ha_url.rstrip("/")  # the Supervisor proxy, or http://host:8123
         self.ws_url = self.ha_url.replace("http", "ws", 1) + ws_path
@@ -932,6 +942,13 @@ class Gatherer:
         self.res: dict[str, tuple[int, int]] = {}
         self._streamed: set[str] = set()
         self._took: dict[str, float] = {}
+        # The paces (seconds between): the gatherer's and each generator's (see PACES),
+        # kept in pace_path; an event set (and replaced) when one changes, so a wait in
+        # progress takes up a new one at once.
+        self.pace_path = pace_path
+        self.paces: dict[str, float] = {}
+        self._repaced: asyncio.Event | None = None
+        self._load_paces()
         self._shot_size: dict[str, tuple[int, int]] = {}  # each picture's own size
         # Channels whose snapshot is not their stream's size: their snapshots unwanted.
         self._snap_wrong: set[str] = set()
@@ -994,7 +1011,7 @@ class Gatherer:
         self.http = aiohttp.ClientSession(
             headers={"Authorization": f"Bearer {self.token}"}
         )
-        self._wake = asyncio.Event()
+        self._wake, self._repaced = asyncio.Event(), asyncio.Event()
         self._placehold()
         tasks = [self._run()]
         if self.keep_stills:
@@ -1065,6 +1082,58 @@ class Gatherer:
 
         self._soon(wake)
 
+    def pace(self, which: str) -> float:
+        """Seconds between: the gatherer's fetches of each channel ("gatherer"), or a
+        generator's drawings ("live", "draft")."""
+        return self.paces.get(which, INTERVAL)
+
+    def set_pace(self, which: str, seconds: float) -> None:
+        """Set a pace (within PACES), kept across restarts, taken up at once.
+        Thread-safe; ValueError out of range."""
+        low, high = PACES[which]
+        if not low <= seconds <= high:
+            raise ValueError(f"{which}: {low}-{high} s")
+        self.paces[which] = seconds
+        _LOGGER.info(
+            "compositor (cameras): %s pace: %s",
+            which,
+            "continuous" if seconds == 0 else f"every {seconds:g} s",
+        )
+        if self.pace_path:
+            try:
+                self.pace_path.write_text(json.dumps(self.paces))
+            except OSError as exc:
+                _LOGGER.warning("compositor (cameras): pace not kept: %s", exc)
+
+        def repace() -> None:
+            if self._repaced:
+                done, self._repaced = self._repaced, asyncio.Event()
+                done.set()
+
+        self._soon(repace)
+
+    def _load_paces(self) -> None:
+        if not self.pace_path:
+            return
+        try:
+            kept = json.loads(self.pace_path.read_text())
+        except (OSError, ValueError):
+            return
+        for which, (low, high) in PACES.items():
+            value = kept.get(which) if isinstance(kept, dict) else None
+            if isinstance(value, (int, float)) and low <= value <= high:
+                self.paces[which] = float(value)
+
+    async def paced(self, seconds: float) -> None:
+        """Wait that long, or less when a pace changes meanwhile (on its loop)."""
+        if seconds <= 0 or self._repaced is None:  # (not started: a plain wait)
+            await asyncio.sleep(max(seconds, 0))
+            return
+        try:
+            await asyncio.wait_for(self._repaced.wait(), seconds)
+        except TimeoutError:
+            pass
+
     def want(self, owner: str, uses: dict[str, list[Use]]) -> None:
         """What a compositor draws from, as of now: each channel and its places. A
         channel not fetched yet starts at once. On its loop."""
@@ -1104,8 +1173,8 @@ class Gatherer:
                 if not self.gathering:
                     self.gathering = True
                     _LOGGER.info(
-                        "compositor (cameras): wanted; each channel fetched every %.0f s",
-                        INTERVAL,
+                        "compositor (cameras): wanted; each channel fetched every %g s",
+                        self.pace("gatherer"),
                     )
                 for c in live - set(self._feeds):
                     task = asyncio.ensure_future(self._feed(c))
@@ -1128,23 +1197,28 @@ class Gatherer:
         self._stop_readers(set(keep))
 
     async def _feed(self, entity: str) -> None:
-        """One channel, fetched every INTERVAL on its own until stopped (see _once)."""
+        """One channel, fetched at the gatherer's pace on its own until stopped (see
+        _once); continuous (0): again as soon as it answers."""
         while True:
             started = time.monotonic()
-            await self._once(entity)
-            await asyncio.sleep(max(0.0, INTERVAL - (time.monotonic() - started)))
+            new = await self._once(entity)
+            wait = self.pace("gatherer") - (time.monotonic() - started)
+            # ponytail: continuous polls a stream for its next frame every IDLE s; a
+            # frame event from the reader would wake it exactly, if this ever matters.
+            await self.paced(wait if new else max(wait, IDLE))
 
-    async def _once(self, entity: str) -> None:
+    async def _once(self, entity: str) -> bool:
         """Fetch a channel once. A miss keeps the picture already cached (it goes
         stale); it counts against the channel only while others answer (one did in
         the INTERVAL before it was asked, or since): when none do, Home Assistant (or
         the way to it) is down, a restart say, which is no camera's fault, and an outage
         costs each channel one miss at most. STRIKES in a row and it sits out for BENCH
-        seconds, skipped until then."""
+        seconds, skipped until then. Whether a new picture came."""
         started = time.monotonic()
+        window = max(self.pace("gatherer"), INTERVAL)  # "others answered lately"
         if entity in self._benched:
             if started < self._benched[entity]:
-                return
+                return False
             del self._benched[entity]
             _LOGGER.info("compositor (cameras): trying %s again", entity)
         got = await self._get(entity)
@@ -1157,7 +1231,8 @@ class Gatherer:
                 _LOGGER.info("compositor (cameras): cameras answer again")
             if got:
                 self.keep(entity, got[0], got[1], streamed=got[2])
-        elif self._answered > started - INTERVAL:
+                return True
+        elif self._answered > started - window:
             self._misses[entity] = self._misses.get(entity, 0) + 1
             if self._misses[entity] >= STRIKES:
                 del self._misses[entity]
@@ -1169,12 +1244,13 @@ class Gatherer:
                     STRIKES,
                     BENCH / 60,
                 )
-        elif not self._ha_down and now - self._answered > INTERVAL * 2:
+        elif not self._ha_down and now - self._answered > window * 2:
             self._ha_down = True
             _LOGGER.warning(
                 "compositor (cameras): no camera answers; Home Assistant unreachable? "
                 "Trying on"
             )
+        return False
 
     async def _get(self, entity: str) -> tuple[Picture, float, bool] | tuple[()] | None:
         """A channel's newest picture, when it came, and whether from its stream: its
@@ -1411,6 +1487,7 @@ class Gatherer:
         return {
             "paused": self.paused,
             "gathering": self.gathering,
+            "pace": self.pace("gatherer"),
             "go2rtc": self.go2rtc,
             "streams_read": sum(1 for r in self._readers.values() if r.alive),
             "channels": [row(e) for e in sorted(set(self.shots) | set(self.res))],
@@ -1728,6 +1805,7 @@ class Compositor:
     ) -> None:
         self.config_dir = config_dir
         self.store = store  # which Camera Dashboard store it serves (live or draft)
+        self.role = "live" if store == LIVE_STORE else "draft"  # its pace's name
         self.prewarm = prewarm  # gather for LINGER from the start (not for previews)
         # The cameras' pictures: shared with the other compositor, or its own (keeping
         # the latest still of every camera every keep_stills seconds, if set).
@@ -1887,7 +1965,12 @@ class Compositor:
                     if where == "main"
                 }
                 await asyncio.gather(
-                    *(self.gather.updated(ch, FETCH_TIMEOUT + INTERVAL) for ch in chans)
+                    *(
+                        self.gather.updated(
+                            ch, FETCH_TIMEOUT + self.gather.pace("gatherer")
+                        )
+                        for ch in chans
+                    )
                 )
                 if self._tick:
                     self._tick.set()
@@ -2005,6 +2088,13 @@ class Compositor:
             "gathering": self._gathering,
             "sitting_out": sorted(self.gather._benched),
             "go2rtc": self.gather.go2rtc,
+            # The pipeline's controls, for the integration's entities: the gatherer
+            # (shared) and this engine's generator and server, paused or running, and
+            # the paces (seconds between).
+            "gatherer_paused": self.gather.paused,
+            "generator_paused": self.drawing_paused,
+            "server_paused": self.serving_paused,
+            "paces": {w: self.gather.pace(w) for w in PACES},
             "streams_read": sum(1 for r in self.gather._readers.values() if r.alive),
             "needs": self.needs if state == "unconfigured" else None,
             "error": self._error,
@@ -2191,7 +2281,7 @@ class Compositor:
         return picture
 
     async def _gather(self) -> None:
-        """The generator: while someone is watching, every INTERVAL (or at once when
+        """The generator: while someone is watching, at its pace (or at once when
         asked, `_tick`), a picture of each commander watched, from whatever the cache
         holds now (it never waits for the gatherer), having told the gatherer what they
         are drawn from. Nobody watching, or paused: it waits, drawing nothing (and
@@ -2214,9 +2304,9 @@ class Compositor:
             if not self._gathering:
                 self._gathering = True
                 _LOGGER.info(
-                    "compositor (%s): someone is watching; drawing every %.0f s",
+                    "compositor (%s): someone is watching; drawing every %g s",
                     self.store,
-                    INTERVAL,
+                    self.gather.pace(self.role),
                 )
             started = time.monotonic()
             self._tick.clear()
@@ -2233,7 +2323,10 @@ class Compositor:
                     )
             try:
                 await asyncio.wait_for(
-                    self._tick.wait(), max(0.0, INTERVAL - (time.monotonic() - started))
+                    self._tick.wait(),
+                    max(
+                        0.0, self.gather.pace(self.role) - (time.monotonic() - started)
+                    ),
                 )
             except TimeoutError:
                 pass
@@ -2548,6 +2641,7 @@ class Compositor:
             "pictures": [picture(k, t) for k, (t, _) in sorted(self._pictures.items())],
             "devices": {ip: len(v) for ip, v in self._streams.items() if v},
             "generator_paused": self.drawing_paused,
+            "pace": self.gather.pace(self.role),
             "server_paused": self.serving_paused,
             "gatherer_paused": self.gather.paused,
             "sending": [s.figures(now) for s in self._sending],
@@ -2635,6 +2729,20 @@ def admin_api(
             and parts[2] in ("pause", "run")
         ):
             engines[parts[0]].pause(parts[1], parts[2] == "pause")  # type: ignore[union-attr]
+            return status()
+        if parts == ["pace"]:
+            try:
+                asked = json.loads(body or b"{}")
+                which, seconds = str(asked["which"]), float(asked["seconds"])
+                engine = engines.get(which)
+                if which != "gatherer" and not engine:
+                    return fail(404, "no such engine")
+                live.gather.set_pace(which, seconds)
+                if engine:  # its next drawing at the new pace, now
+                    tick = engine._tick
+                    engine._on_loop(lambda: tick.set() if tick else None)
+            except (ValueError, KeyError, TypeError) as exc:
+                return fail(400, f"pace: {exc}")
             return status()
         if parts == ["cache", "purge"]:
             for engine in (live, draft):

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.3-b44
+
+- Camera compositor: the paces are settable, each on its own: the gatherer's (each channel fetched every 15 s down to continuous, again as soon as it answers) and each generator's (drawings every 15 s down to 8 a second). Sliders on the Camera compositor page; kept across restarts (compositor_pace.json in the app's config); a new pace is taken up at once. The page and the log give the actual paces, not "every 2 s".
+- Integration: the camera compositor's pipeline for automations: switches for the gatherer and the live and preview generators and servers (on: running, off: paused), numbers for the three paces (seconds), and a Purge cache button. The Flush live cache and Flush preview cache buttons are gone (the cache is one, shared): delete them from Home Assistant if they linger as unavailable.
+
 ## 2026.10.3-b43
 
 - Camera compositor: the server never draws. A picture it is asked for and has none of (or an old one) is asked of the generator and waited for; while the generator is paused, nothing new appears: a purged composite stays gone (an open commander's stream holds, a single picture is refused), and a drawing finished after the pause is dropped.

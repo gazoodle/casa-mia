@@ -1,15 +1,19 @@
 """Switches: open or close a guest/engineer login endpoint (off by default); the camera
 dashboards' Security look and Track motion, each commander's own (the look is applied
-in the browser by the Keep camera pictures live helper, which reads these switches)."""
+in the browser by the Keep camera pictures live helper, which reads these switches); and
+the camera compositor's pipeline, each stage running (on) or paused (off): the gatherer,
+and the live and preview generators and servers."""
 
 from __future__ import annotations
 
 from typing import Any
 
+import aiohttp
 import voluptuous as vol
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_platform
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -17,10 +21,11 @@ from homeassistant.helpers.restore_state import RestoreEntity
 
 from .commanders import CommanderEntity, add_commander_entities, unique_id
 from .const import DOMAIN
-from .coordinator import CasaMiaCoordinator
+from .coordinator import CasaMiaCoordinator, async_post
 from .guest import GuestEndpointEntity, add_endpoint_entities
 from .motion import commanders, tracker
 from .pictures import PROXY
+from .sensor import CasaMiaEntity, only_on
 
 
 async def async_setup_entry(
@@ -41,6 +46,12 @@ async def async_setup_entry(
         entry,
         async_add_entities,
         lambda i: [AccessSwitch(coordinator, entry, i)],
+    )
+    async_add_entities(
+        only_on(
+            coordinator,
+            [PipelineSwitch(coordinator, entry, stage) for stage in PIPELINE],
+        )
     )
     entity_platform.async_get_current_platform().async_register_entity_service(
         "enable_for",
@@ -175,3 +186,57 @@ class TrackMotionSwitch(CommanderEntity, SwitchEntity, RestoreEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         self._set(False)
         self.async_write_ha_state()
+
+
+# Each stage of the camera compositor's pipeline: its app path, and where its paused flag
+# is in the compositor's health (the live engine's, the preview's under "preview").
+PIPELINE = {
+    "gatherer": ("gatherer", (None, "gatherer_paused")),
+    "live_generator": ("live/generator", (None, "generator_paused")),
+    "live_server": ("live/server", (None, "server_paused")),
+    "preview_generator": ("draft/generator", ("preview", "generator_paused")),
+    "preview_server": ("draft/server", ("preview", "server_paused")),
+}
+
+
+class PipelineSwitch(CasaMiaEntity, SwitchEntity):
+    """A stage of the camera compositor's pipeline: on, running; off, paused (the
+    gatherer fetches nothing, a generator draws nothing, a server sends nothing new)."""
+
+    _module = "compositor"
+
+    def __init__(
+        self, coordinator: CasaMiaCoordinator, entry: ConfigEntry, stage: str
+    ) -> None:
+        super().__init__(coordinator, entry)
+        self._attr_translation_key = f"pipeline_{stage}"
+        self._attr_unique_id = f"{entry.entry_id}_pipeline_{stage}"
+        self._path, (self._part, self._flag) = PIPELINE[stage]
+
+    def _health(self) -> dict:
+        health = self.coordinator.data.get("modules", {}).get("compositor", {})
+        return (health.get(self._part) or {}) if self._part else health
+
+    @property
+    def available(self) -> bool:
+        return super().available and self._flag in self._health()
+
+    @property
+    def is_on(self) -> bool:
+        return not self._health().get(self._flag, False)
+
+    async def _set(self, running: bool) -> None:
+        path = f"/compositor/{self._path}/{'run' if running else 'pause'}"
+        try:
+            await async_post(self.hass, self.coordinator.url, path)
+        except aiohttp.ClientError as exc:
+            raise HomeAssistantError(
+                f"Not done (is the camera compositor switched on in the app?): {exc}"
+            ) from exc
+        await self.coordinator.async_request_refresh()
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        await self._set(True)
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        await self._set(False)
