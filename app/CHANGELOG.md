@@ -1,5 +1,7 @@
 # Changelog
 
+## 2026.10.3-b51
+
 ## 2026.10.3-b50
 
 - Camera compositor: a paused gatherer keeps nothing new: a fetch or survey read under way when it was paused no longer lands after (a purge while paused could see a picture come back), and the Camera Dashboard's thumbnails fetch nothing while paused. Waits are always cleared when a stream ends or the engine stops.
