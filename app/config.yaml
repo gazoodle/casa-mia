@@ -1,5 +1,5 @@
 name: Casa Mia
-version: "2026.10.3-b36"
+version: "2026.10.3-b37"
 slug: casa_mia
 description: "Casa Mia house services: phone and SMS (FONA), people, guest login, tablet firmware, Kiosk Satellites, camera composites."
 url: "https://github.com/gazoodle/casa-mia"
@@ -36,6 +36,9 @@ ingress_port: 8780
 panel_icon: mdi:home-heart
 panel_title: Casa Mia
 panel_admin: true
+# On the host's network: Home Assistant's go2rtc (camera streams) listens on the host's
+# localhost only. The ports below are then the host's own.
+host_network: true
 ports:
   8000/tcp: 8000
   8098/tcp: 8098

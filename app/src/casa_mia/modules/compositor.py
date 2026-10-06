@@ -41,6 +41,7 @@ import json
 import logging
 import math
 import re
+import socket
 import threading
 import time
 from collections.abc import Callable
@@ -73,6 +74,10 @@ WARM_STREAM_TIER = "medium"  # the channel the wall tablets play
 STILL_TTL = 1.5  # a fetched still is shared by every preview drawn within this time
 FETCH_TIMEOUT = 5  # seconds one camera's still may take
 JPEG_QUALITY = 70
+# Home Assistant's go2rtc restreams each camera it plays by WebRTC over RTSP, on localhost
+# only and without a login (named by the camera's platform and unique id); the app reaches
+# it on the host network.
+GO2RTC_RTSP = ("127.0.0.1", 18554)
 LATEST_AT_ONCE = 4  # cameras fetched together in a round
 
 
@@ -236,6 +241,20 @@ def config_from_store(store: dict) -> Config:
     cfg.commanders = [visible(c) for c in commanders_of(store)]
     cfg.titles = {e: c.get("title", e) for e, c in cams.items()}
     return cfg
+
+
+def go2rtc_reachable(timeout: float = 1.0) -> bool:
+    """Whether Home Assistant's go2rtc answers RTSP here."""
+    host, port = GO2RTC_RTSP
+    try:
+        with socket.create_connection((host, port), timeout) as s:
+            s.settimeout(timeout)
+            s.sendall(
+                f"OPTIONS rtsp://{host}:{port}/ RTSP/1.0\r\nCSeq: 1\r\n\r\n".encode()
+            )
+            return s.recv(64).startswith(b"RTSP/1.0 200")
+    except OSError:
+        return False
 
 
 def channels(cfg: Config, camera: str) -> dict[str, str]:
@@ -857,6 +876,7 @@ class Compositor:
         self.token = token
         self.port = port
         self.cfg = Config()
+        self.go2rtc: bool | None = None  # HA's go2rtc reachable, as found at start
         self._error: str | None = None
         self._running = False
         self._ready = threading.Event()
@@ -919,6 +939,13 @@ class Compositor:
             _LOGGER.warning(
                 "compositor (%s): no cameras yet; it needs %s", self.store, self.needs
             )
+        self.go2rtc = go2rtc_reachable()
+        _LOGGER.info(
+            "compositor (%s): Home Assistant's go2rtc (RTSP, %s:%d): %s",
+            self.store,
+            *GO2RTC_RTSP,
+            "reachable" if self.go2rtc else "not reachable",
+        )
         threading.Thread(target=lambda: asyncio.run(self._serve()), daemon=True).start()
         self._ready.wait(10)
 
@@ -1133,6 +1160,7 @@ class Compositor:
             "streams": self._stream_count(),
             "gathering": self._gathering,
             "sitting_out": sorted(self._benched),
+            "go2rtc": self.go2rtc,
             "needs": self.needs if state == "unconfigured" else None,
             "error": self._error,
         }

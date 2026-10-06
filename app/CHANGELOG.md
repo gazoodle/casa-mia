@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b37
+
+- The app runs on the host's network, so it can reach Home Assistant's go2rtc (which restreams each camera on the host's localhost only): the way to come for the compositor to draw from the cameras' streams themselves. The compositor logs at start whether go2rtc is reachable, and shows it in its status. The app's ports are now the host's own (they were already published as the same numbers).
+
 ## 2026.10.3-b36
 
 - Camera Dashboard page: a camera's live view plays the channel's own stream through Home Assistant's WebRTC, as HA's camera cards do, so the resolution shown is the stream's; a camera HA does not play by WebRTC keeps the MJPEG stream (made from snapshots). The note under the picture says which.

@@ -465,3 +465,24 @@ def test_a_stream_measures_what_it_sent_and_how_long_it_waited():
         800,
         50,
     )
+
+
+def test_go2rtc_reachable_asks_for_rtsp(monkeypatch):
+    import socket as sk
+
+    from casa_mia.modules import compositor as mod
+
+    with sk.socket() as srv:
+        srv.bind(("127.0.0.1", 0))
+        srv.listen()
+
+        def answer():
+            conn, _ = srv.accept()
+            with conn:
+                assert conn.recv(64).startswith(b"OPTIONS rtsp://")
+                conn.sendall(b"RTSP/1.0 200 OK\r\nCSeq: 1\r\n\r\n")
+
+        threading.Thread(target=answer, daemon=True).start()
+        monkeypatch.setattr(mod, "GO2RTC_RTSP", srv.getsockname())
+        assert mod.go2rtc_reachable()
+    assert not mod.go2rtc_reachable(0.2)  # closed: not reachable
