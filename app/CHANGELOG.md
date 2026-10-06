@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b27
+
+- The Camera Commander card works away from home. At home its picture still comes straight from the compositor; away (or with Home Assistant opened over HTTPS, where the browser blocks an http:// picture) it comes through Home Assistant, behind its login, for any signed-in user. Home is told by how the page reached Home Assistant (plain http at a home address), which the companion app already picks by the Wi-Fi it is on. The card's new "The picture" option can force either route. Needs a Home Assistant restart after updating, for the integration's new picture route.
+
 ## 2026.10.3-b26
 
 - The Tablet Layout is "Tablet (Casa Mia)" in Home Assistant's View type list, in keeping with the others there, and its YAML type is now `custom:casa-mia-tablet-layout`. A view with the old `custom:casa-mia-tablet-view` still works; to move it to the new name, pick Tablet (Casa Mia) in its view editor (or change the YAML).

@@ -389,3 +389,16 @@ def test_a_cameras_newest_still_replaces_its_others(tmp_path):
     assert [k for k in comp._shots if k[0] == "camera.a"] != [("camera.a", (100, 56))]
     _, age = comp._pick("camera.a", (100, 56))
     assert age < 5  # the new still, not the 999 s old one at that exact size
+
+
+def test_viewer_is_the_one_home_assistant_names():
+    from aiohttp.test_utils import make_mocked_request
+
+    from casa_mia.modules.compositor import viewer
+
+    direct = make_mocked_request("GET", "/g/x.mjpg")
+    assert viewer(direct) == direct.remote
+    via_ha = make_mocked_request(
+        "GET", "/g/x.mjpg", headers={"X-Forwarded-For": "203.0.113.7, 10.0.0.1"}
+    )
+    assert viewer(via_ha) == "203.0.113.7"

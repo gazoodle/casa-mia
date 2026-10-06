@@ -21,6 +21,7 @@ from .const import CARDS_JS, DOMAIN, FONA_EVENT, SCRIPTS, SCRIPTS_URL
 from .coordinator import CasaMiaCoordinator, async_post
 from .guest import async_prune_endpoint_devices
 from .motion import commanders, tracker
+from .pictures import setup as setup_pictures
 from .restart_notice import manifest_version
 from .sensor import MODULE_DEVICES, device_name, modules_off
 
@@ -139,7 +140,8 @@ def scripts_on(entry: ConfigEntry) -> list[str]:
 async def _load_scripts(
     hass: HomeAssistant, entry: ConfigEntry, version: str | None
 ) -> None:
-    """Serve www/ at /casa_mia and the cards' settings command (once per HA run), and
+    """Serve www/ at /casa_mia, the cards' settings command and the pictures through HA
+    (once per HA run), and
     load the cards (always) and the scripts switched on into every HA page; each comes off
     again when the entry unloads. ?v= changes with each update, so browsers fetch the new
     copy."""
@@ -149,6 +151,7 @@ async def _load_scripts(
         )
         hass.data[f"{DOMAIN}_www"] = True
         websocket_api.async_register_command(hass, _ws_settings)
+        setup_pictures(hass)  # the commanders' pictures, for viewers away from home
     for name in [CARDS_JS, *(SCRIPTS[k][0] for k in scripts_on(entry))]:
         url = f"{SCRIPTS_URL}/{name}?v={version}"
         frontend.add_extra_js_url(hass, url)

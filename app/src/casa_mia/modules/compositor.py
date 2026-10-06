@@ -172,6 +172,15 @@ def asked_size(query: Any) -> Size | None:
     return (w, h, dpr) if ok else None
 
 
+def viewer(request: web.BaseRequest) -> str | None:
+    """The device a picture is for: the client, or the viewer Home Assistant names when it
+    passes a picture on (the integration's pictures.py, for a viewer away from home), so
+    MAX_STREAMS counts each viewer rather than Home Assistant.
+    ponytail: the header is taken from anyone; it only steers that courtesy limit."""
+    forwarded = request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
+    return forwarded or request.remote
+
+
 def view_key(name: str, size: Size | None) -> str:
     """A commander's picture at a size: its own key (its slug alone at its set size)."""
     return name if size is None else f"{name}@{size[0]}x{size[1]}x{size[2]:g}"
@@ -1557,7 +1566,7 @@ class Compositor:
         # A browser doesn't close an <img> stream when the page that had it is left, so
         # they pile up until the client's connection limit is hit and the next page's
         # image waits. So a client's oldest streams are ended when it opens more.
-        stop, streams = asyncio.Event(), self._streams.setdefault(request.remote, [])
+        stop, streams = asyncio.Event(), self._streams.setdefault(viewer(request), [])
         streams.append(stop)
         while len(streams) > MAX_STREAMS:
             streams.pop(0).set()

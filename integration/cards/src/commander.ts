@@ -12,11 +12,17 @@
 // (ha.ts: fitOf, heightFor): always all of its width; alone in a Panel view, all of the
 // screen below its top edge; filling a Tablet Layout's panel, the panel; in a column, the commander's
 // own shape (16:9) from its width, at most the screen below its top edge.
+// The picture comes straight from the compositor at home (its LAN address), else through
+// Home Assistant (the integration's pictures.py): away from home that address is out of
+// reach, and on an HTTPS page an http:// picture is blocked. Home is told by how this page
+// reached Home Assistant (atHome), which the companion app already chooses by the Wi-Fi it
+// is on (its internal or external URL); `route` overrides it.
 import { LitElement, css, html, nothing } from "lit";
-import { define, type Fit, fire, fitOf, type Hass, heightFor, navigate, register, watchRoom } from "./ha.ts";
+import { atHome, define, type Fit, fire, fitOf, type Hass, heightFor, navigate, register, watchRoom } from "./ha.ts";
 import { layout, PANELS, pyRound, type Rect, type Settings } from "./layout.ts";
 
-type Config = { type: string; entity?: string; draft?: boolean; tap_main?: "live" | "more-info" | "none" };
+type Route = "auto" | "direct" | "ha";
+type Config = { type: string; entity?: string; draft?: boolean; tap_main?: "live" | "more-info" | "none"; route?: Route };
 type Card = {
   picture: string;
   layout: Settings & { highlight?: Record<string, string | number>; debug?: { on?: boolean; colour?: string } };
@@ -39,6 +45,18 @@ export function askFor(w: number, h: number, dpr: number): Size | null {
   return Math.min(W, H) >= MIN_SIDE ? [W, H, Math.round(dpr * k * 100) / 100 || 1] : null;
 }
 
+// The token for pictures through Home Assistant, shared by every card on the page; asked
+// again after half its life, or after a picture is refused (HA restarted, say).
+let token: { value: Promise<string>; until: number } | null = null;
+function pictureToken(hass: Hass, fresh = false): Promise<string> {
+  if (fresh || !token || Date.now() > token.until) {
+    const value = hass.callWS({ type: "casa_mia/picture_token" }).then((r: { token: string }) => r.token);
+    token = { value, until: Date.now() + 12 * 3600_000 };
+    value.catch(() => (token = null));
+  }
+  return token.value;
+}
+
 /** The commanders HA knows: their Main camera selects, by name. */
 export function commanders(hass: Hass): { value: string; label: string }[] {
   return Object.entries(hass.states)
@@ -54,8 +72,11 @@ class CommanderCard extends LitElement {
     _natural: { state: true },
     _fit: { state: true },
     _width: { state: true },
+    _token: { state: true },
   };
   _natural = ""; // the picture's own size as the browser decoded it (debug)
+  _token = ""; // for the picture through Home Assistant, once asked
+  private retry = 0;
 
   private debugOn(): boolean {
     const st = this._config?.entity ? this.hass?.states[this._config.entity] : undefined;
@@ -100,6 +121,7 @@ class CommanderCard extends LitElement {
     this.widthWatch.disconnect();
     this.resize.disconnect();
     clearTimeout(this.settle);
+    clearTimeout(this.retry);
   }
   updated() {
     const box = this.renderRoot.querySelector(".box");
@@ -127,6 +149,39 @@ class CommanderCard extends LitElement {
   }
 
   /** The main camera now: the select's option, by title; else the one at start. */
+  /** Through Home Assistant, by the card's `route`, else by where this page is. */
+  private viaHa(): boolean {
+    const route = this._config?.route ?? "auto";
+    return route === "ha" || (route === "auto" && !atHome(location));
+  }
+
+  /** The picture's address, at the size asked for; "" while its token is being asked. */
+  private pictureUrl(card: Card, [W, H, scale]: Size): string {
+    const size = `w=${W}&h=${H}&dpr=${scale}`;
+    if (!this.viaHa()) return `${card.picture}?${size}`;
+    if (!this._token) {
+      this.ask();
+      return "";
+    }
+    const path = new URL(card.picture).pathname; // /g/<name>.mjpg
+    return `/api/casa_mia/${this._config?.draft ? "draft" : "live"}${path}?${size}&token=${this._token}`;
+  }
+
+  private ask(fresh = false) {
+    if (!this.hass) return;
+    pictureToken(this.hass, fresh).then(
+      (t) => (this._token = t),
+      () => (this.retry = window.setTimeout(() => this.ask(true), 10_000)),
+    );
+  }
+
+  /** Refused (an old token) or cut off: a new token, and so a new stream, soon. */
+  private refused() {
+    if (!this.viaHa()) return;
+    clearTimeout(this.retry);
+    this.retry = window.setTimeout(() => this.ask(true), 5_000);
+  }
+
   private main(card: Card, option?: string): string {
     const found = Object.entries(card.cameras).find(([, c]) => c.title === option);
     return found ? found[0] : card.start;
@@ -151,6 +206,7 @@ class CommanderCard extends LitElement {
     // Laid out for the picture asked for, as the compositor draws it (compositor.sized).
     const own = card.layout;
     const [W, H, scale] = this._size ?? [own.width, own.height, 1];
+    const src = this._size ? this.pictureUrl(card, this._size) : "";
     const s = this._size ? { ...own, width: W, height: H, gap: pyRound(own.gap * scale), margin: pyRound((own.margin ?? 0) * scale) } : own;
     const [[w, h], mainRect, tiles] = layout(s, main);
     const at = ([x, y, rw, rh]: Rect) =>
@@ -164,15 +220,16 @@ class CommanderCard extends LitElement {
     const size = !f || f.mode === "tile" ? `height:100%;aspect-ratio:${own.width}/${own.height}` : tall ? `height:${tall}px` : "";
     return html`<ha-card style=${size}>
       <div class="box">
-        ${this._size
+        ${src
           ? html`<img
               class="picture"
-              src="${card.picture}?w=${W}&h=${H}&dpr=${scale}"
+              src=${src}
               alt=""
               @load=${(ev: Event) => {
                 const img = ev.target as HTMLImageElement;
                 this._natural = `${img.naturalWidth} x ${img.naturalHeight}`;
               }}
+              @error=${() => this.refused()}
             />`
           : nothing}
         ${own.debug?.on
@@ -180,6 +237,7 @@ class CommanderCard extends LitElement {
               ${this._fit?.mode ?? "?"} (in ${this._fit?.container || "?"}), room ${this._fit?.room ?? "?"} px<br />
               card box ${this._box[0]} x ${this._box[1]} CSS px, screen ${window.devicePixelRatio}x<br />
               asked ${this._size ? `${W} x ${H} @${scale}x` : "nothing yet"}; picture ${this._natural || "not loaded"}
+              ${this.viaHa() ? "through Home Assistant" : "direct"}
             </div>`
           : nothing}
         ${PANELS.flatMap((p) =>
@@ -283,6 +341,19 @@ class CommanderEditor extends LitElement {
       { name: "entity", selector: { select: { mode: "dropdown", options: commanders(this.hass) } } },
       { name: "draft", selector: { boolean: {} } },
       {
+        name: "route",
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: [
+              { value: "auto", label: "Direct at home, through Home Assistant away" },
+              { value: "direct", label: "Always direct (the box's LAN address)" },
+              { value: "ha", label: "Always through Home Assistant" },
+            ],
+          },
+        },
+      },
+      {
         name: "tap_main",
         selector: {
           select: {
@@ -296,16 +367,18 @@ class CommanderEditor extends LitElement {
         },
       },
     ];
-    const labels: Record<string, string> = { entity: "Commander", draft: "Show the draft", tap_main: "A tap on the main camera" };
+    const labels: Record<string, string> = { entity: "Commander", draft: "Show the draft", tap_main: "A tap on the main camera", route: "The picture" };
     return html`<ha-form
       .hass=${this.hass}
-      .data=${{ tap_main: "live", ...this._config }}
+      .data=${{ tap_main: "live", route: "auto", ...this._config }}
       .schema=${schema}
       .computeLabel=${(s: { name: string }) => labels[s.name]}
       .computeHelper=${(s: { name: string }) =>
         s.name === "entity"
           ? "The commanders built on the Camera Dashboard page (each one's Main camera select)."
-          : s.name === "draft"
+          : s.name === "route"
+            ? "At home: this page reached Home Assistant over http at a home address (a private IP, a .local name). Through Home Assistant works anywhere you can sign in, at a little cost to Home Assistant."
+            : s.name === "draft"
             ? "As saved on the Camera Dashboard page (Save draft), before it is deployed live: for trying changes out. Off: as deployed live."
             : undefined}
       @value-changed=${(ev: CustomEvent) => {

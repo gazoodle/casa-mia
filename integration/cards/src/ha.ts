@@ -221,3 +221,17 @@ export function editingPanelView(lovelace: any): boolean {
   const view = views.find((v, i) => (v.path ?? String(i)) === at) ?? views[Number(at)] ?? views[0];
   return view?.type === "panel";
 }
+
+/** Whether this page can show the compositor's own (LAN, http://) address: it reached
+ * Home Assistant over plain http (an http:// picture on an https page is blocked) at an
+ * address on the home network (a private IP, a .local or bare name). */
+export function atHome(loc: { protocol: string; hostname: string }): boolean {
+  const h = loc.hostname.replace(/^\[|\]$/g, "").toLowerCase();
+  return (
+    loc.protocol === "http:" &&
+    (!h.includes(".") && !h.includes(":") ||
+      /^(127|10|192\.168|172\.(1[6-9]|2\d|3[01])|169\.254)\./.test(h) ||
+      /^(::1|f[cd][0-9a-f]{0,2}:.*|fe80:.*)$/.test(h) ||
+      /\.(local|lan|home|internal|home\.arpa)$/.test(h))
+  );
+}

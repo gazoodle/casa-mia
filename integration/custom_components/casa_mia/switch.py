@@ -20,6 +20,7 @@ from .const import DOMAIN
 from .coordinator import CasaMiaCoordinator
 from .guest import GuestEndpointEntity, add_endpoint_entities
 from .motion import commanders, tracker
+from .pictures import PROXY
 
 
 async def async_setup_entry(
@@ -119,6 +120,10 @@ class SecurityLookSwitch(CommanderEntity, SwitchEntity, RestoreEntity):
         pictures = [self.commander.get("picture") or ""]
         if every and every[0].get("id") == self.cid:
             pictures.append("/g/commander.mjpg")
+        # And as the Camera Commander card shows them through Home Assistant (pictures.py).
+        pictures += [
+            f"{PROXY}/{w}{p}" for p in pictures if p for w in ("live", "draft")
+        ]
         looks = [
             self._entity_id("switch", c["id"], "security_look", "security_look")
             for c in every
