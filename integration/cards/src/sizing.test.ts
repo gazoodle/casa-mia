@@ -11,6 +11,7 @@ const WIDE = 16 / 9;
 test("the container decides the mode", () => {
   assert.equal(modeOf("HUI-PANEL-VIEW", false), "screen");
   assert.equal(modeOf("CASA-MIA-TABLET-LAYOUT", false), "tile");
+  assert.equal(modeOf("CASA-MIA-TABLET-VIEW", false), "tile"); // filling a Tablet view's panel
   for (const other of ["HUI-GRID-SECTION", "HUI-MASONRY-VIEW", "HUI-VERTICAL-STACK-CARD", ""])
     assert.equal(modeOf(other, false), "column");
   assert.equal(modeOf("HUI-PANEL-VIEW", true), "preview"); // an editor's preview wins

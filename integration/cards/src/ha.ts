@@ -122,7 +122,7 @@ export const helper = (s: { name: string }) => all[s.name]?.help?.replaceAll("{i
 //   screen:  alone in a Panel view. It is given the whole space, from the sidebar's edge to
 //            the screen's right and from the header's foot to the screen's bottom, and only
 //            fills it: no shape, aspect or fit of its own;
-//   tile:    in a Tablet layout tile: it fills the tile;
+//   tile:    in a Tablet layout tile, or filling a Tablet view's panel: it fills it;
 //   column:  anywhere else: its own shape from its width, never taller than the screen
 //            below its top edge;
 //   preview: in an editor's preview: its own shape from its width.
@@ -145,6 +145,12 @@ export function container(el: Element): string {
   return "";
 }
 
+/** Filling a Tablet view's panel: its hui-card is marked so (view.ts, cm-fill). */
+function filling(el: Element): boolean {
+  for (let n = up(el); n; n = up(n)) if ((n as Element).tagName === "HUI-CARD") return (n as Element).hasAttribute("cm-fill");
+  return false;
+}
+
 /** Inside one of HA's dialogs (the card editor's preview), not on the dashboard. */
 export function inDialog(el: Element): boolean {
   for (let n: Node | null = el; n; n = up(n))
@@ -164,12 +170,12 @@ export function room(el: Element): number {
 export function modeOf(holder: string, preview: boolean): Mode {
   if (preview) return "preview";
   if (holder === "HUI-PANEL-VIEW") return "screen";
-  return holder === "CASA-MIA-TABLET-LAYOUT" ? "tile" : "column";
+  return holder === "CASA-MIA-TABLET-LAYOUT" || holder === "CASA-MIA-TABLET-VIEW" ? "tile" : "column";
 }
 
 /** Where a card stands now, and the room below it. */
 export function fitOf(el: Element): Fit {
-  const holder = container(el);
+  const holder = filling(el) ? "CASA-MIA-TABLET-VIEW" : container(el);
   return { mode: modeOf(holder, inDialog(el)), room: room(el), container: holder.toLowerCase() };
 }
 
