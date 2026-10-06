@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b36
+
+- Camera Dashboard page: a camera's live view plays the channel's own stream through Home Assistant's WebRTC, as HA's camera cards do, so the resolution shown is the stream's; a camera HA does not play by WebRTC keeps the MJPEG stream (made from snapshots). The note under the picture says which.
+
 ## 2026.10.3-b35
 
 - Camera Dashboard page: a camera's live view shows the chosen channel's resolution, as its pictures arrive (and if it changes).

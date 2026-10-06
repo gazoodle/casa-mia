@@ -9,6 +9,7 @@ import { ago } from "./format";
 import { Developer } from "./health";
 import { CameraIcon } from "./icons";
 import { AreaHead, Empty, Shell } from "./page";
+import { canWebRTC, haConnection, playWebRTC } from "./webrtc";
 import { CopyButton, Dialog, Field, Segmented, Switch, Toasts, type Toast } from "./ui";
 import css from "./cameras.module.css";
 import guest from "./guest.module.css";
@@ -1323,15 +1324,19 @@ const CHANNELS: Record<Channel["channel"], [label: string, about: string]> = {
   high: ["High", "the high channel, the one everyone else plays; the slowest to come through here"],
 };
 
-/** One camera's live picture, each of its channels to choose from: Home Assistant's MJPEG
- * stream, played from HA directly as its camera cards do (the app only gives the address). */
+/** One camera's live picture, each of its channels to choose from: through Home Assistant's
+ * WebRTC (the stream itself, at its own size) where HA offers it, else HA's MJPEG stream (made
+ * from snapshots), played from HA directly as its camera cards do. The size shown is what
+ * arrives. */
 function LiveView({ entity, title, onClose }: { entity: string; title: string; onClose: () => void }) {
   const img = useRef<HTMLImageElement>(null);
+  const video = useRef<HTMLVideoElement>(null);
   const [channels, setChannels] = useState<Channel[]>();
   const [chosen, setChosen] = useState<Channel["channel"]>();
   const [state, setState] = useState<"connecting" | "live" | "failed">("connecting");
   const [error, setError] = useState<string>();
-  const [size, setSize] = useState<string>(); // the frames' own size, as they come
+  const [size, setSize] = useState<string>(); // the pictures' own size, as they come
+  const [how, setHow] = useState<"webrtc" | "mjpeg">(); // how the chosen channel plays
   useEffect(() => {
     get<{ channels: Channel[] }>(`live/${encodeURIComponent(entity)}`).then(
       (r) => {
@@ -1342,17 +1347,45 @@ function LiveView({ entity, title, onClose }: { entity: string; title: string; o
     );
   }, [entity]);
   const shown = channels?.find((c) => c.channel === chosen);
-  // Blank the image on a change of channel and on close: a browser can keep an <img>
-  // stream open after the image is gone.
+  // Each channel: WebRTC if HA plays it so, else MJPEG. Torn down on a change of channel and
+  // on close (a browser can keep an <img> stream open after the image is gone).
   useEffect(() => {
-    const el = img.current;
+    if (!shown) return;
+    let stop: (() => void) | undefined;
+    let gone = false;
     setSize(undefined);
-    // The stream's resolution, read each second: a channel can change it mid-stream.
+    setHow(undefined);
+    const conn = haConnection();
+    (conn ? canWebRTC(conn, shown.entity) : Promise.resolve(false)).then(async (rtc) => {
+      if (gone) return;
+      setHow(rtc ? "webrtc" : "mjpeg");
+      if (!rtc || !conn) return;
+      await new Promise(requestAnimationFrame); // the <video> rendered
+      if (gone || !video.current) return;
+      try {
+        const close = await playWebRTC(conn, shown.entity, video.current, (why) => {
+          setState("failed");
+          setError(why);
+        });
+        if (gone) close();
+        else stop = close;
+      } catch (err) {
+        setState("failed");
+        setError((err as Error).message);
+      }
+    });
+    // The resolution, read each second: a channel can change it mid-stream.
     const look = setInterval(() => {
-      if (el?.naturalWidth) setSize(`${el.naturalWidth} × ${el.naturalHeight}`);
+      const v = video.current;
+      const i = img.current;
+      if (v?.videoWidth) setSize(`${v.videoWidth} × ${v.videoHeight}`);
+      else if (i?.naturalWidth) setSize(`${i.naturalWidth} × ${i.naturalHeight}`);
     }, 1000);
+    const el = img.current;
     return () => {
+      gone = true;
       clearInterval(look);
+      stop?.();
       if (el) el.src = "";
     };
   }, [shown?.url]);
@@ -1374,12 +1407,26 @@ function LiveView({ entity, title, onClose }: { entity: string; title: string; o
           options={channels.map((c) => [c.channel, CHANNELS[c.channel][0]])}
           onChange={(c) => {
             setState("connecting");
+            setError(undefined);
             setChosen(c);
           }}
         />
       )}
       <div className={css.live}>
-        {shown && (
+        {shown && how === "webrtc" && (
+          <video
+            key={shown.url}
+            ref={video}
+            autoPlay
+            muted
+            playsInline
+            onLoadedData={(e) => {
+              setState("live");
+              setSize(`${e.currentTarget.videoWidth} × ${e.currentTarget.videoHeight}`);
+            }}
+          />
+        )}
+        {shown && how === "mjpeg" && (
           <img
             key={shown.url}
             ref={img}
@@ -1406,8 +1453,10 @@ function LiveView({ entity, title, onClose }: { entity: string; title: string; o
               , <strong>{size}</strong>
             </>
           )}
-          : {CHANNELS[shown.channel][1]}. Home Assistant's MJPEG stream, made from the camera's
-          snapshots: a few pictures a second, not video.
+          : {CHANNELS[shown.channel][1]}.{" "}
+          {how === "webrtc"
+            ? "Home Assistant's WebRTC: the camera's stream itself, at its own size."
+            : "Home Assistant's MJPEG stream, made from the camera's snapshots: a few pictures a second, not video, and not always the stream's size."}
         </p>
       )}
     </Dialog>
