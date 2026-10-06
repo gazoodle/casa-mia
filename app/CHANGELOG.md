@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b49
+
+- Camera compositor: how many streams the survey reads at once is a setting, 1 to 8, 4 by default (it was 2, so a few slow streams held up a pass for long): a slider on the Camera compositor page and the integration's Survey streams at once. Kept across restarts; taken up from the next pass, which a change starts at once.
+
 ## 2026.10.3-b48
 
 - Camera compositor: each channel's last five surveys are kept: when, what came of it (its stream, a snapshot, being read anyway, nothing), how long it took, the size it gave and, when not its stream, exactly why. The Camera compositor page's gatherer has a Survey column (amber where it was not the stream), each opening that channel's record.

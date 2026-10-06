@@ -93,16 +93,17 @@ PACES = {
     "live": (0.125, 15.0),
     "draft": (0.125, 15.0),
     "survey": (10.0, 3600.0),  # the sleep between survey passes
+    "survey_at_once": (1.0, 8.0),  # streams the survey reads at once (a count)
 }
 PACE_DEFAULTS = {
     "gatherer": INTERVAL,
     "live": INTERVAL,
     "draft": INTERVAL,
     "survey": 60.0,
+    "survey_at_once": 4.0,
 }
 IDLE = 0.02  # continuous: a stream with no new frame yet is looked at again this soon
 STREAM_RETRY = 30.0  # seconds before a lost stream is read again (snapshots meanwhile)
-PROBES_AT_ONCE = 2  # channels read at once for their size
 
 
 @dataclass
@@ -1101,12 +1102,18 @@ class Gatherer:
         Thread-safe; ValueError out of range."""
         low, high = PACES[which]
         if not low <= seconds <= high:
-            raise ValueError(f"{which}: {low}-{high} s")
+            raise ValueError(f"{which}: {low:g}-{high:g}")
+        if which == "survey_at_once":
+            seconds = float(round(seconds))  # a count
         self.paces[which] = seconds
         _LOGGER.info(
-            "compositor (cameras): %s pace: %s",
+            "compositor (cameras): %s: %s",
             which,
-            "continuous" if seconds == 0 else f"every {seconds:g} s",
+            f"{seconds:g} at once"
+            if which == "survey_at_once"
+            else "continuous"
+            if seconds == 0
+            else f"every {seconds:g} s",
         )
         if self.pace_path:
             try:
@@ -1499,6 +1506,7 @@ class Gatherer:
             "survey": {
                 **{k: v for k, v in self.survey.items() if k not in ("at", "ended")},
                 "pace": self.pace("survey"),
+                "at_once": int(self.pace("survey_at_once")),
                 "next_in": round(
                     max(0.0, self.survey["ended"] + self.pace("survey") - now)
                 )
@@ -1688,19 +1696,20 @@ class Gatherer:
 
     async def _survey_loop(self) -> None:
         """The survey: from the start, a pass over each channel of every camera, a few
-        at a time; each one's stream is opened for its first frame (FRAME_TIMEOUT at
+        at a time (the "survey_at_once" setting, each read in a thread of its own); each
+        one's stream is opened for its first frame (FRAME_TIMEOUT at
         most), kept as its picture, and its size (kept across restarts); a camera HA
         cannot stream gives a snapshot instead. Then it sleeps (the "survey" pace) and
         passes again. A channel being read anyway is passed over (its frames are
         fresher). Paused with the gatherer; a purge or a new camera, a pass at once."""
         assert self._survey_now
-        limit = asyncio.Semaphore(PROBES_AT_ONCE)
         while True:
             if self.paused:
                 self._survey_now.clear()
                 await self._survey_now.wait()  # woken when run again
                 continue
             self._survey_now.clear()
+            limit = asyncio.Semaphore(int(self.pace("survey_at_once")))  # this pass's
             todo = [
                 e
                 for camera in self._cameras()

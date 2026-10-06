@@ -1,7 +1,7 @@
 """Numbers: the camera compositor's paces, seconds between: the gatherer's fetches of each
 camera channel (0: continuous, as fast as each answers), each generator's drawings (down
-to 0.125 s, 8 a second), and the survey's pause between its passes over every camera.
-The app keeps them across restarts."""
+to 0.125 s, 8 a second), the survey's pause between its passes over every camera, and
+how many streams it reads at once. The app keeps them across restarts."""
 
 from __future__ import annotations
 
@@ -16,12 +16,15 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .coordinator import CasaMiaCoordinator, async_post
 from .sensor import CasaMiaEntity, only_on
 
-# Each pace: its name in the app, its range (as the app's compositor.PACES), its step.
+# Each setting: its name in the app, its range (as the app's compositor.PACES), its step,
+# its unit.
+S = UnitOfTime.SECONDS
 PACES = {
-    "gatherer_pace": ("gatherer", 0.0, 15.0, 0.125),
-    "live_generator_pace": ("live", 0.125, 15.0, 0.125),
-    "preview_generator_pace": ("draft", 0.125, 15.0, 0.125),
-    "survey_pace": ("survey", 10.0, 3600.0, 10.0),
+    "gatherer_pace": ("gatherer", 0.0, 15.0, 0.125, S),
+    "live_generator_pace": ("live", 0.125, 15.0, 0.125, S),
+    "preview_generator_pace": ("draft", 0.125, 15.0, 0.125, S),
+    "survey_pace": ("survey", 10.0, 3600.0, 10.0, S),
+    "survey_at_once": ("survey_at_once", 1.0, 8.0, 1.0, None),
 }
 
 
@@ -36,7 +39,6 @@ async def async_setup_entry(
 
 class PaceNumber(CasaMiaEntity, NumberEntity):
     _module = "compositor"
-    _attr_native_unit_of_measurement = UnitOfTime.SECONDS
     _attr_mode = NumberMode.BOX
 
     def __init__(
@@ -50,6 +52,7 @@ class PaceNumber(CasaMiaEntity, NumberEntity):
             self._attr_native_min_value,
             self._attr_native_max_value,
             self._attr_native_step,
+            self._attr_native_unit_of_measurement,
         ) = PACES[key]
 
     def _paces(self) -> dict:

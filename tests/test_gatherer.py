@@ -297,3 +297,46 @@ def test_each_survey_is_recorded_with_why(tmp_path, monkeypatch):
     asyncio.run(g._survey_one("camera.a"))
     again = g.status()["channels"][0]["surveys"][0]
     assert again["why"].startswith("no video frame for 15 s (its stream tried again in")
+
+
+def test_the_survey_reads_as_many_streams_at_once_as_set(tmp_path, monkeypatch):
+    import threading
+
+    g = gatherer(tmp_path, pace_path=tmp_path / "pace.json")
+    assert g.pace("survey_at_once") == 4  # the default
+    g.set_pace("survey_at_once", 2.4)
+    assert g.pace("survey_at_once") == 2  # a count
+    with pytest.raises(ValueError):
+        g.set_pace("survey_at_once", 9)
+    g.go2rtc = True
+    g.cfg.entities.update({f"camera.c{i}": {} for i in range(6)})
+    reading, most = [0], [0]
+    lock = threading.Lock()
+
+    def frame(url):
+        with lock:
+            reading[0] += 1
+            most[0] = max(most[0], reading[0])
+        time.sleep(0.05)
+        with lock:
+            reading[0] -= 1
+        return Image.new("RGB", (64, 36)), ""
+
+    async def name(entity):
+        return entity
+
+    g._name = name  # type: ignore[method-assign]
+    monkeypatch.setattr(mod.streams, "first_frame", frame)
+
+    async def one_pass():
+        g._survey_now, g._repaced = asyncio.Event(), asyncio.Event()
+        loop = asyncio.ensure_future(g._survey_loop())
+        for _ in range(200):
+            await asyncio.sleep(0.01)
+            if g.survey.get("ended"):
+                break
+        loop.cancel()
+        await asyncio.gather(loop, return_exceptions=True)
+
+    asyncio.run(one_pass())
+    assert most[0] == 2 and g.status()["survey"]["at_once"] == 2

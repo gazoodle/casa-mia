@@ -55,7 +55,7 @@ type Channel = {
 type SurveyRecord = { at: number; outcome: "stream" | "snapshot" | "read" | "nothing"; why: string; took_s: number; size: [number, number] | null };
 /** The survey: a pass over every channel of every camera (its stream's first frame, or a
  * snapshot), then a sleep at its pace. */
-type Survey = { running: boolean; done: number; of: number; pace: number; took_s?: number; next_in: number | null };
+type Survey = { running: boolean; done: number; of: number; pace: number; at_once: number; took_s?: number; next_in: number | null };
 type Gatherer = {
   paused: boolean;
   gathering: boolean;
@@ -293,6 +293,14 @@ function GathererArea({
               : ""}
       </p>
       <PaceSlider which="survey" label="Survey pause" value={g.survey.pace} steps={SURVEY_STEPS} act={act} />
+      <PaceSlider
+        which="survey_at_once"
+        label="Survey at once"
+        value={g.survey.at_once}
+        steps={[1, 2, 3, 4, 5, 6, 7, 8]}
+        text={(n) => `${plural(n, "stream")}`}
+        act={act}
+      />
       {g.channels.length ? (
         <Table head={["Camera", "Channel", "State", "Size", "Rate", "Wanted by", "Missed", "Survey", ""]}>
           {[...g.channels].sort(byCamera).map((c) => (
@@ -370,12 +378,15 @@ function PaceSlider({
   label = "Pace",
   value,
   steps,
+  text = paceText,
   act,
 }: {
   which: string;
   label?: string;
   value: number;
   steps: number[];
+  /** The readout of a step (a pace by default). */
+  text?: (step: number) => string;
   act: Act;
 }) {
   const [held, setHeld] = useState<number>(); // the step under the finger, until set
@@ -390,7 +401,7 @@ function PaceSlider({
   const release = () => {
     if (held == null || steps[held] === value || sent.current === held) return;
     sent.current = held;
-    act("pace", `${label}: ${paceText(steps[held])}`, { which, seconds: steps[held] });
+    act("pace", `${label}: ${text(steps[held])}`, { which, seconds: steps[held] });
   };
   return (
     <label className={pipe.pace}>
@@ -409,7 +420,7 @@ function PaceSlider({
         onKeyUp={release}
         onBlur={release}
       />
-      <strong>{paceText(steps[at])}</strong>
+      <strong>{text(steps[at])}</strong>
     </label>
   );
 }
