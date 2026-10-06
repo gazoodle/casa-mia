@@ -16,7 +16,7 @@ import logging
 import string
 import threading
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from urllib.parse import quote
 
 import aiohttp
@@ -121,18 +121,30 @@ def _open(url: str) -> InputContainer:
 
 
 def _frames(
-    c: InputContainer, stop: threading.Event | None = None
+    c: InputContainer,
+    stop: threading.Event | None = None,
+    keys_only: Callable[[], bool] = lambda: True,
+    seen: Callable[[av.Packet], None] | None = None,
 ) -> Iterator[av.VideoFrame]:
-    """A stream's video frames as they come; an error when none has come for
-    FRAME_TIMEOUT seconds (every packet is looked at, video or not, so a stream that
-    sends audio but no picture is noticed too); ends when `stop` is set."""
+    """A stream's video frames as they come: its keyframes only while `keys_only` says
+    so (each one whole on its own: a fraction of the decoding), else every frame (each
+    builds on those before it). An error when none has come for FRAME_TIMEOUT seconds
+    (every packet is looked at, video or not, so a stream that sends audio but no
+    picture is noticed too); ends when `stop` is set. `seen` hears each video packet.
+    Decoded in the caller's thread alone, so the CPU it takes is that thread's."""
     video = c.streams.video[0]
-    video.thread_type = "AUTO"  # decoded on several cores
+    video.thread_count = 1
+    codec = video.codec_context
     last = time.monotonic()
     for packet in c.demux():
         if stop and stop.is_set():
             return
         if packet.stream is video:
+            if seen:
+                seen(packet)
+            skip = "NONKEY" if keys_only() else "DEFAULT"
+            if codec.skip_frame != skip:
+                codec.skip_frame = skip
             for frame in packet.decode():
                 if isinstance(frame, av.VideoFrame):
                     last = time.monotonic()
@@ -141,23 +153,33 @@ def _frames(
             raise TimeoutError(f"no video frame for {FRAME_TIMEOUT:.0f} s")
 
 
-def first_frame(url: str) -> tuple[Image.Image | None, str]:
-    """One frame of a stream, at its own size, or None and why not. Blocking, for at
-    most about OPEN_TIMEOUT + FRAME_TIMEOUT seconds."""
+def first_frame(url: str) -> tuple[Image.Image | None, str, float]:
+    """One frame of a stream (its first keyframe), at its own size, or None and why
+    not; and the CPU it took (s). Blocking, for at most about OPEN_TIMEOUT +
+    FRAME_TIMEOUT seconds."""
+    started = time.thread_time()
     try:
         with _open(url) as c:
             for frame in _frames(c):
-                return frame.to_image(), ""
+                return frame.to_image(), "", time.thread_time() - started
     except (FFmpegError, OSError, IndexError, TimeoutError) as exc:
-        return None, str(exc) or type(exc).__name__
-    return None, "the stream ended before a frame"
+        return None, str(exc) or type(exc).__name__, time.thread_time() - started
+    return None, "the stream ended before a frame", time.thread_time() - started
 
 
 class Reader:
     """One channel's stream, its newest frame kept, read in a thread of its own until
-    stopped or lost (`error` then says why)."""
+    stopped or lost (`error` then says why). It decodes keyframes only while
+    `keys_only(reader)` says so (see Gatherer: when its pace is no faster than the
+    stream's keyframe interval, `gop_s`, measured here), else every frame. The CPU it
+    takes (decoding, and turning frames into pictures) is counted."""
 
-    def __init__(self, entity: str, url: str) -> None:
+    def __init__(
+        self,
+        entity: str,
+        url: str,
+        keys_only: Callable[["Reader"], bool] = lambda reader: True,
+    ) -> None:
         self.entity = entity
         self.url = url
         self.started = time.monotonic()
@@ -165,14 +187,33 @@ class Reader:
         self.at = 0.0  # when the newest frame came
         self.frames = 0
         self.error: str | None = None
+        self.keyframes_only = True  # as last decided
+        self.gop_s: float | None = None  # its keyframe interval, s (smoothed)
+        self.cpu_s = 0.0  # its thread's CPU: reading and decoding
+        self.convert_s = 0.0  # CPU turning frames into pictures (other threads)
+        self._keys_only = keys_only
+        self._last_key: float | None = None
         self._stop = threading.Event()
         self._thread = threading.Thread(target=self._run, daemon=True)
         self._thread.start()
 
+    def _keys(self) -> bool:
+        self.keyframes_only = self._keys_only(self)
+        return self.keyframes_only
+
+    def _seen(self, packet: av.Packet) -> None:
+        self.cpu_s = time.thread_time()  # this thread's CPU so far
+        if packet.is_keyframe:
+            now = time.monotonic()
+            if self._last_key is not None:
+                gap = now - self._last_key
+                self.gop_s = gap if self.gop_s is None else 0.8 * self.gop_s + 0.2 * gap
+            self._last_key = now
+
     def _run(self) -> None:
         try:
             with _open(self.url) as c:
-                for frame in _frames(c, self._stop):
+                for frame in _frames(c, self._stop, self._keys, self._seen):
                     self.frame, self.at = frame, time.monotonic()
                     self.frames += 1
             if not self._stop.is_set():
@@ -190,10 +231,16 @@ class Reader:
 
     def image(self) -> tuple[Image.Image, float] | None:
         """The newest frame as a picture, and when it came; None before the first.
-        Converting takes a few ms: call it off the event loop."""
+        Converting takes a few ms (counted): call it off the event loop."""
         frame, at = self.frame, self.at
-        return (frame.to_image(), at) if frame is not None else None
+        if frame is None:
+            return None
+        started = time.thread_time()
+        image = frame.to_image()
+        self.convert_s += time.thread_time() - started
+        return image, at
 
     def fps(self) -> float:
+        """Frames decoded a second, since it started."""
         took = time.monotonic() - self.started
         return round(self.frames / took, 1) if took > 0 else 0.0

@@ -38,18 +38,22 @@ def h264_file(path, size=(64, 48), frames=5) -> str:
 
 def test_reads_a_stream_at_its_own_size(tmp_path):
     url = h264_file(tmp_path / "s.ts")
-    first, _ = streams.first_frame(url)
+    first, _, cpu = streams.first_frame(url)
     assert first is not None and first.size == (64, 48)
-    none, why = streams.first_frame(str(tmp_path / "none.ts"))
+    none, why, _ = streams.first_frame(str(tmp_path / "none.ts"))
     assert none is None and why
-    reader = streams.Reader("camera.a", url)
+    assert cpu > 0  # the CPU it took, measured
+    # keyframes only (the gatherer's pace no faster than its keyframes): 1 of 5 decoded
+    keys = streams.Reader("camera.a", url)
+    every = streams.Reader("camera.a", url, keys_only=lambda reader: False)
     for _ in range(100):
-        if not reader.alive:
+        if not (keys.alive or every.alive):
             break
         time.sleep(0.01)
-    got = reader.image()
-    assert got and got[0].size == (64, 48) and reader.frames == 5
-    assert reader.error == "the stream ended"
+    got = keys.image()
+    assert got and got[0].size == (64, 48) and keys.frames == 1 and keys.keyframes_only
+    assert every.frames == 5 and not every.keyframes_only
+    assert keys.error == "the stream ended" and keys.cpu_s > 0 and keys.convert_s > 0
 
 
 def fake_ha(events: list[dict], registry: dict | None):
@@ -136,6 +140,8 @@ class StubReader:
         self.entity, self.url, self.alive, self.error = entity, url, True, None
         self.frame = Image.new("RGB", size, "green")
         self.at = time.monotonic()
+        self.cpu_s = self.convert_s = 0.0
+        self.keyframes_only, self.gop_s = True, 1.0
 
     def image(self):
         return self.frame, time.monotonic()
@@ -198,11 +204,17 @@ def test_a_round_draws_from_the_channels_streams(tmp_path, monkeypatch):
 
     comp.gather._name = name  # type: ignore[method-assign]
     comp.gather._fetch_now = fetch  # type: ignore[method-assign]
-    monkeypatch.setattr(streams, "Reader", lambda e, url: StubReader(e, url, sizes[e]))
+    monkeypatch.setattr(
+        streams, "Reader", lambda e, url, **kw: StubReader(e, url, sizes[e])
+    )
     monkeypatch.setattr(
         streams,
         "first_frame",
-        lambda url: (Image.new("RGB", sizes["camera." + url.rsplit("cam_", 1)[1]]), ""),
+        lambda url: (
+            Image.new("RGB", sizes["camera." + url.rsplit("cam_", 1)[1]]),
+            "",
+            0.01,
+        ),
     )
 
     async def round_and_survey():
@@ -238,7 +250,8 @@ class Chatty:
     """A stream that sends packets for ever (audio, say) but never a video frame."""
 
     def __init__(self):
-        self.video = type("Video", (), {"thread_type": None})()
+        codec = type("Codec", (), {"skip_frame": "DEFAULT"})()
+        self.video = type("Video", (), {"thread_count": 0, "codec_context": codec})()
         self.streams = type("Streams", (), {"video": [self.video]})()
 
     def demux(self):
@@ -260,7 +273,7 @@ def test_a_stream_with_no_picture_is_given_up(monkeypatch):
     monkeypatch.setattr(streams, "FRAME_TIMEOUT", 0.2)
     monkeypatch.setattr(streams, "_open", lambda url: Chatty())
     started = time.monotonic()
-    image, why = streams.first_frame("rtsp://x")
+    image, why, _ = streams.first_frame("rtsp://x")
     assert image is None and "no video frame" in why
     assert time.monotonic() - started < 2
     reader = streams.Reader("camera.a", "rtsp://x")

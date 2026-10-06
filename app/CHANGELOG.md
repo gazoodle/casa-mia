@@ -1,10 +1,16 @@
 # Changelog
 
+## 2026.10.3-b52
+
+- Camera compositor: a stream is decoded only as much as its pace needs. While the gatherer takes pictures no faster than a stream's keyframes come (measured per stream; typically every 1-2 s), only its keyframes are decoded, each whole on its own: about one frame in 15-50, where every frame was decoded and almost all thrown away. Every frame is decoded only when the pace asks for fresher pictures than that (continuous, or faster than its keyframes). The survey reads keyframes only too.
+- Camera compositor: the CPU is measured. The Camera compositor page shows the app's share of a CPU (on the gatherer), each stream's share and whether it decodes keyframes or every frame (with its keyframe interval), each survey pass's CPU and each survey read's, so the cost of each setting can be seen.
+
 ## 2026.10.3-b51
+
+- Camera compositor: a paused gatherer keeps nothing new: a fetch or survey read under way when it was paused no longer lands after (a purge while paused could see a picture come back), and the Camera Dashboard's thumbnails fetch nothing while paused. Waits are always cleared when a stream ends or the engine stops.
 
 ## 2026.10.3-b50
 
-- Camera compositor: a paused gatherer keeps nothing new: a fetch or survey read under way when it was paused no longer lands after (a purge while paused could see a picture come back), and the Camera Dashboard's thumbnails fetch nothing while paused. Waits are always cleared when a stream ends or the engine stops.
 - Camera compositor page: the survey dialog says it lists a channel's last five surveys, and its text (and the page's other longer notes: the survey line, a picture's details, the size test) wraps instead of being cut short with "…".
 
 ## 2026.10.3-b49

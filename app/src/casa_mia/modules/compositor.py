@@ -988,6 +988,9 @@ class Gatherer:
         self._wake: asyncio.Event | None = None  # look at the wants now
         self._survey_now: asyncio.Event | None = None  # a survey pass now
         self._bg: set[asyncio.Task] = set()
+        # The CPU seen at the last status (when, how much), for each reader's share and
+        # the whole app's since then.
+        self._cpu_seen: dict[str, tuple[float, float]] = {}
         # Thumbnails, made once per picture and size and kept until the picture changes
         # (the Camera Dashboard's, the cache viewer's): (entity, width, whole) ->
         # (the picture, the thumbnail).
@@ -1437,6 +1440,14 @@ class Gatherer:
             return "starting"
         return "snapshots" if entity in self._feeds else "stopped"
 
+    def _cpu_pct(self, key: str, cpu_s: float, now: float) -> float:
+        """The share of one CPU used since the last status (%)."""
+        then = self._cpu_seen.get(key)
+        self._cpu_seen[key] = (now, cpu_s)
+        if then is None or now <= then[0]:
+            return 0.0
+        return round(100 * max(cpu_s - then[1], 0.0) / (now - then[0]), 1)
+
     def status(self) -> dict[str, Any]:
         """Its state, and each channel's picture: its camera and tier, its state, its
         size (and whether its stream's), whether still waiting for its first, where it
@@ -1453,6 +1464,12 @@ class Gatherer:
 
         def row(e: str) -> dict[str, Any]:
             camera, tier = self._channel(e)
+            reading = self._readers.get(e)
+            cpu = (
+                self._cpu_pct(e, reading.cpu_s + reading.convert_s, now)
+                if reading and reading.alive
+                else None
+            )
             w, h = self.res.get(e, (0, 0))
             at = self.shots.get(e, (None, b""))[0]
             reader = self._readers.get(e)
@@ -1467,6 +1484,15 @@ class Gatherer:
                 if reader and reader.frame is not None
                 else "snapshot",
                 "fps": reader.fps() if reader else None,
+                # its stream's decoding: its share of a CPU, keyframes only or every
+                # frame, and its keyframe interval
+                "cpu_pct": cpu,
+                "decoding": None
+                if not reading
+                else "keyframes"
+                if reading.keyframes_only
+                else "every frame",
+                "gop_s": round(reading.gop_s, 2) if reading and reading.gop_s else None,
                 "no_stream": self._no_stream[e][1] if e in self._no_stream else None,
                 "width": w,
                 "height": h,
@@ -1502,6 +1528,8 @@ class Gatherer:
             }
 
         return {
+            # the whole app's share of a CPU since the last status (%)
+            "cpu_pct": self._cpu_pct("app", time.process_time(), now),
             "paused": self.paused,
             "gathering": self.gathering,
             "pace": self.pace("gatherer"),
@@ -1676,7 +1704,9 @@ class Gatherer:
         name = await self._name(entity)
         if not name:
             return None
-        reader = self._readers[entity] = streams.Reader(entity, self._rtsp(name))
+        reader = self._readers[entity] = streams.Reader(
+            entity, self._rtsp(name), keys_only=self._keys_only
+        )
         _LOGGER.info(
             "compositor (%s): %s, %s channel: reading its stream",
             "cameras",
@@ -1684,6 +1714,13 @@ class Gatherer:
             self._channel(entity)[1],
         )
         return reader
+
+    def _keys_only(self, reader: streams.Reader) -> bool:
+        """Whether a stream's keyframes are enough: its pictures are taken no faster
+        than its keyframes come (rule 0: a frame decoded is one used). Continuous, or a
+        pace faster than its keyframe interval: every frame."""
+        pace = self.pace("gatherer")
+        return pace > 0 and (reader.gop_s is None or pace >= reader.gop_s)
 
     def _stop_readers(self, keep: set[str] | frozenset[str] = frozenset()) -> None:
         """Stop reading every stream but those in keep."""
@@ -1738,13 +1775,16 @@ class Gatherer:
                 "done": len(todo),
                 "of": len(todo),
                 "took_s": round(took, 1),
+                "cpu_s": round(self.survey.get("cpu_s", 0.0), 1),  # this pass's
                 "ended": time.monotonic(),
             }
             _LOGGER.info(
-                "compositor (cameras): survey of %d channels in %.0f s: %d from their "
-                "streams, %d snapshots, %d read anyway, %d nothing; again in %g s",
+                "compositor (cameras): survey of %d channels in %.0f s (%.1f s of "
+                "CPU): %d from their streams, %d snapshots, %d read anyway, %d "
+                "nothing; again in %g s",
                 len(todo),
                 took,
+                self.survey["cpu_s"],
                 got.count("stream"),
                 got.count("snapshot"),
                 got.count("read"),
@@ -1757,26 +1797,30 @@ class Gatherer:
         """Survey a channel and record it (see _surveyed): what it gave ("stream",
         "snapshot", "read" anyway, or "nothing")."""
         started = time.monotonic()
-        outcome, why, size = await self._survey_try(entity)
+        outcome, why, size, cpu = await self._survey_try(entity)
+        self.survey["cpu_s"] = self.survey.get("cpu_s", 0.0) + cpu
         self._surveyed.setdefault(entity, collections.deque(maxlen=5)).append(
             {
                 "at": time.time(),
                 "outcome": outcome,
                 "why": why,
                 "took_s": round(time.monotonic() - started, 1),
+                "cpu_ms": round(cpu * 1000),
                 "size": list(size) if size else None,
             }
         )
         return outcome
 
-    async def _survey_try(self, entity: str) -> tuple[str, str, tuple[int, int] | None]:
-        """Survey a channel: what came of it, why not its stream (if it was not), and
-        the size it gave. A stream that gives no frame is logged and not tried again for
+    async def _survey_try(
+        self, entity: str
+    ) -> tuple[str, str, tuple[int, int] | None, float]:
+        """Survey a channel: what came of it, why not its stream (if it was not), the
+        size it gave, and the CPU its stream's read took (s). A stream that gives no frame is logged and not tried again for
         BENCH seconds (its snapshot meanwhile)."""
         reader = self._readers.get(entity)
         if reader and reader.alive and reader.frame is not None:
-            return "read", "", (reader.frame.width, reader.frame.height)
-        why = ""
+            return "read", "", (reader.frame.width, reader.frame.height), 0.0
+        why, cpu = "", 0.0
         if not self.go2rtc:
             why = "Home Assistant's go2rtc is out of reach"
         elif not self._streamable(entity):
@@ -1787,12 +1831,12 @@ class Gatherer:
                 1
             ]
         else:
-            image, failed = await asyncio.to_thread(
+            image, failed, cpu = await asyncio.to_thread(
                 streams.first_frame, self._rtsp(name)
             )
             if image is not None:
                 self.keep(entity, image, streamed=True)
-                return "stream", "", image.size
+                return "stream", "", image.size, cpu
             why = failed
             self._no_stream[entity] = (time.monotonic() + BENCH, failed)
             self._names.pop(entity, None)  # put on go2rtc afresh next time
@@ -1805,16 +1849,16 @@ class Gatherer:
                 BENCH / 60,
             )
         if entity in self._snap_wrong:
-            return "nothing", f"{why}; its snapshot is not its size", None
+            return "nothing", f"{why}; its snapshot is not its size", None, cpu
         image = await self._fetch_now(entity)
         if image is None:
-            return "nothing", f"{why}; no snapshot either", None
+            return "nothing", f"{why}; no snapshot either", None, cpu
         self.keep(entity, image)
         try:
             size = Image.open(io.BytesIO(image)).size
         except OSError:
             size = None
-        return "snapshot", why, size
+        return "snapshot", why, size, cpu
 
     async def _sleep_or(self, event: asyncio.Event, seconds: float) -> None:
         """Sleep that long, or less when the event is set or a pace changes."""

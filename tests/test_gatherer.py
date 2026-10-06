@@ -165,7 +165,7 @@ def test_the_survey_reads_every_stream_and_pauses_with_the_gatherer(
     monkeypatch.setattr(
         mod.streams,
         "first_frame",
-        lambda url: (probed.append(url) or Image.new("RGB", (1280, 720)), ""),
+        lambda url: (probed.append(url) or Image.new("RGB", (1280, 720)), "", 0.01),
     )
 
     async def run():
@@ -285,7 +285,7 @@ def test_each_survey_is_recorded_with_why(tmp_path, monkeypatch):
     g._name = name  # type: ignore[method-assign]
     g._fetch_now = fetch  # type: ignore[method-assign]
     monkeypatch.setattr(
-        mod.streams, "first_frame", lambda url: (None, "no video frame for 15 s")
+        mod.streams, "first_frame", lambda url: (None, "no video frame for 15 s", 0.01)
     )
     assert asyncio.run(g._survey_one("camera.a")) == "snapshot"
     record = g.status()["channels"][0]["surveys"][0]
@@ -320,7 +320,7 @@ def test_the_survey_reads_as_many_streams_at_once_as_set(tmp_path, monkeypatch):
         time.sleep(0.05)
         with lock:
             reading[0] -= 1
-        return Image.new("RGB", (64, 36)), ""
+        return Image.new("RGB", (64, 36)), "", 0.01
 
     async def name(entity):
         return entity
@@ -340,3 +340,21 @@ def test_the_survey_reads_as_many_streams_at_once_as_set(tmp_path, monkeypatch):
 
     asyncio.run(one_pass())
     assert most[0] == 2 and g.status()["survey"]["at_once"] == 2
+
+
+def test_a_stream_is_decoded_only_as_much_as_its_pace_needs(tmp_path):
+    # Keyframes only while pictures are taken no faster than keyframes come; every
+    # frame when the pace asks for fresher (continuous, or faster than its keyframes).
+    g = gatherer(tmp_path)
+    from types import SimpleNamespace
+    from typing import cast
+
+    reader = cast(mod.streams.Reader, SimpleNamespace(gop_s=None))
+    assert g._keys_only(reader)  # its keyframe interval not known yet: keyframes
+    reader.gop_s = 1.0
+    g.paces["gatherer"] = 2.0
+    assert g._keys_only(reader)  # every 2 s, a keyframe every 1 s
+    g.paces["gatherer"] = 0.5
+    assert not g._keys_only(reader)  # fresher than its keyframes: every frame
+    g.paces["gatherer"] = 0.0
+    assert not g._keys_only(reader)  # continuous: every frame

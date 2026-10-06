@@ -35,6 +35,11 @@ type Channel = {
   waiting: boolean;
   source: "stream" | "snapshot";
   fps: number | null;
+  /** Its stream's decoding: its share of a CPU (%), keyframes only or every frame, and
+   * its keyframe interval (s). */
+  cpu_pct: number | null;
+  decoding: "keyframes" | "every frame" | null;
+  gop_s: number | null;
   no_stream: string | null;
   width: number;
   height: number;
@@ -52,11 +57,29 @@ type Channel = {
 };
 /** One survey of a channel: when (epoch s), what came of it, why not its stream, how
  * long it took, and the size it gave. */
-type SurveyRecord = { at: number; outcome: "stream" | "snapshot" | "read" | "nothing"; why: string; took_s: number; size: [number, number] | null };
+type SurveyRecord = {
+  at: number;
+  outcome: "stream" | "snapshot" | "read" | "nothing";
+  why: string;
+  took_s: number;
+  cpu_ms?: number;
+  size: [number, number] | null;
+};
 /** The survey: a pass over every channel of every camera (its stream's first frame, or a
  * snapshot), then a sleep at its pace. */
-type Survey = { running: boolean; done: number; of: number; pace: number; at_once: number; took_s?: number; next_in: number | null };
+type Survey = {
+  running: boolean;
+  done: number;
+  of: number;
+  pace: number;
+  at_once: number;
+  took_s?: number;
+  cpu_s?: number;
+  next_in: number | null;
+};
 type Gatherer = {
+  /** The whole app's share of a CPU (%), since the last look. */
+  cpu_pct: number;
   paused: boolean;
   gathering: boolean;
   pace: number;
@@ -213,7 +236,7 @@ function Strip({ status, busy, act }: { status: Status; busy: boolean; act: Act 
       <Stage
         name="Gatherer"
         on={!g.paused && g.gathering}
-        note={g.paused ? "paused" : g.gathering ? `${plural(fetching, "channel")}, ${plural(g.streams_read, "stream")}` : "nothing wanted"}
+        note={`${g.paused ? "paused" : g.gathering ? `${plural(fetching, "channel")}, ${plural(g.streams_read, "stream")}` : "nothing wanted"} · app CPU ${g.cpu_pct}%`}
       >
         <PauseButton paused={g.paused} path="gatherer" name="Gatherer" busy={busy} act={act} />
       </Stage>
@@ -289,7 +312,7 @@ function GathererArea({
           : g.survey.running
             ? `Passing now: ${g.survey.done} of ${g.survey.of}.`
             : g.survey.took_s != null
-              ? `Last pass: ${plural(g.survey.of, "channel")} in ${seconds(g.survey.took_s)}; the next in ${seconds(g.survey.next_in ?? 0)}.`
+              ? `Last pass: ${plural(g.survey.of, "channel")} in ${seconds(g.survey.took_s)}, ${seconds(g.survey.cpu_s ?? 0)} of CPU; the next in ${seconds(g.survey.next_in ?? 0)}.`
               : ""}
       </p>
       <PaceSlider which="survey" label="Survey pause" value={g.survey.pace} steps={SURVEY_STEPS} act={act} />
@@ -302,7 +325,7 @@ function GathererArea({
         act={act}
       />
       {g.channels.length ? (
-        <Table head={["Camera", "Channel", "State", "Size", "Rate", "Wanted by", "Missed", "Survey", ""]}>
+        <Table head={["Camera", "Channel", "State", "Size", "Rate", "CPU", "Wanted by", "Missed", "Survey", ""]}>
           {[...g.channels].sort(byCamera).map((c) => (
             <tr key={c.camera}>
               <td>{c.title}</td>
@@ -326,6 +349,9 @@ function GathererArea({
                 )}
               </td>
               <td>{c.fps != null ? `${c.fps} fps` : c.fetch_ms != null ? `${ms(c.fetch_ms)} a still` : ""}</td>
+              <td title={c.gop_s ? `A keyframe every ${c.gop_s} s` : undefined}>
+                {c.cpu_pct != null ? `${c.cpu_pct}% · ${c.decoding}` : ""}
+              </td>
               <td>{c.wanted_by.map(owner).join(", ")}</td>
               <td style={c.back_in_s != null ? { color: "var(--bad)" } : undefined}>
                 {c.back_in_s != null ? `back in ${seconds(c.back_in_s)}` : c.missed ? `${c.missed} in a row` : ""}
@@ -619,7 +645,7 @@ function Surveys({ c, onClose }: { c?: Channel; onClose: () => void }) {
         <code>{c.camera}</code>: its last five surveys, newest first. Each opens its stream for a first frame (through
         Home Assistant's go2rtc), else takes its snapshot.
       </p>
-      <Table head={["When", "Came", "Took", "Size", "Why not its stream"]}>
+      <Table head={["When", "Came", "Took", "CPU", "Size", "Why not its stream"]}>
         {c.surveys.map((r) => (
           <tr key={r.at}>
             <td>{new Date(r.at * 1000).toLocaleTimeString()}</td>
@@ -627,6 +653,7 @@ function Surveys({ c, onClose }: { c?: Channel; onClose: () => void }) {
               {r.outcome === "read" ? "being read anyway" : r.outcome}
             </td>
             <td>{seconds(r.took_s)}</td>
+            <td>{r.cpu_ms != null ? ms(r.cpu_ms) : ""}</td>
             <td>{r.size ? `${r.size[0]} × ${r.size[1]}` : ""}</td>
             <td style={{ whiteSpace: "normal" }}>{r.why}</td>
           </tr>
