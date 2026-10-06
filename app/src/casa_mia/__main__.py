@@ -14,7 +14,7 @@ from .components import ask_for_restart, install_bundled
 from .ha import HA
 from .install_count import count_install
 from .log import configure_logging
-from .modules.camera_dashboard import DRAFT_PORT, KEEP_STILLS_EVERY, CameraDashboard
+from .modules.camera_dashboard import DRAFT_PORT, CameraDashboard
 from .modules.compositor import (
     DRAFT_STORE,
     Compositor,
@@ -175,7 +175,6 @@ def main() -> int:
         ha_url,
         ha_token,
         ws_path,
-        keep_stills=KEEP_STILLS_EVERY if cameras_on else None,
         sizes_path=CONFIG / "camera_sizes.json",  # each channel's size, kept
         pace_path=CONFIG / "compositor_pace.json",  # its paces, as set on its page
     )

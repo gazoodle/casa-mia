@@ -65,9 +65,6 @@ _LOGGER = logging.getLogger(__name__)
 
 DRAFT_PORT = 8098
 THUMB_WIDTH = 160  # the page's camera thumbnails
-# The draft compositor keeps the latest still of every chosen camera, fetched this often
-# (seconds), so the page's thumbnails and previews are ready at once.
-KEEP_STILLS_EVERY = 60.0
 CAMERA = re.compile(r"camera\.[a-z0-9_]+")
 # The integration's Camera Commander devices, one per commander: each one's Main camera
 # select (options: its camera titles), which its taps and automations set. The first

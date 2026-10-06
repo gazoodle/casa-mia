@@ -19,7 +19,6 @@ async def gather_round(comp) -> None:
     comp._want(comp.cfg.commanders)
     g = comp.gather
     g.uses = g._wants[comp.store][1]
-    g._survey()
     await asyncio.gather(*(g._once(e) for e in g.uses))
 
 
@@ -117,7 +116,7 @@ def test_no_config_is_unconfigured(tmp_path):
         comp.stop()
 
 
-def test_keeps_the_latest_still_of_every_camera(tmp_path):
+def test_the_survey_keeps_a_picture_of_every_camera(tmp_path):
     write_config(tmp_path)
     ha = ThreadingHTTPServer(("127.0.0.1", 0), FakeHA)
     threading.Thread(target=ha.serve_forever, daemon=True).start()
@@ -127,11 +126,10 @@ def test_keeps_the_latest_still_of_every_camera(tmp_path):
         "token",
         port=0,
         prewarm=False,
-        keep_stills=60,
     )
     comp.start()
     try:
-        # "(Waiting …)" for each at once; the first kept stills come unasked
+        # "(Waiting …)" for each at once; the survey's first pass comes unasked
         assert set(comp.gather.shots) == {"camera.a", "camera.b"}
         for _ in range(50):
             if not comp.gather._waiting:
@@ -261,7 +259,8 @@ def test_gathers_only_while_watched_and_serves_at_once_after(tmp_path, monkeypat
     from casa_mia.modules import compositor as mod
 
     monkeypatch.setattr(mod, "LINGER", 0.1)
-    monkeypatch.setattr(mod, "INTERVAL", 0.1)
+    for pace in ("gatherer", "live"):
+        monkeypatch.setitem(mod.PACE_DEFAULTS, pace, 0.1)
     write_config(tmp_path)
     ha = ThreadingHTTPServer(("127.0.0.1", 0), FakeHA)
     threading.Thread(target=ha.serve_forever, daemon=True).start()
@@ -366,9 +365,9 @@ def test_the_pages_controls_restart_flush_and_forget(compositor):
     waiting = {s["camera"] for s in out["gatherer"]["channels"] if s["waiting"]}
     assert "camera.a" in waiting
     assert api("POST", "live/forget", {}, b"{}")[0] == 400
-    # flushed: every channel waiting again, nothing drawn kept; drawn afresh when asked
+    # flushed: nothing drawn kept (drawn afresh when asked); the cameras' pictures are
+    # purged too, and a survey pass starts at once to fetch them again
     out = json.loads(api("POST", "live/flush", {}, b"")[2])
-    assert all(s["waiting"] for s in out["gatherer"]["channels"])
     assert not out["live"]["pictures"]
     assert api("POST", "draft/flush", {}, b"")[0] == 404  # no draft engine here
     # restarted (the integration's button): serving again, on the same port

@@ -13,6 +13,7 @@ from PIL import Image
 from casa_mia.modules import compositor as comp_mod
 from casa_mia.modules import streams
 from casa_mia.modules.compositor import LIVE_STORE, Compositor
+from casa_mia.modules.compositor import channels as mod_channels
 
 
 def test_names_as_has_go2rtc_does():
@@ -205,12 +206,13 @@ def test_a_round_draws_from_the_channels_streams(tmp_path, monkeypatch):
         comp._want(comp.cfg.commanders)
         g = comp.gather
         g.uses = g._wants[comp.store][1]
-        g._survey()
         await asyncio.gather(*(g._once(e) for e in g.uses))
-        await asyncio.gather(*comp.gather._bg)
+        # a survey pass: every channel of every camera
+        everything = [e for c in g._cameras() for e in mod_channels(g.cfg, c).values()]
+        await asyncio.gather(*(g._survey_one(e) for e in everything))
 
     asyncio.run(round_and_survey())
-    assert snapshots == ["camera.b"]  # camera.b has no stream: its snapshots
+    assert set(snapshots) == {"camera.b"}  # camera.b has no stream: its snapshots
     assert set(comp.gather._readers) == {"camera.a", "camera.a_h"}
     assert isinstance(comp.gather.shots["camera.a_h"][1], Image.Image)
     assert comp.gather._streamed == {

@@ -48,7 +48,18 @@ type Channel = {
   wanted_by: string[];
   uses: Use[];
 };
-type Gatherer = { paused: boolean; gathering: boolean; pace: number; go2rtc: boolean | null; streams_read: number; channels: Channel[] };
+/** The survey: a pass over every channel of every camera (its stream's first frame, or a
+ * snapshot), then a sleep at its pace. */
+type Survey = { running: boolean; done: number; of: number; pace: number; took_s?: number; next_in: number | null };
+type Gatherer = {
+  paused: boolean;
+  gathering: boolean;
+  pace: number;
+  go2rtc: boolean | null;
+  streams_read: number;
+  survey: Survey;
+  channels: Channel[];
+};
 type Picture = {
   key: string;
   commander: string;
@@ -251,6 +262,18 @@ function GathererArea({ g, busy, act, onLive }: { g: Gatherer; busy: boolean; ac
         action={<PauseButton paused={g.paused} path="gatherer" name="Gatherer" busy={busy} act={act} />}
       />
       <PaceSlider which="gatherer" value={g.pace} steps={GATHER_STEPS} act={act} />
+      <p className={guest.rowMeta}>
+        Survey: every channel of every camera, from its stream's first frame (a snapshot where there is no stream), for
+        each one's picture and size.{" "}
+        {g.paused
+          ? "Paused with the gatherer."
+          : g.survey.running
+            ? `Passing now: ${g.survey.done} of ${g.survey.of}.`
+            : g.survey.took_s != null
+              ? `Last pass: ${plural(g.survey.of, "channel")} in ${seconds(g.survey.took_s)}; the next in ${seconds(g.survey.next_in ?? 0)}.`
+              : ""}
+      </p>
+      <PaceSlider which="survey" label="Survey pause" value={g.survey.pace} steps={SURVEY_STEPS} act={act} />
       {g.channels.length ? (
         <Table head={["Camera", "Channel", "State", "Size", "Rate", "Wanted by", "Missed", ""]}>
           {[...g.channels].sort(byCamera).map((c) => (
@@ -299,15 +322,29 @@ function GathererArea({ g, busy, act, onLive }: { g: Gatherer; busy: boolean; ac
  * generator's down to 8 a second. */
 const GATHER_STEPS = [0, 0.125, 0.25, 0.5, 1, 2, 3, 5, 10, 15];
 const DRAW_STEPS = [0.125, 0.25, 0.5, 1, 2, 3, 5, 10, 15];
+const SURVEY_STEPS = [10, 15, 30, 60, 120, 300, 600, 1800, 3600];
 
 /** 0: continuous; 0.25: 4 a second; 2: every 2 s. */
 function paceText(seconds: number): string {
   if (seconds === 0) return "continuous, as fast as each answers";
-  return seconds < 1 ? `${Math.round(1 / seconds)} a second` : `every ${seconds} s`;
+  if (seconds < 1) return `${Math.round(1 / seconds)} a second`;
+  return seconds < 60 ? `every ${seconds} s` : `every ${seconds / 60} min`;
 }
 
 /** A pace, set on the box a moment after the slider stops moving. */
-function PaceSlider({ which, value, steps, act }: { which: string; value: number; steps: number[]; act: Act }) {
+function PaceSlider({
+  which,
+  label = "Pace",
+  value,
+  steps,
+  act,
+}: {
+  which: string;
+  label?: string;
+  value: number;
+  steps: number[];
+  act: Act;
+}) {
   const [held, setHeld] = useState<number>(); // the step shown while it moves
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const nearest = steps.reduce((best, s, i) => (Math.abs(s - value) < Math.abs(steps[best] - value) ? i : best), 0);
@@ -322,7 +359,7 @@ function PaceSlider({ which, value, steps, act }: { which: string; value: number
   };
   return (
     <label className={pipe.pace}>
-      <span>Pace</span>
+      <span>{label}</span>
       <input type="range" min={0} max={steps.length - 1} step={1} value={at} onChange={(e) => move(Number(e.target.value))} />
       <strong>{paceText(steps[at])}</strong>
     </label>

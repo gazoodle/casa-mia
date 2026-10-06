@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b46
+
+- Camera compositor: the survey. From the app's start, a pass over every channel of every camera, two at a time: each one's stream opened for its first frame (15 s at most), kept as its picture in the cache, and its size (a snapshot where it cannot be streamed); then a pause (60 s by default, 10 s to 1 h, on the Camera compositor page and as the integration's Survey pause) and another pass. A channel being read anyway is passed over. Paused with the gatherer; a purge or a new camera starts a pass at once. It replaces the one-off size probes and the 60 s kept snapshots, so every channel's picture and size come from its stream, and the page shows the pass as it goes.
+
 ## 2026.10.3-b45
 
 - Camera compositor: reading the cameras' sizes from their streams no longer stops part-way. A stream that sent data but never a picture kept its probe waiting for ever; two such and the survey stopped for good (15 of 24 cameras were left with their snapshot sizes, 640 x 360 for every UniFi Protect channel). A probe now gives up after 15 s without a video frame, says why in the log and on the Camera compositor page, and is tried again in 10 minutes; a stream being read that stops giving pictures counts as lost and is read again.

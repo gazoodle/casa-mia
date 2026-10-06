@@ -56,7 +56,7 @@ def test_sizes_are_kept_across_restarts(tmp_path):
 
 
 def test_a_stalled_camera_holds_up_only_itself(tmp_path, monkeypatch):
-    monkeypatch.setattr(mod, "INTERVAL", 0.05)
+    monkeypatch.setitem(mod.PACE_DEFAULTS, "gatherer", 0.05)
     g = gatherer(tmp_path)
     asked: list[str] = []
 
@@ -81,7 +81,7 @@ def test_a_stalled_camera_holds_up_only_itself(tmp_path, monkeypatch):
 
 
 def test_a_paused_gatherer_fetches_nothing(tmp_path, monkeypatch):
-    monkeypatch.setattr(mod, "INTERVAL", 0.05)
+    monkeypatch.setitem(mod.PACE_DEFAULTS, "gatherer", 0.05)
     g = gatherer(tmp_path)
     g._fetch_now = lambda entity: asyncio.sleep(0, jpeg())  # type: ignore[method-assign,assignment]
     g.pause(True)
@@ -142,13 +142,13 @@ def test_generator_and_server_pause_on_their_own(served):
     assert not (status["generator_paused"] or status["server_paused"])
 
 
-def test_a_paused_gatherer_keeps_no_stills_and_sizes_every_camera(
+def test_the_survey_reads_every_stream_and_pauses_with_the_gatherer(
     tmp_path, monkeypatch
 ):
-    # Paused, the kept stills fetch nothing (a purge wakes them, and must not refill the
-    # cache); running, every camera's channels are sized from their streams, in use or
-    # not.
-    g = gatherer(tmp_path, keep_stills=60)
+    # From the start, a pass over every channel of every camera: its stream's first
+    # frame kept as its picture, its size read; then a sleep (its pace) and again.
+    # Paused with the gatherer: a purge then must not refill the cache.
+    g = gatherer(tmp_path)
     g.go2rtc = True
     asked: list[str] = []
     probed: list[str] = []
@@ -169,24 +169,44 @@ def test_a_paused_gatherer_keeps_no_stills_and_sizes_every_camera(
     )
 
     async def run():
-        g._round_now = asyncio.Event()
+        g._survey_now, g._repaced = asyncio.Event(), asyncio.Event()
         g.pause(True)
-        kept = asyncio.ensure_future(g._keep_stills(60))
+        loop = asyncio.ensure_future(g._survey_loop())
         g.clear()  # a purge while paused
         await asyncio.sleep(0.1)
-        paused_asked = list(asked)
+        paused = (list(probed), list(asked), dict(g.survey))
         g.pause(False)
-        g._round_now.set()
-        await asyncio.sleep(0.1)
-        g._survey()
-        await asyncio.gather(*g._bg)
-        kept.cancel()
-        await asyncio.gather(kept, return_exceptions=True)
-        return paused_asked
+        g._survey_now.set()
+        for _ in range(100):
+            await asyncio.sleep(0.01)
+            if g.survey.get("ended"):
+                break
+        loop.cancel()
+        await asyncio.gather(loop, return_exceptions=True)
+        return paused
 
-    assert asyncio.run(run()) == []  # nothing fetched while paused
-    assert set(asked) == {"camera.a", "camera.b"}  # running again: the kept stills
-    assert g._streamed == {"camera.a", "camera.b"}  # every camera sized by its stream
+    probed_paused, asked_paused, survey_paused = asyncio.run(run())
+    assert not probed_paused and not asked_paused  # paused: nothing at all
+    assert not survey_paused["running"]
+    assert len(probed) == 2 and not asked  # every channel from its stream, no snapshot
+    assert g._streamed == {"camera.a", "camera.b"} and not g._waiting
+    assert isinstance(g.shots["camera.a"][1], Image.Image)  # the frame, as its picture
+    status = g.status()["survey"]
+    assert status["done"] == status["of"] == 2 and status["next_in"] is not None
+
+
+def test_the_survey_takes_a_snapshot_where_there_is_no_stream(tmp_path, monkeypatch):
+    g = gatherer(tmp_path)
+    g.go2rtc = False  # HA's go2rtc out of reach: snapshots only
+    asked: list[str] = []
+
+    async def fetch(entity):
+        asked.append(entity)
+        return jpeg()
+
+    g._fetch_now = fetch  # type: ignore[method-assign]
+    got = asyncio.run(g._survey_one("camera.a"))
+    assert got == "snapshot" and asked == ["camera.a"] and "camera.a" not in g._waiting
 
 
 def test_a_snapshot_not_its_channels_size_is_never_its_picture(tmp_path):
