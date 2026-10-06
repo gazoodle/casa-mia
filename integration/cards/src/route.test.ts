@@ -1,8 +1,8 @@
-// The Camera Commander's picture route (ha.ts: atHome): direct only where this page reached
+// The Camera Commander's picture route (ha.ts: atHome, ratioFor): direct only where this page reached
 // Home Assistant over plain http at a home address.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { atHome } from "./ha.ts";
+import { atHome, ratioFor } from "./ha.ts";
 
 const at = (url: string) => atHome(new URL(url));
 
@@ -14,4 +14,13 @@ test("home addresses over http are home", () => {
 test("https, or a public address, is away", () => {
   for (const url of ["https://192.168.1.20:8123", "https://example.ui.nabu.casa", "http://203.0.113.9:8123", "http://ha.example.com", "http://172.32.0.1:8123", "http://fdroid.example.com"])
     assert.equal(at(url), false, url);
+});
+
+test("through Home Assistant the pixel ratio is capped by the sharpness; direct it is the screen's", () => {
+  assert.equal(ratioFor(2, false, "light"), 2);
+  assert.equal(ratioFor(2, true), 1.5); // Balanced by default
+  assert.equal(ratioFor(3, true, "full"), 3);
+  assert.equal(ratioFor(2, true, "light"), 1);
+  assert.equal(ratioFor(2, true, "saver"), 0.75);
+  assert.equal(ratioFor(1, true, "balanced"), 1); // never more than the screen's own
 });

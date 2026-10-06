@@ -235,3 +235,12 @@ export function atHome(loc: { protocol: string; hostname: string }): boolean {
       /\.(local|lan|home|internal|home\.arpa)$/.test(h))
   );
 }
+
+export type Sharpness = "full" | "balanced" | "light" | "saver";
+// The most pixels per CSS pixel asked for through Home Assistant.
+const SHARPNESS: Record<Sharpness, number> = { full: Infinity, balanced: 1.5, light: 1, saver: 0.75 };
+
+/** The pixel ratio to ask for: the screen's own, at most `sharpness`'s through Home Assistant. */
+export function ratioFor(dpr: number, viaHa: boolean, sharpness: Sharpness = "balanced"): number {
+  return viaHa ? Math.min(dpr, SHARPNESS[sharpness] ?? SHARPNESS.balanced) : dpr;
+}

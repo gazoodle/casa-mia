@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b31
+
+- Camera Commander: through Home Assistant (away from home) the picture is asked for at no more than 1.5x the pixels a side by default, not the screen's own 2x or 3x, for about half the bytes; the card's new Sharpness through Home Assistant option offers Full, Balanced (1.5x), Light (1x) and Data saver (0.75x). Direct at home it is unchanged.
+
 ## 2026.10.3-b30
 
 - Camera compositor: measures where the time goes. Its status shows each picture's size and drawing time, the last round's fetch time, and each open stream's frames, kB a frame, kbit/s and the share of time spent waiting for the network; the log records each stream's opening and the same figures at its end. Pictures through Home Assistant log their kbit/s and waiting too.

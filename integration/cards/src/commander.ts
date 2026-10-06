@@ -16,13 +16,15 @@
 // Home Assistant (the integration's pictures.py): away from home that address is out of
 // reach, and on an HTTPS page an http:// picture is blocked. Home is told by how this page
 // reached Home Assistant (atHome), which the companion app already chooses by the Wi-Fi it
-// is on (its internal or external URL); `route` overrides it.
+// is on (its internal or external URL); `route` overrides it. Through Home Assistant the
+// picture is asked for at no more than `away_sharpness`'s pixel ratio (Balanced: 1.5), as
+// a 2x or 3x screen's own is up to four times the bytes over a slower link.
 import { LitElement, css, html, nothing } from "lit";
-import { atHome, define, type Fit, fire, fitOf, type Hass, heightFor, navigate, register, watchRoom } from "./ha.ts";
+import { atHome, define, type Fit, fire, fitOf, type Hass, heightFor, navigate, ratioFor, register, type Sharpness, watchRoom } from "./ha.ts";
 import { layout, PANELS, pyRound, type Rect, type Settings } from "./layout.ts";
 
 type Route = "auto" | "direct" | "ha";
-type Config = { type: string; entity?: string; draft?: boolean; tap_main?: "live" | "more-info" | "none"; route?: Route };
+type Config = { type: string; entity?: string; draft?: boolean; tap_main?: "live" | "more-info" | "none"; route?: Route; away_sharpness?: Sharpness };
 type Card = {
   picture: string;
   layout: Settings & { highlight?: Record<string, string | number>; debug?: { on?: boolean; colour?: string } };
@@ -93,7 +95,7 @@ class CommanderCard extends LitElement {
     this._box = [Math.round(width * 10) / 10, Math.round(height * 10) / 10];
     this.measure();
     if (this.debugOn()) this.requestUpdate();
-    const size = askFor(width, height, window.devicePixelRatio || 1);
+    const size = askFor(width, height, ratioFor(window.devicePixelRatio || 1, this.viaHa(), this._config?.away_sharpness));
     clearTimeout(this.settle);
     if (String(size) === String(this._size)) return;
     if (!this._size) this._size = size; // the first at once; then each once it holds
@@ -354,6 +356,20 @@ class CommanderEditor extends LitElement {
         },
       },
       {
+        name: "away_sharpness",
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: [
+              { value: "full", label: "Full (the screen's own)" },
+              { value: "balanced", label: "Balanced (1.5x)" },
+              { value: "light", label: "Light (1x)" },
+              { value: "saver", label: "Data saver (0.75x)" },
+            ],
+          },
+        },
+      },
+      {
         name: "tap_main",
         selector: {
           select: {
@@ -367,10 +383,10 @@ class CommanderEditor extends LitElement {
         },
       },
     ];
-    const labels: Record<string, string> = { entity: "Commander", draft: "Show the draft", tap_main: "A tap on the main camera", route: "The picture" };
+    const labels: Record<string, string> = { entity: "Commander", draft: "Show the draft", tap_main: "A tap on the main camera", route: "The picture", away_sharpness: "Sharpness through Home Assistant" };
     return html`<ha-form
       .hass=${this.hass}
-      .data=${{ tap_main: "live", route: "auto", ...this._config }}
+      .data=${{ tap_main: "live", route: "auto", away_sharpness: "balanced", ...this._config }}
       .schema=${schema}
       .computeLabel=${(s: { name: string }) => labels[s.name]}
       .computeHelper=${(s: { name: string }) =>
@@ -378,6 +394,8 @@ class CommanderEditor extends LitElement {
           ? "The commanders built on the Camera Dashboard page (each one's Main camera select)."
           : s.name === "route"
             ? "At home: this page reached Home Assistant over http at a home address (a private IP, a .local name). Through Home Assistant works anywhere you can sign in, at a little cost to Home Assistant."
+            : s.name === "away_sharpness"
+            ? "How sharp the picture is when it comes through Home Assistant (away from home): a 2x screen at Full is four times the bytes of Light. Direct at home it is always the screen's own."
             : s.name === "draft"
             ? "As saved on the Camera Dashboard page (Save draft), before it is deployed live: for trying changes out. Off: as deployed live."
             : undefined}
