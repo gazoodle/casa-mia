@@ -1,6 +1,7 @@
 """Settings that have no other home, set on the admin page's Settings page (the cog by the
 house photo's pencil). The integration gets them in /health and hands them to the dashboard
-cards (its websocket command casa_mia/settings), so a change reaches a tablet within the
+cards (its websocket command casa_mia/settings; the developer sections only in developer
+mode, the app option), so a change reaches a tablet within the
 integration's poll (30 s) and its next view change or page load.
 
 Admin API (/api/settings/): GET "" the values, PUT "" a change (known keys only, each of
@@ -25,6 +26,10 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         "show_size": False,  # the view's size, in a label top right
     },
 }
+# Sections that are debugging aids: shown on the page, and given to the cards, only in
+# developer mode (the developer_mode app option).
+DEVELOPER_SECTIONS = {"tablet_view"}
+DEVELOPER = False
 MAX_TEXT = 100
 
 Response = tuple[int, str, bytes]
@@ -54,6 +59,16 @@ def values() -> dict[str, dict[str, Any]]:
     except (OSError, ValueError):
         saved = {}
     return _clean(saved)
+
+
+def for_cards() -> dict[str, dict[str, Any]]:
+    """The values the cards get: a developer section's defaults out of developer mode."""
+    return {
+        section: DEFAULTS[section]
+        if section in DEVELOPER_SECTIONS and not DEVELOPER
+        else settings
+        for section, settings in values().items()
+    }
 
 
 def _json(status: int, data: dict) -> Response:

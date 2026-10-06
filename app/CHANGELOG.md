@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.3-b24
+
+- New app option, Developer mode (Configuration tab, with the feature switches): it shows the debugging aids in the Casa Mia panel, the Settings page's developer options and a commander's Debug options on the Camera Dashboard page. Off, the tablets get none of the Settings page's aids, whatever is saved there.
+- Settings: the Tablet view's aids are now plainly a developer option, Tablet view debugging, with a warning that they show on every Tablet view until switched off.
+
 ## 2026.10.3-b23
 
 - New Settings page (the cog by the house photo's pencil) for settings with no other home. First, the Tablet view's setup aids, for every Tablet view: Identify sections panels (an outline round each panel, its CSS editable, `1px solid red` by default) and Show the view size (the size label, now see-through so what is under it shows). The integration hands them to the cards (needs a Home Assistant restart after this update); a tablet picks up a change at its next view change or reload. A view's own `debug: true` still turns both on.

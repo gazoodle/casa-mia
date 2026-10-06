@@ -1,8 +1,9 @@
 /** Settings: those with no other home (the cog by the house photo's pencil). Each change
  * saves at once; the cards pick it up through the integration. */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { api } from "./api";
+import { Developer } from "./health";
 import { SettingsIcon } from "./icons";
 import { AreaHead, Shell } from "./page";
 import { Switch, Toasts, type Toast } from "./ui";
@@ -24,6 +25,7 @@ export function SettingsPage() {
   const [settings, setSettings] = useState<Settings>();
   const [outline, setOutline] = useState(""); // as typed, saved on leaving the field
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const developer = useContext(Developer);
 
   const toast = useCallback((text: string, tone: Toast["tone"] = "good") => {
     setToasts((t) => [...t, { text, tone }]);
@@ -58,44 +60,59 @@ export function SettingsPage() {
 
   return (
     <Shell {...HEAD}>
-      <section className={guest.area}>
-        <AreaHead
-          title="Tablet view"
-          blurb="For setting up a Tablet view (custom:casa-mia-tablet-view) on the tablets themselves. Every Tablet view shows them."
-        />
-        <div className={css.rows}>
-          <div className={css.row}>
-            <div className={css.text}>
-              <strong>Identify sections panels</strong>
-              <span>An outline round each panel, so you can see where each one ends.</span>
-            </div>
-            <Switch label="Identify sections panels" on={tv.identify_panels} onChange={(on) => save({ identify_panels: on })} />
+      {!developer && (
+        <p className={guest.notice}>
+          Nothing to set here yet. The developer options show when <strong>Developer mode</strong> is on in the
+          app's Configuration tab.
+        </p>
+      )}
+      {developer && (
+        <section className={`${guest.area} ${css.dev}`}>
+          <div className={css.devHead}>
+            <span className={css.devChip}>Developer · debugging</span>
           </div>
-          <label className={css.sub}>
-            <span>Outline (CSS)</span>
-            <input
-              className={css.css}
-              value={outline}
-              maxLength={100}
-              spellCheck={false}
-              onChange={(e) => setOutline(e.target.value)}
-              onBlur={saveOutline}
-              onKeyDown={(e) => e.key === "Enter" && saveOutline()}
-            />
-            <span className={css.swatch} style={{ outline: outline || "1px solid red" }} aria-hidden />
-          </label>
-          <div className={css.row}>
-            <div className={css.text}>
-              <strong>Show the view size</strong>
-              <span>
-                A see-through yellow label, top right: the view's size, the room below its top, and how far the page
-                still scrolls (it should be 0 x 0).
-              </span>
+          <AreaHead
+            title="Tablet view debugging"
+            blurb="Aids for building a Tablet view (custom:casa-mia-tablet-view) and finding layout problems. Not for everyday use."
+          />
+          <p className={css.devWarn}>
+            While one is on, it shows on <strong>every</strong> Tablet view, on every tablet and browser, until it is
+            switched off again here.
+          </p>
+          <div className={css.rows}>
+            <div className={css.row}>
+              <div className={css.text}>
+                <strong>Identify sections panels</strong>
+                <span>An outline round each panel, so you can see where each one ends.</span>
+              </div>
+              <Switch label="Identify sections panels" on={tv.identify_panels} onChange={(on) => save({ identify_panels: on })} />
             </div>
-            <Switch label="Show the view size" on={tv.show_size} onChange={(on) => save({ show_size: on })} />
+            <label className={css.sub}>
+              <span>Outline (CSS)</span>
+              <input
+                className={css.css}
+                value={outline}
+                maxLength={100}
+                spellCheck={false}
+                onChange={(e) => setOutline(e.target.value)}
+                onBlur={saveOutline}
+                onKeyDown={(e) => e.key === "Enter" && saveOutline()}
+              />
+              <span className={css.swatch} style={{ outline: outline || "1px solid red" }} aria-hidden />
+            </label>
+            <div className={css.row}>
+              <div className={css.text}>
+                <strong>Show the view size</strong>
+                <span>
+                  A see-through yellow label, top right: the view's size, the room below its top, and how far the page
+                  still scrolls (it should be 0 x 0).
+                </span>
+              </div>
+              <Switch label="Show the view size" on={tv.show_size} onChange={(on) => save({ show_size: on })} />
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
       <Toasts toasts={toasts} />
     </Shell>
   );

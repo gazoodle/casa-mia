@@ -145,7 +145,8 @@ class Handler(BaseHTTPRequestHandler):
                 "integration_url": integration_url(),
                 "house": header.HOUSE,
                 "modules": modules,
-                "settings": settings.values(),  # for the cards
+                "developer": settings.DEVELOPER,  # the developer_mode option
+                "settings": settings.for_cards(),
             }
         )
         # Swapped before the stamp is added, so the stamp itself never is.

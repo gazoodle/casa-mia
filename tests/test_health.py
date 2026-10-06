@@ -29,6 +29,7 @@ def test_health_reports_ok_and_version(base_url):
             "integration_url": f"http://{socket.gethostname()}:8780",
             "house": "Casa Mia",
             "modules": {},
+            "developer": False,
             "settings": settings.DEFAULTS,  # none saved (no /config here)
             "swap": "",
         }

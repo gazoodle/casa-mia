@@ -28,6 +28,9 @@ def test_settings_default_save_and_refuse(tmp_path, monkeypatch):
         "show_size": False,
     }
     assert call("GET")[1] == saved  # kept
+    assert settings.for_cards() == settings.DEFAULTS  # not in developer mode
+    monkeypatch.setattr(settings, "DEVELOPER", True)
+    assert settings.for_cards() == saved
     assert call("PUT", {"tablet_view": {"show_size": "yes"}})[0] == 400  # wrong type
     assert call("PUT", {"tablet_view": {"rm_rf": True}})[0] == 400  # unknown
     assert call("PUT", {"tablet_view": {"identify_outline": "x" * 101}})[0] == 400

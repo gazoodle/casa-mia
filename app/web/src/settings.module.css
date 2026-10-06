@@ -57,3 +57,38 @@
   border-radius: 2px;
   background: color-mix(in srgb, var(--muted) 12%, transparent);
 }
+
+/* A developer area: debugging aids, marked so nobody leaves them on by mistake. */
+.dev.dev { /* over the area's own border and background */
+  border: 1px dashed color-mix(in srgb, var(--warn) 60%, var(--border));
+  background: repeating-linear-gradient(
+      -45deg,
+      color-mix(in srgb, var(--warn) 4%, transparent) 0 12px,
+      transparent 12px 24px
+    ),
+    var(--surface);
+}
+
+.devHead {
+  margin-bottom: 8px;
+}
+
+.devChip {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--warn) 18%, transparent);
+  color: var(--warn);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.devWarn {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-left: 3px solid var(--warn);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--warn) 8%, transparent);
+  font-size: 13px;
+}

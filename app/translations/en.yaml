@@ -48,6 +48,13 @@ configuration:
       The intruder alarm as a Home Assistant alarm panel (arm away, disarm, triggered),
       driven by the alarm's ESPHome sensors. It runs in the integration, which sets the
       code; off removes its device and entity.
+  developer_mode:
+    name: Developer mode
+    description: >-
+      Shows the debugging aids in the Casa Mia panel: the Settings page's developer
+      options (the Tablet view's panel outlines and size label) and a commander's Debug
+      options on the Camera Dashboard page. Off, the tablets show none of the Settings
+      page's aids, whatever is saved there.
 network:
   8000/tcp: "Firmware server (Serve tablet firmware): the tablets fetch Kiosk Satellite updates here. Blank it if that option is off."
   8098/tcp: "Camera Dashboard previews: the draft composites its preview dashboard shows. Blank it if that option is off."

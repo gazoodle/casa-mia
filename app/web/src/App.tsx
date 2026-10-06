@@ -7,7 +7,7 @@ import { KioskFrame, KiosksPage } from "./KiosksPage";
 import { KioskModePage } from "./KioskModePage";
 import { PeoplePage } from "./PeoplePage";
 import { SettingsPage } from "./SettingsPage";
-import { useHealth, type ModuleHealth } from "./health";
+import { Developer, useHealth, type ModuleHealth } from "./health";
 import { ModuleIcon, SettingsIcon } from "./icons";
 import { MODULES, type ModuleInfo } from "./modules";
 import type { HeaderView } from "./api";
@@ -54,15 +54,8 @@ export function App() {
   useEffect(() => {
     photoApi.get<HeaderView>("").then(setPhoto, () => undefined);
   }, []);
-  if (route === "/guest") return <GuestPage state={health?.modules.guest_login?.state} />;
-  if (route === "/people") return <PeoplePage />;
-  if (route === "/kiosks") return <KiosksPage state={health?.modules.kiosks?.state} />;
-  if (route.startsWith("/kiosks/")) return <KioskFrame id={route.slice("/kiosks/".length)} />;
-  if (route === "/cameras") return <CameraDashboardPage state={health?.modules.camera_dashboard?.state} />;
-  if (route === "/compositor") return <CompositorPage state={health?.modules.compositor?.state} />;
-  if (route === "/kiosk-mode") return <KioskModePage state={health?.modules.kiosk_mode?.state} />;
-  if (route === "/settings") return <SettingsPage />;
-  if (route === "/firmware") return <FirmwarePage state={health?.modules.gitproxy?.state} />;
+  const page = pageFor(route, health?.modules ?? {});
+  if (page) return <Developer.Provider value={!!health?.developer}>{page}</Developer.Provider>;
   const modules = Object.entries(health?.modules ?? {});
   const on = modules.filter(([, h]) => h.state && h.state !== "disabled");
   const off = modules.filter(([, h]) => h.state === "disabled");
@@ -126,6 +119,19 @@ export function App() {
       </div>
     </>
   );
+}
+
+/** The page for a route other than home (undefined for home). */
+function pageFor(route: string, modules: Record<string, ModuleHealth>): ReactNode {
+  if (route === "/guest") return <GuestPage state={modules.guest_login?.state} />;
+  if (route === "/people") return <PeoplePage />;
+  if (route === "/kiosks") return <KiosksPage state={modules.kiosks?.state} />;
+  if (route.startsWith("/kiosks/")) return <KioskFrame id={route.slice("/kiosks/".length)} />;
+  if (route === "/cameras") return <CameraDashboardPage state={modules.camera_dashboard?.state} />;
+  if (route === "/compositor") return <CompositorPage state={modules.compositor?.state} />;
+  if (route === "/kiosk-mode") return <KioskModePage state={modules.kiosk_mode?.state} />;
+  if (route === "/settings") return <SettingsPage />;
+  if (route === "/firmware") return <FirmwarePage state={modules.gitproxy?.state} />;
 }
 
 /** The address the Casa Mia integration is set up with, ready to copy. */

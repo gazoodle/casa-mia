@@ -6,6 +6,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api } from "./api";
 import { ago } from "./format";
+import { Developer } from "./health";
 import { CameraIcon } from "./icons";
 import { AreaHead, Empty, Shell } from "./page";
 import { CopyButton, Dialog, Field, Segmented, Switch, Toasts, type Toast } from "./ui";
@@ -829,6 +830,7 @@ function CommanderEditor({
   const sized = value.main_fit === "own" || value.main_fit === "fixed"; // the panels take the rest
   const lit = { ...HIGHLIGHT, ...value.highlight };
   const dbg = { ...DEBUG, ...value.debug };
+  const developer = useContext(Developer); // Debug options only in developer mode
   const moves = { ...MOTION, ...value.motion };
   return (
     <div className={css.commander}>
@@ -969,32 +971,34 @@ function CommanderEditor({
             />
           </Field>
         </section>
-        <section className={`${css.options} ${css.numbers}`}>
-          <h4 className={css.sub}>Debug options</h4>
-          <div className={css.wide}>
-            <Field
-              label="Debug"
-              help="Dims the whole picture and draws an L in each corner and both diagonals, so its true edges show, with its ID (name, size, scale) and when it was drawn. Camera Commander cards add their own figures. Saved in the draft, it shows on the preview and Show the draft cards first."
-            >
-              <Switch on={dbg.on} label="Debug" onChange={(on) => set((c) => (c.debug = { ...dbg, on }))} />
-            </Field>
-          </div>
-          {dbg.on && (
-            <>
-              <Num label="Dim to, %" value={dbg.dim} onChange={(n) => set((c) => (c.debug = { ...dbg, dim: Math.min(100, Math.max(0, n)) }))} />
-              <Num label="Corner L, px" value={dbg.corner} onChange={(n) => set((c) => (c.debug = { ...dbg, corner: n }))} />
-              <Num label="Line width, px" value={dbg.width} onChange={(n) => set((c) => (c.debug = { ...dbg, width: n }))} />
-              <Field label="Line colour">
-                <input
-                  type="color"
-                  className={css.colour}
-                  value={dbg.colour}
-                  onChange={(e) => set((c) => (c.debug = { ...dbg, colour: e.target.value }))}
-                />
+        {developer && (
+          <section className={`${css.options} ${css.numbers}`}>
+            <h4 className={css.sub}>Debug options</h4>
+            <div className={css.wide}>
+              <Field
+                label="Debug"
+                help="Dims the whole picture and draws an L in each corner and both diagonals, so its true edges show, with its ID (name, size, scale) and when it was drawn. Camera Commander cards add their own figures. Saved in the draft, it shows on the preview and Show the draft cards first."
+              >
+                <Switch on={dbg.on} label="Debug" onChange={(on) => set((c) => (c.debug = { ...dbg, on }))} />
               </Field>
-            </>
-          )}
-        </section>
+            </div>
+            {dbg.on && (
+              <>
+                <Num label="Dim to, %" value={dbg.dim} onChange={(n) => set((c) => (c.debug = { ...dbg, dim: Math.min(100, Math.max(0, n)) }))} />
+                <Num label="Corner L, px" value={dbg.corner} onChange={(n) => set((c) => (c.debug = { ...dbg, corner: n }))} />
+                <Num label="Line width, px" value={dbg.width} onChange={(n) => set((c) => (c.debug = { ...dbg, width: n }))} />
+                <Field label="Line colour">
+                  <input
+                    type="color"
+                    className={css.colour}
+                    value={dbg.colour}
+                    onChange={(e) => set((c) => (c.debug = { ...dbg, colour: e.target.value }))}
+                  />
+                </Field>
+              </>
+            )}
+          </section>
+        )}
         <section className={`${css.options} ${css.numbers}`}>
           <h4 className={css.sub}>Track motion</h4>
           <div className={css.wide}>

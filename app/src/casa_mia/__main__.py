@@ -81,6 +81,8 @@ def main() -> int:
     log.info("house name: %s", header.HOUSE)
     api["/api/header/"] = header.handle  # the house photo, set on the home page
     settings.FOLDER = CONFIG
+    settings.DEVELOPER = options.get("developer_mode", False)
+    log.info("developer mode: %s", "on" if settings.DEVELOPER else "off")
     api["/api/settings/"] = (
         settings.handle
     )  # settings with no other home (home page cog)
