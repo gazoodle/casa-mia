@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.10.3-b39
+
+- Camera compositor: one gatherer for the live and the preview compositors. Each camera channel is fetched, or its stream read and decoded, once for both, into one cache both draw from (before, each compositor fetched and decoded its own, so a channel both used cost twice). Each compositor says every round what its pictures are drawn from; a channel nobody has wanted for a minute is no longer fetched or read. Both run on the gatherer's one loop.
+- Camera compositor: a viewer's stream opening and ending is logged at debug, not info (the log was busy with them).
+- The app's image keeps PyAV in a layer of its own, so an update no longer downloads it again.
+
 ## 2026.10.3-b38
 
 - Camera compositor: each channel in use is read from its own stream, through Home Assistant's go2rtc (the app asks HA for each camera as its live view would, then reads go2rtc's restream on the host), so the picture is the camera's real video at its real size, not HA's snapshot (UniFi Protect gives every channel the same 640 x 360 snapshot). The other channels of each camera in use are read once for their true size, so the right one is chosen. A camera HA cannot stream, or whose stream is lost, keeps its snapshots (a lost stream is read again after 30 s). Readers stop once nobody watches. The Compositor page shows where each channel's picture comes from (its stream and frame rate, or snapshots, with the reason).

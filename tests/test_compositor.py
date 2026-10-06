@@ -12,6 +12,13 @@ from PIL import Image
 from casa_mia.modules.compositor import LIVE_STORE, Compositor, Sending
 
 
+async def gather_round(comp) -> None:
+    """One round of a compositor's commanders: what it wants, fetched by its gatherer."""
+    comp._want(comp.cfg.commanders)
+    comp.gather.uses = comp.gather._wants[comp.store][1]
+    await comp.gather._round(list(comp.gather.uses))
+
+
 def jpeg(colour: str = "red") -> bytes:
     out = io.BytesIO()
     Image.new("RGB", (160, 90), colour).save(out, "JPEG")
@@ -121,11 +128,11 @@ def test_keeps_the_latest_still_of_every_camera(tmp_path):
     comp.start()
     try:
         for _ in range(50):  # the first round runs at start, unasked
-            if set(comp._shots) == {"camera.a", "camera.b"}:
+            if set(comp.gather.shots) == {"camera.a", "camera.b"}:
                 break
             time.sleep(0.05)
-        assert set(comp._shots) == {"camera.a", "camera.b"}
-        assert comp._res["camera.a"] == (160, 90)  # its size, as it came
+        assert set(comp.gather.shots) == {"camera.a", "camera.b"}
+        assert comp.gather.res["camera.a"] == (160, 90)  # its size, as it came
         thumb = comp.still("camera.a", 160)
         assert thumb and Image.open(io.BytesIO(thumb)).size == (160, 90)
         assert comp.still("camera.a", 160) is thumb  # resized once per still
@@ -212,34 +219,35 @@ def test_a_camera_that_keeps_missing_sits_out(tmp_path):
     write_config(tmp_path)
     comp = Compositor(tmp_path, "http://127.0.0.1:1", "token", port=0)
     comp.cfg = mod.load_config(tmp_path)
+    comp.gather.configure(comp.store, comp.cfg)
     asked: list[str] = []
 
     async def fetch(entity):
         asked.append(entity)
         return None if entity == "camera.b" else jpeg()
 
-    comp._fetch_now = fetch  # type: ignore[method-assign]
+    comp.gather._fetch_now = fetch  # type: ignore[method-assign]
 
     async def rounds(n):
         for _ in range(n):
-            await comp._round(comp.cfg.commanders)
+            await gather_round(comp)
 
     asyncio.run(rounds(mod.STRIKES))
-    assert "camera.b" in comp._benched and asked.count("camera.b") == mod.STRIKES
+    assert "camera.b" in comp.gather._benched and asked.count("camera.b") == mod.STRIKES
     asked.clear()
     asyncio.run(rounds(1))
     assert "camera.b" not in asked and "camera.a" in asked  # sitting out
-    comp._benched["camera.b"] = 0  # its time is up
+    comp.gather._benched["camera.b"] = 0  # its time is up
     asyncio.run(rounds(1))
-    assert "camera.b" in asked and "camera.b" not in comp._benched
+    assert "camera.b" in asked and "camera.b" not in comp.gather._benched
     # its picture never came, and camera.a's is cached
-    assert "camera.a" in comp._shots
+    assert "camera.a" in comp.gather.shots
     # Home Assistant down (no camera answers): nobody's fault, nobody sits out
-    comp._benched.clear()
-    comp._misses.clear()
-    comp._fetch_now = lambda entity: asyncio.sleep(0)  # type: ignore[method-assign,assignment]
+    comp.gather._benched.clear()
+    comp.gather._misses.clear()
+    comp.gather._fetch_now = lambda entity: asyncio.sleep(0)  # type: ignore[method-assign,assignment]
     asyncio.run(rounds(mod.STRIKES + 1))
-    assert not comp._benched and not comp._misses
+    assert not comp.gather._benched and not comp.gather._misses
 
 
 def test_gathers_only_while_watched_and_serves_at_once_after(tmp_path, monkeypatch):
@@ -258,7 +266,7 @@ def test_gathers_only_while_watched_and_serves_at_once_after(tmp_path, monkeypat
     try:
         assert comp.health()["gathering"] is False  # nobody watching: nothing fetched
         urllib.request.urlopen(url).close()
-        assert comp._shots  # the first round was awaited: the cache was empty
+        assert comp.gather.shots  # the first round was awaited: the cache was empty
         for _ in range(200):
             if not comp.health()["gathering"] and comp._pictures:
                 break
@@ -311,10 +319,10 @@ def test_a_kept_still_has_its_real_age(tmp_path):
     # The draft compositor's first picture may come from the kept stills (every 60 s):
     # their age is known, so a fresh one is not marked Stale.
     comp = Compositor(tmp_path, "http://127.0.0.1:1", "t", port=0)
-    comp._shots["camera.a"] = (time.monotonic() - 10, jpeg())
-    image, age = comp._pick("camera.a")
+    comp.gather.shots["camera.a"] = (time.monotonic() - 10, jpeg())
+    image, age = comp.gather.pick("camera.a")
     assert image and 9 < age < 11
-    assert comp._pick("camera.b") == (None, float("inf"))
+    assert comp.gather.pick("camera.b") == (None, float("inf"))
 
 
 def test_the_pages_controls_restart_flush_and_forget(compositor):
@@ -420,7 +428,8 @@ def test_a_round_fetches_the_channel_each_place_needs(tmp_path):
     )
     comp = Compositor(tmp_path, "http://127.0.0.1:1", "token", port=0)
     comp.cfg = mod.load_config(tmp_path)
-    comp._res = {
+    comp.gather.configure(comp.store, comp.cfg)
+    comp.gather.res = {
         "camera.a": (640, 360),
         "camera.a_m": (1280, 720),
         "camera.a_h": (2560, 1440),
@@ -430,11 +439,11 @@ def test_a_round_fetches_the_channel_each_place_needs(tmp_path):
     async def fetch(entity):  # each channel's still at its own size
         asked.append(entity)
         out = io.BytesIO()
-        Image.new("RGB", comp._res.get(entity, (160, 90))).save(out, "JPEG")
+        Image.new("RGB", comp.gather.res.get(entity, (160, 90))).save(out, "JPEG")
         return out.getvalue()
 
-    comp._fetch_now = fetch  # type: ignore[method-assign]
-    asyncio.run(comp._round(comp.cfg.commanders))
+    comp.gather._fetch_now = fetch  # type: ignore[method-assign]
+    asyncio.run(gather_round(comp))
     assert sorted(asked) == ["camera.a", "camera.a_h", "camera.b"]
     status = comp._status_now()
     high = next(s for s in status["stills"] if s["camera"] == "camera.a_h")
@@ -486,3 +495,48 @@ def test_go2rtc_reachable_asks_for_rtsp(monkeypatch):
         monkeypatch.setattr(mod, "GO2RTC_RTSP", srv.getsockname())
         assert mod.go2rtc_reachable()
     assert not mod.go2rtc_reachable(0.2)  # closed: not reachable
+
+
+def test_two_compositors_share_one_gatherer(tmp_path):
+    # The live and the draft compositor want the same camera: one gatherer fetches it
+    # once a round, and both draw from its one cache.
+    import asyncio
+
+    from casa_mia.modules.compositor import DRAFT_STORE, Gatherer
+
+    write_config(tmp_path)
+    (tmp_path / DRAFT_STORE).write_text((tmp_path / LIVE_STORE).read_text())
+    gather = Gatherer("http://127.0.0.1:1", "token")
+    live = Compositor(tmp_path, "http://127.0.0.1:1", "token", port=0, gatherer=gather)
+    draft = Compositor(
+        tmp_path, "", "", port=0, store=DRAFT_STORE, prewarm=False, gatherer=gather
+    )
+    for comp in (live, draft):
+        comp.cfg = mod_load(tmp_path, comp.store)
+        gather.configure(comp.store, comp.cfg)
+    asked: list[str] = []
+
+    async def fetch(entity):
+        asked.append(entity)
+        return jpeg()
+
+    gather._fetch_now = fetch  # type: ignore[method-assign]
+
+    async def both():
+        live._want(live.cfg.commanders)
+        draft._want(draft.cfg.commanders)
+        gather.uses = {c: [] for at, w in gather._wants.values() for c in w}
+        await gather._round(list(gather.uses))
+
+    asyncio.run(both())
+    assert sorted(asked) == [
+        "camera.a",
+        "camera.b",
+    ]  # each once, not once per compositor
+    assert live.gather is draft.gather and live.gather.pick("camera.a")[0]
+
+
+def mod_load(directory, store):
+    from casa_mia.modules.compositor import load_config
+
+    return load_config(directory, store)

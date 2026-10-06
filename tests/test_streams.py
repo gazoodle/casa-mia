@@ -165,8 +165,9 @@ def test_a_round_draws_from_the_channels_streams(tmp_path, monkeypatch):
     )
     comp = Compositor(tmp_path, "http://127.0.0.1:1", "token", port=0)
     comp.cfg = comp_mod.load_config(tmp_path)
-    comp.go2rtc = True
-    comp._res = {
+    comp.gather.configure(comp.store, comp.cfg)
+    comp.gather.go2rtc = True
+    comp.gather.res = {
         "camera.a": (640, 360),
         "camera.a_m": (1280, 720),
         "camera.a_h": (2560, 1440),
@@ -188,8 +189,8 @@ def test_a_round_draws_from_the_channels_streams(tmp_path, monkeypatch):
         Image.new("RGB", (320, 180)).save(out, "JPEG")
         return out.getvalue()
 
-    comp._name = name  # type: ignore[method-assign]
-    comp._fetch_now = fetch  # type: ignore[method-assign]
+    comp.gather._name = name  # type: ignore[method-assign]
+    comp.gather._fetch_now = fetch  # type: ignore[method-assign]
     monkeypatch.setattr(streams, "Reader", lambda e, url: StubReader(e, url, sizes[e]))
     monkeypatch.setattr(
         streams,
@@ -198,20 +199,26 @@ def test_a_round_draws_from_the_channels_streams(tmp_path, monkeypatch):
     )
 
     async def round_and_survey():
-        comp._bg = set()
-        await comp._round(comp.cfg.commanders)
-        await asyncio.gather(*comp._bg)
+        comp.gather._bg = set()
+        comp._want(comp.cfg.commanders)
+        comp.gather.uses = comp.gather._wants[comp.store][1]
+        await comp.gather._round(list(comp.gather.uses))
+        await asyncio.gather(*comp.gather._bg)
 
     asyncio.run(round_and_survey())
     assert snapshots == ["camera.b"]  # camera.b has no stream: its snapshots
-    assert set(comp._readers) == {"camera.a", "camera.a_h"}
-    assert isinstance(comp._shots["camera.a_h"][1], Image.Image)
-    assert comp._streamed == {"camera.a", "camera.a_m", "camera.a_h"}  # all sized
+    assert set(comp.gather._readers) == {"camera.a", "camera.a_h"}
+    assert isinstance(comp.gather.shots["camera.a_h"][1], Image.Image)
+    assert comp.gather._streamed == {
+        "camera.a",
+        "camera.a_m",
+        "camera.a_h",
+    }  # all sized
     status = comp._status_now()
     high = next(s for s in status["stills"] if s["camera"] == "camera.a_h")
     assert (high["source"], high["fps"], high["width"]) == ("stream", 15.0, 2560)
     # a snapshot never shrinks a size its stream gave
-    comp._keep("camera.a_m", (lambda b: b)(asyncio.run(fetch("camera.a_m"))))
-    assert comp._res["camera.a_m"] == (1280, 720)
-    comp._stop_readers()
-    assert not comp._readers
+    comp.gather.keep("camera.a_m", (lambda b: b)(asyncio.run(fetch("camera.a_m"))))
+    assert comp.gather.res["camera.a_m"] == (1280, 720)
+    comp.gather._stop_readers()
+    assert not comp.gather._readers

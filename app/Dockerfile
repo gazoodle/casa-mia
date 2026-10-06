@@ -22,6 +22,10 @@ FROM ghcr.io/home-assistant/base-debian:bookworm
 RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends \
         python3 python3-pip \
     && rm -rf /var/lib/apt/lists/*
+# PyAV (the camera streams, ~34 MB) in a layer of its own, before the source, so Docker keeps
+# it between versions instead of fetching it on every update. ponytail: its version range is
+# repeated from pyproject.toml; keep the two alike.
+RUN pip install --no-cache-dir --break-system-packages "av>=14"
 COPY --from=source /src /src
 # Bookworm's system Python is PEP 668 "externally managed"; this container only ever runs
 # this one install, so a venv buys nothing.

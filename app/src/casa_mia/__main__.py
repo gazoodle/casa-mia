@@ -15,7 +15,13 @@ from .ha import HA
 from .install_count import count_install
 from .log import configure_logging
 from .modules.camera_dashboard import DRAFT_PORT, KEEP_STILLS_EVERY, CameraDashboard
-from .modules.compositor import DRAFT_STORE, Compositor, admin_api, control
+from .modules.compositor import (
+    DRAFT_STORE,
+    Compositor,
+    Gatherer,
+    admin_api,
+    control,
+)
 from .modules.fona import EVENT as FONA_EVENT
 from .modules.fona import Fona
 from .modules.gitproxy import GitProxy
@@ -164,12 +170,17 @@ def main() -> int:
 
     cameras_on = options.get("camera_dashboard_enabled", False)
     compositor = draft = None
+    # The cameras' pictures, fetched once for both compositors (live and the draft's).
+    gather = Gatherer(
+        ha_url, ha_token, ws_path, keep_stills=KEEP_STILLS_EVERY if cameras_on else None
+    )
     if options.get("compositor_enabled", False):
         compositor = Compositor(
             CONFIG,
             ha_url,
             ha_token,
             ws_path=ws_path,
+            gatherer=gather,
             needs="a Deploy live from the Camera Dashboard page"
             if cameras_on
             else "the Camera Dashboard option on",
@@ -184,7 +195,7 @@ def main() -> int:
             ws_path=ws_path,
             store=DRAFT_STORE,
             prewarm=False,
-            keep_stills=KEEP_STILLS_EVERY,
+            gatherer=gather,
         )
         cameras = CameraDashboard(
             CONFIG,
