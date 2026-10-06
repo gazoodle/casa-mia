@@ -113,7 +113,7 @@ EMPTY_COMMANDER = {
     # panels move with the camera shown) or fixed (the main_ratio shape; the camera
     # fitted whole within it); panel_min: own, fixed: the % a panel with cameras keeps
     # beside the main one.
-    **{k: o["default"] for k, o in LAYOUT["main"].items()},
+    **{k: o["default"] for k, o in LAYOUT["main"].items() if o.get("for") != "view"},
     "stale": 30,  # seconds: a camera picture older than this is marked Stale
     # Track motion (done by the integration), seconds: how long a switch holds before
     # another, how long after the last motion it goes back to the camera chosen by hand

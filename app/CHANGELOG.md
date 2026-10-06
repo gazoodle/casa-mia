@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.10.3-b29
+
+- Tablet Layout: the panels fit between the view's header and footer. The footer sat a row gap up from the bottom, over the panels, and a header or footer that changed height (a card loading, badges shown or hidden) left the panels at the old size until the next resize.
+- Tablet Layout: Identify sections panels also outlines the view's header and footer.
+- Tablet Layout: Space above the header, in the Tablet Layout dialog's middle options (Home Assistant's own is 24 px).
+
 ## 2026.10.3-b28
 
 - The dashboard helpers (Reload dashboards when they change, Back button helper, Keep camera pictures live) are switched on the Casa Mia panel's Settings page (the cog by the house photo), no longer in the integration's options, which keep only the alarm code. Your current choices carry over on their own: the app takes them from the integration the first time it hears from it after this update. A change reaches Home Assistant within a minute (the integration reloads to load or drop the script); open pages get it at their next reload.

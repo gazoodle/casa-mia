@@ -25,7 +25,15 @@
       "when": ["own", "fixed"],
       "help": "A panel with {item}s keeps at least this much; the main {item} shrinks (same shape) rather than squeeze it out."
     },
-    "main_ratio": { "label": "Main shape", "default": "16:9", "when": ["fixed"], "help": "Width:height, e.g. 16:9 or 4:3." }
+    "main_ratio": { "label": "Main shape", "default": "16:9", "when": ["fixed"], "help": "Width:height, e.g. 16:9 or 4:3." },
+    "header_space": {
+      "label": "Space above the header, px",
+      "default": 24,
+      "min": 0,
+      "max": 64,
+      "for": "view",
+      "help": "Room above the view's header (its heading card and badges), when it has one; Home Assistant's own is 24."
+    }
   },
   "panel": {
     "size": { "label": "Size, %", "min": 0, "max": 100, "help": "Left and right: % of the width. Top and bottom: % of the height." },

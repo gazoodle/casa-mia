@@ -16,9 +16,9 @@
 // panel of `size: auto`, which is as tall as its cards instead): a Camera Commander
 // there is in tile mode (ha.ts). Otherwise HA's grid places the cards, by their rows.
 // Casa Mia's Settings page (through the integration, read each time the view shows) can
-// outline each panel (identify_panels, with its CSS) and label the view's size, the room
-// below its top and anything still scrolling the page (show_size); `debug: true` in the
-// view's config does both.
+// outline each panel and the view's header and footer (identify_panels, with its CSS) and
+// label the view's size, the room below its top and anything still scrolling the page
+// (show_size); `debug: true` in the view's config does both.
 import { css } from "lit";
 import { define, type HuiCard, room, sectionsView, watchRoom } from "./ha.ts";
 import { LAYOUT, layout, PANELS, type Rect, type Settings } from "./layout.ts";
@@ -95,6 +95,10 @@ const LOCK = css`
   :host(:not([editing])) hui-grid-section {
     display: flex;
   }
+  /* The footer under the panels, not over them: HA's sticks it a row gap above the bottom. */
+  :host(:not([editing])) hui-view-footer {
+    position: static;
+  }
   /* Edit mode: the Tablet Layout button over the panels, and each panel's name. */
   .cm-bar {
     display: flex;
@@ -138,7 +142,9 @@ const LOCK = css`
     background: var(--primary-color);
     pointer-events: none;
   }
-  :host([cm-identify]) .section {
+  :host([cm-identify]) .section,
+  :host([cm-identify]) hui-view-header,
+  :host([cm-identify]) hui-view-footer {
     outline: var(--cm-outline, 1px solid red);
     outline-offset: -1px;
   }
@@ -214,6 +220,9 @@ async function appSettings(hass: any): Promise<Record<string, any>> {
   }
 }
 
+/** The space above the view's header, px (header_space; HA's own row gap by default). */
+const headerSpace = (config: Record<string, any>) => Math.max(0, Number(config.header_space ?? LAYOUT.main.header_space.default) || 0);
+
 /** A top or bottom panel sized to its cards. */
 const autoSized = (config: Record<string, any>, p: string) => (p === "top" || p === "bottom") && config[p]?.size === "auto";
 
@@ -235,6 +244,7 @@ sectionsView().then((Base: any) => {
     private cmFrame = 0;
     private cmAdding = false;
     private cmShown?: [number, number]; // the panels' area, out of edit mode
+    private cmTop?: number; // and the space above the header then (none: no header)
     private cmSeen = new ResizeObserver(() => this.cmLater());
 
     setConfig(config: any) {
@@ -356,19 +366,26 @@ sectionsView().then((Base: any) => {
      * (for the dialog's map). */
     private cmPreview(l: Record<string, any>): Preview {
       // The screen it shows on: as last seen out of edit mode (edit mode's own is shorter).
-      const [w, h] = this.cmShown ?? this.cmArea();
+      const [w, shown] = this.cmShown ?? this.cmArea();
+      // Less a change to the space above the header (edit mode leaves HA's in place).
+      const h = this.cmTop === undefined ? shown : shown + this.cmTop - headerSpace(l);
       const s = settingsOf(compact(l), w, h, (p) => p === "main" || !l[p]?.hidden, (p) => this.cmNatural(p));
       const [, main, tiles] = layout(s, "main");
       return { width: w, height: h, rects: { main, ...Object.fromEntries(PANELS.flatMap((p) => (tiles[p][0] ? [[p, tiles[p][0]]] : []))) } };
     }
 
-    /** The panels' area: the container, which in edit mode grows, so then what it would be. */
+    /** The panels' area: the container, the room between the view's header and footer; in
+     * edit mode it grows, so then what it would be. The header and footer are watched, as
+     * their cards and badges come and go or change height. */
     private cmArea(): [number, number] {
       const root = this.shadowRoot as ShadowRoot;
-      const tall = (sel: string) => (root.querySelector(sel) as HTMLElement | null)?.offsetHeight ?? 0;
+      const ends = [...root.querySelectorAll<HTMLElement>("hui-view-header, hui-view-footer")];
+      ends.forEach((e) => this.cmSeen.observe(e));
       const area = root.querySelector(".container") as HTMLElement | null;
-      const h = this.lovelace?.editMode || !area ? this.clientHeight - tall(".cm-bar") - tall("hui-view-header") - tall("hui-view-footer") : area.clientHeight;
-      return [this.clientWidth, h];
+      if (!this.lovelace?.editMode && area) return [this.clientWidth, area.clientHeight];
+      const pad = area ? parseFloat(getComputedStyle(area).paddingTop) + parseFloat(getComputedStyle(area).paddingBottom) : 0;
+      const bar = (root.querySelector(".cm-bar") as HTMLElement | null)?.offsetHeight ?? 0;
+      return [this.clientWidth, this.clientHeight - bar - pad - ends.reduce((n, e) => n + e.offsetHeight, 0)];
     }
 
     /** How tall a panel's cards are (for size: auto), watching them for changes. */
@@ -387,8 +404,15 @@ sectionsView().then((Base: any) => {
       if (!grid) return;
       const editing = !!this.lovelace?.editMode;
       this.cmBar(editing);
+      // The room above the header (HA's padding, its row gap), before measuring.
+      const header = root!.querySelector("hui-view-header") as HTMLElement | null;
+      const space = this.cmLayout.header_space === undefined ? undefined : headerSpace(this.cmLayout);
+      header?.style.setProperty("padding-top", editing || space === undefined ? "" : `${space}px`);
       const [aw, ah] = this.cmArea();
-      if (!editing) this.cmShown = [aw, ah];
+      if (!editing) {
+        this.cmShown = [aw, ah];
+        this.cmTop = header && !header.hidden ? headerSpace(this.cmLayout) : undefined;
+      }
       // The margin is the grid's inset (none in edit mode, which has HA's own spacing), so
       // the engine lays out inside it.
       const m = editing ? 0 : Math.max(0, Math.min(Math.trunc(Number(this.cmLayout.margin ?? 0)), Math.floor((Math.min(aw, ah) - 1) / 2)));

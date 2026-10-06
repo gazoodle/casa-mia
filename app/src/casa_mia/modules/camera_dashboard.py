@@ -995,7 +995,7 @@ class CameraDashboard:
             "aspects",
             "highlight",
             "debug",
-            *LAYOUT["main"],
+            *(k for k, o in LAYOUT["main"].items() if o.get("for") != "view"),
             *PANELS,
         )
         return {
