@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b34
+
+- Camera compositor: each place in a commander's picture (a tile, the main area) is drawn from the smallest of its camera's channels (low, medium, high) whose still is at least its size, so a picture is only ever made smaller: the main view of a large screen now comes from the high channel when medium would have been enlarged. Stills are fetched at the channel's own size and shrunk once, by the compositor, to exactly the place (Home Assistant no longer scales them first). Each channel's size is learned from its first still, and logged. The Compositor page's table is now per channel: its size, age, fetch time, and the places drawn from it, in red where one is enlarged.
+
 ## 2026.10.3-b33
 
 - Commanders and the Tablet Layout: a panel's size can be in px as well as %, with its new Size in option (`unit: px`), so a panel stays the same size on any screen. A px panel takes at most 45% of the view, so a small screen still has a main panel; a commander drawn for a high-density screen grows it as it does the gap. Switching the unit in an editor keeps the panel's size.

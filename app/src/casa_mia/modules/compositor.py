@@ -3,10 +3,15 @@
 Three parts, all on one asyncio loop in the compositor's own thread:
 
   * the gather loop: while someone is watching (a stream open, or a picture asked for in
-    the last LINGER seconds), every INTERVAL it fetches each camera's still from Home
-    Assistant, all at once, each with its own timeout, into a cache that is never
-    emptied. A camera that misses STRIKES rounds in a row sits out (its picture goes
-    stale) and is tried again after BENCH seconds. Nobody watching: nothing is fetched.
+    the last LINGER seconds), every INTERVAL it fetches from Home Assistant the still of
+    each channel the watched pictures are drawn from, all at once, each with its own
+    timeout, into a cache that is never emptied. Stills come at the channel's own size;
+    each place (a tile, the main area) is drawn from the first of its camera's channels,
+    low, medium, high, whose still is at least its size, so it is only made smaller
+    (`choose`). The channels' sizes are learned as their stills come (the kept stills
+    fetch every channel not yet sized). A channel that misses STRIKES rounds in a row
+    sits out (its picture goes stale) and is tried again after BENCH seconds. Nobody
+    watching: nothing is fetched.
   * the drawing: after each round each commander being watched is drawn from the
     cache, in a worker thread (the loop keeps serving meanwhile); a camera picture older
     than the commander's `stale` seconds is marked Stale. Open streams are told a new
@@ -68,7 +73,6 @@ WARM_STREAM_TIER = "medium"  # the channel the wall tablets play
 STILL_TTL = 1.5  # a fetched still is shared by every preview drawn within this time
 FETCH_TIMEOUT = 5  # seconds one camera's still may take
 JPEG_QUALITY = 70
-LATEST_SIZE = (640, 360)  # the kept still of each camera (keep_stills)
 LATEST_AT_ONCE = 4  # cameras fetched together in a round
 
 
@@ -234,6 +238,43 @@ def config_from_store(store: dict) -> Config:
     return cfg
 
 
+def channels(cfg: Config, camera: str) -> dict[str, str]:
+    """A camera's channels by tier, smallest first: its own entity (low, or its only
+    one), then its medium and high as set on the Camera Dashboard page. Not its zoom:
+    that is another view, not a larger one."""
+    out = {"low": camera}
+    for tier in ("medium", "high"):
+        entity = cfg.entities.get(camera, {}).get(tier)
+        if entity and entity not in out.values():
+            out[tier] = entity
+    return out
+
+
+def enlarged(native: tuple[int, int], place: tuple[int, int], whole: bool) -> float:
+    """How much a still that size is enlarged to be drawn in the place (above 1: made
+    larger, so softer): whole, fitted inside it; else filling it."""
+    (w, h), (pw, ph) = native, place
+    return (min if whole else max)(pw / w, ph / h) if w and h else math.inf
+
+
+def choose(
+    ladder: list[str],
+    sizes: dict[str, tuple[int, int]],
+    place: tuple[int, int],
+    whole: bool,
+    default: str,
+) -> str:
+    """The channel a place is drawn from: going up the ladder (low, medium, high), the
+    first whose still is at least the place's size, so it is only made smaller (the
+    sharpest for the bytes); none is: the largest. Channels of unknown size (not yet
+    fetched) are passed over; none known: the default."""
+    known = [c for c in ladder if c in sizes]
+    for c in known:
+        if enlarged(sizes[c], place, whole) <= 1:
+            return c
+    return known[-1] if known else default
+
+
 def load_config(directory: Path, store: str = LIVE_STORE) -> Config:
     """The store (see `config_from_store`); an empty config until there is one."""
     if (directory / store).exists():
@@ -279,12 +320,9 @@ FONT = ImageFont.load_default(size=20)
 
 
 @functools.lru_cache(maxsize=64)
-def _stand_in(path: Path, _mtime: int, size: tuple[int, int]) -> bytes:
-    """A screenshot swap picture as a camera still: scaled down to fit `size` in its own
-    shape, as HA scales a still."""
-    img = Image.open(path).convert("RGB")
-    img.thumbnail(size)
-    return encode(img, JPEG_QUALITY)
+def _stand_in(path: Path, _mtime: int) -> bytes:
+    """A screenshot swap picture as a camera still, at its own size."""
+    return encode(Image.open(path).convert("RGB"), JPEG_QUALITY)
 
 
 def encode(img: Image.Image, quality: int) -> bytes:
@@ -626,7 +664,9 @@ def commander(
             raw = tiles.get(entity)
             if raw:
                 try:
-                    src = Image.open(io.BytesIO(raw)).convert("RGB")
+                    src = Image.open(io.BytesIO(raw))
+                    src.draft("RGB", (w, h))  # a large JPEG decoded smaller, cheaply
+                    src = src.convert("RGB")
                     img = (
                         ImageOps.fit(src, (w, h))
                         if fit == "cover"
@@ -670,7 +710,9 @@ def commander(
         px, py, pw, ph = x, y, w, h
         if main_image:
             try:
-                src = Image.open(io.BytesIO(main_image)).convert("RGB")
+                src = Image.open(io.BytesIO(main_image))
+                src.draft("RGB", (w, h))  # a large JPEG decoded smaller, cheaply
+                src = src.convert("RGB")
                 fit = cmd.get("main_fit", "fit")
                 if fit == "fill":
                     img = src.resize((w, h))
@@ -821,13 +863,19 @@ class Compositor:
         self._loop: asyncio.AbstractEventLoop | None = None
         self._stop: asyncio.Event | None = None
         # Per-run state, touched only on the loop thread.
-        self._stills: dict[
-            tuple, tuple[float, asyncio.Future]
-        ] = {}  # previews' fetches
-        # The gathered stills, never emptied: (camera, size) -> (when, picture).
-        self._shots: dict[tuple[str, tuple[int, int]], tuple[float, bytes]] = {}
-        self._misses: dict[str, int] = {}  # camera -> rounds missed in a row
-        self._benched: dict[str, float] = {}  # camera -> when it is tried again
+        self._stills: dict[str, tuple[float, asyncio.Future]] = {}  # shared fetches
+        # The stills, never emptied: channel (a camera entity) -> (when, picture), each at
+        # the channel's own size; and that size, kept when the still goes stale (the
+        # channels' sizes choose which one a place is drawn from), and how long its last
+        # fetch took (s).
+        self._shots: dict[str, tuple[float, bytes]] = {}
+        self._res: dict[str, tuple[int, int]] = {}
+        self._took: dict[str, float] = {}
+        # Each channel being gathered -> its places: (picture, where, size, whole).
+        self._uses: dict[str, list[tuple[str, str, tuple[int, int], bool]]] = {}
+        self._chosen: dict[tuple[str, str], str] = {}  # (picture, where) -> channel
+        self._misses: dict[str, int] = {}  # channel -> rounds missed in a row
+        self._benched: dict[str, float] = {}  # channel -> when it is tried again
         # Each commander (by its slug): its latest picture, and an event set (and
         # replaced) at each new one.
         self._pictures: dict[str, tuple[float, bytes]] = {}
@@ -850,8 +898,6 @@ class Compositor:
         self._sizes: dict[str, dict[Size | None, None]] = {}
         self._warm_until = -LINGER  # prewarm: every commander gathered until then
         self._http: aiohttp.ClientSession | None = None
-        # Camera -> its latest still (keep_stills) and when it was fetched.
-        self._latest: dict[str, tuple[float, bytes]] = {}
         self._thumbs: dict[
             tuple[str, int], tuple[bytes, bytes]
         ] = {}  # -> (source, thumb)
@@ -936,29 +982,10 @@ class Compositor:
             self._loop.call_soon_threadsafe(apply)
 
     def aspect(self, entity: str) -> float | None:
-        """A camera's natural shape (width / height), from the stills already to hand
-        (HA keeps a camera's shape when it scales a still); None until one is."""
-        raw = self._last_still(entity)
-        if not raw:
-            return None
-        try:
-            w, h = Image.open(io.BytesIO(raw)).size
-        except OSError:
-            return None
+        """A camera's natural shape (width / height), from its still's size; None until
+        one is fetched."""
+        w, h = self._res.get(entity, (0, 0))
         return round(w / h, 4) if h else None
-
-    def _last_still(self, entity: str) -> bytes | None:
-        """The newest still already to hand for a camera (the largest), without asking HA."""
-        if entity in self._latest:
-            return self._latest[entity][1]
-        shots = [(size[0], v[1]) for (e, size), v in self._shots.items() if e == entity]
-        done = [
-            (size[0], hit[1].result())
-            for (e, size), hit in self._stills.items()
-            if e == entity and hit[1].done() and not hit[1].cancelled()
-        ]
-        found = [d for d in shots + done if d[1]]
-        return max(found, key=lambda d: d[0])[1] if found else None
 
     async def _switch(self, commander: str) -> None:
         """A commander's main camera changed: at once, while it is watched, a picture
@@ -1015,9 +1042,9 @@ class Compositor:
         if hit and hit[0] is source:
             return hit[1]
         try:
-            img = ImageOps.fit(
-                Image.open(io.BytesIO(source)).convert("RGB"), (width, width * 9 // 16)
-            )
+            src = Image.open(io.BytesIO(source))
+            src.draft("RGB", (width, width * 9 // 16))
+            img = ImageOps.fit(src.convert("RGB"), (width, width * 9 // 16))
         except OSError:
             return None
         thumb = encode(img, JPEG_QUALITY)
@@ -1035,17 +1062,19 @@ class Compositor:
         are fetched and drawn afresh, only as they are asked for. A camera sitting out
         is tried again."""
         if entity is None:
-            for cache in (self._stills, self._shots, self._pictures, self._latest):
+            for cache in (self._stills, self._shots, self._pictures, self._res):
                 cache.clear()
             self._thumbs.clear()
             self._misses.clear()
             self._benched.clear()
         else:
-            for key in [k for k in self._shots if k[0] == entity]:
-                del self._shots[key]
-            for key in [k for k in self._stills if k[0] == entity]:
-                del self._stills[key]
-            for d in (self._latest, self._misses, self._benched):
+            for d in (
+                self._shots,
+                self._stills,
+                self._res,
+                self._misses,
+                self._benched,
+            ):
                 d.pop(entity, None)
         for event in (self._next_round, self._round_now):
             if event:
@@ -1072,7 +1101,7 @@ class Compositor:
         self._on_loop(self._clear)
 
     def forget(self, entity: str) -> None:
-        """Drop one camera's stills (fetched again next round)."""
+        """Drop one channel's still and size (fetched again next round)."""
         _LOGGER.info("compositor (%s): forgot the stills of %s", self.store, entity)
         self._on_loop(lambda: self._clear(entity))
 
@@ -1159,15 +1188,15 @@ class Compositor:
 
     # -- fetching and caching
 
-    def _fetch(self, entity: str, size: tuple[int, int]) -> asyncio.Future:
-        """A camera still, shared: pictures built together (the live one and a preview)
-        fetch it once."""
-        key, now = (entity, size), time.monotonic()
-        hit = self._stills.get(key)
+    def _fetch(self, entity: str) -> asyncio.Future:
+        """A channel's still, shared: pictures built together (the live one and a
+        preview) fetch it once."""
+        now = time.monotonic()
+        hit = self._stills.get(entity)
         if hit is None or now - hit[0] > STILL_TTL:
-            hit = self._stills[key] = (
+            hit = self._stills[entity] = (
                 now,
-                asyncio.ensure_future(self._fetch_now(entity, size)),
+                asyncio.ensure_future(self._fetch_now(entity)),
             )
         return hit[1]
 
@@ -1183,24 +1212,57 @@ class Compositor:
         )
         return swap.camera_image(title) if title else None
 
-    async def _fetch_now(self, entity: str, size: tuple[int, int]) -> bytes | None:
+    async def _fetch_now(self, entity: str) -> bytes | None:
+        """A channel's still at its own size: HA passes the camera's JPEG on as it is
+        (asked for a size, it decodes and shrinks it); the compositor shrinks it once,
+        to exactly the place it is drawn in."""
         assert self._http
         picture = self._swapped(entity)
         if picture:
             try:
-                return _stand_in(picture, picture.stat().st_mtime_ns, size)
+                return _stand_in(picture, picture.stat().st_mtime_ns)
             except OSError:
                 pass  # gone or unreadable: the camera's own picture
-        url = (
-            f"{self.ha_url}/api/camera_proxy/{entity}?width={size[0]}&height={size[1]}"
-        )
+        started = time.monotonic()
         try:
             async with self._http.get(
-                url, timeout=aiohttp.ClientTimeout(total=FETCH_TIMEOUT)
+                f"{self.ha_url}/api/camera_proxy/{entity}",
+                timeout=aiohttp.ClientTimeout(total=FETCH_TIMEOUT),
             ) as r:
-                return await r.read() if r.status == 200 else None
+                if r.status != 200:
+                    return None
+                image = await r.read()
         except (aiohttp.ClientError, TimeoutError):
             return None
+        self._took[entity] = time.monotonic() - started
+        return image
+
+    def _channel(self, entity: str) -> tuple[str, str]:
+        """The camera a channel belongs to, and its tier (low, medium, high)."""
+        for camera in self.cfg.entities:
+            for tier, e in channels(self.cfg, camera).items():
+                if e == entity:
+                    return camera, tier
+        return entity, "low"
+
+    def _keep(self, entity: str, image: bytes, at: float | None = None) -> None:
+        """A channel's new still, and its size: logged when first known or changed."""
+        self._shots[entity] = (time.monotonic() if at is None else at, image)
+        try:
+            size = Image.open(io.BytesIO(image)).size  # the header only: no decoding
+        except OSError:
+            return
+        if self._res.get(entity) != size:
+            self._res[entity] = size
+            _LOGGER.info(
+                "compositor (%s): %s, %s channel: its still is %d x %d (fetched in "
+                "%.1f s)",
+                self.store,
+                self._title(entity),
+                self._channel(entity)[1],
+                *size,
+                self._took.get(entity, 0.0),
+            )
 
     def _cameras(self) -> list[str]:
         """Every camera of the config: in a commander, or chosen and not in one yet."""
@@ -1208,11 +1270,14 @@ class Compositor:
         return list(out | dict.fromkeys(self.cfg.entities))
 
     async def _keep_stills(self, every: float) -> None:
-        """Fetch the latest still of every camera, every `every` seconds (or at once after
-        a reload), a few at a time; what is kept is served while the next is fetched."""
+        """Fetch the latest still of every camera (its low channel), and of each of its
+        channels whose size is not known yet (so the first round sizes them all), every
+        `every` seconds (or at once after a reload), a few at a time; what is kept is
+        served while the next is fetched."""
         assert self._round_now
         _LOGGER.info(
-            "compositor (%s): keeping the latest still of each camera, every %.0f s",
+            "compositor (%s): keeping the latest still of each camera, every %.0f s, "
+            "and the size of each of its channels",
             self.store,
             every,
         )
@@ -1220,17 +1285,23 @@ class Compositor:
 
         async def one(entity: str) -> bool:
             async with limit:
-                image = await self._fetch_now(entity, LATEST_SIZE)
+                image = await self._fetch_now(entity)
             if image is not None:
-                self._latest[entity] = (time.monotonic(), image)
+                self._keep(entity, image)
             return image is not None
 
         while True:
             self._round_now.clear()
-            cams, start = self._cameras(), time.monotonic()
+            start = time.monotonic()
+            cams = [
+                e
+                for camera in self._cameras()
+                for tier, e in channels(self.cfg, camera).items()
+                if tier == "low" or e not in self._res
+            ]
             got = await asyncio.gather(*(one(e) for e in cams))
             _LOGGER.debug(
-                "compositor (%s): %d of %d stills fetched in %.1f s",
+                "compositor (%s): %d of %d kept stills fetched in %.1f s",
                 self.store,
                 sum(got),
                 len(cams),
@@ -1243,12 +1314,12 @@ class Compositor:
 
     async def _ready_still(self, entity: str) -> bytes | None:
         """The kept still of a camera, at once; one never seen is fetched now, and kept."""
-        if entity not in self._latest:
-            image = await self._fetch(entity, LATEST_SIZE)
+        if entity not in self._shots:
+            image = await self._fetch(entity)
             if image is None:
                 return None
-            self._latest[entity] = (time.monotonic(), image)
-        return self._latest[entity][1]
+            self._keep(entity, image)
+        return self._shots[entity][1]
 
     # -- gathering and drawing
 
@@ -1291,59 +1362,76 @@ class Compositor:
     def _fresh_of(self, name: str) -> asyncio.Event:
         return self._fresh.setdefault(name, asyncio.Event())
 
-    def _wants(
-        self, cfg: Config, cmd: dict, main: str
-    ) -> tuple[dict[str, tuple[int, int]], tuple[str, tuple[int, int]]]:
-        """What to fetch for a commander: each tile's camera at its widest tile (16:9,
-        HA keeps the camera's shape), and the main camera from its medium channel
-        (sharper at that size) at the main area's size."""
+    def _places(
+        self, cmd: dict, main: str
+    ) -> list[tuple[str, str, str, tuple[int, int], bool]]:
+        """Each place in a commander's picture: (where, camera, channel, size, whole),
+        each tile (where: its panel) and the main area. The channel is the one to draw it
+        from (see `choose`); until the channels' sizes are known, a tile's low channel
+        and the main camera's medium."""
         _, (_, _, mw, mh), rects = commander_layout(cmd, main)
-        widest: dict[str, int] = {}
+        out = []
+
+        def place(where: str, camera: str, size: tuple[int, int], whole: bool) -> None:
+            ladder = channels(self.cfg, camera)
+            default = ladder.get("medium", camera) if where == "main" else camera
+            chan = choose(list(ladder.values()), self._res, size, whole, default)
+            out.append((where, camera, chan, size, whole))
+
         for panel in PANELS:
-            for e, (_, _, w, _) in zip(
+            whole = cmd[panel].get("fit", "cover") != "cover"
+            for e, (_, _, w, h) in zip(
                 cmd[panel]["cameras"], rects[panel], strict=True
             ):
-                widest[e] = max(widest.get(e, 0), w, 16)
-        channel = cfg.entities.get(main, {}).get("medium") or main
-        return (
-            {e: (w, w * 9 // 16) for e, w in widest.items()},
-            (channel, (max(mw, 16), max(mh, 9))),
-        )
+                place(panel, e, (max(w, 16), max(h, 9)), whole)
+        if main:
+            whole = cmd.get("main_fit", "fit") not in ("fill", "crop")
+            place("main", main, (max(mw, 16), max(mh, 9)), whole)
+        return out
 
     async def _round(self, cmds: list[dict]) -> None:
-        """Fetch every camera of these commanders at once, each within FETCH_TIMEOUT. A
-        miss keeps the picture already cached (it goes stale); STRIKES in a row and the
-        camera sits out until BENCH seconds have passed."""
-        # Each camera once, at the largest size any picture wants it (pictures of one
-        # commander at several sizes share the fetch, and scale it to their tiles).
-        largest: dict[str, tuple[int, int]] = {}
+        """Fetch every channel these commanders' places are drawn from at once, each
+        within FETCH_TIMEOUT. A miss keeps the picture already cached (it goes stale);
+        STRIKES in a row and the channel sits out until BENCH seconds have passed."""
+        # Each channel once, whatever the pictures and places that use it.
+        uses: dict[str, list[tuple[str, str, tuple[int, int], bool]]] = {}
         for cmd in cmds:
-            tiles, main = self._wants(self.cfg, cmd, self.main_camera(cmd) or "")
-            for e, size in [*tiles.items(), main]:
-                if size[0] > largest.get(e, (0, 0))[0]:
-                    largest[e] = size
-        wanted = dict.fromkeys(largest.items())
+            picture = key_of(cmd)
+            for where, camera, chan, size, whole in self._places(
+                cmd, self.main_camera(cmd) or ""
+            ):
+                uses.setdefault(chan, []).append((picture, where, size, whole))
+                if self._chosen.get((picture, where)) != chan:
+                    self._chosen[(picture, where)] = chan
+                    _LOGGER.info(
+                        "compositor (%s): %s, %s (%d x %d): from %s's %s channel%s",
+                        self.store,
+                        picture,
+                        where,
+                        *size,
+                        self.cfg.titles.get(camera, camera),
+                        self._channel(chan)[1],
+                        f" ({self._res[chan][0]} x {self._res[chan][1]})"
+                        if chan in self._res
+                        else "",
+                    )
+        self._uses = uses
         now = started = time.monotonic()
         jobs = []
-        for e, size in wanted:
+        for e in uses:
             if e in self._benched:
                 if now < self._benched[e]:
                     continue
                 del self._benched[e]
                 _LOGGER.info("compositor (%s): trying %s again", self.store, e)
-            jobs.append((e, size))
-        got = await asyncio.gather(*(self._fetch_now(e, size) for e, size in jobs))
+            jobs.append(e)
+        got = await asyncio.gather(*(self._fetch_now(e) for e in jobs))
         now = time.monotonic()
         self._round_s = now - started
-        for (e, size), image in zip(jobs, got, strict=True):
+        for e, image in zip(jobs, got, strict=True):
             if image:
-                # Only its newest kept: a still left at another size (an older round's
-                # largest) would otherwise match a tile's size exactly and be drawn in
-                # place of this one, ever staler.
-                for old in [k for k in self._shots if k[0] == e and k[1] != size]:
-                    del self._shots[old]
-                self._shots[(e, size)] = (now, image)
-        hit = {e for (e, _), image in zip(jobs, got, strict=True) if image}
+                self._keep(e, image, now)
+        hit = {e for e, image in zip(jobs, got, strict=True) if image}
         if jobs and not hit:
             # Not one camera answered: Home Assistant (or the way to it) is down, a
             # restart say; that is no camera's fault, so none is counted a miss (or all
@@ -1355,7 +1443,7 @@ class Compositor:
                 len(jobs),
             )
             return
-        for e in dict.fromkeys(e for e, _ in jobs):  # a camera fetched at two sizes
+        for e in jobs:
             if e in hit:
                 self._misses.pop(e, None)
                 continue
@@ -1380,19 +1468,21 @@ class Compositor:
         )
 
     def _pick(
-        self, entity: str, size: tuple[int, int] | None
+        self, camera: str, channel: str | None = None
     ) -> tuple[bytes | None, float]:
-        """A camera's cached still at that size, else its largest at any size: the
-        picture and its age in seconds (inf when its age is unknown)."""
-        hit = self._shots.get((entity, size)) if size else None
+        """A camera's still from that channel, else the newest of its others: the picture
+        and its age in seconds (inf when there is none)."""
+        hit = self._shots.get(channel or camera)
         if hit is None:
-            others = [v for (e, _), v in self._shots.items() if e == entity]
+            others = [
+                self._shots[c]
+                for c in channels(self.cfg, camera).values()
+                if c in self._shots
+            ]
             hit = max(others, key=lambda v: v[0]) if others else None
-        if hit is not None:
-            return hit[1], time.monotonic() - hit[0]
-        if kept := self._latest.get(entity):  # a kept still: its real age
-            return kept[1], time.monotonic() - kept[0]
-        return None, math.inf
+        if hit is None:
+            return None, math.inf
+        return hit[1], time.monotonic() - hit[0]
 
     async def _draw(self, cmd: dict, changing: bool = False) -> bytes:
         """Draw a commander from the cache (in a worker thread), keep it as its latest
@@ -1400,16 +1490,16 @@ class Compositor:
         assert self._draw_lock
         cfg = self.cfg
         main = self.main_camera(cmd) or ""
-        tiles, (channel, size) = self._wants(cfg, cmd, main)
         limit = float(cmd.get("stale", EMPTY_COMMANDER["stale"]))
         images, stale = {}, set()
-        for e, tile_size in tiles.items():
-            images[e], age = self._pick(e, tile_size)
-            if age > limit:
-                stale.add(e)
-        main_image, age = self._pick(channel, size)
-        if main_image is None:  # the main channel not fetched yet: its tile's still
-            main_image, age = self._pick(main, tiles.get(main))
+        main_image, age = None, math.inf
+        for where, camera, chan, _, _ in self._places(cmd, main):
+            if where == "main":
+                main_image, age = self._pick(camera, chan)
+                continue
+            images[camera], tile_age = self._pick(camera, chan)
+            if tile_age > limit:
+                stale.add(camera)
         async with self._draw_lock:
             began = time.monotonic()
             picture = await asyncio.to_thread(
@@ -1441,6 +1531,7 @@ class Compositor:
             if not watched:
                 if self._gathering:
                     self._gathering = False
+                    self._uses = {}
                     _LOGGER.info(
                         "compositor (%s): nobody watching; fetching stopped", self.store
                     )
@@ -1504,7 +1595,7 @@ class Compositor:
         picture = self._pictures.get(name)
         if picture and time.monotonic() - picture[0] < min(limit, LINGER):
             return picture[1]
-        if not self._shots and not self._latest:
+        if not self._shots:
             try:
                 await asyncio.wait_for(
                     self._fresh_of(name).wait(), FETCH_TIMEOUT + INTERVAL
@@ -1713,8 +1804,9 @@ class Compositor:
     def _status_now(self) -> dict[str, Any]:
         """Its health, and: each picture drawn (a commander at a size: its own, or one
         a card asked for), its age and the streams open on it; the streams open per
-        device; each camera still kept (its size, age, rounds missed in a row, and
-        when one sitting out is tried again)."""
+        device; each channel's still (its camera and tier, its size, age and fetch time,
+        rounds missed in a row, when one sitting out is tried again, and the places
+        drawn from it while gathering, each with how much it is enlarged)."""
         now = time.monotonic()
 
         def picture(key: str, at: float) -> dict[str, Any]:
@@ -1735,6 +1827,36 @@ class Compositor:
                 "draw_ms": round(self._drawn.get(key, (0, 0))[1] * 1000),
             }
 
+        def still(e: str) -> dict[str, Any]:
+            camera, tier = self._channel(e)
+            w, h = self._res.get(e, (0, 0))
+            at = self._shots.get(e, (None, b""))[0]
+            return {
+                "camera": e,
+                "title": self.cfg.titles.get(camera, camera),
+                "channel": tier,
+                "width": w,
+                "height": h,
+                "age_s": None if at is None else round(now - at, 1),
+                "fetch_ms": round(self._took[e] * 1000) if e in self._took else None,
+                "missed": self._misses.get(e, 0),
+                "back_in_s": round(self._benched[e] - now)
+                if e in self._benched
+                else None,
+                "uses": [
+                    {
+                        "picture": picture,
+                        "place": where,
+                        "width": pw,
+                        "height": ph,
+                        "enlarged": round(enlarged((w, h), (pw, ph), whole), 2)
+                        if w
+                        else None,
+                    }
+                    for picture, where, (pw, ph), whole in self._uses.get(e, [])
+                ],
+            }
+
         return {
             **self.health(),
             "stale_s": min(
@@ -1744,20 +1866,7 @@ class Compositor:
             "devices": {ip: len(v) for ip, v in self._streams.items() if v},
             "round_s": round(self._round_s, 2),
             "sending": [s.figures(now) for s in self._sending],
-            "stills": [
-                {
-                    "camera": e,
-                    "title": self._title(e),
-                    "width": w,
-                    "height": h,
-                    "age_s": round(now - t, 1),
-                    "missed": self._misses.get(e, 0),
-                    "back_in_s": round(self._benched[e] - now)
-                    if e in self._benched
-                    else None,
-                }
-                for (e, (w, h)), (t, _) in sorted(self._shots.items())
-            ],
+            "stills": [still(e) for e in sorted(set(self._shots) | set(self._res))],
         }
 
     async def _index(self, request: web.Request) -> web.Response:

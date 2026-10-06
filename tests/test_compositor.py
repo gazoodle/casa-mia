@@ -121,10 +121,11 @@ def test_keeps_the_latest_still_of_every_camera(tmp_path):
     comp.start()
     try:
         for _ in range(50):  # the first round runs at start, unasked
-            if set(comp._latest) == {"camera.a", "camera.b"}:
+            if set(comp._shots) == {"camera.a", "camera.b"}:
                 break
             time.sleep(0.05)
-        assert set(comp._latest) == {"camera.a", "camera.b"}
+        assert set(comp._shots) == {"camera.a", "camera.b"}
+        assert comp._res["camera.a"] == (160, 90)  # its size, as it came
         thumb = comp.still("camera.a", 160)
         assert thumb and Image.open(io.BytesIO(thumb)).size == (160, 90)
         assert comp.still("camera.a", 160) is thumb  # resized once per still
@@ -213,7 +214,7 @@ def test_a_camera_that_keeps_missing_sits_out(tmp_path):
     comp.cfg = mod.load_config(tmp_path)
     asked: list[str] = []
 
-    async def fetch(entity, size):
+    async def fetch(entity):
         asked.append(entity)
         return None if entity == "camera.b" else jpeg()
 
@@ -232,11 +233,11 @@ def test_a_camera_that_keeps_missing_sits_out(tmp_path):
     asyncio.run(rounds(1))
     assert "camera.b" in asked and "camera.b" not in comp._benched
     # its picture never came, and camera.a's is cached
-    assert any(e == "camera.a" for e, _ in comp._shots)
+    assert "camera.a" in comp._shots
     # Home Assistant down (no camera answers): nobody's fault, nobody sits out
     comp._benched.clear()
     comp._misses.clear()
-    comp._fetch_now = lambda entity, size: asyncio.sleep(0)  # type: ignore[method-assign,assignment]
+    comp._fetch_now = lambda entity: asyncio.sleep(0)  # type: ignore[method-assign,assignment]
     asyncio.run(rounds(mod.STRIKES + 1))
     assert not comp._benched and not comp._misses
 
@@ -310,10 +311,10 @@ def test_a_kept_still_has_its_real_age(tmp_path):
     # The draft compositor's first picture may come from the kept stills (every 60 s):
     # their age is known, so a fresh one is not marked Stale.
     comp = Compositor(tmp_path, "http://127.0.0.1:1", "t", port=0)
-    comp._latest["camera.a"] = (time.monotonic() - 10, jpeg())
-    image, age = comp._pick("camera.a", (160, 90))
+    comp._shots["camera.a"] = (time.monotonic() - 10, jpeg())
+    image, age = comp._pick("camera.a")
     assert image and 9 < age < 11
-    assert comp._pick("camera.b", None) == (None, float("inf"))
+    assert comp._pick("camera.b") == (None, float("inf"))
 
 
 def test_the_pages_controls_restart_flush_and_forget(compositor):
@@ -369,26 +370,76 @@ def test_debug_overlay_dims_and_marks_the_true_edges():
     assert rgb(off, (200, 20))[0] > 200  # off: as it was
 
 
-def test_a_cameras_newest_still_replaces_its_others(tmp_path):
-    # Rounds fetch each camera once, at the largest size any picture wants; a still left
-    # from an earlier round at another size must not be drawn in place of the new one.
+def test_each_place_is_drawn_from_the_smallest_channel_big_enough():
+    from casa_mia.modules.compositor import choose, enlarged
+
+    ladder = ["low", "medium", "high"]
+    sizes = {"low": (640, 360), "medium": (1280, 720), "high": (2560, 1440)}
+    assert choose(ladder, sizes, (300, 200), False, "low") == "low"
+    assert choose(ladder, sizes, (1000, 500), False, "low") == "medium"
+    assert choose(ladder, sizes, (1770, 1080), True, "medium") == "high"
+    assert (
+        choose(ladder, sizes, (4000, 2000), True, "medium") == "high"
+    )  # none: the largest
+    # whole (fitted inside): one side reaching the place is enough; filling it: both
+    assert choose(ladder, sizes, (700, 300), True, "low") == "low"
+    assert choose(ladder, sizes, (700, 300), False, "low") == "medium"
+    # sizes not known yet are passed over; none known: the default
+    assert choose(ladder, {"high": (2560, 1440)}, (300, 200), False, "low") == "high"
+    assert choose(ladder, {}, (300, 200), False, "medium") == "medium"
+    assert enlarged((640, 360), (1280, 720), True) == 2.0
+
+
+def test_a_round_fetches_the_channel_each_place_needs(tmp_path):
+    # The main area (about 1530 x 860) is larger than the medium channel's still, so it is
+    # drawn from high; the tiles from low. Each channel is fetched at its own size.
     import asyncio
 
     from casa_mia.modules import compositor as mod
 
-    write_config(tmp_path)
+    (tmp_path / LIVE_STORE).write_text(
+        json.dumps(
+            {
+                "cameras": {
+                    "camera.a": {
+                        "title": "A",
+                        "medium": "camera.a_m",
+                        "high": "camera.a_h",
+                    },
+                    "camera.b": {"title": "B"},
+                },
+                "commander": {
+                    "gap": 0,
+                    "main": "camera.a",
+                    # whole: a 384 x 1080 column needs only one side reached
+                    "left": {"cameras": ["camera.a"], "size": 20, "fit": "contain"},
+                    "bottom": {"cameras": ["camera.b"], "size": 20, "fit": "cover"},
+                },
+            }
+        )
+    )
     comp = Compositor(tmp_path, "http://127.0.0.1:1", "token", port=0)
     comp.cfg = mod.load_config(tmp_path)
-    comp._shots[("camera.a", (100, 56))] = (time.monotonic() - 999, jpeg("red"))
+    comp._res = {
+        "camera.a": (640, 360),
+        "camera.a_m": (1280, 720),
+        "camera.a_h": (2560, 1440),
+    }
+    asked: list[str] = []
 
-    async def fetch(entity, size):
-        return jpeg()
+    async def fetch(entity):  # each channel's still at its own size
+        asked.append(entity)
+        out = io.BytesIO()
+        Image.new("RGB", comp._res.get(entity, (160, 90))).save(out, "JPEG")
+        return out.getvalue()
 
     comp._fetch_now = fetch  # type: ignore[method-assign]
     asyncio.run(comp._round(comp.cfg.commanders))
-    assert [k for k in comp._shots if k[0] == "camera.a"] != [("camera.a", (100, 56))]
-    _, age = comp._pick("camera.a", (100, 56))
-    assert age < 5  # the new still, not the 999 s old one at that exact size
+    assert sorted(asked) == ["camera.a", "camera.a_h", "camera.b"]
+    status = comp._status_now()
+    high = next(s for s in status["stills"] if s["camera"] == "camera.a_h")
+    assert high["channel"] == "high" and [u["place"] for u in high["uses"]] == ["main"]
+    assert high["uses"][0]["enlarged"] < 1  # only ever made smaller
 
 
 def test_viewer_is_the_one_home_assistant_names():

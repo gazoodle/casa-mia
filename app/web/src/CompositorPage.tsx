@@ -18,7 +18,23 @@ type Both = { live: Status; draft: Status | null };
 const POLL_MS = 2000;
 
 type Picture = { commander: string; width: number; height: number; scale: number; asked: boolean; age_s: number; streams: number };
-type Still = { camera: string; title: string; width: number; height: number; age_s: number; missed: number; back_in_s: number | null };
+/** A place drawn from a channel: a picture's tile (its panel) or main area, its size, and
+ * how much the channel's still is enlarged to fill it (above 1: softer). */
+type Use = { picture: string; place: string; width: number; height: number; enlarged: number | null };
+/** One channel of a camera (low, medium, high): its still's own size, age and fetch time,
+ * and the places drawn from it while gathering. */
+type Still = {
+  camera: string;
+  title: string;
+  channel: string;
+  width: number;
+  height: number;
+  age_s: number | null;
+  fetch_ms: number | null;
+  missed: number;
+  back_in_s: number | null;
+  uses: Use[];
+};
 type Status = {
   state: string;
   port: number;
@@ -190,29 +206,37 @@ function Compositor({
       ) : (
         <Empty>No streams open.</Empty>
       )}
-      <h3>Camera stills</h3>
+      <h3>Camera channels</h3>
       {s.stills?.length ? (
-        <Table head={["", "Camera", "Fetched at", "Age", "Missed"]}>
+        <Table head={["", "Camera", "Channel", "Size", "Age", "Fetch", "Used for", "Missed"]}>
           {s.stills.map((c) => (
-            <tr key={`${c.camera} ${c.width}`}>
+            <tr key={c.camera}>
               <td>
                 <button
                   className={ui.iconButton}
                   disabled={busy}
                   onClick={() => onForget(c)}
-                  title="Forget this still: fetched again next round (one sitting out is tried again)"
+                  title="Forget this channel's still and size: fetched again next round (one sitting out is tried again)"
                   aria-label={`Forget ${c.title}`}
                 >
                   <BinIcon />
                 </button>
               </td>
-              <td title={c.camera}>{c.title}</td>
-              <td>
-                {c.width} × {c.height}
+              <td>{c.title}</td>
+              <td title={c.camera}>{c.channel}</td>
+              <td>{c.width ? `${c.width} × ${c.height}` : "?"}</td>
+              <td style={c.age_s != null && c.age_s > stale ? { color: "var(--warn)" } : undefined}>
+                {c.age_s == null ? "" : seconds(c.age_s)}
+                {c.age_s != null && c.age_s > stale ? " (stale)" : ""}
               </td>
-              <td style={c.age_s > stale ? { color: "var(--warn)" } : undefined}>
-                {seconds(c.age_s)}
-                {c.age_s > stale ? " (stale)" : ""}
+              <td>{c.fetch_ms == null ? "" : `${(c.fetch_ms / 1000).toFixed(1)} s`}</td>
+              <td>
+                {c.uses.map((u) => (
+                  <div key={`${u.picture} ${u.place}`} style={u.enlarged != null && u.enlarged > 1 ? { color: "var(--bad)" } : undefined}>
+                    {u.picture}, {u.place} {u.width} × {u.height}
+                    {u.enlarged == null ? "" : u.enlarged > 1 ? `, enlarged ×${u.enlarged}` : ` (×${u.enlarged})`}
+                  </div>
+                ))}
               </td>
               <td style={c.back_in_s != null ? { color: "var(--bad)" } : undefined}>
                 {c.back_in_s != null ? `sitting out, tried again in ${seconds(c.back_in_s)}` : c.missed ? `${c.missed} in a row` : ""}
