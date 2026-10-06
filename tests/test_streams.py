@@ -217,8 +217,8 @@ def test_a_round_draws_from_the_channels_streams(tmp_path, monkeypatch):
         "camera.a_m",
         "camera.a_h",
     }  # all sized
-    status = comp._status_now()
-    high = next(s for s in status["stills"] if s["camera"] == "camera.a_h")
+    status = comp.gather.status()
+    high = next(s for s in status["channels"] if s["camera"] == "camera.a_h")
     assert (high["source"], high["fps"], high["width"]) == ("stream", 15.0, 2560)
     # a snapshot never shrinks a size its stream gave
     comp.gather.keep("camera.a_m", (lambda b: b)(asyncio.run(fetch("camera.a_m"))))

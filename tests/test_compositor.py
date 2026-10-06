@@ -96,7 +96,7 @@ def test_serves_the_commander(compositor):
         (1920, 1080, False),
         (800, 1280, True),
     }
-    assert {s["title"] for s in status["stills"]} == {"A", "B"}
+    assert {s["title"] for s in compositor.gather.status()["channels"]} == {"A", "B"}
     with urllib.request.urlopen(f"{base}/size-test") as r:  # the end-to-end size page
         assert b"askFor" in r.read() and r.headers["Content-Type"].startswith(
             "text/html"
@@ -337,17 +337,28 @@ def test_the_pages_controls_restart_flush_and_forget(compositor):
     api = admin_api(compositor, None, lambda: "10.0.0.2")
     base = f"http://127.0.0.1:{compositor.port}"
     urllib.request.urlopen(f"{base}/g/cameras.jpg").read()  # something cached
-    status = json.loads(api("GET", "", {}, b"")[2])["live"]
-    assert status["stills"] and status["pictures"]
+    both = json.loads(api("GET", "", {}, b"")[2])
+    status = both["live"]
+    assert both["gatherer"]["channels"] and status["pictures"]
     assert status["size_test"] == f"http://10.0.0.2:{compositor.port}/size-test"
+    # a cached picture as a thumbnail, whole or cut to 16:9; the stages paused and run
+    code, kind, thumb = api("GET", "thumb/camera.a", {"w": ["120"], "whole": ["1"]}, b"")
+    assert (code, kind) == (200, "image/jpeg") and Image.open(io.BytesIO(thumb)).width == 120
+    assert api("GET", "thumb/camera.none", {}, b"")[0] == 404
+    paused = json.loads(api("POST", "live/server/pause", {}, b"")[2])
+    assert paused["live"]["server_paused"] and not paused["live"]["generator_paused"]
+    assert json.loads(api("POST", "gatherer/pause", {}, b"")[2])["gatherer"]["paused"]
+    api("POST", "gatherer/run", {}, b"")
+    api("POST", "live/server/run", {}, b"")
+    assert api("POST", "draft/server/pause", {}, b"")[0] == 404  # no draft here
     # one channel's picture purged: "(Waiting …)" again (its size kept); the rest kept
     out = json.loads(api("POST", "live/forget", {}, b'{"camera": "camera.a"}')[2])
-    waiting = {s["camera"] for s in out["live"]["stills"] if s["waiting"]}
+    waiting = {s["camera"] for s in out["gatherer"]["channels"] if s["waiting"]}
     assert "camera.a" in waiting
     assert api("POST", "live/forget", {}, b"{}")[0] == 400
     # flushed: every channel waiting again, nothing drawn kept; drawn afresh when asked
     out = json.loads(api("POST", "live/flush", {}, b"")[2])
-    assert all(s["waiting"] for s in out["live"]["stills"])
+    assert all(s["waiting"] for s in out["gatherer"]["channels"])
     assert not out["live"]["pictures"]
     assert api("POST", "draft/flush", {}, b"")[0] == 404  # no draft engine here
     # restarted (the integration's button): serving again, on the same port
@@ -453,8 +464,8 @@ def test_a_round_fetches_the_channel_each_place_needs(tmp_path):
     comp.gather._fetch_now = fetch  # type: ignore[method-assign]
     asyncio.run(gather_round(comp))
     assert sorted(asked) == ["camera.a", "camera.a_h", "camera.b"]
-    status = comp._status_now()
-    high = next(s for s in status["stills"] if s["camera"] == "camera.a_h")
+    status = comp.gather.status()
+    high = next(s for s in status["channels"] if s["camera"] == "camera.a_h")
     assert high["channel"] == "high" and [u["place"] for u in high["uses"]] == ["main"]
     assert high["uses"][0]["enlarged"] < 1  # only ever made smaller
 

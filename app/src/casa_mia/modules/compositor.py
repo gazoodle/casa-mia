@@ -954,6 +954,10 @@ class Gatherer:
         self._wake: asyncio.Event | None = None  # look at the wants now
         self._round_now: asyncio.Event | None = None  # the kept stills now
         self._bg: set[asyncio.Task] = set()
+        # Thumbnails, made once per picture and size and kept until the picture changes
+        # (the Camera Dashboard's, the cache viewer's): (entity, width, whole) ->
+        # (the picture, the thumbnail).
+        self._thumbs: dict[tuple[str, int, bool], tuple[Picture, bytes]] = {}
 
     # -- its loop, shared by the compositors
 
@@ -1383,6 +1387,38 @@ class Gatherer:
     def status_rows(self) -> list[dict[str, Any]]:
         return self.status()["channels"]
 
+    def thumb(
+        self,
+        entity: str,
+        width: int,
+        whole: bool = False,
+        source: Picture | None = None,
+    ) -> bytes | None:
+        """A channel's picture (the one cached, or `source`) width wide: whole, at its
+        shape, or cut to 16:9; made once per picture and size, in the caller's thread.
+        None when it has none."""
+        if source is None:
+            source = self.shots.get(entity, (0.0, None))[1]
+        if source is None:
+            return None
+        key = (entity, width, whole)
+        hit = self._thumbs.get(key)
+        if hit and hit[0] is source:
+            return hit[1]
+        try:
+            box = (width, width * 9 // 16)
+            img = as_image(source, box)
+            img = (
+                ImageOps.contain(img, (width, width * 4))
+                if whole
+                else ImageOps.fit(img, box)
+            )
+        except OSError:
+            return None
+        made = encode(img, JPEG_QUALITY)
+        self._thumbs[key] = (source, made)
+        return made
+
     def _fetch(self, entity: str) -> asyncio.Future:
         """A channel's still, shared: pictures built together (the live one and a
         preview) fetch it once."""
@@ -1696,9 +1732,6 @@ class Compositor:
         # Commander (slug) -> the sizes its picture is asked for (None: its own size).
         self._sizes: dict[str, dict[Size | None, None]] = {}
         self._warm_until = -LINGER  # prewarm: every commander gathered until then
-        self._thumbs: dict[
-            tuple[str, int], tuple[Picture, bytes]
-        ] = {}  # -> (source, thumb)
         # Per commander (by id): its main camera as last chosen, and its cameras seeing
         # motion (red dots).
         self.mains: dict[str, str] = {}
@@ -1848,19 +1881,9 @@ class Compositor:
             self.gather.ready_still(entity), self._loop
         )
         source = future.result(FETCH_TIMEOUT * 2)
-        if source is None:
-            return None
-        hit = self._thumbs.get((entity, width))
-        if hit and hit[0] is source:
-            return hit[1]
-        try:
-            size = (width, width * 9 // 16)
-            img = ImageOps.fit(as_image(source, size), size)
-        except OSError:
-            return None
-        thumb = encode(img, JPEG_QUALITY)
-        self._thumbs[(entity, width)] = (source, thumb)
-        return thumb
+        return (
+            None if source is None else self.gather.thumb(entity, width, False, source)
+        )
 
     def stop(self) -> None:
         if self._loop and self._stop:
@@ -1878,7 +1901,6 @@ class Compositor:
         or one channel's; fetched and drawn afresh, only as they are asked for."""
         if entity is None:
             self._pictures.clear()
-            self._thumbs.clear()
         self.gather.clear(entity)
 
     def _on_loop(self, fn: Callable[[], None]) -> None:
@@ -2457,7 +2479,7 @@ class Compositor:
             "server_paused": self.serving_paused,
             "gatherer_paused": self.gather.paused,
             "sending": [s.figures(now) for s in self._sending],
-            "stills": self.gather.status_rows(),
+            "drawing": self._gathering,
         }
 
     async def _index(self, request: web.Request) -> web.Response:
@@ -2483,8 +2505,9 @@ def admin_api(
     cards) serve now, each with its size test page's address on the LAN (`host`: this
     box's LAN address, when known); POST restart (both engines), <live|draft>/flush,
     <live|draft>/forget {"camera": <entity>} (the cache, shared: whole or one
-    channel), gatherer/<pause|run> and <live|draft>/<generator|server>/<pause|run>
-    answer with it afresh."""
+    channel), cache/purge, cache/forget {"camera": <entity>}, gatherer/<pause|run>
+    and <live|draft>/<generator|server>/<pause|run> answer with it afresh; GET
+    thumb/<entity>?w=<px>[&whole=1] is a cached picture as a thumbnail."""
     engines = {"live": live, "draft": draft}
 
     def one(engine: Compositor) -> dict[str, Any]:
@@ -2493,7 +2516,11 @@ def admin_api(
         return {**engine.status(), "size_test": test}
 
     def status() -> tuple[int, str, bytes]:
-        data = {"live": one(live), "draft": one(draft) if draft else None}
+        data = {
+            "gatherer": live.gather.status(),
+            "live": one(live),
+            "draft": one(draft) if draft else None,
+        }
         return 200, "application/json", json.dumps(data).encode()
 
     def fail(code: int, error: str) -> tuple[int, str, bytes]:
@@ -2505,6 +2532,15 @@ def admin_api(
         parts = [p for p in path.split("/") if p]
         if method == "GET" and not parts:
             return status()
+        if method == "GET" and len(parts) == 2 and parts[0] == "thumb":
+            # A cached picture, width wide (whole: at its shape, else cut to 16:9).
+            try:
+                width = max(32, min(int((query.get("w") or ["320"])[0]), 1920))
+            except ValueError:
+                return fail(400, "w: a width in px")
+            whole = (query.get("whole") or ["0"])[0] == "1"
+            made = live.gather.thumb(parts[1], width, whole)
+            return (200, "image/jpeg", made) if made else fail(404, "no such picture")
         if method != "POST":
             return fail(404, "not found")
         if parts[:1] == ["gatherer"] and parts[1:] in (["pause"], ["run"]):
@@ -2518,6 +2554,18 @@ def admin_api(
             and parts[2] in ("pause", "run")
         ):
             engines[parts[0]].pause(parts[1], parts[2] == "pause")  # type: ignore[union-attr]
+            return status()
+        if parts == ["cache", "purge"]:
+            for engine in (live, draft):
+                if engine:
+                    engine.flush()
+            return status()
+        if parts == ["cache", "forget"]:
+            try:
+                camera = str(json.loads(body or b"{}")["camera"])
+            except (ValueError, KeyError, TypeError):
+                return fail(400, "which channel?")
+            live.forget(camera)
             return status()
         if parts == ["restart"]:
             for engine in (live, draft):

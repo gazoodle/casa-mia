@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.3-b41
+
+- Camera compositor page: its pipeline, as it runs. A strip of the four stages (gatherer, cache, the live and preview generators, the live and preview servers), each with its state and a Pause or Run; the gatherer's channels (state, size and whether its stream's, rate, who wants it, misses); the cache as thumbnails, each with its age, source and the places drawn from it (red where enlarged), a bin to purge it and a tap for a live view; each generator's pictures (draw time, size); each server's viewers (rate, time spent waiting to send). Purge all replaces the per-engine Flush cache.
+- Camera compositor: thumbnails are made once per picture and size and shared (the Camera Dashboard's and the page's).
+
 ## 2026.10.3-b40
 
 - Camera compositor, a pipeline whose stages never wait on each other: the gatherer fetches each channel wanted in a loop of its own (its stream's newest frame, converted once and only when a new one has come, else a snapshot), so a slow or dead camera holds up only itself; each compositor draws on its own timer from whatever the cache holds; the server always sends the latest picture. After a main camera switch, the sharp picture is drawn as soon as its channel's first new picture comes.
