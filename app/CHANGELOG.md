@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.10.3-b38
+
+- Camera compositor: each channel in use is read from its own stream, through Home Assistant's go2rtc (the app asks HA for each camera as its live view would, then reads go2rtc's restream on the host), so the picture is the camera's real video at its real size, not HA's snapshot (UniFi Protect gives every channel the same 640 x 360 snapshot). The other channels of each camera in use are read once for their true size, so the right one is chosen. A camera HA cannot stream, or whose stream is lost, keeps its snapshots (a lost stream is read again after 30 s). Readers stop once nobody watches. The Compositor page shows where each channel's picture comes from (its stream and frame rate, or snapshots, with the reason).
+- Camera compositor: the log no longer repeats which channel each tile is drawn from on every round (a panel's cameras were mistaken for one another).
+- Guest login: signs guests in through Home Assistant at 127.0.0.1, as the app is on the host's network since b37 (the name it used before only resolves on the Supervisor's network); likely why logins failed on b37.
+
 ## 2026.10.3-b37
 
 - The app runs on the host's network, so it can reach Home Assistant's go2rtc (which restreams each camera on the host's localhost only): the way to come for the compositor to draw from the cameras' streams themselves. The compositor logs at start whether go2rtc is reachable, and shows it in its status. The app's ports are now the host's own (they were already published as the same numbers).

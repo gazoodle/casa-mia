@@ -44,7 +44,7 @@ import re
 import socket
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -55,6 +55,7 @@ from aiohttp import web
 from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageOps
 
 from .. import swap
+from . import streams
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -78,6 +79,8 @@ JPEG_QUALITY = 70
 # only and without a login (named by the camera's platform and unique id); the app reaches
 # it on the host network.
 GO2RTC_RTSP = ("127.0.0.1", 18554)
+STREAM_RETRY = 30.0  # seconds before a lost stream is read again (snapshots meanwhile)
+PROBES_AT_ONCE = 2  # channels read at once for their size
 LATEST_AT_ONCE = 4  # cameras fetched together in a round
 
 
@@ -362,6 +365,18 @@ def mime(data: bytes) -> str:
 # --- the commander -------------------------------------------------------------------
 
 Rect = tuple[int, int, int, int]
+# A camera picture: a snapshot (JPEG, as HA gives it) or a frame of its stream.
+Picture = bytes | Image.Image
+
+
+def as_image(raw: Picture, size: tuple[int, int]) -> Image.Image:
+    """A picture to draw at about that size: a JPEG decoded smaller where it is much
+    larger (cheaply, by draft); a stream frame as it is."""
+    if isinstance(raw, Image.Image):
+        return raw
+    src = Image.open(io.BytesIO(raw))
+    src.draft("RGB", size)
+    return src.convert("RGB")
 
 
 def visible(cmd: dict) -> dict:
@@ -646,9 +661,9 @@ def see_through(cmd: dict) -> bool:
 def commander(
     cmd: dict,
     titles: dict[str, str],
-    tiles: dict[str, bytes | None],
+    tiles: Mapping[str, Picture | None],
     main: str,
-    main_image: bytes | None,
+    main_image: Picture | None,
     changing: bool = False,
     motion: frozenset[str] = frozenset(),
     stale: frozenset[str] = frozenset(),
@@ -683,9 +698,7 @@ def commander(
             raw = tiles.get(entity)
             if raw:
                 try:
-                    src = Image.open(io.BytesIO(raw))
-                    src.draft("RGB", (w, h))  # a large JPEG decoded smaller, cheaply
-                    src = src.convert("RGB")
+                    src = as_image(raw, (w, h))
                     img = (
                         ImageOps.fit(src, (w, h))
                         if fit == "cover"
@@ -729,9 +742,7 @@ def commander(
         px, py, pw, ph = x, y, w, h
         if main_image:
             try:
-                src = Image.open(io.BytesIO(main_image))
-                src.draft("RGB", (w, h))  # a large JPEG decoded smaller, cheaply
-                src = src.convert("RGB")
+                src = as_image(main_image, (w, h))
                 fit = cmd.get("main_fit", "fit")
                 if fit == "fill":
                     img = src.resize((w, h))
@@ -888,12 +899,22 @@ class Compositor:
         # the channel's own size; and that size, kept when the still goes stale (the
         # channels' sizes choose which one a place is drawn from), and how long its last
         # fetch took (s).
-        self._shots: dict[str, tuple[float, bytes]] = {}
+        self._shots: dict[str, tuple[float, Picture]] = {}
         self._res: dict[str, tuple[int, int]] = {}
         self._took: dict[str, float] = {}
         # Each channel being gathered -> its places: (picture, where, size, whole).
         self._uses: dict[str, list[tuple[str, str, tuple[int, int], bool]]] = {}
-        self._chosen: dict[tuple[str, str], str] = {}  # (picture, where) -> channel
+        self._chosen: dict[tuple[str, str, str], str] = {}  # (picture, where, camera)
+        # Each channel read from its stream (HA's go2rtc): its reader; its name there;
+        # when one HA cannot stream (or whose stream was lost) is tried again, and why;
+        # the channels whose size is their stream's; those being read once for it; and
+        # when each was last wanted (a reader stops LINGER seconds after).
+        self._readers: dict[str, streams.Reader] = {}
+        self._names: dict[str, str] = {}
+        self._no_stream: dict[str, tuple[float, str]] = {}
+        self._streamed: set[str] = set()
+        self._probing: set[str] = set()
+        self._wanted: dict[str, float] = {}
         self._misses: dict[str, int] = {}  # channel -> rounds missed in a row
         self._benched: dict[str, float] = {}  # channel -> when it is tried again
         # Each commander (by its slug): its latest picture, and an event set (and
@@ -919,7 +940,7 @@ class Compositor:
         self._warm_until = -LINGER  # prewarm: every commander gathered until then
         self._http: aiohttp.ClientSession | None = None
         self._thumbs: dict[
-            tuple[str, int], tuple[bytes, bytes]
+            tuple[str, int], tuple[Picture, bytes]
         ] = {}  # -> (source, thumb)
         self._round_now: asyncio.Event | None = None
         # Per commander (by id): its main camera as last chosen, and its cameras seeing
@@ -1069,9 +1090,8 @@ class Compositor:
         if hit and hit[0] is source:
             return hit[1]
         try:
-            src = Image.open(io.BytesIO(source))
-            src.draft("RGB", (width, width * 9 // 16))
-            img = ImageOps.fit(src.convert("RGB"), (width, width * 9 // 16))
+            size = (width, width * 9 // 16)
+            img = ImageOps.fit(as_image(source, size), size)
         except OSError:
             return None
         thumb = encode(img, JPEG_QUALITY)
@@ -1161,6 +1181,7 @@ class Compositor:
             "gathering": self._gathering,
             "sitting_out": sorted(self._benched),
             "go2rtc": self.go2rtc,
+            "streams_read": sum(1 for r in self._readers.values() if r.alive),
             "needs": self.needs if state == "unconfigured" else None,
             "error": self._error,
         }
@@ -1209,6 +1230,7 @@ class Compositor:
         finally:
             self._running = False
             self._ready.set()
+            self._stop_readers()
             if runner:
                 await runner.cleanup()
             if self._http:
@@ -1273,24 +1295,168 @@ class Compositor:
                     return camera, tier
         return entity, "low"
 
-    def _keep(self, entity: str, image: bytes, at: float | None = None) -> None:
-        """A channel's new still, and its size: logged when first known or changed."""
+    def _keep(
+        self,
+        entity: str,
+        image: Picture,
+        at: float | None = None,
+        streamed: bool = False,
+    ) -> None:
+        """A channel's new picture, and its size: logged when first known or changed. A
+        snapshot gives way to the channel's stream: it is not kept while a frame is to
+        hand, and never changes a size its stream gave."""
+        reader = self._readers.get(entity)
+        if not streamed and reader and reader.frame is not None:
+            return
         self._shots[entity] = (time.monotonic() if at is None else at, image)
-        try:
-            size = Image.open(io.BytesIO(image)).size  # the header only: no decoding
-        except OSError:
+        if isinstance(image, Image.Image):
+            size = image.size
+        else:
+            try:
+                size = Image.open(io.BytesIO(image)).size  # the header only
+            except OSError:
+                return
+        if streamed:
+            self._streamed.add(entity)
+        elif entity in self._streamed:
             return
         if self._res.get(entity) != size:
             self._res[entity] = size
             _LOGGER.info(
-                "compositor (%s): %s, %s channel: its still is %d x %d (fetched in "
-                "%.1f s)",
+                "compositor (%s): %s, %s channel: its %s is %d x %d",
                 self.store,
                 self._title(entity),
                 self._channel(entity)[1],
+                "stream" if streamed else "still",
                 *size,
-                self._took.get(entity, 0.0),
             )
+
+    # -- the channels' own streams (HA's go2rtc)
+
+    def _rtsp(self, name: str) -> str:
+        return "rtsp://{}:{}/{}".format(*GO2RTC_RTSP, name)
+
+    def _streamable(self, entity: str) -> bool:
+        return (
+            bool(self.go2rtc)
+            and time.monotonic() >= self._no_stream.get(entity, (0.0, ""))[0]
+        )
+
+    async def _name(self, entity: str) -> str | None:
+        """A channel's name on HA's go2rtc, putting it there; None (and not asked again
+        for BENCH seconds) if HA cannot stream it."""
+        if entity in self._names:
+            return self._names[entity]
+        assert self._http
+        try:
+            name, why = await streams.register(
+                self._http, self.ws_url, self.token, entity
+            )
+        except (aiohttp.ClientError, TimeoutError, ValueError) as exc:
+            name, why = None, f"cannot ask Home Assistant: {exc}"
+        if name is None:
+            self._no_stream[entity] = (time.monotonic() + BENCH, why)
+            _LOGGER.info(
+                "compositor (%s): %s, %s channel: no stream to read (%s); its snapshots "
+                "instead, asked again in %.0f min",
+                self.store,
+                self._title(entity),
+                self._channel(entity)[1],
+                why,
+                BENCH / 60,
+            )
+            return None
+        self._names[entity] = name
+        return name
+
+    async def _reader(self, entity: str) -> streams.Reader | None:
+        """A channel's stream reader, started if need be; None when it is not streamed.
+        A lost stream is logged, and read again after STREAM_RETRY seconds (when HA has
+        restarted, its go2rtc no longer has it: it is put there again)."""
+        reader = self._readers.get(entity)
+        if reader and reader.alive:
+            return reader
+        if reader:
+            del self._readers[entity]
+            self._names.pop(entity, None)
+            why = reader.error or "stopped"
+            self._no_stream[entity] = (time.monotonic() + STREAM_RETRY, why)
+            _LOGGER.warning(
+                "compositor (%s): %s, %s channel: stream lost (%s); snapshots for %.0f s",
+                self.store,
+                self._title(entity),
+                self._channel(entity)[1],
+                why,
+                STREAM_RETRY,
+            )
+            return None
+        if not self._streamable(entity):
+            return None
+        name = await self._name(entity)
+        if not name:
+            return None
+        reader = self._readers[entity] = streams.Reader(entity, self._rtsp(name))
+        _LOGGER.info(
+            "compositor (%s): %s, %s channel: reading its stream",
+            self.store,
+            self._title(entity),
+            self._channel(entity)[1],
+        )
+        return reader
+
+    def _stop_readers(self, keep: set[str] | frozenset[str] = frozenset()) -> None:
+        """Stop reading every stream but those in keep."""
+        for entity in [e for e in self._readers if e not in keep]:
+            self._readers.pop(entity).stop()
+            _LOGGER.info(
+                "compositor (%s): %s, %s channel: stream no longer read",
+                self.store,
+                self._title(entity),
+                self._channel(entity)[1],
+            )
+
+    async def _get(self, entity: str) -> tuple[Picture, float, bool] | None:
+        """A channel's newest picture, when it came, and whether from its stream: a frame
+        of its stream where it is read (a snapshot until the first frame comes)."""
+        reader = await self._reader(entity)
+        if reader:
+            got = await asyncio.to_thread(reader.image)
+            if got:
+                return got[0], got[1], True
+        image = await self._fetch_now(entity)
+        return (image, time.monotonic(), False) if image else None
+
+    async def _probe(self, entity: str, limit: asyncio.Semaphore) -> None:
+        """Read one frame of a channel's stream: its true size (HA's snapshot may be
+        another; every channel of some cameras gives the same one)."""
+        try:
+            async with limit:
+                name = await self._name(entity)
+                if not name:
+                    return
+                image = await asyncio.to_thread(streams.first_frame, self._rtsp(name))
+            if image is not None:
+                self._keep(entity, image, streamed=True)
+        finally:
+            self._probing.discard(entity)
+
+    def _survey(self, used: list[str]) -> None:
+        """Size, from its stream, each channel of the cameras in use not sized so yet, in
+        the background, a few at a time."""
+        limit = asyncio.Semaphore(PROBES_AT_ONCE)
+        for camera in dict.fromkeys(self._channel(e)[0] for e in used):
+            for entity in channels(self.cfg, camera).values():
+                if (
+                    entity in self._streamed
+                    or entity in self._probing
+                    or entity in self._readers
+                    or not self._streamable(entity)
+                ):
+                    continue
+                self._probing.add(entity)
+                task = asyncio.ensure_future(self._probe(entity, limit))
+                self._bg.add(task)
+                task.add_done_callback(self._bg.discard)
 
     def _cameras(self) -> list[str]:
         """Every camera of the config: in a commander, or chosen and not in one yet."""
@@ -1325,7 +1491,7 @@ class Compositor:
                 e
                 for camera in self._cameras()
                 for tier, e in channels(self.cfg, camera).items()
-                if tier == "low" or e not in self._res
+                if (tier == "low" or e not in self._res) and e not in self._readers
             ]
             got = await asyncio.gather(*(one(e) for e in cams))
             _LOGGER.debug(
@@ -1340,7 +1506,7 @@ class Compositor:
             except TimeoutError:
                 pass
 
-    async def _ready_still(self, entity: str) -> bytes | None:
+    async def _ready_still(self, entity: str) -> Picture | None:
         """The kept still of a camera, at once; one never seen is fetched now, and kept."""
         if entity not in self._shots:
             image = await self._fetch(entity)
@@ -1429,8 +1595,8 @@ class Compositor:
                 cmd, self.main_camera(cmd) or ""
             ):
                 uses.setdefault(chan, []).append((picture, where, size, whole))
-                if self._chosen.get((picture, where)) != chan:
-                    self._chosen[(picture, where)] = chan
+                if self._chosen.get((picture, where, camera)) != chan:
+                    self._chosen[(picture, where, camera)] = chan
                     _LOGGER.info(
                         "compositor (%s): %s, %s (%d x %d): from %s's %s channel%s",
                         self.store,
@@ -1445,6 +1611,10 @@ class Compositor:
                     )
         self._uses = uses
         now = started = time.monotonic()
+        for e in uses:
+            self._wanted[e] = now
+        self._stop_readers({e for e, at in self._wanted.items() if now - at < LINGER})
+        self._survey(list(uses))
         jobs = []
         for e in uses:
             if e in self._benched:
@@ -1453,13 +1623,13 @@ class Compositor:
                 del self._benched[e]
                 _LOGGER.info("compositor (%s): trying %s again", self.store, e)
             jobs.append(e)
-        got = await asyncio.gather(*(self._fetch_now(e) for e in jobs))
+        got = await asyncio.gather(*(self._get(e) for e in jobs))
         now = time.monotonic()
         self._round_s = now - started
-        for e, image in zip(jobs, got, strict=True):
-            if image:
-                self._keep(e, image, now)
-        hit = {e for e, image in zip(jobs, got, strict=True) if image}
+        for e, one in zip(jobs, got, strict=True):
+            if one:
+                self._keep(e, one[0], one[1], streamed=one[2])
+        hit = {e for e, one in zip(jobs, got, strict=True) if one}
         if jobs and not hit:
             # Not one camera answered: Home Assistant (or the way to it) is down, a
             # restart say; that is no camera's fault, so none is counted a miss (or all
@@ -1497,7 +1667,7 @@ class Compositor:
 
     def _pick(
         self, camera: str, channel: str | None = None
-    ) -> tuple[bytes | None, float]:
+    ) -> tuple[Picture | None, float]:
         """A camera's still from that channel, else the newest of its others: the picture
         and its age in seconds (inf when there is none)."""
         hit = self._shots.get(channel or camera)
@@ -1560,6 +1730,7 @@ class Compositor:
                 if self._gathering:
                     self._gathering = False
                     self._uses = {}
+                    self._stop_readers()
                     _LOGGER.info(
                         "compositor (%s): nobody watching; fetching stopped", self.store
                     )
@@ -1859,10 +2030,20 @@ class Compositor:
             camera, tier = self._channel(e)
             w, h = self._res.get(e, (0, 0))
             at = self._shots.get(e, (None, b""))[0]
+            reader = self._readers.get(e)
             return {
                 "camera": e,
                 "title": self.cfg.titles.get(camera, camera),
                 "channel": tier,
+                # its picture now: its stream's frames (and their rate), or snapshots;
+                # and why not its stream, when HA cannot stream it or it was lost
+                "source": "stream"
+                if reader and reader.frame is not None
+                else "snapshot",
+                "fps": reader.fps() if reader else None,
+                "no_stream": self._no_stream.get(e, (0.0, None))[1]
+                if e in self._no_stream
+                else None,
                 "width": w,
                 "height": h,
                 "age_s": None if at is None else round(now - at, 1),

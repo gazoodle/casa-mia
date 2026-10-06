@@ -31,6 +31,11 @@ type Still = {
   height: number;
   age_s: number | null;
   fetch_ms: number | null;
+  /** Its picture now: its stream's frames (from Home Assistant's go2rtc), or snapshots;
+   * and why not its stream, when that could not be read. */
+  source: "stream" | "snapshot";
+  fps: number | null;
+  no_stream: string | null;
   missed: number;
   back_in_s: number | null;
   uses: Use[];
@@ -208,7 +213,7 @@ function Compositor({
       )}
       <h3>Camera channels</h3>
       {s.stills?.length ? (
-        <Table head={["", "Camera", "Channel", "Size", "Age", "Fetch", "Used for", "Missed"]}>
+        <Table head={["", "Camera", "Channel", "Size", "From", "Age", "Fetch", "Used for", "Missed"]}>
           {s.stills.map((c) => (
             <tr key={c.camera}>
               <td>
@@ -225,6 +230,9 @@ function Compositor({
               <td>{c.title}</td>
               <td title={c.camera}>{c.channel}</td>
               <td>{c.width ? `${c.width} × ${c.height}` : "?"}</td>
+              <td title={c.no_stream ? `Not its stream: ${c.no_stream}` : undefined}>
+                {c.source === "stream" ? `stream, ${c.fps ?? 0} fps` : "snapshots"}
+              </td>
               <td style={c.age_s != null && c.age_s > stale ? { color: "var(--warn)" } : undefined}>
                 {c.age_s == null ? "" : seconds(c.age_s)}
                 {c.age_s != null && c.age_s > stale ? " (stale)" : ""}

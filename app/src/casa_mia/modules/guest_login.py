@@ -36,7 +36,9 @@ from .guest_page import header_jpeg, render_welcome  # noqa: E402
 _LOGGER = logging.getLogger(__name__)
 
 PORT = 8675
-INTERNAL_URL = "http://homeassistant:8123"
+# Home Assistant, from the app: both on the host's network (the name `homeassistant` is
+# the Supervisor network's, which the app is no longer on).
+INTERNAL_URL = "http://127.0.0.1:8123"
 TIMEOUT = 10
 RATE_LIMIT = 10  # login attempts per client address per RATE_WINDOW seconds
 RATE_WINDOW = 60.0

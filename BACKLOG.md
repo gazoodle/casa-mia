@@ -4,6 +4,7 @@ Not scheduled. Newest ideas first within each section. Move an item into the REA
 
 ## Next up
 
+- **Check guest login on the LAN.** On 2026-10-06, after 2026.10.3-b37 put the app on the host network, a guest login did not work, tried over a VPN. Try it again from the LAN (a phone off the VPN, a printed code). Likely cause, fixed in b38: its sign-in went to `http://homeassistant:8123`, a name only the Supervisor's network knows; on the host network it is now `127.0.0.1:8123`. If it still fails after b38, suspect b37 further: the guest login server (port 8675) is now the host's own port, not a mapped one, so check what the guest page's address resolves to and what address the request comes from (any check by client IP, the trusted-networks provider in HA's auth, and the reverse proxy or Nabu Casa path to it).
 - **Guest login follow-ups** (the module is complete, app 0.1.26):
   - House-info page for guests (Wi-Fi, house rules), agreed in the design but not built.
   - Engineer endpoints: `type` is only recorded so far; give them a minimal page if wanted.
