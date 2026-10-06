@@ -361,7 +361,10 @@ def test_the_pages_controls_restart_flush_and_forget(compositor):
     api("POST", "live/server/run", {}, b"")
     assert api("POST", "draft/server/pause", {}, b"")[0] == 404  # no draft here
     # one channel's picture purged: "(Waiting …)" again (its size kept); the rest kept
+    # (the gatherer paused: running, a purge starts a survey pass that refetches it)
+    compositor.gather.pause(True)
     out = json.loads(api("POST", "live/forget", {}, b'{"camera": "camera.a"}')[2])
+    compositor.gather.pause(False)
     waiting = {s["camera"] for s in out["gatherer"]["channels"] if s["waiting"]}
     assert "camera.a" in waiting
     assert api("POST", "live/forget", {}, b"{}")[0] == 400

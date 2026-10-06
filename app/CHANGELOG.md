@@ -2,6 +2,7 @@
 
 ## 2026.10.3-b50
 
+- Camera compositor: a paused gatherer keeps nothing new: a fetch or survey read under way when it was paused no longer lands after (a purge while paused could see a picture come back), and the Camera Dashboard's thumbnails fetch nothing while paused. Waits are always cleared when a stream ends or the engine stops.
 - Camera compositor page: the survey dialog says it lists a channel's last five surveys, and its text (and the page's other longer notes: the survey line, a picture's details, the size test) wraps instead of being cut short with "…".
 
 ## 2026.10.3-b49

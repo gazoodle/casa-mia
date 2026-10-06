@@ -1294,6 +1294,8 @@ class Gatherer:
         """A channel's new picture, and its size: logged and kept when first known or
         changed. A snapshot gives way to the channel's stream: it is not kept while a
         frame is to hand, and never changes a size its stream gave."""
+        if self.paused:  # fetched before the pause, come after it: nothing new appears
+            return
         reader = self._readers.get(entity)
         if not streamed and reader and reader.frame is not None:
             return
@@ -1819,9 +1821,13 @@ class Gatherer:
         waits = [asyncio.ensure_future(event.wait())]
         if self._repaced:
             waits.append(asyncio.ensure_future(self._repaced.wait()))
-        await asyncio.wait(waits, timeout=seconds, return_when=asyncio.FIRST_COMPLETED)
-        for w in waits:
-            w.cancel()
+        try:
+            await asyncio.wait(
+                waits, timeout=seconds, return_when=asyncio.FIRST_COMPLETED
+            )
+        finally:  # cancelled too (its loop stopping): no wait left behind
+            for w in waits:
+                w.cancel()
 
     def _cameras(self) -> list[str]:
         """Every camera of the config: in a commander, or chosen and not in one yet."""
@@ -1829,8 +1835,11 @@ class Gatherer:
         return list(out | dict.fromkeys(self.cfg.entities))
 
     async def ready_still(self, entity: str) -> Picture | None:
-        """The kept still of a camera, at once; one never seen is fetched now, and kept."""
+        """The kept still of a camera, at once; one never seen is fetched now, and kept
+        (not while paused: none then)."""
         if entity not in self.shots:
+            if self.paused:
+                return None
             image = await self._fetch(entity)
             if image is None:
                 return None
@@ -2450,11 +2459,13 @@ class Compositor:
             asyncio.ensure_future(stop.wait()),
             asyncio.ensure_future(self._fresh_of(key).wait()),
         ]
-        await asyncio.wait(
-            waits, timeout=KEEPALIVE, return_when=asyncio.FIRST_COMPLETED
-        )
-        for w in waits:
-            w.cancel()
+        try:
+            await asyncio.wait(
+                waits, timeout=KEEPALIVE, return_when=asyncio.FIRST_COMPLETED
+            )
+        finally:  # cancelled too (the stream ending): no wait left behind
+            for w in waits:
+                w.cancel()
 
     def pause(self, stage: str, paused: bool) -> None:
         """Pause a stage, or run it again: "generator" (no drawing; the last pictures
