@@ -1,4 +1,4 @@
-// Tablet Layout (view type custom:casa-mia-tablet-view): HA's own Sections view, so its header,
+// Tablet Layout (view type custom:casa-mia-tablet-layout, "Tablet (Casa Mia)" in HA's view editor): HA's own Sections view, so its header,
 // footer, badges and section editing are HA's, locked to the screen. HA puts every view in a
 // container at least the screen tall with the header padded off; this view takes exactly
 // that (flex basis 0, never its content's height) and clips, so the page never scrolls.
@@ -476,14 +476,17 @@ sectionsView().then((Base: any) => {
         tooTall(this as unknown as Element, page.clientHeight);
     }
   }
-  define("casa-mia-tablet-view", TabletView as unknown as CustomElementConstructor);
+  define("casa-mia-tablet-layout", TabletView as unknown as CustomElementConstructor);
+  // Its first name, for views made before 2026.10.3-b26. ponytail: drop once none is left.
+  define("casa-mia-tablet-view", class extends (TabletView as any) {} as unknown as CustomElementConstructor);
 });
 
 // HA's view editor (Edit view, and Add view) lists only its own types; Tablet Layout joins
 // them, as layout-card's do (it patches the same method). Its dialog keeps a Sections view's
 // sections from going to another type (it would lose them, so Save is off); this view is a
 // Sections view, so to the dialog it is one.
-const TYPE = "custom:casa-mia-tablet-view";
+const TYPE = "custom:casa-mia-tablet-layout";
+const TYPES = [TYPE, "custom:casa-mia-tablet-view"]; // and its first name
 customElements.whenDefined("hui-view-editor").then(() => {
   const proto = (customElements.get("hui-view-editor") as any).prototype;
   const first = proto.firstUpdated;
@@ -495,7 +498,7 @@ customElements.whenDefined("hui-view-editor").then(() => {
       schema(...a).map((f: any) => {
         const options = f.name === "type" ? f.selector?.select?.options : undefined;
         if (!options || options.some((o: any) => o.value === TYPE)) return f;
-        return { ...f, selector: { select: { ...f.selector.select, options: [...options, { value: TYPE, label: "Tablet Layout (Casa Mia)" }] } } };
+        return { ...f, selector: { select: { ...f.selector.select, options: [...options, { value: TYPE, label: "Tablet (Casa Mia)" }] } } };
       });
     this.requestUpdate();
   };
@@ -507,7 +510,7 @@ customElements.whenDefined("hui-dialog-edit-view").then(() => {
   Object.defineProperty(proto, "_type", {
     ...type,
     get(this: any) {
-      return this._config?.type === TYPE ? "sections" : type.get!.call(this);
+      return TYPES.includes(this._config?.type) ? "sections" : type.get!.call(this);
     },
   });
 });

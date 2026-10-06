@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b26
+
+- The Tablet Layout is "Tablet (Casa Mia)" in Home Assistant's View type list, in keeping with the others there, and its YAML type is now `custom:casa-mia-tablet-layout`. A view with the old `custom:casa-mia-tablet-view` still works; to move it to the new name, pick Tablet (Casa Mia) in its view editor (or change the YAML).
+
 ## 2026.10.3-b25
 
 - The Tablet Layout (what was called the Tablet view) is in Home Assistant's view editor: Edit view (or Add view) → View type → Tablet Layout (Casa Mia), so a view no longer starts as YAML. A Sections view changes to it, and back, with its sections kept. Its YAML type stays `custom:casa-mia-tablet-view`.

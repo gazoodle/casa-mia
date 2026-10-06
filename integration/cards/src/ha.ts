@@ -178,12 +178,12 @@ export function room(el: Element): number {
 export function modeOf(holder: string, preview: boolean): Mode {
   if (preview) return "preview";
   if (holder === "HUI-PANEL-VIEW") return "screen";
-  return holder === "CASA-MIA-TABLET-VIEW" ? "tile" : "column";
+  return holder === "CASA-MIA-TABLET-LAYOUT" ? "tile" : "column";
 }
 
 /** Where a card stands now, and the room below it. */
 export function fitOf(el: Element): Fit {
-  const holder = filling(el) ? "CASA-MIA-TABLET-VIEW" : container(el);
+  const holder = filling(el) ? "CASA-MIA-TABLET-LAYOUT" : container(el);
   return { mode: modeOf(holder, inDialog(el)), room: room(el), container: holder.toLowerCase() };
 }
 

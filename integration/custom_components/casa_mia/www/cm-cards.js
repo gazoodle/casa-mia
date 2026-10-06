@@ -756,10 +756,10 @@ function We(e) {
 	return Math.max(Be, Math.floor(n - t));
 }
 function Ge(e, t) {
-	return t ? "preview" : e === "HUI-PANEL-VIEW" ? "screen" : e === "CASA-MIA-TABLET-VIEW" ? "tile" : "column";
+	return t ? "preview" : e === "HUI-PANEL-VIEW" ? "screen" : e === "CASA-MIA-TABLET-LAYOUT" ? "tile" : "column";
 }
 function Ke(e) {
-	let t = He(e) ? "CASA-MIA-TABLET-VIEW" : Ve(e);
+	let t = He(e) ? "CASA-MIA-TABLET-LAYOUT" : Ve(e);
 	return {
 		mode: Ge(t, Ue(e)),
 		room: We(e),
@@ -2028,9 +2028,9 @@ Ae().then((e) => {
 			this.cmLabel.textContent = `view ${Math.round(e.width)} x ${Math.round(e.height)}, room ${We(this)}\npage scrolls ${t.scrollWidth - t.clientWidth} x ${t.scrollHeight - t.clientHeight}` + Ct(this, t.clientHeight);
 		}
 	}
-	U("casa-mia-tablet-view", t);
+	U("casa-mia-tablet-layout", t), U("casa-mia-tablet-view", class extends t {});
 });
-var Ot = "custom:casa-mia-tablet-view";
+var Ot = "custom:casa-mia-tablet-layout", kt = [Ot, "custom:casa-mia-tablet-view"];
 //#endregion
 //#region src/main.ts
 customElements.whenDefined("hui-view-editor").then(() => {
@@ -2046,7 +2046,7 @@ customElements.whenDefined("hui-view-editor").then(() => {
 					...e.selector.select,
 					options: [...t, {
 						value: Ot,
-						label: "Tablet Layout (Casa Mia)"
+						label: "Tablet (Casa Mia)"
 					}]
 				} }
 			};
@@ -2057,7 +2057,7 @@ customElements.whenDefined("hui-view-editor").then(() => {
 	t?.get && Object.defineProperty(e, "_type", {
 		...t,
 		get() {
-			return this._config?.type === Ot ? "sections" : t.get.call(this);
+			return kt.includes(this._config?.type) ? "sections" : t.get.call(this);
 		}
 	});
 }), console.info(`%cCASA-MIA CARDS\n%ccommander, section, tablet layout (${new URL(import.meta.url).searchParams.get("v") || "dev"})`, "color: green; font-weight: bold;", "");

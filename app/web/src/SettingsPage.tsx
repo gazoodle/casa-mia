@@ -73,7 +73,7 @@ export function SettingsPage() {
           </div>
           <AreaHead
             title="Tablet Layout debugging"
-            blurb="Aids for building a Tablet Layout (custom:casa-mia-tablet-view) and finding layout problems. Not for everyday use."
+            blurb="Aids for building a Tablet Layout (custom:casa-mia-tablet-layout) and finding layout problems. Not for everyday use."
           />
           <p className={css.devWarn}>
             While one is on, it shows on <strong>every</strong> Tablet Layout, on every tablet and browser, until it is
