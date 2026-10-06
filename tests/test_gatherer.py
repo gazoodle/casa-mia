@@ -187,3 +187,41 @@ def test_a_paused_gatherer_keeps_no_stills_and_sizes_every_camera(
     assert asyncio.run(run()) == []  # nothing fetched while paused
     assert set(asked) == {"camera.a", "camera.b"}  # running again: the kept stills
     assert g._streamed == {"camera.a", "camera.b"}  # every camera sized by its stream
+
+
+def test_a_snapshot_not_its_channels_size_is_never_its_picture(tmp_path):
+    # A channel sized by its stream (UniFi Protect: high is 2688 x 1512) is not shown
+    # Protect's one 640 x 360 snapshot as itself; its snapshots are not asked for again.
+    g = gatherer(tmp_path)
+    g.res["camera.a"] = (2688, 1512)
+    g._streamed.add("camera.a")
+    g.keep("camera.a", jpeg((640, 360)))
+    assert "camera.a" in g._waiting and "camera.a" in g._snap_wrong
+    asked: list[str] = []
+
+    async def fetch(entity):
+        asked.append(entity)
+        return jpeg((640, 360))
+
+    g._fetch_now = fetch  # type: ignore[method-assign]
+    assert asyncio.run(g._get("camera.a")) == () and not asked
+    g.keep(
+        "camera.a", Image.new("RGB", (2688, 1512)), streamed=True
+    )  # its stream's frame
+    assert "camera.a" not in g._waiting
+    assert g.status()["channels"][0]["picture"] == [2688, 1512]
+
+
+def test_a_paused_generator_draws_nothing_even_when_asked(served):
+    # The server never draws: purged while the generator is paused, a commander's
+    # picture is not drawn again until the generator runs.
+    url = f"http://127.0.0.1:{served.port}/g/cameras.jpg"
+    urllib.request.urlopen(url).read()
+    served.pause("generator", True)
+    served.flush()
+    time.sleep(0.1)
+    with pytest.raises(urllib.error.HTTPError) as err:
+        urllib.request.urlopen(url)
+    assert err.value.code == 503 and not served._pictures
+    served.pause("generator", False)
+    assert urllib.request.urlopen(url).status == 200  # asked of the generator, at once

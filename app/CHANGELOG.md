@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.3-b43
+
+- Camera compositor: the server never draws. A picture it is asked for and has none of (or an old one) is asked of the generator and waited for; while the generator is paused, nothing new appears: a purged composite stays gone (an open commander's stream holds, a single picture is refused), and a drawing finished after the pause is dropped.
+- Camera compositor: a snapshot that is not its channel's size (UniFi Protect gives every channel one 640 x 360 snapshot) is never kept as that channel's picture, nor asked for again: the channel shows its stream's frames only (the high channel showed a 640 x 360 snapshot). The cache shows each picture's own size, and the channel's when they differ.
+
 ## 2026.10.3-b42
 
 - Camera compositor page: the cache holds the composites too (each picture the generators drew, with its thumbnail, live view and purge), beside the camera channels' pictures; a list view (small thumbnails) besides the tiles, sorted by name or newest first, the choice kept in the browser. The gatherer's channels are sorted by camera, then high, medium, low; each size says whether it is the stream's or the snapshot's; and a ↗ opens a live view of the channel's stream (the Camera Dashboard page's live view, shared). Each generator's picture has a ↗ to its live view.

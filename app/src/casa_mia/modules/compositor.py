@@ -932,6 +932,9 @@ class Gatherer:
         self.res: dict[str, tuple[int, int]] = {}
         self._streamed: set[str] = set()
         self._took: dict[str, float] = {}
+        self._shot_size: dict[str, tuple[int, int]] = {}  # each picture's own size
+        # Channels whose snapshot is not their stream's size: their snapshots unwanted.
+        self._snap_wrong: set[str] = set()
         self._load_sizes()
         # Each compositor (by its store) -> when it last said what it wants, and that:
         # each channel -> its places (picture, where, size, whole); all of them now.
@@ -1186,6 +1189,8 @@ class Gatherer:
             if got:
                 self._taken[entity] = got[1]
                 return got[0], got[1], True
+        if entity in self._snap_wrong:
+            return ()  # its snapshot would not be it: its stream's frames only
         image = await self._fetch_now(entity)
         return (image, time.monotonic(), False) if image else None
 
@@ -1202,10 +1207,6 @@ class Gatherer:
         reader = self._readers.get(entity)
         if not streamed and reader and reader.frame is not None:
             return
-        self.shots[entity] = (time.monotonic() if at is None else at, image)
-        self._waiting.discard(entity)
-        if fresh := self._fresh.pop(entity, None):
-            fresh.set()
         if isinstance(image, Image.Image):
             size = image.size
         else:
@@ -1213,6 +1214,24 @@ class Gatherer:
                 size = Image.open(io.BytesIO(image)).size  # the header only
             except OSError:
                 return
+        if not streamed and entity in self._streamed and size != self.res.get(entity):
+            # Not this channel's picture at its size (UniFi Protect gives every
+            # channel one 640 x 360 snapshot): never kept as it, nor asked for again.
+            if entity not in self._snap_wrong:
+                self._snap_wrong.add(entity)
+                _LOGGER.info(
+                    "compositor (cameras): %s, %s channel: its snapshot (%d x %d) is "
+                    "not its stream's size; only its stream's frames are kept",
+                    self._title(entity),
+                    self._channel(entity)[1],
+                    *size,
+                )
+            return
+        self.shots[entity] = (time.monotonic() if at is None else at, image)
+        self._shot_size[entity] = size
+        self._waiting.discard(entity)
+        if fresh := self._fresh.pop(entity, None):
+            fresh.set()
         if not streamed and entity in self._streamed:
             return
         if self.res.get(entity) != size or (streamed and entity not in self._streamed):
@@ -1285,7 +1304,7 @@ class Gatherer:
         until fetched afresh; a channel sitting out is tried again. Their sizes are
         kept."""
         if entity is None:
-            for cache in (self._stills, self.shots, self._taken):
+            for cache in (self._stills, self.shots, self._taken, self._shot_size):
                 cache.clear()
             self._waiting.clear()
             self._misses.clear()
@@ -1295,6 +1314,7 @@ class Gatherer:
                 self.shots,
                 self._stills,
                 self._taken,
+                self._shot_size,
                 self._misses,
                 self._benched,
             ):
@@ -1366,6 +1386,8 @@ class Gatherer:
                 "age_s": None
                 if at is None or e in self._waiting
                 else round(now - at, 1),
+                # the picture held now (a frame, a snapshot): its own size
+                "picture": list(self._shot_size[e]) if e in self._shot_size else None,
                 "fetch_ms": round(self._took[e] * 1000) if e in self._took else None,
                 "missed": self._misses.get(e, 0),
                 "back_in_s": round(self._benched[e] - now)
@@ -1640,7 +1662,9 @@ class Gatherer:
                 e
                 for camera in self._cameras()
                 for tier, e in channels(self.cfg, camera).items()
-                if (tier == "low" or e not in self.res) and e not in self._readers
+                if (tier == "low" or e not in self.res)
+                and e not in self._readers
+                and e not in self._snap_wrong
             ]
             got = await asyncio.gather(*(one(e) for e in cams))
             _LOGGER.debug(
@@ -1847,7 +1871,7 @@ class Compositor:
             for key in [k for k in self._pictures if k.split("@")[0] == name]:
                 if key not in views:
                     self._pictures.pop(key, None)
-            for key, view in views.items():
+            for key, view in views.items() if not self.drawing_paused else []:
                 try:
                     await self._draw(view, changing=True)
                 except (OSError, ValueError) as exc:
@@ -2159,6 +2183,8 @@ class Compositor:
             )
         name = key_of(cmd)
         self._drawn[name] = (len(picture), time.monotonic() - began)
+        if self.drawing_paused:  # paused while it drew: nothing new appears
+            return picture
         self._pictures[name] = (time.monotonic(), picture)
         fresh, self._fresh[name] = self._fresh_of(name), asyncio.Event()
         fresh.set()
@@ -2228,11 +2254,12 @@ class Compositor:
             images[0],
         )
 
-    async def _frame(self, cmd: dict, size: Size | None = None) -> bytes:
-        """A commander's latest picture (at a size asked for), at once. After a quiet
-        spell (none, or older than the stale limit) it is drawn now from the cache
-        ("(Waiting …)" for a channel with no picture yet, Stale marks and all), while
-        the generator starts up; while drawing is paused, the last one drawn."""
+    async def _frame(self, cmd: dict, size: Size | None = None) -> bytes | None:
+        """A commander's latest picture (at a size asked for), for the server, which
+        never draws: one missing or old (after a quiet spell) is asked of the generator
+        and waited for (FETCH_TIMEOUT at most; the generator draws at once from the
+        cache, "(Waiting …)" and all). While drawing is paused, the last one drawn, or
+        None when there is none (a purge)."""
         self._touch(slug(cmd["name"]), size)
         cmd = sized(cmd, size)
         name = key_of(cmd)
@@ -2242,7 +2269,29 @@ class Compositor:
             self.drawing_paused or time.monotonic() - picture[0] < min(limit, LINGER)
         ):
             return picture[1]
-        return await self._draw(cmd)
+        if self.drawing_paused:
+            return None
+        fresh = self._fresh_of(name)
+        if self._tick:
+            self._tick.set()
+        try:
+            await asyncio.wait_for(fresh.wait(), FETCH_TIMEOUT)
+        except TimeoutError:
+            pass
+        drawn = self._pictures.get(name)
+        return drawn[1] if drawn else None
+
+    async def _next_picture(self, key: str, stop: asyncio.Event) -> None:
+        """Wait for a picture's next drawing, a stream's end, or KEEPALIVE seconds."""
+        waits = [
+            asyncio.ensure_future(stop.wait()),
+            asyncio.ensure_future(self._fresh_of(key).wait()),
+        ]
+        await asyncio.wait(
+            waits, timeout=KEEPALIVE, return_when=asyncio.FIRST_COMPLETED
+        )
+        for w in waits:
+            w.cancel()
 
     def pause(self, stage: str, paused: bool) -> None:
         """Pause a stage, or run it again: "generator" (no drawing; the last pictures
@@ -2353,6 +2402,8 @@ class Compositor:
             raise web.HTTPServiceUnavailable(text="paused")
         self._warm_in_background(name)
         data = await self._frame(cmd, asked_size(request.query))
+        if data is None:
+            raise web.HTTPServiceUnavailable(text="no picture drawn (drawing paused?)")
         return web.Response(
             body=data, content_type=mime(data), headers={"Cache-Control": "no-store"}
         )
@@ -2394,6 +2445,13 @@ class Compositor:
             # picture; a deploy that changes it ends the stream (the dashboard reloads).
             self._warm_in_background(name)
             data = await self._frame(cmd, size)
+            while data is None and not stop.is_set():  # none drawn yet: wait for one
+                await self._next_picture(key, stop)
+                if not (cmd := self._known(name)):
+                    return resp
+                data = await self._frame(cmd, size)
+            if data is None:
+                return resp
             kind = mime(data)
             part = f"--frame\r\nContent-Type: {kind}\r\n\r\n".encode()
             await resp.write(part)
@@ -2405,22 +2463,14 @@ class Compositor:
                 await sending.write(resp, data + b"\r\n" + part)
                 # The next picture as soon as one is drawn (or the same again after
                 # KEEPALIVE, should drawing stop).
-                waits = [
-                    asyncio.ensure_future(stop.wait()),
-                    asyncio.ensure_future(self._fresh_of(key).wait()),
-                ]
-                await asyncio.wait(
-                    waits, timeout=KEEPALIVE, return_when=asyncio.FIRST_COMPLETED
-                )
-                for w in waits:
-                    w.cancel()
+                await self._next_picture(key, stop)
                 if stop.is_set():
                     break
                 self._warm_in_background(name)
                 cmd = self._known(name)  # a reload may have changed it, or removed it
                 if not cmd:
                     break
-                data = await self._frame(cmd, size)
+                data = await self._frame(cmd, size) or data  # none: the same again
         except (ConnectionResetError, asyncio.CancelledError):
             pass
         finally:

@@ -39,6 +39,8 @@ type Channel = {
   width: number;
   height: number;
   size_from: "stream" | "still" | null;
+  /** The picture held now (a frame, a snapshot): its own size. */
+  picture: [number, number] | null;
   age_s: number | null;
   fetch_ms: number | null;
   missed: number;
@@ -324,9 +326,15 @@ function cacheItems(status: Status, act: Act): Item[] {
       sub: c.channel,
       kind: "camera",
       age: c.waiting ? null : c.age_s,
-      size: c.width ? `${c.width} × ${c.height}` : "size ?",
+      size: c.picture ? `${c.picture[0]} × ${c.picture[1]}` : c.width ? `${c.width} × ${c.height}` : "size ?",
       state: c.state,
-      note: c.waiting ? "waiting for its first" : c.source === "stream" ? "stream" : "snapshot",
+      note: [
+        c.waiting ? "waiting for its first" : c.source === "stream" ? "stream" : "snapshot",
+        // a picture not its channel's size (it would be drawn softer)
+        c.picture && c.width && (c.picture[0] !== c.width || c.picture[1] !== c.height) ? `channel ${c.width} × ${c.height}` : "",
+      ]
+        .filter(Boolean)
+        .join(" · "),
       uses: c.uses,
       src: (w) => `api/compositor/thumb/${encodeURIComponent(c.camera)}?w=${w}&whole=1&r=${born(c.waiting ? null : c.age_s)}`,
       purge: () => act("cache/forget", `Purged ${c.title} (${c.channel})`, { camera: c.camera }),
