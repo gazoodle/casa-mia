@@ -4,7 +4,8 @@
 // the compositor ends a device's oldest streams past 3; so a page you come Back to could
 // show a stopped picture, and a new one might not load at all. This stops the streams of
 // pictures not on screen and gives those on screen a fresh one. It also gives each
-// commander's picture the Security look (a CSS filter: monochrome, tinted) while that
+// commander's picture (and the live video a card plays over its main camera) the Security
+// look (a CSS filter: monochrome, tinted) while that
 // commander's Security look switch is on, and makes each commander's highlight (the
 // outline on the main camera's tile) pulse. Loaded by the Casa Mia integration (switched on on the Casa Mia panel's Settings page); it
 // touches nothing but those pictures and that outline.
@@ -20,17 +21,19 @@ const known = new Set(); // every stream picture seen; pages left alive keep the
 const FIRST_LOOK = "switch.camera_commander_security_look";
 const states = {}; // entity -> { s: state, a: attributes }, as Home Assistant pushes them
 
-/** Every <img> in the page, inside HA's components (shadow roots) too. */
+/** Every <img> in the page, inside HA's components (shadow roots) too; and every
+ * <video> a Camera Commander card plays its live main camera in (data-cm-picture: the
+ * picture it plays over). */
 function* images(root) {
   for (const el of root.querySelectorAll("*")) {
-    if (el.tagName === "IMG") yield el;
+    if (el.tagName === "IMG" || (el.tagName === "VIDEO" && el.dataset.cmPicture)) yield el;
     if (el.shadowRoot) yield* images(el.shadowRoot);
   }
 }
 
 /** The Security look's filter for a picture: its commander's, while that one is on. */
 function lookOf(img) {
-  const path = new URL(img.dataset.cmStream || img.src, location.href).pathname;
+  const path = new URL(img.dataset.cmPicture || img.dataset.cmStream || img.src, location.href).pathname;
   for (const st of Object.values(states))
     if (st.s === "on" && st.a?.pictures?.includes(path)) return st.a.css_filter || "";
   return "";
@@ -87,6 +90,12 @@ function pulse(img) {
 
 function check() {
   for (const img of images(document)) {
+    if (img.tagName === "VIDEO") {
+      // A live main camera: its picture's look (the card plays it; nothing to stop here).
+      const wanted = lookOf(img);
+      if (img.style.filter !== wanted) img.style.filter = wanted;
+      continue;
+    }
     if (STREAM.test(img.dataset.cmStream || img.src)) known.add(img);
     else if (img.src.endsWith("#cm-highlight")) pulse(img);
   }

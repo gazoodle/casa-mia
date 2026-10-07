@@ -1401,6 +1401,7 @@ var bt = class extends V {
         ${r && p[2] > 0 ? P`<video
                 class="live"
                 data-entity=${this.liveEntity(t, n, p) ?? ""}
+                data-cm-picture=${l}
                 style="${h(p)};object-fit:${{
 			fill: "fill",
 			crop: "cover"

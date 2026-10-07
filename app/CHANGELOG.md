@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b61
+
+- Camera Commander card: the Security look reaches the live main camera too, as it does the picture (the Keep camera pictures live helper gives the video its commander's look while its switch is on).
+
 ## 2026.10.3-b60
 
 - Camera Commander card: the main camera plays as live video over the picture (Main camera as live video, on by default, while the Camera compositor's Live main camera switch is on), through Home Assistant's WebRTC as its own camera cards play it: this device decodes it, at full frame rate, and the box no longer decodes the main camera for the card. The channel is the smallest at least the main area's size (fewer pixels away from home, as the picture), fitted as the main camera is (whole, filled or cropped), with its caption over it. Until it plays, the drawn main area shows; a video that has not started within 10 s, or fails, gives way to the drawn picture until the main camera changes.

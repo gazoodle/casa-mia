@@ -18,7 +18,8 @@
 // the picture without it, ?main=video), at full frame rate. The channel is the smallest at
 // least the main area's size in device pixels (fewer away from home, as the picture). The
 // card draws its caption. A video that does not start within LIVE_WAIT_MS, or fails, gives
-// way to the drawn picture, until the main camera changes.
+// way to the drawn picture, until the main camera changes. The Security look reaches it as
+// it does the picture (cm-streams.js, by data-cm-picture).
 // The picture comes straight from the compositor at home (its LAN address), else through
 // Home Assistant (the integration's pictures.py): away from home that address is out of
 // reach, and on an HTTPS page an http:// picture is blocked. Home is told by how this page
@@ -334,6 +335,7 @@ class CommanderCard extends LitElement {
           ? html`<video
                 class="live"
                 data-entity=${this.liveEntity(card, main, mainRect) ?? ""}
+                data-cm-picture=${src}
                 style="${at(mainRect)};object-fit:${({ fill: "fill", crop: "cover" } as Record<string, string>)[own.main_fit ?? "fit"] ?? "contain"};opacity:${this._playing ? 1 : 0}"
                 autoplay
                 playsinline
