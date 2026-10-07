@@ -7,6 +7,13 @@
   margin-bottom: 22px;
 }
 
+.graphs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
 .stage {
   display: grid;
   gap: 6px;

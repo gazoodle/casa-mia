@@ -45,6 +45,7 @@ import io
 import json
 import logging
 import math
+import os
 import re
 import socket
 import threading
@@ -268,6 +269,39 @@ def config_from_store(store: dict) -> Config:
     return cfg
 
 
+def measured(fn: Callable[..., Any], *args: Any) -> tuple[Any, float]:
+    """fn(*args), and the CPU it took (s): for a call in a worker thread."""
+    started = time.thread_time()
+    result = fn(*args)
+    return result, time.thread_time() - started
+
+
+def memory() -> dict[str, int | None]:
+    """The app's memory (resident) and the box's (total, available), bytes; None where
+    the system does not say (not Linux)."""
+    out: dict[str, int | None] = {"rss": None, "total": None, "free": None}
+    try:
+        for line in Path("/proc/self/status").read_text().splitlines():
+            if line.startswith("VmRSS:"):
+                out["rss"] = int(line.split()[1]) * 1024
+        for line in Path("/proc/meminfo").read_text().splitlines():
+            key, value = line.split(":", 1)
+            if key in ("MemTotal", "MemAvailable"):
+                out["total" if key == "MemTotal" else "free"] = (
+                    int(value.split()[0]) * 1024
+                )
+    except (OSError, ValueError, IndexError):
+        import resource
+
+        rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        out["rss"] = rss if os.uname().sysname == "Darwin" else rss * 1024
+    return out
+
+
+MONITOR_EVERY = 2.0  # seconds between the whole system's samples
+MONITOR_KEEP = 90  # samples kept: 3 minutes
+
+
 def go2rtc_reachable(timeout: float = 1.0) -> bool:
     """Whether Home Assistant's go2rtc answers RTSP here."""
     host, port = GO2RTC_RTSP
@@ -337,6 +371,7 @@ class Sending:
     frames: int = 0
     sent: int = 0
     waiting: float = 0.0
+    counted: Callable[[int], None] | None = None  # the whole system's bytes out
 
     async def write(self, resp: web.StreamResponse, data: bytes) -> None:
         began = time.monotonic()
@@ -344,6 +379,8 @@ class Sending:
         self.waiting += time.monotonic() - began
         self.frames += 1
         self.sent += len(data)
+        if self.counted:
+            self.counted(len(data))
 
     def figures(self, now: float) -> dict[str, Any]:
         open_s = max(now - self.since, 0.001)
@@ -988,6 +1025,15 @@ class Gatherer:
         self._wake: asyncio.Event | None = None  # look at the wants now
         self._survey_now: asyncio.Event | None = None  # a survey pass now
         self._bg: set[asyncio.Task] = set()
+        # The whole compositor system's running totals: CPU (s) gathering (decoding and
+        # converting streams, surveying; readers still running are added when sampled)
+        # and composing (drawing and encoding), and bytes sent to viewers; and its
+        # history, a sample every MONITOR_EVERY seconds (see _monitor).
+        self._totals = {"gather_cpu": 0.0, "compose_cpu": 0.0, "out_bytes": 0.0}
+        self._totals_lock = threading.Lock()
+        self.history: collections.deque[dict[str, Any]] = collections.deque(
+            maxlen=MONITOR_KEEP
+        )
         # The compositors' drawn pictures (each one's own store, by its role), so the
         # cache's size counts them too.
         self._drawers: dict[str, dict[str, tuple[float, bytes]]] = {}
@@ -1032,7 +1078,7 @@ class Gatherer:
         self._wake, self._repaced = asyncio.Event(), asyncio.Event()
         self._placehold()
         self._survey_now = asyncio.Event()
-        tasks = [self._run(), self._survey_loop()]
+        tasks = [self._run(), self._survey_loop(), self._monitor()]
         for coro in tasks:
             self._bg.add(asyncio.ensure_future(coro))
 
@@ -1443,6 +1489,53 @@ class Gatherer:
             return "starting"
         return "snapshots" if entity in self._feeds else "stopped"
 
+    def count(self, total: str, amount: float) -> None:
+        """Add to one of the whole system's totals. Thread-safe."""
+        with self._totals_lock:
+            self._totals[total] += amount
+
+    async def _monitor(self) -> None:
+        """Sample the whole compositor system every MONITOR_EVERY seconds: CPU as a
+        share of the whole box (gathering, composing, the app in all), memory (the
+        app's, the cache's, the box's) and bytes sent a second."""
+        cpus = os.cpu_count() or 1
+        then = None
+        while True:
+            now = time.monotonic()
+            with self._totals_lock:
+                totals = dict(self._totals)
+            totals["gather_cpu"] += sum(
+                r.cpu_s + r.convert_s for r in list(self._readers.values())
+            )
+            totals["app_cpu"] = time.process_time()
+            if then is not None:
+                took = max(now - then[0], 0.001)
+
+                def pct(
+                    key: str, then_totals: dict = then[1], took: float = took
+                ) -> float:
+                    gone = max(totals[key] - then_totals[key], 0.0)
+                    return round(100 * gone / took / cpus, 1)
+
+                mem = memory()
+                self.history.append(
+                    {
+                        "t": round(time.time(), 1),
+                        "gather": pct("gather_cpu"),
+                        "compose": pct("compose_cpu"),
+                        "app": pct("app_cpu"),
+                        "out_bps": round(
+                            8
+                            * max(totals["out_bytes"] - then[1]["out_bytes"], 0)
+                            / took
+                        ),
+                        "cache": self.cache_stats()["bytes"],
+                        **mem,
+                    }
+                )
+            then = (now, totals)
+            await asyncio.sleep(MONITOR_EVERY)
+
     def register_pictures(self, owner: str, pictures: dict) -> None:
         """A compositor's drawn pictures, counted in the cache's size."""
         self._drawers[owner] = pictures
@@ -1567,6 +1660,11 @@ class Gatherer:
             # the whole app's share of a CPU since the last status (%)
             "cpu_pct": self._cpu_pct("app", time.process_time(), now),
             "cache": self.cache_stats(),
+            "monitor": {
+                "cpus": os.cpu_count() or 1,
+                "every_s": MONITOR_EVERY,
+                "history": list(self.history),
+            },
             "paused": self.paused,
             "gathering": self.gathering,
             "pace": self.pace("gatherer"),
@@ -1724,6 +1822,7 @@ class Gatherer:
             return reader
         if reader:
             del self._readers[entity]
+            self.count("gather_cpu", reader.cpu_s + reader.convert_s)
             self._names.pop(entity, None)
             why = reader.error or "stopped"
             self._no_stream[entity] = (time.monotonic() + STREAM_RETRY, why)
@@ -1762,7 +1861,9 @@ class Gatherer:
     def _stop_readers(self, keep: set[str] | frozenset[str] = frozenset()) -> None:
         """Stop reading every stream but those in keep."""
         for entity in [e for e in self._readers if e not in keep]:
-            self._readers.pop(entity).stop()
+            gone = self._readers.pop(entity)
+            gone.stop()
+            self.count("gather_cpu", gone.cpu_s + gone.convert_s)
             _LOGGER.info(
                 "compositor (%s): %s, %s channel: stream no longer read",
                 "cameras",
@@ -1836,6 +1937,7 @@ class Gatherer:
         started = time.monotonic()
         outcome, why, size, cpu = await self._survey_try(entity)
         self.survey["cpu_s"] = self.survey.get("cpu_s", 0.0) + cpu
+        self.count("gather_cpu", cpu)
         self._surveyed.setdefault(entity, collections.deque(maxlen=5)).append(
             {
                 "at": time.time(),
@@ -2421,7 +2523,8 @@ class Compositor:
                 stale.add(camera)
         async with self._draw_lock:
             began = time.monotonic()
-            picture = await asyncio.to_thread(
+            picture, cpu = await asyncio.to_thread(
+                measured,
                 commander,
                 cmd,
                 cfg.titles,
@@ -2433,6 +2536,7 @@ class Compositor:
                 frozenset(stale),
                 age > limit,
             )
+        self.gather.count("compose_cpu", cpu)
         name = key_of(cmd)
         self._drawn[name] = (len(picture), time.monotonic() - began)
         if self.drawing_paused:  # paused while it drew: nothing new appears
@@ -2661,6 +2765,7 @@ class Compositor:
         data = await self._frame(cmd, asked_size(request.query))
         if data is None:
             raise web.HTTPServiceUnavailable(text="no picture drawn (drawing paused?)")
+        self.gather.count("out_bytes", len(data))
         return web.Response(
             body=data, content_type=mime(data), headers={"Cache-Control": "no-store"}
         )
@@ -2687,7 +2792,12 @@ class Compositor:
         size = asked_size(request.query)
         key = view_key(name, size)
         self._open[key] = self._open.get(key, 0) + 1
-        sending = Sending(key, viewer(request) or "", time.monotonic())
+        sending = Sending(
+            key,
+            viewer(request) or "",
+            time.monotonic(),
+            counted=lambda n: self.gather.count("out_bytes", n),
+        )
         self._sending.append(sending)
         _LOGGER.debug(
             "compositor (%s): stream %s to %s opened", self.store, key, sending.viewer

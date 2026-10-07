@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.3-b54
+
+- Camera compositor page: graphs of the whole compositor system over the last 3 minutes, sampled every 2 s on the box (so they are full when the page opens): CPU as a share of the whole box, gathering (stream decoding, survey reads) and composing (drawing and encoding) in their own colours; memory, the cache and the rest of the app against the box's; and bytes sent to viewers. The stage boxes' text wraps instead of being cut short.
+- Admin page: a general-purpose graph (Graphlet), for any page that shows a figure over time.
+
 ## 2026.10.3-b53
 
 - Camera compositor: stopping or restarting a compositor no longer hangs for 5 s now and then. Python 3.11's asyncio.wait_for can lose a cancellation that comes as what it waits for finishes, so the generator ran on after being stopped; every such wait now uses asyncio.timeout, which keeps it.

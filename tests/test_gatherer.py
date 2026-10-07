@@ -373,3 +373,26 @@ def test_the_cache_is_counted(tmp_path):
     placeholder = waiting_picture(round(16 / 9, 2))
     expected = 100 * 50 * 3 + 1000 + placeholder.width * placeholder.height * 3
     assert stats["bytes"] == expected  # a shared waiting picture counted once
+
+
+def test_the_whole_system_is_sampled(tmp_path, monkeypatch):
+    # CPU gathering and composing, as shares of the whole box; bytes sent a second;
+    # the app's memory and the cache's; a sample every MONITOR_EVERY seconds.
+    monkeypatch.setattr(mod, "MONITOR_EVERY", 0.05)
+    monkeypatch.setattr(mod.os, "cpu_count", lambda: 2)
+    g = gatherer(tmp_path)
+
+    async def run():
+        task = asyncio.ensure_future(g._monitor())
+        await asyncio.sleep(0.06)
+        g.count("gather_cpu", 0.05)  # 0.05 s of CPU in 0.05 s, of 2 CPUs: 50%
+        g.count("out_bytes", 1000)
+        await asyncio.sleep(0.06)
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
+
+    asyncio.run(run())
+    sample = max(g.history, key=lambda s: s["gather"])
+    assert 20 < sample["gather"] <= 60 and sample["out_bps"] > 0
+    assert sample["rss"] and sample["cache"] >= 0
+    assert g.status()["monitor"]["cpus"] == 2

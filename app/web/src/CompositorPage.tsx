@@ -9,6 +9,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api";
 import { BinIcon, CameraGridIcon } from "./icons";
 import { AreaHead, Empty, Shell } from "./page";
+import { Graphlet } from "./Graphlet";
 import { LiveView } from "./LiveView";
 import { Dialog, Segmented, Toasts, type Toast } from "./ui";
 import css from "./firmware.module.css";
@@ -80,10 +81,26 @@ type Survey = {
 /** The cache, counted: its pictures (the cameras' and the composites'), the channels still
  * waiting, the thumbnails, and the memory it takes. */
 type Cache = { pictures: number; cameras: number; waiting: number; composites: number; thumbnails: number; bytes: number };
+/** The whole compositor system, a sample every few seconds: CPU as shares of the whole
+ * box (%: gathering, composing, the app in all), bytes sent a second (as bits), and
+ * memory (bytes: the app's, the cache's, the box's; null where the box does not say). */
+type Sample = {
+  t: number;
+  gather: number;
+  compose: number;
+  app: number;
+  out_bps: number;
+  cache: number;
+  rss: number | null;
+  total: number | null;
+  free: number | null;
+};
+type Monitor = { cpus: number; every_s: number; history: Sample[] };
 type Gatherer = {
   /** The whole app's share of a CPU (%), since the last look. */
   cpu_pct: number;
   cache: Cache;
+  monitor: Monitor;
   paused: boolean;
   gathering: boolean;
   pace: number;
@@ -192,6 +209,7 @@ export function CompositorPage({ state }: { state?: string }) {
       {!status && !error && <Empty>Loading…</Empty>}
       {status && g && (
         <>
+          <Graphs m={g.monitor} />
           <Strip status={status} busy={busy} act={act} />
           <GathererArea g={g} busy={busy} act={act} onLive={setLive} onSurveys={setSurveys} />
           <CacheArea items={items} cache={g.cache} stale={status.live.stale_s ?? 30} busy={busy} act={act} onShow={setShown} />
@@ -240,7 +258,7 @@ function Strip({ status, busy, act }: { status: Status; busy: boolean; act: Act 
       <Stage
         name="Gatherer"
         on={!g.paused && g.gathering}
-        note={`${g.paused ? "paused" : g.gathering ? `${plural(fetching, "channel")}, ${plural(g.streams_read, "stream")}` : "nothing wanted"} · app CPU ${g.cpu_pct}%`}
+        note={g.paused ? "paused" : g.gathering ? `${plural(fetching, "channel")}, ${plural(g.streams_read, "stream")}` : "nothing wanted"}
       >
         <PauseButton paused={g.paused} path="gatherer" name="Gatherer" busy={busy} act={act} />
       </Stage>
@@ -268,6 +286,64 @@ function Strip({ status, busy, act }: { status: Status; busy: boolean; act: Act 
   );
 }
 
+/** The whole compositor system over the last minutes: CPU (gathering and composing),
+ * memory (the cache and the rest of the app, against the box), and bytes sent. */
+function Graphs({ m }: { m: Monitor }) {
+  const h = m.history;
+  const now = h[h.length - 1];
+  if (!now) return null;
+  const total = now.total ?? Math.max(...h.map((x) => x.rss ?? 0)) * 1.25;
+  const busiest = Math.max(...h.map((x) => x.out_bps), 100_000);
+  const scale = niceCeil(busiest);
+  return (
+    <div className={pipe.graphs}>
+      <Graphlet
+        title="CPU"
+        value={`${now.app}% of the box (${m.cpus} cores)`}
+        tone={now.app > 80 ? "bad" : now.app > 50 ? "warn" : "good"}
+        series={[
+          { name: "gathering", color: "var(--accent)", values: h.map((x) => x.gather) },
+          { name: "composing", color: "var(--warn)", values: h.map((x) => x.compose) },
+        ]}
+        max={100}
+        top="100%"
+        bottom="0%"
+      />
+      <Graphlet
+        title="Memory"
+        value={`app ${mb(now.rss ?? 0)}${now.free != null ? ` · box ${gb(now.free)} free` : ""}`}
+        tone={now.free != null && now.total && now.free / now.total < 0.1 ? "warn" : "good"}
+        series={[
+          { name: "cache", color: "var(--accent)", values: h.map((x) => x.cache) },
+          { name: "rest of the app", color: "var(--warn)", values: h.map((x) => Math.max((x.rss ?? 0) - x.cache, 0)) },
+        ]}
+        max={total}
+        top={gb(total)}
+        bottom="0"
+      />
+      <Graphlet
+        title="Network out"
+        value={bits(now.out_bps)}
+        series={[{ name: "sent", color: "var(--accent)", values: h.map((x) => x.out_bps) }]}
+        max={scale}
+        top={bits(scale)}
+        bottom="0"
+      />
+    </div>
+  );
+}
+
+/** A round number at or above n (1, 2 or 5 times a power of ten). */
+function niceCeil(n: number): number {
+  const p = 10 ** Math.floor(Math.log10(n));
+  return [1, 2, 5, 10].map((k) => k * p).find((v) => v >= n) ?? 10 * p;
+}
+
+const gb = (bytes: number) => `${(bytes / 1e9).toFixed(1)} GB`;
+
+/** 850 kbit/s, 12.3 Mbit/s */
+const bits = (bps: number) => (bps < 1e6 ? `${Math.round(bps / 1000)} kbit/s` : `${(bps / 1e6).toFixed(1)} Mbit/s`);
+
 function Stage({ name, on, note, children }: { name: string; on: boolean; note: string; children: React.ReactNode }) {
   return (
     <div className={pipe.stage}>
@@ -275,7 +351,7 @@ function Stage({ name, on, note, children }: { name: string; on: boolean; note: 
         <span className={`${pipe.dot} ${on ? pipe.on : ""}`} aria-hidden="true" />
         {name}
       </strong>
-      <span className={guest.rowMeta}>{note}</span>
+      <span className={pipe.use}>{note}</span>
       {children}
     </div>
   );
