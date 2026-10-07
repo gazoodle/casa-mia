@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b59
+
+- Camera compositor: a card may ask for its picture with the main camera left to it (?main=video), to play the main camera as live video over the picture (the card's side comes next). Such a picture's main area is drawn from whatever the cache holds and without its caption, and its main camera's channel is not fetched or decoded for it. A switch for the whole system, Live main camera (on by default; on the Camera compositor page and in the integration): off, every card gets the usual picture, at once. The Camera Commander card's data carries the switch and each camera's channels with their sizes.
+
 ## 2026.10.3-b58
 
 - Camera compositor: the Picture age allowed, Survey pause and Survey at once settings are kept when set (from the page or the integration). They were refused (taken for the name of an engine), so they kept their defaults; and a slider whose value the box refuses now goes back to what the box has, with the reason, instead of seeming set.

@@ -586,3 +586,33 @@ def mod_load(directory, store):
     from casa_mia.modules.compositor import load_config
 
     return load_config(directory, store)
+
+
+def test_a_card_can_play_the_main_camera_live(compositor):
+    # Asked with ?main=video, while the live_main switch is on: a picture of its own,
+    # its main camera's channel not wanted (the card plays it). Off: the usual picture.
+    base = f"http://127.0.0.1:{compositor.port}/g/cameras.jpg"
+    urllib.request.urlopen(f"{base}?w=800&h=600&main=video").read()
+    keys = set(compositor._pictures)
+    assert any(k.endswith("~live") for k in keys)
+    status = compositor.status()
+    assert any(p["live_main"] for p in status["pictures"])
+
+    async def wants():
+        compositor._want(compositor._watched())
+        return compositor.gather._wants[compositor.role][1]
+
+    uses = asyncio.run_coroutine_threadsafe(wants(), compositor._loop).result(2)
+    live_places = [
+        (where, picture)
+        for places in uses.values()
+        for picture, where, _, _ in places
+        if picture.endswith("~live")
+    ]
+    assert live_places and all(where != "main" for where, _ in live_places)
+    # the switch off: the same request gets the usual picture
+    compositor.gather.set_flag("live_main", False)
+    compositor._pictures.clear()
+    urllib.request.urlopen(f"{base}?w=800&h=600&main=video").read()
+    assert not any(k.endswith("~live") for k in compositor._pictures)
+    compositor.gather.set_flag("live_main", True)

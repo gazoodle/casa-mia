@@ -2,7 +2,8 @@
 dashboards' Security look and Track motion, each commander's own (the look is applied
 in the browser by the Keep camera pictures live helper, which reads these switches); and
 the camera compositor's pipeline, each stage running (on) or paused (off): the gatherer,
-and the live and preview generators and servers."""
+and the live and preview generators and servers; and whether Camera Commander cards may
+play the main camera as live video over the picture."""
 
 from __future__ import annotations
 
@@ -50,7 +51,10 @@ async def async_setup_entry(
     async_add_entities(
         only_on(
             coordinator,
-            [PipelineSwitch(coordinator, entry, stage) for stage in PIPELINE],
+            [
+                *(PipelineSwitch(coordinator, entry, stage) for stage in PIPELINE),
+                LiveMainSwitch(coordinator, entry),
+            ],
         )
     )
     entity_platform.async_get_current_platform().async_register_entity_service(
@@ -233,6 +237,49 @@ class PipelineSwitch(CasaMiaEntity, SwitchEntity):
             raise HomeAssistantError(
                 f"Not done (is the camera compositor switched on in the app?): {exc}"
             ) from exc
+        await self.coordinator.async_request_refresh()
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        await self._set(True)
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        await self._set(False)
+
+
+class LiveMainSwitch(CasaMiaEntity, SwitchEntity):
+    """On: Camera Commander cards may play the main camera as live video over the
+    picture (through Home Assistant's WebRTC; the compositor then leaves it out). Off:
+    every card shows the drawn picture, main camera and all."""
+
+    _module = "compositor"
+    _attr_translation_key = "live_main"
+
+    def __init__(self, coordinator: CasaMiaCoordinator, entry: ConfigEntry) -> None:
+        super().__init__(coordinator, entry)
+        self._attr_unique_id = f"{entry.entry_id}_live_main"
+
+    def _flags(self) -> dict:
+        health = self.coordinator.data.get("modules", {}).get("compositor", {})
+        return health.get("flags") or {}
+
+    @property
+    def available(self) -> bool:
+        return super().available and "live_main" in self._flags()
+
+    @property
+    def is_on(self) -> bool:
+        return bool(self._flags().get("live_main"))
+
+    async def _set(self, on: bool) -> None:
+        try:
+            await async_post(
+                self.hass,
+                self.coordinator.url,
+                "/compositor/flag",
+                {"which": "live_main", "on": on},
+            )
+        except aiohttp.ClientError as exc:
+            raise HomeAssistantError(f"Not done: {exc}") from exc
         await self.coordinator.async_request_refresh()
 
     async def async_turn_on(self, **kwargs: Any) -> None:

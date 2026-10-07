@@ -11,7 +11,7 @@ import { BinIcon, CameraGridIcon } from "./icons";
 import { AreaHead, Empty, Shell } from "./page";
 import { Graphlet } from "./Graphlet";
 import { LiveView } from "./LiveView";
-import { Dialog, Segmented, Toasts, type Toast } from "./ui";
+import { Dialog, Segmented, Switch, Toasts, type Toast } from "./ui";
 import css from "./firmware.module.css";
 import guest from "./guest.module.css";
 import pipe from "./pipeline.module.css";
@@ -103,6 +103,8 @@ type Gatherer = {
   cpu_pct: number;
   /** The oldest a picture may be for its stream to decode keyframes only (s; 0: off). */
   freshness: number;
+  /** The whole system's switches: live_main, cards may play the main camera live. */
+  flags: { live_main: boolean };
   cache: Cache;
   monitor: Monitor;
   paused: boolean;
@@ -217,6 +219,20 @@ export function CompositorPage({ state }: { state?: string }) {
       {status && g && (
         <>
           <Graphs m={g.monitor} />
+          <div className={pipe.flag}>
+            <Switch
+              on={g.flags.live_main}
+              label="Live main camera"
+              onChange={(on) => act("flag", on ? "Live main camera on" : "Live main camera off", { which: "live_main", on })}
+            />
+            <span>
+              <strong>Live main camera.</strong>{" "}
+              <span className={pipe.use}>
+                Camera Commander cards play the main camera as live video over the picture (the tablet decodes it; the box
+                does not). Off: every card shows the drawn picture, main camera and all.
+              </span>
+            </span>
+          </div>
           <Strip status={status} busy={busy} act={act} />
           <GathererArea g={g} busy={busy} act={act} onLive={setLive} onSurveys={setSurveys} />
           <CacheArea items={items} cache={g.cache} stale={status.live.stale_s ?? 30} busy={busy} act={act} onShow={setShown} />

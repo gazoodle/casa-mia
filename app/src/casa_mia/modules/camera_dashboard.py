@@ -51,6 +51,7 @@ from .compositor import (
     PORT,
     Compositor,
     cameras_of,
+    channels,
     commander_cameras,
     commander_layout,
     commanders_of,
@@ -983,12 +984,17 @@ class CameraDashboard:
         select's `card` attribute, or `draft_card` for the saved draft, from the draft
         compositor): the layout (it lays it out with the same engine, so its taps line
         up), its picture's address, the main camera at start, and each camera's title
-        (its select's option) and live page on the dashboard (or the preview one)."""
+        (its select's option) and live page on the dashboard (or the preview one), and its
+        channels, smallest first, each with its size where known (the card plays its
+        main camera's as live video, when the compositor's live_main switch is on)."""
         try:
             url_path, base = self._target(self.store, live)
         except BadRequest:  # the LAN address not known yet: no picture until it is
             url_path, base = self.store["dashboard"], ""
         mine = commander_cameras(cmd)
+        comp = self.live if live else self.draft
+        cfg = config_from_store(self.store)
+        sizes = comp.gather.res if comp else {}
         keys = (
             "width",
             "height",
@@ -1010,9 +1016,14 @@ class CameraDashboard:
                 e: {
                     "title": titles.get(e, e),
                     "live": f"/{url_path}/cam-{slug(titles.get(e, e))}",
+                    "channels": [
+                        [c, *sizes[c]] if c in sizes else [c, 0, 0]
+                        for c in channels(cfg, e).values()
+                    ],
                 }
                 for e in mine
             },
+            "live_main": bool(comp and comp.gather.flags["live_main"]),
         }
 
     def commander(self) -> dict[str, Any]:

@@ -99,6 +99,7 @@ PACES = {
     # often it is drawn (s; 0: as fresh as its pace).
     "freshness": (0.0, 10.0),
 }
+FLAGS = {"live_main": True}  # the whole system's switches, and their defaults
 PACE_DEFAULTS = {
     "gatherer": INTERVAL,
     "live": INTERVAL,
@@ -220,26 +221,37 @@ def viewer(request: web.BaseRequest) -> str | None:
     return forwarded or request.remote
 
 
-def view_key(name: str, size: Size | None) -> str:
-    """A commander's picture at a size: its own key (its slug alone at its set size)."""
-    return name if size is None else f"{name}@{size[0]}x{size[1]}x{size[2]:g}"
+LIVE_MAIN = "~live"  # a picture's key: its main camera left to the card's live video
 
 
-def sized(cmd: dict, size: Size | None) -> dict:
+def view_key(name: str, size: Size | None, live_main: bool = False) -> str:
+    """A commander's picture at a size: its own key (its slug alone at its set size),
+    marked when its main camera is the card's live video (see `sized`)."""
+    key = name if size is None else f"{name}@{size[0]}x{size[1]}x{size[2]:g}"
+    return key + LIVE_MAIN if live_main else key
+
+
+def sized(cmd: dict, size: Size | None, live_main: bool = False) -> dict:
     """The commander drawn at a size asked for: that canvas, its gap, text and bars grown
-    by the scale, so they look the same in CSS pixels on any screen."""
-    if size is None:
+    by the scale, so they look the same in CSS pixels on any screen. `live_main`: its
+    main camera is played by the card as live video over the picture, so its main area
+    is drawn from whatever the cache holds (its channel is not fetched for it) and
+    without its caption (the card draws it)."""
+    if size is None and not live_main:
         return cmd
-    w, h, dpr = size
-    return {
-        **cmd,
-        "width": w,
-        "height": h,
-        "gap": round(cmd["gap"] * dpr),
-        "margin": round(cmd.get("margin", 0) * dpr),
-        "scale": dpr,
-        "view": view_key(slug(cmd["name"]), size),
-    }
+    out = dict(cmd)
+    if size is not None:
+        w, h, dpr = size
+        out |= {
+            "width": w,
+            "height": h,
+            "gap": round(cmd["gap"] * dpr),
+            "margin": round(cmd.get("margin", 0) * dpr),
+            "scale": dpr,
+        }
+    out["main_video"] = live_main
+    out["view"] = view_key(slug(cmd["name"]), size, live_main)
+    return out
 
 
 def key_of(cmd: dict) -> str:
@@ -855,22 +867,24 @@ def commander(
                 font=big,
                 anchor="mm",
             )
-        if main_image and main_stale:
+        live = bool(cmd.get("main_video"))  # the card's live video plays over it
+        if main_image and main_stale and not live:
             _stale_mark(draw, (px + pw - u(10), py + u(22)), font, scale)
         foot = py + ph - u(18)
-        pill = draw.textbbox((px + u(10), foot), label, font=font, anchor="lm")
-        draw.rectangle(
-            (pill[0] - u(6), pill[1] - u(4), pill[2] + u(6), pill[3] + u(4)),
-            fill=(0, 0, 0, 160),
-        )
-        draw.text((px + u(10), foot), label, fill="white", font=font, anchor="lm")
-        draw.text(
-            (px + pw - u(10), foot),
-            datetime.now().strftime("%H:%M:%S"),
-            fill="white",
-            font=font,
-            anchor="rm",
-        )
+        if not live:  # (the card draws a live main camera's caption)
+            pill = draw.textbbox((px + u(10), foot), label, font=font, anchor="lm")
+            draw.rectangle(
+                (pill[0] - u(6), pill[1] - u(4), pill[2] + u(6), pill[3] + u(4)),
+                fill=(0, 0, 0, 160),
+            )
+            draw.text((px + u(10), foot), label, fill="white", font=font, anchor="lm")
+            draw.text(
+                (px + pw - u(10), foot),
+                datetime.now().strftime("%H:%M:%S"),
+                fill="white",
+                font=font,
+                anchor="rm",
+            )
     if see_through(cmd):  # every tile and the main picture solid; the rest is clear
         mask = Image.new("L", size, 0)
         solid = ImageDraw.Draw(mask)
@@ -996,6 +1010,9 @@ class Gatherer:
         # progress takes up a new one at once.
         self.pace_path = pace_path
         self.paces: dict[str, float] = {}
+        # Switches for the whole system (kept with the paces): live_main, cards may play
+        # their main camera as live video over the picture (see `sized`).
+        self.flags: dict[str, bool] = dict(FLAGS)
         self._repaced: asyncio.Event | None = None
         self._load_paces()
         self._shot_size: dict[str, tuple[int, int]] = {}  # each picture's own size
@@ -1173,11 +1190,7 @@ class Gatherer:
             if seconds == 0
             else f"every {seconds:g} s",
         )
-        if self.pace_path:
-            try:
-                self.pace_path.write_text(json.dumps(self.paces))
-            except OSError as exc:
-                _LOGGER.warning("compositor (cameras): pace not kept: %s", exc)
+        self._save_paces()
 
         def repace() -> None:
             if self._repaced:
@@ -1185,6 +1198,24 @@ class Gatherer:
                 done.set()
 
         self._soon(repace)
+
+    def set_flag(self, which: str, on: bool) -> None:
+        """Turn one of the whole system's switches on or off, kept across restarts.
+        Thread-safe; KeyError for none such."""
+        if which not in FLAGS:
+            raise KeyError(which)
+        self.flags[which] = on
+        _LOGGER.info("compositor (cameras): %s %s", which, "on" if on else "off")
+        self._save_paces()
+
+    def _save_paces(self) -> None:
+        if self.pace_path:
+            try:
+                self.pace_path.write_text(
+                    json.dumps({**self.paces, "flags": self.flags})
+                )
+            except OSError as exc:
+                _LOGGER.warning("compositor (cameras): settings not kept: %s", exc)
 
     def _load_paces(self) -> None:
         if not self.pace_path:
@@ -1197,6 +1228,10 @@ class Gatherer:
             value = kept.get(which) if isinstance(kept, dict) else None
             if isinstance(value, (int, float)) and low <= value <= high:
                 self.paces[which] = float(value)
+        flags = kept.get("flags") if isinstance(kept, dict) else None
+        for which in FLAGS:
+            if isinstance(flags, dict) and isinstance(flags.get(which), bool):
+                self.flags[which] = flags[which]
 
     async def paced(self, seconds: float) -> None:
         """Wait that long, or less when a pace changes meanwhile (on its loop)."""
@@ -1676,6 +1711,7 @@ class Gatherer:
             "gathering": self.gathering,
             "pace": self.pace("gatherer"),
             "freshness": self.pace("freshness"),
+            "flags": dict(self.flags),
             "survey": {
                 **{k: v for k, v in self.survey.items() if k not in ("at", "ended")},
                 "pace": self.pace("survey"),
@@ -2135,7 +2171,7 @@ class Compositor:
         self._sending: list[Sending] = []
         self._asked: dict[str, float] = {}  # commander -> its last request
         # Commander (slug) -> the sizes its picture is asked for (None: its own size).
-        self._sizes: dict[str, dict[Size | None, None]] = {}
+        self._sizes: dict[str, dict[tuple[Size | None, bool], None]] = {}
         self._warm_until = -LINGER  # prewarm: every commander gathered until then
         # Per commander (by id): its main camera as last chosen, and its cameras seeing
         # motion (red dots).
@@ -2383,6 +2419,7 @@ class Compositor:
             "generator_paused": self.drawing_paused,
             "server_paused": self.serving_paused,
             "paces": {w: self.gather.pace(w) for w in PACES},
+            "flags": dict(self.gather.flags),
             "cache": self.gather.cache_stats(),  # (shared: the whole cache)
             "streams_read": sum(1 for r in self.gather._readers.values() if r.alive),
             "needs": self.needs if state == "unconfigured" else None,
@@ -2451,26 +2488,30 @@ class Compositor:
             if not commander_cameras(c):
                 continue
             name = slug(c["name"])
-            sizes = self._sizes.setdefault(name, {None: None})
-            for size in list(sizes):
-                key = view_key(name, size)
-                if (
+            sizes = self._sizes.setdefault(name, {(None, False): None})
+            for size, live_main in list(sizes):
+                key = view_key(name, size, live_main)
+                if live_main and not self.gather.flags["live_main"]:
+                    pass  # switched off: no more of them (a card asks again without)
+                elif (
                     self._open.get(key)
                     or now - self._asked.get(key, -LINGER) < LINGER
-                    or (size is None and now < self._warm_until)
+                    or (size is None and not live_main and now < self._warm_until)
                 ):
-                    out.append(sized(c, size))
-                elif size is not None:
-                    del sizes[size]
+                    out.append(sized(c, size, live_main))
+                elif size is not None or live_main:
+                    del sizes[(size, live_main)]
                     self._pictures.pop(key, None)
                     self._asked.pop(key, None)
         return out
 
-    def _touch(self, name: str, size: Size | None = None) -> None:
-        """Someone asked for a commander's picture (at a size): gather (from now, for
-        LINGER at least)."""
-        self._sizes.setdefault(name, {None: None})[size] = None
-        self._asked[view_key(name, size)] = time.monotonic()
+    def _touch(
+        self, name: str, size: Size | None = None, live_main: bool = False
+    ) -> None:
+        """Someone asked for a commander's picture (at a size, its main camera live or
+        not): gather (from now, for LINGER at least)."""
+        self._sizes.setdefault(name, {(None, False): None})[(size, live_main)] = None
+        self._asked[view_key(name, size, live_main)] = time.monotonic()
         if self._watching:
             self._watching.set()
 
@@ -2513,6 +2554,8 @@ class Compositor:
             for where, camera, chan, size, whole in self._places(
                 cmd, self.main_camera(cmd) or ""
             ):
+                if where == "main" and cmd.get("main_video"):
+                    continue  # the card plays it: drawn from the cache as it is
                 uses.setdefault(chan, []).append((picture, where, size, whole))
                 if self._chosen.get((picture, where, camera)) != chan:
                     self._chosen[(picture, where, camera)] = chan
@@ -2638,14 +2681,16 @@ class Compositor:
             images[0],
         )
 
-    async def _frame(self, cmd: dict, size: Size | None = None) -> bytes | None:
+    async def _frame(
+        self, cmd: dict, size: Size | None = None, live_main: bool = False
+    ) -> bytes | None:
         """A commander's latest picture (at a size asked for), for the server, which
         never draws: one missing or old (after a quiet spell) is asked of the generator
         and waited for (FETCH_TIMEOUT at most; the generator draws at once from the
         cache, "(Waiting …)" and all). While drawing is paused, the last one drawn, or
         None when there is none (a purge)."""
-        self._touch(slug(cmd["name"]), size)
-        cmd = sized(cmd, size)
+        self._touch(slug(cmd["name"]), size, live_main)
+        cmd = sized(cmd, size, live_main)
         name = key_of(cmd)
         limit = float(cmd.get("stale", EMPTY_COMMANDER["stale"]))
         picture = self._pictures.get(name)
@@ -2775,6 +2820,11 @@ class Compositor:
 
     # -- HTTP handlers
 
+    def _live_main(self, request: web.Request) -> bool:
+        """Whether a picture's main camera is left to the card's live video: asked for
+        (?main=video) and allowed (the whole system's live_main switch)."""
+        return request.query.get("main") == "video" and self.gather.flags["live_main"]
+
     def _known(self, name: str) -> dict | None:
         """The commander served as /g/<name>, when it has cameras."""
         cmd = self.cfg.named(name)
@@ -2787,7 +2837,9 @@ class Compositor:
         if self.serving_paused:
             raise web.HTTPServiceUnavailable(text="paused")
         self._warm_in_background(name)
-        data = await self._frame(cmd, asked_size(request.query))
+        data = await self._frame(
+            cmd, asked_size(request.query), self._live_main(request)
+        )
         if data is None:
             raise web.HTTPServiceUnavailable(text="no picture drawn (drawing paused?)")
         self.gather.count("out_bytes", len(data))
@@ -2814,8 +2866,8 @@ class Compositor:
         while len(streams) > MAX_STREAMS:
             streams.pop(0).set()
         # Drawn at the size its address asks for (a card's exact size), else its own.
-        size = asked_size(request.query)
-        key = view_key(name, size)
+        size, live_main = asked_size(request.query), self._live_main(request)
+        key = view_key(name, size, live_main)
         self._open[key] = self._open.get(key, 0) + 1
         sending = Sending(
             key,
@@ -2836,12 +2888,12 @@ class Compositor:
             # The parts' type (JPEG, or WebP with transparent gaps) is set by the first
             # picture; a deploy that changes it ends the stream (the dashboard reloads).
             self._warm_in_background(name)
-            data = await self._frame(cmd, size)
+            data = await self._frame(cmd, size, live_main)
             while data is None and not stop.is_set():  # none drawn yet: wait for one
                 await self._next_picture(key, stop)
                 if not (cmd := self._known(name)):
                     return resp
-                data = await self._frame(cmd, size)
+                data = await self._frame(cmd, size, live_main)
             if data is None:
                 return resp
             kind = mime(data)
@@ -2862,7 +2914,10 @@ class Compositor:
                 cmd = self._known(name)  # a reload may have changed it, or removed it
                 if not cmd:
                     break
-                data = await self._frame(cmd, size) or data  # none: the same again
+                live_main = self._live_main(request)  # the switch may have changed
+                data = (
+                    await self._frame(cmd, size, live_main) or data
+                )  # none: as before
         except (ConnectionResetError, asyncio.CancelledError):
             pass
         finally:
@@ -2914,7 +2969,8 @@ class Compositor:
         now = time.monotonic()
 
         def picture(key: str, at: float) -> dict[str, Any]:
-            name, _, size = key.partition("@")
+            live_main = key.endswith(LIVE_MAIN)
+            name, _, size = key.removesuffix(LIVE_MAIN).partition("@")
             cmd = self.cfg.named(name) or {}
             w, h, scale = (
                 size.split("x") if size else (cmd.get("width"), cmd.get("height"), 1)
@@ -2926,6 +2982,7 @@ class Compositor:
                 "height": int(h or 0),
                 "scale": float(scale),
                 "asked": bool(size),  # a card's own size, not the commander's
+                "live_main": live_main,  # its main camera the card's live video
                 "age_s": round(now - at, 1),
                 "streams": self._open.get(key, 0),
                 "kb": round(self._drawn.get(key, (0, 0))[0] / 1000),
@@ -3044,6 +3101,13 @@ def admin_api(
                     engine._on_loop(lambda: tick.set() if tick else None)
             except (ValueError, KeyError, TypeError) as exc:
                 return fail(400, f"pace: {exc}")
+            return status()
+        if parts == ["flag"]:
+            try:
+                asked = json.loads(body or b"{}")
+                live.gather.set_flag(str(asked["which"]), bool(asked["on"]))
+            except (ValueError, KeyError, TypeError) as exc:
+                return fail(400, f"flag: {exc}")
             return status()
         if parts == ["cache", "purge"]:
             for engine in (live, draft):

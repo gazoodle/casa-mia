@@ -857,9 +857,11 @@ def test_each_commander_has_its_own_main_camera(tmp_path):
         # (no live compositor here: only the draft, from the draft compositor)
         card = cd.health()["commanders"][1]["draft_card"]
         assert card["picture"] == f"http://10.0.0.2:{draft.port}/g/phone.mjpg"
+        assert card["live_main"] is True  # the compositor's switch, on by default
         assert card["cameras"]["camera.b"] == {
             "title": "Tablet",
             "live": "/dashboard-cams-preview/cam-tablet",
+            "channels": [["camera.b", 0, 0]],  # each channel, its size not known yet
         }
         assert card["layout"]["main_fit"] == "fit" and "left" in card["layout"]
         body = b'{"main": "Tablet", "commander": "p1"}'
