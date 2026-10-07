@@ -34,13 +34,16 @@ _LOGGER = logging.getLogger(__name__)
 PROXY = f"/api/{DOMAIN}"
 TOKEN_LIFE = 24 * 3600  # the card asks again well before, and after any refusal
 TOKENS = f"{DOMAIN}_picture_tokens"  # hass.data: token -> (expires, user's name)
-SIZE = ("w", "h", "dpr")  # the card's size, passed on; nothing else is
+# Passed on, nothing else is: the card's size, its main camera as its own live video
+# (main=video), and its name for the stream (sid, for /done).
+PASSED = ("w", "h", "dpr", "main", "sid")
 
 
 def setup(hass: HomeAssistant) -> None:
     """Once per HA run."""
     hass.data[TOKENS] = {}
     hass.http.register_view(PictureView(hass))
+    hass.http.register_view(DoneView(hass))
     websocket_api.async_register_command(hass, _ws_token)
 
 
@@ -79,6 +82,41 @@ def source(hass: HomeAssistant, which: str, name: str) -> str | None:
     return None
 
 
+def _token_ok(hass: HomeAssistant, request: web.Request) -> bool:
+    expires, _ = hass.data[TOKENS].get(request.query.get("token", ""), (0, ""))
+    return expires >= time.monotonic()
+
+
+class DoneView(HomeAssistantView):
+    """The card done with a stream it named (?sid=): passed to the app, which ends it.
+    A connection closed through Home Assistant (and Nabu Casa) may not reach the app."""
+
+    url = PROXY + "/{which:live|draft}/g/{name}/done"
+    name = f"api:{DOMAIN}:picture_done"
+    requires_auth = False  # the token instead
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        self.hass = hass
+
+    async def post(self, request: web.Request, which: str, name: str) -> web.Response:
+        if not _token_ok(self.hass, request):
+            return web.Response(status=401)
+        if not (url := source(self.hass, which, name)):
+            return web.Response(status=404)
+        done = urlsplit(url)._replace(path=f"/g/{name}/done", query="").geturl()
+        try:
+            async with async_get_clientsession(self.hass).post(
+                done,
+                params={"sid": request.query.get("sid", "")},
+                timeout=aiohttp.ClientTimeout(total=5),
+            ):
+                pass
+        except (aiohttp.ClientError, TimeoutError) as exc:
+            _LOGGER.warning("picture %s/%s: done not passed on: %s", which, name, exc)
+            return web.Response(status=502)
+        return web.Response(status=204)
+
+
 class PictureView(HomeAssistantView):
     url = PROXY + "/{which:live|draft}/g/{name}.mjpg"
     name = f"api:{DOMAIN}:picture"
@@ -105,7 +143,7 @@ class PictureView(HomeAssistantView):
             _LOGGER.warning("picture %s/%s: no commander has it", which, name)
             return web.Response(status=404)
         params: dict[str, Any] = {
-            k: request.query[k] for k in SIZE if k in request.query
+            k: request.query[k] for k in PASSED if k in request.query
         }
         # The viewer, so the compositor's limit on streams per device counts each viewer,
         # not Home Assistant.

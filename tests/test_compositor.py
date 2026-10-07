@@ -666,3 +666,37 @@ def test_the_first_commanders_old_address_streams_its_pictures(compositor, monke
     except OSError:
         pass
     assert pictures == ["cameras"]
+
+
+def test_a_card_says_when_it_is_done_with_a_stream(compositor):
+    # A stream a card named (?sid=) ends when the card says it is done with it (POST
+    # /g/<name>/done?sid=), however the browser or a proxy holds the connection; and a
+    # stream asked again under the same name (a new size) ends the one before.
+    base = f"http://127.0.0.1:{compositor.port}/g/cameras"
+    ended = []
+
+    def watch(url):
+        with urllib.request.urlopen(url, timeout=5) as r:
+            while r.read(1024):
+                pass
+        ended.append(url)
+
+    def opened(n):
+        for _ in range(200):
+            if len(compositor._sending) == n:
+                return
+            time.sleep(0.01)
+        raise AssertionError(f"{len(compositor._sending)} streams, not {n}")
+
+    first = threading.Thread(target=watch, args=(f"{base}.mjpg?sid=one",))
+    first.start()
+    opened(1)
+    second = threading.Thread(target=watch, args=(f"{base}.mjpg?w=320&h=180&sid=one",))
+    second.start()
+    first.join(3)
+    assert ended == [f"{base}.mjpg?sid=one"]  # the same showing at a new size
+    opened(1)
+    done = urllib.request.Request(f"{base}/done?sid=one", method="POST")
+    assert urllib.request.urlopen(done).status == 204
+    second.join(3)
+    assert len(ended) == 2 and not compositor._named

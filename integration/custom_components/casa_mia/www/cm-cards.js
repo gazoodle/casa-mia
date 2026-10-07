@@ -1305,8 +1305,8 @@ var kt = class extends V {
 				e ? this._shown && !this.leaving && (this.leaving = window.setTimeout(() => this.cut(), e * 1e3)) : this.cut();
 				return;
 			}
-			clearTimeout(this.leaving), this.leaving = 0, this._shown ||= ++this.shows;
-		}, this.leaving = 0, this.home = "", this.inView = !1, this.onScreen = new IntersectionObserver((e) => {
+			clearTimeout(this.leaving), this.leaving = 0, this._shown ||= (this.sid = Math.random().toString(36).slice(2), ++this.shows);
+		}, this.sid = "", this.leaving = 0, this.home = "", this.inView = !1, this.onScreen = new IntersectionObserver((e) => {
 			this.inView = e[e.length - 1].isIntersecting, this.visibility();
 		});
 	}
@@ -1336,7 +1336,10 @@ var kt = class extends V {
 		super.disconnectedCallback(), document.removeEventListener("visibilitychange", this.visibility), window.removeEventListener("location-changed", this.visibility), window.removeEventListener("popstate", this.visibility), this.onScreen.disconnect(), this.inView = !1, this.visibility(), this.unwatch?.(), this.widthWatch.disconnect(), this.resize.disconnect(), clearTimeout(this.settle), clearTimeout(this.retry), this.stopLive();
 	}
 	cut() {
-		clearTimeout(this.leaving), this.leaving = 0, this._shown && (this._shown = 0, this.renderRoot?.querySelector(".picture")?.setAttribute("src", St));
+		if (clearTimeout(this.leaving), this.leaving = 0, !this._shown) return;
+		this._shown = 0;
+		let e = this.renderRoot?.querySelector(".picture"), t = e?.getAttribute("src");
+		t?.includes(".mjpg?") && navigator.sendBeacon(t.replace(".mjpg?", "/done?")), e?.setAttribute("src", St);
 	}
 	updated() {
 		let e = this.renderRoot.querySelector(".box");
@@ -1367,7 +1370,7 @@ var kt = class extends V {
 		return e === "ha" || e === "auto" && !Ye(location);
 	}
 	pictureUrl(e, [t, n, r]) {
-		let i = `w=${t}&h=${n}&dpr=${r}`;
+		let i = `w=${t}&h=${n}&dpr=${r}&sid=${this.sid}`;
 		if (!this.viaHa()) return `${e.picture}?${i}`;
 		if (!this._token) return this.ask(), "";
 		let a = new URL(e.picture).pathname;

@@ -2459,6 +2459,10 @@ class Compositor:
         self._warmed: dict[str, float] = {}
         self._bg: set[asyncio.Task] = set()
         self._streams: dict[str | None, list[asyncio.Event]] = {}
+        # The streams a card named (?sid=, one a showing of its picture), so it can say
+        # when it is done with one (POST /g/<name>/done?sid=): no guessing from a
+        # connection a browser or a proxy may hold open.
+        self._named: dict[str, asyncio.Task] = {}
         self._open: dict[str, int] = {}  # commander -> streams open
         # Where the time goes, for /status and the log: each picture's size (bytes) and
         # how long it took to draw (s); each open stream.
@@ -2743,6 +2747,7 @@ class Compositor:
                     web.get("/size-test", self._size_test),
                     web.get("/g/{name}.jpg", self._jpg),
                     web.get("/g/{name}.mjpg", self._mjpg),
+                    web.post("/g/{name}/done", self._done),
                 ]
             )
             runner = web.AppRunner(app, access_log=None)
@@ -3151,6 +3156,20 @@ class Compositor:
             body=data, content_type=mime(data), headers={"Cache-Control": "no-store"}
         )
 
+    async def _done(self, request: web.Request) -> web.Response:
+        """A card done with a stream it named (out of sight, or gone): ended now, even
+        mid-send (a write the network isn't taking would hold a stop till it did)."""
+        task = self._named.pop(request.query.get("sid", ""), None)
+        if task:
+            task.cancel()
+            _LOGGER.info(
+                "compositor (%s): stream %s to %s: the card is done with it",
+                self.store,
+                request.match_info["name"],
+                viewer(request),
+            )
+        return web.Response(status=204)
+
     async def _mjpg(self, request: web.Request) -> web.StreamResponse:
         if not (cmd := self._known(request.match_info["name"])):
             raise web.HTTPNotFound()
@@ -3169,6 +3188,12 @@ class Compositor:
         streams.append(stop)
         while len(streams) > MAX_STREAMS:
             streams.pop(0).set()
+        if sid := request.query.get("sid"):
+            # The card's showing asked again (at a new size, say): its stream before is
+            # done with, whether or not the browser let it go.
+            if (old := self._named.get(sid)) and old is not asyncio.current_task():
+                old.cancel()
+            self._named[sid] = asyncio.current_task()  # type: ignore[assignment]
         # Drawn at the size its address asks for (a card's exact size), else its own.
         size, live_main = asked_size(request.query), self._live_main(request)
         key = view_key(name, size, live_main)
@@ -3235,6 +3260,8 @@ class Compositor:
         finally:
             if stop in streams:
                 streams.remove(stop)
+            if sid and self._named.get(sid) is asyncio.current_task():
+                del self._named[sid]
             self._open[key] -= 1
             self._sending.remove(sending)
             self.gather.end(open_token)

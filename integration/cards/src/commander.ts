@@ -190,8 +190,13 @@ class CommanderCard extends LitElement {
     }
     clearTimeout(this.leaving);
     this.leaving = 0;
-    if (!this._shown) this._shown = ++this.shows;
+    if (!this._shown) {
+      this.sid = Math.random().toString(36).slice(2); // (randomUUID: https only)
+      this._shown = ++this.shows;
+    }
   };
+  /** This showing's name for its stream, so it can tell the server it is done with it. */
+  private sid = "";
   private leaving = 0; // the stream's end, once out of sight
   private home = ""; // the dashboard it is on
   private inView = false;
@@ -208,7 +213,13 @@ class CommanderCard extends LitElement {
     this.leaving = 0;
     if (!this._shown) return;
     this._shown = 0;
-    this.renderRoot?.querySelector<HTMLImageElement>(".picture")?.setAttribute("src", BLANK);
+    const img = this.renderRoot?.querySelector<HTMLImageElement>(".picture");
+    const was = img?.getAttribute("src");
+    // Said to the server (directly, or through Home Assistant: the same address with
+    // /done for .mjpg), which ends it: no relying on the browser, Home Assistant or
+    // Nabu Casa letting the connection go. A beacon goes even as a page is left.
+    if (was?.includes(".mjpg?")) navigator.sendBeacon(was.replace(".mjpg?", "/done?"));
+    img?.setAttribute("src", BLANK); // and let go here too
   }
   updated() {
     const box = this.renderRoot.querySelector(".box");
@@ -248,7 +259,7 @@ class CommanderCard extends LitElement {
 
   /** The picture's address, at the size asked for; "" while its token is being asked. */
   private pictureUrl(card: Card, [W, H, scale]: Size): string {
-    const size = `w=${W}&h=${H}&dpr=${scale}`;
+    const size = `w=${W}&h=${H}&dpr=${scale}&sid=${this.sid}`;
     if (!this.viaHa()) return `${card.picture}?${size}`;
     if (!this._token) {
       this.ask();

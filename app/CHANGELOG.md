@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b70
+
+- Camera Commander card: it tells the compositor when it is done with a stream, and the compositor ends it then. Each showing of a card's picture names its stream; out of sight (after its leave_after seconds) or gone, the card says so (directly, or through Home Assistant), so a stream no longer depends on the browser, Home Assistant or Nabu Casa letting its connection go. A card asking again at a new size ends its stream before, too. Letting go in the browser stays, as well.
+- Camera Commander card: away from home, its main camera as live video works as at home: the picture through Home Assistant is drawn without the main camera under the video (main=video was not passed on, so the main camera was drawn under it, sent for nothing).
 ## 2026.10.3-b69
 
 - Camera Commander card: its picture stream ends when you go to another page in Home Assistant. Home Assistant keeps a page left, and to the browser it is still on screen, so the stream went on (closing the app did end it). The card now streams only while Home Assistant shows its dashboard, and stops once it has been out of sight for the card's new "Picture kept running once out of sight" setting (default 15 s, 0 to 120 s), so the back button finds it still running.
