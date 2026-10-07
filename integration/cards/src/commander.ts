@@ -52,6 +52,9 @@ const dashboard = () => location.pathname.split("/")[1] ?? "";
 /** Seconds a card's stream goes on once it is out of sight (its dashboard left,
  * scrolled away), so a quick return (the back button) finds it still running. */
 const LEAVE_AFTER = 15;
+/** This card's version: its script's ?v= (the integration loads it so), named in each
+ * stream it asks for, so the server's log and table say which card is running. */
+export const VERSION = new URL(import.meta.url).searchParams.get("v") || "dev";
 const BLANK = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 // As the compositor's (compositor.py: MAX_PIXELS, MIN_SIDE, asked_size).
 const MAX_PIXELS = 2560 * 1600;
@@ -181,11 +184,19 @@ class CommanderCard extends LitElement {
    * kept, and still "on screen" to the browser; off the page; scrolled away): none,
    * after its leave_after seconds. */
   private visibility = () => {
-    const seen = this.inView && this.isConnected && dashboard() === this.home;
-    if (document.hidden || !seen) {
+    const why = document.hidden
+      ? "page hidden"
+      : !this.isConnected
+        ? "off the page"
+        : dashboard() !== this.home
+          ? "left the dashboard"
+          : !this.inView
+            ? "out of view"
+            : "";
+    if (why) {
       const after = document.hidden ? 0 : (this._config?.leave_after ?? LEAVE_AFTER);
-      if (!after) this.cut();
-      else if (this._shown && !this.leaving) this.leaving = window.setTimeout(() => this.cut(), after * 1000);
+      if (!after) this.cut(why);
+      else if (this._shown && !this.leaving) this.leaving = window.setTimeout(() => this.cut(why), after * 1000);
       return;
     }
     clearTimeout(this.leaving);
@@ -208,7 +219,7 @@ class CommanderCard extends LitElement {
    * a stream an <img> started, so the server sends to a viewer who sees nothing; and a
    * card off the page may not be drawn again until it is back, so the stream is ended
    * here, not by drawing. */
-  private cut() {
+  private cut(why: string) {
     clearTimeout(this.leaving);
     this.leaving = 0;
     if (!this._shown) return;
@@ -218,7 +229,7 @@ class CommanderCard extends LitElement {
     // Said to the server (directly, or through Home Assistant: the same address with
     // /done for .mjpg), which ends it: no relying on the browser, Home Assistant or
     // Nabu Casa letting the connection go. A beacon goes even as a page is left.
-    if (was?.includes(".mjpg?")) navigator.sendBeacon(was.replace(".mjpg?", "/done?"));
+    if (was?.includes(".mjpg?")) navigator.sendBeacon(`${was.replace(".mjpg?", "/done?")}&why=${encodeURIComponent(why)}`);
     img?.setAttribute("src", BLANK); // and let go here too
   }
   updated() {
@@ -259,7 +270,7 @@ class CommanderCard extends LitElement {
 
   /** The picture's address, at the size asked for; "" while its token is being asked. */
   private pictureUrl(card: Card, [W, H, scale]: Size): string {
-    const size = `w=${W}&h=${H}&dpr=${scale}&sid=${this.sid}`;
+    const size = `w=${W}&h=${H}&dpr=${scale}&sid=${this.sid}&v=${encodeURIComponent(VERSION)}`;
     if (!this.viaHa()) return `${card.picture}?${size}`;
     if (!this._token) {
       this.ask();

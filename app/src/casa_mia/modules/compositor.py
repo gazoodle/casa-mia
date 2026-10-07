@@ -414,6 +414,9 @@ class Sending:
     sent: int = 0
     waiting: float = 0.0
     skipped: int = 0  # pictures drawn for it that it never sent (it was still sending)
+    sid: str = ""  # the card's name for it (one showing of its picture), if it gave one
+    card: str = ""  # the card's version, if it gave one (an older card gives none)
+    ended: str = ""  # why it ended, when something ended it (else: the viewer left)
     gather: "Gatherer | None" = None  # the whole system's tally, kept too
 
     async def write(self, resp: web.StreamResponse, data: bytes) -> None:
@@ -442,6 +445,8 @@ class Sending:
             "waiting_pct": round(100 * self.waiting / open_s),
             # Pictures a second it sent (what its viewer saw), and that were drawn for
             # it (what there was to send).
+            "sid": self.sid,
+            "card": self.card,
             "fps": round(self.frames / open_s, 1),
             "drawn_fps": round((self.frames + self.skipped) / open_s, 1),
         }
@@ -2462,7 +2467,7 @@ class Compositor:
         # The streams a card named (?sid=, one a showing of its picture), so it can say
         # when it is done with one (POST /g/<name>/done?sid=): no guessing from a
         # connection a browser or a proxy may hold open.
-        self._named: dict[str, asyncio.Task] = {}
+        self._named: dict[str, tuple[asyncio.Task, Sending]] = {}
         self._open: dict[str, int] = {}  # commander -> streams open
         # Where the time goes, for /status and the log: each picture's size (bytes) and
         # how long it took to draw (s); each open stream.
@@ -3158,15 +3163,24 @@ class Compositor:
 
     async def _done(self, request: web.Request) -> web.Response:
         """A card done with a stream it named (out of sight, or gone): ended now, even
-        mid-send (a write the network isn't taking would hold a stop till it did)."""
-        task = self._named.pop(request.query.get("sid", ""), None)
-        if task:
+        mid-send (a write the network isn't taking would hold a stop till it did).
+        Logged whether or not that stream is open, with the card's reason."""
+        sid = request.query.get("sid", "")
+        why = "".join(c for c in request.query.get("why", "")[:40] if c.isprintable())
+        found = self._named.pop(sid, None)
+        if found:
+            task, sending = found
+            sending.ended = f"the card is done with it ({why or 'no reason given'})"
             task.cancel()
+        else:
             _LOGGER.info(
-                "compositor (%s): stream %s to %s: the card is done with it",
+                "compositor (%s): %s told by %s that the card is done with stream %s "
+                "(%s), which is not open",
                 self.store,
                 request.match_info["name"],
                 viewer(request),
+                sid or "(no name)",
+                why or "no reason given",
             )
         return web.Response(status=204)
 
@@ -3188,26 +3202,36 @@ class Compositor:
         streams.append(stop)
         while len(streams) > MAX_STREAMS:
             streams.pop(0).set()
-        if sid := request.query.get("sid"):
-            # The card's showing asked again (at a new size, say): its stream before is
-            # done with, whether or not the browser let it go.
-            if (old := self._named.get(sid)) and old is not asyncio.current_task():
-                old.cancel()
-            self._named[sid] = asyncio.current_task()  # type: ignore[assignment]
         # Drawn at the size its address asks for (a card's exact size), else its own.
         size, live_main = asked_size(request.query), self._live_main(request)
         key = view_key(name, size, live_main)
         self._open[key] = self._open.get(key, 0) + 1
+        sid = request.query.get("sid", "")[:40]
         sending = Sending(
             key,
             viewer(request) or "",
             time.monotonic(),
+            sid=sid,
+            card=request.query.get("v", "")[:40],
             gather=self.gather,
         )
+        if sid:
+            # The card's showing asked again (at a new size, say): its stream before is
+            # done with, whether or not the browser let it go.
+            if old := self._named.get(sid):
+                old[1].ended = "the card asked again (a new size)"
+                old[0].cancel()
+            self._named[sid] = (asyncio.current_task(), sending)  # type: ignore[assignment]
         self._sending.append(sending)
         open_token = self.gather.begin("stream_s")
-        _LOGGER.debug(
-            "compositor (%s): stream %s to %s opened", self.store, key, sending.viewer
+        _LOGGER.info(
+            "compositor (%s): stream %s to %s opened (%s)",
+            self.store,
+            key,
+            sending.viewer,
+            f"card {sending.card or '?'}, stream {sid}"
+            if sid
+            else "no stream name: not a Camera Commander card of 2026.10.3-b70 or later",
         )
         await resp.prepare(request)
         try:
@@ -3222,9 +3246,11 @@ class Compositor:
             while data is None and not stop.is_set():  # none drawn yet: wait for one
                 await self._next_picture(key, stop)
                 if not (cmd := self._known(name)):
+                    sending.ended = "its commander is gone"
                     return resp
                 data = await self._frame(cmd, size, live_main)
             if data is None:
+                sending.ended = sending.ended or "no picture to send"
                 return resp
             seen = self._draws[key]  # the drawing sent
             kind = mime(data)
@@ -3232,6 +3258,7 @@ class Compositor:
             await resp.write(part)
             while not stop.is_set():
                 if mime(data) != kind:
+                    sending.ended = "its picture's type changed (a deploy)"
                     break
                 if self._serving and not self._serving.is_set():
                     await self._serving.wait()  # paused: nothing sent until it runs
@@ -3246,6 +3273,7 @@ class Compositor:
                 self._warm_in_background(name)
                 cmd = self._known(name)  # a reload may have changed it, or removed it
                 if not cmd:
+                    sending.ended = "its commander is gone"
                     break
                 live_main = self._live_main(request)  # the switch may have changed
                 data = (
@@ -3256,22 +3284,25 @@ class Compositor:
                 self.gather.count("out_skipped", skipped)
                 seen = self._draws[key]
         except (ConnectionResetError, asyncio.CancelledError):
-            pass
+            pass  # the viewer went away, or a reason is set (see ended)
         finally:
+            if stop.is_set() and not sending.ended:
+                sending.ended = "ended by the server (too many from this viewer)"
             if stop in streams:
                 streams.remove(stop)
-            if sid and self._named.get(sid) is asyncio.current_task():
+            if sid and (self._named.get(sid) or (None,))[0] is asyncio.current_task():
                 del self._named[sid]
             self._open[key] -= 1
             self._sending.remove(sending)
             self.gather.end(open_token)
             f = sending.figures(time.monotonic())
-            _LOGGER.debug(
-                "compositor (%s): stream %s to %s ended after %.0f s: %d frames, "
+            _LOGGER.info(
+                "compositor (%s): stream %s to %s ended, %s, after %.0f s: %d frames, "
                 "%.0f kB a frame, %.0f kbit/s, %.0f%% of the time waiting to send",
                 self.store,
                 key,
                 sending.viewer,
+                sending.ended or "the viewer went away",
                 f["open_s"],
                 f["frames"],
                 f["kb_frame"],

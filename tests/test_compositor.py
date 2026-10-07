@@ -668,7 +668,7 @@ def test_the_first_commanders_old_address_streams_its_pictures(compositor, monke
     assert pictures == ["cameras"]
 
 
-def test_a_card_says_when_it_is_done_with_a_stream(compositor):
+def test_a_card_says_when_it_is_done_with_a_stream(compositor, caplog):
     # A stream a card named (?sid=) ends when the card says it is done with it (POST
     # /g/<name>/done?sid=), however the browser or a proxy holds the connection; and a
     # stream asked again under the same name (a new size) ends the one before.
@@ -688,15 +688,25 @@ def test_a_card_says_when_it_is_done_with_a_stream(compositor):
             time.sleep(0.01)
         raise AssertionError(f"{len(compositor._sending)} streams, not {n}")
 
-    first = threading.Thread(target=watch, args=(f"{base}.mjpg?sid=one",))
+    caplog.set_level("INFO")
+    first = threading.Thread(target=watch, args=(f"{base}.mjpg?sid=one&v=b9",))
     first.start()
     opened(1)
     second = threading.Thread(target=watch, args=(f"{base}.mjpg?w=320&h=180&sid=one",))
     second.start()
     first.join(3)
-    assert ended == [f"{base}.mjpg?sid=one"]  # the same showing at a new size
+    assert ended == [f"{base}.mjpg?sid=one&v=b9"]  # the same showing at a new size
     opened(1)
-    done = urllib.request.Request(f"{base}/done?sid=one", method="POST")
+    done = urllib.request.Request(f"{base}/done?sid=one&why=left+it", method="POST")
     assert urllib.request.urlopen(done).status == 204
     second.join(3)
     assert len(ended) == 2 and not compositor._named
+    again = urllib.request.Request(f"{base}/done?sid=one&why=left+it", method="POST")
+    urllib.request.urlopen(again).close()
+    # Every step in the log: opened (by which card), why each ended, and a done for a
+    # stream not open.
+    log = caplog.text
+    assert "opened (card b9, stream one)" in log
+    assert "ended, the card asked again (a new size)" in log
+    assert "ended, the card is done with it (left it)" in log
+    assert "done with stream one (left it), which is not open" in log

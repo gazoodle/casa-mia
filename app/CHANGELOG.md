@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026.10.3-b71
+
+- Camera compositor: every commander stream is in the log as it happens: opened (to whom, by which version of the Camera Commander card, under which name), and ended with why (the card done with it, and the card's reason: page hidden, left the dashboard, off the page, out of view; the card asking again at a new size; the viewer gone; too many from one viewer). A card saying it is done with a stream that is not open is logged too, and Home Assistant logs each one it passes on. The server's table shows each stream's card version and name ("none": an older card). For finding why a stream outlives its viewer.
 ## 2026.10.3-b70
 
 - Camera Commander card: it tells the compositor when it is done with a stream, and the compositor ends it then. Each showing of a card's picture names its stream; out of sight (after its leave_after seconds) or gone, the card says so (directly, or through Home Assistant), so a stream no longer depends on the browser, Home Assistant or Nabu Casa letting its connection go. A card asking again at a new size ends its stream before, too. Letting go in the browser stays, as well.

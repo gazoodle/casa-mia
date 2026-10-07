@@ -35,8 +35,8 @@ PROXY = f"/api/{DOMAIN}"
 TOKEN_LIFE = 24 * 3600  # the card asks again well before, and after any refusal
 TOKENS = f"{DOMAIN}_picture_tokens"  # hass.data: token -> (expires, user's name)
 # Passed on, nothing else is: the card's size, its main camera as its own live video
-# (main=video), and its name for the stream (sid, for /done).
-PASSED = ("w", "h", "dpr", "main", "sid")
+# (main=video), its name for the stream (sid, for /done) and its version (v).
+PASSED = ("w", "h", "dpr", "main", "sid", "v")
 
 
 def setup(hass: HomeAssistant) -> None:
@@ -99,21 +99,40 @@ class DoneView(HomeAssistantView):
         self.hass = hass
 
     async def post(self, request: web.Request, which: str, name: str) -> web.Response:
+        sid, why = request.query.get("sid", ""), request.query.get("why", "")[:40]
         if not _token_ok(self.hass, request):
+            _LOGGER.warning(
+                "picture %s/%s: done with stream %s refused to %s: no token, or an "
+                "old one",
+                which,
+                name,
+                sid,
+                request.remote,
+            )
             return web.Response(status=401)
         if not (url := source(self.hass, which, name)):
+            _LOGGER.warning("picture %s/%s: done, but no commander has it", which, name)
             return web.Response(status=404)
         done = urlsplit(url)._replace(path=f"/g/{name}/done", query="").geturl()
         try:
             async with async_get_clientsession(self.hass).post(
                 done,
-                params={"sid": request.query.get("sid", "")},
+                params={"sid": sid, "why": why},
+                headers={"X-Forwarded-For": request.remote or ""},
                 timeout=aiohttp.ClientTimeout(total=5),
             ):
                 pass
         except (aiohttp.ClientError, TimeoutError) as exc:
             _LOGGER.warning("picture %s/%s: done not passed on: %s", which, name, exc)
             return web.Response(status=502)
+        _LOGGER.info(
+            "picture %s/%s: the card at %s is done with stream %s (%s): passed on",
+            which,
+            name,
+            request.remote,
+            sid,
+            why,
+        )
         return web.Response(status=204)
 
 

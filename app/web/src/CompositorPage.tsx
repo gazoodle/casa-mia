@@ -143,8 +143,9 @@ type Picture = {
   draw_ms: number;
 };
 /** An open stream: what it sent, and pictures a second it sent (its viewer saw) against
- * those drawn for it (the rest were drawn while it was still sending). */
-type Sending = { picture: string; viewer: string; open_s: number; frames: number; kb_frame: number; kbit_s: number; waiting_pct: number; fps: number; drawn_fps: number };
+ * those drawn for it (the rest were drawn while it was still sending); the card's version
+ * and its name for the stream ("" from an older card, or anything else). */
+type Sending = { picture: string; viewer: string; open_s: number; frames: number; kb_frame: number; kbit_s: number; waiting_pct: number; fps: number; drawn_fps: number; card: string; sid: string };
 type Engine = {
   state: string;
   port: number;
@@ -955,7 +956,7 @@ function ServerArea({ which, name, e, busy, act }: { which: string; name: string
     <section className={guest.area}>
       <AreaHead
         title={`${name} server`}
-        blurb={`Port ${e.port}. Sends each viewer the newest picture as it is drawn${e.server_paused ? "; paused: streams hold, single pictures are refused" : ""}.`}
+        blurb={`Port ${e.port}. Sends each viewer the newest picture as it is drawn${e.server_paused ? "; paused: streams hold, single pictures are refused" : ""}. Card: the version of the Camera Commander card that asked, and its name for the stream, which it ends by when it is done with it (none: an older card, or not a card).`}
         action={<PauseButton paused={!!e.server_paused} path={`${which}/server`} name={`${name} server`} busy={busy} act={act} />}
       />
       {e.size_test && (
@@ -967,11 +968,13 @@ function ServerArea({ which, name, e, busy, act }: { which: string; name: string
         </p>
       )}
       {e.sending?.length ? (
-        <Table head={["Viewer", "Picture", "Open", "Frames", "Pictures/s (sent of drawn)", "Frame", "Rate", "Waiting to send"]}>
+        <Table head={["Viewer", "Picture", "Card", "Stream", "Open", "Frames", "Pictures/s (sent of drawn)", "Frame", "Rate", "Waiting to send"]}>
           {e.sending.map((s) => (
             <tr key={`${s.viewer} ${s.picture} ${s.open_s}`}>
               <td>{s.viewer}</td>
               <td>{s.picture}</td>
+              <td>{s.card || "none"}</td>
+              <td>{s.sid || "none"}</td>
               <td>{seconds(s.open_s)}</td>
               <td>{s.frames}</td>
               <td style={s.fps < s.drawn_fps * 0.9 ? { color: "var(--warn)" } : undefined}>
