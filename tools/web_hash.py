@@ -4,8 +4,9 @@
 Two builds are committed so nothing on the box needs Node: the admin UI (app/web into
 app/src/casa_mia/web, by tools/build_web) and the Lovelace cards (integration/cards into
 the integration's www/cm-cards.js, by tools/build_cards). Each build stores a hash of its
-sources (node_modules aside; both also read the shared layout options,
-app/src/casa_mia/layout.json); a mismatch means the sources changed without a rebuild.
+sources (node_modules aside; both also read SHARED: the layout options, and the WebRTC
+player the cards and the admin page share); a mismatch means the sources changed without
+a rebuild.
 
     web_hash.py                  check both (exit 1 on a mismatch)
     web_hash.py --write NAME     store NAME's current hash (web or cards; its build does)
@@ -19,6 +20,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 LAYOUT = ROOT / "app" / "src" / "casa_mia" / "layout.json"
+# Files both builds read, hashed into each.
+SHARED = (LAYOUT, ROOT / "app" / "web" / "src" / "webrtc.ts")
 # name -> (its source folder, where its hash is stored, the tool that builds it)
 BUILDS = {
     "web": (
@@ -37,8 +40,8 @@ SKIP = {"node_modules", "SOURCE_HASH", ".DS_Store"}
 
 def source_hash(sources: Path) -> str:
     digest = hashlib.sha256()
-    for path in [*sorted(sources.rglob("*")), LAYOUT]:
-        rel = path.relative_to(ROOT if path == LAYOUT else sources)
+    for path in [*sorted(sources.rglob("*")), *SHARED]:
+        rel = path.relative_to(ROOT if path in SHARED else sources)
         if path.is_file() and not SKIP & set(rel.parts):
             digest.update(rel.as_posix().encode() + b"\0" + path.read_bytes() + b"\0")
     return digest.hexdigest()

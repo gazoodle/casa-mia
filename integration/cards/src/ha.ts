@@ -244,3 +244,14 @@ const SHARPNESS: Record<Sharpness, number> = { full: Infinity, balanced: 1.5, li
 export function ratioFor(dpr: number, viaHa: boolean, sharpness: Sharpness = "balanced"): number {
   return viaHa ? Math.min(dpr, SHARPNESS[sharpness] ?? SHARPNESS.balanced) : dpr;
 }
+
+/** The channel a live main camera plays (the compositor's ladder, compositor.choose):
+ * going up its channels, smallest first ([entity, width, height]; 0 x 0 not known), the
+ * first at least the place's size (device pixels), so the video is only made smaller;
+ * none: the largest known; none known: the last. `whole`: fitted inside the place (one
+ * side reaching it is enough), else filling it (both). */
+export function liveChannel(channels: [string, number, number][], place: [number, number], whole: boolean): string | undefined {
+  const known = channels.filter(([, w, h]) => w > 0 && h > 0);
+  const enough = ([, w, h]: [string, number, number]) => (whole ? w >= place[0] || h >= place[1] : w >= place[0] && h >= place[1]);
+  return (known.find(enough) ?? known[known.length - 1] ?? channels[channels.length - 1])?.[0];
+}

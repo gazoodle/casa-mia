@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b60
+
+- Camera Commander card: the main camera plays as live video over the picture (Main camera as live video, on by default, while the Camera compositor's Live main camera switch is on), through Home Assistant's WebRTC as its own camera cards play it: this device decodes it, at full frame rate, and the box no longer decodes the main camera for the card. The channel is the smallest at least the main area's size (fewer pixels away from home, as the picture), fitted as the main camera is (whole, filled or cropped), with its caption over it. Until it plays, the drawn main area shows; a video that has not started within 10 s, or fails, gives way to the drawn picture until the main camera changes.
+
 ## 2026.10.3-b59
 
 - Camera compositor: a card may ask for its picture with the main camera left to it (?main=video), to play the main camera as live video over the picture (the card's side comes next). Such a picture's main area is drawn from whatever the cache holds and without its caption, and its main camera's channel is not fetched or decoded for it. A switch for the whole system, Live main camera (on by default; on the Camera compositor page and in the integration): off, every card gets the usual picture, at once. The Camera Commander card's data carries the switch and each camera's channels with their sizes.
