@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b66
+
+- Camera compositor: a generator lists only the commanders being watched. With nobody watching, each commander's picture from the start's warm-up stayed listed (stale, as if drawn) until its main camera changed, so one commander could be missing from a list of the others.
+- Camera compositor: a stream at /g/commander (the first commander's address from before there were several) gets each picture as it is drawn. It waited on a name never drawn, so was sent a picture only every 10 s.
 ## 2026.10.3-b65
 
 - Camera compositor: the health verdict says panels lag when sends keep waiting for the network (over 10% of the time), even when every picture gets through. It said "working fine" below 50%, and "that's just how it is" above it with nothing skipped; but a send waits only once the buffers on the way are full, so its pictures are queued and the panel shows them late. The verdict now gives the picture size too, and the levers: a slower pace, or smaller pictures (a card's Away sharpness; on a VPN to the LAN address a card counts as at home). The Slow link state is gone.

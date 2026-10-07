@@ -274,10 +274,11 @@ def test_gathers_only_while_watched_and_serves_at_once_after(tmp_path, monkeypat
         urllib.request.urlopen(url).close()
         assert comp.gather.shots  # the first round was awaited: the cache was empty
         for _ in range(200):
-            if not comp.health()["gathering"] and comp._pictures:
+            if not comp.health()["gathering"]:
                 break
             time.sleep(0.02)
         assert comp.health()["gathering"] is False  # stopped once nobody watched
+        assert not comp._pictures  # nor its picture kept (stale, listed as if drawn)
         start = time.monotonic()
         with urllib.request.urlopen(url) as r:  # after a quiet spell: from the cache
             assert Image.open(io.BytesIO(r.read())).size == (1920, 1080)
@@ -646,3 +647,22 @@ def test_a_slow_stream_sends_what_was_drawn_meanwhile_at_once(compositor, monkey
         pass
     assert len(streams) == 2 and not waited
     assert streams[0].skipped == 1
+
+
+def test_the_first_commanders_old_address_streams_its_pictures(compositor, monkeypatch):
+    # /g/commander (a dashboard deployed before there were several) is the first
+    # commander: its stream waits on that commander's drawings, not on a name never
+    # drawn (it was sent a picture only every KEEPALIVE).
+    pictures = []
+
+    async def write(self, resp, data):
+        pictures.append(self.picture)
+        raise ConnectionResetError
+
+    monkeypatch.setattr(Sending, "write", write)
+    try:
+        url = f"http://127.0.0.1:{compositor.port}/g/commander.mjpg"
+        urllib.request.urlopen(url, timeout=2).read()
+    except OSError:
+        pass
+    assert pictures == ["cameras"]

@@ -2777,8 +2777,9 @@ class Compositor:
 
     def _watched(self) -> list[dict]:
         """The commanders with cameras someone is watching, at each size watched: a
-        stream open, or a picture asked for in the last LINGER seconds. A size nobody
-        watches any more is forgotten, its picture too."""
+        stream open, or a picture asked for in the last LINGER seconds. A picture nobody
+        watches any more is dropped (stale, and listed as if drawn), and a card's size
+        forgotten."""
         now = time.monotonic()
         out = []
         for c in self.cfg.commanders:
@@ -2796,8 +2797,9 @@ class Compositor:
                     or (size is None and not live_main and now < self._warm_until)
                 ):
                     out.append(sized(c, size, live_main))
-                elif size is not None or live_main:
-                    del sizes[(size, live_main)]
+                else:  # its picture too: one nobody watches is not drawn, nor shown
+                    if size is not None or live_main:
+                        del sizes[(size, live_main)]
                     self._pictures.pop(key, None)
                     self._asked.pop(key, None)
         return out
@@ -3133,9 +3135,9 @@ class Compositor:
         return cmd if cmd and commander_cameras(cmd) else None
 
     async def _jpg(self, request: web.Request) -> web.Response:
-        name = request.match_info["name"]
-        if not (cmd := self._known(name)):
+        if not (cmd := self._known(request.match_info["name"])):
             raise web.HTTPNotFound()
+        name = slug(cmd["name"])  # /g/commander is the first's: its pictures' key
         if self.serving_paused:
             raise web.HTTPServiceUnavailable(text="paused")
         self._warm_in_background(name)
@@ -3150,9 +3152,9 @@ class Compositor:
         )
 
     async def _mjpg(self, request: web.Request) -> web.StreamResponse:
-        name = request.match_info["name"]
-        if not (cmd := self._known(name)):
+        if not (cmd := self._known(request.match_info["name"])):
             raise web.HTTPNotFound()
+        name = slug(cmd["name"])  # /g/commander is the first's: its pictures' key
         resp = web.StreamResponse(
             headers={
                 "Content-Type": "multipart/x-mixed-replace; boundary=frame",
