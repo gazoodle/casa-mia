@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026.10.3-b64
+
+- Camera compositor: streams come back by themselves when Home Assistant's go2rtc restarts and forgets them. It answered 404 Not Found for every camera it had been given, and each was marked "not its stream" for 10 minutes (an app restart cleared it). Now a camera go2rtc has forgotten is given to it afresh and read again at once.
+- Camera compositor: a health verdict, judged on the last 30 s, on the page above the graphs and as the integration's Compositor health sensor (to automate on): go2rtc out of reach; most streams failed (and the commonest reason); the gatherer paused; the CPU the bottleneck (gathering's, or drawing's) and which pace to slow; a generator unable to keep up with its pace; the network the limiting factor (viewers get fewer pictures than are drawn); sends slow but every picture getting through, which is just how it is; nothing watching; or your panels working fine. Each with what to do.
+- Camera compositor: the gatherer can be restarted on its own (on the page, and the integration's Restart gatherer button): every stream read again and every failure forgotten, the pictures kept. Every camera failing at once (after Home Assistant restarted) needed the app restarted, or 10 minutes. A purge now tries failed streams again too, and Home Assistant itself out of reach no longer sidelines a camera's stream for 10 minutes (30 s).
+- Camera compositor: a stream on a slow link no longer runs at half its rate. When a picture was drawn while the one before was still being sent, the stream waited for the next drawing as well; it now sends the newest at once.
+- Camera compositor page: what there is to send against what is sent. The Bottleneck graph says pictures and bits a second sent of those drawn for viewers (the rest were drawn while a stream was still sending), and each open stream in the server's table shows its pictures a second sent (what its viewer saw) of those drawn for it.
+- Camera compositor page: the Bottleneck graph no longer goes over 100%. A send held up for several seconds was booked all at once when it finished, in a single 2 s sample (300%); time is now counted as it passes, and the waiting share is taken over the time each stream was open. The drawing figure is now the busier compositor's (the live and the preview ones were added together, up to 200%).
+
 ## 2026.10.3-b63
 
 - Camera compositor page: a Bottleneck graph beside CPU, Memory and Network out. It shows what the app has to send (the streams open, bits a second, the average picture) and what viewers wait for: the share of the streams' time spent waiting for the network to take a picture (a slow link, such as one through Nabu Casa), and the share of the time spent drawing. It names the busier one, or says the system is keeping up.

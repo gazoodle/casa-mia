@@ -1,5 +1,6 @@
 """Sensors: the app version, the tablet firmware server (gitproxy), guest login,
-phone and SMS (fona), and the camera compositor's cache (its pictures, its size)."""
+phone and SMS (fona), and the camera compositor's cache (its pictures, its size) and
+health (its verdict on the whole system, and what to do)."""
 
 from __future__ import annotations
 
@@ -47,6 +48,7 @@ async def async_setup_entry(
                 FonaSignalQualitySensor(coordinator, entry),
                 CachePicturesSensor(coordinator, entry),
                 CacheSizeSensor(coordinator, entry),
+                CompositorHealthSensor(coordinator, entry),
             ],
         )
     )
@@ -384,3 +386,46 @@ class CacheSizeSensor(CachePicturesSensor):
     @property
     def extra_state_attributes(self) -> None:  # type: ignore[override]
         return None
+
+
+class CompositorHealthSensor(CasaMiaEntity, SensorEntity):
+    """The camera compositor's verdict on the whole system, judged on the last 30 s:
+    a state to automate on (its streams failed: restart the gatherer, say), and the
+    headline and advice in words, as attributes. The app's HEALTH_STATES."""
+
+    _module = "compositor"
+    _attr_translation_key = "compositor_health"
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = [
+        "go2rtc_down",
+        "streams_failing",
+        "paused",
+        "cpu_gathering",
+        "cpu_drawing",
+        "drawing_behind",
+        "network",
+        "slow_link",
+        "idle",
+        "fine",
+    ]
+
+    def __init__(self, coordinator: CasaMiaCoordinator, entry: ConfigEntry) -> None:
+        super().__init__(coordinator, entry)
+        self._attr_unique_id = f"{entry.entry_id}_{self._attr_translation_key}"
+
+    @property
+    def verdict(self) -> dict:
+        health = self.coordinator.data.get("modules", {}).get("compositor", {})
+        return health.get("health") or {}
+
+    @property
+    def available(self) -> bool:
+        return super().available and bool(self.verdict)
+
+    @property
+    def native_value(self) -> str | None:
+        return self.verdict.get("state")
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        return {k: self.verdict.get(k) for k in ("tone", "headline", "advice")}

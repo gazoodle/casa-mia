@@ -520,6 +520,8 @@ def test_a_stream_measures_what_it_sent_and_how_long_it_waited():
         800,
         50,
     )
+    sending.skipped = 5  # drawn for it while it was still sending
+    assert (f := sending.figures(110.0))["fps"] == 1.0 and f["drawn_fps"] == 1.5
 
 
 def test_go2rtc_reachable_asks_for_rtsp(monkeypatch):
@@ -616,3 +618,31 @@ def test_a_card_can_play_the_main_camera_live(compositor):
     urllib.request.urlopen(f"{base}?w=800&h=600&main=video").read()
     assert not any(k.endswith("~live") for k in compositor._pictures)
     compositor.gather.set_flag("live_main", True)
+
+
+def test_a_slow_stream_sends_what_was_drawn_meanwhile_at_once(compositor, monkeypatch):
+    # Two pictures drawn while a stream was still sending: the newest goes at once (not
+    # after waiting for yet another drawing: a slow link's rate halved), and the one
+    # between is counted as skipped.
+    waited, streams = [], []
+
+    async def next_picture(key, stop):
+        waited.append(key)
+
+    async def write(self, resp, data):
+        streams.append(self)
+        if len(streams) == 1:
+            compositor._draws[self.picture] += 2
+        else:
+            raise ConnectionResetError
+
+    compositor._next_picture = next_picture
+    monkeypatch.setattr(Sending, "write", write)
+    url = f"http://127.0.0.1:{compositor.port}/g/cameras.mjpg"
+    try:
+        with urllib.request.urlopen(url, timeout=2) as r:
+            r.read()
+    except OSError:
+        pass
+    assert len(streams) == 2 and not waited
+    assert streams[0].skipped == 1

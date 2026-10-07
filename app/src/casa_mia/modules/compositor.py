@@ -291,6 +291,11 @@ def refused(why: str) -> bool:
     return "Connection refused" in why or "Errno 111" in why
 
 
+def forgotten(why: str) -> bool:
+    """Whether HA's go2rtc no longer has a stream it was given (it restarted with HA)."""
+    return "404 Not Found" in why
+
+
 def measured(fn: Callable[..., Any], *args: Any) -> tuple[Any, float]:
     """fn(*args), and the CPU it took (s): for a call in a worker thread."""
     started = time.thread_time()
@@ -322,6 +327,21 @@ def memory() -> dict[str, int | None]:
 
 MONITOR_EVERY = 2.0  # seconds between the whole system's samples
 MONITOR_KEEP = 90  # samples kept: 3 minutes
+HEALTH_S = 30.0  # seconds of samples the health verdict is judged on
+# The health verdict's states, worst first (see Gatherer.verdict); the integration's
+# sensor has the same.
+HEALTH_STATES = (
+    "go2rtc_down",
+    "streams_failing",
+    "paused",
+    "cpu_gathering",
+    "cpu_drawing",
+    "drawing_behind",
+    "network",
+    "slow_link",
+    "idle",
+    "fine",
+)
 
 
 def go2rtc_reachable(timeout: float = 1.0) -> bool:
@@ -393,18 +413,22 @@ class Sending:
     frames: int = 0
     sent: int = 0
     waiting: float = 0.0
-    # The whole system's tally: bytes out and the time a write waited (Gatherer.sent).
-    counted: Callable[[int, float], None] | None = None
+    skipped: int = 0  # pictures drawn for it that it never sent (it was still sending)
+    gather: "Gatherer | None" = None  # the whole system's tally, kept too
 
     async def write(self, resp: web.StreamResponse, data: bytes) -> None:
         began = time.monotonic()
-        await resp.write(data)
-        waited = time.monotonic() - began
-        self.waiting += waited
+        token = self.gather.begin("send_wait") if self.gather else None
+        try:
+            await resp.write(data)
+        finally:
+            if self.gather:
+                self.gather.end(token)
+        self.waiting += time.monotonic() - began
         self.frames += 1
         self.sent += len(data)
-        if self.counted:
-            self.counted(len(data), waited)
+        if self.gather:
+            self.gather.sent(len(data))
 
     def figures(self, now: float) -> dict[str, Any]:
         open_s = max(now - self.since, 0.001)
@@ -416,6 +440,10 @@ class Sending:
             "kb_frame": round(self.sent / max(self.frames, 1) / 1000),
             "kbit_s": round(self.sent * 8 / 1000 / open_s),
             "waiting_pct": round(100 * self.waiting / open_s),
+            # Pictures a second it sent (what its viewer saw), and that were drawn for
+            # it (what there was to send).
+            "fps": round(self.frames / open_s, 1),
+            "drawn_fps": round((self.frames + self.skipped) / open_s, 1),
         }
 
 
@@ -1057,22 +1085,14 @@ class Gatherer:
         # The whole compositor system's running totals: CPU (s) gathering (decoding and
         # converting streams, surveying; readers still running are added when sampled)
         # and composing (drawing and encoding), and what was sent to viewers (bytes,
-        # pictures, and the time writes waited for the network); the time spent drawing,
-        # and the streams open now; and its history, a sample every MONITOR_EVERY
-        # seconds (see _monitor).
-        self._totals: dict[str, float] = dict.fromkeys(
-            (
-                "gather_cpu",
-                "compose_cpu",
-                "out_bytes",
-                "out_pictures",
-                "send_wait",
-                "draw_s",
-                "streams",
-            ),
-            0.0,
+        # pictures); and time spent (s): streams open, writes waiting for the network,
+        # each compositor drawing ("draw_s:<role>"), counted as it passes (see begin);
+        # and its history, a sample every MONITOR_EVERY seconds (see _monitor).
+        self._totals: collections.defaultdict[str, float] = collections.defaultdict(
+            float
         )
         self._totals_lock = threading.Lock()
+        self._spending: dict[object, tuple[str, float]] = {}  # begun, not yet ended
         self.history: collections.deque[dict[str, Any]] = collections.deque(
             maxlen=MONITOR_KEEP
         )
@@ -1173,6 +1193,28 @@ class Gatherer:
                 self._survey_now.set()  # a pass now: any camera just added
 
         self._soon(apply)
+
+    def restart(self) -> None:
+        """Start afresh, the pictures kept (no "(Waiting …)"): every stream stopped and
+        read again, every mark forgotten (a channel sitting out, "not its stream", its
+        name on go2rtc, given afresh), and a survey pass at once. What a restart of the app did, for streams that all failed at once.
+        Thread-safe."""
+        _LOGGER.info("compositor (cameras): gatherer restarting, its pictures kept")
+
+        def afresh() -> None:
+            self._stop_readers()
+            for marks in (
+                self._no_stream,
+                self._names,
+                self._benched,
+                self._misses,
+            ):
+                marks.clear()
+            for event in (self._wake, self._survey_now):
+                if event:
+                    event.set()
+
+        self._soon(afresh)
 
     def pause(self, paused: bool) -> None:
         """Pause fetching (every loop and stream stopped, the cache kept) or run it
@@ -1512,10 +1554,17 @@ class Gatherer:
 
     def clear(self, entity: str | None = None) -> None:
         """Purge every picture, or one channel's (on its loop): "(Waiting …)" again
-        until fetched afresh; a channel sitting out is tried again. Their sizes are
-        kept."""
+        until fetched afresh; a channel sitting out is tried again, and so is a stream
+        marked "not its stream" (put on go2rtc afresh). Their sizes are kept."""
         if entity is None:
-            for cache in (self._stills, self.shots, self._taken, self._shot_size):
+            for cache in (
+                self._stills,
+                self.shots,
+                self._taken,
+                self._shot_size,
+                self._no_stream,
+                self._names,
+            ):
                 cache.clear()
             self._waiting.clear()
             self._misses.clear()
@@ -1528,6 +1577,8 @@ class Gatherer:
                 self._shot_size,
                 self._misses,
                 self._benched,
+                self._no_stream,
+                self._names,
             ):
                 d.pop(entity, None)
             self._waiting.discard(entity)
@@ -1561,44 +1612,61 @@ class Gatherer:
         with self._totals_lock:
             self._totals[total] += amount
 
-    def sent(self, size: int, waited: float = 0.0) -> None:
-        """A picture sent to a viewer: its bytes, and how long the write waited for the
-        network to take it. Thread-safe."""
+    def sent(self, size: int) -> None:
+        """A picture sent to a viewer. Thread-safe."""
         with self._totals_lock:
             self._totals["out_bytes"] += size
             self._totals["out_pictures"] += 1
-            self._totals["send_wait"] += waited
+
+    def begin(self, total: str) -> object:
+        """Time spent from now (a stream open, a write waiting, a drawing) until `end`,
+        added to a total. A sample counts the time gone so far of what has not ended,
+        so each sample has the time within it: booked at the end, a write held up
+        for 6 s would land in one 2 s sample as 300%. Thread-safe."""
+        token = object()
+        with self._totals_lock:
+            self._spending[token] = (total, time.monotonic())
+        return token
+
+    def end(self, token: object) -> None:
+        with self._totals_lock:
+            total, began = self._spending.pop(token)
+            self._totals[total] += time.monotonic() - began
 
     async def _monitor(self) -> None:
         """Sample the whole compositor system every MONITOR_EVERY seconds: CPU as a
         share of the whole box (gathering, composing, the app in all), memory (the
         app's, the cache's, the box's), bytes sent a second, and where viewers wait (the
         bottleneck): the share of the streams' time their writes waited for the
-        network, the share of the time spent drawing, and the average picture sent."""
+        network, the share of the time the busier compositor spent drawing, pictures
+        a second sent and skipped (drawn for a stream still sending the one before),
+        and the average picture sent."""
         cpus = os.cpu_count() or 1
         then = None
         while True:
             now = time.monotonic()
             with self._totals_lock:
                 totals = dict(self._totals)
-            totals["gather_cpu"] += sum(
+                for total, began in self._spending.values():
+                    totals[total] = totals.get(total, 0.0) + now - began
+            totals["gather_cpu"] = totals.get("gather_cpu", 0.0) + sum(
                 r.cpu_s + r.convert_s for r in list(self._readers.values())
             )
             totals["app_cpu"] = time.process_time()
             if then is not None:
                 took = max(now - then[0], 0.001)
 
-                def pct(
-                    key: str, then_totals: dict = then[1], took: float = took
-                ) -> float:
-                    gone = max(totals[key] - then_totals[key], 0.0)
-                    return round(100 * gone / took / cpus, 1)
-
                 def gone(key: str, then_totals: dict = then[1]) -> float:
-                    return max(totals[key] - then_totals[key], 0.0)
+                    return max(totals.get(key, 0.0) - then_totals.get(key, 0.0), 0.0)
 
-                streams = int(totals["streams"])
+                def pct(key: str, took: float = took) -> float:
+                    return round(100 * gone(key) / took / cpus, 1)
+
+                stream_s = gone("stream_s")  # streams open, by the time each was
                 pictures = gone("out_pictures")
+                drawing = max(
+                    (gone(k) for k in totals if k.startswith("draw_s:")), default=0.0
+                )
                 mem = memory()
                 self.history.append(
                     {
@@ -1607,11 +1675,13 @@ class Gatherer:
                         "compose": pct("compose_cpu"),
                         "app": pct("app_cpu"),
                         "out_bps": round(8 * gone("out_bytes") / took),
-                        "streams": streams,
-                        "waiting": round(
-                            100 * gone("send_wait") / took / max(streams, 1), 1
-                        ),
-                        "drawing": round(100 * gone("draw_s") / took, 1),
+                        "streams": round(stream_s / took),
+                        "waiting": round(100 * gone("send_wait") / stream_s, 1)
+                        if stream_s
+                        else 0.0,
+                        "drawing": round(100 * drawing / took, 1),
+                        "sent_fps": round(pictures / took, 1),
+                        "skipped_fps": round(gone("out_skipped") / took, 1),
                         "kb_picture": round(gone("out_bytes") / pictures / 1000)
                         if pictures
                         else None,
@@ -1621,6 +1691,121 @@ class Gatherer:
                 )
             then = (now, totals)
             await asyncio.sleep(MONITOR_EVERY)
+
+    def verdict(self) -> dict[str, str]:
+        """How the panels are doing, and what to do about it: the first that holds of
+        HA's go2rtc out of reach, most streams failed, the gatherer paused, the CPU the
+        limit (gathering's or drawing's), a generator unable to keep up with its pace,
+        the network the limit (viewers get fewer pictures than are drawn), a slow link
+        that keeps up anyway, nothing watching, or all well. Judged on the last
+        HEALTH_S seconds' samples, so one odd sample doesn't flip it. Its state (one of
+        HEALTH_STATES), tone (good, warn, bad), headline and advice."""
+
+        def said(state: str, tone: str, headline: str, advice: str) -> dict[str, str]:
+            return {
+                "state": state,
+                "tone": tone,
+                "headline": headline,
+                "advice": advice,
+            }
+
+        channels = set(self.shots) | set(self.res)
+        failing = [e for e in channels if e in self._no_stream]
+        if channels and self.go2rtc is False:
+            return said(
+                "go2rtc_down",
+                "bad",
+                "Home Assistant's go2rtc is out of reach: every camera is on snapshots",
+                f"It is looked at every {GO2RTC_CHECK:.0f} s and comes back by itself "
+                "(after Home Assistant restarts, say). If it doesn't within a minute, "
+                "restart the Casa Mia app.",
+            )
+        if len(failing) >= 2 and 2 * len(failing) >= len(channels):
+            why = collections.Counter(self._no_stream[e][1] for e in failing)
+            return said(
+                "streams_failing",
+                "bad",
+                f"{len(failing)} of {len(channels)} camera streams have failed "
+                f"({why.most_common(1)[0][0]})",
+                "Restart the gatherer (here, or the integration's Restart gatherer "
+                "button): every stream is tried again at once, the pictures kept. If "
+                "they fail again, the reason says why.",
+            )
+        if self.paused:
+            return said(
+                "paused",
+                "warn",
+                "The gatherer is paused: the cameras' pictures don't change",
+                "Run it again.",
+            )
+        h = list(self.history)[-max(1, math.ceil(HEALTH_S / MONITOR_EVERY)) :]
+        open_ = [x for x in h if x["streams"] > 0]
+
+        def mean(key: str, of: list[dict] = h) -> float:
+            return sum(x[key] for x in of) / len(of) if of else 0.0
+
+        app, gather, compose = mean("app"), mean("gather"), mean("compose")
+        sent, skipped = mean("sent_fps", open_), mean("skipped_fps", open_)
+        waiting = mean("waiting", open_)
+        got = f"{sent:.1f} of {sent + skipped:.1f} pictures a second"
+        if not open_:
+            return said(
+                "idle",
+                "good",
+                "Nothing is watching right now",
+                "No panel has a stream open, so there is nothing to judge. Open a "
+                "dashboard and look again.",
+            )
+        if app > 80 and gather >= compose:
+            return said(
+                "cpu_gathering",
+                "bad",
+                "The CPU is the bottleneck: gathering takes most of it "
+                f"({gather:.0f}% of the box)",
+                "Slow the Gatherer's pace, or raise Picture age allowed so more "
+                "streams decode keyframes only.",
+            )
+        if app > 80:
+            return said(
+                "cpu_drawing",
+                "bad",
+                "The CPU is the bottleneck: drawing takes most of it "
+                f"({compose:.0f}% of the box)",
+                "Slow the Live generator's pace.",
+            )
+        if mean("drawing") > 80:
+            return said(
+                "drawing_behind",
+                "warn",
+                "A generator can't keep up with its pace: drawing "
+                f"{mean('drawing'):.0f}% of the time",
+                "Slow the Live generator's pace: pictures can't be drawn faster than "
+                "this box draws them.",
+            )
+        if waiting > 50 and skipped > 0.1 * (sent + skipped):
+            return said(
+                "network",
+                "warn",
+                f"The network is the limiting factor: viewers get {got}",
+                "Nothing on the box will help. A slower Live generator pace sends "
+                "less; a panel on a faster link (the LAN rather than through Nabu "
+                "Casa) keeps up.",
+            )
+        if waiting > 50:
+            return said(
+                "slow_link",
+                "good",
+                f"That's just how it is: sends wait for the network {waiting:.0f}% of "
+                "the time, but every picture gets through",
+                "The link is slow but keeping up; nothing to change.",
+            )
+        return said(
+            "fine",
+            "good",
+            "Your panels are working fine",
+            f"Viewers get every picture drawn ({sent:.1f} a second), and the box has "
+            f"room to spare (CPU {app:.0f}%).",
+        )
 
     def register_pictures(self, owner: str, pictures: dict) -> None:
         """A compositor's drawn pictures, counted in the cache's size."""
@@ -1747,6 +1932,7 @@ class Gatherer:
             # the whole app's share of a CPU since the last status (%)
             "cpu_pct": self._cpu_pct("app", time.process_time(), now),
             "cache": self.cache_stats(),
+            "health": self.verdict(),
             "monitor": {
                 "cpus": os.cpu_count() or 1,
                 "every_s": MONITOR_EVERY,
@@ -1886,7 +2072,19 @@ class Gatherer:
                 self.http, self.ws_url, self.token, entity
             )
         except (aiohttp.ClientError, TimeoutError, ValueError) as exc:
-            name, why = None, f"cannot ask Home Assistant: {exc}"
+            # HA itself out of reach (restarting): no fault of the camera's, so asked
+            # again soon, not after BENCH (every camera sat out 10 min after a restart).
+            why = f"cannot ask Home Assistant: {exc or type(exc).__name__}"
+            self._no_stream[entity] = (time.monotonic() + STREAM_RETRY, why)
+            _LOGGER.warning(
+                "compositor (cameras): %s, %s channel: %s; its snapshots, asked again "
+                "in %.0f s",
+                self._title(entity),
+                self._channel(entity)[1],
+                why,
+                STREAM_RETRY,
+            )
+            return None
         if name is None:
             self._no_stream[entity] = (time.monotonic() + BENCH, why)
             _LOGGER.info(
@@ -2102,6 +2300,7 @@ class Gatherer:
         if reader and reader.alive and reader.frame is not None:
             return "read", "", (reader.frame.width, reader.frame.height), 0.0
         why, cpu = "", 0.0
+        known = entity in self._names  # given to go2rtc before: it may have forgotten
         if not self.go2rtc:
             why = "Home Assistant's go2rtc is out of reach"
         elif not self._streamable(entity):
@@ -2115,12 +2314,23 @@ class Gatherer:
             image, failed, cpu = await asyncio.to_thread(
                 streams.first_frame, self._rtsp(name)
             )
+            if image is None and known and forgotten(failed):
+                # go2rtc restarted (with HA) and forgot it: no fault of the stream's,
+                # so given to it afresh and read again at once.
+                self._names.pop(entity, None)
+                if name := await self._name(entity):
+                    image, failed, again = await asyncio.to_thread(
+                        streams.first_frame, self._rtsp(name)
+                    )
+                    cpu += again
             if image is not None:
                 self.keep(entity, image, streamed=True)
                 return "stream", "", image.size, cpu
             why = failed
             if refused(failed):  # HA's go2rtc down (a restart): no fault of the stream
                 self._go2rtc_down(failed)
+            elif not name:  # not given afresh: _name has marked it, and why
+                why = self._no_stream.get(entity, (0.0, failed))[1]
             else:
                 self._no_stream[entity] = (time.monotonic() + BENCH, failed)
                 self._names.pop(entity, None)  # put on go2rtc afresh next time
@@ -2252,6 +2462,7 @@ class Compositor:
         # Where the time goes, for /status and the log: each picture's size (bytes) and
         # how long it took to draw (s); each open stream.
         self._drawn: dict[str, tuple[int, float]] = {}
+        self._draws: collections.Counter[str] = collections.Counter()  # kept, by key
         self._sending: list[Sending] = []
         self._asked: dict[str, float] = {}  # commander -> its last request
         # Commander (slug) -> the sizes its picture is asked for (None: its own size).
@@ -2505,6 +2716,7 @@ class Compositor:
             "paces": {w: self.gather.pace(w) for w in PACES},
             "flags": dict(self.gather.flags),
             "cache": self.gather.cache_stats(),  # (shared: the whole cache)
+            "health": self.gather.verdict(),  # (shared: the whole system's)
             "streams_read": sum(1 for r in self.gather._readers.values() if r.alive),
             "needs": self.needs if state == "unconfigured" else None,
             "error": self._error,
@@ -2675,26 +2887,30 @@ class Compositor:
                 stale.add(camera)
         async with self._draw_lock:
             began = time.monotonic()
-            picture, cpu = await asyncio.to_thread(
-                measured,
-                commander,
-                cmd,
-                cfg.titles,
-                images,
-                main,
-                main_image,
-                changing,
-                self.motion.get(cmd["id"], frozenset()),
-                frozenset(stale),
-                age > limit,
-            )
+            token = self.gather.begin(f"draw_s:{self.role}")
+            try:
+                picture, cpu = await asyncio.to_thread(
+                    measured,
+                    commander,
+                    cmd,
+                    cfg.titles,
+                    images,
+                    main,
+                    main_image,
+                    changing,
+                    self.motion.get(cmd["id"], frozenset()),
+                    frozenset(stale),
+                    age > limit,
+                )
+            finally:
+                self.gather.end(token)
         self.gather.count("compose_cpu", cpu)
-        self.gather.count("draw_s", time.monotonic() - began)
         name = key_of(cmd)
         self._drawn[name] = (len(picture), time.monotonic() - began)
         if self.drawing_paused:  # paused while it drew: nothing new appears
             return picture
         self._pictures[name] = (time.monotonic(), picture)
+        self._draws[name] += 1
         fresh, self._fresh[name] = self._fresh_of(name), asyncio.Event()
         fresh.set()
         return picture
@@ -2958,10 +3174,10 @@ class Compositor:
             key,
             viewer(request) or "",
             time.monotonic(),
-            counted=self.gather.sent,
+            gather=self.gather,
         )
         self._sending.append(sending)
-        self.gather.count("streams", 1)
+        open_token = self.gather.begin("stream_s")
         _LOGGER.debug(
             "compositor (%s): stream %s to %s opened", self.store, key, sending.viewer
         )
@@ -2982,6 +3198,7 @@ class Compositor:
                 data = await self._frame(cmd, size, live_main)
             if data is None:
                 return resp
+            seen = self._draws[key]  # the drawing sent
             kind = mime(data)
             part = f"--frame\r\nContent-Type: {kind}\r\n\r\n".encode()
             await resp.write(part)
@@ -2992,8 +3209,10 @@ class Compositor:
                     await self._serving.wait()  # paused: nothing sent until it runs
                 await sending.write(resp, data + b"\r\n" + part)
                 # The next picture as soon as one is drawn (or the same again after
-                # KEEPALIVE, should drawing stop).
-                await self._next_picture(key, stop)
+                # KEEPALIVE, should drawing stop); at once if one was drawn while this
+                # one was sending (waiting for the one after halved a slow link's rate).
+                if self._draws[key] == seen:
+                    await self._next_picture(key, stop)
                 if stop.is_set():
                     break
                 self._warm_in_background(name)
@@ -3004,6 +3223,10 @@ class Compositor:
                 data = (
                     await self._frame(cmd, size, live_main) or data
                 )  # none: as before
+                skipped = max(self._draws[key] - seen - 1, 0)  # drawn while sending
+                sending.skipped += skipped
+                self.gather.count("out_skipped", skipped)
+                seen = self._draws[key]
         except (ConnectionResetError, asyncio.CancelledError):
             pass
         finally:
@@ -3011,7 +3234,7 @@ class Compositor:
                 streams.remove(stop)
             self._open[key] -= 1
             self._sending.remove(sending)
-            self.gather.count("streams", -1)
+            self.gather.end(open_token)
             f = sending.figures(time.monotonic())
             _LOGGER.debug(
                 "compositor (%s): stream %s to %s ended after %.0f s: %d frames, "
@@ -3163,6 +3386,9 @@ def admin_api(
             return fail(404, "not found")
         if parts[:1] == ["gatherer"] and parts[1:] in (["pause"], ["run"]):
             live.gather.pause(parts[1] == "pause")
+            return status()
+        if parts == ["gatherer", "restart"]:
+            live.gather.restart()
             return status()
         if (
             len(parts) == 3

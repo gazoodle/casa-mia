@@ -20,6 +20,37 @@
   }
 }
 
+/* The health statement: a headline and what to do, its tone on the left edge. */
+.health {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--good);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.health span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.health.warn {
+  border-left-color: var(--warn);
+}
+
+.health.bad {
+  border-left-color: var(--bad);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .flag {
   display: flex;
   align-items: center;

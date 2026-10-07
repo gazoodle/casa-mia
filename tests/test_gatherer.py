@@ -404,10 +404,15 @@ def test_the_whole_system_is_sampled(tmp_path, monkeypatch):
         task = asyncio.ensure_future(g._monitor())
         await asyncio.sleep(0.06)
         g.count("gather_cpu", 0.05)  # 0.05 s of CPU in 0.05 s, of 2 CPUs: 50%
-        g.count("streams", 2)
-        g.count("draw_s", 0.025)  # drawing half the time
-        g.sent(40_000, 0.05)  # one stream's write waited all the time: half of two
-        await asyncio.sleep(0.06)
+        g.sent(40_000)
+        # Two streams open; one's write held up across samples (booked as it passes,
+        # never more than all the time); both compositors drawing all the time (the
+        # busier one counts, not their sum).
+        spent = [g.begin(t) for t in ("stream_s", "stream_s", "send_wait")]
+        spent += [g.begin(t) for t in ("draw_s:live", "draw_s:draft")]
+        await asyncio.sleep(0.25)
+        for token in spent:
+            g.end(token)
         task.cancel()
         await asyncio.gather(task, return_exceptions=True)
 
@@ -416,8 +421,11 @@ def test_the_whole_system_is_sampled(tmp_path, monkeypatch):
     assert 20 < sample["gather"] <= 60 and sample["out_bps"] > 0
     assert sample["rss"] and sample["cache"] >= 0
     # The bottleneck: where viewers wait.
-    assert sample["streams"] == 2 and sample["kb_picture"] == 40
-    assert 20 < sample["waiting"] <= 60 and 20 < sample["drawing"] <= 60
+    assert any(s["kb_picture"] == 40 for s in g.history)
+    held = [s for s in g.history if s["streams"] == 2]
+    assert held and all(40 <= s["waiting"] <= 60 for s in held)
+    assert all(s["drawing"] <= 100 for s in g.history)
+    assert any(s["drawing"] >= 80 for s in held)
     assert g.status()["monitor"]["cpus"] == 2
 
 
@@ -459,3 +467,104 @@ def test_go2rtc_refusing_is_no_streams_fault_and_it_is_found_again(
 
     assert asyncio.run(back())  # a survey pass at once
     assert g.go2rtc and not g._names  # back: every camera given afresh
+
+
+def test_a_restart_or_purge_tries_every_failed_stream_again(tmp_path, monkeypatch):
+    # Every stream failed at once (marked "not its stream" for BENCH): the verdict says
+    # so and what to do; a restart of the gatherer forgets the marks and keeps the
+    # pictures (no "(Waiting …)"), as does a purge, which drops the pictures too.
+    g = gatherer(tmp_path)
+    g.go2rtc = True
+    g.keep("camera.a", jpeg())
+    for e in ("camera.a", "camera.b"):
+        g._no_stream[e] = (time.monotonic() + mod.BENCH, "the stream ended")
+        g._names[e] = e
+    v = g.verdict()
+    assert v["state"] == "streams_failing" and "the stream ended" in v["headline"]
+    assert "Restart the gatherer" in v["advice"]
+    g.restart()
+    assert not g._no_stream and not g._names and "camera.a" not in g._waiting
+    g._no_stream["camera.a"] = (time.monotonic() + mod.BENCH, "the stream ended")
+    g.clear()
+    assert not g._no_stream
+
+
+def test_home_assistant_out_of_reach_is_no_cameras_fault(tmp_path, monkeypatch):
+    # HA restarting: a camera can't be put on go2rtc because HA can't be asked; asked
+    # again in STREAM_RETRY, not BENCH (every camera sat out 10 minutes).
+    import aiohttp
+
+    g = gatherer(tmp_path)
+    g.http = object()  # type: ignore[assignment]
+
+    async def register(*args):
+        raise aiohttp.ClientConnectionError("Cannot connect")
+
+    monkeypatch.setattr(mod.streams, "register", register)
+    assert asyncio.run(g._name("camera.a")) is None
+    until, why = g._no_stream["camera.a"]
+    assert until - time.monotonic() <= mod.STREAM_RETRY and "cannot ask" in why
+
+
+def sample(**kw):
+    base = dict(app=10, gather=5, compose=5, streams=1, waiting=0, drawing=10)
+    return base | dict(sent_fps=2.0, skipped_fps=0.0) | kw
+
+
+@pytest.mark.parametrize(
+    ("given", "state"),
+    [
+        ({}, "fine"),
+        ({"streams": 0}, "idle"),
+        ({"app": 90, "gather": 70, "compose": 10}, "cpu_gathering"),
+        ({"app": 90, "gather": 10, "compose": 70}, "cpu_drawing"),
+        ({"drawing": 95}, "drawing_behind"),
+        ({"waiting": 70, "sent_fps": 1.0, "skipped_fps": 1.0}, "network"),
+        ({"waiting": 70}, "slow_link"),
+    ],
+)
+def test_the_verdict_names_the_bottleneck(tmp_path, given, state):
+    g = gatherer(tmp_path)
+    g.history.extend([sample(**given)] * 15)
+    v = g.verdict()
+    assert v["state"] == state and v["state"] in mod.HEALTH_STATES
+    assert v["headline"] and v["advice"]
+
+
+def test_the_health_states_are_the_integrations_too():
+    from pathlib import Path
+
+    root = Path(__file__).parent.parent / "integration/custom_components/casa_mia"
+    sensor = (root / "sensor.py").read_text()
+    states = json.loads((root / "translations/en.json").read_text())["entity"][
+        "sensor"
+    ]["compositor_health"]["state"]
+    assert list(states) == list(mod.HEALTH_STATES)
+    assert all(f'"{s}",' in sensor for s in mod.HEALTH_STATES)
+
+
+def test_a_stream_go2rtc_forgot_is_given_again_at_once(tmp_path, monkeypatch):
+    # HA restarted, and its go2rtc with it: it answers 404 for a camera it was given
+    # before. Not the stream's fault: given afresh and read again at once, not marked
+    # "not its stream" for BENCH.
+    g = gatherer(tmp_path)
+    g.go2rtc = True
+    g._names["camera.a"] = "before"
+    asked = []
+
+    async def name(entity):  # as _name: the one remembered, else given afresh
+        if entity in g._names:
+            return g._names[entity]
+        asked.append(entity)
+        g._names[entity] = "afresh"
+        return "afresh"
+
+    def first_frame(url):
+        if url.endswith("/before"):
+            return None, f"Server returned 404 Not Found: '{url}'", 0.0
+        return Image.new("RGB", (320, 180)), "", 0.0
+
+    g._name = name  # type: ignore[method-assign]
+    monkeypatch.setattr(mod.streams, "first_frame", first_frame)
+    assert asyncio.run(g._survey_one("camera.a")) == "stream"
+    assert asked == ["camera.a"] and "camera.a" not in g._no_stream

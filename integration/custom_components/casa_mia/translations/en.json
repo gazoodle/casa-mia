@@ -59,7 +59,8 @@
       "gitproxy_check": { "name": "Force firmware check" },
       "fona_reset": { "name": "Reset" },
       "compositor_restart": { "name": "Restart" },
-      "compositor_purge": { "name": "Purge cache" }
+      "compositor_purge": { "name": "Purge cache" },
+      "compositor_gatherer_restart": { "name": "Restart gatherer" }
     },
     "sensor": {
       "app_version": { "name": "App version" },
@@ -70,6 +71,21 @@
       "fona_signal": { "name": "Signal" },
       "cache_pictures": { "name": "Cache pictures" },
       "cache_size": { "name": "Cache size" },
+      "compositor_health": {
+        "name": "Health",
+        "state": {
+          "go2rtc_down": "go2rtc out of reach",
+          "streams_failing": "Streams failing",
+          "paused": "Gatherer paused",
+          "cpu_gathering": "CPU: gathering",
+          "cpu_drawing": "CPU: drawing",
+          "drawing_behind": "Drawing behind",
+          "network": "Network limited",
+          "slow_link": "Slow link, keeping up",
+          "idle": "Nothing watching",
+          "fine": "Fine"
+        }
+      },
       "fona_signal_quality": {
         "name": "Signal quality",
         "state": { "excellent": "Excellent", "good": "Good", "ok": "OK", "bad": "Bad", "terrible": "Terrible" }

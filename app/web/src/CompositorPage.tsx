@@ -87,8 +87,9 @@ type Cache = { pictures: number; cameras: number; waiting: number; composites: n
  * box (%: gathering, composing, the app in all), bytes sent a second (as bits),
  * memory (bytes: the app's, the cache's, the box's; null where the box does not say),
  * and where viewers wait: the streams open, the share of their time writes waited for
- * the network (%), the share of the time spent drawing (%), and the average picture
- * sent (kB; null when none was). */
+ * the network (%), the share of the time the busier compositor spent drawing (%),
+ * pictures a second sent and skipped (drawn for a stream still sending the one before),
+ * and the average picture sent (kB; null when none was). */
 type Sample = {
   t: number;
   gather: number;
@@ -98,12 +99,18 @@ type Sample = {
   streams: number;
   waiting: number;
   drawing: number;
+  sent_fps: number;
+  skipped_fps: number;
   kb_picture: number | null;
   cache: number;
   rss: number | null;
   total: number | null;
   free: number | null;
 };
+/** The app's verdict on the whole system, judged on the last 30 s: a state to automate
+ * on (go2rtc_down, streams_failing, paused, cpu_gathering, cpu_drawing, drawing_behind,
+ * network, slow_link, idle, fine), and in words. */
+type Verdict = { state: string; tone: "good" | "warn" | "bad"; headline: string; advice: string };
 type Monitor = { cpus: number; every_s: number; history: Sample[] };
 type Gatherer = {
   /** The whole app's share of a CPU (%), since the last look. */
@@ -113,6 +120,7 @@ type Gatherer = {
   /** The whole system's switches: live_main, cards may play the main camera live. */
   flags: { live_main: boolean };
   cache: Cache;
+  health: Verdict;
   monitor: Monitor;
   paused: boolean;
   gathering: boolean;
@@ -134,7 +142,9 @@ type Picture = {
   kb: number;
   draw_ms: number;
 };
-type Sending = { picture: string; viewer: string; open_s: number; frames: number; kb_frame: number; kbit_s: number; waiting_pct: number };
+/** An open stream: what it sent, and pictures a second it sent (its viewer saw) against
+ * those drawn for it (the rest were drawn while it was still sending). */
+type Sending = { picture: string; viewer: string; open_s: number; frames: number; kb_frame: number; kbit_s: number; waiting_pct: number; fps: number; drawn_fps: number };
 type Engine = {
   state: string;
   port: number;
@@ -225,6 +235,7 @@ export function CompositorPage({ state }: { state?: string }) {
       {!status && !error && <Empty>Loading…</Empty>}
       {status && g && (
         <>
+          <Health v={g.health} />
           <Graphs m={g.monitor} />
           <div className={pipe.flag}>
             <Switch
@@ -376,10 +387,26 @@ function Graphs({ m }: { m: Monitor }) {
   );
 }
 
-/** What viewers wait for, in words: how much is sent, and the busier of the network
- * (the share of the streams' time their writes waited) and the drawing. */
+/** How the panels are doing, in a sentence, and what to do about it: the app's verdict
+ * (the integration's Compositor health sensor has the same). */
+function Health({ v }: { v: Verdict }) {
+  return (
+    <div className={`${pipe.health} ${v.tone === "good" ? "" : pipe[v.tone]}`}>
+      <strong>{v.headline}</strong>
+      <span>{v.advice}</span>
+    </div>
+  );
+}
+
+/** What viewers wait for, in words: what is sent against what there was to send
+ * (pictures and bits a second, the bits scaled up for the pictures skipped), and the
+ * busier of the network (the share of the streams' time their writes waited) and the
+ * drawing. */
 function bottleneck(now: Sample): string {
-  const sending = `${plural(now.streams, "stream")} · ${bits(now.out_bps)}${now.kb_picture != null ? ` · ${now.kb_picture} kB a picture` : ""}`;
+  const drawn = now.sent_fps + now.skipped_fps;
+  const shortfall = now.skipped_fps > 0 ? ` of ${drawn.toFixed(1)}` : "";
+  const wanted = now.skipped_fps > 0 && now.sent_fps > 0 ? ` of ${bits((now.out_bps * drawn) / now.sent_fps)}` : "";
+  const sending = `${plural(now.streams, "stream")} · ${now.sent_fps.toFixed(1)}${shortfall} pictures/s · ${bits(now.out_bps)}${wanted}${now.kb_picture != null ? ` · ${now.kb_picture} kB a picture` : ""}`;
   const slowest =
     Math.max(now.waiting, now.drawing) < 25
       ? "keeping up"
@@ -436,8 +463,20 @@ function GathererArea({
     <section className={guest.area}>
       <AreaHead
         title="Gatherer"
-        blurb={`Each camera channel wanted is fetched on its own, ${paceText(g.pace)}: its stream's frames where Home Assistant's go2rtc carries it (${g.go2rtc ? "reachable" : "not reachable"}), else snapshots. ${g.paused ? "Paused: nothing is fetched." : ""}`}
-        action={<PauseButton paused={g.paused} path="gatherer" name="Gatherer" busy={busy} act={act} />}
+        blurb={`Each camera channel wanted is fetched on its own, ${paceText(g.pace)}: its stream's frames where Home Assistant's go2rtc carries it (${g.go2rtc ? "reachable" : "not reachable"}), else snapshots. Restart reads every stream again and forgets every failure, the pictures kept. ${g.paused ? "Paused: nothing is fetched." : ""}`}
+        action={
+          <span className={pipe.actions}>
+            <button
+              className={ui.button}
+              disabled={busy}
+              title="Every stream read again and every mark forgotten, the pictures kept"
+              onClick={() => act("gatherer/restart", "Gatherer restarted")}
+            >
+              Restart
+            </button>
+            <PauseButton paused={g.paused} path="gatherer" name="Gatherer" busy={busy} act={act} />
+          </span>
+        }
       />
       <PaceSlider which="gatherer" value={g.pace} steps={GATHER_STEPS} act={act} />
       <p className={pipe.use}>
@@ -928,13 +967,16 @@ function ServerArea({ which, name, e, busy, act }: { which: string; name: string
         </p>
       )}
       {e.sending?.length ? (
-        <Table head={["Viewer", "Picture", "Open", "Frames", "Frame", "Rate", "Waiting to send"]}>
+        <Table head={["Viewer", "Picture", "Open", "Frames", "Pictures/s (sent of drawn)", "Frame", "Rate", "Waiting to send"]}>
           {e.sending.map((s) => (
             <tr key={`${s.viewer} ${s.picture} ${s.open_s}`}>
               <td>{s.viewer}</td>
               <td>{s.picture}</td>
               <td>{seconds(s.open_s)}</td>
               <td>{s.frames}</td>
+              <td style={s.fps < s.drawn_fps * 0.9 ? { color: "var(--warn)" } : undefined}>
+                {s.fps} of {s.drawn_fps}
+              </td>
               <td>{s.kb_frame} kB</td>
               <td>{s.kbit_s} kbit/s</td>
               <td style={s.waiting_pct > 50 ? { color: "var(--warn)" } : undefined}>{s.waiting_pct}%</td>
