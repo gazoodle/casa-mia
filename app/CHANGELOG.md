@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b62
+
+- Camera compositor: streams come back by themselves after Home Assistant restarts. Its go2rtc refusing a stream (Connection refused, while HA restarts) is no longer blamed on each camera ("not its stream" for 10 minutes): go2rtc is marked out of reach, every channel has its snapshots meanwhile, and it is looked at every 10 s; back, every camera is given to it afresh and a survey pass starts at once. Also when the app starts before HA's go2rtc is up (a reboot), which needed the app restarted.
+
 ## 2026.10.3-b61
 
 - Camera Commander card: the Security look reaches the live main camera too, as it does the picture (the Keep camera pictures live helper gives the video its commander's look while its switch is on).

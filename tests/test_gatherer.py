@@ -414,3 +414,43 @@ def test_the_whole_system_is_sampled(tmp_path, monkeypatch):
     assert 20 < sample["gather"] <= 60 and sample["out_bps"] > 0
     assert sample["rss"] and sample["cache"] >= 0
     assert g.status()["monitor"]["cpus"] == 2
+
+
+def test_go2rtc_refusing_is_no_streams_fault_and_it_is_found_again(
+    tmp_path, monkeypatch
+):
+    # HA restarting: its go2rtc refuses every stream. No channel is marked "not its
+    # stream" for it; go2rtc is marked down, looked at again, and back, every camera is
+    # given to it afresh and a survey pass starts.
+    monkeypatch.setattr(mod, "GO2RTC_CHECK", 0.01)
+    g = gatherer(tmp_path)
+    g.go2rtc = True
+
+    async def name(entity):
+        return entity
+
+    async def fetch(entity):
+        return jpeg()
+
+    g._name = name  # type: ignore[method-assign]
+    g._fetch_now = fetch  # type: ignore[method-assign]
+    g._names["camera.a"] = "old"
+    refusal = "[Errno 111] Connection refused: 'rtsp://127.0.0.1:18554/x'"
+    monkeypatch.setattr(mod.streams, "first_frame", lambda url: (None, refusal, 0.0))
+    assert asyncio.run(g._survey_one("camera.a")) == "snapshot"
+    assert g.go2rtc is False and "camera.a" not in g._no_stream
+    monkeypatch.setattr(mod, "go2rtc_reachable", lambda: True)
+
+    async def back():
+        g._survey_now = asyncio.Event()
+        watch = asyncio.ensure_future(g._watch_go2rtc())
+        for _ in range(100):
+            await asyncio.sleep(0.01)
+            if g.go2rtc:
+                break
+        watch.cancel()
+        await asyncio.gather(watch, return_exceptions=True)
+        return g._survey_now.is_set()
+
+    assert asyncio.run(back())  # a survey pass at once
+    assert g.go2rtc and not g._names  # back: every camera given afresh

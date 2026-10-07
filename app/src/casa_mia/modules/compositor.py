@@ -109,6 +109,7 @@ PACE_DEFAULTS = {
     "freshness": 5.0,
 }
 IDLE = 0.02  # continuous: a stream with no new frame yet is looked at again this soon
+GO2RTC_CHECK = 10.0  # seconds between looks at HA's go2rtc while it is out of reach
 STREAM_RETRY = 30.0  # seconds before a lost stream is read again (snapshots meanwhile)
 
 
@@ -283,6 +284,11 @@ def config_from_store(store: dict) -> Config:
     cfg.commanders = [visible(c) for c in commanders_of(store)]
     cfg.titles = {e: c.get("title", e) for e, c in cams.items()}
     return cfg
+
+
+def refused(why: str) -> bool:
+    """Whether a stream failed because HA's go2rtc itself refused it (down)."""
+    return "Connection refused" in why or "Errno 111" in why
 
 
 def measured(fn: Callable[..., Any], *args: Any) -> tuple[Any, float]:
@@ -1099,7 +1105,12 @@ class Gatherer:
         self._wake, self._repaced = asyncio.Event(), asyncio.Event()
         self._placehold()
         self._survey_now = asyncio.Event()
-        tasks = [self._run(), self._survey_loop(), self._monitor()]
+        tasks = [
+            self._run(),
+            self._survey_loop(),
+            self._monitor(),
+            self._watch_go2rtc(),
+        ]
         for coro in tasks:
             self._bg.add(asyncio.ensure_future(coro))
 
@@ -1869,6 +1880,9 @@ class Gatherer:
             self.count("gather_cpu", reader.cpu_s + reader.convert_s)
             self._names.pop(entity, None)
             why = reader.error or "stopped"
+            if refused(why):  # HA's go2rtc down (a restart): no fault of the stream
+                self._go2rtc_down(why)
+                return None
             self._no_stream[entity] = (time.monotonic() + STREAM_RETRY, why)
             _LOGGER.warning(
                 "compositor (%s): %s, %s channel: stream lost (%s); snapshots for %.0f s",
@@ -1907,6 +1921,39 @@ class Gatherer:
         ]
         gatherer = self.pace("gatherer")
         return max(gatherer, min(users)) if users else gatherer
+
+    def _go2rtc_down(self, why: str) -> None:
+        """HA's go2rtc refused a stream: it is down (HA restarting, say), no stream's
+        fault; every channel has its snapshots until _watch_go2rtc finds it back."""
+        if self.go2rtc:
+            self.go2rtc = False
+            _LOGGER.warning(
+                "compositor (cameras): Home Assistant's go2rtc is out of reach (%s); "
+                "snapshots until it is back (looked at every %.0f s)",
+                why,
+                GO2RTC_CHECK,
+            )
+
+    async def _watch_go2rtc(self) -> None:
+        """While HA's go2rtc is out of reach (found so at start, before HA was up, or
+        refusing a stream since), look every GO2RTC_CHECK seconds; back, it has forgotten
+        the cameras it was given, so each is given again (names dropped), the channels
+        marked "not its stream" for its absence are cleared, and a survey pass starts."""
+        while True:
+            await asyncio.sleep(GO2RTC_CHECK)
+            if self.go2rtc or not await asyncio.to_thread(go2rtc_reachable):
+                continue
+            self.go2rtc = True
+            self._names.clear()
+            for e in [e for e, (_, why) in self._no_stream.items() if refused(why)]:
+                del self._no_stream[e]
+            _LOGGER.info(
+                "compositor (cameras): Home Assistant's go2rtc is back; its streams "
+                "read again"
+            )
+            for event in (self._survey_now, self._wake):
+                if event:
+                    event.set()
 
     def _keys_only(self, reader: streams.Reader) -> bool:
         """Whether a stream's keyframes are enough: its pictures are taken (at its own
@@ -2038,16 +2085,19 @@ class Gatherer:
                 self.keep(entity, image, streamed=True)
                 return "stream", "", image.size, cpu
             why = failed
-            self._no_stream[entity] = (time.monotonic() + BENCH, failed)
-            self._names.pop(entity, None)  # put on go2rtc afresh next time
-            _LOGGER.info(
-                "compositor (cameras): %s, %s channel: its stream gave no frame (%s); "
-                "its snapshot instead, its stream tried again in %.0f min",
-                self._title(entity),
-                self._channel(entity)[1],
-                failed,
-                BENCH / 60,
-            )
+            if refused(failed):  # HA's go2rtc down (a restart): no fault of the stream
+                self._go2rtc_down(failed)
+            else:
+                self._no_stream[entity] = (time.monotonic() + BENCH, failed)
+                self._names.pop(entity, None)  # put on go2rtc afresh next time
+                _LOGGER.info(
+                    "compositor (cameras): %s, %s channel: its stream gave no frame "
+                    "(%s); its snapshot instead, its stream tried again in %.0f min",
+                    self._title(entity),
+                    self._channel(entity)[1],
+                    failed,
+                    BENCH / 60,
+                )
         if entity in self._snap_wrong:
             return "nothing", f"{why}; its snapshot is not its size", None, cpu
         image = await self._fetch_now(entity)
