@@ -208,6 +208,7 @@ class CommanderCard extends LitElement {
   };
   /** This showing's name for its stream, so it can tell the server it is done with it. */
   private sid = "";
+  private streaming = ""; // the stream's address while shown
   private leaving = 0; // the stream's end, once out of sight
   private home = ""; // the dashboard it is on
   private inView = false;
@@ -224,13 +225,15 @@ class CommanderCard extends LitElement {
     this.leaving = 0;
     if (!this._shown) return;
     this._shown = 0;
-    const img = this.renderRoot?.querySelector<HTMLImageElement>(".picture");
-    const was = img?.getAttribute("src");
     // Said to the server (directly, or through Home Assistant: the same address with
-    // /done for .mjpg), which ends it: no relying on the browser, Home Assistant or
-    // Nabu Casa letting the connection go. A beacon goes even as a page is left.
-    if (was?.includes(".mjpg?")) navigator.sendBeacon(`${was.replace(".mjpg?", "/done?")}&why=${encodeURIComponent(why)}`);
-    img?.setAttribute("src", BLANK); // and let go here too
+    // /done for .mjpg), which ends it: no relying on the browser (WebKit keeps loading a
+    // stream an <img> let go), Home Assistant or Nabu Casa letting the connection go. A
+    // beacon goes even as a page is left. The address is its own record, not the
+    // <img>'s, which something else may have changed.
+    const was = this.streaming;
+    this.streaming = "";
+    if (was.includes(".mjpg?")) navigator.sendBeacon(`${was.replace(".mjpg?", "/done?")}&why=${encodeURIComponent(why)}`);
+    this.renderRoot?.querySelector<HTMLImageElement>(".picture")?.setAttribute("src", BLANK); // and let go here too
   }
   updated() {
     const box = this.renderRoot.querySelector(".box");
@@ -396,7 +399,8 @@ class CommanderCard extends LitElement {
               this._shown,
               html`<img
                 class="picture"
-                src=${src}
+                data-cm-own
+                src=${(this.streaming = src)}
                 alt=""
                 @load=${(ev: Event) => {
                   const img = ev.target as HTMLImageElement;

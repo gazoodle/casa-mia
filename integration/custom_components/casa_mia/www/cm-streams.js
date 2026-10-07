@@ -3,7 +3,8 @@
 // pictures and streams too, while a browser allows only 6 connections to one address and
 // the compositor ends a device's oldest streams past 3; so a page you come Back to could
 // show a stopped picture, and a new one might not load at all. This stops the streams of
-// pictures not on screen and gives those on screen a fresh one. It also gives each
+// pictures not on screen and gives those on screen a fresh one (not a Camera Commander
+// card's, marked data-cm-own: the card does that itself, and tells the compositor). It also gives each
 // commander's picture (and the live video a card plays over its main camera) the Security
 // look (a CSS filter: monochrome, tinted) while that
 // commander's Security look switch is on, and makes each commander's highlight (the
@@ -92,6 +93,14 @@ function check() {
   for (const img of images(document)) {
     if (img.tagName === "VIDEO") {
       // A live main camera: its picture's look (the card plays it; nothing to stop here).
+      const wanted = lookOf(img);
+      if (img.style.filter !== wanted) img.style.filter = wanted;
+      continue;
+    }
+    if (img.dataset.cmOwn !== undefined) {
+      // A Camera Commander card's picture: the card ends and starts its own stream (and
+      // tells the compositor), so only its look here. Blanking it here too hid the
+      // stream's address from the card, and its "done" was never said.
       const wanted = lookOf(img);
       if (img.style.filter !== wanted) img.style.filter = wanted;
       continue;

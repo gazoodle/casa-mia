@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026.10.3-b72
+
+- Camera Commander card: it tells the compositor it is done with a stream after you leave, as it was meant to. The Keep camera pictures live helper blanked the card's picture as soon as it was off screen, and the card took the stream's address from the picture, so it found none and said nothing; WebKit (the companion app) went on loading the stream it had let go, until other pictures stopped loading for want of connections. The card now keeps its stream's address itself, and the helper leaves the card's picture to the card (its Security look apart).
 ## 2026.10.3-b71
 
 - Camera compositor: every commander stream is in the log as it happens: opened (to whom, by which version of the Camera Commander card, under which name), and ended with why (the card done with it, and the card's reason: page hidden, left the dashboard, off the page, out of view; the card asking again at a new size; the viewer gone; too many from one viewer). A card saying it is done with a stream that is not open is logged too, and Home Assistant logs each one it passes on. The server's table shows each stream's card version and name ("none": an older card). For finding why a stream outlives its viewer.

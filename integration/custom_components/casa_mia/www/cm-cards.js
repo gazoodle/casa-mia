@@ -1306,7 +1306,7 @@ var At = class extends V {
 				return;
 			}
 			clearTimeout(this.leaving), this.leaving = 0, this._shown ||= (this.sid = Math.random().toString(36).slice(2), ++this.shows);
-		}, this.sid = "", this.leaving = 0, this.home = "", this.inView = !1, this.onScreen = new IntersectionObserver((e) => {
+		}, this.sid = "", this.streaming = "", this.leaving = 0, this.home = "", this.inView = !1, this.onScreen = new IntersectionObserver((e) => {
 			this.inView = e[e.length - 1].isIntersecting, this.visibility();
 		});
 	}
@@ -1338,8 +1338,8 @@ var At = class extends V {
 	cut(e) {
 		if (clearTimeout(this.leaving), this.leaving = 0, !this._shown) return;
 		this._shown = 0;
-		let t = this.renderRoot?.querySelector(".picture"), n = t?.getAttribute("src");
-		n?.includes(".mjpg?") && navigator.sendBeacon(`${n.replace(".mjpg?", "/done?")}&why=${encodeURIComponent(e)}`), t?.setAttribute("src", Ct);
+		let t = this.streaming;
+		this.streaming = "", t.includes(".mjpg?") && navigator.sendBeacon(`${t.replace(".mjpg?", "/done?")}&why=${encodeURIComponent(e)}`), this.renderRoot?.querySelector(".picture")?.setAttribute("src", Ct);
 	}
 	updated() {
 		let e = this.renderRoot.querySelector(".box");
@@ -1444,7 +1444,8 @@ var At = class extends V {
       <div class="box">
         ${l && this._shown ? dt(this._shown, P`<img
                 class="picture"
-                src=${l}
+                data-cm-own
+                src=${this.streaming = l}
                 alt=""
                 @load=${(e) => {
 			let t = e.target;
