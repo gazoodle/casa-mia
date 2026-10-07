@@ -328,6 +328,7 @@ def memory() -> dict[str, int | None]:
 MONITOR_EVERY = 2.0  # seconds between the whole system's samples
 MONITOR_KEEP = 90  # samples kept: 3 minutes
 HEALTH_S = 30.0  # seconds of samples the health verdict is judged on
+LAG_WAITING = 10.0  # % of the streams' time sends wait, lasting, that means lag
 # The health verdict's states, worst first (see Gatherer.verdict); the integration's
 # sensor has the same.
 HEALTH_STATES = (
@@ -338,7 +339,6 @@ HEALTH_STATES = (
     "cpu_drawing",
     "drawing_behind",
     "network",
-    "slow_link",
     "idle",
     "fine",
 )
@@ -1696,8 +1696,8 @@ class Gatherer:
         """How the panels are doing, and what to do about it: the first that holds of
         HA's go2rtc out of reach, most streams failed, the gatherer paused, the CPU the
         limit (gathering's or drawing's), a generator unable to keep up with its pace,
-        the network the limit (viewers get fewer pictures than are drawn), a slow link
-        that keeps up anyway, nothing watching, or all well. Judged on the last
+        the network the limit (pictures queue on the way: panels lag), nothing
+        watching, or all well. Judged on the last
         HEALTH_S seconds' samples, so one odd sample doesn't flip it. Its state (one of
         HEALTH_STATES), tone (good, warn, bad), headline and advice."""
 
@@ -1782,22 +1782,23 @@ class Gatherer:
                 "Slow the Live generator's pace: pictures can't be drawn faster than "
                 "this box draws them.",
             )
-        if waiting > 50 and skipped > 0.1 * (sent + skipped):
+        # A send waits only once every buffer on the way (the network's, a VPN's,
+        # Home Assistant's proxy's) is full: pictures queue there, and the panel
+        # shows them late. So any waiting that lasts means lag, even with none
+        # skipped.
+        if waiting > LAG_WAITING:
+            sizes = [x["kb_picture"] for x in open_ if x.get("kb_picture")]
+            kb = f", {sum(sizes) / len(sizes):.0f} kB a picture" if sizes else ""
             return said(
                 "network",
                 "warn",
-                f"The network is the limiting factor: viewers get {got}",
-                "Nothing on the box will help. A slower Live generator pace sends "
-                "less; a panel on a faster link (the LAN rather than through Nabu "
-                "Casa) keeps up.",
-            )
-        if waiting > 50:
-            return said(
-                "slow_link",
-                "good",
-                f"That's just how it is: sends wait for the network {waiting:.0f}% of "
-                "the time, but every picture gets through",
-                "The link is slow but keeping up; nothing to change.",
+                "Panels lag: the network can't take pictures as fast as they're "
+                f"drawn, so they queue on the way (sends wait {waiting:.0f}% of the "
+                f"time; viewers get {got}{kb})",
+                "Send less: a slower Live generator pace, or smaller pictures (a "
+                "card's Away sharpness, which applies when it goes through Home "
+                "Assistant: on a VPN to the LAN address it counts as at home and "
+                "asks for its screen's full sharpness). A panel on the LAN keeps up.",
             )
         return said(
             "fine",

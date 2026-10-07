@@ -520,7 +520,8 @@ def sample(**kw):
         ({"app": 90, "gather": 10, "compose": 70}, "cpu_drawing"),
         ({"drawing": 95}, "drawing_behind"),
         ({"waiting": 70, "sent_fps": 1.0, "skipped_fps": 1.0}, "network"),
-        ({"waiting": 70}, "slow_link"),
+        ({"waiting": 20}, "network"),  # every picture through, but queued: lag
+        ({"waiting": 5}, "fine"),
     ],
 )
 def test_the_verdict_names_the_bottleneck(tmp_path, given, state):

@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026.10.3-b65
+
+- Camera compositor: the health verdict says panels lag when sends keep waiting for the network (over 10% of the time), even when every picture gets through. It said "working fine" below 50%, and "that's just how it is" above it with nothing skipped; but a send waits only once the buffers on the way are full, so its pictures are queued and the panel shows them late. The verdict now gives the picture size too, and the levers: a slower pace, or smaller pictures (a card's Away sharpness; on a VPN to the LAN address a card counts as at home). The Slow link state is gone.
 ## 2026.10.3-b64
 
 - Camera compositor: streams come back by themselves when Home Assistant's go2rtc restarts and forgets them. It answered 404 Not Found for every camera it had been given, and each was marked "not its stream" for 10 minutes (an app restart cleared it). Now a camera go2rtc has forgotten is given to it afresh and read again at once.

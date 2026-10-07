@@ -404,7 +404,6 @@ class CompositorHealthSensor(CasaMiaEntity, SensorEntity):
         "cpu_drawing",
         "drawing_behind",
         "network",
-        "slow_link",
         "idle",
         "fine",
     ]

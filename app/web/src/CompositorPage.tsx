@@ -109,7 +109,7 @@ type Sample = {
 };
 /** The app's verdict on the whole system, judged on the last 30 s: a state to automate
  * on (go2rtc_down, streams_failing, paused, cpu_gathering, cpu_drawing, drawing_behind,
- * network, slow_link, idle, fine), and in words. */
+ * network, idle, fine), and in words. */
 type Verdict = { state: string; tone: "good" | "warn" | "bad"; headline: string; advice: string };
 type Monitor = { cpus: number; every_s: number; history: Sample[] };
 type Gatherer = {

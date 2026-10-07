@@ -81,7 +81,6 @@
           "cpu_drawing": "CPU: drawing",
           "drawing_behind": "Drawing behind",
           "network": "Network limited",
-          "slow_link": "Slow link, keeping up",
           "idle": "Nothing watching",
           "fine": "Fine"
         }
