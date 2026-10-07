@@ -101,6 +101,8 @@ type Monitor = { cpus: number; every_s: number; history: Sample[] };
 type Gatherer = {
   /** The whole app's share of a CPU (%), since the last look. */
   cpu_pct: number;
+  /** The oldest a picture may be for its stream to decode keyframes only (s; 0: off). */
+  freshness: number;
   cache: Cache;
   monitor: Monitor;
   paused: boolean;
@@ -386,6 +388,18 @@ function GathererArea({
         action={<PauseButton paused={g.paused} path="gatherer" name="Gatherer" busy={busy} act={act} />}
       />
       <PaceSlider which="gatherer" value={g.pace} steps={GATHER_STEPS} act={act} />
+      <p className={pipe.use}>
+        A picture fresher than its stream's last keyframe needs every frame since it decoded (most of the CPU a stream
+        takes); up to this old, keyframes only will do, however often it is drawn.
+      </p>
+      <PaceSlider
+        which="freshness"
+        label="Picture age allowed"
+        value={g.freshness}
+        steps={[0, 1, 2, 3, 4, 5, 6, 8, 10]}
+        text={(n) => (n === 0 ? "as fresh as its pace" : `up to ${n} s old`)}
+        act={act}
+      />
       <p className={pipe.use}>
         Survey: every channel of every camera, from its stream's first frame (a snapshot where there is no stream), for
         each one's picture and size.{" "}

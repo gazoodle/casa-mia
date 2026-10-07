@@ -350,6 +350,7 @@ def test_a_stream_is_decoded_only_as_much_as_its_pace_needs(tmp_path):
     from typing import cast
 
     reader = cast(mod.streams.Reader, SimpleNamespace(gop_s=None, entity="camera.a"))
+    g.paces["freshness"] = 0.0  # as fresh as the pace (the allowance below)
     assert g._keys_only(reader)  # its keyframe interval not known yet: keyframes
     reader.gop_s = 1.0
     g.paces["gatherer"] = 2.0
@@ -366,6 +367,15 @@ def test_a_stream_is_decoded_only_as_much_as_its_pace_needs(tmp_path):
     assert not g._keys_only(reader)
     g.paces["gatherer"] = 5.0  # the gatherer slower than any user: its pace
     assert g._pace_of("camera.a") == 5.0
+    # the freshness allowance: a picture up to that old will do, so a stream whose
+    # keyframes come within it decodes keyframes only, however often it is drawn
+    g.paces["gatherer"], g.paces["live"] = 2.0, 2.0
+    reader.gop_s = 4.8  # Protect's high channel, say
+    assert not g._keys_only(reader)  # drawn every 2 s, keyframes every 4.8 s
+    g.paces["freshness"] = 5.0  # the default
+    assert g._keys_only(reader)
+    reader.gop_s = 8.0  # keyframes rarer than allowed: every frame again
+    assert not g._keys_only(reader)
 
 
 def test_the_cache_is_counted(tmp_path):

@@ -1,7 +1,8 @@
 """Numbers: the camera compositor's paces, seconds between: the gatherer's fetches of each
 camera channel (0: continuous, as fast as each answers), each generator's drawings (down
-to 0.125 s, 8 a second), the survey's pause between its passes over every camera, and
-how many streams it reads at once. The app keeps them across restarts."""
+to 0.125 s, 8 a second), the survey's pause between its passes over every camera, how
+many streams it reads at once, and how old a picture may be for its stream to be
+decoded keyframes only. The app keeps them across restarts."""
 
 from __future__ import annotations
 
@@ -25,6 +26,7 @@ PACES = {
     "preview_generator_pace": ("draft", 0.125, 15.0, 0.125, S),
     "survey_pace": ("survey", 10.0, 3600.0, 10.0, S),
     "survey_at_once": ("survey_at_once", 1.0, 8.0, 1.0, None),
+    "freshness": ("freshness", 0.0, 10.0, 0.5, S),
 }
 
 

@@ -95,6 +95,9 @@ PACES = {
     "draft": (0.125, 15.0),
     "survey": (10.0, 3600.0),  # the sleep between survey passes
     "survey_at_once": (1.0, 8.0),  # streams the survey reads at once (a count)
+    # The oldest a picture may be for its stream to be decoded keyframes only, however
+    # often it is drawn (s; 0: as fresh as its pace).
+    "freshness": (0.0, 10.0),
 }
 PACE_DEFAULTS = {
     "gatherer": INTERVAL,
@@ -102,6 +105,7 @@ PACE_DEFAULTS = {
     "draft": INTERVAL,
     "survey": 60.0,
     "survey_at_once": 4.0,
+    "freshness": 5.0,
 }
 IDLE = 0.02  # continuous: a stream with no new frame yet is looked at again this soon
 STREAM_RETRY = 30.0  # seconds before a lost stream is read again (snapshots meanwhile)
@@ -1163,6 +1167,8 @@ class Gatherer:
             which,
             f"{seconds:g} at once"
             if which == "survey_at_once"
+            else f"pictures up to {seconds:g} s old"
+            if which == "freshness"
             else "continuous"
             if seconds == 0
             else f"every {seconds:g} s",
@@ -1669,6 +1675,7 @@ class Gatherer:
             "paused": self.paused,
             "gathering": self.gathering,
             "pace": self.pace("gatherer"),
+            "freshness": self.pace("freshness"),
             "survey": {
                 **{k: v for k, v in self.survey.items() if k not in ("at", "ended")},
                 "pace": self.pace("survey"),
@@ -1868,9 +1875,13 @@ class Gatherer:
     def _keys_only(self, reader: streams.Reader) -> bool:
         """Whether a stream's keyframes are enough: its pictures are taken (at its own
         pace, see _pace_of) no faster than its keyframes come (rule 0: a frame decoded
-        is one used). Continuous, or a pace faster than its keyframes: every frame."""
-        pace = self._pace_of(reader.entity)
-        return pace > 0 and (reader.gop_s is None or pace >= reader.gop_s)
+        is one used), or they come at least as often as the "freshness" allowance (a
+        picture up to that old will do). Else every frame: a picture fresher than its
+        keyframes needs every frame since the last one decoded."""
+        pace, gop = self._pace_of(reader.entity), reader.gop_s
+        if gop is None:
+            return pace > 0
+        return (pace > 0 and pace >= gop) or gop <= self.pace("freshness")
 
     def _stop_readers(self, keep: set[str] | frozenset[str] = frozenset()) -> None:
         """Stop reading every stream but those in keep."""

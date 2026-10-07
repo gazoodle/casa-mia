@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b57
+
+- Camera compositor: a picture age allowance (5 s by default, 0 to 10 s; Picture age allowed on the Camera compositor page and in the integration). A stream whose keyframes come at least that often is decoded keyframes only, however often it is drawn, so its picture may be up to that old: a UniFi Protect high channel with a keyframe every few seconds no longer decodes every frame (about three quarters of a CPU at 2688 x 1512) for a commander drawn every 2 s. 0 keeps every picture as fresh as its pace.
+
 ## 2026.10.3-b56
 
 - Camera compositor page: a stream's pace and keyframe interval show under its CPU, and why a channel is not read from its stream shows under its state; they were tooltips, which never show on a tablet.

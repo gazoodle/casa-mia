@@ -44,7 +44,8 @@
       "live_generator_pace": { "name": "Live generator pace" },
       "preview_generator_pace": { "name": "Preview generator pace" },
       "survey_pace": { "name": "Survey pause" },
-      "survey_at_once": { "name": "Survey streams at once" }
+      "survey_at_once": { "name": "Survey streams at once" },
+      "freshness": { "name": "Picture age allowed" }
     },
     "select": { "commander_main": { "name": "Main camera" } },
     "event": {
