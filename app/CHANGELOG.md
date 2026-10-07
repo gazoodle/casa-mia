@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026.10.3-b69
+
+- Camera Commander card: its picture stream ends when you go to another page in Home Assistant. Home Assistant keeps a page left, and to the browser it is still on screen, so the stream went on (closing the app did end it). The card now streams only while Home Assistant shows its dashboard, and stops once it has been out of sight for the card's new "Picture kept running once out of sight" setting (default 15 s, 0 to 120 s), so the back button finds it still running.
 ## 2026.10.3-b68
 
 - Camera Commander card: its picture streams only while the card is on screen. Leaving the page was not enough: a dashboard left can be kept hidden rather than removed, so the stream went on with nobody looking. Now it ends whenever the card is out of sight (a dashboard left, the app in the background, scrolled away) and starts afresh when it is seen again.

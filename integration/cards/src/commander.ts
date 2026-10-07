@@ -34,7 +34,7 @@ import { layout, PANELS, pyRound, type Rect, type Settings } from "./layout.ts";
 import { playWebRTC } from "../../../app/web/src/webrtc.ts";
 
 type Route = "auto" | "direct" | "ha";
-type Config = { type: string; entity?: string; draft?: boolean; tap_main?: "live" | "more-info" | "none"; route?: Route; away_sharpness?: Sharpness; live_main?: boolean };
+type Config = { type: string; entity?: string; draft?: boolean; tap_main?: "live" | "more-info" | "none"; route?: Route; away_sharpness?: Sharpness; live_main?: boolean; leave_after?: number };
 type Card = {
   picture: string;
   layout: Settings & { highlight?: Record<string, string | number>; debug?: { on?: boolean; colour?: string } };
@@ -45,6 +45,13 @@ type Card = {
   live_main?: boolean;
 };
 const LIVE_WAIT_MS = 10_000; // a live main camera not playing by then gives way to the picture
+/** The dashboard (or other page) shown: its path's first part, as a view's path may
+ * change under a card (/lovelace becomes /lovelace/0); a card on another view of the
+ * same dashboard is taken off the page. */
+const dashboard = () => location.pathname.split("/")[1] ?? "";
+/** Seconds a card's stream goes on once it is out of sight (its dashboard left,
+ * scrolled away), so a quick return (the back button) finds it still running. */
+const LEAVE_AFTER = 15;
 const BLANK = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 // As the compositor's (compositor.py: MAX_PIXELS, MIN_SIDE, asked_size).
 const MAX_PIXELS = 2560 * 1600;
@@ -142,6 +149,11 @@ class CommanderCard extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     document.addEventListener("visibilitychange", this.visibility);
+    // Home Assistant's own navigation, and back and forward: a page left may be kept,
+    // neither removed nor hidden in a way the browser tells (see visibility).
+    window.addEventListener("location-changed", this.visibility);
+    window.addEventListener("popstate", this.visibility);
+    this.home = dashboard();
     const box = this.renderRoot?.querySelector(".box"); // back on the page: not drawn again
     if (box) this.onScreen.observe(box);
     this.unwatch = watchRoom(this.measure);
@@ -151,9 +163,11 @@ class CommanderCard extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback();
     document.removeEventListener("visibilitychange", this.visibility);
+    window.removeEventListener("location-changed", this.visibility);
+    window.removeEventListener("popstate", this.visibility);
     this.onScreen.disconnect();
     this.inView = false;
-    this.cut();
+    this.visibility(); // off the page: as out of sight (kept, it may come back)
     this.unwatch?.();
     this.widthWatch.disconnect();
     this.resize.disconnect();
@@ -161,13 +175,25 @@ class CommanderCard extends LitElement {
     clearTimeout(this.retry);
     this.stopLive();
   }
-  /** On screen: a stream (a fresh one when it had none). Not (the page hidden: the app
-   * in the background, another tab; the card hidden: a dashboard left, which Home
-   * Assistant may keep, hidden, for a quick return; scrolled away): none. */
+  /** On screen: a stream (a fresh one when it had none). The page hidden (the app in
+   * the background, another tab): none, at once (a hidden page's timers may never
+   * run). Out of sight (Home Assistant on another page than the card's: a page left is
+   * kept, and still "on screen" to the browser; off the page; scrolled away): none,
+   * after its leave_after seconds. */
   private visibility = () => {
-    if (document.hidden || !this.inView) this.cut();
-    else if (!this._shown) this._shown = ++this.shows;
+    const seen = this.inView && this.isConnected && dashboard() === this.home;
+    if (document.hidden || !seen) {
+      const after = document.hidden ? 0 : (this._config?.leave_after ?? LEAVE_AFTER);
+      if (!after) this.cut();
+      else if (this._shown && !this.leaving) this.leaving = window.setTimeout(() => this.cut(), after * 1000);
+      return;
+    }
+    clearTimeout(this.leaving);
+    this.leaving = 0;
+    if (!this._shown) this._shown = ++this.shows;
   };
+  private leaving = 0; // the stream's end, once out of sight
+  private home = ""; // the dashboard it is on
   private inView = false;
   private onScreen = new IntersectionObserver((entries) => {
     this.inView = entries[entries.length - 1].isIntersecting;
@@ -178,6 +204,8 @@ class CommanderCard extends LitElement {
    * card off the page may not be drawn again until it is back, so the stream is ended
    * here, not by drawing. */
   private cut() {
+    clearTimeout(this.leaving);
+    this.leaving = 0;
     if (!this._shown) return;
     this._shown = 0;
     this.renderRoot?.querySelector<HTMLImageElement>(".picture")?.setAttribute("src", BLANK);
@@ -525,6 +553,7 @@ class CommanderEditor extends LitElement {
         },
       },
       { name: "live_main", selector: { boolean: {} } },
+      { name: "leave_after", selector: { number: { min: 0, max: 120, step: 1, mode: "slider", unit_of_measurement: "s" } } },
       {
         name: "tap_main",
         selector: {
@@ -546,10 +575,11 @@ class CommanderEditor extends LitElement {
       route: "The picture",
       away_sharpness: "Sharpness through Home Assistant",
       live_main: "Main camera as live video",
+      leave_after: "Picture kept running once out of sight",
     };
     return html`<ha-form
       .hass=${this.hass}
-      .data=${{ tap_main: "live", route: "auto", away_sharpness: "balanced", live_main: true, ...this._config }}
+      .data=${{ tap_main: "live", route: "auto", away_sharpness: "balanced", live_main: true, leave_after: LEAVE_AFTER, ...this._config }}
       .schema=${schema}
       .computeLabel=${(s: { name: string }) => labels[s.name]}
       .computeHelper=${(s: { name: string }) =>
@@ -561,6 +591,8 @@ class CommanderEditor extends LitElement {
             ? "How sharp the picture is when it comes through Home Assistant (away from home): a 2x screen at Full is four times the bytes of Light. Direct at home it is always the screen's own."
             : s.name === "live_main"
             ? "The main camera plays as live video over the picture, through Home Assistant's WebRTC (this device decodes it; the box does not). Needs the Camera compositor's Live main camera switch on; a video that does not start gives way to the drawn picture."
+            : s.name === "leave_after"
+            ? "Seconds the picture goes on once the card is out of sight (another page in Home Assistant, scrolled away), so coming back (the back button) finds it running; then it stops, and the box sends nothing more. 0: at once. Closing the app always stops it at once."
             : s.name === "draft"
             ? "As saved on the Camera Dashboard page (Save draft), before it is deployed live: for trying changes out. Off: as deployed live."
             : undefined}
