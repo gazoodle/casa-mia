@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b56
+
+- Camera compositor page: a stream's pace and keyframe interval show under its CPU, and why a channel is not read from its stream shows under its state; they were tooltips, which never show on a tablet.
+
 ## 2026.10.3-b55
 
 - Camera compositor: each channel is fetched, and decoded, only as often as its fastest user draws from it: its own pace is the slower of the gatherer's and that of the fastest generator using it. A gatherer set faster than the commanders are drawn no longer makes a stream decode every frame (the main camera did), nor fetches pictures nobody draws. Hovering a stream's CPU on the Camera compositor page gives its pace and its keyframe interval: a stream whose keyframes come less often than it is drawn still decodes every frame, to keep its picture fresh.

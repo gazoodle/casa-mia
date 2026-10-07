@@ -171,6 +171,16 @@
   cursor: pointer;
 }
 
+/* A second line in a table cell: shown, not hidden in a tooltip (the page is used by
+   touch, where tooltips never show). */
+.cellNote {
+  max-width: 260px;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .big {
   display: block;
   width: 100%;

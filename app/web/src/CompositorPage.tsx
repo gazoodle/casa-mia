@@ -412,8 +412,9 @@ function GathererArea({
             <tr key={c.camera}>
               <td>{c.title}</td>
               <td title={c.camera}>{c.channel}</td>
-              <td title={c.no_stream ? `Not its stream: ${c.no_stream}` : undefined}>
+              <td>
                 <StateBadge state={c.state} />
+                {c.no_stream && <div className={pipe.cellNote}>not its stream: {c.no_stream}</div>}
               </td>
               <td>
                 {c.width ? `${c.width} × ${c.height} ` : "? "}
@@ -431,12 +432,15 @@ function GathererArea({
                 )}
               </td>
               <td>{c.fps != null ? `${c.fps} fps` : c.fetch_ms != null ? `${ms(c.fetch_ms)} a still` : ""}</td>
-              <td
-                title={[c.pace_s != null ? `Its pictures used ${paceText(c.pace_s)}` : "", c.gop_s ? `a keyframe every ${c.gop_s} s` : ""]
-                  .filter(Boolean)
-                  .join("; ")}
-              >
+              <td>
                 {c.cpu_pct != null ? `${c.cpu_pct}% · ${c.decoding}` : ""}
+                {(c.pace_s != null || c.gop_s) && (
+                  <div className={pipe.cellNote}>
+                    {[c.pace_s != null ? `used ${paceText(c.pace_s)}` : "", c.gop_s ? `keyframe every ${c.gop_s} s` : ""]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </div>
+                )}
               </td>
               <td>{c.wanted_by.map(owner).join(", ")}</td>
               <td style={c.back_in_s != null ? { color: "var(--bad)" } : undefined}>
