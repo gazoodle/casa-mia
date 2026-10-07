@@ -84,14 +84,21 @@ type Survey = {
  * waiting, the thumbnails, and the memory it takes. */
 type Cache = { pictures: number; cameras: number; waiting: number; composites: number; thumbnails: number; bytes: number };
 /** The whole compositor system, a sample every few seconds: CPU as shares of the whole
- * box (%: gathering, composing, the app in all), bytes sent a second (as bits), and
- * memory (bytes: the app's, the cache's, the box's; null where the box does not say). */
+ * box (%: gathering, composing, the app in all), bytes sent a second (as bits),
+ * memory (bytes: the app's, the cache's, the box's; null where the box does not say),
+ * and where viewers wait: the streams open, the share of their time writes waited for
+ * the network (%), the share of the time spent drawing (%), and the average picture
+ * sent (kB; null when none was). */
 type Sample = {
   t: number;
   gather: number;
   compose: number;
   app: number;
   out_bps: number;
+  streams: number;
+  waiting: number;
+  drawing: number;
+  kb_picture: number | null;
   cache: number;
   rss: number | null;
   total: number | null;
@@ -310,7 +317,8 @@ function Strip({ status, busy, act }: { status: Status; busy: boolean; act: Act 
 }
 
 /** The whole compositor system over the last minutes: CPU (gathering and composing),
- * memory (the cache and the rest of the app, against the box), and bytes sent. */
+ * memory (the cache and the rest of the app, against the box), bytes sent, and the
+ * bottleneck (what viewers wait for: the network or the drawing). */
 function Graphs({ m }: { m: Monitor }) {
   const h = m.history;
   const now = h[h.length - 1];
@@ -352,8 +360,33 @@ function Graphs({ m }: { m: Monitor }) {
         top={bits(scale)}
         bottom="0"
       />
+      <Graphlet
+        title="Bottleneck"
+        value={bottleneck(now)}
+        tone={Math.max(now.waiting, now.drawing) > 80 ? "bad" : Math.max(now.waiting, now.drawing) > 50 ? "warn" : "good"}
+        series={[
+          { name: "waiting for the network", color: "var(--accent)", values: h.map((x) => x.waiting) },
+          { name: "drawing", color: "var(--warn)", values: h.map((x) => x.drawing) },
+        ]}
+        max={100}
+        top="100%"
+        bottom="0%"
+      />
     </div>
   );
+}
+
+/** What viewers wait for, in words: how much is sent, and the busier of the network
+ * (the share of the streams' time their writes waited) and the drawing. */
+function bottleneck(now: Sample): string {
+  const sending = `${plural(now.streams, "stream")} · ${bits(now.out_bps)}${now.kb_picture != null ? ` · ${now.kb_picture} kB a picture` : ""}`;
+  const slowest =
+    Math.max(now.waiting, now.drawing) < 25
+      ? "keeping up"
+      : now.waiting >= now.drawing
+        ? `the network: ${Math.round(now.waiting)}% of the time waiting to send`
+        : `drawing: busy ${Math.round(now.drawing)}% of the time`;
+  return `${sending} · ${slowest}`;
 }
 
 /** A round number at or above n (1, 2 or 5 times a power of ten). */

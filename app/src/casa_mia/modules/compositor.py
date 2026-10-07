@@ -393,16 +393,18 @@ class Sending:
     frames: int = 0
     sent: int = 0
     waiting: float = 0.0
-    counted: Callable[[int], None] | None = None  # the whole system's bytes out
+    # The whole system's tally: bytes out and the time a write waited (Gatherer.sent).
+    counted: Callable[[int, float], None] | None = None
 
     async def write(self, resp: web.StreamResponse, data: bytes) -> None:
         began = time.monotonic()
         await resp.write(data)
-        self.waiting += time.monotonic() - began
+        waited = time.monotonic() - began
+        self.waiting += waited
         self.frames += 1
         self.sent += len(data)
         if self.counted:
-            self.counted(len(data))
+            self.counted(len(data), waited)
 
     def figures(self, now: float) -> dict[str, Any]:
         open_s = max(now - self.since, 0.001)
@@ -1054,9 +1056,22 @@ class Gatherer:
         self._bg: set[asyncio.Task] = set()
         # The whole compositor system's running totals: CPU (s) gathering (decoding and
         # converting streams, surveying; readers still running are added when sampled)
-        # and composing (drawing and encoding), and bytes sent to viewers; and its
-        # history, a sample every MONITOR_EVERY seconds (see _monitor).
-        self._totals = {"gather_cpu": 0.0, "compose_cpu": 0.0, "out_bytes": 0.0}
+        # and composing (drawing and encoding), and what was sent to viewers (bytes,
+        # pictures, and the time writes waited for the network); the time spent drawing,
+        # and the streams open now; and its history, a sample every MONITOR_EVERY
+        # seconds (see _monitor).
+        self._totals: dict[str, float] = dict.fromkeys(
+            (
+                "gather_cpu",
+                "compose_cpu",
+                "out_bytes",
+                "out_pictures",
+                "send_wait",
+                "draw_s",
+                "streams",
+            ),
+            0.0,
+        )
         self._totals_lock = threading.Lock()
         self.history: collections.deque[dict[str, Any]] = collections.deque(
             maxlen=MONITOR_KEEP
@@ -1546,10 +1561,20 @@ class Gatherer:
         with self._totals_lock:
             self._totals[total] += amount
 
+    def sent(self, size: int, waited: float = 0.0) -> None:
+        """A picture sent to a viewer: its bytes, and how long the write waited for the
+        network to take it. Thread-safe."""
+        with self._totals_lock:
+            self._totals["out_bytes"] += size
+            self._totals["out_pictures"] += 1
+            self._totals["send_wait"] += waited
+
     async def _monitor(self) -> None:
         """Sample the whole compositor system every MONITOR_EVERY seconds: CPU as a
         share of the whole box (gathering, composing, the app in all), memory (the
-        app's, the cache's, the box's) and bytes sent a second."""
+        app's, the cache's, the box's), bytes sent a second, and where viewers wait (the
+        bottleneck): the share of the streams' time their writes waited for the
+        network, the share of the time spent drawing, and the average picture sent."""
         cpus = os.cpu_count() or 1
         then = None
         while True:
@@ -1569,6 +1594,11 @@ class Gatherer:
                     gone = max(totals[key] - then_totals[key], 0.0)
                     return round(100 * gone / took / cpus, 1)
 
+                def gone(key: str, then_totals: dict = then[1]) -> float:
+                    return max(totals[key] - then_totals[key], 0.0)
+
+                streams = int(totals["streams"])
+                pictures = gone("out_pictures")
                 mem = memory()
                 self.history.append(
                     {
@@ -1576,11 +1606,15 @@ class Gatherer:
                         "gather": pct("gather_cpu"),
                         "compose": pct("compose_cpu"),
                         "app": pct("app_cpu"),
-                        "out_bps": round(
-                            8
-                            * max(totals["out_bytes"] - then[1]["out_bytes"], 0)
-                            / took
+                        "out_bps": round(8 * gone("out_bytes") / took),
+                        "streams": streams,
+                        "waiting": round(
+                            100 * gone("send_wait") / took / max(streams, 1), 1
                         ),
+                        "drawing": round(100 * gone("draw_s") / took, 1),
+                        "kb_picture": round(gone("out_bytes") / pictures / 1000)
+                        if pictures
+                        else None,
                         "cache": self.cache_stats()["bytes"],
                         **mem,
                     }
@@ -2655,6 +2689,7 @@ class Compositor:
                 age > limit,
             )
         self.gather.count("compose_cpu", cpu)
+        self.gather.count("draw_s", time.monotonic() - began)
         name = key_of(cmd)
         self._drawn[name] = (len(picture), time.monotonic() - began)
         if self.drawing_paused:  # paused while it drew: nothing new appears
@@ -2892,7 +2927,7 @@ class Compositor:
         )
         if data is None:
             raise web.HTTPServiceUnavailable(text="no picture drawn (drawing paused?)")
-        self.gather.count("out_bytes", len(data))
+        self.gather.sent(len(data))
         return web.Response(
             body=data, content_type=mime(data), headers={"Cache-Control": "no-store"}
         )
@@ -2923,9 +2958,10 @@ class Compositor:
             key,
             viewer(request) or "",
             time.monotonic(),
-            counted=lambda n: self.gather.count("out_bytes", n),
+            counted=self.gather.sent,
         )
         self._sending.append(sending)
+        self.gather.count("streams", 1)
         _LOGGER.debug(
             "compositor (%s): stream %s to %s opened", self.store, key, sending.viewer
         )
@@ -2975,6 +3011,7 @@ class Compositor:
                 streams.remove(stop)
             self._open[key] -= 1
             self._sending.remove(sending)
+            self.gather.count("streams", -1)
             f = sending.figures(time.monotonic())
             _LOGGER.debug(
                 "compositor (%s): stream %s to %s ended after %.0f s: %d frames, "

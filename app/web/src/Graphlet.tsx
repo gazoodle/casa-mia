@@ -1,5 +1,6 @@
 /** A graphlet: a small history graph, for any page. A status dot, a title and the value
- * now; the latest samples as columns of squares, each column its series stacked from the
+ * now; the latest samples as columns of squares (square, newest at the right: the
+ * room it is given decides how much history shows), each column its series stacked from the
  * bottom (each series its colour), against a scale whose top and bottom are labelled; and
  * a legend when there is more than one series. It knows nothing of what it shows: it is
  * given its series, scale and words. */
@@ -22,7 +23,6 @@ export function Graphlet({
   top,
   bottom = "0",
   tone = "good",
-  columns = 45,
   rows = 8,
 }: {
   title: string;
@@ -36,17 +36,13 @@ export function Graphlet({
   bottom?: string;
   /** The dot: all well, a warning, or bad. */
   tone?: "good" | "warn" | "bad";
-  /** Samples shown (the latest), and squares a column. */
-  columns?: number;
+  /** Squares a column. */
   rows?: number;
 }) {
   const length = Math.max(0, ...series.map((s) => s.values.length));
-  const start = Math.max(0, length - columns);
   // Each column: the series stacked, in whole squares, from the bottom.
-  const cells: (string | null)[][] = Array.from({ length: columns }, (_, c) => {
-    const i = start + c - Math.max(0, columns - (length - start)); // right-aligned
+  const cells: (string | null)[][] = Array.from({ length }, (_, i) => {
     const column: (string | null)[] = Array(rows).fill(null);
-    if (i < start || i >= length) return column;
     let filled = 0;
     let sum = 0;
     for (const s of series) {
@@ -74,18 +70,20 @@ export function Graphlet({
           </span>
         )}
       </div>
-      <div className={css.grid} style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }} role="img" aria-label={`${title}: ${value}`}>
-        {cells.map((column, c) => (
-          <div key={c} className={css.column}>
-            {column.map((color, r) => (
-              <span key={r} style={color ? { background: color } : undefined} />
-            ))}
-          </div>
-        ))}
-      </div>
-      <div className={css.scale}>
-        <span>{top}</span>
-        <span>{bottom}</span>
+      <div className={css.graph}>
+        <div className={css.grid} style={{ "--rows": rows } as React.CSSProperties} role="img" aria-label={`${title}: ${value}`}>
+          {cells.map((column, c) => (
+            <div key={c} className={css.column}>
+              {column.map((color, r) => (
+                <span key={r} style={color ? { background: color } : undefined} />
+              ))}
+            </div>
+          ))}
+        </div>
+        <div className={css.scale}>
+          <span>{top}</span>
+          <span>{bottom}</span>
+        </div>
       </div>
     </div>
   );

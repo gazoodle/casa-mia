@@ -1,8 +1,9 @@
 /* A graphlet (Graphlet.tsx): a small history graph, for any page. */
 
+/* The dot and words above, the squares and their scale below, across the whole width. */
 .graphlet {
   display: grid;
-  grid-template-columns: auto minmax(90px, auto) 1fr auto;
+  grid-template-columns: auto 1fr;
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
@@ -61,17 +62,32 @@
   border-radius: 2px;
 }
 
+/* Square cells of a fixed size, newest at the right: what doesn't fit is cut off at the
+ * left, so the width decides how much history shows. */
 .grid {
-  display: grid;
+  --cell: 7px;
+  display: flex;
+  justify-content: flex-end;
   gap: 1px;
   min-width: 0;
-  height: 56px;
+  overflow: hidden;
+  height: calc(var(--rows) * var(--cell) + (var(--rows) - 1) * 1px);
+}
+
+.graph {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  min-width: 0;
 }
 
 .column {
   display: flex;
+  flex: none;
   flex-direction: column-reverse; /* the first square is the bottom */
   gap: 1px;
+  width: var(--cell);
 }
 
 .column span {

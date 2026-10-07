@@ -404,7 +404,9 @@ def test_the_whole_system_is_sampled(tmp_path, monkeypatch):
         task = asyncio.ensure_future(g._monitor())
         await asyncio.sleep(0.06)
         g.count("gather_cpu", 0.05)  # 0.05 s of CPU in 0.05 s, of 2 CPUs: 50%
-        g.count("out_bytes", 1000)
+        g.count("streams", 2)
+        g.count("draw_s", 0.025)  # drawing half the time
+        g.sent(40_000, 0.05)  # one stream's write waited all the time: half of two
         await asyncio.sleep(0.06)
         task.cancel()
         await asyncio.gather(task, return_exceptions=True)
@@ -413,6 +415,9 @@ def test_the_whole_system_is_sampled(tmp_path, monkeypatch):
     sample = max(g.history, key=lambda s: s["gather"])
     assert 20 < sample["gather"] <= 60 and sample["out_bps"] > 0
     assert sample["rss"] and sample["cache"] >= 0
+    # The bottleneck: where viewers wait.
+    assert sample["streams"] == 2 and sample["kb_picture"] == 40
+    assert 20 < sample["waiting"] <= 60 and 20 < sample["drawing"] <= 60
     assert g.status()["monitor"]["cpus"] == 2
 
 

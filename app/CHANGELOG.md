@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.3-b63
+
+- Camera compositor page: a Bottleneck graph beside CPU, Memory and Network out. It shows what the app has to send (the streams open, bits a second, the average picture) and what viewers wait for: the share of the streams' time spent waiting for the network to take a picture (a slow link, such as one through Nabu Casa), and the share of the time spent drawing. It names the busier one, or says the system is keeping up.
+- Graphs: in a 2×2 grid, with square cells. The space a graph has decides how much history it shows, rather than the history being squeezed to fit.
+
 ## 2026.10.3-b62
 
 - Camera compositor: streams come back by themselves after Home Assistant restarts. Its go2rtc refusing a stream (Connection refused, while HA restarts) is no longer blamed on each camera ("not its stream" for 10 minutes): go2rtc is marked out of reach, every channel has its snapshots meanwhile, and it is looked at every 10 s; back, every camera is given to it afresh and a survey pass starts at once. Also when the app starts before HA's go2rtc is up (a reboot), which needed the app restarted.
