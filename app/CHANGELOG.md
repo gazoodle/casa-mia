@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b55
+
+- Camera compositor: each channel is fetched, and decoded, only as often as its fastest user draws from it: its own pace is the slower of the gatherer's and that of the fastest generator using it. A gatherer set faster than the commanders are drawn no longer makes a stream decode every frame (the main camera did), nor fetches pictures nobody draws. Hovering a stream's CPU on the Camera compositor page gives its pace and its keyframe interval: a stream whose keyframes come less often than it is drawn still decodes every frame, to keep its picture fresh.
+
 ## 2026.10.3-b54
 
 - Camera compositor page: graphs of the whole compositor system over the last 3 minutes, sampled every 2 s on the box (so they are full when the page opens): CPU as a share of the whole box, gathering (stream decoding, survey reads) and composing (drawing and encoding) in their own colours; memory, the cache and the rest of the app against the box's; and bytes sent to viewers. The stage boxes' text wraps instead of being cut short.

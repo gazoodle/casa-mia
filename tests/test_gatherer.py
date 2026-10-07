@@ -349,7 +349,7 @@ def test_a_stream_is_decoded_only_as_much_as_its_pace_needs(tmp_path):
     from types import SimpleNamespace
     from typing import cast
 
-    reader = cast(mod.streams.Reader, SimpleNamespace(gop_s=None))
+    reader = cast(mod.streams.Reader, SimpleNamespace(gop_s=None, entity="camera.a"))
     assert g._keys_only(reader)  # its keyframe interval not known yet: keyframes
     reader.gop_s = 1.0
     g.paces["gatherer"] = 2.0
@@ -358,6 +358,14 @@ def test_a_stream_is_decoded_only_as_much_as_its_pace_needs(tmp_path):
     assert not g._keys_only(reader)  # fresher than its keyframes: every frame
     g.paces["gatherer"] = 0.0
     assert not g._keys_only(reader)  # continuous: every frame
+    # but no faster than its fastest user: a commander drawn every 2 s needs no more
+    g.want("live", {"camera.a": []})
+    g.paces["live"] = 2.0
+    assert g._pace_of("camera.a") == 2.0 and g._keys_only(reader)
+    g.paces["live"] = 0.5  # drawn every 0.5 s, keyframes every 1 s: every frame
+    assert not g._keys_only(reader)
+    g.paces["gatherer"] = 5.0  # the gatherer slower than any user: its pace
+    assert g._pace_of("camera.a") == 5.0
 
 
 def test_the_cache_is_counted(tmp_path):

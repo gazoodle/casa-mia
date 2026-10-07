@@ -41,6 +41,8 @@ type Channel = {
   cpu_pct: number | null;
   decoding: "keyframes" | "every frame" | null;
   gop_s: number | null;
+  /** Its own pace: the slower of the gatherer's and its fastest user's (s). */
+  pace_s: number | null;
   no_stream: string | null;
   width: number;
   height: number;
@@ -429,7 +431,11 @@ function GathererArea({
                 )}
               </td>
               <td>{c.fps != null ? `${c.fps} fps` : c.fetch_ms != null ? `${ms(c.fetch_ms)} a still` : ""}</td>
-              <td title={c.gop_s ? `A keyframe every ${c.gop_s} s` : undefined}>
+              <td
+                title={[c.pace_s != null ? `Its pictures used ${paceText(c.pace_s)}` : "", c.gop_s ? `a keyframe every ${c.gop_s} s` : ""]
+                  .filter(Boolean)
+                  .join("; ")}
+              >
                 {c.cpu_pct != null ? `${c.cpu_pct}% · ${c.decoding}` : ""}
               </td>
               <td>{c.wanted_by.map(owner).join(", ")}</td>

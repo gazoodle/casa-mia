@@ -18,7 +18,7 @@ async def gather_round(comp) -> None:
     """One round of a compositor's commanders: what it wants, fetched by its gatherer."""
     comp._want(comp.cfg.commanders)
     g = comp.gather
-    g.uses = g._wants[comp.store][1]
+    g.uses = g._wants[comp.role][1]
     await asyncio.gather(*(g._once(e) for e in g.uses))
 
 

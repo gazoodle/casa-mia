@@ -221,7 +221,7 @@ def test_a_round_draws_from_the_channels_streams(tmp_path, monkeypatch):
         comp.gather._bg = set()
         comp._want(comp.cfg.commanders)
         g = comp.gather
-        g.uses = g._wants[comp.store][1]
+        g.uses = g._wants[comp.role][1]
         await asyncio.gather(*(g._once(e) for e in g.uses))
         # a survey pass: every channel of every camera
         everything = [e for c in g._cameras() for e in mod_channels(g.cfg, c).values()]

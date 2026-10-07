@@ -1268,7 +1268,7 @@ class Gatherer:
         while True:
             started = time.monotonic()
             new = await self._once(entity)
-            wait = self.pace("gatherer") - (time.monotonic() - started)
+            wait = self._pace_of(entity) - (time.monotonic() - started)
             # ponytail: continuous polls a stream for its next frame every IDLE s; a
             # frame event from the reader would wake it exactly, if this ever matters.
             await self.paced(wait if new else max(wait, IDLE))
@@ -1641,6 +1641,7 @@ class Gatherer:
                 if e in self._benched
                 else None,
                 "wanted_by": owners.get(e, []),
+                "pace_s": self._pace_of(e) if e in self._feeds else None,
                 "surveys": list(reversed(self._surveyed.get(e, []))),
                 "uses": [
                     {
@@ -1851,11 +1852,24 @@ class Gatherer:
         )
         return reader
 
+    def _pace_of(self, entity: str) -> float:
+        """A channel's own pace (seconds between its pictures): the slower of the
+        gatherer's and its fastest user's, the generator drawing most often from it (a
+        picture taken more often than any drawing uses one is wasted)."""
+        now = time.monotonic()
+        users = [
+            self.pace(owner)
+            for owner, (at, uses) in list(self._wants.items())
+            if owner in PACES and entity in uses and now - at < LINGER
+        ]
+        gatherer = self.pace("gatherer")
+        return max(gatherer, min(users)) if users else gatherer
+
     def _keys_only(self, reader: streams.Reader) -> bool:
-        """Whether a stream's keyframes are enough: its pictures are taken no faster
-        than its keyframes come (rule 0: a frame decoded is one used). Continuous, or a
-        pace faster than its keyframe interval: every frame."""
-        pace = self.pace("gatherer")
+        """Whether a stream's keyframes are enough: its pictures are taken (at its own
+        pace, see _pace_of) no faster than its keyframes come (rule 0: a frame decoded
+        is one used). Continuous, or a pace faster than its keyframes: every frame."""
+        pace = self._pace_of(reader.entity)
         return pace > 0 and (reader.gop_s is None or pace >= reader.gop_s)
 
     def _stop_readers(self, keep: set[str] | frozenset[str] = frozenset()) -> None:
@@ -2503,7 +2517,7 @@ class Compositor:
                         if chan in self.gather.res
                         else "",
                     )
-        self.gather.want(self.store, uses)
+        self.gather.want(self.role, uses)
 
     async def _draw(self, cmd: dict, changing: bool = False) -> bytes:
         """Draw a commander from the cache (in a worker thread), keep it as its latest
