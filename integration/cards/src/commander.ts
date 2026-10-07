@@ -28,6 +28,7 @@
 // picture is asked for at no more than `away_sharpness`'s pixel ratio (Balanced: 1.5), as
 // a 2x or 3x screen's own is up to four times the bytes over a slower link.
 import { LitElement, css, html, nothing } from "lit";
+import { keyed } from "lit/directives/keyed.js";
 import { atHome, define, type Fit, fire, fitOf, type Hass, heightFor, liveChannel, navigate, ratioFor, register, type Sharpness, watchRoom } from "./ha.ts";
 import { layout, PANELS, pyRound, type Rect, type Settings } from "./layout.ts";
 import { playWebRTC } from "../../../app/web/src/webrtc.ts";
@@ -90,6 +91,7 @@ class CommanderCard extends LitElement {
     _token: { state: true },
     _playing: { state: true },
     _liveFailed: { state: true },
+    _shown: { state: true },
   };
   _natural = ""; // the picture's own size as the browser decoded it (debug)
   _token = ""; // for the picture through Home Assistant, once asked
@@ -101,6 +103,10 @@ class CommanderCard extends LitElement {
   private liveWait = 0;
   _playing = false;
   _liveFailed = "";
+  /** Its picture's stream: 0 while the card is off the page or the page hidden, else
+   * which showing this is (each showing a new <img>, so a fresh stream). */
+  _shown = 0;
+  private shows = 0;
 
   private debugOn(): boolean {
     const st = this._config?.entity ? this.hass?.states[this._config.entity] : undefined;
@@ -135,18 +141,32 @@ class CommanderCard extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
+    document.addEventListener("visibilitychange", this.visibility);
+    this.visibility();
     this.unwatch = watchRoom(this.measure);
     this.widthWatch.observe(this);
     requestAnimationFrame(this.measure);
   }
   disconnectedCallback() {
     super.disconnectedCallback();
+    document.removeEventListener("visibilitychange", this.visibility);
+    this.cut();
     this.unwatch?.();
     this.widthWatch.disconnect();
     this.resize.disconnect();
     clearTimeout(this.settle);
     clearTimeout(this.retry);
     this.stopLive();
+  }
+  /** Shown: a fresh stream; hidden (the app in the background, another tab): none. */
+  private visibility = () => (document.hidden ? this.cut() : (this._shown = ++this.shows));
+  /** Its picture's stream ended now. Off the page (Home Assistant keeps a dashboard
+   * left, for a quick return), a browser goes on loading a stream an <img> started, so
+   * the server sends to a viewer who sees nothing; and a card off the page may not be
+   * drawn again until it is back, so the stream is ended here, not by drawing. */
+  private cut() {
+    this._shown = 0;
+    this.renderRoot?.querySelector<HTMLImageElement>(".picture")?.setAttribute("src", BLANK);
   }
   updated() {
     const box = this.renderRoot.querySelector(".box");
@@ -304,17 +324,20 @@ class CommanderCard extends LitElement {
     const size = !f || f.mode === "tile" ? `height:100%;aspect-ratio:${own.width}/${own.height}` : tall ? `height:${tall}px` : "";
     return html`<ha-card style=${size}>
       <div class="box">
-        ${src
-          ? html`<img
-              class="picture"
-              src=${src}
-              alt=""
-              @load=${(ev: Event) => {
-                const img = ev.target as HTMLImageElement;
-                this._natural = `${img.naturalWidth} x ${img.naturalHeight}`;
-              }}
-              @error=${() => this.refused()}
-            />`
+        ${src && this._shown
+          ? keyed(
+              this._shown,
+              html`<img
+                class="picture"
+                src=${src}
+                alt=""
+                @load=${(ev: Event) => {
+                  const img = ev.target as HTMLImageElement;
+                  this._natural = `${img.naturalWidth} x ${img.naturalHeight}`;
+                }}
+                @error=${() => this.refused()}
+              />`,
+            )
           : nothing}
         ${own.debug?.on
           ? html`<div class="debug" style="color:${own.debug.colour ?? "#ffd60a"}">

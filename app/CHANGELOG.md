@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026.10.3-b67
+
+- Camera Commander card: its picture's stream ends when the card leaves the page or the page is hidden (the companion app in the background, another tab), and starts afresh when it is back. Home Assistant keeps a dashboard you leave for a quick return, and a browser (the companion app's above all) went on loading the stream, so the server kept sending to a viewer who saw nothing.
 ## 2026.10.3-b66
 
 - Camera compositor: a generator lists only the commanders being watched. With nobody watching, each commander's picture from the start's warm-up stayed listed (stale, as if drawn) until its main camera changed, so one commander could be missing from a list of the others.
