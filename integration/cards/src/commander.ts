@@ -6,6 +6,9 @@
 // compositor) instead of what is live. The highlight on the main camera's tile is an <img>
 // marked #cm-highlight, as on the generated dashboard, so cm-streams.js pulses it (and gives the
 // picture its Security look, and stops it while off screen).
+// Being edited (the dashboard in edit mode, the card editor), it shows one still picture at
+// the commander's own size, hatched, and no stream or live video: edit mode resizes it at
+// every step, and each size would be a new stream from the compositor.
 // The picture is drawn exactly the size the card is shown: the card asks the compositor for
 // its own size (device pixels, ?w=&h=&dpr=), and lays its taps out for the same canvas, so
 // nothing is scaled, cropped or bordered on the screen. Its size follows the cards' one rule
@@ -29,7 +32,7 @@
 // a 2x or 3x screen's own is up to four times the bytes over a slower link.
 import { LitElement, css, html, nothing } from "lit";
 import { keyed } from "lit/directives/keyed.js";
-import { atHome, define, type Fit, fire, fitOf, type Hass, heightFor, liveChannel, navigate, ratioFor, register, type Sharpness, watchRoom } from "./ha.ts";
+import { atHome, define, type Fit, fire, fitOf, type Hass, heightFor, inDialog, liveChannel, navigate, ratioFor, register, type Sharpness, watchRoom } from "./ha.ts";
 import { layout, PANELS, pyRound, type Rect, type Settings } from "./layout.ts";
 import { playWebRTC } from "../../../app/web/src/webrtc.ts";
 
@@ -102,7 +105,10 @@ class CommanderCard extends LitElement {
     _playing: { state: true },
     _liveFailed: { state: true },
     _shown: { state: true },
+    preview: { type: Boolean },
   };
+  /** Set by Home Assistant while its dashboard is in edit mode. */
+  preview = false;
   _natural = ""; // the picture's own size as the browser decoded it (debug)
   _token = ""; // for the picture through Home Assistant, once asked
   private retry = 0;
@@ -225,6 +231,11 @@ class CommanderCard extends LitElement {
     this.leaving = 0;
     if (!this._shown) return;
     this._shown = 0;
+    this.done(why);
+    this.renderRoot?.querySelector<HTMLImageElement>(".picture")?.setAttribute("src", BLANK); // and let go here too
+  }
+  /** Its stream, if any, ended by the server. */
+  private done(why: string) {
     // Said to the server (directly, or through Home Assistant: the same address with
     // /done for .mjpg), which ends it: no relying on the browser (WebKit keeps loading a
     // stream an <img> let go), Home Assistant or Nabu Casa letting the connection go. A
@@ -233,9 +244,26 @@ class CommanderCard extends LitElement {
     const was = this.streaming;
     this.streaming = "";
     if (was.includes(".mjpg?")) navigator.sendBeacon(`${was.replace(".mjpg?", "/done?")}&why=${encodeURIComponent(why)}`);
-    this.renderRoot?.querySelector<HTMLImageElement>(".picture")?.setAttribute("src", BLANK); // and let go here too
+  }
+  /** Being edited (the dashboard in edit mode, or the card editor's preview): a still
+   * picture, not the stream. Edit mode resizes the card at every step, and each new
+   * size would be a new stream from the compositor. */
+  private editing(): boolean {
+    return this.preview || inDialog(this);
+  }
+  /** One still picture at the commander's own size (the browser scales it), asked for
+   * once while editing; "" while its token is being asked. */
+  private stillUrl(card: Card): string {
+    const still = card.picture.replace(".mjpg", ".jpg");
+    if (!this.viaHa()) return still;
+    if (!this._token) {
+      this.ask();
+      return "";
+    }
+    return `/api/casa_mia/${this._config?.draft ? "draft" : "live"}${new URL(still).pathname}?token=${this._token}`;
   }
   updated() {
+    if (this.streaming && this.editing()) this.done("editing");
     const box = this.renderRoot.querySelector(".box");
     if (box) {
       this.resize.observe(box);
@@ -375,13 +403,16 @@ class CommanderCard extends LitElement {
     if (!card.picture) return html`<ha-card><div class="note">Its picture's address is not known yet (the app has no LAN address).</div></ha-card>`;
     const main = this.main(card, st!.state);
     if (this._liveFailed && this._liveFailed !== main) this._liveFailed = ""; // a new main: try again
-    const live = this.liveMain(card, main);
+    const editing = this.editing();
+    const live = !editing && this.liveMain(card, main);
     // Laid out for the picture asked for, as the compositor draws it (compositor.sized).
     const own = card.layout;
-    const [W, H, scale] = this._size ?? [own.width, own.height, 1];
-    const asked = this._size ? this.pictureUrl(card, this._size) : "";
+    const sized = editing ? null : this._size; // a still is the commander's own size
+    const [W, H, scale] = sized ?? [own.width, own.height, 1];
+    const asked = sized ? this.pictureUrl(card, sized) : "";
     const src = asked && live ? `${asked}&main=video` : asked;
-    const s = this._size ? { ...own, width: W, height: H, gap: pyRound(own.gap * scale), margin: pyRound((own.margin ?? 0) * scale), scale } : own;
+    const still = editing ? this.stillUrl(card) : "";
+    const s = sized ? { ...own, width: W, height: H, gap: pyRound(own.gap * scale), margin: pyRound((own.margin ?? 0) * scale), scale } : own;
     const [[w, h], mainRect, tiles] = layout(s, main);
     const at = ([x, y, rw, rh]: Rect) =>
       `left:${(x / w) * 100}%;top:${(y / h) * 100}%;width:${(rw / w) * 100}%;height:${(rh / h) * 100}%`;
@@ -394,7 +425,10 @@ class CommanderCard extends LitElement {
     const size = !f || f.mode === "tile" ? `height:100%;aspect-ratio:${own.width}/${own.height}` : tall ? `height:${tall}px` : "";
     return html`<ha-card style=${size}>
       <div class="box">
-        ${src && this._shown
+        ${editing
+          ? html`${still ? html`<img class="still" src=${still} alt="" />` : nothing}
+              <div class="hatch"><span>Still picture while editing</span></div>`
+          : src && this._shown
           ? keyed(
               this._shown,
               html`<img
@@ -479,10 +513,28 @@ class CommanderCard extends LitElement {
       position: absolute;
       inset: 0;
     }
-    .picture {
+    .picture,
+    .still {
       display: block;
       width: 100%;
       height: 100%;
+    }
+    /* A still while editing: hatched, so it is not taken for the live picture. */
+    .hatch {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-end;
+      padding: 8px;
+      background: repeating-linear-gradient(45deg, rgb(255 255 255 / 0.18) 0 4px, rgb(0 0 0 / 0.18) 4px 14px);
+      pointer-events: none;
+    }
+    .hatch span {
+      padding: 2px 6px;
+      background: rgb(0 0 0 / 0.63);
+      color: #fff;
+      font: 13px/1.2 sans-serif;
     }
     .zone,
     .highlight,

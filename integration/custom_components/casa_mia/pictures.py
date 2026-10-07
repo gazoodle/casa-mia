@@ -4,6 +4,7 @@ opened over HTTPS (an http:// picture is blocked as mixed content). The Camera C
 card asks for a token (websocket casa_mia/picture_token, any signed-in user) and shows
 /api/casa_mia/{live|draft}/g/<name>.mjpg?token=...; this passes the app's stream through
 as it comes, so the compositor's trick of opening each next part at once still works.
+The card being edited shows one still instead, the same address with .jpg.
 Only the pictures the app lists for its commanders can be reached this way.
 
 Not HA's signed paths: an <img> can't send a login, and a signed path is refused once a
@@ -137,7 +138,7 @@ class DoneView(HomeAssistantView):
 
 
 class PictureView(HomeAssistantView):
-    url = PROXY + "/{which:live|draft}/g/{name}.mjpg"
+    url = PROXY + "/{which:live|draft}/g/{name}.{kind:mjpg|jpg}"
     name = f"api:{DOMAIN}:picture"
     requires_auth = False  # the token instead (see the module's doc)
 
@@ -145,7 +146,7 @@ class PictureView(HomeAssistantView):
         self.hass = hass
 
     async def get(
-        self, request: web.Request, which: str, name: str
+        self, request: web.Request, which: str, name: str, kind: str
     ) -> web.StreamResponse:
         expires, user = self.hass.data[TOKENS].get(
             request.query.get("token", ""), (0, "")
@@ -161,6 +162,8 @@ class PictureView(HomeAssistantView):
         if not (url := source(self.hass, which, name)):
             _LOGGER.warning("picture %s/%s: no commander has it", which, name)
             return web.Response(status=404)
+        if kind == "jpg":  # one still (the card while it is edited)
+            url = url.replace(".mjpg", ".jpg")
         params: dict[str, Any] = {
             k: request.query[k] for k in PASSED if k in request.query
         }

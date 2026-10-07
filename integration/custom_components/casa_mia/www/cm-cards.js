@@ -254,13 +254,13 @@ var C = class extends HTMLElement {
 C.elementStyles = [], C.shadowRootOptions = { mode: "open" }, C[y("elementProperties")] = /* @__PURE__ */ new Map(), C[y("finalized")] = /* @__PURE__ */ new Map(), v?.({ ReactiveElement: C }), (h.reactiveElementVersions ??= []).push("2.1.2");
 //#endregion
 //#region node_modules/lit-html/lit-html.js
-var w = globalThis, T = (e) => e, E = w.trustedTypes, ee = E ? E.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, te = "$lit$", D = `lit$${Math.random().toFixed(9).slice(2)}$`, ne = "?" + D, re = `<${ne}>`, O = document, k = () => O.createComment(""), A = (e) => e === null || typeof e != "object" && typeof e != "function", ie = Array.isArray, ae = (e) => ie(e) || typeof e?.[Symbol.iterator] == "function", j = "[ 	\n\f\r]", M = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, oe = /-->/g, se = />/g, N = RegExp(`>|${j}(?:([^\\s"'>=/]+)(${j}*=${j}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`, "g"), ce = /'/g, le = /"/g, ue = /^(?:script|style|textarea|title)$/i, P = ((e) => (t, ...n) => ({
+var w = globalThis, T = (e) => e, E = w.trustedTypes, ee = E ? E.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, D = "$lit$", O = `lit$${Math.random().toFixed(9).slice(2)}$`, te = "?" + O, ne = `<${te}>`, k = document, A = () => k.createComment(""), j = (e) => e === null || typeof e != "object" && typeof e != "function", re = Array.isArray, ie = (e) => re(e) || typeof e?.[Symbol.iterator] == "function", ae = "[ 	\n\f\r]", M = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, oe = /-->/g, se = />/g, N = RegExp(`>|${ae}(?:([^\\s"'>=/]+)(${ae}*=${ae}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`, "g"), ce = /'/g, le = /"/g, ue = /^(?:script|style|textarea|title)$/i, P = ((e) => (t, ...n) => ({
 	_$litType$: e,
 	strings: t,
 	values: n
-}))(1), F = Symbol.for("lit-noChange"), I = Symbol.for("lit-nothing"), de = /* @__PURE__ */ new WeakMap(), L = O.createTreeWalker(O, 129);
+}))(1), F = Symbol.for("lit-noChange"), I = Symbol.for("lit-nothing"), de = /* @__PURE__ */ new WeakMap(), L = k.createTreeWalker(k, 129);
 function fe(e, t) {
-	if (!ie(e) || !e.hasOwnProperty("raw")) throw Error("invalid template strings array");
+	if (!re(e) || !e.hasOwnProperty("raw")) throw Error("invalid template strings array");
 	return ee === void 0 ? t : ee.createHTML(t);
 }
 var pe = (e, t) => {
@@ -269,7 +269,7 @@ var pe = (e, t) => {
 		let n = e[t], s, c, l = -1, u = 0;
 		for (; u < n.length && (o.lastIndex = u, c = o.exec(n), c !== null);) u = o.lastIndex, o === M ? c[1] === "!--" ? o = oe : c[1] === void 0 ? c[2] === void 0 ? c[3] !== void 0 && (o = N) : (ue.test(c[2]) && (i = RegExp("</" + c[2], "g")), o = N) : o = se : o === N ? c[0] === ">" ? (o = i ?? M, l = -1) : c[1] === void 0 ? l = -2 : (l = o.lastIndex - c[2].length, s = c[1], o = c[3] === void 0 ? N : c[3] === "\"" ? le : ce) : o === le || o === ce ? o = N : o === oe || o === se ? o = M : (o = N, i = void 0);
 		let d = o === N && e[t + 1].startsWith("/>") ? " " : "";
-		a += o === M ? n + re : l >= 0 ? (r.push(s), n.slice(0, l) + te + n.slice(l) + D + d) : n + D + (l === -2 ? t : d);
+		a += o === M ? n + ne : l >= 0 ? (r.push(s), n.slice(0, l) + D + n.slice(l) + O + d) : n + O + (l === -2 ? t : d);
 	}
 	return [fe(e, a + (e[n] || "<?>") + (t === 2 ? "</svg>" : t === 3 ? "</math>" : "")), r];
 }, me = class e {
@@ -283,8 +283,8 @@ var pe = (e, t) => {
 		}
 		for (; (i = L.nextNode()) !== null && c.length < s;) {
 			if (i.nodeType === 1) {
-				if (i.hasAttributes()) for (let e of i.getAttributeNames()) if (e.endsWith(te)) {
-					let t = u[o++], n = i.getAttribute(e).split(D), r = /([.?@])?(.*)/.exec(t);
+				if (i.hasAttributes()) for (let e of i.getAttributeNames()) if (e.endsWith(D)) {
+					let t = u[o++], n = i.getAttribute(e).split(O), r = /([.?@])?(.*)/.exec(t);
 					c.push({
 						type: 1,
 						index: a,
@@ -292,45 +292,45 @@ var pe = (e, t) => {
 						strings: n,
 						ctor: r[1] === "." ? ge : r[1] === "?" ? _e : r[1] === "@" ? ve : B
 					}), i.removeAttribute(e);
-				} else e.startsWith(D) && (c.push({
+				} else e.startsWith(O) && (c.push({
 					type: 6,
 					index: a
 				}), i.removeAttribute(e));
 				if (ue.test(i.tagName)) {
-					let e = i.textContent.split(D), t = e.length - 1;
+					let e = i.textContent.split(O), t = e.length - 1;
 					if (t > 0) {
 						i.textContent = E ? E.emptyScript : "";
-						for (let n = 0; n < t; n++) i.append(e[n], k()), L.nextNode(), c.push({
+						for (let n = 0; n < t; n++) i.append(e[n], A()), L.nextNode(), c.push({
 							type: 2,
 							index: ++a
 						});
-						i.append(e[t], k());
+						i.append(e[t], A());
 					}
 				}
 			} else if (i.nodeType === 8) {
-				if (i.data === ne) c.push({
+				if (i.data === te) c.push({
 					type: 2,
 					index: a
 				});
 				else {
 					let e = -1;
-					for (; (e = i.data.indexOf(D, e + 1)) !== -1;) c.push({
+					for (; (e = i.data.indexOf(O, e + 1)) !== -1;) c.push({
 						type: 7,
 						index: a
-					}), e += D.length - 1;
+					}), e += O.length - 1;
 				}
 			}
 			a++;
 		}
 	}
 	static createElement(e, t) {
-		let n = O.createElement("template");
+		let n = k.createElement("template");
 		return n.innerHTML = e, n;
 	}
 };
 function R(e, t, n = e, r) {
 	if (t === F) return t;
-	let i = r === void 0 ? n._$Cl : n._$Co?.[r], a = A(t) ? void 0 : t._$litDirective$;
+	let i = r === void 0 ? n._$Cl : n._$Co?.[r], a = j(t) ? void 0 : t._$litDirective$;
 	return i?.constructor !== a && (i?._$AO?.(!1), a === void 0 ? i = void 0 : (i = new a(e), i._$AT(e, n, r)), r === void 0 ? n._$Cl = i : (n._$Co ??= [])[r] = i), i !== void 0 && (t = R(e, i._$AS(e, t.values), i, r)), t;
 }
 var he = class {
@@ -344,7 +344,7 @@ var he = class {
 		return this._$AM._$AU;
 	}
 	u(e) {
-		let { el: { content: t }, parts: n } = this._$AD, r = (e?.creationScope ?? O).importNode(t, !0);
+		let { el: { content: t }, parts: n } = this._$AD, r = (e?.creationScope ?? k).importNode(t, !0);
 		L.currentNode = r;
 		let i = L.nextNode(), a = 0, o = 0, s = n[0];
 		for (; s !== void 0;) {
@@ -354,7 +354,7 @@ var he = class {
 			}
 			a !== s?.index && (i = L.nextNode(), a++);
 		}
-		return L.currentNode = O, r;
+		return L.currentNode = k, r;
 	}
 	p(e) {
 		let t = 0;
@@ -378,7 +378,7 @@ var he = class {
 		return this._$AB;
 	}
 	_$AI(e, t = this) {
-		e = R(this, e, t), A(e) ? e === I || e == null || e === "" ? (this._$AH !== I && this._$AR(), this._$AH = I) : e !== this._$AH && e !== F && this._(e) : e._$litType$ === void 0 ? e.nodeType === void 0 ? ae(e) ? this.k(e) : this._(e) : this.T(e) : this.$(e);
+		e = R(this, e, t), j(e) ? e === I || e == null || e === "" ? (this._$AH !== I && this._$AR(), this._$AH = I) : e !== this._$AH && e !== F && this._(e) : e._$litType$ === void 0 ? e.nodeType === void 0 ? ie(e) ? this.k(e) : this._(e) : this.T(e) : this.$(e);
 	}
 	O(e) {
 		return this._$AA.parentNode.insertBefore(e, this._$AB);
@@ -387,7 +387,7 @@ var he = class {
 		this._$AH !== e && (this._$AR(), this._$AH = this.O(e));
 	}
 	_(e) {
-		this._$AH !== I && A(this._$AH) ? this._$AA.nextSibling.data = e : this.T(O.createTextNode(e)), this._$AH = e;
+		this._$AH !== I && j(this._$AH) ? this._$AA.nextSibling.data = e : this.T(k.createTextNode(e)), this._$AH = e;
 	}
 	$(e) {
 		let { values: t, _$litType$: n } = e, r = typeof n == "number" ? this._$AC(e) : (n.el === void 0 && (n.el = me.createElement(fe(n.h, n.h[0]), this.options)), n);
@@ -402,9 +402,9 @@ var he = class {
 		return t === void 0 && de.set(e.strings, t = new me(e)), t;
 	}
 	k(t) {
-		ie(this._$AH) || (this._$AH = [], this._$AR());
+		re(this._$AH) || (this._$AH = [], this._$AR());
 		let n = this._$AH, r, i = 0;
-		for (let a of t) i === n.length ? n.push(r = new e(this.O(k()), this.O(k()), this, this.options)) : r = n[i], r._$AI(a), i++;
+		for (let a of t) i === n.length ? n.push(r = new e(this.O(A()), this.O(A()), this, this.options)) : r = n[i], r._$AI(a), i++;
 		i < n.length && (this._$AR(r && r._$AB.nextSibling, i), n.length = i);
 	}
 	_$AR(e = this._$AA.nextSibling, t) {
@@ -428,10 +428,10 @@ var he = class {
 	}
 	_$AI(e, t = this, n, r) {
 		let i = this.strings, a = !1;
-		if (i === void 0) e = R(this, e, t, 0), a = !A(e) || e !== this._$AH && e !== F, a && (this._$AH = e);
+		if (i === void 0) e = R(this, e, t, 0), a = !j(e) || e !== this._$AH && e !== F, a && (this._$AH = e);
 		else {
 			let r = e, o, s;
-			for (e = i[0], o = 0; o < i.length - 1; o++) s = R(this, r[n + o], t, o), s === F && (s = this._$AH[o]), a ||= !A(s) || s !== this._$AH[o], s === I ? e = I : e !== I && (e += (s ?? "") + i[o + 1]), this._$AH[o] = s;
+			for (e = i[0], o = 0; o < i.length - 1; o++) s = R(this, r[n + o], t, o), s === F && (s = this._$AH[o]), a ||= !j(s) || s !== this._$AH[o], s === I ? e = I : e !== I && (e += (s ?? "") + i[o + 1]), this._$AH[o] = s;
 		}
 		a && !r && this.j(e);
 	}
@@ -475,13 +475,13 @@ var he = class {
 		R(this, e);
 	}
 }, be = {
-	M: te,
-	P: D,
-	A: ne,
+	M: D,
+	P: O,
+	A: te,
 	C: 1,
 	L: pe,
 	R: he,
-	D: ae,
+	D: ie,
 	V: R,
 	I: z,
 	H: B,
@@ -495,7 +495,7 @@ var Se = (e, t, n) => {
 	let r = n?.renderBefore ?? t, i = r._$litPart$;
 	if (i === void 0) {
 		let e = n?.renderBefore ?? null;
-		r._$litPart$ = i = new z(t.insertBefore(k(), e), e, void 0, n ?? {});
+		r._$litPart$ = i = new z(t.insertBefore(A(), e), e, void 0, n ?? {});
 	}
 	return i._$AI(e), i;
 }, Ce = globalThis, V = class extends C {
@@ -1290,7 +1290,7 @@ function kt(e) {
 }
 var At = class extends V {
 	constructor(...e) {
-		super(...e), this._natural = "", this._token = "", this.retry = 0, this.liveOn = "", this.liveWait = 0, this._playing = !1, this._liveFailed = "", this._shown = 0, this.shows = 0, this._size = null, this._box = [0, 0], this._fit = null, this.settle = 0, this.resize = new ResizeObserver(([e]) => {
+		super(...e), this.preview = !1, this._natural = "", this._token = "", this.retry = 0, this.liveOn = "", this.liveWait = 0, this._playing = !1, this._liveFailed = "", this._shown = 0, this.shows = 0, this._size = null, this._box = [0, 0], this._fit = null, this.settle = 0, this.resize = new ResizeObserver(([e]) => {
 			let { width: t, height: n } = e.contentRect;
 			this._box = [Math.round(t * 10) / 10, Math.round(n * 10) / 10], this.measure(), this.debugOn() && this.requestUpdate();
 			let r = Dt(t, n, Ze(window.devicePixelRatio || 1, this.viaHa(), this._config?.away_sharpness));
@@ -1321,7 +1321,8 @@ var At = class extends V {
 			_token: { state: !0 },
 			_playing: { state: !0 },
 			_liveFailed: { state: !0 },
-			_shown: { state: !0 }
+			_shown: { state: !0 },
+			preview: { type: Boolean }
 		};
 	}
 	debugOn() {
@@ -1336,12 +1337,21 @@ var At = class extends V {
 		super.disconnectedCallback(), document.removeEventListener("visibilitychange", this.visibility), window.removeEventListener("location-changed", this.visibility), window.removeEventListener("popstate", this.visibility), this.onScreen.disconnect(), this.inView = !1, this.visibility(), this.unwatch?.(), this.widthWatch.disconnect(), this.resize.disconnect(), clearTimeout(this.settle), clearTimeout(this.retry), this.stopLive();
 	}
 	cut(e) {
-		if (clearTimeout(this.leaving), this.leaving = 0, !this._shown) return;
-		this._shown = 0;
+		clearTimeout(this.leaving), this.leaving = 0, this._shown && (this._shown = 0, this.done(e), this.renderRoot?.querySelector(".picture")?.setAttribute("src", Ct));
+	}
+	done(e) {
 		let t = this.streaming;
-		this.streaming = "", t.includes(".mjpg?") && navigator.sendBeacon(`${t.replace(".mjpg?", "/done?")}&why=${encodeURIComponent(e)}`), this.renderRoot?.querySelector(".picture")?.setAttribute("src", Ct);
+		this.streaming = "", t.includes(".mjpg?") && navigator.sendBeacon(`${t.replace(".mjpg?", "/done?")}&why=${encodeURIComponent(e)}`);
+	}
+	editing() {
+		return this.preview || Ue(this);
+	}
+	stillUrl(e) {
+		let t = e.picture.replace(".mjpg", ".jpg");
+		return this.viaHa() ? this._token ? `/api/casa_mia/${this._config?.draft ? "draft" : "live"}${new URL(t).pathname}?token=${this._token}` : (this.ask(), "") : t;
 	}
 	updated() {
+		this.streaming && this.editing() && this.done("editing");
 		let e = this.renderRoot.querySelector(".box");
 		e && (this.resize.observe(e), this.onScreen.observe(e)), this.followLive();
 		let t = this.renderRoot.querySelector(".picture"), n = t?.naturalWidth ? `${t.naturalWidth} x ${t.naturalHeight}` : "";
@@ -1428,24 +1438,25 @@ var At = class extends V {
 		if (!t.picture) return P`<ha-card><div class="note">Its picture's address is not known yet (the app has no LAN address).</div></ha-card>`;
 		let n = this.main(t, e.state);
 		this._liveFailed && this._liveFailed !== n && (this._liveFailed = "");
-		let r = this.liveMain(t, n), i = t.layout, [a, o, s] = this._size ?? [
-			i.width,
-			i.height,
+		let r = this.editing(), i = !r && this.liveMain(t, n), a = t.layout, o = r ? null : this._size, [s, c, l] = o ?? [
+			a.width,
+			a.height,
 			1
-		], c = this._size ? this.pictureUrl(t, this._size) : "", l = c && r ? `${c}&main=video` : c, u = this._size ? {
-			...i,
-			width: a,
-			height: o,
-			gap: q(i.gap * s),
-			margin: q((i.margin ?? 0) * s),
-			scale: s
-		} : i, [[d, f], p, m] = X(u, n), h = ([e, t, n, r]) => `left:${e / d * 100}%;top:${t / f * 100}%;width:${n / d * 100}%;height:${r / f * 100}%`, g = u.highlight ?? {}, _ = K.flatMap((e) => u[e].cameras.map((t, n) => [t, m[e][n]])).find(([e]) => e === n)?.[1], v = this._fit, y = v && this._width ? qe(v, this._width, i.width / i.height) : null;
-		return P`<ha-card style=${!v || v.mode === "tile" ? `height:100%;aspect-ratio:${i.width}/${i.height}` : y ? `height:${y}px` : ""}>
+		], u = o ? this.pictureUrl(t, o) : "", d = u && i ? `${u}&main=video` : u, f = r ? this.stillUrl(t) : "", p = o ? {
+			...a,
+			width: s,
+			height: c,
+			gap: q(a.gap * l),
+			margin: q((a.margin ?? 0) * l),
+			scale: l
+		} : a, [[m, h], g, _] = X(p, n), v = ([e, t, n, r]) => `left:${e / m * 100}%;top:${t / h * 100}%;width:${n / m * 100}%;height:${r / h * 100}%`, y = p.highlight ?? {}, b = K.flatMap((e) => p[e].cameras.map((t, n) => [t, _[e][n]])).find(([e]) => e === n)?.[1], x = this._fit, S = x && this._width ? qe(x, this._width, a.width / a.height) : null;
+		return P`<ha-card style=${!x || x.mode === "tile" ? `height:100%;aspect-ratio:${a.width}/${a.height}` : S ? `height:${S}px` : ""}>
       <div class="box">
-        ${l && this._shown ? dt(this._shown, P`<img
+        ${r ? P`${f ? P`<img class="still" src=${f} alt="" />` : I}
+              <div class="hatch"><span>Still picture while editing</span></div>` : d && this._shown ? dt(this._shown, P`<img
                 class="picture"
                 data-cm-own
-                src=${this.streaming = l}
+                src=${this.streaming = d}
                 alt=""
                 @load=${(e) => {
 			let t = e.target;
@@ -1453,32 +1464,32 @@ var At = class extends V {
 		}}
                 @error=${() => this.refused()}
               />`) : I}
-        ${i.debug?.on ? P`<div class="debug" style="color:${i.debug.colour ?? "#ffd60a"}">
+        ${a.debug?.on ? P`<div class="debug" style="color:${a.debug.colour ?? "#ffd60a"}">
               ${this._fit?.mode ?? "?"} (in ${this._fit?.container || "?"}), room ${this._fit?.room ?? "?"} px<br />
               card box ${this._box[0]} x ${this._box[1]} CSS px, screen ${window.devicePixelRatio}x<br />
-              asked ${this._size ? `${a} x ${o} @${s}x` : "nothing yet"}; picture ${this._natural || "not loaded"}
+              asked ${this._size ? `${s} x ${c} @${l}x` : "nothing yet"}; picture ${this._natural || "not loaded"}
               ${this.viaHa() ? "through Home Assistant" : "direct"}
             </div>` : I}
-        ${K.flatMap((e) => u[e].cameras.map((r, i) => m[e][i][2] > 0 && r !== n ? P`<div class="zone" style=${h(m[e][i])} title=${t.cameras[r]?.title ?? r} @click=${() => this.choose(t, r)}></div>` : I))}
-        ${r && p[2] > 0 ? P`<video
+        ${K.flatMap((e) => p[e].cameras.map((r, i) => _[e][i][2] > 0 && r !== n ? P`<div class="zone" style=${v(_[e][i])} title=${t.cameras[r]?.title ?? r} @click=${() => this.choose(t, r)}></div>` : I))}
+        ${i && g[2] > 0 ? P`<video
                 class="live"
-                data-entity=${this.liveEntity(t, n, p) ?? ""}
-                data-cm-picture=${l}
-                style="${h(p)};object-fit:${{
+                data-entity=${this.liveEntity(t, n, g) ?? ""}
+                data-cm-picture=${d}
+                style="${v(g)};object-fit:${{
 			fill: "fill",
 			crop: "cover"
-		}[i.main_fit ?? "fit"] ?? "contain"};opacity:${+!!this._playing}"
+		}[a.main_fit ?? "fit"] ?? "contain"};opacity:${+!!this._playing}"
                 autoplay
                 playsinline
                 .muted=${!0}
               ></video>
-              <div class="caption" style=${h(p)}><span>${t.cameras[n]?.title ?? n}</span></div>` : I}
-        <div class="zone" style=${h(p)} @click=${() => this.open(t, n)}></div>
-        ${_ && _[2] > 0 ? P`<img
+              <div class="caption" style=${v(g)}><span>${t.cameras[n]?.title ?? n}</span></div>` : I}
+        <div class="zone" style=${v(g)} @click=${() => this.open(t, n)}></div>
+        ${b && b[2] > 0 ? P`<img
               class="highlight"
               src="${Ct}#cm-highlight"
               alt=""
-              style="${h(_)};border:${g.width}px solid ${g.colour};box-shadow:0 0 ${g.blur}px ${g.colour};--cm-colour:${g.colour};--cm-blur:${g.blur}px;--cm-pulse:${g.pulse}s;--cm-style:${g.style}"
+              style="${v(b)};border:${y.width}px solid ${y.colour};box-shadow:0 0 ${y.blur}px ${y.colour};--cm-colour:${y.colour};--cm-blur:${y.blur}px;--cm-pulse:${y.pulse}s;--cm-style:${y.style}"
             />` : I}
       </div>
     </ha-card>`;
@@ -1510,10 +1521,28 @@ var At = class extends V {
       position: absolute;
       inset: 0;
     }
-    .picture {
+    .picture,
+    .still {
       display: block;
       width: 100%;
       height: 100%;
+    }
+    /* A still while editing: hatched, so it is not taken for the live picture. */
+    .hatch {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-end;
+      padding: 8px;
+      background: repeating-linear-gradient(45deg, rgb(255 255 255 / 0.18) 0 4px, rgb(0 0 0 / 0.18) 4px 14px);
+      pointer-events: none;
+    }
+    .hatch span {
+      padding: 2px 6px;
+      background: rgb(0 0 0 / 0.63);
+      color: #fff;
+      font: 13px/1.2 sans-serif;
     }
     .zone,
     .highlight,

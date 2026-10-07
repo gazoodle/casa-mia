@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b73
+
+- Camera Commander card: while a dashboard is in edit mode (or in the card editor) it shows one still picture, hatched and labelled "Still picture while editing", instead of a stream. No stream is opened for each size the editor tries, and there is no live main video.
+
 ## 2026.10.3-b72
 
 - Camera Commander card: it tells the compositor it is done with a stream after you leave, as it was meant to. The Keep camera pictures live helper blanked the card's picture as soon as it was off screen, and the card took the stream's address from the picture, so it found none and said nothing; WebKit (the companion app) went on loading the stream it had let go, until other pictures stopped loading for want of connections. The card now keeps its stream's address itself, and the helper leaves the card's picture to the card (its Security look apart).
