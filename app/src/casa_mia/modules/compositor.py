@@ -3033,8 +3033,10 @@ def admin_api(
             try:
                 asked = json.loads(body or b"{}")
                 which, seconds = str(asked["which"]), float(asked["seconds"])
-                engine = engines.get(which)
-                if which != "gatherer" and not engine:
+                if which not in PACES:
+                    return fail(404, f"no such setting: {which}")
+                engine = engines.get(which)  # a generator's pace: that engine's
+                if which in engines and not engine:
                     return fail(404, "no such engine")
                 live.gather.set_pace(which, seconds)
                 if engine:  # its next drawing at the new pace, now

@@ -175,13 +175,16 @@ export function CompositorPage({ state }: { state?: string }) {
   }, [state]);
 
   /** A control, then the status it answers with. */
-  const act = async (path: string, done: string, body?: unknown) => {
+  /** Whether it was done (a refusal is said in a toast). */
+  const act = async (path: string, done: string, body?: unknown): Promise<boolean> => {
     setBusy(true);
     try {
       setStatus(await post<Status>(path, body));
       toast(done);
+      return true;
     } catch (err) {
       toast((err as Error).message, "bad");
+      return false;
     } finally {
       setBusy(false);
     }
@@ -237,7 +240,7 @@ export function CompositorPage({ state }: { state?: string }) {
   );
 }
 
-type Act = (path: string, done: string, body?: unknown) => void;
+type Act = (path: string, done: string, body?: unknown) => Promise<boolean>;
 
 /** Pause or run one stage. */
 function PauseButton({ paused, path, name, busy, act }: { paused: boolean; path: string; name: string; busy: boolean; act: Act }) {
@@ -531,7 +534,9 @@ function PaceSlider({
   const release = () => {
     if (held == null || steps[held] === value || sent.current === held) return;
     sent.current = held;
-    act("pace", `${label}: ${text(steps[held])}`, { which, seconds: steps[held] });
+    act("pace", `${label}: ${text(steps[held])}`, { which, seconds: steps[held] }).then((done) => {
+      if (!done) setHeld(undefined); // refused: back to what the box has
+    });
   };
   return (
     <label className={pipe.pace}>

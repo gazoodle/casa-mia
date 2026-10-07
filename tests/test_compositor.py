@@ -360,6 +360,21 @@ def test_the_pages_controls_restart_flush_and_forget(compositor):
     api("POST", "gatherer/run", {}, b"")
     api("POST", "live/server/run", {}, b"")
     assert api("POST", "draft/server/pause", {}, b"")[0] == 404  # no draft here
+    # every setting can be set through the API (the page's sliders, the integration)
+    for which, value in (
+        ("gatherer", 1.0),
+        ("live", 0.5),
+        ("survey", 120.0),
+        ("survey_at_once", 3.0),
+        ("freshness", 1.0),
+    ):
+        body = json.dumps({"which": which, "seconds": value}).encode()
+        code, _, out = api("POST", "pace", {}, body)
+        assert code == 200, (which, out)
+        assert compositor.gather.pace(which) == value
+    assert api("POST", "pace", {}, b'{"which": "draft", "seconds": 1}')[0] == 404
+    assert api("POST", "pace", {}, b'{"which": "nonsense", "seconds": 1}')[0] == 404
+    assert api("POST", "pace", {}, b'{"which": "freshness", "seconds": 99}')[0] == 400
     # one channel's picture purged: "(Waiting …)" again (its size kept); the rest kept
     # (the gatherer paused: running, a purge starts a survey pass that refetches it)
     compositor.gather.pause(True)

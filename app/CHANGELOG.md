@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b58
+
+- Camera compositor: the Picture age allowed, Survey pause and Survey at once settings are kept when set (from the page or the integration). They were refused (taken for the name of an engine), so they kept their defaults; and a slider whose value the box refuses now goes back to what the box has, with the reason, instead of seeming set.
+
 ## 2026.10.3-b57
 
 - Camera compositor: a picture age allowance (5 s by default, 0 to 10 s; Picture age allowed on the Camera compositor page and in the integration). A stream whose keyframes come at least that often is decoded keyframes only, however often it is drawn, so its picture may be up to that old: a UniFi Protect high channel with a keyframe every few seconds no longer decodes every frame (about three quarters of a CPU at 2688 x 1512) for a commander drawn every 2 s. 0 keeps every picture as fresh as its pace.
