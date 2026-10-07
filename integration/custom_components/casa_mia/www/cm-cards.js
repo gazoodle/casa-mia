@@ -1298,7 +1298,11 @@ var Dt = class extends V {
 		}), this._width = 0, this.measure = () => {
 			let e = Ke(this);
 			JSON.stringify(e) !== JSON.stringify(this._fit) && (this._fit = e), this.clientWidth !== this._width && (this._width = this.clientWidth);
-		}, this.widthWatch = new ResizeObserver(() => this.measure()), this.visibility = () => document.hidden ? this.cut() : this._shown = ++this.shows;
+		}, this.widthWatch = new ResizeObserver(() => this.measure()), this.visibility = () => {
+			document.hidden || !this.inView ? this.cut() : this._shown ||= ++this.shows;
+		}, this.inView = !1, this.onScreen = new IntersectionObserver((e) => {
+			this.inView = e[e.length - 1].isIntersecting, this.visibility();
+		});
 	}
 	static {
 		this.properties = {
@@ -1318,17 +1322,19 @@ var Dt = class extends V {
 		return !!((this._config?.entity ? this.hass?.states[this._config.entity] : void 0)?.attributes[this._config?.draft ? "draft_card" : "card"])?.layout.debug?.on;
 	}
 	connectedCallback() {
-		super.connectedCallback(), document.addEventListener("visibilitychange", this.visibility), this.visibility(), this.unwatch = Je(this.measure), this.widthWatch.observe(this), requestAnimationFrame(this.measure);
+		super.connectedCallback(), document.addEventListener("visibilitychange", this.visibility);
+		let e = this.renderRoot?.querySelector(".box");
+		e && this.onScreen.observe(e), this.unwatch = Je(this.measure), this.widthWatch.observe(this), requestAnimationFrame(this.measure);
 	}
 	disconnectedCallback() {
-		super.disconnectedCallback(), document.removeEventListener("visibilitychange", this.visibility), this.cut(), this.unwatch?.(), this.widthWatch.disconnect(), this.resize.disconnect(), clearTimeout(this.settle), clearTimeout(this.retry), this.stopLive();
+		super.disconnectedCallback(), document.removeEventListener("visibilitychange", this.visibility), this.onScreen.disconnect(), this.inView = !1, this.cut(), this.unwatch?.(), this.widthWatch.disconnect(), this.resize.disconnect(), clearTimeout(this.settle), clearTimeout(this.retry), this.stopLive();
 	}
 	cut() {
-		this._shown = 0, this.renderRoot?.querySelector(".picture")?.setAttribute("src", bt);
+		this._shown && (this._shown = 0, this.renderRoot?.querySelector(".picture")?.setAttribute("src", bt));
 	}
 	updated() {
 		let e = this.renderRoot.querySelector(".box");
-		e && this.resize.observe(e), this.followLive();
+		e && (this.resize.observe(e), this.onScreen.observe(e)), this.followLive();
 		let t = this.renderRoot.querySelector(".picture"), n = t?.naturalWidth ? `${t.naturalWidth} x ${t.naturalHeight}` : "";
 		this.debugOn() && n && n !== this._natural && (this._natural = n);
 	}

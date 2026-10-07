@@ -142,7 +142,8 @@ class CommanderCard extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     document.addEventListener("visibilitychange", this.visibility);
-    this.visibility();
+    const box = this.renderRoot?.querySelector(".box"); // back on the page: not drawn again
+    if (box) this.onScreen.observe(box);
     this.unwatch = watchRoom(this.measure);
     this.widthWatch.observe(this);
     requestAnimationFrame(this.measure);
@@ -150,6 +151,8 @@ class CommanderCard extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback();
     document.removeEventListener("visibilitychange", this.visibility);
+    this.onScreen.disconnect();
+    this.inView = false;
     this.cut();
     this.unwatch?.();
     this.widthWatch.disconnect();
@@ -158,19 +161,33 @@ class CommanderCard extends LitElement {
     clearTimeout(this.retry);
     this.stopLive();
   }
-  /** Shown: a fresh stream; hidden (the app in the background, another tab): none. */
-  private visibility = () => (document.hidden ? this.cut() : (this._shown = ++this.shows));
-  /** Its picture's stream ended now. Off the page (Home Assistant keeps a dashboard
-   * left, for a quick return), a browser goes on loading a stream an <img> started, so
-   * the server sends to a viewer who sees nothing; and a card off the page may not be
-   * drawn again until it is back, so the stream is ended here, not by drawing. */
+  /** On screen: a stream (a fresh one when it had none). Not (the page hidden: the app
+   * in the background, another tab; the card hidden: a dashboard left, which Home
+   * Assistant may keep, hidden, for a quick return; scrolled away): none. */
+  private visibility = () => {
+    if (document.hidden || !this.inView) this.cut();
+    else if (!this._shown) this._shown = ++this.shows;
+  };
+  private inView = false;
+  private onScreen = new IntersectionObserver((entries) => {
+    this.inView = entries[entries.length - 1].isIntersecting;
+    this.visibility();
+  });
+  /** Its picture's stream ended now. Hidden or off the page, a browser goes on loading
+   * a stream an <img> started, so the server sends to a viewer who sees nothing; and a
+   * card off the page may not be drawn again until it is back, so the stream is ended
+   * here, not by drawing. */
   private cut() {
+    if (!this._shown) return;
     this._shown = 0;
     this.renderRoot?.querySelector<HTMLImageElement>(".picture")?.setAttribute("src", BLANK);
   }
   updated() {
     const box = this.renderRoot.querySelector(".box");
-    if (box) this.resize.observe(box);
+    if (box) {
+      this.resize.observe(box);
+      this.onScreen.observe(box);
+    }
     this.followLive();
     // Debug: the picture's own size as decoded (a stream may never fire load)
     const img = this.renderRoot.querySelector<HTMLImageElement>(".picture");
