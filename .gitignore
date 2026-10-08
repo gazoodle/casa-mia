@@ -9,3 +9,5 @@ node_modules/
 build/
 # Screenshot swap: real strings, kept on the box (app/src/casa_mia/swap.py)
 swap.json
+# Until it's complete
+BACKSTORY.md 

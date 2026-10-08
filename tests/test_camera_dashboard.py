@@ -504,13 +504,15 @@ def test_integration_chooses_the_main_camera(tmp_path):
     cd.start()
     live.start()
     try:
-        first = cd.health()["commanders"][0]
+        # One reading: the live compositor runs, so a second may differ.
+        health = cd.health()
+        first = health["commanders"][0]
         assert (first["id"], first["options"], first["main"]) == (
             "",
             ["Bay", "Tablet"],
             "Bay",
         )
-        assert cd.health()["commander"] == first  # as an older integration reads it
+        assert health["commander"] == first  # as an older integration reads it
         assert cd.control("commander", b'{"main": "Tablet"}') == 200
         assert cd.health()["commander"]["main"] == "Tablet"
         assert json.loads(state.read_text()) == {"mains": {"": "camera.b"}}
@@ -567,13 +569,15 @@ def test_a_choice_moves_the_preview_too(tmp_path):
     cd.start()
     draft.start()
     try:
-        first = cd.health()["commanders"][0]
+        # One reading: the live compositor runs, so a second may differ.
+        health = cd.health()
+        first = health["commanders"][0]
         assert (first["id"], first["options"], first["main"]) == (
             "",
             ["Bay", "Tablet"],
             "Bay",
         )
-        assert cd.health()["commander"] == first  # as an older integration reads it
+        assert health["commander"] == first  # as an older integration reads it
         assert cd.control("commander", b'{"main": "Tablet"}') == 200
         assert draft.main_camera(draft.cfg.commanders[0]) == "camera.b"
     finally:
