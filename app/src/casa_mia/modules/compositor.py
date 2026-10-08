@@ -110,6 +110,7 @@ PACE_DEFAULTS = {
 }
 IDLE = 0.02  # continuous: a stream with no new frame yet is looked at again this soon
 GO2RTC_CHECK = 10.0  # seconds between looks at HA's go2rtc while it is out of reach
+HA_WATCH_RETRY = 2.0  # seconds between tries to reach HA's websocket (_watch_ha_start)
 STREAM_RETRY = 30.0  # seconds before a lost stream is read again (snapshots meanwhile)
 
 
@@ -1080,6 +1081,7 @@ class Gatherer:
         # not its stream, how long it took, and the size it gave.
         self._surveyed: dict[str, collections.deque[dict[str, Any]]] = {}
         self.survey: dict[str, Any] = {"running": False, "done": 0, "of": 0}
+        self._pass: asyncio.Future | None = None  # the survey pass under way
         self._misses: dict[str, int] = {}  # channel -> fetches missed in a row
         self._benched: dict[str, float] = {}  # channel -> when it is tried again
         self._answered = 0.0  # when any channel last answered (HA up)
@@ -1150,6 +1152,7 @@ class Gatherer:
             self._survey_loop(),
             self._monitor(),
             self._watch_go2rtc(),
+            self._watch_ha_start(),
         ]
         for coro in tasks:
             self._bg.add(asyncio.ensure_future(coro))
@@ -1220,6 +1223,20 @@ class Gatherer:
                     event.set()
 
         self._soon(afresh)
+
+    def ha_started(self, why: str) -> None:
+        """Home Assistant has started: its cameras are all there now. A survey pass under
+        way is cut short, and the gatherer starts afresh (restart), with a new pass at
+        once: while HA started up it answered before its camera integrations had loaded,
+        and each camera that failed then was benched for BENCH seconds. On the loop."""
+        _LOGGER.info(
+            "compositor (cameras): Home Assistant has started (%s): the gatherer starts "
+            "afresh, with a new survey",
+            why,
+        )
+        if self._pass and not self._pass.done():
+            self._pass.cancel()
+        self.restart()
 
     def pause(self, paused: bool) -> None:
         """Pause fetching (every loop and stream stopped, the cache kept) or run it
@@ -2193,6 +2210,47 @@ class Gatherer:
                 if event:
                     event.set()
 
+    async def _watch_ha_start(self) -> None:
+        """Hear Home Assistant say it has started (its homeassistant_started event), and
+        call ha_started. Connected through its restarts: the connection drops while it
+        is down and is made again every HA_WATCH_RETRY seconds; one made again finds it
+        already running if the event came first, and that counts as started too."""
+        assert self.http
+        again = False  # a connection after the first: HA may have restarted meanwhile
+        while True:
+            try:
+                async with self.http.ws_connect(self.ws_url, heartbeat=30) as ws:
+                    await ws.receive_json()  # auth_required
+                    await ws.send_json({"type": "auth", "access_token": self.token})
+                    if (await ws.receive_json()).get("type") != "auth_ok":
+                        _LOGGER.warning(
+                            "compositor (cameras): Home Assistant refused the token; "
+                            "its start is not heard (asked again in a minute)"
+                        )
+                        await asyncio.sleep(60)
+                        continue
+                    await ws.send_json(
+                        {
+                            "id": 1,
+                            "type": "subscribe_events",
+                            "event_type": "homeassistant_started",
+                        }
+                    )
+                    await ws.send_json({"id": 2, "type": "get_config"})
+                    async for msg in ws:
+                        if msg.type != aiohttp.WSMsgType.TEXT:
+                            break
+                        m = msg.json()
+                        if m.get("type") == "event":
+                            self.ha_started("its homeassistant_started event")
+                        elif m.get("id") == 2 and again:
+                            if (m.get("result") or {}).get("state") == "RUNNING":
+                                self.ha_started("found running on reconnecting")
+            except (aiohttp.ClientError, TimeoutError, ValueError, TypeError):
+                pass  # down, or restarting: tried again
+            again = True
+            await asyncio.sleep(HA_WATCH_RETRY)
+
     def _keys_only(self, reader: streams.Reader) -> bool:
         """Whether a stream's keyframes are enough: its pictures are taken (at its own
         pace, see _pace_of) no faster than its keyframes come (rule 0: a frame decoded
@@ -2252,7 +2310,19 @@ class Gatherer:
                             self._surveying.discard(entity)
                 self.survey["done"] += 1
 
-            await asyncio.gather(*(one(e) for e in todo))
+            # A task, so Home Assistant starting can cut it short (ha_started).
+            self._pass = asyncio.ensure_future(asyncio.gather(*(one(e) for e in todo)))
+            try:
+                await self._pass
+            except asyncio.CancelledError:
+                if (me := asyncio.current_task()) and me.cancelling():
+                    raise  # the gatherer itself stopping
+                _LOGGER.info(
+                    "compositor (cameras): survey cut short after %d of %d channels",
+                    self.survey["done"],
+                    len(todo),
+                )
+                continue  # a new pass, at once
             took = time.monotonic() - started
             self.survey = {
                 "running": False,

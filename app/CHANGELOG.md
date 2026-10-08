@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.3-b77
+
+- Admin pages: a dialog scrolls on a phone. Its body never shrank below its content, so a long or wide one (a channel's surveys on the Camera compositor page) ran off the screen with no way to scroll; it now scrolls inside the dialog, and a wide table scrolls sideways in its own box. The dialog also fits the screen as seen (iOS counts the hidden toolbars in its height).
+- Camera compositor: when Home Assistant has started (its homeassistant_started event, heard over its websocket; or found running when the connection comes back after a restart), the gatherer starts afresh and any survey under way is cut short for a new one. While HA started up it answered before its camera integrations had loaded, so cameras that failed then sat out for 10 minutes, their tiles Stale (21 of 26 after one restart). Logged.
+
 ## 2026.10.3-b76
 
 - Camera Commander card: the Security look is the card's own option, set in its editor: on or off (a template, later), and its tint, strength and darkness. It is one layer over the picture, the live main camera and its caption, with the tap zones and highlight above it, so it is there from the first frame; before, the Keep camera pictures live helper set it on each picture every 4 s, so a new picture came up in normal colours first, and the caption and the editing still never had it.

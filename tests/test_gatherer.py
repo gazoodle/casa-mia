@@ -506,6 +506,71 @@ def test_home_assistant_out_of_reach_is_no_cameras_fault(tmp_path, monkeypatch):
     assert until - time.monotonic() <= mod.STREAM_RETRY and "cannot ask" in why
 
 
+def test_home_assistant_started_cuts_the_survey_short_and_starts_afresh(tmp_path):
+    # While HA starts up it answers before its cameras are loaded; each camera that
+    # failed then sat out BENCH. Its start clears that, and the survey starts again.
+    g = gatherer(tmp_path)
+
+    async def go():
+        g._pass = asyncio.ensure_future(asyncio.sleep(10))  # a pass under way
+        g._benched["camera.a"] = time.monotonic() + mod.BENCH
+        g._misses["camera.b"] = 2
+        g.ha_started("a test")
+        await asyncio.sleep(0)
+        assert g._pass.cancelled() and not g._benched and not g._misses
+
+    asyncio.run(go())
+
+
+def test_the_start_of_home_assistant_is_heard_and_after_a_restart_too(monkeypatch):
+    # A fake HA websocket: first STARTING then its homeassistant_started event; then the
+    # connection drops (a restart) and, connected again, it is already RUNNING (the event
+    # came before the gatherer was back): both count as started. The first connection's
+    # RUNNING would not (nothing restarted).
+    import aiohttp
+    from aiohttp import web
+    from aiohttp.test_utils import TestServer
+
+    monkeypatch.setattr(mod, "HA_WATCH_RETRY", 0.01)
+    connections = 0
+
+    async def ha(request):
+        nonlocal connections
+        connections += 1
+        ws = web.WebSocketResponse()
+        await ws.prepare(request)
+        await ws.send_json({"type": "auth_required"})
+        await ws.receive_json()
+        await ws.send_json({"type": "auth_ok"})
+        await ws.receive_json()  # subscribe_events
+        await ws.receive_json()  # get_config
+        state = "STARTING" if connections == 1 else "RUNNING"
+        await ws.send_json({"id": 2, "type": "result", "result": {"state": state}})
+        if connections == 1:
+            await ws.send_json({"id": 1, "type": "event", "event": {}})
+        await ws.close()  # HA going down
+        return ws
+
+    async def go():
+        app = web.Application()
+        app.router.add_get("/api/websocket", ha)
+        async with TestServer(app) as server:
+            g = Gatherer(str(server.make_url("/api")), "token")
+            heard: list[str] = []
+            g.ha_started = heard.append  # type: ignore[method-assign]
+            async with aiohttp.ClientSession() as g.http:
+                watch = asyncio.ensure_future(g._watch_ha_start())
+                while len(heard) < 2:
+                    await asyncio.sleep(0.01)
+                watch.cancel()
+            assert heard[:2] == [
+                "its homeassistant_started event",
+                "found running on reconnecting",
+            ]
+
+    asyncio.run(asyncio.wait_for(go(), 5))
+
+
 def sample(**kw):
     base = dict(app=10, gather=5, compose=5, streams=1, waiting=0, drawing=10)
     return base | dict(sent_fps=2.0, skipped_fps=0.0) | kw
