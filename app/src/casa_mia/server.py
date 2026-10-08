@@ -152,8 +152,10 @@ class Handler(BaseHTTPRequestHandler):
                 "settings": settings.for_cards(),
             }
         )
-        # Swapped before the stamp is added, so the stamp itself never is.
-        answer = json.loads(swap.out(body))
+        # Swapped before the stamp is added, so the stamp itself never is; only the text
+        # shown (HA keeps the rest: a swapped address or entity id points at nothing).
+        answer = swap.out_shown(json.loads(body))
+        assert isinstance(answer, dict)
         answer["swap"] = swap.stamp()
         body = json.dumps(answer).encode()
         self.send_response(200)

@@ -5,7 +5,8 @@ string again. For screenshots without private data: edit it in place on the box,
 save shows on the panel within 5 s. The component install leaves it alone.
 
 Applied where strings leave and enter the app: the admin API and /health (so the
-integration too), the guest QR codes shown on the page, and the guest welcome page."""
+integration too: only its shown text, see out_shown), the guest QR codes shown on the
+page, and the guest welcome page."""
 
 from __future__ import annotations
 
@@ -138,6 +139,24 @@ def _current() -> State:
 def out(text: str) -> str:
     """Real strings as their stand-ins, on the way to a page."""
     return _current().out(text)
+
+
+# Strings a machine reads, not a person: an entity id, an address or a path. Home
+# Assistant keeps what the integration is given (it never comes back to be swapped back),
+# so these stay real there: a swapped one points at nothing.
+_MACHINE = re.compile(r"[a-z_]+\.[a-z0-9_]+|.*://.*|/.*", re.DOTALL)
+
+
+def out_shown(value: object) -> object:
+    """`out` for the integration's JSON: only the text it shows (string values), never
+    dict keys or machine strings (_MACHINE)."""
+    if isinstance(value, dict):
+        return {k: out_shown(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [out_shown(v) for v in value]
+    if isinstance(value, str) and not _MACHINE.fullmatch(value):
+        return out(value)
+    return value
 
 
 def back(text: str) -> str:

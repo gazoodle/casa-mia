@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.3-b81
+
+- Screenshot swap: the integration gets only its shown text swapped (names, titles), never addresses, paths or entity ids. With the box's address in swap.json, a Camera Commander card's picture pointed at the stand-in address and went blank when the swap was turned on, and the cameras' entity ids in the card were swapped too.
+- Kiosk Satellites: Open shows the tablet's own page logged in again. The script the app adds to the page, which gives it the app's login, had a missing semicolon since tablets on Kiosk Satellite 2026.10.8 or later got the second, per-path token, so it never ran and the page asked for the password.
+
 ## 2026.10.3-b80
 
 - Camera compositor page: the Live and Preview servers' Pictures/s heading is narrower, its "sent of drawn" in a hover, so the columns after it stay on screen.

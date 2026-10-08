@@ -492,3 +492,23 @@ def test_page_head_adds_the_shim_only_for_kiosks_older_than_subpath_support(
         assert f'localStorage.setItem("ks_token","{PAGE_TOKEN}")' in head
         assert '"ks_token:"+location.pathname' in head
     assert page_head(False, "2026.10.8") == b""
+
+
+@pytest.mark.skipif(not shutil.which("node"), reason="needs node")
+def test_page_head_runs_and_sets_both_tokens(monkeypatch):
+    # Run as the page would: a syntax error stops the whole script, and the page then
+    # shows its login (2026.10.3-b80 and before, from Kiosk Satellite 2026.10.8).
+    monkeypatch.setattr(swap, "pairs", lambda: {})
+    script = page_head(True, "2026.10.13").decode()
+    script = script.removeprefix("<script>").removesuffix("</script>")
+    page = (
+        "const s={};globalThis.localStorage={setItem:(k,v)=>s[k]=v};"
+        'globalThis.location={pathname:"/api/hassio_ingress/x/kiosk/k1/"};'
+        f"{script};console.log(JSON.stringify(s))"
+    )
+    out = subprocess.run(["node", "-e", page], capture_output=True, text=True)
+    assert out.returncode == 0, out.stderr
+    assert json.loads(out.stdout) == {
+        "ks_token": PAGE_TOKEN,
+        "ks_token:/api/hassio_ingress/x/kiosk/k1/": PAGE_TOKEN,
+    }

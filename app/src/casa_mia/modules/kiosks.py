@@ -147,7 +147,7 @@ def page_head(logged_in: bool, version: Any = None) -> bytes:
     shim = _needs_shim(version)
     head = PAGE_SHIM if shim else ""
     if logged_in:
-        head += f'<script>localStorage.setItem("ks_token","{PAGE_TOKEN}")'
+        head += f'<script>localStorage.setItem("ks_token","{PAGE_TOKEN}");'
         if not shim:  # newer pages keep the token per path
             head += (
                 'localStorage.setItem("ks_token:"+location.pathname.replace(/[^/]*$/,""),'
