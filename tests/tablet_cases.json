@@ -1,0 +1,736 @@
+[
+ {
+  "name": "baseline: only main has a card",
+  "config": {
+   "top": {
+    "size": "auto"
+   },
+   "bottom": {
+    "size": "auto"
+   }
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "showing": [
+   "main"
+  ],
+  "expect": {
+   "inset": 0,
+   "columns": "0px 0px 1180px 0px 0px",
+   "rows": "0px 0px 760px 0px 0px",
+   "places": {
+    "main": {
+     "column": "3 / 4",
+     "row": "3 / 4"
+    },
+    "left": null,
+    "top": null,
+    "right": null,
+    "bottom": null
+   }
+  }
+ },
+ {
+  "name": "baseline in edit mode: every panel, empty auto panels none tall",
+  "config": {
+   "top": {
+    "size": "auto"
+   },
+   "bottom": {
+    "size": "auto"
+   }
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": true,
+  "showing": [
+   "main",
+   "left",
+   "top",
+   "right",
+   "bottom"
+  ],
+  "naturals": {
+   "top": 0,
+   "bottom": 0
+  },
+  "expect": {
+   "inset": 0,
+   "columns": "minmax(0, 177fr) minmax(0, 4fr) minmax(0, 818fr) minmax(0, 4fr) minmax(0, 177fr)",
+   "rows": "minmax(0px, auto) minmax(0px, auto) minmax(760px, auto) minmax(0px, auto) minmax(0px, auto)",
+   "places": {
+    "main": {
+     "column": "3 / 4",
+     "row": "3 / 4"
+    },
+    "left": {
+     "column": "1 / 2",
+     "row": "1 / 4"
+    },
+    "top": {
+     "column": "3 / 4",
+     "row": "1 / 2"
+    },
+    "right": {
+     "column": "5 / 6",
+     "row": "1 / 4"
+    },
+    "bottom": {
+     "column": "1 / 6",
+     "row": "5 / 6"
+    }
+   }
+  }
+ },
+ {
+  "name": "an empty auto bottom between the sides, in edit mode: the sides run beside it",
+  "config": {
+   "bottom": {
+    "size": "auto",
+    "anchor_left": false,
+    "anchor_right": false
+   }
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": true,
+  "showing": [
+   "main",
+   "left",
+   "top",
+   "right",
+   "bottom"
+  ],
+  "naturals": {
+   "bottom": 0
+  },
+  "expect": {
+   "inset": 0,
+   "columns": "minmax(0, 177fr) minmax(0, 4fr) minmax(0, 818fr) minmax(0, 4fr) minmax(0, 177fr)",
+   "rows": "minmax(137px, auto) minmax(4px, auto) minmax(619px, auto) minmax(0px, auto) minmax(0px, auto)",
+   "places": {
+    "main": {
+     "column": "3 / 4",
+     "row": "3 / 4"
+    },
+    "left": {
+     "column": "1 / 2",
+     "row": "1 / 6"
+    },
+    "top": {
+     "column": "3 / 4",
+     "row": "1 / 2"
+    },
+    "right": {
+     "column": "5 / 6",
+     "row": "1 / 6"
+    },
+    "bottom": {
+     "column": "3 / 4",
+     "row": "5 / 6"
+    }
+   }
+  }
+ },
+ {
+  "name": "an empty auto top across the sides, in edit mode: the sides start under it",
+  "config": {
+   "top": {
+    "size": "auto",
+    "anchor_left": true,
+    "anchor_right": true
+   }
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": true,
+  "showing": [
+   "main",
+   "left",
+   "top",
+   "right",
+   "bottom"
+  ],
+  "naturals": {
+   "top": 0
+  },
+  "expect": {
+   "inset": 0,
+   "columns": "minmax(0, 177fr) minmax(0, 4fr) minmax(0, 818fr) minmax(0, 4fr) minmax(0, 177fr)",
+   "rows": "minmax(0px, auto) minmax(0px, auto) minmax(604px, auto) minmax(4px, auto) minmax(152px, auto)",
+   "places": {
+    "main": {
+     "column": "3 / 4",
+     "row": "3 / 4"
+    },
+    "left": {
+     "column": "1 / 2",
+     "row": "3 / 4"
+    },
+    "top": {
+     "column": "1 / 6",
+     "row": "1 / 2"
+    },
+    "right": {
+     "column": "5 / 6",
+     "row": "3 / 4"
+    },
+    "bottom": {
+     "column": "1 / 6",
+     "row": "5 / 6"
+    }
+   }
+  }
+ },
+ {
+  "name": "every panel at its default size",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "showing": [
+   "main",
+   "left",
+   "top",
+   "right",
+   "bottom"
+  ],
+  "expect": {
+   "inset": 0,
+   "columns": "177px 4px 818px 4px 177px",
+   "rows": "137px 4px 463px 4px 152px",
+   "places": {
+    "main": {
+     "column": "3 / 4",
+     "row": "3 / 4"
+    },
+    "left": {
+     "column": "1 / 2",
+     "row": "1 / 4"
+    },
+    "top": {
+     "column": "3 / 4",
+     "row": "1 / 2"
+    },
+    "right": {
+     "column": "5 / 6",
+     "row": "1 / 4"
+    },
+    "bottom": {
+     "column": "1 / 6",
+     "row": "5 / 6"
+    }
+   }
+  }
+ },
+ {
+  "name": "every panel at its default size, in edit mode",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": true,
+  "showing": [
+   "main",
+   "left",
+   "top",
+   "right",
+   "bottom"
+  ],
+  "expect": {
+   "inset": 0,
+   "columns": "minmax(0, 177fr) minmax(0, 4fr) minmax(0, 818fr) minmax(0, 4fr) minmax(0, 177fr)",
+   "rows": "minmax(137px, auto) minmax(4px, auto) minmax(463px, auto) minmax(4px, auto) minmax(152px, auto)",
+   "places": {
+    "main": {
+     "column": "3 / 4",
+     "row": "3 / 4"
+    },
+    "left": {
+     "column": "1 / 2",
+     "row": "1 / 4"
+    },
+    "top": {
+     "column": "3 / 4",
+     "row": "1 / 2"
+    },
+    "right": {
+     "column": "5 / 6",
+     "row": "1 / 4"
+    },
+    "bottom": {
+     "column": "1 / 6",
+     "row": "5 / 6"
+    }
+   }
+  }
+ },
+ {
+  "name": "auto panels as tall as their cards",
+  "config": {
+   "top": {
+    "size": "auto"
+   },
+   "bottom": {
+    "size": "auto"
+   }
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "showing": [
+   "main",
+   "left",
+   "top",
+   "right",
+   "bottom"
+  ],
+  "naturals": {
+   "top": 120,
+   "bottom": 80
+  },
+  "expect": {
+   "inset": 0,
+   "columns": "177px 4px 818px 4px 177px",
+   "rows": "120px 4px 552px 4px 80px",
+   "places": {
+    "main": {
+     "column": "3 / 4",
+     "row": "3 / 4"
+    },
+    "left": {
+     "column": "1 / 2",
+     "row": "1 / 4"
+    },
+    "top": {
+     "column": "3 / 4",
+     "row": "1 / 2"
+    },
+    "right": {
+     "column": "5 / 6",
+     "row": "1 / 4"
+    },
+    "bottom": {
+     "column": "1 / 6",
+     "row": "5 / 6"
+    }
+   }
+  }
+ },
+ {
+  "name": "a hidden panel takes no room",
+  "config": {
+   "left": {
+    "hidden": true
+   }
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "showing": [
+   "main",
+   "left",
+   "top",
+   "right",
+   "bottom"
+  ],
+  "expect": {
+   "inset": 0,
+   "columns": "0px 0px 999px 4px 177px",
+   "rows": "137px 4px 463px 4px 152px",
+   "places": {
+    "main": {
+     "column": "3 / 4",
+     "row": "3 / 4"
+    },
+    "left": null,
+    "top": {
+     "column": "3 / 4",
+     "row": "1 / 2"
+    },
+    "right": {
+     "column": "5 / 6",
+     "row": "1 / 4"
+    },
+    "bottom": {
+     "column": "1 / 6",
+     "row": "5 / 6"
+    }
+   }
+  }
+ },
+ {
+  "name": "panels that do not show take no room",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "showing": [
+   "main",
+   "left",
+   "bottom"
+  ],
+  "expect": {
+   "inset": 0,
+   "columns": "177px 4px 999px 0px 0px",
+   "rows": "0px 0px 604px 4px 152px",
+   "places": {
+    "main": {
+     "column": "3 / 4",
+     "row": "3 / 4"
+    },
+    "left": {
+     "column": "1 / 2",
+     "row": "1 / 4"
+    },
+    "top": null,
+    "right": null,
+    "bottom": {
+     "column": "1 / 6",
+     "row": "5 / 6"
+    }
+   }
+  }
+ },
+ {
+  "name": "margin",
+  "config": {
+   "margin": 24
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "showing": [
+   "main",
+   "left",
+   "top",
+   "right",
+   "bottom"
+  ],
+  "expect": {
+   "inset": 24,
+   "columns": "170px 4px 784px 4px 170px",
+   "rows": "128px 4px 434px 4px 142px",
+   "places": {
+    "main": {
+     "column": "3 / 4",
+     "row": "3 / 4"
+    },
+    "left": {
+     "column": "1 / 2",
+     "row": "1 / 4"
+    },
+    "top": {
+     "column": "3 / 4",
+     "row": "1 / 2"
+    },
+    "right": {
+     "column": "5 / 6",
+     "row": "1 / 4"
+    },
+    "bottom": {
+     "column": "1 / 6",
+     "row": "5 / 6"
+    }
+   }
+  }
+ },
+ {
+  "name": "margin: none in edit mode",
+  "config": {
+   "margin": 24
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": true,
+  "showing": [
+   "main",
+   "left",
+   "top",
+   "right",
+   "bottom"
+  ],
+  "expect": {
+   "inset": 0,
+   "columns": "minmax(0, 177fr) minmax(0, 4fr) minmax(0, 818fr) minmax(0, 4fr) minmax(0, 177fr)",
+   "rows": "minmax(137px, auto) minmax(4px, auto) minmax(463px, auto) minmax(4px, auto) minmax(152px, auto)",
+   "places": {
+    "main": {
+     "column": "3 / 4",
+     "row": "3 / 4"
+    },
+    "left": {
+     "column": "1 / 2",
+     "row": "1 / 4"
+    },
+    "top": {
+     "column": "3 / 4",
+     "row": "1 / 2"
+    },
+    "right": {
+     "column": "5 / 6",
+     "row": "1 / 4"
+    },
+    "bottom": {
+     "column": "1 / 6",
+     "row": "5 / 6"
+    }
+   }
+  }
+ },
+ {
+  "name": "margin: at most half the shorter side",
+  "config": {
+   "margin": 900
+  },
+  "area": [
+   400,
+   300
+  ],
+  "editing": false,
+  "showing": [
+   "main",
+   "left",
+   "top",
+   "right",
+   "bottom"
+  ],
+  "expect": {
+   "inset": 149,
+   "columns": "15px 4px 64px 4px 15px",
+   "rows": "0px 0px 2px 0px 0px",
+   "places": {
+    "main": {
+     "column": "3 / 4",
+     "row": "3 / 4"
+    },
+    "left": {
+     "column": "1 / 2",
+     "row": "1 / 4"
+    },
+    "top": {
+     "column": "3 / 4",
+     "row": "1 / 2"
+    },
+    "right": {
+     "column": "5 / 6",
+     "row": "1 / 4"
+    },
+    "bottom": {
+     "column": "1 / 6",
+     "row": "5 / 6"
+    }
+   }
+  }
+ },
+ {
+  "name": "portrait",
+  "config": {},
+  "area": [
+   800,
+   1180
+  ],
+  "editing": false,
+  "showing": [
+   "main",
+   "left",
+   "top",
+   "right",
+   "bottom"
+  ],
+  "expect": {
+   "inset": 0,
+   "columns": "120px 4px 552px 4px 120px",
+   "rows": "212px 4px 724px 4px 236px",
+   "places": {
+    "main": {
+     "column": "3 / 4",
+     "row": "3 / 4"
+    },
+    "left": {
+     "column": "1 / 2",
+     "row": "1 / 4"
+    },
+    "top": {
+     "column": "3 / 4",
+     "row": "1 / 2"
+    },
+    "right": {
+     "column": "5 / 6",
+     "row": "1 / 4"
+    },
+    "bottom": {
+     "column": "1 / 6",
+     "row": "5 / 6"
+    }
+   }
+  }
+ },
+ {
+  "name": "a fixed main: the panels take the rest",
+  "config": {
+   "main_fit": "fixed",
+   "main_ratio": "4:3",
+   "main_width": 60
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "showing": [
+   "main",
+   "left",
+   "top",
+   "right",
+   "bottom"
+  ],
+  "expect": {
+   "inset": 0,
+   "columns": "232px 4px 708px 4px 232px",
+   "rows": "110px 4px 531px 4px 111px",
+   "places": {
+    "main": {
+     "column": "3 / 4",
+     "row": "3 / 4"
+    },
+    "left": {
+     "column": "1 / 2",
+     "row": "1 / 4"
+    },
+    "top": {
+     "column": "3 / 4",
+     "row": "1 / 2"
+    },
+    "right": {
+     "column": "5 / 6",
+     "row": "1 / 4"
+    },
+    "bottom": {
+     "column": "1 / 6",
+     "row": "5 / 6"
+    }
+   }
+  }
+ },
+ {
+  "name": "a fixed main alone: its size, centred",
+  "config": {
+   "main_fit": "fixed",
+   "main_ratio": "4:3",
+   "main_width": 60
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "showing": [
+   "main"
+  ],
+  "expect": {
+   "inset": 0,
+   "columns": "0px 0px 1180px 0px 0px",
+   "rows": "0px 0px 760px 0px 0px",
+   "places": {
+    "main": {
+     "column": "3 / 4",
+     "row": "3 / 4",
+     "width": 708,
+     "centred": true,
+     "height": 531
+    },
+    "left": null,
+    "top": null,
+    "right": null,
+    "bottom": null
+   }
+  }
+ },
+ {
+  "name": "a fixed main alone in edit mode: its width only",
+  "config": {
+   "main_fit": "fixed",
+   "main_ratio": "4:3",
+   "main_width": 60
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": true,
+  "showing": [
+   "main"
+  ],
+  "expect": {
+   "inset": 0,
+   "columns": "minmax(0, 0fr) minmax(0, 0fr) minmax(0, 1180fr) minmax(0, 0fr) minmax(0, 0fr)",
+   "rows": "minmax(0px, auto) minmax(0px, auto) minmax(760px, auto) minmax(0px, auto) minmax(0px, auto)",
+   "places": {
+    "main": {
+     "column": "3 / 4",
+     "row": "3 / 4",
+     "width": 708,
+     "centred": true
+    },
+    "left": null,
+    "top": null,
+    "right": null,
+    "bottom": null
+   }
+  }
+ },
+ {
+  "name": "no main",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "showing": [
+   "left",
+   "right"
+  ],
+  "expect": {
+   "inset": 0,
+   "columns": "177px 4px 818px 4px 177px",
+   "rows": "0px 0px 760px 0px 0px",
+   "places": {
+    "main": null,
+    "left": {
+     "column": "1 / 2",
+     "row": "1 / 6"
+    },
+    "top": null,
+    "right": {
+     "column": "5 / 6",
+     "row": "1 / 6"
+    },
+    "bottom": null
+   }
+  }
+ }
+]

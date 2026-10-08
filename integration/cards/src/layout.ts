@@ -187,3 +187,26 @@ export function layout(s: Settings, main: string | null = null): [[number, numbe
   }
   return [[w, h], mainArea, tiles];
 }
+
+/** The card's only, no Python twin (the compositor is always told its size): the height at
+ * `width` that shows the main item at its own shape, the panels at their settings around
+ * it. Main fit fit, fill or crop: the smallest height whose main area is at least the
+ * `shape` (width / height) tall, so the camera fills it, no borders; own or fixed (the
+ * engine sizes the main item itself): the smallest at which it gets its full size. */
+export function heightForMain(s: Settings, main: string | null, width: number, shape: number): number {
+  const area = (h: number) => layout({ ...s, width, height: h }, main)[1];
+  const own = mainShape(s, main) !== null;
+  let [lo, hi] = [1, Math.max(64, Math.ceil(width * 4))];
+  const full = area(hi)[2];
+  const shows = (h: number) => {
+    const [, , mw, mh] = area(h);
+    return own ? mw >= full : mh > 0 && mw <= mh * shape;
+  };
+  if (!full || !shows(hi)) return Math.round(width / shape); // no main area to fit
+  while (lo < hi) {
+    const mid = floorDiv(lo + hi, 2);
+    if (shows(mid)) hi = mid;
+    else lo = mid + 1;
+  }
+  return lo;
+}

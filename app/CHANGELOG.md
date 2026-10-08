@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026.10.3-b74
+
+- Tablet Layout: OK in its dialog no longer squeezes the Main panel into a thin strip in edit mode. Saving makes Home Assistant build the view again, and the new one lost the panel sizes seen out of edit mode, so it measured the empty panels with Home Assistant's editors in them. The sizes are now kept for each view.
+- Tablet Layout: where its panels go is worked out in one place (`tablet.ts`) and locked by tests: `tests/tablet_cases.json` (the agreed baseline view, edit mode, hidden panels, margins, a fixed main) and checks that hold for every case (the panels fill the area; a place for each panel shown and only those; edit mode keeps the panels' proportions). The view lays out as before.
+- Tablet Layout: HA's view editor now offers two of the Sections view's own options for it. **Max number of sections wide** caps each panel's Width (its section's settings), and a panel's cards line up in that many columns. **Extra space at the top** is HA's top margin, taken from the panels' height so the view still fits the screen. Dense section placement is not offered: the layout places the panels.
+- Camera Commander card: in a normal section it now sizes itself as HA's Picture glance card does, around its main camera. With its rows "auto" (the default) it is as tall as shows the main camera at that camera's own shape, its panels round it at their settings, so the main camera is never squashed or bordered; it grows or shrinks when the main camera changes to one of another shape. Before, it was 16:9 (the commander's stored size, no longer on the Camera Dashboard page) and capped to the screen below its top edge, so lower down a page it was squashed, down to 100 px. With its rows set in the Layout tab it fills its cell exactly, and the compositor draws the commander at that shape. Alone in a Panel view (the screen) and in a Tablet Layout panel it is as before.
+- Camera Commander card: the still picture while editing is drawn at the card's size once it settles (one picture each time), not stretched from the commander's stored size.
+- Camera Commander card: half the width by default, as HA's own cards (it was the full width). A card placed before keeps the full width only if its Layout tab says so: one without its own width becomes half; set it in the Layout tab.
+- Tablet Layout: in edit mode, an empty top or bottom panel sized to its cards no longer has the side panels running into its space. It is none tall at runtime, so its grid lines were the next panel's too, and the sides were placed through its rows; in edit mode, where it grows to hold Add card, they stood beside it. Panels are now placed by their part (top, bottom, sides) and how they are anchored, and a test checks that no two panels share a grid cell.
+- Tablet Layout: the space above the header (its dialog's header space) applies in edit mode too, not HA's 24 px.
+- Tablet Layout: a panel's menu in edit mode offers only Edit, and its drag handle is gone (panels never move). Duplicate added a section no panel shows, and Delete moved every later panel along by one.
+
 ## 2026.10.3-b73
 
 - Camera Commander card: while a dashboard is in edit mode (or in the card editor) it shows one still picture, hatched and labelled "Still picture while editing", instead of a stream. No stream is opened for each size the editor tries, and there is no live main video.

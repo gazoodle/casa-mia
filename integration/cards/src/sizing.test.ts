@@ -13,6 +13,8 @@ test("the container decides the mode", () => {
   assert.equal(modeOf("CASA-MIA-TABLET-LAYOUT", false), "tile"); // filling a Tablet Layout's panel
   for (const other of ["HUI-GRID-SECTION", "HUI-MASONRY-VIEW", "HUI-VERTICAL-STACK-CARD", ""])
     assert.equal(modeOf(other, false), "column");
+  assert.equal(modeOf("HUI-GRID-SECTION", false, true), "cell"); // its rows set in HA's Layout tab
+  assert.equal(modeOf("CASA-MIA-TABLET-LAYOUT", false, true), "tile"); // a panel decides, rows or not
   assert.equal(modeOf("HUI-PANEL-VIEW", true), "preview"); // an editor's preview wins
 });
 
@@ -23,14 +25,17 @@ test("alone in a Panel view: all of the room, whatever its shape or width", () =
   assert.equal(heightFor({ mode: "screen", room: 852 }, 393, WIDE), 852);
 });
 
-test("in a column: its own shape from its width, never taller than the room", () => {
+// As HA's Picture glance card (rows "auto"). Until 2026.10.3-b74 it was capped to the screen
+// below its top edge, so lower down a page it was squashed (down to 100 px).
+test("in a column: its own shape from its width, wherever it is on the page", () => {
   assert.equal(heightFor({ mode: "column", room: 1000 }, 400, WIDE), 225);
-  assert.equal(heightFor({ mode: "column", room: 393 }, 852, WIDE), 393);
+  assert.equal(heightFor({ mode: "column", room: 100 }, 852, WIDE), 479);
   assert.equal(heightFor({ mode: "column", room: 1000 }, 800, 16 / 10), 500);
 });
 
-test("in a tile: the tile decides (no height of its own)", () => {
+test("in a tile, or a cell with its rows set: that decides (no height of its own)", () => {
   assert.equal(heightFor({ mode: "tile", room: 393 }, 852, WIDE), null);
+  assert.equal(heightFor({ mode: "cell", room: 393 }, 852, WIDE), null);
 });
 
 test("in an editor's preview: its own shape, uncapped", () => {

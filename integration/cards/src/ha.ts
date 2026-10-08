@@ -131,12 +131,14 @@ export const helper = (s: { name: string }) => all[s.name]?.help?.replaceAll("{i
 //            the screen's right and from the header's foot to the screen's bottom, and only
 //            fills it: no shape, aspect or fit of its own;
 //   tile:    filling a Tablet Layout's panel: it fills it;
-//   column:  anywhere else: its own shape from its width, never taller than the screen
-//            below its top edge;
+//   cell:    in a section with its rows set (HA's Layout tab): it fills its cell;
+//   column:  anywhere else: its own shape from its width, as HA's Picture glance card
+//            (its rows "auto");
 //   preview: in an editor's preview: its own shape from its width.
-// Its width is always all of its space: only the height is decided here.
+// Its width is always all of its space (HA's Layout tab sets that): only the height is
+// decided here.
 
-export type Mode = "screen" | "tile" | "column" | "preview";
+export type Mode = "screen" | "tile" | "cell" | "column" | "preview";
 export type Fit = { mode: Mode; room: number; container: string };
 const MIN_ROOM = 100; // px: never squeezed below this, however low on the page it sits
 
@@ -175,30 +177,31 @@ export function room(el: Element): number {
 }
 
 /** The mode for a card's container (see above). */
-export function modeOf(holder: string, preview: boolean): Mode {
+export function modeOf(holder: string, preview: boolean, rows = false): Mode {
   if (preview) return "preview";
   if (holder === "HUI-PANEL-VIEW") return "screen";
-  return holder === "CASA-MIA-TABLET-LAYOUT" ? "tile" : "column";
+  return holder === "CASA-MIA-TABLET-LAYOUT" ? "tile" : rows ? "cell" : "column";
 }
 
-/** Where a card stands now, and the room below it. */
-export function fitOf(el: Element): Fit {
+/** Where a card stands now, and the room below it. `rows`: its rows are set (HA's Layout
+ * tab: the card's `layout` is "grid" and its grid_options.rows a number, as HA's Picture
+ * glance card tells). */
+export function fitOf(el: Element, rows = false): Fit {
   const holder = filling(el) ? "CASA-MIA-TABLET-LAYOUT" : container(el);
-  return { mode: modeOf(holder, inDialog(el)), room: room(el), container: holder.toLowerCase() };
+  return { mode: modeOf(holder, inDialog(el), rows), room: room(el), container: holder.toLowerCase() };
 }
 
-/** Its height for its width and its own shape (width / height); null in a tile, which it
- * fills whatever its shape. */
+/** Its height for its width and its own shape (width / height); null in a tile or a cell,
+ * which it fills whatever its shape. */
 export function heightFor(fit: Pick<Fit, "mode" | "room">, width: number, shape: number): number | null {
   switch (fit.mode) {
     case "screen":
       return fit.room;
     case "tile":
+    case "cell":
       return null;
-    case "preview":
-      return Math.round(width / shape);
     default:
-      return Math.min(Math.round(width / shape), fit.room);
+      return Math.round(width / shape);
   }
 }
 

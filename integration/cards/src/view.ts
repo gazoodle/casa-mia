@@ -7,8 +7,8 @@
 // the missing ones, empty, and names each panel; sections past five are not shown). The
 // layout engine (layout.ts) places them, one item a panel, by the view's `layout:` options
 // (those of layout.json; set in its settings dialog, view-settings.ts, from the Tablet
-// layout button in edit mode); HA's grid places the cards in each. No adding or moving sections, so a
-// section stays its panel; cards move between them as in any Sections view. A section's own
+// layout button in edit mode); HA's grid places the cards in each. No adding, moving,
+// duplicating or deleting sections (a panel's menu offers only Edit), so a section stays its panel; cards move between them as in any Sections view. A section's own
 // visibility hides its panel, and so does having no card showing that counts (a heading
 // marked `view_layout: {counts: false}` does not; panel option hide_empty: false keeps it);
 // a hidden panel takes no room. In edit mode every panel shows. A panel with one card that
@@ -21,11 +21,11 @@
 // (show_size); `debug: true` in the view's config does both.
 import { css } from "lit";
 import { define, type HuiCard, room, sectionsView, watchRoom } from "./ha.ts";
-import { LAYOUT, layout, PANELS, type Rect, type Settings } from "./layout.ts";
+import { LAYOUT, layout, PANELS } from "./layout.ts";
 import { counts } from "./section.ts";
+import { autoSized, placePanels, PLACES, seenOut, settingsOf } from "./tablet.ts";
 import { compact, openSettings, type Preview } from "./view-settings.ts";
 
-const PLACES = ["main", ...PANELS] as const;
 const NAMES = ["Main", "Left", "Top", "Right", "Bottom"];
 const GEAR =
   "M3,3H11V11H3V3M13,3H21V11H13V3M3,13H11V21H3V13M18,13H16V16H13V18H16V21H18V18H21V16H18V13Z"; // mdi view-grid-plus
@@ -43,6 +43,10 @@ const LOCK = css`
     height: 100%;
     box-sizing: border-box;
     padding: 0;
+  }
+  /* HA's extra space above (top_margin), a margin on the wrapper: out of its height. */
+  :host(:not([editing])) .wrapper.top-margin {
+    height: calc(100% - var(--top-margin));
   }
   .container {
     display: block;
@@ -190,26 +194,6 @@ function tooTall(el: Element, tall: number): string {
   return out.length ? `\ntoo tall: ${out.join("\n")}` : "";
 }
 
-/** The engine's settings for a `layout:` config at this size: each panel one item while its
- * section shows (it fills its panel), the main one too. A top or bottom panel of `size:
- * auto` is as tall as its cards (`natural`, px), given to the engine as its share. */
-export function settingsOf(
-  config: Record<string, any>,
-  width: number,
-  height: number,
-  showing: (place: string) => boolean,
-  natural: (place: string) => number = () => 0,
-): Settings {
-  const s: Record<string, unknown> = { width, height, aspects: {} };
-  for (const [k, o] of Object.entries(LAYOUT.main)) s[k] = config[k] ?? (o as { default: unknown }).default;
-  for (const p of PANELS) {
-    const pc = config[p] ?? {};
-    const size = autoSized(config, p) ? (height > 0 ? (natural(p) / height) * 100 : 0) : pc.size;
-    s[p] = { ...LAYOUT.panels[p], ...pc, ...(size !== undefined && { size }), fit: "cover", lines: 1, cameras: !pc.hidden && showing(p) ? [p] : [] };
-  }
-  return s as Settings;
-}
-
 /** The app's settings for this view (its Settings page, through the integration), now and
  * at each change; none without the integration. Returns the unsubscribe. */
 function watchAppSettings(hass: any, got: (s: Record<string, any>) => void): () => void {
@@ -228,9 +212,6 @@ function watchAppSettings(hass: any, got: (s: Record<string, any>) => void): () 
 /** The space above the view's header, px (header_space; HA's own row gap by default). */
 const headerSpace = (config: Record<string, any>) => Math.max(0, Number(config.header_space ?? LAYOUT.main.header_space.default) || 0);
 
-/** A top or bottom panel sized to its cards. */
-const autoSized = (config: Record<string, any>, p: string) => (p === "top" || p === "bottom") && config[p]?.size === "auto";
-
 /** How tall a section's cards are, laid out at its width (HA's grid in the section). */
 function cardsHeight(section: any): number {
   const grid = section?.querySelector("hui-grid-section") as HTMLElement | null;
@@ -248,9 +229,11 @@ sectionsView().then((Base: any) => {
     private cmStop?: () => void;
     private cmFrame = 0;
     private cmAdding = false;
-    private cmShown?: [number, number]; // the panels' area, out of edit mode
-    private cmTop?: number; // and the space above the header then (none: no header)
-    private cmNaturals: Record<string, number> = {}; // size: auto panels' heights then
+    /** Out of edit mode: the panels' area, the space above the header then (none: no
+     * header), and the size: auto panels' heights. */
+    private get cmSeenOut() {
+      return seenOut(location.pathname.split("/")[1], this.index);
+    }
     private cmSeen = new ResizeObserver(() => this.cmLater());
 
     setConfig(config: any) {
@@ -372,9 +355,9 @@ sectionsView().then((Base: any) => {
      * (for the dialog's map). */
     private cmPreview(l: Record<string, any>): Preview {
       // The screen it shows on: as last seen out of edit mode (edit mode's own is shorter).
-      const [w, shown] = this.cmShown ?? this.cmArea();
+      const [w, shown] = this.cmSeenOut.shown ?? this.cmArea();
       // Less a change to the space above the header (edit mode leaves HA's in place).
-      const h = this.cmTop === undefined ? shown : shown + this.cmTop - headerSpace(l);
+      const h = this.cmSeenOut.top === undefined ? shown : shown + this.cmSeenOut.top - headerSpace(l);
       const s = settingsOf(compact(l), w, h, (p) => p === "main" || !l[p]?.hidden, (p) => this.cmNatural(p));
       const [, main, tiles] = layout(s, "main");
       return { width: w, height: h, rects: { main, ...Object.fromEntries(PANELS.flatMap((p) => (tiles[p][0] ? [[p, tiles[p][0]]] : []))) } };
@@ -399,12 +382,12 @@ sectionsView().then((Base: any) => {
      * as last measured out of it: there its cards carry HA's editors, which took the main
      * panel's room a step at a time. */
     private cmNatural(p: string): number {
-      if (this.lovelace?.editMode && p in this.cmNaturals) return this.cmNaturals[p];
+      if (this.lovelace?.editMode && p in this.cmSeenOut.naturals) return this.cmSeenOut.naturals[p];
       const section = this.sections[PLACES.indexOf(p as (typeof PLACES)[number])];
       const grid = section?.querySelector("hui-grid-section")?.shadowRoot?.querySelector(".container");
       if (grid) this.cmSeen.observe(grid); // its cards come and go, or change height
       const h = cardsHeight(section);
-      if (!this.lovelace?.editMode) this.cmNaturals[p] = h;
+      if (!this.lovelace?.editMode) this.cmSeenOut.naturals[p] = h;
       return h;
     }
 
@@ -416,22 +399,18 @@ sectionsView().then((Base: any) => {
       if (!grid) return;
       const editing = !!this.lovelace?.editMode;
       this.cmBar(editing);
-      // The room above the header (HA's padding, its row gap), before measuring.
+      // The room above the header (HA's padding, its row gap), before measuring; in edit mode
+      // too, so the header stands where it will.
       const header = root!.querySelector("hui-view-header") as HTMLElement | null;
       const space = this.cmLayout.header_space === undefined ? undefined : headerSpace(this.cmLayout);
-      header?.style.setProperty("padding-top", editing || space === undefined ? "" : `${space}px`);
+      header?.style.setProperty("padding-top", space === undefined ? "" : `${space}px`);
       // Edit mode sizes the panels as they show out of it: its header and footer are taller
       // (their editors), and the view scrolls, so its own room only letterboxed them.
-      const [aw, ah] = editing && this.cmShown ? this.cmShown : this.cmArea();
+      const [aw, ah] = editing && this.cmSeenOut.shown ? this.cmSeenOut.shown : this.cmArea();
       if (!editing) {
-        this.cmShown = [aw, ah];
-        this.cmTop = header && !header.hidden ? headerSpace(this.cmLayout) : undefined;
+        this.cmSeenOut.shown = [aw, ah];
+        this.cmSeenOut.top = header && !header.hidden ? headerSpace(this.cmLayout) : undefined;
       }
-      // The margin is the grid's inset (none in edit mode, which has HA's own spacing), so
-      // the engine lays out inside it.
-      const m = editing ? 0 : Math.max(0, Math.min(Math.trunc(Number(this.cmLayout.margin ?? 0)), Math.floor((Math.min(aw, ah) - 1) / 2)));
-      grid.style.inset = editing ? "" : `${m}px`;
-      const [w, h] = [aw - 2 * m, ah - 2 * m];
       const showing = (p: string) => {
         const section = this.sections[PLACES.indexOf(p as (typeof PLACES)[number])];
         if (!section || section.hidden) return false;
@@ -440,26 +419,19 @@ sectionsView().then((Base: any) => {
         return counting(section).length > 0;
       };
       const counting = (section: any): HuiCard[] => (section._cards ?? []).filter((c: HuiCard) => counts(c.config ?? { type: "" }) && !c.hidden);
-      const s = { ...settingsOf(this.cmLayout, w, h, showing, (p) => this.cmNatural(p)), margin: 0 };
-      const [, main, tiles] = layout(s, showing("main") ? "main" : null);
-      const at = (p: (typeof PANELS)[number]) => tiles[p][0] ?? [0, 0, 0, 0];
-      const [l, t, r, b] = [at("left")[2], at("top")[3], at("right")[2], at("bottom")[3]];
-      const gap = s.gap;
-      const xs = [0, l, l && l + gap, w - (r && r + gap), w - r, w]; // column lines
-      const ys = [0, t, t && t + gap, h - (b && b + gap), h - b, h]; // row lines
-      // Exact pixels; in edit mode, with HA's gaps between them, columns in proportion and
-      // rows at least that tall.
-      const tracks = (lines: number[], unit: (size: number) => string) => lines.slice(1).map((v, i) => unit(v - lines[i])).join(" ");
-      grid.style.gridTemplateColumns = tracks(xs, (n) => (editing ? `minmax(0, ${n}fr)` : `${n}px`));
-      grid.style.gridTemplateRows = tracks(ys, (n) => (editing ? `minmax(${n}px, auto)` : `${n}px`));
-      const span = (lines: number[], from: number, size: number) => `${lines.indexOf(from) + 1} / ${lines.lastIndexOf(from + size) + 1}`;
+      const shown = PLACES.filter(showing);
+      const naturals = Object.fromEntries(PANELS.filter((p) => autoSized(this.cmLayout, p)).map((p) => [p, this.cmNatural(p)]));
+      const placed = placePanels(this.cmLayout, [aw, ah], editing, shown, naturals);
+      grid.style.inset = editing ? "" : `${placed.inset}px`;
+      grid.style.gridTemplateColumns = placed.columns;
+      grid.style.gridTemplateRows = placed.rows;
       const boxes = [...root!.querySelectorAll<HTMLElement>(".content > .section")];
       boxes.forEach((box, n) => {
         const place = PLACES[n];
-        const rect: Rect | undefined = place === "main" ? (showing("main") ? main : undefined) : tiles[place]?.[0];
+        const at = place ? placed.places[place] : null;
         // Off only when it is not to show: one that shows but is no size yet (size: auto,
         // its cards not laid out) must stay laid out, or it measures 0 for ever.
-        box.classList.toggle("cm-off", !rect);
+        box.classList.toggle("cm-off", !at);
         let name = box.querySelector(":scope > .cm-name");
         if (!editing) name?.remove();
         else if (!name && NAMES[n]) {
@@ -469,19 +441,15 @@ sectionsView().then((Base: any) => {
           box.append(name); // after Lit's part in the box, so Lit leaves it alone
         }
         this.cmFill(this.sections[n], editing || autoSized(this.cmLayout, place) ? [] : counting(this.sections[n]));
-        if (!rect) return;
-        if (place === "main") {
-          // The middle cell; a main with a shape of its own (fit: fixed) is centred in it.
-          const shaped = rect[2] < xs[3] - xs[2] || rect[3] < ys[3] - ys[2];
-          Object.assign(box.style, {
-            gridColumn: "3 / 4",
-            gridRow: "3 / 4",
-            width: shaped ? `${rect[2]}px` : "",
-            height: shaped && !editing ? `${rect[3]}px` : "",
-            justifySelf: shaped ? "center" : "",
-            alignSelf: shaped ? "center" : "",
-          });
-        } else Object.assign(box.style, { gridColumn: span(xs, rect[0], rect[2]), gridRow: span(ys, rect[1], rect[3]) });
+        if (!at) return;
+        Object.assign(box.style, {
+          gridColumn: at.column,
+          gridRow: at.row,
+          width: at.width === undefined ? "" : `${at.width}px`,
+          height: at.height === undefined ? "" : `${at.height}px`,
+          justifySelf: at.centred ? "center" : "",
+          alignSelf: at.centred ? "center" : "",
+        });
       });
       this.cmShow();
     }
@@ -519,10 +487,36 @@ sectionsView().then((Base: any) => {
   define("casa-mia-tablet-view", class extends (TabletView as any) {} as unknown as CustomElementConstructor);
 });
 
+// A panel's section menu in edit mode (HA's hui-section-edit-mode): Edit only, and no drag
+// handle (sections stay where they are, see updated). Duplicate
+// would add a sixth section no panel shows; Delete would move every later panel along by
+// one (sections are panels by position).
+const MENU = new CSSStyleSheet();
+MENU.replaceSync(`.handle, ha-dropdown-item[value="duplicate"], ha-dropdown-item[value="delete"], wa-divider { display: none; }`);
+customElements.whenDefined("hui-section-edit-mode").then(() => {
+  const proto = (customElements.get("hui-section-edit-mode") as any).prototype;
+  const first = proto.firstUpdated;
+  proto.firstUpdated = function (this: any, ...args: unknown[]) {
+    first?.apply(this, args);
+    for (let n: Node | null = this; n; n = (n as Element).parentElement ?? ((n.getRootNode() as ShadowRoot).host || null))
+      if (TYPES.some((t) => (n as Element).tagName === t.slice("custom:".length).toUpperCase())) {
+        const root = this.shadowRoot as ShadowRoot | null;
+        if (root && !root.adoptedStyleSheets.includes(MENU)) root.adoptedStyleSheets = [...root.adoptedStyleSheets, MENU];
+        return;
+      }
+  };
+});
+
 // HA's view editor (Edit view, and Add view) lists only its own types; Tablet Layout joins
 // them, as layout-card's do (it patches the same method). Its dialog keeps a Sections view's
 // sections from going to another type (it would lose them, so Save is off); this view is a
-// Sections view, so to the dialog it is one.
+// Sections view, so to the dialog it is one. Of the Sections view's own options it offers
+// two (dense section placement means nothing where the layout places the panels):
+//   max_columns: the most a panel's Width (its section's column_span, in the section's
+//     settings) may be; a panel's cards are laid out in 12 x its Width columns, so cards at
+//     full width line up that many across;
+//   top_margin: HA's extra space above the view (the theme's
+//     --ha-view-sections-extra-top-margin, 80 px), taken from the panels' height.
 const TYPE = "custom:casa-mia-tablet-layout";
 const TYPES = [TYPE, "custom:casa-mia-tablet-view"]; // and its first name
 customElements.whenDefined("hui-view-editor").then(() => {
@@ -534,11 +528,31 @@ customElements.whenDefined("hui-view-editor").then(() => {
     if (typeof schema !== "function") return;
     this._schema = (...a: unknown[]) =>
       schema(...a).map((f: any) => {
+        if (f.name === "section_specifics" && TYPES.includes(this._config?.type))
+          return { ...f, visible: undefined, schema: f.schema.filter((o: any) => o.name !== "dense_section_placement") };
         const options = f.name === "type" ? f.selector?.select?.options : undefined;
         if (!options || options.some((o: any) => o.value === TYPE)) return f;
         return { ...f, selector: { select: { ...f.selector.select, options: [...options, { value: TYPE, label: "Tablet (Casa Mia)" }] } } };
       });
     this.requestUpdate();
+  };
+  // A view without max_columns shows HA's default (DEFAULT_MAX_COLUMNS), not an empty field
+  // (HA writes it into a new Sections view; a Tablet Layout has none). Saved only on a change.
+  const config = Object.getOwnPropertyDescriptor(proto, "config");
+  if (config?.set)
+    Object.defineProperty(proto, "config", {
+      ...config,
+      set(this: any, c: any) {
+        config.set!.call(this, TYPES.includes(c?.type) && c.max_columns === undefined ? { ...c, max_columns: 4 } : c);
+      },
+    });
+  // HA's drops the Sections options from a view of any other type: this one keeps its two.
+  const changed = proto._valueChanged;
+  proto._valueChanged = function (this: any, ev: CustomEvent) {
+    const config = ev.detail?.value;
+    if (!TYPES.includes(config?.type)) return changed.call(this, ev);
+    const kept = new Proxy(config, { deleteProperty: (t, k) => k === "max_columns" || k === "top_margin" || Reflect.deleteProperty(t, k) });
+    return changed.call(this, new CustomEvent(ev.type, { detail: { value: kept } }));
   };
 });
 customElements.whenDefined("hui-dialog-edit-view").then(() => {

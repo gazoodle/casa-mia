@@ -13,8 +13,11 @@
 // its own size (device pixels, ?w=&h=&dpr=), and lays its taps out for the same canvas, so
 // nothing is scaled, cropped or bordered on the screen. Its size follows the cards' one rule
 // (ha.ts: fitOf, heightFor): always all of its width; alone in a Panel view, all of the
-// screen below its top edge; filling a Tablet Layout's panel, the panel; in a column, the commander's
-// own shape (16:9) from its width, at most the screen below its top edge.
+// screen below its top edge; filling a Tablet Layout's panel, the panel; elsewhere as HA's
+// Picture glance card: with its rows set (the Layout tab), its cell, else as tall as shows
+// its main camera at that camera's own shape, the panels round it (layout.ts:
+// heightForMain), so it grows or shrinks as the main camera changes. Half the width by
+// default, as HA's cards.
 // With live main (the card's option, on by default, while the compositor's Live main camera
 // switch is on), the main camera plays as live video over the picture, through Home
 // Assistant's WebRTC as its own camera cards play it: the tablet decodes it (the box draws
@@ -33,11 +36,11 @@
 import { LitElement, css, html, nothing } from "lit";
 import { keyed } from "lit/directives/keyed.js";
 import { atHome, define, type Fit, fire, fitOf, type Hass, heightFor, inDialog, liveChannel, navigate, ratioFor, register, type Sharpness, watchRoom } from "./ha.ts";
-import { layout, PANELS, pyRound, type Rect, type Settings } from "./layout.ts";
+import { heightForMain, layout, PANELS, pyRound, type Rect, type Settings } from "./layout.ts";
 import { playWebRTC } from "../../../app/web/src/webrtc.ts";
 
 type Route = "auto" | "direct" | "ha";
-type Config = { type: string; entity?: string; draft?: boolean; tap_main?: "live" | "more-info" | "none"; route?: Route; away_sharpness?: Sharpness; live_main?: boolean; leave_after?: number };
+type Config = { type: string; entity?: string; draft?: boolean; tap_main?: "live" | "more-info" | "none"; route?: Route; away_sharpness?: Sharpness; live_main?: boolean; leave_after?: number; grid_options?: { rows?: number | string } };
 type Card = {
   picture: string;
   layout: Settings & { highlight?: Record<string, string | number>; debug?: { on?: boolean; colour?: string } };
@@ -106,7 +109,10 @@ class CommanderCard extends LitElement {
     _liveFailed: { state: true },
     _shown: { state: true },
     preview: { type: Boolean },
+    layout: { attribute: false },
   };
+  /** Set by Home Assistant: "grid" in a section (its Layout tab then sizes the card). */
+  layout?: string;
   /** Set by Home Assistant while its dashboard is in edit mode. */
   preview = false;
   _natural = ""; // the picture's own size as the browser decoded it (debug)
@@ -148,7 +154,7 @@ class CommanderCard extends LitElement {
 
   _width = 0; // its width now (all of its space), CSS px
   private measure = () => {
-    const fit = fitOf(this);
+    const fit = fitOf(this, this.layout === "grid" && typeof this._config?.grid_options?.rows === "number");
     if (JSON.stringify(fit) !== JSON.stringify(this._fit)) this._fit = fit;
     if (this.clientWidth !== this._width) this._width = this.clientWidth;
   };
@@ -251,18 +257,29 @@ class CommanderCard extends LitElement {
   private editing(): boolean {
     return this.preview || inDialog(this);
   }
-  /** One still picture at the commander's own size (the browser scales it), asked for
-   * once while editing; "" while its token is being asked. */
-  private stillUrl(card: Card): string {
-    const still = card.picture.replace(".mjpg", ".jpg");
+  /** One still picture at the card's size once it settles, while editing (single pictures,
+   * not a stream for each size the editor tries); "" while its token is being asked. */
+  private stillUrl(card: Card, [W, H, scale]: Size): string {
+    const still = `${card.picture.replace(".mjpg", ".jpg")}?w=${W}&h=${H}&dpr=${scale}`;
     if (!this.viaHa()) return still;
     if (!this._token) {
       this.ask();
       return "";
     }
-    return `/api/casa_mia/${this._config?.draft ? "draft" : "live"}${new URL(still).pathname}?token=${this._token}`;
+    const url = new URL(still);
+    return `/api/casa_mia/${this._config?.draft ? "draft" : "live"}${url.pathname}${url.search}&token=${this._token}`;
+  }
+
+  /** The main camera's own shape (width / height): as recorded when the commander was
+   * saved, else its largest channel's, else 16:9. */
+  private shapeOf(card: Card, main: string): number {
+    const known = Number(card.layout.aspects?.[main]);
+    if (known > 0) return known;
+    const [, w, h] = (card.cameras[main]?.channels ?? []).reduce((a, c) => (c[1] * c[2] > a[1] * a[2] ? c : a), ["", 0, 0]);
+    return w && h ? w / h : 16 / 9;
   }
   updated() {
+    this.measure(); // its rows may have been set or cleared (a new config, or layout)
     if (this.streaming && this.editing()) this.done("editing");
     const box = this.renderRoot.querySelector(".box");
     if (box) {
@@ -289,7 +306,7 @@ class CommanderCard extends LitElement {
     return 6;
   }
   getGridOptions() {
-    return { columns: "full", rows: "auto" };
+    return { columns: 6, rows: "auto" }; // HA's own default: half the width, its own height
   }
 
   /** The main camera now: the select's option, by title; else the one at start. */
@@ -407,22 +424,24 @@ class CommanderCard extends LitElement {
     const live = !editing && this.liveMain(card, main);
     // Laid out for the picture asked for, as the compositor draws it (compositor.sized).
     const own = card.layout;
-    const sized = editing ? null : this._size; // a still is the commander's own size
+    const sized = this._size;
     const [W, H, scale] = sized ?? [own.width, own.height, 1];
-    const asked = sized ? this.pictureUrl(card, sized) : "";
+    const asked = sized && !editing ? this.pictureUrl(card, sized) : "";
     const src = asked && live ? `${asked}&main=video` : asked;
-    const still = editing ? this.stillUrl(card) : "";
+    const still = editing && sized ? this.stillUrl(card, sized) : "";
     const s = sized ? { ...own, width: W, height: H, gap: pyRound(own.gap * scale), margin: pyRound((own.margin ?? 0) * scale), scale } : own;
     const [[w, h], mainRect, tiles] = layout(s, main);
     const at = ([x, y, rw, rh]: Rect) =>
       `left:${(x / w) * 100}%;top:${(y / h) * 100}%;width:${(rw / w) * 100}%;height:${(rh / h) * 100}%`;
     const lit = s.highlight ?? {};
     const mark = PANELS.flatMap((p) => s[p].cameras.map((e, i) => [e, tiles[p][i]] as const)).find(([e]) => e === main)?.[1];
-    // The rule (ha.ts: heightFor). In a tile, CSS: the tile's height when it gives one, else
-    // its own shape.
+    // The rule (ha.ts: heightFor). In a tile or a cell, CSS: its height when it gives one,
+    // else its own shape.
     const f = this._fit;
-    const tall = f && this._width ? heightFor(f, this._width, own.width / own.height) : null;
-    const size = !f || f.mode === "tile" ? `height:100%;aspect-ratio:${own.width}/${own.height}` : tall ? `height:${tall}px` : "";
+    // Its own shape (column, preview): the one that shows the main camera at its own.
+    const shape = this._width ? this._width / heightForMain(own, main, this._width, this.shapeOf(card, main)) : own.width / own.height;
+    const tall = f && this._width ? heightFor(f, this._width, shape) : null;
+    const size = !f || f.mode === "tile" || f.mode === "cell" ? `height:100%;aspect-ratio:${own.width}/${own.height}` : tall ? `height:${tall}px` : "";
     return html`<ha-card style=${size}>
       <div class="box">
         ${editing
