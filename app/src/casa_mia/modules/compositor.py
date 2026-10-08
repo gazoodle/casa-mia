@@ -2168,7 +2168,10 @@ class Gatherer:
     def _pace_of(self, entity: str) -> float:
         """A channel's own pace (seconds between its pictures): the slower of the
         gatherer's and its fastest user's, the generator drawing most often from it (a
-        picture taken more often than any drawing uses one is wasted)."""
+        picture taken more often than any drawing uses one is wasted). One the screenshot
+        swap shows a still for: the slowest the gatherer goes, as the still never changes."""
+        if self._swapped(entity):
+            return PACES["gatherer"][1]
         now = time.monotonic()
         users = [
             self.pace(owner)

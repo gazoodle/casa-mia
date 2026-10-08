@@ -251,6 +251,9 @@ def test_a_round_draws_from_the_channels_streams(tmp_path, monkeypatch):
     assert isinstance(shot, Image.Image) and shot.size == (2560, 1440)
     assert shot.getpixel((0, 0)) == (255, 0, 0)
     assert "camera.a_h" not in comp.gather._snap_wrong
+    # a still that never changes: fetched at the slowest pace
+    assert comp.gather._pace_of("camera.a_h") == comp_mod.PACES["gatherer"][1]
+    assert comp.gather._pace_of("camera.a") < comp_mod.PACES["gatherer"][1]
     comp.gather._stop_readers()
     assert not comp.gather._readers
 

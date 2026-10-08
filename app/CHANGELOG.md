@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.3-b82
+
+- Compositor: a camera the screenshot swap shows a still for is gathered at the slowest pace (15 s), as its picture never changes.
+- Camera Commander card: where the live main camera will not play (two failures in a row), it stops trying until the page reloads. Each try and each failure changed its picture, a new stream each time, so every click blanked the card briefly and took seconds to draw.
+
 ## 2026.10.3-b81
 
 - Screenshot swap: the integration gets only its shown text swapped (names, titles), never addresses, paths or entity ids. With the box's address in swap.json, a Camera Commander card's picture pointed at the stand-in address and went blank when the swap was turned on, and the cameras' entity ids in the card were swapped too.

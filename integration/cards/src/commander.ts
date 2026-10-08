@@ -63,6 +63,9 @@ type Card = {
   live_main?: boolean;
 };
 const LIVE_WAIT_MS = 10_000; // a live main camera not playing by then gives way to the picture
+/** Live main cameras failed in a row before a card stops trying (until its page reloads):
+ * each try and each failure changes its picture, a new stream each time. */
+const LIVE_GIVE_UP = 2;
 /** The dashboard (or other page) shown: its path's first part, as a view's path may
  * change under a card (/lovelace becomes /lovelace/0); a card on another view of the
  * same dashboard is taken off the page. */
@@ -138,6 +141,7 @@ class CommanderCard extends LitElement {
   private liveWait = 0;
   _playing = false;
   _liveFailed = "";
+  private liveFails = 0; // failed in a row (see LIVE_GIVE_UP)
   /** Its picture's stream: 0 while the card is off the page or the page hidden, else
    * which showing this is (each showing a new <img>, so a fresh stream). */
   _shown = 0;
@@ -389,7 +393,9 @@ class CommanderCard extends LitElement {
   /** Whether the main camera plays live: allowed (the compositor's switch, this card's
    * option), and not failed for this main camera. */
   private liveMain(card: Card, main: string): boolean {
-    return Boolean(card.live_main && this._config?.live_main !== false && this._liveFailed !== main && this.hass?.connection);
+    return Boolean(
+      card.live_main && this._config?.live_main !== false && this._liveFailed !== main && this.liveFails < LIVE_GIVE_UP && this.hass?.connection,
+    );
   }
 
   /** The live main camera's channel: the smallest at least its area, which is laid out
@@ -411,13 +417,16 @@ class CommanderCard extends LitElement {
     this.liveOn = want;
     const failed = (why: string) => {
       if (this.liveOn !== want) return;
-      console.info(`casa-mia: live main camera ${want}: ${why}; the drawn picture instead`);
+      this.liveFails += 1;
+      const off = this.liveFails >= LIVE_GIVE_UP ? `; ${this.liveFails} in a row, so no more tries until the page reloads` : "";
+      console.info(`casa-mia: live main camera ${want}: ${why}; the drawn picture instead${off}`);
       this.stopLive();
       this._liveFailed = main;
     };
     this.liveWait = window.setTimeout(() => failed("not playing in time"), LIVE_WAIT_MS);
     video.onplaying = () => {
       clearTimeout(this.liveWait);
+      this.liveFails = 0;
       this._playing = true;
     };
     playWebRTC(this.hass!.connection, want, video, failed).then(
