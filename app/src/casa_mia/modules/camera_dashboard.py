@@ -1003,7 +1003,7 @@ class CameraDashboard:
                 }
                 for e in mine
             },
-            "live_main": bool(comp and comp.gather.flag("live_main")),
+            "live_main": bool(comp and comp.gather.flags["live_main"]),
         }
 
     def commander(self) -> dict[str, Any]:

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.3-b80
+
+- Camera compositor page: the Live and Preview servers' Pictures/s heading is narrower, its "sent of drawn" in a hover, so the columns after it stay on screen.
+- Compositor: the screenshot swap is back to basics: only the gatherer changes, keeping each swap picture in place of the camera's own (from its stream or its snapshot) at the camera's size; everything else runs as ever. In b79 a swapped camera that streams kept its last real picture (gone stale), and the Live main camera switch forced off stalled the tablets' pictures; both are undone (live video shows the camera's own picture).
+
 ## 2026.10.3-b79
 
 - Compositor: the screenshot swap's camera pictures are shown again. A camera's stream bypassed them; a camera with a swap picture is no longer streamed, its snapshot is the picture.

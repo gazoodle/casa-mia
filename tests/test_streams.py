@@ -5,7 +5,6 @@ import asyncio
 import io
 import json
 import time
-from pathlib import Path
 
 import av
 from aiohttp import web
@@ -243,14 +242,15 @@ def test_a_round_draws_from_the_channels_streams(tmp_path, monkeypatch):
     # a snapshot never shrinks a size its stream gave
     comp.gather.keep("camera.a_m", (lambda b: b)(asyncio.run(fetch("camera.a_m"))))
     assert comp.gather.res["camera.a_m"] == (1280, 720)
-    # the screenshot swap has a picture for camera.a: its stream stops, its snapshot
-    # (that picture) is used
-    comp.gather._swapped = lambda e: Path("yard.jpg") if e == "camera.a" else None  # type: ignore[method-assign]
-    assert asyncio.run(comp.gather._reader("camera.a")) is None
-    assert set(comp.gather._readers) == {"camera.a_h"}
-    assert not comp.gather._streamable("camera.a") and comp.gather._streamable(
-        "camera.a_h"
-    )
+    # the screenshot swap: its picture is kept in place of a frame, at the frame's size
+    pic = tmp_path / "yard.png"
+    Image.new("RGB", (100, 50), "red").save(pic)
+    comp.gather._swapped = lambda e: pic if e == "camera.a_h" else None  # type: ignore[method-assign]
+    comp.gather.keep("camera.a_h", Image.new("RGB", (2560, 1440)), streamed=True)
+    shot = comp.gather.shots["camera.a_h"][1]
+    assert isinstance(shot, Image.Image) and shot.size == (2560, 1440)
+    assert shot.getpixel((0, 0)) == (255, 0, 0)
+    assert "camera.a_h" not in comp.gather._snap_wrong
     comp.gather._stop_readers()
     assert not comp.gather._readers
 

@@ -968,7 +968,7 @@ function ServerArea({ which, name, e, busy, act }: { which: string; name: string
         </p>
       )}
       {e.sending?.length ? (
-        <Table head={["Viewer", "Picture", "Card", "Stream", "Open", "Frames", "Pictures/s (sent of drawn)", "Frame", "Rate", "Waiting to send"]}>
+        <Table head={["Viewer", "Picture", "Card", "Stream", "Open", "Frames", ["Pictures/s", "Sent of drawn"], "Frame", "Rate", "Waiting to send"]}>
           {e.sending.map((s) => (
             <tr key={`${s.viewer} ${s.picture} ${s.open_s}`}>
               <td>{s.viewer}</td>
@@ -993,15 +993,21 @@ function ServerArea({ which, name, e, busy, act }: { which: string; name: string
   );
 }
 
-function Table({ head, children }: { head: string[]; children: React.ReactNode }) {
+/** Each heading a label, or a label and its hover text. */
+function Table({ head, children }: { head: (string | [string, string])[]; children: React.ReactNode }) {
   return (
     <div className={css.listing}>
       <table>
         <thead>
           <tr>
-            {head.map((h) => (
-              <th key={h}>{h}</th>
-            ))}
+            {head.map((h) => {
+              const [label, tip] = typeof h === "string" ? [h] : h;
+              return (
+                <th key={label} title={tip}>
+                  {label}
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody>{children}</tbody>

@@ -11,7 +11,6 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import pytest
 from PIL import Image
 
-from casa_mia import swap
 from casa_mia.modules.compositor import LIVE_STORE, Compositor, Sending
 
 
@@ -592,7 +591,7 @@ def mod_load(directory, store):
     return load_config(directory, store)
 
 
-def test_a_card_can_play_the_main_camera_live(compositor, monkeypatch):
+def test_a_card_can_play_the_main_camera_live(compositor):
     # Asked with ?main=video, while the live_main switch is on: a picture of its own,
     # its main camera's channel not wanted (the card plays it). Off: the usual picture.
     base = f"http://127.0.0.1:{compositor.port}/g/cameras.jpg"
@@ -620,14 +619,6 @@ def test_a_card_can_play_the_main_camera_live(compositor, monkeypatch):
     urllib.request.urlopen(f"{base}?w=800&h=600&main=video").read()
     assert not any(k.endswith("~live") for k in compositor._pictures)
     compositor.gather.set_flag("live_main", True)
-    # the screenshot swap on: off too (a live video is never swapped), the switch kept
-    monkeypatch.setattr(swap, "stamp", lambda: "1")
-    compositor._pictures.clear()
-    urllib.request.urlopen(f"{base}?w=800&h=600&main=video").read()
-    assert not any(k.endswith("~live") for k in compositor._pictures)
-    assert compositor.gather.flags["live_main"] and not compositor.gather.flag(
-        "live_main"
-    )
 
 
 def test_a_slow_stream_sends_what_was_drawn_meanwhile_at_once(compositor, monkeypatch):
