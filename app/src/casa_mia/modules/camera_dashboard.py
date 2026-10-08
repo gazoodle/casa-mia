@@ -30,8 +30,10 @@ from __future__ import annotations
 import copy
 import json
 import logging
+import os
 import re
 import threading
+import time
 import urllib.parse
 from collections.abc import Callable
 from datetime import datetime
@@ -42,6 +44,7 @@ import yaml
 
 from .. import swap
 from ..ha import HA, HAError
+from ..settings import CHANGED_EVENT
 from .compositor import (
     DRAFT_STORE,
     EMPTY_COMMANDER,
@@ -873,6 +876,8 @@ class CameraDashboard:
         self._lock = threading.Lock()
         self._error: str | None = None
         self._mains: dict[str, str] = {}  # commander id -> main camera, as chosen
+        # live_main as last looked (see check_live_main)
+        self._live_was: bool | None = None
         self.store: Store = with_defaults({})
 
     @property
@@ -884,7 +889,11 @@ class CameraDashboard:
         return self.dir / LIVE_STORE
 
     def start(self) -> None:
-        """Load the draft, and each commander's main camera as it was."""
+        """Load the draft, and each commander's main camera as it was; watch live_main."""
+        if self.live:
+            threading.Thread(
+                target=self._watch_live_main, name="live main", daemon=True
+            ).start()
         self._prune()  # to what is kept now (it used to be 20 each)
         if self.live and self.state_path and self.state_path.exists():
             try:
@@ -1003,8 +1012,41 @@ class CameraDashboard:
                 }
                 for e in mine
             },
-            "live_main": bool(comp and comp.gather.flags["live_main"]),
+            "live_main": self.live_main(comp),
         }
+
+    @staticmethod
+    def live_main(comp: Compositor | None) -> bool:
+        """Whether cards play their main camera live: the compositor's switch, and off
+        while the screenshot swap is on (a live video is the camera's own, never swapped).
+        Told to the card, which then asks for the plain picture (the compositor serves
+        either, so no stream it has open stalls); the switch itself is left as set."""
+        return bool(comp and comp.gather.flags["live_main"]) and not swap.stamp()
+
+    def check_live_main(self) -> bool:
+        """Whether live_main changed since last looked (the switch, or the swap): if so
+        the integration is told to ask again now, so every card follows within a second
+        rather than at its next poll (30 s)."""
+        now = self.live_main(self.live)
+        if now == self._live_was:
+            return False
+        if self._live_was is not None:
+            _LOGGER.info(
+                "camera dashboard: live main camera now %s%s; telling the integration",
+                "on" if now else "off",
+                " (the screenshot swap is on)" if swap.stamp() else "",
+            )
+            if token := os.environ.get("SUPERVISOR_TOKEN"):
+                from .guest_login import fire_event
+
+                fire_event(token, CHANGED_EVENT, {})
+        self._live_was = now
+        return True
+
+    def _watch_live_main(self) -> None:
+        while True:
+            self.check_live_main()
+            time.sleep(1)
 
     def commander(self) -> dict[str, Any]:
         """The first commander there was (id ""), as an integration from before there

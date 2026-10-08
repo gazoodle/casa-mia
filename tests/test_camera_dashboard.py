@@ -7,6 +7,7 @@ import urllib.request
 import pytest
 from PIL import Image
 
+from casa_mia import swap
 from casa_mia.ha import HAError
 from casa_mia.modules.camera_dashboard import (
     COMMANDER_SELECT,
@@ -842,7 +843,7 @@ def test_several_commanders():
     assert "There must be at least one commander." in problems(store)
 
 
-def test_each_commander_has_its_own_main_camera(tmp_path):
+def test_each_commander_has_its_own_main_camera(tmp_path, monkeypatch):
     from casa_mia.modules.compositor import DRAFT_STORE, Compositor
 
     store = commander_store()
@@ -859,6 +860,9 @@ def test_each_commander_has_its_own_main_camera(tmp_path):
         card = cd.health()["commanders"][1]["draft_card"]
         assert card["picture"] == f"http://10.0.0.2:{draft.port}/g/phone.mjpg"
         assert card["live_main"] is True  # the compositor's switch, on by default
+        monkeypatch.setattr(swap, "stamp", lambda: "1")  # the screenshot swap on: off
+        assert cd.health()["commanders"][1]["draft_card"]["live_main"] is False
+        monkeypatch.undo()
         assert card["cameras"]["camera.b"] == {
             "title": "Tablet",
             "live": "/dashboard-cams-preview/cam-tablet",
@@ -895,3 +899,26 @@ def test_stacked_panels_keep_each_cameras_shape():
     tiles = left("reverse")
     assert all(t[2] == tiles[0][2] < 200 for t in tiles)
     assert tiles[0][1] >= 0 and tiles[-1][1] + tiles[-1][3] <= 500
+
+
+def test_a_change_to_live_main_tells_the_integration_at_once(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    from casa_mia.modules import guest_login
+
+    fired: list[str] = []
+    monkeypatch.setenv("SUPERVISOR_TOKEN", "t")
+    monkeypatch.setattr(
+        guest_login, "fire_event", lambda t, name, d: fired.append(name)
+    )
+    live = SimpleNamespace(gather=SimpleNamespace(flags={"live_main": True}))
+    cd = CameraDashboard(tmp_path, None, lambda: "10.0.0.2", live=live)  # type: ignore[arg-type]
+    assert cd.check_live_main() and not fired  # the first look: nothing to tell
+    assert not cd.check_live_main()
+    monkeypatch.setattr(swap, "stamp", lambda: "1")  # the swap on: off
+    assert cd.check_live_main() and fired == ["casa_mia_settings_changed"]
+    monkeypatch.setattr(swap, "stamp", lambda: "")
+    live.gather.flags["live_main"] = False  # the swap off, the switch off: still off
+    assert not cd.check_live_main() and len(fired) == 1
+    live.gather.flags["live_main"] = True
+    assert cd.check_live_main() and len(fired) == 2

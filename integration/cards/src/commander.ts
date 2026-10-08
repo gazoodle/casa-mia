@@ -376,11 +376,19 @@ class CommanderCard extends LitElement {
     );
   }
 
-  /** Refused (an old token) or cut off: a new token, and so a new stream, soon. */
+  /** Refused (an old token) or cut off (the app restarted, say): a new stream soon,
+   * through Home Assistant with a new token, else directly as a new showing. */
   private refused() {
-    if (!this.viaHa()) return;
     clearTimeout(this.retry);
-    this.retry = window.setTimeout(() => this.ask(true), 5_000);
+    this.retry = window.setTimeout(() => (this.viaHa() ? this.ask(true) : this.again()), this.viaHa() ? 5_000 : 3_000);
+  }
+
+  /** A new showing (a new <img>, so a fresh stream), while it is shown. */
+  private again() {
+    if (!this._shown) return;
+    this.done("its stream failed");
+    this.sid = Math.random().toString(36).slice(2);
+    this._shown = ++this.shows;
   }
 
   /** The card shown now, and its main camera. */
@@ -517,7 +525,7 @@ class CommanderCard extends LitElement {
                 playsinline
                 .muted=${true}
               ></video>
-              <div class="caption" style=${at(mainRect)}><span>${card.cameras[main]?.title ?? main}</span></div>`
+              <div class="caption" style=${at(mainRect)}><span>${card.cameras[main]?.title ?? main}${this._playing ? " (live)" : ""}</span></div>`
           : nothing}
         </div>
         ${editing ? html`<div class="hatch"><span>Still picture while editing</span></div>` : nothing}

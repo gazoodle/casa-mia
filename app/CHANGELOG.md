@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.10.3-b83
+
+- Screenshot swap: while it is on, Camera Commander cards are told the Live main camera is off, and show the drawn (swapped) main camera instead of its real live video. The compositor's switch itself is left as set.
+- Camera Commander cards follow a change to the Live main camera within a second (the switch on the Camera compositor page, or the screenshot swap turned on or off): the app tells the integration to ask again at once, not at its next poll (30 s).
+- Camera Commander card: the main camera's name says "(live)" while its live video is playing, so it is plain which it is.
+- Camera Commander card: a picture loaded directly from the box (at home) comes back by itself when its stream fails, a new stream every 3 s until one plays. After an app restart every card at home showed a broken picture until its page was reloaded.
+
 ## 2026.10.3-b82
 
 - Compositor: a camera the screenshot swap shows a still for is gathered at the slowest pace (15 s), as its picture never changes.
