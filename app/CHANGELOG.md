@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b75
+
+- Cards build stamped again after a test-only change (b74 was committed with a stale stamp; the cards themselves are unchanged).
+
 ## 2026.10.3-b74
 
 - Tablet Layout: OK in its dialog no longer squeezes the Main panel into a thin strip in edit mode. Saving makes Home Assistant build the view again, and the new one lost the panel sizes seen out of edit mode, so it measured the empty panels with Home Assistant's editors in them. The sizes are now kept for each view.
