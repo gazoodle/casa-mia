@@ -86,20 +86,14 @@ UNIQUE_IDS = {
         "commander_{}_track_motion",
         "track_motion",
     ),
-    "security_look": (
-        "switch",
-        "security_look",
-        "commander_{}_security_look",
-        "security_look",
-    ),
 }
 
 
 def commander_entities(
     store: Store, registry: list[dict] | None, what: str = "main"
 ) -> dict[str, str]:
-    """Each commander's (by id) Main camera select (`what` "main"), Track motion switch
-    ("track_motion") or Security look switch ("security_look"): as HA's entity registry
+    """Each commander's (by id) Main camera select (`what` "main") or Track motion switch
+    ("track_motion"): as HA's entity registry
     has it (by unique id), else the entity id the integration gives a new one (from its
     device's name)."""
     domain, first, other, name = UNIQUE_IDS[what]
@@ -124,15 +118,6 @@ def commander_selects(store: Store, registry: list[dict] | None) -> dict[str, st
     return commander_entities(store, registry, "main")
 
 
-# The look of every camera picture on the dashboards when the integration's Security look
-# switch is on: a CSS filter, made by the page from a tint (applied by the browser).
-# The default tint's filter (as the page makes it for #3d7bff, strength 3, 20% darker):
-# a look left at its defaults, or saved before it had a filter, uses this.
-DEFAULT_LOOK_CSS = "grayscale(1) sepia(1) hue-rotate(186deg) saturate(3) brightness(0.80) contrast(1.1)"
-LOOK_CSS = re.compile(
-    r"^(\s*(grayscale|sepia|hue-rotate|saturate|brightness|contrast|invert|opacity|blur)"
-    r"\(\s*-?[0-9.]+(deg|%|px)?\s*\))*\s*$"
-)
 BACKUPS = "camera-dashboard-backups"
 DEPLOYS = "camera-dashboard-deploys.json"  # when each was last deployed: live, preview
 SETTINGS = "camera-dashboard-settings.json"  # {"keep": older live versions to keep}
@@ -175,8 +160,6 @@ DEFAULTS: dict[str, Any] = {
     "hi_live_card": "",  # everyone else; blank = the same as live_card
     "compositor_host": "",  # blank = this box's LAN address
     "cameras": {},
-    # The Security look: a tint (and how strong, how dark) and the CSS filter made of it.
-    "look": {"tint": "#3d7bff", "strength": 3, "darkness": 20, "css": DEFAULT_LOOK_CSS},
     "commanders": [EMPTY_COMMANDER],  # in order: the dashboard's first pages
 }
 
@@ -224,9 +207,6 @@ def problems(store: Store) -> list[str]:
         if slug(n) in seen:
             out.append(f"The camera pages {seen[slug(n)]!r} and {n!r} clash.")
         seen[slug(n)] = n
-    look_css = (store.get("look") or {}).get("css", "")
-    if not isinstance(look_css, str) or not LOOK_CSS.match(look_css):
-        out.append("The Security look is not a CSS filter the dashboards can use.")
     cmds = store.get("commanders")
     if not isinstance(cmds, list) or not cmds:
         out.append("There must be at least one commander.")
@@ -959,7 +939,7 @@ class CameraDashboard:
                     {
                         "id": cmd["id"],
                         "name": cmd["name"],
-                        # its picture's address (the Security look finds it by this)
+                        # its picture's address
                         "picture": f"/g/{slug(cmd['name'])}.mjpg",
                         "cameras": {},
                         "main": None,
@@ -1105,9 +1085,6 @@ class CameraDashboard:
                 "changed": self._changed(),
                 "commander": self.commander(),
                 "commanders": self.commanders(),
-                # The Security look follows the saved draft: it is only how the
-                # pictures look, best seen as soon as it is saved.
-                "look_css": self.store["look"].get("css") or DEFAULT_LOOK_CSS,
             }
 
     def _changed(self) -> bool:
@@ -1303,7 +1280,6 @@ class CameraDashboard:
             ),
             "commander_selects": selects,
             "commander_switches": commander_entities(store, registry, "track_motion"),
-            "commander_looks": commander_entities(store, registry, "security_look"),
             "error": None,
         }
 
@@ -1575,18 +1551,15 @@ class CameraDashboard:
         return {"channels": out}
 
     def _flip(self, body: dict[str, Any]) -> dict[str, Any]:
-        """Turn one of the integration's commander switches (Security look, Track
-        motion) on or off, through Home Assistant, which keeps its state."""
+        """Turn one of the integration's commander switches (Track motion) on or off,
+        through Home Assistant, which keeps its state."""
         entity, on = body.get("entity"), body.get("on")
         if self.ha is None:
             raise BadRequest("Home Assistant is not reachable.")
         with self._lock:
             store = self.store
         (registry,) = self.ha.call({"type": "config/entity_registry/list"})
-        switches = {
-            *commander_entities(store, registry, "track_motion").values(),
-            *commander_entities(store, registry, "security_look").values(),
-        }
+        switches = set(commander_entities(store, registry, "track_motion").values())
         if entity not in switches or not isinstance(on, bool):
             raise BadRequest("Not one of the commanders' switches.")
         self.ha.call(

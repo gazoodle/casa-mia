@@ -31,7 +31,6 @@
   "entity": {
     "switch": {
       "access": { "name": "Access" },
-      "security_look": { "name": "Security look" },
       "track_motion": { "name": "Track motion" },
       "pipeline_gatherer": { "name": "Gatherer" },
       "pipeline_live_generator": { "name": "Live generator" },

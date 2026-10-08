@@ -25,7 +25,7 @@ DEFAULTS: dict[str, dict[str, Any]] = {
     # The dashboard helper scripts the integration loads into every HA page (its www/);
     # a change reloads the integration, which loads or drops them.
     "helpers": {
-        "streams": True,  # cm-streams.js: keep camera pictures live, the Security look
+        "streams": True,  # cm-streams.js: keep camera pictures live
         "back": False,  # cm-back.js: #BACK goes back
         "refresh": False,  # cm-refresh.js: reload a dashboard when it is saved
     },

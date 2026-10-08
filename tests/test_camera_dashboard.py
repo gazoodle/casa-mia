@@ -654,19 +654,16 @@ def test_saving_records_each_commander_cameras_shape(tmp_path):
     assert view["store"]["commanders"][0]["aspects"] == {"camera.a_low": 1.3333}
 
 
-def test_security_look_is_a_css_filter_and_follows_the_saved_draft(cd):
+def test_a_store_saved_with_the_old_security_look_still_loads(cd):
+    """The Security look moved to the Camera Commander card (2026.10.3-b76); a store
+    saved before keeps its `look`, which is left alone and means nothing now."""
     _, view = call(cd, "GET", "")
     store = view["store"]
-    store["look"]["css"] = "grayscale(1); background: url(x)"
-    call(cd, "PUT", "", store)
-    assert "not a CSS filter" in " ".join(problems(cd.store))
-    tinted = "grayscale(1) sepia(1) hue-rotate(184deg) saturate(3) brightness(0.80)"
-    store["look"]["css"] = tinted
-    call(cd, "PUT", "", store)
-    assert problems(cd.store) == [] and cd.health()["look_css"] == tinted  # once saved
-    store["look"]["css"] = ""  # saved before looks had a filter: the default's
-    call(cd, "PUT", "", store)
-    assert cd.health()["look_css"].startswith("grayscale(1) sepia(1)")
+    assert "look" not in store
+    store["look"] = {"tint": "#3d7bff", "strength": 3, "darkness": 20, "css": "x"}
+    status, _ = call(cd, "PUT", "", store)
+    assert status == 200 and problems(cd.store) == []
+    assert "look_css" not in cd.health()
 
 
 def test_motion_sensors_by_device_then_by_name():

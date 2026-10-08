@@ -4,7 +4,7 @@
 // HA's page, so that part shows on the debug overlay instead: "screen (in hui-panel-view)".)
 import assert from "node:assert/strict";
 import test from "node:test";
-import { heightFor, modeOf } from "./ha.ts";
+import { heightFor, LOOK, lookCss, modeOf } from "./ha.ts";
 
 const WIDE = 16 / 9;
 
@@ -40,4 +40,11 @@ test("in a tile, or a cell with its rows set: that decides (no height of its own
 
 test("in an editor's preview: its own shape, uncapped", () => {
   assert.equal(heightFor({ mode: "preview", room: 100 }, 800, WIDE), 450);
+});
+
+// The Security look moved from the Camera Dashboard page to the card (2026.10.3-b76): its
+// defaults make the filter the page made.
+test("the Security look's default filter is the one the page made", () => {
+  assert.equal(lookCss(LOOK.tint, LOOK.strength, LOOK.darkness), "grayscale(1) sepia(1) hue-rotate(186deg) saturate(3) brightness(0.80) contrast(1.1)");
+  assert.equal(lookCss([255, 0, 0], 2, 95), "grayscale(1) sepia(1) hue-rotate(-35deg) saturate(2) brightness(0.10) contrast(1.1)");
 });

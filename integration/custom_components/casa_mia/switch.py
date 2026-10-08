@@ -1,12 +1,11 @@
-"""Switches: open or close a guest/engineer login endpoint (off by default); the camera
-dashboards' Security look and Track motion, each commander's own (the look is applied
-in the browser by the Keep camera pictures live helper, which reads these switches); and
-the camera compositor's pipeline, each stage running (on) or paused (off): the gatherer,
+"""Switches: open or close a guest/engineer login endpoint (off by default); each
+commander's Track motion; and the camera compositor's pipeline, each stage running (on) or paused (off): the gatherer,
 and the live and preview generators and servers; and whether Camera Commander cards may
 play the main camera as live video over the picture."""
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import aiohttp
@@ -21,26 +20,34 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from .commanders import CommanderEntity, add_commander_entities, unique_id
-from .const import DOMAIN
 from .coordinator import CasaMiaCoordinator, async_post
 from .guest import GuestEndpointEntity, add_endpoint_entities
-from .motion import commanders, tracker
-from .pictures import PROXY
+from .motion import tracker
 from .sensor import CasaMiaEntity, only_on
+
+_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     coordinator = entry.runtime_data
+    # Each commander's Security look switch is gone (2026.10.3-b76: the look is the Camera
+    # Commander card's own option); so are their registry entries, so none is left
+    # unavailable.
+    registry = er.async_get(hass)
+    for old in er.async_entries_for_config_entry(registry, entry.entry_id):
+        if old.domain == "switch" and old.unique_id.endswith("security_look"):
+            _LOGGER.info(
+                "%s removed: the Security look is the Camera Commander card's own now",
+                old.entity_id,
+            )
+            registry.async_remove(old.entity_id)
     add_commander_entities(
         coordinator,
         entry,
         async_add_entities,
-        lambda cid: [
-            SecurityLookSwitch(coordinator, entry, cid),
-            TrackMotionSwitch(coordinator, entry, cid),
-        ],
+        lambda cid: [TrackMotionSwitch(coordinator, entry, cid)],
     )
     add_endpoint_entities(
         coordinator,
@@ -90,75 +97,6 @@ class AccessSwitch(GuestEndpointEntity, SwitchEntity):
     async def async_enable_for(self, minutes: float) -> None:
         """Service casa_mia.enable_for: open the endpoint, then close it again."""
         await self.coordinator.async_set_guest_endpoint(self.endpoint_id, True, minutes)
-
-
-class SecurityLookSwitch(CommanderEntity, SwitchEntity, RestoreEntity):
-    """A commander's Security look, on or off (by hand, or an automation at night). Kept
-    by Home Assistant over restarts; the look itself (css_filter) is the one saved on
-    the Camera Dashboard page, the same for every commander.
-
-    Its attributes tell the Keep camera pictures live helper what to do: `pictures`, the
-    addresses of this commander's picture (the first in the list also answers to the
-    address from before there were several); `main_select`, its Main camera select (a
-    new main camera is a new highlight, whose pulse the helper starts); and `looks`,
-    every commander's Security look switch, so the helper finds them all from the first
-    (switch.camera_commander_security_look)."""
-
-    _attr_translation_key = "security_look"
-
-    def __init__(
-        self, coordinator: CasaMiaCoordinator, entry: ConfigEntry, cid: str
-    ) -> None:
-        super().__init__(coordinator, entry, cid)
-        self._attr_unique_id = unique_id(entry, cid, "security_look", "security_look")
-        self._attr_is_on = False
-        self._entry_id = entry.entry_id
-
-    async def async_added_to_hass(self) -> None:
-        await super().async_added_to_hass()
-        if (last := await self.async_get_last_state()) is not None:
-            self._attr_is_on = last.state == "on"
-
-    def _entity_id(self, domain: str, cid: str, first: str, other: str) -> str | None:
-        return er.async_get(self.hass).async_get_entity_id(
-            domain,
-            DOMAIN,
-            f"{self._entry_id}_commander_{cid}_{other}"
-            if cid
-            else f"{self._entry_id}_{first}",
-        )
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        module = self.coordinator.data.get("modules", {}).get("camera_dashboard", {})
-        every = commanders(self.coordinator)
-        pictures = [self.commander.get("picture") or ""]
-        if every and every[0].get("id") == self.cid:
-            pictures.append("/g/commander.mjpg")
-        # And as the Camera Commander card shows them through Home Assistant (pictures.py).
-        pictures += [
-            f"{PROXY}/{w}{p}" for p in pictures if p for w in ("live", "draft")
-        ]
-        looks = [
-            self._entity_id("switch", c["id"], "security_look", "security_look")
-            for c in every
-        ]
-        return {
-            "css_filter": module.get("look_css") or "",
-            "pictures": [p for p in pictures if p],
-            "main_select": self._entity_id(
-                "select", self.cid, "commander_main", "main"
-            ),
-            "looks": [e for e in looks if e],
-        }
-
-    async def async_turn_on(self, **kwargs: Any) -> None:
-        self._attr_is_on = True
-        self.async_write_ha_state()
-
-    async def async_turn_off(self, **kwargs: Any) -> None:
-        self._attr_is_on = False
-        self.async_write_ha_state()
 
 
 class TrackMotionSwitch(CommanderEntity, SwitchEntity, RestoreEntity):

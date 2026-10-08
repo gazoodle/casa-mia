@@ -148,9 +148,9 @@ The commander on a Home Assistant dashboard: every camera in one picture, and on
 Tap any tile and it becomes the main camera, in a moment. Switch on Track motion and the commander does it for you, following whatever moves around your home.
 </td>
 <td width="50%" valign="top">
-<img src="docs/screenshots/dashboard-security-look.webp" alt="The commander with its Security look switched on: you want to feel like you work for MI5!">
+<img src="docs/screenshots/dashboard-security-look.webp" alt="The commander with its Security look on: you want to feel like you work for MI5!">
 <h3>You want to feel like you work for MI5!</h3>
-Flip the Security look switch and every camera takes on the cool blue of a government control room. Automations can flip it too: at night, when the alarm is set, or just because.
+Switch on the Camera Commander card's Security look and every camera takes on the cool blue of a government control room, or any tint you choose. Coming next: switching it by a template, so it follows the night, the alarm, or just because.
 </td>
 </tr>
 </table>
@@ -262,8 +262,7 @@ its own switch on the Casa Mia panel's Settings page (the cog by the house photo
   reloaded and your edits were lost. Home Assistant may well have fixed that since, but this
   is careful either way.
 - **Keep camera pictures live.** Stops the camera streams of pages that aren't on screen and
-  restarts the ones that are, so a page you come back to has a live picture. It also gives
-  the cameras the Security look.
+  restarts the ones that are, so a page you come back to has a live picture.
 
 ## Installation
 

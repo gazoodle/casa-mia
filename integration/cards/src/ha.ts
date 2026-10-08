@@ -258,3 +258,20 @@ export function liveChannel(channels: [string, number, number][], place: [number
   const enough = ([, w, h]: [string, number, number]) => (whole ? w >= place[0] || h >= place[1] : w >= place[0] && h >= place[1]);
   return (known.find(enough) ?? known[known.length - 1] ?? channels[channels.length - 1])?.[0];
 }
+
+// --- the Camera Commander's Security look ------------------------------------------------
+/** Its defaults: a blue tint, 3 strong, 20% darker (a security control room). */
+export const LOOK = { tint: [61, 123, 255] as [number, number, number], strength: 3, darkness: 20 };
+
+/** The Security look's CSS filter: monochrome, then tinted (sepia's own hue is about 35°,
+ * turned to the tint's), saturated by `strength`, darkened by `darkness` %. */
+export function lookCss([r, g, b]: [number, number, number], strength: number, darkness: number): string {
+  const [rr, gg, bb] = [r, g, b].map((v) => v / 255);
+  const max = Math.max(rr, gg, bb);
+  const span = max - Math.min(rr, gg, bb);
+  let hue = 0;
+  if (span) hue = max === rr ? ((gg - bb) / span) % 6 : max === gg ? (bb - rr) / span + 2 : (rr - gg) / span + 4;
+  const turn = Math.round(hue * 60 - 35);
+  const bright = Math.max(0.1, 1 - darkness / 100).toFixed(2);
+  return `grayscale(1) sepia(1) hue-rotate(${turn}deg) saturate(${strength}) brightness(${bright}) contrast(1.1)`;
+}

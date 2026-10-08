@@ -4,8 +4,12 @@
 // A tap on a panel camera makes it the main one; a tap on the main camera opens its live
 // page (or its more-info). With `draft`, it follows the saved draft (`draft_card`, the draft
 // compositor) instead of what is live. The highlight on the main camera's tile is an <img>
-// marked #cm-highlight, as on the generated dashboard, so cm-streams.js pulses it (and gives the
-// picture its Security look, and stops it while off screen).
+// pulsing by CSS (its style and pace from the commander's highlight settings).
+// The Security look (security_look, with its tint, strength and darkness: monochrome,
+// tinted, a CSS filter) is the card's own option: one layer holds what it covers, the
+// picture, the live main camera and its caption, and carries the filter, so anything new in
+// it is tinted from its first frame. Over it, the tap zones and the highlight, in their own
+// colours.
 // Being edited (the dashboard in edit mode, the card editor), it shows one still picture at
 // the commander's own size, hatched, and no stream or live video: edit mode resizes it at
 // every step, and each size would be a new stream from the compositor.
@@ -24,8 +28,8 @@
 // the picture without it, ?main=video), at full frame rate. The channel is the smallest at
 // least the main area's size in device pixels (fewer away from home, as the picture). The
 // card draws its caption. A video that does not start within LIVE_WAIT_MS, or fails, gives
-// way to the drawn picture, until the main camera changes. The Security look reaches it as
-// it does the picture (cm-streams.js, by data-cm-picture).
+// way to the drawn picture, until the main camera changes. The Security look covers it with
+// the picture.
 // The picture comes straight from the compositor at home (its LAN address), else through
 // Home Assistant (the integration's pictures.py): away from home that address is out of
 // reach, and on an HTTPS page an http:// picture is blocked. Home is told by how this page
@@ -35,12 +39,20 @@
 // a 2x or 3x screen's own is up to four times the bytes over a slower link.
 import { LitElement, css, html, nothing } from "lit";
 import { keyed } from "lit/directives/keyed.js";
-import { atHome, define, type Fit, fire, fitOf, type Hass, heightFor, inDialog, liveChannel, navigate, ratioFor, register, type Sharpness, watchRoom } from "./ha.ts";
+import { atHome, define, type Fit, fire, fitOf, type Hass, heightFor, inDialog, liveChannel, LOOK, lookCss, navigate, ratioFor, register, type Sharpness, watchRoom } from "./ha.ts";
 import { heightForMain, layout, PANELS, pyRound, type Rect, type Settings } from "./layout.ts";
 import { playWebRTC } from "../../../app/web/src/webrtc.ts";
 
 type Route = "auto" | "direct" | "ha";
-type Config = { type: string; entity?: string; draft?: boolean; tap_main?: "live" | "more-info" | "none"; route?: Route; away_sharpness?: Sharpness; live_main?: boolean; leave_after?: number; grid_options?: { rows?: number | string } };
+type Config = { type: string; entity?: string; draft?: boolean; tap_main?: "live" | "more-info" | "none"; route?: Route; away_sharpness?: Sharpness; live_main?: boolean;
+  leave_after?: number;
+  grid_options?: { rows?: number | string };
+  /** The Security look, on or off (a template, later), and its tint ([r, g, b]), strength and darkness (%). */
+  security_look?: boolean;
+  look_tint?: [number, number, number];
+  look_strength?: number;
+  look_darkness?: number;
+};
 type Card = {
   picture: string;
   layout: Settings & { highlight?: Record<string, string | number>; debug?: { on?: boolean; colour?: string } };
@@ -108,6 +120,7 @@ class CommanderCard extends LitElement {
     _playing: { state: true },
     _liveFailed: { state: true },
     _shown: { state: true },
+    _framed: { state: true },
     preview: { type: Boolean },
     layout: { attribute: false },
   };
@@ -129,6 +142,10 @@ class CommanderCard extends LitElement {
    * which showing this is (each showing a new <img>, so a fresh stream). */
   _shown = 0;
   private shows = 0;
+  /** Which picture has shown a frame: "s<n>" for showing n's stream, "still" while editing.
+   * The highlight waits for it, so it never stands over an empty card. */
+  _framed = "";
+  private frameWait = 0;
 
   private debugOn(): boolean {
     const st = this._config?.entity ? this.hass?.states[this._config.entity] : undefined;
@@ -188,6 +205,7 @@ class CommanderCard extends LitElement {
     this.resize.disconnect();
     clearTimeout(this.settle);
     clearTimeout(this.retry);
+    clearTimeout(this.frameWait);
     this.stopLive();
   }
   /** On screen: a stream (a fresh one when it had none). The page hidden (the app in
@@ -270,6 +288,12 @@ class CommanderCard extends LitElement {
     return `/api/casa_mia/${this._config?.draft ? "draft" : "live"}${url.pathname}${url.search}&token=${this._token}`;
   }
 
+  /** The Security look's filter while it is on, else "". */
+  private look(): string {
+    const c = this._config;
+    return c?.security_look ? lookCss(c.look_tint ?? LOOK.tint, c.look_strength ?? LOOK.strength, c.look_darkness ?? LOOK.darkness) : "";
+  }
+
   /** The main camera's own shape (width / height): as recorded when the commander was
    * saved, else its largest channel's, else 16:9. */
   private shapeOf(card: Card, main: string): number {
@@ -278,7 +302,19 @@ class CommanderCard extends LitElement {
     const [, w, h] = (card.cameras[main]?.channels ?? []).reduce((a, c) => (c[1] * c[2] > a[1] * a[2] ? c : a), ["", 0, 0]);
     return w && h ? w / h : 16 / 9;
   }
+  /** Watch for the picture's first frame: a stream may never fire load, but its
+   * naturalWidth is set once a frame is decoded. */
+  private watchFrame() {
+    clearTimeout(this.frameWait);
+    const img = this.renderRoot.querySelector<HTMLImageElement>(".picture, .still");
+    if (!img) return;
+    const key = img.classList.contains("still") ? "still" : `s${this._shown}`;
+    if (key === this._framed) return;
+    if (img.naturalWidth > 0) this._framed = key;
+    else this.frameWait = window.setTimeout(() => this.watchFrame(), 200);
+  }
   updated() {
+    this.watchFrame();
     this.measure(); // its rows may have been set or cleared (a new config, or layout)
     if (this.streaming && this.editing()) this.done("editing");
     const box = this.renderRoot.querySelector(".box");
@@ -444,9 +480,9 @@ class CommanderCard extends LitElement {
     const size = !f || f.mode === "tile" || f.mode === "cell" ? `height:100%;aspect-ratio:${own.width}/${own.height}` : tall ? `height:${tall}px` : "";
     return html`<ha-card style=${size}>
       <div class="box">
+        <div class="seen" style="filter:${this.look()}">
         ${editing
-          ? html`${still ? html`<img class="still" src=${still} alt="" />` : nothing}
-              <div class="hatch"><span>Still picture while editing</span></div>`
+          ? still ? html`<img class="still" src=${still} alt="" />` : nothing
           : src && this._shown
           ? keyed(
               this._shown,
@@ -463,6 +499,19 @@ class CommanderCard extends LitElement {
               />`,
             )
           : nothing}
+        ${live && mainRect[2] > 0
+          ? html`<video
+                class="live"
+                data-entity=${this.liveEntity(card, main, mainRect) ?? ""}
+                style="${at(mainRect)};object-fit:${({ fill: "fill", crop: "cover" } as Record<string, string>)[own.main_fit ?? "fit"] ?? "contain"};opacity:${this._playing ? 1 : 0}"
+                autoplay
+                playsinline
+                .muted=${true}
+              ></video>
+              <div class="caption" style=${at(mainRect)}><span>${card.cameras[main]?.title ?? main}</span></div>`
+          : nothing}
+        </div>
+        ${editing ? html`<div class="hatch"><span>Still picture while editing</span></div>` : nothing}
         ${own.debug?.on
           ? html`<div class="debug" style="color:${own.debug.colour ?? "#ffd60a"}">
               ${this._fit?.mode ?? "?"} (in ${this._fit?.container || "?"}), room ${this._fit?.room ?? "?"} px<br />
@@ -478,23 +527,11 @@ class CommanderCard extends LitElement {
               : nothing,
           ),
         )}
-        ${live && mainRect[2] > 0
-          ? html`<video
-                class="live"
-                data-entity=${this.liveEntity(card, main, mainRect) ?? ""}
-                data-cm-picture=${src}
-                style="${at(mainRect)};object-fit:${({ fill: "fill", crop: "cover" } as Record<string, string>)[own.main_fit ?? "fit"] ?? "contain"};opacity:${this._playing ? 1 : 0}"
-                autoplay
-                playsinline
-                .muted=${true}
-              ></video>
-              <div class="caption" style=${at(mainRect)}><span>${card.cameras[main]?.title ?? main}</span></div>`
-          : nothing}
         <div class="zone" style=${at(mainRect)} @click=${() => this.open(card, main)}></div>
-        ${mark && mark[2] > 0
+        ${mark && mark[2] > 0 && this._framed === (editing ? "still" : `s${this._shown}`)
           ? html`<img
-              class="highlight"
-              src="${BLANK}#cm-highlight"
+              class="highlight ${Number(lit.pulse) > 0 ? (lit.style ?? "breathe") : ""}"
+              src=${BLANK}
               alt=""
               style="${at(mark)};border:${lit.width}px solid ${lit.colour};box-shadow:0 0 ${lit.blur}px ${lit.colour};--cm-colour:${lit.colour};--cm-blur:${lit.blur}px;--cm-pulse:${lit.pulse}s;--cm-style:${lit.style}"
             />`
@@ -528,9 +565,14 @@ class CommanderCard extends LitElement {
       border: none;
       box-shadow: none;
     }
-    .box {
+    .box,
+    .seen {
       position: absolute;
       inset: 0;
+    }
+    /* What the Security look covers (its filter here): taps go to the zones over it. */
+    .seen {
+      pointer-events: none;
     }
     .picture,
     .still {
@@ -586,6 +628,38 @@ class CommanderCard extends LitElement {
     }
     .highlight {
       pointer-events: none;
+    }
+    /* Its pulse, every --cm-pulse seconds: "breathe", the glow swelling to its full blur and
+       back; "ripple", a ring spreading out from the border and fading. Steady for a viewer
+       who asked for less motion. */
+    .highlight.breathe {
+      animation: cm-breathe var(--cm-pulse) ease-in-out infinite;
+    }
+    .highlight.ripple {
+      animation: cm-ripple var(--cm-pulse) ease-out infinite;
+    }
+    @keyframes cm-breathe {
+      0%,
+      100% {
+        box-shadow: 0 0 calc(var(--cm-blur) / 4) 0 color-mix(in srgb, var(--cm-colour) 30%, transparent);
+      }
+      50% {
+        box-shadow: 0 0 var(--cm-blur) 2px color-mix(in srgb, var(--cm-colour) 70%, transparent);
+      }
+    }
+    @keyframes cm-ripple {
+      0% {
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--cm-colour) 60%, transparent);
+      }
+      70%,
+      100% {
+        box-shadow: 0 0 0 max(6px, var(--cm-blur)) color-mix(in srgb, var(--cm-colour) 0%, transparent);
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .highlight {
+        animation: none !important;
+      }
     }
     /* Debug: the card's own figures, 70% down the middle (the compositor's are 30% down),
        clear of the corners and the crossing. */
@@ -650,6 +724,10 @@ class CommanderEditor extends LitElement {
         },
       },
       { name: "live_main", selector: { boolean: {} } },
+      { name: "security_look", selector: { boolean: {} } },
+      { name: "look_tint", selector: { color_rgb: {} } },
+      { name: "look_strength", selector: { number: { min: 0.5, max: 10, step: 0.5, mode: "slider" } } },
+      { name: "look_darkness", selector: { number: { min: 0, max: 90, step: 1, mode: "slider", unit_of_measurement: "%" } } },
       { name: "leave_after", selector: { number: { min: 0, max: 120, step: 1, mode: "slider", unit_of_measurement: "s" } } },
       {
         name: "tap_main",
@@ -673,15 +751,32 @@ class CommanderEditor extends LitElement {
       away_sharpness: "Sharpness through Home Assistant",
       live_main: "Main camera as live video",
       leave_after: "Picture kept running once out of sight",
+      security_look: "Security look",
+      look_tint: "Security look: tint",
+      look_strength: "Security look: strength",
+      look_darkness: "Security look: darker",
     };
     return html`<ha-form
       .hass=${this.hass}
-      .data=${{ tap_main: "live", route: "auto", away_sharpness: "balanced", live_main: true, leave_after: LEAVE_AFTER, ...this._config }}
+      .data=${{
+        tap_main: "live",
+        route: "auto",
+        away_sharpness: "balanced",
+        live_main: true,
+        leave_after: LEAVE_AFTER,
+        security_look: false,
+        look_tint: LOOK.tint,
+        look_strength: LOOK.strength,
+        look_darkness: LOOK.darkness,
+        ...this._config,
+      }}
       .schema=${schema}
       .computeLabel=${(s: { name: string }) => labels[s.name]}
       .computeHelper=${(s: { name: string }) =>
         s.name === "entity"
           ? "The commanders built on the Camera Dashboard page (each one's Main camera select)."
+          : s.name === "security_look"
+            ? "The pictures in monochrome, tinted, like a security control room: the picture, the main camera's live video and its caption (not the highlight)."
           : s.name === "route"
             ? "At home: this page reached Home Assistant over http at a home address (a private IP, a .local name). Through Home Assistant works anywhere you can sign in, at a little cost to Home Assistant."
             : s.name === "away_sharpness"

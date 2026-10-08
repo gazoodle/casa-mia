@@ -46,11 +46,6 @@ const HIGHLIGHT: Highlight = { colour: "#7bd1a0", width: 2, blur: 13, pulse: 1.8
 const MOTION = { hold: 10, back: 30, pause: 120 };
 type Debug = { on: boolean; dim: number; corner: number; width: number; colour: string };
 const DEBUG: Debug = { on: false, dim: 20, corner: 40, width: 2, colour: "#ffd60a" };
-// The integration's switches (Camera Commander device), flipped from here through the app.
-const SHOW_LOOK = "casa-mia:show-look"; // localStorage: the look on this page's previews
-
-/** The Security look: a tint, how strong and how dark, and the CSS filter made of them. */
-type Look = { tint: string; strength: number; darkness: number; css: string };
 
 /** A shape, width over height: a number (1.78) or a ratio as written ("16:9"). */
 type Shape = number | string;
@@ -115,7 +110,6 @@ type Store = {
   cameras: Record<string, Camera>;
   /** In order: the dashboard's first pages. Always at least one. */
   commanders: Commander[];
-  look: Look;
 };
 type View = {
   store: Store;
@@ -145,8 +139,6 @@ type HA = {
   commander_selects?: Record<string, string>;
   /** Each commander's Track motion switch. */
   commander_switches?: Record<string, string>;
-  /** Each commander's Security look switch. */
-  commander_looks?: Record<string, string>;
   /** Each camera's motion sensor (for the commander's Track motion), where it has one. */
   motion?: Record<string, string>;
   /** What the saved draft needs that Home Assistant seems to lack. */
@@ -164,8 +156,6 @@ const CARDS: [string, string][] = [
 const THUMB_EVERY_MS = 5 * 60_000;
 /** Which round of thumbnails to show: bumped every THUMB_EVERY_MS. */
 const ThumbRound = createContext(0);
-/** The Security look's filter while it's shown on this page's previews, else "". */
-const LookPreview = createContext("");
 /** Home Assistant's entities, for the entity fields. */
 const Entities = createContext<{ entity: string; name: string; state?: string }[]>([]);
 
@@ -177,22 +167,6 @@ export function CameraDashboardPage({ state }: { state?: string }) {
   const [ha, setHa] = useState<HA>();
   const [stamp, setStamp] = useState(Date.now()); // bumps the warnings and backups after a save
   const [thumbRound, setThumbRound] = useState(0);
-  // The Security look on this page's previews: remembered in this browser.
-  const [showLook, setShowLookNow] = useState(() => {
-    try {
-      return localStorage.getItem(SHOW_LOOK) === "1";
-    } catch {
-      return false;
-    }
-  });
-  const setShowLook = (on: boolean) => {
-    setShowLookNow(on);
-    try {
-      localStorage.setItem(SHOW_LOOK, on ? "1" : "0");
-    } catch {
-      // private window: just this visit
-    }
-  };
   useEffect(() => {
     const timer = setInterval(() => setThumbRound((n) => n + 1), THUMB_EVERY_MS);
     return () => clearInterval(timer);
@@ -279,9 +253,6 @@ export function CameraDashboardPage({ state }: { state?: string }) {
     );
 
   return (
-    <LookPreview.Provider
-      value={showLook ? draft.look?.css || lookCss(draft.look.tint, draft.look.strength, draft.look.darkness) : ""}
-    >
     <ThumbRound.Provider value={thumbRound}>
     <Entities.Provider value={ha?.entities ?? []}>
     <Shell {...HEAD} state={state}>
@@ -392,8 +363,6 @@ export function CameraDashboardPage({ state }: { state?: string }) {
           store={draft}
           blank={view.empty_commander}
           ha={ha}
-          securityLook={(id) => haSwitch(ha?.commander_looks?.[id] ?? "")}
-          onSecurityLook={(id, on) => ha?.commander_looks?.[id] && flip(ha.commander_looks[id], on, "Security look")}
           trackMotion={(id) => haSwitch(ha?.commander_switches?.[id] ?? "")}
           onTrackMotion={(id, on) =>
             ha?.commander_switches?.[id] && flip(ha.commander_switches[id], on, "Track motion")
@@ -524,19 +493,6 @@ export function CameraDashboardPage({ state }: { state?: string }) {
 
       <section className={guest.area}>
         <AreaHead
-          title="Security look"
-          blurb="A commander's picture in monochrome, tinted, like a security control room: done by the browser, switched on and off per commander with its Security look switch in Home Assistant (by hand, or an automation at night; also on each commander, above). One look for them all."
-        />
-        <LookEditor
-          value={draft.look}
-          shown={showLook}
-          onShow={setShowLook}
-          onChange={(l) => edit((s) => (s.look = l))}
-        />
-      </section>
-
-      <section className={guest.area}>
-        <AreaHead
           title="Backups"
           blurb="Revert draft goes back to what is live. Revert preview puts the preview dashboard back as it was before its last deploy (again to undo). Older live versions: Restore puts one back (the composites are unchanged: use Revert draft and deploy for those)."
           action={
@@ -592,7 +548,6 @@ export function CameraDashboardPage({ state }: { state?: string }) {
     </Shell>
     </Entities.Provider>
     </ThumbRound.Provider>
-    </LookPreview.Provider>
   );
 }
 
@@ -623,55 +578,6 @@ function CommanderSelectCheck({ ha, id }: { ha?: HA; id: string }) {
   );
 }
 
-/** The CSS filter of a look: monochrome, then tinted (sepia's own hue is about 35°, turned
- * to the tint's), saturated by `strength`, darkened by `darkness` %. */
-function lookCss(tint: string, strength: number, darkness: number): string {
-  const [r, g, b] = [1, 3, 5].map((i) => parseInt(tint.slice(i, i + 2), 16) / 255);
-  const max = Math.max(r, g, b);
-  const span = max - Math.min(r, g, b);
-  let hue = 0;
-  if (span) hue = max === r ? ((g - b) / span) % 6 : max === g ? (b - r) / span + 2 : (r - g) / span + 4;
-  const turn = Math.round(hue * 60 - 35);
-  const bright = Math.max(0.1, 1 - darkness / 100).toFixed(2);
-  return `grayscale(1) sepia(1) hue-rotate(${turn}deg) saturate(${strength}) brightness(${bright}) contrast(1.1)`;
-}
-
-function LookEditor({
-  value,
-  shown,
-  onShow,
-  onChange,
-}: {
-  value: Look;
-  shown: boolean;
-  onShow: (on: boolean) => void;
-  onChange: (l: Look) => void;
-}) {
-  const look = value; // the app fills in the defaults
-  const set = (change: Partial<Look>) => {
-    const next = { ...look, ...change };
-    onChange({ ...next, css: lookCss(next.tint, next.strength, next.darkness) });
-  };
-  return (
-    <div className={css.settings}>
-      <div className={css.numbers}>
-        <Field label="Tint">
-          <input type="color" className={css.colour} value={look.tint} onChange={(e) => set({ tint: e.target.value })} />
-        </Field>
-        <Num label="Strength" step={0.5} value={look.strength} onChange={(n) => set({ strength: n })} />
-        <Num label="Darker, %" value={look.darkness} onChange={(n) => set({ darkness: n })} />
-        <Field label="On the previews here" help="Only this page, in this browser.">
-          <Switch on={shown} label="On the previews here" onChange={onShow} />
-        </Field>
-      </div>
-      <p className={css.hint}>
-        The filter: <code>{look.css || lookCss(look.tint, look.strength, look.darkness)}</code>. The dashboards use
-        the saved draft's look.
-      </p>
-    </div>
-  );
-}
-
 const PANEL_NAMES: Record<(typeof PANELS)[number], [title: string, size: string]> = {
   left: ["Left", "Width"],
   top: ["Top", "Height"],
@@ -686,8 +592,6 @@ function Commanders({
   store,
   blank,
   ha,
-  securityLook,
-  onSecurityLook,
   trackMotion,
   onTrackMotion,
   onChange,
@@ -695,9 +599,6 @@ function Commanders({
   store: Store;
   blank: Commander;
   ha?: HA;
-  /** A commander's (by id) Security look switch's state in Home Assistant. */
-  securityLook: (id: string) => string | undefined;
-  onSecurityLook: (id: string, on: boolean) => void;
   /** A commander's (by id) Track motion switch's state in Home Assistant. */
   trackMotion: (id: string) => string | undefined;
   onTrackMotion: (id: string, on: boolean) => void;
@@ -778,8 +679,6 @@ function Commanders({
               value={c}
               cameras={store.cameras}
               preview={<LivePreview store={store} index={i} />}
-              securityLook={securityLook(c.id ?? "")}
-              onSecurityLook={(on) => onSecurityLook(c.id ?? "", on)}
               trackMotion={trackMotion(c.id ?? "")}
               onTrackMotion={(on) => onTrackMotion(c.id ?? "", on)}
               onChange={(v) => change(list.map((x, j) => (j === i ? v : x)))}
@@ -808,8 +707,6 @@ function CommanderEditor({
   value,
   cameras,
   preview,
-  securityLook,
-  onSecurityLook,
   trackMotion,
   onTrackMotion,
   onChange,
@@ -817,9 +714,6 @@ function CommanderEditor({
   value: Commander;
   cameras: Record<string, Camera>;
   preview: ReactNode;
-  /** Its Security look switch's state in Home Assistant (undefined: HA hasn't it). */
-  securityLook?: string;
-  onSecurityLook: (on: boolean) => void;
   /** The Track motion switch's state in Home Assistant (undefined: HA hasn't it). */
   trackMotion?: string;
   onTrackMotion: (on: boolean) => void;
@@ -856,23 +750,6 @@ function CommanderEditor({
                 on={value.page !== false}
                 label="Dashboard page"
                 onChange={(on) => set((c) => (c.page = on))}
-              />
-            </Field>
-          </div>
-          <div className={css.wide}>
-            <Field
-              label="Security look"
-              help={
-                securityLook === undefined
-                  ? "Home Assistant has no Security look switch for it yet (the Casa Mia integration adds it once the draft is saved)."
-                  : "This commander's Security look switch in Home Assistant, on every screen showing it; automations can flip it too. The look itself is set under Security look, below."
-              }
-            >
-              <Switch
-                on={securityLook === "on"}
-                label="Security look"
-                busy={securityLook === undefined}
-                onChange={onSecurityLook}
               />
             </Field>
           </div>
@@ -1136,7 +1013,6 @@ function LivePreview({ store, index }: { store: Store; index: number }) {
   latest.current = store;
   const shown = useRef<string | undefined>(undefined);
   const drawn = useRef(false); // the first picture at once; after edits, a short pause
-  const look = useContext(LookPreview);
   useEffect(
     () => () => {
       if (shown.current) URL.revokeObjectURL(shown.current);
@@ -1181,7 +1057,6 @@ function LivePreview({ store, index }: { store: Store; index: number }) {
       className={`${css.preview} ${busy ? css.stale : ""}`}
       src={src}
       alt="The commander"
-      style={{ filter: look || undefined }}
     />
   );
 }

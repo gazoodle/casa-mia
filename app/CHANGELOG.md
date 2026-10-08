@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.10.3-b76
+
+- Camera Commander card: the Security look is the card's own option, set in its editor: on or off (a template, later), and its tint, strength and darkness. It is one layer over the picture, the live main camera and its caption, with the tap zones and highlight above it, so it is there from the first frame; before, the Keep camera pictures live helper set it on each picture every 4 s, so a new picture came up in normal colours first, and the caption and the editing still never had it.
+- Camera Dashboard: the Security look is gone from it: the look editor on the page, and each commander's Security look switch in Home Assistant (removed from its entity registry when the integration starts, and logged). Automations that flipped a switch need the card's option for now; switching it by a template comes next. A saved store's old `look` is left alone and means nothing now. The generated camera dashboard no longer has the look.
+- Camera Commander card: its highlight pulses by itself (CSS), from the moment the main camera changes; the Keep camera pictures live helper pulses only the generated dashboard's now.
+- Camera Commander card: the highlight (the outline on the main camera's tile) shows only once the picture has shown a frame, so it no longer stands over an empty card while the picture loads.
+
 ## 2026.10.3-b75
 
 - Cards build stamped again after a test-only change (b74 was committed with a stale stamp; the cards themselves are unchanged).

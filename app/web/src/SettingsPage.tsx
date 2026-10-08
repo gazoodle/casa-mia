@@ -31,7 +31,7 @@ const HELPERS: { key: keyof Helpers; name: string; help: string }[] = [
   {
     key: "streams",
     name: "Keep camera pictures live",
-    help: "Stops the camera streams of pages not on screen and restarts those shown, so a page you come back to has a live picture; and gives the pictures the Security look while a commander's Security look switch is on.",
+    help: "Stops the camera streams of pages not on screen and restarts those shown, so a page you come back to has a live picture; and makes the highlight on the generated camera dashboard's main camera pulse.",
   },
 ];
 
