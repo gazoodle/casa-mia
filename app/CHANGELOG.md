@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.3-b79
+
+- Compositor: the screenshot swap's camera pictures are shown again. A camera's stream bypassed them; a camera with a swap picture is no longer streamed, its snapshot is the picture.
+- Compositor: the Live main camera switch acts as off while the screenshot swap is on (a live video is the camera's own, never swapped); the switch itself is left as set, so it is back when the swap is off.
+
 ## 2026.10.3-b78
 
 - Tablet Layout: panel stacks. A panel holds any number of sections: top and bottom side by side, each as wide as its Width (its section's Layout tab) or else as its cards in a row (each card's columns, in HA's own card columns: 12 to a Width, the view's max columns across; its grid then has exactly that many, so no empty slot; without cards, one Width); left and right one under another, each as tall as its cards (or its `row_span`); one alone, without either, fills the panel. Packed from the start; too long, all shrink alike. Each section keeps its own visibility, and one hidden closes up. Note: a Width set on a top or bottom section now sets how wide it is.

@@ -1298,6 +1298,11 @@ class Gatherer:
         _LOGGER.info("compositor (cameras): %s %s", which, "on" if on else "off")
         self._save_paces()
 
+    def flag(self, which: str) -> bool:
+        """A switch as it acts now: live_main is off while the screenshot swap is on (a
+        live video is the camera's own, never swapped); the kept setting is left as set."""
+        return self.flags[which] and not (which == "live_main" and swap.stamp())
+
     def _save_paces(self) -> None:
         if self.pace_path:
             try:
@@ -2082,6 +2087,7 @@ class Gatherer:
         return (
             bool(self.go2rtc)
             and time.monotonic() >= self._no_stream.get(entity, (0.0, ""))[0]
+            and not self._swapped(entity)  # the swap's picture is its snapshot
         )
 
     async def _name(self, entity: str) -> str | None:
@@ -2126,7 +2132,12 @@ class Gatherer:
     async def _reader(self, entity: str) -> streams.Reader | None:
         """A channel's stream reader, started if need be; None when it is not streamed.
         A lost stream is logged, and read again after STREAM_RETRY seconds (when HA has
-        restarted, its go2rtc no longer has it: it is put there again)."""
+        restarted, its go2rtc no longer has it: it is put there again). A camera the
+        screenshot swap has a picture for is not streamed: its snapshot is that picture."""
+        if self._swapped(entity):
+            if entity in self._readers:
+                self._stop_readers(set(self._readers) - {entity})
+            return None
         reader = self._readers.get(entity)
         if reader and reader.alive:
             return reader
@@ -2869,7 +2880,7 @@ class Compositor:
             sizes = self._sizes.setdefault(name, {(None, False): None})
             for size, live_main in list(sizes):
                 key = view_key(name, size, live_main)
-                if live_main and not self.gather.flags["live_main"]:
+                if live_main and not self.gather.flag("live_main"):
                     pass  # switched off: no more of them (a card asks again without)
                 elif (
                     self._open.get(key)
@@ -3207,7 +3218,7 @@ class Compositor:
     def _live_main(self, request: web.Request) -> bool:
         """Whether a picture's main camera is left to the card's live video: asked for
         (?main=video) and allowed (the whole system's live_main switch)."""
-        return request.query.get("main") == "video" and self.gather.flags["live_main"]
+        return request.query.get("main") == "video" and self.gather.flag("live_main")
 
     def _known(self, name: str) -> dict | None:
         """The commander served as /g/<name>, when it has cameras."""
