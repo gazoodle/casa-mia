@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b84
+
+- A **Swap** binary sensor on the Casa Mia app device: on while the screenshot swap is on, for conditional cards in screenshot layouts. It exists only where swap.json is beside the integration (a box set up for screenshots), so never on an ordinary install; it reads the file every 5 seconds.
+
 ## 2026.10.3-b83
 
 - Screenshot swap: while it is on, Camera Commander cards are told the Live main camera is off, and show the drawn (swapped) main camera instead of its real live video. The compositor's switch itself is left as set.

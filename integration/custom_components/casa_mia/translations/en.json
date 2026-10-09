@@ -53,7 +53,7 @@
       "fona_call": { "name": "Call", "state_attributes": { "event_type": { "state": { "authorised": "Authorised", "intrusion": "Intrusion" } } } },
       "fona_text": { "name": "Text", "state_attributes": { "event_type": { "state": { "authorised": "Authorised", "intrusion": "Intrusion" } } } }
     },
-    "binary_sensor": { "gitproxy_downloading": { "name": "Downloading firmware" } },
+    "binary_sensor": { "gitproxy_downloading": { "name": "Downloading firmware" }, "swap": { "name": "Swap" } },
     "button": {
       "gitproxy_check": { "name": "Force firmware check" },
       "fona_reset": { "name": "Reset" },

@@ -4,6 +4,25 @@ Not scheduled. Newest ideas first within each section. Move an item into the REA
 
 ## Next up
 
+- **Entity clean-up: find, and maybe remove, orphaned and disabled entities** (asked 2026-10-10). HA builds up entities that are disabled, unavailable for good, or left behind by removed integrations and devices ("orphaned": their registry entry has no live config entry or device).
+  - A Casa Mia page that lists them by kind (orphaned, disabled, unavailable for N days), by integration and by device, with when each was last seen. Remove one, or a selection, after a confirmation that says what goes.
+  - A service, so the same clean-up can run from an automation or a script, with a dry run.
+  - Removal goes through HA's entity registry (websocket `config/entity_registry/remove`), never by editing `.storage`. Log every removal (RULE TWO).
+  - Look at the AI-generated entity clean-up app the owner has used (it focused on what goes into the database): fold in what is useful, respecting its licence.
+- **"What's eating your recorder space?"** (asked 2026-10-10). The recorder's database by entity: rows and bytes for states and statistics, the noisiest entities, how fast each grows, and what excluding it (recorder `exclude`) or purging it (`recorder.purge_entities`) would save. Pairs with the clean-up: a disabled or orphaned entity still holding history is an easy win.
+
+- **Split the Casa Mia integration into logical units** (asked 2026-10-10), e.g. Guest Login, and Camera Commander with the compositor. Today it is one integration (`casa_mia`) with a device per module.
+  - Open: separate integrations (their own domain, manifest, config entry and version, which the component tooling already supports), or one integration with an entry per unit.
+  - Open: what stays shared (the coordinator's `/health` poll, the app device, the settings event, repairs and the restart notice), and how existing entity IDs and automations carry over.
+  - Agree the units' names first (see the saved rule on confirming module names).
+
+- **Music Assistant's [Home Assistant] button does nothing on Kiosk Satellite** (asked 2026-10-10). In Music Assistant's panel, the button that should go back to Home Assistant doesn't, on the wall tablets, though it works elsewhere (browser, companion app). Find out whose it is before fixing anything:
+  - **the user:** the tablet's HA user (e.g. a non-admin, or kiosk-mode hiding the sidebar or header);
+  - **Kiosk Satellite:** how its WebView handles that navigation (a new window, `target=_top`, or leaving the start URL, which KS may block);
+  - **Music Assistant:** how the button navigates.
+  Compare the same tablet logged in as an admin, and read what the button does with KS's `evalJs`.
+  - **Found 2026-10-10: Kiosk Satellite, by design.** Music Assistant's button (`HomeAssistantMenuButton.vue`) only posts `home-assistant/toggle-menu` to HA, which opens the sidebar; GoG's does the same, and fails on the tablet too. KS v2026.8.49 made HA kiosk mode apply to non-dashboard HA pages as well, and "a hidden Home Assistant sidebar now stays hidden" (the edge swipe and the menu button no longer open it). So with KS's HA kiosk mode and Hide the sidebar on, any app panel is a dead end. To report to Xavier: allow the menu button (or the `toggle-menu` message) to open the sidebar on non-dashboard pages. Meanwhile: turn off Hide the sidebar, or use KS's HA Kiosk Mode menu entry or gesture.
+
 - **Tablet Layout: a fixed-shape main ignores the edges' own sizes** (found 2026-10-10 while taking the docs screenshots). With `main_fit: fixed` (16:9, 70% wide), the top and bottom edges split the height left round main between them, so a bottom edge of `size: auto` floats just under main with empty room below it. Wanted: each edge keeps its own size (auto, % or px), and the room main leaves goes round main (centred, or as the edges' `arrange` says), not into the edges. `frame()` in `tablet.ts` (the `shape !== null` branch, `share`) is where it happens; the Python engine (`commander_layout`) shares it for the Commander, so decide whether the Commander keeps today's behaviour. Then take the docs screenshot `tablet-layout-fixed-main.webp`.
 
 - **Tablet Layout edit mode: two blemishes seen in the docs screenshots** (2026-10-10).
