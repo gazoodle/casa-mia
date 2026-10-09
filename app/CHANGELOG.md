@@ -1,5 +1,7 @@
 # Changelog
 
+## 2026.10.4-b2
+
 ## 2026.10.4-b1
 
 - A page left open through an update (the old cards still running in it, so new features seem missing) now says so: after Home Assistant restarts, Home Assistant's own toast reads "Casa Mia updated to …: reload to use it", with a Reload button.
