@@ -109,6 +109,7 @@ class FakeKiosk(BaseHTTPRequestHandler):
             "/api/commands/checkUpdateNow",
             "/api/commands/installUpdate",
             "/api/commands/reload",
+            "/api/commands/screenOff",
         ):
             if not self._authorised():
                 return self._send(401, {})
@@ -531,3 +532,20 @@ def test_reload_all_asks_each_logged_in_kiosk_to_reload(two):
         t.join(5)
     assert h1.imported == [("/api/commands/reload", None)]
     assert h2.imported == []  # not logged in to it
+
+
+def test_run_everywhere_sends_a_quick_control_to_each_kiosk_in_turn(two):
+    k, (h1, _), (h2, _) = two
+    k.scan()
+    k.login(PASSWORD)
+    # only the Quick controls: nothing else reaches the kiosks
+    assert call(k, "POST", "everywhere", {"command": "installUpdate"})[0] == 400
+    status, view = call(k, "POST", "everywhere", {"command": "screenOff"})
+    assert status == 202 and view["everywhere"]["command"] == "screenOff"
+    for t in [t for t in threading.enumerate() if t.name == "kiosks-everywhere"]:
+        t.join(5)
+    assert h1.imported == [("/api/commands/screenOff", None)]
+    assert h2.imported == []  # not logged in to it
+    run = call(k, "GET")[1]["everywhere"]
+    assert run["running"] is False and run["total"] == 1
+    assert run["results"] == [{"name": "Kitchen", "ok": True, "error": None}]

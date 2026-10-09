@@ -63,6 +63,23 @@ and lets **Open** enter the tablet's admin page already signed in.
 
 <img src="../screenshots/kiosk-satellite.webp" alt="A tablet's own Kiosk Satellite admin page opened inside Casa Mia" width="800">
 
+### Run everywhere
+
+The Quick controls from each tablet's own Overview page, sent to every tablet Casa Mia
+is logged in to, one after the other: **Reload page**, **Clear cache**, **Screen off**,
+**Screen on**, **Start screensaver**, **Dismiss screensaver**, **Dismiss camera view**,
+**Postpone screensaver**, **Check for updates**, **Restart app** and **Restart device**.
+The last two ask first. The panel shows each tablet's result as it comes, and the log
+has a line for each.
+
+A tablet's own page turns some of its tiles over with its state (Screen off becomes
+Screen on); here both are buttons, since one button cannot know every tablet's state.
+**Show camera view** (it asks which view) and **Take snapshot** (one tablet's picture)
+stay on each tablet's own page.
+
+The buttons, their words and icons are Kiosk Satellite's own, by
+[Xavier Larrea](https://kiosksatellite.com), used here with thanks.
+
 ### Backups
 
 Casa Mia checks logged-in, online tablets on the selected schedule and keeps a new

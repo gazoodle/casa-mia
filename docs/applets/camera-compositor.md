@@ -18,7 +18,7 @@ Turn on **Compose camera groups** in the app's Configuration tab (Settings → A
 
 ## On the page
 
-- The pipeline as it runs: gatherer, drawer, servers (live and preview)
+- The pipeline as it runs: gatherer, generator, server (one compositor draws everything: the cards, both camera dashboards, the Camera Commander preview and the Cameras thumbnails)
 - Cameras and channels, the survey
 - The cache
 - The whole system: CPU, the verdict

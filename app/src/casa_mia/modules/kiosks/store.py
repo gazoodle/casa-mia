@@ -57,6 +57,8 @@ class Store:
         self.last_scan: str | None = None
         self.settings: dict[str, Any] = dict(DEFAULT_BACKUP)
         self.checked: dict[str, str] = {}  # id -> when its backup was last checked
+        # The last Run everywhere: its command, when, and each kiosk's result as it came.
+        self.everywhere: dict[str, Any] | None = None
         self._load()
 
     # -- store
@@ -210,4 +212,5 @@ class Store:
             "backup": self.settings,
             "max_keep": MAX_KEEP,
             "every_hours": EVERY_HOURS,
+            "everywhere": self.everywhere,
         }

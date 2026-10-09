@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api, type Kiosk, type KioskBackup, type KioskKind, type KiosksView } from "./api";
 import { ago } from "./format";
 import { TabletIcon } from "./icons";
+import { Everywhere } from "./KioskEverywhere";
 import { AreaHead, Empty, Shell } from "./page";
 import { Dialog, Field, Segmented, Toasts, type Toast } from "./ui";
 import css from "./kiosks.module.css";
@@ -68,6 +69,7 @@ export function KiosksPage({ state }: { state?: string }) {
   }
   if (!view) return <Shell {...HEAD} state={state}><p className={guest.notice}>Loading…</p></Shell>;
   const needLogin = view.kiosks.filter((k) => !k.logged_in).length;
+  const loggedIn = view.kiosks.length - needLogin;
 
   return (
     <Shell {...HEAD} state={state}>
@@ -139,6 +141,19 @@ export function KiosksPage({ state }: { state?: string }) {
             ))}
           </div>
         )}
+      </section>
+
+      <section className={guest.area}>
+        <AreaHead
+          title="Run everywhere"
+          blurb={`A Quick control sent to every tablet the app is logged in to (${loggedIn} now), one after the other.`}
+        />
+        <Everywhere
+          run={view.everywhere}
+          tablets={loggedIn}
+          reload={load}
+          onRun={(command) => change(() => post<KiosksView>("everywhere", { command }), "Sending to every tablet")}
+        />
       </section>
 
       <section className={guest.area}>

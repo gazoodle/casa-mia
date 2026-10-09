@@ -5,10 +5,12 @@ from __future__ import annotations
 import json
 import logging
 import threading
+from datetime import UTC, datetime
 from typing import Any
 
 from .backups import Backups
 from .common import (
+    EVERYWHERE,
     Response,
     _json,
 )
@@ -94,6 +96,56 @@ class Commands(Backups):
             url,
         )
         return _json(200, {"url": url})
+
+    def run_everywhere(self, name: str) -> Response:
+        """Run one of the Quick controls (EVERYWHERE) on every kiosk logged in, one after
+        the other, in the background; the page follows it in the view's `everywhere`."""
+        if name not in EVERYWHERE:
+            return _json(400, {"error": f"{name!r} is not one of the commands."})
+        with self._lock:
+            if self.everywhere and self.everywhere.get("running"):
+                return _json(
+                    409, {"error": "A run is still going: wait for it to end."}
+                )
+            known = [
+                (k, self.tokens[kid])
+                for kid, k in sorted(self.kiosks.items(), key=lambda i: i[1]["name"])
+                if kid in self.tokens
+            ]
+            run: dict[str, Any] = {
+                "command": name,
+                "started": datetime.now(UTC).isoformat(timespec="seconds"),
+                "running": True,
+                "total": len(known),
+                "results": [],  # {name, ok, error}, in the order they ran
+            }
+            self.everywhere = run
+        _LOGGER.info("run everywhere: %s on %d kiosk(s)", name, len(known))
+
+        def go() -> None:
+            for k, token in known:
+                answer = self._command(k, token, name)
+                ok = answer.get("ok") is not False
+                error = None if ok else str(answer.get("error") or "no answer")
+                (_LOGGER.info if ok else _LOGGER.warning)(
+                    "kiosk %s: %s %s",
+                    k["name"],
+                    name,
+                    "done" if ok else f"failed: {error}",
+                )
+                with self._lock:
+                    run["results"].append({"name": k["name"], "ok": ok, "error": error})
+            with self._lock:
+                run["running"] = False
+            _LOGGER.info(
+                "run everywhere: %s done (%d of %d answered)",
+                name,
+                sum(r["ok"] for r in run["results"]),
+                len(known),
+            )
+
+        threading.Thread(target=go, name="kiosks-everywhere", daemon=True).start()
+        return _json(202, self.view())
 
     def reload_all(self, why: str) -> None:
         """Ask every kiosk logged in to reload its page (its `reload` command), in the

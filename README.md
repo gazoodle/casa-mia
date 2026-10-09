@@ -159,17 +159,16 @@ moment you touch it. Not a grid of spinners, not a tablet that lags behind every
 an afternoon of YAML every time a camera is added. Quick, good-looking, and configurable.
 
 Every camera in the house in one live picture: a big main camera framed by all the others.
-Tap a tile and it's on the big screen; tap the big screen and you're on that camera's own
-live page. You design it in the Casa Mia panel, try it out on a preview dashboard, and
-deploy it to your real one when it's right. And this is only the beginning: there's plenty
-more to come on this feature.
+Tap a tile and it's on the big screen; tap the big screen and it plays live. You design it
+in the Casa Mia panel, and Save puts it on every wall tablet at once. And this is only the
+beginning: there's plenty more to come on this feature.
 
 <table>
 <tr>
 <td width="50%" valign="top">
 <img src="docs/screenshots/camera-dashboard.webp" alt="The Camera Dashboard page: a commander's composite of every camera around the main one, with its picture and layout settings">
 <h3>Design your control room</h3>
-Lay out a commander in the Casa Mia panel: which cameras go where, how big the main one is, the highlight on its tile and the motion tracking. Preview it, then deploy it live.
+Lay out a commander in the Casa Mia panel: which cameras go where, how big the main one is, the highlight on its tile and the motion tracking. Its preview follows every change; Save puts it live.
 </td>
 <td width="50%" valign="top">
 <img src="docs/screenshots/dashboard-commander.webp" alt="A camera commander on a Home Assistant dashboard: the main camera framed by every other camera, each a tap to make it the main one">
@@ -181,7 +180,7 @@ The commander on a Home Assistant dashboard: every camera in one picture, and on
 <td width="50%" valign="top">
 <img src="docs/screenshots/dashboard-commander-loft.webp" alt="The same commander after a tap on the Loft tile: Loft is now the main camera, its tile outlined">
 <h3>Tap, and it's on the big screen</h3>
-Tap any tile and it becomes the main camera, in a moment. Switch on Track motion and the commander does it for you, following whatever moves around your home.
+Tap any tile and it becomes the main camera, in a moment. Switch on Track motion and the commander does it for you, following whatever moves around your home; a pulsing dot marks each camera seeing motion.
 </td>
 <td width="50%" valign="top">
 <img src="docs/screenshots/desk-tablet-security.webp" alt="A tablet in the dark theme with the commander's Security look on: every camera in a cool control-room blue">

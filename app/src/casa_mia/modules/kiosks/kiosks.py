@@ -59,6 +59,12 @@ class Kiosks(Commands):
         parts = rest.strip("/").split("/") if rest.strip("/") else []
         if method == "GET" and not parts:
             return _json(200, self.view())
+        if method == "POST" and parts == ["everywhere"]:
+            try:
+                name = str(json.loads(body or b"{}").get("command") or "")
+            except (ValueError, AttributeError):
+                return _json(400, {"error": "Not JSON."})
+            return self.run_everywhere(name)
         if method == "POST" and parts == ["scan"]:
             self._wake.set()
             return _json(202, {})

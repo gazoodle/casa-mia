@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.4-b17
+
+- Kiosk Satellites page: **Run everywhere**, a panel of Kiosk Satellite's own Quick controls (its words, icons and colours, by Xavier Larrea, credited on the page and in the docs): Reload page, Clear cache, Screen off and on, Start and Dismiss screensaver, Dismiss camera view, Postpone screensaver, Check for updates, Restart app and Restart device. Each is sent to every tablet the app is logged in to, one after the other; the panel shows each tablet's result as it comes, and the log a line each. The restarts ask first.
+- Docs: new pages for **Cameras** and **Camera Commander** (with the Camera Commander card's options, the motion dot and the tap on the main camera), the Camera Dashboard and Camera compositor pages brought up to date with the split, Run everywhere on the Kiosk Satellites page, and the README. Camera Commander is rated Beta, Cameras Alpha.
+
 ## 2026.10.4-b16
 
 - Cameras page: each camera's **own motion detection switch** is found with its motion sensor (a switch on the camera's device named for motion: UniFi Protect's Motion, a Kiosk Satellite tablet's Screensaver motion detection). While it is off the camera's motion sensor never turns on, so the camera takes no part in Track motion or the card's motion dot: the page now says so, above the camera list (naming the cameras) and in each one's Motion column, and a camera's live view shows the switch's state live beside its motion sensor. Both have the switch itself, to turn the camera's motion detection on or off from the page (only a camera's own motion switch, through Home Assistant).

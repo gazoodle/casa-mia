@@ -26,6 +26,8 @@
     "tablet_layout": { "level": "beta", "docs": "tablet-layout.md" },
     "guest_login": { "level": "beta", "docs": "applets/guest-login.md" },
     "gitproxy": { "level": "beta", "docs": "applets/firmware-server.md" },
+    "cameras": { "level": "alpha", "docs": "applets/cameras.md" },
+    "commander": { "level": "beta", "docs": "applets/camera-commander.md" },
     "camera_dashboard": { "level": "alpha", "docs": "applets/camera-dashboard.md" },
     "compositor": { "level": "alpha", "docs": "applets/camera-compositor.md" },
     "kiosks": { "level": "alpha", "docs": "applets/kiosk-satellites.md" },

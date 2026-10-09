@@ -1,10 +1,10 @@
 # Camera Dashboard
 
-Sets up the cameras, the Camera Commander and the camera dashboard, with previews, and deploys it.
+The camera dashboard, made from the cameras and the commanders, previewed, and deployed into Home Assistant.
 
 > **Maturity: Alpha.** Does its job every day in the author's house, but hasn't been tried in many others. Expect rough edges and changes. ([The levels](../README.md#maturity))
 
-*Due to split into Camera Commander and Auto Dashboards (see BACKLOG.md).*
+*Being split: the cameras now have their own [Cameras](cameras.md) page and the commanders their [Camera Commander](camera-commander.md) page; this page keeps the dashboard, and becomes Auto Dashboards (see BACKLOG.md).*
 
 <img src="../screenshots/camera-dashboard.webp" alt="Camera Dashboard" width="800">
 
@@ -26,19 +26,21 @@ Turn on **Camera Dashboard** in the app's Configuration tab (Settings â†’ Apps â
 
 ## On the page
 
-- Commanders: each one's cameras, layout and main camera
-- Cameras: each camera, its streams and tile
-- Dashboard settings and backups
+- Dashboard settings: its address and title, Back / Home / Help, the live cards, the wall
+  tablet users
 - Save draft, Deploy preview, Deploy live, YAML
+- Backups
+
+The cameras and the commanders are their own pages' ([Cameras](cameras.md),
+[Camera Commander](camera-commander.md)): the draft takes their changes at once, and the
+live dashboard at its next Deploy live (its commander pages' tap zones follow each
+commander's layout). Both dashboards show the commanders' live pictures.
 
 > **To write:** a paragraph for each.
 
-## Adding a Commander card
+## The Camera Commander card
 
-In Home Assistant's Add to dashboard dialog, choose **Casa Mia Camera Commander**.
-Its preview uses the first commander available in Home Assistant, so you can see its
-camera layout before adding it. Choose another commander in the card editor if needed.
-Create a commander on the Camera Dashboard page first if none is available.
+See [Camera Commander](camera-commander.md#the-camera-commander-card).
 
 ## Troubleshooting
 

@@ -20,6 +20,22 @@ TIMEOUT = 4
 TOKEN_DAYS = 3650
 KINDS = {"settings": "Settings only", "config": "Full config"}
 # Backups: which export, how many of each kind to keep per kiosk, how often to check.
+# Run everywhere: the commands the Kiosk Satellites page may send to every tablet in turn,
+# as the Quick controls on each tablet's own Overview send them (POST /api/commands/<name>).
+EVERYWHERE = (
+    "reload",
+    "clearWebCache",
+    "screenOff",
+    "screenOn",
+    "startScreensaver",
+    "stopScreensaver",
+    "postponeScreensaver",
+    "hideCameraView",
+    "checkUpdateNow",
+    "restartApp",
+    "rebootDevice",
+)
+
 MAX_KEEP = 6
 EVERY_HOURS = (6, 12, 24, 168)
 DEFAULT_BACKUP = {"kind": "config", "keep": 3, "every_hours": 24}
