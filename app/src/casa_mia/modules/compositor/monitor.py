@@ -10,12 +10,14 @@ import os
 import time
 from typing import Any
 
+from ... import swap
 from .common import (
     GO2RTC_CHECK,
     HEALTH_S,
     LAG_WAITING,
     LINGER,
     MONITOR_EVERY,
+    PACES,
     enlarged,
     memory,
 )
@@ -315,7 +317,8 @@ class Monitor(Survey):
             },
             "paused": self.paused,
             "gathering": self.gathering,
-            "pace": self.pace("gatherer"),
+            # The swapped stills are fetched at the slowest (Fetcher._pace_of).
+            "pace": PACES["gatherer"][1] if swap.stamp() else self.pace("gatherer"),
             "freshness": self.pace("freshness"),
             "flags": dict(self.flags),
             "survey": {

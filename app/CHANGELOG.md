@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.3-b86
+
+- The Camera compositor page shows the gatherer at its slowest (every 15 s) while the screenshot swap is on, as it already runs for the swapped stills, matching the generators.
+
 ## 2026.10.3-b85
 
 - While the screenshot swap is on, the Live and Preview generators draw at their slowest (every 15 s), whatever their setting: the swapped pictures are stills. A tap on a camera still redraws at once.

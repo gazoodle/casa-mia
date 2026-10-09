@@ -258,6 +258,7 @@ def test_a_round_draws_from_the_channels_streams(tmp_path, monkeypatch):
     assert comp.pace() == comp.gather.pace(comp.role)
     monkeypatch.setattr(comp_mod.swap, "stamp", lambda: "1")
     assert comp.pace() == comp_mod.PACES[comp.role][1]
+    assert comp.gather.status()["pace"] == comp_mod.PACES["gatherer"][1]  # as shown
     comp.gather._stop_readers()
     assert not comp.gather._readers
 
