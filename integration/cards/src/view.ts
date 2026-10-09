@@ -34,7 +34,7 @@
 // label the view's size, the room below its top and anything still scrolling the page
 // (show_size); `debug: true` in the view's config does both.
 import { css } from "lit";
-import { define, type HuiCard, room, sectionsView, watchRoom } from "./ha.ts";
+import { define, type HuiCard, room, sectionsView, TABLET, watchRoom } from "./ha.ts";
 import { LAYOUT, type Panel, PANELS, type Rect } from "./layout.ts";
 import { counts, fills } from "./garnish.ts";
 import { compact, edgeForm, type Form, openMini, openPanelOptions, PX } from "./panel-options.ts";
@@ -445,6 +445,7 @@ sectionsView().then((Base: any) => {
 
     connectedCallback() {
       super.connectedCallback();
+      TABLET.shown++;
       this.cmHolder = (this as unknown as HTMLElement).parentElement?.parentElement;
       this.cmHolder?.style.setProperty("min-height", "100dvh");
       document.documentElement.style.setProperty("height", "100dvh");
@@ -456,6 +457,7 @@ sectionsView().then((Base: any) => {
 
     disconnectedCallback() {
       super.disconnectedCallback();
+      TABLET.shown--;
       this.cmHolder?.style.removeProperty("min-height");
       document.documentElement.style.removeProperty("height");
       this.cmSeen.disconnect();
@@ -1366,6 +1368,10 @@ sectionsView().then((Base: any) => {
       const round = cs ? ["paddingLeft", "paddingRight", "borderLeftWidth", "borderRightWidth"].reduce((t, k) => t + (parseFloat(cs[k as "paddingLeft"]) || 0), 0) : 0;
       const row = parseFloat(getComputedStyle(box).getPropertyValue("--row-height")) || ROW;
       box.style.minWidth = `${Math.ceil(Math.max(chip + clear, row + round))}px`;
+      // And its least height: HA's frame round one row (its Add card button), so a panel
+      // squeezed to fit (an empty view fits the screen) never clips it.
+      const tall = cs ? ["paddingTop", "paddingBottom", "borderTopWidth", "borderBottomWidth"].reduce((t, k) => t + (parseFloat(cs[k as "paddingTop"]) || 0), 0) : 0;
+      box.style.minHeight = `${Math.ceil(row + tall)}px`;
     }
 
     /** How many card columns section n's grid has when its cards size it (else HA's own,

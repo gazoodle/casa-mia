@@ -39,7 +39,7 @@
 // a 2x or 3x screen's own is up to four times the bytes over a slower link.
 import { LitElement, css, html, nothing } from "lit";
 import { keyed } from "lit/directives/keyed.js";
-import { atHome, define, type Fit, fire, fitOf, type Hass, heightFor, inDialog, liveChannel, LOOK, lookCss, navigate, ratioFor, register, type Sharpness, watchRoom } from "./ha.ts";
+import { atHome, define, type Fit, fire, fitOf, type Hass, heightFor, inDialog, liveChannel, LOOK, lookCss, navigate, ratioFor, register, type Sharpness, TABLET, watchRoom } from "./ha.ts";
 import { heightForMain, layout, PANELS, pyRound, type Rect, type Settings } from "./layout.ts";
 import { playWebRTC } from "../../../app/web/src/webrtc.ts";
 
@@ -346,7 +346,7 @@ class CommanderCard extends LitElement {
     return 6;
   }
   getGridOptions() {
-    return { columns: 6, rows: "auto" }; // HA's own default: half the width, its own height
+    return { columns: TABLET.shown ? "full" : 6, rows: "auto" }; // Tablet Layout (and its edit preview): full, its panel's subject; else HA's half
   }
 
   /** The main camera now: the select's option, by title; else the one at start. */

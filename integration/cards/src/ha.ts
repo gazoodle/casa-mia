@@ -51,6 +51,11 @@ export async function sectionsView(): Promise<CustomElementConstructor> {
 /** Define a custom element, once: a second copy of this file (cm-streams.js loads it
  * again when the first load failed) finds it defined and leaves it. A failure says so in
  * the console, which Kiosk Satellite keeps (getConsole), so a dead card has a reason. */
+/** How many Tablet Layout views are on screen (the view counts itself in and out): a card
+ * there, or in HA's edit dialog opened from one (outside the view, so it can't look up the
+ * page for it), takes its Tablet Layout default. */
+export const TABLET = { shown: 0 };
+
 export function define(tag: string, element: CustomElementConstructor): void {
   if (customElements.get(tag)) return;
   try {

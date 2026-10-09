@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.4-b6
+
+- Camera Commander: in a Tablet Layout it now defaults to the full width of its panel (elsewhere still half, Home Assistant's default), so it no longer needs switching to full width after placing it, and its preview in the card editor fills the preview area instead of half of it. A width set in the Layout tab still wins.
+- Tablet Layout edit mode: in an empty view (fitted to the screen), a short top or bottom panel no longer clips its toolbar and Add card button; each panel keeps room for them.
+
 ## 2026.10.4-b5
 
 - Camera Commander: the Add to dashboard card picker now shows a picture preview using the first available commander.

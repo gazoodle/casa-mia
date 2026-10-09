@@ -399,17 +399,3 @@ being slightly larger than its screen; a small margin fixes it.
 > - Conditional panels: a warnings edge that appears only when something needs attention.
 > - Two layers: a full-height left edge, with a status strip only as wide as the camera.
 > - A top edge of three panels: buttons from the left, the clock held right.
-
-
-## Moving from the retired Section card
-
-The Casa Mia Section card (`custom:casa-mia-section`) has been removed. In a Tablet Layout,
-move its child `cards:` into the containing HA section's `cards:` list, in the same order,
-and remove the custom Section wrapper. Keep each child's `view_layout`, `grid_options`
-and visibility settings. Transfer any visibility condition on the wrapper to the HA
-section if it should hide the whole panel. Native panels already hide when no content
-card shows; mark headings as Garnish using the sprig in edit mode.
-
-Outside Tablet Layout, use an HA section or a built-in `vertical-stack` in place of the
-wrapper. A vertical stack does not automatically hide when its content is empty; use
-HA's visibility conditions if you need that behaviour.
