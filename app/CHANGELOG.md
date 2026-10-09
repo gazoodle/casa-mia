@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.10.5-b2
+
+- **Garnish on every Sections dashboard:** a new switch on the Settings page, **Enable
+  garnish on all section dashboards** (off by default). Home Assistant already hides a
+  section whose cards are all hidden; with it on, a section left with only garnish showing
+  hides too, on any Sections dashboard, and each card in a section has the garnish sprig in
+  edit mode. Open dashboards follow the switch within a few seconds.
+
 ## 2026.10.5-b1
 
 - Tablet Layout edit mode: every chip, sprig, padlock and dimension label answers the

@@ -217,11 +217,12 @@ The layout follows what's showing, so conditional cards just work:
   garnish is hatched in edit mode, as it will never show. In YAML it's
   `view_layout: { garnish: true }`.
 
-  *Coming:* garnish in every section of every Sections dashboard, not only a Tablet
-  Layout's panels. Home Assistant already hides a section whose cards are all hidden;
-  garnish lets a section hold content that doesn't count toward keeping it showing. It will
-  be one switch for all your dashboards, **Enable garnish on all section dashboards**, in
-  the Casa Mia panel's settings.
+  **On every Sections dashboard, too:** switch on **Enable garnish on all section
+  dashboards** on the Casa Mia panel's [Settings](applets/settings.md) page (the cog by
+  the house photo), and garnish works in every section of every Sections dashboard, not
+  only a Tablet Layout's panels. Home Assistant already hides a section whose cards are all
+  hidden; with garnish, a section left with only garnish showing hides too, and the others
+  take its room.
 
   <img src="screenshots/tablet-layout-garnish.webp" alt="A right panel in edit mode: a Warnings heading as garnish, dimmed with a dashed outline and a filled sprig, over a Door tile as content with a plain sprig" width="274">
 

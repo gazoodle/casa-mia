@@ -1,5 +1,6 @@
 // Dress HA's card edit frame only for cards in a Tablet Layout panel.
-import { counts, cardPath, setGarnish } from "./garnish.ts";
+import { counts, cardPath, inTablet, setGarnish } from "./garnish.ts";
+import { garnishEverywhere } from "./garnish-sections.ts";
 import { HOVER } from "./ha.ts";
 
 // The sprig sits on the card's bottom-right border, clear of headings (which start top
@@ -43,13 +44,8 @@ customElements.whenDefined("hui-card-edit-mode").then(() => {
     const root = this.shadowRoot as ShadowRoot | null;
     if (!root) return;
     let chip = root.querySelector<HTMLButtonElement>(".cm-garnish");
-    let tablet = false;
-    for (let node: Node | null = this; node; node = (node as Element).parentElement ?? (node.getRootNode() as ShadowRoot).host ?? null) {
-      if (["CASA-MIA-TABLET-LAYOUT", "CASA-MIA-TABLET-VIEW"].includes((node as Element).tagName)) {
-        tablet = true;
-        break;
-      }
-    }
+    // In a Tablet Layout's panels, or any section while garnish is on for every dashboard.
+    const tablet = garnishEverywhere() || inTablet(this);
     const path = cardPath(this.path ?? []);
     const get = (config: any) => path.reduce((value, key) => value?.[key], config);
     const card = get(this.lovelace?.config);

@@ -3,6 +3,7 @@
 import { VERSION } from "./commander/index.ts";
 import "./view/index.ts";
 import "./garnish-editor.ts";
+import "./garnish-sections.ts";
 
 console.info(
   `%cCASA-MIA CARDS\n%ccommander, tablet layout (${VERSION})`,

@@ -189,6 +189,12 @@ dashboards_on`).
 - **b25: Working together, the compositor knows its viewers.** The Camera compositor page
   names each stream's viewer from Kiosk Satellites (`Store.names()`, passed to
   `admin_api(names=...)`), the IP kept beside it. Its log lines still give the address only.
+- **2026.10.4 released.** Next builds (2026.10.5-b1, b2): `counts: false` no longer read;
+  one hover ring for every edit-mode control (`HOVER` in ha.ts); **garnish on every
+  Sections dashboard** (b2: `garnish-sections.ts` wraps HA's `hui-section._updateVisibility`;
+  Settings → Dashboards switch, `dashboards.garnish_everywhere`); README section for it.
+  Still to do: move the card's motion test into the cards' `npm test` (package.json); CI
+  runs it from checks.yml meanwhile.
 - **Soft launch on the HA community forum**, still to do: a release (the owner runs
   `tools/release.py`), a fresh install on the test VM, then a forum post draft (HA
   Community → Share your Projects, leading with the Tablet Layout).

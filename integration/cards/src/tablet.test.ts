@@ -4,7 +4,7 @@
 //   WRITE_CASES=1 node --experimental-strip-types --no-warnings --test src/tablet.test.ts
 // and read the diff before committing it.
 import assert from "node:assert/strict";
-import { counts, cardPath, fills, setGarnish } from "./garnish.ts";
+import { counts, cardPath, fills, onlyGarnish, setGarnish } from "./garnish.ts";
 import { writeFileSync } from "node:fs";
 import test from "node:test";
 import saved from "../../../tests/tablet_cases.json" with { type: "json" };
@@ -316,4 +316,14 @@ test("a lone card fills its panel only when it's made to, or says so", () => {
   for (const type of ["tile", "button", "entities", "heading"]) assert.equal(fills({ type }), false, type);
   assert.equal(fills({ type: "tile", view_layout: { fill: true } }), true);
   assert.equal(fills({ type: "map", view_layout: { fill: false } }), false);
+});
+
+test("a section left with only garnish showing hides (garnish on every dashboard)", () => {
+  const heading = { config: { type: "heading", view_layout: { garnish: true } } };
+  const door = { config: { type: "tile" } };
+  assert.equal(onlyGarnish([heading, { ...door, hidden: true }]), true); // the door shut
+  assert.equal(onlyGarnish([heading, door]), false); // the door open
+  assert.equal(onlyGarnish([{ ...heading, hidden: true }, { ...door, hidden: true }]), false); // HA hid it already
+  assert.equal(onlyGarnish([]), false); // an empty section: HA's to decide
+  assert.equal(onlyGarnish([heading, { hidden: false }]), false); // a badge (no config) counts
 });
