@@ -32,11 +32,10 @@ async def async_setup_entry(
 class CommanderMainSelect(CommanderEntity, SelectEntity):
     """A commander's main camera. Its `card` attribute is what the Camera Commander card
     (www/cm-cards.js) draws the commander from: layout, picture, cameras (see the app's
-    CameraDashboard._card); `draft_card` the same for the saved draft. Kept out of the
-    recorder: they only matter now."""
+    commander.Live._card). Kept out of the recorder: it only matters now."""
 
     _attr_translation_key = "commander_main"
-    _unrecorded_attributes = frozenset({"card", "draft_card"})
+    _unrecorded_attributes = frozenset({"card"})
 
     def __init__(
         self, coordinator: CasaMiaCoordinator, entry: ConfigEntry, cid: str
@@ -67,10 +66,7 @@ class CommanderMainSelect(CommanderEntity, SelectEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        return {
-            "card": self.commander.get("card"),
-            "draft_card": self.commander.get("draft_card"),
-        }
+        return {"card": self.commander.get("card")}
 
     @property
     def current_option(self) -> str | None:

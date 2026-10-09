@@ -48,7 +48,7 @@ export class CommanderCard extends LitElement {
 
   private debugOn(): boolean {
     const st = this._config?.entity ? this.hass?.states[this._config.entity] : undefined;
-    return Boolean((st?.attributes[this._config?.draft ? "draft_card" : "card"] as Card | undefined)?.layout.debug?.on);
+    return Boolean((st?.attributes.card as Card | undefined)?.layout.debug?.on);
   }
   hass?: Hass;
   _config?: Config;
@@ -184,7 +184,7 @@ export class CommanderCard extends LitElement {
       return "";
     }
     const url = new URL(still);
-    return `/api/casa_mia/${this._config?.draft ? "draft" : "live"}${url.pathname}${url.search}&token=${this._token}`;
+    return `/api/casa_mia/live${url.pathname}${url.search}&token=${this._token}`;
   }
 
   /** The Security look's filter while it is on, else "". */
@@ -260,7 +260,7 @@ export class CommanderCard extends LitElement {
       return "";
     }
     const path = new URL(card.picture).pathname; // /g/<name>.mjpg
-    return `/api/casa_mia/${this._config?.draft ? "draft" : "live"}${path}?${size}&token=${this._token}`;
+    return `/api/casa_mia/live${path}?${size}&token=${this._token}`;
   }
 
   private ask(fresh = false) {
@@ -289,7 +289,7 @@ export class CommanderCard extends LitElement {
   /** The card shown now, and its main camera. */
   private now(): { card?: Card; main: string } {
     const st = this._config?.entity ? this.hass?.states[this._config.entity] : undefined;
-    const card = st?.attributes[this._config?.draft ? "draft_card" : "card"] as Card | undefined;
+    const card = st?.attributes.card as Card | undefined;
     return { card, main: card ? this.main(card, st!.state) : "" };
   }
 
@@ -353,15 +353,15 @@ export class CommanderCard extends LitElement {
 
   render() {
     const st = this._config?.entity ? this.hass?.states[this._config.entity] : undefined;
-    // As deployed, or (draft) as the Camera Dashboard page's draft was last saved.
-    const card = st?.attributes[this._config?.draft ? "draft_card" : "card"] as Card | undefined;
+    // As saved on the Camera Commander page.
+    const card = st?.attributes.card as Card | undefined;
     if (!card)
       return html`<ha-card
         ><div class="note">
           ${!this._config?.entity
             ? "Choose a commander"
             : st
-              ? `${this._config.draft ? "No saved draft" : "Not deployed live yet"} for this commander`
+              ? "Not drawn yet: give this commander cameras on the Camera Commander page"
               : `No commander at ${this._config.entity}`}
         </div></ha-card
       >`;
@@ -456,10 +456,13 @@ export class CommanderCard extends LitElement {
     this.hass?.callService("select", "select_option", { option: card.cameras[camera]?.title }, { entity_id: this._config!.entity });
   }
 
+  /** A tap on the main camera: its more-info (HA's camera dialog, the default), its live
+   * page on the camera dashboard (more-info when there is no dashboard), or nothing. */
   private open(card: Card, camera: string) {
-    const how = this._config?.tap_main ?? "live";
-    if (how === "live" && card.cameras[camera]) navigate(card.cameras[camera].live);
-    else if (how === "more-info") fire(this, "hass-more-info", { entityId: camera });
+    const how = this._config?.tap_main ?? "more-info";
+    const page = card.cameras[camera]?.live;
+    if (how === "live" && page) navigate(page);
+    else if (how !== "none") fire(this, "hass-more-info", { entityId: camera });
   }
 
   static styles = css`

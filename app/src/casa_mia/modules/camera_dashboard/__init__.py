@@ -8,7 +8,7 @@ layout function, so they always line up. Its own settings: url, Back / Home / He
 tablet users, phones, live cards.
 
 Its draft takes a copy of the cameras and the commanders whenever their pages change
-them; the draft compositor (DRAFT_PORT) draws it for the preview dashboard. Deploying
+them. Both dashboards show the live compositor's pictures. Deploying
 saves the dashboard into HA over the websocket (a storage-mode dashboard: no
 configuration.yaml change, no restart), after keeping a copy of what it replaces: a
 preview deploy to `<dashboard>-preview`, a live one to the dashboard itself.
@@ -40,7 +40,6 @@ from .common import (
     DEFAULT_KEEP,
     DEFAULTS,
     DEPLOYS,
-    DRAFT_PORT,
     HIGHLIGHT,
     MAX_KEEP,
     PREVIEW,
@@ -70,7 +69,6 @@ __all__ = [
     "DEFAULTS",
     "DEFAULT_KEEP",
     "DEPLOYS",
-    "DRAFT_PORT",
     "HIGHLIGHT",
     "MAX_KEEP",
     "PREVIEW",

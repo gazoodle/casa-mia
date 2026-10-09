@@ -192,7 +192,8 @@ def test_edit_preview_then_deploy(cd, tmp_path):
     status, out = call(cd, "POST", "deploy", {"target": "preview"})
     assert status == 200 and out["url_path"] == "dashboard-cams-preview"
     preview = cd.ha.boards["dashboard-cams-preview"]
-    assert "http://10.0.0.2:8098/g/cameras.mjpg" in json.dumps(preview)
+    # the live compositor's pictures: the draft compositor has retired
+    assert "http://10.0.0.2:8099/g/cameras.mjpg" in json.dumps(preview)
     assert "/dashboard-cams-preview/cam-bay" in json.dumps(preview)
     assert out["changed"] is True  # a preview changes nothing live
     assert out["previewed"]

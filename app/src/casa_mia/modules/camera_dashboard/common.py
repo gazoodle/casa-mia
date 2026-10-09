@@ -12,9 +12,6 @@ from ..compositor import (
     commanders_of,
 )
 
-DRAFT_PORT = 8098
-
-
 BACKUPS = "camera-dashboard-backups"
 
 

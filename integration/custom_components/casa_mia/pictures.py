@@ -2,7 +2,7 @@
 compositor's own address: away from home (the LAN address is out of reach), or with HA
 opened over HTTPS (an http:// picture is blocked as mixed content). The Camera Commander
 card asks for a token (websocket casa_mia/picture_token, any signed-in user) and shows
-/api/casa_mia/{live|draft}/g/<name>.mjpg?token=...; this passes the app's stream through
+/api/casa_mia/live/g/<name>.mjpg?token=...; this passes the app's stream through
 as it comes, so the compositor's trick of opening each next part at once still works.
 The card being edited shows one still instead, the same address with .jpg.
 Only the pictures the app lists for its commanders can be reached this way.
@@ -72,12 +72,11 @@ def running_coordinator(hass: HomeAssistant) -> CasaMiaCoordinator | None:
 
 
 def source(hass: HomeAssistant, which: str, name: str) -> str | None:
-    """The app's own address for a commander's picture, live or draft; None if no
-    commander has it."""
+    """The app's own address for a commander's picture (`which`: live, the only one
+    since the draft retired); None if no commander has it."""
     coordinator = running_coordinator(hass)
-    key = "card" if which == "live" else "draft_card"
     for cmd in commanders(coordinator) if coordinator and coordinator.data else []:
-        picture = (cmd.get(key) or {}).get("picture") or ""
+        picture = (cmd.get("card") or {}).get("picture") or ""
         if picture and urlsplit(picture).path == f"/g/{name}.mjpg":
             return picture
     return None
@@ -92,7 +91,7 @@ class DoneView(HomeAssistantView):
     """The card done with a stream it named (?sid=): passed to the app, which ends it.
     A connection closed through Home Assistant (and Nabu Casa) may not reach the app."""
 
-    url = PROXY + "/{which:live|draft}/g/{name}/done"
+    url = PROXY + "/{which:live}/g/{name}/done"
     name = f"api:{DOMAIN}:picture_done"
     requires_auth = False  # the token instead
 
@@ -138,7 +137,7 @@ class DoneView(HomeAssistantView):
 
 
 class PictureView(HomeAssistantView):
-    url = PROXY + "/{which:live|draft}/g/{name}.{kind:mjpg|jpg}"
+    url = PROXY + "/{which:live}/g/{name}.{kind:mjpg|jpg}"
     name = f"api:{DOMAIN}:picture"
     requires_auth = False  # the token instead (see the module's doc)
 

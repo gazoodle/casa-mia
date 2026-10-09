@@ -223,9 +223,7 @@ class MotionTracker:
         for show in self.shown:
             show(title)
         self.hass.async_create_task(
-            self._post(
-                "/commander/main", {"main": title, "commander": self.cid}
-            )
+            self._post("/commander/main", {"main": title, "commander": self.cid})
         )
 
     # -- a choice by hand

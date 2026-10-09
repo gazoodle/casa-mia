@@ -16,7 +16,6 @@ export class CommanderEditor extends LitElement {
     if (!this.hass || !this._config) return nothing;
     const schema = [
       { name: "entity", selector: { select: { mode: "dropdown", options: commanders(this.hass) } } },
-      { name: "draft", selector: { boolean: {} } },
       {
         name: "route",
         selector: {
@@ -56,8 +55,8 @@ export class CommanderEditor extends LitElement {
           select: {
             mode: "dropdown",
             options: [
-              { value: "live", label: "Opens its live page" },
-              { value: "more-info", label: "Opens its more-info" },
+              { value: "more-info", label: "Opens its more-info (live video)" },
+              { value: "live", label: "Opens its page on the camera dashboard" },
               { value: "none", label: "Nothing" },
             ],
           },
@@ -66,7 +65,6 @@ export class CommanderEditor extends LitElement {
     ];
     const labels: Record<string, string> = {
       entity: "Commander",
-      draft: "Show the draft",
       tap_main: "A tap on the main camera",
       route: "The picture",
       away_sharpness: "Sharpness through Home Assistant",
@@ -80,7 +78,7 @@ export class CommanderEditor extends LitElement {
     return html`<ha-form
       .hass=${this.hass}
       .data=${{
-        tap_main: "live",
+        tap_main: "more-info",
         route: "auto",
         away_sharpness: "balanced",
         live_main: true,
@@ -106,8 +104,6 @@ export class CommanderEditor extends LitElement {
             ? "The main camera plays as live video over the picture, through Home Assistant's WebRTC (this device decodes it; the box does not). Needs the Camera compositor's Live main camera switch on; a video that does not start gives way to the drawn picture."
             : s.name === "leave_after"
             ? "Seconds the picture goes on once the card is out of sight (another page in Home Assistant, scrolled away), so coming back (the back button) finds it running; then it stops, and the box sends nothing more. 0: at once. Closing the app always stops it at once."
-            : s.name === "draft"
-            ? "As saved on the Camera Dashboard page (Save draft), before it is deployed live: for trying changes out. Off: as deployed live."
             : undefined}
       @value-changed=${(ev: CustomEvent) => {
         ev.stopPropagation();

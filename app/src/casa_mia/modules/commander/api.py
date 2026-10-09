@@ -38,9 +38,7 @@ class Commander(Live):
                 mains = {}
             self._mains = {str(k): str(v) for k, v in mains.items()}
             for cid, main in self._mains.items():
-                for comp in (self.live, self.draft):
-                    if comp:
-                        comp.set_main(main, cid)
+                self.live.set_main(main, cid)
                 _LOGGER.info("commander %r: main camera %s (as it was)", cid, main)
         self.publish()
         _LOGGER.info("commander: %d commanders", len(self.store["commanders"]))
@@ -138,7 +136,7 @@ class Commander(Live):
     def _render(self, body: dict[str, Any]) -> Response:
         """A live preview: one commander (`index`, its place) drawn from the page's
         unsaved edits ({"store": {"commanders": [...]}, "index"}), with the cameras."""
-        comp = self.live or self.draft
+        comp = self.live
         if not comp:
             return _json(404, {"error": "No previews: the compositor is off."})
         try:

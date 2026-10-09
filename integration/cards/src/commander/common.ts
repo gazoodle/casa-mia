@@ -3,7 +3,7 @@ import { type Hass, type Sharpness } from "../ha.ts";
 import { pyRound, type Settings } from "../layout.ts";
 
 export type Route = "auto" | "direct" | "ha";
-export type Config = { type: string; entity?: string; draft?: boolean; tap_main?: "live" | "more-info" | "none"; route?: Route; away_sharpness?: Sharpness; live_main?: boolean;
+export type Config = { type: string; entity?: string; tap_main?: "live" | "more-info" | "none"; route?: Route; away_sharpness?: Sharpness; live_main?: boolean;
   leave_after?: number;
   grid_options?: { rows?: number | string };
   /** The Security look, on or off (a template, later), and its tint ([r, g, b]), strength and darkness (%). */
@@ -66,6 +66,6 @@ export function pictureToken(hass: Hass, fresh = false): Promise<string> {
 /** The commanders HA knows: their Main camera selects, by name. */
 export function commanders(hass: Hass): { value: string; label: string }[] {
   return Object.entries(hass.states)
-    .filter(([id, st]) => id.startsWith("select.") && (st.attributes.card || st.attributes.draft_card))
+    .filter(([id, st]) => id.startsWith("select.") && st.attributes.card)
     .map(([id, st]) => ({ value: id, label: String(st.attributes.friendly_name ?? id) }));
 }

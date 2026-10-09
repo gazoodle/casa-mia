@@ -13,7 +13,7 @@ from PIL import Image
 from casa_mia import swap
 from casa_mia.modules.cameras import Cameras
 from casa_mia.modules.commander import Commander
-from casa_mia.modules.compositor import DRAFT_STORE, LIVE_STORE, Compositor, Config
+from casa_mia.modules.compositor import LIVE_STORE, Compositor, Config
 from test_camera_dashboard import FakeHA, call, commander_store
 from test_compositor import FakeHA as FakeCameras
 
@@ -177,24 +177,6 @@ def test_integration_chooses_the_main_camera(tmp_path):
         stop(live, cameras)
 
 
-def test_a_choice_moves_the_preview_too(tmp_path):
-    (tmp_path / DRAFT_STORE).write_text(json.dumps(commander_store()))
-    draft = Compositor(tmp_path, "http://127.0.0.1:1", "t", port=0, store=DRAFT_STORE)
-    cmd = make(tmp_path, draft=draft)
-    draft.start()
-    try:
-        first = cmd.health()["commanders"][0]
-        assert (first["id"], first["options"], first["main"]) == (
-            "",
-            ["Bay", "Tablet"],
-            "Bay",
-        )
-        assert cmd.control("main", b'{"main": "Tablet"}') == 200
-        assert draft.main_camera(draft.cfg.commanders[0]) == "camera.b"
-    finally:
-        stop(draft)
-
-
 def test_motion_marks_the_commanders_cameras(tmp_path):
     seen = []
     comp = types.SimpleNamespace(
@@ -230,44 +212,42 @@ def test_the_page_flips_only_the_commanders_switches(tmp_path):
 def test_each_commander_has_its_own_main_camera(tmp_path, monkeypatch):
     store = commander_store()
     store["commanders"].append({**store["commanders"][0], "name": "Phone", "id": "p1"})
-    (tmp_path / DRAFT_STORE).write_text(json.dumps(store))
-    draft = Compositor(tmp_path, "http://127.0.0.1:1", "t", port=0, store=DRAFT_STORE)
+    live = Compositor(tmp_path, "http://127.0.0.1:1", "t", port=0)
     cmd = make(
         tmp_path,
         store,
-        draft=draft,
+        live=live,
         lan=lambda: "10.0.0.2",
         dashboard=lambda: "dashboard-cams",
     )
-    draft.start()
+    live.start()
     try:
         assert [c["id"] for c in cmd.health()["commanders"]] == ["", "p1"]
         # what the Camera Commander card draws it from (its select's `card` attribute)
-        # (no live compositor here: only the draft, from the draft compositor)
-        card = cmd.health()["commanders"][1]["draft_card"]
-        assert card["picture"] == f"http://10.0.0.2:{draft.port}/g/phone.mjpg"
+        card = cmd.health()["commanders"][1]["card"]
+        assert card["picture"] == f"http://10.0.0.2:{live.port}/g/phone.mjpg"
         assert card["live_main"] is True  # the compositor's switch, on by default
         monkeypatch.setattr(swap, "stamp", lambda: "1")  # the screenshot swap on: off
-        assert cmd.health()["commanders"][1]["draft_card"]["live_main"] is False
+        assert cmd.health()["commanders"][1]["card"]["live_main"] is False
         monkeypatch.undo()
         assert card["cameras"]["camera.b"] == {
             "title": "Tablet",
-            "live": "/dashboard-cams-preview/cam-tablet",
+            "live": "/dashboard-cams/cam-tablet",
             "channels": [["camera.b", 0, 0]],  # each channel, its size not known yet
         }
         assert card["layout"]["main_fit"] == "fit" and "left" in card["layout"]
         body = b'{"main": "Tablet", "commander": "p1"}'
         assert cmd.control("main", body) == 200
-        first, phone = draft.cfg.commanders
-        assert draft.main_camera(phone) == "camera.b"
-        assert draft.main_camera(first) == "camera.a_low"  # untouched
+        first, phone = live.cfg.commanders
+        assert live.main_camera(phone) == "camera.b"
+        assert live.main_camera(first) == "camera.a_low"  # untouched
         assert cmd.control("main", b'{"main": "Tablet", "commander": "x"}') == 400
         # with no camera dashboard, no camera has a live page to open
         cmd.dashboard = lambda: None
-        card = cmd.health()["commanders"][1]["draft_card"]
+        card = cmd.health()["commanders"][1]["card"]
         assert card["cameras"]["camera.b"]["live"] == ""
     finally:
-        stop(draft)
+        stop(live)
 
 
 def test_a_change_to_live_main_tells_the_integration_at_once(tmp_path, monkeypatch):

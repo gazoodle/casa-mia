@@ -15,6 +15,7 @@ from homeassistant.core import Event, HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 
 from .commanders import async_prune_commander_devices
 from .const import CARDS_JS, DOMAIN, FONA_EVENT, SCRIPTS_URL, SETTINGS_EVENT
@@ -49,9 +50,14 @@ PLATFORMS = [
 ]
 
 
+# The version this code was loaded with, read once, at import: a reload of the entry runs
+# setup again with this same code, so reading the manifest then would take the newer
+# version the app may since have installed as loaded, and drop its restart Repair.
+LOADED_VERSION = manifest_version()
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    # The version this code was loaded with; the app may since have installed a newer one.
-    loaded_version = await hass.async_add_executor_job(manifest_version)
+    loaded_version = LOADED_VERSION
     coordinator = CasaMiaCoordinator(hass, entry, loaded_version)
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = coordinator
@@ -123,10 +129,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     prune = lambda: async_prune_endpoint_devices(hass, entry, coordinator)  # noqa: E731
     prune()
     entry.async_on_unload(coordinator.async_add_listener(prune))
-    # And of commanders deleted on the Camera Dashboard page.
+    # And of commanders deleted on the Camera Commander page.
     prune_commanders = lambda: async_prune_commander_devices(hass, entry, coordinator)  # noqa: E731
     prune_commanders()
     entry.async_on_unload(coordinator.async_add_listener(prune_commanders))
+    # Retired with the draft compositor (2026.10.4-b12): the preview's pipeline switches
+    # and pace, gone from the registry rather than left "no longer provided".
+    entities = er.async_get(hass)
+    for domain, key in (
+        ("switch", "pipeline_preview_generator"),
+        ("switch", "pipeline_preview_server"),
+        ("number", "preview_generator_pace"),
+    ):
+        if old := entities.async_get_entity_id(
+            domain, DOMAIN, f"{entry.entry_id}_{key}"
+        ):
+            _LOGGER.info("removing %s: the draft compositor has retired", old)
+            entities.async_remove(old)
     entry.async_on_unload(hass.bus.async_listen(FONA_EVENT, _pong(hass, coordinator)))
 
     async def _settings_changed(_event: Event) -> None:

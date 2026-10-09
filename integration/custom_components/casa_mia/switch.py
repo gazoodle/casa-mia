@@ -1,6 +1,6 @@
 """Switches: open or close a guest/engineer login endpoint (off by default); each
 commander's Track motion; and the camera compositor's pipeline, each stage running (on) or paused (off): the gatherer,
-and the live and preview generators and servers; and whether Camera Commander cards may
+and the live generator and server; and whether Camera Commander cards may
 play the main camera as live video over the picture."""
 
 from __future__ import annotations
@@ -131,13 +131,11 @@ class TrackMotionSwitch(CommanderEntity, SwitchEntity, RestoreEntity):
 
 
 # Each stage of the camera compositor's pipeline: its app path, and where its paused flag
-# is in the compositor's health (the live engine's, the preview's under "preview").
+# is in the compositor's health.
 PIPELINE = {
     "gatherer": ("gatherer", (None, "gatherer_paused")),
     "live_generator": ("live/generator", (None, "generator_paused")),
     "live_server": ("live/server", (None, "server_paused")),
-    "preview_generator": ("draft/generator", ("preview", "generator_paused")),
-    "preview_server": ("draft/server", ("preview", "server_paused")),
 }
 
 

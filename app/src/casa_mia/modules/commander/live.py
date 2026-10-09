@@ -29,13 +29,11 @@ _LOGGER = logging.getLogger(__name__)
 
 class Live(Base):
     def _commanders(self) -> list[Compositor]:
-        """The compositors drawing commanders: the live one (the dashboard) and the draft
-        one (the preview dashboard). One choice of main camera moves both."""
-        return [c for c in (self.live, self.draft) if c and c.cfg.commanders]
+        """The compositor drawing the commanders, when it has them."""
+        return [c for c in (self.live,) if c and c.cfg.commanders]
 
     def commanders(self) -> list[dict[str, Any]]:
-        """For the integration, a device each: every commander (by id; live and draft,
-        the live one's name and settings winning), its cameras (entity -> title; the
+        """For the integration, a device each: every commander (by id), its cameras (entity -> title; the
         titles are its select's options), its main one now, and how its Track motion
         behaves (seconds: hold a switch, go back after, pause after a choice by hand)."""
         out: dict[str, dict[str, Any]] = {}
@@ -54,11 +52,7 @@ class Live(Base):
                         "motion": {**EMPTY_COMMANDER["motion"], **cmd["motion"]},
                     },
                 )
-                # The card's view of it: as deployed, and as the saved draft is
-                live = comp is not self.draft
-                one.setdefault(
-                    "card" if live else "draft_card", self._card(cmd, cfg.titles, live)
-                )
+                one["card"] = self._card(cmd, cfg.titles)  # the card's view of it
                 for e in commander_cameras(cmd):
                     one["cameras"].setdefault(e, cfg.titles.get(e, e))
                 if one["main"] is None and (now := comp.main_camera(cmd)):
@@ -67,20 +61,19 @@ class Live(Base):
             one["options"] = list(dict.fromkeys(one["cameras"].values()))
         return list(out.values())
 
-    def _card(self, cmd: dict, titles: dict[str, str], live: bool) -> dict[str, Any]:
+    def _card(self, cmd: dict, titles: dict[str, str]) -> dict[str, Any]:
         """What the Camera Commander card draws a commander from (its Main camera
-        select's `card` attribute, or `draft_card` for the saved draft, from the draft
-        compositor): the layout (it lays it out with the same engine, so its taps line
-        up), its picture's address, the main camera at start, and each camera's title
-        (its select's option) and live page on the dashboard (or the preview one), and its
+        select's `card` attribute): the layout (it lays it out with the same engine, so
+        its taps line up), its picture's address, the main camera at start, and each
+        camera's title (its select's option) and live page on the dashboard, and its
         channels, smallest first, each with its size where known (the card plays its
         main camera's as live video, when the compositor's live_main switch is on)."""
         try:
-            url_path, base = self._target(live)
+            url_path, base = self._target()
         except BadRequest:  # the LAN address not known yet: no picture until it is
             url_path, base = self.dashboard() or "", ""
         mine = commander_cameras(cmd)
-        comp = self.live if live else self.draft
+        comp = self.live
         cfg = config_from_store(self.full())
         sizes = comp.gather.res if comp else {}
         keys = (

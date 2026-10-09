@@ -17,7 +17,7 @@ from ..compositor import (
     Compositor,
 )
 from .checks import warnings
-from .common import DEPLOYED, DEPLOYS, DRAFT_PORT, BadRequest, Store, with_defaults
+from .common import DEPLOYED, DEPLOYS, BadRequest, Store, with_defaults
 
 
 class Base:
@@ -27,7 +27,6 @@ class Base:
         ha: HA | None,
         lan_host: Callable[[], str | None],
         live: Compositor | None = None,
-        draft: Compositor | None = None,
         helpers: Callable[[], set[str] | None] = set,
         cameras: Cameras | None = None,
         commander: Commander | None = None,
@@ -43,7 +42,6 @@ class Base:
         self.ha = ha
         self.lan_host = lan_host
         self.live = live
-        self.draft = draft
         self._lock = threading.Lock()
         self._error: str | None = None
         self.store: Store = with_defaults({})
@@ -140,7 +138,7 @@ class Base:
             raise BadRequest(
                 "This box's LAN address is not known; set the compositor host."
             )
-        comp, default = (self.live, PORT) if live else (self.draft, DRAFT_PORT)
-        port = comp.port if comp else default
+        # the live compositor's pictures, for the preview dashboard too
+        port = self.live.port if self.live else PORT
         url_path = store["dashboard"] + ("" if live else "-preview")
         return url_path, f"http://{host}:{port}"

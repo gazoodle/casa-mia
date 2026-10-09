@@ -40,7 +40,6 @@ class Base:
         cameras: Cameras,
         lan_host: Callable[[], str | None],
         live: Compositor | None = None,
-        draft: Compositor | None = None,
         state_path: Path | None = None,
         dashboard: Callable[[], str | None] = lambda: None,
     ) -> None:
@@ -49,7 +48,6 @@ class Base:
         self.cameras = cameras  # the cameras the commanders show (the Cameras page)
         self.lan_host = lan_host
         self.live = live  # the compositor drawing them for the cards and the dashboard
-        self.draft = draft  # the Camera Dashboard's preview compositor, while it lasts
         self.state_path = state_path  # each commander's main camera, kept over restarts
         # The camera dashboard's address, for each camera's live page (None: no dashboard).
         self.dashboard = dashboard
@@ -99,19 +97,16 @@ class Base:
             store = copy.deepcopy(self.store)
         return {"cameras": self.cameras.cameras(), **store}
 
-    def _target(self, live: bool) -> tuple[str, str]:
-        """The camera dashboard's url_path (the preview's for the draft; "" with no
-        dashboard) and the pictures' address (BadRequest while the box's address is not
-        known)."""
-        dashboard = self.dashboard() or ""
-        url_path = dashboard + ("-preview" if dashboard and not live else "")
+    def _target(self) -> tuple[str, str]:
+        """The camera dashboard's url_path ("" with no dashboard) and the pictures'
+        address (BadRequest while the box's address is not known)."""
+        url_path = self.dashboard() or ""
         host = self.store["compositor_host"] or self.lan_host()
         if not host:
             raise BadRequest(
                 "This box's LAN address is not known; set the compositor host."
             )
-        comp = self.live if live else self.draft
-        return url_path, f"http://{host}:{comp.port if comp else PORT}"
+        return url_path, f"http://{host}:{self.live.port if self.live else PORT}"
 
     def save(self, body: dict[str, Any]) -> dict[str, Any]:
         """Save the commanders (the page sends them all) and show them live at once."""
@@ -181,7 +176,7 @@ class Base:
         compositor keeps), so the picture and the dashboard's tap zones lay out the same
         way when the main camera sets its own size. A shape not known yet keeps the one
         recorded before (16:9 until there is one)."""
-        comp = self.live or self.draft
+        comp = self.live
         cmds = store.get("commanders")
         if not isinstance(cmds, list) or not comp:
             return

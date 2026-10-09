@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.10.4-b12
+
+- The draft compositor has retired, now that commanders are saved straight to live. One compositor draws everything: the cards, both dashboards (the preview dashboard shows the live pictures too), the Camera Commander page's preview and the Cameras page's thumbnails. Port 8098 is gone (the app's Network settings no longer list it).
+- Camera Commander card: **Show the draft** is gone; a card saved with it on shows the live commander. A tap on the main camera now opens its **more-info** (Home Assistant's camera dialog, with live video) by default; "its page on the camera dashboard" is still a choice, and falls back to more-info when there is no dashboard.
+- Fixed: an update to the integration could leave Home Assistant running the old code with no Restart Repair. If the integration's entry was reloaded after the app installed the new files (a module switched on or off, for example), it took the new version as the one loaded and dropped the Repair. It now keeps the version its code was loaded with. (Seen with b11: restart Home Assistant by hand once.)
+- The integration's Preview generator and Preview server switches and its Preview generator pace are removed, from Home Assistant's entity list too.
+
 ## 2026.10.4-b11
 
 - New **Camera Commander** page in the Casa Mia panel: the commanders, moved off the Camera Dashboard page. **Save shows them live at once**, on every Camera Commander card: no draft, no Deploy live. The page's preview draws the commander you are editing; the pictures' address (Compositor host) is set here too. The first start moves your commanders from what was last deployed live (not the draft, so nothing unfinished reaches the walls), leaving the old files as they were.

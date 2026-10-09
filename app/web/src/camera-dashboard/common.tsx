@@ -48,7 +48,7 @@ export type View = {
   /** How many older versions of the live dashboard are kept, and the most it can be. */
   keep: number;
   max_keep: number;
-  compositor: { live: boolean; draft: boolean; host: string | null };
+  compositor: { live: boolean; host: string | null };
 };
 
 export type HAUser = { id: string; name: string; is_active: boolean };

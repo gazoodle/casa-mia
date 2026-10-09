@@ -20,9 +20,9 @@ configuration:
   camera_dashboard_enabled:
     name: Camera Dashboard
     description: >-
-      Alpha. Set up the cameras, the Camera Commander and the camera dashboard on the Camera
-      Dashboard page of the Casa Mia panel, preview them, and deploy the dashboard into
-      Home Assistant. Previews are served on port 8098; the live composites need Compose
+      Alpha. The Cameras, Camera Commander and Camera Dashboard pages of the Casa Mia
+      panel: the cameras, the commanders that show them, and the camera dashboard,
+      previewed and deployed into Home Assistant. The commanders' pictures need Compose
       camera groups on.
   guest_login_enabled:
     name: Guest login
@@ -57,6 +57,5 @@ configuration:
       page's aids, whatever is saved there.
 network:
   8000/tcp: "Firmware server (Serve tablet firmware): the tablets fetch Kiosk Satellite updates here. Blank it if that option is off."
-  8098/tcp: "Camera Dashboard previews: the draft composites its preview dashboard shows. Blank it if that option is off."
   8099/tcp: "Camera composites (Compose camera groups): the tablets' camera images. Blank it if that option is off."
   8675/tcp: "Guest login: the address the QR codes point at. Blank it if that option is off."

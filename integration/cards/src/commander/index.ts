@@ -1,10 +1,10 @@
 // Camera Commander card: one commander, chosen by its Main camera select, drawn from what
-// the select's `card` attribute says (the app's CameraDashboard._card): the compositor's
+// the select's `card` attribute says (the app's commander.Live._card): the compositor's
 // picture, and over it the tap zones laid out by the same engine the compositor draws with.
-// A tap on a panel camera makes it the main one; a tap on the main camera opens its live
-// page (or its more-info). With `draft`, it follows the saved draft (`draft_card`, the draft
-// compositor) instead of what is live. The highlight on the main camera's tile is an <img>
-// pulsing by CSS (its style and pace from the commander's highlight settings).
+// A tap on a panel camera makes it the main one; a tap on the main camera opens its
+// more-info (or its live page on the camera dashboard). The highlight on the main camera's
+// tile is an <img> pulsing by CSS (its style and pace from the commander's highlight
+// settings).
 // The Security look (security_look, with its tint, strength and darkness: monochrome,
 // tinted, a CSS filter) is the card's own option: one layer holds what it covers, the
 // picture, the live main camera and its caption, and carries the filter, so anything new in

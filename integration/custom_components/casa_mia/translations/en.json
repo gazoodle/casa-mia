@@ -35,14 +35,11 @@
       "pipeline_gatherer": { "name": "Gatherer" },
       "pipeline_live_generator": { "name": "Live generator" },
       "pipeline_live_server": { "name": "Live server" },
-      "pipeline_preview_generator": { "name": "Preview generator" },
-      "pipeline_preview_server": { "name": "Preview server" },
       "live_main": { "name": "Live main camera" }
     },
     "number": {
       "gatherer_pace": { "name": "Gatherer pace" },
       "live_generator_pace": { "name": "Live generator pace" },
-      "preview_generator_pace": { "name": "Preview generator pace" },
       "survey_pace": { "name": "Survey pause" },
       "survey_at_once": { "name": "Survey streams at once" },
       "freshness": { "name": "Picture age allowed" }

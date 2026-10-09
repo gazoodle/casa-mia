@@ -14,11 +14,10 @@ from .components import ask_for_restart, install_bundled
 from .ha import HA
 from .install_count import count_install
 from .log import configure_logging
-from .modules.camera_dashboard import DRAFT_PORT, CameraDashboard
+from .modules.camera_dashboard import CameraDashboard
 from .modules.cameras import Cameras
 from .modules.commander import Commander
 from .modules.compositor import (
-    DRAFT_STORE,
     Compositor,
     Gatherer,
     admin_api,
@@ -174,8 +173,8 @@ def main() -> int:
         return helpers if http is not None and http.helpers_heard else None
 
     cameras_on = options.get("camera_dashboard_enabled", False)
-    compositor = draft = None
-    # The cameras' pictures, fetched once for both compositors (live and the draft's).
+    compositor = None
+    # The cameras' pictures.
     gather = Gatherer(
         ha_url,
         ha_token,
@@ -195,19 +194,8 @@ def main() -> int:
             else "the Camera Dashboard option on",
         )
     if cameras_on:
-        # The draft's compositor, for previews; only draws what someone looks at.
-        draft = Compositor(
-            CONFIG,
-            ha_url,
-            ha_token,
-            port=DRAFT_PORT,
-            ws_path=ws_path,
-            store=DRAFT_STORE,
-            prewarm=False,
-            gatherer=gather,
-        )
         # The cameras, the source the commanders and the dashboard read.
-        cams = Cameras(CONFIG, ha, still=draft.still)
+        cams = Cameras(CONFIG, ha, still=compositor.still if compositor else None)
         cams.start()
         modules["cameras"] = cams.health
         api["/api/cameras/"] = cams.handle
@@ -218,7 +206,6 @@ def main() -> int:
             cams,
             lan_ip,
             live=compositor,
-            draft=draft,
             state_path=OPTIONS.parent / "camera_dashboard_state.json",
             dashboard=lambda: cameras.store["dashboard"],
         )
@@ -227,14 +214,12 @@ def main() -> int:
             ha,
             lan_ip,
             live=compositor,
-            draft=draft,
             helpers=helpers_known,
             cameras=cams,
             commander=commander,
         )
         commander.start()
         cameras.start()
-        draft.start()
         modules["commander"] = commander.health
         api["/api/commander/"] = commander.handle
         # The integration's choices of main camera and motion (the old paths for an
@@ -249,25 +234,16 @@ def main() -> int:
         modules["commander"] = lambda: {"state": "disabled"}
     if compositor:
         compositor.start()
-        # The live engine's, with the preview's generator and server (the integration's
-        # pipeline switches).
-        modules["compositor"] = lambda: {
-            **compositor.health(),
-            "preview": {
-                k: draft.health()[k] for k in ("generator_paused", "server_paused")
-            }
-            if draft
-            else None,
-        }
+        modules["compositor"] = compositor.health
         # The size test pages' address: the compositor host set on the Camera Commander
         # page, else this box's LAN address.
         mine = commander if cameras_on else None
         api["/api/compositor/"] = admin_api(
             compositor,
-            draft,
+            None,
             lambda: (mine and mine.store["compositor_host"]) or lan_ip(),
         )
-        post_handlers["/compositor/"] = control(compositor, draft)  # its buttons
+        post_handlers["/compositor/"] = control(compositor, None)  # its buttons
     else:
         modules["compositor"] = lambda: {"state": "disabled"}
     on_cards: list = []  # told when HA serves new cards (server.make_server)

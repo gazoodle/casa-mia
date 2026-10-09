@@ -1089,7 +1089,7 @@ function St(e, t = !1) {
 	return xt.value;
 }
 function Ct(e) {
-	return Object.entries(e.states).filter(([e, t]) => e.startsWith("select.") && (t.attributes.card || t.attributes.draft_card)).map(([e, t]) => ({
+	return Object.entries(e.states).filter(([e, t]) => e.startsWith("select.") && t.attributes.card).map(([e, t]) => ({
 		value: e,
 		label: String(t.attributes.friendly_name ?? e)
 	}));
@@ -1136,7 +1136,7 @@ var wt = class extends G {
 		};
 	}
 	debugOn() {
-		return !!((this._config?.entity ? this.hass?.states[this._config.entity] : void 0)?.attributes[this._config?.draft ? "draft_card" : "card"])?.layout.debug?.on;
+		return !!((this._config?.entity ? this.hass?.states[this._config.entity] : void 0)?.attributes.card)?.layout.debug?.on;
 	}
 	connectedCallback() {
 		super.connectedCallback(), document.addEventListener("visibilitychange", this.visibility), window.addEventListener("location-changed", this.visibility), window.addEventListener("popstate", this.visibility), this.home = gt();
@@ -1161,7 +1161,7 @@ var wt = class extends G {
 		if (!this.viaHa()) return i;
 		if (!this._token) return this.ask(), "";
 		let a = new URL(i);
-		return `/api/casa_mia/${this._config?.draft ? "draft" : "live"}${a.pathname}${a.search}&token=${this._token}`;
+		return `/api/casa_mia/live${a.pathname}${a.search}&token=${this._token}`;
 	}
 	look() {
 		let e = this._config;
@@ -1215,10 +1215,7 @@ var wt = class extends G {
 	}
 	pictureUrl(e, [t, n, r]) {
 		let i = `w=${t}&h=${n}&dpr=${r}&sid=${this.sid}&v=${encodeURIComponent(_t)}`;
-		if (!this.viaHa()) return `${e.picture}?${i}`;
-		if (!this._token) return this.ask(), "";
-		let a = new URL(e.picture).pathname;
-		return `/api/casa_mia/${this._config?.draft ? "draft" : "live"}${a}?${i}&token=${this._token}`;
+		return this.viaHa() ? this._token ? `/api/casa_mia/live${new URL(e.picture).pathname}?${i}&token=${this._token}` : (this.ask(), "") : `${e.picture}?${i}`;
 	}
 	ask(e = !1) {
 		this.hass && St(this.hass, e).then((e) => this._token = e, () => this.retry = window.setTimeout(() => this.ask(!0), 1e4));
@@ -1230,7 +1227,7 @@ var wt = class extends G {
 		this._shown &&= (this.done("its stream failed"), this.sid = Math.random().toString(36).slice(2), ++this.shows);
 	}
 	now() {
-		let e = this._config?.entity ? this.hass?.states[this._config.entity] : void 0, t = e?.attributes[this._config?.draft ? "draft_card" : "card"];
+		let e = this._config?.entity ? this.hass?.states[this._config.entity] : void 0, t = e?.attributes.card;
 		return {
 			card: t,
 			main: t ? this.main(t, e.state) : ""
@@ -1269,10 +1266,10 @@ var wt = class extends G {
 		return n ? n[0] : e.start;
 	}
 	render() {
-		let e = this._config?.entity ? this.hass?.states[this._config.entity] : void 0, t = e?.attributes[this._config?.draft ? "draft_card" : "card"];
+		let e = this._config?.entity ? this.hass?.states[this._config.entity] : void 0, t = e?.attributes.card;
 		if (!t) return B`<ha-card
         ><div class="note">
-          ${this._config?.entity ? e ? `${this._config.draft ? "No saved draft" : "Not deployed live yet"} for this commander` : `No commander at ${this._config.entity}` : "Choose a commander"}
+          ${this._config?.entity ? e ? "Not drawn yet: give this commander cameras on the Camera Commander page" : `No commander at ${this._config.entity}` : "Choose a commander"}
         </div></ha-card
       >`;
 		if (!t.picture) return B`<ha-card><div class="note">Its picture's address is not known yet (the app has no LAN address).</div></ha-card>`;
@@ -1339,8 +1336,8 @@ var wt = class extends G {
 		this.hass?.callService("select", "select_option", { option: e.cameras[t]?.title }, { entity_id: this._config.entity });
 	}
 	open(e, r) {
-		let i = this._config?.tap_main ?? "live";
-		i === "live" && e.cameras[r] ? n(e.cameras[r].live) : i === "more-info" && t(this, "hass-more-info", { entityId: r });
+		let i = this._config?.tap_main ?? "more-info", a = e.cameras[r]?.live;
+		i === "live" && a ? n(a) : i !== "none" && t(this, "hass-more-info", { entityId: r });
 	}
 	static {
 		this.styles = N`
@@ -1495,10 +1492,6 @@ var wt = class extends G {
 				} }
 			},
 			{
-				name: "draft",
-				selector: { boolean: {} }
-			},
-			{
 				name: "route",
 				selector: { select: {
 					mode: "dropdown",
@@ -1589,12 +1582,12 @@ var wt = class extends G {
 					mode: "dropdown",
 					options: [
 						{
-							value: "live",
-							label: "Opens its live page"
+							value: "more-info",
+							label: "Opens its more-info (live video)"
 						},
 						{
-							value: "more-info",
-							label: "Opens its more-info"
+							value: "live",
+							label: "Opens its page on the camera dashboard"
 						},
 						{
 							value: "none",
@@ -1605,7 +1598,6 @@ var wt = class extends G {
 			}
 		], n = {
 			entity: "Commander",
-			draft: "Show the draft",
 			tap_main: "A tap on the main camera",
 			route: "The picture",
 			away_sharpness: "Sharpness through Home Assistant",
@@ -1619,7 +1611,7 @@ var wt = class extends G {
 		return B`<ha-form
       .hass=${this.hass}
       .data=${{
-			tap_main: "live",
+			tap_main: "more-info",
 			route: "auto",
 			away_sharpness: "balanced",
 			live_main: !0,
@@ -1632,7 +1624,7 @@ var wt = class extends G {
 		}}
       .schema=${e}
       .computeLabel=${(e) => n[e.name]}
-      .computeHelper=${(e) => e.name === "entity" ? "The commanders built on the Camera Dashboard page (each one's Main camera select)." : e.name === "security_look" ? "The pictures in monochrome, tinted, like a security control room: the picture, the main camera's live video and its caption (not the highlight)." : e.name === "route" ? "At home: this page reached Home Assistant over http at a home address (a private IP, a .local name). Through Home Assistant works anywhere you can sign in, at a little cost to Home Assistant." : e.name === "away_sharpness" ? "How sharp the picture is when it comes through Home Assistant (away from home): a 2x screen at Full is four times the bytes of Light. Direct at home it is always the screen's own." : e.name === "live_main" ? "The main camera plays as live video over the picture, through Home Assistant's WebRTC (this device decodes it; the box does not). Needs the Camera compositor's Live main camera switch on; a video that does not start gives way to the drawn picture." : e.name === "leave_after" ? "Seconds the picture goes on once the card is out of sight (another page in Home Assistant, scrolled away), so coming back (the back button) finds it running; then it stops, and the box sends nothing more. 0: at once. Closing the app always stops it at once." : e.name === "draft" ? "As saved on the Camera Dashboard page (Save draft), before it is deployed live: for trying changes out. Off: as deployed live." : void 0}
+      .computeHelper=${(e) => e.name === "entity" ? "The commanders built on the Camera Dashboard page (each one's Main camera select)." : e.name === "security_look" ? "The pictures in monochrome, tinted, like a security control room: the picture, the main camera's live video and its caption (not the highlight)." : e.name === "route" ? "At home: this page reached Home Assistant over http at a home address (a private IP, a .local name). Through Home Assistant works anywhere you can sign in, at a little cost to Home Assistant." : e.name === "away_sharpness" ? "How sharp the picture is when it comes through Home Assistant (away from home): a 2x screen at Full is four times the bytes of Light. Direct at home it is always the screen's own." : e.name === "live_main" ? "The main camera plays as live video over the picture, through Home Assistant's WebRTC (this device decodes it; the box does not). Needs the Camera compositor's Live main camera switch on; a video that does not start gives way to the drawn picture." : e.name === "leave_after" ? "Seconds the picture goes on once the card is out of sight (another page in Home Assistant, scrolled away), so coming back (the back button) finds it running; then it stops, and the box sends nothing more. 0: at once. Closing the app always stops it at once." : void 0}
       @value-changed=${(e) => {
 			e.stopPropagation(), this._config = e.detail.value, t(this, "config-changed", { config: this._config });
 		}}

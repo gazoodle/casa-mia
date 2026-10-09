@@ -76,7 +76,6 @@ class Deploys(Backups):
             "max_keep": MAX_KEEP,
             "compositor": {
                 "live": up(self.live),
-                "draft": up(self.draft),
                 "host": store["compositor_host"] or self.lan_host(),
             },
         }
@@ -105,8 +104,6 @@ class Deploys(Backups):
             or "nothing",
             f"; {len(found)} problems" if found else "",
         )
-        if self.draft:
-            self.draft.reload()
         return _json(200, self.view())
 
     def _revert(self) -> Response:
@@ -119,8 +116,6 @@ class Deploys(Backups):
             self.store = store
             self._write(self.draft_path, store)
         _LOGGER.info("camera dashboard: draft reverted to the live config")
-        if self.draft:
-            self.draft.reload()
         return _json(200, self.view())
 
     def _theirs(self) -> dict[str, Any]:
@@ -132,9 +127,9 @@ class Deploys(Backups):
         return {"cameras": self.cameras.cameras()} if self.cameras else {}
 
     def _take(self) -> None:
-        """The Cameras or Camera Commander page changed: the draft takes theirs, and the
-        draft compositor redraws. The live dashboard keeps its own until a Deploy live
-        (its commander pages' tap zones follow their layout)."""
+        """The Cameras or Camera Commander page changed: the draft takes theirs. The
+        dashboards show the commanders' new pictures at once (the live compositor's), and
+        take the rest (tap zones, camera pages) at their next deploy."""
         theirs = self._theirs()
         with self._lock:
             if self._error or all(self.store.get(k) == v for k, v in theirs.items()):
@@ -145,8 +140,6 @@ class Deploys(Backups):
             "camera dashboard: the draft took the changes to %s",
             ", ".join(sorted(theirs)),
         )
-        if self.draft:
-            self.draft.reload()
 
     def deploy(self, live: bool) -> dict[str, Any]:
         """Save the dashboard into HA (creating it if missing, keeping a copy of what it
