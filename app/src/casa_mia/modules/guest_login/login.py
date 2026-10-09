@@ -475,7 +475,7 @@ class GuestLogin:
         if ep is not None:
             return (
                 f"endpoint {ep.id} is switched off. Open it on the Guest login page, turn "
-                "on its Access switch, or call the casa_mia.enable_for service."
+                "on its Access switch, or call the casa_mia_guest_login.enable_for service."
             )
         d = (query.get("d") or query.get("dashboard") or [""])[0][:200]
         parts = path.strip("/").split("/")

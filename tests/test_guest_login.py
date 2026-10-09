@@ -155,14 +155,21 @@ def test_disable_closes_again(ha):
         gl.stop()
 
 
-def test_timed_enable_expires(ha):
+def test_timed_enable_expires(ha, monkeypatch):
+    from types import SimpleNamespace
+
+    from casa_mia.modules.guest_login import login
+
+    now = 1000.0
+    monkeypatch.setattr(
+        login, "time", SimpleNamespace(time=lambda: now, monotonic=login.time.monotonic)
+    )
     gl, _, base = make(ha)
     try:
-        gl.control("suite-1/enable?minutes=0.0001")
+        gl.control("suite-1/enable?minutes=1")
+        now += 59
         assert gl.health()["endpoints"]["suite-1"]["enabled"]
-        import time
-
-        time.sleep(0.5)
+        now += 1
         assert not gl.health()["endpoints"]["suite-1"]["enabled"]
     finally:
         gl.stop()

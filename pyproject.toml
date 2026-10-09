@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "casa-mia"
-version = "2026.10.3"
+version = "2026.10.4"
 description = "Casa Mia Home Assistant app: FONA, alarm, deployment and generators"
 license = "MIT"
 license-files = ["LICENSE"]
@@ -13,7 +13,7 @@ requires-python = ">=3.11"
 dependencies = ["aiohttp>=3.10,<4", "av>=14", "pillow>=10.1", "pyserial>=3.5,<4", "pyyaml>=6,<7", "segno>=1.6,<2"]
 
 [project.optional-dependencies]
-test = ["pytest>=9,<10", "pyyaml>=6,<7"]
+test = ["pytest>=9,<10", "pytest-xdist>=3.8,<4", "pyyaml>=6,<7"]
 dev = [
     "pyright[nodejs]>=1.1,<2",
     "ruff>=0.15,<0.17",
@@ -35,6 +35,7 @@ src = ["app/src", "tools", "tests"]
 select = ["E4", "E7", "E9", "F", "I"]
 
 [tool.pytest.ini_options]
+addopts = "-n 8"
 testpaths = ["tests"]
 # Source tree on the path so tests need no installed package.
 pythonpath = ["app/src"]

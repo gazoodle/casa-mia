@@ -1,6 +1,5 @@
 """Buttons: force a firmware check now; reset the FONA's Arduino; restart the camera
-compositor, restart its gatherer alone, or purge its cache (shared by the live and
-preview engines)."""
+compositor, restart its gatherer alone, or purge its cache."""
 
 from __future__ import annotations
 
@@ -75,7 +74,7 @@ class FonaResetButton(CasaMiaEntity, ButtonEntity):
 
 
 class CompositorButton(CasaMiaEntity, ButtonEntity):
-    """Restart the camera compositor (both engines, live and preview); restart its
+    """Restart the camera compositor; restart its
     gatherer alone (every stream read again and every failure forgotten, the pictures
     kept); or purge its cache: every picture fetched and drawn afresh, as wanted."""
 

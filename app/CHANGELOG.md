@@ -1,5 +1,91 @@
 # Changelog
 
+## 2026.10.4
+
+- **Breaking:** Guest login and Camera Commander have their own integrations now, **Casa
+  Mia Guest Login** and **Casa Mia Camera Commander**. What to do: restart Home Assistant;
+  under Settings → Devices & services → Casa Mia, delete the old **Guest login** device, each
+  **Guest: …** and **Engineer: …** device and each **Camera Commander** device (do this
+  first, or the new entities get ids ending `_2`); then add the two new integrations, which
+  Casa Mia offers under **Discovered** while their module is on.
+- **Breaking:** the `casa_mia.enable_for` action is now `casa_mia_guest_login.enable_for`.
+  What to do: change it in your automations and scripts.
+
+### Cameras, Camera Commander and Auto Dashboards
+
+- **The Camera Dashboard is split in three**, each with its own page in the Casa Mia panel:
+  **Cameras** (the house's cameras, their channels and controls), **Camera Commander** (the
+  commanders) and **Auto Dashboards** (the generated camera dashboard). Your settings keep
+  their keys under new names: *Compose camera groups* is now **Camera Commander**, *Camera
+  Dashboard* is now **Auto Dashboards**. Your cameras and commanders move over by themselves
+  on the first start.
+- **Camera Commander page:** pick a commander from a list; its preview stays in view while
+  its settings scroll beneath. **Save shows it live at once** on every Camera Commander
+  card: no draft, no deploy. A commander with a problem (no cameras, a bad size) is refused
+  on Save, with what to fix.
+- **Track motion: Never takes over.** Pick the cameras (a busy road, a tree in the wind)
+  that mark their motion on the card but never become the main camera by themselves.
+- **Cameras page:** each camera's motion sensor, and its own motion detection switch (UniFi
+  Protect's Motion, say). While that switch is off the camera never sees motion, and the
+  page says so, with the switch to turn it back on. A camera's live view follows both.
+- **Camera Commander card:**
+  - motion is a pulsing dot the card draws on a camera's tile (the main camera's too) the
+    moment its sensor sees motion, with options for its colour, size, pulse, how long it
+    stays and its corner;
+  - a tap on the main camera opens Home Assistant's camera dialog by default;
+  - in a Tablet Layout it takes its panel's full width, and the card picker shows a preview;
+  - *Show the draft* is gone: a card saved with it shows the live commander;
+  - the editor saves only what you change, so a card follows later changes of a default.
+    Cards saved before keep what they have: if a tap on the main camera still opens the
+    dashboard page, choose more-info in its editor.
+- **Camera compositor:** one compositor now draws everything, the cards, the dashboards and
+  the pages' previews. Port 8098 and the integration's preview switches are gone. Its page
+  names each viewer that is a wall tablet, from Kiosk Satellites.
+- **Auto Dashboards:** a camera's live card is now a dashboard setting, **Live card per
+  camera**.
+
+### Tablet Layout
+
+- **Garnish:** in edit mode, tap the sprig on a card's corner to make it garnish (a heading,
+  say): it dresses its panel but never holds it open, so the panel hides when only garnish
+  is left.
+- Only cards made to fill a panel (Camera Commander, pictures, maps, iframes, camera cards)
+  fill it when alone; a lone tile or button keeps its own size. `view_layout: {fill: true}`
+  or `{fill: false}` overrules it.
+- Edit mode: a short top or bottom panel keeps room for its toolbar and Add card button.
+- The Casa Mia Section card is removed: use Home Assistant's own sections in a Tablet
+  Layout. The guide says how to move a view that used it.
+
+### Kiosk Satellites
+
+- **Run everywhere:** Kiosk Satellite's own Quick controls (reload, clear cache, screen off
+  and on, screensaver, check for updates, restarts), sent to every tablet in turn, with each
+  tablet's result as it comes. Words, icons and colours by Xavier Larrea, the author of
+  Kiosk Satellite.
+
+### Working together
+
+- **Pages keep up with updates:** a page left open through an update offers a **Reload** in
+  Home Assistant's own toast once Home Assistant has restarted.
+- **Wall tablets reload themselves:** when Home Assistant starts serving new cards, Kiosk
+  Satellites asks every tablet it looks after to reload.
+
+### Updates and the integration
+
+- An update that needs Home Assistant restarted also posts a notification (the bell), which
+  shows at once; the Repair could wait for a page reload.
+- Fixed: an update could leave Home Assistant running the old integration with no Restart
+  Repair, if the integration reloaded in between (a module switched on or off).
+- Devices Casa Mia no longer provides can be deleted from it.
+
+### Every module
+
+- Each module says how far along it is (Skeleton, In development, Alpha, Beta or Released),
+  on its page, its tile, its option and its guide, so you know what to expect before
+  switching it on.
+- The documentation is complete: the app's Documentation tab, and a guide for every module,
+  with screenshots.
+
 ## 2026.10.3
 
 A big one: 86 builds and 146 commits in five days, with more than 170 changes. Here are the highlights.

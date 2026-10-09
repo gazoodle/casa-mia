@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { CameraDashboardPage } from "./CameraDashboardPage";
-import { CompositorPage } from "./CompositorPage";
+import { AutoDashboardsPage } from "./auto-dashboards";
+import { CamerasPage } from "./cameras";
+import { CommanderPage } from "./commander";
+import { CompositorPage } from "./compositor";
 import { FirmwarePage } from "./FirmwarePage";
 import { GuestPage } from "./GuestPage";
 import { KioskFrame, KiosksPage } from "./KiosksPage";
@@ -9,6 +11,7 @@ import { PeoplePage } from "./PeoplePage";
 import { SettingsPage } from "./SettingsPage";
 import { Developer, useHealth, type ModuleHealth } from "./health";
 import { ModuleIcon, SettingsIcon } from "./icons";
+import { Maturity } from "./maturity";
 import { MODULES, type ModuleInfo } from "./modules";
 import type { HeaderView } from "./api";
 import { Photo, PhotoEditor, photoApi, photoUrl, type PhotoDraft } from "./photo";
@@ -41,7 +44,9 @@ const PAGES: Record<string, string> = {
   gitproxy: "/firmware",
   people: "/people",
   kiosks: "/kiosks",
-  camera_dashboard: "/cameras",
+  cameras: "/cameras",
+  commander: "/commander",
+  auto_dashboards: "/auto-dashboards",
   compositor: "/compositor",
   kiosk_mode: "/kiosk-mode",
 };
@@ -100,7 +105,7 @@ export function App() {
       {health && on.length > 0 && (
         <Section title="Running here">
           {on.map(([key, h]) => (
-            <Tile key={key} info={MODULES[key] ?? fallback(key)} health={h} href={PAGES[key]} />
+            <Tile key={key} module={key} info={MODULES[key] ?? fallback(key)} health={h} href={PAGES[key]} />
           ))}
         </Section>
       )}
@@ -127,7 +132,9 @@ function pageFor(route: string, modules: Record<string, ModuleHealth>): ReactNod
   if (route === "/people") return <PeoplePage />;
   if (route === "/kiosks") return <KiosksPage state={modules.kiosks?.state} />;
   if (route.startsWith("/kiosks/")) return <KioskFrame id={route.slice("/kiosks/".length)} />;
-  if (route === "/cameras") return <CameraDashboardPage state={modules.camera_dashboard?.state} />;
+  if (route === "/cameras") return <CamerasPage state={modules.cameras?.state} />;
+  if (route === "/commander") return <CommanderPage state={modules.commander?.state} />;
+  if (route === "/auto-dashboards") return <AutoDashboardsPage state={modules.auto_dashboards?.state} />;
   if (route === "/compositor") return <CompositorPage state={modules.compositor?.state} />;
   if (route === "/kiosk-mode") return <KioskModePage state={modules.kiosk_mode?.state} />;
   if (route === "/settings") return <SettingsPage />;
@@ -154,7 +161,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function Tile({ info, health, href }: { info: ModuleInfo; health: ModuleHealth; href?: string }) {
+function Tile({ module, info, health, href }: { module: string; info: ModuleInfo; health: ModuleHealth; href?: string }) {
   const [label, tone] = STATES[health.state ?? ""] ?? [health.state ?? "Unknown", css.muted];
   const progress = info.progress?.(health);
   const facts = info.facts(health).filter(([, value]) => value !== undefined);
@@ -186,7 +193,10 @@ function Tile({ info, health, href }: { info: ModuleInfo; health: ModuleHealth; 
         </div>
       )}
       {health.error && <p className={css.error}>{health.error}</p>}
-      {href && <span className={css.more}>Open →</span>}
+      <div className={css.tileFoot}>
+        <Maturity module={module} />
+        {href && <span className={css.more}>Open →</span>}
+      </div>
     </Tag>
   );
 }
@@ -208,6 +218,7 @@ function Empty({ off }: { off: string[] }) {
               <span>
                 <strong>{info.option}</strong>
                 <span className={css.offBlurb}>{info.blurb}</span>
+                <Maturity module={key} full />
               </span>
             </li>
           );

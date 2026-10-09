@@ -49,6 +49,7 @@ mobile_settings:
 const HEAD = {
   icon: <KioskModeIcon />,
   title: "Kiosk mode",
+  module: "kiosk_mode",
   blurb: "What each dashboard hides, and from whom: Home Assistant's header, sidebar, menus and more.",
 };
 

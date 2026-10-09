@@ -23,7 +23,6 @@ S = UnitOfTime.SECONDS
 PACES = {
     "gatherer_pace": ("gatherer", 0.0, 15.0, 0.125, S),
     "live_generator_pace": ("live", 0.125, 15.0, 0.125, S),
-    "preview_generator_pace": ("draft", 0.125, 15.0, 0.125, S),
     "survey_pace": ("survey", 10.0, 3600.0, 10.0, S),
     "survey_at_once": ("survey_at_once", 1.0, 8.0, 1.0, None),
     "freshness": ("freshness", 0.0, 10.0, 0.5, S),

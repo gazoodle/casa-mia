@@ -3,6 +3,8 @@
 A Home Assistant view that fits the screen exactly. No scrolling, nothing hanging off the
 edge, on any tablet, phone or desktop, in portrait or landscape.
 
+> **Maturity: Beta.** Complete and used every day; its features have settled. Please report what breaks in your setup. ([The levels](README.md#maturity))
+
 <img src="screenshots/tablet-layout-default.webp" alt="A Tablet Layout view: a main panel with panels round it" width="800">
 
 It *is* Home Assistant's own Sections view, so the header, footer, badges, sections, cards,
@@ -207,14 +209,17 @@ The layout follows what's showing, so conditional cards just work:
 - **A panel with no card showing takes no room**, and an edge with no panel showing takes
   none either, with its gap. So a warnings panel appears only while there's a warning.
   Turn this off for an edge with `hide_empty: false` to keep its room, empty.
-- **Headings that don't count.** A heading over some conditional cards would keep its panel
-  showing on its own. Mark it `view_layout: { counts: false }` and the panel hides when only
-  the heading is left.
+- **Garnish.** A heading over some conditional cards would keep its panel showing on its
+  own. Make it garnish: adornment that never holds its panel open, so the panel hides when
+  only garnish is left. In edit mode every card in a panel has a small sprig on its
+  bottom-right corner; tap it to make the card garnish (the sprig fills, and the card is
+  dimmed with a dashed outline), and tap again to make it content. A panel holding only
+  garnish is hatched in edit mode, as it will never show. In YAML it's
+  `view_layout: { garnish: true }` (the older `counts: false` still works).
 - **An edge can be hidden** outright (`hidden: true`): no room, no cards, but its sections
   kept for when it's shown again.
 
-**A warnings panel**, then, is just a section of its own in an edge: a heading that doesn't
-count, and the cards it heads, each visible only when it has something to say.
+**A warnings panel**, then, is just a section of its own in an edge: a garnish heading, and the cards it heads, each visible only when it has something to say.
 
 ```yaml
 - type: grid
@@ -222,7 +227,7 @@ count, and the cards it heads, each visible only when it has something to say.
   cards:
     - type: heading
       heading: Warnings
-      view_layout: { counts: false }
+      view_layout: { garnish: true }
     - type: tile
       entity: binary_sensor.barn_door
       visibility:
@@ -232,16 +237,22 @@ count, and the cards it heads, each visible only when it has something to say.
 ```
 
 <table><tr>
-<td width="50%"><img src="screenshots/tablet-layout-warning-off.webp" alt="The door shut: no right edge, main takes the room"><br>The door shut: the warnings panel has nothing that counts showing, so the right edge takes no room.</td>
+<td width="50%"><img src="screenshots/tablet-layout-warning-off.webp" alt="The door shut: no right edge, main takes the room"><br>The door shut: the warnings panel has no content showing, so the right edge takes no room.</td>
 <td width="50%"><img src="screenshots/tablet-layout-warning-on.webp" alt="The door open: the right edge appears with its Warnings heading and the door tile"><br>The door open: the right edge appears, and main makes room.</td>
 </tr></table>
 
 ## One card filling a panel
 
-When a panel has exactly one card that counts showing, that card **fills** the panel,
-whatever its size; headings above it keep their height. That's how a camera picture fills
-main, or a map fills a side edge. A Camera Commander filling a panel switches to tile mode
-and draws to exactly that size.
+When a panel has exactly one content card showing, and it's a kind made to fill (a Camera
+Commander, a picture, picture-entity or picture-glance card, a map, an iframe, or
+advanced-camera-card or WebRTC Camera), that card **fills** the panel, whatever its size;
+garnish above it keeps its height. That's how a camera picture fills main, or a map fills a
+side edge. A Camera Commander filling a panel switches to tile mode and draws to exactly
+that size.
+
+Every other card (a tile, a button, an entities card) keeps its own size, alone or not, as in
+any Sections view. Overrule either way with `view_layout: { fill: true }` or
+`{ fill: false }`.
 
 The exceptions: a top or bottom edge of `size: auto` (it is as tall as its cards, so there is
 nothing to fill), and a left or right edge with more than one panel (each is as its cards).
@@ -361,7 +372,8 @@ top or bottom panel's fixed Width counts in) and `debug: true` (see [Debugging](
 
 | Option | Default | Meaning |
 |---|---|---|
-| `counts` | `true` | `false`: this card alone doesn't keep its panel showing. For headings. |
+| `fill` | by kind | `true`: alone in its panel, this card fills it; `false`: it never does. Unset: cameras, pictures, maps and iframes fill, other cards don't. |
+| `garnish` | `false` | `true`: adornment that never keeps its panel showing (the sprig in edit mode). The older `counts: false` is also read. |
 
 ## Debugging
 

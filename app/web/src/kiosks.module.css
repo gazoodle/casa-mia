@@ -219,3 +219,76 @@
     width: 100%;
   }
 }
+
+/* Run everywhere: Kiosk Satellite's Quick controls, as its Overview draws them. */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.tile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 10px 12px 10px 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tile:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.tile:not(:disabled):active .disc {
+  transform: scale(0.92);
+}
+
+.disc {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: #fff;
+  transition: transform 0.12s;
+}
+
+.disc svg {
+  width: 16px;
+  height: 16px;
+}
+
+.run {
+  margin-top: 12px;
+  font-size: 13px;
+}
+
+.run ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.runWhen {
+  color: var(--muted);
+}
+
+.runFailed {
+  color: var(--bad);
+}
+
+.credit {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}

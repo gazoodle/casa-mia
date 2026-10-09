@@ -14,9 +14,10 @@ from .components import ask_for_restart, install_bundled
 from .ha import HA
 from .install_count import count_install
 from .log import configure_logging
-from .modules.camera_dashboard import DRAFT_PORT, CameraDashboard
+from .modules.auto_dashboards import AutoDashboards
+from .modules.cameras import Cameras
+from .modules.commander import Commander
 from .modules.compositor import (
-    DRAFT_STORE,
     Compositor,
     Gatherer,
     admin_api,
@@ -171,9 +172,16 @@ def main() -> int:
         """The integration's helpers, or None until it has said since this start."""
         return helpers if http is not None and http.helpers_heard else None
 
-    cameras_on = options.get("camera_dashboard_enabled", False)
-    compositor = draft = None
-    # The cameras' pictures, fetched once for both compositors (live and the draft's).
+    # The options keep their first keys (renaming one would reset it): Camera Commander is
+    # compositor_enabled, Auto Dashboards camera_dashboard_enabled. Cameras and the
+    # commanders are on with either; their pictures need Camera Commander.
+    commander_on = options.get("compositor_enabled", False)
+    dashboards_on = options.get("camera_dashboard_enabled", False)
+    cameras_on = commander_on or dashboards_on
+    compositor = None
+    dashboards: AutoDashboards | None = None
+    kiosks: Kiosks | None = None  # made below; the compositor names its viewers by it
+    # The cameras' pictures.
     gather = Gatherer(
         ha_url,
         ha_token,
@@ -181,68 +189,74 @@ def main() -> int:
         sizes_path=CONFIG / "camera_sizes.json",  # each channel's size, kept
         pace_path=CONFIG / "compositor_pace.json",  # its paces, as set on its page
     )
-    if options.get("compositor_enabled", False):
+    if commander_on:
         compositor = Compositor(
             CONFIG,
             ha_url,
             ha_token,
             ws_path=ws_path,
             gatherer=gather,
-            needs="a Deploy live from the Camera Dashboard page"
-            if cameras_on
-            else "the Camera Dashboard option on",
+            needs="a commander with cameras, on the Camera Commander page",
         )
     if cameras_on:
-        # The draft's compositor, for previews; only draws what someone looks at.
-        draft = Compositor(
-            CONFIG,
-            ha_url,
-            ha_token,
-            port=DRAFT_PORT,
-            ws_path=ws_path,
-            store=DRAFT_STORE,
-            prewarm=False,
-            gatherer=gather,
-        )
-        cameras = CameraDashboard(
+        # The cameras, the source the commanders and the dashboards read.
+        cams = Cameras(CONFIG, ha, still=compositor.still if compositor else None)
+        cams.start()
+        modules["cameras"] = cams.health
+        api["/api/cameras/"] = cams.handle
+        # The commanders, saved straight to the live compositor.
+        commander = Commander(
             CONFIG,
             ha,
+            cams,
             lan_ip,
             live=compositor,
-            draft=draft,
             state_path=OPTIONS.parent / "camera_dashboard_state.json",
-            helpers=helpers_known,
+            dashboard=lambda: dashboards.store["dashboard"] if dashboards else None,
         )
-        cameras.start()
-        draft.start()
-        modules["camera_dashboard"] = cameras.health
-        api["/api/camera-dashboard/"] = cameras.handle
-        post_handlers["/camera-dashboard/"] = cameras.control  # the commander's select
+        if dashboards_on:
+            dashboards = AutoDashboards(
+                CONFIG,
+                ha,
+                lan_ip,
+                live=compositor,
+                helpers=helpers_known,
+                cameras=cams,
+                commander=commander,
+            )
+        commander.start()
+        modules["commander"] = commander.health
+        api["/api/commander/"] = commander.handle
+        # The integration's choices of main camera and motion (the old paths for an
+        # integration from before Camera Commander had its own page).
+        post_handlers["/commander/"] = commander.control
+        post_handlers["/camera-dashboard/"] = commander.control
     else:
-        modules["camera_dashboard"] = lambda: {"state": "disabled"}
+        modules["cameras"] = lambda: {"state": "disabled"}
+        modules["commander"] = lambda: {"state": "disabled"}
+    if dashboards:
+        dashboards.start()
+        modules["auto_dashboards"] = dashboards.health
+        api["/api/auto-dashboards/"] = dashboards.handle
+    else:
+        modules["auto_dashboards"] = lambda: {"state": "disabled"}
     if compositor:
         compositor.start()
-        # The live engine's, with the preview's generator and server (the integration's
-        # pipeline switches).
-        modules["compositor"] = lambda: {
-            **compositor.health(),
-            "preview": {
-                k: draft.health()[k] for k in ("generator_paused", "server_paused")
-            }
-            if draft
-            else None,
-        }
-        # The size test pages' address: the compositor host set on the Camera Dashboard
+        modules["compositor"] = compositor.health
+        # The size test pages' address: the compositor host set on the Camera Commander
         # page, else this box's LAN address.
-        dashboard = cameras if cameras_on else None
+        mine = commander
         api["/api/compositor/"] = admin_api(
             compositor,
-            draft,
-            lambda: (dashboard and dashboard.store["compositor_host"]) or lan_ip(),
+            None,
+            lambda: (mine and mine.store["compositor_host"]) or lan_ip(),
+            # Working together: a viewer that is a wall tablet is shown by its name.
+            names=lambda: kiosks.names() if kiosks else {},
         )
-        post_handlers["/compositor/"] = control(compositor, draft)  # its buttons
+        post_handlers["/compositor/"] = control(compositor, None)  # its buttons
     else:
         modules["compositor"] = lambda: {"state": "disabled"}
+    on_cards: list = []  # told when HA serves new cards (server.make_server)
     if options.get("kiosks_enabled", False):
         firmware = gitproxy.health if gitproxy else dict
         kiosks = Kiosks(
@@ -258,6 +272,10 @@ def main() -> int:
         modules["kiosks"] = kiosks.health
         api["/api/kiosks/"] = kiosks.handle
         proxies["/kiosk/"] = kiosks.proxy  # each kiosk's admin page, through ingress
+        # Working together: when HA serves new cards, the tablets reload to run them.
+        on_cards.append(
+            lambda v: kiosks.reload_all(f"Home Assistant now serves the cards {v}")
+        )
     else:
         modules["kiosks"] = lambda: {"state": "disabled"}
 
@@ -286,6 +304,7 @@ def main() -> int:
             api=api,
             proxies=proxies,
             helpers=helpers,
+            on_cards=on_cards,
         )
         http.serve_forever()
     except KeyboardInterrupt:

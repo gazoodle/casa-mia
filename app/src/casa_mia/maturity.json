@@ -1,0 +1,39 @@
+{
+  "_comment": "Each module's maturity, defined once (`option`: its option's key, when not <module>_enabled; \"\" for none of its own). The admin page reads it; tools/maturity.py --update writes it into the app's option descriptions and the docs (a test fails when they differ).",
+  "levels": {
+    "skeleton": {
+      "name": "Skeleton",
+      "meaning": "Started, but it doesn't do its job yet. Leave it off."
+    },
+    "development": {
+      "name": "In development",
+      "meaning": "Being built: parts work, it changes often, and an update may break it. For the curious."
+    },
+    "alpha": {
+      "name": "Alpha",
+      "meaning": "Does its job every day in the author's house, but hasn't been tried in many others. Expect rough edges and changes."
+    },
+    "beta": {
+      "name": "Beta",
+      "meaning": "Complete and used every day; its features have settled. Please report what breaks in your setup."
+    },
+    "released": {
+      "name": "Released",
+      "meaning": "Settled and dependable. Changes are announced, and existing setups keep working."
+    }
+  },
+  "modules": {
+    "tablet_layout": { "level": "beta", "docs": "tablet-layout.md" },
+    "guest_login": { "level": "beta", "docs": "applets/guest-login.md" },
+    "gitproxy": { "level": "beta", "docs": "applets/firmware-server.md" },
+    "cameras": { "level": "alpha", "docs": "applets/cameras.md" },
+    "commander": { "level": "beta", "docs": "applets/camera-commander.md", "option": "compositor_enabled" },
+    "auto_dashboards": { "level": "development", "docs": "applets/auto-dashboards.md", "option": "camera_dashboard_enabled" },
+    "compositor": { "level": "alpha", "docs": "applets/camera-compositor.md", "option": "" },
+    "kiosks": { "level": "alpha", "docs": "applets/kiosk-satellites.md" },
+    "kiosk_mode": { "level": "alpha", "docs": "applets/kiosk-mode.md" },
+    "people": { "level": "alpha", "docs": "applets/people.md" },
+    "fona": { "level": "alpha", "docs": "applets/phone-and-sms.md" },
+    "alarm": { "level": "development", "docs": "applets/alarm-panel.md" }
+  }
+}

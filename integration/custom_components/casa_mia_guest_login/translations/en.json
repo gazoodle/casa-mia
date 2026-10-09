@@ -1,0 +1,49 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Casa Mia Guest Login",
+        "description": "Add the guest login endpoints from the Casa Mia app: an Access switch, the logins and a login event for each. Uses the Casa Mia integration's connection to the app."
+      }
+    },
+    "abort": {
+      "already_configured": "Casa Mia Guest Login is already set up.",
+      "single_instance_allowed": "Casa Mia Guest Login is already set up.",
+      "no_casa_mia": "Set up the Casa Mia integration first."
+    }
+  },
+  "entity": {
+    "switch": { "access": { "name": "Access" } },
+    "event": {
+      "login": { "name": "Login", "state_attributes": { "event_type": { "state": { "login": "Login" } } } }
+    },
+    "sensor": {
+      "guest_state": {
+        "name": "State",
+        "state": { "running": "Running", "offline": "Offline", "disabled": "Disabled" }
+      },
+      "last_login": { "name": "Last login" },
+      "logins": { "name": "Logins" }
+    }
+  },
+  "issues": {
+    "restart_required": {
+      "title": "Restart Home Assistant to finish updating Casa Mia Guest Login",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Restart Home Assistant",
+            "description": "The Casa Mia Guest Login integration was updated from {from_version} to {to_version}, but Home Assistant is still running {from_version}. Until it restarts, nothing new in {to_version} works. Restart Home Assistant to load it."
+          }
+        }
+      }
+    }
+  },
+  "services": {
+    "enable_for": {
+      "name": "Open for a time",
+      "description": "Open a guest or engineer login endpoint, then close it again after the given time.",
+      "fields": { "minutes": { "name": "Minutes", "description": "How long the endpoint stays open (1 to 1440)." } }
+    }
+  }
+}

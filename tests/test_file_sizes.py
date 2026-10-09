@@ -16,15 +16,7 @@ SOURCES = (
 )
 # Over the limit before the rule (2026-10-10): split each when next working in it,
 # lower its number as it shrinks, and take it off once it is under LIMIT.
-OVER = {
-    "app/web/src/CameraDashboardPage.tsx": 1737,
-    "app/src/casa_mia/modules/camera_dashboard.py": 1662,
-    "integration/cards/src/view.ts": 1509,
-    "app/src/casa_mia/modules/kiosks.py": 1046,
-    "app/web/src/CompositorPage.tsx": 1035,
-    "tests/test_camera_dashboard.py": 924,
-    "integration/cards/src/commander.ts": 819,
-}
+OVER: dict[str, int] = {}
 
 
 def lines() -> dict[str, int]:

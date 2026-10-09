@@ -15,7 +15,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class Compositor(PictureServer):
-    """Draws and serves the commanders of one Camera Dashboard store (live, or the
+    """Draws and serves the commanders of one store (compositor.json, or the
     draft's for previews), from the pictures of a Gatherer it may share with another
     compositor, on the gatherer's loop; start()/stop()/health() are thread-safe."""
 

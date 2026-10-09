@@ -70,6 +70,13 @@ def manifest_version(folder: Path) -> str | None:
     return version if isinstance(version, str) and version.strip() else None
 
 
+def manifest_name(folder: Path) -> str:
+    try:
+        return json.loads((folder / "manifest.json").read_text("utf-8"))["name"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return folder.name
+
+
 def _files(folder: Path) -> dict[Path, Path]:
     return {
         p.relative_to(folder): p
@@ -122,13 +129,15 @@ def ask_for_restart(
     new = [r.domain for r in results if r.status == "installed"]
     if not new:
         return False
+    names = ", ".join(manifest_name(COMPONENTS / d) for d in new)
     body = {
         "notification_id": NOTIFICATION_ID,
         "title": "Casa Mia: restart Home Assistant",
         "message": (
-            "The Casa Mia integration has been installed. Restart Home Assistant "
-            "(Settings → ⋮ → Restart Home Assistant), then add Casa Mia under "
-            "[Devices & services](/config/integrations/dashboard)."
+            f"Installed: {names}. Restart Home Assistant (Settings → ⋮ → Restart "
+            "Home Assistant), then set them up under "
+            "[Devices & services](/config/integrations/dashboard): Casa Mia first; it "
+            "then offers the others under Discovered while their module is on in the app."
         ),
     }
     req = urllib.request.Request(

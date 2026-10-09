@@ -2,6 +2,7 @@
 
 import socketserver
 import threading
+import time
 
 import pytest
 
@@ -49,3 +50,13 @@ def set_compositor(monkeypatch, name: str, value) -> None:
             monkeypatch.setattr(module, name, value)
             found = True
     assert found, name
+
+
+def stop_compositor(comp) -> None:
+    """Wait for its asynchronous gatherer shutdown, rather than guessing a delay."""
+    loop = comp.gather.loop if comp._own_gather else None
+    comp.stop()
+    deadline = time.monotonic() + 2
+    while loop and loop.is_running() and time.monotonic() < deadline:
+        time.sleep(0.001)
+    assert not loop or not loop.is_running(), "gatherer did not stop"
