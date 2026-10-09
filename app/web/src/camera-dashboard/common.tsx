@@ -15,6 +15,7 @@ export const { get, post, put } = api("camera-dashboard");
 export const HEAD = {
   icon: <CameraIcon />,
   title: "Camera Dashboard",
+  module: "camera_dashboard",
   blurb: "The cameras, the commander that shows them, and its dashboard.",
 };
 

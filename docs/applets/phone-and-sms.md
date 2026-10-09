@@ -2,6 +2,8 @@
 
 Calls and texts through the FONA GSM module: a way in that needs no internet.
 
+> **Maturity: Alpha.** Does its job every day in the author's house, but hasn't been tried in many others. Expect rough edges and changes. ([The levels](../README.md#maturity))
+
 *DIY hardware: build notes to come in fona.md.*
 
 > **To write:** a screenshot (whole HA window, swap on).

@@ -19,6 +19,7 @@ const POLL_MS = 10000;
 const HEAD = {
   icon: <TabletIcon />,
   title: "Kiosk Satellites",
+  module: "kiosks",
   blurb: "The wall tablets: found through Home Assistant and each other.",
 };
 

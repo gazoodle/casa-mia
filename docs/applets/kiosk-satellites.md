@@ -2,6 +2,8 @@
 
 The wall tablets: their versions, kept backups of their setup, and their admin pages from anywhere.
 
+> **Maturity: Alpha.** Does its job every day in the author's house, but hasn't been tried in many others. Expect rough edges and changes. ([The levels](../README.md#maturity))
+
 <img src="../screenshots/kiosks.webp" alt="Kiosk Satellites" width="800">
 
 <img src="../screenshots/kiosk-backups.webp" alt="Kiosk Satellites" width="800">

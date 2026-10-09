@@ -2,6 +2,8 @@
 
 Draws the Camera Commander as one live picture for the dashboards and wall tablets.
 
+> **Maturity: Alpha.** Does its job every day in the author's house, but hasn't been tried in many others. Expect rough edges and changes. ([The levels](../README.md#maturity))
+
 > **To write:** a screenshot (whole HA window, swap on).
 
 ## What it's for

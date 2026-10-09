@@ -2,6 +2,8 @@
 
 The intruder alarm as a Home Assistant alarm panel: arm away, disarm, triggered.
 
+> **Maturity: In development.** Being built: parts work, it changes often, and an update may break it. For the curious. ([The levels](../README.md#maturity))
+
 > **To write:** a screenshot (whole HA window, swap on).
 
 ## What it's for

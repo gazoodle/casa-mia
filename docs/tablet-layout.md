@@ -3,6 +3,8 @@
 A Home Assistant view that fits the screen exactly. No scrolling, nothing hanging off the
 edge, on any tablet, phone or desktop, in portrait or landscape.
 
+> **Maturity: Beta.** Complete and used every day; its features have settled. Please report what breaks in your setup. ([The levels](README.md#maturity))
+
 <img src="screenshots/tablet-layout-default.webp" alt="A Tablet Layout view: a main panel with panels round it" width="800">
 
 It *is* Home Assistant's own Sections view, so the header, footer, badges, sections, cards,

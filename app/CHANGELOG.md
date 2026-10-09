@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.4-b8
+
+- Every module now says how far along it is: Skeleton, In development, Alpha, Beta or Released, with what that means. It shows on the module's page and tile in the Casa Mia panel, at the start of its option in the Configuration tab, and on its docs page, so you know what to expect before switching it on. The ratings are kept in one list.
+
 ## 2026.10.4-b7
 
 - Under the hood: the Tablet Layout view, the Camera Commander card and the admin UI's Camera Dashboard and Camera compositor pages are each split into a folder of small parts (RULE THREE: no source file over 800 lines). No change in behaviour.

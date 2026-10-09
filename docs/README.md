@@ -18,6 +18,19 @@ Each page of the Casa Mia panel in Home Assistant's sidebar.
 - [Phone and SMS (FONA)](applets/phone-and-sms.md): Calls and texts through the FONA GSM module: a way in that needs no internet.
 - [Alarm panel](applets/alarm-panel.md): The intruder alarm as a Home Assistant alarm panel: arm away, disarm, triggered.
 
+## Maturity
+
+Each module's page says how far along it is, as do its option in the app's Configuration
+tab and its page in the Casa Mia panel. Check a module's level before you switch it on.
+
+<!-- maturity -->
+- **Skeleton:** Started, but it doesn't do its job yet. Leave it off.
+- **In development:** Being built: parts work, it changes often, and an update may break it. For the curious.
+- **Alpha:** Does its job every day in the author's house, but hasn't been tried in many others. Expect rough edges and changes.
+- **Beta:** Complete and used every day; its features have settled. Please report what breaks in your setup.
+- **Released:** Settled and dependable. Changes are announced, and existing setups keep working.
+<!-- /maturity -->
+
 ## Recipes
 
 > **To write:** what you can build: PTZ presets, zoom, lights for what a camera shows, auto-motion camera switching, a doorbell intercom, a local AI (an introduction to Gang-O-Gals).

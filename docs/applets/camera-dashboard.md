@@ -2,6 +2,8 @@
 
 Sets up the cameras, the Camera Commander and the camera dashboard, with previews, and deploys it.
 
+> **Maturity: Alpha.** Does its job every day in the author's house, but hasn't been tried in many others. Expect rough edges and changes. ([The levels](../README.md#maturity))
+
 *Due to split into Camera Commander and Auto Dashboards (see BACKLOG.md).*
 
 <img src="../screenshots/camera-dashboard.webp" alt="Camera Dashboard" width="800">

@@ -2,6 +2,8 @@
 
 Who is known to the home.
 
+> **Maturity: Alpha.** Does its job every day in the author's house, but hasn't been tried in many others. Expect rough edges and changes. ([The levels](../README.md#maturity))
+
 <img src="../screenshots/people.webp" alt="People" width="800">
 
 ## What it's for

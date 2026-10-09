@@ -59,6 +59,7 @@ export function CompositorPage({ state }: { state?: string }) {
     <Shell
       icon={<CameraGridIcon />}
       title="Camera compositor"
+      module="compositor"
       blurb={`Its pipeline as it runs now, refreshed every ${POLL_MS / 1000} s: gatherer, cache, generators, servers.`}
       state={state}
       action={

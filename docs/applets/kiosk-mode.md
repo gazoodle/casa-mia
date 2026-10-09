@@ -2,6 +2,8 @@
 
 What each dashboard hides, and from whom: the header, sidebar and more, through kiosk-mode.
 
+> **Maturity: Alpha.** Does its job every day in the author's house, but hasn't been tried in many others. Expect rough edges and changes. ([The levels](../README.md#maturity))
+
 *Needs kiosk-mode (github.com/NemesisRE/kiosk-mode) installed.*
 
 > **To write:** a screenshot (whole HA window, swap on).

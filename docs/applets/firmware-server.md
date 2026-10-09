@@ -2,6 +2,8 @@
 
 Mirrors the Kiosk Satellite firmware so the wall tablets update without the internet.
 
+> **Maturity: Beta.** Complete and used every day; its features have settled. Please report what breaks in your setup. ([The levels](../README.md#maturity))
+
 <img src="../screenshots/firmware.webp" alt="Firmware server" width="800">
 
 ## What it's for

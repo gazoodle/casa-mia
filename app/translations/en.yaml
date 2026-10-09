@@ -13,39 +13,39 @@ configuration:
       to cheer up the author; switch it off and nothing else changes.
   gitproxy_enabled:
     name: Serve tablet firmware
-    description: "Mirror the Kiosk Satellite firmware and serve it to the tablets at http://<this host>:8000 (the Custom repository address in Kiosk Satellite)."
+    description: "Beta. Mirror the Kiosk Satellite firmware and serve it to the tablets at http://<this host>:8000 (the Custom repository address in Kiosk Satellite)."
   compositor_enabled:
     name: Compose camera groups
-    description: "Draw the Camera Commander from Home Assistant camera stills, served at http://<this host>:8099/. It is set up on the Camera Dashboard page (which needs to be on)."
+    description: "Alpha. Draw the Camera Commander from Home Assistant camera stills, served at http://<this host>:8099/. It is set up on the Camera Dashboard page (which needs to be on)."
   camera_dashboard_enabled:
     name: Camera Dashboard
     description: >-
-      Set up the cameras, the Camera Commander and the camera dashboard on the Camera
+      Alpha. Set up the cameras, the Camera Commander and the camera dashboard on the Camera
       Dashboard page of the Casa Mia panel, preview them, and deploy the dashboard into
       Home Assistant. Previews are served on port 8098; the live composites need Compose
       camera groups on.
   guest_login_enabled:
     name: Guest login
     description: >-
-      QR codes that sign guests and engineers into their own dashboard, served on port
+      Beta. QR codes that sign guests and engineers into their own dashboard, served on port
       8675. Set up its logins and endpoints on the Guest login page of the Casa Mia panel
       (the sidebar, or Open web UI). Every endpoint is off until you switch it on.
   fona_enabled:
     name: Phone and SMS (FONA)
     description: >-
-      Calls and texts through the FONA GSM module (the Arduino on USB): a way to reach the
+      Alpha. Calls and texts through the FONA GSM module (the Arduino on USB): a way to reach the
       house that needs no internet. Each is checked against the People page of the Casa
       Mia panel and passed to Home Assistant as authorised or intrusion.
   kiosks_enabled:
     name: Kiosk Satellites
     description: >-
-      Finds the Kiosk Satellite tablets (through Home Assistant's ESPHome devices and the
+      Alpha. Finds the Kiosk Satellite tablets (through Home Assistant's ESPHome devices and the
       tablets themselves), backs up their settings, and opens each one's admin page from
       the Casa Mia panel, from home or away.
   alarm_enabled:
     name: Alarm panel
     description: >-
-      The intruder alarm as a Home Assistant alarm panel (arm away, disarm, triggered),
+      In development. The intruder alarm as a Home Assistant alarm panel (arm away, disarm, triggered),
       driven by the alarm's ESPHome sensors. It runs in the integration, which sets the
       code; off removes its device and entity.
   developer_mode:

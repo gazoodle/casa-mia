@@ -9,6 +9,7 @@ import { PeoplePage } from "./PeoplePage";
 import { SettingsPage } from "./SettingsPage";
 import { Developer, useHealth, type ModuleHealth } from "./health";
 import { ModuleIcon, SettingsIcon } from "./icons";
+import { Maturity } from "./maturity";
 import { MODULES, type ModuleInfo } from "./modules";
 import type { HeaderView } from "./api";
 import { Photo, PhotoEditor, photoApi, photoUrl, type PhotoDraft } from "./photo";
@@ -100,7 +101,7 @@ export function App() {
       {health && on.length > 0 && (
         <Section title="Running here">
           {on.map(([key, h]) => (
-            <Tile key={key} info={MODULES[key] ?? fallback(key)} health={h} href={PAGES[key]} />
+            <Tile key={key} module={key} info={MODULES[key] ?? fallback(key)} health={h} href={PAGES[key]} />
           ))}
         </Section>
       )}
@@ -154,7 +155,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function Tile({ info, health, href }: { info: ModuleInfo; health: ModuleHealth; href?: string }) {
+function Tile({ module, info, health, href }: { module: string; info: ModuleInfo; health: ModuleHealth; href?: string }) {
   const [label, tone] = STATES[health.state ?? ""] ?? [health.state ?? "Unknown", css.muted];
   const progress = info.progress?.(health);
   const facts = info.facts(health).filter(([, value]) => value !== undefined);
@@ -186,7 +187,10 @@ function Tile({ info, health, href }: { info: ModuleInfo; health: ModuleHealth; 
         </div>
       )}
       {health.error && <p className={css.error}>{health.error}</p>}
-      {href && <span className={css.more}>Open →</span>}
+      <div className={css.tileFoot}>
+        <Maturity module={module} />
+        {href && <span className={css.more}>Open →</span>}
+      </div>
     </Tag>
   );
 }
@@ -208,6 +212,7 @@ function Empty({ off }: { off: string[] }) {
               <span>
                 <strong>{info.option}</strong>
                 <span className={css.offBlurb}>{info.blurb}</span>
+                <Maturity module={key} full />
               </span>
             </li>
           );
