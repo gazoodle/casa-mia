@@ -4,8 +4,8 @@ settings on the Camera Dashboard page): the newest motion wins; a switch holds `
 seconds before motion elsewhere takes over (that camera waits its turn); `back` seconds
 after all motion stops it goes back to the camera chosen by hand (0: it stays); and a
 choice by hand (a tap, or an automation) pauses tracking for `pause` seconds. Whatever
-the switch, the commander's cameras seeing motion are told to the app, which marks their
-tiles.
+the switch, the Camera Commander card marks a tile while its camera sees motion, from the
+sensors found here (the commander's select's `motion` attribute).
 
 A camera's motion sensor is a binary_sensor of device class motion on its device, else
 one named after it (binary_sensor.<camera, less its channel>_motion)."""
@@ -152,7 +152,6 @@ class MotionTracker:
             ", ".join(f"{s} ({self._title(c)})" for s, c in sensors.items())
             or "nothing",
         )
-        self._tell_app()
 
     # -- motion
 
@@ -170,7 +169,6 @@ class MotionTracker:
         _LOGGER.debug(
             "track motion (%s): %s %s", self._who, sensor, "on" if on else "off"
         )
-        self._tell_app()
         if not self.enabled:
             return
         if on:
@@ -241,15 +239,6 @@ class MotionTracker:
         self._cancel("back")
 
     # -- the app
-
-    @callback
-    def _tell_app(self) -> None:
-        self.hass.async_create_task(
-            self._post(
-                "/commander/motion",
-                {"cameras": sorted(self.moving), "commander": self.cid},
-            )
-        )
 
     async def _post(self, path: str, body: dict[str, Any]) -> None:
         try:

@@ -167,6 +167,7 @@ def test_typescript_engine_matches_the_cases():
             "src/layout.test.ts",
             "src/sizing.test.ts",  # the cards' sizing rule, alongside
             "src/tablet.test.ts",  # and the Tablet Layout's placement (tablet_cases.json)
+            "src/commander/motion.test.ts",  # and the card's motion dots
         ],
         cwd=CARDS,
         capture_output=True,

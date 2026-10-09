@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.10.4-b13
+
+- Camera Commander card: **motion is a pulsing dot the card draws** on a camera's tile (the main camera's too) while its motion sensor sees motion, and for a while after (10 s by default). It shows the moment the sensor changes, with nothing for the compositor to draw: the old red dot drawn into the picture appeared only at the next redraw, so it was rarely seen. Hover the dot for when the motion was seen; a tap on it is a tap on its tile. New card options: the dot on or off, its colour, size, pulse (0: steady), how long it stays after the motion, and its corner.
+- The motion sensors are the ones Track motion uses, found by the integration (each commander's select now has a `motion` attribute: camera to sensor). The compositor no longer draws motion, and the integration no longer sends it to the app.
+- The card editor no longer saves options left at their default, so a later change of a default reaches every card left at it. Cards saved before keep what they have: a card whose main camera still opens the dashboard page has "its page on the camera dashboard" saved; choose more-info in its editor.
+
 ## 2026.10.4-b12
 
 - The draft compositor has retired, now that commanders are saved straight to live. One compositor draws everything: the cards, both dashboards (the preview dashboard shows the live pictures too), the Camera Commander page's preview and the Cameras page's thumbnails. Port 8098 is gone (the app's Network settings no longer list it).

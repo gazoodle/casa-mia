@@ -151,14 +151,12 @@ class Live(Base):
 
     def control(self, path: str, body: bytes) -> int:
         """The integration: POST /commander/main {"main": <title or entity>,
-        "commander": <id>} shows that camera as that commander's main one, live and in
-        the preview (no id: the first commander there was, id "");
-        POST /commander/motion {"cameras": [...], "commander": <id>}: its cameras seeing
-        motion now (a red dot on their tiles; no id: every commander's). An integration
-        from before Camera Commander had its own page posts the same to
-        /camera-dashboard/commander and /camera-dashboard/motion."""
+        "commander": <id>} shows that camera as that commander's main one (no id: the
+        first commander there was, id ""). An integration from before Camera Commander had its own page posts the same to
+        /camera-dashboard/commander. (Motion is the Camera Commander card's to show now,
+        from the sensors themselves: an older integration's POST .../motion gets 204.)"""
         if path.strip("/") == "motion":
-            return self._motion(body)
+            return 204
         if path.strip("/") not in ("main", "commander"):
             return 404
         try:
@@ -189,22 +187,6 @@ class Live(Base):
                 self._write(self.state_path, {"mains": self._mains})
             except OSError as exc:
                 _LOGGER.warning("commander: main camera not kept: %s", exc)
-        return 200
-
-    def _motion(self, body: bytes) -> int:
-        try:
-            data = json.loads(body or b"{}")
-            seen, cid = data.get("cameras") or [], data.get("commander")
-        except (ValueError, AttributeError):
-            return 400
-        if not isinstance(seen, list) or not isinstance(cid, (str, type(None))):
-            return 400
-        moving = frozenset(str(e) for e in seen)
-        for comp in self._commanders():
-            comp.set_motion(moving, cid)
-        _LOGGER.debug(
-            "commander %r: motion on %s", cid, ", ".join(sorted(moving)) or "none"
-        )
         return 200
 
     def health(self) -> dict[str, Any]:

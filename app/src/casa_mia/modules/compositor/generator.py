@@ -118,10 +118,8 @@ class Generator:
         # Commander (slug) -> the sizes its picture is asked for (None: its own size).
         self._sizes: dict[str, dict[tuple[Size | None, bool], None]] = {}
         self._warm_until = -LINGER  # prewarm: every commander gathered until then
-        # Per commander (by id): its main camera as last chosen, and its cameras seeing
-        # motion (red dots).
+        # Per commander (by id): its main camera as last chosen.
         self.mains: dict[str, str] = {}
-        self.motion: dict[str, frozenset[str]] = {}
 
     def reload(self) -> None:
         """Re-read the config (after the Camera Dashboard saved it); the picture already
@@ -161,13 +159,6 @@ class Generator:
             if choice in cams:
                 return choice
         return cams[0] if cams else None
-
-    def set_motion(self, cameras: frozenset[str], commander: str | None) -> None:
-        """A commander's cameras seeing motion now (None: every commander's): their
-        tiles get a red dot from the next picture on. Thread-safe."""
-        for cmd in self.cfg.commanders:
-            if commander in (None, cmd["id"]):
-                self.motion = {**self.motion, cmd["id"]: cameras}
 
     def set_main(self, entity: str, commander: str) -> None:
         """Show this camera as a commander's (by id) main one: its picture is redrawn
@@ -471,7 +462,6 @@ class Generator:
                     main,
                     main_image,
                     changing,
-                    self.motion.get(cmd["id"], frozenset()),
                     frozenset(stale),
                     age > limit,
                 )

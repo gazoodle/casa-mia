@@ -117,7 +117,6 @@ from .compositor import (
 )
 from .drawing import (
     FONT,
-    MOTION_DOT,
     SIZED,
     SMALL_BAR,
     STACKS,
@@ -216,7 +215,6 @@ __all__ = [
     "commander_layout",
     "STALE",
     "SMALL_BAR",
-    "MOTION_DOT",
     "see_through",
     "commander",
     "waiting_picture",

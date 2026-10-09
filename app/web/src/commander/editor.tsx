@@ -358,8 +358,8 @@ export function CommanderEditor({
             </Field>
           </div>
           <p className={`${css.hint} ${css.wide}`}>
-            While it is on, a camera that sees motion becomes the main one (its tile gets a red dot whenever it sees motion,
-            on or off).
+            While it is on, a camera that sees motion becomes the main one. On or off, the Camera Commander card marks a
+            tile with a pulsing dot while its camera sees motion (the card's own options set its look).
           </p>
           <Num
             label="Hold, s"

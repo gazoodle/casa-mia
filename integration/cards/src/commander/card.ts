@@ -4,6 +4,7 @@ import { keyed } from "lit/directives/keyed.js";
 import { atHome, type Fit, fire, fitOf, type Hass, heightFor, inDialog, liveChannel, LOOK, lookCss, navigate, ratioFor, TABLET, watchRoom } from "../ha.ts";
 import { heightForMain, layout, PANELS, pyRound, type Rect } from "../layout.ts";
 import { playWebRTC } from "../../../../app/web/src/webrtc.ts";
+import { Motion, dot, motionStyles } from "./motion.ts";
 import { Config, Card, LIVE_WAIT_MS, LIVE_GIVE_UP, dashboard, LEAVE_AFTER, VERSION, BLANK, SETTLE_MS, Size, askFor, pictureToken, commanders } from "./common.ts";
 
 export class CommanderCard extends LitElement {
@@ -45,6 +46,7 @@ export class CommanderCard extends LitElement {
    * The highlight waits for it, so it never stands over an empty card. */
   _framed = "";
   private frameWait = 0;
+  private motion = new Motion(); // the dots on tiles seeing motion
 
   private debugOn(): boolean {
     const st = this._config?.entity ? this.hass?.states[this._config.entity] : undefined;
@@ -93,6 +95,7 @@ export class CommanderCard extends LitElement {
   }
   disconnectedCallback() {
     super.disconnectedCallback();
+    this.motion.stop();
     document.removeEventListener("visibilitychange", this.visibility);
     window.removeEventListener("location-changed", this.visibility);
     window.removeEventListener("popstate", this.visibility);
@@ -382,6 +385,7 @@ export class CommanderCard extends LitElement {
     const at = ([x, y, rw, rh]: Rect) =>
       `left:${(x / w) * 100}%;top:${(y / h) * 100}%;width:${(rw / w) * 100}%;height:${(rh / h) * 100}%`;
     const lit = s.highlight ?? {};
+    const moving = this.motion.seen(this.hass!, st!.attributes.motion ?? {}, this._config!, () => this.requestUpdate());
     const mark = PANELS.flatMap((p) => s[p].cameras.map((e, i) => [e, tiles[p][i]] as const)).find(([e]) => e === main)?.[1];
     // The rule (ha.ts: heightFor). In a tile or a cell, CSS: its height when it gives one,
     // else its own shape.
@@ -448,6 +452,12 @@ export class CommanderCard extends LitElement {
               style="${at(mark)};border:${lit.width}px solid ${lit.colour};box-shadow:0 0 ${lit.blur}px ${lit.colour};--cm-colour:${lit.colour};--cm-blur:${lit.blur}px;--cm-pulse:${lit.pulse}s;--cm-style:${lit.style}"
             />`
           : nothing}
+        ${PANELS.flatMap((p) =>
+          s[p].cameras.map((e, i) =>
+            tiles[p][i][2] > 0 && e !== main ? dot(moving.get(e), at(tiles[p][i]), this._config!, () => this.choose(card, e)) : nothing,
+          ),
+        )}
+        ${mainRect[2] > 0 ? dot(moving.get(main), at(mainRect), this._config!, () => this.open(card, main)) : nothing}
       </div>
     </ha-card>`;
   }
@@ -465,7 +475,7 @@ export class CommanderCard extends LitElement {
     else if (how !== "none") fire(this, "hass-more-info", { entityId: camera });
   }
 
-  static styles = css`
+  static styles = [motionStyles, css`
     :host {
       display: block;
       height: 100%;
@@ -594,5 +604,5 @@ export class CommanderCard extends LitElement {
       padding: 16px;
       color: var(--secondary-text-color);
     }
-  `;
+  `];
 }

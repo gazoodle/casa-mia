@@ -3,7 +3,7 @@
 // None are public API; if an HA update breaks one, it breaks here first.
 import LAYOUT from "../../../app/src/casa_mia/layout.json" with { type: "json" };
 
-export type State = { state: string; attributes: Record<string, any> };
+export type State = { state: string; attributes: Record<string, any>; last_changed?: string };
 export type Hass = {
   states: Record<string, State>;
   callService(domain: string, service: string, data?: object, target?: object): Promise<unknown>;

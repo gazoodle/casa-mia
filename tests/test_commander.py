@@ -177,20 +177,11 @@ def test_integration_chooses_the_main_camera(tmp_path):
         stop(live, cameras)
 
 
-def test_motion_marks_the_commanders_cameras(tmp_path):
-    seen = []
-    comp = types.SimpleNamespace(
-        cfg=types.SimpleNamespace(commanders=[{"left": {}}]),
-        set_motion=lambda cams, cid: seen.append((cams, cid)),
-        reload=lambda: None,
-        gather=types.SimpleNamespace(flags={"live_main": False}),
-    )
-    cmd = make(tmp_path, live=comp)  # type: ignore[arg-type]
-    assert cmd.control("motion", b'{"cameras": ["camera.a_low"]}') == 200
-    assert cmd.control("motion", b'{"cameras": [], "commander": "p1"}') == 200
-    # no commander: every one's (an integration from before there were several)
-    assert seen == [(frozenset({"camera.a_low"}), None), (frozenset(), "p1")]
-    assert cmd.control("motion", b'{"cameras": "nope"}') == 400
+def test_motion_is_the_cards_now(tmp_path):
+    """The card marks motion from the sensors; an older integration still posting it is
+    told all is well, and nothing is drawn."""
+    cmd = make(tmp_path)
+    assert cmd.control("motion", b'{"cameras": ["camera.a_low"]}') == 204
 
 
 def test_the_page_flips_only_the_commanders_switches(tmp_path):

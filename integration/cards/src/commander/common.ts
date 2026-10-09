@@ -1,6 +1,7 @@
 // The Camera Commander's types, constants and helpers, shared by the card and its editor.
 import { type Hass, type Sharpness } from "../ha.ts";
 import { pyRound, type Settings } from "../layout.ts";
+import type { Corner } from "./motion.ts";
 
 export type Route = "auto" | "direct" | "ha";
 export type Config = { type: string; entity?: string; tap_main?: "live" | "more-info" | "none"; route?: Route; away_sharpness?: Sharpness; live_main?: boolean;
@@ -11,6 +12,14 @@ export type Config = { type: string; entity?: string; tap_main?: "live" | "more-
   look_tint?: [number, number, number];
   look_strength?: number;
   look_darkness?: number;
+  /** Motion on a tile: a dot, its colour, size (px), pulse (s; 0 steady), how long it
+   * stays after the motion (s) and its corner (motion.ts: MOTION). */
+  motion_dot?: boolean;
+  motion_colour?: [number, number, number];
+  motion_size?: number;
+  motion_pulse?: number;
+  motion_linger?: number;
+  motion_corner?: Corner;
 };
 export type Card = {
   picture: string;
