@@ -27,9 +27,11 @@ And that's just the start.
 <p align="center"><strong>Free and open source, MIT licensed. Forever.</strong><br>
 No premium tier, no subscription, no catch. <a href="#licence">Here's the promise.</a></p>
 
+<p align="center"><a href="docs/README.md"><strong>📖 Documentation</strong></a> · <a href="docs/tablet-layout.md">Tablet Layout</a> · <a href="#installation">Installation</a></p>
+
 ## What is it?
 
-* A home assistant layout view, based on Sections, but locked to the rendering screen size while still being responsive to content changes
+* A home assistant layout view, based on Sections, but locked to the rendering screen size while still being responsive to content changes ([the Tablet Layout](docs/tablet-layout.md))
 * A multi-camera layout and composition system to allow near realtime surveillance views without swamping network bandwidth or overwhelming low-power tablets
 * A house guest login system that allows a QR scan to access a custom landing page
 * A firmware server for the amazing [Kiosk Satellite](https://kiosksatellite.com) so they can stay on an IoT network, with no internet access, and not repeatedly keep downloading Candy Crush yet can still get updates from the GitHub releases.
