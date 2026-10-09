@@ -244,7 +244,7 @@ def test_offline_and_added_by_address(two, tmp_path):
 
 def test_backups_keep_only_material_changes_and_restore(two, monkeypatch):
     k, (h1, a1), _ = two
-    monkeypatch.setattr("casa_mia.modules.kiosks.datetime", _Clock())
+    _use_clock(monkeypatch)
     k.scan()
     assert k.backup("k1") == {"error": "Not logged in to that kiosk."}
     k.login(PASSWORD)
@@ -278,7 +278,7 @@ def test_keep_prunes_and_settings_are_checked(two, monkeypatch):
     k, (h1, _), _ = two
     k.scan()
     k.login(PASSWORD)
-    monkeypatch.setattr("casa_mia.modules.kiosks.datetime", _Clock())
+    _use_clock(monkeypatch)
     for n in range(4):
         h1.profile["n"] = n
         k.backup("k1")
@@ -312,6 +312,13 @@ def test_due_backs_up_once_per_interval(two):
     k.checked["k1"] = "2000-01-01T00:00:00+00:00"
     k._due()
     assert h1.exports == 2
+
+
+def _use_clock(monkeypatch):
+    """One _Clock for every part of the kiosks package that reads the time."""
+    clock = _Clock()
+    for part in ("backups", "common"):
+        monkeypatch.setattr(f"casa_mia.modules.kiosks.{part}.datetime", clock)
 
 
 class _Clock:

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.4-b1
+
+- Under the hood: Kiosk Satellites split into a package (`modules/kiosks/`), as RULE THREE asks; no change in behaviour.
+
 ## 2026.10.3
 
 A big one: 86 builds and 146 commits in five days, with more than 170 changes. Here are the highlights.
