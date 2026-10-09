@@ -44,7 +44,7 @@ The app's log is how problems are diagnosed, often remotely (the owner away from
 
 ## Status
 
-Skeleton stage: README.md is the charter; the app skeleton, tooling and fake git host exist, no modules yet. Existing code to learn from lives elsewhere (the earlier `fona_sms` component, an earlier app's `ingress.py`, the composite-test server); read it rather than rewriting from memory.
+Skeleton stage: docs/architecture.md is the charter (moved out of README.md, which is now the shop window; user docs are in docs/); the app skeleton, tooling and fake git host exist, no modules yet. Existing code to learn from lives elsewhere (the earlier `fona_sms` component, an earlier app's `ingress.py`, the composite-test server); read it rather than rewriting from memory.
 
 Planned but unscheduled work lives in `BACKLOG.md`; add ideas there, do not start them unasked.
 
@@ -85,7 +85,7 @@ Beyond the app and integration, the repo also holds: FONA Arduino firmware, the 
 
 **Copying is fine from the author's own projects** (tablet-provision and the others): the same author wrote them, so lift any code, CSS or patterns that fit, adapted to this repo. advanced-camera-card is third-party: respect its licence.
 
-## Architecture (proposed, see README.md)
+## Architecture (proposed, see docs/architecture.md)
 
 One repo, one version, two deliverables released together:
 - **App** (HA add-on, `app/src/casa_mia/`): long-running, I/O-heavy, network-facing work, anything that must survive a Core restart. Holds `core/` (config, logging, health, ingress/token gate, supervisor client) and `modules/{fona,gitproxy,compositor}/` (the alarm panel is integration-only).
@@ -100,4 +100,4 @@ One repo, one version, two deliverables released together:
 - Deployment is via a fake git host serving the working tree (no GitHub credentials on the HA box). There is no staging: deploy straight to the live box (`homeassistant.local:8123`). Cut-over from an old integration (FONA first): leave the old one installed, stop it to test the new module, switch the new module off with its flag and restore the old one if incomplete, retire the old one only when the new is proven. Rollback = deploy the previous tag.
 - Trap: since HA OS 17, editing files and clicking Rebuild can leave old layers running; bump the version through the update path instead.
 - Do not touch live HA config without the user's agreement. (The old `fona_sms` integration is deleted for good; FONA is the app's `fona` module.)
-- Planned testing: pytest with fakes (including a mock serial device that can reset/vanish/reappear) and `pytest-homeassistant-custom-component`; plus a manual fire-drill checklist in README.md.
+- Planned testing: pytest with fakes (including a mock serial device that can reset/vanish/reappear) and `pytest-homeassistant-custom-component`; plus a manual fire-drill checklist in docs/architecture.md.

@@ -4,6 +4,30 @@ Not scheduled. Newest ideas first within each section. Move an item into the REA
 
 ## Next up
 
+- **Tablet Layout: a fixed-shape main ignores the edges' own sizes** (found 2026-10-10 while taking the docs screenshots). With `main_fit: fixed` (16:9, 70% wide), the top and bottom edges split the height left round main between them, so a bottom edge of `size: auto` floats just under main with empty room below it. Wanted: each edge keeps its own size (auto, % or px), and the room main leaves goes round main (centred, or as the edges' `arrange` says), not into the edges. `frame()` in `tablet.ts` (the `shape !== null` branch, `share`) is where it happens; the Python engine (`commander_layout`) shares it for the Commander, so decide whether the Commander keeps today's behaviour. Then take the docs screenshot `tablet-layout-fixed-main.webp`.
+
+- **Tablet Layout edit mode: two blemishes seen in the docs screenshots** (2026-10-10).
+  - The main panel's Fit help still describes "Own shape", which the view's list leaves out (the help comes whole from `layout.json`).
+  - A panel with nothing that counts showing out of edit mode is drawn 0 tall in edit mode (e.g. "282 × 0"), so its edge's depth label lands on its cards.
+
+- **Retire the Casa Mia Section card** (asked 2026-10-10). A Tablet Layout already counts each card's `view_layout: {counts: false}` itself, and an edge can hold several panels, so HA's own sections do the job. The docs already use plain sections. Before removing it:
+  - find a clearer name for "doesn't count" (it means the card alone doesn't keep its panel showing);
+  - make it settable on any card in a panel in edit mode, rather than only in YAML;
+  - say how to move a view that uses the card.
+
+- **The Commander card in a Tablet Layout's edit mode should behave like a Picture Glance card** (asked 2026-10-09; tried before and given up).
+  - **Today:** in edit mode the Commander card visibly grows into its size. A Picture Glance card is just *there*.
+  - **Wanted:** the Commander card should ask for a new picture size only outside edit mode. In edit mode, it shows the picture it has, scaled.
+  - **The waste:** while the layout is edited, each step asks the compositor for a new size. The compositor's state listed over 20 sizes for the same image.
+
+- **Split the Camera Dashboard page into Camera Commander and Auto Dashboards** (asked 2026-10-09).
+  - **Camera Commander:** the applet that designs the commanders. It has exactly what the Camera Dashboard page has today for them: the list of commanders and the list of cameras. A change to a commander takes effect on Save, with no draft, no preview and no live/preview split: make a change, press Save, and it is updated.
+  - **Auto Dashboards:** a new applet that takes the rest of today's page: the Dashboard settings and its Backups, Save draft, Deploy preview, Deploy live and the YAML. It is the start of the deterministic dashboard-building system, beginning with the commander → live dashboard auto-link.
+  - Open:
+    - what becomes of the draft compositor and the preview dashboard (`-preview`) once commanders have no draft;
+    - the Commander card's `draft` option;
+    - the store files (`camera-dashboard.json`, `camera-dashboard-live.json`) and the `camera_dashboard` module and option names.
+    - Agree the names first (see the saved rule on confirming module names).
 - **Check guest login on the LAN.** On 2026-10-06, after 2026.10.3-b37 put the app on the host network, a guest login did not work, tried over a VPN. Try it again from the LAN (a phone off the VPN, a printed code). Likely cause, fixed in b38: its sign-in went to `http://homeassistant:8123`, a name only the Supervisor's network knows; on the host network it is now `127.0.0.1:8123`. If it still fails after b38, suspect b37 further: the guest login server (port 8675) is now the host's own port, not a mapped one, so check what the guest page's address resolves to and what address the request comes from (any check by client IP, the trusted-networks provider in HA's auth, and the reverse proxy or Nabu Casa path to it).
 - **Guest login follow-ups** (the module is complete, app 0.1.26):
   - House-info page for guests (Wi-Fi, house rules), agreed in the design but not built.
