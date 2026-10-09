@@ -216,7 +216,7 @@ test("card columns' width: HA's, 12 a section, its gap between them", () => {
 });
 
 test("sections restacked: each names its panel, a new one empty, those of no panel after", () => {
-  const old = [{ type: "grid", cards: [1] }, { type: "grid", cards: [2], view_layout: { panel: "top", layer: 1, counts: false } }, { cards: [3] }, { cards: [4] }, { cards: [5] }, { cards: [6] }];
+  const old = [{ type: "grid", cards: [1] }, { type: "grid", cards: [2], view_layout: { panel: "top", layer: 1 } }, { cards: [3] }, { cards: [4] }, { cards: [5] }, { cards: [6] }];
   const drafts = draftsOf(old);
   assert.deepEqual(drafts.map((d) => [d.from, d.place]), [[0, "main"], [1, "top"], [2, "top"], [3, "right"], [4, "bottom"]]);
   assert.deepEqual(restack(old, drafts), old); // nothing moved
@@ -224,7 +224,7 @@ test("sections restacked: each names its panel, a new one empty, those of no pan
   assert.deepEqual(restack(old, moved), [
     { type: "grid", cards: [1], view_layout: { panel: "main" } },
     { cards: [3], view_layout: { panel: "top" } },
-    { type: "grid", cards: [2], view_layout: { panel: "top", counts: false } },
+    { type: "grid", cards: [2], view_layout: { panel: "top" } },
     { type: "grid", cards: [], view_layout: { panel: "left", layer: 2 } },
     { cards: [4], view_layout: { panel: "right" } },
     { cards: [5], view_layout: { panel: "bottom" } },
@@ -287,21 +287,20 @@ test("a view's sizes seen out of edit mode outlive the view", () => {
 });
 
 
-test("garnish and legacy adornment never keep a panel open", () => {
+test("garnish never keeps a panel open", () => {
   const card = { type: "heading" };
   assert.equal(counts(card), true);
   assert.equal(counts({ ...card, view_layout: { garnish: true } }), false);
-  assert.equal(counts({ ...card, view_layout: { counts: false } }), false);
-  assert.equal(counts({ ...card, view_layout: { garnish: true, counts: true } }), false);
   assert.equal(counts({ ...card, view_layout: { garnish: false } }), true);
   assert.deepEqual(five(counts(setGarnish(card, true)) ? ["right"] : []).find((s) => s.place === "right")?.shows, false);
 });
 
-test("garnish toggles migrate legacy settings without changing other card options", () => {
-  const old = { type: "heading", heading: "Warnings", view_layout: { counts: false, padding: 8 }, grid_options: { columns: 6 } };
-  assert.deepEqual(setGarnish(old, true), { ...old, view_layout: { padding: 8, garnish: true } });
-  assert.deepEqual(setGarnish(old, false), { ...old, view_layout: { padding: 8 } });
-  assert.equal(old.view_layout.counts, false);
+test("garnish toggles keep the card's other options", () => {
+  const old = { type: "heading", heading: "Warnings", view_layout: { padding: 8 }, grid_options: { columns: 6 } };
+  const on = setGarnish(old, true);
+  assert.deepEqual(on, { ...old, view_layout: { padding: 8, garnish: true } });
+  assert.deepEqual(setGarnish(on, false), old);
+  assert.deepEqual(old.view_layout, { padding: 8 }); // not changed in place
   assert.deepEqual(setGarnish({ type: "heading", view_layout: { garnish: true } }, false), { type: "heading" });
 });
 

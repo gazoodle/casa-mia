@@ -1,5 +1,6 @@
 // Dress HA's card edit frame only for cards in a Tablet Layout panel.
 import { counts, cardPath, setGarnish } from "./garnish.ts";
+import { HOVER } from "./ha.ts";
 
 // The sprig sits on the card's bottom-right border, clear of headings (which start top
 // left), HA's card menu (top right) and the panel's toolbar: out of the way of what is arranged,
@@ -22,8 +23,9 @@ STYLE.replaceSync(`
     display: block; box-sizing: border-box; width: 26px; height: 26px; padding: 4px; border-radius: 50%;
     border: 1px solid var(--primary-color); color: var(--primary-color);
     background: var(--card-background-color, #fff); opacity: 0.6;
+    transition: opacity 0.15s, box-shadow 0.15s, filter 0.15s;
   }
-  .cm-garnish:hover .cm-sprig, .cm-garnish:focus-visible .cm-sprig { opacity: 1; }
+  .cm-garnish:hover .cm-sprig, .cm-garnish:focus-visible .cm-sprig { opacity: 1; ${HOVER} }
   .cm-garnish svg { display: block; width: 16px; height: 16px; fill: currentColor; }
   .cm-garnish[aria-pressed="true"] .cm-sprig { opacity: 1; color: var(--text-primary-color, #fff); background: var(--primary-color); }
   .cm-garnish-frame {

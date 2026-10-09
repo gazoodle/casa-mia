@@ -257,3 +257,11 @@ export function lookCss([r, g, b]: [number, number, number], strength: number, d
   const bright = Math.max(0.1, 1 - darkness / 100).toFixed(2);
   return `grayscale(1) sepia(1) hue-rotate(${turn}deg) saturate(${strength}) brightness(${bright}) contrast(1.1)`;
 }
+
+/** What every clickable thing in a Tablet Layout's edit mode does under the pointer or
+ * keyboard focus (chips, sprigs, padlocks, dimension labels): a ring in the theme's colour
+ * and a touch brighter, so a tap target looks like one. Declarations only, for any rule. */
+export const HOVER = `
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 35%, transparent);
+  filter: brightness(1.08);
+`;

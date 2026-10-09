@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.10.5-b1
+
+- Tablet Layout edit mode: every chip, sprig, padlock and dimension label answers the
+  pointer (and keyboard focus) alike, with a ring and a touch of brightness, so you can see
+  what can be tapped. Before, only a sprig not yet garnish did.
+- Tablet Layout: garnish is `view_layout: {garnish: true}` only; the older spelling,
+  `counts: false`, is no longer read.
+
 ## 2026.10.4
 
 - **Breaking:** Guest login and Camera Commander have their own integrations now, **Casa

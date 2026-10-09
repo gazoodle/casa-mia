@@ -215,7 +215,16 @@ The layout follows what's showing, so conditional cards just work:
   bottom-right corner; tap it to make the card garnish (the sprig fills, and the card is
   dimmed with a dashed outline), and tap again to make it content. A panel holding only
   garnish is hatched in edit mode, as it will never show. In YAML it's
-  `view_layout: { garnish: true }` (the older `counts: false` still works).
+  `view_layout: { garnish: true }`.
+
+  *Coming:* garnish in every section of every Sections dashboard, not only a Tablet
+  Layout's panels. Home Assistant already hides a section whose cards are all hidden;
+  garnish lets a section hold content that doesn't count toward keeping it showing. It will
+  be one switch for all your dashboards, **Enable garnish on all section dashboards**, in
+  the Casa Mia panel's settings.
+
+  <img src="screenshots/tablet-layout-garnish.webp" alt="A right panel in edit mode: a Warnings heading as garnish, dimmed with a dashed outline and a filled sprig, over a Door tile as content with a plain sprig" width="274">
+
 - **An edge can be hidden** outright (`hidden: true`): no room, no cards, but its sections
   kept for when it's shown again.
 
@@ -373,7 +382,22 @@ top or bottom panel's fixed Width counts in) and `debug: true` (see [Debugging](
 | Option | Default | Meaning |
 |---|---|---|
 | `fill` | by kind | `true`: alone in its panel, this card fills it; `false`: it never does. Unset: cameras, pictures, maps and iframes fill, other cards don't. |
-| `garnish` | `false` | `true`: adornment that never keeps its panel showing (the sprig in edit mode). The older `counts: false` is also read. |
+| `garnish` | `false` | `true`: adornment that never keeps its panel showing (the sprig in edit mode). |
+
+## Home Assistant updates
+
+The Tablet Layout is built on Home Assistant's own Sections view, and to do what it does
+(place the panels, edit them in place, garnish, the sprigs and chips) it reaches into the
+frontend's workings, which Home Assistant doesn't promise to keep the same. That's the
+long tradition of custom layouts: Thomas Lovén's layout-card and card-mod do the same, and
+an HA update has broken each of them now and then until it caught up.
+
+So now and then a new Home Assistant release may upset it: a panel out of place, an edit
+control missing. Your dashboards' configuration is safe whatever happens: the sections and
+cards are kept as Home Assistant's own, with the layout's options beside them, and nothing is
+saved except by your own edits. If an HA update
+breaks something, update Casa Mia (a fix usually follows the HA release), and if it's still
+wrong, [open an issue](https://github.com/gazoodle/casa-mia/issues) with your HA version.
 
 ## Debugging
 
