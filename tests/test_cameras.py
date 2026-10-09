@@ -4,7 +4,12 @@ import json
 
 import pytest
 
-from casa_mia.modules.cameras import Cameras, ha_cameras, motion_sensors
+from casa_mia.modules.cameras import (
+    Cameras,
+    ha_cameras,
+    motion_sensors,
+    motion_switches,
+)
 from test_camera_dashboard import STORE, FakeHA, call
 
 
@@ -107,6 +112,7 @@ def test_live_view_gives_each_channel_from_ha(cams):
         },
     ]  # camera.a_high has no state in HA, so it is left out
     assert out["motion"] is None  # no motion sensor for it in HA
+    assert out["motion_switch"] is None  # nor a motion detection switch
     assert call(cams, "GET", "live/camera.nope")[0] == 400
 
 
@@ -142,4 +148,73 @@ def test_motion_sensors_by_device_then_by_name():
             "camera.drive_low_resolution_channel": "binary_sensor.drive_motion",  # its device
             "camera.pool": "binary_sensor.pool_motion",  # by name
         }
+    )
+
+
+def test_each_cameras_own_motion_detection_switch():
+    registry = [
+        {"entity_id": "camera.drive_low_resolution_channel", "device_id": "d"},
+        {
+            "entity_id": "switch.drive_motion",
+            "device_id": "d",
+            "translation_key": "motion",
+        },
+        {"entity_id": "switch.drive_privacy_mode", "device_id": "d"},  # not motion
+        {"entity_id": "camera.tablet", "device_id": "t"},
+        {
+            "entity_id": "switch.tablet_screensaver_motion_detection",
+            "device_id": "t",
+            "original_name": "Screensaver motion detection",
+        },
+        {"entity_id": "camera.gate", "device_id": "g"},
+        {"entity_id": "switch.gate_motion", "device_id": "g", "disabled_by": "user"},
+        # Casa Mia's own Track motion is never the camera's
+        {
+            "entity_id": "switch.gate_track_motion",
+            "device_id": "g",
+            "platform": "casa_mia",
+        },
+        {"entity_id": "camera.loose"},  # no device: nothing to look on
+    ]
+    cams = [
+        "camera.drive_low_resolution_channel",
+        "camera.tablet",
+        "camera.gate",
+        "camera.loose",
+    ]
+    assert motion_switches(registry, cams) == {
+        "camera.drive_low_resolution_channel": "switch.drive_motion",
+        "camera.tablet": "switch.tablet_screensaver_motion_detection",
+    }
+
+
+def test_motion_detection_switched_from_the_page(cams):
+    cams.ha.registry = [
+        {"entity_id": "camera.a_low", "device_id": "d"},
+        {"entity_id": "switch.a_motion", "device_id": "d", "translation_key": "motion"},
+        {"entity_id": "switch.kitchen", "device_id": "k"},
+    ]
+    body = {"camera": "camera.a_low", "on": False}
+    status, out = call(cams, "POST", "motion-detection", body)
+    assert status == 200 and out == {
+        "camera": "camera.a_low",
+        "entity": "switch.a_motion",
+        "on": False,
+    }
+    assert cams.ha.sent[-1] == {
+        "type": "call_service",
+        "domain": "switch",
+        "service": "turn_off",
+        "target": {"entity_id": "switch.a_motion"},
+    }
+    # only a camera's own motion switch: never another entity, nor an unknown camera
+    assert (
+        call(cams, "POST", "motion-detection", {"camera": "camera.b", "on": True})[0]
+        == 400
+    )
+    assert (
+        call(
+            cams, "POST", "motion-detection", {"camera": "switch.kitchen", "on": True}
+        )[0]
+        == 400
     )

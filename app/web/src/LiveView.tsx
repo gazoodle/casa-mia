@@ -4,12 +4,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api";
-import { Dialog, Segmented } from "./ui";
+import { Dialog, Segmented, Switch } from "./ui";
 import { canWebRTC, haConnection, playWebRTC } from "./webrtc";
 import css from "./cameras.module.css";
 import ui from "./ui.module.css";
 
-const { get } = api("cameras");
+const { get, post } = api("cameras");
 
 type Channel = { channel: "camera" | "low" | "medium" | "high"; entity: string; url: string };
 
@@ -46,9 +46,9 @@ export function LiveView({
   const [how, setHow] = useState<"webrtc" | "mjpeg">(); // how the chosen channel plays
   const [motion, setMotion] = useState<Motion>(); // the camera's motion sensor, followed live
   useEffect(() => {
-    get<{ channels: Channel[]; motion?: string | null }>(`live/${encodeURIComponent(entity)}`).then(
+    get<{ channels: Channel[]; motion?: string | null; motion_switch?: string | null }>(`live/${encodeURIComponent(entity)}`).then(
       (r) => {
-        setMotion(r.motion ? { sensor: r.motion } : undefined);
+        setMotion(r.motion ? { sensor: r.motion, switch: r.motion_switch ?? undefined } : undefined);
         setChannels(r.channels);
         setChosen((r.channels.find((c) => c.entity === initial) ?? r.channels[0])?.channel);
       },
@@ -98,11 +98,13 @@ export function LiveView({
       if (el) el.src = "";
     };
   }, [shown?.url]);
-  // The motion sensor's state, as Home Assistant changes it (its own connection: nothing
-  // asked of the app). Compressed states: `a` the first, `c` each change ("+": what changed);
-  // lc (last changed) is left out when it equals lu (last updated).
+  // The motion sensor's state, and the camera's motion detection switch's, as Home Assistant
+  // changes them (its own connection: nothing asked of the app). Compressed states: `a` the
+  // first, `c` each change ("+": what changed); lc (last changed) is left out when it equals
+  // lu (last updated).
   useEffect(() => {
     const sensor = motion?.sensor;
+    const toggle = motion?.switch;
     const conn = haConnection();
     if (!sensor || !conn) return;
     let unsub: (() => Promise<void>) | undefined;
@@ -110,16 +112,19 @@ export function LiveView({
     conn
       .subscribeMessage(
         (msg: { a?: Record<string, Compressed>; c?: Record<string, { "+"?: Compressed }> }) => {
+          const flip = toggle ? (msg.a?.[toggle] ?? msg.c?.[toggle]?.["+"]) : undefined;
+          if (flip?.s !== undefined) setMotion((m) => m && { ...m, detecting: flip.s === "on" });
           const one = msg.a?.[sensor] ?? msg.c?.[sensor]?.["+"];
           if (!one) return;
           const at = one.lc ?? one.lu;
           setMotion((m) => ({
+            ...m,
             sensor,
             on: one.s !== undefined ? one.s === "on" : m?.on,
             at: at !== undefined ? at * 1000 : m?.at,
           }));
         },
-        { type: "subscribe_entities", entity_ids: [sensor] },
+        { type: "subscribe_entities", entity_ids: toggle ? [sensor, toggle] : [sensor] },
       )
       .then(
         (u) => {
@@ -132,7 +137,7 @@ export function LiveView({
       gone = true;
       unsub?.();
     };
-  }, [motion?.sensor]);
+  }, [motion?.sensor, motion?.switch]);
   const note = error ?? (channels && !shown ? "Home Assistant has no stream of this camera." : undefined);
   return (
     <Dialog
@@ -203,7 +208,17 @@ export function LiveView({
             : "Home Assistant's MJPEG stream, made from the camera's snapshots: a few pictures a second, not video, and not always the stream's size."}
         </p>
       )}
-      {motion && <MotionLine motion={motion} />}
+      {motion && (
+        <MotionLine
+          motion={motion}
+          onDetect={(on) =>
+            post("motion-detection", { camera: entity, on }).then(
+              () => setMotion((m) => m && { ...m, detecting: on }), // HA's own change follows
+              (err) => setError((err as Error).message),
+            )
+          }
+        />
+      )}
     </Dialog>
   );
 }
@@ -211,13 +226,21 @@ export function LiveView({
 
 type Compressed = { s?: string; lc?: number; lu?: number };
 
-/** A camera's motion sensor, and its state once Home Assistant has said. */
-type Motion = { sensor: string; on?: boolean; at?: number };
+/** A camera's motion sensor, and its state once Home Assistant has said; and its own motion
+ * detection switch, if it has one, and whether it is on. */
+type Motion = { sensor: string; on?: boolean; at?: number; switch?: string; detecting?: boolean };
 
 const clock = (t: number) => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
 /** The motion sensor's state under the picture: a dot that pulses while it sees motion. */
-function MotionLine({ motion: { sensor, on, at } }: { motion: Motion }) {
+function MotionLine({
+  motion: { sensor, on, at, switch: toggle, detecting },
+  onDetect,
+}: {
+  motion: Motion;
+  /** Switch the camera's own motion detection on or off. */
+  onDetect: (on: boolean) => void;
+}) {
   const words =
     on === undefined
       ? haConnection()
@@ -227,11 +250,28 @@ function MotionLine({ motion: { sensor, on, at } }: { motion: Motion }) {
         ? `Motion now${at ? `, since ${clock(at)}` : ""}`
         : `No motion${at ? ` since ${clock(at)}` : ""}`;
   return (
-    <p className={`${css.muted} ${css.motionLine}`}>
-      <span className={`${css.motionDot} ${on ? css.motionOn : ""}`} aria-hidden="true" />
-      <span>
-        {words} · <code>{sensor}</code>
-      </span>
-    </p>
+    <>
+      <p className={`${css.muted} ${css.motionLine}`}>
+        <span className={`${css.motionDot} ${on ? css.motionOn : ""}`} aria-hidden="true" />
+        <span>
+          {words} · <code>{sensor}</code>
+        </span>
+      </p>
+      {toggle && (
+        <p className={`${css.muted} ${css.motionLine}`}>
+          <Switch on={!!detecting} busy={detecting === undefined} label="Motion detection" onChange={onDetect} />
+          {detecting === false ? (
+            <span className={css.motionWarn}>
+              Motion detection is off in the camera (<code>{toggle}</code>): its sensor never turns on, so it takes no
+              part in Track motion or the motion dot.
+            </span>
+          ) : (
+            <span>
+              Motion detection{detecting ? " on" : ""}: <code>{toggle}</code>
+            </span>
+          )}
+        </p>
+      )}
+    </>
   );
 }

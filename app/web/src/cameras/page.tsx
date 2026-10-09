@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { LiveView } from "../LiveView";
 import { AreaHead, Empty, Shell } from "../page";
-import { Toasts, type Toast } from "../ui";
+import { Switch, Toasts, type Toast } from "../ui";
 import css from "../cameras.module.css";
 import guest from "../guest.module.css";
 import ui from "../ui.module.css";
-import { Cameras, Entities, HA, HEAD, THUMB_EVERY_MS, ThumbRound, get, plural, put } from "./common";
+import { Cameras, Entities, HA, HEAD, THUMB_EVERY_MS, ThumbRound, get, plural, post, put } from "./common";
 import { AddCameras, CameraDialog } from "./dialogs";
 import { Thumb } from "./inputs";
 
@@ -53,6 +53,17 @@ export function CamerasPage({ state }: { state?: string }) {
       </Shell>
     );
 
+  /** A camera's own motion detection, on or off (its switch, through Home Assistant). */
+  const detect = async (entity: string, on: boolean) => {
+    try {
+      await post("motion-detection", { camera: entity, on });
+      setHa((h) => h && { ...h, motion_switches: { ...h.motion_switches, [entity]: { ...h.motion_switches![entity], on } } });
+      toast(`${cameras[entity]?.title ?? entity}: motion detection ${on ? "on" : "off"}`);
+    } catch (err) {
+      toast((err as Error).message, "bad");
+    }
+  };
+
   /** Save the cameras with one change; the page shows what the app kept. */
   const save = async (change: (c: Cameras) => void, done: string) => {
     const next = structuredClone(cameras);
@@ -73,6 +84,7 @@ export function CamerasPage({ state }: { state?: string }) {
         <Shell {...HEAD} state={state}>
           {error && <div className={guest.warning}>{error}</div>}
           {ha?.error && <div className={guest.warning}>Home Assistant: {ha.error}</div>}
+          <MotionOff cameras={cameras} ha={ha} />
           <section className={guest.area}>
             <AreaHead
               title="Cameras"
@@ -135,7 +147,12 @@ export function CamerasPage({ state }: { state?: string }) {
                       {[cam.medium && "medium", cam.high && "high"].filter(Boolean).join(", ") || "itself only"}
                       {cam.live && ` · ${cam.live}`}
                     </span>
-                    <Sensor entity={ha?.motion?.[entity]} name={ha?.entities?.find((e) => e.entity === ha?.motion?.[entity])?.name} />
+                    <Sensor
+                      entity={ha?.motion?.[entity]}
+                      name={ha?.entities?.find((e) => e.entity === ha?.motion?.[entity])?.name}
+                      detection={ha?.motion_switches?.[entity]}
+                      onDetect={(on) => detect(entity, on)}
+                    />
                     <span className={css.muted}>
                       {[
                         cam.zoom && "zoom",
@@ -187,13 +204,47 @@ export function CamerasPage({ state }: { state?: string }) {
   );
 }
 
-/** A camera's motion sensor: its name, its entity id under it, both wrapping in their column. */
-function Sensor({ entity, name }: { entity?: string; name?: string }) {
+/** A camera's motion sensor: its name, its entity id under it, both wrapping in their column;
+ * and the camera's own motion detection switch, to flip here, warning while it is off. */
+function Sensor({
+  entity,
+  name,
+  detection,
+  onDetect,
+}: {
+  entity?: string;
+  name?: string;
+  detection?: { entity: string; on: boolean };
+  onDetect: (on: boolean) => void;
+}) {
   if (!entity) return <span className={css.muted}>none</span>;
   return (
     <span className={`${css.muted} ${css.sensor}`}>
       {name && name !== entity && <span>{name}</span>}
       <code>{entity}</code>
+      {detection && (
+        <span className={css.detection}>
+          <Switch on={detection.on} label="Motion detection" onChange={onDetect} />
+          <span className={detection.on ? undefined : css.motionWarn}>Motion detection {detection.on ? "on" : "off"}</span>
+        </span>
+      )}
     </span>
+  );
+}
+
+/** The cameras whose own motion detection is off, named once above the list: their motion
+ * sensors never turn on, so they take no part in Track motion or the card's motion dot. */
+function MotionOff({ cameras, ha }: { cameras: Cameras; ha?: HA }) {
+  const off = Object.keys(cameras).filter((e) => ha?.motion_switches?.[e]?.on === false);
+  if (!off.length) return null;
+  return (
+    <div className={guest.warning}>
+      <strong>
+        Motion detection is off in {off.length === 1 ? "the camera" : `${off.length} cameras`}{" "}
+        {off.map((e) => cameras[e].title).join(", ")}.
+      </strong>{" "}
+      Their motion sensors never turn on, so they take no part in Track motion or the Camera Commander card's motion dot.
+      Switch it on in its Motion column below (the camera's own setting, through Home Assistant).
+    </div>
   );
 }

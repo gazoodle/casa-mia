@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.4-b16
+
+- Cameras page: each camera's **own motion detection switch** is found with its motion sensor (a switch on the camera's device named for motion: UniFi Protect's Motion, a Kiosk Satellite tablet's Screensaver motion detection). While it is off the camera's motion sensor never turns on, so the camera takes no part in Track motion or the card's motion dot: the page now says so, above the camera list (naming the cameras) and in each one's Motion column, and a camera's live view shows the switch's state live beside its motion sensor. Both have the switch itself, to turn the camera's motion detection on or off from the page (only a camera's own motion switch, through Home Assistant).
+
 ## 2026.10.4-b15
 
 - Cameras page: a camera's live view shows its **motion sensor** under the picture: a dot that pulses red while it sees motion, and since when, followed live from Home Assistant (no polling). The motion column of the camera list shows the sensor's name over its entity id, wrapping in its column instead of running into Extras.

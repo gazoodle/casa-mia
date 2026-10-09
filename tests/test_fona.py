@@ -220,8 +220,9 @@ def test_reconnects_after_the_cable_is_pulled(run, caplog):
     wait_for(lambda: f.health()["state"] == "connected")
     arduino.vanished = True
     wait_for(lambda: f.health()["state"] == "offline")
-    # A retry may already have replaced the current error with "cannot open".
-    assert "lost" in caplog.text
+    # A retry may already have replaced the current error with "cannot open"; and the
+    # state goes offline a moment before the error is logged, so wait for the line too.
+    wait_for(lambda: "lost" in caplog.text)
     arduino.vanished = False
     wait_for(lambda: f.health()["state"] == "connected")
     assert arduino.opens == 2

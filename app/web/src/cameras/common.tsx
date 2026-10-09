@@ -5,7 +5,7 @@ import { createContext } from "react";
 import { api } from "../api";
 import { CameraIcon } from "../icons";
 
-export const { get, put } = api("cameras");
+export const { get, post, put } = api("cameras");
 
 export const HEAD = {
   icon: <CameraIcon />,
@@ -42,6 +42,9 @@ export type HA = {
   entities?: HAEntity[];
   /** Each camera's motion sensor (for the commanders' Track motion), where it has one. */
   motion?: Record<string, string>;
+  /** Each camera's own motion detection switch, where its device has one, and whether it
+   * is on (off: its motion sensor never turns on). */
+  motion_switches?: Record<string, { entity: string; on: boolean }>;
   error: string | null;
 };
 

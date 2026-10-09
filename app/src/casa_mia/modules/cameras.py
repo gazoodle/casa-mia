@@ -115,6 +115,34 @@ def motion_sensors(
     return out
 
 
+def motion_switches(registry: list[dict], cameras: list[str]) -> dict[str, str]:
+    """Each camera's own motion detection switch, where its device has one: a switch on
+    the camera's device named for motion (UniFi Protect's Motion, a Kiosk Satellite
+    tablet's Screensaver motion detection; never Casa Mia's own Track motion). Off, the
+    camera's motion sensor never turns on: no Track motion, no motion dot."""
+    by_id = {e["entity_id"]: e for e in registry}
+    out = {}
+    for cam in cameras:
+        device = (by_id.get(cam) or {}).get("device_id")
+        found = sorted(
+            e["entity_id"]
+            for e in registry
+            if device
+            and e.get("device_id") == device
+            and e["entity_id"].startswith("switch.")
+            and e.get("platform") != "casa_mia"
+            and not e.get("disabled_by")
+            and "motion"
+            in " ".join(
+                str(e.get(k) or "")
+                for k in ("entity_id", "translation_key", "original_name", "name")
+            ).lower()
+        )
+        if found:
+            out[cam] = found[0]
+    return out
+
+
 def checked(cameras: Any) -> Cams:
     """The cameras as sent by the page, checked; page controls with no entity dropped."""
     if not isinstance(cameras, dict):
@@ -211,6 +239,11 @@ class Cameras:
                 return _json(200, self.live_view(urllib.parse.unquote(parts[1])))
             if method == "GET" and len(parts) == 2 and parts[0] == "thumb":
                 return self._thumb(urllib.parse.unquote(parts[1]))
+            if method == "POST" and parts == ["motion-detection"]:
+                payload = json.loads(body or b"{}")
+                if not isinstance(payload, dict):
+                    raise BadRequest("Expected a JSON object.")
+                return _json(200, self.detect(payload.get("camera"), payload.get("on")))
         except BadRequest as exc:
             return _json(400, {"error": str(exc)})
         except HAError as exc:
@@ -248,9 +281,16 @@ class Cameras:
         registry, states = self.ha.call(
             {"type": "config/entity_registry/list"}, {"type": "get_states"}
         )
+        mine = list(self.cameras())
+        now = {s["entity_id"]: s.get("state") for s in states}
         return {
             "cameras": ha_cameras(registry, states),
-            "motion": motion_sensors(registry, states, list(self.cameras())),
+            "motion": motion_sensors(registry, states, mine),
+            # each camera's own motion detection switch, and whether it is on
+            "motion_switches": {
+                cam: {"entity": switch, "on": now.get(switch) == "on"}
+                for cam, switch in motion_switches(registry, mine).items()
+            },
             "entities": sorted(
                 (
                     {
@@ -265,6 +305,33 @@ class Cameras:
             ),
             "error": None,
         }
+
+    def detect(self, camera: Any, on: Any) -> dict[str, Any]:
+        """Switch a camera's own motion detection on or off, through Home Assistant: only
+        the switch discovery found for one of these cameras."""
+        if self.ha is None:
+            raise BadRequest("Home Assistant is not reachable.")
+        if camera not in self.cameras() or not isinstance(on, bool):
+            raise BadRequest("Not one of the cameras.")
+        (registry,) = self.ha.call({"type": "config/entity_registry/list"})
+        switch = motion_switches(registry, [camera]).get(camera)
+        if switch is None:
+            raise BadRequest(f"{camera} has no motion detection switch.")
+        self.ha.call(
+            {
+                "type": "call_service",
+                "domain": "switch",
+                "service": "turn_on" if on else "turn_off",
+                "target": {"entity_id": switch},
+            }
+        )
+        _LOGGER.info(
+            "cameras: motion detection of %s switched %s (%s)",
+            camera,
+            "on" if on else "off",
+            switch,
+        )
+        return {"camera": camera, "entity": switch, "on": on}
 
     def _thumb(self, entity: str) -> Response:
         """A small still of one camera, for the page's thumbnails (the page decides how
@@ -329,6 +396,7 @@ class Cameras:
         return {
             "channels": out,
             "motion": motion_sensors(registry, states, [entity]).get(entity),
+            "motion_switch": motion_switches(registry, [entity]).get(entity),
         }
 
     def _write(self, cameras: Cams) -> None:
