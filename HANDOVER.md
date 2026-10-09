@@ -116,6 +116,9 @@ dashboards_on`).
 - **Default-stripping editors:** a card's stored config keeps old values forever, so a
   changed default doesn't reach saved cards. The owner's two commander cards still hold
   `tap_main: live` and need changing by hand.
+- **`Field` is a `<label>`:** a click on anything non-interactive inside it clicks its
+  first button. Chips in a Field lost each camera as it was added (b21); `Chips` now
+  cancels that click.
 
 ## How to work with the owner
 
@@ -158,12 +161,12 @@ dashboards_on`).
   restart notification; Kiosk Satellites Run everywhere; docs for Cameras and Commander.
 - **b18:** Camera Dashboard renamed Auto Dashboards. **b19:** Track motion exclusions.
 - **b20:** the Commander page reworked: pick from a list, sticky preview, chips for the
-  cameras that never take over.
+  cameras that never take over. **b21:** those chips kept what was added.
 
 ## Where things stand
 
-- **b20 is committed, not pushed.** The owner is to deploy it and look at the new
-  Commander page. Known rough edge: the preview docks 64px down to clear the Save bar; if
+- **b21 is committed, not pushed:** Never takes over keeps its cameras; a larger preview. The owner is to deploy it
+  and look at the new Commander page. Known rough edge: the preview docks 64px down to clear the Save bar; if
   the bar wraps (narrow screens), it covers the preview's top a little. Measure the bar
   if the owner minds.
 - **Soft launch on the HA community forum**, still to do: a release (the owner runs

@@ -565,7 +565,9 @@ export function Chips({
     onChange(next);
   };
   return (
-    <div className={css.chips}>
+    // Inside a Field (a <label>), a click on a menu choice or a chip's name would also
+    // click the label's first button: the first chip's ✕. Cancel that label click.
+    <div className={css.chips} onClick={(e) => e.preventDefault()}>
       {items.map((item, i) => (
         <span key={item} className={css.chip}>
           {ordered && (

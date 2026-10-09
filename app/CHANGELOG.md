@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.10.4-b21
+
+- Track motion: cameras added to **Never takes over** now stay; each was removed again
+  the moment it was picked.
+- Camera Commander page: the preview is a little larger (10% in from each side, not 15%).
+
 ## 2026.10.4-b20
 
 - Camera Commander page: the commanders are a list to pick one from; the one picked shows

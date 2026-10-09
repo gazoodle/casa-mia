@@ -202,13 +202,13 @@
   cursor: pointer;
 }
 
-/* The picked commander's preview, 15% in from each side, held in view under the Save
+/* The picked commander's preview, 10% in from each side, held in view under the Save
    bar while its settings scroll beneath it. */
 .previewDock {
   position: sticky;
   top: 64px; /* the Save bar's height; a wrapped bar overlaps it a little */
   z-index: 4;
-  padding: 6px 15%;
+  padding: 6px 10%;
   background: var(--surface);
 }
 

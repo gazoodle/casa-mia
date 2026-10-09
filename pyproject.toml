@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "casa-mia"
-version = "2026.10.4-b20"
+version = "2026.10.4-b21"
 description = "Casa Mia Home Assistant app: FONA, alarm, deployment and generators"
 license = "MIT"
 license-files = ["LICENSE"]
