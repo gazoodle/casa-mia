@@ -36,7 +36,7 @@
 import { css } from "lit";
 import { define, type HuiCard, room, sectionsView, watchRoom } from "./ha.ts";
 import { LAYOUT, type Panel, PANELS, type Rect } from "./layout.ts";
-import { counts } from "./section.ts";
+import { counts, fills } from "./garnish.ts";
 import { compact, edgeForm, type Form, openMini, openPanelOptions, PX } from "./panel-options.ts";
 import {
   autoSized,
@@ -1393,13 +1393,13 @@ sectionsView().then((Base: any) => {
       }
     }
 
-    /** A section with one card that counts showing: that card fills it (FILL). */
+    /** A section with one card that counts showing, of a kind that fills (fills()): it fills it (FILL). */
     private cmFill(section: any, cards: HuiCard[]) {
       const grid = section?.querySelector("hui-grid-section") as HTMLElement | null;
       if (!grid?.shadowRoot) return;
       const sheets = grid.shadowRoot.adoptedStyleSheets;
       if (!sheets.includes(FILL)) grid.shadowRoot.adoptedStyleSheets = [...sheets, FILL];
-      const fill = cards.length === 1 ? cards[0] : null;
+      const fill = cards.length === 1 && fills(cards[0].config ?? { type: "" }) ? cards[0] : null;
       grid.toggleAttribute("cm-fill", !!fill);
       for (const c of section._cards ?? []) (c as HTMLElement).toggleAttribute("cm-fill", c === fill);
     }

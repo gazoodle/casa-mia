@@ -241,10 +241,16 @@ The layout follows what's showing, so conditional cards just work:
 
 ## One card filling a panel
 
-When a panel has exactly one card that counts showing, that card **fills** the panel,
-whatever its size; headings above it keep their height. That's how a camera picture fills
-main, or a map fills a side edge. A Camera Commander filling a panel switches to tile mode
-and draws to exactly that size.
+When a panel has exactly one content card showing, and it's a kind made to fill (a Camera
+Commander, a picture, picture-entity or picture-glance card, a map, an iframe, or
+advanced-camera-card or WebRTC Camera), that card **fills** the panel, whatever its size;
+garnish above it keeps its height. That's how a camera picture fills main, or a map fills a
+side edge. A Camera Commander filling a panel switches to tile mode and draws to exactly
+that size.
+
+Every other card (a tile, a button, an entities card) keeps its own size, alone or not, as in
+any Sections view. Overrule either way with `view_layout: { fill: true }` or
+`{ fill: false }`.
 
 The exceptions: a top or bottom edge of `size: auto` (it is as tall as its cards, so there is
 nothing to fill), and a left or right edge with more than one panel (each is as its cards).
@@ -364,6 +370,7 @@ top or bottom panel's fixed Width counts in) and `debug: true` (see [Debugging](
 
 | Option | Default | Meaning |
 |---|---|---|
+| `fill` | by kind | `true`: alone in its panel, this card fills it; `false`: it never does. Unset: cameras, pictures, maps and iframes fill, other cards don't. |
 | `garnish` | `false` | `true`: adornment that never keeps its panel showing (the sprig in edit mode). The older `counts: false` is also read. |
 
 ## Debugging

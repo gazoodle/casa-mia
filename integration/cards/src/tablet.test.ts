@@ -4,7 +4,7 @@
 //   WRITE_CASES=1 node --experimental-strip-types --no-warnings --test src/tablet.test.ts
 // and read the diff before committing it.
 import assert from "node:assert/strict";
-import { counts, cardPath, setGarnish } from "./garnish.ts";
+import { counts, cardPath, fills, setGarnish } from "./garnish.ts";
 import { writeFileSync } from "node:fs";
 import test from "node:test";
 import saved from "../../../tests/tablet_cases.json" with { type: "json" };
@@ -310,4 +310,11 @@ test("garnish locates cards at HA's legacy and property paths", () => {
   assert.deepEqual(cardPath([1, 2, 3]), expected);
   assert.deepEqual(cardPath([1, "sections", 2, "cards", 3]), expected);
   assert.deepEqual(cardPath(expected), expected);
+});
+
+test("a lone card fills its panel only when it's made to, or says so", () => {
+  for (const type of ["custom:casa-mia-commander", "picture-glance", "map"]) assert.equal(fills({ type }), true, type);
+  for (const type of ["tile", "button", "entities", "heading"]) assert.equal(fills({ type }), false, type);
+  assert.equal(fills({ type: "tile", view_layout: { fill: true } }), true);
+  assert.equal(fills({ type: "map", view_layout: { fill: false } }), false);
 });

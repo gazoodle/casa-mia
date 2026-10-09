@@ -1,7 +1,24 @@
-// A panel's content keeps it open; garnish dresses it without holding it open.
+// A panel's cards: content keeps it open, garnish dresses it without holding it open; and
+// which kinds fill it on their own.
 import type { CardConfig } from "./ha.ts";
 
 export const counts = (card: CardConfig) => card.view_layout?.garnish !== true && card.view_layout?.counts !== false;
+
+/** Card types made to fill a panel on their own: cameras, pictures, maps, pages. A lone
+ * tile or button keeps its own size, as in any Sections view. */
+const FILLERS = new Set([
+  "custom:casa-mia-commander",
+  "picture",
+  "picture-entity",
+  "picture-glance",
+  "map",
+  "iframe",
+  "custom:advanced-camera-card",
+  "custom:webrtc-camera",
+]);
+
+/** Whether a card alone in its panel fills it: its `view_layout: {fill}`, else its type. */
+export const fills = (card: CardConfig): boolean => card.view_layout?.fill ?? FILLERS.has(card.type);
 
 /** Write only the new spelling, retaining the card's other layout options. */
 export function setGarnish(card: CardConfig, on: boolean): CardConfig {
