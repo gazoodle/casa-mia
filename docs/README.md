@@ -35,7 +35,7 @@ tab and its page in the Casa Mia panel. Check a module's level before you switch
 
 ## Recipes
 
-> **To write:** what you can build: PTZ presets, zoom, lights for what a camera shows, auto-motion camera switching, a doorbell intercom, a local AI (an introduction to Gang-O-Gals).
+Coming soon: what you can build with Casa Mia, step by step.
 
 ## Behind the scenes
 

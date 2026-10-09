@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.10.4-b24
+
+- The app's Documentation tab is written: what Casa Mia is, getting started, every module
+  with a link to its guide, the options and the ports.
+- The Camera compositor guide is written: what it's for, the page, its controls in Home
+  Assistant, and troubleshooting.
+
 ## 2026.10.4-b23
 
 - Casa Mia's integration failed to set up after b22: it still asked for the Main camera
