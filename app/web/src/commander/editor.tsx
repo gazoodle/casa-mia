@@ -4,8 +4,8 @@ import { Field, Segmented, Switch } from "../ui";
 import css from "../cameras.module.css";
 import ui from "../ui.module.css";
 import LAYOUT from "../../../src/casa_mia/layout.json";
-import { Camera, Commander, DEBUG, HA, HIGHLIGHT, L, MOTION, P, PANELS, Panel, Store, help, plural } from "./common";
-import { Thumb } from "../cameras";
+import { Camera, Thumb, plural } from "../cameras";
+import { Commander, DEBUG, Edits, HA, HIGHLIGHT, L, MOTION, P, PANELS, Panel, help } from "./common";
 import { AddMenu, Num, RatioInput } from "./inputs";
 
 /** Whether a commander's taps can work: they set its Main camera select in the integration,
@@ -53,7 +53,7 @@ export function Commanders({
   onTrackMotion,
   onChange,
 }: {
-  store: Store;
+  store: Edits;
   blank: Commander;
   ha?: HA;
   /** A commander's (by id) Track motion switch's state in Home Assistant. */
@@ -461,7 +461,7 @@ export function CommanderEditor({
 /** The commander drawn from the unsaved draft, redrawn a moment after an edit that changes
  * it (and only then: the key is what the picture depends on). The last picture stays,
  * dimmed, while the next is drawn. */
-export function LivePreview({ store, index }: { store: Store; index: number }) {
+export function LivePreview({ store, index }: { store: Edits; index: number }) {
   const key = previewKey(store, index);
   const [src, setSrc] = useState<string>();
   const [note, setNote] = useState<string>();
@@ -481,11 +481,11 @@ export function LivePreview({ store, index }: { store: Store; index: number }) {
     setBusy(true);
     const timer = setTimeout(async () => {
       try {
-        const r = await fetch("api/camera-dashboard/render", {
+        const r = await fetch("api/commander/render", {
           method: "POST",
           cache: "no-store",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ store: latest.current, index }),
+          body: JSON.stringify({ store: { commanders: latest.current.commanders }, index }),
         });
         if (gone) return;
         if (r.ok) {
@@ -520,7 +520,7 @@ export function LivePreview({ store, index }: { store: Store; index: number }) {
 
 /** Everything a commander's picture depends on, so its preview is redrawn only when that
  * changes (not its name). */
-export function previewKey(store: Store, index: number): string {
+export function previewKey(store: Edits, index: number): string {
   const cmd = store.commanders[index];
   const cams = PANELS.flatMap((p) => cmd[p].cameras);
   return JSON.stringify([{ ...cmd, name: "" }, index, cams.map((e) => store.cameras[e]?.title)]);

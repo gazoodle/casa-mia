@@ -18,7 +18,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN
 from .coordinator import CasaMiaCoordinator
 from .motion import commander, commanders
-from .sensor import CasaMiaEntity, modules_off
+from .sensor import CasaMiaEntity, device_id, modules_off
 
 
 def unique_id(entry: ConfigEntry, cid: str, first: str, other: str) -> str:
@@ -33,7 +33,7 @@ def unique_id(entry: ConfigEntry, cid: str, first: str, other: str) -> str:
 class CommanderEntity(CasaMiaEntity):
     """An entity of one commander (by id), on its device."""
 
-    _module = "camera_dashboard"
+    _module = "commander"
 
     def __init__(
         self, coordinator: CasaMiaCoordinator, entry: ConfigEntry, cid: str
@@ -45,7 +45,7 @@ class CommanderEntity(CasaMiaEntity):
                 identifiers={(DOMAIN, f"{entry.entry_id}_commander_{cid}")},
                 name=f"Camera Commander {self.commander.get('name') or cid}",
                 manufacturer="Casa Mia",
-                via_device=(DOMAIN, f"{entry.entry_id}_camera_dashboard"),
+                via_device=device_id(entry, "commander"),
             )
 
     @property
@@ -61,7 +61,7 @@ def add_commander_entities(
 ) -> None:
     """Add `factory(commander id)` entities now and for any commander that appears later
     (none while Camera Dashboard is off in the app)."""
-    if "camera_dashboard" in modules_off(coordinator):
+    if "commander" in modules_off(coordinator):
         return
     known: set[str] = set()
 
@@ -85,7 +85,7 @@ def async_prune_commander_devices(
     (deleted on the Camera Dashboard page), and all of them while Camera Dashboard is
     switched off. Acts only on a definite answer: an app that is starting, or too old
     to say, must never wipe the devices."""
-    module = coordinator.data.get("modules", {}).get("camera_dashboard", {})
+    module = coordinator.data.get("modules", {}).get("commander", {})
     prefix = f"{entry.entry_id}_commander_"
     if module.get("state") == "disabled":
         keep: set[str] = set()

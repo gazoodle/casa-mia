@@ -4,21 +4,14 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any
 
 from ...ha import HAError
-from ..compositor import (
-    config_from_store,
-    mime,
-)
 from .checks import problems
-from .commanders import commander_entities
 from .common import (
     BadRequest,
     Response,
     Store,
     _json,
-    with_defaults,
 )
 from .dashboard import build_dashboard, to_yaml
 from .deploys import Deploys
@@ -64,10 +57,6 @@ class CameraDashboard(Deploys):
             url_path, base = self._target(store, live)
             text = to_yaml(build_dashboard(store, base, url_path, self._selects(store)))
             return 200, "text/yaml; charset=utf-8", text.encode()
-        if method == "POST" and parts == ["switch"]:
-            return _json(200, self._flip(body))
-        if method == "POST" and parts == ["render"]:
-            return self._render(body)
         if method == "POST" and parts == ["deploy"]:
             target = body.get("target")
             if target not in ("preview", "live"):
@@ -86,46 +75,3 @@ class CameraDashboard(Deploys):
         if method == "POST" and parts == ["revert"]:
             return self._revert()
         return _json(404, {"error": "Not found."})
-
-    # -- previews
-
-    def _flip(self, body: dict[str, Any]) -> dict[str, Any]:
-        """Turn one of the integration's commander switches (Track motion) on or off,
-        through Home Assistant, which keeps its state."""
-        entity, on = body.get("entity"), body.get("on")
-        if self.ha is None:
-            raise BadRequest("Home Assistant is not reachable.")
-        with self._lock:
-            store = self.store
-        (registry,) = self.ha.call({"type": "config/entity_registry/list"})
-        switches = set(commander_entities(store, registry, "track_motion").values())
-        if entity not in switches or not isinstance(on, bool):
-            raise BadRequest("Not one of the commanders' switches.")
-        self.ha.call(
-            {
-                "type": "call_service",
-                "domain": "switch",
-                "service": "turn_on" if on else "turn_off",
-                "target": {"entity_id": entity},
-            }
-        )
-        _LOGGER.info("camera dashboard: %s switched %s", entity, "on" if on else "off")
-        return {"entity": entity, "on": on}
-
-    def _render(self, body: dict[str, Any]) -> Response:
-        """A live preview: one commander (`index`, its place) drawn by the draft
-        compositor from the page's unsaved edits ({"store", "index"})."""
-        if not self.draft:
-            return _json(404, {"error": "No previews: the draft compositor is off."})
-        try:
-            store = with_defaults(body.get("store") or {})
-            self._record_shapes(store)
-            index = body.get("index", 0)
-            if not isinstance(index, int):
-                raise ValueError("index must be a number")
-            image = self.draft.render(config_from_store(store), index)
-        except (ValueError, TypeError, AttributeError, KeyError) as exc:
-            return _json(422, {"error": str(exc)})
-        except (RuntimeError, TimeoutError) as exc:
-            return _json(502, {"error": f"The draft compositor: {exc}"})
-        return 200, mime(image), image  # WebP when it has transparent gaps

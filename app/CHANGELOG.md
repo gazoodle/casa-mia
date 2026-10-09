@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.10.4-b11
+
+- New **Camera Commander** page in the Casa Mia panel: the commanders, moved off the Camera Dashboard page. **Save shows them live at once**, on every Camera Commander card: no draft, no Deploy live. The page's preview draws the commander you are editing; the pictures' address (Compositor host) is set here too. The first start moves your commanders from what was last deployed live (not the draft, so nothing unfinished reaches the walls), leaving the old files as they were.
+- A commander with a problem (no cameras, a bad size) is refused on Save, with what to fix, rather than shown broken on the wall tablets.
+- The Camera Dashboard page keeps the dashboard: its settings, preview, Deploy live, backups and YAML. It shows the Cameras and Camera Commander pages' changes in its draft at once; the live dashboard (its tap zones follow each commander's layout) takes them at its next Deploy live.
+- The integration finds the commanders on Camera Commander now; its Camera Commander devices and entities stay as they are.
+- Second step of splitting the Camera Dashboard into Cameras, Camera Commander and Auto Dashboards. Next: the draft compositor and the card's Show the draft option retire.
+
 ## 2026.10.4-b10
 
 - New **Cameras** page in the Casa Mia panel: the house's cameras, their titles, channels, zoom, PTZ presets and page controls, now kept on their own (`cameras.json`) as the source the commanders and the dashboard read. Every change is saved at once. The first start moves your cameras from the Camera Dashboard, leaving its file as it was. The Camera Dashboard page keeps the commanders and the dashboard; it is now at its own address, with a new icon. A camera changed or removed on the Cameras page reaches the commanders' preview at once, and the live dashboard at its next Deploy live. The first step of splitting the Camera Dashboard into Cameras, Camera Commander and Auto Dashboards.

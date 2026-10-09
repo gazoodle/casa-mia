@@ -64,7 +64,7 @@ class Generator:
         ws_path: str = "/websocket",
         store: str = LIVE_STORE,
         prewarm: bool = True,
-        needs: str = "a Deploy live from the Camera Dashboard page",
+        needs: str = "a commander with cameras, on the Camera Commander page",
         gatherer: Gatherer | None = None,
     ) -> None:
         self.config_dir = config_dir

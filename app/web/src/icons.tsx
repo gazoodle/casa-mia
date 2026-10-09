@@ -36,6 +36,17 @@ export const CameraIcon = () => (
   </svg>
 );
 
+export const CommanderIcon = () => (
+  <svg {...base}>
+    <rect x="2.5" y="4" width="13" height="10" rx="1.5" />
+    <rect x="17.5" y="4" width="4" height="4.5" rx="1" />
+    <rect x="17.5" y="10.5" width="4" height="3.5" rx="1" />
+    <rect x="2.5" y="16" width="5.5" height="4" rx="1" />
+    <rect x="10" y="16" width="5.5" height="4" rx="1" />
+    <rect x="17.5" y="16" width="4" height="4" rx="1" />
+  </svg>
+);
+
 export const DashboardIcon = () => (
   <svg {...base}>
     <rect x="3" y="3.5" width="18" height="17" rx="2" />

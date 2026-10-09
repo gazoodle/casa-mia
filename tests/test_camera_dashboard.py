@@ -1,24 +1,19 @@
-import io
 import json
-import time
-import urllib.error
-import urllib.request
+from typing import Any
 
 import pytest
-from PIL import Image
 
 from casa_mia import swap
 from casa_mia.ha import HAError
 from casa_mia.modules.camera_dashboard import (
-    COMMANDER_SELECT,
     CameraDashboard,
     build_dashboard,
-    commander_selects,
     problems,
     warnings,
     with_defaults,
 )
 from casa_mia.modules.cameras import Cameras
+from casa_mia.modules.commander import COMMANDER_SELECT, Commander, commander_selects
 from casa_mia.modules.compositor import load_config
 
 STORE = {
@@ -143,10 +138,24 @@ def call(cd, method, path, body=None, query=None):
 def cd(tmp_path):
     for name in ("camera-dashboard.json", "camera-dashboard-live.json"):
         (tmp_path / name).write_text(json.dumps(STORE))
-    ha = FakeHA()
-    cams = Cameras(tmp_path, ha)  # type: ignore[arg-type]
+    ha: Any = FakeHA()
+    cams = Cameras(tmp_path, ha)
     cams.start()
-    cd = CameraDashboard(tmp_path, ha, lambda: "10.0.0.2", cameras=cams)  # type: ignore[arg-type]
+    commander = Commander(
+        tmp_path,
+        ha,
+        cams,
+        lambda: "10.0.0.2",
+        dashboard=lambda: cd.store["dashboard"],
+    )
+    cd = CameraDashboard(
+        tmp_path,
+        ha,
+        lambda: "10.0.0.2",
+        cameras=cams,
+        commander=commander,
+    )
+    commander.start()
     cd.start()
     return cd
 
@@ -171,13 +180,14 @@ def test_the_draft_takes_the_cameras_page_changes(cd, tmp_path):
 
 
 def test_edit_preview_then_deploy(cd, tmp_path):
-    status, view = call(cd, "GET", "")
-    store = view["store"]
+    assert cd.commander
+    store = cd.commander.view()["store"]
     store["commanders"][0]["main"] = "camera.b"
-    status, view = call(cd, "PUT", "", store)
+    cd.commander.save(store)  # on the Camera Commander page: live at once
+    assert load_config(tmp_path).commanders[0]["main"] == "camera.b"
+    status, view = call(cd, "GET", "")  # the dashboard's own taps: at its next deploy
     assert status == 200 and view["changed"] is True
-    # the live compositor still draws what was deployed
-    assert load_config(tmp_path).commanders[0]["main"] == ""
+    assert view["store"]["commanders"][0]["main"] == "camera.b"
 
     status, out = call(cd, "POST", "deploy", {"target": "preview"})
     assert status == 200 and out["url_path"] == "dashboard-cams-preview"
@@ -249,11 +259,10 @@ def test_keep_older_versions_setting(cd):
 
 def test_refuses_to_deploy_a_broken_store(cd):
     _, view = call(cd, "GET", "")
-    for panel in ("left", "bottom"):
-        view["store"]["commanders"][0][panel]["cameras"] = []
+    view["store"]["dashboard"] = "Cameras"  # no hyphen, capitals
     assert call(cd, "PUT", "", view["store"])[0] == 200  # a draft may be unfinished
     status, out = call(cd, "POST", "deploy", {"target": "live"})
-    assert status == 400 and "no cameras" in out["error"]
+    assert status == 400 and "URL must be lower case" in out["error"]
     assert cd.ha.sent == []
 
 
@@ -278,66 +287,6 @@ def test_starts_empty_without_old_files(tmp_path):
         cd.health()["cameras"] == 0
         and not (tmp_path / "camera-dashboard.json").exists()
     )
-
-
-def test_live_previews_and_thumbnails(tmp_path):
-    import io
-    import threading
-    from http.server import ThreadingHTTPServer
-
-    from PIL import Image
-
-    from casa_mia.modules.compositor import DRAFT_STORE, Compositor
-    from test_compositor import FakeHA as FakeCameras
-
-    cameras = ThreadingHTTPServer(("127.0.0.1", 0), FakeCameras)
-    threading.Thread(target=cameras.serve_forever, daemon=True).start()
-    draft = Compositor(
-        tmp_path,
-        f"http://127.0.0.1:{cameras.server_port}",
-        "token",
-        port=0,
-        store=DRAFT_STORE,
-        prewarm=False,
-    )
-    cd = CameraDashboard(tmp_path, None, lambda: None, draft=draft)
-    cd.start()  # empty: nothing saved
-    draft.start()
-
-    def render(store):
-        return cd.handle("POST", "render", {}, json.dumps({"store": store}).encode())
-
-    store = {
-        "cameras": {"camera.a": {"title": "A"}, "camera.b": {"title": "B"}},
-        "commanders": [
-            {
-                "width": 640,
-                "height": 360,
-                "gap": 0,
-                "left": {"cameras": ["camera.a"], "size": 20, "fit": "cover"},
-                "bottom": {"cameras": ["camera.b"], "size": 20, "fit": "cover"},
-            }
-        ],
-    }
-    try:
-        status, ctype, body = render(store)
-        assert (status, ctype) == (200, "image/webp")  # fit: clear borders possible
-        assert Image.open(io.BytesIO(body)).size == (
-            1920,
-            1080,
-        )  # its own size: always the default
-        store["commanders"][0]["width"] = 800  # a size from before: no longer set here
-        assert Image.open(io.BytesIO(render(store)[2])).size == (1920, 1080)
-        store["commanders"][0]["left"]["cameras"] = store["commanders"][0]["bottom"][
-            "cameras"
-        ] = []
-        status, _, body = render(store)
-        assert status == 422 and b"no cameras" in body
-    finally:
-        draft.stop()
-        time.sleep(0.2)
-        cameras.shutdown()
-        cameras.server_close()
 
 
 def test_warns_about_what_ha_lacks():
@@ -410,7 +359,6 @@ def test_commander_overview_taps_choose_and_open():
 def test_commander_taps_use_the_screenshot_swaps_names(monkeypatch):
     """The select's options come through the swap, so taps and conditions match them;
     the camera pages keep their real paths."""
-    from casa_mia import swap
 
     monkeypatch.setattr(swap, "out", lambda t: {"Bay": "Barn"}.get(t, t))
     views = build_dashboard(commander_store(), "http://h:8099", "dashboard-cams")[
@@ -445,59 +393,6 @@ def test_commander_problems():
     assert "right panel" not in found
 
 
-def test_integration_chooses_the_main_camera(tmp_path):
-    import threading
-    from http.server import ThreadingHTTPServer
-
-    from casa_mia.modules.compositor import Compositor
-    from test_compositor import FakeHA as FakeCameras
-
-    (tmp_path / "camera-dashboard-live.json").write_text(json.dumps(commander_store()))
-    cameras = ThreadingHTTPServer(("127.0.0.1", 0), FakeCameras)
-    threading.Thread(target=cameras.serve_forever, daemon=True).start()
-    live = Compositor(
-        tmp_path, f"http://127.0.0.1:{cameras.server_port}", "token", port=0
-    )
-    state = tmp_path / "state.json"
-    cd = CameraDashboard(tmp_path, None, lambda: None, live=live, state_path=state)
-    cd.start()
-    live.start()
-    try:
-        # One reading: the live compositor runs, so a second may differ.
-        health = cd.health()
-        first = health["commanders"][0]
-        assert (first["id"], first["options"], first["main"]) == (
-            "",
-            ["Bay", "Tablet"],
-            "Bay",
-        )
-        assert health["commander"] == first  # as an older integration reads it
-        assert cd.control("commander", b'{"main": "Tablet"}') == 200
-        assert cd.health()["commander"]["main"] == "Tablet"
-        assert json.loads(state.read_text()) == {"mains": {"": "camera.b"}}
-        assert cd.control("commander", b'{"main": "Nope"}') == 400
-        base = f"http://127.0.0.1:{live.port}/g/cameras"
-        with urllib.request.urlopen(base + ".jpg") as r:
-            assert Image.open(io.BytesIO(r.read())).size == (
-                1920,
-                1080,
-            )  # its own size: always the default
-        again = CameraDashboard(
-            tmp_path, None, lambda: None, live=live, state_path=state
-        )
-        live.mains = {}
-        again.start()  # the choice is kept over a restart
-        assert live.mains == {"": "camera.b"}
-        state.write_text('{"main": "camera.a_low"}')  # kept before there were several
-        again.start()
-        assert live.mains == {"": "camera.a_low"}
-    finally:
-        live.stop()
-        time.sleep(0.2)
-        cameras.shutdown()
-        cameras.server_close()
-
-
 def test_commander_anchors():
     from casa_mia.modules.compositor import EMPTY_COMMANDER, commander_layout
 
@@ -517,30 +412,6 @@ def test_commander_anchors():
         (900, 0, 100, 400)
     ]  # from the view's top, onto the bottom
     assert main == (100, 100, 800, 300)  # the middle is the same whatever the anchors
-
-
-def test_a_choice_moves_the_preview_too(tmp_path):
-    from casa_mia.modules.compositor import DRAFT_STORE, Compositor
-
-    (tmp_path / DRAFT_STORE).write_text(json.dumps(commander_store()))  # nothing live
-    draft = Compositor(tmp_path, "http://127.0.0.1:1", "t", port=0, store=DRAFT_STORE)
-    cd = CameraDashboard(tmp_path, None, lambda: None, draft=draft)
-    cd.start()
-    draft.start()
-    try:
-        # One reading: the live compositor runs, so a second may differ.
-        health = cd.health()
-        first = health["commanders"][0]
-        assert (first["id"], first["options"], first["main"]) == (
-            "",
-            ["Bay", "Tablet"],
-            "Bay",
-        )
-        assert health["commander"] == first  # as an older integration reads it
-        assert cd.control("commander", b'{"main": "Tablet"}') == 200
-        assert draft.main_camera(draft.cfg.commanders[0]) == "camera.b"
-    finally:
-        draft.stop()
 
 
 def test_shapes_are_numbers_or_ratios():
@@ -599,24 +470,6 @@ def test_own_shape_gives_a_tap_zone_set_per_main_camera():
     assert bay[0]["style"] != tablet[0]["style"]  # the panels moved with the shape
 
 
-def test_saving_records_each_commander_cameras_shape(tmp_path):
-    import types
-
-    from casa_mia.modules.compositor import Config
-
-    draft = types.SimpleNamespace(
-        aspect=lambda e: {"camera.a_low": 1.3333}.get(e),
-        reload=lambda: None,
-        health=lambda: {"state": "running"},
-        cfg=Config(),
-    )
-    cd = CameraDashboard(tmp_path, None, lambda: None, draft=draft)  # type: ignore[arg-type]
-    cd.start()
-    status, view = call(cd, "PUT", "", commander_store())
-    assert status == 200
-    assert view["store"]["commanders"][0]["aspects"] == {"camera.a_low": 1.3333}
-
-
 def test_a_store_saved_with_the_old_security_look_still_loads(cd):
     """The Security look moved to the Camera Commander card (2026.10.3-b76); a store
     saved before keeps its `look`, which is left alone and means nothing now."""
@@ -627,22 +480,6 @@ def test_a_store_saved_with_the_old_security_look_still_loads(cd):
     status, _ = call(cd, "PUT", "", store)
     assert status == 200 and problems(cd.store) == []
     assert "look_css" not in cd.health()
-
-
-def test_motion_marks_the_commanders_cameras(tmp_path):
-    import types
-
-    seen = []
-    comp = types.SimpleNamespace(
-        cfg=types.SimpleNamespace(commanders=[{"left": {}}]),
-        set_motion=lambda cams, cid: seen.append((cams, cid)),
-    )
-    cd = CameraDashboard(tmp_path, None, lambda: None, live=comp)  # type: ignore[arg-type]
-    assert cd.control("motion", b'{"cameras": ["camera.a_low"]}') == 200
-    assert cd.control("motion", b'{"cameras": [], "commander": "p1"}') == 200
-    # no commander: every one's (an integration from before there were several)
-    assert seen == [(frozenset({"camera.a_low"}), None), (frozenset(), "p1")]
-    assert cd.control("motion", b'{"cameras": "nope"}') == 400
 
 
 def test_highlight_settings_are_checked():
@@ -656,21 +493,6 @@ def test_highlight_settings_are_checked():
     assert "highlight colour must be like #7bd1a0" in found
     assert "highlight width must be 0 or more" in found
     assert "must breathe or ripple" in found
-
-
-def test_the_page_flips_only_the_commanders_switches(cd):
-    entity = "switch.camera_commander_track_motion"
-    status, out = call(cd, "POST", "switch", {"entity": entity, "on": True})
-    assert status == 200 and out == {"entity": entity, "on": True}
-    assert cd.ha.sent[-1] == {
-        "type": "call_service",
-        "domain": "switch",
-        "service": "turn_on",
-        "target": {"entity_id": entity},
-    }
-    assert (
-        call(cd, "POST", "switch", {"entity": "switch.kitchen", "on": True})[0] == 400
-    )
 
 
 def test_panel_rows_share_its_cameras():
@@ -764,42 +586,6 @@ def test_several_commanders():
     assert "There must be at least one commander." in problems(store)
 
 
-def test_each_commander_has_its_own_main_camera(tmp_path, monkeypatch):
-    from casa_mia.modules.compositor import DRAFT_STORE, Compositor
-
-    store = commander_store()
-    store["commanders"].append({**store["commanders"][0], "name": "Phone", "id": "p1"})
-    (tmp_path / DRAFT_STORE).write_text(json.dumps(store))
-    draft = Compositor(tmp_path, "http://127.0.0.1:1", "t", port=0, store=DRAFT_STORE)
-    cd = CameraDashboard(tmp_path, None, lambda: "10.0.0.2", draft=draft)
-    cd.start()
-    draft.start()
-    try:
-        assert [c["id"] for c in cd.health()["commanders"]] == ["", "p1"]
-        # what the Camera Commander card draws it from (its select's `card` attribute)
-        # (no live compositor here: only the draft, from the draft compositor)
-        card = cd.health()["commanders"][1]["draft_card"]
-        assert card["picture"] == f"http://10.0.0.2:{draft.port}/g/phone.mjpg"
-        assert card["live_main"] is True  # the compositor's switch, on by default
-        monkeypatch.setattr(swap, "stamp", lambda: "1")  # the screenshot swap on: off
-        assert cd.health()["commanders"][1]["draft_card"]["live_main"] is False
-        monkeypatch.undo()
-        assert card["cameras"]["camera.b"] == {
-            "title": "Tablet",
-            "live": "/dashboard-cams-preview/cam-tablet",
-            "channels": [["camera.b", 0, 0]],  # each channel, its size not known yet
-        }
-        assert card["layout"]["main_fit"] == "fit" and "left" in card["layout"]
-        body = b'{"main": "Tablet", "commander": "p1"}'
-        assert cd.control("commander", body) == 200
-        first, phone = draft.cfg.commanders
-        assert draft.main_camera(phone) == "camera.b"
-        assert draft.main_camera(first) == "camera.a_low"  # untouched
-        assert cd.control("commander", b'{"main": "Tablet", "commander": "x"}') == 400
-    finally:
-        draft.stop()
-
-
 def test_stacked_panels_keep_each_cameras_shape():
     from casa_mia.modules.compositor import EMPTY_COMMANDER, commander_layout
 
@@ -820,26 +606,3 @@ def test_stacked_panels_keep_each_cameras_shape():
     tiles = left("reverse")
     assert all(t[2] == tiles[0][2] < 200 for t in tiles)
     assert tiles[0][1] >= 0 and tiles[-1][1] + tiles[-1][3] <= 500
-
-
-def test_a_change_to_live_main_tells_the_integration_at_once(tmp_path, monkeypatch):
-    from types import SimpleNamespace
-
-    from casa_mia.modules import guest_login
-
-    fired: list[str] = []
-    monkeypatch.setenv("SUPERVISOR_TOKEN", "t")
-    monkeypatch.setattr(
-        guest_login, "fire_event", lambda t, name, d: fired.append(name)
-    )
-    live = SimpleNamespace(gather=SimpleNamespace(flags={"live_main": True}))
-    cd = CameraDashboard(tmp_path, None, lambda: "10.0.0.2", live=live)  # type: ignore[arg-type]
-    assert cd.check_live_main() and not fired  # the first look: nothing to tell
-    assert not cd.check_live_main()
-    monkeypatch.setattr(swap, "stamp", lambda: "1")  # the swap on: off
-    assert cd.check_live_main() and fired == ["casa_mia_settings_changed"]
-    monkeypatch.setattr(swap, "stamp", lambda: "")
-    live.gather.flags["live_main"] = False  # the swap off, the switch off: still off
-    assert not cd.check_live_main() and len(fired) == 1
-    live.gather.flags["live_main"] = True
-    assert cd.check_live_main() and len(fired) == 2

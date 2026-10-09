@@ -16,6 +16,7 @@ from .install_count import count_install
 from .log import configure_logging
 from .modules.camera_dashboard import DRAFT_PORT, CameraDashboard
 from .modules.cameras import Cameras
+from .modules.commander import Commander
 from .modules.compositor import (
     DRAFT_STORE,
     Compositor,
@@ -189,7 +190,7 @@ def main() -> int:
             ha_token,
             ws_path=ws_path,
             gatherer=gather,
-            needs="a Deploy live from the Camera Dashboard page"
+            needs="a commander with cameras, on the Camera Commander page"
             if cameras_on
             else "the Camera Dashboard option on",
         )
@@ -210,24 +211,42 @@ def main() -> int:
         cams.start()
         modules["cameras"] = cams.health
         api["/api/cameras/"] = cams.handle
+        # The commanders, saved straight to the live compositor.
+        commander = Commander(
+            CONFIG,
+            ha,
+            cams,
+            lan_ip,
+            live=compositor,
+            draft=draft,
+            state_path=OPTIONS.parent / "camera_dashboard_state.json",
+            dashboard=lambda: cameras.store["dashboard"],
+        )
         cameras = CameraDashboard(
             CONFIG,
             ha,
             lan_ip,
             live=compositor,
             draft=draft,
-            state_path=OPTIONS.parent / "camera_dashboard_state.json",
             helpers=helpers_known,
             cameras=cams,
+            commander=commander,
         )
+        commander.start()
         cameras.start()
         draft.start()
+        modules["commander"] = commander.health
+        api["/api/commander/"] = commander.handle
+        # The integration's choices of main camera and motion (the old paths for an
+        # integration from before Camera Commander had its own page).
+        post_handlers["/commander/"] = commander.control
+        post_handlers["/camera-dashboard/"] = commander.control
         modules["camera_dashboard"] = cameras.health
         api["/api/camera-dashboard/"] = cameras.handle
-        post_handlers["/camera-dashboard/"] = cameras.control  # the commander's select
     else:
         modules["camera_dashboard"] = lambda: {"state": "disabled"}
         modules["cameras"] = lambda: {"state": "disabled"}
+        modules["commander"] = lambda: {"state": "disabled"}
     if compositor:
         compositor.start()
         # The live engine's, with the preview's generator and server (the integration's
@@ -240,13 +259,13 @@ def main() -> int:
             if draft
             else None,
         }
-        # The size test pages' address: the compositor host set on the Camera Dashboard
+        # The size test pages' address: the compositor host set on the Camera Commander
         # page, else this box's LAN address.
-        dashboard = cameras if cameras_on else None
+        mine = commander if cameras_on else None
         api["/api/compositor/"] = admin_api(
             compositor,
             draft,
-            lambda: (dashboard and dashboard.store["compositor_host"]) or lan_ip(),
+            lambda: (mine and mine.store["compositor_host"]) or lan_ip(),
         )
         post_handlers["/compositor/"] = control(compositor, draft)  # its buttons
     else:

@@ -32,8 +32,8 @@ SETTINGS = {"hold": 10, "back": 30, "pause": 120}
 
 def commanders(coordinator: CasaMiaCoordinator) -> list[dict[str, Any]]:
     """The app's commanders, each with its id, name, cameras, main camera and Track
-    motion settings (see the app's CameraDashboard.commanders)."""
-    module = coordinator.data.get("modules", {}).get("camera_dashboard", {})
+    motion settings (see the app's commander.Live.commanders)."""
+    module = coordinator.data.get("modules", {}).get("commander", {})
     found = module.get("commanders")
     if found is None:  # an app from before there were several: its one
         one = module.get("commander")
@@ -224,7 +224,7 @@ class MotionTracker:
             show(title)
         self.hass.async_create_task(
             self._post(
-                "/camera-dashboard/commander", {"main": title, "commander": self.cid}
+                "/commander/main", {"main": title, "commander": self.cid}
             )
         )
 
@@ -248,7 +248,7 @@ class MotionTracker:
     def _tell_app(self) -> None:
         self.hass.async_create_task(
             self._post(
-                "/camera-dashboard/motion",
+                "/commander/motion",
                 {"cameras": sorted(self.moving), "commander": self.cid},
             )
         )

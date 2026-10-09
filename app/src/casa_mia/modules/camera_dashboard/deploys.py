@@ -2,16 +2,12 @@
 
 from __future__ import annotations
 
-import copy
 import json
 import logging
-import threading
 from datetime import datetime
 from typing import Any
 
 from ..compositor import (
-    EMPTY_COMMANDER,
-    PANELS,
     Compositor,
 )
 from .backups import Backups
@@ -34,29 +30,12 @@ _LOGGER = logging.getLogger(__name__)
 
 class Deploys(Backups):
     def start(self) -> None:
-        """Load the draft, and each commander's main camera as it was; watch live_main."""
-        if self.cameras:
-            self.cameras.listeners.append(self._take_cameras)
-        if self.live:
-            threading.Thread(
-                target=self._watch_live_main, name="live main", daemon=True
-            ).start()
+        """Load the draft, with the cameras and commanders as their pages have them."""
+        if self.commander:  # it tells of the cameras' changes too
+            self.commander.listeners.append(self._take)
+        elif self.cameras:
+            self.cameras.listeners.append(lambda _: self._take())
         self._prune()  # to what is kept now (it used to be 20 each)
-        if self.live and self.state_path and self.state_path.exists():
-            try:
-                kept = json.loads(self.state_path.read_text())
-                # {"main": camera}: kept before there were several (the first one's)
-                mains = kept.get("mains") or (
-                    {"": kept["main"]} if kept.get("main") else {}
-                )
-            except (OSError, ValueError, AttributeError):
-                mains = {}
-            self._mains = {str(k): str(v) for k, v in mains.items()}
-            for cid, main in self._mains.items():
-                for comp in (self.live, self.draft):
-                    if comp:
-                        comp.set_main(main, cid)
-                _LOGGER.info("commander %r: main camera %s (as it was)", cid, main)
         try:
             if self.draft_path.exists():
                 self.store = with_defaults(json.loads(self.draft_path.read_text()))
@@ -67,8 +46,7 @@ class Deploys(Backups):
             self._error = f"cannot read {self.draft_path.name}: {exc}"
             _LOGGER.error("camera dashboard: %s", self._error)
             return
-        if self.cameras:
-            self._take_cameras(self.cameras.cameras())
+        self._take()
         _LOGGER.info(
             "camera dashboard: %d cameras, %d commanders (%d cameras in them), "
             "dashboard /%s",
@@ -96,7 +74,6 @@ class Deploys(Backups):
             ),
             "keep": self.keep(),
             "max_keep": MAX_KEEP,
-            "empty_commander": EMPTY_COMMANDER,  # what a blank new one starts as
             "compositor": {
                 "live": up(self.live),
                 "draft": up(self.draft),
@@ -106,11 +83,9 @@ class Deploys(Backups):
 
     def _save(self, body: Store) -> Response:
         store = with_defaults(body)  # only known settings: the page sends back all
-        if self.cameras:  # the Cameras page's, whatever the page sent
-            store["cameras"] = self.cameras.cameras()
+        store.update(self._theirs())  # theirs, whatever the page sent
         if not isinstance(store["cameras"], dict):
             raise BadRequest("cameras must be an object.")
-        self._record_shapes(store)
         try:
             found = problems(store)
         except (AttributeError, KeyError, TypeError) as exc:
@@ -139,8 +114,7 @@ class Deploys(Backups):
         if not self.live_path.exists():
             raise BadRequest("Nothing has been deployed yet.")
         store = with_defaults(json.loads(self.live_path.read_text()))
-        if self.cameras:  # the cameras are the Cameras page's, not the draft's
-            store["cameras"] = self.cameras.cameras()
+        store.update(self._theirs())  # theirs, not what was deployed
         with self._lock:
             self.store = store
             self._write(self.draft_path, store)
@@ -149,37 +123,35 @@ class Deploys(Backups):
             self.draft.reload()
         return _json(200, self.view())
 
-    def _take_cameras(self, cameras: dict[str, Any]) -> None:
-        """The Cameras page changed them: the draft takes them, and the draft compositor
-        redraws. The live dashboard and compositor keep theirs until a Deploy live."""
+    def _theirs(self) -> dict[str, Any]:
+        """What the draft takes from the other pages: the cameras (Cameras), the
+        commanders and their pictures' address (Camera Commander)."""
+        if self.commander:
+            full = self.commander.full()
+            return {k: full[k] for k in ("cameras", "commanders", "compositor_host")}
+        return {"cameras": self.cameras.cameras()} if self.cameras else {}
+
+    def _take(self) -> None:
+        """The Cameras or Camera Commander page changed: the draft takes theirs, and the
+        draft compositor redraws. The live dashboard keeps its own until a Deploy live
+        (its commander pages' tap zones follow their layout)."""
+        theirs = self._theirs()
         with self._lock:
-            if self._error or self.store["cameras"] == cameras:
+            if self._error or all(self.store.get(k) == v for k, v in theirs.items()):
                 return
-            store = copy.deepcopy(self.store)
-            store["cameras"] = cameras
-            gone = set(self.store["cameras"]) - set(cameras)
-            for cmd in store["commanders"]:  # a removed camera leaves the commanders
-                for panel in PANELS:
-                    if panel in cmd:
-                        cmd[panel]["cameras"] = [
-                            e for e in cmd[panel]["cameras"] if e not in gone
-                        ]
-                if cmd.get("main") in gone:
-                    cmd["main"] = ""
-            self.store = store
-            self._write(self.draft_path, store)
+            self.store = {**self.store, **theirs}
+            self._write(self.draft_path, self.store)
         _LOGGER.info(
-            "camera dashboard: the draft took the cameras' changes%s",
-            f" (removed from the commanders: {', '.join(sorted(gone))})"
-            if gone
-            else "",
+            "camera dashboard: the draft took the changes to %s",
+            ", ".join(sorted(theirs)),
         )
         if self.draft:
             self.draft.reload()
 
     def deploy(self, live: bool) -> dict[str, Any]:
         """Save the dashboard into HA (creating it if missing, keeping a copy of what it
-        replaces). Live also makes the draft the live compositor's config."""
+        replaces). Live also keeps the draft as what is deployed (the commanders' live
+        pictures are Camera Commander's, shown as soon as they are saved there)."""
         if self.ha is None:
             raise BadRequest("Home Assistant is not reachable.")
         with self._lock:
@@ -218,8 +190,6 @@ class Deploys(Backups):
             self._write(self.dir / DEPLOYS, self.deploys() | {target: stamp})
             if live:
                 self._write(self.live_path, store)
-        if live and self.live:
-            self.live.reload()
         return {"url_path": url_path, "views": len(config["views"]), **self.view()}
 
     def remove_preview(self) -> dict[str, Any]:

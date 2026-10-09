@@ -1,12 +1,15 @@
-"""camera_dashboard: The integration's entities for each commander, by unique id."""
+"""commander: shared constants and helpers; the integration's entities for each commander,
+by unique id."""
 
 from __future__ import annotations
+
+import json
+from typing import Any
 
 from ..compositor import (
     commanders_of,
     slug,
 )
-from .common import Store
 
 # The integration's Camera Commander devices, one per commander: each one's Main camera
 # select (options: its camera titles), which its taps and automations set. The first
@@ -31,7 +34,7 @@ UNIQUE_IDS = {
 
 
 def commander_entities(
-    store: Store, registry: list[dict] | None, what: str = "main"
+    store: dict[str, Any], registry: list[dict] | None, what: str = "main"
 ) -> dict[str, str]:
     """Each commander's (by id) Main camera select (`what` "main") or Track motion switch
     ("track_motion"): as HA's entity registry
@@ -55,5 +58,24 @@ def commander_entities(
     return out
 
 
-def commander_selects(store: Store, registry: list[dict] | None) -> dict[str, str]:
+def commander_selects(
+    store: dict[str, Any], registry: list[dict] | None
+) -> dict[str, str]:
     return commander_entities(store, registry, "main")
+
+
+STORE = (
+    "commanders.json"  # the commanders, and the address their pictures are served on
+)
+# Where the commanders were kept before: what was deployed live, else the draft.
+OLD_STORES = ("camera-dashboard-live.json", "camera-dashboard.json")
+
+Response = tuple[int, str, bytes]
+
+
+class BadRequest(Exception):
+    pass
+
+
+def _json(status: int, data: Any) -> Response:
+    return status, "application/json", json.dumps(data).encode()

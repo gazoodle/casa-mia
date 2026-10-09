@@ -86,7 +86,7 @@ class CommanderMainSelect(CommanderEntity, SelectEntity):
             await async_post(
                 self.hass,
                 self.coordinator.url,
-                "/camera-dashboard/commander",
+                "/commander/main",
                 {"main": option, "commander": self.cid},
             )
         except aiohttp.ClientError as exc:

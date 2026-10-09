@@ -82,7 +82,9 @@ class Config:
 
 
 # The Camera Dashboard's stores (see camera_dashboard.py): what is deployed, and the draft.
-LIVE_STORE = "camera-dashboard-live.json"
+# What the live compositor draws: the commanders and the cameras they show, written by
+# Camera Commander. The draft one draws the Camera Dashboard's draft, for its preview.
+LIVE_STORE = "compositor.json"
 DRAFT_STORE = "camera-dashboard.json"
 # A commander: one landscape picture, a main camera framed by four panels of cameras.
 # Left and right sizes are % of the width, top and bottom % of the height. There are one

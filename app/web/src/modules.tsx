@@ -5,7 +5,7 @@
 import type { ReactNode } from "react";
 import type { ModuleHealth } from "./health";
 import { ago, megabytes } from "./format";
-import { CameraGridIcon, CameraIcon, DashboardIcon, FirmwareIcon, GuestIcon, KioskModeIcon, PeopleIcon, PhoneIcon, ShieldIcon, TabletIcon } from "./icons";
+import { CameraGridIcon, CameraIcon, CommanderIcon, DashboardIcon, FirmwareIcon, GuestIcon, KioskModeIcon, PeopleIcon, PhoneIcon, ShieldIcon, TabletIcon } from "./icons";
 
 export type Fact = [label: string, value: string | undefined];
 
@@ -115,10 +115,23 @@ export const MODULES: Record<string, ModuleInfo> = {
     icon: <CameraIcon />,
     facts: (h) => [["Cameras", String(h.cameras ?? 0)]],
   },
+  commander: {
+    title: "Camera Commander",
+    option: "Camera Dashboard",
+    blurb: "The commanders: each a main camera framed by panels of cameras, one live picture for the card and the dashboard.",
+    icon: <CommanderIcon />,
+    facts: (h) => {
+      const all = (h.commanders ?? []) as { name: string; main?: string | null }[];
+      return [
+        ["Commanders", String(all.length)],
+        ["Main cameras", all.map((c) => `${c.name}: ${c.main ?? "?"}`).join(", ") || undefined],
+      ];
+    },
+  },
   camera_dashboard: {
     title: "Camera Dashboard",
     option: "Camera Dashboard",
-    blurb: "Sets up the Camera Commander and the camera dashboard, with previews, and deploys it.",
+    blurb: "The camera dashboard: made from the cameras and the commanders, previewed, and deployed.",
     icon: <DashboardIcon />,
     facts: (h) => [
       ["Cameras", String(h.cameras ?? 0)],

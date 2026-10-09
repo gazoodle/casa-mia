@@ -18,6 +18,7 @@ DRAFT_PORT = 8098
 BACKUPS = "camera-dashboard-backups"
 
 
+DEPLOYED = "camera-dashboard-live.json"  # the store as last deployed live
 DEPLOYS = "camera-dashboard-deploys.json"  # when each was last deployed: live, preview
 
 

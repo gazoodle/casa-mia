@@ -1,4 +1,5 @@
-"""camera_dashboard: Commanders: the compositors drawing them, the card's view, the main camera."""
+"""commander: Live: the compositors drawing the commanders, the card's view of each, its
+main camera and motion."""
 
 from __future__ import annotations
 
@@ -20,13 +21,13 @@ from ..compositor import (
     config_from_store,
     slug,
 )
-from .common import BadRequest, Store
+from .common import BadRequest
 from .store import Base
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class Commanders(Base):
+class Live(Base):
     def _commanders(self) -> list[Compositor]:
         """The compositors drawing commanders: the live one (the dashboard) and the draft
         one (the preview dashboard). One choice of main camera moves both."""
@@ -75,12 +76,12 @@ class Commanders(Base):
         channels, smallest first, each with its size where known (the card plays its
         main camera's as live video, when the compositor's live_main switch is on)."""
         try:
-            url_path, base = self._target(self.store, live)
+            url_path, base = self._target(live)
         except BadRequest:  # the LAN address not known yet: no picture until it is
-            url_path, base = self.store["dashboard"], ""
+            url_path, base = self.dashboard() or "", ""
         mine = commander_cameras(cmd)
         comp = self.live if live else self.draft
-        cfg = config_from_store(self.store)
+        cfg = config_from_store(self.full())
         sizes = comp.gather.res if comp else {}
         keys = (
             "width",
@@ -102,7 +103,10 @@ class Commanders(Base):
             "cameras": {
                 e: {
                     "title": titles.get(e, e),
-                    "live": f"/{url_path}/cam-{slug(titles.get(e, e))}",
+                    # its page on the camera dashboard; "" with no dashboard
+                    "live": f"/{url_path}/cam-{slug(titles.get(e, e))}"
+                    if url_path
+                    else "",
                     "channels": [
                         [c, *sizes[c]] if c in sizes else [c, 0, 0]
                         for c in channels(cfg, e).values()
@@ -130,7 +134,7 @@ class Commanders(Base):
             return False
         if self._live_was is not None:
             _LOGGER.info(
-                "camera dashboard: live main camera now %s%s; telling the integration",
+                "commander: live main camera now %s%s; telling the integration",
                 "on" if now else "off",
                 " (the screenshot swap is on)" if swap.stamp() else "",
             )
@@ -153,14 +157,16 @@ class Commanders(Base):
         return found[0] if found else {}
 
     def control(self, path: str, body: bytes) -> int:
-        """The integration: POST /camera-dashboard/commander {"main": <title or entity>,
+        """The integration: POST /commander/main {"main": <title or entity>,
         "commander": <id>} shows that camera as that commander's main one, live and in
         the preview (no id: the first commander there was, id "");
-        POST /camera-dashboard/motion {"cameras": [...], "commander": <id>}: its cameras
-        seeing motion now (a red dot on their tiles; no id: every commander's)."""
+        POST /commander/motion {"cameras": [...], "commander": <id>}: its cameras seeing
+        motion now (a red dot on their tiles; no id: every commander's). An integration
+        from before Camera Commander had its own page posts the same to
+        /camera-dashboard/commander and /camera-dashboard/motion."""
         if path.strip("/") == "motion":
             return self._motion(body)
-        if path.strip("/") != "commander":
+        if path.strip("/") not in ("main", "commander"):
             return 404
         try:
             data = json.loads(body or b"{}")
@@ -208,31 +214,12 @@ class Commanders(Base):
         )
         return 200
 
-    def _record_shapes(self, store: Store) -> None:
-        """Note each commander camera's natural shape in the store (from the stills the
-        draft compositor keeps), so the picture and the dashboard's tap zones lay out
-        the same way when the main camera sets its own size. A shape not known yet keeps
-        the one recorded before (16:9 until there is one)."""
-        cmds = store.get("commanders")
-        if not isinstance(cmds, list) or not self.draft:
-            return
-        for cmd in cmds:
-            if not isinstance(cmd, dict):
-                continue
-            shapes = dict(cmd.get("aspects") or {})
-            for e in commander_cameras({**EMPTY_COMMANDER, **cmd}):
-                if (shape := self.draft.aspect(e)) is not None:
-                    shapes[e] = shape
-            cmd["aspects"] = shapes
-
     def health(self) -> dict[str, Any]:
         with self._lock:
-            return {
-                "state": "offline" if self._error else "running",
-                "error": self._error,
-                "cameras": len(self.store["cameras"]),
-                "deployed": self.deploys().get("live"),
-                "changed": self._changed(),
-                "commander": self.commander(),
-                "commanders": self.commanders(),
-            }
+            error = self._error
+        return {
+            "state": "offline" if error else "running",
+            "error": error,
+            "commander": self.commander(),
+            "commanders": self.commanders(),
+        }

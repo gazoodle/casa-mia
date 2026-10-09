@@ -9,16 +9,15 @@ from pathlib import Path
 from typing import Any
 
 from ...ha import HA
-from ..cameras import Cameras, ha_cameras, motion_sensors
+from ..cameras import Cameras
+from ..commander import Commander, commander_selects
 from ..compositor import (
     DRAFT_STORE,
-    LIVE_STORE,
     PORT,
     Compositor,
 )
 from .checks import warnings
-from .commanders import commander_entities, commander_selects
-from .common import DEPLOYS, DRAFT_PORT, BadRequest, Store, with_defaults
+from .common import DEPLOYED, DEPLOYS, DRAFT_PORT, BadRequest, Store, with_defaults
 
 
 class Base:
@@ -29,26 +28,24 @@ class Base:
         lan_host: Callable[[], str | None],
         live: Compositor | None = None,
         draft: Compositor | None = None,
-        state_path: Path | None = None,
         helpers: Callable[[], set[str] | None] = set,
         cameras: Cameras | None = None,
+        commander: Commander | None = None,
     ) -> None:
         self.dir = config_dir
-        # The cameras, kept on the Cameras page; the draft takes a copy (see
-        # Deploys._take_cameras). None: the store's own (before there was a Cameras page).
+        # The cameras (the Cameras page) and the commanders and their pictures' address
+        # (the Camera Commander page): the draft takes a copy of each (Deploys._take).
+        # None: the store's own (before those pages).
         self.cameras = cameras
+        self.commander = commander
         # the integration's dashboard helper scripts, as it says (None: not said yet)
         self.helpers = helpers
-        self.state_path = state_path  # the commander's main camera, kept over restarts
         self.ha = ha
         self.lan_host = lan_host
         self.live = live
         self.draft = draft
         self._lock = threading.Lock()
         self._error: str | None = None
-        self._mains: dict[str, str] = {}  # commander id -> main camera, as chosen
-        # live_main as last looked (see check_live_main)
-        self._live_was: bool | None = None
         self.store: Store = with_defaults({})
 
     @property
@@ -57,7 +54,7 @@ class Base:
 
     @property
     def live_path(self) -> Path:
-        return self.dir / LIVE_STORE
+        return self.dir / DEPLOYED
 
     def _write(self, path: Path, store: Store) -> None:
         """Save atomically."""
@@ -80,6 +77,16 @@ class Base:
         except (OSError, ValueError):
             return {}
 
+    def health(self) -> dict[str, Any]:
+        with self._lock:
+            return {
+                "state": "offline" if self._error else "running",
+                "error": self._error,
+                "cameras": len(self.store["cameras"]),
+                "deployed": self.deploys().get("live"),
+                "changed": self._changed(),
+            }
+
     def _selects(self, store: Store) -> dict[str, str]:
         """Each commander's Main camera select, from HA's entity registry."""
         if self.ha is None:
@@ -88,7 +95,8 @@ class Base:
         return commander_selects(store, registry)
 
     def from_ha(self) -> dict[str, Any]:
-        """HA's cameras, users (for the wall tablets) and entities (for page controls)."""
+        """HA's users (for the wall tablets), entities (for the fields) and what the
+        dashboard needs that HA seems to lack."""
         if self.ha is None:
             return {"error": "Home Assistant is not reachable."}
         registry, states, resources = self.ha.call(
@@ -101,8 +109,6 @@ class Base:
             store = self.store
         selects = commander_selects(store, registry)
         return {
-            "cameras": ha_cameras(registry, states),
-            "motion": motion_sensors(registry, states, list(store["cameras"])),
             "users": users,
             "warnings": warnings(
                 store,
@@ -124,8 +130,6 @@ class Base:
                 ),
                 key=lambda e: e["entity"],
             ),
-            "commander_selects": selects,
-            "commander_switches": commander_entities(store, registry, "track_motion"),
             "error": None,
         }
 

@@ -24,7 +24,7 @@ from .motion import commanders, tracker
 from .pictures import running_coordinator
 from .pictures import setup as setup_pictures
 from .restart_notice import manifest_version
-from .sensor import MODULE_DEVICES, device_name, modules_off
+from .sensor import MODULE_DEVICES, device_id, device_name, modules_off
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -71,7 +71,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     helpers = helpers_on(coordinator.data)
     for module in MODULE_DEVICES:
         name = device_name(coordinator, module)
-        identifiers = {(DOMAIN, f"{entry.entry_id}_{module}")}
+        identifiers = {device_id(entry, module)}
         if module not in off:
             registry.async_get_or_create(
                 config_entry_id=entry.entry_id,
@@ -84,7 +84,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.info("%s is switched off in the app: removing its device", name)
             registry.async_remove_device(device.id)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    if "camera_dashboard" not in off:
+    if "commander" not in off:
         # Track motion, a tracker per commander, while Camera Dashboard is on in the app.
 
         @callback

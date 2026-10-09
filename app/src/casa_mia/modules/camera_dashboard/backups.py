@@ -10,12 +10,12 @@ from typing import Any
 
 from ...ha import HAError
 from .common import BACKUPS, DEFAULT_KEEP, MAX_KEEP, PREVIEW, SETTINGS, BadRequest
-from .live import Commanders
+from .store import Base
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class Backups(Commanders):
+class Backups(Base):
     # -- the dashboards' configs before each deploy
 
     def keep(self) -> int:

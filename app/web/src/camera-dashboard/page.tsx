@@ -5,7 +5,6 @@ import { Segmented, Toasts, type Toast } from "../ui";
 import css from "../cameras.module.css";
 import guest from "../guest.module.css";
 import ui from "../ui.module.css";
-import { Commanders } from "./commanders";
 import { Entities, HA, HEAD, Store, THUMB_EVERY_MS, ThumbRound, View, get, plural, post, put } from "./common";
 import { Backups, Settings, YamlDialog } from "./settings";
 
@@ -37,22 +36,10 @@ export function CameraDashboardPage({ state }: { state?: string }) {
   useEffect(() => {
     get<View>("").then(load, (err) => toast((err as Error).message, "bad"));
   }, [load, toast]);
-  const [haRound, setHaRound] = useState(0); // ask HA again (after flipping a switch)
   useEffect(() => {
     // Again after each save: the warnings are about the saved draft.
     get<HA>("ha").then(setHa, (err) => setHa({ error: (err as Error).message }));
-  }, [stamp, haRound]);
-  /** One of the commander's switches in Home Assistant, as HA has it now. */
-  const haSwitch = (entity: string) => ha?.entities?.find((e) => e.entity === entity)?.state;
-  const flip = async (entity: string, on: boolean, what: string) => {
-    try {
-      await post("switch", { entity, on });
-      toast(`${what} ${on ? "on" : "off"}`);
-    } catch (err) {
-      toast((err as Error).message, "bad");
-    }
-    setHaRound((n) => n + 1);
-  };
+  }, [stamp]);
 
   const dirty = useMemo(
     () => !!view && !!draft && JSON.stringify(view.store) !== JSON.stringify(draft),
@@ -194,34 +181,15 @@ export function CameraDashboardPage({ state }: { state?: string }) {
         </details>
       )}
 
-      <section className={guest.area}>
-        <AreaHead
-          title="Commanders"
-          blurb={
-            <>
-              Each one landscape picture: a main camera in its natural shape, framed by panels of cameras. Tapping a camera
-              makes it the main one; tapping the main one opens its live page. Each commander is a device in Home Assistant
-              (Camera Commander, then Camera Commander and its name), so automations choose it too, with its Main camera, and
-              its Track motion switch. Each is a page of the dashboard, the first pages, in this order; the camera pages
-              follow. The cameras themselves are added and named on the <a href="#/cameras">Cameras</a> page.
-            </>
-          }
-        />
-        <Commanders
-          store={draft}
-          blank={view.empty_commander}
-          ha={ha}
-          trackMotion={(id) => haSwitch(ha?.commander_switches?.[id] ?? "")}
-          onTrackMotion={(id, on) =>
-            ha?.commander_switches?.[id] && flip(ha.commander_switches[id], on, "Track motion")
-          }
-          onChange={(c) => edit((s) => (s.commanders = c))}
-        />
-      </section>
+      <p className={css.hint}>
+        The dashboard shows the cameras of the <a href="#/cameras">Cameras</a> page and the commanders of the{" "}
+        <a href="#/commander">Camera Commander</a> page: their changes come here at once, and reach the live dashboard
+        at its next Deploy live.
+      </p>
 
       <section className={guest.area}>
         <AreaHead title="Dashboard" blurb="Where the dashboard goes and how it behaves." />
-        <Settings store={draft} users={ha?.users ?? []} host={view.compositor.host} onChange={edit} />
+        <Settings store={draft} users={ha?.users ?? []} onChange={edit} />
       </section>
 
       <section className={guest.area}>

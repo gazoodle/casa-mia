@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { CameraDashboardPage } from "./camera-dashboard";
 import { CamerasPage } from "./cameras";
+import { CommanderPage } from "./commander";
 import { CompositorPage } from "./compositor";
 import { FirmwarePage } from "./FirmwarePage";
 import { GuestPage } from "./GuestPage";
@@ -44,6 +45,7 @@ const PAGES: Record<string, string> = {
   people: "/people",
   kiosks: "/kiosks",
   cameras: "/cameras",
+  commander: "/commander",
   camera_dashboard: "/camera-dashboard",
   compositor: "/compositor",
   kiosk_mode: "/kiosk-mode",
@@ -131,6 +133,7 @@ function pageFor(route: string, modules: Record<string, ModuleHealth>): ReactNod
   if (route === "/kiosks") return <KiosksPage state={modules.kiosks?.state} />;
   if (route.startsWith("/kiosks/")) return <KioskFrame id={route.slice("/kiosks/".length)} />;
   if (route === "/cameras") return <CamerasPage state={modules.cameras?.state} />;
+  if (route === "/commander") return <CommanderPage state={modules.commander?.state} />;
   if (route === "/camera-dashboard") return <CameraDashboardPage state={modules.camera_dashboard?.state} />;
   if (route === "/compositor") return <CompositorPage state={modules.compositor?.state} />;
   if (route === "/kiosk-mode") return <KioskModePage state={modules.kiosk_mode?.state} />;

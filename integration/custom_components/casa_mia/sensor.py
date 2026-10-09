@@ -70,9 +70,19 @@ MODULE_DEVICES = {
     "fona": "FONA",
     "gitproxy": "Firmware server",
     "guest_login": "Guest login",
-    "camera_dashboard": "Camera Commander",
+    "commander": "Camera Commander",
     "compositor": "Camera compositor",
 }
+
+
+# A module's device keeps the identifier it was made with when the module is renamed, so
+# its entities and their ids stay put: the commanders were Camera Dashboard's.
+DEVICE_KEYS = {"commander": "camera_dashboard"}
+
+
+def device_id(entry: ConfigEntry, module: str) -> tuple[str, str]:
+    """A module's device identifier."""
+    return (DOMAIN, f"{entry.entry_id}_{DEVICE_KEYS.get(module, module)}")
 
 
 def device_name(coordinator: CasaMiaCoordinator, module: str) -> str:
@@ -110,7 +120,7 @@ class CasaMiaEntity(CoordinatorEntity[CasaMiaCoordinator]):
             )
         else:
             self._attr_device_info = DeviceInfo(
-                identifiers={(DOMAIN, f"{entry.entry_id}_{self._module}")},
+                identifiers={device_id(entry, self._module)},
                 name=device_name(coordinator, self._module),
                 manufacturer="Casa Mia",
                 via_device=app,

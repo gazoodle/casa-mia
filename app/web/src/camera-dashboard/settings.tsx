@@ -11,12 +11,10 @@ import { EntityInput } from "../cameras";
 export function Settings({
   store,
   users,
-  host,
   onChange,
 }: {
   store: Store;
   users: HAUser[];
-  host: string | null;
   onChange: (change: (s: Store) => void) => void;
 }) {
   const text = (key: keyof Store, label: string, help: ReactNode, placeholder?: string) => (
@@ -45,7 +43,6 @@ export function Settings({
         <Field label="Tile entity" help="Tiles need an entity; this input_button helper stands in for the navigation and preset tiles.">
           <EntityInput domain="input_button" value={store.placeholder} onChange={(v) => onChange((s) => (s.placeholder = v))} />
         </Field>
-        {text("compositor_host", "Compositor host", <>The address the composites are fetched from. Blank: this box ({host ?? "unknown"}).</>, host ?? "")}
         <Field label="Live card (wall tablets and phones)">
           <select value={store.live_card} onChange={(e) => onChange((s) => (s.live_card = e.target.value))}>
             {CARDS.map(([v, l]) => (

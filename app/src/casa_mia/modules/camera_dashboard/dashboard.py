@@ -7,6 +7,7 @@ from typing import Any
 import yaml
 
 from ... import swap
+from ..commander import COMMANDER_SELECT, commander_selects
 from ..compositor import (
     EMPTY_COMMANDER,
     PANELS,
@@ -17,7 +18,6 @@ from ..compositor import (
     slug,
     visible,
 )
-from .commanders import COMMANDER_SELECT, commander_selects
 from .common import BLANK, HIGHLIGHT, Store, with_defaults
 
 
