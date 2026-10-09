@@ -50,6 +50,8 @@ class Live(Base):
                         "cameras": {},
                         "main": None,
                         "motion": {**EMPTY_COMMANDER["motion"], **cmd["motion"]},
+                        # cameras Track motion leaves out (the card marks them still)
+                        "motion_ignore": list(cmd["motion_ignore"]),
                     },
                 )
                 one["card"] = self._card(cmd, cfg.titles)  # the card's view of it

@@ -79,6 +79,8 @@ export type Commander = {
   debug?: Debug;
   /** Track motion (done by the integration), seconds. back 0: stays on the motion camera. */
   motion?: { hold: number; back: number; pause: number };
+  /** Cameras Track motion never switches to; the card still marks their motion. */
+  motion_ignore?: string[];
 } & Record<(typeof PANELS)[number], Panel>;
 
 /** What the commander editor works on: the commanders, and the cameras they show. */

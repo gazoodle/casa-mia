@@ -12,7 +12,12 @@ from PIL import Image
 from casa_mia import swap
 from casa_mia.modules.cameras import Cameras
 from casa_mia.modules.commander import Commander
-from casa_mia.modules.compositor import LIVE_STORE, Compositor, Config
+from casa_mia.modules.compositor import (
+    LIVE_STORE,
+    Compositor,
+    Config,
+    config_from_store,
+)
 from conftest import stop_compositor
 from test_auto_dashboards import FakeHA, call, commander_store
 from test_compositor import FakeHA as FakeCameras
@@ -262,3 +267,28 @@ def test_a_change_to_live_main_tells_the_integration_at_once(tmp_path, monkeypat
     assert not cmd.check_live_main() and len(fired) == 1
     live.gather.flags["live_main"] = True
     assert cmd.check_live_main() and len(fired) == 2
+
+
+def test_cameras_left_out_of_track_motion_reach_the_integration(tmp_path):
+    live = types.SimpleNamespace(
+        aspect=lambda e: None,
+        reload=lambda: None,
+        health=lambda: {"state": "running"},
+        cfg=Config(),
+        port=8099,
+        gather=types.SimpleNamespace(flags={"live_main": False}, res={}),
+        main_camera=lambda c: None,
+    )
+    cmd = make(tmp_path, live=live)  # type: ignore[arg-type]
+    store = cmd.view()["store"]
+    assert store["commanders"][0]["motion_ignore"] == []  # every camera, by default
+    store["commanders"][0]["motion_ignore"] = ["camera.b"]
+    assert call(cmd, "PUT", "", store)[0] == 200
+    written = json.loads((tmp_path / LIVE_STORE).read_text())
+    assert written["commanders"][0]["motion_ignore"] == ["camera.b"]
+    live.cfg = config_from_store(written)  # as the compositor reloads it
+    first = cmd.health()["commanders"][0]  # what the integration's tracker reads
+    assert first["motion_ignore"] == ["camera.b"]
+    store["commanders"][0]["motion_ignore"] = "camera.b"  # not a list
+    status, out = call(cmd, "PUT", "", store)
+    assert status == 400 and "left out of Track motion" in out["error"]

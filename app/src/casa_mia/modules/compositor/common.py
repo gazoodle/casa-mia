@@ -114,6 +114,8 @@ EMPTY_COMMANDER = {
     # another, how long after the last motion it goes back to the camera chosen by hand
     # (0: it stays), and how long a choice by hand pauses tracking.
     "motion": {"hold": 10, "back": 30, "pause": 120},
+    # Cameras Track motion never switches to (the card still marks their motion).
+    "motion_ignore": [],
     # Debug options: the whole picture dimmed to `dim` %, an L in each corner (`corner`
     # px long) and both diagonals, `width` px wide in `colour`, and over it the picture's
     # ID (name, size, scale) and when it was drawn. The Camera Commander card adds its

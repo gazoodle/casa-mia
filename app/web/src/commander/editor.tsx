@@ -379,6 +379,35 @@ export function CommanderEditor({
             help="Choosing a camera yourself (a tap) pauses tracking this long."
             onChange={(n) => set((c) => (c.motion = { ...moves, pause: n }))}
           />
+          {inPanels.length > 0 && (
+            <div className={css.wide}>
+              <Field
+                label="Track motion switches to"
+                help="Untick a camera whose motion should not take over (a busy road, a tree in the wind): the card still marks its motion with the dot, and a tap still makes it the main camera."
+              >
+                <div className={css.trackCameras}>
+                  {inPanels.map((e) => {
+                    const ignored = (value.motion_ignore ?? []).includes(e);
+                    return (
+                      <label key={e}>
+                        <input
+                          type="checkbox"
+                          checked={!ignored}
+                          onChange={(ev) =>
+                            set((c) => {
+                              const rest = (c.motion_ignore ?? []).filter((x) => x !== e);
+                              c.motion_ignore = ev.target.checked ? rest : [...rest, e];
+                            })
+                          }
+                        />
+                        {cameras[e]?.title ?? e}
+                      </label>
+                    );
+                  })}
+                </div>
+              </Field>
+            </div>
+          )}
         </section>
       </div>
       <div className={css.panels}>

@@ -3,7 +3,8 @@ on, a camera of it that sees motion becomes its main one. Rules (seconds from th
 settings on the Camera Commander page): the newest motion wins; a switch holds `hold`
 seconds before motion elsewhere takes over (that camera waits its turn); `back` seconds
 after all motion stops it goes back to the camera chosen by hand (0: it stays); and a
-choice by hand (a tap, or an automation) pauses tracking for `pause` seconds. Whatever
+choice by hand (a tap, or an automation) pauses tracking for `pause` seconds; cameras left
+out of it (the commander's `motion_ignore`) never take over, nor hold it back. Whatever
 the switch, the Camera Commander card marks a tile while its camera sees motion, from the
 sensors found here (the commander's select's `motion` attribute).
 
@@ -120,6 +121,11 @@ class MotionTracker:
     def _settings(self) -> dict[str, float]:
         return SETTINGS | (self._commander().get("motion") or {})
 
+    def _ignored(self) -> set[str]:
+        """The commander's cameras Track motion never switches to (its card still marks
+        their motion); their motion holds nothing open either (Go back after)."""
+        return set(self._commander().get("motion_ignore") or [])
+
     def _title(self, camera: str) -> str:
         return (self._commander().get("cameras") or {}).get(camera, camera)
 
@@ -171,10 +177,21 @@ class MotionTracker:
         )
         if not self.enabled:
             return
-        if on:
+        ignored = self._ignored()
+        if on and cam in ignored:
+            _LOGGER.debug(
+                "track motion (%s): %s not followed (left out of Track motion)",
+                self._who,
+                sensor,
+            )
+        elif on:
             self._cancel("back")
             self._motion(cam, sensor)
-        elif not self.moving and (back := self._settings()["back"]) > 0:
+        elif (
+            cam not in ignored
+            and not self.moving - ignored
+            and (back := self._settings()["back"]) > 0
+        ):
             self._later("back", back, self._go_back)
 
     @callback
@@ -205,7 +222,7 @@ class MotionTracker:
     def _go_back(self) -> None:
         if (
             self.enabled
-            and not self.moving
+            and not self.moving - self._ignored()
             and self.by_hand
             and self.by_hand != self.main
         ):

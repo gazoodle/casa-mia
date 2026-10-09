@@ -116,6 +116,9 @@ def problems(store: dict[str, Any]) -> list[str]:
             value = lit.get(key, 0)
             if not isinstance(value, (int, float)) or value < 0:
                 out.append(f"{the}'s highlight {key} must be 0 or more.")
+        ignore = cmd.get("motion_ignore", [])
+        if not isinstance(ignore, list) or not all(isinstance(e, str) for e in ignore):
+            out.append(f"{the}'s cameras left out of Track motion must be a list.")
         for key, value in (cmd.get("motion") or {}).items():
             if not isinstance(value, (int, float)) or value < 0:
                 out.append(f"{the}'s Track motion {key} must be 0 seconds or more.")

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.4-b19
+
+- App Info panel: a clearer short description of the dashboards, cameras, guest login and tablet management; the more-details link now opens the user guides.
+- Camera Commander: **Track motion switches to**, a tick per camera beside Track motion's settings. A camera unticked never becomes the main camera by itself (a busy road, a tree in the wind), but the card still marks its motion with the dot and a tap still makes it the main one; its motion never holds off Go back after either. All ticked by default.
+
 ## 2026.10.4-b18
 
 - **The Camera Dashboard is now Auto Dashboards**, the last step of its split into Cameras, Camera Commander and Auto Dashboards. Its page (now at its own address, in the Casa Mia panel as Auto Dashboards) keeps the dashboard: its settings, draft, preview, deploys, backups and YAML. Rated In development.

@@ -45,7 +45,10 @@ copy of the one open or a blank one. Each has:
 - **Track motion:** its switch, and how it behaves. **Hold:** a switch stays this long
   before motion elsewhere takes over. **Go back after:** once all motion stops, back to
   the camera chosen by hand (0: stay). **Pause after a choice:** a tap pauses tracking
-  this long.
+  this long. **Track motion switches to:** a tick per camera; untick one whose motion
+  should not take over (a busy road, a tree in the wind). The card still marks its motion
+  with the dot, a tap still makes it the main camera, and its motion never holds off Go
+  back after.
 - **Panels** (left, top, right, bottom): the cameras in each, in order; its size; how its
   tiles fit; rows or columns; and whether it is shown.
 
