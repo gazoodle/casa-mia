@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.10.4-b20
+
+- Camera Commander page: the commanders are a list to pick one from; the one picked shows
+  its preview, held in view, with its settings scrolling beneath it.
+- Track motion: **Never takes over** lists the cameras left out as chips, added with
+  **+ Add…**, in place of a tick per camera.
+
 ## 2026.10.4-b19
 
 - App Info panel: a clearer short description of the dashboards, cameras, guest login and tablet management; the more-details link now opens the user guides.

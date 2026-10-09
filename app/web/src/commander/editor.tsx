@@ -1,5 +1,6 @@
 import { useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { Developer } from "../health";
+import { Empty } from "../page";
 import { Field, Segmented, Switch } from "../ui";
 import css from "../cameras.module.css";
 import ui from "../ui.module.css";
@@ -42,9 +43,9 @@ export const PANEL_NAMES: Record<(typeof PANELS)[number], [title: string, size: 
   bottom: ["Bottom", "Height"],
 };
 
-/** The commanders as an accordion: one open at a time (only its preview is drawn). Each
- * can be moved up and down (the dashboard's pages follow), deleted while another is left,
- * and a new one starts as a copy of the one open. */
+/** The commanders: a list to pick one from, then its preview (held in view) and its
+ * settings under it. Each can be moved up and down (the dashboard's pages follow),
+ * deleted while another is left; a new one is a copy of the one picked, or blank. */
 export function Commanders({
   store,
   blank,
@@ -61,8 +62,9 @@ export function Commanders({
   onTrackMotion: (id: string, on: boolean) => void;
   onChange: (c: Commander[]) => void;
 }) {
-  const [open, setOpen] = useState(0);
+  const [open, setOpen] = useState(-1);
   const list = store.commanders;
+  const picked = list[open];
   const change = (next: Commander[], opened = open) => {
     onChange(next);
     setOpen(opened);
@@ -72,7 +74,7 @@ export function Commanders({
     next.splice(to, 0, ...next.splice(i, 1));
     change(next, open === i ? to : open === to ? i : open);
   };
-  /** A new commander: a copy of the one open, or blank (no cameras, every setting at its default). */
+  /** A new commander: a copy of the one picked, or blank (no cameras, every setting at its default). */
   const add = (from: Commander) => {
     const names = new Set(list.map((c) => c.name));
     let n = list.length + 1;
@@ -86,15 +88,14 @@ export function Commanders({
     confirm(`Delete the ${list[i].name} commander?`) &&
     change(
       list.filter((_, j) => j !== i),
-      Math.min(open > i ? open - 1 : open, list.length - 2),
+      open === i ? -1 : open > i ? open - 1 : open,
     );
   return (
-    <div className={css.folds}>
-      {list.map((c, i) => (
-        <div key={i} className={css.fold}>
-          <header className={css.foldHead}>
-            <button className={css.foldToggle} aria-expanded={open === i} onClick={() => setOpen(open === i ? -1 : i)}>
-              <span className={css.chevron}>{open === i ? "▾" : "▸"}</span>
+    <div className={css.commander}>
+      <ul className={css.picker}>
+        {list.map((c, i) => (
+          <li key={i} className={open === i ? css.picked : undefined}>
+            <button className={css.pick} aria-pressed={open === i} onClick={() => setOpen(open === i ? -1 : i)}>
               <strong>{c.name.trim() || "(no name)"}</strong>
               <span className={css.muted}>
                 {plural(new Set(PANELS.flatMap((p) => (c[p].hidden ? [] : c[p].cameras))).size, "camera")}
@@ -129,32 +130,36 @@ export function Commanders({
                 Delete
               </button>
             </span>
-          </header>
-          {open === i && <CommanderSelectCheck ha={ha} id={c.id ?? ""} />}
-          {open === i && (
-            <CommanderEditor
-              value={c}
-              cameras={store.cameras}
-              preview={<LivePreview store={store} index={i} />}
-              trackMotion={trackMotion(c.id ?? "")}
-              onTrackMotion={(on) => onTrackMotion(c.id ?? "", on)}
-              onChange={(v) => change(list.map((x, j) => (j === i ? v : x)))}
-            />
-          )}
-        </div>
-      ))}
+          </li>
+        ))}
+      </ul>
       <div className={css.actions}>
-        <button
-          className={ui.button}
-          onClick={() => add(list[open] ?? list[0])}
-          title={`A copy of ${(list[open] ?? list[0]).name}, to change`}
-        >
-          + Copy of {(list[open] ?? list[0]).name}
-        </button>
+        {picked && (
+          <button className={ui.button} onClick={() => add(picked)} title={`A copy of ${picked.name}, to change`}>
+            + Copy of {picked.name}
+          </button>
+        )}
         <button className={ui.button} onClick={() => add(blank)} title="No cameras, every setting at its default">
           + Blank commander
         </button>
       </div>
+      {picked ? (
+        <>
+          <CommanderSelectCheck ha={ha} id={picked.id ?? ""} />
+          <div className={css.previewDock}>
+            <LivePreview store={store} index={open} />
+          </div>
+          <CommanderEditor
+            value={picked}
+            cameras={store.cameras}
+            trackMotion={trackMotion(picked.id ?? "")}
+            onTrackMotion={(on) => onTrackMotion(picked.id ?? "", on)}
+            onChange={(v) => change(list.map((x, j) => (j === open ? v : x)))}
+          />
+        </>
+      ) : (
+        <Empty>Select a commander above.</Empty>
+      )}
     </div>
   );
 }
@@ -163,14 +168,12 @@ export function Commanders({
 export function CommanderEditor({
   value,
   cameras,
-  preview,
   trackMotion,
   onTrackMotion,
   onChange,
 }: {
   value: Commander;
   cameras: Record<string, Camera>;
-  preview: ReactNode;
   /** The Track motion switch's state in Home Assistant (undefined: HA hasn't it). */
   trackMotion?: string;
   onTrackMotion: (on: boolean) => void;
@@ -190,7 +193,6 @@ export function CommanderEditor({
   return (
     <div className={css.commander}>
       <div className={css.commanderTop}>
-        <div className={css.commanderPreview}>{preview}</div>
         <section className={`${css.options} ${css.numbers}`}>
           <h4 className={css.sub}>Picture</h4>
           <div className={css.wide}>
@@ -379,35 +381,21 @@ export function CommanderEditor({
             help="Choosing a camera yourself (a tap) pauses tracking this long."
             onChange={(n) => set((c) => (c.motion = { ...moves, pause: n }))}
           />
-          {inPanels.length > 0 && (
-            <div className={css.wide}>
-              <Field
-                label="Track motion switches to"
-                help="Untick a camera whose motion should not take over (a busy road, a tree in the wind): the card still marks its motion with the dot, and a tap still makes it the main camera."
-              >
-                <div className={css.trackCameras}>
-                  {inPanels.map((e) => {
-                    const ignored = (value.motion_ignore ?? []).includes(e);
-                    return (
-                      <label key={e}>
-                        <input
-                          type="checkbox"
-                          checked={!ignored}
-                          onChange={(ev) =>
-                            set((c) => {
-                              const rest = (c.motion_ignore ?? []).filter((x) => x !== e);
-                              c.motion_ignore = ev.target.checked ? rest : [...rest, e];
-                            })
-                          }
-                        />
-                        {cameras[e]?.title ?? e}
-                      </label>
-                    );
-                  })}
-                </div>
-              </Field>
-            </div>
-          )}
+          <div className={css.wide}>
+            <Field
+              label="Never takes over"
+              help="Cameras whose motion should not take over (a busy road, a tree in the wind): the card still marks their motion with the dot, and a tap still makes one the main camera."
+            >
+              <Chips
+                items={value.motion_ignore ?? []}
+                ordered={false}
+                label={(e) => cameras[e]?.title ?? e}
+                thumb={(e) => <Thumb entity={e} />}
+                choices={inPanels.filter((e) => !(value.motion_ignore ?? []).includes(e))}
+                onChange={(items) => set((c) => (c.motion_ignore = items))}
+              />
+            </Field>
+          </div>
         </section>
       </div>
       <div className={css.panels}>
@@ -555,15 +543,17 @@ export function previewKey(store: Edits, index: number): string {
   return JSON.stringify([{ ...cmd, name: "" }, index, cams.map((e) => store.cameras[e]?.title)]);
 }
 
-/** An ordered list as chips: move, remove, and add from the choices. */
+/** A list as chips: remove, add from the choices, and move (when the order matters). */
 export function Chips({
   items,
+  ordered = true,
   label,
   thumb,
   choices,
   onChange,
 }: {
   items: string[];
+  ordered?: boolean;
   label: (item: string) => string;
   thumb: (item: string) => ReactNode;
   choices: string[];
@@ -578,13 +568,17 @@ export function Chips({
     <div className={css.chips}>
       {items.map((item, i) => (
         <span key={item} className={css.chip}>
-          <button className={css.chipTool} disabled={i === 0} onClick={() => move(i, -1)} aria-label={`Move ${label(item)} earlier`}>
-            ‹
-          </button>
+          {ordered && (
+            <button className={css.chipTool} disabled={i === 0} onClick={() => move(i, -1)} aria-label={`Move ${label(item)} earlier`}>
+              ‹
+            </button>
+          )}
           {label(item)}
-          <button className={css.chipTool} disabled={i === items.length - 1} onClick={() => move(i, 1)} aria-label={`Move ${label(item)} later`}>
-            ›
-          </button>
+          {ordered && (
+            <button className={css.chipTool} disabled={i === items.length - 1} onClick={() => move(i, 1)} aria-label={`Move ${label(item)} later`}>
+              ›
+            </button>
+          )}
           <button className={css.chipTool} onClick={() => onChange(items.filter((x) => x !== item))} aria-label={`Remove ${label(item)}`}>
             ✕
           </button>

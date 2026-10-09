@@ -31,9 +31,10 @@ There is no draft: **Save** shows your changes live at once, on every Camera Com
 card. **Discard** throws away what you haven't saved. A commander with a problem (no
 cameras, a bad size) is refused, with what to fix, rather than shown broken on the wall.
 
-The commanders are a list, one open at a time with its preview drawn from your unsaved
-changes. Move them up and down (the camera dashboard's pages follow), delete one, or add a
-copy of the one open or a blank one. Each has:
+The commanders are a list at the top. Pick one and its preview appears under the list,
+drawn from your unsaved changes, with its settings below it; the preview stays in view
+while you scroll through them. Move the commanders up and down (the camera dashboard's
+pages follow), delete one, or add a copy of the one picked or a blank one. Each has:
 
 - **Picture:** its name (its page's title on the dashboard), whether it has a dashboard
   page, the gap and margin, and **Stale after**: a camera picture older than this is
@@ -45,10 +46,9 @@ copy of the one open or a blank one. Each has:
 - **Track motion:** its switch, and how it behaves. **Hold:** a switch stays this long
   before motion elsewhere takes over. **Go back after:** once all motion stops, back to
   the camera chosen by hand (0: stay). **Pause after a choice:** a tap pauses tracking
-  this long. **Track motion switches to:** a tick per camera; untick one whose motion
-  should not take over (a busy road, a tree in the wind). The card still marks its motion
-  with the dot, a tap still makes it the main camera, and its motion never holds off Go
-  back after.
+  this long. **Never takes over:** the cameras whose motion should not take over (a busy
+  road, a tree in the wind); **+ Add…** picks from the commander's cameras. The card still marks their motion with the dot, a
+  tap still makes one the main camera, and their motion never holds off Go back after.
 - **Panels** (left, top, right, bottom): the cameras in each, in order; its size; how its
   tiles fit; rows or columns; and whether it is shown.
 
