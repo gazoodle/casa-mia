@@ -58,24 +58,29 @@ def test_sizes_are_kept_across_restarts(tmp_path):
 
 
 def test_a_stalled_camera_holds_up_only_itself(tmp_path, monkeypatch):
-    monkeypatch.setitem(mod.PACE_DEFAULTS, "gatherer", 0.05)
+    monkeypatch.setitem(mod.PACE_DEFAULTS, "gatherer", 0.001)
     g = gatherer(tmp_path)
     asked: list[str] = []
+    enough = asyncio.Event()
 
     async def fetch(entity):
         asked.append(entity)
         if entity == "camera.b":
-            await asyncio.sleep(10)  # never answers in time
+            await asyncio.Event().wait()  # stalled until cancelled
+        if asked.count("camera.a") >= 4:
+            enough.set()
         return jpeg()
 
     g._fetch_now = fetch  # type: ignore[method-assign]
 
     async def run():
         feeds = [asyncio.ensure_future(g._feed(e)) for e in ("camera.a", "camera.b")]
-        await asyncio.sleep(0.4)
-        for f in feeds:
-            f.cancel()
-        await asyncio.gather(*feeds, return_exceptions=True)
+        try:
+            await asyncio.wait_for(enough.wait(), 2)
+        finally:
+            for f in feeds:
+                f.cancel()
+            await asyncio.gather(*feeds, return_exceptions=True)
 
     asyncio.run(run())
     assert asked.count("camera.a") >= 4 and asked.count("camera.b") == 1
@@ -85,21 +90,30 @@ def test_a_stalled_camera_holds_up_only_itself(tmp_path, monkeypatch):
 def test_a_paused_gatherer_fetches_nothing(tmp_path, monkeypatch):
     monkeypatch.setitem(mod.PACE_DEFAULTS, "gatherer", 0.05)
     g = gatherer(tmp_path)
-    g._fetch_now = lambda entity: asyncio.sleep(0, jpeg())  # type: ignore[method-assign,assignment]
     g.pause(True)
 
     async def run():
         g._wake = asyncio.Event()
+        fetched = asyncio.Event()
+
+        async def fetch(entity):
+            fetched.set()
+            return jpeg()
+
+        g._fetch_now = fetch  # type: ignore[method-assign]
         runner = asyncio.ensure_future(g._run())
         g.want("live", {"camera.a": []})
-        await asyncio.sleep(0.2)
+        await asyncio.sleep(0)  # let _run reach its wake wait while paused
         paused = (dict(g._feeds), set(g._waiting))
         g.pause(False)
         g._wake.set()
-        await asyncio.sleep(0.2)
-        runner.cancel()
-        g._stop_feeds()
-        await asyncio.gather(runner, return_exceptions=True)
+        try:
+            await asyncio.wait_for(fetched.wait(), 2)
+        finally:
+            runner.cancel()
+            feeds = list(g._feeds.values())
+            g._stop_feeds()
+            await asyncio.gather(runner, *feeds, return_exceptions=True)
         return paused
 
     feeds, waiting = asyncio.run(run())

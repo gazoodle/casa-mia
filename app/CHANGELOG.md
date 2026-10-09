@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.10.4-b14
+
+- User documentation: completed the Kiosk Satellites, Firmware server, Kiosk Mode, People, Phone and SMS, Alarm panel, Home and Settings guides, including setup, page controls, Home Assistant entities and troubleshooting. Clarified that Kiosk Mode is installed separately and that the alarm panel is currently specific to one home's setup, with configurable behaviour planned.
+- Python tests: the full suite now runs with eight workers by default, with the same commands recorded for Claude and Codex. Replaced fixed waits with events, a controlled expiry clock and shared shutdown checks; fixed the FONA reconnect assertion race. Fifteen complete benchmark runs passed all 264 tests, with the eight-worker median about three seconds. No tests are excluded as slow.
+- Camera compositor: completed gatherer tasks are released, so restarting the engine no longer leaves tasks from the old event loop to break its next shutdown.
+
 ## 2026.10.4-b13
 
 - Camera Commander card: **motion is a pulsing dot the card draws** on a camera's tile (the main camera's too) while its motion sensor sees motion, and for a while after (10 s by default). It shows the moment the sensor changes, with nothing for the compositor to draw: the old red dot drawn into the picture appeared only at the next redraw, so it was rarely seen. Hover the dot for when the motion was seen; a tap on it is a tap on its tile. New card options: the dot on or off, its colour, size, pulse (0: steady), how long it stays after the motion, and its corner.

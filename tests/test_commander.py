@@ -3,7 +3,6 @@
 import io
 import json
 import threading
-import time
 import types
 import urllib.request
 from http.server import ThreadingHTTPServer
@@ -14,6 +13,7 @@ from casa_mia import swap
 from casa_mia.modules.cameras import Cameras
 from casa_mia.modules.commander import Commander
 from casa_mia.modules.compositor import LIVE_STORE, Compositor, Config
+from conftest import stop_compositor
 from test_camera_dashboard import FakeHA, call, commander_store
 from test_compositor import FakeHA as FakeCameras
 
@@ -38,8 +38,7 @@ def serve_cameras():
 
 
 def stop(comp, cameras=None):
-    comp.stop()
-    time.sleep(0.2)
+    stop_compositor(comp)
     if cameras:
         cameras.shutdown()
         cameras.server_close()

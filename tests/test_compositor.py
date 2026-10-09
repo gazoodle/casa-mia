@@ -12,7 +12,7 @@ import pytest
 from PIL import Image
 
 from casa_mia.modules.compositor import LIVE_STORE, Compositor, Sending
-from conftest import set_compositor
+from conftest import set_compositor, stop_compositor
 
 
 async def gather_round(comp) -> None:
@@ -66,8 +66,7 @@ def compositor(tmp_path):
     comp = Compositor(tmp_path, f"http://127.0.0.1:{ha.server_port}", "token", port=0)
     comp.start()
     yield comp
-    comp.stop()
-    time.sleep(0.2)
+    stop_compositor(comp)
     ha.shutdown()
     ha.server_close()
 
@@ -142,8 +141,7 @@ def test_the_survey_keeps_a_picture_of_every_camera(tmp_path):
         assert thumb and Image.open(io.BytesIO(thumb)).size == (160, 90)
         assert comp.still("camera.a", 160) is thumb  # resized once per still
     finally:
-        comp.stop()
-        time.sleep(0.2)
+        stop_compositor(comp)
         ha.shutdown()
         ha.server_close()
 
@@ -285,8 +283,7 @@ def test_gathers_only_while_watched_and_serves_at_once_after(tmp_path, monkeypat
             assert Image.open(io.BytesIO(r.read())).size == (1920, 1080)
         assert time.monotonic() - start < 1
     finally:
-        comp.stop()
-        time.sleep(0.2)
+        stop_compositor(comp)
         ha.shutdown()
         ha.server_close()
 

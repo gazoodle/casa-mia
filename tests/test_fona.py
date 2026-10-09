@@ -214,13 +214,14 @@ def test_send_requests(run):
     assert f.control("nope") == 404
 
 
-def test_reconnects_after_the_cable_is_pulled(run):
+def test_reconnects_after_the_cable_is_pulled(run, caplog):
     arduino = FakeArduino()
     f, _ = run(arduino)
     wait_for(lambda: f.health()["state"] == "connected")
     arduino.vanished = True
     wait_for(lambda: f.health()["state"] == "offline")
-    assert "lost" in f.health()["error"]
+    # A retry may already have replaced the current error with "cannot open".
+    assert "lost" in caplog.text
     arduino.vanished = False
     wait_for(lambda: f.health()["state"] == "connected")
     assert arduino.opens == 2
