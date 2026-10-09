@@ -157,7 +157,9 @@ async def _load_scripts(
         hass.data[f"{DOMAIN}_www"] = True
         websocket_api.async_register_command(hass, _ws_settings)
         websocket_api.async_register_command(hass, _ws_settings_subscribe)
+        websocket_api.async_register_command(hass, _ws_cards)
         setup_pictures(hass)  # the commanders' pictures, for viewers away from home
+    hass.data[f"{DOMAIN}_cards"] = version
     for name in [CARDS_JS, *helpers]:
         url = f"{SCRIPTS_URL}/{name}?v={version}"
         frontend.add_extra_js_url(hass, url)
@@ -167,6 +169,16 @@ async def _load_scripts(
         CARDS_JS,
         ", ".join(helpers) or "none",
     )
+
+
+@websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/cards"})
+@callback
+def _ws_cards(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    """The version of the cards HA serves now (the ?v= on cm-cards.js), so a page still
+    running older ones (open since before an update) can offer a reload; any user."""
+    connection.send_result(msg["id"], {"version": hass.data.get(f"{DOMAIN}_cards")})
 
 
 @websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/settings"})

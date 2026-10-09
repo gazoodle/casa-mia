@@ -243,6 +243,7 @@ def main() -> int:
         post_handlers["/compositor/"] = control(compositor, draft)  # its buttons
     else:
         modules["compositor"] = lambda: {"state": "disabled"}
+    on_cards: list = []  # told when HA serves new cards (server.make_server)
     if options.get("kiosks_enabled", False):
         firmware = gitproxy.health if gitproxy else dict
         kiosks = Kiosks(
@@ -258,6 +259,10 @@ def main() -> int:
         modules["kiosks"] = kiosks.health
         api["/api/kiosks/"] = kiosks.handle
         proxies["/kiosk/"] = kiosks.proxy  # each kiosk's admin page, through ingress
+        # Working together: when HA serves new cards, the tablets reload to run them.
+        on_cards.append(
+            lambda v: kiosks.reload_all(f"Home Assistant now serves the cards {v}")
+        )
     else:
         modules["kiosks"] = lambda: {"state": "disabled"}
 
@@ -286,6 +291,7 @@ def main() -> int:
             api=api,
             proxies=proxies,
             helpers=helpers,
+            on_cards=on_cards,
         )
         http.serve_forever()
     except KeyboardInterrupt:

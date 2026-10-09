@@ -32,7 +32,7 @@ And that's just the start.
 <p align="center"><strong>Free and open source, MIT licensed. Forever.</strong><br>
 No premium tier, no subscription, no catch. <a href="#licence">Here's the promise.</a></p>
 
-<p align="center"><a href="docs/README.md"><strong>📖 Documentation</strong></a> · <a href="docs/tablet-layout.md">Tablet Layout</a> · <a href="#installation">Installation</a></p>
+<p align="center"><a href="docs/README.md"><strong>📖 Documentation</strong></a> · <a href="docs/tablet-layout.md">Tablet Layout</a> · <a href="#working-together">Working together</a> · <a href="#installation">Installation</a></p>
 
 ## What is it?
 
@@ -299,6 +299,30 @@ its own switch on the Casa Mia panel's Settings page (the cog by the house photo
   is careful either way.
 - **Keep camera pictures live.** Stops the camera streams of pages that aren't on screen and
   restarts the ones that are, so a page you come back to has a live picture.
+
+## Working together
+
+Each module works on its own, but they all live in one app and one integration, so they
+know about each other, and that shared knowledge lets the whole do things no single piece
+could.
+
+- **Pages that keep up with updates.** After an update, a page that was open all along is
+  still running the old cards, so a new feature looks missing until someone thinks to
+  refresh. The integration knows which cards it now serves, and every page checks after
+  Home Assistant restarts: an out-of-date one offers a **Reload** in Home Assistant's own
+  toast.
+- **Wall tablets that reload themselves.** Nobody is there to press Reload on a wall
+  tablet, so when Home Assistant starts serving new cards, the Kiosk Satellites module asks
+  every tablet it looks after to reload.
+
+Coming next:
+
+- **The camera compositor knows its viewers:** its list of clients shows each wall tablet by
+  name, not by IP address, with a link to its page.
+- **Who's looking:** the integration knows each page's logged-in user, so the panels can say
+  who and where.
+- **Guests who say who they are:** an identify-yourself page with a PIN, so the house knows
+  which guest is in.
 
 ## Installation
 

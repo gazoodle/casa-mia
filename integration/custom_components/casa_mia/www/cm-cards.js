@@ -3834,8 +3834,6 @@ Pn.replaceSync(".handle, ha-dropdown-item[value=\"duplicate\"], :host(:not([cm-d
 	};
 });
 var Fn = "custom:casa-mia-tablet-layout", In = [Fn, "custom:casa-mia-tablet-view"];
-//#endregion
-//#region src/main.ts
 customElements.whenDefined("hui-view-editor").then(() => {
 	let e = customElements.get("hui-view-editor").prototype, t = e.firstUpdated;
 	e.firstUpdated = function(...e) {
@@ -3885,5 +3883,21 @@ customElements.whenDefined("hui-view-editor").then(() => {
 			return In.includes(this._config?.type) ? "sections" : t.get.call(this);
 		}
 	});
-}), console.info(`%cCASA-MIA CARDS\n%ccommander, section, tablet layout (${Ot})`, "color: green; font-weight: bold;", "");
+}), console.info(`%cCASA-MIA CARDS\n%ccommander, section, tablet layout (${Ot})`, "color: green; font-weight: bold;", ""), Ot !== "dev" && window.hassConnection?.then(({ conn: e }) => {
+	e.addEventListener("ready", () => e.sendMessagePromise({ type: "casa_mia/cards" }).then(({ version: e }) => {
+		e && e !== Ot && (console.warn(`CASA-MIA CARDS ${Ot} running, ${e} served: reload to update`), document.querySelector("home-assistant")?.dispatchEvent(new CustomEvent("hass-notification", {
+			detail: {
+				message: `Casa Mia updated to ${e}: reload to use it`,
+				duration: -1,
+				dismissable: !0,
+				action: {
+					text: "Reload",
+					action: () => location.reload()
+				}
+			},
+			bubbles: !0,
+			composed: !0
+		})));
+	}, () => {}));
+});
 //#endregion

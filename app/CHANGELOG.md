@@ -2,6 +2,8 @@
 
 ## 2026.10.4-b1
 
+- A page left open through an update (the old cards still running in it, so new features seem missing) now says so: after Home Assistant restarts, Home Assistant's own toast reads "Casa Mia updated to …: reload to use it", with a Reload button.
+- Wall tablets reload themselves after an update: the integration tells the app which cards Home Assistant serves, and when that changes (Home Assistant restarted after an update), Kiosk Satellites asks every tablet it is logged in to to reload, so nobody has to touch them. The first of the modules "working together" (a new README section).
 - Under the hood: Kiosk Satellites split into a package (`modules/kiosks/`), as RULE THREE asks; no change in behaviour.
 
 ## 2026.10.3

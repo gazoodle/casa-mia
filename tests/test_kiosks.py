@@ -108,6 +108,7 @@ class FakeKiosk(BaseHTTPRequestHandler):
         elif self.path in (
             "/api/commands/checkUpdateNow",
             "/api/commands/installUpdate",
+            "/api/commands/reload",
         ):
             if not self._authorised():
                 return self._send(401, {})
@@ -519,3 +520,14 @@ def test_page_head_runs_and_sets_both_tokens(monkeypatch):
         "ks_token": PAGE_TOKEN,
         "ks_token:/api/hassio_ingress/x/kiosk/k1/": PAGE_TOKEN,
     }
+
+
+def test_reload_all_asks_each_logged_in_kiosk_to_reload(two):
+    k, (h1, _), (h2, _) = two
+    k.scan()
+    k.login(PASSWORD)
+    k.reload_all("test")
+    for t in [t for t in threading.enumerate() if t.name == "kiosks-reload"]:
+        t.join(5)
+    assert h1.imported == [("/api/commands/reload", None)]
+    assert h2.imported == []  # not logged in to it
