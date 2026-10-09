@@ -24,7 +24,7 @@ from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_call_later, async_track_state_change_event
 
-from .coordinator import CasaMiaCoordinator, async_post
+from ..casa_mia.coordinator import CasaMiaCoordinator, async_post
 
 _LOGGER = logging.getLogger(__name__)
 CHANNEL = re.compile(r"_(high|medium|low)_resolution_channel$")

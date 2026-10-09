@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026.10.4-b22
+
+- **Breaking:** Guest login and Camera Commander have their own integrations now, **Casa
+  Mia Guest Login** and **Casa Mia Camera Commander**. What to do: restart Home Assistant;
+  under Settings → Devices & services → Casa Mia, delete the old **Guest login** device, each
+  **Guest: …** and **Engineer: …** device and each **Camera Commander** device (do this
+  first, or the new entities get ids ending `_2`); then add the two new integrations, which
+  Casa Mia offers under **Discovered** while their module is on.
+- **Breaking:** the `casa_mia.enable_for` action is now `casa_mia_guest_login.enable_for`.
+  What to do: change it in your automations and scripts.
+- Casa Mia offers its Guest Login and Camera Commander integrations under Discovered while
+  their module is on in the app. Each has its own restart Repair, and comes and goes with
+  its module.
+- Devices Casa Mia no longer provides can be deleted from it.
+
 ## 2026.10.4-b21
 
 - Track motion: cameras added to **Never takes over** now stay; each was removed again

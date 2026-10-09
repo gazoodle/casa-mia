@@ -14,11 +14,28 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
-from .coordinator import CasaMiaCoordinator
+from ..casa_mia.const import DOMAIN as CASA_MIA
+from ..casa_mia.coordinator import CasaMiaCoordinator
+from .const import DOMAIN, MODULE
 from .motion import commander, commanders
-from .sensor import CasaMiaEntity, device_id, modules_off
+
+
+def commander_device(entry: ConfigEntry, coordinator: CasaMiaCoordinator) -> DeviceInfo:
+    """The Camera Commander device, linked to the Casa Mia app device."""
+    return DeviceInfo(
+        identifiers={(DOMAIN, entry.entry_id)},
+        name="Camera Commander",
+        manufacturer="Casa Mia",
+        via_device=(CASA_MIA, coordinator.config_entry.entry_id),
+    )
+
+
+def commanders_off(coordinator: CasaMiaCoordinator) -> bool:
+    return (
+        coordinator.data.get("modules", {}).get(MODULE, {}).get("state") == "disabled"
+    )
 
 
 def unique_id(entry: ConfigEntry, cid: str, first: str, other: str) -> str:
@@ -30,23 +47,26 @@ def unique_id(entry: ConfigEntry, cid: str, first: str, other: str) -> str:
     )
 
 
-class CommanderEntity(CasaMiaEntity):
+class CommanderEntity(CoordinatorEntity[CasaMiaCoordinator]):
     """An entity of one commander (by id), on its device."""
 
-    _module = "commander"
+    _attr_has_entity_name = True
 
     def __init__(
         self, coordinator: CasaMiaCoordinator, entry: ConfigEntry, cid: str
     ) -> None:
-        super().__init__(coordinator, entry)
+        super().__init__(coordinator)
         self.cid = cid
-        if cid:
-            self._attr_device_info = DeviceInfo(
+        self._attr_device_info = (
+            DeviceInfo(
                 identifiers={(DOMAIN, f"{entry.entry_id}_commander_{cid}")},
                 name=f"Camera Commander {self.commander.get('name') or cid}",
                 manufacturer="Casa Mia",
-                via_device=device_id(entry, "commander"),
+                via_device=(DOMAIN, entry.entry_id),
             )
+            if cid
+            else commander_device(entry, coordinator)
+        )
 
     @property
     def commander(self) -> dict[str, Any]:
@@ -61,7 +81,7 @@ def add_commander_entities(
 ) -> None:
     """Add `factory(commander id)` entities now and for any commander that appears later
     (none while the commanders are off in the app)."""
-    if "commander" in modules_off(coordinator):
+    if commanders_off(coordinator):
         return
     known: set[str] = set()
 

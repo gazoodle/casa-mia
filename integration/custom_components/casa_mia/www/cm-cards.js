@@ -1160,7 +1160,7 @@ function Et(e, t, n) {
 var Dt = null;
 function Ot(e, t = !1) {
 	if (t || !Dt || Date.now() > Dt.until) {
-		let t = e.callWS({ type: "casa_mia/picture_token" }).then((e) => e.token);
+		let t = e.callWS({ type: "casa_mia_commander/picture_token" }).then((e) => e.token);
 		Dt = {
 			value: t,
 			until: Date.now() + 432e5
@@ -1241,7 +1241,7 @@ var At = class extends G {
 		if (!this.viaHa()) return i;
 		if (!this._token) return this.ask(), "";
 		let a = new URL(i);
-		return `/api/casa_mia/live${a.pathname}${a.search}&token=${this._token}`;
+		return `/api/casa_mia_commander/live${a.pathname}${a.search}&token=${this._token}`;
 	}
 	look() {
 		let e = this._config;
@@ -1295,7 +1295,7 @@ var At = class extends G {
 	}
 	pictureUrl(e, [t, n, r]) {
 		let i = `w=${t}&h=${n}&dpr=${r}&sid=${this.sid}&v=${encodeURIComponent(Ct)}`;
-		return this.viaHa() ? this._token ? `/api/casa_mia/live${new URL(e.picture).pathname}?${i}&token=${this._token}` : (this.ask(), "") : `${e.picture}?${i}`;
+		return this.viaHa() ? this._token ? `/api/casa_mia_commander/live${new URL(e.picture).pathname}?${i}&token=${this._token}` : (this.ask(), "") : `${e.picture}?${i}`;
 	}
 	ask(e = !1) {
 		this.hass && Ot(this.hass, e).then((e) => this._token = e, () => this.retry = window.setTimeout(() => this.ask(!0), 1e4));

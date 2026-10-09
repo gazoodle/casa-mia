@@ -559,7 +559,7 @@ def test_several_commanders():
     # each commander's taps set its own Main camera select, as HA's registry has it
     registry = [
         {
-            "platform": "casa_mia",
+            "platform": "casa_mia_commander",
             "entity_id": "select.phone_main",
             "unique_id": "01ABC_commander_p1_main",
         }

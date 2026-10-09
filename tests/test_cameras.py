@@ -172,7 +172,7 @@ def test_each_cameras_own_motion_detection_switch():
         {
             "entity_id": "switch.gate_track_motion",
             "device_id": "g",
-            "platform": "casa_mia",
+            "platform": "casa_mia_commander",
         },
         {"entity_id": "camera.loose"},  # no device: nothing to look on
     ]

@@ -110,6 +110,11 @@ Hand-edited live config is the thing to eliminate.
 Core restart lives in the **app**. The **integration** is thin: config flow, entities,
 services, events, Repairs. They talk over a small versioned local API.
 
+**Child integrations** (2026.10.4-b22): Guest login and Camera Commander each have their
+own, `casa_mia_guest_login` and `casa_mia_commander`, so a house can add only what it uses.
+Each depends on `casa_mia` and uses its coordinator (one `/health` poll); Casa Mia offers
+each under Discovered while its module is on (`casa_mia/children.py`).
+
 **FONA lives in the app** (owns the serial port, reconnect loop with backoff, handles the
 Arduino resetting when the port opens, by-id device path) and exposes sensors and events
 to the integration. Rationale: Core restarts and updates should not drop the board.
@@ -146,6 +151,7 @@ casa-mia/
       modules/             # planned: fona, gitproxy, compositor, guest-login, ... (alarm is integration-only)
   integration/
     custom_components/casa_mia/     # config flow, coordinator, sensor, restart notice, repairs, brand/
+    custom_components/casa_mia_guest_login/, casa_mia_commander/  # the child integrations
     versions.lock.json     # per-component version + content digest (see Versioning)
   branding/                # the icon and logo masters (PNG); the sized copies are committed
   tools/                   # setup (venv), fake_git_host.py, versioning.py, sync_app_version.py,

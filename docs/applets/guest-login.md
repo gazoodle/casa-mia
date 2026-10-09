@@ -38,8 +38,10 @@ Nathan Orick, and it still answers QR codes printed for that app.
    [Kiosk mode](kiosk-mode.md) page. Without it, a visitor lands on your chosen dashboard
    but can open any other from the sidebar, and Settings too.
 
-The Casa Mia integration must be installed for the switches, the sensors and the automation
-action. Without it the page still works, but you open and close codes only by hand.
+The **Casa Mia Guest Login** integration must be set up for the switches, the sensors and
+the automation action: once Casa Mia's own integration is set up and guest login is on, it
+is offered under **Discovered** in Settings → Devices & services. Without it the page still
+works, but you open and close codes only by hand.
 
 ## On the page
 
@@ -120,11 +122,11 @@ Each endpoint is a device, *Guest: Oak Tree* or *Engineer: Plant room*, with:
 - a **Login** event that fires at each sign-in, with the phone's address;
 - **Logins** and **Last login** sensors.
 
-**Open for a time** (`casa_mia.enable_for`) opens an endpoint, then closes it again after
+**Open for a time** (`casa_mia_guest_login.enable_for`) opens an endpoint, then closes it again after
 a number of minutes. For example, in an automation that runs when a booking starts:
 
 ```yaml
-action: casa_mia.enable_for
+action: casa_mia_guest_login.enable_for
 target:
   entity_id: switch.guest_oak_tree_access
 data:

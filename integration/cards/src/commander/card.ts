@@ -187,7 +187,7 @@ export class CommanderCard extends LitElement {
       return "";
     }
     const url = new URL(still);
-    return `/api/casa_mia/live${url.pathname}${url.search}&token=${this._token}`;
+    return `/api/casa_mia_commander/live${url.pathname}${url.search}&token=${this._token}`;
   }
 
   /** The Security look's filter while it is on, else "". */
@@ -263,7 +263,7 @@ export class CommanderCard extends LitElement {
       return "";
     }
     const path = new URL(card.picture).pathname; // /g/<name>.mjpg
-    return `/api/casa_mia/live${path}?${size}&token=${this._token}`;
+    return `/api/casa_mia_commander/live${path}?${size}&token=${this._token}`;
   }
 
   private ask(fresh = false) {

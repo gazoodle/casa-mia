@@ -17,13 +17,14 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
-from .commanders import async_prune_commander_devices
+from .children import discover_children, reload_children
 from .const import CARDS_JS, DOMAIN, FONA_EVENT, SCRIPTS_URL, SETTINGS_EVENT
-from .coordinator import CasaMiaCoordinator, async_post, helpers_on
-from .guest import async_prune_endpoint_devices
-from .motion import commanders, tracker
-from .pictures import running_coordinator
-from .pictures import setup as setup_pictures
+from .coordinator import (
+    CasaMiaCoordinator,
+    async_post,
+    helpers_on,
+    running_coordinator,
+)
 from .restart_notice import manifest_version
 from .sensor import MODULE_DEVICES, device_id, device_name, modules_off
 
@@ -90,26 +91,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.info("%s is switched off in the app: removing its device", name)
             registry.async_remove_device(device.id)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    if "commander" not in off:
-        # Track motion, a tracker per commander, while the app has the commanders on.
-
-        @callback
-        def follow_commanders() -> None:
-            ids = {c["id"] for c in commanders(coordinator)}
-            for cid in set(coordinator.motion) - ids:  # deleted on the page
-                coordinator.motion.pop(cid).unload()
-            for cid in ids:
-                tracker(coordinator, cid).refresh()
-
-        @callback
-        def stop_tracking() -> None:
-            for one in coordinator.motion.values():
-                one.unload()
-            coordinator.motion.clear()
-
-        follow_commanders()
-        entry.async_on_unload(coordinator.async_add_listener(follow_commanders))
-        entry.async_on_unload(stop_tracking)
     await _load_scripts(hass, entry, loaded_version, helpers)
 
     @callback
@@ -125,14 +106,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass.config_entries.async_schedule_reload(entry.entry_id)
 
     entry.async_on_unload(coordinator.async_add_listener(reload_on_switch))
-    # Drop devices of endpoints that were renamed or deleted, now and on each update.
-    prune = lambda: async_prune_endpoint_devices(hass, entry, coordinator)  # noqa: E731
-    prune()
-    entry.async_on_unload(coordinator.async_add_listener(prune))
-    # And of commanders deleted on the Camera Commander page.
-    prune_commanders = lambda: async_prune_commander_devices(hass, entry, coordinator)  # noqa: E731
-    prune_commanders()
-    entry.async_on_unload(coordinator.async_add_listener(prune_commanders))
+    # Guest Login and Camera Commander: onto this coordinator, and offered under
+    # Discovered while their module is on.
+    reload_children(hass)
+    discover = lambda: discover_children(hass, coordinator)  # noqa: E731
+    discover()
+    entry.async_on_unload(coordinator.async_add_listener(discover))
     # Retired with the draft compositor (2026.10.4-b12): the preview's pipeline switches
     # and pace, gone from the registry rather than left "no longer provided".
     entities = er.async_get(hass)
@@ -164,11 +143,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def _load_scripts(
     hass: HomeAssistant, entry: ConfigEntry, version: str | None, helpers: list[str]
 ) -> None:
-    """Serve www/ at /casa_mia, the cards' settings command and the pictures through HA
-    (once per HA run), and
-    load the cards (always) and the helpers switched on in the app into every HA page; each comes off
-    again when the entry unloads. ?v= changes with each update, so browsers fetch the new
-    copy."""
+    """Serve www/ at /casa_mia and the cards' settings commands (once per HA run), and
+    load the cards (always) and the helpers switched on in the app into every HA page;
+    each comes off again when the entry unloads. ?v= changes with each update, so
+    browsers fetch the new copy."""
     if not hass.data.get(f"{DOMAIN}_www"):
         await hass.http.async_register_static_paths(
             [StaticPathConfig(SCRIPTS_URL, str(Path(__file__).parent / "www"), False)]
@@ -177,7 +155,6 @@ async def _load_scripts(
         websocket_api.async_register_command(hass, _ws_settings)
         websocket_api.async_register_command(hass, _ws_settings_subscribe)
         websocket_api.async_register_command(hass, _ws_cards)
-        setup_pictures(hass)  # the commanders' pictures, for viewers away from home
     hass.data[f"{DOMAIN}_cards"] = version
     for name in [CARDS_JS, *helpers]:
         url = f"{SCRIPTS_URL}/{name}?v={version}"
@@ -281,6 +258,16 @@ async def _pong_send(
         await _send(hass, coordinator, number, PONG)
     except HomeAssistantError as exc:
         _LOGGER.warning("PING from %s not answered: %s", number, exc)
+
+
+async def async_remove_config_entry_device(
+    hass: HomeAssistant, entry: ConfigEntry, device: dr.DeviceEntry
+) -> bool:
+    """A device Casa Mia no longer provides may be deleted (the Guest login and Camera
+    Commander devices from before their own integrations, 2026.10.4-b22); the app's and
+    its modules' may not."""
+    ours = {(DOMAIN, entry.entry_id)} | {device_id(entry, m) for m in MODULE_DEVICES}
+    return device.identifiers.isdisjoint(ours)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

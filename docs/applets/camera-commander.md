@@ -57,6 +57,11 @@ pictures from. Blank: this box's own address.
 
 ## In Home Assistant
 
+The commanders come into Home Assistant through the **Casa Mia Camera Commander**
+integration: once Casa Mia's own integration is set up and Camera Commander is on, it is
+offered under **Discovered** in Settings → Devices & services. The Camera Commander card
+needs it too, for its pictures away from home.
+
 Each commander is a device: **Camera Commander** for the first, then **Camera Commander
 <name>**. Each has:
 
@@ -95,8 +100,8 @@ Its options (each left at its default unless you change it):
 ## Troubleshooting
 
 - **Taps on the commander do nothing:** the page says so when Home Assistant has no Main
-  camera select for it yet; restart Home Assistant if the integration was just updated
-  (Settings → Repairs).
+  camera select for it yet: add the Casa Mia Camera Commander integration (see "In Home
+  Assistant"), or restart Home Assistant if it was just updated (Settings → Repairs).
 - **A tap on the main camera opens a dashboard page, not the camera:** the card was saved
   with "its page on the camera dashboard" chosen; choose more-info in its editor.
 - **No motion dot on a camera:** check its motion detection on the [Cameras](cameras.md)

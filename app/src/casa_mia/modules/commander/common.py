@@ -18,7 +18,7 @@ from ..compositor import (
 COMMANDER_SELECT = "select.camera_commander_main_camera"
 
 
-# The integration's unique ids for a commander's entities, after its entry id and "_":
+# Casa Mia Camera Commander's unique ids for a commander's entities, after its entry id and "_":
 # the first commander's (id ""), and any other's.
 # Per entity: its domain, its unique id for the first commander (id "") and for any
 # other, and the end of the entity id the integration gives it.
@@ -44,7 +44,8 @@ def commander_entities(
     found = {
         e.get("unique_id", "").partition("_")[2]: e["entity_id"]
         for e in registry or []
-        if e.get("platform") == "casa_mia" and e["entity_id"].startswith(domain + ".")
+        if e.get("platform") == "casa_mia_commander"
+        and e["entity_id"].startswith(domain + ".")
     }
     out = {}
     for cmd in commanders_of(store):

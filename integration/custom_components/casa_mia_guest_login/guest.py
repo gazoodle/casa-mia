@@ -1,25 +1,56 @@
-"""Shared pieces for the guest-login entities: one child device per endpoint."""
+"""Shared pieces for the guest-login entities: the Guest login device, one child device
+per endpoint, and the call that opens or closes an endpoint."""
 
 from __future__ import annotations
 
 from collections.abc import Callable
 from typing import Any
 
+import aiohttp
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
-from .coordinator import CasaMiaCoordinator
+from ..casa_mia.const import DOMAIN as CASA_MIA
+from ..casa_mia.coordinator import CasaMiaCoordinator, async_post
+from .const import DOMAIN, MODULE
 
 
 def guest_module(coordinator: CasaMiaCoordinator) -> dict[str, Any]:
     """The guest_login module's health from /health (empty if the app lacks it)."""
-    return coordinator.data.get("modules", {}).get("guest_login", {})
+    return coordinator.data.get("modules", {}).get(MODULE, {})
+
+
+def login_device(entry: ConfigEntry, coordinator: CasaMiaCoordinator) -> DeviceInfo:
+    """The Guest login device, linked to the Casa Mia app device."""
+    return DeviceInfo(
+        identifiers={(DOMAIN, entry.entry_id)},
+        name="Guest login",
+        manufacturer="Casa Mia",
+        via_device=(CASA_MIA, coordinator.config_entry.entry_id),
+    )
+
+
+async def async_set_endpoint(
+    coordinator: CasaMiaCoordinator,
+    endpoint_id: str,
+    on: bool,
+    minutes: float | None = None,
+) -> None:
+    """Open or close a guest-login endpoint in the app (optionally for `minutes`)."""
+    path = f"/guest-login/{endpoint_id}/{'enable' if on else 'disable'}"
+    if on and minutes:
+        path += f"?minutes={minutes}"
+    try:
+        await async_post(coordinator.hass, coordinator.url, path)
+    except aiohttp.ClientError as exc:
+        raise HomeAssistantError(f"Guest login endpoint not changed: {exc}") from exc
+    await coordinator.async_request_refresh()
 
 
 class GuestEndpointEntity(CoordinatorEntity[CasaMiaCoordinator]):
@@ -38,7 +69,7 @@ class GuestEndpointEntity(CoordinatorEntity[CasaMiaCoordinator]):
             identifiers={(DOMAIN, f"{entry.entry_id}_guest_{endpoint_id}")},
             name=f"{prefix}: {self.endpoint.get('label', endpoint_id)}",
             manufacturer="Casa Mia",
-            via_device=(DOMAIN, f"{entry.entry_id}_guest_login"),
+            via_device=(DOMAIN, entry.entry_id),
         )
 
     @property
@@ -84,7 +115,7 @@ def async_prune_endpoint_devices(
         return
     prefix = f"{entry.entry_id}_guest_"
     keep = (
-        {f"{prefix}{i}" for i in module.get("endpoints", {})} | {f"{prefix}login"}
+        {f"{prefix}{i}" for i in module.get("endpoints", {})}
         if state == "running"
         else set()
     )

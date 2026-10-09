@@ -352,19 +352,22 @@ machine (aarch64 or amd64).
 4. **Start it.** On the **Info** tab, switch on **Show in sidebar** and press **Start**.
    **Casa Mia** appears in the sidebar.
 
-5. **Restart Home Assistant.** On its first start the app installs its integration into your
+5. **Restart Home Assistant.** On its first start the app installs its integrations into your
    `custom_components` folder, and Home Assistant only loads it after a restart: **Settings →
    System → ⋮ → Restart Home Assistant**. A Repair tells you whenever an update needs another.
 
 6. **Add the integration.** Go to **Settings → Devices & services → Add integration**, search
    for **Casa Mia**, and press **Submit**: it finds the app by itself. (If it doesn't, copy the
    **Integration URL** from the foot of the Casa Mia panel's home page and paste it in.)
+   Guest login and Camera Commander each have an integration of their own, **Casa Mia Guest
+   Login** and **Casa Mia Camera Commander**: while the module is on, Casa Mia offers it
+   under **Discovered** on the same page. Press **Add**.
 
 7. **Make yourself at home.** Open **Casa Mia** from the sidebar and visit each module's page
    to set it up. Its devices and entities appear in Home Assistant as you go.
 
 Updates arrive like any other app's: Home Assistant offers them under **Settings → Updates**,
-and the integration is updated along with the app.
+and the integrations are updated along with the app.
 
 ## Documentation
 

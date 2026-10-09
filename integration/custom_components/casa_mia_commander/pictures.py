@@ -1,8 +1,8 @@
 """The commanders' pictures through Home Assistant, for a browser that can't show the
 compositor's own address: away from home (the LAN address is out of reach), or with HA
 opened over HTTPS (an http:// picture is blocked as mixed content). The Camera Commander
-card asks for a token (websocket casa_mia/picture_token, any signed-in user) and shows
-/api/casa_mia/live/g/<name>.mjpg?token=...; this passes the app's stream through
+card asks for a token (websocket casa_mia_commander/picture_token, any signed-in user) and shows
+/api/casa_mia_commander/live/g/<name>.mjpg?token=...; this passes the app's stream through
 as it comes, so the compositor's trick of opening each next part at once still works.
 The card being edited shows one still instead, the same address with .jpg.
 Only the pictures the app lists for its commanders can be reached this way.
@@ -26,8 +26,8 @@ from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
+from ..casa_mia.coordinator import running_coordinator
 from .const import DOMAIN
-from .coordinator import CasaMiaCoordinator
 from .motion import commanders
 
 _LOGGER = logging.getLogger(__name__)
@@ -60,15 +60,6 @@ def _ws_token(
     token = secrets.token_urlsafe(24)
     tokens[token] = (now + TOKEN_LIFE, connection.user.name or connection.user.id)
     connection.send_result(msg["id"], {"token": token, "expires_in": TOKEN_LIFE})
-
-
-def running_coordinator(hass: HomeAssistant) -> CasaMiaCoordinator | None:
-    for entry in hass.config_entries.async_entries(DOMAIN):
-        if isinstance(
-            found := getattr(entry, "runtime_data", None), CasaMiaCoordinator
-        ):
-            return found
-    return None
 
 
 def source(hass: HomeAssistant, which: str, name: str) -> str | None:

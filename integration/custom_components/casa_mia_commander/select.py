@@ -12,8 +12,8 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from ..casa_mia.coordinator import CasaMiaCoordinator, async_post
 from .commanders import CommanderEntity, add_commander_entities, unique_id
-from .coordinator import CasaMiaCoordinator, async_post
 from .motion import tracker
 
 
@@ -31,7 +31,7 @@ async def async_setup_entry(
 
 class CommanderMainSelect(CommanderEntity, SelectEntity):
     """A commander's main camera. Its `card` attribute is what the Camera Commander card
-    (www/cm-cards.js) draws the commander from: layout, picture, cameras (see the app's
+    (Casa Mia's www/cm-cards.js) draws the commander from: layout, picture, cameras (see the app's
     commander.Live._card); `motion` each camera's motion sensor, which the card watches to
     mark its tile. Kept out of the recorder: they only matter now."""
 

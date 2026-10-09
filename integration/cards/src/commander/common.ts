@@ -65,7 +65,7 @@ export function askFor(w: number, h: number, dpr: number): Size | null {
 let token: { value: Promise<string>; until: number } | null = null;
 export function pictureToken(hass: Hass, fresh = false): Promise<string> {
   if (fresh || !token || Date.now() > token.until) {
-    const value = hass.callWS({ type: "casa_mia/picture_token" }).then((r: { token: string }) => r.token);
+    const value = hass.callWS({ type: "casa_mia_commander/picture_token" }).then((r: { token: string }) => r.token);
     token = { value, until: Date.now() + 12 * 3600_000 };
     value.catch(() => (token = null));
   }

@@ -115,6 +115,10 @@ def motion_sensors(
     return out
 
 
+# Casa Mia's own integrations: no switch of theirs is a camera's motion detection.
+INTEGRATIONS = ("casa_mia", "casa_mia_guest_login", "casa_mia_commander")
+
+
 def motion_switches(registry: list[dict], cameras: list[str]) -> dict[str, str]:
     """Each camera's own motion detection switch, where its device has one: a switch on
     the camera's device named for motion (UniFi Protect's Motion, a Kiosk Satellite
@@ -130,7 +134,7 @@ def motion_switches(registry: list[dict], cameras: list[str]) -> dict[str, str]:
             if device
             and e.get("device_id") == device
             and e["entity_id"].startswith("switch.")
-            and e.get("platform") != "casa_mia"
+            and e.get("platform") not in INTEGRATIONS
             and not e.get("disabled_by")
             and "motion"
             in " ".join(

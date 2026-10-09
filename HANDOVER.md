@@ -1,7 +1,7 @@
 # Handover: Casa Mia, for agents joining the work
 
 Where the project stands and how the work is done here, as of 2026-10-09 (`dev` at
-2026.10.4-b20, 22 commits ahead of `origin/dev`). **Read this at the start of every
+2026.10.4-b22, not pushed). **Read this at the start of every
 session**, then CLAUDE.md in full; where they disagree, CLAUDE.md wins. It replaces
 re-reading old transcripts: the history below is all a new session needs.
 
@@ -169,6 +169,16 @@ dashboards_on`).
   and look at the new Commander page. Known rough edge: the preview docks 64px down to clear the Save bar; if
   the bar wraps (narrow screens), it covers the preview's top a little. Measure the bar
   if the owner minds.
+- **b22 committed, not pushed: the integration split in three.** `casa_mia_guest_login` and
+  `casa_mia_commander` (children: `dependencies: ["casa_mia"]`, a no-field single-entry
+  flow, Casa Mia's coordinator through `running_coordinator`; shared helpers in
+  `casa_mia/children.py`). Casa Mia offers each under Discovered while its module is on
+  (once per HA run), reloads them when it is set up again, and lets its orphaned old
+  devices be deleted (`async_remove_config_entry_device`). Picture proxy now
+  `/api/casa_mia_commander/live`, token `casa_mia_commander/picture_token`. Tests pass, but
+  **never loaded in a real HA yet**: try it on the test rig or VM before the live box.
+  Breaking lines lead b22's changelog (the convention is now in CLAUDE.md and
+  docs/releases.md).
 - **Soft launch on the HA community forum**, still to do: a release (the owner runs
   `tools/release.py`), a fresh install on the test VM, then a forum post draft (HA
   Community → Share your Projects, leading with the Tablet Layout).

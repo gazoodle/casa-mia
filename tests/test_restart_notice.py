@@ -36,3 +36,11 @@ def test_marker_matching_loaded_version_is_cleared(tmp_path):
 def test_garbage_marker_is_ignored(tmp_path):
     (tmp_path / notice.MARKER).write_text("not json")
     assert notice.pending_restart("1.0.0", tmp_path) is None
+
+
+def test_every_component_carries_the_same_copies():
+    # Domain-agnostic: each component prompts for its own restart with identical code.
+    root = FILE.parents[1]
+    for name in ("restart_notice.py", "repairs.py"):
+        copies = {p.read_text() for p in root.glob(f"*/{name}")}
+        assert len(list(root.glob(f"*/{name}"))) >= 3 and len(copies) == 1, name
