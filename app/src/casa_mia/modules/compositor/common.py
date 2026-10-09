@@ -81,8 +81,9 @@ class Config:
         return next((c for c in self.commanders if slug(c["name"]) == name), None)
 
 
-# The Camera Dashboard's stores (see camera_dashboard.py): what is deployed, and the draft.
-LIVE_STORE = "camera-dashboard-live.json"
+# What the live compositor draws: the commanders and the cameras they show, written by
+# Camera Commander. DRAFT_STORE: the Auto Dashboards draft, for a second compositor (none now).
+LIVE_STORE = "compositor.json"
 DRAFT_STORE = "camera-dashboard.json"
 # A commander: one landscape picture, a main camera framed by four panels of cameras.
 # Left and right sizes are % of the width, top and bottom % of the height. There are one
@@ -113,6 +114,8 @@ EMPTY_COMMANDER = {
     # another, how long after the last motion it goes back to the camera chosen by hand
     # (0: it stays), and how long a choice by hand pauses tracking.
     "motion": {"hold": 10, "back": 30, "pause": 120},
+    # Cameras Track motion never switches to (the card still marks their motion).
+    "motion_ignore": [],
     # Debug options: the whole picture dimmed to `dim` %, an L in each corner (`corner`
     # px long) and both diagonals, `width` px wide in `colour`, and over it the picture's
     # ID (name, size, scale) and when it was drawn. The Camera Commander card adds its
@@ -226,7 +229,7 @@ def commanders_of(store: dict) -> list[dict]:
 
 
 def config_from_store(store: dict) -> Config:
-    """The compositor's view of a Camera Dashboard store: the commanders name their
+    """The compositor's view of a store (compositor.json): the commanders name their
     cameras by entity, and each camera's title and channels live once, under "cameras"."""
     cams = store.get("cameras", {})
     cfg = Config()
@@ -313,7 +316,7 @@ def go2rtc_reachable(timeout: float = 1.0) -> bool:
 
 def channels(cfg: Config, camera: str) -> dict[str, str]:
     """A camera's channels by tier, smallest first: its own entity (low, or its only
-    one), then its medium and high as set on the Camera Dashboard page. Not its zoom:
+    one), then its medium and high as set on the Cameras page. Not its zoom:
     that is another view, not a larger one."""
     out = {"low": camera}
     for tier in ("medium", "high"):

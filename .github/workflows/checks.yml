@@ -59,6 +59,10 @@ jobs:
         working-directory: integration/cards
       - run: npm test
         working-directory: integration/cards
+      # The card's motion dots import lit, so they run here, after npm ci (not in npm
+      # test yet: integration/ changed mid-release would have bumped the version).
+      - run: node --experimental-strip-types --no-warnings --test src/commander/motion.test.ts
+        working-directory: integration/cards
   containers:
     name: Container / ${{ matrix.arch }}
     strategy:

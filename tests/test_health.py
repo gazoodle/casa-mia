@@ -77,3 +77,14 @@ def test_health_records_the_integrations_helpers(tmp_path, monkeypatch):
     finally:
         server.shutdown()
         server.server_close()
+
+
+def test_new_cards_in_ha_are_told_to_their_followers(serve):
+    told: list[str] = []
+    url = serve(make_server(0, on_cards=[told.append])) + "/health"
+    urllib.request.urlopen(f"{url}?cards=2026.10.3").close()  # first heard: no change
+    urllib.request.urlopen(f"{url}?cards=2026.10.3").close()
+    assert told == []
+    urllib.request.urlopen(f"{url}?cards=2026.10.4-b1").close()  # HA restarted, updated
+    urllib.request.urlopen(url).close()  # an older integration says nothing
+    assert told == ["2026.10.4-b1"]

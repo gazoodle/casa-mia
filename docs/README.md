@@ -11,16 +11,31 @@ Each page of the Casa Mia panel in Home Assistant's sidebar.
 - [Kiosk Satellites](applets/kiosk-satellites.md): The wall tablets: their versions, kept backups of their setup, and their admin pages from anywhere.
 - [Firmware server](applets/firmware-server.md): Mirrors the Kiosk Satellite firmware so the wall tablets update without the internet.
 - [Kiosk mode](applets/kiosk-mode.md): What each dashboard hides, and from whom: the header, sidebar and more, through kiosk-mode.
-- [Camera Dashboard](applets/camera-dashboard.md): Sets up the cameras, the Camera Commander and the camera dashboard, with previews, and deploys it.
+- [Cameras](applets/cameras.md): The house's cameras, chosen from Home Assistant: their names, streams and controls, for the commanders and the camera dashboard.
+- [Camera Commander](applets/camera-commander.md): The commanders, each a main camera framed by panels of cameras, one live picture for the card and the dashboard; and the Camera Commander card.
+- [Auto Dashboards](applets/auto-dashboards.md): Dashboards made for you: today the camera dashboard, from the cameras and the commanders, previewed and deployed into Home Assistant.
 - [Camera compositor](applets/camera-compositor.md): Draws the Camera Commander as one live picture for the dashboards and wall tablets.
 - [Guest login](applets/guest-login.md): QR codes that sign guests and engineers straight into their own dashboard.
 - [People](applets/people.md): Who is known to the home.
 - [Phone and SMS (FONA)](applets/phone-and-sms.md): Calls and texts through the FONA GSM module: a way in that needs no internet.
 - [Alarm panel](applets/alarm-panel.md): The intruder alarm as a Home Assistant alarm panel: arm away, disarm, triggered.
 
+## Maturity
+
+Each module's page says how far along it is, as do its option in the app's Configuration
+tab and its page in the Casa Mia panel. Check a module's level before you switch it on.
+
+<!-- maturity -->
+- **Skeleton:** Started, but it doesn't do its job yet. Leave it off.
+- **In development:** Being built: parts work, it changes often, and an update may break it. For the curious.
+- **Alpha:** Does its job every day in the author's house, but hasn't been tried in many others. Expect rough edges and changes.
+- **Beta:** Complete and used every day; its features have settled. Please report what breaks in your setup.
+- **Released:** Settled and dependable. Changes are announced, and existing setups keep working.
+<!-- /maturity -->
+
 ## Recipes
 
-> **To write:** what you can build: PTZ presets, zoom, lights for what a camera shows, auto-motion camera switching, a doorbell intercom, a local AI (an introduction to Gang-O-Gals).
+Coming soon: what you can build with Casa Mia, step by step.
 
 ## Behind the scenes
 

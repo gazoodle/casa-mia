@@ -32,7 +32,7 @@ And that's just the start.
 <p align="center"><strong>Free and open source, MIT licensed. Forever.</strong><br>
 No premium tier, no subscription, no catch. <a href="#licence">Here's the promise.</a></p>
 
-<p align="center"><a href="docs/README.md"><strong>📖 Documentation</strong></a> · <a href="docs/tablet-layout.md">Tablet Layout</a> · <a href="#installation">Installation</a></p>
+<p align="center"><a href="docs/README.md"><strong>📖 Documentation</strong></a> · <a href="docs/tablet-layout.md">Tablet Layout</a> · <a href="#working-together">Working together</a> · <a href="#installation">Installation</a></p>
 
 ## What is it?
 
@@ -159,17 +159,16 @@ moment you touch it. Not a grid of spinners, not a tablet that lags behind every
 an afternoon of YAML every time a camera is added. Quick, good-looking, and configurable.
 
 Every camera in the house in one live picture: a big main camera framed by all the others.
-Tap a tile and it's on the big screen; tap the big screen and you're on that camera's own
-live page. You design it in the Casa Mia panel, try it out on a preview dashboard, and
-deploy it to your real one when it's right. And this is only the beginning: there's plenty
-more to come on this feature.
+Tap a tile and it's on the big screen; tap the big screen and it plays live. You design it
+in the Casa Mia panel, and Save puts it on every wall tablet at once. And this is only the
+beginning: there's plenty more to come on this feature.
 
 <table>
 <tr>
 <td width="50%" valign="top">
-<img src="docs/screenshots/camera-dashboard.webp" alt="The Camera Dashboard page: a commander's composite of every camera around the main one, with its picture and layout settings">
+<img src="docs/screenshots/camera-dashboard.webp" alt="The Camera Commander page: a commander's composite of every camera around the main one, with its picture and layout settings">
 <h3>Design your control room</h3>
-Lay out a commander in the Casa Mia panel: which cameras go where, how big the main one is, the highlight on its tile and the motion tracking. Preview it, then deploy it live.
+Lay out a commander in the Casa Mia panel: which cameras go where, how big the main one is, the highlight on its tile and the motion tracking. Its preview follows every change; Save puts it live.
 </td>
 <td width="50%" valign="top">
 <img src="docs/screenshots/dashboard-commander.webp" alt="A camera commander on a Home Assistant dashboard: the main camera framed by every other camera, each a tap to make it the main one">
@@ -181,7 +180,7 @@ The commander on a Home Assistant dashboard: every camera in one picture, and on
 <td width="50%" valign="top">
 <img src="docs/screenshots/dashboard-commander-loft.webp" alt="The same commander after a tap on the Loft tile: Loft is now the main camera, its tile outlined">
 <h3>Tap, and it's on the big screen</h3>
-Tap any tile and it becomes the main camera, in a moment. Switch on Track motion and the commander does it for you, following whatever moves around your home.
+Tap any tile and it becomes the main camera, in a moment. Switch on Track motion and the commander does it for you, following whatever moves around your home; a pulsing dot marks each camera seeing motion.
 </td>
 <td width="50%" valign="top">
 <img src="docs/screenshots/desk-tablet-security.webp" alt="A tablet in the dark theme with the commander's Security look on: every camera in a cool control-room blue">
@@ -300,6 +299,31 @@ its own switch on the Casa Mia panel's Settings page (the cog by the house photo
 - **Keep camera pictures live.** Stops the camera streams of pages that aren't on screen and
   restarts the ones that are, so a page you come back to has a live picture.
 
+## Working together
+
+Each module works on its own, but they all live in one app and one integration, so they
+know about each other, and that shared knowledge lets the whole do things no single piece
+could.
+
+- **Pages that keep up with updates.** After an update, a page that was open all along is
+  still running the old cards, so a new feature looks missing until someone thinks to
+  refresh. The integration knows which cards it now serves, and every page checks after
+  Home Assistant restarts: an out-of-date one offers a **Reload** in Home Assistant's own
+  toast.
+- **Wall tablets that reload themselves.** Nobody is there to press Reload on a wall
+  tablet, so when Home Assistant starts serving new cards, the Kiosk Satellites module asks
+  every tablet it looks after to reload.
+- **The camera compositor knows its viewers.** On the Camera compositor page, each stream
+  sent to a wall tablet shows the tablet's name from Kiosk Satellites beside its address,
+  so a slow or stuck one is easy to place.
+
+Coming next:
+
+- **Who's looking:** the integration knows each page's logged-in user, so the panels can say
+  who and where.
+- **Guests who say who they are:** an identify-yourself page with a PIN, so the house knows
+  which guest is in.
+
 ## Installation
 
 You need Home Assistant OS or a Supervised install (apps need the Supervisor), on a 64-bit
@@ -323,25 +347,28 @@ machine (aarch64 or amd64).
 
 3. **Choose your modules.** On the app's **Configuration** tab, give your house its name and
    switch on the modules you want (they all start off): the firmware server, Kiosk
-   Satellites, guest login, the camera compositor and Camera Dashboard, phone and SMS (FONA),
+   Satellites, guest login, Camera Commander and Auto Dashboards, phone and SMS (FONA),
    the alarm panel. Press **Save**. You can come back and change these at any time.
 
 4. **Start it.** On the **Info** tab, switch on **Show in sidebar** and press **Start**.
    **Casa Mia** appears in the sidebar.
 
-5. **Restart Home Assistant.** On its first start the app installs its integration into your
+5. **Restart Home Assistant.** On its first start the app installs its integrations into your
    `custom_components` folder, and Home Assistant only loads it after a restart: **Settings →
    System → ⋮ → Restart Home Assistant**. A Repair tells you whenever an update needs another.
 
 6. **Add the integration.** Go to **Settings → Devices & services → Add integration**, search
    for **Casa Mia**, and press **Submit**: it finds the app by itself. (If it doesn't, copy the
    **Integration URL** from the foot of the Casa Mia panel's home page and paste it in.)
+   Guest login and Camera Commander each have an integration of their own, **Casa Mia Guest
+   Login** and **Casa Mia Camera Commander**: while the module is on, Casa Mia offers it
+   under **Discovered** on the same page. Press **Add**.
 
 7. **Make yourself at home.** Open **Casa Mia** from the sidebar and visit each module's page
    to set it up. Its devices and entities appear in Home Assistant as you go.
 
 Updates arrive like any other app's: Home Assistant offers them under **Settings → Updates**,
-and the integration is updated along with the app.
+and the integrations are updated along with the app.
 
 ## Documentation
 

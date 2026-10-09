@@ -30,26 +30,19 @@
   },
   "entity": {
     "switch": {
-      "access": { "name": "Access" },
-      "track_motion": { "name": "Track motion" },
       "pipeline_gatherer": { "name": "Gatherer" },
       "pipeline_live_generator": { "name": "Live generator" },
       "pipeline_live_server": { "name": "Live server" },
-      "pipeline_preview_generator": { "name": "Preview generator" },
-      "pipeline_preview_server": { "name": "Preview server" },
       "live_main": { "name": "Live main camera" }
     },
     "number": {
       "gatherer_pace": { "name": "Gatherer pace" },
       "live_generator_pace": { "name": "Live generator pace" },
-      "preview_generator_pace": { "name": "Preview generator pace" },
       "survey_pace": { "name": "Survey pause" },
       "survey_at_once": { "name": "Survey streams at once" },
       "freshness": { "name": "Picture age allowed" }
     },
-    "select": { "commander_main": { "name": "Main camera" } },
     "event": {
-      "login": { "name": "Login", "state_attributes": { "event_type": { "state": { "login": "Login" } } } },
       "fona_call": { "name": "Call", "state_attributes": { "event_type": { "state": { "authorised": "Authorised", "intrusion": "Intrusion" } } } },
       "fona_text": { "name": "Text", "state_attributes": { "event_type": { "state": { "authorised": "Authorised", "intrusion": "Intrusion" } } } }
     },
@@ -92,12 +85,6 @@
         "name": "State",
         "state": { "running": "Running", "offline": "Offline", "disabled": "Disabled" }
       },
-      "guest_state": {
-        "name": "State",
-        "state": { "running": "Running", "offline": "Offline", "disabled": "Disabled" }
-      },
-      "last_login": { "name": "Last login" },
-      "logins": { "name": "Logins" },
       "gitproxy_latest": { "name": "Latest firmware" },
       "gitproxy_bytes": { "name": "Firmware downloaded" },
       "gitproxy_percent": { "name": "Firmware download progress" }
@@ -110,7 +97,7 @@
         "step": {
           "confirm": {
             "title": "Restart Home Assistant",
-            "description": "The Casa Mia integration was updated from {from_version} to {to_version}, but Home Assistant is still running {from_version}. Until it restarts, nothing new in {to_version} works: new devices and entities (such as the Camera Commander's Main camera, which the commander's taps use) do not exist yet. Restart Home Assistant to load it."
+            "description": "The Casa Mia integration was updated from {from_version} to {to_version}, but Home Assistant is still running {from_version}. Until it restarts, nothing new in {to_version} works: new devices and entities do not exist yet. Restart Home Assistant to load it."
           }
         }
       }
@@ -128,11 +115,6 @@
         "number": { "name": "Number", "description": "Phone number, as 07700 900123 or +44 7700 900123." },
         "message": { "name": "Message", "description": "The text, up to 160 characters." }
       }
-    },
-    "enable_for": {
-      "name": "Open for a time",
-      "description": "Open a guest or engineer login endpoint, then close it again after the given time.",
-      "fields": { "minutes": { "name": "Minutes", "description": "How long the endpoint stays open (1 to 1440)." } }
     }
   }
 }

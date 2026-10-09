@@ -1,0 +1,623 @@
+import json
+from typing import Any
+
+import pytest
+
+from casa_mia import swap
+from casa_mia.ha import HAError
+from casa_mia.modules.auto_dashboards import (
+    AutoDashboards,
+    build_dashboard,
+    problems,
+    warnings,
+    with_defaults,
+)
+from casa_mia.modules.cameras import Cameras
+from casa_mia.modules.commander import COMMANDER_SELECT, Commander, commander_selects
+from casa_mia.modules.compositor import load_config
+
+STORE = {
+    "dashboard": "dashboard-cams",
+    "wall_users": ["u1"],
+    "live_card": "webrtc-camera",
+    "hi_live_card": "advanced-camera-card",
+    "cameras": {
+        "camera.a_low": {
+            "title": "Bay",
+            "medium": "camera.a_med",
+            "high": "camera.a_high",
+            "ptz": {
+                "action": "unifiprotect.ptz_goto_preset",
+                "data": {"device_id": "d1"},
+                "presets": ["Door", {"preset": "Home", "label": "Home view"}],
+            },
+            "controls": [{"entity": "button.gate"}],
+        },
+        "camera.b": {"title": "Tablet", "live": "picture-entity"},
+    },
+    "commander": {
+        "width": 1000,
+        "height": 500,
+        "gap": 0,
+        "main": "",
+        "left": {"cameras": ["camera.a_low"], "size": 10, "fit": "cover"},
+        "top": {"cameras": [], "size": 20, "fit": "cover"},
+        "right": {"cameras": [], "size": 10, "fit": "cover"},
+        "bottom": {"cameras": ["camera.b"], "size": 20, "fit": "cover"},
+    },
+}
+
+
+def commander_store():
+    return with_defaults(STORE)
+
+
+def test_build():
+    store = commander_store()
+    assert problems(store) == []
+    views = build_dashboard(store, "http://h:8099", "dashboard-cams")["views"]
+    # the commander, then each of its cameras
+    assert [v["path"] for v in views] == ["cameras", "cam-bay", "cam-tablet"]
+    bay_view, tablet_view = views[1], views[2]
+    cards = bay_view["sections"][0]["cards"]
+    assert [c["type"] for c in cards] == [
+        "custom:webrtc-camera",
+        "custom:advanced-camera-card",
+    ]
+    presets = bay_view["sections"][1]["cards"]
+    assert [p["name"] for p in presets] == ["Door", "Home view"]
+    assert presets[1]["tap_action"]["data"] == {"device_id": "d1", "preset": "Home"}
+    assert tablet_view["sections"][0]["cards"][0]["type"] == "picture-entity"
+    # settings since dropped (the groups) are left out of a store
+    assert "groups" not in with_defaults({**store, "groups": {"Shed": {}}})
+
+
+def test_problems_are_found():
+    store = commander_store()
+    store["dashboard"] = "Cameras"
+    store["commanders"][0]["left"]["cameras"].append("camera.gone")
+    store["cameras"]["camera.c"] = {"title": "Bay!"}
+    store["commanders"][0]["top"]["cameras"].append("camera.c")
+    found = " ".join(problems(store))
+    assert "hyphen" in found
+    assert "camera.gone is not one of the cameras" in found
+    assert "'Bay' and 'Bay!' clash" in found
+    for panel in ("left", "top", "bottom"):
+        store["commanders"][0][panel]["cameras"] = []
+    assert "The Cameras commander has no cameras" in " ".join(problems(store))
+
+
+class FakeHA:
+    """Just enough of HA's websocket for deploying: dashboards and their configs."""
+
+    def __init__(self):
+        self.boards: dict[str, dict | None] = {"dashboard-cams": {"views": ["old"]}}
+        self.sent = []
+        self.registry: list[dict] = []  # the entity registry: the commanders' entities
+
+    def call(self, *commands):
+        out = []
+        for c in commands:
+            self.sent.append(c)
+            if c["type"] == "lovelace/dashboards/list":
+                out.append([{"id": f"id-{u}", "url_path": u} for u in self.boards])
+            elif c["type"] == "lovelace/dashboards/delete":
+                del self.boards[c["dashboard_id"].removeprefix("id-")]
+            elif c["type"] == "lovelace/dashboards/create":
+                self.boards[c["url_path"]] = None
+            elif c["type"] == "lovelace/config":
+                if self.boards.get(c["url_path"]) is None:
+                    raise HAError("config_not_found")
+                out.append(self.boards[c["url_path"]])
+            elif c["type"] == "config/entity_registry/list":
+                out.append(self.registry)
+            elif c["type"] == "get_states":
+                out.append(
+                    [
+                        {
+                            "entity_id": f"camera.{n}",
+                            "attributes": {"access_token": f"t-{n}"},
+                        }
+                        for n in ("a_low", "a_med")
+                    ]
+                )
+            elif c["type"] == "lovelace/config/save":
+                self.boards[c["url_path"]] = c["config"]
+                out.append(None)
+        return out
+
+
+def call(cd, method, path, body=None, query=None):
+    status, _, data = cd.handle(
+        method, path, query or {}, json.dumps(body).encode() if body else b""
+    )
+    return status, json.loads(data)
+
+
+@pytest.fixture
+def cd(tmp_path):
+    for name in ("camera-dashboard.json", "camera-dashboard-live.json"):
+        (tmp_path / name).write_text(json.dumps(STORE))
+    ha: Any = FakeHA()
+    cams = Cameras(tmp_path, ha)
+    cams.start()
+    commander = Commander(
+        tmp_path,
+        ha,
+        cams,
+        lambda: "10.0.0.2",
+        dashboard=lambda: cd.store["dashboard"],
+    )
+    cd = AutoDashboards(
+        tmp_path,
+        ha,
+        lambda: "10.0.0.2",
+        cameras=cams,
+        commander=commander,
+    )
+    commander.start()
+    cd.start()
+    return cd
+
+
+def test_the_draft_takes_the_cameras_page_changes(cd, tmp_path):
+    assert cd.cameras
+    cameras = cd.cameras.cameras()
+    cameras["camera.b"]["title"] = "Barn"
+    cd.cameras.save(cameras)
+    draft = json.loads((tmp_path / "camera-dashboard.json").read_text())
+    assert draft["cameras"]["camera.b"]["title"] == "Barn"
+    assert cd.view()["changed"]  # live keeps its own until a Deploy live
+    _, view = call(cd, "GET", "")
+    view["store"]["cameras"] = {}  # the page's copy never wins over the Cameras page
+    _, view = call(cd, "PUT", "", view["store"])
+    assert view["store"]["cameras"]["camera.b"]["title"] == "Barn"
+    _, view = call(cd, "POST", "revert")  # nor does live's, on a revert
+    assert view["store"]["cameras"]["camera.b"]["title"] == "Barn"
+    del cameras["camera.b"]  # a removed camera leaves the commanders too
+    cd.cameras.save(cameras)
+    assert cd.store["commanders"][0]["bottom"]["cameras"] == []
+
+
+def test_edit_preview_then_deploy(cd, tmp_path):
+    assert cd.commander
+    store = cd.commander.view()["store"]
+    store["commanders"][0]["main"] = "camera.b"
+    cd.commander.save(store)  # on the Camera Commander page: live at once
+    assert load_config(tmp_path).commanders[0]["main"] == "camera.b"
+    status, view = call(cd, "GET", "")  # the dashboard's own taps: at its next deploy
+    assert status == 200 and view["changed"] is True
+    assert view["store"]["commanders"][0]["main"] == "camera.b"
+
+    status, out = call(cd, "POST", "deploy", {"target": "preview"})
+    assert status == 200 and out["url_path"] == "dashboard-cams-preview"
+    preview = cd.ha.boards["dashboard-cams-preview"]
+    # the live compositor's pictures: the draft compositor has retired
+    assert "http://10.0.0.2:8099/g/cameras.mjpg" in json.dumps(preview)
+    assert "/dashboard-cams-preview/cam-bay" in json.dumps(preview)
+    assert out["changed"] is True  # a preview changes nothing live
+    assert out["previewed"]
+    status, out = call(cd, "POST", "remove-preview")
+    assert status == 200 and out["previewed"] is None
+    assert "dashboard-cams-preview" not in cd.ha.boards
+    assert "dashboard-cams" in cd.ha.boards  # live untouched
+    assert call(cd, "POST", "remove-preview")[0] == 200  # nothing there: fine
+    call(cd, "POST", "deploy", {"target": "preview"})
+
+    status, out = call(cd, "POST", "deploy", {"target": "live"})
+    assert status == 200 and out["changed"] is False and out["deployed"]
+    assert "http://10.0.0.2:8099/g/cameras.mjpg" in json.dumps(
+        cd.ha.boards["dashboard-cams"]
+    )
+    assert load_config(tmp_path).commanders[0]["main"] == "camera.b"
+    # what it replaced was kept, and can be put back
+    status, out = call(cd, "GET", "backups")
+    (kept,) = [b for b in out["backups"] if b["url_path"] == "dashboard-cams"]
+    assert kept["url_path"] == "dashboard-cams"
+    call(cd, "POST", "restore", {"name": kept["name"]})
+    assert cd.ha.boards["dashboard-cams"] == {"views": ["old"]}
+
+
+def test_preview_keeps_one_backup_and_reverts_to_it(cd):
+    assert call(cd, "POST", "revert-preview")[0] == 400  # nothing yet
+    call(cd, "POST", "deploy", {"target": "preview"})  # creates it: nothing to keep
+    assert call(cd, "GET", "")[1]["preview_backup"] is None
+    cd.ha.boards["dashboard-cams-preview"] = {"views": ["first"]}
+    call(cd, "POST", "deploy", {"target": "preview"})
+    cd.ha.boards["dashboard-cams-preview"] = {"views": ["second"]}
+    call(cd, "POST", "deploy", {"target": "preview"})
+    assert call(cd, "GET", "")[1]["preview_backup"]
+    assert call(cd, "GET", "backups")[1]["backups"] == []  # the list is live's only
+    assert len(list((cd.dir / "camera-dashboard-backups").glob("*preview*"))) == 1
+    status, view = call(cd, "POST", "revert-preview")
+    assert status == 200 and cd.ha.boards["dashboard-cams-preview"] == {
+        "views": ["second"]
+    }
+    call(cd, "POST", "remove-preview")  # its backup goes with it
+    assert call(cd, "GET", "")[1]["preview_backup"] is None
+
+
+def test_keep_older_versions_setting(cd):
+    assert call(cd, "GET", "")[1]["keep"] == 3
+    folder = cd.dir / "camera-dashboard-backups"
+    folder.mkdir()
+    for n in range(5):  # kept by earlier deploys
+        (folder / f"dashboard-cams-2026100{n}-120000.json").write_text(
+            json.dumps({"url_path": "dashboard-cams", "config": {"views": [n]}})
+        )
+    cd.ha.boards["dashboard-cams"] = {"views": ["now"]}
+    call(cd, "POST", "deploy", {"target": "live"})  # keeps this one, prunes to 3
+    assert len(call(cd, "GET", "backups")[1]["backups"]) == 3
+    assert call(cd, "PUT", "keep", {"keep": 1})[1]["keep"] == 1  # prunes now
+    assert len(call(cd, "GET", "backups")[1]["backups"]) == 1
+    call(cd, "PUT", "keep", {"keep": 0})
+    assert call(cd, "GET", "backups")[1]["backups"] == []
+    cd.ha.boards["dashboard-cams"] = {"views": ["x"]}
+    call(cd, "POST", "deploy", {"target": "live"})  # nothing kept at 0
+    assert call(cd, "GET", "backups")[1]["backups"] == []
+    assert call(cd, "PUT", "keep", {"keep": 6})[0] == 400
+
+
+def test_refuses_to_deploy_a_broken_store(cd):
+    _, view = call(cd, "GET", "")
+    view["store"]["dashboard"] = "Cameras"  # no hyphen, capitals
+    assert call(cd, "PUT", "", view["store"])[0] == 200  # a draft may be unfinished
+    status, out = call(cd, "POST", "deploy", {"target": "live"})
+    assert status == 400 and "URL must be lower case" in out["error"]
+    assert cd.ha.sent == []
+
+
+def test_revert_throws_the_draft_away(cd):
+    _, view = call(cd, "GET", "")
+    view["store"]["title"] = "Other"
+    call(cd, "PUT", "", view["store"])
+    status, view = call(cd, "POST", "revert")
+    assert view["store"]["title"] == "Cameras" and view["changed"] is False
+
+
+def test_yaml_for_copy_and_paste(cd):
+    status, ctype, body = cd.handle("GET", "yaml", {"target": ["live"]}, b"")
+    assert status == 200 and ctype.startswith("text/yaml")
+    assert b"http://10.0.0.2:8099/g/cameras.mjpg" in body
+
+
+def test_starts_empty_without_old_files(tmp_path):
+    cd = AutoDashboards(tmp_path, None, lambda: None)
+    cd.start()
+    assert (
+        cd.health()["cameras"] == 0
+        and not (tmp_path / "camera-dashboard.json").exists()
+    )
+
+
+def test_warns_about_what_ha_lacks():
+    store = commander_store()
+    have = {"camera.a_low", "camera.a_med", "camera.a_high", "camera.b"}
+    found = warnings(store, have, ["/hacsfiles/webrtc/webrtc-camera.js"], {"u1"})
+    assert "button.gate (on Bay's page) is not in Home Assistant." in found
+    assert (
+        "input_button.navigate_placeholder (on the tiles) is not in Home Assistant."
+        in found
+    )
+    assert (
+        "The advanced-camera-card card is not among the dashboard resources." in found
+    )
+    assert not any("webrtc-camera card" in w or "user" in w for w in found)
+    assert any("needs a Back button helper" in w for w in found)
+    ours = warnings(
+        store, have, ["/hacsfiles/webrtc/webrtc-camera.js"], {"u1"}, {"cm-back.js"}
+    )
+    assert not any("Back" in w for w in ours)  # the integration's helper is on
+    unknown = warnings(store, have, [], {"u1"}, None)  # not heard since the app started
+    assert not any("Back" in w for w in unknown)
+    both = warnings(
+        store, have, ["/local/scripts/nav_back_helper.js"], {"u1"}, {"cm-back.js"}
+    )
+    assert any("Back goes back twice" in w for w in both)
+
+
+def test_commander_layout():
+    from casa_mia.modules.compositor import EMPTY_COMMANDER, commander_layout
+
+    one = {"cameras": ["camera.x"], "size": 0, "fit": "cover"}
+    cmd = {**EMPTY_COMMANDER, "width": 1000, "height": 500, "gap": 0}
+    for panel, size in (("left", 10), ("right", 10), ("top", 20), ("bottom", 20)):
+        cmd[panel] = {**one, "size": size}
+    size, main, tiles = commander_layout(cmd)
+    assert size == (1000, 500)
+    assert tiles["bottom"] == [(0, 400, 1000, 100)]  # full width
+    assert tiles["left"] == [(0, 0, 100, 400)] and tiles["right"] == [
+        (900, 0, 100, 400)
+    ]
+    assert tiles["top"] == [(100, 0, 800, 100)]  # between left and right
+    assert main == (100, 100, 800, 300)
+    cmd["left"] = cmd["right"] = cmd["top"] = {**one, "cameras": []}  # empty: no room
+    assert commander_layout(cmd)[1] == (0, 0, 1000, 400)
+
+
+def test_commander_overview_taps_choose_and_open():
+    store = commander_store()
+    assert problems(store) == []
+    views = build_dashboard(store, "http://h:8099", "dashboard-cams")["views"]
+    (landscape,) = views[0]["sections"][0]["cards"]  # one picture, for every screen
+    assert landscape["image"] == "http://h:8099/g/cameras.mjpg"
+    assert "visibility" not in landscape
+    taps = [e for e in landscape["elements"] if e["type"] == "image"]
+    assert [t["tap_action"]["data"]["option"] for t in taps] == ["Bay", "Tablet"]
+    mains = [e for e in landscape["elements"] if e["type"] == "conditional"]
+    assert [m["conditions"][0].get("state") for m in mains] == ["Bay", "Tablet", None]
+    # the select holding none of its cameras (another commander's, or none yet): its own
+    assert mains[2]["conditions"][0]["state_not"] == ["Bay", "Tablet"]
+    assert mains[2]["elements"][1]["tap_action"]["navigation_path"].endswith("/cam-bay")
+    lit, opens = mains[0]["elements"]
+    assert opens["tap_action"]["navigation_path"] == "/dashboard-cams/cam-bay"
+    # Bay's own tile is outlined (the browser draws it) while Bay is the main camera
+    assert lit["image"].endswith("#cm-highlight")
+    assert lit["style"]["pointer-events"] == "none"
+    assert lit["style"]["border"] == "2px solid #7bd1a0"
+
+
+def test_commander_taps_use_the_screenshot_swaps_names(monkeypatch):
+    """The select's options come through the swap, so taps and conditions match them;
+    the camera pages keep their real paths."""
+
+    monkeypatch.setattr(swap, "out", lambda t: {"Bay": "Barn"}.get(t, t))
+    views = build_dashboard(commander_store(), "http://h:8099", "dashboard-cams")[
+        "views"
+    ]
+    (landscape,) = views[0]["sections"][0]["cards"]
+    taps = [e for e in landscape["elements"] if e["type"] == "image"]
+    assert [t["tap_action"]["data"]["option"] for t in taps] == ["Barn", "Tablet"]
+    mains = [e for e in landscape["elements"] if e["type"] == "conditional"]
+    assert mains[0]["conditions"][0]["state"] == "Barn"
+    assert mains[2]["conditions"][0]["state_not"] == ["Barn", "Tablet"]
+    opens = mains[0]["elements"][1]["tap_action"]["navigation_path"]
+    assert opens == "/dashboard-cams/cam-bay"
+    bay = next(v for v in views if v["path"] == "cam-bay")
+    assert bay["title"] == "Barn"
+
+
+def test_commander_problems():
+    store = commander_store()
+    store["commanders"][0]["left"]["cameras"].append("camera.gone")
+    store["commanders"][0]["main"] = "camera.elsewhere"
+    store["commanders"][0]["top"]["size"] = 80
+    store["commanders"][0]["right"].update(unit="px", size=150)  # fine
+    store["commanders"][0]["left"].update(unit="em")
+    store["commanders"][0]["bottom"]["cameras"].append("camera.a_low")
+    found = " ".join(problems(store))
+    assert "shows Bay in both its left and bottom panels" in found
+    assert "camera.gone is not one of the cameras" in found
+    assert "main camera must be one of its cameras" in found
+    assert "top panel: size must be 0-45%" in found
+    assert "left panel: size must be in % or px" in found
+    assert "right panel" not in found
+
+
+def test_commander_anchors():
+    from casa_mia.modules.compositor import EMPTY_COMMANDER, commander_layout
+
+    one = {"cameras": ["camera.x"], "fit": "cover"}
+    cmd = {**EMPTY_COMMANDER, "width": 1000, "height": 500, "gap": 0}
+    cmd["left"] = {**one, "size": 10}
+    cmd["right"] = {**one, "size": 10}
+    cmd["top"] = {**one, "size": 20, "anchor_left": True, "anchor_right": False}
+    cmd["bottom"] = {**one, "size": 20, "anchor_left": False, "anchor_right": True}
+    _, main, tiles = commander_layout(cmd)
+    assert tiles["top"] == [(0, 0, 900, 100)]  # to the left edge, stopping at Right
+    assert tiles["bottom"] == [(100, 400, 900, 100)]  # from Left, to the right edge
+    assert tiles["left"] == [
+        (0, 100, 100, 400)
+    ]  # under the top, down to the view's foot
+    assert tiles["right"] == [
+        (900, 0, 100, 400)
+    ]  # from the view's top, onto the bottom
+    assert main == (100, 100, 800, 300)  # the middle is the same whatever the anchors
+
+
+def test_shapes_are_numbers_or_ratios():
+    from casa_mia.modules.compositor import ratio
+
+    assert ratio("16:9") == pytest.approx(16 / 9)
+    assert ratio("4/3") == pytest.approx(4 / 3)
+    assert ratio(1.85) == ratio("1.85") == 1.85
+    for bad in ("wide", "0:1", "-2"):
+        with pytest.raises((ValueError, ZeroDivisionError)):
+            ratio(bad)
+
+
+def test_main_camera_at_its_own_shape():
+    from casa_mia.modules.compositor import EMPTY_COMMANDER, commander_layout
+
+    one = {"cameras": ["camera.x"], "size": 10, "fit": "cover"}
+    cmd = {**EMPTY_COMMANDER, "width": 1000, "height": 500, "gap": 0}
+    cmd |= {
+        "main_fit": "own",
+        "main_width": 50,
+        "aspects": {"camera.a": 4 / 3, "camera.t": 9 / 16},
+    }
+    for panel in ("left", "right", "top", "bottom"):
+        cmd[panel] = {**one, "anchor_left": False, "anchor_right": False}
+    _, main, tiles = commander_layout(cmd, "camera.a")
+    assert main == (
+        250,
+        62,
+        500,
+        375,
+    )  # half the width, at 4:3; the panels take the rest
+    assert tiles["left"][0][2] == 250 and tiles["top"][0][3] == 62
+    _, main, tiles = commander_layout(
+        cmd, "camera.t"
+    )  # a tall one: smaller, same shape
+    assert main[3] == 500 - 2 * 40 and main[2] == round(420 * 9 / 16)
+    assert tiles["top"][0][3] == 40  # top and bottom keep 8% of the height each
+    cmd |= {"main_fit": "fixed", "main_ratio": "2:1"}
+    assert commander_layout(cmd, "camera.t")[1] == (250, 125, 500, 250)  # the shape set
+
+
+def test_own_shape_gives_a_tap_zone_set_per_main_camera():
+    store = commander_store()
+    store["commanders"][0] |= {
+        "main_fit": "own",
+        "main_width": 60,
+        "aspects": {"camera.a_low": 16 / 9, "camera.b": 4 / 3},
+    }
+    assert problems(store) == []
+    landscape = build_dashboard(store, "http://h:8099", "dashboard-cams")["views"][0]
+    sets = landscape["sections"][0]["cards"][0]["elements"]
+    assert [s["conditions"][0].get("state") for s in sets] == ["Bay", "Tablet", None]
+    bay, tablet, _ = (s["elements"] for s in sets)
+    assert bay[-1]["tap_action"]["navigation_path"].endswith("/cam-bay")  # the main one
+    assert bay[0]["style"] != tablet[0]["style"]  # the panels moved with the shape
+
+
+def test_a_store_saved_with_the_old_security_look_still_loads(cd):
+    """The Security look moved to the Camera Commander card (2026.10.3-b76); a store
+    saved before keeps its `look`, which is left alone and means nothing now."""
+    _, view = call(cd, "GET", "")
+    store = view["store"]
+    assert "look" not in store
+    store["look"] = {"tint": "#3d7bff", "strength": 3, "darkness": 20, "css": "x"}
+    status, _ = call(cd, "PUT", "", store)
+    assert status == 200 and problems(cd.store) == []
+    assert "look_css" not in cd.health()
+
+
+def test_highlight_settings_are_checked():
+    store = commander_store()
+    store["commanders"][0]["highlight"] = {
+        "colour": "green",
+        "width": -1,
+        "style": "wobble",
+    }
+    found = " ".join(problems(store))
+    assert "highlight colour must be like #7bd1a0" in found
+    assert "highlight width must be 0 or more" in found
+    assert "must breathe or ripple" in found
+
+
+def test_panel_rows_share_its_cameras():
+    from casa_mia.modules.compositor import EMPTY_COMMANDER, commander_layout
+
+    cmd = {**EMPTY_COMMANDER, "width": 1000, "height": 500, "gap": 0}
+    cams = [f"camera.{n}" for n in "abcde"]
+    cmd["bottom"] = {"cameras": cams, "size": 20, "fit": "cover", "lines": 2}
+    _, _, tiles = commander_layout(cmd)
+    # 5 cameras in 2 rows: 3 then 2, each row spread across the full width
+    assert tiles["bottom"] == [
+        (0, 400, 333, 50),
+        (333, 400, 334, 50),
+        (667, 400, 333, 50),
+        (0, 450, 500, 50),
+        (500, 450, 500, 50),
+    ]
+    cmd["left"] = {"cameras": cams[:3], "size": 20, "fit": "cover", "lines": 5}
+    _, _, tiles = commander_layout(cmd)
+    assert len(tiles["left"]) == 3 and {t[3] for t in tiles["left"]} == {
+        400
+    }  # 3 columns
+
+
+def test_a_hidden_panel_is_off_the_view():
+    store = commander_store()
+    store["commanders"][0]["bottom"]["hidden"] = True
+    assert problems(store) == []
+    views = build_dashboard(store, "http://h:8099", "dashboard-cams")["views"]
+    assert [v["path"] for v in views] == ["cameras", "cam-bay"]  # no Tablet page
+    (card,) = views[0]["sections"][0]["cards"]
+    taps = [e for e in card["elements"] if e["type"] == "image"]
+    assert [t["tap_action"]["data"]["option"] for t in taps] == ["Bay"]
+    from casa_mia.modules.compositor import commander_layout, config_from_store
+
+    cfg = config_from_store(store)
+    assert commander_layout(cfg.commanders[0])[2]["bottom"] == []  # takes no room
+    assert store["commanders"][0]["bottom"]["cameras"] == ["camera.b"]  # kept
+    store["commanders"][0]["left"]["hidden"] = True
+    assert "has no cameras" in " ".join(problems(store))
+    store["commanders"][0]["left"]["lines"] = 0
+    assert "rows or columns must be 1-10" in " ".join(problems(store))
+
+
+def test_several_commanders():
+    store = commander_store()  # saved before there were several: its one is Cameras
+    assert [c["name"] for c in store["commanders"]] == ["Cameras"]
+    phone = {**store["commanders"][0], "name": "Phone", "id": "p1"}
+    phone["left"] = {**phone["left"], "cameras": []}  # Tablet only
+    store["commanders"].insert(0, phone)  # moved in front of Cameras
+    assert problems(store) == []
+    views = build_dashboard(store, "http://h:8099", "dashboard-cams")["views"]
+    assert [v["path"] for v in views] == ["phone", "cameras", "cam-tablet", "cam-bay"]
+    picture = views[0]["sections"][0]["cards"][0]
+    assert picture["image"] == "http://h:8099/g/phone.mjpg"
+    # the shared select holding Bay (not Phone's): Phone shows its own, Tablet
+    own = [e for e in picture["elements"] if e["type"] == "conditional"][-1]
+    assert own["conditions"][0]["state_not"] == ["Tablet"]
+    phone["page"] = False  # drawn, for elsewhere: no page of its own
+    views = build_dashboard(store, "http://h:8099", "dashboard-cams")["views"]
+    assert [v["path"] for v in views] == ["cameras", "cam-tablet", "cam-bay"]
+    phone["page"] = True
+    # each commander's taps set its own Main camera select, as HA's registry has it
+    registry = [
+        {
+            "platform": "casa_mia_commander",
+            "entity_id": "select.phone_main",
+            "unique_id": "01ABC_commander_p1_main",
+        }
+    ]
+    selects = commander_selects(store, registry)
+    assert selects == {"p1": "select.phone_main", "": COMMANDER_SELECT}
+    picture = build_dashboard(store, "http://h:8099", "d-c", selects)["views"][0]
+    taps = picture["sections"][0]["cards"][0]["elements"]
+    assert {e["conditions"][0]["entity"] for e in taps if "conditions" in e} == {
+        "select.phone_main"
+    }
+    # not registered yet: the entity id the integration will give it
+    assert (
+        commander_selects(store, [])["p1"]
+        == "select.camera_commander_phone_main_camera"
+    )
+    phone["id"] = ""
+    assert any("share an id" in p for p in problems(store))
+    phone["id"] = "p1"
+    phone["name"] = "cameras!"  # the same page as Cameras
+    assert any("clash" in p for p in problems(store))
+    phone["name"] = " "
+    assert any("needs a name" in p for p in problems(store))
+    store["commanders"] = []
+    assert "There must be at least one commander." in problems(store)
+
+
+def test_stacked_panels_keep_each_cameras_shape():
+    from casa_mia.modules.compositor import EMPTY_COMMANDER, commander_layout
+
+    cmd = {**EMPTY_COMMANDER, "width": 1000, "height": 500, "gap": 0}
+    cmd["aspects"] = {"camera.a": 2.0, "camera.b": 1.0}
+    cmd["left"] = {"cameras": ["camera.a", "camera.b"], "size": 20, "fit": "stack"}
+
+    def left(fit: str) -> list:
+        cmd["left"]["fit"] = fit
+        return commander_layout(cmd)[2]["left"]
+
+    # 200 wide: a 2:1 camera is 100 tall, a square one 200; 200 spare at the far end
+    assert left("stack") == [(0, 0, 200, 100), (0, 100, 200, 200)]
+    assert left("reverse") == [(0, 200, 200, 100), (0, 300, 200, 200)]  # same order
+    assert left("centre") == [(0, 100, 200, 100), (0, 200, 200, 200)]
+    # too tall for the panel: all shrink alike, centred across it, never overrunning
+    cmd["aspects"] = {"camera.a": 0.5, "camera.b": 0.5}
+    tiles = left("reverse")
+    assert all(t[2] == tiles[0][2] < 200 for t in tiles)
+    assert tiles[0][1] >= 0 and tiles[-1][1] + tiles[-1][3] <= 500
+
+
+def test_each_cameras_live_card_is_the_dashboards_choice(cd):
+    # taken from the cameras' own `live` the first time (the fixture's Tablet has one)
+    assert cd.store["live_cards"] == {"camera.b": "picture-entity"}
+    assert cd.store["cameras"]["camera.b"]["live"] == "picture-entity"
+    _, view = call(cd, "GET", "")
+    view["store"]["live_cards"] = {"camera.a_low": "webrtc-camera"}
+    _, view = call(cd, "PUT", "", view["store"])
+    cams = view["store"]["cameras"]
+    assert cams["camera.a_low"]["live"] == "webrtc-camera"
+    assert (
+        "live" not in cams["camera.b"]
+    )  # the Cameras page's own `live` no longer counts

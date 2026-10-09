@@ -5,7 +5,7 @@
 import type { ReactNode } from "react";
 import type { ModuleHealth } from "./health";
 import { ago, megabytes } from "./format";
-import { CameraGridIcon, CameraIcon, FirmwareIcon, GuestIcon, KioskModeIcon, PeopleIcon, PhoneIcon, ShieldIcon, TabletIcon } from "./icons";
+import { CameraGridIcon, CameraIcon, CommanderIcon, DashboardIcon, FirmwareIcon, GuestIcon, KioskModeIcon, PeopleIcon, PhoneIcon, ShieldIcon, TabletIcon } from "./icons";
 
 export type Fact = [label: string, value: string | undefined];
 
@@ -99,7 +99,7 @@ export const MODULES: Record<string, ModuleInfo> = {
   },
   compositor: {
     title: "Camera compositor",
-    option: "Compose camera groups",
+    option: "Camera Commander",
     blurb: "Draws the Camera Commander as one live picture for the dashboards and wall tablets.",
     icon: <CameraGridIcon />,
     facts: (h) => [
@@ -108,11 +108,31 @@ export const MODULES: Record<string, ModuleInfo> = {
       ["Needs", (h.needs as string | null) ?? undefined],
     ],
   },
-  camera_dashboard: {
-    title: "Camera Dashboard",
-    option: "Camera Dashboard",
-    blurb: "Sets up the cameras, the Camera Commander and the camera dashboard, with previews, and deploys it.",
+  cameras: {
+    title: "Cameras",
+    option: "Camera Commander or Auto Dashboards",
+    blurb: "The house's cameras: their names, streams and controls, for the commanders and the dashboard.",
     icon: <CameraIcon />,
+    facts: (h) => [["Cameras", String(h.cameras ?? 0)]],
+  },
+  commander: {
+    title: "Camera Commander",
+    option: "Camera Commander",
+    blurb: "The commanders: each a main camera framed by panels of cameras, one live picture for the card and the dashboard.",
+    icon: <CommanderIcon />,
+    facts: (h) => {
+      const all = (h.commanders ?? []) as { name: string; main?: string | null }[];
+      return [
+        ["Commanders", String(all.length)],
+        ["Main cameras", all.map((c) => `${c.name}: ${c.main ?? "?"}`).join(", ") || undefined],
+      ];
+    },
+  },
+  auto_dashboards: {
+    title: "Auto Dashboards",
+    option: "Auto Dashboards",
+    blurb: "Dashboards made for you: today the camera dashboard, from the cameras and the commanders, previewed and deployed.",
+    icon: <DashboardIcon />,
     facts: (h) => [
       ["Cameras", String(h.cameras ?? 0)],
       ["Deployed", ago(h.deployed) ?? "never"],

@@ -85,7 +85,7 @@ def fake_ha(events: list[dict], registry: dict | None):
                     await sock.send_json(
                         {"id": msg["id"], "type": "event", "event": event}
                     )
-        await asyncio.sleep(0.15)  # held open while the app reads
+        await sock.receive()  # held open until the client finishes reading
         return sock
 
     app = web.Application()

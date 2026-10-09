@@ -317,9 +317,6 @@ def _fonts(scale: float) -> tuple[Any, Any, Any]:
     return tuple(ImageFont.load_default(size=round(n * scale)) for n in (16, 20, 40))  # type: ignore[return-value]
 
 
-MOTION_DOT = (235, 50, 40)  # the accent green: the tile shown as the main camera
-
-
 def see_through(cmd: dict) -> bool:
     """Whether a commander's picture has clear parts, where the dashboard's background
     shows: its gaps, and the borders beside a main camera kept whole (fit, fixed, own).
@@ -339,7 +336,6 @@ def commander(
     main: str,
     main_image: Picture | None,
     changing: bool = False,
-    motion: frozenset[str] = frozenset(),
     stale: frozenset[str] = frozenset(),
     main_stale: bool = False,
 ) -> bytes:
@@ -401,12 +397,6 @@ def commander(
             )
             if raw and entity in stale:
                 _stale_mark(draw, (x + w - u(6), y + h - bar // 2), small, scale)
-            if entity in motion:  # a red dot: this camera sees motion now
-                r = max(u(5), min(w, h) // 18)
-                cx, cy = x + w - r - u(6), y + r + u(6)
-                draw.ellipse(
-                    (cx - r, cy - r, cx + r, cy + r), fill=MOTION_DOT, outline="white"
-                )
     x, y, w, h = main_rect
     shown = main_rect  # the main area that is solid: the camera's picture, once drawn
     if w > 0 and h > 0:

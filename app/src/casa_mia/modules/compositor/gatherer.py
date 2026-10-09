@@ -81,7 +81,9 @@ class Gatherer(Monitor):
             self._watch_ha_start(),
         ]
         for coro in tasks:
-            self._bg.add(asyncio.ensure_future(coro))
+            task = asyncio.ensure_future(coro)
+            self._bg.add(task)
+            task.add_done_callback(self._bg.discard)
 
     def stop(self) -> None:
         """Stop its loop (a compositor's own gatherer, when it stops): streams no
@@ -89,10 +91,10 @@ class Gatherer(Monitor):
         loop = self.loop
         if not loop:
             return
+        tasks = list(self._bg)
 
         async def end() -> None:
             self._stop_feeds()
-            tasks = list(self._bg)
             for task in tasks:
                 task.cancel()
             await asyncio.gather(*tasks, return_exceptions=True)

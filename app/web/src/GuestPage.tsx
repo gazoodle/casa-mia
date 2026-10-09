@@ -16,6 +16,7 @@ const POLL_MS = 5000;
 const HEAD = {
   icon: <GuestIcon />,
   title: "Guest login",
+  module: "guest_login",
   blurb: "QR codes that sign guests and engineers straight into their own dashboard.",
 };
 

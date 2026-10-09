@@ -18,6 +18,7 @@ const BUSY_POLL_MS = 1000;
 const HEAD = {
   icon: <FirmwareIcon />,
   title: "Firmware server",
+  module: "gitproxy",
   blurb: "Mirrors the Kiosk Satellite firmware so the wall tablets update without the internet.",
 };
 

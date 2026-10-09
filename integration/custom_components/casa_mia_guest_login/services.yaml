@@ -1,0 +1,14 @@
+enable_for:
+  target:
+    entity:
+      integration: casa_mia_guest_login
+      domain: switch
+  fields:
+    minutes:
+      required: true
+      example: 120
+      selector:
+        number:
+          min: 1
+          max: 1440
+          unit_of_measurement: min

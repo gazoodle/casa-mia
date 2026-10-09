@@ -1,0 +1,34 @@
+.chip {
+  --tone: var(--muted);
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--tone) 55%, transparent);
+  color: var(--tone);
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.skeleton,
+.development {
+  --tone: var(--bad);
+}
+
+.alpha {
+  --tone: var(--warn);
+}
+
+.beta {
+  --tone: var(--accent);
+}
+
+.released {
+  --tone: var(--good);
+}
+
+.line {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}

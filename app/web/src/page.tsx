@@ -3,6 +3,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import type { HeaderView } from "./api";
+import { Maturity } from "./maturity";
 import { photoApi } from "./photo";
 import css from "./guest.module.css";
 
@@ -10,6 +11,7 @@ export function Shell({
   icon,
   title,
   blurb,
+  module,
   state,
   action,
   children,
@@ -17,6 +19,8 @@ export function Shell({
   icon: ReactNode;
   title: string;
   blurb: string;
+  /** Its key in MODULES, for its maturity under the blurb. */
+  module?: string;
   state?: string;
   action?: ReactNode;
   children: ReactNode;
@@ -37,6 +41,7 @@ export function Shell({
         <div>
           <h1>{title}</h1>
           <p>{blurb}</p>
+          <Maturity module={module} full />
         </div>
         {action && <div className={css.settings}>{action}</div>}
         {state && state !== "running" && <span className={css.offChip}>{state}</span>}

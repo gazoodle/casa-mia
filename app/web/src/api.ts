@@ -155,4 +155,14 @@ export type KiosksView = {
   max_keep: number;
   every_hours: number[];
   results?: Record<string, string>;
+  /** The last Run everywhere: its command, and each kiosk's result as it came. */
+  everywhere: EverywhereRun | null;
+};
+
+export type EverywhereRun = {
+  command: string;
+  started: string;
+  running: boolean;
+  total: number;
+  results: { name: string; ok: boolean; error: string | null }[];
 };

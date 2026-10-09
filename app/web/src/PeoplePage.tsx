@@ -15,6 +15,7 @@ const { get, post, put, del } = api("people");
 const HEAD = {
   icon: <PeopleIcon />,
   title: "People",
+  module: "people",
   blurb: "Who is known to the home.",
 };
 

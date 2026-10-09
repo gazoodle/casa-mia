@@ -12,7 +12,7 @@ import pytest
 from PIL import Image
 
 from casa_mia.modules.compositor import LIVE_STORE, Compositor, Sending
-from conftest import set_compositor
+from conftest import set_compositor, stop_compositor
 
 
 async def gather_round(comp) -> None:
@@ -66,8 +66,7 @@ def compositor(tmp_path):
     comp = Compositor(tmp_path, f"http://127.0.0.1:{ha.server_port}", "token", port=0)
     comp.start()
     yield comp
-    comp.stop()
-    time.sleep(0.2)
+    stop_compositor(comp)
     ha.shutdown()
     ha.server_close()
 
@@ -142,8 +141,7 @@ def test_the_survey_keeps_a_picture_of_every_camera(tmp_path):
         assert thumb and Image.open(io.BytesIO(thumb)).size == (160, 90)
         assert comp.still("camera.a", 160) is thumb  # resized once per still
     finally:
-        comp.stop()
-        time.sleep(0.2)
+        stop_compositor(comp)
         ha.shutdown()
         ha.server_close()
 
@@ -285,8 +283,7 @@ def test_gathers_only_while_watched_and_serves_at_once_after(tmp_path, monkeypat
             assert Image.open(io.BytesIO(r.read())).size == (1920, 1080)
         assert time.monotonic() - start < 1
     finally:
-        comp.stop()
-        time.sleep(0.2)
+        stop_compositor(comp)
         ha.shutdown()
         ha.server_close()
 
@@ -711,3 +708,24 @@ def test_a_card_says_when_it_is_done_with_a_stream(compositor, caplog):
     assert "ended, the card asked again (a new size)" in log
     assert "ended, the card is done with it (left it)" in log
     assert "done with stream one (left it), which is not open" in log
+
+
+def test_a_viewer_that_is_a_known_tablet_is_named():
+    # Working together: Kiosk Satellites names the wall tablets by their addresses; the
+    # page keeps the address and adds the name.
+    from types import SimpleNamespace
+
+    from casa_mia.modules.compositor import admin_api
+
+    sending = [{"viewer": "192.0.2.5"}, {"viewer": "192.0.2.9"}]
+    live = SimpleNamespace(
+        port=8099,
+        gather=SimpleNamespace(status=dict),
+        status=lambda: {"sending": [dict(s) for s in sending]},
+    )
+    api = admin_api(live, None, names=lambda: {"192.0.2.5": "Barn"})  # type: ignore[arg-type]
+    got = json.loads(api("GET", "", {}, b"")[2])["live"]["sending"]
+    assert [(s["viewer"], s["name"]) for s in got] == [
+        ("192.0.2.5", "Barn"),
+        ("192.0.2.9", None),
+    ]

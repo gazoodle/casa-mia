@@ -30,9 +30,9 @@ Ported from tablet-provision/composite-test/server.py.
   GET /                   links; GET /status  cache ages and open streams
   GET /size-test          a commander at exactly the window's size, with the figures
 
-Config is the Camera Dashboard's store in the app's config folder:
-camera-dashboard-live.json (what was last deployed); the draft compositor reads the draft,
-camera-dashboard.json.
+Config is compositor.json in the app's config folder: the commanders and the cameras they
+show, written by Camera Commander on every change (a second, draft compositor could read
+another store; none does since the draft retired).
 
 The parts (each class builds on the one before it):
 
@@ -117,7 +117,6 @@ from .compositor import (
 )
 from .drawing import (
     FONT,
-    MOTION_DOT,
     SIZED,
     SMALL_BAR,
     STACKS,
@@ -216,7 +215,6 @@ __all__ = [
     "commander_layout",
     "STALE",
     "SMALL_BAR",
-    "MOTION_DOT",
     "see_through",
     "commander",
     "waiting_picture",

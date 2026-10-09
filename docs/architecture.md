@@ -67,8 +67,10 @@ module is a candidate for the public release (the Public column); each is off un
 | `people` | Everyone known to the home. Today one phone number each with Call and Text ticks, optionally linked to an HA person. Always on; People page in the panel. Built in app 0.1.31 | No | An earlier allowlist (a to-do list plus a pyscript, replaced) | Candidate | ⬜ |
 | `alarm` | Intruder alarm panel (arm away, disarm, triggered) in the integration only, driven by the panel's ESPHome sensors and toggle button; code in the integration's options; `alarm_enabled` app option (default off) switches it on. **Complete (integration 0.4.0, app 0.1.27).** The sensor and switch entity ids are fixed in `alarm.py` today; they must become options before release | Likely | An earlier alarm-panel custom component | Candidate | ✅ |
 | Firmware Server (`gitproxy`) | Mirrors the Kiosk Satellite firmware and serves it to the tablets on port 8000 (`gitproxy_enabled` app option, default off); the integration shows its state and latest version. **Built (app 0.1.10).** Includes a Force check button and download progress, on its own "Firmware server" device. | Yes (deployment path) | `tablet-provision/fake_git_host.py` | Candidate | ✅ |
-| `compositor` | Camera compositing and the adaptive dashboard. App module built (app 0.1.11): serves each Camera Commander's picture on port 8099 from the Camera Dashboard's live config, `compositor_enabled` option (default off) | No | composite-test server | Candidate | ✅ |
-| `camera_dashboard` | Camera Dashboard: one source (`camera-dashboard.json`, the draft, and `camera-dashboard-live.json`, what was deployed) for the cameras, the Camera Commanders (one or more, each a page), and the camera dashboard. Admin page with previews (a second compositor on 8098 draws the draft), deploys the dashboard into HA over the websocket (storage mode: preview to `<dashboard>-preview`, live to the dashboard, keeping what it replaces), `camera_dashboard_enabled` option (default off). Was `dashboard-gen` | No | `tablet-provision/composite-test/gen_dashboard.py`, `discover_entities.py` | Candidate | ✅ |
+| `compositor` | Camera compositing and the adaptive dashboard. App module built (app 0.1.11): serves each Camera Commander's picture on port 8099 from `compositor.json` (the commanders and their cameras, written by Camera Commander on every change), `compositor_enabled` option (default off), shown as Camera Commander since 2026.10.4-b18. One compositor since 2026.10.4-b12 (the draft one, on 8098, retired) | No | composite-test server | Candidate | ✅ |
+| `cameras` | The house's cameras (`cameras.json`): title, channels, zoom, PTZ presets, page controls; each one's motion sensor and own motion detection switch, found in HA. The source Camera Commander and the Camera Dashboard read; Cameras page in the panel. On with `compositor_enabled` (Camera Commander) or `camera_dashboard_enabled` (Auto Dashboards). Split out of the Camera Dashboard in 2026.10.4-b10 | No | The Camera Dashboard's camera list | Candidate | ✅ |
+| `commander` | Camera Commander (`commanders.json`): the commanders, saved straight to live (no draft); writes the compositor's config; the integration's commander devices (Main camera, Track motion) and the card's view of each. Camera Commander page in the panel. On with either option; its pictures with `compositor_enabled`, shown as Camera Commander. Split out in 2026.10.4-b11 | No | The Camera Dashboard's commanders | Candidate | ✅ |
+| `auto_dashboards` | Auto Dashboards (was the Camera Dashboard, renamed in 2026.10.4-b18): the camera dashboard, from the cameras and the commanders; its own draft (`camera-dashboard.json`) and what was deployed (`camera-dashboard-live.json`); deploys into HA over the websocket (storage mode: preview to `<dashboard>-preview`, live to the dashboard, keeping what it replaces); each camera's live card is its choice (`live_cards`). `camera_dashboard_enabled` option (default off), shown as Auto Dashboards. Was `dashboard-gen` | No | `tablet-provision/composite-test/gen_dashboard.py`, `discover_entities.py` | Candidate | ✅ |
 | `knx` | KNX project (ETS export) consumed to generate HA entities/config and drive control | Likely | KNX project (TBD) | Candidate | ⬜ |
 | `knx-bms` | A Raspberry Pi KNX machine: BMS programming control over the KNX bus, like logic modules but with better programming. First job: bring the Hue lights into the BMS, out of HA (backlog) | TBD | The Pi's existing code (to be located) | Candidate | ⬜ |
 | `esphome-gen` | Python generator that deterministically builds the ESPHome YAML for every Shelly and other ESP device in the automation system | No (devices it configures may be) | The current ESPHome generator script | Candidate | ⬜ |
@@ -108,6 +110,11 @@ Hand-edited live config is the thing to eliminate.
 Core restart lives in the **app**. The **integration** is thin: config flow, entities,
 services, events, Repairs. They talk over a small versioned local API.
 
+**Child integrations** (2026.10.4-b22): Guest login and Camera Commander each have their
+own, `casa_mia_guest_login` and `casa_mia_commander`, so a house can add only what it uses.
+Each depends on `casa_mia` and uses its coordinator (one `/health` poll); Casa Mia offers
+each under Discovered while its module is on (`casa_mia/children.py`).
+
 **FONA lives in the app** (owns the serial port, reconnect loop with backoff, handles the
 Arduino resetting when the port opens, by-id device path) and exposes sensors and events
 to the integration. Rationale: Core restarts and updates should not drop the board.
@@ -144,6 +151,7 @@ casa-mia/
       modules/             # planned: fona, gitproxy, compositor, guest-login, ... (alarm is integration-only)
   integration/
     custom_components/casa_mia/     # config flow, coordinator, sensor, restart notice, repairs, brand/
+    custom_components/casa_mia_guest_login/, casa_mia_commander/  # the child integrations
     versions.lock.json     # per-component version + content digest (see Versioning)
   branding/                # the icon and logo masters (PNG); the sized copies are committed
   tools/                   # setup (venv), fake_git_host.py, versioning.py, sync_app_version.py,

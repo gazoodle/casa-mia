@@ -23,11 +23,13 @@ def admin_api(
     live: Compositor,
     draft: Compositor | None,
     host: Callable[[], str | None] = lambda: None,
+    names: Callable[[], dict[str, str]] = dict,
 ):
     """The Camera compositor page's API (/api/compositor/): GET / is what the live
     compositor (dashboards, wall tablets) and the draft one (previews, Show the draft
     cards) serve now, each with its size test page's address on the LAN (`host`: this
-    box's LAN address, when known); POST restart (both engines), <live|draft>/flush,
+    box's LAN address, when known), each stream's viewer named where `names` knows
+    its address (a Kiosk Satellite tablet's name); POST restart (both engines), <live|draft>/flush,
     <live|draft>/forget {"camera": <entity>} (the cache, shared: whole or one
     channel), cache/purge, cache/forget {"camera": <entity>}, gatherer/<pause|run>
     and <live|draft>/<generator|server>/<pause|run> answer with it afresh; GET
@@ -37,7 +39,10 @@ def admin_api(
     def one(engine: Compositor) -> dict[str, Any]:
         at = host()
         test = f"http://{at}:{engine.port}/size-test" if at else None
-        return {**engine.status(), "size_test": test}
+        status, known = engine.status(), names()
+        for s in status.get("sending") or []:
+            s["name"] = known.get(s["viewer"])
+        return {**status, "size_test": test}
 
     def status() -> tuple[int, str, bytes]:
         data = {

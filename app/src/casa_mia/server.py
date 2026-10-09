@@ -26,9 +26,9 @@ API_VERSION = 1
 WEB_DIR = Path(__file__).parent / "web"
 # Ingress requests all come from the Supervisor's gateway; nothing else gets the UI.
 INGRESS_GATEWAY = "172.30.32.2"
-# POSTs that only read (the Camera Dashboard's live previews, one per edit): not logged
+# POSTs that only read (the Camera Commander page's live previews, one per edit): not logged
 # at INFO with the admin page's changes.
-READS = ("/api/camera-dashboard/render",)
+READS = ("/api/commander/render",)
 
 
 def integration_url() -> str:
@@ -134,6 +134,17 @@ class Handler(BaseHTTPRequestHandler):
             helpers.clear()
             helpers.update(h for h in query["helpers"][0].split(",") if h)
             self.server.helpers_heard = True  # type: ignore[attr-defined]
+        # And which cards (cm-cards.js) Home Assistant serves: a new version (HA
+        # restarted after an update) is told to whoever follows it (the kiosks reload).
+        if "cards" in query:
+            cards = query["cards"][0]
+            heard, self.server.cards = self.server.cards, cards  # type: ignore[attr-defined]
+            if heard and cards != heard:
+                _LOGGER.info(
+                    "Home Assistant now serves the cards %s (was %s)", cards, heard
+                )
+                for follow in self.server.on_cards:  # type: ignore[attr-defined]
+                    follow(cards)
         from . import header, settings  # here: header imports this module
 
         if "helpers" in query:
@@ -245,11 +256,13 @@ def make_server(
     web_dir: Path = WEB_DIR,
     proxies: dict[str, ProxyHandler] | None = None,
     helpers: set[str] | None = None,
+    on_cards: list[Callable[[str], None]] | None = None,
 ) -> ThreadingHTTPServer:
     """`modules` maps a module name to its health() callable, reported under /health.
     `actions` maps a POST path (e.g. /gitproxy/check) to a callable run in the background.
     `post_handlers` maps a POST path prefix to a handler(rest_of_path, body) -> HTTP
-    status, run inline."""
+    status, run inline. `on_cards` are called with the cards version when the
+    integration says Home Assistant serves a new one."""
     server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
     server.modules = modules or {}  # type: ignore[attr-defined]
     server.actions = actions or {}  # type: ignore[attr-defined]
@@ -263,4 +276,6 @@ def make_server(
     # Until the integration's first /health since this start, which may be 30 s away,
     # nobody knows which helpers it loads: not "none".
     server.helpers_heard = False  # type: ignore[attr-defined]
+    server.cards = None  # type: ignore[attr-defined]
+    server.on_cards = on_cards if on_cards is not None else []  # type: ignore[attr-defined]
     return server

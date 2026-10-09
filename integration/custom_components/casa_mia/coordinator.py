@@ -10,7 +10,6 @@ import aiohttp
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_URL
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -30,14 +29,20 @@ def helpers_on(data: dict[str, Any] | None) -> list[str]:
 
 
 async def async_fetch_health(
-    hass: HomeAssistant, url: str, helpers: list[str] | None = None
+    hass: HomeAssistant,
+    url: str,
+    helpers: list[str] | None = None,
+    cards: str | None = None,
 ) -> dict[str, Any]:
     """The app's /health. `helpers`: the dashboard helper scripts loaded, told to the app
-    so its Camera Dashboard page knows (e.g. that Back works)."""
+    so its Auto Dashboards page knows (e.g. that Back works). `cards`: the version of
+    the cards HA serves, so the app can reload the wall tablets when it changes."""
     session = async_get_clientsession(hass)
-    params = {"helpers": ",".join(helpers)} if helpers is not None else None
+    params = {"helpers": ",".join(helpers)} if helpers is not None else {}
+    if cards:
+        params["cards"] = cards
     async with session.get(
-        f"{url}/health", params=params, timeout=aiohttp.ClientTimeout(total=10)
+        f"{url}/health", params=params or None, timeout=aiohttp.ClientTimeout(total=10)
     ) as response:
         response.raise_for_status()
         return await response.json()
@@ -56,14 +61,19 @@ class CasaMiaCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         self.url: str = entry.data[CONF_URL]
         self.loaded_version = loaded_version
-        # Track motion, per commander id (motion.MotionTracker); see motion.tracker
+        # Track motion, per commander id (casa_mia_commander's motion.MotionTracker)
         self.motion: dict[str, Any] = {}
 
     async def _async_update_data(self) -> dict[str, Any]:
         # Before the fetch, so a restart prompt still appears while the app is down.
         await async_check_restart(self.hass, self.loaded_version)
         try:
-            data = await async_fetch_health(self.hass, self.url, helpers_on(self.data))
+            data = await async_fetch_health(
+                self.hass,
+                self.url,
+                helpers_on(self.data),
+                self.hass.data.get(f"{DOMAIN}_cards"),
+            )
         except (aiohttp.ClientError, TimeoutError, ValueError) as exc:
             raise UpdateFailed(f"Casa Mia app unreachable: {exc}") from exc
         self._check_api(data.get("api"))
@@ -71,21 +81,6 @@ class CasaMiaCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Faster polling while a download is running so progress is watchable.
         self.update_interval = timedelta(seconds=5 if downloading else 30)
         return data
-
-    async def async_set_guest_endpoint(
-        self, endpoint_id: str, on: bool, minutes: float | None = None
-    ) -> None:
-        """Open or close a guest-login endpoint in the app (optionally for `minutes`)."""
-        path = f"/guest-login/{endpoint_id}/{'enable' if on else 'disable'}"
-        if on and minutes:
-            path += f"?minutes={minutes}"
-        try:
-            await async_post(self.hass, self.url, path)
-        except aiohttp.ClientError as exc:
-            raise HomeAssistantError(
-                f"Guest login endpoint not changed: {exc}"
-            ) from exc
-        await self.async_request_refresh()
 
     def _check_api(self, app_api: object) -> None:
         if app_api == API_VERSION:
@@ -113,3 +108,14 @@ async def async_post(
         f"{url}{path}", json=json, timeout=aiohttp.ClientTimeout(total=10)
     ) as response:
         response.raise_for_status()
+
+
+def running_coordinator(hass: HomeAssistant) -> CasaMiaCoordinator | None:
+    """Casa Mia's coordinator, while its entry is set up; the child integrations (Guest
+    Login, Camera Commander) share it, so the app's /health is polled once."""
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        if isinstance(
+            found := getattr(entry, "runtime_data", None), CasaMiaCoordinator
+        ):
+            return found
+    return None

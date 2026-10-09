@@ -251,8 +251,16 @@
   cursor: pointer;
 }
 
-.more {
+.tileFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   margin-top: auto;
+}
+
+.more {
+  margin-left: auto;
   color: var(--accent);
   font-size: 13px;
   font-weight: 600;

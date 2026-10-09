@@ -1,10 +1,9 @@
 // What the cards borrow from Home Assistant's frontend: its card wrapper (hui-card, which
-// applies each card's `visibility` and edit-mode preview), its stack editor (pick, edit,
-// move and delete child cards) and ha-form. None are public API, but HA's own stack cards
-// use them the same way; if an HA update breaks one, it breaks here first.
+// applies each card's `visibility` and edit-mode preview), Sections view and ha-form.
+// None are public API; if an HA update breaks one, it breaks here first.
 import LAYOUT from "../../../app/src/casa_mia/layout.json" with { type: "json" };
 
-export type State = { state: string; attributes: Record<string, any> };
+export type State = { state: string; attributes: Record<string, any>; last_changed?: string };
 export type Hass = {
   states: Record<string, State>;
   callService(domain: string, service: string, data?: object, target?: object): Promise<unknown>;
@@ -18,31 +17,9 @@ export function fire(el: EventTarget, type: string, detail?: unknown): void {
   el.dispatchEvent(new CustomEvent(type, { detail, bubbles: true, composed: true }));
 }
 
-export async function huiCard(config: CardConfig, hass: Hass | undefined, preview: boolean): Promise<HuiCard> {
-  await customElements.whenDefined("hui-card");
-  const el = document.createElement("hui-card") as HuiCard;
-  el.hass = hass;
-  el.preview = preview;
-  el.config = config;
-  el.load();
-  return el;
-}
-
-/** Shown: hui-card hides itself (hidden attribute) when its card or conditions say so. */
-export const shown = (el: Element) => !el.hasAttribute("hidden") && (el as HTMLElement).style.display !== "none";
-
 export function navigate(path: string): void {
   history.pushState(null, "", path);
   fire(window, "location-changed", { replace: false });
-}
-
-/** HA's stack editor (the vertical stack's): a child card list with picker and editors. */
-export type StackEditor = HTMLElement & { hass?: Hass; lovelace?: unknown; setConfig(c: CardConfig): void };
-export async function stackEditor(): Promise<StackEditor> {
-  const helpers = await (window as any).loadCardHelpers();
-  await helpers.createCardElement({ type: "vertical-stack", cards: [] }); // loads its module
-  await customElements.whenDefined("hui-vertical-stack-card");
-  return (customElements.get("hui-vertical-stack-card") as any).getConfigElement();
 }
 
 /** HA's ha-form, loaded: HA loads it with its card editors, so ask for one (the entities
@@ -74,6 +51,11 @@ export async function sectionsView(): Promise<CustomElementConstructor> {
 /** Define a custom element, once: a second copy of this file (cm-streams.js loads it
  * again when the first load failed) finds it defined and leaves it. A failure says so in
  * the console, which Kiosk Satellite keeps (getConsole), so a dead card has a reason. */
+/** How many Tablet Layout views are on screen (the view counts itself in and out): a card
+ * there, or in HA's edit dialog opened from one (outside the view, so it can't look up the
+ * page for it), takes its Tablet Layout default. */
+export const TABLET = { shown: 0 };
+
 export function define(tag: string, element: CustomElementConstructor): void {
   if (customElements.get(tag)) return;
   try {
@@ -87,7 +69,7 @@ export function register(type: string, name: string, description: string): void 
   const w = window as any;
   w.customCards ||= [];
   if (!w.customCards.some((c: { type: string }) => c.type === type))
-    w.customCards.push({ type, name, description, preview: false, documentationURL: "https://github.com/gazoodle/casa-mia" });
+    w.customCards.push({ type, name, description, preview: true, documentationURL: "https://github.com/gazoodle/casa-mia" });
 }
 
 // --- ha-form schemas from the shared layout options (app/src/casa_mia/layout.json) -------
