@@ -6,12 +6,20 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api } from "./api";
 import { ago } from "./format";
+import { Developer } from "./health";
 import { CameraIcon } from "./icons";
 import { AreaHead, Empty, Shell } from "./page";
+import { LiveView } from "./LiveView";
 import { CopyButton, Dialog, Field, Segmented, Switch, Toasts, type Toast } from "./ui";
 import css from "./cameras.module.css";
 import guest from "./guest.module.css";
 import ui from "./ui.module.css";
+import LAYOUT from "../../src/casa_mia/layout.json";
+
+// The layout options' labels, help and defaults, shared with the Tablet Layout.
+const L = LAYOUT.main;
+const P = LAYOUT.panel;
+const help = (o: { help?: string }) => o.help?.replaceAll("{item}", "camera");
 
 const { get, post, put } = api("camera-dashboard");
 
@@ -36,17 +44,16 @@ type Camera = {
 type Highlight = { colour: string; width: number; blur: number; pulse: number; style: "breathe" | "ripple" };
 const HIGHLIGHT: Highlight = { colour: "#7bd1a0", width: 2, blur: 13, pulse: 1.8, style: "breathe" };
 const MOTION = { hold: 10, back: 30, pause: 120 };
-// The integration's switches (Camera Commander device), flipped from here through the app.
-const SHOW_LOOK = "casa-mia:show-look"; // localStorage: the look on this page's previews
-
-/** The Security look: a tint, how strong and how dark, and the CSS filter made of them. */
-type Look = { tint: string; strength: number; darkness: number; css: string };
+type Debug = { on: boolean; dim: number; corner: number; width: number; colour: string };
+const DEBUG: Debug = { on: false, dim: 20, corner: 40, width: 2, colour: "#ffd60a" };
 
 /** A shape, width over height: a number (1.78) or a ratio as written ("16:9"). */
 type Shape = number | string;
 type Panel = {
   cameras: string[];
   size: number;
+  /** Of size: % of the picture's width (left, right) or height (top, bottom), or px. */
+  unit?: "%" | "px";
   /** Fill (cover) or Whole (contain) equal tiles; or each camera at its own shape, edge to
    * edge, from the start (stack), against the end (reverse) or in the middle (centre). */
   fit: "cover" | "contain" | "stack" | "reverse" | "centre";
@@ -69,6 +76,7 @@ type Commander = {
   width: number;
   height: number;
   gap: number;
+  margin?: number;
   main: string;
   /** own and fixed: the main camera is main_width % wide; the panels take the rest. */
   main_fit: "fit" | "fill" | "crop" | "own" | "fixed";
@@ -80,6 +88,8 @@ type Commander = {
   stale?: number;
   /** The outline on the main camera's tile, drawn by the browser on the dashboard. */
   highlight?: Highlight;
+  /** Debug options: the picture dimmed, corner Ls and diagonals, its ID and draw time. */
+  debug?: Debug;
   /** Track motion (done by the integration), seconds. back 0: stays on the motion camera. */
   motion?: { hold: number; back: number; pause: number };
 } & Record<(typeof PANELS)[number], Panel>;
@@ -100,7 +110,6 @@ type Store = {
   cameras: Record<string, Camera>;
   /** In order: the dashboard's first pages. Always at least one. */
   commanders: Commander[];
-  look: Look;
 };
 type View = {
   store: Store;
@@ -111,6 +120,11 @@ type View = {
   preview_dashboard: string;
   /** When the preview dashboard was last deployed; null when there is none. */
   previewed: string | null;
+  /** When the config the last preview deploy replaced was kept; null when none is. */
+  preview_backup: string | null;
+  /** How many older versions of the live dashboard are kept, and the most it can be. */
+  keep: number;
+  max_keep: number;
   /** What a blank new commander starts as. */
   empty_commander: Commander;
   compositor: { live: boolean; draft: boolean; host: string | null };
@@ -125,8 +139,6 @@ type HA = {
   commander_selects?: Record<string, string>;
   /** Each commander's Track motion switch. */
   commander_switches?: Record<string, string>;
-  /** Each commander's Security look switch. */
-  commander_looks?: Record<string, string>;
   /** Each camera's motion sensor (for the commander's Track motion), where it has one. */
   motion?: Record<string, string>;
   /** What the saved draft needs that Home Assistant seems to lack. */
@@ -144,8 +156,6 @@ const CARDS: [string, string][] = [
 const THUMB_EVERY_MS = 5 * 60_000;
 /** Which round of thumbnails to show: bumped every THUMB_EVERY_MS. */
 const ThumbRound = createContext(0);
-/** The Security look's filter while it's shown on this page's previews, else "". */
-const LookPreview = createContext("");
 /** Home Assistant's entities, for the entity fields. */
 const Entities = createContext<{ entity: string; name: string; state?: string }[]>([]);
 
@@ -157,22 +167,6 @@ export function CameraDashboardPage({ state }: { state?: string }) {
   const [ha, setHa] = useState<HA>();
   const [stamp, setStamp] = useState(Date.now()); // bumps the warnings and backups after a save
   const [thumbRound, setThumbRound] = useState(0);
-  // The Security look on this page's previews: remembered in this browser.
-  const [showLook, setShowLookNow] = useState(() => {
-    try {
-      return localStorage.getItem(SHOW_LOOK) === "1";
-    } catch {
-      return false;
-    }
-  });
-  const setShowLook = (on: boolean) => {
-    setShowLookNow(on);
-    try {
-      localStorage.setItem(SHOW_LOOK, on ? "1" : "0");
-    } catch {
-      // private window: just this visit
-    }
-  };
   useEffect(() => {
     const timer = setInterval(() => setThumbRound((n) => n + 1), THUMB_EVERY_MS);
     return () => clearInterval(timer);
@@ -259,9 +253,6 @@ export function CameraDashboardPage({ state }: { state?: string }) {
     );
 
   return (
-    <LookPreview.Provider
-      value={showLook ? draft.look?.css || lookCss(draft.look.tint, draft.look.strength, draft.look.darkness) : ""}
-    >
     <ThumbRound.Provider value={thumbRound}>
     <Entities.Provider value={ha?.entities ?? []}>
     <Shell {...HEAD} state={state}>
@@ -304,7 +295,7 @@ export function CameraDashboardPage({ state }: { state?: string }) {
               title={`Delete the preview dashboard /${view.preview_dashboard} from Home Assistant`}
               onClick={() =>
                 confirm(
-                  `Remove the preview dashboard /${view.preview_dashboard} from Home Assistant? Its config is kept (Backups); the live dashboard and the draft are untouched.`,
+                  `Remove the preview dashboard /${view.preview_dashboard} from Home Assistant? The live dashboard and the draft are untouched.`,
                 ) && act("unpreview", () => post<View>("remove-preview"), `Removed /${view.preview_dashboard}`)
               }
             >
@@ -317,7 +308,7 @@ export function CameraDashboardPage({ state }: { state?: string }) {
             title={`Deploy the draft to /${draft.dashboard}, and make it the live composites`}
             onClick={() =>
               confirm(
-                `Replace the dashboard /${draft.dashboard} and the live composites with this draft? What it replaces is kept (Backups).`,
+                `Replace the dashboard /${draft.dashboard} and the live composites with this draft? ${view.keep ? `The dashboard it replaces is kept as an older version (Backups).` : "Older versions are not being kept (Backups)."}`,
               ) && deploy("live")
             }
           >
@@ -372,8 +363,6 @@ export function CameraDashboardPage({ state }: { state?: string }) {
           store={draft}
           blank={view.empty_commander}
           ha={ha}
-          securityLook={(id) => haSwitch(ha?.commander_looks?.[id] ?? "")}
-          onSecurityLook={(id, on) => ha?.commander_looks?.[id] && flip(ha.commander_looks[id], on, "Security look")}
           trackMotion={(id) => haSwitch(ha?.commander_switches?.[id] ?? "")}
           onTrackMotion={(id, on) =>
             ha?.commander_switches?.[id] && flip(ha.commander_switches[id], on, "Track motion")
@@ -504,34 +493,53 @@ export function CameraDashboardPage({ state }: { state?: string }) {
 
       <section className={guest.area}>
         <AreaHead
-          title="Security look"
-          blurb="A commander's picture in monochrome, tinted, like a security control room: done by the browser, switched on and off per commander with its Security look switch in Home Assistant (by hand, or an automation at night; also on each commander, above). One look for them all."
-        />
-        <LookEditor
-          value={draft.look}
-          shown={showLook}
-          onShow={setShowLook}
-          onChange={(l) => edit((s) => (s.look = l))}
-        />
-      </section>
-
-      <section className={guest.area}>
-        <AreaHead
           title="Backups"
-          blurb="Every deploy keeps the dashboard config it replaces. Restore puts one back (the composites are unchanged: use Revert draft and deploy for those)."
+          blurb="Revert draft goes back to what is live. Revert preview puts the preview dashboard back as it was before its last deploy (again to undo). Older live versions: Restore puts one back (the composites are unchanged: use Revert draft and deploy for those)."
           action={
-            <button
-              className={ui.button}
-              disabled={!!busy || !view.deployed}
-              onClick={() =>
-                confirm("Throw the draft away and go back to what is live?") &&
-                act("revert", () => post<View>("revert"), "Draft reverted to live")
-              }
-            >
-              Revert draft
-            </button>
+            <div className={css.revertButtons}>
+              <button
+                className={ui.button}
+                disabled={!!busy || !view.deployed}
+                onClick={() =>
+                  confirm("Throw the draft away and go back to what is live?") &&
+                  act("revert", () => post<View>("revert"), "Draft reverted to live")
+                }
+              >
+                Revert draft
+              </button>
+              <button
+                className={ui.button}
+                disabled={!!busy || !view.preview_backup}
+                title={
+                  view.preview_backup
+                    ? `Put /${view.preview_dashboard} back as it was ${ago(view.preview_backup)}`
+                    : "The preview has no earlier version yet: the second preview deploy keeps the first."
+                }
+                onClick={() =>
+                  confirm(`Put /${view.preview_dashboard} back as it was before its last deploy?`) &&
+                  act("revert-preview", () => post<View>("revert-preview"), `Reverted /${view.preview_dashboard}`)
+                }
+              >
+                Revert preview
+              </button>
+            </div>
           }
         />
+        <div className={css.keep}>
+          <span>Keep older versions</span>
+          <Segmented
+            value={String(view.keep)}
+            options={Array.from({ length: view.max_keep + 1 }, (_, n) => [String(n), String(n)])}
+            onChange={(v) =>
+              act("keep", () => put<View>("keep", { keep: Number(v) }), `Keeping ${plural(Number(v), "older version")}`).then(
+                () => setStamp(Date.now()),
+              )
+            }
+          />
+          <span className={css.keepHelp}>
+            Of the live dashboard's config, each deploy keeps the one it replaces. Lowering it deletes the extras now.
+          </span>
+        </div>
         <Backups toast={toast} stamp={stamp} />
       </section>
 
@@ -540,7 +548,6 @@ export function CameraDashboardPage({ state }: { state?: string }) {
     </Shell>
     </Entities.Provider>
     </ThumbRound.Provider>
-    </LookPreview.Provider>
   );
 }
 
@@ -571,60 +578,11 @@ function CommanderSelectCheck({ ha, id }: { ha?: HA; id: string }) {
   );
 }
 
-/** The CSS filter of a look: monochrome, then tinted (sepia's own hue is about 35°, turned
- * to the tint's), saturated by `strength`, darkened by `darkness` %. */
-function lookCss(tint: string, strength: number, darkness: number): string {
-  const [r, g, b] = [1, 3, 5].map((i) => parseInt(tint.slice(i, i + 2), 16) / 255);
-  const max = Math.max(r, g, b);
-  const span = max - Math.min(r, g, b);
-  let hue = 0;
-  if (span) hue = max === r ? ((g - b) / span) % 6 : max === g ? (b - r) / span + 2 : (r - g) / span + 4;
-  const turn = Math.round(hue * 60 - 35);
-  const bright = Math.max(0.1, 1 - darkness / 100).toFixed(2);
-  return `grayscale(1) sepia(1) hue-rotate(${turn}deg) saturate(${strength}) brightness(${bright}) contrast(1.1)`;
-}
-
-function LookEditor({
-  value,
-  shown,
-  onShow,
-  onChange,
-}: {
-  value: Look;
-  shown: boolean;
-  onShow: (on: boolean) => void;
-  onChange: (l: Look) => void;
-}) {
-  const look = value; // the app fills in the defaults
-  const set = (change: Partial<Look>) => {
-    const next = { ...look, ...change };
-    onChange({ ...next, css: lookCss(next.tint, next.strength, next.darkness) });
-  };
-  return (
-    <div className={css.settings}>
-      <div className={css.numbers}>
-        <Field label="Tint">
-          <input type="color" className={css.colour} value={look.tint} onChange={(e) => set({ tint: e.target.value })} />
-        </Field>
-        <Num label="Strength" step={0.5} value={look.strength} onChange={(n) => set({ strength: n })} />
-        <Num label="Darker, %" value={look.darkness} onChange={(n) => set({ darkness: n })} />
-        <Field label="On the previews here" help="Only this page, in this browser.">
-          <Switch on={shown} label="On the previews here" onChange={onShow} />
-        </Field>
-      </div>
-      <p className={css.hint}>
-        The filter: <code>{look.css || lookCss(look.tint, look.strength, look.darkness)}</code>. The dashboards use
-        the saved draft's look.
-      </p>
-    </div>
-  );
-}
-
 const PANEL_NAMES: Record<(typeof PANELS)[number], [title: string, size: string]> = {
-  left: ["Left", "Width, % of the picture"],
-  top: ["Top", "Height, % of the picture"],
-  right: ["Right", "Width, % of the picture"],
-  bottom: ["Bottom", "Height, % of the picture"],
+  left: ["Left", "Width"],
+  top: ["Top", "Height"],
+  right: ["Right", "Width"],
+  bottom: ["Bottom", "Height"],
 };
 
 /** The commanders as an accordion: one open at a time (only its preview is drawn). Each
@@ -634,8 +592,6 @@ function Commanders({
   store,
   blank,
   ha,
-  securityLook,
-  onSecurityLook,
   trackMotion,
   onTrackMotion,
   onChange,
@@ -643,9 +599,6 @@ function Commanders({
   store: Store;
   blank: Commander;
   ha?: HA;
-  /** A commander's (by id) Security look switch's state in Home Assistant. */
-  securityLook: (id: string) => string | undefined;
-  onSecurityLook: (id: string, on: boolean) => void;
   /** A commander's (by id) Track motion switch's state in Home Assistant. */
   trackMotion: (id: string) => string | undefined;
   onTrackMotion: (id: string, on: boolean) => void;
@@ -726,8 +679,6 @@ function Commanders({
               value={c}
               cameras={store.cameras}
               preview={<LivePreview store={store} index={i} />}
-              securityLook={securityLook(c.id ?? "")}
-              onSecurityLook={(on) => onSecurityLook(c.id ?? "", on)}
               trackMotion={trackMotion(c.id ?? "")}
               onTrackMotion={(on) => onTrackMotion(c.id ?? "", on)}
               onChange={(v) => change(list.map((x, j) => (j === i ? v : x)))}
@@ -756,8 +707,6 @@ function CommanderEditor({
   value,
   cameras,
   preview,
-  securityLook,
-  onSecurityLook,
   trackMotion,
   onTrackMotion,
   onChange,
@@ -765,9 +714,6 @@ function CommanderEditor({
   value: Commander;
   cameras: Record<string, Camera>;
   preview: ReactNode;
-  /** Its Security look switch's state in Home Assistant (undefined: HA hasn't it). */
-  securityLook?: string;
-  onSecurityLook: (on: boolean) => void;
   /** The Track motion switch's state in Home Assistant (undefined: HA hasn't it). */
   trackMotion?: string;
   onTrackMotion: (on: boolean) => void;
@@ -781,6 +727,8 @@ function CommanderEditor({
   const inPanels = [...new Set(PANELS.flatMap((p) => value[p].cameras))];
   const sized = value.main_fit === "own" || value.main_fit === "fixed"; // the panels take the rest
   const lit = { ...HIGHLIGHT, ...value.highlight };
+  const dbg = { ...DEBUG, ...value.debug };
+  const developer = useContext(Developer); // Debug options only in developer mode
   const moves = { ...MOTION, ...value.motion };
   return (
     <div className={css.commander}>
@@ -805,26 +753,13 @@ function CommanderEditor({
               />
             </Field>
           </div>
-          <div className={css.wide}>
-            <Field
-              label="Security look"
-              help={
-                securityLook === undefined
-                  ? "Home Assistant has no Security look switch for it yet (the Casa Mia integration adds it once the draft is saved)."
-                  : "This commander's Security look switch in Home Assistant, on every screen showing it; automations can flip it too. The look itself is set under Security look, below."
-              }
-            >
-              <Switch
-                on={securityLook === "on"}
-                label="Security look"
-                busy={securityLook === undefined}
-                onChange={onSecurityLook}
-              />
-            </Field>
-          </div>
-          <Num label="Width" value={value.width} onChange={(n) => set((c) => (c.width = n))} />
-          <Num label="Height" value={value.height} onChange={(n) => set((c) => (c.height = n))} />
-          <Num label="Gap, px" value={value.gap} onChange={(n) => set((c) => (c.gap = n))} />
+          <Num label={L.gap.label} value={value.gap} help={help(L.gap)} onChange={(n) => set((c) => (c.gap = n))} />
+          <Num
+            label={L.margin.label}
+            value={value.margin ?? L.margin.default}
+            help={help(L.margin)}
+            onChange={(n) => set((c) => (c.margin = Math.max(0, n)))}
+          />
           <Num
             label="Stale after, s"
             value={value.stale ?? 30}
@@ -832,46 +767,39 @@ function CommanderEditor({
             onChange={(n) => set((c) => (c.stale = n))}
           />
           <p className={`${css.hint} ${css.wide}`}>
-            Gaps are transparent: the dashboard's background shows through them.
+            Gaps, and the borders beside a main camera kept whole, are transparent: the dashboard's background shows through them. The Camera Commander card draws it
+            exactly the size it is shown (its shape too); the preview here and the generated dashboard draw it at a fixed size.
           </p>
         </section>
         <section className={`${css.options} ${css.numbers}`}>
           <h4 className={css.sub}>Main camera</h4>
           <div className={css.wide}>
-            <Field
-              label="Fit"
-              help="Fit: whole, with black borders. Fill: stretched to the space. Crop: fills it, edges cut off. Own shape: Main width wide at the camera's own shape, the panels around it (they move when a camera of another shape is shown). Fixed shape: Main width wide at the shape set, the camera whole within it."
-            >
+            <Field label={L.main_fit.label} help={help(L.main_fit)}>
               <Segmented
-                value={value.main_fit ?? "fit"}
-                options={[
-                  ["fit", "Fit"],
-                  ["fill", "Fill"],
-                  ["crop", "Crop"],
-                  ["own", "Own shape"],
-                  ["fixed", "Fixed shape"],
-                ]}
+                value={value.main_fit ?? (L.main_fit.default as Commander["main_fit"])}
+                options={L.main_fit.options as [Commander["main_fit"], string][]}
                 onChange={(f) => set((c) => (c.main_fit = f))}
               />
             </Field>
           </div>
           {sized && (
             <Num
-              label="Main width, % of the picture"
-              value={value.main_width ?? 70}
+              label={L.main_width.label}
+              value={value.main_width ?? L.main_width.default}
+              help={help(L.main_width)}
               onChange={(n) => set((c) => (c.main_width = n))}
             />
           )}
           {sized && (
             <Num
-              label="Smallest panel, %"
-              value={value.panel_min ?? 8}
-              help="A panel with cameras keeps at least this much of the picture; the main camera shrinks (same shape) rather than squeeze it out."
+              label={L.panel_min.label}
+              value={value.panel_min ?? L.panel_min.default}
+              help={help(L.panel_min)}
               onChange={(n) => set((c) => (c.panel_min = n))}
             />
           )}
           {value.main_fit === "fixed" && (
-            <RatioInput label="Main shape" value={value.main_ratio ?? "16:9"} onChange={(r) => set((c) => (c.main_ratio = r))} />
+            <RatioInput label={L.main_ratio.label} value={value.main_ratio ?? L.main_ratio.default} onChange={(r) => set((c) => (c.main_ratio = r))} />
           )}
           <div className={css.wide}>
             <Field label="Main camera at start">
@@ -930,6 +858,34 @@ function CommanderEditor({
             />
           </Field>
         </section>
+        {developer && (
+          <section className={`${css.options} ${css.numbers}`}>
+            <h4 className={css.sub}>Debug options</h4>
+            <div className={css.wide}>
+              <Field
+                label="Debug"
+                help="Dims the whole picture and draws an L in each corner and both diagonals, so its true edges show, with its ID (name, size, scale) and when it was drawn. Camera Commander cards add their own figures. Saved in the draft, it shows on the preview and Show the draft cards first."
+              >
+                <Switch on={dbg.on} label="Debug" onChange={(on) => set((c) => (c.debug = { ...dbg, on }))} />
+              </Field>
+            </div>
+            {dbg.on && (
+              <>
+                <Num label="Dim to, %" value={dbg.dim} onChange={(n) => set((c) => (c.debug = { ...dbg, dim: Math.min(100, Math.max(0, n)) }))} />
+                <Num label="Corner L, px" value={dbg.corner} onChange={(n) => set((c) => (c.debug = { ...dbg, corner: n }))} />
+                <Num label="Line width, px" value={dbg.width} onChange={(n) => set((c) => (c.debug = { ...dbg, width: n }))} />
+                <Field label="Line colour">
+                  <input
+                    type="color"
+                    className={css.colour}
+                    value={dbg.colour}
+                    onChange={(e) => set((c) => (c.debug = { ...dbg, colour: e.target.value }))}
+                  />
+                </Field>
+              </>
+            )}
+          </section>
+        )}
         <section className={`${css.options} ${css.numbers}`}>
           <h4 className={css.sub}>Track motion</h4>
           <div className={css.wide}>
@@ -989,52 +945,50 @@ function CommanderEditor({
             />
             <div className={css.panelOptions}>
               <Num
-                label={PANEL_NAMES[p][1]}
+                label={`${PANEL_NAMES[p][1]}, ${value[p].unit === "px" ? "px" : "% of the picture"}`}
                 value={value[p].size}
                 disabled={sized}
                 help={sized ? "Set by the main camera's size." : undefined}
                 onChange={(n) => set((c) => (c[p].size = n))}
               />
+              {!sized && (
+                <Field label={P.unit.label} help={help(P.unit)}>
+                  <Segmented
+                    value={value[p].unit ?? "%"}
+                    options={P.unit.options as ["%" | "px", string][]}
+                    onChange={(u) =>
+                      set((c) => {
+                        // The same size in the other unit, at the commander's own size.
+                        const of = p === "left" || p === "right" ? c.width : c.height;
+                        const was = c[p].unit ?? "%";
+                        if (u !== was) c[p].size = Math.round(u === "px" ? (of * c[p].size) / 100 : Math.min(45, (c[p].size * 100) / of));
+                        c[p].unit = u;
+                      })
+                    }
+                  />
+                </Field>
+              )}
               <Num
                 label={p === "left" || p === "right" ? "Columns" : "Rows"}
                 value={value[p].lines ?? 1}
-                help="Its cameras shared between them, the first taking one more when they don't share evenly."
+                help={help(P.lines)}
                 onChange={(n) => set((c) => (c[p].lines = Math.max(1, Math.round(n))))}
               />
               <div className={css.fitOption}>
-              <Field
-                label="Fit"
-                help={`Fill: equal tiles, cropped to fill them. Whole: equal tiles, each camera whole in its own. Stack, Reverse, Centre: each camera whole at its own shape, edge to edge, ${
-                  p === "left" || p === "right" ? "from the top, against the bottom, or in the middle" : "from the left, against the right, or in the middle"
-                }; the spare room is left clear (too many to fit: all shrink alike).`}
-              >
+              <Field label={P.fit.label} help={help(P.fit)}>
                 <Segmented
                   value={value[p].fit}
-                  options={[
-                    ["cover", "Fill"],
-                    ["contain", "Whole"],
-                    ["stack", "Stack"],
-                    ["reverse", "Reverse"],
-                    ["centre", "Centre"],
-                  ]}
+                  options={P.fit.options as [Panel["fit"], string][]}
                   onChange={(f) => set((c) => (c[p].fit = f))}
                 />
               </Field>
               </div>
               {(p === "top" || p === "bottom") &&
                 (["anchor_left", "anchor_right"] as const).map((end) => (
-                  <Field
-                    key={end}
-                    label={end === "anchor_left" ? "To the left edge" : "To the right edge"}
-                    help={
-                      end === "anchor_left"
-                        ? "On: it runs to the view's edge and Left stops at it. Off: it stops at Left."
-                        : "On: it runs to the view's edge and Right stops at it. Off: it stops at Right."
-                    }
-                  >
+                  <Field key={end} label={P[end].label} help={help(P[end])}>
                     <Switch
-                      on={value[p][end] ?? p === "bottom"}
-                      label={end === "anchor_left" ? "To the left edge" : "To the right edge"}
+                      on={value[p][end] ?? Boolean(LAYOUT.panels[p][end])}
+                      label={P[end].label}
                       onChange={(on) => set((c) => (c[p][end] = on))}
                     />
                   </Field>
@@ -1059,7 +1013,6 @@ function LivePreview({ store, index }: { store: Store; index: number }) {
   latest.current = store;
   const shown = useRef<string | undefined>(undefined);
   const drawn = useRef(false); // the first picture at once; after edits, a short pause
-  const look = useContext(LookPreview);
   useEffect(
     () => () => {
       if (shown.current) URL.revokeObjectURL(shown.current);
@@ -1104,7 +1057,6 @@ function LivePreview({ store, index }: { store: Store; index: number }) {
       className={`${css.preview} ${busy ? css.stale : ""}`}
       src={src}
       alt="The commander"
-      style={{ filter: look || undefined }}
     />
   );
 }
@@ -1235,90 +1187,6 @@ function AddMenu({
         </ul>
       )}
     </div>
-  );
-}
-
-type Channel = { channel: "camera" | "low" | "medium" | "high"; entity: string; url: string };
-
-const CHANNELS: Record<Channel["channel"], [label: string, about: string]> = {
-  camera: ["The camera", "the camera itself (it has no separate channels)"],
-  low: ["Low", "the low channel, the one the commander is made from"],
-  medium: ["Medium", "the medium channel, the one the wall tablets and phones play"],
-  high: ["High", "the high channel, the one everyone else plays; the slowest to come through here"],
-};
-
-/** One camera's live picture, each of its channels to choose from: Home Assistant's MJPEG
- * stream, played from HA directly as its camera cards do (the app only gives the address). */
-function LiveView({ entity, title, onClose }: { entity: string; title: string; onClose: () => void }) {
-  const img = useRef<HTMLImageElement>(null);
-  const [channels, setChannels] = useState<Channel[]>();
-  const [chosen, setChosen] = useState<Channel["channel"]>();
-  const [state, setState] = useState<"connecting" | "live" | "failed">("connecting");
-  const [error, setError] = useState<string>();
-  useEffect(() => {
-    get<{ channels: Channel[] }>(`live/${encodeURIComponent(entity)}`).then(
-      (r) => {
-        setChannels(r.channels);
-        setChosen(r.channels[0]?.channel);
-      },
-      (err) => setError((err as Error).message),
-    );
-  }, [entity]);
-  const shown = channels?.find((c) => c.channel === chosen);
-  // Blank the image on a change of channel and on close: a browser can keep an <img>
-  // stream open after the image is gone.
-  useEffect(() => {
-    const el = img.current;
-    return () => {
-      if (el) el.src = "";
-    };
-  }, [shown?.url]);
-  const note = error ?? (channels && !shown ? "Home Assistant has no stream of this camera." : undefined);
-  return (
-    <Dialog
-      title={title}
-      wide
-      onClose={onClose}
-      footer={
-        <button className={ui.primary} onClick={onClose}>
-          Close
-        </button>
-      }
-    >
-      {channels && channels.length > 1 && (
-        <Segmented
-          value={chosen ?? channels[0].channel}
-          options={channels.map((c) => [c.channel, CHANNELS[c.channel][0]])}
-          onChange={(c) => {
-            setState("connecting");
-            setChosen(c);
-          }}
-        />
-      )}
-      <div className={css.live}>
-        {shown && (
-          <img
-            key={shown.url}
-            ref={img}
-            src={shown.url}
-            alt={`${title}, live`}
-            onLoad={() => setState("live")}
-            onError={() => setState("failed")}
-          />
-        )}
-        {(note || state !== "live") && (
-          <span className={css.liveNote}>
-            {note ?? (state === "failed" ? "No live picture from this channel." : "Connecting…")}
-          </span>
-        )}
-      </div>
-      {shown && (
-        <p className={css.muted}>
-          <code>{shown.entity}</code>: {CHANNELS[shown.channel][1]}. Home Assistant's MJPEG stream, made from the camera's
-          snapshots: a few pictures a second, not video.
-        </p>
-      )}
-    </Dialog>
   );
 }
 
@@ -1835,7 +1703,7 @@ function Backups({ toast, stamp }: { toast: (t: string, tone?: Toast["tone"]) =>
     get<{ backups: Backup[] }>("backups").then((b) => setBackups(b.backups), () => setBackups([]));
   }, [stamp]);
   if (!backups) return null;
-  if (!backups.length) return <Empty>None yet: the first deploy keeps one.</Empty>;
+  if (!backups.length) return <Empty>None kept yet: each live deploy keeps the config it replaces.</Empty>;
   return (
     <ul className={css.backups}>
       {backups.map((b) => (

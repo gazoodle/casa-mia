@@ -22,6 +22,13 @@ _LOGGER = logging.getLogger(__name__)
 API_MISMATCH = "api_mismatch"
 
 
+def helpers_on(data: dict[str, Any] | None) -> list[str]:
+    """The dashboard helper scripts switched on in the app (its Settings page), by file;
+    the defaults until the app has said."""
+    chosen = ((data or {}).get("settings") or {}).get("helpers") or {}
+    return [f for k, (f, on) in SCRIPTS.items() if chosen.get(k, on)]
+
+
 async def async_fetch_health(
     hass: HomeAssistant, url: str, helpers: list[str] | None = None
 ) -> dict[str, Any]:
@@ -56,9 +63,7 @@ class CasaMiaCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Before the fetch, so a restart prompt still appears while the app is down.
         await async_check_restart(self.hass, self.loaded_version)
         try:
-            options = self.config_entry.options if self.config_entry else {}
-            loaded = [f for k, (f, on) in SCRIPTS.items() if options.get(k, on)]
-            data = await async_fetch_health(self.hass, self.url, loaded)
+            data = await async_fetch_health(self.hass, self.url, helpers_on(self.data))
         except (aiohttp.ClientError, TimeoutError, ValueError) as exc:
             raise UpdateFailed(f"Casa Mia app unreachable: {exc}") from exc
         self._check_api(data.get("api"))

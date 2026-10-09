@@ -1,0 +1,298 @@
+/* The Kiosk mode page: dashboard cards, then the chosen one's grid of options by who they
+   apply to, its YAML box and the save bar. The page frame and areas come from
+   guest.module.css. */
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 10px;
+}
+
+.card {
+  display: grid;
+  gap: 3px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.card:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+
+.cardOn {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg));
+}
+
+.cardTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.cardPath {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.cardSummary {
+  font-size: 13px;
+}
+
+.rule {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* The grid: options down the side, who across the top. It scrolls sideways on a phone,
+   the option names staying put. */
+.gridWrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.grid thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 10px 8px;
+  background: var(--surface-2);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+}
+
+.grid th.optionHead {
+  left: 0;
+  z-index: 3;
+  text-align: left;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.userHead {
+  max-width: 160px;
+}
+
+.userButton {
+  max-width: 150px;
+  overflow: hidden;
+  padding: 3px 10px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 60%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.addHead {
+  width: 1%;
+}
+
+.groupRow th {
+  padding: 9px 12px;
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
+  border-top: 1px solid var(--border);
+}
+
+.chevron {
+  display: inline-block;
+  width: 16px;
+  color: var(--muted);
+}
+
+.groupMeta {
+  margin-left: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.optionRow:hover {
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
+}
+
+.option {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 220px;
+  padding: 8px 12px 8px 28px;
+  background: var(--surface);
+  font-weight: 500;
+  text-align: left;
+}
+
+.optionRow:hover .option {
+  background: color-mix(in srgb, var(--accent) 4%, var(--surface));
+}
+
+.optionHelp {
+  display: block;
+  margin-top: 1px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.key {
+  display: block;
+  margin-top: 2px;
+  color: color-mix(in srgb, var(--muted) 70%, transparent);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.danger {
+  color: var(--bad);
+}
+
+.grid td {
+  padding: 6px 8px;
+  text-align: center;
+  border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+}
+
+.grid td input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* The YAML box. */
+.yamlHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.yamlHead h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.yamlOk {
+  color: var(--good);
+  font-size: 12.5px;
+}
+
+.yamlBad {
+  color: var(--bad);
+  font-size: 12.5px;
+  text-align: right;
+}
+
+.yamlHelp {
+  margin: 4px 0 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.yaml {
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.5;
+  tab-size: 2;
+  resize: vertical;
+}
+
+/* Save: always at the foot of the screen while there is something to save. */
+.saveBar {
+  position: sticky;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.saveBar span {
+  margin-right: auto;
+}
+
+.saveBarOn {
+  border-color: var(--accent);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+  color: var(--text);
+}
+
+/* Pick lists in the dialogs. */
+.pick {
+  display: grid;
+  gap: 6px;
+  max-height: 40vh;
+  margin-bottom: 12px;
+  overflow: auto;
+}
+
+.pickRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.pickRow input {
+  width: auto;
+  margin-top: 3px;
+  accent-color: var(--accent);
+}
+
+.pickOff {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  /* Room for two or three columns beside the option names. */
+  .option {
+    min-width: 150px;
+    padding-left: 12px;
+  }
+
+  .key {
+    display: none;
+  }
+}

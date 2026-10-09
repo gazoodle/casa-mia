@@ -42,9 +42,23 @@ The app's log is how problems are diagnosed, often remotely (the owner away from
 - **Never log secrets:** passwords, tokens, the guest slugs and legacy QR ids. Bodies are not logged for this reason.
 - Use `logging.getLogger(__name__)`, never `print` (see Commands).
 
+## RULE THREE: keep files small; split before they sprawl
+
+No source file (Python, TypeScript, tests, tools) over **800 lines**. `tests/test_file_sizes.py` enforces it. Why: `compositor.py` grew to 3,600 lines in one file (2026-10-10); nobody could hold it in their head, and every change risked a part nobody was looking at.
+
+- **About to push a file past 800? Split it first**, by responsibility, then make the change. Never raise the limit for a file.
+- **The files already over** are listed in `OVER` in that test at today's size. They may shrink, never grow. When you work in one, take the chance to split it; lower its number as it shrinks and remove it once it is under 800.
+- **How to split** (the compositor package, `app/src/casa_mia/modules/compositor/`, is the pattern):
+  - **A split module becomes a folder (a package), never siblings.** `modules/compositor/gatherer.py`, not `modules/compositor_gatherer.py`. (The guest login's `guest_login.py`, `guest_api.py` and `guest_page.py` were moved into `modules/guest_login/` for this rule.) The package's `__init__.py` keeps the docstring and re-exports the public names, so imports elsewhere do not change.
+  - Shared constants and helpers go in one `common.py`, defined **once**; each part imports them by name. Never copy a constant.
+  - A big class becomes layers, each in its own file and each extending the one below. For example, the gatherer: `Cache` → `Fetcher` → `Survey` → `Monitor` → `Gatherer`; the compositor: `Generator` → `PictureServer` → `Compositor`. Pyright can then see every attribute. A lower layer never calls a method of a higher one: move the method down, or the caller up.
+  - Each part has its own `_LOGGER = logging.getLogger(__name__)`.
+  - A test that patches a constant patches it where it is used; for the compositor, `set_compositor(monkeypatch, NAME, value)` in `tests/conftest.py` patches every part.
+- **No behaviour change in a split.** Move code verbatim, and keep the tests green before and after. A refactor and a fix are separate commits.
+
 ## Status
 
-Skeleton stage: README.md is the charter; the app skeleton, tooling and fake git host exist, no modules yet. Existing code to learn from lives elsewhere (the earlier `fona_sms` component, an earlier app's `ingress.py`, the composite-test server); read it rather than rewriting from memory.
+Skeleton stage: docs/architecture.md is the charter (moved out of README.md, which is now the shop window; user docs are in docs/); the app skeleton, tooling and fake git host exist, no modules yet. Existing code to learn from lives elsewhere (the earlier `fona_sms` component, an earlier app's `ingress.py`, the composite-test server); read it rather than rewriting from memory.
 
 Planned but unscheduled work lives in `BACKLOG.md`; add ideas there, do not start them unasked.
 
@@ -52,17 +66,18 @@ Planned but unscheduled work lives in `BACKLOG.md`; add ideas there, do not star
 
 Always use the venv, never system python: `tools/setup` (re-runnable) creates `.venv` on Python 3.11 (matches the HA base image).
 
-- Tests: `.venv/bin/pytest`
+- Tests: `.venv/bin/pytest`. **The whole suite must run in under 15 seconds** (it runs about 6 s; it was 51 s). It is therefore the default after any change, and a test or fixture that pushes it past 15 s is fixed, not tolerated. No real sleeps for waiting (patch the interval, e.g. a module's `INTERVAL`/`LINGER`, or write the state the test needs directly); servers go through the `serve` fixture in `tests/conftest.py` (which also makes `serve_forever` poll every 10 ms: the default 0.5 s made every `shutdown()` cost half a second); set a shared fixture up once instead of repeating the setup per test. Check with `pytest --durations=10`. While iterating you may run just the affected file(s) (`tokensave_affected` finds them), but run the full suite before committing.
 - Lint/format: `.venv/bin/ruff check .` and `.venv/bin/ruff format .`
 - Types: `.venv/bin/pyright`
 - Branches: work on `dev`; never commit to `main`. `main` is protected (pull requests only, the 8 CI checks required) and moves only at a release, through `tools/release.py`. "Push to GitHub" means `git push origin dev`.
 - Serve the checkout to the HA box: `.venv/bin/python tools/fake_git_host.py`, then add the printed URL (ends `#app-dev`) in Settings → Apps → App store → Repositories. Only committed work is served. It listens on port 9419 (one above git's 9418, so another fake git host can run alongside). It also checks GitHub every 10 minutes and serves the latest published release (tag `YYYY.M.R`) instead of HEAD when that is newer, so the box follows releases without its repository URL (and so the app's slug) ever changing.
-- Deploy: commit, keep `tools/fake_git_host.py` running, then `tools/deploy` (SSH to the box: `ha store reload`, `ha apps update 4e358812_casa_mia`, log tail). `CM_HA_SSH` overrides the login, `CM_APP_SLUG` the app's slug (its hash comes from the repository URL in the App store, so it changes if that URL does).
+- Deploy: commit (with the version bumped) and keep `tools/fake_git_host.py` running; the owner refreshes the App store and installs the update offered, almost at once. (`tools/deploy`, an SSH `ha store reload` + `ha apps update`, was retired: the store refresh does the same without confusing HA about the latest version.)
 - Branding: finished PNGs, committed as they are (nothing renders them): `app/icon.png` and `logo.png`, and the integration's `brand/` (`icon`, `logo`, `dark_logo`, each with `@2x`; no `dark_icon`, as the icon works on dark). The large masters are in `branding/` for making new sizes.
 - Components (`integration/custom_components/<domain>/`) each carry their **own** `manifest.json` version: the app version they last changed in, stamped by `.venv/bin/python tools/component_versions.py --update` (never edit it by hand). Run it after changing a component's files (after the app bump); a test fails on files changed since the lock. The app pushes every bundled component into `/config/custom_components` on start; each component's `restart_notice.py` raises its own restart Repair only when its loaded version differs from the installed one. `restart_notice.py` and `repairs.py` are domain-agnostic; keep copies identical across components.
 - pyright excludes `integration/`: the `homeassistant` package needs Python 3.13+, our venv is 3.11 (matches the app image). Revisit (a second venv, or trixie base) when integration tests need real HA.
 - Logging: use `logging.getLogger(__name__)`, never `print`. `casa_mia/log.py` configures Home Assistant's own format (`2026-10-01 16:42:28.675 INFO (MainThread) [logger.name] message`, copied from Core's `bootstrap.py`); the `log_level` app option sets the level. Do not call `logging.basicConfig` elsewhere.
 - Admin UI (React, `app/web/`): `tools/build_web` builds it into `app/src/casa_mia/web/` (committed; the image needs no Node) and stamps its source hash; `tests/test_web_build.py` fails on a stale build. Served by `server.py` on 8780 to HA's ingress gateway only (`/health` stays open to the integration). `cd app/web && npm run dev` for live editing against an app on 8780.
+- Lovelace cards (Lit + TypeScript, `integration/cards/`): Camera Commander, Section and the Tablet Layout (a custom view type), one bundle. `tools/build_cards` builds it into the integration's `www/cm-cards.js` (committed, always loaded by the integration) and stamps its source hash (`tests/test_web_build.py` again). Fast loop against the box, no restart: `tools/dev_cards` rebuilds into the box's own copy (config share mounted at `/Volumes/config`) on every save, then hard-refresh the browser; the next app start restores the committed build. The layout engine exists twice, `compositor.commander_layout` (Python) and `integration/cards/src/layout.ts`; both must pass `tests/layout_cases.json` (`tests/test_layout_cases.py` runs both; regenerate the cases from Python after a deliberate change). Layout options (labels, help, defaults) live once in `app/src/casa_mia/layout.json`, read by the compositor, the admin page and the card editors: a new layout option goes there, and into both engines when it applies to both.
 - Version: one source, `pyproject.toml`, in Home Assistant's style. Releases are `YYYY.M.R` (month unpadded, as HA's own); private builds are `YYYY.M.R-bN`. `tools/versioning.py bump` makes the next build; Releases are made by the user with `tools/release.py`, a deterministic walkthrough (run on `dev`: checks, `tools/versioning.py release`, notes review, a pull request from `dev` into `main`, then merge, tag and push on their OK; see docs/releases.md); never run it or tag a release yourself unless asked. `.github/workflows/release.yml` then builds the GHCR images, makes the GitHub release and updates `stable`. `tools/sync_app_version.py` copies the version into `app/config.yaml` (a test fails if they differ).
 
 ## Token economy (tokensave)
@@ -84,7 +99,7 @@ Beyond the app and integration, the repo also holds: FONA Arduino firmware, the 
 
 **Copying is fine from the author's own projects** (tablet-provision and the others): the same author wrote them, so lift any code, CSS or patterns that fit, adapted to this repo. advanced-camera-card is third-party: respect its licence.
 
-## Architecture (proposed, see README.md)
+## Architecture (proposed, see docs/architecture.md)
 
 One repo, one version, two deliverables released together:
 - **App** (HA add-on, `app/src/casa_mia/`): long-running, I/O-heavy, network-facing work, anything that must survive a Core restart. Holds `core/` (config, logging, health, ingress/token gate, supervisor client) and `modules/{fona,gitproxy,compositor}/` (the alarm panel is integration-only).
@@ -99,4 +114,4 @@ One repo, one version, two deliverables released together:
 - Deployment is via a fake git host serving the working tree (no GitHub credentials on the HA box). There is no staging: deploy straight to the live box (`homeassistant.local:8123`). Cut-over from an old integration (FONA first): leave the old one installed, stop it to test the new module, switch the new module off with its flag and restore the old one if incomplete, retire the old one only when the new is proven. Rollback = deploy the previous tag.
 - Trap: since HA OS 17, editing files and clicking Rebuild can leave old layers running; bump the version through the update path instead.
 - Do not touch live HA config without the user's agreement. (The old `fona_sms` integration is deleted for good; FONA is the app's `fona` module.)
-- Planned testing: pytest with fakes (including a mock serial device that can reset/vanish/reappear) and `pytest-homeassistant-custom-component`; plus a manual fire-drill checklist in README.md.
+- Planned testing: pytest with fakes (including a mock serial device that can reset/vanish/reappear) and `pytest-homeassistant-custom-component`; plus a manual fire-drill checklist in docs/architecture.md.

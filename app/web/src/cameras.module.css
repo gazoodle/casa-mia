@@ -494,7 +494,8 @@
   background: #000;
 }
 
-.live img {
+.live img,
+.live video {
   display: block;
   width: 100%;
   max-height: 70vh;
@@ -642,6 +643,28 @@
   border-radius: 10px;
   background: var(--bg);
   font: 12px/1.4 var(--mono);
+}
+
+.revertButtons {
+  display: flex;
+  flex: none; /* the blurb gives way, so the buttons stay on one line */
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.keep {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 14px;
+  font-size: 13.5px;
+}
+
+.keepHelp {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-size: 12.5px;
 }
 
 .backups {

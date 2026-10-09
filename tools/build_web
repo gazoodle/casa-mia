@@ -5,5 +5,5 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 (cd app/web && { [ -d node_modules ] || npm ci --no-audit --no-fund; } && npm run build)
-.venv/bin/python tools/web_hash.py --write
+.venv/bin/python tools/web_hash.py --write web
 echo "built app/src/casa_mia/web; commit it with the sources"

@@ -280,6 +280,19 @@ def checks(number: str, repo: str) -> list[tuple[str, str]]:
     return [tuple(line.split("\t", 1)) for line in out.splitlines() if "\t" in line]  # type: ignore[misc]
 
 
+def notes_with_closes(release: str) -> str:
+    """The release notes, then a "Fixes #N" line for each issue a commit since main
+    says it fixes, so merging the pull request closes them (a keyword on dev alone
+    does nothing: GitHub closes only when it reaches main)."""
+    body = versioning.notes(git("show", "HEAD:app/CHANGELOG.md"), release)
+    found = re.findall(
+        r"\b(?:fix(?:es|ed)?|close[sd]?|resolve[sd]?)\s+#(\d+)",
+        git("log", "origin/main..HEAD", "--format=%B"),
+        re.I,
+    )
+    return body + "".join(f"\n\nFixes #{n}" for n in sorted(set(found), key=int))
+
+
 def pull_request(branch: str, release: str, repo: str) -> str:
     """Push the branch, open its pull request into main (or use the open one), and wait
     for the checks. Returns the pull request's number."""
@@ -305,14 +318,14 @@ def pull_request(branch: str, release: str, repo: str) -> str:
         run(
             "gh", "pr", "edit", number, "--repo", repo,
             "--title", f"Release {release}",
-            "--body", versioning.notes(git("show", "HEAD:app/CHANGELOG.md"), release),
+            "--body", notes_with_closes(release),
         )  # fmt: skip
         good(f"pull request #{number} updated: Release {release}")
     else:
         url = run(
             "gh", "pr", "create", "--repo", repo, "--base", "main", "--head", branch,
             "--title", f"Release {release}",
-            "--body", versioning.notes(git("show", "HEAD:app/CHANGELOG.md"), release),
+            "--body", notes_with_closes(release),
         )  # fmt: skip
         number = url.rstrip("/").rsplit("/", 1)[1]
         good(f"pull request #{number}: {url}")

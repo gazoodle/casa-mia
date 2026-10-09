@@ -7,7 +7,7 @@ from pathlib import Path
 
 import aiohttp
 import voluptuous as vol
-from homeassistant.components import frontend
+from homeassistant.components import frontend, websocket_api
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -17,10 +17,12 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 
 from .commanders import async_prune_commander_devices
-from .const import DOMAIN, FONA_EVENT, SCRIPTS, SCRIPTS_URL
-from .coordinator import CasaMiaCoordinator, async_post
+from .const import CARDS_JS, DOMAIN, FONA_EVENT, SCRIPTS_URL, SETTINGS_EVENT
+from .coordinator import CasaMiaCoordinator, async_post, helpers_on
 from .guest import async_prune_endpoint_devices
 from .motion import commanders, tracker
+from .pictures import running_coordinator
+from .pictures import setup as setup_pictures
 from .restart_notice import manifest_version
 from .sensor import MODULE_DEVICES, device_name, modules_off
 
@@ -40,6 +42,7 @@ PLATFORMS = [
     Platform.BINARY_SENSOR,
     Platform.BUTTON,
     Platform.EVENT,
+    Platform.NUMBER,
     Platform.SELECT,
     Platform.SENSOR,
     Platform.SWITCH,
@@ -65,6 +68,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # switching one on or off reloads, so its device comes or goes at once.
     off = modules_off(coordinator)
     house = coordinator.data.get("house")
+    helpers = helpers_on(coordinator.data)
     for module in MODULE_DEVICES:
         name = device_name(coordinator, module)
         identifiers = {(DOMAIN, f"{entry.entry_id}_{module}")}
@@ -100,9 +104,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         follow_commanders()
         entry.async_on_unload(coordinator.async_add_listener(follow_commanders))
         entry.async_on_unload(stop_tracking)
-    await _load_scripts(hass, entry, loaded_version)
-    # Saving the options (a script switched on or off) reloads, which applies it.
-    entry.async_on_unload(entry.add_update_listener(_options_saved))
+    await _load_scripts(hass, entry, loaded_version, helpers)
 
     @callback
     def reload_on_switch() -> None:
@@ -111,6 +113,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass.config_entries.async_schedule_reload(entry.entry_id)
         elif coordinator.data.get("house") != house:
             _LOGGER.info("the app's house name changed: reloading to rename devices")
+            hass.config_entries.async_schedule_reload(entry.entry_id)
+        elif helpers_on(coordinator.data) != helpers:
+            _LOGGER.info("dashboard helpers changed in the app: reloading to load them")
             hass.config_entries.async_schedule_reload(entry.entry_id)
 
     entry.async_on_unload(coordinator.async_add_listener(reload_on_switch))
@@ -124,6 +129,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.async_on_unload(coordinator.async_add_listener(prune_commanders))
     entry.async_on_unload(hass.bus.async_listen(FONA_EVENT, _pong(hass, coordinator)))
 
+    async def _settings_changed(_event: Event) -> None:
+        # A save on the app's Settings page: poll now, not within 30 s.
+        await coordinator.async_request_refresh()
+
+    entry.async_on_unload(hass.bus.async_listen(SETTINGS_EVENT, _settings_changed))
+
     async def send_sms(call: ServiceCall) -> None:
         await _send(hass, coordinator, call.data["number"], call.data["message"])
 
@@ -131,34 +142,72 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
-def scripts_on(entry: ConfigEntry) -> list[str]:
-    """The dashboard helper scripts switched on in the options (else their defaults)."""
-    return [k for k, (_, default) in SCRIPTS.items() if entry.options.get(k, default)]
-
-
 async def _load_scripts(
-    hass: HomeAssistant, entry: ConfigEntry, version: str | None
+    hass: HomeAssistant, entry: ConfigEntry, version: str | None, helpers: list[str]
 ) -> None:
-    """Serve www/ at /casa_mia (once per HA run) and load the scripts switched on into
-    every HA page; each comes off again when the entry unloads. ?v= changes with each
-    update, so browsers fetch the new copy."""
+    """Serve www/ at /casa_mia, the cards' settings command and the pictures through HA
+    (once per HA run), and
+    load the cards (always) and the helpers switched on in the app into every HA page; each comes off
+    again when the entry unloads. ?v= changes with each update, so browsers fetch the new
+    copy."""
     if not hass.data.get(f"{DOMAIN}_www"):
         await hass.http.async_register_static_paths(
             [StaticPathConfig(SCRIPTS_URL, str(Path(__file__).parent / "www"), False)]
         )
         hass.data[f"{DOMAIN}_www"] = True
-    for key in scripts_on(entry):
-        url = f"{SCRIPTS_URL}/{SCRIPTS[key][0]}?v={version}"
+        websocket_api.async_register_command(hass, _ws_settings)
+        websocket_api.async_register_command(hass, _ws_settings_subscribe)
+        setup_pictures(hass)  # the commanders' pictures, for viewers away from home
+    for name in [CARDS_JS, *helpers]:
+        url = f"{SCRIPTS_URL}/{name}?v={version}"
         frontend.add_extra_js_url(hass, url)
         entry.async_on_unload(lambda u=url: frontend.remove_extra_js_url(hass, u))
     _LOGGER.info(
-        "dashboard helpers loaded: %s",
-        ", ".join(SCRIPTS[k][0] for k in scripts_on(entry)) or "none",
+        "dashboard cards loaded (%s); helpers: %s",
+        CARDS_JS,
+        ", ".join(helpers) or "none",
     )
 
 
-async def _options_saved(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    await hass.config_entries.async_reload(entry.entry_id)
+@websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/settings"})
+@callback
+def _ws_settings(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    """The app's settings for the cards (its Settings page), as last polled; any user."""
+    entries = [
+        e
+        for e in hass.config_entries.async_entries(DOMAIN)
+        if isinstance(getattr(e, "runtime_data", None), CasaMiaCoordinator)
+    ]
+    data = (entries[0].runtime_data.data or {}) if entries else {}
+    connection.send_result(msg["id"], data.get("settings", {}))
+
+
+@websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/settings/subscribe"})
+@callback
+def _ws_settings_subscribe(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    """The same, now and again at each change (the app fires casa_mia_settings_changed on a
+    save, so the coordinator polls at once); any user.
+    ponytail: follows the coordinator running when it subscribes; a page that outlives an
+    integration reload gets nothing more until it shows again."""
+    coordinator = running_coordinator(hass)
+    last: list[dict] = []
+
+    @callback
+    def send() -> None:
+        now = ((coordinator.data if coordinator else None) or {}).get("settings", {})
+        if not last or last[0] != now:
+            last[:] = [now]
+            connection.send_message(websocket_api.event_message(msg["id"], now))
+
+    connection.subscriptions[msg["id"]] = (
+        coordinator.async_add_listener(send) if coordinator else lambda: None
+    )
+    connection.send_result(msg["id"])
+    send()
 
 
 async def _send(

@@ -4,19 +4,19 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "casa-mia"
-version = "2026.10.2"
+version = "2026.10.3"
 description = "Casa Mia Home Assistant app: FONA, alarm, deployment and generators"
 license = "MIT"
 license-files = ["LICENSE"]
 # 3.11 is what the HA base image's Debian bookworm ships; the venv matches it.
 requires-python = ">=3.11"
-dependencies = ["aiohttp>=3.10,<4", "pillow>=10.1", "pyserial>=3.5,<4", "pyyaml>=6,<7", "segno>=1.6,<2"]
+dependencies = ["aiohttp>=3.10,<4", "av>=14", "pillow>=10.1", "pyserial>=3.5,<4", "pyyaml>=6,<7", "segno>=1.6,<2"]
 
 [project.optional-dependencies]
 test = ["pytest>=9,<10", "pyyaml>=6,<7"]
 dev = [
     "pyright[nodejs]>=1.1,<2",
-    "ruff>=0.15,<0.16",
+    "ruff>=0.15,<0.17",
 ]
 
 [tool.setuptools.packages.find]
@@ -24,7 +24,7 @@ where = ["app/src"]
 
 [tool.setuptools.package-data]
 # The built admin UI ships inside the package (see tools/build_web).
-casa_mia = ["web/*", "web/**/*"]
+casa_mia = ["web/*", "web/**/*", "layout.json", "kiosk_mode.json", "modules/compositor/size-test.html"]
 
 [tool.ruff]
 line-length = 88

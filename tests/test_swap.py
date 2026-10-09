@@ -61,3 +61,25 @@ def test_camera_images(tmp_path, monkeypatch):
     # A picture added after swap.json was saved is used too.
     (tmp_path / "swap" / "none.jpg").write_bytes(b"jpeg")
     assert swap.camera_image("Shed") == (tmp_path / "swap" / "none.jpg").resolve()
+
+
+def test_the_integration_gets_only_its_shown_text_swapped(tmp_path, monkeypatch):
+    # HA keeps what the integration is given: addresses, paths and entity ids stay real.
+    path = tmp_path / "swap.json"
+    monkeypatch.setattr(swap, "PATH", path)
+    pairs = {"swap": True, "Oak Tree": "Barn", "oak_tree": "barn", "192.0.2.10": "x"}
+    path.write_text(json.dumps(pairs))
+    card = {
+        "picture": "http://192.0.2.10:8099/g/cameras.mjpg",
+        "live": "/cameras/cam-oak-tree",
+        "start": "camera.oak_tree_high",
+        "cameras": {"camera.oak_tree_high": {"title": "Oak Tree"}},
+        "options": ["Oak Tree", "Shed"],
+        "address": "192.0.2.10",
+    }
+    assert swap.out_shown(card) == {
+        **card,
+        "cameras": {"camera.oak_tree_high": {"title": "Barn"}},
+        "options": ["Barn", "Shed"],
+        "address": "x",
+    }

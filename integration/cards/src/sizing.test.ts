@@ -1,0 +1,50 @@
+// The cards' sizing rule (ha.ts: modeOf, heightFor), shared by the Camera Commander and the
+// Tablet Layout. Where a card stands decides its mode; the mode and its room decide its
+// height; its width is always all of its space. (Which container holds a card is read off
+// HA's page, so that part shows on the debug overlay instead: "screen (in hui-panel-view)".)
+import assert from "node:assert/strict";
+import test from "node:test";
+import { heightFor, LOOK, lookCss, modeOf } from "./ha.ts";
+
+const WIDE = 16 / 9;
+
+test("the container decides the mode", () => {
+  assert.equal(modeOf("HUI-PANEL-VIEW", false), "screen");
+  assert.equal(modeOf("CASA-MIA-TABLET-LAYOUT", false), "tile"); // filling a Tablet Layout's panel
+  for (const other of ["HUI-GRID-SECTION", "HUI-MASONRY-VIEW", "HUI-VERTICAL-STACK-CARD", ""])
+    assert.equal(modeOf(other, false), "column");
+  assert.equal(modeOf("HUI-GRID-SECTION", false, true), "cell"); // its rows set in HA's Layout tab
+  assert.equal(modeOf("CASA-MIA-TABLET-LAYOUT", false, true), "tile"); // a panel decides, rows or not
+  assert.equal(modeOf("HUI-PANEL-VIEW", true), "preview"); // an editor's preview wins
+});
+
+test("alone in a Panel view: all of the room, whatever its shape or width", () => {
+  // An iPhone in landscape, no header: 852 x 393. 16:9 of the width would be 479.
+  assert.equal(heightFor({ mode: "screen", room: 393 }, 852, WIDE), 393);
+  // A tall phone: 393 wide, 852 of room. 16:9 would be 221; it is all 852.
+  assert.equal(heightFor({ mode: "screen", room: 852 }, 393, WIDE), 852);
+});
+
+// As HA's Picture glance card (rows "auto"). Until 2026.10.3-b74 it was capped to the screen
+// below its top edge, so lower down a page it was squashed (down to 100 px).
+test("in a column: its own shape from its width, wherever it is on the page", () => {
+  assert.equal(heightFor({ mode: "column", room: 1000 }, 400, WIDE), 225);
+  assert.equal(heightFor({ mode: "column", room: 100 }, 852, WIDE), 479);
+  assert.equal(heightFor({ mode: "column", room: 1000 }, 800, 16 / 10), 500);
+});
+
+test("in a tile, or a cell with its rows set: that decides (no height of its own)", () => {
+  assert.equal(heightFor({ mode: "tile", room: 393 }, 852, WIDE), null);
+  assert.equal(heightFor({ mode: "cell", room: 393 }, 852, WIDE), null);
+});
+
+test("in an editor's preview: its own shape, uncapped", () => {
+  assert.equal(heightFor({ mode: "preview", room: 100 }, 800, WIDE), 450);
+});
+
+// The Security look moved from the Camera Dashboard page to the card (2026.10.3-b76): its
+// defaults make the filter the page made.
+test("the Security look's default filter is the one the page made", () => {
+  assert.equal(lookCss(LOOK.tint, LOOK.strength, LOOK.darkness), "grayscale(1) sepia(1) hue-rotate(186deg) saturate(3) brightness(0.80) contrast(1.1)");
+  assert.equal(lookCss([255, 0, 0], 2, 95), "grayscale(1) sepia(1) hue-rotate(-35deg) saturate(2) brightness(0.10) contrast(1.1)");
+});

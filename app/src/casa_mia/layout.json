@@ -1,0 +1,70 @@
+{
+  "about": "The layout options shared by the Camera Commander (drawn by the compositor, edited on the Camera Dashboard page) and the Tablet Layout (laid out in the browser, edited in Lovelace): one engine, two places (compositor.commander_layout, integration/cards/src/layout.ts, checked against tests/layout_cases.json). Each option: label, help ({item} is camera or card), default, and `for` when only one of them has it. Read by the compositor's defaults, the admin page and the cards' editors.",
+  "main": {
+    "gap": { "label": "Gap, px", "default": 4, "min": 0, "max": 64, "help": "The room between tiles and panels." },
+    "margin": { "label": "Margin, px", "default": 0, "min": 0, "max": 64, "help": "Room left clear all round the whole area, like the gap but at its edges." },
+    "main_fit": {
+      "label": "Fit",
+      "default": "fit",
+      "options": [["fit", "Fit"], ["fill", "Fill"], ["crop", "Crop"], ["own", "Own shape"], ["fixed", "Fixed shape"]],
+      "help": "Fit: the {item} whole, in the middle of the space (around it, the background shows through). Fill: stretched to the space. Crop: fills it, edges cut off. Own shape: Main width wide at the {item}'s own shape, the panels around it (they move when its shape changes). Fixed shape: Main width wide at the shape set, the {item} whole within it."
+    },
+    "main_width": {
+      "label": "Main width, %",
+      "default": 70,
+      "min": 10,
+      "max": 100,
+      "when": ["own", "fixed"],
+      "help": "Of the whole width; the panels share the room around it."
+    },
+    "panel_min": {
+      "label": "Smallest panel, %",
+      "default": 8,
+      "min": 0,
+      "max": 50,
+      "when": ["own", "fixed"],
+      "help": "A panel with {item}s keeps at least this much; the main {item} shrinks (same shape) rather than squeeze it out."
+    },
+    "main_ratio": { "label": "Main shape", "default": "16:9", "when": ["fixed"], "help": "Width:height, e.g. 16:9 or 4:3." },
+    "header_space": {
+      "label": "Space above the header, px",
+      "default": 24,
+      "min": 0,
+      "max": 64,
+      "for": "view",
+      "help": "Room above the view's header (its heading card and badges), when it has one; Home Assistant's own is 24."
+    }
+  },
+  "panel": {
+    "size": { "label": "Size", "min": 0, "max": 100, "help": "Left and right: its width. Top and bottom: its height. In % of the view's, or in px (at most 45% of the view's: a smaller screen gets less)." },
+    "unit": { "label": "Size in", "default": "%", "options": [["%", "% of the view"], ["px", "px"]], "help": "% of the view: grows and shrinks with the screen. px: the same on any screen." },
+    "lines": {
+      "label": "Lines",
+      "default": 1,
+      "min": 1,
+      "max": 12,
+      "help": "Columns (left, right) or rows (top, bottom) its {item}s are shared between, the first taking one more when they don't share evenly."
+    },
+    "fit": {
+      "label": "Fit",
+      "default": "cover",
+      "options": [["cover", "Fill"], ["contain", "Whole"], ["stack", "Stack"], ["reverse", "Reverse"], ["centre", "Centre"]],
+      "help": "Fill: equal tiles, each {item} filling its own. Whole: equal tiles, each {item} whole in its own. Stack, Reverse, Centre: each {item} whole at its own shape, edge to edge, from the start, against the end, or in the middle; the spare room is left clear (too many to fit: all shrink alike)."
+    },
+    "anchor_left": { "label": "To the left edge", "edge": true, "help": "On: it runs to the view's edge and Left stops at it. Off: it stops at Left." },
+    "anchor_right": { "label": "To the right edge", "edge": true, "help": "On: it runs to the view's edge and Right stops at it. Off: it stops at Right." },
+    "hidden": { "label": "Hidden", "default": false, "help": "Off the view entirely: no room, no tiles; its {item}s kept for when it is shown again." },
+    "hide_empty": {
+      "label": "Hide when empty",
+      "default": true,
+      "for": "view",
+      "help": "No card of it showing (each card's own visibility, or a Casa Mia section with nothing to show): it takes no room. Off: its room is kept, empty."
+    }
+  },
+  "panels": {
+    "left": { "size": 15, "fit": "cover", "lines": 1, "hidden": false },
+    "top": { "size": 18, "fit": "cover", "anchor_left": false, "anchor_right": false, "lines": 1, "hidden": false },
+    "right": { "size": 15, "fit": "cover", "lines": 1, "hidden": false },
+    "bottom": { "size": 20, "fit": "cover", "anchor_left": true, "anchor_right": true, "lines": 1, "hidden": false }
+  }
+}

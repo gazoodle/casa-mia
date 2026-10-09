@@ -21,7 +21,8 @@ goes to the dashboard itself and makes the draft the live compositor's config.
 
 Files in the app's config folder: camera-dashboard.json (the draft, edited on the admin
 page), camera-dashboard-live.json (what was last deployed live) and
-camera-dashboard-backups/ (the dashboards' configs before each deploy).
+camera-dashboard-backups/ (the live dashboard's last few configs before each deploy, as
+many as camera-dashboard-settings.json says to keep; the preview keeps just one).
 """
 
 from __future__ import annotations
@@ -29,8 +30,10 @@ from __future__ import annotations
 import copy
 import json
 import logging
+import os
 import re
 import threading
+import time
 import urllib.parse
 from collections.abc import Callable
 from datetime import datetime
@@ -41,14 +44,17 @@ import yaml
 
 from .. import swap
 from ..ha import HA, HAError
+from ..settings import CHANGED_EVENT
 from .compositor import (
     DRAFT_STORE,
     EMPTY_COMMANDER,
+    LAYOUT,
     LIVE_STORE,
     PANELS,
     PORT,
     Compositor,
     cameras_of,
+    channels,
     commander_cameras,
     commander_layout,
     commanders_of,
@@ -63,9 +69,6 @@ _LOGGER = logging.getLogger(__name__)
 
 DRAFT_PORT = 8098
 THUMB_WIDTH = 160  # the page's camera thumbnails
-# The draft compositor keeps the latest still of every chosen camera, fetched this often
-# (seconds), so the page's thumbnails and previews are ready at once.
-KEEP_STILLS_EVERY = 60.0
 CAMERA = re.compile(r"camera\.[a-z0-9_]+")
 # The integration's Camera Commander devices, one per commander: each one's Main camera
 # select (options: its camera titles), which its taps and automations set. The first
@@ -86,20 +89,14 @@ UNIQUE_IDS = {
         "commander_{}_track_motion",
         "track_motion",
     ),
-    "security_look": (
-        "switch",
-        "security_look",
-        "commander_{}_security_look",
-        "security_look",
-    ),
 }
 
 
 def commander_entities(
     store: Store, registry: list[dict] | None, what: str = "main"
 ) -> dict[str, str]:
-    """Each commander's (by id) Main camera select (`what` "main"), Track motion switch
-    ("track_motion") or Security look switch ("security_look"): as HA's entity registry
+    """Each commander's (by id) Main camera select (`what` "main") or Track motion switch
+    ("track_motion"): as HA's entity registry
     has it (by unique id), else the entity id the integration gives a new one (from its
     device's name)."""
     domain, first, other, name = UNIQUE_IDS[what]
@@ -124,18 +121,14 @@ def commander_selects(store: Store, registry: list[dict] | None) -> dict[str, st
     return commander_entities(store, registry, "main")
 
 
-# The look of every camera picture on the dashboards when the integration's Security look
-# switch is on: a CSS filter, made by the page from a tint (applied by the browser).
-# The default tint's filter (as the page makes it for #3d7bff, strength 3, 20% darker):
-# a look left at its defaults, or saved before it had a filter, uses this.
-DEFAULT_LOOK_CSS = "grayscale(1) sepia(1) hue-rotate(186deg) saturate(3) brightness(0.80) contrast(1.1)"
-LOOK_CSS = re.compile(
-    r"^(\s*(grayscale|sepia|hue-rotate|saturate|brightness|contrast|invert|opacity|blur)"
-    r"\(\s*-?[0-9.]+(deg|%|px)?\s*\))*\s*$"
-)
 BACKUPS = "camera-dashboard-backups"
 DEPLOYS = "camera-dashboard-deploys.json"  # when each was last deployed: live, preview
-KEEP_BACKUPS = 20  # per dashboard
+SETTINGS = "camera-dashboard-settings.json"  # {"keep": older live versions to keep}
+MAX_KEEP = 5
+DEFAULT_KEEP = 3
+PREVIEW = (
+    "-preview"  # a preview dashboard's url_path ends with this; it keeps one backup
+)
 # A 1x1 transparent image: the tap zones over a composite.
 BLANK = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
 # The same, marked: the commander's highlight, which Keep camera pictures live pulses.
@@ -170,8 +163,6 @@ DEFAULTS: dict[str, Any] = {
     "hi_live_card": "",  # everyone else; blank = the same as live_card
     "compositor_host": "",  # blank = this box's LAN address
     "cameras": {},
-    # The Security look: a tint (and how strong, how dark) and the CSS filter made of it.
-    "look": {"tint": "#3d7bff", "strength": 3, "darkness": 20, "css": DEFAULT_LOOK_CSS},
     "commanders": [EMPTY_COMMANDER],  # in order: the dashboard's first pages
 }
 
@@ -219,9 +210,6 @@ def problems(store: Store) -> list[str]:
         if slug(n) in seen:
             out.append(f"The camera pages {seen[slug(n)]!r} and {n!r} clash.")
         seen[slug(n)] = n
-    look_css = (store.get("look") or {}).get("css", "")
-    if not isinstance(look_css, str) or not LOOK_CSS.match(look_css):
-        out.append("The Security look is not a CSS filter the dashboards can use.")
     cmds = store.get("commanders")
     if not isinstance(cmds, list) or not cmds:
         out.append("There must be at least one commander.")
@@ -250,11 +238,16 @@ def problems(store: Store) -> list[str]:
                 out.append(f"{the}'s {key} must be {low}-{high}.")
         if not isinstance(cmd.get("gap"), int) or cmd["gap"] < 0:
             out.append(f"{the}'s gap must be 0 px or more.")
+        if not isinstance(cmd.get("margin", 0), int) or cmd.get("margin", 0) < 0:
+            out.append(f"{the}'s margin must be 0 px or more.")
         for panel in PANELS:
             pane = cmd.get(panel) or {}
-            size = pane.get("size")
-            if not isinstance(size, (int, float)) or not 0 <= size <= 45:
-                out.append(f"{the}'s {panel} panel: size must be 0-45%.")
+            size, unit = pane.get("size"), pane.get("unit", "%")
+            most = 2000 if unit == "px" else 45
+            if unit not in ("%", "px"):
+                out.append(f"{the}'s {panel} panel: size must be in % or px.")
+            elif not isinstance(size, (int, float)) or not 0 <= size <= most:
+                out.append(f"{the}'s {panel} panel: size must be 0-{most}{unit}.")
             lines = pane.get("lines", 1)
             if (
                 not isinstance(lines, int)
@@ -382,14 +375,14 @@ def warnings(
     by_hand, ours = "nav_back" in urls, "cm-back.js" in helpers
     if not by_hand and not ours:
         out.append(
-            "Back needs a Back button helper: switch on the Casa Mia integration's "
-            "Back button helper (it turns #BACK into the browser's Back)."
+            "Back needs a Back button helper: switch on the Back button helper on "
+            "the Settings page (the cog on the home page; it turns #BACK into the "
+            "browser's Back)."
         )
     elif by_hand and ours:
         out.append(
             "Back goes back twice: nav_back_helper.js is among the dashboard resources "
-            "and the Casa Mia integration's Back button helper is on. Remove the "
-            "resource."
+            "and the Back button helper (Settings page) is on. Remove the resource."
         )
     return out
 
@@ -883,6 +876,8 @@ class CameraDashboard:
         self._lock = threading.Lock()
         self._error: str | None = None
         self._mains: dict[str, str] = {}  # commander id -> main camera, as chosen
+        # live_main as last looked (see check_live_main)
+        self._live_was: bool | None = None
         self.store: Store = with_defaults({})
 
     @property
@@ -894,7 +889,12 @@ class CameraDashboard:
         return self.dir / LIVE_STORE
 
     def start(self) -> None:
-        """Load the draft, and each commander's main camera as it was."""
+        """Load the draft, and each commander's main camera as it was; watch live_main."""
+        if self.live:
+            threading.Thread(
+                target=self._watch_live_main, name="live main", daemon=True
+            ).start()
+        self._prune()  # to what is kept now (it used to be 20 each)
         if self.live and self.state_path and self.state_path.exists():
             try:
                 kept = json.loads(self.state_path.read_text())
@@ -948,12 +948,17 @@ class CameraDashboard:
                     {
                         "id": cmd["id"],
                         "name": cmd["name"],
-                        # its picture's address (the Security look finds it by this)
+                        # its picture's address
                         "picture": f"/g/{slug(cmd['name'])}.mjpg",
                         "cameras": {},
                         "main": None,
                         "motion": {**EMPTY_COMMANDER["motion"], **cmd["motion"]},
                     },
+                )
+                # The card's view of it: as deployed, and as the saved draft is
+                live = comp is not self.draft
+                one.setdefault(
+                    "card" if live else "draft_card", self._card(cmd, cfg.titles, live)
                 )
                 for e in commander_cameras(cmd):
                     one["cameras"].setdefault(e, cfg.titles.get(e, e))
@@ -962,6 +967,86 @@ class CameraDashboard:
         for one in out.values():
             one["options"] = list(dict.fromkeys(one["cameras"].values()))
         return list(out.values())
+
+    def _card(self, cmd: dict, titles: dict[str, str], live: bool) -> dict[str, Any]:
+        """What the Camera Commander card draws a commander from (its Main camera
+        select's `card` attribute, or `draft_card` for the saved draft, from the draft
+        compositor): the layout (it lays it out with the same engine, so its taps line
+        up), its picture's address, the main camera at start, and each camera's title
+        (its select's option) and live page on the dashboard (or the preview one), and its
+        channels, smallest first, each with its size where known (the card plays its
+        main camera's as live video, when the compositor's live_main switch is on)."""
+        try:
+            url_path, base = self._target(self.store, live)
+        except BadRequest:  # the LAN address not known yet: no picture until it is
+            url_path, base = self.store["dashboard"], ""
+        mine = commander_cameras(cmd)
+        comp = self.live if live else self.draft
+        cfg = config_from_store(self.store)
+        sizes = comp.gather.res if comp else {}
+        keys = (
+            "width",
+            "height",
+            "aspects",
+            "highlight",
+            "debug",
+            *(k for k, o in LAYOUT["main"].items() if o.get("for") != "view"),
+            *PANELS,
+        )
+        return {
+            "picture": f"{base}/g/{slug(cmd['name'])}.mjpg" if base else "",
+            "layout": {k: cmd[k] for k in keys},
+            "start": cmd["main"]
+            if cmd.get("main") in mine
+            else mine[0]
+            if mine
+            else "",
+            "cameras": {
+                e: {
+                    "title": titles.get(e, e),
+                    "live": f"/{url_path}/cam-{slug(titles.get(e, e))}",
+                    "channels": [
+                        [c, *sizes[c]] if c in sizes else [c, 0, 0]
+                        for c in channels(cfg, e).values()
+                    ],
+                }
+                for e in mine
+            },
+            "live_main": self.live_main(comp),
+        }
+
+    @staticmethod
+    def live_main(comp: Compositor | None) -> bool:
+        """Whether cards play their main camera live: the compositor's switch, and off
+        while the screenshot swap is on (a live video is the camera's own, never swapped).
+        Told to the card, which then asks for the plain picture (the compositor serves
+        either, so no stream it has open stalls); the switch itself is left as set."""
+        return bool(comp and comp.gather.flags["live_main"]) and not swap.stamp()
+
+    def check_live_main(self) -> bool:
+        """Whether live_main changed since last looked (the switch, or the swap): if so
+        the integration is told to ask again now, so every card follows within a second
+        rather than at its next poll (30 s)."""
+        now = self.live_main(self.live)
+        if now == self._live_was:
+            return False
+        if self._live_was is not None:
+            _LOGGER.info(
+                "camera dashboard: live main camera now %s%s; telling the integration",
+                "on" if now else "off",
+                " (the screenshot swap is on)" if swap.stamp() else "",
+            )
+            if token := os.environ.get("SUPERVISOR_TOKEN"):
+                from .guest_login import fire_event
+
+                fire_event(token, CHANGED_EVENT, {})
+        self._live_was = now
+        return True
+
+    def _watch_live_main(self) -> None:
+        while True:
+            self.check_live_main()
+            time.sleep(1)
 
     def commander(self) -> dict[str, Any]:
         """The first commander there was (id ""), as an integration from before there
@@ -1042,9 +1127,6 @@ class CameraDashboard:
                 "changed": self._changed(),
                 "commander": self.commander(),
                 "commanders": self.commanders(),
-                # The Security look follows the saved draft: it is only how the
-                # pictures look, best seen as soon as it is saved.
-                "look_css": self.store["look"].get("css") or DEFAULT_LOOK_CSS,
             }
 
     def _changed(self) -> bool:
@@ -1110,6 +1192,10 @@ class CameraDashboard:
             return _json(200, {"backups": self.backups()})
         if method == "POST" and parts == ["restore"]:
             return _json(200, self.restore(str(body.get("name") or "")))
+        if method == "POST" and parts == ["revert-preview"]:
+            return _json(200, self.revert_preview())
+        if method == "PUT" and parts == ["keep"]:
+            return _json(200, self.set_keep(body.get("keep")))
         if method == "POST" and parts == ["revert"]:
             return self._revert()
         return _json(404, {"error": "Not found."})
@@ -1127,6 +1213,11 @@ class CameraDashboard:
             "problems": problems(store),
             "preview_dashboard": store["dashboard"] + "-preview",
             "previewed": self.deploys().get("preview"),
+            "preview_backup": next(
+                (b["saved"] for b in self._kept(preview=True)), None
+            ),
+            "keep": self.keep(),
+            "max_keep": MAX_KEEP,
             "empty_commander": EMPTY_COMMANDER,  # what a blank new one starts as
             "compositor": {
                 "live": up(self.live),
@@ -1231,7 +1322,6 @@ class CameraDashboard:
             ),
             "commander_selects": selects,
             "commander_switches": commander_entities(store, registry, "track_motion"),
-            "commander_looks": commander_entities(store, registry, "security_look"),
             "error": None,
         }
 
@@ -1300,8 +1390,8 @@ class CameraDashboard:
         return {"url_path": url_path, "views": len(config["views"]), **self.view()}
 
     def remove_preview(self) -> dict[str, Any]:
-        """Delete the preview dashboard from HA (keeping its config first, as a deploy
-        does). The live dashboard and the draft are untouched."""
+        """Delete the preview dashboard from HA, and the backup of it (there would be
+        nothing to put it back on). The live dashboard and the draft are untouched."""
         if self.ha is None:
             raise BadRequest("Home Assistant is not reachable.")
         with self._lock:
@@ -1309,7 +1399,6 @@ class CameraDashboard:
         (boards,) = self.ha.call({"type": "lovelace/dashboards/list"})
         board = next((b for b in boards if b.get("url_path") == url_path), None)
         if board is not None:
-            self._backup(url_path)
             self.ha.call(
                 {"type": "lovelace/dashboards/delete", "dashboard_id": board["id"]}
             )
@@ -1324,12 +1413,53 @@ class CameraDashboard:
             deploys = self.deploys()
             deploys.pop("preview", None)
             self._write(self.dir / DEPLOYS, deploys)
+        for p in self._files(url_path):
+            p.unlink()
         return self.view()
 
     # -- the dashboards' configs before each deploy
 
+    def keep(self) -> int:
+        """How many older versions of the live dashboard are kept (0 to MAX_KEEP)."""
+        try:
+            keep = int(json.loads((self.dir / SETTINGS).read_text())["keep"])
+        except (OSError, ValueError, KeyError, TypeError):
+            return DEFAULT_KEEP
+        return min(max(keep, 0), MAX_KEEP)
+
+    def set_keep(self, keep: Any) -> dict[str, Any]:
+        if (
+            not isinstance(keep, int)
+            or isinstance(keep, bool)
+            or not 0 <= keep <= MAX_KEEP
+        ):
+            raise BadRequest(f"keep must be a whole number from 0 to {MAX_KEEP}.")
+        self._write(self.dir / SETTINGS, {"keep": keep})
+        _LOGGER.info("camera dashboard: keeping %d older live versions", keep)
+        self._prune()
+        return self.view()
+
+    def _files(self, url_path: str) -> list[Path]:
+        folder = self.dir / BACKUPS
+        return sorted(folder.glob(f"{url_path}-[0-9]*.json")) if folder.is_dir() else []
+
+    def _prune(self) -> None:
+        """Drop the backups beyond what is kept: one per preview, `keep` per live."""
+        folder = self.dir / BACKUPS
+        found: dict[str, list[Path]] = {}
+        for p in sorted(folder.glob("*.json")) if folder.is_dir() else []:
+            found.setdefault(p.name[: -len("-YYYYmmdd-HHMMSS.json")], []).append(p)
+        for url_path, files in found.items():
+            keep = 1 if url_path.endswith(PREVIEW) else self.keep()
+            for p in files[: -keep or None]:
+                p.unlink()
+                _LOGGER.info("camera dashboard: pruned %s", p.name)
+
     def _backup(self, url_path: str) -> None:
         assert self.ha
+        preview = url_path.endswith(PREVIEW)
+        if not preview and self.keep() == 0:
+            return
         try:
             (config,) = self.ha.call({"type": "lovelace/config", "url_path": url_path})
         except HAError as exc:  # an empty dashboard has no config yet
@@ -1341,12 +1471,10 @@ class CameraDashboard:
         path = folder / f"{url_path}-{stamp}.json"
         path.write_text(json.dumps({"url_path": url_path, "config": config}))
         _LOGGER.info("camera dashboard: kept /%s's config as %s", url_path, path.name)
-        old = sorted(folder.glob(f"{url_path}-[0-9]*.json"))[:-KEEP_BACKUPS]
-        for p in old:
-            p.unlink()
-            _LOGGER.info("camera dashboard: pruned %s", p.name)
+        self._prune()
 
-    def backups(self) -> list[dict[str, Any]]:
+    def _kept(self, preview: bool) -> list[dict[str, Any]]:
+        """The kept configs, newest first: the preview's, or the live dashboard's."""
         folder = self.dir / BACKUPS
         return (
             [
@@ -1358,18 +1486,18 @@ class CameraDashboard:
                     ),
                 }
                 for p in sorted(folder.glob("*.json"), reverse=True)
+                if p.name[: -len("-YYYYmmdd-HHMMSS.json")].endswith(PREVIEW) == preview
             ]
             if folder.is_dir()
             else []
         )
 
-    def restore(self, name: str) -> dict[str, Any]:
-        """Put a kept dashboard config back (keeping the current one first). The
-        compositor's config is not changed: revert the draft and deploy for that."""
-        if self.ha is None:
-            raise BadRequest("Home Assistant is not reachable.")
-        if name not in [b["name"] for b in self.backups()]:
-            raise BadRequest("No such backup.")
+    def backups(self) -> list[dict[str, Any]]:
+        """The live dashboard's kept configs (the preview's one is revert_preview's)."""
+        return self._kept(preview=False)
+
+    def _put_back(self, name: str) -> None:
+        assert self.ha
         kept = json.loads((self.dir / BACKUPS / name).read_text())
         self._backup(kept["url_path"])
         self.ha.call(
@@ -1380,7 +1508,27 @@ class CameraDashboard:
             }
         )
         _LOGGER.info("camera dashboard: restored /%s from %s", kept["url_path"], name)
+
+    def restore(self, name: str) -> dict[str, Any]:
+        """Put a kept live dashboard config back (keeping the current one first, if
+        any are kept). The compositor's config is not changed: revert the draft and
+        deploy for that."""
+        if self.ha is None:
+            raise BadRequest("Home Assistant is not reachable.")
+        if name not in [b["name"] for b in self.backups()]:
+            raise BadRequest("No such backup.")
+        self._put_back(name)
         return {"backups": self.backups()}
+
+    def revert_preview(self) -> dict[str, Any]:
+        """Put the preview dashboard back as it was before its last deploy. Doing it
+        again puts it forward, as the config it replaces is kept."""
+        if self.ha is None:
+            raise BadRequest("Home Assistant is not reachable.")
+        if not (kept := self._kept(preview=True)):
+            raise BadRequest("The preview has no earlier version.")
+        self._put_back(kept[0]["name"])
+        return self.view()
 
     # -- previews
 
@@ -1445,18 +1593,15 @@ class CameraDashboard:
         return {"channels": out}
 
     def _flip(self, body: dict[str, Any]) -> dict[str, Any]:
-        """Turn one of the integration's commander switches (Security look, Track
-        motion) on or off, through Home Assistant, which keeps its state."""
+        """Turn one of the integration's commander switches (Track motion) on or off,
+        through Home Assistant, which keeps its state."""
         entity, on = body.get("entity"), body.get("on")
         if self.ha is None:
             raise BadRequest("Home Assistant is not reachable.")
         with self._lock:
             store = self.store
         (registry,) = self.ha.call({"type": "config/entity_registry/list"})
-        switches = {
-            *commander_entities(store, registry, "track_motion").values(),
-            *commander_entities(store, registry, "security_look").values(),
-        }
+        switches = set(commander_entities(store, registry, "track_motion").values())
         if entity not in switches or not isinstance(on, bool):
             raise BadRequest("Not one of the commanders' switches.")
         self.ha.call(

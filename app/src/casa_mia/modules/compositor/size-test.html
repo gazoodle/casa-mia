@@ -1,0 +1,110 @@
+<!doctype html>
+<!-- The compositor's size test, served at /size-test (8099 live, 8098 draft): a commander
+     filling the window, asked for at exactly the window's size the way the Camera
+     Commander card asks (integration/cards/src/commander.ts: askFor; keep the two alike).
+     Resize the window (Safari: Develop > Enter Responsive Design Mode) and watch the
+     figures, and the compositor's own debug overlay when the commander has Debug on. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Commander size test</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #333;
+        color: #eee;
+        font: 13px/1.5 ui-monospace, Menlo, monospace;
+      }
+      #picture {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+      }
+      #panel {
+        position: fixed;
+        left: 8px;
+        bottom: 8px;
+        padding: 6px 10px;
+        background: rgba(0, 0, 0, 0.8);
+        border-radius: 6px;
+      }
+      .ok {
+        color: #6ee7a8;
+      }
+      .bad {
+        color: #ff7a6b;
+      }
+    </style>
+  </head>
+  <body>
+    <img id="picture" alt="" />
+    <div id="panel">
+      <label>Commander <select id="name"></select></label>
+      <div id="figures"></div>
+    </div>
+    <script>
+      // As the compositor's (MAX_PIXELS, MIN_SIDE) and the card's (SETTLE_MS, askFor).
+      const MAX_PIXELS = 2560 * 1600;
+      const MIN_SIDE = 64;
+      const SETTLE_MS = 400;
+      const pyRound = (x) => {
+        const f = Math.floor(x), d = x - f;
+        return d > 0.5 ? f + 1 : d < 0.5 ? f : f % 2 === 0 ? f : f + 1;
+      };
+      function askFor(w, h, dpr) {
+        const k = Math.min(1, Math.sqrt(MAX_PIXELS / (w * dpr * h * dpr)));
+        const W = 8 * pyRound((w * dpr * k) / 8), H = 8 * pyRound((h * dpr * k) / 8);
+        return Math.min(W, H) >= MIN_SIDE ? [W, H, Math.round(dpr * k * 100) / 100 || 1] : null;
+      }
+
+      const img = document.getElementById("picture");
+      const select = document.getElementById("name");
+      const figures = document.getElementById("figures");
+      let asked = null, timer = 0, streams = 0;
+
+      function show() {
+        const [w, h, dpr] = [innerWidth, innerHeight, devicePixelRatio];
+        const natural = img.naturalWidth ? [img.naturalWidth, img.naturalHeight] : null;
+        const match = asked && natural && natural[0] === asked[0] && natural[1] === asked[1];
+        const want = askFor(w, h, dpr);
+        figures.innerHTML =
+          `window ${w} x ${h} CSS px, screen ${dpr}x<br>` +
+          `would ask ${want ? `${want[0]} x ${want[1]} @${want[2]}x` : "nothing (too small)"}` +
+          `${asked && String(want) !== String(asked) ? " (settling…)" : ""}<br>` +
+          `asked ${asked ? `${asked[0]} x ${asked[1]} @${asked[2]}x` : "nothing yet"} (stream ${streams})<br>` +
+          `picture <span class="${match ? "ok" : "bad"}">${natural ? `${natural[0]} x ${natural[1]}` : "not loaded"}` +
+          `${natural ? (match ? " = asked" : " ≠ asked") : ""}</span>`;
+      }
+
+      function ask() {
+        const size = askFor(innerWidth, innerHeight, devicePixelRatio);
+        if (!size || !select.value || String(size) === String(asked) && img.dataset.name === select.value) return;
+        asked = size;
+        streams += 1;
+        img.dataset.name = select.value;
+        img.src = `/g/${select.value}.mjpg?w=${size[0]}&h=${size[1]}&dpr=${size[2]}`;
+        show();
+      }
+
+      addEventListener("resize", () => {
+        show();
+        clearTimeout(timer);
+        timer = setTimeout(ask, asked ? SETTLE_MS : 0);
+      });
+      select.addEventListener("change", ask);
+      setInterval(show, 500); // the decoded size, as frames arrive
+
+      // The commanders, from the compositor's own index (/g/<name>.jpg links).
+      fetch("/").then((r) => r.text()).then((text) => {
+        for (const [, name] of text.matchAll(/href="\/g\/([^"]+)\.jpg"/g))
+          select.add(new Option(decodeURIComponent(name), name));
+        ask();
+      });
+    </script>
+  </body>
+</html>

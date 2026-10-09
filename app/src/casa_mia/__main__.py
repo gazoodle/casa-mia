@@ -9,25 +9,35 @@ import threading
 from pathlib import Path
 from typing import Any
 
-from . import app_version, header
+from . import app_version, header, settings
 from .components import ask_for_restart, install_bundled
 from .ha import HA
 from .install_count import count_install
 from .log import configure_logging
-from .modules.camera_dashboard import DRAFT_PORT, KEEP_STILLS_EVERY, CameraDashboard
-from .modules.compositor import DRAFT_STORE, Compositor
+from .modules.camera_dashboard import DRAFT_PORT, CameraDashboard
+from .modules.compositor import (
+    DRAFT_STORE,
+    Compositor,
+    Gatherer,
+    admin_api,
+    control,
+)
 from .modules.fona import EVENT as FONA_EVENT
 from .modules.fona import Fona
 from .modules.gitproxy import GitProxy
-from .modules.guest_api import GuestAPI, load_store, remember, runtime
 from .modules.guest_login import (
     EVENT,
+    GuestAPI,
     GuestLogin,
     fire_event,
+    load_store,
+    remember,
+    runtime,
     supervisor_ha_port,
     supervisor_lan_ip,
     supervisor_mdns_name,
 )
+from .modules.kiosk_mode import KioskMode
 from .modules.kiosks import Kiosks
 from .modules.people import People
 from .server import PORT, integration_url, make_server
@@ -79,6 +89,12 @@ def main() -> int:
     header.HOUSE = options.get("house_name") or header.HOUSE
     log.info("house name: %s", header.HOUSE)
     api["/api/header/"] = header.handle  # the house photo, set on the home page
+    settings.FOLDER = CONFIG
+    settings.DEVELOPER = options.get("developer_mode", False)
+    log.info("developer mode: %s", "on" if settings.DEVELOPER else "off")
+    api["/api/settings/"] = (
+        settings.handle
+    )  # settings with no other home (home page cog)
     # Under s6 SUPERVISOR_TOKEN reaches us only via run.sh (with-contenv).
     # CM_HA_URL/CM_HA_TOKEN point a dev run at a real HA instead of the Supervisor proxy.
     direct = os.environ.get("CM_HA_URL")
@@ -90,6 +106,11 @@ def main() -> int:
     people = People(PEOPLE_STORE, ha)
     modules["people"] = people.health
     api["/api/people/"] = people.handle
+    # Always on: an editor for kiosk-mode's settings in the dashboards (nothing runs).
+    kiosk_mode = KioskMode(ha)
+    kiosk_mode.start()
+    modules["kiosk_mode"] = kiosk_mode.health
+    api["/api/kiosk-mode/"] = kiosk_mode.handle
     # The alarm panel runs in the integration; the app only says whether it is switched on.
     alarm_on = options.get("alarm_enabled", False)
     log.info(
@@ -151,13 +172,22 @@ def main() -> int:
         return helpers if http is not None and http.helpers_heard else None
 
     cameras_on = options.get("camera_dashboard_enabled", False)
-    compositor = None
+    compositor = draft = None
+    # The cameras' pictures, fetched once for both compositors (live and the draft's).
+    gather = Gatherer(
+        ha_url,
+        ha_token,
+        ws_path,
+        sizes_path=CONFIG / "camera_sizes.json",  # each channel's size, kept
+        pace_path=CONFIG / "compositor_pace.json",  # its paces, as set on its page
+    )
     if options.get("compositor_enabled", False):
         compositor = Compositor(
             CONFIG,
             ha_url,
             ha_token,
             ws_path=ws_path,
+            gatherer=gather,
             needs="a Deploy live from the Camera Dashboard page"
             if cameras_on
             else "the Camera Dashboard option on",
@@ -172,7 +202,7 @@ def main() -> int:
             ws_path=ws_path,
             store=DRAFT_STORE,
             prewarm=False,
-            keep_stills=KEEP_STILLS_EVERY,
+            gatherer=gather,
         )
         cameras = CameraDashboard(
             CONFIG,
@@ -192,7 +222,25 @@ def main() -> int:
         modules["camera_dashboard"] = lambda: {"state": "disabled"}
     if compositor:
         compositor.start()
-        modules["compositor"] = compositor.health
+        # The live engine's, with the preview's generator and server (the integration's
+        # pipeline switches).
+        modules["compositor"] = lambda: {
+            **compositor.health(),
+            "preview": {
+                k: draft.health()[k] for k in ("generator_paused", "server_paused")
+            }
+            if draft
+            else None,
+        }
+        # The size test pages' address: the compositor host set on the Camera Dashboard
+        # page, else this box's LAN address.
+        dashboard = cameras if cameras_on else None
+        api["/api/compositor/"] = admin_api(
+            compositor,
+            draft,
+            lambda: (dashboard and dashboard.store["compositor_host"]) or lan_ip(),
+        )
+        post_handlers["/compositor/"] = control(compositor, draft)  # its buttons
     else:
         modules["compositor"] = lambda: {"state": "disabled"}
     if options.get("kiosks_enabled", False):

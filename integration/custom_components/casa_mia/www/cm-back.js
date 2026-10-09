@@ -1,7 +1,7 @@
 // Casa Mia: the Back button. A dashboard button that navigates to "#BACK" means Back:
 // the #BACK entry is dropped from history and the browser goes back. The camera
-// dashboard's Back buttons rely on it. Loaded by the Casa Mia integration (its options
-// switch it on). Brought in from nav_back_helper.js 0.0.2, unchanged but for this note and
+// dashboard's Back buttons rely on it. Loaded by the Casa Mia integration (switched on
+// on the Casa Mia panel's Settings page). Brought in from nav_back_helper.js 0.0.2, unchanged but for this note and
 // the banner.
 
 window.hassConnection.then(() => {

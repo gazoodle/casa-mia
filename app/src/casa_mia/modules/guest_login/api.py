@@ -17,9 +17,9 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from .. import qr, swap
-from ..ha import HA, HAError
-from .guest_login import (
+from ... import qr, swap
+from ...ha import HA, HAError
+from .login import (
     MAX_DELAY,
     PORT,
     WELCOME_DELAY,
@@ -29,7 +29,7 @@ from .guest_login import (
     _norm,
     welcome_title,
 )
-from .guest_page import header_jpeg, render_welcome
+from .page import header_jpeg, render_welcome
 
 _LOGGER = logging.getLogger(__name__)
 

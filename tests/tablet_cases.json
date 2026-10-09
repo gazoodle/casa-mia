@@ -1,0 +1,11344 @@
+[
+ {
+  "name": "baseline: only main has a card",
+  "config": {
+   "top": {
+    "size": "auto"
+   },
+   "bottom": {
+    "size": "auto"
+   }
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": false
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": false
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": false
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": false
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "0px 0px 1180px 0px 0px",
+   "rows": "0px 0px 760px 0px 0px",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 4",
+     "rect": [
+      0,
+      0,
+      1180,
+      760
+     ]
+    },
+    null,
+    null,
+    null,
+    null
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": []
+  }
+ },
+ {
+  "name": "baseline in edit mode: every panel, empty auto panels none tall",
+  "config": {
+   "top": {
+    "size": "auto"
+   },
+   "bottom": {
+    "size": "auto"
+   }
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": true,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true,
+    "tall": 0
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": true,
+    "tall": 0
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "minmax(auto, 177fr) minmax(auto, 4fr) minmax(auto, 818fr) minmax(auto, 4fr) minmax(auto, 177fr)",
+   "rows": "minmax(0px, auto) minmax(0px, auto) minmax(760px, auto) minmax(0px, auto) minmax(0px, auto)",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 4",
+     "rect": [
+      181,
+      0,
+      818,
+      760
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 4",
+     "rect": [
+      0,
+      0,
+      177,
+      760
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "1 / 2",
+     "rect": [
+      181,
+      0,
+      818,
+      0
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 4",
+     "rect": [
+      1003,
+      0,
+      177,
+      760
+     ]
+    },
+    {
+     "column": "1 / 6",
+     "row": "5 / 6",
+     "rect": [
+      0,
+      760,
+      1180,
+      0
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      4
+     ],
+     "rect": [
+      177,
+      0,
+      4,
+      760
+     ]
+    },
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      4
+     ],
+     "rect": [
+      999,
+      0,
+      4,
+      760
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "an empty auto bottom between the sides, in edit mode: the sides run beside it",
+  "config": {
+   "bottom": {
+    "size": "auto",
+    "anchor_left": false,
+    "anchor_right": false
+   }
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": true,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": true,
+    "tall": 0
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "minmax(auto, 177fr) minmax(auto, 4fr) minmax(auto, 818fr) minmax(auto, 4fr) minmax(auto, 177fr)",
+   "rows": "minmax(137px, auto) minmax(4px, auto) minmax(619px, auto) minmax(0px, auto) minmax(0px, auto)",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 4",
+     "rect": [
+      181,
+      141,
+      818,
+      619
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 6",
+     "rect": [
+      0,
+      0,
+      177,
+      760
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "1 / 2",
+     "rect": [
+      181,
+      0,
+      818,
+      137
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 6",
+     "rect": [
+      1003,
+      0,
+      177,
+      760
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "5 / 6",
+     "rect": [
+      181,
+      760,
+      818,
+      0
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      6
+     ],
+     "rect": [
+      177,
+      0,
+      4,
+      760
+     ]
+    },
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      4
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      181,
+      137,
+      818,
+      4
+     ]
+    },
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      6
+     ],
+     "rect": [
+      999,
+      0,
+      4,
+      760
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "an empty auto top across the sides, in edit mode: the sides start under it",
+  "config": {
+   "top": {
+    "size": "auto",
+    "anchor_left": true,
+    "anchor_right": true
+   }
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": true,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true,
+    "tall": 0
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "minmax(auto, 177fr) minmax(auto, 4fr) minmax(auto, 818fr) minmax(auto, 4fr) minmax(auto, 177fr)",
+   "rows": "minmax(0px, auto) minmax(0px, auto) minmax(604px, auto) minmax(4px, auto) minmax(152px, auto)",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 4",
+     "rect": [
+      181,
+      0,
+      818,
+      604
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "3 / 4",
+     "rect": [
+      0,
+      0,
+      177,
+      604
+     ]
+    },
+    {
+     "column": "1 / 6",
+     "row": "1 / 2",
+     "rect": [
+      0,
+      0,
+      1180,
+      0
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "3 / 4",
+     "rect": [
+      1003,
+      0,
+      177,
+      604
+     ]
+    },
+    {
+     "column": "1 / 6",
+     "row": "5 / 6",
+     "rect": [
+      0,
+      608,
+      1180,
+      152
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      3,
+      4
+     ],
+     "rect": [
+      177,
+      0,
+      4,
+      604
+     ]
+    },
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      3,
+      4
+     ],
+     "rect": [
+      999,
+      0,
+      4,
+      604
+     ]
+    },
+    {
+     "id": "1.bottom",
+     "edge": {
+      "layer": 1,
+      "place": "bottom"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      6
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      0,
+      604,
+      1180,
+      4
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "every panel at its default size",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "177px 4px 818px 4px 177px",
+   "rows": "137px 4px 463px 4px 152px",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 4",
+     "rect": [
+      181,
+      141,
+      818,
+      463
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 4",
+     "rect": [
+      0,
+      0,
+      177,
+      604
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "1 / 2",
+     "rect": [
+      181,
+      0,
+      818,
+      137
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 4",
+     "rect": [
+      1003,
+      0,
+      177,
+      604
+     ]
+    },
+    {
+     "column": "1 / 6",
+     "row": "5 / 6",
+     "rect": [
+      0,
+      608,
+      1180,
+      152
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      4
+     ],
+     "rect": [
+      177,
+      0,
+      4,
+      604
+     ]
+    },
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      4
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      181,
+      137,
+      818,
+      4
+     ]
+    },
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      4
+     ],
+     "rect": [
+      999,
+      0,
+      4,
+      604
+     ]
+    },
+    {
+     "id": "1.bottom",
+     "edge": {
+      "layer": 1,
+      "place": "bottom"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      6
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      0,
+      604,
+      1180,
+      4
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "every panel at its default size, in edit mode",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": true,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "minmax(auto, 177fr) minmax(auto, 4fr) minmax(auto, 818fr) minmax(auto, 4fr) minmax(auto, 177fr)",
+   "rows": "minmax(137px, auto) minmax(4px, auto) minmax(463px, auto) minmax(4px, auto) minmax(152px, auto)",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 4",
+     "rect": [
+      181,
+      141,
+      818,
+      463
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 4",
+     "rect": [
+      0,
+      0,
+      177,
+      604
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "1 / 2",
+     "rect": [
+      181,
+      0,
+      818,
+      137
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 4",
+     "rect": [
+      1003,
+      0,
+      177,
+      604
+     ]
+    },
+    {
+     "column": "1 / 6",
+     "row": "5 / 6",
+     "rect": [
+      0,
+      608,
+      1180,
+      152
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      4
+     ],
+     "rect": [
+      177,
+      0,
+      4,
+      604
+     ]
+    },
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      4
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      181,
+      137,
+      818,
+      4
+     ]
+    },
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      4
+     ],
+     "rect": [
+      999,
+      0,
+      4,
+      604
+     ]
+    },
+    {
+     "id": "1.bottom",
+     "edge": {
+      "layer": 1,
+      "place": "bottom"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      6
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      0,
+      604,
+      1180,
+      4
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "auto panels as tall as their cards",
+  "config": {
+   "top": {
+    "size": "auto"
+   },
+   "bottom": {
+    "size": "auto"
+   }
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true,
+    "tall": 120
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": true,
+    "tall": 80
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "177px 4px 818px 4px 177px",
+   "rows": "120px 4px 552px 4px 80px",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 4",
+     "rect": [
+      181,
+      124,
+      818,
+      552
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 4",
+     "rect": [
+      0,
+      0,
+      177,
+      676
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "1 / 2",
+     "rect": [
+      181,
+      0,
+      818,
+      120
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 4",
+     "rect": [
+      1003,
+      0,
+      177,
+      676
+     ]
+    },
+    {
+     "column": "1 / 6",
+     "row": "5 / 6",
+     "rect": [
+      0,
+      680,
+      1180,
+      80
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      4
+     ],
+     "rect": [
+      177,
+      0,
+      4,
+      676
+     ]
+    },
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      4
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      181,
+      120,
+      818,
+      4
+     ]
+    },
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      4
+     ],
+     "rect": [
+      999,
+      0,
+      4,
+      676
+     ]
+    },
+    {
+     "id": "1.bottom",
+     "edge": {
+      "layer": 1,
+      "place": "bottom"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      6
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      0,
+      676,
+      1180,
+      4
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a hidden panel takes no room",
+  "config": {
+   "left": {
+    "hidden": true
+   }
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "0px 0px 999px 4px 177px",
+   "rows": "137px 4px 463px 4px 152px",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 4",
+     "rect": [
+      0,
+      141,
+      999,
+      463
+     ]
+    },
+    null,
+    {
+     "column": "3 / 4",
+     "row": "1 / 2",
+     "rect": [
+      0,
+      0,
+      999,
+      137
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 4",
+     "rect": [
+      1003,
+      0,
+      177,
+      604
+     ]
+    },
+    {
+     "column": "1 / 6",
+     "row": "5 / 6",
+     "rect": [
+      0,
+      608,
+      1180,
+      152
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      4
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      0,
+      137,
+      999,
+      4
+     ]
+    },
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      4
+     ],
+     "rect": [
+      999,
+      0,
+      4,
+      604
+     ]
+    },
+    {
+     "id": "1.bottom",
+     "edge": {
+      "layer": 1,
+      "place": "bottom"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      6
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      0,
+      604,
+      1180,
+      4
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a hidden panel in edit mode: as if it showed, to be shown again",
+  "config": {
+   "left": {
+    "hidden": true
+   }
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": true,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "minmax(auto, 177fr) minmax(auto, 4fr) minmax(auto, 818fr) minmax(auto, 4fr) minmax(auto, 177fr)",
+   "rows": "minmax(137px, auto) minmax(4px, auto) minmax(463px, auto) minmax(4px, auto) minmax(152px, auto)",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 4",
+     "rect": [
+      181,
+      141,
+      818,
+      463
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 4",
+     "rect": [
+      0,
+      0,
+      177,
+      604
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "1 / 2",
+     "rect": [
+      181,
+      0,
+      818,
+      137
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 4",
+     "rect": [
+      1003,
+      0,
+      177,
+      604
+     ]
+    },
+    {
+     "column": "1 / 6",
+     "row": "5 / 6",
+     "rect": [
+      0,
+      608,
+      1180,
+      152
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      4
+     ],
+     "rect": [
+      177,
+      0,
+      4,
+      604
+     ]
+    },
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      4
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      181,
+      137,
+      818,
+      4
+     ]
+    },
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      4
+     ],
+     "rect": [
+      999,
+      0,
+      4,
+      604
+     ]
+    },
+    {
+     "id": "1.bottom",
+     "edge": {
+      "layer": 1,
+      "place": "bottom"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      6
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      0,
+      604,
+      1180,
+      4
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a hidden inner edge in edit mode with layers: as if it showed",
+  "config": {
+   "inner": {
+    "top": {
+     "hidden": true
+    }
+   }
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": true,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": true
+   },
+   {
+    "layer": 2,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 2,
+    "place": "left",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1542,
+    1057
+   ],
+   "columns": "minmax(auto, 177fr) minmax(auto, 4fr) minmax(auto, 177fr) minmax(auto, 4fr) minmax(auto, 999fr) minmax(auto, 0fr) minmax(auto, 0fr) minmax(auto, 4fr) minmax(auto, 177fr)",
+   "rows": "minmax(137px, auto) minmax(4px, auto) minmax(137px, auto) minmax(4px, auto) minmax(619px, auto) minmax(0px, auto) minmax(0px, auto) minmax(4px, auto) minmax(152px, auto)",
+   "places": [
+    {
+     "column": "5 / 6",
+     "row": "5 / 6",
+     "rect": [
+      362,
+      282,
+      999,
+      619
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 8",
+     "rect": [
+      0,
+      0,
+      177,
+      901
+     ]
+    },
+    {
+     "column": "3 / 8",
+     "row": "1 / 2",
+     "rect": [
+      181,
+      0,
+      1180,
+      137
+     ]
+    },
+    {
+     "column": "9 / 10",
+     "row": "1 / 8",
+     "rect": [
+      1365,
+      0,
+      177,
+      901
+     ]
+    },
+    {
+     "column": "1 / 10",
+     "row": "9 / 10",
+     "rect": [
+      0,
+      905,
+      1542,
+      152
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "3 / 4",
+     "rect": [
+      362,
+      141,
+      999,
+      137
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "3 / 8",
+     "rect": [
+      181,
+      141,
+      177,
+      760
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1542,
+     1057
+    ],
+    [
+     181,
+     141,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      8
+     ],
+     "rect": [
+      177,
+      0,
+      4,
+      901
+     ]
+    },
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      8
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      181,
+      137,
+      1180,
+      4
+     ]
+    },
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      8,
+      9
+     ],
+     "row": [
+      1,
+      8
+     ],
+     "rect": [
+      1361,
+      0,
+      4,
+      901
+     ]
+    },
+    {
+     "id": "1.bottom",
+     "edge": {
+      "layer": 1,
+      "place": "bottom"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      10
+     ],
+     "row": [
+      8,
+      9
+     ],
+     "rect": [
+      0,
+      901,
+      1542,
+      4
+     ]
+    },
+    {
+     "id": "2.left",
+     "edge": {
+      "layer": 2,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      3,
+      8
+     ],
+     "rect": [
+      358,
+      141,
+      4,
+      760
+     ]
+    },
+    {
+     "id": "2.top",
+     "edge": {
+      "layer": 2,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      5,
+      6
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      362,
+      278,
+      999,
+      4
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "panels that do not show take no room",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": false
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": false
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "177px 4px 999px 0px 0px",
+   "rows": "0px 0px 604px 4px 152px",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 4",
+     "rect": [
+      181,
+      0,
+      999,
+      604
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 4",
+     "rect": [
+      0,
+      0,
+      177,
+      604
+     ]
+    },
+    null,
+    null,
+    {
+     "column": "1 / 6",
+     "row": "5 / 6",
+     "rect": [
+      0,
+      608,
+      1180,
+      152
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      4
+     ],
+     "rect": [
+      177,
+      0,
+      4,
+      604
+     ]
+    },
+    {
+     "id": "1.bottom",
+     "edge": {
+      "layer": 1,
+      "place": "bottom"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      6
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      0,
+      604,
+      1180,
+      4
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "margin",
+  "config": {
+   "margin": 24
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    24,
+    24,
+    24,
+    24
+   ],
+   "canvas": [
+    1132,
+    712
+   ],
+   "columns": "170px 4px 784px 4px 170px",
+   "rows": "128px 4px 434px 4px 142px",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 4",
+     "rect": [
+      174,
+      132,
+      784,
+      434
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 4",
+     "rect": [
+      0,
+      0,
+      170,
+      566
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "1 / 2",
+     "rect": [
+      174,
+      0,
+      784,
+      128
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 4",
+     "rect": [
+      962,
+      0,
+      170,
+      566
+     ]
+    },
+    {
+     "column": "1 / 6",
+     "row": "5 / 6",
+     "rect": [
+      0,
+      570,
+      1132,
+      142
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1132,
+     712
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      4
+     ],
+     "rect": [
+      170,
+      0,
+      4,
+      566
+     ]
+    },
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      4
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      174,
+      128,
+      784,
+      4
+     ]
+    },
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      4
+     ],
+     "rect": [
+      958,
+      0,
+      4,
+      566
+     ]
+    },
+    {
+     "id": "1.bottom",
+     "edge": {
+      "layer": 1,
+      "place": "bottom"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      6
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      0,
+      566,
+      1132,
+      4
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "margin in edit mode: round the area, not in it",
+  "config": {
+   "margin": 32
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": true,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    32,
+    32,
+    32,
+    32
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "minmax(auto, 177fr) minmax(auto, 4fr) minmax(auto, 818fr) minmax(auto, 4fr) minmax(auto, 177fr)",
+   "rows": "minmax(137px, auto) minmax(4px, auto) minmax(463px, auto) minmax(4px, auto) minmax(152px, auto)",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 4",
+     "rect": [
+      181,
+      141,
+      818,
+      463
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 4",
+     "rect": [
+      0,
+      0,
+      177,
+      604
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "1 / 2",
+     "rect": [
+      181,
+      0,
+      818,
+      137
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 4",
+     "rect": [
+      1003,
+      0,
+      177,
+      604
+     ]
+    },
+    {
+     "column": "1 / 6",
+     "row": "5 / 6",
+     "rect": [
+      0,
+      608,
+      1180,
+      152
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      4
+     ],
+     "rect": [
+      177,
+      0,
+      4,
+      604
+     ]
+    },
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      4
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      181,
+      137,
+      818,
+      4
+     ]
+    },
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      4
+     ],
+     "rect": [
+      999,
+      0,
+      4,
+      604
+     ]
+    },
+    {
+     "id": "1.bottom",
+     "edge": {
+      "layer": 1,
+      "place": "bottom"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      6
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      0,
+      604,
+      1180,
+      4
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "margin in edit mode with layers: round them",
+  "config": {
+   "margin": 32
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": true,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": true
+   },
+   {
+    "layer": 2,
+    "place": "left",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    32,
+    32,
+    32,
+    32
+   ],
+   "canvas": [
+    1522,
+    1032
+   ],
+   "columns": "minmax(auto, 167fr) minmax(auto, 4fr) minmax(auto, 177fr) minmax(auto, 4fr) minmax(auto, 999fr) minmax(auto, 0fr) minmax(auto, 0fr) minmax(auto, 4fr) minmax(auto, 167fr)",
+   "rows": "minmax(125px, auto) minmax(4px, auto) minmax(0px, auto) minmax(0px, auto) minmax(760px, auto) minmax(0px, auto) minmax(0px, auto) minmax(4px, auto) minmax(139px, auto)",
+   "places": [
+    {
+     "column": "5 / 6",
+     "row": "5 / 6",
+     "rect": [
+      352,
+      129,
+      999,
+      760
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 8",
+     "rect": [
+      0,
+      0,
+      167,
+      889
+     ]
+    },
+    {
+     "column": "3 / 8",
+     "row": "1 / 2",
+     "rect": [
+      171,
+      0,
+      1180,
+      125
+     ]
+    },
+    {
+     "column": "9 / 10",
+     "row": "1 / 8",
+     "rect": [
+      1355,
+      0,
+      167,
+      889
+     ]
+    },
+    {
+     "column": "1 / 10",
+     "row": "9 / 10",
+     "rect": [
+      0,
+      893,
+      1522,
+      139
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "3 / 8",
+     "rect": [
+      171,
+      129,
+      177,
+      760
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1522,
+     1032
+    ],
+    [
+     171,
+     129,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      8
+     ],
+     "rect": [
+      167,
+      0,
+      4,
+      889
+     ]
+    },
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      8
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      171,
+      125,
+      1180,
+      4
+     ]
+    },
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      8,
+      9
+     ],
+     "row": [
+      1,
+      8
+     ],
+     "rect": [
+      1351,
+      0,
+      4,
+      889
+     ]
+    },
+    {
+     "id": "1.bottom",
+     "edge": {
+      "layer": 1,
+      "place": "bottom"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      10
+     ],
+     "row": [
+      8,
+      9
+     ],
+     "rect": [
+      0,
+      889,
+      1522,
+      4
+     ]
+    },
+    {
+     "id": "2.left",
+     "edge": {
+      "layer": 2,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      3,
+      8
+     ],
+     "rect": [
+      348,
+      129,
+      4,
+      760
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "margin: at most half the shorter side",
+  "config": {
+   "margin": 900
+  },
+  "area": [
+   400,
+   300
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    149,
+    149,
+    149,
+    149
+   ],
+   "canvas": [
+    102,
+    2
+   ],
+   "columns": "15px 4px 64px 4px 15px",
+   "rows": "0px 0px 2px 0px 0px",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 4",
+     "rect": [
+      19,
+      0,
+      64,
+      2
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 4",
+     "rect": [
+      0,
+      0,
+      15,
+      2
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "1 / 2",
+     "rect": [
+      19,
+      0,
+      64,
+      0
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 4",
+     "rect": [
+      87,
+      0,
+      15,
+      2
+     ]
+    },
+    {
+     "column": "1 / 6",
+     "row": "5 / 6",
+     "rect": [
+      0,
+      2,
+      102,
+      0
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     102,
+     2
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      4
+     ],
+     "rect": [
+      15,
+      0,
+      4,
+      2
+     ]
+    },
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      4
+     ],
+     "rect": [
+      83,
+      0,
+      4,
+      2
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "margin, each side its own",
+  "config": {
+   "margin": {
+    "top": 10,
+    "left": 40
+   }
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    10,
+    0,
+    0,
+    40
+   ],
+   "canvas": [
+    1140,
+    750
+   ],
+   "columns": "171px 4px 790px 4px 171px",
+   "rows": "135px 4px 457px 4px 150px",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 4",
+     "rect": [
+      175,
+      139,
+      790,
+      457
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 4",
+     "rect": [
+      0,
+      0,
+      171,
+      596
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "1 / 2",
+     "rect": [
+      175,
+      0,
+      790,
+      135
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 4",
+     "rect": [
+      969,
+      0,
+      171,
+      596
+     ]
+    },
+    {
+     "column": "1 / 6",
+     "row": "5 / 6",
+     "rect": [
+      0,
+      600,
+      1140,
+      150
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1140,
+     750
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      4
+     ],
+     "rect": [
+      171,
+      0,
+      4,
+      596
+     ]
+    },
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      4
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      175,
+      135,
+      790,
+      4
+     ]
+    },
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      4
+     ],
+     "rect": [
+      965,
+      0,
+      4,
+      596
+     ]
+    },
+    {
+     "id": "1.bottom",
+     "edge": {
+      "layer": 1,
+      "place": "bottom"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      6
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      0,
+      596,
+      1140,
+      4
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "margin, each side, in edit mode: round the area, those of up to 25 px in it",
+  "config": {
+   "margin": {
+    "top": 10,
+    "right": 20,
+    "bottom": 30,
+    "left": 4
+   }
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": true,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    10,
+    20,
+    30,
+    4
+   ],
+   "canvas": [
+    1156,
+    750
+   ],
+   "columns": "minmax(auto, 173fr) minmax(auto, 4fr) minmax(auto, 802fr) minmax(auto, 4fr) minmax(auto, 173fr)",
+   "rows": "minmax(135px, auto) minmax(4px, auto) minmax(457px, auto) minmax(4px, auto) minmax(150px, auto)",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 4",
+     "rect": [
+      177,
+      139,
+      802,
+      457
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 4",
+     "rect": [
+      0,
+      0,
+      173,
+      596
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "1 / 2",
+     "rect": [
+      177,
+      0,
+      802,
+      135
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 4",
+     "rect": [
+      983,
+      0,
+      173,
+      596
+     ]
+    },
+    {
+     "column": "1 / 6",
+     "row": "5 / 6",
+     "rect": [
+      0,
+      600,
+      1156,
+      150
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1156,
+     750
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      4
+     ],
+     "rect": [
+      173,
+      0,
+      4,
+      596
+     ]
+    },
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      4
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      177,
+      135,
+      802,
+      4
+     ]
+    },
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      4
+     ],
+     "rect": [
+      979,
+      0,
+      4,
+      596
+     ]
+    },
+    {
+     "id": "1.bottom",
+     "edge": {
+      "layer": 1,
+      "place": "bottom"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      6
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      0,
+      596,
+      1156,
+      4
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "an empty view in edit mode: all of it in the area",
+  "config": {
+   "margin": 40,
+   "inner": {
+    "left": {
+     "size": 20
+    }
+   }
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": true,
+  "fit": true,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": true
+   },
+   {
+    "layer": 2,
+    "place": "left",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    40,
+    40,
+    40,
+    40
+   ],
+   "canvas": [
+    1100,
+    680
+   ],
+   "columns": "minmax(auto, 165fr) minmax(auto, 4fr) minmax(auto, 152fr) minmax(auto, 4fr) minmax(auto, 606fr) minmax(auto, 0fr) minmax(auto, 0fr) minmax(auto, 4fr) minmax(auto, 165fr)",
+   "rows": "minmax(auto, 122fr) minmax(auto, 4fr) minmax(auto, 0fr) minmax(auto, 0fr) minmax(auto, 414fr) minmax(auto, 0fr) minmax(auto, 0fr) minmax(auto, 4fr) minmax(auto, 136fr)",
+   "places": [
+    {
+     "column": "5 / 6",
+     "row": "5 / 6",
+     "rect": [
+      325,
+      126,
+      606,
+      414
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 8",
+     "rect": [
+      0,
+      0,
+      165,
+      540
+     ]
+    },
+    {
+     "column": "3 / 8",
+     "row": "1 / 2",
+     "rect": [
+      169,
+      0,
+      762,
+      122
+     ]
+    },
+    {
+     "column": "9 / 10",
+     "row": "1 / 8",
+     "rect": [
+      935,
+      0,
+      165,
+      540
+     ]
+    },
+    {
+     "column": "1 / 10",
+     "row": "9 / 10",
+     "rect": [
+      0,
+      544,
+      1100,
+      136
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "3 / 8",
+     "rect": [
+      169,
+      126,
+      152,
+      414
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1100,
+     680
+    ],
+    [
+     169,
+     126,
+     762,
+     414
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      8
+     ],
+     "rect": [
+      165,
+      0,
+      4,
+      540
+     ]
+    },
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      8
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      169,
+      122,
+      762,
+      4
+     ]
+    },
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      8,
+      9
+     ],
+     "row": [
+      1,
+      8
+     ],
+     "rect": [
+      931,
+      0,
+      4,
+      540
+     ]
+    },
+    {
+     "id": "1.bottom",
+     "edge": {
+      "layer": 1,
+      "place": "bottom"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      10
+     ],
+     "row": [
+      8,
+      9
+     ],
+     "rect": [
+      0,
+      540,
+      1100,
+      4
+     ]
+    },
+    {
+     "id": "2.left",
+     "edge": {
+      "layer": 2,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      3,
+      8
+     ],
+     "rect": [
+      321,
+      126,
+      4,
+      414
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "margin of 8 in edit mode: in the area, as out of it",
+  "config": {
+   "margin": 8
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": true,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": true
+   },
+   {
+    "layer": 2,
+    "place": "left",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    8,
+    8,
+    8,
+    8
+   ],
+   "canvas": [
+    1522,
+    1035
+   ],
+   "columns": "minmax(auto, 175fr) minmax(auto, 4fr) minmax(auto, 175fr) minmax(auto, 4fr) minmax(auto, 985fr) minmax(auto, 0fr) minmax(auto, 0fr) minmax(auto, 4fr) minmax(auto, 175fr)",
+   "rows": "minmax(134px, auto) minmax(4px, auto) minmax(0px, auto) minmax(0px, auto) minmax(744px, auto) minmax(0px, auto) minmax(0px, auto) minmax(4px, auto) minmax(149px, auto)",
+   "places": [
+    {
+     "column": "5 / 6",
+     "row": "5 / 6",
+     "rect": [
+      358,
+      138,
+      985,
+      744
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 8",
+     "rect": [
+      0,
+      0,
+      175,
+      882
+     ]
+    },
+    {
+     "column": "3 / 8",
+     "row": "1 / 2",
+     "rect": [
+      179,
+      0,
+      1164,
+      134
+     ]
+    },
+    {
+     "column": "9 / 10",
+     "row": "1 / 8",
+     "rect": [
+      1347,
+      0,
+      175,
+      882
+     ]
+    },
+    {
+     "column": "1 / 10",
+     "row": "9 / 10",
+     "rect": [
+      0,
+      886,
+      1522,
+      149
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "3 / 8",
+     "rect": [
+      179,
+      138,
+      175,
+      744
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1522,
+     1035
+    ],
+    [
+     179,
+     138,
+     1164,
+     744
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      8
+     ],
+     "rect": [
+      175,
+      0,
+      4,
+      882
+     ]
+    },
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      8
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      179,
+      134,
+      1164,
+      4
+     ]
+    },
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      8,
+      9
+     ],
+     "row": [
+      1,
+      8
+     ],
+     "rect": [
+      1343,
+      0,
+      4,
+      882
+     ]
+    },
+    {
+     "id": "1.bottom",
+     "edge": {
+      "layer": 1,
+      "place": "bottom"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      10
+     ],
+     "row": [
+      8,
+      9
+     ],
+     "rect": [
+      0,
+      882,
+      1522,
+      4
+     ]
+    },
+    {
+     "id": "2.left",
+     "edge": {
+      "layer": 2,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      3,
+      8
+     ],
+     "rect": [
+      354,
+      138,
+      4,
+      744
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "an edge's own gap to the middle",
+  "config": {
+   "gap": 4,
+   "left": {
+    "gap": 20
+   },
+   "bottom": {
+    "gap": 0
+   }
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "177px 20px 802px 4px 177px",
+   "rows": "137px 4px 467px 0px 152px",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 4",
+     "rect": [
+      197,
+      141,
+      802,
+      467
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 4",
+     "rect": [
+      0,
+      0,
+      177,
+      608
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "1 / 2",
+     "rect": [
+      197,
+      0,
+      802,
+      137
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 4",
+     "rect": [
+      1003,
+      0,
+      177,
+      608
+     ]
+    },
+    {
+     "column": "1 / 6",
+     "row": "5 / 6",
+     "rect": [
+      0,
+      608,
+      1180,
+      152
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 20,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      4
+     ],
+     "rect": [
+      177,
+      0,
+      20,
+      608
+     ]
+    },
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      4
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      197,
+      137,
+      802,
+      4
+     ]
+    },
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      4
+     ],
+     "rect": [
+      999,
+      0,
+      4,
+      608
+     ]
+    },
+    {
+     "id": "1.bottom",
+     "edge": {
+      "layer": 1,
+      "place": "bottom"
+     },
+     "size": 0,
+     "across": true,
+     "column": [
+      1,
+      6
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      0,
+      608,
+      1180,
+      0
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "an edge's own gap, a fixed main",
+  "config": {
+   "main_fit": "fixed",
+   "main_ratio": "4:3",
+   "main_width": 60,
+   "top": {
+    "gap": 16
+   }
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "232px 4px 708px 4px 232px",
+   "rows": "104px 16px 531px 4px 105px",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 4",
+     "rect": [
+      236,
+      120,
+      708,
+      531
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 4",
+     "rect": [
+      0,
+      0,
+      232,
+      651
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "1 / 2",
+     "rect": [
+      236,
+      0,
+      708,
+      104
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 4",
+     "rect": [
+      948,
+      0,
+      232,
+      651
+     ]
+    },
+    {
+     "column": "1 / 6",
+     "row": "5 / 6",
+     "rect": [
+      0,
+      655,
+      1180,
+      105
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      4
+     ],
+     "rect": [
+      232,
+      0,
+      4,
+      651
+     ]
+    },
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 16,
+     "across": true,
+     "column": [
+      3,
+      4
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      236,
+      104,
+      708,
+      16
+     ]
+    },
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      4
+     ],
+     "rect": [
+      944,
+      0,
+      4,
+      651
+     ]
+    },
+    {
+     "id": "1.bottom",
+     "edge": {
+      "layer": 1,
+      "place": "bottom"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      6
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      0,
+      651,
+      1180,
+      4
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a panel's own gap after it",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true,
+    "wide": 200,
+    "gapAfter": 30
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true,
+    "wide": 200
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true,
+    "wide": 200
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "0px 0px 200px 30px 200px 4px 200px 546px 0px 0px",
+   "rows": "137px 4px 619px 0px 0px",
+   "places": [
+    {
+     "column": "3 / 9",
+     "row": "3 / 4",
+     "rect": [
+      0,
+      141,
+      1180,
+      619
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "1 / 2",
+     "rect": [
+      0,
+      0,
+      200,
+      137
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 2",
+     "rect": [
+      230,
+      0,
+      200,
+      137
+     ]
+    },
+    {
+     "column": "7 / 8",
+     "row": "1 / 2",
+     "rect": [
+      434,
+      0,
+      200,
+      137
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      9
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      0,
+      137,
+      1180,
+      4
+     ]
+    },
+    {
+     "id": "after.1",
+     "after": 1,
+     "size": 30,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      2
+     ],
+     "rect": [
+      200,
+      0,
+      30,
+      137
+     ]
+    },
+    {
+     "id": "after.2",
+     "after": 2,
+     "size": 4,
+     "across": false,
+     "column": [
+      6,
+      7
+     ],
+     "row": [
+      1,
+      2
+     ],
+     "rect": [
+      430,
+      0,
+      4,
+      137
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a panel's own gap before the held ones",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true,
+    "size": "fill",
+    "gapAfter": 20
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true,
+    "tall": 180,
+    "hold": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "0px 0px 999px 4px 177px",
+   "rows": "0px 0px 560px 20px 180px 0px 0px",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 6",
+     "rect": [
+      0,
+      0,
+      999,
+      760
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 4",
+     "rect": [
+      1003,
+      0,
+      177,
+      560
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "5 / 8",
+     "rect": [
+      1003,
+      580,
+      177,
+      180
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      8
+     ],
+     "rect": [
+      999,
+      0,
+      4,
+      760
+     ]
+    },
+    {
+     "id": "after.1",
+     "after": 1,
+     "size": 20,
+     "across": true,
+     "column": [
+      5,
+      6
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      1003,
+      560,
+      177,
+      20
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "inner layer gaps its own",
+  "config": {
+   "inner": {
+    "left": {
+     "gap": 24
+    }
+   }
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": true,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": true
+   },
+   {
+    "layer": 2,
+    "place": "left",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1542,
+    1057
+   ],
+   "columns": "minmax(auto, 177fr) minmax(auto, 4fr) minmax(auto, 177fr) minmax(auto, 24fr) minmax(auto, 979fr) minmax(auto, 0fr) minmax(auto, 0fr) minmax(auto, 4fr) minmax(auto, 177fr)",
+   "rows": "minmax(137px, auto) minmax(4px, auto) minmax(0px, auto) minmax(0px, auto) minmax(760px, auto) minmax(0px, auto) minmax(0px, auto) minmax(4px, auto) minmax(152px, auto)",
+   "places": [
+    {
+     "column": "5 / 6",
+     "row": "5 / 6",
+     "rect": [
+      382,
+      141,
+      979,
+      760
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 8",
+     "rect": [
+      0,
+      0,
+      177,
+      901
+     ]
+    },
+    {
+     "column": "3 / 8",
+     "row": "1 / 2",
+     "rect": [
+      181,
+      0,
+      1180,
+      137
+     ]
+    },
+    {
+     "column": "9 / 10",
+     "row": "1 / 8",
+     "rect": [
+      1365,
+      0,
+      177,
+      901
+     ]
+    },
+    {
+     "column": "1 / 10",
+     "row": "9 / 10",
+     "rect": [
+      0,
+      905,
+      1542,
+      152
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "3 / 8",
+     "rect": [
+      181,
+      141,
+      177,
+      760
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1542,
+     1057
+    ],
+    [
+     181,
+     141,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      8
+     ],
+     "rect": [
+      177,
+      0,
+      4,
+      901
+     ]
+    },
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      8
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      181,
+      137,
+      1180,
+      4
+     ]
+    },
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      8,
+      9
+     ],
+     "row": [
+      1,
+      8
+     ],
+     "rect": [
+      1361,
+      0,
+      4,
+      901
+     ]
+    },
+    {
+     "id": "1.bottom",
+     "edge": {
+      "layer": 1,
+      "place": "bottom"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      10
+     ],
+     "row": [
+      8,
+      9
+     ],
+     "rect": [
+      0,
+      901,
+      1542,
+      4
+     ]
+    },
+    {
+     "id": "2.left",
+     "edge": {
+      "layer": 2,
+      "place": "left"
+     },
+     "size": 24,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      3,
+      8
+     ],
+     "rect": [
+      358,
+      141,
+      24,
+      760
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "portrait",
+  "config": {},
+  "area": [
+   800,
+   1180
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    800,
+    1180
+   ],
+   "columns": "120px 4px 552px 4px 120px",
+   "rows": "212px 4px 724px 4px 236px",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 4",
+     "rect": [
+      124,
+      216,
+      552,
+      724
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 4",
+     "rect": [
+      0,
+      0,
+      120,
+      940
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "1 / 2",
+     "rect": [
+      124,
+      0,
+      552,
+      212
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 4",
+     "rect": [
+      680,
+      0,
+      120,
+      940
+     ]
+    },
+    {
+     "column": "1 / 6",
+     "row": "5 / 6",
+     "rect": [
+      0,
+      944,
+      800,
+      236
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     800,
+     1180
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      4
+     ],
+     "rect": [
+      120,
+      0,
+      4,
+      940
+     ]
+    },
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      4
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      124,
+      212,
+      552,
+      4
+     ]
+    },
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      4
+     ],
+     "rect": [
+      676,
+      0,
+      4,
+      940
+     ]
+    },
+    {
+     "id": "1.bottom",
+     "edge": {
+      "layer": 1,
+      "place": "bottom"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      6
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      0,
+      940,
+      800,
+      4
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a fixed main: the panels take the rest",
+  "config": {
+   "main_fit": "fixed",
+   "main_ratio": "4:3",
+   "main_width": 60
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "232px 4px 708px 4px 232px",
+   "rows": "110px 4px 531px 4px 111px",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 4",
+     "rect": [
+      236,
+      114,
+      708,
+      531
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 4",
+     "rect": [
+      0,
+      0,
+      232,
+      645
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "1 / 2",
+     "rect": [
+      236,
+      0,
+      708,
+      110
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 4",
+     "rect": [
+      948,
+      0,
+      232,
+      645
+     ]
+    },
+    {
+     "column": "1 / 6",
+     "row": "5 / 6",
+     "rect": [
+      0,
+      649,
+      1180,
+      111
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      4
+     ],
+     "rect": [
+      232,
+      0,
+      4,
+      645
+     ]
+    },
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      4
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      236,
+      110,
+      708,
+      4
+     ]
+    },
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      4
+     ],
+     "rect": [
+      944,
+      0,
+      4,
+      645
+     ]
+    },
+    {
+     "id": "1.bottom",
+     "edge": {
+      "layer": 1,
+      "place": "bottom"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      6
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      0,
+      645,
+      1180,
+      4
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a fixed main alone: its size, centred",
+  "config": {
+   "main_fit": "fixed",
+   "main_ratio": "4:3",
+   "main_width": 60
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": false
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": false
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": false
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": false
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "0px 0px 1180px 0px 0px",
+   "rows": "0px 0px 760px 0px 0px",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 4",
+     "rect": [
+      236,
+      114,
+      708,
+      531
+     ],
+     "width": 708,
+     "centred": true,
+     "height": 531
+    },
+    null,
+    null,
+    null,
+    null
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": []
+  }
+ },
+ {
+  "name": "a fixed main alone in edit mode: its width only",
+  "config": {
+   "main_fit": "fixed",
+   "main_ratio": "4:3",
+   "main_width": 60
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": true,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": false
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": false
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": false
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": false
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "minmax(auto, 0fr) minmax(auto, 0fr) minmax(auto, 1180fr) minmax(auto, 0fr) minmax(auto, 0fr)",
+   "rows": "minmax(0px, auto) minmax(0px, auto) minmax(760px, auto) minmax(0px, auto) minmax(0px, auto)",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 4",
+     "rect": [
+      236,
+      114,
+      708,
+      531
+     ],
+     "width": 708,
+     "centred": true
+    },
+    null,
+    null,
+    null,
+    null
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": []
+  }
+ },
+ {
+  "name": "no main",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": false
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": false
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": false
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "177px 4px 818px 4px 177px",
+   "rows": "0px 0px 760px 0px 0px",
+   "places": [
+    null,
+    {
+     "column": "1 / 2",
+     "row": "1 / 6",
+     "rect": [
+      0,
+      0,
+      177,
+      760
+     ]
+    },
+    null,
+    {
+     "column": "5 / 6",
+     "row": "1 / 6",
+     "rect": [
+      1003,
+      0,
+      177,
+      760
+     ]
+    },
+    null
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      6
+     ],
+     "rect": [
+      177,
+      0,
+      4,
+      760
+     ]
+    },
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      6
+     ],
+     "rect": [
+      999,
+      0,
+      4,
+      760
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a top stack of three: a column each, packed from the start",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "0px 0px 293px 4px 293px 4px 293px 293px 0px 0px",
+   "rows": "137px 4px 619px 0px 0px",
+   "places": [
+    {
+     "column": "3 / 9",
+     "row": "3 / 4",
+     "rect": [
+      0,
+      141,
+      1180,
+      619
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "1 / 2",
+     "rect": [
+      0,
+      0,
+      293,
+      137
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 2",
+     "rect": [
+      297,
+      0,
+      293,
+      137
+     ]
+    },
+    {
+     "column": "7 / 8",
+     "row": "1 / 2",
+     "rect": [
+      594,
+      0,
+      293,
+      137
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      9
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      0,
+      137,
+      1180,
+      4
+     ]
+    },
+    {
+     "id": "after.1",
+     "after": 1,
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      2
+     ],
+     "rect": [
+      293,
+      0,
+      4,
+      137
+     ]
+    },
+    {
+     "id": "after.2",
+     "after": 2,
+     "size": 4,
+     "across": false,
+     "column": [
+      6,
+      7
+     ],
+     "row": [
+      1,
+      2
+     ],
+     "rect": [
+      590,
+      0,
+      4,
+      137
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a top stack of three, in edit mode",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": true,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "minmax(auto, 0fr) minmax(auto, 0fr) minmax(auto, 293fr) minmax(auto, 4fr) minmax(auto, 293fr) minmax(auto, 4fr) minmax(auto, 293fr) minmax(auto, 293fr) minmax(auto, 0fr) minmax(auto, 0fr)",
+   "rows": "minmax(137px, auto) minmax(4px, auto) minmax(619px, auto) minmax(0px, auto) minmax(0px, auto)",
+   "places": [
+    {
+     "column": "3 / 9",
+     "row": "3 / 4",
+     "rect": [
+      0,
+      141,
+      1180,
+      619
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "1 / 2",
+     "rect": [
+      0,
+      0,
+      293,
+      137
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 2",
+     "rect": [
+      297,
+      0,
+      293,
+      137
+     ]
+    },
+    {
+     "column": "7 / 8",
+     "row": "1 / 2",
+     "rect": [
+      594,
+      0,
+      293,
+      137
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      9
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      0,
+      137,
+      1180,
+      4
+     ]
+    },
+    {
+     "id": "after.1",
+     "after": 1,
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      2
+     ],
+     "rect": [
+      293,
+      0,
+      4,
+      137
+     ]
+    },
+    {
+     "id": "after.2",
+     "after": 2,
+     "size": 4,
+     "across": false,
+     "column": [
+      6,
+      7
+     ],
+     "row": [
+      1,
+      2
+     ],
+     "rect": [
+      590,
+      0,
+      4,
+      137
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a top stack: one of half its Width, the other a column",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true,
+    "share": 0.5
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "0px 0px 588px 4px 294px 294px 0px 0px",
+   "rows": "137px 4px 619px 0px 0px",
+   "places": [
+    {
+     "column": "3 / 7",
+     "row": "3 / 4",
+     "rect": [
+      0,
+      141,
+      1180,
+      619
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "1 / 2",
+     "rect": [
+      0,
+      0,
+      588,
+      137
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 2",
+     "rect": [
+      592,
+      0,
+      294,
+      137
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      7
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      0,
+      137,
+      1180,
+      4
+     ]
+    },
+    {
+     "id": "after.1",
+     "after": 1,
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      2
+     ],
+     "rect": [
+      588,
+      0,
+      4,
+      137
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a top stack all of a Width: packed from the start",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true,
+    "share": 0.25
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true,
+    "share": 0.25
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "0px 0px 294px 4px 294px 588px 0px 0px",
+   "rows": "137px 4px 619px 0px 0px",
+   "places": [
+    {
+     "column": "3 / 7",
+     "row": "3 / 4",
+     "rect": [
+      0,
+      141,
+      1180,
+      619
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "1 / 2",
+     "rect": [
+      0,
+      0,
+      294,
+      137
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 2",
+     "rect": [
+      298,
+      0,
+      294,
+      137
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      7
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      0,
+      137,
+      1180,
+      4
+     ]
+    },
+    {
+     "id": "after.1",
+     "after": 1,
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      2
+     ],
+     "rect": [
+      294,
+      0,
+      4,
+      137
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a top stack too wide: all shrink alike",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true,
+    "share": 0.75
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true,
+    "share": 0.75
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "0px 0px 588px 4px 588px 0px 0px",
+   "rows": "137px 4px 619px 0px 0px",
+   "places": [
+    {
+     "column": "3 / 6",
+     "row": "3 / 4",
+     "rect": [
+      0,
+      141,
+      1180,
+      619
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "1 / 2",
+     "rect": [
+      0,
+      0,
+      588,
+      137
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 2",
+     "rect": [
+      592,
+      0,
+      588,
+      137
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      6
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      0,
+      137,
+      1180,
+      4
+     ]
+    },
+    {
+     "id": "after.1",
+     "after": 1,
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      2
+     ],
+     "rect": [
+      588,
+      0,
+      4,
+      137
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a top stack as wide as their cards, packed from the start",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true,
+    "wide": 140
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true,
+    "wide": 290
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "0px 0px 140px 4px 290px 746px 0px 0px",
+   "rows": "137px 4px 619px 0px 0px",
+   "places": [
+    {
+     "column": "3 / 7",
+     "row": "3 / 4",
+     "rect": [
+      0,
+      141,
+      1180,
+      619
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "1 / 2",
+     "rect": [
+      0,
+      0,
+      140,
+      137
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 2",
+     "rect": [
+      144,
+      0,
+      290,
+      137
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      7
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      0,
+      137,
+      1180,
+      4
+     ]
+    },
+    {
+     "id": "after.1",
+     "after": 1,
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      2
+     ],
+     "rect": [
+      140,
+      0,
+      4,
+      137
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a top stack, one without cards: a column",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": true,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true,
+    "wide": 140
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true,
+    "wide": 0
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "minmax(auto, 0fr) minmax(auto, 0fr) minmax(auto, 140fr) minmax(auto, 4fr) minmax(auto, 294fr) minmax(auto, 742fr) minmax(auto, 0fr) minmax(auto, 0fr)",
+   "rows": "minmax(137px, auto) minmax(4px, auto) minmax(619px, auto) minmax(0px, auto) minmax(0px, auto)",
+   "places": [
+    {
+     "column": "3 / 7",
+     "row": "3 / 4",
+     "rect": [
+      0,
+      141,
+      1180,
+      619
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "1 / 2",
+     "rect": [
+      0,
+      0,
+      140,
+      137
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 2",
+     "rect": [
+      144,
+      0,
+      294,
+      137
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      7
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      0,
+      137,
+      1180,
+      4
+     ]
+    },
+    {
+     "id": "after.1",
+     "after": 1,
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      2
+     ],
+     "rect": [
+      140,
+      0,
+      4,
+      137
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a top stack of one, as wide as its cards: fills it",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true,
+    "wide": 140
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "0px 0px 1180px 0px 0px",
+   "rows": "137px 4px 619px 0px 0px",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 4",
+     "rect": [
+      0,
+      141,
+      1180,
+      619
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "1 / 2",
+     "rect": [
+      0,
+      0,
+      1180,
+      137
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      4
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      0,
+      137,
+      1180,
+      4
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a left panel as wide as its cards: its widest",
+  "config": {
+   "left": {
+    "size": "auto"
+   }
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true,
+    "wide": 140,
+    "tall": 300
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true,
+    "wide": 290,
+    "tall": 200
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "290px 4px 886px 0px 0px",
+   "rows": "0px 0px 300px 4px 200px 256px 0px 0px",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 7",
+     "rect": [
+      294,
+      0,
+      886,
+      760
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 4",
+     "rect": [
+      0,
+      0,
+      290,
+      300
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "5 / 6",
+     "rect": [
+      0,
+      304,
+      290,
+      200
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      9
+     ],
+     "rect": [
+      290,
+      0,
+      4,
+      760
+     ]
+    },
+    {
+     "id": "after.1",
+     "after": 1,
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      2
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      0,
+      300,
+      290,
+      4
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a right panel as wide as its cards, in edit mode",
+  "config": {
+   "right": {
+    "size": "auto"
+   }
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": true,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true,
+    "wide": 140
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "minmax(auto, 0fr) minmax(auto, 0fr) minmax(auto, 1036fr) minmax(auto, 4fr) minmax(auto, 140fr)",
+   "rows": "minmax(0px, auto) minmax(0px, auto) minmax(760px, auto) minmax(0px, auto) minmax(0px, auto)",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 4",
+     "rect": [
+      0,
+      0,
+      1036,
+      760
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 6",
+     "rect": [
+      1040,
+      0,
+      140,
+      760
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      6
+     ],
+     "rect": [
+      1036,
+      0,
+      4,
+      760
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a top stack of one of a Width",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true,
+    "share": 0.5
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "0px 0px 590px 590px 0px 0px",
+   "rows": "137px 4px 619px 0px 0px",
+   "places": [
+    {
+     "column": "3 / 5",
+     "row": "3 / 4",
+     "rect": [
+      0,
+      141,
+      1180,
+      619
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "1 / 2",
+     "rect": [
+      0,
+      0,
+      590,
+      137
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      5
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      0,
+      137,
+      1180,
+      4
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a left stack as tall as their cards, packed from the start",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true,
+    "tall": 200
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true,
+    "tall": 150
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "177px 4px 999px 0px 0px",
+   "rows": "0px 0px 200px 4px 150px 406px 0px 0px",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 7",
+     "rect": [
+      181,
+      0,
+      999,
+      760
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 4",
+     "rect": [
+      0,
+      0,
+      177,
+      200
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "5 / 6",
+     "rect": [
+      0,
+      204,
+      177,
+      150
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      9
+     ],
+     "rect": [
+      177,
+      0,
+      4,
+      760
+     ]
+    },
+    {
+     "id": "after.1",
+     "after": 1,
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      2
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      0,
+      200,
+      177,
+      4
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a left stack with a length",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true,
+    "length": 120
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true,
+    "tall": 150
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "177px 4px 999px 0px 0px",
+   "rows": "0px 0px 120px 4px 150px 486px 0px 0px",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 7",
+     "rect": [
+      181,
+      0,
+      999,
+      760
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 4",
+     "rect": [
+      0,
+      0,
+      177,
+      120
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "5 / 6",
+     "rect": [
+      0,
+      124,
+      177,
+      150
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      9
+     ],
+     "rect": [
+      177,
+      0,
+      4,
+      760
+     ]
+    },
+    {
+     "id": "after.1",
+     "after": 1,
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      2
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      0,
+      120,
+      177,
+      4
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a left stack too tall: all shrink alike",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true,
+    "tall": 600
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true,
+    "tall": 600
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "177px 4px 999px 0px 0px",
+   "rows": "0px 0px 378px 4px 378px 0px 0px",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 6",
+     "rect": [
+      181,
+      0,
+      999,
+      760
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 4",
+     "rect": [
+      0,
+      0,
+      177,
+      378
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "5 / 8",
+     "rect": [
+      0,
+      382,
+      177,
+      378
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      8
+     ],
+     "rect": [
+      177,
+      0,
+      4,
+      760
+     ]
+    },
+    {
+     "id": "after.1",
+     "after": 1,
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      2
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      0,
+      378,
+      177,
+      4
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a left stack in edit mode, one new and empty",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": true,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true,
+    "tall": 200
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true,
+    "tall": 0
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "minmax(auto, 177fr) minmax(auto, 4fr) minmax(auto, 999fr) minmax(auto, 0fr) minmax(auto, 0fr)",
+   "rows": "minmax(0px, auto) minmax(0px, auto) minmax(200px, auto) minmax(4px, auto) minmax(0px, auto) minmax(556px, auto) minmax(0px, auto) minmax(0px, auto)",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 7",
+     "rect": [
+      181,
+      0,
+      999,
+      760
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 4",
+     "rect": [
+      0,
+      0,
+      177,
+      200
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "5 / 6",
+     "rect": [
+      0,
+      204,
+      177,
+      0
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      9
+     ],
+     "rect": [
+      177,
+      0,
+      4,
+      760
+     ]
+    },
+    {
+     "id": "after.1",
+     "after": 1,
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      2
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      0,
+      200,
+      177,
+      4
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a right stack: one filling, one held to the end as its cards",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true,
+    "size": "fill"
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true,
+    "tall": 180,
+    "hold": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "0px 0px 999px 4px 177px",
+   "rows": "0px 0px 576px 4px 180px 0px 0px",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 6",
+     "rect": [
+      0,
+      0,
+      999,
+      760
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 4",
+     "rect": [
+      1003,
+      0,
+      177,
+      576
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "5 / 8",
+     "rect": [
+      1003,
+      580,
+      177,
+      180
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      8
+     ],
+     "rect": [
+      999,
+      0,
+      4,
+      760
+     ]
+    },
+    {
+     "id": "after.1",
+     "after": 1,
+     "size": 4,
+     "across": true,
+     "column": [
+      5,
+      6
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      1003,
+      576,
+      177,
+      4
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a right stack: both as their cards, one held to the end",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true,
+    "tall": 200
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true,
+    "tall": 180,
+    "hold": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "0px 0px 999px 4px 177px",
+   "rows": "0px 0px 200px 380px 180px 0px 0px",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 6",
+     "rect": [
+      0,
+      0,
+      999,
+      760
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 4",
+     "rect": [
+      1003,
+      0,
+      177,
+      200
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "5 / 8",
+     "rect": [
+      1003,
+      580,
+      177,
+      180
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      8
+     ],
+     "rect": [
+      999,
+      0,
+      4,
+      760
+     ]
+    },
+    {
+     "id": "after.1",
+     "after": 1,
+     "size": 4,
+     "across": true,
+     "column": [
+      5,
+      6
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      1003,
+      200,
+      177,
+      380
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a right stack held, in edit mode",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": true,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true,
+    "tall": 200
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true,
+    "tall": 180,
+    "hold": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "minmax(auto, 0fr) minmax(auto, 0fr) minmax(auto, 999fr) minmax(auto, 4fr) minmax(auto, 177fr)",
+   "rows": "minmax(0px, auto) minmax(0px, auto) minmax(200px, auto) minmax(380px, auto) minmax(180px, auto) minmax(0px, auto) minmax(0px, auto)",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 6",
+     "rect": [
+      0,
+      0,
+      999,
+      760
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 4",
+     "rect": [
+      1003,
+      0,
+      177,
+      200
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "5 / 8",
+     "rect": [
+      1003,
+      580,
+      177,
+      180
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      8
+     ],
+     "rect": [
+      999,
+      0,
+      4,
+      760
+     ]
+    },
+    {
+     "id": "after.1",
+     "after": 1,
+     "size": 4,
+     "across": true,
+     "column": [
+      5,
+      6
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      1003,
+      200,
+      177,
+      380
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a held one first in order: still at the end",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true,
+    "tall": 180,
+    "hold": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true,
+    "tall": 200
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "177px 4px 999px 0px 0px",
+   "rows": "0px 0px 200px 380px 180px 0px 0px",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 6",
+     "rect": [
+      181,
+      0,
+      999,
+      760
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "5 / 8",
+     "rect": [
+      0,
+      580,
+      177,
+      180
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 4",
+     "rect": [
+      0,
+      0,
+      177,
+      200
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      8
+     ],
+     "rect": [
+      177,
+      0,
+      4,
+      760
+     ]
+    },
+    {
+     "id": "after.2",
+     "after": 2,
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      2
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      0,
+      200,
+      177,
+      380
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a left stack centred",
+  "config": {
+   "left": {
+    "arrange": "centre"
+   }
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true,
+    "tall": 200
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true,
+    "tall": 150
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "177px 4px 999px 0px 0px",
+   "rows": "0px 0px 203px 200px 4px 150px 203px 0px 0px",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 8",
+     "rect": [
+      181,
+      0,
+      999,
+      760
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "4 / 5",
+     "rect": [
+      0,
+      203,
+      177,
+      200
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "6 / 7",
+     "rect": [
+      0,
+      407,
+      177,
+      150
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      10
+     ],
+     "rect": [
+      177,
+      0,
+      4,
+      760
+     ]
+    },
+    {
+     "id": "after.1",
+     "after": 1,
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      2
+     ],
+     "row": [
+      5,
+      6
+     ],
+     "rect": [
+      0,
+      403,
+      177,
+      4
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a top stack from the end",
+  "config": {
+   "top": {
+    "arrange": "end"
+   }
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true,
+    "wide": 140
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true,
+    "wide": 290
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "0px 0px 746px 140px 4px 290px 0px 0px",
+   "rows": "137px 4px 619px 0px 0px",
+   "places": [
+    {
+     "column": "3 / 7",
+     "row": "3 / 4",
+     "rect": [
+      0,
+      141,
+      1180,
+      619
+     ]
+    },
+    {
+     "column": "4 / 5",
+     "row": "1 / 2",
+     "rect": [
+      746,
+      0,
+      140,
+      137
+     ]
+    },
+    {
+     "column": "6 / 7",
+     "row": "1 / 2",
+     "rect": [
+      890,
+      0,
+      290,
+      137
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      7
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      0,
+      137,
+      1180,
+      4
+     ]
+    },
+    {
+     "id": "after.1",
+     "after": 1,
+     "size": 4,
+     "across": false,
+     "column": [
+      5,
+      6
+     ],
+     "row": [
+      1,
+      2
+     ],
+     "rect": [
+      886,
+      0,
+      4,
+      137
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a top stack centred, one held: centred in what is left",
+  "config": {
+   "top": {
+    "arrange": "centre"
+   }
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true,
+    "wide": 140
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true,
+    "wide": 290,
+    "hold": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "0px 0px 373px 140px 377px 290px 0px 0px",
+   "rows": "137px 4px 619px 0px 0px",
+   "places": [
+    {
+     "column": "3 / 7",
+     "row": "3 / 4",
+     "rect": [
+      0,
+      141,
+      1180,
+      619
+     ]
+    },
+    {
+     "column": "4 / 5",
+     "row": "1 / 2",
+     "rect": [
+      373,
+      0,
+      140,
+      137
+     ]
+    },
+    {
+     "column": "6 / 7",
+     "row": "1 / 2",
+     "rect": [
+      890,
+      0,
+      290,
+      137
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      7
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      0,
+      137,
+      1180,
+      4
+     ]
+    },
+    {
+     "id": "after.1",
+     "after": 1,
+     "size": 4,
+     "across": false,
+     "column": [
+      5,
+      6
+     ],
+     "row": [
+      1,
+      2
+     ],
+     "rect": [
+      513,
+      0,
+      377,
+      137
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "two filling share alike, round one as its cards",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true,
+    "size": "fill"
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true,
+    "tall": 160
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true,
+    "size": "fill"
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "177px 4px 999px 0px 0px",
+   "rows": "0px 0px 296px 4px 160px 4px 296px 0px 0px",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 8",
+     "rect": [
+      181,
+      0,
+      999,
+      760
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 4",
+     "rect": [
+      0,
+      0,
+      177,
+      296
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "5 / 6",
+     "rect": [
+      0,
+      300,
+      177,
+      160
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "7 / 10",
+     "rect": [
+      0,
+      464,
+      177,
+      296
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      10
+     ],
+     "rect": [
+      177,
+      0,
+      4,
+      760
+     ]
+    },
+    {
+     "id": "after.1",
+     "after": 1,
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      2
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      0,
+      296,
+      177,
+      4
+     ]
+    },
+    {
+     "id": "after.2",
+     "after": 2,
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      2
+     ],
+     "row": [
+      6,
+      7
+     ],
+     "rect": [
+      0,
+      460,
+      177,
+      4
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "one alone, as its cards: not filling",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true,
+    "size": "cards",
+    "tall": 220
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "0px 0px 999px 4px 177px",
+   "rows": "0px 0px 220px 540px 0px 0px",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 5",
+     "rect": [
+      0,
+      0,
+      999,
+      760
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 4",
+     "rect": [
+      1003,
+      0,
+      177,
+      220
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      7
+     ],
+     "rect": [
+      999,
+      0,
+      4,
+      760
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "too tall with one filling: it gets none, the others shrink",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true,
+    "size": "fill"
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true,
+    "tall": 500
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true,
+    "tall": 500,
+    "hold": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "177px 4px 999px 0px 0px",
+   "rows": "0px 0px 0px 4px 376px 4px 376px 0px 0px",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 8",
+     "rect": [
+      181,
+      0,
+      999,
+      760
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 4",
+     "rect": [
+      0,
+      0,
+      177,
+      0
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "5 / 6",
+     "rect": [
+      0,
+      4,
+      177,
+      376
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "7 / 10",
+     "rect": [
+      0,
+      384,
+      177,
+      376
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      10
+     ],
+     "rect": [
+      177,
+      0,
+      4,
+      760
+     ]
+    },
+    {
+     "id": "after.1",
+     "after": 1,
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      2
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      0,
+      0,
+      177,
+      4
+     ]
+    },
+    {
+     "id": "after.2",
+     "after": 2,
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      2
+     ],
+     "row": [
+      6,
+      7
+     ],
+     "rect": [
+      0,
+      380,
+      177,
+      4
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a stack where one is hidden: the others close up",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": false
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "0px 0px 294px 4px 294px 588px 0px 0px",
+   "rows": "137px 4px 619px 0px 0px",
+   "places": [
+    {
+     "column": "3 / 7",
+     "row": "3 / 4",
+     "rect": [
+      0,
+      141,
+      1180,
+      619
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "1 / 2",
+     "rect": [
+      0,
+      0,
+      294,
+      137
+     ]
+    },
+    null,
+    {
+     "column": "5 / 6",
+     "row": "1 / 2",
+     "rect": [
+      298,
+      0,
+      294,
+      137
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      7
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      0,
+      137,
+      1180,
+      4
+     ]
+    },
+    {
+     "id": "after.1",
+     "after": 1,
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      2
+     ],
+     "rect": [
+      294,
+      0,
+      4,
+      137
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "an auto top stack: as tall as its tallest",
+  "config": {
+   "top": {
+    "size": "auto"
+   },
+   "bottom": {
+    "size": "auto"
+   }
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true,
+    "tall": 90
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true,
+    "tall": 140
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "0px 0px 294px 4px 294px 588px 0px 0px",
+   "rows": "140px 4px 616px 0px 0px",
+   "places": [
+    {
+     "column": "3 / 7",
+     "row": "3 / 4",
+     "rect": [
+      0,
+      144,
+      1180,
+      616
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "1 / 2",
+     "rect": [
+      0,
+      0,
+      294,
+      140
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 2",
+     "rect": [
+      298,
+      0,
+      294,
+      140
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      7
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      0,
+      140,
+      1180,
+      4
+     ]
+    },
+    {
+     "id": "after.1",
+     "after": 1,
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      2
+     ],
+     "rect": [
+      294,
+      0,
+      4,
+      140
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a second main: not shown",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "177px 4px 999px 0px 0px",
+   "rows": "0px 0px 760px 0px 0px",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 4",
+     "rect": [
+      181,
+      0,
+      999,
+      760
+     ]
+    },
+    null,
+    {
+     "column": "1 / 2",
+     "row": "1 / 6",
+     "rect": [
+      0,
+      0,
+      177,
+      760
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      6
+     ],
+     "rect": [
+      177,
+      0,
+      4,
+      760
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a section that is no panel: not shown",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   null,
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "177px 4px 999px 0px 0px",
+   "rows": "0px 0px 760px 0px 0px",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 4",
+     "rect": [
+      181,
+      0,
+      999,
+      760
+     ]
+    },
+    null,
+    {
+     "column": "1 / 2",
+     "row": "1 / 6",
+     "rect": [
+      0,
+      0,
+      177,
+      760
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      6
+     ],
+     "rect": [
+      177,
+      0,
+      4,
+      760
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "two layers",
+  "config": {
+   "inner": {
+    "left": {
+     "size": 20
+    }
+   }
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": true
+   },
+   {
+    "layer": 2,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 2,
+    "place": "bottom",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "177px 4px 164px 4px 650px 0px 0px 4px 177px",
+   "rows": "137px 4px 0px 0px 366px 4px 93px 4px 152px",
+   "places": [
+    {
+     "column": "5 / 6",
+     "row": "5 / 6",
+     "rect": [
+      349,
+      141,
+      650,
+      366
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 8",
+     "rect": [
+      0,
+      0,
+      177,
+      604
+     ]
+    },
+    {
+     "column": "3 / 8",
+     "row": "1 / 2",
+     "rect": [
+      181,
+      0,
+      818,
+      137
+     ]
+    },
+    {
+     "column": "9 / 10",
+     "row": "1 / 8",
+     "rect": [
+      1003,
+      0,
+      177,
+      604
+     ]
+    },
+    {
+     "column": "1 / 10",
+     "row": "9 / 10",
+     "rect": [
+      0,
+      608,
+      1180,
+      152
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "3 / 6",
+     "rect": [
+      181,
+      141,
+      164,
+      366
+     ]
+    },
+    {
+     "column": "3 / 8",
+     "row": "7 / 8",
+     "rect": [
+      181,
+      511,
+      818,
+      93
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ],
+    [
+     181,
+     141,
+     818,
+     463
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      8
+     ],
+     "rect": [
+      177,
+      0,
+      4,
+      604
+     ]
+    },
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      8
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      181,
+      137,
+      818,
+      4
+     ]
+    },
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      8,
+      9
+     ],
+     "row": [
+      1,
+      8
+     ],
+     "rect": [
+      999,
+      0,
+      4,
+      604
+     ]
+    },
+    {
+     "id": "1.bottom",
+     "edge": {
+      "layer": 1,
+      "place": "bottom"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      10
+     ],
+     "row": [
+      8,
+      9
+     ],
+     "rect": [
+      0,
+      604,
+      1180,
+      4
+     ]
+    },
+    {
+     "id": "2.left",
+     "edge": {
+      "layer": 2,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      3,
+      6
+     ],
+     "rect": [
+      345,
+      141,
+      4,
+      366
+     ]
+    },
+    {
+     "id": "2.bottom",
+     "edge": {
+      "layer": 2,
+      "place": "bottom"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      8
+     ],
+     "row": [
+      6,
+      7
+     ],
+     "rect": [
+      181,
+      507,
+      818,
+      4
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "two layers, in edit mode",
+  "config": {
+   "inner": {
+    "left": {
+     "size": 20
+    }
+   }
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": true,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": true
+   },
+   {
+    "layer": 2,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 2,
+    "place": "bottom",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1542,
+    1057
+   ],
+   "columns": "minmax(auto, 177fr) minmax(auto, 4fr) minmax(auto, 236fr) minmax(auto, 4fr) minmax(auto, 940fr) minmax(auto, 0fr) minmax(auto, 0fr) minmax(auto, 4fr) minmax(auto, 177fr)",
+   "rows": "minmax(137px, auto) minmax(4px, auto) minmax(0px, auto) minmax(0px, auto) minmax(604px, auto) minmax(4px, auto) minmax(152px, auto) minmax(4px, auto) minmax(152px, auto)",
+   "places": [
+    {
+     "column": "5 / 6",
+     "row": "5 / 6",
+     "rect": [
+      421,
+      141,
+      940,
+      604
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 8",
+     "rect": [
+      0,
+      0,
+      177,
+      901
+     ]
+    },
+    {
+     "column": "3 / 8",
+     "row": "1 / 2",
+     "rect": [
+      181,
+      0,
+      1180,
+      137
+     ]
+    },
+    {
+     "column": "9 / 10",
+     "row": "1 / 8",
+     "rect": [
+      1365,
+      0,
+      177,
+      901
+     ]
+    },
+    {
+     "column": "1 / 10",
+     "row": "9 / 10",
+     "rect": [
+      0,
+      905,
+      1542,
+      152
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "3 / 6",
+     "rect": [
+      181,
+      141,
+      236,
+      604
+     ]
+    },
+    {
+     "column": "3 / 8",
+     "row": "7 / 8",
+     "rect": [
+      181,
+      749,
+      1180,
+      152
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1542,
+     1057
+    ],
+    [
+     181,
+     141,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      8
+     ],
+     "rect": [
+      177,
+      0,
+      4,
+      901
+     ]
+    },
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      8
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      181,
+      137,
+      1180,
+      4
+     ]
+    },
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      8,
+      9
+     ],
+     "row": [
+      1,
+      8
+     ],
+     "rect": [
+      1361,
+      0,
+      4,
+      901
+     ]
+    },
+    {
+     "id": "1.bottom",
+     "edge": {
+      "layer": 1,
+      "place": "bottom"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      10
+     ],
+     "row": [
+      8,
+      9
+     ],
+     "rect": [
+      0,
+      901,
+      1542,
+      4
+     ]
+    },
+    {
+     "id": "2.left",
+     "edge": {
+      "layer": 2,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      3,
+      6
+     ],
+     "rect": [
+      417,
+      141,
+      4,
+      604
+     ]
+    },
+    {
+     "id": "2.bottom",
+     "edge": {
+      "layer": 2,
+      "place": "bottom"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      8
+     ],
+     "row": [
+      6,
+      7
+     ],
+     "rect": [
+      181,
+      745,
+      1180,
+      4
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "two layers, the inner one hidden: main has the middle",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": true
+   },
+   {
+    "layer": 2,
+    "place": "left",
+    "shows": false
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "177px 4px 0px 0px 818px 0px 0px 4px 177px",
+   "rows": "137px 4px 0px 0px 463px 0px 0px 4px 152px",
+   "places": [
+    {
+     "column": "5 / 6",
+     "row": "5 / 6",
+     "rect": [
+      181,
+      141,
+      818,
+      463
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 8",
+     "rect": [
+      0,
+      0,
+      177,
+      604
+     ]
+    },
+    {
+     "column": "3 / 8",
+     "row": "1 / 2",
+     "rect": [
+      181,
+      0,
+      818,
+      137
+     ]
+    },
+    {
+     "column": "9 / 10",
+     "row": "1 / 8",
+     "rect": [
+      1003,
+      0,
+      177,
+      604
+     ]
+    },
+    {
+     "column": "1 / 10",
+     "row": "9 / 10",
+     "rect": [
+      0,
+      608,
+      1180,
+      152
+     ]
+    },
+    null
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ],
+    [
+     181,
+     141,
+     818,
+     463
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      8
+     ],
+     "rect": [
+      177,
+      0,
+      4,
+      604
+     ]
+    },
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      8
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      181,
+      137,
+      818,
+      4
+     ]
+    },
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      8,
+      9
+     ],
+     "row": [
+      1,
+      8
+     ],
+     "rect": [
+      999,
+      0,
+      4,
+      604
+     ]
+    },
+    {
+     "id": "1.bottom",
+     "edge": {
+      "layer": 1,
+      "place": "bottom"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      10
+     ],
+     "row": [
+      8,
+      9
+     ],
+     "rect": [
+      0,
+      604,
+      1180,
+      4
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "two layers, no main: the inner one has the middle",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": false
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": false
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": false
+   },
+   {
+    "layer": 2,
+    "place": "right",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "177px 4px 0px 0px 845px 4px 150px 0px 0px",
+   "rows": "137px 4px 0px 0px 619px 0px 0px 0px 0px",
+   "places": [
+    null,
+    {
+     "column": "1 / 2",
+     "row": "1 / 10",
+     "rect": [
+      0,
+      0,
+      177,
+      760
+     ]
+    },
+    {
+     "column": "3 / 8",
+     "row": "1 / 2",
+     "rect": [
+      181,
+      0,
+      999,
+      137
+     ]
+    },
+    null,
+    null,
+    {
+     "column": "7 / 8",
+     "row": "3 / 8",
+     "rect": [
+      1030,
+      141,
+      150,
+      619
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ],
+    [
+     181,
+     141,
+     999,
+     619
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      10
+     ],
+     "rect": [
+      177,
+      0,
+      4,
+      760
+     ]
+    },
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      8
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      181,
+      137,
+      999,
+      4
+     ]
+    },
+    {
+     "id": "2.right",
+     "edge": {
+      "layer": 2,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      6,
+      7
+     ],
+     "row": [
+      3,
+      8
+     ],
+     "rect": [
+      1026,
+      141,
+      4,
+      619
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "two layers, the inner a stack",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": true
+   },
+   {
+    "layer": 2,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 2,
+    "place": "top",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "177px 4px 0px 0px 204px 4px 203px 407px 0px 0px 4px 177px",
+   "rows": "137px 4px 83px 4px 376px 0px 0px 4px 152px",
+   "places": [
+    {
+     "column": "5 / 9",
+     "row": "5 / 6",
+     "rect": [
+      181,
+      228,
+      818,
+      376
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 8",
+     "rect": [
+      0,
+      0,
+      177,
+      604
+     ]
+    },
+    {
+     "column": "3 / 11",
+     "row": "1 / 2",
+     "rect": [
+      181,
+      0,
+      818,
+      137
+     ]
+    },
+    {
+     "column": "12 / 13",
+     "row": "1 / 8",
+     "rect": [
+      1003,
+      0,
+      177,
+      604
+     ]
+    },
+    {
+     "column": "1 / 13",
+     "row": "9 / 10",
+     "rect": [
+      0,
+      608,
+      1180,
+      152
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "3 / 4",
+     "rect": [
+      181,
+      141,
+      204,
+      83
+     ]
+    },
+    {
+     "column": "7 / 8",
+     "row": "3 / 4",
+     "rect": [
+      389,
+      141,
+      203,
+      83
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ],
+    [
+     181,
+     141,
+     818,
+     463
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      8
+     ],
+     "rect": [
+      177,
+      0,
+      4,
+      604
+     ]
+    },
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      11
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      181,
+      137,
+      818,
+      4
+     ]
+    },
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      11,
+      12
+     ],
+     "row": [
+      1,
+      8
+     ],
+     "rect": [
+      999,
+      0,
+      4,
+      604
+     ]
+    },
+    {
+     "id": "1.bottom",
+     "edge": {
+      "layer": 1,
+      "place": "bottom"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      13
+     ],
+     "row": [
+      8,
+      9
+     ],
+     "rect": [
+      0,
+      604,
+      1180,
+      4
+     ]
+    },
+    {
+     "id": "2.top",
+     "edge": {
+      "layer": 2,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      5,
+      9
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      181,
+      224,
+      818,
+      4
+     ]
+    },
+    {
+     "id": "after.5",
+     "after": 5,
+     "size": 4,
+     "across": false,
+     "column": [
+      6,
+      7
+     ],
+     "row": [
+      3,
+      4
+     ],
+     "rect": [
+      385,
+      141,
+      4,
+      83
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "four layers",
+  "config": {
+   "inner": {
+    "inner": {
+     "top": {
+      "size": 25
+     }
+    }
+   }
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": true
+   },
+   {
+    "layer": 2,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 3,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 4,
+    "place": "right",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "177px 4px 123px 4px 0px 0px 0px 0px 583px 4px 104px 0px 0px 0px 0px 4px 177px",
+   "rows": "137px 4px 0px 0px 116px 4px 0px 0px 343px 0px 0px 0px 0px 0px 0px 4px 152px",
+   "places": [
+    {
+     "column": "9 / 10",
+     "row": "9 / 10",
+     "rect": [
+      308,
+      261,
+      583,
+      343
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 16",
+     "rect": [
+      0,
+      0,
+      177,
+      604
+     ]
+    },
+    {
+     "column": "3 / 16",
+     "row": "1 / 2",
+     "rect": [
+      181,
+      0,
+      818,
+      137
+     ]
+    },
+    {
+     "column": "17 / 18",
+     "row": "1 / 16",
+     "rect": [
+      1003,
+      0,
+      177,
+      604
+     ]
+    },
+    {
+     "column": "1 / 18",
+     "row": "17 / 18",
+     "rect": [
+      0,
+      608,
+      1180,
+      152
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "3 / 16",
+     "rect": [
+      181,
+      141,
+      123,
+      463
+     ]
+    },
+    {
+     "column": "7 / 12",
+     "row": "5 / 6",
+     "rect": [
+      308,
+      141,
+      691,
+      116
+     ]
+    },
+    {
+     "column": "11 / 12",
+     "row": "7 / 12",
+     "rect": [
+      895,
+      261,
+      104,
+      343
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ],
+    [
+     181,
+     141,
+     818,
+     463
+    ],
+    [
+     308,
+     141,
+     691,
+     463
+    ],
+    [
+     308,
+     261,
+     691,
+     343
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      16
+     ],
+     "rect": [
+      177,
+      0,
+      4,
+      604
+     ]
+    },
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      16
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      181,
+      137,
+      818,
+      4
+     ]
+    },
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      16,
+      17
+     ],
+     "row": [
+      1,
+      16
+     ],
+     "rect": [
+      999,
+      0,
+      4,
+      604
+     ]
+    },
+    {
+     "id": "1.bottom",
+     "edge": {
+      "layer": 1,
+      "place": "bottom"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      18
+     ],
+     "row": [
+      16,
+      17
+     ],
+     "rect": [
+      0,
+      604,
+      1180,
+      4
+     ]
+    },
+    {
+     "id": "2.left",
+     "edge": {
+      "layer": 2,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      3,
+      16
+     ],
+     "rect": [
+      304,
+      141,
+      4,
+      463
+     ]
+    },
+    {
+     "id": "3.top",
+     "edge": {
+      "layer": 3,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      7,
+      12
+     ],
+     "row": [
+      6,
+      7
+     ],
+     "rect": [
+      308,
+      257,
+      691,
+      4
+     ]
+    },
+    {
+     "id": "4.right",
+     "edge": {
+      "layer": 4,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      10,
+      11
+     ],
+     "row": [
+      7,
+      12
+     ],
+     "rect": [
+      891,
+      261,
+      4,
+      343
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "four layers, in edit mode",
+  "config": {
+   "inner": {
+    "inner": {
+     "top": {
+      "size": 25
+     }
+    }
+   }
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": true,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": true
+   },
+   {
+    "layer": 2,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 3,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 4,
+    "place": "right",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1669,
+    1177
+   ],
+   "columns": "minmax(auto, 177fr) minmax(auto, 4fr) minmax(auto, 123fr) minmax(auto, 4fr) minmax(auto, 0fr) minmax(auto, 0fr) minmax(auto, 0fr) minmax(auto, 0fr) minmax(auto, 999fr) minmax(auto, 4fr) minmax(auto, 177fr) minmax(auto, 0fr) minmax(auto, 0fr) minmax(auto, 0fr) minmax(auto, 0fr) minmax(auto, 4fr) minmax(auto, 177fr)",
+   "rows": "minmax(137px, auto) minmax(4px, auto) minmax(0px, auto) minmax(0px, auto) minmax(116px, auto) minmax(4px, auto) minmax(0px, auto) minmax(0px, auto) minmax(760px, auto) minmax(0px, auto) minmax(0px, auto) minmax(0px, auto) minmax(0px, auto) minmax(0px, auto) minmax(0px, auto) minmax(4px, auto) minmax(152px, auto)",
+   "places": [
+    {
+     "column": "9 / 10",
+     "row": "9 / 10",
+     "rect": [
+      308,
+      261,
+      999,
+      760
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 16",
+     "rect": [
+      0,
+      0,
+      177,
+      1021
+     ]
+    },
+    {
+     "column": "3 / 16",
+     "row": "1 / 2",
+     "rect": [
+      181,
+      0,
+      1307,
+      137
+     ]
+    },
+    {
+     "column": "17 / 18",
+     "row": "1 / 16",
+     "rect": [
+      1492,
+      0,
+      177,
+      1021
+     ]
+    },
+    {
+     "column": "1 / 18",
+     "row": "17 / 18",
+     "rect": [
+      0,
+      1025,
+      1669,
+      152
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "3 / 16",
+     "rect": [
+      181,
+      141,
+      123,
+      880
+     ]
+    },
+    {
+     "column": "7 / 12",
+     "row": "5 / 6",
+     "rect": [
+      308,
+      141,
+      1180,
+      116
+     ]
+    },
+    {
+     "column": "11 / 12",
+     "row": "7 / 12",
+     "rect": [
+      1311,
+      261,
+      177,
+      760
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1669,
+     1177
+    ],
+    [
+     181,
+     141,
+     1307,
+     880
+    ],
+    [
+     308,
+     141,
+     1180,
+     880
+    ],
+    [
+     308,
+     261,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      16
+     ],
+     "rect": [
+      177,
+      0,
+      4,
+      1021
+     ]
+    },
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      16
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      181,
+      137,
+      1307,
+      4
+     ]
+    },
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      16,
+      17
+     ],
+     "row": [
+      1,
+      16
+     ],
+     "rect": [
+      1488,
+      0,
+      4,
+      1021
+     ]
+    },
+    {
+     "id": "1.bottom",
+     "edge": {
+      "layer": 1,
+      "place": "bottom"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      18
+     ],
+     "row": [
+      16,
+      17
+     ],
+     "rect": [
+      0,
+      1021,
+      1669,
+      4
+     ]
+    },
+    {
+     "id": "2.left",
+     "edge": {
+      "layer": 2,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      3,
+      16
+     ],
+     "rect": [
+      304,
+      141,
+      4,
+      880
+     ]
+    },
+    {
+     "id": "3.top",
+     "edge": {
+      "layer": 3,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      7,
+      12
+     ],
+     "row": [
+      6,
+      7
+     ],
+     "rect": [
+      308,
+      257,
+      1180,
+      4
+     ]
+    },
+    {
+     "id": "4.right",
+     "edge": {
+      "layer": 4,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      10,
+      11
+     ],
+     "row": [
+      7,
+      12
+     ],
+     "rect": [
+      1307,
+      261,
+      4,
+      760
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a fixed main in the inner layer",
+  "config": {
+   "main_fit": "fixed",
+   "main_ratio": "4:3",
+   "main_width": 60,
+   "inner": {
+    "top": {
+     "size": 20
+    }
+   }
+  },
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "bottom",
+    "shows": true
+   },
+   {
+    "layer": 2,
+    "place": "top",
+    "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "177px 4px 0px 0px 818px 0px 0px 4px 177px",
+   "rows": "137px 4px 91px 4px 368px 0px 0px 4px 152px",
+   "places": [
+    {
+     "column": "5 / 6",
+     "row": "5 / 6",
+     "rect": [
+      344,
+      236,
+      491,
+      368
+     ],
+     "width": 491,
+     "centred": true,
+     "height": 368
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 8",
+     "rect": [
+      0,
+      0,
+      177,
+      604
+     ]
+    },
+    {
+     "column": "3 / 8",
+     "row": "1 / 2",
+     "rect": [
+      181,
+      0,
+      818,
+      137
+     ]
+    },
+    {
+     "column": "9 / 10",
+     "row": "1 / 8",
+     "rect": [
+      1003,
+      0,
+      177,
+      604
+     ]
+    },
+    {
+     "column": "1 / 10",
+     "row": "9 / 10",
+     "rect": [
+      0,
+      608,
+      1180,
+      152
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "3 / 4",
+     "rect": [
+      181,
+      141,
+      818,
+      91
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ],
+    [
+     181,
+     141,
+     818,
+     463
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      8
+     ],
+     "rect": [
+      177,
+      0,
+      4,
+      604
+     ]
+    },
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      8
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      181,
+      137,
+      818,
+      4
+     ]
+    },
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      8,
+      9
+     ],
+     "row": [
+      1,
+      8
+     ],
+     "rect": [
+      999,
+      0,
+      4,
+      604
+     ]
+    },
+    {
+     "id": "1.bottom",
+     "edge": {
+      "layer": 1,
+      "place": "bottom"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      10
+     ],
+     "row": [
+      8,
+      9
+     ],
+     "rect": [
+      0,
+      604,
+      1180,
+      4
+     ]
+    },
+    {
+     "id": "2.top",
+     "edge": {
+      "layer": 2,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      5,
+      6
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      181,
+      232,
+      818,
+      4
+     ]
+    }
+   ]
+  }
+ }
+]

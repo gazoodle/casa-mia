@@ -134,7 +134,10 @@ class Handler(BaseHTTPRequestHandler):
             helpers.clear()
             helpers.update(h for h in query["helpers"][0].split(",") if h)
             self.server.helpers_heard = True  # type: ignore[attr-defined]
-        from . import header  # here: header imports this module
+        from . import header, settings  # here: header imports this module
+
+        if "helpers" in query:
+            settings.adopt_helpers(set(self.server.helpers))  # type: ignore[attr-defined]
 
         modules = {name: health() for name, health in self.server.modules.items()}  # type: ignore[attr-defined]
         body = json.dumps(
@@ -145,10 +148,14 @@ class Handler(BaseHTTPRequestHandler):
                 "integration_url": integration_url(),
                 "house": header.HOUSE,
                 "modules": modules,
+                "developer": settings.DEVELOPER,  # the developer_mode option
+                "settings": settings.for_cards(),
             }
         )
-        # Swapped before the stamp is added, so the stamp itself never is.
-        answer = json.loads(swap.out(body))
+        # Swapped before the stamp is added, so the stamp itself never is; only the text
+        # shown (HA keeps the rest: a swapped address or entity id points at nothing).
+        answer = swap.out_shown(json.loads(body))
+        assert isinstance(answer, dict)
         answer["swap"] = swap.stamp()
         body = json.dumps(answer).encode()
         self.send_response(200)
