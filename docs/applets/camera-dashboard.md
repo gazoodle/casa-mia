@@ -31,6 +31,13 @@ Turn on **Camera Dashboard** in the app's Configuration tab (Settings â†’ Apps â
 
 > **To write:** a paragraph for each.
 
+## Adding a Commander card
+
+In Home Assistant's Add to dashboard dialog, choose **Casa Mia Camera Commander**.
+Its preview uses the first commander available in Home Assistant, so you can see its
+camera layout before adding it. Choose another commander in the card editor if needed.
+Create a commander on the Camera Dashboard page first if none is available.
+
 ## Troubleshooting
 
 > **To write:** common problems, and what the log says about them.

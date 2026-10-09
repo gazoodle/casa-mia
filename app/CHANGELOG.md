@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.4-b5
+
+- Camera Commander: the Add to dashboard card picker now shows a picture preview using the first available commander.
+- Removed the obsolete Casa Mia Section card; use Home Assistant sections in Tablet Layout instead. The Tablet Layout guide explains how to move existing cards.
+
 ## 2026.10.4-b4
 
 - Tablet Layout: only cards made to fill a panel (Camera Commander, picture cards, maps, iframes, advanced-camera-card, WebRTC Camera) fill it when they're alone. A lone tile or button keeps its own size, as two of them always did, so a garnish heading over one tile no longer stretches the tile. `view_layout: {fill: true}` or `{fill: false}` overrules it. Saved as `view_layout: {garnish: true}`; the older `counts: false` still works. The Section card editor says Garnish too.

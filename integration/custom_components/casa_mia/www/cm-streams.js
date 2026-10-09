@@ -116,7 +116,7 @@ soon();
 // after the page loads, if the cards are still missing, load them once more (HA then puts
 // each card in place of its error) and say so in the console, with the reason if the
 // second try fails too (Kiosk Satellite keeps the console: getConsole).
-const CARDS = ["casa-mia-tablet-layout", "casa-mia-commander", "casa-mia-section"];
+const CARDS = ["casa-mia-tablet-layout", "casa-mia-commander"];
 setTimeout(() => {
   if (CARDS.every((tag) => customElements.get(tag))) return;
   const url = new URL("cm-cards.js", import.meta.url);
