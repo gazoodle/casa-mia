@@ -178,6 +178,18 @@ class Store:
         host, _, port = k["address"].rpartition(":")
         return f"http://{k.get('ip') or host}:{port}/"
 
+    def names(self) -> dict[str, str]:
+        """Each kiosk's name by its addresses (its IP, and its address's host), so other
+        modules can say which tablet a client is (the compositor's viewers)."""
+        with self._lock:
+            ks = list(self.kiosks.values())
+        out = {}
+        for k in ks:
+            if name := k.get("name"):
+                host = (k.get("address") or "").rpartition(":")[0]
+                out.update({a: name for a in (k.get("ip"), host) if a})
+        return out
+
     def health(self) -> dict[str, Any]:
         with self._lock:
             ks = list(self.kiosks.values())

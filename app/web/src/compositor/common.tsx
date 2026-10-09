@@ -141,10 +141,10 @@ export type Picture = {
   draw_ms: number;
 };
 
-/** An open stream: what it sent, and pictures a second it sent (its viewer saw) against
+/** An open stream (its viewer by address, and by name when it is a known wall tablet): what it sent, and pictures a second it sent (its viewer saw) against
  * those drawn for it (the rest were drawn while it was still sending); the card's version
  * and its name for the stream ("" from an older card, or anything else). */
-export type Sending = { picture: string; viewer: string; open_s: number; frames: number; kb_frame: number; kbit_s: number; waiting_pct: number; fps: number; drawn_fps: number; card: string; sid: string };
+export type Sending = { picture: string; viewer: string; name?: string | null; open_s: number; frames: number; kb_frame: number; kbit_s: number; waiting_pct: number; fps: number; drawn_fps: number; card: string; sid: string };
 
 export type Engine = {
   state: string;

@@ -313,11 +313,12 @@ could.
 - **Wall tablets that reload themselves.** Nobody is there to press Reload on a wall
   tablet, so when Home Assistant starts serving new cards, the Kiosk Satellites module asks
   every tablet it looks after to reload.
+- **The camera compositor knows its viewers.** On the Camera compositor page, each stream
+  sent to a wall tablet shows the tablet's name from Kiosk Satellites beside its address,
+  so a slow or stuck one is easy to place.
 
 Coming next:
 
-- **The camera compositor knows its viewers:** its list of clients shows each wall tablet by
-  name, not by IP address, with a link to its page.
 - **Who's looking:** the integration knows each page's logged-in user, so the panels can say
   who and where.
 - **Guests who say who they are:** an identify-yourself page with a PIN, so the house knows

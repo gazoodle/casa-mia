@@ -708,3 +708,24 @@ def test_a_card_says_when_it_is_done_with_a_stream(compositor, caplog):
     assert "ended, the card asked again (a new size)" in log
     assert "ended, the card is done with it (left it)" in log
     assert "done with stream one (left it), which is not open" in log
+
+
+def test_a_viewer_that_is_a_known_tablet_is_named():
+    # Working together: Kiosk Satellites names the wall tablets by their addresses; the
+    # page keeps the address and adds the name.
+    from types import SimpleNamespace
+
+    from casa_mia.modules.compositor import admin_api
+
+    sending = [{"viewer": "192.0.2.5"}, {"viewer": "192.0.2.9"}]
+    live = SimpleNamespace(
+        port=8099,
+        gather=SimpleNamespace(status=dict),
+        status=lambda: {"sending": [dict(s) for s in sending]},
+    )
+    api = admin_api(live, None, names=lambda: {"192.0.2.5": "Barn"})  # type: ignore[arg-type]
+    got = json.loads(api("GET", "", {}, b"")[2])["live"]["sending"]
+    assert [(s["viewer"], s["name"]) for s in got] == [
+        ("192.0.2.5", "Barn"),
+        ("192.0.2.9", None),
+    ]

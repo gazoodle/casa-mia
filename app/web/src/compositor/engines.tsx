@@ -78,7 +78,15 @@ export function ServerArea({ which, name, e, busy, act }: { which: string; name:
         <Table head={["Viewer", "Picture", "Card", "Stream", "Open", "Frames", ["Pictures/s", "Sent of drawn"], "Frame", "Rate", "Waiting to send"]}>
           {e.sending.map((s) => (
             <tr key={`${s.viewer} ${s.picture} ${s.open_s}`}>
-              <td>{s.viewer}</td>
+              <td>
+                {s.name ? (
+                  <>
+                    {s.name} <span className={pipe.use}>{s.viewer}</span>
+                  </>
+                ) : (
+                  s.viewer
+                )}
+              </td>
               <td>{s.picture}</td>
               <td>{s.card || "none"}</td>
               <td>{s.sid || "none"}</td>

@@ -180,6 +180,7 @@ def main() -> int:
     cameras_on = commander_on or dashboards_on
     compositor = None
     dashboards: AutoDashboards | None = None
+    kiosks: Kiosks | None = None  # made below; the compositor names its viewers by it
     # The cameras' pictures.
     gather = Gatherer(
         ha_url,
@@ -249,6 +250,8 @@ def main() -> int:
             compositor,
             None,
             lambda: (mine and mine.store["compositor_host"]) or lan_ip(),
+            # Working together: a viewer that is a wall tablet is shown by its name.
+            names=lambda: kiosks.names() if kiosks else {},
         )
         post_handlers["/compositor/"] = control(compositor, None)  # its buttons
     else:

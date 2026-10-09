@@ -549,3 +549,24 @@ def test_run_everywhere_sends_a_quick_control_to_each_kiosk_in_turn(two):
     run = call(k, "GET")[1]["everywhere"]
     assert run["running"] is False and run["total"] == 1
     assert run["results"] == [{"name": "Kitchen", "ok": True, "error": None}]
+
+
+def test_kiosks_are_named_by_their_addresses(tmp_path):
+    from casa_mia.modules.kiosks.store import Store
+
+    store = Store(tmp_path / "kiosks.json", tmp_path / "backups")
+    store.kiosks = {
+        "a": {
+            "id": "a",
+            "name": "Barn",
+            "ip": "192.0.2.5",
+            "address": "barn.local:2323",
+        },
+        "b": {"id": "b", "name": "Annex", "address": "192.0.2.6:2323"},
+        "c": {"id": "c", "ip": "192.0.2.7"},  # no name yet: nothing to say
+    }
+    assert store.names() == {
+        "192.0.2.5": "Barn",
+        "barn.local": "Barn",
+        "192.0.2.6": "Annex",
+    }

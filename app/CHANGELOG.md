@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.4-b25
+
+- Working together: the Camera compositor page names each stream's viewer when it is a wall
+  tablet Kiosk Satellites knows, beside its address.
+
 ## 2026.10.4-b24
 
 - The app's Documentation tab is written: what Casa Mia is, getting started, every module

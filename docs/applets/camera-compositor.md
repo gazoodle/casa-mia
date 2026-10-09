@@ -59,7 +59,8 @@ compositor and starts it again: every picture on screen stops for a moment.
   picture: the commander, its size (a card's, or the commander's own), when it was last
   drawn, how long that took, and its size in kB.
 - **Live server:** sends each viewer the newest picture as it is drawn. A row per stream: the
-  viewer, the picture, the card's version, frames and pictures a second (sent of drawn), the
+  viewer (its address, with its name when it is a wall tablet Kiosk Satellites knows), the
+  picture, the card's version, frames and pictures a second (sent of drawn), the
   rate, and how long sends wait for the network. **Size test** opens a commander at exactly
   your browser window's size.
 
