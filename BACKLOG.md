@@ -51,6 +51,20 @@ Not scheduled. Newest ideas first within each section. Move an item into the REA
 
 - **Tablet Layout: cards in a panel size themselves** (asked 2026-10-09; stage 3 of the fill fix). Taking the docs screenshots, getting buttons (and other small cards) to the size wanted meant forcing each one's grid rows and columns in HA's Layout tab, which was fiddly and looked wrong. When a card is hosted in a Tablet Layout panel, offer an automatic size that "just works": e.g. the panel's cards share its room (equal, or by content), a button fills its share and stays square or keeps its proportions, and HA's own grid sizes stay as an override. Look at how HA's grid sizes cards (`grid_options`, `--ha-section-grid-row-height`) and at "rows fit the panel" (Lovelace cards, after v1) first; they may be one piece of work.
 
+- **Over layer: look but don't touch** (asked 2026-10-09; implementation open). A layer over the whole window, optionally covering HA's sidebar and header too. It is transparent, so everything beneath stays visible, but it takes every click, which makes the page read-only. On top of it, in front of everything, it can hold cards or other content that *can* be used. Uses:
+  - **Alarm set:** the wall tablets show the alarm's disarm panel over the dashboard; nothing else can be pressed until it is disarmed.
+  - **Visiting engineer:** sees the system's status but can't change anything.
+  - **A cover:** against inadvertent touches, or a lock at night.
+  - **Intercom mode:** a call to a tablet (a doorbell, another room) brings up the intercom panel over whatever the tablet shows, answered there, and goes away when the call ends.
+  - **A floating notice:** not necessarily full screen. Like a paywall, a panel floats over the page with something that needs attention now, such as an error or a warning, and blocks what is beneath it until it is dealt with.
+
+  **Design (agreed 2026-10-09): a container card with one child, leaning on HA's own editing.**
+  - `custom:cm-over-layer` holds one child card, edited with HA's own card picker and element editor (`hui-card-element-editor`, as the stack and conditional cards' editors). Its own options: **mode** (float, full screen, scroll with the view), **cover** (the view only, or the whole window with sidebar and header), **block clicks** (on/off), **backdrop** (tint, blur).
+  - **When it shows: HA's Visibility tab,** no condition code of ours. State (alarm armed), user (the engineer), a schedule helper (night), a problem sensor (a warning); time of day if the running HA has that condition.
+  - **In edit mode** it is an ordinary card in its place, with an "Over layer: float" badge, so it is edited like any other and never live while editing. Outside edit mode it lifts its child into an overlay at the document's top, not inside the card: HA's sections can trap a `position: fixed` element (containment, transforms), which is the main risk to try first. "The view only" tracks the view's rect (ResizeObserver); "the whole window" covers everything.
+  - **Rejected:** another dashboard view drawn over the top (HA draws one view at a time; it would mean building a view by hand from its internals, and editing it elsewhere). A Tablet Layout option only: the card works in any sections dashboard, the Tablet Layout included; the view can offer it as a layer later if wanted.
+  - It hides, it doesn't enforce: it stops touches, not a keyboard, another tab or the companion app (as Guest login's "How safe is it?" says), so the docs must say so too. Kiosk-mode already hides the sidebar on wall tablets.
+
 - **Heating flow card** (asked 2026-10-09). A Lovelace card in the style of the Sunsynk power flow card (`sunsynk-power-flow-card`), but for heating, and configurable enough to suit many homes, not just this one. It draws the system as an animated diagram:
   - the heat source: a boiler or a heat pump (or both, hybrid), with its flow and return temperatures, and whether it is firing or running;
   - its loop to the hot water (DHW): cylinder or tank, its temperature(s), and the diverter or zone valve;

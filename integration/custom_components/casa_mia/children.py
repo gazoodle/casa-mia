@@ -18,7 +18,9 @@ from homeassistant.config_entries import (
 )
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import discovery_flow
+from homeassistant.helpers.device_registry import DeviceInfo
 
 from .const import DOMAIN
 from .coordinator import CasaMiaCoordinator, running_coordinator
@@ -57,6 +59,23 @@ def discover_children(hass: HomeAssistant, coordinator: CasaMiaCoordinator) -> N
             discovery_flow.async_create_flow(
                 hass, domain, {"source": SOURCE_INTEGRATION_DISCOVERY}, {}
             )
+
+
+@callback
+def add_module_device(
+    hass: HomeAssistant, entry: ConfigEntry, device: DeviceInfo
+) -> None:
+    """A child's module device, linked to the Casa Mia app device (by its registry id:
+    `via_device` is deprecated in async_get_or_create)."""
+    registry = dr.async_get(hass)
+    via = registry.async_get_device(identifiers={device["via_device"]})
+    registry.async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers=device["identifiers"],
+        name=device["name"],
+        manufacturer=device["manufacturer"],
+        via_device_id=via.id if via else None,
+    )
 
 
 def parent_coordinator(hass: HomeAssistant) -> CasaMiaCoordinator:

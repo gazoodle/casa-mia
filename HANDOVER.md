@@ -1,7 +1,7 @@
 # Handover: Casa Mia, for agents joining the work
 
 Where the project stands and how the work is done here, as of 2026-10-09 (`dev` at
-2026.10.4-b22, not pushed). **Read this at the start of every
+2026.10.4-b23, not pushed). **Read this at the start of every
 session**, then CLAUDE.md in full; where they disagree, CLAUDE.md wins. It replaces
 re-reading old transcripts: the history below is all a new session needs.
 
@@ -179,6 +179,11 @@ dashboards_on`).
   **never loaded in a real HA yet**: try it on the test rig or VM before the live box.
   Breaking lines lead b22's changelog (the convention is now in CLAUDE.md and
   docs/releases.md).
+  **b23:** b22 broke Casa Mia's own setup (it still listed the `select` platform, moved
+  to the commander); a test now checks each listed platform has its file. Direct registry
+  calls use `via_device_id`; HA still warns about `via_device` in entities' DeviceInfo
+  (commanders.py), not yet looked into (a warning until 2027.8). Over layer designed in
+  BACKLOG.md.
 - **Soft launch on the HA community forum**, still to do: a release (the owner runs
   `tools/release.py`), a fresh install on the test VM, then a forum post draft (HA
   Community → Share your Projects, leading with the Tablet Layout).

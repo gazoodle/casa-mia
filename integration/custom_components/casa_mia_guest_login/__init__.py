@@ -10,7 +10,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 
-from ..casa_mia.children import follow_module, parent_coordinator
+from ..casa_mia.children import add_module_device, follow_module, parent_coordinator
 from .const import MODULE
 from .guest import async_prune_endpoint_devices, login_device
 from .restart_notice import async_check_restart, manifest_version
@@ -35,7 +35,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     registry = dr.async_get(hass)
     device = login_device(entry, coordinator)
     if not off:
-        registry.async_get_or_create(config_entry_id=entry.entry_id, **device)
+        add_module_device(hass, entry, device)
     elif found := registry.async_get_device(identifiers=device["identifiers"]):
         _LOGGER.info("guest login is switched off in the app: removing its device")
         registry.async_remove_device(found.id)

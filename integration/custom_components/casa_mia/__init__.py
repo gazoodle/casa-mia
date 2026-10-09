@@ -45,7 +45,6 @@ PLATFORMS = [
     Platform.BUTTON,
     Platform.EVENT,
     Platform.NUMBER,
-    Platform.SELECT,
     Platform.SENSOR,
     Platform.SWITCH,
 ]
@@ -65,7 +64,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Register the parent devices first, so child devices can name them in via_device.
     registry = dr.async_get(hass)
     app = (DOMAIN, entry.entry_id)
-    registry.async_get_or_create(
+    app_device = registry.async_get_or_create(
         config_entry_id=entry.entry_id,
         identifiers={app},
         name="Casa Mia app",
@@ -85,7 +84,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 identifiers=identifiers,
                 name=name,
                 manufacturer="Casa Mia",
-                via_device=app,
+                via_device_id=app_device.id,
             )
         elif device := registry.async_get_device(identifiers=identifiers):
             _LOGGER.info("%s is switched off in the app: removing its device", name)

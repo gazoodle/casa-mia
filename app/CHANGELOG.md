@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.10.4-b23
+
+- Casa Mia's integration failed to set up after b22: it still asked for the Main camera
+  selects, which moved to Casa Mia Camera Commander.
+- Fewer warnings in Home Assistant's log: devices are linked to the Casa Mia app device
+  the way Home Assistant now asks.
+
 ## 2026.10.4-b22
 
 - **Breaking:** Guest login and Camera Commander have their own integrations now, **Casa
