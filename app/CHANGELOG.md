@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.4-b7
+
+- Under the hood: the Tablet Layout view, the Camera Commander card and the admin UI's Camera Dashboard and Camera compositor pages are each split into a folder of small parts (RULE THREE: no source file over 800 lines). No change in behaviour.
+
 ## 2026.10.4-b6
 
 - Camera Commander: in a Tablet Layout it now defaults to the full width of its panel (elsewhere still half, Home Assistant's default), so it no longer needs switching to full width after placing it, and its preview in the card editor fills the preview area instead of half of it. A width set in the Layout tab still wins.

@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { CameraDashboardPage } from "./CameraDashboardPage";
-import { CompositorPage } from "./CompositorPage";
+import { CameraDashboardPage } from "./camera-dashboard";
+import { CompositorPage } from "./compositor";
 import { FirmwarePage } from "./FirmwarePage";
 import { GuestPage } from "./GuestPage";
 import { KioskFrame, KiosksPage } from "./KiosksPage";

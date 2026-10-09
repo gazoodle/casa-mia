@@ -1,7 +1,7 @@
 // Casa Mia's Lovelace cards, one file (cm-cards.js) the integration loads into every HA page:
 // Camera Commander, Tablet Layout. Source of the built www/cm-cards.js.
-import { VERSION } from "./commander.ts";
-import "./view.ts";
+import { VERSION } from "./commander/index.ts";
+import "./view/index.ts";
 import "./garnish-editor.ts";
 
 console.info(
