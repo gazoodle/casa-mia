@@ -17,11 +17,11 @@ commander follows whatever moves.
 
 ## Switching it on
 
-Turn on **Camera Dashboard** and **Compose camera groups** in the app's Configuration tab
-(Settings → Apps → Casa Mia → Configuration). Add the cameras on the
+Turn on **Camera Commander** in the app's Configuration tab (Settings → Apps → Casa Mia →
+Configuration); **Auto Dashboards** adds the camera dashboard. Add the cameras on the
 [Cameras](cameras.md) page first.
 
-The first time it starts, it takes the commanders from what the Camera Dashboard last
+The first time it starts, it takes the commanders from what the Camera Dashboard (now Auto Dashboards) last
 deployed live (not its draft, so nothing unfinished reaches the walls), and logs
 `commander: moved N commanders`.
 

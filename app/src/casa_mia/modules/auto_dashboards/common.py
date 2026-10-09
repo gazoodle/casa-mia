@@ -1,4 +1,4 @@
-"""camera_dashboard: Shared constants, the store's defaults and small helpers."""
+"""auto_dashboards: Shared constants, the store's defaults and small helpers."""
 
 from __future__ import annotations
 
@@ -73,6 +73,9 @@ DEFAULTS: dict[str, Any] = {
     "live_card": "picture-entity",  # wall tablets and phones
     "hi_live_card": "",  # everyone else; blank = the same as live_card
     "compositor_host": "",  # blank = this box's LAN address
+    # Each camera's live card on its page, where not the dashboard's own: a dashboard
+    # choice, so here (it was the Cameras page's `live` until 2026.10.4-b18).
+    "live_cards": {},
     "cameras": {},
     "commanders": [EMPTY_COMMANDER],  # in order: the dashboard's first pages
 }
@@ -87,9 +90,20 @@ Store = dict[str, Any]
 def with_defaults(store: Store) -> Store:
     """A store with every setting and nothing else (settings since dropped, such as the
     groups, are left out); its own copy, sharing nothing with DEFAULTS. A store from
-    before there were several commanders gets its one as the first (named Cameras)."""
+    before there were several commanders gets its one as the first (named Cameras); one
+    from before the live cards moved here takes them from its cameras' `live`."""
     if "commanders" not in store and isinstance(store.get("commander"), dict):
         store = {**store, "commanders": commanders_of(store)}
+    if "live_cards" not in store and isinstance(store.get("cameras"), dict):
+        # from before they moved here: each camera's own `live`
+        store = {
+            **store,
+            "live_cards": {
+                e: c["live"]
+                for e, c in store["cameras"].items()
+                if isinstance(c, dict) and c.get("live")
+            },
+        }
     return copy.deepcopy(
         {**DEFAULTS, **{k: v for k, v in store.items() if k in DEFAULTS}}
     )

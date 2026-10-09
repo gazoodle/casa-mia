@@ -166,7 +166,7 @@ beginning: there's plenty more to come on this feature.
 <table>
 <tr>
 <td width="50%" valign="top">
-<img src="docs/screenshots/camera-dashboard.webp" alt="The Camera Dashboard page: a commander's composite of every camera around the main one, with its picture and layout settings">
+<img src="docs/screenshots/camera-dashboard.webp" alt="The Camera Commander page: a commander's composite of every camera around the main one, with its picture and layout settings">
 <h3>Design your control room</h3>
 Lay out a commander in the Casa Mia panel: which cameras go where, how big the main one is, the highlight on its tile and the motion tracking. Its preview follows every change; Save puts it live.
 </td>
@@ -346,7 +346,7 @@ machine (aarch64 or amd64).
 
 3. **Choose your modules.** On the app's **Configuration** tab, give your house its name and
    switch on the modules you want (they all start off): the firmware server, Kiosk
-   Satellites, guest login, the camera compositor and Camera Dashboard, phone and SMS (FONA),
+   Satellites, guest login, Camera Commander and Auto Dashboards, phone and SMS (FONA),
    the alarm panel. Press **Save**. You can come back and change these at any time.
 
 4. **Start it.** On the **Info** tab, switch on **Show in sidebar** and press **Start**.

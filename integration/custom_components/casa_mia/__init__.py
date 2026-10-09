@@ -91,7 +91,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             registry.async_remove_device(device.id)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     if "commander" not in off:
-        # Track motion, a tracker per commander, while Camera Dashboard is on in the app.
+        # Track motion, a tracker per commander, while the app has the commanders on.
 
         @callback
         def follow_commanders() -> None:

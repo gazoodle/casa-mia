@@ -8,7 +8,7 @@ import ui from "../ui.module.css";
 import { Entities, HA, HEAD, Store, THUMB_EVERY_MS, ThumbRound, View, get, plural, post, put } from "./common";
 import { Backups, Settings, YamlDialog } from "./settings";
 
-export function CameraDashboardPage({ state }: { state?: string }) {
+export function AutoDashboardsPage({ state }: { state?: string }) {
   const [view, setView] = useState<View>();
   const [draft, setDraft] = useState<Store>();
   const [ha, setHa] = useState<HA>();
@@ -49,7 +49,7 @@ export function CameraDashboardPage({ state }: { state?: string }) {
   if (state === "disabled")
     return (
       <Shell {...HEAD} state={state}>
-        <Empty>Switch on Camera Dashboard in the app's Configuration tab.</Empty>
+        <Empty>Switch on Auto Dashboards in the app's Configuration tab.</Empty>
       </Shell>
     );
   if (!view || !draft)

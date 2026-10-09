@@ -1,4 +1,5 @@
-/* The Camera Dashboard page: the action bar, the commander editor, cameras table. */
+/* The camera pages (Cameras, Camera Commander, Auto Dashboards): the action bar, the
+   commander editor, the cameras table. */
 
 .bar {
   position: sticky;
@@ -753,4 +754,18 @@
   100% {
     box-shadow: 0 0 0 9px rgba(255, 59, 48, 0);
   }
+}
+
+/* Auto Dashboards: each camera's live card, a name and a choice per row. */
+.liveCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 6px 16px;
+}
+
+.liveCards label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }

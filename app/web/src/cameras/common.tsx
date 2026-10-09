@@ -25,6 +25,7 @@ export type Camera = {
   medium?: string;
   high?: string;
   zoom?: string;
+  /** Its live card: the dashboard's choice now (Auto Dashboards), dropped on its next save. */
   live?: string;
   ptz?: Ptz;
   controls?: Control[];
@@ -47,12 +48,6 @@ export type HA = {
   motion_switches?: Record<string, { entity: string; on: boolean }>;
   error: string | null;
 };
-
-export const CARDS: [string, string][] = [
-  ["picture-entity", "Picture entity (built in)"],
-  ["webrtc-camera", "WebRTC camera (custom)"],
-  ["advanced-camera-card", "Advanced camera card (custom)"],
-];
 
 /** How often the camera thumbnails are fetched again. */
 export const THUMB_EVERY_MS = 5 * 60_000;

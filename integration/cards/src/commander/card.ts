@@ -454,7 +454,8 @@ export class CommanderCard extends LitElement {
           : nothing}
         ${PANELS.flatMap((p) =>
           s[p].cameras.map((e, i) =>
-            tiles[p][i][2] > 0 && e !== main ? dot(moving.get(e), at(tiles[p][i]), this._config!, () => this.choose(card, e)) : nothing,
+            // on the main camera's own tile too (as well as on the main picture)
+            tiles[p][i][2] > 0 ? dot(moving.get(e), at(tiles[p][i]), this._config!, () => (e === main ? this.open(card, e) : this.choose(card, e))) : nothing,
           ),
         )}
         ${mainRect[2] > 0 ? dot(moving.get(main), at(mainRect), this._config!, () => this.open(card, main)) : nothing}

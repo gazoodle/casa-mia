@@ -12,7 +12,7 @@ Draws the Camera Commander as one live picture for the dashboards and wall table
 
 ## Switching it on
 
-Turn on **Compose camera groups** in the app's Configuration tab (Settings → Apps → Casa Mia → Configuration).
+Turn on **Camera Commander** in the app's Configuration tab (Settings → Apps → Casa Mia → Configuration).
 
 > **To write:** anything else it needs first.
 

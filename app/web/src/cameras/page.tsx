@@ -43,7 +43,7 @@ export function CamerasPage({ state }: { state?: string }) {
   if (state === "disabled")
     return (
       <Shell {...HEAD} state={state}>
-        <Empty>Switch on Camera Dashboard in the app's Configuration tab.</Empty>
+        <Empty>Switch on Camera Commander or Auto Dashboards in the app's Configuration tab.</Empty>
       </Shell>
     );
   if (!cameras)
@@ -145,7 +145,6 @@ export function CamerasPage({ state }: { state?: string }) {
                     </button>
                     <span className={css.muted}>
                       {[cam.medium && "medium", cam.high && "high"].filter(Boolean).join(", ") || "itself only"}
-                      {cam.live && ` · ${cam.live}`}
                     </span>
                     <Sensor
                       entity={ha?.motion?.[entity]}

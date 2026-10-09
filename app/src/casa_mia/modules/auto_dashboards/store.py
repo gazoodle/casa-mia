@@ -1,4 +1,4 @@
-"""camera_dashboard: Base: the module's files, paths and Home Assistant lookups."""
+"""auto_dashboards: Base: the module's files, paths and Home Assistant lookups."""
 
 from __future__ import annotations
 

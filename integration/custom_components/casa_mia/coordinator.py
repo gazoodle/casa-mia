@@ -36,7 +36,7 @@ async def async_fetch_health(
     cards: str | None = None,
 ) -> dict[str, Any]:
     """The app's /health. `helpers`: the dashboard helper scripts loaded, told to the app
-    so its Camera Dashboard page knows (e.g. that Back works). `cards`: the version of
+    so its Auto Dashboards page knows (e.g. that Back works). `cards`: the version of
     the cards HA serves, so the app can reload the wall tablets when it changes."""
     session = async_get_clientsession(hass)
     params = {"helpers": ",".join(helpers)} if helpers is not None else {}

@@ -39,9 +39,12 @@ def options_text(m: dict, text: str) -> str:
     """en.yaml with each module option's description led by its level's name."""
     for key, mod in m["modules"].items():
         name = m["levels"][mod["level"]]["name"]
+        option = mod.get("option", f"{key}_enabled")
+        if not option:  # switched on by another module's option
+            continue
         # The description's first words: after `description: "` or `description: >-\n  `.
         text = re.sub(
-            rf"(\n  {key}_enabled:\n(?:    .*\n)*?    description: (?:\"|>-\n      ))"
+            rf"(\n  {option}:\n(?:    .*\n)*?    description: (?:\"|>-\n      ))"
             rf"(?:(?:{_names(m)})\. )?",
             lambda g: f"{g[1]}{name}. ",
             text,

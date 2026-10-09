@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.10.4-b18
+
+- **The Camera Dashboard is now Auto Dashboards**, the last step of its split into Cameras, Camera Commander and Auto Dashboards. Its page (now at its own address, in the Casa Mia panel as Auto Dashboards) keeps the dashboard: its settings, draft, preview, deploys, backups and YAML. Rated In development.
+- The app's options keep their keys (so your settings stay as they are) under new names: **Compose camera groups is now Camera Commander** (the commanders and their compositor), **Camera Dashboard is now Auto Dashboards**. The cameras and the commanders are on with either; their pictures need Camera Commander.
+- A camera's **live card** (its page's card, where the dashboard's would not do) is now a dashboard setting, **Live card per camera** on the Auto Dashboards page, not a field of the camera; the ones you had are taken over.
+- Camera Commander card: the motion dot also shows on the main camera's own tile in its panel, not only on the main picture.
+- Docs: an Auto Dashboards page in place of the Camera Dashboard's, and the other camera pages, the README and the architecture brought in line.
+
 ## 2026.10.4-b17
 
 - Kiosk Satellites page: **Run everywhere**, a panel of Kiosk Satellite's own Quick controls (its words, icons and colours, by Xavier Larrea, credited on the page and in the docs): Reload page, Clear cache, Screen off and on, Start and Dismiss screensaver, Dismiss camera view, Postpone screensaver, Check for updates, Restart app and Restart device. Each is sent to every tablet the app is logged in to, one after the other; the panel shows each tablet's result as it comes, and the log a line each. The restarts ask first.

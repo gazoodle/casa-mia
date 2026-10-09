@@ -65,6 +65,31 @@ export function Settings({
         {text("portrait_query", "Portrait screens", "A media query: the screens held upright (for commanders made for them).")}
         {text("phone_query", "Phones", "A media query: these get the medium channel.")}
       </div>
+      <Field label="Live card per camera" help="A camera's own live card on its page, where the dashboard's would not do (a camera that only gives MJPEG).">
+        <div className={css.liveCards}>
+          {Object.entries(store.cameras).map(([e, cam]) => (
+            <label key={e}>
+              <span>{cam.title}</span>
+              <select
+                value={store.live_cards[e] ?? ""}
+                onChange={(ev) =>
+                  onChange((s) => {
+                    if (ev.target.value) s.live_cards[e] = ev.target.value;
+                    else delete s.live_cards[e];
+                  })
+                }
+              >
+                <option value="">The dashboard's</option>
+                {CARDS.map(([v, l]) => (
+                  <option key={v} value={v}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ))}
+        </div>
+      </Field>
       <Field label="Wall tablets" help="Home Assistant users that are wall tablets: they get the medium channel.">
         <div className={css.users}>
           {users.map((u) => (
@@ -98,7 +123,7 @@ export function YamlDialog({ onClose }: { onClose: () => void }) {
   const [text, setText] = useState("");
   const [error, setError] = useState("");
   useEffect(() => {
-    fetch(`api/camera-dashboard/yaml?target=${target}`, { cache: "no-store" }).then(async (r) => {
+    fetch(`api/auto-dashboards/yaml?target=${target}`, { cache: "no-store" }).then(async (r) => {
       if (r.ok) {
         setText(await r.text());
         setError("");

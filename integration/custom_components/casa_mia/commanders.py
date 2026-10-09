@@ -60,7 +60,7 @@ def add_commander_entities(
     factory: Callable[[str], list[Entity]],
 ) -> None:
     """Add `factory(commander id)` entities now and for any commander that appears later
-    (none while Camera Dashboard is off in the app)."""
+    (none while the commanders are off in the app)."""
     if "commander" in modules_off(coordinator):
         return
     known: set[str] = set()
@@ -82,7 +82,7 @@ def async_prune_commander_devices(
     hass: HomeAssistant, entry: ConfigEntry, coordinator: CasaMiaCoordinator
 ) -> None:
     """Remove the devices (and so their entities) of commanders the app no longer has
-    (deleted on the Camera Dashboard page), and all of them while Camera Dashboard is
+    (deleted on the Camera Commander page), and all of them while the commanders are
     switched off. Acts only on a definite answer: an app that is starting, or too old
     to say, must never wipe the devices."""
     module = coordinator.data.get("modules", {}).get("commander", {})

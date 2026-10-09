@@ -99,7 +99,7 @@ export const MODULES: Record<string, ModuleInfo> = {
   },
   compositor: {
     title: "Camera compositor",
-    option: "Compose camera groups",
+    option: "Camera Commander",
     blurb: "Draws the Camera Commander as one live picture for the dashboards and wall tablets.",
     icon: <CameraGridIcon />,
     facts: (h) => [
@@ -110,14 +110,14 @@ export const MODULES: Record<string, ModuleInfo> = {
   },
   cameras: {
     title: "Cameras",
-    option: "Camera Dashboard",
+    option: "Camera Commander or Auto Dashboards",
     blurb: "The house's cameras: their names, streams and controls, for the commanders and the dashboard.",
     icon: <CameraIcon />,
     facts: (h) => [["Cameras", String(h.cameras ?? 0)]],
   },
   commander: {
     title: "Camera Commander",
-    option: "Camera Dashboard",
+    option: "Camera Commander",
     blurb: "The commanders: each a main camera framed by panels of cameras, one live picture for the card and the dashboard.",
     icon: <CommanderIcon />,
     facts: (h) => {
@@ -128,10 +128,10 @@ export const MODULES: Record<string, ModuleInfo> = {
       ];
     },
   },
-  camera_dashboard: {
-    title: "Camera Dashboard",
-    option: "Camera Dashboard",
-    blurb: "The camera dashboard: made from the cameras and the commanders, previewed, and deployed.",
+  auto_dashboards: {
+    title: "Auto Dashboards",
+    option: "Auto Dashboards",
+    blurb: "Dashboards made for you: today the camera dashboard, from the cameras and the commanders, previewed and deployed.",
     icon: <DashboardIcon />,
     facts: (h) => [
       ["Cameras", String(h.cameras ?? 0)],

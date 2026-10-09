@@ -1,4 +1,4 @@
-"""camera_dashboard: The generated dashboard: the commanders' pages, then each camera's."""
+"""auto_dashboards: The generated dashboard: the commanders' pages, then each camera's."""
 
 from __future__ import annotations
 

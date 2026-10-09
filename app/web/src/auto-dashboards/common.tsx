@@ -3,15 +3,15 @@ import { DashboardIcon } from "../icons";
 import type { Camera, HAEntity } from "../cameras";
 import type { Commander } from "../commander";
 
-export { CARDS, Entities, THUMB_EVERY_MS, ThumbRound, plural } from "../cameras";
+export { Entities, THUMB_EVERY_MS, ThumbRound, plural } from "../cameras";
 export type { Camera } from "../cameras";
-export const { get, post, put } = api("camera-dashboard");
+export const { get, post, put } = api("auto-dashboards");
 
 export const HEAD = {
   icon: <DashboardIcon />,
-  title: "Camera Dashboard",
-  module: "camera_dashboard",
-  blurb: "The camera dashboard: made from the cameras and the commanders, previewed, and deployed.",
+  title: "Auto Dashboards",
+  module: "auto_dashboards",
+  blurb: "Dashboards made for you: today the camera dashboard, from the cameras and the commanders, previewed and deployed.",
 };
 
 export type Store = {
@@ -27,6 +27,8 @@ export type Store = {
   wall_users: string[];
   live_card: string;
   hi_live_card: string;
+  /** Each camera's live card on its page, where not the dashboard's own. */
+  live_cards: Record<string, string>;
   /** The pictures' address, the cameras and the commanders: copies of their pages'. */
   compositor_host: string;
   cameras: Record<string, Camera>;
@@ -50,6 +52,13 @@ export type View = {
   max_keep: number;
   compositor: { live: boolean; host: string | null };
 };
+
+/** The live cards a camera's page can use. */
+export const CARDS: [string, string][] = [
+  ["picture-entity", "Picture entity (built in)"],
+  ["webrtc-camera", "WebRTC camera (custom)"],
+  ["advanced-camera-card", "Advanced camera card (custom)"],
+];
 
 export type HAUser = { id: string; name: string; is_active: boolean };
 

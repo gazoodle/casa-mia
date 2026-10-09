@@ -14,7 +14,7 @@ from .components import ask_for_restart, install_bundled
 from .ha import HA
 from .install_count import count_install
 from .log import configure_logging
-from .modules.camera_dashboard import CameraDashboard
+from .modules.auto_dashboards import AutoDashboards
 from .modules.cameras import Cameras
 from .modules.commander import Commander
 from .modules.compositor import (
@@ -172,8 +172,14 @@ def main() -> int:
         """The integration's helpers, or None until it has said since this start."""
         return helpers if http is not None and http.helpers_heard else None
 
-    cameras_on = options.get("camera_dashboard_enabled", False)
+    # The options keep their first keys (renaming one would reset it): Camera Commander is
+    # compositor_enabled, Auto Dashboards camera_dashboard_enabled. Cameras and the
+    # commanders are on with either; their pictures need Camera Commander.
+    commander_on = options.get("compositor_enabled", False)
+    dashboards_on = options.get("camera_dashboard_enabled", False)
+    cameras_on = commander_on or dashboards_on
     compositor = None
+    dashboards: AutoDashboards | None = None
     # The cameras' pictures.
     gather = Gatherer(
         ha_url,
@@ -182,19 +188,17 @@ def main() -> int:
         sizes_path=CONFIG / "camera_sizes.json",  # each channel's size, kept
         pace_path=CONFIG / "compositor_pace.json",  # its paces, as set on its page
     )
-    if options.get("compositor_enabled", False):
+    if commander_on:
         compositor = Compositor(
             CONFIG,
             ha_url,
             ha_token,
             ws_path=ws_path,
             gatherer=gather,
-            needs="a commander with cameras, on the Camera Commander page"
-            if cameras_on
-            else "the Camera Dashboard option on",
+            needs="a commander with cameras, on the Camera Commander page",
         )
     if cameras_on:
-        # The cameras, the source the commanders and the dashboard read.
+        # The cameras, the source the commanders and the dashboards read.
         cams = Cameras(CONFIG, ha, still=compositor.still if compositor else None)
         cams.start()
         modules["cameras"] = cams.health
@@ -207,37 +211,40 @@ def main() -> int:
             lan_ip,
             live=compositor,
             state_path=OPTIONS.parent / "camera_dashboard_state.json",
-            dashboard=lambda: cameras.store["dashboard"],
+            dashboard=lambda: dashboards.store["dashboard"] if dashboards else None,
         )
-        cameras = CameraDashboard(
-            CONFIG,
-            ha,
-            lan_ip,
-            live=compositor,
-            helpers=helpers_known,
-            cameras=cams,
-            commander=commander,
-        )
+        if dashboards_on:
+            dashboards = AutoDashboards(
+                CONFIG,
+                ha,
+                lan_ip,
+                live=compositor,
+                helpers=helpers_known,
+                cameras=cams,
+                commander=commander,
+            )
         commander.start()
-        cameras.start()
         modules["commander"] = commander.health
         api["/api/commander/"] = commander.handle
         # The integration's choices of main camera and motion (the old paths for an
         # integration from before Camera Commander had its own page).
         post_handlers["/commander/"] = commander.control
         post_handlers["/camera-dashboard/"] = commander.control
-        modules["camera_dashboard"] = cameras.health
-        api["/api/camera-dashboard/"] = cameras.handle
     else:
-        modules["camera_dashboard"] = lambda: {"state": "disabled"}
         modules["cameras"] = lambda: {"state": "disabled"}
         modules["commander"] = lambda: {"state": "disabled"}
+    if dashboards:
+        dashboards.start()
+        modules["auto_dashboards"] = dashboards.health
+        api["/api/auto-dashboards/"] = dashboards.handle
+    else:
+        modules["auto_dashboards"] = lambda: {"state": "disabled"}
     if compositor:
         compositor.start()
         modules["compositor"] = compositor.health
         # The size test pages' address: the compositor host set on the Camera Commander
         # page, else this box's LAN address.
-        mine = commander if cameras_on else None
+        mine = commander
         api["/api/compositor/"] = admin_api(
             compositor,
             None,

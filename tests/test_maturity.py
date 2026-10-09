@@ -15,6 +15,7 @@ def test_written_everywhere():
 
 def test_every_module_option_is_rated():
     m = maturity.load()
-    options = re.findall(r"\n  (\w+)_enabled:", maturity.OPTIONS.read_text())
-    assert set(options) <= set(m["modules"])
+    options = re.findall(r"\n  (\w+_enabled):", maturity.OPTIONS.read_text())
+    rated = {mod.get("option", f"{k}_enabled") for k, mod in m["modules"].items()}
+    assert set(options) <= rated
     assert all(mod["level"] in m["levels"] for mod in m["modules"].values())

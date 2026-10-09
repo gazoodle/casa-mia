@@ -137,7 +137,7 @@ class Cache:
         # the whole app's since then.
         self._cpu_seen: dict[str, tuple[float, float]] = {}
         # Thumbnails, made once per picture and size and kept until the picture changes
-        # (the Camera Dashboard's, the cache viewer's): (entity, width, whole) ->
+        # (the Cameras page's, the cache viewer's): (entity, width, whole) ->
         # (the picture, the thumbnail).
         self._thumbs: dict[tuple[str, int, bool], tuple[Picture, bytes]] = {}
 

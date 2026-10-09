@@ -1,4 +1,4 @@
-"""camera_dashboard: What is wrong with a store (problems) and what HA seems to lack (warnings)."""
+"""auto_dashboards: What is wrong with a store (problems) and what HA seems to lack (warnings)."""
 
 from __future__ import annotations
 

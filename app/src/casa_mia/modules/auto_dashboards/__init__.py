@@ -1,4 +1,4 @@
-"""camera_dashboard: the camera dashboard, generated and deployed into Home Assistant.
+"""auto_dashboards: the camera dashboard, generated and deployed into Home Assistant.
 
 It shows the cameras (the Cameras page) and the commanders (the Camera Commander page):
 the commanders' pages, then a live page per camera, in ONE dashboard that adapts to
@@ -26,12 +26,12 @@ The parts:
   store.py       Base: the module's files, paths and Home Assistant lookups.
   backups.py     Backups: the dashboards' configs kept before each deploy.
   deploys.py     Deploys: start, the page's view, saving the draft and deploying it.
-  api.py         CameraDashboard: the admin page's API.
+  api.py         AutoDashboards: the admin page's API.
 """
 
 from __future__ import annotations
 
-from .api import CameraDashboard
+from .api import AutoDashboards
 from .checks import problems, warnings
 from .common import (
     BACKUPS,
@@ -65,7 +65,7 @@ __all__ = [
     "BLANK",
     "BadRequest",
     "CARDS",
-    "CameraDashboard",
+    "AutoDashboards",
     "DEFAULTS",
     "DEFAULT_KEEP",
     "DEPLOYS",

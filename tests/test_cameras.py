@@ -10,7 +10,7 @@ from casa_mia.modules.cameras import (
     motion_sensors,
     motion_switches,
 )
-from test_camera_dashboard import STORE, FakeHA, call
+from test_auto_dashboards import STORE, FakeHA, call
 
 
 @pytest.fixture

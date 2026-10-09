@@ -1,6 +1,6 @@
 """Track motion, one tracker per commander: while a commander's Track motion switch is
 on, a camera of it that sees motion becomes its main one. Rules (seconds from the commander's
-settings on the Camera Dashboard page): the newest motion wins; a switch holds `hold`
+settings on the Camera Commander page): the newest motion wins; a switch holds `hold`
 seconds before motion elsewhere takes over (that camera waits its turn); `back` seconds
 after all motion stops it goes back to the camera chosen by hand (0: it stays); and a
 choice by hand (a tap, or an automation) pauses tracking for `pause` seconds. Whatever

@@ -48,7 +48,7 @@ export function CommanderPage({ state }: { state?: string }) {
   if (state === "disabled")
     return (
       <Shell {...HEAD} state={state}>
-        <Empty>Switch on Camera Dashboard in the app's Configuration tab.</Empty>
+        <Empty>Switch on Camera Commander or Auto Dashboards in the app's Configuration tab.</Empty>
       </Shell>
     );
   if (!view || !edits)
@@ -90,8 +90,7 @@ export function CommanderPage({ state }: { state?: string }) {
           {ha?.error && <div className={guest.warning}>Home Assistant: {ha.error}</div>}
           {!view.compositor && (
             <div className={guest.warning}>
-              The live compositor is off: switch on Compose camera groups in the app's Configuration tab to draw the
-              commanders.
+              The compositor is off: switch on Camera Commander in the app's Configuration tab to draw the commanders.
             </div>
           )}
 

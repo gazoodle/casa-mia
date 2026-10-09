@@ -5,8 +5,8 @@ import pytest
 
 from casa_mia import swap
 from casa_mia.ha import HAError
-from casa_mia.modules.camera_dashboard import (
-    CameraDashboard,
+from casa_mia.modules.auto_dashboards import (
+    AutoDashboards,
     build_dashboard,
     problems,
     warnings,
@@ -148,7 +148,7 @@ def cd(tmp_path):
         lambda: "10.0.0.2",
         dashboard=lambda: cd.store["dashboard"],
     )
-    cd = CameraDashboard(
+    cd = AutoDashboards(
         tmp_path,
         ha,
         lambda: "10.0.0.2",
@@ -282,7 +282,7 @@ def test_yaml_for_copy_and_paste(cd):
 
 
 def test_starts_empty_without_old_files(tmp_path):
-    cd = CameraDashboard(tmp_path, None, lambda: None)
+    cd = AutoDashboards(tmp_path, None, lambda: None)
     cd.start()
     assert (
         cd.health()["cameras"] == 0
@@ -607,3 +607,17 @@ def test_stacked_panels_keep_each_cameras_shape():
     tiles = left("reverse")
     assert all(t[2] == tiles[0][2] < 200 for t in tiles)
     assert tiles[0][1] >= 0 and tiles[-1][1] + tiles[-1][3] <= 500
+
+
+def test_each_cameras_live_card_is_the_dashboards_choice(cd):
+    # taken from the cameras' own `live` the first time (the fixture's Tablet has one)
+    assert cd.store["live_cards"] == {"camera.b": "picture-entity"}
+    assert cd.store["cameras"]["camera.b"]["live"] == "picture-entity"
+    _, view = call(cd, "GET", "")
+    view["store"]["live_cards"] = {"camera.a_low": "webrtc-camera"}
+    _, view = call(cd, "PUT", "", view["store"])
+    cams = view["store"]["cameras"]
+    assert cams["camera.a_low"]["live"] == "webrtc-camera"
+    assert (
+        "live" not in cams["camera.b"]
+    )  # the Cameras page's own `live` no longer counts

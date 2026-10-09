@@ -1,5 +1,5 @@
 {
-  "_comment": "Each module's maturity, defined once. The admin page reads it; tools/maturity.py --update writes it into the app's option descriptions and the docs (a test fails when they differ).",
+  "_comment": "Each module's maturity, defined once (`option`: its option's key, when not <module>_enabled; \"\" for none of its own). The admin page reads it; tools/maturity.py --update writes it into the app's option descriptions and the docs (a test fails when they differ).",
   "levels": {
     "skeleton": {
       "name": "Skeleton",
@@ -27,9 +27,9 @@
     "guest_login": { "level": "beta", "docs": "applets/guest-login.md" },
     "gitproxy": { "level": "beta", "docs": "applets/firmware-server.md" },
     "cameras": { "level": "alpha", "docs": "applets/cameras.md" },
-    "commander": { "level": "beta", "docs": "applets/camera-commander.md" },
-    "camera_dashboard": { "level": "alpha", "docs": "applets/camera-dashboard.md" },
-    "compositor": { "level": "alpha", "docs": "applets/camera-compositor.md" },
+    "commander": { "level": "beta", "docs": "applets/camera-commander.md", "option": "compositor_enabled" },
+    "auto_dashboards": { "level": "development", "docs": "applets/auto-dashboards.md", "option": "camera_dashboard_enabled" },
+    "compositor": { "level": "alpha", "docs": "applets/camera-compositor.md", "option": "" },
     "kiosks": { "level": "alpha", "docs": "applets/kiosk-satellites.md" },
     "kiosk_mode": { "level": "alpha", "docs": "applets/kiosk-mode.md" },
     "people": { "level": "alpha", "docs": "applets/people.md" },

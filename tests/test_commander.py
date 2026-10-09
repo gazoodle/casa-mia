@@ -14,7 +14,7 @@ from casa_mia.modules.cameras import Cameras
 from casa_mia.modules.commander import Commander
 from casa_mia.modules.compositor import LIVE_STORE, Compositor, Config
 from conftest import stop_compositor
-from test_camera_dashboard import FakeHA, call, commander_store
+from test_auto_dashboards import FakeHA, call, commander_store
 from test_compositor import FakeHA as FakeCameras
 
 

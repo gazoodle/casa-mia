@@ -13,7 +13,7 @@ Each page of the Casa Mia panel in Home Assistant's sidebar.
 - [Kiosk mode](applets/kiosk-mode.md): What each dashboard hides, and from whom: the header, sidebar and more, through kiosk-mode.
 - [Cameras](applets/cameras.md): The house's cameras, chosen from Home Assistant: their names, streams and controls, for the commanders and the camera dashboard.
 - [Camera Commander](applets/camera-commander.md): The commanders, each a main camera framed by panels of cameras, one live picture for the card and the dashboard; and the Camera Commander card.
-- [Camera Dashboard](applets/camera-dashboard.md): The camera dashboard, made from the cameras and the commanders, previewed, and deployed into Home Assistant.
+- [Auto Dashboards](applets/auto-dashboards.md): Dashboards made for you: today the camera dashboard, from the cameras and the commanders, previewed and deployed into Home Assistant.
 - [Camera compositor](applets/camera-compositor.md): Draws the Camera Commander as one live picture for the dashboards and wall tablets.
 - [Guest login](applets/guest-login.md): QR codes that sign guests and engineers straight into their own dashboard.
 - [People](applets/people.md): Who is known to the home.

@@ -26,9 +26,9 @@ API_VERSION = 1
 WEB_DIR = Path(__file__).parent / "web"
 # Ingress requests all come from the Supervisor's gateway; nothing else gets the UI.
 INGRESS_GATEWAY = "172.30.32.2"
-# POSTs that only read (the Camera Dashboard's live previews, one per edit): not logged
+# POSTs that only read (the Camera Commander page's live previews, one per edit): not logged
 # at INFO with the admin page's changes.
-READS = ("/api/camera-dashboard/render",)
+READS = ("/api/commander/render",)
 
 
 def integration_url() -> str:

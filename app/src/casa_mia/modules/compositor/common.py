@@ -81,9 +81,8 @@ class Config:
         return next((c for c in self.commanders if slug(c["name"]) == name), None)
 
 
-# The Camera Dashboard's stores (see camera_dashboard.py): what is deployed, and the draft.
 # What the live compositor draws: the commanders and the cameras they show, written by
-# Camera Commander. The draft one draws the Camera Dashboard's draft, for its preview.
+# Camera Commander. DRAFT_STORE: the Auto Dashboards draft, for a second compositor (none now).
 LIVE_STORE = "compositor.json"
 DRAFT_STORE = "camera-dashboard.json"
 # A commander: one landscape picture, a main camera framed by four panels of cameras.
@@ -228,7 +227,7 @@ def commanders_of(store: dict) -> list[dict]:
 
 
 def config_from_store(store: dict) -> Config:
-    """The compositor's view of a Camera Dashboard store: the commanders name their
+    """The compositor's view of a store (compositor.json): the commanders name their
     cameras by entity, and each camera's title and channels live once, under "cameras"."""
     cams = store.get("cameras", {})
     cfg = Config()
@@ -315,7 +314,7 @@ def go2rtc_reachable(timeout: float = 1.0) -> bool:
 
 def channels(cfg: Config, camera: str) -> dict[str, str]:
     """A camera's channels by tier, smallest first: its own entity (low, or its only
-    one), then its medium and high as set on the Camera Dashboard page. Not its zoom:
+    one), then its medium and high as set on the Cameras page. Not its zoom:
     that is another view, not a larger one."""
     out = {"low": camera}
     for tier in ("medium", "high"):

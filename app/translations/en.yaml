@@ -15,15 +15,19 @@ configuration:
     name: Serve tablet firmware
     description: "Beta. Mirror the Kiosk Satellite firmware and serve it to the tablets at http://<this host>:8000 (the Custom repository address in Kiosk Satellite)."
   compositor_enabled:
-    name: Compose camera groups
-    description: "Alpha. Draw the Camera Commander from Home Assistant camera stills, served at http://<this host>:8099/. It is set up on the Camera Dashboard page (which needs to be on)."
-  camera_dashboard_enabled:
-    name: Camera Dashboard
+    name: Camera Commander
     description: >-
-      Alpha. The Cameras, Camera Commander and Camera Dashboard pages of the Casa Mia
-      panel: the cameras, the commanders that show them, and the camera dashboard,
-      previewed and deployed into Home Assistant. The commanders' pictures need Compose
-      camera groups on.
+      Beta. The commanders, each a main camera framed by panels of cameras, drawn as one
+      live picture by the compositor (served at http://<this host>:8099/) for the Camera
+      Commander card and the dashboards. Set up on the Cameras and Camera Commander pages
+      of the Casa Mia panel.
+  camera_dashboard_enabled:
+    name: Auto Dashboards
+    description: >-
+      In development. Dashboards made for you: today the camera dashboard, a page per commander
+      and per camera, previewed and deployed into Home Assistant from the Auto
+      Dashboards page of the Casa Mia panel. The commanders' pictures need Camera
+      Commander on.
   guest_login_enabled:
     name: Guest login
     description: >-
@@ -53,7 +57,7 @@ configuration:
     description: >-
       Shows the debugging aids in the Casa Mia panel: the Settings page's developer
       options (the Tablet Layout's panel outlines and size label) and a commander's Debug
-      options on the Camera Dashboard page. Off, the tablets show none of the Settings
+      options on the Camera Commander page. Off, the tablets show none of the Settings
       page's aids, whatever is saved there.
 network:
   8000/tcp: "Firmware server (Serve tablet firmware): the tablets fetch Kiosk Satellite updates here. Blank it if that option is off."

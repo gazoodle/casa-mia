@@ -1,4 +1,4 @@
-"""camera_dashboard: Backups: the dashboards' configs kept before each deploy."""
+"""auto_dashboards: Backups: the dashboards' configs kept before each deploy."""
 
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ class Backups(Base):
             keep = 1 if url_path.endswith(PREVIEW) else self.keep()
             for p in files[: -keep or None]:
                 p.unlink()
-                _LOGGER.info("camera dashboard: pruned %s", p.name)
+                _LOGGER.info("auto dashboards: pruned %s", p.name)
 
     def _backup(self, url_path: str) -> None:
         assert self.ha
@@ -50,14 +50,14 @@ class Backups(Base):
         try:
             (config,) = self.ha.call({"type": "lovelace/config", "url_path": url_path})
         except HAError as exc:  # an empty dashboard has no config yet
-            _LOGGER.info("camera dashboard: nothing to keep of /%s (%s)", url_path, exc)
+            _LOGGER.info("auto dashboards: nothing to keep of /%s (%s)", url_path, exc)
             return
         folder = self.dir / BACKUPS
         folder.mkdir(parents=True, exist_ok=True)
         stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
         path = folder / f"{url_path}-{stamp}.json"
         path.write_text(json.dumps({"url_path": url_path, "config": config}))
-        _LOGGER.info("camera dashboard: kept /%s's config as %s", url_path, path.name)
+        _LOGGER.info("auto dashboards: kept /%s's config as %s", url_path, path.name)
         self._prune()
 
     def _kept(self, preview: bool) -> list[dict[str, Any]]:
@@ -94,7 +94,7 @@ class Backups(Base):
                 "config": kept["config"],
             }
         )
-        _LOGGER.info("camera dashboard: restored /%s from %s", kept["url_path"], name)
+        _LOGGER.info("auto dashboards: restored /%s from %s", kept["url_path"], name)
 
     def restore(self, name: str) -> dict[str, Any]:
         """Put a kept live dashboard config back (keeping the current one first, if

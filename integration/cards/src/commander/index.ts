@@ -46,4 +46,4 @@ export { VERSION } from "./common.ts";
 
 define("casa-mia-commander", CommanderCard);
 define("casa-mia-commander-editor", CommanderEditor);
-register("casa-mia-commander", "Casa Mia Camera Commander", "One of the Camera Dashboard's commanders: tap a camera to make it the main one.");
+register("casa-mia-commander", "Casa Mia Camera Commander", "One of the Camera Commander page's commanders: tap a camera to make it the main one.");

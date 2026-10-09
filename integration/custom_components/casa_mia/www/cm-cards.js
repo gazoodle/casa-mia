@@ -1,5 +1,5 @@
 var e = {
-	about: "The layout options shared by the Camera Commander (drawn by the compositor, edited on the Camera Dashboard page) and the Tablet Layout (laid out in the browser, edited in Lovelace): one engine, two places (compositor.commander_layout, integration/cards/src/layout.ts, checked against tests/layout_cases.json). Each option: label, help ({item} is camera or card), default, and `for` when only one of them has it. Read by the compositor's defaults, the admin page and the cards' editors.",
+	about: "The layout options shared by the Camera Commander (drawn by the compositor, edited on the Camera Commander page) and the Tablet Layout (laid out in the browser, edited in Lovelace): one engine, two places (compositor.commander_layout, integration/cards/src/layout.ts, checked against tests/layout_cases.json). Each option: label, help ({item} is camera or card), default, and `for` when only one of them has it. Read by the compositor's defaults, the admin page and the cards' editors.",
 	main: {
 		gap: {
 			label: "Gap, px",
@@ -1409,7 +1409,7 @@ var At = class extends G {
               alt=""
               style="${v(x)};border:${y.width}px solid ${y.colour};box-shadow:0 0 ${y.blur}px ${y.colour};--cm-colour:${y.colour};--cm-blur:${y.blur}px;--cm-pulse:${y.pulse}s;--cm-style:${y.style}"
             />` : H}
-        ${K.flatMap((e) => p[e].cameras.map((r, i) => _[e][i][2] > 0 && r !== n ? yt(b.get(r), v(_[e][i]), this._config, () => this.choose(t, r)) : H))}
+        ${K.flatMap((e) => p[e].cameras.map((r, i) => _[e][i][2] > 0 ? yt(b.get(r), v(_[e][i]), this._config, () => r === n ? this.open(t, r) : this.choose(t, r)) : H))}
         ${g[2] > 0 ? yt(b.get(n), v(g), this._config, () => this.open(t, n)) : H}
       </div>
     </ha-card>`;
@@ -1788,7 +1788,7 @@ var Nt = class extends G {
     ></ha-form>`;
 	}
 };
-o("casa-mia-commander", At), o("casa-mia-commander-editor", Nt), s("casa-mia-commander", "Casa Mia Camera Commander", "One of the Camera Dashboard's commanders: tap a camera to make it the main one.");
+o("casa-mia-commander", At), o("casa-mia-commander-editor", Nt), s("casa-mia-commander", "Casa Mia Camera Commander", "One of the Camera Commander page's commanders: tap a camera to make it the main one.");
 //#endregion
 //#region src/garnish.ts
 var Pt = (e) => e.view_layout?.garnish !== !0 && e.view_layout?.counts !== !1, Ft = /* @__PURE__ */ new Set([

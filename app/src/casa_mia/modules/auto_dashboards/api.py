@@ -1,4 +1,4 @@
-"""camera_dashboard: CameraDashboard: the admin page's API and the previews."""
+"""auto_dashboards: AutoDashboards: the admin page's API and the previews."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from .deploys import Deploys
 _LOGGER = logging.getLogger(__name__)
 
 
-class CameraDashboard(Deploys):
+class AutoDashboards(Deploys):
     # -- the admin page's API
 
     def handle(
@@ -34,7 +34,7 @@ class CameraDashboard(Deploys):
         except BadRequest as exc:
             return _json(400, {"error": str(exc)})
         except HAError as exc:
-            _LOGGER.warning("camera dashboard: %s", exc)
+            _LOGGER.warning("auto dashboards: %s", exc)
             return _json(502, {"error": str(exc)})
         except ValueError:
             return _json(400, {"error": "Expected JSON."})

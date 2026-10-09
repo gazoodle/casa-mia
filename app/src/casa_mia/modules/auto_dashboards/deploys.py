@@ -1,4 +1,4 @@
-"""camera_dashboard: Deploys: start, the page's view, saving the draft and deploying it."""
+"""auto_dashboards: Deploys: start, the page's view, saving the draft and deploying it."""
 
 from __future__ import annotations
 
@@ -38,17 +38,23 @@ class Deploys(Backups):
         self._prune()  # to what is kept now (it used to be 20 each)
         try:
             if self.draft_path.exists():
-                self.store = with_defaults(json.loads(self.draft_path.read_text()))
+                raw = json.loads(self.draft_path.read_text())
+                self.store = with_defaults(raw)  # live cards from the cameras, at first
+                if "live_cards" not in raw:
+                    _LOGGER.info(
+                        "auto dashboards: took %d cameras' live cards from the cameras",
+                        len(self.store["live_cards"]),
+                    )
             else:
-                _LOGGER.info("camera dashboard: starting empty")
+                _LOGGER.info("auto dashboards: starting empty")
         except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
             # Never overwrite a store we could not read.
             self._error = f"cannot read {self.draft_path.name}: {exc}"
-            _LOGGER.error("camera dashboard: %s", self._error)
+            _LOGGER.error("auto dashboards: %s", self._error)
             return
         self._take()
         _LOGGER.info(
-            "camera dashboard: %d cameras, %d commanders (%d cameras in them), "
+            "auto dashboards: %d cameras, %d commanders (%d cameras in them), "
             "dashboard /%s",
             len(self.store["cameras"]),
             len(self.store["commanders"]),
@@ -82,7 +88,7 @@ class Deploys(Backups):
 
     def _save(self, body: Store) -> Response:
         store = with_defaults(body)  # only known settings: the page sends back all
-        store.update(self._theirs())  # theirs, whatever the page sent
+        store.update(self._theirs(store["live_cards"]))  # theirs, whatever was sent
         if not isinstance(store["cameras"], dict):
             raise BadRequest("cameras must be an object.")
         try:
@@ -98,7 +104,7 @@ class Deploys(Backups):
             self.store = store
             self._write(self.draft_path, store)
         _LOGGER.info(
-            "camera dashboard: draft saved (%d cameras; changed: %s)%s",
+            "auto dashboards: draft saved (%d cameras; changed: %s)%s",
             len(store["cameras"]),
             ", ".join(k for k in DEFAULTS if before.get(k) != store.get(k))
             or "nothing",
@@ -111,20 +117,31 @@ class Deploys(Backups):
         if not self.live_path.exists():
             raise BadRequest("Nothing has been deployed yet.")
         store = with_defaults(json.loads(self.live_path.read_text()))
-        store.update(self._theirs())  # theirs, not what was deployed
+        store.update(self._theirs(store["live_cards"]))  # theirs, not what was deployed
         with self._lock:
             self.store = store
             self._write(self.draft_path, store)
-        _LOGGER.info("camera dashboard: draft reverted to the live config")
+        _LOGGER.info("auto dashboards: draft reverted to the live config")
         return _json(200, self.view())
 
-    def _theirs(self) -> dict[str, Any]:
+    def _theirs(self, live_cards: dict[str, str] | None = None) -> dict[str, Any]:
         """What the draft takes from the other pages: the cameras (Cameras), the
-        commanders and their pictures' address (Camera Commander)."""
+        commanders and their pictures' address (Camera Commander). Each camera's live
+        card is this dashboard's own choice (`live_cards`, the draft's unless given)."""
         if self.commander:
             full = self.commander.full()
-            return {k: full[k] for k in ("cameras", "commanders", "compositor_host")}
-        return {"cameras": self.cameras.cameras()} if self.cameras else {}
+            out = {k: full[k] for k in ("cameras", "commanders", "compositor_host")}
+        elif self.cameras:
+            out = {"cameras": self.cameras.cameras()}
+        else:
+            return {}
+        cards = self.store["live_cards"] if live_cards is None else live_cards
+        out["cameras"] = {
+            e: {k: v for k, v in cam.items() if k != "live"}
+            | ({"live": cards[e]} if cards.get(e) else {})
+            for e, cam in out["cameras"].items()
+        }
+        return out
 
     def _take(self) -> None:
         """The Cameras or Camera Commander page changed: the draft takes theirs. The
@@ -137,7 +154,7 @@ class Deploys(Backups):
             self.store = {**self.store, **theirs}
             self._write(self.draft_path, self.store)
         _LOGGER.info(
-            "camera dashboard: the draft took the changes to %s",
+            "auto dashboards: the draft took the changes to %s",
             ", ".join(sorted(theirs)),
         )
 
@@ -166,14 +183,14 @@ class Deploys(Backups):
                     "require_admin": not live,
                 }
             )
-            _LOGGER.info("camera dashboard: created dashboard /%s", url_path)
+            _LOGGER.info("auto dashboards: created dashboard /%s", url_path)
         else:
             self._backup(url_path)
         self.ha.call(
             {"type": "lovelace/config/save", "url_path": url_path, "config": config}
         )
         _LOGGER.info(
-            "camera dashboard: deployed /%s (%d views, composites from %s)",
+            "auto dashboards: deployed /%s (%d views, composites from %s)",
             url_path,
             len(config["views"]),
             base,
@@ -198,12 +215,10 @@ class Deploys(Backups):
             self.ha.call(
                 {"type": "lovelace/dashboards/delete", "dashboard_id": board["id"]}
             )
-            _LOGGER.info(
-                "camera dashboard: removed the preview dashboard /%s", url_path
-            )
+            _LOGGER.info("auto dashboards: removed the preview dashboard /%s", url_path)
         else:
             _LOGGER.info(
-                "camera dashboard: no preview dashboard /%s to remove", url_path
+                "auto dashboards: no preview dashboard /%s to remove", url_path
             )
         with self._lock:
             deploys = self.deploys()
@@ -221,7 +236,7 @@ class Deploys(Backups):
         ):
             raise BadRequest(f"keep must be a whole number from 0 to {MAX_KEEP}.")
         self._write(self.dir / SETTINGS, {"keep": keep})
-        _LOGGER.info("camera dashboard: keeping %d older live versions", keep)
+        _LOGGER.info("auto dashboards: keeping %d older live versions", keep)
         self._prune()
         return self.view()
 

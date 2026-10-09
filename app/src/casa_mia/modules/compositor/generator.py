@@ -68,7 +68,7 @@ class Generator:
         gatherer: Gatherer | None = None,
     ) -> None:
         self.config_dir = config_dir
-        self.store = store  # which Camera Dashboard store it serves (live or draft)
+        self.store = store  # which store it serves (live, or a draft)
         self.role = "live" if store == LIVE_STORE else "draft"  # its pace's name
         self.prewarm = prewarm  # gather for LINGER from the start (not for previews)
         # The cameras' pictures: shared with the other compositor, or its own.
@@ -122,7 +122,7 @@ class Generator:
         self.mains: dict[str, str] = {}
 
     def reload(self) -> None:
-        """Re-read the config (after the Camera Dashboard saved it); the picture already
+        """Re-read the config (after Camera Commander saved it); the picture already
         drawn is dropped, so the next request draws the new layout."""
         try:
             cfg = load_config(self.config_dir, self.store)
@@ -219,7 +219,7 @@ class Generator:
 
     def render(self, cfg: Config, index: int = 0) -> bytes:
         """Draw one commander (by its place) from a config that is not the one being
-        served: the Camera Dashboard's unsaved edits, for its live preview. Stills are
+        served: the Camera Commander page's unsaved edits, for its live preview. Stills are
         shared with the pictures being served. Thread-safe; ValueError when it has no
         cameras."""
         if not (self._loop and self._running):
@@ -235,7 +235,7 @@ class Generator:
         return future.result(FETCH_TIMEOUT * 4)
 
     def still(self, entity: str, width: int) -> bytes | None:
-        """One camera's latest still, width wide (16:9), for the Camera Dashboard's
+        """One camera's latest still, width wide (16:9), for the Cameras page's
         thumbnails; None if HA has none. Served from the kept stills at once (only a
         camera never seen waits for HA); resized here, off the compositor's loop, and
         kept until the still changes. Thread-safe."""

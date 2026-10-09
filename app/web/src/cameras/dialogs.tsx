@@ -3,7 +3,7 @@ import { Empty } from "../page";
 import { Dialog, Field, Switch } from "../ui";
 import css from "../cameras.module.css";
 import ui from "../ui.module.css";
-import { CARDS, Camera, DEFAULT_PTZ, HACamera, Preset } from "./common";
+import { Camera, DEFAULT_PTZ, HACamera, Preset } from "./common";
 import { Controls, EntityInput } from "./inputs";
 
 export function AddCameras({
@@ -95,7 +95,8 @@ export function CameraDialog({
             disabled={!c.title.trim()}
             onClick={() => {
               const out: Camera = { ...c, title: c.title.trim() };
-              for (const k of ["medium", "high", "zoom", "live"] as const) if (!out[k]) delete out[k];
+              for (const k of ["medium", "high", "zoom"] as const) if (!out[k]) delete out[k];
+              delete out.live; // the dashboard's choice now (Auto Dashboards)
               if (out.ptz) out.ptz = { ...out.ptz, presets: parsePresets(presets) };
               if (!out.controls?.length) delete out.controls;
               onSave(out);
@@ -121,16 +122,6 @@ export function CameraDialog({
         </Field>
         <Field label="Zoom" help="A number entity; shown on its page.">
           <EntityInput domain="number" value={c.zoom ?? ""} placeholder={ha?.zoom} onChange={(v) => set({ zoom: opt(v) })} />
-        </Field>
-        <Field label="Live card" help="Overrides the dashboard's cards, e.g. for cameras that only give MJPEG.">
-          <select value={c.live ?? ""} onChange={(e) => set({ live: opt(e.target.value) })}>
-            <option value="">The dashboard's</option>
-            {CARDS.map(([v, l]) => (
-              <option key={v} value={v}>
-                {l}
-              </option>
-            ))}
-          </select>
         </Field>
       </div>
       <Field label="PTZ presets">

@@ -9,14 +9,15 @@ the commanders and the camera dashboard.
 
 Every camera feature in Casa Mia starts from one list of cameras. You add each camera once
 here, give it the name it shows everywhere, and say which of its streams to use; Camera
-Commander and the Camera Dashboard read it from here. It draws nothing itself.
+Commander and Auto Dashboards read it from here. It draws nothing itself.
 
 ## Switching it on
 
-It is on whenever **Camera Dashboard** is on in the app's Configuration tab (Settings →
-Apps → Casa Mia → Configuration). The thumbnails need **Compose camera groups** on too.
+It is on whenever **Camera Commander** or **Auto Dashboards** is on in the app's
+Configuration tab (Settings → Apps → Casa Mia → Configuration). The thumbnails need
+Camera Commander.
 
-The first time it starts, it takes the cameras from the Camera Dashboard, where they were
+The first time it starts, it takes the cameras from the Camera Dashboard (now Auto Dashboards), where they were
 kept before, and logs `cameras: moved N cameras`.
 
 ## On the page
@@ -33,8 +34,6 @@ Every change is saved at once: there is no Save button.
   - **Medium channel:** for the wall tablets and phones. **High channel:** for everyone
     else. Blank: the camera itself.
   - **Zoom:** a number entity, shown on its page.
-  - **Live card:** the card its page on the camera dashboard uses, if not the
-    dashboard's own.
   - **PTZ presets** and **page controls** (a gate, a light): shown on its page.
 - **Remove:** it also leaves every commander that shows it.
 
@@ -63,7 +62,7 @@ Tap a camera's thumbnail to watch it live:
 
 ## Troubleshooting
 
-- **No thumbnails:** they come from the compositor; switch on **Compose camera groups**.
+- **No thumbnails:** they come from the compositor; switch on **Camera Commander**.
 - **A camera never sees motion:** check the warning above the list; its motion detection
   may be off. Otherwise the camera may have no motion sensor Casa Mia can find (the
   Motion column says none).
