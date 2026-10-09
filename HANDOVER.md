@@ -184,9 +184,8 @@ dashboards_on`).
   calls use `via_device_id`; HA still warns about `via_device` in entities' DeviceInfo
   (commanders.py), not yet looked into (a warning until 2027.8). Over layer designed in
   BACKLOG.md.
-- **Docs ready for the soft launch (b24)** except one screenshot the owner takes: the
-  Camera compositor page, whole HA window, swap on (the "To write" marker at the top of
-  `docs/applets/camera-compositor.md`). The Tablet Layout guide's examples wait until after.
+- **Docs ready for the soft launch** (b24; the compositor screenshot taken after b25). The
+  Tablet Layout guide's examples wait until after.
 - **b25: Working together, the compositor knows its viewers.** The Camera compositor page
   names each stream's viewer from Kiosk Satellites (`Store.names()`, passed to
   `admin_api(names=...)`), the IP kept beside it. Its log lines still give the address only.

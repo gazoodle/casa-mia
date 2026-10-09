@@ -4,7 +4,7 @@ Draws the Camera Commander as one live picture for the dashboards and wall table
 
 > **Maturity: Alpha.** Does its job every day in the author's house, but hasn't been tried in many others. Expect rough edges and changes. ([The levels](../README.md#maturity))
 
-> **To write:** a screenshot (whole HA window, swap on).
+<img src="../screenshots/camera-compositor.webp" alt="The Camera compositor page: the health sentence, the CPU, memory, network and bottleneck graphs, the pipeline's stages and the gatherer" width="800">
 
 ## What it's for
 
