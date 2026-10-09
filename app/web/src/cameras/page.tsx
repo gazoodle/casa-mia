@@ -135,7 +135,7 @@ export function CamerasPage({ state }: { state?: string }) {
                       {[cam.medium && "medium", cam.high && "high"].filter(Boolean).join(", ") || "itself only"}
                       {cam.live && ` · ${cam.live}`}
                     </span>
-                    <span className={css.muted}>{ha?.motion?.[entity] ? <code>{ha.motion[entity]}</code> : "none"}</span>
+                    <Sensor entity={ha?.motion?.[entity]} name={ha?.entities?.find((e) => e.entity === ha?.motion?.[entity])?.name} />
                     <span className={css.muted}>
                       {[
                         cam.zoom && "zoom",
@@ -184,5 +184,16 @@ export function CamerasPage({ state }: { state?: string }) {
         </Shell>
       </Entities.Provider>
     </ThumbRound.Provider>
+  );
+}
+
+/** A camera's motion sensor: its name, its entity id under it, both wrapping in their column. */
+function Sensor({ entity, name }: { entity?: string; name?: string }) {
+  if (!entity) return <span className={css.muted}>none</span>;
+  return (
+    <span className={`${css.muted} ${css.sensor}`}>
+      {name && name !== entity && <span>{name}</span>}
+      <code>{entity}</code>
+    </span>
   );
 }

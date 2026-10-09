@@ -1,5 +1,6 @@
-/** A camera's live view, each of its channels to choose from, shared by the Camera Dashboard
- * page (a camera's Live button) and the Camera compositor page (a gatherer channel's ↗). */
+/** A camera's live view, each of its channels to choose from, shared by the Cameras
+ * page (a camera's live view, with its motion sensor) and the Camera compositor page (a
+ * gatherer channel's ↗). */
 
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api";
@@ -43,9 +44,11 @@ export function LiveView({
   const [error, setError] = useState<string>();
   const [size, setSize] = useState<string>(); // the pictures' own size, as they come
   const [how, setHow] = useState<"webrtc" | "mjpeg">(); // how the chosen channel plays
+  const [motion, setMotion] = useState<Motion>(); // the camera's motion sensor, followed live
   useEffect(() => {
-    get<{ channels: Channel[] }>(`live/${encodeURIComponent(entity)}`).then(
+    get<{ channels: Channel[]; motion?: string | null }>(`live/${encodeURIComponent(entity)}`).then(
       (r) => {
+        setMotion(r.motion ? { sensor: r.motion } : undefined);
         setChannels(r.channels);
         setChosen((r.channels.find((c) => c.entity === initial) ?? r.channels[0])?.channel);
       },
@@ -95,6 +98,41 @@ export function LiveView({
       if (el) el.src = "";
     };
   }, [shown?.url]);
+  // The motion sensor's state, as Home Assistant changes it (its own connection: nothing
+  // asked of the app). Compressed states: `a` the first, `c` each change ("+": what changed);
+  // lc (last changed) is left out when it equals lu (last updated).
+  useEffect(() => {
+    const sensor = motion?.sensor;
+    const conn = haConnection();
+    if (!sensor || !conn) return;
+    let unsub: (() => Promise<void>) | undefined;
+    let gone = false;
+    conn
+      .subscribeMessage(
+        (msg: { a?: Record<string, Compressed>; c?: Record<string, { "+"?: Compressed }> }) => {
+          const one = msg.a?.[sensor] ?? msg.c?.[sensor]?.["+"];
+          if (!one) return;
+          const at = one.lc ?? one.lu;
+          setMotion((m) => ({
+            sensor,
+            on: one.s !== undefined ? one.s === "on" : m?.on,
+            at: at !== undefined ? at * 1000 : m?.at,
+          }));
+        },
+        { type: "subscribe_entities", entity_ids: [sensor] },
+      )
+      .then(
+        (u) => {
+          if (gone) void u();
+          else unsub = u;
+        },
+        () => undefined,
+      );
+    return () => {
+      gone = true;
+      unsub?.();
+    };
+  }, [motion?.sensor]);
   const note = error ?? (channels && !shown ? "Home Assistant has no stream of this camera." : undefined);
   return (
     <Dialog
@@ -165,7 +203,35 @@ export function LiveView({
             : "Home Assistant's MJPEG stream, made from the camera's snapshots: a few pictures a second, not video, and not always the stream's size."}
         </p>
       )}
+      {motion && <MotionLine motion={motion} />}
     </Dialog>
   );
 }
 
+
+type Compressed = { s?: string; lc?: number; lu?: number };
+
+/** A camera's motion sensor, and its state once Home Assistant has said. */
+type Motion = { sensor: string; on?: boolean; at?: number };
+
+const clock = (t: number) => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+/** The motion sensor's state under the picture: a dot that pulses while it sees motion. */
+function MotionLine({ motion: { sensor, on, at } }: { motion: Motion }) {
+  const words =
+    on === undefined
+      ? haConnection()
+        ? "Motion: asking Home Assistant…"
+        : "Motion: shown inside Home Assistant only"
+      : on
+        ? `Motion now${at ? `, since ${clock(at)}` : ""}`
+        : `No motion${at ? ` since ${clock(at)}` : ""}`;
+  return (
+    <p className={`${css.muted} ${css.motionLine}`}>
+      <span className={`${css.motionDot} ${on ? css.motionOn : ""}`} aria-hidden="true" />
+      <span>
+        {words} · <code>{sensor}</code>
+      </span>
+    </p>
+  );
+}

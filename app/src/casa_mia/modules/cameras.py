@@ -285,7 +285,8 @@ class Cameras:
         """Where the page's live view plays a camera from: HA's own MJPEG stream of each
         of its channels, as HA's camera cards do it. The browser plays it from HA directly,
         with the camera's short-lived access token in the address (the Supervisor's proxy
-        holds a response until it ends, so a stream can't pass through the app)."""
+        holds a response until it ends, so a stream can't pass through the app). And its
+        motion sensor, if it has one, which the page then follows itself."""
         if self.ha is None:
             raise BadRequest("Home Assistant is not reachable.")
         cam = self.cameras().get(entity)
@@ -300,7 +301,9 @@ class Cameras:
             ("high", cam.get("high")),
         ]
         wanted = {e for _, e in channels if e}
-        (states,) = self.ha.call({"type": "get_states"})
+        registry, states = self.ha.call(
+            {"type": "config/entity_registry/list"}, {"type": "get_states"}
+        )
         tokens = {
             s["entity_id"]: s.get("attributes", {}).get("access_token")
             for s in states
@@ -323,7 +326,10 @@ class Cameras:
             entity,
             ", ".join(c["channel"] for c in out) or "no stream",
         )
-        return {"channels": out}
+        return {
+            "channels": out,
+            "motion": motion_sensors(registry, states, [entity]).get(entity),
+        }
 
     def _write(self, cameras: Cams) -> None:
         """Save atomically."""

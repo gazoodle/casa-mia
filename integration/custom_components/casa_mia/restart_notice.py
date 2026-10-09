@@ -15,6 +15,9 @@ HERE = Path(__file__).parent
 DOMAIN = HERE.name
 MARKER = ".restart_required.json"
 ISSUE_ID = "restart_required"
+# Also a notification (the bell): it shows at once, where a Repair may wait for a reload of
+# the page. The same id as the app's own first-install notice.
+NOTIFICATION_ID = f"{DOMAIN}_restart"
 
 
 def manifest_version(folder: Path = HERE) -> str | None:
@@ -41,12 +44,24 @@ def pending_restart(loaded_version: str | None, folder: Path = HERE) -> str | No
 
 
 async def async_check_restart(hass: Any, loaded_version: str | None) -> None:
+    from homeassistant.components import persistent_notification
     from homeassistant.helpers import issue_registry as ir
 
     pending = await hass.async_add_executor_job(pending_restart, loaded_version)
     if pending is None:
         ir.async_delete_issue(hass, DOMAIN, ISSUE_ID)
+        persistent_notification.async_dismiss(hass, NOTIFICATION_ID)
         return
+    if ir.async_get(hass).async_get_issue(DOMAIN, ISSUE_ID) is None:
+        # Once, as the Repair is raised: dismissed, it stays dismissed until the next update.
+        persistent_notification.async_create(
+            hass,
+            f"Casa Mia's integration was updated from {loaded_version or 'unknown'} to "
+            f"{pending}. Restart Home Assistant to load it: Settings → Repairs, or "
+            "Settings → ⋮ → Restart Home Assistant.",
+            title="Casa Mia: restart Home Assistant",
+            notification_id=NOTIFICATION_ID,
+        )
     ir.async_create_issue(
         hass,
         DOMAIN,

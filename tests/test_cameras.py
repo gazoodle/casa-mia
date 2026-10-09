@@ -106,6 +106,7 @@ def test_live_view_gives_each_channel_from_ha(cams):
             "url": "/api/camera_proxy_stream/camera.a_med?token=t-a_med",
         },
     ]  # camera.a_high has no state in HA, so it is left out
+    assert out["motion"] is None  # no motion sensor for it in HA
     assert call(cams, "GET", "live/camera.nope")[0] == 400
 
 

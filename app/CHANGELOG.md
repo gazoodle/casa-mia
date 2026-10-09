@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.4-b15
+
+- Cameras page: a camera's live view shows its **motion sensor** under the picture: a dot that pulses red while it sees motion, and since when, followed live from Home Assistant (no polling). The motion column of the camera list shows the sensor's name over its entity id, wrapping in its column instead of running into Extras.
+- A Casa Mia update that needs Home Assistant restarted now also posts a **notification** (the bell), which shows at once; the Repair (Settings → Repairs) could wait for a reload of the page before it showed. Dismissed, it stays dismissed until the next update; it goes by itself once Home Assistant has restarted.
+
 ## 2026.10.4-b14
 
 - User documentation: completed the Kiosk Satellites, Firmware server, Kiosk Mode, People, Phone and SMS, Alarm panel, Home and Settings guides, including setup, page controls, Home Assistant entities and troubleshooting. Clarified that Kiosk Mode is installed separately and that the alarm panel is currently specific to one home's setup, with configurable behaviour planned.
