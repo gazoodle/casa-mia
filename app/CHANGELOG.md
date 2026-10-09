@@ -1,432 +1,49 @@
 # Changelog
 
-## 2026.10.3-b86
-
-- The Camera compositor page shows the gatherer at its slowest (every 15 s) while the screenshot swap is on, as it already runs for the swapped stills, matching the generators.
-
-## 2026.10.3-b85
-
-- While the screenshot swap is on, the Live and Preview generators draw at their slowest (every 15 s), whatever their setting: the swapped pictures are stills. A tap on a camera still redraws at once.
-- The camera compositor, one 3,600-line file, is now a package of parts, none over 700 lines. The gatherer is in layers (cache, fetching, survey, monitor), with the generator, the picture server and the page's API each in its own file. There is no change in what it does.
-- Guest login's three files are now one folder (`modules/guest_login/`: `login.py`, `api.py`, `page.py`), with no change in what it does.
-
-## 2026.10.3-b84
-
-- A **Swap** binary sensor on the Casa Mia app device: on while the screenshot swap is on, for conditional cards in screenshot layouts. It exists only where swap.json is beside the integration (a box set up for screenshots), so never on an ordinary install; it reads the file every 5 seconds.
-
-## 2026.10.3-b83
-
-- Screenshot swap: while it is on, Camera Commander cards are told the Live main camera is off, and show the drawn (swapped) main camera instead of its real live video. The compositor's switch itself is left as set.
-- Camera Commander cards follow a change to the Live main camera within a second (the switch on the Camera compositor page, or the screenshot swap turned on or off): the app tells the integration to ask again at once, not at its next poll (30 s).
-- Camera Commander card: the main camera's name says "(live)" while its live video is playing, so it is plain which it is.
-- Camera Commander card: a picture loaded directly from the box (at home) comes back by itself when its stream fails, a new stream every 3 s until one plays. After an app restart every card at home showed a broken picture until its page was reloaded.
-
-## 2026.10.3-b82
-
-- Compositor: a camera the screenshot swap shows a still for is gathered at the slowest pace (15 s), as its picture never changes.
-- Camera Commander card: where the live main camera will not play (two failures in a row), it stops trying until the page reloads. Each try and each failure changed its picture, a new stream each time, so every click blanked the card briefly and took seconds to draw.
-
-## 2026.10.3-b81
-
-- Screenshot swap: the integration gets only its shown text swapped (names, titles), never addresses, paths or entity ids. With the box's address in swap.json, a Camera Commander card's picture pointed at the stand-in address and went blank when the swap was turned on, and the cameras' entity ids in the card were swapped too.
-- Kiosk Satellites: Open shows the tablet's own page logged in again. The script the app adds to the page, which gives it the app's login, had a missing semicolon since tablets on Kiosk Satellite 2026.10.8 or later got the second, per-path token, so it never ran and the page asked for the password.
-
-## 2026.10.3-b80
-
-- Camera compositor page: the Live and Preview servers' Pictures/s heading is narrower, its "sent of drawn" in a hover, so the columns after it stay on screen.
-- Compositor: the screenshot swap is back to basics: only the gatherer changes, keeping each swap picture in place of the camera's own (from its stream or its snapshot) at the camera's size; everything else runs as ever. In b79 a swapped camera that streams kept its last real picture (gone stale), and the Live main camera switch forced off stalled the tablets' pictures; both are undone (live video shows the camera's own picture).
-
-## 2026.10.3-b79
-
-- Compositor: the screenshot swap's camera pictures are shown again. A camera's stream bypassed them; a camera with a swap picture is no longer streamed, its snapshot is the picture.
-- Compositor: the Live main camera switch acts as off while the screenshot swap is on (a live video is the camera's own, never swapped); the switch itself is left as set, so it is back when the swap is off.
-
-## 2026.10.3-b78
-
-- Tablet Layout: panel stacks. A panel holds any number of sections: top and bottom side by side, each as wide as its Width (its section's Layout tab) or else as its cards in a row (each card's columns, in HA's own card columns: 12 to a Width, the view's max columns across; its grid then has exactly that many, so no empty slot; without cards, one Width); left and right one under another, each as tall as its cards (or its `row_span`); one alone, without either, fills the panel. Packed from the start; too long, all shrink alike. Each section keeps its own visibility, and one hidden closes up. Note: a Width set on a top or bottom section now sets how wide it is.
-- Tablet Layout: a left or right panel can be as wide as its cards (`size: auto`, as a top or bottom one is as tall): its widest section's widest card, every section's grid that many columns. Set in the view's YAML for now.
-- Tablet Layout: layers, up to four, like an onion: each layer's top, left, right and bottom panels inside the middle of the one outside it; the main panel is the innermost middle. Each layer's panel options are its own (`layout.inner`); gap, margin and the main panel's fit stay the view's.
-- Tablet Layout: a section names its panel and layer (`view_layout: {panel: top, layer: 2}`); sections without one are panels by position, as before.
-- Tablet Layout edit surface: each panel has a toolbar: its chip (TOP 2, L2 LEFT, MAIN) opens its options, + adds a panel after it in its edge, the arrows move it along its edge; too narrow, the chip alone (its options have them too). Its options box has two groups clearly apart: This panel (its own: as wide or tall as its cards, or a fixed Width or Height, which also undoes a Width set in HA's Layout tab; and HA's own editor for its visibility and background) and Whole edge (every panel of that edge: its size or as tall or wide as its cards, its corners, hidden, hide when empty); main's has the Whole view instead (gap, margin, its shape). Shown as they change; Save or Cancel. Words: an edge is a layer's top, left, right or bottom; a panel is one of its stack.
-- Tablet Layout edit surface: MAIN's + adds a layer inside it (up to four), its four edges a panel each, ready to edit (empty, they take no room out of edit mode); its chip reads MAIN · 2 LAYERS; its options box adds a layer or removes the innermost (asked first when its panels hold cards). In edit mode, layers grow outwards so each has room: the innermost layer has the screen, as if it were the only one, and each outer one's edges are round it at their real size; the view scrolls both ways.
-- Tablet Layout edit surface: dimension lines, as on a technical drawing (arrowheads, a tick across each end): each edge's depth where it ends (its setting and its size out of edit mode, e.g. 18% · 137 px), the gap beside main, the margin bottom left, and each panel's size in its corner, all as out of edit mode. Each label opens the options that set it: an edge's, or main's for the gap and margin.
-- Tablet Layout: the settings dialog (the Tablet Layout button) is gone: everything it set is on the edit surface, each panel's options by its chip and the whole view's by MAIN's. The bar above the panels now has Show dimensions (on by default, remembered in this browser).
-- Tablet Layout edit mode: each panel's room is outlined (1 px, its chip's colour), without the debugging outline; an edge's dimension line is 92% along it, clear of the panels' sizes; the margin's dimension top left, between the header and the panels; Show dimensions on the left, 20 px in.
-- Tablet Layout edit mode: the view's header and footer get the same treatment: outlined, each with its chip. HEADER opens its options (the space above it, and HA's own editor for its layout and badges), FOOTER HA's own footer editor; the space above the header has its dimension line.
-- Tablet Layout: a panel sized by its cards keeps a size while empty (no card showing): one Width wide, one of HA's card rows (56 px) tall, so an empty one no longer collapses to nothing.
-- Tablet Layout edit mode: the margin shows, round the panels and outside them, so the view grows and scrolls instead of the panels being squeezed (with layers, round all of them); its dimension line spans it.
-- Tablet Layout edit mode: HA's dashed frame round a panel fills the panel's room, as the panel does out of edit mode; it was only as tall as its cards, so a side panel looked as if it sat at the top.
-- Tablet Layout: how panels share an edge. Each panel's options (This panel): its Width or Height as its cards, filling what the others leave (alike, when more than one fills), or fixed; and Hold to the end (right or bottom), against the end whatever the others do. Each edge's (Whole edge): Arrange, where its panels sit when none fills it: from the start, centred, or from the end (in what the held ones leave). One alone, without a setting, still fills. Too long: all but those filling shrink alike. In the section's YAML: `view_layout: {length: fill | cards, hold: end}`; the edge's `arrange: start | centre | end`.
-- Tablet Layout: spacing as HTML's box model. Gaps: each edge's to its middle (A to D, on every layer) and each between two panels of an edge (after the first), each the view's `gap` unless it has its own (an edge's `gap`, a panel's `view_layout: {gap_after}`); a gap is there only while what makes it shows. The margin is round the outermost layer only (below the header, against the screen's sides, above the footer), each side its own or all alike (`margin: {top, right, bottom, left}`). A panel's padding (main too) is inside it, round its cards, one value or each side (`view_layout: {padding}`), counted in "as its cards". The edges and middle are laid out by the Tablet Layout itself now (as the shared layout engine did, with the same results), so each edge can have its own gap; the Commander's engine is unchanged.
-- Tablet Layout: lines. A gap can hold a line, none by default; it takes no room, and goes with its gap. Black, solid, 1 px, centred and the gap's length when added; its width, colour, style (solid, dashed, dotted, double), knock (px across from the middle) and how far it runs past or short of each end (an edge's `line`, a panel's `view_layout: {line_after}`).
-- Tablet Layout edit mode: each setting on the surface, in a small box of its own: a GAP label (every gap has one) sets that gap, or with Apply to all every gap, and adds a line; a LINE chip on each line sets it or removes it; a margin label sets that side, or all; an edge's depth label its size; the HEADER chip the space above it; the FOOTER chip whether it takes space under the panels or floats over them (HA's own way, `footer: float`). A lock at each end of a top or bottom edge, at its layer's sides, runs that end to the side or not. The panel's box keeps only its own length, hold and padding, and its edge's size, hidden, hide when empty and arrange; every box keeps its title and Save in sight, only its middle scrolling.
-- Tablet Layout edit mode: a dimension's label sits on it only when there is room for it clear of its arrowheads and ticks, else beside it; a margin of none is drawn the right way round. A setting's box stays where it opened (it moved when what opened it was drawn again). The locks are at the top and bottom edges' own ends. The FOOTER chip (and the dimensions) are over HA's sticky footer, which took their clicks, so its box (take space or float) opens. The space above the header always has its dimension.
-- Tablet Layout edit mode: a margin side of up to 25 px is taken from the screen, as out of edit mode, so a view of small margins still fits; only one of more is round the panels (the view scrolls). The footer takes its space under the panels in edit mode too (it stuck to the bottom of the window, the panels scrolling under it), unless set to float. A setting's box opens below what opened it only when there is room for it there (360 px), else on the side with more, so the footer's opens whole.
-- Tablet Layout edit mode: every chip and mark says what it does when pointed at (each panel's chip, its + and arrows, HEADER, FOOTER, LINE, the locks, each dimension).
-- Tablet Layout edit mode: an empty view (its main panel without a card) fits the screen, no scrolling, for a first look and screenshots: its panels laid out in the room edit mode has, no layers growing outwards, every margin inside, each row a share of the height (never less than it holds), less whatever would still scroll; the dimensions still give the sizes out of edit mode. With a card in main, as before.
-- Tablet Layout edit mode: never too small to edit. HA's Add card button is never narrower than tall; a panel is never shorter than what it holds (the button no longer clipped) nor narrower than its least, measured: its chip clear of HA's own menu, or HA's frame round the square button, if more; the + and arrows fold away when they would not clear the menu. Whatever its share (2% included), its rows and columns grow to it and the view scrolls; so an empty view fits the screen down to a usable size, then scrolls. The dimensions still give what was asked for.
-- Tablet Layout edit mode: a hidden edge still shows, dimmed and hatched, its chip saying so, taking its room as if it showed, so it can be shown again (its options).
-- Tablet Layout: Delete is back in a section's menu while its stack has another.
-
-## 2026.10.3-b77
-
-- Admin pages: a dialog scrolls on a phone. Its body never shrank below its content, so a long or wide one (a channel's surveys on the Camera compositor page) ran off the screen with no way to scroll; it now scrolls inside the dialog, and a wide table scrolls sideways in its own box. The dialog also fits the screen as seen (iOS counts the hidden toolbars in its height).
-- Camera compositor: when Home Assistant has started (its homeassistant_started event, heard over its websocket; or found running when the connection comes back after a restart), the gatherer starts afresh and any survey under way is cut short for a new one. While HA started up it answered before its camera integrations had loaded, so cameras that failed then sat out for 10 minutes, their tiles Stale (21 of 26 after one restart). Logged.
-
-## 2026.10.3-b76
-
-- Camera Commander card: the Security look is the card's own option, set in its editor: on or off (a template, later), and its tint, strength and darkness. It is one layer over the picture, the live main camera and its caption, with the tap zones and highlight above it, so it is there from the first frame; before, the Keep camera pictures live helper set it on each picture every 4 s, so a new picture came up in normal colours first, and the caption and the editing still never had it.
-- Camera Dashboard: the Security look is gone from it: the look editor on the page, and each commander's Security look switch in Home Assistant (removed from its entity registry when the integration starts, and logged). Automations that flipped a switch need the card's option for now; switching it by a template comes next. A saved store's old `look` is left alone and means nothing now. The generated camera dashboard no longer has the look.
-- Camera Commander card: its highlight pulses by itself (CSS), from the moment the main camera changes; the Keep camera pictures live helper pulses only the generated dashboard's now.
-- Camera Commander card: the highlight (the outline on the main camera's tile) shows only once the picture has shown a frame, so it no longer stands over an empty card while the picture loads.
-
-## 2026.10.3-b75
-
-- Cards build stamped again after a test-only change (b74 was committed with a stale stamp; the cards themselves are unchanged).
-
-## 2026.10.3-b74
-
-- Tablet Layout: OK in its dialog no longer squeezes the Main panel into a thin strip in edit mode. Saving makes Home Assistant build the view again, and the new one lost the panel sizes seen out of edit mode, so it measured the empty panels with Home Assistant's editors in them. The sizes are now kept for each view.
-- Tablet Layout: where its panels go is worked out in one place (`tablet.ts`) and locked by tests: `tests/tablet_cases.json` (the agreed baseline view, edit mode, hidden panels, margins, a fixed main) and checks that hold for every case (the panels fill the area; a place for each panel shown and only those; edit mode keeps the panels' proportions). The view lays out as before.
-- Tablet Layout: HA's view editor now offers two of the Sections view's own options for it. **Max number of sections wide** caps each panel's Width (its section's settings), and a panel's cards line up in that many columns. **Extra space at the top** is HA's top margin, taken from the panels' height so the view still fits the screen. Dense section placement is not offered: the layout places the panels.
-- Camera Commander card: in a normal section it now sizes itself as HA's Picture glance card does, around its main camera. With its rows "auto" (the default) it is as tall as shows the main camera at that camera's own shape, its panels round it at their settings, so the main camera is never squashed or bordered; it grows or shrinks when the main camera changes to one of another shape. Before, it was 16:9 (the commander's stored size, no longer on the Camera Dashboard page) and capped to the screen below its top edge, so lower down a page it was squashed, down to 100 px. With its rows set in the Layout tab it fills its cell exactly, and the compositor draws the commander at that shape. Alone in a Panel view (the screen) and in a Tablet Layout panel it is as before.
-- Camera Commander card: the still picture while editing is drawn at the card's size once it settles (one picture each time), not stretched from the commander's stored size.
-- Camera Commander card: half the width by default, as HA's own cards (it was the full width). A card placed before keeps the full width only if its Layout tab says so: one without its own width becomes half; set it in the Layout tab.
-- Tablet Layout: in edit mode, an empty top or bottom panel sized to its cards no longer has the side panels running into its space. It is none tall at runtime, so its grid lines were the next panel's too, and the sides were placed through its rows; in edit mode, where it grows to hold Add card, they stood beside it. Panels are now placed by their part (top, bottom, sides) and how they are anchored, and a test checks that no two panels share a grid cell.
-- Tablet Layout: the space above the header (its dialog's header space) applies in edit mode too, not HA's 24 px.
-- Tablet Layout: a panel's menu in edit mode offers only Edit, and its drag handle is gone (panels never move). Duplicate added a section no panel shows, and Delete moved every later panel along by one.
-
-## 2026.10.3-b73
-
-- Camera Commander card: while a dashboard is in edit mode (or in the card editor) it shows one still picture, hatched and labelled "Still picture while editing", instead of a stream. No stream is opened for each size the editor tries, and there is no live main video.
-
-## 2026.10.3-b72
-
-- Camera Commander card: it tells the compositor it is done with a stream after you leave, as it was meant to. The Keep camera pictures live helper blanked the card's picture as soon as it was off screen, and the card took the stream's address from the picture, so it found none and said nothing; WebKit (the companion app) went on loading the stream it had let go, until other pictures stopped loading for want of connections. The card now keeps its stream's address itself, and the helper leaves the card's picture to the card (its Security look apart).
-## 2026.10.3-b71
-
-- Camera compositor: every commander stream is in the log as it happens: opened (to whom, by which version of the Camera Commander card, under which name), and ended with why (the card done with it, and the card's reason: page hidden, left the dashboard, off the page, out of view; the card asking again at a new size; the viewer gone; too many from one viewer). A card saying it is done with a stream that is not open is logged too, and Home Assistant logs each one it passes on. The server's table shows each stream's card version and name ("none": an older card). For finding why a stream outlives its viewer.
-## 2026.10.3-b70
-
-- Camera Commander card: it tells the compositor when it is done with a stream, and the compositor ends it then. Each showing of a card's picture names its stream; out of sight (after its leave_after seconds) or gone, the card says so (directly, or through Home Assistant), so a stream no longer depends on the browser, Home Assistant or Nabu Casa letting its connection go. A card asking again at a new size ends its stream before, too. Letting go in the browser stays, as well.
-- Camera Commander card: away from home, its main camera as live video works as at home: the picture through Home Assistant is drawn without the main camera under the video (main=video was not passed on, so the main camera was drawn under it, sent for nothing).
-## 2026.10.3-b69
-
-- Camera Commander card: its picture stream ends when you go to another page in Home Assistant. Home Assistant keeps a page left, and to the browser it is still on screen, so the stream went on (closing the app did end it). The card now streams only while Home Assistant shows its dashboard, and stops once it has been out of sight for the card's new "Picture kept running once out of sight" setting (default 15 s, 0 to 120 s), so the back button finds it still running.
-## 2026.10.3-b68
-
-- Camera Commander card: its picture streams only while the card is on screen. Leaving the page was not enough: a dashboard left can be kept hidden rather than removed, so the stream went on with nobody looking. Now it ends whenever the card is out of sight (a dashboard left, the app in the background, scrolled away) and starts afresh when it is seen again.
-## 2026.10.3-b67
-
-- Camera Commander card: its picture's stream ends when the card leaves the page or the page is hidden (the companion app in the background, another tab), and starts afresh when it is back. Home Assistant keeps a dashboard you leave for a quick return, and a browser (the companion app's above all) went on loading the stream, so the server kept sending to a viewer who saw nothing.
-## 2026.10.3-b66
-
-- Camera compositor: a generator lists only the commanders being watched. With nobody watching, each commander's picture from the start's warm-up stayed listed (stale, as if drawn) until its main camera changed, so one commander could be missing from a list of the others.
-- Camera compositor: a stream at /g/commander (the first commander's address from before there were several) gets each picture as it is drawn. It waited on a name never drawn, so was sent a picture only every 10 s.
-## 2026.10.3-b65
-
-- Camera compositor: the health verdict says panels lag when sends keep waiting for the network (over 10% of the time), even when every picture gets through. It said "working fine" below 50%, and "that's just how it is" above it with nothing skipped; but a send waits only once the buffers on the way are full, so its pictures are queued and the panel shows them late. The verdict now gives the picture size too, and the levers: a slower pace, or smaller pictures (a card's Away sharpness; on a VPN to the LAN address a card counts as at home). The Slow link state is gone.
-## 2026.10.3-b64
-
-- Camera compositor: streams come back by themselves when Home Assistant's go2rtc restarts and forgets them. It answered 404 Not Found for every camera it had been given, and each was marked "not its stream" for 10 minutes (an app restart cleared it). Now a camera go2rtc has forgotten is given to it afresh and read again at once.
-- Camera compositor: a health verdict, judged on the last 30 s, on the page above the graphs and as the integration's Compositor health sensor (to automate on): go2rtc out of reach; most streams failed (and the commonest reason); the gatherer paused; the CPU the bottleneck (gathering's, or drawing's) and which pace to slow; a generator unable to keep up with its pace; the network the limiting factor (viewers get fewer pictures than are drawn); sends slow but every picture getting through, which is just how it is; nothing watching; or your panels working fine. Each with what to do.
-- Camera compositor: the gatherer can be restarted on its own (on the page, and the integration's Restart gatherer button): every stream read again and every failure forgotten, the pictures kept. Every camera failing at once (after Home Assistant restarted) needed the app restarted, or 10 minutes. A purge now tries failed streams again too, and Home Assistant itself out of reach no longer sidelines a camera's stream for 10 minutes (30 s).
-- Camera compositor: a stream on a slow link no longer runs at half its rate. When a picture was drawn while the one before was still being sent, the stream waited for the next drawing as well; it now sends the newest at once.
-- Camera compositor page: what there is to send against what is sent. The Bottleneck graph says pictures and bits a second sent of those drawn for viewers (the rest were drawn while a stream was still sending), and each open stream in the server's table shows its pictures a second sent (what its viewer saw) of those drawn for it.
-- Camera compositor page: the Bottleneck graph no longer goes over 100%. A send held up for several seconds was booked all at once when it finished, in a single 2 s sample (300%); time is now counted as it passes, and the waiting share is taken over the time each stream was open. The drawing figure is now the busier compositor's (the live and the preview ones were added together, up to 200%).
-
-## 2026.10.3-b63
-
-- Camera compositor page: a Bottleneck graph beside CPU, Memory and Network out. It shows what the app has to send (the streams open, bits a second, the average picture) and what viewers wait for: the share of the streams' time spent waiting for the network to take a picture (a slow link, such as one through Nabu Casa), and the share of the time spent drawing. It names the busier one, or says the system is keeping up.
-- Graphs: in a 2×2 grid, with square cells. The space a graph has decides how much history it shows, rather than the history being squeezed to fit.
-
-## 2026.10.3-b62
-
-- Camera compositor: streams come back by themselves after Home Assistant restarts. Its go2rtc refusing a stream (Connection refused, while HA restarts) is no longer blamed on each camera ("not its stream" for 10 minutes): go2rtc is marked out of reach, every channel has its snapshots meanwhile, and it is looked at every 10 s; back, every camera is given to it afresh and a survey pass starts at once. Also when the app starts before HA's go2rtc is up (a reboot), which needed the app restarted.
-
-## 2026.10.3-b61
-
-- Camera Commander card: the Security look reaches the live main camera too, as it does the picture (the Keep camera pictures live helper gives the video its commander's look while its switch is on).
-
-## 2026.10.3-b60
-
-- Camera Commander card: the main camera plays as live video over the picture (Main camera as live video, on by default, while the Camera compositor's Live main camera switch is on), through Home Assistant's WebRTC as its own camera cards play it: this device decodes it, at full frame rate, and the box no longer decodes the main camera for the card. The channel is the smallest at least the main area's size (fewer pixels away from home, as the picture), fitted as the main camera is (whole, filled or cropped), with its caption over it. Until it plays, the drawn main area shows; a video that has not started within 10 s, or fails, gives way to the drawn picture until the main camera changes.
-
-## 2026.10.3-b59
-
-- Camera compositor: a card may ask for its picture with the main camera left to it (?main=video), to play the main camera as live video over the picture (the card's side comes next). Such a picture's main area is drawn from whatever the cache holds and without its caption, and its main camera's channel is not fetched or decoded for it. A switch for the whole system, Live main camera (on by default; on the Camera compositor page and in the integration): off, every card gets the usual picture, at once. The Camera Commander card's data carries the switch and each camera's channels with their sizes.
-
-## 2026.10.3-b58
-
-- Camera compositor: the Picture age allowed, Survey pause and Survey at once settings are kept when set (from the page or the integration). They were refused (taken for the name of an engine), so they kept their defaults; and a slider whose value the box refuses now goes back to what the box has, with the reason, instead of seeming set.
-
-## 2026.10.3-b57
-
-- Camera compositor: a picture age allowance (5 s by default, 0 to 10 s; Picture age allowed on the Camera compositor page and in the integration). A stream whose keyframes come at least that often is decoded keyframes only, however often it is drawn, so its picture may be up to that old: a UniFi Protect high channel with a keyframe every few seconds no longer decodes every frame (about three quarters of a CPU at 2688 x 1512) for a commander drawn every 2 s. 0 keeps every picture as fresh as its pace.
-
-## 2026.10.3-b56
-
-- Camera compositor page: a stream's pace and keyframe interval show under its CPU, and why a channel is not read from its stream shows under its state; they were tooltips, which never show on a tablet.
-
-## 2026.10.3-b55
-
-- Camera compositor: each channel is fetched, and decoded, only as often as its fastest user draws from it: its own pace is the slower of the gatherer's and that of the fastest generator using it. A gatherer set faster than the commanders are drawn no longer makes a stream decode every frame (the main camera did), nor fetches pictures nobody draws. Hovering a stream's CPU on the Camera compositor page gives its pace and its keyframe interval: a stream whose keyframes come less often than it is drawn still decodes every frame, to keep its picture fresh.
-
-## 2026.10.3-b54
-
-- Camera compositor page: graphs of the whole compositor system over the last 3 minutes, sampled every 2 s on the box (so they are full when the page opens): CPU as a share of the whole box, gathering (stream decoding, survey reads) and composing (drawing and encoding) in their own colours; memory, the cache and the rest of the app against the box's; and bytes sent to viewers. The stage boxes' text wraps instead of being cut short.
-- Admin page: a general-purpose graph (Graphlet), for any page that shows a figure over time.
-
-## 2026.10.3-b53
-
-- Camera compositor: stopping or restarting a compositor no longer hangs for 5 s now and then. Python 3.11's asyncio.wait_for can lose a cancellation that comes as what it waits for finishes, so the generator ran on after being stopped; every such wait now uses asyncio.timeout, which keeps it.
-- Camera compositor: the cache is counted: its pictures (the cameras' and the composites'), the channels still waiting, the thumbnails, and the memory it all takes. On the Camera compositor page (the cache's box and section), and in the integration as two sensors on the Camera compositor device: Cache pictures (with the parts as attributes) and Cache size (MB).
-
-## 2026.10.3-b52
-
-- Camera compositor: a stream is decoded only as much as its pace needs. While the gatherer takes pictures no faster than a stream's keyframes come (measured per stream; typically every 1-2 s), only its keyframes are decoded, each whole on its own: about one frame in 15-50, where every frame was decoded and almost all thrown away. Every frame is decoded only when the pace asks for fresher pictures than that (continuous, or faster than its keyframes). The survey reads keyframes only too.
-- Camera compositor: the CPU is measured. The Camera compositor page shows the app's share of a CPU (on the gatherer), each stream's share and whether it decodes keyframes or every frame (with its keyframe interval), each survey pass's CPU and each survey read's, so the cost of each setting can be seen.
-
-## 2026.10.3-b51
-
-- Camera compositor: a paused gatherer keeps nothing new: a fetch or survey read under way when it was paused no longer lands after (a purge while paused could see a picture come back), and the Camera Dashboard's thumbnails fetch nothing while paused. Waits are always cleared when a stream ends or the engine stops.
-
-## 2026.10.3-b50
-
-- Camera compositor page: the survey dialog says it lists a channel's last five surveys, and its text (and the page's other longer notes: the survey line, a picture's details, the size test) wraps instead of being cut short with "…".
-
-## 2026.10.3-b49
-
-- Camera compositor: how many streams the survey reads at once is a setting, 1 to 8, 4 by default (it was 2, so a few slow streams held up a pass for long): a slider on the Camera compositor page and the integration's Survey streams at once. Kept across restarts; taken up from the next pass, which a change starts at once.
-
-## 2026.10.3-b48
-
-- Camera compositor: each channel's last five surveys are kept: when, what came of it (its stream, a snapshot, being read anyway, nothing), how long it took, the size it gave and, when not its stream, exactly why. The Camera compositor page's gatherer has a Survey column (amber where it was not the stream), each opening that channel's record.
-- Camera compositor: a camera whose stream is H.265 is no longer taken for one Home Assistant cannot stream. The app asks HA for each camera with a throwaway WebRTC offer of H.264 only, which such a camera turns down; HA has put the camera on its go2rtc by then, so only "no stream source" and "not supported" now count, and reading the stream decides. A stream that gave no frame is put on go2rtc afresh when next tried.
-
-## 2026.10.3-b47
-
-- Camera compositor page: the pace sliders send their value on release only (a finger lifted, a key let go), and hold it until the box confirms, so the page's refresh no longer snaps them back mid-drag; their readout has a fixed width, so the slider no longer resizes under the finger as the text changes.
-
-## 2026.10.3-b46
-
-- Camera compositor: the survey. From the app's start, a pass over every channel of every camera, two at a time: each one's stream opened for its first frame (15 s at most), kept as its picture in the cache, and its size (a snapshot where it cannot be streamed); then a pause (60 s by default, 10 s to 1 h, on the Camera compositor page and as the integration's Survey pause) and another pass. A channel being read anyway is passed over. Paused with the gatherer; a purge or a new camera starts a pass at once. It replaces the one-off size probes and the 60 s kept snapshots, so every channel's picture and size come from its stream, and the page shows the pass as it goes.
-
-## 2026.10.3-b45
-
-- Camera compositor: reading the cameras' sizes from their streams no longer stops part-way. A stream that sent data but never a picture kept its probe waiting for ever; two such and the survey stopped for good (15 of 24 cameras were left with their snapshot sizes, 640 x 360 for every UniFi Protect channel). A probe now gives up after 15 s without a video frame, says why in the log and on the Camera compositor page, and is tried again in 10 minutes; a stream being read that stops giving pictures counts as lost and is read again.
-
-## 2026.10.3-b44
-
-- Camera compositor: the paces are settable, each on its own: the gatherer's (each channel fetched every 15 s down to continuous, again as soon as it answers) and each generator's (drawings every 15 s down to 8 a second). Sliders on the Camera compositor page; kept across restarts (compositor_pace.json in the app's config); a new pace is taken up at once. The page and the log give the actual paces, not "every 2 s".
-- Integration: the camera compositor's pipeline for automations: switches for the gatherer and the live and preview generators and servers (on: running, off: paused), numbers for the three paces (seconds), and a Purge cache button. The Flush live cache and Flush preview cache buttons are gone (the cache is one, shared): delete them from Home Assistant if they linger as unavailable.
-
-## 2026.10.3-b43
-
-- Camera compositor: the server never draws. A picture it is asked for and has none of (or an old one) is asked of the generator and waited for; while the generator is paused, nothing new appears: a purged composite stays gone (an open commander's stream holds, a single picture is refused), and a drawing finished after the pause is dropped.
-- Camera compositor: a snapshot that is not its channel's size (UniFi Protect gives every channel one 640 x 360 snapshot) is never kept as that channel's picture, nor asked for again: the channel shows its stream's frames only (the high channel showed a 640 x 360 snapshot). The cache shows each picture's own size, and the channel's when they differ.
-
-## 2026.10.3-b42
-
-- Camera compositor page: the cache holds the composites too (each picture the generators drew, with its thumbnail, live view and purge), beside the camera channels' pictures; a list view (small thumbnails) besides the tiles, sorted by name or newest first, the choice kept in the browser. The gatherer's channels are sorted by camera, then high, medium, low; each size says whether it is the stream's or the snapshot's; and a ↗ opens a live view of the channel's stream (the Camera Dashboard page's live view, shared). Each generator's picture has a ↗ to its live view.
-- Camera compositor: a paused gatherer fetches nothing at all (the kept stills were still fetched, and a purge refilled the cache at once). Every camera's channels are sized from their streams once (cameras in no commander included), so their real sizes show: a UniFi Protect camera gives every channel the same snapshot. At most two streams are read at once for it (the limit was not shared).
-
-## 2026.10.3-b41
-
-- Camera compositor page: its pipeline, as it runs. A strip of the four stages (gatherer, cache, the live and preview generators, the live and preview servers), each with its state and a Pause or Run; the gatherer's channels (state, size and whether its stream's, rate, who wants it, misses); the cache as thumbnails, each with its age, source and the places drawn from it (red where enlarged), a bin to purge it and a tap for a live view; each generator's pictures (draw time, size); each server's viewers (rate, time spent waiting to send). Purge all replaces the per-engine Flush cache.
-- Camera compositor: thumbnails are made once per picture and size and shared (the Camera Dashboard's and the page's).
-
-## 2026.10.3-b40
-
-- Camera compositor, a pipeline whose stages never wait on each other: the gatherer fetches each channel wanted in a loop of its own (its stream's newest frame, converted once and only when a new one has come, else a snapshot), so a slow or dead camera holds up only itself; each compositor draws on its own timer from whatever the cache holds; the server always sends the latest picture. After a main camera switch, the sharp picture is drawn as soon as its channel's first new picture comes.
-- Camera compositor: every channel has a picture from the start, white with "(Waiting …)", so the first picture is drawn at once; a purge brings them back.
-- Camera compositor: each channel's size (its stream's, else its snapshot's) is kept across restarts (camera_sizes.json in the app's config), so the right channel is chosen from the first picture and a stream already sized is not read again for it; a change is logged and kept.
-- Camera compositor: pause and run the gatherer, and each compositor's drawing and serving, on their own (the admin API; the page to come). A purge keeps the channels' sizes.
-- Camera compositor: a missed fetch counts against a channel only while others answer, so an outage of Home Assistant costs each channel one miss at most.
-
-## 2026.10.3-b39
-
-- Camera compositor: one gatherer for the live and the preview compositors. Each camera channel is fetched, or its stream read and decoded, once for both, into one cache both draw from (before, each compositor fetched and decoded its own, so a channel both used cost twice). Each compositor says every round what its pictures are drawn from; a channel nobody has wanted for a minute is no longer fetched or read. Both run on the gatherer's one loop.
-- Camera compositor: a viewer's stream opening and ending is logged at debug, not info (the log was busy with them).
-- The app's image keeps PyAV in a layer of its own, so an update no longer downloads it again.
-
-## 2026.10.3-b38
-
-- Camera compositor: each channel in use is read from its own stream, through Home Assistant's go2rtc (the app asks HA for each camera as its live view would, then reads go2rtc's restream on the host), so the picture is the camera's real video at its real size, not HA's snapshot (UniFi Protect gives every channel the same 640 x 360 snapshot). The other channels of each camera in use are read once for their true size, so the right one is chosen. A camera HA cannot stream, or whose stream is lost, keeps its snapshots (a lost stream is read again after 30 s). Readers stop once nobody watches. The Compositor page shows where each channel's picture comes from (its stream and frame rate, or snapshots, with the reason).
-- Camera compositor: the log no longer repeats which channel each tile is drawn from on every round (a panel's cameras were mistaken for one another).
-- Guest login: signs guests in through Home Assistant at 127.0.0.1, as the app is on the host's network since b37 (the name it used before only resolves on the Supervisor's network); likely why logins failed on b37.
-
-## 2026.10.3-b37
-
-- The app runs on the host's network, so it can reach Home Assistant's go2rtc (which restreams each camera on the host's localhost only): the way to come for the compositor to draw from the cameras' streams themselves. The compositor logs at start whether go2rtc is reachable, and shows it in its status. The app's ports are now the host's own (they were already published as the same numbers).
-
-## 2026.10.3-b36
-
-- Camera Dashboard page: a camera's live view plays the channel's own stream through Home Assistant's WebRTC, as HA's camera cards do, so the resolution shown is the stream's; a camera HA does not play by WebRTC keeps the MJPEG stream (made from snapshots). The note under the picture says which.
-
-## 2026.10.3-b35
-
-- Camera Dashboard page: a camera's live view shows the chosen channel's resolution, as its pictures arrive (and if it changes).
-
-## 2026.10.3-b34
-
-- Camera compositor: each place in a commander's picture (a tile, the main area) is drawn from the smallest of its camera's channels (low, medium, high) whose still is at least its size, so a picture is only ever made smaller: the main view of a large screen now comes from the high channel when medium would have been enlarged. Stills are fetched at the channel's own size and shrunk once, by the compositor, to exactly the place (Home Assistant no longer scales them first). Each channel's size is learned from its first still, and logged. The Compositor page's table is now per channel: its size, age, fetch time, and the places drawn from it, in red where one is enlarged.
-
-## 2026.10.3-b33
-
-- Commanders and the Tablet Layout: a panel's size can be in px as well as %, with its new Size in option (`unit: px`), so a panel stays the same size on any screen. A px panel takes at most 45% of the view, so a small screen still has a main panel; a commander drawn for a high-density screen grows it as it does the gap. Switching the unit in an editor keeps the panel's size.
-
-## 2026.10.3-b32
-
-- Tablet Layout: in edit mode the panels keep the sizes they have out of it, and the view scrolls to the header's and footer's editors; a top or bottom panel of size auto keeps its height too. The main panel was squeezed into a thin strip when the header or footer held something, shrank a step at a time on entering edit mode (the auto panels grew with HA's editors), and stepped back on leaving it.
-
-## 2026.10.3-b31
-
-- Camera Commander: through Home Assistant (away from home) the picture is asked for at no more than 1.5x the pixels a side by default, not the screen's own 2x or 3x, for about half the bytes; the card's new Sharpness through Home Assistant option offers Full, Balanced (1.5x), Light (1x) and Data saver (0.75x). Direct at home it is unchanged.
-
-## 2026.10.3-b30
-
-- Camera compositor: measures where the time goes. Its status shows each picture's size and drawing time, the last round's fetch time, and each open stream's frames, kB a frame, kbit/s and the share of time spent waiting for the network; the log records each stream's opening and the same figures at its end. Pictures through Home Assistant log their kbit/s and waiting too.
-- Settings page: a change to the Tablet Layout debugging options shows on open Tablet Layouts within a few seconds (it waited for the integration's next poll and the view's next showing).
-
-## 2026.10.3-b29
-
-- Tablet Layout: the panels fit between the view's header and footer. The footer sat a row gap up from the bottom, over the panels, and a header or footer that changed height (a card loading, badges shown or hidden) left the panels at the old size until the next resize.
-- Tablet Layout: Identify sections panels also outlines the view's header and footer.
-- Tablet Layout: Space above the header, in the Tablet Layout dialog's middle options (Home Assistant's own is 24 px).
-
-## 2026.10.3-b28
-
-- The dashboard helpers (Reload dashboards when they change, Back button helper, Keep camera pictures live) are switched on the Casa Mia panel's Settings page (the cog by the house photo), no longer in the integration's options, which keep only the alarm code. Your current choices carry over on their own: the app takes them from the integration the first time it hears from it after this update. A change reaches Home Assistant within a minute (the integration reloads to load or drop the script); open pages get it at their next reload.
-
-## 2026.10.3-b27
-
-- The Camera Commander card works away from home. At home its picture still comes straight from the compositor; away (or with Home Assistant opened over HTTPS, where the browser blocks an http:// picture) it comes through Home Assistant, behind its login, for any signed-in user. Home is told by how the page reached Home Assistant (plain http at a home address), which the companion app already picks by the Wi-Fi it is on. The card's new "The picture" option can force either route. Needs a Home Assistant restart after updating, for the integration's new picture route.
-
-## 2026.10.3-b26
-
-- The Tablet Layout is "Tablet (Casa Mia)" in Home Assistant's View type list, in keeping with the others there, and its YAML type is now `custom:casa-mia-tablet-layout`. A view with the old `custom:casa-mia-tablet-view` still works; to move it to the new name, pick Tablet (Casa Mia) in its view editor (or change the YAML).
-
-## 2026.10.3-b25
-
-- The Tablet Layout (what was called the Tablet view) is in Home Assistant's view editor: Edit view (or Add view) → View type → Tablet Layout (Casa Mia), so a view no longer starts as YAML. A Sections view changes to it, and back, with its sections kept. Its YAML type stays `custom:casa-mia-tablet-view`.
-
-- The old Tablet layout card is gone: the Tablet Layout view type does its job better, its panels edited as Home Assistant's own sections. A dashboard still using `custom:casa-mia-tablet-layout` shows Home Assistant's card error; move its cards into a Tablet Layout.
-
-- Layout: a Margin option (px, 0 by default), room left clear all round the whole area, like the gap at its edges. A commander's picture gets it (clear, so the dashboard's background shows, and its tap zones follow); so does the Tablet Layout (in its Tablet layout dialog; edit mode keeps Home Assistant's own spacing instead).
-
-## 2026.10.3-b24
-
-- New app option, Developer mode (Configuration tab, with the feature switches): it shows the debugging aids in the Casa Mia panel, the Settings page's developer options and a commander's Debug options on the Camera Dashboard page. Off, the tablets get none of the Settings page's aids, whatever is saved there.
-- Settings: the Tablet view's aids are now plainly a developer option, Tablet view debugging, with a warning that they show on every Tablet view until switched off.
-
-## 2026.10.3-b23
-
-- New Settings page (the cog by the house photo's pencil) for settings with no other home. First, the Tablet view's setup aids, for every Tablet view: Identify sections panels (an outline round each panel, its CSS editable, `1px solid red` by default) and Show the view size (the size label, now see-through so what is under it shows). The integration hands them to the cards (needs a Home Assistant restart after this update); a tablet picks up a change at its next view change or reload. A view's own `debug: true` still turns both on.
-
-## 2026.10.3-b22
-
-- New page, Kiosk mode: kiosk-mode's settings for each dashboard without the YAML. The dashboards with kiosk mode are listed (add one, or remove it); each opens as a grid of kiosk-mode's options (hide the header, the sidebar, menus, more-info parts and more, in groups) by who they apply to: everyone, non-admins, admins, and columns of named users. Anything else (mobile settings, entity settings, templates) goes in a YAML box that takes kiosk-mode's README examples as they are, and is checked as YAML before it can be saved. The page says when kiosk-mode itself is not installed, and which dashboards it cannot apply to (those Home Assistant makes, and YAML dashboards).
-
-## 2026.10.3-b21
-
-- Tablet view: a settings dialog for its layout (the Tablet layout button in edit mode): a live map of the screen with each panel where it lands, the panel or the middle picked on it, and the options with their help (the same as the Commander's), `size: auto` included; the view behind follows as they change. Cancel puts it back; Save writes the view's `layout:`. In edit mode each panel is named, and the panel sections it adds start empty.
-
-## 2026.10.3-b20
-
-- Tablet view: edit mode has Home Assistant's own spacing again (around and between the panels), with the panels in proportion across the width.
-- Tablet view: a top or bottom panel can be `size: auto`, as tall as its cards (and following them as they show or hide).
-
-## 2026.10.3-b19
-
-- Tablet view: its sections are its panels (main, left, top, right, bottom), placed by the layout engine from the view's `layout:` options; edit mode adds any missing, and sections can no longer be added or moved there (cards still move between them). A panel hides when no card that counts is showing (as the Section card), and a panel with one such card is filled by it (a Camera Commander there fills the panel). In edit mode the panels grow to their editors and the view scrolls. `debug: true` also outlines each section in red.
-
-## 2026.10.3-b18
-
-- Tablet view (first step): a new dashboard view type, `custom:casa-mia-tablet-view`. It is Home Assistant's Sections view locked to the screen below the header, so the page never scrolls, Safari's toolbars included; in edit mode it scrolls inside itself. `debug: true` shows its size.
-
-## 2026.10.3-b17
-
-- Cards: alone in a Panel view, the Camera Commander and the Tablet layout are given the whole space (from the sidebar's edge to the screen's right, from the header's foot to the screen's bottom) and only fill it. A Commander card is always the full width of its space. On a phone it could come out narrower, when its shape was capped to fit the screen's height.
-- Camera Commander card: its debug figures now show how it is sizing itself (screen, tile, column or preview), what holds it, and the space it has.
-
-## 2026.10.3-b16
-
-- Cards: if the Casa Mia cards fail to load with a page (seen once on a wall tablet, which then showed red errors until reloaded), the page loads them once more after 5 seconds, and HA replaces the errors with the cards. Each failure writes a "CASA-MIA CARDS" line to the browser console with its reason. This needs the "Keep camera pictures live" helper on, which it is by default.
-
-## 2026.10.3-b15
-
-- Cards: the Commander and the Tablet layout now size themselves by one shared rule. Alone in a Panel view, a card is exactly the screen below its top edge, so nothing scrolls. In a Tablet layout tile it fills the tile. Anywhere else (a column, say) it takes its own shape from its width, but is never taller than the screen. Scrolling no longer changes its size, and on a phone the toolbars coming and going are allowed for.
-- Tablet layout card: a Shape setting (default 16:10), for when it isn't the whole screen. The editor hides it on a Panel view.
-- Fixed: a Camera Commander inside a Tablet layout on a Panel view took the screen's height instead of its tile's.
-
-## 2026.10.3-b14
-
-- Camera Commander card: never taller than the screen. On its own in a Panel view it is exactly the screen below its top edge, re-measured on every resize and rotation (HA's Panel view sets only the width). In a Tablet layout tile it fills the tile. In an ordinary column it is 16:9 of its width, but never taller than the screen.
-- Camera compositor: tiles could show stills from hours ago, marked Stale, after a picture was asked for at more than one size. Each camera now keeps only its newest still.
-
-## 2026.10.3-b13
-
-- Camera Commander card: on a panel view (or anywhere the card is given a height) it was as wide as 16:9 of that height, so it ran off the side of a wider or narrower screen and was cut off. It now fills exactly the space it's given.
-
-## 2026.10.3-b12
-
-- Camera Dashboard: new Debug options for each commander. When on, the whole picture is dimmed (20% by default) and an L is drawn in each corner plus both diagonals, so the picture's true edges show. The picture's ID (name, size in pixels, scale) and the time it was drawn go 30% down the middle. You can set the dim level, the corner L length, the line width and the line colour. Camera Commander cards add their own figures 70% down: the card's size, what it asked for, and the picture's size as the browser decoded it.
-- Camera compositor: a size test page at `http://<box>:8099/size-test` (8098 for the draft). It shows a commander filling the browser window, asked for at exactly the window's size the way the card asks, with the window size, the size asked for and the size that came back. Resize the window (in Safari, Develop → Enter Responsive Design Mode) to test the whole path. The Live and Draft panels on the Camera compositor page link to it, opening a new window.
-
-## 2026.10.3-b11
-
-- Camera compositor page: Restart stops both engines (live and draft) and starts them again. Flush cache on each panel forgets every still and picture, then fetches and draws only what is asked for. A bin at the start of each camera still's row forgets just that still, which is fetched again next round.
-- Integration: new Camera compositor device with Restart, Flush live cache and Flush preview cache buttons, for automations too.
-
-## 2026.10.3-b10
-
-- Camera compositor: when no camera answers at all (Home Assistant restarting, or out of reach), no camera is counted as missing. Before, every camera could be sidelined together for 10 minutes, and the pictures stayed half empty.
-- Camera Commander: a width or height saved before 2026.10.3-b7 is ignored, so a commander squashed by an old setting is back to 1920 × 1080. The card asks for its own size.
-- Camera Commander: the borders beside a main camera kept whole (Fit, Fixed shape, Own shape) are now see-through like the gaps, so the dashboard's background shows there instead of black bars.
-
-## 2026.10.3-b9
-
-- Camera compositor: a draft picture's first frame (previews, Show the draft cards) no longer marks every camera Stale when its stills are only seconds old. The stills kept for the Camera Dashboard page now record when they were fetched.
-
-## 2026.10.3-b8
-
-- The Camera compositor tile now opens a status page showing what the live and draft compositors are serving: each picture drawn (at its own size and at each size a card asked for), its age and open streams; the devices watching; and each camera still with its age, Stale and sitting-out marks. It refreshes every 2 seconds.
-
-## 2026.10.3-b7
-
-- Camera Commander card: the commander is drawn at exactly the card's size, in the screen's own pixels, and in its shape, so nothing is stretched, cropped or bordered on the tablet. Text, bars and gaps keep their size on any screen. Sizes are capped at about 4 megapixels, and tablets of the same size share one picture. A new size is drawn at once from the stills already gathered.
-- Camera Dashboard: the commander's Width and Height settings are gone, since the card sets its own size. The preview and the generated dashboard keep a fixed size (1920 × 1080 by default).
-
-## 2026.10.3-b6
-
-- Camera Commander card: new "Show the draft" option, so the card follows the commander as saved on the Camera Dashboard page (Save draft) without deploying it live. Use it for trying out changes on a test page.
-
-## 2026.10.3-b5
-
-- New Lovelace cards, installed with the integration (first version, for testing):
-  - **Casa Mia tablet layout** fills the screen exactly, with nothing to scroll. Panels of cards on the left, top, right and bottom sit around a main card, using the same layout options as a Camera Commander. A panel can have visibility conditions, and an empty one takes no room.
-  - **Casa Mia Camera Commander** shows any commander on any dashboard. Tap a camera to make it the main one, or tap the main camera to open its live page.
-  - **Casa Mia section** is a section's grid of cards that hides while none of its counting cards is showing, so a "Warnings" heading needs no condition of its own.
-- Camera Dashboard: the commander layout options now share their names, help and defaults with the tablet layout card.
-
-## 2026.10.3-b4
-
-- Camera Dashboard: the Revert draft and Revert preview buttons sit on one line.
-
-## 2026.10.3-b3
-
-- Camera Dashboard: the preview dashboard keeps just one earlier version, and a single Revert preview button puts it back (press again to undo), like Revert draft. This removes the long list of preview backups at the bottom of the page.
-- Camera Dashboard: new "Keep older versions" setting (0 to 5, default 3) for how many earlier versions of the live dashboard each deploy keeps; lowering it deletes the extras. It was a fixed 20 before, and the extra ones are removed when the app starts.
-
-## 2026.10.3-b2
-
-- Kiosk Satellite 2026.10.8 and later work through Home Assistant on their own, so the app no longer patches their admin page for them; older ones still get the patch.
-
-## 2026.10.3-b1
-
-- Admin UI build tools updated: Vite 8 and the React plugin 6. The panel looks and works the same.
-- Admin UI type-checked with TypeScript 7.
+## 2026.10.3
+
+A big one: 86 builds and 146 commits in five days, with more than 170 changes. Here are the highlights.
+
+**Tablet Layout, a new view type.** Pick **Tablet (Casa Mia)** as a view's type and it fits the screen exactly, on any tablet, phone or desktop, with no scrolling. It is Home Assistant's own Sections view, so every card, editor and visibility condition works as before; its sections become panels round a main area.
+- Panels in stacks, layers inside layers (up to four), edges as big as their cards, and panels that appear and close up as cards show and hide.
+- Spacing like HTML's box model: margins, gaps and padding, with optional lines in the gaps.
+- Edit mode is a technical drawing: every panel, gap, margin and size measured, and every chip and label clickable to change it.
+- The full guide is in [docs/tablet-layout.md](https://github.com/gazoodle/casa-mia/blob/main/docs/tablet-layout.md).
+
+**Camera Commander card.**
+- The main camera plays as live video over the picture, labelled "(live)".
+- It works away from home, through Home Assistant's login.
+- It is drawn at exactly the card's size, in the screen's own pixels.
+- The Security look is now the card's own option, and reaches the live video too.
+- It streams only while it is on screen, and recovers by itself after a restart or a failed stream.
+
+**Camera compositor, rebuilt as a pipeline.**
+- A gatherer, a cache, generators and servers, each paused, run and paced on its own.
+- One gatherer serves both the live and preview compositors. Each camera is read from its real stream through Home Assistant's go2rtc, decoding only the keyframes it needs.
+- A survey learns every channel's size and whether it streams.
+- A health verdict, with graphs of CPU, memory, network and bottleneck on its page and as a sensor to automate on.
+- Streams come back by themselves after Home Assistant or go2rtc restarts.
+
+**Integration.** Switches, numbers and buttons to run the compositor's pipeline from automations, a compositor health sensor, and a Swap sensor for screenshot layouts.
+
+**Admin pages.**
+- A Settings page.
+- A Kiosk mode page, which edits kiosk-mode's settings for each dashboard without YAML.
+- A Developer mode option.
+- A much richer Camera compositor page.
+
+**Fixes.** Kiosk Satellite's Open logs in again. The screenshot swap covers the camera pictures and never touches addresses.
+
+**Under the hood.**
+- The compositor (3,600 lines) and guest login are split into packages.
+- A new rule keeps every source file under 800 lines.
+- The app's image keeps PyAV in a layer of its own, so updates are smaller.
+
+**When upgrading, check:**
+- The old **Tablet layout card** is gone: use the Tablet Layout view type. Its YAML type, `custom:casa-mia-tablet-layout`, now names the view.
+- The **Security look** switches on the Camera Dashboard are gone. Set it on each Camera Commander card, and update any automations that flipped those switches.
+- A **Camera Commander card** without its own width is now half width, like Home Assistant's cards. Set the width in its Layout tab if you want it wider.
+- The **dashboard helpers** have moved from the integration's options to the Casa Mia panel's Settings page.
 
 ## 2026.10.2
 
