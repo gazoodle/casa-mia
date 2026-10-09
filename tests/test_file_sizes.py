@@ -17,7 +17,6 @@ SOURCES = (
 # Over the limit before the rule (2026-10-10): split each when next working in it,
 # lower its number as it shrinks, and take it off once it is under LIMIT.
 OVER = {
-    "app/src/casa_mia/modules/camera_dashboard.py": 1662,
     "tests/test_camera_dashboard.py": 924,
 }
 
