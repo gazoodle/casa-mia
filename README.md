@@ -51,6 +51,50 @@ humming. It's served through ingress, so it's there wherever Home Assistant is: 
 at the office, or on a beach on the other side of the world. No ports to open, no extra
 logins, no VPN.
 
+## Tablet Layout
+
+A wall tablet should show its dashboard the way a picture frame shows a picture: all of it,
+edge to edge, nothing hanging off the bottom, and no scrolling. Ever. Home Assistant's views
+are built for scrolling, so getting one to *just* fit a tablet meant an evening of CSS
+tweaks ... and then a conditional card popped up, the page scrolled again, and the evening
+started over. And don't even get me started on using stack cards in section views ...
+
+The Tablet Layout is a new view type that ends all that. It *is* Home Assistant's own
+Sections view, so every card, editor, visibility condition and badge works as it always has,
+but its sections become panels round a main area, locked to the screen. A bigger screen, a
+smaller screen, portrait, landscape: it fits. A card shows or hides: the panels make room,
+or close up, by themselves.
+
+<table>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/screenshots/tablet-layout-finished.webp" alt="A Tablet Layout view: buttons and a clock along the top, a kitchen picture filling the middle, tiles along the bottom, all fitting the screen exactly">
+<h3>Fits the screen, exactly</h3>
+Buttons across the top, the clock held to the right, a picture filling the middle, tiles along the bottom. Every pixel of the screen used, and not one more.
+</td>
+<td width="50%" valign="top">
+<img src="docs/screenshots/tablet-layout-warning-on.webp" alt="The same view with a door open: a Warnings panel has appeared on the right and the picture has made room for it">
+<h3>Panels that come and go</h3>
+A door left open? A Warnings panel slides in at the side and everything else makes room. Close the door and it's gone, no gap left behind. Just Home Assistant's own visibility conditions, nothing new to learn.
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/screenshots/tablet-layout-mid-build.webp" alt="The Tablet Layout in edit mode: each panel's chip, its size, the gaps and margins drawn like a technical drawing, and the bottom edge's options open">
+<h3>Edit it like a drawing</h3>
+In edit mode the layout is a technical drawing: every panel, gap, margin and size, measured. Click any of them to change it, and watch the view change as you do.
+</td>
+<td width="50%" valign="top">
+<img src="docs/screenshots/tablet-layout-wide.webp" alt="The same view in a wide, short desktop window: still fitting exactly">
+<h3>Any screen, no changes</h3>
+The very same view in a wide desktop window, or on a tablet held upright. Nothing to set per screen: it simply fits.
+</td>
+</tr>
+</table>
+
+Panels in stacks, layers inside layers, gaps with lines in them, edges that hug their cards:
+[the Tablet Layout guide](docs/tablet-layout.md) has the lot.
+
 ## Kiosk Satellite
 
 <a href="https://kiosksatellite.com"><img src="https://kiosksatellite.com/img/mark.svg" alt="Kiosk Satellite" width="72" align="left"></a>
