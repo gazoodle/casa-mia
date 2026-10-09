@@ -36,6 +36,13 @@ export const CameraIcon = () => (
   </svg>
 );
 
+export const DashboardIcon = () => (
+  <svg {...base}>
+    <rect x="3" y="3.5" width="18" height="17" rx="2" />
+    <path d="M3 9h18M9.5 9v11.5" />
+  </svg>
+);
+
 export const GuestIcon = () => (
   <svg {...base}>
     <rect x="3" y="3" width="7" height="7" rx="1" />

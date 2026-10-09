@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.4-b10
+
+- New **Cameras** page in the Casa Mia panel: the house's cameras, their titles, channels, zoom, PTZ presets and page controls, now kept on their own (`cameras.json`) as the source the commanders and the dashboard read. Every change is saved at once. The first start moves your cameras from the Camera Dashboard, leaving its file as it was. The Camera Dashboard page keeps the commanders and the dashboard; it is now at its own address, with a new icon. A camera changed or removed on the Cameras page reaches the commanders' preview at once, and the live dashboard at its next Deploy live. The first step of splitting the Camera Dashboard into Cameras, Camera Commander and Auto Dashboards.
+
 ## 2026.10.4-b9
 
 - Under the hood: the Camera Dashboard module is split into a package of small parts, along the lines of the coming split into Cameras, Camera Commander and Auto Dashboards (RULE THREE: no source file over 800 lines). No change in behaviour.

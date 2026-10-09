@@ -1,15 +1,12 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { ago } from "../format";
 import { AreaHead, Empty, Shell } from "../page";
-import { LiveView } from "../LiveView";
 import { Segmented, Toasts, type Toast } from "../ui";
 import css from "../cameras.module.css";
 import guest from "../guest.module.css";
 import ui from "../ui.module.css";
-import { AddCameras, CameraDialog } from "./cameras";
 import { Commanders } from "./commanders";
-import { Entities, HA, HEAD, PANELS, Store, THUMB_EVERY_MS, ThumbRound, View, get, plural, post, put } from "./common";
-import { Thumb } from "./inputs";
+import { Entities, HA, HEAD, Store, THUMB_EVERY_MS, ThumbRound, View, get, plural, post, put } from "./common";
 import { Backups, Settings, YamlDialog } from "./settings";
 
 export function CameraDashboardPage({ state }: { state?: string }) {
@@ -206,7 +203,7 @@ export function CameraDashboardPage({ state }: { state?: string }) {
               makes it the main one; tapping the main one opens its live page. Each commander is a device in Home Assistant
               (Camera Commander, then Camera Commander and its name), so automations choose it too, with its Main camera, and
               its Track motion switch. Each is a page of the dashboard, the first pages, in this order; the camera pages
-              follow.
+              follow. The cameras themselves are added and named on the <a href="#/cameras">Cameras</a> page.
             </>
           }
         />
@@ -220,121 +217,6 @@ export function CameraDashboardPage({ state }: { state?: string }) {
           }
           onChange={(c) => edit((s) => (s.commanders = c))}
         />
-      </section>
-
-      <section className={guest.area}>
-        <AreaHead
-          title="Cameras"
-          blurb="The cameras the commander and live pages use, chosen from Home Assistant. Each camera's medium channel goes to the wall tablets and phones, its high channel to everyone else."
-          action={
-            <button
-              className={ui.primary}
-              disabled={!ha?.cameras}
-              onClick={() =>
-                setDialog(
-                  <AddCameras
-                    ha={ha?.cameras ?? []}
-                    chosen={draft.cameras}
-                    onClose={() => setDialog(null)}
-                    onAdd={(cams) => {
-                      edit((s) => {
-                        for (const c of cams)
-                          s.cameras[c.entity] = {
-                            title: c.name,
-                            ...(c.medium && { medium: c.medium }),
-                            ...(c.high && { high: c.high }),
-                            ...(c.zoom && { zoom: c.zoom }),
-                          };
-                      });
-                      setDialog(null);
-                    }}
-                  />,
-                )
-              }
-            >
-              + Add cameras
-            </button>
-          }
-        />
-        {Object.keys(draft.cameras).length === 0 ? (
-          <Empty>No cameras yet. Add them from Home Assistant's list.</Empty>
-        ) : (
-          <div className={css.table}>
-            <div className={`${css.camRow} ${css.head}`}>
-              <span>Camera</span>
-              <span>Channels</span>
-              <span>In commanders</span>
-              <span>Extras</span>
-              <span />
-            </div>
-            {Object.entries(draft.cameras).map(([entity, cam]) => {
-              const shownIn = draft.commanders.filter((c) => PANELS.some((p) => c[p].cameras.includes(entity)));
-              return (
-                <div key={entity} className={css.camRow}>
-                  <button
-                    className={css.camCell}
-                    title="Watch it live"
-                    onClick={() => setDialog(<LiveView entity={entity} title={cam.title} onClose={() => setDialog(null)} />)}
-                  >
-                    <Thumb entity={entity} />
-                    <span className={css.camName}>
-                      <strong>{cam.title}</strong>
-                      <code>{entity}</code>
-                    </span>
-                  </button>
-                  <span className={css.muted}>
-                    {[cam.medium && "medium", cam.high && "high"].filter(Boolean).join(", ") || "itself only"}
-                    {cam.live && ` · ${cam.live}`}
-                  </span>
-                  <span className={css.muted}>{shownIn.map((c) => c.name).join(", ") || "none"}</span>
-                  <span className={css.muted}>
-                    {[
-                      cam.zoom && "zoom",
-                      ha?.motion?.[entity] && "motion",
-                      cam.ptz && plural(cam.ptz.presets.length, "preset"),
-                      cam.controls?.length && plural(cam.controls.length, "control"),
-                    ]
-                      .filter(Boolean)
-                      .join(", ") || "—"}
-                  </span>
-                  <span className={css.actions}>
-                    <button
-                      className={`${ui.button} ${ui.small}`}
-                      onClick={() =>
-                        setDialog(
-                          <CameraDialog
-                            entity={entity}
-                            camera={cam}
-                            ha={ha?.cameras?.find((c) => c.entity === entity)}
-                            onClose={() => setDialog(null)}
-                            onSave={(c) => {
-                              edit((s) => (s.cameras[entity] = c));
-                              setDialog(null);
-                            }}
-                          />,
-                        )
-                      }
-                    >
-                      Edit
-                    </button>
-                    <button
-                      className={`${ui.danger} ${ui.small}`}
-                      onClick={() =>
-                        edit((s) => {
-                          delete s.cameras[entity];
-                          for (const c of s.commanders)
-                            for (const p of PANELS) c[p].cameras = c[p].cameras.filter((e) => e !== entity);
-                        })
-                      }
-                    >
-                      Remove
-                    </button>
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        )}
       </section>
 
       <section className={guest.area}>

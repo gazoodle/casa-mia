@@ -15,12 +15,6 @@ from ..compositor import (
 DRAFT_PORT = 8098
 
 
-THUMB_WIDTH = 160  # the page's camera thumbnails
-
-
-CAMERA = re.compile(r"camera\.[a-z0-9_]+")
-
-
 BACKUPS = "camera-dashboard-backups"
 
 
@@ -47,12 +41,6 @@ BLANK = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAA
 
 # The same, marked: the commander's highlight, which Keep camera pictures live pulses.
 HIGHLIGHT = BLANK + "#cm-highlight"
-
-
-CHANNEL = re.compile(r"_(high|medium|low)_resolution_channel$")
-
-
-ZOOM = re.compile(r"^number\..*_zoom_level$")
 
 
 URL_PATH = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)+$")  # HA wants a hyphen in it

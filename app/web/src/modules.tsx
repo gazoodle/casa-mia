@@ -5,7 +5,7 @@
 import type { ReactNode } from "react";
 import type { ModuleHealth } from "./health";
 import { ago, megabytes } from "./format";
-import { CameraGridIcon, CameraIcon, FirmwareIcon, GuestIcon, KioskModeIcon, PeopleIcon, PhoneIcon, ShieldIcon, TabletIcon } from "./icons";
+import { CameraGridIcon, CameraIcon, DashboardIcon, FirmwareIcon, GuestIcon, KioskModeIcon, PeopleIcon, PhoneIcon, ShieldIcon, TabletIcon } from "./icons";
 
 export type Fact = [label: string, value: string | undefined];
 
@@ -108,11 +108,18 @@ export const MODULES: Record<string, ModuleInfo> = {
       ["Needs", (h.needs as string | null) ?? undefined],
     ],
   },
+  cameras: {
+    title: "Cameras",
+    option: "Camera Dashboard",
+    blurb: "The house's cameras: their names, streams and controls, for the commanders and the dashboard.",
+    icon: <CameraIcon />,
+    facts: (h) => [["Cameras", String(h.cameras ?? 0)]],
+  },
   camera_dashboard: {
     title: "Camera Dashboard",
     option: "Camera Dashboard",
-    blurb: "Sets up the cameras, the Camera Commander and the camera dashboard, with previews, and deploys it.",
-    icon: <CameraIcon />,
+    blurb: "Sets up the Camera Commander and the camera dashboard, with previews, and deploys it.",
+    icon: <DashboardIcon />,
     facts: (h) => [
       ["Cameras", String(h.cameras ?? 0)],
       ["Deployed", ago(h.deployed) ?? "never"],

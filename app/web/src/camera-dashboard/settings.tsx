@@ -6,7 +6,7 @@ import css from "../cameras.module.css";
 import guest from "../guest.module.css";
 import ui from "../ui.module.css";
 import { Backup, CARDS, HAUser, Store, get, post } from "./common";
-import { EntityInput } from "./inputs";
+import { EntityInput } from "../cameras";
 
 export function Settings({
   store,

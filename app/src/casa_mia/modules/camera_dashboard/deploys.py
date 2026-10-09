@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import logging
 import threading
@@ -10,6 +11,7 @@ from typing import Any
 
 from ..compositor import (
     EMPTY_COMMANDER,
+    PANELS,
     Compositor,
 )
 from .backups import Backups
@@ -33,6 +35,8 @@ _LOGGER = logging.getLogger(__name__)
 class Deploys(Backups):
     def start(self) -> None:
         """Load the draft, and each commander's main camera as it was; watch live_main."""
+        if self.cameras:
+            self.cameras.listeners.append(self._take_cameras)
         if self.live:
             threading.Thread(
                 target=self._watch_live_main, name="live main", daemon=True
@@ -63,6 +67,8 @@ class Deploys(Backups):
             self._error = f"cannot read {self.draft_path.name}: {exc}"
             _LOGGER.error("camera dashboard: %s", self._error)
             return
+        if self.cameras:
+            self._take_cameras(self.cameras.cameras())
         _LOGGER.info(
             "camera dashboard: %d cameras, %d commanders (%d cameras in them), "
             "dashboard /%s",
@@ -100,24 +106,10 @@ class Deploys(Backups):
 
     def _save(self, body: Store) -> Response:
         store = with_defaults(body)  # only known settings: the page sends back all
+        if self.cameras:  # the Cameras page's, whatever the page sent
+            store["cameras"] = self.cameras.cameras()
         if not isinstance(store["cameras"], dict):
             raise BadRequest("cameras must be an object.")
-        dropped = 0
-        for page in store["cameras"].values():
-            if isinstance(page, dict) and isinstance(page.get("controls"), list):
-                kept = [
-                    c
-                    for c in page["controls"]
-                    if isinstance(c, dict) and str(c.get("entity") or "").strip()
-                ]
-                dropped += len(page["controls"]) - len(kept)
-                page["controls"] = kept
-                if not kept:
-                    del page["controls"]
-        if dropped:
-            _LOGGER.info(
-                "camera dashboard: dropped %d page controls with no entity", dropped
-            )
         self._record_shapes(store)
         try:
             found = problems(store)
@@ -147,6 +139,8 @@ class Deploys(Backups):
         if not self.live_path.exists():
             raise BadRequest("Nothing has been deployed yet.")
         store = with_defaults(json.loads(self.live_path.read_text()))
+        if self.cameras:  # the cameras are the Cameras page's, not the draft's
+            store["cameras"] = self.cameras.cameras()
         with self._lock:
             self.store = store
             self._write(self.draft_path, store)
@@ -154,6 +148,34 @@ class Deploys(Backups):
         if self.draft:
             self.draft.reload()
         return _json(200, self.view())
+
+    def _take_cameras(self, cameras: dict[str, Any]) -> None:
+        """The Cameras page changed them: the draft takes them, and the draft compositor
+        redraws. The live dashboard and compositor keep theirs until a Deploy live."""
+        with self._lock:
+            if self._error or self.store["cameras"] == cameras:
+                return
+            store = copy.deepcopy(self.store)
+            store["cameras"] = cameras
+            gone = set(self.store["cameras"]) - set(cameras)
+            for cmd in store["commanders"]:  # a removed camera leaves the commanders
+                for panel in PANELS:
+                    if panel in cmd:
+                        cmd[panel]["cameras"] = [
+                            e for e in cmd[panel]["cameras"] if e not in gone
+                        ]
+                if cmd.get("main") in gone:
+                    cmd["main"] = ""
+            self.store = store
+            self._write(self.draft_path, store)
+        _LOGGER.info(
+            "camera dashboard: the draft took the cameras' changes%s",
+            f" (removed from the commanders: {', '.join(sorted(gone))})"
+            if gone
+            else "",
+        )
+        if self.draft:
+            self.draft.reload()
 
     def deploy(self, live: bool) -> dict[str, Any]:
         """Save the dashboard into HA (creating it if missing, keeping a copy of what it

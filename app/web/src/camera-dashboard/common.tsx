@@ -1,6 +1,9 @@
-import { createContext } from "react";
 import { api } from "../api";
-import { CameraIcon } from "../icons";
+import { DashboardIcon } from "../icons";
+import type { Camera, HACamera, HAEntity } from "../cameras";
+
+export { CARDS, Entities, THUMB_EVERY_MS, ThumbRound, plural } from "../cameras";
+export type { Camera } from "../cameras";
 import LAYOUT from "../../../src/casa_mia/layout.json";
 
 // The layout options' labels, help and defaults, shared with the Tablet Layout.
@@ -13,26 +16,10 @@ export const help = (o: { help?: string }) => o.help?.replaceAll("{item}", "came
 export const { get, post, put } = api("camera-dashboard");
 
 export const HEAD = {
-  icon: <CameraIcon />,
+  icon: <DashboardIcon />,
   title: "Camera Dashboard",
   module: "camera_dashboard",
-  blurb: "The cameras, the commander that shows them, and its dashboard.",
-};
-
-export type Control = { entity: string; name?: string; icon?: string };
-
-export type Preset = string | { preset: string; label?: string };
-
-export type Ptz = { action: string; data: Record<string, string>; presets: Preset[] };
-
-export type Camera = {
-  title: string;
-  medium?: string;
-  high?: string;
-  zoom?: string;
-  live?: string;
-  ptz?: Ptz;
-  controls?: Control[];
+  blurb: "The commanders that show the cameras, and their dashboard.",
 };
 
 export type Highlight = { colour: string; width: number; blur: number; pulse: number; style: "breathe" | "ripple" };
@@ -133,14 +120,12 @@ export type View = {
   compositor: { live: boolean; draft: boolean; host: string | null };
 };
 
-export type HACamera = { entity: string; name: string; device_id: string | null; medium?: string; high?: string; zoom?: string };
-
 export type HAUser = { id: string; name: string; is_active: boolean };
 
 export type HA = {
   cameras?: HACamera[];
   users?: HAUser[];
-  entities?: { entity: string; name: string; state?: string }[];
+  entities?: HAEntity[];
   /** Each commander's (by id) Main camera select in the integration, which its taps set. */
   commander_selects?: Record<string, string>;
   /** Each commander's Track motion switch. */
@@ -153,24 +138,3 @@ export type HA = {
 };
 
 export type Backup = { name: string; url_path: string; saved: string };
-
-export const CARDS: [string, string][] = [
-  ["picture-entity", "Picture entity (built in)"],
-  ["webrtc-camera", "WebRTC camera (custom)"],
-  ["advanced-camera-card", "Advanced camera card (custom)"],
-];
-
-/** How often the camera thumbnails are fetched again. */
-export const THUMB_EVERY_MS = 5 * 60_000;
-
-/** Which round of thumbnails to show: bumped every THUMB_EVERY_MS. */
-export const ThumbRound = createContext(0);
-
-/** Home Assistant's entities, for the entity fields. */
-export const Entities = createContext<{ entity: string; name: string; state?: string }[]>([]);
-
-export const DEFAULT_PTZ: Ptz = { action: "unifiprotect.ptz_goto_preset", data: {}, presets: [] };
-
-export function plural(n: number, word: string): string {
-  return `${n} ${word}${n === 1 ? "" : "s"}`;
-}

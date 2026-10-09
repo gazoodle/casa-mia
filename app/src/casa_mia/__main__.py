@@ -15,6 +15,7 @@ from .ha import HA
 from .install_count import count_install
 from .log import configure_logging
 from .modules.camera_dashboard import DRAFT_PORT, CameraDashboard
+from .modules.cameras import Cameras
 from .modules.compositor import (
     DRAFT_STORE,
     Compositor,
@@ -204,6 +205,11 @@ def main() -> int:
             prewarm=False,
             gatherer=gather,
         )
+        # The cameras, the source the commanders and the dashboard read.
+        cams = Cameras(CONFIG, ha, still=draft.still)
+        cams.start()
+        modules["cameras"] = cams.health
+        api["/api/cameras/"] = cams.handle
         cameras = CameraDashboard(
             CONFIG,
             ha,
@@ -212,6 +218,7 @@ def main() -> int:
             draft=draft,
             state_path=OPTIONS.parent / "camera_dashboard_state.json",
             helpers=helpers_known,
+            cameras=cams,
         )
         cameras.start()
         draft.start()
@@ -220,6 +227,7 @@ def main() -> int:
         post_handlers["/camera-dashboard/"] = cameras.control  # the commander's select
     else:
         modules["camera_dashboard"] = lambda: {"state": "disabled"}
+        modules["cameras"] = lambda: {"state": "disabled"}
     if compositor:
         compositor.start()
         # The live engine's, with the preview's generator and server (the integration's

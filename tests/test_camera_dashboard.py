@@ -14,11 +14,11 @@ from casa_mia.modules.camera_dashboard import (
     CameraDashboard,
     build_dashboard,
     commander_selects,
-    ha_cameras,
     problems,
     warnings,
     with_defaults,
 )
+from casa_mia.modules.cameras import Cameras
 from casa_mia.modules.compositor import load_config
 
 STORE = {
@@ -92,37 +92,6 @@ def test_problems_are_found():
     assert "The Cameras commander has no cameras" in " ".join(problems(store))
 
 
-def test_ha_cameras_matches_channels_by_device():
-    registry = [
-        {"entity_id": "camera.porch_low_resolution_channel", "device_id": "d"},
-        {"entity_id": "camera.hall_porch_medium_resolution_channel", "device_id": "d"},
-        {"entity_id": "camera.porch_high_resolution_channel", "device_id": "d"},
-        {"entity_id": "number.porch_zoom_level", "device_id": "d"},
-        {"entity_id": "camera.tablet", "device_id": "t"},
-        {"entity_id": "camera.off", "device_id": "o", "disabled_by": "user"},
-    ]
-    states = [
-        {
-            "entity_id": "camera.porch_low_resolution_channel",
-            "attributes": {"friendly_name": "Porch Low resolution channel"},
-        }
-    ]
-    tablet, porch = ha_cameras(registry, states)  # sorted by name
-    assert tablet == {
-        "entity": "camera.tablet",
-        "device_id": "t",
-        "name": "camera.tablet",
-    }
-    assert porch == {
-        "entity": "camera.porch_low_resolution_channel",
-        "device_id": "d",
-        "medium": "camera.hall_porch_medium_resolution_channel",
-        "high": "camera.porch_high_resolution_channel",
-        "zoom": "number.porch_zoom_level",
-        "name": "Porch",
-    }
-
-
 class FakeHA:
     """Just enough of HA's websocket for deploying: dashboards and their configs."""
 
@@ -174,9 +143,31 @@ def call(cd, method, path, body=None, query=None):
 def cd(tmp_path):
     for name in ("camera-dashboard.json", "camera-dashboard-live.json"):
         (tmp_path / name).write_text(json.dumps(STORE))
-    cd = CameraDashboard(tmp_path, FakeHA(), lambda: "10.0.0.2")  # type: ignore[arg-type]
+    ha = FakeHA()
+    cams = Cameras(tmp_path, ha)  # type: ignore[arg-type]
+    cams.start()
+    cd = CameraDashboard(tmp_path, ha, lambda: "10.0.0.2", cameras=cams)  # type: ignore[arg-type]
     cd.start()
     return cd
+
+
+def test_the_draft_takes_the_cameras_page_changes(cd, tmp_path):
+    assert cd.cameras
+    cameras = cd.cameras.cameras()
+    cameras["camera.b"]["title"] = "Barn"
+    cd.cameras.save(cameras)
+    draft = json.loads((tmp_path / "camera-dashboard.json").read_text())
+    assert draft["cameras"]["camera.b"]["title"] == "Barn"
+    assert cd.view()["changed"]  # live keeps its own until a Deploy live
+    _, view = call(cd, "GET", "")
+    view["store"]["cameras"] = {}  # the page's copy never wins over the Cameras page
+    _, view = call(cd, "PUT", "", view["store"])
+    assert view["store"]["cameras"]["camera.b"]["title"] == "Barn"
+    _, view = call(cd, "POST", "revert")  # nor does live's, on a revert
+    assert view["store"]["cameras"]["camera.b"]["title"] == "Barn"
+    del cameras["camera.b"]  # a removed camera leaves the commanders too
+    cd.cameras.save(cameras)
+    assert cd.store["commanders"][0]["bottom"]["cameras"] == []
 
 
 def test_edit_preview_then_deploy(cd, tmp_path):
@@ -254,18 +245,6 @@ def test_keep_older_versions_setting(cd):
     call(cd, "POST", "deploy", {"target": "live"})  # nothing kept at 0
     assert call(cd, "GET", "backups")[1]["backups"] == []
     assert call(cd, "PUT", "keep", {"keep": 6})[0] == 400
-
-
-def test_save_drops_page_controls_with_no_entity(cd):
-    _, view = call(cd, "GET", "")
-    store = view["store"]
-    store["cameras"]["camera.b"]["controls"] = [{"entity": " "}]
-    store["cameras"]["camera.a_low"]["controls"].append({"entity": "", "name": "x"})
-    _, view = call(cd, "PUT", "", store)
-    assert "controls" not in view["store"]["cameras"]["camera.b"]
-    assert view["store"]["cameras"]["camera.a_low"]["controls"] == [
-        {"entity": "button.gate"}
-    ]
 
 
 def test_refuses_to_deploy_a_broken_store(cd):
@@ -349,9 +328,6 @@ def test_live_previews_and_thumbnails(tmp_path):
         )  # its own size: always the default
         store["commanders"][0]["width"] = 800  # a size from before: no longer set here
         assert Image.open(io.BytesIO(render(store)[2])).size == (1920, 1080)
-        status, ctype, body = cd.handle("GET", "thumb/camera.a", {}, b"")
-        assert (status, ctype) == (200, "image/jpeg") and body[:2] == b"\xff\xd8"
-        assert cd.handle("GET", "thumb/..%2Fetc", {}, b"")[0] == 400
         store["commanders"][0]["left"]["cameras"] = store["commanders"][0]["bottom"][
             "cameras"
         ] = []
@@ -388,24 +364,6 @@ def test_warns_about_what_ha_lacks():
         store, have, ["/local/scripts/nav_back_helper.js"], {"u1"}, {"cm-back.js"}
     )
     assert any("Back goes back twice" in w for w in both)
-
-
-def test_live_view_gives_each_channel_from_ha(cd):
-    status, out = call(cd, "GET", "live/camera.a_low")
-    assert status == 200
-    assert out["channels"] == [
-        {
-            "channel": "camera",
-            "entity": "camera.a_low",
-            "url": "/api/camera_proxy_stream/camera.a_low?token=t-a_low",
-        },
-        {
-            "channel": "medium",
-            "entity": "camera.a_med",
-            "url": "/api/camera_proxy_stream/camera.a_med?token=t-a_med",
-        },
-    ]  # camera.a_high has no state in HA, so it is left out
-    assert call(cd, "GET", "live/camera.nope")[0] == 400
 
 
 def test_commander_layout():
@@ -669,43 +627,6 @@ def test_a_store_saved_with_the_old_security_look_still_loads(cd):
     status, _ = call(cd, "PUT", "", store)
     assert status == 200 and problems(cd.store) == []
     assert "look_css" not in cd.health()
-
-
-def test_motion_sensors_by_device_then_by_name():
-    from casa_mia.modules.camera_dashboard import motion_sensors
-
-    registry = [
-        {"entity_id": "camera.drive_low_resolution_channel", "device_id": "d"},
-        {
-            "entity_id": "binary_sensor.drive_motion",
-            "device_id": "d",
-            "original_device_class": "motion",
-        },
-        {
-            "entity_id": "binary_sensor.drive_doorbell",
-            "device_id": "d",
-            "original_device_class": "occupancy",
-        },
-        {"entity_id": "camera.pool", "device_id": None},
-    ]
-    states = [
-        {
-            "entity_id": "binary_sensor.pool_motion",
-            "attributes": {"device_class": "motion"},
-        },
-        {
-            "entity_id": "binary_sensor.shed_motion",
-            "attributes": {"device_class": "motion"},
-        },
-    ]
-    cams = ["camera.drive_low_resolution_channel", "camera.pool", "camera.shed_cam"]
-    assert (
-        motion_sensors(registry, states, cams)
-        == {
-            "camera.drive_low_resolution_channel": "binary_sensor.drive_motion",  # its device
-            "camera.pool": "binary_sensor.pool_motion",  # by name
-        }
-    )
 
 
 def test_motion_marks_the_commanders_cameras(tmp_path):

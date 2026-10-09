@@ -5,7 +5,8 @@ import css from "../cameras.module.css";
 import ui from "../ui.module.css";
 import LAYOUT from "../../../src/casa_mia/layout.json";
 import { Camera, Commander, DEBUG, HA, HIGHLIGHT, L, MOTION, P, PANELS, Panel, Store, help, plural } from "./common";
-import { AddMenu, Num, RatioInput, Thumb } from "./inputs";
+import { Thumb } from "../cameras";
+import { AddMenu, Num, RatioInput } from "./inputs";
 
 /** Whether a commander's taps can work: they set its Main camera select in the integration,
  * so say plainly when Home Assistant doesn't have it (yet), or has it with no cameras. */

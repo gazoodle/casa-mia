@@ -27,7 +27,6 @@ many as camera-dashboard-settings.json says to keep; the preview keeps just one)
 The parts:
 
   common.py      Shared constants, the store's defaults and small helpers.
-  cameras.py     The cameras as Home Assistant has them: channels, zoom, motion sensors.
   commanders.py  The integration's entities for each commander, by unique id.
   checks.py      What is wrong with a store (problems) and what HA seems to lack (warnings).
   dashboard.py   The generated dashboard: the commanders' pages, then each camera's.
@@ -41,7 +40,6 @@ The parts:
 from __future__ import annotations
 
 from .api import CameraDashboard
-from .cameras import ha_cameras, motion_sensors
 from .checks import problems, warnings
 from .commanders import (
     COMMANDER_SELECT,
@@ -52,9 +50,7 @@ from .commanders import (
 from .common import (
     BACKUPS,
     BLANK,
-    CAMERA,
     CARDS,
-    CHANNEL,
     DEFAULT_KEEP,
     DEFAULTS,
     DEPLOYS,
@@ -64,9 +60,7 @@ from .common import (
     MAX_KEEP,
     PREVIEW,
     SETTINGS,
-    THUMB_WIDTH,
     URL_PATH,
-    ZOOM,
     BadRequest,
     Response,
     Store,
@@ -86,9 +80,7 @@ __all__ = [
     "BACKUPS",
     "BLANK",
     "BadRequest",
-    "CAMERA",
     "CARDS",
-    "CHANNEL",
     "COMMANDER_SELECT",
     "CameraDashboard",
     "DEFAULTS",
@@ -103,16 +95,12 @@ __all__ = [
     "Response",
     "SETTINGS",
     "Store",
-    "THUMB_WIDTH",
     "UNIQUE_IDS",
     "URL_PATH",
-    "ZOOM",
     "build_dashboard",
     "commander_entities",
     "commander_selects",
-    "ha_cameras",
     "menu_cameras",
-    "motion_sensors",
     "navigate",
     "preset_action",
     "preset_entries",

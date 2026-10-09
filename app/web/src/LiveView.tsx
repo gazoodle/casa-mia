@@ -8,7 +8,7 @@ import { canWebRTC, haConnection, playWebRTC } from "./webrtc";
 import css from "./cameras.module.css";
 import ui from "./ui.module.css";
 
-const { get } = api("camera-dashboard");
+const { get } = api("cameras");
 
 type Channel = { channel: "camera" | "low" | "medium" | "high"; entity: string; url: string };
 

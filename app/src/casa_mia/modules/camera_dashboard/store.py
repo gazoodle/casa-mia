@@ -9,13 +9,13 @@ from pathlib import Path
 from typing import Any
 
 from ...ha import HA
+from ..cameras import Cameras, ha_cameras, motion_sensors
 from ..compositor import (
     DRAFT_STORE,
     LIVE_STORE,
     PORT,
     Compositor,
 )
-from .cameras import ha_cameras, motion_sensors
 from .checks import warnings
 from .commanders import commander_entities, commander_selects
 from .common import DEPLOYS, DRAFT_PORT, BadRequest, Store, with_defaults
@@ -31,8 +31,12 @@ class Base:
         draft: Compositor | None = None,
         state_path: Path | None = None,
         helpers: Callable[[], set[str] | None] = set,
+        cameras: Cameras | None = None,
     ) -> None:
         self.dir = config_dir
+        # The cameras, kept on the Cameras page; the draft takes a copy (see
+        # Deploys._take_cameras). None: the store's own (before there was a Cameras page).
+        self.cameras = cameras
         # the integration's dashboard helper scripts, as it says (None: not said yet)
         self.helpers = helpers
         self.state_path = state_path  # the commander's main camera, kept over restarts
