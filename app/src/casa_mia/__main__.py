@@ -25,11 +25,14 @@ from .modules.compositor import (
 from .modules.fona import EVENT as FONA_EVENT
 from .modules.fona import Fona
 from .modules.gitproxy import GitProxy
-from .modules.guest_api import GuestAPI, load_store, remember, runtime
 from .modules.guest_login import (
     EVENT,
+    GuestAPI,
     GuestLogin,
     fire_event,
+    load_store,
+    remember,
+    runtime,
     supervisor_ha_port,
     supervisor_lan_ip,
     supervisor_mdns_name,

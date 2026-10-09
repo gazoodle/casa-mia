@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.10.3-b85
+
+- While the screenshot swap is on, the Live and Preview generators draw at their slowest (every 15 s), whatever their setting: the swapped pictures are stills. A tap on a camera still redraws at once.
+- The camera compositor, one 3,600-line file, is now a package of parts, none over 700 lines. The gatherer is in layers (cache, fetching, survey, monitor), with the generator, the picture server and the page's API each in its own file. There is no change in what it does.
+- Guest login's three files are now one folder (`modules/guest_login/`: `login.py`, `api.py`, `page.py`), with no change in what it does.
+
 ## 2026.10.3-b84
 
 - A **Swap** binary sensor on the Casa Mia app device: on while the screenshot swap is on, for conditional cards in screenshot layouts. It exists only where swap.json is beside the integration (a box set up for screenshots), so never on an ordinary install; it reads the file every 5 seconds.

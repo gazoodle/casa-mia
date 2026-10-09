@@ -77,7 +77,7 @@ const LEAVE_AFTER = 15;
  * stream it asks for, so the server's log and table say which card is running. */
 export const VERSION = new URL(import.meta.url).searchParams.get("v") || "dev";
 const BLANK = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-// As the compositor's (compositor.py: MAX_PIXELS, MIN_SIDE, asked_size).
+// As the compositor's (compositor/common.py: MAX_PIXELS, MIN_SIDE, asked_size).
 const MAX_PIXELS = 2560 * 1600;
 const MIN_SIDE = 64;
 const SETTLE_MS = 400; // a size must hold this long before a new picture is asked for

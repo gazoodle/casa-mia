@@ -335,7 +335,7 @@ def test_printed_qr_ids_never_logged(caplog):
 
 def test_the_welcome_page_names_the_house(monkeypatch):
     from casa_mia import header
-    from casa_mia.modules.guest_page import render_welcome
+    from casa_mia.modules.guest_login import render_welcome
 
     monkeypatch.setattr(header, "HOUSE", "Villa Rosa")
     assert GuestLogin([], {}).welcome[0] == "Welcome to Villa Rosa"

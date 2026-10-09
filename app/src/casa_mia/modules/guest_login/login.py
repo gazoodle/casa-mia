@@ -30,8 +30,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
-from .. import header, swap
-from .guest_page import header_jpeg, render_welcome  # noqa: E402
+from ... import header, swap
+from .page import header_jpeg, render_welcome  # noqa: E402
 
 _LOGGER = logging.getLogger(__name__)
 

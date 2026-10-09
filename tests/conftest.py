@@ -32,3 +32,20 @@ def serve():
     for server in started:
         server.shutdown()
         server.server_close()
+
+
+def set_compositor(monkeypatch, name: str, value) -> None:
+    """Set a compositor constant (LINGER, MONITOR_EVERY...) in every part of the
+    package that uses it: each imports it by name from common."""
+    import importlib
+    import pkgutil
+
+    from casa_mia.modules import compositor
+
+    found = False
+    for part in pkgutil.iter_modules(compositor.__path__):
+        module = importlib.import_module(f"{compositor.__name__}.{part.name}")
+        if hasattr(module, name):
+            monkeypatch.setattr(module, name, value)
+            found = True
+    assert found, name

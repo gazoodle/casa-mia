@@ -42,6 +42,20 @@ The app's log is how problems are diagnosed, often remotely (the owner away from
 - **Never log secrets:** passwords, tokens, the guest slugs and legacy QR ids. Bodies are not logged for this reason.
 - Use `logging.getLogger(__name__)`, never `print` (see Commands).
 
+## RULE THREE: keep files small; split before they sprawl
+
+No source file (Python, TypeScript, tests, tools) over **800 lines**. `tests/test_file_sizes.py` enforces it. Why: `compositor.py` grew to 3,600 lines in one file (2026-10-10); nobody could hold it in their head, and every change risked a part nobody was looking at.
+
+- **About to push a file past 800? Split it first**, by responsibility, then make the change. Never raise the limit for a file.
+- **The files already over** are listed in `OVER` in that test at today's size. They may shrink, never grow. When you work in one, take the chance to split it; lower its number as it shrinks and remove it once it is under 800.
+- **How to split** (the compositor package, `app/src/casa_mia/modules/compositor/`, is the pattern):
+  - **A split module becomes a folder (a package), never siblings.** `modules/compositor/gatherer.py`, not `modules/compositor_gatherer.py`. (The guest login's `guest_login.py`, `guest_api.py` and `guest_page.py` were moved into `modules/guest_login/` for this rule.) The package's `__init__.py` keeps the docstring and re-exports the public names, so imports elsewhere do not change.
+  - Shared constants and helpers go in one `common.py`, defined **once**; each part imports them by name. Never copy a constant.
+  - A big class becomes layers, each in its own file and each extending the one below. For example, the gatherer: `Cache` → `Fetcher` → `Survey` → `Monitor` → `Gatherer`; the compositor: `Generator` → `PictureServer` → `Compositor`. Pyright can then see every attribute. A lower layer never calls a method of a higher one: move the method down, or the caller up.
+  - Each part has its own `_LOGGER = logging.getLogger(__name__)`.
+  - A test that patches a constant patches it where it is used; for the compositor, `set_compositor(monkeypatch, NAME, value)` in `tests/conftest.py` patches every part.
+- **No behaviour change in a split.** Move code verbatim, and keep the tests green before and after. A refactor and a fix are separate commits.
+
 ## Status
 
 Skeleton stage: docs/architecture.md is the charter (moved out of README.md, which is now the shop window; user docs are in docs/); the app skeleton, tooling and fake git host exist, no modules yet. Existing code to learn from lives elsewhere (the earlier `fona_sms` component, an earlier app's `ingress.py`, the composite-test server); read it rather than rewriting from memory.

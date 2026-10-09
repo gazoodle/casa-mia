@@ -12,6 +12,7 @@ import pytest
 from PIL import Image
 
 from casa_mia.modules.compositor import LIVE_STORE, Compositor, Sending
+from conftest import set_compositor
 
 
 async def gather_round(comp) -> None:
@@ -258,7 +259,7 @@ def test_a_camera_that_keeps_missing_sits_out(tmp_path):
 def test_gathers_only_while_watched_and_serves_at_once_after(tmp_path, monkeypatch):
     from casa_mia.modules import compositor as mod
 
-    monkeypatch.setattr(mod, "LINGER", 0.1)
+    set_compositor(monkeypatch, "LINGER", 0.1)
     for pace in ("gatherer", "live"):
         monkeypatch.setitem(mod.PACE_DEFAULTS, pace, 0.1)
     write_config(tmp_path)
@@ -541,7 +542,7 @@ def test_go2rtc_reachable_asks_for_rtsp(monkeypatch):
                 conn.sendall(b"RTSP/1.0 200 OK\r\nCSeq: 1\r\n\r\n")
 
         threading.Thread(target=answer, daemon=True).start()
-        monkeypatch.setattr(mod, "GO2RTC_RTSP", srv.getsockname())
+        set_compositor(monkeypatch, "GO2RTC_RTSP", srv.getsockname())
         assert mod.go2rtc_reachable()
     assert not mod.go2rtc_reachable(0.2)  # closed: not reachable
 

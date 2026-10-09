@@ -5,6 +5,7 @@ restarts; and each stage of the pipeline paused and run on its own."""
 import asyncio
 import io
 import json
+import os
 import time
 import urllib.error
 import urllib.request
@@ -14,6 +15,7 @@ from PIL import Image
 
 from casa_mia.modules import compositor as mod
 from casa_mia.modules.compositor import Gatherer, waiting_picture
+from conftest import set_compositor
 from test_compositor import write_config
 
 
@@ -396,8 +398,8 @@ def test_the_cache_is_counted(tmp_path):
 def test_the_whole_system_is_sampled(tmp_path, monkeypatch):
     # CPU gathering and composing, as shares of the whole box; bytes sent a second;
     # the app's memory and the cache's; a sample every MONITOR_EVERY seconds.
-    monkeypatch.setattr(mod, "MONITOR_EVERY", 0.05)
-    monkeypatch.setattr(mod.os, "cpu_count", lambda: 2)
+    set_compositor(monkeypatch, "MONITOR_EVERY", 0.05)
+    monkeypatch.setattr(os, "cpu_count", lambda: 2)
     g = gatherer(tmp_path)
 
     async def run():
@@ -435,7 +437,7 @@ def test_go2rtc_refusing_is_no_streams_fault_and_it_is_found_again(
     # HA restarting: its go2rtc refuses every stream. No channel is marked "not its
     # stream" for it; go2rtc is marked down, looked at again, and back, every camera is
     # given to it afresh and a survey pass starts.
-    monkeypatch.setattr(mod, "GO2RTC_CHECK", 0.01)
+    set_compositor(monkeypatch, "GO2RTC_CHECK", 0.01)
     g = gatherer(tmp_path)
     g.go2rtc = True
 
@@ -452,7 +454,7 @@ def test_go2rtc_refusing_is_no_streams_fault_and_it_is_found_again(
     monkeypatch.setattr(mod.streams, "first_frame", lambda url: (None, refusal, 0.0))
     assert asyncio.run(g._survey_one("camera.a")) == "snapshot"
     assert g.go2rtc is False and "camera.a" not in g._no_stream
-    monkeypatch.setattr(mod, "go2rtc_reachable", lambda: True)
+    set_compositor(monkeypatch, "go2rtc_reachable", lambda: True)
 
     async def back():
         g._survey_now = asyncio.Event()
@@ -531,7 +533,7 @@ def test_the_start_of_home_assistant_is_heard_and_after_a_restart_too(monkeypatc
     from aiohttp import web
     from aiohttp.test_utils import TestServer
 
-    monkeypatch.setattr(mod, "HA_WATCH_RETRY", 0.01)
+    set_compositor(monkeypatch, "HA_WATCH_RETRY", 0.01)
     connections = 0
 
     async def ha(request):

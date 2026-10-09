@@ -1,4 +1,4 @@
-// The layout engine, line for line the compositor's (app/src/casa_mia/modules/compositor.py:
+// The layout engine, line for line the compositor's (app/src/casa_mia/modules/compositor/drawing.py:
 // commander_layout and its helpers), so a commander and a Tablet Layout lay out alike. Both
 // are checked against tests/layout_cases.json: change one, change the other. Python's
 // rounding is kept (round half to even, int() towards zero, // down), or a pixel drifts.
