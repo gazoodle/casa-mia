@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.4-b3
+
+- Tablet Layout: **Garnish.** In edit mode each card in a panel has a small sprig on its bottom-right corner: tap it to make the card garnish, adornment (a heading, say) that never holds its panel open, so the panel hides when only garnish is left. Garnish shows as a filled sprig, a dashed outline and a dimmed card; the sprig's tooltip says what each means. A panel holding only garnish is hatched in edit mode, as it never shows outside it. Saved as `view_layout: {garnish: true}`; the older `counts: false` still works. The Section card editor says Garnish too.
+
 ## 2026.10.4-b2
 
 ## 2026.10.4-b1

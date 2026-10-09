@@ -1,7 +1,7 @@
 // Section card: child cards on a section's grid (12 columns; each card as wide as its
 // grid_options say, or its own default: a tile half, most cards all of it; rows of 56px for
 // cards that set rows), hidden while none of the cards that count is showing. A card counts
-// unless it says `view_layout: {counts: false}`: a "Warnings" heading over conditional
+// unless it is garnish (`view_layout: {garnish: true}`; legacy `counts: false` too): a "Warnings" heading over conditional
 // warnings shows only while one of them does, with no condition of its own. Hidden, it
 // tells its parent (hui-card hides it; a Tablet Layout panel that hides when empty then
 // takes no room). In edit mode everything shows.
@@ -9,7 +9,8 @@ import { LitElement, css, html, nothing, type PropertyValues } from "lit";
 import { type CardConfig, define, fire, type Hass, type HuiCard, huiCard, register, shown, type StackEditor, stackEditor } from "./ha.ts";
 
 type Config = { type: string; cards: CardConfig[] };
-export const counts = (c: CardConfig) => c.view_layout?.counts !== false;
+import { counts, setGarnish } from "./garnish.ts";
+export { counts } from "./garnish.ts";
 
 /** Columns (of 12) and rows (a number, or auto) a card takes: its grid_options over its own. */
 function grid(el: HuiCard): { columns: number; rows: number | "auto" } {
@@ -34,7 +35,7 @@ class SectionCard extends LitElement {
   static getStubConfig() {
     return {
       cards: [
-        { type: "heading", heading: "Warnings", view_layout: { counts: false } },
+        { type: "heading", heading: "Warnings", view_layout: { garnish: true } },
         { type: "markdown", content: "Each card here can have its own visibility; the section hides when none shows." },
       ],
     };
@@ -190,21 +191,21 @@ class SectionEditor extends LitElement {
   render() {
     if (!this._config) return nothing;
     return html`
-      <p class="help">The section hides while none of the cards that count is showing (each card's own visibility). A heading that should only show with them: switch off Counts.</p>
+      <p class="help">The section hides while no content card is showing. Mark a heading as Garnish to show it only while its content shows.</p>
       <div class="rows">
         ${this._config.cards.map(
           (c, i) => html`<div class="row">
             <span class="name">${i + 1}. ${describe(c)}</span>
             <label
-              >Counts
+              >Garnish
               <ha-switch
-                .checked=${counts(c)}
+                .checked=${!counts(c)}
                 @change=${(ev: Event) =>
                   this.setCard(i, (card) => {
                     const on = (ev.target as HTMLInputElement).checked;
-                    card.view_layout = { ...card.view_layout };
-                    if (on) delete card.view_layout.counts;
-                    else card.view_layout.counts = false;
+                    const next = setGarnish(card, on);
+                    delete card.view_layout;
+                    Object.assign(card, next);
                   })}
               ></ha-switch
             ></label>

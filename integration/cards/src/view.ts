@@ -253,7 +253,8 @@ const LOCK = css`
   .section.cm-hidden > :not(.cm-tools) {
     opacity: 0.45;
   }
-  .section.cm-hidden::after {
+  .section.cm-hidden::after,
+  .section.cm-garnish-only::after {
     content: "";
     position: absolute;
     inset: 0;
@@ -798,6 +799,9 @@ sectionsView().then((Base: any) => {
         // its cards not laid out) must stay laid out, or it measures 0 for ever.
         box.classList.toggle("cm-off", !at);
         box.classList.toggle("cm-hidden", editing && !!at && !!where[n] && !!layerOf(this.cmLayout, where[n]!.layer)[where[n]!.place]?.hidden);
+        // Garnish only (cards, none of them content): hatched, as it never shows out of edit mode.
+        const cards: any[] = this.cmSections[n]?.cards ?? [];
+        box.classList.toggle("cm-garnish-only", editing && !!at && !!where[n] && cards.length > 0 && !cards.some(counts));
         this.cmTools(box, editing && !!at, where, n);
         // Delete in its menu (MENU) while its stack has another.
         const stacked = !!where[n] && where[n]!.place !== "main" && stackOf(where, n).length > 1;

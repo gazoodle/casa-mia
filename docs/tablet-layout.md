@@ -207,14 +207,17 @@ The layout follows what's showing, so conditional cards just work:
 - **A panel with no card showing takes no room**, and an edge with no panel showing takes
   none either, with its gap. So a warnings panel appears only while there's a warning.
   Turn this off for an edge with `hide_empty: false` to keep its room, empty.
-- **Headings that don't count.** A heading over some conditional cards would keep its panel
-  showing on its own. Mark it `view_layout: { counts: false }` and the panel hides when only
-  the heading is left.
+- **Garnish.** A heading over some conditional cards would keep its panel showing on its
+  own. Make it garnish: adornment that never holds its panel open, so the panel hides when
+  only garnish is left. In edit mode every card in a panel has a small sprig on its
+  bottom-right corner; tap it to make the card garnish (the sprig fills, and the card is
+  dimmed with a dashed outline), and tap again to make it content. A panel holding only
+  garnish is hatched in edit mode, as it will never show. In YAML it's
+  `view_layout: { garnish: true }` (the older `counts: false` still works).
 - **An edge can be hidden** outright (`hidden: true`): no room, no cards, but its sections
   kept for when it's shown again.
 
-**A warnings panel**, then, is just a section of its own in an edge: a heading that doesn't
-count, and the cards it heads, each visible only when it has something to say.
+**A warnings panel**, then, is just a section of its own in an edge: a garnish heading, and the cards it heads, each visible only when it has something to say.
 
 ```yaml
 - type: grid
@@ -222,7 +225,7 @@ count, and the cards it heads, each visible only when it has something to say.
   cards:
     - type: heading
       heading: Warnings
-      view_layout: { counts: false }
+      view_layout: { garnish: true }
     - type: tile
       entity: binary_sensor.barn_door
       visibility:
@@ -232,7 +235,7 @@ count, and the cards it heads, each visible only when it has something to say.
 ```
 
 <table><tr>
-<td width="50%"><img src="screenshots/tablet-layout-warning-off.webp" alt="The door shut: no right edge, main takes the room"><br>The door shut: the warnings panel has nothing that counts showing, so the right edge takes no room.</td>
+<td width="50%"><img src="screenshots/tablet-layout-warning-off.webp" alt="The door shut: no right edge, main takes the room"><br>The door shut: the warnings panel has no content showing, so the right edge takes no room.</td>
 <td width="50%"><img src="screenshots/tablet-layout-warning-on.webp" alt="The door open: the right edge appears with its Warnings heading and the door tile"><br>The door open: the right edge appears, and main makes room.</td>
 </tr></table>
 
@@ -361,7 +364,7 @@ top or bottom panel's fixed Width counts in) and `debug: true` (see [Debugging](
 
 | Option | Default | Meaning |
 |---|---|---|
-| `counts` | `true` | `false`: this card alone doesn't keep its panel showing. For headings. |
+| `garnish` | `false` | `true`: adornment that never keeps its panel showing (the sprig in edit mode). The older `counts: false` is also read. |
 
 ## Debugging
 

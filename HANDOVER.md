@@ -163,6 +163,10 @@ goes into the README section and `BACKLOG.md` → "Across modules". The next one
 
 ## What's next (the owner's order, roughly)
 
+0. **Garnish** (Tablet Layout; the agreed name): the edit-mode chip that marks a card in a panel
+   as garnish (adornment that never holds its panel open) or content. See BACKLOG "Tablet
+   Layout: Garnish". The owner may give this to Codex directly.
+
 1. **Get ready to announce to the community.** The owner wants it, but not yet.
    - Write the 11 applet docs in `docs/applets/`. They hold 47 "To write" placeholders,
      and the README's Documentation link leads there. Camera Dashboard (the Commander) and
