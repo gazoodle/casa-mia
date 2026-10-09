@@ -1,0 +1,106 @@
+/* A graphlet (Graphlet.tsx): a small history graph, for any page. */
+
+/* The dot and words above, the squares and their scale below, across the whole width. */
+.graphlet {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  min-width: 0;
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.good {
+  background: var(--good);
+}
+
+.warn {
+  background: var(--warn);
+}
+
+.bad {
+  background: var(--bad);
+}
+
+.words {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.words strong {
+  font-size: 15px;
+}
+
+.words > span {
+  color: var(--muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  font-size: 11px;
+}
+
+.legend i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 4px;
+  border-radius: 2px;
+}
+
+/* Square cells of a fixed size, newest at the right: what doesn't fit is cut off at the
+ * left, so the width decides how much history shows. */
+.grid {
+  --cell: 7px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 1px;
+  min-width: 0;
+  overflow: hidden;
+  height: calc(var(--rows) * var(--cell) + (var(--rows) - 1) * 1px);
+}
+
+.graph {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  min-width: 0;
+}
+
+.column {
+  display: flex;
+  flex: none;
+  flex-direction: column-reverse; /* the first square is the bottom */
+  gap: 1px;
+  width: var(--cell);
+}
+
+.column span {
+  flex: 1;
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--muted) 22%, transparent);
+}
+
+.scale {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-self: stretch;
+  color: var(--muted);
+  font-size: 11px;
+}

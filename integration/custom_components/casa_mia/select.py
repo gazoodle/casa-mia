@@ -3,6 +3,8 @@ set it, and so can automations (select.select_option, select.select_next)."""
 
 from __future__ import annotations
 
+from typing import Any
+
 import aiohttp
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
@@ -28,7 +30,13 @@ async def async_setup_entry(
 
 
 class CommanderMainSelect(CommanderEntity, SelectEntity):
+    """A commander's main camera. Its `card` attribute is what the Camera Commander card
+    (www/cm-cards.js) draws the commander from: layout, picture, cameras (see the app's
+    CameraDashboard._card); `draft_card` the same for the saved draft. Kept out of the
+    recorder: they only matter now."""
+
     _attr_translation_key = "commander_main"
+    _unrecorded_attributes = frozenset({"card", "draft_card"})
 
     def __init__(
         self, coordinator: CasaMiaCoordinator, entry: ConfigEntry, cid: str
@@ -56,6 +64,13 @@ class CommanderMainSelect(CommanderEntity, SelectEntity):
     @property
     def options(self) -> list[str]:
         return self.commander.get("options") or []
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {
+            "card": self.commander.get("card"),
+            "draft_card": self.commander.get("draft_card"),
+        }
 
     @property
     def current_option(self) -> str | None:

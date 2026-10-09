@@ -1,11 +1,13 @@
 import io
 import json
+import time
 import urllib.error
 import urllib.request
 
 import pytest
 from PIL import Image
 
+from casa_mia import swap
 from casa_mia.ha import HAError
 from casa_mia.modules.camera_dashboard import (
     COMMANDER_SELECT,
@@ -214,6 +216,46 @@ def test_edit_preview_then_deploy(cd, tmp_path):
     assert cd.ha.boards["dashboard-cams"] == {"views": ["old"]}
 
 
+def test_preview_keeps_one_backup_and_reverts_to_it(cd):
+    assert call(cd, "POST", "revert-preview")[0] == 400  # nothing yet
+    call(cd, "POST", "deploy", {"target": "preview"})  # creates it: nothing to keep
+    assert call(cd, "GET", "")[1]["preview_backup"] is None
+    cd.ha.boards["dashboard-cams-preview"] = {"views": ["first"]}
+    call(cd, "POST", "deploy", {"target": "preview"})
+    cd.ha.boards["dashboard-cams-preview"] = {"views": ["second"]}
+    call(cd, "POST", "deploy", {"target": "preview"})
+    assert call(cd, "GET", "")[1]["preview_backup"]
+    assert call(cd, "GET", "backups")[1]["backups"] == []  # the list is live's only
+    assert len(list((cd.dir / "camera-dashboard-backups").glob("*preview*"))) == 1
+    status, view = call(cd, "POST", "revert-preview")
+    assert status == 200 and cd.ha.boards["dashboard-cams-preview"] == {
+        "views": ["second"]
+    }
+    call(cd, "POST", "remove-preview")  # its backup goes with it
+    assert call(cd, "GET", "")[1]["preview_backup"] is None
+
+
+def test_keep_older_versions_setting(cd):
+    assert call(cd, "GET", "")[1]["keep"] == 3
+    folder = cd.dir / "camera-dashboard-backups"
+    folder.mkdir()
+    for n in range(5):  # kept by earlier deploys
+        (folder / f"dashboard-cams-2026100{n}-120000.json").write_text(
+            json.dumps({"url_path": "dashboard-cams", "config": {"views": [n]}})
+        )
+    cd.ha.boards["dashboard-cams"] = {"views": ["now"]}
+    call(cd, "POST", "deploy", {"target": "live"})  # keeps this one, prunes to 3
+    assert len(call(cd, "GET", "backups")[1]["backups"]) == 3
+    assert call(cd, "PUT", "keep", {"keep": 1})[1]["keep"] == 1  # prunes now
+    assert len(call(cd, "GET", "backups")[1]["backups"]) == 1
+    call(cd, "PUT", "keep", {"keep": 0})
+    assert call(cd, "GET", "backups")[1]["backups"] == []
+    cd.ha.boards["dashboard-cams"] = {"views": ["x"]}
+    call(cd, "POST", "deploy", {"target": "live"})  # nothing kept at 0
+    assert call(cd, "GET", "backups")[1]["backups"] == []
+    assert call(cd, "PUT", "keep", {"keep": 6})[0] == 400
+
+
 def test_save_drops_page_controls_with_no_entity(cd):
     _, view = call(cd, "GET", "")
     store = view["store"]
@@ -262,7 +304,6 @@ def test_starts_empty_without_old_files(tmp_path):
 def test_live_previews_and_thumbnails(tmp_path):
     import io
     import threading
-    import time
     from http.server import ThreadingHTTPServer
 
     from PIL import Image
@@ -301,10 +342,13 @@ def test_live_previews_and_thumbnails(tmp_path):
     }
     try:
         status, ctype, body = render(store)
-        assert (status, ctype) == (200, "image/jpeg")
-        assert Image.open(io.BytesIO(body)).size == (640, 360)
-        store["commanders"][0]["width"] = 800  # an edit, not saved
-        assert Image.open(io.BytesIO(render(store)[2])).size == (800, 360)
+        assert (status, ctype) == (200, "image/webp")  # fit: clear borders possible
+        assert Image.open(io.BytesIO(body)).size == (
+            1920,
+            1080,
+        )  # its own size: always the default
+        store["commanders"][0]["width"] = 800  # a size from before: no longer set here
+        assert Image.open(io.BytesIO(render(store)[2])).size == (1920, 1080)
         status, ctype, body = cd.handle("GET", "thumb/camera.a", {}, b"")
         assert (status, ctype) == (200, "image/jpeg") and body[:2] == b"\xff\xd8"
         assert cd.handle("GET", "thumb/..%2Fetc", {}, b"")[0] == 400
@@ -431,17 +475,20 @@ def test_commander_problems():
     store["commanders"][0]["left"]["cameras"].append("camera.gone")
     store["commanders"][0]["main"] = "camera.elsewhere"
     store["commanders"][0]["top"]["size"] = 80
+    store["commanders"][0]["right"].update(unit="px", size=150)  # fine
+    store["commanders"][0]["left"].update(unit="em")
     store["commanders"][0]["bottom"]["cameras"].append("camera.a_low")
     found = " ".join(problems(store))
     assert "shows Bay in both its left and bottom panels" in found
     assert "camera.gone is not one of the cameras" in found
     assert "main camera must be one of its cameras" in found
     assert "top panel: size must be 0-45%" in found
+    assert "left panel: size must be in % or px" in found
+    assert "right panel" not in found
 
 
 def test_integration_chooses_the_main_camera(tmp_path):
     import threading
-    import time
     from http.server import ThreadingHTTPServer
 
     from casa_mia.modules.compositor import Compositor
@@ -458,20 +505,25 @@ def test_integration_chooses_the_main_camera(tmp_path):
     cd.start()
     live.start()
     try:
-        first = cd.health()["commanders"][0]
+        # One reading: the live compositor runs, so a second may differ.
+        health = cd.health()
+        first = health["commanders"][0]
         assert (first["id"], first["options"], first["main"]) == (
             "",
             ["Bay", "Tablet"],
             "Bay",
         )
-        assert cd.health()["commander"] == first  # as an older integration reads it
+        assert health["commander"] == first  # as an older integration reads it
         assert cd.control("commander", b'{"main": "Tablet"}') == 200
         assert cd.health()["commander"]["main"] == "Tablet"
         assert json.loads(state.read_text()) == {"mains": {"": "camera.b"}}
         assert cd.control("commander", b'{"main": "Nope"}') == 400
         base = f"http://127.0.0.1:{live.port}/g/cameras"
         with urllib.request.urlopen(base + ".jpg") as r:
-            assert Image.open(io.BytesIO(r.read())).size == (1000, 500)
+            assert Image.open(io.BytesIO(r.read())).size == (
+                1920,
+                1080,
+            )  # its own size: always the default
         again = CameraDashboard(
             tmp_path, None, lambda: None, live=live, state_path=state
         )
@@ -518,13 +570,15 @@ def test_a_choice_moves_the_preview_too(tmp_path):
     cd.start()
     draft.start()
     try:
-        first = cd.health()["commanders"][0]
+        # One reading: the live compositor runs, so a second may differ.
+        health = cd.health()
+        first = health["commanders"][0]
         assert (first["id"], first["options"], first["main"]) == (
             "",
             ["Bay", "Tablet"],
             "Bay",
         )
-        assert cd.health()["commander"] == first  # as an older integration reads it
+        assert health["commander"] == first  # as an older integration reads it
         assert cd.control("commander", b'{"main": "Tablet"}') == 200
         assert draft.main_camera(draft.cfg.commanders[0]) == "camera.b"
     finally:
@@ -605,19 +659,16 @@ def test_saving_records_each_commander_cameras_shape(tmp_path):
     assert view["store"]["commanders"][0]["aspects"] == {"camera.a_low": 1.3333}
 
 
-def test_security_look_is_a_css_filter_and_follows_the_saved_draft(cd):
+def test_a_store_saved_with_the_old_security_look_still_loads(cd):
+    """The Security look moved to the Camera Commander card (2026.10.3-b76); a store
+    saved before keeps its `look`, which is left alone and means nothing now."""
     _, view = call(cd, "GET", "")
     store = view["store"]
-    store["look"]["css"] = "grayscale(1); background: url(x)"
-    call(cd, "PUT", "", store)
-    assert "not a CSS filter" in " ".join(problems(cd.store))
-    tinted = "grayscale(1) sepia(1) hue-rotate(184deg) saturate(3) brightness(0.80)"
-    store["look"]["css"] = tinted
-    call(cd, "PUT", "", store)
-    assert problems(cd.store) == [] and cd.health()["look_css"] == tinted  # once saved
-    store["look"]["css"] = ""  # saved before looks had a filter: the default's
-    call(cd, "PUT", "", store)
-    assert cd.health()["look_css"].startswith("grayscale(1) sepia(1)")
+    assert "look" not in store
+    store["look"] = {"tint": "#3d7bff", "strength": 3, "darkness": 20, "css": "x"}
+    status, _ = call(cd, "PUT", "", store)
+    assert status == 200 and problems(cd.store) == []
+    assert "look_css" not in cd.health()
 
 
 def test_motion_sensors_by_device_then_by_name():
@@ -792,18 +843,32 @@ def test_several_commanders():
     assert "There must be at least one commander." in problems(store)
 
 
-def test_each_commander_has_its_own_main_camera(tmp_path):
+def test_each_commander_has_its_own_main_camera(tmp_path, monkeypatch):
     from casa_mia.modules.compositor import DRAFT_STORE, Compositor
 
     store = commander_store()
     store["commanders"].append({**store["commanders"][0], "name": "Phone", "id": "p1"})
     (tmp_path / DRAFT_STORE).write_text(json.dumps(store))
     draft = Compositor(tmp_path, "http://127.0.0.1:1", "t", port=0, store=DRAFT_STORE)
-    cd = CameraDashboard(tmp_path, None, lambda: None, draft=draft)
+    cd = CameraDashboard(tmp_path, None, lambda: "10.0.0.2", draft=draft)
     cd.start()
     draft.start()
     try:
         assert [c["id"] for c in cd.health()["commanders"]] == ["", "p1"]
+        # what the Camera Commander card draws it from (its select's `card` attribute)
+        # (no live compositor here: only the draft, from the draft compositor)
+        card = cd.health()["commanders"][1]["draft_card"]
+        assert card["picture"] == f"http://10.0.0.2:{draft.port}/g/phone.mjpg"
+        assert card["live_main"] is True  # the compositor's switch, on by default
+        monkeypatch.setattr(swap, "stamp", lambda: "1")  # the screenshot swap on: off
+        assert cd.health()["commanders"][1]["draft_card"]["live_main"] is False
+        monkeypatch.undo()
+        assert card["cameras"]["camera.b"] == {
+            "title": "Tablet",
+            "live": "/dashboard-cams-preview/cam-tablet",
+            "channels": [["camera.b", 0, 0]],  # each channel, its size not known yet
+        }
+        assert card["layout"]["main_fit"] == "fit" and "left" in card["layout"]
         body = b'{"main": "Tablet", "commander": "p1"}'
         assert cd.control("commander", body) == 200
         first, phone = draft.cfg.commanders
@@ -834,3 +899,26 @@ def test_stacked_panels_keep_each_cameras_shape():
     tiles = left("reverse")
     assert all(t[2] == tiles[0][2] < 200 for t in tiles)
     assert tiles[0][1] >= 0 and tiles[-1][1] + tiles[-1][3] <= 500
+
+
+def test_a_change_to_live_main_tells_the_integration_at_once(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    from casa_mia.modules import guest_login
+
+    fired: list[str] = []
+    monkeypatch.setenv("SUPERVISOR_TOKEN", "t")
+    monkeypatch.setattr(
+        guest_login, "fire_event", lambda t, name, d: fired.append(name)
+    )
+    live = SimpleNamespace(gather=SimpleNamespace(flags={"live_main": True}))
+    cd = CameraDashboard(tmp_path, None, lambda: "10.0.0.2", live=live)  # type: ignore[arg-type]
+    assert cd.check_live_main() and not fired  # the first look: nothing to tell
+    assert not cd.check_live_main()
+    monkeypatch.setattr(swap, "stamp", lambda: "1")  # the swap on: off
+    assert cd.check_live_main() and fired == ["casa_mia_settings_changed"]
+    monkeypatch.setattr(swap, "stamp", lambda: "")
+    live.gather.flags["live_main"] = False  # the swap off, the switch off: still off
+    assert not cd.check_live_main() and len(fired) == 1
+    live.gather.flags["live_main"] = True
+    assert cd.check_live_main() and len(fired) == 2

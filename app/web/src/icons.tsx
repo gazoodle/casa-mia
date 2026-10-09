@@ -80,3 +80,26 @@ export const TabletIcon = () => (
     <path d="M6.5 9h6M6.5 12.5h9M18 12h.01" />
   </svg>
 );
+
+/** A screen with its corners drawn in: a dashboard with Home Assistant's bars taken away. */
+export const KioskModeIcon = () => (
+  <svg {...base}>
+    <rect x="2.5" y="4" width="19" height="14" rx="2" />
+    <path d="M6 8V7h2M18 8V7h-2M6 14v1h2M18 14v1h-2M9 21h6M12 18v3" />
+  </svg>
+);
+
+/** A cog: the Settings page. */
+export const SettingsIcon = ({ size = 26 }: { size?: number }) => (
+  <svg {...base} width={size} height={size}>
+    <circle cx="12" cy="12" r="3" />
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+  </svg>
+);
+
+/** A rubbish bin, small: for removing one thing from a list. */
+export const BinIcon = () => (
+  <svg {...base} width={16} height={16}>
+    <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
+  </svg>
+);

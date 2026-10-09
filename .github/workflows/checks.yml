@@ -16,11 +16,11 @@ jobs:
       matrix:
         check: [lint, format, types, tests]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref || github.sha }}
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           cache: pip
@@ -39,18 +39,26 @@ jobs:
     name: Frontend
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref || github.sha }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: app/web/package-lock.json
+          cache-dependency-path: |
+            app/web/package-lock.json
+            integration/cards/package-lock.json
       - run: npm ci
         working-directory: app/web
       - run: npm run build
         working-directory: app/web
+      - run: npm ci
+        working-directory: integration/cards
+      - run: npm run build
+        working-directory: integration/cards
+      - run: npm test
+        working-directory: integration/cards
   containers:
     name: Container / ${{ matrix.arch }}
     strategy:
@@ -65,11 +73,11 @@ jobs:
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref || github.sha }}
       - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: app/Dockerfile.release
@@ -81,7 +89,7 @@ jobs:
     name: Workflow syntax
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref || github.sha }}
       - name: Validate GitHub Actions workflows

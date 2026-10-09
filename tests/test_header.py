@@ -6,7 +6,7 @@ import pytest
 from PIL import Image
 
 from casa_mia import header
-from casa_mia.modules.guest_page import render_welcome
+from casa_mia.modules.guest_login import render_welcome
 
 
 @pytest.fixture(autouse=True)

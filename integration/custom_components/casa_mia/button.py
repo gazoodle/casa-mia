@@ -1,4 +1,6 @@
-"""Buttons: force a firmware check now; reset the FONA's Arduino."""
+"""Buttons: force a firmware check now; reset the FONA's Arduino; restart the camera
+compositor, restart its gatherer alone, or purge its cache (shared by the live and
+preview engines)."""
 
 from __future__ import annotations
 
@@ -23,6 +25,16 @@ async def async_setup_entry(
             [
                 GitProxyCheckButton(coordinator, entry),
                 FonaResetButton(coordinator, entry),
+                CompositorButton(coordinator, entry, "restart", "/compositor/restart"),
+                CompositorButton(
+                    coordinator, entry, "purge", "/compositor/cache/purge"
+                ),
+                CompositorButton(
+                    coordinator,
+                    entry,
+                    "gatherer_restart",
+                    "/compositor/gatherer/restart",
+                ),
             ],
         )
     )
@@ -59,4 +71,32 @@ class FonaResetButton(CasaMiaEntity, ButtonEntity):
         except aiohttp.ClientError as exc:
             raise HomeAssistantError(
                 f"Not reset (is Phone and SMS switched on in the app?): {exc}"
+            ) from exc
+
+
+class CompositorButton(CasaMiaEntity, ButtonEntity):
+    """Restart the camera compositor (both engines, live and preview); restart its
+    gatherer alone (every stream read again and every failure forgotten, the pictures
+    kept); or purge its cache: every picture fetched and drawn afresh, as wanted."""
+
+    _module = "compositor"
+
+    def __init__(
+        self,
+        coordinator: CasaMiaCoordinator,
+        entry: ConfigEntry,
+        action: str,
+        path: str,
+    ) -> None:
+        super().__init__(coordinator, entry)
+        self._attr_translation_key = f"compositor_{action}"
+        self._attr_unique_id = f"{entry.entry_id}_compositor_{action}"
+        self._path = path
+
+    async def async_press(self) -> None:
+        try:
+            await async_post(self.hass, self.coordinator.url, self._path)
+        except aiohttp.ClientError as exc:
+            raise HomeAssistantError(
+                f"Not done (is the camera compositor switched on in the app?): {exc}"
             ) from exc

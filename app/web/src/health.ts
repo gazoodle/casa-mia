@@ -1,6 +1,6 @@
 /** The app's /health, polled. Relative URL: under ingress it resolves against <base href>. */
 
-import { useEffect, useState } from "react";
+import { createContext, useEffect, useState } from "react";
 
 export type ModuleHealth = { state?: string; error?: string | null } & Record<string, unknown>;
 
@@ -10,8 +10,12 @@ export type Health = {
   api: number;
   integration_url?: string;
   swap?: string;
+  developer?: boolean; // the developer_mode app option
   modules: Record<string, ModuleHealth>;
 };
+
+/** Developer mode (the app option): its debugging aids show only while it is on. */
+export const Developer = createContext(false);
 
 const POLL_MS = 5000;
 /** The app version (and screenshot swap) this page was loaded from. An open page outlives

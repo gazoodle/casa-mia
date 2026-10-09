@@ -1,0 +1,78 @@
+{
+  "about": "kiosk-mode's (github.com/NemesisRE/kiosk-mode) on/off options that the Kiosk mode page has controls for, grouped as it shows them. Read by modules/kiosk_mode.py (what the page manages, the rest stays YAML) and the admin page (labels, help). Any other option, or a template in place of on, is kept in the page's YAML box.",
+  "groups": [
+    {
+      "title": "Screen",
+      "options": {
+        "hide_header": { "label": "Hide the header", "help": "The bar along the top: title, view tabs and its buttons." },
+        "hide_sidebar": { "label": "Hide the sidebar", "help": "The menu down the left." },
+        "hide_menubutton": { "label": "Hide the menu button", "help": "The header's button that opens the sidebar. Without it (or the header) a browser has no way to the sidebar." }
+      }
+    },
+    {
+      "title": "Header buttons",
+      "options": {
+        "hide_search": { "label": "Hide search" },
+        "hide_assistant": { "label": "Hide Assist", "help": "The voice assistant's button." },
+        "hide_overflow": { "label": "Hide the ⋮ menu", "help": "The header's overflow menu, top right." },
+        "block_overflow": { "label": "Block the ⋮ menu", "help": "It shows but does nothing when pressed." },
+        "hide_edit_dashboard": { "label": "Hide Edit dashboard", "help": "In the ⋮ menu." },
+        "hide_add_to_home_assistant": { "label": "Hide Add to Home Assistant", "help": "In the ⋮ menu." },
+        "hide_refresh": { "label": "Hide Refresh", "help": "In the ⋮ menu of a YAML dashboard." },
+        "hide_unused_entities": { "label": "Hide Unused entities", "help": "In the ⋮ menu of a YAML dashboard." },
+        "hide_reload_resources": { "label": "Hide Reload resources", "help": "In the ⋮ menu of a YAML dashboard." }
+      }
+    },
+    {
+      "title": "Sidebar items",
+      "options": {
+        "hide_settings": { "label": "Hide Settings" },
+        "hide_notifications": { "label": "Hide Notifications" },
+        "hide_account": { "label": "Hide the account", "help": "The user's own page (profile)." }
+      }
+    },
+    {
+      "title": "More-info dialogs",
+      "options": {
+        "hide_dialog_header_breadcrumb_navigation": { "label": "Hide the breadcrumb", "help": "The area and device path over the dialog's title." },
+        "hide_dialog_header_history": { "label": "Hide the History button" },
+        "hide_dialog_header_add_to": { "label": "Hide the Add to button" },
+        "hide_dialog_header_settings": { "label": "Hide the Settings button", "help": "Admins only see it anyway." },
+        "hide_dialog_header_overflow": { "label": "Hide the dialog's ⋮ menu", "help": "Admins only see it anyway." },
+        "hide_dialog_header_action_items": { "label": "Hide every header button" },
+        "hide_dialog_history": { "label": "Hide History" },
+        "hide_dialog_history_show_more": { "label": "Hide History's Show more" },
+        "hide_dialog_logbook": { "label": "Hide Logbook" },
+        "hide_dialog_logbook_show_more": { "label": "Hide Logbook's Show more" }
+      }
+    },
+    {
+      "title": "More-info controls",
+      "options": {
+        "hide_dialog_light_actions": { "label": "Lights: all controls" },
+        "hide_dialog_light_control_actions": { "label": "Lights: on, off and brightness" },
+        "hide_dialog_light_color_actions": { "label": "Lights: favourite colours" },
+        "hide_dialog_light_settings_actions": { "label": "Lights: settings" },
+        "hide_dialog_climate_actions": { "label": "Climate: all controls" },
+        "hide_dialog_climate_temperature_actions": { "label": "Climate: temperature" },
+        "hide_dialog_climate_settings_actions": { "label": "Climate: mode and preset" },
+        "hide_dialog_media_actions": { "label": "Media players" },
+        "hide_dialog_camera_actions": { "label": "Cameras" },
+        "hide_dialog_timer_actions": { "label": "Timers" },
+        "hide_dialog_update_actions": { "label": "Updates" }
+      }
+    },
+    {
+      "title": "Touch and mouse",
+      "options": {
+        "block_context_menu": { "label": "Block the long-press menu", "help": "The right-click (or press and hold) menu." },
+        "block_mouse": { "label": "Block all touch and mouse", "help": "Nothing can be pressed at all, and only ?disable_km in the address undoes it. For a display nobody touches.", "danger": true }
+      }
+    }
+  ],
+  "scopes": {
+    "everyone": { "title": "Everyone", "help": "Unless one of the rows below matches: then only that row counts." },
+    "non_admin_settings": { "title": "Non-admins", "help": "Every user who is not an administrator: guests, tablets, family." },
+    "admin_settings": { "title": "Admins", "help": "Every administrator." }
+  }
+}

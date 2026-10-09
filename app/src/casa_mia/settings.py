@@ -1,0 +1,161 @@
+"""Settings that have no other home, set on the admin page's Settings page (the cog by the
+house photo's pencil). The integration gets them in /health and hands them to the dashboard
+cards (its websocket command casa_mia/settings/subscribe; the developer sections only in
+developer mode, the app option). A save fires casa_mia_settings_changed, so the integration
+polls at once and an open Tablet Layout shows the change within a second or two.
+
+Admin API (/api/settings/): GET "" the values, PUT "" a change (known keys only, each of
+its default's type)."""
+
+from __future__ import annotations
+
+import json
+import logging
+import os
+import threading
+from pathlib import Path
+from typing import Any
+
+_LOGGER = logging.getLogger(__name__)
+
+# The app's config folder (backed up with the app); tests point it elsewhere.
+FOLDER = Path("/config")
+# Every setting, by section, with its default (which also gives its type).
+DEFAULTS: dict[str, dict[str, Any]] = {
+    # The dashboard helper scripts the integration loads into every HA page (its www/);
+    # a change reloads the integration, which loads or drops them.
+    "helpers": {
+        "streams": True,  # cm-streams.js: keep camera pictures live
+        "back": False,  # cm-back.js: #BACK goes back
+        "refresh": False,  # cm-refresh.js: reload a dashboard when it is saved
+    },
+    "tablet_view": {
+        "identify_panels": False,  # an outline round each panel
+        "identify_outline": "1px solid red",  # CSS: the outline drawn
+        "show_size": False,  # the view's size, in a label top right
+    },
+}
+# Sections that are debugging aids: shown on the page, and given to the cards, only in
+# developer mode (the developer_mode app option).
+DEVELOPER_SECTIONS = {"tablet_view"}
+DEVELOPER = False
+MAX_TEXT = 100
+CHANGED_EVENT = "casa_mia_settings_changed"  # the integration polls at once
+
+Response = tuple[int, str, bytes]
+
+
+def _store() -> Path:
+    return FOLDER / "settings.json"
+
+
+def _clean(saved: Any) -> dict[str, dict[str, Any]]:
+    """Every setting, the saved value where it is the right type, else the default."""
+    saved = saved if isinstance(saved, dict) else {}
+    out = {}
+    for section, defaults in DEFAULTS.items():
+        have = saved.get(section)
+        have = have if isinstance(have, dict) else {}
+        out[section] = {
+            key: have[key] if type(have.get(key)) is type(default) else default
+            for key, default in defaults.items()
+        }
+    return out
+
+
+def values() -> dict[str, dict[str, Any]]:
+    try:
+        saved = json.loads(_store().read_text())
+    except (OSError, ValueError):
+        saved = {}
+    return _clean(saved)
+
+
+def for_cards() -> dict[str, dict[str, Any]]:
+    """The values the cards get: a developer section's defaults out of developer mode."""
+    return {
+        section: DEFAULTS[section]
+        if section in DEVELOPER_SECTIONS and not DEVELOPER
+        else settings
+        for section, settings in values().items()
+    }
+
+
+# The helpers by the file the integration names in /health (?helpers=).
+HELPER_FILES = {
+    "cm-streams.js": "streams",
+    "cm-back.js": "back",
+    "cm-refresh.js": "refresh",
+}
+
+
+def adopt_helpers(files: set[str]) -> None:
+    """Until helpers are set here, take the ones the integration loads: an integration from
+    before 2026.10.3-b28 chose them in its own options, so the first /health after the
+    update carries the owner's choice over."""
+    try:
+        saved = json.loads(_store().read_text())
+    except (OSError, ValueError):
+        saved = {}
+    if isinstance(saved, dict) and "helpers" in saved:
+        return
+    current = _clean(saved)
+    current["helpers"] = {k: f in files for f, k in HELPER_FILES.items()}
+    try:
+        _write(current)
+    except OSError as exc:
+        _LOGGER.warning("dashboard helpers not saved: %s", exc)
+        return
+    _LOGGER.info(
+        "dashboard helpers taken from the integration's options: %s",
+        ", ".join(sorted(files)) or "none",
+    )
+
+
+def _write(current: dict) -> None:
+    tmp = _store().with_suffix(".tmp")
+    tmp.write_text(json.dumps(current, indent=2))
+    tmp.replace(_store())
+
+
+def _json(status: int, data: dict) -> Response:
+    return status, "application/json", json.dumps(data).encode()
+
+
+def _save(body: bytes) -> Response:
+    try:
+        change = json.loads(body or b"{}")
+    except ValueError:
+        return _json(400, {"error": "Not JSON."})
+    current = values()
+    for section, settings in change.items() if isinstance(change, dict) else []:
+        for key, value in settings.items() if isinstance(settings, dict) else []:
+            default = DEFAULTS.get(section, {}).get(key)
+            if default is None or type(value) is not type(default):
+                return _json(
+                    400, {"error": f"Unknown setting or wrong type: {section}.{key}"}
+                )
+            if isinstance(value, str) and len(value) > MAX_TEXT:
+                return _json(
+                    400, {"error": f"{section}.{key}: at most {MAX_TEXT} characters."}
+                )
+            if current[section][key] != value:
+                _LOGGER.info("setting %s.%s: %r", section, key, value)
+            current[section][key] = value
+    _write(current)
+    if token := os.environ.get("SUPERVISOR_TOKEN"):
+        from .modules.guest_login import fire_event
+
+        threading.Thread(
+            target=fire_event, args=(token, CHANGED_EVENT, {}), daemon=True
+        ).start()
+    return _json(200, current)
+
+
+def handle(method: str, rest: str, query: dict, body: bytes) -> Response:
+    rest = rest.strip("/")
+    if method == "GET" and rest == "":
+        return _json(200, values())
+    if method == "PUT" and rest == "":
+        return _save(body)
+    return _json(404, {"error": "Unknown request."})

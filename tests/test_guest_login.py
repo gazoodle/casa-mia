@@ -1,6 +1,5 @@
 import base64
 import json
-import threading
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -33,12 +32,8 @@ class FakeHA(BaseHTTPRequestHandler):
 
 
 @pytest.fixture
-def ha():
-    server = ThreadingHTTPServer(("127.0.0.1", 0), FakeHA)
-    threading.Thread(target=server.serve_forever, daemon=True).start()
-    yield f"http://127.0.0.1:{server.server_port}"
-    server.shutdown()
-    server.server_close()
+def ha(serve):
+    return serve(ThreadingHTTPServer(("127.0.0.1", 0), FakeHA))
 
 
 def make(ha, accounts=None, **kw):
@@ -340,7 +335,7 @@ def test_printed_qr_ids_never_logged(caplog):
 
 def test_the_welcome_page_names_the_house(monkeypatch):
     from casa_mia import header
-    from casa_mia.modules.guest_page import render_welcome
+    from casa_mia.modules.guest_login import render_welcome
 
     monkeypatch.setattr(header, "HOUSE", "Villa Rosa")
     assert GuestLogin([], {}).welcome[0] == "Welcome to Villa Rosa"

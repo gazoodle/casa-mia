@@ -25,11 +25,19 @@
   background-repeat: no-repeat;
 }
 
-.heroEdit {
+/* The cog (Settings) and the pencil (the photo), top right. */
+.heroButtons {
   position: absolute;
   top: 12px;
   right: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+.heroEdit {
+  box-sizing: border-box;
   display: grid;
+  text-decoration: none;
   place-items: center;
   width: 34px;
   height: 34px;

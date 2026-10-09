@@ -1,7 +1,7 @@
 // Casa Mia: reload a dashboard when it changes. Listens on HA's websocket for
 // lovelace_updated and reloads the page when the dashboard being shown was changed (the
 // home dashboard too), but not while it is being edited. Wall tablets pick up a deployed
-// dashboard this way. Loaded by the Casa Mia integration (its options switch it on).
+// dashboard this way. Loaded by the Casa Mia integration (switched on on the Casa Mia panel's Settings page).
 // Brought in from auto_refresh.js 0.0.5, unchanged but for this note and the banner.
 
 function canReload() {

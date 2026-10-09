@@ -1,0 +1,18 @@
+{
+  "name": "casa-mia-cards",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit && vite build",
+    "dev": "vite build --watch",
+    "test": "node --experimental-strip-types --no-warnings --test src/layout.test.ts src/sizing.test.ts src/route.test.ts src/tablet.test.ts"
+  },
+  "dependencies": {
+    "lit": "^3.3.3"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vite": "^8.3.2"
+  }
+}

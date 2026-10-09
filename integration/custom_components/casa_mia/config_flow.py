@@ -16,13 +16,12 @@ from homeassistant.config_entries import (
 from homeassistant.const import CONF_URL
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.selector import (
-    BooleanSelector,
     TextSelector,
     TextSelectorConfig,
     TextSelectorType,
 )
 
-from .const import CONF_ALARM_CODE, DOMAIN, SCRIPTS
+from .const import CONF_ALARM_CODE, DOMAIN
 from .coordinator import async_fetch_health
 
 APP_PORT = 8780  # the app's local API (app/src/casa_mia/server.py)
@@ -91,8 +90,8 @@ class CasaMiaConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class CasaMiaOptionsFlow(OptionsFlow):
-    """The alarm code, typed hidden (read at each arm/disarm), and the dashboard helper
-    scripts to load. Saving reloads the integration, which applies the scripts."""
+    """The alarm code, typed hidden (read at each arm/disarm). The dashboard helpers
+    moved to the app's Settings page in 2026.10.3-b28."""
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -106,12 +105,6 @@ class CasaMiaOptionsFlow(OptionsFlow):
                 vol.Optional(CONF_ALARM_CODE): TextSelector(
                     TextSelectorConfig(type=TextSelectorType.PASSWORD)
                 ),
-                **{
-                    vol.Required(
-                        key, default=self.config_entry.options.get(key, default)
-                    ): BooleanSelector()
-                    for key, (_, default) in SCRIPTS.items()
-                },
             }
         )
         return self.async_show_form(

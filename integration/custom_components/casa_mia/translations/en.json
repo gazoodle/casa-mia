@@ -17,17 +17,9 @@
     "step": {
       "init": {
         "title": "Casa Mia",
-        "description": "The code the alarm panel asks for when arming and disarming (until one is set, the panel refuses both), and the dashboard helpers Casa Mia loads into Home Assistant.",
+        "description": "The code the alarm panel asks for when arming and disarming (until one is set, the panel refuses both). The dashboard helpers are on the Casa Mia panel's Settings page (the cog by the house photo).",
         "data": {
-          "alarm_code": "Alarm code",
-          "script_streams": "Keep camera pictures live (and the Security look)",
-          "script_back": "Back button helper (#BACK goes back)",
-          "script_refresh": "Reload dashboards when they change"
-        },
-        "data_description": {
-          "script_streams": "Stops the camera streams of pages not on screen and restarts those shown, so a page you come back to has a live picture; and gives the camera pictures the Security look while the Camera Commander's Security look switch is on.",
-          "script_back": "The camera dashboard's Back buttons need it. Switch it on once any copy added by hand (nav_back_helper.js among the dashboard resources) is removed, or Back goes back twice.",
-          "script_refresh": "Wall tablets show a deployed dashboard without a reload. Replaces auto_refresh.js among the dashboard resources: remove that one when switching this on."
+          "alarm_code": "Alarm code"
         }
       }
     }
@@ -37,15 +29,38 @@
     "alarm_wrong_code": { "message": "Wrong alarm code." }
   },
   "entity": {
-    "switch": { "access": { "name": "Access" }, "security_look": { "name": "Security look" }, "track_motion": { "name": "Track motion" } },
+    "switch": {
+      "access": { "name": "Access" },
+      "track_motion": { "name": "Track motion" },
+      "pipeline_gatherer": { "name": "Gatherer" },
+      "pipeline_live_generator": { "name": "Live generator" },
+      "pipeline_live_server": { "name": "Live server" },
+      "pipeline_preview_generator": { "name": "Preview generator" },
+      "pipeline_preview_server": { "name": "Preview server" },
+      "live_main": { "name": "Live main camera" }
+    },
+    "number": {
+      "gatherer_pace": { "name": "Gatherer pace" },
+      "live_generator_pace": { "name": "Live generator pace" },
+      "preview_generator_pace": { "name": "Preview generator pace" },
+      "survey_pace": { "name": "Survey pause" },
+      "survey_at_once": { "name": "Survey streams at once" },
+      "freshness": { "name": "Picture age allowed" }
+    },
     "select": { "commander_main": { "name": "Main camera" } },
     "event": {
       "login": { "name": "Login", "state_attributes": { "event_type": { "state": { "login": "Login" } } } },
       "fona_call": { "name": "Call", "state_attributes": { "event_type": { "state": { "authorised": "Authorised", "intrusion": "Intrusion" } } } },
       "fona_text": { "name": "Text", "state_attributes": { "event_type": { "state": { "authorised": "Authorised", "intrusion": "Intrusion" } } } }
     },
-    "binary_sensor": { "gitproxy_downloading": { "name": "Downloading firmware" } },
-    "button": { "gitproxy_check": { "name": "Force firmware check" }, "fona_reset": { "name": "Reset" } },
+    "binary_sensor": { "gitproxy_downloading": { "name": "Downloading firmware" }, "swap": { "name": "Swap" } },
+    "button": {
+      "gitproxy_check": { "name": "Force firmware check" },
+      "fona_reset": { "name": "Reset" },
+      "compositor_restart": { "name": "Restart" },
+      "compositor_purge": { "name": "Purge cache" },
+      "compositor_gatherer_restart": { "name": "Restart gatherer" }
+    },
     "sensor": {
       "app_version": { "name": "App version" },
       "fona_state": {
@@ -53,6 +68,22 @@
         "state": { "connected": "Connected", "starting": "Starting", "offline": "Offline", "disabled": "Disabled" }
       },
       "fona_signal": { "name": "Signal" },
+      "cache_pictures": { "name": "Cache pictures" },
+      "cache_size": { "name": "Cache size" },
+      "compositor_health": {
+        "name": "Health",
+        "state": {
+          "go2rtc_down": "go2rtc out of reach",
+          "streams_failing": "Streams failing",
+          "paused": "Gatherer paused",
+          "cpu_gathering": "CPU: gathering",
+          "cpu_drawing": "CPU: drawing",
+          "drawing_behind": "Drawing behind",
+          "network": "Network limited",
+          "idle": "Nothing watching",
+          "fine": "Fine"
+        }
+      },
       "fona_signal_quality": {
         "name": "Signal quality",
         "state": { "excellent": "Excellent", "good": "Good", "ok": "OK", "bad": "Bad", "terrible": "Terrible" }

@@ -5,8 +5,13 @@ from http.server import ThreadingHTTPServer
 import pytest
 
 from casa_mia.ha import HAError
-from casa_mia.modules.guest_api import GuestAPI, empty_store, load_store, runtime
-from casa_mia.modules.guest_login import GuestLogin
+from casa_mia.modules.guest_login import (
+    GuestAPI,
+    GuestLogin,
+    empty_store,
+    load_store,
+    runtime,
+)
 from test_guest_login import FakeHA as FakeLogin  # HA's /auth/login_flow
 
 
@@ -207,7 +212,7 @@ def test_hosts_lists_every_name_once(api):
 
 
 def test_remember_caches_the_first_answer():
-    from casa_mia.modules.guest_api import remember
+    from casa_mia.modules.guest_login import remember
 
     answers = iter([None, "a", "b"])
     cached = remember(lambda: next(answers))
