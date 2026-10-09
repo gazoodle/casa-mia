@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**Start of every session: read `HANDOVER.md`** (where the work stands, the camera modules, lessons learned, what's next). It stands in for old transcripts. **Keep it current:** when a piece of work ends, update its "Where things stand" and "What happened", compressing old history so it stays short.
+
 ## RULE MINUS ONE: NO REAL PRIVATE DATA IN THE REPO. EVER.
 
 **This repo is public.** Nothing that came from the owner's real life may be committed: not in code, comments, docstrings, tests, fixtures, `app/CHANGELOG.md`, docs, or **commit messages**. That means real people's names, phone numbers, the house's name, addresses and IPs, camera and room names, tablet names, guest slugs, tokens, serials, anything in `swap.json`, `people.json` or the box's config. **A real example the owner typed in chat is still real.**

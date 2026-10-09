@@ -1,192 +1,174 @@
 # Handover: Casa Mia, for agents joining the work
 
-This is where the project stands and how the work is done here, as of 2026-10-09 (`dev` at
-2026.10.4-b2). Read it first. Then read **CLAUDE.md in full**: its rules apply to every
-agent, Codex included, and `AGENTS.md` sends you there too. Where this file and CLAUDE.md
-disagree, CLAUDE.md wins.
+Where the project stands and how the work is done here, as of 2026-10-09 (`dev` at
+2026.10.4-b20, 22 commits ahead of `origin/dev`). **Read this at the start of every
+session**, then CLAUDE.md in full; where they disagree, CLAUDE.md wins. It replaces
+re-reading old transcripts: the history below is all a new session needs.
 
-Do not commit this file unless the owner asks you to. The repo is public, so this file
-holds no private details either.
+**Keep it current.** When a piece of work ends (a commit the owner asked for, a phase,
+a session), update "Where things stand" and add a line to "What happened". Replace, don't
+append: compress old history into a line, so this file stays under about 250 lines. A
+rule the owner gives that every session needs goes into CLAUDE.md (or here, under "Lessons
+learned", when it's about this project's working practice). The repo is public: no
+private details here either (RULE MINUS ONE).
 
 ## What Casa Mia is
 
-A Home Assistant **app** (never call it an "add-on") and an **integration**, released
-together under one version, from one public repo (`gazoodle/casa-mia`). It is the owner's
-house system, generalised for others. The modules, each switched on in the app's
-Configuration tab:
+A Home Assistant **app** (never "add-on") and an **integration**, released together under
+one version from one public repo (`gazoodle/casa-mia`). It is the owner's house system,
+generalised for others. Modules, each switched on in the app's Configuration tab (option
+keys in brackets; some keys keep older names, see "Lessons learned"):
 
-- **Tablet Layout:** a custom Lovelace view type (`custom:casa-mia-tablet-layout`), built on
-  HA's Sections view. It is locked to the screen's size and has edge panels, layers, and an
-  edit mode with chips, dimension lines and padlocks. Its guide is `docs/tablet-layout.md`.
-- **Camera Commander card and camera compositor:** the compositor gathers camera streams
-  through HA's go2rtc and draws one live picture per commander, sized exactly for the card
-  showing it. It has health verdicts, graphs and self-recovery. It lives in
-  `app/src/casa_mia/modules/compositor/`, a layered package.
-- **Camera Dashboard:** generates the camera dashboards. It is being split into the
-  Commander and Auto Dashboards (see the backlog).
-- **Guest login:** guests sign in with a QR code to a landing dashboard
-  (`modules/guest_login/`).
-- **Kiosk Satellites:** finds the wall tablets running Kiosk Satellite, an Android kiosk app
-  with a REST API documented at kiosksatellite.com/docs/remote-api/. It keeps a login to
-  each tablet, backs them up and proxies their admin pages (`modules/kiosks/`).
-- **Kiosk mode, firmware server, people, phone and SMS (FONA, a GSM gateway, mission
-  critical), alarm panel** (integration only), and **dashboard helpers** (small frontend
-  scripts).
+- **Tablet Layout:** a custom Lovelace view type on HA's Sections view, locked to the
+  screen's size, with edge panels, layers and an edit mode. Guide: `docs/tablet-layout.md`.
+- **Cameras, Camera Commander, Auto Dashboards** (`compositor_enabled`,
+  `camera_dashboard_enabled`): see "The camera modules" below.
+- **Guest login** (`guest_login_enabled`): guests sign in with a QR code to a landing
+  dashboard. Security is by hiding (kiosk-mode), not enforcement; the docs say so.
+- **Kiosk Satellites** (`kiosks_enabled`): the wall tablets running Kiosk Satellite (REST
+  API at kiosksatellite.com/docs/remote-api/): login, backups, proxied admin pages, and
+  **Run everywhere** (its Quick Controls sent to every tablet in turn; icons and words are
+  the KS author's, credited in the app and docs).
+- **Phone and SMS** (`fona_enabled`, FONA GSM gateway, mission critical), **git proxy**,
+  **alarm panel** (integration only), **kiosk mode**, **firmware server**, **people**,
+  **dashboard helpers**.
 
-Code map:
+Each module's maturity (Skeleton … Released) is defined once in
+`app/src/casa_mia/maturity.json`; `tools/maturity.py --update` writes it into the option
+descriptions and the docs. A module's entry can name its `option` (or `""` for none).
 
 | Path | What it holds |
 |---|---|
-| `app/src/casa_mia/` | The app (Python 3.11). |
-| `app/web/` | The admin UI (React), built into the app. |
+| `app/src/casa_mia/` | The app (Python 3.11); `modules/` one package per module. |
+| `app/web/` | The admin UI (React), built into `app/src/casa_mia/web/`. |
 | `integration/custom_components/casa_mia/` | The integration. |
-| `integration/cards/` | The Lit and TypeScript cards and view, built into `www/cm-cards.js`. |
-| `docs/` | The user docs. |
-| `docs/architecture.md` | The charter. |
-| `BACKLOG.md` | Planned work. |
+| `integration/cards/` | Lit cards and the Tablet Layout view, built into `www/cm-cards.js`. |
+| `docs/` | User docs: `README.md`, `applets/` (one page per module), `architecture.md` (charter). |
+| `BACKLOG.md` | Planned work, each item dated "asked <date>". |
+| `BACKSTORY.md` | The owner's own notes on why this exists. Theirs to edit. |
+
+## The camera modules (split in b9–b18)
+
+The old Camera Dashboard was split three ways. Option keys didn't change; labels did:
+`compositor_enabled` is shown as **Camera Commander**, `camera_dashboard_enabled` as
+**Auto Dashboards**, and Cameras is on when either is (`cameras_on = commander_on or
+dashboards_on`).
+
+- **Cameras** (`modules/cameras.py`, `cameras.json`): the house's cameras, each one's
+  channels, motion sensor, motion detection switch (UniFi's "Motion", Kiosk Satellite's
+  "Screensaver motion detection"), thumbnails and a live view dialog. Saved at once.
+- **Camera Commander** (`modules/commander/`: store.Base → live.Live → api.Commander,
+  `commanders.json`): the commanders, saved straight to live (no draft); writes
+  `compositor.json` for the compositor. The page (b20): a list to pick one, its preview
+  sticky under the Save bar, settings scrolling beneath. Track motion has **Never takes
+  over** (`motion_ignore`): cameras whose motion marks the dot but never switches.
+- **Compositor** (`modules/compositor/`, layered: Generator → PictureServer → Compositor;
+  gatherer Cache → Fetcher → Survey → Monitor → Gatherer): draws each commander as one
+  picture from go2rtc streams.
+- **Auto Dashboards** (`modules/auto_dashboards/`: Base → Backups → Deploys →
+  AutoDashboards): a draft that copies cameras, commanders and the compositor host from
+  the other pages, previewed and deployed as the camera dashboard.
+- **Integration:** each commander is a device with a Main camera select (attributes
+  `card`, and `motion`: camera → sensor) and a Track motion switch; `motion.py` is the
+  tracker. Commander health is under `modules["commander"]`; the device keeps its old
+  identifier (`DEVICE_KEYS` in `sensor.py`). POSTs go to `/commander/main` and
+  `/commander/motion`; the old `/camera-dashboard/` paths still route there.
+- **The Camera Commander card** draws the motion dot itself in CSS (`motion.ts`), with
+  options for colour, size, pulse, linger and corner. `tap_main` defaults to more-info.
+  The card editor strips defaults, so a saved card holds only what was changed.
 
 ## The rules that bite (details in CLAUDE.md)
 
-- **RULE MINUS ONE: no real private data in the repo, ever.** That covers code, tests,
-  changelog, docs and commit messages. Invent examples instead: Oak Tree, Barn, 07700
-  900xxx, 192.0.2.x. Before every commit, read the staged diff and the message. The house's
-  real name and anything in `swap.json`, `people.json` or the box's config are off limits.
-  "Rosa Place" is the screenshot stand-in name.
-- **RULE ZERO: bump the version first.**
-  - Before changing `app/` or `integration/`, if HEAD holds the current version, run
-    `.venv/bin/python tools/versioning.py bump`. Then write the changelog lines under the
-    new heading in `app/CHANGELOG.md`.
-  - Each commit that changes the app needs its own build number. Today a second commit
-    without a new bump made `tools/fake_git_host.py` bump to b2 by itself (commit
-    `4a15ae8`). That is the safety net firing, which counts as a failure.
-  - After changing the integration, run `.venv/bin/python tools/component_versions.py --update`.
-  - After changing card sources, run `tools/build_cards`. After changing the admin UI, run
-    `tools/build_web`. The built files are committed, and tests fail when they are stale.
-- **RULE ONE: tokensave for exploring code** (Claude's MCP tools). If you don't have
-  tokensave, use your normal tools, but read before you write.
-- **RULE TWO: the log records everything.** INFO for every action and event, DEBUG for raw
-  traffic, never secrets. Use `logging.getLogger(__name__)`.
-- **RULE THREE: no source file over 800 lines**, enforced by `tests/test_file_sizes.py`.
-  - The files already over are listed in `OVER` at their current size. They may shrink but
-    never grow. To work in one, split it first.
-  - A split module becomes a **package**, never sibling files. It gets `common.py` for
-    constants, defined once, and its classes become layers, each extending the one below,
-    with no upward calls. Each part has its own `_LOGGER`, and `__init__.py` re-exports.
-  - The models are `modules/compositor/` and `modules/kiosks/` (Store → Finder → Backups →
-    Commands → Kiosks).
-  - A split is a separate commit from any feature, with code moved verbatim.
-- **Tests:** `.venv/bin/pytest -q` must run in under 15 s (about 12 s now, 257 tests). Don't
-  use real sleeps, and run servers through the `serve` fixture. Also run
-  `.venv/bin/ruff check .`, `ruff format`, and `.venv/bin/pyright`.
-- **Git:**
-  - Work on `dev`. `main` is protected.
-  - Commit **only when asked**, gated as
-    `if .venv/bin/pytest -q > scratch/pt.txt; then git commit ...`.
-  - Push only when asked (`git push origin dev`).
-  - **Never run `tools/release.py` or tag**: the owner does releases.
-- **The live HA box:** don't change its config without agreement. Reading its logs is fine.
-  Never print the tokens in the app's `kiosks.json`.
+- **RULE MINUS ONE: no real private data**, anywhere, commit messages included. Invent:
+  Oak Tree, Barn, 07700 900xxx, 192.0.2.x. "Rosa Place" is the screenshot stand-in for
+  the house. Addresses or passwords the owner pastes in chat (a tablet to scrape, a test
+  VM) stay in the scratchpad, never the repo. Scan the staged diff and message first.
+- **RULE ZERO: bump first** (`tools/versioning.py bump` when HEAD holds the current
+  version), changelog lines under the new heading, `tools/component_versions.py --update`
+  when the integration changed, `tools/build_web` / `tools/build_cards` after UI sources.
+- **RULE ONE: tokensave** for code. **RULE TWO: log everything** (never secrets).
+- **RULE THREE: no file over 800 lines.** `OVER` in `tests/test_file_sizes.py` is now
+  empty. Split into a layered package, in its own commit, before growing a file past it.
+- **Tests:** `.venv/bin/pytest -q`, 269 tests in about 3 s (Codex's optimisation); must
+  stay under 15 s.
+- **Git:** work on `dev`. Commit only when asked, gated:
+  `if .venv/bin/pytest -q > $SCRATCH/pt.txt; then git commit ...`. Push only when asked
+  (`git push origin dev`). Never run `tools/release.py` or tag.
+- **The live HA box:** read its logs and config shares freely; change nothing without
+  agreement. Never print tokens from `kiosks.json`.
+
+## Lessons learned (working practice not in CLAUDE.md)
+
+- **Codex shares this checkout.** Before bumping, check `git status`: if Codex has an
+  uncommitted bump, don't bump over it; if Codex has uncommitted work, stage only your own
+  files (`git add -A -- . ':!<their paths>'`).
+- **Confirm a feature before building** when the owner says so: restate it, with the
+  choices you'd make, and wait. They review UI on the box before the next iteration, so
+  ask for nothing else and change nothing while they look.
+- **Rename labels, not keys.** Option keys, store keys and device identifiers outlive their
+  names (see the camera split); change what's shown and keep the key.
+- **The restart Repair:** the integration reads its loaded version at import
+  (`LOADED_VERSION`), so an entry reload can't clear the marker. The Repair can need a page
+  reload to appear; a persistent notification (the bell) goes with it.
+- **Don't rewrite JSON or YAML files through a parser** (`en.json`, `maturity.json`): it
+  reformats them. Edit them as text. Regex edits on `BACKLOG.md` remove too much: check
+  the diff.
+- **Default-stripping editors:** a card's stored config keeps old values forever, so a
+  changed default doesn't reach saved cards. The owner's two commander cards still hold
+  `tap_main: live` and need changing by hand.
 
 ## How to work with the owner
 
-- They are an expert who works fast. Act, then report briefly, and recommend rather than
-  survey. Don't build what wasn't asked for. Ideas go into `BACKLOG.md` as "asked
-  <date>" items, and aren't started.
-- Say "app", not "add-on". Information must never be shown only on hover: the pages are
-  used on an iPad. The Safari hard refresh is ⌘⌥R.
-- **Screenshots:**
-  - Take the whole HA window, as WebP at 1600 px, into `docs/screenshots/`.
-  - When you need the owner to set something up, give only the steps for that shot, then
-    stop.
-  - Photos must have their metadata stripped.
-  - The `Swap` binary sensor shows when screenshot mode (`swap.json`) is on. It puts
-    invented names over the real ones.
-- They often add their own lines to the README and docs, so read a section before you
-  replace it.
+- An expert who works fast. Act, then report briefly; recommend rather than survey. Build
+  only what was asked; ideas go into `BACKLOG.md`, not code.
+- "App", not "add-on". Nothing only on hover (pages are used on an iPad); tooltips may
+  add to what's shown. Safari hard refresh is ⌘⌥R.
+- They edit the README and docs alongside you: read a section before replacing it.
+- Screenshots: the whole HA window, WebP at 1600 px, into `docs/screenshots/`; for a set-up
+  shot give only the steps for it, then stop.
 
 ## The dev loop
 
-- **Deploy:** commit with a bump, keep `tools/fake_git_host.py` running, and the owner
-  installs the offered update from the HA App store.
-- **Cards against the live box with no restart:** copy the built `cm-cards.js` to
-  `/Volumes/config/custom_components/casa_mia/www/` (the config share is mounted), check
-  the copy with `cmp`, and hard-refresh. `tools/dev_cards` does the same on every save.
-- **The test VM:** a HAOS VM on Parallels that installs Casa Mia from GitHub like a new
-  user would. It has no layout-card or other HACS cards. Ask the owner for its address.
-  - A long-lived token for it is in `~/.config/casa-mia/vm-token`. Read it from the file
-    and never print it.
-  - You can drive it headless with the Playwright in
-    `../advanced-camera-card/node_modules` and its cached Chromium in
-    `~/Library/Caches/ms-playwright/chromium-*`. Log in by setting `hassTokens` in
-    localStorage via `addInitScript`.
-- The layout engine exists twice, in `compositor.commander_layout` (Python) and
-  `integration/cards/src/layout.ts`. Both must pass `tests/layout_cases.json`. Layout
-  options are defined once, in `app/src/casa_mia/layout.json`.
+- **Deploy:** commit with a bump, keep `tools/fake_git_host.py` running; the owner installs
+  the offered update from the App store. An integration change needs an HA restart.
+- **Cards with no restart:** copy the built `cm-cards.js` to
+  `/Volumes/config/custom_components/casa_mia/www/` (check with `cmp`), hard refresh;
+  `tools/dev_cards` does it on every save.
+- **The test VM:** a HAOS VM that installs Casa Mia from GitHub like a new user. Ask the
+  owner for its address. Its token is in `~/.config/casa-mia/vm-token` (never print it).
+  Drive it with the Playwright in `../advanced-camera-card/node_modules`, logging in by
+  setting `hassTokens` in localStorage via `addInitScript`.
+- The layout engine exists twice (`compositor.commander_layout` and
+  `integration/cards/src/layout.ts`); both pass `tests/layout_cases.json`. Layout options
+  live once in `app/src/casa_mia/layout.json`.
 
-## What happened recently
+## What happened
 
-**Leading up to 2026.10.3, released by the owner (5 days, 86 builds, 146 commits):**
-- The Tablet Layout view: panel stacks, layers, and edit mode.
-- The Commander card, rebuilt with a live main picture and the Security look as a card
-  option.
-- The compositor rebuilt as a pipeline.
-- `compositor.py` (3,600 lines) and the guest login split into packages, and RULE THREE
-  added.
-- The docs restructured: a README shop window, `docs/` with the Tablet Layout guide and a
-  page per applet, and the charter moved to `docs/architecture.md`.
-- Screenshot mode: watermarked swap pictures, the `Swap` sensor, and slow gathering while
-  swapped.
+- **To 2026.10.3** (released): the Tablet Layout view; the Commander card with a live main
+  picture; the compositor rebuilt as a pipeline and split into a package; RULE THREE; the
+  docs restructured; screenshot mode.
+- **2026.10.4-b1–b7** (Codex and Claude): Kiosk Satellites split; Working together (pages
+  and tablets reload after an update); GitHub issue forms; Garnish controls in the
+  Tablet Layout edit surface; Section card retired; the UI split into folders.
+- **b8:** maturity ratings per module; Guest login docs ("How safe is it?").
+- **b9–b13:** the camera split (Cameras page, Commander page and store, draft compositor
+  retired); the restart Repair fixed; the card's motion dot.
+- **b14:** Codex completed the applet guides and cut the suite from 12 s to 3 s.
+- **b15–b17:** motion sensor and detection switch on the live view and camera list;
+  restart notification; Kiosk Satellites Run everywhere; docs for Cameras and Commander.
+- **b18:** Camera Dashboard renamed Auto Dashboards. **b19:** Track motion exclusions.
+- **b20:** the Commander page reworked: pick from a list, sticky preview, chips for the
+  cameras that never take over.
 
-**On `dev` since the release (not pushed):**
-- `b67d336`: Kiosk Satellites split into `modules/kiosks/`.
-- `c6109e9`, the first **Working together** feature (see below):
-  - A page left open through an update offers a **Reload** in HA's toast. The integration's
-    websocket command `casa_mia/cards` gives the version it serves, and `cm-cards.js`
-    checks it at each reconnect.
-  - Wall tablets reload themselves. The integration sends `cards=<version>` on its
-    `/health` poll. When that changes, the server (`on_cards`) calls
-    `Kiosks.reload_all`, which sends Kiosk Satellite's `reload` command to each tablet
-    it's logged in to.
-  - GitHub issue forms (`.github/ISSUE_TEMPLATE/`): a bug report and an idea form.
-- `4a15ae8`: the automatic bump to b2 (see RULE ZERO).
-- **Not yet seen on a real update:** the tablet reload fires on the integration's first
-  poll after HA restarts. Watch the app log for `kiosk …: reloaded` lines.
+## Where things stand
 
-**Working together** is a new direction and a README section. Because the modules share
-one app and one integration, each knows things the others can use. Each feature that ships
-goes into the README section and `BACKLOG.md` → "Across modules". The next ones:
-- The compositor's client list shows each kiosk by name instead of by IP.
-- The integration knows each page's logged-in user ("who's looking").
-- Guests identify themselves with a PIN on a guest-login page.
-- Reload the tablets after other frontend changes (helpers, settings, deploys), using the
-  same `reload_all`.
-
-## What's next (the owner's order, roughly)
-
-0. **Garnish** (Tablet Layout; the agreed name): the edit-mode chip that marks a card in a panel
-   as garnish (adornment that never holds its panel open) or content. See BACKLOG "Tablet
-   Layout: Garnish". The owner may give this to Codex directly.
-
-1. **Get ready to announce to the community.** The owner wants it, but not yet.
-   - Write the 11 applet docs in `docs/applets/`. They hold 47 "To write" placeholders,
-     and the README's Documentation link leads there. Camera Dashboard (the Commander) and
-     Guest login come first.
-   - Add a **maturity rating per module** (skeleton, in development, alpha, beta,
-     released), defined once and shown in the app and the docs. It's in the backlog.
-   - Then a forum post in HA Community → Share your Projects, leading with the Tablet
-     Layout.
-2. **Tablet Layout bugs, from the backlog:**
-   - With `main_fit: fixed`, main ignores the edges' sizes.
-   - Two blemishes in edit mode.
-3. **Small items:**
-   - `cm-streams.js` reports a false "CASA-MIA CARDS were missing; loaded on a second try"
-     when all the cards are defined.
-   - An HA version check in the Tablet Layout, so a breaking change in HA's frontend can
-     get its own code path.
-4. **Waiting on the owner:**
-   - Music Assistant's back button on Kiosk Satellite, which may be a bug for Kiosk
-     Satellite's author.
-   - Splitting the integration into units.
-   - Modules as stand-alone projects. The owner has more to say on this.
-
-`BACKLOG.md` → "Next up" has everything else, each item dated and explained.
+- **b20 is committed, not pushed.** The owner is to deploy it and look at the new
+  Commander page. Known rough edge: the preview docks 64px down to clear the Save bar; if
+  the bar wraps (narrow screens), it covers the preview's top a little. Measure the bar
+  if the owner minds.
+- **Soft launch on the HA community forum**, still to do: a release (the owner runs
+  `tools/release.py`), a fresh install on the test VM, then a forum post draft (HA
+  Community → Share your Projects, leading with the Tablet Layout).
+- **Next from the backlog**, when the owner picks: Auto Dashboards' Back/Home/Help made
+  general; every camera detection with its own icon; guest login reach and tightening;
+  Tablet Layout bugs (fixed-shape main ignores edge sizes; two edit-mode blemishes).
