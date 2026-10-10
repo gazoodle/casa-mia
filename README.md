@@ -19,7 +19,7 @@ And that's just the start.
 
 <p align="center">
 <img src="https://img.shields.io/github/stars/gazoodle/casa-mia?style=for-the-badge&label=Stars&color=d6a102" alt="Stars">
-<a href="https://github.com/gazoodle/casa-mia/releases"><img src="https://img.shields.io/github/downloads/gazoodle/casa-mia/total?style=for-the-badge&label=Downloads&color=e8604c" alt="Downloads"></a>
+<a href="https://github.com/gazoodle/casa-mia/pkgs/container/casa-mia-amd64"><img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fgazoodle%2Fcasa-mia%2Fstats%2Fghcr-stats.json&query=%24.downloads&style=for-the-badge&label=Pulls&color=e8604c" alt="Pulls"></a>
 <a href="https://github.com/gazoodle/casa-mia/releases/latest"><img src="https://shields.io/github/v/release/gazoodle/casa-mia?style=for-the-badge&color=5da3a6" alt="version"></a>
 <a href="https://github.com/gazoodle/casa-mia/actions/workflows/release.yml"><img src="https://img.shields.io/github/actions/workflow/status/gazoodle/casa-mia/release.yml?style=for-the-badge&label=Build&color=3fbf5f" alt="Build"></a>
 <a href="#licence"><img src="https://img.shields.io/badge/licence-MIT-5da3a6?style=for-the-badge" alt="Licence: MIT"></a>

@@ -215,11 +215,16 @@ guest card SVG), `page.py` (welcome, goodbye), `supervisor.py`.
   fresh stream after an app restart; the guide rewritten around new screenshots (three
   iPhone shots), with the two xkcd comics behind the design. Proven on the box: sign-out
   on close, the passcode, the goodbye.
+- **2026.10.6-b11:** the install count (release notes fetched by the app) removed; the
+  README's **Pulls** badge reads `ghcr-stats.json` on the `stats` branch, written daily by
+  `.github/workflows/ghcr-stats.yml` (actionstore/ghcr-stats scrapes each image's package
+  page, in a job with no token; our own job sums and force-pushes). Measured on the VM:
+  one install = about 5 pulls, and each release's "Verify public pull" adds 2.
 
 ## Where things stand
 
-- **Releasing 2026.10.6** next (the owner runs `tools/release.py`). Backlog has the owner's
-  own item at the top: GHCR pull counting to replace the README-fetch install count.
+- **Releasing 2026.10.6** next (the owner runs `tools/release.py`), after some HA friends
+  sanity-check it. The GHCR stats workflow's schedule starts once it reaches `main`.
 - **Untested on the box:** 2FA against a real user, the reach check's fixes, Who's signed
   in. **The reach check's screenshot** is still to take: see the backlog (a swap-only
   dashboard list).
@@ -227,8 +232,8 @@ guest card SVG), `page.py` (welcome, goodbye), `supervisor.py`.
   offer to walk it again.
 - **Soft launch:** the owner's post for HA Community → Share your Projects. Lead with the
   Tablet Layout, then the Over layer, then garnish (and now guest login). Say up front:
-  needs HA OS or Supervised, the install count is anonymous with an off switch, it's one
-  house's system made general.
+  needs HA OS or Supervised, it sends nothing home (the Pulls badge is GitHub's own
+  count), it's one house's system made general.
 - **Casa Mia is non-commercial, always** (the owner's commitment); the MIT licence stays,
   and what others do with it is on them.
 - **The 2026.9 floor is stated, not tested:** everything has run on 2026.10 only.

@@ -12,7 +12,6 @@ from typing import Any
 from . import app_version, header, settings
 from .components import ask_for_restart, install_bundled
 from .ha import HA
-from .install_count import count_install
 from .log import configure_logging
 from .modules.auto_dashboards import AutoDashboards
 from .modules.cameras import Cameras
@@ -73,14 +72,6 @@ def main() -> int:
         log.info("%s", line)
     token = os.environ.get("SUPERVISOR_TOKEN", "")
     ask_for_restart(install_bundled(), token)
-    if options.get("count_install", True):
-        threading.Thread(
-            target=count_install,
-            args=(app_version(), OPTIONS.parent / "release"),
-            daemon=True,
-        ).start()
-    else:
-        log.info("install count: off")
     modules = {}
     actions = {}
     post_handlers = {}

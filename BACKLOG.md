@@ -2,11 +2,6 @@
 
 Not scheduled. Newest ideas first within each section. Move an item into the README or code when it is started.
 
-## Replace README-fetch download counting with GHCR pull statistics
-- Investigate actionstore/ghcr-stats as a GitHub Actions-based popularity counter. Verify that it works with Casa Mia's GHCR package, then replace the existing README-fetch mechanism and associated opt-out configuration.
-- Acceptance criteria: No telemetry requests from Casa Mia, no unnecessary client-side network traffic, and a README badge showing aggregate container pulls.
-- One caveat: verify the reported figures before removing the existing mechanism, particularly whether GHCR exposes cumulative pulls or another metric.
-
 ## Guest login
 
 - **Screenshot: What each login can reach** (asked 2026-10-10; the guide marks it *coming soon*). The check lists every dashboard and view a login's user can open, which in a real house is the owner's whole list. A screenshot-only setting in `swap.json` (beside `swap`, `original_photo`, `camera_images`): the dashboards the check reads while the swap is on, e.g. `"reach_dashboards": ["guest-dashboards", "heating"]`, so the card stays short and holds only stand-in names. Off the swap, it reads them all as now. The shot also needs a login with something to flag (not local-only, a dashboard where kiosk-mode doesn't hide the sidebar), so the fix buttons show.

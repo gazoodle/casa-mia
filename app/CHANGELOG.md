@@ -1,6 +1,11 @@
 # Changelog
 
-## 2026.10.6-b10
+## 2026.10.6-b11
+
+- **No more install count:** the app no longer downloads each release's notes from GitHub
+  to be counted, and the **Count this install** option is gone. Casa Mia now sends nothing
+  to anyone for counting; the project page's Pulls badge comes from GitHub's own figures
+  for the app's images.
 
 ## 2026.10.6-b9
 

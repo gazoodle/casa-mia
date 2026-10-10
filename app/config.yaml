@@ -1,5 +1,5 @@
 name: Casa Mia
-version: "2026.10.6-b10"
+version: "2026.10.6-b11"
 slug: casa_mia
 description: "Wall tablet dashboards, cameras at a glance, guest QR login and Kiosk Satellite management, together in Home Assistant."
 url: "https://github.com/gazoodle/casa-mia/blob/main/docs/README.md"
@@ -55,7 +55,6 @@ backup_exclude:
 options:
   house_name: Casa Mia
   log_level: info
-  count_install: true
   gitproxy_enabled: false
   compositor_enabled: false
   camera_dashboard_enabled: false
@@ -67,7 +66,6 @@ options:
 schema:
   house_name: str
   log_level: list(debug|info|warning|error)
-  count_install: bool
   gitproxy_enabled: bool
   compositor_enabled: bool
   camera_dashboard_enabled: bool
