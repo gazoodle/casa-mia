@@ -1,10 +1,12 @@
 // Casa Mia's Lovelace cards, one file (cm-cards.js) the integration loads into every HA page:
-// Camera Commander, Tablet Layout, Over layer. Source of the built www/cm-cards.js.
+// Camera Commander, Tablet Layout, Over layer, a guest's goodbye. Source of the built
+// www/cm-cards.js.
 import { VERSION } from "./commander/index.ts";
 import "./view/index.ts";
 import "./garnish-editor.ts";
 import "./garnish-sections.ts";
 import "./over-layer/index.ts";
+import { watchForGoodbye } from "./guest-goodbye.ts";
 
 console.info(
   `%cCASA-MIA CARDS\n%ccommander, tablet layout (${VERSION})`,
@@ -37,3 +39,5 @@ if (VERSION !== "dev")
       }, () => {}); // an older integration without the command: nothing to compare
     conn.addEventListener("ready", check);
   });
+
+watchForGoodbye();

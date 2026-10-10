@@ -73,6 +73,8 @@ export type Login = {
   user_id: string | null;
   display: string | null;
   endpoints: number;
+  /** Whether its user has two-factor sign-in; null until the app has seen its flow. */
+  mfa: boolean | null;
 };
 
 export type Endpoint = {
@@ -86,6 +88,14 @@ export type Endpoint = {
   title: string | null;
   message: string | null;
   delay: number | null;
+  /** Show the house info (Wi-Fi, house rules) and wait for Continue. */
+  info: boolean;
+  /** Closing it signs out everyone its login let in. */
+  end_sessions: boolean;
+  /** Closing it gives it a new secret address. */
+  rotate: boolean;
+  /** A passcode the visitor types before signing in (their host gives it them). */
+  pin: string | null;
   enabled?: boolean;
   until?: number | null;
   logins?: number;
@@ -96,9 +106,13 @@ export type Endpoint = {
 export type GuestConfig = {
   logins: Login[];
   default_login: string;
-  welcome: { title: string; message: string; delay: number };
+  /** photo: the house photo's height, % of the screen (unset: 52). */
+  welcome: { title: string; message: string; delay: number; photo?: number };
   qr_host: string;
   qr_host_effective: string;
+  house_info: HouseInfo;
+  goodbye: { title: string; message: string; url: string };
+  wifi: Wifi;
   /** Every name the box answers to (QR host, LAN IP, .local name). */
   hosts: string[];
   port: number;
@@ -107,6 +121,31 @@ export type GuestConfig = {
 
 export type HAUser = { id: string; name: string; username: string | null; is_admin: boolean; is_active: boolean };
 export type HADashboard = { path: string; dashboard: string; view: string };
+export type Wifi = { ssid: string; password: string; security: "WPA" | "WEP" | "nopass"; hidden: boolean };
+/** The house rules, shown before signing in by endpoints with `info` on. */
+export type HouseInfo = { text: string };
+/** What one login's Home Assistant user can get to (GET api/guest/reach). */
+export type Reach = {
+  name: string;
+  user: { name: string | null; is_admin: boolean; local_only: boolean; found: boolean };
+  endpoints: { id: string; label: string }[];
+  dashboards: {
+    /** None: the default dashboard (Overview), which can't be made admin-only. */
+    id: string | null;
+    url_path: string | null;
+    editable: boolean;
+    title: string;
+    path: string;
+    sidebar: boolean;
+    landing: string[];
+    hides_header: boolean;
+    hides_sidebar: boolean;
+    views: { title: string; path: string; tab: boolean }[];
+  }[];
+  flags: { level: "bad" | "warn" | "note"; text: string; fix?: ReachFix }[];
+};
+/** A fix the app can make for a reach flag: sent back as it came (POST reach/fix). */
+export type ReachFix = { action: string; label?: string; login?: string; dashboard?: string | null; dashboard_id?: string };
 export type HAChoices = { users: HAUser[]; dashboards: HADashboard[]; error: string | null };
 
 export type Kiosk = {

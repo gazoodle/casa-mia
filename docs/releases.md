@@ -45,7 +45,7 @@ The tagged workflow validates versions and nonempty notes, reruns all checks aga
 
 named after the repository the workflow runs in (lower case), so a fork publishes its own images and its `stable` branch points at them.
 
-Each image records its source commit and version in OCI labels. Digest records are attached to the GitHub release along with `release-notes.md`, whose name must remain unchanged for installation counting.
+Each image records its source commit and version in OCI labels. Digest records are attached to the GitHub release along with `release-notes.md`.
 
 ## Repository setup
 

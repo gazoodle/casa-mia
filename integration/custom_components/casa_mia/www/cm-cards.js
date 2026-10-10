@@ -1182,7 +1182,7 @@ function jt(e) {
 //#region src/commander/card.ts
 var Mt = class extends G {
 	constructor(...e) {
-		super(...e), this.preview = !1, this._natural = "", this._token = "", this.retry = 0, this.liveOn = "", this.liveWait = 0, this._playing = !1, this._liveFailed = "", this.liveFails = 0, this._shown = 0, this.shows = 0, this._framed = "", this.frameWait = 0, this.motion = new bt(), this._size = null, this._box = [0, 0], this._fit = null, this.settle = 0, this.resize = new ResizeObserver(([e]) => {
+		super(...e), this.preview = !1, this._natural = "", this._token = "", this.retry = 0, this.liveOn = "", this.liveWait = 0, this._playing = !1, this._liveFailed = "", this.liveFails = 0, this._shown = 0, this.shows = 0, this._framed = "", this.frameWait = 0, this.motion = new bt(), this.run = "", this._size = null, this._box = [0, 0], this._fit = null, this.settle = 0, this.resize = new ResizeObserver(([e]) => {
 			let { width: t, height: n } = e.contentRect;
 			this._box = [Math.round(t * 10) / 10, Math.round(n * 10) / 10], this.measure(), this.debugOn() && this.requestUpdate();
 			let r = Ot(t, n, O(window.devicePixelRatio || 1, this.viaHa(), this._config?.away_sharpness));
@@ -1269,11 +1269,12 @@ var Mt = class extends G {
 		t !== this._framed && (e.naturalWidth > 0 ? this._framed = t : this.frameWait = window.setTimeout(() => this.watchFrame(), 200));
 	}
 	updated() {
-		this.watchFrame(), this.measure(), this.streaming && this.editing() && this.done("editing");
-		let e = this.renderRoot.querySelector(".box");
-		e && (this.resize.observe(e), this.onScreen.observe(e)), this.followLive();
-		let t = this.renderRoot.querySelector(".picture"), n = t?.naturalWidth ? `${t.naturalWidth} x ${t.naturalHeight}` : "";
-		this.debugOn() && n && n !== this._natural && (this._natural = n);
+		let e = this.now().card?.run ?? "";
+		e && this.run && e !== this.run && (console.info("casa-mia: the app restarted; a fresh picture stream"), this.again()), e && (this.run = e), this.watchFrame(), this.measure(), this.streaming && this.editing() && this.done("editing");
+		let t = this.renderRoot.querySelector(".box");
+		t && (this.resize.observe(t), this.onScreen.observe(t)), this.followLive();
+		let n = this.renderRoot.querySelector(".picture"), r = n?.naturalWidth ? `${n.naturalWidth} x ${n.naturalHeight}` : "";
+		this.debugOn() && r && r !== this._natural && (this._natural = r);
 	}
 	static getConfigElement() {
 		return document.createElement("casa-mia-commander-editor");
@@ -4611,7 +4612,28 @@ var Cr = class extends G {
   `;
 	}
 };
-o("casa-mia-over-layer", _r), o("casa-mia-over-layer-editor", Cr), s("casa-mia-over-layer", "Casa Mia Over layer", "One card over the whole dashboard while its Visibility conditions hold; what's beneath can be seen but not touched."), console.info(`%cCASA-MIA CARDS\n%ccommander, tablet layout (${Tt})`, "color: green; font-weight: bold;", ""), Tt !== "dev" && window.hassConnection?.then(({ conn: e }) => {
+o("casa-mia-over-layer", _r), o("casa-mia-over-layer-editor", Cr), s("casa-mia-over-layer", "Casa Mia Over layer", "One card over the whole dashboard while its Visibility conditions hold; what's beneath can be seen but not touched.");
+//#endregion
+//#region src/guest-goodbye.ts
+var wr = 1e3, Tr = (e, t) => e.state === "on" && !(e.attributes.closes_at && t / 1e3 >= e.attributes.closes_at);
+function Er(e, t, n, r, i) {
+	if (!t || t.is_admin) return null;
+	let a = Object.values(e).filter((e) => e.entity_id.startsWith("switch.") && e.attributes?.guest_user_id === t.id), o = a.find((e) => e.attributes.signs_out && n.get(e.entity_id) === !0 && !Tr(e, r));
+	for (let e of a) n.set(e.entity_id, Tr(e, r));
+	if (!o || a.some((e) => Tr(e, r))) return null;
+	let s = o.attributes;
+	return s.goodbye_url || `http://${i}:${s.guest_port ?? 8675}/bye`;
+}
+function Dr() {
+	let e = /* @__PURE__ */ new Map();
+	setInterval(() => {
+		let t = document.querySelector("home-assistant")?.hass;
+		if (!t?.states) return;
+		let n = Er(t.states, t.user, e, Date.now(), location.hostname);
+		n && (console.info("CASA-MIA CARDS: this guest's endpoint closed; going to the goodbye page"), location.replace(n));
+	}, wr);
+}
+console.info(`%cCASA-MIA CARDS\n%ccommander, tablet layout (${Tt})`, "color: green; font-weight: bold;", ""), Tt !== "dev" && window.hassConnection?.then(({ conn: e }) => {
 	e.addEventListener("ready", () => e.sendMessagePromise({ type: "casa_mia/cards" }).then(({ version: e }) => {
 		e && e !== Tt && (console.warn(`CASA-MIA CARDS ${Tt} running, ${e} served: reload to update`), document.querySelector("home-assistant")?.dispatchEvent(new CustomEvent("hass-notification", {
 			detail: {
@@ -4627,5 +4649,5 @@ o("casa-mia-over-layer", _r), o("casa-mia-over-layer-editor", Cr), s("casa-mia-o
 			composed: !0
 		})));
 	}, () => {}));
-});
+}), Dr();
 //#endregion

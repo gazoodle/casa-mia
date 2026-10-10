@@ -71,6 +71,7 @@ class HA:
                     "username": username,
                     "is_admin": ADMIN_GROUP in (u.get("group_ids") or []),
                     "is_active": u.get("is_active", True),
+                    "local_only": u.get("local_only", False),
                 }
             )
         return sorted(out, key=lambda u: u["name"].lower())
@@ -144,6 +145,21 @@ class HA:
             }
         )
         return user_id
+
+    def sign_out(self, user_id: str) -> None:
+        """End every session of a user: deactivating one removes its refresh tokens, which
+        closes its connections; it is then active again at once, for the next sign-in."""
+        self.call(
+            {"type": "config/auth/update", "user_id": user_id, "is_active": False}
+        )
+        try:
+            self.call(
+                {"type": "config/auth/update", "user_id": user_id, "is_active": True}
+            )
+        except HAError:  # once more: a user left inactive locks every visitor out
+            self.call(
+                {"type": "config/auth/update", "user_id": user_id, "is_active": True}
+            )
 
     def set_password(self, user_id: str, password: str) -> None:
         self.call(

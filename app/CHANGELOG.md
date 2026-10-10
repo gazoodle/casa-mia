@@ -1,5 +1,65 @@
 # Changelog
 
+## 2026.10.6
+
+- **Breaking:** Casa Mia now needs Home Assistant 2026.9 or later, and the update isn't
+  offered to an older one. Update Home Assistant first.
+
+After updating, restart Home Assistant when the Repair asks: the integration has changed.
+
+### New features
+
+- **Guest login, made for holiday lets and visiting engineers.** Everything below is on
+  the Guest login page and explained in its guide, which now also says how far a
+  visitor's session can be narrowed and why it works the way it does.
+  - **A passcode on an endpoint:** after the scan, the visitor types a code you gave them
+    (with the booking, say) before they're signed in. It never expires: change it between
+    guests. All digits gives them a number pad.
+  - **Two-factor sign-in:** a login whose user has an authenticator app now asks the
+    visitor for its code after the scan, instead of failing. Such a login shows a **2FA**
+    badge.
+  - **Sign its visitors out when it closes:** a new option on each endpoint. Closing it, by
+    hand, from an automation or when its time runs out, signs out everyone its login let
+    in. Endpoints sharing a login sign out when the last of them closes. On for new
+    endpoints; existing ones work as before until you tick it.
+  - **A goodbye:** a guest whose page is open when their endpoint closes is taken to a
+    goodbye page (your house photo, with a title and message you set) or to an address you
+    choose, a few seconds before being signed out.
+  - **House rules** before signing in, for endpoints with *Show the house info first*;
+    the guest presses **Continue**. A new **Photo height** setting moves the welcome card
+    higher or lower, so the rules can be read at once.
+  - **Engineer endpoints** get a plain *Maintenance access* page that signs in at once.
+  - **New secret address each time it closes**, for an engineer's code handed out per
+    visit, so an old code is no good.
+  - **Who's signed in** and **Sign everyone out** on each login.
+  - **What each login can reach:** a check that lists the dashboards each login's user can
+    open and flags what's probably open by mistake, with buttons to fix it (*Local only*,
+    *Hide them for this user*, *Admin only*). Each asks before it changes Home Assistant.
+  - **A sign-in log** of every scan and what came of it, and every sign-out: the phone's
+    address, browser and, when a device tracker knows the address, its person. Filter it,
+    or download it as CSV. It survives restarts, and you choose how long it's kept.
+    Passcodes, codes and secret addresses are never recorded.
+  - **QR codes:** a printable **guest card** with your Wi-Fi's code beside an endpoint's
+    (*1. Join the Wi-Fi*, *2. Scan to sign in*), your **Wi-Fi**'s own code, and a code for
+    any dashboard or view.
+
+### Improvements
+
+- **No more install count:** the app no longer fetches anything from GitHub to be counted,
+  and the **Count this install** option is gone. Casa Mia sends nothing to anyone for
+  counting; the project page's Pulls badge comes from GitHub's own figures.
+- A page's buttons beside its title move below it on a narrow screen, instead of
+  squeezing the title.
+- The Over layer's guide says how far along it is: Alpha.
+
+### Bug fixes
+
+- **No more blank Camera Commander pictures after an app update:** every card showing a
+  commander's picture starts a fresh stream within a second or two of the app restarting.
+  Before, it often stayed blank until the page was reloaded.
+- Dialogs no longer open a drop-down list by themselves when they open (Safari and the
+  Home Assistant app), where it then got in the way of the next click.
+
 ## 2026.10.5
 
 - **New card: the Over layer.** One card, or a whole panel of them, shown over your

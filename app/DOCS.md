@@ -10,6 +10,8 @@ The full documentation, with screenshots, is on GitHub:
 
 ## Getting started
 
+You need Home Assistant 2026.9 or later.
+
 1. **Choose your modules** on the **Configuration** tab: give your house its name and switch
    on what you want (every module starts off). Press **Save**.
 2. **Start the app** on the **Info** tab, with **Show in sidebar** on. **Casa Mia** appears in
@@ -51,7 +53,6 @@ house photo).
   everything it does at `info`, so its **Log** tab is the first place to look when
   something is wrong. Lines use Home Assistant's own format.
 - **Developer mode:** shows the debugging aids in the Casa Mia panel. Leave it off.
-- **Count this install:** see below.
 
 ## Network
 
@@ -60,22 +61,6 @@ Each port serves one module; blank a port whose module is off.
 - **8000:** the firmware server (the tablets fetch Kiosk Satellite updates here).
 - **8099:** the camera compositor's pictures.
 - **8675:** guest login (the address the QR codes point at).
-
-## The install count
-
-Casa Mia is free. The only payment its author gets is knowing people use it, so once per
-version (after a first install or an update) the app downloads that release's notes from
-GitHub. GitHub counts the download, and that number is the Downloads badge on the project
-page.
-
-- **Anonymous.** Nothing about your home, your setup or you is sent. It is an ordinary file
-  download: GitHub sees your address, as it does for any download, and the author sees only
-  the total.
-- **Once per version.** Restarts do not count again; the notes are kept in the app's data
-  folder until the next version.
-- **Off with one switch.** Turn off **Count this install** in the app's Configuration tab.
-  Nothing else changes.
-- Builds between releases (versions ending `-bN`) have no release, so they never count.
 
 ## Help
 

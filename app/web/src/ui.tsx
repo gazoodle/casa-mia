@@ -21,8 +21,11 @@ export function Dialog({
     const dialog = ref.current;
     if (!dialog) return;
     dialog.showModal();
-    // Start in the first field (not the ✕), or on the main button if there is none.
-    (focusables(dialog).find((el) => el.matches("input, select, textarea")) ?? primaryButton(dialog))?.focus();
+    // Start in the first text field (not the ✕), or on the main button if there is none.
+    // Never a drop-down: WebKit (Safari, the Home Assistant app) may open its menu when
+    // it's focused like this, and the open menu then swallows the next click.
+    (focusables(dialog).find((el) => el.matches("input:not([type=checkbox]):not([type=radio]):not([type=range]), textarea")) ??
+      primaryButton(dialog))?.focus();
   }, []);
 
   /** Keys: Tab / Shift+Tab cycle through this dialog's controls (buttons and ticks too,

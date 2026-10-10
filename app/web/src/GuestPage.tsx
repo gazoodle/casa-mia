@@ -5,6 +5,9 @@ import { useCallback, useEffect, useState } from "react";
 import { del, get, post, put, type Endpoint, type GuestConfig, type HAChoices, type Login } from "./api";
 import { ago } from "./format";
 import { EndpointDialog, LoginDialog, PasswordDialog, SettingsDialog } from "./GuestDialogs";
+import { AuditArea } from "./GuestAudit";
+import { QrCodesDialog } from "./GuestCodes";
+import { ReachArea } from "./GuestReach";
 import { GuestIcon } from "./icons";
 import { AreaHead, Empty, Shell } from "./page";
 import { copyText, Switch, Toasts, type Toast } from "./ui";
@@ -25,6 +28,7 @@ type Editing =
   | { kind: "login" }
   | { kind: "password"; login: Login }
   | { kind: "settings" }
+  | { kind: "page-qr" }
   | null;
 
 export function GuestPage({ state }: { state?: string }) {
@@ -91,9 +95,14 @@ export function GuestPage({ state }: { state?: string }) {
       {...HEAD}
       state={state}
       action={
-        <button className={ui.button} onClick={() => setEditing({ kind: "settings" })}>
-          Settings
-        </button>
+        <>
+          <button className={ui.button} onClick={() => setEditing({ kind: "page-qr" })}>
+            QR codes
+          </button>
+          <button className={ui.button} onClick={() => setEditing({ kind: "settings" })}>
+            Settings
+          </button>
+        </>
       }
     >
       {ha?.error && (
@@ -211,12 +220,27 @@ export function GuestPage({ state }: { state?: string }) {
                   confirm(`Remove the login ${l.name}? The Home Assistant user itself is kept.`) &&
                   change(() => del<GuestConfig>(`logins/${l.name}`), `${l.name} removed`)
                 }
+                onSignOut={async () => {
+                  if (!confirm(`Sign out everyone signed in as ${l.name}, on every endpoint that uses it? They can scan again while an endpoint is open.`))
+                    return false;
+                  try {
+                    toast((await post<{ message: string }>(`logins/${l.name}/sign-out`)).message);
+                    return true;
+                  } catch (err) {
+                    toast((err as Error).message, "bad");
+                    return false;
+                  }
+                }}
                 toast={toast}
               />
             ))}
           </div>
         )}
       </section>
+
+      <ReachArea toast={toast} />
+
+      <AuditArea config={config} toast={toast} />
 
       {editing?.kind === "endpoint" && (
         <EndpointDialog
@@ -254,6 +278,9 @@ export function GuestPage({ state }: { state?: string }) {
             if (await change(() => put<GuestConfig>(`logins/${editing.login.name}`, body), "Password changed")) setEditing(null);
           }}
         />
+      )}
+      {editing?.kind === "page-qr" && (
+        <QrCodesDialog config={config} ha={ha} onConfig={setConfig} onClose={() => setEditing(null)} toast={toast} />
       )}
       {editing?.kind === "settings" && (
         <SettingsDialog
@@ -335,7 +362,23 @@ function Detail({
       <p className={css.lands}>
         Lands on <code>{e.dashboard}</code> as <strong>{e.account ?? defaultLogin}</strong>
         {e.legacy && " · answers the printed QR code"}
+        {e.info && e.type === "guest" && " · shows the house info first"}
+        {e.pin && (
+          <>
+            {" · asks for passcode "}
+            <code>{e.pin}</code>
+          </>
+        )}
       </p>
+      {(e.end_sessions || e.rotate) && (
+        <p className={css.lands}>
+          On closing:{" "}
+          {[e.end_sessions && "signs its visitors out", e.rotate && "gets a new secret address (this QR code stops working)"]
+            .filter(Boolean)
+            .join(", and ")}
+          .
+        </p>
+      )}
       <div className={css.actions}>
         <a className={`${ui.button} ${ui.small}`} href={`${qr}.png?v=${v}`} download={`${e.id}-qr.png`}>
           Download PNG
@@ -404,6 +447,7 @@ function LoginCard({
   onPassword,
   onDefault,
   onDelete,
+  onSignOut,
   toast,
 }: {
   login: Login;
@@ -412,9 +456,19 @@ function LoginCard({
   onPassword: () => void;
   onDefault: () => void;
   onDelete: () => void;
+  onSignOut: () => Promise<boolean>;
   toast: (text: string, tone?: Toast["tone"]) => void;
 }) {
   const [testing, setTesting] = useState(false);
+  const [sessions, setSessions] = useState<Sessions | "looking">();
+  const look = async () => {
+    setSessions("looking");
+    try {
+      setSessions(await get<Sessions>(`logins/${l.name}/sessions`));
+    } catch (err) {
+      setSessions({ error: (err as Error).message });
+    }
+  };
   const test = async () => {
     setTesting(true);
     try {
@@ -434,12 +488,14 @@ function LoginCard({
           <h3>
             {l.name}
             {isDefault && <span className={css.badge}>Default</span>}
+            {l.mfa && <span className={css.badgeEng}>2FA</span>}
           </h3>
           <span className={css.rowMeta}>
             {l.display ? `${l.display} · ` : ""}user <code>{l.username}</code>
           </span>
         </div>
       </div>
+      {sessions && sessions !== "looking" && <SessionList sessions={sessions} />}
       {admin && <p className={css.adminWarn}>This is an administrator. Visitors would get full control: use a non-admin user.</p>}
       <p className={css.rowMeta}>
         {l.endpoints === 0 ? "Not used by any endpoint" : `Used by ${l.endpoints} endpoint${l.endpoints === 1 ? "" : "s"}`}
@@ -456,10 +512,51 @@ function LoginCard({
             Make default
           </button>
         )}
+        <button className={`${ui.button} ${ui.small}`} disabled={sessions === "looking"} onClick={look}>
+          {sessions === "looking" ? "Looking…" : "Who's signed in"}
+        </button>
+        <button
+          className={`${ui.button} ${ui.small}`}
+          onClick={async () => {
+            if (await onSignOut()) setSessions(undefined);
+          }}
+        >
+          Sign everyone out
+        </button>
         <button className={`${ui.danger} ${ui.small}`} onClick={onDelete}>
           Remove
         </button>
       </div>
     </article>
+  );
+}
+
+type Sessions = {
+  sessions?: { created: string | null; last_used: string | null; ip: string | null }[];
+  long_lived?: number;
+  error?: string;
+};
+
+/** A login's sessions, as Home Assistant has them: each phone or browser signed in. */
+function SessionList({ sessions: s }: { sessions: Sessions }) {
+  if (s.error) return <p className={css.rowMeta}>Couldn't look: {s.error}</p>;
+  const list = s.sessions ?? [];
+  return (
+    <div className={css.sessions}>
+      <strong>
+        {list.length === 0 ? "Nobody is signed in" : `${list.length} signed in`}
+        {s.long_lived ? `, and ${s.long_lived} long-lived token${s.long_lived === 1 ? "" : "s"}` : ""}
+      </strong>
+      {list.length > 0 && (
+        <ul>
+          {list.map((t, i) => (
+            <li key={i} className={css.rowMeta}>
+              {t.ip ?? "unknown address"} · last used {t.last_used ? ago(t.last_used) : "never"}
+              {t.created ? ` · signed in ${ago(t.created)}` : ""}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
