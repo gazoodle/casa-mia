@@ -5,6 +5,7 @@ import { fire, type Hass, haForm, withoutDefaults } from "../ha.ts";
 import { ANCHORS, type Anchor, type Config, DEFAULTS, anchorFor } from "./common.ts";
 
 const SCHEMA = [
+  { name: "panel", selector: { boolean: {} } },
   {
     name: "mode",
     selector: {
@@ -56,6 +57,7 @@ const OFFSETS = [
 ];
 
 const LABELS: Record<string, string> = {
+  panel: "Show its whole panel",
   offset_x: "In from the side",
   offset_y: "In from the top or bottom",
   mode: "How it shows",
@@ -67,6 +69,7 @@ const LABELS: Record<string, string> = {
   width: "Card width (float, scroll)",
 };
 const HELP: Record<string, string> = {
+  panel: "In place of a card of its own, the layer shows every card in the panel it's in (but Over layers). That panel never shows in its own place out of edit mode; edit its cards there, as usual.",
   block: "On: what's beneath can be seen but not touched; only the card works. Off: taps reach the dashboard round the card.",
 };
 
@@ -123,7 +126,13 @@ export class OverLayerEditor extends LitElement {
         tap it, then tap the button); and <code>?edit=1</code> at the end of the dashboard's address opens edit mode,
         where this card steps aside. Everyone else gets the wall.
       </p>
-      <h3>Its card</h3>
+      ${this._config.panel ? nothing : this._card(card)}
+    `;
+  }
+
+  /** Its own card: HA's card picker, then HA's card editor. */
+  private _card(card: Config["card"]) {
+    return html`<h3>Its card</h3>
       ${card?.type
         ? html`<div class="actions">
               <button type="button" @click=${() => this._save({ ...this._config!, card: undefined })}>Change the card</button>
@@ -144,8 +153,7 @@ export class OverLayerEditor extends LitElement {
               ev.stopPropagation();
               this._save({ ...this._config!, card: ev.detail.config });
             }}
-          ></hui-card-picker>`}
-    `;
+          ></hui-card-picker>`}`;
   }
 
   /** Where it sits: a 3 x 3 grid to tap (float: all nine; scroll: the top row), and the

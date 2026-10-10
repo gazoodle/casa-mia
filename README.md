@@ -335,7 +335,8 @@ every tap, so the dashboard can be seen, not touched. A visiting engineer gets a
 everything and a hand on nothing. A cover keeps little fingers off at night. A warning
 floats up until it's dealt with. It's an ordinary card: Home Assistant's own conditions say
 when, its own card picker says what, and while you edit the dashboard it sits in its place
-like any other.
+like any other. Or it can lift a whole panel: a section of warnings, headings and all,
+floating over the dashboard in one piece.
 
 And the way out is for admins alone. There's no magic word in the address; instead, over the
 whole window, a small lid pulses gently over Home Assistant's own edit button, and only an

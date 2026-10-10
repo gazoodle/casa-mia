@@ -200,7 +200,11 @@ dashboards_on`).
   anchors with offsets; backdrop; block taps. Down when a section round it is hidden by its
   own Visibility (reads the section's `hidden`, ignoring garnish's, `cmGarnishHidden`). No
   URL escape: the admins-only door over HA's edit button (rect lid, round pulse), and
-  `?edit=1`. Guide `docs/over-layer.md`, README section. Next: "show its whole panel".
+  `?edit=1`. Guide `docs/over-layer.md`, README section.
+- **b4: Show its whole panel** (`panel: true`): the layer shows a copy of its section (HA's
+  `hui-section`, config less Over layers and its own visibility), made afresh each time it
+  goes up; the real panel never shows in place out of edit mode (`holdsPanelLayer`: Tablet
+  Layout's counting, and the sections patch, marked `cmContentHidden`). Tried on the box.
 - **Soft launch on the HA community forum**, still to do: a release (the owner runs
   `tools/release.py`), a fresh install on the test VM, then a forum post draft (HA
   Community → Share your Projects, leading with the Tablet Layout).

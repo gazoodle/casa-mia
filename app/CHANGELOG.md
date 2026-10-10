@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.10.5-b4
+
+- Over layer: **Show its whole panel.** In place of a card of its own, the layer shows a
+  copy of the panel (section) it's in, every card but the Over layer, anchored and sized as
+  a card is. That panel never shows in its own place out of edit mode (hatched in a Tablet
+  Layout's edit mode); you edit its cards there as usual. In edit mode the Over layer is just
+  its chip.
+
 ## 2026.10.5-b3
 
 - **New card: Over layer.** One card shown over the dashboard (the view, or the whole

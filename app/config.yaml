@@ -1,5 +1,5 @@
 name: Casa Mia
-version: "2026.10.5-b3"
+version: "2026.10.5-b4"
 slug: casa_mia
 description: "Wall tablet dashboards, cameras at a glance, guest QR login and Kiosk Satellite management, together in Home Assistant."
 url: "https://github.com/gazoodle/casa-mia/blob/main/docs/README.md"

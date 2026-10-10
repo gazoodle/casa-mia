@@ -360,3 +360,14 @@ test("an Over layer's anchor: nine places floating, the top row scrolling, in fr
   assert.equal(badge({ ...card, mode: "scroll", anchor: "left" }), "Over layer · scroll with the view top-left · the view");
   assert.equal(badge({ ...card, mode: "full", anchor: "bottom-right" }), "Over layer · full screen · the view");
 });
+
+test("an Over layer showing its whole panel keeps that panel out of its place", async () => {
+  const { holdsPanelLayer, badge } = await import("./over-layer/common.ts");
+  const tile = { type: "tile", entity: "binary_sensor.barn_door" };
+  const layer = { type: "custom:casa-mia-over-layer", panel: true };
+  assert.equal(holdsPanelLayer([tile, layer]), true);
+  assert.equal(holdsPanelLayer([tile, { ...layer, panel: false }]), false); // its own card: the panel shows as usual
+  assert.equal(holdsPanelLayer([tile]), false);
+  assert.equal(holdsPanelLayer(undefined), false);
+  assert.equal(badge(layer), "Over layer · its whole panel · float · the view");
+});

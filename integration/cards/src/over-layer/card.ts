@@ -29,10 +29,11 @@ function sectionsOf(el: Element): HTMLElement[] {
 /** Whether a section round this card is hidden by its own Visibility: its conditions not met,
  * or switched off. What HA decided, not why: its `hidden` attribute, set once its answer is
  * final (core's, for conditions on states). HA never hides a section holding this card for
- * its content (this card shows), but garnish everywhere may, which marks those
- * (cmGarnishHidden): they don't count. A Tablet Layout hides its panels its own way. */
+ * its content (this card shows), but Casa Mia may (garnish everywhere, the panel of an Over
+ * layer showing it whole), which marks those (cmContentHidden): they don't count. A Tablet
+ * Layout hides its panels its own way. */
 function sectionOff(el: Element): boolean {
-  return sectionsOf(el).some((s: any) => s.hasAttribute("hidden") && !s.cmGarnishHidden);
+  return sectionsOf(el).some((s: any) => s.hasAttribute("hidden") && !s.cmContentHidden);
 }
 
 const LAYER = `
@@ -68,7 +69,7 @@ export class OverLayerCard extends LitElement {
   }
 
   setConfig(config: Config) {
-    if (config.card !== undefined && (typeof config.card !== "object" || !config.card.type)) throw new Error("card: one card, with its type");
+    if (!config.panel && config.card !== undefined && (typeof config.card !== "object" || !config.card.type)) throw new Error("card: one card, with its type");
     this._config = config;
     this._makeChild();
     this._place();
@@ -130,7 +131,31 @@ export class OverLayerCard extends LitElement {
     this._place();
   }
 
+  /** Showing its whole panel: a copy of the section it is in (HA's own hui-section, its
+   * config less the Over layers in it and less its own Visibility, which has already let
+   * this show), made afresh each time the layer goes up, so it is as the panel is now. */
+  private _makePanel() {
+    const section = sectionsOf(this)[0] as any;
+    if (!section?.config) return;
+    const copy = document.createElement("hui-section") as any;
+    const { visibility: _v, ...config } = section.config;
+    copy.hass = this._hass;
+    copy.lovelace = section.lovelace;
+    copy.index = section.index;
+    copy.viewIndex = section.viewIndex;
+    copy.preview = false;
+    copy.config = { ...config, cards: (config.cards ?? []).filter((c: CardConfig) => c?.type !== TYPE) };
+    copy.style.setProperty("--column-span", String(config.column_span ?? 1));
+    this._child = copy;
+    this._childFor = "";
+  }
+
   private async _makeChild() {
+    if (this._config?.panel) {
+      this._child = undefined; // made as the layer goes up (_putUp)
+      this._childFor = "";
+      return;
+    }
     const card = this._config?.card;
     const key = JSON.stringify(card ?? null);
     if (key === this._childFor) return;
@@ -165,6 +190,7 @@ export class OverLayerCard extends LitElement {
     const root = this._host.attachShadow({ mode: "open" });
     root.innerHTML = `<style>${LAYER}</style><div class="layer"><div class="backdrop"></div><div class="holder"></div></div>`;
     this._layer = root.querySelector(".layer") as HTMLElement;
+    if (this._config?.panel) this._makePanel();
     if (this._child) this._layer.querySelector(".holder")!.append(this._child);
     this._door = new Door(root);
     document.body.append(this._host);
@@ -191,6 +217,7 @@ export class OverLayerCard extends LitElement {
     this._door?.remove();
     this._host.remove();
     this._host = this._layer = this._watch = this._door = undefined;
+    if (this._config?.panel) this._child = undefined; // its panel's copy: made afresh next time
     console.info("CASA-MIA CARDS: over layer taken down");
   }
 
@@ -230,6 +257,8 @@ export class OverLayerCard extends LitElement {
   render() {
     if (!this._config) return nothing;
     if (!this._editing) return nothing; // its card is in the layer
+    // Its whole panel: the chip alone (the panel round it is what shows).
+    if (this._config.panel) return html`<div class="badge">${badge(this._config)}</div>`;
     return html`<div class="badge">${badge(this._config)}</div>
       ${this._child ?? html`<div class="empty">No card yet: pick one in the editor.</div>`}`;
   }

@@ -34,6 +34,15 @@ dashboard, a Tablet Layout included. Put it in any section.
 7. **When it shows:** the card's own **Visibility** tab, Home Assistant's conditions: the
    alarm armed, a user, the time of day, a sensor on. No conditions: always.
 
+**Its whole panel.** Turn on **Show its whole panel** and, in place of a card of its own,
+the layer shows the panel (section) the Over layer is in: every card in it, its headings,
+garnish and each card's own Visibility included, anchored and sized like a card (raise
+**Card width** for a wide panel). A warnings panel, say, can float over the dashboard in one
+piece, its headings and all, rather than as one card. That panel never shows in its own
+place out of edit mode; in edit mode it's there as usual, so you edit its cards where they
+are (in a Tablet Layout it's hatched, as it never shows there otherwise), and the Over
+layer itself is just its chip. The layer shows the panel as it is each time it goes up.
+
 **A pop-over that goes when it's dealt with.** Float it in a corner (bottom right, say), turn
 **Block taps** off and the backdrop's opacity to 0: a panel in the corner, the dashboard
 round it still in use. Give it a Visibility condition its own card changes (a door left

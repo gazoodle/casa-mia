@@ -14,6 +14,7 @@ export const ANCHORS: Anchor[][] = [
 ];
 export type Config = CardConfig & {
   card?: CardConfig; // the one card it holds
+  panel?: boolean; // instead: a copy of its whole panel (every card in it but Over layers)
   mode?: Mode; // float: where it's anchored; full: filling what it covers; scroll: at the top, scrolling with the view
   cover?: Cover; // the view only, or the whole window (sidebar and header too)
   block?: boolean; // the backdrop takes every tap: what's beneath can be seen, not touched
@@ -28,6 +29,7 @@ export type Config = CardConfig & {
 
 /** Each option's default: shown in the editor, and never saved. */
 export const DEFAULTS = {
+  panel: false,
   mode: "float" as Mode,
   cover: "view" as Cover,
   block: true,
@@ -41,6 +43,10 @@ export const DEFAULTS = {
 };
 
 export const withDefaults = (c: Config) => ({ ...DEFAULTS, ...c });
+
+/** Whether a panel's cards hold an Over layer showing the whole panel: such a panel never
+ * shows in its place (out of edit mode); its cards are on the layer. */
+export const holdsPanelLayer = (cards?: CardConfig[]): boolean => !!cards?.some((c) => c?.type === TYPE && c.panel === true);
 
 /** An anchor's row and column in ANCHORS; an unknown one (a typo in YAML) is the centre. */
 function cell(anchor: Anchor): [number, number] {
@@ -67,5 +73,5 @@ export function badge(c: Config): string {
   const anchor = anchorFor(o.mode, o.anchor);
   const where = o.mode === "full" || anchor === "center" || (o.mode === "scroll" && anchor === "top") ? "" : ` ${anchor}`;
   const mode = { float: "float", full: "full screen", scroll: "scroll with the view" }[o.mode] + where;
-  return `Over layer · ${mode} · ${o.cover === "window" ? "the whole window" : "the view"}${o.block ? "" : " · taps pass through"}`;
+  return `Over layer · ${o.panel ? "its whole panel · " : ""}${mode} · ${o.cover === "window" ? "the whole window" : "the view"}${o.block ? "" : " · taps pass through"}`;
 }

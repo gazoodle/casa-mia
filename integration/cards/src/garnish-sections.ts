@@ -4,8 +4,13 @@
 // content is all hidden (hui-section's _updateVisibility); this adds that garnish doesn't
 // count, so a section left with only garnish showing hides too. A Tablet Layout's panels keep
 // their own rule (view.ts), and edit mode (HA's preview) shows every section, as HA does.
+// And, garnish switched on or not: a section holding an Over layer that shows its whole panel
+// never shows in its place (its cards are on the layer; over-layer/card.ts).
 // Leans on HA's frontend (a private method): if it is gone, this says so and does nothing.
+// A section hidden here is marked (cmContentHidden), so an Over layer in it can tell this
+// from the section's own Visibility.
 import { inTablet, onlyGarnish } from "./garnish.ts";
+import { holdsPanelLayer } from "./over-layer/common.ts";
 
 let everywhere = false;
 const seen = new Set<any>(); // the sections drawn, to look again when the switch changes
@@ -22,13 +27,14 @@ customElements.whenDefined("hui-section").then(() => {
     return;
   }
   proto._updateVisibility = function (this: any, ...args: unknown[]) {
-    this.cmGarnishHidden = false; // set while this hides it, so others can tell (an Over layer)
+    this.cmContentHidden = false; // set while this hides it, so others can tell (an Over layer)
     original.apply(this, args);
     if (seen.size > 200) for (const s of seen) if (!s.isConnected) seen.delete(s);
     seen.add(this);
-    if (!everywhere || this.hidden || this.preview || !this._config || inTablet(this)) return;
-    if (onlyGarnish([...(this._cards ?? []), ...(this._badges ?? []), ...(this._sections ?? [])])) {
-      this.cmGarnishHidden = true;
+    if (this.hidden || this.preview || !this._config || inTablet(this)) return;
+    const hide = holdsPanelLayer(this._config.cards) || (everywhere && onlyGarnish([...(this._cards ?? []), ...(this._badges ?? []), ...(this._sections ?? [])]));
+    if (hide) {
+      this.cmContentHidden = true;
       this._setElementVisibility(false);
     }
   };
