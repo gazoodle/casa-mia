@@ -59,15 +59,20 @@ class Codes:
         if ep is None:
             return _json(404, {"error": "No such endpoint."})
         title = ep.get("title") or self.data["welcome"].get("title") or welcome_title()
-        svg = swap.out(
-            card_svg(
-                title,
-                self.data["wifi"],
-                self.qr_text(ep),
-                ep["label"],
-                "Your host will give you a code" if ep.get("pin") else None,
-            ).decode()
-        ).encode()
+        # Swapped before drawing, not after: a QR code's pattern carries its text where no
+        # swap of the SVG can reach it, so a screenshot's card must be drawn from the
+        # stand-ins or it would scan to the real address.
+        wifi = {
+            k: swap.out(v) if isinstance(v, str) else v
+            for k, v in self.data["wifi"].items()
+        }
+        svg = card_svg(
+            swap.out(title),
+            wifi,
+            swap.out(self.qr_text(ep)),
+            swap.out(ep["label"]),
+            "Your host will give you a code" if ep.get("pin") else None,
+        )
         if name.endswith(".svg"):
             return 200, "image/svg+xml", svg
         return 200, "text/html; charset=utf-8", card_page(svg, f"{ep['label']} card")

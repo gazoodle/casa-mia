@@ -268,3 +268,19 @@ def test_every_change_is_announced_and_a_timed_opening_ends_on_time():
         assert ("a", False) in changes and not gl.endpoints["a"].enabled
     finally:
         gl.stop()
+
+
+def test_a_screenshot_card_scans_to_the_stand_in(api, monkeypatch):
+    """The card's QR codes are drawn from the swapped text, not swapped after drawing."""
+    from casa_mia.modules.guest_login import codes
+
+    drawn = []
+    monkeypatch.setattr(
+        codes.swap, "out", lambda s: s.replace("192.168.1.20", "192.0.2.9")
+    )
+    monkeypatch.setattr(codes, "card_svg", lambda *a: drawn.append(a) or b"<svg/>")
+    assert call(api, "POST", "logins", GUEST)[0] == 201
+    ep = {"id": "s1", "label": "S1", "dashboard": "/g", "slug": "slug-1-abcdefgh"}
+    assert call(api, "POST", "endpoints", ep)[0] == 201
+    call(api, "GET", "card/s1.svg")
+    assert drawn[0][2] == "http://192.0.2.9:8675/e/slug-1-abcdefgh"

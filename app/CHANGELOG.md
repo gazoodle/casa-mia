@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.6-b7
+
+- With the screenshot swap on, a guest card's QR codes now scan to the stand-in address
+  too, not only its writing: before, the codes still carried the real one.
+
 ## 2026.10.6-b6
 
 - **No more blank Camera Commander pictures after an app update.** When the app restarts,
