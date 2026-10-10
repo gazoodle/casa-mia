@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026.10.6-b10
+
+## 2026.10.6-b9
+
+- **Guest login's welcome card, higher or lower:** a new **Photo height** in Settings sets
+  how much of the phone the house photo takes, and so where the welcome card sits. Lower
+  it to bring the house rules into view at once; the preview shows the rules too. The
+  goodbye page follows it.
+- Guest login's QR codes dialog no longer opens its endpoint list by itself (on Safari and
+  the Home Assistant app), which then got in the way of choosing an endpoint. No dialog
+  starts on a drop-down now.
+
 ## 2026.10.6-b8
 
 - Guest login's sign-in log: a sign-out from closing an endpoint now names that endpoint,

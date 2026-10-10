@@ -138,7 +138,7 @@ def main() -> int:
                 token, EVENT, {"endpoint": ep.id, "label": ep.label, "ip": ip}
             ),
         )
-        guest.welcome, guest.house_info, guest.goodbye = runtime(store)[3:]
+        guest.welcome, guest.house_info, guest.goodbye, guest.photo = runtime(store)[3:]
         guest.on_change = lambda ep: fire_event(
             token, settings.CHANGED_EVENT, {"endpoint": ep.id, "enabled": ep.enabled}
         )

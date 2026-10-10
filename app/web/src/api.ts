@@ -106,7 +106,8 @@ export type Endpoint = {
 export type GuestConfig = {
   logins: Login[];
   default_login: string;
-  welcome: { title: string; message: string; delay: number };
+  /** photo: the house photo's height, % of the screen (unset: 52). */
+  welcome: { title: string; message: string; delay: number; photo?: number };
   qr_host: string;
   qr_host_effective: string;
   house_info: HouseInfo;

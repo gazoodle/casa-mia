@@ -284,3 +284,17 @@ def test_a_screenshot_card_scans_to_the_stand_in(api, monkeypatch):
     assert call(api, "POST", "endpoints", ep)[0] == 201
     call(api, "GET", "card/s1.svg")
     assert drawn[0][2] == "http://192.0.2.9:8675/e/slug-1-abcdefgh"
+
+
+def test_the_photo_height_sets_where_the_welcome_card_sits(api):
+    from casa_mia.modules.guest_login import render_welcome
+
+    assert "max(160px,34vh)" in render_welcome("T", "M", 0, None, photo=34)
+    assert "max(160px,80vh)" in render_welcome(
+        "T", "M", 0, None, photo=95
+    )  # at most 80
+    status, view = call(api, "PUT", "settings", {"welcome": {"photo": 40}})
+    assert status == 200 and view["welcome"]["photo"] == 40 and api.guest.photo == 40
+    assert b"40vh" in call(api, "GET", "preview")[1]
+    assert b"30vh" in call(api, "GET", "preview", query={"photo": ["30"]})[1]
+    assert call(api, "PUT", "settings", {"welcome": {"photo": "x"}})[0] == 400

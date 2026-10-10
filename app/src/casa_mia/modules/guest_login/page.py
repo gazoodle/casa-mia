@@ -11,6 +11,7 @@ import html
 import json
 
 from ... import header
+from .common import PHOTO, PHOTO_MAX, PHOTO_MIN
 
 PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -23,7 +24,7 @@ PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);
 font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
-.hero{position:relative;overflow:hidden;height:max(240px,52vh);background:var(--surface);
+.hero{position:relative;overflow:hidden;height:max(160px,@PHOTO@vh);background:var(--surface);
 -webkit-mask-image:linear-gradient(#000 50%,transparent);mask-image:linear-gradient(#000 50%,transparent)}
 .hero div{position:absolute;inset:0;background:@IMG@ @X@% @Y@%/cover no-repeat;
 transform:scale(@ZOOM@);transform-origin:@X@% @Y@%}
@@ -119,12 +120,13 @@ def render_welcome(
     frame: dict[str, float] | None = None,
     info: dict[str, str] | None = None,
     passcode: str | None = None,
+    photo: int = PHOTO,
 ) -> str:
     """The page, with `delay` seconds (clamped 0-30) and the house photo at `image_url`
-        (none: no photo), framed as saved on the admin page (or as `frame`, for an unsaved
-        preview). With `info`, the house info shows and the sign-in waits for Continue. With
-    `passcode` ("numeric" or "text", the keyboard to offer), it asks for the endpoint's
-    passcode first."""
+    (none: no photo), `photo`% of the screen high, framed as saved on the admin page (or as
+    `frame`, for an unsaved preview). With `info`, the house info shows and the sign-in
+    waits for Continue. With `passcode` ("numeric" or "text", the keyboard to offer), it
+    asks for the endpoint's passcode first."""
     image = f"url({json.dumps(image_url)})" if image_url and header_jpeg() else ""
     frame = header.framing()["welcome"] if frame is None else frame
     info_html = render_info(info) if info is not None else ""
@@ -133,6 +135,7 @@ def render_welcome(
         .replace("@INFO@", info_html)
         .replace("@INFO_ON@", "true" if info_html else "false")
         .replace("@PASSCODE@", json.dumps(passcode))
+        .replace("@PHOTO@", str(max(PHOTO_MIN, min(int(photo), PHOTO_MAX))))
         .replace("@TITLE@", html.escape(title))
         .replace("@MESSAGE@", html.escape(message))
         .replace("@HOUSE@", html.escape(header.HOUSE))
@@ -145,10 +148,12 @@ def render_welcome(
     )
 
 
-def render_goodbye(title: str, message: str, image_url: str | None) -> str:
+def render_goodbye(
+    title: str, message: str, image_url: str | None, photo: int = PHOTO
+) -> str:
     """The page a signed-out visitor's browser is sent to: the welcome page's look, with
     nothing running."""
-    page = render_welcome(title, message, 0, image_url, info=None)
+    page = render_welcome(title, message, 0, image_url, info=None, photo=photo)
     page = page[: page.index("<script>")] + "</body></html>"
     return page.replace('class="card" id="card"', 'class="card done" id="card"')
 

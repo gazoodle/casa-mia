@@ -186,7 +186,11 @@ modules*.
 
 The **Settings** button holds:
 - the welcome page's title, message and delay (0 to 30 seconds; the sign-in runs during
-  it), with a **Preview** on a phone, a small phone or a tablet;
+  it), with a **Preview** on a phone, a small phone or a tablet (with your house rules,
+  when you have some);
+- **Photo height:** how much of the phone the house photo takes, and so how high the
+  welcome card sits. Lower it to bring the house rules into view at once. The goodbye page
+  follows it;
 - **Host in QR codes**, the address phones reach the box on. Leave it empty to use the
   address found automatically. If you change it, every QR code changes, including the
   printed ones;

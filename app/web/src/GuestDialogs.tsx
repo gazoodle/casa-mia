@@ -475,12 +475,14 @@ export function SettingsDialog({
   const [title, setTitle] = useState(config.welcome.title);
   const [message, setMessage] = useState(config.welcome.message);
   const [delay, setDelay] = useState(String(config.welcome.delay));
+  const [photo, setPhoto] = useState(String(config.welcome.photo ?? 52));
   const [host, setHost] = useState(config.qr_host);
   const [info, setInfo] = useState(config.house_info);
   const [goodbye, setGoodbye] = useState(config.goodbye);
   const [previewing, setPreviewing] = useState(false);
   // The welcome page with the values being edited, not yet saved.
-  const previewUrl = `api/guest/preview?${new URLSearchParams({ title, message, delay })}`;
+  // With the house rules when there are some, to see the card and rules fit together.
+  const previewUrl = `api/guest/preview?${new URLSearchParams({ title, message, delay, photo, ...(info.text.trim() ? { info: "1" } : {}) })}`;
   return (
     <Dialog
       title="Guest login settings"
@@ -490,7 +492,7 @@ export function SettingsDialog({
           <button className={ui.button} onClick={onClose}>
             Cancel
           </button>
-          <button className={ui.primary} onClick={() => onSave({ qr_host: host, welcome: { title, message, delay: Number(delay) }, house_info: info, goodbye })}>
+          <button className={ui.primary} onClick={() => onSave({ qr_host: host, welcome: { title, message, delay: Number(delay), photo: Number(photo) }, house_info: info, goodbye })}>
             Save
           </button>
         </>
@@ -507,6 +509,12 @@ export function SettingsDialog({
       </Field>
       <Field label="Welcome message">
         <input value={message} onChange={(e) => setMessage(e.target.value)} />
+      </Field>
+      <Field
+        label={`Photo height: ${photo}% of the screen`}
+        help="How much of the phone the house photo takes, and so how high the welcome card sits. Lower it to bring the house rules into view at once. Press Preview to see it. Also used by the goodbye page."
+      >
+        <input type="range" min={20} max={80} step={2} value={photo} onChange={(e) => setPhoto(e.target.value)} />
       </Field>
       <Field label="Welcome delay (seconds)" help="0 to 30. The sign-in runs during the delay.">
         <input type="number" min={0} max={30} value={delay} onChange={(e) => setDelay(e.target.value)} />

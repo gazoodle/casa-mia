@@ -38,6 +38,7 @@ from .common import (
     GOODBYE_URL,
     HEADER_URL,
     INTERNAL_URL,
+    PHOTO,
     PORT,
     RATE_LIMIT,
     RATE_WINDOW,
@@ -88,6 +89,7 @@ class GuestLogin(SignIn):
         self.on_closed: Callable[[Endpoint], None] | None = None
         # The goodbye page's title and message, and an address to send visitors to instead.
         self.goodbye: dict[str, str] = {}
+        self.photo = PHOTO  # the house photo's height on both pages, % of the screen
         # Called with each scan, sign-in, refusal: the audit (GuestAPI keeps it).
         self.on_audit: Callable[[dict[str, Any]], None] | None = None
         # A login's HA user id, for the integration (GuestAPI knows them).
@@ -183,6 +185,7 @@ class GuestLogin(SignIn):
         welcome: tuple[str, str, int] | None = None,
         house_info: dict[str, str] | None = None,
         goodbye: dict[str, str] | None = None,
+        photo: int | None = None,
     ) -> None:
         """Swap in new config without a restart. An endpoint keeps its on/off state and
         login count across the change as long as its id stays the same."""
@@ -201,6 +204,8 @@ class GuestLogin(SignIn):
                 self.house_info = house_info
             if goodbye is not None:
                 self.goodbye = goodbye
+            if photo is not None:
+                self.photo = photo
             self._save()
         self._report_config()
 
@@ -448,6 +453,7 @@ class GuestLogin(SignIn):
                 self.goodbye.get("title") or GOODBYE_TITLE,
                 self.goodbye.get("message") or GOODBYE_MESSAGE,
                 HEADER_URL,
+                self.photo,
             )
             self._reply(h, 200, swap.out(page).encode(), "text/html; charset=utf-8")
             return
@@ -483,6 +489,7 @@ class GuestLogin(SignIn):
                 delay,
                 HEADER_URL if ep.type == "guest" else None,
                 info=info,
+                photo=self.photo,
                 passcode=None
                 if not ep.pin
                 else ("numeric" if ep.pin.isdigit() else "text"),

@@ -16,6 +16,10 @@ EVENT = "casa_mia_guest_login"
 HEADER_URL = "/welcome/header.jpg"
 WELCOME_MESSAGE = "Signing you in…"
 WELCOME_DELAY = 3  # seconds; the sign-in itself runs during this time
+# The house photo's height on the welcome and goodbye pages, % of the screen: it sets how
+# high the welcome card sits (lower it to bring house rules into view at once).
+PHOTO = 52
+PHOTO_MIN, PHOTO_MAX = 20, 80
 MAX_DELAY = 30  # the login code HA gives us is only good for a short while
 TICK = 60.0  # longest wait between looks for timed openings that have run out
 MFA_TTL = 300.0  # seconds a visitor has to type a 2FA code
@@ -25,8 +29,8 @@ GOODBYE_TITLE = "Thank you for visiting"
 GOODBYE_MESSAGE = "You're signed out now. We hope to see you again soon."
 # Sign-out waits this long after a close, so a visitor's open page can go to the goodbye
 # first: the app announces the close (settings.CHANGED_EVENT, which has the integration ask
-# at once), the integration updates the Access
-# switch, and the page, looking every second, moves. A timed opening's page moves on the
+# at once), the integration updates the Access switch, and the page, looking every second,
+# moves. A timed opening's page moves on the
 # second by itself (the switch says when it closes).
 GOODBYE_GRACE = 8.0
 

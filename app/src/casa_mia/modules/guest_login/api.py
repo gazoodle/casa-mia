@@ -24,6 +24,9 @@ from .codes import Codes, Response, _json
 from .common import (
     GOODBYE_GRACE,
     MAX_DELAY,
+    PHOTO,
+    PHOTO_MAX,
+    PHOTO_MIN,
     PORT,
     WELCOME_DELAY,
     WELCOME_MESSAGE,
@@ -101,6 +104,7 @@ def runtime(
     tuple[str, str, int],
     dict[str, str],
     dict[str, str],
+    int,
 ]:
     """The store as GuestLogin.apply() takes it."""
     endpoints = [
@@ -121,6 +125,7 @@ def runtime(
         welcome,
         data["house_info"],
         data["goodbye"],
+        int(w.get("photo", PHOTO)),
     )
 
 
@@ -382,14 +387,17 @@ class GuestAPI(Codes):
 
         try:
             delay = int(arg("delay", w.get("delay", WELCOME_DELAY)))
+            photo = int(arg("photo", w.get("photo", PHOTO)))
         except ValueError:
-            delay = WELCOME_DELAY
+            delay, photo = WELCOME_DELAY, PHOTO
         page = render_welcome(
             arg("title", w.get("title") or welcome_title()),
             arg("message", w.get("message") or WELCOME_MESSAGE),
             delay,
             "header.jpg",  # relative: api/guest/header.jpg, through ingress
             preview=True,
+            info=self.data["house_info"] if (query.get("info") or [""])[0] else None,
+            photo=photo,
         )
         return 200, "text/html; charset=utf-8", page.encode()
 
@@ -404,6 +412,15 @@ class GuestAPI(Codes):
             for key in ("title", "message"):
                 if key in body.get("welcome", {}):
                     welcome[key] = str(body["welcome"][key] or "").strip()
+            if "photo" in body.get("welcome", {}):
+                try:
+                    welcome["photo"] = max(
+                        PHOTO_MIN, min(int(body["welcome"]["photo"]), PHOTO_MAX)
+                    )
+                except (TypeError, ValueError):
+                    raise BadRequest(
+                        "Photo height: a whole number, 20 to 80."
+                    ) from None
             if "delay" in body.get("welcome", {}):
                 try:
                     welcome["delay"] = max(

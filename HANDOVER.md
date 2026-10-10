@@ -1,7 +1,7 @@
 # Handover: Casa Mia, for agents joining the work
 
 Where the project stands and how the work is done here, as of 2026-10-10 (`dev` at
-2026.10.6-b8, committed; 2026.10.5 released; 2026.10.6 about to be released). **Read this at the start of every
+2026.10.6-b9; 2026.10.5 released; 2026.10.6 about to be released). **Read this at the start of every
 session**, then CLAUDE.md in full; where they disagree, CLAUDE.md wins. It replaces
 re-reading old transcripts: the history below is all a new session needs.
 
@@ -238,8 +238,7 @@ guest card SVG), `page.py` (welcome, goodbye), `supervisor.py`.
 - **Loose ends:** move the card's motion test into the cards' `npm test`; HA warns about
   `via_device` in commanders' DeviceInfo (until 2027.8); the compositor's log lines give
   viewers' addresses only; the Tablet Layout guide's examples.
-- **Next from the backlog**, when the owner picks: the welcome page fitting card and house
-  rules on screen; the reach check's screenshot; the Over layer's intercom mode and card
+- **Next from the backlog**, when the owner picks: the reach check's screenshot; the Over layer's intercom mode and card
   transparency; Kiosk mode's way out (`?disable_km`); Auto Dashboards' Back/Home/Help made
   general; every camera detection with its own icon; Tablet Layout bugs; nested sections
   when HA 2026.11 ships them (don't build ahead of HA).
