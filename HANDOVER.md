@@ -236,7 +236,10 @@ guest card SVG), `page.py` (welcome, goodbye), `supervisor.py`.
   count), it's one house's system made general.
 - **Casa Mia is non-commercial, always** (the owner's commitment); the MIT licence stays,
   and what others do with it is on them.
-- **The 2026.9 floor is stated, not tested:** everything has run on 2026.10 only.
+- **The 2026.3 floor (b1 of 2026.10.7) is read from HA's history, not tested:** everything
+  has run on 2026.10, and the test VM on 2026.9.4. The reasons are in `app/config.yaml`;
+  the test is in the backlog. A reinstalled app can lose HA's update entity (no Update
+  button) until the Supervisor integration is reloaded or HA restarts: HA's doing, not ours.
 - **Seen occasionally:** "Invalid configuration" on a card that clears after a refresh.
   Possibly HA frontend issue #53890 (`add_extra_js_url` elements lost before the scoped
   registry polyfill). Unconfirmed; watch for it.
