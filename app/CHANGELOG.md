@@ -1,128 +1,64 @@
 # Changelog
 
-## 2026.10.6-b11
+## 2026.10.6
 
-- **No more install count:** the app no longer downloads each release's notes from GitHub
-  to be counted, and the **Count this install** option is gone. Casa Mia now sends nothing
-  to anyone for counting; the project page's Pulls badge comes from GitHub's own figures
-  for the app's images.
+- **Breaking:** Casa Mia now needs Home Assistant 2026.9 or later, and the update isn't
+  offered to an older one. Update Home Assistant first.
 
-## 2026.10.6-b9
+After updating, restart Home Assistant when the Repair asks: the integration has changed.
 
-- **Guest login's welcome card, higher or lower:** a new **Photo height** in Settings sets
-  how much of the phone the house photo takes, and so where the welcome card sits. Lower
-  it to bring the house rules into view at once; the preview shows the rules too. The
-  goodbye page follows it.
-- Guest login's QR codes dialog no longer opens its endpoint list by itself (on Safari and
-  the Home Assistant app), which then got in the way of choosing an endpoint. No dialog
-  starts on a drop-down now.
+### New features
 
-## 2026.10.6-b8
-
-- Guest login's sign-in log: a sign-out from closing an endpoint now names that endpoint,
-  so it shows when the log is filtered to it.
-
-## 2026.10.6-b7
-
-- With the screenshot swap on, a guest card's QR codes now scan to the stand-in address
-  too, not only its writing: before, the codes still carried the real one.
-
-## 2026.10.6-b6
-
-- **No more blank Camera Commander pictures after an app update.** When the app restarts,
-  every Camera Commander card showing its picture starts a fresh stream within a second or
-  two. Before, the old stream died with the app, often without the browser noticing, and
-  the card stayed blank until the page was reloaded.
-- **Guest login's goodbye is snappy now.** A visitor's open page moves to the goodbye
-  within a second or two of their endpoint closing, however it closed, and the sign-out
-  follows 8 seconds after the close (it was 40). A timed opening now ends on the second,
-  and its visitors' pages move at that moment by themselves. Needs a Home Assistant restart
-  for the integration's part.
-- Guest login's guide says why it works the way it does, with the two xkcd comics behind it.
-
-## 2026.10.6-b5
-
-- **Guest login's sign-in log**, at the bottom of its page: every scan of a QR code and what
-  came of it (signed in, a wrong passcode or 2FA code, a closed endpoint, an unknown
-  address), and every sign-out, newest first. Each record has the time, the endpoint and
-  login, the phone's address, its browser (device, languages, time zone, screen) and, when
-  a device tracker in Home Assistant has that address, the device and its person. Tap a
-  record for all of it; filter by outcome or endpoint; download it all as CSV. Kept by the
-  app in its own store, so it survives restarts; **Limits** sets how long (90 days) and how
-  many (2000) records it keeps. Passcodes, codes and secret addresses are never recorded.
-
-## 2026.10.6-b4
-
-- **Signing out follows the login.** When endpoints share a login, its visitors are now
-  signed out as the last open one closes, whichever that is, as long as one of them has
-  *Sign its visitors out when it closes* ticked. Before, it had to be ticked on the one that
-  closed last.
-- **Who's signed in**, a new button on each login: how many phones and browsers are signed
-  in as it, with each one's address and when it was last used.
-- **A passcode on an endpoint:** after the scan, the welcome page asks for a code you gave
-  the visitor (with the booking, say) before it signs them in. Unlike two-factor sign-in it
-  never expires: change it between guests. Digits only gives a number pad. Not offered for
-  a login whose user has two-factor sign-in, which already asks for a code; such a login
-  now shows a **2FA** badge. The guest card says *Your host will give you a code*.
-
-## 2026.10.6-b3
-
-- **A goodbye for guests.** When an endpoint that signs its visitors out closes, their
-  open pages go to a goodbye page (your house photo, a title and message you set in
-  Guest login's Settings) or to an address you choose, then the sign-out follows 40
-  seconds later. A phone that's asleep at the time wakes to Home Assistant's login screen.
-  Needs a Home Assistant restart for the integration's part.
-- **Fix it buttons** in Guest login's *What each login can reach*: **Local only** for a user
-  that can sign in from outside, **Hide them for this user** where kiosk-mode leaves the
-  header or sidebar showing, and **Admin only** on each dashboard the visitors don't land on.
-  Each asks first: it changes Home Assistant, and an editor open elsewhere could lose
-  unsaved changes or undo it.
-- **QR codes**, a new button on the Guest login page (it replaces *QR code for a page*):
-  - **Guest card:** an endpoint's QR code beside your Wi-Fi's, *1. Join the Wi-Fi*, *2. Scan
-    to sign in*, with the network's name and password written out. Open it to print, or
-    download it as an SVG for a document or a message.
-  - **Wi-Fi:** your network's QR code, which a phone's camera offers to join.
-  - **A page:** a QR code for any dashboard or view, as before.
-- The Logins tiles and *What each login can reach* wrap long names and addresses instead of
-  running past their edges.
-- Guest login's house info is now just your house rules: the Wi-Fi details are gone, as a
-  phone that can open the welcome page is already on your network.
-- What each login can reach is tidier, and fits a phone: each dashboard is a box with its
-  path, what kiosk-mode hides and its views as chips (dashed: no tab).
-- A page's buttons beside its title move below it on a narrow screen, instead of squeezing
-  the title.
-
-## 2026.10.6-b2
-
-- **Guest login, locked down as far as Home Assistant allows.**
-  - **Sign its visitors out when it closes:** a new option on each endpoint. Closing it, by
-    hand, from an automation or when its time runs out, ends every session of its login,
-    so a guest still inside is signed out. A login shared with another open endpoint keeps
-    its sessions until that one closes too. On for new endpoints; existing ones keep
-    working as before until you tick it.
-  - **Sign everyone out**, a new button on each login, does the same by hand.
+- **Guest login, made for holiday lets and visiting engineers.** Everything below is on
+  the Guest login page and explained in its guide, which now also says how far a
+  visitor's session can be narrowed and why it works the way it does.
+  - **A passcode on an endpoint:** after the scan, the visitor types a code you gave them
+    (with the booking, say) before they're signed in. It never expires: change it between
+    guests. All digits gives them a number pad.
   - **Two-factor sign-in:** a login whose user has an authenticator app now asks the
-    visitor for the code after the scan, instead of failing.
-  - **New secret address each time it closes:** for an engineer's code handed out per
-    visit, so a code from a past visit is no good.
-  - **What each login can reach:** a check at the bottom of the page lists the dashboards
-    and views each login's user can open, and flags what's probably open by mistake: an
-    administrator, a user that can sign in from outside, a shared login, kiosk-mode
-    missing or not hiding the header and sidebar where an endpoint lands.
-  - The guide says what Home Assistant can and can't do to narrow a visitor's session.
-- **House info for guests:** the Wi-Fi's name and password and your house rules, set in
-  Guest login's Settings, shown on the welcome page before signing in, for endpoints with
-  *Show the house info first* on.
-- **Engineer endpoints get their own page:** a plain *Maintenance access* card with no
-  house photo, that signs in at once (an endpoint's own welcome settings still apply).
-- **QR code for a page:** a new button on the Guest login page makes a QR code for any
-  dashboard or view, to download or save to Home Assistant's media.
+    visitor for its code after the scan, instead of failing. Such a login shows a **2FA**
+    badge.
+  - **Sign its visitors out when it closes:** a new option on each endpoint. Closing it, by
+    hand, from an automation or when its time runs out, signs out everyone its login let
+    in. Endpoints sharing a login sign out when the last of them closes. On for new
+    endpoints; existing ones work as before until you tick it.
+  - **A goodbye:** a guest whose page is open when their endpoint closes is taken to a
+    goodbye page (your house photo, with a title and message you set) or to an address you
+    choose, a few seconds before being signed out.
+  - **House rules** before signing in, for endpoints with *Show the house info first*;
+    the guest presses **Continue**. A new **Photo height** setting moves the welcome card
+    higher or lower, so the rules can be read at once.
+  - **Engineer endpoints** get a plain *Maintenance access* page that signs in at once.
+  - **New secret address each time it closes**, for an engineer's code handed out per
+    visit, so an old code is no good.
+  - **Who's signed in** and **Sign everyone out** on each login.
+  - **What each login can reach:** a check that lists the dashboards each login's user can
+    open and flags what's probably open by mistake, with buttons to fix it (*Local only*,
+    *Hide them for this user*, *Admin only*). Each asks before it changes Home Assistant.
+  - **A sign-in log** of every scan and what came of it, and every sign-out: the phone's
+    address, browser and, when a device tracker knows the address, its person. Filter it,
+    or download it as CSV. It survives restarts, and you choose how long it's kept.
+    Passcodes, codes and secret addresses are never recorded.
+  - **QR codes:** a printable **guest card** with your Wi-Fi's code beside an endpoint's
+    (*1. Join the Wi-Fi*, *2. Scan to sign in*), your **Wi-Fi**'s own code, and a code for
+    any dashboard or view.
 
-## 2026.10.6-b1
+### Improvements
 
-- Casa Mia needs Home Assistant 2026.9 or later, now said in the README and the app's
-  documentation, and the app no longer offers itself to an older Home Assistant.
+- **No more install count:** the app no longer fetches anything from GitHub to be counted,
+  and the **Count this install** option is gone. Casa Mia sends nothing to anyone for
+  counting; the project page's Pulls badge comes from GitHub's own figures.
+- A page's buttons beside its title move below it on a narrow screen, instead of
+  squeezing the title.
 - The Over layer's guide says how far along it is: Alpha.
+
+### Bug fixes
+
+- **No more blank Camera Commander pictures after an app update:** every card showing a
+  commander's picture starts a fresh stream within a second or two of the app restarting.
+  Before, it often stayed blank until the page was reloaded.
+- Dialogs no longer open a drop-down list by themselves when they open (Safari and the
+  Home Assistant app), where it then got in the way of the next click.
 
 ## 2026.10.5
 
