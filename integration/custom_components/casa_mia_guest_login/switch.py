@@ -13,7 +13,12 @@ from homeassistant.helpers import entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from ..casa_mia.coordinator import CasaMiaCoordinator
-from .guest import GuestEndpointEntity, add_endpoint_entities, async_set_endpoint
+from .guest import (
+    GuestEndpointEntity,
+    add_endpoint_entities,
+    async_set_endpoint,
+    guest_module,
+)
 
 
 async def async_setup_entry(
@@ -49,6 +54,20 @@ class AccessSwitch(GuestEndpointEntity, SwitchEntity):
     @property
     def is_on(self) -> bool | None:
         return self.endpoint.get("enabled")
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """For the cards' script in a visitor's browser: when the endpoint its user came
+        through closes and signs visitors out, it sends the page to the goodbye first."""
+        module = guest_module(self.coordinator)
+        return {
+            "guest_user_id": self.endpoint.get("user_id"),
+            "signs_out": bool(self.endpoint.get("end_sessions")),
+            "goodbye_url": module.get("goodbye_url"),
+            "guest_port": module.get("port"),
+            # A timed opening's end (epoch seconds): the page moves on the second itself.
+            "closes_at": self.endpoint.get("until"),
+        }
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         await async_set_endpoint(self.coordinator, self.endpoint_id, True)

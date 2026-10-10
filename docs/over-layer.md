@@ -1,5 +1,7 @@
 # Over layer
 
+> **Maturity: Alpha.** Does its job every day in the author's house, but hasn't been tried in many others. Expect rough edges and changes. ([The levels](README.md#maturity))
+
 One card shown over the whole dashboard while its conditions hold. What's beneath can
 still be seen, but not touched: only the card on the layer works.
 

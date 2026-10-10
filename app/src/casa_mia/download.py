@@ -1,5 +1,5 @@
-"""Downloading release files and dropping old ones: shared by the firmware server (the
-tablets' APKs) and the install count (this app's release notes)."""
+"""Downloading release files and dropping old ones, for the firmware server (the tablets'
+APKs)."""
 
 from __future__ import annotations
 

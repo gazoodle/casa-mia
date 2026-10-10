@@ -44,6 +44,26 @@ export function EndpointDialog({
   const [title, setTitle] = useState(endpoint?.title ?? "");
   const [message, setMessage] = useState(endpoint?.message ?? "");
   const [delay, setDelay] = useState(endpoint?.delay?.toString() ?? "");
+  const [info, setInfo] = useState(endpoint?.info ?? false);
+  // A new endpoint signs its visitors out when it closes; an old one keeps what it had.
+  const [endSessions, setEndSessions] = useState(endpoint ? !!endpoint.end_sessions : true);
+  const [rotate, setRotate] = useState(endpoint?.rotate ?? false);
+  const [usePin, setUsePin] = useState(!!endpoint?.pin);
+  const [pin, setPin] = useState(endpoint?.pin ?? "");
+  // Whether the chosen login has 2FA: it asks for its own code, so no passcode then.
+  const loginName = account || config.default_login;
+  const [mfa, setMfa] = useState<boolean | null>(config.logins.find((l) => l.name === loginName)?.mfa ?? null);
+  useEffect(() => {
+    if (!loginName) return;
+    let live = true;
+    get<{ mfa: boolean | null }>(`logins/${loginName}/mfa`).then(
+      (out) => live && setMfa(out.mfa),
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+  }, [loginName]);
 
   const generate = async () => setSlug((await get<{ slug: string }>("slug")).slug);
   useEffect(() => {
@@ -69,6 +89,10 @@ export function EndpointDialog({
       title: welcome ? title || null : null,
       message: welcome ? message || null : null,
       delay: welcome && delay !== "" ? Number(delay) : null,
+      info: type === "guest" && info,
+      end_sessions: endSessions,
+      rotate: useSlug && rotate,
+      pin: usePin && !mfa ? pin.trim() || null : null,
     });
 
   return (
@@ -143,7 +167,10 @@ export function EndpointDialog({
           <input placeholder="/guest-dashboards/suite-1" value={dashboard} onChange={(e) => setDashboard(e.target.value)} />
         )}
       </Field>
-      <Field label="Type" help="Guest gets the welcome page. Engineer is for maintenance QR codes on KNX panels and the like.">
+      <Field
+        label="Type"
+        help="Guest gets the welcome page with the house photo. Engineer gets a plain Maintenance access page and goes straight on: for maintenance QR codes on KNX panels and the like."
+      >
         <Segmented value={type} options={[["guest", "Guest"], ["engineer", "Engineer"]]} onChange={setType} />
       </Field>
       <Field label="Login" help="Which Home Assistant user the visitor is signed in as.">
@@ -178,6 +205,18 @@ export function EndpointDialog({
             </button>
           </div>
         )}
+        {useSlug && (
+          <label className={css.check}>
+            <input type="checkbox" checked={rotate} onChange={(e) => setRotate(e.target.checked)} />
+            <span>
+              <strong>New secret address each time it closes</strong>
+              <span className={css.checkHelp}>
+                So an old code is no good: for an engineer's code sent for one visit. Take the new QR code from this page before
+                the next visit. A printed QR code (below) keeps its address.
+              </span>
+            </span>
+          </label>
+        )}
         <label className={css.check}>
           <input type="checkbox" checked={legacy} onChange={(e) => setLegacy(e.target.checked)} />
           <span>
@@ -190,6 +229,43 @@ export function EndpointDialog({
         </label>
       </fieldset>
 
+      <label className={css.check}>
+        <input type="checkbox" checked={usePin && !mfa} disabled={!!mfa} onChange={(e) => setUsePin(e.target.checked)} />
+        <span>
+          <strong>Ask for a passcode</strong>
+          <span className={css.checkHelp}>
+            {mfa
+              ? `Not for this login: its user has two-factor sign-in, which already asks the visitor for a code.`
+              : "The visitor types it after the scan, before signing in: give it to them with the booking. It never expires; change it between guests."}
+          </span>
+        </span>
+      </label>
+      {usePin && !mfa && (
+        <Field label="Passcode" help="4 to 32 characters. Digits only gives the visitor a number pad.">
+          <input value={pin} onChange={(e) => setPin(e.target.value)} spellCheck={false} autoComplete="off" />
+        </Field>
+      )}
+      <label className={css.check}>
+        <input type="checkbox" checked={endSessions} onChange={(e) => setEndSessions(e.target.checked)} />
+        <span>
+          <strong>Sign its visitors out when it closes</strong>
+          <span className={css.checkHelp}>
+            Closing (by hand, by an automation, or when its time runs out) also ends every session of its login, so a guest
+            already inside is signed out. Waits while another open endpoint uses the same login. Not for an administrator.
+          </span>
+        </span>
+      </label>
+      {type === "guest" && (
+        <label className={css.check}>
+          <input type="checkbox" checked={info} onChange={(e) => setInfo(e.target.checked)} />
+          <span>
+            <strong>Show the house info first</strong>
+            <span className={css.checkHelp}>
+              The house rules from Settings, under the welcome card; the visitor presses Continue to sign in.
+            </span>
+          </span>
+        </label>
+      )}
       <label className={css.check}>
         <input type="checkbox" checked={welcome} onChange={(e) => setWelcome(e.target.checked)} />
         <span>
@@ -399,10 +475,14 @@ export function SettingsDialog({
   const [title, setTitle] = useState(config.welcome.title);
   const [message, setMessage] = useState(config.welcome.message);
   const [delay, setDelay] = useState(String(config.welcome.delay));
+  const [photo, setPhoto] = useState(String(config.welcome.photo ?? 52));
   const [host, setHost] = useState(config.qr_host);
+  const [info, setInfo] = useState(config.house_info);
+  const [goodbye, setGoodbye] = useState(config.goodbye);
   const [previewing, setPreviewing] = useState(false);
   // The welcome page with the values being edited, not yet saved.
-  const previewUrl = `api/guest/preview?${new URLSearchParams({ title, message, delay })}`;
+  // With the house rules when there are some, to see the card and rules fit together.
+  const previewUrl = `api/guest/preview?${new URLSearchParams({ title, message, delay, photo, ...(info.text.trim() ? { info: "1" } : {}) })}`;
   return (
     <Dialog
       title="Guest login settings"
@@ -412,7 +492,7 @@ export function SettingsDialog({
           <button className={ui.button} onClick={onClose}>
             Cancel
           </button>
-          <button className={ui.primary} onClick={() => onSave({ qr_host: host, welcome: { title, message, delay: Number(delay) } })}>
+          <button className={ui.primary} onClick={() => onSave({ qr_host: host, welcome: { title, message, delay: Number(delay), photo: Number(photo) }, house_info: info, goodbye })}>
             Save
           </button>
         </>
@@ -430,6 +510,12 @@ export function SettingsDialog({
       <Field label="Welcome message">
         <input value={message} onChange={(e) => setMessage(e.target.value)} />
       </Field>
+      <Field
+        label={`Photo height: ${photo}% of the screen`}
+        help="How much of the phone the house photo takes, and so how high the welcome card sits. Lower it to bring the house rules into view at once. Press Preview to see it. Also used by the goodbye page."
+      >
+        <input type="range" min={20} max={80} step={2} value={photo} onChange={(e) => setPhoto(e.target.value)} />
+      </Field>
       <Field label="Welcome delay (seconds)" help="0 to 30. The sign-in runs during the delay.">
         <input type="number" min={0} max={30} value={delay} onChange={(e) => setDelay(e.target.value)} />
       </Field>
@@ -439,6 +525,35 @@ export function SettingsDialog({
           Preview
         </button>
       </div>
+      <fieldset className={css.fieldset}>
+        <legend>House info</legend>
+        <Field
+          label="House rules"
+          help="Shown before signing in, by guest endpoints with Show the house info first on. Plain text; a blank line starts a new paragraph."
+        >
+          <textarea rows={5} value={info.text} onChange={(e) => setInfo({ ...info, text: e.target.value })} />
+        </Field>
+      </fieldset>
+      <fieldset className={css.fieldset}>
+        <legend>Goodbye</legend>
+        <p className={css.checkHelp}>
+          When an endpoint that signs its visitors out closes, their open pages go here before the sign-out (it waits 8
+          seconds for them). A phone that's asleep then wakes to Home Assistant's login screen instead.
+        </p>
+        <Field label="Goodbye title">
+          <input placeholder="Thank you for visiting" value={goodbye.title} onChange={(e) => setGoodbye({ ...goodbye, title: e.target.value })} />
+        </Field>
+        <Field label="Goodbye message">
+          <input
+            placeholder="You're signed out now. We hope to see you again soon."
+            value={goodbye.message}
+            onChange={(e) => setGoodbye({ ...goodbye, message: e.target.value })}
+          />
+        </Field>
+        <Field label="Or send them to" help="A web address instead of the goodbye page, for example your house's website. Leave empty for the goodbye page.">
+          <input placeholder="https://" value={goodbye.url} onChange={(e) => setGoodbye({ ...goodbye, url: e.target.value })} spellCheck={false} />
+        </Field>
+      </fieldset>
       {previewing && <PhonePreview url={previewUrl} onClose={() => setPreviewing(false)} />}
     </Dialog>
   );

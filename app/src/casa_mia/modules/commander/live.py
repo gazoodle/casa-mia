@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import secrets
 import time
 from typing import Any
 
@@ -25,6 +26,11 @@ from .common import BadRequest
 from .store import Base
 
 _LOGGER = logging.getLogger(__name__)
+
+# This run of the app: in each card's view, so a page showing a commander's picture can
+# tell the app restarted (an update) and start a fresh stream; the old one died with it,
+# often without the browser saying so.
+RUN = secrets.token_hex(4)
 
 
 class Live(Base):
@@ -110,6 +116,7 @@ class Live(Base):
                 for e in mine
             },
             "live_main": self.live_main(comp),
+            "run": RUN,
         }
 
     @staticmethod

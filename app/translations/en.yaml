@@ -5,12 +5,6 @@ configuration:
   log_level:
     name: Log level
     description: How much the app logs.
-  count_install:
-    name: Count this install
-    description: >-
-      Once per version, download that release's notes from GitHub, which adds one to the
-      project's download count. Anonymous: nothing about your home is sent. It is only there
-      to cheer up the author; switch it off and nothing else changes.
   gitproxy_enabled:
     name: Serve tablet firmware
     description: "Beta. Mirror the Kiosk Satellite firmware and serve it to the tablets at http://<this host>:8000 (the Custom repository address in Kiosk Satellite)."

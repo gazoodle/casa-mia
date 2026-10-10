@@ -1,0 +1,69 @@
+# How many times the app's images were pulled, read from GHCR's public package pages
+# (no telemetry from the app). Kept on the `stats` branch for the README badge:
+# https://raw.githubusercontent.com/gazoodle/casa-mia/stats/ghcr-stats.json
+name: GHCR stats
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+  push:
+    branches: [dev]
+    paths: [.github/workflows/ghcr-stats.yml]
+permissions: {}
+concurrency:
+  group: ghcr-stats
+  cancel-in-progress: false
+jobs:
+  # The third-party action runs here, with no token permissions; it only reads public pages.
+  read:
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - uses: actionstore/ghcr-stats@3bf18e157b9a95158e54c0f6c4f72b61f67fba39 # v1.0.4
+        with:
+          owner: ${{ github.repository_owner }}
+          repo: ${{ github.event.repository.name }}
+          name: ${{ github.event.repository.name }}-amd64
+          path: out/amd64.json
+      - uses: actionstore/ghcr-stats@3bf18e157b9a95158e54c0f6c4f72b61f67fba39 # v1.0.4
+        with:
+          owner: ${{ github.repository_owner }}
+          repo: ${{ github.event.repository.name }}
+          name: ${{ github.event.repository.name }}-aarch64
+          path: out/aarch64.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ghcr-stats
+          path: out/
+  # Our own code only: add the two images up and publish to the stats branch.
+  publish:
+    needs: read
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ghcr-stats
+          path: out
+      - name: Add them up and push
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          for f in out/amd64.json out/aarch64.json; do jq -e '.downloads | numbers' "$f" > /dev/null; done
+          mkdir stats
+          jq -s '{
+            last_updated: (now | todate),
+            downloads: (map(.downloads) | add),
+            downloads_month: (map(.downloads_month) | add),
+            amd64: .[0], aarch64: .[1]
+          }' out/amd64.json out/aarch64.json > stats/ghcr-stats.json
+          cat stats/ghcr-stats.json
+          cd stats
+          git init -q -b stats
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ghcr-stats.json
+          git commit -q -m "GHCR stats $(date -u +%F)"
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${REPO}" stats

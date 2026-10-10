@@ -12,7 +12,6 @@ from typing import Any
 from . import app_version, header, settings
 from .components import ask_for_restart, install_bundled
 from .ha import HA
-from .install_count import count_install
 from .log import configure_logging
 from .modules.auto_dashboards import AutoDashboards
 from .modules.cameras import Cameras
@@ -73,14 +72,6 @@ def main() -> int:
         log.info("%s", line)
     token = os.environ.get("SUPERVISOR_TOKEN", "")
     ask_for_restart(install_bundled(), token)
-    if options.get("count_install", True):
-        threading.Thread(
-            target=count_install,
-            args=(app_version(), OPTIONS.parent / "release"),
-            daemon=True,
-        ).start()
-    else:
-        log.info("install count: off")
     modules = {}
     actions = {}
     post_handlers = {}
@@ -138,7 +129,10 @@ def main() -> int:
                 token, EVENT, {"endpoint": ep.id, "label": ep.label, "ip": ip}
             ),
         )
-        guest.welcome = runtime(store)[3]
+        guest.welcome, guest.house_info, guest.goodbye, guest.photo = runtime(store)[3:]
+        guest.on_change = lambda ep: fire_event(
+            token, settings.CHANGED_EVENT, {"endpoint": ep.id, "enabled": ep.enabled}
+        )
         guest.start()
         modules["guest_login"] = guest.health
         post_handlers["/guest-login/"] = guest.control
@@ -306,6 +300,13 @@ def main() -> int:
             helpers=helpers,
             on_cards=on_cards,
         )
+        if token:
+            # Started (an update, say): have the integration ask now, so pages showing
+            # this app's pictures hear of the restart in a second or two and start
+            # afresh (the commander card's `run`), rather than at its next poll.
+            threading.Timer(
+                2.0, fire_event, (token, settings.CHANGED_EVENT, {"started": True})
+            ).start()
         http.serve_forever()
     except KeyboardInterrupt:
         pass

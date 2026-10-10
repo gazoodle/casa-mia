@@ -60,3 +60,38 @@ def stop_compositor(comp) -> None:
     while loop and loop.is_running() and time.monotonic() < deadline:
         time.sleep(0.001)
     assert not loop or not loop.is_running(), "gatherer did not stop"
+
+
+# -- guest login: the admin API over a fake HA (test_guest_api, test_guest_tighten)
+
+
+@pytest.fixture
+def login_server():
+    from http.server import ThreadingHTTPServer
+
+    from test_guest_login import FakeHA as FakeLogin  # HA's /auth/login_flow
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), FakeLogin)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    yield f"http://127.0.0.1:{server.server_port}"
+    server.shutdown()
+    server.server_close()
+
+
+@pytest.fixture
+def api(tmp_path, login_server):
+    from casa_mia.modules.guest_login import GuestAPI, GuestLogin, empty_store
+    from test_guest_api import FakeHA
+
+    guest = GuestLogin(
+        [], {}, port=0, internal_url=login_server, state_path=tmp_path / "state.json"
+    )
+    return GuestAPI(
+        guest,
+        tmp_path / "guest-login.json",
+        empty_store(),
+        FakeHA(),  # type: ignore[arg-type]
+        tmp_path / "media",
+        lan_host=lambda: "192.168.1.20",
+        grace=0,  # no wait between an endpoint closing and its sign-out
+    )
