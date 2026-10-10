@@ -29,6 +29,8 @@ export type Card = {
   cameras: Record<string, { title: string; live: string; channels?: [string, number, number][] }>;
   /** The compositor's Live main camera switch. */
   live_main?: boolean;
+  /** This run of the app: when it changes, the app restarted and the stream with it. */
+  run?: string;
 };
 export const LIVE_WAIT_MS = 10_000; // a live main camera not playing by then gives way to the picture
 /** Live main cameras failed in a row before a card stops trying (until its page reloads):

@@ -244,3 +244,27 @@ def test_who_is_signed_in(serve, monkeypatch):
     assert [s["ip"] for s in found["sessions"]] == ["192.0.2.7"]
     assert TokenHA.revoked == ["RT"]  # the look leaves no session behind
     assert "error" in GuestLogin([], {}, port=0, internal_url=url).sessions("nope")
+
+
+def test_every_change_is_announced_and_a_timed_opening_ends_on_time():
+    import threading
+
+    gl = GuestLogin(
+        [Endpoint("a", "A", "/x", slug="slug-for-a-1")], {"house-guest": ("u", "p")}
+    )
+    gl.port = 0
+    changes, closed = [], threading.Event()
+
+    def changed(ep):
+        changes.append((ep.id, ep.enabled))
+        if not ep.enabled:
+            closed.set()
+
+    gl.on_change = changed
+    gl.start()
+    try:
+        gl.control("a/enable?minutes=0.002")  # 0.12 s
+        assert closed.wait(2), "the timed opening did not end on time"
+        assert ("a", False) in changes and not gl.endpoints["a"].enabled
+    finally:
+        gl.stop()

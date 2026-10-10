@@ -65,6 +65,8 @@ class AccessSwitch(GuestEndpointEntity, SwitchEntity):
             "signs_out": bool(self.endpoint.get("end_sessions")),
             "goodbye_url": module.get("goodbye_url"),
             "guest_port": module.get("port"),
+            # A timed opening's end (epoch seconds): the page moves on the second itself.
+            "closes_at": self.endpoint.get("until"),
         }
 
     async def async_turn_on(self, **kwargs: Any) -> None:

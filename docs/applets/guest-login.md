@@ -146,8 +146,9 @@ The **Settings** button holds:
   printed ones;
 - **Goodbye:** a title and message for the page a signed-out visitor sees, or an address
   to send them to instead (your house's website, say). When an endpoint that signs its
-  visitors out closes, their open pages go there, and the sign-out follows 40 seconds
-  later, which gives every page time to notice. A phone that's asleep at the time wakes to
+  visitors out closes, their open pages go there within a second or two (a timed
+  opening's pages go on the second it ends), and the sign-out follows 8 seconds after the
+  close. A phone that's asleep at the time wakes to
   Home Assistant's login screen instead. (Needs the Casa Mia Guest Login integration.)
 - **House info:** your house rules (plain text; a blank line starts a paragraph), for
   endpoints that show them. (No Wi-Fi details: a phone that can open the welcome page is
@@ -260,6 +261,31 @@ to some entities or services. So:
 - **Leave secret addresses unprinted** where strangers pass, and press **New** if one
   leaks.
 - **Press Check** under *What each login can reach* after any change to your dashboards.
+
+### The thinking behind it
+
+Two xkcd comics are the reason guest login works the way it does.
+
+[Password Strength](https://xkcd.com/936/) (*correct horse battery staple*): a password
+people must remember and type ends up either weak or written down. So nobody types
+anything. The QR code carries a long random address that no one has to remember, read out
+or type into a stranger's phone, and the Home Assistant password behind it never leaves
+the box. Where a person does have to type something, the passcode, it's short on purpose,
+and it's the endpoint's opening hours that keep it safe, not its length.
+
+<a href="https://xkcd.com/936/"><img src="https://imgs.xkcd.com/comics/password_strength.png" alt="xkcd 936, Password Strength: a password like Tr0ub4dor&3 is hard for people to remember but easy for computers to guess; four random common words, correct horse battery staple, are the other way round" width="600"></a>
+
+[Security](https://xkcd.com/538/) (*the $5 wrench*): real attacks go round the crypto,
+not through it. Nobody will crack your secret address; a charming guest will ask for the
+code again, or a photo of the card will get passed on. So the effort goes into limiting
+what a code is worth once it's out: closed until you open it, open only for a booking,
+its visitors signed out when it closes, a new address for each visit, and a sign-in log
+that says who came in and when. It doesn't go into making the code itself harder to break.
+
+<a href="https://xkcd.com/538/"><img src="https://imgs.xkcd.com/comics/security.png" alt="xkcd 538, Security: a crypto nerd imagines his encrypted laptop defeating a million-dollar cluster; in reality the attackers drug him and hit him with a $5 wrench until he gives up the password" width="450"></a>
+
+*Comics by Randall Munroe, [xkcd.com](https://xkcd.com), under
+[CC BY-NC 2.5](https://creativecommons.org/licenses/by-nc/2.5/).*
 
 ### How far can a session be narrowed?
 

@@ -127,8 +127,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.async_on_unload(hass.bus.async_listen(FONA_EVENT, _pong(hass, coordinator)))
 
     async def _settings_changed(_event: Event) -> None:
-        # A save on the app's Settings page: poll now, not within 30 s.
-        await coordinator.async_request_refresh()
+        # The app says something changed (a Settings save, a guest endpoint opened or
+        # closed, the app started): poll now, not within 30 s. Not async_request_refresh:
+        # its debounce can hold a second ask for 10 s, longer than a guest's goodbye waits.
+        await coordinator.async_refresh()
 
     entry.async_on_unload(hass.bus.async_listen(SETTINGS_EVENT, _settings_changed))
 

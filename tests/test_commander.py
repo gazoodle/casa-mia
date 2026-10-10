@@ -222,6 +222,10 @@ def test_each_commander_has_its_own_main_camera(tmp_path, monkeypatch):
         card = cmd.health()["commanders"][1]["card"]
         assert card["picture"] == f"http://10.0.0.2:{live.port}/g/phone.mjpg"
         assert card["live_main"] is True  # the compositor's switch, on by default
+        # this run of the app: a card seeing it change starts a fresh stream
+        from casa_mia.modules.commander import live as live_mod
+
+        assert card["run"] == live_mod.RUN and len(card["run"]) == 8
         monkeypatch.setattr(swap, "stamp", lambda: "1")  # the screenshot swap on: off
         assert cmd.health()["commanders"][1]["card"]["live_main"] is False
         monkeypatch.undo()

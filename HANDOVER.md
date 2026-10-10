@@ -1,7 +1,7 @@
 # Handover: Casa Mia, for agents joining the work
 
 Where the project stands and how the work is done here, as of 2026-10-10 (`dev` at
-2026.10.6-b5, uncommitted; b4 committed; 2026.10.5 released). **Read this at the start of every
+2026.10.6-b6, uncommitted; b5 committed; 2026.10.5 released). **Read this at the start of every
 session**, then CLAUDE.md in full; where they disagree, CLAUDE.md wins. It replaces
 re-reading old transcripts: the history below is all a new session needs.
 
@@ -196,7 +196,11 @@ dashboards_on`).
 
 ## Where things stand
 
-- **2026.10.6-b5 is in the working tree, not committed:** the sign-in log (`audit.py`:
+- **2026.10.6-b6 (uncommitted) also:** the commander card's `run` (`commander/live.py`
+  RUN, a token per app process): a card seeing it change starts a fresh stream (an app
+  update killed the old one, often silently: blank tablets). The app fires
+  `casa_mia_settings_changed` 2 s after starting so cards hear at once.
+- **2026.10.6-b5 (committed):** the sign-in log (`audit.py`:
   JSON lines beside the store, pruned by days and count, enriched on a worker thread by
   `states_lookup`: device tracker `ip` → tracker → person; `GuestLogin._note` feeds it from
   each scan, refusal, sign-in; `sign_out` adds sign-outs; the welcome page sends browser
@@ -212,7 +216,11 @@ dashboards_on`).
   on close works. b3 adds: the goodbye (`guest-goodbye.ts` in cm-cards.js reads the Access
   switch's new attributes `guest_user_id`, `signs_out`, `goodbye_url`, `guest_port`, and
   sends the visitor's page to `/bye` on the guest port or the set address; the app waits
-  `GOODBYE_GRACE` 40 s before signing out, because the integration polls every 30 s);
+  `GOODBYE_GRACE` before signing out: 8 s since b6, when the app fires
+  `casa_mia_settings_changed` (settings.CHANGED_EVENT, the one "ask me now" event) on each
+  open/close and the integration refreshes at once (`async_refresh`, not debounced); the
+  switch's `closes_at` lets a timed opening's page move on the second; the expiry ticker
+  sleeps until the soonest end);
   the reach check's fix buttons (`reach.fix`: local_only, kiosk, admin_only; named fixes
   only, checked afresh); the QR codes dialog (guest card `printing.py`, Wi-Fi code, a page);
   house info is house rules only (no Wi-Fi: a phone that opens the page is on the network);

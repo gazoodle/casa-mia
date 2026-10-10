@@ -101,6 +101,10 @@ class GuestLogin(SignIn):
         self._error: str | None = None
         self._attempts: dict[str, deque[float]] = defaultdict(deque)
         self._stopping = threading.Event()
+        self._wake = threading.Event()  # a new timed opening: look again now
+        # Called (on its own thread) whenever an endpoint opens or closes: main has the
+        # integration ask at once (settings.CHANGED_EVENT), so its switches follow.
+        self.on_change: Callable[[Endpoint], None] | None = None
         self._load()
 
     # -- lifecycle
@@ -165,6 +169,7 @@ class GuestLogin(SignIn):
 
     def stop(self) -> None:
         self._stopping.set()
+        self._wake.set()
         if self._server:
             self._server.shutdown()
             self._server.server_close()
@@ -265,8 +270,25 @@ class GuestLogin(SignIn):
         return ep.enabled and (ep.until is None or time.time() < ep.until)
 
     def _ticker(self) -> None:
-        while not self._stopping.wait(TICK):
-            self._expire()
+        """Close timed openings as they run out, to the moment: sleep until the soonest."""
+        while not self._stopping.is_set():
+            with self._lock:
+                ends = [
+                    e.until
+                    for e in self.endpoints.values()
+                    if e.enabled and e.until is not None
+                ]
+            wait = min([TICK, *(max(0.0, t - time.time()) for t in ends)])
+            self._wake.wait(wait)
+            self._wake.clear()
+            if not self._stopping.is_set():
+                self._expire()
+
+    def _changed(self, ep: Endpoint) -> None:
+        if self.on_change:
+            threading.Thread(
+                target=self.on_change, args=(ep,), name="guest-changed", daemon=True
+            ).start()
 
     def _expire(self) -> None:
         """Close the timed openings that have run out."""
@@ -282,6 +304,7 @@ class GuestLogin(SignIn):
                 self._save()
         for ep in done:
             _LOGGER.info("endpoint %s closed: its time ran out", ep.id)
+            self._changed(ep)
             self._closed(ep)
 
     def _closed(self, ep: Endpoint) -> None:
@@ -333,6 +356,8 @@ class GuestLogin(SignIn):
             ep.until = time.time() + minutes * 60 if on and minutes else None
             self._save()
         _LOGGER.info("endpoint %s %s", endpoint_id, "enabled" if on else "disabled")
+        self._wake.set()  # a timed opening may now end sooner than the ticker thought
+        self._changed(ep)
         if was_on and not on:
             self._closed(ep)
         return True

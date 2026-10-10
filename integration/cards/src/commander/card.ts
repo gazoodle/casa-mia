@@ -47,6 +47,7 @@ export class CommanderCard extends LitElement {
   _framed = "";
   private frameWait = 0;
   private motion = new Motion(); // the dots on tiles seeing motion
+  private run = ""; // the app's run the stream comes from (Card.run)
 
   private debugOn(): boolean {
     const st = this._config?.entity ? this.hass?.states[this._config.entity] : undefined;
@@ -216,6 +217,14 @@ export class CommanderCard extends LitElement {
     else this.frameWait = window.setTimeout(() => this.watchFrame(), 200);
   }
   updated() {
+    // The app restarted (an update): its stream died with it, and a browser often says
+    // nothing (the <img> keeps a blank or frozen picture), so start a fresh one.
+    const run = this.now().card?.run ?? "";
+    if (run && this.run && run !== this.run) {
+      console.info("casa-mia: the app restarted; a fresh picture stream");
+      this.again();
+    }
+    if (run) this.run = run;
     this.watchFrame();
     this.measure(); // its rows may have been set or cleared (a new config, or layout)
     if (this.streaming && this.editing()) this.done("editing");

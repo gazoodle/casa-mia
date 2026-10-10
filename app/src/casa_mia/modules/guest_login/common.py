@@ -17,16 +17,18 @@ HEADER_URL = "/welcome/header.jpg"
 WELCOME_MESSAGE = "Signing you in…"
 WELCOME_DELAY = 3  # seconds; the sign-in itself runs during this time
 MAX_DELAY = 30  # the login code HA gives us is only good for a short while
-TICK = 15.0  # seconds between looks for timed openings that have run out
+TICK = 60.0  # longest wait between looks for timed openings that have run out
 MFA_TTL = 300.0  # seconds a visitor has to type a 2FA code
 ENGINEER_TITLE = "Maintenance access"
 GOODBYE_URL = "/bye"  # on the guest port: where a signed-out visitor's page is sent
 GOODBYE_TITLE = "Thank you for visiting"
 GOODBYE_MESSAGE = "You're signed out now. We hope to see you again soon."
-# ponytail: the integration polls the app every 30 s, so a close made outside HA reaches the
-# visitor's page that late; sign-out waits this long so the page goes to the goodbye first.
-# A push from the app on close would let this shrink to a few seconds.
-GOODBYE_GRACE = 40.0
+# Sign-out waits this long after a close, so a visitor's open page can go to the goodbye
+# first: the app announces the close (settings.CHANGED_EVENT, which has the integration ask
+# at once), the integration updates the Access
+# switch, and the page, looking every second, moves. A timed opening's page moves on the
+# second by itself (the switch says when it closes).
+GOODBYE_GRACE = 8.0
 
 
 def welcome_title() -> str:

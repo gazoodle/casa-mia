@@ -529,7 +529,7 @@ export function SettingsDialog({
       <fieldset className={css.fieldset}>
         <legend>Goodbye</legend>
         <p className={css.checkHelp}>
-          When an endpoint that signs its visitors out closes, their open pages go here before the sign-out (it waits 40
+          When an endpoint that signs its visitors out closes, their open pages go here before the sign-out (it waits 8
           seconds for them). A phone that's asleep then wakes to Home Assistant's login screen instead.
         </p>
         <Field label="Goodbye title">

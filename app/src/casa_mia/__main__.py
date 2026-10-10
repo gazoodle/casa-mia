@@ -139,6 +139,9 @@ def main() -> int:
             ),
         )
         guest.welcome, guest.house_info, guest.goodbye = runtime(store)[3:]
+        guest.on_change = lambda ep: fire_event(
+            token, settings.CHANGED_EVENT, {"endpoint": ep.id, "enabled": ep.enabled}
+        )
         guest.start()
         modules["guest_login"] = guest.health
         post_handlers["/guest-login/"] = guest.control
@@ -306,6 +309,13 @@ def main() -> int:
             helpers=helpers,
             on_cards=on_cards,
         )
+        if token:
+            # Started (an update, say): have the integration ask now, so pages showing
+            # this app's pictures hear of the restart in a second or two and start
+            # afresh (the commander card's `run`), rather than at its next poll.
+            threading.Timer(
+                2.0, fire_event, (token, settings.CHANGED_EVENT, {"started": True})
+            ).start()
         http.serve_forever()
     except KeyboardInterrupt:
         pass

@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026.10.6-b6
+
+- **No more blank Camera Commander pictures after an app update.** When the app restarts,
+  every Camera Commander card showing its picture starts a fresh stream within a second or
+  two. Before, the old stream died with the app, often without the browser noticing, and
+  the card stayed blank until the page was reloaded.
+- **Guest login's goodbye is snappy now.** A visitor's open page moves to the goodbye
+  within a second or two of their endpoint closing, however it closed, and the sign-out
+  follows 8 seconds after the close (it was 40). A timed opening now ends on the second,
+  and its visitors' pages move at that moment by themselves. Needs a Home Assistant restart
+  for the integration's part.
+- Guest login's guide says why it works the way it does, with the two xkcd comics behind it.
+
 ## 2026.10.6-b5
 
 - **Guest login's sign-in log**, at the bottom of its page: every scan of a QR code and what
