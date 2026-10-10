@@ -1,7 +1,7 @@
 # Handover: Casa Mia, for agents joining the work
 
 Where the project stands and how the work is done here, as of 2026-10-10 (`dev` at
-2026.10.6-b6, uncommitted; b5 committed; 2026.10.5 released). **Read this at the start of every
+2026.10.6-b8, committed; 2026.10.5 released; 2026.10.6 about to be released). **Read this at the start of every
 session**, then CLAUDE.md in full; where they disagree, CLAUDE.md wins. It replaces
 re-reading old transcripts: the history below is all a new session needs.
 
@@ -24,7 +24,9 @@ keys in brackets; some keys keep older names, see "Lessons learned"):
 - **Cameras, Camera Commander, Auto Dashboards** (`compositor_enabled`,
   `camera_dashboard_enabled`): see "The camera modules" below.
 - **Guest login** (`guest_login_enabled`): guests sign in with a QR code to a landing
-  dashboard. Security is by hiding (kiosk-mode), not enforcement; the docs say so.
+  dashboard, with passcodes, 2FA, sign-out on close, a goodbye, a reach check with fixes
+  and a sign-in log (see "Guest login" below). Security is by limiting what a code is
+  worth (closed, signed out), not by locking HA down; the guide says so, and why (xkcd).
 - **Kiosk Satellites** (`kiosks_enabled`): the wall tablets running Kiosk Satellite (REST
   API at kiosksatellite.com/docs/remote-api/): login, backups, proxied admin pages, and
   **Run everywhere** (its Quick Controls sent to every tablet in turn; icons and words are
@@ -76,6 +78,30 @@ dashboards_on`).
 - **The Camera Commander card** draws the motion dot itself in CSS (`motion.ts`), with
   options for colour, size, pulse, linger and corner. `tap_main` defaults to more-info.
   The card editor strips defaults, so a saved card holds only what was changed.
+- **After an app restart** the card starts a fresh stream by itself: each card's view
+  carries `run` (`commander/live.py` RUN, one per app process), and the app fires
+  `casa_mia_settings_changed` 2 s after starting. (Fixes blank tablets after an update.)
+
+## Guest login (2026.10.6)
+
+`modules/guest_login/`, layered: `common.py` (constants, Endpoint, errors) → `signin.py`
+(SignIn: HA's login flow, 2FA `Pending`, `mfa`, `sessions`) → `login.py` (GuestLogin: the
+guest port's pages, opening and closing, expiry to the second, `_note` for the audit);
+`codes.py` (Codes: QR codes, guest card) → `api.py` (GuestAPI: the admin API, store,
+`_closed`: rotate, then sign out after `GOODBYE_GRACE` 8 s); `reach.py` (the check and its
+named fixes), `audit.py` (the sign-in log, JSON lines, pruned), `printing.py` (Wi-Fi code,
+guest card SVG), `page.py` (welcome, goodbye), `supervisor.py`.
+- **Sign-out:** `HA.sign_out` deactivates then reactivates the user (removes its refresh
+  tokens, closes its sockets). It follows the login, not the endpoint (`_signs_out`); never
+  an admin. **Who's signed in** signs in as the login, lists `auth/refresh_tokens`, revokes
+  its own token.
+- **The goodbye:** `guest-goodbye.ts` (in cm-cards.js, every page) reads the Access
+  switch's attributes (`guest_user_id`, `signs_out`, `goodbye_url`, `guest_port`,
+  `closes_at`) and moves the page before the sign-out.
+- **One "ask me now" event:** `settings.CHANGED_EVENT` (`casa_mia_settings_changed`); the
+  integration answers with `async_refresh` (not debounced). Reuse it; don't add another.
+- **Passcode** (`pin`, `hmac.compare_digest`, before the flow); refused for a login with
+  2FA. **Never stored in the audit:** passcodes, codes, secret addresses.
 
 ## The rules that bite (details in CLAUDE.md)
 
@@ -131,6 +157,17 @@ dashboards_on`).
   `.github/`.
 - **Cards copied to the box last until the app restarts:** it puts its bundled
   `cm-cards.js` back on start. Check with `cmp` and copy again.
+- **Screenshot swap replaces text, not pictures:** a QR code drawn from the real text
+  still scans to the real address. Swap the text *before* drawing (the guest card did it
+  after, b7). And a swapped QR can't be scanned to test with: turn swap off, point the
+  phone, turn it on, then tap.
+- **Screenshots:** the HA app window is captured by `screencapture -l <window id> -o -x`
+  (find the id with a CGWindowList Swift snippet; the id changes when the app restarts),
+  then `cwebp -q 82 -alpha_q 100 -resize 1600 0`. Phone shots go in an iPhone frame
+  (Dynamic Island) by a Pillow script, blurring the address bar; it lived in the session's
+  scratchpad, so rewrite it (or ask to keep it in `tools/`). Check each shot for real
+  names, and `webpinfo` that no EXIF or XMP went in. Decode a QR in a shot with macOS
+  Vision (`VNDetectBarcodesRequest`) to prove where it points.
 - **Before claiming something is new,** search HA's frontend (issues, PRs, discussions) and
   HACS's default list (`hacs/default`'s `plugin` file); the owner asks.
 
@@ -165,88 +202,44 @@ dashboards_on`).
   picture; the compositor rebuilt as a pipeline and split into a package; RULE THREE; the
   docs restructured; screenshot mode.
 - **2026.10.4** (released): the camera split (Cameras, Camera Commander, Auto Dashboards);
-  maturity ratings; Kiosk Satellites Run everywhere; Working together (pages and tablets
-  reload after an update; the compositor names its viewers from Kiosk Satellites); **the
-  integration split in three** (`casa_mia`, children `casa_mia_guest_login` and
-  `casa_mia_commander` sharing its coordinator via `casa_mia/children.py`, offered under
-  Discovered); docs ready for a soft launch (DOCS.md, every applet guide, screenshots).
-- **2026.10.5** (released): `counts: false` dropped (garnish only); one hover ring for every
-  edit-mode control (`HOVER` in ha.ts); **garnish on every Sections dashboard**
-  (`garnish-sections.ts` wraps HA's `hui-section._updateVisibility`; Settings → Dashboards,
-  `dashboards.garnish_everywhere`); **the Over layer card** (`integration/cards/src/over-layer/`:
-  common, card, editor, door): one card or its whole panel (`panel: true`: a copy of its
-  section, made with HA's `hui-section`) over the view or window while its Visibility holds;
-  float/full/scroll, nine anchors with offsets, backdrop, block taps; down when a section
-  round it is hidden by its own Visibility (its `hidden`, ignoring Casa Mia's own hiding,
-  marked `cmContentHidden`); no URL escape, an admins-only door over HA's edit button and
-  `?edit=1`. A README section and guide for each.
-- **2026.10.6-b1** (committed, not pushed): Home Assistant 2026.9 or later
-  stated (`homeassistant:` in `app/config.yaml`, README, DOCS.md); the Over layer rated Alpha.
-- **2026.10.6-b2** (committed and installed; built overnight, unasked-for choices made by Claude, **uncommitted** for
-  the owner to inspect): the whole Guest login backlog. Endpoint options `end_sessions`
-  (closing signs the login's user out: `HA.sign_out` deactivates then reactivates the user,
-  which removes its refresh tokens and closes its sockets; kept while another open endpoint
-  shares the login; never for an admin), `rotate` (new slug on close), `info` (house info,
-  Continue before sign-in); a ticker closes timed openings properly (`_expire`, 15 s);
-  2FA (HA's `mfa` step: the page asks for the code, `Pending` flows 5 min); the engineer
-  page (no photo, no delay); **Sign everyone out** per login; `reach.py` (what each login
-  can reach, flags); **QR code for a page** (`page-qr`); the guide's "How far can a session
-  be narrowed?". `login.py`'s Supervisor calls moved to `supervisor.py` (RULE THREE). The
-  guest API fixtures moved to `tests/conftest.py`.
+  maturity ratings; Kiosk Satellites Run everywhere; Working together; **the integration
+  split in three** (`casa_mia`, children `casa_mia_guest_login` and `casa_mia_commander`
+  sharing its coordinator via `casa_mia/children.py`); docs ready for a soft launch.
+- **2026.10.5** (released): garnish on every Sections dashboard; **the Over layer card**;
+  one hover ring for edit-mode controls.
+- **2026.10.6-b1 to b8** (committed, about to be released): HA 2026.9 floor stated; the
+  Over layer rated Alpha; **Guest login, all of its backlog** (overnight in b2, then with
+  the owner): sign-out on close, 2FA, rotating addresses, engineer page, house rules,
+  page QR codes, the reach check and its fixes, the goodbye, the QR codes dialog and
+  guest card, a passcode per endpoint, Who's signed in, the sign-in log; the commander's
+  fresh stream after an app restart; the guide rewritten around new screenshots (three
+  iPhone shots), with the two xkcd comics behind the design. Proven on the box: sign-out
+  on close, the passcode, the goodbye.
 
 ## Where things stand
 
-- **2026.10.6-b6 (uncommitted) also:** the commander card's `run` (`commander/live.py`
-  RUN, a token per app process): a card seeing it change starts a fresh stream (an app
-  update killed the old one, often silently: blank tablets). The app fires
-  `casa_mia_settings_changed` 2 s after starting so cards hear at once.
-- **2026.10.6-b5 (committed):** the sign-in log (`audit.py`:
-  JSON lines beside the store, pruned by days and count, enriched on a worker thread by
-  `states_lookup`: device tracker `ip` → tracker → person; `GuestLogin._note` feeds it from
-  each scan, refusal, sign-in; `sign_out` adds sign-outs; the welcome page sends browser
-  facts as `client`). `GuestAudit.tsx` on the page. b4 is committed (`a352a15`).
-- **2026.10.6-b4 (committed):** a passcode per endpoint (`pin`,
-  checked in `_post` with `hmac.compare_digest` before the login flow; the welcome page
-  asks first, reusing the 2FA form); sign-out follows the login (`_signs_out`: any of
-  its endpoints ticked; health's `end_sessions` is that); **Who's signed in** (`SignIn.sessions`:
-  signs in as the login, lists `auth/refresh_tokens`, revokes its own token). Refused for a login with 2FA (`SignIn.mfa`, learnt
-  from each flow; `GET logins/<name>/mfa` finds out). The owner's own BACKLOG.md edit (GHCR
-  pull counting) is left unstaged for them.
-- **2026.10.6-b3 (committed `c2983b5`).** On the box, b2 is proven: sign-out
-  on close works. b3 adds: the goodbye (`guest-goodbye.ts` in cm-cards.js reads the Access
-  switch's new attributes `guest_user_id`, `signs_out`, `goodbye_url`, `guest_port`, and
-  sends the visitor's page to `/bye` on the guest port or the set address; the app waits
-  `GOODBYE_GRACE` before signing out: 8 s since b6, when the app fires
-  `casa_mia_settings_changed` (settings.CHANGED_EVENT, the one "ask me now" event) on each
-  open/close and the integration refreshes at once (`async_refresh`, not debounced); the
-  switch's `closes_at` lets a timed opening's page move on the second; the expiry ticker
-  sleeps until the soonest end);
-  the reach check's fix buttons (`reach.fix`: local_only, kiosk, admin_only; named fixes
-  only, checked afresh); the QR codes dialog (guest card `printing.py`, Wi-Fi code, a page);
-  house info is house rules only (no Wi-Fi: a phone that opens the page is on the network);
-  wrapping fixed in the login tiles and the reach check (`.rowMeta` is nowrap: tiles
-  override it). Splits (RULE THREE): `common.py`, `signin.py` (SignIn → GuestLogin),
-  `codes.py` (Codes → GuestAPI). Untested on the box: 2FA, the goodbye, the fixes.
-
+- **Releasing 2026.10.6** next (the owner runs `tools/release.py`). Backlog has the owner's
+  own item at the top: GHCR pull counting to replace the README-fetch install count.
+- **Untested on the box:** 2FA against a real user, the reach check's fixes, Who's signed
+  in. **The reach check's screenshot** is still to take: see the backlog (a swap-only
+  dashboard list).
 - **The owner tested the GitHub release install end to end** on the HAOS test VM. Don't
   offer to walk it again.
-- **Soft launch:** a post for HA Community → Share your Projects, tomorrow, by the owner.
-  Lead with the Tablet Layout, then the Over layer, then garnish. Say up front: needs HA OS
-  or Supervised (an app; the cards aren't on HACS: "Modules as stand-alone projects" in
-  the backlog), the install count is anonymous with an off switch, it's one house's system
-  made general (maturity ratings, every module starts off).
-- **The 2026.9 floor is stated, not tested:** everything has run on 2026.10 only. Worth a
-  check on a 2026.9 HA when there's one to hand.
-- **Seen occasionally:** "Invalid configuration" on a card that clears after a while or a
-  page refresh. Possibly HA frontend issue #53890 (custom elements from
-  `add_extra_js_url` lost when they load before the scoped registry polyfill), which is how
-  `cm-cards.js` loads. Unconfirmed; watch for it.
-- **Loose ends:** move the card's motion test into the cards' `npm test` (package.json;
-  CI runs it from checks.yml meanwhile); HA warns about `via_device` in commanders'
-  DeviceInfo (a warning until 2027.8); the compositor's log lines give viewers' addresses
-  only; the Tablet Layout guide's examples.
-- **Next from the backlog**, when the owner picks: the Over layer's intercom mode; Kiosk
-  mode's way out (`?disable_km`); Auto Dashboards' Back/Home/Help made general; every
-  camera detection with its own icon; guest login reach and tightening; Tablet Layout bugs
-  (fixed-shape main ignores edge sizes; two edit-mode blemishes); nested sections when HA
-  2026.11 ships them (garnish should carry over; the owner said not to build ahead of HA).
+- **Soft launch:** the owner's post for HA Community → Share your Projects. Lead with the
+  Tablet Layout, then the Over layer, then garnish (and now guest login). Say up front:
+  needs HA OS or Supervised, the install count is anonymous with an off switch, it's one
+  house's system made general.
+- **Casa Mia is non-commercial, always** (the owner's commitment); the MIT licence stays,
+  and what others do with it is on them.
+- **The 2026.9 floor is stated, not tested:** everything has run on 2026.10 only.
+- **Seen occasionally:** "Invalid configuration" on a card that clears after a refresh.
+  Possibly HA frontend issue #53890 (`add_extra_js_url` elements lost before the scoped
+  registry polyfill). Unconfirmed; watch for it.
+- **Loose ends:** move the card's motion test into the cards' `npm test`; HA warns about
+  `via_device` in commanders' DeviceInfo (until 2027.8); the compositor's log lines give
+  viewers' addresses only; the Tablet Layout guide's examples.
+- **Next from the backlog**, when the owner picks: the welcome page fitting card and house
+  rules on screen; the reach check's screenshot; the Over layer's intercom mode and card
+  transparency; Kiosk mode's way out (`?disable_km`); Auto Dashboards' Back/Home/Help made
+  general; every camera detection with its own icon; Tablet Layout bugs; nested sections
+  when HA 2026.11 ships them (don't build ahead of HA).
