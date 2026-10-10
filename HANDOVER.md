@@ -195,6 +195,12 @@ dashboards_on`).
   Settings → Dashboards switch, `dashboards.garnish_everywhere`); README section for it.
   Still to do: move the card's motion test into the cards' `npm test` (package.json); CI
   runs it from checks.yml meanwhile.
+- **b3: the Over layer card** (`integration/cards/src/over-layer/`: common, card, editor, door):
+  one card over the view or window while its Visibility holds; float/full/scroll; nine
+  anchors with offsets; backdrop; block taps. Down when a section round it is hidden by its
+  own Visibility (reads the section's `hidden`, ignoring garnish's, `cmGarnishHidden`). No
+  URL escape: the admins-only door over HA's edit button (rect lid, round pulse), and
+  `?edit=1`. Guide `docs/over-layer.md`, README section. Next: "show its whole panel".
 - **Soft launch on the HA community forum**, still to do: a release (the owner runs
   `tools/release.py`), a fresh install on the test VM, then a forum post draft (HA
   Community → Share your Projects, leading with the Tablet Layout).

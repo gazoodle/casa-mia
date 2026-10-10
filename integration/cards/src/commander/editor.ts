@@ -1,6 +1,6 @@
 // The Camera Commander card's editor.
 import { LitElement, html, nothing } from "lit";
-import { fire, type Hass, LOOK } from "../ha.ts";
+import { fire, type Hass, LOOK, withoutDefaults as stripDefaults } from "../ha.ts";
 import { Config, LEAVE_AFTER, commanders } from "./common.ts";
 import { MOTION } from "./motion.ts";
 
@@ -21,9 +21,7 @@ const DEFAULTS: Record<string, unknown> = {
 
 /** The config as saved: the options left at their default dropped. */
 export function withoutDefaults(config: Config): Config {
-  return Object.fromEntries(
-    Object.entries(config).filter(([k, v]) => !(k in DEFAULTS) || JSON.stringify(v) !== JSON.stringify(DEFAULTS[k])),
-  ) as Config;
+  return stripDefaults(config, DEFAULTS);
 }
 
 export class CommanderEditor extends LitElement {

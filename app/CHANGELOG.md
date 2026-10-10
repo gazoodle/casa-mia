@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026.10.5-b3
+
+- **New card: Over layer.** One card shown over the dashboard (the view, or the whole
+  window with the sidebar and header) while its Visibility conditions hold; its backdrop
+  takes the taps, so what's beneath can be seen but not touched. Float, full screen, or
+  scroll with the view; a backdrop colour, opacity and blur; its card picked and edited
+  with Home Assistant's own editors. Where it sits: nine places (top left to bottom right;
+  scroll with the view, the top row), with offsets in from the edges, for pop-overs in a
+  corner that go when their card is acted on. While the dashboard is edited it is an ordinary card,
+  with a badge. In a Tablet Layout it never holds a panel open. The way out is for admins
+  only: over the whole window, the layer leaves a door over Home Assistant's edit button
+  (hover over it, or tap it, then tap the button), and `?edit=1` on the dashboard's address
+  opens Home Assistant's edit mode; everyone else gets the wall.
+
 ## 2026.10.5-b2
 
 - **Garnish on every Sections dashboard:** a new switch on the Settings page, **Enable

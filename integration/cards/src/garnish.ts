@@ -1,8 +1,10 @@
 // A panel's cards: content keeps it open, garnish dresses it without holding it open; and
 // which kinds fill it on their own.
 import type { CardConfig } from "./ha.ts";
+import { TYPE as OVER_LAYER } from "./over-layer/common.ts";
 
-export const counts = (card: CardConfig) => card.view_layout?.garnish !== true;
+// An Over layer never counts either: it takes no room in its panel, its card is over the view.
+export const counts = (card: CardConfig) => card.view_layout?.garnish !== true && card.type !== OVER_LAYER;
 
 /** A section's content (HA's cards, badges, sections: each `hidden` while its visibility
  * hides it, `config` its config) of which all that shows is garnish: HA hides a section

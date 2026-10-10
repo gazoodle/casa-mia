@@ -12,6 +12,7 @@ A Home Assistant app and integration that take your home from smart to spectacul
 Dazzling home pages for every wall tablet. Guests signed in with a single scan.<br>
 Every Kiosk Satellite managed from one place, and at your fingertips wherever you are.<br>
 Interactions at jet-rapid speed. Camera dashboards MI5 would envy.<br>
+Alarm set? Every tablet becomes a window you can look through but not touch.<br>
 Secure phone and SMS access to your home, even when the internet has left the building.<br>
 And that's just the start.
 </p>
@@ -37,6 +38,7 @@ No premium tier, no subscription, no catch. <a href="#licence">Here's the promis
 ## What is it?
 
 * A home assistant layout view, based on Sections, but locked to the rendering screen size while still being responsive to content changes ([the Tablet Layout](docs/tablet-layout.md))
+* An Over layer: one card over the whole dashboard while its conditions hold, everything beneath visible but untouchable ([more](#the-over-layer))
 * Garnish for every Sections dashboard: a heading that no longer keeps an empty section showing, so the section goes when its cards do ([more](#garnish-for-every-dashboard))
 * A multi-camera layout and composition system to allow near realtime surveillance views without swamping network bandwidth or overwhelming low-power tablets
 * A house guest login system that allows a QR scan to access a custom landing page
@@ -320,6 +322,24 @@ Layout, where it was born.
 </p>
 
 It's the kind of small thing that makes a dashboard feel like it knows what it's doing.
+
+## The Over layer
+
+The alarm is set. The wall tablet in the hall still shows the house as it always does,
+lights, heating, cameras, but every tap goes nowhere, and in the middle, the alarm's disarm
+panel waits for its code. Disarm it, and the tablet is a tablet again.
+
+That's the Over layer: one card of your choosing, floating over the whole dashboard while
+its Visibility conditions hold, its backdrop dimming or blurring what's beneath, and taking
+every tap, so the dashboard can be seen, not touched. A visiting engineer gets a look at
+everything and a hand on nothing. A cover keeps little fingers off at night. A warning
+floats up until it's dealt with. It's an ordinary card: Home Assistant's own conditions say
+when, its own card picker says what, and while you edit the dashboard it sits in its place
+like any other.
+
+And the way out is for admins alone. There's no magic word in the address; instead, over the
+whole window, a small lid pulses gently over Home Assistant's own edit button, and only an
+admin gets it. Everyone else gets the wall. [The guide](docs/over-layer.md).
 
 ## Working together
 

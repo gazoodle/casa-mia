@@ -327,3 +327,36 @@ test("a section left with only garnish showing hides (garnish on every dashboard
   assert.equal(onlyGarnish([]), false); // an empty section: HA's to decide
   assert.equal(onlyGarnish([heading, { hidden: false }]), false); // a badge (no config) counts
 });
+
+test("an Over layer never holds a panel open, nor fills it", async () => {
+  const { badge } = await import("./over-layer/common.ts");
+  const layer = { type: "custom:casa-mia-over-layer", card: { type: "alarm-panel" } };
+  assert.equal(counts(layer), false);
+  assert.equal(fills(layer), false);
+  assert.equal(onlyGarnish([{ config: layer }]), true); // a section holding only it hides
+  assert.equal(badge(layer), "Over layer · float · the view");
+  assert.equal(badge({ ...layer, mode: "full", cover: "window", block: false }), "Over layer · full screen · the whole window · taps pass through");
+});
+
+test("the admin's door: a hole the edit button's size, on whole pixels, cut from the layer", async () => {
+  const { holed, snapped } = await import("./over-layer/door.ts");
+  assert.equal(holed(1280, 800, 1200, 8, 48, 48), 'path(evenodd, "M0 0 H1280 V800 H0 Z M1200 8 h48 v48 h-48 Z")');
+  assert.deepEqual(snapped({ left: 1200.4, top: 8.6, right: 1248.4, bottom: 56.6 }), [1200, 8, 49, 49]);
+});
+
+test("an Over layer's anchor: nine places floating, the top row scrolling, in from its edges", async () => {
+  const { anchorFor, placement, badge } = await import("./over-layer/common.ts");
+  assert.deepEqual(placement("bottom-right"), { justify: "flex-end", align: "flex-end" });
+  assert.deepEqual(placement("top-left"), { justify: "flex-start", align: "flex-start" });
+  assert.deepEqual(placement("center"), { justify: "center", align: "center" });
+  assert.deepEqual(placement("left"), { justify: "flex-start", align: "center" });
+  assert.deepEqual(placement("bottom"), { justify: "center", align: "flex-end" });
+  assert.deepEqual(placement("nowhere" as any), { justify: "center", align: "center" }); // a typo: the centre
+  assert.equal(anchorFor("scroll", "bottom-right"), "top-right"); // scroll: the top row only
+  assert.equal(anchorFor("scroll", "center"), "top");
+  assert.equal(anchorFor("float", "bottom-right"), "bottom-right");
+  const card = { type: "custom:casa-mia-over-layer" };
+  assert.equal(badge({ ...card, anchor: "bottom-right", block: false }), "Over layer · float bottom-right · the view · taps pass through");
+  assert.equal(badge({ ...card, mode: "scroll", anchor: "left" }), "Over layer · scroll with the view top-left · the view");
+  assert.equal(badge({ ...card, mode: "full", anchor: "bottom-right" }), "Over layer · full screen · the view");
+});

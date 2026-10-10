@@ -1,5 +1,6 @@
 // Dress HA's card edit frame only for cards in a Tablet Layout panel.
 import { counts, cardPath, inTablet, setGarnish } from "./garnish.ts";
+import { TYPE as OVER_LAYER } from "./over-layer/common.ts";
 import { garnishEverywhere } from "./garnish-sections.ts";
 import { HOVER } from "./ha.ts";
 
@@ -49,7 +50,8 @@ customElements.whenDefined("hui-card-edit-mode").then(() => {
     const path = cardPath(this.path ?? []);
     const get = (config: any) => path.reduce((value, key) => value?.[key], config);
     const card = get(this.lovelace?.config);
-    if (!tablet || !this.lovelace?.editMode || this.noEdit || !path.includes("sections") || !card?.type) {
+    // An Over layer never counts anyway (garnish.ts), so no sprig on it.
+    if (!tablet || !this.lovelace?.editMode || this.noEdit || !path.includes("sections") || !card?.type || card.type === OVER_LAYER) {
       this.classList.remove("cm-garnished");
       root.querySelector(".cm-garnish-frame")?.remove();
       return chip?.remove();

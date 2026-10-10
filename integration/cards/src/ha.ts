@@ -265,3 +265,11 @@ export const HOVER = `
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 35%, transparent);
   filter: brightness(1.08);
 `;
+
+/** A card's config as saved: its options left at their default dropped, so a default
+ * changed later reaches every card left at it. */
+export function withoutDefaults<C extends Record<string, unknown>>(config: C, defaults: Record<string, unknown>): C {
+  return Object.fromEntries(
+    Object.entries(config).filter(([k, v]) => !(k in defaults) || JSON.stringify(v) !== JSON.stringify(defaults[k])),
+  ) as C;
+}

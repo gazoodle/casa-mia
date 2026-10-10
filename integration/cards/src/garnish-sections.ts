@@ -22,11 +22,15 @@ customElements.whenDefined("hui-section").then(() => {
     return;
   }
   proto._updateVisibility = function (this: any, ...args: unknown[]) {
+    this.cmGarnishHidden = false; // set while this hides it, so others can tell (an Over layer)
     original.apply(this, args);
     if (seen.size > 200) for (const s of seen) if (!s.isConnected) seen.delete(s);
     seen.add(this);
     if (!everywhere || this.hidden || this.preview || !this._config || inTablet(this)) return;
-    if (onlyGarnish([...(this._cards ?? []), ...(this._badges ?? []), ...(this._sections ?? [])])) this._setElementVisibility(false);
+    if (onlyGarnish([...(this._cards ?? []), ...(this._badges ?? []), ...(this._sections ?? [])])) {
+      this.cmGarnishHidden = true;
+      this._setElementVisibility(false);
+    }
   };
 });
 
