@@ -1,7 +1,7 @@
 # Handover: Casa Mia, for agents joining the work
 
 Where the project stands and how the work is done here, as of 2026-10-10 (`dev` at
-2026.10.6-b2, uncommitted; 2026.10.5 released). **Read this at the start of every
+2026.10.6-b3, uncommitted; b2 committed and installed; 2026.10.5 released). **Read this at the start of every
 session**, then CLAUDE.md in full; where they disagree, CLAUDE.md wins. It replaces
 re-reading old transcripts: the history below is all a new session needs.
 
@@ -182,7 +182,7 @@ dashboards_on`).
   `?edit=1`. A README section and guide for each.
 - **2026.10.6-b1** (committed, not pushed): Home Assistant 2026.9 or later
   stated (`homeassistant:` in `app/config.yaml`, README, DOCS.md); the Over layer rated Alpha.
-- **2026.10.6-b2** (built overnight, unasked-for choices made by Claude, **uncommitted** for
+- **2026.10.6-b2** (committed and installed; built overnight, unasked-for choices made by Claude, **uncommitted** for
   the owner to inspect): the whole Guest login backlog. Endpoint options `end_sessions`
   (closing signs the login's user out: `HA.sign_out` deactivates then reactivates the user,
   which removes its refresh tokens and closes its sockets; kept while another open endpoint
@@ -196,10 +196,17 @@ dashboards_on`).
 
 ## Where things stand
 
-- **2026.10.6-b2 is in the working tree, not committed:** the owner reviews it, then asks
-  for the commit. Untested on the box: sign-out on close, 2FA against a real HA user, the
-  reach check against real dashboards, and the admin page's new parts (built and
-  type-checked, not looked at). The guide's screenshots predate the new options.
+- **2026.10.6-b3 is in the working tree, not committed.** On the box, b2 is proven: sign-out
+  on close works. b3 adds: the goodbye (`guest-goodbye.ts` in cm-cards.js reads the Access
+  switch's new attributes `guest_user_id`, `signs_out`, `goodbye_url`, `guest_port`, and
+  sends the visitor's page to `/bye` on the guest port or the set address; the app waits
+  `GOODBYE_GRACE` 40 s before signing out, because the integration polls every 30 s);
+  the reach check's fix buttons (`reach.fix`: local_only, kiosk, admin_only; named fixes
+  only, checked afresh); the QR codes dialog (guest card `printing.py`, Wi-Fi code, a page);
+  house info is house rules only (no Wi-Fi: a phone that opens the page is on the network);
+  wrapping fixed in the login tiles and the reach check (`.rowMeta` is nowrap: tiles
+  override it). Splits (RULE THREE): `common.py`, `signin.py` (SignIn → GuestLogin),
+  `codes.py` (Codes → GuestAPI). Untested on the box: 2FA, the goodbye, the fixes.
 
 - **The owner tested the GitHub release install end to end** on the HAOS test VM. Don't
   offer to walk it again.

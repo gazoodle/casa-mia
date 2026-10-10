@@ -210,7 +210,8 @@ version keeps the idea and adds:
 - **Locked down as far as Home Assistant allows.** Closing a code can sign its visitors
   out, an engineer's code can get a new address after every visit or ask for a two-factor
   code, and a check shows what each login can reach and what's left open.
-- **House info.** The Wi-Fi and your house rules, shown before guests sign in.
+- **House rules**, shown before guests sign in, and a **goodbye** when they're signed out.
+- **A guest card to print:** join the Wi-Fi, then scan to sign in, side by side.
 - **A nicer front end**, all in the Casa Mia panel.
 - **Your old cards still work.** If you've already printed QR cards for
   ha-auto-guest-login, tick **Legacy QR code** and they keep working.

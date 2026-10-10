@@ -207,15 +207,15 @@ def test_closing_gives_a_rotating_endpoint_a_new_address(api):
 
 def test_house_info_and_the_engineer_page(api):
     setup(api, SignOutHA())
-    info = {"wifi_name": "Oak Tree Guests", "wifi_password": "<pass>", "text": "Hi"}
+    info = {"text": "Shoes off at <the door>.\n\nCheck-out by 11."}
     assert call(api, "PUT", "settings", {"house_info": info})[1]["house_info"] == info
     guest = Endpoint("g", "G", "/g", info=True)
     page = api.guest._page(guest)
-    assert "Oak Tree Guests" in page and "&lt;pass&gt;" in page and "info=true" in page
+    assert "&lt;the door&gt;.</p><p>Check-out" in page and "info=true" in page
     assert "url(" in page  # the house photo
     engineer = Endpoint("e", "E", "/e", "engineer", info=True)
     page = api.guest._page(engineer)
-    assert "Maintenance access" in page and "Oak Tree Guests" not in page
+    assert "Maintenance access" in page and "Check-out" not in page
     assert "delay=0," in page and "url(" not in page
 
 

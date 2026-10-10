@@ -13,8 +13,12 @@ Rewrite of cnorick/ha-auto-guest-login's flow (described, not copied).
 
 The parts:
 
-  login.py  GuestLogin: the endpoints, the sign-in, the welcome page served
-  api.py    GuestAPI: the admin page's API and the config store
+  common.py the constants, Endpoint and LoginError
+  signin.py SignIn: HA's login flow for a visitor, with its 2FA step
+  login.py  GuestLogin(SignIn): the endpoints, their opening and closing, the pages served
+  codes.py  Codes: the QR codes (endpoints', the Wi-Fi's, any page's) and the guest card
+  api.py    GuestAPI(Codes): the admin page's API and the config store
+  printing.py  the Wi-Fi's code and the guest card, drawn
   page.py   the welcome page, rendered
   supervisor.py  calls to HA's login API and the Supervisor
   reach.py  what each login's HA user can get to, and what is left open
@@ -35,7 +39,7 @@ from .api import (
     remember,
     runtime,
 )
-from .login import (
+from .common import (
     EVENT,
     HEADER_URL,
     INTERNAL_URL,
@@ -43,14 +47,13 @@ from .login import (
     PORT,
     RATE_LIMIT,
     RATE_WINDOW,
-    UNAVAILABLE,
     WELCOME_DELAY,
     WELCOME_MESSAGE,
     Endpoint,
-    GuestLogin,
     LoginError,
     welcome_title,
 )
+from .login import UNAVAILABLE, GuestLogin
 from .page import (
     PAGE,
     header_jpeg,

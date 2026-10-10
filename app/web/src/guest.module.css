@@ -23,9 +23,16 @@
 
 .head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 14px;
   margin-bottom: 18px;
+}
+
+/* The title block takes the room; on a phone the actions wrap below it. */
+.head > div:nth-child(2) {
+  flex: 1 1 240px;
+  min-width: 0;
 }
 
 .head h1 {
@@ -319,6 +326,18 @@
   gap: 10px;
 }
 
+/* In a login's tile (and the reach check's, which shares it) the lines wrap rather than run
+   past the edge: names and paths can be long. */
+.login > *,
+.loginHead > div {
+  min-width: 0;
+}
+
+.login .rowMeta {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .loginHead h3 {
   display: flex;
   align-items: center;
@@ -500,10 +519,21 @@
 }
 
 .flags li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+  justify-content: space-between;
+  overflow-wrap: anywhere;
   padding: 7px 10px;
   border-left: 3px solid var(--border);
   border-radius: 6px;
   background: var(--bg);
+}
+
+.flags li > span {
+  flex: 1 1 260px;
+  min-width: 0;
 }
 
 .flag_bad {
@@ -518,6 +548,14 @@
   color: var(--muted);
 }
 
+.reach > article {
+  min-width: 0;
+}
+
+.reachToggle {
+  justify-self: start;
+}
+
 .boards {
   display: grid;
   gap: 8px;
@@ -525,16 +563,61 @@
   padding: 0;
   list-style: none;
   font-size: 13px;
+}
+
+.boards li {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.boardHead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.boardPath {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
   overflow-wrap: anywhere;
 }
 
-.boards code {
-  font-family: var(--mono);
+.views {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.view {
+  max-width: 100%;
+  padding: 1px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
   font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.viewNoTab {
+  color: var(--muted);
+  border-style: dashed;
 }
 
 .fieldset textarea {
   width: 100%;
   font: inherit;
   resize: vertical;
+}
+
+/* The guest card's preview */
+.card {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
 }

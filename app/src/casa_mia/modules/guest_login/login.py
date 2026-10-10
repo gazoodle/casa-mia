@@ -14,10 +14,8 @@ Rewrite of cnorick/ha-auto-guest-login's flow (described, not copied).
 
 from __future__ import annotations
 
-import base64
 import json
 import logging
-import secrets
 import threading
 import time
 import urllib.error
@@ -25,101 +23,35 @@ import urllib.parse
 import urllib.request
 from collections import defaultdict, deque
 from collections.abc import Callable
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
-from ... import header, swap
-from .page import header_jpeg, render_welcome  # noqa: E402
-from .supervisor import _json_post
+from ... import swap
+from .common import (
+    ENGINEER_TITLE,
+    GOODBYE_MESSAGE,
+    GOODBYE_TITLE,
+    GOODBYE_URL,
+    HEADER_URL,
+    INTERNAL_URL,
+    PORT,
+    RATE_LIMIT,
+    RATE_WINDOW,
+    TICK,
+    WELCOME_DELAY,
+    WELCOME_MESSAGE,
+    Endpoint,
+    LoginError,
+    _norm,
+    _shown,
+    welcome_title,
+)
+from .page import header_jpeg, render_goodbye, render_welcome  # noqa: E402
+from .signin import SignIn, _AwaitingCode
 
 _LOGGER = logging.getLogger(__name__)
-
-PORT = 8675
-# Home Assistant, from the app: both on the host's network (the name `homeassistant` is
-# the Supervisor network's, which the app is no longer on).
-INTERNAL_URL = "http://127.0.0.1:8123"
-RATE_LIMIT = 10  # login attempts per client address per RATE_WINDOW seconds
-RATE_WINDOW = 60.0
-EVENT = "casa_mia_guest_login"
-HEADER_URL = "/welcome/header.jpg"
-WELCOME_MESSAGE = "Signing you in…"
-WELCOME_DELAY = 3  # seconds; the sign-in itself runs during this time
-MAX_DELAY = 30  # the login code HA gives us is only good for a short while
-TICK = 15.0  # seconds between looks for timed openings that have run out
-MFA_TTL = 300.0  # seconds a visitor has to type a 2FA code
-ENGINEER_TITLE = "Maintenance access"
-
-
-def welcome_title() -> str:
-    """The welcome page's title until one is set on the admin page."""
-    return f"Welcome to {header.HOUSE}"
-
-
-@dataclass
-class Endpoint:
-    id: str  # stable and public: used in HA entities
-    label: str
-    dashboard: str  # where the visitor lands, e.g. /guest-dashboards/<id>
-    type: str = "guest"  # "guest" (welcome page) or "engineer"
-    account: str | None = None  # None: the default account
-    slug: str | None = None  # secret part of /e/<slug>
-    legacy: bool = False  # also reachable at /?d=<dashboard> (existing QR codes)
-    # Welcome page overrides; None uses the app-wide settings.
-    title: str | None = None
-    message: str | None = None
-    delay: int | None = None  # seconds the welcome page is shown before redirecting
-    info: bool = False  # show the house info (Wi-Fi, house rules) before signing in
-    end_sessions: bool = False  # closing it signs out everyone its login let in
-    rotate: bool = False  # closing it gives it a new secret address
-    # Runtime state, kept in the state file; a new endpoint starts off.
-    enabled: bool = False
-    until: float | None = (
-        None  # wall-clock expiry (epoch seconds) of a time-limited enable
-    )
-    last_login: str | None = None
-    logins: int = 0
-
-
-class LoginError(Exception):
-    def __init__(self, status: int, code: str, why: str = "") -> None:
-        super().__init__(code)
-        self.status, self.code, self.why = status, code, why or code
-
-
-class NeedsCode(Exception):
-    """HA wants the login's two-factor code: the flow waits at its mfa step."""
-
-    def __init__(self, flow_id: str) -> None:
-        super().__init__("mfa")
-        self.flow_id = flow_id
-
-
-@dataclass
-class Pending:
-    """A sign-in waiting for the visitor's 2FA code."""
-
-    endpoint: str
-    flow_id: str
-    ha_url: str
-    expires: float
-
-
-def _norm(path: str) -> str:
-    return path.strip("/")
-
-
-def _shown(ep: Endpoint) -> str:
-    """The landing dashboard, safe to log: a printed QR code's dashboard path carries the
-    code's secret id (/guest-dashboards/<16 hex>), so only its first part is shown."""
-    if not ep.legacy:
-        return ep.dashboard
-    first = _norm(ep.dashboard).split("/")[0]
-    return (
-        f"/{first}/<printed QR id>" if "/" in _norm(ep.dashboard) else "<printed QR id>"
-    )
 
 
 UNAVAILABLE = (
@@ -129,7 +61,7 @@ UNAVAILABLE = (
 )
 
 
-class GuestLogin:
+class GuestLogin(SignIn):
     def __init__(
         self,
         endpoints: list[Endpoint],
@@ -147,26 +79,23 @@ class GuestLogin:
         house_info: dict[str, str] | None = None,
     ) -> None:
         self.state_path = state_path
-        # Wi-Fi name and password, and the house rules, for endpoints that show them.
+        # The house rules, for endpoints that show them.
         self.house_info = house_info or {}
         # Called (on its own thread) with an endpoint that has just closed, by hand or when
         # its time ran out: GuestAPI ends its sessions and gives it a new address.
         self.on_closed: Callable[[Endpoint], None] | None = None
+        # The goodbye page's title and message, and an address to send visitors to instead.
+        self.goodbye: dict[str, str] = {}
+        # A login's HA user id, for the integration (GuestAPI knows them).
+        self.user_of: Callable[[str], str | None] = lambda name: None
+        super().__init__(accounts, default_account, internal_url, ha_port, ha_hosts)
         self.welcome = (title or welcome_title(), welcome_message, welcome_delay)
         self.endpoints = {e.id: e for e in endpoints}
-        self.accounts = accounts
-        self.default_account = default_account
         self.port = port
-        self.internal_url = internal_url.rstrip("/")
-        self.ha_port = ha_port
         self.on_login = on_login
-        # Names of this box that a sign-in may send the browser to (?ha_host=, Try it).
-        self.ha_hosts = ha_hosts
-        self._lock = threading.Lock()
         self._server: ThreadingHTTPServer | None = None
         self._error: str | None = None
         self._attempts: dict[str, deque[float]] = defaultdict(deque)
-        self._pending: dict[str, Pending] = {}
         self._stopping = threading.Event()
         self._load()
 
@@ -244,6 +173,7 @@ class GuestLogin:
         default_account: str,
         welcome: tuple[str, str, int] | None = None,
         house_info: dict[str, str] | None = None,
+        goodbye: dict[str, str] | None = None,
     ) -> None:
         """Swap in new config without a restart. An endpoint keeps its on/off state and
         login count across the change as long as its id stays the same."""
@@ -260,6 +190,8 @@ class GuestLogin:
                 self.welcome = welcome
             if house_info is not None:
                 self.house_info = house_info
+            if goodbye is not None:
+                self.goodbye = goodbye
             self._save()
         self._report_config()
 
@@ -404,10 +336,14 @@ class GuestLogin:
                 "state": "running" if self._server else "offline",
                 "port": self.port,
                 "error": self._error,
+                # Where a signed-out visitor's page goes (None: the goodbye page here).
+                "goodbye_url": self.goodbye.get("url") or None,
                 "endpoints": {
                     e.id: {
                         "label": e.label,
                         "type": e.type,
+                        "end_sessions": e.end_sessions,
+                        "user_id": self.user_of(e.account or self.default_account),
                         "enabled": self._is_on(e),
                         "until": e.until,
                         "last_login": e.last_login,
@@ -458,6 +394,14 @@ class GuestLogin:
                 self._reply(h, 200, image, "image/jpeg")
             else:
                 self._reply(h, 404, b"", "text/plain")
+            return
+        if url.path == GOODBYE_URL:  # public: it says no more than the welcome page
+            page = render_goodbye(
+                self.goodbye.get("title") or GOODBYE_TITLE,
+                self.goodbye.get("message") or GOODBYE_MESSAGE,
+                HEADER_URL,
+            )
+            self._reply(h, 200, swap.out(page).encode(), "text/html; charset=utf-8")
             return
         ep, _ = self._resolve(url.path, urllib.parse.parse_qs(url.query))
         is_page = url.path.rstrip("/") in ("", f"/e/{ep.slug}" if ep else "")
@@ -586,157 +530,6 @@ class GuestLogin:
             raise LoginError(429, "rate_limited")
         q.append(now)
 
-    def _login(self, ep: Endpoint, host_header: str, ha_host: str = "") -> str:
-        """Run HA's login flow and return the URL that finishes the sign-in in the browser."""
-        name = ep.account or self.default_account
-        # The URL the visitor's browser uses for HA: the host they reached us on, HA's port.
-        # Try it may name another of this box's names (so the admin's own login there is
-        # left alone); anything else is ignored, or this would hand codes to any host.
-        host = (
-            urllib.parse.urlsplit(f"//{host_header}").hostname or "homeassistant.local"
-        )
-        if ha_host and ha_host in self.ha_hosts():
-            host = ha_host
-        port = self.ha_port()
-        ha_url = f"http://{host}" + ("" if port == 80 else f":{port}")
-        try:
-            code = self._login_code(name, ha_url, f"endpoint {ep.id}")
-        except NeedsCode as wait:
-            token = secrets.token_urlsafe(18)
-            with self._lock:
-                now = time.time()
-                self._pending = {
-                    k: p for k, p in self._pending.items() if p.expires > now
-                }
-                self._pending[token] = Pending(
-                    ep.id, wait.flow_id, ha_url, now + MFA_TTL
-                )
-            raise _AwaitingCode(token) from None
-        return _landing(ep, ha_url, code)
-
-    def _finish(self, ep: Endpoint, token: str, code: str) -> str:
-        """Pass the visitor's 2FA code to the flow waiting for it; the landing URL."""
-        with self._lock:
-            pending = self._pending.get(token)
-            if pending is None or pending.endpoint != ep.id:
-                raise LoginError(401, "mfa_expired", "2FA: no sign-in is waiting")
-            if pending.expires <= time.time():
-                del self._pending[token]
-                raise LoginError(401, "mfa_expired", "2FA: the code came too late")
-        try:
-            result = _json_post(
-                f"{self.internal_url}/auth/login_flow/{pending.flow_id}",
-                {"code": code.strip(), "client_id": pending.ha_url + "/"},
-            )
-        except urllib.error.HTTPError as exc:
-            with self._lock:
-                self._pending.pop(token, None)
-            raise LoginError(
-                401, "mfa_expired", f"2FA: Home Assistant answered {exc.code}"
-            ) from exc
-        except (OSError, ValueError) as exc:
-            raise LoginError(502, "ha_unreachable", f"2FA: {exc}") from exc
-        if result.get("type") == "create_entry" and result.get("result"):
-            with self._lock:
-                self._pending.pop(token, None)
-            return _landing(ep, pending.ha_url, str(result["result"]))
-        if result.get("type") == "form":  # wrong code: the flow waits for another
-            raise LoginError(401, "bad_code", "2FA: wrong code")
-        with self._lock:
-            self._pending.pop(token, None)
-        raise LoginError(
-            401, "mfa_expired", f"2FA: Home Assistant ended the sign-in ({result})"
-        )
-
-    def test_login(self, name: str) -> str | None:
-        """Try a login's credentials against HA. None if they work, else why not."""
-        try:
-            self._login_code(name, self.internal_url, f"login {name}")
-        except LoginError as exc:
-            return exc.why
-        except NeedsCode:
-            return (
-                None  # the password is right; HA then asks the visitor for the 2FA code
-            )
-        return None
-
-    def _login_code(self, name: str, ha_url: str, who: str) -> str:
-        """HA's login flow for login `name`, as a client at `ha_url`: the one-time code."""
-        if name not in self.accounts:
-            have = ", ".join(sorted(self.accounts)) or "none"
-            raise LoginError(
-                500,
-                "no_account",
-                f"{who} uses login '{name}', which does not exist (have: {have}). "
-                "Add it under Logins on the Guest login page.",
-            )
-        username, password = self.accounts[name]
-        client_id = ha_url + "/"
-        try:
-            flow = _json_post(
-                f"{self.internal_url}/auth/login_flow",
-                {
-                    "client_id": client_id,
-                    "handler": ["homeassistant", None],
-                    "redirect_uri": f"{ha_url}?auth_callback=1",
-                },
-            )
-            result = _json_post(
-                f"{self.internal_url}/auth/login_flow/{flow['flow_id']}",
-                {"username": username, "password": password, "client_id": client_id},
-            )
-            # A user with more than one 2FA module is asked which: prefer an app's code.
-            if result.get("step_id") == "select_mfa_module":
-                options = [o[0] for o in _options(result, "multi_factor_auth_module")]
-                choice = "totp" if "totp" in options else (options or ["totp"])[0]
-                result = _json_post(
-                    f"{self.internal_url}/auth/login_flow/{flow['flow_id']}",
-                    {"multi_factor_auth_module": choice, "client_id": client_id},
-                )
-        except urllib.error.HTTPError as exc:
-            raise LoginError(
-                401,
-                "login_failed",
-                f"Home Assistant answered {exc.code} at {self.internal_url}/auth/login_flow "
-                f"(user '{username}')",
-            ) from exc
-        except (OSError, ValueError, KeyError) as exc:
-            raise LoginError(
-                502,
-                "ha_unreachable",
-                f"cannot reach Home Assistant's login at {self.internal_url}: {exc}.",
-            ) from exc
-        if result.get("type") == "form" and result.get("step_id") == "mfa":
-            raise NeedsCode(str(flow["flow_id"]))
-        code = result.get("result")
-        if result.get("type") != "create_entry" or not code:
-            raise LoginError(
-                401,
-                "login_failed",
-                f"Home Assistant rejected user '{username}': check the login's username and "
-                "password on the Guest login page, and that the user exists and is active.",
-            )
-        return str(code)
-
-
-class _AwaitingCode(Exception):
-    """The sign-in waits for a 2FA code; `token` names it to the visitor's page."""
-
-    def __init__(self, token: str) -> None:
-        super().__init__("mfa")
-        self.token = token
-
-
-def _landing(ep: Endpoint, ha_url: str, code: str) -> str:
-    """The URL that finishes the sign-in in the browser, at the endpoint's dashboard."""
-    state = base64.b64encode(
-        json.dumps({"hassUrl": ha_url, "clientId": ha_url + "/"}).encode()
-    ).decode()
-    query = urllib.parse.urlencode(
-        {"auth_callback": 1, "code": code, "state": state, "storeToken": "true"}
-    )
-    return f"{ha_url}/{_norm(ep.dashboard)}?{query}"
-
 
 def _read_json(h: BaseHTTPRequestHandler) -> dict[str, Any]:
     """A small JSON body, or {} (the first POST of a sign-in has none)."""
@@ -746,11 +539,3 @@ def _read_json(h: BaseHTTPRequestHandler) -> dict[str, Any]:
     except ValueError:
         return {}
     return body if isinstance(body, dict) else {}
-
-
-def _options(result: dict[str, Any], name: str) -> list[list[str]]:
-    """A login flow form's choices for field `name`: [[value, label], ...]."""
-    for field in result.get("data_schema") or []:
-        if isinstance(field, dict) and field.get("name") == name:
-            return [list(o) for o in field.get("options") or [] if o]
-    return []

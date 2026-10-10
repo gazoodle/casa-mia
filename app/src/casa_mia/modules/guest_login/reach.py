@@ -10,7 +10,10 @@ its kiosk-mode block, and whether kiosk-mode is installed. Facts HA itself decid
   for everyone, for non-admins, for named users (matched by the user's name).
 
 `report` turns these into one entry per login, with flags for what is probably open by
-mistake, so locking a login down is checked rather than assumed.
+mistake, so locking a login down is checked rather than assumed. A flag the app can put
+right carries a `fix`, which `fix` carries out, writing to Home Assistant through its
+websocket as the Supervisor's admin user. Only the fixes named here run, each checked
+afresh against HA first: the page sends a name and an id, never a command.
 """
 
 from __future__ import annotations
@@ -19,8 +22,8 @@ import logging
 from typing import Any
 
 from ...ha import HA, HAError
-from ..kiosk_mode import split
-from .login import _norm
+from ..kiosk_mode import merge, split
+from .common import BadRequest, _norm
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -89,10 +92,12 @@ def report(store: dict[str, Any], facts: dict[str, Any]) -> list[dict[str, Any]]
             for e in store["endpoints"]
             if (e.get("account") or store["default_login"]) == name
         ]
-        flags: list[dict[str, str]] = []
+        flags: list[dict[str, Any]] = []
 
-        def flag(level: str, text: str) -> None:
-            flags.append({"level": level, "text": text})
+        def flag(level: str, text: str, fix: dict[str, Any] | None = None) -> None:
+            flags.append(
+                {"level": level, "text": text, **({"fix": fix} if fix else {})}
+            )
 
         if user is None:
             flag(BAD, f"No Home Assistant user called {login.get('username')}.")
@@ -110,6 +115,9 @@ def report(store: dict[str, Any], facts: dict[str, Any]) -> list[dict[str, Any]]
                     WARN,
                     "Can sign in from outside the house network (Settings > People > "
                     "the user > 'Can only log in from the local network' is off).",
+                    None
+                    if user.get("is_admin")
+                    else {"action": "local_only", "login": name, "label": "Local only"},
                 )
         if len(eps) > 1:
             flag(
@@ -130,8 +138,15 @@ def report(store: dict[str, Any], facts: dict[str, Any]) -> list[dict[str, Any]]
             landing = [
                 e["id"] for e in eps if _board_of(e["dashboard"]) == board["url_path"]
             ]
+            config = board.get("config")
             dashboards.append(
                 {
+                    "id": board.get("id"),  # None: the default dashboard (Overview)
+                    "url_path": board["url_path"],
+                    # Its config can be saved here (not YAML, not made by HA).
+                    "editable": isinstance(config, dict)
+                    and "views" in config
+                    and board.get("mode", "storage") == "storage",
                     "title": board.get("title") or root,
                     "path": f"/{root}",
                     "sidebar": bool(board.get("show_in_sidebar", True)),
@@ -185,6 +200,14 @@ def report(store: dict[str, Any], facts: dict[str, Any]) -> list[dict[str, Any]]
                     BAD if "sidebar" in missing else WARN,
                     f"{ep['label']}: kiosk-mode does not hide the {' or the '.join(missing)} "
                     f"on {board['title']} for this user. See the Kiosk mode page.",
+                    {
+                        "action": "kiosk",
+                        "login": name,
+                        "dashboard": board["url_path"],
+                        "label": "Hide them for this user",
+                    }
+                    if board["editable"] and user.get("id") and not user.get("is_admin")
+                    else None,
                 )
             elif views := [
                 v for v in board["views"] if v["path"] != "/" + _norm(ep["dashboard"])
@@ -202,7 +225,7 @@ def report(store: dict[str, Any], facts: dict[str, Any]) -> list[dict[str, Any]]
                 NOTE,
                 f"{len(others)} other dashboard(s) open to every user by address"
                 + (f", in the sidebar: {', '.join(in_sidebar)}" if in_sidebar else "")
-                + ". Make the ones guests must not see admin-only.",
+                + ". Make the ones guests must not see admin-only (Admin only, below).",
             )
         out.append(
             {
@@ -224,3 +247,83 @@ def report(store: dict[str, Any], facts: dict[str, Any]) -> list[dict[str, Any]]
         sum(1 for r in out for f in r["flags"] if f["level"] != NOTE),
     )
     return out
+
+
+def fix(ha: HA, store: dict[str, Any], body: dict[str, Any]) -> str:
+    """Carry out one of the report's fixes; what was done, for the log and the page.
+    BadRequest, saying why, if it no longer applies."""
+    action = body.get("action")
+    users = {u["id"]: u for u in ha.users()}
+
+    def user_of(name: Any) -> dict[str, Any]:
+        login = store["logins"].get(name) if isinstance(name, str) else None
+        if login is None:
+            raise BadRequest("No such login.")
+        found = users.get(login.get("user_id")) or next(
+            (u for u in users.values() if u.get("username") == login["username"]), None
+        )
+        if found is None:
+            raise BadRequest(f"Home Assistant has no user {login['username']}.")
+        if found["is_admin"]:
+            raise BadRequest("Not for an administrator: change it in Home Assistant.")
+        return found
+
+    if action == "local_only":
+        user = user_of(body.get("login"))
+        ha.call(
+            {"type": "config/auth/update", "user_id": user["id"], "local_only": True}
+        )
+        return f"{user['name']} can now sign in only from the house network"
+    if action == "admin_only":
+        (listed,) = ha.call({"type": "lovelace/dashboards/list"})
+        board = next(
+            (d for d in listed if d.get("id") == body.get("dashboard_id")), None
+        )
+        if board is None:
+            raise BadRequest(
+                "No such dashboard (the Overview can't be made admin-only)."
+            )
+        landing = [
+            e["label"]
+            for e in store["endpoints"]
+            if _board_of(e["dashboard"]) == board["url_path"]
+        ]
+        if landing:
+            raise BadRequest(f"{', '.join(landing)} land(s) there: it must stay open.")
+        ha.call(
+            {
+                "type": "lovelace/dashboards/update",
+                "dashboard_id": board["id"],
+                "require_admin": True,
+            }
+        )
+        return (
+            f"{board.get('title') or board['url_path']} is now for administrators only"
+        )
+    if action == "kiosk":
+        user = user_of(body.get("login"))
+        url_path = body.get("dashboard")
+        (listed,) = ha.call({"type": "lovelace/dashboards/list"})
+        if url_path is not None and not any(d["url_path"] == url_path for d in listed):
+            raise BadRequest("No such dashboard.")
+        if any(d["url_path"] == url_path and d.get("mode") == "yaml" for d in listed):
+            raise BadRequest("A YAML dashboard: add kiosk_mode to its file yourself.")
+        (config,) = ha.call({"type": "lovelace/config", "url_path": url_path})
+        if not isinstance(config, dict) or "views" not in config:
+            raise BadRequest("Home Assistant makes this dashboard: take control first.")
+        ui, extras = split(config.get("kiosk_mode"))
+        name = user["name"]
+        entry = next(
+            (e for e in ui["users"] if name.lower() in (u.lower() for u in e["users"])),
+            None,
+        )
+        if entry is None:
+            ui["users"].append({"users": [name], "on": ["hide_header", "hide_sidebar"]})
+        else:
+            entry["on"] = sorted({*entry["on"], "hide_header", "hide_sidebar"})
+        config["kiosk_mode"] = merge(ui, extras)
+        ha.call(
+            {"type": "lovelace/config/save", "url_path": url_path, "config": config}
+        )
+        return f"kiosk-mode hides the header and sidebar from {name} on {url_path or 'the Overview'}"
+    raise BadRequest("Unknown fix.")

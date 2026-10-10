@@ -2,8 +2,7 @@
 page and a card with the title and message, in the admin panel's colours (light or dark
 by the phone's setting). Also rendered as a preview for the admin page.
 
-An engineer's page has no photo. With house info on, the Wi-Fi and house rules show under
-the card and the sign-in waits for Continue. When the login has two-factor sign-in, the
+An engineer's page has no photo. With house info on, the house rules show under the card and the sign-in waits for Continue. When the login has two-factor sign-in, the
 card asks for the code and passes it on."""
 
 from __future__ import annotations
@@ -43,8 +42,6 @@ p{margin:0;color:var(--muted)}
 .info{margin-top:16px;padding:18px 20px;border:1px solid var(--border);border-radius:18px;
 background:var(--surface);text-align:left}
 .info h2{margin:0 0 10px;font-size:15px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
-.info dl{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0 0 10px}
-.info dt{color:var(--muted)}.info dd{margin:0;font-family:ui-monospace,monospace;word-break:break-all;user-select:all}
 .info p{color:var(--text);margin:8px 0 0}
 button{font:inherit;font-weight:650;margin-top:18px;padding:11px 26px;border:0;border-radius:999px;
 background:var(--accent);color:var(--bg);cursor:pointer}
@@ -95,32 +92,15 @@ else start();
 
 
 def render_info(info: dict[str, str] | None) -> str:
-    """The house info card: the Wi-Fi's name and password, then the house rules, each
-    blank-line-separated paragraph of them a paragraph. Empty when there is nothing."""
-    info = info or {}
-    wifi = [
-        (label, str(info.get(key) or "").strip())
-        for label, key in (("Network", "wifi_name"), ("Password", "wifi_password"))
-    ]
-    rows = "".join(
-        f"<dt>{label}</dt><dd>{html.escape(value)}</dd>"
-        for label, value in wifi
-        if value
-    )
-    text = str(info.get("text") or "").strip()
+    """The house info card: the house rules, each blank-line-separated paragraph of them
+    a paragraph. Empty when there are none."""
+    text = str((info or {}).get("text") or "").strip()
     paras = "".join(
         "<p>" + html.escape(part.strip()).replace("\n", "<br>") + "</p>"
         for part in text.split("\n\n")
         if part.strip()
     )
-    if not (rows or paras):
-        return ""
-    return (
-        '<section class="info">'
-        + (f"<h2>Wi-Fi</h2><dl>{rows}</dl>" if rows else "")
-        + (f"<h2>The house</h2>{paras}" if paras else "")
-        + "</section>"
-    )
+    return f'<section class="info"><h2>The house</h2>{paras}</section>' if paras else ""
 
 
 def render_welcome(
@@ -152,6 +132,14 @@ def render_welcome(
         .replace("@Y@", f"{frame['y']:g}")
         .replace("@ZOOM@", f"{frame['zoom']:g}")
     )
+
+
+def render_goodbye(title: str, message: str, image_url: str | None) -> str:
+    """The page a signed-out visitor's browser is sent to: the welcome page's look, with
+    nothing running."""
+    page = render_welcome(title, message, 0, image_url, info=None)
+    page = page[: page.index("<script>")] + "</body></html>"
+    return page.replace('class="card" id="card"', 'class="card done" id="card"')
 
 
 def header_jpeg() -> bytes | None:

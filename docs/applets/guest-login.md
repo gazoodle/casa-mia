@@ -106,9 +106,9 @@ An endpoint is one QR code: a guest suite, the plant room, a KNX panel. Add one 
   still inside is signed out. If another open endpoint uses the same login, its sessions
   are kept until that one closes too, because Home Assistant can't tell the two endpoints'
   visitors apart: give each endpoint its own login if that matters. On by default for a new
-  endpoint.
-- **Show the house info first** (guests only): the Wi-Fi and house rules from **Settings**
-  show under the welcome card, and the visitor presses **Continue** to sign in.
+  endpoint. Visitors with a page open are sent to the goodbye first (see **Settings**).
+- **Show the house info first** (guests only): the house rules from **Settings** show
+  under the welcome card, and the visitor presses **Continue** to sign in.
 - **Own welcome page:** a title, message and delay for this endpoint only. Otherwise it
   uses the ones in **Settings**.
 
@@ -133,8 +133,14 @@ The **Settings** button holds:
 - **Host in QR codes**, the address phones reach the box on. Leave it empty to use the
   address found automatically. If you change it, every QR code changes, including the
   printed ones;
-- **House info:** the Wi-Fi's name and password, and your house rules (plain text; a
-  blank line starts a paragraph), for endpoints that show them.
+- **Goodbye:** a title and message for the page a signed-out visitor sees, or an address
+  to send them to instead (your house's website, say). When an endpoint that signs its
+  visitors out closes, their open pages go there, and the sign-out follows 40 seconds
+  later, which gives every page time to notice. A phone that's asleep at the time wakes to
+  Home Assistant's login screen instead. (Needs the Casa Mia Guest Login integration.)
+- **House info:** your house rules (plain text; a blank line starts a paragraph), for
+  endpoints that show them. (No Wi-Fi details: a phone that can open the welcome page is
+  already on your network.)
 
 ### What each login can reach
 
@@ -146,17 +152,36 @@ to, and flags what is probably open by mistake:
   dashboard an endpoint lands on;
 - the other dashboards that user can open by their address, and which are in its sidebar.
 
+Where Casa Mia can put a problem right, the flag has a button:
+- **Local only:** the user can then sign in only from your network;
+- **Hide them for this user:** adds the user to kiosk-mode's settings on that dashboard,
+  hiding the header and sidebar for them, and leaving the rest of its kiosk-mode settings
+  as they were;
+- **Admin only**, on each dashboard in the list that no endpoint lands on: only
+  administrators can then open it. That's every non-admin user, your household's too.
+
+Each asks first. It changes Home Assistant itself, so if that dashboard or user is open in
+an editor elsewhere, unsaved changes there may be lost, or saving them may undo the fix.
+
 Each login's card lists every dashboard and view its user can open. Remember that Home
 Assistant's sidebar and a view's *Visible* setting only hide: any dashboard that isn't
 admin-only opens for every user who types its address. Make the ones visitors mustn't see
 admin-only (Settings → Dashboards → the dashboard → *Admin only*).
 
-### QR code for a page
+### QR codes
 
-**QR code for a page**, at the top, makes a QR code for any dashboard or view, to download
-or save to Home Assistant's media. It's a plain link to the page, at the host in QR codes:
-it signs nobody in, so it's for a phone that's already signed in, such as a guest's, to
-jump to the pool's dashboard from a card by the pool.
+**QR codes**, at the top, makes the codes beyond each endpoint's own:
+- **Guest card:** an endpoint's QR code beside your Wi-Fi's, *1. Join the Wi-Fi* and *2. Scan
+  to sign in*, with the network's name and password written out for anyone who'd rather
+  type them. **Open to print** shows it on its own page, ready to print; **Download SVG**
+  gives a picture that stays sharp in a document or a message.
+- **Wi-Fi:** your network's name, password and security, saved with Guest login's
+  settings. Its QR code is one a phone's camera offers to join; download it on its own if
+  you like.
+- **A page:** a QR code for any dashboard or view, to download or save to Home Assistant's
+  media. It's a plain link to the page, at the host in QR codes: it signs nobody in, so
+  it's for a phone that's already signed in, such as a guest's, to jump to the pool's
+  dashboard from a card by the pool.
 
 <img src="../screenshots/guest-welcome.webp" alt="The welcome page a guest sees on their phone: the house photo, the welcome title and message" width="800">
 

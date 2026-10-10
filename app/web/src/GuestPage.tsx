@@ -5,7 +5,8 @@ import { useCallback, useEffect, useState } from "react";
 import { del, get, post, put, type Endpoint, type GuestConfig, type HAChoices, type Login } from "./api";
 import { ago } from "./format";
 import { EndpointDialog, LoginDialog, PasswordDialog, SettingsDialog } from "./GuestDialogs";
-import { PageQrDialog, ReachArea } from "./GuestReach";
+import { QrCodesDialog } from "./GuestCodes";
+import { ReachArea } from "./GuestReach";
 import { GuestIcon } from "./icons";
 import { AreaHead, Empty, Shell } from "./page";
 import { copyText, Switch, Toasts, type Toast } from "./ui";
@@ -95,7 +96,7 @@ export function GuestPage({ state }: { state?: string }) {
       action={
         <>
           <button className={ui.button} onClick={() => setEditing({ kind: "page-qr" })}>
-            QR code for a page
+            QR codes
           </button>
           <button className={ui.button} onClick={() => setEditing({ kind: "settings" })}>
             Settings
@@ -271,7 +272,9 @@ export function GuestPage({ state }: { state?: string }) {
           }}
         />
       )}
-      {editing?.kind === "page-qr" && <PageQrDialog ha={ha} onClose={() => setEditing(null)} toast={toast} />}
+      {editing?.kind === "page-qr" && (
+        <QrCodesDialog config={config} ha={ha} onConfig={setConfig} onClose={() => setEditing(null)} toast={toast} />
+      )}
       {editing?.kind === "settings" && (
         <SettingsDialog
           config={config}

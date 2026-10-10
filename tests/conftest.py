@@ -93,4 +93,5 @@ def api(tmp_path, login_server):
         FakeHA(),  # type: ignore[arg-type]
         tmp_path / "media",
         lan_host=lambda: "192.168.1.20",
+        grace=0,  # no wait between an endpoint closing and its sign-out
     )

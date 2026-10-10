@@ -4611,7 +4611,22 @@ var Cr = class extends G {
   `;
 	}
 };
-o("casa-mia-over-layer", _r), o("casa-mia-over-layer-editor", Cr), s("casa-mia-over-layer", "Casa Mia Over layer", "One card over the whole dashboard while its Visibility conditions hold; what's beneath can be seen but not touched."), console.info(`%cCASA-MIA CARDS\n%ccommander, tablet layout (${Tt})`, "color: green; font-weight: bold;", ""), Tt !== "dev" && window.hassConnection?.then(({ conn: e }) => {
+o("casa-mia-over-layer", _r), o("casa-mia-over-layer-editor", Cr), s("casa-mia-over-layer", "Casa Mia Over layer", "One card over the whole dashboard while its Visibility conditions hold; what's beneath can be seen but not touched.");
+//#endregion
+//#region src/guest-goodbye.ts
+var wr = 2e3, Tr = /* @__PURE__ */ new Map();
+function Er() {
+	let e = document.querySelector("home-assistant")?.hass, t = e?.user;
+	if (!t || t.is_admin || !e.states) return;
+	let n = Object.values(e.states).filter((e) => e.entity_id.startsWith("switch.") && e.attributes?.guest_user_id === t.id);
+	if (!n.length) return;
+	let r = n.find((e) => e.attributes.signs_out && Tr.get(e.entity_id) === "on" && e.state === "off");
+	for (let e of n) Tr.set(e.entity_id, e.state);
+	if (!r || n.some((e) => e.state === "on")) return;
+	let i = r.attributes, a = i.goodbye_url || `http://${location.hostname}:${i.guest_port ?? 8675}/bye`;
+	console.info(`CASA-MIA CARDS: ${r.entity_id} closed; going to the goodbye page`), location.replace(a);
+}
+setInterval(Er, wr), console.info(`%cCASA-MIA CARDS\n%ccommander, tablet layout (${Tt})`, "color: green; font-weight: bold;", ""), Tt !== "dev" && window.hassConnection?.then(({ conn: e }) => {
 	e.addEventListener("ready", () => e.sendMessagePromise({ type: "casa_mia/cards" }).then(({ version: e }) => {
 		e && e !== Tt && (console.warn(`CASA-MIA CARDS ${Tt} running, ${e} served: reload to update`), document.querySelector("home-assistant")?.dispatchEvent(new CustomEvent("hass-notification", {
 			detail: {

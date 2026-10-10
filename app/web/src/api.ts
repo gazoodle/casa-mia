@@ -106,6 +106,8 @@ export type GuestConfig = {
   qr_host: string;
   qr_host_effective: string;
   house_info: HouseInfo;
+  goodbye: { title: string; message: string; url: string };
+  wifi: Wifi;
   /** Every name the box answers to (QR host, LAN IP, .local name). */
   hosts: string[];
   port: number;
@@ -114,13 +116,19 @@ export type GuestConfig = {
 
 export type HAUser = { id: string; name: string; username: string | null; is_admin: boolean; is_active: boolean };
 export type HADashboard = { path: string; dashboard: string; view: string };
-export type HouseInfo = { wifi_name: string; wifi_password: string; text: string };
+export type Wifi = { ssid: string; password: string; security: "WPA" | "WEP" | "nopass"; hidden: boolean };
+/** The house rules, shown before signing in by endpoints with `info` on. */
+export type HouseInfo = { text: string };
 /** What one login's Home Assistant user can get to (GET api/guest/reach). */
 export type Reach = {
   name: string;
   user: { name: string | null; is_admin: boolean; local_only: boolean; found: boolean };
   endpoints: { id: string; label: string }[];
   dashboards: {
+    /** None: the default dashboard (Overview), which can't be made admin-only. */
+    id: string | null;
+    url_path: string | null;
+    editable: boolean;
     title: string;
     path: string;
     sidebar: boolean;
@@ -129,8 +137,10 @@ export type Reach = {
     hides_sidebar: boolean;
     views: { title: string; path: string; tab: boolean }[];
   }[];
-  flags: { level: "bad" | "warn" | "note"; text: string }[];
+  flags: { level: "bad" | "warn" | "note"; text: string; fix?: ReachFix }[];
 };
+/** A fix the app can make for a reach flag: sent back as it came (POST reach/fix). */
+export type ReachFix = { action: string; label?: string; login?: string; dashboard?: string | null; dashboard_id?: string };
 export type HAChoices = { users: HAUser[]; dashboards: HADashboard[]; error: string | null };
 
 export type Kiosk = {

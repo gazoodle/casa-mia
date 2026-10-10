@@ -228,7 +228,7 @@ export function EndpointDialog({
           <span>
             <strong>Show the house info first</strong>
             <span className={css.checkHelp}>
-              The Wi-Fi and house rules from Settings, under the welcome card; the visitor presses Continue to sign in.
+              The house rules from Settings, under the welcome card; the visitor presses Continue to sign in.
             </span>
           </span>
         </label>
@@ -444,6 +444,7 @@ export function SettingsDialog({
   const [delay, setDelay] = useState(String(config.welcome.delay));
   const [host, setHost] = useState(config.qr_host);
   const [info, setInfo] = useState(config.house_info);
+  const [goodbye, setGoodbye] = useState(config.goodbye);
   const [previewing, setPreviewing] = useState(false);
   // The welcome page with the values being edited, not yet saved.
   const previewUrl = `api/guest/preview?${new URLSearchParams({ title, message, delay })}`;
@@ -456,7 +457,7 @@ export function SettingsDialog({
           <button className={ui.button} onClick={onClose}>
             Cancel
           </button>
-          <button className={ui.primary} onClick={() => onSave({ qr_host: host, welcome: { title, message, delay: Number(delay) }, house_info: info })}>
+          <button className={ui.primary} onClick={() => onSave({ qr_host: host, welcome: { title, message, delay: Number(delay) }, house_info: info, goodbye })}>
             Save
           </button>
         </>
@@ -485,15 +486,31 @@ export function SettingsDialog({
       </div>
       <fieldset className={css.fieldset}>
         <legend>House info</legend>
-        <p className={css.checkHelp}>Shown before signing in, by guest endpoints with Show the house info first on.</p>
-        <Field label="Wi-Fi name">
-          <input value={info.wifi_name} onChange={(e) => setInfo({ ...info, wifi_name: e.target.value })} />
-        </Field>
-        <Field label="Wi-Fi password">
-          <input value={info.wifi_password} onChange={(e) => setInfo({ ...info, wifi_password: e.target.value })} spellCheck={false} />
-        </Field>
-        <Field label="House rules" help="Plain text. A blank line starts a new paragraph.">
+        <Field
+          label="House rules"
+          help="Shown before signing in, by guest endpoints with Show the house info first on. Plain text; a blank line starts a new paragraph."
+        >
           <textarea rows={5} value={info.text} onChange={(e) => setInfo({ ...info, text: e.target.value })} />
+        </Field>
+      </fieldset>
+      <fieldset className={css.fieldset}>
+        <legend>Goodbye</legend>
+        <p className={css.checkHelp}>
+          When an endpoint that signs its visitors out closes, their open pages go here before the sign-out (it waits 40
+          seconds for them). A phone that's asleep then wakes to Home Assistant's login screen instead.
+        </p>
+        <Field label="Goodbye title">
+          <input placeholder="Thank you for visiting" value={goodbye.title} onChange={(e) => setGoodbye({ ...goodbye, title: e.target.value })} />
+        </Field>
+        <Field label="Goodbye message">
+          <input
+            placeholder="You're signed out now. We hope to see you again soon."
+            value={goodbye.message}
+            onChange={(e) => setGoodbye({ ...goodbye, message: e.target.value })}
+          />
+        </Field>
+        <Field label="Or send them to" help="A web address instead of the goodbye page, for example your house's website. Leave empty for the goodbye page.">
+          <input placeholder="https://" value={goodbye.url} onChange={(e) => setGoodbye({ ...goodbye, url: e.target.value })} spellCheck={false} />
         </Field>
       </fieldset>
       {previewing && <PhonePreview url={previewUrl} onClose={() => setPreviewing(false)} />}

@@ -13,24 +13,28 @@ import logging
 import re
 import secrets
 import threading
+import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from ... import qr, swap
 from ...ha import HA, HAError
-from .login import (
+from .codes import Codes, Response, _json
+from .common import (
+    GOODBYE_GRACE,
     MAX_DELAY,
     PORT,
     WELCOME_DELAY,
     WELCOME_MESSAGE,
+    BadRequest,
     Endpoint,
-    GuestLogin,
     _norm,
     welcome_title,
 )
+from .login import GuestLogin
 from .page import header_jpeg, render_welcome
-from .reach import gather, report
+from .printing import SECURITY
+from .reach import fix, gather, report
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -53,9 +57,9 @@ STORED = (
     "end_sessions",
     "rotate",
 )
-HOUSE_INFO = ("wifi_name", "wifi_password", "text")
-
-Response = tuple[int, str, bytes]
+HOUSE_INFO = ("text",)  # the house rules
+GOODBYE = ("title", "message", "url")  # the goodbye page, or an address instead
+WIFI = {"ssid": "", "password": "", "security": "WPA", "hidden": False}
 
 
 def empty_store() -> dict[str, Any]:
@@ -70,6 +74,8 @@ def empty_store() -> dict[str, Any]:
         },
         "qr_host": "",
         "house_info": dict.fromkeys(HOUSE_INFO, ""),
+        "goodbye": dict.fromkeys(GOODBYE, ""),
+        "wifi": dict(WIFI),
     }
 
 
@@ -91,6 +97,7 @@ def runtime(
     str,
     tuple[str, str, int],
     dict[str, str],
+    dict[str, str],
 ]:
     """The store as GuestLogin.apply() takes it."""
     endpoints = [
@@ -104,11 +111,14 @@ def runtime(
         w.get("message") or WELCOME_MESSAGE,
         int(w.get("delay", WELCOME_DELAY)),
     )
-    return endpoints, logins, data["default_login"], welcome, data["house_info"]
-
-
-class BadRequest(Exception):
-    pass
+    return (
+        endpoints,
+        logins,
+        data["default_login"],
+        welcome,
+        data["house_info"],
+        data["goodbye"],
+    )
 
 
 def _clean_endpoint(
@@ -177,7 +187,7 @@ def _clean_endpoint(
     return ep
 
 
-class GuestAPI:
+class GuestAPI(Codes):
     def __init__(
         self,
         guest: GuestLogin,
@@ -187,17 +197,17 @@ class GuestAPI:
         media_dir: Path,
         lan_host: Callable[[], str | None] = lambda: None,
         mdns_name: Callable[[], str | None] = lambda: None,
+        grace: float = GOODBYE_GRACE,
     ) -> None:
-        self.guest = guest
+        super().__init__(guest, data, media_dir, remember(lan_host))
+        self.grace = grace  # seconds between an endpoint closing and its sign-out
         self.store_path = store_path
-        self.data = data
         self.ha = ha
-        self.media_dir = media_dir
-        self.lan_host = remember(lan_host)
         self.mdns_name = remember(mdns_name)
         # Re-entrant: an endpoint closed from this page calls back into _closed.
         self._lock = threading.RLock()
         guest.on_closed = self._closed
+        guest.user_of = lambda name: self.data["logins"].get(name, {}).get("user_id")
 
     # -- plumbing
 
@@ -208,16 +218,6 @@ class GuestAPI:
         tmp.write_text(json.dumps(self.data, indent=2))
         tmp.replace(self.store_path)
         self.guest.apply(*runtime(self.data))
-
-    def qr_host(self) -> str:
-        return self.data.get("qr_host") or self.lan_host() or "homeassistant.local"
-
-    def qr_text(self, ep: dict[str, Any]) -> str:
-        """The address a QR code carries. A printed-QR endpoint keeps the exact old form."""
-        base = f"http://{self.qr_host()}:{PORT}"
-        if ep.get("legacy"):
-            return f"{base}/?d=/{_norm(ep['dashboard'])}"
-        return f"{base}/e/{ep['slug']}"
 
     def handle(
         self, method: str, path: str, query: dict[str, list[str]], body: bytes
@@ -261,6 +261,16 @@ class GuestAPI:
             with self._lock:
                 store = json.loads(json.dumps(self.data))
             return _json(200, {"logins": report(store, gather(self.ha))})
+        if method == "POST" and head == "reach" and rest == ["fix"]:
+            with self._lock:
+                store = json.loads(json.dumps(self.data))
+            done = fix(self.ha, store, body)
+            _LOGGER.info("guest login: reach check fix: %s", done)
+            return _json(200, {"done": done, "logins": report(store, gather(self.ha))})
+        if method == "GET" and head in ("wifi.svg", "wifi.png"):
+            return self.wifi_qr(head)
+        if method == "GET" and head == "card" and rest:
+            return self.card(rest[0])
         if head == "page-qr" and rest:
             return self.page_qr(method, rest[0], query)
         if method == "PUT" and head == "settings":
@@ -296,6 +306,8 @@ class GuestAPI:
             "welcome": self.data["welcome"],
             "qr_host": self.data.get("qr_host", ""),
             "house_info": self.data["house_info"],
+            "goodbye": self.data["goodbye"],
+            "wifi": self.data["wifi"],
             "qr_host_effective": self.qr_host(),
             # Every name this box answers to; Try it picks one the admin isn't using.
             "hosts": list(
@@ -373,12 +385,36 @@ class GuestAPI:
                 raise BadRequest(
                     "QR host: a host name or IP address, without http:// or a port."
                 )
+            goodbye = dict(self.data["goodbye"])
+            for key in GOODBYE:
+                if key in body.get("goodbye", {}):
+                    goodbye[key] = str(body["goodbye"][key] or "").strip()
+            if goodbye["url"] and not re.match(r"^https?://\S+$", goodbye["url"]):
+                raise BadRequest(
+                    "Goodbye address: a full web address, starting http:// or https://."
+                )
+            wifi = dict(self.data["wifi"])
+            if "wifi" in body:
+                got = body["wifi"] or {}
+                wifi.update(
+                    ssid=str(got.get("ssid") or "").strip(),
+                    password=str(got.get("password") or ""),
+                    security=got.get("security")
+                    if got.get("security") in SECURITY
+                    else "WPA",
+                    hidden=bool(got.get("hidden")),
+                )
             info = dict(self.data["house_info"])
             for key in HOUSE_INFO:
                 if key in body.get("house_info", {}):
                     info[key] = str(body["house_info"][key] or "").strip()
             self.data.update(
-                default_login=default, welcome=welcome, qr_host=host, house_info=info
+                default_login=default,
+                welcome=welcome,
+                qr_host=host,
+                house_info=info,
+                goodbye=goodbye,
+                wifi=wifi,
             )
             self._commit()
         return _json(200, self.view())
@@ -532,7 +568,21 @@ class GuestAPI:
                         )
             if ep.end_sessions:
                 name = ep.account or self.data["default_login"]
-                if others := self.guest.others_open(ep):
+                if self.grace:
+                    _LOGGER.info(
+                        "guest login: endpoint %s closed; its visitors are signed out in "
+                        "%.0f s, once their pages have gone to the goodbye page",
+                        ep.id,
+                        self.grace,
+                    )
+                    time.sleep(self.grace)
+                now = self.guest.endpoints.get(ep.id)
+                if now is not None and self.guest._is_on(now):
+                    _LOGGER.info(
+                        "guest login: endpoint %s opened again; its visitors stay in",
+                        ep.id,
+                    )
+                elif others := self.guest.others_open(ep):
                     _LOGGER.info(
                         "guest login: endpoint %s closed; sessions of login %s kept, as "
                         "%s still open with it",
@@ -573,77 +623,6 @@ class GuestAPI:
             why,
         )
 
-    # -- QR codes
-
-    def page_qr(self, method: str, name: str, query: dict[str, list[str]]) -> Response:
-        """A QR code for any page of Home Assistant (a dashboard, a view), at the QR host:
-        GET page-qr/code.svg|png?path=..., or POST page-qr/media?path=... to save it."""
-        path = "/" + _norm((query.get("path") or [""])[0])
-        if not re.match(r"^/[A-Za-z0-9._~/?=&%-]*$", path):
-            raise BadRequest("A path inside Home Assistant, such as /lovelace/hall.")
-        port = self.guest.ha_port()
-        text = f"http://{self.qr_host()}" + ("" if port == 80 else f":{port}") + path
-        if method == "GET" and name in ("code.svg", "code.png"):
-            shown = swap.out(text)
-            if name == "code.svg":
-                return 200, "image/svg+xml", qr.svg(shown)
-            return 200, "image/png", qr.png(shown)
-        if method == "POST" and name == "media":
-            file = re.sub(r"[^a-z0-9]+", "-", path.lower()).strip("-") or "home"
-            rel = f"casa-mia/page-qr/{file}.png"
-            try:
-                (self.media_dir / rel).parent.mkdir(parents=True, exist_ok=True)
-                (self.media_dir / rel).write_bytes(qr.png(text))
-            except OSError as exc:
-                return _json(
-                    500, {"error": f"Could not write to the media folder: {exc}"}
-                )
-            _LOGGER.info("guest login: QR code for %s saved to /media/%s", path, rel)
-            return _json(
-                200,
-                {
-                    "file": f"/media/{rel}",
-                    "media_source": f"media-source://media_source/local/{rel}",
-                    "url": text,
-                },
-            )
-        return _json(404, {"error": "not found"})
-
-    def qr(self, method: str, rest: list[str]) -> Response:
-        name = rest[0]
-        ep_id, _, kind = name.rpartition(".")
-        if method == "POST" and rest[1:] == ["media"]:
-            ep_id, kind = name, "png"
-        ep = next((e for e in self.data["endpoints"] if e["id"] == ep_id), None)
-        if ep is None or kind not in ("png", "svg"):
-            return _json(404, {"error": "No such endpoint."})
-        text = self.qr_text(ep)
-        if method == "GET":
-            shown = swap.out(text)  # a screenshot's code must not scan to the real one
-            return (
-                (200, "image/svg+xml", qr.svg(shown))
-                if kind == "svg"
-                else (200, "image/png", qr.png(shown))
-            )
-        if method == "POST" and rest[1:] == ["media"]:
-            folder = self.media_dir / "casa-mia" / "guest-qr"
-            try:
-                folder.mkdir(parents=True, exist_ok=True)
-                (folder / f"{ep_id}.png").write_bytes(qr.png(text))
-            except OSError as exc:
-                return _json(
-                    500, {"error": f"Could not write to the media folder: {exc}"}
-                )
-            rel = f"casa-mia/guest-qr/{ep_id}.png"
-            return _json(
-                200,
-                {
-                    "file": f"/media/{rel}",
-                    "media_source": f"media-source://media_source/local/{rel}",
-                },
-            )
-        return _json(404, {"error": "not found"})
-
 
 def remember(lookup: Callable[[], str | None]) -> Callable[[], str | None]:
     """Cache a lookup's first answer: the box's address and name don't change while the app
@@ -656,7 +635,3 @@ def remember(lookup: Callable[[], str | None]) -> Callable[[], str | None]:
         return found[0] if found else None
 
     return cached
-
-
-def _json(status: int, data: Any) -> Response:
-    return status, "application/json", json.dumps(data).encode()

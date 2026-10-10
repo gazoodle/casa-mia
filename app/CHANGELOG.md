@@ -1,5 +1,32 @@
 # Changelog
 
+## 2026.10.6-b3
+
+- **A goodbye for guests.** When an endpoint that signs its visitors out closes, their
+  open pages go to a goodbye page (your house photo, a title and message you set in
+  Guest login's Settings) or to an address you choose, then the sign-out follows 40
+  seconds later. A phone that's asleep at the time wakes to Home Assistant's login screen.
+  Needs a Home Assistant restart for the integration's part.
+- **Fix it buttons** in Guest login's *What each login can reach*: **Local only** for a user
+  that can sign in from outside, **Hide them for this user** where kiosk-mode leaves the
+  header or sidebar showing, and **Admin only** on each dashboard the visitors don't land on.
+  Each asks first: it changes Home Assistant, and an editor open elsewhere could lose
+  unsaved changes or undo it.
+- **QR codes**, a new button on the Guest login page (it replaces *QR code for a page*):
+  - **Guest card:** an endpoint's QR code beside your Wi-Fi's, *1. Join the Wi-Fi*, *2. Scan
+    to sign in*, with the network's name and password written out. Open it to print, or
+    download it as an SVG for a document or a message.
+  - **Wi-Fi:** your network's QR code, which a phone's camera offers to join.
+  - **A page:** a QR code for any dashboard or view, as before.
+- The Logins tiles and *What each login can reach* wrap long names and addresses instead of
+  running past their edges.
+- Guest login's house info is now just your house rules: the Wi-Fi details are gone, as a
+  phone that can open the welcome page is already on your network.
+- What each login can reach is tidier, and fits a phone: each dashboard is a box with its
+  path, what kiosk-mode hides and its views as chips (dashed: no tab).
+- A page's buttons beside its title move below it on a narrow screen, instead of squeezing
+  the title.
+
 ## 2026.10.6-b2
 
 - **Guest login, locked down as far as Home Assistant allows.**
