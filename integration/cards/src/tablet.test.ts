@@ -4,7 +4,7 @@
 //   WRITE_CASES=1 node --experimental-strip-types --no-warnings --test src/tablet.test.ts
 // and read the diff before committing it.
 import assert from "node:assert/strict";
-import { counts, cardPath, fills, setGarnish } from "./garnish.ts";
+import { counts, cardPath, fills, onlyGarnish, setGarnish } from "./garnish.ts";
 import { writeFileSync } from "node:fs";
 import test from "node:test";
 import saved from "../../../tests/tablet_cases.json" with { type: "json" };
@@ -216,7 +216,7 @@ test("card columns' width: HA's, 12 a section, its gap between them", () => {
 });
 
 test("sections restacked: each names its panel, a new one empty, those of no panel after", () => {
-  const old = [{ type: "grid", cards: [1] }, { type: "grid", cards: [2], view_layout: { panel: "top", layer: 1, counts: false } }, { cards: [3] }, { cards: [4] }, { cards: [5] }, { cards: [6] }];
+  const old = [{ type: "grid", cards: [1] }, { type: "grid", cards: [2], view_layout: { panel: "top", layer: 1 } }, { cards: [3] }, { cards: [4] }, { cards: [5] }, { cards: [6] }];
   const drafts = draftsOf(old);
   assert.deepEqual(drafts.map((d) => [d.from, d.place]), [[0, "main"], [1, "top"], [2, "top"], [3, "right"], [4, "bottom"]]);
   assert.deepEqual(restack(old, drafts), old); // nothing moved
@@ -224,7 +224,7 @@ test("sections restacked: each names its panel, a new one empty, those of no pan
   assert.deepEqual(restack(old, moved), [
     { type: "grid", cards: [1], view_layout: { panel: "main" } },
     { cards: [3], view_layout: { panel: "top" } },
-    { type: "grid", cards: [2], view_layout: { panel: "top", counts: false } },
+    { type: "grid", cards: [2], view_layout: { panel: "top" } },
     { type: "grid", cards: [], view_layout: { panel: "left", layer: 2 } },
     { cards: [4], view_layout: { panel: "right" } },
     { cards: [5], view_layout: { panel: "bottom" } },
@@ -287,21 +287,20 @@ test("a view's sizes seen out of edit mode outlive the view", () => {
 });
 
 
-test("garnish and legacy adornment never keep a panel open", () => {
+test("garnish never keeps a panel open", () => {
   const card = { type: "heading" };
   assert.equal(counts(card), true);
   assert.equal(counts({ ...card, view_layout: { garnish: true } }), false);
-  assert.equal(counts({ ...card, view_layout: { counts: false } }), false);
-  assert.equal(counts({ ...card, view_layout: { garnish: true, counts: true } }), false);
   assert.equal(counts({ ...card, view_layout: { garnish: false } }), true);
   assert.deepEqual(five(counts(setGarnish(card, true)) ? ["right"] : []).find((s) => s.place === "right")?.shows, false);
 });
 
-test("garnish toggles migrate legacy settings without changing other card options", () => {
-  const old = { type: "heading", heading: "Warnings", view_layout: { counts: false, padding: 8 }, grid_options: { columns: 6 } };
-  assert.deepEqual(setGarnish(old, true), { ...old, view_layout: { padding: 8, garnish: true } });
-  assert.deepEqual(setGarnish(old, false), { ...old, view_layout: { padding: 8 } });
-  assert.equal(old.view_layout.counts, false);
+test("garnish toggles keep the card's other options", () => {
+  const old = { type: "heading", heading: "Warnings", view_layout: { padding: 8 }, grid_options: { columns: 6 } };
+  const on = setGarnish(old, true);
+  assert.deepEqual(on, { ...old, view_layout: { padding: 8, garnish: true } });
+  assert.deepEqual(setGarnish(on, false), old);
+  assert.deepEqual(old.view_layout, { padding: 8 }); // not changed in place
   assert.deepEqual(setGarnish({ type: "heading", view_layout: { garnish: true } }, false), { type: "heading" });
 });
 
@@ -317,4 +316,58 @@ test("a lone card fills its panel only when it's made to, or says so", () => {
   for (const type of ["tile", "button", "entities", "heading"]) assert.equal(fills({ type }), false, type);
   assert.equal(fills({ type: "tile", view_layout: { fill: true } }), true);
   assert.equal(fills({ type: "map", view_layout: { fill: false } }), false);
+});
+
+test("a section left with only garnish showing hides (garnish on every dashboard)", () => {
+  const heading = { config: { type: "heading", view_layout: { garnish: true } } };
+  const door = { config: { type: "tile" } };
+  assert.equal(onlyGarnish([heading, { ...door, hidden: true }]), true); // the door shut
+  assert.equal(onlyGarnish([heading, door]), false); // the door open
+  assert.equal(onlyGarnish([{ ...heading, hidden: true }, { ...door, hidden: true }]), false); // HA hid it already
+  assert.equal(onlyGarnish([]), false); // an empty section: HA's to decide
+  assert.equal(onlyGarnish([heading, { hidden: false }]), false); // a badge (no config) counts
+});
+
+test("an Over layer never holds a panel open, nor fills it", async () => {
+  const { badge } = await import("./over-layer/common.ts");
+  const layer = { type: "custom:casa-mia-over-layer", card: { type: "alarm-panel" } };
+  assert.equal(counts(layer), false);
+  assert.equal(fills(layer), false);
+  assert.equal(onlyGarnish([{ config: layer }]), true); // a section holding only it hides
+  assert.equal(badge(layer), "Over layer · float · the view");
+  assert.equal(badge({ ...layer, mode: "full", cover: "window", block: false }), "Over layer · full screen · the whole window · taps pass through");
+});
+
+test("the admin's door: a hole the edit button's size, on whole pixels, cut from the layer", async () => {
+  const { holed, snapped } = await import("./over-layer/door.ts");
+  assert.equal(holed(1280, 800, 1200, 8, 48, 48), 'path(evenodd, "M0 0 H1280 V800 H0 Z M1200 8 h48 v48 h-48 Z")');
+  assert.deepEqual(snapped({ left: 1200.4, top: 8.6, right: 1248.4, bottom: 56.6 }), [1200, 8, 49, 49]);
+});
+
+test("an Over layer's anchor: nine places floating, the top row scrolling, in from its edges", async () => {
+  const { anchorFor, placement, badge } = await import("./over-layer/common.ts");
+  assert.deepEqual(placement("bottom-right"), { justify: "flex-end", align: "flex-end" });
+  assert.deepEqual(placement("top-left"), { justify: "flex-start", align: "flex-start" });
+  assert.deepEqual(placement("center"), { justify: "center", align: "center" });
+  assert.deepEqual(placement("left"), { justify: "flex-start", align: "center" });
+  assert.deepEqual(placement("bottom"), { justify: "center", align: "flex-end" });
+  assert.deepEqual(placement("nowhere" as any), { justify: "center", align: "center" }); // a typo: the centre
+  assert.equal(anchorFor("scroll", "bottom-right"), "top-right"); // scroll: the top row only
+  assert.equal(anchorFor("scroll", "center"), "top");
+  assert.equal(anchorFor("float", "bottom-right"), "bottom-right");
+  const card = { type: "custom:casa-mia-over-layer" };
+  assert.equal(badge({ ...card, anchor: "bottom-right", block: false }), "Over layer · float bottom-right · the view · taps pass through");
+  assert.equal(badge({ ...card, mode: "scroll", anchor: "left" }), "Over layer · scroll with the view top-left · the view");
+  assert.equal(badge({ ...card, mode: "full", anchor: "bottom-right" }), "Over layer · full screen · the view");
+});
+
+test("an Over layer showing its whole panel keeps that panel out of its place", async () => {
+  const { holdsPanelLayer, badge } = await import("./over-layer/common.ts");
+  const tile = { type: "tile", entity: "binary_sensor.barn_door" };
+  const layer = { type: "custom:casa-mia-over-layer", panel: true };
+  assert.equal(holdsPanelLayer([tile, layer]), true);
+  assert.equal(holdsPanelLayer([tile, { ...layer, panel: false }]), false); // its own card: the panel shows as usual
+  assert.equal(holdsPanelLayer([tile]), false);
+  assert.equal(holdsPanelLayer(undefined), false);
+  assert.equal(badge(layer), "Over layer · its whole panel · float · the view");
 });

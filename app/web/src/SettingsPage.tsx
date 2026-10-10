@@ -14,7 +14,8 @@ const { get, put } = api("settings");
 
 type TabletView = { identify_panels: boolean; identify_outline: string; show_size: boolean };
 type Helpers = { streams: boolean; back: boolean; refresh: boolean };
-type Settings = { helpers: Helpers; tablet_view: TabletView };
+type Dashboards = { garnish_everywhere: boolean };
+type Settings = { helpers: Helpers; dashboards: Dashboards; tablet_view: TabletView };
 
 // The dashboard helpers the integration loads into every Home Assistant page.
 const HELPERS: { key: keyof Helpers; name: string; help: string }[] = [
@@ -106,6 +107,32 @@ export function SettingsPage() {
               />
             </div>
           ))}
+        </div>
+      </section>
+      <section className={guest.area}>
+        <AreaHead title="Dashboards" blurb="Options for every Sections dashboard, for every user and device." />
+        <div className={css.rows}>
+          <div className={css.row}>
+            <div className={css.text}>
+              <strong>Enable garnish on all section dashboards</strong>
+              <span>
+                Garnish, from the Tablet Layout, in every section of every Sections dashboard. Home Assistant already
+                hides a section whose cards are all hidden; garnish (a heading, say) never keeps a section showing, so a
+                section left with only garnish hides too. In edit mode each card has a sprig on its corner: tap it to
+                make the card garnish. Off: garnish works only in a Tablet Layout.
+              </span>
+            </div>
+            <Switch
+              label="Enable garnish on all section dashboards"
+              on={settings.dashboards.garnish_everywhere}
+              onChange={(on) =>
+                save(
+                  { dashboards: { garnish_everywhere: on } },
+                  `Garnish ${on ? "on" : "off"} for every section dashboard. Open dashboards follow within a few seconds.`,
+                )
+              }
+            />
+          </div>
         </div>
       </section>
       {!developer && (

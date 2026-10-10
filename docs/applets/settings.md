@@ -38,6 +38,17 @@ receive the changed scripts on their next reload.
   makes the generated camera dashboard's main-camera highlight pulse. It starts on
   for a fresh configuration.
 
+### Dashboards
+
+- **Enable garnish on all section dashboards:** brings the Tablet Layout's garnish to every
+  section of every Sections dashboard. Home Assistant already hides a section whose cards
+  are all hidden, and its room goes to the others; garnish (a heading over some conditional
+  cards, say) never keeps a section showing, so a section left with only garnish hides too.
+  In edit mode each card in a section has a sprig on its corner: tap it to make the card
+  garnish. Open dashboards follow the switch within a few seconds. Off (the default),
+  garnish works only in a Tablet Layout. See
+  [Garnish](../tablet-layout.md#showing-and-hiding).
+
 ### Tablet Layout debugging
 
 These settings affect **every Tablet Layout**, on every browser and tablet while

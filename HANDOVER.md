@@ -189,6 +189,22 @@ dashboards_on`).
 - **b25: Working together, the compositor knows its viewers.** The Camera compositor page
   names each stream's viewer from Kiosk Satellites (`Store.names()`, passed to
   `admin_api(names=...)`), the IP kept beside it. Its log lines still give the address only.
+- **2026.10.4 released.** Next builds (2026.10.5-b1, b2): `counts: false` no longer read;
+  one hover ring for every edit-mode control (`HOVER` in ha.ts); **garnish on every
+  Sections dashboard** (b2: `garnish-sections.ts` wraps HA's `hui-section._updateVisibility`;
+  Settings → Dashboards switch, `dashboards.garnish_everywhere`); README section for it.
+  Still to do: move the card's motion test into the cards' `npm test` (package.json); CI
+  runs it from checks.yml meanwhile.
+- **b3: the Over layer card** (`integration/cards/src/over-layer/`: common, card, editor, door):
+  one card over the view or window while its Visibility holds; float/full/scroll; nine
+  anchors with offsets; backdrop; block taps. Down when a section round it is hidden by its
+  own Visibility (reads the section's `hidden`, ignoring garnish's, `cmGarnishHidden`). No
+  URL escape: the admins-only door over HA's edit button (rect lid, round pulse), and
+  `?edit=1`. Guide `docs/over-layer.md`, README section.
+- **b4: Show its whole panel** (`panel: true`): the layer shows a copy of its section (HA's
+  `hui-section`, config less Over layers and its own visibility), made afresh each time it
+  goes up; the real panel never shows in place out of edit mode (`holdsPanelLayer`: Tablet
+  Layout's counting, and the sections patch, marked `cmContentHidden`). Tried on the box.
 - **Soft launch on the HA community forum**, still to do: a release (the owner runs
   `tools/release.py`), a fresh install on the test VM, then a forum post draft (HA
   Community → Share your Projects, leading with the Tablet Layout).
