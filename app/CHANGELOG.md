@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026.10.6-b4
+
+- **Signing out follows the login.** When endpoints share a login, its visitors are now
+  signed out as the last open one closes, whichever that is, as long as one of them has
+  *Sign its visitors out when it closes* ticked. Before, it had to be ticked on the one that
+  closed last.
+- **Who's signed in**, a new button on each login: how many phones and browsers are signed
+  in as it, with each one's address and when it was last used.
+- **A passcode on an endpoint:** after the scan, the welcome page asks for a code you gave
+  the visitor (with the booking, say) before it signs them in. Unlike two-factor sign-in it
+  never expires: change it between guests. Digits only gives a number pad. Not offered for
+  a login whose user has two-factor sign-in, which already asks for a code; such a login
+  now shows a **2FA** badge. The guest card says *Your host will give you a code*.
+
 ## 2026.10.6-b3
 
 - **A goodbye for guests.** When an endpoint that signs its visitors out closes, their

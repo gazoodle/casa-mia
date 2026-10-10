@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import logging
+import urllib.parse
 import urllib.request
 
 _LOGGER = logging.getLogger(__name__)
@@ -21,6 +22,16 @@ def _json_post(url: str, body: dict) -> dict:
     )
     with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
         return json.load(resp)
+
+
+def _form_post(url: str, form: dict[str, str]) -> dict:
+    """POST a form (HA's /auth/token and /auth/revoke take forms); its JSON answer."""
+    req = urllib.request.Request(
+        url, data=urllib.parse.urlencode(form).encode(), method="POST"
+    )
+    with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
+        body = resp.read()
+    return json.loads(body) if body.strip() else {}
 
 
 def fire_event(token: str, name: str, data: dict) -> None:

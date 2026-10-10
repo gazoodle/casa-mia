@@ -1,7 +1,7 @@
 # Handover: Casa Mia, for agents joining the work
 
 Where the project stands and how the work is done here, as of 2026-10-10 (`dev` at
-2026.10.6-b3, uncommitted; b2 committed and installed; 2026.10.5 released). **Read this at the start of every
+2026.10.6-b4, uncommitted; b3 committed; 2026.10.5 released). **Read this at the start of every
 session**, then CLAUDE.md in full; where they disagree, CLAUDE.md wins. It replaces
 re-reading old transcripts: the history below is all a new session needs.
 
@@ -196,7 +196,14 @@ dashboards_on`).
 
 ## Where things stand
 
-- **2026.10.6-b3 is in the working tree, not committed.** On the box, b2 is proven: sign-out
+- **2026.10.6-b4 is in the working tree, not committed:** a passcode per endpoint (`pin`,
+  checked in `_post` with `hmac.compare_digest` before the login flow; the welcome page
+  asks first, reusing the 2FA form); sign-out follows the login (`_signs_out`: any of
+  its endpoints ticked; health's `end_sessions` is that); **Who's signed in** (`SignIn.sessions`:
+  signs in as the login, lists `auth/refresh_tokens`, revokes its own token). Refused for a login with 2FA (`SignIn.mfa`, learnt
+  from each flow; `GET logins/<name>/mfa` finds out). The owner's own BACKLOG.md edit (GHCR
+  pull counting) is left unstaged for them.
+- **2026.10.6-b3 (committed `c2983b5`).** On the box, b2 is proven: sign-out
   on close works. b3 adds: the goodbye (`guest-goodbye.ts` in cm-cards.js reads the Access
   switch's new attributes `guest_user_id`, `signs_out`, `goodbye_url`, `guest_port`, and
   sends the visitor's page to `/bye` on the guest port or the set address; the app waits

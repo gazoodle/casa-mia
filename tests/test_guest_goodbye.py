@@ -1,6 +1,9 @@
 """Guest login: the goodbye page, the Wi-Fi's QR code and the guest card, and the reach
 check's fixes."""
 
+import json
+import urllib.parse
+from http.server import ThreadingHTTPServer
 from typing import Any
 
 import pytest
@@ -9,6 +12,7 @@ from casa_mia.modules.guest_login import BadRequest, Endpoint, GuestLogin
 from casa_mia.modules.guest_login.printing import card_svg, wifi_text
 from casa_mia.modules.guest_login.reach import fix as run_fix
 from test_guest_api import GUEST, FakeHA, call
+from test_guest_login import FakeHA as FakeLogin
 from test_guest_login import get
 
 
@@ -158,3 +162,85 @@ def test_fix_kiosk_adds_the_user_and_keeps_the_rest():
         {"users": ["house guest"], "hide_header": True, "hide_sidebar": True}
     ]
     assert saved["config"]["views"] == [{"path": "one"}]
+
+
+def test_a_shared_login_signs_out_when_its_last_endpoint_closes(api):
+    """Sessions belong to the login: one endpoint set to sign out is enough, whichever
+    endpoint closes last."""
+
+    class SignOutHA(FakeHA):
+        signed_out: list[str] = []
+
+        def sign_out(self, user_id):
+            self.signed_out.append(user_id)
+
+    api.ha = ha = SignOutHA()
+    assert call(api, "POST", "logins", GUEST)[0] == 201
+    for n, flags in ((1, {"end_sessions": True}), (2, {})):
+        ep = {"id": f"s{n}", "label": f"S{n}", "dashboard": "/g/v", "legacy": True}
+        assert call(api, "POST", "endpoints", {**ep, "dashboard": f"/g/{n}", **flags})[
+            0
+        ]
+    api.guest.on_closed = None  # called by hand below, not on a thread
+    call(api, "POST", "endpoints/s1/on")
+    call(api, "POST", "endpoints/s2/on")
+    call(api, "POST", "endpoints/s1/off")
+    api._closed(api.guest.endpoints["s1"])
+    assert ha.signed_out == []  # s2 still open
+    assert api.guest.health()["endpoints"]["s2"]["end_sessions"] is True  # the login's
+    call(api, "POST", "endpoints/s2/off")
+    api._closed(api.guest.endpoints["s2"])  # s2 doesn't sign out itself, but s1 does
+    assert ha.signed_out == ["u1"]
+
+
+class TokenHA(FakeLogin):
+    """HA's login flow, plus /auth/token and /auth/revoke (forms)."""
+
+    revoked: list[str] = []
+
+    def do_POST(self):
+        if self.path in ("/auth/token", "/auth/revoke"):
+            form = urllib.parse.parse_qs(
+                self.rfile.read(int(self.headers["Content-Length"])).decode()
+            )
+            if self.path == "/auth/revoke":
+                TokenHA.revoked.append(form["token"][0])
+                data = b""
+            else:
+                assert form["code"] == ["CODE123"]
+                data = json.dumps(
+                    {"access_token": "AT", "refresh_token": "RT"}
+                ).encode()
+            self.send_response(200)
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+            return
+        super().do_POST()
+
+
+def test_who_is_signed_in(serve, monkeypatch):
+    from casa_mia.modules.guest_login import signin
+
+    class TokenWS:
+        def __init__(self, url, token):
+            assert url.endswith("/api/websocket") and token == "AT"
+
+        def call(self, command):
+            assert command == {"type": "auth/refresh_tokens"}
+            return [
+                [
+                    {"type": "normal", "is_current": True},  # the look itself
+                    {"type": "normal", "last_used_ip": "192.0.2.7", "created_at": "x"},
+                    {"type": "long_lived_access_token"},
+                ]
+            ]
+
+    monkeypatch.setattr(signin, "HA", TokenWS)
+    url = serve(ThreadingHTTPServer(("127.0.0.1", 0), TokenHA))
+    gl = GuestLogin([], {"house-guest": ("guest", 'p"w')}, port=0, internal_url=url)
+    found = gl.sessions("house-guest")
+    assert found["long_lived"] == 1
+    assert [s["ip"] for s in found["sessions"]] == ["192.0.2.7"]
+    assert TokenHA.revoked == ["RT"]  # the look leaves no session behind
+    assert "error" in GuestLogin([], {}, port=0, internal_url=url).sessions("nope")

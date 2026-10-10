@@ -18,8 +18,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
+from ...ha import HA, HAError
 from .common import MFA_TTL, Endpoint, LoginError, _norm
-from .supervisor import _json_post
+from .supervisor import _form_post, _json_post
 
 
 class NeedsCode(Exception):
@@ -57,6 +58,8 @@ class SignIn:
         self.ha_hosts = ha_hosts
         self._lock = threading.Lock()
         self._pending: dict[str, Pending] = {}
+        # Whether each login's user has two-factor sign-in, as last seen in its flow.
+        self.mfa: dict[str, bool] = {}
 
     def _login(self, ep: Endpoint, host_header: str, ha_host: str = "") -> str:
         """Run HA's login flow and return the URL that finishes the sign-in in the browser."""
@@ -120,6 +123,67 @@ class SignIn:
             401, "mfa_expired", f"2FA: Home Assistant ended the sign-in ({result})"
         )
 
+    def has_mfa(self, name: str) -> bool | None:
+        """Whether a login's user has two-factor sign-in: as last seen, else found out by
+        running its flow as far as the password. None if HA can't say."""
+        if name not in self.mfa:
+            self.test_login(name)
+        return self.mfa.get(name)
+
+    def sessions(self, name: str) -> dict[str, Any]:
+        """Who is signed in as a login: its user's sessions, found by signing in as it
+        (HA shows a user's sessions only to that user) and revoking that sign-in after.
+        {"sessions": [...], "long_lived": n}, or {"error": why} (a login with 2FA can't be
+        looked into: the app has no code)."""
+        client_id = self.internal_url + "/"
+        try:
+            code = self._login_code(name, self.internal_url, f"login {name}")
+        except NeedsCode:
+            return {"error": "It has two-factor sign-in, so the app can't look."}
+        except LoginError as exc:
+            return {"error": exc.why}
+        try:
+            tokens = _form_post(
+                f"{self.internal_url}/auth/token",
+                {
+                    "grant_type": "authorization_code",
+                    "code": code,
+                    "client_id": client_id,
+                },
+            )
+        except (OSError, ValueError) as exc:
+            return {"error": f"Home Assistant gave no token: {exc}"}
+        ws = self.internal_url.replace("http", "ws", 1) + "/api/websocket"
+        try:
+            (listed,) = HA(ws, tokens["access_token"]).call(
+                {"type": "auth/refresh_tokens"}
+            )
+        except (HAError, KeyError) as exc:
+            return {"error": f"Home Assistant would not list them: {exc}"}
+        finally:
+            try:  # this look leaves no session of its own behind
+                _form_post(
+                    f"{self.internal_url}/auth/revoke",
+                    {"token": tokens.get("refresh_token", "")},
+                )
+            except (OSError, ValueError):
+                pass
+        theirs = [t for t in listed or [] if not t.get("is_current")]
+        return {
+            "sessions": [
+                {
+                    "created": t.get("created_at"),
+                    "last_used": t.get("last_used_at"),
+                    "ip": t.get("last_used_ip"),
+                }
+                for t in theirs
+                if t.get("type") == "normal"
+            ],
+            "long_lived": sum(
+                1 for t in theirs if t.get("type") == "long_lived_access_token"
+            ),
+        }
+
     def test_login(self, name: str) -> str | None:
         """Try a login's credentials against HA. None if they work, else why not."""
         try:
@@ -179,6 +243,7 @@ class SignIn:
                 f"cannot reach Home Assistant's login at {self.internal_url}: {exc}.",
             ) from exc
         if result.get("type") == "form" and result.get("step_id") == "mfa":
+            self.mfa[name] = True
             raise NeedsCode(str(flow["flow_id"]))
         code = result.get("result")
         if result.get("type") != "create_entry" or not code:
@@ -188,6 +253,7 @@ class SignIn:
                 f"Home Assistant rejected user '{username}': check the login's username and "
                 "password on the Guest login page, and that the user exists and is active.",
             )
+        self.mfa[name] = False
         return str(code)
 
 

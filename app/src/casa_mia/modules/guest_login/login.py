@@ -14,6 +14,7 @@ Rewrite of cnorick/ha-auto-guest-login's flow (described, not copied).
 
 from __future__ import annotations
 
+import hmac
 import json
 import logging
 import threading
@@ -281,11 +282,29 @@ class GuestLogin(SignIn):
             self._closed(ep)
 
     def _closed(self, ep: Endpoint) -> None:
-        if self.on_closed and (ep.end_sessions or ep.rotate):
+        with self._lock:
+            signs_out = self._signs_out(ep)
+        if self.on_closed and (signs_out or ep.rotate):
             on_closed = self.on_closed
             threading.Thread(
                 target=on_closed, args=(ep,), name="guest-closed", daemon=True
             ).start()
+
+    def _signs_out(self, ep: Endpoint) -> bool:
+        """Whether closing `ep` signs its login's visitors out (caller holds the lock).
+        Sessions belong to the login, not the endpoint: when any endpoint using the login
+        signs out on closing, the login's sessions end as its last open endpoint closes,
+        whichever that is."""
+        name = ep.account or self.default_account
+        return any(
+            e.end_sessions
+            for e in self.endpoints.values()
+            if (e.account or self.default_account) == name
+        )
+
+    def signs_out(self, ep: Endpoint) -> bool:
+        with self._lock:
+            return self._signs_out(ep)
 
     def others_open(self, ep: Endpoint) -> list[str]:
         """The other open endpoints that sign visitors in as the same login as `ep`."""
@@ -342,7 +361,8 @@ class GuestLogin(SignIn):
                     e.id: {
                         "label": e.label,
                         "type": e.type,
-                        "end_sessions": e.end_sessions,
+                        # For the goodbye: whether closing it signs its visitors out.
+                        "end_sessions": self._signs_out(e),
                         "user_id": self.user_of(e.account or self.default_account),
                         "enabled": self._is_on(e),
                         "until": e.until,
@@ -433,6 +453,9 @@ class GuestLogin(SignIn):
                 delay,
                 HEADER_URL if ep.type == "guest" else None,
                 info=info,
+                passcode=None
+                if not ep.pin
+                else ("numeric" if ep.pin.isdigit() else "text"),
             )
         )
 
@@ -497,6 +520,13 @@ class GuestLogin(SignIn):
                     ep, str(body["pending"]), str(body.get("code", ""))
                 )
             else:
+                typed = str(body.get("passcode") or "").strip()
+                if ep.pin and not hmac.compare_digest(typed.encode(), ep.pin.encode()):
+                    raise LoginError(
+                        401,
+                        "bad_passcode",
+                        "wrong passcode" if typed else "no passcode given",
+                    )
                 ha_host = urllib.parse.parse_qs(url.query).get("ha_host", [""])[0]
                 try:
                     target = self._login(ep, h.headers.get("Host", ""), ha_host)

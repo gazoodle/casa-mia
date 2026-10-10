@@ -56,6 +56,7 @@ STORED = (
     "info",
     "end_sessions",
     "rotate",
+    "pin",
 )
 HOUSE_INFO = ("text",)  # the house rules
 GOODBYE = ("title", "message", "url")  # the goodbye page, or an address instead
@@ -156,6 +157,9 @@ def _clean_endpoint(
         raise BadRequest(
             "Give it a secret address, or mark it as answering a printed QR code."
         )
+    ep["pin"] = str(ep["pin"] or "").strip() or None
+    if ep["pin"] and not 4 <= len(ep["pin"]) <= 32:
+        raise BadRequest("The passcode: 4 to 32 characters.")
     if ep["rotate"] and not ep["slug"]:
         raise BadRequest("A new address on closing needs a secret address.")
     for other in data["endpoints"]:
@@ -298,6 +302,7 @@ class GuestAPI(Codes):
                     "username": lg["username"],
                     "user_id": lg.get("user_id"),
                     "display": lg.get("display"),
+                    "mfa": self.guest.mfa.get(n),  # None: not known yet
                     "endpoints": used.get(n, 0),
                 }
                 for n, lg in sorted(self.data["logins"].items())
@@ -463,6 +468,17 @@ class GuestAPI(Codes):
             if not rest or rest[0] not in logins:
                 return _json(404, {"error": "No such login."})
             name = rest[0]
+            if method == "GET" and rest[1:] == ["sessions"]:
+                found = self.guest.sessions(name)
+                _LOGGER.info(
+                    "guest login: login %s has %s",
+                    name,
+                    found.get("error")
+                    or f"{len(found['sessions'])} session(s) signed in",
+                )
+                return _json(200, found)
+            if method == "GET" and rest[1:] == ["mfa"]:
+                return _json(200, {"mfa": self.guest.has_mfa(name)})
             if method == "POST" and rest[1:] == ["test"]:
                 why = self.guest.test_login(name)
                 return _json(
@@ -506,6 +522,16 @@ class GuestAPI(Codes):
                 return _json(200, self.view())
         return _json(404, {"error": "not found"})
 
+    def _no_clash(self, ep: dict[str, Any]) -> dict[str, Any]:
+        """Refuse a passcode on a login with two-factor sign-in: it asks for its own."""
+        name = ep["account"] or self.data["default_login"]
+        if ep["pin"] and name and self.guest.mfa.get(name):
+            raise BadRequest(
+                f"Login {name} has two-factor sign-in, which already asks the visitor "
+                "for a code: leave the passcode empty."
+            )
+        return ep
+
     def endpoints(
         self,
         method: str,
@@ -516,7 +542,7 @@ class GuestAPI(Codes):
         with self._lock:
             eps = self.data["endpoints"]
             if method == "POST" and not rest:
-                eps.append(_clean_endpoint(body, self.data, None))
+                eps.append(self._no_clash(_clean_endpoint(body, self.data, None)))
                 self._commit()
                 return _json(201, self.view())
             index = next(
@@ -535,7 +561,7 @@ class GuestAPI(Codes):
                 self.guest.set_enabled(old_id, rest[1] == "on", minutes)
                 return _json(200, self.view())
             if method == "PUT":
-                ep = _clean_endpoint(body, self.data, old_id)
+                ep = self._no_clash(_clean_endpoint(body, self.data, old_id))
                 if ep["id"] != old_id:
                     self.guest.rename_endpoint(old_id, ep["id"])
                 eps[index] = ep
@@ -566,7 +592,7 @@ class GuestAPI(Codes):
                             "address; its old QR code no longer works",
                             ep.id,
                         )
-            if ep.end_sessions:
+            if self.guest.signs_out(ep):
                 name = ep.account or self.data["default_login"]
                 if self.grace:
                     _LOGGER.info(

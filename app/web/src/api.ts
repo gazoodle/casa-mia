@@ -73,6 +73,8 @@ export type Login = {
   user_id: string | null;
   display: string | null;
   endpoints: number;
+  /** Whether its user has two-factor sign-in; null until the app has seen its flow. */
+  mfa: boolean | null;
 };
 
 export type Endpoint = {
@@ -92,6 +94,8 @@ export type Endpoint = {
   end_sessions: boolean;
   /** Closing it gives it a new secret address. */
   rotate: boolean;
+  /** A passcode the visitor types before signing in (their host gives it them). */
+  pin: string | null;
   enabled?: boolean;
   until?: number | null;
   logins?: number;

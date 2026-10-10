@@ -50,6 +50,7 @@ class Endpoint:
     info: bool = False  # show the house rules before signing in
     end_sessions: bool = False  # closing it signs out everyone its login let in
     rotate: bool = False  # closing it gives it a new secret address
+    pin: str | None = None  # a passcode the visitor types (their host gives it them)
     # Runtime state, kept in the state file; a new endpoint starts off.
     enabled: bool = False
     until: float | None = (

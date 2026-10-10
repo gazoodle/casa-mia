@@ -50,7 +50,11 @@ def _text(x: float, y: float, value: str, size: int, weight: int = 400) -> str:
 
 
 def card_svg(
-    title: str, wifi: dict[str, Any] | None, sign_in: str, label: str
+    title: str,
+    wifi: dict[str, Any] | None,
+    sign_in: str,
+    label: str,
+    note: str | None = None,
 ) -> bytes:
     """The guest card: the title, then the Wi-Fi's code (when there is a network) and the
     endpoint's code side by side, each with its step and the words a phone can't scan."""
@@ -60,7 +64,7 @@ def card_svg(
         if wifi.get("security") != "nopass" and wifi.get("password"):
             lines.append(f"Password: {wifi['password']}")
         columns.append((wifi_text(wifi), "Join the Wi-Fi", lines))
-    columns.append((sign_in, "Scan to sign in", [label]))
+    columns.append((sign_in, "Scan to sign in", [label, *([note] if note else [])]))
     numbered = len(columns) > 1
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '

@@ -3,7 +3,7 @@ page and a card with the title and message, in the admin panel's colours (light 
 by the phone's setting). Also rendered as a preview for the admin page.
 
 An engineer's page has no photo. With house info on, the house rules show under the card and the sign-in waits for Continue. When the login has two-factor sign-in, the
-card asks for the code and passes it on."""
+card asks for the code and passes it on; so it does, first, for an endpoint's own passcode."""
 
 from __future__ import annotations
 
@@ -59,19 +59,21 @@ border-radius:999px;background:var(--sun);color:#1a1300;font-size:12px;font-weig
 <div class="dots" aria-hidden="true"><span></span><span></span><span></span></div>
 <button id="go" hidden>Continue</button>
 <form id="mfa" hidden><input id="code" inputmode="numeric" autocomplete="one-time-code"
-maxlength="8" aria-label="Code"><button>Sign in</button></form></div>
+maxlength="32" aria-label="Code"><button>Sign in</button></form></div>
 @INFO@<div class="brand">@HOUSE@</div></main>
 <script>
 const $=(id)=>document.getElementById(id),card=$("card"),h_=$("h"),p_=$("p"),mfa=$("mfa"),code=$("code"),cont=$("go");
 const say=(h,p,bad)=>{h_.textContent=h;p_.textContent=p;card.className="card done"+(bad?" bad":"")};
-const delay=@DELAY@,preview=@PREVIEW@,info=@INFO_ON@,wait=info?0:delay;
+const delay=@DELAY@,preview=@PREVIEW@,info=@INFO_ON@,wait=info?0:delay,passcode=@PASSCODE@;
 const url=location.pathname.replace(/\\/$/,"")+"/go"+location.search;
 let t0=Date.now(),pending=null;
-const ask=(text)=>{say("One more step",text);mfa.hidden=false;code.value="";code.focus()};
+const ask=(text,kind)=>{say("One more step",text);code.inputMode=kind||"numeric";
+ code.autocomplete=kind==="text"?"off":"one-time-code";mfa.hidden=false;code.value="";code.focus()};
 const fail=(e)=>{
  if(e==="ha_unreachable")say("One moment","The house system is not answering. Please try again shortly.",true);
  else if(e==="rate_limited")say("Too many tries","Please wait a minute and scan again.",true);
  else if(e==="bad_code")ask("That code did not work. Type the newest one.");
+ else if(e==="bad_passcode")ask("That code did not work. Check it with your host.",passcode);
  else if(e==="mfa_expired")say("Sorry","That took too long. Please scan the code again.",true);
  else say("Sorry","We could not sign you in. Please ask your host.",true)};
 const send=(body)=>fetch(url,{method:"POST",body:body&&JSON.stringify(body)})
@@ -80,9 +82,10 @@ const send=(body)=>fetch(url,{method:"POST",body:body&&JSON.stringify(body)})
   else if(ok)setTimeout(()=>{location.href=j.url},Math.max(0,wait-(Date.now()-t0)));
   else fail(j.error)})
  .catch(()=>say("Sorry","We could not reach the house. Are you on the guest Wi-Fi?",true));
-mfa.onsubmit=(e)=>{e.preventDefault();mfa.hidden=true;card.className="card";p_.textContent="Checking…";send({pending,code:code.value})};
+mfa.onsubmit=(e)=>{e.preventDefault();mfa.hidden=true;card.className="card";p_.textContent="Checking…";send(pending?{pending,code:code.value}:{passcode:code.value})};
 const start=()=>{t0=Date.now();
  if(preview)setTimeout(()=>say(h_.textContent,"Here the visitor is taken to their dashboard."),wait);
+ else if(passcode)ask("Type the code your host gave you.",passcode);
  else send()};
 if(preview)document.body.insertAdjacentHTML("afterbegin",'<div class="preview">Preview</div>');
 if(info){card.className="card done";cont.hidden=false;p_.hidden=true;
@@ -111,10 +114,13 @@ def render_welcome(
     preview: bool = False,
     frame: dict[str, float] | None = None,
     info: dict[str, str] | None = None,
+    passcode: str | None = None,
 ) -> str:
     """The page, with `delay` seconds (clamped 0-30) and the house photo at `image_url`
-    (none: no photo), framed as saved on the admin page (or as `frame`, for an unsaved
-    preview). With `info`, the house info shows and the sign-in waits for Continue."""
+        (none: no photo), framed as saved on the admin page (or as `frame`, for an unsaved
+        preview). With `info`, the house info shows and the sign-in waits for Continue. With
+    `passcode` ("numeric" or "text", the keyboard to offer), it asks for the endpoint's
+    passcode first."""
     image = f"url({json.dumps(image_url)})" if image_url and header_jpeg() else ""
     frame = header.framing()["welcome"] if frame is None else frame
     info_html = render_info(info) if info is not None else ""
@@ -122,6 +128,7 @@ def render_welcome(
         PAGE.replace("@HERO@", "<div></div>" if image else "")
         .replace("@INFO@", info_html)
         .replace("@INFO_ON@", "true" if info_html else "false")
+        .replace("@PASSCODE@", json.dumps(passcode))
         .replace("@TITLE@", html.escape(title))
         .replace("@MESSAGE@", html.escape(message))
         .replace("@HOUSE@", html.escape(header.HOUSE))

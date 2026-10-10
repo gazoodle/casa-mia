@@ -48,6 +48,22 @@ export function EndpointDialog({
   // A new endpoint signs its visitors out when it closes; an old one keeps what it had.
   const [endSessions, setEndSessions] = useState(endpoint ? !!endpoint.end_sessions : true);
   const [rotate, setRotate] = useState(endpoint?.rotate ?? false);
+  const [usePin, setUsePin] = useState(!!endpoint?.pin);
+  const [pin, setPin] = useState(endpoint?.pin ?? "");
+  // Whether the chosen login has 2FA: it asks for its own code, so no passcode then.
+  const loginName = account || config.default_login;
+  const [mfa, setMfa] = useState<boolean | null>(config.logins.find((l) => l.name === loginName)?.mfa ?? null);
+  useEffect(() => {
+    if (!loginName) return;
+    let live = true;
+    get<{ mfa: boolean | null }>(`logins/${loginName}/mfa`).then(
+      (out) => live && setMfa(out.mfa),
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+  }, [loginName]);
 
   const generate = async () => setSlug((await get<{ slug: string }>("slug")).slug);
   useEffect(() => {
@@ -76,6 +92,7 @@ export function EndpointDialog({
       info: type === "guest" && info,
       end_sessions: endSessions,
       rotate: useSlug && rotate,
+      pin: usePin && !mfa ? pin.trim() || null : null,
     });
 
   return (
@@ -212,6 +229,22 @@ export function EndpointDialog({
         </label>
       </fieldset>
 
+      <label className={css.check}>
+        <input type="checkbox" checked={usePin && !mfa} disabled={!!mfa} onChange={(e) => setUsePin(e.target.checked)} />
+        <span>
+          <strong>Ask for a passcode</strong>
+          <span className={css.checkHelp}>
+            {mfa
+              ? `Not for this login: its user has two-factor sign-in, which already asks the visitor for a code.`
+              : "The visitor types it after the scan, before signing in: give it to them with the booking. It never expires; change it between guests."}
+          </span>
+        </span>
+      </label>
+      {usePin && !mfa && (
+        <Field label="Passcode" help="4 to 32 characters. Digits only gives the visitor a number pad.">
+          <input value={pin} onChange={(e) => setPin(e.target.value)} spellCheck={false} autoComplete="off" />
+        </Field>
+      )}
       <label className={css.check}>
         <input type="checkbox" checked={endSessions} onChange={(e) => setEndSessions(e.target.checked)} />
         <span>

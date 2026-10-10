@@ -60,7 +60,13 @@ class Codes:
             return _json(404, {"error": "No such endpoint."})
         title = ep.get("title") or self.data["welcome"].get("title") or welcome_title()
         svg = swap.out(
-            card_svg(title, self.data["wifi"], self.qr_text(ep), ep["label"]).decode()
+            card_svg(
+                title,
+                self.data["wifi"],
+                self.qr_text(ep),
+                ep["label"],
+                "Your host will give you a code" if ep.get("pin") else None,
+            ).decode()
         ).encode()
         if name.endswith(".svg"):
             return 200, "image/svg+xml", svg

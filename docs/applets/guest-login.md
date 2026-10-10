@@ -65,6 +65,10 @@ Each login has these buttons:
 - **Password** changes the stored password, and, if you tick the box, the user's password
   in Home Assistant too.
 - **Make default** sets the login used by every endpoint that doesn't name its own.
+- **Who's signed in** shows how many phones and browsers are signed in as the login, each
+  with its address and when it was last used. Home Assistant shows a user's sessions only
+  to that user, so Casa Mia signs in as the login to look, then ends that sign-in again.
+  It can't look at a login with two-factor sign-in.
 - **Sign everyone out** ends every session of the login's user at once: each phone
   signed in with it is back at Home Assistant's login screen. (Not offered for an
   administrator: it would sign your own household out.)
@@ -103,10 +107,17 @@ An endpoint is one QR code: a guest suite, the plant room, a KNX panel. Add one 
   next visit. A printed Legacy QR code keeps its address.
 - **Sign its visitors out when it closes:** closing the endpoint, by hand, from an
   automation or when its time runs out, also ends every session of its login, so a guest
-  still inside is signed out. If another open endpoint uses the same login, its sessions
-  are kept until that one closes too, because Home Assistant can't tell the two endpoints'
-  visitors apart: give each endpoint its own login if that matters. On by default for a new
-  endpoint. Visitors with a page open are sent to the goodbye first (see **Settings**).
+  still inside is signed out. Sessions belong to the login, not the endpoint: if another
+  open endpoint uses the same login, they're kept until the last one closes, and then they
+  end whichever endpoint that is, as long as one of the login's endpoints has this ticked.
+  Home Assistant can't tell two endpoints' visitors apart: give each endpoint its own
+  login if that matters. On by default for a new endpoint. Visitors with a page open are sent to the goodbye first (see **Settings**).
+- **Ask for a passcode:** after the scan, the visitor types a code you gave them (with the
+  booking, say) before they're signed in; a wrong one can be tried again, ten tries a
+  minute. It never expires, so change it between guests. Digits only gives the visitor a
+  number pad. Greyed out when the login's user has two-factor sign-in (its card shows
+  **2FA**), which already asks for a code. The endpoint's details show the passcode, and its
+  guest card says *Your host will give you a code*.
 - **Show the house info first** (guests only): the house rules from **Settings** show
   under the welcome card, and the visitor presses **Continue** to sign in.
 - **Own welcome page:** a title, message and delay for this endpoint only. Otherwise it

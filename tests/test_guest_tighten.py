@@ -322,3 +322,42 @@ def test_the_engineer_page_is_served(serve):
         assert status == 200 and b"Maintenance access" in page
     finally:
         gl.stop()
+
+
+def test_a_passcode_comes_before_the_sign_in(login_server):
+    gl = GuestLogin(
+        [Endpoint("s", "Suite", "/g", slug="suite-slug-123", pin="2468")],
+        {"house-guest": ("guest", 'p"w')},
+        port=0,
+        internal_url=login_server,
+    )
+    gl.start()
+    try:
+        gl.control("s/enable")
+        base = f"http://127.0.0.1:{gl.port}/e/suite-slug-123"
+        page = get(base)[1].decode()
+        assert 'passcode="numeric"' in page and "2468" not in page  # never sent
+        assert post_json(f"{base}/go") == (401, {"error": "bad_passcode"})
+        assert post_json(f"{base}/go", {"passcode": "1357"})[1] == {
+            "error": "bad_passcode"
+        }
+        status, out = post_json(f"{base}/go", {"passcode": " 2468 "})
+        assert status == 200 and "code=CODE123" in out["url"]
+        assert gl.has_mfa("house-guest") is False  # learnt from that sign-in
+    finally:
+        gl.stop()
+
+
+def test_no_passcode_on_a_login_with_2fa(api):
+    assert call(api, "POST", "logins", GUEST)[0] == 201
+    ep = {"id": "s1", "label": "S1", "dashboard": "/g", "slug": "slug-1-abcdefgh"}
+    assert call(api, "POST", "endpoints", {**ep, "pin": "12"})[0] == 400  # too short
+    api.guest.mfa["house-guest"] = True
+    status, out = call(api, "POST", "endpoints", {**ep, "pin": "2468"})
+    assert status == 400 and "two-factor" in out["error"]
+    api.guest.mfa["house-guest"] = False
+    status, view = call(api, "POST", "endpoints", {**ep, "pin": "2468"})
+    assert status == 201 and view["endpoints"][0]["pin"] == "2468"
+    assert view["logins"][0]["mfa"] is False
+    assert call(api, "GET", "logins/house-guest/mfa")[1] == {"mfa": False}
+    assert b"Your host will give you a code" in call(api, "GET", "card/s1.svg")[1]
