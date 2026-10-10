@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.10.6-b1
+
+- Casa Mia needs Home Assistant 2026.9 or later, now said in the README and the app's
+  documentation, and the app no longer offers itself to an older Home Assistant.
+- The Over layer's guide says how far along it is: Alpha.
+
 ## 2026.10.5
 
 - **New card: the Over layer.** One card, or a whole panel of them, shown over your

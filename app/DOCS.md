@@ -10,6 +10,8 @@ The full documentation, with screenshots, is on GitHub:
 
 ## Getting started
 
+You need Home Assistant 2026.9 or later.
+
 1. **Choose your modules** on the **Configuration** tab: give your house its name and switch
    on what you want (every module starts off). Press **Save**.
 2. **Start the app** on the **Info** tab, with **Show in sidebar** on. **Casa Mia** appears in

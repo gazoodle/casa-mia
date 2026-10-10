@@ -1,7 +1,7 @@
 # Handover: Casa Mia, for agents joining the work
 
-Where the project stands and how the work is done here, as of 2026-10-09 (`dev` at
-2026.10.4-b25). **Read this at the start of every
+Where the project stands and how the work is done here, as of 2026-10-10 (`dev` at
+2026.10.6-b1; 2026.10.5 released). **Read this at the start of every
 session**, then CLAUDE.md in full; where they disagree, CLAUDE.md wins. It replaces
 re-reading old transcripts: the history below is all a new session needs.
 
@@ -120,6 +120,20 @@ dashboards_on`).
   first button. Chips in a Field lost each camera as it was added (b21); `Chips` now
   cancels that click.
 
+- **HA's visibility is decided in core since 2026.9:** a section or card learns its answer a
+  moment after the page loads. To know whether HA hid a section, read its `hidden`
+  attribute (and listen for `section-visibility-changed`), not private methods such as
+  `_conditionsVisible` (wrong for a condition core can't evaluate, an empty Not).
+- **`clip-path` makes an element a backdrop root:** a `backdrop-filter` inside it sees
+  nothing behind (the Over layer's blur vanished). Clip the blurred element itself.
+- **Mid-release fixes stay out of `app/` and `integration/`:** `fake_git_host.py` bumps the
+  version on such a commit, on top of the release commit. CI fixes go in `tests/` and
+  `.github/`.
+- **Cards copied to the box last until the app restarts:** it puts its bundled
+  `cm-cards.js` back on start. Check with `cmp` and copy again.
+- **Before claiming something is new,** search HA's frontend (issues, PRs, discussions) and
+  HACS's default list (`hacs/default`'s `plugin` file); the owner asks.
+
 ## How to work with the owner
 
 - An expert who works fast. Act, then report briefly; recommend rather than survey. Build
@@ -150,64 +164,46 @@ dashboards_on`).
 - **To 2026.10.3** (released): the Tablet Layout view; the Commander card with a live main
   picture; the compositor rebuilt as a pipeline and split into a package; RULE THREE; the
   docs restructured; screenshot mode.
-- **2026.10.4-b1–b7** (Codex and Claude): Kiosk Satellites split; Working together (pages
-  and tablets reload after an update); GitHub issue forms; Garnish controls in the
-  Tablet Layout edit surface; Section card retired; the UI split into folders.
-- **b8:** maturity ratings per module; Guest login docs ("How safe is it?").
-- **b9–b13:** the camera split (Cameras page, Commander page and store, draft compositor
-  retired); the restart Repair fixed; the card's motion dot.
-- **b14:** Codex completed the applet guides and cut the suite from 12 s to 3 s.
-- **b15–b17:** motion sensor and detection switch on the live view and camera list;
-  restart notification; Kiosk Satellites Run everywhere; docs for Cameras and Commander.
-- **b18:** Camera Dashboard renamed Auto Dashboards. **b19:** Track motion exclusions.
-- **b20:** the Commander page reworked: pick from a list, sticky preview, chips for the
-  cameras that never take over. **b21:** those chips kept what was added.
+- **2026.10.4** (released): the camera split (Cameras, Camera Commander, Auto Dashboards);
+  maturity ratings; Kiosk Satellites Run everywhere; Working together (pages and tablets
+  reload after an update; the compositor names its viewers from Kiosk Satellites); **the
+  integration split in three** (`casa_mia`, children `casa_mia_guest_login` and
+  `casa_mia_commander` sharing its coordinator via `casa_mia/children.py`, offered under
+  Discovered); docs ready for a soft launch (DOCS.md, every applet guide, screenshots).
+- **2026.10.5** (released): `counts: false` dropped (garnish only); one hover ring for every
+  edit-mode control (`HOVER` in ha.ts); **garnish on every Sections dashboard**
+  (`garnish-sections.ts` wraps HA's `hui-section._updateVisibility`; Settings → Dashboards,
+  `dashboards.garnish_everywhere`); **the Over layer card** (`integration/cards/src/over-layer/`:
+  common, card, editor, door): one card or its whole panel (`panel: true`: a copy of its
+  section, made with HA's `hui-section`) over the view or window while its Visibility holds;
+  float/full/scroll, nine anchors with offsets, backdrop, block taps; down when a section
+  round it is hidden by its own Visibility (its `hidden`, ignoring Casa Mia's own hiding,
+  marked `cmContentHidden`); no URL escape, an admins-only door over HA's edit button and
+  `?edit=1`. A README section and guide for each.
+- **2026.10.6-b1** (committed, not pushed): Home Assistant 2026.9 or later
+  stated (`homeassistant:` in `app/config.yaml`, README, DOCS.md); the Over layer rated Alpha.
 
 ## Where things stand
 
-- **b21 is committed, not pushed:** Never takes over keeps its cameras; a larger preview. The owner is to deploy it
-  and look at the new Commander page. Known rough edge: the preview docks 64px down to clear the Save bar; if
-  the bar wraps (narrow screens), it covers the preview's top a little. Measure the bar
-  if the owner minds.
-- **b22 committed, not pushed: the integration split in three.** `casa_mia_guest_login` and
-  `casa_mia_commander` (children: `dependencies: ["casa_mia"]`, a no-field single-entry
-  flow, Casa Mia's coordinator through `running_coordinator`; shared helpers in
-  `casa_mia/children.py`). Casa Mia offers each under Discovered while its module is on
-  (once per HA run), reloads them when it is set up again, and lets its orphaned old
-  devices be deleted (`async_remove_config_entry_device`). Picture proxy now
-  `/api/casa_mia_commander/live`, token `casa_mia_commander/picture_token`. Tests pass, but
-  **never loaded in a real HA yet**: try it on the test rig or VM before the live box.
-  Breaking lines lead b22's changelog (the convention is now in CLAUDE.md and
-  docs/releases.md).
-  **b23:** b22 broke Casa Mia's own setup (it still listed the `select` platform, moved
-  to the commander); a test now checks each listed platform has its file. Direct registry
-  calls use `via_device_id`; HA still warns about `via_device` in entities' DeviceInfo
-  (commanders.py), not yet looked into (a warning until 2027.8). Over layer designed in
-  BACKLOG.md.
-- **Docs ready for the soft launch** (b24; the compositor screenshot taken after b25). The
-  Tablet Layout guide's examples wait until after.
-- **b25: Working together, the compositor knows its viewers.** The Camera compositor page
-  names each stream's viewer from Kiosk Satellites (`Store.names()`, passed to
-  `admin_api(names=...)`), the IP kept beside it. Its log lines still give the address only.
-- **2026.10.4 released.** Next builds (2026.10.5-b1, b2): `counts: false` no longer read;
-  one hover ring for every edit-mode control (`HOVER` in ha.ts); **garnish on every
-  Sections dashboard** (b2: `garnish-sections.ts` wraps HA's `hui-section._updateVisibility`;
-  Settings → Dashboards switch, `dashboards.garnish_everywhere`); README section for it.
-  Still to do: move the card's motion test into the cards' `npm test` (package.json); CI
-  runs it from checks.yml meanwhile.
-- **b3: the Over layer card** (`integration/cards/src/over-layer/`: common, card, editor, door):
-  one card over the view or window while its Visibility holds; float/full/scroll; nine
-  anchors with offsets; backdrop; block taps. Down when a section round it is hidden by its
-  own Visibility (reads the section's `hidden`, ignoring garnish's, `cmGarnishHidden`). No
-  URL escape: the admins-only door over HA's edit button (rect lid, round pulse), and
-  `?edit=1`. Guide `docs/over-layer.md`, README section.
-- **b4: Show its whole panel** (`panel: true`): the layer shows a copy of its section (HA's
-  `hui-section`, config less Over layers and its own visibility), made afresh each time it
-  goes up; the real panel never shows in place out of edit mode (`holdsPanelLayer`: Tablet
-  Layout's counting, and the sections patch, marked `cmContentHidden`). Tried on the box.
-- **Soft launch on the HA community forum**, still to do: a release (the owner runs
-  `tools/release.py`), a fresh install on the test VM, then a forum post draft (HA
-  Community → Share your Projects, leading with the Tablet Layout).
-- **Next from the backlog**, when the owner picks: Auto Dashboards' Back/Home/Help made
-  general; every camera detection with its own icon; guest login reach and tightening;
-  Tablet Layout bugs (fixed-shape main ignores edge sizes; two edit-mode blemishes).
+- **The owner tested the GitHub release install end to end** on the HAOS test VM. Don't
+  offer to walk it again.
+- **Soft launch:** a post for HA Community → Share your Projects, tomorrow, by the owner.
+  Lead with the Tablet Layout, then the Over layer, then garnish. Say up front: needs HA OS
+  or Supervised (an app; the cards aren't on HACS: "Modules as stand-alone projects" in
+  the backlog), the install count is anonymous with an off switch, it's one house's system
+  made general (maturity ratings, every module starts off).
+- **The 2026.9 floor is stated, not tested:** everything has run on 2026.10 only. Worth a
+  check on a 2026.9 HA when there's one to hand.
+- **Seen occasionally:** "Invalid configuration" on a card that clears after a while or a
+  page refresh. Possibly HA frontend issue #53890 (custom elements from
+  `add_extra_js_url` lost when they load before the scoped registry polyfill), which is how
+  `cm-cards.js` loads. Unconfirmed; watch for it.
+- **Loose ends:** move the card's motion test into the cards' `npm test` (package.json;
+  CI runs it from checks.yml meanwhile); HA warns about `via_device` in commanders'
+  DeviceInfo (a warning until 2027.8); the compositor's log lines give viewers' addresses
+  only; the Tablet Layout guide's examples.
+- **Next from the backlog**, when the owner picks: the Over layer's intercom mode; Kiosk
+  mode's way out (`?disable_km`); Auto Dashboards' Back/Home/Help made general; every
+  camera detection with its own icon; guest login reach and tightening; Tablet Layout bugs
+  (fixed-shape main ignores edge sizes; two edit-mode blemishes); nested sections when HA
+  2026.11 ships them (garnish should carry over; the owner said not to build ahead of HA).
