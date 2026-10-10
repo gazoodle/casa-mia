@@ -180,6 +180,9 @@ def test_closing_ends_sessions_unless_the_login_is_still_open(api, caplog):
     call(api, "POST", "endpoints/s2/off")
     api._closed(api.guest.endpoints["s2"])
     assert ha.signed_out == ["u1"]
+    api.audit.flush()  # the log names the endpoint whose closing signed them out
+    (out,) = api.audit.records(endpoint="s2")["records"]
+    assert out["event"] == "sign-out" and out["label"] == "S2"
     # By hand, from the login's card.
     status, out = call(api, "POST", "logins/house-guest/sign-out")
     assert status == 200 and ha.signed_out == ["u1", "u1"]

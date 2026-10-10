@@ -208,8 +208,10 @@ version keeps the idea and adds:
 - **A proper welcome.** While they're signed in, guests see your house and a welcome, not a
   login screen; preview it on a phone, a small phone or a tablet first.
 - **Locked down as far as Home Assistant allows.** Closing a code can sign its visitors
-  out, an engineer's code can get a new address after every visit or ask for a two-factor
-  code, and a check shows what each login can reach and what's left open.
+  out, a code can ask for a passcode you send with the booking, an engineer's code can get
+  a new address after every visit or ask for a two-factor code, and a check shows what each
+  login can reach and what's left open, with a button to fix it.
+- **A sign-in log** of every scan and what came of it, kept by the app across restarts.
 - **House rules**, shown before guests sign in, and a **goodbye** when they're signed out.
 - **A guest card to print:** join the Wi-Fi, then scan to sign in, side by side.
 - **A nicer front end**, all in the Casa Mia panel.
@@ -224,18 +226,22 @@ version keeps the idea and adds:
 One QR code per kind of visitor, each with its switch. Guests scan it and land on their own dashboard: no app, no password, no fuss.
 </td>
 <td width="50%" valign="top">
-<img src="docs/screenshots/guest-endpoint.webp" alt="Adding a guest login endpoint: its label, landing dashboard, type, login and secret QR code address">
+<img src="docs/screenshots/guest-endpoint.webp" alt="Editing a guest login endpoint: its landing dashboard, type, login and secret address, with a passcode, signing its visitors out when it closes, and the house rules first">
 <h3>A code for every visitor</h3>
-Each code's login, landing dashboard and secret address, set in one dialog.
+Each code's login, landing dashboard and secret address, and how tight it is: a passcode, its visitors signed out when it closes, your house rules first.
 </td>
 </tr>
 <tr>
 <td width="50%" valign="top">
-<img src="docs/screenshots/guest-welcome.webp" alt="The guest welcome page previewed on a phone: the house, a welcome, and signing in">
-<h3>A proper welcome</h3>
-Your house and a warm welcome while they're signed in, previewed here on a phone before anyone scans a thing.
+<img src="docs/screenshots/guest-phone-rules.webp" alt="A guest's iPhone after the scan: the house photo, Welcome to Rosa Place with a Continue button, and the house rules" width="48%">
+<img src="docs/screenshots/guest-phone-goodbye.webp" alt="The guest's iPhone after the booking: Thank you for visiting, you're signed out now" width="48%">
+<h3>A proper welcome, and a goodbye</h3>
+Your house, a warm welcome and your house rules as they arrive; a thank-you when their stay ends and they're signed out.
 </td>
 <td width="50%" valign="top">
+<img src="docs/screenshots/guest-card.webp" alt="The guest card: Welcome to Rosa Place, 1. Join the Wi-Fi and 2. Scan to sign in, side by side">
+<h3>A card for the room</h3>
+Join the Wi-Fi, then scan to sign in: one card to print or send, and a sign-in log of everyone who did.
 </td>
 </tr>
 </table>

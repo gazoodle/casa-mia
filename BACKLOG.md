@@ -4,6 +4,8 @@ Not scheduled. Newest ideas first within each section. Move an item into the REA
 
 ## Guest login
 
+- **Screenshot: What each login can reach** (asked 2026-10-10; the guide marks it *coming soon*). The check lists every dashboard and view a login's user can open, which in a real house is the owner's whole list. A screenshot-only setting in `swap.json` (beside `swap`, `original_photo`, `camera_images`): the dashboards the check reads while the swap is on, e.g. `"reach_dashboards": ["guest-dashboards", "heating"]`, so the card stays short and holds only stand-in names. Off the swap, it reads them all as now. The shot also needs a login with something to flag (not local-only, a dashboard where kiosk-mode doesn't hide the sidebar), so the fix buttons show.
+
 - **Welcome page: the card and house rules in view at once** (asked 2026-10-10). With house rules on, a phone shows the house photo first and the visitor has to scroll to read the rules (the owner scrolled for the screenshot). Fit the page so the welcome card and the house rules are on screen together when it opens: a shorter photo when there are rules (the hero is `max(240px, 52vh)` today), or scroll the card into view; check it on a small phone too. The photo's framing (the admin page's welcome crop) still decides what shows.
 
 - **Guest login, after 2026.10.6-b2** (reach check, sign-out on close, 2FA, rotating addresses, house info, engineer page and page QR codes built in b2):

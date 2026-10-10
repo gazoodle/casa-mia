@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.6-b8
+
+- Guest login's sign-in log: a sign-out from closing an endpoint now names that endpoint,
+  so it shows when the log is filtered to it.
+
 ## 2026.10.6-b7
 
 - With the screenshot swap on, a guest card's QR codes now scan to the stand-in address

@@ -656,11 +656,11 @@ class GuestAPI(Codes):
                         ", ".join(others),
                     )
                 else:
-                    self.sign_out(name, f"endpoint {ep.id} closed")
+                    self.sign_out(name, f"endpoint {ep.id} closed", ep)
         except (BadRequest, HAError, OSError) as exc:
             _LOGGER.error("guest login: closing endpoint %s: %s", ep.id, exc)
 
-    def sign_out(self, name: str, why: str) -> None:
+    def sign_out(self, name: str, why: str, ep: Endpoint | None = None) -> None:
         """End every session of a login's HA user (BadRequest or HAError if it can't)."""
         login = self.data["logins"].get(name)
         if login is None:
@@ -681,8 +681,15 @@ class GuestAPI(Codes):
                 f"{login['username']} is an administrator: its sessions are left alone."
             )
         self.ha.sign_out(user["id"])
+        # With the endpoint whose closing did it, so filtering the log by endpoint shows it.
         self.audit.record(
-            {"event": "sign-out", "ok": True, "login": name, "reason": why}
+            {
+                "event": "sign-out",
+                "ok": True,
+                "login": name,
+                "reason": why,
+                **({"endpoint": ep.id, "label": ep.label} if ep else {}),
+            }
         )
         _LOGGER.info(
             "guest login: every session of login %s (user %s) ended: %s",
