@@ -155,7 +155,8 @@ def test_ping_is_answered_for_anyone_then_checked(run, caplog):
 
     arduino.say("TEXT:+447700900999:PING")
     wait_for(lambda: len(events) == 1)
-    assert "SEND:+447700900999:PONG from App" in arduino.sent_texts()
+    # The event can come a moment before the reply reaches the line: wait for it too.
+    wait_for(lambda: "SEND:+447700900999:PONG from App" in arduino.sent_texts())
     assert events[0] == {
         "kind": "text",
         "authorised": False,
@@ -167,7 +168,7 @@ def test_ping_is_answered_for_anyone_then_checked(run, caplog):
 
     arduino.say(f"TEXT:{ALEX}:PING")
     wait_for(lambda: len(events) == 2)
-    assert f"SEND:{ALEX}:PONG from App (Alex)" in arduino.sent_texts()
+    wait_for(lambda: f"SEND:{ALEX}:PONG from App (Alex)" in arduino.sent_texts())
     assert events[1]["authorised"] and events[1]["who"] == "Alex"
     assert f.health()["last_text_from"] == f"Alex ({ALEX})"
 
