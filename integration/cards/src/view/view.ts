@@ -1,6 +1,7 @@
 // Layer 4: the Tablet Layout view, laying its panels out (cmPlace), defined on HA's Sections view.
 import { define, type HuiCard, sectionsView } from "../ha.ts";
 import { counts } from "../garnish.ts";
+import { holdsPanelLayer } from "../over-layer/common.ts";
 import { autoSized, layerOf, placeOf, placePanels, type Section, sides, stackOf } from "../tablet.ts";
 import { headerSpace } from "./common.ts";
 import { ViewBase } from "./base.ts";
@@ -51,9 +52,14 @@ sectionsView().then((Base: any) => {
       const sections = where.map((w, n): Section | null => {
         if (!w) return null;
         const section = this.sections[n];
-        // Hide when empty, as the Section card: some card that counts is showing.
+        // Hide when empty, as the Section card: some card that counts is showing; never, out
+        // of edit mode, a panel whose Over layer shows it whole (its cards are on the layer).
         const shows =
-          !!section && !section.hidden && (editing || layerOf(this.cmLayout, w.layer)[w.place]?.hide_empty === false || counting(section).length > 0);
+          !!section &&
+          !section.hidden &&
+          (editing ||
+            layerOf(this.cmLayout, w.layer)[w.place]?.hide_empty === false ||
+            (counting(section).length > 0 && !holdsPanelLayer(this.cmSections[n]?.cards)));
         return { ...w, shows, ...this.cmLock(this.cmSections[n], w.place), ...this.cmCards(n, w, aw) };
       });
       const placed = placePanels(this.cmLayout, [fw, fh], editing, sections, this.cmColumns, fit);
@@ -78,9 +84,10 @@ sectionsView().then((Base: any) => {
         // its cards not laid out) must stay laid out, or it measures 0 for ever.
         box.classList.toggle("cm-off", !at);
         box.classList.toggle("cm-hidden", editing && !!at && !!where[n] && !!layerOf(this.cmLayout, where[n]!.layer)[where[n]!.place]?.hidden);
-        // Garnish only (cards, none of them content): hatched, as it never shows out of edit mode.
+        // Garnish only (cards, none of them content), or shown whole by its Over layer: hatched,
+        // as it never shows here out of edit mode.
         const cards: any[] = this.cmSections[n]?.cards ?? [];
-        box.classList.toggle("cm-garnish-only", editing && !!at && !!where[n] && cards.length > 0 && !cards.some(counts));
+        box.classList.toggle("cm-garnish-only", editing && !!at && !!where[n] && cards.length > 0 && (!cards.some(counts) || holdsPanelLayer(cards)));
         this.cmTools(box, editing && !!at, where, n);
         // Delete in its menu (MENU) while its stack has another.
         const stacked = !!where[n] && where[n]!.place !== "main" && stackOf(where, n).length > 1;

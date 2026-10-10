@@ -1,6 +1,7 @@
 # Casa Mia documentation
 
 - [Tablet Layout](tablet-layout.md): the view type that fits a wall tablet's screen exactly, and everything it can do.
+- [Over layer](over-layer.md): one card over the whole dashboard while its conditions hold; what's beneath can be seen, not touched.
 
 ## The applets
 

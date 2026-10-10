@@ -29,6 +29,10 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         "back": False,  # cm-back.js: #BACK goes back
         "refresh": False,  # cm-refresh.js: reload a dashboard when it is saved
     },
+    # Every Sections dashboard, through the cards (cm-cards.js loads on every HA page).
+    "dashboards": {
+        "garnish_everywhere": False,  # garnish in any section, not only a Tablet Layout's
+    },
     "tablet_view": {
         "identify_panels": False,  # an outline round each panel
         "identify_outline": "1px solid red",  # CSS: the outline drawn

@@ -12,6 +12,7 @@ A Home Assistant app and integration that take your home from smart to spectacul
 Dazzling home pages for every wall tablet. Guests signed in with a single scan.<br>
 Every Kiosk Satellite managed from one place, and at your fingertips wherever you are.<br>
 Interactions at jet-rapid speed. Camera dashboards MI5 would envy.<br>
+Alarm set? Every tablet becomes a window you can look through but not touch.<br>
 Secure phone and SMS access to your home, even when the internet has left the building.<br>
 And that's just the start.
 </p>
@@ -37,6 +38,8 @@ No premium tier, no subscription, no catch. <a href="#licence">Here's the promis
 ## What is it?
 
 * A home assistant layout view, based on Sections, but locked to the rendering screen size while still being responsive to content changes ([the Tablet Layout](docs/tablet-layout.md))
+* An Over layer: one card over the whole dashboard while its conditions hold, everything beneath visible but untouchable ([more](#the-over-layer))
+* Garnish for every Sections dashboard: a heading that no longer keeps an empty section showing, so the section goes when its cards do ([more](#garnish-for-every-dashboard))
 * A multi-camera layout and composition system to allow near realtime surveillance views without swamping network bandwidth or overwhelming low-power tablets
 * A house guest login system that allows a QR scan to access a custom landing page
 * A firmware server for the amazing [Kiosk Satellite](https://kiosksatellite.com) so they can stay on an IoT network, with no internet access, and not repeatedly keep downloading Candy Crush yet can still get updates from the GitHub releases.
@@ -298,6 +301,46 @@ its own switch on the Casa Mia panel's Settings page (the cog by the house photo
   is careful either way.
 - **Keep camera pictures live.** Stops the camera streams of pages that aren't on screen and
   restarts the ones that are, so a page you come back to has a live picture.
+
+## Garnish, for every dashboard
+
+Home Assistant quietly does something clever: when every card in a section is hidden, the
+section goes too, and the rest of the dashboard closes up. So a section of warnings, each
+card visible only while it has something to say, simply isn't there on a quiet day. Lovely,
+until you give that section a heading. Now the heading is always showing, so the section
+always shows: a proud **WARNINGS** with nothing under it, every hour of every day.
+
+Garnish fixes that. Mark the heading (or any card that only dresses a section) as garnish,
+with one tap on the sprig in its corner in edit mode, and it no longer keeps its section
+showing. The warnings come, the heading comes with them; they go, and the whole section
+goes, gap and all. One switch on Casa Mia's Settings page, **Enable garnish on all section
+dashboards**, and it works on every Sections dashboard you have, not just Casa Mia's Tablet
+Layout, where it was born.
+
+<p align="center">
+<img src="docs/screenshots/tablet-layout-garnish.webp" alt="A section in edit mode: a Warnings heading marked as garnish (dimmed, dashed, its sprig filled) over a Door tile" width="274">
+</p>
+
+It's the kind of small thing that makes a dashboard feel like it knows what it's doing.
+
+## The Over layer
+
+The alarm is set. The wall tablet in the hall still shows the house as it always does,
+lights, heating, cameras, but every tap goes nowhere, and in the middle, the alarm's disarm
+panel waits for its code. Disarm it, and the tablet is a tablet again.
+
+That's the Over layer: one card of your choosing, floating over the whole dashboard while
+its Visibility conditions hold, its backdrop dimming or blurring what's beneath, and taking
+every tap, so the dashboard can be seen, not touched. A visiting engineer gets a look at
+everything and a hand on nothing. A cover keeps little fingers off at night. A warning
+floats up until it's dealt with. It's an ordinary card: Home Assistant's own conditions say
+when, its own card picker says what, and while you edit the dashboard it sits in its place
+like any other. Or it can lift a whole panel: a section of warnings, headings and all,
+floating over the dashboard in one piece.
+
+And the way out is for admins alone. There's no magic word in the address; instead, over the
+whole window, a small lid pulses gently over Home Assistant's own edit button, and only an
+admin gets it. Everyone else gets the wall. [The guide](docs/over-layer.md).
 
 ## Working together
 

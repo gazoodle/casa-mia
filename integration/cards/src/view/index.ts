@@ -12,7 +12,7 @@
 // duplicated; one is deleted (its menu) only from a stack of more than one, so a panel
 // keeps a section; cards move between them as in any Sections view. A
 // section's own visibility hides it, and so does having no card showing that counts (a
-// heading marked `view_layout: {counts: false}` does not; panel option hide_empty: false
+// garnish card, `view_layout: {garnish: true}`, does not; panel option hide_empty: false
 // keeps it); a hidden section takes no room, nor a panel with none showing. In edit mode
 // every section shows, and a hidden edge too, hatched (to be shown again). A section with one card that counts showing is filled by it
 // (headings above it keep their height; not in a top or bottom panel of `size: auto`, which

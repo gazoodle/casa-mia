@@ -1,5 +1,30 @@
 # Changelog
 
+## 2026.10.5
+
+- **New card: the Over layer.** One card, or a whole panel of them, shown over your
+  dashboard while its Visibility conditions hold: the alarm's disarm panel over every wall
+  tablet while the alarm is set, a look-but-don't-touch screen for a visiting engineer, a
+  warning that floats up until it's dealt with. Its backdrop dims or blurs what's beneath
+  and can take every tap, so the dashboard can be seen but not touched.
+  - Covers the view (sidebar and header still usable) or the whole window.
+  - Floats where you place it (nine positions, with offsets from the edges), fills the
+    screen, or scrolls with the page. Floated in a corner with taps passing through, it
+    makes a pop-over that goes away once you act on it.
+  - **Show its whole panel:** in place of a card of its own, it lifts the panel it's in,
+    headings and all; that panel stays out of its usual place.
+  - Its card is picked and edited with Home Assistant's own editors; while you edit the
+    dashboard it's an ordinary card with a badge.
+  - The way out is for admins only: a small pulsing lid over Home Assistant's edit button
+    (hover over it, or tap it, then tap the button), or `?edit=1` on the dashboard's
+    address. Everyone else gets the wall.
+- **Garnish on every Sections dashboard:** a new switch on the Settings page, **Enable
+  garnish on all section dashboards** (off by default). Home Assistant already hides a
+  section whose cards are all hidden; with this on, a section left with only garnish (a
+  heading, say) hides too, on any Sections dashboard.
+- **Tablet Layout edit mode:** every chip, sprig, padlock and dimension label now lights up
+  under the pointer, so you can see what can be tapped.
+
 ## 2026.10.4
 
 - **Breaking:** Guest login and Camera Commander have their own integrations now, **Casa

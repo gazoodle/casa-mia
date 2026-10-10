@@ -1,5 +1,8 @@
 // Dress HA's card edit frame only for cards in a Tablet Layout panel.
-import { counts, cardPath, setGarnish } from "./garnish.ts";
+import { counts, cardPath, inTablet, setGarnish } from "./garnish.ts";
+import { TYPE as OVER_LAYER } from "./over-layer/common.ts";
+import { garnishEverywhere } from "./garnish-sections.ts";
+import { HOVER } from "./ha.ts";
 
 // The sprig sits on the card's bottom-right border, clear of headings (which start top
 // left), HA's card menu (top right) and the panel's toolbar: out of the way of what is arranged,
@@ -22,8 +25,9 @@ STYLE.replaceSync(`
     display: block; box-sizing: border-box; width: 26px; height: 26px; padding: 4px; border-radius: 50%;
     border: 1px solid var(--primary-color); color: var(--primary-color);
     background: var(--card-background-color, #fff); opacity: 0.6;
+    transition: opacity 0.15s, box-shadow 0.15s, filter 0.15s;
   }
-  .cm-garnish:hover .cm-sprig, .cm-garnish:focus-visible .cm-sprig { opacity: 1; }
+  .cm-garnish:hover .cm-sprig, .cm-garnish:focus-visible .cm-sprig { opacity: 1; ${HOVER} }
   .cm-garnish svg { display: block; width: 16px; height: 16px; fill: currentColor; }
   .cm-garnish[aria-pressed="true"] .cm-sprig { opacity: 1; color: var(--text-primary-color, #fff); background: var(--primary-color); }
   .cm-garnish-frame {
@@ -41,17 +45,13 @@ customElements.whenDefined("hui-card-edit-mode").then(() => {
     const root = this.shadowRoot as ShadowRoot | null;
     if (!root) return;
     let chip = root.querySelector<HTMLButtonElement>(".cm-garnish");
-    let tablet = false;
-    for (let node: Node | null = this; node; node = (node as Element).parentElement ?? (node.getRootNode() as ShadowRoot).host ?? null) {
-      if (["CASA-MIA-TABLET-LAYOUT", "CASA-MIA-TABLET-VIEW"].includes((node as Element).tagName)) {
-        tablet = true;
-        break;
-      }
-    }
+    // In a Tablet Layout's panels, or any section while garnish is on for every dashboard.
+    const tablet = garnishEverywhere() || inTablet(this);
     const path = cardPath(this.path ?? []);
     const get = (config: any) => path.reduce((value, key) => value?.[key], config);
     const card = get(this.lovelace?.config);
-    if (!tablet || !this.lovelace?.editMode || this.noEdit || !path.includes("sections") || !card?.type) {
+    // An Over layer never counts anyway (garnish.ts), so no sprig on it.
+    if (!tablet || !this.lovelace?.editMode || this.noEdit || !path.includes("sections") || !card?.type || card.type === OVER_LAYER) {
       this.classList.remove("cm-garnished");
       root.querySelector(".cm-garnish-frame")?.remove();
       return chip?.remove();

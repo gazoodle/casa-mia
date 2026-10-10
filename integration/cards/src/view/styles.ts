@@ -1,5 +1,6 @@
 // The Tablet Layout's styles: the view's own (LOCK) and its sections' grids (FILL).
-import { css } from "lit";
+import { css, unsafeCSS } from "lit";
+import { HOVER } from "../ha.ts";
 
 export const LOCK = css`
   :host {
@@ -181,6 +182,20 @@ export const LOCK = css`
   .cm-tools button[disabled] {
     opacity: 0.4;
     cursor: default;
+  }
+  /* Every tap target in edit mode answers the pointer alike (ha.ts HOVER). */
+  .cm-tools button,
+  .cm-ends button,
+  .cm-dims button {
+    transition: box-shadow 0.15s, filter 0.15s;
+  }
+  .cm-tools button:not([disabled]):hover,
+  .cm-tools button:focus-visible,
+  .cm-ends button:hover,
+  .cm-ends button:focus-visible,
+  .cm-dims button:hover,
+  .cm-dims button:focus-visible {
+    ${unsafeCSS(HOVER)}
   }
   .cm-tools.cm-narrow button:not(.cm-chip) {
     display: none;
