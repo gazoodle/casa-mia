@@ -179,6 +179,26 @@ Assistant's sidebar and a view's *Visible* setting only hide: any dashboard that
 admin-only opens for every user who types its address. Make the ones visitors mustn't see
 admin-only (Settings → Dashboards → the dashboard → *Admin only*).
 
+### Sign-in log
+
+At the bottom of the page: every scan of a QR code and what came of it, and every
+sign-out, newest first.
+- **What each record holds:** the time; what happened (*Scanned*, *Signed in*, *Refused* with
+  the reason, such as a wrong passcode, a closed endpoint or an unknown address, *2FA asked*,
+  *Signed out*); the endpoint and login; how it was reached (secret address or printed QR);
+  the phone's address; its browser, as a device ("iPhone, Safari") and in full, with its
+  languages, time zone, screen size and whether it's in dark mode; and, when a device
+  tracker in Home Assistant has that address (a router integration's, say), the tracker,
+  its MAC address and the person it belongs to. Tap a record to see all of it.
+- **Filter** by outcome (signed in, refused) or endpoint; **Download CSV** gives every
+  record for a spreadsheet.
+- **Limits** sets how long records are kept (90 days to start with) and how many at most
+  (2000): older ones go at once, and from then on as they age.
+- It's kept by the app in its own file (`guest-login-audit.jsonl`, beside its settings),
+  not in Home Assistant's log, so it survives restarts and updates, and is in the app's
+  backups. Passcodes, 2FA codes and secret addresses are never recorded: an unknown
+  address is only said to be unknown.
+
 ### QR codes
 
 **QR codes**, at the top, makes the codes beyond each endpoint's own:

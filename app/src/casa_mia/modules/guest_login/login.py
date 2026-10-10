@@ -30,6 +30,7 @@ from pathlib import Path
 from typing import Any
 
 from ... import swap
+from .audit import TEXT_MAX, clean_client, device_of
 from .common import (
     ENGINEER_TITLE,
     GOODBYE_MESSAGE,
@@ -87,6 +88,8 @@ class GuestLogin(SignIn):
         self.on_closed: Callable[[Endpoint], None] | None = None
         # The goodbye page's title and message, and an address to send visitors to instead.
         self.goodbye: dict[str, str] = {}
+        # Called with each scan, sign-in, refusal: the audit (GuestAPI keeps it).
+        self.on_audit: Callable[[dict[str, Any]], None] | None = None
         # A login's HA user id, for the integration (GuestAPI knows them).
         self.user_of: Callable[[str], str | None] = lambda name: None
         super().__init__(accounts, default_account, internal_url, ha_port, ha_hosts)
@@ -428,9 +431,11 @@ class GuestLogin(SignIn):
         with self._lock:
             on = bool(ep and is_page and self._is_on(ep))
         if ep and on:
+            self._note(h, ep, "scan", None)
             self._reply(h, 200, self._page(ep).encode(), "text/html; charset=utf-8")
         else:  # unknown and disabled look identical to the visitor, but not to the log
             if url.path != "/favicon.ico":
+                self._note(h, ep, "refused", False, self._short_why(ep, url.path))
                 _LOGGER.warning(
                     "guest login refused %s: %s",
                     h.client_address[0],
@@ -503,6 +508,8 @@ class GuestLogin(SignIn):
             path[: -len("/go")] or "/", urllib.parse.parse_qs(url.query)
         )
         ip = h.client_address[0]
+        body = _read_json(h)
+        client = clean_client(body.get("client"))
         try:
             with self._lock:
                 if ep is None or not self._is_on(ep):
@@ -512,7 +519,6 @@ class GuestLogin(SignIn):
                         self._why(path[: -len("/go")] or "/", url.query),
                     )
                 self._rate_limit(ip)
-            body = _read_json(h)
             if body.get(
                 "pending"
             ):  # the visitor's 2FA code, for a sign-in begun earlier
@@ -534,12 +540,19 @@ class GuestLogin(SignIn):
                     _LOGGER.info(
                         "guest login %s from %s: asked for a 2FA code", ep.id, ip
                     )
+                    self._note(h, ep, "2FA asked", None, client=client)
                     self._json(h, 200, {"mfa": wait.token})
                     return
         except LoginError as exc:
             _LOGGER.warning(
                 "guest login %s from %s: %s", ep.id if ep else "?", ip, exc.why
             )
+            reason = (
+                self._short_why(ep, path[: -len("/go")] or "/")
+                if exc.code == "unavailable"
+                else exc.code.replace("_", " ")
+            )
+            self._note(h, ep, "sign-in", False, reason, client=client)
             self._json(h, exc.status, {"error": exc.code})
             return
         with self._lock:
@@ -547,9 +560,58 @@ class GuestLogin(SignIn):
             ep.last_login = datetime.now(timezone.utc).isoformat(timespec="seconds")
             self._save()
         _LOGGER.info("guest login: %s from %s", ep.id, ip)
+        self._note(
+            h,
+            ep,
+            "sign-in",
+            True,
+            client=client,
+            passcode=bool(ep.pin),
+            two_factor=bool(body.get("pending")),
+        )
         if self.on_login:
             self.on_login(ep, ip)
         self._json(h, 200, {"url": target})
+
+    def _note(
+        self,
+        h: BaseHTTPRequestHandler,
+        ep: Endpoint | None,
+        event: str,
+        ok: bool | None,
+        reason: str = "",
+        **extra: Any,
+    ) -> None:
+        """Hand an event to the audit, with everything the request says about the visitor
+        (never a secret address or a code typed)."""
+        if not self.on_audit:
+            return
+        agent = (h.headers.get("User-Agent") or "")[:TEXT_MAX]
+        path = urllib.parse.urlparse(h.path).path
+        self.on_audit(
+            {
+                "event": event,
+                "ok": ok,
+                "reason": reason,
+                "endpoint": ep.id if ep else None,
+                "label": ep.label if ep else None,
+                "login": (ep.account or self.default_account) if ep else None,
+                "via": "secret address" if path.startswith("/e/") else "printed QR",
+                "ip": h.client_address[0],
+                "agent": agent,
+                "device": device_of(agent),
+                "langs": (h.headers.get("Accept-Language") or "")[:TEXT_MAX],
+                **extra,
+            }
+        )
+
+    def _short_why(self, ep: Endpoint | None, path: str) -> str:
+        """Why a request was refused, for the audit: no address or dashboard in it."""
+        if ep is not None:
+            return "endpoint closed"
+        if path.startswith("/e/"):
+            return "unknown secret address"
+        return "unknown printed QR" if path.strip("/") == "" else "no such page"
 
     def _rate_limit(self, ip: str) -> None:
         now = time.monotonic()

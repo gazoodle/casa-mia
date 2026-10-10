@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from ...ha import HA, HAError
+from .audit import KEEP_DAYS, KEEP_MAX, Audit, states_lookup
 from .codes import Codes, Response, _json
 from .common import (
     GOODBYE_GRACE,
@@ -77,6 +78,7 @@ def empty_store() -> dict[str, Any]:
         "house_info": dict.fromkeys(HOUSE_INFO, ""),
         "goodbye": dict.fromkeys(GOODBYE, ""),
         "wifi": dict(WIFI),
+        "audit": {"days": KEEP_DAYS, "max": KEEP_MAX},
     }
 
 
@@ -211,6 +213,15 @@ class GuestAPI(Codes):
         # Re-entrant: an endpoint closed from this page calls back into _closed.
         self._lock = threading.RLock()
         guest.on_closed = self._closed
+        # Every scan, sign-in, refusal and sign-out, in its own store beside this one.
+        keep = data["audit"]
+        self.audit = Audit(
+            store_path.with_name("guest-login-audit.jsonl"),
+            int(keep.get("days", KEEP_DAYS)),
+            int(keep.get("max", KEEP_MAX)),
+            lookup=states_lookup(lambda: ha.call({"type": "get_states"})[0]),
+        )
+        guest.on_audit = self.audit.record
         guest.user_of = lambda name: self.data["logins"].get(name, {}).get("user_id")
 
     # -- plumbing
@@ -271,6 +282,23 @@ class GuestAPI(Codes):
             done = fix(self.ha, store, body)
             _LOGGER.info("guest login: reach check fix: %s", done)
             return _json(200, {"done": done, "logins": report(store, gather(self.ha))})
+        if method == "GET" and head == "audit":
+            self.audit.flush()
+            if rest == ["audit.csv"]:
+                return 200, "text/csv; charset=utf-8", self.audit.csv()
+
+            def arg(name: str) -> str:
+                return (query.get(name) or [""])[0]
+
+            return _json(
+                200,
+                self.audit.records(
+                    arg("kind"),
+                    arg("endpoint"),
+                    int(arg("limit") or 200),
+                    int(arg("offset") or 0),
+                ),
+            )
         if method == "GET" and head in ("wifi.svg", "wifi.png"):
             return self.wifi_qr(head)
         if method == "GET" and head == "card" and rest:
@@ -409,6 +437,16 @@ class GuestAPI(Codes):
                     else "WPA",
                     hidden=bool(got.get("hidden")),
                 )
+            keep = dict(self.data["audit"])
+            for key, low, high in (("days", 1, 3650), ("max", 100, 100000)):
+                if key in body.get("audit", {}):
+                    try:
+                        keep[key] = max(low, min(int(body["audit"][key]), high))
+                    except (TypeError, ValueError):
+                        raise BadRequest(
+                            "The log: whole numbers of days and records."
+                        ) from None
+            self.audit.retention(keep["days"], keep["max"])
             info = dict(self.data["house_info"])
             for key in HOUSE_INFO:
                 if key in body.get("house_info", {}):
@@ -420,6 +458,7 @@ class GuestAPI(Codes):
                 house_info=info,
                 goodbye=goodbye,
                 wifi=wifi,
+                audit=keep,
             )
             self._commit()
         return _json(200, self.view())
@@ -642,6 +681,9 @@ class GuestAPI(Codes):
                 f"{login['username']} is an administrator: its sessions are left alone."
             )
         self.ha.sign_out(user["id"])
+        self.audit.record(
+            {"event": "sign-out", "ok": True, "login": name, "reason": why}
+        )
         _LOGGER.info(
             "guest login: every session of login %s (user %s) ended: %s",
             name,

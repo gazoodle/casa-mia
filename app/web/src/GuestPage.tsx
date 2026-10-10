@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { del, get, post, put, type Endpoint, type GuestConfig, type HAChoices, type Login } from "./api";
 import { ago } from "./format";
 import { EndpointDialog, LoginDialog, PasswordDialog, SettingsDialog } from "./GuestDialogs";
+import { AuditArea } from "./GuestAudit";
 import { QrCodesDialog } from "./GuestCodes";
 import { ReachArea } from "./GuestReach";
 import { GuestIcon } from "./icons";
@@ -238,6 +239,8 @@ export function GuestPage({ state }: { state?: string }) {
       </section>
 
       <ReachArea toast={toast} />
+
+      <AuditArea config={config} toast={toast} />
 
       {editing?.kind === "endpoint" && (
         <EndpointDialog

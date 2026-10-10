@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026.10.6-b5
+
+- **Guest login's sign-in log**, at the bottom of its page: every scan of a QR code and what
+  came of it (signed in, a wrong passcode or 2FA code, a closed endpoint, an unknown
+  address), and every sign-out, newest first. Each record has the time, the endpoint and
+  login, the phone's address, its browser (device, languages, time zone, screen) and, when
+  a device tracker in Home Assistant has that address, the device and its person. Tap a
+  record for all of it; filter by outcome or endpoint; download it all as CSV. Kept by the
+  app in its own store, so it survives restarts; **Limits** sets how long (90 days) and how
+  many (2000) records it keeps. Passcodes, codes and secret addresses are never recorded.
+
 ## 2026.10.6-b4
 
 - **Signing out follows the login.** When endpoints share a login, its visitors are now

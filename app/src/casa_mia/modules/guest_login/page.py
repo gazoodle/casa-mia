@@ -76,7 +76,11 @@ const fail=(e)=>{
  else if(e==="bad_passcode")ask("That code did not work. Check it with your host.",passcode);
  else if(e==="mfa_expired")say("Sorry","That took too long. Please scan the code again.",true);
  else say("Sorry","We could not sign you in. Please ask your host.",true)};
-const send=(body)=>fetch(url,{method:"POST",body:body&&JSON.stringify(body)})
+// What the browser can say about itself, for the house's sign-in log.
+const client={tz:Intl.DateTimeFormat().resolvedOptions().timeZone,langs:(navigator.languages||[]).join(", "),
+ screen:screen.width+"x"+screen.height,dpr:devicePixelRatio,platform:navigator.platform,
+ touch:navigator.maxTouchPoints>0,dark:matchMedia("(prefers-color-scheme: dark)").matches};
+const send=(body)=>fetch(url,{method:"POST",body:JSON.stringify({...body,client})})
  .then(r=>r.json().then(j=>({ok:r.ok,j})))
  .then(({ok,j})=>{if(ok&&j.mfa){pending=j.mfa;ask("Type the code from the authenticator app. Your host can give it to you.")}
   else if(ok)setTimeout(()=>{location.href=j.url},Math.max(0,wait-(Date.now()-t0)));

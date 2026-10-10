@@ -1,7 +1,7 @@
 # Handover: Casa Mia, for agents joining the work
 
 Where the project stands and how the work is done here, as of 2026-10-10 (`dev` at
-2026.10.6-b4, uncommitted; b3 committed; 2026.10.5 released). **Read this at the start of every
+2026.10.6-b5, uncommitted; b4 committed; 2026.10.5 released). **Read this at the start of every
 session**, then CLAUDE.md in full; where they disagree, CLAUDE.md wins. It replaces
 re-reading old transcripts: the history below is all a new session needs.
 
@@ -196,7 +196,12 @@ dashboards_on`).
 
 ## Where things stand
 
-- **2026.10.6-b4 is in the working tree, not committed:** a passcode per endpoint (`pin`,
+- **2026.10.6-b5 is in the working tree, not committed:** the sign-in log (`audit.py`:
+  JSON lines beside the store, pruned by days and count, enriched on a worker thread by
+  `states_lookup`: device tracker `ip` → tracker → person; `GuestLogin._note` feeds it from
+  each scan, refusal, sign-in; `sign_out` adds sign-outs; the welcome page sends browser
+  facts as `client`). `GuestAudit.tsx` on the page. b4 is committed (`a352a15`).
+- **2026.10.6-b4 (committed):** a passcode per endpoint (`pin`,
   checked in `_post` with `hmac.compare_digest` before the login flow; the welcome page
   asks first, reusing the 2FA form); sign-out follows the login (`_signs_out`: any of
   its endpoints ticked; health's `end_sessions` is that); **Who's signed in** (`SignIn.sessions`:
