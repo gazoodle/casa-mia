@@ -380,7 +380,7 @@ Coming next:
 
 ## Installation
 
-You need **Home Assistant 2026.9 or later**, on Home Assistant OS or a Supervised install
+You need **Home Assistant 2026.3 or later**, on Home Assistant OS or a Supervised install
 (apps need the Supervisor), on a 64-bit machine (aarch64 or amd64).
 
 1. **Add the repository.** The quick way is this button, which opens your Home Assistant with

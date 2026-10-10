@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.7
+
+- **Home Assistant 2026.3 or later** is now enough (it was 2026.9): the oldest release with
+  everything the Tablet Layout and garnish use from HA's dashboards.
+
 ## 2026.10.6
 
 - **Breaking:** Casa Mia now needs Home Assistant 2026.9 or later, and the update isn't
