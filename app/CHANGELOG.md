@@ -1,6 +1,6 @@
 # Changelog
 
-## 2026.10.7-b1
+## 2026.10.7
 
 - **Home Assistant 2026.3 or later** is now enough (it was 2026.9): the oldest release with
   everything the Tablet Layout and garnish use from HA's dashboards.
