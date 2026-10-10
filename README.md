@@ -207,6 +207,10 @@ version keeps the idea and adds:
   each code chooses which login a visitor gets and which dashboard they land on.
 - **A proper welcome.** While they're signed in, guests see your house and a welcome, not a
   login screen; preview it on a phone, a small phone or a tablet first.
+- **Locked down as far as Home Assistant allows.** Closing a code can sign its visitors
+  out, an engineer's code can get a new address after every visit or ask for a two-factor
+  code, and a check shows what each login can reach and what's left open.
+- **House info.** The Wi-Fi and your house rules, shown before guests sign in.
 - **A nicer front end**, all in the Casa Mia panel.
 - **Your old cards still work.** If you've already printed QR cards for
   ha-auto-guest-login, tick **Legacy QR code** and they keep working.

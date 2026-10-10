@@ -30,6 +30,7 @@ from .login import (
     welcome_title,
 )
 from .page import header_jpeg, render_welcome
+from .reach import gather, report
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -48,7 +49,11 @@ STORED = (
     "title",
     "message",
     "delay",
+    "info",
+    "end_sessions",
+    "rotate",
 )
+HOUSE_INFO = ("wifi_name", "wifi_password", "text")
 
 Response = tuple[int, str, bytes]
 
@@ -64,6 +69,7 @@ def empty_store() -> dict[str, Any]:
             "delay": WELCOME_DELAY,
         },
         "qr_host": "",
+        "house_info": dict.fromkeys(HOUSE_INFO, ""),
     }
 
 
@@ -79,7 +85,13 @@ def load_store(path: Path) -> dict[str, Any]:
 
 def runtime(
     data: dict[str, Any],
-) -> tuple[list[Endpoint], dict[str, tuple[str, str]], str, tuple[str, str, int]]:
+) -> tuple[
+    list[Endpoint],
+    dict[str, tuple[str, str]],
+    str,
+    tuple[str, str, int],
+    dict[str, str],
+]:
     """The store as GuestLogin.apply() takes it."""
     endpoints = [
         Endpoint(**{k: v for k, v in e.items() if k in STORED})
@@ -92,7 +104,7 @@ def runtime(
         w.get("message") or WELCOME_MESSAGE,
         int(w.get("delay", WELCOME_DELAY)),
     )
-    return endpoints, logins, data["default_login"], welcome
+    return endpoints, logins, data["default_login"], welcome, data["house_info"]
 
 
 class BadRequest(Exception):
@@ -123,7 +135,8 @@ def _clean_endpoint(
     ep["account"] = ep["account"] or None
     if ep["account"] and ep["account"] not in data["logins"]:
         raise BadRequest(f"There is no login called {ep['account']}.")
-    ep["legacy"] = bool(ep["legacy"])
+    for flag in ("legacy", "info", "end_sessions", "rotate"):
+        ep[flag] = bool(ep[flag])
     ep["slug"] = str(ep["slug"] or "").strip() or None
     if ep["slug"] and not SLUG.match(ep["slug"]):
         raise BadRequest(
@@ -133,6 +146,8 @@ def _clean_endpoint(
         raise BadRequest(
             "Give it a secret address, or mark it as answering a printed QR code."
         )
+    if ep["rotate"] and not ep["slug"]:
+        raise BadRequest("A new address on closing needs a secret address.")
     for other in data["endpoints"]:
         if other["id"] == old_id:
             continue
@@ -180,7 +195,9 @@ class GuestAPI:
         self.media_dir = media_dir
         self.lan_host = remember(lan_host)
         self.mdns_name = remember(mdns_name)
-        self._lock = threading.Lock()
+        # Re-entrant: an endpoint closed from this page calls back into _closed.
+        self._lock = threading.RLock()
+        guest.on_closed = self._closed
 
     # -- plumbing
 
@@ -240,6 +257,12 @@ class GuestAPI:
             )
         if method == "GET" and head == "slug":
             return _json(200, {"slug": secrets.token_urlsafe(18)})
+        if method == "GET" and head == "reach":
+            with self._lock:
+                store = json.loads(json.dumps(self.data))
+            return _json(200, {"logins": report(store, gather(self.ha))})
+        if head == "page-qr" and rest:
+            return self.page_qr(method, rest[0], query)
         if method == "PUT" and head == "settings":
             return self.settings(body)
         if head == "logins":
@@ -272,6 +295,7 @@ class GuestAPI:
             "default_login": self.data["default_login"],
             "welcome": self.data["welcome"],
             "qr_host": self.data.get("qr_host", ""),
+            "house_info": self.data["house_info"],
             "qr_host_effective": self.qr_host(),
             # Every name this box answers to; Try it picks one the admin isn't using.
             "hosts": list(
@@ -349,7 +373,13 @@ class GuestAPI:
                 raise BadRequest(
                     "QR host: a host name or IP address, without http:// or a port."
                 )
-            self.data.update(default_login=default, welcome=welcome, qr_host=host)
+            info = dict(self.data["house_info"])
+            for key in HOUSE_INFO:
+                if key in body.get("house_info", {}):
+                    info[key] = str(body["house_info"][key] or "").strip()
+            self.data.update(
+                default_login=default, welcome=welcome, qr_host=host, house_info=info
+            )
             self._commit()
         return _json(200, self.view())
 
@@ -406,6 +436,9 @@ class GuestAPI:
                         "message": why or "Home Assistant accepted this login.",
                     },
                 )
+            if method == "POST" and rest[1:] == ["sign-out"]:
+                self.sign_out(name, "signed out from the Guest login page")
+                return _json(200, {"message": f"Everyone signed in as {name} is out."})
             if method == "PUT":
                 password = body.get("password")
                 if password:
@@ -476,6 +509,104 @@ class GuestAPI:
                 del eps[index]
                 self._commit()
                 return _json(200, self.view())
+        return _json(404, {"error": "not found"})
+
+    # -- closing
+
+    def _closed(self, ep: Endpoint) -> None:
+        """An endpoint has closed: give it a new address and end its visitors' sessions,
+        as it is set to. Runs on its own thread; never raises."""
+        try:
+            if ep.rotate:
+                with self._lock:
+                    stored = next(
+                        (e for e in self.data["endpoints"] if e["id"] == ep.id), None
+                    )
+                    if stored and stored.get("slug"):
+                        stored["slug"] = secrets.token_urlsafe(18)
+                        self._commit()
+                        _LOGGER.info(
+                            "guest login: endpoint %s closed, so it has a new secret "
+                            "address; its old QR code no longer works",
+                            ep.id,
+                        )
+            if ep.end_sessions:
+                name = ep.account or self.data["default_login"]
+                if others := self.guest.others_open(ep):
+                    _LOGGER.info(
+                        "guest login: endpoint %s closed; sessions of login %s kept, as "
+                        "%s still open with it",
+                        ep.id,
+                        name,
+                        ", ".join(others),
+                    )
+                else:
+                    self.sign_out(name, f"endpoint {ep.id} closed")
+        except (BadRequest, HAError, OSError) as exc:
+            _LOGGER.error("guest login: closing endpoint %s: %s", ep.id, exc)
+
+    def sign_out(self, name: str, why: str) -> None:
+        """End every session of a login's HA user (BadRequest or HAError if it can't)."""
+        login = self.data["logins"].get(name)
+        if login is None:
+            raise BadRequest(f"There is no login called {name}.")
+        user = next(
+            (
+                u
+                for u in self.ha.users()
+                if u["id"] == login.get("user_id")
+                or (u.get("username") and u["username"] == login["username"])
+            ),
+            None,
+        )
+        if user is None:
+            raise BadRequest(f"Home Assistant has no user {login['username']}.")
+        if user["is_admin"]:  # it would sign the house's own people out too
+            raise BadRequest(
+                f"{login['username']} is an administrator: its sessions are left alone."
+            )
+        self.ha.sign_out(user["id"])
+        _LOGGER.info(
+            "guest login: every session of login %s (user %s) ended: %s",
+            name,
+            login["username"],
+            why,
+        )
+
+    # -- QR codes
+
+    def page_qr(self, method: str, name: str, query: dict[str, list[str]]) -> Response:
+        """A QR code for any page of Home Assistant (a dashboard, a view), at the QR host:
+        GET page-qr/code.svg|png?path=..., or POST page-qr/media?path=... to save it."""
+        path = "/" + _norm((query.get("path") or [""])[0])
+        if not re.match(r"^/[A-Za-z0-9._~/?=&%-]*$", path):
+            raise BadRequest("A path inside Home Assistant, such as /lovelace/hall.")
+        port = self.guest.ha_port()
+        text = f"http://{self.qr_host()}" + ("" if port == 80 else f":{port}") + path
+        if method == "GET" and name in ("code.svg", "code.png"):
+            shown = swap.out(text)
+            if name == "code.svg":
+                return 200, "image/svg+xml", qr.svg(shown)
+            return 200, "image/png", qr.png(shown)
+        if method == "POST" and name == "media":
+            file = re.sub(r"[^a-z0-9]+", "-", path.lower()).strip("-") or "home"
+            rel = f"casa-mia/page-qr/{file}.png"
+            try:
+                (self.media_dir / rel).parent.mkdir(parents=True, exist_ok=True)
+                (self.media_dir / rel).write_bytes(qr.png(text))
+            except OSError as exc:
+                return _json(
+                    500, {"error": f"Could not write to the media folder: {exc}"}
+                )
+            _LOGGER.info("guest login: QR code for %s saved to /media/%s", path, rel)
+            return _json(
+                200,
+                {
+                    "file": f"/media/{rel}",
+                    "media_source": f"media-source://media_source/local/{rel}",
+                    "url": text,
+                },
+            )
         return _json(404, {"error": "not found"})
 
     def qr(self, method: str, rest: list[str]) -> Response:

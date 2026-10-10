@@ -138,7 +138,7 @@ def main() -> int:
                 token, EVENT, {"endpoint": ep.id, "label": ep.label, "ip": ip}
             ),
         )
-        guest.welcome = runtime(store)[3]
+        guest.welcome, guest.house_info = runtime(store)[3:]
         guest.start()
         modules["guest_login"] = guest.health
         post_handlers["/guest-login/"] = guest.control

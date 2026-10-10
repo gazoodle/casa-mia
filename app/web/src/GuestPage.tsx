@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { del, get, post, put, type Endpoint, type GuestConfig, type HAChoices, type Login } from "./api";
 import { ago } from "./format";
 import { EndpointDialog, LoginDialog, PasswordDialog, SettingsDialog } from "./GuestDialogs";
+import { PageQrDialog, ReachArea } from "./GuestReach";
 import { GuestIcon } from "./icons";
 import { AreaHead, Empty, Shell } from "./page";
 import { copyText, Switch, Toasts, type Toast } from "./ui";
@@ -25,6 +26,7 @@ type Editing =
   | { kind: "login" }
   | { kind: "password"; login: Login }
   | { kind: "settings" }
+  | { kind: "page-qr" }
   | null;
 
 export function GuestPage({ state }: { state?: string }) {
@@ -91,9 +93,14 @@ export function GuestPage({ state }: { state?: string }) {
       {...HEAD}
       state={state}
       action={
-        <button className={ui.button} onClick={() => setEditing({ kind: "settings" })}>
-          Settings
-        </button>
+        <>
+          <button className={ui.button} onClick={() => setEditing({ kind: "page-qr" })}>
+            QR code for a page
+          </button>
+          <button className={ui.button} onClick={() => setEditing({ kind: "settings" })}>
+            Settings
+          </button>
+        </>
       }
     >
       {ha?.error && (
@@ -211,12 +218,21 @@ export function GuestPage({ state }: { state?: string }) {
                   confirm(`Remove the login ${l.name}? The Home Assistant user itself is kept.`) &&
                   change(() => del<GuestConfig>(`logins/${l.name}`), `${l.name} removed`)
                 }
+                onSignOut={() =>
+                  confirm(`Sign out everyone signed in as ${l.name}, on every endpoint that uses it? They can scan again while an endpoint is open.`) &&
+                  post<{ message: string }>(`logins/${l.name}/sign-out`).then(
+                    (out) => toast(out.message),
+                    (err) => toast((err as Error).message, "bad"),
+                  )
+                }
                 toast={toast}
               />
             ))}
           </div>
         )}
       </section>
+
+      <ReachArea toast={toast} />
 
       {editing?.kind === "endpoint" && (
         <EndpointDialog
@@ -255,6 +271,7 @@ export function GuestPage({ state }: { state?: string }) {
           }}
         />
       )}
+      {editing?.kind === "page-qr" && <PageQrDialog ha={ha} onClose={() => setEditing(null)} toast={toast} />}
       {editing?.kind === "settings" && (
         <SettingsDialog
           config={config}
@@ -335,7 +352,17 @@ function Detail({
       <p className={css.lands}>
         Lands on <code>{e.dashboard}</code> as <strong>{e.account ?? defaultLogin}</strong>
         {e.legacy && " · answers the printed QR code"}
+        {e.info && e.type === "guest" && " · shows the house info first"}
       </p>
+      {(e.end_sessions || e.rotate) && (
+        <p className={css.lands}>
+          On closing:{" "}
+          {[e.end_sessions && "signs its visitors out", e.rotate && "gets a new secret address (this QR code stops working)"]
+            .filter(Boolean)
+            .join(", and ")}
+          .
+        </p>
+      )}
       <div className={css.actions}>
         <a className={`${ui.button} ${ui.small}`} href={`${qr}.png?v=${v}`} download={`${e.id}-qr.png`}>
           Download PNG
@@ -404,6 +431,7 @@ function LoginCard({
   onPassword,
   onDefault,
   onDelete,
+  onSignOut,
   toast,
 }: {
   login: Login;
@@ -412,6 +440,7 @@ function LoginCard({
   onPassword: () => void;
   onDefault: () => void;
   onDelete: () => void;
+  onSignOut: () => void;
   toast: (text: string, tone?: Toast["tone"]) => void;
 }) {
   const [testing, setTesting] = useState(false);
@@ -456,6 +485,9 @@ function LoginCard({
             Make default
           </button>
         )}
+        <button className={`${ui.button} ${ui.small}`} onClick={onSignOut}>
+          Sign everyone out
+        </button>
         <button className={`${ui.danger} ${ui.small}`} onClick={onDelete}>
           Remove
         </button>

@@ -1,7 +1,7 @@
 # Handover: Casa Mia, for agents joining the work
 
 Where the project stands and how the work is done here, as of 2026-10-10 (`dev` at
-2026.10.6-b1; 2026.10.5 released). **Read this at the start of every
+2026.10.6-b2, uncommitted; 2026.10.5 released). **Read this at the start of every
 session**, then CLAUDE.md in full; where they disagree, CLAUDE.md wins. It replaces
 re-reading old transcripts: the history below is all a new session needs.
 
@@ -182,8 +182,24 @@ dashboards_on`).
   `?edit=1`. A README section and guide for each.
 - **2026.10.6-b1** (committed, not pushed): Home Assistant 2026.9 or later
   stated (`homeassistant:` in `app/config.yaml`, README, DOCS.md); the Over layer rated Alpha.
+- **2026.10.6-b2** (built overnight, unasked-for choices made by Claude, **uncommitted** for
+  the owner to inspect): the whole Guest login backlog. Endpoint options `end_sessions`
+  (closing signs the login's user out: `HA.sign_out` deactivates then reactivates the user,
+  which removes its refresh tokens and closes its sockets; kept while another open endpoint
+  shares the login; never for an admin), `rotate` (new slug on close), `info` (house info,
+  Continue before sign-in); a ticker closes timed openings properly (`_expire`, 15 s);
+  2FA (HA's `mfa` step: the page asks for the code, `Pending` flows 5 min); the engineer
+  page (no photo, no delay); **Sign everyone out** per login; `reach.py` (what each login
+  can reach, flags); **QR code for a page** (`page-qr`); the guide's "How far can a session
+  be narrowed?". `login.py`'s Supervisor calls moved to `supervisor.py` (RULE THREE). The
+  guest API fixtures moved to `tests/conftest.py`.
 
 ## Where things stand
+
+- **2026.10.6-b2 is in the working tree, not committed:** the owner reviews it, then asks
+  for the commit. Untested on the box: sign-out on close, 2FA against a real HA user, the
+  reach check against real dashboards, and the admin page's new parts (built and
+  type-checked, not looked at). The guide's screenshots predate the new options.
 
 - **The owner tested the GitHub release install end to end** on the HAOS test VM. Don't
   offer to walk it again.

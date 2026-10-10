@@ -1,18 +1,12 @@
 import json
-import threading
-from http.server import ThreadingHTTPServer
-
-import pytest
 
 from casa_mia.ha import HAError
 from casa_mia.modules.guest_login import (
-    GuestAPI,
     GuestLogin,
     empty_store,
     load_store,
     runtime,
 )
-from test_guest_login import FakeHA as FakeLogin  # HA's /auth/login_flow
 
 
 class FakeHA:
@@ -43,30 +37,6 @@ class FakeHA:
 
     def set_password(self, user_id, password):
         self.passwords[user_id] = password
-
-
-@pytest.fixture
-def login_server():
-    server = ThreadingHTTPServer(("127.0.0.1", 0), FakeLogin)
-    threading.Thread(target=server.serve_forever, daemon=True).start()
-    yield f"http://127.0.0.1:{server.server_port}"
-    server.shutdown()
-    server.server_close()
-
-
-@pytest.fixture
-def api(tmp_path, login_server):
-    guest = GuestLogin(
-        [], {}, port=0, internal_url=login_server, state_path=tmp_path / "state.json"
-    )
-    return GuestAPI(
-        guest,
-        tmp_path / "guest-login.json",
-        empty_store(),
-        FakeHA(),  # type: ignore[arg-type]
-        tmp_path / "media",
-        lan_host=lambda: "192.168.1.20",
-    )
 
 
 def call(api, method, path, body=None, query=None):

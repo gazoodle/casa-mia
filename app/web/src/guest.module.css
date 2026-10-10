@@ -50,6 +50,9 @@
 }
 
 .settings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-left: auto;
 }
 
@@ -452,4 +455,86 @@
   .areaHead {
     flex-wrap: wrap;
   }
+}
+
+/* What each login can reach */
+.reach {
+  display: grid;
+  gap: 12px;
+}
+
+.reachHead h3 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 0 0 2px;
+  font-size: 15px;
+}
+
+.reachBad,
+.reachGood {
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.reachBad {
+  background: color-mix(in srgb, var(--bad) 14%, transparent);
+  color: var(--bad);
+}
+
+.reachGood {
+  background: color-mix(in srgb, var(--good) 14%, transparent);
+  color: var(--good);
+}
+
+.flags {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.flags li {
+  padding: 7px 10px;
+  border-left: 3px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+}
+
+.flag_bad {
+  border-left-color: var(--bad) !important;
+}
+
+.flag_warn {
+  border-left-color: var(--warn) !important;
+}
+
+.flag_note {
+  color: var(--muted);
+}
+
+.boards {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.boards code {
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.fieldset textarea {
+  width: 100%;
+  font: inherit;
+  resize: vertical;
 }

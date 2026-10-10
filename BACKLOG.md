@@ -4,21 +4,10 @@ Not scheduled. Newest ideas first within each section. Move an item into the REA
 
 ## Guest login
 
-- **Guest login: what each login can reach** (asked 2026-10-09). For each guest and engineer login, show on the Guest login page what that HA user can get to: which dashboards and views (admin-only dashboards, views' `visible` user lists, sidebar), and whether kiosk-mode hides the header and sidebar for it. Flag what's open that probably shouldn't be (a dashboard any user can open, a view with no user restriction, kiosk-mode missing), so locking a login down is checked rather than assumed. Pairs with the tightening item below and the Kiosk mode page.
-
-- **Guest login: tighten what a code's session can do** (asked 2026-10-09). Today a code hands the visitor a real non-admin Home Assistant session; the landing dashboard and kiosk-mode only hide the rest, so anything HA's websocket allows a non-admin user (every entity's state, any service: locks, doors) works from the visitor's own tools. The docs say so (Guest login → How safe is it?). Investigate tightening this path:
-  - **2FA on a code:** honour HA's TOTP for the login. The sign-in flow today expects `create_entry` and fails at HA's MFA step; ask for the code on the welcome page and pass it to the flow. For codes left on a wall (an engineer's code on the heat pump door).
-  - **Rotating engineer logins:** a fresh password or secret address per visit, so an old code is no good.
-  - **Ending sessions when a code closes:** closing stops new sign-ins only. Revoke the user's refresh tokens on close (or deactivate the user), with care for a login shared by several endpoints.
-  - **Narrowing the session:** what HA allows (a user per endpoint, local only, entity exposure, a proxy in front of the websocket), and what is worth its cost.
-
-- **Guest login follow-ups** (the module is complete, app 0.1.26):
-  - House-info page for guests (Wi-Fi, house rules), agreed in the design but not built.
-  - Engineer endpoints: `type` is only recorded so far; give them a minimal page if wanted.
-  - Revoke-on-disable: switching an endpoint off also revokes its user's sessions. Needs a dedicated HA user per endpoint (see the design notes below).
-  - Retire the old app: remove `cnorick/ha-auto-guest-login` and its repository from the App store once the printed codes have run on the new module for a while.
-
-- **QR code generator for HA paths**: a way to make a new QR code for any HA path (a dashboard, a view) easily, so new guest-style cards can be built without new code. Likely shares the guest-login module's QR and card rendering. Scope to be decided when it starts.
+- **Guest login, after 2026.10.6-b2** (reach check, sign-out on close, 2FA, rotating addresses, house info, engineer page and page QR codes built in b2):
+  - Rotating addresses: the new QR code is only on the admin page. If engineers' codes are sent by text, FONA could send the new address when an endpoint opens.
+  - Kiosk-mode templates and `mobile_settings` are not read by the reach check (it reads the on/off options per everyone, non-admins, admins and named users); say "not checked" when a dashboard has them.
+  - "Save to HA media" puts QR codes in `/media`, which non-admin users can browse: a guest could find another suite's code there. Warn on the page, or save elsewhere.
 
 ## Cameras, Camera Commander and the compositor
 
@@ -115,6 +104,7 @@ Not scheduled. Newest ideas first within each section. Move an item into the REA
   - How it relates to `tablet-provision` (probably shares the roster).
 
 - **Over layer: intercom mode** (asked 2026-10-09; the Over layer shipped in 2026.10.5-b3). A call to a tablet (a doorbell, another room) brings the intercom up over whatever the tablet shows, answered there, gone when the call ends: an Over layer whose Visibility follows the call, holding an intercom card. Needs the intercom side (which card, which calls, per tablet).
+- **Over layer: card transparency** An option to control the translucence of the over lay card in addition to the opacity of the backdrop, allows for overlay cards that don;t totally obscure the underlying content.
 - **Kiosk mode: an option to turn off its way out** (asked 2026-10-10). kiosk-mode's `?disable_km` in a page's address switches it off for that page, which anyone at a wall tablet's browser (or a guest who knows) can use. A per-dashboard option on the Kiosk mode page to remove or disable that escape, if kiosk-mode offers a way (check its options), else say plainly what it can't stop. The Over layer has no such escape: its way out is HA's own edit mode (`?edit=1`, admins only).
 - **Kiosk mode, after v1** (the Kiosk mode page, 2026.10.3-b22: each dashboard's `kiosk_mode:` as a grid of on/off options by who (everyone, non-admins, admins, named users), the rest as YAML, YAML-checked before saving; [NemesisRE/kiosk-mode](https://github.com/NemesisRE/kiosk-mode) is third-party: use it, don't vendor it):
   - **Install it too**, straight from its GitHub releases rather than through HACS: fetch the release's `kiosk-mode.js`, serve it, and load it into HA's frontend (as the integration loads cm-cards.js), updating when a new release comes out. Decide: pin a known-good release or always take the latest (a bad release would break every dashboard; its README lists which release suits which HA version); check the download (release asset, checksum if one is published); log each install and update (RULE TWO); and don't install it where HACS already has it (two copies would both load). The page then says which copy is loaded and offers the install when there is none.

@@ -65,7 +65,16 @@ Each login has these buttons:
 - **Password** changes the stored password, and, if you tick the box, the user's password
   in Home Assistant too.
 - **Make default** sets the login used by every endpoint that doesn't name its own.
+- **Sign everyone out** ends every session of the login's user at once: each phone
+  signed in with it is back at Home Assistant's login screen. (Not offered for an
+  administrator: it would sign your own household out.)
 - **Remove** forgets the login. The Home Assistant user itself is kept.
+
+**Two-factor sign-in.** If the login's user has two-factor authentication (an
+authenticator app, in the user's Home Assistant profile), a scan asks for the code before
+it signs anyone in. Use it for codes that stay on a wall, such as an engineer's code on
+the heat pump door: the engineer phones you, and you read them the code. A wrong code can
+be tried again; after five minutes the visitor has to scan again.
 
 ### Endpoints
 
@@ -80,7 +89,8 @@ An endpoint is one QR code: a guest suite, the plant room, a KNX panel. Add one 
   replaced.
 - **Landing dashboard:** where the visitor lands once signed in. Pick any dashboard
   view, or type a path.
-- **Type:** *Guest* shows the welcome page first. *Engineer* is for maintenance codes.
+- **Type:** *Guest* shows the welcome page, with your house's photo. *Engineer* shows a
+  plain *Maintenance access* page and goes straight on: for maintenance codes.
 - **Login:** which login it signs in as, or the default.
 - **Secret address:** the QR code points at `http://<your box>:8675/e/<secret>`. Anyone
   who has that address can sign in while the endpoint is open, so treat it like a
@@ -88,6 +98,17 @@ An endpoint is one QR code: a guest suite, the plant room, a KNX panel. Add one 
 - **Legacy QR code:** answers codes printed for ha-auto-guest-login, at
   `http://<your box>:8675/?d=<dashboard>`. The landing dashboard must then match the old
   code's `d=` value exactly.
+- **New secret address each time it closes:** so a code from a past visit is no good, for
+  an engineer's code sent for one visit. Take the new QR code from the page before the
+  next visit. A printed Legacy QR code keeps its address.
+- **Sign its visitors out when it closes:** closing the endpoint, by hand, from an
+  automation or when its time runs out, also ends every session of its login, so a guest
+  still inside is signed out. If another open endpoint uses the same login, its sessions
+  are kept until that one closes too, because Home Assistant can't tell the two endpoints'
+  visitors apart: give each endpoint its own login if that matters. On by default for a new
+  endpoint.
+- **Show the house info first** (guests only): the Wi-Fi and house rules from **Settings**
+  show under the welcome card, and the visitor presses **Continue** to sign in.
 - **Own welcome page:** a title, message and delay for this endpoint only. Otherwise it
   uses the ones in **Settings**.
 
@@ -111,7 +132,31 @@ The **Settings** button holds:
   it), with a **Preview** on a phone, a small phone or a tablet;
 - **Host in QR codes**, the address phones reach the box on. Leave it empty to use the
   address found automatically. If you change it, every QR code changes, including the
-  printed ones.
+  printed ones;
+- **House info:** the Wi-Fi's name and password, and your house rules (plain text; a
+  blank line starts a paragraph), for endpoints that show them.
+
+### What each login can reach
+
+**Check**, at the bottom of the page, asks Home Assistant what each login's user can get
+to, and flags what is probably open by mistake:
+- an administrator, a user that can sign in from outside your network, or a login shared
+  by several endpoints;
+- kiosk-mode not installed, or not hiding the header and sidebar for that user on the
+  dashboard an endpoint lands on;
+- the other dashboards that user can open by their address, and which are in its sidebar.
+
+Each login's card lists every dashboard and view its user can open. Remember that Home
+Assistant's sidebar and a view's *Visible* setting only hide: any dashboard that isn't
+admin-only opens for every user who types its address. Make the ones visitors mustn't see
+admin-only (Settings → Dashboards → the dashboard → *Admin only*).
+
+### QR code for a page
+
+**QR code for a page**, at the top, makes a QR code for any dashboard or view, to download
+or save to Home Assistant's media. It's a plain link to the page, at the host in QR codes:
+it signs nobody in, so it's for a phone that's already signed in, such as a guest's, to
+jump to the pool's dashboard from a card by the pool.
 
 <img src="../screenshots/guest-welcome.webp" alt="The welcome page a guest sees on their phone: the house photo, the welcome title and message" width="800">
 
@@ -149,22 +194,40 @@ to some entities or services. So:
 - **Hand codes only to people you'd trust in your house anyway.** They're standing in it.
 - **Keep codes closed** unless someone needs them: open them for a time, or from an
   automation while a booking lasts. A closed code signs nobody in.
-- **Remember that a session outlives the code.** Closing an endpoint stops new sign-ins;
-  it doesn't sign out a phone that's already in. To throw everyone out, make the user
-  inactive in Home Assistant (Settings → People → Users, with Advanced mode on in your
-  profile), and active again when you next need it.
+- **End sessions when a code closes.** Closing an endpoint stops new sign-ins. Tick **Sign
+  its visitors out when it closes** to throw out the phones already in, or press **Sign
+  everyone out** on the login.
+- **A login each** keeps endpoints apart: one guest suite's visitors can then be signed out
+  without the other's, and kiosk-mode and views can tell them apart.
+- **Two-factor sign-in** for codes left on a wall, and a **new secret address on each
+  close** for codes handed out per visit.
 - **Leave secret addresses unprinted** where strangers pass, and press **New** if one
   leaks.
+- **Press Check** under *What each login can reach* after any change to your dashboards.
 
-### Coming later
+### How far can a session be narrowed?
 
-- **A one-time code (2FA) on top of the QR code,** for codes that stay on a wall. For
-  example, an engineer's code on the heat pump door: the scan opens the sign-in, and it
-  still needs a code from your authenticator app before it lets anyone in.
-- **Rotating engineer logins:** a fresh password, or a fresh secret address, for each
-  visit, so a code from a past visit is no good.
-- **A tighter path:** we're investigating how far the session a code gives can be
-  narrowed down to what the visitor actually needs.
+We looked at what Home Assistant offers for keeping a signed-in visitor to what they
+need:
+
+- **A user per endpoint:** worth it, and free. Sessions can then be ended per endpoint,
+  kiosk-mode and a view's *Visible* setting can differ per suite, and the logbook says
+  which suite did what.
+- **Local only:** worth it. A user that can log in only from your network can't use a
+  leaked session from outside. Users Casa Mia creates are made this way; the check flags
+  one that isn't.
+- **Admin-only dashboards:** worth it. They are the only dashboards a non-admin can't
+  open by address.
+- **Limiting entities or services per user:** Home Assistant offers no way to set this in
+  its interface: a user is an administrator or not. So nothing stops a visitor's tools
+  calling a service on any entity.
+- **A proxy in front of Home Assistant** that passes only the visitor's own dashboard's
+  calls: possible in principle, but every dashboard card and every future Home Assistant
+  release would have to be followed, and a mistake would fail open. Not worth its cost
+  for visitors you've let into your house.
+
+So the practical limits are: non-admin, local only, a login each, closed when not
+needed, and signed out when closed. Beyond that, treat a code as a key to the house.
 
 ## Troubleshooting
 

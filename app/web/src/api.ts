@@ -86,6 +86,12 @@ export type Endpoint = {
   title: string | null;
   message: string | null;
   delay: number | null;
+  /** Show the house info (Wi-Fi, house rules) and wait for Continue. */
+  info: boolean;
+  /** Closing it signs out everyone its login let in. */
+  end_sessions: boolean;
+  /** Closing it gives it a new secret address. */
+  rotate: boolean;
   enabled?: boolean;
   until?: number | null;
   logins?: number;
@@ -99,6 +105,7 @@ export type GuestConfig = {
   welcome: { title: string; message: string; delay: number };
   qr_host: string;
   qr_host_effective: string;
+  house_info: HouseInfo;
   /** Every name the box answers to (QR host, LAN IP, .local name). */
   hosts: string[];
   port: number;
@@ -107,6 +114,23 @@ export type GuestConfig = {
 
 export type HAUser = { id: string; name: string; username: string | null; is_admin: boolean; is_active: boolean };
 export type HADashboard = { path: string; dashboard: string; view: string };
+export type HouseInfo = { wifi_name: string; wifi_password: string; text: string };
+/** What one login's Home Assistant user can get to (GET api/guest/reach). */
+export type Reach = {
+  name: string;
+  user: { name: string | null; is_admin: boolean; local_only: boolean; found: boolean };
+  endpoints: { id: string; label: string }[];
+  dashboards: {
+    title: string;
+    path: string;
+    sidebar: boolean;
+    landing: string[];
+    hides_header: boolean;
+    hides_sidebar: boolean;
+    views: { title: string; path: string; tab: boolean }[];
+  }[];
+  flags: { level: "bad" | "warn" | "note"; text: string }[];
+};
 export type HAChoices = { users: HAUser[]; dashboards: HADashboard[]; error: string | null };
 
 export type Kiosk = {

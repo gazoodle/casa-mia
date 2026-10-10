@@ -1,6 +1,10 @@
 """The welcome page a visitor sees while being signed in: the house photo fading into the
 page and a card with the title and message, in the admin panel's colours (light or dark
-by the phone's setting). Also rendered as a preview for the admin page."""
+by the phone's setting). Also rendered as a preview for the admin page.
+
+An engineer's page has no photo. With house info on, the Wi-Fi and house rules show under
+the card and the sign-in waits for Continue. When the login has two-factor sign-in, the
+card asks for the code and passes it on."""
 
 from __future__ import annotations
 
@@ -36,28 +40,87 @@ p{margin:0;color:var(--muted)}
 @keyframes b{0%,80%,100%{opacity:.25;transform:scale(.7)}40%{opacity:1;transform:none}}
 .done .dots{display:none}.bad h1{color:var(--bad)}
 .brand{margin-top:22px;color:var(--muted);font-size:12px;letter-spacing:.16em;text-transform:uppercase}
+.info{margin-top:16px;padding:18px 20px;border:1px solid var(--border);border-radius:18px;
+background:var(--surface);text-align:left}
+.info h2{margin:0 0 10px;font-size:15px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.info dl{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0 0 10px}
+.info dt{color:var(--muted)}.info dd{margin:0;font-family:ui-monospace,monospace;word-break:break-all;user-select:all}
+.info p{color:var(--text);margin:8px 0 0}
+button{font:inherit;font-weight:650;margin-top:18px;padding:11px 26px;border:0;border-radius:999px;
+background:var(--accent);color:var(--bg);cursor:pointer}
+form{margin-top:16px}form input{font:600 24px/1 ui-monospace,monospace;letter-spacing:.3em;width:100%;
+max-width:220px;padding:10px;text-align:center;border:1px solid var(--border);border-radius:12px;
+background:var(--bg);color:var(--text)}
+form button{display:block;margin:14px auto 0}
+.hero:empty{display:none}.hero:empty+main{margin-top:12vh}
 .preview{position:fixed;top:10px;left:50%;z-index:1;transform:translateX(-50%);padding:4px 12px;
 border-radius:999px;background:var(--sun);color:#1a1300;font-size:12px;font-weight:700}
 @media (prefers-reduced-motion:reduce){.dots span{animation:none;opacity:.7}}
 </style></head>
-<body><div class="hero"><div></div></div>
+<body><div class="hero">@HERO@</div>
 <main><div class="card" id="card"><h1 id="h">@TITLE@</h1><p id="p">@MESSAGE@</p>
-<div class="dots" aria-hidden="true"><span></span><span></span><span></span></div></div>
-<div class="brand">@HOUSE@</div></main>
+<div class="dots" aria-hidden="true"><span></span><span></span><span></span></div>
+<button id="go" hidden>Continue</button>
+<form id="mfa" hidden><input id="code" inputmode="numeric" autocomplete="one-time-code"
+maxlength="8" aria-label="Code"><button>Sign in</button></form></div>
+@INFO@<div class="brand">@HOUSE@</div></main>
 <script>
-const card=document.getElementById("card"),h_=document.getElementById("h"),p_=document.getElementById("p");
+const $=(id)=>document.getElementById(id),card=$("card"),h_=$("h"),p_=$("p"),mfa=$("mfa"),code=$("code"),cont=$("go");
 const say=(h,p,bad)=>{h_.textContent=h;p_.textContent=p;card.className="card done"+(bad?" bad":"")};
-const t0=Date.now(),delay=@DELAY@,preview=@PREVIEW@;
-if(preview){document.body.insertAdjacentHTML("afterbegin",'<div class="preview">Preview</div>');
- setTimeout(()=>say(h_.textContent,"Here the visitor is taken to their dashboard."),delay);}
-else fetch(location.pathname.replace(/\\/$/,"")+"/go"+location.search,{method:"POST"})
+const delay=@DELAY@,preview=@PREVIEW@,info=@INFO_ON@,wait=info?0:delay;
+const url=location.pathname.replace(/\\/$/,"")+"/go"+location.search;
+let t0=Date.now(),pending=null;
+const ask=(text)=>{say("One more step",text);mfa.hidden=false;code.value="";code.focus()};
+const fail=(e)=>{
+ if(e==="ha_unreachable")say("One moment","The house system is not answering. Please try again shortly.",true);
+ else if(e==="rate_limited")say("Too many tries","Please wait a minute and scan again.",true);
+ else if(e==="bad_code")ask("That code did not work. Type the newest one.");
+ else if(e==="mfa_expired")say("Sorry","That took too long. Please scan the code again.",true);
+ else say("Sorry","We could not sign you in. Please ask your host.",true)};
+const send=(body)=>fetch(url,{method:"POST",body:body&&JSON.stringify(body)})
  .then(r=>r.json().then(j=>({ok:r.ok,j})))
- .then(({ok,j})=>{if(ok){setTimeout(()=>{location.href=j.url},Math.max(0,delay-(Date.now()-t0)))}
-  else if(j.error==="ha_unreachable")say("One moment","The house system is not answering. Please try again shortly.",true);
-  else if(j.error==="rate_limited")say("Too many tries","Please wait a minute and scan again.",true);
-  else say("Sorry","We could not sign you in. Please ask your host.",true)})
+ .then(({ok,j})=>{if(ok&&j.mfa){pending=j.mfa;ask("Type the code from the authenticator app. Your host can give it to you.")}
+  else if(ok)setTimeout(()=>{location.href=j.url},Math.max(0,wait-(Date.now()-t0)));
+  else fail(j.error)})
  .catch(()=>say("Sorry","We could not reach the house. Are you on the guest Wi-Fi?",true));
+mfa.onsubmit=(e)=>{e.preventDefault();mfa.hidden=true;card.className="card";p_.textContent="Checking…";send({pending,code:code.value})};
+const start=()=>{t0=Date.now();
+ if(preview)setTimeout(()=>say(h_.textContent,"Here the visitor is taken to their dashboard."),wait);
+ else send()};
+if(preview)document.body.insertAdjacentHTML("afterbegin",'<div class="preview">Preview</div>');
+if(info){card.className="card done";cont.hidden=false;p_.hidden=true;
+ cont.onclick=()=>{cont.hidden=true;p_.hidden=false;card.className="card";start()}}
+else start();
 </script></body></html>"""
+
+
+def render_info(info: dict[str, str] | None) -> str:
+    """The house info card: the Wi-Fi's name and password, then the house rules, each
+    blank-line-separated paragraph of them a paragraph. Empty when there is nothing."""
+    info = info or {}
+    wifi = [
+        (label, str(info.get(key) or "").strip())
+        for label, key in (("Network", "wifi_name"), ("Password", "wifi_password"))
+    ]
+    rows = "".join(
+        f"<dt>{label}</dt><dd>{html.escape(value)}</dd>"
+        for label, value in wifi
+        if value
+    )
+    text = str(info.get("text") or "").strip()
+    paras = "".join(
+        "<p>" + html.escape(part.strip()).replace("\n", "<br>") + "</p>"
+        for part in text.split("\n\n")
+        if part.strip()
+    )
+    if not (rows or paras):
+        return ""
+    return (
+        '<section class="info">'
+        + (f"<h2>Wi-Fi</h2><dl>{rows}</dl>" if rows else "")
+        + (f"<h2>The house</h2>{paras}" if paras else "")
+        + "</section>"
+    )
 
 
 def render_welcome(
@@ -67,13 +130,19 @@ def render_welcome(
     image_url: str | None,
     preview: bool = False,
     frame: dict[str, float] | None = None,
+    info: dict[str, str] | None = None,
 ) -> str:
-    """The page, with `delay` seconds (clamped 0-30) and the house photo at `image_url`,
-    framed as saved on the admin page (or as `frame`, for an unsaved preview)."""
+    """The page, with `delay` seconds (clamped 0-30) and the house photo at `image_url`
+    (none: no photo), framed as saved on the admin page (or as `frame`, for an unsaved
+    preview). With `info`, the house info shows and the sign-in waits for Continue."""
     image = f"url({json.dumps(image_url)})" if image_url and header_jpeg() else ""
     frame = header.framing()["welcome"] if frame is None else frame
+    info_html = render_info(info) if info is not None else ""
     return (
-        PAGE.replace("@TITLE@", html.escape(title))
+        PAGE.replace("@HERO@", "<div></div>" if image else "")
+        .replace("@INFO@", info_html)
+        .replace("@INFO_ON@", "true" if info_html else "false")
+        .replace("@TITLE@", html.escape(title))
         .replace("@MESSAGE@", html.escape(message))
         .replace("@HOUSE@", html.escape(header.HOUSE))
         .replace("@DELAY@", str(max(0, min(int(delay), 30)) * 1000))

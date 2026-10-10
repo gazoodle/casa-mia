@@ -16,6 +16,8 @@ The parts:
   login.py  GuestLogin: the endpoints, the sign-in, the welcome page served
   api.py    GuestAPI: the admin page's API and the config store
   page.py   the welcome page, rendered
+  supervisor.py  calls to HA's login API and the Supervisor
+  reach.py  what each login's HA user can get to, and what is left open
 """
 
 from __future__ import annotations
@@ -41,23 +43,25 @@ from .login import (
     PORT,
     RATE_LIMIT,
     RATE_WINDOW,
-    TIMEOUT,
     UNAVAILABLE,
     WELCOME_DELAY,
     WELCOME_MESSAGE,
     Endpoint,
     GuestLogin,
     LoginError,
-    fire_event,
-    supervisor_ha_port,
-    supervisor_lan_ip,
-    supervisor_mdns_name,
     welcome_title,
 )
 from .page import (
     PAGE,
     header_jpeg,
     render_welcome,
+)
+from .supervisor import (
+    TIMEOUT,
+    fire_event,
+    supervisor_ha_port,
+    supervisor_lan_ip,
+    supervisor_mdns_name,
 )
 
 __all__ = [

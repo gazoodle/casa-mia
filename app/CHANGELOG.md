@@ -1,5 +1,31 @@
 # Changelog
 
+## 2026.10.6-b2
+
+- **Guest login, locked down as far as Home Assistant allows.**
+  - **Sign its visitors out when it closes:** a new option on each endpoint. Closing it, by
+    hand, from an automation or when its time runs out, ends every session of its login,
+    so a guest still inside is signed out. A login shared with another open endpoint keeps
+    its sessions until that one closes too. On for new endpoints; existing ones keep
+    working as before until you tick it.
+  - **Sign everyone out**, a new button on each login, does the same by hand.
+  - **Two-factor sign-in:** a login whose user has an authenticator app now asks the
+    visitor for the code after the scan, instead of failing.
+  - **New secret address each time it closes:** for an engineer's code handed out per
+    visit, so a code from a past visit is no good.
+  - **What each login can reach:** a check at the bottom of the page lists the dashboards
+    and views each login's user can open, and flags what's probably open by mistake: an
+    administrator, a user that can sign in from outside, a shared login, kiosk-mode
+    missing or not hiding the header and sidebar where an endpoint lands.
+  - The guide says what Home Assistant can and can't do to narrow a visitor's session.
+- **House info for guests:** the Wi-Fi's name and password and your house rules, set in
+  Guest login's Settings, shown on the welcome page before signing in, for endpoints with
+  *Show the house info first* on.
+- **Engineer endpoints get their own page:** a plain *Maintenance access* card with no
+  house photo, that signs in at once (an endpoint's own welcome settings still apply).
+- **QR code for a page:** a new button on the Guest login page makes a QR code for any
+  dashboard or view, to download or save to Home Assistant's media.
+
 ## 2026.10.6-b1
 
 - Casa Mia needs Home Assistant 2026.9 or later, now said in the README and the app's
