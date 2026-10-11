@@ -37,6 +37,8 @@ export type WatchRecord = {
   exceptions?: StateLevel[];
   /** Its name to show: its own, else Home Assistant's. */
   label?: string;
+  /** The profile it follows (its levels then come from there). */
+  profile?: string;
   /** What Home Assistant says of it, for the filters (sent with the list). */
   meta?: {
     name?: string;
@@ -48,6 +50,7 @@ export type WatchRecord = {
     device?: string;
     device_class?: string;
     kind?: string;
+    domain?: string;
   };
 };
 
@@ -55,8 +58,21 @@ export type WatchRecord = {
  * integrations, and those ignored (entry id -> its name). */
 export type SystemSettings = { core: boolean; integrations: boolean; ignore: Record<string, string> };
 
+/** A named set of levels many sensors follow (app/.../sensor_watch/profiles.py). */
+export type Profile = Omit<WatchRecord, "entity_id" | "label" | "meta" | "profile"> & { id: string; followers: number };
+
+/** What a sensor of each kind may follow (profiles.py FITS). */
+export const FITS: Record<string, string[]> = { numeric: ["numeric", "state"], binary: ["binary"], state: ["state"] };
+
+/** A record's levels alone: what a profile holds, or a record of its own. */
+export function levelsOf(r: Partial<WatchRecord>): Partial<WatchRecord> {
+  const { entity_id: _e, label: _l, meta: _m, profile: _p, name: _n, ...levels } = r as WatchRecord;
+  return levels;
+}
+
 export type WatchView = {
   records: WatchRecord[];
+  profiles: Profile[];
   system: SystemSettings;
   levels: Level[];
   /** Label id -> its name. */
@@ -76,6 +92,7 @@ export type Candidate = {
   area: string;
   device_id?: string | null;
   device?: string;
+  domain?: string;
   labels: string[];
   platform: string;
   device_class: string;
@@ -93,13 +110,15 @@ export type Options = {
   devices: { id: string; name: string }[];
   labels: { id: string; name: string }[];
   platforms: string[];
+  /** Every domain with an entity; a scan without one looks at the usual few. */
+  domains: string[];
   device_classes: string[];
 };
 
 export type CandidatesView = { total: number; sensors: Candidate[]; options: Options };
 
-export type Filters = { q: string; area: string; label: string; platform: string; device: string; device_class: string; kind: string };
-export const NO_FILTERS: Filters = { q: "", area: "", label: "", platform: "", device: "", device_class: "", kind: "" };
+export type Filters = { q: string; domain: string; area: string; label: string; platform: string; device: string; device_class: string; kind: string; profile?: string };
+export const NO_FILTERS: Filters = { q: "", domain: "", area: "", label: "", platform: "", device: "", device_class: "", kind: "", profile: "" };
 
 export type Suggestion = {
   count?: number;
@@ -141,9 +160,11 @@ export type ScanView = {
 
 /** A sensor's kind from its entity id, known before anything is asked of HA. */
 export function kindOf(entityId: string): "numeric" | "binary" | "state" {
+  // A first guess until Home Assistant answers (history.py kind_of, ON_OFF and NUMBERS).
   const domain = entityId.split(".")[0];
-  if (domain === "binary_sensor" || domain === "update") return "binary";
-  return domain === "sensor" ? "numeric" : "state"; // covers, locks, valves... (history.py DOMAINS)
+  if (["binary_sensor", "update", "switch", "input_boolean", "fan", "light", "siren", "remote", "automation", "script", "humidifier"].includes(domain))
+    return "binary";
+  return ["sensor", "input_number", "number", "counter"].includes(domain) ? "numeric" : "state";
 }
 
 /** "10–25", "… –10", "25 –…" */

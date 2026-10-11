@@ -128,13 +128,17 @@ Every watched sensor, its level now and its value, with a search and a level fil
 house with hundreds of them stays manageable. **Edit** changes a sensor's bands;
 **Stop watching** removes it.
 
-### Add a sensor
+### Watch an entity
+
+Any entity can be watched: a sensor, but also an `input_number` you type a reading into
+(a pool's pH from a test strip), a `number`, a `switch` that should stay on, a `select`.
+How it's watched follows its state: a number gets bands, `on` and `off` get on/off, and
+anything else exact states.
 
 Search for it by name, entity id or its device's name (every word, in any order), or
-narrow the list by **area**, **label**, **integration**, **device** (only those with
-sensors matching the other filters, so choosing ESPHome lists only ESPHome devices),
-**device class** or kind (numeric, on/off, or states: text, enum, covers, locks, valves,
-vacuums and mowers). Pick one, and Sensor
+narrow the list by **domain**, **area**, **label**, **integration**, **device** (only
+those with entities matching the other filters, so choosing ESPHome lists only ESPHome
+devices), **device class** or kind (numeric, on/off, or states). Pick one, and Sensor
 Watch reads its history (30 days unless you choose otherwise) and suggests its bands:
 
 - **Numeric sensors:** the history's spread gives the nominal band, rounded outwards to a
@@ -189,10 +193,27 @@ Each sensor also has:
 - **Hold-off:** how long a new level must last before it counts (60 seconds by default),
   so a blip, or Home Assistant starting up, doesn't raise the alarm.
 
+### Profiles
+
+A profile is a set of levels said once for many sensors: twenty plugs on the same mains
+want the same bands (critical below 207 V, a warning below 216 V), not twenty slightly
+different suggestions. In a sensor's editor, **Save as a new profile** makes its levels a
+profile it then follows; **Follows** picks a profile for it (or its own levels again).
+Editing a follower's levels changes the profile, and so every sensor that follows it,
+after asking. A number can follow a bands or an exact-states profile; on/off and exact
+states only their own kind.
+
+To have many follow one at once: in **Scan my house**, choose **Use the profile … for the
+ticked**; on the watched list, filter to them and choose **Follow a profile** under it.
+The **Profiles** section lists each with how many follow it; **Rename** it, or **Delete**
+it (its followers keep a copy of its levels as their own).
+
 ### Scan my house
 
-Suggest bands for every sensor that isn't watched yet, at once: narrow it by area,
-label, integration or device class, or scan everything. A scan reads 500 sensors a
+Suggest bands for everything that isn't watched yet, at once: narrow it by area,
+label, integration, device or device class, or scan everything. Without a **domain**, a scan
+looks at sensors, binary sensors, updates, covers, locks, valves, vacuums and mowers, not
+every light, switch and helper; choose a domain to scan others (all your `number`s, say). A scan reads 500 sensors a
 round, and the page says how many remain; **Scan the next 500** carries on where it
 stopped. Tick the suggestions you want and press **Watch the ticked**: nothing is
 watched until you accept it.

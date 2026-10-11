@@ -4,7 +4,21 @@
 import { useCallback, useEffect, useState } from "react";
 import { Dialog, Field, Segmented } from "../ui";
 import { HistoryChart } from "./chart";
-import { LEVELS, LEVEL_NAMES, kindOf, swApi, type Band, type Level, type StateLevel, type Suggested, type WatchRecord } from "./common";
+import {
+  FITS,
+  LEVELS,
+  LEVEL_NAMES,
+  kindOf,
+  levelsOf,
+  swApi,
+  type Band,
+  type Level,
+  type Profile,
+  type StateLevel,
+  type Suggested,
+  type WatchRecord,
+  type WatchView,
+} from "./common";
 import css from "./sensor-watch.module.css";
 import ui from "../ui.module.css";
 
@@ -16,13 +30,16 @@ const toBand = (d: Draft): Band => ({ from: d.from.trim() === "" ? null : Number
 export function RecordDialog({
   entityId,
   record,
+  profiles,
   onClose,
-  onSave,
+  change,
 }: {
   entityId: string;
   record?: WatchRecord;
+  profiles: Profile[];
   onClose: () => void;
-  onSave: (record: Omit<WatchRecord, "entity_id">) => Promise<boolean>;
+  /** The page's: run the calls, show the view they end with, say `done`. */
+  change: (action: () => Promise<WatchView>, done: string) => Promise<boolean>;
 }) {
   const [days, setDays] = useState("30");
   const [found, setFound] = useState<Suggested>();
@@ -39,6 +56,7 @@ export function RecordDialog({
   const [unavailable, setUnavailable] = useState<Level | "ignore">(record?.unavailable ?? "error");
   const [holdOff, setHoldOff] = useState(String(record?.hold_off ?? 60));
   const [name, setName] = useState(record?.name ?? "");
+  const [follows, setFollows] = useState(record?.profile ?? "");
   const [saving, setSaving] = useState(false);
 
   const adopt = (r: Omit<WatchRecord, "entity_id">) => {
@@ -49,6 +67,8 @@ export function RecordDialog({
     if (r.other) setOther(r.other);
     if (r.states) setStates(r.states.join(", "));
     setExceptions(r.exceptions ?? []);
+    if (r.unavailable) setUnavailable(r.unavailable);
+    if (r.hold_off !== undefined) setHoldOff(String(r.hold_off));
   };
 
   /** Its history and a suggestion, as `as` (a number as exact states), or as itself. */
@@ -80,11 +100,13 @@ export function RecordDialog({
   const seen: [string, number | undefined][] = found?.sensor.options?.length
     ? found.sensor.options.map((o) => [o, total ? (s?.seconds?.[o] ?? 0) / total : undefined])
     : Object.entries(s?.seconds ?? {}).map(([o, n]) => [o, total ? n / total : undefined]);
-  const save = async () => {
-    setSaving(true);
-    const body = {
+  // The profiles this sensor may follow (a number: bands or exact states).
+  const sensorKind = found?.sensor.kind ?? kindOf(entityId);
+  const fitting = profiles.filter((p) => (FITS[sensorKind] ?? []).includes(p.kind));
+  const following = profiles.find((p) => p.id === follows);
+
+  const levels = () => ({
       kind: kind ?? found?.sensor.kind ?? "numeric",
-      name: name.trim(),
       hold_off: Number(holdOff),
       unavailable,
       ...(kind === "binary"
@@ -92,8 +114,42 @@ export function RecordDialog({
         : kind === "state"
           ? { states: split(states), other, message, exceptions: exceptions.filter((e) => e.state.trim()) }
           : { bands: bands.map(toBand), otherwise }),
-    };
-    const ok = await onSave(body);
+  });
+  const label = name.trim() || record?.label || found?.sensor.name || entityId;
+  const put = (body: object) => swApi.put<WatchView>(encodeURIComponent(entityId), body);
+
+  /** Save: its own levels, or following a profile (changing the profile, if its levels
+   * were edited here, once the user agrees: it changes every sensor that follows it). */
+  const save = async () => {
+    setSaving(true);
+    let ok: boolean;
+    if (following) {
+      const edited = same(levelsOf(following), levels()) ? null : levels();
+      const others = following.followers - (record?.profile === following.id ? 1 : 0);
+      if (edited && others > 0 && !confirm(`Change the profile "${following.name}"? It changes all ${others + 1} sensors that follow it.`)) {
+        setSaving(false);
+        return;
+      }
+      ok = await change(async () => {
+        if (edited) await swApi.put<WatchView>(`profiles/${following.id}`, { name: following.name, ...edited });
+        return put({ profile: following.id, name: name.trim() });
+      }, `${label} follows ${following.name}`);
+    } else {
+      ok = await change(() => put({ name: name.trim(), ...levels() }), `${label} saved`);
+    }
+    setSaving(false);
+    if (ok) onClose();
+  };
+
+  /** Make these levels a new profile, and have this sensor follow it. */
+  const saveAsProfile = async () => {
+    const title = prompt("Name the new profile (e.g. Mains voltage):")?.trim();
+    if (!title) return;
+    setSaving(true);
+    const ok = await change(async () => {
+      const made = await swApi.post<WatchView & { created: string }>("profiles", { name: title, ...levels() });
+      return put({ profile: made.created, name: name.trim() });
+    }, `New profile ${title}; ${label} follows it`);
     setSaving(false);
     if (ok) onClose();
   };
@@ -107,6 +163,9 @@ export function RecordDialog({
         <>
           <button className={ui.button} onClick={onClose}>
             Cancel
+          </button>
+          <button className={ui.button} disabled={saving} onClick={saveAsProfile} title="Save these levels as a profile other sensors can follow">
+            Save as a new profile
           </button>
           <button className={ui.primary} disabled={saving} onClick={save}>
             {record ? "Save" : "Watch it"}
@@ -165,17 +224,43 @@ export function RecordDialog({
           </p>
         )}
         {found?.problem && <p className={css.problem}>{found.problem}. Is Home Assistant's History integration loaded? Set it up yourself meanwhile.</p>}
-        {found?.default && (
+        {found?.default && !record && !following && (
           <p className={css.note}>Set up by what it is (its kind and device class), not its history: change anything you like.</p>
         )}
         {found && !s && !found.problem && !found.default && <p className={css.note}>No history to suggest from: set it up yourself.</p>}
-        {record && found?.record && (
+        {record && found?.record && !following && (
           <button className={`${ui.button} ${ui.small}`} onClick={() => adopt(found.record)}>
             Use the suggestion
           </button>
         )}
       </div>
 
+      {fitting.length > 0 && (
+        <Field
+          label="Follows"
+          help={
+            following
+              ? `Its levels come from the profile ${following.name}, followed by ${following.followers} sensors: editing them here changes the profile.`
+              : "Its own levels, or a profile's (the same levels for many sensors, said once)."
+          }
+        >
+          <select
+            value={follows}
+            onChange={(e) => {
+              setFollows(e.target.value);
+              const p = profiles.find((x) => x.id === e.target.value);
+              if (p) adopt(p);
+            }}
+          >
+            <option value="">Its own levels</option>
+            {fitting.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name} ({p.followers} following)
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
       {kind === "binary" && (
         <div className={css.binary}>
           <label className={css.tick}>
@@ -326,4 +411,12 @@ function Exceptions({ items, onChange }: { items: StateLevel[]; onChange: (items
       </button>
     </div>
   );
+}
+
+/** The same levels, whatever order their keys came in? */
+function same(a: object, b: object): boolean {
+  const canon = (v: unknown): unknown =>
+    Array.isArray(v) ? v.map(canon) : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).sort(([x], [y]) => x.localeCompare(y)).map(([k, w]) => [k, canon(w)])) : v;
+  const { followers: _f, id: _i, ...rest } = a as Profile;
+  return JSON.stringify(canon(rest)) === JSON.stringify(canon(b));
 }

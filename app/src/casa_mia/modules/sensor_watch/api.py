@@ -10,7 +10,7 @@ import json
 import logging
 import re
 import threading
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
@@ -18,7 +18,15 @@ from ...ha import HA, HAError
 from . import suggest
 from .common import DEFAULT_HOLD_OFF, DOMAIN, LEVELS, BadRequest, Response, _json, clean
 from .defaults import default_record
-from .history import LIST_LIMIT, Reader, from_history, from_statistics, order
+from .history import (
+    LIST_LIMIT,
+    SCAN_DOMAINS,
+    Reader,
+    from_history,
+    from_statistics,
+    order,
+)
+from .profiles import clean_profile, follower, new_id, resolve
 from .status import Status
 
 _LOGGER = logging.getLogger(__name__)
@@ -36,6 +44,7 @@ NEEDS = {"recorder": "Recorder", "history": "History"}
 SYSTEM = {"core": True, "integrations": True, "ignore": {}}
 # A watched sensor's details the page filters by (from the candidates).
 META = (
+    "domain",
     "name",
     "area_id",
     "area",
@@ -46,7 +55,7 @@ META = (
     "device_class",
     "kind",
 )
-FILTERS = ("q", "area", "label", "platform", "device_class", "kind", "device")
+FILTERS = ("domain", "q", "area", "label", "platform", "device_class", "kind", "device")
 
 
 def words(text: str) -> list[str]:
@@ -67,6 +76,7 @@ def matches(c: dict[str, Any], f: dict[str, str]) -> bool:
         and (not f.get("device_class") or c["device_class"] == f["device_class"])
         and (not f.get("kind") or c["kind"] == f["kind"])
         and (not f.get("device") or c.get("device_id") == f["device"])
+        and (not f.get("domain") or c.get("domain") == f["domain"])
     )
 
 
@@ -124,12 +134,14 @@ class SensorWatch:
         self._lock = threading.Lock()
         self.records: dict[str, dict[str, Any]] = {}
         self.system: dict[str, Any] = dict(SYSTEM)
+        self.profiles: dict[str, dict[str, Any]] = {}  # id -> a profile (profiles.py)
         self._broken: str | None = None
         self._revision = ""
         try:
             data = json.loads(store_path.read_text())
             self.records = {r["entity_id"]: r for r in data.get("records", [])}
             self.system = SYSTEM | (data.get("system") or {})
+            self.profiles = data.get("profiles") or {}
         except FileNotFoundError:
             pass
         except (OSError, ValueError, AttributeError, KeyError, TypeError) as exc:
@@ -159,14 +171,14 @@ class SensorWatch:
         with self._lock:
             return {
                 "revision": self._revision,
-                "records": list(self.records.values()),
+                "records": [resolve(r, self.profiles) for r in self.records.values()],
                 "system": self.system | {"ignore": sorted(self.system["ignore"])},
             }
 
     def _revise(self) -> None:
         """A hash of the records and settings (caller holds the lock, or nobody else
         has it yet)."""
-        text = json.dumps([self.records, self.system], sort_keys=True)
+        text = json.dumps([self.records, self.system, self.profiles], sort_keys=True)
         self._revision = hashlib.sha256(text.encode()).hexdigest()[:16]
 
     # -- the admin page's API
@@ -212,8 +224,10 @@ class SensorWatch:
             return self._forget(body.get("entity_ids"))
         if method == "POST" and parts == ["accept"]:
             return self._accept(body.get("records"))
+        if parts[:1] == ["profiles"]:
+            return self._profiles(method, parts[1:], body)
         if len(parts) == 1 and method == "PUT":
-            record = clean(parts[0], body)
+            record = self._record(parts[0], body)
             self._save({parts[0]: record}, f"saved {parts[0]} ({_describe(record)})")
             return _json(200, self.view())
         if len(parts) == 1 and method == "DELETE":
@@ -226,7 +240,11 @@ class SensorWatch:
 
     def view(self) -> dict[str, Any]:
         with self._lock:
-            records = [dict(r) for r in self.records.values()]
+            records = [resolve(r, self.profiles) for r in self.records.values()]
+            profiles = [dict(p) for p in self.profiles.values()]
+        for p in profiles:
+            p["followers"] = sum(1 for r in records if r.get("profile") == p["id"])
+        profiles.sort(key=lambda p: p["name"].lower())
         known = self._known()
         for r in records:
             c = known.get(r["entity_id"], {})
@@ -238,6 +256,7 @@ class SensorWatch:
             system = self.system | {"ignore": dict(self.system["ignore"])}
         return {
             "records": records,
+            "profiles": profiles,
             "system": system,
             "levels": list(LEVELS),
             "labels": dict(self.reader.labels) if self.reader else {},  # id -> its name
@@ -365,10 +384,13 @@ class SensorWatch:
             watched = set(self.records)
         filters = {k: str(f.get(k) or "") for k in FILTERS}
         start: Any = f.get("start")  # [name, entity id] of the round's first sensor
+        # No domain asked for: the usual ones, not every light, switch and helper.
         every = [
             c
             for c in reader.candidates()
-            if c["entity_id"] not in watched and matches(c, filters)
+            if c["entity_id"] not in watched
+            and matches(c, filters)
+            and (filters["domain"] or c["domain"] in SCAN_DOMAINS)
         ]
         rest = (
             [c for c in every if order(c) >= tuple(start)] if _place(start) else every
@@ -468,7 +490,7 @@ class SensorWatch:
             if not isinstance(r, dict):
                 raise BadRequest("Each record must be an object.")
             eid = str(r.get("entity_id") or "")
-            cleaned[eid] = clean(eid, r)
+            cleaned[eid] = self._record(eid, r)
         self._save(
             cleaned, f"accepted {len(cleaned)} suggested records: {', '.join(cleaned)}"
         )
@@ -476,12 +498,13 @@ class SensorWatch:
 
     def _save(
         self,
-        changes: dict[str, dict[str, Any] | None],
+        changes: Mapping[str, dict[str, Any] | None],
         what: str,
         system: dict[str, Any] | None = None,
+        profiles: dict[str, dict[str, Any]] | None = None,
     ) -> None:
-        """Apply record changes (None removes one) and any new `system` settings, then
-        save, log `what`, and have the integration ask again."""
+        """Apply record changes (None removes one) and any new `system` settings or
+        `profiles`, then save, log `what`, and have the integration ask again."""
         with self._lock:
             if self._broken:
                 raise BadRequest(
@@ -489,6 +512,8 @@ class SensorWatch:
                 )
             if system is not None:
                 self.system = system
+            if profiles is not None:
+                self.profiles = profiles
             for eid, record in changes.items():
                 if record is None:
                     self.records.pop(eid, None)
@@ -496,7 +521,11 @@ class SensorWatch:
                     self.records[eid] = record
             tmp = self.store_path.with_name(self.store_path.name + ".tmp")
             self.store_path.parent.mkdir(parents=True, exist_ok=True)
-            data = {"records": list(self.records.values()), "system": self.system}
+            data = {
+                "records": list(self.records.values()),
+                "system": self.system,
+                "profiles": self.profiles,
+            }
             tmp.write_text(json.dumps(data, indent=2))
             tmp.replace(self.store_path)
             self._revise()
@@ -532,6 +561,94 @@ class SensorWatch:
             return _json(404, {"error": "Not found."})
         self._save({}, what, system)
         return _json(200, self.view())
+
+    def _record(self, entity_id: str, body: dict[str, Any]) -> dict[str, Any]:
+        """A record to save: its own levels, or following a profile (`profile`)."""
+        pid = body.get("profile")
+        if not pid:
+            return clean(entity_id, body)
+        with self._lock:
+            profile = self.profiles.get(str(pid))
+        if profile is None:
+            raise BadRequest("No such profile.")
+        return follower(
+            entity_id,
+            str(body.get("name") or "").strip(),
+            profile,
+            self._kind(entity_id),
+        )
+
+    def _kind(self, entity_id: str) -> str | None:
+        """The sensor's own kind, when Home Assistant can say (for what it may follow)."""
+        try:
+            c = self.reader.find(entity_id) if self.reader else None
+        except HAError:
+            c = None
+        return c["kind"] if c else None
+
+    def _profiles(
+        self, method: str, parts: list[str], body: dict[str, Any]
+    ) -> Response:
+        """POST profiles (a new one); PUT profiles/<id> (its name or levels); DELETE
+        profiles/<id> (its followers keep a copy); POST profiles/<id>/apply {entity_ids}
+        (those watched sensors follow it)."""
+        with self._lock:
+            profiles = {k: dict(v) for k, v in self.profiles.items()}
+            records = dict(self.records)
+        if method == "POST" and parts == []:
+            profile = clean_profile(body) | {"id": new_id(profiles)}
+            profiles[profile["id"]] = profile
+            self._save(
+                {},
+                f"new profile {profile['name']} ({profile['kind']})",
+                profiles=profiles,
+            )
+            return _json(201, self.view() | {"created": profile["id"]})
+        profile = profiles.get(parts[0]) if parts else None
+        if profile is None:
+            return _json(404, {"error": "No such profile."})
+        followers = [r for r in records.values() if r.get("profile") == profile["id"]]
+        if method == "PUT" and len(parts) == 1:
+            changed = clean_profile(body) | {"id": profile["id"]}
+            for r in followers:  # a new kind must still fit every follower
+                follower(
+                    r["entity_id"],
+                    r.get("name", ""),
+                    changed,
+                    self._kind(r["entity_id"]),
+                )
+            profiles[profile["id"]] = changed
+            what = (
+                f"profile {changed['name']} saved, followed by {len(followers)} sensors"
+            )
+            self._save({}, what, profiles=profiles)
+            return _json(200, self.view())
+        if method == "DELETE" and len(parts) == 1:
+            copies = {
+                r["entity_id"]: {
+                    k: v for k, v in resolve(r, profiles).items() if k != "profile"
+                }
+                for r in followers
+            }
+            del profiles[profile["id"]]
+            what = f"profile {profile['name']} deleted; its {len(copies)} followers keep a copy"
+            self._save(copies, what, profiles=profiles)
+            return _json(200, self.view())
+        if method == "POST" and parts[1:] == ["apply"]:
+            ids = body.get("entity_ids")
+            if not isinstance(ids, list) or not all(isinstance(e, str) for e in ids):
+                raise BadRequest("Expected entity_ids to follow the profile.")
+            now = {
+                e: follower(e, records[e].get("name", ""), profile, self._kind(e))
+                for e in dict.fromkeys(ids)
+                if e in records
+            }
+            self._save(
+                now,
+                f"{len(now)} sensors now follow {profile['name']}: {', '.join(now)}",
+            )
+            return _json(200, self.view())
+        return _json(404, {"error": "Not found."})
 
     def _reader(self) -> Reader:
         if self.reader is None:
@@ -585,6 +702,8 @@ def _days(value: Any) -> float:
 
 
 def _describe(record: dict[str, Any]) -> str:
+    if record.get("profile"):
+        return f"follows profile {record['profile']}"
     if record["kind"] == "binary":
         return f"binary, nominal {record['nominal']}, else {record['other']}"
     if record["kind"] == "state":

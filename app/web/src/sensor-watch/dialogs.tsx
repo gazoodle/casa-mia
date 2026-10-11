@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Dialog, Field } from "../ui";
-import { NO_FILTERS, query, summary, swApi, type CandidatesView, type Filters, type ScanView, type Suggested, type WatchRecord } from "./common";
+import { NO_FILTERS, query, summary, swApi, type CandidatesView, type Filters, type ScanView, type Suggested, type WatchRecord, FITS, type Profile } from "./common";
 import { FilterBar } from "./filters";
 import css from "./sensor-watch.module.css";
 import ui from "../ui.module.css";
@@ -33,7 +33,7 @@ export function PickDialog({ onClose, onPick }: { onClose: () => void; onPick: (
   return (
     <Dialog
       wide
-      title="Watch a sensor"
+      title="Watch an entity"
       onClose={onClose}
       footer={
         <button className={ui.button} onClick={onClose}>
@@ -67,7 +67,16 @@ export function PickDialog({ onClose, onPick }: { onClose: () => void; onPick: (
   );
 }
 
-export function ScanDialog({ onClose, onAccepted }: { onClose: () => void; onAccepted: (records: WatchRecord[]) => Promise<boolean> }) {
+export function ScanDialog({
+  profiles,
+  onClose,
+  onAccepted,
+}: {
+  profiles: Profile[];
+  onClose: () => void;
+  onAccepted: (records: WatchRecord[]) => Promise<boolean>;
+}) {
+  const [useProfile, setUseProfile] = useState("");
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const [days, setDays] = useState("30");
   const { view } = useCandidates(filters);
@@ -90,12 +99,18 @@ export function ScanDialog({ onClose, onAccepted }: { onClose: () => void; onAcc
     }
   };
 
+  const chosen = profiles.find((p) => p.id === useProfile);
   const accept = async () => {
     if (!scan) return;
     setBusy(true);
     const records = scan.found
       .filter((f) => ticked.has(f.sensor.entity_id))
-      .map((f) => ({ ...f.record, entity_id: f.sensor.entity_id }) as WatchRecord);
+      .map((f) =>
+        // The chosen profile where it fits the sensor; its own suggestion elsewhere.
+        chosen && (FITS[f.sensor.kind] ?? []).includes(chosen.kind)
+          ? ({ entity_id: f.sensor.entity_id, name: "", profile: chosen.id } as WatchRecord)
+          : ({ ...f.record, entity_id: f.sensor.entity_id } as WatchRecord),
+      );
     const ok = await onAccepted(records);
     setBusy(false);
     if (ok) setScan({ ...scan, found: scan.found.filter((f) => !ticked.has(f.sensor.entity_id)) });
@@ -137,8 +152,8 @@ export function ScanDialog({ onClose, onAccepted }: { onClose: () => void; onAcc
       }
     >
       <p className={css.note}>
-        Suggests bands for every sensor not watched yet, from its history, 500 a round. Narrow it, or scan everything. Nothing is watched until you
-        accept it.
+        Suggests bands for everything not watched yet, from its history, 500 a round. Without a domain it looks at sensors, binary sensors, updates,
+        covers, locks, valves, vacuums and mowers; choose a domain to scan others (all your numbers, say). Nothing is watched until you accept it.
       </p>
       <FilterBar value={filters} options={view?.options} onChange={setFilters} />
       <div className={css.scanBar}>
@@ -163,6 +178,16 @@ export function ScanDialog({ onClose, onAccepted }: { onClose: () => void; onAcc
       )}
       {scan && scan.found.length > 0 && (
         <div className={css.selectBar}>
+          {profiles.length > 0 && (
+            <select value={useProfile} onChange={(e) => setUseProfile(e.target.value)} aria-label="Use a profile for the ticked" className={css.profilePick}>
+              <option value="">Each its own suggestion</option>
+              {profiles.map((p) => (
+                <option key={p.id} value={p.id}>
+                  Use the profile {p.name} for the ticked ({p.kind})
+                </option>
+              ))}
+            </select>
+          )}
           <span className={css.note}>
             {ticked.size} of {scan.found.length} ticked
           </span>

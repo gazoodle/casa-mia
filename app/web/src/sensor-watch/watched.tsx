@@ -5,7 +5,7 @@
 import { useMemo, useState } from "react";
 import { Empty } from "../page";
 import { FilterChips, LevelChips, type ChipOptions, type Choice } from "./chips";
-import { LEVELS, LEVEL_NAMES, NO_FILTERS, summary, type Filters, type Level, type LevelsView, type WatchRecord } from "./common";
+import { LEVELS, LEVEL_NAMES, NO_FILTERS, summary, type Filters, type Level, type LevelsView, type WatchRecord, FITS, type Profile } from "./common";
 import css from "./sensor-watch.module.css";
 import ui from "../ui.module.css";
 
@@ -29,7 +29,9 @@ function passes(r: WatchRecord, f: Filters, words: string[], skip?: keyof Filter
     is("platform", m.platform) &&
     is("device", m.device_id) &&
     is("device_class", m.device_class) &&
-    is("kind", r.kind)
+    is("kind", r.kind) &&
+    is("domain", m.domain ?? r.entity_id.split(".")[0]) &&
+    is("profile", r.profile ?? "")
   );
 }
 
@@ -42,6 +44,8 @@ export function WatchedList({
   records,
   live,
   labels,
+  profiles,
+  onFollow,
   onEdit,
   onStop,
   onStopMany,
@@ -49,6 +53,9 @@ export function WatchedList({
   records: WatchRecord[];
   live?: LevelsView;
   labels: Record<string, string>;
+  profiles: Profile[];
+  /** These watched sensors follow that profile. */
+  onFollow: (rs: WatchRecord[], profile: Profile) => void;
   onEdit: (r: WatchRecord) => void;
   onStop: (r: WatchRecord) => void;
   /** Stop watching these (already confirmed by the user). */
@@ -70,9 +77,14 @@ export function WatchedList({
       platform: choices(leave("platform"), (r) => [[r.meta?.platform ?? "", r.meta?.platform ?? ""]]),
       device: choices(leave("device"), (r) => [[r.meta?.device_id ?? "", r.meta?.device ?? ""]]),
       device_class: choices(leave("device_class"), (r) => [[r.meta?.device_class ?? "", (r.meta?.device_class ?? "").replaceAll("_", " ")]]),
+      domain: choices(leave("domain"), (r) => {
+        const d = r.meta?.domain ?? r.entity_id.split(".")[0];
+        return [[d, d]];
+      }),
       kind: KINDS.filter((k) => leave("kind").some((r) => r.kind === k.id)),
+      profile: profiles.filter((p) => leave("profile").some((r) => r.profile === p.id)).map((p) => ({ id: p.id, name: p.name })),
     };
-  }, [records, filters, labels]); // `words` follows filters.q
+  }, [records, filters, labels, profiles]); // `words` follows filters.q
 
   const matched = useMemo(() => records.filter((r) => passes(r, filters, words)), [records, filters]);
   const counts = matched.reduce<Record<string, number>>((n, r) => {
@@ -145,6 +157,7 @@ export function WatchedList({
                       {now ? `${now.value ?? "?"}${now.message ? ` · ${now.message}` : ""} · ` : ""}
                       {summary(r)}
                       {r.meta?.area && ` · ${r.meta.area}`}
+                      {r.profile && ` · follows ${profiles.find((p) => p.id === r.profile)?.name ?? "a profile"}`}
                     </span>
                   </span>
                   <span className={css.rowActions}>
@@ -167,6 +180,28 @@ export function WatchedList({
         )}
       </div>
       <div className={css.bulk}>
+        {profiles.length > 0 && rows.length > 0 && (
+          <select
+            className={css.profilePick}
+            value=""
+            aria-label="Follow a profile"
+            onChange={(e) => {
+              const p = profiles.find((x) => x.id === e.target.value);
+              if (!p) return;
+              const fit = rows.filter((r) => (FITS[r.meta?.kind ?? r.kind] ?? []).includes(p.kind));
+              const skipped = rows.length - fit.length;
+              if (confirm(`Have ${fit.length} sensors follow ${p.name}?${skipped ? ` ${skipped} others can't (a different kind).` : ""} Their own levels are replaced.`))
+                onFollow(fit, p);
+            }}
+          >
+            <option value="">Follow a profile ({rows.length} shown)…</option>
+            {profiles.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        )}
         {filtering && rows.length > 0 && rows.length < records.length && (
           <button
             className={`${ui.danger} ${ui.small}`}

@@ -1,5 +1,5 @@
 """Sensible records by what a sensor is (its domain and device class), offered by Watch
-a sensor and the scan before any history: a leak is critical, a low battery a task, a
+an entity and the scan before any history: a leak is critical, a low battery a task, a
 window open a task. Where a sensor has one, it is used rather than a guess from history
 (which knows how a sensor behaved, not what it means); either way the user confirms."""
 

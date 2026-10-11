@@ -35,9 +35,11 @@ def _is_number(text: Any) -> bool:
         return False
 
 
-# What can be watched: sensors, and other entities whose state says something needs
-# attention (a window open, a lock jammed, an update waiting, a vacuum stuck).
-DOMAINS = (
+# Any entity can be watched (Watch an entity). A scan, unless asked for a domain, looks
+# at these: sensors, and other things whose state says something needs attention (a
+# window open, a lock jammed, an update waiting, a vacuum stuck), not every light,
+# switch and helper in the house.
+SCAN_DOMAINS = (
     "sensor",
     "binary_sensor",
     "update",
@@ -47,6 +49,31 @@ DOMAINS = (
     "vacuum",
     "lawn_mower",
 )
+# Domains whose state is on or off, and those whose state is a number.
+ON_OFF = (
+    "binary_sensor",
+    "update",
+    "switch",
+    "input_boolean",
+    "fan",
+    "light",
+    "siren",
+    "remote",
+    "automation",
+    "script",
+    "humidifier",
+)
+NUMBERS = ("input_number", "number", "counter")
+
+
+def kind_of(domain: str, state: str, attrs: dict[str, Any]) -> str:
+    """How an entity is watched: bands for a number, on/off for on or off, else exact
+    states (a cover, a lock, a text or enum sensor, a select)."""
+    if domain in ON_OFF:
+        return "binary"
+    if domain in NUMBERS or attrs.get("state_class") or _is_number(state):
+        return "numeric"
+    return "state"
 
 
 def order(c: dict[str, Any]) -> tuple[str, str]:
@@ -71,7 +98,7 @@ class Reader:
     # -- the sensors
 
     def candidates(self) -> list[dict[str, Any]]:
-        """Everything Sensor Watch could watch (DOMAINS; not its own entities)."""
+        """Every entity Sensor Watch could watch (not its own)."""
         with self._lock:
             if time.monotonic() - self._at < CANDIDATE_TTL:
                 return self._cands
@@ -95,17 +122,10 @@ class Reader:
                 eid = st["entity_id"]
                 domain = eid.split(".", 1)[0]
                 entry = reg.get(eid, {})
-                if domain not in DOMAINS or entry.get("platform") == DOMAIN:
-                    continue
+                if entry.get("platform") == DOMAIN:
+                    continue  # Sensor Watch's own
                 attrs = st.get("attributes") or {}
-                if domain in ("binary_sensor", "update"):
-                    kind = "binary"
-                elif domain != "sensor":
-                    kind = "state"  # covers, locks, valves, vacuums, mowers
-                elif attrs.get("state_class") or _is_number(st["state"]):
-                    kind = "numeric"
-                else:
-                    kind = "state"  # text and enum sensors: exact states
+                kind = kind_of(domain, st["state"], attrs)
                 area_id = entry.get("area_id") or device_area.get(
                     entry.get("device_id")
                 )
@@ -114,6 +134,7 @@ class Reader:
                         "entity_id": eid,
                         "name": attrs.get("friendly_name") or eid,
                         "kind": kind,
+                        "domain": domain,
                         "area_id": area_id,
                         "area": area_name.get(area_id, ""),
                         "device_id": entry.get("device_id"),
@@ -151,6 +172,7 @@ class Reader:
                 key=lambda lb: lb["name"].lower(),
             ),
             "platforms": sorted({c["platform"] for c in cands if c["platform"]}),
+            "domains": sorted({c["domain"] for c in cands}),
             "device_classes": sorted(
                 {c["device_class"] for c in cands if c["device_class"]}
             ),

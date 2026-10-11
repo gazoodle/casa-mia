@@ -253,6 +253,11 @@
   padding: 5px 8px;
 }
 
+/* A profile's row: its follower count can be wider than a level. */
+.profileRow {
+  grid-template-columns: max-content minmax(0, 1fr) auto;
+}
+
 .nameLine {
   display: flex;
   flex-wrap: wrap;
@@ -542,6 +547,12 @@
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
+}
+
+.profilePick {
+  width: auto;
+  max-width: 100%;
+  padding: 4px 8px;
 }
 
 .selectBar .note {

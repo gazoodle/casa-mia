@@ -10,6 +10,14 @@ export function FilterBar({ value, options, onChange }: { value: Filters; option
   return (
     <div className={css.filters}>
       <input type="search" placeholder="Search by name or entity id" value={value.q} onChange={set("q")} aria-label="Search" />
+      <select value={value.domain} onChange={set("domain")} aria-label="Domain">
+        <option value="">Any domain</option>
+        {options?.domains.map((d) => (
+          <option key={d} value={d}>
+            {d}
+          </option>
+        ))}
+      </select>
       <select value={value.area} onChange={set("area")} aria-label="Area">
         <option value="">Any area</option>
         {options?.areas.map((a) => (

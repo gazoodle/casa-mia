@@ -11,12 +11,14 @@ export type Choice = { id: string; name: string };
 export type ChipOptions = Partial<Record<Exclude<keyof Filters, "q">, Choice[]>>;
 
 const NAMES: Record<Exclude<keyof Filters, "q">, string> = {
+  domain: "Domain",
   area: "Area",
   label: "Label",
   platform: "Integration",
   device: "Device",
   device_class: "Device class",
   kind: "Kind",
+  profile: "Profile",
 };
 
 export function FilterChips({ value, options, onChange }: { value: Filters; options: ChipOptions; onChange: (f: Filters) => void }) {
@@ -24,13 +26,13 @@ export function FilterChips({ value, options, onChange }: { value: Filters; opti
     <>
       {(Object.keys(NAMES) as (keyof typeof NAMES)[]).map((key) => {
         const choices = options[key] ?? [];
-        if (!value[key] && choices.length < 2) return null; // nothing to choose between
+        if (!value[key] && choices.length === 0) return null; // nothing to choose
         return (
           <ChipMenu
             key={key}
             title={NAMES[key]}
             choices={choices}
-            chosen={value[key]}
+            chosen={value[key] ?? ""}
             onChoose={(id) => onChange({ ...value, [key]: id })}
           />
         );

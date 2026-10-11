@@ -8,6 +8,7 @@ import { Toasts, type Toast } from "../ui";
 import { swApi, type LevelsView, type WatchRecord, type WatchView } from "./common";
 import { PickDialog, ScanDialog } from "./dialogs";
 import { RecordDialog } from "./editor";
+import { ProfilesSection } from "./profiles";
 import { SystemSection } from "./system";
 import { WatchedList } from "./watched";
 import css from "./sensor-watch.module.css";
@@ -79,18 +80,22 @@ export function SensorWatchPage({ state }: { state?: string }) {
                 Scan my house
               </button>
               <button className={ui.primary} onClick={() => setPicking(true)}>
-                + Watch a sensor
+                + Watch an entity
               </button>
             </span>
           }
         />
         {view.records.length === 0 ? (
-          <Empty>Watch a sensor to give it bands, or scan the house for suggestions from history.</Empty>
+          <Empty>Watch an entity to give it bands, or scan the house for suggestions from history.</Empty>
         ) : (
           <WatchedList
             records={view.records}
             live={live}
             labels={view.labels ?? {}}
+            profiles={view.profiles ?? []}
+            onFollow={(rs, p) =>
+              change(() => swApi.post<WatchView>(`profiles/${p.id}/apply`, { entity_ids: rs.map((r) => r.entity_id) }), `${rs.length} sensors follow ${p.name}`)
+            }
             onEdit={(r) => setEditing({ entityId: r.entity_id, record: r })}
             onStopMany={(rs) =>
               change(() => swApi.post<WatchView>("forget", { entity_ids: rs.map((r) => r.entity_id) }), `${rs.length} sensors no longer watched`)
@@ -101,6 +106,8 @@ export function SensorWatchPage({ state }: { state?: string }) {
           />
         )}
       </section>
+
+      <ProfilesSection profiles={view.profiles ?? []} change={change} />
 
       <SystemSection system={view.system} live={live} change={change} />
 
@@ -117,12 +124,14 @@ export function SensorWatchPage({ state }: { state?: string }) {
         <RecordDialog
           entityId={editing.entityId}
           record={editing.record}
+          profiles={view.profiles ?? []}
           onClose={() => setEditing(undefined)}
-          onSave={(body) => change(() => swApi.put<WatchView>(encodeURIComponent(editing.entityId), body), `${body.name || editing.record?.label || editing.entityId} saved`)}
+          change={change}
         />
       )}
       {scanning && (
         <ScanDialog
+          profiles={view.profiles ?? []}
           onClose={() => setScanning(false)}
           onAccepted={(records) => change(() => swApi.post<WatchView>("accept", { records }), `${records.length} sensors watched`)}
         />

@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026.10.8-b11
+
+- **Sensor Watch watches any entity:** **+ Watch an entity** offers everything (an
+  `input_number` you type a reading into, a `number`, a switch that should stay on), each
+  watched as its state suggests: a number by bands, on/off as on/off, anything else by
+  exact states. A scan still looks at the usual domains unless you choose one with the new
+  **Domain** filter, also a chip on the watched list.
+
+- **Sensor Watch: profiles.** Say a set of levels once for many sensors (twenty plugs on
+  the same mains want the same bands): **Save as a new profile** in a sensor's editor,
+  **Follows** to pick one, **Use the profile for the ticked** in a scan, and **Follow a
+  profile** for what the watched list shows. Editing a profile, from any sensor that
+  follows it, changes them all. A Profiles section lists them, to rename or delete.
+
 ## 2026.10.8-b10
 
 - **Sensor Watch:** a scan's results have **Select all** and **Select none**, with how

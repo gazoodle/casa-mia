@@ -28,8 +28,8 @@ def watch(tmp_path):
 def test_candidates_and_their_filters(watch):
     status, got = call(watch, "GET", "candidates")
     ids = [s["entity_id"] for s in got["sensors"]]
-    assert status == 200 and got["total"] == 8
-    assert "sensor.status" not in ids and "light.lamp" not in ids
+    assert status == 200 and got["total"] == 9  # any entity, not Sensor Watch's own
+    assert "sensor.status" not in ids and "light.lamp" in ids
     text = next(s for s in got["sensors"] if s["entity_id"] == "sensor.weather_text")
     assert text["kind"] == "state"  # text sensors: exact states
     salt = next(s for s in got["sensors"] if s["entity_id"] == "sensor.salt")
@@ -42,7 +42,7 @@ def test_candidates_and_their_filters(watch):
         ({"q": ["SALT"]}, ["sensor.salt"]),
         ({"area": ["kitchen"]}, ["sensor.salt"]),
         ({"label": ["water"]}, ["sensor.salt"]),
-        ({"kind": ["binary"]}, ["binary_sensor.leak"]),
+        ({"kind": ["binary"]}, ["light.lamp", "binary_sensor.leak"]),  # Lamp, Leak
     ]:
         assert [
             s["entity_id"]
@@ -78,7 +78,7 @@ def test_suggest_one_sensor(watch):
     clean("sensor.salt", got["record"])  # the proposal saves as it is
     _, leak = call(watch, "GET", "suggest", {"entity": ["binary_sensor.leak"]})
     assert leak["source"] == "history" and leak["record"]["nominal"] == "off"
-    assert call(watch, "GET", "suggest", {"entity": ["light.lamp"]})[0] == 400
+    assert call(watch, "GET", "suggest", {"entity": ["light.nowhere"]})[0] == 400
     assert (
         call(watch, "GET", "suggest", {"entity": ["sensor.salt"], "days": ["0"]})[0]
         == 400
@@ -317,3 +317,31 @@ def test_stop_watching_many_at_once(watch):
         "sensor.salt"
     ]
     assert call(watch, "POST", "forget", body={"entity_ids": "sensor.salt"})[0] == 400
+
+
+def test_any_entity_can_be_watched_but_a_scan_keeps_to_the_usual_domains(tmp_path):
+    states = STATES + [
+        _state("input_number.spa_ph", "7.4"),
+        _state("switch.pump", "on"),
+        _state("select.mode", "eco"),
+    ]
+    watch = make(tmp_path / "sw.json", FakeHA(states, ENTITIES))
+    _, got = call(watch, "GET", "candidates", {"q": ["spa ph"]})
+    assert [(s["entity_id"], s["kind"], s["domain"]) for s in got["sensors"]] == [
+        ("input_number.spa_ph", "numeric", "input_number")
+    ]
+    kinds = {
+        s["entity_id"]: s["kind"]
+        for s in call(watch, "GET", "candidates")[1]["sensors"]
+    }
+    assert kinds["switch.pump"] == "binary" and kinds["select.mode"] == "state"
+    assert "input_number" in got["options"]["domains"]
+    _, usual = call(watch, "POST", "scan", body={})
+    assert not any(
+        f["sensor"]["domain"] in ("switch", "light", "input_number", "select")
+        for f in usual["found"]
+    )
+    _, numbers = call(watch, "POST", "scan", body={"domain": "input_number"})
+    assert (
+        numbers["matched"] == 1
+    )  # (the stand-in has no numeric history to suggest from)
