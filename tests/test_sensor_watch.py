@@ -660,3 +660,64 @@ def test_settings_for_home_assistants_own_health_reach_the_integration(tmp_path)
     )
     assert call(watch, "DELETE", "system/ignore/abc123")[1]["system"]["ignore"] == {}
     assert call(watch, "DELETE", "system/ignore/abc123")[0] == 404
+
+
+def test_a_state_with_its_own_level():
+    lock = {
+        "kind": "state",
+        "states": ["locked"],
+        "other": "task",
+        "message": "Unlocked",
+        "exceptions": [{"state": "jammed", "level": "error", "message": "Jammed"}],
+    }
+    assert levels.level_of(lock, "locked") == ("nominal", None)
+    assert levels.level_of(lock, "jammed") == ("error", "Jammed")
+    assert levels.level_of(lock, "unlocked") == ("task", "Unlocked")
+    record = clean("lock.back_door", lock)
+    assert record["exceptions"] == lock["exceptions"]
+    with pytest.raises(BadRequest, match="which state"):
+        clean(
+            "lock.back_door", lock | {"exceptions": [{"state": "", "level": "error"}]}
+        )
+
+
+def _cand(eid, device_class="", unit=""):
+    return {"entity_id": eid, "device_class": device_class, "unit": unit}
+
+
+def test_defaults_by_what_a_sensor_is():
+    from casa_mia.modules.sensor_watch.defaults import default_record
+
+    leak = default_record(_cand("binary_sensor.sink_leak", "moisture"))
+    assert leak and leak["kind"] == "binary" and leak["other"] == "critical"
+    online = default_record(_cand("binary_sensor.hub", "connectivity"))
+    assert online and online["nominal"] == "on"  # connected is the good state
+    window = default_record(_cand("cover.landing_window", "window"))
+    assert window and window["states"] == ["closed"] and window["other"] == "task"
+    lock = default_record(_cand("lock.back_door"))
+    assert lock and lock["exceptions"][0]["state"] == "jammed"
+    update = default_record(_cand("update.core"))
+    assert (
+        update and update["other"] == "task" and update["message"] == "Update available"
+    )
+    battery = default_record(_cand("sensor.remote_battery", "battery", "%"))
+    assert (
+        battery
+        and levels.level_of(battery, "12")[0] == "task"
+        and levels.level_of(battery, "3")[0] == "warning"
+    )
+    assert (
+        default_record(_cand("sensor.kitchen_temperature", "temperature", "°C")) is None
+    )
+    for record in (leak, online, window, lock, update, battery):
+        clean("x.y", record)  # each saves as it is
+
+
+def test_a_scan_takes_covers_by_what_they_are_without_history(tmp_path):
+    states = STATES + [_state("cover.landing_window", "open", device_class="window")]
+    watch = make(tmp_path / "sw.json", NoHistoryHA(states, ENTITIES))
+    _, got = call(watch, "POST", "scan", body={"kind": "state"})
+    window = next(
+        f for f in got["found"] if f["sensor"]["entity_id"] == "cover.landing_window"
+    )
+    assert window["source"] == "default" and window["record"]["states"] == ["closed"]

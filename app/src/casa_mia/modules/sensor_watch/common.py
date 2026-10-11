@@ -6,7 +6,8 @@ A record watches one entity (keyed by its entity id):
 - binary: `nominal` (the state all is well in, "on" or "off"), `other` (the level of the
   other state) and its `message`;
 - state (exact states): `states` (the nominal ones, as text: "0", or "idle" and
-  "standby"), `other` (the level of anything else) and its `message`;
+  "standby"), `exceptions` (states with a level and message of their own: a lock's
+  "jammed"), `other` (the level of anything else) and its `message`;
 - both: `unavailable` (a level, or "ignore"), `hold_off` (seconds a new level must last
   before it counts), and an optional display `name`.
 The integration works out the levels (casa_mia_sensor_watch/levels.py, whose LEVELS
@@ -107,6 +108,20 @@ def clean(entity_id: str, body: dict[str, Any]) -> dict[str, Any]:
         record["states"] = cleaned
         record["other"] = _level(body.get("other", "error"), "Anything else's level")
         record["message"] = _text(body.get("message"), "Message")
+        exceptions = body.get("exceptions") or []
+        if not isinstance(exceptions, list) or len(exceptions) > MAX_STATES:
+            raise BadRequest(f"States with their own level: at most {MAX_STATES}.")
+        record["exceptions"] = []
+        for n, ex in enumerate(exceptions, 1):
+            if not isinstance(ex, dict) or not _text(ex.get("state"), f"State {n}"):
+                raise BadRequest(f"State {n} with its own level: which state?")
+            record["exceptions"].append(
+                {
+                    "state": _text(ex.get("state"), f"State {n}"),
+                    "level": _level(ex.get("level"), f"State {n}'s level"),
+                    "message": _text(ex.get("message"), f"State {n}'s message"),
+                }
+            )
         return record
     bands = body.get("bands")
     if not isinstance(bands, list) or not bands:

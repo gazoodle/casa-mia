@@ -171,6 +171,7 @@ export function ScanDialog({ onClose, onAccepted }: { onClose: () => void; onAcc
                 <span className={css.note}>
                   {f.sensor.area && `${f.sensor.area} · `}
                   {summary(f.record)} {f.sensor.unit}
+                  {f.source === "default" && " · by what it is"}
                   {f.suggestion?.outlier_count ? ` · ${f.suggestion.outlier_count} outliers set aside` : ""}
                 </span>
               </span>

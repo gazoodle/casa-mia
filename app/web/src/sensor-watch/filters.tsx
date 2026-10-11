@@ -54,7 +54,7 @@ export function FilterBar({ value, options, onChange }: { value: Filters; option
         <option value="">Any kind</option>
         <option value="numeric">Numeric</option>
         <option value="binary">On/off</option>
-        <option value="state">Text and enum</option>
+        <option value="state">States (text, enum, covers, locks…)</option>
       </select>
     </div>
   );

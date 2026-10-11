@@ -233,9 +233,15 @@ class Watcher:
         recovers is told as nominal, then no longer listed."""
         for key in self._system - set(rows):
             gone = self.now.pop(key)
+            dropped = not self._still_watched(key)
             self._fire(
                 key,
-                gone | {"level": "nominal", "value": "loaded", "message": None},
+                gone
+                | {
+                    "level": "nominal",
+                    "value": "no longer watched" if dropped else "loaded",
+                    "message": "ignored on the Sensor Watch page" if dropped else None,
+                },
                 gone["level"],
             )
         changed = set(rows) != self._system
@@ -250,6 +256,16 @@ class Watcher:
         self._system = set(rows)
         if changed:
             self._tell()
+
+    def _still_watched(self, key: str) -> bool:
+        """Is this row of Home Assistant's own health still wanted by the page's settings
+        (not ignored, its kind not switched off)?"""
+        s = self.system_settings
+        if key.startswith("integration."):
+            return s.get("integrations", True) and key.split(".", 1)[1] not in (
+                s.get("ignore") or []
+            )
+        return s.get("core", True)
 
     def _fire(self, eid: str, row: dict[str, Any], previous: str | None) -> None:
         """Log a change of level, fire the event, and have the entities write."""

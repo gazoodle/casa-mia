@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026.10.8-b7
+
+- **Sensor Watch watches more than sensors:** covers (a window open is a task), locks
+  (unlocked a task, jammed an error), valves, updates (an update waiting is a task),
+  vacuums and mowers (stuck is an error).
+- **Sensor Watch knows what sensors mean:** a leak, smoke or gas is critical, a lost
+  connection an error, a low battery a task, a door or window open a task; these are set
+  up by their device class rather than their history, and a scan takes them without
+  reading any history. In exact states, a state can have a level of its own.
+- **Sensor Watch:** an integration you ignore leaves the Home Assistant itself list at once,
+  and its event says it is no longer watched rather than that it loaded.
+
 ## 2026.10.8-b6
 
 - **Sensor Watch:** a scan's results are readable again (each tick took the whole row and

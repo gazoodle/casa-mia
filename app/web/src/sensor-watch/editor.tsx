@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Dialog, Field, Segmented } from "../ui";
 import { HistoryChart } from "./chart";
-import { LEVELS, LEVEL_NAMES, kindOf, swApi, type Band, type Level, type Suggested, type WatchRecord } from "./common";
+import { LEVELS, LEVEL_NAMES, kindOf, swApi, type Band, type Level, type StateLevel, type Suggested, type WatchRecord } from "./common";
 import css from "./sensor-watch.module.css";
 import ui from "../ui.module.css";
 
@@ -35,6 +35,7 @@ export function RecordDialog({
   const [other, setOther] = useState<Level>(record?.other ?? "warning");
   const [message, setMessage] = useState(record?.message ?? "");
   const [states, setStates] = useState((record?.states ?? []).join(", "));
+  const [exceptions, setExceptions] = useState<StateLevel[]>(record?.exceptions ?? []);
   const [unavailable, setUnavailable] = useState<Level | "ignore">(record?.unavailable ?? "error");
   const [holdOff, setHoldOff] = useState(String(record?.hold_off ?? 60));
   const [name, setName] = useState(record?.name ?? "");
@@ -47,6 +48,7 @@ export function RecordDialog({
     if (r.nominal) setNominal(r.nominal);
     if (r.other) setOther(r.other);
     if (r.states) setStates(r.states.join(", "));
+    setExceptions(r.exceptions ?? []);
   };
 
   /** Its history and a suggestion, as `as` (a number as exact states), or as itself. */
@@ -88,7 +90,7 @@ export function RecordDialog({
       ...(kind === "binary"
         ? { nominal, other, message }
         : kind === "state"
-          ? { states: split(states), other, message }
+          ? { states: split(states), other, message, exceptions: exceptions.filter((e) => e.state.trim()) }
           : { bands: bands.map(toBand), otherwise }),
     };
     const ok = await onSave(body);
@@ -163,7 +165,10 @@ export function RecordDialog({
           </p>
         )}
         {found?.problem && <p className={css.problem}>{found.problem}. Is Home Assistant's History integration loaded? Set it up yourself meanwhile.</p>}
-        {found && !s && !found.problem && <p className={css.note}>No history to suggest from: set it up yourself.</p>}
+        {found?.default && (
+          <p className={css.note}>Set up by what it is (its kind and device class), not its history: change anything you like.</p>
+        )}
+        {found && !s && !found.problem && !found.default && <p className={css.note}>No history to suggest from: set it up yourself.</p>}
         {record && found?.record && (
           <button className={`${ui.button} ${ui.small}`} onClick={() => adopt(found.record)}>
             Use the suggestion
@@ -199,6 +204,7 @@ export function RecordDialog({
           <Field label="Message" help="What it says in another state, e.g. Alarm raised.">
             <input value={message} maxLength={80} onChange={(e) => setMessage(e.target.value)} />
           </Field>
+          <Exceptions items={exceptions} onChange={setExceptions} />
           {seen.length > 0 && (
             <p className={css.seen}>
               {found?.sensor.options?.length ? "Its states" : "Seen"}:{" "}
@@ -297,4 +303,27 @@ function listed(list: string, state: string): boolean {
 function toggle(list: string, state: string): string {
   const items = split(list);
   return (items.includes(state) ? items.filter((s) => s !== state) : [...items, state]).join(", ");
+}
+
+/** States with a level of their own (a lock: jammed is an error, though unlocked is a task). */
+function Exceptions({ items, onChange }: { items: StateLevel[]; onChange: (items: StateLevel[]) => void }) {
+  const set = (i: number, part: Partial<StateLevel>) => onChange(items.map((e, n) => (n === i ? { ...e, ...part } : e)));
+  return (
+    <div className={css.exceptions}>
+      {items.length > 0 && <span className={css.note}>States with a level of their own:</span>}
+      {items.map((e, i) => (
+        <div key={i} className={`${css.exceptionRow} ${css[`edge_${e.level}`]}`}>
+          <input value={e.state} placeholder="a state, e.g. jammed" onChange={(ev) => set(i, { state: ev.target.value })} aria-label="State" />
+          <LevelSelect value={e.level} onChange={(v) => set(i, { level: v as Level })} />
+          <input value={e.message} maxLength={80} placeholder="its message" onChange={(ev) => set(i, { message: ev.target.value })} aria-label="Message" />
+          <button className={`${ui.button} ${ui.small}`} onClick={() => onChange(items.filter((_, n) => n !== i))} aria-label="Remove this state">
+            ✕
+          </button>
+        </div>
+      ))}
+      <button className={`${ui.button} ${ui.small}`} onClick={() => onChange([...items, { state: "", level: "error", message: "" }])}>
+        + A state with its own level
+      </button>
+    </div>
+  );
 }

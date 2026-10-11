@@ -14,6 +14,9 @@ export const LEVEL_NAMES: Record<Level, string> = {
   critical: "Critical",
 };
 
+/** An exact state with a level and message of its own (a lock's "jammed"). */
+export type StateLevel = { state: string; level: Level; message: string };
+
 export type Band = { from: number | null; to: number | null; level: Level; message: string };
 
 /** A watched sensor's record, as the app keeps it (app/.../sensor_watch/common.py). */
@@ -30,6 +33,8 @@ export type WatchRecord = {
   message?: string;
   /** Exact states: the nominal ones. */
   states?: string[];
+  /** Exact states: those with a level of their own. */
+  exceptions?: StateLevel[];
   /** Its name to show: its own, else Home Assistant's. */
   label?: string;
 };
@@ -95,7 +100,9 @@ export type Suggestion = {
 
 export type Suggested = {
   sensor: Candidate;
-  source: "statistics" | "history";
+  source: "statistics" | "history" | "default";
+  /** Set up by what it is (its kind and device class), not by its history. */
+  default?: boolean;
   first: string | null;
   points?: [number, number][];
   suggestion: Suggestion | null;
@@ -114,8 +121,10 @@ export type ScanView = {
 };
 
 /** A sensor's kind from its entity id, known before anything is asked of HA. */
-export function kindOf(entityId: string): "numeric" | "binary" {
-  return entityId.startsWith("binary_sensor.") ? "binary" : "numeric";
+export function kindOf(entityId: string): "numeric" | "binary" | "state" {
+  const domain = entityId.split(".")[0];
+  if (domain === "binary_sensor" || domain === "update") return "binary";
+  return domain === "sensor" ? "numeric" : "state"; // covers, locks, valves... (history.py DOMAINS)
 }
 
 /** "10–25", "… –10", "25 –…" */

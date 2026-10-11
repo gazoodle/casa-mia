@@ -300,6 +300,35 @@
   accent-color: var(--accent);
 }
 
+/* Exact states: states with a level of their own. */
+.exceptions {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+
+.exceptionRow {
+  display: grid;
+  grid-template-columns: 140px 120px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  padding-left: 8px;
+  border-left: 4px solid transparent;
+}
+
+.exceptionRow input,
+.exceptionRow select {
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .exceptionRow {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 /* Exact states: those seen (or an enum's own), to tick into the nominal list. */
 .seen {
   grid-column: 1 / -1;

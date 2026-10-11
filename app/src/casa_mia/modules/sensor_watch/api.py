@@ -17,6 +17,7 @@ from typing import Any
 from ...ha import HA, HAError
 from . import suggest
 from .common import DEFAULT_HOLD_OFF, DOMAIN, LEVELS, BadRequest, Response, _json, clean
+from .defaults import default_record
 from .history import LIST_LIMIT, Reader, from_history, from_statistics, order
 from .status import Status
 
@@ -321,13 +322,19 @@ class SensorWatch:
             "a suggestion" if found else "no suggestion",
             f" ({'; '.join(problems)})" if problems else "",
         )
+        # What it is beats how it behaved: a leak sensor is critical whatever its history.
+        known = default_record(c)
+        record = (
+            known if known and known["kind"] == as_kind else proposal(c, found, as_kind)
+        )
         return {
             "sensor": c,
             "source": data["source"],
             "first": data["first"],
             "points": data["points"],
             "suggestion": found,
-            "record": proposal(c, found, as_kind),
+            "record": record,
+            "default": record is known,
             "problem": "; ".join(problems) or None,
         }
 
@@ -349,20 +356,39 @@ class SensorWatch:
             [c for c in every if order(c) >= tuple(start)] if _place(start) else every
         )
         found, after = rest[:MAX_SCAN], rest[MAX_SCAN:]
+        # Those with a record by what they are need no history.
+        known = {c["entity_id"]: d for c in found if (d := default_record(c))}
         by_stats = [
-            c["entity_id"] for c in found if c["kind"] == "numeric" and c["statistics"]
+            c["entity_id"]
+            for c in found
+            if c["kind"] == "numeric"
+            and c["statistics"]
+            and c["entity_id"] not in known
         ]
         problems: list[str] = []
         stats = _read(reader.statistics, by_stats, days, problems) if by_stats else {}
         rest = [
             c["entity_id"]
             for c in found
-            if c["entity_id"] not in by_stats or not stats.get(c["entity_id"])
+            if c["entity_id"] not in known
+            and (c["entity_id"] not in by_stats or not stats.get(c["entity_id"]))
         ]
         hist = _read(reader.history, rest, days, problems) if rest else {}
         out, skipped = [], 0
         for c in found:
             eid = c["entity_id"]
+            if eid in known:
+                out.append(
+                    {
+                        "sensor": c,
+                        "source": "default",
+                        "first": None,
+                        "suggestion": None,
+                        "record": known[eid],
+                        "default": True,
+                    }
+                )
+                continue
             data = (
                 from_statistics(stats[eid])
                 if stats.get(eid)

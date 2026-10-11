@@ -20,8 +20,11 @@ export function SystemSection({
   live?: LevelsView;
   change: (action: () => Promise<WatchView>, done: string) => Promise<boolean>;
 }) {
+  // Ignored or switched off here: gone at once, before the integration has caught up.
+  const shown = (key: string) =>
+    key.startsWith("integration.") ? system.integrations && !(key.slice("integration.".length) in system.ignore) : system.core;
   const rows = Object.values(live?.levels ?? {})
-    .filter((l) => OWN.test(l.entity_id))
+    .filter((l) => OWN.test(l.entity_id) && shown(l.entity_id))
     .sort((a, b) => a.entity_id.localeCompare(b.entity_id));
   const ignored = Object.entries(system.ignore);
   const set = (key: "core" | "integrations", on: boolean, what: string) =>

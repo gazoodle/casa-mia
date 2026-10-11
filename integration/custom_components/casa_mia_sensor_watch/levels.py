@@ -52,6 +52,10 @@ def level_of(
     if record.get("kind") == "state":
         if any(same(state, s) for s in record.get("states") or []):
             return "nominal", None
+        # A state with a level of its own (a lock: jammed is an error, unlocked a task).
+        for ex in record.get("exceptions") or []:
+            if same(state, ex.get("state", "")):
+                return ex.get("level", "error"), ex.get("message") or None
         return record.get("other", "error"), record.get("message") or None
     try:
         value = float(state)

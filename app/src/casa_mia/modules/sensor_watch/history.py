@@ -35,6 +35,20 @@ def _is_number(text: Any) -> bool:
         return False
 
 
+# What can be watched: sensors, and other entities whose state says something needs
+# attention (a window open, a lock jammed, an update waiting, a vacuum stuck).
+DOMAINS = (
+    "sensor",
+    "binary_sensor",
+    "update",
+    "cover",
+    "lock",
+    "valve",
+    "vacuum",
+    "lawn_mower",
+)
+
+
 def order(c: dict[str, Any]) -> tuple[str, str]:
     """Candidates' order (and a scan round's place in it): by name, then entity id."""
     return (c["name"].lower(), c["entity_id"])
@@ -55,7 +69,7 @@ class Reader:
     # -- the sensors
 
     def candidates(self) -> list[dict[str, Any]]:
-        """Every sensor and binary sensor Sensor Watch could watch (not its own)."""
+        """Everything Sensor Watch could watch (DOMAINS; not its own entities)."""
         with self._lock:
             if time.monotonic() - self._at < CANDIDATE_TTL:
                 return self._cands
@@ -79,14 +93,13 @@ class Reader:
                 eid = st["entity_id"]
                 domain = eid.split(".", 1)[0]
                 entry = reg.get(eid, {})
-                if (
-                    domain not in ("sensor", "binary_sensor")
-                    or entry.get("platform") == DOMAIN
-                ):
+                if domain not in DOMAINS or entry.get("platform") == DOMAIN:
                     continue
                 attrs = st.get("attributes") or {}
-                if domain == "binary_sensor":
+                if domain in ("binary_sensor", "update"):
                     kind = "binary"
+                elif domain != "sensor":
+                    kind = "state"  # covers, locks, valves, vacuums, mowers
                 elif attrs.get("state_class") or _is_number(st["state"]):
                     kind = "numeric"
                 else:

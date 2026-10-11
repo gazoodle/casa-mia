@@ -46,7 +46,8 @@ house with hundreds of them stays manageable. **Edit** changes a sensor's bands;
 Search for it by name, entity id or its device's name (every word, in any order), or
 narrow the list by **area**, **label**, **integration**, **device** (only those with
 sensors matching the other filters, so choosing ESPHome lists only ESPHome devices),
-**device class** or kind (numeric, on/off, or text and enum). Pick one, and Sensor
+**device class** or kind (numeric, on/off, or states: text, enum, covers, locks, valves,
+vacuums and mowers). Pick one, and Sensor
 Watch reads its history (30 days unless you choose otherwise) and suggests its bands:
 
 - **Numeric sensors:** the history's spread gives the nominal band, rounded outwards to a
@@ -64,6 +65,30 @@ Watch reads its history (30 days unless you choose otherwise) and suggests its b
   so `0` matches `0.0`. A numeric sensor offers **Bands (a range)** or **Exact states**;
   the states it has spent most of its time in are shown (an enum's own states, for an
   enum), to tick into the list.
+
+**By what it is.** Some sensors say what they mean, so Sensor Watch sets them up by
+their kind and device class rather than their history (change anything you like):
+
+| What | Nominal | Otherwise |
+|---|---|---|
+| Leak, smoke, gas, carbon monoxide, safety | off | critical |
+| Problem | off | error |
+| Connectivity | on (connected) | error |
+| Tamper | off | warning |
+| Low battery (on/off) | off | task: Replace the battery |
+| Door, window, garage door, opening | closed | task |
+| Battery (%) | 20 and above | task below 20, warning below 5 |
+| Covers (windows, blinds, garage doors) | closed | task |
+| Locks | locked | task (unlocked); error when jammed |
+| Updates | none waiting | task: Update available |
+| Vacuums and mowers | docked, working, returning, paused | error |
+
+Valves have no fixed meaning (a water main is usually open, a garden valve closed), so
+they go by their history. A scan takes the sensors with a meaning without reading any
+history, so they come through even when history can't be read.
+
+In **Exact states**, a state can also have a level and message of its own (**+ A state
+with its own level**): a lock is a task when unlocked but an error when jammed.
 
 Sensors with long-term statistics (most measurements) are read from them, which Home
 Assistant keeps for good. Others are read from their state history, which Home
