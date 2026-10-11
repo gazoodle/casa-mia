@@ -28,7 +28,7 @@ MAX_DAYS = 365
 # What Sensor Watch needs running in Home Assistant: without them there is no history,
 # no statistics, no suggestions (and HA's own History panel is broken too).
 NEEDS = {"recorder": "Recorder", "history": "History"}
-FILTERS = ("q", "area", "label", "platform", "device_class", "kind")
+FILTERS = ("q", "area", "label", "platform", "device_class", "kind", "device")
 
 
 def words(text: str) -> list[str]:
@@ -40,7 +40,7 @@ def matches(c: dict[str, Any], f: dict[str, str]) -> bool:
     """Does candidate `c` pass the filters (each empty or absent = any)? The search
     matches when every word is somewhere in its name or entity id, in any order: "tank
     top" finds "Tank - Top", "Top of tank" and "Topup Tank"."""
-    hay = f"{c['name'].lower()} {c['entity_id']}"
+    hay = f"{c['name'].lower()} {c['entity_id']} {c.get('device', '').lower()}"
     return (
         all(w in hay for w in words(f.get("q") or ""))
         and (not f.get("area") or c["area_id"] == f["area"])
@@ -48,6 +48,7 @@ def matches(c: dict[str, Any], f: dict[str, str]) -> bool:
         and (not f.get("platform") or c["platform"] == f["platform"])
         and (not f.get("device_class") or c["device_class"] == f["device_class"])
         and (not f.get("kind") or c["kind"] == f["kind"])
+        and (not f.get("device") or c.get("device_id") == f["device"])
     )
 
 
@@ -242,7 +243,16 @@ class SensorWatch:
 
     def candidates(self, f: dict[str, str]) -> dict[str, Any]:
         reader = self._reader()
-        found = [c for c in reader.candidates() if matches(c, f)]
+        every = reader.candidates()
+        found = [c for c in every if matches(c, f)]
+        # The devices on offer: those with sensors matching the other filters, so a big
+        # house's list narrows (choose ESPHome, and only ESPHome devices are listed).
+        pool = [c for c in every if matches(c, f | {"device": ""})]
+        devices = {
+            c["device_id"]: c["device"]
+            for c in pool
+            if c.get("device_id") and c.get("device")
+        }
         with self._lock:
             watched = set(self.records)
         return {
@@ -250,7 +260,13 @@ class SensorWatch:
             "sensors": [
                 c | {"watched": c["entity_id"] in watched} for c in found[:LIST_LIMIT]
             ],
-            "options": reader.options(),
+            "options": reader.options()
+            | {
+                "devices": sorted(
+                    ({"id": k, "name": v} for k, v in devices.items()),
+                    key=lambda d: d["name"].lower(),
+                )
+            },
         }
 
     def suggest(

@@ -217,7 +217,7 @@ class FakeHA:
             elif kind == "config/entity_registry/list":
                 out.append(self.entities)
             elif kind == "config/device_registry/list":
-                out.append([{"id": "dev1", "area_id": "kitchen"}])
+                out.append([{"id": "dev1", "area_id": "kitchen", "name": "Softener"}])
             elif kind == "config/area_registry/list":
                 out.append([{"area_id": "kitchen", "name": "Kitchen"}])
             elif kind == "config/label_registry/list":
@@ -590,3 +590,18 @@ def test_overall_health_for_the_home_tile(tmp_path):
     absent = make(tmp_path / "sw2.json", FakeHA(STATES, ENTITIES))
     absent.status.poll()
     assert absent.health()["problem"] == MISSING and absent.health()["health"] is None
+
+
+def test_the_device_filter_narrows_with_the_others():
+    ha = FakeHA(STATES, ENTITIES)
+    watch = make(Path("/nonexistent/sw.json"), ha)
+    _, got = call(watch, "GET", "candidates")
+    assert got["options"]["devices"] == [{"id": "dev1", "name": "Softener"}]
+    _, on_device = call(watch, "GET", "candidates", {"device": ["dev1"]})
+    assert [s["entity_id"] for s in on_device["sensors"]] == ["sensor.salt"]
+    _, by_name = call(
+        watch, "GET", "candidates", {"q": ["softener"]}
+    )  # the device's name
+    assert [s["entity_id"] for s in by_name["sensors"]] == ["sensor.salt"]
+    _, binary = call(watch, "GET", "candidates", {"kind": ["binary"]})
+    assert binary["options"]["devices"] == []  # no binary sensor on a device

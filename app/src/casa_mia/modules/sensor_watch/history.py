@@ -68,6 +68,10 @@ class Reader:
             )
             reg = {e["entity_id"]: e for e in entities or []}
             device_area = {d["id"]: d.get("area_id") for d in devices or []}
+            device_name = {
+                d["id"]: d.get("name_by_user") or d.get("name") or ""
+                for d in devices or []
+            }
             area_name = {a["area_id"]: a["name"] for a in areas or []}
             self._labels = {lb["label_id"]: lb["name"] for lb in labels or []}
             out = []
@@ -97,6 +101,8 @@ class Reader:
                         "kind": kind,
                         "area_id": area_id,
                         "area": area_name.get(area_id, ""),
+                        "device_id": entry.get("device_id"),
+                        "device": device_name.get(entry.get("device_id"), ""),
                         "labels": entry.get("labels") or [],
                         "platform": entry.get("platform") or "",
                         "device_class": attrs.get("device_class") or "",

@@ -292,3 +292,15 @@
   color: var(--muted);
   font-size: 12px;
 }
+
+/* A newer release: the chip opens its notes on GitHub (↗). */
+.notes {
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.notes:hover,
+.notes:focus-visible {
+  filter: brightness(1.15);
+}

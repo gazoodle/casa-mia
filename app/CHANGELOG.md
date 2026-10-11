@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026.10.8-b5
+
+- **Sensor Watch: a Device filter,** listing only the devices with sensors that match the
+  other filters (choose ESPHome, and only ESPHome devices are listed); the search matches
+  device names too.
+
+- **Kiosk Satellites:** a tablet with a newer release waiting shows both versions on its
+  chip (`2026.8.40 → 2026.8.49 ↗`); a tap opens that release's notes on GitHub.
+
 ## 2026.10.8-b4
 
 - **Sensor Watch: exact states.** A sensor whose state should be one exact thing (an alarm

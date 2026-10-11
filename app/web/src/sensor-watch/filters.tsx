@@ -1,5 +1,6 @@
-/** The filters a big house needs: a search, then area, label, integration, device class
- * and kind, each offering only what some sensor has. */
+/** The filters a big house needs: a search (names, entity ids and device names), then
+ * area, label, integration, device, device class and kind, each offering only what some
+ * sensor has; the devices only those matching the other filters. */
 
 import type { Filters, Options } from "./common";
 import css from "./sensor-watch.module.css";
@@ -30,6 +31,14 @@ export function FilterBar({ value, options, onChange }: { value: Filters; option
         {options?.platforms.map((p) => (
           <option key={p} value={p}>
             {p}
+          </option>
+        ))}
+      </select>
+      <select value={value.device} onChange={set("device")} aria-label="Device">
+        <option value="">Any device{options?.devices.length ? ` (${options.devices.length})` : ""}</option>
+        {options?.devices.map((d) => (
+          <option key={d.id} value={d.id}>
+            {d.name}
           </option>
         ))}
       </select>

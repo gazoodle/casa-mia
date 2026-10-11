@@ -46,6 +46,8 @@ export type Candidate = {
   kind: "numeric" | "binary" | "state";
   area_id: string | null;
   area: string;
+  device_id?: string | null;
+  device?: string;
   labels: string[];
   platform: string;
   device_class: string;
@@ -59,6 +61,8 @@ export type Candidate = {
 
 export type Options = {
   areas: { id: string; name: string }[];
+  /** Devices with sensors matching the other filters. */
+  devices: { id: string; name: string }[];
   labels: { id: string; name: string }[];
   platforms: string[];
   device_classes: string[];
@@ -66,8 +70,8 @@ export type Options = {
 
 export type CandidatesView = { total: number; sensors: Candidate[]; options: Options };
 
-export type Filters = { q: string; area: string; label: string; platform: string; device_class: string; kind: string };
-export const NO_FILTERS: Filters = { q: "", area: "", label: "", platform: "", device_class: "", kind: "" };
+export type Filters = { q: string; area: string; label: string; platform: string; device: string; device_class: string; kind: string };
+export const NO_FILTERS: Filters = { q: "", area: "", label: "", platform: "", device: "", device_class: "", kind: "" };
 
 export type Suggestion = {
   count?: number;

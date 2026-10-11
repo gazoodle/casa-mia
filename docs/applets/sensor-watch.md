@@ -43,8 +43,10 @@ house with hundreds of them stays manageable. **Edit** changes a sensor's bands;
 
 ### Add a sensor
 
-Search for it by name or entity id, or narrow the list by **area**, **label**,
-**integration**, **device class** or kind (numeric, on/off, or text and enum). Pick one, and Sensor
+Search for it by name, entity id or its device's name (every word, in any order), or
+narrow the list by **area**, **label**, **integration**, **device** (only those with
+sensors matching the other filters, so choosing ESPHome lists only ESPHome devices),
+**device class** or kind (numeric, on/off, or text and enum). Pick one, and Sensor
 Watch reads its history (30 days unless you choose otherwise) and suggests its bands:
 
 - **Numeric sensors:** the history's spread gives the nominal band, rounded outwards to a
