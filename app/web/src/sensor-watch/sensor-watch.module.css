@@ -627,3 +627,16 @@
     display: none;
   }
 }
+
+/* A profile's "N following": tap to see them in the watched list. */
+.followers {
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.followers:disabled {
+  cursor: default;
+  text-decoration: none;
+}

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.10.8-b13
+
+- Sensor Watch: profiles are made and edited on their own: **+ New profile**, and **Edit** on each (its name and levels; Rename is gone, as Edit covers it).
+- Sensor Watch: **Apply to…** on a profile ticks sensors to follow it, watched or not (those not watched start being watched); any of a kind it doesn't fit are skipped, and said so.
+- Sensor Watch: a profile's **N following** shows its followers in the watched list.
+- Sensor Watch: the page and the Home tile follow Home Assistant as it changes, no longer every 30 or 60 seconds: the app holds one websocket subscribed to the watched sensors (their values) and the integration's own entities (a level moved), and the page waits on it.
+- Sensor Watch: leak, smoke, gas, carbon monoxide and safety sensors default to no hold-off (they count at once), as do alarm panels, now watched by default (triggered is critical).
+
 ## 2026.10.8-b12
 
 - Sensor Watch: a message may be up to 255 characters (was 80); past 80 the page shows the count and warns that notifications and cards may cut it short.

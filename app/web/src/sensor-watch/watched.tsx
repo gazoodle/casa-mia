@@ -45,6 +45,8 @@ export function WatchedList({
   live,
   labels,
   profiles,
+  filters,
+  setFilters,
   onFollow,
   onEdit,
   onStop,
@@ -54,6 +56,9 @@ export function WatchedList({
   live?: LevelsView;
   labels: Record<string, string>;
   profiles: Profile[];
+  /** The filters (the page's, so a profile's "following" can set them). */
+  filters: Filters;
+  setFilters: (f: Filters) => void;
   /** These watched sensors follow that profile. */
   onFollow: (rs: WatchRecord[], profile: Profile) => void;
   onEdit: (r: WatchRecord) => void;
@@ -61,7 +66,6 @@ export function WatchedList({
   /** Stop watching these (already confirmed by the user). */
   onStopMany: (rs: WatchRecord[]) => void;
 }) {
-  const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const [levels, setLevels] = useState<Set<Level>>(new Set());
   const [sort, setSort] = useState<"level" | "name">("level");
   const [shown, setShown] = useState(PAGE);

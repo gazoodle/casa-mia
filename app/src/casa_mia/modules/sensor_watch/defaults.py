@@ -36,6 +36,22 @@ STATES: dict[str, tuple[list[str], str, str, list[tuple[str, str, str]]]] = {
         "Vacuum error",
         [],
     ),
+    "alarm_control_panel": (
+        [
+            "disarmed",
+            "armed_home",
+            "armed_away",
+            "armed_night",
+            "armed_vacation",
+            "armed_custom_bypass",
+            "arming",
+            "pending",
+            "disarming",
+        ],
+        "warning",
+        "Alarm in an unexpected state",
+        [("triggered", "critical", "Alarm triggered")],
+    ),
     "lawn_mower": (
         ["docked", "mowing", "returning", "paused"],
         "error",
@@ -43,6 +59,10 @@ STATES: dict[str, tuple[list[str], str, str, list[tuple[str, str, str]]]] = {
         [],
     ),
 }
+
+# What can't wait a minute: told the moment it happens (hold-off 0).
+AT_ONCE = {"moisture", "smoke", "gas", "carbon_monoxide", "safety"}
+AT_ONCE_DOMAINS = {"alarm_control_panel"}
 
 BATTERY = [
     {"from": None, "to": 5, "level": "warning", "message": "Battery flat"},
@@ -54,7 +74,9 @@ BATTERY = [
 def default_record(c: dict[str, Any]) -> dict[str, Any] | None:
     """The record for candidate `c` by what it is, or None to go by its history."""
     domain = c["entity_id"].split(".", 1)[0]
-    base = {"name": "", "hold_off": DEFAULT_HOLD_OFF, "unavailable": "error"}
+    at_once = c["device_class"] in AT_ONCE or domain in AT_ONCE_DOMAINS
+    hold_off = 0 if at_once else DEFAULT_HOLD_OFF
+    base = {"name": "", "hold_off": hold_off, "unavailable": "error"}
     if domain == "binary_sensor" and c["device_class"] in BINARY:
         nominal, other, message = BINARY[c["device_class"]]
         return base | {

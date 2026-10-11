@@ -134,3 +134,15 @@ def test_defaults_by_what_a_sensor_is():
     )
     for record in (leak, online, window, lock, update, battery):
         clean("x.y", record)  # each saves as it is
+
+
+def test_what_cannot_wait_has_no_hold_off():
+    from casa_mia.modules.sensor_watch.defaults import default_record
+
+    leak = default_record(_cand("binary_sensor.leak", "moisture"))
+    door = default_record(_cand("binary_sensor.door", "door"))
+    alarm = default_record(_cand("alarm_control_panel.house"))
+    assert leak and door and alarm
+    assert (leak["hold_off"], door["hold_off"], alarm["hold_off"]) == (0, 60, 0)
+    assert levels.level_of(alarm | {"entity_id": "x"}, "triggered")[0] == "critical"
+    assert levels.level_of(alarm | {"entity_id": "x"}, "armed_away")[0] == "nominal"

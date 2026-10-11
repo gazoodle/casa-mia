@@ -82,7 +82,8 @@ export type WatchView = {
 
 /** A sensor's level now, from the integration. */
 export type Live = { entity_id: string; level: Level; value: string | null; message: string | null; since: string; name: string };
-export type LevelsView = { levels: Record<string, Live>; error: string | null };
+/** `rev`: the app's revision of the levels; asked with ?after=rev, it answers when they change. */
+export type LevelsView = { levels: Record<string, Live>; error: string | null; rev: number };
 
 export type Candidate = {
   entity_id: string;

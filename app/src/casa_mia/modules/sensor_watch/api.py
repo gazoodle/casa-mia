@@ -16,7 +16,7 @@ from typing import Any
 
 from ...ha import HA, HAError
 from . import suggest
-from .common import DEFAULT_HOLD_OFF, DOMAIN, LEVELS, BadRequest, Response, _json, clean
+from .common import DEFAULT_HOLD_OFF, LEVELS, BadRequest, Response, _json, clean
 from .defaults import default_record
 from .history import (
     LIST_LIMIT,
@@ -26,6 +26,7 @@ from .history import (
     from_statistics,
     order,
 )
+from .live import Live
 from .profiles import clean_profile, follower, new_id, resolve
 from .status import Status
 
@@ -35,6 +36,7 @@ MAX_TEXT_NAME = 120  # an ignored integration's name, as listed
 MAX_SCAN = 500  # sensors a scan round reads; the next round starts at `next`
 DAYS = 30  # history read by default
 MAX_DAYS = 365
+WAIT = 25.0  # seconds the page's long poll for the levels is held
 # What Sensor Watch needs running in Home Assistant: without them there is no history,
 # no statistics, no suggestions (and HA's own History panel is broken too).
 NEEDS = {"recorder": "Recorder", "history": "History"}
@@ -130,7 +132,9 @@ class SensorWatch:
         self.reader = Reader(ha) if ha else None
         self.ha = ha
         self.on_change = on_change
-        self.status = Status(ha)  # overall health, for the Home tile (start() polls it)
+        self.status = Status(ha)  # overall health, for the Home tile (live.py feeds it)
+        # The levels as they change in Home Assistant, pushed (start() connects).
+        self.live = Live(ha, self.status, lambda: list(self.records)) if ha else None
         self._lock = threading.Lock()
         self.records: dict[str, dict[str, Any]] = {}
         self.system: dict[str, Any] = dict(SYSTEM)
@@ -164,7 +168,8 @@ class SensorWatch:
             }
 
     def start(self) -> None:
-        self.status.start()
+        if self.live:
+            self.live.start()
 
     def for_integration(self) -> dict[str, Any]:
         """For the integration (GET /sensor-watch/records)."""
@@ -210,7 +215,7 @@ class SensorWatch:
         if method == "GET" and parts == ["check"]:
             return _json(200, self.check())
         if method == "GET" and parts == ["levels"]:
-            return _json(200, self.levels())
+            return _json(200, self.levels(q.get("after")))
         if method == "GET" and parts == ["candidates"]:
             return _json(200, self.candidates(q))
         if method == "GET" and parts == ["suggest"]:
@@ -277,28 +282,15 @@ class SensorWatch:
             )
         return {"missing": missing, "error": None}
 
-    def levels(self) -> dict[str, Any]:
-        """Each watched sensor's level now, from the integration (its `list` service)."""
-        if self.ha is None:
-            return {"levels": {}, "error": "Home Assistant is not reachable."}
+    def levels(self, after: str | None = None) -> dict[str, Any]:
+        """Each watched sensor's level now, as live.py hears it from the integration;
+        `after` (a revision the page has): held until something changes, or WAIT."""
+        if self.live is None:
+            return {"levels": {}, "error": "Home Assistant is not reachable.", "rev": 0}
         try:
-            (result,) = self.ha.call(
-                {
-                    "type": "call_service",
-                    "domain": DOMAIN,
-                    "service": "list",
-                    "service_data": {"levels": list(LEVELS)},
-                    "return_response": True,
-                }
-            )
-        except HAError as exc:
-            _LOGGER.debug("levels: %s", exc)
-            return {
-                "levels": {},
-                "error": "Add the Casa Mia Sensor Watch integration (Settings → Devices & services) to see live levels.",
-            }
-        rows = ((result or {}).get("response") or {}).get("sensors") or []
-        return {"levels": {r["entity_id"]: r for r in rows}, "error": None}
+            return self.live.wait(int(after), WAIT) if after else self.live.snapshot()
+        except ValueError:
+            raise BadRequest("after: a revision.") from None
 
     def candidates(self, f: dict[str, str]) -> dict[str, Any]:
         reader = self._reader()
@@ -530,6 +522,8 @@ class SensorWatch:
             tmp.replace(self.store_path)
             self._revise()
         _LOGGER.info("%s", what)
+        if self.live:
+            self.live.resubscribe()
         if self.on_change:
             threading.Thread(target=self.on_change, daemon=True).start()
 
@@ -591,7 +585,8 @@ class SensorWatch:
     ) -> Response:
         """POST profiles (a new one); PUT profiles/<id> (its name or levels); DELETE
         profiles/<id> (its followers keep a copy); POST profiles/<id>/apply {entity_ids}
-        (those watched sensors follow it)."""
+        (those sensors follow it, watched or not; any of a kind it doesn't fit are
+        skipped)."""
         with self._lock:
             profiles = {k: dict(v) for k, v in self.profiles.items()}
             records = dict(self.records)
@@ -638,16 +633,22 @@ class SensorWatch:
             ids = body.get("entity_ids")
             if not isinstance(ids, list) or not all(isinstance(e, str) for e in ids):
                 raise BadRequest("Expected entity_ids to follow the profile.")
-            now = {
-                e: follower(e, records[e].get("name", ""), profile, self._kind(e))
-                for e in dict.fromkeys(ids)
-                if e in records
-            }
+            now, skipped = {}, 0
+            for e in dict.fromkeys(ids):
+                kind = self._kind(e)
+                if e not in records and kind is None:
+                    continue  # not watched, and not known to Home Assistant
+                try:
+                    name = records.get(e, {}).get("name", "")
+                    now[e] = follower(e, name, profile, kind)
+                except BadRequest:
+                    skipped += 1  # a kind the profile doesn't fit
             self._save(
                 now,
-                f"{len(now)} sensors now follow {profile['name']}: {', '.join(now)}",
+                f"{len(now)} sensors now follow {profile['name']}"
+                f" ({skipped} skipped, a kind it doesn't fit): {', '.join(now)}",
             )
-            return _json(200, self.view())
+            return _json(200, self.view() | {"followed": len(now), "skipped": skipped})
         return _json(404, {"error": "Not found."})
 
     def _reader(self) -> Reader:

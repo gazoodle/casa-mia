@@ -1,6 +1,6 @@
-"""Sensor Watch's overall health for the Home tile: once a minute the app asks the
-integration's `list` service what isn't nominal, and keeps the answer for /health (the
-levels live in the integration; this is one small call a minute, whoever is looking)."""
+"""Sensor Watch's overall health for the Home tile, kept for /health: summarised from
+the integration's `list` service each time live.py asks it (on connecting, and when a
+level moves), so the tile follows Home Assistant as it changes."""
 
 from __future__ import annotations
 
@@ -13,7 +13,6 @@ from .common import DOMAIN, LEVELS
 
 _LOGGER = logging.getLogger(__name__)
 
-POLL = 60.0  # seconds
 MISSING = "Add the Casa Mia Sensor Watch integration to see the levels."
 
 
@@ -26,7 +25,7 @@ def summarise(response: dict[str, Any]) -> dict[str, Any]:
         for lv in LEVELS[1:]
         if (n := sum(1 for r in rows if r.get("level") == lv))
     }
-    top = rows[0] if rows else None
+    top = next((r for r in rows if r.get("level") != "nominal"), None)
     return {
         "health": response.get("worst") or "nominal",
         "counts": counts,
@@ -45,40 +44,29 @@ class Status:
             "worst": None,
             "problem": None,
         }
-        self._stop = threading.Event()
 
     def now(self) -> dict[str, Any]:
         with self._lock:
             return dict(self._now)
 
-    def start(self) -> None:
-        threading.Thread(
-            target=self._run, name="sensor-watch-status", daemon=True
-        ).start()
-
-    def stop(self) -> None:
-        self._stop.set()
-
-    def _run(self) -> None:
-        while not self._stop.is_set():
-            self.poll()
-            self._stop.wait(POLL)
-
-    def poll(self) -> None:
-        """Ask the integration now; keep what it says (or why it couldn't)."""
+    def poll(self) -> dict[str, Any] | None:
+        """Ask the integration for every watched sensor's level now; keep the overall
+        health, and return the answer (None when it can't say, and why is kept)."""
         if self.ha is None:
-            return
+            return None
+        response = None
         try:
             (result,) = self.ha.call(
                 {
                     "type": "call_service",
                     "domain": DOMAIN,
                     "service": "list",
-                    "service_data": {},
+                    "service_data": {"levels": list(LEVELS)},
                     "return_response": True,
                 }
             )
-            found = summarise((result or {}).get("response") or {}) | {"problem": None}
+            response = (result or {}).get("response") or {}
+            found = summarise(response) | {"problem": None}
         except HAError as exc:
             _LOGGER.debug("overall health: %s", exc)
             found = {"health": None, "counts": {}, "worst": None, "problem": MISSING}
@@ -91,3 +79,4 @@ class Status:
                 found["health"] or "unknown",
                 f" (worst: {found['worst']})" if found["worst"] else "",
             )
+        return response

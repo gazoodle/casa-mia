@@ -48,6 +48,7 @@ SCAN_DOMAINS = (
     "valve",
     "vacuum",
     "lawn_mower",
+    "alarm_control_panel",
 )
 # Domains whose state is on or off, and those whose state is a number.
 ON_OFF = (

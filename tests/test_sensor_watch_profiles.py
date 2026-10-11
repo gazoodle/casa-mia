@@ -95,3 +95,16 @@ def test_deleting_a_profile_leaves_each_follower_a_copy(tmp_path):
         make(tmp_path / "sw.json", None).records["sensor.temp_00"]["bands"]
         == MAINS["bands"]
     )  # and saved
+
+
+def test_apply_watches_new_sensors_and_skips_those_it_doesnt_fit(tmp_path):
+    watch, pid = _two_plugs(tmp_path)
+    ids = ["sensor.salt", "binary_sensor.leak", "sensor.nope"]
+    status, view = call(
+        watch, "POST", f"profiles/{pid}/apply", body={"entity_ids": ids}
+    )
+    assert status == 200 and (view["followed"], view["skipped"]) == (1, 1)
+    assert watch.records["sensor.salt"]["profile"] == pid  # watched now
+    assert (
+        "binary_sensor.leak" not in watch.records and "sensor.nope" not in watch.records
+    )

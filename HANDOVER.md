@@ -232,12 +232,21 @@ guest card SVG), `page.py` (welcome, goodbye), `supervisor.py`.
   revision, the integration fetches `/sensor-watch/records` (the server's new `reads`)
   when it moves; attribute-only updates stop at once; summary cached; entity writes
   coalesced to one a second.
+- **2026.10.8-b2…b13: Sensor Watch, built out on the box** (the owner uses it daily):
+  exact states with exceptions, defaults by device class, HA's own health (Recorder and
+  History critical; failing integrations, with ignores), the Home tile's health, a
+  chip-filtered watched list with bulk follow/stop, any entity (`kind_of` by domain), band
+  profiles (`profiles.py`: followers stored as pointers, sent resolved; made, edited and
+  applied from the Profiles section), 255-character messages, inserting bands and checks
+  on save. The page's level fields live once in `web/src/sensor-watch/levels.tsx`, shared
+  by the sensor and profile editors.
 
 ## Where things stand
 
-- **Sensor Watch needs its first run on the box:** switch it on, add the integration,
-  watch a sensor, then a scan by area; check the log (both sides log every save, scan and
-  change of level). Its follow-ups are in the backlog.
+- **Sensor Watch is in use on the box:** the owner is testing numeric sensors and
+  profiles. Next agreed: sensor groups (auto-groups: a saved pattern plus a profile,
+  new matches watched automatically, a summary per group), then the panel card. Both are
+  in the backlog.
 - **Untested on the box:** 2FA against a real user, the reach check's fixes, Who's signed
   in. **The reach check's screenshot** is still to take: see the backlog (a swap-only
   dashboard list).

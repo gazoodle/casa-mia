@@ -1,14 +1,14 @@
 /** Sensor Watch: the watched sensors with their level now (from the integration, in
  * watched.tsx), Home Assistant itself, and the ways to add more. */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { SensorWatchIcon } from "../icons";
 import { AreaHead, Empty, Shell } from "../page";
 import { Toasts, type Toast } from "../ui";
-import { swApi, type LevelsView, type WatchRecord, type WatchView } from "./common";
-import { PickDialog, ScanDialog } from "./dialogs";
+import { NO_FILTERS, swApi, type Filters, type LevelsView, type Profile, type WatchRecord, type WatchView } from "./common";
+import { ApplyDialog, PickDialog, ScanDialog } from "./dialogs";
 import { RecordDialog } from "./editor";
-import { ProfilesSection } from "./profiles";
+import { ProfileDialog, ProfilesSection } from "./profiles";
 import { SystemSection } from "./system";
 import { WatchedList } from "./watched";
 import css from "./sensor-watch.module.css";
@@ -29,6 +29,11 @@ export function SensorWatchPage({ state }: { state?: string }) {
   const [editing, setEditing] = useState<{ entityId: string; record?: WatchRecord }>();
   const [picking, setPicking] = useState(false);
   const [scanning, setScanning] = useState(false);
+  // A profile being edited (null: a new one), or followed by more sensors.
+  const [profileEditing, setProfileEditing] = useState<Profile | null>();
+  const [applying, setApplying] = useState<Profile>();
+  const [filters, setFilters] = useState<Filters>(NO_FILTERS);
+  const watchedRef = useRef<HTMLElement>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const toast = useCallback((text: string, tone: Toast["tone"] = "good") => {
@@ -36,20 +41,38 @@ export function SensorWatchPage({ state }: { state?: string }) {
     setTimeout(() => setToasts((t) => t.slice(1)), 5000);
   }, []);
 
-  const readLive = useCallback(() => swApi.get<LevelsView>("levels").then(setLive, () => undefined), []);
   useEffect(() => {
     swApi.get<WatchView>("").then(setView, (err) => toast((err as Error).message, "bad"));
     swApi.get<{ missing: string[] }>("check").then((c) => setMissing(c.missing), () => undefined);
-    readLive();
-    const timer = setInterval(readLive, 30_000);
-    return () => clearInterval(timer);
-  }, [toast, readLive]);
+  }, [toast]);
 
-  const change = async (action: () => Promise<WatchView>, done: string) => {
+  // The live levels, pushed: each ask is held by the app until something changes in
+  // Home Assistant (or 25 s pass), then asked again at once.
+  useEffect(() => {
+    let open = true;
+    (async () => {
+      let rev = -1;
+      while (open) {
+        try {
+          const got = await swApi.get<LevelsView>(`levels?after=${rev}`);
+          rev = got.rev;
+          if (open) setLive(got);
+        } catch {
+          await new Promise((r) => setTimeout(r, 5000));
+        }
+      }
+    })();
+    return () => {
+      open = false;
+    };
+  }, []);
+
+  /** Run `action`, show the view it ends with, and say `done` (or what it says of the view). */
+  const change = async <V extends WatchView>(action: () => Promise<V>, done: string | ((v: V) => string)) => {
     try {
-      setView(await action());
-      toast(done);
-      setTimeout(readLive, 3000); // the integration fetches the new records within a moment
+      const v = await action();
+      setView(v);
+      toast(typeof done === "string" ? done : done(v));
       return true;
     } catch (err) {
       toast((err as Error).message, "bad");
@@ -70,7 +93,7 @@ export function SensorWatchPage({ state }: { state?: string }) {
       )}
       {view.error && <div className={guest.warning}>sensor-watch.json could not be read ({view.error}), so nothing is watched. Fix or remove the file.</div>}
       {live?.error && <div className={guest.warning}>{live.error}</div>}
-      <section className={guest.area}>
+      <section className={guest.area} ref={watchedRef}>
         <AreaHead
           title="Watched sensors"
           blurb={view.records.length ? `${view.records.length} watched; the chips filter them and give the counts.` : "Nothing watched yet."}
@@ -93,6 +116,8 @@ export function SensorWatchPage({ state }: { state?: string }) {
             live={live}
             labels={view.labels ?? {}}
             profiles={view.profiles ?? []}
+            filters={filters}
+            setFilters={setFilters}
             onFollow={(rs, p) =>
               change(() => swApi.post<WatchView>(`profiles/${p.id}/apply`, { entity_ids: rs.map((r) => r.entity_id) }), `${rs.length} sensors follow ${p.name}`)
             }
@@ -107,7 +132,16 @@ export function SensorWatchPage({ state }: { state?: string }) {
         )}
       </section>
 
-      <ProfilesSection profiles={view.profiles ?? []} change={change} />
+      <ProfilesSection
+        profiles={view.profiles ?? []}
+        change={change}
+        onEdit={(p) => setProfileEditing(p ?? null)}
+        onApply={setApplying}
+        onFollowers={(p) => {
+          setFilters({ ...NO_FILTERS, profile: p.id });
+          watchedRef.current?.scrollIntoView({ behavior: "smooth" });
+        }}
+      />
 
       <SystemSection system={view.system} live={live} change={change} />
 
@@ -134,6 +168,21 @@ export function SensorWatchPage({ state }: { state?: string }) {
           profiles={view.profiles ?? []}
           onClose={() => setScanning(false)}
           onAccepted={(records) => change(() => swApi.post<WatchView>("accept", { records }), `${records.length} sensors watched`)}
+        />
+      )}
+      {profileEditing !== undefined && (
+        <ProfileDialog profile={profileEditing ?? undefined} onClose={() => setProfileEditing(undefined)} change={change} />
+      )}
+      {applying && (
+        <ApplyDialog
+          profile={applying}
+          onClose={() => setApplying(undefined)}
+          onApply={(ids) =>
+            change(
+              () => swApi.post<WatchView & { followed: number; skipped: number }>(`profiles/${applying.id}/apply`, { entity_ids: ids }),
+              (v) => `${v.followed} sensors follow ${applying.name}${v.skipped ? ` (${v.skipped} skipped: a kind it doesn't fit)` : ""}`,
+            )
+          }
         />
       )}
       <Toasts toasts={toasts} />
