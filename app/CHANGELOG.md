@@ -1,6 +1,6 @@
 # Changelog
 
-## 2026.10.9-b1
+## 2026.10.9
 
 - Sensor Watch: in the first minute after the machine started, the page listed no entities to watch (a cache stamped 0 looked fresh, as `time.monotonic()` counts from boot). The guest login audit had the same start.
 - Camera Commander: its health reading describes the commanders once, so its two views of them can't disagree.
