@@ -384,7 +384,9 @@ export class CommanderCard extends LitElement {
     const live = !editing && this.liveMain(card, main);
     // Laid out for the picture asked for, as the compositor draws it (compositor.sized).
     const own = card.layout;
-    const sized = this._size;
+    // In HA's card picker: drawn at its own size and shrunk, so its gaps and labels keep
+    // their proportions (asked for at the picker's size, they'd crowd the cameras out).
+    const sized: Size | null = inPicker(this) ? [own.width, own.height, 1] : this._size;
     const [W, H, scale] = sized ?? [own.width, own.height, 1];
     const asked = sized && !editing ? this.pictureUrl(card, sized) : "";
     const src = asked && live ? `${asked}&main=video` : asked;

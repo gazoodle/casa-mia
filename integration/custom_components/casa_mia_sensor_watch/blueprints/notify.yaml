@@ -27,18 +27,22 @@ blueprint:
               value: critical
     group:
       name: Only this group
-      description: A group's name on the Sensor Watch page; leave empty for every watched sensor.
+      description: One of your groups on the Sensor Watch page; leave empty for every watched sensor.
       default: ""
       selector:
-        text: {}
+        select:
+          custom_value: true
+          options: []  # the groups, filled in by the integration
     notify:
       name: Notify action
       description: >-
-        A notify action, e.g. notify.mobile_app_ann_phone (Developer tools → Actions
-        lists them); leave empty for none.
+        Where to send it, e.g. notify.mobile_app_ann_phone (a phone with the Home
+        Assistant app); leave empty for none.
       default: ""
       selector:
-        text: {}
+        select:
+          custom_value: true
+          options: []  # the notify actions, filled in by the integration
     persistent:
       name: Also as a Home Assistant notification
       description: In the sidebar's notifications, one per sensor, cleared when it's back.
@@ -87,7 +91,14 @@ variables:
   was: "{{ order.index(previous) if previous in order else 0 }}"
   least: "{{ order.index(least_level) }}"
   back: "{{ rank < least and was >= least }}"
-  title: "{{ name }}: {{ 'back to ' ~ level if back else level }}"
+  # Each level's colour, as the Sensor Watch page shows it.
+  icons:
+    nominal: "🟢"
+    task: "🔵"
+    warning: "🟠"
+    error: "🔴"
+    critical: "🚨"
+  title: "{{ icons.get(level, '⚪') }} {{ name }}: {{ 'back to ' ~ level if back else level }}"
   text: >-
     {{ value if back or not message else message ~ ' (' ~ value ~ ')' }}{{
     ' · ' ~ area if area else '' }}{{ ' · ' ~ group if group else '' }}

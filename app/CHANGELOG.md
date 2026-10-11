@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.10.8-b26
+
+- **Breaking:** the Sensor Watch integration and Casa Mia's cards changed. Restart Home Assistant once; a Repair asks.
+- Notify on Sensor Watch: **Only this group** and **Notify action** are dropdowns of your groups and your notify actions (a phone with the Home Assistant app), kept up to date as groups are made and phones added; typing another still works. Its titles lead with the level's colour: 🔵 task, 🟠 warning, 🔴 error, 🚨 critical, 🟢 back to nominal.
+- Camera Commander: in Home Assistant's card picker its picture is drawn at its own size and shrunk, so the gaps and labels keep their proportions (drawn at the picker's size they crowded the cameras out).
+
 ## 2026.10.8-b25
 
 - **Breaking:** the Sensor Watch integration changed. Restart Home Assistant once; a Repair asks.

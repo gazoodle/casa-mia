@@ -5,20 +5,26 @@ problem sensor, an event on each change and a `list` service, on Casa Mia's coor
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import Platform
+from homeassistant.const import (
+    EVENT_SERVICE_REGISTERED,
+    EVENT_SERVICE_REMOVED,
+    Platform,
+)
 from homeassistant.core import (
+    Event,
     HomeAssistant,
     ServiceCall,
     ServiceResponse,
     SupportsResponse,
+    callback,
 )
 from homeassistant.helpers import device_registry as dr
 
 from ..casa_mia.children import add_module_device, follow_module, parent_coordinator
+from . import blueprint
 from .const import DOMAIN, MODULE
 from .entity import watch_device
 from .levels import LEVELS, listing, summary
@@ -30,9 +36,6 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS = [Platform.BINARY_SENSOR, Platform.SENSOR]
 # Read at import, as Casa Mia's own: a reload must not take newer files as loaded.
 LOADED_VERSION = manifest_version()
-# The "Notify on Sensor Watch" blueprint, put where Home Assistant looks for them.
-BLUEPRINT = Path(__file__).with_name("blueprints") / "notify.yaml"
-BLUEPRINT_AT = ("blueprints", "automation", "casa_mia", "sensor_watch_notify.yaml")
 LIST_SCHEMA = vol.Schema(
     {vol.Optional("levels"): [vol.In(LEVELS)], vol.Optional("group"): str}
 )
@@ -56,15 +59,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             registry.async_remove_device(found.id)
         return True
     add_module_device(hass, entry, device)
-    await hass.async_add_executor_job(
-        install_blueprint, hass.config.path(*BLUEPRINT_AT)
-    )
     watcher = Watcher(hass, coordinator)
     entry.runtime_data = watcher
     watcher.refresh()
     entry.async_on_unload(coordinator.async_add_listener(watcher.refresh))
     entry.async_on_unload(watcher.unload)
     entry.async_on_unload(start_checks(hass, watcher))  # Home Assistant's own health
+    await follow_blueprint(hass, entry, watcher)
 
     async def list_sensors(call: ServiceCall) -> ServiceResponse:
         # A group (named on the app's page): only its members, and its own worst.
@@ -98,20 +99,43 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
-def install_blueprint(target: str) -> None:
-    """Put the blueprint in place, or bring it up to date (it says to copy it before
-    changing it). Best effort: a failure only means no blueprint."""
-    text = BLUEPRINT.read_text("utf-8")
-    path = Path(target)
-    try:
-        if path.exists() and path.read_text("utf-8") == text:
+async def follow_blueprint(
+    hass: HomeAssistant, entry: ConfigEntry, watcher: Watcher
+) -> None:
+    """Install the blueprint, and write it again when its choices change: a group made
+    or renamed on the app's page, a notify action added (a phone's mobile app)."""
+    template = await hass.async_add_executor_job(blueprint.SOURCE.read_text, "utf-8")
+    target = hass.config.path(*blueprint.AT)
+    shown: list[tuple[list[str], list[str]] | None] = [None]
+
+    @callback
+    def choices(*_: object) -> None:
+        groups = sorted(
+            {r["group"] for r in watcher.records.values() if r.get("group")}
+        )
+        notifies = sorted(
+            f"notify.{name}"
+            for name in hass.services.async_services_for_domain("notify")
+            if name != "send_message"  # takes a notify entity, not a message alone
+        )
+        if (groups, notifies) == shown[0]:
             return
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(text, "utf-8")
-    except OSError as exc:
-        _LOGGER.warning("could not install the blueprint at %s: %s", path, exc)
-        return
-    _LOGGER.info("blueprint Notify on Sensor Watch installed at %s", path)
+        shown[0] = (groups, notifies)
+        hass.async_add_executor_job(
+            blueprint.install, target, blueprint.filled(template, groups, notifies)
+        )
+
+    @callback
+    def service(event: Event) -> None:
+        if event.data.get("domain") == "notify":
+            choices()
+
+    # ponytail: asked at every write of the entities (a set over the records, compared);
+    # a records-changed hook if that ever shows in a storm.
+    entry.async_on_unload(watcher.listen(choices))
+    entry.async_on_unload(hass.bus.async_listen(EVENT_SERVICE_REGISTERED, service))
+    entry.async_on_unload(hass.bus.async_listen(EVENT_SERVICE_REMOVED, service))
+    choices()
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

@@ -1364,7 +1364,11 @@ var Pt = class extends W {
 		if (!t.picture) return z`<ha-card><div class="note">Its picture's address is not known yet (the app has no LAN address).</div></ha-card>`;
 		let n = this.main(t, e.state);
 		this._liveFailed && this._liveFailed !== n && (this._liveFailed = "");
-		let r = this.editing(), i = !r && this.liveMain(t, n), a = t.layout, o = this._size, [s, c, l] = o ?? [
+		let r = this.editing(), i = !r && this.liveMain(t, n), a = t.layout, o = b(this) ? [
+			a.width,
+			a.height,
+			1
+		] : this._size, [s, c, l] = o ?? [
 			a.width,
 			a.height,
 			1
