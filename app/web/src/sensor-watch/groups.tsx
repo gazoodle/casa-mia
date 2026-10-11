@@ -5,7 +5,7 @@
 import { useState } from "react";
 import { AreaHead } from "../page";
 import { Dialog, Field } from "../ui";
-import { NO_FILTERS, swApi, type Filters, type Group, type Profile, type WatchView } from "./common";
+import { FITS, NO_FILTERS, swApi, type Filters, type Group, type Profile, type WatchRecord, type WatchView } from "./common";
 import { useCandidates } from "./dialogs";
 import { FilterBar } from "./filters";
 import css from "./sensor-watch.module.css";
@@ -36,12 +36,15 @@ function described(g: Group, labels: Record<string, string>): string {
 export function GroupsSection({
   groups,
   profiles,
+  records,
   labels,
   change,
   onMembers,
 }: {
   groups: Group[];
   profiles: Profile[];
+  /** The watched sensors (to tell a group's members from those watched otherwise). */
+  records: WatchRecord[];
   labels: Record<string, string>;
   change: Change;
   /** Show its members in the watched list. */
@@ -105,6 +108,7 @@ export function GroupsSection({
         <GroupDialog
           group={editing ?? undefined}
           profiles={profiles}
+          records={records}
           onClose={() => setEditing(undefined)}
           onSave={(body) =>
             change(
@@ -121,13 +125,15 @@ export function GroupsSection({
 function GroupDialog({
   group,
   profiles,
+  records,
   onClose,
   onSave,
 }: {
   group?: Group;
   profiles: Profile[];
+  records: WatchRecord[];
   onClose: () => void;
-  onSave: (body: { name: string; filters: Partial<Filters>; profile: string }) => Promise<boolean>;
+  onSave: (body: { name: string; filters: Partial<Filters>; profile: string; left: string[] }) => Promise<boolean>;
 }) {
   const [name, setName] = useState(group?.name ?? "");
   const [profile, setProfile] = useState(group?.profile ?? profiles[0]?.id ?? "");
@@ -135,9 +141,22 @@ function GroupDialog({
   const [saving, setSaving] = useState(false);
   const { view, error } = useCandidates(filters);
   const chosen = Object.fromEntries(Object.entries(filters).filter(([k, v]) => v && k in FILTER_NAMES));
+  const kind = profiles.find((p) => p.id === profile)?.kind;
+  // Who each match would be: a member, or passed over (another kind, or watched already).
+  const owner = new Map(records.map((r) => [r.entity_id, r.group]));
+  const left = new Set(group?.left ?? []);
+  const why = (eid: string, k: string) =>
+    kind && !(FITS[k] ?? []).includes(kind)
+      ? "another kind: passed over"
+      : left.has(eid)
+        ? "stopped by hand: left out"
+        : owner.has(eid) && owner.get(eid) !== group?.id
+          ? "watched already: keeps its own levels"
+          : null;
+  const shown = view?.sensors ?? [];
   const save = async () => {
     setSaving(true);
-    const ok = await onSave({ name: name.trim(), filters: chosen, profile });
+    const ok = await onSave({ name: name.trim(), filters: chosen, profile, left: [...left] });
     setSaving(false);
     if (ok) onClose();
   };
@@ -172,10 +191,33 @@ function GroupDialog({
       <p className={css.note}>What it takes: at least one filter. Checked each minute, so new matches join by themselves.</p>
       <FilterBar value={filters} options={view?.options} onChange={setFilters} />
       {error && <p className={css.problem}>{error}</p>}
-      {view && (
-        <p className={css.note}>
-          {view.total} match now{view.sensors.some((c) => c.watched) ? " (those watched already keep their own levels)" : ""}.
-        </p>
+      {view && Object.keys(chosen).length > 0 && (
+        <>
+          <p className={css.note}>
+            {view.total} match{view.total > shown.length ? `; the first ${shown.length} shown, narrow the filters to see the rest` : ""}. Anything here that
+            shouldn't be? Rule it out in the search with a minus word (<code>-vcc</code>), so it stays out as new ones arrive too.
+          </p>
+          <ul className={css.scanList}>
+            {shown.map((c) => {
+              const passed = why(c.entity_id, c.kind);
+              return (
+                <li key={c.entity_id}>
+                  <div className={`${css.scanRow} ${passed ? css.passed : ""}`}>
+                    <span>
+                      <strong>{c.name}</strong> <code>{c.entity_id}</code>
+                      <span className={css.note}>
+                        {c.state} {c.unit}
+                        {c.area && ` · ${c.area}`}
+                        {c.device && ` · ${c.device}`}
+                        {passed && ` · ${passed}`}
+                      </span>
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </>
       )}
     </Dialog>
   );

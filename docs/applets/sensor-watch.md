@@ -139,7 +139,8 @@ Any entity can be watched: a sensor, but also an `input_number` you type a readi
 How it's watched follows its state: a number gets bands, `on` and `off` get on/off, and
 anything else exact states.
 
-Search for it by name, entity id or its device's name (every word, in any order), or
+Search for it by name, entity id or its device's name (every word, in any order; a
+word with a minus, `-vcc`, rules out what has it), or
 narrow the list by **domain**, **area**, **label**, **integration**, **device** (only
 those with entities matching the other filters, so choosing ESPHome lists only ESPHome
 devices), **device class** or kind (numeric, on/off, or states). Pick one, and Sensor
@@ -262,12 +263,16 @@ with it: the import starts those unticked, and says so.
 A group is a saved set of filters (domain, area, label, integration, device, device
 class, kind, a search) and a profile. Everything matching is watched, following the
 profile, and **whatever matches later joins by itself**: put in a new plug and it's
-watched within a minute, no setting up. Make one with **+ New group** (it shows how
-many match as you choose); the rule of thumb is that more than two of the same kind
+watched within a minute, no setting up. Make one with **+ New group**: as you choose the
+filters it lists what they match (up to 200), so you see what it takes before it takes
+it. Something there that shouldn't be (an ESP board's own VCC reading in a mains voltage
+group, say)? Rule it out in the search with a minus word, `-vcc`: it stays out as new
+devices arrive too. The rule of thumb is that more than two of the same kind
 is a group, a single thing is a watch.
 
 - Members the profile doesn't fit (another kind) are passed over; sensors already
   watched keep their own levels.
+- **Edit** it and members the filters no longer take stop being watched.
 - **Stop watching** a member and the group remembers it, so it isn't pulled back;
   **Let them back** on the group undoes that.
 - **N in it** shows the members in the watched list (a Group chip there too).

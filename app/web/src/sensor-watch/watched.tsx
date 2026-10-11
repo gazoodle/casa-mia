@@ -4,26 +4,20 @@
 
 import { useMemo, useState } from "react";
 import { Empty } from "../page";
-import { FilterChips, LevelChips, type ChipOptions, type Choice } from "./chips";
-import { LEVELS, LEVEL_NAMES, NO_FILTERS, summary, type Filters, type Group, type Level, type LevelsView, type WatchRecord, FITS, type Profile } from "./common";
+import { FilterChips, KINDS, LevelChips, type ChipOptions, type Choice } from "./chips";
+import { LEVELS, LEVEL_NAMES, NO_FILTERS, searched, summary, type Filters, type Group, type Level, type LevelsView, type WatchRecord, FITS, type Profile } from "./common";
 import css from "./sensor-watch.module.css";
 import ui from "../ui.module.css";
 
 const PAGE = 200; // rows drawn, then "Show more" at the foot of the box
-const KINDS: Choice[] = [
-  { id: "numeric", name: "Numeric" },
-  { id: "binary", name: "On/off" },
-  { id: "state", name: "States" },
-];
-
 /** Does a watched sensor pass the filters (and every word of the search)? `skip`: a
  * filter left out, to offer what the others leave (the devices, say). */
-function passes(r: WatchRecord, f: Filters, words: string[], skip?: keyof Filters): boolean {
+function passes(r: WatchRecord, f: Filters, skip?: keyof Filters): boolean {
   const m = r.meta ?? {};
   const hay = `${(r.label ?? "").toLowerCase()} ${r.entity_id} ${(m.device ?? "").toLowerCase()}`;
   const is = (key: keyof Filters, actual: string | null | undefined) => key === skip || !f[key] || actual === f[key];
   return (
-    words.every((w) => hay.includes(w)) &&
+    searched(hay, f.q) &&
     is("area", m.area_id) &&
     (skip === "label" || !f.label || (m.labels ?? []).includes(f.label)) &&
     is("platform", m.platform) &&
@@ -72,12 +66,11 @@ export function WatchedList({
   const [levels, setLevels] = useState<Set<Level>>(new Set());
   const [sort, setSort] = useState<"level" | "name">("level");
   const [shown, setShown] = useState(PAGE);
-  const words = filters.q.toLowerCase().match(/[a-z0-9]+/g) ?? [];
   const levelOf = (r: WatchRecord) => live?.levels[r.entity_id]?.level;
 
   // Each filter offers what the others leave, so the choices narrow as you go.
   const options: ChipOptions = useMemo(() => {
-    const leave = (skip: keyof Filters) => records.filter((r) => passes(r, filters, words, skip));
+    const leave = (skip: keyof Filters) => records.filter((r) => passes(r, filters, skip));
     return {
       area: choices(leave("area"), (r) => [[r.meta?.area_id ?? "", r.meta?.area ?? ""]]),
       label: choices(leave("label"), (r) => (r.meta?.labels ?? []).map((id) => [id, labels[id] ?? id] as [string, string])),
@@ -92,9 +85,9 @@ export function WatchedList({
       profile: profiles.filter((p) => leave("profile").some((r) => r.profile === p.id)).map((p) => ({ id: p.id, name: p.name })),
       group: groups.filter((g) => leave("group").some((r) => r.group === g.id)).map((g) => ({ id: g.id, name: g.name })),
     };
-  }, [records, filters, labels, profiles, groups]); // `words` follows filters.q
+  }, [records, filters, labels, profiles, groups]);
 
-  const matched = useMemo(() => records.filter((r) => passes(r, filters, words)), [records, filters]);
+  const matched = useMemo(() => records.filter((r) => passes(r, filters)), [records, filters]);
   const counts = matched.reduce<Record<string, number>>((n, r) => {
     const l = levelOf(r);
     return l ? { ...n, [l]: (n[l] ?? 0) + 1 } : n;
@@ -114,7 +107,7 @@ export function WatchedList({
         <input
           type="search"
           className={css.find}
-          placeholder="Search names, entity ids, devices"
+          placeholder="Search names, entity ids, devices; -word to rule out"
           value={filters.q}
           onChange={(e) => setFilters({ ...filters, q: e.target.value })}
           aria-label="Search the watched sensors"

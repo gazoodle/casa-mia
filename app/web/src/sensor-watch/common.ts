@@ -195,6 +195,15 @@ export function summary(r: Pick<WatchRecord, "kind" | "bands" | "nominal" | "oth
   return nominal.length ? `nominal ${nominal.map(span).join(", ")}` : "no nominal band";
 }
 
+/** Does `hay` (lower case) pass a search? Every word is in it, in any order, and no word
+ * with a minus ("-vcc", taken whole) is: the app's scans.matches, for the page's lists. */
+export function searched(hay: string, q: string): boolean {
+  const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
+  const unwanted = terms.filter((t) => t.startsWith("-") && t.length > 1).map((t) => t.slice(1));
+  const want = terms.filter((t) => !t.startsWith("-")).flatMap((t) => t.match(/[a-z0-9]+/g) ?? []);
+  return want.every((w) => hay.includes(w)) && !unwanted.some((w) => hay.includes(w));
+}
+
 export function query(f: Filters): string {
   return Object.entries(f)
     .filter(([, v]) => v)

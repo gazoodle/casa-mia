@@ -29,18 +29,30 @@ MAX_DAYS = 365
 FILTERS = ("domain", "q", "area", "label", "platform", "device_class", "kind", "device")
 
 
-def words(text: str) -> list[str]:
-    """A search's words, ignoring case and punctuation: "Tank - Top" -> tank, top."""
-    return re.findall(r"[a-z0-9]+", text.lower())
+def words(text: str) -> tuple[list[str], list[str]]:
+    """A search's words, ignoring case and punctuation, and those it rules out (each
+    with a minus, taken whole): "Tank - Top -vcc" -> ([tank, top], [vcc])."""
+    want: list[str] = []
+    unwanted: list[str] = []
+    for term in text.lower().split():
+        if term.startswith("-"):
+            if term[1:]:
+                unwanted.append(term[1:])  # whole: "-temp_02" rules out just that
+        else:
+            want.extend(re.findall(r"[a-z0-9]+", term))
+    return want, unwanted
 
 
 def matches(c: dict[str, Any], f: dict[str, str]) -> bool:
     """Does candidate `c` pass the filters (each empty or absent = any)? The search
-    matches when every word is somewhere in its name or entity id, in any order: "tank
-    top" finds "Tank - Top", "Top of tank" and "Topup Tank"."""
+    matches when every word is somewhere in its name, entity id or device, in any order:
+    "tank top" finds "Tank - Top", "Top of tank" and "Topup Tank"; a word with a minus
+    rules out any that has it ("voltage -vcc"), so a group never takes them."""
     hay = f"{c['name'].lower()} {c['entity_id']} {c.get('device', '').lower()}"
+    want, unwanted = words(f.get("q") or "")
     return (
-        all(w in hay for w in words(f.get("q") or ""))
+        all(w in hay for w in want)
+        and not any(w in hay for w in unwanted)
         and (not f.get("area") or c["area_id"] == f["area"])
         and (not f.get("label") or f["label"] in c["labels"])
         and (not f.get("platform") or c["platform"] == f["platform"])

@@ -77,3 +77,44 @@ def test_an_edited_member_stays_in_its_group(tmp_path):
     watch, _, pid, _ = _group(tmp_path)
     call(watch, "PUT", "sensor.temp_00", body={"profile": pid, "name": "Hall"})
     assert watch.records["sensor.temp_00"]["group"] == next(iter(watch.groups))
+
+
+def test_unticked_or_no_longer_matching_members_leave(tmp_path):
+    watch, _, pid, _ = _group(tmp_path)
+    gid = next(iter(watch.groups))
+    body = {"name": "Temperatures", "filters": {"q": "temp"}, "profile": pid}
+    _, view = call(
+        watch, "PUT", f"groups/{gid}", body=body | {"left": ["sensor.temp_01"]}
+    )
+    assert "sensor.temp_01" not in watch.records and view["groups"][0]["members"] == 4
+    narrower = body | {"filters": {"q": "temp_0"}, "left": []}  # still all five
+    call(watch, "PUT", f"groups/{gid}", body=narrower)
+    assert view and len([e for e in watch.records if e.startswith("sensor.temp_")]) == 5
+    call(watch, "PUT", f"groups/{gid}", body=body | {"filters": {"q": "temp_03"}})
+    assert [e for e in watch.records if e.startswith("sensor.temp_")] == [
+        "sensor.temp_03"
+    ]
+
+
+def test_a_new_group_can_leave_some_out(tmp_path):
+    watch, _, pid, _ = _group(tmp_path)
+    body = {
+        "name": "Salt",
+        "filters": {"q": "salt"},
+        "profile": pid,
+        "left": ["sensor.salt"],
+    }
+    _, view = call(watch, "POST", "groups", body=body)
+    assert view["joined"] == 0 and "sensor.salt" not in watch.records
+
+
+def test_a_minus_word_keeps_them_out_now_and_later(tmp_path):
+    watch, ha, pid, _ = _group(tmp_path)
+    gid = next(iter(watch.groups))
+    body = {"name": "Temperatures", "filters": {"q": "temp -temp_02"}, "profile": pid}
+    call(watch, "PUT", f"groups/{gid}", body=body)
+    assert "sensor.temp_02" not in watch.records and "sensor.temp_01" in watch.records
+    ha.states.append(_state("sensor.temp_02b", "20", state_class="measurement"))
+    assert watch.reader
+    watch.reader._at = 0
+    assert watch.sync() == 0  # a new one with the unwanted word never joins

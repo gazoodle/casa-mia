@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.10.8-b17
+
+- Sensor Watch: a group shows what its filters match as you choose them (up to 200, each with its state, area and device; those it passes over say why), so you see what it takes before it takes it.
+- Sensor Watch: a search word with a minus rules out what has it (`voltage -vcc`): in a group it keeps them out as new ones arrive too. Everywhere a search is.
+- Sensor Watch: editing a group stops watching members its filters no longer take.
+- Sensor Watch: Watch an entity, Scan my house, Apply to… and groups filter with the watched list's one-line chips instead of a column of drop-downs; a chip's menu is no longer cut off at a dialog's edge.
+
 ## 2026.10.8-b16
 
 - **Breaking:** the Sensor Watch integration changed (`list` takes `group`). Restart Home Assistant once; a Repair asks.

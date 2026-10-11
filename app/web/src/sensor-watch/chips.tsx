@@ -7,6 +7,12 @@ import { LEVELS, LEVEL_NAMES, type Filters, type Level } from "./common";
 import css from "./sensor-watch.module.css";
 
 export type Choice = { id: string; name: string };
+/** The kinds a sensor can be watched as. */
+export const KINDS: Choice[] = [
+  { id: "numeric", name: "Numeric" },
+  { id: "binary", name: "On/off" },
+  { id: "state", name: "States" },
+];
 /** The choices each filter offers (only what the sensors in view have). */
 export type ChipOptions = Partial<Record<Exclude<keyof Filters, "q">, Choice[]>>;
 
@@ -43,20 +49,34 @@ export function FilterChips({ value, options, onChange }: { value: Filters; opti
 }
 
 function ChipMenu({ title, choices, chosen, onChoose }: { title: string; choices: Choice[]; chosen: string; onChoose: (id: string) => void }) {
-  const [open, setOpen] = useState(false);
+  // Open: where on screen, under its chip. Fixed, so a dialog's scrolling body can't
+  // clip it; closed on any scroll, which would leave it behind.
+  const [open, setOpen] = useState<{ top: number; left: number } | null>(null);
   const [find, setFind] = useState("");
   const box = useRef<HTMLSpanElement>(null);
   useEffect(() => {
     if (!open) return;
-    const away = (e: MouseEvent) => box.current && !box.current.contains(e.target as Node) && setOpen(false);
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    const away = (e: MouseEvent) => box.current && !box.current.contains(e.target as Node) && setOpen(null);
+    const esc = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.stopPropagation(); // the menu, not the dialog around it
+      setOpen(null);
+    };
+    const scrolled = (e: Event) => !box.current?.contains(e.target as Node) && setOpen(null);
     document.addEventListener("mousedown", away);
-    document.addEventListener("keydown", esc);
+    document.addEventListener("keydown", esc, true);
+    document.addEventListener("scroll", scrolled, true);
     return () => {
       document.removeEventListener("mousedown", away);
-      document.removeEventListener("keydown", esc);
+      document.removeEventListener("keydown", esc, true);
+      document.removeEventListener("scroll", scrolled, true);
     };
   }, [open]);
+  const toggle = (button: HTMLElement) => {
+    if (open) return setOpen(null);
+    const r = button.getBoundingClientRect();
+    setOpen({ top: r.bottom + 4, left: Math.max(8, Math.min(r.left, window.innerWidth - 330)) });
+  };
   const name = choices.find((c) => c.id === chosen)?.name ?? chosen;
   const words = find.toLowerCase().match(/[a-z0-9]+/g) ?? [];
   const shown = choices.filter((c) => words.every((w) => c.name.toLowerCase().includes(w)));
@@ -69,11 +89,11 @@ function ChipMenu({ title, choices, chosen, onChoose }: { title: string; choices
     );
   return (
     <span className={css.chipBox} ref={box}>
-      <button type="button" className={css.chip} aria-expanded={open} onClick={() => setOpen(!open)}>
+      <button type="button" className={css.chip} aria-expanded={!!open} onClick={(e) => toggle(e.currentTarget)}>
         {title} ▾
       </button>
       {open && (
-        <div className={css.chipMenu} role="menu">
+        <div className={css.chipMenu} role="menu" style={{ top: open.top, left: open.left }}>
           {choices.length > 8 && (
             <input type="search" placeholder={`Find a ${title.toLowerCase()}`} value={find} autoFocus onChange={(e) => setFind(e.target.value)} />
           )}
@@ -85,7 +105,7 @@ function ChipMenu({ title, choices, chosen, onChoose }: { title: string; choices
               className={css.menuItem}
               onClick={() => {
                 onChoose(c.id);
-                setOpen(false);
+                setOpen(null);
               }}
             >
               {c.name}

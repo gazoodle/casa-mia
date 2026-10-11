@@ -21,7 +21,8 @@ SYNC = 60.0  # seconds between looking for new members
 
 
 def clean_group(body: dict[str, Any], profiles: dict[str, Any]) -> dict[str, Any]:
-    """A group's name, filters and profile, or BadRequest saying what is wrong."""
+    """A group's name, filters, profile and those left out (unticked in its preview, or
+    stopped by hand), or BadRequest saying what is wrong."""
     name = str(body.get("name") or "").strip()
     if not name or len(name) > MAX_TEXT:
         raise BadRequest(f"A group needs a name (at most {MAX_TEXT} characters).")
@@ -33,7 +34,15 @@ def clean_group(body: dict[str, Any], profiles: dict[str, Any]) -> dict[str, Any
         raise BadRequest("A group needs at least one filter, or it takes everything.")
     if body.get("profile") not in profiles:
         raise BadRequest("A group needs a profile for its members to follow.")
-    return {"name": name, "filters": filters, "profile": body["profile"]}
+    left = body.get("left") or []
+    if not isinstance(left, list) or not all(isinstance(e, str) for e in left):
+        raise BadRequest("left: the entity ids to leave out.")
+    return {
+        "name": name,
+        "filters": filters,
+        "profile": body["profile"],
+        "left": sorted(set(left)),
+    }
 
 
 class Grouper(Scanner):
@@ -115,7 +124,7 @@ class Grouper(Scanner):
             profiles = dict(self.profiles)
             records = dict(self.records)
         if method == "POST" and parts == []:
-            group = clean_group(body, profiles) | {"id": new_id(groups), "left": []}
+            group = clean_group(body, profiles) | {"id": new_id(groups)}
             groups[group["id"]] = group
             self._save(
                 {}, f"new group {group['name']}: {group['filters']}", groups=groups
@@ -129,8 +138,19 @@ class Grouper(Scanner):
         if method == "PUT" and len(parts) == 1:
             changed = clean_group(body, profiles)
             groups[group["id"]] = group | changed
-            # Members that follow the group's profile follow its new one.
-            moved = {
+            # Members that follow the group's profile follow its new one; those it no
+            # longer takes (its filters narrowed, or left out) stop being watched.
+            known = self._known()
+            out = {
+                r["entity_id"]
+                for r in members
+                if r["entity_id"] in changed["left"]
+                or (
+                    r["entity_id"] in known
+                    and not matches(known[r["entity_id"]], changed["filters"])
+                )
+            }
+            moved: dict[str, dict[str, Any] | None] = {
                 r["entity_id"]: follower(
                     r["entity_id"],
                     r.get("name", ""),
@@ -139,11 +159,17 @@ class Grouper(Scanner):
                 )
                 | {"group": group["id"]}
                 for r in members
-                if r.get("profile") == group["profile"]
+                if r.get("profile") == group["profile"] and r["entity_id"] not in out
             }
+            moved |= dict.fromkeys(out)
+            dropped = (
+                f"; {len(out)} no longer in it ({', '.join(sorted(out))})"
+                if out
+                else ""
+            )
             self._save(
                 moved,
-                f"group {changed['name']} saved: {changed['filters']}",
+                f"group {changed['name']} saved: {changed['filters']}{dropped}",
                 groups=groups,
             )
             joined = self.sync(group["id"])

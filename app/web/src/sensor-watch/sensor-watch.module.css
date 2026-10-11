@@ -204,9 +204,7 @@
 }
 
 .chipMenu {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
+  position: fixed; /* placed by the chip (chips.tsx), over a dialog's edge too */
   z-index: 20;
   display: grid;
   gap: 2px;
@@ -649,4 +647,9 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--muted);
+}
+
+/* A match a group passes over (another kind, watched already, left out). */
+.passed {
+  opacity: 0.55;
 }

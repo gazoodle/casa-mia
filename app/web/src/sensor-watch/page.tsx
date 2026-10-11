@@ -138,6 +138,7 @@ export function SensorWatchPage({ state }: { state?: string }) {
       <GroupsSection
         groups={view.groups ?? []}
         profiles={view.profiles ?? []}
+        records={view.records}
         labels={view.labels ?? {}}
         change={change}
         onMembers={(g) => {

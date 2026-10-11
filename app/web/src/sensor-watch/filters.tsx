@@ -1,69 +1,41 @@
-/** The filters a big house needs: a search (names, entity ids and device names), then
- * area, label, integration, device, device class and kind, each offering only what some
- * sensor has; the devices only those matching the other filters. */
+/** The filters a big house needs, on one line: a search (names, entity ids and device
+ * names) and a chip per filter (domain, area, label, integration, device, device class,
+ * kind), each offering only what some sensor has; the devices only those matching the
+ * other filters. The same chips as the watched list's. */
 
-import type { Filters, Options } from "./common";
+import { FilterChips, KINDS, type ChipOptions } from "./chips";
+import { NO_FILTERS, type Filters, type Options } from "./common";
 import css from "./sensor-watch.module.css";
 
+const named = (ids: string[] = []) => ids.map((id) => ({ id, name: id.replaceAll("_", " ") }));
+
 export function FilterBar({ value, options, onChange }: { value: Filters; options?: Options; onChange: (f: Filters) => void }) {
-  const set = (key: keyof Filters) => (e: { target: { value: string } }) => onChange({ ...value, [key]: e.target.value });
+  const chips: ChipOptions = {
+    domain: named(options?.domains),
+    area: options?.areas ?? [],
+    label: options?.labels ?? [],
+    platform: named(options?.platforms),
+    device: options?.devices ?? [],
+    device_class: named(options?.device_classes),
+    kind: KINDS,
+  };
+  const filtering = Object.values(value).some(Boolean);
   return (
-    <div className={css.filters}>
-      <input type="search" placeholder="Search by name or entity id" value={value.q} onChange={set("q")} aria-label="Search" />
-      <select value={value.domain} onChange={set("domain")} aria-label="Domain">
-        <option value="">Any domain</option>
-        {options?.domains.map((d) => (
-          <option key={d} value={d}>
-            {d}
-          </option>
-        ))}
-      </select>
-      <select value={value.area} onChange={set("area")} aria-label="Area">
-        <option value="">Any area</option>
-        {options?.areas.map((a) => (
-          <option key={a.id} value={a.id}>
-            {a.name}
-          </option>
-        ))}
-      </select>
-      <select value={value.label} onChange={set("label")} aria-label="Label">
-        <option value="">Any label</option>
-        {options?.labels.map((l) => (
-          <option key={l.id} value={l.id}>
-            {l.name}
-          </option>
-        ))}
-      </select>
-      <select value={value.platform} onChange={set("platform")} aria-label="Integration">
-        <option value="">Any integration</option>
-        {options?.platforms.map((p) => (
-          <option key={p} value={p}>
-            {p}
-          </option>
-        ))}
-      </select>
-      <select value={value.device} onChange={set("device")} aria-label="Device">
-        <option value="">Any device{options?.devices.length ? ` (${options.devices.length})` : ""}</option>
-        {options?.devices.map((d) => (
-          <option key={d.id} value={d.id}>
-            {d.name}
-          </option>
-        ))}
-      </select>
-      <select value={value.device_class} onChange={set("device_class")} aria-label="Device class">
-        <option value="">Any device class</option>
-        {options?.device_classes.map((d) => (
-          <option key={d} value={d}>
-            {d.replaceAll("_", " ")}
-          </option>
-        ))}
-      </select>
-      <select value={value.kind} onChange={set("kind")} aria-label="Kind">
-        <option value="">Any kind</option>
-        <option value="numeric">Numeric</option>
-        <option value="binary">On/off</option>
-        <option value="state">States (text, enum, covers, locks…)</option>
-      </select>
+    <div className={css.toolbar}>
+      <input
+        type="search"
+        className={css.find}
+        placeholder="Search names, entity ids, devices; -word to rule out"
+        value={value.q}
+        onChange={(e) => onChange({ ...value, q: e.target.value })}
+        aria-label="Search"
+      />
+      <FilterChips value={value} options={chips} onChange={onChange} />
+      {filtering && (
+        <button type="button" className={css.chip} onClick={() => onChange(NO_FILTERS)}>
+          Clear all
+        </button>
+      )}
     </div>
   );
 }
