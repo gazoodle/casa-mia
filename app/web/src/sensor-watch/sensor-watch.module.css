@@ -116,6 +116,28 @@
   color: var(--muted);
 }
 
+/* Home Assistant itself: its two switches */
+.switches {
+  display: grid;
+  gap: 10px;
+  margin: 4px 0 14px;
+}
+
+.switchRow {
+  display: flex;
+  gap: 12px;
+  align-items: start;
+}
+
+.switchRow > span {
+  display: grid;
+  gap: 2px;
+}
+
+.switchRow .note {
+  margin: 0;
+}
+
 /* The record dialog */
 
 .entity {
@@ -270,6 +292,8 @@
 }
 
 .tick input {
+  flex: none;
+  padding: 0;
   width: 18px;
   height: 18px;
   margin-top: 1px;
@@ -355,12 +379,18 @@
 
 .scanRow > span {
   display: grid;
+  flex: 1;
   gap: 2px;
   min-width: 0;
 }
 
+/* Not the page's full-width input (styles.css): a tick of its own size. */
 .scanRow input {
-  margin-top: 3px;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  padding: 0;
   accent-color: var(--accent);
 }
 

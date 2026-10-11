@@ -54,9 +54,12 @@ class Watcher:
         self._telling: CALLBACK_TYPE | None = None
         self._revision: str | None = None  # of the records applied
         self._fetching = False
-        self._system: set[str] = (
-            set()
-        )  # keys of Home Assistant's own rows (apply_system)
+        # Keys of Home Assistant's own rows (apply_system).
+        self._system: set[str] = set()
+        # The page's settings for Home Assistant's own health (levels.system_rows), and
+        # what checks it again (system.start_checks), when they change.
+        self.system_settings: dict[str, Any] = {}
+        self.recheck: Callable[[], None] | None = None
 
     def listen(self, told: Callable[[], None]) -> Callable[[], None]:
         """Be told after each change of level (the entities write their state)."""
@@ -96,6 +99,11 @@ class Watcher:
             self._fetching = False
         self._revision = data.get("revision", revision)
         self._apply({r["entity_id"]: r for r in data.get("records") or []})
+        if (system := data.get("system") or {}) != self.system_settings:
+            self.system_settings = system
+            _LOGGER.info("Home Assistant's own health: %s", system)
+            if self.recheck:
+                self.recheck()
 
     @callback
     def _apply(self, records: dict[str, dict[str, Any]]) -> None:

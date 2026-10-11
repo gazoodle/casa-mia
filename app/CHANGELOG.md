@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026.10.8-b6
+
+- **Sensor Watch:** a scan's results are readable again (each tick took the whole row and
+  pushed the sensor off to the right).
+- **Sensor Watch: Home Assistant itself on the page.** A new section lists what it counts
+  beside the sensors (the Recorder and History, failing integrations), with a switch for
+  each, and an Ignore for any failing integration (Watch again undoes it). Discoveries
+  Home Assistant was told to ignore no longer count as failing integrations: they are
+  never loaded, by design.
+- **Kiosk Satellites:** the latest release, at the top of the page, is a chip that opens
+  its release notes on GitHub (↗); each tablet's own version chip is back as it was.
+
 ## 2026.10.8-b5
 
 - **Sensor Watch: a Device filter,** listing only the devices with sensors that match the

@@ -102,23 +102,35 @@ def system_rows(
     entries: list[dict[str, Any]],
     first_bad: dict[str, float],
     now: float,
+    settings: dict[str, Any] | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Home Assistant's own health as rows like a watched sensor's: the Recorder and
     History (critical when not running, nominal when they are) and each integration that
     has failed to set up for SETTLE seconds (error). `entries`: each config entry's
-    entry_id, domain, title, state, reason and disabled; `first_bad`: when each was first
-    seen failing, kept by the caller between checks (updated here)."""
+    entry_id, domain, title, state, reason, source and disabled; `first_bad`: when each
+    was first seen failing, kept by the caller between checks (updated here); `settings`
+    (the app's page): `core` and `integrations` on or off, and `ignore` (entry ids)."""
+    settings = settings or {}
     rows: dict[str, dict[str, Any]] = {}
-    for key, name in SYSTEM.items():
-        up = key in components
-        rows[f"homeassistant.{key}"] = {
-            "name": name,
-            "level": "nominal" if up else "critical",
-            "value": "running" if up else "not running",
-            "message": None if up else "not running: no history or statistics",
-        }
+    if settings.get("core", True):
+        for key, name in SYSTEM.items():
+            up = key in components
+            rows[f"homeassistant.{key}"] = {
+                "name": name,
+                "level": "nominal" if up else "critical",
+                "value": "running" if up else "not running",
+                "message": None if up else "not running: no history or statistics",
+            }
+    ignored = set(settings.get("ignore") or [])
     failing = {
-        e["entry_id"]: e for e in entries if e["state"] in FAILED and not e["disabled"]
+        e["entry_id"]: e
+        for e in entries
+        if settings.get("integrations", True)
+        and e["state"] in FAILED
+        and not e["disabled"]
+        # A discovery the user chose to ignore is kept as an entry that never loads.
+        and e.get("source") != "ignore"
+        and e["entry_id"] not in ignored
     }
     for gone in set(first_bad) - set(failing):
         del first_bad[gone]

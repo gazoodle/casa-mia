@@ -34,7 +34,11 @@ export type WatchRecord = {
   label?: string;
 };
 
-export type WatchView = { records: WatchRecord[]; levels: Level[]; error: string | null };
+/** Home Assistant's own health, as set on the page: the Recorder and History, failing
+ * integrations, and those ignored (entry id -> its name). */
+export type SystemSettings = { core: boolean; integrations: boolean; ignore: Record<string, string> };
+
+export type WatchView = { records: WatchRecord[]; system: SystemSettings; levels: Level[]; error: string | null };
 
 /** A sensor's level now, from the integration. */
 export type Live = { entity_id: string; level: Level; value: string | null; message: string | null; since: string; name: string };

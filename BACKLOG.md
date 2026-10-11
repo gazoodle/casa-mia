@@ -120,7 +120,7 @@ Not scheduled. Newest ideas first within each section. Move an item into the REA
 ## Wall tablets: Kiosk Satellites, kiosk mode, firmware server
 
 - **Links out to what we build on** (asked 2026-10-11).
-  - ~~Kiosk Satellites: the new-firmware chip opens the release's notes~~ (done in 2026.10.8-b5).
+  - ~~Kiosk Satellites: the latest release, at the top of the page, a ↗ chip to its notes~~ (done in 2026.10.8-b6).
   - **Firmware server page:** a link to Kiosk Satellite's GitHub repository (its root), with the same ↗ mark.
   - **Then check every page** that leans on someone else's project and give each a link to it, in the same style: e.g. Auto Dashboards (advanced-camera-card, webrtc-camera, the cards its dashboards use), the Kiosk mode page (kiosk-mode; it links its options today, check the repo too), Guest login (the project it took over), and any others. One shared link component, so the mark and behaviour are the same everywhere.
 

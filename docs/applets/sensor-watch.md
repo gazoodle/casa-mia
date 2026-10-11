@@ -112,6 +112,14 @@ says all is well while Home Assistant is broken:
   integration, with Home Assistant's reason. Disabled integrations don't count. When it
   recovers, the event says so (level nominal) and it leaves the list.
 
+A discovery you told Home Assistant to **Ignore** is kept as an entry that never loads,
+by design, so it never counts.
+
+The page's **Home Assistant itself** section lists these rows, with a switch for each
+kind (**The Recorder and History**, **Integrations that fail to set up**) and an
+**Ignore** on each failing integration (one you know about and don't need, say); the
+ignored ones are listed underneath, each with **Watch again**.
+
 These are checked once Home Assistant has started, and each minute after. In the event
 and the list service their `entity_id` is `homeassistant.recorder`,
 `homeassistant.history` or `integration.<its entry id>`.

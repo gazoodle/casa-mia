@@ -34,16 +34,22 @@ def start_checks(hass: HomeAssistant, watcher: Watcher) -> CALLBACK_TYPE:
                 "title": e.title,
                 "state": e.state.value,
                 "reason": getattr(e, "reason", None),
+                "source": e.source,
                 "disabled": e.disabled_by is not None,
             }
             for e in hass.config_entries.async_entries()
         ]
         watcher.apply_system(
             system_rows(
-                set(hass.config.components), entries, first_bad, time.monotonic()
+                set(hass.config.components),
+                entries,
+                first_bad,
+                time.monotonic(),
+                watcher.system_settings,
             )
         )
 
+    watcher.recheck = check  # the page's settings changed: check again at once
     stops = [
         async_at_started(hass, lambda _hass: check()),
         async_track_time_interval(hass, check, CHECK),

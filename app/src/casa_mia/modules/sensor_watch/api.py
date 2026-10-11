@@ -22,12 +22,17 @@ from .status import Status
 
 _LOGGER = logging.getLogger(__name__)
 
+MAX_TEXT_NAME = 120  # an ignored integration's name, as listed
 MAX_SCAN = 500  # sensors a scan round reads; the next round starts at `next`
 DAYS = 30  # history read by default
 MAX_DAYS = 365
 # What Sensor Watch needs running in Home Assistant: without them there is no history,
 # no statistics, no suggestions (and HA's own History panel is broken too).
 NEEDS = {"recorder": "Recorder", "history": "History"}
+# Home Assistant's own health (the integration's levels.system_rows), set on the page:
+# the Recorder and History, integrations failing to set up, and those to leave out
+# (entry id -> its name when it was ignored, to list them).
+SYSTEM = {"core": True, "integrations": True, "ignore": {}}
 FILTERS = ("q", "area", "label", "platform", "device_class", "kind", "device")
 
 
@@ -105,11 +110,13 @@ class SensorWatch:
         self.status = Status(ha)  # overall health, for the Home tile (start() polls it)
         self._lock = threading.Lock()
         self.records: dict[str, dict[str, Any]] = {}
+        self.system: dict[str, Any] = dict(SYSTEM)
         self._broken: str | None = None
         self._revision = ""
         try:
-            raw = json.loads(store_path.read_text()).get("records", [])
-            self.records = {r["entity_id"]: r for r in raw}
+            data = json.loads(store_path.read_text())
+            self.records = {r["entity_id"]: r for r in data.get("records", [])}
+            self.system = SYSTEM | (data.get("system") or {})
         except FileNotFoundError:
             pass
         except (OSError, ValueError, AttributeError, KeyError, TypeError) as exc:
@@ -137,11 +144,16 @@ class SensorWatch:
     def for_integration(self) -> dict[str, Any]:
         """For the integration (GET /sensor-watch/records)."""
         with self._lock:
-            return {"revision": self._revision, "records": list(self.records.values())}
+            return {
+                "revision": self._revision,
+                "records": list(self.records.values()),
+                "system": self.system | {"ignore": sorted(self.system["ignore"])},
+            }
 
     def _revise(self) -> None:
-        """A hash of the records (caller holds the lock, or nobody else has it yet)."""
-        text = json.dumps(self.records, sort_keys=True)
+        """A hash of the records and settings (caller holds the lock, or nobody else
+        has it yet)."""
+        text = json.dumps([self.records, self.system], sort_keys=True)
         self._revision = hashlib.sha256(text.encode()).hexdigest()[:16]
 
     # -- the admin page's API
@@ -168,6 +180,8 @@ class SensorWatch:
     ) -> Response:
         if method == "GET" and parts == []:
             return _json(200, self.view())
+        if parts[:1] == ["system"]:
+            return self._system(method, parts[1:], body)
         if method == "GET" and parts == ["check"]:
             return _json(200, self.check())
         if method == "GET" and parts == ["levels"]:
@@ -202,7 +216,14 @@ class SensorWatch:
         for r in records:
             r["label"] = r["name"] or names.get(r["entity_id"], r["entity_id"])
         records.sort(key=lambda r: r["label"].lower())
-        return {"records": records, "levels": list(LEVELS), "error": self._broken}
+        with self._lock:
+            system = self.system | {"ignore": dict(self.system["ignore"])}
+        return {
+            "records": records,
+            "system": system,
+            "levels": list(LEVELS),
+            "error": self._broken,
+        }
 
     def check(self) -> dict[str, Any]:
         """Are HA's Recorder and History running? A serious fault in HA if not."""
@@ -394,12 +415,21 @@ class SensorWatch:
         )
         return _json(200, self.view())
 
-    def _save(self, changes: dict[str, dict[str, Any] | None], what: str) -> None:
+    def _save(
+        self,
+        changes: dict[str, dict[str, Any] | None],
+        what: str,
+        system: dict[str, Any] | None = None,
+    ) -> None:
+        """Apply record changes (None removes one) and any new `system` settings, then
+        save, log `what`, and have the integration ask again."""
         with self._lock:
             if self._broken:
                 raise BadRequest(
                     f"{self.store_path.name} could not be read; fix or remove it first."
                 )
+            if system is not None:
+                self.system = system
             for eid, record in changes.items():
                 if record is None:
                     self.records.pop(eid, None)
@@ -407,14 +437,42 @@ class SensorWatch:
                     self.records[eid] = record
             tmp = self.store_path.with_name(self.store_path.name + ".tmp")
             self.store_path.parent.mkdir(parents=True, exist_ok=True)
-            tmp.write_text(
-                json.dumps({"records": list(self.records.values())}, indent=2)
-            )
+            data = {"records": list(self.records.values()), "system": self.system}
+            tmp.write_text(json.dumps(data, indent=2))
             tmp.replace(self.store_path)
             self._revise()
         _LOGGER.info("%s", what)
         if self.on_change:
             threading.Thread(target=self.on_change, daemon=True).start()
+
+    def _system(self, method: str, parts: list[str], body: dict[str, Any]) -> Response:
+        """The settings for Home Assistant's own health: PUT system {core, integrations};
+        POST system/ignore {entry_id, name}; DELETE system/ignore/<entry id>."""
+        with self._lock:
+            system = self.system | {"ignore": dict(self.system["ignore"])}
+        if method == "PUT" and parts == []:
+            for key in ("core", "integrations"):
+                if key in body:
+                    if not isinstance(body[key], bool):
+                        raise BadRequest(f"{key}: true or false.")
+                    system[key] = body[key]
+            what = f"Home Assistant's own health: Recorder and History {'on' if system['core'] else 'off'}, failing integrations {'on' if system['integrations'] else 'off'}"
+        elif method == "POST" and parts == ["ignore"]:
+            entry_id = str(body.get("entry_id") or "")
+            if not re.fullmatch(r"[A-Za-z0-9_]{1,64}", entry_id):
+                raise BadRequest("entry_id: a config entry's id.")
+            name = str(body.get("name") or entry_id)[:MAX_TEXT_NAME]
+            system["ignore"][entry_id] = name
+            what = f"ignoring the integration {name} ({entry_id})"
+        elif method == "DELETE" and parts[:1] == ["ignore"] and len(parts) == 2:
+            name = system["ignore"].pop(parts[1], None)
+            if name is None:
+                return _json(404, {"error": "Not ignored."})
+            what = f"watching the integration {name} ({parts[1]}) again"
+        else:
+            return _json(404, {"error": "Not found."})
+        self._save({}, what, system)
+        return _json(200, self.view())
 
     def _reader(self) -> Reader:
         if self.reader is None:

@@ -83,7 +83,15 @@ export function KiosksPage({ state }: { state?: string }) {
           title="Kiosks"
           blurb={
             <>
-              {view.kiosks.length} found · latest release <strong>{view.latest ?? "unknown"}</strong> · looked{" "}
+              {view.kiosks.length} found · latest release{" "}
+              {view.latest ? (
+                <a className={css.release} href={releaseNotes(view.latest)} target="_blank" rel="noopener noreferrer" title="Its release notes, on GitHub">
+                  {view.latest} ↗
+                </a>
+              ) : (
+                <strong>unknown</strong>
+              )}{" "}
+              · looked{" "}
               {ago(view.last_scan) ?? "not yet"}
             </>
           }
@@ -317,30 +325,10 @@ function KioskRow({
         <div className={css.title}>
           <span className={`${css.dot} ${k.online ? css.on : css.off}`} title={k.online ? "Online" : "Not answering"} />
           <strong>{k.name}</strong>
-          {k.behind && latest ? (
-            // Inside the card's button, so a link by role: it opens the notes, not the card.
-            <span
-              role="link"
-              tabIndex={0}
-              className={`${css.version} ${css.behind} ${css.notes}`}
-              title={`${latest}'s release notes, on GitHub`}
-              onClick={(e) => {
-                e.stopPropagation();
-                open(releaseNotes(latest), "_blank", "noopener");
-              }}
-              onKeyDown={(e) => {
-                if (e.key !== "Enter") return;
-                e.stopPropagation();
-                open(releaseNotes(latest), "_blank", "noopener");
-              }}
-            >
-              {k.version ?? "?"} → {latest} ↗
-            </span>
-          ) : (
-            <span className={css.version} title="Up to date">
-              {k.version ?? "?"}
-            </span>
-          )}
+          <span className={`${css.version} ${k.behind ? css.behind : ""}`} title={k.behind ? `Latest is ${latest}` : "Up to date"}>
+            {k.version ?? "?"}
+            {k.behind && " ↑"}
+          </span>
           {k.leader && <span className={`${guest.badge} ${css.leader}`} title="Leads a fleet: pushes its settings to the kiosks that follow it">leader</span>}
           {k.follows && !follower && (
             <span className={guest.badge} title="Follows a leader that is not on this list">follows {leaderName ?? "another kiosk"}</span>

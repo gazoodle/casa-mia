@@ -605,3 +605,58 @@ def test_the_device_filter_narrows_with_the_others():
     assert [s["entity_id"] for s in by_name["sensors"]] == ["sensor.salt"]
     _, binary = call(watch, "GET", "candidates", {"kind": ["binary"]})
     assert binary["options"]["devices"] == []  # no binary sensor on a device
+
+
+def test_ignored_discoveries_and_the_pages_settings():
+    on = {"recorder", "history"}
+    late = levels.SETTLE
+    ignored_discovery = _entry("d", "not_loaded") | {"source": "ignore"}
+    really_broken = _entry("e", "not_loaded") | {"source": "user"}
+    first_bad: dict[str, float] = {}
+    levels.system_rows(on, [ignored_discovery, really_broken], first_bad, 0.0)
+    rows = levels.system_rows(on, [ignored_discovery, really_broken], first_bad, late)
+    assert (
+        "integration.d" not in rows and "integration.e" in rows
+    )  # Ignore pressed: never a fault
+    # The page's settings: one integration left out, then all of them, then the Recorder too.
+    assert "integration.e" not in levels.system_rows(
+        on, [really_broken], first_bad, late, {"ignore": ["e"]}
+    )
+    assert "integration.e" not in levels.system_rows(
+        on, [really_broken], first_bad, late, {"integrations": False}
+    )
+    assert (
+        levels.system_rows(set(), [], {}, 0.0, {"core": False, "integrations": False})
+        == {}
+    )
+
+
+def test_settings_for_home_assistants_own_health_reach_the_integration(tmp_path):
+    watch = make(tmp_path / "sw.json", FakeHA(STATES, ENTITIES))
+    before = watch.health()["revision"]
+    status, view = call(
+        watch,
+        "POST",
+        "system/ignore",
+        body={"entry_id": "abc123", "name": "Barn blinds (acme_hub)"},
+    )
+    assert status == 200 and view["system"]["ignore"] == {
+        "abc123": "Barn blinds (acme_hub)"
+    }
+    assert watch.for_integration()["system"]["ignore"] == ["abc123"]
+    assert watch.health()["revision"] != before  # so the integration fetches it
+    assert (
+        call(watch, "PUT", "system", body={"integrations": False})[1]["system"][
+            "integrations"
+        ]
+        is False
+    )
+    assert call(watch, "PUT", "system", body={"core": "yes"})[0] == 400
+    assert call(watch, "POST", "system/ignore", body={"entry_id": "../x"})[0] == 400
+    again = make(tmp_path / "sw.json", None)  # kept with the records
+    assert (
+        again.system["ignore"] == {"abc123": "Barn blinds (acme_hub)"}
+        and again.system["integrations"] is False
+    )
+    assert call(watch, "DELETE", "system/ignore/abc123")[1]["system"]["ignore"] == {}
+    assert call(watch, "DELETE", "system/ignore/abc123")[0] == 404

@@ -8,6 +8,7 @@ import { Toasts, type Toast } from "../ui";
 import { LEVELS, LEVEL_NAMES, summary, swApi, type Level, type LevelsView, type WatchRecord, type WatchView } from "./common";
 import { PickDialog, ScanDialog } from "./dialogs";
 import { RecordDialog } from "./editor";
+import { SystemSection } from "./system";
 import css from "./sensor-watch.module.css";
 import guest from "../guest.module.css";
 import ui from "../ui.module.css";
@@ -72,7 +73,9 @@ export function SensorWatchPage({ state }: { state?: string }) {
   }, [view, live, search, level]);
 
   if (!view) return <Shell {...HEAD} state={state}><p className={guest.notice}>Loading…</p></Shell>;
-  const counts = Object.values(live?.levels ?? {}).reduce<Record<string, number>>((n, l) => ({ ...n, [l.level]: (n[l.level] ?? 0) + 1 }), {});
+  // The watched sensors' own counts (Home Assistant itself has its section below).
+  const mine = new Set(view.records.map((r) => r.entity_id));
+  const counts = Object.values(live?.levels ?? {}).filter((l) => mine.has(l.entity_id)).reduce<Record<string, number>>((n, l) => ({ ...n, [l.level]: (n[l.level] ?? 0) + 1 }), {});
 
   return (
     <Shell {...HEAD} state={state}>
@@ -158,6 +161,8 @@ export function SensorWatchPage({ state }: { state?: string }) {
           </>
         )}
       </section>
+
+      <SystemSection system={view.system} live={live} change={change} />
 
       {picking && (
         <PickDialog
