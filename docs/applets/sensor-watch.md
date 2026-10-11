@@ -251,7 +251,9 @@ and where its numbers come from:
 - **Cold and hot storage:** freezer, fridge, hot water cylinder.
 - **Heating:** boiler pressure, room temperature.
 - **Outdoors and garden:** frost risk, pipes in an unheated space, soil moisture.
-- **Computers and network:** Wi-Fi signal, CPU temperature, disk use.
+- **Computers and network:** Wi-Fi signal, CPU temperature, CPU and memory use, disk
+  use. (A host's CPU and memory as entities: Home Assistant's System Monitor
+  integration, or the Supervisor integration's per-app sensors; both start disabled.)
 
 Nothing starts ticked: search (a country, "voltage", "pH") and tick what you have.
 
@@ -375,6 +377,19 @@ actions:
         {% for s in watch.sensors %}{{ s.name }}: {{ s.level }} ({{ s.value }})
         {% endfor %}
 ```
+
+Add `group: Mains voltage` to ask about one group only (and its own worst level).
+
+### The card
+
+**Casa Mia Sensor Watch** (in the card picker) lists what isn't nominal, worst first,
+each with its level, message, value (live from the entity) and how long it has stood;
+tap a row for the entity's details. Options: a title, a **group** (only its members),
+the levels to list, at most how many, and what to do when all is well: **hide** (the
+default) or say so.
+
+Hidden, it takes its panel with it in a Tablet Layout: put it in a side panel with a
+garnish heading ("Needs looking at") and the panel appears only when something does.
 
 ## Thanks
 

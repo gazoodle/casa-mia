@@ -74,6 +74,25 @@ export function WatchedList({
       return true;
     }
   });
+  // Groups folded away (by heading), remembered as the grouping is.
+  const [folded, setFolded] = useState<Set<string>>(() => {
+    try {
+      return new Set(JSON.parse(localStorage.getItem("sw-folded") || "[]"));
+    } catch {
+      return new Set();
+    }
+  });
+  const fold = (name: string) => {
+    const next = new Set(folded);
+    if (next.has(name)) next.delete(name);
+    else next.add(name);
+    setFolded(next);
+    try {
+      localStorage.setItem("sw-folded", JSON.stringify([...next]));
+    } catch {
+      // a private window: just not remembered
+    }
+  };
   const group = (on: boolean) => {
     setGrouped(on);
     try {
@@ -121,6 +140,10 @@ export function WatchedList({
     .filter((r) => levels.size === 0 || levels.has(levelOf(r) as Level))
     .sort((a, b) => sectionOrder(section(a), section(b)) || (sort === "level" ? rank(b) - rank(a) : 0) || (a.label ?? "").localeCompare(b.label ?? ""));
   const inSection = rows.reduce<Record<string, number>>((n, r) => ({ ...n, [section(r)]: (n[section(r)] ?? 0) + 1 }), {});
+  const first = (r: WatchRecord, i: number, list: WatchRecord[]) => i === 0 || section(list[i - 1]) !== section(r);
+  const isFolded = (r: WatchRecord) => grouped && folded.has(section(r));
+  // A folded group keeps its first row, to carry its heading.
+  const visible = rows.filter((r, i) => !isFolded(r) || first(r, i, rows));
   const filtering = levels.size > 0 || Object.values(filters).some(Boolean);
 
   return (
@@ -170,16 +193,19 @@ export function WatchedList({
           <Empty>None match.</Empty>
         ) : (
           <div className={css.table}>
-            {rows.slice(0, shown).map((r, i, page) => {
+            {visible.slice(0, shown).map((r, i, page) => {
               const now = live?.levels[r.entity_id];
-              const heading = grouped && (i === 0 || section(page[i - 1]) !== section(r));
+              const heading = grouped && first(r, i, page);
               return (
                 <Fragment key={r.entity_id}>
                   {heading && (
                     <h4 className={`${css.category} ${css.sectionHead}`}>
-                      {section(r)} · {inSection[section(r)]}
+                      <button type="button" className={css.fold} aria-expanded={!isFolded(r)} onClick={() => fold(section(r))}>
+                        <span className={css.foldMark}>{isFolded(r) ? "▸" : "▾"}</span> {section(r)} · {inSection[section(r)]}
+                      </button>
                     </h4>
                   )}
+                  {!isFolded(r) && (
                 <div className={`${css.row} ${css.compact}`}>
                   <span className={`${css.level} ${css[`lv_${now?.level ?? "none"}`]}`}>{now ? LEVEL_NAMES[now.level] : "…"}</span>
                   <span className={css.what}>
@@ -203,12 +229,13 @@ export function WatchedList({
                     </button>
                   </span>
                 </div>
+                  )}
                 </Fragment>
               );
             })}
-            {rows.length > shown && (
+            {visible.length > shown && (
               <button className={ui.button} onClick={() => setShown(shown + PAGE)}>
-                Show {Math.min(PAGE, rows.length - shown)} more of {rows.length}
+                Show {Math.min(PAGE, visible.length - shown)} more of {visible.length}
               </button>
             )}
           </div>

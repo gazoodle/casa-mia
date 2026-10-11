@@ -1026,6 +1026,32 @@
       "unavailable": "error", "hold_off": 600
     },
     {
+      "name": "CPU use (%)",
+      "about": "A computer's processor use (System Monitor's, or the Supervisor's for Home Assistant and each app): busy now and then is normal, so only a long stretch counts (a 15-minute hold-off).",
+      "category": "Computers and network",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 80, "level": "nominal", "message": ""},
+        {"from": 80, "to": 95, "level": "task", "message": "CPU busy for a while"},
+        {"from": 95, "to": null, "level": "warning", "message": "CPU flat out"}
+      ],
+      "otherwise": "error",
+      "unavailable": "warning", "hold_off": 900
+    },
+    {
+      "name": "Memory use (%)",
+      "about": "A computer's memory use: past 90% for a while it starts swapping or killing things.",
+      "category": "Computers and network",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 80, "level": "nominal", "message": ""},
+        {"from": 80, "to": 90, "level": "task", "message": "Memory filling up"},
+        {"from": 90, "to": null, "level": "warning", "message": "Memory nearly full"}
+      ],
+      "otherwise": "error",
+      "unavailable": "warning", "hold_off": 900
+    },
+    {
       "category": "Computers and network",
       "name": "Disk used (%)",
       "about": "A disk's use: past 80% it's time to tidy; a full disk stops databases (Home Assistant's own among them).",

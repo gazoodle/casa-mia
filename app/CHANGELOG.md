@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.10.8-b19
+
+- **Breaking:** Casa Mia's cards changed (a new card). Restart Home Assistant once; a Repair asks.
+- Sensor Watch: a card, **Casa Mia Sensor Watch**: what isn't nominal, worst first (all of it or one group's), each value live, a tap for its details; hidden when all is well, so in a Tablet Layout its panel (garnish heading and all) appears only when something needs looking at.
+- Sensor Watch: the library adds CPU use and memory use.
+- Sensor Watch: a group in the watched list folds away (▸) and opens again (▾) from its heading; remembered in this browser.
+
 ## 2026.10.8-b18
 
 - Sensor Watch: a group can follow **the defaults, by what it is** instead of a profile: each member set up as Watch an entity would (a cover closed, a lock locked, a leak critical), passing over what has no default (the preview says which). So a group of roof windows or locks needs no profile first.

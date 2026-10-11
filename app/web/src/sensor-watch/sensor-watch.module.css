@@ -663,3 +663,21 @@
   padding: 8px 4px 4px;
   background: var(--surface);
 }
+
+/* A group's heading as a fold: ▾ open, ▸ folded. */
+.fold {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.foldMark {
+  display: inline-block;
+  width: 1em;
+  font-size: 15px;
+}
