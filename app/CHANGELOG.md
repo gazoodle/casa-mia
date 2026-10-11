@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.10.8-b18
+
+- Sensor Watch: a group can follow **the defaults, by what it is** instead of a profile: each member set up as Watch an entity would (a cover closed, a lock locked, a leak critical), passing over what has no default (the preview says which). So a group of roof windows or locks needs no profile first.
+- Sensor Watch: the defaults are in the library too, as on/off and exact-states profiles (leak, smoke, gas, carbon monoxide, safety, tamper, problem, connected, low battery, door, garage door, window, opening, update; window or cover closed, lock, alarm panel, robot vacuum and mower), to Duplicate… and tweak. 74 profiles in all.
+- Sensor Watch: **Duplicate…** moves into the profile editor.
+- Sensor Watch: the watched list is **Grouped**: a heading per group (and Manual for those watched one by one), sorted within each; the heading stays in sight as its rows scroll. Untick the chip beside Sort for one list.
+
 ## 2026.10.8-b17
 
 - Sensor Watch: a group shows what its filters match as you choose them (up to 200, each with its state, area and device; those it passes over say why), so you see what it takes before it takes it.

@@ -120,7 +120,13 @@ class Scanner(Store):
         return {
             "total": len(found),
             "sensors": [
-                c | {"watched": c["entity_id"] in watched} for c in found[:LIST_LIMIT]
+                c
+                | {
+                    "watched": c["entity_id"] in watched,
+                    # Set up by what it is (a group following the defaults takes it).
+                    "has_default": default_record(c) is not None,
+                }
+                for c in found[:LIST_LIMIT]
             ],
             "options": reader.options()
             | {

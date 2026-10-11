@@ -118,3 +118,30 @@ def test_a_minus_word_keeps_them_out_now_and_later(tmp_path):
     assert watch.reader
     watch.reader._at = 0
     assert watch.sync() == 0  # a new one with the unwanted word never joins
+
+
+def test_a_group_can_follow_the_defaults(tmp_path):
+    ha = FakeHA(list(STATES), ENTITIES)
+    watch = make(tmp_path / "sw.json", ha)
+    body = {"name": "Everything", "filters": {"kind": "binary"}, "profile": "defaults"}
+    status, view = call(watch, "POST", "groups", body=body)
+    assert status == 201 and view["joined"] == 1  # the leak; the lamp has no default
+    leak = watch.records["binary_sensor.leak"]
+    assert (
+        leak["other"] == "critical" and leak["hold_off"] == 0 and "profile" not in leak
+    )
+    _, got = call(watch, "GET", "candidates", {"kind": ["binary"]})
+    has = {c["entity_id"]: c["has_default"] for c in got["sensors"]}
+    assert has["binary_sensor.leak"] and not has["light.lamp"]
+
+
+def test_a_group_moves_from_the_defaults_to_a_profile(tmp_path):
+    ha = FakeHA(list(STATES), ENTITIES)
+    watch = make(tmp_path / "sw.json", ha)
+    door = {"name": "Doors", "kind": "binary", "nominal": "off", "other": "task"}
+    _, view = call(watch, "POST", "profiles", body=door)
+    body = {"name": "Leaks", "filters": {"q": "leak"}, "profile": "defaults"}
+    call(watch, "POST", "groups", body=body)
+    gid = next(iter(watch.groups))
+    call(watch, "PUT", f"groups/{gid}", body=body | {"profile": view["created"]})
+    assert watch.records["binary_sensor.leak"]["profile"] == view["created"]

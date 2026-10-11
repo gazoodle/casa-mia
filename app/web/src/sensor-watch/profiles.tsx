@@ -18,7 +18,6 @@ export function ProfilesSection({
   profiles,
   change,
   onEdit,
-  onDuplicate,
   onApply,
   onFollowers,
 }: {
@@ -26,8 +25,6 @@ export function ProfilesSection({
   change: Change;
   /** Edit this profile, or make a new one (undefined). */
   onEdit: (p?: Profile) => void;
-  /** Make a new profile starting from this one's levels. */
-  onDuplicate: (p: Profile) => void;
   /** Choose sensors to follow it. */
   onApply: (p: Profile) => void;
   /** Show its followers in the watched list. */
@@ -136,9 +133,6 @@ export function ProfilesSection({
                 <button className={`${ui.button} ${ui.small}`} onClick={() => onEdit(p)}>
                   Edit
                 </button>
-                <button className={`${ui.button} ${ui.small}`} onClick={() => onDuplicate(p)}>
-                  Duplicate…
-                </button>
                 <button className={`${ui.button} ${ui.small}`} onClick={() => onApply(p)}>
                   Apply to…
                 </button>
@@ -166,7 +160,20 @@ const STARTER = { kind: "numeric" as const, bands: [{ from: null, to: null, leve
 
 /** A profile's name and levels: `profile` to edit, `copyOf` to start a new one from
  * (Duplicate…), or neither for a new one. */
-export function ProfileDialog({ profile, copyOf, onClose, change }: { profile?: Profile; copyOf?: Profile; onClose: () => void; change: Change }) {
+export function ProfileDialog({
+  profile,
+  copyOf,
+  onDuplicate,
+  onClose,
+  change,
+}: {
+  profile?: Profile;
+  copyOf?: Profile;
+  /** Start a new profile from this one's levels (as they are saved). */
+  onDuplicate?: (p: Profile) => void;
+  onClose: () => void;
+  change: Change;
+}) {
   const L = useLevels(profile ?? copyOf ?? STARTER, "numeric");
   const [name, setName] = useState(profile?.name ?? (copyOf ? `${copyOf.name} (copy)` : ""));
   const [saving, setSaving] = useState(false);
@@ -193,6 +200,11 @@ export function ProfileDialog({ profile, copyOf, onClose, change }: { profile?: 
           <button className={ui.button} onClick={onClose}>
             Cancel
           </button>
+          {profile && onDuplicate && (
+            <button className={ui.button} onClick={() => onDuplicate(profile)} title="A new profile starting from this one's saved levels">
+              Duplicate…
+            </button>
+          )}
           <button className={ui.primary} disabled={saving} onClick={save}>
             {profile ? "Save" : "Make it"}
           </button>

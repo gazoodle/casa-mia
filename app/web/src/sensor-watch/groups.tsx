@@ -14,6 +14,10 @@ import ui from "../ui.module.css";
 
 type Change = <V extends WatchView>(action: () => Promise<V>, done: string | ((v: V) => string)) => Promise<boolean>;
 type Joined = WatchView & { joined: number };
+/** A group's "profile" that sets each member up by what it is (groups.py DEFAULTS). */
+const DEFAULTS = "defaults";
+const follows = (id: string, profiles: Profile[]) =>
+  id === DEFAULTS ? "the defaults, by what it is" : (profiles.find((p) => p.id === id)?.name ?? "a missing profile");
 
 const FILTER_NAMES: Partial<Record<keyof Filters, string>> = {
   q: "search",
@@ -58,12 +62,11 @@ export function GroupsSection({
         title="Groups"
         blurb="Saved filters and a profile: everything matching is watched, and what matches later joins by itself (a new plug, say). More than two of the same kind is a group; a single thing is a watch."
         action={
-          <button className={ui.button} disabled={!profiles.length} onClick={() => setEditing(null)} title={profiles.length ? undefined : "Make a profile first"}>
+          <button className={ui.button} onClick={() => setEditing(null)}>
             + New group
           </button>
         }
       />
-      {!profiles.length && <p className={css.note}>A group's members follow a profile: make one first (or take one from the library).</p>}
       {groups.length > 0 && (
         <div className={css.table}>
           {groups.map((g) => (
@@ -74,7 +77,7 @@ export function GroupsSection({
               <span className={css.what}>
                 <strong>{g.name}</strong>
                 <span className={css.note}>
-                  {described(g, labels)} · follows {profiles.find((p) => p.id === g.profile)?.name ?? "a missing profile"}
+                  {described(g, labels)} · follows {follows(g.profile, profiles)}
                   {g.left.length > 0 && ` · ${g.left.length} left out by hand`}
                 </span>
               </span>
@@ -136,7 +139,7 @@ function GroupDialog({
   onSave: (body: { name: string; filters: Partial<Filters>; profile: string; left: string[] }) => Promise<boolean>;
 }) {
   const [name, setName] = useState(group?.name ?? "");
-  const [profile, setProfile] = useState(group?.profile ?? profiles[0]?.id ?? "");
+  const [profile, setProfile] = useState(group?.profile ?? DEFAULTS);
   const [filters, setFilters] = useState<Filters>({ ...NO_FILTERS, ...group?.filters });
   const [saving, setSaving] = useState(false);
   const { view, error } = useCandidates(filters);
@@ -145,14 +148,16 @@ function GroupDialog({
   // Who each match would be: a member, or passed over (another kind, or watched already).
   const owner = new Map(records.map((r) => [r.entity_id, r.group]));
   const left = new Set(group?.left ?? []);
-  const why = (eid: string, k: string) =>
-    kind && !(FITS[k] ?? []).includes(kind)
-      ? "another kind: passed over"
-      : left.has(eid)
-        ? "stopped by hand: left out"
-        : owner.has(eid) && owner.get(eid) !== group?.id
-          ? "watched already: keeps its own levels"
-          : null;
+  const why = (eid: string, k: string, hasDefault?: boolean) =>
+    profile === DEFAULTS && !hasDefault
+      ? "no default for it: passed over"
+      : kind && !(FITS[k] ?? []).includes(kind)
+        ? "another kind: passed over"
+        : left.has(eid)
+          ? "stopped by hand: left out"
+          : owner.has(eid) && owner.get(eid) !== group?.id
+            ? "watched already: keeps its own levels"
+            : null;
   const shown = view?.sensors ?? [];
   const save = async () => {
     setSaving(true);
@@ -179,8 +184,12 @@ function GroupDialog({
       <Field label="Name" help="What it gathers, e.g. Mains voltage or Leak sensors. The list service takes it as `group`.">
         <input value={name} maxLength={80} onChange={(e) => setName(e.target.value)} autoFocus={!group} />
       </Field>
-      <Field label="Members follow" help="The profile every member follows. Those it doesn't fit (another kind) are passed over.">
+      <Field
+        label="Members follow"
+        help="The defaults set each member up by what it is (a cover closed, a lock locked, a leak critical), passing over what has no default. A profile gives them all the same levels; those it doesn't fit (another kind) are passed over."
+      >
         <select value={profile} onChange={(e) => setProfile(e.target.value)}>
+          <option value={DEFAULTS}>The defaults, by what it is</option>
           {profiles.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name} ({p.kind === "binary" ? "on/off" : p.kind === "state" ? "exact states" : "bands"})
@@ -199,7 +208,7 @@ function GroupDialog({
           </p>
           <ul className={css.scanList}>
             {shown.map((c) => {
-              const passed = why(c.entity_id, c.kind);
+              const passed = why(c.entity_id, c.kind, c.has_default);
               return (
                 <li key={c.entity_id}>
                   <div className={`${css.scanRow} ${passed ? css.passed : ""}`}>

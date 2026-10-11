@@ -151,7 +151,6 @@ export function SensorWatchPage({ state }: { state?: string }) {
         profiles={view.profiles ?? []}
         change={change}
         onEdit={(p) => setProfileEditing(p ?? null)}
-        onDuplicate={setProfileCopy}
         onApply={setApplying}
         onFollowers={(p) => {
           setFilters({ ...NO_FILTERS, profile: p.id });
@@ -188,7 +187,13 @@ export function SensorWatchPage({ state }: { state?: string }) {
       )}
       {profileCopy && <ProfileDialog copyOf={profileCopy} onClose={() => setProfileCopy(undefined)} change={change} />}
       {profileEditing !== undefined && (
-        <ProfileDialog profile={profileEditing ?? undefined} onClose={() => setProfileEditing(undefined)} change={change} />
+        <ProfileDialog
+          profile={profileEditing ?? undefined}
+          onDuplicate={(p) => {
+            setProfileEditing(undefined);
+            setProfileCopy(p);
+          }}
+          onClose={() => setProfileEditing(undefined)} change={change} />
       )}
       {applying && (
         <ApplyDialog

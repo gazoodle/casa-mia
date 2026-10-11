@@ -111,20 +111,28 @@ def test_apply_watches_new_sensors_and_skips_those_it_doesnt_fit(tmp_path):
 
 
 def test_the_library_is_sound():
+    from casa_mia.modules.sensor_watch.defaults import default_record
     from casa_mia.modules.sensor_watch.profiles import clean_profile, library
 
     shipped = library()
     assert len({p["name"] for p in shipped}) == len(shipped)
     for p in shipped:
-        bands = clean_profile(p)["bands"]  # checks it as a save would
-        assert (
-            p["about"]
-            and p["category"]
-            and all(  # edge to edge: nothing falls between bands
-                a["to"] == b["from"] for a, b in zip(bands, bands[1:])
-            )
-        ), p["name"]
-        assert bands[0]["from"] is None and bands[-1]["to"] is None, p["name"]
+        cleaned = clean_profile(p)  # checks it as a save would
+        assert p["about"] and p["category"], p["name"]
+        if p["kind"] == "numeric":
+            bands = cleaned["bands"]  # edge to edge, open at both ends: no gaps
+            assert all(a["to"] == b["from"] for a, b in zip(bands, bands[1:])), p[
+                "name"
+            ]
+            assert bands[0]["from"] is None and bands[-1]["to"] is None, p["name"]
+        if (
+            "default_for" in p
+        ):  # the defaults as a profile: kept the same as defaults.py
+            domain, dc = p["default_for"].split(":")
+            c = {"entity_id": f"{domain}.x", "device_class": dc, "unit": ""}
+            mine = {k: v for k, v in cleaned.items() if k != "name"}
+            theirs = clean_profile(default_record(c) | {"name": "x"})
+            assert mine == {k: v for k, v in theirs.items() if k != "name"}, p["name"]
 
 
 def test_export_and_import_round_trip(tmp_path):

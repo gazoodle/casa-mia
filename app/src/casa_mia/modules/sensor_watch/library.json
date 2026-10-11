@@ -15,7 +15,8 @@
         {"from": 253, "to": 262, "level": "warning", "message": "Mains above the legal maximum (253 V)"},
         {"from": 262, "to": null, "level": "critical", "message": "Mains far too high: solar inverters trip about here"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 30
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 30
     },
     {
       "name": "UK mains voltage (ENA proposed, 2026)",
@@ -30,7 +31,8 @@
         {"from": 253, "to": 262, "level": "warning", "message": "Mains above the legal maximum (253 V)"},
         {"from": 262, "to": null, "level": "critical", "message": "Mains far too high: solar inverters trip about here"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 30
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 30
     },
     {
       "name": "UK grid frequency",
@@ -46,7 +48,8 @@
         {"from": 50.2, "to": 50.5, "level": "warning", "message": "Frequency high"},
         {"from": 50.5, "to": null, "level": "error", "message": "Frequency above the legal maximum (50.5 Hz)"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 30
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 30
     },
     {
       "name": "US mains voltage (120 V, ANSI C84.1)",
@@ -63,7 +66,8 @@
         {"from": 127, "to": 132, "level": "error", "message": "Mains above ANSI Range B (127 V)"},
         {"from": 132, "to": null, "level": "critical", "message": "Mains far too high: over 132 V"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 30
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 30
     },
     {
       "name": "US grid frequency (60 Hz)",
@@ -79,7 +83,8 @@
         {"from": 60.1, "to": 60.5, "level": "warning", "message": "Frequency high"},
         {"from": 60.5, "to": null, "level": "error", "message": "Frequency very high"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 30
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 30
     },
     {
       "name": "EU mains voltage (230 V, EN 50160)",
@@ -94,7 +99,8 @@
         {"from": 253, "to": 264.5, "level": "warning", "message": "Mains above 253 V (230 V +10%)"},
         {"from": 264.5, "to": null, "level": "critical", "message": "Mains far too high: over 264.5 V"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 30
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 30
     },
     {
       "name": "EU grid frequency (50 Hz)",
@@ -110,7 +116,8 @@
         {"from": 50.2, "to": 50.5, "level": "warning", "message": "Frequency high"},
         {"from": 50.5, "to": null, "level": "error", "message": "Frequency above EN 50160's 50.5 Hz"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 30
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 30
     },
     {
       "name": "Japan mains voltage (100 V)",
@@ -124,7 +131,8 @@
         {"from": 107, "to": 110, "level": "warning", "message": "Mains above the legal maximum (107 V)"},
         {"from": 110, "to": null, "level": "critical", "message": "Mains far too high: over 110 V"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 30
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 30
     },
     {
       "name": "China mains voltage (220 V, GB/T 12325)",
@@ -139,7 +147,8 @@
         {"from": 235.4, "to": 242, "level": "warning", "message": "Mains above the standard's maximum (235.4 V)"},
         {"from": 242, "to": null, "level": "critical", "message": "Mains far too high: over 242 V"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 30
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 30
     },
     {
       "name": "China grid frequency (50 Hz, GB/T 15945)",
@@ -154,7 +163,8 @@
         {"from": 50.2, "to": 50.5, "level": "warning", "message": "Frequency above 50.2 Hz"},
         {"from": 50.5, "to": null, "level": "error", "message": "Frequency far too high"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 30
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 30
     },
     {
       "name": "Australia mains voltage (230 V, AS 60038)",
@@ -168,7 +178,8 @@
         {"from": 253, "to": 262, "level": "warning", "message": "Mains above the standard's maximum (253 V)"},
         {"from": 262, "to": null, "level": "critical", "message": "Mains far too high: solar inverters trip about here"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 30
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 30
     },
     {
       "name": "Australia grid frequency (50 Hz)",
@@ -183,7 +194,8 @@
         {"from": 50.15, "to": 50.5, "level": "warning", "message": "Frequency high"},
         {"from": 50.5, "to": null, "level": "error", "message": "Frequency very high"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 30
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 30
     },
     {
       "name": "UK inverter trips: voltage (G98/G99)",
@@ -200,7 +212,8 @@
         {"from": 262.2, "to": 273.7, "level": "error", "message": "Over G99 stage 1 (262.2 V): inverters trip after 1 s"},
         {"from": 273.7, "to": null, "level": "critical", "message": "Over G99 stage 2 (273.7 V): inverters trip in 0.5 s"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 5
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 5
     },
     {
       "name": "UK inverter trips: frequency (G98/G99)",
@@ -217,7 +230,211 @@
         {"from": 51.5, "to": 52, "level": "error", "message": "Over G99 stage 1 (51.5 Hz): inverters trip after 90 s"},
         {"from": 52, "to": null, "level": "critical", "message": "Over G99 stage 2 (52 Hz): inverters trip in 0.5 s"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 5
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 5
+    },
+    {
+      "name": "Leak (on/off)",
+      "about": "A leak sensor: dry is all well; wet is critical, at once.",
+      "category": "Safety",
+      "default_for": "binary_sensor:moisture",
+      "kind": "binary",
+      "nominal": "off",
+      "other": "critical",
+      "message": "Leak detected",
+      "unavailable": "error", "hold_off": 0
+    },
+    {
+      "name": "Smoke (on/off)",
+      "about": "A smoke alarm: critical the moment it trips.",
+      "category": "Safety",
+      "default_for": "binary_sensor:smoke",
+      "kind": "binary",
+      "nominal": "off",
+      "other": "critical",
+      "message": "Smoke detected",
+      "unavailable": "error", "hold_off": 0
+    },
+    {
+      "name": "Gas (on/off)",
+      "about": "A gas detector: critical the moment it trips.",
+      "category": "Safety",
+      "default_for": "binary_sensor:gas",
+      "kind": "binary",
+      "nominal": "off",
+      "other": "critical",
+      "message": "Gas detected",
+      "unavailable": "error", "hold_off": 0
+    },
+    {
+      "name": "Carbon monoxide (on/off)",
+      "about": "A carbon monoxide alarm: critical the moment it trips.",
+      "category": "Safety",
+      "default_for": "binary_sensor:carbon_monoxide",
+      "kind": "binary",
+      "nominal": "off",
+      "other": "critical",
+      "message": "Carbon monoxide detected",
+      "unavailable": "error", "hold_off": 0
+    },
+    {
+      "name": "Safety (on/off)",
+      "about": "Anything Home Assistant calls a safety sensor: on means unsafe, critical at once.",
+      "category": "Safety",
+      "default_for": "binary_sensor:safety",
+      "kind": "binary",
+      "nominal": "off",
+      "other": "critical",
+      "message": "Unsafe",
+      "unavailable": "error", "hold_off": 0
+    },
+    {
+      "name": "Tamper (on/off)",
+      "about": "A tamper switch (a sensor's case opened): a warning.",
+      "category": "Safety",
+      "default_for": "binary_sensor:tamper",
+      "kind": "binary",
+      "nominal": "off",
+      "other": "warning",
+      "message": "Tampering detected",
+      "unavailable": "error", "hold_off": 60
+    },
+    {
+      "name": "Problem (on/off)",
+      "about": "A device reporting a problem: an error.",
+      "category": "Safety",
+      "default_for": "binary_sensor:problem",
+      "kind": "binary",
+      "nominal": "off",
+      "other": "error",
+      "message": "Problem reported",
+      "unavailable": "error", "hold_off": 60
+    },
+    {
+      "name": "Door (on/off)",
+      "about": "A door contact: closed is all well; open is a task (for a door that should be shut, make it a warning).",
+      "category": "Doors, windows and covers",
+      "default_for": "binary_sensor:door",
+      "kind": "binary",
+      "nominal": "off",
+      "other": "task",
+      "message": "Door open",
+      "unavailable": "error", "hold_off": 60
+    },
+    {
+      "name": "Garage door (on/off)",
+      "about": "A garage door contact: open is a task.",
+      "category": "Doors, windows and covers",
+      "default_for": "binary_sensor:garage_door",
+      "kind": "binary",
+      "nominal": "off",
+      "other": "task",
+      "message": "Garage door open",
+      "unavailable": "error", "hold_off": 60
+    },
+    {
+      "name": "Window (on/off)",
+      "about": "A window contact: open is a task.",
+      "category": "Doors, windows and covers",
+      "default_for": "binary_sensor:window",
+      "kind": "binary",
+      "nominal": "off",
+      "other": "task",
+      "message": "Window open",
+      "unavailable": "error", "hold_off": 60
+    },
+    {
+      "name": "Opening (on/off)",
+      "about": "Any opening contact: open is a task.",
+      "category": "Doors, windows and covers",
+      "default_for": "binary_sensor:opening",
+      "kind": "binary",
+      "nominal": "off",
+      "other": "task",
+      "message": "Open",
+      "unavailable": "error", "hold_off": 60
+    },
+    {
+      "name": "Window or cover: closed (states)",
+      "about": "A cover (a roof window, blind, shutter or garage door): closed is all well; open, or anything else, is a task. For a skylight that must shut when it rains, Duplicate… it and make open a warning.",
+      "category": "Doors, windows and covers",
+      "default_for": "cover:",
+      "kind": "state",
+      "states": ["closed"],
+      "exceptions": [],
+      "other": "task",
+      "message": "Open",
+      "unavailable": "error", "hold_off": 60
+    },
+    {
+      "name": "Connected (on/off)",
+      "about": "A device's connection: disconnected is an error.",
+      "category": "Locks, alarms and appliances",
+      "default_for": "binary_sensor:connectivity",
+      "kind": "binary",
+      "nominal": "on",
+      "other": "error",
+      "message": "Disconnected",
+      "unavailable": "error", "hold_off": 60
+    },
+    {
+      "name": "Update available (on/off)",
+      "about": "An update entity: one waiting is a task.",
+      "category": "Locks, alarms and appliances",
+      "default_for": "update:",
+      "kind": "binary",
+      "nominal": "off",
+      "other": "task",
+      "message": "Update available",
+      "unavailable": "error", "hold_off": 60
+    },
+    {
+      "name": "Lock: locked (states)",
+      "about": "A lock: locked is all well; unlocked is a task; jammed is an error.",
+      "category": "Locks, alarms and appliances",
+      "default_for": "lock:",
+      "kind": "state",
+      "states": ["locked"],
+      "exceptions": [{"state": "jammed", "level": "error", "message": "Jammed"}],
+      "other": "task",
+      "message": "Unlocked",
+      "unavailable": "error", "hold_off": 60
+    },
+    {
+      "name": "Alarm panel (states)",
+      "about": "An alarm panel: disarmed, armed, arming and pending are all well; triggered is critical, at once; anything else a warning.",
+      "category": "Locks, alarms and appliances",
+      "default_for": "alarm_control_panel:",
+      "kind": "state",
+      "states": ["disarmed", "armed_home", "armed_away", "armed_night", "armed_vacation", "armed_custom_bypass", "arming", "pending", "disarming"],
+      "exceptions": [{"state": "triggered", "level": "critical", "message": "Alarm triggered"}],
+      "other": "warning",
+      "message": "Alarm in an unexpected state",
+      "unavailable": "error", "hold_off": 0
+    },
+    {
+      "name": "Robot vacuum (states)",
+      "about": "A robot vacuum: docked, cleaning, returning, idle or paused are all well; anything else (error, stuck) is an error.",
+      "category": "Locks, alarms and appliances",
+      "default_for": "vacuum:",
+      "kind": "state",
+      "states": ["docked", "cleaning", "returning", "idle", "paused"],
+      "exceptions": [],
+      "other": "error",
+      "message": "Vacuum error",
+      "unavailable": "error", "hold_off": 60
+    },
+    {
+      "name": "Robot mower (states)",
+      "about": "A robot mower: docked, mowing, returning or paused are all well; anything else is an error.",
+      "category": "Locks, alarms and appliances",
+      "default_for": "lawn_mower:",
+      "kind": "state",
+      "states": ["docked", "mowing", "returning", "paused"],
+      "exceptions": [],
+      "other": "error",
+      "message": "Mower error",
+      "unavailable": "error", "hold_off": 60
     },
     {
       "name": "Battery, replaceable (%)",
@@ -229,7 +446,8 @@
         {"from": 5, "to": 20, "level": "task", "message": "Replace the battery"},
         {"from": 20, "to": null, "level": "nominal", "message": ""}
       ],
-      "otherwise": "error", "unavailable": "warning", "hold_off": 600
+      "otherwise": "error",
+      "unavailable": "warning", "hold_off": 600
     },
     {
       "category": "Batteries",
@@ -242,7 +460,8 @@
         {"from": 20, "to": 80, "level": "nominal", "message": ""},
         {"from": 80, "to": null, "level": "task", "message": "Above 80%: fine for a trip, don't leave it there"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 600
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 600
     },
     {
       "category": "Batteries",
@@ -255,7 +474,8 @@
         {"from": 20, "to": 85, "level": "nominal", "message": ""},
         {"from": 85, "to": null, "level": "task", "message": "Above 85%: fine for a trip, don't leave it there"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 600
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 600
     },
     {
       "category": "Batteries",
@@ -268,7 +488,8 @@
         {"from": 20, "to": 90, "level": "nominal", "message": ""},
         {"from": 90, "to": null, "level": "task", "message": "Above 90%: fine for a trip, don't leave it there"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 600
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 600
     },
     {
       "category": "Batteries",
@@ -280,7 +501,8 @@
         {"from": 10, "to": 20, "level": "task", "message": "Low: charge it"},
         {"from": 20, "to": null, "level": "nominal", "message": ""}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 600
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 600
     },
     {
       "category": "Batteries",
@@ -291,7 +513,8 @@
         {"from": null, "to": 10, "level": "task", "message": "Home battery at its reserve: the house is on grid power"},
         {"from": 10, "to": null, "level": "nominal", "message": ""}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 1800
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 1800
     },
     {
       "category": "Batteries",
@@ -306,7 +529,8 @@
         {"from": 14.8, "to": 15.5, "level": "warning", "message": "Over-charging: check the charger"},
         {"from": 15.5, "to": null, "level": "error", "message": "Far over-charged: check the charger now"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 600
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 600
     },
     {
       "category": "Batteries",
@@ -320,7 +544,8 @@
         {"from": 14.6, "to": 15.0, "level": "warning", "message": "Over-charging: check the charger"},
         {"from": 15.0, "to": null, "level": "error", "message": "Far over-charged: check the charger now"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 600
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 600
     },
     {
       "category": "Batteries",
@@ -334,7 +559,19 @@
         {"from": 3.5, "to": 3.65, "level": "task", "message": "Cell at the top of its charge"},
         {"from": 3.65, "to": null, "level": "critical", "message": "Cell over-charged"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 600
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 600
+    },
+    {
+      "name": "Low battery (on/off)",
+      "about": "A device's low-battery warning (on/off rather than a percentage): replace it.",
+      "category": "Batteries",
+      "default_for": "binary_sensor:battery",
+      "kind": "binary",
+      "nominal": "off",
+      "other": "task",
+      "message": "Replace the battery",
+      "unavailable": "error", "hold_off": 60
     },
     {
       "category": "Broadband",
@@ -347,7 +584,8 @@
         {"from": 8.0, "to": 11.2, "level": "task", "message": "Below the plan"},
         {"from": 11.2, "to": null, "level": "nominal", "message": ""}
       ],
-      "otherwise": "error", "unavailable": "warning", "hold_off": 3700
+      "otherwise": "error",
+      "unavailable": "warning", "hold_off": 3700
     },
     {
       "category": "Broadband",
@@ -360,7 +598,8 @@
         {"from": 20.0, "to": 28.0, "level": "task", "message": "Below the plan"},
         {"from": 28.0, "to": null, "level": "nominal", "message": ""}
       ],
-      "otherwise": "error", "unavailable": "warning", "hold_off": 3700
+      "otherwise": "error",
+      "unavailable": "warning", "hold_off": 3700
     },
     {
       "category": "Broadband",
@@ -373,7 +612,8 @@
         {"from": 40.0, "to": 56.0, "level": "task", "message": "Below the plan"},
         {"from": 56.0, "to": null, "level": "nominal", "message": ""}
       ],
-      "otherwise": "error", "unavailable": "warning", "hold_off": 3700
+      "otherwise": "error",
+      "unavailable": "warning", "hold_off": 3700
     },
     {
       "category": "Broadband",
@@ -386,7 +626,8 @@
         {"from": 50.0, "to": 70.0, "level": "task", "message": "Below the plan"},
         {"from": 70.0, "to": null, "level": "nominal", "message": ""}
       ],
-      "otherwise": "error", "unavailable": "warning", "hold_off": 3700
+      "otherwise": "error",
+      "unavailable": "warning", "hold_off": 3700
     },
     {
       "category": "Broadband",
@@ -399,7 +640,8 @@
         {"from": 150.0, "to": 210.0, "level": "task", "message": "Below the plan"},
         {"from": 210.0, "to": null, "level": "nominal", "message": ""}
       ],
-      "otherwise": "error", "unavailable": "warning", "hold_off": 3700
+      "otherwise": "error",
+      "unavailable": "warning", "hold_off": 3700
     },
     {
       "category": "Broadband",
@@ -412,7 +654,8 @@
         {"from": 250.0, "to": 350.0, "level": "task", "message": "Below the plan"},
         {"from": 350.0, "to": null, "level": "nominal", "message": ""}
       ],
-      "otherwise": "error", "unavailable": "warning", "hold_off": 3700
+      "otherwise": "error",
+      "unavailable": "warning", "hold_off": 3700
     },
     {
       "category": "Broadband",
@@ -425,7 +668,8 @@
         {"from": 450.0, "to": 630.0, "level": "task", "message": "Below the plan"},
         {"from": 630.0, "to": null, "level": "nominal", "message": ""}
       ],
-      "otherwise": "error", "unavailable": "warning", "hold_off": 3700
+      "otherwise": "error",
+      "unavailable": "warning", "hold_off": 3700
     },
     {
       "category": "Broadband",
@@ -438,7 +682,8 @@
         {"from": 50.0, "to": 70.0, "level": "task", "message": "Below the plan"},
         {"from": 70.0, "to": null, "level": "nominal", "message": ""}
       ],
-      "otherwise": "error", "unavailable": "warning", "hold_off": 3700
+      "otherwise": "error",
+      "unavailable": "warning", "hold_off": 3700
     },
     {
       "category": "Broadband",
@@ -451,7 +696,8 @@
         {"from": 100.0, "to": 140.0, "level": "task", "message": "Below the plan"},
         {"from": 140.0, "to": null, "level": "nominal", "message": ""}
       ],
-      "otherwise": "error", "unavailable": "warning", "hold_off": 3700
+      "otherwise": "error",
+      "unavailable": "warning", "hold_off": 3700
     },
     {
       "category": "Broadband",
@@ -464,7 +710,8 @@
         {"from": 150.0, "to": 210.0, "level": "task", "message": "Below the plan"},
         {"from": 210.0, "to": null, "level": "nominal", "message": ""}
       ],
-      "otherwise": "error", "unavailable": "warning", "hold_off": 3700
+      "otherwise": "error",
+      "unavailable": "warning", "hold_off": 3700
     },
     {
       "name": "Pool or hot tub pH",
@@ -479,7 +726,8 @@
         {"from": 7.8, "to": 8.0, "level": "task", "message": "pH high: add pH reducer"},
         {"from": 8.0, "to": null, "level": "warning", "message": "pH far too high: chlorine mostly inactive, scale forms"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 300
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 300
     },
     {
       "name": "Pool free chlorine (ppm)",
@@ -495,7 +743,8 @@
         {"from": 5.0, "to": 10.0, "level": "warning", "message": "Chlorine very high: wait before swimming"},
         {"from": 10.0, "to": null, "level": "error", "message": "Chlorine far too high: don't swim"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 300
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 300
     },
     {
       "name": "Hot tub free chlorine (ppm)",
@@ -510,7 +759,8 @@
         {"from": 5.0, "to": 10.0, "level": "task", "message": "Chlorine high: let it fall before adding more"},
         {"from": 10.0, "to": null, "level": "error", "message": "Chlorine far too high: don't use it"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 300
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 300
     },
     {
       "name": "Hot tub bromine (ppm)",
@@ -525,7 +775,8 @@
         {"from": 8.0, "to": 10.0, "level": "task", "message": "Bromine high: let it fall before adding more"},
         {"from": 10.0, "to": null, "level": "error", "message": "Bromine far too high: don't use it"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 300
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 300
     },
     {
       "name": "Aquarium, tropical (°C)",
@@ -541,7 +792,8 @@
         {"from": 29, "to": 31, "level": "warning", "message": "Tank hot"},
         {"from": 31, "to": null, "level": "error", "message": "Tank far too hot"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 1800
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 1800
     },
     {
       "name": "Aquarium, cold water (°C)",
@@ -555,7 +807,8 @@
         {"from": 22, "to": 26, "level": "task", "message": "Water warm: less oxygen"},
         {"from": 26, "to": null, "level": "warning", "message": "Water too warm"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 1800
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 1800
     },
     {
       "name": "Water softener salt (%)",
@@ -567,7 +820,8 @@
         {"from": 10, "to": 25, "level": "task", "message": "Top up the salt"},
         {"from": 25, "to": null, "level": "nominal", "message": ""}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 3600
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 3600
     },
     {
       "category": "Indoor air",
@@ -581,7 +835,8 @@
         {"from": 1500, "to": 2500, "level": "warning", "message": "Poor air: ventilate"},
         {"from": 2500, "to": null, "level": "error", "message": "Very poor air: ventilate now"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 900
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 900
     },
     {
       "category": "Indoor air",
@@ -594,7 +849,8 @@
         {"from": 60, "to": 70, "level": "task", "message": "Damp: ventilate"},
         {"from": 70, "to": null, "level": "warning", "message": "Mould risk: ventilate or dehumidify"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 3600
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 3600
     },
     {
       "category": "Indoor air",
@@ -608,7 +864,8 @@
         {"from": 35, "to": 55, "level": "warning", "message": "Unhealthy air: ventilate"},
         {"from": 55, "to": null, "level": "error", "message": "Very unhealthy air"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 1800
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 1800
     },
     {
       "category": "Indoor air",
@@ -621,7 +878,8 @@
         {"from": 100, "to": 200, "level": "task", "message": "Radon above the UK target level (100 Bq/m³)"},
         {"from": 200, "to": null, "level": "warning", "message": "Radon above the UK action level (200 Bq/m³): get it fixed"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 86400
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 86400
     },
     {
       "category": "Cold and hot storage",
@@ -634,7 +892,8 @@
         {"from": -15, "to": -5, "level": "warning", "message": "Freezer too warm: check the door and seal"},
         {"from": -5, "to": null, "level": "critical", "message": "Freezer thawing: food at risk"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 1800
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 1800
     },
     {
       "category": "Cold and hot storage",
@@ -649,7 +908,8 @@
         {"from": 8, "to": 12, "level": "warning", "message": "Fridge above 8 °C"},
         {"from": 12, "to": null, "level": "error", "message": "Fridge far too warm: food at risk"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 1800
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 1800
     },
     {
       "category": "Cold and hot storage",
@@ -663,7 +923,8 @@
         {"from": 50, "to": 80, "level": "nominal", "message": ""},
         {"from": 80, "to": null, "level": "warning", "message": "Hot water very hot: scalding risk"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 3600
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 3600
     },
     {
       "category": "Heating",
@@ -677,7 +938,8 @@
         {"from": 2.0, "to": 2.5, "level": "task", "message": "Boiler pressure high"},
         {"from": 2.5, "to": null, "level": "warning", "message": "Boiler pressure very high: near the relief valve"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 1800
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 1800
     },
     {
       "category": "Heating",
@@ -691,7 +953,8 @@
         {"from": 25, "to": 28, "level": "task", "message": "Warm"},
         {"from": 28, "to": null, "level": "warning", "message": "Overheating"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 1800
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 1800
     },
     {
       "name": "Frost risk (°C)",
@@ -703,7 +966,8 @@
         {"from": -5, "to": 3, "level": "task", "message": "Frost likely: protect plants"},
         {"from": 3, "to": null, "level": "nominal", "message": ""}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 1800
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 1800
     },
     {
       "name": "Unheated space, pipes (°C)",
@@ -715,7 +979,8 @@
         {"from": 0, "to": 3, "level": "warning", "message": "Near freezing: protect the pipes"},
         {"from": 3, "to": null, "level": "nominal", "message": ""}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 1800
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 1800
     },
     {
       "name": "Soil moisture (%)",
@@ -729,7 +994,8 @@
         {"from": 60, "to": 80, "level": "task", "message": "Soil wet"},
         {"from": 80, "to": null, "level": "warning", "message": "Soil waterlogged"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 3600
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 3600
     },
     {
       "category": "Computers and network",
@@ -742,7 +1008,8 @@
         {"from": -75, "to": -67, "level": "task", "message": "Wi-Fi weak"},
         {"from": -67, "to": null, "level": "nominal", "message": ""}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 600
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 600
     },
     {
       "category": "Computers and network",
@@ -755,7 +1022,8 @@
         {"from": 80, "to": 85, "level": "warning", "message": "CPU throttling"},
         {"from": 85, "to": null, "level": "error", "message": "CPU far too hot"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 600
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 600
     },
     {
       "category": "Computers and network",
@@ -768,7 +1036,8 @@
         {"from": 90, "to": 95, "level": "warning", "message": "Disk nearly full"},
         {"from": 95, "to": null, "level": "error", "message": "Disk full: things will fail"}
       ],
-      "otherwise": "error", "unavailable": "error", "hold_off": 600
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 600
     }
   ]
 }

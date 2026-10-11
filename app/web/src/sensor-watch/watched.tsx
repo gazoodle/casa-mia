@@ -2,7 +2,7 @@
  * (a live search, level chips with counts, filter chips, the sort), so the rest of the
  * page stays reachable. */
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { Empty } from "../page";
 import { FilterChips, KINDS, LevelChips, type ChipOptions, type Choice } from "./chips";
 import { LEVELS, LEVEL_NAMES, NO_FILTERS, searched, summary, type Filters, type Group, type Level, type LevelsView, type WatchRecord, FITS, type Profile } from "./common";
@@ -10,6 +10,7 @@ import css from "./sensor-watch.module.css";
 import ui from "../ui.module.css";
 
 const PAGE = 200; // rows drawn, then "Show more" at the foot of the box
+const MANUAL = "Manual"; // the heading for those watched one by one, not by a group
 /** Does a watched sensor pass the filters (and every word of the search)? `skip`: a
  * filter left out, to offer what the others leave (the devices, say). */
 function passes(r: WatchRecord, f: Filters, skip?: keyof Filters): boolean {
@@ -65,6 +66,22 @@ export function WatchedList({
 }) {
   const [levels, setLevels] = useState<Set<Level>>(new Set());
   const [sort, setSort] = useState<"level" | "name">("level");
+  // Under a heading per group (and Manual for the rest), sorted within each; remembered.
+  const [grouped, setGrouped] = useState(() => {
+    try {
+      return localStorage.getItem("sw-grouped") !== "0";
+    } catch {
+      return true;
+    }
+  });
+  const group = (on: boolean) => {
+    setGrouped(on);
+    try {
+      localStorage.setItem("sw-grouped", on ? "1" : "0");
+    } catch {
+      // a private window: just not remembered
+    }
+  };
   const [shown, setShown] = useState(PAGE);
   const levelOf = (r: WatchRecord) => live?.levels[r.entity_id]?.level;
 
@@ -96,9 +113,14 @@ export function WatchedList({
     const l = levelOf(r);
     return l ? LEVELS.indexOf(l) : -1; // not known yet: after nominal
   };
+  const groupName = new Map(groups.map((g) => [g.id, g.name]));
+  const section = (r: WatchRecord) => (grouped ? (r.group && groupName.get(r.group)) || MANUAL : "");
+  // Manual first, then the groups by name; the sort applies within each.
+  const sectionOrder = (a: string, b: string) => (a === b ? 0 : a === MANUAL ? -1 : b === MANUAL ? 1 : a.localeCompare(b));
   const rows = matched
     .filter((r) => levels.size === 0 || levels.has(levelOf(r) as Level))
-    .sort((a, b) => (sort === "level" ? rank(b) - rank(a) : 0) || (a.label ?? "").localeCompare(b.label ?? ""));
+    .sort((a, b) => sectionOrder(section(a), section(b)) || (sort === "level" ? rank(b) - rank(a) : 0) || (a.label ?? "").localeCompare(b.label ?? ""));
+  const inSection = rows.reduce<Record<string, number>>((n, r) => ({ ...n, [section(r)]: (n[section(r)] ?? 0) + 1 }), {});
   const filtering = levels.size > 0 || Object.values(filters).some(Boolean);
 
   return (
@@ -134,6 +156,9 @@ export function WatchedList({
         >
           Sort: {sort === "level" ? "level" : "name"} ↕
         </button>
+        <button type="button" aria-pressed={grouped} className={`${css.chip} ${grouped ? css.chipOn : ""}`} onClick={() => group(!grouped)}>
+          {grouped ? "☑" : "☐"} Grouped
+        </button>
       </div>
       {rows.length !== records.length && (
         <p className={css.note}>
@@ -145,10 +170,17 @@ export function WatchedList({
           <Empty>None match.</Empty>
         ) : (
           <div className={css.table}>
-            {rows.slice(0, shown).map((r) => {
+            {rows.slice(0, shown).map((r, i, page) => {
               const now = live?.levels[r.entity_id];
+              const heading = grouped && (i === 0 || section(page[i - 1]) !== section(r));
               return (
-                <div key={r.entity_id} className={`${css.row} ${css.compact}`}>
+                <Fragment key={r.entity_id}>
+                  {heading && (
+                    <h4 className={`${css.category} ${css.sectionHead}`}>
+                      {section(r)} · {inSection[section(r)]}
+                    </h4>
+                  )}
+                <div className={`${css.row} ${css.compact}`}>
                   <span className={`${css.level} ${css[`lv_${now?.level ?? "none"}`]}`}>{now ? LEVEL_NAMES[now.level] : "…"}</span>
                   <span className={css.what}>
                     <span className={css.nameLine}>
@@ -171,6 +203,7 @@ export function WatchedList({
                     </button>
                   </span>
                 </div>
+                </Fragment>
               );
             })}
             {rows.length > shown && (

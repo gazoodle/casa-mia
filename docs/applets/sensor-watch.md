@@ -127,6 +127,8 @@ Sensor Watch tells; the rest of Casa Mia shows, and only when there's something 
 Every watched sensor, its level now and its value, with a search and a level filter so a
 house with hundreds of them stays manageable. **Edit** changes a sensor's bands;
 **Stop watching** removes it.
+**Grouped** (beside Sort) puts them under a heading per group, and Manual for those
+watched one by one; the sort applies within each.
 
 The list is live: a value or level changes on the page the moment Home Assistant has it
 (the app holds a subscription, as a dashboard does). A level waits out its hold-off
@@ -235,6 +237,9 @@ and where its numbers come from:
   (100 V), China (220 V; 50 Hz) and Australia (230 V; 50 Hz).
 - **UK inverter trips (G98/G99):** how close the supply's voltage and frequency are to
   tripping a grid-tied inverter, such as a Sunsynk.
+- **Safety; doors, windows and covers; locks, alarms and appliances:** the defaults by
+  what a thing is (above) as on/off and exact-states profiles, to Duplicate… and tweak
+  (a skylight whose open is a warning, say).
 - **Batteries:** replaceable cells; rechargeable packs kept to 20–80%, 85%, 90% or (for
   LiFePO4) 100%; a home battery reaching its reserve; 12 V lead-acid and LiFePO4 by
   voltage, and a LiFePO4 cell.
@@ -250,7 +255,7 @@ and where its numbers come from:
 
 Nothing starts ticked: search (a country, "voltage", "pH") and tick what you have.
 
-**Duplicate…** on a profile starts a new one from its levels, to change what differs:
+**Duplicate…** in a profile's editor starts a new one from its levels, to change what differs:
 one room temperature profile per floor, say, as each floor up runs a little warmer.
 
 Tick the ones you want. **Export** saves all your
@@ -261,7 +266,10 @@ with it: the import starts those unticked, and says so.
 ### Groups
 
 A group is a saved set of filters (domain, area, label, integration, device, device
-class, kind, a search) and a profile. Everything matching is watched, following the
+class, kind, a search) and what its members follow: a profile, or **the defaults, by
+what it is** (each member set up as Watch an entity would: a cover closed, a lock
+locked, a leak critical; what has no default is passed over). Every roof window is
+domain `cover` and the defaults: no profile needed. Everything matching is watched, following the
 profile, and **whatever matches later joins by itself**: put in a new plug and it's
 watched within a minute, no setting up. Make one with **+ New group**: as you choose the
 filters it lists what they match (up to 200), so you see what it takes before it takes

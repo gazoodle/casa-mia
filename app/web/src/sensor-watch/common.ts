@@ -117,6 +117,8 @@ export type Candidate = {
   /** An enum sensor's states. */
   options?: string[];
   watched?: boolean;
+  /** Set up by what it is (defaults.py), so a group following the defaults takes it. */
+  has_default?: boolean;
 };
 
 export type Options = {

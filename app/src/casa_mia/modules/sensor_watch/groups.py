@@ -1,6 +1,7 @@
 """Sensor groups that keep themselves up to date: a group is a saved set of filters (the
 scan's: domain, area, label, integration, device, device class, kind, search) and a
-profile. Everything matching is watched, following the profile; whatever matches later
+profile, or DEFAULTS: each member set up by what it is (defaults.py: a cover closed, a
+lock locked, a leak critical), passing over those with no default. Everything matching is watched, following the profile; whatever matches later
 (a new plug) joins by itself, checked each minute; a member stopped by hand is
 remembered (`left`) and never pulled back. Deleting a group keeps its members watched."""
 
@@ -11,13 +12,15 @@ import threading
 from typing import Any
 
 from ...ha import HAError
-from .common import MAX_TEXT, BadRequest, Response, _json
+from .common import MAX_TEXT, BadRequest, Response, _json, clean
+from .defaults import default_record
 from .profiles import FITS, follower, new_id
 from .scans import FILTERS, Scanner, matches
 
 _LOGGER = logging.getLogger(__name__)
 
 SYNC = 60.0  # seconds between looking for new members
+DEFAULTS = "defaults"  # a group's "profile": each member by what it is
 
 
 def clean_group(body: dict[str, Any], profiles: dict[str, Any]) -> dict[str, Any]:
@@ -32,8 +35,10 @@ def clean_group(body: dict[str, Any], profiles: dict[str, Any]) -> dict[str, Any
     filters = {k: str(v).strip() for k, v in raw.items() if k in FILTERS and v}
     if not filters:
         raise BadRequest("A group needs at least one filter, or it takes everything.")
-    if body.get("profile") not in profiles:
-        raise BadRequest("A group needs a profile for its members to follow.")
+    if body.get("profile") not in profiles and body.get("profile") != DEFAULTS:
+        raise BadRequest(
+            "A group needs a profile for its members to follow, or the defaults."
+        )
     left = body.get("left") or []
     if not isinstance(left, list) or not all(isinstance(e, str) for e in left):
         raise BadRequest("left: the entity ids to leave out.")
@@ -43,6 +48,21 @@ def clean_group(body: dict[str, Any], profiles: dict[str, Any]) -> dict[str, Any
         "profile": body["profile"],
         "left": sorted(set(left)),
     }
+
+
+def member(
+    c: dict[str, Any], group: dict[str, Any], profiles: dict[str, Any]
+) -> dict[str, Any] | None:
+    """Candidate `c`'s record as a member of `group`: following its profile, or set up by
+    what it is; None when the group can't take it (another kind, or no default)."""
+    eid = c["entity_id"]
+    if group["profile"] == DEFAULTS:
+        found = default_record(c)
+        return found and clean(eid, found) | {"group": group["id"]}
+    profile = profiles.get(group["profile"])
+    if profile is None or profile["kind"] not in FITS.get(c["kind"], ()):
+        return None
+    return follower(eid, "", profile, None) | {"group": group["id"]}
 
 
 class Grouper(Scanner):
@@ -77,9 +97,6 @@ class Grouper(Scanner):
         every = self.reader.candidates()
         joins: dict[str, dict[str, Any]] = {}
         for g in groups:
-            profile = profiles.get(g["profile"])
-            if profile is None:
-                continue
             left = set(g.get("left") or [])
             for c in every:
                 eid = c["entity_id"]
@@ -87,9 +104,8 @@ class Grouper(Scanner):
                     continue
                 if not matches(c, g["filters"]):
                     continue
-                if profile["kind"] not in FITS.get(c["kind"], ()):
-                    continue
-                joins[eid] = follower(eid, "", profile, None) | {"group": g["id"]}
+                if (record := member(c, g, profiles)) is not None:
+                    joins[eid] = record
         if joins:
             names = {g["id"]: g["name"] for g in groups}
             by_group: dict[str, list[str]] = {}
@@ -150,17 +166,19 @@ class Grouper(Scanner):
                     and not matches(known[r["entity_id"]], changed["filters"])
                 )
             }
-            moved: dict[str, dict[str, Any] | None] = {
-                r["entity_id"]: follower(
-                    r["entity_id"],
-                    r.get("name", ""),
-                    profiles[changed["profile"]],
-                    None,
-                )
-                | {"group": group["id"]}
-                for r in members
-                if r.get("profile") == group["profile"] and r["entity_id"] not in out
-            }
+            # (A member set up by the defaults has no profile of its own.)
+            was = group["profile"] if group["profile"] != DEFAULTS else None
+            moved: dict[str, dict[str, Any] | None] = {}
+            if changed["profile"] != group["profile"]:
+                for r in members:
+                    eid = r["entity_id"]
+                    if r.get("profile") != was or eid in out or eid not in known:
+                        continue
+                    new = member(known[eid], groups[group["id"]], profiles)
+                    if new is None:
+                        out.add(eid)  # the new profile doesn't fit it
+                    else:
+                        moved[eid] = new | {"name": r.get("name", "")}
             moved |= dict.fromkeys(out)
             dropped = (
                 f"; {len(out)} no longer in it ({', '.join(sorted(out))})"
