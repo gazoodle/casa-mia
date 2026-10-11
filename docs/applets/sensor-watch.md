@@ -56,6 +56,61 @@ A sensor that goes **unavailable** is part of this, not an afterthought: by defa
 counts as an error, because a sensor that has stopped reporting is often the first sign
 of a broken integration or a flat battery.
 
+## Why not Home Assistant's own features?
+
+You could, and for one thing you should: a single freezer only needs a threshold helper.
+Sensor Watch is for when there are fifty of them.
+
+**Say it once, not fifty times.** Home Assistant often makes you repeat yourself: a
+threshold helper per sensor, an alert per entity, an automation per device, the same
+"unavailable" check copied for every bulb and switch. Sensor Watch lets you say it once:
+what a leak sensor means is set for every leak sensor, a scan sets up a whole
+integration's sensors in one go, and the Home Assistant itself checks cover every
+integration.
+
+**Finding them is half the battle.** The pieces exist, but they're scattered, and most
+people never come across them:
+
+| What you want | What already exists | Where it stops |
+|---|---|---|
+| A value outside a range | The [Threshold](https://www.home-assistant.io/integrations/threshold) helper | One sensor and one range each, on or off: no levels, nothing suggested, nothing in bulk. |
+| Nagging until it's dealt with | The [Alert](https://www.home-assistant.io/integrations/alert/) integration | YAML only, an alert per entity. |
+| Low batteries | Sbyx's [low battery blueprint](https://community.home-assistant.io/t/258664); [Battery Notes](https://codechimp.org/HA-Battery-Notes/) | Batteries only (both are excellent at that). |
+| Missing or unavailable entities in your config | [Watchman](https://github.com/dummylabs/thewatchman); [Spook](https://spook.boo) | Your configuration, on demand, rather than live states. |
+| Integrations that failed to set up | **Failed to set up** on Settings → Devices & services, and some Repairs | Seen only if you go and look. |
+| Showing only what needs attention | [auto-entities](https://github.com/thomasloven/lovelace-auto-entities), conditional cards | A display: it doesn't know what normal is. |
+
+**Point and click, not expert Home Assistant.** Doing all of this natively without
+repeating yourself is possible, but it takes expert skills: labelling every entity, then
+templates that read the labels (`label_entities`), loops with a `namespace` to pick out
+the ones in trouble, the `this` trick to count them, a second template for every extra
+level, and `for:` on every trigger so a blip doesn't count. Sensor Watch is mostly point
+and click: scan, tick, accept, and one automation on its event.
+
+If one of these is all you need, use it. Sensor Watch puts them in one place, configured
+once: levels (a task isn't a critical), normal suggested from history, what a sensor
+means known from its device class, a whole house scanned and filtered rather than one
+entity at a time, Home Assistant's own health in the same picture, and one event and one
+service to hang every automation on.
+
+## Better together
+
+Sensor Watch tells; the rest of Casa Mia shows, and only when there's something to show:
+
+- **The integration's summary sensors** (Status, Tasks, Warnings, Errors, Critical,
+  Problem) are what a dashboard keys on: a card's visibility, a badge, a colour. One
+  entity says whether anything needs attention, whatever the size of the house.
+- **[Tablet Layout](../tablet-layout.md):** a panel on an edge of the wall tablet's screen
+  for what needs attention, sized to its cards, and hidden when they are.
+- **[Garnish](../../README.md#garnish-for-every-dashboard):** the panel's heading is garnish,
+  so it never holds the panel open on its own. Things go wrong, the panel and its heading
+  appear; they're dealt with, and the panel goes, gap and all: no proud *WARNINGS* over
+  nothing.
+- **[The Over layer](../over-layer.md):** a critical comes up over whatever the tablet is
+  showing, and goes when it's sorted.
+- **The Home tile** in the Casa Mia panel shows the house's health at a glance: the
+  worst level, the counts and the worst culprit.
+
 ## Switching it on
 
 1. Turn on **Sensor Watch** in the app's Configuration tab (Settings → Apps → Casa Mia →

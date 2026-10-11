@@ -370,6 +370,11 @@ could.
 - **The camera compositor knows its viewers.** On the Camera compositor page, each stream
   sent to a wall tablet shows the tablet's name from Kiosk Satellites beside its address,
   so a slow or stuck one is easy to place.
+- **What needs attention, and only then.** Sensor Watch's status, counts and problem sensor
+  drive a panel of what needs doing on a Tablet Layout edge; [garnish](#garnish-for-every-dashboard)
+  keeps the panel's heading from holding it open, so on a quiet day the panel isn't there
+  at all, and the rest of the screen closes up. A critical can come up over everything with
+  the Over layer, and the Home tile shows the house's health at a glance.
 
 Coming next:
 
