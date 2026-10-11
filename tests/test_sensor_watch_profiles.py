@@ -108,3 +108,49 @@ def test_apply_watches_new_sensors_and_skips_those_it_doesnt_fit(tmp_path):
     assert (
         "binary_sensor.leak" not in watch.records and "sensor.nope" not in watch.records
     )
+
+
+def test_the_library_is_sound():
+    from casa_mia.modules.sensor_watch.profiles import clean_profile, library
+
+    shipped = library()
+    assert len({p["name"] for p in shipped}) == len(shipped)
+    for p in shipped:
+        bands = clean_profile(p)["bands"]  # checks it as a save would
+        assert (
+            p["about"]
+            and all(  # edge to edge: nothing falls between bands
+                a["to"] == b["from"] for a, b in zip(bands, bands[1:])
+            )
+        ), p["name"]
+        assert bands[0]["from"] is None and bands[-1]["to"] is None, p["name"]
+
+
+def test_export_and_import_round_trip(tmp_path):
+    watch, pid = _two_plugs(tmp_path)
+    call(
+        watch, "POST", f"profiles/{pid}/apply", body={"entity_ids": ["sensor.temp_00"]}
+    )
+    _, shared = call(watch, "GET", "profiles/export")
+    assert shared["format"] == "casa_mia.sensor_watch.profiles"
+    assert [p["name"] for p in shared["profiles"]] == ["Mains voltage"]
+    other = make(tmp_path / "other.json", FakeHA(STATES, ENTITIES))
+    status, view = call(other, "POST", "profiles/import", body=shared)
+    assert status == 200 and view["added"] == ["Mains voltage"]
+    # The same name again replaces it in place: same id, so its followers follow.
+    edited = shared | {"profiles": [shared["profiles"][0] | {"hold_off": 5}]}
+    _, view = call(watch, "POST", "profiles/import", body=edited)
+    assert view["replaced"] == ["Mains voltage"] and list(watch.profiles) == [pid]
+    assert watch.for_integration()["records"][0]["hold_off"] == 5
+    bad = {"profiles": [MAINS, MAINS | {"name": "Broken", "bands": []}]}
+    status, got = call(other, "POST", "profiles/import", body=bad)
+    assert status == 400 and "Broken" in got["error"]
+    assert len(other.profiles) == 1  # nothing taken
+
+
+def test_the_library_is_served(tmp_path):
+    watch = make(tmp_path / "sw.json", FakeHA(STATES, ENTITIES))
+    _, got = call(watch, "GET", "profiles/library")
+    assert any(p["name"].startswith("UK mains voltage") for p in got["profiles"])
+    status, view = call(watch, "POST", "profiles/import", body=got)
+    assert status == 200 and len(view["added"]) == len(got["profiles"])

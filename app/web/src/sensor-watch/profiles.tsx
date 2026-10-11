@@ -1,8 +1,9 @@
 /** The profiles: each a named set of levels many sensors follow, with how many do. Make
  * one here (or from a sensor's editor), edit its levels, have more sensors follow it,
- * see who follows it, or delete it (its followers then keep a copy of its levels). */
+ * see who follows it, or delete it (its followers then keep a copy of its levels).
+ * Shared as JSON: export them, import a file, or take some from the library shipped. */
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { AreaHead } from "../page";
 import { Dialog, Field, Segmented } from "../ui";
 import { summary, swApi, type Profile, type WatchView } from "./common";
@@ -11,7 +12,7 @@ import css from "./sensor-watch.module.css";
 import guest from "../guest.module.css";
 import ui from "../ui.module.css";
 
-type Change = (action: () => Promise<WatchView>, done: string) => Promise<boolean>;
+type Change = <V extends WatchView>(action: () => Promise<V>, done: string | ((v: V) => string)) => Promise<boolean>;
 
 export function ProfilesSection({
   profiles,
@@ -29,6 +30,33 @@ export function ProfilesSection({
   /** Show its followers in the watched list. */
   onFollowers: (p: Profile) => void;
 }) {
+  const [offered, setOffered] = useState<{ title: string; profiles: Shared[] }>();
+  const file = useRef<HTMLInputElement>(null);
+
+  const fromLibrary = () =>
+    swApi.get<{ profiles: Shared[] }>("profiles/library").then(
+      (got) => setOffered({ title: "Profiles from the library", profiles: got.profiles }),
+      (err) => change(() => Promise.reject(err), ""),
+    );
+  const fromFile = async (f: File) => {
+    try {
+      const data = JSON.parse(await f.text());
+      const list = Array.isArray(data) ? data : data?.profiles;
+      if (!Array.isArray(list) || !list.length) throw new Error(`${f.name} has no profiles in it.`);
+      setOffered({ title: `Profiles in ${f.name}`, profiles: list });
+    } catch (err) {
+      change(() => Promise.reject(err instanceof SyntaxError ? new Error(`${f.name} isn't JSON.`) : err), "");
+    }
+  };
+  const exportAll = async () => {
+    const data = await swApi.get<object>("profiles/export");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+    a.download = "sensor-watch-profiles.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
   const remove = (p: Profile) => {
     const keep = p.followers ? ` Its ${p.followers} followers keep a copy of its levels as their own.` : "";
     if (confirm(`Delete the profile "${p.name}"?${keep}`)) change(() => swApi.del<WatchView>(`profiles/${p.id}`), `${p.name} deleted`);
@@ -39,11 +67,47 @@ export function ProfilesSection({
         title="Profiles"
         blurb="The same levels for many sensors, said once: edit a profile and every sensor that follows it changes with it."
         action={
-          <button className={ui.button} onClick={() => onEdit()}>
-            + New profile
-          </button>
+          <span className={css.actions}>
+            <button className={ui.button} onClick={fromLibrary}>
+              From the library…
+            </button>
+            <button className={ui.button} onClick={() => file.current?.click()}>
+              Import…
+            </button>
+            <button className={ui.button} disabled={!profiles.length} onClick={exportAll}>
+              Export
+            </button>
+            <button className={ui.button} onClick={() => onEdit()}>
+              + New profile
+            </button>
+          </span>
         }
       />
+      <input
+        ref={file}
+        type="file"
+        accept=".json,application/json"
+        hidden
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          e.target.value = "";
+          if (f) fromFile(f);
+        }}
+      />
+      {offered && (
+        <ImportDialog
+          title={offered.title}
+          offered={offered.profiles}
+          existing={profiles}
+          onClose={() => setOffered(undefined)}
+          onImport={(chosen) =>
+            change(
+              () => swApi.post<WatchView & { added: string[]; replaced: string[] }>("profiles/import", { profiles: chosen }),
+              (v) => [v.added.length && `Added ${v.added.join(", ")}`, v.replaced.length && `replaced ${v.replaced.join(", ")}`].filter(Boolean).join("; "),
+            )
+          }
+        />
+      )}
       {profiles.length > 0 && (
         <div className={css.table}>
           {profiles.map((p) => (
@@ -132,6 +196,86 @@ export function ProfileDialog({ profile, onClose, change }: { profile?: Profile;
       </Field>
       <Segmented value={L.kind} options={KINDS} onChange={L.setKind} />
       <LevelFields L={L} />
+    </Dialog>
+  );
+}
+
+/** A profile as shared: its levels and name, and in the library what it's about. */
+type Shared = Omit<Profile, "id" | "followers"> & { about?: string; source?: string };
+
+/** Choose which shared profiles to take: new ones ticked; one named as a profile of
+ * yours replaces its levels (and its followers'), so it starts unticked. */
+function ImportDialog({
+  title,
+  offered,
+  existing,
+  onClose,
+  onImport,
+}: {
+  title: string;
+  offered: Shared[];
+  existing: Profile[];
+  onClose: () => void;
+  onImport: (chosen: Shared[]) => Promise<boolean>;
+}) {
+  const mine = (p: Shared) => existing.find((e) => e.name.toLowerCase() === String(p.name ?? "").toLowerCase());
+  const [ticked, setTicked] = useState(() => new Set(offered.map((p, i) => (mine(p) ? -1 : i)).filter((i) => i >= 0)));
+  const [busy, setBusy] = useState(false);
+  const flip = (i: number) =>
+    setTicked((t) => {
+      const next = new Set(t);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      return next;
+    });
+  const go = async () => {
+    setBusy(true);
+    const ok = await onImport(offered.filter((_, i) => ticked.has(i)));
+    setBusy(false);
+    if (ok) onClose();
+  };
+  return (
+    <Dialog
+      wide
+      title={title}
+      onClose={onClose}
+      footer={
+        <>
+          <button className={ui.button} onClick={onClose}>
+            Cancel
+          </button>
+          <button className={ui.primary} disabled={busy || ticked.size === 0} onClick={go}>
+            Take the ticked ({ticked.size})
+          </button>
+        </>
+      }
+    >
+      <p className={css.note}>Tick the profiles to take. One with the name of a profile you have replaces its levels, and every sensor following it changes.</p>
+      <ul className={css.scanList}>
+        {offered.map((p, i) => {
+          const same = mine(p);
+          return (
+            <li key={i}>
+              <label className={css.scanRow}>
+                <input type="checkbox" checked={ticked.has(i)} onChange={() => flip(i)} />
+                <span>
+                  <strong>{p.name}</strong>
+                  {same && <span className={css.problem}> replaces yours{same.followers ? ` (${same.followers} following)` : ""}</span>}
+                  <span className={css.note}>
+                    {p.kind === "binary" ? "on/off" : p.kind === "state" ? "exact states" : "bands"} · {summary(p)} · hold-off {p.hold_off ?? 60} s
+                  </span>
+                  {p.about && <span className={css.note}>{p.about}</span>}
+                  {p.source && (
+                    <a className={css.note} href={p.source} target="_blank" rel="noreferrer">
+                      Source ↗
+                    </a>
+                  )}
+                </span>
+              </label>
+            </li>
+          );
+        })}
+      </ul>
     </Dialog>
   );
 }

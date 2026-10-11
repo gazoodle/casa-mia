@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.8-b14
+
+- Sensor Watch: a library of profiles ships with it (**From the library…**): UK mains voltage (current law, and the ENA's 2026 proposal), UK grid frequency, pool or hot tub pH, and battery percentage, each with what it's for and its source.
+- Sensor Watch: profiles **Export** to a JSON file and **Import…** from one, to share them; one with the name of a profile you have replaces its levels.
+
 ## 2026.10.8-b13
 
 - Sensor Watch: profiles are made and edited on their own: **+ New profile**, and **Edit** on each (its name and levels; Rename is gone, as Edit covers it).

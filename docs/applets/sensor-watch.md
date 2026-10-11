@@ -226,6 +226,14 @@ The **Profiles** section lists each with how many follow it: tap **N following**
 them in the watched list. **Edit** changes its name and levels (every follower with it);
 **Delete** removes it (its followers keep a copy of its levels as their own).
 
+**From the library…** offers profiles that ship with Casa Mia, each with what it's for
+and where its numbers come from: UK mains voltage (current law, 216.2–253 V, and the
+ENA's 2026 proposal, 207–253 V), UK grid frequency (49.5–50.5 Hz), pool or hot tub pH
+(7.2–7.8) and battery percentage. Tick the ones you want. **Export** saves all your
+profiles as a JSON file to share; **Import…** takes one (yours, or someone else's). A
+profile with the name of one you have replaces its levels, so its followers change
+with it: the import starts those unticked, and says so.
+
 ### Scan my house
 
 Suggest bands for everything that isn't watched yet, at once: narrow it by area,

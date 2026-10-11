@@ -1,0 +1,204 @@
+{
+  "format": "casa_mia.sensor_watch.profiles",
+  "version": 1,
+  "profiles": [
+    {
+      "name": "UK mains voltage (current law)",
+      "about": "The statutory supply in Great Britain: 230 V +10% / -6%, so 216.2 V to 253 V (the ESQCR 2002). Many homes sit at 240-250 V, which is normal. Solar inverters trip at about 262 V. See also the ENA's 2026 proposal, which would lower the minimum to 207 V.",
+      "source": "https://www.legislation.gov.uk/uksi/2002/2665",
+      "kind": "numeric",
+      "bands": [
+        {
+          "from": null,
+          "to": 207,
+          "level": "critical",
+          "message": "Mains far too low: under 207 V"
+        },
+        {
+          "from": 207,
+          "to": 216.2,
+          "level": "warning",
+          "message": "Mains below the legal minimum (216.2 V)"
+        },
+        {
+          "from": 216.2,
+          "to": 253,
+          "level": "nominal",
+          "message": ""
+        },
+        {
+          "from": 253,
+          "to": 262,
+          "level": "warning",
+          "message": "Mains above the legal maximum (253 V)"
+        },
+        {
+          "from": 262,
+          "to": null,
+          "level": "critical",
+          "message": "Mains far too high: solar inverters trip about here"
+        }
+      ],
+      "otherwise": "error",
+      "unavailable": "error",
+      "hold_off": 30
+    },
+    {
+      "name": "UK mains voltage (ENA proposed, 2026)",
+      "about": "The Energy Networks Association's 2026 proposal: 230 V +/-10%, so 207 V to 253 V, giving networks room for rooftop solar and EV chargers without tripping equipment at the top. Not law yet (it goes to DESNZ); use it once it is. Below 195.5 V (-15%) is critical.",
+      "source": "https://www.energynetworks.org/industry/engineering-and-technical-programmes/statutory-voltage-limits",
+      "kind": "numeric",
+      "bands": [
+        {
+          "from": null,
+          "to": 195.5,
+          "level": "critical",
+          "message": "Mains far too low: under 195.5 V"
+        },
+        {
+          "from": 195.5,
+          "to": 207,
+          "level": "warning",
+          "message": "Mains below the legal minimum (207 V)"
+        },
+        {
+          "from": 207,
+          "to": 253,
+          "level": "nominal",
+          "message": ""
+        },
+        {
+          "from": 253,
+          "to": 262,
+          "level": "warning",
+          "message": "Mains above the legal maximum (253 V)"
+        },
+        {
+          "from": 262,
+          "to": null,
+          "level": "critical",
+          "message": "Mains far too high: solar inverters trip about here"
+        }
+      ],
+      "otherwise": "error",
+      "unavailable": "error",
+      "hold_off": 30
+    },
+    {
+      "name": "UK grid frequency",
+      "about": "The statutory frequency is 50 Hz +/-1%, so 49.5-50.5 Hz; the grid normally holds 49.8-50.2 Hz, and automatic load shedding starts at about 48.8 Hz. The same everywhere on the grid: watch it on one meter.",
+      "source": "https://www.legislation.gov.uk/uksi/2002/2665",
+      "kind": "numeric",
+      "bands": [
+        {
+          "from": null,
+          "to": 48.8,
+          "level": "critical",
+          "message": "Grid emergency: load shedding starts"
+        },
+        {
+          "from": 48.8,
+          "to": 49.5,
+          "level": "error",
+          "message": "Frequency below the legal minimum (49.5 Hz)"
+        },
+        {
+          "from": 49.5,
+          "to": 49.8,
+          "level": "warning",
+          "message": "Frequency low"
+        },
+        {
+          "from": 49.8,
+          "to": 50.2,
+          "level": "nominal",
+          "message": ""
+        },
+        {
+          "from": 50.2,
+          "to": 50.5,
+          "level": "warning",
+          "message": "Frequency high"
+        },
+        {
+          "from": 50.5,
+          "to": null,
+          "level": "error",
+          "message": "Frequency above the legal maximum (50.5 Hz)"
+        }
+      ],
+      "otherwise": "error",
+      "unavailable": "error",
+      "hold_off": 30
+    },
+    {
+      "name": "Pool or hot tub pH",
+      "about": "Ideal 7.4-7.6; 7.2-7.8 is acceptable. Below, the water is acidic and corrosive; above, chlorine stops working and scale forms. Works for a probe or an input_number you type test-strip readings into.",
+      "source": "https://www.poolchemtracker.com/blog/ideal-pool-ph-level",
+      "kind": "numeric",
+      "bands": [
+        {
+          "from": null,
+          "to": 7.0,
+          "level": "warning",
+          "message": "pH far too low: corrosive, etches surfaces"
+        },
+        {
+          "from": 7.0,
+          "to": 7.2,
+          "level": "task",
+          "message": "pH low: add pH increaser"
+        },
+        {
+          "from": 7.2,
+          "to": 7.8,
+          "level": "nominal",
+          "message": ""
+        },
+        {
+          "from": 7.8,
+          "to": 8.0,
+          "level": "task",
+          "message": "pH high: add pH reducer"
+        },
+        {
+          "from": 8.0,
+          "to": null,
+          "level": "warning",
+          "message": "pH far too high: chlorine mostly inactive, scale forms"
+        }
+      ],
+      "otherwise": "error",
+      "unavailable": "error",
+      "hold_off": 300
+    },
+    {
+      "name": "Battery (%)",
+      "about": "A battery level in percent: replace it below 20%, flat below 5%. The same as Sensor Watch's default for battery sensors; unavailable is often the battery that died.",
+      "kind": "numeric",
+      "bands": [
+        {
+          "from": null,
+          "to": 5,
+          "level": "warning",
+          "message": "Battery flat"
+        },
+        {
+          "from": 5,
+          "to": 20,
+          "level": "task",
+          "message": "Replace the battery"
+        },
+        {
+          "from": 20,
+          "to": null,
+          "level": "nominal",
+          "message": ""
+        }
+      ],
+      "otherwise": "error",
+      "unavailable": "warning",
+      "hold_off": 600
+    }
+  ]
+}

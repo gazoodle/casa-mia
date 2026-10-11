@@ -27,7 +27,7 @@ from .history import (
     order,
 )
 from .live import Live
-from .profiles import clean_profile, follower, new_id, resolve
+from .profiles import clean_profile, export, follower, library, merge, new_id, resolve
 from .status import Status
 
 _LOGGER = logging.getLogger(__name__)
@@ -583,7 +583,8 @@ class SensorWatch:
     def _profiles(
         self, method: str, parts: list[str], body: dict[str, Any]
     ) -> Response:
-        """POST profiles (a new one); PUT profiles/<id> (its name or levels); DELETE
+        """GET profiles/export (all, to share), GET profiles/library (those shipped),
+        POST profiles/import (a shared file: same name replaces); POST profiles (a new one); PUT profiles/<id> (its name or levels); DELETE
         profiles/<id> (its followers keep a copy); POST profiles/<id>/apply {entity_ids}
         (those sensors follow it, watched or not; any of a kind it doesn't fit are
         skipped)."""
@@ -599,6 +600,25 @@ class SensorWatch:
                 profiles=profiles,
             )
             return _json(201, self.view() | {"created": profile["id"]})
+        if method == "GET" and parts == ["export"]:
+            return _json(200, export(profiles))
+        if method == "GET" and parts == ["library"]:
+            return _json(200, {"profiles": library()})
+        if method == "POST" and parts == ["import"]:
+            merged, added, replaced = merge(body, profiles)
+            for (
+                r
+            ) in records.values():  # a replaced profile must still fit its followers
+                if r.get("profile") in merged and r["profile"] in profiles:
+                    follower(
+                        r["entity_id"],
+                        r.get("name", ""),
+                        merged[r["profile"]],
+                        self._kind(r["entity_id"]),
+                    )
+            what = f"imported profiles: added {added or 'none'}, replaced {replaced or 'none'}"
+            self._save({}, what, profiles=merged)
+            return _json(200, self.view() | {"added": added, "replaced": replaced})
         profile = profiles.get(parts[0]) if parts else None
         if profile is None:
             return _json(404, {"error": "No such profile."})
