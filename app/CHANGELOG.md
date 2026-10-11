@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.10-b1
+
+- Dependencies: vite 8.3.3 and @vitejs/plugin-react 6.1.2 for the admin page (rebuilt); the release and stats workflows on actions/upload-artifact 7, actions/download-artifact 8 and docker/setup-buildx-action 4. Dependabot now proposes its updates to `dev`, so they ship with a release.
+
 ## 2026.10.9
 
 - Sensor Watch: in the first minute after the machine started, the page listed no entities to watch (a cache stamped 0 looked fresh, as `time.monotonic()` counts from boot). The guest login audit had the same start.

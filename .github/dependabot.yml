@@ -2,13 +2,22 @@ version: 2
 updates:
   - package-ecosystem: github-actions
     directory: /
+    # main moves only at a release (tools/release.py): updates come to dev, and ship
+    # with the next release.
+    target-branch: dev
     schedule:
       interval: weekly
   - package-ecosystem: pip
     directory: /
+    # main moves only at a release (tools/release.py): updates come to dev, and ship
+    # with the next release.
+    target-branch: dev
     schedule:
       interval: weekly
   - package-ecosystem: npm
     directory: /app/web
+    # main moves only at a release (tools/release.py): updates come to dev, and ship
+    # with the next release.
+    target-branch: dev
     schedule:
       interval: weekly
