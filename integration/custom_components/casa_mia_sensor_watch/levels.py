@@ -1,5 +1,5 @@
-"""Sensor Watch's levels: a watched entity's state against its record, and the summary
-of them all. No Home Assistant imports, so the tests load it by path. The app checks
+"""Sensor Watch's levels: a watched entity's state against its record, Home Assistant's
+own health (system_rows), and the summary of them all. No Home Assistant imports, so the tests load it by path. The app checks
 the records when they are saved (app/src/casa_mia/modules/sensor_watch/common.py, whose
 LEVELS must match these; a test checks)."""
 
@@ -15,6 +15,12 @@ IGNORE = "ignore"  # a record's `unavailable`: no opinion while it is unavailabl
 # first: a glance, kept small (HA's recorder drops attributes over 16 kB, and a broken
 # integration can take hundreds of sensors with it). The `list` service gives them all.
 MAX_LISTED = 10
+# Home Assistant's own health, counted like any watched sensor. Without the Recorder
+# (and History, which needs it) there is no history or statistics at all.
+SYSTEM = {"recorder": "Recorder", "history": "History"}
+# Config entry states that mean an integration isn't working (not disabled ones).
+FAILED = ("setup_error", "setup_retry", "migration_error", "not_loaded")
+SETTLE = 300  # seconds an integration may take to set up before its failure counts
 
 
 def rank(level: str | None) -> int:
@@ -75,3 +81,41 @@ def summary(now: dict[str, dict[str, Any]]) -> dict[str, Any]:
             for e in these[:MAX_LISTED]
         ]
     return out
+
+
+def system_rows(
+    components: set[str],
+    entries: list[dict[str, Any]],
+    first_bad: dict[str, float],
+    now: float,
+) -> dict[str, dict[str, Any]]:
+    """Home Assistant's own health as rows like a watched sensor's: the Recorder and
+    History (critical when not running, nominal when they are) and each integration that
+    has failed to set up for SETTLE seconds (error). `entries`: each config entry's
+    entry_id, domain, title, state, reason and disabled; `first_bad`: when each was first
+    seen failing, kept by the caller between checks (updated here)."""
+    rows: dict[str, dict[str, Any]] = {}
+    for key, name in SYSTEM.items():
+        up = key in components
+        rows[f"homeassistant.{key}"] = {
+            "name": name,
+            "level": "nominal" if up else "critical",
+            "value": "running" if up else "not running",
+            "message": None if up else "not running: no history or statistics",
+        }
+    failing = {
+        e["entry_id"]: e for e in entries if e["state"] in FAILED and not e["disabled"]
+    }
+    for gone in set(first_bad) - set(failing):
+        del first_bad[gone]
+    for entry_id, e in failing.items():
+        if now - first_bad.setdefault(entry_id, now) < SETTLE:
+            continue
+        state = e["state"].replace("_", " ")
+        rows[f"integration.{entry_id}"] = {
+            "name": f"{e['title']} ({e['domain']})",
+            "level": "error",
+            "value": e["state"],
+            "message": f"{state}: {e['reason']}" if e.get("reason") else state,
+        }
+    return rows

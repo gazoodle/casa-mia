@@ -418,3 +418,60 @@ def test_check_shouts_when_recorder_or_history_is_not_running(tmp_path):
     assert call(watch, "GET", "check")[1] == {"missing": [], "error": None}
     ha.components = ["sensor"]
     assert call(watch, "GET", "check")[1]["missing"] == ["Recorder", "History"]
+
+
+def _entry(entry_id, state, disabled=False, reason=None):
+    return {
+        "entry_id": entry_id,
+        "domain": "acme_hub",
+        "title": "Barn blinds",
+        "state": state,
+        "reason": reason,
+        "disabled": disabled,
+    }
+
+
+def test_home_assistants_own_health():
+    first_bad: dict[str, float] = {}
+    rows = levels.system_rows(
+        {"recorder", "history"}, [_entry("a", "loaded")], first_bad, 0.0
+    )
+    assert {k: r["level"] for k, r in rows.items()} == {
+        "homeassistant.recorder": "nominal",
+        "homeassistant.history": "nominal",
+    }
+    # The Recorder down (its database unreachable) takes History with it: both critical.
+    rows = levels.system_rows(set(), [], first_bad, 0.0)
+    assert (
+        rows["homeassistant.recorder"]["level"]
+        == rows["homeassistant.history"]["level"]
+        == "critical"
+    )
+    assert "no history" in rows["homeassistant.recorder"]["message"]
+
+
+def test_a_failing_integration_counts_after_it_has_had_time_to_set_up():
+    first_bad: dict[str, float] = {}
+    on = {"recorder", "history"}
+    broken = [
+        _entry("a", "setup_retry", reason="Cannot connect"),
+        _entry("b", "setup_error", disabled=True),
+    ]
+    assert "integration.a" not in levels.system_rows(
+        on, broken, first_bad, 0.0
+    )  # still settling
+    row = levels.system_rows(on, broken, first_bad, levels.SETTLE)["integration.a"]
+    assert row == {
+        "name": "Barn blinds (acme_hub)",
+        "level": "error",
+        "value": "setup_retry",
+        "message": "setup retry: Cannot connect",
+    }
+    assert "integration.b" not in levels.system_rows(
+        on, broken, first_bad, levels.SETTLE
+    )  # disabled: not a fault
+    # Recovered: gone, and its clock starts again if it fails later.
+    assert "integration.a" not in levels.system_rows(
+        on, [_entry("a", "loaded")], first_bad, levels.SETTLE + 1
+    )
+    assert first_bad == {}

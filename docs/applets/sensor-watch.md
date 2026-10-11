@@ -87,6 +87,26 @@ The **Sensor Watch** device has:
 - **Tasks**, **Warnings**, **Errors** and **Critical:** how many sensors are at each level.
 - **Problem:** on while any sensor is at warning or worse (a task alone isn't a problem).
 
+### Home Assistant's own health
+
+Sensor Watch also watches Home Assistant itself, counted like any watched sensor (in the
+status, the counts, the problem sensor, the event and the list service), so it never
+says all is well while Home Assistant is broken:
+
+- **Recorder** and **History** not running: **critical**. Without them there is no
+  history or statistics at all (Home Assistant's own History panel and graphs stop too).
+  A common cause is the Recorder's database being out of reach when Home Assistant
+  starts (a database on another machine that was down): the Recorder doesn't try again
+  by itself, so fix the database, then restart Home Assistant.
+- An **integration that has failed to set up** (setup error, retrying, migration error,
+  or not loaded), for more than five minutes: **error**, named by its title and
+  integration, with Home Assistant's reason. Disabled integrations don't count. When it
+  recovers, the event says so (level nominal) and it leaves the list.
+
+These are checked once Home Assistant has started, and each minute after. In the event
+and the list service their `entity_id` is `homeassistant.recorder`,
+`homeassistant.history` or `integration.<its entry id>`.
+
 There is no entity per watched sensor: the summary, the event and the service below tell
 the rest of Home Assistant which ones they are.
 

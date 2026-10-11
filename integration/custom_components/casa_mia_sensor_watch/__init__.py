@@ -22,6 +22,7 @@ from .const import DOMAIN, MODULE
 from .entity import watch_device
 from .levels import LEVELS, listing
 from .restart_notice import async_check_restart, manifest_version
+from .system import start_checks
 from .watch import Watcher
 
 _LOGGER = logging.getLogger(__name__)
@@ -54,6 +55,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     watcher.refresh()
     entry.async_on_unload(coordinator.async_add_listener(watcher.refresh))
     entry.async_on_unload(watcher.unload)
+    entry.async_on_unload(start_checks(hass, watcher))  # Home Assistant's own health
 
     async def list_sensors(call: ServiceCall) -> ServiceResponse:
         rows = listing(watcher.now, call.data.get("levels"))

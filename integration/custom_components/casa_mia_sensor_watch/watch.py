@@ -54,6 +54,9 @@ class Watcher:
         self._telling: CALLBACK_TYPE | None = None
         self._revision: str | None = None  # of the records applied
         self._fetching = False
+        self._system: set[str] = (
+            set()
+        )  # keys of Home Assistant's own rows (apply_system)
 
     def listen(self, told: Callable[[], None]) -> Callable[[], None]:
         """Be told after each change of level (the entities write their state)."""
@@ -62,7 +65,8 @@ class Watcher:
 
     def summary(self) -> dict[str, Any]:
         if self._summary is None:
-            self._summary = summary(self.now)
+            # `watching`: the sensors given bands, not Home Assistant's own rows
+            self._summary = summary(self.now) | {"watching": len(self.records)}
         return self._summary
 
     @callback
@@ -212,24 +216,53 @@ class Watcher:
                     message or "no message",
                 )
             return  # refresh tells the entities once for all
+        self._fire(eid, self.now[eid], previous)
+
+    @callback
+    def apply_system(self, rows: dict[str, dict[str, Any]]) -> None:
+        """Home Assistant's own health (levels.system_rows), counted beside the sensors:
+        a change of level fires the event as a sensor's does; an integration that
+        recovers is told as nominal, then no longer listed."""
+        for key in self._system - set(rows):
+            gone = self.now.pop(key)
+            self._fire(
+                key,
+                gone | {"level": "nominal", "value": "loaded", "message": None},
+                gone["level"],
+            )
+        changed = set(rows) != self._system
+        for key, row in rows.items():
+            old = self.now.get(key)
+            if old is not None and old["level"] == row["level"]:
+                continue
+            changed = True
+            self.now[key] = row | {"since": dt_util.utcnow().isoformat()}
+            if old is not None or row["level"] != "nominal":
+                self._fire(key, self.now[key], old and old["level"])
+        self._system = set(rows)
+        if changed:
+            self._tell()
+
+    def _fire(self, eid: str, row: dict[str, Any], previous: str | None) -> None:
+        """Log a change of level, fire the event, and have the entities write."""
         _LOGGER.info(
             "%s (%s): %s -> %s at %s (%s)",
-            name,
+            row["name"],
             eid,
             previous or "nothing",
-            level,
-            value,
-            message or "no message",
+            row["level"],
+            row["value"],
+            row["message"] or "no message",
         )
         self.hass.bus.async_fire(
             EVENT,
             {
                 "entity_id": eid,
-                "name": name,
-                "level": level,
+                "name": row["name"],
+                "level": row["level"],
                 "previous": previous,
-                "value": value,
-                "message": message,
+                "value": row["value"],
+                "message": row["message"],
             },
         )
         self._tell()

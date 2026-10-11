@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.10.8-b3
+
+- **Sensor Watch watches Home Assistant itself:** the Recorder or History not running is
+  critical, and an integration that has failed to set up for five minutes (an error,
+  retrying, not loaded) is an error, named, with Home Assistant's reason. They count in
+  the status, the counts, the problem sensor, the event and the list service, so it no
+  longer says all is well while Home Assistant is broken.
+
 ## 2026.10.8-b2
 
 - **Sensor Watch:** **Watch it** works again (it waited for history that never came).
