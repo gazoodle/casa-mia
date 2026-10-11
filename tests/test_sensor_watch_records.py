@@ -1,0 +1,124 @@
+"""Sensor Watch's records checked before saving, the suggestions from history, and the
+defaults by what a sensor is."""
+
+import pytest
+
+from casa_mia.modules.sensor_watch import suggest
+from casa_mia.modules.sensor_watch.common import BadRequest, clean
+from casa_mia.modules.sensor_watch.history import from_history, thin
+from sensor_watch_fakes import ALARM, SALT, _cand, levels
+
+
+def test_clean_sorts_bands_and_refuses_overlaps():
+    record = clean("sensor.salt", SALT | {"bands": list(reversed(SALT["bands"]))})
+    assert [b["from"] for b in record["bands"]] == [None, 10, 25]
+    assert record["hold_off"] == 60
+    overlap = SALT | {
+        "bands": [
+            {"from": 0, "to": 10, "level": "nominal"},
+            {"from": 5, "to": 20, "level": "task"},
+        ]
+    }
+    with pytest.raises(BadRequest, match="overlap"):
+        clean("sensor.salt", overlap)
+    with pytest.raises(BadRequest, match="below"):
+        clean("sensor.salt", SALT | {"bands": [{"from": 5, "to": 5, "level": "task"}]})
+    with pytest.raises(BadRequest, match="level"):
+        clean("sensor.salt", SALT | {"bands": [{"from": 5, "to": 6, "level": "fine"}]})
+    with pytest.raises(BadRequest, match="Hold-off"):
+        clean("sensor.salt", SALT | {"hold_off": -1})
+    with pytest.raises(BadRequest, match="entity"):
+        clean("salt", SALT)
+
+
+def test_clean_binary():
+    record = clean(
+        "binary_sensor.door",
+        {"kind": "binary", "nominal": "off", "other": "error", "unavailable": "ignore"},
+    )
+    assert record == {
+        "entity_id": "binary_sensor.door",
+        "kind": "binary",
+        "name": "",
+        "hold_off": 60,
+        "unavailable": "ignore",
+        "nominal": "off",
+        "other": "error",
+        "message": "",
+    }
+
+
+def test_numeric_suggestion_sets_outliers_aside():
+    samples = [20 + (n % 7) * 0.5 for n in range(500)] + [95.0]  # 20..23, and one spike
+    s = suggest.numeric(samples)
+    assert s is not None
+    assert s["outliers"] == [95.0] and s["outlier_count"] == 1
+    nominal = next(b for b in s["bands"] if b["level"] == "nominal")
+    assert nominal["from"] <= 20 and 23 < nominal["to"] < 95
+    assert (
+        levels.level_of({"kind": "numeric", "bands": s["bands"]}, "23")[0] == "nominal"
+    )
+    assert levels.level_of({"kind": "numeric", "bands": s["bands"]}, "95")[0] == "error"
+    assert suggest.numeric([]) is None
+
+
+def test_a_flat_sensor_still_gets_a_band_round_it():
+    s = suggest.numeric([5.0] * 50)
+    assert s is not None
+    assert (
+        levels.level_of({"kind": "numeric", "bands": s["bands"]}, "5")[0] == "nominal"
+    )
+
+
+def test_binary_suggestion_and_history_durations():
+    rows = [
+        {"s": "off", "lu": 0.0},
+        {"s": "on", "lu": 900.0},
+        {"s": "off", "lu": 1000.0},
+    ]
+    data = from_history(rows, now=2000.0)
+    assert data["seconds"] == {"off": 1900.0, "on": 100.0}
+    s = suggest.binary(data["seconds"])
+    assert s is not None and s["nominal"] == "off" and s["share"] == pytest.approx(0.95)
+    assert suggest.binary({}) is None
+
+
+def test_thin_keeps_the_chart_small():
+    points = [[n, float(n)] for n in range(1000)]
+    assert len(thin(points)) <= 300
+    assert thin(points[:10]) == points[:10]
+
+
+def test_clean_exact_states():
+    record = clean("sensor.alarm_number", ALARM | {"states": [" 0 ", "0", ""]})
+    assert record["states"] == ["0"] and record["other"] == "error"
+    with pytest.raises(BadRequest, match="Nominal states"):
+        clean("sensor.alarm_number", ALARM | {"states": []})
+
+
+def test_defaults_by_what_a_sensor_is():
+    from casa_mia.modules.sensor_watch.defaults import default_record
+
+    leak = default_record(_cand("binary_sensor.sink_leak", "moisture"))
+    assert leak and leak["kind"] == "binary" and leak["other"] == "critical"
+    online = default_record(_cand("binary_sensor.hub", "connectivity"))
+    assert online and online["nominal"] == "on"  # connected is the good state
+    window = default_record(_cand("cover.landing_window", "window"))
+    assert window and window["states"] == ["closed"] and window["other"] == "task"
+    lock = default_record(_cand("lock.back_door"))
+    assert lock and lock["exceptions"][0]["state"] == "jammed"
+    update = default_record(_cand("update.core"))
+    assert (
+        update and update["other"] == "task" and update["message"] == "Update available"
+    )
+    battery = default_record(_cand("sensor.remote_battery", "battery", "%"))
+    assert (
+        battery
+        and levels.level_of(battery, "12")[0] == "task"
+        and levels.level_of(battery, "3")[0] == "warning"
+    )
+    assert (
+        default_record(_cand("sensor.kitchen_temperature", "temperature", "°C")) is None
+    )
+    for record in (leak, online, window, lock, update, battery):
+        clean("x.y", record)  # each saves as it is
