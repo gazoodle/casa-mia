@@ -716,6 +716,26 @@
       "unavailable": "error", "hold_off": 300
     },
     {
+      "name": "Pool or hot tub pH (detailed)",
+      "about": "The same chemistry in finer steps, each saying what the water is like: ideal 7.4-7.6, a task either side up to 7.2 and 7.8, a warning to 7.0 and 8.0, an error beyond, and critical (do not enter) below 5 or above 9.",
+      "source": "https://www.poolchemtracker.com/blog/ideal-pool-ph-level",
+      "kind": "numeric",
+      "category": "Water",
+      "bands": [
+        {"from": null, "to": 5.0, "level": "critical", "message": "Do not enter: dangerously acidic"},
+        {"from": 5.0, "to": 7.0, "level": "error", "message": "Highly acidic: corrosive to plaster, vinyl, metal fittings and skin; etches surfaces"},
+        {"from": 7.0, "to": 7.2, "level": "warning", "message": "Acidic: chlorine works well, but the water is uncomfortable and corrosive over time"},
+        {"from": 7.2, "to": 7.4, "level": "task", "message": "Acceptable: the acidic side of ideal; chlorine very effective"},
+        {"from": 7.4, "to": 7.6, "level": "nominal", "message": "Ideal: the best balance of comfort, chlorine and equipment life"},
+        {"from": 7.6, "to": 7.8, "level": "task", "message": "Acceptable: the alkaline side of ideal; chlorine less efficient but still works"},
+        {"from": 7.8, "to": 8.0, "level": "warning", "message": "Mildly alkaline: chlorine much less effective; cloudy water and scale likely"},
+        {"from": 8.0, "to": 9.0, "level": "error", "message": "Alkaline: chlorine mostly inactive, scale forms, eye and skin irritation common"},
+        {"from": 9.0, "to": null, "level": "critical", "message": "Do not enter: dangerously alkaline"}
+      ],
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 300
+    },
+    {
       "name": "Pool free chlorine (ppm)",
       "about": "Free chlorine in a swimming pool: 1-3 ppm is the usual target (the CDC's minimum is 1 ppm). Low lets germs through; high irritates eyes and skin, and above 10 ppm nobody should swim. ppm and mg/l are the same thing.",
       "source": "https://www.poolcalculator.com/pool-maintenance/what-should-chlorine-levels-be-in-swimming-pools-and-hot-tubs/",

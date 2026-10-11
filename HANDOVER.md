@@ -240,13 +240,31 @@ guest card SVG), `page.py` (welcome, goodbye), `supervisor.py`.
   applied from the Profiles section), 255-character messages, inserting bands and checks
   on save. The page's level fields live once in `web/src/sensor-watch/levels.tsx`, shared
   by the sensor and profile editors.
+- **2026.10.8-b14…b28: Sensor Watch, made whole (now Alpha):** profiles managed, imported,
+  exported and shipped (`library.json`, 80; `tools/library_table.py` writes the guide's
+  table, a test keeps it in step); `api.py` split (store → scans → groups → api); groups
+  (`groups.py`: saved filters plus a profile or the defaults, `sync()` each minute and on
+  HA's `entity_registry_updated`, left-out remembered); chip filters everywhere with minus
+  words, and floor, maker, model and category; on/off as When off / When on; the
+  `custom:casa-mia-sensor-watch` card (hides when clear; example rows in the card
+  picker); instant updates (the card and `live.py` hear the integration's event; entity
+  writes at once then every 0.2 s); a record may watch an `attribute`; a fourth kind,
+  `available` (either way round); the event carries group, area and attribute; the
+  integration installs and keeps up to date the **Notify on Sensor Watch** blueprint
+  (`blueprint.py`: groups and notify actions filled in as dropdowns); the screenshot swap
+  covers what the integration shows (`swap.py`, the app's rule); the page polls at most
+  once a second (a busy loop hung Safari). Proven on the VM: the blueprint end to end.
 
 ## Where things stand
 
-- **Sensor Watch is in use on the box:** the owner is testing numeric sensors and
-  profiles. Next agreed: sensor groups (auto-groups: a saved pattern plus a profile,
-  new matches watched automatically, a summary per group), then the panel card. Both are
-  in the backlog.
+- **Sensor Watch is Alpha, in daily use on the box, heading for release:** the README
+  section, the guide's opening and worked examples are written. Still to do: screenshots
+  (from the box with the swap on, or the VM with made-up entities), then a release. Its
+  backlog section "Sensor Watch (alpha)" holds what's next (stale sensors, `list` by
+  label, "Watch in Sensor Watch…" from HA's dialog, templates, dependencies, counted
+  availability rules, export to native HA); none of it blocks the release.
+- **Card picker previews:** the Over layer's showed on the VM; check on the box after a
+  restart and hard refresh. The Commander's (drawn full size, shrunk) is unchecked.
 - **Untested on the box:** 2FA against a real user, the reach check's fixes, Who's signed
   in. **The reach check's screenshot** is still to take: see the backlog (a swap-only
   dashboard list).

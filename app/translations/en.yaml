@@ -43,7 +43,7 @@ configuration:
   sensor_watch_enabled:
     name: Sensor Watch
     description: >-
-      In development. Give any sensor bands of values, each with a level (nominal, task,
+      Alpha. Give any sensor bands of values, each with a level (nominal, task,
       warning, error, critical), suggested from its history; Home Assistant then knows
       what needs doing or has gone wrong, through the Casa Mia Sensor Watch integration.
       Set up on the Sensor Watch page of the Casa Mia panel.

@@ -1,8 +1,8 @@
 # Sensor Watch
 
-Give any sensor bands of values, each with a level, so what needs doing or has gone wrong shows before the family notices.
+Tell it once what normal looks like, for every sensor in the house, and it tells you only when something isn't: what needs doing, or has gone wrong, before the family notices.
 
-> **Maturity: In development.** Being built: parts work, it changes often, and an update may break it. For the curious. ([The levels](../README.md#maturity))
+> **Maturity: Alpha.** Does its job every day in the author's house, but hasn't been tried in many others. Expect rough edges and changes. ([The levels](../README.md#maturity))
 
 ## What it's for
 
@@ -24,7 +24,8 @@ starts them. On each change of level it fires an event, and its status, counts a
 service always say what's wrong, so you choose what happens next:
 
 - **Tell someone:** a notification when anything becomes a task, a warning to the phone
-  of whoever's home, critical to everyone.
+  of whoever's home, critical to everyone. The **Notify on Sensor Watch** blueprint does
+  this in a few clicks ([The event](#the-event)).
 - **Show it:** a panel of what needs attention on the wall tablets. Pair it with
   [garnish](../../README.md#garnish-for-every-dashboard), so the panel's heading
   disappears with it on a quiet day, rather than a proud *WARNINGS* over nothing.
@@ -56,6 +57,26 @@ A sensor that goes **unavailable** is part of this, not an afterthought: by defa
 counts as an error, because a sensor that has stopped reporting is often the first sign
 of a broken integration or a flat battery.
 
+## Half an hour to a watched house
+
+1. **Groups for the big classes of thing.** Every Shelly plug's voltage, every leak
+   sensor, every battery, every Hue light, every window: a group is a saved filter and a
+   profile (or the defaults, by what each thing is). Everything matching is watched now,
+   and whatever matches later joins by itself, so the plug you put in next month is
+   watched without you remembering. The rule of thumb: **more than two of the same kind
+   is a group; a single thing is a watch.**
+2. **Check the bands.** A group follows a profile, and the library has 80 to start from,
+   each saying where its numbers come from: mains voltage and frequency by country,
+   inverter trip limits, batteries, broadband, pool and hot tub chemistry, indoor air,
+   freezers, heating, the garden, computers, and plain "is it there?".
+3. **Watches for the one-offs:** the freezer, the softener's salt, the boiler pressure,
+   with bands suggested from each one's own history.
+4. **One automation,** from the **Notify on Sensor Watch** blueprint: your phone, at the
+   level you choose or worse, in each watch's own words.
+
+That's plant-level monitoring and signalling for the whole house, and the card on the
+wall tablet shows what needs attention, and nothing at all on a quiet day.
+
 ## Why not Home Assistant's own features?
 
 You could, and for one thing you should: a single freezer only needs a threshold helper.
@@ -64,9 +85,9 @@ Sensor Watch is for when there are fifty of them.
 **Say it once, not fifty times.** Home Assistant often makes you repeat yourself: a
 threshold helper per sensor, an alert per entity, an automation per device, the same
 "unavailable" check copied for every bulb and switch. Sensor Watch lets you say it once:
-what a leak sensor means is set for every leak sensor, a scan sets up a whole
-integration's sensors in one go, and the Home Assistant itself checks cover every
-integration.
+what a leak sensor means is set for every leak sensor, a profile says "UK mains" once for
+every plug that follows it, a group takes in every plug there will ever be, and the Home
+Assistant checks cover every integration.
 
 **Finding them is half the battle.** The pieces exist, but they're scattered, and most
 people never come across them:
@@ -113,6 +134,8 @@ Sensor Watch tells; the rest of Casa Mia shows, and only when there's something 
 - **The integration's summary sensors** (Status, Tasks, Warnings, Errors, Critical,
   Problem) are what a dashboard keys on: a card's visibility, a badge, a colour. One
   entity says whether anything needs attention, whatever the size of the house.
+- **[The Sensor Watch card](#the-card):** what needs looking at, worst first, with each
+  watch's message and its value live; hidden altogether when all is well.
 - **[Tablet Layout](../tablet-layout.md):** a panel on an edge of the wall tablet's screen
   for what needs attention, sized to its cards, and hidden when they are.
 - **[Garnish](../../README.md#garnish-for-every-dashboard):** the panel's heading is garnish,
@@ -132,6 +155,63 @@ Sensor Watch tells; the rest of Casa Mia shows, and only when there's something 
    **Discovered** in Settings → Devices & services; or add it from **+ Add integration**.
    It uses the Casa Mia integration's connection to the app.
 3. Open **Sensor Watch** in the Casa Mia panel and choose what to watch.
+
+## Worked examples
+
+### Every mains plug, a panel and a phone call
+
+Twenty Shelly plugs all measure the mains, so watch them as one.
+
+1. **Profiles → From the library…**, search "UK mains" (or your country) and tick **UK mains voltage (current law)**.
+2. **Groups → + New group**: name it *Mains voltage*; filter by integration *Shelly*,
+   device class *voltage* and category *primary* (which leaves out an ESP board's own
+   VCC reading); members follow *UK mains voltage (current law)*. The preview lists what matches:
+   anything that shouldn't be there, rule out with a minus word in the search
+   (`-vcc`).
+3. **The card:** add a Sensor Watch card to the wall tablet's dashboard with group
+   *Mains voltage*. It shows a plug in trouble, its message and its live value, and
+   hides when they're all fine.
+4. **The phone:** an automation from **Notify on Sensor Watch**: level *Critical*, group
+   *Mains voltage*, notify action your phone. "🚨 Plug 3 voltage: critical", "Mains far
+   too low (198 V) · Barn · Mains voltage".
+
+### Every light, there or not
+
+A bulb has nothing to go wrong but dropping off the network, and a breaker trip takes a
+dozen with it.
+
+1. **Profiles → From the library…**, tick **Available (a task after an hour)** under
+   Availability.
+2. **Groups → + New group**: *Lights*, domain *light* (or integration *Hue*), following
+   it. A lamp switched off at the wall is forgiven for an hour; after that it's a task.
+3. Trip a breaker, and an hour later the card lists every light it took with it. Lights
+   you've retired and want to stay gone: **Stays gone** turns it round.
+
+### A thermostat that isn't keeping up
+
+A thermostat's state is only its mode (heat, off, auto), which says nothing about whether
+the room is warm.
+
+1. **+ Watch an entity**, pick the thermostat, and in **Watch** choose its
+   `current_temperature`.
+2. Bands are suggested from its history; or **Follows** *Room temperature (°C)* from the
+   library. A room under 16 °C is a task, under 12 °C a warning.
+
+### The security light that stayed on
+
+**Security light on too long** (under Outdoors and garden) is a warning when the light
+has been on for half an hour: its sensor is stuck, someone left the switch on, or
+something keeps setting it off. Apply it to the lights with **Apply to…**, or make a
+group by label so new ones join. Change the hold-off to suit the light's own timer.
+
+### A fault only two sensors can show
+
+The supply into the house and a meter downstream both read voltage; if they differ by
+more than a few volts, something between them is wrong. Neither sensor alone can say
+so, so make the difference a template sensor (Settings → Devices & services → Helpers →
+Template → Sensor: `{{ (states('sensor.supply_voltage') | float(0) -
+states('sensor.barn_meter_voltage') | float(0)) | abs }}`), then watch it with bands:
+nominal under 3 V, a warning to 8 V, an error beyond.
 
 ## On the page
 
@@ -384,6 +464,7 @@ hold-off, how long a new level must last before it counts.
 | Hot tub free chlorine (ppm) | Water | bands | under 1 error · 1–3 task · 3–5 nominal · 5–10 task · 10 and over error; after 5 min |
 | Pool free chlorine (ppm) | Water | bands | under 0.5 error · 0.5–1 task · 1–3 nominal · 3–5 task · 5–10 warning · 10 and over error; after 5 min |
 | Pool or hot tub pH | Water | bands | under 7 warning · 7–7.2 task · 7.2–7.8 nominal · 7.8–8 task · 8 and over warning; after 5 min |
+| Pool or hot tub pH (detailed) | Water | bands | under 5 critical · 5–7 error · 7–7.2 warning · 7.2–7.4 task · 7.4–7.6 nominal · 7.6–7.8 task · 7.8–8 warning · 8–9 error · 9 and over critical; after 5 min |
 | Water softener salt (%) | Water | bands | under 10 warning · 10–25 task · 25 and over nominal; after 1 h |
 
 <!-- end of library table -->

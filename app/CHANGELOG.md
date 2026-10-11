@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026.10.8-b28
+
+- **Breaking:** the Sensor Watch integration changed. Restart Home Assistant once; a Repair asks.
+- Sensor Watch is now **alpha**: it does its job every day in the author's house.
+- Sensor Watch: the screenshot swap (Casa Mia's `swap.json`) covers what it shows in Home Assistant too: the event (so notifications), the `list` service (so the card) and the status sensor's lists. Entity ids stay as they are.
+- Docs: Sensor Watch in the README; the guide opens with half an hour to a watched house, and has worked examples (every mains plug with a panel and a phone call, every light there or not, a thermostat, the security light, a fault only two sensors can show).
+
+- Sensor Watch: a library profile, **Pool or hot tub pH (detailed)**: ideal 7.4–7.6, a task either side, then warning, error, and critical (do not enter) below 5 or above 9, each band saying what the water is like.
+
 ## 2026.10.8-b27
 
 - Sensor Watch: a library profile, **Security light on too long**: a light that's been on for half an hour (stuck on, or something keeps setting it off) is a warning.

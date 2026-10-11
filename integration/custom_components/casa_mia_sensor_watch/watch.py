@@ -30,6 +30,7 @@ from homeassistant.util import dt as dt_util
 from ..casa_mia.coordinator import CasaMiaCoordinator
 from .const import EVENT, MODULE
 from .levels import UNAVAILABLE, level_of, reading, summary
+from .swap import Rule, same, shown
 
 _LOGGER = logging.getLogger(__name__)
 # seconds: the entities write at once, then at most once in this while changes keep
@@ -53,6 +54,7 @@ class Watcher:
         self._pending: dict[str, tuple[str, CALLBACK_TYPE]] = {}  # level, its timer
         self._unsub: CALLBACK_TYPE | None = None
         self._listeners: list[Callable[[], None]] = []
+        self.swap: Rule = same  # the screenshot swap (swap.py), looked at every few s
         self._summary: dict[str, Any] | None = None  # cached until the next change
         self._telling: CALLBACK_TYPE | None = None  # the TELL after a write
         self._more = False  # changes since that write, to write when it ends
@@ -73,7 +75,11 @@ class Watcher:
     def summary(self) -> dict[str, Any]:
         if self._summary is None:
             # `watching`: the sensors given bands, not Home Assistant's own rows
-            self._summary = summary(self.now) | {"watching": len(self.records)}
+            found = summary(self.now) | {"watching": len(self.records)}
+            for key, rows in found.items():  # the lists of culprits, as shown
+                if key.endswith("_list"):
+                    found[key] = [shown(self.swap, r) for r in rows]
+            self._summary = found
         return self._summary
 
     @callback
@@ -291,17 +297,20 @@ class Watcher:
         )
         self.hass.bus.async_fire(
             EVENT,
-            {
-                "entity_id": eid,
-                "name": row["name"],
-                "level": row["level"],
-                "previous": previous,
-                "value": row["value"],
-                "message": row["message"],
-                "group": (self.records.get(eid) or {}).get("group"),
-                "area": self._area(eid),
-                "attribute": (self.records.get(eid) or {}).get("attribute"),
-            },
+            shown(
+                self.swap,
+                {
+                    "entity_id": eid,
+                    "name": row["name"],
+                    "level": row["level"],
+                    "previous": previous,
+                    "value": row["value"],
+                    "message": row["message"],
+                    "group": (self.records.get(eid) or {}).get("group"),
+                    "area": self._area(eid),
+                    "attribute": (self.records.get(eid) or {}).get("attribute"),
+                },
+            ),
         )
         self._tell()
 
@@ -316,6 +325,13 @@ class Watcher:
             area_id = device.area_id if device else None
         area = ar.async_get(self.hass).async_get_area(area_id) if area_id else None
         return area.name if area else None
+
+    @callback
+    def swapped(self, swap: Rule) -> None:
+        """The screenshot swap changed: the entities write again, as now shown."""
+        if swap is not self.swap:
+            self.swap = swap
+            self._tell()
 
     def _tell(self) -> None:
         """Have the entities write: at once, then at most once a TELL while changes keep

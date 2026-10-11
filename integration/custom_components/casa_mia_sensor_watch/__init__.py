@@ -5,6 +5,7 @@ problem sensor, an event on each change and a `list` service, on Casa Mia's coor
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
@@ -22,18 +23,21 @@ from homeassistant.core import (
     callback,
 )
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.event import async_track_time_interval
 
 from ..casa_mia.children import add_module_device, follow_module, parent_coordinator
-from . import blueprint
+from . import blueprint, swap
 from .const import DOMAIN, MODULE
 from .entity import watch_device
 from .levels import LEVELS, listing, summary
 from .restart_notice import async_check_restart, manifest_version
+from .swap import shown
 from .system import start_checks
 from .watch import Watcher
 
 _LOGGER = logging.getLogger(__name__)
 PLATFORMS = [Platform.BINARY_SENSOR, Platform.SENSOR]
+SWAP_EVERY = timedelta(seconds=5)  # the screenshot swap's file, looked at (as the app)
 # Read at import, as Casa Mia's own: a reload must not take newer files as loaded.
 LOADED_VERSION = manifest_version()
 LIST_SCHEMA = vol.Schema(
@@ -67,6 +71,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.async_on_unload(start_checks(hass, watcher))  # Home Assistant's own health
     await follow_blueprint(hass, entry, watcher)
 
+    async def look_at_swap(_now: object = None) -> None:
+        watcher.swapped(await hass.async_add_executor_job(swap.current))
+
+    await look_at_swap()
+    entry.async_on_unload(async_track_time_interval(hass, look_at_swap, SWAP_EVERY))
+
     async def list_sensors(call: ServiceCall) -> ServiceResponse:
         # A group (named on the app's page): only its members, and its own worst.
         group = call.data.get("group")
@@ -77,7 +87,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 for e, n in now.items()
                 if (watcher.records.get(e) or {}).get("group") == group
             }
-        rows = listing(now, call.data.get("levels"))
+        rows = [shown(watcher.swap, r) for r in listing(now, call.data.get("levels"))]
         _LOGGER.debug(
             "list (%s%s): %d sensors",
             ",".join(call.data.get("levels") or []) or "not nominal",

@@ -176,9 +176,13 @@ Not scheduled. Newest ideas first within each section. Move an item into the REA
   - **Guest login**: link endpoints and logins to people (who is staying, which suite, their car), and record what a visitor's phone tells us when it signs in (browser user agent and other browser variables), then drop a long-lived cookie once they are identified, so a returning phone is recognised.
   - Respect privacy: guests should be told what is kept (the welcome page can say so), and it should be easy to forget a person entirely.
 
-## Sensor Watch (in development)
+## Sensor Watch (alpha)
 
-A major part of Casa Mia since 2026.10.8 (b1 built the module, the integration, history suggestions and Scan my house; b2 to b21 the rest: exact states, defaults, HA's own health, profiles and their library, groups, the card, live push). Its guide (`docs/applets/sensor-watch.md`) says what it does; its maturity is In development (`maturity.json`). What's next:
+A major part of Casa Mia since 2026.10.8 (b1 built the module, the integration, history suggestions and Scan my house; b2 to b21 the rest: exact states, defaults, HA's own health, profiles and their library, groups, the card, live push). Its guide (`docs/applets/sensor-watch.md`) says what it does; its maturity is Alpha (`maturity.json`). What's next:
+
+- **No watching itself: loops, jams and hysteresis hell** (asked 2026-10-11). Sensor Watch's own entities (status, counts, problem) are already left out of every list it offers (`history.py` skips platform `casa_mia_sensor_watch`), so the watch dialog, scans and groups can't pick them. Still open:
+  - **The API takes them anyway:** a `PUT` for `sensor.casa_mia_sensor_watch_status` (by hand, or an import) would be saved. Refuse the integration's own entities in `clean()` or `_record()`, with a message that says why.
+  - **The indirect loop:** a template helper that reads Sensor Watch's entities or attributes (a "worst level" template, a count), then watched; or an automation on the event that changes a watched entity (turns a light on, which a watch then flags). Each change of level can feed the next. Hold-offs damp it but needn't stop it, and an inverted mapping oscillates for ever. Ideas: warn in the watch dialog when a template helper's own template mentions `casa_mia_sensor_watch` or its entity ids (HA's template config entries hold the template); a circuit breaker in the integration (the same entity changing level more than N times in M minutes is held at its worst level, logged, and says "flapping" as its message); a line in the guide's "What it won't do".
 
 - **The panel card:** built in b19 (Casa Mia Sensor Watch card: hides when all is well, a group's only). Still open: a sort or compact option, and choosing the group from a list rather than typing its name (the integration would need to publish the groups).
 - **Feeding Auto Dashboards**, and the opt-in **label** on a watched sensor showing its level (seen in HA's own entity tables; auto-entities can filter by it), at the cost of a registry write per change of level.
