@@ -1,6 +1,9 @@
 # Changelog
 
-## 2026.10.8
+## 2026.10.9
+
+- Sensor Watch: in the first minute after the machine started, the page listed no entities to watch (a cache stamped 0 looked fresh, as `time.monotonic()` counts from boot). The guest login audit had the same start.
+- Camera Commander: its health reading describes the commanders once, so its two views of them can't disagree.
 
 - **Breaking:** Casa Mia's integration and cards changed, and there's a new one, Casa Mia Sensor Watch. Restart Home Assistant once after updating; a Repair asks.
 - **New: Sensor Watch** (Alpha). Tell it once what normal looks like, for every sensor in the house, and it tells you only when something isn't. Each watched entity gets a level: nominal, a task (top up the salt), a warning, an error or critical. Switch it on in the app's Configuration tab, then add the **Casa Mia Sensor Watch** integration (Settings → Devices & services, under Discovered). The guide starts with half an hour to a watched house.

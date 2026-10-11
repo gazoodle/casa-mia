@@ -17,6 +17,7 @@ import csv
 import io
 import json
 import logging
+import math
 import queue
 import threading
 import time
@@ -105,7 +106,7 @@ class Audit:
         self._records: list[dict[str, Any]] = []
         self._queue: queue.Queue[dict[str, Any] | None] = queue.Queue()
         self._worker: threading.Thread | None = None
-        self._pruned = 0.0
+        self._pruned = -math.inf  # never (not 0: monotonic() counts from boot)
         self._load()
 
     # -- the store

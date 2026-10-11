@@ -142,7 +142,7 @@ class Reader:
     def __init__(self, ha: HA) -> None:
         self.ha = ha
         self._lock = threading.Lock()
-        self._at = 0.0
+        self._at = -math.inf  # never read (not 0: monotonic() counts from boot)
         self._cands: list[dict[str, Any]] = []
         self._labels: dict[
             str, str
@@ -153,7 +153,7 @@ class Reader:
     def forget(self) -> None:
         """Read HA's entities afresh at the next ask (its registry changed)."""
         with self._lock:
-            self._at = 0.0
+            self._at = -math.inf  # never read (not 0: monotonic() counts from boot)
 
     def candidates(self) -> list[dict[str, Any]]:
         """Every entity Sensor Watch could watch (not its own)."""
