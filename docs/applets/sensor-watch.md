@@ -4,6 +4,8 @@ Tell it once what normal looks like, for every sensor in the house, and it tells
 
 > **Maturity: Alpha.** Does its job every day in the author's house, but hasn't been tried in many others. Expect rough edges and changes. ([The levels](../README.md#maturity))
 
+<img src="../screenshots/sensor-watch-card.webp" alt="A kitchen wall tablet: a camera picture in the middle and, in the side panel, the Sensor Watch card titled Action Items listing an error (Spa pH, highly acidic), a warning (a test switch) and a task (Tank State: get the order in)" width="800">
+
 ## What it's for
 
 Home Assistant is great when it's all working. When it isn't, it's a pain, and only then
@@ -217,6 +219,8 @@ nominal under 3 V, a warning to 8 V, an error beyond.
 
 ### Watched sensors
 
+<img src="../screenshots/sensor-watch.webp" alt="The Sensor Watch page: the watched sensors under one toolbar of search and filter chips, grouped under small-caps headings (Manual, BMS Faults, Flood Lights folded, Roof Windows), each row with its status pill, value, message and levels" width="800">
+
 Every watched sensor, its level now (the **status pill** at the start of its row) and its
 value, with a search and filter **chips** along the top (a level, an area, a group…) so a
 house with hundreds of them stays manageable. **Edit** changes a sensor's bands;
@@ -234,6 +238,8 @@ The list is live: a value or level changes on the page the moment Home Assistant
 first, so set it to 0 while trying a sensor out.
 
 ### Watch an entity
+
+<img src="../screenshots/sensor-watch-editor.webp" alt="Editing a plug's voltage watch: a month of hourly statistics drawn as a line over the coloured bands, the samples line, Follows set to UK mains voltage (current law) with 72 following, and the bands with their levels and messages" width="800">
 
 Any entity can be watched: a sensor, but also an `input_number` you type a reading into
 (a pool's pH from a test strip), a `number`, a `switch` that should stay on, a `select`.
@@ -352,6 +358,8 @@ to them and choose **Follow a profile** under it.
 The **Profiles** section lists each with how many follow it in its status pill: tap
 **N following** to see them in the watched list. **Edit** changes its name and levels (every follower with it);
 **Delete** removes it (its followers keep a copy of its levels as their own).
+
+<img src="../screenshots/sensor-watch-library.webp" alt="Profiles from the library, searched for voltage: UK mains voltage (current law) marked as replacing yours with 72 following, the ENA's 2026 proposal, the US and EU, each with its bands, hold-off, what it's for and a Source link; two ticked" width="800">
 
 **From the library…** offers profiles that ship with Casa Mia, each with what it's for
 and where its numbers come from:
@@ -487,6 +495,8 @@ with it: the import starts those unticked, and says so.
 
 ### Groups
 
+<img src="../screenshots/sensor-watch-group.webp" alt="Editing the group Flood Lights: its name, Members follow a security light profile, the search Flood -Unused with the Domain: light chip, and the preview of the lights that match" width="800">
+
 A group is a saved set of filters (domain, area, label, integration, device, device
 class, kind, a search) and what its members follow: a profile, or **the defaults, by
 what it is** (each member set up as Watch an entity would: a cover closed, a lock
@@ -595,6 +605,10 @@ Its title leads with the level's colour (🔵 task, 🟠 warning, 🔴 error, �
 Mains voltage". The integration replaces the file when it changes, so to change the
 blueprint itself, copy it under another name first.
 
+<img src="../screenshots/sensor-watch-blueprint.webp" alt="An automation from the Notify on Sensor Watch blueprint: at this level or worse (Warning chosen), only this group (Flood Lights, from a dropdown), the notify action, a Home Assistant notification and say when it's back switched on, and anything else" width="800">
+
+*A screenshot of these notifications is coming soon.*
+
 **By hand,** an automation on the event:
 
 ```yaml
@@ -631,6 +645,8 @@ actions:
 Add `group: Mains voltage` to ask about one group only (and its own worst level).
 
 ### The card
+
+<img src="../screenshots/card-picker.webp" alt="Home Assistant's Add to dashboard dialog searched for casa: previews of the Camera Commander, the Over layer and the Sensor Watch card (an example of a bad day: a critical plug voltage, a warm freezer, the softener's salt)" width="800">
 
 **Casa Mia Sensor Watch** (in the card picker) lists what isn't nominal, worst first,
 each with its level, message, value (live from the entity) and how long it has stood;

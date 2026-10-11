@@ -319,6 +319,21 @@ words. The trick is saying it once, not fifty times:
   worse, colour-coded, and clears it when it's sorted; a card shows what needs looking at
   and vanishes on a quiet day; an event and a service for everything else.
 
+<table>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/screenshots/sensor-watch-card.webp" alt="A kitchen wall tablet with the Sensor Watch card in its side panel: an error, a warning and a task">
+<h3>Only what needs looking at</h3>
+The card on the kitchen tablet: worst first, each in its own words, its value live. On a quiet day it isn't there at all.
+</td>
+<td width="50%" valign="top">
+<img src="docs/screenshots/sensor-watch.webp" alt="The Sensor Watch page: every watched sensor with its status pill, grouped, under one toolbar of filter chips">
+<h3>Everything watched, in one place</h3>
+Every watch with its level, grouped, filtered with chips; groups take in whole classes of thing, and new ones join by themselves.
+</td>
+</tr>
+</table>
+
 Half an hour, and the house has plant-level monitoring. I tripped a breaker to test it,
 and a dozen lights turned up on the wall tablet, each saying where it was.
 ([The guide](docs/applets/sensor-watch.md))

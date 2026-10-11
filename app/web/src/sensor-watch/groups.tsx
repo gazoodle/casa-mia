@@ -197,7 +197,8 @@ function GroupDialog({
           <option value={DEFAULTS}>The defaults, by what it is</option>
           {profiles.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.name} ({MODE_NAMES[p.kind]})
+              {/* Library names already say it: "Door (on/off)". */}
+              {p.name.endsWith(")") ? p.name : `${p.name} (${MODE_NAMES[p.kind]})`}
             </option>
           ))}
         </select>

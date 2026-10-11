@@ -457,3 +457,9 @@ def test_the_live_feed_takes_the_watched_attribute():
     )
     assert _value({"a": {"hvac_action": "idle"}}, "current_temperature") is None
     assert _value({"s": "unavailable"}, "current_temperature") == "unavailable"
+
+
+def test_the_levels_are_asked_again_once_the_integration_takes_the_records(watch):
+    assert watch.live and watch.live._due is None
+    watch.for_integration()  # its start (after HA's restart), or a change
+    assert watch.live._due is not None

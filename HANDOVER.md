@@ -258,8 +258,11 @@ guest card SVG), `page.py` (welcome, goodbye), `supervisor.py`.
 ## Where things stand
 
 - **Sensor Watch is Alpha, in daily use on the box, heading for release:** the README
-  section, the guide's opening and worked examples are written. Still to do: screenshots
-  (from the box with the swap on, or the VM with made-up entities), then a release. Its
+  section, the guide's opening and worked examples are written, and six screenshots taken
+  on the box with the swap on (b31). Still to do: the notifications shot (the blueprint
+  didn't notify on the box: backlogged, evidence first), re-taking the page and group
+  shots once the subtitle changes, confirming b31's `…` fix after an HA restart, then a
+  release. Its
   backlog section "Sensor Watch (alpha)" holds what's next (stale sensors, `list` by
   label, "Watch in Sensor Watch…" from HA's dialog, templates, dependencies, counted
   availability rules, export to native HA); none of it blocks the release.

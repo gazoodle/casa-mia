@@ -25,6 +25,10 @@ _LOGGER = logging.getLogger(__name__)
 RETRY = 10.0  # seconds before connecting again
 SETTLE = 0.3  # seconds: the integration's entities write in a burst; asked once after
 TICK = 1.0  # seconds: how often the loop looks up from the socket
+# seconds after the integration takes the records (at its start, or after a change) that
+# the levels are asked again: it has judged them all afresh by then, and that writes
+# nothing the app hears when the levels come out as they were (HA's restart, say).
+TAKEN = 2.0
 
 
 class Live:
@@ -47,6 +51,7 @@ class Live:
         # Told when HA's entity registry changes (an entity added, a label given): groups.
         self.on_registry: Callable[[], None] | None = None
         self._stop = threading.Event()
+        self._due: float | None = None  # when to ask the levels again
 
     def start(self) -> None:
         threading.Thread(
@@ -57,6 +62,10 @@ class Live:
 
     def stop(self) -> None:
         self._stop.set()
+
+    def taken(self) -> None:
+        """The integration took the records: ask the levels again in a moment."""
+        self._due = time.monotonic() + TAKEN
 
     def resubscribe(self) -> None:
         """The watched sensors changed: hear the new ones (and ask the levels again)."""
@@ -159,7 +168,6 @@ class Live:
                 len(watched),
                 len(own),
             )
-            due: float | None = None
             while not self._stop.is_set() and not self._again.is_set():
                 try:
                     msg = await ws.receive(timeout=TICK)
@@ -171,15 +179,15 @@ class Live:
                     m = msg.json()
                     if m.get("id") == 2 and m.get("type") == "event":
                         if self._heard(m["event"], own, watched):
-                            due = due or time.monotonic() + SETTLE
+                            self._due = self._due or time.monotonic() + SETTLE
                     elif m.get("id") == 3 and m.get("type") == "event":
                         self._moved(m["event"])
                     elif m.get("id") == 4 and m.get("type") == "event":
                         action = (m["event"].get("data") or {}).get("action")
                         if action in ("create", "update") and self.on_registry:
                             self.on_registry()
-                if due is not None and time.monotonic() >= due:
-                    due = None
+                if self._due is not None and time.monotonic() >= self._due:
+                    self._due = None
                     await asyncio.to_thread(self._refresh)
             _LOGGER.debug(
                 "live levels: the watched sensors changed; subscribing afresh"

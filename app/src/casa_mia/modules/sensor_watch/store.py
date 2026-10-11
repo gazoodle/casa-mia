@@ -107,7 +107,10 @@ class Store:
             self.live.start()
 
     def for_integration(self) -> dict[str, Any]:
-        """For the integration (GET /sensor-watch/records)."""
+        """For the integration (GET /sensor-watch/records); the page's levels are
+        asked again once it has judged them."""
+        if self.live:
+            self.live.taken()
         with self._lock:
             return {
                 "revision": self._revision,

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.10.8-b31
+
+- Sensor Watch page: after Home Assistant restarted, watches could show `…` (no level) until something was saved. The page now asks for the levels again whenever the integration takes the watches (at its start, or after a change), once it has judged them.
+- Sensor Watch: a group's **Members follow** no longer says a library profile's mode twice ("Door (on/off) (on/off)").
+- Docs: screenshots of Sensor Watch (the page, a group, the library, a watch's editor, the card on a wall tablet, the blueprint) and of Casa Mia's cards in the card picker.
+
 ## 2026.10.8-b30
 
 - Sensor Watch: **Disabled** in a watch's editor keeps it (its levels, its group) but stops watching it; disabled ones are listed apart at the foot of the list, greyed, and a group doesn't count them or pull them back in.
