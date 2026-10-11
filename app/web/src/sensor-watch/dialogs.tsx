@@ -153,6 +153,7 @@ export function ScanDialog({ onClose, onAccepted }: { onClose: () => void; onAcc
         )}
       </div>
       {error && <p className={css.problem}>{error}</p>}
+      {scan?.problem && <p className={css.problem}>{scan.problem}</p>}
       {scan && (
         <p className={css.note}>
           {scan.matched} unwatched sensors match; this round has {scan.found.length} suggestions

@@ -23,6 +23,9 @@ _LOGGER = logging.getLogger(__name__)
 MAX_SCAN = 500  # sensors a scan round reads; the next round starts at `next`
 DAYS = 30  # history read by default
 MAX_DAYS = 365
+# What Sensor Watch needs running in Home Assistant: without them there is no history,
+# no statistics, no suggestions (and HA's own History panel is broken too).
+NEEDS = {"recorder": "Recorder", "history": "History"}
 FILTERS = ("q", "area", "label", "platform", "device_class", "kind")
 
 
@@ -131,6 +134,8 @@ class SensorWatch:
     ) -> Response:
         if method == "GET" and parts == []:
             return _json(200, self.view())
+        if method == "GET" and parts == ["check"]:
+            return _json(200, self.check())
         if method == "GET" and parts == ["levels"]:
             return _json(200, self.levels())
         if method == "GET" and parts == ["candidates"]:
@@ -161,6 +166,20 @@ class SensorWatch:
             r["label"] = r["name"] or names.get(r["entity_id"], r["entity_id"])
         records.sort(key=lambda r: r["label"].lower())
         return {"records": records, "levels": list(LEVELS), "error": self._broken}
+
+    def check(self) -> dict[str, Any]:
+        """Are HA's Recorder and History running? A serious fault in HA if not."""
+        if self.ha is None:
+            return {"missing": [], "error": "Home Assistant is not reachable."}
+        (config,) = self.ha.call({"type": "get_config"})
+        running = set((config or {}).get("components") or [])
+        missing = [name for key, name in NEEDS.items() if key not in running]
+        if missing:
+            _LOGGER.warning(
+                "Home Assistant is not running %s: no history, statistics or suggestions",
+                " or ".join(missing),
+            )
+        return {"missing": missing, "error": None}
 
     def levels(self) -> dict[str, Any]:
         """Each watched sensor's level now, from the integration (its `list` service)."""
@@ -203,25 +222,27 @@ class SensorWatch:
         c = reader.find(entity_id)
         if c is None:
             raise BadRequest(f"{entity_id} is not a sensor Sensor Watch can watch.")
+        problems: list[str] = []
         data = None
         if c["kind"] == "numeric" and c["statistics"]:
-            data = from_statistics(
-                reader.statistics([entity_id], days).get(entity_id, [])
-            )
+            rows = _read(reader.statistics, [entity_id], days, problems)
+            data = from_statistics(rows.get(entity_id, []))
         if not data or not data["samples"]:
-            data = from_history(reader.history([entity_id], days).get(entity_id, []))
+            rows = _read(reader.history, [entity_id], days, problems)
+            data = from_history(rows.get(entity_id, []))
         found = (
             suggest.numeric(data["samples"])
             if c["kind"] == "numeric"
             else suggest.binary(data.get("seconds", {}))
         )
         _LOGGER.info(
-            "suggest %s: %d days asked, %s from %s, %s",
+            "suggest %s: %d days asked, %s from %s, %s%s",
             entity_id,
             days,
             data["source"],
             data["first"] or "nothing",
             "a suggestion" if found else "no suggestion",
+            f" ({'; '.join(problems)})" if problems else "",
         )
         return {
             "sensor": c,
@@ -230,6 +251,7 @@ class SensorWatch:
             "points": data["points"],
             "suggestion": found,
             "record": proposal(c, found),
+            "problem": "; ".join(problems) or None,
         }
 
     def scan(self, f: dict[str, Any], days: float) -> dict[str, Any]:
@@ -253,13 +275,14 @@ class SensorWatch:
         by_stats = [
             c["entity_id"] for c in found if c["kind"] == "numeric" and c["statistics"]
         ]
-        stats = reader.statistics(by_stats, days) if by_stats else {}
+        problems: list[str] = []
+        stats = _read(reader.statistics, by_stats, days, problems) if by_stats else {}
         rest = [
             c["entity_id"]
             for c in found
             if c["entity_id"] not in by_stats or not stats.get(c["entity_id"])
         ]
-        hist = reader.history(rest, days) if rest else {}
+        hist = _read(reader.history, rest, days, problems) if rest else {}
         out, skipped = [], 0
         for c in found:
             eid = c["entity_id"]
@@ -300,6 +323,7 @@ class SensorWatch:
             "matched": len(every),
             "remaining": len(after),
             "next": list(order(after[0])) if after else None,
+            "problem": "; ".join(problems) or None,
         }
 
     # -- saving
@@ -352,6 +376,23 @@ class SensorWatch:
             return {c["entity_id"]: c["name"] for c in self.reader.candidates()}
         except HAError:
             return {}
+
+
+def _read(
+    fetch: Callable[[list[str], float], dict[str, Any]],
+    ids: list[str],
+    days: float,
+    problems: list[str],
+) -> dict[str, Any]:
+    """History or statistics, or nothing (and why, in `problems`) when HA can't give it:
+    e.g. "history/history_during_period: Unknown command" where HA's History
+    integration isn't loaded. The rest of Sensor Watch works without it."""
+    try:
+        return fetch(ids, days)
+    except HAError as exc:
+        _LOGGER.warning("could not read history for %d sensors: %s", len(ids), exc)
+        problems.append(f"couldn't read history: {exc}")
+        return {}
 
 
 def _place(start: Any) -> bool:

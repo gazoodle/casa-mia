@@ -204,6 +204,7 @@ class FakeHA:
         self.states = states
         self.entities = list(entities)
         self.service = service
+        self.components = ["recorder", "history", "sensor"]
         self.asked: list[dict] = []
 
     def call(self, *commands):
@@ -230,6 +231,8 @@ class FakeHA:
                 )
             elif kind == "history/history_during_period":
                 out.append({i: [{"s": "off", "lu": 0.0}] for i in c["entity_ids"]})
+            elif kind == "get_config":
+                out.append({"components": self.components})
             elif kind == "call_service":
                 if self.service is None:
                     raise HAError("call_service: Service not found")
@@ -383,3 +386,35 @@ def test_levels_come_from_the_integrations_service(tmp_path):
     }
     absent = make(tmp_path / "sw2.json", FakeHA(STATES, ENTITIES))
     assert "Sensor Watch integration" in call(absent, "GET", "levels")[1]["error"]
+
+
+class NoHistoryHA(FakeHA):
+    """An HA without its History integration: the command is unknown."""
+
+    def call(self, *commands):
+        if any(c["type"] == "history/history_during_period" for c in commands):
+            raise HAError("history/history_during_period: Unknown command.")
+        return super().call(*commands)
+
+
+def test_without_history_the_editor_still_gets_a_record_and_scans_go_on(tmp_path):
+    watch = make(tmp_path / "sw.json", NoHistoryHA(STATES, ENTITIES))
+    status, leak = call(watch, "GET", "suggest", {"entity": ["binary_sensor.leak"]})
+    assert status == 200 and leak["suggestion"] is None
+    assert leak["record"]["kind"] == "binary" and "Unknown command" in leak["problem"]
+    clean("binary_sensor.leak", leak["record"])  # saves as it is
+    _, salt = call(watch, "GET", "suggest", {"entity": ["sensor.salt"]})
+    assert (
+        salt["source"] == "statistics" and salt["problem"] is None
+    )  # statistics still work
+    status, scan = call(watch, "POST", "scan", body={})
+    assert status == 200 and "Unknown command" in scan["problem"]
+    assert any(f["sensor"]["entity_id"] == "sensor.salt" for f in scan["found"])
+
+
+def test_check_shouts_when_recorder_or_history_is_not_running(tmp_path):
+    ha = FakeHA(STATES, ENTITIES)
+    watch = make(tmp_path / "sw.json", ha)
+    assert call(watch, "GET", "check")[1] == {"missing": [], "error": None}
+    ha.components = ["sensor"]
+    assert call(watch, "GET", "check")[1]["missing"] == ["Recorder", "History"]

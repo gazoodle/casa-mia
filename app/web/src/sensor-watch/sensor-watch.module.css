@@ -69,6 +69,23 @@
   color: var(--bad);
 }
 
+/* Something wrong in Home Assistant itself: impossible to miss. */
+.alarm {
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border: 2px solid var(--bad);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--bad) 14%, transparent);
+  line-height: 1.5;
+}
+
+.alarm strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--bad);
+  font-size: 16px;
+}
+
 .level {
   justify-self: start;
   padding: 3px 10px;
@@ -228,8 +245,35 @@
 .settings {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  align-items: start;
   gap: 4px 16px;
   margin-top: 14px;
+}
+
+.tick {
+  display: flex;
+  gap: 10px;
+  align-items: start;
+  padding-top: 6px;
+  cursor: pointer;
+}
+
+.tick > span {
+  display: grid;
+  gap: 2px;
+  font-weight: 600;
+}
+
+.tick .note {
+  margin: 0;
+  font-weight: 400;
+}
+
+.tick input {
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  accent-color: var(--accent);
 }
 
 /* Picking and scanning */

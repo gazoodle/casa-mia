@@ -2,9 +2,9 @@
  * with their levels and messages, and what counts when it's unavailable. */
 
 import { useCallback, useEffect, useState } from "react";
-import { Dialog, Field, Segmented } from "../ui";
+import { Dialog, Field } from "../ui";
 import { HistoryChart } from "./chart";
-import { LEVELS, LEVEL_NAMES, swApi, type Band, type Level, type Suggested, type WatchRecord } from "./common";
+import { LEVELS, LEVEL_NAMES, kindOf, swApi, type Band, type Level, type Suggested, type WatchRecord } from "./common";
 import css from "./sensor-watch.module.css";
 import ui from "../ui.module.css";
 
@@ -28,7 +28,7 @@ export function RecordDialog({
   const [found, setFound] = useState<Suggested>();
   const [reading, setReading] = useState(false);
   const [problem, setProblem] = useState<string>();
-  const [kind, setKind] = useState(record?.kind);
+  const [kind, setKind] = useState(record?.kind ?? kindOf(entityId));
   const [bands, setBands] = useState<Draft[]>((record?.bands ?? []).map(toDraft));
   const [otherwise, setOtherwise] = useState<Level>(record?.otherwise ?? "error");
   const [nominal, setNominal] = useState<"on" | "off">(record?.nominal ?? "off");
@@ -92,7 +92,7 @@ export function RecordDialog({
           <button className={ui.button} onClick={onClose}>
             Cancel
           </button>
-          <button className={ui.primary} disabled={saving || !kind} onClick={save}>
+          <button className={ui.primary} disabled={saving} onClick={save}>
             {record ? "Save" : "Watch it"}
           </button>
         </>
@@ -138,7 +138,8 @@ export function RecordDialog({
             {s.nominal} {Math.round(s.share * 100)}% of the time.
           </p>
         )}
-        {found && !s && <p className={css.note}>No history to suggest from: set the bands yourself.</p>}
+        {found?.problem && <p className={css.problem}>{found.problem}. Is Home Assistant's History integration loaded? Set it up yourself meanwhile.</p>}
+        {found && !s && !found.problem && <p className={css.note}>No history to suggest from: set it up yourself.</p>}
         {record && found?.record && (
           <button className={`${ui.button} ${ui.small}`} onClick={() => adopt(found.record)}>
             Use the suggestion
@@ -146,25 +147,29 @@ export function RecordDialog({
         )}
       </div>
 
-      {kind === "binary" ? (
+      {kind === "binary" && (
         <div className={css.binary}>
-          <Field label="Nominal state" help="The state all is well in.">
-            <Segmented value={nominal} options={[["off", "Off"], ["on", "On"]]} onChange={setNominal} />
-          </Field>
-          <Field label="The other state's level">
+          <label className={css.tick}>
+            <input type="checkbox" checked={nominal === "on"} onChange={(e) => setNominal(e.target.checked ? "on" : "off")} />
+            <span>
+              Nominal when on
+              <span className={css.note}>Ticked, on is all well (a pump running); unticked, off is (a door closed, no leak).</span>
+            </span>
+          </label>
+          <Field label={`When ${nominal === "on" ? "off" : "on"}`} help="Its level in the other state.">
             <LevelSelect value={other} onChange={(v) => setOther(v as Level)} />
           </Field>
-          <Field label="Message" help="What it says when it's in the other state, e.g. Back door open.">
+          <Field label="Message" help="What it says in the other state, e.g. Back door open.">
             <input value={message} maxLength={80} onChange={(e) => setMessage(e.target.value)} />
           </Field>
         </div>
-      ) : (
-        <BandsEditor bands={bands} onChange={setBands} unit={unit} />
       )}
+      {kind === "numeric" && <BandsEditor bands={bands} onChange={setBands} unit={unit} />}
 
+      {kind && (
       <div className={css.settings}>
         {kind !== "binary" && (
-          <Field label="Outside every band">
+          <Field label="Outside every band" help="The level of a value no band covers.">
             <LevelSelect value={otherwise} onChange={(v) => setOtherwise(v as Level)} />
           </Field>
         )}
@@ -174,10 +179,11 @@ export function RecordDialog({
         <Field label="Hold-off (seconds)" help="How long a new level must last before it counts.">
           <input type="number" min={0} max={86400} value={holdOff} onChange={(e) => setHoldOff(e.target.value)} />
         </Field>
-        <Field label="Name" help="Optional: shown instead of Home Assistant's name.">
-          <input value={name} maxLength={80} onChange={(e) => setName(e.target.value)} />
+        <Field label="Name" help="Leave empty to use Home Assistant's name.">
+          <input value={name} maxLength={80} placeholder={found?.sensor.name ?? record?.label} onChange={(e) => setName(e.target.value)} />
         </Field>
       </div>
+      )}
     </Dialog>
   );
 }

@@ -23,6 +23,7 @@ const PAGE = 100; // rows shown, then "Show more"
 export function SensorWatchPage({ state }: { state?: string }) {
   const [view, setView] = useState<WatchView>();
   const [live, setLive] = useState<LevelsView>();
+  const [missing, setMissing] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [level, setLevel] = useState<"" | Level | "off">("");
   const [shown, setShown] = useState(PAGE);
@@ -39,6 +40,7 @@ export function SensorWatchPage({ state }: { state?: string }) {
   const readLive = useCallback(() => swApi.get<LevelsView>("levels").then(setLive, () => undefined), []);
   useEffect(() => {
     swApi.get<WatchView>("").then(setView, (err) => toast((err as Error).message, "bad"));
+    swApi.get<{ missing: string[] }>("check").then((c) => setMissing(c.missing), () => undefined);
     readLive();
     const timer = setInterval(readLive, 30_000);
     return () => clearInterval(timer);
@@ -72,6 +74,13 @@ export function SensorWatchPage({ state }: { state?: string }) {
 
   return (
     <Shell {...HEAD} state={state}>
+      {missing.length > 0 && (
+        <div className={css.alarm} role="alert">
+          <strong>Home Assistant isn't running its {missing.join(" or ")} integration.</strong> That's a serious fault in Home Assistant, not just here:
+          without it there's no history and no statistics, so Sensor Watch can't suggest bands, and Home Assistant's own History panel and graphs
+          don't work either. Look in Settings → System → Logs for why it didn't start. You can still set sensors up by hand meanwhile.
+        </div>
+      )}
       {view.error && <div className={guest.warning}>sensor-watch.json could not be read ({view.error}), so nothing is watched. Fix or remove the file.</div>}
       {live?.error && <div className={guest.warning}>{live.error}</div>}
       <section className={guest.area}>

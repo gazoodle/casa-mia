@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026.10.8-b2
+
+- **Sensor Watch:** **Watch it** works again (it waited for history that never came).
+  An on/off sensor now has a **Nominal when on** tick and a level for the other state;
+  every setting has its help, and the name defaults to Home Assistant's. When Home
+  Assistant isn't running its Recorder or History integration, the page says so loudly
+  (a serious fault in Home Assistant: no history, statistics or suggestions); sensors
+  can still be set up by hand meanwhile.
+
 ## 2026.10.8-b1
 
 - **New: Sensor Watch** (in development). Give any sensor bands of values, each with a

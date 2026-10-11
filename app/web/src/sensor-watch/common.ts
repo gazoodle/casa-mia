@@ -85,6 +85,8 @@ export type Suggested = {
   points?: [number, number][];
   suggestion: Suggestion | null;
   record: Omit<WatchRecord, "entity_id">;
+  /** Why there's no history to suggest from, when HA couldn't give it. */
+  problem?: string | null;
 };
 
 export type ScanView = {
@@ -93,7 +95,13 @@ export type ScanView = {
   matched: number;
   remaining: number;
   next: [string, string] | null;
+  problem?: string | null;
 };
+
+/** A sensor's kind from its entity id, known before anything is asked of HA. */
+export function kindOf(entityId: string): "numeric" | "binary" {
+  return entityId.startsWith("binary_sensor.") ? "binary" : "numeric";
+}
 
 /** "10–25", "… –10", "25 –…" */
 export function span(b: Band): string {
