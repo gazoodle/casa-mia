@@ -1,0 +1,128 @@
+blueprint:
+  name: Notify on Sensor Watch
+  author: Casa Mia
+  description: >-
+    Tell someone when a watched sensor reaches a level, in its own words: the watch's
+    message, its value, its area and group. And, if you like, when it's back.
+    Casa Mia's Sensor Watch integration installs this file and replaces it when it
+    changes: to change it, copy it under another name first.
+  domain: automation
+  source_url: https://github.com/gazoodle/casa-mia/blob/main/integration/custom_components/casa_mia_sensor_watch/blueprints/notify.yaml
+  homeassistant:
+    min_version: "2024.10.0"
+  input:
+    level:
+      name: At this level or worse
+      default: warning
+      selector:
+        select:
+          options:
+            - label: Task (something to do)
+              value: task
+            - label: Warning
+              value: warning
+            - label: Error
+              value: error
+            - label: Critical
+              value: critical
+    group:
+      name: Only this group
+      description: A group's name on the Sensor Watch page; leave empty for every watched sensor.
+      default: ""
+      selector:
+        text: {}
+    notify:
+      name: Notify action
+      description: >-
+        A notify action, e.g. notify.mobile_app_ann_phone (Developer tools → Actions
+        lists them); leave empty for none.
+      default: ""
+      selector:
+        text: {}
+    persistent:
+      name: Also as a Home Assistant notification
+      description: In the sidebar's notifications, one per sensor, cleared when it's back.
+      default: true
+      selector:
+        boolean: {}
+    recovered:
+      name: Say when it's back
+      description: When it drops below the level again (back to nominal, or to a lesser level).
+      default: true
+      selector:
+        boolean: {}
+    more:
+      name: Anything else
+      description: >-
+        More actions (a light, a speaker), with these variables: title and text (the
+        notification's), name, level, previous, value, message, area, group, entity_id,
+        and back (true when it's back).
+      default: []
+      selector:
+        action: {}
+
+mode: queued
+max: 25
+
+triggers:
+  - trigger: event
+    event_type: casa_mia_sensor_watch
+
+variables:
+  least_level: !input level
+  only_group: !input group
+  notify_action: !input notify
+  persistent: !input persistent
+  recovered: !input recovered
+  order: [nominal, task, warning, error, critical]
+  entity_id: "{{ trigger.event.data.entity_id }}"
+  name: "{{ trigger.event.data.name }}"
+  level: "{{ trigger.event.data.level }}"
+  previous: "{{ trigger.event.data.previous or 'nominal' }}"
+  value: "{{ trigger.event.data.value }}"
+  message: "{{ trigger.event.data.message or '' }}"
+  area: "{{ trigger.event.data.area or '' }}"
+  group: "{{ trigger.event.data.group or '' }}"
+  rank: "{{ order.index(level) if level in order else 0 }}"
+  was: "{{ order.index(previous) if previous in order else 0 }}"
+  least: "{{ order.index(least_level) }}"
+  back: "{{ rank < least and was >= least }}"
+  title: "{{ name }}: {{ 'back to ' ~ level if back else level }}"
+  text: >-
+    {{ value if back or not message else message ~ ' (' ~ value ~ ')' }}{{
+    ' · ' ~ area if area else '' }}{{ ' · ' ~ group if group else '' }}
+  notification_id: "sensor_watch_{{ entity_id | slugify }}"
+
+conditions:
+  - condition: template
+    value_template: "{{ only_group == '' or group == only_group }}"
+  - condition: template
+    value_template: "{{ rank >= least or (recovered and back) }}"
+
+actions:
+  - if:
+      - condition: template
+        value_template: "{{ notify_action != '' }}"
+    then:
+      - action: "{{ notify_action }}"
+        data:
+          title: "{{ title }}"
+          message: "{{ text }}"
+  - if:
+      - condition: template
+        value_template: "{{ persistent and back }}"
+    then:
+      - action: persistent_notification.dismiss
+        data:
+          notification_id: "{{ notification_id }}"
+  - if:
+      - condition: template
+        value_template: "{{ persistent and not back }}"
+    then:
+      - action: persistent_notification.create
+        data:
+          notification_id: "{{ notification_id }}"
+          title: "{{ title }}"
+          message: "{{ text }}"
+  - choose: []
+    default: !input more

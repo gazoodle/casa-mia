@@ -389,7 +389,28 @@ the rest of Home Assistant which ones they are.
 ### The event
 
 Each change of level (after its hold-off) fires `casa_mia_sensor_watch`, with
-`entity_id`, `name`, `level`, `previous`, `value` and `message`:
+`entity_id`, `name`, `level`, `previous`, `value` and `message`, and `group` (its group's
+name), `area` and `attribute` (the attribute watched) when it has them.
+
+**The easy way: the blueprint.** The integration installs **Notify on Sensor Watch**
+(Settings → Automations & scenes → Blueprints; it's in
+`blueprints/automation/casa_mia/`). Make an automation from it and choose:
+
+- **At this level or worse:** task, warning (the default), error or critical.
+- **Only this group:** a group's name, or empty for everything watched.
+- **Notify action:** e.g. `notify.mobile_app_ann_phone`, or empty for none.
+- **Also as a Home Assistant notification:** one per sensor in the sidebar, replaced as
+  its level changes and cleared when it's back.
+- **Say when it's back:** when it drops below the level again.
+- **Anything else:** more actions (a light, a speaker), with `title`, `text`, `name`,
+  `level`, `previous`, `value`, `message`, `area`, `group`, `entity_id` and `back` to
+  use in them.
+
+It reads, for example, "Plug 3 voltage: critical", "Mains far too low (198) · Barn ·
+Mains voltage". The integration replaces the file when it changes, so to change the
+blueprint itself, copy it under another name first.
+
+**By hand,** an automation on the event:
 
 ```yaml
 triggers:

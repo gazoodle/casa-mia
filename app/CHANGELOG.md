@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.10.8-b25
+
+- **Breaking:** the Sensor Watch integration changed. Restart Home Assistant once; a Repair asks.
+- Sensor Watch: a blueprint, **Notify on Sensor Watch**, installed by the integration (Settings → Automations & scenes → Blueprints). Choose the level (or worse), a group or all, a notify action, a Home Assistant notification per sensor (cleared when it's back), whether to say when it's back, and any further actions: "Plug 3 voltage: critical", "Mains far too low (198) · Barn · Mains voltage".
+- Sensor Watch: the event also carries the sensor's `group`, `area` and watched `attribute`.
+
 ## 2026.10.8-b24
 
 - **Breaking:** the Sensor Watch integration changed. Restart Home Assistant once; a Repair asks.

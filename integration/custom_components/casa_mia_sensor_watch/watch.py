@@ -20,6 +20,9 @@ from homeassistant.core import (
     State,
     callback,
 )
+from homeassistant.helpers import area_registry as ar
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_call_later, async_track_state_change_event
 from homeassistant.util import dt as dt_util
@@ -275,7 +278,8 @@ class Watcher:
         return s.get("core", True)
 
     def _fire(self, eid: str, row: dict[str, Any], previous: str | None) -> None:
-        """Log a change of level, fire the event, and have the entities write."""
+        """Log a change of level, fire the event (with its group, area and attribute,
+        for a notification to say), and have the entities write."""
         _LOGGER.info(
             "%s (%s): %s -> %s at %s (%s)",
             row["name"],
@@ -294,9 +298,24 @@ class Watcher:
                 "previous": previous,
                 "value": row["value"],
                 "message": row["message"],
+                "group": (self.records.get(eid) or {}).get("group"),
+                "area": self._area(eid),
+                "attribute": (self.records.get(eid) or {}).get("attribute"),
             },
         )
         self._tell()
+
+    def _area(self, eid: str) -> str | None:
+        """The entity's area's name (its own, else its device's), if it has one."""
+        entry = er.async_get(self.hass).async_get(eid)
+        if entry is None:
+            return None
+        area_id = entry.area_id
+        if area_id is None and entry.device_id:
+            device = dr.async_get(self.hass).async_get(entry.device_id)
+            area_id = device.area_id if device else None
+        area = ar.async_get(self.hass).async_get_area(area_id) if area_id else None
+        return area.name if area else None
 
     def _tell(self) -> None:
         """Have the entities write: at once, then at most once a TELL while changes keep

@@ -5,6 +5,7 @@ problem sensor, an event on each change and a `list` service, on Casa Mia's coor
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
@@ -29,6 +30,9 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS = [Platform.BINARY_SENSOR, Platform.SENSOR]
 # Read at import, as Casa Mia's own: a reload must not take newer files as loaded.
 LOADED_VERSION = manifest_version()
+# The "Notify on Sensor Watch" blueprint, put where Home Assistant looks for them.
+BLUEPRINT = Path(__file__).with_name("blueprints") / "notify.yaml"
+BLUEPRINT_AT = ("blueprints", "automation", "casa_mia", "sensor_watch_notify.yaml")
 LIST_SCHEMA = vol.Schema(
     {vol.Optional("levels"): [vol.In(LEVELS)], vol.Optional("group"): str}
 )
@@ -52,6 +56,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             registry.async_remove_device(found.id)
         return True
     add_module_device(hass, entry, device)
+    await hass.async_add_executor_job(
+        install_blueprint, hass.config.path(*BLUEPRINT_AT)
+    )
     watcher = Watcher(hass, coordinator)
     entry.runtime_data = watcher
     watcher.refresh()
@@ -89,6 +96,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.async_on_unload(lambda: hass.services.async_remove(DOMAIN, "list"))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
+
+
+def install_blueprint(target: str) -> None:
+    """Put the blueprint in place, or bring it up to date (it says to copy it before
+    changing it). Best effort: a failure only means no blueprint."""
+    text = BLUEPRINT.read_text("utf-8")
+    path = Path(target)
+    try:
+        if path.exists() and path.read_text("utf-8") == text:
+            return
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, "utf-8")
+    except OSError as exc:
+        _LOGGER.warning("could not install the blueprint at %s: %s", path, exc)
+        return
+    _LOGGER.info("blueprint Notify on Sensor Watch installed at %s", path)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
