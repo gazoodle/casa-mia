@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.8-b23
+
+- Sensor Watch: four more filters, in every search and group: **floor**, the device's **maker** and **model** ("every Shelly Plus Plug S", not "every voltage"), and **category** (primary, diagnostic or config: an ESP board's VCC reading is usually diagnostic, so a group of *primary* voltages leaves it out without a `-vcc`).
+
 ## 2026.10.8-b22
 
 - **Breaking:** Casa Mia's cards changed. Restart Home Assistant once; a Repair asks.

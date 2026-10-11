@@ -131,7 +131,7 @@ def test_the_library_is_sound():
             domain, dc = p["default_for"].split(":")
             c = {"entity_id": f"{domain}.x", "device_class": dc, "unit": ""}
             mine = {k: v for k, v in cleaned.items() if k != "name"}
-            theirs = clean_profile(default_record(c) | {"name": "x"})
+            theirs = clean_profile((default_record(c) or {}) | {"name": "x"})
             assert mine == {k: v for k, v in theirs.items() if k != "name"}, p["name"]
 
 

@@ -26,7 +26,20 @@ _LOGGER = logging.getLogger(__name__)
 MAX_SCAN = 500  # sensors a scan round reads; the next round starts at `next`
 DAYS = 30  # history read by default
 MAX_DAYS = 365
-FILTERS = ("domain", "q", "area", "label", "platform", "device_class", "kind", "device")
+FILTERS = (
+    "domain",
+    "q",
+    "area",
+    "floor",
+    "label",
+    "platform",
+    "manufacturer",
+    "model",
+    "category",
+    "device_class",
+    "kind",
+    "device",
+)
 
 
 def words(text: str) -> tuple[list[str], list[str]]:
@@ -54,6 +67,10 @@ def matches(c: dict[str, Any], f: dict[str, str]) -> bool:
         all(w in hay for w in want)
         and not any(w in hay for w in unwanted)
         and (not f.get("area") or c["area_id"] == f["area"])
+        and (not f.get("floor") or c.get("floor_id") == f["floor"])
+        and (not f.get("manufacturer") or c.get("manufacturer") == f["manufacturer"])
+        and (not f.get("model") or c.get("model") == f["model"])
+        and (not f.get("category") or c.get("category") == f["category"])
         and (not f.get("label") or f["label"] in c["labels"])
         and (not f.get("platform") or c["platform"] == f["platform"])
         and (not f.get("device_class") or c["device_class"] == f["device_class"])

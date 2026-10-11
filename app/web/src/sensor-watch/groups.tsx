@@ -23,10 +23,14 @@ const FILTER_NAMES: Partial<Record<keyof Filters, string>> = {
   q: "search",
   domain: "domain",
   area: "area",
+  floor: "floor",
   label: "label",
   platform: "integration",
+  manufacturer: "maker",
+  model: "model",
   device: "device",
   device_class: "device class",
+  category: "category",
   kind: "kind",
 };
 

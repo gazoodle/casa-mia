@@ -263,6 +263,22 @@ def test_overall_health_for_the_home_tile(tmp_path):
     assert absent.health()["problem"] == MISSING and absent.health()["health"] is None
 
 
+def test_floor_manufacturer_model_and_category_filter():
+    watch = make(Path("/nonexistent/sw.json"), FakeHA(STATES, ENTITIES))
+    _, got = call(watch, "GET", "candidates")
+    o = got["options"]
+    assert o["floors"] == [{"id": "ground", "name": "Ground floor"}]
+    assert (o["manufacturers"], o["models"]) == (["Acme"], ["Soft 2"])
+    assert "diagnostic" in o["categories"] and "primary" in o["categories"]
+    for f in ({"floor": ["ground"]}, {"manufacturer": ["Acme"]}, {"model": ["Soft 2"]}):
+        _, on = call(watch, "GET", "candidates", f)
+        assert [s["entity_id"] for s in on["sensors"]] == ["sensor.salt"]
+    _, diag = call(watch, "GET", "candidates", {"category": ["diagnostic"]})
+    assert [s["entity_id"] for s in diag["sensors"]] == ["sensor.weather_text"]
+    _, primary = call(watch, "GET", "candidates", {"category": ["primary"]})
+    assert "sensor.weather_text" not in [s["entity_id"] for s in primary["sensors"]]
+
+
 def test_the_device_filter_narrows_with_the_others():
     ha = FakeHA(STATES, ENTITIES)
     watch = make(Path("/nonexistent/sw.json"), ha)

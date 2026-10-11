@@ -52,6 +52,11 @@ export type WatchRecord = {
     name?: string;
     area_id?: string | null;
     area?: string;
+    floor_id?: string | null;
+    floor?: string;
+    manufacturer?: string;
+    model?: string;
+    category?: string;
     labels?: string[];
     platform?: string;
     device_id?: string | null;
@@ -136,12 +141,47 @@ export type Options = {
   /** Every domain with an entity; a scan without one looks at the usual few. */
   domains: string[];
   device_classes: string[];
+  floors?: { id: string; name: string }[];
+  manufacturers?: string[];
+  models?: string[];
+  /** primary, diagnostic or config: what an entity is for. */
+  categories?: string[];
 };
 
 export type CandidatesView = { total: number; sensors: Candidate[]; options: Options };
 
-export type Filters = { q: string; domain: string; area: string; label: string; platform: string; device: string; device_class: string; kind: string; profile?: string; group?: string };
-export const NO_FILTERS: Filters = { q: "", domain: "", area: "", label: "", platform: "", device: "", device_class: "", kind: "", profile: "", group: "" };
+export type Filters = {
+  q: string;
+  domain: string;
+  area: string;
+  floor?: string;
+  label: string;
+  platform: string;
+  manufacturer?: string;
+  model?: string;
+  device: string;
+  device_class: string;
+  category?: string;
+  kind: string;
+  profile?: string;
+  group?: string;
+};
+export const NO_FILTERS: Filters = {
+  q: "",
+  domain: "",
+  area: "",
+  floor: "",
+  label: "",
+  platform: "",
+  manufacturer: "",
+  model: "",
+  device: "",
+  device_class: "",
+  category: "",
+  kind: "",
+  profile: "",
+  group: "",
+};
 
 export type Suggestion = {
   count?: number;

@@ -156,9 +156,12 @@ anything else exact states.
 
 Search for it by name, entity id or its device's name (every word, in any order; a
 word with a minus, `-vcc`, rules out what has it), or
-narrow the list by **domain**, **area**, **label**, **integration**, **device** (only
-those with entities matching the other filters, so choosing ESPHome lists only ESPHome
-devices), **device class** or kind (numeric, on/off, or states). Pick one, and Sensor
+narrow the list by **domain**, **area**, **floor**, **label**, **integration**,
+**maker** and **model** (the device's: "every Shelly Plus Plug S", not "every voltage"),
+**device** (only those with entities matching the other filters, so choosing ESPHome
+lists only ESPHome devices), **device class**, **category** (primary, diagnostic or
+config: an ESP board's own VCC reading is usually diagnostic, so *primary* leaves it out)
+or kind (numeric, on/off, or states). Pick one, and Sensor
 Watch reads its history (30 days unless you choose otherwise) and suggests its bands:
 
 - **Numeric sensors:** the history's spread gives the nominal band, rounded outwards to a
@@ -316,7 +319,7 @@ cover most cases, and taking the label off doesn't stop the watch: Stop watching
 ### Scan my house
 
 Suggest bands for everything that isn't watched yet, at once: narrow it by area,
-label, integration, device or device class, or scan everything. Without a **domain**, a scan
+floor, label, integration, maker, model, device, device class or category, or scan everything. Without a **domain**, a scan
 looks at sensors, binary sensors, updates, covers, locks, valves, vacuums, mowers and alarm panels, not
 every light, switch and helper; choose a domain to scan others (all your `number`s, say). A scan reads 500 sensors a
 round, and the page says how many remain; **Scan the next 500** carries on where it

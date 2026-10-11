@@ -20,6 +20,10 @@ function passes(r: WatchRecord, f: Filters, skip?: keyof Filters): boolean {
   return (
     searched(hay, f.q) &&
     is("area", m.area_id) &&
+    is("floor", m.floor_id) &&
+    is("manufacturer", m.manufacturer) &&
+    is("model", m.model) &&
+    is("category", m.category) &&
     (skip === "label" || !f.label || (m.labels ?? []).includes(f.label)) &&
     is("platform", m.platform) &&
     is("device", m.device_id) &&
@@ -109,6 +113,10 @@ export function WatchedList({
     const leave = (skip: keyof Filters) => records.filter((r) => passes(r, filters, skip));
     return {
       area: choices(leave("area"), (r) => [[r.meta?.area_id ?? "", r.meta?.area ?? ""]]),
+      floor: choices(leave("floor"), (r) => [[r.meta?.floor_id ?? "", r.meta?.floor ?? ""]]),
+      manufacturer: choices(leave("manufacturer"), (r) => [[r.meta?.manufacturer ?? "", r.meta?.manufacturer ?? ""]]),
+      model: choices(leave("model"), (r) => [[r.meta?.model ?? "", r.meta?.model ?? ""]]),
+      category: choices(leave("category"), (r) => [[r.meta?.category ?? "", r.meta?.category ?? ""]]),
       label: choices(leave("label"), (r) => (r.meta?.labels ?? []).map((id) => [id, labels[id] ?? id] as [string, string])),
       platform: choices(leave("platform"), (r) => [[r.meta?.platform ?? "", r.meta?.platform ?? ""]]),
       device: choices(leave("device"), (r) => [[r.meta?.device_id ?? "", r.meta?.device ?? ""]]),

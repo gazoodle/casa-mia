@@ -71,9 +71,23 @@ class FakeHA:
             elif kind == "config/entity_registry/list":
                 out.append(self.entities)
             elif kind == "config/device_registry/list":
-                out.append([{"id": "dev1", "area_id": "kitchen", "name": "Softener"}])
+                out.append(
+                    [
+                        {
+                            "id": "dev1",
+                            "area_id": "kitchen",
+                            "name": "Softener",
+                            "manufacturer": "Acme",
+                            "model": "Soft 2",
+                        }
+                    ]
+                )
             elif kind == "config/area_registry/list":
-                out.append([{"area_id": "kitchen", "name": "Kitchen"}])
+                out.append(
+                    [{"area_id": "kitchen", "name": "Kitchen", "floor_id": "ground"}]
+                )
+            elif kind == "config/floor_registry/list":
+                out.append([{"floor_id": "ground", "name": "Ground floor"}])
             elif kind == "config/label_registry/list":
                 out.append([{"label_id": "water", "name": "Water"}])
             elif kind == "recorder/statistics_during_period":
@@ -120,6 +134,7 @@ ENTITIES = [
         "device_id": "dev1",
         "labels": ["water"],
     },
+    {"entity_id": "sensor.weather_text", "entity_category": "diagnostic"},
     {"entity_id": "sensor.status", "platform": "casa_mia_sensor_watch"},
 ]
 

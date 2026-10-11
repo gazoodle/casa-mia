@@ -108,12 +108,13 @@ class Reader:
         with self._lock:
             if time.monotonic() - self._at < CANDIDATE_TTL:
                 return self._cands
-            states, entities, devices, areas, labels = self.ha.call(
+            states, entities, devices, areas, labels, floors = self.ha.call(
                 {"type": "get_states"},
                 {"type": "config/entity_registry/list"},
                 {"type": "config/device_registry/list"},
                 {"type": "config/area_registry/list"},
                 {"type": "config/label_registry/list"},
+                {"type": "config/floor_registry/list"},
             )
             reg = {e["entity_id"]: e for e in entities or []}
             device_area = {d["id"]: d.get("area_id") for d in devices or []}
@@ -121,7 +122,10 @@ class Reader:
                 d["id"]: d.get("name_by_user") or d.get("name") or ""
                 for d in devices or []
             }
+            device_of = {d["id"]: d for d in devices or []}
             area_name = {a["area_id"]: a["name"] for a in areas or []}
+            area_floor = {a["area_id"]: a.get("floor_id") for a in areas or []}
+            floor_name = {f["floor_id"]: f["name"] for f in floors or []}
             self._labels = {lb["label_id"]: lb["name"] for lb in labels or []}
             out = []
             for st in states or []:
@@ -135,6 +139,8 @@ class Reader:
                 area_id = entry.get("area_id") or device_area.get(
                     entry.get("device_id")
                 )
+                device = device_of.get(entry.get("device_id")) or {}
+                floor_id = area_floor.get(area_id)
                 out.append(
                     {
                         "entity_id": eid,
@@ -145,6 +151,13 @@ class Reader:
                         "area": area_name.get(area_id, ""),
                         "device_id": entry.get("device_id"),
                         "device": device_name.get(entry.get("device_id"), ""),
+                        "floor_id": floor_id,
+                        "floor": floor_name.get(floor_id, ""),
+                        "manufacturer": device.get("manufacturer") or "",
+                        "model": device.get("model") or "",
+                        # Diagnostic (an ESP board's VCC, a signal strength), config, or
+                        # primary: what the entity is for.
+                        "category": entry.get("entity_category") or "primary",
                         "labels": entry.get("labels") or [],
                         "platform": entry.get("platform") or "",
                         "device_class": attrs.get("device_class") or "",
@@ -167,12 +180,22 @@ class Reader:
         """The filters' choices: only those some candidate has."""
         cands = self.candidates()
         areas = {c["area_id"]: c["area"] for c in cands if c["area_id"]}
+        floors = {c["floor_id"]: c["floor"] for c in cands if c["floor_id"]}
         labels = {lb for c in cands for lb in c["labels"]}
         return {
             "areas": sorted(
                 ({"id": k, "name": v} for k, v in areas.items()),
                 key=lambda a: a["name"].lower(),
             ),
+            "floors": sorted(
+                ({"id": k, "name": v} for k, v in floors.items()),
+                key=lambda f: f["name"].lower(),
+            ),
+            "manufacturers": sorted(
+                {c["manufacturer"] for c in cands if c["manufacturer"]}
+            ),
+            "models": sorted({c["model"] for c in cands if c["model"]}),
+            "categories": sorted({c["category"] for c in cands}),
             "labels": sorted(
                 ({"id": k, "name": self._labels.get(k, k)} for k in labels),
                 key=lambda lb: lb["name"].lower(),
