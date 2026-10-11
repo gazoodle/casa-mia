@@ -1,4 +1,14 @@
-// The Sensor Watch card's options, and what it reads: the casa_mia_sensor_watch
+// Sensor Watch, in Casa Mia's integration: its event on each change of level, its list
+// service, and its own entities (status, counts, problem; on casa_mia's platform, their
+// translation keys sensor_watch_*). Its own integration, casa_mia_sensor_watch, until
+// 2026.10.10-b3.
+export const EVENT = "casa_mia_sensor_watch";
+export const SERVICE = { domain: "casa_mia", service: "sensor_watch_list" };
+export function own(e: { platform?: string; translation_key?: string }): boolean {
+  return e.platform === "casa_mia" && (e.translation_key ?? "").startsWith("sensor_watch_");
+}
+
+// The Sensor Watch card's options, and what it reads: Sensor Watch's
 // integration's `list` service (worst first, then longest standing).
 export const TYPE = "custom:casa-mia-sensor-watch";
 export const LEVELS = ["task", "warning", "error", "critical"] as const;

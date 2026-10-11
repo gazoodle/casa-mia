@@ -27,7 +27,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_call_later, async_track_state_change_event
 from homeassistant.util import dt as dt_util
 
-from ..casa_mia.coordinator import CasaMiaCoordinator
+from ..coordinator import CasaMiaCoordinator
 from .const import EVENT, MODULE
 from .levels import UNAVAILABLE, level_of, reading, summary
 from .swap import Rule, same, shown

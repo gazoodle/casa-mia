@@ -40,7 +40,21 @@ MAX_STATES = 20
 MAX_TEXT = 80  # a name
 # A message: past 80 characters, notifications and cards may cut it short (the page says so).
 MAX_MESSAGE = 255
-DOMAIN = "casa_mia_sensor_watch"  # the integration: its websocket command, its entities
+# In Casa Mia's integration (its own, casa_mia_sensor_watch, until 2026.10.10-b3): the
+# event on each change of level, and the list service.
+EVENT = "casa_mia_sensor_watch"
+SERVICE = ("casa_mia", "sensor_watch_list")
+
+
+def own(entry: dict) -> bool:
+    """Is this entity registry entry one of Sensor Watch's own (status, counts, problem)?
+    Never watched: it would judge itself."""
+    if entry.get("platform") == "casa_mia_sensor_watch":  # before it joined Casa Mia
+        return True
+    return entry.get("platform") == "casa_mia" and str(
+        entry.get("translation_key") or ""
+    ).startswith("sensor_watch_")
+
 
 Response = tuple[int, str, bytes]
 

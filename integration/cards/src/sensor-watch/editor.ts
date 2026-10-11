@@ -1,9 +1,8 @@
 // The Sensor Watch card's editor: its options, with HA's ha-form.
 import { LitElement, html, nothing } from "lit";
 import { fire, type Hass, haForm, withoutDefaults } from "../ha.ts";
-import { COLUMNS, type Config, DEFAULTS, LEVELS } from "./common.ts";
+import { COLUMNS, type Config, DEFAULTS, LEVELS, SERVICE } from "./common.ts";
 
-const DOMAIN = "casa_mia_sensor_watch";
 const SHOWN: Record<string, string> = { level: "Level", name: "Name", message: "Message", value: "Value (its state now)", since: "How long" };
 
 /** The options, the groups (as Sensor Watch has them) offered by name. */
@@ -63,7 +62,7 @@ export class SensorWatchEditor extends LitElement {
     if (this._asked || !this.hass) return;
     this._asked = true;
     try {
-      const got: any = await this.hass.callWS({ type: "call_service", domain: DOMAIN, service: "list", service_data: {}, return_response: true });
+      const got: any = await this.hass.callWS({ type: "call_service", ...SERVICE, service_data: {}, return_response: true });
       this._groups = got?.response?.groups ?? [];
     } catch {
       // no Sensor Watch answering: typing a name still works

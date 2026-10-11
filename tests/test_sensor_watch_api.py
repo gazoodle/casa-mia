@@ -124,14 +124,14 @@ def test_levels_come_from_the_integrations_service(tmp_path):
     got = call(watch, "GET", "levels")[1]
     assert got["levels"] == {"sensor.salt": rows[0]} and got["error"] is None
     # A value pushed by subscribe_entities moves the revision the page waits on.
-    own = {"sensor.casa_mia_sensor_watch_status"}
+    own = {"sensor.sensor_watch_status"}
     assert not live._heard({"c": {"sensor.salt": {"+": {"s": "19"}}}}, own)
     now = live.wait(got["rev"], 0.01)
     assert now["rev"] != got["rev"] and now["levels"]["sensor.salt"]["value"] == "19"
     assert (
         live.wait(now["rev"], 0.01)["rev"] == now["rev"]
     )  # nothing new: held, then as is
-    assert live._heard({"c": {"sensor.casa_mia_sensor_watch_status": {"+": {}}}}, own)
+    assert live._heard({"c": {"sensor.sensor_watch_status": {"+": {}}}}, own)
     # A change of level, as the integration fires it: that row at once, no asking.
     before = live.snapshot()["rev"]
     data = {
@@ -150,7 +150,7 @@ def test_levels_come_from_the_integrations_service(tmp_path):
     absent = make(tmp_path / "sw2.json", FakeHA(STATES, ENTITIES))
     assert absent.live is not None
     absent.live._refresh()
-    assert "Sensor Watch integration" in call(absent, "GET", "levels")[1]["error"]
+    assert "Restart Home Assistant" in call(absent, "GET", "levels")[1]["error"]
 
 
 def test_without_history_the_editor_still_gets_a_record_and_scans_go_on(tmp_path):

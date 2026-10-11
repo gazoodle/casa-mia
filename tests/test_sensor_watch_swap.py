@@ -9,7 +9,7 @@ from casa_mia import swap as app_swap
 
 ROOT = Path(__file__).resolve().parents[1]
 _spec = importlib.util.spec_from_file_location(
-    "sw_swap", ROOT / "integration/custom_components/casa_mia_sensor_watch/swap.py"
+    "sw_swap", ROOT / "integration/custom_components/casa_mia/sensor_watch/swap.py"
 )
 assert _spec and _spec.loader
 sw = importlib.util.module_from_spec(_spec)

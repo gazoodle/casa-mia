@@ -46,7 +46,7 @@
       "fona_call": { "name": "Call", "state_attributes": { "event_type": { "state": { "authorised": "Authorised", "intrusion": "Intrusion" } } } },
       "fona_text": { "name": "Text", "state_attributes": { "event_type": { "state": { "authorised": "Authorised", "intrusion": "Intrusion" } } } }
     },
-    "binary_sensor": { "gitproxy_downloading": { "name": "Downloading firmware" }, "swap": { "name": "Swap" } },
+    "binary_sensor": { "gitproxy_downloading": { "name": "Downloading firmware" }, "swap": { "name": "Swap" }, "sensor_watch_problem": { "name": "Problem" } },
     "button": {
       "gitproxy_check": { "name": "Force firmware check" },
       "fona_reset": { "name": "Reset" },
@@ -55,6 +55,14 @@
       "compositor_gatherer_restart": { "name": "Restart gatherer" }
     },
     "sensor": {
+      "sensor_watch_status": {
+        "name": "Status",
+        "state": { "nominal": "Nominal", "task": "Task", "warning": "Warning", "error": "Error", "critical": "Critical" }
+      },
+      "sensor_watch_task_count": { "name": "Tasks" },
+      "sensor_watch_warning_count": { "name": "Warnings" },
+      "sensor_watch_error_count": { "name": "Errors" },
+      "sensor_watch_critical_count": { "name": "Critical" },
       "app_version": { "name": "App version" },
       "fona_state": {
         "name": "State",
@@ -108,6 +116,14 @@
     }
   },
   "services": {
+    "sensor_watch_list": {
+      "name": "Sensor Watch list",
+      "description": "Every watched entity at the chosen levels, worst first, then longest standing: its level, value, message and since when. Use it with a response variable, and loop over `sensors` in a template.",
+      "fields": {
+        "levels": { "name": "Levels", "description": "Which levels to list. Leave empty for everything that isn't nominal." },
+        "group": { "name": "Group", "description": "Only the members of this group (as named on Casa Mia's Sensor Watch page), and its own worst level. Leave empty for every watched entity." }
+      }
+    },
     "send_sms": {
       "name": "Send text",
       "description": "Send a text message through the FONA.",

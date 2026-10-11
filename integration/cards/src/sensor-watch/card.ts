@@ -1,13 +1,12 @@
-// The Sensor Watch card: what isn't nominal, worst first, from the casa_mia_sensor_watch
-// integration's `list` service (a group's only, if it names one). It asks again the moment
-// a level moves (the integration's casa_mia_sensor_watch event; its entities' writes are
+// The Sensor Watch card: what isn't nominal, worst first, from Sensor Watch's list
+// service (casa_mia.sensor_watch_list; a group's only, if it names one). It asks again the
+// moment a level moves (its casa_mia_sensor_watch event; its entities' writes are
 // the backstop), and shows each value live from the entity itself. With nothing to list it hides (HA's card wrapper honours a card's own
 // `hidden`), so in a Tablet Layout its panel closes, garnish heading and all, when all is well.
 import { LitElement, css, html, nothing } from "lit";
 import { fire, type Hass, inPicker } from "../ha.ts";
-import { type Column, type Config, DEFAULTS, type Row, columns, due, since } from "./common.ts";
+import { type Column, type Config, DEFAULTS, EVENT, type Row, SERVICE, columns, due, own, since } from "./common.ts";
 
-const DOMAIN = "casa_mia_sensor_watch";
 const ASK_AFTER = 300; // ms: the integration's entities write in a burst; one ask after
 const ago = (h: number) => new Date(Date.now() - h * 3600e3).toISOString();
 /** In HA's card picker with nothing to list: how it looks when something is. */
@@ -59,7 +58,7 @@ export class SensorWatchCard extends LitElement {
     const subscribed: Promise<() => void> = hass.connection.subscribeEvents(() => {
       clearTimeout(this._timer);
       this._ask();
-    }, DOMAIN);
+    }, EVENT);
     this._unsubscribe = subscribed;
     subscribed.catch((err: unknown) => console.warn(`CASA-MIA CARDS: sensor watch: can't hear its event (${err})`));
   }
@@ -69,7 +68,7 @@ export class SensorWatchCard extends LitElement {
     if (this.isConnected) this._subscribe(hass);
     // The integration's entities (its status and counts) write when a level moves.
     const mine = Object.entries(hass.entities ?? {})
-      .filter(([, e]: [string, any]) => e.platform === DOMAIN)
+      .filter(([, e]: [string, any]) => own(e))
       .map(([id]) => `${id}@${hass.states[id]?.last_updated ?? ""}`)
       .join(",");
     if (mine !== this._seen) {
@@ -100,8 +99,7 @@ export class SensorWatchCard extends LitElement {
     try {
       const got: any = await hass.callWS({
         type: "call_service",
-        domain: DOMAIN,
-        service: "list",
+        ...SERVICE,
         service_data: { levels: o.levels, ...(o.group ? { group: o.group } : {}) },
         return_response: true,
       });
@@ -109,7 +107,7 @@ export class SensorWatchCard extends LitElement {
       this._problem = undefined;
     } catch (err) {
       this._rows = [];
-      this._problem = `Sensor Watch isn't answering (${(err as Error)?.message ?? err}): is its integration set up?`;
+      this._problem = `Sensor Watch isn't answering (${(err as Error)?.message ?? err}): is it switched on in the Casa Mia app, and Home Assistant restarted since?`;
       console.warn(`CASA-MIA CARDS: sensor watch: ${this._problem}`);
     }
     this._showOrHide();

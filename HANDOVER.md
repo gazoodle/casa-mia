@@ -266,6 +266,11 @@ guest card SVG), `page.py` (welcome, goodbye), `supervisor.py`.
   backlog section "Sensor Watch (alpha)" holds what's next (stale sensors, `list` by
   label, "Watch in Sensor Watch…" from HA's dialog, templates, dependencies, counted
   availability rules, export to native HA); none of it blocks the release.
+- **Sensor Watch joined the Casa Mia integration (2026.10.10-b4):** its code is
+  `casa_mia/sensor_watch/`, its entities on a Sensor Watch module device; on first start
+  Casa Mia moves the old integration's entities over (`migrate()`: same entity ids) and
+  removes its entry, and the app deletes the old folder. Untested on a real HA until the
+  owner installs it: watch the log for "Sensor Watch joined Casa Mia".
 - **Card picker previews:** the Over layer's showed on the VM; check on the box after a
   restart and hard refresh. The Commander's (drawn full size, shrunk) is unchecked.
 - **Untested on the box:** 2FA against a real user, the reach check's fixes, Who's signed

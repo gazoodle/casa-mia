@@ -1,6 +1,10 @@
-"""Casa Mia Sensor Watch: the sensors given bands on the app's Sensor Watch page,
-watched here (watch.py) and told to Home Assistant: a status, a count per level, a
-problem sensor, an event on each change and a `list` service, on Casa Mia's coordinator."""
+"""Sensor Watch, in Casa Mia's integration: the entities given levels on the app's
+Sensor Watch page, watched here (watch.py) and told to Home Assistant: a status, a count
+per level and a problem sensor on its module device, an event on each change, and the
+`casa_mia.sensor_watch_list` service. Started by Casa Mia's setup while the module is on.
+
+Until 2026.10.10-b3 it was its own integration (casa_mia_sensor_watch); migrate() moves
+that one's entities onto Casa Mia, keeping their entity ids and history, and removes it."""
 
 from __future__ import annotations
 
@@ -8,12 +12,8 @@ import logging
 from datetime import timedelta
 
 import voluptuous as vol
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import (
-    EVENT_SERVICE_REGISTERED,
-    EVENT_SERVICE_REMOVED,
-    Platform,
-)
+from homeassistant.config_entries import ConfigEntry, ConfigEntryState
+from homeassistant.const import EVENT_SERVICE_REGISTERED, EVENT_SERVICE_REMOVED
 from homeassistant.core import (
     Event,
     HomeAssistant,
@@ -22,56 +22,40 @@ from homeassistant.core import (
     SupportsResponse,
     callback,
 )
-from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.event import async_track_time_interval
 
-from ..casa_mia.children import add_module_device, follow_module, parent_coordinator
+from ..const import DOMAIN
+from ..coordinator import CasaMiaCoordinator
 from . import blueprint, swap
-from .const import DOMAIN, MODULE
-from .entity import watch_device
+from .const import OLD_DOMAIN, SERVICE
+from .entity import KEYS, unique_id
 from .levels import LEVELS, listing, summary
-from .restart_notice import async_check_restart, manifest_version
 from .swap import shown
 from .system import start_checks
 from .watch import Watcher
 
 _LOGGER = logging.getLogger(__name__)
-PLATFORMS = [Platform.BINARY_SENSOR, Platform.SENSOR]
-SWAP_EVERY = timedelta(seconds=5)
+SWAP_EVERY = timedelta(seconds=5)  # the screenshot swap's file, looked at (as the app)
 # Date watches judged again as time passes (a reminder comes due without its state
 # changing). ponytail: every ten minutes; at the hour a band ends, if that's ever wanted.
-DAYS_EVERY = timedelta(minutes=10)  # the screenshot swap's file, looked at (as the app)
-# Read at import, as Casa Mia's own: a reload must not take newer files as loaded.
-LOADED_VERSION = manifest_version()
+DAYS_EVERY = timedelta(minutes=10)
 LIST_SCHEMA = vol.Schema(
     {vol.Optional("levels"): [vol.In(LEVELS)], vol.Optional("group"): str}
 )
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    coordinator = parent_coordinator(hass)
-    off = follow_module(
-        hass,
-        entry,
-        coordinator,
-        MODULE,
-        lambda: async_check_restart(hass, LOADED_VERSION),
-    )
-    # Switched off in the app: no device (removing it removes its entities), nothing watched.
-    registry = dr.async_get(hass)
-    device = watch_device(entry, coordinator)
-    if off:
-        if found := registry.async_get_device(identifiers=device["identifiers"]):
-            _LOGGER.info("Sensor Watch is switched off in the app: removing its device")
-            registry.async_remove_device(found.id)
-        return True
-    add_module_device(hass, entry, device)
+async def start(
+    hass: HomeAssistant, entry: ConfigEntry, coordinator: CasaMiaCoordinator
+) -> Watcher:
+    """Watch, check Home Assistant's own health, keep the blueprint, follow the swap,
+    and offer the list service; all undone when Casa Mia's entry unloads."""
     watcher = Watcher(hass, coordinator)
-    entry.runtime_data = watcher
     watcher.refresh()
     entry.async_on_unload(coordinator.async_add_listener(watcher.refresh))
     entry.async_on_unload(watcher.unload)
-    entry.async_on_unload(start_checks(hass, watcher))  # Home Assistant's own health
+    entry.async_on_unload(start_checks(hass, watcher))
     await follow_blueprint(hass, entry, watcher)
 
     async def look_at_swap(_now: object = None) -> None:
@@ -107,14 +91,51 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hass.services.async_register(
         DOMAIN,
-        "list",
+        SERVICE,
         list_sensors,
         schema=LIST_SCHEMA,
         supports_response=SupportsResponse.ONLY,
     )
-    entry.async_on_unload(lambda: hass.services.async_remove(DOMAIN, "list"))
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    return True
+    entry.async_on_unload(lambda: hass.services.async_remove(DOMAIN, SERVICE))
+    return watcher
+
+
+async def migrate(hass: HomeAssistant, entry: ConfigEntry, device_id: str) -> None:
+    """Sensor Watch's own integration, from before it joined Casa Mia: its entities move
+    onto Casa Mia's Sensor Watch device (same entity ids, so history and automations
+    carry on), then its entry goes. Once; nothing to do after."""
+    for old in hass.config_entries.async_entries(OLD_DOMAIN):
+        if old.state is ConfigEntryState.LOADED:
+            await hass.config_entries.async_unload(old.entry_id)
+        registry = er.async_get(hass)
+        moved = []
+        for key in KEYS:
+            for domain in ("sensor", "binary_sensor"):
+                eid = registry.async_get_entity_id(
+                    domain, OLD_DOMAIN, f"{old.entry_id}_{key}"
+                )
+                if eid is None:
+                    continue
+                # Home Assistant shows an unloaded entity as unavailable (restored);
+                # that state must go before the entity can change hands.
+                hass.states.async_remove(eid)
+                registry.async_update_entity_platform(
+                    eid,
+                    DOMAIN,
+                    new_config_entry_id=entry.entry_id,
+                    new_unique_id=unique_id(entry, key),
+                    new_device_id=device_id,
+                )
+                moved.append(eid)
+        await hass.config_entries.async_remove(old.entry_id)
+        # Its "restart to finish updating" Repair, if it had one, has nothing left to do.
+        ir.async_delete_issue(hass, OLD_DOMAIN, "restart_required")
+        _LOGGER.info(
+            "Sensor Watch joined Casa Mia: %d entities moved over (%s); its own "
+            "integration's entry removed",
+            len(moved),
+            ", ".join(moved) or "none",
+        )
 
 
 async def follow_blueprint(
@@ -124,7 +145,7 @@ async def follow_blueprint(
     or renamed on the app's page, a notify action added (a phone's mobile app)."""
     template = await hass.async_add_executor_job(blueprint.SOURCE.read_text, "utf-8")
     target = hass.config.path(*blueprint.AT)
-    shown: list[tuple[list[str], list[str]] | None] = [None]
+    shown_now: list[tuple[list[str], list[str]] | None] = [None]
 
     @callback
     def choices(*_: object) -> None:
@@ -136,9 +157,9 @@ async def follow_blueprint(
             for name in hass.services.async_services_for_domain("notify")
             if name != "send_message"  # takes a notify entity, not a message alone
         )
-        if (groups, notifies) == shown[0]:
+        if (groups, notifies) == shown_now[0]:
             return
-        shown[0] = (groups, notifies)
+        shown_now[0] = (groups, notifies)
         hass.async_add_executor_job(
             blueprint.install, target, blueprint.filled(template, groups, notifies)
         )
@@ -154,9 +175,3 @@ async def follow_blueprint(
     entry.async_on_unload(hass.bus.async_listen(EVENT_SERVICE_REGISTERED, service))
     entry.async_on_unload(hass.bus.async_listen(EVENT_SERVICE_REMOVED, service))
     choices()
-
-
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    if not isinstance(getattr(entry, "runtime_data", None), Watcher):
-        return True  # switched off: no platforms were set up
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)

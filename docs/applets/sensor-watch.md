@@ -153,9 +153,10 @@ Sensor Watch tells; the rest of Casa Mia shows, and only when there's something 
 
 1. Turn on **Sensor Watch** in the app's Configuration tab (Settings → Apps → Casa Mia →
    Configuration) and save. The app restarts.
-2. Add the **Casa Mia Sensor Watch** integration. Home Assistant offers it under
-   **Discovered** in Settings → Devices & services; or add it from **+ Add integration**.
-   It uses the Casa Mia integration's connection to the app.
+2. Restart Home Assistant when the Repair asks. The **Casa Mia** integration then has a
+   **Sensor Watch** device with its status, counts and problem sensor; there's nothing
+   else to add. (Until 2026.10.10 Sensor Watch was its own integration, Casa Mia Sensor
+   Watch; Casa Mia takes its entities over, same entity ids, and removes it.)
 3. Open **Sensor Watch** in the Casa Mia panel and choose what to watch.
 
 ## Worked examples
@@ -659,13 +660,13 @@ actions:
 
 ### The List service
 
-`casa_mia_sensor_watch.list` returns every watched sensor at the levels you ask for
+`casa_mia.sensor_watch_list` returns every watched sensor at the levels you ask for
 (everything that isn't nominal by default), worst first, then longest standing; use it
 with a response variable and loop over it in a template:
 
 ```yaml
 actions:
-  - action: casa_mia_sensor_watch.list
+  - action: casa_mia.sensor_watch_list
     data:
       levels: [warning, error, critical]
     response_variable: watch

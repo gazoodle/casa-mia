@@ -17,6 +17,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
+from . import sensor_watch
 from .children import discover_children, reload_children
 from .const import CARDS_JS, DOMAIN, FONA_EVENT, SCRIPTS_URL, SETTINGS_EVENT
 from .coordinator import (
@@ -89,6 +90,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         elif device := registry.async_get_device(identifiers=identifiers):
             _LOGGER.info("%s is switched off in the app: removing its device", name)
             registry.async_remove_device(device.id)
+    # Sensor Watch, while its module is on: its own integration's entities taken on
+    # (once), then the watching; its entities come with the platforms below.
+    coordinator.sensor_watch = None
+    if "sensor_watch" not in off:
+        found = registry.async_get_device(
+            identifiers={device_id(entry, "sensor_watch")}
+        )
+        if found is not None:
+            await sensor_watch.migrate(hass, entry, found.id)
+        coordinator.sensor_watch = await sensor_watch.start(hass, entry, coordinator)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     await _load_scripts(hass, entry, loaded_version, helpers)
 

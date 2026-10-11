@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.10-b4
+
+- **Breaking:** Sensor Watch is now part of the Casa Mia integration, not an integration of its own: one device, so one integration. Restart Home Assistant once; Casa Mia moves the old integration's entities onto itself (same entity ids, history kept) and removes it, and the app removes its files. Its list service is now `casa_mia.sensor_watch_list` (was `casa_mia_sensor_watch.list`): rename it in any template or script that calls it. The event (`casa_mia_sensor_watch`), the blueprint and the card carry on as they were.
+- The app's store page and description mention Sensor Watch.
+
 ## 2026.10.10-b3
 
 - Sensor Watch: a disabled watch's status pill is an **Enable** chip, which watches it again as it was (its levels or profile, its group).

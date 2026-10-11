@@ -16,7 +16,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from ...ha import HA
-from .common import DOMAIN
+from .common import own
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -191,7 +191,7 @@ class Reader:
                 eid = st["entity_id"]
                 domain = eid.split(".", 1)[0]
                 entry = reg.get(eid, {})
-                if entry.get("platform") == DOMAIN:
+                if own(entry):
                     continue  # Sensor Watch's own
                 attrs = st.get("attributes") or {}
                 kind = kind_of(domain, st["state"], attrs)
