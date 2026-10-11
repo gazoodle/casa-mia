@@ -1,0 +1,63 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Casa Mia Sensor Watch",
+        "description": "Add Sensor Watch from the Casa Mia app: the sensors given bands on its Sensor Watch page are watched here, with a status, counts of tasks, warnings, errors and critical, a problem sensor, an event on each change, and a service listing them. Uses the Casa Mia integration's connection to the app."
+      }
+    },
+    "abort": {
+      "already_configured": "Casa Mia Sensor Watch is already set up.",
+      "single_instance_allowed": "Casa Mia Sensor Watch is already set up.",
+      "no_casa_mia": "Set up the Casa Mia integration first."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "name": "Status",
+        "state": {
+          "nominal": "Nominal",
+          "task": "Task",
+          "warning": "Warning",
+          "error": "Error",
+          "critical": "Critical"
+        }
+      },
+      "task_count": { "name": "Tasks" },
+      "warning_count": { "name": "Warnings" },
+      "error_count": { "name": "Errors" },
+      "critical_count": { "name": "Critical" }
+    },
+    "binary_sensor": { "problem": { "name": "Problem" } }
+  },
+  "services": {
+    "list": {
+      "name": "List",
+      "description": "Every watched sensor at the chosen levels, worst first, then longest standing: its level, value, message and since when. Use it with a response variable, and loop over `sensors` in a template.",
+      "fields": {
+        "levels": {
+          "name": "Levels",
+          "description": "Which levels to list. Leave empty for everything that isn't nominal."
+        },
+        "group": {
+          "name": "Group",
+          "description": "Only the members of this group (as named on Casa Mia's Sensor Watch page), and its own worst level. Leave empty for every watched sensor."
+        }
+      }
+    }
+  },
+  "issues": {
+    "restart_required": {
+      "title": "Restart Home Assistant to finish updating Casa Mia Sensor Watch",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Restart Home Assistant",
+            "description": "The Casa Mia Sensor Watch integration was updated from {from_version} to {to_version}, but Home Assistant is still running {from_version}. Until it restarts, nothing new in {to_version} works. Restart Home Assistant to load it."
+          }
+        }
+      }
+    }
+  }
+}

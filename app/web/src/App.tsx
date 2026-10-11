@@ -8,6 +8,7 @@ import { GuestPage } from "./GuestPage";
 import { KioskFrame, KiosksPage } from "./KiosksPage";
 import { KioskModePage } from "./KioskModePage";
 import { PeoplePage } from "./PeoplePage";
+import { SensorWatchPage } from "./sensor-watch";
 import { SettingsPage } from "./SettingsPage";
 import { Developer, useHealth, type ModuleHealth } from "./health";
 import { ModuleIcon, SettingsIcon } from "./icons";
@@ -49,6 +50,7 @@ const PAGES: Record<string, string> = {
   auto_dashboards: "/auto-dashboards",
   compositor: "/compositor",
   kiosk_mode: "/kiosk-mode",
+  sensor_watch: "/sensor-watch",
 };
 
 export function App() {
@@ -137,6 +139,7 @@ function pageFor(route: string, modules: Record<string, ModuleHealth>): ReactNod
   if (route === "/auto-dashboards") return <AutoDashboardsPage state={modules.auto_dashboards?.state} />;
   if (route === "/compositor") return <CompositorPage state={modules.compositor?.state} />;
   if (route === "/kiosk-mode") return <KioskModePage state={modules.kiosk_mode?.state} />;
+  if (route === "/sensor-watch") return <SensorWatchPage state={modules.sensor_watch?.state} />;
   if (route === "/settings") return <SettingsPage />;
   if (route === "/firmware") return <FirmwarePage state={modules.gitproxy?.state} />;
 }
@@ -162,7 +165,8 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 function Tile({ module, info, health, href }: { module: string; info: ModuleInfo; health: ModuleHealth; href?: string }) {
-  const [label, tone] = STATES[health.state ?? ""] ?? [health.state ?? "Unknown", css.muted];
+  const own = info.chip?.(health);
+  const [label, tone] = own ? [own[0], css[own[1]]] : (STATES[health.state ?? ""] ?? [health.state ?? "Unknown", css.muted]);
   const progress = info.progress?.(health);
   const facts = info.facts(health).filter(([, value]) => value !== undefined);
   const Tag = href ? "a" : "article";

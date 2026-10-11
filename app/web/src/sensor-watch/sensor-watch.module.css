@@ -1,0 +1,718 @@
+/* The Sensor Watch page and its dialogs. The page frame and areas come from
+   guest.module.css. A level's colour: nominal good, task the accent, warning warn,
+   error and critical bad (critical filled). */
+
+.actions,
+.rowActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 12px;
+}
+
+.filters input[type="search"] {
+  flex: 1 1 220px;
+}
+
+.filters select {
+  flex: 0 1 auto;
+}
+
+.table {
+  display: grid;
+  gap: 4px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+
+.row:hover {
+  background: var(--surface-2);
+}
+
+.what {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.what code,
+.entity code,
+.pick code,
+.scanRow code {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.note {
+  margin: 4px 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.problem {
+  color: var(--bad);
+}
+
+/* Something wrong in Home Assistant itself: impossible to miss. */
+.alarm {
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border: 2px solid var(--bad);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--bad) 14%, transparent);
+  line-height: 1.5;
+}
+
+.alarm strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--bad);
+  font-size: 16px;
+}
+
+/* A row's pill (its level, a count): one width, so every title starts in line; small
+   caps, as the compositor's state badges. */
+.level {
+  box-sizing: border-box;
+  width: 100%;
+  overflow: hidden;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  font-size: 13px; /* in small caps, the height of the compositor's 11px badges */
+  font-weight: 600;
+  font-variant-caps: all-small-caps;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lv_nominal {
+  color: var(--good);
+}
+.lv_task {
+  color: var(--accent);
+}
+.lv_warning {
+  color: var(--warn);
+}
+.lv_error {
+  color: var(--bad);
+}
+.lv_critical {
+  color: var(--on-accent);
+  background: var(--bad);
+}
+.lv_none {
+  color: var(--muted);
+}
+
+/* Home Assistant itself: its two switches */
+.switches {
+  display: grid;
+  gap: 10px;
+  margin: 4px 0 14px;
+}
+
+.switchRow {
+  display: flex;
+  gap: 12px;
+  align-items: start;
+}
+
+.switchRow > span {
+  display: grid;
+  gap: 2px;
+}
+
+.switchRow .note {
+  margin: 0;
+}
+
+/* The watched list: one toolbar of chips, then a box that scrolls on its own, so the
+   rest of the page stays in reach however many are watched. */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin: 4px 0 2px;
+}
+
+.find {
+  flex: 1 1 200px;
+  max-width: 320px;
+  padding: 5px 10px;
+  border-radius: 999px;
+}
+
+.chip {
+  padding: 4px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  font-size: 12.5px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.chip:hover {
+  background: var(--surface-2);
+}
+
+.chipOn {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* A level chip in its level's colour; pressed, it fills. */
+.chip_nominal {
+  color: var(--good);
+}
+.chip_task {
+  color: var(--accent);
+}
+.chip_warning {
+  color: var(--warn);
+}
+.chip_error,
+.chip_critical {
+  color: var(--bad);
+}
+
+.levelOn {
+  border-color: currentColor;
+  background: color-mix(in srgb, currentColor 18%, transparent);
+  font-weight: 600;
+}
+
+.chipBox {
+  position: relative;
+}
+
+.chipMenu {
+  position: fixed; /* placed by the chip (chips.tsx), over a dialog's edge too */
+  z-index: 20;
+  display: grid;
+  gap: 2px;
+  min-width: 200px;
+  max-width: 320px;
+  max-height: 280px;
+  padding: 6px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 12px 30px rgb(0 0 0 / 30%);
+}
+
+.chipMenu input {
+  margin-bottom: 4px;
+  padding: 5px 9px;
+}
+
+.menuItem {
+  padding: 6px 9px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menuItem:hover,
+.menuItem:focus-visible {
+  background: var(--surface-2);
+}
+
+.sort {
+  margin-left: auto;
+}
+
+/* The watched list's rows: name and entity id on one line, the rest under it. */
+/* A profile's or group's row: its name first, then its status pill. */
+.named {
+  grid-template-columns: minmax(0, 1fr) 104px auto;
+}
+
+/* A watch kept but not watched (disabled): greyed. */
+.off {
+  opacity: 0.5;
+}
+
+.compact {
+  gap: 10px;
+  padding: 5px 8px;
+}
+
+
+.nameLine {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.compact .note {
+  margin: 0;
+}
+
+.scroll {
+  max-height: 55vh;
+  overflow: auto;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+/* Under the list's box: stop watching what's shown, or all. */
+.bulk {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+/* The record dialog */
+
+.entity {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: baseline;
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.history {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+  justify-items: start;
+}
+
+.historyHead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  width: 100%;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.historyHead > span {
+  flex: 1 1 260px;
+}
+
+.days input {
+  width: 70px;
+}
+
+.chart {
+  width: 100%;
+  margin: 0;
+}
+
+.chart svg {
+  display: block;
+  width: 100%;
+  height: 160px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.line {
+  fill: none;
+  stroke: var(--text);
+  stroke-width: 1.5;
+}
+
+.band_nominal {
+  fill: color-mix(in srgb, var(--good) 16%, transparent);
+}
+.band_task {
+  fill: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.band_warning {
+  fill: color-mix(in srgb, var(--warn) 20%, transparent);
+}
+.band_error {
+  fill: color-mix(in srgb, var(--bad) 18%, transparent);
+}
+.band_critical {
+  fill: color-mix(in srgb, var(--bad) 34%, transparent);
+}
+
+.axis {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.bands {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+
+.bandRow {
+  display: grid;
+  grid-template-columns: 90px 90px 120px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  padding-left: 8px;
+  border-left: 4px solid transparent;
+}
+
+.bandHead {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.edge_nominal {
+  border-left-color: var(--good);
+}
+.edge_task {
+  border-left-color: var(--accent);
+}
+.edge_warning {
+  border-left-color: var(--warn);
+}
+.edge_error,
+.edge_critical {
+  border-left-color: var(--bad);
+}
+
+.bandActions {
+  display: flex;
+  gap: 4px;
+}
+
+.message {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  width: 100%;
+}
+
+.message input.long {
+  border-color: var(--warn);
+}
+
+.longNote {
+  color: var(--warn);
+  font-size: 12px;
+}
+
+.bandRow input,
+.bandRow select {
+  min-width: 0;
+  width: 100%;
+}
+
+.binary,
+.settings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  align-items: start;
+  gap: 4px 16px;
+  margin-top: 14px;
+}
+
+.tick {
+  display: flex;
+  gap: 10px;
+  align-items: start;
+  padding-top: 6px;
+  cursor: pointer;
+}
+
+.tick > span {
+  display: grid;
+  gap: 2px;
+  font-weight: 600;
+}
+
+.tick .note {
+  margin: 0;
+  font-weight: 400;
+}
+
+.tick input {
+  flex: none;
+  padding: 0;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  accent-color: var(--accent);
+}
+
+/* Exact states: states with a level of their own. */
+.exceptions {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+
+.exceptionRow {
+  display: grid;
+  grid-template-columns: 140px 120px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  padding-left: 8px;
+  border-left: 4px solid transparent;
+}
+
+.exceptionRow input,
+.exceptionRow select {
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .exceptionRow {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Exact states: those seen (or an enum's own), to tick into the nominal list. */
+.seen {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* Picking and scanning */
+
+.pickList,
+.scanList {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 50vh;
+  overflow: auto;
+}
+
+.pick {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pick:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.pick:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.pick span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.scanBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: end;
+}
+
+.scanBar input {
+  width: 90px;
+}
+
+.selectBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.profilePick {
+  width: auto;
+  max-width: 100%;
+  padding: 4px 8px;
+}
+
+.selectBar .note {
+  margin: 0 auto 0 0;
+}
+
+.scanRow {
+  display: flex;
+  gap: 10px;
+  align-items: start;
+  padding: 6px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.scanRow:hover {
+  background: var(--surface-2);
+}
+
+.scanRow > span {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* Not the page's full-width input (styles.css): a tick of its own size. */
+.scanRow input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  padding: 0;
+  accent-color: var(--accent);
+}
+
+@media (max-width: 640px) {
+  .row {
+    grid-template-columns: 1fr;
+  }
+
+  .level {
+    width: 104px;
+  }
+
+  .rowActions {
+    justify-content: flex-start;
+  }
+
+  .bandRow {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .bandHead {
+    display: none;
+  }
+}
+
+/* A profile's "N following": tap to see them in the watched list. */
+.followers {
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.followers:disabled {
+  cursor: default;
+  text-decoration: none;
+}
+
+/* A category heading in the profile library. */
+.category {
+  margin: 14px 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+/* A match a group passes over (another kind, watched already, left out). */
+.passed {
+  opacity: 0.55;
+}
+
+/* A group's heading in the watched list: stays in sight while its rows scroll by. */
+.sectionHead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 8px 4px 4px;
+  background: var(--surface);
+}
+
+/* A group's heading as a fold: ▾ open, ▸ folded. */
+.fold {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.foldMark {
+  display: inline-block;
+  width: 1em;
+  font-size: 15px;
+}
+
+/* An on/off watch: a row per state (its level, its message). */
+.sideRow {
+  display: grid;
+  grid-template-columns: 90px 140px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  padding-left: 8px;
+  border-left-width: 4px; /* its colour from the level (edge_...) */
+  border-left-style: solid;
+}
+
+.sideRow select,
+.sideRow input {
+  min-width: 0;
+  width: 100%;
+}

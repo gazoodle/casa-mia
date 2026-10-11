@@ -33,6 +33,7 @@
     "kiosks": { "level": "alpha", "docs": "applets/kiosk-satellites.md" },
     "kiosk_mode": { "level": "alpha", "docs": "applets/kiosk-mode.md" },
     "people": { "level": "alpha", "docs": "applets/people.md" },
+    "sensor_watch": { "level": "alpha", "docs": "applets/sensor-watch.md" },
     "fona": { "level": "alpha", "docs": "applets/phone-and-sms.md" },
     "alarm": { "level": "development", "docs": "applets/alarm-panel.md" }
   }

@@ -40,6 +40,13 @@ configuration:
       Alpha. Finds the Kiosk Satellite tablets (through Home Assistant's ESPHome devices and the
       tablets themselves), backs up their settings, and opens each one's admin page from
       the Casa Mia panel, from home or away.
+  sensor_watch_enabled:
+    name: Sensor Watch
+    description: >-
+      Alpha. Give any sensor bands of values, each with a level (nominal, task,
+      warning, error, critical), suggested from its history; Home Assistant then knows
+      what needs doing or has gone wrong, through the Casa Mia Sensor Watch integration.
+      Set up on the Sensor Watch page of the Casa Mia panel.
   alarm_enabled:
     name: Alarm panel
     description: >-

@@ -14,6 +14,7 @@ Every Kiosk Satellite managed from one place, and at your fingertips wherever yo
 Interactions at jet-rapid speed. Camera dashboards MI5 would envy.<br>
 Alarm set? Every tablet becomes a window you can look through but not touch.<br>
 Secure phone and SMS access to your home, even when the internet has left the building.<br>
+Every sensor in the house watched, and you told only when it matters.<br>
 And that's just the start.
 </p>
 
@@ -40,6 +41,7 @@ No premium tier, no subscription, no catch. <a href="#licence">Here's the promis
 * A home assistant layout view, based on Sections, but locked to the rendering screen size while still being responsive to content changes ([the Tablet Layout](docs/tablet-layout.md))
 * An Over layer: one card over the whole dashboard while its conditions hold, everything beneath visible but untouchable ([more](#the-over-layer))
 * Garnish for every Sections dashboard: a heading that no longer keeps an empty section showing, so the section goes when its cards do ([more](#garnish-for-every-dashboard))
+* Sensor Watch: levels for every sensor in the house (nominal, a task, a warning, an error, critical), set up a whole class of things at a time, and told only when one changes ([more](#sensor-watch))
 * A multi-camera layout and composition system to allow near realtime surveillance views without swamping network bandwidth or overwhelming low-power tablets
 * A house guest login system that allows a QR scan to access a custom landing page
 * A firmware server for the amazing [Kiosk Satellite](https://kiosksatellite.com) so they can stay on an IoT network, with no internet access, and not repeatedly keep downloading Candy Crush yet can still get updates from the GitHub releases.
@@ -289,6 +291,53 @@ The guest list for your home's own phone line: who may ring it and who may text 
 </tr>
 </table>
 
+## Sensor Watch
+
+Home Assistant knows the state of everything and the health of almost nothing. Is 198 V
+on that plug fine? Is the freezer at −12 °C a problem? Has that bulb been unavailable
+since the spring? It will show you the number, cheerfully, forever, and you find out when
+the ice cream is soup.
+
+Sensor Watch gives everything a level: **nominal**, a **task** (top up the salt), a
+**warning**, an **error**, **critical**, and says so only when one changes, in its own
+words. The trick is saying it once, not fifty times:
+
+- **Groups for whole classes of thing.** Every Shelly plug's voltage, every leak sensor,
+  every Hue light: a saved filter and a profile. Everything matching is watched, and the
+  plug you put in next month joins by itself. More than two of the same kind is a group;
+  a single thing is a watch.
+- **A library of 80 profiles,** each saying where its numbers come from: mains voltage
+  and frequency for the UK (today's law and the ENA's 2026 proposal), the US, the EU,
+  Japan, China and Australia; inverter trip limits; batteries, broadband, pool and hot tub
+  chemistry, indoor air, freezers, the boiler, the garden, computers.
+- **Watches for the one-offs,** with bands suggested from each sensor's own history: a
+  number by bands, on/off, exact states, an attribute (a thermostat's temperature, not
+  its mode), or just "is it there?", either way round.
+- **Home Assistant itself:** the Recorder, History, and every integration that fails to
+  set up.
+- **Told once, properly:** a blueprint sends it to your phone at the level you choose or
+  worse, colour-coded, and clears it when it's sorted; a card shows what needs looking at
+  and vanishes on a quiet day; an event and a service for everything else.
+
+<table>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/screenshots/sensor-watch-card.webp" alt="A kitchen wall tablet with the Sensor Watch card in its side panel: an error, a warning and a task">
+<h3>Only what needs looking at</h3>
+The card on the kitchen tablet: worst first, each in its own words, its value live. On a quiet day it isn't there at all.
+</td>
+<td width="50%" valign="top">
+<img src="docs/screenshots/sensor-watch.webp" alt="The Sensor Watch page: every watched sensor with its status pill, grouped, under one toolbar of filter chips">
+<h3>Everything watched, in one place</h3>
+Every watch with its level, grouped, filtered with chips; groups take in whole classes of thing, and new ones join by themselves.
+</td>
+</tr>
+</table>
+
+Half an hour, and the house has plant-level monitoring. I tripped a breaker to test it,
+and a dozen lights turned up on the wall tablet, each saying where it was.
+([The guide](docs/applets/sensor-watch.md))
+
 ## Alarm panel
 
 I've got a KNX system with a couple of sensors and switches, but I wanted a nice alarm panel
@@ -370,6 +419,11 @@ could.
 - **The camera compositor knows its viewers.** On the Camera compositor page, each stream
   sent to a wall tablet shows the tablet's name from Kiosk Satellites beside its address,
   so a slow or stuck one is easy to place.
+- **What needs attention, and only then.** Sensor Watch's status, counts and problem sensor
+  drive a panel of what needs doing on a Tablet Layout edge; [garnish](#garnish-for-every-dashboard)
+  keeps the panel's heading from holding it open, so on a quiet day the panel isn't there
+  at all, and the rest of the screen closes up. A critical can come up over everything with
+  the Over layer, and the Home tile shows the house's health at a glance.
 
 Coming next:
 

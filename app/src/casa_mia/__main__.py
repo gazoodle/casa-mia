@@ -40,6 +40,7 @@ from .modules.guest_login import (
 from .modules.kiosk_mode import KioskMode
 from .modules.kiosks import Kiosks
 from .modules.people import People
+from .modules.sensor_watch import SensorWatch
 from .server import PORT, integration_url, make_server
 
 # HA writes the app's options here; absent on the Mac, so defaults apply.
@@ -54,6 +55,8 @@ GITPROXY_STORE = CONFIG / "gitproxy.json"
 PEOPLE_STORE = CONFIG / "people.json"
 # The Kiosk Satellites: addresses added on the admin page and the app's login tokens.
 KIOSKS_STORE = CONFIG / "kiosks.json"
+# Sensor Watch's records (a sensor's bands and levels), edited on the admin page.
+SENSOR_WATCH_STORE = CONFIG / "sensor-watch.json"
 # HA's media folder (map media): where QR codes are saved for dashboards to show.
 MEDIA = Path("/media")
 
@@ -76,6 +79,7 @@ def main() -> int:
     actions = {}
     post_handlers = {}
     api = {}
+    reads = {}  # GET paths the integration fetches beside /health
     lan_ip = remember(lambda: supervisor_lan_ip(token))
     header.FOLDER = CONFIG
     header.HOUSE = options.get("house_name") or header.HOUSE
@@ -110,6 +114,21 @@ def main() -> int:
         "on" if alarm_on else "off",
     )
     modules["alarm"] = lambda: {"state": "running" if alarm_on else "disabled"}
+    if options.get("sensor_watch_enabled", False):
+        # The records; the integration watches the states and asks again at once on a save.
+        watch = SensorWatch(
+            SENSOR_WATCH_STORE,
+            ha,
+            on_change=lambda: (
+                fire_event(token, settings.CHANGED_EVENT, {}) if token else None
+            ),
+        )
+        watch.start()
+        modules["sensor_watch"] = watch.health
+        api["/api/sensor-watch/"] = watch.handle
+        reads["/sensor-watch/records"] = watch.for_integration
+    else:
+        modules["sensor_watch"] = lambda: {"state": "disabled"}
     if options.get("fona_enabled", False):
         fona = Fona(people.check, lambda event: fire_event(token, FONA_EVENT, event))
         fona.start()
@@ -299,6 +318,7 @@ def main() -> int:
             proxies=proxies,
             helpers=helpers,
             on_cards=on_cards,
+            reads=reads,
         )
         if token:
             # Started (an update, say): have the integration ask now, so pages showing

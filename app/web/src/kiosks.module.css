@@ -292,3 +292,20 @@
   color: var(--muted);
   font-size: 12px;
 }
+
+/* The latest release, at the top: a chip that opens its notes on GitHub (↗). */
+.release {
+  display: inline-block;
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.release:hover,
+.release:focus-visible {
+  background: color-mix(in srgb, var(--accent) 26%, transparent);
+}

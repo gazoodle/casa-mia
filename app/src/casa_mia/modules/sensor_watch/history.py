@@ -1,0 +1,352 @@
+"""What Sensor Watch reads from Home Assistant: the sensors it could watch (with their
+area, labels and integration, for the filters) and their history.
+
+Numeric sensors with long-term statistics (a state_class) are read from the recorder's
+hourly statistics (mean, min, max), which HA keeps for good; anything else from the
+state history, which HA keeps only `purge_keep_days` (10 by default), so a 30-day ask
+may get less: the answer says from when."""
+
+from __future__ import annotations
+
+import logging
+import math
+import threading
+import time
+from datetime import UTC, datetime, timedelta
+from typing import Any
+
+from ...ha import HA
+from .common import DOMAIN
+
+_LOGGER = logging.getLogger(__name__)
+
+# ponytail: the whole list is rebuilt each minute (get_states is a few MB in a big house);
+# subscribe to state changes if that ever shows.
+CANDIDATE_TTL = 60  # seconds
+CHUNK = 50  # entities per history or statistics request
+MAX_POINTS = 300  # chart points sent to the page
+LIST_LIMIT = 200  # candidates sent to the page per query; the filters narrow it
+
+
+def _is_number(text: Any) -> bool:
+    try:
+        return math.isfinite(float(text))
+    except (TypeError, ValueError):
+        return False
+
+
+# Any entity can be watched (Watch an entity). A scan, unless asked for a domain, looks
+# at these: sensors, and other things whose state says something needs attention (a
+# window open, a lock jammed, an update waiting, a vacuum stuck), not every light,
+# switch and helper in the house.
+SCAN_DOMAINS = (
+    "sensor",
+    "binary_sensor",
+    "update",
+    "cover",
+    "lock",
+    "valve",
+    "vacuum",
+    "lawn_mower",
+    "alarm_control_panel",
+)
+# Domains whose state is on or off, and those whose state is a number.
+ON_OFF = (
+    "binary_sensor",
+    "update",
+    "switch",
+    "input_boolean",
+    "fan",
+    "light",
+    "siren",
+    "remote",
+    "automation",
+    "script",
+    "humidifier",
+)
+NUMBERS = ("input_number", "number", "counter")
+
+
+def kind_of(domain: str, state: str, attrs: dict[str, Any]) -> str:
+    """How an entity is watched: bands for a number, on/off for on or off, else exact
+    states (a cover, a lock, a text or enum sensor, a select)."""
+    if domain in ON_OFF:
+        return "binary"
+    if domain in NUMBERS or attrs.get("state_class") or _is_number(state):
+        return "numeric"
+    return "state"
+
+
+# Attributes that describe an entity rather than say how it is: never offered to watch.
+STOCK = {
+    "friendly_name",
+    "icon",
+    "entity_picture",
+    "unit_of_measurement",
+    "device_class",
+    "state_class",
+    "supported_features",
+    "attribution",
+    "restored",
+    "editable",
+    "id",
+    "assumed_state",
+    "options",
+    "min",
+    "max",
+    "step",
+    "mode",
+    "min_temp",
+    "max_temp",
+    "target_temp_step",
+    "min_humidity",
+    "max_humidity",
+}
+MAX_READING = 40  # characters: longer attributes (a forecast, a URL) aren't readings
+
+
+def readings(attrs: dict[str, Any]) -> dict[str, str]:
+    """An entity's attributes worth watching, as text: numbers and short words (a
+    climate's current_temperature and hvac_action, a cover's current_position)."""
+    return {
+        k: str(v)
+        for k, v in attrs.items()
+        if k not in STOCK
+        and isinstance(v, int | float | str)
+        and len(str(v)) <= MAX_READING
+    }
+
+
+def as_attribute(rows: list[dict[str, Any]], attribute: str) -> list[dict[str, Any]]:
+    """State history rows (with attributes) as the history of one attribute's value:
+    unavailable while the entity is, rows without it dropped."""
+    out = []
+    for r in rows:
+        if r["s"] in ("unavailable", "unknown"):
+            out.append({"s": r["s"], "lu": r["lu"]})
+        elif (value := (r.get("a") or {}).get(attribute)) is not None:
+            out.append({"s": str(value), "lu": r["lu"]})
+    return out
+
+
+def order(c: dict[str, Any]) -> tuple[str, str]:
+    """Candidates' order (and a scan round's place in it): by name, then entity id."""
+    return (c["name"].lower(), c["entity_id"])
+
+
+def _since(days: float) -> str:
+    return (datetime.now(UTC) - timedelta(days=days)).isoformat()
+
+
+class Reader:
+    def __init__(self, ha: HA) -> None:
+        self.ha = ha
+        self._lock = threading.Lock()
+        self._at = -math.inf  # never read (not 0: monotonic() counts from boot)
+        self._cands: list[dict[str, Any]] = []
+        self._labels: dict[
+            str, str
+        ] = {}  # label id -> its name, read with the candidates
+
+    # -- the sensors
+
+    def forget(self) -> None:
+        """Read HA's entities afresh at the next ask (its registry changed)."""
+        with self._lock:
+            self._at = -math.inf  # never read (not 0: monotonic() counts from boot)
+
+    def candidates(self) -> list[dict[str, Any]]:
+        """Every entity Sensor Watch could watch (not its own)."""
+        with self._lock:
+            if time.monotonic() - self._at < CANDIDATE_TTL:
+                return self._cands
+            states, entities, devices, areas, labels, floors = self.ha.call(
+                {"type": "get_states"},
+                {"type": "config/entity_registry/list"},
+                {"type": "config/device_registry/list"},
+                {"type": "config/area_registry/list"},
+                {"type": "config/label_registry/list"},
+                {"type": "config/floor_registry/list"},
+            )
+            reg = {e["entity_id"]: e for e in entities or []}
+            device_area = {d["id"]: d.get("area_id") for d in devices or []}
+            device_name = {
+                d["id"]: d.get("name_by_user") or d.get("name") or ""
+                for d in devices or []
+            }
+            device_of = {d["id"]: d for d in devices or []}
+            area_name = {a["area_id"]: a["name"] for a in areas or []}
+            area_floor = {a["area_id"]: a.get("floor_id") for a in areas or []}
+            floor_name = {f["floor_id"]: f["name"] for f in floors or []}
+            self._labels = {lb["label_id"]: lb["name"] for lb in labels or []}
+            out = []
+            for st in states or []:
+                eid = st["entity_id"]
+                domain = eid.split(".", 1)[0]
+                entry = reg.get(eid, {})
+                if entry.get("platform") == DOMAIN:
+                    continue  # Sensor Watch's own
+                attrs = st.get("attributes") or {}
+                kind = kind_of(domain, st["state"], attrs)
+                area_id = entry.get("area_id") or device_area.get(
+                    entry.get("device_id")
+                )
+                device = device_of.get(entry.get("device_id")) or {}
+                floor_id = area_floor.get(area_id)
+                out.append(
+                    {
+                        "entity_id": eid,
+                        "name": attrs.get("friendly_name") or eid,
+                        "kind": kind,
+                        "domain": domain,
+                        "area_id": area_id,
+                        "area": area_name.get(area_id, ""),
+                        "device_id": entry.get("device_id"),
+                        "device": device_name.get(entry.get("device_id"), ""),
+                        "floor_id": floor_id,
+                        "floor": floor_name.get(floor_id, ""),
+                        "manufacturer": device.get("manufacturer") or "",
+                        "model": device.get("model") or "",
+                        # Diagnostic (an ESP board's VCC, a signal strength), config, or
+                        # primary: what the entity is for.
+                        "category": entry.get("entity_category") or "primary",
+                        "labels": entry.get("labels") or [],
+                        "platform": entry.get("platform") or "",
+                        "device_class": attrs.get("device_class") or "",
+                        "unit": attrs.get("unit_of_measurement") or "",
+                        "state": st["state"],
+                        "statistics": bool(attrs.get("state_class")),
+                        "options": [str(o) for o in attrs.get("options") or []][:50],
+                        "attributes": readings(attrs),
+                    }
+                )
+            out.sort(key=order)
+            self._cands, self._at = out, time.monotonic()
+            _LOGGER.debug("candidates: %d sensors read from Home Assistant", len(out))
+            return out
+
+    @property
+    def labels(self) -> dict[str, str]:
+        return self._labels
+
+    def options(self) -> dict[str, Any]:
+        """The filters' choices: only those some candidate has."""
+        cands = self.candidates()
+        areas = {c["area_id"]: c["area"] for c in cands if c["area_id"]}
+        floors = {c["floor_id"]: c["floor"] for c in cands if c["floor_id"]}
+        labels = {lb for c in cands for lb in c["labels"]}
+        return {
+            "areas": sorted(
+                ({"id": k, "name": v} for k, v in areas.items()),
+                key=lambda a: a["name"].lower(),
+            ),
+            "floors": sorted(
+                ({"id": k, "name": v} for k, v in floors.items()),
+                key=lambda f: f["name"].lower(),
+            ),
+            "manufacturers": sorted(
+                {c["manufacturer"] for c in cands if c["manufacturer"]}
+            ),
+            "models": sorted({c["model"] for c in cands if c["model"]}),
+            "categories": sorted({c["category"] for c in cands}),
+            "labels": sorted(
+                ({"id": k, "name": self._labels.get(k, k)} for k in labels),
+                key=lambda lb: lb["name"].lower(),
+            ),
+            "platforms": sorted({c["platform"] for c in cands if c["platform"]}),
+            "domains": sorted({c["domain"] for c in cands}),
+            "device_classes": sorted(
+                {c["device_class"] for c in cands if c["device_class"]}
+            ),
+        }
+
+    def find(self, entity_id: str) -> dict[str, Any] | None:
+        return next((c for c in self.candidates() if c["entity_id"] == entity_id), None)
+
+    # -- their history
+
+    def statistics(
+        self, ids: list[str], days: float
+    ) -> dict[str, list[dict[str, Any]]]:
+        """Hourly mean, min and max per sensor, `CHUNK` sensors a request."""
+        out: dict[str, list[dict[str, Any]]] = {}
+        for at in range(0, len(ids), CHUNK):
+            (rows,) = self.ha.call(
+                {
+                    "type": "recorder/statistics_during_period",
+                    "start_time": _since(days),
+                    "statistic_ids": ids[at : at + CHUNK],
+                    "period": "hour",
+                    "types": ["mean", "min", "max"],
+                }
+            )
+            out.update(rows or {})
+        return out
+
+    def history(
+        self, ids: list[str], days: float, attributes: bool = False
+    ) -> dict[str, list[dict[str, Any]]]:
+        """Each state change (state `s`, at `lu` seconds; with `attributes`, each change
+        of them too, as `a`), `CHUNK` entities a request."""
+        out: dict[str, list[dict[str, Any]]] = {}
+        for at in range(0, len(ids), CHUNK):
+            (rows,) = self.ha.call(
+                {
+                    "type": "history/history_during_period",
+                    "start_time": _since(days),
+                    "entity_ids": ids[at : at + CHUNK],
+                    "minimal_response": not attributes,
+                    "no_attributes": not attributes,
+                    "significant_changes_only": False,
+                }
+            )
+            out.update(rows or {})
+        return out
+
+
+def from_statistics(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Samples (every hour's mean, min and max) and chart points (the means)."""
+    samples = [
+        r[k] for r in rows for k in ("mean", "min", "max") if _is_number(r.get(k))
+    ]
+    points = [[r["start"], r["mean"]] for r in rows if _is_number(r.get("mean"))]
+    return {
+        "source": "statistics",
+        "samples": samples,
+        "points": thin(points),
+        "first": _iso(rows[0]["start"] / 1000) if rows else None,
+    }
+
+
+def from_history(
+    rows: list[dict[str, Any]], now: float | None = None
+) -> dict[str, Any]:
+    """Numeric samples and chart points, and the seconds spent in each state."""
+    now = time.time() if now is None else now
+    seconds: dict[str, float] = {}
+    for row, nxt in zip(rows, [*rows[1:], None]):
+        end = nxt["lu"] if nxt else now
+        seconds[row["s"]] = seconds.get(row["s"], 0.0) + max(0.0, end - row["lu"])
+    points = [[r["lu"] * 1000, float(r["s"])] for r in rows if _is_number(r["s"])]
+    return {
+        "source": "history",
+        "samples": [p[1] for p in points],
+        "seconds": seconds,
+        "points": thin(points),
+        "first": _iso(rows[0]["lu"]) if rows else None,
+    }
+
+
+def thin(points: list[list[float]]) -> list[list[float]]:
+    """At most MAX_POINTS for the chart: each run of points averaged into one."""
+    if len(points) <= MAX_POINTS:
+        return points
+    size = math.ceil(len(points) / MAX_POINTS)
+    return [
+        [run[0][0], sum(p[1] for p in run) / len(run)]
+        for run in (points[i : i + size] for i in range(0, len(points), size))
+    ]
+
+
+def _iso(seconds: float) -> str:
+    return datetime.fromtimestamp(seconds, UTC).isoformat()
