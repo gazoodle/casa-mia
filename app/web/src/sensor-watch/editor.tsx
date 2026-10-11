@@ -2,7 +2,7 @@
  * with their levels and messages, and what counts when it's unavailable. */
 
 import { useCallback, useEffect, useState } from "react";
-import { Dialog, Field } from "../ui";
+import { Dialog, Field, Segmented } from "../ui";
 import { HistoryChart } from "./chart";
 import { LEVELS, LEVEL_NAMES, kindOf, swApi, type Band, type Level, type Suggested, type WatchRecord } from "./common";
 import css from "./sensor-watch.module.css";
@@ -34,6 +34,7 @@ export function RecordDialog({
   const [nominal, setNominal] = useState<"on" | "off">(record?.nominal ?? "off");
   const [other, setOther] = useState<Level>(record?.other ?? "warning");
   const [message, setMessage] = useState(record?.message ?? "");
+  const [states, setStates] = useState((record?.states ?? []).join(", "));
   const [unavailable, setUnavailable] = useState<Level | "ignore">(record?.unavailable ?? "error");
   const [holdOff, setHoldOff] = useState(String(record?.hold_off ?? 60));
   const [name, setName] = useState(record?.name ?? "");
@@ -45,15 +46,17 @@ export function RecordDialog({
     if (r.otherwise) setOtherwise(r.otherwise);
     if (r.nominal) setNominal(r.nominal);
     if (r.other) setOther(r.other);
+    if (r.states) setStates(r.states.join(", "));
   };
 
-  const read = useCallback(async () => {
+  /** Its history and a suggestion, as `as` (a number as exact states), or as itself. */
+  const read = useCallback(async (as?: string) => {
     setReading(true);
     setProblem(undefined);
     try {
-      const got = await swApi.get<Suggested>(`suggest?entity=${encodeURIComponent(entityId)}&days=${days}`);
+      const got = await swApi.get<Suggested>(`suggest?entity=${encodeURIComponent(entityId)}&days=${days}${as ? `&kind=${as}` : ""}`);
       setFound(got);
-      if (!record) adopt(got.record); // a new one starts from the suggestion
+      if (!record || as) adopt(got.record); // a new one, or a new kind, starts from the suggestion
     } catch (err) {
       setProblem((err as Error).message);
     } finally {
@@ -68,6 +71,13 @@ export function RecordDialog({
 
   const s = found?.suggestion;
   const unit = found?.sensor.unit ?? "";
+  // A number can be watched by bands or by exact states; text only by exact states.
+  const canSwitch = (found?.sensor.kind ?? (record?.kind === "binary" ? "binary" : "numeric")) === "numeric";
+  // States to tick into the nominal list: an enum's own, else those seen, with their time.
+  const total = Object.values(s?.seconds ?? {}).reduce((a, b) => a + b, 0);
+  const seen: [string, number | undefined][] = found?.sensor.options?.length
+    ? found.sensor.options.map((o) => [o, total ? (s?.seconds?.[o] ?? 0) / total : undefined])
+    : Object.entries(s?.seconds ?? {}).map(([o, n]) => [o, total ? n / total : undefined]);
   const save = async () => {
     setSaving(true);
     const body = {
@@ -75,7 +85,11 @@ export function RecordDialog({
       name: name.trim(),
       hold_off: Number(holdOff),
       unavailable,
-      ...(kind === "binary" ? { nominal, other, message } : { bands: bands.map(toBand), otherwise }),
+      ...(kind === "binary"
+        ? { nominal, other, message }
+        : kind === "state"
+          ? { states: split(states), other, message }
+          : { bands: bands.map(toBand), otherwise }),
     };
     const ok = await onSave(body);
     setSaving(false);
@@ -122,12 +136,22 @@ export function RecordDialog({
           <label className={css.days}>
             <input type="number" min={1} max={365} value={days} onChange={(e) => setDays(e.target.value)} aria-label="Days of history" /> days
           </label>
-          <button className={`${ui.button} ${ui.small}`} disabled={reading} onClick={read}>
+          <button className={`${ui.button} ${ui.small}`} disabled={reading} onClick={() => read(kind)}>
             Read again
           </button>
         </div>
-        {found?.points && kind !== "binary" && <HistoryChart points={found.points} bands={bands.map(toBand)} unit={unit} />}
-        {s && kind !== "binary" && s.count !== undefined && (
+        {canSwitch && (
+          <Segmented
+            value={kind}
+            options={[["numeric", "Bands (a range)"], ["state", "Exact states"]]}
+            onChange={(k) => {
+              setKind(k);
+              read(k);
+            }}
+          />
+        )}
+        {found?.points && kind === "numeric" && <HistoryChart points={found.points} bands={bands.map(toBand)} unit={unit} />}
+        {s && kind === "numeric" && s.count !== undefined && (
           <p className={css.note}>
             {s.count} samples, mean {s.mean?.toPrecision(4)} {unit}, from {s.min?.toPrecision(4)} to {s.max?.toPrecision(4)}.
             {s.outlier_count ? ` Set aside as outliers (worth a look): ${s.outliers?.map((o) => o.toPrecision(4)).join(", ")}${s.outlier_count > (s.outliers?.length ?? 0) ? " …" : ""}.` : " No outliers."}
@@ -164,11 +188,36 @@ export function RecordDialog({
           </Field>
         </div>
       )}
+      {kind === "state" && (
+        <div className={css.binary}>
+          <Field label="Nominal states" help="Separated by commas: 0, or idle, standby. Anything else gets the level beside.">
+            <input value={states} onChange={(e) => setStates(e.target.value)} placeholder="e.g. 0" />
+          </Field>
+          <Field label="Anything else" help="Its level in any other state.">
+            <LevelSelect value={other} onChange={(v) => setOther(v as Level)} />
+          </Field>
+          <Field label="Message" help="What it says in another state, e.g. Alarm raised.">
+            <input value={message} maxLength={80} onChange={(e) => setMessage(e.target.value)} />
+          </Field>
+          {seen.length > 0 && (
+            <p className={css.seen}>
+              {found?.sensor.options?.length ? "Its states" : "Seen"}:{" "}
+              {seen.map(([state, share]) => (
+                <button key={state} className={`${ui.button} ${ui.small}`} onClick={() => setStates(toggle(states, state))}>
+                  {listed(states, state) ? "✓ " : ""}
+                  {state}
+                  {share !== undefined && ` · ${Math.round(share * 100)}%`}
+                </button>
+              ))}
+            </p>
+          )}
+        </div>
+      )}
       {kind === "numeric" && <BandsEditor bands={bands} onChange={setBands} unit={unit} />}
 
       {kind && (
       <div className={css.settings}>
-        {kind !== "binary" && (
+        {kind === "numeric" && (
           <Field label="Outside every band" help="The level of a value no band covers.">
             <LevelSelect value={otherwise} onChange={(v) => setOtherwise(v as Level)} />
           </Field>
@@ -231,4 +280,21 @@ function BandsEditor({ bands, onChange, unit }: { bands: Draft[]; onChange: (b: 
       </button>
     </div>
   );
+}
+
+const split = (list: string) =>
+  list
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+/** Is `state` in the comma-separated list? */
+function listed(list: string, state: string): boolean {
+  return split(list).includes(state);
+}
+
+/** The list with `state` added, or taken out if it was there. */
+function toggle(list: string, state: string): string {
+  const items = split(list);
+  return (items.includes(state) ? items.filter((s) => s !== state) : [...items, state]).join(", ");
 }

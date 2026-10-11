@@ -59,11 +59,13 @@ export function SensorWatchPage({ state }: { state?: string }) {
   };
 
   const rows = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    // Every word, anywhere, in any order (as the app's own search): "tank top" finds "Top of tank".
+    const words = search.toLowerCase().match(/[a-z0-9]+/g) ?? [];
     return (view?.records ?? []).filter((r) => {
       const now = live?.levels[r.entity_id]?.level;
+      const hay = `${(r.label ?? "").toLowerCase()} ${r.entity_id}`;
       return (
-        (!q || (r.label ?? "").toLowerCase().includes(q) || r.entity_id.includes(q)) &&
+        words.every((w) => hay.includes(w)) &&
         (!level || (level === "off" ? now !== undefined && now !== "nominal" : now === level))
       );
     });

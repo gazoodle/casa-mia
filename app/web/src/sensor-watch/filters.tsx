@@ -42,9 +42,10 @@ export function FilterBar({ value, options, onChange }: { value: Filters; option
         ))}
       </select>
       <select value={value.kind} onChange={set("kind")} aria-label="Kind">
-        <option value="">Numeric and on/off</option>
+        <option value="">Any kind</option>
         <option value="numeric">Numeric</option>
         <option value="binary">On/off</option>
+        <option value="state">Text and enum</option>
       </select>
     </div>
   );

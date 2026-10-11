@@ -123,6 +123,7 @@ def main() -> int:
                 fire_event(token, settings.CHANGED_EVENT, {}) if token else None
             ),
         )
+        watch.start()
         modules["sensor_watch"] = watch.health
         api["/api/sensor-watch/"] = watch.handle
         reads["/sensor-watch/records"] = watch.for_integration

@@ -81,10 +81,12 @@ class Reader:
                 ):
                     continue
                 attrs = st.get("attributes") or {}
-                if domain == "sensor" and not (
-                    attrs.get("state_class") or _is_number(st["state"])
-                ):
-                    continue  # text sensors: nothing to range
+                if domain == "binary_sensor":
+                    kind = "binary"
+                elif attrs.get("state_class") or _is_number(st["state"]):
+                    kind = "numeric"
+                else:
+                    kind = "state"  # text and enum sensors: exact states
                 area_id = entry.get("area_id") or device_area.get(
                     entry.get("device_id")
                 )
@@ -92,7 +94,7 @@ class Reader:
                     {
                         "entity_id": eid,
                         "name": attrs.get("friendly_name") or eid,
-                        "kind": "binary" if domain == "binary_sensor" else "numeric",
+                        "kind": kind,
                         "area_id": area_id,
                         "area": area_name.get(area_id, ""),
                         "labels": entry.get("labels") or [],
@@ -101,6 +103,7 @@ class Reader:
                         "unit": attrs.get("unit_of_measurement") or "",
                         "state": st["state"],
                         "statistics": bool(attrs.get("state_class")),
+                        "options": [str(o) for o in attrs.get("options") or []][:50],
                     }
                 )
             out.sort(key=order)

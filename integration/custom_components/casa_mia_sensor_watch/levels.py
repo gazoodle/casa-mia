@@ -27,6 +27,16 @@ def rank(level: str | None) -> int:
     return LEVELS.index(level) if level in LEVELS else -1
 
 
+def same(state: str, nominal: str) -> bool:
+    """An exact state, as text or, when both are numbers, as a number ("0" is "0.0")."""
+    if state == nominal:
+        return True
+    try:
+        return float(state) == float(nominal)
+    except ValueError:
+        return False
+
+
 def level_of(
     record: dict[str, Any], state: str | None
 ) -> tuple[str | None, str | None]:
@@ -39,6 +49,10 @@ def level_of(
         if state == record.get("nominal", "off"):
             return "nominal", None
         return record.get("other", "warning"), record.get("message") or None
+    if record.get("kind") == "state":
+        if any(same(state, s) for s in record.get("states") or []):
+            return "nominal", None
+        return record.get("other", "error"), record.get("message") or None
     try:
         value = float(state)
     except ValueError:

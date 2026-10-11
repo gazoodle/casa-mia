@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import re
 import threading
 from collections.abc import Callable
 from pathlib import Path
@@ -17,6 +18,7 @@ from ...ha import HA, HAError
 from . import suggest
 from .common import DEFAULT_HOLD_OFF, DOMAIN, LEVELS, BadRequest, Response, _json, clean
 from .history import LIST_LIMIT, Reader, from_history, from_statistics, order
+from .status import Status
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -29,11 +31,18 @@ NEEDS = {"recorder": "Recorder", "history": "History"}
 FILTERS = ("q", "area", "label", "platform", "device_class", "kind")
 
 
+def words(text: str) -> list[str]:
+    """A search's words, ignoring case and punctuation: "Tank - Top" -> tank, top."""
+    return re.findall(r"[a-z0-9]+", text.lower())
+
+
 def matches(c: dict[str, Any], f: dict[str, str]) -> bool:
-    """Does candidate `c` pass the filters (each empty or absent = any)?"""
-    q = (f.get("q") or "").strip().lower()
+    """Does candidate `c` pass the filters (each empty or absent = any)? The search
+    matches when every word is somewhere in its name or entity id, in any order: "tank
+    top" finds "Tank - Top", "Top of tank" and "Topup Tank"."""
+    hay = f"{c['name'].lower()} {c['entity_id']}"
     return (
-        (not q or q in c["name"].lower() or q in c["entity_id"])
+        all(w in hay for w in words(f.get("q") or ""))
         and (not f.get("area") or c["area_id"] == f["area"])
         and (not f.get("label") or f["label"] in c["labels"])
         and (not f.get("platform") or c["platform"] == f["platform"])
@@ -42,18 +51,37 @@ def matches(c: dict[str, Any], f: dict[str, str]) -> bool:
     )
 
 
-def proposal(c: dict[str, Any], s: dict[str, Any] | None) -> dict[str, Any]:
-    """The record a suggestion makes (or a plain one without a suggestion)."""
+def suggestion(kind: str, data: dict[str, Any]) -> dict[str, Any] | None:
+    """A suggestion of `kind` from what history.py read."""
+    if kind == "numeric":
+        return suggest.numeric(data["samples"])
+    if kind == "binary":
+        return suggest.binary(data.get("seconds", {}))
+    return suggest.states(data.get("seconds", {}))
+
+
+def proposal(
+    c: dict[str, Any], s: dict[str, Any] | None, kind: str | None = None
+) -> dict[str, Any]:
+    """The record a suggestion makes (or a plain one without a suggestion); `kind` when
+    the editor asks for another than the sensor's own (exact states for a number)."""
+    kind = kind or c["kind"]
     base = {
-        "kind": c["kind"],
+        "kind": kind,
         "name": "",
         "hold_off": DEFAULT_HOLD_OFF,
         "unavailable": "error",
     }
-    if c["kind"] == "binary":
+    if kind == "binary":
         return base | {
             "nominal": (s or {}).get("nominal", "off"),
             "other": "warning",
+            "message": "",
+        }
+    if kind == "state":
+        return base | {
+            "states": (s or {}).get("states") or [],
+            "other": "error",
             "message": "",
         }
     bands = (s or {}).get("bands") or [
@@ -73,6 +101,7 @@ class SensorWatch:
         self.reader = Reader(ha) if ha else None
         self.ha = ha
         self.on_change = on_change
+        self.status = Status(ha)  # overall health, for the Home tile (start() polls it)
         self._lock = threading.Lock()
         self.records: dict[str, dict[str, Any]] = {}
         self._broken: str | None = None
@@ -98,7 +127,11 @@ class SensorWatch:
                 and f"cannot read {self.store_path.name}: {self._broken}",
                 "watching": len(self.records),
                 "revision": self._revision,
+                **self.status.now(),
             }
+
+    def start(self) -> None:
+        self.status.start()
 
     def for_integration(self) -> dict[str, Any]:
         """For the integration (GET /sensor-watch/records)."""
@@ -141,7 +174,10 @@ class SensorWatch:
         if method == "GET" and parts == ["candidates"]:
             return _json(200, self.candidates(q))
         if method == "GET" and parts == ["suggest"]:
-            return _json(200, self.suggest(q.get("entity", ""), _days(q.get("days"))))
+            return _json(
+                200,
+                self.suggest(q.get("entity", ""), _days(q.get("days")), q.get("kind")),
+            )
         if method == "POST" and parts == ["scan"]:
             return _json(200, self.scan(body, _days(body.get("days"))))
         if method == "POST" and parts == ["accept"]:
@@ -217,24 +253,28 @@ class SensorWatch:
             "options": reader.options(),
         }
 
-    def suggest(self, entity_id: str, days: float) -> dict[str, Any]:
+    def suggest(
+        self, entity_id: str, days: float, kind: str | None = None
+    ) -> dict[str, Any]:
+        """Its history and a suggestion from it, as `kind` (the sensor's own by default)."""
         reader = self._reader()
         c = reader.find(entity_id)
         if c is None:
             raise BadRequest(f"{entity_id} is not a sensor Sensor Watch can watch.")
+        if kind not in (None, "", c["kind"]) and not (
+            kind == "state" and c["kind"] == "numeric"
+        ):
+            raise BadRequest(f"A {c['kind']} sensor can't be watched as {kind}.")
+        as_kind: str = kind or c["kind"]
         problems: list[str] = []
         data = None
-        if c["kind"] == "numeric" and c["statistics"]:
+        if as_kind == "numeric" and c["statistics"]:
             rows = _read(reader.statistics, [entity_id], days, problems)
             data = from_statistics(rows.get(entity_id, []))
         if not data or not data["samples"]:
             rows = _read(reader.history, [entity_id], days, problems)
             data = from_history(rows.get(entity_id, []))
-        found = (
-            suggest.numeric(data["samples"])
-            if c["kind"] == "numeric"
-            else suggest.binary(data.get("seconds", {}))
-        )
+        found = suggestion(as_kind, data)
         _LOGGER.info(
             "suggest %s: %d days asked, %s from %s, %s%s",
             entity_id,
@@ -250,7 +290,7 @@ class SensorWatch:
             "first": data["first"],
             "points": data["points"],
             "suggestion": found,
-            "record": proposal(c, found),
+            "record": proposal(c, found, as_kind),
             "problem": "; ".join(problems) or None,
         }
 
@@ -291,11 +331,7 @@ class SensorWatch:
                 if stats.get(eid)
                 else from_history(hist.get(eid, []))
             )
-            s = (
-                suggest.numeric(data["samples"])
-                if c["kind"] == "numeric"
-                else suggest.binary(data.get("seconds", {}))
-            )
+            s = suggestion(c["kind"], data)
             if s is None:
                 skipped += 1
                 continue
@@ -417,4 +453,6 @@ def _days(value: Any) -> float:
 def _describe(record: dict[str, Any]) -> str:
     if record["kind"] == "binary":
         return f"binary, nominal {record['nominal']}, else {record['other']}"
+    if record["kind"] == "state":
+        return f"exact states {', '.join(record['states'])}, else {record['other']}"
     return f"{len(record['bands'])} bands, else {record['otherwise']}"

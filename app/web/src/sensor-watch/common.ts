@@ -19,7 +19,7 @@ export type Band = { from: number | null; to: number | null; level: Level; messa
 /** A watched sensor's record, as the app keeps it (app/.../sensor_watch/common.py). */
 export type WatchRecord = {
   entity_id: string;
-  kind: "numeric" | "binary";
+  kind: "numeric" | "binary" | "state";
   name: string;
   hold_off: number;
   unavailable: Level | "ignore";
@@ -28,6 +28,8 @@ export type WatchRecord = {
   nominal?: "on" | "off";
   other?: Level;
   message?: string;
+  /** Exact states: the nominal ones. */
+  states?: string[];
   /** Its name to show: its own, else Home Assistant's. */
   label?: string;
 };
@@ -41,7 +43,7 @@ export type LevelsView = { levels: Record<string, Live>; error: string | null };
 export type Candidate = {
   entity_id: string;
   name: string;
-  kind: "numeric" | "binary";
+  kind: "numeric" | "binary" | "state";
   area_id: string | null;
   area: string;
   labels: string[];
@@ -50,6 +52,8 @@ export type Candidate = {
   unit: string;
   state: string;
   statistics: boolean;
+  /** An enum sensor's states. */
+  options?: string[];
   watched?: boolean;
 };
 
@@ -76,6 +80,9 @@ export type Suggestion = {
   bands?: Band[];
   nominal?: "on" | "off";
   share?: number;
+  states?: string[];
+  /** Time in each state, for on/off and exact states. */
+  seconds?: Record<string, number>;
 };
 
 export type Suggested = {
@@ -109,8 +116,9 @@ export function span(b: Band): string {
 }
 
 /** The nominal band(s) of a record, in words. */
-export function summary(r: Pick<WatchRecord, "kind" | "bands" | "nominal" | "other">): string {
+export function summary(r: Pick<WatchRecord, "kind" | "bands" | "nominal" | "other" | "states">): string {
   if (r.kind === "binary") return `nominal ${r.nominal}, else ${r.other}`;
+  if (r.kind === "state") return `nominal ${(r.states ?? []).join(", ") || "?"}, else ${r.other}`;
   const nominal = (r.bands ?? []).filter((b) => b.level === "nominal");
   return nominal.length ? `nominal ${nominal.map(span).join(", ")}` : "no nominal band";
 }

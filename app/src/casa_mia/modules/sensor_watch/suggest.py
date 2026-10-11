@@ -15,6 +15,7 @@ from typing import Any
 OUTLIER = 3.0  # standard deviations
 MARGIN = 0.25  # each warning band, as a share of the nominal band's width
 MAX_OUTLIERS = 20  # listed
+MAX_SEEN = 12  # states listed with their time, for exact states
 
 
 def tidy_step(width: float) -> float:
@@ -75,4 +76,24 @@ def binary(seconds: dict[str, float]) -> dict[str, Any] | None:
         "share": shares[nominal] / total,
         "seconds": shares,
         "other": "warning",
+    }
+
+
+def states(seconds: dict[str, float]) -> dict[str, Any] | None:
+    """Exact states: the one it spends most of its time in is nominal (unavailable and
+    unknown aside); None with no time seen."""
+    shares = {
+        s: t
+        for s, t in seconds.items()
+        if s not in ("unavailable", "unknown") and t > 0
+    }
+    total = sum(shares.values())
+    if not total:
+        return None
+    nominal = max(shares, key=lambda s: shares[s])
+    return {
+        "states": [nominal],
+        "share": shares[nominal] / total,
+        "seconds": dict(sorted(shares.items(), key=lambda kv: -kv[1])[:MAX_SEEN]),
+        "other": "error",
     }

@@ -165,7 +165,8 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 function Tile({ module, info, health, href }: { module: string; info: ModuleInfo; health: ModuleHealth; href?: string }) {
-  const [label, tone] = STATES[health.state ?? ""] ?? [health.state ?? "Unknown", css.muted];
+  const own = info.chip?.(health);
+  const [label, tone] = own ? [own[0], css[own[1]]] : (STATES[health.state ?? ""] ?? [health.state ?? "Unknown", css.muted]);
   const progress = info.progress?.(health);
   const facts = info.facts(health).filter(([, value]) => value !== undefined);
   const Tag = href ? "a" : "article";

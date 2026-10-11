@@ -291,12 +291,10 @@ def watch(tmp_path):
 def test_candidates_and_their_filters(watch):
     status, got = call(watch, "GET", "candidates")
     ids = [s["entity_id"] for s in got["sensors"]]
-    assert status == 200 and got["total"] == 7
-    assert (
-        "sensor.weather_text" not in ids
-        and "sensor.status" not in ids
-        and "light.lamp" not in ids
-    )
+    assert status == 200 and got["total"] == 8
+    assert "sensor.status" not in ids and "light.lamp" not in ids
+    text = next(s for s in got["sensors"] if s["entity_id"] == "sensor.weather_text")
+    assert text["kind"] == "state"  # text sensors: exact states
     salt = next(s for s in got["sensors"] if s["entity_id"] == "sensor.salt")
     assert (
         salt["area"] == "Kitchen" and salt["labels"] == ["water"] and salt["statistics"]
@@ -355,10 +353,13 @@ def test_the_whole_house_scans_in_rounds(watch, monkeypatch):
     call(watch, "PUT", "sensor.salt", body=SALT)  # already watched: not offered
     _, first = call(watch, "POST", "scan", body={})
     names = [f["sensor"]["entity_id"] for f in first["found"]]
-    assert first["matched"] == 6 and len(names) == 3 and first["remaining"] == 3
+    assert first["matched"] == 7 and len(names) == 3 and first["remaining"] == 4
     _, second = call(watch, "POST", "scan", body={"start": first["next"]})
-    more = [f["sensor"]["entity_id"] for f in second["found"]]
-    assert not set(names) & set(more) and second["next"] is None
+    _, third = call(watch, "POST", "scan", body={"start": second["next"]})
+    more = [f["sensor"]["entity_id"] for f in second["found"] + third["found"]]
+    assert (
+        len(set(names + more)) == 7 and third["next"] is None
+    )  # 3 + 3 + 1, none twice
     assert "sensor.salt" not in names + more
     status, view = call(
         watch,
@@ -475,3 +476,117 @@ def test_a_failing_integration_counts_after_it_has_had_time_to_set_up():
         on, [_entry("a", "loaded")], first_bad, levels.SETTLE + 1
     )
     assert first_bad == {}
+
+
+@pytest.mark.parametrize("name", ["Tank - Top", "Top of tank", "Topup Tank"])
+def test_the_search_matches_every_word_in_any_order(name):
+    c = {
+        "name": name,
+        "entity_id": "sensor.x",
+        "area_id": None,
+        "labels": [],
+        "platform": "",
+        "device_class": "",
+        "kind": "numeric",
+    }
+    assert watch_api.matches(c, {"q": "tank top"})
+    assert not watch_api.matches(c, {"q": "tank bottom"})
+
+
+ALARM = {"kind": "state", "states": ["0"], "other": "error", "message": "Alarm raised"}
+
+
+@pytest.mark.parametrize(
+    ("state", "level"),
+    [
+        ("0", "nominal"),
+        ("0.0", "nominal"),
+        ("3", "error"),
+        ("idle", "error"),
+        ("unavailable", "error"),
+    ],
+)
+def test_exact_states(state, level):
+    assert levels.level_of(ALARM, state)[0] == level
+    washer = {"kind": "state", "states": ["idle", "standby"], "other": "warning"}
+    assert levels.level_of(washer, "standby") == ("nominal", None)
+    assert levels.level_of(washer, "spin")[0] == "warning"
+
+
+def test_clean_exact_states():
+    record = clean("sensor.alarm_number", ALARM | {"states": [" 0 ", "0", ""]})
+    assert record["states"] == ["0"] and record["other"] == "error"
+    with pytest.raises(BadRequest, match="Nominal states"):
+        clean("sensor.alarm_number", ALARM | {"states": []})
+
+
+def test_states_suggestion_and_a_number_watched_as_exact_states(watch):
+    s = suggest.states({"0": 900.0, "3": 100.0, "unavailable": 5000.0})
+    assert s is not None and s["states"] == ["0"] and s["share"] == pytest.approx(0.9)
+    status, got = call(
+        watch, "GET", "suggest", {"entity": ["sensor.salt"], "kind": ["state"]}
+    )
+    assert (
+        status == 200
+        and got["source"] == "history"
+        and got["record"]["kind"] == "state"
+    )
+    assert (
+        call(
+            watch,
+            "GET",
+            "suggest",
+            {"entity": ["binary_sensor.leak"], "kind": ["numeric"]},
+        )[0]
+        == 400
+    )
+
+
+def test_overall_health_for_the_home_tile(tmp_path):
+    from casa_mia.modules.sensor_watch.status import MISSING, summarise
+
+    rows = [
+        {
+            "entity_id": "homeassistant.recorder",
+            "name": "Recorder",
+            "level": "critical",
+            "message": "not running",
+            "value": "x",
+        },
+        {
+            "entity_id": "sensor.salt",
+            "name": "Salt",
+            "level": "task",
+            "message": "Top up the salt",
+            "value": "20",
+        },
+        {
+            "entity_id": "sensor.ph",
+            "name": "Ph",
+            "level": "task",
+            "message": None,
+            "value": "9",
+        },
+    ]
+    assert summarise({"worst": "critical", "sensors": rows}) == {
+        "health": "critical",
+        "counts": {"critical": 1, "task": 2},
+        "worst": "Recorder: not running",
+    }
+    assert summarise({"worst": "nominal", "sensors": []}) == {
+        "health": "nominal",
+        "counts": {},
+        "worst": None,
+    }
+    watch = make(
+        tmp_path / "sw.json",
+        FakeHA(STATES, ENTITIES, {"worst": "task", "sensors": rows[1:]}),
+    )
+    watch.status.poll()
+    assert (
+        watch.health()["health"] == "task"
+        and watch.health()["worst"] == "Salt: Top up the salt"
+    )
+    absent = make(tmp_path / "sw2.json", FakeHA(STATES, ENTITIES))
+    absent.status.poll()
+    assert absent.health()["problem"] == MISSING and absent.health()["health"] is None

@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026.10.8-b4
+
+- **Sensor Watch: exact states.** A sensor whose state should be one exact thing (an alarm
+  number that should be 0, a washer that should be idle or standby) lists its nominal
+  states, and anything else gets a level and a message. Text and enum sensors can now be
+  watched this way too; a numeric sensor offers bands or exact states.
+- **Sensor Watch's tile on Home shows overall health:** its chip is the worst level now
+  (Nominal in green up to Critical in red), with the count at each level and the worst
+  culprit named; it asks the integration once a minute, and says when the integration
+  isn't added yet.
+- **Sensor Watch's search** matches every word, anywhere, in any order, ignoring case
+  and punctuation: "tank top" finds "Tank - Top", "Top of tank" and "Topup Tank".
+
 ## 2026.10.8-b3
 
 - **Sensor Watch watches Home Assistant itself:** the Recorder or History not running is

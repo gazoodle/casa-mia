@@ -5,6 +5,8 @@ A record watches one entity (keyed by its entity id):
   either open (None); `otherwise`, the level of a value in no band;
 - binary: `nominal` (the state all is well in, "on" or "off"), `other` (the level of the
   other state) and its `message`;
+- state (exact states): `states` (the nominal ones, as text: "0", or "idle" and
+  "standby"), `other` (the level of anything else) and its `message`;
 - both: `unavailable` (a level, or "ignore"), `hold_off` (seconds a new level must last
   before it counts), and an optional display `name`.
 The integration works out the levels (casa_mia_sensor_watch/levels.py, whose LEVELS
@@ -17,10 +19,11 @@ from typing import Any
 
 LEVELS = ("nominal", "task", "warning", "error", "critical")
 IGNORE = "ignore"
-KINDS = ("numeric", "binary")
+KINDS = ("numeric", "binary", "state")
 DEFAULT_HOLD_OFF = 60  # seconds
 MAX_HOLD_OFF = 24 * 3600
 MAX_BANDS = 12
+MAX_STATES = 20
 MAX_TEXT = 80
 DOMAIN = "casa_mia_sensor_watch"  # the integration: its websocket command, its entities
 
@@ -70,7 +73,7 @@ def clean(entity_id: str, body: dict[str, Any]) -> dict[str, Any]:
         raise BadRequest("Not an entity id.")
     kind = body.get("kind")
     if kind not in KINDS:
-        raise BadRequest("kind: numeric or binary.")
+        raise BadRequest("kind: numeric, binary or state.")
     hold_off = _number(body.get("hold_off", DEFAULT_HOLD_OFF), "Hold-off")
     if hold_off is None or not 0 <= hold_off <= MAX_HOLD_OFF:
         raise BadRequest(f"Hold-off: 0 to {MAX_HOLD_OFF} seconds.")
@@ -91,6 +94,18 @@ def clean(entity_id: str, body: dict[str, Any]) -> dict[str, Any]:
         record["other"] = _level(
             body.get("other", "warning"), "The other state's level"
         )
+        record["message"] = _text(body.get("message"), "Message")
+        return record
+    if kind == "state":
+        states = body.get("states")
+        if not isinstance(states, list):
+            raise BadRequest("Nominal states: a list.")
+        cleaned = list(dict.fromkeys(_text(s, "Nominal state") for s in states))
+        cleaned = [s for s in cleaned if s]
+        if not cleaned or len(cleaned) > MAX_STATES:
+            raise BadRequest(f"Nominal states: 1 to {MAX_STATES}.")
+        record["states"] = cleaned
+        record["other"] = _level(body.get("other", "error"), "Anything else's level")
         record["message"] = _text(body.get("message"), "Message")
         return record
     bands = body.get("bands")

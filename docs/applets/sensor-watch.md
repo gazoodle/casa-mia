@@ -44,7 +44,7 @@ house with hundreds of them stays manageable. **Edit** changes a sensor's bands;
 ### Add a sensor
 
 Search for it by name or entity id, or narrow the list by **area**, **label**,
-**integration**, **device class** or kind (numeric or on/off). Pick one, and Sensor
+**integration**, **device class** or kind (numeric, on/off, or text and enum). Pick one, and Sensor
 Watch reads its history (30 days unless you choose otherwise) and suggests its bands:
 
 - **Numeric sensors:** the history's spread gives the nominal band, rounded outwards to a
@@ -55,6 +55,13 @@ Watch reads its history (30 days unless you choose otherwise) and suggests its b
   up the salt") before saving.
 - **On/off sensors:** the state it spends most of its time in is nominal; the other is a
   warning unless you choose another level.
+- **Exact states:** for a sensor whose state should be one exact thing rather than within
+  a range (an alarm number that should be `0`, a washing machine that should be `idle` or
+  `standby`), and for text and enum sensors, which have no range at all. List the
+  nominal states; anything else gets one level and a message. Numbers compare as numbers,
+  so `0` matches `0.0`. A numeric sensor offers **Bands (a range)** or **Exact states**;
+  the states it has spent most of its time in are shown (an enum's own states, for an
+  enum), to tick into the list.
 
 Sensors with long-term statistics (most measurements) are read from them, which Home
 Assistant keeps for good. Others are read from their state history, which Home

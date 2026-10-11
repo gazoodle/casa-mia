@@ -16,6 +16,9 @@ export type ModuleInfo = {
   blurb: string;
   icon: ReactNode;
   facts: (h: ModuleHealth) => Fact[];
+  /** Its own chip instead of the module's state (e.g. Sensor Watch's overall health):
+   * a label and a tone, or undefined to show the state as usual. */
+  chip?: (h: ModuleHealth) => [label: string, tone: "good" | "warn" | "bad" | "muted"] | undefined;
   /** 0-100 while something is in progress, else undefined. */
   progress?: (h: ModuleHealth) => number | undefined;
 };
@@ -68,7 +71,29 @@ export const MODULES: Record<string, ModuleInfo> = {
     option: "Sensor Watch",
     blurb: "Any sensor given bands of values, each with a level, so what needs doing or has gone wrong shows before the family notices.",
     icon: <SensorWatchIcon />,
-    facts: (h) => [["Watching", `${h.watching ?? 0} sensors`]],
+    chip: (h) => {
+      const level = h.health as string | null | undefined;
+      if (h.state !== "running" || !level) return undefined;
+      const tone = level === "nominal" ? "good" : level === "task" ? "muted" : level === "warning" ? "warn" : "bad";
+      return [level[0].toUpperCase() + level.slice(1), tone];
+    },
+    facts: (h) => {
+      const counts = (h.counts ?? {}) as Record<string, number>;
+      const order = ["critical", "error", "warning", "task"];
+      const plural: Record<string, string> = { error: "errors", warning: "warnings", task: "tasks" };
+      return [
+        ["Watching", `${h.watching ?? 0} sensors`],
+        [
+          "Now",
+          h.problem
+            ? (h.problem as string)
+            : h.health
+              ? order.filter((l) => counts[l]).map((l) => `${counts[l]} ${counts[l] === 1 ? l : (plural[l] ?? l)}`).join(" · ") || "all nominal"
+              : undefined,
+        ],
+        ["Worst", (h.worst as string | null) ?? undefined],
+      ];
+    },
   },
   gitproxy: {
     title: "Firmware server",
