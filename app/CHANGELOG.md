@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.10.8-b22
+
+- **Breaking:** Casa Mia's cards changed. Restart Home Assistant once; a Repair asks.
+- Cards: their previews in Home Assistant's card picker look as they will in use. Camera Commander shows its still picture without the "while editing" hatching; the Over layer shows a picture of what it does (a card over a veiled dashboard) and no longer puts its layer up from the picker; the Sensor Watch card shows what you have, or with nothing to list an example of a bad day, and never hides there.
+- Sensor Watch page: it asks for the live levels at most once a second. With sensors whose values move many times a second (mains voltage, CPU) it fetched and redrew without pause, and Safari hung, more so with two pages open.
+- Sensor Watch card: it asks even when Home Assistant has none of the integration's entities (it showed nothing, rather than saying the integration isn't set up).
+
 ## 2026.10.8-b21
 
 - **Breaking:** the Sensor Watch integration and Casa Mia's cards changed. Restart Home Assistant once; a Repair asks.

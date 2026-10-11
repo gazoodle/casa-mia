@@ -143,6 +143,13 @@ function filling(el: Element): boolean {
   return false;
 }
 
+/** A preview in HA's card picker (adding a card): there a card shows how it will look
+ * in use, and never acts (no layer put up, no stream). */
+export function inPicker(el: Element): boolean {
+  for (let n: Node | null = el; n; n = up(n)) if ((n as Element).tagName === "HUI-CARD-PICKER") return true;
+  return false;
+}
+
 /** Inside one of HA's dialogs (the card editor's preview), not on the dashboard. */
 export function inDialog(el: Element): boolean {
   for (let n: Node | null = el; n; n = up(n))

@@ -4,11 +4,18 @@
 // the backstop), and shows each value live from the entity itself. With nothing to list it hides (HA's card wrapper honours a card's own
 // `hidden`), so in a Tablet Layout its panel closes, garnish heading and all, when all is well.
 import { LitElement, css, html, nothing } from "lit";
-import { fire, type Hass } from "../ha.ts";
+import { fire, type Hass, inPicker } from "../ha.ts";
 import { type Config, DEFAULTS, type Row, since } from "./common.ts";
 
 const DOMAIN = "casa_mia_sensor_watch";
 const ASK_AFTER = 300; // ms: the integration's entities write in a burst; one ask after
+const ago = (h: number) => new Date(Date.now() - h * 3600e3).toISOString();
+/** In HA's card picker with nothing to list: how it looks when something is. */
+const EXAMPLE: Row[] = [
+  { entity_id: "", name: "Plug 3 voltage", level: "critical", value: "198 V", message: "Mains far too low: under 207 V", since: ago(3) },
+  { entity_id: "", name: "Freezer", level: "warning", value: "-12 °C", message: "Freezer too warm: check the door and seal", since: ago(1) },
+  { entity_id: "", name: "Softener salt", level: "task", value: "18 %", message: "Top up the salt", since: ago(50) },
+];
 
 export class SensorWatchCard extends LitElement {
   static properties = { _config: { state: true }, _rows: { state: true }, _problem: { state: true }, _editing: { state: true } };
@@ -17,7 +24,7 @@ export class SensorWatchCard extends LitElement {
   _problem?: string;
   _editing = false;
   private _hass?: Hass;
-  private _seen = ""; // the integration's entities, as last seen: a change asks again
+  private _seen: string | null = null; // the integration's entities, as last seen: a change asks again (null: never seen, so ask)
   private _timer?: number;
   private _unsubscribe?: Promise<() => void>; // from the change-of-level event
 
@@ -31,7 +38,7 @@ export class SensorWatchCard extends LitElement {
 
   setConfig(config: Config) {
     this._config = { ...config };
-    this._seen = ""; // ask again, with the new options
+    this._seen = null; // ask again, with the new options
     if (this._hass) this._later();
   }
 
@@ -111,7 +118,7 @@ export class SensorWatchCard extends LitElement {
   /** Hidden with nothing to list (unless asked to say so, or being edited). */
   private _showOrHide() {
     const o = { ...DEFAULTS, ...this._config };
-    const hide = !this._editing && !this._problem && this._rows !== undefined && this._rows.length === 0 && o.when_clear === "hide";
+    const hide = !this._editing && !(this.isConnected && inPicker(this)) && !this._problem && this._rows !== undefined && this._rows.length === 0 && o.when_clear === "hide";
     if (hide === this.hidden) return;
     this.hidden = hide;
     fire(this, "card-visibility-changed", { value: !hide });
@@ -128,6 +135,13 @@ export class SensorWatchCard extends LitElement {
   render() {
     if (!this._config) return nothing;
     const o = { ...DEFAULTS, ...this._config };
+    // In the card picker with nothing (or no answer) to show: an example of a bad day.
+    const example = inPicker(this) && (this._problem !== undefined || (this._rows !== undefined && !this._rows.length));
+    if (example)
+      return html`<ha-card .header=${o.title || "Needs looking at"}>
+        ${EXAMPLE.map((r) => this._row(r, r.value ?? "", Date.now()))}
+        <p class="note">An example: hidden when all is well.</p>
+      </ha-card>`;
     const rows = (this._rows ?? []).slice(0, o.max);
     const more = (this._rows?.length ?? 0) - rows.length;
     const now = Date.now();
@@ -139,19 +153,22 @@ export class SensorWatchCard extends LitElement {
       ${rows.map((r) => {
         const st = this._hass?.states[r.entity_id];
         const unit = st?.attributes?.unit_of_measurement ?? "";
-        const value = st ? `${st.state}${unit ? ` ${unit}` : ""}` : (r.value ?? "");
-        return html`<button class="row ${r.level}" @click=${() => fire(this, "hass-more-info", { entityId: r.entity_id })}>
-          <span class="level">${r.level}</span>
-          <span class="what">
-            <span class="name">${r.name}</span>
-            ${r.message ? html`<span class="message">${r.message}</span>` : nothing}
-          </span>
-          <span class="value">${value}</span>
-          <span class="since">${since(r.since, now)}</span>
-        </button>`;
+        return this._row(r, st ? `${st.state}${unit ? ` ${unit}` : ""}` : (r.value ?? ""), now);
       })}
       ${more > 0 ? html`<p class="note">and ${more} more</p>` : nothing}
     </ha-card>`;
+  }
+
+  private _row(r: Row, value: string, now: number) {
+    return html`<button class="row ${r.level}" @click=${() => r.entity_id && fire(this, "hass-more-info", { entityId: r.entity_id })}>
+      <span class="level">${r.level}</span>
+      <span class="what">
+        <span class="name">${r.name}</span>
+        ${r.message ? html`<span class="message">${r.message}</span>` : nothing}
+      </span>
+      <span class="value">${value}</span>
+      <span class="since">${since(r.since, now)}</span>
+    </button>`;
   }
 
   static styles = css`

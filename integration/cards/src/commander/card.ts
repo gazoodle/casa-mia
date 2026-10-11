@@ -1,7 +1,7 @@
 // The Camera Commander card (see index.ts for how it works).
 import { LitElement, css, html, nothing } from "lit";
 import { keyed } from "lit/directives/keyed.js";
-import { atHome, type Fit, fire, fitOf, type Hass, heightFor, inDialog, liveChannel, LOOK, lookCss, navigate, ratioFor, TABLET, watchRoom } from "../ha.ts";
+import { atHome, type Fit, fire, fitOf, type Hass, heightFor, inDialog, inPicker, liveChannel, LOOK, lookCss, navigate, ratioFor, TABLET, watchRoom } from "../ha.ts";
 import { heightForMain, layout, PANELS, pyRound, type Rect } from "../layout.ts";
 import { playWebRTC } from "../../../../app/web/src/webrtc.ts";
 import { Motion, dot, motionStyles } from "./motion.ts";
@@ -436,7 +436,7 @@ export class CommanderCard extends LitElement {
               <div class="caption" style=${at(mainRect)}><span>${card.cameras[main]?.title ?? main}${this._playing ? " (live)" : ""}</span></div>`
           : nothing}
         </div>
-        ${editing ? html`<div class="hatch"><span>Still picture while editing</span></div>` : nothing}
+        ${editing && !inPicker(this) ? html`<div class="hatch"><span>Still picture while editing</span></div>` : nothing}
         ${own.debug?.on
           ? html`<div class="debug" style="color:${own.debug.colour ?? "#ffd60a"}">
               ${this._fit?.mode ?? "?"} (in ${this._fit?.container || "?"}), room ${this._fit?.room ?? "?"} px<br />

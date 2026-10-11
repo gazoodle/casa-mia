@@ -75,7 +75,7 @@ Not scheduled. Newest ideas first within each section. Move an item into the REA
 
 - **Layouts: nine regions instead of four edges** (asked 2026-10-10). Today a layout has main and four edges; corners belong to whichever edge takes them. Consider nine regions (a 3 × 3 grid: corners, edges, centre), so a corner can hold its own panel. Both the Tablet Layout and the Commander: one model in both engines (`commander_layout` and `layout.ts`), new cases in `tests/layout_cases.json`, and `layout.json` options; and a way for today's layouts to keep working unchanged.
 
-- **Card picker previews that look like the real card** (asked 2026-10-10). In HA's card picker (adding a card to a dashboard), the Commander's preview shows its edit-time look; it should look as it will at run time. The Over layer has no preview picture at all; give it one, as the Commander has.
+- **Card picker previews that look like the real card** (built in 2026.10.8-b22 for the Commander, the Over layer and the Sensor Watch card: `ha.ts` inPicker; check the Commander on the box, as it needs a commander to draw; asked 2026-10-10). In HA's card picker (adding a card to a dashboard), the Commander's preview shows its edit-time look; it should look as it will at run time. The Over layer has no preview picture at all; give it one, as the Commander has.
 
 - **Over layer: its edit dialog** (asked 2026-10-10). The dialog's layout is a bit buggy (inspect it and list what's wrong), and blur, dim and the other backdrop effects should each be optional, with their own on/off.
 

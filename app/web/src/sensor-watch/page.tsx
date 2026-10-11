@@ -56,9 +56,13 @@ export function SensorWatchPage({ state }: { state?: string }) {
       let rev = -1;
       while (open) {
         try {
+          const asked = Date.now();
           const got = await swApi.get<LevelsView>(`levels?after=${rev}`);
           rev = got.rev;
           if (open) setLive(got);
+          // Values move many times a second (a mains voltage, a CPU): ask at most once a
+          // second, or the page does nothing but fetch and redraw (Safari hung on it).
+          await new Promise((r) => setTimeout(r, Math.max(0, 1000 - (Date.now() - asked))));
         } catch {
           await new Promise((r) => setTimeout(r, 5000));
         }
