@@ -19,6 +19,7 @@ const NAMES: Record<Exclude<keyof Filters, "q">, string> = {
   device_class: "Device class",
   kind: "Kind",
   profile: "Profile",
+  group: "Group",
 };
 
 export function FilterChips({ value, options, onChange }: { value: Filters; options: ChipOptions; onChange: (f: Filters) => void }) {

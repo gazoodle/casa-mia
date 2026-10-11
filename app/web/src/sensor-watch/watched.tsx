@@ -5,7 +5,7 @@
 import { useMemo, useState } from "react";
 import { Empty } from "../page";
 import { FilterChips, LevelChips, type ChipOptions, type Choice } from "./chips";
-import { LEVELS, LEVEL_NAMES, NO_FILTERS, summary, type Filters, type Level, type LevelsView, type WatchRecord, FITS, type Profile } from "./common";
+import { LEVELS, LEVEL_NAMES, NO_FILTERS, summary, type Filters, type Group, type Level, type LevelsView, type WatchRecord, FITS, type Profile } from "./common";
 import css from "./sensor-watch.module.css";
 import ui from "../ui.module.css";
 
@@ -31,7 +31,8 @@ function passes(r: WatchRecord, f: Filters, words: string[], skip?: keyof Filter
     is("device_class", m.device_class) &&
     is("kind", r.kind) &&
     is("domain", m.domain ?? r.entity_id.split(".")[0]) &&
-    is("profile", r.profile ?? "")
+    is("profile", r.profile ?? "") &&
+    is("group", r.group ?? "")
   );
 }
 
@@ -45,6 +46,7 @@ export function WatchedList({
   live,
   labels,
   profiles,
+  groups,
   filters,
   setFilters,
   onFollow,
@@ -56,6 +58,7 @@ export function WatchedList({
   live?: LevelsView;
   labels: Record<string, string>;
   profiles: Profile[];
+  groups: Group[];
   /** The filters (the page's, so a profile's "following" can set them). */
   filters: Filters;
   setFilters: (f: Filters) => void;
@@ -87,8 +90,9 @@ export function WatchedList({
       }),
       kind: KINDS.filter((k) => leave("kind").some((r) => r.kind === k.id)),
       profile: profiles.filter((p) => leave("profile").some((r) => r.profile === p.id)).map((p) => ({ id: p.id, name: p.name })),
+      group: groups.filter((g) => leave("group").some((r) => r.group === g.id)).map((g) => ({ id: g.id, name: g.name })),
     };
-  }, [records, filters, labels, profiles]); // `words` follows filters.q
+  }, [records, filters, labels, profiles, groups]); // `words` follows filters.q
 
   const matched = useMemo(() => records.filter((r) => passes(r, filters, words)), [records, filters]);
   const counts = matched.reduce<Record<string, number>>((n, r) => {
@@ -162,6 +166,7 @@ export function WatchedList({
                       {summary(r)}
                       {r.meta?.area && ` · ${r.meta.area}`}
                       {r.profile && ` · follows ${profiles.find((p) => p.id === r.profile)?.name ?? "a profile"}`}
+                      {r.group && ` · in ${groups.find((g) => g.id === r.group)?.name ?? "a group"}`}
                     </span>
                   </span>
                   <span className={css.rowActions}>

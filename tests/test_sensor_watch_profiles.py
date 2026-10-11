@@ -119,6 +119,7 @@ def test_the_library_is_sound():
         bands = clean_profile(p)["bands"]  # checks it as a save would
         assert (
             p["about"]
+            and p["category"]
             and all(  # edge to edge: nothing falls between bands
                 a["to"] == b["from"] for a, b in zip(bands, bands[1:])
             )

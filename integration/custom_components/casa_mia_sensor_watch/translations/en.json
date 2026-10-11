@@ -39,6 +39,10 @@
         "levels": {
           "name": "Levels",
           "description": "Which levels to list. Leave empty for everything that isn't nominal."
+        },
+        "group": {
+          "name": "Group",
+          "description": "Only the members of this group (as named on Casa Mia's Sensor Watch page), and its own worst level. Leave empty for every watched sensor."
         }
       }
     }

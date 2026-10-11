@@ -56,6 +56,7 @@ def resolve(
         "entity_id": record["entity_id"],
         "name": record.get("name", ""),
         "profile": profile["id"],
+        **({"group": record["group"]} if record.get("group") else {}),
     }
 
 

@@ -20,7 +20,7 @@ from homeassistant.helpers import device_registry as dr
 from ..casa_mia.children import add_module_device, follow_module, parent_coordinator
 from .const import DOMAIN, MODULE
 from .entity import watch_device
-from .levels import LEVELS, listing
+from .levels import LEVELS, listing, summary
 from .restart_notice import async_check_restart, manifest_version
 from .system import start_checks
 from .watch import Watcher
@@ -29,7 +29,9 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS = [Platform.BINARY_SENSOR, Platform.SENSOR]
 # Read at import, as Casa Mia's own: a reload must not take newer files as loaded.
 LOADED_VERSION = manifest_version()
-LIST_SCHEMA = vol.Schema({vol.Optional("levels"): [vol.In(LEVELS)]})
+LIST_SCHEMA = vol.Schema(
+    {vol.Optional("levels"): [vol.In(LEVELS)], vol.Optional("group"): str}
+)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -58,13 +60,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.async_on_unload(start_checks(hass, watcher))  # Home Assistant's own health
 
     async def list_sensors(call: ServiceCall) -> ServiceResponse:
-        rows = listing(watcher.now, call.data.get("levels"))
+        # A group (named on the app's page): only its members, and its own worst.
+        group = call.data.get("group")
+        now = watcher.now
+        if group:
+            now = {
+                e: n
+                for e, n in now.items()
+                if (watcher.records.get(e) or {}).get("group") == group
+            }
+        rows = listing(now, call.data.get("levels"))
         _LOGGER.debug(
-            "list (%s): %d sensors",
+            "list (%s%s): %d sensors",
             ",".join(call.data.get("levels") or []) or "not nominal",
+            f", group {group}" if group else "",
             len(rows),
         )
-        return {"worst": watcher.summary()["worst"], "sensors": rows}
+        worst = summary(now)["worst"] if group else watcher.summary()["worst"]
+        return {"worst": worst, "sensors": rows}
 
     hass.services.async_register(
         DOMAIN,

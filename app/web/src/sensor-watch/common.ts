@@ -39,6 +39,8 @@ export type WatchRecord = {
   label?: string;
   /** The profile it follows (its levels then come from there). */
   profile?: string;
+  /** The group it joined by (groups.py), if any. */
+  group?: string;
   /** What Home Assistant says of it, for the filters (sent with the list). */
   meta?: {
     name?: string;
@@ -70,9 +72,21 @@ export function levelsOf(r: Partial<WatchRecord>): Partial<WatchRecord> {
   return levels;
 }
 
+/** A group: saved filters and a profile; what matches is watched, new arrivals too. */
+export type Group = {
+  id: string;
+  name: string;
+  filters: Partial<Filters>;
+  profile: string;
+  /** Members stopped by hand: not pulled back. */
+  left: string[];
+  members: number;
+};
+
 export type WatchView = {
   records: WatchRecord[];
   profiles: Profile[];
+  groups: Group[];
   system: SystemSettings;
   levels: Level[];
   /** Label id -> its name. */
@@ -118,8 +132,8 @@ export type Options = {
 
 export type CandidatesView = { total: number; sensors: Candidate[]; options: Options };
 
-export type Filters = { q: string; domain: string; area: string; label: string; platform: string; device: string; device_class: string; kind: string; profile?: string };
-export const NO_FILTERS: Filters = { q: "", domain: "", area: "", label: "", platform: "", device: "", device_class: "", kind: "", profile: "" };
+export type Filters = { q: string; domain: string; area: string; label: string; platform: string; device: string; device_class: string; kind: string; profile?: string; group?: string };
+export const NO_FILTERS: Filters = { q: "", domain: "", area: "", label: "", platform: "", device: "", device_class: "", kind: "", profile: "", group: "" };
 
 export type Suggestion = {
   count?: number;

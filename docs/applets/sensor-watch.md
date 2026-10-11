@@ -227,12 +227,53 @@ them in the watched list. **Edit** changes its name and levels (every follower w
 **Delete** removes it (its followers keep a copy of its levels as their own).
 
 **From the library…** offers profiles that ship with Casa Mia, each with what it's for
-and where its numbers come from: UK mains voltage (current law, 216.2–253 V, and the
-ENA's 2026 proposal, 207–253 V), UK grid frequency (49.5–50.5 Hz), pool or hot tub pH
-(7.2–7.8) and battery percentage. Tick the ones you want. **Export** saves all your
+and where its numbers come from:
+
+- **Mains voltage and grid frequency** for the UK (current law, and the ENA's 2026
+  proposal), the US (120 V, ANSI C84.1; 60 Hz), the EU (230 V, EN 50160; 50 Hz), Japan
+  (100 V), China (220 V; 50 Hz) and Australia (230 V; 50 Hz).
+- **UK inverter trips (G98/G99):** how close the supply's voltage and frequency are to
+  tripping a grid-tied inverter, such as a Sunsynk.
+- **Batteries:** replaceable cells; rechargeable packs kept to 20–80%, 85%, 90% or (for
+  LiFePO4) 100%; a home battery reaching its reserve; 12 V lead-acid and LiFePO4 by
+  voltage, and a LiFePO4 cell.
+- **Broadband:** a speed test's download against your plan (ADSL, FTTC 40 and 80, fibre
+  100 to 900, Starlink 100 to 300): fine at 70% of the plan, a warning under half.
+- **Water:** pool or hot tub pH, free chlorine for a pool and a hot tub, hot tub bromine,
+  a tropical or cold-water aquarium, a water softener's salt.
+- **Indoor air:** CO₂, humidity, PM2.5, radon.
+- **Cold and hot storage:** freezer, fridge, hot water cylinder.
+- **Heating:** boiler pressure, room temperature.
+- **Outdoors and garden:** frost risk, pipes in an unheated space, soil moisture.
+- **Computers and network:** Wi-Fi signal, CPU temperature, disk use.
+
+Nothing starts ticked: search (a country, "voltage", "pH") and tick what you have.
+
+**Duplicate…** on a profile starts a new one from its levels, to change what differs:
+one room temperature profile per floor, say, as each floor up runs a little warmer.
+
+Tick the ones you want. **Export** saves all your
 profiles as a JSON file to share; **Import…** takes one (yours, or someone else's). A
 profile with the name of one you have replaces its levels, so its followers change
 with it: the import starts those unticked, and says so.
+
+### Groups
+
+A group is a saved set of filters (domain, area, label, integration, device, device
+class, kind, a search) and a profile. Everything matching is watched, following the
+profile, and **whatever matches later joins by itself**: put in a new plug and it's
+watched within a minute, no setting up. Make one with **+ New group** (it shows how
+many match as you choose); the rule of thumb is that more than two of the same kind
+is a group, a single thing is a watch.
+
+- Members the profile doesn't fit (another kind) are passed over; sensors already
+  watched keep their own levels.
+- **Stop watching** a member and the group remembers it, so it isn't pulled back;
+  **Let them back** on the group undoes that.
+- **N in it** shows the members in the watched list (a Group chip there too).
+- **Delete** a group and its members stay watched, as they are; new ones stop joining.
+- The `list` service takes `group` (the group's name): only its members, and its own
+  worst level, for a panel or an automation about just the mains plugs.
 
 ### Scan my house
 

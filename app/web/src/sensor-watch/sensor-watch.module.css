@@ -640,3 +640,13 @@
   cursor: default;
   text-decoration: none;
 }
+
+/* A category heading in the profile library. */
+.category {
+  margin: 14px 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}

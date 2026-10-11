@@ -1,0 +1,182 @@
+/** Groups that keep themselves up to date: saved filters and a profile. Everything that
+ * matches is watched, following the profile, and whatever matches later joins by itself;
+ * a member stopped by hand stays out until let back in. */
+
+import { useState } from "react";
+import { AreaHead } from "../page";
+import { Dialog, Field } from "../ui";
+import { NO_FILTERS, swApi, type Filters, type Group, type Profile, type WatchView } from "./common";
+import { useCandidates } from "./dialogs";
+import { FilterBar } from "./filters";
+import css from "./sensor-watch.module.css";
+import guest from "../guest.module.css";
+import ui from "../ui.module.css";
+
+type Change = <V extends WatchView>(action: () => Promise<V>, done: string | ((v: V) => string)) => Promise<boolean>;
+type Joined = WatchView & { joined: number };
+
+const FILTER_NAMES: Partial<Record<keyof Filters, string>> = {
+  q: "search",
+  domain: "domain",
+  area: "area",
+  label: "label",
+  platform: "integration",
+  device: "device",
+  device_class: "device class",
+  kind: "kind",
+};
+
+/** A group's filters in words: `device class voltage · integration shelly`. */
+function described(g: Group, labels: Record<string, string>): string {
+  return Object.entries(g.filters)
+    .map(([k, v]) => `${FILTER_NAMES[k as keyof Filters] ?? k} ${k === "label" ? (labels[v as string] ?? v) : k === "q" ? `"${v}"` : v}`)
+    .join(" · ");
+}
+
+export function GroupsSection({
+  groups,
+  profiles,
+  labels,
+  change,
+  onMembers,
+}: {
+  groups: Group[];
+  profiles: Profile[];
+  labels: Record<string, string>;
+  change: Change;
+  /** Show its members in the watched list. */
+  onMembers: (g: Group) => void;
+}) {
+  const [editing, setEditing] = useState<Group | null>();
+  const joined = (v: Joined) => (v.joined ? `; ${v.joined} joined` : "");
+  return (
+    <section className={guest.area}>
+      <AreaHead
+        title="Groups"
+        blurb="Saved filters and a profile: everything matching is watched, and what matches later joins by itself (a new plug, say). More than two of the same kind is a group; a single thing is a watch."
+        action={
+          <button className={ui.button} disabled={!profiles.length} onClick={() => setEditing(null)} title={profiles.length ? undefined : "Make a profile first"}>
+            + New group
+          </button>
+        }
+      />
+      {!profiles.length && <p className={css.note}>A group's members follow a profile: make one first (or take one from the library).</p>}
+      {groups.length > 0 && (
+        <div className={css.table}>
+          {groups.map((g) => (
+            <div key={g.id} className={`${css.row} ${css.compact} ${css.profileRow}`}>
+              <button className={`${css.level} ${css.lv_none} ${css.followers}`} disabled={!g.members} onClick={() => onMembers(g)}>
+                {g.members} in it
+              </button>
+              <span className={css.what}>
+                <strong>{g.name}</strong>
+                <span className={css.note}>
+                  {described(g, labels)} · follows {profiles.find((p) => p.id === g.profile)?.name ?? "a missing profile"}
+                  {g.left.length > 0 && ` · ${g.left.length} left out by hand`}
+                </span>
+              </span>
+              <span className={css.rowActions}>
+                {g.left.length > 0 && (
+                  <button
+                    className={`${ui.button} ${ui.small}`}
+                    onClick={() => change(() => swApi.post<Joined>(`groups/${g.id}/readmit`), (v) => `${g.name}: let back in${joined(v)}`)}
+                  >
+                    Let them back
+                  </button>
+                )}
+                <button className={`${ui.button} ${ui.small}`} onClick={() => setEditing(g)}>
+                  Edit
+                </button>
+                <button
+                  className={`${ui.danger} ${ui.small}`}
+                  onClick={() =>
+                    confirm(`Delete the group "${g.name}"? Its ${g.members} members stay watched, as they are; new ones stop joining.`) &&
+                    change(() => swApi.del<WatchView>(`groups/${g.id}`), `${g.name} deleted`)
+                  }
+                >
+                  Delete
+                </button>
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+      {editing !== undefined && (
+        <GroupDialog
+          group={editing ?? undefined}
+          profiles={profiles}
+          onClose={() => setEditing(undefined)}
+          onSave={(body) =>
+            change(
+              () => (editing ? swApi.put<Joined>(`groups/${editing.id}`, body) : swApi.post<Joined>("groups", body)),
+              (v) => `${body.name} saved${joined(v)}`,
+            )
+          }
+        />
+      )}
+    </section>
+  );
+}
+
+function GroupDialog({
+  group,
+  profiles,
+  onClose,
+  onSave,
+}: {
+  group?: Group;
+  profiles: Profile[];
+  onClose: () => void;
+  onSave: (body: { name: string; filters: Partial<Filters>; profile: string }) => Promise<boolean>;
+}) {
+  const [name, setName] = useState(group?.name ?? "");
+  const [profile, setProfile] = useState(group?.profile ?? profiles[0]?.id ?? "");
+  const [filters, setFilters] = useState<Filters>({ ...NO_FILTERS, ...group?.filters });
+  const [saving, setSaving] = useState(false);
+  const { view, error } = useCandidates(filters);
+  const chosen = Object.fromEntries(Object.entries(filters).filter(([k, v]) => v && k in FILTER_NAMES));
+  const save = async () => {
+    setSaving(true);
+    const ok = await onSave({ name: name.trim(), filters: chosen, profile });
+    setSaving(false);
+    if (ok) onClose();
+  };
+  return (
+    <Dialog
+      wide
+      title={group ? `Edit the group ${group.name}` : "New group"}
+      onClose={onClose}
+      footer={
+        <>
+          <button className={ui.button} onClick={onClose}>
+            Cancel
+          </button>
+          <button className={ui.primary} disabled={saving || !name.trim() || !Object.keys(chosen).length} onClick={save}>
+            {group ? "Save" : "Make it"}
+          </button>
+        </>
+      }
+    >
+      <Field label="Name" help="What it gathers, e.g. Mains voltage or Leak sensors. The list service takes it as `group`.">
+        <input value={name} maxLength={80} onChange={(e) => setName(e.target.value)} autoFocus={!group} />
+      </Field>
+      <Field label="Members follow" help="The profile every member follows. Those it doesn't fit (another kind) are passed over.">
+        <select value={profile} onChange={(e) => setProfile(e.target.value)}>
+          {profiles.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name} ({p.kind === "binary" ? "on/off" : p.kind === "state" ? "exact states" : "bands"})
+            </option>
+          ))}
+        </select>
+      </Field>
+      <p className={css.note}>What it takes: at least one filter. Checked each minute, so new matches join by themselves.</p>
+      <FilterBar value={filters} options={view?.options} onChange={setFilters} />
+      {error && <p className={css.problem}>{error}</p>}
+      {view && (
+        <p className={css.note}>
+          {view.total} match now{view.sensors.some((c) => c.watched) ? " (those watched already keep their own levels)" : ""}.
+        </p>
+      )}
+    </Dialog>
+  );
+}

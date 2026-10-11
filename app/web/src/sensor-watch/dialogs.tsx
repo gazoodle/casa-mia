@@ -9,7 +9,7 @@ import ui from "../ui.module.css";
 
 /** The filtered sensors, asked of the app as the filters change (a big house has
  * thousands; the app sends at most 200). */
-function useCandidates(filters: Filters) {
+export function useCandidates(filters: Filters) {
   const [view, setView] = useState<CandidatesView>();
   const [error, setError] = useState<string>();
   useEffect(() => {

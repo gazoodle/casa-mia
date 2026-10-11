@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026.10.8-b16
+
+- **Breaking:** the Sensor Watch integration changed (`list` takes `group`). Restart Home Assistant once; a Repair asks.
+- Sensor Watch: **groups that keep themselves up to date**: saved filters (device class, integration, area, label, search…) and a profile. Everything matching is watched, following the profile; whatever matches later joins by itself (checked each minute); a member stopped by hand stays out until **Let them back**. A Group chip filters the watched list, and the `list` service takes `group` (its members and its own worst level). Deleting a group keeps its members watched.
+- Sensor Watch: each profile has its own **Export**, to share just that one (Export all saves them all).
+- Sensor Watch: **Duplicate…** on a profile starts a new one from its levels (a room temperature per floor, say).
+- Sensor Watch: the library grows to 55 profiles in categories, with a search (nothing starts ticked): batteries (replaceable; rechargeable to 80, 85, 90 or 100%; a home battery at its reserve; 12 V lead-acid and LiFePO4; a LiFePO4 cell), broadband against your plan (ADSL, FTTC, fibre, Starlink), indoor air (CO₂, humidity, PM2.5, radon), freezer, fridge, hot water, boiler pressure, room temperature, Wi-Fi signal, CPU temperature and disk use; aquariums, softener salt, frost, pipes in an unheated space and soil moisture. "Battery (%)" is now "Battery, replaceable (%)".
+- Sensor Watch: the library adds mains voltage and grid frequency for the US, the EU, Japan, China and Australia; UK inverter trip points (G98/G99, as a Sunsynk is set); and free chlorine for a pool (1–3 ppm) and a hot tub (3–5 ppm), and hot tub bromine (4–8 ppm).
+
 ## 2026.10.8-b15
 
 - Sensor Watch: its app code split into layers (store, scans, api) before groups; no change in behaviour.

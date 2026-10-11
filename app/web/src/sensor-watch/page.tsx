@@ -8,6 +8,7 @@ import { Toasts, type Toast } from "../ui";
 import { NO_FILTERS, swApi, type Filters, type LevelsView, type Profile, type WatchRecord, type WatchView } from "./common";
 import { ApplyDialog, PickDialog, ScanDialog } from "./dialogs";
 import { RecordDialog } from "./editor";
+import { GroupsSection } from "./groups";
 import { ProfileDialog, ProfilesSection } from "./profiles";
 import { SystemSection } from "./system";
 import { WatchedList } from "./watched";
@@ -31,6 +32,7 @@ export function SensorWatchPage({ state }: { state?: string }) {
   const [scanning, setScanning] = useState(false);
   // A profile being edited (null: a new one), or followed by more sensors.
   const [profileEditing, setProfileEditing] = useState<Profile | null>();
+  const [profileCopy, setProfileCopy] = useState<Profile>();
   const [applying, setApplying] = useState<Profile>();
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const watchedRef = useRef<HTMLElement>(null);
@@ -116,6 +118,7 @@ export function SensorWatchPage({ state }: { state?: string }) {
             live={live}
             labels={view.labels ?? {}}
             profiles={view.profiles ?? []}
+            groups={view.groups ?? []}
             filters={filters}
             setFilters={setFilters}
             onFollow={(rs, p) =>
@@ -132,10 +135,22 @@ export function SensorWatchPage({ state }: { state?: string }) {
         )}
       </section>
 
+      <GroupsSection
+        groups={view.groups ?? []}
+        profiles={view.profiles ?? []}
+        labels={view.labels ?? {}}
+        change={change}
+        onMembers={(g) => {
+          setFilters({ ...NO_FILTERS, group: g.id });
+          watchedRef.current?.scrollIntoView({ behavior: "smooth" });
+        }}
+      />
+
       <ProfilesSection
         profiles={view.profiles ?? []}
         change={change}
         onEdit={(p) => setProfileEditing(p ?? null)}
+        onDuplicate={setProfileCopy}
         onApply={setApplying}
         onFollowers={(p) => {
           setFilters({ ...NO_FILTERS, profile: p.id });
@@ -170,6 +185,7 @@ export function SensorWatchPage({ state }: { state?: string }) {
           onAccepted={(records) => change(() => swApi.post<WatchView>("accept", { records }), `${records.length} sensors watched`)}
         />
       )}
+      {profileCopy && <ProfileDialog copyOf={profileCopy} onClose={() => setProfileCopy(undefined)} change={change} />}
       {profileEditing !== undefined && (
         <ProfileDialog profile={profileEditing ?? undefined} onClose={() => setProfileEditing(undefined)} change={change} />
       )}

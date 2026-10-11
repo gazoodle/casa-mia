@@ -11,3 +11,7 @@ list:
             - warning
             - error
             - critical
+    group:
+      example: "Mains voltage"
+      selector:
+        text:

@@ -1,7 +1,7 @@
 """Sensor Watch's store: the records (`sensor-watch.json`), Home Assistant's own health
-settings and the profiles, what the integration is sent (/health's revision, then the
+settings, the profiles and the groups, what the integration is sent (/health's revision, then the
 records), and saving a change. The layers above: scans (candidates, suggestions, the
-scan), then api (the admin page's routes)."""
+scan), groups (keeping them up to date), then api (the admin page's routes)."""
 
 from __future__ import annotations
 
@@ -61,6 +61,7 @@ class Store:
         self.records: dict[str, dict[str, Any]] = {}
         self.system: dict[str, Any] = dict(SYSTEM)
         self.profiles: dict[str, dict[str, Any]] = {}  # id -> a profile (profiles.py)
+        self.groups: dict[str, dict[str, Any]] = {}  # id -> a group (groups.py)
         self._broken: str | None = None
         self._revision = ""
         try:
@@ -68,6 +69,7 @@ class Store:
             self.records = {r["entity_id"]: r for r in data.get("records", [])}
             self.system = SYSTEM | (data.get("system") or {})
             self.profiles = data.get("profiles") or {}
+            self.groups = data.get("groups") or {}
         except FileNotFoundError:
             pass
         except (OSError, ValueError, AttributeError, KeyError, TypeError) as exc:
@@ -98,23 +100,38 @@ class Store:
         with self._lock:
             return {
                 "revision": self._revision,
-                "records": [resolve(r, self.profiles) for r in self.records.values()],
+                "records": [self._sent(r) for r in self.records.values()],
                 "system": self.system | {"ignore": sorted(self.system["ignore"])},
             }
+
+    def _sent(self, record: dict[str, Any]) -> dict[str, Any]:
+        """A record as the integration has it: resolved, with its group's name (the
+        `list` service filters by it). Caller holds the lock."""
+        r = resolve(record, self.profiles)
+        group = self.groups.get(r.get("group") or "")
+        return {k: v for k, v in r.items() if k != "group"} | (
+            {"group": group["name"]} if group else {}
+        )
 
     def _revise(self) -> None:
         """A hash of the records and settings (caller holds the lock, or nobody else
         has it yet)."""
-        text = json.dumps([self.records, self.system, self.profiles], sort_keys=True)
+        text = json.dumps(
+            [self.records, self.system, self.profiles, self.groups], sort_keys=True
+        )
         self._revision = hashlib.sha256(text.encode()).hexdigest()[:16]
 
     def view(self) -> dict[str, Any]:
         with self._lock:
             records = [resolve(r, self.profiles) for r in self.records.values()]
             profiles = [dict(p) for p in self.profiles.values()]
+            groups = [dict(g) for g in self.groups.values()]
         for p in profiles:
             p["followers"] = sum(1 for r in records if r.get("profile") == p["id"])
         profiles.sort(key=lambda p: p["name"].lower())
+        for g in groups:
+            g["members"] = sum(1 for r in records if r.get("group") == g["id"])
+        groups.sort(key=lambda g: g["name"].lower())
         known = self._known()
         for r in records:
             c = known.get(r["entity_id"], {})
@@ -127,6 +144,7 @@ class Store:
         return {
             "records": records,
             "profiles": profiles,
+            "groups": groups,
             "system": system,
             "levels": list(LEVELS),
             "labels": dict(self.reader.labels) if self.reader else {},  # id -> its name
@@ -139,9 +157,11 @@ class Store:
         what: str,
         system: dict[str, Any] | None = None,
         profiles: dict[str, dict[str, Any]] | None = None,
+        groups: dict[str, dict[str, Any]] | None = None,
     ) -> None:
-        """Apply record changes (None removes one) and any new `system` settings or
-        `profiles`, then save, log `what`, and have the integration ask again."""
+        """Apply record changes (None removes one) and any new `system` settings,
+        `profiles` or `groups`, then save, log `what`, and have the integration ask
+        again."""
         with self._lock:
             if self._broken:
                 raise BadRequest(
@@ -151,6 +171,8 @@ class Store:
                 self.system = system
             if profiles is not None:
                 self.profiles = profiles
+            if groups is not None:
+                self.groups = groups
             for eid, record in changes.items():
                 if record is None:
                     self.records.pop(eid, None)
@@ -162,6 +184,7 @@ class Store:
                 "records": list(self.records.values()),
                 "system": self.system,
                 "profiles": self.profiles,
+                "groups": self.groups,
             }
             tmp.write_text(json.dumps(data, indent=2))
             tmp.replace(self.store_path)

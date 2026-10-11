@@ -1,5 +1,5 @@
 """Sensor Watch in the app: the admin page's API (/api/sensor-watch/), on the store
-(store.py) and the scans (scans.py). The integration reads the records from /health and
+(store.py), the scans (scans.py) and the groups (groups.py). The integration reads the records from /health and
 does the watching; the page has the live levels from live.py."""
 
 from __future__ import annotations
@@ -11,8 +11,9 @@ from typing import Any
 
 from ...ha import HAError
 from .common import BadRequest, Response, _json
+from .groups import Grouper
 from .profiles import clean_profile, export, follower, library, merge, new_id, resolve
-from .scans import Scanner, _days
+from .scans import _days
 from .store import _describe
 
 _LOGGER = logging.getLogger(__name__)
@@ -24,7 +25,7 @@ WAIT = 25.0  # seconds the page's long poll for the levels is held
 NEEDS = {"recorder": "Recorder", "history": "History"}
 
 
-class SensorWatch(Scanner):
+class SensorWatch(Grouper):
     def handle(
         self, method: str, path: str, query: dict[str, list[str]], body: bytes
     ) -> Response:
@@ -68,15 +69,25 @@ class SensorWatch(Scanner):
             return self._accept(body.get("records"))
         if parts[:1] == ["profiles"]:
             return self._profiles(method, parts[1:], body)
+        if parts[:1] == ["groups"]:
+            return self._groups(method, parts[1:], body)
         if len(parts) == 1 and method == "PUT":
             record = self._record(parts[0], body)
+            with self._lock:  # an edited member stays in its group
+                group = (self.records.get(parts[0]) or {}).get("group")
+            if group:
+                record["group"] = group
             self._save({parts[0]: record}, f"saved {parts[0]} ({_describe(record)})")
             return _json(200, self.view())
         if len(parts) == 1 and method == "DELETE":
             with self._lock:
                 if parts[0] not in self.records:
                     return _json(404, {"error": "Not watched."})
-            self._save({parts[0]: None}, f"stopped watching {parts[0]}")
+            self._save(
+                {parts[0]: None},
+                f"stopped watching {parts[0]}",
+                groups=self.leaving([parts[0]]),
+            )
             return _json(200, self.view())
         return _json(404, {"error": "Not found."})
 
@@ -116,6 +127,7 @@ class SensorWatch(Scanner):
             self._save(
                 dict.fromkeys(gone),
                 f"stopped watching {len(gone)} sensors: {', '.join(gone)}",
+                groups=self.leaving(gone),
             )
         return _json(200, self.view())
 
@@ -221,6 +233,16 @@ class SensorWatch(Scanner):
             self._save({}, what, profiles=profiles)
             return _json(200, self.view())
         if method == "DELETE" and len(parts) == 1:
+            with self._lock:
+                users = [
+                    g["name"]
+                    for g in self.groups.values()
+                    if g["profile"] == profile["id"]
+                ]
+            if users:
+                raise BadRequest(
+                    f"{profile['name']} is used by the group {', '.join(users)}: change or delete that first."
+                )
             copies = {
                 r["entity_id"]: {
                     k: v for k, v in resolve(r, profiles).items() if k != "profile"

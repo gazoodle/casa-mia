@@ -18,6 +18,7 @@ export function ProfilesSection({
   profiles,
   change,
   onEdit,
+  onDuplicate,
   onApply,
   onFollowers,
 }: {
@@ -25,17 +26,19 @@ export function ProfilesSection({
   change: Change;
   /** Edit this profile, or make a new one (undefined). */
   onEdit: (p?: Profile) => void;
+  /** Make a new profile starting from this one's levels. */
+  onDuplicate: (p: Profile) => void;
   /** Choose sensors to follow it. */
   onApply: (p: Profile) => void;
   /** Show its followers in the watched list. */
   onFollowers: (p: Profile) => void;
 }) {
-  const [offered, setOffered] = useState<{ title: string; profiles: Shared[] }>();
+  const [offered, setOffered] = useState<{ title: string; profiles: Shared[]; library?: boolean }>();
   const file = useRef<HTMLInputElement>(null);
 
   const fromLibrary = () =>
     swApi.get<{ profiles: Shared[] }>("profiles/library").then(
-      (got) => setOffered({ title: "Profiles from the library", profiles: got.profiles }),
+      (got) => setOffered({ title: "Profiles from the library", profiles: got.profiles, library: true }),
       (err) => change(() => Promise.reject(err), ""),
     );
   const fromFile = async (f: File) => {
@@ -48,11 +51,13 @@ export function ProfilesSection({
       change(() => Promise.reject(err instanceof SyntaxError ? new Error(`${f.name} isn't JSON.`) : err), "");
     }
   };
-  const exportAll = async () => {
-    const data = await swApi.get<object>("profiles/export");
+  /** Save the profiles as a file to share: one (by name), or all. */
+  const exportAs = async (one?: Profile) => {
+    const data = await swApi.get<{ profiles: Shared[] }>("profiles/export");
+    if (one) data.profiles = data.profiles.filter((p) => p.name === one.name);
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
-    a.download = "sensor-watch-profiles.json";
+    a.download = one ? `${one.name.replace(/[^\w.-]+/g, "-").replace(/^-|-$/g, "")}.json` : "sensor-watch-profiles.json";
     a.click();
     URL.revokeObjectURL(a.href);
   };
@@ -74,8 +79,8 @@ export function ProfilesSection({
             <button className={ui.button} onClick={() => file.current?.click()}>
               Import…
             </button>
-            <button className={ui.button} disabled={!profiles.length} onClick={exportAll}>
-              Export
+            <button className={ui.button} disabled={!profiles.length} onClick={() => exportAs()}>
+              Export all
             </button>
             <button className={ui.button} onClick={() => onEdit()}>
               + New profile
@@ -98,6 +103,7 @@ export function ProfilesSection({
         <ImportDialog
           title={offered.title}
           offered={offered.profiles}
+          library={offered.library}
           existing={profiles}
           onClose={() => setOffered(undefined)}
           onImport={(chosen) =>
@@ -130,8 +136,14 @@ export function ProfilesSection({
                 <button className={`${ui.button} ${ui.small}`} onClick={() => onEdit(p)}>
                   Edit
                 </button>
+                <button className={`${ui.button} ${ui.small}`} onClick={() => onDuplicate(p)}>
+                  Duplicate…
+                </button>
                 <button className={`${ui.button} ${ui.small}`} onClick={() => onApply(p)}>
                   Apply to…
+                </button>
+                <button className={`${ui.button} ${ui.small}`} onClick={() => exportAs(p)} aria-label={`Export ${p.name} as a file`}>
+                  Export
                 </button>
                 <button className={`${ui.danger} ${ui.small}`} onClick={() => remove(p)}>
                   Delete
@@ -152,10 +164,11 @@ const KINDS: [Kind, string][] = [
 ];
 const STARTER = { kind: "numeric" as const, bands: [{ from: null, to: null, level: "nominal" as const, message: "" }] };
 
-/** A profile's name and levels: `profile` to edit, or none for a new one. */
-export function ProfileDialog({ profile, onClose, change }: { profile?: Profile; onClose: () => void; change: Change }) {
-  const L = useLevels(profile ?? STARTER, "numeric");
-  const [name, setName] = useState(profile?.name ?? "");
+/** A profile's name and levels: `profile` to edit, `copyOf` to start a new one from
+ * (Duplicate…), or neither for a new one. */
+export function ProfileDialog({ profile, copyOf, onClose, change }: { profile?: Profile; copyOf?: Profile; onClose: () => void; change: Change }) {
+  const L = useLevels(profile ?? copyOf ?? STARTER, "numeric");
+  const [name, setName] = useState(profile?.name ?? (copyOf ? `${copyOf.name} (copy)` : ""));
   const [saving, setSaving] = useState(false);
 
   const save = async () => {
@@ -173,7 +186,7 @@ export function ProfileDialog({ profile, onClose, change }: { profile?: Profile;
   return (
     <Dialog
       wide
-      title={profile ? `Edit the profile ${profile.name}` : "New profile"}
+      title={profile ? `Edit the profile ${profile.name}` : copyOf ? `Duplicate ${copyOf.name}` : "New profile"}
       onClose={onClose}
       footer={
         <>
@@ -186,6 +199,7 @@ export function ProfileDialog({ profile, onClose, change }: { profile?: Profile;
         </>
       }
     >
+      {copyOf && <p className={css.note}>A new profile, starting from {copyOf.name}'s levels: rename it and change what differs. Nothing follows it yet.</p>}
       {profile && profile.followers > 0 && (
         <p className={css.note}>
           {profile.followers} sensors follow it: saving changes them all.
@@ -201,26 +215,32 @@ export function ProfileDialog({ profile, onClose, change }: { profile?: Profile;
 }
 
 /** A profile as shared: its levels and name, and in the library what it's about. */
-type Shared = Omit<Profile, "id" | "followers"> & { about?: string; source?: string };
+type Shared = Omit<Profile, "id" | "followers"> & { about?: string; source?: string; category?: string };
 
 /** Choose which shared profiles to take: new ones ticked; one named as a profile of
  * yours replaces its levels (and its followers'), so it starts unticked. */
 function ImportDialog({
   title,
   offered,
+  library,
   existing,
   onClose,
   onImport,
 }: {
   title: string;
   offered: Shared[];
+  /** The library: nothing ticked to start (a file's new profiles start ticked). */
+  library?: boolean;
   existing: Profile[];
   onClose: () => void;
   onImport: (chosen: Shared[]) => Promise<boolean>;
 }) {
   const mine = (p: Shared) => existing.find((e) => e.name.toLowerCase() === String(p.name ?? "").toLowerCase());
-  const [ticked, setTicked] = useState(() => new Set(offered.map((p, i) => (mine(p) ? -1 : i)).filter((i) => i >= 0)));
+  const [ticked, setTicked] = useState(() => new Set(library ? [] : offered.map((p, i) => (mine(p) ? -1 : i)).filter((i) => i >= 0)));
   const [busy, setBusy] = useState(false);
+  const [find, setFind] = useState("");
+  const words = find.toLowerCase().match(/[a-z0-9]+/g) ?? [];
+  const shows = (p: Shared) => words.every((w) => `${p.name} ${p.category ?? ""} ${p.about ?? ""}`.toLowerCase().includes(w));
   const flip = (i: number) =>
     setTicked((t) => {
       const next = new Set(t);
@@ -251,11 +271,18 @@ function ImportDialog({
       }
     >
       <p className={css.note}>Tick the profiles to take. One with the name of a profile you have replaces its levels, and every sensor following it changes.</p>
+      {offered.length > 6 && (
+        <input type="search" className={css.find} placeholder="Search: a country, voltage, pH…" value={find} onChange={(e) => setFind(e.target.value)} aria-label="Search the profiles" />
+      )}
       <ul className={css.scanList}>
         {offered.map((p, i) => {
           const same = mine(p);
+          if (!shows(p)) return null;
+          // A heading where the library's category changes (it comes in order).
+          const heading = p.category && p.category !== offered.slice(0, i).filter(shows).at(-1)?.category;
           return (
             <li key={i}>
+              {heading && <h4 className={css.category}>{p.category}</h4>}
               <label className={css.scanRow}>
                 <input type="checkbox" checked={ticked.has(i)} onChange={() => flip(i)} />
                 <span>

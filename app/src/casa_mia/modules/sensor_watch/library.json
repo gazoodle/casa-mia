@@ -7,198 +7,768 @@
       "about": "The statutory supply in Great Britain: 230 V +10% / -6%, so 216.2 V to 253 V (the ESQCR 2002). Many homes sit at 240-250 V, which is normal. Solar inverters trip at about 262 V. See also the ENA's 2026 proposal, which would lower the minimum to 207 V.",
       "source": "https://www.legislation.gov.uk/uksi/2002/2665",
       "kind": "numeric",
+      "category": "Mains and grid",
       "bands": [
-        {
-          "from": null,
-          "to": 207,
-          "level": "critical",
-          "message": "Mains far too low: under 207 V"
-        },
-        {
-          "from": 207,
-          "to": 216.2,
-          "level": "warning",
-          "message": "Mains below the legal minimum (216.2 V)"
-        },
-        {
-          "from": 216.2,
-          "to": 253,
-          "level": "nominal",
-          "message": ""
-        },
-        {
-          "from": 253,
-          "to": 262,
-          "level": "warning",
-          "message": "Mains above the legal maximum (253 V)"
-        },
-        {
-          "from": 262,
-          "to": null,
-          "level": "critical",
-          "message": "Mains far too high: solar inverters trip about here"
-        }
+        {"from": null, "to": 207, "level": "critical", "message": "Mains far too low: under 207 V"},
+        {"from": 207, "to": 216.2, "level": "warning", "message": "Mains below the legal minimum (216.2 V)"},
+        {"from": 216.2, "to": 253, "level": "nominal", "message": ""},
+        {"from": 253, "to": 262, "level": "warning", "message": "Mains above the legal maximum (253 V)"},
+        {"from": 262, "to": null, "level": "critical", "message": "Mains far too high: solar inverters trip about here"}
       ],
-      "otherwise": "error",
-      "unavailable": "error",
-      "hold_off": 30
+      "otherwise": "error", "unavailable": "error", "hold_off": 30
     },
     {
       "name": "UK mains voltage (ENA proposed, 2026)",
       "about": "The Energy Networks Association's 2026 proposal: 230 V +/-10%, so 207 V to 253 V, giving networks room for rooftop solar and EV chargers without tripping equipment at the top. Not law yet (it goes to DESNZ); use it once it is. Below 195.5 V (-15%) is critical.",
       "source": "https://www.energynetworks.org/industry/engineering-and-technical-programmes/statutory-voltage-limits",
       "kind": "numeric",
+      "category": "Mains and grid",
       "bands": [
-        {
-          "from": null,
-          "to": 195.5,
-          "level": "critical",
-          "message": "Mains far too low: under 195.5 V"
-        },
-        {
-          "from": 195.5,
-          "to": 207,
-          "level": "warning",
-          "message": "Mains below the legal minimum (207 V)"
-        },
-        {
-          "from": 207,
-          "to": 253,
-          "level": "nominal",
-          "message": ""
-        },
-        {
-          "from": 253,
-          "to": 262,
-          "level": "warning",
-          "message": "Mains above the legal maximum (253 V)"
-        },
-        {
-          "from": 262,
-          "to": null,
-          "level": "critical",
-          "message": "Mains far too high: solar inverters trip about here"
-        }
+        {"from": null, "to": 195.5, "level": "critical", "message": "Mains far too low: under 195.5 V"},
+        {"from": 195.5, "to": 207, "level": "warning", "message": "Mains below the legal minimum (207 V)"},
+        {"from": 207, "to": 253, "level": "nominal", "message": ""},
+        {"from": 253, "to": 262, "level": "warning", "message": "Mains above the legal maximum (253 V)"},
+        {"from": 262, "to": null, "level": "critical", "message": "Mains far too high: solar inverters trip about here"}
       ],
-      "otherwise": "error",
-      "unavailable": "error",
-      "hold_off": 30
+      "otherwise": "error", "unavailable": "error", "hold_off": 30
     },
     {
       "name": "UK grid frequency",
       "about": "The statutory frequency is 50 Hz +/-1%, so 49.5-50.5 Hz; the grid normally holds 49.8-50.2 Hz, and automatic load shedding starts at about 48.8 Hz. The same everywhere on the grid: watch it on one meter.",
       "source": "https://www.legislation.gov.uk/uksi/2002/2665",
       "kind": "numeric",
+      "category": "Mains and grid",
       "bands": [
-        {
-          "from": null,
-          "to": 48.8,
-          "level": "critical",
-          "message": "Grid emergency: load shedding starts"
-        },
-        {
-          "from": 48.8,
-          "to": 49.5,
-          "level": "error",
-          "message": "Frequency below the legal minimum (49.5 Hz)"
-        },
-        {
-          "from": 49.5,
-          "to": 49.8,
-          "level": "warning",
-          "message": "Frequency low"
-        },
-        {
-          "from": 49.8,
-          "to": 50.2,
-          "level": "nominal",
-          "message": ""
-        },
-        {
-          "from": 50.2,
-          "to": 50.5,
-          "level": "warning",
-          "message": "Frequency high"
-        },
-        {
-          "from": 50.5,
-          "to": null,
-          "level": "error",
-          "message": "Frequency above the legal maximum (50.5 Hz)"
-        }
+        {"from": null, "to": 48.8, "level": "critical", "message": "Grid emergency: load shedding starts"},
+        {"from": 48.8, "to": 49.5, "level": "error", "message": "Frequency below the legal minimum (49.5 Hz)"},
+        {"from": 49.5, "to": 49.8, "level": "warning", "message": "Frequency low"},
+        {"from": 49.8, "to": 50.2, "level": "nominal", "message": ""},
+        {"from": 50.2, "to": 50.5, "level": "warning", "message": "Frequency high"},
+        {"from": 50.5, "to": null, "level": "error", "message": "Frequency above the legal maximum (50.5 Hz)"}
       ],
-      "otherwise": "error",
-      "unavailable": "error",
-      "hold_off": 30
+      "otherwise": "error", "unavailable": "error", "hold_off": 30
+    },
+    {
+      "name": "US mains voltage (120 V, ANSI C84.1)",
+      "about": "ANSI C84.1 for 120 V service: Range A (114-126 V) is where supply should be; Range B (110-127 V) is acceptable now and then, and the utility should correct it. Each leg of a 120/240 V split-phase supply is 120 V.",
+      "source": "https://PGE.com/assets/pge/docs/contact-us/report-an-issue/Voltage_Tolerance.pdf",
+      "kind": "numeric",
+      "category": "Mains and grid",
+      "bands": [
+        {"from": null, "to": 104, "level": "critical", "message": "Mains far too low: under 104 V"},
+        {"from": 104, "to": 110, "level": "error", "message": "Mains below ANSI Range B (110 V)"},
+        {"from": 110, "to": 114, "level": "warning", "message": "Mains below ANSI Range A (114 V)"},
+        {"from": 114, "to": 126, "level": "nominal", "message": ""},
+        {"from": 126, "to": 127, "level": "warning", "message": "Mains above ANSI Range A (126 V)"},
+        {"from": 127, "to": 132, "level": "error", "message": "Mains above ANSI Range B (127 V)"},
+        {"from": 132, "to": null, "level": "critical", "message": "Mains far too high: over 132 V"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 30
+    },
+    {
+      "name": "US grid frequency (60 Hz)",
+      "about": "North American grids run at 60 Hz, held very close to it; automatic under-frequency load shedding starts at 59.3 Hz (NERC), and 59.3-60.7 Hz is the steady-state range. The same everywhere on an interconnection: watch it on one meter.",
+      "source": "https://www.nysrc.org/wp-content/uploads/2023/04/D.2.-UFLS_Discussion_Points-002.pdf",
+      "kind": "numeric",
+      "category": "Mains and grid",
+      "bands": [
+        {"from": null, "to": 59.3, "level": "critical", "message": "Grid emergency: load shedding starts (59.3 Hz)"},
+        {"from": 59.3, "to": 59.5, "level": "error", "message": "Frequency very low"},
+        {"from": 59.5, "to": 59.9, "level": "warning", "message": "Frequency low"},
+        {"from": 59.9, "to": 60.1, "level": "nominal", "message": ""},
+        {"from": 60.1, "to": 60.5, "level": "warning", "message": "Frequency high"},
+        {"from": 60.5, "to": null, "level": "error", "message": "Frequency very high"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 30
+    },
+    {
+      "name": "EU mains voltage (230 V, EN 50160)",
+      "about": "EN 50160, the European supply standard: 230 V +/-10% (207-253 V) for 95% of each week, and never below -15% (195.5 V). Countries may set their own limits too (the UK's is +10% / -6%; see its own profiles).",
+      "source": "https://powerquality.blog/2021/07/22/standard-en-50160-voltage-characteristics-of-public-distribution-systems/",
+      "kind": "numeric",
+      "category": "Mains and grid",
+      "bands": [
+        {"from": null, "to": 195.5, "level": "critical", "message": "Mains far too low: under 195.5 V"},
+        {"from": 195.5, "to": 207, "level": "warning", "message": "Mains below 207 V (230 V -10%)"},
+        {"from": 207, "to": 253, "level": "nominal", "message": ""},
+        {"from": 253, "to": 264.5, "level": "warning", "message": "Mains above 253 V (230 V +10%)"},
+        {"from": 264.5, "to": null, "level": "critical", "message": "Mains far too high: over 264.5 V"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 30
+    },
+    {
+      "name": "EU grid frequency (50 Hz)",
+      "about": "EN 50160: 49.5-50.5 Hz for 99.5% of the year. The continental grid normally holds 49.8-50.2 Hz; load shedding starts at about 49.0 Hz (ENTSO-E's plan, from memory: check before relying on it). Watch it on one meter.",
+      "source": "https://powerquality.blog/2021/07/22/standard-en-50160-voltage-characteristics-of-public-distribution-systems/",
+      "kind": "numeric",
+      "category": "Mains and grid",
+      "bands": [
+        {"from": null, "to": 49.0, "level": "critical", "message": "Grid emergency: load shedding starts"},
+        {"from": 49.0, "to": 49.5, "level": "error", "message": "Frequency below EN 50160's 49.5 Hz"},
+        {"from": 49.5, "to": 49.8, "level": "warning", "message": "Frequency low"},
+        {"from": 49.8, "to": 50.2, "level": "nominal", "message": ""},
+        {"from": 50.2, "to": 50.5, "level": "warning", "message": "Frequency high"},
+        {"from": 50.5, "to": null, "level": "error", "message": "Frequency above EN 50160's 50.5 Hz"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 30
+    },
+    {
+      "name": "Japan mains voltage (100 V)",
+      "about": "Japan's 100 V supply must be kept at 101 V +/-6 V (95-107 V), under the Electricity Business Act's rules (from memory: the search didn't turn up the text). For the frequency: eastern Japan is 50 Hz (use the EU profile), western Japan 60 Hz (use the US one).",
+      "kind": "numeric",
+      "category": "Mains and grid",
+      "bands": [
+        {"from": null, "to": 90, "level": "critical", "message": "Mains far too low: under 90 V"},
+        {"from": 90, "to": 95, "level": "warning", "message": "Mains below the legal minimum (95 V)"},
+        {"from": 95, "to": 107, "level": "nominal", "message": ""},
+        {"from": 107, "to": 110, "level": "warning", "message": "Mains above the legal maximum (107 V)"},
+        {"from": 110, "to": null, "level": "critical", "message": "Mains far too high: over 110 V"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 30
+    },
+    {
+      "name": "China mains voltage (220 V, GB/T 12325)",
+      "about": "GB/T 12325: a 220 V single-phase supply may deviate -10% to +7% (198-235.4 V).",
+      "source": "https://www.chinesestandard.net/PDF.aspx/GBT12325-2008",
+      "kind": "numeric",
+      "category": "Mains and grid",
+      "bands": [
+        {"from": null, "to": 187, "level": "critical", "message": "Mains far too low: under 187 V"},
+        {"from": 187, "to": 198, "level": "warning", "message": "Mains below the standard's minimum (198 V)"},
+        {"from": 198, "to": 235.4, "level": "nominal", "message": ""},
+        {"from": 235.4, "to": 242, "level": "warning", "message": "Mains above the standard's maximum (235.4 V)"},
+        {"from": 242, "to": null, "level": "critical", "message": "Mains far too high: over 242 V"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 30
+    },
+    {
+      "name": "China grid frequency (50 Hz, GB/T 15945)",
+      "about": "GB/T 15945: the frequency may deviate +/-0.2 Hz in normal running (+/-0.5 Hz on small systems; from memory: the search didn't turn up the text). Watch it on one meter.",
+      "source": "https://www.chinesestandard.net/Related.aspx/GBT15945-2008",
+      "kind": "numeric",
+      "category": "Mains and grid",
+      "bands": [
+        {"from": null, "to": 49.5, "level": "error", "message": "Frequency far too low"},
+        {"from": 49.5, "to": 49.8, "level": "warning", "message": "Frequency below 49.8 Hz"},
+        {"from": 49.8, "to": 50.2, "level": "nominal", "message": ""},
+        {"from": 50.2, "to": 50.5, "level": "warning", "message": "Frequency above 50.2 Hz"},
+        {"from": 50.5, "to": null, "level": "error", "message": "Frequency far too high"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 30
+    },
+    {
+      "name": "Australia mains voltage (230 V, AS 60038)",
+      "about": "AS 60038: 230 V +10% / -6% (216.2-253 V), the same limits as Great Britain. Rooftop solar pushes many streets towards the top.",
+      "kind": "numeric",
+      "category": "Mains and grid",
+      "bands": [
+        {"from": null, "to": 207, "level": "critical", "message": "Mains far too low: under 207 V"},
+        {"from": 207, "to": 216.2, "level": "warning", "message": "Mains below the standard's minimum (216.2 V)"},
+        {"from": 216.2, "to": 253, "level": "nominal", "message": ""},
+        {"from": 253, "to": 262, "level": "warning", "message": "Mains above the standard's maximum (253 V)"},
+        {"from": 262, "to": null, "level": "critical", "message": "Mains far too high: solar inverters trip about here"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 30
+    },
+    {
+      "name": "Australia grid frequency (50 Hz)",
+      "about": "The NEM's frequency operating standard keeps 49.85-50.15 Hz in normal running (from memory: check the AEMC's standard); outside 49.5-50.5 Hz is a serious event. Watch it on one meter.",
+      "kind": "numeric",
+      "category": "Mains and grid",
+      "bands": [
+        {"from": null, "to": 49.0, "level": "critical", "message": "Grid emergency: load shedding likely"},
+        {"from": 49.0, "to": 49.5, "level": "error", "message": "Frequency very low"},
+        {"from": 49.5, "to": 49.85, "level": "warning", "message": "Frequency low"},
+        {"from": 49.85, "to": 50.15, "level": "nominal", "message": ""},
+        {"from": 50.15, "to": 50.5, "level": "warning", "message": "Frequency high"},
+        {"from": 50.5, "to": null, "level": "error", "message": "Frequency very high"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 30
+    },
+    {
+      "name": "UK inverter trips: voltage (G98/G99)",
+      "about": "How close the supply is to tripping a grid-tied inverter (a Sunsynk or any other) under G98/G99: under 200.1 V for 2.5 s or over 262.2 V for 1 s trips it; under 184 V or over 273.7 V trips it in 0.5 s. Installers can set these per network operator, so check your inverter's own grid settings match.",
+      "source": "https://www.gtc-uk.co.uk/wp-content/uploads/2020/06/GTC-G99-Protection-Settings-GE-CIC-ES-0131.pdf",
+      "kind": "numeric",
+      "category": "Inverters",
+      "bands": [
+        {"from": null, "to": 184, "level": "critical", "message": "Under G99 stage 2 (184 V): inverters trip in 0.5 s"},
+        {"from": 184, "to": 200.1, "level": "error", "message": "Under G99 stage 1 (200.1 V): inverters trip after 2.5 s"},
+        {"from": 200.1, "to": 216.2, "level": "warning", "message": "Mains below the legal minimum (216.2 V)"},
+        {"from": 216.2, "to": 253, "level": "nominal", "message": ""},
+        {"from": 253, "to": 262.2, "level": "warning", "message": "Mains above 253 V: close to the inverter's trip (262.2 V)"},
+        {"from": 262.2, "to": 273.7, "level": "error", "message": "Over G99 stage 1 (262.2 V): inverters trip after 1 s"},
+        {"from": 273.7, "to": null, "level": "critical", "message": "Over G99 stage 2 (273.7 V): inverters trip in 0.5 s"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 5
+    },
+    {
+      "name": "UK inverter trips: frequency (G98/G99)",
+      "about": "How close the grid's frequency is to tripping a grid-tied inverter under G98/G99: under 47.5 Hz for 20 s or over 51.5 Hz for 90 s trips it; under 47 Hz or over 52 Hz in 0.5 s. Check your inverter's own grid settings match.",
+      "source": "https://www.gtc-uk.co.uk/wp-content/uploads/2020/06/GTC-G99-Protection-Settings-GE-CIC-ES-0131.pdf",
+      "kind": "numeric",
+      "category": "Inverters",
+      "bands": [
+        {"from": null, "to": 47, "level": "critical", "message": "Under G99 stage 2 (47 Hz): inverters trip in 0.5 s"},
+        {"from": 47, "to": 47.5, "level": "error", "message": "Under G99 stage 1 (47.5 Hz): inverters trip after 20 s"},
+        {"from": 47.5, "to": 49.8, "level": "warning", "message": "Frequency low"},
+        {"from": 49.8, "to": 50.2, "level": "nominal", "message": ""},
+        {"from": 50.2, "to": 51.5, "level": "warning", "message": "Frequency high"},
+        {"from": 51.5, "to": 52, "level": "error", "message": "Over G99 stage 1 (51.5 Hz): inverters trip after 90 s"},
+        {"from": 52, "to": null, "level": "critical", "message": "Over G99 stage 2 (52 Hz): inverters trip in 0.5 s"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 5
+    },
+    {
+      "name": "Battery, replaceable (%)",
+      "about": "A replaceable battery's level (a sensor's coin cell or AAs): replace it below 20%, flat below 5%. The same as Sensor Watch's default for battery sensors; unavailable is often the battery that died.",
+      "kind": "numeric",
+      "category": "Batteries",
+      "bands": [
+        {"from": null, "to": 5, "level": "warning", "message": "Battery flat"},
+        {"from": 5, "to": 20, "level": "task", "message": "Replace the battery"},
+        {"from": 20, "to": null, "level": "nominal", "message": ""}
+      ],
+      "otherwise": "error", "unavailable": "warning", "hold_off": 600
+    },
+    {
+      "category": "Batteries",
+      "name": "Rechargeable battery, 20-80% (%)",
+      "about": "State of charge for lithium (NMC) packs kept to 20-80% for a long life: most EVs' daily limit, laptops, power tools. Above 80% is fine before a long trip, but left there it wears the cells; below 20% wants charging.",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 10, "level": "error", "message": "Nearly flat: charge it now"},
+        {"from": 10, "to": 20, "level": "task", "message": "Low: charge it"},
+        {"from": 20, "to": 80, "level": "nominal", "message": ""},
+        {"from": 80, "to": null, "level": "task", "message": "Above 80%: fine for a trip, don't leave it there"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 600
+    },
+    {
+      "category": "Batteries",
+      "name": "Rechargeable battery, 20-85% (%)",
+      "about": "State of charge for lithium packs with a little more headroom than 80%. Above 85% is fine before a long trip, but left there it wears the cells; below 20% wants charging.",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 10, "level": "error", "message": "Nearly flat: charge it now"},
+        {"from": 10, "to": 20, "level": "task", "message": "Low: charge it"},
+        {"from": 20, "to": 85, "level": "nominal", "message": ""},
+        {"from": 85, "to": null, "level": "task", "message": "Above 85%: fine for a trip, don't leave it there"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 600
+    },
+    {
+      "category": "Batteries",
+      "name": "Rechargeable battery, 20-90% (%)",
+      "about": "State of charge for lithium packs charged to 90% day to day. Above 90% is fine before a long trip, but left there it wears the cells; below 20% wants charging.",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 10, "level": "error", "message": "Nearly flat: charge it now"},
+        {"from": 10, "to": 20, "level": "task", "message": "Low: charge it"},
+        {"from": 20, "to": 90, "level": "nominal", "message": ""},
+        {"from": 90, "to": null, "level": "task", "message": "Above 90%: fine for a trip, don't leave it there"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 600
+    },
+    {
+      "category": "Batteries",
+      "name": "Rechargeable battery, 20-100% (LiFePO4) (%)",
+      "about": "State of charge for LiFePO4 (LFP) packs, which are happy full (and want a full charge now and then to balance): most home and inverter batteries, LFP EVs.",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 10, "level": "error", "message": "Nearly flat: charge it now"},
+        {"from": 10, "to": 20, "level": "task", "message": "Low: charge it"},
+        {"from": 20, "to": null, "level": "nominal", "message": ""}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 600
+    },
+    {
+      "category": "Batteries",
+      "name": "Home battery at its reserve (%)",
+      "about": "An inverter's battery (a Sunsynk's, say) runs down every night by design, so low isn't a fault: this only says when it reaches a 10% reserve and the house leans on the grid.",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 10, "level": "task", "message": "Home battery at its reserve: the house is on grid power"},
+        {"from": 10, "to": null, "level": "nominal", "message": ""}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 1800
+    },
+    {
+      "category": "Batteries",
+      "name": "Lead-acid 12 V battery (V)",
+      "about": "A 12 V lead-acid battery's voltage (a car's, a leisure battery, a UPS): at rest 12.6 V is full, 12.4 V about 75%, 12.2 V half, 11.8 V flat; 13.8-14.7 V while charging. Read at rest for the charge; left flat, it sulphates.",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 11.8, "level": "error", "message": "Flat: charge it now, before it sulphates"},
+        {"from": 11.8, "to": 12.2, "level": "warning", "message": "Under half charged: charge it"},
+        {"from": 12.2, "to": 12.4, "level": "task", "message": "Low: charge it"},
+        {"from": 12.4, "to": 14.8, "level": "nominal", "message": ""},
+        {"from": 14.8, "to": 15.5, "level": "warning", "message": "Over-charging: check the charger"},
+        {"from": 15.5, "to": null, "level": "error", "message": "Far over-charged: check the charger now"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 600
+    },
+    {
+      "category": "Batteries",
+      "name": "LiFePO4 12 V battery (V)",
+      "about": "A 12 V LiFePO4 battery (four cells): about 13.2-13.4 V at rest when charged, 14.2-14.6 V charging; its voltage is flat until nearly empty, so the low bands are rough.",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 12.0, "level": "error", "message": "Nearly empty: charge it now"},
+        {"from": 12.0, "to": 12.8, "level": "task", "message": "Low: charge it"},
+        {"from": 12.8, "to": 14.6, "level": "nominal", "message": ""},
+        {"from": 14.6, "to": 15.0, "level": "warning", "message": "Over-charging: check the charger"},
+        {"from": 15.0, "to": null, "level": "error", "message": "Far over-charged: check the charger now"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 600
+    },
+    {
+      "category": "Batteries",
+      "name": "LiFePO4 cell (V)",
+      "about": "One LiFePO4 cell, as a battery's BMS reports it: 3.0-3.45 V in use; under 2.5 V or over 3.65 V harms it.",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 2.5, "level": "critical", "message": "Cell over-discharged"},
+        {"from": 2.5, "to": 3.0, "level": "task", "message": "Cell low"},
+        {"from": 3.0, "to": 3.5, "level": "nominal", "message": ""},
+        {"from": 3.5, "to": 3.65, "level": "task", "message": "Cell at the top of its charge"},
+        {"from": 3.65, "to": null, "level": "critical", "message": "Cell over-charged"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 600
+    },
+    {
+      "category": "Broadband",
+      "name": "Broadband download: ADSL (16 Mbps)",
+      "about": "A speed test's download (Mbps) against a 16 Mbps plan: 70% or more is fine; below half, worth taking up with the provider. The hold-off is just over an hour, so with hourly tests it takes two poor ones in a row.",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 1.6, "level": "error", "message": "Barely working: under 10% of the plan"},
+        {"from": 1.6, "to": 8.0, "level": "warning", "message": "Well below the plan: under half"},
+        {"from": 8.0, "to": 11.2, "level": "task", "message": "Below the plan"},
+        {"from": 11.2, "to": null, "level": "nominal", "message": ""}
+      ],
+      "otherwise": "error", "unavailable": "warning", "hold_off": 3700
+    },
+    {
+      "category": "Broadband",
+      "name": "Broadband download: FTTC 40 (40 Mbps)",
+      "about": "A speed test's download (Mbps) against a 40 Mbps plan: 70% or more is fine; below half, worth taking up with the provider. The hold-off is just over an hour, so with hourly tests it takes two poor ones in a row.",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 4.0, "level": "error", "message": "Barely working: under 10% of the plan"},
+        {"from": 4.0, "to": 20.0, "level": "warning", "message": "Well below the plan: under half"},
+        {"from": 20.0, "to": 28.0, "level": "task", "message": "Below the plan"},
+        {"from": 28.0, "to": null, "level": "nominal", "message": ""}
+      ],
+      "otherwise": "error", "unavailable": "warning", "hold_off": 3700
+    },
+    {
+      "category": "Broadband",
+      "name": "Broadband download: FTTC 80 (80 Mbps)",
+      "about": "A speed test's download (Mbps) against a 80 Mbps plan: 70% or more is fine; below half, worth taking up with the provider. The hold-off is just over an hour, so with hourly tests it takes two poor ones in a row.",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 8.0, "level": "error", "message": "Barely working: under 10% of the plan"},
+        {"from": 8.0, "to": 40.0, "level": "warning", "message": "Well below the plan: under half"},
+        {"from": 40.0, "to": 56.0, "level": "task", "message": "Below the plan"},
+        {"from": 56.0, "to": null, "level": "nominal", "message": ""}
+      ],
+      "otherwise": "error", "unavailable": "warning", "hold_off": 3700
+    },
+    {
+      "category": "Broadband",
+      "name": "Broadband download: Fibre 100 (100 Mbps)",
+      "about": "A speed test's download (Mbps) against a 100 Mbps plan: 70% or more is fine; below half, worth taking up with the provider. The hold-off is just over an hour, so with hourly tests it takes two poor ones in a row.",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 10.0, "level": "error", "message": "Barely working: under 10% of the plan"},
+        {"from": 10.0, "to": 50.0, "level": "warning", "message": "Well below the plan: under half"},
+        {"from": 50.0, "to": 70.0, "level": "task", "message": "Below the plan"},
+        {"from": 70.0, "to": null, "level": "nominal", "message": ""}
+      ],
+      "otherwise": "error", "unavailable": "warning", "hold_off": 3700
+    },
+    {
+      "category": "Broadband",
+      "name": "Broadband download: Fibre 300 (300 Mbps)",
+      "about": "A speed test's download (Mbps) against a 300 Mbps plan: 70% or more is fine; below half, worth taking up with the provider. The hold-off is just over an hour, so with hourly tests it takes two poor ones in a row.",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 30.0, "level": "error", "message": "Barely working: under 10% of the plan"},
+        {"from": 30.0, "to": 150.0, "level": "warning", "message": "Well below the plan: under half"},
+        {"from": 150.0, "to": 210.0, "level": "task", "message": "Below the plan"},
+        {"from": 210.0, "to": null, "level": "nominal", "message": ""}
+      ],
+      "otherwise": "error", "unavailable": "warning", "hold_off": 3700
+    },
+    {
+      "category": "Broadband",
+      "name": "Broadband download: Fibre 500 (500 Mbps)",
+      "about": "A speed test's download (Mbps) against a 500 Mbps plan: 70% or more is fine; below half, worth taking up with the provider. The hold-off is just over an hour, so with hourly tests it takes two poor ones in a row.",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 50.0, "level": "error", "message": "Barely working: under 10% of the plan"},
+        {"from": 50.0, "to": 250.0, "level": "warning", "message": "Well below the plan: under half"},
+        {"from": 250.0, "to": 350.0, "level": "task", "message": "Below the plan"},
+        {"from": 350.0, "to": null, "level": "nominal", "message": ""}
+      ],
+      "otherwise": "error", "unavailable": "warning", "hold_off": 3700
+    },
+    {
+      "category": "Broadband",
+      "name": "Broadband download: Fibre 900 (900 Mbps)",
+      "about": "A speed test's download (Mbps) against a 900 Mbps plan: 70% or more is fine; below half, worth taking up with the provider. The hold-off is just over an hour, so with hourly tests it takes two poor ones in a row.",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 90.0, "level": "error", "message": "Barely working: under 10% of the plan"},
+        {"from": 90.0, "to": 450.0, "level": "warning", "message": "Well below the plan: under half"},
+        {"from": 450.0, "to": 630.0, "level": "task", "message": "Below the plan"},
+        {"from": 630.0, "to": null, "level": "nominal", "message": ""}
+      ],
+      "otherwise": "error", "unavailable": "warning", "hold_off": 3700
+    },
+    {
+      "category": "Broadband",
+      "name": "Broadband download: Starlink 100 (100 Mbps)",
+      "about": "A speed test's download (Mbps) against a 100 Mbps plan: 70% or more is fine; below half, worth taking up with the provider. Starlink varies more than a wire, with the sky and the time of day. The hold-off is just over an hour, so with hourly tests it takes two poor ones in a row.",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 10.0, "level": "error", "message": "Barely working: under 10% of the plan"},
+        {"from": 10.0, "to": 50.0, "level": "warning", "message": "Well below the plan: under half"},
+        {"from": 50.0, "to": 70.0, "level": "task", "message": "Below the plan"},
+        {"from": 70.0, "to": null, "level": "nominal", "message": ""}
+      ],
+      "otherwise": "error", "unavailable": "warning", "hold_off": 3700
+    },
+    {
+      "category": "Broadband",
+      "name": "Broadband download: Starlink 200 (200 Mbps)",
+      "about": "A speed test's download (Mbps) against a 200 Mbps plan: 70% or more is fine; below half, worth taking up with the provider. Starlink varies more than a wire, with the sky and the time of day. The hold-off is just over an hour, so with hourly tests it takes two poor ones in a row.",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 20.0, "level": "error", "message": "Barely working: under 10% of the plan"},
+        {"from": 20.0, "to": 100.0, "level": "warning", "message": "Well below the plan: under half"},
+        {"from": 100.0, "to": 140.0, "level": "task", "message": "Below the plan"},
+        {"from": 140.0, "to": null, "level": "nominal", "message": ""}
+      ],
+      "otherwise": "error", "unavailable": "warning", "hold_off": 3700
+    },
+    {
+      "category": "Broadband",
+      "name": "Broadband download: Starlink 300 (300 Mbps)",
+      "about": "A speed test's download (Mbps) against a 300 Mbps plan: 70% or more is fine; below half, worth taking up with the provider. Starlink varies more than a wire, with the sky and the time of day. The hold-off is just over an hour, so with hourly tests it takes two poor ones in a row.",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 30.0, "level": "error", "message": "Barely working: under 10% of the plan"},
+        {"from": 30.0, "to": 150.0, "level": "warning", "message": "Well below the plan: under half"},
+        {"from": 150.0, "to": 210.0, "level": "task", "message": "Below the plan"},
+        {"from": 210.0, "to": null, "level": "nominal", "message": ""}
+      ],
+      "otherwise": "error", "unavailable": "warning", "hold_off": 3700
     },
     {
       "name": "Pool or hot tub pH",
-      "about": "Ideal 7.4-7.6; 7.2-7.8 is acceptable. Below, the water is acidic and corrosive; above, chlorine stops working and scale forms. Works for a probe or an input_number you type test-strip readings into.",
+      "about": "Ideal 7.4-7.6; 7.2-7.8 is acceptable (the CDC says the same for pools and hot tubs: pH is the same chemistry in both). Below, the water is acidic and corrosive; above, chlorine stops working and scale forms. Works for a probe or an input_number you type test-strip readings into.",
       "source": "https://www.poolchemtracker.com/blog/ideal-pool-ph-level",
       "kind": "numeric",
+      "category": "Water",
       "bands": [
-        {
-          "from": null,
-          "to": 7.0,
-          "level": "warning",
-          "message": "pH far too low: corrosive, etches surfaces"
-        },
-        {
-          "from": 7.0,
-          "to": 7.2,
-          "level": "task",
-          "message": "pH low: add pH increaser"
-        },
-        {
-          "from": 7.2,
-          "to": 7.8,
-          "level": "nominal",
-          "message": ""
-        },
-        {
-          "from": 7.8,
-          "to": 8.0,
-          "level": "task",
-          "message": "pH high: add pH reducer"
-        },
-        {
-          "from": 8.0,
-          "to": null,
-          "level": "warning",
-          "message": "pH far too high: chlorine mostly inactive, scale forms"
-        }
+        {"from": null, "to": 7.0, "level": "warning", "message": "pH far too low: corrosive, etches surfaces"},
+        {"from": 7.0, "to": 7.2, "level": "task", "message": "pH low: add pH increaser"},
+        {"from": 7.2, "to": 7.8, "level": "nominal", "message": ""},
+        {"from": 7.8, "to": 8.0, "level": "task", "message": "pH high: add pH reducer"},
+        {"from": 8.0, "to": null, "level": "warning", "message": "pH far too high: chlorine mostly inactive, scale forms"}
       ],
-      "otherwise": "error",
-      "unavailable": "error",
-      "hold_off": 300
+      "otherwise": "error", "unavailable": "error", "hold_off": 300
     },
     {
-      "name": "Battery (%)",
-      "about": "A battery level in percent: replace it below 20%, flat below 5%. The same as Sensor Watch's default for battery sensors; unavailable is often the battery that died.",
+      "name": "Pool free chlorine (ppm)",
+      "about": "Free chlorine in a swimming pool: 1-3 ppm is the usual target (the CDC's minimum is 1 ppm). Low lets germs through; high irritates eyes and skin, and above 10 ppm nobody should swim. ppm and mg/l are the same thing.",
+      "source": "https://www.poolcalculator.com/pool-maintenance/what-should-chlorine-levels-be-in-swimming-pools-and-hot-tubs/",
+      "kind": "numeric",
+      "category": "Water",
+      "bands": [
+        {"from": null, "to": 0.5, "level": "error", "message": "Chlorine far too low: not safe to swim"},
+        {"from": 0.5, "to": 1.0, "level": "task", "message": "Chlorine low: add chlorine"},
+        {"from": 1.0, "to": 3.0, "level": "nominal", "message": ""},
+        {"from": 3.0, "to": 5.0, "level": "task", "message": "Chlorine high: let it fall before adding more"},
+        {"from": 5.0, "to": 10.0, "level": "warning", "message": "Chlorine very high: wait before swimming"},
+        {"from": 10.0, "to": null, "level": "error", "message": "Chlorine far too high: don't swim"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 300
+    },
+    {
+      "name": "Hot tub free chlorine (ppm)",
+      "about": "Free chlorine in a hot tub or spa: higher than a pool, as warm water breeds germs (Legionella among them). The CDC says 3-10 ppm; 3-5 is the usual target. Above 10 ppm, don't use it.",
+      "source": "https://www.cdc.gov/control-legionella/php/toolkit/hot-tub-module.html",
+      "kind": "numeric",
+      "category": "Water",
+      "bands": [
+        {"from": null, "to": 1.0, "level": "error", "message": "Chlorine far too low: not safe to use"},
+        {"from": 1.0, "to": 3.0, "level": "task", "message": "Chlorine low: add chlorine"},
+        {"from": 3.0, "to": 5.0, "level": "nominal", "message": ""},
+        {"from": 5.0, "to": 10.0, "level": "task", "message": "Chlorine high: let it fall before adding more"},
+        {"from": 10.0, "to": null, "level": "error", "message": "Chlorine far too high: don't use it"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 300
+    },
+    {
+      "name": "Hot tub bromine (ppm)",
+      "about": "Bromine in a hot tub or spa, for those that use it instead of chlorine: the CDC says 4-8 ppm. Above 10 ppm, don't use it.",
+      "source": "https://www.cdc.gov/control-legionella/php/toolkit/hot-tub-module.html",
+      "kind": "numeric",
+      "category": "Water",
+      "bands": [
+        {"from": null, "to": 2.0, "level": "error", "message": "Bromine far too low: not safe to use"},
+        {"from": 2.0, "to": 4.0, "level": "task", "message": "Bromine low: add bromine"},
+        {"from": 4.0, "to": 8.0, "level": "nominal", "message": ""},
+        {"from": 8.0, "to": 10.0, "level": "task", "message": "Bromine high: let it fall before adding more"},
+        {"from": 10.0, "to": null, "level": "error", "message": "Bromine far too high: don't use it"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 300
+    },
+    {
+      "name": "Aquarium, tropical (°C)",
+      "about": "A tropical freshwater tank: most community fish want 24-27 °C; a failed heater shows first as a slow fall.",
+      "kind": "numeric",
+      "category": "Water",
+      "bands": [
+        {"from": null, "to": 20, "level": "error", "message": "Tank far too cold: check the heater"},
+        {"from": 20, "to": 23, "level": "warning", "message": "Tank cold"},
+        {"from": 23, "to": 24, "level": "task", "message": "Tank a little cool"},
+        {"from": 24, "to": 27, "level": "nominal", "message": ""},
+        {"from": 27, "to": 29, "level": "task", "message": "Tank a little warm"},
+        {"from": 29, "to": 31, "level": "warning", "message": "Tank hot"},
+        {"from": 31, "to": null, "level": "error", "message": "Tank far too hot"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 1800
+    },
+    {
+      "name": "Aquarium, cold water (°C)",
+      "about": "A cold-water tank or pond (goldfish and the like): comfortable at 10-22 °C; warm water holds less oxygen.",
+      "kind": "numeric",
+      "category": "Water",
+      "bands": [
+        {"from": null, "to": 4, "level": "warning", "message": "Water near freezing"},
+        {"from": 4, "to": 10, "level": "task", "message": "Water cold"},
+        {"from": 10, "to": 22, "level": "nominal", "message": ""},
+        {"from": 22, "to": 26, "level": "task", "message": "Water warm: less oxygen"},
+        {"from": 26, "to": null, "level": "warning", "message": "Water too warm"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 1800
+    },
+    {
+      "name": "Water softener salt (%)",
+      "about": "A water softener's salt level, where it reports one as a percentage: top up below 25%; empty, it stops softening.",
+      "kind": "numeric",
+      "category": "Water",
+      "bands": [
+        {"from": null, "to": 10, "level": "warning", "message": "Softener nearly out of salt"},
+        {"from": 10, "to": 25, "level": "task", "message": "Top up the salt"},
+        {"from": 25, "to": null, "level": "nominal", "message": ""}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 3600
+    },
+    {
+      "category": "Indoor air",
+      "name": "Indoor CO2 (ppm)",
+      "about": "Carbon dioxide indoors, a measure of ventilation: under 1,000 ppm is good; over 1,500 ppm is stuffy and dulls thinking. Outdoor air is about 420 ppm, so a reading well under that means the sensor wants recalibrating.",
       "kind": "numeric",
       "bands": [
-        {
-          "from": null,
-          "to": 5,
-          "level": "warning",
-          "message": "Battery flat"
-        },
-        {
-          "from": 5,
-          "to": 20,
-          "level": "task",
-          "message": "Replace the battery"
-        },
-        {
-          "from": 20,
-          "to": null,
-          "level": "nominal",
-          "message": ""
-        }
+        {"from": null, "to": 380, "level": "task", "message": "Reads below outdoor air: recalibrate the sensor"},
+        {"from": 380, "to": 1000, "level": "nominal", "message": ""},
+        {"from": 1000, "to": 1500, "level": "task", "message": "Stuffy: open a window"},
+        {"from": 1500, "to": 2500, "level": "warning", "message": "Poor air: ventilate"},
+        {"from": 2500, "to": null, "level": "error", "message": "Very poor air: ventilate now"}
       ],
-      "otherwise": "error",
-      "unavailable": "warning",
-      "hold_off": 600
+      "otherwise": "error", "unavailable": "error", "hold_off": 900
+    },
+    {
+      "category": "Indoor air",
+      "name": "Indoor humidity (%)",
+      "about": "Relative humidity indoors: 30-60% is comfortable; over 70% for long brings condensation and mould; under 30% dries skin and eyes.",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 30, "level": "task", "message": "Dry air"},
+        {"from": 30, "to": 60, "level": "nominal", "message": ""},
+        {"from": 60, "to": 70, "level": "task", "message": "Damp: ventilate"},
+        {"from": 70, "to": null, "level": "warning", "message": "Mould risk: ventilate or dehumidify"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 3600
+    },
+    {
+      "category": "Indoor air",
+      "name": "PM2.5 (µg/m³)",
+      "about": "Fine particles: the WHO's 24-hour guideline is 15 µg/m³; cooking, candles and wood burners push it up.",
+      "source": "https://www.who.int/publications/i/item/9789240034228",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 15, "level": "nominal", "message": ""},
+        {"from": 15, "to": 35, "level": "task", "message": "Particles above the WHO guideline"},
+        {"from": 35, "to": 55, "level": "warning", "message": "Unhealthy air: ventilate"},
+        {"from": 55, "to": null, "level": "error", "message": "Very unhealthy air"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 1800
+    },
+    {
+      "category": "Indoor air",
+      "name": "Radon (Bq/m³)",
+      "about": "Radon gas: the UK's target level is 100 Bq/m³ and its action level 200 Bq/m³, above which the home should be fixed. A long-term average matters, hence the day's hold-off.",
+      "source": "https://www.ukradon.org/information/ukmaps",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 100, "level": "nominal", "message": ""},
+        {"from": 100, "to": 200, "level": "task", "message": "Radon above the UK target level (100 Bq/m³)"},
+        {"from": 200, "to": null, "level": "warning", "message": "Radon above the UK action level (200 Bq/m³): get it fixed"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 86400
+    },
+    {
+      "category": "Cold and hot storage",
+      "name": "Freezer (°C)",
+      "about": "A freezer should hold -18 °C or colder; a door opening or a defrost warms it briefly, hence the half-hour hold-off.",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": -18, "level": "nominal", "message": ""},
+        {"from": -18, "to": -15, "level": "task", "message": "Freezer warmer than -18 °C"},
+        {"from": -15, "to": -5, "level": "warning", "message": "Freezer too warm: check the door and seal"},
+        {"from": -5, "to": null, "level": "critical", "message": "Freezer thawing: food at risk"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 1800
+    },
+    {
+      "category": "Cold and hot storage",
+      "name": "Fridge (°C)",
+      "about": "A fridge should run at 0-5 °C; 8 °C is the UK legal limit for chilled food in shops and the line to keep under at home.",
+      "source": "https://www.food.gov.uk/safety-hygiene/chilling",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 0, "level": "warning", "message": "Fridge freezing its food"},
+        {"from": 0, "to": 5, "level": "nominal", "message": ""},
+        {"from": 5, "to": 8, "level": "task", "message": "Fridge warm: check the door"},
+        {"from": 8, "to": 12, "level": "warning", "message": "Fridge above 8 °C"},
+        {"from": 12, "to": null, "level": "error", "message": "Fridge far too warm: food at risk"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 1800
+    },
+    {
+      "category": "Cold and hot storage",
+      "name": "Hot water cylinder (°C)",
+      "about": "Stored hot water against Legionella: the HSE's guidance is to store it at 60 °C (Legionella grows at 20-45 °C); heat pumps often keep 50 °C with a weekly 60 °C cycle. Over 80 °C is a scalding risk.",
+      "source": "https://www.hse.gov.uk/healthservices/legionella.htm",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 46, "level": "warning", "message": "Hot water too cool: Legionella can grow"},
+        {"from": 46, "to": 50, "level": "task", "message": "Hot water below 50 °C"},
+        {"from": 50, "to": 80, "level": "nominal", "message": ""},
+        {"from": 80, "to": null, "level": "warning", "message": "Hot water very hot: scalding risk"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 3600
+    },
+    {
+      "category": "Heating",
+      "name": "Boiler pressure (bar)",
+      "about": "A sealed heating system's pressure: 1-1.5 bar cold, up to 2 bar hot. Low wants topping up (and a slow leak finding); near 3 bar the relief valve opens.",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 0.5, "level": "error", "message": "Boiler pressure very low: top up, then find the leak"},
+        {"from": 0.5, "to": 1.0, "level": "task", "message": "Boiler pressure low: top up"},
+        {"from": 1.0, "to": 2.0, "level": "nominal", "message": ""},
+        {"from": 2.0, "to": 2.5, "level": "task", "message": "Boiler pressure high"},
+        {"from": 2.5, "to": null, "level": "warning", "message": "Boiler pressure very high: near the relief valve"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 1800
+    },
+    {
+      "category": "Heating",
+      "name": "Room temperature (°C)",
+      "about": "Living space: 18-21 °C is comfortable; under 16 °C raises health risks (UK guidance), under 12 °C more so; over 28 °C is overheating.",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 12, "level": "warning", "message": "Cold enough to harm health"},
+        {"from": 12, "to": 16, "level": "task", "message": "Cold: under 16 °C"},
+        {"from": 16, "to": 25, "level": "nominal", "message": ""},
+        {"from": 25, "to": 28, "level": "task", "message": "Warm"},
+        {"from": 28, "to": null, "level": "warning", "message": "Overheating"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 1800
+    },
+    {
+      "name": "Frost risk (°C)",
+      "about": "An outdoor temperature: at 3 °C or below frost is likely (protect plants, cover the car); below -5 °C outside pipes and taps are at risk.",
+      "kind": "numeric",
+      "category": "Outdoors and garden",
+      "bands": [
+        {"from": null, "to": -5, "level": "warning", "message": "Hard frost: protect outside pipes and taps"},
+        {"from": -5, "to": 3, "level": "task", "message": "Frost likely: protect plants"},
+        {"from": 3, "to": null, "level": "nominal", "message": ""}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 1800
+    },
+    {
+      "name": "Unheated space, pipes (°C)",
+      "about": "A loft, garage or outbuilding with water pipes: below 3 °C they're at risk of freezing and bursting.",
+      "kind": "numeric",
+      "category": "Outdoors and garden",
+      "bands": [
+        {"from": null, "to": 0, "level": "error", "message": "Freezing: pipes may burst"},
+        {"from": 0, "to": 3, "level": "warning", "message": "Near freezing: protect the pipes"},
+        {"from": 3, "to": null, "level": "nominal", "message": ""}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 1800
+    },
+    {
+      "name": "Soil moisture (%)",
+      "about": "A soil moisture probe's reading: rough, as probes and soils differ; adjust to your own. Most beds and lawns want 20-60%.",
+      "kind": "numeric",
+      "category": "Outdoors and garden",
+      "bands": [
+        {"from": null, "to": 15, "level": "warning", "message": "Soil very dry: water it"},
+        {"from": 15, "to": 20, "level": "task", "message": "Soil dry: water it"},
+        {"from": 20, "to": 60, "level": "nominal", "message": ""},
+        {"from": 60, "to": 80, "level": "task", "message": "Soil wet"},
+        {"from": 80, "to": null, "level": "warning", "message": "Soil waterlogged"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 3600
+    },
+    {
+      "category": "Computers and network",
+      "name": "Wi-Fi signal (dBm)",
+      "about": "A device's Wi-Fi signal strength: -67 dBm or better is solid; below -75 dBm drop-outs start; below -85 dBm it barely connects.",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": -85, "level": "error", "message": "Wi-Fi barely connected"},
+        {"from": -85, "to": -75, "level": "warning", "message": "Wi-Fi very weak: drop-outs likely"},
+        {"from": -75, "to": -67, "level": "task", "message": "Wi-Fi weak"},
+        {"from": -67, "to": null, "level": "nominal", "message": ""}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 600
+    },
+    {
+      "category": "Computers and network",
+      "name": "CPU temperature (°C)",
+      "about": "A small computer's CPU (a Raspberry Pi throttles from 80 °C and hard at 85 °C): keep it under 70 °C with a case and airflow.",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 70, "level": "nominal", "message": ""},
+        {"from": 70, "to": 80, "level": "task", "message": "CPU hot: check its cooling"},
+        {"from": 80, "to": 85, "level": "warning", "message": "CPU throttling"},
+        {"from": 85, "to": null, "level": "error", "message": "CPU far too hot"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 600
+    },
+    {
+      "category": "Computers and network",
+      "name": "Disk used (%)",
+      "about": "A disk's use: past 80% it's time to tidy; a full disk stops databases (Home Assistant's own among them).",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 80, "level": "nominal", "message": ""},
+        {"from": 80, "to": 90, "level": "task", "message": "Disk filling up: tidy it"},
+        {"from": 90, "to": 95, "level": "warning", "message": "Disk nearly full"},
+        {"from": 95, "to": null, "level": "error", "message": "Disk full: things will fail"}
+      ],
+      "otherwise": "error", "unavailable": "error", "hold_off": 600
     }
   ]
 }
