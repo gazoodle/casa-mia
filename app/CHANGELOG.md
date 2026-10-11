@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.8-b15
+
+- Sensor Watch: its app code split into layers (store, scans, api) before groups; no change in behaviour.
+
 ## 2026.10.8-b14
 
 - Sensor Watch: a library of profiles ships with it (**From the library…**): UK mains voltage (current law, and the ENA's 2026 proposal), UK grid frequency, pool or hot tub pH, and battery percentage, each with what it's for and its source.

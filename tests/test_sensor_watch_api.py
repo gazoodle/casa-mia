@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from casa_mia.modules.sensor_watch import api as watch_api
+from casa_mia.modules.sensor_watch import scans as watch_scans
 from casa_mia.modules.sensor_watch import suggest
 from casa_mia.modules.sensor_watch.common import clean
 from sensor_watch_fakes import (
@@ -86,7 +86,7 @@ def test_suggest_one_sensor(watch):
 
 
 def test_the_whole_house_scans_in_rounds(watch, monkeypatch):
-    monkeypatch.setattr(watch_api, "MAX_SCAN", 3)
+    monkeypatch.setattr(watch_scans, "MAX_SCAN", 3)
     call(watch, "PUT", "sensor.salt", body=SALT)  # already watched: not offered
     _, first = call(watch, "POST", "scan", body={})
     names = [f["sensor"]["entity_id"] for f in first["found"]]
@@ -172,8 +172,8 @@ def test_the_search_matches_every_word_in_any_order(name):
         "device_class": "",
         "kind": "numeric",
     }
-    assert watch_api.matches(c, {"q": "tank top"})
-    assert not watch_api.matches(c, {"q": "tank bottom"})
+    assert watch_scans.matches(c, {"q": "tank top"})
+    assert not watch_scans.matches(c, {"q": "tank bottom"})
 
 
 def test_states_suggestion_and_a_number_watched_as_exact_states(watch):
