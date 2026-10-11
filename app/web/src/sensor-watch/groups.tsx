@@ -74,10 +74,7 @@ export function GroupsSection({
       {groups.length > 0 && (
         <div className={css.table}>
           {groups.map((g) => (
-            <div key={g.id} className={`${css.row} ${css.compact} ${css.profileRow}`}>
-              <button className={`${css.level} ${css.lv_none} ${css.followers}`} disabled={!g.members} onClick={() => onMembers(g)}>
-                {g.members} in it
-              </button>
+            <div key={g.id} className={`${css.row} ${css.compact} ${css.named}`}>
               <span className={css.what}>
                 <strong>{g.name}</strong>
                 <span className={css.note}>
@@ -85,6 +82,9 @@ export function GroupsSection({
                   {g.left.length > 0 && ` · ${g.left.length} left out by hand`}
                 </span>
               </span>
+              <button className={`${css.level} ${css.lv_none} ${css.followers}`} disabled={!g.members} onClick={() => onMembers(g)}>
+                {g.members} in it
+              </button>
               <span className={css.rowActions}>
                 {g.left.length > 0 && (
                   <button

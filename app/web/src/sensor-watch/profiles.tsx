@@ -103,7 +103,13 @@ export function ProfilesSection({
       {profiles.length > 0 && (
         <div className={css.table}>
           {profiles.map((p) => (
-            <div key={p.id} className={`${css.row} ${css.compact} ${css.profileRow}`}>
+            <div key={p.id} className={`${css.row} ${css.compact} ${css.named}`}>
+              <span className={css.what}>
+                <strong>{p.name}</strong>
+                <span className={css.note}>
+                  {MODE_NAMES[p.kind]} · {summary(p)}
+                </span>
+              </span>
               <button
                 className={`${css.level} ${css.lv_none} ${css.followers}`}
                 disabled={!p.followers}
@@ -112,12 +118,6 @@ export function ProfilesSection({
               >
                 {p.followers} following
               </button>
-              <span className={css.what}>
-                <strong>{p.name}</strong>
-                <span className={css.note}>
-                  {MODE_NAMES[p.kind]} · {summary(p)}
-                </span>
-              </span>
               <span className={css.rowActions}>
                 <button className={`${ui.button} ${ui.small}`} onClick={() => onEdit(p)}>
                   Edit

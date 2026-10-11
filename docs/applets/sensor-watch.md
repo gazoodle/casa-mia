@@ -217,7 +217,8 @@ nominal under 3 V, a warning to 8 V, an error beyond.
 
 ### Watched sensors
 
-Every watched sensor, its level now and its value, with a search and a level filter so a
+Every watched sensor, its level now (the **status pill** at the start of its row) and its
+value, with a search and filter **chips** along the top (a level, an area, a group…) so a
 house with hundreds of them stays manageable. **Edit** changes a sensor's bands;
 **Stop watching** removes it.
 **Grouped** (beside Sort) puts them under a heading per group, and Manual for those
@@ -343,8 +344,8 @@ it fits, watched or not, to tick (those not watched yet start being watched); in
 my house**, choose **Use the profile … for the ticked**; or, on the watched list, filter
 to them and choose **Follow a profile** under it.
 
-The **Profiles** section lists each with how many follow it: tap **N following** to see
-them in the watched list. **Edit** changes its name and levels (every follower with it);
+The **Profiles** section lists each with how many follow it in its status pill: tap
+**N following** to see them in the watched list. **Edit** changes its name and levels (every follower with it);
 **Delete** removes it (its followers keep a copy of its levels as their own).
 
 **From the library…** offers profiles that ship with Casa Mia, each with what it's for
@@ -499,7 +500,8 @@ is a group, a single thing is a watch.
 - **Edit** it and members the filters no longer take stop being watched.
 - **Stop watching** a member and the group remembers it, so it isn't pulled back;
   **Let them back** on the group undoes that.
-- **N in it** shows the members in the watched list (a Group chip there too).
+- **N in it**, the group's status pill, shows the members in the watched list (a Group
+  chip there too).
 - **Delete** a group and its members stay watched, as they are; new ones stop joining.
 - The `list` service takes `group` (the group's name): only its members, and its own
   worst level, for a panel or an automation about just the mains plugs.
@@ -627,9 +629,11 @@ Add `group: Mains voltage` to ask about one group only (and its own worst level)
 
 **Casa Mia Sensor Watch** (in the card picker) lists what isn't nominal, worst first,
 each with its level, message, value (live from the entity) and how long it has stood;
-tap a row for the entity's details. Options: a title, a **group** (only its members),
-the levels to list, at most how many, and what to do when all is well: **hide** (the
-default) or say so.
+tap a row for the entity's details. Options: a title, a **group** (chosen from your
+groups, ✕ for every watched sensor), the levels to list, at most how many, what to do
+when all is well (**hide**, the default, or say so), and what **each row shows**: its
+level, name, message, value and how long, any of them (a row of just names and values
+for a narrow panel, say).
 
 Hidden, it takes its panel with it in a Tablet Layout: put it in a side panel with a
 garnish heading ("Needs looking at") and the panel appears only when something does.

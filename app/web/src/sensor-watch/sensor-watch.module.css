@@ -32,7 +32,7 @@
 
 .row {
   display: grid;
-  grid-template-columns: 88px minmax(0, 1fr) auto;
+  grid-template-columns: 104px minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
   padding: 8px 10px;
@@ -86,13 +86,20 @@
   font-size: 16px;
 }
 
+/* A row's pill (its level, a count): one width, so every title starts in line; small
+   caps, as the compositor's state badges. */
 .level {
-  justify-self: start;
-  padding: 3px 10px;
+  box-sizing: border-box;
+  width: 100%;
+  overflow: hidden;
+  padding: 2px 6px;
   border-radius: 999px;
   background: color-mix(in srgb, currentColor 14%, transparent);
-  font-size: 12px;
+  font-size: 13px; /* in small caps, the height of the compositor's 11px badges */
   font-weight: 600;
+  font-variant-caps: all-small-caps;
+  text-align: center;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -246,15 +253,16 @@
 }
 
 /* The watched list's rows: name and entity id on one line, the rest under it. */
+/* A profile's or group's row: its name first, then its status pill. */
+.named {
+  grid-template-columns: minmax(0, 1fr) 104px auto;
+}
+
 .compact {
   gap: 10px;
   padding: 5px 8px;
 }
 
-/* A profile's row: its follower count can be wider than a level. */
-.profileRow {
-  grid-template-columns: max-content minmax(0, 1fr) auto;
-}
 
 .nameLine {
   display: flex;
@@ -613,6 +621,10 @@
     grid-template-columns: 1fr;
   }
 
+  .level {
+    width: 104px;
+  }
+
   .rowActions {
     justify-content: flex-start;
   }
@@ -629,7 +641,7 @@
 /* A profile's "N following": tap to see them in the watched list. */
 .followers {
   border: 0;
-  font: inherit;
+  font-family: inherit;
   cursor: pointer;
   text-decoration: underline;
 }

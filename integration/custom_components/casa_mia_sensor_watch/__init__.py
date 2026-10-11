@@ -95,7 +95,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             len(rows),
         )
         worst = summary(now)["worst"] if group else watcher.summary()["worst"]
-        return {"worst": worst, "sensors": rows}
+        # Every group's name, for the card's editor to offer.
+        groups = sorted(
+            {r["group"] for r in watcher.records.values() if r.get("group")}
+        )
+        return {"worst": worst, "sensors": rows, "groups": groups}
 
     hass.services.async_register(
         DOMAIN,

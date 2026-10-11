@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.10.8-b29
+
+- **Breaking:** the Sensor Watch integration and Casa Mia's cards changed. Restart Home Assistant once; a Repair asks.
+- Sensor Watch card: **Group** is chosen from your groups (✕ for every watched sensor), not typed; **Each row shows** picks any of the level, name, message, value and how long.
+
+- Sensor Watch page: every row's **status pill** (a level, "N following", "N in it") is one width, so the names line up, and smaller, in small caps, as the compositor's state badges.
+
 ## 2026.10.8-b28
 
 - **Breaking:** the Sensor Watch integration changed. Restart Home Assistant once; a Repair asks.

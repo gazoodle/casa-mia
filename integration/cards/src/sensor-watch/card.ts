@@ -5,7 +5,7 @@
 // `hidden`), so in a Tablet Layout its panel closes, garnish heading and all, when all is well.
 import { LitElement, css, html, nothing } from "lit";
 import { fire, type Hass, inPicker } from "../ha.ts";
-import { type Config, DEFAULTS, type Row, since } from "./common.ts";
+import { type Column, type Config, DEFAULTS, type Row, columns, since } from "./common.ts";
 
 const DOMAIN = "casa_mia_sensor_watch";
 const ASK_AFTER = 300; // ms: the integration's entities write in a burst; one ask after
@@ -161,14 +161,22 @@ export class SensorWatchCard extends LitElement {
   }
 
   private _row(r: Row, value: string, now: number) {
-    return html`<button class="row ${r.level}" @click=${() => r.entity_id && fire(this, "hass-more-info", { entityId: r.entity_id })}>
-      <span class="level">${r.level}</span>
-      <span class="what">
-        <span class="name">${r.name}</span>
-        ${r.message ? html`<span class="message">${r.message}</span>` : nothing}
-      </span>
-      <span class="value">${value}</span>
-      <span class="since">${since(r.since, now)}</span>
+    const show: readonly Column[] = this._config?.show ?? DEFAULTS.show;
+    const has = (c: Column) => show.includes(c);
+    return html`<button
+      class="row ${r.level}"
+      style="grid-template-columns:${columns(show)}"
+      @click=${() => r.entity_id && fire(this, "hass-more-info", { entityId: r.entity_id })}
+    >
+      ${has("level") ? html`<span class="level">${r.level}</span>` : nothing}
+      ${has("name") || has("message")
+        ? html`<span class="what">
+            ${has("name") ? html`<span class="name">${r.name}</span>` : nothing}
+            ${has("message") && r.message ? html`<span class="message">${r.message}</span>` : nothing}
+          </span>`
+        : nothing}
+      ${has("value") ? html`<span class="value">${value}</span>` : nothing}
+      ${has("since") ? html`<span class="since">${since(r.since, now)}</span>` : nothing}
     </button>`;
   }
 
