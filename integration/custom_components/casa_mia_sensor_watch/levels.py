@@ -1,0 +1,77 @@
+"""Sensor Watch's levels: a watched entity's state against its record, and the summary
+of them all. No Home Assistant imports, so the tests load it by path. The app checks
+the records when they are saved (app/src/casa_mia/modules/sensor_watch/common.py, whose
+LEVELS must match these; a test checks)."""
+
+from __future__ import annotations
+
+from typing import Any
+
+# From fine to worst. A task is something to do (top up the salt), not a fault.
+LEVELS = ("nominal", "task", "warning", "error", "critical")
+UNAVAILABLE = ("unavailable", "unknown")
+IGNORE = "ignore"  # a record's `unavailable`: no opinion while it is unavailable
+# Culprits listed per level in the status sensor's attributes, the longest standing
+# first: a glance, kept small (HA's recorder drops attributes over 16 kB, and a broken
+# integration can take hundreds of sensors with it). The `list` service gives them all.
+MAX_LISTED = 10
+
+
+def rank(level: str | None) -> int:
+    return LEVELS.index(level) if level in LEVELS else -1
+
+
+def level_of(
+    record: dict[str, Any], state: str | None
+) -> tuple[str | None, str | None]:
+    """The level a state puts its entity at, and why (a band's message, "unavailable",
+    "outside every band"); (None, None) while unavailable and the record ignores that."""
+    if state is None or state in UNAVAILABLE:
+        level = record.get("unavailable", "error")
+        return (None, None) if level == IGNORE else (level, "unavailable")
+    if record.get("kind") == "binary":
+        if state == record.get("nominal", "off"):
+            return "nominal", None
+        return record.get("other", "warning"), record.get("message") or None
+    try:
+        value = float(state)
+    except ValueError:
+        return record.get("otherwise", "error"), f"not a number: {state}"
+    for band in record.get("bands") or []:
+        low, high = band.get("from"), band.get("to")
+        if (low is None or value >= low) and (high is None or value < high):
+            return band.get("level", "nominal"), band.get("message") or None
+    return record.get("otherwise", "error"), "outside every band"
+
+
+def listing(
+    now: dict[str, dict[str, Any]], levels: list[str] | None = None
+) -> list[dict[str, Any]]:
+    """Every watched entity at one of `levels` (all but nominal when None), worst first,
+    then longest standing: the `list` service's answer."""
+    wanted = set(levels or LEVELS[1:])
+    rows = [{"entity_id": e, **n} for e, n in now.items() if n.get("level") in wanted]
+    return sorted(rows, key=lambda r: (-rank(r["level"]), r.get("since") or ""))
+
+
+def summary(now: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    """The worst level, a count per level, and the culprits per level (worst first,
+    then longest standing), from each entity's current {level, message, value, since,
+    name}. Entities with no level (ignored while unavailable) don't count."""
+    counted = {e: n for e, n in now.items() if n.get("level") in LEVELS}
+    worst = max((n["level"] for n in counted.values()), key=rank, default="nominal")
+    out: dict[str, Any] = {"worst": worst, "watching": len(now)}
+    for level in LEVELS[1:]:
+        these = sorted(
+            (e for e, n in counted.items() if n["level"] == level),
+            key=lambda e: counted[e].get("since") or "",
+        )
+        out[level] = len(these)
+        out[f"{level}_list"] = [
+            {
+                "entity_id": e,
+                **{k: counted[e].get(k) for k in ("name", "value", "message", "since")},
+            }
+            for e in these[:MAX_LISTED]
+        ]
+    return out

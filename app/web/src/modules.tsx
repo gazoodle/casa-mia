@@ -5,7 +5,7 @@
 import type { ReactNode } from "react";
 import type { ModuleHealth } from "./health";
 import { ago, megabytes } from "./format";
-import { CameraGridIcon, CameraIcon, CommanderIcon, DashboardIcon, FirmwareIcon, GuestIcon, KioskModeIcon, PeopleIcon, PhoneIcon, ShieldIcon, TabletIcon } from "./icons";
+import { CameraGridIcon, CameraIcon, CommanderIcon, DashboardIcon, FirmwareIcon, GuestIcon, KioskModeIcon, PeopleIcon, PhoneIcon, SensorWatchIcon, ShieldIcon, TabletIcon } from "./icons";
 
 export type Fact = [label: string, value: string | undefined];
 
@@ -62,6 +62,13 @@ export const MODULES: Record<string, ModuleInfo> = {
       ["May call", String(h.callers ?? 0)],
       ["May text", String(h.texters ?? 0)],
     ],
+  },
+  sensor_watch: {
+    title: "Sensor Watch",
+    option: "Sensor Watch",
+    blurb: "Any sensor given bands of values, each with a level, so what needs doing or has gone wrong shows before the family notices.",
+    icon: <SensorWatchIcon />,
+    facts: (h) => [["Watching", `${h.watching ?? 0} sensors`]],
   },
   gitproxy: {
     title: "Firmware server",

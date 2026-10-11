@@ -18,6 +18,7 @@ Each page of the Casa Mia panel in Home Assistant's sidebar.
 - [Camera compositor](applets/camera-compositor.md): Draws the Camera Commander as one live picture for the dashboards and wall tablets.
 - [Guest login](applets/guest-login.md): QR codes that sign guests and engineers straight into their own dashboard.
 - [People](applets/people.md): Who is known to the home.
+- [Sensor Watch](applets/sensor-watch.md): Give any sensor bands of values, each with a level, so what needs doing or has gone wrong shows before the family notices.
 - [Phone and SMS (FONA)](applets/phone-and-sms.md): Calls and texts through the FONA GSM module: a way in that needs no internet.
 - [Alarm panel](applets/alarm-panel.md): The intruder alarm as a Home Assistant alarm panel: arm away, disarm, triggered.
 

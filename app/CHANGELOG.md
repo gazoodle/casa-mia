@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026.10.8-b1
+
+- **New: Sensor Watch** (in development). Give any sensor bands of values, each with a
+  level: nominal, task, warning, error or critical (and on/off sensors a nominal state);
+  unavailable counts too. Bands are suggested from the sensor's history, outliers set
+  aside for a look, and **Scan my house** suggests them for every sensor, filtered by
+  area, label, integration or device class, 500 a round. A new integration, **Casa Mia
+  Sensor Watch**, watches them: a status with the culprits, a count per level, a problem
+  sensor, an event on each change and a `list` service for templates. Switch it on in the
+  app's Configuration tab; see the guide.
+
 ## 2026.10.7
 
 - **Home Assistant 2026.3 or later** is now enough (it was 2026.9): the oldest release with

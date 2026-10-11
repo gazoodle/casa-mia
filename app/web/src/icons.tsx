@@ -121,3 +121,13 @@ export const BinIcon = () => (
     <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
   </svg>
 );
+
+/** Sensor Watch: a gauge with its needle in the nominal band. */
+export const SensorWatchIcon = () => (
+  <svg {...base}>
+    <path d="M4 16a8 8 0 0 1 16 0" />
+    <path d="M12 16l3.5-5" />
+    <circle cx="12" cy="16" r="1.2" />
+    <path d="M6.3 10.3l1.1 1M17.7 10.3l-1.1 1M12 8v1.4" />
+  </svg>
+);

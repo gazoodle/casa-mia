@@ -1,0 +1,13 @@
+list:
+  fields:
+    levels:
+      example: ["warning", "error", "critical"]
+      selector:
+        select:
+          multiple: true
+          options:
+            - nominal
+            - task
+            - warning
+            - error
+            - critical

@@ -1,0 +1,247 @@
+"""The watching: each record's entity followed live, its level worked out (levels.py),
+held off so a blip doesn't count, and each change fired as an event and told to the
+entities. Built for thousands of records: they are fetched from the app only when the
+revision in its /health moves; HA's state tracker hands us only watched entities (one
+dict lookup per state change in the house); attribute-only updates stop at once; the
+summary is worked out once per change; and the entities write at most once a TELL."""
+
+from __future__ import annotations
+
+import logging
+from collections.abc import Callable
+from typing import Any
+
+import aiohttp
+from homeassistant.core import (
+    CALLBACK_TYPE,
+    Event,
+    EventStateChangedData,
+    HomeAssistant,
+    State,
+    callback,
+)
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.event import async_call_later, async_track_state_change_event
+from homeassistant.util import dt as dt_util
+
+from ..casa_mia.coordinator import CasaMiaCoordinator
+from .const import EVENT, MODULE
+from .levels import UNAVAILABLE, level_of, summary
+
+_LOGGER = logging.getLogger(__name__)
+TELL = (
+    1.0  # seconds: a storm of changes writes the entities once a second, not per change
+)
+RECORDS = "/sensor-watch/records"  # the app's records, fetched when the revision moves
+
+
+def module(coordinator: CasaMiaCoordinator) -> dict[str, Any]:
+    """The sensor_watch module's health from /health (empty if the app lacks it)."""
+    return coordinator.data.get("modules", {}).get(MODULE, {})
+
+
+class Watcher:
+    def __init__(self, hass: HomeAssistant, coordinator: CasaMiaCoordinator) -> None:
+        self.hass = hass
+        self.coordinator = coordinator
+        self.records: dict[str, dict[str, Any]] = {}
+        # entity -> {level, message, value, since, name}: its level now, as counted
+        self.now: dict[str, dict[str, Any]] = {}
+        self._pending: dict[str, tuple[str, CALLBACK_TYPE]] = {}  # level, its timer
+        self._unsub: CALLBACK_TYPE | None = None
+        self._listeners: list[Callable[[], None]] = []
+        self._summary: dict[str, Any] | None = None  # cached until the next change
+        self._telling: CALLBACK_TYPE | None = None
+        self._revision: str | None = None  # of the records applied
+        self._fetching = False
+
+    def listen(self, told: Callable[[], None]) -> Callable[[], None]:
+        """Be told after each change of level (the entities write their state)."""
+        self._listeners.append(told)
+        return lambda: self._listeners.remove(told)
+
+    def summary(self) -> dict[str, Any]:
+        if self._summary is None:
+            self._summary = summary(self.now)
+        return self._summary
+
+    @callback
+    def refresh(self) -> None:
+        """Each report from the app: fetch the records if their revision moved."""
+        revision = module(self.coordinator).get("revision")
+        if revision is None or revision == self._revision or self._fetching:
+            return
+        self._fetching = True
+        self.hass.async_create_task(self._fetch(revision))
+
+    async def _fetch(self, revision: str) -> None:
+        url = f"{self.coordinator.url}{RECORDS}"
+        try:
+            session = async_get_clientsession(self.hass)
+            async with session.get(
+                url, timeout=aiohttp.ClientTimeout(total=30)
+            ) as response:
+                response.raise_for_status()
+                data = await response.json()
+        except (aiohttp.ClientError, TimeoutError, ValueError) as exc:
+            _LOGGER.warning(
+                "could not fetch the records (%s); trying at the next poll", exc
+            )
+            return
+        finally:
+            self._fetching = False
+        self._revision = data.get("revision", revision)
+        self._apply({r["entity_id"]: r for r in data.get("records") or []})
+
+    @callback
+    def _apply(self, records: dict[str, dict[str, Any]]) -> None:
+        """Follow the records as they are now."""
+        if records == self.records:
+            return
+        changed = {e for e, r in records.items() if r != self.records.get(e)}
+        gone = set(self.records) - set(records)
+        self.records = records
+        for eid in changed | gone:
+            self._cancel(eid)
+            self.now.pop(eid, None)
+        if self._unsub:
+            self._unsub()
+        self._unsub = (
+            async_track_state_change_event(self.hass, list(records), self._changed)
+            if records
+            else None
+        )
+        for eid in changed:
+            self._consider(eid, initial=True)
+        _LOGGER.info(
+            "watching %d sensors (%d new or changed, %d no longer watched)",
+            len(records),
+            len(changed),
+            len(gone),
+        )
+        self._tell()
+
+    @callback
+    def unload(self) -> None:
+        if self._unsub:
+            self._unsub()
+            self._unsub = None
+        for eid in list(self._pending):
+            self._cancel(eid)
+        if self._telling:
+            self._telling()
+            self._telling = None
+
+    @callback
+    def _changed(self, event: Event[EventStateChangedData]) -> None:
+        old, new = event.data["old_state"], event.data["new_state"]
+        if old is not None and new is not None and old.state == new.state:
+            return  # only its attributes changed
+        self._consider(event.data["entity_id"])
+
+    @callback
+    def _consider(self, eid: str, initial: bool = False) -> None:
+        record = self.records.get(eid)
+        if record is None:
+            return
+        state = self.hass.states.get(eid)
+        level, message = level_of(record, state.state if state else None)
+        current = self.now.get(eid)
+        if level is None or (current is not None and current["level"] == level):
+            self._cancel(eid)  # back where it was (or no opinion): nothing to wait for
+            return
+        if initial and state is not None and state.state not in UNAVAILABLE:
+            self._commit(eid, level, message, state, initial=True)  # as found, at once
+            return
+        if (pending := self._pending.get(eid)) and pending[0] == level:
+            return  # already waiting to see whether it lasts
+        self._cancel(eid)
+        hold = record.get("hold_off", 60)
+        if hold <= 0:
+            self._commit(eid, level, message, state)
+            return
+        _LOGGER.debug("%s: %s for %s s before it counts", eid, level, hold)
+        timer = async_call_later(self.hass, hold, lambda _now: self._held(eid, level))
+        self._pending[eid] = (level, timer)
+
+    @callback
+    def _held(self, eid: str, level: str) -> None:
+        self._pending.pop(eid, None)
+        record = self.records.get(eid)
+        if record is None:
+            return
+        state = self.hass.states.get(eid)
+        now, message = level_of(record, state.state if state else None)
+        if now == level:
+            self._commit(eid, level, message, state)
+        else:
+            self._consider(eid)
+
+    def _cancel(self, eid: str) -> None:
+        if pending := self._pending.pop(eid, None):
+            pending[1]()
+
+    def _commit(
+        self,
+        eid: str,
+        level: str,
+        message: str | None,
+        state: State | None,
+        initial: bool = False,
+    ) -> None:
+        record = self.records[eid]
+        name = record.get("name") or (state.name if state else eid)
+        previous = (self.now.get(eid) or {}).get("level")
+        value = state.state if state else None
+        since = state.last_changed if initial and state else dt_util.utcnow()
+        self.now[eid] = {
+            "level": level,
+            "message": message,
+            "value": value,
+            "since": since.isoformat(),
+            "name": name,
+        }
+        if initial:
+            if level != "nominal":
+                _LOGGER.info(
+                    "%s (%s) found at %s: %s (%s)",
+                    name,
+                    eid,
+                    level,
+                    value,
+                    message or "no message",
+                )
+            return  # refresh tells the entities once for all
+        _LOGGER.info(
+            "%s (%s): %s -> %s at %s (%s)",
+            name,
+            eid,
+            previous or "nothing",
+            level,
+            value,
+            message or "no message",
+        )
+        self.hass.bus.async_fire(
+            EVENT,
+            {
+                "entity_id": eid,
+                "name": name,
+                "level": level,
+                "previous": previous,
+                "value": value,
+                "message": message,
+            },
+        )
+        self._tell()
+
+    def _tell(self) -> None:
+        """Have the entities write, once within TELL however many changes come."""
+        self._summary = None
+        if self._telling is None:
+            self._telling = async_call_later(self.hass, TELL, self._told)
+
+    @callback
+    def _told(self, _now: Any) -> None:
+        self._telling = None
+        for told in list(self._listeners):
+            told()

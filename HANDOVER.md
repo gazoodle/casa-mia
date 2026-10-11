@@ -1,7 +1,7 @@
 # Handover: Casa Mia, for agents joining the work
 
-Where the project stands and how the work is done here, as of 2026-10-10 (`dev` at
-2026.10.6-b9; 2026.10.5 released; 2026.10.6 about to be released). **Read this at the start of every
+Where the project stands and how the work is done here, as of 2026-10-11 (`dev` at
+2026.10.8-b1; 2026.10.7 released). **Read this at the start of every
 session**, then CLAUDE.md in full; where they disagree, CLAUDE.md wins. It replaces
 re-reading old transcripts: the history below is all a new session needs.
 
@@ -220,17 +220,31 @@ guest card SVG), `page.py` (welcome, goodbye), `supervisor.py`.
   `.github/workflows/ghcr-stats.yml` (actionstore/ghcr-stats scrapes each image's package
   page, in a job with no token; our own job sums and force-pushes). Measured on the VM:
   one install = about 5 pulls, and each release's "Verify public pull" adds 2.
+- **2026.10.7** (released): the HA floor lowered to 2026.3 (read from HA's history, not
+  tested; the test is in the backlog).
+- **2026.10.8-b1: Sensor Watch** (in development, untested on a real HA): app
+  `modules/sensor_watch/` (common → suggest, history → api: records in
+  `sensor-watch.json`, suggestions from recorder statistics or state history, Scan my
+  house in rounds of 500) and a fourth component, `casa_mia_sensor_watch` (levels.py has
+  no HA imports and holds the one evaluator; watch.py tracks states, hold-off, event
+  `casa_mia_sensor_watch`; status, counts, problem; `list` service with a response, which
+  the page also uses for live levels). Built for thousands: `/health` carries only a
+  revision, the integration fetches `/sensor-watch/records` (the server's new `reads`)
+  when it moves; attribute-only updates stop at once; summary cached; entity writes
+  coalesced to one a second.
 
 ## Where things stand
 
-- **Releasing 2026.10.6** next (the owner runs `tools/release.py`), after some HA friends
-  sanity-check it. The GHCR stats workflow's schedule starts once it reaches `main`.
+- **Sensor Watch needs its first run on the box:** switch it on, add the integration,
+  watch a sensor, then a scan by area; check the log (both sides log every save, scan and
+  change of level). Its follow-ups are in the backlog.
 - **Untested on the box:** 2FA against a real user, the reach check's fixes, Who's signed
   in. **The reach check's screenshot** is still to take: see the backlog (a swap-only
   dashboard list).
 - **The owner tested the GitHub release install end to end** on the HAOS test VM. Don't
   offer to walk it again.
-- **Soft launch:** the owner's post for HA Community → Share your Projects. Lead with the
+- **Soft launch, on hold:** the owner wants a good spell of testing and using it first
+  (the backlog's Bugfest) before telling more people. The post is for HA Community → Share your Projects. Lead with the
   Tablet Layout, then the Over layer, then garnish (and now guest login). Say up front:
   needs HA OS or Supervised, it sends nothing home (the Pulls badge is GitHub's own
   count), it's one house's system made general.
