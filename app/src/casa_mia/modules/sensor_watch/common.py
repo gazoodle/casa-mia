@@ -18,7 +18,8 @@ A record watches one entity (keyed by its entity id):
 - all: `unavailable` (a level, or "ignore"), `hold_off` (seconds a new level must last
   before it counts), an optional display `name`, and an optional `attribute`: watch that
   attribute's value instead of the state (a climate's current_temperature, a cover's
-  current_position).
+  current_position); and `disabled` (true: kept, with its group, but not watched: the
+  integration isn't sent it, and the page lists it apart).
 The integration works out the levels (casa_mia_sensor_watch/levels.py, whose LEVELS
 must match these; a test checks)."""
 

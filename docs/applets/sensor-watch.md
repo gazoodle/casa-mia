@@ -224,6 +224,11 @@ house with hundreds of them stays manageable. **Edit** changes a sensor's bands;
 **Grouped** (beside Sort) puts them under a heading per group, and Manual for those
 watched one by one; the sort applies within each.
 
+**Disabled** in a watch's editor keeps it, with its levels and its group, but stops
+watching it: no level, no event, not counted. Disabled ones are listed together at the
+foot, greyed; untick it to watch it again, back in its group. Handy for a sensor that's
+being repaired, or a screenshot.
+
 The list is live: a value or level changes on the page the moment Home Assistant has it
 (the app holds a subscription, as a dashboard does). A level waits out its hold-off
 first, so set it to 0 while trying a sensor out.

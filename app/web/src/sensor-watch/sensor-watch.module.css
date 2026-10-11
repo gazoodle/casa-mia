@@ -258,6 +258,11 @@
   grid-template-columns: minmax(0, 1fr) 104px auto;
 }
 
+/* A watch kept but not watched (disabled): greyed. */
+.off {
+  opacity: 0.5;
+}
+
 .compact {
   gap: 10px;
   padding: 5px 8px;

@@ -1380,7 +1380,7 @@ var Ft = class extends U {
 			margin: G((a.margin ?? 0) * l),
 			scale: l
 		} : a, [[m, h], g, _] = _t(p, n), v = ([e, t, n, r]) => `left:${e / m * 100}%;top:${t / h * 100}%;width:${n / m * 100}%;height:${r / h * 100}%`, y = p.highlight ?? {}, x = this.motion.seen(this.hass, e.attributes.motion ?? {}, this._config, () => this.requestUpdate()), S = W.flatMap((e) => p[e].cameras.map((t, n) => [t, _[e][n]])).find(([e]) => e === n)?.[1], C = this._fit, w = this._width ? this._width / vt(a, n, this._width, this.shapeOf(t, n)) : a.width / a.height, E = C && this._width ? T(C, this._width, w) : null;
-		return z`<ha-card style=${!C || C.mode === "tile" || C.mode === "cell" ? `height:100%;aspect-ratio:${a.width}/${a.height}` : E ? `height:${E}px` : ""}>
+		return z`<ha-card style=${b(this) ? `aspect-ratio:${a.width}/${a.height}` : !C || C.mode === "tile" || C.mode === "cell" ? `height:100%;aspect-ratio:${a.width}/${a.height}` : E ? `height:${E}px` : ""}>
       <div class="box">
         <div class="seen" style="filter:${this.look()}">
         ${r ? f ? z`<img class="still" src=${f} alt="" />` : B : d && this._shown ? lt(this._shown, z`<img

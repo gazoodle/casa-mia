@@ -31,6 +31,7 @@ export function RecordDialog({
   const [name, setName] = useState(record?.name ?? "");
   const [follows, setFollows] = useState(record?.profile ?? "");
   const [attribute, setAttribute] = useState(record?.attribute ?? "");
+  const [disabled, setDisabled] = useState(record?.disabled ?? false);
   const [saving, setSaving] = useState(false);
 
   /** Its history and a suggestion, as `as` (a number as exact states), or as itself; of
@@ -98,10 +99,10 @@ export function RecordDialog({
       }
       ok = await change(async () => {
         if (edited) await swApi.put<WatchView>(`profiles/${following.id}`, { name: following.name, ...edited });
-        return put({ profile: following.id, name: name.trim(), attribute });
+        return put({ profile: following.id, name: name.trim(), attribute, disabled });
       }, `${label} follows ${following.name}`);
     } else {
-      ok = await change(() => put({ name: name.trim(), ...L.body(), attribute }), `${label} saved`);
+      ok = await change(() => put({ name: name.trim(), ...L.body(), attribute, disabled }), `${label} saved`);
     }
     setSaving(false);
     if (ok) onClose();
@@ -115,7 +116,7 @@ export function RecordDialog({
     setSaving(true);
     const ok = await change(async () => {
       const made = await swApi.post<WatchView & { created: string }>("profiles", { name: title, ...L.body() });
-      return put({ profile: made.created, name: name.trim(), attribute });
+      return put({ profile: made.created, name: name.trim(), attribute, disabled });
     }, `New profile ${title}; ${label} follows it`);
     setSaving(false);
     if (ok) onClose();
@@ -252,9 +253,14 @@ export function RecordDialog({
         seen={seen}
         seenLabel={found?.sensor.options?.length ? "Its states" : "Seen"}
         extra={
-          <Field label="Name" help="Leave empty to use Home Assistant's name.">
-            <input value={name} maxLength={80} placeholder={found?.sensor.name ?? record?.label} onChange={(e) => setName(e.target.value)} />
-          </Field>
+          <>
+            <Field label="Name" help="Leave empty to use Home Assistant's name.">
+              <input value={name} maxLength={80} placeholder={found?.sensor.name ?? record?.label} onChange={(e) => setName(e.target.value)} />
+            </Field>
+            <Field label="Disabled" help="Kept, with its group and levels, but not watched: no level, no event. Listed apart until you untick it.">
+              <input type="checkbox" checked={disabled} onChange={(e) => setDisabled(e.target.checked)} />
+            </Field>
+          </>
         }
       />
     </Dialog>

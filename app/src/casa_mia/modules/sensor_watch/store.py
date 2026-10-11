@@ -111,7 +111,11 @@ class Store:
         with self._lock:
             return {
                 "revision": self._revision,
-                "records": [self._sent(r) for r in self.records.values()],
+                "records": [
+                    self._sent(r)
+                    for r in self.records.values()
+                    if not r.get("disabled")  # kept, but not watched
+                ],
                 "system": self.system | {"ignore": sorted(self.system["ignore"])},
             }
 
@@ -141,7 +145,11 @@ class Store:
             p["followers"] = sum(1 for r in records if r.get("profile") == p["id"])
         profiles.sort(key=lambda p: p["name"].lower())
         for g in groups:
-            g["members"] = sum(1 for r in records if r.get("group") == g["id"])
+            g["members"] = sum(
+                1
+                for r in records
+                if r.get("group") == g["id"] and not r.get("disabled")
+            )
         groups.sort(key=lambda g: g["name"].lower())
         known = self._known()
         for r in records:
@@ -211,7 +219,14 @@ class Store:
             threading.Thread(target=self.on_change, daemon=True).start()
 
     def _record(self, entity_id: str, body: dict[str, Any]) -> dict[str, Any]:
-        """A record to save: its own levels, or following a profile (`profile`)."""
+        """A record to save: its own levels, or following a profile (`profile`);
+        disabled (kept, not watched) when the body says so."""
+        if body.get("disabled") not in (None, True, False):
+            raise BadRequest("disabled: true or false.")
+        off = {"disabled": True} if body.get("disabled") else {}
+        return self._levels_record(entity_id, body) | off
+
+    def _levels_record(self, entity_id: str, body: dict[str, Any]) -> dict[str, Any]:
         pid = body.get("profile")
         if not pid:
             return clean(entity_id, body)
@@ -256,6 +271,10 @@ class Store:
 
 
 def _describe(record: dict[str, Any]) -> str:
+    if record.get("disabled"):
+        return "disabled: " + _describe(
+            {k: v for k, v in record.items() if k != "disabled"}
+        )
     if record.get("profile"):
         return f"follows profile {record['profile']}"
     if record["kind"] == "binary":

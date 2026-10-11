@@ -404,7 +404,14 @@ export class CommanderCard extends LitElement {
     // Its own shape (column, preview): the one that shows the main camera at its own.
     const shape = this._width ? this._width / heightForMain(own, main, this._width, this.shapeOf(card, main)) : own.width / own.height;
     const tall = f && this._width ? heightFor(f, this._width, shape) : null;
-    const size = !f || f.mode === "tile" || f.mode === "cell" ? `height:100%;aspect-ratio:${own.width}/${own.height}` : tall ? `height:${tall}px` : "";
+    // In HA's card picker: just its own shape, so the picker centres it as it does the others.
+    const size = inPicker(this)
+      ? `aspect-ratio:${own.width}/${own.height}`
+      : !f || f.mode === "tile" || f.mode === "cell"
+        ? `height:100%;aspect-ratio:${own.width}/${own.height}`
+        : tall
+          ? `height:${tall}px`
+          : "";
     return html`<ha-card style=${size}>
       <div class="box">
         <div class="seen" style="filter:${this.look()}">

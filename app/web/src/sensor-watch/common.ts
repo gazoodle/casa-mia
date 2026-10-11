@@ -48,6 +48,8 @@ export type WatchRecord = {
   label?: string;
   /** Watch this attribute's value instead of the state (a climate's current_temperature). */
   attribute?: string;
+  /** Kept, with its group, but not watched (listed apart, greyed). */
+  disabled?: boolean;
   /** The profile it follows (its levels then come from there). */
   profile?: string;
   /** The group it joined by (groups.py), if any. */
@@ -90,7 +92,7 @@ export const MODE_NAMES: Record<WatchRecord["kind"], string> = { numeric: "bands
 
 /** A record's levels alone: what a profile holds, or a record of its own. */
 export function levelsOf(r: Partial<WatchRecord>): Partial<WatchRecord> {
-  const { entity_id: _e, label: _l, meta: _m, profile: _p, name: _n, attribute: _a, ...levels } = r as WatchRecord;
+  const { entity_id: _e, label: _l, meta: _m, profile: _p, name: _n, attribute: _a, disabled: _d, ...levels } = r as WatchRecord;
   return levels;
 }
 

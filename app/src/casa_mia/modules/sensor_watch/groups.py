@@ -189,7 +189,10 @@ class Grouper(Scanner):
                     if new is None:
                         out.add(eid)  # the new profile doesn't fit it
                     else:
-                        moved[eid] = new | {"name": r.get("name", "")}
+                        moved[eid] = new | {
+                            "name": r.get("name", ""),
+                            **({"disabled": True} if r.get("disabled") else {}),
+                        }
             moved |= dict.fromkeys(out)
             dropped = (
                 f"; {len(out)} no longer in it ({', '.join(sorted(out))})"

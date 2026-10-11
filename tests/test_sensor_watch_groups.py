@@ -147,3 +147,20 @@ def test_a_group_moves_from_the_defaults_to_a_profile(tmp_path):
     gid = next(iter(watch.groups))
     call(watch, "PUT", f"groups/{gid}", body=body | {"profile": view["created"]})
     assert watch.records["binary_sensor.leak"]["profile"] == view["created"]
+
+
+def test_a_disabled_member_is_kept_but_not_watched(tmp_path):
+    watch, _, pid, _ = _group(tmp_path)
+    body = {"profile": pid, "name": "", "disabled": True}
+    assert call(watch, "PUT", "sensor.temp_02", body=body)[0] == 200
+    _, view = call(watch, "GET", "")
+    r = next(r for r in view["records"] if r["entity_id"] == "sensor.temp_02")
+    assert r["disabled"] and r["group"] and r["profile"] == pid  # kept, with its group
+    assert view["groups"][0]["members"] == 4  # not counted
+    sent = {r["entity_id"] for r in watch.for_integration()["records"]}
+    assert "sensor.temp_02" not in sent and len(sent) == 4  # not watched
+    assert watch.sync() == 0  # nor pulled back in by the group
+    call(watch, "PUT", "sensor.temp_02", body=body | {"disabled": False})
+    assert "sensor.temp_02" in {
+        r["entity_id"] for r in watch.for_integration()["records"]
+    }

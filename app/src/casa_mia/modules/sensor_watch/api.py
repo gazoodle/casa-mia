@@ -271,6 +271,8 @@ class SensorWatch(Grouper):
                 try:
                     name = records.get(e, {}).get("name", "")
                     now[e] = follower(e, name, profile, kind, attribute)
+                    if records.get(e, {}).get("disabled"):
+                        now[e]["disabled"] = True
                 except BadRequest:
                     skipped += 1  # a kind the profile doesn't fit
             self._save(

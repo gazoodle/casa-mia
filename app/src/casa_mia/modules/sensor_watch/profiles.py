@@ -64,6 +64,7 @@ def resolve(
         "profile": profile["id"],
         **({"group": record["group"]} if record.get("group") else {}),
         **({"attribute": record["attribute"]} if record.get("attribute") else {}),
+        **({"disabled": True} if record.get("disabled") else {}),
     }
 
 

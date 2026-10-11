@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.10.8-b30
+
+- Sensor Watch: **Disabled** in a watch's editor keeps it (its levels, its group) but stops watching it; disabled ones are listed apart at the foot of the list, greyed, and a group doesn't count them or pull them back in.
+
+- **Breaking:** Casa Mia's cards changed. Restart Home Assistant once; a Repair asks.
+- Camera Commander: in the card picker its picture is centred, as the other cards' previews are (it sat at the top of a taller box).
+
 ## 2026.10.8-b29
 
 - **Breaking:** the Sensor Watch integration and Casa Mia's cards changed. Restart Home Assistant once; a Repair asks.

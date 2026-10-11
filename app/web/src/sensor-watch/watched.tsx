@@ -11,6 +11,7 @@ import ui from "../ui.module.css";
 
 const PAGE = 200; // rows drawn, then "Show more" at the foot of the box
 const MANUAL = "Manual"; // the heading for those watched one by one, not by a group
+const DISABLED = "Disabled"; // the heading for those kept but not watched, last
 /** Does a watched sensor pass the filters (and every word of the search)? `skip`: a
  * filter left out, to offer what the others leave (the devices, say). */
 function passes(r: WatchRecord, f: Filters, skip?: keyof Filters): boolean {
@@ -141,15 +142,18 @@ export function WatchedList({
     return l ? LEVELS.indexOf(l) : -1; // not known yet: after nominal
   };
   const groupName = new Map(groups.map((g) => [g.id, g.name]));
-  const section = (r: WatchRecord) => (grouped ? (r.group && groupName.get(r.group)) || MANUAL : "");
-  // Manual first, then the groups by name; the sort applies within each.
-  const sectionOrder = (a: string, b: string) => (a === b ? 0 : a === MANUAL ? -1 : b === MANUAL ? 1 : a.localeCompare(b));
+  // Disabled ones apart (grouped or not), out of their groups.
+  const section = (r: WatchRecord) => (r.disabled ? DISABLED : grouped ? (r.group && groupName.get(r.group)) || MANUAL : "");
+  const headed = (r: WatchRecord) => grouped || !!r.disabled;
+  // Manual first, then the groups by name, Disabled last; the sort applies within each.
+  const place = (s: string) => (s === MANUAL ? 0 : s === DISABLED ? 2 : 1);
+  const sectionOrder = (a: string, b: string) => place(a) - place(b) || a.localeCompare(b);
   const rows = matched
     .filter((r) => levels.size === 0 || levels.has(levelOf(r) as Level))
     .sort((a, b) => sectionOrder(section(a), section(b)) || (sort === "level" ? rank(b) - rank(a) : 0) || (a.label ?? "").localeCompare(b.label ?? ""));
   const inSection = rows.reduce<Record<string, number>>((n, r) => ({ ...n, [section(r)]: (n[section(r)] ?? 0) + 1 }), {});
   const first = (r: WatchRecord, i: number, list: WatchRecord[]) => i === 0 || section(list[i - 1]) !== section(r);
-  const isFolded = (r: WatchRecord) => grouped && folded.has(section(r));
+  const isFolded = (r: WatchRecord) => headed(r) && folded.has(section(r));
   // A folded group keeps its first row, to carry its heading.
   const visible = rows.filter((r, i) => !isFolded(r) || first(r, i, rows));
   const filtering = levels.size > 0 || Object.values(filters).some(Boolean);
@@ -203,7 +207,7 @@ export function WatchedList({
           <div className={css.table}>
             {visible.slice(0, shown).map((r, i, page) => {
               const now = live?.levels[r.entity_id];
-              const heading = grouped && first(r, i, page);
+              const heading = headed(r) && first(r, i, page);
               return (
                 <Fragment key={r.entity_id}>
                   {heading && (
@@ -214,15 +218,17 @@ export function WatchedList({
                     </h4>
                   )}
                   {!isFolded(r) && (
-                <div className={`${css.row} ${css.compact}`}>
-                  <span className={`${css.level} ${css[`lv_${now?.level ?? "none"}`]}`}>{now ? LEVEL_NAMES[now.level] : "…"}</span>
+                <div className={`${css.row} ${css.compact} ${r.disabled ? css.off : ""}`}>
+                  <span className={`${css.level} ${css[`lv_${r.disabled ? "none" : (now?.level ?? "none")}`]}`}>
+                    {r.disabled ? "Disabled" : now ? LEVEL_NAMES[now.level] : "…"}
+                  </span>
                   <span className={css.what}>
                     <span className={css.nameLine}>
                       <strong>{r.label}</strong> <code>{r.entity_id}</code>
                       {r.attribute && <span className={css.note}> · its {r.attribute}</span>}
                     </span>
                     <span className={css.note}>
-                      {now ? `${now.value ?? "?"}${now.message ? ` · ${now.message}` : ""} · ` : ""}
+                      {now && !r.disabled ? `${now.value ?? "?"}${now.message ? ` · ${now.message}` : ""} · ` : ""}
                       {summary(r)}
                       {r.meta?.area && ` · ${r.meta.area}`}
                       {r.profile && ` · follows ${profiles.find((p) => p.id === r.profile)?.name ?? "a profile"}`}
