@@ -1,7 +1,7 @@
 // The Sensor Watch card: what isn't nominal, worst first, from the casa_mia_sensor_watch
-// integration's `list` service (a group's only, if it names one). It asks again whenever
-// the integration's own entities write (a level moved), and shows each value live from the
-// entity itself. With nothing to list it hides (HA's card wrapper honours a card's own
+// integration's `list` service (a group's only, if it names one). It asks again the moment
+// a level moves (the integration's casa_mia_sensor_watch event; its entities' writes are
+// the backstop), and shows each value live from the entity itself. With nothing to list it hides (HA's card wrapper honours a card's own
 // `hidden`), so in a Tablet Layout its panel closes, garnish heading and all, when all is well.
 import { LitElement, css, html, nothing } from "lit";
 import { fire, type Hass } from "../ha.ts";
@@ -19,6 +19,7 @@ export class SensorWatchCard extends LitElement {
   private _hass?: Hass;
   private _seen = ""; // the integration's entities, as last seen: a change asks again
   private _timer?: number;
+  private _unsubscribe?: Promise<() => void>; // from the change-of-level event
 
   static getStubConfig() {
     return {};
@@ -34,8 +35,31 @@ export class SensorWatchCard extends LitElement {
     if (this._hass) this._later();
   }
 
+  connectedCallback() {
+    super.connectedCallback();
+    if (this._hass) this._subscribe(this._hass);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this._unsubscribe?.then((off) => off()).catch(() => {});
+    this._unsubscribe = undefined;
+  }
+
+  /** Hear each change of level as the integration decides it, and ask again at once. */
+  private _subscribe(hass: Hass) {
+    if (this._unsubscribe || !hass.connection) return;
+    const subscribed: Promise<() => void> = hass.connection.subscribeEvents(() => {
+      clearTimeout(this._timer);
+      this._ask();
+    }, DOMAIN);
+    this._unsubscribe = subscribed;
+    subscribed.catch((err: unknown) => console.warn(`CASA-MIA CARDS: sensor watch: can't hear its event (${err})`));
+  }
+
   set hass(hass: Hass) {
     this._hass = hass;
+    if (this.isConnected) this._subscribe(hass);
     // The integration's entities (its status and counts) write when a level moves.
     const mine = Object.entries(hass.entities ?? {})
       .filter(([, e]: [string, any]) => e.platform === DOMAIN)

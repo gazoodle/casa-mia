@@ -33,7 +33,7 @@ def test_new_arrivals_join_and_those_stopped_stay_out(tmp_path):
     assert watch.groups[next(iter(watch.groups))]["left"] == ["sensor.temp_02"]
     ha.states.append(_state("sensor.temp_09", "20", state_class="measurement"))
     assert watch.reader
-    watch.reader._at = 0  # HA read again, as each minute
+    watch.reader.forget()  # HA read again, as when its registry changes
     assert watch.sync() == 1  # the new plug, not the one stopped
     assert "sensor.temp_09" in watch.records and "sensor.temp_02" not in watch.records
     gid = next(iter(watch.groups))
@@ -116,7 +116,7 @@ def test_a_minus_word_keeps_them_out_now_and_later(tmp_path):
     assert "sensor.temp_02" not in watch.records and "sensor.temp_01" in watch.records
     ha.states.append(_state("sensor.temp_02b", "20", state_class="measurement"))
     assert watch.reader
-    watch.reader._at = 0
+    watch.reader.forget()
     assert watch.sync() == 0  # a new one with the unwanted word never joins
 
 

@@ -98,6 +98,11 @@ class Reader:
 
     # -- the sensors
 
+    def forget(self) -> None:
+        """Read HA's entities afresh at the next ask (its registry changed)."""
+        with self._lock:
+            self._at = 0.0
+
     def candidates(self) -> list[dict[str, Any]]:
         """Every entity Sensor Watch could watch (not its own)."""
         with self._lock:

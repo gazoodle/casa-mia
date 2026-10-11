@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.10.8-b21
+
+- **Breaking:** the Sensor Watch integration and Casa Mia's cards changed. Restart Home Assistant once; a Repair asks.
+- Sensor Watch: a change of level shows at once everywhere: the card and the page hear the integration's event the moment it decides (they waited for its entities to be written, up to a second, then asked again: one to two seconds in all); and its entities are written at once (then at most every 0.2 s while changes keep coming, so a storm is still a write a beat), for dashboards that read them.
+- Sensor Watch: groups take a new entity, or one given a group's label in Home Assistant's own settings, within a couple of seconds (they hear HA's entity registry change), not at the next minute's sweep, which stays as a backstop.
+
 ## 2026.10.8-b20
 
 - **Breaking:** the Sensor Watch integration changed (on/off watches). Restart Home Assistant once; a Repair asks. Until then it still works as before.

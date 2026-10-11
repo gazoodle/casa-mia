@@ -29,9 +29,9 @@ from .const import EVENT, MODULE
 from .levels import UNAVAILABLE, level_of, summary
 
 _LOGGER = logging.getLogger(__name__)
-TELL = (
-    1.0  # seconds: a storm of changes writes the entities once a second, not per change
-)
+# seconds: the entities write at once, then at most once in this while changes keep
+# coming, so a storm is a write a TELL, not one per change.
+TELL = 0.2
 RECORDS = "/sensor-watch/records"  # the app's records, fetched when the revision moves
 
 
@@ -51,7 +51,8 @@ class Watcher:
         self._unsub: CALLBACK_TYPE | None = None
         self._listeners: list[Callable[[], None]] = []
         self._summary: dict[str, Any] | None = None  # cached until the next change
-        self._telling: CALLBACK_TYPE | None = None
+        self._telling: CALLBACK_TYPE | None = None  # the TELL after a write
+        self._more = False  # changes since that write, to write when it ends
         self._revision: str | None = None  # of the records applied
         self._fetching = False
         # Keys of Home Assistant's own rows (apply_system).
@@ -292,13 +293,23 @@ class Watcher:
         self._tell()
 
     def _tell(self) -> None:
-        """Have the entities write, once within TELL however many changes come."""
+        """Have the entities write: at once, then at most once a TELL while changes keep
+        coming (a storm: one write for all of them at the end of each TELL)."""
         self._summary = None
-        if self._telling is None:
-            self._telling = async_call_later(self.hass, TELL, self._told)
+        if self._telling is not None:  # written within the last TELL: once more after it
+            self._more = True
+            return
+        self._told()
 
     @callback
-    def _told(self, _now: Any) -> None:
-        self._telling = None
+    def _told(self) -> None:
+        self._more = False
         for told in list(self._listeners):
             told()
+        self._telling = async_call_later(self.hass, TELL, self._quiet)
+
+    @callback
+    def _quiet(self, _now: Any) -> None:
+        self._telling = None
+        if self._more:
+            self._told()  # what changed meanwhile, in one write

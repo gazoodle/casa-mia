@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import threading
+import time
 from typing import Any
 
 from ...ha import HAError
@@ -19,7 +20,10 @@ from .scans import FILTERS, Scanner, matches
 
 _LOGGER = logging.getLogger(__name__)
 
-SYNC = 60.0  # seconds between looking for new members
+SYNC = 60.0  # seconds between looking for new members (a backstop: see nudge)
+# Seconds after HA's registry changes (a new entity, a label added) before looking: its
+# state follows its registry entry, and an integration adding many sends many.
+SETTLE = 2.0
 DEFAULTS = "defaults"  # a group's "profile": each member by what it is
 
 
@@ -68,15 +72,22 @@ def member(
 class Grouper(Scanner):
     def start(self) -> None:
         super().start()
+        self._nudged = threading.Event()
+        if self.live:  # HA's entity registry changed: look now, not at the next sweep
+            self.live.on_registry = self._nudged.set
         threading.Thread(
             target=self._keep, name="sensor-watch-groups", daemon=True
         ).start()
 
     def _keep(self) -> None:
-        stop = (
-            threading.Event()
-        )  # ponytail: runs for the app's life, as the module does
-        while not stop.wait(SYNC):
+        # ponytail: runs for the app's life, as the module does
+        while True:
+            if self._nudged.wait(SYNC):
+                time.sleep(SETTLE)  # let the rest come, and the new entity's state
+                self._nudged.clear()
+                if self.reader:
+                    self.reader.forget()  # read HA's entities afresh
+                _LOGGER.debug("groups: HA's registry changed; looking for new members")
             try:
                 self.sync()
             except (HAError, BadRequest) as exc:

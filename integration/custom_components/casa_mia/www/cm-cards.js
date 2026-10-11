@@ -4653,8 +4653,21 @@ var Dr = "casa_mia_sensor_watch", Or = 300, kr = class extends W {
 	setConfig(e) {
 		this._config = { ...e }, this._seen = "", this._hass && this._later();
 	}
+	connectedCallback() {
+		super.connectedCallback(), this._hass && this._subscribe(this._hass);
+	}
+	disconnectedCallback() {
+		super.disconnectedCallback(), this._unsubscribe?.then((e) => e()).catch(() => {}), this._unsubscribe = void 0;
+	}
+	_subscribe(e) {
+		if (this._unsubscribe || !e.connection) return;
+		let t = e.connection.subscribeEvents(() => {
+			clearTimeout(this._timer), this._ask();
+		}, Dr);
+		this._unsubscribe = t, t.catch((e) => console.warn(`CASA-MIA CARDS: sensor watch: can't hear its event (${e})`));
+	}
 	set hass(e) {
-		this._hass = e;
+		this._hass = e, this.isConnected && this._subscribe(e);
 		let t = Object.entries(e.entities ?? {}).filter(([, e]) => e.platform === Dr).map(([t]) => `${t}@${e.states[t]?.last_updated ?? ""}`).join(",");
 		t !== this._seen && (this._seen = t, this._later()), this.requestUpdate();
 	}

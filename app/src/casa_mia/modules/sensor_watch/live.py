@@ -1,8 +1,9 @@
 """The live levels, pushed: the app holds one websocket to Home Assistant and hears, as
-they happen, each watched sensor's state (subscribe_entities: its value) and each write
-of the integration's own entities (a level changed: the levels are asked again of its
-`list` service, which also gives the Home tile its health). The page long-polls wait(),
-so it shows a change as soon as Home Assistant does."""
+they happen, each watched sensor's state (subscribe_entities: its value), each change of
+level (the integration's casa_mia_sensor_watch event, taken at once), and each write of
+the integration's own entities (the levels asked again of its `list` service, a
+backstop that also gives the Home tile its health). The page long-polls wait(), so it
+shows a change as soon as Home Assistant does."""
 
 from __future__ import annotations
 
@@ -38,6 +39,8 @@ class Live:
         self._levels: dict[str, dict[str, Any]] = {}
         self._error: str | None = "Waiting for Home Assistant…"
         self._again = threading.Event()  # the records changed: subscribe afresh
+        # Told when HA's entity registry changes (an entity added, a label given): groups.
+        self.on_registry: Callable[[], None] | None = None
         self._stop = threading.Event()
 
     def start(self) -> None:
@@ -134,6 +137,18 @@ class Live:
                     "entity_ids": sorted(watched | own),
                 }
             )
+            # Each change of level, the moment the integration decides it.
+            await ws.send_json(
+                {"id": 3, "type": "subscribe_events", "event_type": DOMAIN}
+            )
+            # An entity added, or changed (a label given in HA's own settings): groups look.
+            await ws.send_json(
+                {
+                    "id": 4,
+                    "type": "subscribe_events",
+                    "event_type": "entity_registry_updated",
+                }
+            )
             _LOGGER.info(
                 "live levels: following %d watched sensors and %d of the integration's entities",
                 len(watched),
@@ -152,12 +167,35 @@ class Live:
                     if m.get("id") == 2 and m.get("type") == "event":
                         if self._heard(m["event"], own):
                             due = due or time.monotonic() + SETTLE
+                    elif m.get("id") == 3 and m.get("type") == "event":
+                        self._moved(m["event"])
+                    elif m.get("id") == 4 and m.get("type") == "event":
+                        action = (m["event"].get("data") or {}).get("action")
+                        if action in ("create", "update") and self.on_registry:
+                            self.on_registry()
                 if due is not None and time.monotonic() >= due:
                     due = None
                     await asyncio.to_thread(self._refresh)
             _LOGGER.debug(
                 "live levels: the watched sensors changed; subscribing afresh"
             )
+
+    def _moved(self, event: dict[str, Any]) -> None:
+        """A change of level, as the integration fired it: that row, at once."""
+        data = event.get("data") or {}
+        eid = data.get("entity_id")
+        if not eid:
+            return
+        _LOGGER.debug("live levels: %s -> %s", eid, data.get("level"))
+        row = {k: data.get(k) for k in ("name", "level", "value", "message")}
+        since = event.get("time_fired") or ""
+
+        def take() -> None:
+            self._levels[eid] = (
+                (self._levels.get(eid) or {"entity_id": eid}) | row | {"since": since}
+            )
+
+        self._publish(take)
 
     def _heard(self, event: dict[str, Any], own: set[str]) -> bool:
         """Take the new values from a subscribe_entities event ("a": states added, "c":

@@ -132,6 +132,21 @@ def test_levels_come_from_the_integrations_service(tmp_path):
         live.wait(now["rev"], 0.01)["rev"] == now["rev"]
     )  # nothing new: held, then as is
     assert live._heard({"c": {"sensor.casa_mia_sensor_watch_status": {"+": {}}}}, own)
+    # A change of level, as the integration fires it: that row at once, no asking.
+    before = live.snapshot()["rev"]
+    data = {
+        "entity_id": "sensor.salt",
+        "level": "critical",
+        "value": "5",
+        "message": "Out",
+    }
+    live._moved({"data": data, "time_fired": "2026-10-11T12:00:00+00:00"})
+    row = live.wait(before, 0.01)["levels"]["sensor.salt"]
+    assert (row["level"], row["message"], row["since"]) == (
+        "critical",
+        "Out",
+        "2026-10-11T12:00:00+00:00",
+    )
     absent = make(tmp_path / "sw2.json", FakeHA(STATES, ENTITIES))
     assert absent.live is not None
     absent.live._refresh()
