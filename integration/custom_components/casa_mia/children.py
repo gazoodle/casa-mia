@@ -1,6 +1,6 @@
-"""The integrations that hang off Casa Mia: Casa Mia Guest Login and Casa Mia Camera
-Commander. Each sets up only beside a Casa Mia entry and uses its coordinator (one
-/health poll for all three); each comes and goes with its module in the app; Casa Mia
+"""The integrations that hang off Casa Mia: Casa Mia Guest Login, Casa Mia Camera
+Commander and Casa Mia Sensor Watch. Each sets up only beside a Casa Mia entry and uses
+its coordinator (one /health poll for them all); each comes and goes with its module in the app; Casa Mia
 offers each under Discovered while its module is on and it is not set up."""
 
 from __future__ import annotations
@@ -28,7 +28,11 @@ from .coordinator import CasaMiaCoordinator, running_coordinator
 _LOGGER = logging.getLogger(__name__)
 
 # Each child's domain -> its module in the app's /health.
-CHILDREN = {"casa_mia_guest_login": "guest_login", "casa_mia_commander": "commander"}
+CHILDREN = {
+    "casa_mia_guest_login": "guest_login",
+    "casa_mia_commander": "commander",
+    "casa_mia_sensor_watch": "sensor_watch",
+}
 OFFERED = f"{DOMAIN}_offered"  # hass.data: children offered under Discovered this run
 
 

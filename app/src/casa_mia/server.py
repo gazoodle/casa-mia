@@ -14,6 +14,7 @@ import urllib.parse
 from collections.abc import Callable
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from typing import Any
 
 from . import app_version, swap
 
@@ -121,6 +122,18 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         if self._proxy() or self._api("GET"):
+            return
+        # What the integration fetches beside /health, only when a revision there moves
+        # (e.g. Sensor Watch's records: too many to send at every poll). Open, as /health is.
+        read = self.server.reads.get(self.path.split("?")[0])  # type: ignore[attr-defined]
+        if read is not None:
+            body = json.dumps(read()).encode()
+            _LOGGER.debug("integration: GET %s -> %d bytes", self.path, len(body))
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
             return
         if self.path.split("?")[0] != "/health":
             self._web()
@@ -257,12 +270,14 @@ def make_server(
     proxies: dict[str, ProxyHandler] | None = None,
     helpers: set[str] | None = None,
     on_cards: list[Callable[[str], None]] | None = None,
+    reads: dict[str, Callable[[], Any]] | None = None,
 ) -> ThreadingHTTPServer:
     """`modules` maps a module name to its health() callable, reported under /health.
     `actions` maps a POST path (e.g. /gitproxy/check) to a callable run in the background.
     `post_handlers` maps a POST path prefix to a handler(rest_of_path, body) -> HTTP
     status, run inline. `on_cards` are called with the cards version when the
-    integration says Home Assistant serves a new one."""
+    integration says Home Assistant serves a new one. `reads` maps a GET path to a
+    callable whose JSON answer the integration fetches beside /health."""
     server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
     server.modules = modules or {}  # type: ignore[attr-defined]
     server.actions = actions or {}  # type: ignore[attr-defined]
@@ -278,4 +293,5 @@ def make_server(
     server.helpers_heard = False  # type: ignore[attr-defined]
     server.cards = None  # type: ignore[attr-defined]
     server.on_cards = on_cards if on_cards is not None else []  # type: ignore[attr-defined]
+    server.reads = reads or {}  # type: ignore[attr-defined]
     return server

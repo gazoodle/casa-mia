@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026.10.8
+
+- **Breaking:** Casa Mia's integration and cards changed, and there's a new one, Casa Mia Sensor Watch. Restart Home Assistant once after updating; a Repair asks.
+- **New: Sensor Watch** (Alpha). Tell it once what normal looks like, for every sensor in the house, and it tells you only when something isn't. Each watched entity gets a level: nominal, a task (top up the salt), a warning, an error or critical. Switch it on in the app's Configuration tab, then add the **Casa Mia Sensor Watch** integration (Settings → Devices & services, under Discovered). The guide starts with half an hour to a watched house.
+  - **Any entity, watched as it suggests:** a number by bands (suggested from its history or statistics, outliers set aside), on/off with a level and message for each state, exact states (with states of their own level: a lock jammed), **Available** (only whether it's there, either way round), or one of its **attributes** (a thermostat's `current_temperature`, not its mode). A hold-off stops a blip counting; unavailable counts too.
+  - **What things mean, built in:** leaks, smoke, gas and carbon monoxide critical at once; doors, windows, covers, locks, updates, low batteries, vacuums and alarm panels set up by what they are.
+  - **Groups that keep themselves up to date:** saved filters and a profile (or the defaults, by what each thing is). Everything matching is watched, a new plug joins by itself, one stopped by hand stays out. The dialog previews what it takes.
+  - **Profiles,** said once for many sensors: made, edited, duplicated, applied in bulk, and shared (Export and Import… as a file). **A library of 80**, each with where its numbers come from: mains voltage and frequency for the UK (today's law and the ENA's 2026 proposal), the US, the EU, Japan, China and Australia; UK inverter trips (G98/G99); batteries; broadband against your plan; pool and hot tub chemistry; indoor air; freezers, heating and hot water; the garden; computers; availability; a security light on too long.
+  - **The page:** every watch with its live level and value under one toolbar: a search (a word with a minus rules out: `voltage -vcc`), level chips with counts, filter chips (domain, area, floor, label, integration, maker, model, device, device class, category, kind, profile, group), grouped under folding headings, with a status pill on each row. **Scan my house** suggests levels for everything not yet watched. A watch can be **Disabled** without losing it.
+  - **Home Assistant itself:** the Recorder or History not running is critical; an integration that fails to set up is an error (Ignore for any you don't care about).
+  - **Telling you:** a status, a count per level and a problem sensor; an event on each change of level (with its message, value, area and group); a `list` service; the **Casa Mia Sensor Watch** card (what needs looking at, worst first, values live, hidden when all is well, so a Tablet Layout panel appears only when needed); and a blueprint, **Notify on Sensor Watch** (your phone and Home Assistant's notifications, at a level or worse, colour-coded, cleared when it's back).
+- **Cards in the card picker** look as they will in use: the Camera Commander's picture without the editing hatch, the Over layer as a picture of what it does (it no longer puts its layer up from the picker), and the Sensor Watch card as an example of a bad day.
+- **Kiosk Satellites:** a tablet with a newer release waiting shows both versions on its chip (`2026.8.40 → 2026.8.49 ↗`), and the latest release at the top of the page is a chip; each opens that release's notes on GitHub.
+- **Docs:** Sensor Watch in the README and its guide, with worked examples, a table of every library profile, and screenshots.
+
 ## 2026.10.7
 
 - **Home Assistant 2026.3 or later** is now enough (it was 2026.9): the oldest release with

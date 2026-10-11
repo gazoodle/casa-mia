@@ -3,7 +3,7 @@
 // None are public API; if an HA update breaks one, it breaks here first.
 import LAYOUT from "../../../app/src/casa_mia/layout.json" with { type: "json" };
 
-export type State = { state: string; attributes: Record<string, any>; last_changed?: string };
+export type State = { state: string; attributes: Record<string, any>; last_changed?: string; last_updated?: string };
 export type Hass = {
   states: Record<string, State>;
   callService(domain: string, service: string, data?: object, target?: object): Promise<unknown>;
@@ -140,6 +140,13 @@ export function container(el: Element): string {
 /** Filling a Tablet Layout's panel: its hui-card is marked so (view.ts, cm-fill). */
 function filling(el: Element): boolean {
   for (let n = up(el); n; n = up(n)) if ((n as Element).tagName === "HUI-CARD") return (n as Element).hasAttribute("cm-fill");
+  return false;
+}
+
+/** A preview in HA's card picker (adding a card): there a card shows how it will look
+ * in use, and never acts (no layer put up, no stream). */
+export function inPicker(el: Element): boolean {
+  for (let n: Node | null = el; n; n = up(n)) if ((n as Element).tagName === "HUI-CARD-PICKER") return true;
   return false;
 }
 

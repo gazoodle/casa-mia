@@ -1,7 +1,7 @@
 # Handover: Casa Mia, for agents joining the work
 
-Where the project stands and how the work is done here, as of 2026-10-10 (`dev` at
-2026.10.6-b9; 2026.10.5 released; 2026.10.6 about to be released). **Read this at the start of every
+Where the project stands and how the work is done here, as of 2026-10-11 (`dev` at
+2026.10.8-b1; 2026.10.7 released). **Read this at the start of every
 session**, then CLAUDE.md in full; where they disagree, CLAUDE.md wins. It replaces
 re-reading old transcripts: the history below is all a new session needs.
 
@@ -220,17 +220,61 @@ guest card SVG), `page.py` (welcome, goodbye), `supervisor.py`.
   `.github/workflows/ghcr-stats.yml` (actionstore/ghcr-stats scrapes each image's package
   page, in a job with no token; our own job sums and force-pushes). Measured on the VM:
   one install = about 5 pulls, and each release's "Verify public pull" adds 2.
+- **2026.10.7** (released): the HA floor lowered to 2026.3 (read from HA's history, not
+  tested; the test is in the backlog).
+- **2026.10.8-b1: Sensor Watch** (in development, untested on a real HA): app
+  `modules/sensor_watch/` (common → suggest, history → api: records in
+  `sensor-watch.json`, suggestions from recorder statistics or state history, Scan my
+  house in rounds of 500) and a fourth component, `casa_mia_sensor_watch` (levels.py has
+  no HA imports and holds the one evaluator; watch.py tracks states, hold-off, event
+  `casa_mia_sensor_watch`; status, counts, problem; `list` service with a response, which
+  the page also uses for live levels). Built for thousands: `/health` carries only a
+  revision, the integration fetches `/sensor-watch/records` (the server's new `reads`)
+  when it moves; attribute-only updates stop at once; summary cached; entity writes
+  coalesced to one a second.
+- **2026.10.8-b2…b13: Sensor Watch, built out on the box** (the owner uses it daily):
+  exact states with exceptions, defaults by device class, HA's own health (Recorder and
+  History critical; failing integrations, with ignores), the Home tile's health, a
+  chip-filtered watched list with bulk follow/stop, any entity (`kind_of` by domain), band
+  profiles (`profiles.py`: followers stored as pointers, sent resolved; made, edited and
+  applied from the Profiles section), 255-character messages, inserting bands and checks
+  on save. The page's level fields live once in `web/src/sensor-watch/levels.tsx`, shared
+  by the sensor and profile editors.
+- **2026.10.8-b14…b28: Sensor Watch, made whole (now Alpha):** profiles managed, imported,
+  exported and shipped (`library.json`, 80; `tools/library_table.py` writes the guide's
+  table, a test keeps it in step); `api.py` split (store → scans → groups → api); groups
+  (`groups.py`: saved filters plus a profile or the defaults, `sync()` each minute and on
+  HA's `entity_registry_updated`, left-out remembered); chip filters everywhere with minus
+  words, and floor, maker, model and category; on/off as When off / When on; the
+  `custom:casa-mia-sensor-watch` card (hides when clear; example rows in the card
+  picker); instant updates (the card and `live.py` hear the integration's event; entity
+  writes at once then every 0.2 s); a record may watch an `attribute`; a fourth kind,
+  `available` (either way round); the event carries group, area and attribute; the
+  integration installs and keeps up to date the **Notify on Sensor Watch** blueprint
+  (`blueprint.py`: groups and notify actions filled in as dropdowns); the screenshot swap
+  covers what the integration shows (`swap.py`, the app's rule); the page polls at most
+  once a second (a busy loop hung Safari). Proven on the VM: the blueprint end to end.
 
 ## Where things stand
 
-- **Releasing 2026.10.6** next (the owner runs `tools/release.py`), after some HA friends
-  sanity-check it. The GHCR stats workflow's schedule starts once it reaches `main`.
+- **Sensor Watch is Alpha, in daily use on the box, heading for release:** the README
+  section, the guide's opening and worked examples are written, and six screenshots taken
+  on the box with the swap on (b31). Still to do: the notifications shot (the blueprint
+  didn't notify on the box: backlogged, evidence first), re-taking the page and group
+  shots once the subtitle changes, confirming b31's `…` fix after an HA restart, then a
+  release. Its
+  backlog section "Sensor Watch (alpha)" holds what's next (stale sensors, `list` by
+  label, "Watch in Sensor Watch…" from HA's dialog, templates, dependencies, counted
+  availability rules, export to native HA); none of it blocks the release.
+- **Card picker previews:** the Over layer's showed on the VM; check on the box after a
+  restart and hard refresh. The Commander's (drawn full size, shrunk) is unchecked.
 - **Untested on the box:** 2FA against a real user, the reach check's fixes, Who's signed
   in. **The reach check's screenshot** is still to take: see the backlog (a swap-only
   dashboard list).
 - **The owner tested the GitHub release install end to end** on the HAOS test VM. Don't
   offer to walk it again.
-- **Soft launch:** the owner's post for HA Community → Share your Projects. Lead with the
+- **Soft launch, on hold:** the owner wants a good spell of testing and using it first
+  (the backlog's Bugfest) before telling more people. The post is for HA Community → Share your Projects. Lead with the
   Tablet Layout, then the Over layer, then garnish (and now guest login). Say up front:
   needs HA OS or Supervised, it sends nothing home (the Pulls badge is GitHub's own
   count), it's one house's system made general.

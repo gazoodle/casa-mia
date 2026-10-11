@@ -24,6 +24,10 @@ const HEAD = {
   blurb: "The wall tablets: found through Home Assistant and each other.",
 };
 
+/** A Kiosk Satellite release's notes on GitHub (the firmware server mirrors the same
+ * repository: RELEASES_API in app/src/casa_mia/modules/gitproxy.py). */
+const releaseNotes = (tag: string) => `https://github.com/jxlarrea/kiosk-satellite/releases/tag/${encodeURIComponent(tag)}`;
+
 export function KiosksPage({ state }: { state?: string }) {
   const [view, setView] = useState<KiosksView>();
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -79,7 +83,15 @@ export function KiosksPage({ state }: { state?: string }) {
           title="Kiosks"
           blurb={
             <>
-              {view.kiosks.length} found · latest release <strong>{view.latest ?? "unknown"}</strong> · looked{" "}
+              {view.kiosks.length} found · latest release{" "}
+              {view.latest ? (
+                <a className={css.release} href={releaseNotes(view.latest)} target="_blank" rel="noopener noreferrer" title="Its release notes, on GitHub">
+                  {view.latest} ↗
+                </a>
+              ) : (
+                <strong>unknown</strong>
+              )}{" "}
+              · looked{" "}
               {ago(view.last_scan) ?? "not yet"}
             </>
           }

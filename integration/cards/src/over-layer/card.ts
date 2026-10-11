@@ -7,7 +7,7 @@
 // it is never live while the dashboard is edited. It takes no room out of edit mode, and in
 // a Tablet Layout never holds a panel open (garnish.ts: counts).
 import { LitElement, css, html, nothing } from "lit";
-import type { CardConfig, Hass } from "../ha.ts";
+import { type CardConfig, type Hass, inPicker } from "../ha.ts";
 import { type Config, TYPE, anchorFor, badge, placement, withDefaults } from "./common.ts";
 import { DOOR_STYLE, Door, editButton } from "./door.ts";
 
@@ -175,7 +175,7 @@ export class OverLayerCard extends LitElement {
   private _place() {
     // No way round it from the address: the way out is HA's own edit mode (an admin's
     // ?edit=1 opens the dashboard in it), where this is an ordinary card.
-    const live = this.isConnected && !this._editing && !!this._config && !(this._sectionOff = sectionOff(this));
+    const live = this.isConnected && !this._editing && !!this._config && !inPicker(this) && !(this._sectionOff = sectionOff(this));
     if (!live) {
       this._takeDown();
       this.requestUpdate();
@@ -256,6 +256,13 @@ export class OverLayerCard extends LitElement {
 
   render() {
     if (!this._config) return nothing;
+    // In HA's card picker: a picture of what it does (a card over a veiled dashboard).
+    if (this.isConnected && inPicker(this))
+      return html`<div class="sample" aria-label="An Over layer: one card over the dashboard">
+        <div class="tiles">${[0, 1, 2, 3, 4, 5].map(() => html`<span></span>`)}</div>
+        <div class="veil"></div>
+        <div class="over"><strong>Over layer</strong><span>One card over the whole dashboard while its Visibility conditions hold: the alarm set, a visitor, night.</span></div>
+      </div>`;
     if (!this._editing) return nothing; // its card is in the layer
     // Its whole panel: the chip alone (the panel round it is what shows).
     if (this._config.panel) return html`<div class="badge">${badge(this._config)}</div>`;
@@ -275,6 +282,48 @@ export class OverLayerCard extends LitElement {
       font: 11px/16px var(--ha-font-family-code, monospace);
       color: var(--text-primary-color, #fff);
       background: var(--primary-color);
+    }
+    .sample {
+      position: relative;
+      height: 170px;
+      overflow: hidden;
+      border-radius: var(--ha-card-border-radius, 12px);
+      background: var(--primary-background-color);
+    }
+    .tiles {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      padding: 10px;
+    }
+    .tiles span {
+      height: 66px;
+      border-radius: 10px;
+      background: var(--card-background-color, #fff);
+    }
+    .veil {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(2px);
+    }
+    .over {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      display: grid;
+      gap: 4px;
+      width: 62%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: var(--card-background-color, #fff);
+      color: var(--primary-text-color);
+      font-size: 12px;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+    }
+    .over strong {
+      font-size: 14px;
     }
     .empty {
       padding: 16px;

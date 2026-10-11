@@ -1,7 +1,7 @@
 // The Camera Commander card (see index.ts for how it works).
 import { LitElement, css, html, nothing } from "lit";
 import { keyed } from "lit/directives/keyed.js";
-import { atHome, type Fit, fire, fitOf, type Hass, heightFor, inDialog, liveChannel, LOOK, lookCss, navigate, ratioFor, TABLET, watchRoom } from "../ha.ts";
+import { atHome, type Fit, fire, fitOf, type Hass, heightFor, inDialog, inPicker, liveChannel, LOOK, lookCss, navigate, ratioFor, TABLET, watchRoom } from "../ha.ts";
 import { heightForMain, layout, PANELS, pyRound, type Rect } from "../layout.ts";
 import { playWebRTC } from "../../../../app/web/src/webrtc.ts";
 import { Motion, dot, motionStyles } from "./motion.ts";
@@ -384,7 +384,9 @@ export class CommanderCard extends LitElement {
     const live = !editing && this.liveMain(card, main);
     // Laid out for the picture asked for, as the compositor draws it (compositor.sized).
     const own = card.layout;
-    const sized = this._size;
+    // In HA's card picker: drawn at its own size and shrunk, so its gaps and labels keep
+    // their proportions (asked for at the picker's size, they'd crowd the cameras out).
+    const sized: Size | null = inPicker(this) ? [own.width, own.height, 1] : this._size;
     const [W, H, scale] = sized ?? [own.width, own.height, 1];
     const asked = sized && !editing ? this.pictureUrl(card, sized) : "";
     const src = asked && live ? `${asked}&main=video` : asked;
@@ -402,7 +404,14 @@ export class CommanderCard extends LitElement {
     // Its own shape (column, preview): the one that shows the main camera at its own.
     const shape = this._width ? this._width / heightForMain(own, main, this._width, this.shapeOf(card, main)) : own.width / own.height;
     const tall = f && this._width ? heightFor(f, this._width, shape) : null;
-    const size = !f || f.mode === "tile" || f.mode === "cell" ? `height:100%;aspect-ratio:${own.width}/${own.height}` : tall ? `height:${tall}px` : "";
+    // In HA's card picker: just its own shape, so the picker centres it as it does the others.
+    const size = inPicker(this)
+      ? `aspect-ratio:${own.width}/${own.height}`
+      : !f || f.mode === "tile" || f.mode === "cell"
+        ? `height:100%;aspect-ratio:${own.width}/${own.height}`
+        : tall
+          ? `height:${tall}px`
+          : "";
     return html`<ha-card style=${size}>
       <div class="box">
         <div class="seen" style="filter:${this.look()}">
@@ -436,7 +445,7 @@ export class CommanderCard extends LitElement {
               <div class="caption" style=${at(mainRect)}><span>${card.cameras[main]?.title ?? main}${this._playing ? " (live)" : ""}</span></div>`
           : nothing}
         </div>
-        ${editing ? html`<div class="hatch"><span>Still picture while editing</span></div>` : nothing}
+        ${editing && !inPicker(this) ? html`<div class="hatch"><span>Still picture while editing</span></div>` : nothing}
         ${own.debug?.on
           ? html`<div class="debug" style="color:${own.debug.colour ?? "#ffd60a"}">
               ${this._fit?.mode ?? "?"} (in ${this._fit?.container || "?"}), room ${this._fit?.room ?? "?"} px<br />
