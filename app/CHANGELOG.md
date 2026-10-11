@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.10.8-b20
+
+- **Breaking:** the Sensor Watch integration changed (on/off watches). Restart Home Assistant once; a Repair asks. Until then it still works as before.
+- Sensor Watch: its dialogs (New group, Watch an entity, Scan my house, Apply to…, the library, the editors) keep one size, so they no longer bounce as matches come and go; their contents scroll.
+- Sensor Watch: an on/off watch has two plain settings, **When off** and **When on**, each its own level and message, in place of "Nominal when on" and the other state's level: so it reads as it means, inverting is just setting the two, and neither need be nominal. Watches and profiles made before read as they were, and change to the new form when next saved.
+
 ## 2026.10.8-b19
 
 - **Breaking:** Casa Mia's cards changed (a new card). Restart Home Assistant once; a Repair asks.

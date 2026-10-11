@@ -128,7 +128,9 @@ def test_a_group_can_follow_the_defaults(tmp_path):
     assert status == 201 and view["joined"] == 1  # the leak; the lamp has no default
     leak = watch.records["binary_sensor.leak"]
     assert (
-        leak["other"] == "critical" and leak["hold_off"] == 0 and "profile" not in leak
+        leak["on"]["level"] == "critical"
+        and leak["hold_off"] == 0
+        and "profile" not in leak
     )
     _, got = call(watch, "GET", "candidates", {"kind": ["binary"]})
     has = {c["entity_id"]: c["has_default"] for c in got["sensors"]}

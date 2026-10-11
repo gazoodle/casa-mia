@@ -54,10 +54,34 @@ def test_clean_binary():
         "name": "",
         "hold_off": 60,
         "unavailable": "ignore",
-        "nominal": "off",
-        "other": "error",
-        "message": "",
+        "off": {"level": "nominal", "message": ""},  # the old form, turned into today's
+        "on": {"level": "error", "message": ""},
     }
+    sides = {"off": {"level": "task", "message": "Idle"}, "on": {"level": "error"}}
+    record = clean("binary_sensor.pump", {"kind": "binary", **sides})
+    assert record["off"] == {"level": "task", "message": "Idle"}
+    assert record["on"] == {"level": "error", "message": ""}
+    with pytest.raises(BadRequest, match="When on"):
+        clean("binary_sensor.pump", {"kind": "binary", "on": {"level": "fine"}})
+
+
+def test_binary_records_read_and_send_both_forms():
+    from casa_mia.modules.sensor_watch.common import normal, with_legacy
+
+    old = {"kind": "binary", "nominal": "on", "other": "warning", "message": "Down"}
+    new = normal(old)
+    assert new == {
+        "kind": "binary",
+        "on": {"level": "nominal", "message": ""},
+        "off": {"level": "warning", "message": "Down"},
+    }
+    sent = with_legacy(new)  # for an integration not restarted yet
+    assert (sent["nominal"], sent["other"], sent["message"]) == (
+        "on",
+        "warning",
+        "Down",
+    )
+    assert levels.level_of(sent, "off") == ("warning", "Down")
 
 
 def test_numeric_suggestion_sets_outliers_aside():
@@ -112,16 +136,18 @@ def test_defaults_by_what_a_sensor_is():
     from casa_mia.modules.sensor_watch.defaults import default_record
 
     leak = default_record(_cand("binary_sensor.sink_leak", "moisture"))
-    assert leak and leak["kind"] == "binary" and leak["other"] == "critical"
+    assert leak and leak["kind"] == "binary" and leak["on"]["level"] == "critical"
     online = default_record(_cand("binary_sensor.hub", "connectivity"))
-    assert online and online["nominal"] == "on"  # connected is the good state
+    assert online and online["on"]["level"] == "nominal"  # connected is the good state
     window = default_record(_cand("cover.landing_window", "window"))
     assert window and window["states"] == ["closed"] and window["other"] == "task"
     lock = default_record(_cand("lock.back_door"))
     assert lock and lock["exceptions"][0]["state"] == "jammed"
     update = default_record(_cand("update.core"))
     assert (
-        update and update["other"] == "task" and update["message"] == "Update available"
+        update
+        and update["on"]["level"] == "task"
+        and update["on"]["message"] == "Update available"
     )
     battery = default_record(_cand("sensor.remote_battery", "battery", "%"))
     assert (

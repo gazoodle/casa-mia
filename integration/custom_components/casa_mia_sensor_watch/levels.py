@@ -46,7 +46,11 @@ def level_of(
         level = record.get("unavailable", "error")
         return (None, None) if level == IGNORE else (level, "unavailable")
     if record.get("kind") == "binary":
-        if state == record.get("nominal", "off"):
+        # What each state means (the form since 2026.10.8-b20): either may be nominal.
+        side = record.get("on" if state == "on" else "off")
+        if isinstance(side, dict):
+            return side.get("level", "nominal"), side.get("message") or None
+        if state == record.get("nominal", "off"):  # the form before
             return "nominal", None
         return record.get("other", "warning"), record.get("message") or None
     if record.get("kind") == "state":

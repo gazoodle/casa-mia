@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from ...ha import HA, HAError
-from .common import LEVELS, BadRequest, clean
+from .common import LEVELS, BadRequest, clean, normal, sides, with_legacy
 from .history import (
     Reader,
 )
@@ -107,7 +107,7 @@ class Store:
     def _sent(self, record: dict[str, Any]) -> dict[str, Any]:
         """A record as the integration has it: resolved, with its group's name (the
         `list` service filters by it). Caller holds the lock."""
-        r = resolve(record, self.profiles)
+        r = with_legacy(normal(resolve(record, self.profiles)))
         group = self.groups.get(r.get("group") or "")
         return {k: v for k, v in r.items() if k != "group"} | (
             {"group": group["name"]} if group else {}
@@ -123,8 +123,8 @@ class Store:
 
     def view(self) -> dict[str, Any]:
         with self._lock:
-            records = [resolve(r, self.profiles) for r in self.records.values()]
-            profiles = [dict(p) for p in self.profiles.values()]
+            records = [normal(resolve(r, self.profiles)) for r in self.records.values()]
+            profiles = [normal(dict(p)) for p in self.profiles.values()]
             groups = [dict(g) for g in self.groups.values()]
         for p in profiles:
             p["followers"] = sum(1 for r in records if r.get("profile") == p["id"])
@@ -238,7 +238,8 @@ def _describe(record: dict[str, Any]) -> str:
     if record.get("profile"):
         return f"follows profile {record['profile']}"
     if record["kind"] == "binary":
-        return f"binary, nominal {record['nominal']}, else {record['other']}"
+        s = sides(record)
+        return f"on/off: off {s['off']['level']}, on {s['on']['level']}"
     if record["kind"] == "state":
         return f"exact states {', '.join(record['states'])}, else {record['other']}"
     return f"{len(record['bands'])} bands, else {record['otherwise']}"

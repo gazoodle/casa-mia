@@ -10,7 +10,7 @@ from typing import Any
 
 from ...ha import HAError
 from . import suggest
-from .common import DEFAULT_HOLD_OFF, BadRequest
+from .common import DEFAULT_HOLD_OFF, BadRequest, sides
 from .defaults import default_record
 from .history import (
     LIST_LIMIT,
@@ -84,12 +84,9 @@ def proposal(
         "hold_off": DEFAULT_HOLD_OFF,
         "unavailable": "error",
     }
-    if kind == "binary":
-        return base | {
-            "nominal": (s or {}).get("nominal", "off"),
-            "other": "warning",
-            "message": "",
-        }
+    if kind == "binary":  # the state it spends most time in is nominal
+        old = {"nominal": (s or {}).get("nominal", "off"), "other": "warning"}
+        return base | sides(old | {"message": ""})
     if kind == "state":
         return base | {
             "states": (s or {}).get("states") or [],

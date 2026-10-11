@@ -3,8 +3,11 @@
 A record watches one entity (keyed by its entity id):
 - numeric: `bands`, each {from, to, level, message}: from inclusive, to exclusive,
   either open (None); `otherwise`, the level of a value in no band;
-- binary: `nominal` (the state all is well in, "on" or "off"), `other` (the level of the
-  other state) and its `message`;
+- binary: `off` and `on`, each {level, message}: what each state means, so either can
+  be nominal, or neither (a task when off, an error when on). Records from before
+  2026.10.8-b20 have `nominal` (the state all is well in), `other` (the other's level)
+  and `message`: read as they are (sides()), turned into the new form when saved, and
+  sent to the integration in both (with_legacy(), for one not yet restarted);
 - state (exact states): `states` (the nominal ones, as text: "0", or "idle" and
   "standby"), `exceptions` (states with a level and message of their own: a lock's
   "jammed"), `other` (the level of anything else) and its `message`;
@@ -90,14 +93,21 @@ def clean(entity_id: str, body: dict[str, Any]) -> dict[str, Any]:
         ),
     }
     if kind == "binary":
-        nominal = body.get("nominal", "off")
-        if nominal not in ("on", "off"):
-            raise BadRequest("Nominal state: on or off.")
-        record["nominal"] = nominal
-        record["other"] = _level(
-            body.get("other", "warning"), "The other state's level"
-        )
-        record["message"] = _text(body.get("message"), "Message", MAX_MESSAGE)
+        if "on" not in body and "off" not in body:  # the form before b20
+            nominal = body.get("nominal", "off")
+            if nominal not in ("on", "off"):
+                raise BadRequest("Nominal state: on or off.")
+            body = body | sides(body)
+        for state, default in (("off", "nominal"), ("on", "warning")):
+            side = body.get(state) or {}
+            if not isinstance(side, dict):
+                raise BadRequest(f"When {state}: a level and a message.")
+            record[state] = {
+                "level": _level(side.get("level", default), f"When {state}"),
+                "message": _text(
+                    side.get("message"), f"When {state}'s message", MAX_MESSAGE
+                ),
+            }
         return record
     if kind == "state":
         states = body.get("states")
@@ -159,6 +169,51 @@ def clean(entity_id: str, body: dict[str, Any]) -> dict[str, Any]:
     record["bands"] = out
     record["otherwise"] = _level(body.get("otherwise", "error"), "Outside every band")
     return record
+
+
+def sides(record: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """An on/off record's `off` and `on`, from either form (unchecked)."""
+    if "on" in record or "off" in record:
+        return {
+            s: record.get(s) or {"level": "nominal", "message": ""}
+            for s in ("off", "on")
+        }
+    nominal = record.get("nominal", "off")
+    other = "on" if nominal == "off" else "off"
+    return {
+        nominal: {"level": "nominal", "message": ""},
+        other: {
+            "level": record.get("other", "warning"),
+            "message": record.get("message", ""),
+        },
+    }
+
+
+def normal(record: dict[str, Any]) -> dict[str, Any]:
+    """A record with an on/off watch in today's form (the page and the integration read
+    that); any other as it is."""
+    if record.get("kind") != "binary":
+        return record
+    old = ("nominal", "other", "message")
+    return {k: v for k, v in record.items() if k not in old} | sides(record)
+
+
+def with_legacy(record: dict[str, Any]) -> dict[str, Any]:
+    """An on/off record with the form before b20 beside today's, for an integration not
+    yet restarted: the better state as nominal, the other's level and message."""
+    if record.get("kind") != "binary":
+        return record
+    s = sides(record)
+    good = min(
+        ("off", "on"),
+        key=lambda k: LEVELS.index(s[k]["level"]) if s[k]["level"] in LEVELS else 0,
+    )
+    bad = "on" if good == "off" else "off"
+    return record | {
+        "nominal": good,
+        "other": s[bad]["level"],
+        "message": s[bad]["message"],
+    }
 
 
 def _span(band: dict[str, Any]) -> str:

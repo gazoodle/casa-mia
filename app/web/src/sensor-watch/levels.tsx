@@ -3,7 +3,7 @@
 
 import { useState, type ReactNode } from "react";
 import { Field } from "../ui";
-import { LEVELS, LEVEL_NAMES, type Band, type Level, type StateLevel, type WatchRecord } from "./common";
+import { LEVELS, LEVEL_NAMES, type Band, type Level, type Side, type StateLevel, type WatchRecord } from "./common";
 import css from "./sensor-watch.module.css";
 import ui from "../ui.module.css";
 
@@ -22,7 +22,8 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
   const [k, setKind] = useState<Kind>(start?.kind ?? kind);
   const [bands, setBands] = useState<Draft[]>((start?.bands ?? []).map(toDraft));
   const [otherwise, setOtherwise] = useState<Level>(start?.otherwise ?? "error");
-  const [nominal, setNominal] = useState<"on" | "off">(start?.nominal ?? "off");
+  const [off, setOff] = useState<Side>(start?.off ?? { level: "nominal", message: "" });
+  const [on, setOn] = useState<Side>(start?.on ?? { level: "warning", message: "" });
   const [other, setOther] = useState<Level>(start?.other ?? "warning");
   const [message, setMessage] = useState(start?.message ?? "");
   const [states, setStates] = useState((start?.states ?? []).join(", "));
@@ -35,7 +36,8 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
     if (r.kind) setKind(r.kind);
     setBands((r.bands ?? []).map(toDraft));
     if (r.otherwise) setOtherwise(r.otherwise);
-    if (r.nominal) setNominal(r.nominal);
+    if (r.off) setOff(r.off);
+    if (r.on) setOn(r.on);
     if (r.other) setOther(r.other);
     if (r.states) setStates(r.states.join(", "));
     setExceptions(r.exceptions ?? []);
@@ -49,7 +51,7 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
     hold_off: Number(holdOff),
     unavailable,
     ...(k === "binary"
-      ? { nominal, other, message }
+      ? { off, on }
       : k === "state"
         ? { states: split(states), other, message, exceptions: exceptions.filter((e) => e.state.trim()) }
         : { bands: bands.map(toBand), otherwise }),
@@ -69,7 +71,7 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
   };
 
   return {
-    kind: k, setKind, bands, setBands, otherwise, setOtherwise, nominal, setNominal, other, setOther, message, setMessage,
+    kind: k, setKind, bands, setBands, otherwise, setOtherwise, off, setOff, on, setOn, other, setOther, message, setMessage,
     states, setStates, exceptions, setExceptions, unavailable, setUnavailable, holdOff, setHoldOff,
     adopt, body, sane, drawn: () => bands.map(toBand),
   };
@@ -83,20 +85,23 @@ export function LevelFields({ L, unit = "", seen = [], seenLabel = "Seen", extra
   return (
     <>
       {L.kind === "binary" && (
-        <div className={css.binary}>
-          <label className={css.tick}>
-            <input type="checkbox" checked={L.nominal === "on"} onChange={(e) => L.setNominal(e.target.checked ? "on" : "off")} />
-            <span>
-              Nominal when on
-              <span className={css.note}>Ticked, on is all well (a pump running); unticked, off is (a door closed, no leak).</span>
-            </span>
-          </label>
-          <Field label={`When ${L.nominal === "on" ? "off" : "on"}`} help="Its level in the other state.">
-            <LevelSelect value={L.other} onChange={(v) => L.setOther(v as Level)} />
-          </Field>
-          <Field label="Message" help={`What it says in the other state, e.g. Back door open. ${LONG_HELP}`}>
-            <MessageInput value={L.message} onChange={L.setMessage} />
-          </Field>
+        <div className={css.bands}>
+          {(
+            [
+              ["off", L.off, L.setOff, "e.g. Pump stopped"],
+              ["on", L.on, L.setOn, "e.g. Leak detected"],
+            ] as const
+          ).map(([state, side, set, hint]) => (
+            <div key={state} className={`${css.sideRow} ${css[`edge_${side.level}`]}`}>
+              <strong>When {state}</strong>
+              <LevelSelect value={side.level} onChange={(v) => set({ ...side, level: v as Level })} />
+              <MessageInput placeholder={side.level === "nominal" ? "" : hint} value={side.message} onChange={(v) => set({ ...side, message: v })} />
+            </div>
+          ))}
+          <p className={css.note}>
+            Each state its own level and message: a leak sensor is Nominal when off and Critical when on; a pump that should run is Nominal when on
+            and an Error when off; or neither nominal. {LONG_HELP}
+          </p>
         </div>
       )}
       {L.kind === "state" && (

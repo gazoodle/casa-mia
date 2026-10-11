@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .common import DEFAULT_HOLD_OFF
+from .common import DEFAULT_HOLD_OFF, sides
 
 # binary_sensor device class -> (the nominal state, the other's level, its message)
 BINARY: dict[str, tuple[str, str, str]] = {
@@ -79,19 +79,11 @@ def default_record(c: dict[str, Any]) -> dict[str, Any] | None:
     base = {"name": "", "hold_off": hold_off, "unavailable": "error"}
     if domain == "binary_sensor" and c["device_class"] in BINARY:
         nominal, other, message = BINARY[c["device_class"]]
-        return base | {
-            "kind": "binary",
-            "nominal": nominal,
-            "other": other,
-            "message": message,
-        }
+        old = {"nominal": nominal, "other": other, "message": message}
+        return base | {"kind": "binary"} | sides(old)
     if domain == "update":
-        return base | {
-            "kind": "binary",
-            "nominal": "off",
-            "other": "task",
-            "message": "Update available",
-        }
+        old = {"nominal": "off", "other": "task", "message": "Update available"}
+        return base | {"kind": "binary"} | sides(old)
     if domain in STATES:
         states, other, message, exceptions = STATES[domain]
         return base | {

@@ -77,7 +77,7 @@ def test_suggest_one_sensor(watch):
     assert got["record"]["kind"] == "numeric" and got["suggestion"]["count"] == 3
     clean("sensor.salt", got["record"])  # the proposal saves as it is
     _, leak = call(watch, "GET", "suggest", {"entity": ["binary_sensor.leak"]})
-    assert leak["source"] == "history" and leak["record"]["nominal"] == "off"
+    assert leak["source"] == "history" and leak["record"]["off"]["level"] == "nominal"
     assert call(watch, "GET", "suggest", {"entity": ["light.nowhere"]})[0] == 400
     assert (
         call(watch, "GET", "suggest", {"entity": ["sensor.salt"], "days": ["0"]})[0]

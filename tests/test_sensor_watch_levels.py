@@ -46,8 +46,16 @@ def test_binary():
         "other": "warning",
         "message": "Door open",
     }
-    assert levels.level_of(door, "off") == ("nominal", None)
+    assert levels.level_of(door, "off") == ("nominal", None)  # the form before b20
     assert levels.level_of(door, "on") == ("warning", "Door open")
+    # Today's: each state its own level and message, so neither need be nominal.
+    pump = {
+        "kind": "binary",
+        "off": {"level": "task", "message": "Pump idle"},
+        "on": {"level": "error", "message": "Pump running dry"},
+    }
+    assert levels.level_of(pump, "off") == ("task", "Pump idle")
+    assert levels.level_of(pump, "on") == ("error", "Pump running dry")
 
 
 def test_summary_counts_lists_and_caps():

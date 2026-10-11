@@ -110,6 +110,7 @@ export function RecordDialog({
   return (
     <Dialog
       wide
+      tall
       title={record ? `Edit ${record.label ?? entityId}` : `Watch ${found?.sensor.name ?? entityId}`}
       onClose={onClose}
       footer={
@@ -173,7 +174,7 @@ export function RecordDialog({
         )}
         {s && L.kind === "binary" && s.share !== undefined && (
           <p className={css.note}>
-            {s.nominal} {Math.round(s.share * 100)}% of the time.
+            It's {s.nominal} {Math.round(s.share * 100)}% of the time, so that's suggested as nominal.
           </p>
         )}
         {found?.problem && <p className={css.problem}>{found.problem}. Is Home Assistant's History integration loaded? Set it up yourself meanwhile.</p>}

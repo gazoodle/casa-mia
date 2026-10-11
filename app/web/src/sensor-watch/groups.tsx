@@ -168,6 +168,7 @@ function GroupDialog({
   return (
     <Dialog
       wide
+      tall
       title={group ? `Edit the group ${group.name}` : "New group"}
       onClose={onClose}
       footer={

@@ -239,9 +239,8 @@
       "category": "Safety",
       "default_for": "binary_sensor:moisture",
       "kind": "binary",
-      "nominal": "off",
-      "other": "critical",
-      "message": "Leak detected",
+      "off": {"level": "nominal", "message": ""},
+      "on": {"level": "critical", "message": "Leak detected"},
       "unavailable": "error", "hold_off": 0
     },
     {
@@ -250,9 +249,8 @@
       "category": "Safety",
       "default_for": "binary_sensor:smoke",
       "kind": "binary",
-      "nominal": "off",
-      "other": "critical",
-      "message": "Smoke detected",
+      "off": {"level": "nominal", "message": ""},
+      "on": {"level": "critical", "message": "Smoke detected"},
       "unavailable": "error", "hold_off": 0
     },
     {
@@ -261,9 +259,8 @@
       "category": "Safety",
       "default_for": "binary_sensor:gas",
       "kind": "binary",
-      "nominal": "off",
-      "other": "critical",
-      "message": "Gas detected",
+      "off": {"level": "nominal", "message": ""},
+      "on": {"level": "critical", "message": "Gas detected"},
       "unavailable": "error", "hold_off": 0
     },
     {
@@ -272,9 +269,8 @@
       "category": "Safety",
       "default_for": "binary_sensor:carbon_monoxide",
       "kind": "binary",
-      "nominal": "off",
-      "other": "critical",
-      "message": "Carbon monoxide detected",
+      "off": {"level": "nominal", "message": ""},
+      "on": {"level": "critical", "message": "Carbon monoxide detected"},
       "unavailable": "error", "hold_off": 0
     },
     {
@@ -283,9 +279,8 @@
       "category": "Safety",
       "default_for": "binary_sensor:safety",
       "kind": "binary",
-      "nominal": "off",
-      "other": "critical",
-      "message": "Unsafe",
+      "off": {"level": "nominal", "message": ""},
+      "on": {"level": "critical", "message": "Unsafe"},
       "unavailable": "error", "hold_off": 0
     },
     {
@@ -294,9 +289,8 @@
       "category": "Safety",
       "default_for": "binary_sensor:tamper",
       "kind": "binary",
-      "nominal": "off",
-      "other": "warning",
-      "message": "Tampering detected",
+      "off": {"level": "nominal", "message": ""},
+      "on": {"level": "warning", "message": "Tampering detected"},
       "unavailable": "error", "hold_off": 60
     },
     {
@@ -305,9 +299,8 @@
       "category": "Safety",
       "default_for": "binary_sensor:problem",
       "kind": "binary",
-      "nominal": "off",
-      "other": "error",
-      "message": "Problem reported",
+      "off": {"level": "nominal", "message": ""},
+      "on": {"level": "error", "message": "Problem reported"},
       "unavailable": "error", "hold_off": 60
     },
     {
@@ -316,9 +309,8 @@
       "category": "Doors, windows and covers",
       "default_for": "binary_sensor:door",
       "kind": "binary",
-      "nominal": "off",
-      "other": "task",
-      "message": "Door open",
+      "off": {"level": "nominal", "message": ""},
+      "on": {"level": "task", "message": "Door open"},
       "unavailable": "error", "hold_off": 60
     },
     {
@@ -327,9 +319,8 @@
       "category": "Doors, windows and covers",
       "default_for": "binary_sensor:garage_door",
       "kind": "binary",
-      "nominal": "off",
-      "other": "task",
-      "message": "Garage door open",
+      "off": {"level": "nominal", "message": ""},
+      "on": {"level": "task", "message": "Garage door open"},
       "unavailable": "error", "hold_off": 60
     },
     {
@@ -338,9 +329,8 @@
       "category": "Doors, windows and covers",
       "default_for": "binary_sensor:window",
       "kind": "binary",
-      "nominal": "off",
-      "other": "task",
-      "message": "Window open",
+      "off": {"level": "nominal", "message": ""},
+      "on": {"level": "task", "message": "Window open"},
       "unavailable": "error", "hold_off": 60
     },
     {
@@ -349,9 +339,8 @@
       "category": "Doors, windows and covers",
       "default_for": "binary_sensor:opening",
       "kind": "binary",
-      "nominal": "off",
-      "other": "task",
-      "message": "Open",
+      "off": {"level": "nominal", "message": ""},
+      "on": {"level": "task", "message": "Open"},
       "unavailable": "error", "hold_off": 60
     },
     {
@@ -372,9 +361,8 @@
       "category": "Locks, alarms and appliances",
       "default_for": "binary_sensor:connectivity",
       "kind": "binary",
-      "nominal": "on",
-      "other": "error",
-      "message": "Disconnected",
+      "on": {"level": "nominal", "message": ""},
+      "off": {"level": "error", "message": "Disconnected"},
       "unavailable": "error", "hold_off": 60
     },
     {
@@ -383,9 +371,8 @@
       "category": "Locks, alarms and appliances",
       "default_for": "update:",
       "kind": "binary",
-      "nominal": "off",
-      "other": "task",
-      "message": "Update available",
+      "off": {"level": "nominal", "message": ""},
+      "on": {"level": "task", "message": "Update available"},
       "unavailable": "error", "hold_off": 60
     },
     {
@@ -568,9 +555,8 @@
       "category": "Batteries",
       "default_for": "binary_sensor:battery",
       "kind": "binary",
-      "nominal": "off",
-      "other": "task",
-      "message": "Replace the battery",
+      "off": {"level": "nominal", "message": ""},
+      "on": {"level": "task", "message": "Replace the battery"},
       "unavailable": "error", "hold_off": 60
     },
     {

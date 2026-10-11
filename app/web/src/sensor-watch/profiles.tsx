@@ -193,6 +193,7 @@ export function ProfileDialog({
   return (
     <Dialog
       wide
+      tall
       title={profile ? `Edit the profile ${profile.name}` : copyOf ? `Duplicate ${copyOf.name}` : "New profile"}
       onClose={onClose}
       footer={
@@ -269,6 +270,7 @@ function ImportDialog({
   return (
     <Dialog
       wide
+      tall
       title={title}
       onClose={onClose}
       footer={

@@ -33,6 +33,7 @@ export function PickDialog({ onClose, onPick }: { onClose: () => void; onPick: (
   return (
     <Dialog
       wide
+      tall
       title="Watch an entity"
       onClose={onClose}
       footer={
@@ -127,6 +128,7 @@ export function ScanDialog({
   return (
     <Dialog
       wide
+      tall
       title="Scan my house"
       onClose={onClose}
       footer={
@@ -248,6 +250,7 @@ export function ApplyDialog({ profile, onClose, onApply }: { profile: Profile; o
   return (
     <Dialog
       wide
+      tall
       title={`Follow ${profile.name}`}
       onClose={onClose}
       footer={

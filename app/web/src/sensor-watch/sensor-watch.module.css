@@ -681,3 +681,21 @@
   width: 1em;
   font-size: 15px;
 }
+
+/* An on/off watch: a row per state (its level, its message). */
+.sideRow {
+  display: grid;
+  grid-template-columns: 90px 140px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  padding-left: 8px;
+  border-left-width: 4px; /* its colour from the level (edge_...) */
+  border-left-style: solid;
+}
+
+.sideRow select,
+.sideRow input {
+  min-width: 0;
+  width: 100%;
+}

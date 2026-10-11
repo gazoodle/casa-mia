@@ -14,6 +14,9 @@ export const LEVEL_NAMES: Record<Level, string> = {
   critical: "Critical",
 };
 
+/** One state of an on/off watch: its level and message. */
+export type Side = { level: Level; message: string };
+
 /** An exact state with a level and message of its own (a lock's "jammed"). */
 export type StateLevel = { state: string; level: Level; message: string };
 
@@ -28,7 +31,10 @@ export type WatchRecord = {
   unavailable: Level | "ignore";
   bands?: Band[];
   otherwise?: Level;
-  nominal?: "on" | "off";
+  /** On/off: what each state means (either may be nominal, or neither). */
+  off?: Side;
+  on?: Side;
+  /** Exact states: anything else's level and message. */
   other?: Level;
   message?: string;
   /** Exact states: the nominal ones. */
@@ -190,8 +196,8 @@ export function span(b: Band): string {
 }
 
 /** The nominal band(s) of a record, in words. */
-export function summary(r: Pick<WatchRecord, "kind" | "bands" | "nominal" | "other" | "states">): string {
-  if (r.kind === "binary") return `nominal ${r.nominal}, else ${r.other}`;
+export function summary(r: Pick<WatchRecord, "kind" | "bands" | "off" | "on" | "other" | "states">): string {
+  if (r.kind === "binary") return `off ${r.off?.level ?? "?"}, on ${r.on?.level ?? "?"}`;
   if (r.kind === "state") return `nominal ${(r.states ?? []).join(", ") || "?"}, else ${r.other}`;
   const nominal = (r.bands ?? []).filter((b) => b.level === "nominal");
   return nominal.length ? `nominal ${nominal.map(span).join(", ")}` : "no nominal band";

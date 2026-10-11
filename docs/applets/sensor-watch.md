@@ -93,6 +93,19 @@ means known from its device class, a whole house scanned and filtered rather tha
 entity at a time, Home Assistant's own health in the same picture, and one event and one
 service to hang every automation on.
 
+**What it won't do: complex conditions.** Sensor Watch judges one entity's state at a
+time, against its levels. It isn't trying to replace the freedom Home Assistant gives
+you to describe when something is wrong: "the freezer is above −15 °C *and* its door has
+been shut for ten minutes, unless it's defrosting" is a template's job, and it won't
+grow a language for that. Write the condition where Home Assistant already lets you
+(Settings → Devices & services → Helpers → **Template**), then watch the helper:
+
+- **A template binary sensor** (on when your condition holds): watch it, set **When on**
+  to the level you want and its message, and you're done. All the logic is yours; Sensor
+  Watch adds the level, the hold-off, the summary, the event and the card.
+- **A template sensor giving a number** (a difference, a ratio, a minutes-since): watch
+  it with bands, and range-check it like any other reading, history suggestions and all.
+
 ## Better together
 
 Sensor Watch tells; the rest of Casa Mia shows, and only when there's something to show:
@@ -159,8 +172,12 @@ Watch reads its history (30 days unless you choose otherwise) and suggests its b
   the count once you pass 80). Saving refuses a From or To that isn't a number (use a
   point for decimals) and bands that overlap, and asks first when a range between two
   bands is left uncovered.
-- **On/off sensors:** the state it spends most of its time in is nominal; the other is a
-  warning unless you choose another level.
+- **On/off sensors:** two rows, **When off** and **When on**, each with its own level
+  and message, so it reads as it means: a leak sensor is Nominal when off and Critical
+  when on ("Leak detected"); a pump that should run is Nominal when on and an Error when
+  off ("Pump stopped"); or neither is nominal (a task when off, an error when on). From
+  history, the state it spends most of its time in is suggested as nominal and the
+  other as a warning.
 - **Exact states:** for a sensor whose state should be one exact thing rather than within
   a range (an alarm number that should be `0`, a washing machine that should be `idle` or
   `standby`), and for text and enum sensors, which have no range at all. List the
@@ -289,6 +306,12 @@ is a group, a single thing is a watch.
 - **Delete** a group and its members stay watched, as they are; new ones stop joining.
 - The `list` service takes `group` (the group's name): only its members, and its own
   worst level, for a panel or an automation about just the mains plugs.
+
+**Watch anything from Home Assistant's own pages, with a label.** Make a group whose
+filter is a label (say *Watch*), following the defaults or a profile. Then, from any
+entity's settings in Home Assistant (its dialog's cog), give it that label: within a
+minute it's watched. A label or two more (*Watch: mains*, following UK mains voltage)
+cover most cases, and taking the label off doesn't stop the watch: Stop watching does.
 
 ### Scan my house
 
