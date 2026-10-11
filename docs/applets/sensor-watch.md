@@ -67,7 +67,7 @@ of a broken integration or a flat battery.
    and whatever matches later joins by itself, so the plug you put in next month is
    watched without you remembering. The rule of thumb: **more than two of the same kind
    is a group; a single thing is a watch.**
-2. **Check the bands.** A group follows a profile, and the library has 82 to start from,
+2. **Check the bands.** A group follows a profile, and the library has 85 to start from,
    each saying where its numbers come from: mains voltage and frequency by country,
    inverter trip limits, batteries, broadband, pool and hot tub chemistry, indoor air,
    freezers, heating, the garden, computers, and plain "is it there?".
@@ -420,6 +420,9 @@ and where its numbers come from:
   integration, or the Supervisor integration's per-app sensors; both start disabled.)
 - **Reminders and due dates:** a date something is due, as days until it (a spa's
   filter, a service, a renewal).
+- **Electric cars:** by each maker's everyday advice: an 80% daily limit (Tesla,
+  Volkswagen, Hyundai, Kia, BMW, Mercedes, GM), a 90% one (Polestar, Ford Mach-E), and
+  LFP packs (happy at 100%). Above the daily limit is a trip charge, a warning.
 
 Nothing starts ticked: search (a country, "voltage", "pH") and tick what you have.
 
@@ -469,6 +472,9 @@ hold-off, how long a new level must last before it counts.
 | Opening (on/off) | Doors, windows and covers | on/off | off nominal · on task; after 1 min |
 | Window (on/off) | Doors, windows and covers | on/off | off nominal · on task; after 1 min |
 | Window or cover: closed (states) | Doors, windows and covers | exact states | closed nominal · else task; after 1 min |
+| Electric car battery, 80% daily (%) | Electric cars | bands | under 10 error · 10–20 task · 20–80 nominal · 80 and over warning; after 10 min |
+| Electric car battery, 90% daily (%) | Electric cars | bands | under 10 error · 10–20 task · 20–90 nominal · 90 and over warning; after 10 min |
+| Electric car battery, LFP (%) | Electric cars | bands | under 10 error · 10–20 task · 20 and over nominal; after 10 min |
 | Boiler pressure (bar) | Heating | bands | under 0.5 error · 0.5–1 task · 1–2 nominal · 2–2.5 task · 2.5 and over warning; after 30 min |
 | Room temperature (°C) | Heating | bands | under 12 warning · 12–16 task · 16–25 nominal · 25–28 task · 28 and over warning; after 30 min |
 | Indoor CO2 (ppm) | Indoor air | bands | under 380 task · 380–1000 nominal · 1000–1500 task · 1500–2500 warning · 2500 and over error; after 15 min |

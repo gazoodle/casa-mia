@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.10-b5
+
+- Sensor Watch: the library adds **Electric cars**, by what each maker advises for everyday charging: an 80% daily limit (Tesla, Volkswagen, Skoda, Audi, Hyundai, Kia, BMW, Mercedes, GM's Equinox EV), a 90% one (Polestar, Ford's Mustang Mach-E), and LFP packs (happy at 100%: a Standard Range Tesla, BYD). Above the daily limit is a trip charge, a warning if it sits there.
+
 ## 2026.10.10-b4
 
 - **Breaking:** Sensor Watch is now part of the Casa Mia integration, not an integration of its own: one device, so one integration. Restart Home Assistant once; Casa Mia moves the old integration's entities onto itself (same entity ids, history kept) and removes it, and the app removes its files. Its list service is now `casa_mia.sensor_watch_list` (was `casa_mia_sensor_watch.list`): rename it in any template or script that calls it. The event (`casa_mia_sensor_watch`), the blueprint and the card carry on as they were.
