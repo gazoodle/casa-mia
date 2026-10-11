@@ -29,6 +29,18 @@ def test_clean_sorts_bands_and_refuses_overlaps():
         clean("sensor.salt", SALT | {"hold_off": -1})
     with pytest.raises(BadRequest, match="entity"):
         clean("salt", SALT)
+    with pytest.raises(BadRequest, match="number"):
+        clean("sensor.salt", SALT | {"bands": [{"from": "7,2", "level": "task"}]})
+
+
+def test_messages_may_be_long_names_may_not():
+    long = "x" * 255
+    band = {"from": 0, "to": 10, "level": "task", "message": long}
+    assert clean("sensor.salt", SALT | {"bands": [band]})["bands"][0]["message"] == long
+    with pytest.raises(BadRequest, match="255"):
+        clean("sensor.salt", SALT | {"bands": [band | {"message": long + "x"}]})
+    with pytest.raises(BadRequest, match="80"):
+        clean("sensor.salt", SALT | {"name": "x" * 81})
 
 
 def test_clean_binary():

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.10.8-b12
+
+- Sensor Watch: a message may be up to 255 characters (was 80); past 80 the page shows the count and warns that notifications and cards may cut it short.
+- Sensor Watch: **+ Below** inserts a band after another, filling the gap to the next.
+- Sensor Watch: saving refuses a band's From or To that isn't a number (it used to save as open), and asks first when a range between two bands is left uncovered.
+
 ## 2026.10.8-b11
 
 - **Sensor Watch watches any entity:** **+ Watch an entity** offers everything (an

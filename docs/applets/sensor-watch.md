@@ -146,7 +146,12 @@ Watch reads its history (30 days unless you choose otherwise) and suggests its b
   rest (more than three standard deviations from the mean) are set aside and listed: they
   may be incidents worth a look, and the suggestion assumes they were. Change any band,
   its level and its message (the message is what a task or a warning says, such as "Top
-  up the salt") before saving.
+  up the salt") before saving. **+ Below** inserts a band after one, spanning the gap to
+  the next; bands are kept in order of their From. A message may be up to 255
+  characters, but past 80 notifications and cards may cut it short (the page shows
+  the count once you pass 80). Saving refuses a From or To that isn't a number (use a
+  point for decimals) and bands that overlap, and asks first when a range between two
+  bands is left uncovered.
 - **On/off sensors:** the state it spends most of its time in is nominal; the other is a
   warning unless you choose another level.
 - **Exact states:** for a sensor whose state should be one exact thing rather than within

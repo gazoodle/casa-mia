@@ -25,7 +25,9 @@ DEFAULT_HOLD_OFF = 60  # seconds
 MAX_HOLD_OFF = 24 * 3600
 MAX_BANDS = 12
 MAX_STATES = 20
-MAX_TEXT = 80
+MAX_TEXT = 80  # a name
+# A message: past 80 characters, notifications and cards may cut it short (the page says so).
+MAX_MESSAGE = 255
 DOMAIN = "casa_mia_sensor_watch"  # the integration: its websocket command, its entities
 
 Response = tuple[int, str, bytes]
@@ -47,10 +49,10 @@ def _level(value: Any, what: str, allow_ignore: bool = False) -> str:
     )
 
 
-def _text(value: Any, what: str) -> str:
+def _text(value: Any, what: str, limit: int = MAX_TEXT) -> str:
     text = str(value or "").strip()
-    if len(text) > MAX_TEXT:
-        raise BadRequest(f"{what}: at most {MAX_TEXT} characters.")
+    if len(text) > limit:
+        raise BadRequest(f"{what}: at most {limit} characters.")
     return text
 
 
@@ -95,7 +97,7 @@ def clean(entity_id: str, body: dict[str, Any]) -> dict[str, Any]:
         record["other"] = _level(
             body.get("other", "warning"), "The other state's level"
         )
-        record["message"] = _text(body.get("message"), "Message")
+        record["message"] = _text(body.get("message"), "Message", MAX_MESSAGE)
         return record
     if kind == "state":
         states = body.get("states")
@@ -107,7 +109,7 @@ def clean(entity_id: str, body: dict[str, Any]) -> dict[str, Any]:
             raise BadRequest(f"Nominal states: 1 to {MAX_STATES}.")
         record["states"] = cleaned
         record["other"] = _level(body.get("other", "error"), "Anything else's level")
-        record["message"] = _text(body.get("message"), "Message")
+        record["message"] = _text(body.get("message"), "Message", MAX_MESSAGE)
         exceptions = body.get("exceptions") or []
         if not isinstance(exceptions, list) or len(exceptions) > MAX_STATES:
             raise BadRequest(f"States with their own level: at most {MAX_STATES}.")
@@ -119,7 +121,9 @@ def clean(entity_id: str, body: dict[str, Any]) -> dict[str, Any]:
                 {
                     "state": _text(ex.get("state"), f"State {n}"),
                     "level": _level(ex.get("level"), f"State {n}'s level"),
-                    "message": _text(ex.get("message"), f"State {n}'s message"),
+                    "message": _text(
+                        ex.get("message"), f"State {n}'s message", MAX_MESSAGE
+                    ),
                 }
             )
         return record
@@ -143,7 +147,7 @@ def clean(entity_id: str, body: dict[str, Any]) -> dict[str, Any]:
                 "from": low,
                 "to": high,
                 "level": _level(band.get("level"), f"Band {n} level"),
-                "message": _text(band.get("message"), f"Band {n} message"),
+                "message": _text(band.get("message"), f"Band {n} message", MAX_MESSAGE),
             }
         )
     out.sort(key=lambda b: float("-inf") if b["from"] is None else b["from"])
