@@ -59,7 +59,7 @@ export function RecordDialog({
   }, []);
 
   const s = found?.suggestion;
-  const unit = found?.sensor.unit ?? "";
+  const unit = L.daysUntil ? "days" : (found?.sensor.unit ?? "");
   // How it can be watched: its own way (a number by bands or exact states), or only
   // whether it's there at all.
   const own = found?.sensor.kind ?? (record?.kind === "available" ? kindOf(entityId) : (record?.kind ?? kindOf(entityId)));

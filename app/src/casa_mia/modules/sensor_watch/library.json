@@ -1100,6 +1100,24 @@
       "off": {"level": "nominal", "message": ""},
       "on": {"level": "warning", "message": "Security light on for half an hour: stuck on, or someone about?"},
       "unavailable": "error", "hold_off": 1800
+    },
+    {
+      "name": "Reminder due (days)",
+      "about": "A date something is due, read as the days until it: a spa's Rinse filter, Clean filter or Change water due (the Gecko integration's reminders), a service, a renewal. A task in the fortnight before, a warning in its week, an error once it's passed, critical a month after, until it's done and the date moves on. Watch the date entity (a timestamp sensor works too: tick A date: days until it in its editor).",
+      "source": "https://github.com/gazoodle/gecko-home-assistant",
+      "category": "Reminders and due dates",
+      "default_for": "date:",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": -30, "level": "critical", "message": "Overdue by more than a month"},
+        {"from": -30, "to": 0, "level": "error", "message": "Overdue"},
+        {"from": 0, "to": 7, "level": "warning", "message": "Due this week"},
+        {"from": 7, "to": 14, "level": "task", "message": "Due in under two weeks"},
+        {"from": 14, "to": null, "level": "nominal", "message": ""}
+      ],
+      "otherwise": "error",
+      "days_until": true,
+      "unavailable": "error", "hold_off": 0
     }
   ]
 }

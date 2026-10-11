@@ -37,7 +37,10 @@ from .watch import Watcher
 
 _LOGGER = logging.getLogger(__name__)
 PLATFORMS = [Platform.BINARY_SENSOR, Platform.SENSOR]
-SWAP_EVERY = timedelta(seconds=5)  # the screenshot swap's file, looked at (as the app)
+SWAP_EVERY = timedelta(seconds=5)
+# Date watches judged again as time passes (a reminder comes due without its state
+# changing). ponytail: every ten minutes; at the hour a band ends, if that's ever wanted.
+DAYS_EVERY = timedelta(minutes=10)  # the screenshot swap's file, looked at (as the app)
 # Read at import, as Casa Mia's own: a reload must not take newer files as loaded.
 LOADED_VERSION = manifest_version()
 LIST_SCHEMA = vol.Schema(
@@ -76,6 +79,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await look_at_swap()
     entry.async_on_unload(async_track_time_interval(hass, look_at_swap, SWAP_EVERY))
+    entry.async_on_unload(async_track_time_interval(hass, watcher.tick, DAYS_EVERY))
 
     async def list_sensors(call: ServiceCall) -> ServiceResponse:
         # A group (named on the app's page): only its members, and its own worst.

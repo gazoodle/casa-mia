@@ -5,7 +5,7 @@
 // `hidden`), so in a Tablet Layout its panel closes, garnish heading and all, when all is well.
 import { LitElement, css, html, nothing } from "lit";
 import { fire, type Hass, inPicker } from "../ha.ts";
-import { type Column, type Config, DEFAULTS, type Row, columns, since } from "./common.ts";
+import { type Column, type Config, DEFAULTS, type Row, columns, due, since } from "./common.ts";
 
 const DOMAIN = "casa_mia_sensor_watch";
 const ASK_AFTER = 300; // ms: the integration's entities write in a burst; one ask after
@@ -152,6 +152,7 @@ export class SensorWatchCard extends LitElement {
         : nothing}
       ${rows.map((r) => {
         const st = this._hass?.states[r.entity_id];
+        if (r.days_until) return this._row(r, due(r.attribute ? String(st?.attributes?.[r.attribute] ?? "") : st?.state, r.value), now);
         if (r.attribute) return this._row(r, String(st?.attributes?.[r.attribute] ?? r.value ?? ""), now);
         const unit = st?.attributes?.unit_of_measurement ?? "";
         return this._row(r, st ? `${st.state}${unit ? ` ${unit}` : ""}` : (r.value ?? ""), now);

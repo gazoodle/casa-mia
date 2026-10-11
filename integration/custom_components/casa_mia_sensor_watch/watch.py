@@ -172,7 +172,7 @@ class Watcher:
         if record is None:
             return
         state = self.hass.states.get(eid)
-        level, message = level_of(record, reading(record, state))
+        level, message = level_of(record, reading(record, state, dt_util.now()))
         current = self.now.get(eid)
         if level is None or (current is not None and current["level"] == level):
             self._cancel(eid)  # back where it was (or no opinion): nothing to wait for
@@ -198,7 +198,7 @@ class Watcher:
         if record is None:
             return
         state = self.hass.states.get(eid)
-        now, message = level_of(record, reading(record, state))
+        now, message = level_of(record, reading(record, state, dt_util.now()))
         if now == level:
             self._commit(eid, level, message, state)
         else:
@@ -219,7 +219,7 @@ class Watcher:
         record = self.records[eid]
         name = record.get("name") or (state.name if state else eid)
         previous = (self.now.get(eid) or {}).get("level")
-        value = reading(record, state)
+        value = reading(record, state, dt_util.now())
         since = state.last_changed if initial and state else dt_util.utcnow()
         self.now[eid] = {
             "level": level,
@@ -228,6 +228,7 @@ class Watcher:
             "since": since.isoformat(),
             "name": name,
             **({"attribute": record["attribute"]} if record.get("attribute") else {}),
+            **({"days_until": True} if record.get("days_until") else {}),
         }
         if initial:
             if level != "nominal":
@@ -325,6 +326,14 @@ class Watcher:
             area_id = device.area_id if device else None
         area = ar.async_get(self.hass).async_get_area(area_id) if area_id else None
         return area.name if area else None
+
+    @callback
+    def tick(self, _now: object = None) -> None:
+        """Time passing: a date watch's days until come down though its state doesn't
+        change (a reminder comes due), so they're judged again now and then."""
+        for eid, record in self.records.items():
+            if record.get("days_until"):
+                self._consider(eid)
 
     @callback
     def swapped(self, swap: Rule) -> None:

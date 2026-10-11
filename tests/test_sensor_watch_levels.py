@@ -223,3 +223,33 @@ def test_available_watches_only_whether_it_is_there():
     )
     assert levels.level_of(gone, "off") == ("error", "The old relay is back")
     assert levels.level_of(gone, "unavailable") == ("nominal", "unavailable")
+
+
+def test_a_date_is_read_as_the_days_until_it():
+    from datetime import UTC, datetime
+    from types import SimpleNamespace
+
+    now = datetime(2026, 10, 12, 12, 0, tzinfo=UTC)
+    rec = clean(
+        "date.rinse_filter_due",
+        {
+            "kind": "numeric",
+            "days_until": True,
+            "bands": [
+                {"from": None, "to": 0, "level": "warning", "message": "Overdue"},
+                {"from": 0, "to": 3, "level": "task", "message": "Due soon"},
+                {"from": 3, "to": None, "level": "nominal", "message": ""},
+            ],
+        },
+    )
+    assert rec["days_until"] is True
+
+    def at(state):
+        value = levels.reading(rec, SimpleNamespace(state=state, attributes={}), now)
+        return value, levels.level_of(rec, value)
+
+    assert at("2026-10-25") == ("12.5", ("nominal", None))  # a date: its midnight
+    assert at("2026-10-14T00:00:00+00:00") == ("1.5", ("task", "Due soon"))
+    assert at("2026-10-12T00:00:00+00:00") == ("-0.5", ("warning", "Overdue"))
+    assert at("unavailable") == ("unavailable", ("error", "unavailable"))
+    assert at("soon")[1] == ("error", "not a number: soon")

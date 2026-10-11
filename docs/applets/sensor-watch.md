@@ -67,7 +67,7 @@ of a broken integration or a flat battery.
    and whatever matches later joins by itself, so the plug you put in next month is
    watched without you remembering. The rule of thumb: **more than two of the same kind
    is a group; a single thing is a watch.**
-2. **Check the bands.** A group follows a profile, and the library has 80 to start from,
+2. **Check the bands.** A group follows a profile, and the library has 82 to start from,
    each saying where its numbers come from: mains voltage and frequency by country,
    inverter trip limits, batteries, broadband, pool and hot tub chemistry, indoor air,
    freezers, heating, the garden, computers, and plain "is it there?".
@@ -199,6 +199,31 @@ the room is warm.
 2. Bands are suggested from its history; or **Follows** *Room temperature (°C)* from the
    library. A room under 16 °C is a task, under 12 °C a warning.
 
+### A hot tub: its reminders, its water and its errors
+
+A spa run by a Gecko controller (in.touch2) comes into Home Assistant through the
+[Gecko integration](https://github.com/gazoodle/gecko-home-assistant), and it keeps
+reminders of its own: **Rinse filter**, **Clean filter**, **Change water**, **Check spa**,
+**Change ozonator** and **Change Vision cartridge**, each a date entity saying when it's
+due. Sensor Watch reads a date as the days until it, so:
+
+1. **Groups → + New group**: *Spa reminders*, domain *date* (and the spa's device, or
+   a search for "due"), members follow **the defaults, by what it is**, which for a date
+   is **Reminder due (days)**: a task in the fortnight before, a warning in its week, an
+   error once it's passed, critical a month after. Or follow that profile from the
+   library, under Reminders and due dates.
+2. **The water:** watch the spa's water temperature (its temperature sensor, or the
+   thermostat's `current_temperature` attribute) with bands: say under 35 °C a task
+   ("Spa cooling: is it heating?") and under 30 °C a warning. A hold-off of half an hour
+   lets a lid left open off.
+3. **Its errors:** watch the spa's **Error(s)** sensor by exact states: *None* nominal,
+   anything else an error. The row and the notification show the spa's own words.
+
+With the Notify on Sensor Watch blueprint at *Task*, the phone says "🔵 Rinse filter due:
+task" a fortnight out, and the card shows it until the filter is rinsed and the date set
+again (on the spa, or the date entity in Home Assistant). They're judged every ten minutes
+as time passes, so a reminder comes due without anything in Home Assistant changing.
+
 ### The security light that stayed on
 
 **Security light on too long** (under Outdoors and garden) is a warning when the light
@@ -243,6 +268,11 @@ first, so set it to 0 while trying a sensor out.
 
 Any entity can be watched: a sensor, but also an `input_number` you type a reading into
 (a pool's pH from a test strip), a `number`, a `switch` that should stay on, a `select`.
+A **date** (a reminder's due date, a `date` entity, a timestamp sensor) is read as the days
+until it, negative once it's passed, so its bands are days (**A date: days until it**
+under the bands; a `date` entity starts that way, with Reminder due's bands). Sensor Watch
+judges date watches again every ten minutes, as a date comes due without its state
+changing.
 How it's watched follows its state: a number gets bands, `on` and `off` get on/off, and
 anything else exact states.
 
@@ -386,6 +416,8 @@ and where its numbers come from:
 - **Computers and network:** Wi-Fi signal, CPU temperature, CPU and memory use, disk
   use. (A host's CPU and memory as entities: Home Assistant's System Monitor
   integration, or the Supervisor integration's per-app sensors; both start disabled.)
+- **Reminders and due dates:** a date something is due, as days until it (a spa's
+  filter, a service, a renewal).
 
 Nothing starts ticked: search (a country, "voltage", "pH") and tick what you have.
 
@@ -465,6 +497,7 @@ hold-off, how long a new level must last before it counts.
 | Security light on too long (on/off) | Outdoors and garden | on/off | off nominal · on warning; after 30 min |
 | Soil moisture (%) | Outdoors and garden | bands | under 15 warning · 15–20 task · 20–60 nominal · 60–80 task · 80 and over warning; after 1 h |
 | Unheated space, pipes (°C) | Outdoors and garden | bands | under 0 error · 0–3 warning · 3 and over nominal; after 30 min |
+| Reminder due (days) | Reminders and due dates | bands | under -30 critical · -30–0 error · 0–7 warning · 7–14 task · 14 and over nominal; at once |
 | Carbon monoxide (on/off) | Safety | on/off | off nominal · on critical; at once |
 | Gas (on/off) | Safety | on/off | off nominal · on critical; at once |
 | Leak (on/off) | Safety | on/off | off nominal · on critical; at once |

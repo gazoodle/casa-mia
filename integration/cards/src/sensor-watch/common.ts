@@ -34,7 +34,14 @@ export function columns(show: readonly Column[]): string {
 
 /** One row of the `list` service's answer. */
 /** A row as the list service gives it; `attribute`: the attribute watched, not the state. */
-export type Row = { entity_id: string; name: string; level: Level; value: string | null; message: string | null; since: string; attribute?: string };
+export type Row = { entity_id: string; name: string; level: Level; value: string | null; message: string | null; since: string; attribute?: string; days_until?: boolean };
+
+/** A due date as people read it ("25 Oct"), or the days the integration gave. */
+export function due(state: string | undefined, days: string | null): string {
+  const t = state ? Date.parse(state) : NaN;
+  if (!Number.isNaN(t)) return new Date(t).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  return days ? `${days} days` : "";
+}
 
 /** "4 min", "3 h", "2 d": how long since `iso`. */
 export function since(iso: string, now: number): string {

@@ -4704,19 +4704,26 @@ function Or(e) {
 	].filter(Boolean).join(" ");
 }
 function kr(e, t) {
+	let n = e ? Date.parse(e) : NaN;
+	return Number.isNaN(n) ? t ? `${t} days` : "" : new Date(n).toLocaleDateString(void 0, {
+		day: "numeric",
+		month: "short"
+	});
+}
+function Ar(e, t) {
 	let n = Math.max(0, (t - Date.parse(e)) / 1e3);
 	return n < 60 ? "now" : n < 3600 ? `${Math.floor(n / 60)} min` : n < 86400 ? `${Math.floor(n / 3600)} h` : `${Math.floor(n / 86400)} d`;
 }
 //#endregion
 //#region src/sensor-watch/card.ts
-var Ar = "casa_mia_sensor_watch", jr = 300, Mr = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toISOString(), Nr = [
+var jr = "casa_mia_sensor_watch", Mr = 300, Nr = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toISOString(), Pr = [
 	{
 		entity_id: "",
 		name: "Plug 3 voltage",
 		level: "critical",
 		value: "198 V",
 		message: "Mains far too low: under 207 V",
-		since: Mr(3)
+		since: Nr(3)
 	},
 	{
 		entity_id: "",
@@ -4724,7 +4731,7 @@ var Ar = "casa_mia_sensor_watch", jr = 300, Mr = (e) => (/* @__PURE__ */ new Dat
 		level: "warning",
 		value: "-12 °C",
 		message: "Freezer too warm: check the door and seal",
-		since: Mr(1)
+		since: Nr(1)
 	},
 	{
 		entity_id: "",
@@ -4732,9 +4739,9 @@ var Ar = "casa_mia_sensor_watch", jr = 300, Mr = (e) => (/* @__PURE__ */ new Dat
 		level: "task",
 		value: "18 %",
 		message: "Top up the salt",
-		since: Mr(50)
+		since: Nr(50)
 	}
-], Pr = class extends U {
+], Fr = class extends U {
 	constructor(...e) {
 		super(...e), this._editing = !1, this._seen = null;
 	}
@@ -4765,12 +4772,12 @@ var Ar = "casa_mia_sensor_watch", jr = 300, Mr = (e) => (/* @__PURE__ */ new Dat
 		if (this._unsubscribe || !e.connection) return;
 		let t = e.connection.subscribeEvents(() => {
 			clearTimeout(this._timer), this._ask();
-		}, Ar);
+		}, jr);
 		this._unsubscribe = t, t.catch((e) => console.warn(`CASA-MIA CARDS: sensor watch: can't hear its event (${e})`));
 	}
 	set hass(e) {
 		this._hass = e, this.isConnected && this._subscribe(e);
-		let t = Object.entries(e.entities ?? {}).filter(([, e]) => e.platform === Ar).map(([t]) => `${t}@${e.states[t]?.last_updated ?? ""}`).join(",");
+		let t = Object.entries(e.entities ?? {}).filter(([, e]) => e.platform === jr).map(([t]) => `${t}@${e.states[t]?.last_updated ?? ""}`).join(",");
 		t !== this._seen && (this._seen = t, this._later()), this.requestUpdate();
 	}
 	set preview(e) {
@@ -4780,7 +4787,7 @@ var Ar = "casa_mia_sensor_watch", jr = 300, Mr = (e) => (/* @__PURE__ */ new Dat
 		this._editing = e, this._showOrHide();
 	}
 	_later() {
-		clearTimeout(this._timer), this._timer = window.setTimeout(() => this._ask(), jr);
+		clearTimeout(this._timer), this._timer = window.setTimeout(() => this._ask(), Mr);
 	}
 	async _ask() {
 		let e = this._hass, t = {
@@ -4791,7 +4798,7 @@ var Ar = "casa_mia_sensor_watch", jr = 300, Mr = (e) => (/* @__PURE__ */ new Dat
 			try {
 				let n = await e.callWS({
 					type: "call_service",
-					domain: Ar,
+					domain: jr,
 					service: "list",
 					service_data: {
 						levels: t.levels,
@@ -4832,7 +4839,7 @@ var Ar = "casa_mia_sensor_watch", jr = 300, Mr = (e) => (/* @__PURE__ */ new Dat
 			...this._config
 		};
 		if (b(this) && (this._problem !== void 0 || this._rows !== void 0 && !this._rows.length)) return z`<ha-card .header=${e.title || "Needs looking at"}>
-        ${Nr.map((e) => this._row(e, e.value ?? "", Date.now()))}
+        ${Pr.map((e) => this._row(e, e.value ?? "", Date.now()))}
         <p class="note">An example: hidden when all is well.</p>
       </ha-card>`;
 		let t = (this._rows ?? []).slice(0, e.max), n = (this._rows?.length ?? 0) - t.length, r = Date.now();
@@ -4841,6 +4848,7 @@ var Ar = "casa_mia_sensor_watch", jr = 300, Mr = (e) => (/* @__PURE__ */ new Dat
       ${!this._problem && this._rows && !t.length ? z`<p class="note">${e.when_clear === "message" ? e.clear_message : "All well: nothing to list, so this card is hidden on the dashboard."}</p>` : B}
       ${t.map((e) => {
 			let t = this._hass?.states[e.entity_id];
+			if (e.days_until) return this._row(e, kr(e.attribute ? String(t?.attributes?.[e.attribute] ?? "") : t?.state, e.value), r);
 			if (e.attribute) return this._row(e, String(t?.attributes?.[e.attribute] ?? e.value ?? ""), r);
 			let n = t?.attributes?.unit_of_measurement ?? "";
 			return this._row(e, t ? `${t.state}${n ? ` ${n}` : ""}` : e.value ?? "", r);
@@ -4861,7 +4869,7 @@ var Ar = "casa_mia_sensor_watch", jr = 300, Mr = (e) => (/* @__PURE__ */ new Dat
             ${a("message") && e.message ? z`<span class="message">${e.message}</span>` : B}
           </span>` : B}
       ${a("value") ? z`<span class="value">${n}</span>` : B}
-      ${a("since") ? z`<span class="since">${kr(e.since, r)}</span>` : B}
+      ${a("since") ? z`<span class="since">${Ar(e.since, r)}</span>` : B}
     </button>`;
 	}
 	static {
@@ -4937,13 +4945,13 @@ var Ar = "casa_mia_sensor_watch", jr = 300, Mr = (e) => (/* @__PURE__ */ new Dat
     }
   `;
 	}
-}, Fr = "casa_mia_sensor_watch", Ir = {
+}, Ir = "casa_mia_sensor_watch", Lr = {
 	level: "Level",
 	name: "Name",
 	message: "Message",
 	value: "Value (its state now)",
 	since: "How long"
-}, Lr = (e) => [
+}, Rr = (e) => [
 	{
 		name: "title",
 		selector: { text: {} }
@@ -5005,11 +5013,11 @@ var Ar = "casa_mia_sensor_watch", jr = 300, Mr = (e) => (/* @__PURE__ */ new Dat
 			mode: "list",
 			options: Dr.map((e) => ({
 				value: e,
-				label: Ir[e]
+				label: Lr[e]
 			}))
 		} }
 	}
-], Rr = {
+], zr = {
 	title: "Title",
 	group: "Group",
 	levels: "Levels to list",
@@ -5017,10 +5025,10 @@ var Ar = "casa_mia_sensor_watch", jr = 300, Mr = (e) => (/* @__PURE__ */ new Dat
 	when_clear: "When all is well",
 	clear_message: "Its message",
 	show: "Each row shows"
-}, zr = {
+}, Br = {
 	title: "Or none, and give its panel a garnish heading (it hides with the card).",
 	group: "Only one group's members (from Casa Mia's Sensor Watch page), or every watched sensor."
-}, Br = class extends U {
+}, Vr = class extends U {
 	constructor(...e) {
 		super(...e), this._ready = !1, this._groups = [], this._asked = !1;
 	}
@@ -5038,7 +5046,7 @@ var Ar = "casa_mia_sensor_watch", jr = 300, Mr = (e) => (/* @__PURE__ */ new Dat
 			try {
 				let e = await this.hass.callWS({
 					type: "call_service",
-					domain: Fr,
+					domain: Ir,
 					service: "list",
 					service_data: {},
 					return_response: !0
@@ -5060,9 +5068,9 @@ var Ar = "casa_mia_sensor_watch", jr = 300, Mr = (e) => (/* @__PURE__ */ new Dat
 			...$,
 			...this._config
 		}}
-      .schema=${Lr(this._groups)}
-      .computeLabel=${(e) => Rr[e.name] ?? e.name}
-      .computeHelper=${(e) => zr[e.name]}
+      .schema=${Rr(this._groups)}
+      .computeLabel=${(e) => zr[e.name] ?? e.name}
+      .computeHelper=${(e) => Br[e.name]}
       @value-changed=${(e) => {
 			e.stopPropagation();
 			let n = {
@@ -5074,26 +5082,26 @@ var Ar = "casa_mia_sensor_watch", jr = 300, Mr = (e) => (/* @__PURE__ */ new Dat
     ></ha-form>`);
 	}
 };
-o("casa-mia-sensor-watch", Pr), o("casa-mia-sensor-watch-editor", Br), s("casa-mia-sensor-watch", "Casa Mia Sensor Watch", "What needs doing or has gone wrong (all of it, or one group's), worst first; hidden when all is well.");
+o("casa-mia-sensor-watch", Fr), o("casa-mia-sensor-watch-editor", Vr), s("casa-mia-sensor-watch", "Casa Mia Sensor Watch", "What needs doing or has gone wrong (all of it, or one group's), worst first; hidden when all is well.");
 //#endregion
 //#region src/guest-goodbye.ts
-var Vr = 1e3, Hr = (e, t) => e.state === "on" && !(e.attributes.closes_at && t / 1e3 >= e.attributes.closes_at);
-function Ur(e, t, n, r, i) {
+var Hr = 1e3, Ur = (e, t) => e.state === "on" && !(e.attributes.closes_at && t / 1e3 >= e.attributes.closes_at);
+function Wr(e, t, n, r, i) {
 	if (!t || t.is_admin) return null;
-	let a = Object.values(e).filter((e) => e.entity_id.startsWith("switch.") && e.attributes?.guest_user_id === t.id), o = a.find((e) => e.attributes.signs_out && n.get(e.entity_id) === !0 && !Hr(e, r));
-	for (let e of a) n.set(e.entity_id, Hr(e, r));
-	if (!o || a.some((e) => Hr(e, r))) return null;
+	let a = Object.values(e).filter((e) => e.entity_id.startsWith("switch.") && e.attributes?.guest_user_id === t.id), o = a.find((e) => e.attributes.signs_out && n.get(e.entity_id) === !0 && !Ur(e, r));
+	for (let e of a) n.set(e.entity_id, Ur(e, r));
+	if (!o || a.some((e) => Ur(e, r))) return null;
 	let s = o.attributes;
 	return s.goodbye_url || `http://${i}:${s.guest_port ?? 8675}/bye`;
 }
-function Wr() {
+function Gr() {
 	let e = /* @__PURE__ */ new Map();
 	setInterval(() => {
 		let t = document.querySelector("home-assistant")?.hass;
 		if (!t?.states) return;
-		let n = Ur(t.states, t.user, e, Date.now(), location.hostname);
+		let n = Wr(t.states, t.user, e, Date.now(), location.hostname);
 		n && (console.info("CASA-MIA CARDS: this guest's endpoint closed; going to the goodbye page"), location.replace(n));
-	}, Vr);
+	}, Hr);
 }
 console.info(`%cCASA-MIA CARDS\n%ccommander, tablet layout (${Ot})`, "color: green; font-weight: bold;", ""), Ot !== "dev" && window.hassConnection?.then(({ conn: e }) => {
 	e.addEventListener("ready", () => e.sendMessagePromise({ type: "casa_mia/cards" }).then(({ version: e }) => {
@@ -5111,5 +5119,5 @@ console.info(`%cCASA-MIA CARDS\n%ccommander, tablet layout (${Ot})`, "color: gre
 			composed: !0
 		})));
 	}, () => {}));
-}), Wr();
+}), Gr();
 //#endregion

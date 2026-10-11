@@ -31,6 +31,7 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
   const [exceptions, setExceptions] = useState<StateLevel[]>(start?.exceptions ?? []);
   const [unavailable, setUnavailable] = useState<Level | "ignore">(start?.unavailable ?? "error");
   const [holdOff, setHoldOff] = useState(String(start?.hold_off ?? 60));
+  const [daysUntil, setDaysUntil] = useState(start?.days_until ?? false);
 
   /** Take another set of levels (a suggestion, a profile). */
   const adopt = (r: Partial<WatchRecord>) => {
@@ -46,6 +47,7 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
     setExceptions(r.exceptions ?? []);
     if (r.unavailable) setUnavailable(r.unavailable);
     if (r.hold_off !== undefined) setHoldOff(String(r.hold_off));
+    setDaysUntil(r.days_until ?? false);
   };
 
   /** The levels as the app takes them. */
@@ -59,7 +61,7 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
         ? { available, message }
       : k === "state"
         ? { states: split(states), other, message, exceptions: exceptions.filter((e) => e.state.trim()) }
-        : { bands: bands.map(toBand), otherwise }),
+        : { bands: bands.map(toBand), otherwise, ...(daysUntil ? { days_until: true } : {}) }),
   });
 
   /** Bands that make sense, or say why not: a From or To that isn't a number stops the
@@ -77,7 +79,7 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
 
   return {
     kind: k, setKind, bands, setBands, otherwise, setOtherwise, off, setOff, on, setOn, other, setOther, available, setAvailable, message, setMessage,
-    states, setStates, exceptions, setExceptions, unavailable, setUnavailable, holdOff, setHoldOff,
+    states, setStates, exceptions, setExceptions, unavailable, setUnavailable, holdOff, setHoldOff, daysUntil, setDaysUntil,
     adopt, body, sane, drawn: () => bands.map(toBand),
   };
 }
@@ -161,6 +163,11 @@ export function LevelFields({ L, unit = "", seen = [], seenLabel = "Seen", extra
       {L.kind === "numeric" && <BandsEditor bands={L.bands} onChange={L.setBands} unit={unit} />}
 
       <div className={css.settings}>
+        {L.kind === "numeric" && (
+          <Field label="A date: days until it" help="Its state is a date (a reminder due): the bands are the days until it, negative once it's passed.">
+            <input type="checkbox" checked={L.daysUntil} onChange={(e) => L.setDaysUntil(e.target.checked)} />
+          </Field>
+        )}
         {L.kind === "numeric" && (
           <Field label="Outside every band" help="The level of a value no band covers.">
             <LevelSelect value={L.otherwise} onChange={(v) => L.setOtherwise(v as Level)} />

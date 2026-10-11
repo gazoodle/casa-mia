@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.10-b2
+
+- **Breaking:** the Sensor Watch integration and Casa Mia's cards changed. Restart Home Assistant once; a Repair asks.
+- Sensor Watch watches **dates**: a date or timestamp is read as the days until it (negative once it's passed), banded in days, and judged again every ten minutes, so a reminder comes due on time though its state doesn't change. A `date` entity starts this way, and the library adds **Reminder due (days)**: a task in the fortnight before, a warning in its week, an error once it's passed, critical a month after. Made for a spa's reminders (the [Gecko integration](https://github.com/gazoodle/gecko-home-assistant)'s Rinse filter, Clean filter, Change water and the rest); the guide has the worked example. The page and the card show the due date.
+
 ## 2026.10.10-b1
 
 - Dependencies: vite 8.3.3 and @vitejs/plugin-react 6.1.2 for the admin page (rebuilt); the release and stats workflows on actions/upload-artifact 7, actions/download-artifact 8 and docker/setup-buildx-action 4. Dependabot now proposes its updates to `dev`, so they ship with a release.

@@ -306,10 +306,12 @@ words. The trick is saying it once, not fifty times:
   every Hue light: a saved filter and a profile. Everything matching is watched, and the
   plug you put in next month joins by itself. More than two of the same kind is a group;
   a single thing is a watch.
-- **A library of 80 profiles,** each saying where its numbers come from: mains voltage
+- **A library of 82 profiles,** each saying where its numbers come from: mains voltage
   and frequency for the UK (today's law and the ENA's 2026 proposal), the US, the EU,
   Japan, China and Australia; inverter trip limits; batteries, broadband, pool and hot tub
-  chemistry, indoor air, freezers, the boiler, the garden, computers.
+  chemistry, indoor air, freezers, the boiler, the garden, computers; and reminders coming
+  due, read as days until the date (a hot tub's Rinse filter, from the
+  [Gecko integration](https://github.com/gazoodle/gecko-home-assistant)).
 - **Watches for the one-offs,** with bands suggested from each sensor's own history: a
   number by bands, on/off, exact states, an attribute (a thermostat's temperature, not
   its mode), or just "is it there?", either way round.

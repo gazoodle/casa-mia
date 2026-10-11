@@ -5,7 +5,7 @@
 import { Fragment, useMemo, useState } from "react";
 import { Empty } from "../page";
 import { FilterChips, KINDS, LevelChips, type ChipOptions, type Choice } from "./chips";
-import { LEVELS, LEVEL_NAMES, NO_FILTERS, searched, summary, type Filters, type Group, type Level, type LevelsView, type WatchRecord, FITS, type Profile } from "./common";
+import { LEVELS, LEVEL_NAMES, NO_FILTERS, dueValue, searched, summary, type Filters, type Group, type Level, type LevelsView, type WatchRecord, FITS, type Profile } from "./common";
 import css from "./sensor-watch.module.css";
 import ui from "../ui.module.css";
 
@@ -228,7 +228,7 @@ export function WatchedList({
                       {r.attribute && <span className={css.note}> · its {r.attribute}</span>}
                     </span>
                     <span className={css.note}>
-                      {now && !r.disabled ? `${now.value ?? "?"}${now.message ? ` · ${now.message}` : ""} · ` : ""}
+                      {now && !r.disabled ? `${r.days_until && now.value ? dueValue(now.value) : (now.value ?? "?")}${now.message ? ` · ${now.message}` : ""} · ` : ""}
                       {summary(r)}
                       {r.meta?.area && ` · ${r.meta.area}`}
                       {r.profile && ` · follows ${profiles.find((p) => p.id === r.profile)?.name ?? "a profile"}`}

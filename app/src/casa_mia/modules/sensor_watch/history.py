@@ -67,11 +67,18 @@ ON_OFF = (
 NUMBERS = ("input_number", "number", "counter")
 
 
+def dated(domain: str, attrs: dict[str, Any]) -> bool:
+    """Is its state a date or a timestamp (a reminder's due date, a last boot)?"""
+    return domain == "date" or attrs.get("device_class") in ("timestamp", "date")
+
+
 def kind_of(domain: str, state: str, attrs: dict[str, Any]) -> str:
-    """How an entity is watched: bands for a number, on/off for on or off, else exact
-    states (a cover, a lock, a text or enum sensor, a select)."""
+    """How an entity is watched: bands for a number (or a date, as days until it), on/off
+    for on or off, else exact states (a cover, a lock, a text or enum sensor, a select)."""
     if domain in ON_OFF:
         return "binary"
+    if dated(domain, attrs):
+        return "numeric"
     if domain in NUMBERS or attrs.get("state_class") or _is_number(state):
         return "numeric"
     return "state"
@@ -218,6 +225,7 @@ class Reader:
                         "statistics": bool(attrs.get("state_class")),
                         "options": [str(o) for o in attrs.get("options") or []][:50],
                         "attributes": readings(attrs),
+                        "dated": dated(domain, attrs),
                     }
                 )
             out.sort(key=order)
