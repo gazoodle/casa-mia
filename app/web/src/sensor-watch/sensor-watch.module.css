@@ -259,8 +259,13 @@
 }
 
 /* A watch kept but not watched (disabled): greyed. */
-.off {
+/* All but its pill, which is its way back (Enable). */
+.off > :not(.enable) {
   opacity: 0.5;
+}
+
+.enable {
+  color: var(--accent);
 }
 
 .compact {

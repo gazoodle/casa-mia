@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.10-b3
+
+- Sensor Watch: a disabled watch's status pill is an **Enable** chip, which watches it again as it was (its levels or profile, its group).
+
 ## 2026.10.10-b2
 
 - **Breaking:** the Sensor Watch integration and Casa Mia's cards changed. Restart Home Assistant once; a Repair asks.

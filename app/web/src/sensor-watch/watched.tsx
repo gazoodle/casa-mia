@@ -51,6 +51,7 @@ export function WatchedList({
   setFilters,
   onFollow,
   onEdit,
+  onEnable,
   onStop,
   onStopMany,
 }: {
@@ -65,6 +66,8 @@ export function WatchedList({
   /** These watched sensors follow that profile. */
   onFollow: (rs: WatchRecord[], profile: Profile) => void;
   onEdit: (r: WatchRecord) => void;
+  /** Watch a disabled one again. */
+  onEnable: (r: WatchRecord) => void;
   onStop: (r: WatchRecord) => void;
   /** Stop watching these (already confirmed by the user). */
   onStopMany: (rs: WatchRecord[]) => void;
@@ -219,9 +222,18 @@ export function WatchedList({
                   )}
                   {!isFolded(r) && (
                 <div className={`${css.row} ${css.compact} ${r.disabled ? css.off : ""}`}>
-                  <span className={`${css.level} ${css[`lv_${r.disabled ? "none" : (now?.level ?? "none")}`]}`}>
-                    {r.disabled ? "Disabled" : now ? LEVEL_NAMES[now.level] : "…"}
-                  </span>
+                  {r.disabled ? (
+                    <button
+                      type="button"
+                      className={`${css.level} ${css.lv_none} ${css.followers} ${css.enable}`}
+                      onClick={() => onEnable(r)}
+                      aria-label={`Watch ${r.label} again`}
+                    >
+                      Enable
+                    </button>
+                  ) : (
+                    <span className={`${css.level} ${css[`lv_${now?.level ?? "none"}`]}`}>{now ? LEVEL_NAMES[now.level] : "…"}</span>
+                  )}
                   <span className={css.what}>
                     <span className={css.nameLine}>
                       <strong>{r.label}</strong> <code>{r.entity_id}</code>

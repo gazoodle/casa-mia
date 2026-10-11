@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { SensorWatchIcon } from "../icons";
 import { AreaHead, Empty, Shell } from "../page";
 import { Toasts, type Toast } from "../ui";
-import { NO_FILTERS, swApi, type Filters, type LevelsView, type Profile, type WatchRecord, type WatchView } from "./common";
+import { levelsOf, NO_FILTERS, swApi, type Filters, type LevelsView, type Profile, type WatchRecord, type WatchView } from "./common";
 import { ApplyDialog, PickDialog, ScanDialog } from "./dialogs";
 import { RecordDialog } from "./editor";
 import { GroupsSection } from "./groups";
@@ -131,6 +131,19 @@ export function SensorWatchPage({ state }: { state?: string }) {
             onEdit={(r) => setEditing({ entityId: r.entity_id, record: r })}
             onStopMany={(rs) =>
               change(() => swApi.post<WatchView>("forget", { entity_ids: rs.map((r) => r.entity_id) }), `${rs.length} sensors no longer watched`)
+            }
+            onEnable={(r) =>
+              change(
+                () =>
+                  swApi.put<WatchView>(
+                    encodeURIComponent(r.entity_id),
+                    // As it was, watched again: its profile, or its own levels.
+                    r.profile
+                      ? { profile: r.profile, name: r.name, attribute: r.attribute, disabled: false }
+                      : { ...levelsOf(r), name: r.name, attribute: r.attribute, disabled: false },
+                  ),
+                `${r.label}: watched again`,
+              )
             }
             onStop={(r) =>
               confirm(`Stop watching ${r.label}?`) && change(() => swApi.del<WatchView>(encodeURIComponent(r.entity_id)), `${r.label}: no longer watched`)

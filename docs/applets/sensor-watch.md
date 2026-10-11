@@ -255,7 +255,8 @@ watched one by one; the sort applies within each.
 
 **Disabled** in a watch's editor keeps it, with its levels and its group, but stops
 watching it: no level, no event, not counted. Disabled ones are listed together at the
-foot, greyed; untick it to watch it again, back in its group. Handy for a sensor that's
+foot, greyed, each with an **Enable** chip that watches it again, back in its group
+(or untick Disabled in its editor). Handy for a sensor that's
 being repaired, or a screenshot.
 
 The list is live: a value or level changes on the page the moment Home Assistant has it
