@@ -161,6 +161,19 @@ export function ScanDialog({ onClose, onAccepted }: { onClose: () => void; onAcc
           {scan.remaining ? `; ${scan.remaining} more to scan` : ""}.
         </p>
       )}
+      {scan && scan.found.length > 0 && (
+        <div className={css.selectBar}>
+          <span className={css.note}>
+            {ticked.size} of {scan.found.length} ticked
+          </span>
+          <button className={`${ui.button} ${ui.small}`} disabled={ticked.size === scan.found.length} onClick={() => setTicked(new Set(scan.found.map((f) => f.sensor.entity_id)))}>
+            Select all
+          </button>
+          <button className={`${ui.button} ${ui.small}`} disabled={ticked.size === 0} onClick={() => setTicked(new Set())}>
+            Select none
+          </button>
+        </div>
+      )}
       <ul className={css.scanList}>
         {scan?.found.map((f) => (
           <li key={f.sensor.entity_id}>

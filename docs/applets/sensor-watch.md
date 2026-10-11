@@ -6,11 +6,43 @@ Give any sensor bands of values, each with a level, so what needs doing or has g
 
 ## What it's for
 
-Home Assistant is great when it works; it's when it doesn't that the family gets
-irritated. A sensor that has gone unavailable, a freezer creeping warm, a water softener
-running out of salt: each one is in Home Assistant already, but nothing says it matters
-until somebody notices. Sensor Watch gives each sensor you choose its normal range, and
-a level for everything outside it:
+Home Assistant is great when it's all working. When it isn't, it's a pain, and only then
+do you discover the things that have been in error for ages: a sensor unavailable since
+the spring, an integration that never came back after an update, a battery long flat.
+
+Has anyone else looked at 30 Hue bulbs and 20 Shelly switches and decided not to bother
+with an automation for each one dropping out of range? Or built a dashboard panel for
+the things that need attention, knowing all the while that something was missed? Sensor
+Watch is for that. Tell it once what normal looks like, sensor by sensor or with a scan
+of the whole house (it suggests the bands from history, and knows what a leak sensor or
+a low battery means without being told), and it keeps watching, Home Assistant itself
+included: its Recorder, and every integration that fails to set up.
+
+It isn't a replacement for automations: it's a grown-up notification system that you
+configure once. Automations are for taking action; Sensor Watch is the trigger that
+starts them. On each change of level it fires an event, and its status, counts and List
+service always say what's wrong, so you choose what happens next:
+
+- **Tell someone:** a notification when anything becomes a task, a warning to the phone
+  of whoever's home, critical to everyone.
+- **Show it:** a panel of what needs attention on the wall tablets. Pair it with
+  [garnish](../../README.md#garnish-for-every-dashboard), so the panel's heading
+  disappears with it on a quiet day, rather than a proud *WARNINGS* over nothing.
+- **Look into it:** hand the list to an AI agent (Home Assistant's AI tasks, say) to
+  investigate what has gone wrong and why, before you even reach for the laptop.
+- **Keep a to-do list for the house:** each task (top up the salt, change a battery, a
+  filter due) added to a Home Assistant to-do list, and ticked off by itself when the
+  sensor is nominal again.
+- **Escalate:** a warning nobody has dealt with in a day becomes a text, through
+  [Phone and SMS](phone-and-sms.md), which works even when the internet doesn't.
+- **Say it with a light:** the hallway lamp glows amber while anything is a warning.
+- **Put it over everything:** a critical comes up on every wall tablet, over whatever
+  it's showing, with the [Over layer](../over-layer.md).
+- **Brief the morning:** the voice assistant reads out the day's tasks at breakfast.
+- **Watch the trends:** the counts are measurements, so Home Assistant's own history
+  shows which integration falls over most often, and when.
+
+Each sensor gets a level:
 
 | Level | Means | Example |
 |---|---|---|

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.8-b10
+
+- **Sensor Watch:** a scan's results have **Select all** and **Select none**, with how
+  many are ticked.
+
 ## 2026.10.8-b9
 
 - **Sensor Watch:** under the watched list, **Stop watching these** (what the filters

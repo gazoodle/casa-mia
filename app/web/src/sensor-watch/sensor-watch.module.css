@@ -537,6 +537,17 @@
   width: 90px;
 }
 
+.selectBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.selectBar .note {
+  margin: 0 auto 0 0;
+}
+
 .scanRow {
   display: flex;
   gap: 10px;
