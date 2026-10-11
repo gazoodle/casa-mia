@@ -295,11 +295,106 @@ and where its numbers come from:
 
 Nothing starts ticked: search (a country, "voltage", "pH") and tick what you have.
 
+<details>
+<summary>Every profile in the library, with its levels</summary>
+
+Numbers are in the sensor's own unit (volts, hertz, %, °C, ppm); "after" is the
+hold-off, how long a new level must last before it counts.
+
+<!-- library table: tools/library_table.py --update -->
+
+| Profile | Category | Mode | Behaviour |
+| --- | --- | --- | --- |
+| Available (a task after an hour) | Availability | available | there nominal · unavailable task; after 1 h |
+| Available (critical) | Availability | available | there nominal · unavailable critical; after 1 min |
+| Stays gone | Availability | available | there warning · unavailable nominal; after 5 min |
+| Battery, replaceable (%) | Batteries | bands | under 5 warning · 5–20 task · 20 and over nominal; after 10 min |
+| Home battery at its reserve (%) | Batteries | bands | under 10 task · 10 and over nominal; after 30 min |
+| Lead-acid 12 V battery (V) | Batteries | bands | under 11.8 error · 11.8–12.2 warning · 12.2–12.4 task · 12.4–14.8 nominal · 14.8–15.5 warning · 15.5 and over error; after 10 min |
+| LiFePO4 12 V battery (V) | Batteries | bands | under 12 error · 12–12.8 task · 12.8–14.6 nominal · 14.6–15 warning · 15 and over error; after 10 min |
+| LiFePO4 cell (V) | Batteries | bands | under 2.5 critical · 2.5–3 task · 3–3.5 nominal · 3.5–3.65 task · 3.65 and over critical; after 10 min |
+| Low battery (on/off) | Batteries | on/off | off nominal · on task; after 1 min |
+| Rechargeable battery, 20-100% (LiFePO4) (%) | Batteries | bands | under 10 error · 10–20 task · 20 and over nominal; after 10 min |
+| Rechargeable battery, 20-80% (%) | Batteries | bands | under 10 error · 10–20 task · 20–80 nominal · 80 and over task; after 10 min |
+| Rechargeable battery, 20-85% (%) | Batteries | bands | under 10 error · 10–20 task · 20–85 nominal · 85 and over task; after 10 min |
+| Rechargeable battery, 20-90% (%) | Batteries | bands | under 10 error · 10–20 task · 20–90 nominal · 90 and over task; after 10 min |
+| Broadband download: ADSL (16 Mbps) | Broadband | bands | under 1.6 error · 1.6–8 warning · 8–11.2 task · 11.2 and over nominal; after 3700 s |
+| Broadband download: FTTC 40 (40 Mbps) | Broadband | bands | under 4 error · 4–20 warning · 20–28 task · 28 and over nominal; after 3700 s |
+| Broadband download: FTTC 80 (80 Mbps) | Broadband | bands | under 8 error · 8–40 warning · 40–56 task · 56 and over nominal; after 3700 s |
+| Broadband download: Fibre 100 (100 Mbps) | Broadband | bands | under 10 error · 10–50 warning · 50–70 task · 70 and over nominal; after 3700 s |
+| Broadband download: Fibre 300 (300 Mbps) | Broadband | bands | under 30 error · 30–150 warning · 150–210 task · 210 and over nominal; after 3700 s |
+| Broadband download: Fibre 500 (500 Mbps) | Broadband | bands | under 50 error · 50–250 warning · 250–350 task · 350 and over nominal; after 3700 s |
+| Broadband download: Fibre 900 (900 Mbps) | Broadband | bands | under 90 error · 90–450 warning · 450–630 task · 630 and over nominal; after 3700 s |
+| Broadband download: Starlink 100 (100 Mbps) | Broadband | bands | under 10 error · 10–50 warning · 50–70 task · 70 and over nominal; after 3700 s |
+| Broadband download: Starlink 200 (200 Mbps) | Broadband | bands | under 20 error · 20–100 warning · 100–140 task · 140 and over nominal; after 3700 s |
+| Broadband download: Starlink 300 (300 Mbps) | Broadband | bands | under 30 error · 30–150 warning · 150–210 task · 210 and over nominal; after 3700 s |
+| Freezer (°C) | Cold and hot storage | bands | under -18 nominal · -18–-15 task · -15–-5 warning · -5 and over critical; after 30 min |
+| Fridge (°C) | Cold and hot storage | bands | under 0 warning · 0–5 nominal · 5–8 task · 8–12 warning · 12 and over error; after 30 min |
+| Hot water cylinder (°C) | Cold and hot storage | bands | under 46 warning · 46–50 task · 50–80 nominal · 80 and over warning; after 1 h |
+| CPU temperature (°C) | Computers and network | bands | under 70 nominal · 70–80 task · 80–85 warning · 85 and over error; after 10 min |
+| CPU use (%) | Computers and network | bands | under 80 nominal · 80–95 task · 95 and over warning; after 15 min |
+| Disk used (%) | Computers and network | bands | under 80 nominal · 80–90 task · 90–95 warning · 95 and over error; after 10 min |
+| Memory use (%) | Computers and network | bands | under 80 nominal · 80–90 task · 90 and over warning; after 15 min |
+| Wi-Fi signal (dBm) | Computers and network | bands | under -85 error · -85–-75 warning · -75–-67 task · -67 and over nominal; after 10 min |
+| Door (on/off) | Doors, windows and covers | on/off | off nominal · on task; after 1 min |
+| Garage door (on/off) | Doors, windows and covers | on/off | off nominal · on task; after 1 min |
+| Opening (on/off) | Doors, windows and covers | on/off | off nominal · on task; after 1 min |
+| Window (on/off) | Doors, windows and covers | on/off | off nominal · on task; after 1 min |
+| Window or cover: closed (states) | Doors, windows and covers | exact states | closed nominal · else task; after 1 min |
+| Boiler pressure (bar) | Heating | bands | under 0.5 error · 0.5–1 task · 1–2 nominal · 2–2.5 task · 2.5 and over warning; after 30 min |
+| Room temperature (°C) | Heating | bands | under 12 warning · 12–16 task · 16–25 nominal · 25–28 task · 28 and over warning; after 30 min |
+| Indoor CO2 (ppm) | Indoor air | bands | under 380 task · 380–1000 nominal · 1000–1500 task · 1500–2500 warning · 2500 and over error; after 15 min |
+| Indoor humidity (%) | Indoor air | bands | under 30 task · 30–60 nominal · 60–70 task · 70 and over warning; after 1 h |
+| PM2.5 (µg/m³) | Indoor air | bands | under 15 nominal · 15–35 task · 35–55 warning · 55 and over error; after 30 min |
+| Radon (Bq/m³) | Indoor air | bands | under 100 nominal · 100–200 task · 200 and over warning; after 24 h |
+| UK inverter trips: frequency (G98/G99) | Inverters | bands | under 47 critical · 47–47.5 error · 47.5–49.8 warning · 49.8–50.2 nominal · 50.2–51.5 warning · 51.5–52 error · 52 and over critical; after 5 s |
+| UK inverter trips: voltage (G98/G99) | Inverters | bands | under 184 critical · 184–200.1 error · 200.1–216.2 warning · 216.2–253 nominal · 253–262.2 warning · 262.2–273.7 error · 273.7 and over critical; after 5 s |
+| Alarm panel (states) | Locks, alarms and appliances | exact states | disarmed, armed_home, armed_away, armed_night, armed_vacation, armed_custom_bypass, arming, pending, disarming nominal · triggered critical · else warning; at once |
+| Connected (on/off) | Locks, alarms and appliances | on/off | off error · on nominal; after 1 min |
+| Lock: locked (states) | Locks, alarms and appliances | exact states | locked nominal · jammed error · else task; after 1 min |
+| Robot mower (states) | Locks, alarms and appliances | exact states | docked, mowing, returning, paused nominal · else error; after 1 min |
+| Robot vacuum (states) | Locks, alarms and appliances | exact states | docked, cleaning, returning, idle, paused nominal · else error; after 1 min |
+| Update available (on/off) | Locks, alarms and appliances | on/off | off nominal · on task; after 1 min |
+| Australia grid frequency (50 Hz) | Mains and grid | bands | under 49 critical · 49–49.5 error · 49.5–49.85 warning · 49.85–50.15 nominal · 50.15–50.5 warning · 50.5 and over error; after 30 s |
+| Australia mains voltage (230 V, AS 60038) | Mains and grid | bands | under 207 critical · 207–216.2 warning · 216.2–253 nominal · 253–262 warning · 262 and over critical; after 30 s |
+| China grid frequency (50 Hz, GB/T 15945) | Mains and grid | bands | under 49.5 error · 49.5–49.8 warning · 49.8–50.2 nominal · 50.2–50.5 warning · 50.5 and over error; after 30 s |
+| China mains voltage (220 V, GB/T 12325) | Mains and grid | bands | under 187 critical · 187–198 warning · 198–235.4 nominal · 235.4–242 warning · 242 and over critical; after 30 s |
+| EU grid frequency (50 Hz) | Mains and grid | bands | under 49 critical · 49–49.5 error · 49.5–49.8 warning · 49.8–50.2 nominal · 50.2–50.5 warning · 50.5 and over error; after 30 s |
+| EU mains voltage (230 V, EN 50160) | Mains and grid | bands | under 195.5 critical · 195.5–207 warning · 207–253 nominal · 253–264.5 warning · 264.5 and over critical; after 30 s |
+| Japan mains voltage (100 V) | Mains and grid | bands | under 90 critical · 90–95 warning · 95–107 nominal · 107–110 warning · 110 and over critical; after 30 s |
+| UK grid frequency | Mains and grid | bands | under 48.8 critical · 48.8–49.5 error · 49.5–49.8 warning · 49.8–50.2 nominal · 50.2–50.5 warning · 50.5 and over error; after 30 s |
+| UK mains voltage (ENA proposed, 2026) | Mains and grid | bands | under 195.5 critical · 195.5–207 warning · 207–253 nominal · 253–262 warning · 262 and over critical; after 30 s |
+| UK mains voltage (current law) | Mains and grid | bands | under 207 critical · 207–216.2 warning · 216.2–253 nominal · 253–262 warning · 262 and over critical; after 30 s |
+| US grid frequency (60 Hz) | Mains and grid | bands | under 59.3 critical · 59.3–59.5 error · 59.5–59.9 warning · 59.9–60.1 nominal · 60.1–60.5 warning · 60.5 and over error; after 30 s |
+| US mains voltage (120 V, ANSI C84.1) | Mains and grid | bands | under 104 critical · 104–110 error · 110–114 warning · 114–126 nominal · 126–127 warning · 127–132 error · 132 and over critical; after 30 s |
+| Frost risk (°C) | Outdoors and garden | bands | under -5 warning · -5–3 task · 3 and over nominal; after 30 min |
+| Security light on too long (on/off) | Outdoors and garden | on/off | off nominal · on warning; after 30 min |
+| Soil moisture (%) | Outdoors and garden | bands | under 15 warning · 15–20 task · 20–60 nominal · 60–80 task · 80 and over warning; after 1 h |
+| Unheated space, pipes (°C) | Outdoors and garden | bands | under 0 error · 0–3 warning · 3 and over nominal; after 30 min |
+| Carbon monoxide (on/off) | Safety | on/off | off nominal · on critical; at once |
+| Gas (on/off) | Safety | on/off | off nominal · on critical; at once |
+| Leak (on/off) | Safety | on/off | off nominal · on critical; at once |
+| Problem (on/off) | Safety | on/off | off nominal · on error; after 1 min |
+| Safety (on/off) | Safety | on/off | off nominal · on critical; at once |
+| Smoke (on/off) | Safety | on/off | off nominal · on critical; at once |
+| Tamper (on/off) | Safety | on/off | off nominal · on warning; after 1 min |
+| Aquarium, cold water (°C) | Water | bands | under 4 warning · 4–10 task · 10–22 nominal · 22–26 task · 26 and over warning; after 30 min |
+| Aquarium, tropical (°C) | Water | bands | under 20 error · 20–23 warning · 23–24 task · 24–27 nominal · 27–29 task · 29–31 warning · 31 and over error; after 30 min |
+| Hot tub bromine (ppm) | Water | bands | under 2 error · 2–4 task · 4–8 nominal · 8–10 task · 10 and over error; after 5 min |
+| Hot tub free chlorine (ppm) | Water | bands | under 1 error · 1–3 task · 3–5 nominal · 5–10 task · 10 and over error; after 5 min |
+| Pool free chlorine (ppm) | Water | bands | under 0.5 error · 0.5–1 task · 1–3 nominal · 3–5 task · 5–10 warning · 10 and over error; after 5 min |
+| Pool or hot tub pH | Water | bands | under 7 warning · 7–7.2 task · 7.2–7.8 nominal · 7.8–8 task · 8 and over warning; after 5 min |
+| Water softener salt (%) | Water | bands | under 10 warning · 10–25 task · 25 and over nominal; after 1 h |
+
+<!-- end of library table -->
+
+</details>
+
 **Duplicate…** in a profile's editor starts a new one from its levels, to change what differs:
 one room temperature profile per floor, say, as each floor up runs a little warmer.
 
-Tick the ones you want. **Export** saves all your
-profiles as a JSON file to share; **Import…** takes one (yours, or someone else's). A
+Tick the ones you want. **Export all** saves all your
+profiles as a JSON file to share, and **Export…** in a profile's editor just that one; **Import…** takes one (yours, or someone else's). A
 profile with the name of one you have replaces its levels, so its followers change
 with it: the import starts those unticked, and says so.
 

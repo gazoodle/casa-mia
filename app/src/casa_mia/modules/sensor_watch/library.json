@@ -1071,6 +1071,15 @@
       "kind": "available",
       "available": {"level": "warning", "message": "It's back, and it should be gone"},
       "unavailable": "nominal", "message": "", "hold_off": 300
+    },
+    {
+      "name": "Security light on too long (on/off)",
+      "about": "A security light that comes on with movement and goes off by itself: on for half an hour means it's stuck on (a sensor fault, a switch left on) or something keeps setting it off. Change the hold-off to suit its own timer.",
+      "category": "Outdoors and garden",
+      "kind": "binary",
+      "off": {"level": "nominal", "message": ""},
+      "on": {"level": "warning", "message": "Security light on for half an hour: stuck on, or someone about?"},
+      "unavailable": "error", "hold_off": 1800
     }
   ]
 }

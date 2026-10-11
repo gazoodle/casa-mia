@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.10.8-b27
+
+- Sensor Watch: a library profile, **Security light on too long**: a light that's been on for half an hour (stuck on, or something keeps setting it off) is a warning.
+- Sensor Watch: a profile's own **Export…** moved from its row into its editor, beside Duplicate….
+- Sensor Watch guide: a table of every library profile (its category, mode, levels and hold-off), written from the library by `tools/library_table.py --update` (a test keeps them the same).
+
 ## 2026.10.8-b26
 
 - **Breaking:** the Sensor Watch integration and Casa Mia's cards changed. Restart Home Assistant once; a Repair asks.

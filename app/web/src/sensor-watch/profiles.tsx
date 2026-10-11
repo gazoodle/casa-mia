@@ -48,17 +48,6 @@ export function ProfilesSection({
       change(() => Promise.reject(err instanceof SyntaxError ? new Error(`${f.name} isn't JSON.`) : err), "");
     }
   };
-  /** Save the profiles as a file to share: one (by name), or all. */
-  const exportAs = async (one?: Profile) => {
-    const data = await swApi.get<{ profiles: Shared[] }>("profiles/export");
-    if (one) data.profiles = data.profiles.filter((p) => p.name === one.name);
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
-    a.download = one ? `${one.name.replace(/[^\w.-]+/g, "-").replace(/^-|-$/g, "")}.json` : "sensor-watch-profiles.json";
-    a.click();
-    URL.revokeObjectURL(a.href);
-  };
-
   const remove = (p: Profile) => {
     const keep = p.followers ? ` Its ${p.followers} followers keep a copy of its levels as their own.` : "";
     if (confirm(`Delete the profile "${p.name}"?${keep}`)) change(() => swApi.del<WatchView>(`profiles/${p.id}`), `${p.name} deleted`);
@@ -136,9 +125,6 @@ export function ProfilesSection({
                 <button className={`${ui.button} ${ui.small}`} onClick={() => onApply(p)}>
                   Apply to…
                 </button>
-                <button className={`${ui.button} ${ui.small}`} onClick={() => exportAs(p)} aria-label={`Export ${p.name} as a file`}>
-                  Export
-                </button>
                 <button className={`${ui.danger} ${ui.small}`} onClick={() => remove(p)}>
                   Delete
                 </button>
@@ -158,6 +144,17 @@ const KINDS: [Kind, string][] = [
   ["available", "Available"],
 ];
 const STARTER = { kind: "numeric" as const, bands: [{ from: null, to: null, level: "nominal" as const, message: "" }] };
+
+/** Save the profiles as a file to share: one (by name, as last saved), or all. */
+async function exportAs(one?: Profile) {
+  const data = await swApi.get<{ profiles: Shared[] }>("profiles/export");
+  if (one) data.profiles = data.profiles.filter((p) => p.name === one.name);
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+  a.download = one ? `${one.name.replace(/[^\w.-]+/g, "-").replace(/^-|-$/g, "")}.json` : "sensor-watch-profiles.json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
 
 /** A profile's name and levels: `profile` to edit, `copyOf` to start a new one from
  * (Duplicate…), or neither for a new one. */
@@ -202,6 +199,11 @@ export function ProfileDialog({
           <button className={ui.button} onClick={onClose}>
             Cancel
           </button>
+          {profile && (
+            <button className={ui.button} onClick={() => exportAs(profile)} title="Save this profile, as last saved, as a file to share">
+              Export…
+            </button>
+          )}
           {profile && onDuplicate && (
             <button className={ui.button} onClick={() => onDuplicate(profile)} title="A new profile starting from this one's saved levels">
               Duplicate…
