@@ -219,6 +219,7 @@ export function WatchedList({
                   <span className={css.what}>
                     <span className={css.nameLine}>
                       <strong>{r.label}</strong> <code>{r.entity_id}</code>
+                      {r.attribute && <span className={css.note}> · its {r.attribute}</span>}
                     </span>
                     <span className={css.note}>
                       {now ? `${now.value ?? "?"}${now.message ? ` · ${now.message}` : ""} · ` : ""}

@@ -30,22 +30,27 @@ export function RecordDialog({
   const L = useLevels(record, kindOf(entityId));
   const [name, setName] = useState(record?.name ?? "");
   const [follows, setFollows] = useState(record?.profile ?? "");
+  const [attribute, setAttribute] = useState(record?.attribute ?? "");
   const [saving, setSaving] = useState(false);
 
-  /** Its history and a suggestion, as `as` (a number as exact states), or as itself. */
-  const read = useCallback(async (as?: string) => {
+  /** Its history and a suggestion, as `as` (a number as exact states), or as itself; of
+   * `att` (one of its attributes), or of its state. */
+  const read = useCallback(async (as?: string, att = attribute) => {
     setReading(true);
     setProblem(undefined);
     try {
-      const got = await swApi.get<Suggested>(`suggest?entity=${encodeURIComponent(entityId)}&days=${days}${as ? `&kind=${as}` : ""}`);
+      const got = await swApi.get<Suggested>(
+        `suggest?entity=${encodeURIComponent(entityId)}&days=${days}${as ? `&kind=${as}` : ""}${att ? `&attribute=${encodeURIComponent(att)}` : ""}`,
+      );
       setFound(got);
-      if (!record || as) L.adopt(got.record); // a new one, or a new kind, starts from the suggestion
+      // A new one, a new kind, or another attribute starts from the suggestion.
+      if (!record || as || att !== (record.attribute ?? "")) L.adopt(got.record);
     } catch (err) {
       setProblem((err as Error).message);
     } finally {
       setReading(false);
     }
-  }, [entityId, days]);
+  }, [entityId, days, attribute]);
 
   useEffect(() => {
     read();
@@ -84,10 +89,10 @@ export function RecordDialog({
       }
       ok = await change(async () => {
         if (edited) await swApi.put<WatchView>(`profiles/${following.id}`, { name: following.name, ...edited });
-        return put({ profile: following.id, name: name.trim() });
+        return put({ profile: following.id, name: name.trim(), attribute });
       }, `${label} follows ${following.name}`);
     } else {
-      ok = await change(() => put({ name: name.trim(), ...L.body() }), `${label} saved`);
+      ok = await change(() => put({ name: name.trim(), ...L.body(), attribute }), `${label} saved`);
     }
     setSaving(false);
     if (ok) onClose();
@@ -101,7 +106,7 @@ export function RecordDialog({
     setSaving(true);
     const ok = await change(async () => {
       const made = await swApi.post<WatchView & { created: string }>("profiles", { name: title, ...L.body() });
-      return put({ profile: made.created, name: name.trim() });
+      return put({ profile: made.created, name: name.trim(), attribute });
     }, `New profile ${title}; ${label} follows it`);
     setSaving(false);
     if (ok) onClose();
@@ -131,11 +136,30 @@ export function RecordDialog({
         <code>{entityId}</code>
         {found && (
           <span>
-            now {found.sensor.state} {unit}
+            {attribute && `${attribute} `}now {found.sensor.state} {unit}
             {found.sensor.area && ` · ${found.sensor.area}`}
           </span>
         )}
       </p>
+
+      {(attribute || Object.keys(found?.sensor.attributes ?? {}).length > 0) && (
+        <Field label="Watch" help="Its state, or one of its attributes: a thermostat's state is only its mode, so watch its current_temperature or hvac_action.">
+          <select
+            value={attribute}
+            onChange={(e) => {
+              setAttribute(e.target.value);
+              read(undefined, e.target.value);
+            }}
+          >
+            <option value="">Its state</option>
+            {Object.entries(found?.sensor.attributes ?? {}).map(([k, v]) => (
+              <option key={k} value={k}>
+                {k} (now {v})
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
 
       <div className={css.history}>
         <div className={css.historyHead}>

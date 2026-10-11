@@ -26,7 +26,7 @@ from homeassistant.util import dt as dt_util
 
 from ..casa_mia.coordinator import CasaMiaCoordinator
 from .const import EVENT, MODULE
-from .levels import UNAVAILABLE, level_of, summary
+from .levels import UNAVAILABLE, level_of, reading, summary
 
 _LOGGER = logging.getLogger(__name__)
 # seconds: the entities write at once, then at most once in this while changes keep
@@ -148,8 +148,13 @@ class Watcher:
     @callback
     def _changed(self, event: Event[EventStateChangedData]) -> None:
         old, new = event.data["old_state"], event.data["new_state"]
-        if old is not None and new is not None and old.state == new.state:
-            return  # only its attributes changed
+        record = self.records.get(event.data["entity_id"]) or {}
+        if (
+            old is not None
+            and new is not None
+            and reading(record, old) == reading(record, new)
+        ):
+            return  # what it watches didn't change (its attributes, or the state)
         self._consider(event.data["entity_id"])
 
     @callback
@@ -158,7 +163,7 @@ class Watcher:
         if record is None:
             return
         state = self.hass.states.get(eid)
-        level, message = level_of(record, state.state if state else None)
+        level, message = level_of(record, reading(record, state))
         current = self.now.get(eid)
         if level is None or (current is not None and current["level"] == level):
             self._cancel(eid)  # back where it was (or no opinion): nothing to wait for
@@ -184,7 +189,7 @@ class Watcher:
         if record is None:
             return
         state = self.hass.states.get(eid)
-        now, message = level_of(record, state.state if state else None)
+        now, message = level_of(record, reading(record, state))
         if now == level:
             self._commit(eid, level, message, state)
         else:
@@ -205,7 +210,7 @@ class Watcher:
         record = self.records[eid]
         name = record.get("name") or (state.name if state else eid)
         previous = (self.now.get(eid) or {}).get("level")
-        value = state.state if state else None
+        value = reading(record, state)
         since = state.last_changed if initial and state else dt_util.utcnow()
         self.now[eid] = {
             "level": level,
@@ -213,6 +218,7 @@ class Watcher:
             "value": value,
             "since": since.isoformat(),
             "name": name,
+            **({"attribute": record["attribute"]} if record.get("attribute") else {}),
         }
         if initial:
             if level != "nominal":
@@ -296,7 +302,9 @@ class Watcher:
         """Have the entities write: at once, then at most once a TELL while changes keep
         coming (a storm: one write for all of them at the end of each TELL)."""
         self._summary = None
-        if self._telling is not None:  # written within the last TELL: once more after it
+        if (
+            self._telling is not None
+        ):  # written within the last TELL: once more after it
             self._more = True
             return
         self._told()

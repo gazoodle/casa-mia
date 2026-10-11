@@ -37,6 +37,18 @@ def same(state: str, nominal: str) -> bool:
         return False
 
 
+def reading(record: dict[str, Any], state: Any) -> str | None:
+    """What a record watches of `state` (a Home Assistant State, or None): the state, or
+    its `attribute`'s value as text (None, so unavailable, when it hasn't one)."""
+    if state is None:
+        return None
+    attribute = record.get("attribute")
+    if not attribute or state.state in UNAVAILABLE:
+        return state.state
+    value = state.attributes.get(attribute)
+    return None if value is None else str(value)
+
+
 def level_of(
     record: dict[str, Any], state: str | None
 ) -> tuple[str | None, str | None]:

@@ -15,9 +15,7 @@ from typing import Any
 
 from ...ha import HA, HAError
 from .common import LEVELS, BadRequest, clean, normal, sides, with_legacy
-from .history import (
-    Reader,
-)
+from .history import Reader, kind_of
 from .live import Live
 from .profiles import follower, resolve
 from .status import Status
@@ -61,7 +59,15 @@ class Store:
         self.on_change = on_change
         self.status = Status(ha)  # overall health, for the Home tile (live.py feeds it)
         # The levels as they change in Home Assistant, pushed (start() connects).
-        self.live = Live(ha, self.status, lambda: list(self.records)) if ha else None
+        self.live = (
+            Live(
+                ha,
+                self.status,
+                lambda: {e: r.get("attribute") for e, r in self.records.items()},
+            )
+            if ha
+            else None
+        )
         self._lock = threading.Lock()
         self.records: dict[str, dict[str, Any]] = {}
         self.system: dict[str, Any] = dict(SYSTEM)
@@ -143,6 +149,10 @@ class Store:
             r["label"] = r["name"] or c.get("name") or r["entity_id"]
             # What the page filters and groups the watched sensors by.
             r["meta"] = {k: c.get(k) for k in META}
+            if r.get(
+                "attribute"
+            ):  # its kind is the attribute's (a climate's temperature)
+                r["meta"]["kind"] = r["kind"]
         records.sort(key=lambda r: r["label"].lower())
         with self._lock:
             system = self.system | {"ignore": dict(self.system["ignore"])}
@@ -209,19 +219,25 @@ class Store:
             profile = self.profiles.get(str(pid))
         if profile is None:
             raise BadRequest("No such profile.")
+        attribute = str(body.get("attribute") or "").strip()
         return follower(
             entity_id,
             str(body.get("name") or "").strip(),
             profile,
-            self._kind(entity_id),
+            self._kind(entity_id, attribute),
+            attribute,
         )
 
-    def _kind(self, entity_id: str) -> str | None:
-        """The sensor's own kind, when Home Assistant can say (for what it may follow)."""
+    def _kind(self, entity_id: str, attribute: str | None = None) -> str | None:
+        """The sensor's own kind (or its attribute's), when Home Assistant can say (for
+        what it may follow)."""
         try:
             c = self.reader.find(entity_id) if self.reader else None
         except HAError:
             c = None
+        if c and attribute:
+            value = c["attributes"].get(attribute)
+            return None if value is None else kind_of("", value, {})
         return c["kind"] if c else None
 
     def _reader(self) -> Reader:

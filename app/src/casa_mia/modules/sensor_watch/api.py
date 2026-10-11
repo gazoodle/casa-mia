@@ -59,7 +59,12 @@ class SensorWatch(Grouper):
         if method == "GET" and parts == ["suggest"]:
             return _json(
                 200,
-                self.suggest(q.get("entity", ""), _days(q.get("days")), q.get("kind")),
+                self.suggest(
+                    q.get("entity", ""),
+                    _days(q.get("days")),
+                    q.get("kind"),
+                    q.get("attribute"),
+                ),
             )
         if method == "POST" and parts == ["scan"]:
             return _json(200, self.scan(body, _days(body.get("days"))))
@@ -208,7 +213,7 @@ class SensorWatch(Grouper):
                         r["entity_id"],
                         r.get("name", ""),
                         merged[r["profile"]],
-                        self._kind(r["entity_id"]),
+                        self._kind(r["entity_id"], r.get("attribute")),
                     )
             what = f"imported profiles: added {added or 'none'}, replaced {replaced or 'none'}"
             self._save({}, what, profiles=merged)
@@ -224,7 +229,7 @@ class SensorWatch(Grouper):
                     r["entity_id"],
                     r.get("name", ""),
                     changed,
-                    self._kind(r["entity_id"]),
+                    self._kind(r["entity_id"], r.get("attribute")),
                 )
             profiles[profile["id"]] = changed
             what = (
@@ -259,12 +264,13 @@ class SensorWatch(Grouper):
                 raise BadRequest("Expected entity_ids to follow the profile.")
             now, skipped = {}, 0
             for e in dict.fromkeys(ids):
-                kind = self._kind(e)
+                attribute = records.get(e, {}).get("attribute", "")
+                kind = self._kind(e, attribute)
                 if e not in records and kind is None:
                     continue  # not watched, and not known to Home Assistant
                 try:
                     name = records.get(e, {}).get("name", "")
-                    now[e] = follower(e, name, profile, kind)
+                    now[e] = follower(e, name, profile, kind, attribute)
                 except BadRequest:
                     skipped += 1  # a kind the profile doesn't fit
             self._save(

@@ -15,8 +15,10 @@ from .defaults import default_record
 from .history import (
     LIST_LIMIT,
     SCAN_DOMAINS,
+    as_attribute,
     from_history,
     from_statistics,
+    kind_of,
     order,
 )
 from .store import Store
@@ -152,13 +154,31 @@ class Scanner(Store):
         }
 
     def suggest(
-        self, entity_id: str, days: float, kind: str | None = None
+        self,
+        entity_id: str,
+        days: float,
+        kind: str | None = None,
+        attribute: str | None = None,
     ) -> dict[str, Any]:
-        """Its history and a suggestion from it, as `kind` (the sensor's own by default)."""
+        """Its history and a suggestion from it, as `kind` (the sensor's own by default);
+        of one of its attributes, when asked, rather than its state."""
         reader = self._reader()
         c = reader.find(entity_id)
         if c is None:
             raise BadRequest(f"{entity_id} is not a sensor Sensor Watch can watch.")
+        if attribute:
+            if attribute not in c["attributes"]:
+                raise BadRequest(f"{entity_id} has no attribute {attribute} to watch.")
+            value = c["attributes"][attribute]
+            # The attribute as the sensor: its value, its kind; no unit, no statistics.
+            c = c | {
+                "state": value,
+                "kind": kind_of("", value, {}),
+                "unit": "",
+                "statistics": False,
+                "options": [],
+                "attribute": attribute,
+            }
         if kind not in (None, "", c["kind"]) and not (
             kind == "state" and c["kind"] == "numeric"
         ):
@@ -169,7 +189,15 @@ class Scanner(Store):
         if as_kind == "numeric" and c["statistics"]:
             rows = _read(reader.statistics, [entity_id], days, problems)
             data = from_statistics(rows.get(entity_id, []))
-        if not data or not data["samples"]:
+        if attribute:
+            rows = _read(
+                lambda ids, d: reader.history(ids, d, attributes=True),
+                [entity_id],
+                days,
+                problems,
+            )
+            data = from_history(as_attribute(rows.get(entity_id, []), attribute))
+        elif not data or not data["samples"]:
             rows = _read(reader.history, [entity_id], days, problems)
             data = from_history(rows.get(entity_id, []))
         found = suggestion(as_kind, data)
@@ -183,10 +211,10 @@ class Scanner(Store):
             f" ({'; '.join(problems)})" if problems else "",
         )
         # What it is beats how it behaved: a leak sensor is critical whatever its history.
-        known = default_record(c)
+        known = None if attribute else default_record(c)
         record = (
             known if known and known["kind"] == as_kind else proposal(c, found, as_kind)
-        )
+        ) | ({"attribute": attribute} if attribute else {})
         return {
             "sensor": c,
             "source": data["source"],

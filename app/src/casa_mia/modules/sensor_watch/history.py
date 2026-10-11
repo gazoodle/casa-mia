@@ -77,6 +77,58 @@ def kind_of(domain: str, state: str, attrs: dict[str, Any]) -> str:
     return "state"
 
 
+# Attributes that describe an entity rather than say how it is: never offered to watch.
+STOCK = {
+    "friendly_name",
+    "icon",
+    "entity_picture",
+    "unit_of_measurement",
+    "device_class",
+    "state_class",
+    "supported_features",
+    "attribution",
+    "restored",
+    "editable",
+    "id",
+    "assumed_state",
+    "options",
+    "min",
+    "max",
+    "step",
+    "mode",
+    "min_temp",
+    "max_temp",
+    "target_temp_step",
+    "min_humidity",
+    "max_humidity",
+}
+MAX_READING = 40  # characters: longer attributes (a forecast, a URL) aren't readings
+
+
+def readings(attrs: dict[str, Any]) -> dict[str, str]:
+    """An entity's attributes worth watching, as text: numbers and short words (a
+    climate's current_temperature and hvac_action, a cover's current_position)."""
+    return {
+        k: str(v)
+        for k, v in attrs.items()
+        if k not in STOCK
+        and isinstance(v, int | float | str)
+        and len(str(v)) <= MAX_READING
+    }
+
+
+def as_attribute(rows: list[dict[str, Any]], attribute: str) -> list[dict[str, Any]]:
+    """State history rows (with attributes) as the history of one attribute's value:
+    unavailable while the entity is, rows without it dropped."""
+    out = []
+    for r in rows:
+        if r["s"] in ("unavailable", "unknown"):
+            out.append({"s": r["s"], "lu": r["lu"]})
+        elif (value := (r.get("a") or {}).get(attribute)) is not None:
+            out.append({"s": str(value), "lu": r["lu"]})
+    return out
+
+
 def order(c: dict[str, Any]) -> tuple[str, str]:
     """Candidates' order (and a scan round's place in it): by name, then entity id."""
     return (c["name"].lower(), c["entity_id"])
@@ -165,6 +217,7 @@ class Reader:
                         "state": st["state"],
                         "statistics": bool(attrs.get("state_class")),
                         "options": [str(o) for o in attrs.get("options") or []][:50],
+                        "attributes": readings(attrs),
                     }
                 )
             out.sort(key=order)
@@ -230,8 +283,11 @@ class Reader:
             out.update(rows or {})
         return out
 
-    def history(self, ids: list[str], days: float) -> dict[str, list[dict[str, Any]]]:
-        """Each state change (state `s`, at `lu` seconds), `CHUNK` entities a request."""
+    def history(
+        self, ids: list[str], days: float, attributes: bool = False
+    ) -> dict[str, list[dict[str, Any]]]:
+        """Each state change (state `s`, at `lu` seconds; with `attributes`, each change
+        of them too, as `a`), `CHUNK` entities a request."""
         out: dict[str, list[dict[str, Any]]] = {}
         for at in range(0, len(ids), CHUNK):
             (rows,) = self.ha.call(
@@ -239,8 +295,8 @@ class Reader:
                     "type": "history/history_during_period",
                     "start_time": _since(days),
                     "entity_ids": ids[at : at + CHUNK],
-                    "minimal_response": True,
-                    "no_attributes": True,
+                    "minimal_response": not attributes,
+                    "no_attributes": not attributes,
                     "significant_changes_only": False,
                 }
             )

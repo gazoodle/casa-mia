@@ -29,11 +29,16 @@ TICK = 1.0  # seconds: how often the loop looks up from the socket
 
 class Live:
     def __init__(
-        self, ha: HA, status: Status, watched: Callable[[], list[str]]
+        self,
+        ha: HA,
+        status: Status,
+        watched: Callable[[], dict[str, str | None]],
     ) -> None:
         self.ha = ha
         self.status = status
-        self.watched = watched
+        self.watched = (
+            watched  # entity id -> the attribute watched, or None (its state)
+        )
         self._cond = threading.Condition()
         self._rev = 0
         self._levels: dict[str, dict[str, Any]] = {}
@@ -128,13 +133,13 @@ class Live:
                 for e in m.get("result") or []
                 if e.get("platform") == DOMAIN
             }
-            watched = set(self.watched())
+            watched = self.watched()
             await asyncio.to_thread(self._refresh)
             await ws.send_json(
                 {
                     "id": 2,
                     "type": "subscribe_entities",
-                    "entity_ids": sorted(watched | own),
+                    "entity_ids": sorted(set(watched) | own),
                 }
             )
             # Each change of level, the moment the integration decides it.
@@ -165,7 +170,7 @@ class Live:
                         raise HAError("the connection closed")
                     m = msg.json()
                     if m.get("id") == 2 and m.get("type") == "event":
-                        if self._heard(m["event"], own):
+                        if self._heard(m["event"], own, watched):
                             due = due or time.monotonic() + SETTLE
                     elif m.get("id") == 3 and m.get("type") == "event":
                         self._moved(m["event"])
@@ -197,15 +202,23 @@ class Live:
 
         self._publish(take)
 
-    def _heard(self, event: dict[str, Any], own: set[str]) -> bool:
+    def _heard(
+        self,
+        event: dict[str, Any],
+        own: set[str],
+        watched: dict[str, str | None] | None = None,
+    ) -> bool:
         """Take the new values from a subscribe_entities event ("a": states added, "c":
-        changes); True when one of the integration's own entities wrote (a level moved)."""
-        values = {e: s.get("s") for e, s in (event.get("a") or {}).items()}
-        values |= {
-            e: d["+"]["s"]
-            for e, d in (event.get("c") or {}).items()
-            if "s" in (d.get("+") or {})
-        }
+        changes, each with its state `s` and attributes `a`): the state, or the watched
+        attribute; True when one of the integration's own entities wrote (a level moved)."""
+        watched = watched or {}
+        values: dict[str, Any] = {}
+        for e, s in (event.get("a") or {}).items():
+            values[e] = _value(s, watched.get(e))
+        for e, d in (event.get("c") or {}).items():
+            if (v := _value(d.get("+") or {}, watched.get(e))) is not None:
+                values[e] = v
+        values = {e: v for e, v in values.items() if v is not None}
         touched = set(event.get("a") or {}) | set(event.get("c") or {})
         with self._cond:
             news = {
@@ -222,3 +235,13 @@ class Live:
 
             self._publish(take)  # only a value the page shows moves the revision
         return bool(touched & own)
+
+
+def _value(compressed: dict[str, Any], attribute: str | None) -> str | None:
+    """A compressed state's value as watched: the state, or the attribute (as text)
+    while the entity is available; None when it doesn't say (a change of something else)."""
+    state = compressed.get("s")
+    if not attribute or state in ("unavailable", "unknown"):
+        return state
+    value = (compressed.get("a") or {}).get(attribute)
+    return None if value is None else str(value)

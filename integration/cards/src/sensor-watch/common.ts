@@ -21,7 +21,8 @@ export type Config = {
 export const DEFAULTS = { levels: [...LEVELS] as Level[], max: 20, when_clear: "hide", clear_message: "All well." } as const;
 
 /** One row of the `list` service's answer. */
-export type Row = { entity_id: string; name: string; level: Level; value: string | null; message: string | null; since: string };
+/** A row as the list service gives it; `attribute`: the attribute watched, not the state. */
+export type Row = { entity_id: string; name: string; level: Level; value: string | null; message: string | null; since: string; attribute?: string };
 
 /** "4 min", "3 h", "2 d": how long since `iso`. */
 export function since(iso: string, now: number): string {

@@ -33,6 +33,7 @@ def clean_profile(body: dict[str, Any]) -> dict[str, Any]:
         raise BadRequest(f"A profile needs a name (at most {MAX_TEXT} characters).")
     levels = clean(STAND_IN, body)
     del levels["entity_id"]
+    levels.pop("attribute", None)  # a profile is levels; what's watched is the record's
     return levels | {"name": name}
 
 
@@ -57,20 +58,27 @@ def resolve(
         "name": record.get("name", ""),
         "profile": profile["id"],
         **({"group": record["group"]} if record.get("group") else {}),
+        **({"attribute": record["attribute"]} if record.get("attribute") else {}),
     }
 
 
 def follower(
-    entity_id: str, name: str, profile: dict[str, Any], kind: str | None
+    entity_id: str,
+    name: str,
+    profile: dict[str, Any],
+    kind: str | None,
+    attribute: str = "",
 ) -> dict[str, Any]:
-    """A record that follows `profile`; `kind` (the sensor's own, when known) must fit."""
+    """A record that follows `profile`; `kind` (the sensor's own, or its `attribute`'s,
+    when known) must fit."""
     if kind is not None and profile["kind"] not in FITS.get(kind, ()):
         raise BadRequest(
             f"{entity_id} is {kind}: it can't follow {profile['name']}, a {profile['kind']} profile."
         )
     if len(name) > MAX_TEXT:
         raise BadRequest(f"Name: at most {MAX_TEXT} characters.")
-    return {"entity_id": entity_id, "name": name, "profile": profile["id"]}
+    record = {"entity_id": entity_id, "name": name, "profile": profile["id"]}
+    return record | ({"attribute": attribute} if attribute else {})
 
 
 def library() -> list[dict[str, Any]]:

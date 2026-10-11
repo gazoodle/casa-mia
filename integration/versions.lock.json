@@ -1,7 +1,7 @@
 {
   "casa_mia": {
-    "digest": "7153fb6ae36b6762f9b0c04c1a15e3ac1185354420a0c40fbfbcf17b132e5d16",
-    "version": "2026.10.8-b22"
+    "digest": "1e19f4bcba92c6118b3c249bf44f5ec2d79b1b428c90c71e0d06f0f8d2bbbed4",
+    "version": "2026.10.8-b23"
   },
   "casa_mia_commander": {
     "digest": "79ae6e11bbb194ffd478e9a1b267b843b3f9e54617595df24a63b3abcbcf6c3a",
@@ -12,7 +12,7 @@
     "version": "2026.10.6-b6"
   },
   "casa_mia_sensor_watch": {
-    "digest": "17a232a001b59a2c5bff6aeb090a22f1ef56407a90f765db25552d171ca0f21c",
-    "version": "2026.10.8-b21"
+    "digest": "ca801973533288a4eed12a40b666eeacc830a48579854fababe0a3df7d24ed48",
+    "version": "2026.10.8-b23"
   }
 }

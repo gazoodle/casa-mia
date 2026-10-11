@@ -2,6 +2,8 @@
 
 ## 2026.10.8-b23
 
+- **Breaking:** the Sensor Watch integration and Casa Mia's cards changed. Restart Home Assistant once; a Repair asks.
+- Sensor Watch: watch an attribute instead of the state. The watch dialog's new **Watch** choice lists the attributes holding a number or a short word, with their values now (a thermostat's `current_temperature` and `hvac_action`, a cover's `current_position`), and suggests from that attribute's own history. The list, the page's live values and the card show the attribute's value. One watch per entity: its state or one attribute.
 - Sensor Watch: four more filters, in every search and group: **floor**, the device's **maker** and **model** ("every Shelly Plus Plug S", not "every voltage"), and **category** (primary, diagnostic or config: an ESP board's VCC reading is usually diagnostic, so a group of *primary* voltages leaves it out without a `-vcc`).
 
 ## 2026.10.8-b22

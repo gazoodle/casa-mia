@@ -388,3 +388,72 @@ def test_any_entity_can_be_watched_but_a_scan_keeps_to_the_usual_domains(tmp_pat
     assert (
         numbers["matched"] == 1
     )  # (the stand-in has no numeric history to suggest from)
+
+
+class ClimateHA(FakeHA):
+    """A thermostat whose room sat at 20 to 22 degrees, read with its attributes."""
+
+    def call(self, *commands):
+        out = []
+        for c in commands:
+            if c["type"] == "history/history_during_period":
+                assert c["no_attributes"] is False
+                rows = [
+                    {"s": "heat", "a": {"current_temperature": t}, "lu": n * 3600.0}
+                    for n, t in enumerate([20, 21, 22, 21, 20.5, 21.5] * 4)
+                ]
+                rows.append({"s": "unavailable", "lu": 99999.0})
+                out.append({i: rows for i in c["entity_ids"]})
+            else:
+                out.extend(super().call(c))
+        return out
+
+
+def test_an_attribute_is_watched_by_its_own_history(tmp_path):
+    climate = _state(
+        "climate.lounge",
+        "heat",
+        current_temperature=21,
+        hvac_action="heating",
+        friendly_name="Lounge",
+        min_temp=7,
+    )
+    watch = make(tmp_path / "sw.json", ClimateHA([*STATES, climate], ENTITIES))
+    _, got = call(watch, "GET", "candidates", {"q": ["lounge"]})
+    (c,) = got["sensors"]
+    assert c["kind"] == "state"  # its state is a mode
+    assert c["attributes"] == {"current_temperature": "21", "hvac_action": "heating"}
+    _, s = call(
+        watch,
+        "GET",
+        "suggest",
+        {"entity": ["climate.lounge"], "attribute": ["current_temperature"]},
+    )
+    assert s["sensor"]["kind"] == "numeric" and s["sensor"]["state"] == "21"
+    assert s["record"]["attribute"] == "current_temperature"
+    nominal = [b for b in s["record"]["bands"] if b["level"] == "nominal"]
+    assert nominal and nominal[0]["from"] <= 20 and nominal[0]["to"] >= 22
+    status, _ = call(watch, "PUT", "climate.lounge", body=s["record"])
+    assert status == 200
+    _, view = call(watch, "GET", "")
+    (r,) = [r for r in view["records"] if r["entity_id"] == "climate.lounge"]
+    assert r["attribute"] == "current_temperature" and r["meta"]["kind"] == "numeric"
+    status, err = call(
+        watch,
+        "GET",
+        "suggest",
+        {"entity": ["climate.lounge"], "attribute": ["min_temp"]},
+    )
+    assert status == 400 and "no attribute" in err["error"]
+
+
+def test_the_live_feed_takes_the_watched_attribute():
+    from casa_mia.modules.sensor_watch.live import _value
+
+    assert _value({"s": "heat", "a": {"current_temperature": 21.5}}, None) == "heat"
+    assert (
+        _value({"s": "heat", "a": {"current_temperature": 21.5}}, "current_temperature")
+        == "21.5"
+    )
+    assert _value({"a": {"hvac_action": "idle"}}, "current_temperature") is None
+    assert _value({"s": "unavailable"}, "current_temperature") == "unavailable"

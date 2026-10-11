@@ -152,6 +152,7 @@ export class SensorWatchCard extends LitElement {
         : nothing}
       ${rows.map((r) => {
         const st = this._hass?.states[r.entity_id];
+        if (r.attribute) return this._row(r, String(st?.attributes?.[r.attribute] ?? r.value ?? ""), now);
         const unit = st?.attributes?.unit_of_measurement ?? "";
         return this._row(r, st ? `${st.state}${unit ? ` ${unit}` : ""}` : (r.value ?? ""), now);
       })}

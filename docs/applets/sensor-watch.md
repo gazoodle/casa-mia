@@ -93,7 +93,7 @@ means known from its device class, a whole house scanned and filtered rather tha
 entity at a time, Home Assistant's own health in the same picture, and one event and one
 service to hang every automation on.
 
-**What it won't do: complex conditions.** Sensor Watch judges one entity's state at a
+**What it won't do: complex conditions.** Sensor Watch judges one entity (its state or one attribute) at a
 time, against its levels. It isn't trying to replace the freedom Home Assistant gives
 you to describe when something is wrong: "the freezer is above −15 °C *and* its door has
 been shut for ten minutes, unless it's defrosting" is a template's job, and it won't
@@ -216,6 +216,14 @@ history, so they come through even when history can't be read.
 
 In **Exact states**, a state can also have a level and message of its own (**+ A state
 with its own level**): a lock is a task when unlocked but an error when jammed.
+
+**Watch** an attribute instead of the state, when the state doesn't say how it is: a
+thermostat's state is only its mode (heat, off, auto), so watch its
+`current_temperature` (bands: a room too cold or too hot) or `hvac_action`; a cover's
+`current_position` rather than open or closed. The choice lists the attributes that
+hold a number or a short word, with their values now, and the suggestion comes from
+that attribute's own history (state history, so 10 days by default). One watch per
+entity: its state or one attribute.
 
 Sensors with long-term statistics (most measurements) are read from them, which Home
 Assistant keeps for good. Others are read from their state history, which Home

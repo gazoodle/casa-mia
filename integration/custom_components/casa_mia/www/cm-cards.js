@@ -4820,7 +4820,9 @@ var Or = "casa_mia_sensor_watch", kr = 300, Ar = (e) => (/* @__PURE__ */ new Dat
       ${this._problem ? z`<p class="note problem">${this._problem}</p>` : V}
       ${!this._problem && this._rows && !t.length ? z`<p class="note">${e.when_clear === "message" ? e.clear_message : "All well: nothing to list, so this card is hidden on the dashboard."}</p>` : V}
       ${t.map((e) => {
-			let t = this._hass?.states[e.entity_id], n = t?.attributes?.unit_of_measurement ?? "";
+			let t = this._hass?.states[e.entity_id];
+			if (e.attribute) return this._row(e, String(t?.attributes?.[e.attribute] ?? e.value ?? ""), r);
+			let n = t?.attributes?.unit_of_measurement ?? "";
 			return this._row(e, t ? `${t.state}${n ? ` ${n}` : ""}` : e.value ?? "", r);
 		})}
       ${n > 0 ? z`<p class="note">and ${n} more</p>` : V}

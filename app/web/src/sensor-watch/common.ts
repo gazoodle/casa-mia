@@ -43,6 +43,8 @@ export type WatchRecord = {
   exceptions?: StateLevel[];
   /** Its name to show: its own, else Home Assistant's. */
   label?: string;
+  /** Watch this attribute's value instead of the state (a climate's current_temperature). */
+  attribute?: string;
   /** The profile it follows (its levels then come from there). */
   profile?: string;
   /** The group it joined by (groups.py), if any. */
@@ -79,7 +81,7 @@ export const FITS: Record<string, string[]> = { numeric: ["numeric", "state"], b
 
 /** A record's levels alone: what a profile holds, or a record of its own. */
 export function levelsOf(r: Partial<WatchRecord>): Partial<WatchRecord> {
-  const { entity_id: _e, label: _l, meta: _m, profile: _p, name: _n, ...levels } = r as WatchRecord;
+  const { entity_id: _e, label: _l, meta: _m, profile: _p, name: _n, attribute: _a, ...levels } = r as WatchRecord;
   return levels;
 }
 
@@ -127,6 +129,8 @@ export type Candidate = {
   statistics: boolean;
   /** An enum sensor's states. */
   options?: string[];
+  /** Its attributes worth watching, with their values now. */
+  attributes?: Record<string, string>;
   watched?: boolean;
   /** Set up by what it is (defaults.py), so a group following the defaults takes it. */
   has_default?: boolean;

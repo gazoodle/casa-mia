@@ -183,3 +183,16 @@ def test_a_state_with_its_own_level():
         clean(
             "lock.back_door", lock | {"exceptions": [{"state": "", "level": "error"}]}
         )
+
+
+def test_an_attribute_is_read_instead_of_the_state():
+    from types import SimpleNamespace
+
+    rec = {"attribute": "current_temperature"}
+    on = SimpleNamespace(state="heat", attributes={"current_temperature": 21.5})
+    assert levels.reading(rec, on) == "21.5"
+    assert levels.reading({}, on) == "heat"
+    gone = SimpleNamespace(state="unavailable", attributes={})
+    assert levels.reading(rec, gone) == "unavailable"
+    assert levels.reading(rec, SimpleNamespace(state="off", attributes={})) is None
+    assert levels.reading(rec, None) is None

@@ -12,7 +12,9 @@ A record watches one entity (keyed by its entity id):
   "standby"), `exceptions` (states with a level and message of their own: a lock's
   "jammed"), `other` (the level of anything else) and its `message`;
 - both: `unavailable` (a level, or "ignore"), `hold_off` (seconds a new level must last
-  before it counts), and an optional display `name`.
+  before it counts), an optional display `name`, and an optional `attribute`: watch that
+  attribute's value instead of the state (a climate's current_temperature, a cover's
+  current_position).
 The integration works out the levels (casa_mia_sensor_watch/levels.py, whose LEVELS
 must match these; a test checks)."""
 
@@ -87,6 +89,9 @@ def clean(entity_id: str, body: dict[str, Any]) -> dict[str, Any]:
         "entity_id": entity_id,
         "kind": kind,
         "name": _text(body.get("name"), "Name"),
+        **(
+            {"attribute": a} if (a := _text(body.get("attribute"), "Attribute")) else {}
+        ),
         "hold_off": int(hold_off),
         "unavailable": _level(
             body.get("unavailable", "error"), "When unavailable", True
