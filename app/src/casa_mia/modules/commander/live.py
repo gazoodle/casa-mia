@@ -155,8 +155,7 @@ class Live(Base):
     def commander(self) -> dict[str, Any]:
         """The first commander there was (id ""), as an integration from before there
         were several reads it."""
-        found = [c for c in self.commanders() if not c["id"]]
-        return found[0] if found else {}
+        return _first(self.commanders())
 
     def control(self, path: str, body: bytes) -> int:
         """The integration: POST /commander/main {"main": <title or entity>,
@@ -201,9 +200,15 @@ class Live(Base):
     def health(self) -> dict[str, Any]:
         with self._lock:
             error = self._error
+        commanders = self.commanders()  # once: the compositor may move on meanwhile
         return {
             "state": "offline" if error else "running",
             "error": error,
-            "commander": self.commander(),
-            "commanders": self.commanders(),
+            "commander": _first(commanders),
+            "commanders": commanders,
         }
+
+
+def _first(commanders: list[dict[str, Any]]) -> dict[str, Any]:
+    """The first commander there was (id ""), or nothing."""
+    return next((c for c in commanders if not c["id"]), {})

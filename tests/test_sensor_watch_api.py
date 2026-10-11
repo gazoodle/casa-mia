@@ -463,3 +463,14 @@ def test_the_levels_are_asked_again_once_the_integration_takes_the_records(watch
     assert watch.live and watch.live._due is None
     watch.for_integration()  # its start (after HA's restart), or a change
     assert watch.live._due is not None
+
+
+def test_a_machine_just_booted_still_reads_the_candidates(monkeypatch):
+    # time.monotonic() counts from boot: a minute in, a cache stamped 0 looked fresh
+    # (the 2026.10.8 release run failed on a runner booted moments before).
+    from casa_mia.modules.sensor_watch import history
+
+    monkeypatch.setattr(history.time, "monotonic", lambda: 5.0)
+    watch = make(Path("/nonexistent/sw.json"), FakeHA(STATES, ENTITIES))
+    _, got = call(watch, "GET", "candidates")
+    assert got["total"] > 0
