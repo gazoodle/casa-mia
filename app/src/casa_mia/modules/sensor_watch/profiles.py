@@ -19,7 +19,12 @@ from .common import MAX_TEXT, BadRequest, clean
 
 # What a sensor of each kind may follow: a number can be watched by bands or by exact
 # states; on/off and exact states only as themselves.
-FITS = {"numeric": ("numeric", "state"), "binary": ("binary",), "state": ("state",)}
+# Anything may be watched for being there at all (available).
+FITS = {
+    "numeric": ("numeric", "state", "available"),
+    "binary": ("binary", "available"),
+    "state": ("state", "available"),
+}
 # A profile's levels are checked as a record's are, for a stand-in entity.
 STAND_IN = "profile.levels"
 LIBRARY = Path(__file__).with_name("library.json")

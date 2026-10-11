@@ -1050,6 +1050,27 @@
       ],
       "otherwise": "error",
       "unavailable": "error", "hold_off": 600
+    },
+    {
+      "category": "Availability", "name": "Available (a task after an hour)",
+      "about": "Only whether it's there, whatever its state: a bulb, a plug, anything with nothing else to go wrong. An hour's grace for one switched off at the wall.",
+      "kind": "available",
+      "available": {"level": "nominal", "message": ""},
+      "unavailable": "task", "message": "Gone for an hour: is it switched off, or has it dropped off?", "hold_off": 3600
+    },
+    {
+      "category": "Availability", "name": "Available (critical)",
+      "about": "Only whether it's there, for something that must be: a sensor an alarm or automation depends on. Also catches it being renamed or its integration removed.",
+      "kind": "available",
+      "available": {"level": "nominal", "message": ""},
+      "unavailable": "critical", "message": "Gone: something depends on it", "hold_off": 60
+    },
+    {
+      "category": "Availability", "name": "Stays gone",
+      "about": "The other way round: something retired or unplugged on purpose (an old relay, a device moved to another integration) that shouldn't come back.",
+      "kind": "available",
+      "available": {"level": "warning", "message": "It's back, and it should be gone"},
+      "unavailable": "nominal", "message": "", "hold_off": 300
     }
   ]
 }

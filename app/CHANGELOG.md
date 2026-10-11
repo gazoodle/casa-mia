@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.8-b24
+
+- **Breaking:** the Sensor Watch integration changed. Restart Home Assistant once; a Repair asks.
+- Sensor Watch: a fourth mode, **Available**: only whether an entity is there, whatever its state (unknown counts as there; gone from Home Assistant, renamed or its integration removed, counts as unavailable). Two rows, When available and When unavailable, each with a level and message, so it works either way round: a bulb that should be there, or something retired that shouldn't come back. Any entity can be watched this way, follow an Available profile, or join a group following one ("every Hue light"). Three in the library, under Availability: a task after an hour, critical, and Stays gone.
+
 ## 2026.10.8-b23
 
 - **Breaking:** the Sensor Watch integration and Casa Mia's cards changed. Restart Home Assistant once; a Repair asks.

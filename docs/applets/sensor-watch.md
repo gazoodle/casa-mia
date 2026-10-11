@@ -217,6 +217,16 @@ history, so they come through even when history can't be read.
 In **Exact states**, a state can also have a level and message of its own (**+ A state
 with its own level**): a lock is a task when unlocked but an error when jammed.
 
+**Available** watches only whether it's there, whatever its state, for anything with
+nothing else to go wrong (a bulb, a plug) or that something depends on: **When
+available** and **When unavailable**, each with a level and message. Unknown counts as
+there; gone from Home Assistant (renamed, its integration removed) counts as
+unavailable. It works either way round: set When available to a warning and When
+unavailable to nominal to hear if something retired comes back. Any entity can be
+watched this way, whatever its kind; a group following an Available profile covers
+every Hue light, new ones included. A long hold-off forgives a lamp switched off at
+the wall.
+
 **Watch** an attribute instead of the state, when the state doesn't say how it is: a
 thermostat's state is only its mode (heat, off, auto), so watch its
 `current_temperature` (bands: a room too cold or too hot) or `hvac_action`; a cover's

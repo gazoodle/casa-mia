@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Dialog, Field, Segmented } from "../ui";
 import { HistoryChart } from "./chart";
 import { FITS, kindOf, levelsOf, swApi, type Profile, type Suggested, type WatchRecord, type WatchView } from "./common";
-import { LevelFields, useLevels } from "./levels";
+import { LevelFields, useLevels, type Kind } from "./levels";
 import css from "./sensor-watch.module.css";
 import ui from "../ui.module.css";
 
@@ -59,8 +59,17 @@ export function RecordDialog({
 
   const s = found?.suggestion;
   const unit = found?.sensor.unit ?? "";
-  // A number can be watched by bands or by exact states; text only by exact states.
-  const canSwitch = (found?.sensor.kind ?? (record?.kind === "binary" ? "binary" : "numeric")) === "numeric";
+  // How it can be watched: its own way (a number by bands or exact states), or only
+  // whether it's there at all.
+  const own = found?.sensor.kind ?? (record?.kind === "available" ? kindOf(entityId) : (record?.kind ?? kindOf(entityId)));
+  const modes: [Kind, string][] = [
+    ...(own === "numeric"
+      ? ([["numeric", "Bands (a range)"], ["state", "Exact states"]] as [Kind, string][])
+      : own === "binary"
+        ? ([["binary", "On/off"]] as [Kind, string][])
+        : ([["state", "Exact states"]] as [Kind, string][])),
+    ["available", "Available"],
+  ];
   // States to tick into the nominal list: an enum's own, else those seen, with their time.
   const total = Object.values(s?.seconds ?? {}).reduce((a, b) => a + b, 0);
   const seen: [string, number | undefined][] = found?.sensor.options?.length
@@ -179,16 +188,14 @@ export function RecordDialog({
             Read again
           </button>
         </div>
-        {canSwitch && (
-          <Segmented
-            value={L.kind}
-            options={[["numeric", "Bands (a range)"], ["state", "Exact states"]]}
-            onChange={(k) => {
-              L.setKind(k);
-              read(k);
-            }}
-          />
-        )}
+        <Segmented
+          value={L.kind}
+          options={modes}
+          onChange={(k) => {
+            L.setKind(k);
+            read(k);
+          }}
+        />
         {found?.points && L.kind === "numeric" && <HistoryChart points={found.points} bands={L.drawn()} unit={unit} />}
         {s && L.kind === "numeric" && s.count !== undefined && (
           <p className={css.note}>

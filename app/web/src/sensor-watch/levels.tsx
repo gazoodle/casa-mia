@@ -25,6 +25,7 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
   const [off, setOff] = useState<Side>(start?.off ?? { level: "nominal", message: "" });
   const [on, setOn] = useState<Side>(start?.on ?? { level: "warning", message: "" });
   const [other, setOther] = useState<Level>(start?.other ?? "warning");
+  const [available, setAvailable] = useState<Side>(start?.available ?? { level: "nominal", message: "" });
   const [message, setMessage] = useState(start?.message ?? "");
   const [states, setStates] = useState((start?.states ?? []).join(", "));
   const [exceptions, setExceptions] = useState<StateLevel[]>(start?.exceptions ?? []);
@@ -39,6 +40,8 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
     if (r.off) setOff(r.off);
     if (r.on) setOn(r.on);
     if (r.other) setOther(r.other);
+    if (r.available) setAvailable(r.available);
+    if (r.message !== undefined) setMessage(r.message);
     if (r.states) setStates(r.states.join(", "));
     setExceptions(r.exceptions ?? []);
     if (r.unavailable) setUnavailable(r.unavailable);
@@ -52,6 +55,8 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
     unavailable,
     ...(k === "binary"
       ? { off, on }
+      : k === "available"
+        ? { available, message }
       : k === "state"
         ? { states: split(states), other, message, exceptions: exceptions.filter((e) => e.state.trim()) }
         : { bands: bands.map(toBand), otherwise }),
@@ -71,7 +76,7 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
   };
 
   return {
-    kind: k, setKind, bands, setBands, otherwise, setOtherwise, off, setOff, on, setOn, other, setOther, message, setMessage,
+    kind: k, setKind, bands, setBands, otherwise, setOtherwise, off, setOff, on, setOn, other, setOther, available, setAvailable, message, setMessage,
     states, setStates, exceptions, setExceptions, unavailable, setUnavailable, holdOff, setHoldOff,
     adopt, body, sane, drawn: () => bands.map(toBand),
   };
@@ -101,6 +106,29 @@ export function LevelFields({ L, unit = "", seen = [], seenLabel = "Seen", extra
           <p className={css.note}>
             Each state its own level and message: a leak sensor is Nominal when off and Critical when on; a pump that should run is Nominal when on
             and an Error when off; or neither nominal. {LONG_HELP}
+          </p>
+        </div>
+      )}
+      {L.kind === "available" && (
+        <div className={css.bands}>
+          <div className={`${css.sideRow} ${css[`edge_${L.available.level}`]}`}>
+            <strong>When available</strong>
+            <LevelSelect value={L.available.level} onChange={(v) => L.setAvailable({ ...L.available, level: v as Level })} />
+            <MessageInput
+              placeholder={L.available.level === "nominal" ? "" : "e.g. It's back, and it should be gone"}
+              value={L.available.message}
+              onChange={(v) => L.setAvailable({ ...L.available, message: v })}
+            />
+          </div>
+          <div className={`${css.sideRow} ${css[`edge_${L.unavailable}`]}`}>
+            <strong>When unavailable</strong>
+            <LevelSelect value={L.unavailable} ignore onChange={L.setUnavailable} />
+            <MessageInput placeholder={L.unavailable === "nominal" ? "" : "e.g. Gone: is it switched off?"} value={L.message} onChange={L.setMessage} />
+          </div>
+          <p className={css.note}>
+            Only whether it's there, whatever its state (unknown counts as there). Unavailable includes gone from Home Assistant: renamed, or its integration
+            removed. Either way round: a bulb that should be there, or something retired that shouldn't come back. A long hold-off forgives a lamp switched off at
+            the wall. {LONG_HELP}
           </p>
         </div>
       )}
@@ -138,9 +166,11 @@ export function LevelFields({ L, unit = "", seen = [], seenLabel = "Seen", extra
             <LevelSelect value={L.otherwise} onChange={(v) => L.setOtherwise(v as Level)} />
           </Field>
         )}
-        <Field label="When unavailable" help="Unavailable is often the first sign of trouble.">
-          <LevelSelect value={L.unavailable} ignore onChange={L.setUnavailable} />
-        </Field>
+        {L.kind !== "available" && (
+          <Field label="When unavailable" help="Unavailable is often the first sign of trouble.">
+            <LevelSelect value={L.unavailable} ignore onChange={L.setUnavailable} />
+          </Field>
+        )}
         <Field label="Hold-off (seconds)" help="How long a new level must last before it counts.">
           <input type="number" min={0} max={86400} value={L.holdOff} onChange={(e) => L.setHoldOff(e.target.value)} />
         </Field>

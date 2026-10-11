@@ -261,6 +261,8 @@ def _describe(record: dict[str, Any]) -> str:
     if record["kind"] == "binary":
         s = sides(record)
         return f"on/off: off {s['off']['level']}, on {s['on']['level']}"
+    if record["kind"] == "available":
+        return f"available {record['available']['level']}, unavailable {record['unavailable']}"
     if record["kind"] == "state":
         return f"exact states {', '.join(record['states'])}, else {record['other']}"
     return f"{len(record['bands'])} bands, else {record['otherwise']}"

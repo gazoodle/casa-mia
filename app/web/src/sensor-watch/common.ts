@@ -25,7 +25,7 @@ export type Band = { from: number | null; to: number | null; level: Level; messa
 /** A watched sensor's record, as the app keeps it (app/.../sensor_watch/common.py). */
 export type WatchRecord = {
   entity_id: string;
-  kind: "numeric" | "binary" | "state";
+  kind: "numeric" | "binary" | "state" | "available";
   name: string;
   hold_off: number;
   unavailable: Level | "ignore";
@@ -34,6 +34,9 @@ export type WatchRecord = {
   /** On/off: what each state means (either may be nominal, or neither). */
   off?: Side;
   on?: Side;
+  /** Available: its level (and message) whatever its state; `unavailable` and `message`
+   * when it's unavailable or gone. */
+  available?: Side;
   /** Exact states: anything else's level and message. */
   other?: Level;
   message?: string;
@@ -77,7 +80,13 @@ export type SystemSettings = { core: boolean; integrations: boolean; ignore: Rec
 export type Profile = Omit<WatchRecord, "entity_id" | "label" | "meta" | "profile"> & { id: string; followers: number };
 
 /** What a sensor of each kind may follow (profiles.py FITS). */
-export const FITS: Record<string, string[]> = { numeric: ["numeric", "state"], binary: ["binary"], state: ["state"] };
+export const FITS: Record<string, string[]> = {
+  numeric: ["numeric", "state", "available"],
+  binary: ["binary", "available"],
+  state: ["state", "available"],
+};
+/** Each kind (a profile's mode) in a word or two. */
+export const MODE_NAMES: Record<WatchRecord["kind"], string> = { numeric: "bands", binary: "on/off", state: "exact states", available: "available" };
 
 /** A record's levels alone: what a profile holds, or a record of its own. */
 export function levelsOf(r: Partial<WatchRecord>): Partial<WatchRecord> {
@@ -240,7 +249,8 @@ export function span(b: Band): string {
 }
 
 /** The nominal band(s) of a record, in words. */
-export function summary(r: Pick<WatchRecord, "kind" | "bands" | "off" | "on" | "other" | "states">): string {
+export function summary(r: Pick<WatchRecord, "kind" | "bands" | "off" | "on" | "other" | "states" | "available" | "unavailable">): string {
+  if (r.kind === "available") return `available ${r.available?.level ?? "?"}, unavailable ${r.unavailable}`;
   if (r.kind === "binary") return `off ${r.off?.level ?? "?"}, on ${r.on?.level ?? "?"}`;
   if (r.kind === "state") return `nominal ${(r.states ?? []).join(", ") || "?"}, else ${r.other}`;
   const nominal = (r.bands ?? []).filter((b) => b.level === "nominal");

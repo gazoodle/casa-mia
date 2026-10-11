@@ -12,6 +12,7 @@ export const KINDS: Choice[] = [
   { id: "numeric", name: "Numeric" },
   { id: "binary", name: "On/off" },
   { id: "state", name: "States" },
+  { id: "available", name: "Available" },
 ];
 /** The choices each filter offers (only what the sensors in view have). */
 export type ChipOptions = Partial<Record<Exclude<keyof Filters, "q">, Choice[]>>;

@@ -11,7 +11,11 @@ A record watches one entity (keyed by its entity id):
 - state (exact states): `states` (the nominal ones, as text: "0", or "idle" and
   "standby"), `exceptions` (states with a level and message of their own: a lock's
   "jammed"), `other` (the level of anything else) and its `message`;
-- both: `unavailable` (a level, or "ignore"), `hold_off` (seconds a new level must last
+- available (whether it's there at all, whatever its state): `available` {level,
+  message} for any state, `unknown` included; `unavailable` (below) and its `message`
+  for unavailable or gone from Home Assistant (renamed, its integration removed). Either
+  may be nominal: a level when something that should stay gone comes back;
+- all: `unavailable` (a level, or "ignore"), `hold_off` (seconds a new level must last
   before it counts), an optional display `name`, and an optional `attribute`: watch that
   attribute's value instead of the state (a climate's current_temperature, a cover's
   current_position).
@@ -25,7 +29,7 @@ from typing import Any
 
 LEVELS = ("nominal", "task", "warning", "error", "critical")
 IGNORE = "ignore"
-KINDS = ("numeric", "binary", "state")
+KINDS = ("numeric", "binary", "state", "available")
 DEFAULT_HOLD_OFF = 60  # seconds
 MAX_HOLD_OFF = 24 * 3600
 MAX_BANDS = 12
@@ -81,7 +85,7 @@ def clean(entity_id: str, body: dict[str, Any]) -> dict[str, Any]:
         raise BadRequest("Not an entity id.")
     kind = body.get("kind")
     if kind not in KINDS:
-        raise BadRequest("kind: numeric, binary or state.")
+        raise BadRequest("kind: numeric, binary, state or available.")
     hold_off = _number(body.get("hold_off", DEFAULT_HOLD_OFF), "Hold-off")
     if hold_off is None or not 0 <= hold_off <= MAX_HOLD_OFF:
         raise BadRequest(f"Hold-off: 0 to {MAX_HOLD_OFF} seconds.")
@@ -113,6 +117,20 @@ def clean(entity_id: str, body: dict[str, Any]) -> dict[str, Any]:
                     side.get("message"), f"When {state}'s message", MAX_MESSAGE
                 ),
             }
+        return record
+    if kind == "available":
+        side = body.get("available") or {}
+        if not isinstance(side, dict):
+            raise BadRequest("When available: a level and a message.")
+        record["available"] = {
+            "level": _level(side.get("level", "nominal"), "When available"),
+            "message": _text(
+                side.get("message"), "When available's message", MAX_MESSAGE
+            ),
+        }
+        record["message"] = _text(
+            body.get("message"), "When unavailable's message", MAX_MESSAGE
+        )
         return record
     if kind == "state":
         states = body.get("states")

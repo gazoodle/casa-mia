@@ -84,6 +84,8 @@ def matches(c: dict[str, Any], f: dict[str, str]) -> bool:
 
 def suggestion(kind: str, data: dict[str, Any]) -> dict[str, Any] | None:
     """A suggestion of `kind` from what history.py read."""
+    if kind == "available":
+        return None  # nothing to learn from history: it's there or it isn't
     if kind == "numeric":
         return suggest.numeric(data["samples"])
     if kind == "binary":
@@ -103,6 +105,8 @@ def proposal(
         "hold_off": DEFAULT_HOLD_OFF,
         "unavailable": "error",
     }
+    if kind == "available":
+        return base | {"available": {"level": "nominal", "message": ""}, "message": ""}
     if kind == "binary":  # the state it spends most time in is nominal
         old = {"nominal": (s or {}).get("nominal", "off"), "other": "warning"}
         return base | sides(old | {"message": ""})
@@ -179,7 +183,7 @@ class Scanner(Store):
                 "options": [],
                 "attribute": attribute,
             }
-        if kind not in (None, "", c["kind"]) and not (
+        if kind not in (None, "", c["kind"], "available") and not (
             kind == "state" and c["kind"] == "numeric"
         ):
             raise BadRequest(f"A {c['kind']} sensor can't be watched as {kind}.")

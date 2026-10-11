@@ -5,7 +5,7 @@
 import { useState } from "react";
 import { AreaHead } from "../page";
 import { Dialog, Field } from "../ui";
-import { FITS, NO_FILTERS, swApi, type Filters, type Group, type Profile, type WatchRecord, type WatchView } from "./common";
+import { FITS, MODE_NAMES, NO_FILTERS, swApi, type Filters, type Group, type Profile, type WatchRecord, type WatchView } from "./common";
 import { useCandidates } from "./dialogs";
 import { FilterBar } from "./filters";
 import css from "./sensor-watch.module.css";
@@ -197,7 +197,7 @@ function GroupDialog({
           <option value={DEFAULTS}>The defaults, by what it is</option>
           {profiles.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.name} ({p.kind === "binary" ? "on/off" : p.kind === "state" ? "exact states" : "bands"})
+              {p.name} ({MODE_NAMES[p.kind]})
             </option>
           ))}
         </select>

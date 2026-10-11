@@ -196,3 +196,30 @@ def test_an_attribute_is_read_instead_of_the_state():
     assert levels.reading(rec, gone) == "unavailable"
     assert levels.reading(rec, SimpleNamespace(state="off", attributes={})) is None
     assert levels.reading(rec, None) is None
+
+
+def test_available_watches_only_whether_it_is_there():
+    rec = clean(
+        "light.bulb",
+        {
+            "kind": "available",
+            "unavailable": "warning",
+            "message": "Bulb gone",
+            "available": {"level": "nominal"},
+        },
+    )
+    assert levels.level_of(rec, "on") == ("nominal", None)
+    assert levels.level_of(rec, "unknown") == ("nominal", None)  # there, no value yet
+    assert levels.level_of(rec, "unavailable") == ("warning", "Bulb gone")
+    assert levels.level_of(rec, None) == ("warning", "Bulb gone")  # renamed, removed
+    # The other way round: something that should stay gone has come back.
+    gone = clean(
+        "switch.old_relay",
+        {
+            "kind": "available",
+            "unavailable": "nominal",
+            "available": {"level": "error", "message": "The old relay is back"},
+        },
+    )
+    assert levels.level_of(gone, "off") == ("error", "The old relay is back")
+    assert levels.level_of(gone, "unavailable") == ("nominal", "unavailable")

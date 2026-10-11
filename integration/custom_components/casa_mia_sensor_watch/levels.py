@@ -54,6 +54,13 @@ def level_of(
 ) -> tuple[str | None, str | None]:
     """The level a state puts its entity at, and why (a band's message, "unavailable",
     "outside every band"); (None, None) while unavailable and the record ignores that."""
+    if record.get("kind") == "available":  # there at all; unknown counts as there
+        if state is None or state == "unavailable":
+            level = record.get("unavailable", "error")
+            message = record.get("message") or "unavailable"
+            return (None, None) if level == IGNORE else (level, message)
+        side = record.get("available") or {}
+        return side.get("level", "nominal"), side.get("message") or None
     if state is None or state in UNAVAILABLE:
         level = record.get("unavailable", "error")
         return (None, None) if level == IGNORE else (level, "unavailable")

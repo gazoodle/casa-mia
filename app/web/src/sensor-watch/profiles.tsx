@@ -6,7 +6,7 @@
 import { useRef, useState } from "react";
 import { AreaHead } from "../page";
 import { Dialog, Field, Segmented } from "../ui";
-import { summary, swApi, type Profile, type WatchView } from "./common";
+import { MODE_NAMES, summary, swApi, type Profile, type WatchView } from "./common";
 import { LevelFields, useLevels, type Kind } from "./levels";
 import css from "./sensor-watch.module.css";
 import guest from "../guest.module.css";
@@ -126,7 +126,7 @@ export function ProfilesSection({
               <span className={css.what}>
                 <strong>{p.name}</strong>
                 <span className={css.note}>
-                  {p.kind === "binary" ? "on/off" : p.kind === "state" ? "exact states" : "bands"} · {summary(p)}
+                  {MODE_NAMES[p.kind]} · {summary(p)}
                 </span>
               </span>
               <span className={css.rowActions}>
@@ -155,6 +155,7 @@ const KINDS: [Kind, string][] = [
   ["numeric", "Bands (a range)"],
   ["binary", "On/off"],
   ["state", "Exact states"],
+  ["available", "Available"],
 ];
 const STARTER = { kind: "numeric" as const, bands: [{ from: null, to: null, level: "nominal" as const, message: "" }] };
 
@@ -303,7 +304,7 @@ function ImportDialog({
                   <strong>{p.name}</strong>
                   {same && <span className={css.problem}> replaces yours{same.followers ? ` (${same.followers} following)` : ""}</span>}
                   <span className={css.note}>
-                    {p.kind === "binary" ? "on/off" : p.kind === "state" ? "exact states" : "bands"} · {summary(p)} · hold-off {p.hold_off ?? 60} s
+                    {MODE_NAMES[p.kind]} · {summary(p)} · hold-off {p.hold_off ?? 60} s
                   </span>
                   {p.about && <span className={css.note}>{p.about}</span>}
                   {p.source && (
