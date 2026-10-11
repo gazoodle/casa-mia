@@ -92,6 +92,9 @@ export function SensorWatchPage({ state }: { state?: string }) {
             live={live}
             labels={view.labels ?? {}}
             onEdit={(r) => setEditing({ entityId: r.entity_id, record: r })}
+            onStopMany={(rs) =>
+              change(() => swApi.post<WatchView>("forget", { entity_ids: rs.map((r) => r.entity_id) }), `${rs.length} sensors no longer watched`)
+            }
             onStop={(r) =>
               confirm(`Stop watching ${r.label}?`) && change(() => swApi.del<WatchView>(encodeURIComponent(r.entity_id)), `${r.label}: no longer watched`)
             }

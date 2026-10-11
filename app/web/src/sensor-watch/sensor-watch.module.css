@@ -273,6 +273,15 @@
   border-radius: var(--radius);
 }
 
+/* Under the list's box: stop watching what's shown, or all. */
+.bulk {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
 /* The record dialog */
 
 .entity {

@@ -44,12 +44,15 @@ export function WatchedList({
   labels,
   onEdit,
   onStop,
+  onStopMany,
 }: {
   records: WatchRecord[];
   live?: LevelsView;
   labels: Record<string, string>;
   onEdit: (r: WatchRecord) => void;
   onStop: (r: WatchRecord) => void;
+  /** Stop watching these (already confirmed by the user). */
+  onStopMany: (rs: WatchRecord[]) => void;
 }) {
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const [levels, setLevels] = useState<Set<Level>>(new Set());
@@ -162,6 +165,22 @@ export function WatchedList({
             )}
           </div>
         )}
+      </div>
+      <div className={css.bulk}>
+        {filtering && rows.length > 0 && rows.length < records.length && (
+          <button
+            className={`${ui.danger} ${ui.small}`}
+            onClick={() => confirm(`Stop watching the ${rows.length} sensors shown?`) && onStopMany(rows)}
+          >
+            Stop watching these {rows.length}
+          </button>
+        )}
+        <button
+          className={`${ui.danger} ${ui.small}`}
+          onClick={() => confirm(`Stop watching all ${records.length} sensors? Their bands are forgotten.`) && onStopMany(records)}
+        >
+          Stop watching all {records.length}
+        </button>
       </div>
     </>
   );

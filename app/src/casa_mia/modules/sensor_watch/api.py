@@ -208,6 +208,8 @@ class SensorWatch:
             )
         if method == "POST" and parts == ["scan"]:
             return _json(200, self.scan(body, _days(body.get("days"))))
+        if method == "POST" and parts == ["forget"]:
+            return self._forget(body.get("entity_ids"))
         if method == "POST" and parts == ["accept"]:
             return self._accept(body.get("records"))
         if len(parts) == 1 and method == "PUT":
@@ -442,6 +444,21 @@ class SensorWatch:
         }
 
     # -- saving
+
+    def _forget(self, entity_ids: Any) -> Response:
+        """Stop watching many at once (the page's Stop watching these / all)."""
+        if not isinstance(entity_ids, list) or not all(
+            isinstance(e, str) for e in entity_ids
+        ):
+            raise BadRequest("Expected entity_ids to stop watching.")
+        with self._lock:
+            gone = [e for e in dict.fromkeys(entity_ids) if e in self.records]
+        if gone:
+            self._save(
+                dict.fromkeys(gone),
+                f"stopped watching {len(gone)} sensors: {', '.join(gone)}",
+            )
+        return _json(200, self.view())
 
     def _accept(self, records: Any) -> Response:
         if not isinstance(records, list) or not records:

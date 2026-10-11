@@ -733,3 +733,18 @@ def test_the_list_carries_what_the_page_filters_by(watch):
         and meta["platform"] == "esphome"
     )
     assert meta["labels"] == ["water"] and view["labels"] == {"water": "Water"}
+
+
+def test_stop_watching_many_at_once(watch):
+    for eid in ("sensor.salt", "sensor.temp_00", "sensor.temp_01"):
+        call(watch, "PUT", eid, body=SALT)
+    status, view = call(
+        watch,
+        "POST",
+        "forget",
+        body={"entity_ids": ["sensor.temp_00", "sensor.temp_01", "sensor.nope"]},
+    )
+    assert status == 200 and [r["entity_id"] for r in view["records"]] == [
+        "sensor.salt"
+    ]
+    assert call(watch, "POST", "forget", body={"entity_ids": "sensor.salt"})[0] == 400

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.8-b9
+
+- **Sensor Watch:** under the watched list, **Stop watching these** (what the filters
+  show) and **Stop watching all**, each asking first.
+
 ## 2026.10.8-b8
 
 - **Sensor Watch's watched list keeps in reach however long it gets:** it scrolls in its
