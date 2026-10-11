@@ -721,3 +721,15 @@ def test_a_scan_takes_covers_by_what_they_are_without_history(tmp_path):
         f for f in got["found"] if f["sensor"]["entity_id"] == "cover.landing_window"
     )
     assert window["source"] == "default" and window["record"]["states"] == ["closed"]
+
+
+def test_the_list_carries_what_the_page_filters_by(watch):
+    call(watch, "PUT", "sensor.salt", body=SALT)
+    _, view = call(watch, "GET", "")
+    meta = view["records"][0]["meta"]
+    assert (
+        meta["area"] == "Kitchen"
+        and meta["device"] == "Softener"
+        and meta["platform"] == "esphome"
+    )
+    assert meta["labels"] == ["water"] and view["labels"] == {"water": "Water"}

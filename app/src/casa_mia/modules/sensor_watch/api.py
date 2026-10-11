@@ -34,6 +34,18 @@ NEEDS = {"recorder": "Recorder", "history": "History"}
 # the Recorder and History, integrations failing to set up, and those to leave out
 # (entry id -> its name when it was ignored, to list them).
 SYSTEM = {"core": True, "integrations": True, "ignore": {}}
+# A watched sensor's details the page filters by (from the candidates).
+META = (
+    "name",
+    "area_id",
+    "area",
+    "labels",
+    "platform",
+    "device_id",
+    "device",
+    "device_class",
+    "kind",
+)
 FILTERS = ("q", "area", "label", "platform", "device_class", "kind", "device")
 
 
@@ -213,9 +225,12 @@ class SensorWatch:
     def view(self) -> dict[str, Any]:
         with self._lock:
             records = [dict(r) for r in self.records.values()]
-        names = self._names()
+        known = self._known()
         for r in records:
-            r["label"] = r["name"] or names.get(r["entity_id"], r["entity_id"])
+            c = known.get(r["entity_id"], {})
+            r["label"] = r["name"] or c.get("name") or r["entity_id"]
+            # What the page filters and groups the watched sensors by.
+            r["meta"] = {k: c.get(k) for k in META}
         records.sort(key=lambda r: r["label"].lower())
         with self._lock:
             system = self.system | {"ignore": dict(self.system["ignore"])}
@@ -223,6 +238,7 @@ class SensorWatch:
             "records": records,
             "system": system,
             "levels": list(LEVELS),
+            "labels": dict(self.reader.labels) if self.reader else {},  # id -> its name
             "error": self._broken,
         }
 
@@ -505,11 +521,12 @@ class SensorWatch:
             raise BadRequest("Home Assistant is not reachable.")
         return self.reader
 
-    def _names(self) -> dict[str, str]:
+    def _known(self) -> dict[str, dict[str, Any]]:
+        """What HA says of each entity it has (cached a minute), or nothing if it can't."""
         if self.reader is None:
             return {}
         try:
-            return {c["entity_id"]: c["name"] for c in self.reader.candidates()}
+            return {c["entity_id"]: c for c in self.reader.candidates()}
         except HAError:
             return {}
 

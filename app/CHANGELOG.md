@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.10.8-b8
+
+- **Sensor Watch's watched list keeps in reach however long it gets:** it scrolls in its
+  own box under one toolbar: a live search, level chips with their counts (tap to filter
+  by one or more), filter chips for area, label, integration, device, device class and
+  kind (each a short menu, offering only what the others leave), and a sort by level or
+  name. Each row is two lines.
+
 ## 2026.10.8-b7
 
 - **Sensor Watch watches more than sensors:** covers (a window open is a task), locks

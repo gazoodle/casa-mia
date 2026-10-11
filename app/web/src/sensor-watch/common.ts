@@ -37,13 +37,32 @@ export type WatchRecord = {
   exceptions?: StateLevel[];
   /** Its name to show: its own, else Home Assistant's. */
   label?: string;
+  /** What Home Assistant says of it, for the filters (sent with the list). */
+  meta?: {
+    name?: string;
+    area_id?: string | null;
+    area?: string;
+    labels?: string[];
+    platform?: string;
+    device_id?: string | null;
+    device?: string;
+    device_class?: string;
+    kind?: string;
+  };
 };
 
 /** Home Assistant's own health, as set on the page: the Recorder and History, failing
  * integrations, and those ignored (entry id -> its name). */
 export type SystemSettings = { core: boolean; integrations: boolean; ignore: Record<string, string> };
 
-export type WatchView = { records: WatchRecord[]; system: SystemSettings; levels: Level[]; error: string | null };
+export type WatchView = {
+  records: WatchRecord[];
+  system: SystemSettings;
+  levels: Level[];
+  /** Label id -> its name. */
+  labels?: Record<string, string>;
+  error: string | null;
+};
 
 /** A sensor's level now, from the integration. */
 export type Live = { entity_id: string; level: Level; value: string | null; message: string | null; since: string; name: string };

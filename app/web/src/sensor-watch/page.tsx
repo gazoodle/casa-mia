@@ -1,14 +1,15 @@
-/** Sensor Watch: the watched sensors with their level now (from the integration), a
- * search and level filter for a house with hundreds, and the ways to add more. */
+/** Sensor Watch: the watched sensors with their level now (from the integration, in
+ * watched.tsx), Home Assistant itself, and the ways to add more. */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { SensorWatchIcon } from "../icons";
 import { AreaHead, Empty, Shell } from "../page";
 import { Toasts, type Toast } from "../ui";
-import { LEVELS, LEVEL_NAMES, summary, swApi, type Level, type LevelsView, type WatchRecord, type WatchView } from "./common";
+import { swApi, type LevelsView, type WatchRecord, type WatchView } from "./common";
 import { PickDialog, ScanDialog } from "./dialogs";
 import { RecordDialog } from "./editor";
 import { SystemSection } from "./system";
+import { WatchedList } from "./watched";
 import css from "./sensor-watch.module.css";
 import guest from "../guest.module.css";
 import ui from "../ui.module.css";
@@ -19,15 +20,11 @@ const HEAD = {
   module: "sensor_watch",
   blurb: "Any sensor given bands of values, each with a level, so what needs doing or has gone wrong shows before the family notices.",
 };
-const PAGE = 100; // rows shown, then "Show more"
 
 export function SensorWatchPage({ state }: { state?: string }) {
   const [view, setView] = useState<WatchView>();
   const [live, setLive] = useState<LevelsView>();
   const [missing, setMissing] = useState<string[]>([]);
-  const [search, setSearch] = useState("");
-  const [level, setLevel] = useState<"" | Level | "off">("");
-  const [shown, setShown] = useState(PAGE);
   const [editing, setEditing] = useState<{ entityId: string; record?: WatchRecord }>();
   const [picking, setPicking] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -59,23 +56,7 @@ export function SensorWatchPage({ state }: { state?: string }) {
     }
   };
 
-  const rows = useMemo(() => {
-    // Every word, anywhere, in any order (as the app's own search): "tank top" finds "Top of tank".
-    const words = search.toLowerCase().match(/[a-z0-9]+/g) ?? [];
-    return (view?.records ?? []).filter((r) => {
-      const now = live?.levels[r.entity_id]?.level;
-      const hay = `${(r.label ?? "").toLowerCase()} ${r.entity_id}`;
-      return (
-        words.every((w) => hay.includes(w)) &&
-        (!level || (level === "off" ? now !== undefined && now !== "nominal" : now === level))
-      );
-    });
-  }, [view, live, search, level]);
-
   if (!view) return <Shell {...HEAD} state={state}><p className={guest.notice}>Loading…</p></Shell>;
-  // The watched sensors' own counts (Home Assistant itself has its section below).
-  const mine = new Set(view.records.map((r) => r.entity_id));
-  const counts = Object.values(live?.levels ?? {}).filter((l) => mine.has(l.entity_id)).reduce<Record<string, number>>((n, l) => ({ ...n, [l.level]: (n[l.level] ?? 0) + 1 }), {});
 
   return (
     <Shell {...HEAD} state={state}>
@@ -91,11 +72,7 @@ export function SensorWatchPage({ state }: { state?: string }) {
       <section className={guest.area}>
         <AreaHead
           title="Watched sensors"
-          blurb={
-            view.records.length
-              ? LEVELS.map((l) => `${counts[l] ?? 0} ${LEVEL_NAMES[l].toLowerCase()}`).join(" · ")
-              : "Nothing watched yet."
-          }
+          blurb={view.records.length ? `${view.records.length} watched; the chips filter them and give the counts.` : "Nothing watched yet."}
           action={
             <span className={css.actions}>
               <button className={ui.button} onClick={() => setScanning(true)}>
@@ -110,55 +87,15 @@ export function SensorWatchPage({ state }: { state?: string }) {
         {view.records.length === 0 ? (
           <Empty>Watch a sensor to give it bands, or scan the house for suggestions from history.</Empty>
         ) : (
-          <>
-            <div className={css.filters}>
-              <input type="search" placeholder="Search the watched sensors" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search" />
-              <select value={level} onChange={(e) => setLevel(e.target.value as "" | Level | "off")} aria-label="Level">
-                <option value="">Any level</option>
-                <option value="off">Anything not nominal</option>
-                {LEVELS.map((l) => (
-                  <option key={l} value={l}>
-                    {LEVEL_NAMES[l]}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className={css.table}>
-              {rows.slice(0, shown).map((r) => {
-                const now = live?.levels[r.entity_id];
-                return (
-                  <div key={r.entity_id} className={css.row}>
-                    <span className={`${css.level} ${css[`lv_${now?.level ?? "none"}`]}`}>{now ? LEVEL_NAMES[now.level] : "…"}</span>
-                    <span className={css.what}>
-                      <strong>{r.label}</strong>
-                      <code>{r.entity_id}</code>
-                      <span className={css.note}>
-                        {now ? `${now.value ?? "?"}${now.message ? ` · ${now.message}` : ""} · ` : ""}
-                        {summary(r)}
-                      </span>
-                    </span>
-                    <span className={css.rowActions}>
-                      <button className={`${ui.button} ${ui.small}`} onClick={() => setEditing({ entityId: r.entity_id, record: r })}>
-                        Edit
-                      </button>
-                      <button
-                        className={`${ui.danger} ${ui.small}`}
-                        onClick={() => confirm(`Stop watching ${r.label}?`) && change(() => swApi.del<WatchView>(encodeURIComponent(r.entity_id)), `${r.label}: no longer watched`)}
-                      >
-                        Stop watching
-                      </button>
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-            {rows.length > shown && (
-              <button className={ui.button} onClick={() => setShown(shown + PAGE)}>
-                Show {Math.min(PAGE, rows.length - shown)} more of {rows.length}
-              </button>
-            )}
-            {rows.length === 0 && <Empty>None match.</Empty>}
-          </>
+          <WatchedList
+            records={view.records}
+            live={live}
+            labels={view.labels ?? {}}
+            onEdit={(r) => setEditing({ entityId: r.entity_id, record: r })}
+            onStop={(r) =>
+              confirm(`Stop watching ${r.label}?`) && change(() => swApi.del<WatchView>(encodeURIComponent(r.entity_id)), `${r.label}: no longer watched`)
+            }
+          />
         )}
       </section>
 

@@ -64,7 +64,9 @@ class Reader:
         self._lock = threading.Lock()
         self._at = 0.0
         self._cands: list[dict[str, Any]] = []
-        self._labels: dict[str, str] = {}
+        self._labels: dict[
+            str, str
+        ] = {}  # label id -> its name, read with the candidates
 
     # -- the sensors
 
@@ -129,6 +131,10 @@ class Reader:
             self._cands, self._at = out, time.monotonic()
             _LOGGER.debug("candidates: %d sensors read from Home Assistant", len(out))
             return out
+
+    @property
+    def labels(self) -> dict[str, str]:
+        return self._labels
 
     def options(self) -> dict[str, Any]:
         """The filters' choices: only those some candidate has."""
