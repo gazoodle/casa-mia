@@ -111,7 +111,7 @@ export function ProfilesSection({
                 </span>
               </span>
               <button
-                className={`${css.level} ${css.lv_none} ${css.followers}`}
+                className={`${css.followers}`}
                 disabled={!p.followers}
                 onClick={() => onFollowers(p)}
                 aria-label={`Show the ${p.followers} sensors following ${p.name}`}

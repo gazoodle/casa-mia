@@ -82,7 +82,7 @@ export function GroupsSection({
                   {g.left.length > 0 && ` · ${g.left.length} left out by hand`}
                 </span>
               </span>
-              <button className={`${css.level} ${css.lv_none} ${css.followers}`} disabled={!g.members} onClick={() => onMembers(g)}>
+              <button className={`${css.followers}`} disabled={!g.members} onClick={() => onMembers(g)}>
                 {g.members} in it
               </button>
               <span className={css.rowActions}>

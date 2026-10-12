@@ -133,18 +133,16 @@
   background: var(--bad);
 }
 
+/* A tablet's app version: a status pill, in the version's own type (kiosk-version). */
 .version {
-  padding: 1px 8px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--good) 14%, transparent);
-  color: var(--good);
+  composes: cm-pill cm-good from global;
   font-family: var(--mono);
-  font-size: 12px;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .behind {
-  background: color-mix(in srgb, var(--warn) 18%, transparent);
-  color: var(--warn);
+  --tone: var(--warn);
 }
 
 .meta {
@@ -295,17 +293,6 @@
 
 /* The latest release, at the top: a chip that opens its notes on GitHub (↗). */
 .release {
-  display: inline-block;
-  padding: 1px 9px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-  color: var(--accent);
-  font-weight: 600;
+  composes: cm-chip cm-accent from global;
   text-decoration: none;
-  white-space: nowrap;
-}
-
-.release:hover,
-.release:focus-visible {
-  background: color-mix(in srgb, var(--accent) 26%, transparent);
 }

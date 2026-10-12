@@ -11,6 +11,7 @@
 // the view as they change; Save writes them, Cancel puts them back.
 import { LitElement, css, html, nothing } from "lit";
 import { define, type Hass, haForm, helper, label, mainSchema, panelSchema } from "./ha.ts";
+import { PILLS } from "./pills.ts";
 import { LAYOUT, PANELS, type Panel } from "./layout.ts";
 import { layerOf, type Place, SIDES, type Side, withLayer } from "./tablet.ts";
 
@@ -272,7 +273,9 @@ abstract class Floating extends LitElement {
       </div>`;
   }
 
-  static styles = css`
+  static styles = [
+    PILLS,
+    css`
     :host {
       position: fixed;
       inset: 0;
@@ -316,25 +319,12 @@ abstract class Floating extends LitElement {
       font-size: 18px;
       font-weight: 500;
     }
+    /* Its actions are the shared chips (pills.ts; card-action), in the theme's colour. */
     .actions {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
-    }
-    .actions button,
-    .act {
-      font: inherit;
-      font-size: 13px;
-      padding: 4px 12px;
-      border-radius: 16px;
-      border: 1px solid var(--primary-color);
-      background: none;
-      color: var(--primary-color);
-      cursor: pointer;
-    }
-    .actions button[disabled] {
-      opacity: 0.35;
-      cursor: default;
+      --tone: var(--primary-color);
     }
     section {
       margin: 8px 12px;
@@ -396,7 +386,8 @@ abstract class Floating extends LitElement {
     .primary[disabled] {
       opacity: 0.5;
     }
-  `;
+  `,
+  ];
 }
 
 export type PanelOptions = {
@@ -469,14 +460,14 @@ class PanelOptionsBox extends Floating {
     const arrows = across(p) ? ["←", "→"] : ["↑", "↓"];
     const top = main
       ? html`<div class="actions">
-          ${add ? html`<button @click=${() => this.act(add)}>+ Add a layer</button>` : nothing}
-          ${remove ? html`<button @click=${() => this.act(remove)}>Remove layer ${o.count}</button>` : nothing}
+          ${add ? html`<button class="cm-chip" @click=${() => this.act(add)}>+ Add a layer</button>` : nothing}
+          ${remove ? html`<button class="cm-chip" @click=${() => this.act(remove)}>Remove layer ${o.count}</button>` : nothing}
         </div>`
       : html`<div class="actions">
-          <button @click=${() => this.act(add)}>+ Add a panel</button>
+          <button class="cm-chip" @click=${() => this.act(add)}>+ Add a panel</button>
           ${back || on
-            ? html`<button ?disabled=${!back} aria-label="Move earlier" @click=${() => this.act(back)}>${arrows[0]}</button>
-                <button ?disabled=${!on} aria-label="Move later" @click=${() => this.act(on)}>${arrows[1]}</button>`
+            ? html`<button class="cm-chip" ?disabled=${!back} aria-label="Move earlier" @click=${() => this.act(back)}>${arrows[0]}</button>
+                <button class="cm-chip" ?disabled=${!on} aria-label="Move later" @click=${() => this.act(on)}>${arrows[1]}</button>`
             : nothing}
         </div>`;
     return this.frame(
@@ -552,6 +543,7 @@ class MiniBox extends Floating {
           ${o.actions.map(
             (a) =>
               html`<button
+                class="cm-chip"
                 @click=${() => {
                   this.cancel();
                   a.run();

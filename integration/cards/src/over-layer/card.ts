@@ -10,6 +10,7 @@ import { LitElement, css, html, nothing } from "lit";
 import { type CardConfig, type Hass, inPicker } from "../ha.ts";
 import { type Config, TYPE, anchorFor, badge, placement, withDefaults } from "./common.ts";
 import { DOOR_STYLE, Door, editButton } from "./door.ts";
+import { PILLS } from "../pills.ts";
 
 /** The view this card is in (through shadow roots): what "the view" covers. */
 function viewOf(el: Element): HTMLElement | null {
@@ -265,23 +266,20 @@ export class OverLayerCard extends LitElement {
       </div>`;
     if (!this._editing) return nothing; // its card is in the layer
     // Its whole panel: the chip alone (the panel round it is what shows).
-    if (this._config.panel) return html`<div class="badge">${badge(this._config)}</div>`;
-    return html`<div class="badge">${badge(this._config)}</div>
+    if (this._config.panel) return html`<div class="badge cm-pill cm-accent">${badge(this._config)}</div>`;
+    return html`<div class="badge cm-pill cm-accent">${badge(this._config)}</div>
       ${this._child ?? html`<div class="empty">No card yet: pick one in the editor.</div>`}`;
   }
 
-  static styles = css`
+  static styles = [
+    PILLS,
+    css`
     :host {
       display: block;
     }
+    /* What it does, while edited: a status pill (pills.ts; card-badge). */
     .badge {
-      display: inline-block;
       margin: 0 0 6px;
-      padding: 2px 8px;
-      border-radius: 10px;
-      font: 11px/16px var(--ha-font-family-code, monospace);
-      color: var(--text-primary-color, #fff);
-      background: var(--primary-color);
     }
     .sample {
       position: relative;
@@ -331,7 +329,8 @@ export class OverLayerCard extends LitElement {
       border: 1px dashed var(--divider-color);
       border-radius: var(--ha-card-border-radius, 12px);
     }
-  `;
+  `,
+  ];
 }
 
 export { TYPE };

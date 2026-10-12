@@ -89,33 +89,25 @@
   background: var(--good);
 }
 
+/* A stage's state: a status pill in its tone (pipe-state). */
 .state {
-  padding: 1px 8px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--muted) 18%, transparent);
-  color: var(--muted);
-  font-size: 11px;
-  white-space: nowrap;
+  composes: cm-pill from global;
 }
 
 .live {
-  background: color-mix(in srgb, var(--good) 18%, transparent);
-  color: var(--good);
+  --tone: var(--good);
 }
 
 .snapshots {
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-  color: var(--accent);
+  --tone: var(--accent);
 }
 
 .starting {
-  background: color-mix(in srgb, var(--warn) 18%, transparent);
-  color: var(--warn);
+  --tone: var(--warn);
 }
 
 .sitting_out {
-  background: color-mix(in srgb, var(--bad) 18%, transparent);
-  color: var(--bad);
+  --tone: var(--bad);
 }
 
 .grid {

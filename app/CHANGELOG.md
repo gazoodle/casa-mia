@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.10-b7
+
+- Every pill and chip, in the admin page, the cards and the Tablet Layout editor, now has one look: a status pill (a state) or a chip (something to press), in small uppercase, a chip outlined until pressed and filled when it is, with the Tablet Layout's ring (in the accent, HA's theme colour in the cards) on hover and keyboard focus. Before, there were some thirty hand-made variants in several sizes, weights and shapes. The Tablet Layout's panel, header, footer and line chips keep their look in the new size; its padlocks and sprigs are round chips (the sprig no longer dimmed when off); the Sensor Watch card's levels are tinted pills (critical filled); Sensor Watch's "N following" and Enable are chips.
+- Sensor Watch: the header's count of watches with no level yet is a status pill, centred beside the Refresh state button.
+
 ## 2026.10.10-b6
 
 - **Breaking:** the Casa Mia integration changed. Restart Home Assistant once; a Repair asks.

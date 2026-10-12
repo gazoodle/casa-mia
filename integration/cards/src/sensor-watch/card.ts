@@ -5,6 +5,7 @@
 // `hidden`), so in a Tablet Layout its panel closes, garnish heading and all, when all is well.
 import { LitElement, css, html, nothing } from "lit";
 import { fire, type Hass, inPicker } from "../ha.ts";
+import { PILLS } from "../pills.ts";
 import { type Column, type Config, DEFAULTS, EVENT, type Row, SERVICE, columns, due, own, since } from "./common.ts";
 
 const ASK_AFTER = 300; // ms: the integration's entities write in a burst; one ask after
@@ -167,7 +168,7 @@ export class SensorWatchCard extends LitElement {
       style="grid-template-columns:${columns(show)}"
       @click=${() => r.entity_id && fire(this, "hass-more-info", { entityId: r.entity_id })}
     >
-      ${has("level") ? html`<span class="level">${r.level}</span>` : nothing}
+      ${has("level") ? html`<span class="level cm-pill ${r.level === "critical" ? "cm-filled" : ""}">${r.level}</span>` : nothing}
       ${has("name") || has("message")
         ? html`<span class="what">
             ${has("name") ? html`<span class="name">${r.name}</span>` : nothing}
@@ -179,7 +180,9 @@ export class SensorWatchCard extends LitElement {
     </button>`;
   }
 
-  static styles = css`
+  static styles = [
+    PILLS,
+    css`
     ha-card {
       padding: 4px 0;
       overflow: hidden;
@@ -212,17 +215,10 @@ export class SensorWatchCard extends LitElement {
     .critical {
       --cm-level: var(--error-color, #db4437);
     }
+    /* A status pill in its level's colour (pills.ts; card-level), critical filled. */
     .level {
       justify-self: start;
-      padding: 1px 8px;
-      border-radius: 10px;
-      background: var(--cm-level);
-      color: #fff;
-      font-size: 12px;
-      text-transform: capitalize;
-    }
-    .critical .level {
-      font-weight: 700;
+      --tone: var(--cm-level);
     }
     .what {
       display: grid;
@@ -249,5 +245,6 @@ export class SensorWatchCard extends LitElement {
     .problem {
       color: var(--error-color, #db4437);
     }
-  `;
+  `,
+  ];
 }

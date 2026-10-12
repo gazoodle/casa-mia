@@ -46,12 +46,7 @@
 }
 
 .problemCount {
-  padding: 1px 8px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--bad) 18%, transparent);
-  color: var(--bad);
-  font-size: 12px;
-  font-weight: 600;
+  composes: cm-pill cm-bad from global;
 }
 
 /* A problem that stops something working, shown where it matters. */
@@ -378,22 +373,20 @@
   align-items: center;
 }
 
+/* An ordered item with its move and remove tools: a chip (cam-tag), not itself pressed. */
 .chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 2px 4px 2px 2px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface-2);
-  font-size: 13px;
+  composes: cm-chip from global;
+  gap: 0;
+  padding: 3px 2px;
+  cursor: default;
 }
 
 .chipTool {
   padding: 0 5px;
   border: 0;
   background: none;
-  color: var(--muted);
+  color: inherit;
+  font: inherit;
   cursor: pointer;
 }
 

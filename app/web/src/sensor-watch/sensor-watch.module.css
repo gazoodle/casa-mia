@@ -5,6 +5,7 @@
 .actions,
 .rowActions {
   display: flex;
+  align-items: center;
   gap: 8px;
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -86,41 +87,30 @@
   font-size: 16px;
 }
 
-/* A row's pill (its level, a count): one width, so every title starts in line; small
-   caps, as the compositor's state badges. */
+/* A row's status pill (its level), one width so every title starts in line:
+   docs/design/pills-and-chips.html (sw-level). */
 .level {
-  box-sizing: border-box;
-  width: 100%;
-  overflow: hidden;
-  padding: 2px 6px;
-  border-radius: 999px;
-  background: color-mix(in srgb, currentColor 14%, transparent);
-  font-size: 13px; /* in small caps, the height of the compositor's 11px badges */
-  font-weight: 600;
-  font-variant-caps: all-small-caps;
-  text-align: center;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  composes: cm-pill cm-fixed from global;
 }
 
 .lv_nominal {
-  color: var(--good);
+  --tone: var(--good);
 }
 .lv_task {
-  color: var(--accent);
+  --tone: var(--accent);
 }
 .lv_warning {
-  color: var(--warn);
+  --tone: var(--warn);
 }
 .lv_error {
-  color: var(--bad);
+  --tone: var(--bad);
 }
 .lv_critical {
-  color: var(--on-accent);
-  background: var(--bad);
+  composes: cm-filled from global;
+  --tone: var(--bad);
 }
 .lv_none {
-  color: var(--muted);
+  --tone: var(--muted);
 }
 
 /* Home Assistant itself: its two switches */
@@ -163,47 +153,30 @@
 }
 
 .chip {
-  padding: 4px 11px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface);
-  color: inherit;
-  font: inherit;
-  font-size: 12.5px;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.chip:hover {
-  background: var(--surface-2);
+  composes: cm-chip from global;
 }
 
 .chipOn {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-  color: var(--accent);
-  font-weight: 600;
+  composes: cm-on from global;
 }
 
 /* A level chip in its level's colour; pressed, it fills. */
 .chip_nominal {
-  color: var(--good);
+  --tone: var(--good);
 }
 .chip_task {
-  color: var(--accent);
+  --tone: var(--accent);
 }
 .chip_warning {
-  color: var(--warn);
+  --tone: var(--warn);
 }
 .chip_error,
 .chip_critical {
-  color: var(--bad);
+  --tone: var(--bad);
 }
 
 .levelOn {
-  border-color: currentColor;
-  background: color-mix(in srgb, currentColor 18%, transparent);
-  font-weight: 600;
+  composes: cm-on from global;
 }
 
 .chipBox {
@@ -265,7 +238,7 @@
 }
 
 .enable {
-  color: var(--accent);
+  --tone: var(--accent);
 }
 
 .compact {
@@ -631,10 +604,6 @@
     grid-template-columns: 1fr;
   }
 
-  .level {
-    width: 104px;
-  }
-
   .rowActions {
     justify-content: flex-start;
   }
@@ -648,17 +617,11 @@
   }
 }
 
-/* A profile's "N following": tap to see them in the watched list. */
+/* A profile's or group's "N following" (and a disabled watch's Enable): a chip in the
+   status pill's column; tap to see them in the watched list. */
 .followers {
-  border: 0;
-  font-family: inherit;
-  cursor: pointer;
-  text-decoration: underline;
-}
-
-.followers:disabled {
-  cursor: default;
-  text-decoration: none;
+  composes: cm-chip from global;
+  width: 100%;
 }
 
 /* A category heading in the profile library. */
@@ -722,14 +685,7 @@
   width: 100%;
 }
 
-/* The page's count of watches with no level yet (a diagnostic, top right). */
+/* The page's count of watches with no level yet (a diagnostic, top right): a status pill. */
 .levelless {
-  padding: 2px 10px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--muted) 18%, transparent);
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 600;
-  font-variant-caps: all-small-caps;
-  white-space: nowrap;
+  composes: cm-pill cm-warn from global;
 }

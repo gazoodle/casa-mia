@@ -289,17 +289,15 @@
   font-weight: 620;
 }
 
+/* A tile's state: a status pill with a lamp (docs/design/pills-and-chips.html, home-state),
+   at the head's right; the lamp's pulse may show past its edge. */
 .chip {
+  composes: cm-pill from global;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   margin-left: auto;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: color-mix(in srgb, currentColor 14%, transparent);
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
+  overflow: visible;
 }
 
 .dot {
@@ -310,6 +308,7 @@
 }
 
 .good {
+  --tone: var(--good);
   color: var(--good);
 }
 
@@ -335,14 +334,17 @@
 }
 
 .warn {
+  --tone: var(--warn);
   color: var(--warn);
 }
 
 .bad {
+  --tone: var(--bad);
   color: var(--bad);
 }
 
 .muted {
+  --tone: var(--muted);
   color: var(--muted);
 }
 

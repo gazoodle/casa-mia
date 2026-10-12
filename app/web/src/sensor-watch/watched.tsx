@@ -225,7 +225,7 @@ export function WatchedList({
                   {r.disabled ? (
                     <button
                       type="button"
-                      className={`${css.level} ${css.lv_none} ${css.followers} ${css.enable}`}
+                      className={`${css.followers} ${css.enable}`}
                       onClick={() => onEnable(r)}
                       aria-label={`Watch ${r.label} again`}
                     >

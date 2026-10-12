@@ -95,18 +95,10 @@
 }
 
 .userButton {
+  composes: cm-chip cm-accent from global;
   max-width: 150px;
   overflow: hidden;
-  padding: 3px 10px;
-  border: 1px dashed color-mix(in srgb, var(--accent) 60%, var(--border));
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
-  color: var(--accent);
-  font: inherit;
-  font-weight: 600;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  cursor: pointer;
 }
 
 .addHead {
