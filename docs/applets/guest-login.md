@@ -223,6 +223,10 @@ The **Settings** button holds:
 
 <img src="../screenshots/guest-wifi.webp" alt="The QR codes dialog on its Wi-Fi tab: network Oak Tree Guests, WPA, its password, and the network's QR code" width="800">
 
+- **Words:** the words on the guest card and the QR code card (*Join the Wi-Fi*, *Scan to
+  sign in*, *Network*, *Password*, the passcode note and the rest), for guests who read
+  another language. Leave one blank for its English.
+
 ### The QR code card
 
 **Casa Mia QR code**, in the card picker, shows a code on any dashboard, drawn by the app
@@ -238,8 +242,10 @@ just as the guest card is:
   network before it scans to sign in; or on its own, with no endpoint or page.
 - A **title**, and a **caption** under the code (the endpoint's name, or the page's path,
   unless you write one).
-- **The guest card's parts**, each yours to choose: the welcome title on top, the network
-  and password written out, a black border round the card, a black frame round each code.
+- **The guest card's parts**, each yours to choose: the welcome title on top, the
+  instructions (the steps, and the name under the code), the network and password written
+  out, a black border round the card, a black frame round each code. With the instructions
+  off and nothing else on, the code alone fills the card, to lay out round it as you like.
 
 **Tablets that open at the first scan.** Put the card in an [Over layer](../over-layer.md)
 on the house's tablets, with the Visibility condition *the endpoint's Logins is 0*. Logins

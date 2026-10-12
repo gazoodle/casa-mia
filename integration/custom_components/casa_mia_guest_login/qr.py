@@ -50,6 +50,7 @@ def endpoint_of(hass: HomeAssistant, entity_id: str) -> str | None:
         vol.Optional("border", default=True): bool,
         vol.Optional("frame", default=True): bool,  # the codes' black frames
         vol.Optional("details", default=True): bool,  # the network's name and password
+        vol.Optional("steps", default=True): bool,  # headings, a code's name
     }
 )
 @websocket_api.async_response
@@ -78,7 +79,7 @@ async def _ws_qr(
         query["welcome"] = "1"
     if msg.get("caption"):
         query["caption"] = msg["caption"]
-    for off in ("border", "frame", "details"):
+    for off in ("border", "frame", "details", "steps"):
         if not msg[off]:
             query[off] = "0"
     try:

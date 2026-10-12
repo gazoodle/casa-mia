@@ -181,12 +181,19 @@ def test_the_qr_code_card_gets_open_endpoints_pages_and_wifi(api):
     api.data["wifi"] = {"ssid": "Barn Guests", "password": "pw", "security": "WPA"}
     found = api.for_card({"endpoint": ["a"], "wifi": ["1"], "welcome": ["1"]})["svg"]
     assert "1. Join the Wi-Fi" in found and "2. Scan to sign in" in found
-    assert "Password: pw" in found and 'stroke="#111"' in found  # the guest card's look
+    assert 'Password: <tspan font-family="ui-monospace' in found  # fixed pitch
+    assert 'stroke="#111"' in found  # the guest card's look
     plain = api.for_card({"wifi": ["1"], "border": ["0"], "details": ["0"]})["svg"]
     assert "Join the Wi-Fi" in plain and "Password" not in plain  # the Wi-Fi's alone
     assert 'stroke="#111"' not in plain and "Scan" not in plain
     page = api.for_card({"path": ["lovelace/pool"], "caption": ["Pool"]})["svg"]
     assert "Scan to open" in page and "Pool" in page
+    bare = api.for_card({"endpoint": ["a"], "steps": ["0"]})["svg"]
+    assert "<text" not in bare and 'viewBox="0 0 600 600"' in bare  # the code alone
+    call(api, "PUT", "settings", {"words": {"join": "WLAN verbinden", "open": " "}})
+    worded = api.for_card({"endpoint": ["a"], "wifi": ["1"]})["svg"]
+    assert "1. WLAN verbinden" in worded and "2. Scan to sign in" in worded
+    assert api.data["words"] == {"join": "WLAN verbinden"}  # blank: back to English
     assert api.for_card({"path": ["<bad>"]})["error"]
     assert api.for_card({"endpoint": ["nope"]})["error"]
 

@@ -13,7 +13,7 @@ from typing import Any
 from ... import qr, swap
 from .common import PORT, BadRequest, _norm, welcome_title
 from .login import GuestLogin
-from .printing import card_page, card_svg, wifi_text
+from .printing import card_page, card_svg, wifi_text, words
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -58,16 +58,18 @@ class Codes:
         the guest card is: an endpoint's code (?endpoint=<id>) while it is open, or a
         page's (?path=...), the Wi-Fi's beside it (&wifi=1), or the Wi-Fi's alone. Its
         options: &welcome=1 (the welcome title on top), &caption=..., &border=0,
-        &frame=0 (no frames round the codes), &details=0 (no network words). A closed
+        &frame=0 (no frames round the codes), &details=0 (no network words), &steps=0 (no
+        headings, no name under the code; with nothing else, the code alone). A closed
         endpoint's code is not given: any signed-in user can ask, a guest too, so only a
         code that works now is shown."""
 
         def arg(name: str) -> str:
             return (query.get(name) or [""])[0]
 
+        said = words(self.data.get("words"))
         title = self.data["welcome"].get("title") or welcome_title()
         sign_in: str | None = None
-        label, note, heading = arg("caption"), None, "Scan to sign in"
+        label, note, heading = arg("caption"), None, said["sign_in"]
         if ep_id := arg("endpoint"):
             ep = next((e for e in self.data["endpoints"] if e["id"] == ep_id), None)
             if ep is None:
@@ -76,15 +78,15 @@ class Codes:
             label = label or ep["label"]
             if self.guest.health()["endpoints"].get(ep_id, {}).get("enabled"):
                 sign_in = self.qr_text(ep)
-                note = "Your host will give you a code" if ep.get("pin") else None
+                note = said["passcode"] if ep.get("pin") else None
             else:
-                heading, note = "Closed", "Its code shows while it's open"
+                heading, note = said["closed"], said["closed_note"]
         elif arg("path"):
             try:
                 path, sign_in = self.page_text(arg("path"))
             except BadRequest as exc:
                 return {"error": str(exc)}
-            label, heading = label or path, "Scan to open"
+            label, heading = label or path, said["open"]
         found: dict[str, Any] = {}
         wifi = None
         if arg("wifi"):
@@ -110,7 +112,9 @@ class Codes:
             border=arg("border") != "0",
             frames=arg("frame") != "0",
             details=arg("details") != "0",
+            steps=arg("steps") != "0",
             width=600 * ((wifi is not None) + code),
+            said=said,
         ).decode()
         return found
 
@@ -130,6 +134,7 @@ class Codes:
         if ep is None:
             return _json(404, {"error": "No such endpoint."})
         title = ep.get("title") or self.data["welcome"].get("title") or welcome_title()
+        said = words(self.data.get("words"))
         # Swapped before drawing, not after: a QR code's pattern carries its text where no
         # swap of the SVG can reach it, so a screenshot's card must be drawn from the
         # stand-ins or it would scan to the real address.
@@ -142,7 +147,8 @@ class Codes:
             wifi,
             swap.out(self.qr_text(ep)),
             swap.out(ep["label"]),
-            "Your host will give you a code" if ep.get("pin") else None,
+            said["passcode"] if ep.get("pin") else None,
+            said=said,
         )
         if name.endswith(".svg"):
             return 200, "image/svg+xml", svg

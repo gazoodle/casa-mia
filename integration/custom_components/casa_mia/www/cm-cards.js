@@ -5042,6 +5042,7 @@ o("casa-mia-sensor-watch", zr), o("casa-mia-sensor-watch-editor", Wr), s("casa-m
 //#region src/qr-code/card.ts
 var Gr = {
 	wifi: !1,
+	instructions: !0,
 	wifi_details: !0,
 	welcome: !1,
 	border: !1,
@@ -5095,7 +5096,8 @@ var Gr = {
 				welcome: t.welcome,
 				border: t.border,
 				frame: t.code_frames,
-				details: t.wifi_details
+				details: t.wifi_details,
+				steps: t.instructions
 			}), this._problem = this._found?.error;
 		} catch (e) {
 			this._found = void 0, this._problem = `Casa Mia isn't answering (${e?.message ?? e}): is Guest login switched on in the app, and the Casa Mia Guest Login integration set up?`, console.warn(`CASA-MIA CARDS: qr code: ${this._problem}`);
@@ -5122,13 +5124,11 @@ var Gr = {
 	static {
 		this.styles = I`
     ha-card {
-      padding: 8px;
+      overflow: hidden;
     }
     img {
       display: block;
       width: 100%;
-      max-width: 720px;
-      margin: 0 auto;
     }
     .note {
       margin: 8px;
@@ -5179,6 +5179,10 @@ var Jr = (e) => [
 		selector: { text: {} }
 	},
 	{
+		name: "instructions",
+		selector: { boolean: {} }
+	},
+	{
 		name: "wifi_details",
 		selector: { boolean: {} }
 	},
@@ -5200,6 +5204,7 @@ var Jr = (e) => [
 	path: "Or a page",
 	wifi: "The Wi-Fi's code beside it",
 	caption: "Caption",
+	instructions: "Show instructions",
 	wifi_details: "Write out the network and password",
 	welcome: "The welcome title on top",
 	border: "A black border round the card, as printed",
@@ -5209,6 +5214,7 @@ var Jr = (e) => [
 	path: "Used when no endpoint is picked. A plain link to the page: it signs nobody in, so it's for phones already signed in.",
 	wifi: "The network saved in Casa Mia's Guest login (QR codes → Wi-Fi), first, so a phone joins before it signs in. With no endpoint or page, the Wi-Fi's code alone.",
 	caption: "Under the code. Empty: the endpoint's name, or the page's path.",
+	instructions: "The steps (Join the Wi-Fi, Scan to sign in) and the name under the code. Off, with nothing else on, the code alone fills the card. Their words: Casa Mia → Guest login → QR codes → Words.",
 	wifi_details: "Under the Wi-Fi's code, for anyone who'd rather type them.",
 	welcome: "Guest login's welcome title (Welcome to …), or the endpoint's own."
 }, Zr = class extends W {

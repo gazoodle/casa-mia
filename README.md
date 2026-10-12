@@ -105,6 +105,57 @@ The very same view in a wide desktop window, or on a tablet held upright. Nothin
 Panels in stacks, layers inside layers, gaps with lines in them, edges that hug their cards:
 [the Tablet Layout guide](docs/tablet-layout.md) has the lot.
 
+## Sensor Watch
+
+Home Assistant knows the state of everything and the health of almost nothing. Is 198 V
+on that plug fine? Is the freezer at −12 °C a problem? Has that bulb been unavailable
+since the spring? It will show you the number, cheerfully, forever, and you find out when
+the ice cream is soup.
+
+Sensor Watch gives everything a level: **nominal**, a **task** (top up the softener's salt, as a
+[Salt Sentry](https://www.tindie.com/products/ErikLemcke/salt-sentry-water-softener-monitor/) measures it), a
+**warning**, an **error**, **critical**, and says so only when one changes, in its own
+words. The trick is saying it once, not fifty times:
+
+- **Groups for whole classes of thing.** Every Shelly plug's voltage, every leak sensor,
+  every Hue light: a saved filter and a profile. Everything matching is watched, and the
+  plug you put in next month joins by itself. More than two of the same kind is a group;
+  a single thing is a watch.
+- **A library of 85 profiles,** each saying where its numbers come from: mains voltage
+  and frequency for the UK (today's law and the ENA's 2026 proposal), the US, the EU,
+  Japan, China and Australia; inverter trip limits; batteries, broadband, pool and hot tub
+  chemistry, indoor air, freezers, the boiler, the garden, computers; and reminders coming
+  due, read as days until the date (a hot tub's Rinse filter, from the
+  [Gecko integration](https://github.com/gazoodle/gecko-home-assistant)).
+- **Watches for the one-offs,** with bands suggested from each sensor's own history: a
+  number by bands, on/off, exact states, an attribute (a thermostat's temperature, not
+  its mode), or just "is it there?", either way round.
+- **Home Assistant itself:** the Recorder, History, and every integration that fails to
+  set up.
+- **Told once, properly:** a blueprint sends it to your phone at the level you choose or
+  worse, colour-coded, and clears it when it's sorted; a card shows what needs looking at
+  and vanishes on a quiet day; an event and a service for everything else.
+
+<table>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/screenshots/sensor-watch-card.webp" alt="A kitchen wall tablet with the Sensor Watch card in its side panel: an error, a warning and a task">
+<h3>Only what needs looking at</h3>
+The card on the kitchen tablet: worst first, each in its own words, its value live. On a quiet day it isn't there at all.
+</td>
+<td width="50%" valign="top">
+<img src="docs/screenshots/sensor-watch.webp" alt="The Sensor Watch page: every watched sensor with its status pill, grouped, under one toolbar of filter chips">
+<h3>Everything watched, in one place</h3>
+Every watch with its level, grouped, filtered with chips; groups take in whole classes of thing, and new ones join by themselves.
+</td>
+</tr>
+</table>
+
+Half an hour, and the house has plant-level monitoring. I tripped a breaker to test it,
+and a dozen lights turned up on the wall tablet, each saying where it was.
+([The guide](docs/applets/sensor-watch.md))
+
+
 ## Kiosk Satellite
 
 <a href="https://kiosksatellite.com"><img src="https://kiosksatellite.com/img/mark.svg" alt="Kiosk Satellite" width="72" align="left"></a>
@@ -269,89 +320,7 @@ quick, and those not-so-powerful tablets stay nice and snappy.
 
 There's much more to come on this one.
 
-## Phone and SMS (FONA)
 
-This one's a bit esoteric. What happens when the internet goes down and you're on the wrong
-side of the gate? An Arduino with an Adafruit FONA GSM board on the end of a USB cable,
-that's what. Ring the house or text it, and if your number is on the list, Home Assistant
-gets an "authorised" event and your automations do the rest (mine open the gates). Anyone
-else is an intrusion, which you can also do something about. Text it PING and every layer
-answers PONG, so you can tell exactly where things stopped working, and Home Assistant can
-text back through it too. It has to be bulletproof, so it copes with the Arduino resetting,
-the USB port moving and the line dropping, and it says so in the log when it does. Build
-details (the Arduino sketch and how I built mine) are on their way into this repo, so you
-can make your own.
-
-<table>
-<tr>
-<td width="50%" valign="top">
-<img src="docs/screenshots/people.webp" alt="The People page: who may call and text the house, each linked to a Home Assistant person">
-<h3>Who can call the house</h3>
-The guest list for your home's own phone line: who may ring it and who may text it, one number each, linked to their Home Assistant person. Type a number the way you'd dial it; Casa Mia works out the rest, and there's a box to check what would happen before someone tries it for real.
-</td>
-<td width="50%" valign="top">
-</td>
-</tr>
-</table>
-
-## Sensor Watch
-
-Home Assistant knows the state of everything and the health of almost nothing. Is 198 V
-on that plug fine? Is the freezer at −12 °C a problem? Has that bulb been unavailable
-since the spring? It will show you the number, cheerfully, forever, and you find out when
-the ice cream is soup.
-
-Sensor Watch gives everything a level: **nominal**, a **task** (top up the softener's salt, as a
-[Salt Sentry](https://www.tindie.com/products/ErikLemcke/salt-sentry-water-softener-monitor/) measures it), a
-**warning**, an **error**, **critical**, and says so only when one changes, in its own
-words. The trick is saying it once, not fifty times:
-
-- **Groups for whole classes of thing.** Every Shelly plug's voltage, every leak sensor,
-  every Hue light: a saved filter and a profile. Everything matching is watched, and the
-  plug you put in next month joins by itself. More than two of the same kind is a group;
-  a single thing is a watch.
-- **A library of 85 profiles,** each saying where its numbers come from: mains voltage
-  and frequency for the UK (today's law and the ENA's 2026 proposal), the US, the EU,
-  Japan, China and Australia; inverter trip limits; batteries, broadband, pool and hot tub
-  chemistry, indoor air, freezers, the boiler, the garden, computers; and reminders coming
-  due, read as days until the date (a hot tub's Rinse filter, from the
-  [Gecko integration](https://github.com/gazoodle/gecko-home-assistant)).
-- **Watches for the one-offs,** with bands suggested from each sensor's own history: a
-  number by bands, on/off, exact states, an attribute (a thermostat's temperature, not
-  its mode), or just "is it there?", either way round.
-- **Home Assistant itself:** the Recorder, History, and every integration that fails to
-  set up.
-- **Told once, properly:** a blueprint sends it to your phone at the level you choose or
-  worse, colour-coded, and clears it when it's sorted; a card shows what needs looking at
-  and vanishes on a quiet day; an event and a service for everything else.
-
-<table>
-<tr>
-<td width="50%" valign="top">
-<img src="docs/screenshots/sensor-watch-card.webp" alt="A kitchen wall tablet with the Sensor Watch card in its side panel: an error, a warning and a task">
-<h3>Only what needs looking at</h3>
-The card on the kitchen tablet: worst first, each in its own words, its value live. On a quiet day it isn't there at all.
-</td>
-<td width="50%" valign="top">
-<img src="docs/screenshots/sensor-watch.webp" alt="The Sensor Watch page: every watched sensor with its status pill, grouped, under one toolbar of filter chips">
-<h3>Everything watched, in one place</h3>
-Every watch with its level, grouped, filtered with chips; groups take in whole classes of thing, and new ones join by themselves.
-</td>
-</tr>
-</table>
-
-Half an hour, and the house has plant-level monitoring. I tripped a breaker to test it,
-and a dozen lights turned up on the wall tablet, each saying where it was.
-([The guide](docs/applets/sensor-watch.md))
-
-## Alarm panel
-
-I've got a KNX system with a couple of sensors and switches, but I wanted a nice alarm panel
-with a code; you'd think that would be easy ... it's really not. My first go fell back to a
-default code if you hadn't set one, silently ignored a wrong code, and (my favourite) arming
-it while it was going off pressed the toggle, which disarmed it. This one refuses to do
-anything until you've set a code, tells you when the code is wrong, and leaves a triggered
-alarm well alone. It lives in the integration, so it keeps working while the app restarts.
 
 ## Dashboard helpers
 
@@ -437,6 +406,40 @@ Coming next:
   who and where.
 - **Guests who say who they are:** an identify-yourself page with a PIN, so the house knows
   which guest is in.
+
+## Alarm panel
+
+I've got a KNX system with a couple of sensors and switches, but I wanted a nice alarm panel
+with a code; you'd think that would be easy ... it's really not. My first go fell back to a
+default code if you hadn't set one, silently ignored a wrong code, and (my favourite) arming
+it while it was going off pressed the toggle, which disarmed it. This one refuses to do
+anything until you've set a code, tells you when the code is wrong, and leaves a triggered
+alarm well alone. It lives in the integration, so it keeps working while the app restarts.
+
+## Phone and SMS (FONA)
+
+This one's a bit esoteric. What happens when the internet goes down and you're on the wrong
+side of the gate? An Arduino with an Adafruit FONA GSM board on the end of a USB cable,
+that's what. Ring the house or text it, and if your number is on the list, Home Assistant
+gets an "authorised" event and your automations do the rest (mine open the gates). Anyone
+else is an intrusion, which you can also do something about. Text it PING and every layer
+answers PONG, so you can tell exactly where things stopped working, and Home Assistant can
+text back through it too. It has to be bulletproof, so it copes with the Arduino resetting,
+the USB port moving and the line dropping, and it says so in the log when it does. Build
+details (the Arduino sketch and how I built mine) are on their way into this repo, so you
+can make your own.
+
+<table>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/screenshots/people.webp" alt="The People page: who may call and text the house, each linked to a Home Assistant person">
+<h3>Who can call the house</h3>
+The guest list for your home's own phone line: who may ring it and who may text it, one number each, linked to their Home Assistant person. Type a number the way you'd dial it; Casa Mia works out the rest, and there's a box to check what would happen before someone tries it for real.
+</td>
+<td width="50%" valign="top">
+</td>
+</tr>
+</table>
 
 ## Installation
 

@@ -3,7 +3,9 @@
 // endpoint is named by its Access switch; its code comes only while it is open, and is asked
 // for again each time the switch changes (a closed endpoint may get a new address). A page's
 // code is a plain link: it signs nobody in. The Wi-Fi's code comes first (left), so a phone
-// joins the network before it signs in; with no endpoint or page, it is alone.
+// joins the network before it signs in; with no endpoint or page, it is alone. With nothing
+// but one code (no instructions, title or network words), the code alone fills the card, to
+// lay out round it as you like.
 import { LitElement, css, html, nothing } from "lit";
 import type { Hass } from "../ha.ts";
 
@@ -14,13 +16,14 @@ export type Config = {
   path?: string; // or a page of Home Assistant, such as /lovelace/pool
   wifi?: boolean; // the Wi-Fi's code beside it, or alone
   caption?: string; // under the code (default: the endpoint's name, or the page's path)
+  instructions?: boolean; // the steps (Join the Wi-Fi, Scan to sign in) and the name under a code
   wifi_details?: boolean; // the network's name and password written out
   welcome?: boolean; // Guest login's welcome title on top, as on the guest card
   border?: boolean; // the guest card's black rounded border
   code_frames?: boolean; // each code in its black frame
 };
 /** Each option's default: shown in the editor, and never saved. */
-export const DEFAULTS = { wifi: false, wifi_details: true, welcome: false, border: false, code_frames: true };
+export const DEFAULTS = { wifi: false, instructions: true, wifi_details: true, welcome: false, border: false, code_frames: true };
 type Found = { svg?: string; error?: string; wifi_error?: string };
 
 export class QrCodeCard extends LitElement {
@@ -75,6 +78,7 @@ export class QrCodeCard extends LitElement {
         border: c.border,
         frame: c.code_frames,
         details: c.wifi_details,
+        steps: c.instructions,
       });
       this._problem = this._found?.error;
     } catch (err) {
@@ -104,13 +108,11 @@ export class QrCodeCard extends LitElement {
 
   static styles = css`
     ha-card {
-      padding: 8px;
+      overflow: hidden;
     }
     img {
       display: block;
       width: 100%;
-      max-width: 720px;
-      margin: 0 auto;
     }
     .note {
       margin: 8px;

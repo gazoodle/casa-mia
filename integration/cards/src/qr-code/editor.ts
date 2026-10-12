@@ -22,6 +22,7 @@ const schema = (hass: Hass) => [
   { name: "path", selector: { navigation: {} } },
   { name: "wifi", selector: { boolean: {} } },
   { name: "caption", selector: { text: {} } },
+  { name: "instructions", selector: { boolean: {} } },
   { name: "wifi_details", selector: { boolean: {} } },
   { name: "welcome", selector: { boolean: {} } },
   { name: "border", selector: { boolean: {} } },
@@ -33,6 +34,7 @@ const LABELS: Record<string, string> = {
   path: "Or a page",
   wifi: "The Wi-Fi's code beside it",
   caption: "Caption",
+  instructions: "Show instructions",
   wifi_details: "Write out the network and password",
   welcome: "The welcome title on top",
   border: "A black border round the card, as printed",
@@ -43,6 +45,7 @@ const HELP: Record<string, string> = {
   path: "Used when no endpoint is picked. A plain link to the page: it signs nobody in, so it's for phones already signed in.",
   wifi: "The network saved in Casa Mia's Guest login (QR codes → Wi-Fi), first, so a phone joins before it signs in. With no endpoint or page, the Wi-Fi's code alone.",
   caption: "Under the code. Empty: the endpoint's name, or the page's path.",
+  instructions: "The steps (Join the Wi-Fi, Scan to sign in) and the name under the code. Off, with nothing else on, the code alone fills the card. Their words: Casa Mia → Guest login → QR codes → Words.",
   wifi_details: "Under the Wi-Fi's code, for anyone who'd rather type them.",
   welcome: "Guest login's welcome title (Welcome to …), or the endpoint's own.",
 };

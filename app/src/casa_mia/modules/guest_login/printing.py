@@ -15,6 +15,26 @@ from ... import qr
 SECURITY = ("WPA", "WEP", "nopass")
 W, H = 1200, 760  # the card, in SVG units (a landscape postcard)
 QR = 400
+MONO = (
+    "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"  # a password's letters
+)
+# The words on the cards, in English until Guest login's settings give others (QR codes ->
+# Words): for guests who read another language.
+WORDS = {
+    "join": "Join the Wi-Fi",
+    "sign_in": "Scan to sign in",
+    "open": "Scan to open",
+    "network": "Network",
+    "password": "Password",
+    "passcode": "Your host will give you a code",
+    "closed": "Closed",
+    "closed_note": "Its code shows while it's open",
+}
+
+
+def words(saved: dict[str, str] | None) -> dict[str, str]:
+    """The cards' words: each saved one, else its English."""
+    return {k: (saved or {}).get(k) or v for k, v in WORDS.items()}
 
 
 def wifi_text(wifi: dict[str, Any]) -> str:
@@ -48,10 +68,15 @@ def _qr_at(text: str | None, x: float, y: float, frame: bool = True) -> str:
     )
 
 
-def _text(x: float, y: float, value: str, size: int, weight: int = 400) -> str:
+def _text(
+    x: float, y: float, value: str, size: int, weight: int = 400, mono: str = ""
+) -> str:
+    """A line, centred on x; `mono` follows it in a fixed-pitch font (a network's name,
+    its password), so a 0 and an O, an l and a 1, can't be mistaken."""
+    tail = f'<tspan font-family="{MONO}">{html.escape(mono)}</tspan>' if mono else ""
     return (
         f'<text x="{x}" y="{y}" font-size="{size}" font-weight="{weight}" '
-        f'text-anchor="middle">{html.escape(value)}</text>'
+        f'text-anchor="middle">{html.escape(value)}{tail}</text>'
     )
 
 
@@ -62,30 +87,63 @@ def card_svg(
     label: str,
     note: str | None = None,
     *,
-    heading: str = "Scan to sign in",
+    heading: str | None = None,
     code: bool = True,
     border: bool = True,
     frames: bool = True,
     details: bool = True,
+    steps: bool = True,
     width: float = W,
+    said: dict[str, str] | None = None,
 ) -> bytes:
     """The guest card: the title, then the Wi-Fi's code (when there is a network) and the
-    endpoint's code side by side, each with its step and the words a phone can't scan.
-    The QR code card draws it too: no title, no second code (`code` False: the Wi-Fi's
-    alone; `sign_in` None: a closed endpoint's grey tile), another `heading` (a page's
-    code), no border, no frames round the codes, no network words, and its own width."""
-    columns: list[tuple[str | None, str, list[str]]] = []
+    endpoint's code side by side, each with its step and the words a phone can't scan
+    (`said`: the words, from words()). The QR code card draws it too: no title, no second
+    code (`code` False: the Wi-Fi's alone; `sign_in` None: a closed endpoint's grey tile),
+    another `heading` (a page's code), no border, no frames round the codes, no network
+    words, no steps (`steps` False: no headings, no name under the code), and its own
+    width. With nothing but one code, the code alone."""
+    said = said or words(None)
+    # Each column: its code, its heading, and its lines as (words, fixed-pitch words).
+    columns: list[tuple[str | None, str | None, list[tuple[str, str]]]] = []
     if wifi and wifi.get("ssid"):
-        lines = [f"Network: {wifi['ssid']}"]
+        lines = [(f"{said['network']}: ", str(wifi["ssid"]))]
         if wifi.get("security") != "nopass" and wifi.get("password"):
-            lines.append(f"Password: {wifi['password']}")
-        columns.append((wifi_text(wifi), "Join the Wi-Fi", lines if details else []))
+            lines.append((f"{said['password']}: ", str(wifi["password"])))
+        columns.append(
+            (wifi_text(wifi), said["join"] if steps else None, lines if details else [])
+        )
     if code:
-        columns.append((sign_in, heading, [label, *([note] if note else [])]))
+        under = [(label, ""), *([(note, "")] if note else [])]
+        columns.append(
+            (
+                sign_in,
+                (heading or said["sign_in"]) if steps else None,
+                under if steps else [],
+            )
+        )
+    if (
+        not title
+        and len(columns) == 1
+        and columns[0][0]
+        and columns[0][1:] == (None, [])
+    ):
+        return qr.svg(columns[0][0], frames)  # the code alone: the card lays it out
     numbered = len(columns) > 1
     top = 140 if title else 48
-    most = max((len(lines) for _, _, lines in columns), default=0)
-    height = top + QR + 62 + (50 + 44 * (most - 1) + 64 if most else 48)
+    # Down from the code: a heading 62 below it, a first line 50 below that (56 with no
+    # heading), each next line 44 further, and 64 under the last.
+    placed: list[list[tuple[float, str, str, int, int]]] = []
+    for n, (_, head, lines) in enumerate(columns):
+        y, rows = top + QR, []
+        if head:
+            y += 62
+            rows.append((y, f"{n + 1}. {head}" if numbered else head, "", 36, 650))
+        for i, (text, mono) in enumerate(lines):
+            y += 44 if i else (50 if head else 56)
+            rows.append((y, text, mono, 30, 400))
+        placed.append(rows)
+    height = max((r[-1][0] + 64 if r else top + QR + 48) for r in placed)
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" '
         f'font-family="system-ui, -apple-system, Segoe UI, sans-serif" fill="#111">',
@@ -95,20 +153,13 @@ def card_svg(
     if title:
         parts.append(_text(width / 2, 92, title, 52, 650))
     step = width / max(len(columns), 1)
-    for n, (text, caption, lines) in enumerate(columns):
+    for n, ((text, _, _), rows) in enumerate(zip(columns, placed, strict=True)):
         cx = step * n + step / 2
         parts.append(_qr_at(text, cx - QR / 2, top, frames))
-        parts.append(
-            _text(
-                cx,
-                top + QR + 62,
-                f"{n + 1}. {caption}" if numbered else caption,
-                36,
-                650,
-            )
+        parts.extend(
+            _text(cx, y, line, size, weight, mono)
+            for y, line, mono, size, weight in rows
         )
-        for i, line in enumerate(lines):
-            parts.append(_text(cx, top + QR + 112 + i * 44, line, 30))
     parts.append("</svg>")
     return "".join(parts).encode()
 

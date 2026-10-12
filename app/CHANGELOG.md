@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.10.11-b3
+
+- **Breaking:** the Casa Mia integrations and their cards changed. Restart Home Assistant once; a Repair asks.
+- Guest login: the words on the cards can be in your guests' language. **QR codes → Words** sets each one (Join the Wi-Fi, Scan to sign in, Network, Password, the passcode note and the rest), for the printed guest card and every QR code card alike; blank is English.
+- Guest card and QR code card: the network's name and password are in a fixed-pitch font, so an l and a 1, an O and a 0, can't be mistaken.
+- QR code card: **Show instructions** (on to start with) can hide the steps and the name under the code. With nothing else showing (no title, no network words), the code alone fills the card, to lay out round it as you like.
+
 ## 2026.10.11-b2
 
 - **Breaking:** the Casa Mia Guest Login integration changed. Restart Home Assistant once; a Repair asks.
