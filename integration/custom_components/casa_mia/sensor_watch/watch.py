@@ -27,7 +27,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_call_later, async_track_state_change_event
 from homeassistant.util import dt as dt_util
 
-from ..casa_mia.coordinator import CasaMiaCoordinator
+from ..coordinator import CasaMiaCoordinator
 from .const import EVENT, MODULE
 from .levels import UNAVAILABLE, level_of, reading, summary
 from .swap import Rule, same, shown
@@ -90,6 +90,26 @@ class Watcher:
             return
         self._fetching = True
         self.hass.async_create_task(self._fetch(revision))
+
+    async def afresh(self) -> None:
+        """Refresh state (its button, its service): the records fetched again, and every
+        watch judged afresh, as at the start (each level as found, at once; one
+        unavailable waits out its hold-off). For when something looks stuck."""
+        if not self._fetching:
+            self._fetching = True
+            await self._fetch(module(self.coordinator).get("revision") or "")
+        for eid in list(self._pending):
+            self._cancel(eid)
+        for eid in self.records:
+            self.now.pop(eid, None)
+        for eid in self.records:
+            self._consider(eid, initial=True)
+        _LOGGER.info(
+            "refresh state: %d watches judged afresh (%d with a level now)",
+            len(self.records),
+            sum(1 for e in self.records if e in self.now),
+        )
+        self._tell()
 
     async def _fetch(self, revision: str) -> None:
         url = f"{self.coordinator.url}{RECORDS}"
@@ -172,13 +192,17 @@ class Watcher:
         if record is None:
             return
         state = self.hass.states.get(eid)
-        level, message = level_of(record, reading(record, state))
+        level, message = level_of(record, reading(record, state, dt_util.now()))
         current = self.now.get(eid)
         if level is None or (current is not None and current["level"] == level):
             self._cancel(eid)  # back where it was (or no opinion): nothing to wait for
             return
-        if initial and state is not None and state.state not in UNAVAILABLE:
-            self._commit(eid, level, message, state, initial=True)  # as found, at once
+        # As found, at once: at the start, or its first real reading after it started
+        # unavailable (a car asleep at HA's start): the hold-off is for changes from a
+        # level it has, not for having one at all.
+        found = initial or current is None
+        if found and state is not None and state.state not in UNAVAILABLE:
+            self._commit(eid, level, message, state, initial=True)
             return
         if (pending := self._pending.get(eid)) and pending[0] == level:
             return  # already waiting to see whether it lasts
@@ -198,7 +222,7 @@ class Watcher:
         if record is None:
             return
         state = self.hass.states.get(eid)
-        now, message = level_of(record, reading(record, state))
+        now, message = level_of(record, reading(record, state, dt_util.now()))
         if now == level:
             self._commit(eid, level, message, state)
         else:
@@ -219,7 +243,7 @@ class Watcher:
         record = self.records[eid]
         name = record.get("name") or (state.name if state else eid)
         previous = (self.now.get(eid) or {}).get("level")
-        value = reading(record, state)
+        value = reading(record, state, dt_util.now())
         since = state.last_changed if initial and state else dt_util.utcnow()
         self.now[eid] = {
             "level": level,
@@ -228,6 +252,7 @@ class Watcher:
             "since": since.isoformat(),
             "name": name,
             **({"attribute": record["attribute"]} if record.get("attribute") else {}),
+            **({"days_until": True} if record.get("days_until") else {}),
         }
         if initial:
             if level != "nominal":
@@ -325,6 +350,14 @@ class Watcher:
             area_id = device.area_id if device else None
         area = ar.async_get(self.hass).async_get_area(area_id) if area_id else None
         return area.name if area else None
+
+    @callback
+    def tick(self, _now: object = None) -> None:
+        """Time passing: a date watch's days until come down though its state doesn't
+        change (a reminder comes due), so they're judged again now and then."""
+        for eid, record in self.records.items():
+            if record.get("days_until"):
+                self._consider(eid)
 
     @callback
     def swapped(self, swap: Rule) -> None:

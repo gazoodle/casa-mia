@@ -1,0 +1,147 @@
+/* Pills and chips, the one source: docs/design/pills-and-chips.html shows (and links) this
+   file. A pill shows a state; a chip is pressed. Plain global classes (cm-), so the admin
+   UI's modules compose them (`composes: cm-pill from global`), the cards adopt them (ha.ts
+   PILLS, with HA's colours under these token names) and the cheatsheet links them.
+
+   Colour comes from --tone, set by a tone class (cm-good …) or a module's own; with none,
+   a pill and an unpressed chip are muted and a pressed chip takes the accent. */
+
+.cm-pill {
+  display: inline-block;
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 3px 9px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--tone, var(--muted)) 14%, transparent);
+  color: var(--tone, var(--muted));
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 16px;
+  text-transform: uppercase;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* The loudest state only (critical). */
+.cm-pill.cm-filled {
+  background: var(--tone, var(--muted));
+  color: var(--on-accent);
+}
+
+/* A quiet label (maturity). */
+.cm-pill.cm-outline {
+  background: none;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone, var(--muted)) 55%, transparent);
+}
+
+/* In a row's column, so titles line up. */
+.cm-pill.cm-fixed {
+  width: 104px;
+  text-align: center;
+}
+
+.cm-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  box-sizing: border-box;
+  padding: 3px 10px;
+  border: none;
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 1px var(--tone, var(--muted));
+  background: var(--surface);
+  color: var(--tone, var(--muted));
+  font: inherit;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  line-height: 16px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    box-shadow 0.15s,
+    filter 0.15s;
+}
+
+/* Pressed (or an action that is always filled, as the Tablet Layout's). */
+.cm-chip.cm-on {
+  box-shadow: none;
+  background: var(--tone, var(--accent));
+  color: var(--on-accent);
+}
+
+/* The Tablet Layout's: a round icon (padlock, sprig); dimension labels; a quiet one. */
+.cm-chip.cm-icon {
+  width: 26px;
+  height: 26px;
+  padding: 4px;
+  border-radius: 50%;
+}
+
+.cm-chip.cm-icon svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.cm-chip.cm-mono {
+  padding: 1px 6px;
+  border-radius: 8px;
+  font: 11px/14px var(--mono);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.cm-chip.cm-quiet {
+  box-shadow: none;
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  color: var(--muted);
+}
+
+.cm-chip:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Hover and keyboard focus: a ring in the accent whatever the chip's colour (HA's theme
+   colour in the cards), a touch brighter: the Tablet Layout's, now every chip's. */
+.cm-chip:not(:disabled):hover,
+.cm-chip:focus-visible {
+  outline: none;
+  box-shadow:
+    inset 0 0 0 1px var(--tone, var(--muted)),
+    0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
+  filter: brightness(1.08);
+}
+
+.cm-chip.cm-on:not(:disabled):hover,
+.cm-chip.cm-on:focus-visible,
+.cm-chip.cm-quiet:not(:disabled):hover {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+/* Tones. */
+.cm-good {
+  --tone: var(--good);
+}
+.cm-accent {
+  --tone: var(--accent);
+}
+.cm-warn {
+  --tone: var(--warn);
+}
+.cm-bad {
+  --tone: var(--bad);
+}
+.cm-muted {
+  --tone: var(--muted);
+}
+.cm-bark {
+  --tone: var(--bark);
+}

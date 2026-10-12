@@ -5,6 +5,8 @@ import { get, type Endpoint, type GuestConfig, type HAChoices, type Login } from
 import { Dialog, Field, Segmented } from "./ui";
 import css from "./guest.module.css";
 import ui from "./ui.module.css";
+import { Select } from "./controls";
+import { Slider } from "./controls";
 
 const OTHER = "__other__";
 
@@ -138,13 +140,13 @@ export function EndpointDialog({
       </Field>
       <Field label="Landing dashboard" help="Where the visitor lands once signed in. The list is every dashboard and view in Home Assistant.">
         {groups.size > 0 && (
-          <select
+          <Select
             value={custom ? OTHER : dashboard}
-            onChange={(e) => {
-              if (e.target.value === OTHER) setCustom(true);
+            onChange={(picked) => {
+              if (picked === OTHER) setCustom(true);
               else {
                 setCustom(false);
-                setDashboard(e.target.value);
+                setDashboard(picked);
               }
             }}
           >
@@ -161,7 +163,7 @@ export function EndpointDialog({
               </optgroup>
             ))}
             <option value={OTHER}>Another path…</option>
-          </select>
+          </Select>
         )}
         {(custom || groups.size === 0) && (
           <input placeholder="/guest-dashboards/suite-1" value={dashboard} onChange={(e) => setDashboard(e.target.value)} />
@@ -174,7 +176,7 @@ export function EndpointDialog({
         <Segmented value={type} options={[["guest", "Guest"], ["engineer", "Engineer"]]} onChange={setType} />
       </Field>
       <Field label="Login" help="Which Home Assistant user the visitor is signed in as.">
-        <select value={account} onChange={(e) => setAccount(e.target.value)}>
+        <Select value={account} onChange={(picked) => setAccount(picked)}>
           <option value="">Default ({config.default_login || "none yet"})</option>
           {config.logins.map((l) => (
             <option key={l.name} value={l.name}>
@@ -182,7 +184,7 @@ export function EndpointDialog({
               {l.display ? ` (${l.display})` : ""}
             </option>
           ))}
-        </select>
+        </Select>
       </Field>
 
       <fieldset className={css.fieldset}>
@@ -356,11 +358,11 @@ export function LoginDialog({
           label="Home Assistant user"
           help="People with a username and password. An administrator is marked: visitors would get full control, so pick a normal user."
         >
-          <select
+          <Select
             value={userId}
-            onChange={(e) => {
-              setUserId(e.target.value);
-              const u = users.find((x) => x.id === e.target.value);
+            onChange={(picked) => {
+              setUserId(picked);
+              const u = users.find((x) => x.id === picked);
               if (u && !nameTouched) setName(toId(u.username ?? u.name));
             }}
           >
@@ -372,7 +374,7 @@ export function LoginDialog({
                 {u.name} ({u.username}){u.is_admin ? " — administrator" : ""}
               </option>
             ))}
-          </select>
+          </Select>
         </Field>
       ) : (
         <>
@@ -511,13 +513,13 @@ export function SettingsDialog({
         <input value={message} onChange={(e) => setMessage(e.target.value)} />
       </Field>
       <Field
-        label={`Photo height: ${photo}% of the screen`}
+        label="Photo height"
         help="How much of the phone the house photo takes, and so how high the welcome card sits. Lower it to bring the house rules into view at once. Press Preview to see it. Also used by the goodbye page."
       >
-        <input type="range" min={20} max={80} step={2} value={photo} onChange={(e) => setPhoto(e.target.value)} />
+        <Slider value={Number(photo)} min={20} max={80} step={2} format={(v) => `${v}% of the screen`} onChange={(v) => setPhoto(String(v))} />
       </Field>
-      <Field label="Welcome delay (seconds)" help="0 to 30. The sign-in runs during the delay.">
-        <input type="number" min={0} max={30} value={delay} onChange={(e) => setDelay(e.target.value)} />
+      <Field label="Welcome delay" help="The sign-in runs during the delay.">
+        <Slider value={Number(delay) || 0} min={0} max={30} format={(v) => (v ? `${v} s` : "none")} onChange={(v) => setDelay(String(v))} />
       </Field>
       <div className={css.previewRow}>
         <span className={css.checkHelp}>See the welcome page as a visitor's phone shows it, with these values (it signs nobody in).</span>

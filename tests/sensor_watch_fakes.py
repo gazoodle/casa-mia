@@ -12,7 +12,7 @@ from casa_mia.modules.sensor_watch import SensorWatch
 # Loaded by path: the package __init__ needs Home Assistant, levels.py does not.
 FILE = (
     Path(__file__).resolve().parents[1]
-    / "integration/custom_components/casa_mia_sensor_watch/levels.py"
+    / "integration/custom_components/casa_mia/sensor_watch/levels.py"
 )
 
 
@@ -135,7 +135,11 @@ ENTITIES = [
         "labels": ["water"],
     },
     {"entity_id": "sensor.weather_text", "entity_category": "diagnostic"},
-    {"entity_id": "sensor.status", "platform": "casa_mia_sensor_watch"},
+    {
+        "entity_id": "sensor.status",
+        "platform": "casa_mia",
+        "translation_key": "sensor_watch_status",
+    },
 ]
 
 

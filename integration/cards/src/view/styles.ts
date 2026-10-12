@@ -1,6 +1,5 @@
 // The Tablet Layout's styles: the view's own (LOCK) and its sections' grids (FILL).
-import { css, unsafeCSS } from "lit";
-import { HOVER } from "../ha.ts";
+import { css } from "lit";
 
 export const LOCK = css`
   :host {
@@ -128,76 +127,25 @@ export const LOCK = css`
     z-index: 6; /* over HA's sticky footer (4) */
     pointer-events: none;
   }
+  /* The marks are the shared chips (pills.ts; docs/design/pills-and-chips.html, tl-*), in
+   * the theme's colour, filled; here only where they sit. */
+  .cm-tools,
+  .cm-ends,
+  .cm-dims {
+    --tone: var(--primary-color);
+  }
   .cm-ends button {
     position: absolute;
     pointer-events: auto;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
   }
-  .cm-ends button.cm-line {
-    transform: translate(-50%, -50%);
-    font-size: 10px;
-    padding: 1px 6px;
-  }
+  .cm-ends button.cm-line,
   .cm-ends button.cm-lock {
     transform: translate(-50%, -50%);
-    width: 26px;
-    height: 26px;
-    padding: 4px;
-    border-radius: 50%;
-    border: 1px solid var(--primary-color);
-    color: var(--primary-color);
-    background: var(--card-background-color, #fff);
   }
-  .cm-ends button.cm-lock.on {
-    color: var(--text-primary-color, #fff);
-    background: var(--primary-color);
-  }
-  .cm-ends button.cm-lock svg {
-    width: 16px;
-    height: 16px;
-    fill: currentColor;
-  }
-  .cm-tools button,
-  .cm-ends button {
-    font: inherit;
-    font-size: 12px;
-    font-weight: 500;
-    line-height: 16px;
-    padding: 3px 10px;
-    border: none;
-    border-radius: 12px;
-    color: var(--text-primary-color, #fff);
-    background: var(--primary-color);
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  .cm-tools .cm-chip {
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-  }
-  .cm-tools button:not(.cm-chip) {
+  .cm-tools .cm-tool {
     padding: 3px 8px;
   }
-  .cm-tools button[disabled] {
-    opacity: 0.4;
-    cursor: default;
-  }
-  /* Every tap target in edit mode answers the pointer alike (ha.ts HOVER). */
-  .cm-tools button,
-  .cm-ends button,
-  .cm-dims button {
-    transition: box-shadow 0.15s, filter 0.15s;
-  }
-  .cm-tools button:not([disabled]):hover,
-  .cm-tools button:focus-visible,
-  .cm-ends button:hover,
-  .cm-ends button:focus-visible,
-  .cm-dims button:hover,
-  .cm-dims button:focus-visible {
-    ${unsafeCSS(HOVER)}
-  }
-  .cm-tools.cm-narrow button:not(.cm-chip) {
+  .cm-tools.cm-narrow .cm-tool {
     display: none;
   }
   /* A hidden edge, shown in edit mode to be shown again: dimmed and hatched. */
@@ -249,20 +197,9 @@ export const LOCK = css`
     position: absolute;
     transform: translate(-50%, -50%);
     pointer-events: auto;
-    font: 11px/14px var(--ha-font-family-code, monospace);
-    padding: 1px 6px;
-    border: 1px solid currentColor;
-    border-radius: 8px;
-    color: inherit;
-    background: var(--card-background-color, #fff);
-    cursor: pointer;
-    white-space: nowrap;
   }
   .cm-dims button.cm-size {
     transform: translate(-100%, -100%);
-    border-color: transparent;
-    color: var(--secondary-text-color);
-    background: color-mix(in srgb, var(--card-background-color, #fff) 80%, transparent);
   }
   /* Edit mode: each panel's room outlined, in its chip's colour (the identify outline, for
    * debugging, over it when on). */

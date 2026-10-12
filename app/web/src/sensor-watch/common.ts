@@ -50,6 +50,8 @@ export type WatchRecord = {
   attribute?: string;
   /** Kept, with its group, but not watched (listed apart, greyed). */
   disabled?: boolean;
+  /** Numeric: the state is a date, read as the days until it (a reminder due). */
+  days_until?: boolean;
   /** The profile it follows (its levels then come from there). */
   profile?: string;
   /** The group it joined by (groups.py), if any. */
@@ -142,6 +144,8 @@ export type Candidate = {
   options?: string[];
   /** Its attributes worth watching, with their values now. */
   attributes?: Record<string, string>;
+  /** Its state is a date or timestamp (bands read it as days until it). */
+  dated?: boolean;
   watched?: boolean;
   /** Set up by what it is (defaults.py), so a group following the defaults takes it. */
   has_default?: boolean;
@@ -251,12 +255,13 @@ export function span(b: Band): string {
 }
 
 /** The nominal band(s) of a record, in words. */
-export function summary(r: Pick<WatchRecord, "kind" | "bands" | "off" | "on" | "other" | "states" | "available" | "unavailable">): string {
+export function summary(r: Pick<WatchRecord, "kind" | "bands" | "off" | "on" | "other" | "states" | "available" | "unavailable" | "days_until">): string {
   if (r.kind === "available") return `available ${r.available?.level ?? "?"}, unavailable ${r.unavailable}`;
   if (r.kind === "binary") return `off ${r.off?.level ?? "?"}, on ${r.on?.level ?? "?"}`;
   if (r.kind === "state") return `nominal ${(r.states ?? []).join(", ") || "?"}, else ${r.other}`;
   const nominal = (r.bands ?? []).filter((b) => b.level === "nominal");
-  return nominal.length ? `nominal ${nominal.map(span).join(", ")}` : "no nominal band";
+  const days = r.days_until ? " days until it" : "";
+  return nominal.length ? `nominal ${nominal.map(span).join(", ")}${days}` : `no nominal band${days}`;
 }
 
 /** Does `hay` (lower case) pass a search? Every word is in it, in any order, and no word
@@ -274,3 +279,15 @@ export function query(f: Filters): string {
     .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
     .join("&");
 }
+
+/** A date watch's value as people read it: days (from the integration) or the date. */
+export function dueValue(value: string): string {
+  if (/^-?\d+(\.\d+)?$/.test(value)) return `${value} days`;
+  const t = Date.parse(value);
+  return Number.isNaN(t) ? value : new Date(t).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+}
+
+/** Days of history to read (a scan, the editor's chart): a few, a week or two, up to a year. */
+export const DAYS = [1, 2, 3, 7, 14, 30, 60, 90, 180, 365];
+
+export const dayText = (d: number) => `${d} day${d === 1 ? "" : "s"}`;

@@ -14,6 +14,10 @@ a single scan. Casa Mia brings these together in one Home Assistant sidebar pane
 - **Kiosk Satellites:** manage your tablets, keep backups of their settings, open their
   admin pages from anywhere through Home Assistant, and serve updates locally.
 - **Guest login:** QR codes that sign visitors straight into their own dashboard.
+- **Sensor Watch:** tell it once what normal looks like, for every sensor in the house,
+  and it tells you only when something isn't: levels from a task to critical, groups
+  that take in new devices by themselves, a library of profiles, a card and a
+  notification blueprint.
 - **People, phone and SMS:** control who may call or text your home using FONA GSM
   hardware, even when the internet is down.
 

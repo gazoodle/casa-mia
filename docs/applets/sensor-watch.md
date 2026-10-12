@@ -33,7 +33,8 @@ service always say what's wrong, so you choose what happens next:
   disappears with it on a quiet day, rather than a proud *WARNINGS* over nothing.
 - **Look into it:** hand the list to an AI agent (Home Assistant's AI tasks, say) to
   investigate what has gone wrong and why, before you even reach for the laptop.
-- **Keep a to-do list for the house:** each task (top up the salt, change a battery, a
+- **Keep a to-do list for the house:** each task (top up the salt a [Salt Sentry][salt-sentry]
+  measures, change a battery, a
   filter due) added to a Home Assistant to-do list, and ticked off by itself when the
   sensor is nominal again.
 - **Escalate:** a warning nobody has dealt with in a day becomes a text, through
@@ -49,7 +50,7 @@ Each sensor gets a level:
 
 | Level | Means | Example |
 |---|---|---|
-| **Nominal** | All is well. | The salt is above 25%. |
+| **Nominal** | All is well. | The softener's salt is above 25% (a [Salt Sentry][salt-sentry] measures it). |
 | **Task** | Something to do, not a fault. | Top up the salt. |
 | **Warning** | Worth a look. | The freezer is at −14 °C. |
 | **Error** | Something is wrong. | The freezer is at −8 °C, or its sensor is unavailable. |
@@ -67,11 +68,12 @@ of a broken integration or a flat battery.
    and whatever matches later joins by itself, so the plug you put in next month is
    watched without you remembering. The rule of thumb: **more than two of the same kind
    is a group; a single thing is a watch.**
-2. **Check the bands.** A group follows a profile, and the library has 80 to start from,
+2. **Check the bands.** A group follows a profile, and the library has 85 to start from,
    each saying where its numbers come from: mains voltage and frequency by country,
    inverter trip limits, batteries, broadband, pool and hot tub chemistry, indoor air,
    freezers, heating, the garden, computers, and plain "is it there?".
-3. **Watches for the one-offs:** the freezer, the softener's salt, the boiler pressure,
+3. **Watches for the one-offs:** the freezer, the softener's salt (a [Salt Sentry][salt-sentry]
+   measures it), the boiler pressure,
    with bands suggested from each one's own history.
 4. **One automation,** from the **Notify on Sensor Watch** blueprint: your phone, at the
    level you choose or worse, in each watch's own words.
@@ -153,9 +155,10 @@ Sensor Watch tells; the rest of Casa Mia shows, and only when there's something 
 
 1. Turn on **Sensor Watch** in the app's Configuration tab (Settings → Apps → Casa Mia →
    Configuration) and save. The app restarts.
-2. Add the **Casa Mia Sensor Watch** integration. Home Assistant offers it under
-   **Discovered** in Settings → Devices & services; or add it from **+ Add integration**.
-   It uses the Casa Mia integration's connection to the app.
+2. Restart Home Assistant when the Repair asks. The **Casa Mia** integration then has a
+   **Sensor Watch** device with its status, counts and problem sensor; there's nothing
+   else to add. (Until 2026.10.10 Sensor Watch was its own integration, Casa Mia Sensor
+   Watch; Casa Mia takes its entities over, same entity ids, and removes it.)
 3. Open **Sensor Watch** in the Casa Mia panel and choose what to watch.
 
 ## Worked examples
@@ -199,6 +202,31 @@ the room is warm.
 2. Bands are suggested from its history; or **Follows** *Room temperature (°C)* from the
    library. A room under 16 °C is a task, under 12 °C a warning.
 
+### A hot tub: its reminders, its water and its errors
+
+A spa run by a Gecko controller (in.touch2) comes into Home Assistant through the
+[Gecko integration](https://github.com/gazoodle/gecko-home-assistant), and it keeps
+reminders of its own: **Rinse filter**, **Clean filter**, **Change water**, **Check spa**,
+**Change ozonator** and **Change Vision cartridge**, each a date entity saying when it's
+due. Sensor Watch reads a date as the days until it, so:
+
+1. **Groups → + New group**: *Spa reminders*, domain *date* (and the spa's device, or
+   a search for "due"), members follow **the defaults, by what it is**, which for a date
+   is **Reminder due (days)**: a task in the fortnight before, a warning in its week, an
+   error once it's passed, critical a month after. Or follow that profile from the
+   library, under Reminders and due dates.
+2. **The water:** watch the spa's water temperature (its temperature sensor, or the
+   thermostat's `current_temperature` attribute) with bands: say under 35 °C a task
+   ("Spa cooling: is it heating?") and under 30 °C a warning. A hold-off of half an hour
+   lets a lid left open off.
+3. **Its errors:** watch the spa's **Error(s)** sensor by exact states: *None* nominal,
+   anything else an error. The row and the notification show the spa's own words.
+
+With the Notify on Sensor Watch blueprint at *Task*, the phone says "🔵 Rinse filter due:
+task" a fortnight out, and the card shows it until the filter is rinsed and the date set
+again (on the spa, or the date entity in Home Assistant). They're judged every ten minutes
+as time passes, so a reminder comes due without anything in Home Assistant changing.
+
 ### The security light that stayed on
 
 **Security light on too long** (under Outdoors and garden) is a warning when the light
@@ -230,8 +258,19 @@ watched one by one; the sort applies within each.
 
 **Disabled** in a watch's editor keeps it, with its levels and its group, but stops
 watching it: no level, no event, not counted. Disabled ones are listed together at the
-foot, greyed; untick it to watch it again, back in its group. Handy for a sensor that's
+foot, greyed, each with an **Enable** chip that watches it again, back in its group
+(or untick Disabled in its editor). Handy for a sensor that's
 being repaired, or a screenshot.
+
+A pill showing **…** has no level yet: its entity was unavailable when Home Assistant
+started and is waiting out its hold-off, or it's unavailable and set to Ignore. Its first
+real reading gives it a level at once. While any have none, the top of the page says how
+many ("2 with no level yet").
+
+**Refresh state** (top right) has Casa Mia's integration fetch the watches again and
+judge every one afresh, as at Home Assistant's start: for when a level looks stuck. The
+same is the **Refresh state** button on the Sensor Watch device in Home Assistant, and the
+`casa_mia.sensor_watch_refresh` action for automations.
 
 The list is live: a value or level changes on the page the moment Home Assistant has it
 (the app holds a subscription, as a dashboard does). A level waits out its hold-off
@@ -243,6 +282,11 @@ first, so set it to 0 while trying a sensor out.
 
 Any entity can be watched: a sensor, but also an `input_number` you type a reading into
 (a pool's pH from a test strip), a `number`, a `switch` that should stay on, a `select`.
+A **date** (a reminder's due date, a `date` entity, a timestamp sensor) is read as the days
+until it, negative once it's passed, so its bands are days (**A date: days until it**
+under the bands; a `date` entity starts that way, with Reminder due's bands). Sensor Watch
+judges date watches again every ten minutes, as a date comes due without its state
+changing.
 How it's watched follows its state: a number gets bands, `on` and `off` get on/off, and
 anything else exact states.
 
@@ -378,7 +422,8 @@ and where its numbers come from:
 - **Broadband:** a speed test's download against your plan (ADSL, FTTC 40 and 80, fibre
   100 to 900, Starlink 100 to 300): fine at 70% of the plan, a warning under half.
 - **Water:** pool or hot tub pH, free chlorine for a pool and a hot tub, hot tub bromine,
-  a tropical or cold-water aquarium, a water softener's salt.
+  a tropical or cold-water aquarium, a water softener's salt (from a [Salt Sentry][salt-sentry],
+  say).
 - **Indoor air:** CO₂, humidity, PM2.5, radon.
 - **Cold and hot storage:** freezer, fridge, hot water cylinder.
 - **Heating:** boiler pressure, room temperature.
@@ -386,6 +431,11 @@ and where its numbers come from:
 - **Computers and network:** Wi-Fi signal, CPU temperature, CPU and memory use, disk
   use. (A host's CPU and memory as entities: Home Assistant's System Monitor
   integration, or the Supervisor integration's per-app sensors; both start disabled.)
+- **Reminders and due dates:** a date something is due, as days until it (a spa's
+  filter, a service, a renewal).
+- **Electric cars:** by each maker's everyday advice: an 80% daily limit (Tesla,
+  Volkswagen, Hyundai, Kia, BMW, Mercedes, GM), a 90% one (Polestar, Ford Mach-E), and
+  LFP packs (happy at 100%). Above the daily limit is a trip charge, a warning.
 
 Nothing starts ticked: search (a country, "voltage", "pH") and tick what you have.
 
@@ -435,6 +485,9 @@ hold-off, how long a new level must last before it counts.
 | Opening (on/off) | Doors, windows and covers | on/off | off nominal · on task; after 1 min |
 | Window (on/off) | Doors, windows and covers | on/off | off nominal · on task; after 1 min |
 | Window or cover: closed (states) | Doors, windows and covers | exact states | closed nominal · else task; after 1 min |
+| Electric car battery, 80% daily (%) | Electric cars | bands | under 10 error · 10–20 task · 20–80 nominal · 80 and over warning; after 10 min |
+| Electric car battery, 90% daily (%) | Electric cars | bands | under 10 error · 10–20 task · 20–90 nominal · 90 and over warning; after 10 min |
+| Electric car battery, LFP (%) | Electric cars | bands | under 10 error · 10–20 task · 20 and over nominal; after 10 min |
 | Boiler pressure (bar) | Heating | bands | under 0.5 error · 0.5–1 task · 1–2 nominal · 2–2.5 task · 2.5 and over warning; after 30 min |
 | Room temperature (°C) | Heating | bands | under 12 warning · 12–16 task · 16–25 nominal · 25–28 task · 28 and over warning; after 30 min |
 | Indoor CO2 (ppm) | Indoor air | bands | under 380 task · 380–1000 nominal · 1000–1500 task · 1500–2500 warning · 2500 and over error; after 15 min |
@@ -465,6 +518,7 @@ hold-off, how long a new level must last before it counts.
 | Security light on too long (on/off) | Outdoors and garden | on/off | off nominal · on warning; after 30 min |
 | Soil moisture (%) | Outdoors and garden | bands | under 15 warning · 15–20 task · 20–60 nominal · 60–80 task · 80 and over warning; after 1 h |
 | Unheated space, pipes (°C) | Outdoors and garden | bands | under 0 error · 0–3 warning · 3 and over nominal; after 30 min |
+| Reminder due (days) | Reminders and due dates | bands | under -30 critical · -30–0 error · 0–7 warning · 7–14 task · 14 and over nominal; at once |
 | Carbon monoxide (on/off) | Safety | on/off | off nominal · on critical; at once |
 | Gas (on/off) | Safety | on/off | off nominal · on critical; at once |
 | Leak (on/off) | Safety | on/off | off nominal · on critical; at once |
@@ -484,6 +538,12 @@ hold-off, how long a new level must last before it counts.
 <!-- end of library table -->
 
 </details>
+
+**In a watch's editor,** Follows offers the library too, under your own profiles: the
+ones that might suit this sensor, best first (by what it is, its unit, and the words in
+its name: a freezer finds Freezer, a spa's pH finds the pH profiles, a date finds
+Reminder due). Choosing one takes it into your profiles and has the sensor follow it,
+in one go; one you already have by that name is used as it is, never replaced.
 
 **Duplicate…** in a profile's editor starts a new one from its levels, to change what differs:
 one room temperature profile per floor, say, as each floor up runs a little warmer.
@@ -625,13 +685,13 @@ actions:
 
 ### The List service
 
-`casa_mia_sensor_watch.list` returns every watched sensor at the levels you ask for
+`casa_mia.sensor_watch_list` returns every watched sensor at the levels you ask for
 (everything that isn't nominal by default), worst first, then longest standing; use it
 with a response variable and loop over it in a template:
 
 ```yaml
 actions:
-  - action: casa_mia_sensor_watch.list
+  - action: casa_mia.sensor_watch_list
     data:
       levels: [warning, error, critical]
     response_variable: watch
@@ -661,6 +721,8 @@ garnish heading ("Needs looking at") and the panel appears only when something d
 
 ## Thanks
 
-To **Erik Lemcke** for the [Salt Sentry](https://www.tindie.com/products/ErikLemcke/salt-sentry-water-softener-monitor/),
+To **Erik Lemcke** for the [Salt Sentry][salt-sentry],
 the little laser-ranging gadget that tells Home Assistant how much salt is left in the
 water softener, and the example that gave Sensor Watch its **task** level.
+
+[salt-sentry]: https://www.tindie.com/products/ErikLemcke/salt-sentry-water-softener-monitor/

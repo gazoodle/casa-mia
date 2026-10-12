@@ -5,9 +5,11 @@
 import { Fragment, useMemo, useState } from "react";
 import { Empty } from "../page";
 import { FilterChips, KINDS, LevelChips, type ChipOptions, type Choice } from "./chips";
-import { LEVELS, LEVEL_NAMES, NO_FILTERS, searched, summary, type Filters, type Group, type Level, type LevelsView, type WatchRecord, FITS, type Profile } from "./common";
+import { LEVELS, LEVEL_NAMES, NO_FILTERS, dueValue, searched, summary, type Filters, type Group, type Level, type LevelsView, type WatchRecord, FITS, type Profile } from "./common";
 import css from "./sensor-watch.module.css";
 import ui from "../ui.module.css";
+import { confirmBox } from "../confirm";
+import { Select } from "../controls";
 
 const PAGE = 200; // rows drawn, then "Show more" at the foot of the box
 const MANUAL = "Manual"; // the heading for those watched one by one, not by a group
@@ -51,6 +53,7 @@ export function WatchedList({
   setFilters,
   onFollow,
   onEdit,
+  onEnable,
   onStop,
   onStopMany,
 }: {
@@ -65,6 +68,8 @@ export function WatchedList({
   /** These watched sensors follow that profile. */
   onFollow: (rs: WatchRecord[], profile: Profile) => void;
   onEdit: (r: WatchRecord) => void;
+  /** Watch a disabled one again. */
+  onEnable: (r: WatchRecord) => void;
   onStop: (r: WatchRecord) => void;
   /** Stop watching these (already confirmed by the user). */
   onStopMany: (rs: WatchRecord[]) => void;
@@ -213,22 +218,31 @@ export function WatchedList({
                   {heading && (
                     <h4 className={`${css.category} ${css.sectionHead}`}>
                       <button type="button" className={css.fold} aria-expanded={!isFolded(r)} onClick={() => fold(section(r))}>
-                        <span className={css.foldMark}>{isFolded(r) ? "▸" : "▾"}</span> {section(r)} · {inSection[section(r)]}
+                        {section(r)} <span className={ui.count}>{inSection[section(r)]}</span>
                       </button>
                     </h4>
                   )}
                   {!isFolded(r) && (
                 <div className={`${css.row} ${css.compact} ${r.disabled ? css.off : ""}`}>
-                  <span className={`${css.level} ${css[`lv_${r.disabled ? "none" : (now?.level ?? "none")}`]}`}>
-                    {r.disabled ? "Disabled" : now ? LEVEL_NAMES[now.level] : "…"}
-                  </span>
+                  {r.disabled ? (
+                    <button
+                      type="button"
+                      className={`${css.followers} ${css.enable}`}
+                      onClick={() => onEnable(r)}
+                      aria-label={`Watch ${r.label} again`}
+                    >
+                      Enable
+                    </button>
+                  ) : (
+                    <span className={`${css.level} ${css[`lv_${now?.level ?? "none"}`]}`}>{now ? LEVEL_NAMES[now.level] : "…"}</span>
+                  )}
                   <span className={css.what}>
                     <span className={css.nameLine}>
                       <strong>{r.label}</strong> <code>{r.entity_id}</code>
                       {r.attribute && <span className={css.note}> · its {r.attribute}</span>}
                     </span>
                     <span className={css.note}>
-                      {now && !r.disabled ? `${now.value ?? "?"}${now.message ? ` · ${now.message}` : ""} · ` : ""}
+                      {now && !r.disabled ? `${r.days_until && now.value ? dueValue(now.value) : (now.value ?? "?")}${now.message ? ` · ${now.message}` : ""} · ` : ""}
                       {summary(r)}
                       {r.meta?.area && ` · ${r.meta.area}`}
                       {r.profile && ` · follows ${profiles.find((p) => p.id === r.profile)?.name ?? "a profile"}`}
@@ -258,16 +272,16 @@ export function WatchedList({
       </div>
       <div className={css.bulk}>
         {profiles.length > 0 && rows.length > 0 && (
-          <select
+          <Select
             className={css.profilePick}
             value=""
             aria-label="Follow a profile"
-            onChange={(e) => {
-              const p = profiles.find((x) => x.id === e.target.value);
+            onChange={async (picked) => {
+              const p = profiles.find((x) => x.id === picked);
               if (!p) return;
               const fit = rows.filter((r) => (FITS[r.meta?.kind ?? r.kind] ?? []).includes(p.kind));
               const skipped = rows.length - fit.length;
-              if (confirm(`Have ${fit.length} sensors follow ${p.name}?${skipped ? ` ${skipped} others can't (a different kind).` : ""} Their own levels are replaced.`))
+              if ((await confirmBox(`Have ${fit.length} sensors follow ${p.name}?${skipped ? ` ${skipped} others can't (a different kind).` : ""} Their own levels are replaced.`, { action: "Follow it" })))
                 onFollow(fit, p);
             }}
           >
@@ -277,19 +291,19 @@ export function WatchedList({
                 {p.name}
               </option>
             ))}
-          </select>
+          </Select>
         )}
         {filtering && rows.length > 0 && rows.length < records.length && (
           <button
             className={`${ui.danger} ${ui.small}`}
-            onClick={() => confirm(`Stop watching the ${rows.length} sensors shown?`) && onStopMany(rows)}
+            onClick={async () => (await confirmBox(`Stop watching the ${rows.length} sensors shown?`, { action: "Stop watching", danger: true })) && onStopMany(rows)}
           >
             Stop watching these {rows.length}
           </button>
         )}
         <button
           className={`${ui.danger} ${ui.small}`}
-          onClick={() => confirm(`Stop watching all ${records.length} sensors? Their bands are forgotten.`) && onStopMany(records)}
+          onClick={async () => (await confirmBox(`Stop watching all ${records.length} sensors? Their bands are forgotten.`, { action: "Stop watching all", danger: true })) && onStopMany(records)}
         >
           Stop watching all {records.length}
         </button>

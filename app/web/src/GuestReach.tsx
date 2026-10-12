@@ -7,6 +7,7 @@ import { AreaHead, Empty } from "./page";
 import { type Toast } from "./ui";
 import css from "./guest.module.css";
 import ui from "./ui.module.css";
+import { confirmBox } from "./confirm";
 
 const CAVEAT =
   "This changes Home Assistant itself, through its websocket. If that dashboard or user is open for editing elsewhere (a dashboard editor in another tab), unsaved changes there may be lost, or may undo this.";
@@ -15,7 +16,7 @@ export function ReachArea({ toast }: { toast: (text: string, tone?: Toast["tone"
   const [reach, setReach] = useState<Reach[]>();
   const [busy, setBusy] = useState(false);
   const fix = async (what: ReachFix, question: string) => {
-    if (!confirm(`${question}\n\n${CAVEAT}`)) return;
+    if (!(await confirmBox(`${question}\n\n${CAVEAT}`, { action: "Change it" }))) return;
     setBusy(true);
     try {
       const out = await post<{ done: string; logins: Reach[] }>("reach/fix", what);
@@ -106,8 +107,8 @@ function ReachCard({
         </ul>
       )}
       {r.dashboards.length > 0 && (
-        <button className={`${ui.button} ${ui.small} ${css.reachToggle}`} onClick={() => setOpen(!open)}>
-          {open ? "Hide dashboards" : `Dashboards it can open (${r.dashboards.length})`}
+        <button className={`${ui.fold} ${css.reachToggle}`} aria-expanded={open} onClick={() => setOpen(!open)}>
+          Dashboards it can open <span className={ui.count}>{r.dashboards.length}</span>
         </button>
       )}
       {open && (

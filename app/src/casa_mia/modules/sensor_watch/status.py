@@ -9,11 +9,11 @@ import threading
 from typing import Any
 
 from ...ha import HA, HAError
-from .common import DOMAIN, LEVELS
+from .common import LEVELS, SERVICE
 
 _LOGGER = logging.getLogger(__name__)
 
-MISSING = "Add the Casa Mia Sensor Watch integration to see the levels."
+MISSING = "Restart Home Assistant (with Sensor Watch on) to see the levels: Casa Mia's integration watches them."
 
 
 def summarise(response: dict[str, Any]) -> dict[str, Any]:
@@ -59,8 +59,8 @@ class Status:
             (result,) = self.ha.call(
                 {
                     "type": "call_service",
-                    "domain": DOMAIN,
-                    "service": "list",
+                    "domain": SERVICE[0],
+                    "service": SERVICE[1],
                     "service_data": {"levels": list(LEVELS)},
                     "return_response": True,
                 }

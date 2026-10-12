@@ -2,7 +2,7 @@
 import { counts, cardPath, inTablet, setGarnish } from "./garnish.ts";
 import { TYPE as OVER_LAYER } from "./over-layer/common.ts";
 import { garnishEverywhere } from "./garnish-sections.ts";
-import { HOVER } from "./ha.ts";
+import { PILLS_TEXT } from "./pills.ts";
 
 // The sprig sits on the card's bottom-right border, clear of headings (which start top
 // left), HA's card menu (top right) and the panel's toolbar: out of the way of what is arranged,
@@ -16,20 +16,12 @@ const TIP = {
   garnish: "Garnish: adornment, like a heading, that never holds its panel open; the panel hides when only garnish is left. Tap to make it content.",
 };
 const STYLE = new CSSStyleSheet();
-STYLE.replaceSync(`
+STYLE.replaceSync(`${PILLS_TEXT}
+  /* The sprig is a round icon chip (tl-sprig): outlined for content, filled for garnish. */
   .cm-garnish {
     position: absolute; bottom: -13px; right: 4px; z-index: 3;
-    padding: 0; border: none; background: none; cursor: pointer;
+    --tone: var(--primary-color);
   }
-  .cm-garnish .cm-sprig {
-    display: block; box-sizing: border-box; width: 26px; height: 26px; padding: 4px; border-radius: 50%;
-    border: 1px solid var(--primary-color); color: var(--primary-color);
-    background: var(--card-background-color, #fff); opacity: 0.6;
-    transition: opacity 0.15s, box-shadow 0.15s, filter 0.15s;
-  }
-  .cm-garnish:hover .cm-sprig, .cm-garnish:focus-visible .cm-sprig { opacity: 1; ${HOVER} }
-  .cm-garnish svg { display: block; width: 16px; height: 16px; fill: currentColor; }
-  .cm-garnish[aria-pressed="true"] .cm-sprig { opacity: 1; color: var(--text-primary-color, #fff); background: var(--primary-color); }
   .cm-garnish-frame {
     position: absolute; inset: 0; z-index: 2; pointer-events: none;
     border: 2px dashed var(--primary-color); border-radius: var(--ha-card-border-radius, 12px);
@@ -60,8 +52,8 @@ customElements.whenDefined("hui-card-edit-mode").then(() => {
     if (!chip) {
       chip = document.createElement("button");
       chip.type = "button";
-      chip.className = "cm-garnish";
-      chip.innerHTML = `<span class="cm-sprig"><svg viewBox="0 0 24 24"><path d="${LEAF}"/></svg></span>`;
+      chip.className = "cm-garnish cm-chip cm-icon";
+      chip.innerHTML = `<svg viewBox="0 0 24 24"><path d="${LEAF}"/></svg>`;
       chip.addEventListener("pointerdown", (ev) => ev.stopPropagation()); // no card drag on a tap
       chip.addEventListener("click", async (ev) => {
         ev.stopPropagation();
@@ -87,6 +79,7 @@ customElements.whenDefined("hui-card-edit-mode").then(() => {
     }
     const garnish = !counts(card);
     chip.setAttribute("aria-pressed", String(garnish));
+    chip.classList.toggle("cm-on", garnish);
     chip.title = TIP[garnish ? "garnish" : "content"];
     chip.setAttribute("aria-label", chip.title);
     this.classList.toggle("cm-garnished", garnish);

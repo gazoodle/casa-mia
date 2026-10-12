@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pills and Chips</title>
+<!-- The live files: the colours (and the admin UI's base) and the pills and chips themselves.
+     Open this page from a checkout, so these relative links resolve. -->
+<link rel="stylesheet" href="../../app/web/src/styles.css">
+<link rel="stylesheet" href="../../app/web/src/pills.css">
+<style>
+/* HA's colours, for the cards' rows. */
+:root { --primary-color: #03a9f4; --warning-color: #ffa600; --error-color: #db4437; --success-color: #43a047; }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 24px 16px 60px; background: var(--bg); color: var(--text); font: 14px/1.45 var(--font); }
+main { max-width: 1200px; margin: 0 auto; }
+h1 { margin: 0 0 4px; font-size: 24px; }
+h2 { margin: 36px 0 6px; font-size: 18px; }
+p.lede, p.note { margin: 0 0 12px; color: var(--muted); max-width: 75ch; }
+.bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: middle; }
+tr:last-child td { border-bottom: 0; }
+th { color: var(--muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+td code { font: 12px var(--mono); color: var(--muted); }
+td.ex { min-width: 320px; }
+td.ex > * { margin: 3px 8px 3px 0; }
+.spec { font: 11.5px var(--mono); color: var(--muted); }
+tr.std td { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.cell { display: inline-block; width: 104px; } /* a fixed-width grid column, as Sensor Watch's rows */
+.ha { padding: 8px 10px; border-radius: 10px; background: #fff; color: #212121; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+@media (prefers-color-scheme: dark) { .ha { background: #1c1c1c; color: #e1e1e1; } }
+
+/* ===== Before (2026.10.10-b6), copied as they were, for the record ===== */
+.sw-level { box-sizing: border-box; width: 104px; overflow: hidden; padding: 2px 6px; border-radius: 999px; background: color-mix(in srgb, currentColor 14%, transparent); font-size: 13px; font-weight: 600; font-variant-caps: all-small-caps; text-align: center; text-overflow: ellipsis; white-space: nowrap; display: inline-block; }
+.lv_nominal { color: var(--good); } .lv_task { color: var(--accent); } .lv_warning { color: var(--warn); }
+.lv_error { color: var(--bad); } .lv_critical { color: var(--on-accent); background: var(--bad); } .lv_none { color: var(--muted); }
+
+.app-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; background: color-mix(in srgb, currentColor 14%, transparent); font-size: 12px; font-weight: 600; white-space: nowrap; }
+.app-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.c-good { color: var(--good); } .c-warn { color: var(--warn); } .c-bad { color: var(--bad); } .c-muted { color: var(--muted); }
+
+.guest-offChip { padding: 3px 10px; border-radius: 999px; background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); font-size: 12px; font-weight: 600; }
+.cam-problemCount { padding: 1px 8px; border-radius: 999px; background: color-mix(in srgb, var(--bad) 18%, transparent); color: var(--bad); font-size: 12px; font-weight: 600; }
+.guest-badge { padding: 1px 8px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); font-size: 11px; font-weight: 600; }
+.guest-badgeEng { padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; background: color-mix(in srgb, var(--bark) 20%, transparent); color: var(--bark); }
+.guest-reach { padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.reachBad { background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad); }
+.reachGood { background: color-mix(in srgb, var(--good) 14%, transparent); color: var(--good); }
+.guest-auditNote { display: inline-block; width: 84px; padding: 1px 0; border-radius: 999px; font-size: 11.5px; font-weight: 600; text-align: center; }
+.auditOk { background: color-mix(in srgb, var(--good) 16%, transparent); color: var(--good); }
+.auditBad { background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad); }
+.auditNote { background: color-mix(in srgb, var(--muted) 14%, transparent); color: var(--muted); }
+.pipe-state { padding: 1px 8px; border-radius: 999px; background: color-mix(in srgb, var(--muted) 18%, transparent); color: var(--muted); font-size: 11px; white-space: nowrap; }
+.kiosks-version { padding: 1px 8px; border-radius: 999px; background: color-mix(in srgb, var(--good) 14%, transparent); color: var(--good); font-family: var(--mono); font-size: 12px; }
+.kiosks-release { display: inline-block; padding: 1px 9px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); font-weight: 600; text-decoration: none; white-space: nowrap; }
+.set-devChip { padding: 2px 10px; border-radius: 999px; background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.mat-chip { --tone: var(--muted); display: inline-block; padding: 1px 8px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--tone) 55%, transparent); color: var(--tone); font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+.m-dev { --tone: var(--bad); } .m-alpha { --tone: var(--warn); } .m-beta { --tone: var(--accent); } .m-rel { --tone: var(--good); }
+.guest-view { max-width: 100%; padding: 1px 8px; border: 1px solid var(--border); border-radius: 999px; font-size: 12px; overflow-wrap: anywhere; }
+
+.sw-chip { padding: 4px 11px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: inherit; font: inherit; font-size: 12.5px; white-space: nowrap; cursor: pointer; }
+.sw-chip:hover { background: var(--surface-2); }
+.sw-chipOn { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); font-weight: 600; }
+.sw-chip.lvOn { border-color: currentColor; background: color-mix(in srgb, currentColor 18%, transparent); font-weight: 600; }
+.chip_nominal { color: var(--good); } .chip_task { color: var(--accent); } .chip_warning { color: var(--warn); } .chip_error { color: var(--bad); }
+.cam-chip { display: inline-flex; align-items: center; gap: 2px; padding: 2px 4px 2px 2px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-2); font-size: 13px; }
+.cam-chipTool { padding: 0 5px; border: 0; background: none; color: var(--muted); cursor: pointer; font: inherit; }
+.cam-chipTool:hover { color: var(--accent); }
+.km-userButton { max-width: 150px; overflow: hidden; padding: 3px 10px; border: 1px dashed color-mix(in srgb, var(--accent) 60%, var(--border)); border-radius: 999px; background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--accent); font: inherit; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+
+/* Cards (Lit, inside HA) */
+.card-level { padding: 1px 8px; border-radius: 10px; background: var(--cm-level); color: #fff; font-size: 12px; text-transform: capitalize; }
+.cl-task { --cm-level: var(--primary-color); } .cl-warning { --cm-level: var(--warning-color); } .cl-error { --cm-level: var(--error-color); }
+.cl-critical { --cm-level: var(--error-color); font-weight: 700; }
+.ol-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font: 11px/16px var(--mono); color: #fff; background: var(--primary-color); }
+.po-act { font: inherit; font-size: 13px; padding: 4px 12px; border-radius: 16px; border: 1px solid var(--primary-color); background: none; color: var(--primary-color); cursor: pointer; }
+
+/* ===== Hover and focus, drawn as a state: the same declarations as pills.css's :hover,
+   for showing them still (the real hover, on pointing, is pills.css's own) ===== */
+.cm-chip.is-hover, .cm-chip.is-focus {
+  box-shadow: inset 0 0 0 1px var(--tone, var(--muted)), 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); filter: brightness(1.08);
+}
+.cm-chip.cm-on.is-hover, .cm-chip.cm-quiet.is-hover { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); }
+.sw-chip.is-hover { background: var(--surface-2); }
+.cam-chipTool.is-hover { color: var(--accent); }
+.kiosks-release.is-hover, .kiosks-release:hover { background: color-mix(in srgb, var(--accent) 26%, transparent); }
+.states { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.states small { color: var(--muted); font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; }
+
+/* ===== Animations today ===== */
+.app-chip.c-good .app-dot { box-shadow: 0 0 0 0 currentColor; animation: pulse 2.4s ease-out infinite; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 60%, transparent); } 70%, 100% { box-shadow: 0 0 0 6px transparent; } }
+.swatch { --cm-pulse: 2s; --cm-blur: 12px; --cm-colour: #ff9f0a; display: inline-block; width: 96px; height: 54px; border-radius: 2px; background: #223; }
+.breathe { animation: breathe var(--cm-pulse) ease-in-out infinite; }
+.ripple { animation: ripple var(--cm-pulse) ease-out infinite; }
+@keyframes breathe { 0%, 100% { box-shadow: 0 0 calc(var(--cm-blur) / 4) 0 color-mix(in srgb, var(--cm-colour) 30%, transparent); } 50% { box-shadow: 0 0 var(--cm-blur) 2px color-mix(in srgb, var(--cm-colour) 70%, transparent); } }
+@keyframes ripple { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--cm-colour) 60%, transparent); } 70%, 100% { box-shadow: 0 0 0 max(6px, var(--cm-blur)) transparent; } }
+.motionDot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #ff3b30; animation: motion-pulse 1.5s ease-out infinite; }
+@keyframes motion-pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 59, 48, .7); } 100% { box-shadow: 0 0 0 9px rgba(255, 59, 48, 0); } }
+/* The Home tile's lamp in a pill (app.module.css .dot); .live pulses */
+.cm-pill .dot { display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: currentColor; vertical-align: 1px; }
+.cm-pill.live .dot { animation: pulse 2.4s ease-out infinite; }
+.cm-pill:has(.dot) { overflow: visible; }
+@media (prefers-reduced-motion: reduce) { .app-dot, .cm-pill .dot, .breathe, .ripple, .motionDot { animation: none !important; } }
+td.id { white-space: nowrap; }
+td.id b { font: 600 12.5px var(--mono); color: var(--accent); }
+tr:target td { background: color-mix(in srgb, var(--warn) 14%, transparent); }
+
+/* ===== Tablet Layout editor (view/styles.ts, garnish-editor.ts), verbatim; HOVER from ha.ts ===== */
+.tl { --primary-color: #03a9f4; --text-primary-color: #fff; --card-background-color: #fff; --secondary-text-color: #727272; color: #212121; }
+.tl-btn { font: inherit; font-size: 12px; font-weight: 500; line-height: 16px; padding: 3px 10px; border: none; border-radius: 12px; color: var(--text-primary-color, #fff); background: var(--primary-color); cursor: pointer; white-space: nowrap; transition: box-shadow .15s, filter .15s; }
+.tl-chip { letter-spacing: .04em; text-transform: uppercase; }
+.tl-tool { padding: 3px 8px; }
+.tl-btn[disabled] { opacity: .4; cursor: default; }
+.tl-end { letter-spacing: .04em; text-transform: uppercase; }
+.tl-line { letter-spacing: .04em; text-transform: uppercase; font-size: 10px; padding: 1px 6px; }
+.tl-lock { width: 26px; height: 26px; padding: 4px; border-radius: 50%; border: 1px solid var(--primary-color); color: var(--primary-color); background: var(--card-background-color, #fff); display: inline-flex; align-items: center; justify-content: center; }
+.tl-lock.on { color: var(--text-primary-color, #fff); background: var(--primary-color); }
+.tl-lock svg, .tl-sprig svg { width: 16px; height: 16px; fill: currentColor; display: block; }
+.tl-dim { font: 11px/14px var(--mono); padding: 1px 6px; border: 1px solid currentColor; border-radius: 8px; color: var(--primary-color); background: var(--card-background-color, #fff); cursor: pointer; white-space: nowrap; transition: box-shadow .15s, filter .15s; }
+.tl-size { border-color: transparent; color: var(--secondary-text-color); background: color-mix(in srgb, var(--card-background-color, #fff) 80%, transparent); }
+.tl-sprig { display: inline-block; box-sizing: border-box; width: 26px; height: 26px; padding: 4px; border-radius: 50%; border: 1px solid var(--primary-color); color: var(--primary-color); background: var(--card-background-color, #fff); opacity: .6; cursor: pointer; transition: opacity .15s, box-shadow .15s, filter .15s; }
+.tl-sprig.on { opacity: 1; color: var(--text-primary-color, #fff); background: var(--primary-color); }
+.tl-btn:not([disabled]):hover, .tl-btn.is-hover, .tl-dim:hover, .tl-dim.is-hover,
+.tl-sprig:hover, .tl-sprig.is-hover { box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 35%, transparent); filter: brightness(1.08); }
+.tl-sprig:hover, .tl-sprig.is-hover { opacity: 1; }
+/* The cards' own: the Tablet Layout's marks in the theme's colour (view/styles.ts), its
+   + and arrows narrower, and HA's colours under the tokens (pills.ts). */
+.tl .cm-chip, .tl .cm-pill { --tone: var(--primary-color); }
+.tl, .ha { --surface: var(--card-background-color, #fff); --muted: var(--secondary-text-color, #727272); --accent: var(--primary-color); --on-accent: #fff; --good: var(--success-color); --warn: var(--warning-color); --bad: var(--error-color); }
+.ha { --card-background-color: #fff; --secondary-text-color: #727272; }
+@media (prefers-color-scheme: dark) { .ha { --card-background-color: #1c1c1c; --secondary-text-color: #9e9e9e; } }
+.cm-tool { padding: 3px 8px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="bar">
+    <div>
+      <h1>Pills and chips</h1>
+      <p class="lede"><b>The standard, agreed 2026-10-12 and in use from 2026.10.10-b7.</b> Its one source is <code>app/web/src/pills.css</code>, which this page links: the standard and every <b>Now</b> column below are drawn by that file itself, so this page cannot drift from it. The admin UI's modules compose its classes; the cards and the Tablet Layout editor take it in through <code>integration/cards/src/pills.ts</code>, with HA's colours.</p>
+      <p class="lede">A <b>pill</b> shows a state; a <b>chip</b> is pressed. Each style has an <b>Id</b> to name it by; <code>pills-and-chips.html#sw-chip</code> jumps to and highlights its row. The <b>Before</b> columns are how each looked until then, copied, for the record. Hover and focus are drawn as states too, not only on hover. Light or dark follows your system setting, as the admin UI does. Example text is invented.</p>
+    </div>
+    
+  </div>
+
+  <h2>The standard</h2>
+  <p class="note">Colour comes from <code>--tone</code>: a tone class (<code>cm-good</code>, <code>cm-accent</code>, <code>cm-warn</code>, <code>cm-bad</code>, <code>cm-muted</code>, <code>cm-bark</code>) or a module's own. With none, a pill and an unpressed chip are muted, and a pressed chip takes the accent. A module composes the classes (<code>composes: cm-pill cm-fixed from global</code>) and adds only its tone or layout.</p>
+  <div class="wrap"><table>
+    <tr><th>Id</th><th>Rule</th><th>Use</th><th>Examples</th><th>Spec</th></tr>
+    <tr id="pill" class="std"><td class="id"><b>pill</b></td><td><b>.cm-pill</b></td><td>Status: a level, a count, a state</td><td class="ex">
+      <span class="cm-pill cm-good">nominal</span><span class="cm-pill cm-accent">task</span><span class="cm-pill cm-warn">warning</span><span class="cm-pill cm-bad">error</span><span class="cm-pill cm-muted">3 with no level yet</span><span class="cm-pill cm-bark">eng</span>
+    </td><td class="spec">10px UPPERCASE 600 .04em (as a chip), line 16px, 3/9, radius 12, tone 14%; 22px tall, as a chip</td></tr>
+    <tr id="pill-filled" class="std"><td class="id"><b>pill-filled</b></td><td><b>.cm-pill.cm-filled</b></td><td>The loudest state only</td><td class="ex">
+      <span class="cm-pill cm-filled cm-bad">critical</span>
+    </td><td class="spec">solid tone, on-accent text</td></tr>
+    <tr id="pill-outline" class="std"><td class="id"><b>pill-outline</b></td><td><b>.cm-pill.cm-outline</b></td><td>A quiet label (maturity)</td><td class="ex">
+      <span class="cm-pill cm-outline cm-bad">Development</span><span class="cm-pill cm-outline cm-warn">Alpha</span><span class="cm-pill cm-outline cm-accent">Beta</span><span class="cm-pill cm-outline cm-good">Released</span>
+    </td><td class="spec">tone 55% ring, no fill</td></tr>
+    <tr id="pill-fixed" class="std"><td class="id"><b>pill-fixed</b></td><td><b>.cm-pill.cm-fixed</b></td><td>In a row's column, so titles line up</td><td class="ex">
+      <span class="cm-pill cm-fixed cm-good">nominal</span><span class="cm-pill cm-fixed cm-warn">warning</span><span class="cm-pill cm-fixed cm-filled cm-bad">critical</span><span class="cm-pill cm-fixed cm-muted">disabled</span>
+    </td><td class="spec">width 104px, centred, ellipsis</td></tr>
+    <tr id="chip" class="std"><td class="id"><b>chip</b></td><td><b>.cm-chip</b> (<b>.cm-on</b> pressed)</td><td>Press: a filter, a choice, an action</td><td class="ex">
+      <span class="states"><small>rest</small><button class="cm-chip cm-muted">All 24</button></span><span class="states"><small>hover</small><button class="cm-chip cm-muted is-hover">All 24</button></span><span class="states"><small>pressed</small><button class="cm-chip cm-on cm-accent">Barn 6</button></span><span class="states"><small>pressed, hover</small><button class="cm-chip cm-on cm-accent is-hover">Barn 6</button></span><span class="states"><small>focus (keyboard)</small><button class="cm-chip cm-muted is-focus">All 24</button></span><span class="states"><small>level</small><button class="cm-chip cm-warn">warning 2</button></span><span class="states"><small>level, pressed</small><button class="cm-chip cm-on cm-warn">warning 2</button></span><span class="states"><small>action</small><button class="cm-chip cm-accent">Enable</button></span></td><td class="spec">10px UPPERCASE 500 .04em, line 16px, 3/10, radius 12 (the Tablet Layout's measure); off: tone ring, on: tone filled; hover and focus: a 3px accent ring at 35% (whatever the chip's colour), a touch brighter; disabled 40%. Variants (the Tablet Layout's): cm-icon, cm-mono, cm-quiet</td></tr>
+  </table></div>
+
+  <h2>Status pills (shown, not pressed)</h2>
+  <div class="wrap"><table>
+    <tr><th>Id</th><th>Rule</th><th>Where</th><th>Before (each tone it had)</th><th>Spec before</th><th>Now</th></tr>
+    <tr id="sw-level"><td class="id"><b>sw-level</b></td><td><code>sensor-watch .level</code> + <code>.lv_*</code></td><td>Sensor Watch: watched, profile and group rows</td><td class="ex">
+      <span class="sw-level lv_nominal">nominal</span><span class="sw-level lv_task">task</span><span class="sw-level lv_warning">warning</span><span class="sw-level lv_error">error</span><span class="sw-level lv_critical">critical</span><span class="sw-level lv_none">…</span>
+    </td><td class="spec">13px small caps 600, 2/6, 14%, fixed 104px</td><td><span class="cm-pill cm-fixed cm-warn">warning</span></td></tr>
+    <tr id="home-state"><td class="id"><b>home-state</b></td><td><code>app .chip</code> + <code>.dot</code></td><td>Home: each module tile's state</td><td class="ex">
+      <span class="app-chip c-good"><span class="app-dot"></span>Running</span><span class="app-chip c-warn"><span class="app-dot"></span>Starting</span><span class="app-chip c-bad"><span class="app-dot"></span>Failed</span><span class="app-chip c-muted"><span class="app-dot"></span>Off</span>
+    </td><td class="spec">12px 600, 3/10, 14%, margin-left auto</td><td><span class="cm-pill live cm-good"><span class="dot"></span>Running</span></td></tr>
+    <tr id="page-off"><td class="id"><b>page-off</b></td><td><code>guest .offChip</code></td><td>Every module page header (not running)</td><td class="ex"><span class="guest-offChip">stopped</span><span class="guest-offChip">off</span></td><td class="spec">12px 600, 3/10, warn 18%, margin-left auto</td><td><span class="cm-pill cm-warn">stopped</span></td></tr>
+    <tr id="cam-problems"><td class="id"><b>cam-problems</b></td><td><code>cameras .problemCount</code></td><td>Cameras: problems on a camera</td><td class="ex"><span class="cam-problemCount">2 problems</span></td><td class="spec">12px 600, 1/8, bad 18%</td><td><span class="cm-pill cm-bad">2 problems</span></td></tr>
+    <tr id="guest-tag"><td class="id"><b>guest-tag</b></td><td><code>guest .badge</code> / <code>.badgeEng</code></td><td>Guest login: code and language tags</td><td class="ex"><span class="guest-badge">admin</span><span class="guest-badge">Ann</span><span class="guest-badgeEng">eng</span></td><td class="spec">11px 600, 1/8, accent 16% / bark 20%</td><td><span class="cm-pill cm-accent">admin</span><span class="cm-pill cm-bark">eng</span></td></tr>
+    <tr id="guest-reach"><td class="id"><b>guest-reach</b></td><td><code>guest .reachGood</code> / <code>.reachBad</code></td><td>Guest login: reachable from outside</td><td class="ex"><span class="guest-reach reachGood">reachable</span><span class="guest-reach reachBad">not reachable</span></td><td class="spec">12px 600, 2/9, 14%</td><td><span class="cm-pill cm-good">reachable</span></td></tr>
+    <tr id="guest-audit"><td class="id"><b>guest-audit</b></td><td><code>guest .auditNote</code> + <code>.auditOk/Bad/Note</code></td><td>Guest login: audit rows</td><td class="ex"><span class="guest-auditNote auditOk">allowed</span><span class="guest-auditNote auditBad">refused</span><span class="guest-auditNote auditNote">note</span></td><td class="spec">11.5px 600, 1/0, 14–16%, fixed 84px</td><td><span class="cm-pill cm-fixed cm-bad">refused</span></td></tr>
+    <tr id="pipe-state"><td class="id"><b>pipe-state</b></td><td><code>pipeline .state</code></td><td>Compositor: pipeline stage state</td><td class="ex"><span class="pipe-state">idle</span><span class="pipe-state">waiting</span></td><td class="spec">11px <b>400</b>, 1/8, muted 18%</td><td><span class="cm-pill cm-muted">idle</span></td></tr>
+    <tr id="kiosk-version"><td class="id"><b>kiosk-version</b></td><td><code>kiosks .version</code></td><td>Kiosks: app version on a tablet</td><td class="ex"><span class="kiosks-version">2026.10.9</span></td><td class="spec">12px <b>mono</b> 400, 1/8, good 14%</td><td><span class="cm-pill cm-good" style="font-family:var(--mono);text-transform:none;letter-spacing:0">2026.10.9</span></td></tr>
+    <tr id="kiosk-release"><td class="id"><b>kiosk-release</b></td><td><code>kiosks .release</code></td><td>Kiosks: a release (link)</td><td class="ex"><span class="states"><small>rest</small><a class="kiosks-release" href="#">v1.4.0</a></span><span class="states"><small>hover / focus</small><a class="kiosks-release is-hover" href="#">v1.4.0</a></span></td><td class="spec">inherited size, 600, 1/9, accent 16%</td><td><a class="cm-chip cm-accent" href="#" style="text-decoration:none">v1.4.0</a></td></tr>
+    <tr id="dev-build"><td class="id"><b>dev-build</b></td><td><code>settings .devChip</code></td><td>Settings: a dev build</td><td class="ex"><span class="set-devChip">dev build</span></td><td class="spec">11px <b>700 UPPERCASE</b>, 2/10, warn 18%</td><td><span class="cm-pill cm-warn">dev build</span></td></tr>
+    <tr id="maturity"><td class="id"><b>maturity</b></td><td><code>maturity .chip</code> + tones</td><td>Every module page and option: maturity</td><td class="ex"><span class="mat-chip m-dev">Development</span><span class="mat-chip m-alpha">Alpha</span><span class="mat-chip m-beta">Beta</span><span class="mat-chip m-rel">Released</span></td><td class="spec">11.5px 600, 1/8, <b>outlined</b> --tone 55%</td><td><span class="cm-pill cm-outline cm-warn">Alpha</span></td></tr>
+    <tr id="guest-view"><td class="id"><b>guest-view</b></td><td><code>guest .view</code></td><td>Guest login: a code's view</td><td class="ex"><span class="guest-view">Oak Tree only</span></td><td class="spec">12px 400, 1/8, <b>outlined</b> border</td><td><span class="cm-pill cm-outline cm-muted">Oak Tree only</span></td></tr>
+  </table></div>
+
+  <h2>Chips (pressed)</h2>
+  <div class="wrap"><table>
+    <tr><th>Id</th><th>Rule</th><th>Where</th><th>Before</th><th>Spec before</th><th>Now</th></tr>
+    <tr id="sw-chip"><td class="id"><b>sw-chip</b></td><td><code>sensor-watch .chip</code> + <code>.chipOn</code> / <code>.chip_*</code> + <code>.levelOn</code></td><td>Sensor Watch: filters, group/profile pickers, Enable, the levelless count</td><td class="ex">
+      <span class="states"><small>rest</small><button class="sw-chip">All 24</button></span><span class="states"><small>hover</small><button class="sw-chip is-hover">All 24</button></span><span class="states"><small>pressed (no hover change)</small><button class="sw-chip sw-chipOn">Barn 6</button></span><button class="sw-chip chip_warning">warning 2</button><button class="sw-chip chip_warning lvOn">warning 2</button><button class="sw-chip chip_error">error 1</button><span class="sw-chip chip_warning" style="cursor:default">3 with no level yet</span>
+    </td><td class="spec">12.5px, 4/11, border, surface; hover surface-2; pressed has no hover change; no focus ring</td><td><button class="cm-chip cm-on cm-warn">warning 2</button></td></tr>
+    <tr id="sw-follow"><td class="id"><b>sw-follow</b></td><td><code>sensor-watch .followers</code> (+ <code>.enable</code>)</td><td>Sensor Watch: a profile's or group's "N following", a disabled watch's Enable, in the status pill's column</td><td class="ex"><span class="sw-level lv_none" style="text-decoration:underline;cursor:pointer">6 following</span><span class="sw-level lv_none" style="color:var(--accent);text-decoration:underline;cursor:pointer">enable</span></td><td class="spec">a status pill, underlined (pressable, but looked shown)</td><td><span class="cell"><button class="cm-chip" style="width:100%">6 following</button></span> <span class="cell"><button class="cm-chip cm-accent" style="width:100%">Enable</button></span></td></tr>
+    <tr id="cam-tag"><td class="id"><b>cam-tag</b></td><td><code>cameras .chip</code> + <code>.chipTool</code></td><td>Cameras: ordered tags with move/remove tools</td><td class="ex">
+      <span class="states"><small>rest</small><span class="cam-chip"><button class="cam-chipTool">‹</button>Barn door<button class="cam-chipTool">›</button><button class="cam-chipTool">×</button></span></span><span class="states"><small>hover × (only the tool changes)</small><span class="cam-chip"><button class="cam-chipTool">‹</button>Barn door<button class="cam-chipTool">›</button><button class="cam-chipTool is-hover">×</button></span></span>
+    </td><td class="spec">13px, 2/4/2/2, border, surface-2</td><td><span class="cm-chip cm-muted">‹ Barn door › ×</span></td></tr>
+    <tr id="km-user"><td class="id"><b>km-user</b></td><td><code>kiosk-mode .userButton</code></td><td>Kiosk mode: pick a user</td><td class="ex"><span class="states"><small>rest (no hover: does not react)</small><button class="km-userButton">Ann</button></span><button class="km-userButton">+ user</button></td><td class="spec">inherited size 600, 3/10, <b>dashed</b> accent</td><td><button class="cm-chip cm-accent">+ user</button></td></tr>
+  </table></div>
+
+  <h2>Animations today</h2>
+  <p class="note">All honour reduced motion. The Home tile's pulse is the one that belongs to a pill; the proposal keeps it as <code>pill-dot</code> with <code>.live</code>.</p>
+  <div class="wrap"><table>
+    <tr><th>Id</th><th>Rule</th><th>Where</th><th>Example</th><th>Spec</th></tr>
+    <tr id="anim-pulse"><td class="id"><b>anim-pulse</b></td><td><code>app .good .dot</code> + <code>@keyframes pulse</code></td><td>Home: a running module's dot</td><td><span class="app-chip c-good"><span class="app-dot"></span>Running</span></td><td class="spec">ring grows to 6px and fades, 2.4s</td></tr>
+    <tr id="anim-breathe"><td class="id"><b>anim-breathe</b></td><td><code>cameras .breathe</code></td><td>Cameras: highlight preview (as the dashboard draws it)</td><td><span class="swatch breathe"></span></td><td class="spec">glow swells and eases, --cm-pulse</td></tr>
+    <tr id="anim-ripple"><td class="id"><b>anim-ripple</b></td><td><code>cameras .ripple</code></td><td>Cameras: highlight preview</td><td><span class="swatch ripple"></span></td><td class="spec">ring grows to max(6px, blur), --cm-pulse</td></tr>
+    <tr id="anim-motion"><td class="id"><b>anim-motion</b></td><td><code>cameras .motionOn</code></td><td>Cameras: motion now</td><td><span class="motionDot"></span></td><td class="spec">red ring to 9px, 1.5s; fixed colour (not a token)</td></tr>
+  </table></div>
+
+  <h2>Tablet Layout editor (in Home Assistant, edit mode)</h2>
+  <p class="note">The view's own controls, drawn as HA draws them, in the theme's colour. The standard took its measure and hover from these (their hover was <code>HOVER</code> in <code>ha.ts</code>, now retired). Now: name, end and line chips are filled chips (<code>cm-on</code>), the + and arrows narrower (<code>cm-tool</code>); the padlock and sprig are round icon chips (<code>cm-icon</code>; the sprig no longer dim when off); dimension labels <code>cm-mono</code>, the size <code>cm-mono cm-quiet</code>.</p>
+  <div class="wrap"><table>
+    <tr><th>Id</th><th>Rule</th><th>Where</th><th>Before</th><th>Spec before</th><th>Now</th></tr>
+    <tr id="tl-panel"><td class="id"><b>tl-panel</b></td><td><code>view/styles.ts .cm-tools .cm-chip</code></td><td>A panel's name chip: opens its options</td><td><div class="ha tl"><span class="states"><small>rest</small><button class="tl-btn tl-chip">Main</button></span><span class="states"><small>hover / focus</small><button class="tl-btn tl-chip is-hover">Main</button></span><span class="states"><small>layer</small><button class="tl-btn tl-chip">Main · 2</button></span></div></td><td class="spec">12px 500 UPPERCASE .04em, 3/10, solid primary, radius 12</td><td><div class="ha tl"><button class="cm-chip cm-on">Main</button><button class="cm-chip cm-on is-hover">Main</button></div></td></tr><tr id="tl-tool"><td class="id"><b>tl-tool</b></td><td><code>view/styles.ts .cm-tools button:not(.cm-chip)</code></td><td>Its + and arrows (hidden when too narrow)</td><td><div class="ha tl"><span class="states"><small>rest</small><button class="tl-btn tl-tool">+</button><button class="tl-btn tl-tool">‹</button><button class="tl-btn tl-tool">›</button></span><span class="states"><small>hover</small><button class="tl-btn tl-tool is-hover">›</button></span><span class="states"><small>disabled</small><button class="tl-btn tl-tool" disabled>‹</button></span></div></td><td class="spec">12px 500, 3/8, solid primary; disabled 40%</td><td><div class="ha tl"><button class="cm-chip cm-on cm-tool">+</button><button class="cm-chip cm-on cm-tool">›</button><button class="cm-chip cm-on cm-tool" disabled>‹</button></div></td></tr><tr id="tl-end"><td class="id"><b>tl-end</b></td><td><code>view/draw.ts .cm-ends button (data-end)</code></td><td>The header's and footer's chips</td><td><div class="ha tl"><span class="states"><small>rest</small><button class="tl-btn tl-end">header</button><button class="tl-btn tl-end">footer</button></span><span class="states"><small>hover</small><button class="tl-btn tl-end is-hover">footer</button></span></div></td><td class="spec">as tl-panel, UPPERCASE</td><td><div class="ha tl"><button class="cm-chip cm-on">Header</button><button class="cm-chip cm-on">Footer</button></div></td></tr><tr id="tl-line"><td class="id"><b>tl-line</b></td><td><code>view/styles.ts .cm-ends button.cm-line</code></td><td>A LINE chip on each line</td><td><div class="ha tl"><span class="states"><small>rest</small><button class="tl-btn tl-line">line</button></span><span class="states"><small>hover</small><button class="tl-btn tl-line is-hover">line</button></span></div></td><td class="spec">10px UPPERCASE, 1/6, solid primary</td><td><div class="ha tl"><button class="cm-chip cm-on">Line</button></div></td></tr><tr id="tl-lock"><td class="id"><b>tl-lock</b></td><td><code>view/styles.ts .cm-ends button.cm-lock</code></td><td>The padlocks at each end of the top and bottom edges</td><td><div class="ha tl"><span class="states"><small>off</small><button class="tl-btn tl-lock"><svg viewBox="0 0 24 24"><path d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"/></svg></button></span><span class="states"><small>on</small><button class="tl-btn tl-lock on"><svg viewBox="0 0 24 24"><path d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"/></svg></button></span><span class="states"><small>hover</small><button class="tl-btn tl-lock is-hover"><svg viewBox="0 0 24 24"><path d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"/></svg></button></span></div></td><td class="spec">26px round; off outlined, on filled</td><td><div class="ha tl"><button class="cm-chip cm-icon"><svg viewBox="0 0 24 24"><path d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"/></svg></button><button class="cm-chip cm-icon cm-on"><svg viewBox="0 0 24 24"><path d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"/></svg></button><button class="cm-chip cm-icon is-hover"><svg viewBox="0 0 24 24"><path d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"/></svg></button></div></td></tr><tr id="tl-dim"><td class="id"><b>tl-dim</b></td><td><code>view/styles.ts .cm-dims button</code></td><td>Dimension labels on the edges</td><td><div class="ha tl"><span class="states"><small>rest</small><button class="tl-dim">320</button><button class="tl-dim">1fr</button></span><span class="states"><small>hover</small><button class="tl-dim is-hover">320</button></span></div></td><td class="spec">11px mono, 1/6, primary ring, card fill, radius 8</td><td><div class="ha tl"><button class="cm-chip cm-mono">320</button><button class="cm-chip cm-mono is-hover">1fr</button></div></td></tr><tr id="tl-size"><td class="id"><b>tl-size</b></td><td><code>view/styles.ts .cm-dims button.cm-size</code></td><td>A panel's size, in its corner</td><td><div class="ha tl"><span class="states"><small>rest</small><button class="tl-dim tl-size">640 × 480</button></span><span class="states"><small>hover</small><button class="tl-dim tl-size is-hover">640 × 480</button></span></div></td><td class="spec">as tl-dim, no ring, secondary text, 80% fill</td><td><div class="ha tl"><button class="cm-chip cm-mono cm-quiet">640 × 480</button></div></td></tr><tr id="tl-sprig"><td class="id"><b>tl-sprig</b></td><td><code>garnish-editor.ts .cm-garnish .cm-sprig</code></td><td>Garnish or content, on each card's corner</td><td><div class="ha tl"><span class="states"><small>content</small><button class="tl-sprig"><svg viewBox="0 0 24 24"><path d="M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.7C7.14,19.87 7.64,20 8,20C19,20 22,3 22,3C21,5 14,5.25 9,6.25C4,7.25 2,11.5 2,13.5C2,15.5 3.75,17.25 3.75,17.25C7,8 17,8 17,8Z"/></svg></button></span><span class="states"><small>garnish</small><button class="tl-sprig on"><svg viewBox="0 0 24 24"><path d="M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.7C7.14,19.87 7.64,20 8,20C19,20 22,3 22,3C21,5 14,5.25 9,6.25C4,7.25 2,11.5 2,13.5C2,15.5 3.75,17.25 3.75,17.25C7,8 17,8 17,8Z"/></svg></button></span><span class="states"><small>hover</small><button class="tl-sprig is-hover"><svg viewBox="0 0 24 24"><path d="M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.7C7.14,19.87 7.64,20 8,20C19,20 22,3 22,3C21,5 14,5.25 9,6.25C4,7.25 2,11.5 2,13.5C2,15.5 3.75,17.25 3.75,17.25C7,8 17,8 17,8Z"/></svg></button></span></div></td><td class="spec">26px round, 60% until hover; on filled</td><td><div class="ha tl"><button class="cm-chip cm-icon"><svg viewBox="0 0 24 24"><path d="M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.7C7.14,19.87 7.64,20 8,20C19,20 22,3 22,3C21,5 14,5.25 9,6.25C4,7.25 2,11.5 2,13.5C2,15.5 3.75,17.25 3.75,17.25C7,8 17,8 17,8Z"/></svg></button><button class="cm-chip cm-icon cm-on"><svg viewBox="0 0 24 24"><path d="M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.7C7.14,19.87 7.64,20 8,20C19,20 22,3 22,3C21,5 14,5.25 9,6.25C4,7.25 2,11.5 2,13.5C2,15.5 3.75,17.25 3.75,17.25C7,8 17,8 17,8Z"/></svg></button></div></td></tr>
+  </table></div>
+
+  <h2>Lovelace cards (in Home Assistant)</h2>
+  <p class="note">Drawn on an HA-like card, with HA's colours. The cards follow the standard too, in HA's colours (pills.ts).</p>
+  <div class="wrap"><table>
+    <tr><th>Id</th><th>Rule</th><th>Where</th><th>Before</th><th>Spec before</th><th>Now</th></tr>
+    <tr id="card-level"><td class="id"><b>card-level</b></td><td><code>sensor-watch/card.ts .level</code></td><td>Sensor Watch card rows</td><td><div class="ha"><span class="card-level cl-task">task</span><span class="card-level cl-warning">warning</span><span class="card-level cl-error">error</span><span class="card-level cl-critical">critical</span></div></td><td class="spec">12px Capitalised, solid fill, white, radius 10</td><td><div class="ha"><span class="cm-pill" style="--tone:var(--primary-color)">task</span><span class="cm-pill cm-warn">warning</span><span class="cm-pill cm-bad">error</span><span class="cm-pill cm-filled cm-bad">critical</span></div></td></tr>
+    <tr id="card-badge"><td class="id"><b>card-badge</b></td><td><code>over-layer/card.ts .badge</code></td><td>Over layer card (picker preview)</td><td><div class="ha"><span class="ol-badge">over-layer</span></div></td><td class="spec">11px mono, solid primary, radius 10</td><td><div class="ha"><span class="cm-pill" style="--tone:var(--primary-color)">over-layer</span></div></td></tr>
+    <tr id="card-action"><td class="id"><b>card-action</b></td><td><code>panel-options.ts .actions button</code>, <code>over-layer/editor.ts .actions button</code></td><td>Panel options dialog; the Over layer editor's Change the card</td><td><div class="ha"><button class="po-act">Reset</button><button class="po-act">Copy</button></div></td><td class="spec">13px, 4/12, primary ring, radius 16 (HA's own look)</td><td><div class="ha" style="--tone:var(--primary-color)"><button class="cm-chip">+ Add a panel</button><button class="cm-chip">Change the card</button><button class="cm-chip" disabled>→</button></div></td></tr>
+  </table></div>
+</main>
+</body>
+</html>

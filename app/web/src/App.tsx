@@ -18,6 +18,7 @@ import type { HeaderView } from "./api";
 import { Photo, PhotoEditor, photoApi, photoUrl, type PhotoDraft } from "./photo";
 import { CopyButton } from "./ui";
 import css from "./app.module.css";
+import ui from "./ui.module.css";
 
 const STATES: Record<string, [label: string, tone: string]> = {
   running: ["Running", css.good],
@@ -150,7 +151,7 @@ function IntegrationUrl({ url }: { url: string }) {
     <div className={css.integration}>
       <span>Integration URL</span>
       <code>{url}</code>
-      <CopyButton text={url} />
+      <CopyButton text={url} className={`${ui.button} ${ui.small}`} />
     </div>
   );
 }

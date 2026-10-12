@@ -98,3 +98,15 @@ def test_a_first_install_asks_for_a_restart(tmp_path):
     assert "Restart Home Assistant" in body["message"]
     # Home Assistant unreachable: no exception, just False.
     assert not ask_for_restart([installed], "tok", url)
+
+
+def test_a_retired_component_is_taken_out(tmp_path):
+    src, config = tmp_path / "src", tmp_path / "config"
+    make_component(src, "casa_mia")
+    make_component(
+        config / "custom_components", "casa_mia_sensor_watch"
+    )  # joined casa_mia
+    make_component(config / "custom_components", "someone_elses")
+    install_all(src, config)
+    left = sorted(p.name for p in (config / "custom_components").iterdir())
+    assert left == ["casa_mia", "someone_elses"]

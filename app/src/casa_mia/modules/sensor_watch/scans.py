@@ -11,7 +11,7 @@ from typing import Any
 from ...ha import HAError
 from . import suggest
 from .common import DEFAULT_HOLD_OFF, BadRequest, sides
-from .defaults import default_record
+from .defaults import default_record, due_record
 from .history import (
     LIST_LIMIT,
     SCAN_DOMAINS,
@@ -99,6 +99,8 @@ def proposal(
     """The record a suggestion makes (or a plain one without a suggestion); `kind` when
     the editor asks for another than the sensor's own (exact states for a number)."""
     kind = kind or c["kind"]
+    if kind == "numeric" and c.get("dated"):  # a date: days until it, as a reminder
+        return due_record()
     base = {
         "kind": kind,
         "name": "",

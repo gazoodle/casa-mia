@@ -1,11 +1,13 @@
 /** Choosing a sensor to watch, and scanning the house for suggestions, round by round. */
 
 import { useEffect, useState } from "react";
-import { Dialog, Field } from "../ui";
-import { NO_FILTERS, query, summary, swApi, type Candidate, type CandidatesView, type Filters, type ScanView, type Suggested, type WatchRecord, FITS, type Profile } from "./common";
+import { Dialog } from "../ui";
+import { NO_FILTERS, query, summary, swApi, type Candidate, type CandidatesView, type Filters, type ScanView, type Suggested, type WatchRecord, FITS, type Profile, DAYS, dayText } from "./common";
 import { FilterBar } from "./filters";
 import css from "./sensor-watch.module.css";
 import ui from "../ui.module.css";
+import { Select } from "../controls";
+import { Slider } from "../controls";
 
 /** The filtered sensors, asked of the app as the filters change (a big house has
  * thousands; the app sends at most 200). */
@@ -159,9 +161,7 @@ export function ScanDialog({
       </p>
       <FilterBar value={filters} options={view?.options} onChange={setFilters} />
       <div className={css.scanBar}>
-        <Field label="Days of history">
-          <input type="number" min={1} max={365} value={days} onChange={(e) => setDays(e.target.value)} />
-        </Field>
+        <Slider label="History" value={Number(days) || 1} steps={DAYS} format={dayText} onChange={(d) => setDays(String(d))} />
         {view && <span className={css.note}>{view.total} sensors match (watched ones are left out of a scan).</span>}
         {scan && (
           <button className={`${ui.button} ${ui.small}`} disabled={busy} onClick={() => run()}>
@@ -181,14 +181,14 @@ export function ScanDialog({
       {scan && scan.found.length > 0 && (
         <div className={css.selectBar}>
           {profiles.length > 0 && (
-            <select value={useProfile} onChange={(e) => setUseProfile(e.target.value)} aria-label="Use a profile for the ticked" className={css.profilePick}>
+            <Select value={useProfile} onChange={(picked) => setUseProfile(picked)} aria-label="Use a profile for the ticked" className={css.profilePick}>
               <option value="">Each its own suggestion</option>
               {profiles.map((p) => (
                 <option key={p.id} value={p.id}>
                   Use the profile {p.name} for the ticked ({p.kind})
                 </option>
               ))}
-            </select>
+            </Select>
           )}
           <span className={css.note}>
             {ticked.size} of {scan.found.length} ticked

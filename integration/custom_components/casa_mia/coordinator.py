@@ -63,6 +63,9 @@ class CasaMiaCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.loaded_version = loaded_version
         # Track motion, per commander id (casa_mia_commander's motion.MotionTracker)
         self.motion: dict[str, Any] = {}
+        # Sensor Watch's watcher while its module is on (sensor_watch.start), for its
+        # entities on the sensor and binary_sensor platforms.
+        self.sensor_watch: Any = None
 
     async def _async_update_data(self) -> dict[str, Any]:
         # Before the fetch, so a restart prompt still appears while the app is down.

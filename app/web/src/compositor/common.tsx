@@ -3,6 +3,7 @@ import { api } from "../api";
 import css from "../firmware.module.css";
 import pipe from "../pipeline.module.css";
 import ui from "../ui.module.css";
+import { Slider } from "../controls";
 
 export const { get, post } = api("compositor");
 
@@ -240,24 +241,19 @@ export function PaceSlider({
     });
   };
   return (
-    <label className={pipe.pace}>
-      <span>{label}</span>
-      <input
-        type="range"
-        min={0}
-        max={steps.length - 1}
-        step={1}
+    <div className={pipe.pace}>
+      <Slider
+        label={label}
         value={at}
-        onChange={(e) => {
+        max={steps.length - 1}
+        format={(i) => text(steps[i])}
+        onChange={(i) => {
           sent.current = undefined;
-          setHeld(Number(e.target.value));
+          setHeld(i);
         }}
-        onPointerUp={release}
-        onKeyUp={release}
-        onBlur={release}
+        onRelease={release}
       />
-      <strong>{text(steps[at])}</strong>
-    </label>
+    </div>
   );
 }
 

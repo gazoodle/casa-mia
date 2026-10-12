@@ -17,7 +17,8 @@ from typing import Any
 import aiohttp
 
 from ...ha import HA, HAError
-from .common import DOMAIN
+from .common import EVENT
+from .common import own as is_own
 from .status import MISSING, Status
 
 _LOGGER = logging.getLogger(__name__)
@@ -137,11 +138,7 @@ class Live:
             await ws.send_json({"id": 1, "type": "config/entity_registry/list"})
             while (m := await ws.receive_json()).get("id") != 1:
                 pass
-            own = {
-                e["entity_id"]
-                for e in m.get("result") or []
-                if e.get("platform") == DOMAIN
-            }
+            own = {e["entity_id"] for e in m.get("result") or [] if is_own(e)}
             watched = self.watched()
             await asyncio.to_thread(self._refresh)
             await ws.send_json(
@@ -153,7 +150,7 @@ class Live:
             )
             # Each change of level, the moment the integration decides it.
             await ws.send_json(
-                {"id": 3, "type": "subscribe_events", "event_type": DOMAIN}
+                {"id": 3, "type": "subscribe_events", "event_type": EVENT}
             )
             # An entity added, or changed (a label given in HA's own settings): groups look.
             await ws.send_json(

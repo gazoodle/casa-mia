@@ -45,7 +45,7 @@ configuration:
     description: >-
       Alpha. Give any sensor bands of values, each with a level (nominal, task,
       warning, error, critical), suggested from its history; Home Assistant then knows
-      what needs doing or has gone wrong, through the Casa Mia Sensor Watch integration.
+      what needs doing or has gone wrong, through the Casa Mia integration.
       Set up on the Sensor Watch page of the Casa Mia panel.
   alarm_enabled:
     name: Alarm panel

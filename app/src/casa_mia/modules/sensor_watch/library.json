@@ -1100,6 +1100,68 @@
       "off": {"level": "nominal", "message": ""},
       "on": {"level": "warning", "message": "Security light on for half an hour: stuck on, or someone about?"},
       "unavailable": "error", "hold_off": 1800
+    },
+    {
+      "name": "Reminder due (days)",
+      "about": "A date something is due, read as the days until it: a spa's Rinse filter, Clean filter or Change water due (the Gecko integration's reminders), a service, a renewal. A task in the fortnight before, a warning in its week, an error once it's passed, critical a month after, until it's done and the date moves on. Watch the date entity (a timestamp sensor works too: tick A date: days until it in its editor).",
+      "source": "https://github.com/gazoodle/gecko-home-assistant",
+      "category": "Reminders and due dates",
+      "default_for": "date:",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": -30, "level": "critical", "message": "Overdue by more than a month"},
+        {"from": -30, "to": 0, "level": "error", "message": "Overdue"},
+        {"from": 0, "to": 7, "level": "warning", "message": "Due this week"},
+        {"from": 7, "to": 14, "level": "task", "message": "Due in under two weeks"},
+        {"from": 14, "to": null, "level": "nominal", "message": ""}
+      ],
+      "otherwise": "error",
+      "days_until": true,
+      "unavailable": "error", "hold_off": 0
+    },
+    {
+      "name": "Electric car battery, 80% daily (%)",
+      "about": "For most electric cars: Tesla (its Daily band; an LFP Tesla wants 100%, see LFP), Volkswagen, Skoda and Audi, Hyundai and Kia, BMW, Mercedes and GM's Equinox EV all advise charging to about 80% day to day and to 100% only before a long journey. Above 80% is a trip charge: a warning if it sits there. Under 20% a task (charge it tonight); under 10% an error.",
+      "source": "https://www.vw.ca/en/electric-vehicles/about-electric-vehicles/battery-tech-and-maintenance.html",
+      "category": "Electric cars",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 10, "level": "error", "message": "Battery very low: charge it now"},
+        {"from": 10, "to": 20, "level": "task", "message": "Battery low: charge it tonight"},
+        {"from": 20, "to": 80, "level": "nominal", "message": ""},
+        {"from": 80, "to": null, "level": "warning", "message": "Trip charge: over 80%, fine for a journey, not for sitting"}
+      ],
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 600
+    },
+    {
+      "name": "Electric car battery, 90% daily (%)",
+      "about": "For cars whose makers put the daily limit at 90%: Polestar (its car shows a charging tip once the limit is set at 90-100%) and Ford's Mustang Mach-E (its manual: 90% as the everyday charge); Rivian says 70-90%. Above 90% is a trip charge: a warning if it sits there. Under 20% a task; under 10% an error.",
+      "source": "https://www.polestar.com/us/manual/polestar-4/2025/article/94d6ed71d3b5b0b8c0a8cc375c6e46f0-aafa33ada35121f7c0a8b04a3cf016a1-8664b2fa77a7e089c0a8296870d1a409",
+      "category": "Electric cars",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 10, "level": "error", "message": "Battery very low: charge it now"},
+        {"from": 10, "to": 20, "level": "task", "message": "Battery low: charge it tonight"},
+        {"from": 20, "to": 90, "level": "nominal", "message": ""},
+        {"from": 90, "to": null, "level": "warning", "message": "Trip charge: over 90%, fine for a journey, not for sitting"}
+      ],
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 600
+    },
+    {
+      "name": "Electric car battery, LFP (%)",
+      "about": "An LFP pack (lithium iron phosphate: a Standard Range Tesla, BYD's Blade battery, GM's new Bolt, many newer cars) is happy charged to 100%. Tesla's manual: keep the charge limit at 100%, even for daily use, and charge fully at least once a week, so the range estimate stays right (a Tesla's battery graphic shows 50% and 100% rather than Daily and Trip when it's LFP). Only low charge matters: under 20% a task, under 10% an error.",
+      "source": "https://www.tesla.com/ownersmanual/model3/en_us/GUID-2703FAF6-4481-4249-95AD-F12E2677DCA8.html",
+      "category": "Electric cars",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 10, "level": "error", "message": "Battery very low: charge it now"},
+        {"from": 10, "to": 20, "level": "task", "message": "Battery low: charge it tonight"},
+        {"from": 20, "to": null, "level": "nominal", "message": ""}
+      ],
+      "otherwise": "error",
+      "unavailable": "error", "hold_off": 600
     }
   ]
 }

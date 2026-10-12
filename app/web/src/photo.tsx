@@ -7,6 +7,7 @@ import { api, type Frame, type HeaderView } from "./api";
 import bundled from "./assets/header.jpg";
 import css from "./app.module.css";
 import ui from "./ui.module.css";
+import { Slider } from "./controls";
 
 export const photoApi = api("header");
 
@@ -166,18 +167,7 @@ function Framing({
 }) {
   const changed = (["zoom", "x", "y"] as const).some((k) => value[k] !== saved[k]);
   const slider = (key: keyof Frame, label: string, min: number, max: number, step: number, shown: string) => (
-    <label className={css.slider}>
-      <span>{label}</span>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value[key]}
-        onChange={(e) => onChange({ ...value, [key]: Number(e.target.value) })}
-      />
-      <output>{shown}</output>
-    </label>
+    <Slider label={label} min={min} max={max} step={step} value={value[key]} format={() => shown} onChange={(v) => onChange({ ...value, [key]: v })} />
   );
   return (
     <div className={css.framing}>

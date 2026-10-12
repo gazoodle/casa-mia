@@ -8,6 +8,7 @@ import ui from "../ui.module.css";
 import { Cameras, Entities, HA, HEAD, THUMB_EVERY_MS, ThumbRound, get, plural, post, put } from "./common";
 import { AddCameras, CameraDialog } from "./dialogs";
 import { Thumb } from "./inputs";
+import { confirmBox } from "../confirm";
 
 /** The cameras, chosen from Home Assistant, each with its title, channels and extras.
  * Every change is saved at once; the commanders and the dashboard read them. */
@@ -182,8 +183,8 @@ export function CamerasPage({ state }: { state?: string }) {
                       </button>
                       <button
                         className={`${ui.danger} ${ui.small}`}
-                        onClick={() =>
-                          confirm(`Remove ${cam.title}? It also leaves the commanders that show it (on the live dashboard at its next Deploy live).`) &&
+                        onClick={async () =>
+                          (await confirmBox(`Remove ${cam.title}? It also leaves the commanders that show it (on the live dashboard at its next Deploy live).`, { action: "Remove", danger: true })) &&
                           save((s) => delete s[entity], `${cam.title} removed`)
                         }
                       >

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { COLUMNS, columns, since } from "./common.ts";
+import { COLUMNS, columns, due, since } from "./common.ts";
 
 test("how long a level has stood", () => {
   const now = Date.parse("2026-10-11T12:00:00Z");
@@ -15,4 +15,10 @@ test("a row's columns follow what it shows", () => {
   assert.equal(columns(COLUMNS), "72px minmax(0, 1fr) auto auto");
   assert.equal(columns(["message", "value"]), "minmax(0, 1fr) auto"); // the name and message share one
   assert.equal(columns(["level", "since"]), "72px auto");
+});
+
+test("a due date reads as a day, or the days left", () => {
+  assert.match(due("2026-10-25T00:00:00+00:00", "12.5"), /25/);
+  assert.equal(due(undefined, "1.5"), "1.5 days");
+  assert.equal(due("unavailable", null), "");
 });

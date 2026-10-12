@@ -10,11 +10,11 @@
 <p align="center">
 A Home Assistant app and integration that take your home from smart to spectacular.<br>
 Dazzling home pages for every wall tablet. Guests signed in with a single scan.<br>
-Every Kiosk Satellite managed from one place, and at your fingertips wherever you are.<br>
+Every sensor in the house watched, and you told only when it matters.<br>
 Interactions at jet-rapid speed. Camera dashboards MI5 would envy.<br>
+Every Kiosk Satellite managed from one place, and at your fingertips wherever you are.<br>
 Alarm set? Every tablet becomes a window you can look through but not touch.<br>
 Secure phone and SMS access to your home, even when the internet has left the building.<br>
-Every sensor in the house watched, and you told only when it matters.<br>
 And that's just the start.
 </p>
 
@@ -298,7 +298,8 @@ on that plug fine? Is the freezer at −12 °C a problem? Has that bulb been una
 since the spring? It will show you the number, cheerfully, forever, and you find out when
 the ice cream is soup.
 
-Sensor Watch gives everything a level: **nominal**, a **task** (top up the salt), a
+Sensor Watch gives everything a level: **nominal**, a **task** (top up the softener's salt, as a
+[Salt Sentry](https://www.tindie.com/products/ErikLemcke/salt-sentry-water-softener-monitor/) measures it), a
 **warning**, an **error**, **critical**, and says so only when one changes, in its own
 words. The trick is saying it once, not fifty times:
 
@@ -306,10 +307,12 @@ words. The trick is saying it once, not fifty times:
   every Hue light: a saved filter and a profile. Everything matching is watched, and the
   plug you put in next month joins by itself. More than two of the same kind is a group;
   a single thing is a watch.
-- **A library of 80 profiles,** each saying where its numbers come from: mains voltage
+- **A library of 85 profiles,** each saying where its numbers come from: mains voltage
   and frequency for the UK (today's law and the ENA's 2026 proposal), the US, the EU,
   Japan, China and Australia; inverter trip limits; batteries, broadband, pool and hot tub
-  chemistry, indoor air, freezers, the boiler, the garden, computers.
+  chemistry, indoor air, freezers, the boiler, the garden, computers; and reminders coming
+  due, read as days until the date (a hot tub's Rinse filter, from the
+  [Gecko integration](https://github.com/gazoodle/gecko-home-assistant)).
 - **Watches for the one-offs,** with bands suggested from each sensor's own history: a
   number by bands, on/off, exact states, an attribute (a thermostat's temperature, not
   its mode), or just "is it there?", either way round.

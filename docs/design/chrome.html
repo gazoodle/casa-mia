@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chrome Cheatsheet</title>
+<!-- The live files: colours and base, the pills and chips, and the shared controls (ui.module.css's
+     source; its class names are plain there, and a browser skips `composes`, so a primary button is
+     drawn here as "button primary"). Open this page from a checkout, so these links resolve. -->
+<link rel="stylesheet" href="../../app/web/src/styles.css">
+<link rel="stylesheet" href="../../app/web/src/pills.css">
+<link rel="stylesheet" href="../../app/web/src/ui.module.css">
+<style>
+:root { --primary-color: #03a9f4; --error-color: #db4437; }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 24px 16px 60px; background: var(--bg); color: var(--text); font: 14px/1.45 var(--font); }
+main { max-width: 1240px; margin: 0 auto; }
+h1 { margin: 0 0 4px; font-size: 24px; }
+h2 { margin: 36px 0 6px; font-size: 18px; }
+p.lede, p.note { margin: 0 0 12px; color: var(--muted); max-width: 80ch; }
+.wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+th { color: var(--muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+td code { font: 12px var(--mono); color: var(--muted); }
+td.ex { min-width: 280px; }
+td.ex > * { margin: 3px 8px 3px 0; vertical-align: middle; }
+.spec { font: 11.5px var(--mono); color: var(--muted); max-width: 260px; }
+td.id { white-space: nowrap; }
+td.id b { font: 600 12.5px var(--mono); color: var(--accent); }
+tr:target td { background: color-mix(in srgb, var(--warn) 14%, transparent); }
+.states { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.states > small { color: var(--muted); font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; }
+.stack { display: grid; gap: 6px; max-width: 360px; }
+.ha { padding: 10px; border-radius: 10px; background: #fff; color: #212121; --card-background-color: #fff; --divider-color: #e0e0e0; --secondary-text-color: #727272; }
+@media (prefers-color-scheme: dark) { .ha { background: #1c1c1c; color: #e1e1e1; --card-background-color: #1c1c1c; --divider-color: #333; --secondary-text-color: #9e9e9e; } }
+
+/* ===== Now: each module's own, copied (prefixed to keep them apart) ===== */
+.app-integration-btn { padding: 3px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); color: inherit; font: inherit; cursor: pointer; }
+.cam-add { width: auto; padding: 4px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--text); font: inherit; font-size: 13px; cursor: pointer; }
+.guest-url { padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: inherit; font-family: var(--mono); font-size: 12px; text-align: left; word-break: break-all; cursor: copy; }
+.pipe-link { padding: 0; border: 0; background: none; color: var(--accent); font: inherit; text-decoration: underline; cursor: pointer; }
+.hero { position: relative; width: 160px; height: 70px; border-radius: 10px; background: linear-gradient(135deg, #3a5a40, #1d3124); }
+.app-heroEdit { position: absolute; top: 8px; right: 8px; display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid rgb(255 255 255 / 35%); border-radius: 50%; background: rgb(0 0 0 / 35%); color: #fff; font-size: 16px; cursor: pointer; opacity: .55; }
+.sw-pick { display: grid; gap: 2px; width: 280px; padding: 8px 10px; border: 0; border-radius: 10px; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.sw-pick:hover, .sw-pick.is-hover { background: var(--surface-2); }
+.sw-pick span { color: var(--muted); font-size: 13px; }
+.cam-camCell { display: flex; align-items: center; gap: 12px; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.cam-camCell i { width: 48px; height: 27px; border-radius: 4px; background: #223; }
+.cam-camCell:hover strong, .cam-camCell.is-hover strong { color: var(--accent); }
+.kiosks-main { display: grid; gap: 3px; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.kiosks-main small { color: var(--muted); }
+.km-card { display: grid; gap: 3px; width: 200px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 14px; background: var(--bg); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.km-card:hover, .km-card.is-hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+.km-cardOn { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--bg)); }
+.km-card small { font-size: 13px; color: var(--muted); }
+.kiosks-tile { display: flex; align-items: center; gap: 10px; width: 200px; min-height: 56px; padding: 10px 12px 10px 10px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg); color: var(--text); font: inherit; font-size: 13px; font-weight: 500; text-align: left; cursor: pointer; }
+.kiosks-tile i { width: 32px; height: 32px; border-radius: 50%; background: var(--surface-2); }
+
+.sw-fold { text-align: left; padding: 0; border: 0; background: none; color: inherit; font: inherit; font-weight: 600; cursor: pointer; }
+.sw-foldMark { display: inline-block; width: 1em; font-size: 15px; }
+.km-chevron { color: var(--muted); }
+.ad-warning { padding: 10px 14px; border: 1px solid color-mix(in srgb, var(--warn) 45%, var(--border)); border-radius: 12px; background: color-mix(in srgb, var(--warn) 10%, var(--surface)); font-size: 13.5px; max-width: 360px; }
+.ad-warning summary { cursor: pointer; }
+.audit-row { display: flex; gap: 10px; align-items: baseline; padding: 6px 4px; cursor: pointer; max-width: 360px; }
+.audit-row span { flex: 1; }
+.audit-details { display: grid; gap: 2px; margin: 4px 0 8px; padding: 10px 12px; border-left: 3px solid var(--border); font-size: 12.5px; max-width: 360px; }
+
+.sw-chipMenu { display: grid; gap: 2px; width: 220px; padding: 6px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); box-shadow: 0 12px 30px rgb(0 0 0 / 30%); }
+.sw-menuItem { padding: 6px 9px; border: 0; border-radius: 8px; background: none; color: inherit; font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.sw-menuItem:hover, .sw-menuItem.is-hover { background: var(--surface-2); }
+.cam-menu { display: grid; gap: 2px; width: 240px; margin: 0; padding: 4px; list-style: none; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); box-shadow: 0 12px 30px rgb(0 0 0 / 40%); }
+.cam-menu li { display: flex; align-items: center; gap: 10px; padding: 5px 8px; border-radius: 8px; font-size: 13.5px; cursor: pointer; }
+.cam-menu li.is-hover, .cam-menu li:hover { background: var(--surface-2); }
+.cam-menu li.note { color: var(--muted); font-size: 12.5px; cursor: default; background: none; }
+
+.app-banner { padding: 10px 14px; border: 1px solid color-mix(in srgb, var(--bad) 50%, var(--border)); border-radius: var(--radius); background: color-mix(in srgb, var(--bad) 12%, var(--surface)); max-width: 360px; }
+.cam-alarm { padding: 10px 14px; border: 1px solid color-mix(in srgb, var(--bad) 55%, var(--border)); border-radius: 12px; background: color-mix(in srgb, var(--bad) 12%, var(--surface)); font-size: 13.5px; max-width: 360px; }
+.sw-alarm { padding: 14px 16px; border: 2px solid var(--bad); border-radius: var(--radius); background: color-mix(in srgb, var(--bad) 14%, transparent); line-height: 1.5; max-width: 360px; }
+.sw-alarm strong { display: block; margin-bottom: 4px; color: var(--bad); font-size: 16px; }
+.guest-warning { padding: 10px 14px; border: 1px solid color-mix(in srgb, var(--warn) 45%, var(--border)); border-radius: 12px; background: color-mix(in srgb, var(--warn) 10%, var(--surface)); font-size: 13.5px; max-width: 360px; }
+.guest-notice { color: var(--muted); }
+.cam-hint { color: var(--muted); font-size: 12.5px; }
+.sw-note { color: var(--muted); font-size: 13px; }
+.guest-closed { color: var(--muted); font-size: 13px; }
+.app-empty { max-width: 360px; padding: 22px; border: 1px dashed var(--border); border-radius: var(--radius); background: var(--surface); }
+.app-empty h3 { margin: 0 0 6px; font-size: 18px; } .app-empty p { margin: 0; color: var(--muted); }
+.guest-empty { max-width: 360px; padding: 18px; border: 1px dashed var(--border); border-radius: 14px; color: var(--muted); text-align: center; }
+.sw-tick { display: flex; gap: 10px; align-items: start; cursor: pointer; max-width: 340px; }
+.sw-tick > span { display: grid; gap: 2px; font-weight: 600; }
+.sw-tick small { font-weight: 400; color: var(--muted); font-size: 13px; }
+.sw-tick input, .people-tick input { flex: none; width: 18px; height: 18px; margin-top: 1px; accent-color: var(--accent); }
+.toast-demo { position: static !important; }
+
+/* Cards: the Tablet Layout's panel options dialog (panel-options.ts), copied */
+.po-box { width: 340px; overflow: hidden; background: var(--card-background-color); border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,.3); color: inherit; }
+.po-box header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 14px 16px 6px; border-bottom: 1px solid var(--divider-color); }
+.po-box h4 { margin: 0; font-size: 18px; font-weight: 500; }
+.po-box section { margin: 8px 12px; padding: 8px 12px 12px; border-radius: 12px; border: 1px solid var(--divider-color); font-size: 13px; }
+.po-box .link { padding: 0; border: 0; background: none; color: var(--primary-color); font: inherit; cursor: pointer; }
+.po-box footer { display: flex; justify-content: flex-end; gap: 8px; padding: 10px 16px 14px; }
+.po-box footer button { font: inherit; font-size: 14px; font-weight: 500; padding: 8px 20px; border-radius: 20px; border: none; cursor: pointer; }
+.po-box .text { background: none; color: var(--primary-color); }
+.po-box .primary { background: var(--primary-color); color: #fff; }
+
+/* ===== Drawn states: the same declarations as the live hover and focus, for showing them
+   still (pointing at the real ones shows the live rules themselves) ===== */
+.button.is-hover, .iconButton.is-hover, .switch.is-hover { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); filter: brightness(1.08); }
+.pick.is-hover { background: var(--surface-2); }
+.option.is-hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent); }
+.choice.is-hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+.fold.is-hover { color: var(--accent); } .fold.is-hover::before { border-left-color: var(--accent); }
+.menuItem.is-hover { background: var(--surface-2); }
+.select.is-hover, input.is-focus, textarea.is-focus { border-color: color-mix(in srgb, var(--accent) 70%, var(--border)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); }
+input.is-hover { border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); }
+.link.is-hover { text-decoration-thickness: 2px; }
+.slider input.is-hover::-webkit-slider-thumb { box-shadow: 0 1px 3px rgb(0 0 0 / 35%), 0 0 0 4px color-mix(in srgb, var(--accent) 35%, transparent); }
+.toast-demo { position: static !important; }
+/* The Home photo's button (app.module.css heroEdit), copied: it sits on a photo. */
+.p-onPhoto { display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 1px solid rgb(255 255 255 / 35%); border-radius: 50%; background: rgb(0 0 0 / 35%); color: #fff; font-size: 16px; cursor: pointer; }
+.p-onPhoto.is-hover { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); }
+.stack .slider { max-width: 420px; }
+/* Cards' dialog in the admin's shape, HA's colours. */
+.pd-box { width: 340px; overflow: hidden; border: 1px solid var(--divider-color); border-radius: 18px; background: var(--card-background-color); box-shadow: 0 24px 60px rgb(0 0 0 / 45%); color: inherit; }
+.pd-box header { padding: 16px 18px 6px; }
+.pd-box h4 { margin: 0; font-size: 18px; font-weight: 600; }
+.pd-box .body { display: grid; gap: 10px; padding: 10px 18px 6px; font-size: 13px; }
+.pd-box section { padding: 8px 12px 12px; border-radius: 12px; border: 1px solid var(--divider-color); }
+.pd-box footer { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 18px 16px; border-top: 1px solid var(--divider-color); }
+.pd-btn { display: inline-flex; align-items: center; padding: 8px 14px; border: 1px solid var(--divider-color); border-radius: 10px; background: none; color: inherit; font: inherit; font-weight: 560; cursor: pointer; }
+.pd-btn.pd-primary { border-color: transparent; background: var(--primary-color); color: #fff; }
+.pd-link { padding: 0; border: 0; background: none; color: var(--primary-color); font: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.pd-btn:hover, .pd-btn.is-hover { box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 35%, transparent); filter: brightness(1.08); }
+
+/* Browser defaults, drawn as they look (for the record) */
+.native-dlg { width: 300px; padding: 16px; border-radius: 12px; background: #ececec; color: #111; font: 13px -apple-system, system-ui, sans-serif; box-shadow: 0 10px 30px rgb(0 0 0 / 35%); }
+.native-dlg p { margin: 0 0 12px; } .native-dlg .row { display: flex; justify-content: flex-end; gap: 8px; }
+.native-dlg button { padding: 4px 14px; border: 1px solid #bbb; border-radius: 6px; background: #fff; font: inherit; }
+.native-dlg button.def { background: #0a7aff; border-color: #0a7aff; color: #fff; }
+.native-dlg input { width: 100%; margin-bottom: 12px; padding: 4px 6px; border: 1px solid #bbb; border-radius: 4px; background: #fff; color: #111; }
+/* Sliders: today's three (the browser's, tinted), copied */
+.pipe-pace { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; font-size: 14px; max-width: 420px; }
+.pipe-pace input { flex: 1 1 140px; accent-color: var(--accent); }
+.pipe-pace strong { flex: none; width: 7em; }
+.app-slider { display: grid; grid-template-columns: 70px minmax(0, 1fr) 52px; align-items: center; gap: 10px; font-size: 13.5px; max-width: 360px; }
+.app-slider input { accent-color: var(--accent); }
+.app-slider output { font-family: var(--mono); font-size: 12.5px; text-align: right; }
+.num-box { width: 110px; }
+
+/* Kiosk mode's pick list, copied (before) */
+.km-pickList { display: grid; gap: 6px; max-width: 380px; }
+.km-pickRow { display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; }
+.km-pickOff { opacity: .55; cursor: not-allowed; }
+.km-path { color: var(--muted); font-family: var(--mono); font-size: 12px; }
+.km-why { display: block; margin-top: 1px; color: var(--muted); font-size: 12px; font-weight: 400; }
+/* Entry boxes before: Sensor Watch's search and its long-message border, copied */
+.ex-in { max-width: 320px; }
+.sw-find { max-width: 320px; padding: 5px 10px; border-radius: 999px; }
+.sw-long { border-color: var(--warn); }
+/* The browser's own controls as they were: the live styles.css draws them as ours, so the
+   Before columns put the browser's back. */
+.native input[type="checkbox"], .native input[type="radio"], .native input[type="range"] { all: revert; accent-color: var(--accent); }
+.native input[type="range"] { width: 100%; }
+.native select { all: revert; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Chrome</h1>
+  <p class="lede"><b>The standard, agreed 2026-10-12 and in use from 2026.10.10-b8.</b> Everything round the content: buttons, dialogs and their buttons, collapsers, menus and selects, our own confirm and ask in place of the browser's, callouts, help text, empty states, switches, sliders and entry boxes. The <b>Now</b> columns are drawn by the live files this page links (<code>app/web/src/ui.module.css</code> for the shared classes, <code>styles.css</code> for the browser's own controls drawn as ours), so this page cannot drift from them; the <b>Before</b> columns are how each looked until then, copied, for the record. The components: <code>ui.tsx</code> (Dialog, Field, Switch, Segmented, Toasts), <code>controls.tsx</code> (Select, Slider), <code>confirm.tsx</code> (confirmBox, askBox); <code>tests/test_no_browser_controls.py</code> fails on a browser dialog or drop-down. Each style has an <b>Id</b>; <code>chrome.html#fold</code> jumps to its row. Light or dark follows your system. Example text is invented. The pills and chips are in <a href="pills-and-chips.html">pills-and-chips.html</a>.</p>
+
+  <h2>Buttons</h2>
+  <p class="note">The shared buttons stay as they are in shape. Proposed: every button answers hover and keyboard focus with the chips' ring (today a button only tints its border on hover, and primary and icon buttons don't react), and the four one-offs become the shared ones.</p>
+  <div class="wrap"><table>
+    <tr><th>Id</th><th>Rule</th><th>Where</th><th>Before</th><th>Spec before</th><th>Now</th></tr>
+    <tr id="button"><td class="id"><b>button</b></td><td><code>ui .button</code> (+ <code>.small</code>)</td><td>Everywhere (about 100)</td><td class="ex">
+      <span class="states"><small>rest</small><button class="button">Edit</button></span><span class="states"><small>small</small><button class="button small">Copy</button></span><span class="states"><small>disabled</small><button class="button" disabled>Edit</button></span>
+    </td><td class="spec">8/14, radius 10, surface-2, 560; hover: border accent 55%; small 5/10 13px</td><td class="ex">
+      <span class="states"><small>rest</small><button class="button">Edit</button></span><span class="states"><small>hover / focus</small><button class="button is-hover">Edit</button></span><span class="states"><small>small, hover</small><button class="button small is-hover">Copy</button></span>
+    </td></tr>
+    <tr id="button-primary"><td class="id"><b>button-primary</b></td><td><code>ui .primary</code></td><td>The main action (about 40), dialog Save</td><td class="ex">
+      <span class="states"><small>rest</small><button class="button primary">Save</button></span><span class="states"><small>hover (none)</small><button class="button primary">Save</button></span>
+    </td><td class="spec">as button, accent fill; no hover of its own</td><td class="ex">
+      <span class="states"><small>rest</small><button class="button primary">Save</button></span><span class="states"><small>hover / focus</small><button class="button primary is-hover">Save</button></span>
+    </td></tr>
+    <tr id="button-danger"><td class="id"><b>button-danger</b></td><td><code>ui .danger</code> (+ <code>kiosk-mode .danger</code>)</td><td>Remove, delete (13)</td><td class="ex">
+      <button class="button danger small">Remove</button>
+    </td><td class="spec">as button, bad text; kiosk-mode has a second .danger (text only)</td><td class="ex">
+      <span class="states"><small>hover</small><button class="button danger small is-hover">Remove</button></span>
+    </td></tr>
+    <tr id="button-icon"><td class="id"><b>button-icon</b></td><td><code>ui .iconButton</code></td><td>Camera inputs, compositor rows (4)</td><td class="ex"><button class="iconButton">✕</button><button class="iconButton">↻</button></td><td class="spec">4/8, no border, muted; no hover</td><td class="ex">
+      <span class="states"><small>hover</small><button class="iconButton is-hover">↻</button></span>
+    </td></tr>
+    <tr id="button-oneoff"><td class="id"><b>button-oneoff</b></td><td><code>app .integration button</code>, <code>cameras .add</code></td><td>Home's integration line; Commander's + add</td><td class="ex"><button class="app-integration-btn">Add it</button><button class="cam-add">+ Add</button></td><td class="spec">3/10 radius 8; 4/10 radius 10 bg: two more small buttons</td><td class="ex"><button class="button small">Add it</button><button class="button small">+ Add</button></td></tr>
+    <tr id="button-copy"><td class="id"><b>button-copy</b></td><td><code>guest .url</code>, <code>firmware .url</code></td><td>A link to copy, by tapping it</td><td class="ex"><button class="guest-url">https://oak-tree.example/guest/abc123</button></td><td class="spec">8/10, radius 10, bg, mono 12, cursor copy</td><td class="ex"><button class="button small copy" style="cursor:copy">https://oak-tree.example/guest/abc123</button></td></tr>
+    <tr id="button-link"><td class="id"><b>button-link</b></td><td><code>pipeline .link</code>, panel options <code>.link</code></td><td>A button that reads as a link (compositor, Tablet Layout)</td><td class="ex"><button class="pipe-link">open the cache</button></td><td class="spec">accent, underlined, no hover</td><td class="ex"><span class="states"><small>rest</small><button class="link">open the cache</button></span><span class="states"><small>hover</small><button class="link is-hover">open the cache</button></span></td></tr>
+    <tr id="button-photo"><td class="id"><b>button-photo</b></td><td><code>app .heroEdit</code></td><td>Home: change the house photo (on the photo)</td><td class="ex"><span class="hero" style="display:inline-block"><span class="app-heroEdit">✎</span></span></td><td class="spec">34px round, white on 35% black, 55% until hover</td><td class="ex"><span class="hero" style="display:inline-block"><button class="p-onPhoto" style="position:absolute;top:8px;right:8px">✎</button></span> <span class="help">kept (it sits on a photo), with the ring</span></td></tr>
+  </table></div>
+
+  <h2>Rows and cards you pick</h2>
+  <div class="wrap"><table>
+    <tr><th>Id</th><th>Rule</th><th>Where</th><th>Before</th><th>Spec before</th><th>Now</th></tr>
+    <tr id="pick"><td class="id"><b>pick</b></td><td><code>sensor-watch .pick</code>, <code>commander .pick</code>, <code>cameras .camCell</code>, <code>kiosks .main</code></td><td>A row picked from a list: an entity, a camera, a tablet</td><td class="ex"><div class="stack">
+      <span class="states"><small>sensor watch: rest, hover</small><button class="sw-pick">Pool pH<span>sensor.pool_ph</span></button><button class="sw-pick is-hover">Pool pH<span>sensor.pool_ph</span></button></span>
+      <span class="states"><small>cameras: hover colours the name</small><button class="cam-camCell is-hover"><i></i><strong>Barn door</strong></button></span>
+      <span class="states"><small>kiosks: no hover</small><button class="kiosks-main"><strong>Hall tablet</strong><small>online</small></button></span></div>
+    </td><td class="spec">four ways: a filled row, a coloured name, nothing; Commander's shows open with aria-pressed only</td><td class="ex"><div class="stack">
+      <span class="states"><small>rest</small><button class="pick">Pool pH<small>sensor.pool_ph</small></button></span>
+      <span class="states"><small>hover</small><button class="pick is-hover">Pool pH<small>sensor.pool_ph</small></button></span>
+      <span class="states"><small>chosen / open</small><button class="pick" aria-pressed="true">Barn door<small>camera.barn_door</small></button></span></div>
+    </td></tr>
+    <tr id="choice"><td class="id"><b>choice</b></td><td><code>kiosk-mode .pickRow</code> (the owner's pick); <code>cameras .pick label</code>, Sensor Watch's scan rows</td><td>Choosing in a dialog: one dashboard (Add kiosk mode to a dashboard), several users, cameras, sensors to watch</td><td class="ex native"><div class="km-pickList">
+      <label class="km-pickRow"><input type="radio" name="kb" checked><span><strong>Kitchen</strong> <span class="km-path">/dashboard-kitchen</span></span></label>
+      <label class="km-pickRow"><input type="radio" name="kb"><span><strong>Hall tablet</strong> <span class="km-path">/hall-tablet</span></span></label>
+      <label class="km-pickRow km-pickOff"><input type="radio" name="kb" disabled><span><strong>Overview</strong> <span class="km-path">/lovelace</span><span class="km-why">Made by Home Assistant itself: take control of it first.</span></span></label>
+      <label class="km-pickRow"><input type="checkbox" checked><span>Ann <span class="cm-pill cm-accent">admin</span></span></label></div>
+    </td><td class="spec">bordered rows, radius 10; name bold, its address dimmed mono 12, a reason line; the browser's radio and checkbox</td><td class="ex"><div class="choices">
+      <span class="states"><small>one of several</small></span>
+      <label class="choice"><input type="radio" name="pc" checked><span><strong>Kitchen</strong> <span class="choicePath">/dashboard-kitchen</span></span></label>
+      <label class="choice is-hover"><input type="radio" name="pc"><span><strong>Hall tablet</strong> <span class="choicePath">/hall-tablet</span></span></label>
+      <label class="choice"><input type="radio" name="pc"><span><strong>Overview</strong> <span class="choicePath">/lovelace</span><span class="choiceWhy">Made by Home Assistant itself: take control of it first.</span></span></label>
+      <span class="states"><small>several</small></span>
+      <label class="choice on"><input type="checkbox" checked><span><strong>Ann</strong> <span class="cm-pill cm-accent">admin</span></span></label>
+      <label class="choice"><input type="checkbox"><span><strong>Pool pH</strong> <span class="choicePath">sensor.pool_ph</span></span></label></div>
+    </td></tr>
+    <tr id="option"><td class="id"><b>option</b></td><td><code>kiosk-mode .card</code> / <code>.cardOn</code>, <code>kiosks .tile</code></td><td>One of several cards to choose (a dashboard, a tablet action)</td><td class="ex"><div class="stack">
+      <button class="km-card"><strong>Kitchen</strong><small>3 views</small></button><button class="km-card km-cardOn"><strong>Hall</strong><small>chosen</small></button><button class="kiosks-tile"><i></i>Reload</button></div>
+    </td><td class="spec">card: radius 14, hover border, on: accent; tile: radius 12, no hover</td><td class="ex"><div class="stack">
+      <span class="states"><small>rest</small><button class="option"><strong>Kitchen</strong><small>3 views</small></button></span>
+      <span class="states"><small>hover</small><button class="option is-hover"><strong>Kitchen</strong><small>3 views</small></button></span>
+      <span class="states"><small>chosen</small><button class="option" aria-pressed="true"><strong>Hall</strong><small>chosen</small></button></span></div>
+    </td></tr>
+  </table></div>
+
+  <h2>Dialogs and their buttons</h2>
+  <p class="note">The admin UI's dialogs all use one (<code>ui.tsx</code> Dialog), good. The cards have one of their own, the Tablet Layout's panel options, in HA's style.</p>
+  <div class="wrap"><table>
+    <tr><th>Id</th><th>Rule</th><th>Where</th><th>Before</th><th>Spec before</th><th>Now</th></tr>
+    <tr id="dialog"><td class="id"><b>dialog</b></td><td><code>ui .dialog</code>, <code>.dialogHead/Body/Foot</code></td><td>Every admin dialog</td><td class="ex">
+      <div class="dialog" style="position:static;display:block;width:340px"><div class="dialogForm"><div class="dialogHead"><h2>Edit Pool pH</h2><button class="iconButton">✕</button></div><div class="dialogBody"><label class="field"><span class="fieldLabel">Name</span><input value="Pool pH"></label><span class="help">As it shows on the card.</span></div><div class="dialogFoot"><button class="button">Cancel</button><button class="button primary">Save</button></div></div></div>
+    </td><td class="spec">radius 18, head 16/18, foot ruled, Cancel = button, Save = primary</td><td class="ex">
+      <div class="dialog" style="position:static;display:block;width:340px"><div class="dialogForm"><div class="dialogHead"><h2>Edit Pool pH</h2><button class="iconButton">✕</button></div><div class="dialogBody"><label class="field"><span class="fieldLabel">Name</span><input value="Pool pH"></label><span class="help">As it shows on the card.</span></div><div class="dialogFoot"><button class="button">Cancel</button><button class="button primary is-hover">Save</button></div></div></div>
+      <span class="help">kept; the buttons get the ring</span>
+    </td></tr>
+    <tr id="dialog-card"><td class="id"><b>dialog-card</b></td><td><code>panel-options.ts</code> <code>.box</code>, <code>footer .text/.primary</code>, <code>.link</code></td><td>Tablet Layout: a panel's options</td><td class="ex"><div class="ha">
+      <div class="po-box"><header><h4>Left panel</h4></header><section>This panel's own options…<br><button class="link">Visibility, background and more (HA's own)…</button></section><footer><button class="text">Cancel</button><button class="primary">Save</button></footer></div></div>
+    </td><td class="spec">radius 16; footer: text Cancel, pill Save (radius 20); link not underlined</td><td class="ex"><div class="ha">
+      <div class="pd-box"><header><h4>Left panel</h4></header><div class="body"><section>This panel's own options…<br><button class="pd-link">Visibility, background and more (HA's own)…</button></section></div><footer><button class="pd-btn">Cancel</button><button class="pd-btn pd-primary is-hover">Save</button></footer></div></div>
+      <span class="help">the admin's dialog shape, in HA's colours</span>
+    </td></tr>
+  </table></div>
+
+  <h2>Collapsers</h2>
+  <p class="note">Five ways to fold something today. Proposed: one solid triangle that turns (▸ folded, ▾ open), the same wherever something opens, on a button (<code>fold</code>) or a native <code>details</code> (<code>fold-details</code>); a heading that folds shows its count.</p>
+  <div class="wrap"><table>
+    <tr><th>Id</th><th>Rule</th><th>Where</th><th>Before</th><th>Spec before</th><th>Now</th></tr>
+    <tr id="fold"><td class="id"><b>fold</b></td><td><code>sensor-watch .fold</code>, <code>kiosk-mode .chevron</code></td><td>Sensor Watch's group headings; Kiosk mode's option rows</td><td class="ex"><div class="stack">
+      <button class="sw-fold"><span class="sw-foldMark">▾</span> Barn · 6</button><button class="sw-fold"><span class="sw-foldMark">▸</span> Oak Tree · 3</button><span><span class="km-chevron">▸</span> Hide the sidebar</span></div>
+    </td><td class="spec">text triangles ▸ ▾, 15px; no hover</td><td class="ex"><div class="stack">
+      <span class="states"><small>open</small><button class="fold" aria-expanded="true">Barn <span class="count">6</span></button></span>
+      <span class="states"><small>folded</small><button class="fold" aria-expanded="false">Oak Tree <span class="count">3</span></button></span>
+      <span class="states"><small>hover</small><button class="fold is-hover" aria-expanded="false">Hide the sidebar</button></span></div>
+    </td></tr>
+    <tr id="fold-toggle"><td class="id"><b>fold-toggle</b></td><td><code>guest .reachToggle</code> (a small button)</td><td>Guest login: dashboards a code can open; Guest dialogs: show more</td><td class="ex"><button class="button small">Dashboards it can open (4)</button><button class="button small">Hide dashboards</button></td><td class="spec">a button whose words change</td><td class="ex"><div class="stack"><button class="fold" aria-expanded="false">Dashboards it can open <span class="count">4</span></button><button class="fold" aria-expanded="true">Dashboards it can open <span class="count">4</span></button></div></td></tr>
+    <tr id="fold-row"><td class="id"><b>fold-row</b></td><td><code>guest .auditRow</code> + <code>.auditDetails</code></td><td>Guest login's audit: a row opens its details</td><td class="ex"><div class="audit-row"><span class="cm-pill cm-bad cm-fixed" style="width:84px">refused</span><span>Unknown code from 203.0.113.7</span></div><div class="audit-details">When: 14:02 · Why: no such code</div></td><td class="spec">the whole row toggles; no mark that it opens</td><td class="ex"><button class="fold" aria-expanded="true" style="font-weight:400"><span class="cm-pill cm-bad cm-fixed" style="width:84px">refused</span> Unknown code from 203.0.113.7</button><div class="audit-details">When: 14:02 · Why: no such code</div></td></tr>
+    <tr id="fold-details"><td class="id"><b>fold-details</b></td><td><code>auto-dashboards</code> <code>&lt;details&gt;</code> in a warning</td><td>Auto Dashboards: what to fix</td><td class="ex"><details class="ad-warning"><summary>2 things to fix</summary><p>Barn door has no stream.</p></details></td><td class="spec">the browser's own triangle</td><td class="ex"><details class="callout calloutWarn details"><summary>2 things to fix</summary><p style="margin:6px 0 0">Barn door has no stream.</p></details></td></tr>
+    <tr id="show-more"><td class="id"><b>show-more</b></td><td><code>ui .button</code></td><td>Sensor Watch's list, the audit: the next page</td><td class="ex"><button class="button small">Show more (120 older)</button></td><td class="spec">shared already</td><td class="ex"><button class="button small">Show more (120 older)</button> <span class="help">kept (it adds rows, it doesn't fold)</span></td></tr>
+  </table></div>
+
+  <h2>Menus</h2>
+  <div class="wrap"><table>
+    <tr><th>Id</th><th>Rule</th><th>Where</th><th>Before</th><th>Spec before</th><th>Now</th></tr>
+    <tr id="menu"><td class="id"><b>menu</b></td><td><code>sensor-watch .chipMenu/.menuItem</code>, <code>cameras .menu li</code> (and Commander's inputs)</td><td>A chip's choices; a camera or entity picker's list</td><td class="ex">
+      <div class="sw-chipMenu"><button class="sw-menuItem">Barn</button><button class="sw-menuItem is-hover">Oak Tree</button></div>
+      <ul class="cam-menu"><li>Barn door</li><li class="is-hover">Hall</li><li class="note">2 more hidden</li></ul>
+    </td><td class="spec">two: pad 6 / items 6/9 13px, shadow 30%; pad 4 / items 5/8 13.5px, shadow 40%</td><td class="ex"><div class="menu"><button class="menuItem">Barn</button><button class="menuItem is-hover">Oak Tree</button><span class="menuNote">2 more hidden</span></div></td></tr>
+  </table></div>
+
+  <h2>Entry boxes</h2>
+  <p class="note">One look already (<code>styles.css</code>: <code>input</code>, <code>select</code>, <code>textarea</code>; live here), which nearly every page uses as it is. Proposed: the same box, with the ring on focus as everything else, a hover, warning and error states with their line under, one search box, and units inside the box.</p>
+  <div class="wrap"><table>
+    <tr><th>Id</th><th>Rule</th><th>Where</th><th>Before</th><th>Spec before</th><th>Now</th></tr>
+    <tr id="input"><td class="id"><b>input</b></td><td><code>styles.css input, textarea</code></td><td>Every form</td><td class="ex"><div class="stack">
+      <span class="states"><small>rest</small><input class="ex-in" value="Pool pH"></span>
+      <span class="states"><small>focus (keyboard)</small><input class="ex-in" value="Pool pH" style="outline:2px solid var(--accent);outline-offset:1px"></span>
+      <span class="states"><small>placeholder</small><input class="ex-in" placeholder="e.g. Top up the salt"></span>
+      <span class="states"><small>disabled</small><input class="ex-in" value="sensor.pool_ph" disabled></span>
+      <span class="states"><small>text area</small><textarea class="ex-in" rows="2">Welcome to Oak Tree.</textarea></span></div>
+    </td><td class="spec">9/11, radius 10, bg, border; focus: a 2px accent outline; no hover; disabled: the browser's</td><td class="ex"><div class="stack">
+      <span class="states"><small>rest</small><input class="ex-in" value="Pool pH"></span>
+      <span class="states"><small>hover</small><input class="ex-in is-hover" value="Pool pH"></span>
+      <span class="states"><small>focus</small><input class="ex-in is-focus" value="Pool pH"></span>
+      <span class="states"><small>disabled</small><input class="ex-in" value="sensor.pool_ph" disabled></span>
+      <span class="states"><small>text area</small><textarea class="ex-in" rows="2">Welcome to Oak Tree.</textarea></span></div>
+    </td></tr>
+    <tr id="input-state"><td class="id"><b>input-state</b></td><td><code>sensor-watch .message input.long</code></td><td>Sensor Watch: a message over 255 characters (the only one)</td><td class="ex"><input class="ex-in sw-long" value="A message far too long for…"></td><td class="spec">warn border; the reason elsewhere</td><td class="ex"><div class="stack">
+      <span><input class="ex-in warn" value="A message far too long for…"><div class="fieldWarn">262 of 255 characters: the end is cut.</div></span>
+      <span><input class="ex-in" aria-invalid="true" value="abc"><div class="fieldBad">Not a number.</div></span></div>
+    </td></tr>
+    <tr id="input-search"><td class="id"><b>input-search</b></td><td><code>sensor-watch .find</code>, its chip menus' search</td><td>Sensor Watch's list; long chip menus</td><td class="ex"><div class="stack"><input class="ex-in sw-find" type="search" placeholder="Find…"><input class="ex-in" style="padding:5px 9px;max-width:220px" placeholder="Search groups"></div></td><td class="spec">a pill (radius 999), 5/10; the menus' 5/9, radius 10</td><td class="ex"><div class="stack">
+      <label class="search"><input class="" placeholder="Find a sensor…"></label>
+      <label class="search"><input class="is-focus" value="pool"><button class="searchClear" aria-label="Clear">✕</button></label></div>
+    </td></tr>
+    <tr id="input-unit"><td class="id"><b>input-unit</b></td><td>(none: units in the label)</td><td>Bands (V, °C, %), hold-off, keep days</td><td class="ex"><label class="field" style="max-width:200px"><span class="fieldLabel">From (V)</span><input value="216"></label></td><td class="spec">the unit only in the label</td><td class="ex"><label class="field" style="max-width:200px"><span class="fieldLabel">From</span><span class="unit"><input class="" value="216"><span>V</span></span></label></td></tr>
+  </table></div>
+
+  <h2>Callouts, help and empty states</h2>
+  <div class="wrap"><table>
+    <tr><th>Id</th><th>Rule</th><th>Where</th><th>Before</th><th>Spec before</th><th>Now</th></tr>
+    <tr id="callout"><td class="id"><b>callout</b></td><td><code>guest .warning</code>, <code>cameras .alarm</code>, <code>app .banner</code></td><td>Something to know or fix, on every page</td><td class="ex"><div class="stack">
+      <div class="guest-warning">The guest link isn't reachable from outside.</div><div class="cam-alarm">Barn door's stream has failed.</div><div class="app-banner">The app can't reach Home Assistant.</div></div>
+    </td><td class="spec">three: warn 45%/10%; bad 55%/12%; bad 50%/12% radius 14</td><td class="ex"><div class="stack">
+      <div class="callout calloutWarn">The guest link isn't reachable from outside.</div><div class="callout calloutBad">Barn door's stream has failed.</div><div class="callout calloutGood">Saved, and Home Assistant has it.</div><div class="callout">Tip: a group follows its profile.</div></div>
+    </td></tr>
+    <tr id="callout-loud"><td class="id"><b>callout-loud</b></td><td><code>sensor-watch .alarm</code></td><td>Sensor Watch: HA's recorder isn't running</td><td class="ex"><div class="sw-alarm"><strong>Home Assistant isn't running its recorder.</strong>Without it there's no history.</div></td><td class="spec">2px bad, 14/16, title 16px</td><td class="ex"><div class="callout calloutBad loud"><strong>Home Assistant isn't running its recorder.</strong>Without it there's no history.</div></td></tr>
+    <tr id="help"><td class="id"><b>help</b></td><td><code>ui .help</code>, <code>cameras .hint</code>, <code>sensor-watch .note</code>, <code>guest .closed</code>, <code>guest .notice</code></td><td>Quiet words under or beside a thing</td><td class="ex"><div class="stack"><span class="help">ui .help: as it shows on the card.</span><span class="cam-hint">cameras .hint: pick one or more.</span><span class="sw-note">sensor-watch .note: 3 sensors follow it.</span><span class="guest-closed">guest .closed: closed since 09:00.</span><span class="guest-notice">guest .notice: Loading…</span></div></td><td class="spec">five: 12.5 / 12.5 / 13 / 13 / 14px, all muted</td><td class="ex"><div class="stack"><span class="help">One: muted, 12.5px. Loading… too.</span></div></td></tr>
+    <tr id="empty"><td class="id"><b>empty</b></td><td><code>guest .empty</code> (Empty), <code>app .empty</code></td><td>Nothing here yet</td><td class="ex"><div class="stack"><div class="guest-empty">Watch an entity to give it bands.</div><div class="app-empty"><h3>Welcome</h3><p>Turn a module on in Settings.</p></div></div></td><td class="spec">two: centred 18px radius 14; left 22px radius 14 with a heading</td><td class="ex"><div class="stack"><div class="empty">Watch an entity to give it bands.</div><div class="empty"><strong>Welcome</strong>Turn a module on in Settings.</div></div></td></tr>
+    <tr id="toast"><td class="id"><b>toast</b></td><td><code>ui .toast</code></td><td>After an action</td><td class="ex"><div class="toast toastGood toast-demo">Pool pH: saved</div><div class="toast toastBad toast-demo">Could not save</div></td><td class="spec">shared already</td><td class="ex"><span class="help">kept</span></td></tr>
+  </table></div>
+
+  <h2>Selects, browser dialogs and ticks</h2>
+  <p class="note">From the backlog's <i>Consistent menus and pickers</i>: no browser drop-downs, dialogs or checkboxes anywhere. Today: 19 native <code>&lt;select&gt;</code>s in 12 files, 32 <code>confirm()</code>/<code>prompt()</code>/<code>alert()</code> in 17, and 22 checkboxes in 10, beside 16 of our own switches (the Cameras page's <i>Motion detection on</i>, Settings, the Commander editor). Then a test that fails on any of them creeping back.</p>
+  <div class="wrap"><table>
+    <tr><th>Id</th><th>Rule</th><th>Where</th><th>Before</th><th>Spec before</th><th>Now</th></tr>
+    <tr id="select"><td class="id"><b>select</b></td><td>native <code>&lt;select&gt;</code></td><td>Guest codes and dialogs, People, the audit, Commander, Sensor Watch (levels, editor, groups, filters), Auto Dashboards</td><td class="ex native"><div class="stack">
+      <select style="width:200px"><option>Warning</option><option>Task</option><option>Critical</option></select>
+      <span class="help">Opens the browser's (or the Mac's) own menu, in its own style.</span></div>
+    </td><td class="spec">the browser's; on a Mac a grey system menu</td><td class="ex"><div class="stack">
+      <span class="states"><small>closed</small><button class="select">Warning</button></span>
+      <span class="states"><small>hover / focus</small><button class="select is-hover"><span class="placeholder">Pick a level…</span></button></span>
+      <span class="states"><small>open: our menu</small><button class="select" aria-expanded="true">Warning</button></span>
+      <div class="menu"><span class="menuGroup">Level</span><button class="menuItem">Nominal</button><button class="menuItem">Task</button><button class="menuItem is-hover" aria-selected="true">Warning</button><button class="menuItem">Error</button><button class="menuItem">Critical</button></div>
+      <span class="help">A field-shaped button opening the <a href="#menu">menu</a>: arrow keys, Enter, Escape and typing to jump, as a select does; groups as headings; a search box when long (as the chip menus have).</span></div>
+    </td></tr>
+    <tr id="confirm"><td class="id"><b>confirm</b></td><td><code>confirm()</code> (29)</td><td>Every delete and stop, on most pages</td><td class="ex"><div class="native-dlg"><p>Stop watching Pool pH?</p><div class="row"><button>Cancel</button><button class="def">OK</button></div></div></td><td class="spec">the browser's box: white, its font, OK/Cancel, the page's address as its title</td><td class="ex">
+      <div class="dialog" style="position:static;display:block;width:340px"><div class="dialogForm"><div class="dialogHead"><h2>Stop watching Pool pH?</h2></div><div class="dialogBody"><span class="help">Its bands and messages go with it. Its history in Home Assistant stays.</span></div><div class="dialogFoot"><button class="button">Keep it</button><button class="button danger is-hover">Stop watching</button></div></div></div>
+      <span class="help">our Dialog, through <code>confirmBox()</code> (confirm.tsx), which returns a promise; the action named on its button, red for a delete</span>
+    </td></tr>
+    <tr id="ask"><td class="id"><b>ask</b></td><td><code>prompt()</code> (1)</td><td>Sensor Watch: Save as a new profile</td><td class="ex"><div class="native-dlg"><p>Name the new profile</p><input value="UK mains"><div class="row"><button>Cancel</button><button class="def">OK</button></div></div></td><td class="spec">the browser's box with a field</td><td class="ex">
+      <div class="dialog" style="position:static;display:block;width:340px"><div class="dialogForm"><div class="dialogHead"><h2>Save as a new profile</h2></div><div class="dialogBody"><label class="field"><span class="fieldLabel">Name</span><input value="UK mains"></label></div><div class="dialogFoot"><button class="button">Cancel</button><button class="button primary">Save</button></div></div></div>
+    </td></tr>
+    <tr id="alert"><td class="id"><b>alert</b></td><td><code>alert()</code> (1)</td><td>Sensor Watch</td><td class="ex"><div class="native-dlg"><p>That file isn't a profile.</p><div class="row"><button class="def">OK</button></div></div></td><td class="spec">the browser's box</td><td class="ex"><div class="toast toastBad toast-demo">That file isn't a profile.</div> <span class="help">a toast (or a line by the thing it's about)</span></td></tr>
+    <tr id="switch"><td class="id"><b>switch</b></td><td><code>ui .switch</code> (Switch); and 22 checkboxes</td><td>Switch: Settings, Cameras' <i>Motion detection on</i>, Commander. Checkboxes: Guest dialogs, People, Kiosk mode, Sensor Watch, Auto Dashboards</td><td class="ex native"><div class="stack">
+      <span><button class="switch"><span class="knob"></span></button> <button class="switch switchOn"><span class="knob"></span></button> <span class="help">ours: off (O..), on (..O)</span></span>
+      <label class="sw-tick"><input type="checkbox" checked><span>Disabled<small>Kept, but not watched.</small></span></label>
+      <span class="people-tick"><input type="checkbox"> <input type="checkbox" checked> <span class="help">People's grid</span></span></div>
+    </td><td class="spec">switch 42×24, good when on, no hover; checkboxes: the browser's, three styles of 18px</td><td class="ex"><div class="stack">
+      <label class="choice"><input type="checkbox" checked><span><strong>Disabled</strong><span class="choiceWhy">Kept, but not watched.</span></span></label>
+      <span class="states"><small>hover / focus</small><button class="switch is-hover"><span class="knob"></span></button></span>
+      <span class="states"><small>a list or grid: the same small switch (every checkbox is one now)</small></span>
+      <div class="choices">
+        <label class="choice"><input type="checkbox" checked><span><strong>Pool pH</strong> <span class="choicePath">sensor.pool_ph</span></span></label>
+        <label class="choice"><input type="checkbox"><span><strong>Barn door</strong> <span class="choicePath">binary_sensor.barn_door</span></span></label></div>
+      <span class="help">Settings keep the larger Switch (42×24); every checkbox is drawn as the small one by styles.css.</span></div>
+    </td></tr>
+    <tr id="slider"><td class="id"><b>slider</b></td><td><code>pipeline .pace</code>, <code>app .slider</code>, Guest dialog's photo height; and 8 number boxes</td><td>Compositor pace; the house photo's framing; guest photo height. Number boxes: hold-off, days of history (×2), welcome delay, the audit's keep, Commander's layout numbers</td><td class="ex native"><div class="stack">
+      <label class="pipe-pace"><span>Pace</span><input type="range" min="0" max="6" value="3"><strong>every 10 s</strong></label>
+      <label class="app-slider"><span>Zoom</span><input type="range" value="40"><output>1.4×</output></label>
+      <label class="field" style="max-width:360px"><span class="fieldLabel">Photo height: 46% of the screen</span><input type="range" min="20" max="80" value="46" style="accent-color:var(--accent)"></label>
+      <label class="field"><span class="fieldLabel">Hold-off (seconds)</span><input class="num-box" type="number" value="600"></label></div>
+    </td><td class="spec">three layouts of the browser's slider (accent-tinted); number boxes for small ranges, typed with no sense of the range</td><td class="ex"><div class="stack">
+      <label class="slider"><span>Pace</span><input type="range" min="0" max="6" value="3" style="--pct:50%" oninput="this.style.setProperty('--pct',this.value/this.max*100+'%')"><output>every 10 s</output></label>
+      <label class="slider"><span>Hold-off</span><input type="range" min="0" max="7" value="4" style="--pct:57%" oninput="this.style.setProperty('--pct',this.value/this.max*100+'%')"><output>10 min</output><span class="sliderEnds"><span>none</span><span>1 day</span></span></label>
+      <label class="slider"><span>History</span><input type="range" min="0" max="6" value="3" style="--pct:50%" oninput="this.style.setProperty('--pct',this.value/this.max*100+'%')"><output>30 days</output><span class="sliderEnds"><span>1 day</span><span>a year</span></span></label>
+      <span class="help">One layout: label, slider with a lozenge knob, value (fixed width, so it never moves under the finger). Stepped where the range is wide (hold-off: none, 30 s, 1, 5, 10, 30 min, 1 h, 1 day), its ends under it. A number box stays for an exact, wide figure (the audit's 100,000 records). These are live: drag them.</span></div>
+    </td></tr>
+    <tr id="segmented"><td class="id"><b>segmented</b></td><td><code>ui .segmented</code></td><td>One of a few modes</td><td class="ex"><span class="segmented"><button class="segOn">Numeric</button><button>On/off</button><button>Available</button></span></td><td class="spec">shared already</td><td class="ex"><span class="help">kept</span></td></tr>
+  </table></div>
+</main>
+</body>
+</html>

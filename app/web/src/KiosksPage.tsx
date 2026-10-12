@@ -12,6 +12,7 @@ import { Dialog, Field, Segmented, Toasts, type Toast } from "./ui";
 import css from "./kiosks.module.css";
 import guest from "./guest.module.css";
 import ui from "./ui.module.css";
+import { confirmBox } from "./confirm";
 
 const { get, post, put, del } = api("kiosks");
 const EVERY: Record<number, string> = { 6: "6 hours", 12: "12 hours", 24: "Daily", 168: "Weekly" };
@@ -141,12 +142,12 @@ export function KiosksPage({ state }: { state?: string }) {
                     toast((err as Error).message, "bad");
                   }
                 }}
-                onLogout={() =>
-                  confirm(`Forget the app's login for ${k.name}? Log in again for backups, updates or to open it logged in.`) &&
+                onLogout={async () =>
+                  (await confirmBox(`Forget the app's login for ${k.name}? Log in again for backups, updates or to open it logged in.`, { action: "Forget", danger: true })) &&
                   change(() => del<KiosksView>(`${k.id}/login`), `Login for ${k.name} forgotten`)
                 }
-                onForget={() =>
-                  confirm(`Forget ${k.name}? It is taken off this list with its login, and comes back at the next look if it is still found.`) &&
+                onForget={async () =>
+                  (await confirmBox(`Forget ${k.name}? It is taken off this list with its login, and comes back at the next look if it is still found.`, { action: "Forget", danger: true })) &&
                   change(() => del<KiosksView>(k.id), `${k.name} forgotten`)
                 }
               />
@@ -376,7 +377,7 @@ function KioskRow({
         {k.behind && k.logged_in && k.online && (
           <button
             className={`${ui.primary} ${ui.small}`}
-            onClick={() => confirm(`Update ${k.name} to ${latest}? It downloads from the firmware server and restarts.`) && onUpdate()}
+            onClick={async () => (await confirmBox(`Update ${k.name} to ${latest}? It downloads from the firmware server and restarts.`, { action: "Update" })) && onUpdate()}
             title={`Install ${latest} from the firmware server; the tablet restarts`}
           >
             Update
@@ -385,10 +386,9 @@ function KioskRow({
         {k.leader && k.logged_in && k.online && firmwareUrl && (
           <button
             className={`${ui.button} ${ui.small}`}
-            onClick={() =>
-              confirm(
-                `Set ${k.name}'s updates to Custom repository at ${firmwareUrl}? Its followers take the same settings from it.`,
-              ) && onFirmwareServer()
+            onClick={async () =>
+              (await confirmBox(
+                `Set ${k.name}'s updates to Custom repository at ${firmwareUrl}? Its followers take the same settings from it.`, { action: "Set it" })) && onFirmwareServer()
             }
             title={`Update source: Custom repository, ${firmwareUrl} (the firmware server); its fleet follows`}
           >
@@ -501,7 +501,7 @@ function BackupsPanel({
   };
 
   const restore = async (b: KioskBackup) => {
-    if (!confirm(`Restore ${k.name} to its ${kinds[b.kind].toLowerCase()} from ${stamp(b.at)}? Its current setup is replaced.`)) return;
+    if (!(await confirmBox(`Restore ${k.name} to its ${kinds[b.kind].toLowerCase()} from ${stamp(b.at)}? Its current setup is replaced.`, { action: "Restore", danger: true }))) return;
     setBusy(b.name);
     try {
       await post(`${k.id}/backups/${b.name}`);

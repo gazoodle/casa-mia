@@ -15,6 +15,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .coordinator import CasaMiaCoordinator
 from .sensor import CasaMiaEntity, only_on
+from .sensor_watch.entity import ProblemSensor
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,6 +33,8 @@ async def async_setup_entry(
     async_add_entities(
         only_on(coordinator, [GitProxyDownloadingSensor(coordinator, entry)])
     )
+    if coordinator.sensor_watch is not None:  # its module is on
+        async_add_entities([ProblemSensor(coordinator.sensor_watch, entry)])
     if await hass.async_add_executor_job(SWAP.exists):
         async_add_entities([SwapSensor(coordinator, entry)], update_before_add=True)
 

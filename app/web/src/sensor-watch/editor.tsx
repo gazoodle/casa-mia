@@ -4,10 +4,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { Dialog, Field, Segmented } from "../ui";
 import { HistoryChart } from "./chart";
-import { FITS, kindOf, levelsOf, swApi, type Profile, type Suggested, type WatchRecord, type WatchView } from "./common";
+import { FITS, kindOf, levelsOf, summary, swApi, type Profile, type Suggested, type WatchRecord, type WatchView, DAYS, dayText } from "./common";
 import { LevelFields, useLevels, type Kind } from "./levels";
+import type { Shared } from "./profiles";
 import css from "./sensor-watch.module.css";
 import ui from "../ui.module.css";
+import { askBox, confirmBox } from "../confirm";
+import { Select } from "../controls";
+import { Slider } from "../controls";
 
 export function RecordDialog({
   entityId,
@@ -30,6 +34,23 @@ export function RecordDialog({
   const L = useLevels(record, kindOf(entityId));
   const [name, setName] = useState(record?.name ?? "");
   const [follows, setFollows] = useState(record?.profile ?? "");
+  // Library profiles that might suit it (best first), and one being taken from there.
+  const [suggested, setSuggested] = useState<Shared[]>([]);
+  const [taking, setTaking] = useState<string>();
+  useEffect(() => {
+    swApi.get<{ profiles: Shared[] }>(`library?entity=${encodeURIComponent(entityId)}`).then(
+      (got) => setSuggested(got.profiles),
+      () => undefined, // no suggestions: its own profiles still offer
+    );
+  }, [entityId]);
+  // A library profile taken: once it's among the profiles, this sensor follows it.
+  useEffect(() => {
+    const took = taking && profiles.find((p) => p.name === taking);
+    if (!took) return;
+    setTaking(undefined);
+    setFollows(took.id);
+    L.adopt(took);
+  }, [profiles, taking]);
   const [attribute, setAttribute] = useState(record?.attribute ?? "");
   const [disabled, setDisabled] = useState(record?.disabled ?? false);
   const [saving, setSaving] = useState(false);
@@ -59,7 +80,7 @@ export function RecordDialog({
   }, []);
 
   const s = found?.suggestion;
-  const unit = found?.sensor.unit ?? "";
+  const unit = L.daysUntil ? "days" : (found?.sensor.unit ?? "");
   // How it can be watched: its own way (a number by bands or exact states), or only
   // whether it's there at all.
   const own = found?.sensor.kind ?? (record?.kind === "available" ? kindOf(entityId) : (record?.kind ?? kindOf(entityId)));
@@ -87,13 +108,13 @@ export function RecordDialog({
   /** Save: its own levels, or following a profile (changing the profile, if its levels
    * were edited here, once the user agrees: it changes every sensor that follows it). */
   const save = async () => {
-    if (!L.sane()) return;
+    if (!(await L.sane())) return;
     setSaving(true);
     let ok: boolean;
     if (following) {
       const edited = same(levelsOf(following), L.body()) ? null : L.body();
       const others = following.followers - (record?.profile === following.id ? 1 : 0);
-      if (edited && others > 0 && !confirm(`Change the profile "${following.name}"? It changes all ${others + 1} sensors that follow it.`)) {
+      if (edited && others > 0 && !(await confirmBox(`Change the profile "${following.name}"? It changes all ${others + 1} sensors that follow it.`, { action: "Change them all" }))) {
         setSaving(false);
         return;
       }
@@ -110,8 +131,8 @@ export function RecordDialog({
 
   /** Make these levels a new profile, and have this sensor follow it. */
   const saveAsProfile = async () => {
-    if (!L.sane()) return;
-    const title = prompt("Name the new profile (e.g. Mains voltage):")?.trim();
+    if (!(await L.sane())) return;
+    const title = await askBox("Save as a new profile", { label: "Its name", placeholder: "e.g. Mains voltage", action: "Save" });
     if (!title) return;
     setSaving(true);
     const ok = await change(async () => {
@@ -154,11 +175,11 @@ export function RecordDialog({
 
       {(attribute || Object.keys(found?.sensor.attributes ?? {}).length > 0) && (
         <Field label="Watch" help="Its state, or one of its attributes: a thermostat's state is only its mode, so watch its current_temperature or hvac_action.">
-          <select
+          <Select
             value={attribute}
-            onChange={(e) => {
-              setAttribute(e.target.value);
-              read(undefined, e.target.value);
+            onChange={(picked) => {
+              setAttribute(picked);
+              read(undefined, picked);
             }}
           >
             <option value="">Its state</option>
@@ -167,7 +188,7 @@ export function RecordDialog({
                 {k} (now {v})
               </option>
             ))}
-          </select>
+          </Select>
         </Field>
       )}
 
@@ -182,9 +203,9 @@ export function RecordDialog({
                   }`
                 : problem ?? ""}
           </span>
-          <label className={css.days}>
-            <input type="number" min={1} max={365} value={days} onChange={(e) => setDays(e.target.value)} aria-label="Days of history" /> days
-          </label>
+          <span className={css.days}>
+            <Slider label="History" value={Number(days) || 1} steps={DAYS} format={dayText} onChange={(d) => setDays(String(d))} />
+          </span>
           <button className={`${ui.button} ${ui.small}`} disabled={reading} onClick={() => read(L.kind)}>
             Read again
           </button>
@@ -221,30 +242,63 @@ export function RecordDialog({
         )}
       </div>
 
-      {fitting.length > 0 && (
+      {(fitting.length > 0 || suggested.length > 0) && (
         <Field
           label="Follows"
           help={
             following
               ? `Its levels come from the profile ${following.name}, followed by ${following.followers} sensors: editing them here changes the profile.`
-              : "Its own levels, or a profile's (the same levels for many sensors, said once)."
+              : `Its own levels, or a profile's (the same levels for many sensors, said once).${
+                  suggested.length ? " The library has some that might suit it, under your own: choosing one takes it in." : ""
+                }`
           }
         >
-          <select
+          <Select
             value={follows}
-            onChange={(e) => {
-              setFollows(e.target.value);
-              const p = profiles.find((x) => x.id === e.target.value);
+            onChange={(picked) => {
+              const v = picked;
+              if (v.startsWith("library:")) {
+                // From the library: one you have by that name, or taken in now.
+                const want = suggested.find((p) => `library:${p.name}` === v);
+                if (!want) return;
+                const have = profiles.find((p) => p.name === want.name);
+                if (have) {
+                  setFollows(have.id);
+                  L.adopt(have);
+                  return;
+                }
+                const { score: _s, ...shared } = want;
+                setTaking(want.name);
+                change(() => swApi.post<WatchView>("profiles/import", { profiles: [shared] }), `${want.name} taken from the library`);
+                return;
+              }
+              setFollows(v);
+              const p = profiles.find((x) => x.id === v);
               if (p) L.adopt(p);
             }}
           >
             <option value="">Its own levels</option>
-            {fitting.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name} ({p.followers} following)
-              </option>
-            ))}
-          </select>
+            {fitting.length > 0 && (
+              <optgroup label="Your profiles">
+                {fitting.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({p.followers} following)
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {suggested.some((s) => !profiles.some((p) => p.name === s.name)) && (
+              <optgroup label="From the library (taken in when chosen)">
+                {suggested
+                  .filter((s) => !profiles.some((p) => p.name === s.name))
+                  .map((s) => (
+                    <option key={s.name} value={`library:${s.name}`}>
+                      {s.name} · {summary(s)}
+                    </option>
+                  ))}
+              </optgroup>
+            )}
+          </Select>
         </Field>
       )}
       <LevelFields

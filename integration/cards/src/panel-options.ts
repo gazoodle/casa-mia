@@ -11,6 +11,7 @@
 // the view as they change; Save writes them, Cancel puts them back.
 import { LitElement, css, html, nothing } from "lit";
 import { define, type Hass, haForm, helper, label, mainSchema, panelSchema } from "./ha.ts";
+import { PILLS } from "./pills.ts";
 import { LAYOUT, PANELS, type Panel } from "./layout.ts";
 import { layerOf, type Place, SIDES, type Side, withLayer } from "./tablet.ts";
 
@@ -260,19 +261,23 @@ abstract class Floating extends LitElement {
     }
   }
 
-  protected frame(title: string, label: string, top: unknown, middle: unknown) {
+  /** The box: the admin page's dialog (docs/design/chrome.html dialog-card), in HA's colours;
+   * its main button `action` (red when it destroys something). */
+  protected frame(title: string, label: string, top: unknown, middle: unknown, action = "Save", danger = false) {
     return html`<div class="backdrop" @click=${() => this.cancel()}></div>
       <div class="box" role="dialog" aria-label=${label} style=${this.at || "visibility:hidden"}>
         <header><h2>${title}</h2>${top}</header>
         <div class="middle">${customElements.get("ha-form") ? middle : html`<p class="note">Loading…</p>`}</div>
         <footer>
-          <button class="text" @click=${() => this.cancel()}>Cancel</button>
-          <button class="primary" ?disabled=${this.busy} @click=${() => this.save()}>Save</button>
+          <button class="btn" @click=${() => this.cancel()}>Cancel</button>
+          <button class="btn primary ${danger ? "danger" : ""}" ?disabled=${this.busy} @click=${() => this.save()}>${action}</button>
         </footer>
       </div>`;
   }
 
-  static styles = css`
+  static styles = [
+    PILLS,
+    css`
     :host {
       position: fixed;
       inset: 0;
@@ -291,9 +296,10 @@ abstract class Floating extends LitElement {
       flex-direction: column;
       width: min(380px, calc(100vw - 16px));
       overflow: hidden;
+      border: 1px solid var(--divider-color);
+      border-radius: 18px;
       background: var(--card-background-color, #fff);
-      border-radius: 16px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 24px 60px rgb(0 0 0 / 45%);
     }
     header {
       flex: none;
@@ -302,8 +308,7 @@ abstract class Floating extends LitElement {
       align-items: center;
       justify-content: space-between;
       gap: 8px;
-      padding: 14px 16px 6px;
-      border-bottom: 1px solid var(--divider-color);
+      padding: 16px 18px 6px;
     }
     .middle {
       flex: 1 1 auto;
@@ -314,27 +319,14 @@ abstract class Floating extends LitElement {
     h2 {
       margin: 0;
       font-size: 18px;
-      font-weight: 500;
+      font-weight: 600;
     }
+    /* Its actions are the shared chips (pills.ts; card-action), in the theme's colour. */
     .actions {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
-    }
-    .actions button,
-    .act {
-      font: inherit;
-      font-size: 13px;
-      padding: 4px 12px;
-      border-radius: 16px;
-      border: 1px solid var(--primary-color);
-      background: none;
-      color: var(--primary-color);
-      cursor: pointer;
-    }
-    .actions button[disabled] {
-      opacity: 0.35;
-      cursor: default;
+      --tone: var(--primary-color);
     }
     section {
       margin: 8px 12px;
@@ -366,37 +358,54 @@ abstract class Floating extends LitElement {
       border: none;
       background: none;
       color: var(--primary-color);
+      text-decoration: underline;
+      text-underline-offset: 2px;
       cursor: pointer;
+    }
+    .link:hover {
+      text-decoration-thickness: 2px;
     }
     footer {
       flex: none;
       display: flex;
       justify-content: flex-end;
       gap: 8px;
-      padding: 10px 16px 14px;
+      padding: 14px 18px 16px;
       border-top: 1px solid var(--divider-color);
     }
-    footer button {
+    /* The admin page's buttons (button, button-primary), in HA's colours; the chips' ring. */
+    .btn {
+      padding: 8px 14px;
+      border: 1px solid var(--divider-color);
+      border-radius: 10px;
+      background: none;
+      color: var(--primary-text-color);
       font: inherit;
       font-size: 14px;
-      font-weight: 500;
-      padding: 8px 20px;
-      border-radius: 20px;
-      border: none;
+      font-weight: 560;
       cursor: pointer;
+      transition: box-shadow 0.15s, filter 0.15s;
     }
-    .text {
-      background: none;
-      color: var(--primary-color);
+    .btn:not([disabled]):hover,
+    .btn:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 35%, transparent);
+      filter: brightness(1.08);
     }
     .primary {
+      border-color: transparent;
       background: var(--primary-color);
       color: var(--text-primary-color, #fff);
     }
-    .primary[disabled] {
-      opacity: 0.5;
+    .danger {
+      background: var(--error-color, #db4437);
     }
-  `;
+    .btn[disabled] {
+      opacity: 0.5;
+      cursor: default;
+    }
+  `,
+  ];
 }
 
 export type PanelOptions = {
@@ -469,14 +478,14 @@ class PanelOptionsBox extends Floating {
     const arrows = across(p) ? ["←", "→"] : ["↑", "↓"];
     const top = main
       ? html`<div class="actions">
-          ${add ? html`<button @click=${() => this.act(add)}>+ Add a layer</button>` : nothing}
-          ${remove ? html`<button @click=${() => this.act(remove)}>Remove layer ${o.count}</button>` : nothing}
+          ${add ? html`<button class="cm-chip" @click=${() => this.act(add)}>+ Add a layer</button>` : nothing}
+          ${remove ? html`<button class="cm-chip" @click=${() => this.act(remove)}>Remove layer ${o.count}</button>` : nothing}
         </div>`
       : html`<div class="actions">
-          <button @click=${() => this.act(add)}>+ Add a panel</button>
+          <button class="cm-chip" @click=${() => this.act(add)}>+ Add a panel</button>
           ${back || on
-            ? html`<button ?disabled=${!back} aria-label="Move earlier" @click=${() => this.act(back)}>${arrows[0]}</button>
-                <button ?disabled=${!on} aria-label="Move later" @click=${() => this.act(on)}>${arrows[1]}</button>`
+            ? html`<button class="cm-chip" ?disabled=${!back} aria-label="Move earlier" @click=${() => this.act(back)}>${arrows[0]}</button>
+                <button class="cm-chip" ?disabled=${!on} aria-label="Move later" @click=${() => this.act(on)}>${arrows[1]}</button>`
             : nothing}
         </div>`;
     return this.frame(
@@ -552,6 +561,7 @@ class MiniBox extends Floating {
           ${o.actions.map(
             (a) =>
               html`<button
+                class="cm-chip"
                 @click=${() => {
                   this.cancel();
                   a.run();
@@ -582,4 +592,43 @@ define("casa-mia-mini", MiniBox);
 /** Open a mini box by what opened it. */
 export function openMini(o: Mini): void {
   (document.createElement("casa-mia-mini") as MiniBox).open(o);
+}
+
+/** Ask yes or no on the view (the Tablet Layout's own confirm, in place of the browser's:
+ * docs/design/chrome.html confirm): the question's first sentence its title, the rest under. */
+class ConfirmBox extends Floating {
+  question = "";
+  action = "OK";
+  danger = false;
+  answer: (ok: boolean) => void = () => {};
+
+  anchor() {
+    return document.body;
+  }
+  /** Centred near the top (it belongs to no one control). */
+  updated() {
+    if (!this.at) this.at = "left:50%;top:18%;transform:translateX(-50%)";
+  }
+  cancel() {
+    this.answer(false);
+    this.remove();
+  }
+  async commit() {
+    this.answer(true);
+  }
+  render() {
+    const at = this.question.indexOf("?");
+    const [title, rest] = at > 0 ? [this.question.slice(0, at + 1), this.question.slice(at + 1).trim()] : [this.question, ""];
+    return this.frame(title, title, nothing, html`<p class="plain note">${rest}</p>`, this.action, this.danger);
+  }
+}
+
+define("casa-mia-confirm", ConfirmBox);
+
+export function confirmOnView(question: string, { action = "OK", danger = false } = {}): Promise<boolean> {
+  return new Promise((resolve) => {
+    const box = document.createElement("casa-mia-confirm") as ConfirmBox;
+    Object.assign(box, { question, action, danger, answer: resolve });
+    document.body.append(box);
+  });
 }

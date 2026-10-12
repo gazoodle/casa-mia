@@ -1,13 +1,13 @@
-// The Sensor Watch card: what isn't nominal, worst first, from the casa_mia_sensor_watch
-// integration's `list` service (a group's only, if it names one). It asks again the moment
-// a level moves (the integration's casa_mia_sensor_watch event; its entities' writes are
+// The Sensor Watch card: what isn't nominal, worst first, from Sensor Watch's list
+// service (casa_mia.sensor_watch_list; a group's only, if it names one). It asks again the
+// moment a level moves (its casa_mia_sensor_watch event; its entities' writes are
 // the backstop), and shows each value live from the entity itself. With nothing to list it hides (HA's card wrapper honours a card's own
 // `hidden`), so in a Tablet Layout its panel closes, garnish heading and all, when all is well.
 import { LitElement, css, html, nothing } from "lit";
 import { fire, type Hass, inPicker } from "../ha.ts";
-import { type Column, type Config, DEFAULTS, type Row, columns, since } from "./common.ts";
+import { PILLS } from "../pills.ts";
+import { type Column, type Config, DEFAULTS, EVENT, type Row, SERVICE, columns, due, own, since } from "./common.ts";
 
-const DOMAIN = "casa_mia_sensor_watch";
 const ASK_AFTER = 300; // ms: the integration's entities write in a burst; one ask after
 const ago = (h: number) => new Date(Date.now() - h * 3600e3).toISOString();
 /** In HA's card picker with nothing to list: how it looks when something is. */
@@ -59,7 +59,7 @@ export class SensorWatchCard extends LitElement {
     const subscribed: Promise<() => void> = hass.connection.subscribeEvents(() => {
       clearTimeout(this._timer);
       this._ask();
-    }, DOMAIN);
+    }, EVENT);
     this._unsubscribe = subscribed;
     subscribed.catch((err: unknown) => console.warn(`CASA-MIA CARDS: sensor watch: can't hear its event (${err})`));
   }
@@ -69,7 +69,7 @@ export class SensorWatchCard extends LitElement {
     if (this.isConnected) this._subscribe(hass);
     // The integration's entities (its status and counts) write when a level moves.
     const mine = Object.entries(hass.entities ?? {})
-      .filter(([, e]: [string, any]) => e.platform === DOMAIN)
+      .filter(([, e]: [string, any]) => own(e))
       .map(([id]) => `${id}@${hass.states[id]?.last_updated ?? ""}`)
       .join(",");
     if (mine !== this._seen) {
@@ -100,8 +100,7 @@ export class SensorWatchCard extends LitElement {
     try {
       const got: any = await hass.callWS({
         type: "call_service",
-        domain: DOMAIN,
-        service: "list",
+        ...SERVICE,
         service_data: { levels: o.levels, ...(o.group ? { group: o.group } : {}) },
         return_response: true,
       });
@@ -109,7 +108,7 @@ export class SensorWatchCard extends LitElement {
       this._problem = undefined;
     } catch (err) {
       this._rows = [];
-      this._problem = `Sensor Watch isn't answering (${(err as Error)?.message ?? err}): is its integration set up?`;
+      this._problem = `Sensor Watch isn't answering (${(err as Error)?.message ?? err}): is it switched on in the Casa Mia app, and Home Assistant restarted since?`;
       console.warn(`CASA-MIA CARDS: sensor watch: ${this._problem}`);
     }
     this._showOrHide();
@@ -152,6 +151,7 @@ export class SensorWatchCard extends LitElement {
         : nothing}
       ${rows.map((r) => {
         const st = this._hass?.states[r.entity_id];
+        if (r.days_until) return this._row(r, due(r.attribute ? String(st?.attributes?.[r.attribute] ?? "") : st?.state, r.value), now);
         if (r.attribute) return this._row(r, String(st?.attributes?.[r.attribute] ?? r.value ?? ""), now);
         const unit = st?.attributes?.unit_of_measurement ?? "";
         return this._row(r, st ? `${st.state}${unit ? ` ${unit}` : ""}` : (r.value ?? ""), now);
@@ -168,7 +168,7 @@ export class SensorWatchCard extends LitElement {
       style="grid-template-columns:${columns(show)}"
       @click=${() => r.entity_id && fire(this, "hass-more-info", { entityId: r.entity_id })}
     >
-      ${has("level") ? html`<span class="level">${r.level}</span>` : nothing}
+      ${has("level") ? html`<span class="level cm-pill ${r.level === "critical" ? "cm-filled" : ""}">${r.level}</span>` : nothing}
       ${has("name") || has("message")
         ? html`<span class="what">
             ${has("name") ? html`<span class="name">${r.name}</span>` : nothing}
@@ -180,7 +180,9 @@ export class SensorWatchCard extends LitElement {
     </button>`;
   }
 
-  static styles = css`
+  static styles = [
+    PILLS,
+    css`
     ha-card {
       padding: 4px 0;
       overflow: hidden;
@@ -213,17 +215,10 @@ export class SensorWatchCard extends LitElement {
     .critical {
       --cm-level: var(--error-color, #db4437);
     }
+    /* A status pill in its level's colour (pills.ts; card-level), critical filled. */
     .level {
       justify-self: start;
-      padding: 1px 8px;
-      border-radius: 10px;
-      background: var(--cm-level);
-      color: #fff;
-      font-size: 12px;
-      text-transform: capitalize;
-    }
-    .critical .level {
-      font-weight: 700;
+      --tone: var(--cm-level);
     }
     .what {
       display: grid;
@@ -250,5 +245,6 @@ export class SensorWatchCard extends LitElement {
     .problem {
       color: var(--error-color, #db4437);
     }
-  `;
+  `,
+  ];
 }

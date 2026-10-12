@@ -1,4 +1,14 @@
-// The Sensor Watch card's options, and what it reads: the casa_mia_sensor_watch
+// Sensor Watch, in Casa Mia's integration: its event on each change of level, its list
+// service, and its own entities (status, counts, problem; on casa_mia's platform, their
+// translation keys sensor_watch_*). Its own integration, casa_mia_sensor_watch, until
+// 2026.10.10-b3.
+export const EVENT = "casa_mia_sensor_watch";
+export const SERVICE = { domain: "casa_mia", service: "sensor_watch_list" };
+export function own(e: { platform?: string; translation_key?: string }): boolean {
+  return e.platform === "casa_mia" && (e.translation_key ?? "").startsWith("sensor_watch_");
+}
+
+// The Sensor Watch card's options, and what it reads: Sensor Watch's
 // integration's `list` service (worst first, then longest standing).
 export const TYPE = "custom:casa-mia-sensor-watch";
 export const LEVELS = ["task", "warning", "error", "critical"] as const;
@@ -34,7 +44,14 @@ export function columns(show: readonly Column[]): string {
 
 /** One row of the `list` service's answer. */
 /** A row as the list service gives it; `attribute`: the attribute watched, not the state. */
-export type Row = { entity_id: string; name: string; level: Level; value: string | null; message: string | null; since: string; attribute?: string };
+export type Row = { entity_id: string; name: string; level: Level; value: string | null; message: string | null; since: string; attribute?: string; days_until?: boolean };
+
+/** A due date as people read it ("25 Oct"), or the days the integration gave. */
+export function due(state: string | undefined, days: string | null): string {
+  const t = state ? Date.parse(state) : NaN;
+  if (!Number.isNaN(t)) return new Date(t).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  return days ? `${days} days` : "";
+}
 
 /** "4 min", "3 h", "2 d": how long since `iso`. */
 export function since(iso: string, now: number): string {

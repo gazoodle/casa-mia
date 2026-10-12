@@ -1,6 +1,6 @@
 // Layer 2: edit mode's actions and dialogs (toolbars, panel options, gaps, lines, margins, header, footer, locks).
 import { LAYOUT, type Panel, PANELS } from "../layout.ts";
-import { compact, edgeForm, type Form, openMini, openPanelOptions, PX } from "../panel-options.ts";
+import { compact, confirmOnView, edgeForm, type Form, openMini, openPanelOptions, PX } from "../panel-options.ts";
 import { depthOf, type Draft, type Gap, type GapLine, draftsOf, LAYERS, layerOf, panelName, placeOf, restack, type Side, SIDES, sides, stackOf, withLayer } from "../tablet.ts";
 import { headerSpace } from "./common.ts";
 import { ViewBase } from "./base.ts";
@@ -67,10 +67,10 @@ export const ViewEdit = (Base: ReturnType<typeof ViewBase>) =>
             add: () => this.cmRestack((ds) => [...ds, ...edges.map((place) => ({ from: null, layer: depth + 1, place }))]),
           }),
           ...(depth > 1 && {
-            remove: () => {
+            remove: async () => {
               const gone = (d: Draft) => d.place !== "main" && d.layer === depth;
               const full = draftsOf(this.cmSections).some((d) => gone(d) && this.cmSections[d.from!]?.cards?.length);
-              if (full && !confirm(`Remove layer ${depth}? Its panels' cards go with it.`)) return;
+              if (full && !(await confirmOnView(`Remove layer ${depth}? Its panels' cards go with it.`, { action: "Remove", danger: true }))) return;
               this.cmRestack((ds) => ds.filter((d) => !gone(d)));
             },
           }),
