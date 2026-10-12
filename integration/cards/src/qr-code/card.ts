@@ -1,7 +1,9 @@
-// The QR code card: asks the integration (websocket casa_mia_guest_login/qr) for the codes,
-// drawn by the app, and shows them. An endpoint is named by its Access switch; its code
-// comes only while it is open, and is asked for again each time the switch changes (a
-// closed endpoint may get a new address). A page's code is a plain link: it signs nobody in.
+// The QR code card: asks the integration (websocket casa_mia_guest_login/qr) for its picture,
+// drawn by the app as the printed guest card is (one renderer for both), and shows it. An
+// endpoint is named by its Access switch; its code comes only while it is open, and is asked
+// for again each time the switch changes (a closed endpoint may get a new address). A page's
+// code is a plain link: it signs nobody in. The Wi-Fi's code comes first (left), so a phone
+// joins the network before it signs in; with no endpoint or page, it is alone.
 import { LitElement, css, html, nothing } from "lit";
 import type { Hass } from "../ha.ts";
 
@@ -10,12 +12,16 @@ export type Config = {
   title?: string;
   endpoint?: string; // a guest login endpoint's Access switch
   path?: string; // or a page of Home Assistant, such as /lovelace/pool
-  wifi?: boolean; // the Wi-Fi's code beside it
+  wifi?: boolean; // the Wi-Fi's code beside it, or alone
   caption?: string; // under the code (default: the endpoint's name, or the page's path)
+  wifi_details?: boolean; // the network's name and password written out
+  welcome?: boolean; // Guest login's welcome title on top, as on the guest card
+  border?: boolean; // the guest card's black rounded border
+  code_frames?: boolean; // each code in its black frame
 };
-type Found = { svg?: string; label?: string; closed?: boolean; error?: string; wifi_svg?: string; ssid?: string; wifi_error?: string };
-
-const picture = (svg: string, alt: string) => html`<img src=${`data:image/svg+xml,${encodeURIComponent(svg)}`} alt=${alt} />`;
+/** Each option's default: shown in the editor, and never saved. */
+export const DEFAULTS = { wifi: false, wifi_details: true, welcome: false, border: false, code_frames: true };
+type Found = { svg?: string; error?: string; wifi_error?: string };
 
 export class QrCodeCard extends LitElement {
   static properties = { _config: { state: true }, _found: { state: true }, _problem: { state: true } };
@@ -44,25 +50,31 @@ export class QrCodeCard extends LitElement {
     this._hass = hass;
     const c = this._config;
     if (!c) return;
-    // The switch's state and when it last changed: an opening, a closing (a new address).
+    // The options, and the switch's state and when it last changed: an opening, a closing
+    // (a new address).
     const st = c.endpoint ? hass.states[c.endpoint] : undefined;
-    const seen = JSON.stringify([c.endpoint, c.path, c.wifi, st?.state, st?.last_changed]);
+    const seen = JSON.stringify([c, st?.state, st?.last_changed]);
     if (seen === this._seen) return;
     this._seen = seen;
-    this._ask(hass, c);
+    this._ask(hass, { ...DEFAULTS, ...c });
   }
 
-  private async _ask(hass: Hass, c: Config) {
+  private async _ask(hass: Hass, c: Config & typeof DEFAULTS) {
     if (!c.endpoint && !c.path && !c.wifi) {
       this._found = undefined;
-      this._problem = "Pick an endpoint or a page.";
+      this._problem = "Pick an endpoint or a page, or turn on the Wi-Fi's code.";
       return;
     }
     try {
       this._found = await hass.callWS({
         type: "casa_mia_guest_login/qr",
         ...(c.endpoint ? { entity_id: c.endpoint } : c.path ? { path: c.path } : {}),
-        wifi: !!c.wifi,
+        wifi: c.wifi,
+        ...(c.caption ? { caption: c.caption } : {}),
+        welcome: c.welcome,
+        border: c.border,
+        frame: c.code_frames,
+        details: c.wifi_details,
       });
       this._problem = this._found?.error;
     } catch (err) {
@@ -81,63 +93,27 @@ export class QrCodeCard extends LitElement {
   }
 
   render() {
-    const c = this._config;
-    if (!c) return nothing;
+    if (!this._config) return nothing;
     const f = this._found ?? {};
-    const caption = c.caption || f.label || c.path || "";
-    const main = f.svg
-      ? html`<figure>${picture(f.svg, caption || "QR code")}<figcaption>${caption}</figcaption></figure>`
-      : f.closed
-        ? html`<figure class="closed"><div class="shut">Closed</div><figcaption>${caption}: its code shows while it's open</figcaption></figure>`
-        : nothing;
-    const wifi = c.wifi
-      ? f.wifi_svg
-        ? html`<figure>${picture(f.wifi_svg, "Wi-Fi")}<figcaption>Join the Wi-Fi${f.ssid ? html`<br /><b>${f.ssid}</b>` : nothing}</figcaption></figure>`
-        : f.wifi_error
-          ? html`<p class="note">${f.wifi_error} (Casa Mia → Guest login → QR codes → Wi-Fi)</p>`
-          : nothing
-      : nothing;
-    return html`<ha-card .header=${c.title || undefined}>
+    return html`<ha-card .header=${this._config.title || undefined}>
       ${this._problem ? html`<p class="note problem">${this._problem}</p>` : nothing}
-      <div class="codes">${main}${wifi}</div>
+      ${f.wifi_error ? html`<p class="note">${f.wifi_error} (Casa Mia → Guest login → QR codes → Wi-Fi)</p>` : nothing}
+      ${f.svg ? html`<img src=${`data:image/svg+xml,${encodeURIComponent(f.svg)}`} alt="QR code" />` : nothing}
     </ha-card>`;
   }
 
   static styles = css`
     ha-card {
-      padding: 12px 16px 16px;
+      padding: 8px;
     }
-    .codes {
-      display: flex;
-      gap: 16px;
-      justify-content: center;
-    }
-    figure {
-      flex: 1 1 0;
-      max-width: 360px;
-      margin: 0;
-      text-align: center;
-    }
-    img,
-    .shut {
+    img {
       display: block;
       width: 100%;
-      aspect-ratio: 1;
-      border-radius: 7%;
-    }
-    .shut {
-      display: grid;
-      place-items: center;
-      background: var(--secondary-background-color);
-      color: var(--secondary-text-color);
-      font-size: 1.2em;
-    }
-    figcaption {
-      margin-top: 8px;
-      color: var(--primary-text-color);
+      max-width: 720px;
+      margin: 0 auto;
     }
     .note {
-      margin: 0 0 8px;
+      margin: 8px;
       color: var(--secondary-text-color);
     }
     .problem {

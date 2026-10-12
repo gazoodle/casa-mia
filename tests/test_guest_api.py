@@ -173,14 +173,20 @@ def test_the_qr_code_card_gets_open_endpoints_pages_and_wifi(api):
         {**SUITE, "id": "a", "legacy": False, "slug": "s" * 16},
     )
     shut = api.for_card({"endpoint": ["a"], "wifi": ["1"]})
-    assert shut["closed"] and "svg" not in shut  # any user may ask: no closed codes
-    assert shut["wifi_error"]
+    assert (
+        "Closed" in shut["svg"] and shut["wifi_error"]
+    )  # any user asks: no closed codes
+    assert api.qr_text(api.data["endpoints"][0]) not in shut["svg"]
     api.guest.set_enabled("a", True)
     api.data["wifi"] = {"ssid": "Barn Guests", "password": "pw", "security": "WPA"}
-    found = api.for_card({"endpoint": ["a"], "wifi": ["1"]})
-    assert found["svg"].startswith("<svg") and found["wifi_svg"].startswith("<svg")
-    assert found["ssid"] == "Barn Guests" and found["label"] == SUITE["label"]
-    assert api.for_card({"path": ["lovelace/pool"]})["svg"].startswith("<svg")
+    found = api.for_card({"endpoint": ["a"], "wifi": ["1"], "welcome": ["1"]})["svg"]
+    assert "1. Join the Wi-Fi" in found and "2. Scan to sign in" in found
+    assert "Password: pw" in found and 'stroke="#111"' in found  # the guest card's look
+    plain = api.for_card({"wifi": ["1"], "border": ["0"], "details": ["0"]})["svg"]
+    assert "Join the Wi-Fi" in plain and "Password" not in plain  # the Wi-Fi's alone
+    assert 'stroke="#111"' not in plain and "Scan" not in plain
+    page = api.for_card({"path": ["lovelace/pool"], "caption": ["Pool"]})["svg"]
+    assert "Scan to open" in page and "Pool" in page
     assert api.for_card({"path": ["<bad>"]})["error"]
     assert api.for_card({"endpoint": ["nope"]})["error"]
 

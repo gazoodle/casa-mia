@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.10.11-b2
+
+- **Breaking:** the Casa Mia Guest Login integration changed. Restart Home Assistant once; a Repair asks.
+- QR code card: the endpoint is picked from a list of their names (it was a list of switches); the Wi-Fi's code comes first, on the left, so a phone joins the network before it scans to sign in; and with no endpoint or page, the card shows the Wi-Fi's code alone.
+- QR code card: drawn by the app as the printed guest card is (one drawing for both), with the choice of the welcome title on top, the network and password written out, a black border round the card, and a black frame round each code. A closed endpoint shows a grey tile with *Closed*.
+
 ## 2026.10.11-b1
 
 - **Breaking:** the Casa Mia integrations and their cards changed. Restart Home Assistant once; a Repair asks.

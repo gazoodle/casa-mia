@@ -1,6 +1,7 @@
-"""The QR code card's codes: websocket casa_mia_guest_login/qr (any signed-in user) asks the
-app for an endpoint's code (named by its Access switch), a page's, and the Wi-Fi's beside
-either. The app gives an endpoint's code only while it is open."""
+"""The QR code card's picture: websocket casa_mia_guest_login/qr (any signed-in user) asks
+the app for an endpoint's code (named by its Access switch), a page's, the Wi-Fi's beside
+either or alone, drawn as the guest card is. The app gives an endpoint's code only while it
+is open."""
 
 from __future__ import annotations
 
@@ -43,6 +44,12 @@ def endpoint_of(hass: HomeAssistant, entity_id: str) -> str | None:
         vol.Optional("entity_id"): str,
         vol.Optional("path"): str,
         vol.Optional("wifi", default=False): bool,
+        vol.Optional("caption"): str,
+        # The guest card's look, each on unless turned off (welcome: off unless on).
+        vol.Optional("welcome", default=False): bool,
+        vol.Optional("border", default=True): bool,
+        vol.Optional("frame", default=True): bool,  # the codes' black frames
+        vol.Optional("details", default=True): bool,  # the network's name and password
     }
 )
 @websocket_api.async_response
@@ -67,6 +74,13 @@ async def _ws_qr(
         query["path"] = msg["path"]
     if msg["wifi"]:
         query["wifi"] = "1"
+    if msg["welcome"]:
+        query["welcome"] = "1"
+    if msg.get("caption"):
+        query["caption"] = msg["caption"]
+    for off in ("border", "frame", "details"):
+        if not msg[off]:
+            query[off] = "0"
     try:
         async with async_get_clientsession(hass).get(
             f"{coordinator.url}/guest-login/qr",

@@ -226,17 +226,20 @@ The **Settings** button holds:
 ### The QR code card
 
 **Casa Mia QR code**, in the card picker, shows a code on any dashboard, drawn by the app
-as on the guest card:
+just as the guest card is:
 
-- **Guest login endpoint:** pick its Access switch. The code shows while the endpoint is
-  open and says *Closed* otherwise; it follows the switch, so a code that gets a new
+- **Guest login endpoint:** pick it by name. The code shows while the endpoint is
+  open; otherwise a grey tile says *Closed*; it follows the switch, so a code that gets a new
   address on closing shows the new one at the next opening.
 - **Or a page:** any dashboard or view, as on the QR codes dialog's *A page* tab: a plain
   link that signs nobody in. A grid of these makes a directory of your own: every
   endpoint, a tech page, the pool's dashboard.
-- **The Wi-Fi's code beside it**, with the network's name.
+- **The Wi-Fi's code**, with the network's name: first (on the left), so a phone joins the
+  network before it scans to sign in; or on its own, with no endpoint or page.
 - A **title**, and a **caption** under the code (the endpoint's name, or the page's path,
   unless you write one).
+- **The guest card's parts**, each yours to choose: the welcome title on top, the network
+  and password written out, a black border round the card, a black frame round each code.
 
 **Tablets that open at the first scan.** Put the card in an [Over layer](../over-layer.md)
 on the house's tablets, with the Visibility condition *the endpoint's Logins is 0*. Logins

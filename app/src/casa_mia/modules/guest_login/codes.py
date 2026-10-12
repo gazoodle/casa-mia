@@ -54,38 +54,64 @@ class Codes:
         ) + path
 
     def for_card(self, query: dict[str, list[str]]) -> dict[str, Any]:
-        """The QR code card's codes (GET /guest-login/qr, for the integration): an
-        endpoint's (?endpoint=<id>) while it is open, or a page's (?path=...), and the
-        Wi-Fi's beside it (&wifi=1). A closed endpoint's code is not given: any signed-in
-        user can ask, a guest too, so only a code that works now is shown."""
+        """The QR code card's picture (GET /guest-login/qr, for the integration), drawn as
+        the guest card is: an endpoint's code (?endpoint=<id>) while it is open, or a
+        page's (?path=...), the Wi-Fi's beside it (&wifi=1), or the Wi-Fi's alone. Its
+        options: &welcome=1 (the welcome title on top), &caption=..., &border=0,
+        &frame=0 (no frames round the codes), &details=0 (no network words). A closed
+        endpoint's code is not given: any signed-in user can ask, a guest too, so only a
+        code that works now is shown."""
 
         def arg(name: str) -> str:
             return (query.get(name) or [""])[0]
 
-        found: dict[str, Any] = {}
+        title = self.data["welcome"].get("title") or welcome_title()
+        sign_in: str | None = None
+        label, note, heading = arg("caption"), None, "Scan to sign in"
         if ep_id := arg("endpoint"):
             ep = next((e for e in self.data["endpoints"] if e["id"] == ep_id), None)
             if ep is None:
                 return {"error": "No such endpoint."}
-            found["label"] = ep["label"]
-            live = self.guest.health()["endpoints"].get(ep_id, {})
-            if live.get("enabled"):
-                found["svg"] = qr.svg(swap.out(self.qr_text(ep))).decode()
+            title = ep.get("title") or title
+            label = label or ep["label"]
+            if self.guest.health()["endpoints"].get(ep_id, {}).get("enabled"):
+                sign_in = self.qr_text(ep)
+                note = "Your host will give you a code" if ep.get("pin") else None
             else:
-                found["closed"] = True
+                heading, note = "Closed", "Its code shows while it's open"
         elif arg("path"):
             try:
-                _, text = self.page_text(arg("path"))
+                path, sign_in = self.page_text(arg("path"))
             except BadRequest as exc:
                 return {"error": str(exc)}
-            found["svg"] = qr.svg(swap.out(text)).decode()
+            label, heading = label or path, "Scan to open"
+        found: dict[str, Any] = {}
+        wifi = None
         if arg("wifi"):
-            wifi = self.data["wifi"]
-            if wifi.get("ssid"):
-                found["wifi_svg"] = qr.svg(swap.out(wifi_text(wifi))).decode()
-                found["ssid"] = swap.out(wifi["ssid"])
+            if self.data["wifi"].get("ssid"):
+                # Swapped before drawing, as the guest card's (see card).
+                wifi = {
+                    k: swap.out(v) if isinstance(v, str) else v
+                    for k, v in self.data["wifi"].items()
+                }
             else:
                 found["wifi_error"] = "No Wi-Fi network saved yet."
+        code = bool(arg("endpoint") or arg("path"))
+        if not code and wifi is None:
+            return found
+        found["svg"] = card_svg(
+            swap.out(title) if arg("welcome") else None,
+            wifi,
+            swap.out(sign_in) if sign_in else None,
+            swap.out(label),
+            note,
+            heading=heading,
+            code=code,
+            border=arg("border") != "0",
+            frames=arg("frame") != "0",
+            details=arg("details") != "0",
+            width=600 * ((wifi is not None) + code),
+        ).decode()
         return found
 
     def wifi_qr(self, name: str) -> Response:
