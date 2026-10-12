@@ -1,9 +1,9 @@
 // The Sensor Watch card's editor: its options, with HA's ha-form.
 import { LitElement, html, nothing } from "lit";
 import { fire, type Hass, haForm, withoutDefaults } from "../ha.ts";
-import { COLUMNS, type Config, DEFAULTS, LEVELS, SERVICE } from "./common.ts";
+import { COLUMNS, type Config, DEFAULTS, ICON_COLORS, LEVELS, SERVICE } from "./common.ts";
 
-const SHOWN: Record<string, string> = { level: "Level", name: "Name", message: "Message", value: "Value (its state now)", since: "How long" };
+const SHOWN: Record<string, string> = { icon: "Icon", level: "Level", name: "Name", message: "Message", value: "Value (its state now)", since: "How long" };
 
 /** The options, the groups (as Sensor Watch has them) offered by name. */
 const schema = (groups: string[]) => [
@@ -33,8 +33,11 @@ const schema = (groups: string[]) => [
     },
   },
   { name: "clear_message", selector: { text: {} } },
-  { name: "show", selector: { select: { multiple: true, mode: "list", options: COLUMNS.map((c) => ({ value: c, label: SHOWN[c] })) } } },
+  // Chips to drag into order, as a tile's state content: a row shows them in this order.
+  { name: "show", selector: { select: { multiple: true, reorder: true, options: COLUMNS.map((c) => ({ value: c, label: SHOWN[c] })) } } },
+  { name: "icon_color", selector: { select: { mode: "dropdown", options: ICON_COLORS.map((c) => ({ value: c, label: COLOURS[c] })) } } },
 ];
+const COLOURS: Record<string, string> = { level: "The level's colour", state: "Its state's colour, as a tile", none: "None" };
 const LABELS: Record<string, string> = {
   title: "Title",
   group: "Group",
@@ -43,10 +46,12 @@ const LABELS: Record<string, string> = {
   when_clear: "When all is well",
   clear_message: "Its message",
   show: "Each row shows",
+  icon_color: "Icon colour",
 };
 const HELP: Record<string, string> = {
   title: "Or none, and give its panel a garnish heading (it hides with the card).",
   group: "Only one group's members (from Casa Mia's Sensor Watch page), or every watched sensor.",
+  show: "Drag to reorder; the name and message share a place, where the first of them is.",
 };
 
 export class SensorWatchEditor extends LitElement {

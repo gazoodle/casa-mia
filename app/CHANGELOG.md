@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.11-b10
+
+- Sensor Watch card: each row can show the entity's icon, coloured by the level, by its state as a tile does, or not at all; and the row's parts (icon, level, name, message, value, how long) are drag-to-order chips in the card's editor, shown in that order. Existing cards look as they did.
+
 ## 2026.10.11-b9
 
 - Guest login: each endpoint has a **Waiting for first login** binary sensor, on while it's open and no one has signed in since it opened. An Over layer or a card's visibility can use it in place of a test that Logins is 0. Restart Home Assistant to add it.

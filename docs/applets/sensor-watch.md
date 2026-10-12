@@ -723,9 +723,12 @@ Add `group: Mains voltage` to ask about one group only (and its own worst level)
 each with its level, message, value (live from the entity) and how long it has stood;
 tap a row for the entity's details. Options: a title, a **group** (chosen from your
 groups, ✕ for every watched sensor), the levels to list, at most how many, what to do
-when all is well (**hide**, the default, or say so), and what **each row shows**: its
-level, name, message, value and how long, any of them (a row of just names and values
-for a narrow panel, say).
+when all is well (**hide**, the default, or say so), and what **each row shows**: the
+entity's icon, its level, name, message, value and how long, any of them, in the order
+you drag them into (a row of just an icon, a name and a value for a narrow panel, say).
+The name and message stack in one place, wherever the first of them is. The **icon
+colour** is the level's (the default), the entity's own state colour as a tile shows
+it, or none.
 
 Hidden, it takes its panel with it in a Tablet Layout: put it in a side panel with a
 garnish heading ("Needs looking at") and the panel appears only when something does.

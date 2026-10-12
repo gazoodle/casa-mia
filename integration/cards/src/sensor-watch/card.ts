@@ -6,7 +6,7 @@
 import { LitElement, css, html, nothing } from "lit";
 import { fire, type Hass, inPicker } from "../ha.ts";
 import { PILLS } from "../pills.ts";
-import { type Column, type Config, DEFAULTS, EVENT, type Row, SERVICE, columns, due, own, since } from "./common.ts";
+import { type Column, type Config, DEFAULTS, EVENT, type Row, SERVICE, columns, due, own, parts, since, stateColor } from "./common.ts";
 
 const ASK_AFTER = 300; // ms: the integration's entities write in a burst; one ask after
 const ago = (h: number) => new Date(Date.now() - h * 3600e3).toISOString();
@@ -161,22 +161,38 @@ export class SensorWatchCard extends LitElement {
   }
 
   private _row(r: Row, value: string, now: number) {
-    const show: readonly Column[] = this._config?.show ?? DEFAULTS.show;
-    const has = (c: Column) => show.includes(c);
+    const o = { ...DEFAULTS, ...this._config };
+    const show: readonly Column[] = o.show;
+    const st = this._hass?.states[r.entity_id];
+    const part = (p: Column | "what") => {
+      switch (p) {
+        case "icon": {
+          const color = o.icon_color === "level" ? "var(--cm-level)" : o.icon_color === "state" && st ? stateColor(r.entity_id, st.state, st.attributes?.device_class) : "";
+          // ponytail: ha-state-icon is HA's own, defined once any tile or entity row has loaded; until then the place stays empty.
+          return html`<ha-state-icon class="icon" style=${color ? `color:${color}` : ""} .hass=${this._hass} .stateObj=${st}></ha-state-icon>`;
+        }
+        case "level":
+          return html`<span class="level cm-pill ${r.level === "critical" ? "cm-filled" : ""}">${r.level}</span>`;
+        case "what":
+          return html`<span class="what">
+            ${show
+              .filter((c) => c === "name" || c === "message")
+              .map((c) => (c === "name" ? html`<span class="name">${r.name}</span>` : r.message ? html`<span class="message">${r.message}</span>` : nothing))}
+          </span>`;
+        case "value":
+          return html`<span class="value">${value}</span>`;
+        case "since":
+          return html`<span class="since">${since(r.since, now)}</span>`;
+        default:
+          return nothing;
+      }
+    };
     return html`<button
       class="row ${r.level}"
       style="grid-template-columns:${columns(show)}"
       @click=${() => r.entity_id && fire(this, "hass-more-info", { entityId: r.entity_id })}
     >
-      ${has("level") ? html`<span class="level cm-pill ${r.level === "critical" ? "cm-filled" : ""}">${r.level}</span>` : nothing}
-      ${has("name") || has("message")
-        ? html`<span class="what">
-            ${has("name") ? html`<span class="name">${r.name}</span>` : nothing}
-            ${has("message") && r.message ? html`<span class="message">${r.message}</span>` : nothing}
-          </span>`
-        : nothing}
-      ${has("value") ? html`<span class="value">${value}</span>` : nothing}
-      ${has("since") ? html`<span class="since">${since(r.since, now)}</span>` : nothing}
+      ${parts(show).map(part)}
     </button>`;
   }
 
@@ -216,6 +232,11 @@ export class SensorWatchCard extends LitElement {
       --cm-level: var(--error-color, #db4437);
     }
     /* A status pill in its level's colour (pills.ts; card-level), critical filled. */
+    .icon {
+      --mdc-icon-size: 24px;
+      display: flex;
+      color: var(--state-icon-color);
+    }
     .level {
       justify-self: start;
       --tone: var(--cm-level);
