@@ -1,4 +1,6 @@
-/* Shared controls: buttons, dialog, fields, switch, segmented control, toasts. */
+/* Shared controls: buttons, dialog, fields, switch, segmented control, toasts, and the rest
+   of the house's chrome (rows to pick, choices, folds, menus, selects, sliders, callouts).
+   docs/design/chrome.html shows each by its Id, and links this file. */
 
 .button {
   display: inline-flex;
@@ -20,6 +22,28 @@
   border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
 }
 
+/* Every button answers hover and keyboard focus with the chips' ring (pills.css). */
+.button,
+.iconButton,
+.switch {
+  transition:
+    box-shadow 0.15s,
+    filter 0.15s,
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.button:not(:disabled):hover,
+.button:focus-visible,
+.iconButton:not(:disabled):hover,
+.iconButton:focus-visible,
+.switch:not(:disabled):hover,
+.switch:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
+  filter: brightness(1.08);
+}
+
 .button:disabled {
   opacity: 0.5;
   cursor: default;
@@ -35,6 +59,19 @@
 .danger {
   composes: button;
   color: var(--bad);
+}
+
+/* A dialog's main button when its action destroys something (confirm): red. */
+.dangerMain {
+  background: var(--bad);
+  color: var(--on-accent);
+}
+
+/* A dialog's words (confirm): what the question means. */
+.dialogText {
+  margin: 0;
+  color: var(--muted);
+  white-space: pre-line;
 }
 
 .small {
@@ -222,4 +259,565 @@
 
 .toastBad {
   border-left: 4px solid var(--bad);
+}
+
+/* A button that reads as a link (button-link). */
+.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.link:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* A link to copy by tapping it (button-copy): a small button in type. */
+.copy {
+  composes: button small;
+  justify-content: flex-start;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 400;
+  text-align: left;
+  white-space: normal;
+  word-break: break-all;
+  cursor: copy;
+}
+
+/* A row picked from a list (pick); chosen or open: aria-pressed. */
+.pick {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pick:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.pick[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.pick:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* One of several cards to choose (option); chosen: aria-pressed, or optionOn. */
+.option {
+  display: grid;
+  gap: 3px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    box-shadow 0.15s,
+    border-color 0.15s;
+}
+
+.option:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.option[aria-pressed="true"],
+.optionOn {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg));
+}
+
+.option:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Choosing in a dialog (choice): a bordered row round a radio (one) or a checkbox, drawn
+   as a small switch (several); its name bold, its address dimmed (choicePath), a reason
+   (choiceWhy). Chosen: the row whose input is checked. */
+.choices {
+  display: grid;
+  gap: 6px;
+}
+
+.choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.choice > input {
+  margin-top: 1px;
+}
+
+.choice:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+
+.choice:has(> input:checked) {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.choice:has(> input:disabled) {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.choicePath {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.choiceWhy {
+  display: block;
+  margin-top: 1px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+/* Something that folds (fold): a solid triangle that turns, ▸ folded, ▾ open
+   (aria-expanded); a count after it in countMuted. On a <details>' summary: details. */
+.fold {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px 2px 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fold::before,
+.details > summary::before {
+  content: "";
+  flex: none;
+  width: 0;
+  height: 0;
+  margin: 0 3px 0 1px;
+  border-style: solid;
+  border-width: 5px 0 5px 8px;
+  border-color: transparent transparent transparent var(--muted);
+  transition: transform 0.15s;
+}
+
+.fold[aria-expanded="true"]::before,
+.details[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.fold:hover,
+.details > summary:hover {
+  color: var(--accent);
+}
+
+.fold:hover::before,
+.details > summary:hover::before {
+  border-left-color: var(--accent);
+}
+
+.details > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  list-style: none;
+  cursor: pointer;
+}
+
+.details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.count {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+/* The triangle alone, for a row that folds as a whole (its aria-expanded turns it). */
+.foldMark {
+  display: inline-block;
+  flex: none;
+  width: 0;
+  height: 0;
+  margin: 0 3px 0 1px;
+  border-style: solid;
+  border-width: 5px 0 5px 8px;
+  border-color: transparent transparent transparent var(--muted);
+  transition: transform 0.15s;
+}
+
+[aria-expanded="true"] > .foldMark {
+  transform: rotate(90deg);
+}
+
+/* A menu (menu): a chip's choices, a picker's list, a select's options. */
+.menu {
+  display: grid;
+  gap: 2px;
+  min-width: 200px;
+  max-width: 340px;
+  max-height: 300px;
+  margin: 0;
+  padding: 5px;
+  overflow: auto;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 12px 30px rgb(0 0 0 / 35%);
+}
+
+.menu input {
+  margin-bottom: 4px;
+  padding: 5px 9px;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 9px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menuItem:hover,
+.menuItem:focus-visible,
+.menuItem[data-active="true"] {
+  outline: none;
+  box-shadow: none;
+  background: var(--surface-2);
+}
+
+.menuItem[aria-selected="true"] {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.menuItem[aria-selected="true"]::after {
+  content: "✓";
+  margin-left: auto;
+}
+
+.menuItem:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.menuGroup {
+  padding: 6px 9px 2px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.menuNote {
+  padding: 4px 9px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+/* A select of our own (select): a field-shaped button opening the menu. */
+.select {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  padding: 9px 10px 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    box-shadow 0.15s,
+    border-color 0.15s;
+}
+
+.select > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.select::after {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin: -4px 2px 0;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(45deg);
+}
+
+.select[aria-expanded="true"]::after {
+  margin-top: 4px;
+  transform: rotate(-135deg);
+}
+
+.select:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+}
+
+.select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.placeholder {
+  color: var(--muted);
+}
+
+.selectMenu {
+  composes: menu;
+  position: fixed;
+  z-index: 30;
+}
+
+/* A slider (slider): its words, the slider, its value at a fixed width (nothing moves
+   under the finger); its ends under it (sliderEnds). */
+.slider {
+  display: grid;
+  grid-template-columns: minmax(4.5em, auto) minmax(120px, 1fr) 6.5em;
+  align-items: center;
+  gap: 4px 12px;
+  font-size: 13.5px;
+}
+
+.sliderBare {
+  grid-template-columns: minmax(120px, 1fr) 6.5em;
+}
+
+.slider output {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.sliderEnds {
+  grid-column: 2;
+  display: flex;
+  justify-content: space-between;
+  margin-top: -6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.sliderBare .sliderEnds {
+  grid-column: 1;
+}
+
+/* Callouts (callout): something to know or fix, in its tone; loud for what stops something
+   working, its strong line a title. Tones: calloutWarn, calloutBad, calloutGood. */
+.callout {
+  --tone: var(--accent);
+  padding: 10px 14px;
+  border: 1px solid color-mix(in srgb, var(--tone) 45%, var(--border));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--tone) 10%, var(--surface));
+  font-size: 13.5px;
+  overflow-wrap: anywhere;
+}
+
+.calloutWarn {
+  composes: callout;
+  --tone: var(--warn);
+}
+
+.calloutBad {
+  composes: callout;
+  --tone: var(--bad);
+}
+
+.calloutGood {
+  composes: callout;
+  --tone: var(--good);
+}
+
+.loud {
+  padding: 12px 16px;
+  border-width: 2px;
+  border-color: var(--tone);
+}
+
+.loud strong:first-child {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--tone);
+  font-size: 15px;
+}
+
+/* Nothing here yet (empty); a strong first line is its title. */
+.empty {
+  margin: 0;
+  padding: 18px 20px;
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.empty strong:first-child,
+.empty h2 {
+  display: block;
+  margin: 0 0 4px;
+  color: var(--text);
+  font-size: 15px;
+}
+
+/* A field's line under it: what's wrong (fieldWarn, fieldBad). */
+.fieldWarn {
+  color: var(--warn);
+  font-size: 12.5px;
+}
+
+.fieldBad {
+  color: var(--bad);
+  font-size: 12.5px;
+}
+
+/* A search box (input-search): a glass at its start, a ✕ to clear at its end. */
+.search {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.search::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  width: 9px;
+  height: 9px;
+  margin-top: -7px;
+  border: 2px solid var(--muted);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.search::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 22px;
+  width: 2px;
+  height: 6px;
+  margin-top: 1px;
+  background: var(--muted);
+  transform: rotate(-45deg);
+  pointer-events: none;
+}
+
+.search input {
+  padding-right: 32px;
+  padding-left: 32px;
+}
+
+.searchClear {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 22px;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+/* A field with its unit inside it (input-unit): the unit after the value. */
+.unit {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.unit input {
+  padding-right: 38px;
+}
+
+.unit > span {
+  position: absolute;
+  top: 50%;
+  right: 11px;
+  color: var(--muted);
+  font-size: 13px;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+/* A switch for a list or a grid: smaller. */
+.switchSmall {
+  width: 32px;
+  height: 18px;
+}
+
+.switchSmall .knob {
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+}
+
+.switchSmall.switchOn .knob {
+  transform: translateX(14px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fold::before,
+  .details > summary::before {
+    transition: none;
+  }
 }

@@ -271,11 +271,13 @@ guest card SVG), `page.py` (welcome, goodbye), `supervisor.py`.
   Casa Mia moves the old integration's entities over (`migrate()`: same entity ids) and
   removes its entry, and the app deletes the old folder. Untested on a real HA until the
   owner installs it: watch the log for "Sensor Watch joined Casa Mia".
-- **Pills and chips have one look (2026.10.10-b7):** `app/web/src/pills.css` is the one
-  source (admin modules compose it; the cards through `pills.ts`); the owner's cheatsheet,
-  with an Id per style, is `docs/design/pills-and-chips.html`, which links it. The cards
-  were copied to the box; the admin pages are unchecked until b7 is installed. More
-  standards (buttons, dialogs) may join `docs/design/` later.
+- **One look for pills, chips and all the chrome (2026.10.10-b7, b8):** pills and chips
+  from `app/web/src/pills.css`; the rest from `ui.module.css` and `styles.css` (the
+  browser's checkboxes, radios and sliders drawn as ours), with `Select`, `Slider`
+  (`controls.tsx`) and `confirmBox`/`askBox` (`confirm.tsx`) in place of the browser's
+  drop-downs and boxes (a test keeps them out). The owner's cheatsheets, an Id per style,
+  link the live CSS: `docs/design/pills-and-chips.html` and `chrome.html`. b8's admin
+  pages are unchecked on the box until it's installed; the cards were copied there.
 - **Card picker previews:** the Over layer's showed on the VM; check on the box after a
   restart and hard refresh. The Commander's (drawn full size, shrunk) is unchecked.
 - **Untested on the box:** 2FA against a real user, the reach check's fixes, Who's signed

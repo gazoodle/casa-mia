@@ -9,6 +9,8 @@ import { Dialog, Field, Toasts, type Toast } from "./ui";
 import css from "./people.module.css";
 import guest from "./guest.module.css";
 import ui from "./ui.module.css";
+import { confirmBox } from "./confirm";
+import { Select } from "./controls";
 
 const { get, post, put, del } = api("people");
 
@@ -103,8 +105,8 @@ export function PeoplePage() {
                   </button>
                   <button
                     className={`${ui.danger} ${ui.small}`}
-                    onClick={() =>
-                      confirm(`Remove ${p.name}? Their calls and texts become intrusions.`) &&
+                    onClick={async () =>
+                      (await confirmBox(`Remove ${p.name}? Their calls and texts become intrusions.`, { action: "Remove", danger: true })) &&
                       change(() => del<PeopleView>(p.id), `${p.name} removed`)
                     }
                   >
@@ -241,7 +243,7 @@ function PersonDialog({
         label="Home Assistant person"
         help={persons?.error ? `Optional. Home Assistant's people could not be read (${persons.error}).` : "Optional. Links this entry to one of Home Assistant's people."}
       >
-        <select value={link} onChange={(e) => setLink(e.target.value)}>
+        <Select value={link} onChange={(picked) => setLink(picked)}>
           <option value="">None</option>
           {persons?.persons.map((p) => (
             <option key={p.id} value={p.id}>
@@ -249,7 +251,7 @@ function PersonDialog({
             </option>
           ))}
           {link && !persons?.persons.some((p) => p.id === link) && <option value={link}>Unknown ({link})</option>}
-        </select>
+        </Select>
       </Field>
     </Dialog>
   );

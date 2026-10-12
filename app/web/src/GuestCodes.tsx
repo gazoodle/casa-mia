@@ -6,6 +6,7 @@ import { post, put, type GuestConfig, type HAChoices, type Wifi } from "./api";
 import { copyText, Dialog, Field, Segmented, type Toast } from "./ui";
 import css from "./guest.module.css";
 import ui from "./ui.module.css";
+import { Select } from "./controls";
 
 const OTHER = "__other__";
 
@@ -82,13 +83,13 @@ function CardTab({ config }: { config: GuestConfig }) {
         anyone who'd rather type them. {config.wifi.ssid ? "" : "No Wi-Fi saved yet, so the card has the endpoint's code only."}
       </p>
       <Field label="Endpoint">
-        <select value={id} onChange={(e) => setId(e.target.value)}>
+        <Select value={id} onChange={(picked) => setId(picked)}>
           {config.endpoints.map((e) => (
             <option key={e.id} value={e.id}>
               {e.label}
             </option>
           ))}
-        </select>
+        </Select>
       </Field>
       <img className={css.card} src={`${src}.svg?v=${v}`} alt="The guest card" />
       <div className={css.actions}>
@@ -136,11 +137,11 @@ function WifiTab({
         <input value={wifi.ssid} onChange={(e) => setWifi({ ...wifi, ssid: e.target.value })} spellCheck={false} />
       </Field>
       <Field label="Security">
-        <select value={wifi.security} onChange={(e) => setWifi({ ...wifi, security: e.target.value as Wifi["security"] })}>
+        <Select value={wifi.security} onChange={(picked) => setWifi({ ...wifi, security: picked as Wifi["security"] })}>
           <option value="WPA">WPA, WPA2 or WPA3</option>
           <option value="WEP">WEP</option>
           <option value="nopass">None (open)</option>
-        </select>
+        </Select>
       </Field>
       {wifi.security !== "nopass" && (
         <Field label="Password">
@@ -198,11 +199,11 @@ function PageTab({ ha, toast }: { ha?: HAChoices; toast: (text: string, tone?: T
         help="Any dashboard or view. The code opens it in Home Assistant at the QR host; it signs nobody in, so the phone must already be signed in (a guest's, after their own QR code)."
       >
         {groups.size > 0 && (
-          <select
+          <Select
             value={custom ? OTHER : path}
-            onChange={(e) => {
-              setCustom(e.target.value === OTHER);
-              if (e.target.value !== OTHER) setPath(e.target.value);
+            onChange={(picked) => {
+              setCustom(picked === OTHER);
+              if (picked !== OTHER) setPath(picked);
             }}
           >
             <option value="" disabled>
@@ -218,7 +219,7 @@ function PageTab({ ha, toast }: { ha?: HAChoices; toast: (text: string, tone?: T
               </optgroup>
             ))}
             <option value={OTHER}>Another path…</option>
-          </select>
+          </Select>
         )}
         {custom && <input placeholder="/lovelace/hall" value={path} onChange={(e) => setPath(e.target.value)} spellCheck={false} />}
       </Field>

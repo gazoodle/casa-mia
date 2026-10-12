@@ -11,6 +11,7 @@ import { LevelFields, useLevels, type Kind } from "./levels";
 import css from "./sensor-watch.module.css";
 import guest from "../guest.module.css";
 import ui from "../ui.module.css";
+import { confirmBox } from "../confirm";
 
 type Change = <V extends WatchView>(action: () => Promise<V>, done: string | ((v: V) => string)) => Promise<boolean>;
 
@@ -48,9 +49,9 @@ export function ProfilesSection({
       change(() => Promise.reject(err instanceof SyntaxError ? new Error(`${f.name} isn't JSON.`) : err), "");
     }
   };
-  const remove = (p: Profile) => {
+  const remove = async (p: Profile) => {
     const keep = p.followers ? ` Its ${p.followers} followers keep a copy of its levels as their own.` : "";
-    if (confirm(`Delete the profile "${p.name}"?${keep}`)) change(() => swApi.del<WatchView>(`profiles/${p.id}`), `${p.name} deleted`);
+    if ((await confirmBox(`Delete the profile "${p.name}"?${keep}`, { action: "Delete", danger: true }))) change(() => swApi.del<WatchView>(`profiles/${p.id}`), `${p.name} deleted`);
   };
   return (
     <section className={guest.area}>
@@ -177,7 +178,7 @@ export function ProfileDialog({
   const [saving, setSaving] = useState(false);
 
   const save = async () => {
-    if (!L.sane()) return;
+    if (!(await L.sane())) return;
     setSaving(true);
     const body = { name: name.trim(), ...L.body() };
     const ok = await change(

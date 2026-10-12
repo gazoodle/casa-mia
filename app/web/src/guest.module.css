@@ -69,17 +69,12 @@
 }
 
 .notice {
-  color: var(--muted);
+  composes: help from "./ui.module.css";
 }
 
 .warning {
+  composes: calloutWarn from "./ui.module.css";
   margin-bottom: 14px;
-  padding: 10px 14px;
-  border: 1px solid color-mix(in srgb, var(--warn) 45%, var(--border));
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--warn) 10%, var(--surface));
-  font-size: 13.5px;
-  overflow-wrap: anywhere; /* errors carry URLs and paths with no spaces */
 }
 
 .area {
@@ -110,12 +105,7 @@
 }
 
 .empty {
-  margin: 0;
-  padding: 18px;
-  border: 1px dashed var(--border);
-  border-radius: 14px;
-  color: var(--muted);
-  text-align: center;
+  composes: empty from "./ui.module.css";
 }
 
 /* Endpoints: the list beside the selected endpoint's QR code. */
@@ -220,8 +210,7 @@
 }
 
 .closed {
-  color: var(--muted);
-  font-size: 13px;
+  composes: help from "./ui.module.css";
 }
 
 .qrFrame {
@@ -238,15 +227,7 @@
 }
 
 .url {
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--bg);
-  font-family: var(--mono);
-  font-size: 12px;
-  text-align: left;
-  word-break: break-all;
-  cursor: copy;
+  composes: copy from "./ui.module.css";
 }
 
 .lands {
@@ -383,9 +364,7 @@
 }
 
 .check input {
-  width: auto;
   margin-top: 3px;
-  accent-color: var(--accent);
 }
 
 .checkHelp {
@@ -641,6 +620,10 @@
   margin: 0 0 10px;
   padding: 0;
   list-style: none;
+}
+
+.auditRow > :first-child {
+  margin-top: 5px;
 }
 
 .auditRow {

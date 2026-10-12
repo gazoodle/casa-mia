@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.10-b8
+
+- No more of the browser's own boxes and drop-downs: every "Are you sure?" (29 of them, on every delete and stop) is now our own dialog with the action named on its button, red when it deletes; Sensor Watch's "Save as a new profile" asks for the name in our own dialog; a band that isn't a number says so under the bands; and every drop-down (19) opens our own menu, with the keyboard as before (arrows, Enter, Escape, typing to jump).
+- Every page's chrome has one look, shown in `docs/design/chrome.html`: checkboxes are small switches, radios our own dot, sliders ours (a white lozenge on a filled track; the hold-off and days of history are now stepped sliders, not number boxes); every button, field and switch answers hover and keyboard focus with the same ring; one way to fold (a solid triangle that turns), one menu, one kind of callout, help line and empty box; lists to choose from in a dialog look like Kiosk mode's (bold name, its address dimmed); the Tablet Layout's panel options and its "Remove layer?" are the same dialog in Home Assistant's colours.
+
 ## 2026.10.10-b7
 
 - Every pill and chip, in the admin page, the cards and the Tablet Layout editor, now has one look: a status pill (a state) or a chip (something to press), in small uppercase, a chip outlined until pressed and filled when it is, with the Tablet Layout's ring (in the accent, HA's theme colour in the cards) on hover and keyboard focus. Before, there were some thirty hand-made variants in several sizes, weights and shapes. The Tablet Layout's panel, header, footer and line chips keep their look in the new size; its padlocks and sprigs are round chips (the sprig no longer dimmed when off); the Sensor Watch card's levels are tinted pills (critical filled); Sensor Watch's "N following" and Enable are chips.

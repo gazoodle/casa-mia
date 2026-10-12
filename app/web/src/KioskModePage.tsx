@@ -14,6 +14,7 @@ import { Dialog, Segmented, Toasts, type Toast } from "./ui";
 import css from "./kiosk-mode.module.css";
 import guest from "./guest.module.css";
 import ui from "./ui.module.css";
+import { confirmBox } from "./confirm";
 
 const { get, post, put, del } = api("kiosk-mode");
 
@@ -111,8 +112,8 @@ export function KioskModePage({ state }: { state?: string }) {
   const board = view.dashboards.find((d) => d.id === chosen && d.enabled);
   const dirty = !!board?.ui && !!draft && JSON.stringify({ ui: board.ui, yaml: board.extras ?? "" }) !== JSON.stringify(draft);
 
-  const choose = (id: string) => {
-    if (dirty && !confirm("Discard the changes to this dashboard?")) return;
+  const choose = async (id: string) => {
+    if (dirty && !(await confirmBox("Discard the changes to this dashboard?", { action: "Discard", danger: true }))) return;
     const b = view.dashboards.find((d) => d.id === id);
     setChosen(id);
     setDraft(b?.ui ? { ui: b.ui, yaml: b.extras ?? "" } : undefined);
@@ -129,7 +130,7 @@ export function KioskModePage({ state }: { state?: string }) {
   };
 
   const remove = async () => {
-    if (!board || !confirm(`Remove kiosk mode from ${board.title}? Everything it hid comes back, for everyone.`)) return;
+    if (!board || !(await confirmBox(`Remove kiosk mode from ${board.title}? Everything it hid comes back, for everyone.`, { action: "Remove", danger: true }))) return;
     try {
       load(await del<View>(board.id));
       toast(`Kiosk mode removed from ${board.title}`);
@@ -250,9 +251,9 @@ function Editor({
     return () => clearTimeout(timer);
   }, [draft.yaml]);
 
-  const tick = (col: Column, key: string, on: boolean) => {
+  const tick = async (col: Column, key: string, on: boolean) => {
     const opt = GROUPS.flatMap((g) => Object.entries(g.options)).find(([k]) => k === key)?.[1];
-    if (on && opt?.danger && !confirm(`${opt.label}: ${opt.help}\n\nTurn it on?`)) return;
+    if (on && opt?.danger && !(await confirmBox(`${opt.label}: ${opt.help}\n\nTurn it on?`, { action: "Turn it on", danger: true }))) return;
     const now = col.get(draft.ui);
     onChange({ ...draft, ui: col.set(draft.ui, on ? [...now, key] : now.filter((k) => k !== key)) });
   };
@@ -323,8 +324,9 @@ function Editor({
               <tbody key={g.title}>
                 <tr className={css.groupRow} onClick={() => toggleGroup(g.title)}>
                   <th colSpan={cols.length + (locked ? 1 : 2)}>
-                    <span className={css.chevron}>{isOpen ? "▾" : "▸"}</span>
-                    {g.title}
+                    <button type="button" className={ui.fold} aria-expanded={isOpen}>
+                      {g.title}
+                    </button>
                     <span className={css.groupMeta}>
                       {Object.keys(g.options).length} options{count ? ` · ${count} on` : ""}
                     </span>
@@ -455,7 +457,7 @@ function AddDialog({
       ) : (
         <div className={css.pick}>
           {boards.map((b) => (
-            <label key={b.id} className={`${css.pickRow} ${b.editable ? "" : css.pickOff}`} title={b.why ?? ""}>
+            <label key={b.id} className={css.pickRow} title={b.why ?? ""}>
               <input type="radio" name="board" disabled={!b.editable} checked={id === b.id} onChange={() => setId(b.id)} />
               <span>
                 <strong>{b.title}</strong> <span className={css.cardPath}>{b.path}</span>

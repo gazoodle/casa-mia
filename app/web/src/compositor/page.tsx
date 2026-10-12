@@ -11,6 +11,7 @@ import { Act, Channel, ENGINES, POLL_MS, PauseButton, Status, get, mb, plural, p
 import { GeneratorArea, ServerArea } from "./engines";
 import { GathererArea } from "./gatherer";
 import { Graphs, Health, Stage } from "./health";
+import { confirmBox } from "../confirm";
 
 export function CompositorPage({ state }: { state?: string }) {
   const [status, setStatus] = useState<Status>();
@@ -67,8 +68,8 @@ export function CompositorPage({ state }: { state?: string }) {
           className={ui.button}
           disabled={busy || !status}
           title="Stop both engines (live and preview) and start them again: settings re-read, every picture and stream gone"
-          onClick={() =>
-            confirm("Restart the camera compositor? Every picture on screen stops for a moment.") && act("restart", "Restarted")
+          onClick={async () =>
+            (await confirmBox("Restart the camera compositor? Every picture on screen stops for a moment.", { action: "Restart" })) && act("restart", "Restarted")
           }
         >
           Restart

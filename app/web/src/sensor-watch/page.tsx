@@ -15,6 +15,7 @@ import { WatchedList } from "./watched";
 import css from "./sensor-watch.module.css";
 import guest from "../guest.module.css";
 import ui from "../ui.module.css";
+import { confirmBox } from "../confirm";
 
 const HEAD = {
   icon: <SensorWatchIcon />,
@@ -166,8 +167,8 @@ export function SensorWatchPage({ state }: { state?: string }) {
                 `${r.label}: watched again`,
               )
             }
-            onStop={(r) =>
-              confirm(`Stop watching ${r.label}?`) && change(() => swApi.del<WatchView>(encodeURIComponent(r.entity_id)), `${r.label}: no longer watched`)
+            onStop={async (r) =>
+              (await confirmBox(`Stop watching ${r.label}?`, { action: "Stop watching", danger: true })) && change(() => swApi.del<WatchView>(encodeURIComponent(r.entity_id)), `${r.label}: no longer watched`)
             }
           />
         )}

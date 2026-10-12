@@ -2995,14 +2995,14 @@ var Jn = class extends W {
 			this.busy = !1;
 		}
 	}
-	frame(e, t, n, r) {
+	frame(e, t, n, r, i = "Save", a = !1) {
 		return B`<div class="backdrop" @click=${() => this.cancel()}></div>
       <div class="box" role="dialog" aria-label=${t} style=${this.at || "visibility:hidden"}>
         <header><h2>${e}</h2>${n}</header>
         <div class="middle">${customElements.get("ha-form") ? r : B`<p class="note">Loading…</p>`}</div>
         <footer>
-          <button class="text" @click=${() => this.cancel()}>Cancel</button>
-          <button class="primary" ?disabled=${this.busy} @click=${() => this.save()}>Save</button>
+          <button class="btn" @click=${() => this.cancel()}>Cancel</button>
+          <button class="btn primary ${a ? "danger" : ""}" ?disabled=${this.busy} @click=${() => this.save()}>${i}</button>
         </footer>
       </div>`;
 	}
@@ -3026,9 +3026,10 @@ var Jn = class extends W {
       flex-direction: column;
       width: min(380px, calc(100vw - 16px));
       overflow: hidden;
+      border: 1px solid var(--divider-color);
+      border-radius: 18px;
       background: var(--card-background-color, #fff);
-      border-radius: 16px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 24px 60px rgb(0 0 0 / 45%);
     }
     header {
       flex: none;
@@ -3037,8 +3038,7 @@ var Jn = class extends W {
       align-items: center;
       justify-content: space-between;
       gap: 8px;
-      padding: 14px 16px 6px;
-      border-bottom: 1px solid var(--divider-color);
+      padding: 16px 18px 6px;
     }
     .middle {
       flex: 1 1 auto;
@@ -3049,7 +3049,7 @@ var Jn = class extends W {
     h2 {
       margin: 0;
       font-size: 18px;
-      font-weight: 500;
+      font-weight: 600;
     }
     /* Its actions are the shared chips (pills.ts; card-action), in the theme's colour. */
     .actions {
@@ -3088,35 +3088,51 @@ var Jn = class extends W {
       border: none;
       background: none;
       color: var(--primary-color);
+      text-decoration: underline;
+      text-underline-offset: 2px;
       cursor: pointer;
+    }
+    .link:hover {
+      text-decoration-thickness: 2px;
     }
     footer {
       flex: none;
       display: flex;
       justify-content: flex-end;
       gap: 8px;
-      padding: 10px 16px 14px;
+      padding: 14px 18px 16px;
       border-top: 1px solid var(--divider-color);
     }
-    footer button {
+    /* The admin page's buttons (button, button-primary), in HA's colours; the chips' ring. */
+    .btn {
+      padding: 8px 14px;
+      border: 1px solid var(--divider-color);
+      border-radius: 10px;
+      background: none;
+      color: var(--primary-text-color);
       font: inherit;
       font-size: 14px;
-      font-weight: 500;
-      padding: 8px 20px;
-      border-radius: 20px;
-      border: none;
+      font-weight: 560;
       cursor: pointer;
+      transition: box-shadow 0.15s, filter 0.15s;
     }
-    .text {
-      background: none;
-      color: var(--primary-color);
+    .btn:not([disabled]):hover,
+    .btn:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 35%, transparent);
+      filter: brightness(1.08);
     }
     .primary {
+      border-color: transparent;
       background: var(--primary-color);
       color: var(--text-primary-color, #fff);
     }
-    .primary[disabled] {
+    .danger {
+      background: var(--error-color, #db4437);
+    }
+    .btn[disabled] {
       opacity: 0.5;
+      cursor: default;
     }
   `];
 	}
@@ -3220,9 +3236,41 @@ o("casa-mia-mini", class extends Jn {
 function Xn(e) {
 	document.createElement("casa-mia-mini").open(e);
 }
+o("casa-mia-confirm", class extends Jn {
+	constructor(...e) {
+		super(...e), this.question = "", this.action = "OK", this.danger = !1, this.answer = () => {};
+	}
+	anchor() {
+		return document.body;
+	}
+	updated() {
+		this.at ||= "left:50%;top:18%;transform:translateX(-50%)";
+	}
+	cancel() {
+		this.answer(!1), this.remove();
+	}
+	async commit() {
+		this.answer(!0);
+	}
+	render() {
+		let e = this.question.indexOf("?"), [t, n] = e > 0 ? [this.question.slice(0, e + 1), this.question.slice(e + 1).trim()] : [this.question, ""];
+		return this.frame(t, t, V, B`<p class="plain note">${n}</p>`, this.action, this.danger);
+	}
+});
+function Zn(e, { action: t = "OK", danger: n = !1 } = {}) {
+	return new Promise((r) => {
+		let i = document.createElement("casa-mia-confirm");
+		Object.assign(i, {
+			question: e,
+			action: t,
+			danger: n,
+			answer: r
+		}), document.body.append(i);
+	});
+}
 //#endregion
 //#region src/view/edit.ts
-var Zn = (t) => class extends t {
+var Qn = (t) => class extends t {
 	constructor(...e) {
 		super(...e), this.cmTool = (e) => {
 			let t = e.target.closest("button"), n = t?.closest(".cm-tools");
@@ -3266,9 +3314,12 @@ var Zn = (t) => class extends t {
 					layer: e + 1,
 					place: t
 				}))]) },
-				...e > 1 && { remove: () => {
+				...e > 1 && { remove: async () => {
 					let t = (t) => t.place !== "main" && t.layer === e;
-					(!on(this.cmSections).some((e) => t(e) && this.cmSections[e.from]?.cards?.length) || confirm(`Remove layer ${e}? Its panels' cards go with it.`)) && this.cmRestack((e) => e.filter((e) => !t(e)));
+					(!on(this.cmSections).some((e) => t(e) && this.cmSections[e.from]?.cards?.length) || await Zn(`Remove layer ${e}? Its panels' cards go with it.`, {
+						action: "Remove",
+						danger: !0
+					})) && this.cmRestack((e) => e.filter((e) => !t(e)));
 				} }
 			};
 		}
@@ -3604,7 +3655,7 @@ var Zn = (t) => class extends t {
 		}));
 		this.cmSaveAll(o, this.cmSections);
 	}
-}, Qn = (t) => class extends t {
+}, $n = (t) => class extends t {
 	constructor(...e) {
 		super(...e), this.cmMark = (e) => {
 			let t = e.target.closest("button");
@@ -3768,7 +3819,7 @@ var Zn = (t) => class extends t {
 //#endregion
 //#region src/view/view.ts
 i().then((e) => {
-	class t extends Qn(Zn(Rn(e))) {
+	class t extends $n(Qn(Rn(e))) {
 		cmPlace() {
 			let e = this.shadowRoot, t = e?.querySelector(".content");
 			if (!t) return;
@@ -3830,37 +3881,37 @@ i().then((e) => {
 });
 //#endregion
 //#region src/view/patches.ts
-var $n = new CSSStyleSheet();
-$n.replaceSync(".handle, ha-dropdown-item[value=\"duplicate\"], :host(:not([cm-deletable])) ha-dropdown-item[value=\"delete\"], :host(:not([cm-deletable])) wa-divider { display: none; }\n  /* Its frame fills the panel's room, as the panel does out of edit mode (not only its cards' height). */\n  :host { display: flex; flex-direction: column; height: 100%; box-sizing: border-box; }\n  .section-wrapper { flex: 1 1 auto; box-sizing: border-box; }"), customElements.whenDefined("hui-section-edit-mode").then(() => {
+var er = new CSSStyleSheet();
+er.replaceSync(".handle, ha-dropdown-item[value=\"duplicate\"], :host(:not([cm-deletable])) ha-dropdown-item[value=\"delete\"], :host(:not([cm-deletable])) wa-divider { display: none; }\n  /* Its frame fills the panel's room, as the panel does out of edit mode (not only its cards' height). */\n  :host { display: flex; flex-direction: column; height: 100%; box-sizing: border-box; }\n  .section-wrapper { flex: 1 1 auto; box-sizing: border-box; }"), customElements.whenDefined("hui-section-edit-mode").then(() => {
 	let e = customElements.get("hui-section-edit-mode").prototype, t = e.firstUpdated;
 	e.firstUpdated = function(...e) {
 		t?.apply(this, e);
-		for (let e = this; e; e = e.parentElement ?? (e.getRootNode().host || null)) if (tr.some((t) => e.tagName === t.slice(7).toUpperCase())) {
+		for (let e = this; e; e = e.parentElement ?? (e.getRootNode().host || null)) if (nr.some((t) => e.tagName === t.slice(7).toUpperCase())) {
 			let e = this.shadowRoot;
-			e && !e.adoptedStyleSheets.includes($n) && (e.adoptedStyleSheets = [...e.adoptedStyleSheets, $n]);
+			e && !e.adoptedStyleSheets.includes(er) && (e.adoptedStyleSheets = [...e.adoptedStyleSheets, er]);
 			return;
 		}
 	};
 });
-var er = "custom:casa-mia-tablet-layout", tr = [er, "custom:casa-mia-tablet-view"];
+var tr = "custom:casa-mia-tablet-layout", nr = [tr, "custom:casa-mia-tablet-view"];
 customElements.whenDefined("hui-view-editor").then(() => {
 	let e = customElements.get("hui-view-editor").prototype, t = e.firstUpdated;
 	e.firstUpdated = function(...e) {
 		t?.apply(this, e);
 		let n = this._schema;
 		typeof n == "function" && (this._schema = (...e) => n(...e).map((e) => {
-			if (e.name === "section_specifics" && tr.includes(this._config?.type)) return {
+			if (e.name === "section_specifics" && nr.includes(this._config?.type)) return {
 				...e,
 				visible: void 0,
 				schema: e.schema.filter((e) => e.name !== "dense_section_placement")
 			};
 			let t = e.name === "type" ? e.selector?.select?.options : void 0;
-			return !t || t.some((e) => e.value === er) ? e : {
+			return !t || t.some((e) => e.value === tr) ? e : {
 				...e,
 				selector: { select: {
 					...e.selector.select,
 					options: [...t, {
-						value: er,
+						value: tr,
 						label: "Tablet (Casa Mia)"
 					}]
 				} }
@@ -3871,7 +3922,7 @@ customElements.whenDefined("hui-view-editor").then(() => {
 	n?.set && Object.defineProperty(e, "config", {
 		...n,
 		set(e) {
-			n.set.call(this, tr.includes(e?.type) && e.max_columns === void 0 ? {
+			n.set.call(this, nr.includes(e?.type) && e.max_columns === void 0 ? {
 				...e,
 				max_columns: 4
 			} : e);
@@ -3880,7 +3931,7 @@ customElements.whenDefined("hui-view-editor").then(() => {
 	let r = e._valueChanged;
 	e._valueChanged = function(e) {
 		let t = e.detail?.value;
-		if (!tr.includes(t?.type)) return r.call(this, e);
+		if (!nr.includes(t?.type)) return r.call(this, e);
 		let n = new Proxy(t, { deleteProperty: (e, t) => t === "max_columns" || t === "top_margin" || Reflect.deleteProperty(e, t) });
 		return r.call(this, new CustomEvent(e.type, { detail: { value: n } }));
 	};
@@ -3889,13 +3940,13 @@ customElements.whenDefined("hui-view-editor").then(() => {
 	t?.get && Object.defineProperty(e, "_type", {
 		...t,
 		get() {
-			return tr.includes(this._config?.type) ? "sections" : t.get.call(this);
+			return nr.includes(this._config?.type) ? "sections" : t.get.call(this);
 		}
 	});
 });
 //#endregion
 //#region src/garnish-sections.ts
-var nr = !1, rr = /* @__PURE__ */ new Set(), ir = () => nr;
+var rr = !1, ir = /* @__PURE__ */ new Set(), ar = () => rr;
 customElements.whenDefined("hui-section").then(() => {
 	let e = customElements.get("hui-section").prototype, t = e._updateVisibility;
 	if (typeof t != "function" || typeof e._setElementVisibility != "function") {
@@ -3903,28 +3954,28 @@ customElements.whenDefined("hui-section").then(() => {
 		return;
 	}
 	e._updateVisibility = function(...e) {
-		if (this.cmContentHidden = !1, t.apply(this, e), rr.size > 200) for (let e of rr) e.isConnected || rr.delete(e);
-		rr.add(this), !(this.hidden || this.preview || !this._config || Jt(this)) && (Vt(this._config.cards) || nr && qt([
+		if (this.cmContentHidden = !1, t.apply(this, e), ir.size > 200) for (let e of ir) e.isConnected || ir.delete(e);
+		ir.add(this), !(this.hidden || this.preview || !this._config || Jt(this)) && (Vt(this._config.cards) || rr && qt([
 			...this._cards ?? [],
 			...this._badges ?? [],
 			...this._sections ?? []
 		])) && (this.cmContentHidden = !0, this._setElementVisibility(!1));
 	};
 });
-function ar(e) {
-	if (e !== nr) {
-		nr = e, console.info(`CASA-MIA CARDS: garnish on all section dashboards ${e ? "on" : "off"}`);
-		for (let e of rr) e.isConnected ? e._updateVisibility() : rr.delete(e);
+function or(e) {
+	if (e !== rr) {
+		rr = e, console.info(`CASA-MIA CARDS: garnish on all section dashboards ${e ? "on" : "off"}`);
+		for (let e of ir) e.isConnected ? e._updateVisibility() : ir.delete(e);
 	}
 }
-window.hassConnection?.then(({ conn: e }) => e.subscribeMessage((e) => ar(!!e?.dashboards?.garnish_everywhere), { type: "casa_mia/settings/subscribe" }).catch(() => ar(!1)));
+window.hassConnection?.then(({ conn: e }) => e.subscribeMessage((e) => or(!!e?.dashboards?.garnish_everywhere), { type: "casa_mia/settings/subscribe" }).catch(() => or(!1)));
 //#endregion
 //#region src/garnish-editor.ts
-var or = "M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.7C7.14,19.87 7.64,20 8,20C19,20 22,3 22,3C21,5 14,5.25 9,6.25C4,7.25 2,11.5 2,13.5C2,15.5 3.75,17.25 3.75,17.25C7,8 17,8 17,8Z", sr = {
+var sr = "M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.7C7.14,19.87 7.64,20 8,20C19,20 22,3 22,3C21,5 14,5.25 9,6.25C4,7.25 2,11.5 2,13.5C2,15.5 3.75,17.25 3.75,17.25C7,8 17,8 17,8Z", cr = {
 	content: "Content: while this card shows, its panel shows. Tap to make it garnish.",
 	garnish: "Garnish: adornment, like a heading, that never holds its panel open; the panel hides when only garnish is left. Tap to make it content."
-}, cr = new CSSStyleSheet();
-cr.replaceSync(`${In}
+}, lr = new CSSStyleSheet();
+lr.replaceSync(`${In}
   /* The sprig is a round icon chip (tl-sprig): outlined for content, filled for garnish. */
   .cm-garnish {
     position: absolute; bottom: -13px; right: 4px; z-index: 3;
@@ -3941,9 +3992,9 @@ cr.replaceSync(`${In}
 		t?.apply(this, e);
 		let n = this.shadowRoot;
 		if (!n) return;
-		let r = n.querySelector(".cm-garnish"), i = ir() || Jt(this), a = Qt(this.path ?? []), o = ((e) => a.reduce((e, t) => e?.[t], e))(this.lovelace?.config);
+		let r = n.querySelector(".cm-garnish"), i = ar() || Jt(this), a = Qt(this.path ?? []), o = ((e) => a.reduce((e, t) => e?.[t], e))(this.lovelace?.config);
 		if (!i || !this.lovelace?.editMode || this.noEdit || !a.includes("sections") || !o?.type || o.type === "custom:casa-mia-over-layer") return this.classList.remove("cm-garnished"), n.querySelector(".cm-garnish-frame")?.remove(), r?.remove();
-		n.adoptedStyleSheets.includes(cr) || (n.adoptedStyleSheets = [...n.adoptedStyleSheets, cr]), r || (r = document.createElement("button"), r.type = "button", r.className = "cm-garnish cm-chip cm-icon", r.innerHTML = `<svg viewBox="0 0 24 24"><path d="${or}"/></svg>`, r.addEventListener("pointerdown", (e) => e.stopPropagation()), r.addEventListener("click", async (e) => {
+		n.adoptedStyleSheets.includes(lr) || (n.adoptedStyleSheets = [...n.adoptedStyleSheets, lr]), r || (r = document.createElement("button"), r.type = "button", r.className = "cm-garnish cm-chip cm-icon", r.innerHTML = `<svg viewBox="0 0 24 24"><path d="${sr}"/></svg>`, r.addEventListener("pointerdown", (e) => e.stopPropagation()), r.addEventListener("click", async (e) => {
 			e.stopPropagation(), r.disabled = !0;
 			try {
 				let e = structuredClone(this.lovelace.config), t = Qt(this.path), n = t.slice(0, -1).reduce((e, t) => e[t], e), r = t[t.length - 1], i = Kt(n[r]);
@@ -3959,26 +4010,26 @@ cr.replaceSync(`${In}
 			}
 		}), n.append(r));
 		let s = !Kt(o);
-		r.setAttribute("aria-pressed", String(s)), r.classList.toggle("cm-on", s), r.title = sr[s ? "garnish" : "content"], r.setAttribute("aria-label", r.title), this.classList.toggle("cm-garnished", s);
+		r.setAttribute("aria-pressed", String(s)), r.classList.toggle("cm-on", s), r.title = cr[s ? "garnish" : "content"], r.setAttribute("aria-label", r.title), this.classList.toggle("cm-garnished", s);
 		let c = n.querySelector(".cm-garnish-frame");
 		s && !c ? (c = document.createElement("div"), c.className = "cm-garnish-frame", n.append(c)) : s || c?.remove();
 	};
 });
 //#endregion
 //#region src/over-layer/door.ts
-var lr = "M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z", ur = 4e3, dr = "\n  .lid { position: fixed; z-index: 8; transition: opacity 0.3s; cursor: pointer; }\n  .lid::after { content: \"\"; position: absolute; inset: 0; border-radius: 50%; pointer-events: none; animation: cm-door 2.4s ease-out infinite; }\n  .lid.open { opacity: 0; pointer-events: none; }\n  .lid.open::after { animation: none; }\n  @keyframes cm-door {\n    0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary-color, #03a9f4) 45%, transparent); }\n    70%, 100% { box-shadow: 0 0 0 8px transparent; }\n  }\n  @media (prefers-reduced-motion: reduce) { .lid::after { animation: none; } }\n";
-function fr(e) {
+var ur = "M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z", dr = 4e3, fr = "\n  .lid { position: fixed; z-index: 8; transition: opacity 0.3s; cursor: pointer; }\n  .lid::after { content: \"\"; position: absolute; inset: 0; border-radius: 50%; pointer-events: none; animation: cm-door 2.4s ease-out infinite; }\n  .lid.open { opacity: 0; pointer-events: none; }\n  .lid.open::after { animation: none; }\n  @keyframes cm-door {\n    0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary-color, #03a9f4) 45%, transparent); }\n    70%, 100% { box-shadow: 0 0 0 8px transparent; }\n  }\n  @media (prefers-reduced-motion: reduce) { .lid::after { animation: none; } }\n";
+function pr(e) {
 	for (let t = e; t; t = t.parentElement ?? (t.getRootNode().host || null)) {
 		if (t.tagName !== "HUI-ROOT") continue;
 		let e = t.shadowRoot;
-		return [...e?.querySelectorAll("ha-icon-button[slot=\"actionItems\"]") ?? []].find((e) => e.path === lr) ?? e?.querySelector("#dashboardmenu") ?? null;
+		return [...e?.querySelectorAll("ha-icon-button[slot=\"actionItems\"]") ?? []].find((e) => e.path === ur) ?? e?.querySelector("#dashboardmenu") ?? null;
 	}
 	return null;
 }
-function pr(e, t, n, r, i, a) {
+function mr(e, t, n, r, i, a) {
 	return `path(evenodd, "M0 0 H${e} V${t} H0 Z M${n} ${r} h${i} v${a} h${-i} Z")`;
 }
-function mr(e) {
+function hr(e) {
 	let [t, n] = [Math.floor(e.left), Math.floor(e.top)];
 	return [
 		t,
@@ -3987,11 +4038,11 @@ function mr(e) {
 		Math.ceil(e.bottom) - n
 	];
 }
-var hr = class {
+var gr = class {
 	constructor(e) {
 		this.shut = 0, this.lid = document.createElement("div"), this.lid.className = "lid", this.lid.hidden = !0, e.append(this.lid), this.lid.addEventListener("pointerenter", (e) => e.pointerType === "mouse" && this.open()), this.lid.addEventListener("pointerdown", (e) => {
 			if (e.preventDefault(), e.pointerType === "mouse") return this.open();
-			this.open(), clearTimeout(this.shut), this.shut = window.setTimeout(() => this.close(), ur);
+			this.open(), clearTimeout(this.shut), this.shut = window.setTimeout(() => this.close(), dr);
 		}), this.follow = (e) => {
 			if (e.pointerType !== "mouse" || !this.lid.classList.contains("open")) return;
 			let t = this.lid.getBoundingClientRect();
@@ -4011,10 +4062,10 @@ var hr = class {
 			this.lid.hidden = !0;
 			return;
 		}
-		let [i, a, o, s] = mr(r);
+		let [i, a, o, s] = hr(r);
 		for (let t of e) {
 			let e = t.getBoundingClientRect();
-			t.style.clipPath = pr(e.width, e.height, i - e.left, a - e.top, o, s);
+			t.style.clipPath = mr(e.width, e.height, i - e.left, a - e.top, o, s);
 		}
 		Object.assign(this.lid.style, {
 			left: `${i}px`,
@@ -4030,19 +4081,19 @@ var hr = class {
 };
 //#endregion
 //#region src/over-layer/card.ts
-function gr(e) {
+function _r(e) {
 	for (let t = e; t; t = t.parentElement ?? (t.getRootNode().host || null)) if (t.tagName === "HUI-VIEW") return t;
 	return null;
 }
-function _r(e) {
+function vr(e) {
 	let t = [];
 	for (let n = e; n; n = n.parentElement ?? (n.getRootNode().host || null)) n.tagName === "HUI-SECTION" && t.push(n);
 	return t;
 }
-function vr(e) {
-	return _r(e).some((e) => e.hasAttribute("hidden") && !e.cmContentHidden);
+function yr(e) {
+	return vr(e).some((e) => e.hasAttribute("hidden") && !e.cmContentHidden);
 }
-var yr = `
+var br = `
   :host { all: initial; }
   .layer { position: fixed; z-index: 7; display: flex; box-sizing: border-box; pointer-events: none; }
   .layer.scroll { position: absolute; }
@@ -4050,7 +4101,7 @@ var yr = `
   .holder { position: relative; box-sizing: border-box; width: 100%; }
   .layer.full .holder { height: 100%; }
   .layer.full .holder > * { height: 100%; }
-${dr}`, br = class extends W {
+${fr}`, xr = class extends W {
 	constructor(...e) {
 		super(...e), this._editing = !1, this._childFor = "", this._sectionOff = !1;
 	}
@@ -4094,7 +4145,7 @@ ${dr}`, br = class extends W {
 	}
 	connectedCallback() {
 		super.connectedCallback();
-		let e = _r(this), t = () => this._checkSections();
+		let e = vr(this), t = () => this._checkSections();
 		for (let n of e) n.addEventListener("section-visibility-changed", t);
 		this._unwatchSections = () => e.forEach((e) => e.removeEventListener("section-visibility-changed", t)), this._place();
 	}
@@ -4102,14 +4153,14 @@ ${dr}`, br = class extends W {
 		super.disconnectedCallback(), this._unwatchSections?.(), this._takeDown();
 	}
 	_checkSections() {
-		let e = vr(this);
+		let e = yr(this);
 		e !== this._sectionOff && (this._sectionOff = e, console.info(`CASA-MIA CARDS: over layer: a section round it is ${e ? "hidden by its own Visibility: down" : "shown again: up"}`), this._place());
 	}
 	_setEditing(e) {
 		e !== this._editing && (this._editing = e, this._place());
 	}
 	_makePanel() {
-		let e = _r(this)[0];
+		let e = vr(this)[0];
 		if (!e?.config) return;
 		let t = document.createElement("hui-section"), { visibility: n, ...r } = e.config;
 		t.hass = this._hass, t.lovelace = e.lovelace, t.index = e.index, t.viewIndex = e.viewIndex, t.preview = !1, t.config = {
@@ -4133,7 +4184,7 @@ ${dr}`, br = class extends W {
 		}
 	}
 	_place() {
-		if (!this.isConnected || this._editing || !this._config || b(this) || (this._sectionOff = vr(this))) {
+		if (!this.isConnected || this._editing || !this._config || b(this) || (this._sectionOff = yr(this))) {
 			this._takeDown(), this.requestUpdate();
 			return;
 		}
@@ -4142,8 +4193,8 @@ ${dr}`, br = class extends W {
 	_putUp() {
 		this._host = document.createElement("casa-mia-over-layer-host");
 		let e = this._host.attachShadow({ mode: "open" });
-		e.innerHTML = `<style>${yr}</style><div class="layer"><div class="backdrop"></div><div class="holder"></div></div>`, this._layer = e.querySelector(".layer"), this._config?.panel && this._makePanel(), this._child && this._layer.querySelector(".holder").append(this._child), this._door = new hr(e), document.body.append(this._host);
-		let t = () => this._style(), n = gr(this), r = new ResizeObserver(t);
+		e.innerHTML = `<style>${br}</style><div class="layer"><div class="backdrop"></div><div class="holder"></div></div>`, this._layer = e.querySelector(".layer"), this._config?.panel && this._makePanel(), this._child && this._layer.querySelector(".holder").append(this._child), this._door = new gr(e), document.body.append(this._host);
+		let t = () => this._style(), n = _r(this), r = new ResizeObserver(t);
 		n && r.observe(n), addEventListener("resize", t), addEventListener("scroll", t, {
 			capture: !0,
 			passive: !0
@@ -4158,7 +4209,7 @@ ${dr}`, br = class extends W {
 		if (!this._layer || !this._config) return;
 		let e = Bt(this._config), t = this._layer;
 		t.className = `layer ${e.mode}`;
-		let n = (e.cover === "view" ? gr(this) : null)?.getBoundingClientRect();
+		let n = (e.cover === "view" ? _r(this) : null)?.getBoundingClientRect();
 		if (e.mode === "scroll") {
 			let e = (n?.top ?? 0) + scrollY;
 			Object.assign(t.style, {
@@ -4209,7 +4260,7 @@ ${dr}`, br = class extends W {
 		Object.assign(u.style, {
 			maxWidth: e.mode === "full" ? "" : `${e.width}px`,
 			pointerEvents: "auto"
-		}), this._door?.place([o, u], c ? fr(this) : null, s);
+		}), this._door?.place([o, u], c ? pr(this) : null, s);
 	}
 	render() {
 		return this._config ? this.isConnected && b(this) ? B`<div class="sample" aria-label="An Over layer: one card over the dashboard">
@@ -4285,7 +4336,7 @@ ${dr}`, br = class extends W {
     }
   `];
 	}
-}, xr = [
+}, Sr = [
 	{
 		name: "panel",
 		selector: { boolean: {} }
@@ -4365,7 +4416,7 @@ ${dr}`, br = class extends W {
 			}
 		]
 	}
-], Sr = [{
+], Cr = [{
 	type: "grid",
 	name: "",
 	schema: [{
@@ -4387,7 +4438,7 @@ ${dr}`, br = class extends W {
 			unit_of_measurement: "px"
 		} }
 	}]
-}], Cr = {
+}], wr = {
 	panel: "Show its whole panel",
 	offset_x: "In from the side",
 	offset_y: "In from the top or bottom",
@@ -4398,18 +4449,18 @@ ${dr}`, br = class extends W {
 	backdrop_opacity: "Backdrop opacity",
 	backdrop_blur: "Backdrop blur",
 	width: "Card width (float, scroll)"
-}, wr = {
+}, Tr = {
 	panel: "In place of a card of its own, the layer shows every card in the panel it's in (but Over layers). That panel never shows in its own place out of edit mode; edit its cards there, as usual.",
 	block: "On: what's beneath can be seen but not touched; only the card works. Off: taps reach the dashboard round the card."
 };
-async function Tr() {
+async function Er() {
 	customElements.get("hui-card-element-editor") && customElements.get("hui-card-picker") || (await (await (await window.loadCardHelpers()).createCardElement({
 		type: "conditional",
 		conditions: [],
 		card: { type: "button" }
 	})).constructor.getConfigElement?.(), await customElements.whenDefined("hui-card-element-editor"));
 }
-var Er = class extends W {
+var Dr = class extends W {
 	constructor(...e) {
 		super(...e), this._ready = !1;
 	}
@@ -4425,7 +4476,7 @@ var Er = class extends W {
 		this._config = e;
 	}
 	connectedCallback() {
-		super.connectedCallback(), Promise.all([r(), Tr()]).then(() => this._ready = !0);
+		super.connectedCallback(), Promise.all([r(), Er()]).then(() => this._ready = !0);
 	}
 	_save(e) {
 		this._config = e, t(this, "config-changed", { config: j(e, zt) });
@@ -4440,9 +4491,9 @@ var Er = class extends W {
 			...zt,
 			...this._config
 		}}
-        .schema=${xr}
-        .computeLabel=${(e) => Cr[e.name] ?? e.name}
-        .computeHelper=${(e) => wr[e.name]}
+        .schema=${Sr}
+        .computeLabel=${(e) => wr[e.name] ?? e.name}
+        .computeHelper=${(e) => Tr[e.name]}
         @value-changed=${(e) => {
 			e.stopPropagation(), this._save({
 				...this._config,
@@ -4517,8 +4568,8 @@ var Er = class extends W {
         <ha-form
           .hass=${this.hass}
           .data=${e}
-          .schema=${Sr}
-          .computeLabel=${(e) => Cr[e.name] ?? e.name}
+          .schema=${Cr}
+          .computeLabel=${(e) => wr[e.name] ?? e.name}
           @value-changed=${(e) => {
 			e.stopPropagation(), this._save({
 				...this._config,
@@ -4579,35 +4630,35 @@ var Er = class extends W {
   `];
 	}
 };
-o("casa-mia-over-layer", br), o("casa-mia-over-layer-editor", Er), s("casa-mia-over-layer", "Casa Mia Over layer", "One card over the whole dashboard while its Visibility conditions hold; what's beneath can be seen but not touched.");
+o("casa-mia-over-layer", xr), o("casa-mia-over-layer-editor", Dr), s("casa-mia-over-layer", "Casa Mia Over layer", "One card over the whole dashboard while its Visibility conditions hold; what's beneath can be seen but not touched.");
 //#endregion
 //#region src/sensor-watch/common.ts
-var Dr = "casa_mia_sensor_watch", Or = {
+var Or = "casa_mia_sensor_watch", kr = {
 	domain: "casa_mia",
 	service: "sensor_watch_list"
 };
-function kr(e) {
+function Ar(e) {
 	return e.platform === "casa_mia" && (e.translation_key ?? "").startsWith("sensor_watch_");
 }
-var Ar = [
+var jr = [
 	"task",
 	"warning",
 	"error",
 	"critical"
-], jr = [
+], Mr = [
 	"level",
 	"name",
 	"message",
 	"value",
 	"since"
 ], $ = {
-	levels: [...Ar],
+	levels: [...jr],
 	max: 20,
 	when_clear: "hide",
 	clear_message: "All well.",
-	show: [...jr]
+	show: [...Mr]
 };
-function Mr(e) {
+function Nr(e) {
 	let t = (t) => e.includes(t);
 	return [
 		t("level") && "72px",
@@ -4616,27 +4667,27 @@ function Mr(e) {
 		t("since") && "auto"
 	].filter(Boolean).join(" ");
 }
-function Nr(e, t) {
+function Pr(e, t) {
 	let n = e ? Date.parse(e) : NaN;
 	return Number.isNaN(n) ? t ? `${t} days` : "" : new Date(n).toLocaleDateString(void 0, {
 		day: "numeric",
 		month: "short"
 	});
 }
-function Pr(e, t) {
+function Fr(e, t) {
 	let n = Math.max(0, (t - Date.parse(e)) / 1e3);
 	return n < 60 ? "now" : n < 3600 ? `${Math.floor(n / 60)} min` : n < 86400 ? `${Math.floor(n / 3600)} h` : `${Math.floor(n / 86400)} d`;
 }
 //#endregion
 //#region src/sensor-watch/card.ts
-var Fr = 300, Ir = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toISOString(), Lr = [
+var Ir = 300, Lr = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toISOString(), Rr = [
 	{
 		entity_id: "",
 		name: "Plug 3 voltage",
 		level: "critical",
 		value: "198 V",
 		message: "Mains far too low: under 207 V",
-		since: Ir(3)
+		since: Lr(3)
 	},
 	{
 		entity_id: "",
@@ -4644,7 +4695,7 @@ var Fr = 300, Ir = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toIS
 		level: "warning",
 		value: "-12 °C",
 		message: "Freezer too warm: check the door and seal",
-		since: Ir(1)
+		since: Lr(1)
 	},
 	{
 		entity_id: "",
@@ -4652,9 +4703,9 @@ var Fr = 300, Ir = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toIS
 		level: "task",
 		value: "18 %",
 		message: "Top up the salt",
-		since: Ir(50)
+		since: Lr(50)
 	}
-], Rr = class extends W {
+], zr = class extends W {
 	constructor(...e) {
 		super(...e), this._editing = !1, this._seen = null;
 	}
@@ -4685,12 +4736,12 @@ var Fr = 300, Ir = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toIS
 		if (this._unsubscribe || !e.connection) return;
 		let t = e.connection.subscribeEvents(() => {
 			clearTimeout(this._timer), this._ask();
-		}, Dr);
+		}, Or);
 		this._unsubscribe = t, t.catch((e) => console.warn(`CASA-MIA CARDS: sensor watch: can't hear its event (${e})`));
 	}
 	set hass(e) {
 		this._hass = e, this.isConnected && this._subscribe(e);
-		let t = Object.entries(e.entities ?? {}).filter(([, e]) => kr(e)).map(([t]) => `${t}@${e.states[t]?.last_updated ?? ""}`).join(",");
+		let t = Object.entries(e.entities ?? {}).filter(([, e]) => Ar(e)).map(([t]) => `${t}@${e.states[t]?.last_updated ?? ""}`).join(",");
 		t !== this._seen && (this._seen = t, this._later()), this.requestUpdate();
 	}
 	set preview(e) {
@@ -4700,7 +4751,7 @@ var Fr = 300, Ir = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toIS
 		this._editing = e, this._showOrHide();
 	}
 	_later() {
-		clearTimeout(this._timer), this._timer = window.setTimeout(() => this._ask(), Fr);
+		clearTimeout(this._timer), this._timer = window.setTimeout(() => this._ask(), Ir);
 	}
 	async _ask() {
 		let e = this._hass, t = {
@@ -4711,7 +4762,7 @@ var Fr = 300, Ir = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toIS
 			try {
 				let n = await e.callWS({
 					type: "call_service",
-					...Or,
+					...kr,
 					service_data: {
 						levels: t.levels,
 						...t.group ? { group: t.group } : {}
@@ -4751,7 +4802,7 @@ var Fr = 300, Ir = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toIS
 			...this._config
 		};
 		if (b(this) && (this._problem !== void 0 || this._rows !== void 0 && !this._rows.length)) return B`<ha-card .header=${e.title || "Needs looking at"}>
-        ${Lr.map((e) => this._row(e, e.value ?? "", Date.now()))}
+        ${Rr.map((e) => this._row(e, e.value ?? "", Date.now()))}
         <p class="note">An example: hidden when all is well.</p>
       </ha-card>`;
 		let t = (this._rows ?? []).slice(0, e.max), n = (this._rows?.length ?? 0) - t.length, r = Date.now();
@@ -4760,7 +4811,7 @@ var Fr = 300, Ir = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toIS
       ${!this._problem && this._rows && !t.length ? B`<p class="note">${e.when_clear === "message" ? e.clear_message : "All well: nothing to list, so this card is hidden on the dashboard."}</p>` : V}
       ${t.map((e) => {
 			let t = this._hass?.states[e.entity_id];
-			if (e.days_until) return this._row(e, Nr(e.attribute ? String(t?.attributes?.[e.attribute] ?? "") : t?.state, e.value), r);
+			if (e.days_until) return this._row(e, Pr(e.attribute ? String(t?.attributes?.[e.attribute] ?? "") : t?.state, e.value), r);
 			if (e.attribute) return this._row(e, String(t?.attributes?.[e.attribute] ?? e.value ?? ""), r);
 			let n = t?.attributes?.unit_of_measurement ?? "";
 			return this._row(e, t ? `${t.state}${n ? ` ${n}` : ""}` : e.value ?? "", r);
@@ -4772,7 +4823,7 @@ var Fr = 300, Ir = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toIS
 		let i = this._config?.show ?? $.show, a = (e) => i.includes(e);
 		return B`<button
       class="row ${e.level}"
-      style="grid-template-columns:${Mr(i)}"
+      style="grid-template-columns:${Nr(i)}"
       @click=${() => e.entity_id && t(this, "hass-more-info", { entityId: e.entity_id })}
     >
       ${a("level") ? B`<span class="level cm-pill ${e.level === "critical" ? "cm-filled" : ""}">${e.level}</span>` : V}
@@ -4781,7 +4832,7 @@ var Fr = 300, Ir = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toIS
             ${a("message") && e.message ? B`<span class="message">${e.message}</span>` : V}
           </span>` : V}
       ${a("value") ? B`<span class="value">${n}</span>` : V}
-      ${a("since") ? B`<span class="since">${Pr(e.since, r)}</span>` : V}
+      ${a("since") ? B`<span class="since">${Fr(e.since, r)}</span>` : V}
     </button>`;
 	}
 	static {
@@ -4850,13 +4901,13 @@ var Fr = 300, Ir = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toIS
     }
   `];
 	}
-}, zr = {
+}, Br = {
 	level: "Level",
 	name: "Name",
 	message: "Message",
 	value: "Value (its state now)",
 	since: "How long"
-}, Br = (e) => [
+}, Vr = (e) => [
 	{
 		name: "title",
 		selector: { text: {} }
@@ -4880,7 +4931,7 @@ var Fr = 300, Ir = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toIS
 		selector: { select: {
 			multiple: !0,
 			mode: "list",
-			options: Ar.map((e) => ({
+			options: jr.map((e) => ({
 				value: e,
 				label: e[0].toUpperCase() + e.slice(1)
 			}))
@@ -4916,13 +4967,13 @@ var Fr = 300, Ir = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toIS
 		selector: { select: {
 			multiple: !0,
 			mode: "list",
-			options: jr.map((e) => ({
+			options: Mr.map((e) => ({
 				value: e,
-				label: zr[e]
+				label: Br[e]
 			}))
 		} }
 	}
-], Vr = {
+], Hr = {
 	title: "Title",
 	group: "Group",
 	levels: "Levels to list",
@@ -4930,10 +4981,10 @@ var Fr = 300, Ir = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toIS
 	when_clear: "When all is well",
 	clear_message: "Its message",
 	show: "Each row shows"
-}, Hr = {
+}, Ur = {
 	title: "Or none, and give its panel a garnish heading (it hides with the card).",
 	group: "Only one group's members (from Casa Mia's Sensor Watch page), or every watched sensor."
-}, Ur = class extends W {
+}, Wr = class extends W {
 	constructor(...e) {
 		super(...e), this._ready = !1, this._groups = [], this._asked = !1;
 	}
@@ -4951,7 +5002,7 @@ var Fr = 300, Ir = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toIS
 			try {
 				let e = await this.hass.callWS({
 					type: "call_service",
-					...Or,
+					...kr,
 					service_data: {},
 					return_response: !0
 				});
@@ -4972,9 +5023,9 @@ var Fr = 300, Ir = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toIS
 			...$,
 			...this._config
 		}}
-      .schema=${Br(this._groups)}
-      .computeLabel=${(e) => Vr[e.name] ?? e.name}
-      .computeHelper=${(e) => Hr[e.name]}
+      .schema=${Vr(this._groups)}
+      .computeLabel=${(e) => Hr[e.name] ?? e.name}
+      .computeHelper=${(e) => Ur[e.name]}
       @value-changed=${(e) => {
 			e.stopPropagation();
 			let n = {
@@ -4986,26 +5037,26 @@ var Fr = 300, Ir = (e) => (/* @__PURE__ */ new Date(Date.now() - e * 36e5)).toIS
     ></ha-form>`);
 	}
 };
-o("casa-mia-sensor-watch", Rr), o("casa-mia-sensor-watch-editor", Ur), s("casa-mia-sensor-watch", "Casa Mia Sensor Watch", "What needs doing or has gone wrong (all of it, or one group's), worst first; hidden when all is well.");
+o("casa-mia-sensor-watch", zr), o("casa-mia-sensor-watch-editor", Wr), s("casa-mia-sensor-watch", "Casa Mia Sensor Watch", "What needs doing or has gone wrong (all of it, or one group's), worst first; hidden when all is well.");
 //#endregion
 //#region src/guest-goodbye.ts
-var Wr = 1e3, Gr = (e, t) => e.state === "on" && !(e.attributes.closes_at && t / 1e3 >= e.attributes.closes_at);
-function Kr(e, t, n, r, i) {
+var Gr = 1e3, Kr = (e, t) => e.state === "on" && !(e.attributes.closes_at && t / 1e3 >= e.attributes.closes_at);
+function qr(e, t, n, r, i) {
 	if (!t || t.is_admin) return null;
-	let a = Object.values(e).filter((e) => e.entity_id.startsWith("switch.") && e.attributes?.guest_user_id === t.id), o = a.find((e) => e.attributes.signs_out && n.get(e.entity_id) === !0 && !Gr(e, r));
-	for (let e of a) n.set(e.entity_id, Gr(e, r));
-	if (!o || a.some((e) => Gr(e, r))) return null;
+	let a = Object.values(e).filter((e) => e.entity_id.startsWith("switch.") && e.attributes?.guest_user_id === t.id), o = a.find((e) => e.attributes.signs_out && n.get(e.entity_id) === !0 && !Kr(e, r));
+	for (let e of a) n.set(e.entity_id, Kr(e, r));
+	if (!o || a.some((e) => Kr(e, r))) return null;
 	let s = o.attributes;
 	return s.goodbye_url || `http://${i}:${s.guest_port ?? 8675}/bye`;
 }
-function qr() {
+function Jr() {
 	let e = /* @__PURE__ */ new Map();
 	setInterval(() => {
 		let t = document.querySelector("home-assistant")?.hass;
 		if (!t?.states) return;
-		let n = Kr(t.states, t.user, e, Date.now(), location.hostname);
+		let n = qr(t.states, t.user, e, Date.now(), location.hostname);
 		n && (console.info("CASA-MIA CARDS: this guest's endpoint closed; going to the goodbye page"), location.replace(n));
-	}, Wr);
+	}, Gr);
 }
 console.info(`%cCASA-MIA CARDS\n%ccommander, tablet layout (${Et})`, "color: green; font-weight: bold;", ""), Et !== "dev" && window.hassConnection?.then(({ conn: e }) => {
 	e.addEventListener("ready", () => e.sendMessagePromise({ type: "casa_mia/cards" }).then(({ version: e }) => {
@@ -5023,5 +5074,5 @@ console.info(`%cCASA-MIA CARDS\n%ccommander, tablet layout (${Et})`, "color: gre
 			composed: !0
 		})));
 	}, () => {}));
-}), qr();
+}), Jr();
 //#endregion

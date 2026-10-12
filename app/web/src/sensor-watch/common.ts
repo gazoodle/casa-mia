@@ -286,3 +286,8 @@ export function dueValue(value: string): string {
   const t = Date.parse(value);
   return Number.isNaN(t) ? value : new Date(t).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
 }
+
+/** Days of history to read (a scan, the editor's chart): a few, a week or two, up to a year. */
+export const DAYS = [1, 2, 3, 7, 14, 30, 60, 90, 180, 365];
+
+export const dayText = (d: number) => `${d} day${d === 1 ? "" : "s"}`;

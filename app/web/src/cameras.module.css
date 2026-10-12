@@ -51,13 +51,8 @@
 
 /* A problem that stops something working, shown where it matters. */
 .alarm {
+  composes: calloutBad from "./ui.module.css";
   margin-bottom: 14px;
-  padding: 10px 14px;
-  border: 1px solid color-mix(in srgb, var(--bad) 55%, var(--border));
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--bad) 12%, var(--surface));
-  font-size: 13.5px;
-  overflow-wrap: anywhere;
 }
 
 .problems {
@@ -103,9 +98,8 @@
 }
 
 .hint {
+  composes: help from "./ui.module.css";
   margin: 8px 0 0;
-  color: var(--muted);
-  font-size: 12.5px;
 }
 
 /* Previews: the draft compositor's pictures. */
@@ -227,7 +221,6 @@
 .options .sub {
   margin-top: 0;
 }
-
 
 .numbers input:disabled {
   opacity: 0.45;
@@ -400,14 +393,7 @@
 }
 
 .add {
-  width: auto;
-  padding: 4px 10px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--bg);
-  color: var(--text);
-  font-size: 13px;
-  cursor: pointer;
+  composes: button small from "./ui.module.css";
 }
 
 .addMenu {
@@ -415,32 +401,26 @@
 }
 
 .menu {
+  composes: menu from "./ui.module.css";
   position: absolute;
   z-index: 10;
   top: calc(100% + 4px);
   left: 0;
-  display: grid;
-  gap: 2px;
   min-width: 240px;
-  max-height: 340px;
-  margin: 0;
-  padding: 4px;
-  overflow: auto;
-  list-style: none;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface);
-  box-shadow: 0 12px 30px rgb(0 0 0 / 40%);
 }
 
 .menu li {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 5px 8px;
+  padding: 6px 9px;
   border-radius: 8px;
   font-size: 13.5px;
   cursor: pointer;
+}
+
+.menu li:hover {
+  background: var(--surface-2);
 }
 
 .combo {
@@ -473,7 +453,7 @@
 }
 
 .menuOn {
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  background: var(--surface-2);
 }
 
 /* Camera thumbnails: 16:9, small; a blank frame when the camera has no picture. */
@@ -488,19 +468,12 @@
 }
 
 .camCell {
+  composes: pick from "./ui.module.css";
   display: flex;
   align-items: center;
   gap: 12px;
   min-width: 0;
-  padding: 0;
-  border: 0;
-  background: none;
-  text-align: left;
-  cursor: pointer;
-}
-
-.camCell:hover strong {
-  color: var(--accent);
+  padding: 4px 6px;
 }
 
 .live {
@@ -598,21 +571,6 @@
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-.pick label {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  cursor: pointer;
-}
-
-.pick input {
-  width: auto;
-  margin-top: 3px;
 }
 
 .pick span {

@@ -61,9 +61,8 @@
 }
 
 .note {
+  composes: help from "../ui.module.css";
   margin: 4px 0;
-  color: var(--muted);
-  font-size: 13px;
 }
 
 .problem {
@@ -72,19 +71,9 @@
 
 /* Something wrong in Home Assistant itself: impossible to miss. */
 .alarm {
+  composes: calloutBad loud from "../ui.module.css";
   margin: 0 0 16px;
-  padding: 14px 16px;
-  border: 2px solid var(--bad);
-  border-radius: var(--radius);
-  background: color-mix(in srgb, var(--bad) 14%, transparent);
   line-height: 1.5;
-}
-
-.alarm strong {
-  display: block;
-  margin-bottom: 4px;
-  color: var(--bad);
-  font-size: 16px;
 }
 
 /* A row's status pill (its level), one width so every title starts in line:
@@ -184,41 +173,13 @@
 }
 
 .chipMenu {
+  composes: menu from "../ui.module.css";
   position: fixed; /* placed by the chip (chips.tsx), over a dialog's edge too */
   z-index: 20;
-  display: grid;
-  gap: 2px;
-  min-width: 200px;
-  max-width: 320px;
-  max-height: 280px;
-  padding: 6px;
-  overflow: auto;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface);
-  box-shadow: 0 12px 30px rgb(0 0 0 / 30%);
-}
-
-.chipMenu input {
-  margin-bottom: 4px;
-  padding: 5px 9px;
 }
 
 .menuItem {
-  padding: 6px 9px;
-  border: 0;
-  border-radius: 8px;
-  background: none;
-  color: inherit;
-  font: inherit;
-  font-size: 13px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.menuItem:hover,
-.menuItem:focus-visible {
-  background: var(--surface-2);
+  composes: menuItem from "../ui.module.css";
 }
 
 .sort {
@@ -245,7 +206,6 @@
   gap: 10px;
   padding: 5px 8px;
 }
-
 
 .nameLine {
   display: flex;
@@ -307,10 +267,6 @@
 
 .historyHead > span {
   flex: 1 1 260px;
-}
-
-.days input {
-  width: 70px;
 }
 
 .chart {
@@ -452,11 +408,7 @@
 
 .tick input {
   flex: none;
-  padding: 0;
-  width: 18px;
-  height: 18px;
   margin-top: 1px;
-  accent-color: var(--accent);
 }
 
 /* Exact states: states with a level of their own. */
@@ -505,7 +457,7 @@
 .pickList,
 .scanList {
   display: grid;
-  gap: 4px;
+  gap: 6px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -514,26 +466,7 @@
 }
 
 .pick {
-  display: grid;
-  gap: 2px;
-  width: 100%;
-  padding: 8px 10px;
-  border: 0;
-  border-radius: 10px;
-  background: none;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.pick:hover:not(:disabled) {
-  background: var(--surface-2);
-}
-
-.pick:disabled {
-  opacity: 0.5;
-  cursor: default;
+  composes: pick from "../ui.module.css";
 }
 
 .pick span {
@@ -545,11 +478,14 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px 16px;
-  align-items: end;
+  align-items: center;
 }
 
-.scanBar input {
-  width: 90px;
+/* The scan's and the editor's history slider: room to move. */
+.scanBar > label,
+.days {
+  flex: 1 1 280px;
+  max-width: 420px;
 }
 
 .selectBar {
@@ -570,16 +506,7 @@
 }
 
 .scanRow {
-  display: flex;
-  gap: 10px;
-  align-items: start;
-  padding: 6px 8px;
-  border-radius: 10px;
-  cursor: pointer;
-}
-
-.scanRow:hover {
-  background: var(--surface-2);
+  composes: choice from "../ui.module.css";
 }
 
 .scanRow > span {
@@ -590,15 +517,6 @@
 }
 
 /* Not the page's full-width input (styles.css): a tick of its own size. */
-.scanRow input {
-  flex: none;
-  width: 18px;
-  height: 18px;
-  margin-top: 2px;
-  padding: 0;
-  accent-color: var(--accent);
-}
-
 @media (max-width: 640px) {
   .row {
     grid-template-columns: 1fr;
@@ -649,22 +567,11 @@
   background: var(--surface);
 }
 
-/* A group's heading as a fold: ▾ open, ▸ folded. */
+/* A group's heading as a fold (fold): ▸ folded, ▾ open. */
 .fold {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
+  composes: fold from "../ui.module.css";
   letter-spacing: inherit;
   text-transform: inherit;
-  cursor: pointer;
-}
-
-.foldMark {
-  display: inline-block;
-  width: 1em;
-  font-size: 15px;
 }
 
 /* An on/off watch: a row per state (its level, its message). */

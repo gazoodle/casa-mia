@@ -158,24 +158,8 @@
 }
 
 .pace {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
+  max-width: 520px;
   margin-bottom: 14px;
-  font-size: 14px;
-}
-
-.pace input {
-  flex: 1 1 180px;
-  max-width: 360px;
-  accent-color: var(--accent);
-}
-
-/* A fixed width, so the slider does not resize under the finger as the text changes. */
-.pace strong {
-  flex: none;
-  width: 9em;
 }
 
 .controls {
@@ -202,13 +186,7 @@
 }
 
 .link {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--accent);
-  font: inherit;
-  text-decoration: underline;
-  cursor: pointer;
+  composes: link from "./ui.module.css";
 }
 
 /* A second line in a table cell: shown, not hidden in a tooltip (the page is used by

@@ -43,16 +43,9 @@
 }
 
 .main {
-  display: grid;
+  composes: pick from "./ui.module.css";
   gap: 3px;
   min-width: 0;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
 }
 
 .backupBad {
@@ -226,25 +219,16 @@
 }
 
 .tile {
+  composes: option from "./ui.module.css";
   display: flex;
   align-items: center;
   gap: 10px;
   min-height: 56px;
   padding: 10px 12px 10px 10px;
-  border: 1px solid var(--border);
   border-radius: 12px;
-  background: var(--bg);
   color: var(--text);
-  font: inherit;
   font-size: 13px;
   font-weight: 500;
-  text-align: left;
-  cursor: pointer;
-}
-
-.tile:disabled {
-  opacity: 0.5;
-  cursor: default;
 }
 
 .tile:not(:disabled):active .disc {

@@ -7,6 +7,7 @@ import guest from "../guest.module.css";
 import ui from "../ui.module.css";
 import { Entities, HA, HEAD, Store, THUMB_EVERY_MS, ThumbRound, View, get, plural, post, put } from "./common";
 import { Backups, Settings, YamlDialog } from "./settings";
+import { confirmBox } from "../confirm";
 
 export function AutoDashboardsPage({ state }: { state?: string }) {
   const [view, setView] = useState<View>();
@@ -128,10 +129,9 @@ export function AutoDashboardsPage({ state }: { state?: string }) {
               className={ui.button}
               disabled={!!busy}
               title={`Delete the preview dashboard /${view.preview_dashboard} from Home Assistant`}
-              onClick={() =>
-                confirm(
-                  `Remove the preview dashboard /${view.preview_dashboard} from Home Assistant? The live dashboard and the draft are untouched.`,
-                ) && act("unpreview", () => post<View>("remove-preview"), `Removed /${view.preview_dashboard}`)
+              onClick={async () =>
+                (await confirmBox(
+                  `Remove the preview dashboard /${view.preview_dashboard} from Home Assistant? The live dashboard and the draft are untouched.`, { action: "Remove", danger: true })) && act("unpreview", () => post<View>("remove-preview"), `Removed /${view.preview_dashboard}`)
               }
             >
               {busy === "unpreview" ? "Removing…" : "Remove preview"}
@@ -141,10 +141,9 @@ export function AutoDashboardsPage({ state }: { state?: string }) {
             className={ui.button}
             disabled={dirty || !!busy || view.problems.length > 0 || !view.changed}
             title={`Deploy the draft to /${draft.dashboard}, and make it the live composites`}
-            onClick={() =>
-              confirm(
-                `Replace the dashboard /${draft.dashboard} and the live composites with this draft? ${view.keep ? `The dashboard it replaces is kept as an older version (Backups).` : "Older versions are not being kept (Backups)."}`,
-              ) && deploy("live")
+            onClick={async () =>
+              (await confirmBox(
+                `Replace the dashboard /${draft.dashboard} and the live composites with this draft? ${view.keep ? `The dashboard it replaces is kept as an older version (Backups).` : "Older versions are not being kept (Backups)."}`, { action: "Deploy live" })) && deploy("live")
             }
           >
             {busy === "live" ? "Deploying…" : "Deploy live"}
@@ -167,7 +166,7 @@ export function AutoDashboardsPage({ state }: { state?: string }) {
       )}
 
       {!!ha?.warnings?.length && !dirty && (
-        <details className={`${guest.warning} ${css.warnings}`}>
+        <details className={`${guest.warning} ${ui.details} ${css.warnings}`}>
           <summary>
             {plural(ha.warnings.length, "thing")} the dashboard needs that Home Assistant seems to lack (deploying still
             works)
@@ -201,8 +200,8 @@ export function AutoDashboardsPage({ state }: { state?: string }) {
               <button
                 className={ui.button}
                 disabled={!!busy || !view.deployed}
-                onClick={() =>
-                  confirm("Throw the draft away and go back to what is live?") &&
+                onClick={async () =>
+                  (await confirmBox("Throw the draft away and go back to what is live?", { action: "Throw it away", danger: true })) &&
                   act("revert", () => post<View>("revert"), "Draft reverted to live")
                 }
               >
@@ -216,8 +215,8 @@ export function AutoDashboardsPage({ state }: { state?: string }) {
                     ? `Put /${view.preview_dashboard} back as it was ${ago(view.preview_backup)}`
                     : "The preview has no earlier version yet: the second preview deploy keeps the first."
                 }
-                onClick={() =>
-                  confirm(`Put /${view.preview_dashboard} back as it was before its last deploy?`) &&
+                onClick={async () =>
+                  (await confirmBox(`Put /${view.preview_dashboard} back as it was before its last deploy?`, { action: "Revert", danger: true })) &&
                   act("revert-preview", () => post<View>("revert-preview"), `Reverted /${view.preview_dashboard}`)
                 }
               >
