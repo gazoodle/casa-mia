@@ -13,6 +13,7 @@ import { AreaHead, Empty, Shell } from "./page";
 import { copyText, Switch, Toasts, type Toast } from "./ui";
 import css from "./guest.module.css";
 import ui from "./ui.module.css";
+import { confirmBox } from "./confirm";
 
 const POLL_MS = 5000;
 
@@ -183,8 +184,8 @@ export function GuestPage({ state }: { state?: string }) {
                   )
                 }
                 onClose={() => change(() => post<GuestConfig>(`endpoints/${current.id}/off`), `${current.label} closed`)}
-                onDelete={() =>
-                  confirm(`Delete ${current.label}? Its QR code stops working and its device leaves Home Assistant.`) &&
+                onDelete={async () =>
+                  (await confirmBox(`Delete ${current.label}? Its QR code stops working and its device leaves Home Assistant.`, { action: "Delete", danger: true })) &&
                   change(() => del<GuestConfig>(`endpoints/${current.id}`), `${current.label} deleted`)
                 }
                 toast={toast}
@@ -216,12 +217,12 @@ export function GuestPage({ state }: { state?: string }) {
                 admin={ha?.users.find((u) => u.id === l.user_id)?.is_admin}
                 onPassword={() => setEditing({ kind: "password", login: l })}
                 onDefault={() => change(() => put<GuestConfig>("settings", { default_login: l.name }), `${l.name} is now the default`)}
-                onDelete={() =>
-                  confirm(`Remove the login ${l.name}? The Home Assistant user itself is kept.`) &&
+                onDelete={async () =>
+                  (await confirmBox(`Remove the login ${l.name}? The Home Assistant user itself is kept.`, { action: "Remove", danger: true })) &&
                   change(() => del<GuestConfig>(`logins/${l.name}`), `${l.name} removed`)
                 }
                 onSignOut={async () => {
-                  if (!confirm(`Sign out everyone signed in as ${l.name}, on every endpoint that uses it? They can scan again while an endpoint is open.`))
+                  if (!(await confirmBox(`Sign out everyone signed in as ${l.name}, on every endpoint that uses it? They can scan again while an endpoint is open.`, { action: "Sign out", danger: true })))
                     return false;
                   try {
                     toast((await post<{ message: string }>(`logins/${l.name}/sign-out`)).message);

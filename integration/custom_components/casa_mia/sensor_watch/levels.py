@@ -5,6 +5,7 @@ LEVELS must match these; a test checks)."""
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Any
 
 # From fine to worst. A task is something to do (top up the salt), not a fault.
@@ -37,16 +38,36 @@ def same(state: str, nominal: str) -> bool:
         return False
 
 
-def reading(record: dict[str, Any], state: Any) -> str | None:
+def reading(
+    record: dict[str, Any], state: Any, now: datetime | None = None
+) -> str | None:
     """What a record watches of `state` (a Home Assistant State, or None): the state, or
-    its `attribute`'s value as text (None, so unavailable, when it hasn't one)."""
+    its `attribute`'s value as text (None, so unavailable, when it hasn't one); with
+    `days_until`, that date as the days from `now` until it."""
     if state is None:
         return None
     attribute = record.get("attribute")
     if not attribute or state.state in UNAVAILABLE:
-        return state.state
-    value = state.attributes.get(attribute)
-    return None if value is None else str(value)
+        value: str | None = state.state
+    else:
+        found = state.attributes.get(attribute)
+        value = None if found is None else str(found)
+    if record.get("days_until") and value is not None and value not in UNAVAILABLE:
+        return days_until(value, now or datetime.now(UTC))
+    return value
+
+
+def days_until(text: str, now: datetime) -> str:
+    """A date or timestamp as the days from `now` until it, to a tenth (negative once
+    it's passed); a date alone is its midnight where `now` is. Text that isn't a date
+    comes back as it is (and counts as not a number)."""
+    try:
+        when = datetime.fromisoformat(text)
+    except ValueError:
+        return text
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=now.tzinfo)
+    return f"{(when - now).total_seconds() / 86400:.1f}"
 
 
 def level_of(

@@ -7,6 +7,8 @@ import guest from "../guest.module.css";
 import ui from "../ui.module.css";
 import { Backup, CARDS, HAUser, Store, get, post } from "./common";
 import { EntityInput } from "../cameras";
+import { confirmBox } from "../confirm";
+import { Select } from "../controls";
 
 export function Settings({
   store,
@@ -44,23 +46,23 @@ export function Settings({
           <EntityInput domain="input_button" value={store.placeholder} onChange={(v) => onChange((s) => (s.placeholder = v))} />
         </Field>
         <Field label="Live card (wall tablets and phones)">
-          <select value={store.live_card} onChange={(e) => onChange((s) => (s.live_card = e.target.value))}>
+          <Select value={store.live_card} onChange={(picked) => onChange((s) => (s.live_card = picked))}>
             {CARDS.map(([v, l]) => (
               <option key={v} value={v}>
                 {l}
               </option>
             ))}
-          </select>
+          </Select>
         </Field>
         <Field label="Live card (everyone else)">
-          <select value={store.hi_live_card} onChange={(e) => onChange((s) => (s.hi_live_card = e.target.value))}>
+          <Select value={store.hi_live_card} onChange={(picked) => onChange((s) => (s.hi_live_card = picked))}>
             <option value="">The same</option>
             {CARDS.map(([v, l]) => (
               <option key={v} value={v}>
                 {l}
               </option>
             ))}
-          </select>
+          </Select>
         </Field>
         {text("portrait_query", "Portrait screens", "A media query: the screens held upright (for commanders made for them).")}
         {text("phone_query", "Phones", "A media query: these get the medium channel.")}
@@ -70,11 +72,11 @@ export function Settings({
           {Object.entries(store.cameras).map(([e, cam]) => (
             <label key={e}>
               <span>{cam.title}</span>
-              <select
+              <Select
                 value={store.live_cards[e] ?? ""}
-                onChange={(ev) =>
+                onChange={(picked) =>
                   onChange((s) => {
-                    if (ev.target.value) s.live_cards[e] = ev.target.value;
+                    if (picked) s.live_cards[e] = picked;
                     else delete s.live_cards[e];
                   })
                 }
@@ -85,7 +87,7 @@ export function Settings({
                     {l}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
           ))}
         </div>
@@ -177,8 +179,8 @@ export function Backups({ toast, stamp }: { toast: (t: string, tone?: Toast["ton
           </span>
           <button
             className={`${ui.button} ${ui.small}`}
-            onClick={() =>
-              confirm(`Put /${b.url_path} back as it was then? Its current config is kept first.`) &&
+            onClick={async () =>
+              (await confirmBox(`Put /${b.url_path} back as it was then? Its current config is kept first.`, { action: "Restore", danger: true })) &&
               post<{ backups: Backup[] }>("restore", { name: b.name }).then(
                 (r) => {
                   setBackups(r.backups);

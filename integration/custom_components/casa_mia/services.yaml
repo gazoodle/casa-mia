@@ -12,3 +12,21 @@ send_sms:
       selector:
         text:
           multiline: true
+sensor_watch_list:
+  fields:
+    levels:
+      example: ["warning", "error", "critical"]
+      selector:
+        select:
+          multiple: true
+          options:
+            - nominal
+            - task
+            - warning
+            - error
+            - critical
+    group:
+      example: "Mains voltage"
+      selector:
+        text:
+sensor_watch_refresh: {}

@@ -22,6 +22,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 from .coordinator import CasaMiaCoordinator
+from .sensor_watch.entity import sensors as sensor_watch_sensors
 
 
 async def async_setup_entry(
@@ -46,11 +47,14 @@ async def async_setup_entry(
             ],
         )
     )
+    if coordinator.sensor_watch is not None:  # its module is on
+        async_add_entities(sensor_watch_sensors(coordinator.sensor_watch, entry))
 
 
 # Device name per module ({house}: the app's house_name); add a line when a module gets
 # entities. Guest login and the commanders have their own integrations (children.py).
 MODULE_DEVICES = {
+    "sensor_watch": "Sensor Watch",
     "alarm": "{house} alarm",
     "fona": "FONA",
     "gitproxy": "Firmware server",

@@ -11,6 +11,8 @@ import { FilterBar } from "./filters";
 import css from "./sensor-watch.module.css";
 import guest from "../guest.module.css";
 import ui from "../ui.module.css";
+import { confirmBox } from "../confirm";
+import { Select } from "../controls";
 
 type Change = <V extends WatchView>(action: () => Promise<V>, done: string | ((v: V) => string)) => Promise<boolean>;
 type Joined = WatchView & { joined: number };
@@ -82,7 +84,7 @@ export function GroupsSection({
                   {g.left.length > 0 && ` · ${g.left.length} left out by hand`}
                 </span>
               </span>
-              <button className={`${css.level} ${css.lv_none} ${css.followers}`} disabled={!g.members} onClick={() => onMembers(g)}>
+              <button className={`${css.followers}`} disabled={!g.members} onClick={() => onMembers(g)}>
                 {g.members} in it
               </button>
               <span className={css.rowActions}>
@@ -99,8 +101,8 @@ export function GroupsSection({
                 </button>
                 <button
                   className={`${ui.danger} ${ui.small}`}
-                  onClick={() =>
-                    confirm(`Delete the group "${g.name}"? Its ${g.members} members stay watched, as they are; new ones stop joining.`) &&
+                  onClick={async () =>
+                    (await confirmBox(`Delete the group "${g.name}"? Its ${g.members} members stay watched, as they are; new ones stop joining.`, { action: "Delete", danger: true })) &&
                     change(() => swApi.del<WatchView>(`groups/${g.id}`), `${g.name} deleted`)
                   }
                 >
@@ -193,7 +195,7 @@ function GroupDialog({
         label="Members follow"
         help="The defaults set each member up by what it is (a cover closed, a lock locked, a leak critical), passing over what has no default. A profile gives them all the same levels; those it doesn't fit (another kind) are passed over."
       >
-        <select value={profile} onChange={(e) => setProfile(e.target.value)}>
+        <Select value={profile} onChange={(picked) => setProfile(picked)}>
           <option value={DEFAULTS}>The defaults, by what it is</option>
           {profiles.map((p) => (
             <option key={p.id} value={p.id}>
@@ -201,7 +203,7 @@ function GroupDialog({
               {p.name.endsWith(")") ? p.name : `${p.name} (${MODE_NAMES[p.kind]})`}
             </option>
           ))}
-        </select>
+        </Select>
       </Field>
       <p className={css.note}>What it takes: at least one filter. Checked each minute, so new matches join by themselves.</p>
       <FilterBar value={filters} options={view?.options} onChange={setFilters} />

@@ -34,6 +34,12 @@
   gap: 8px;
 }
 
+.heroEdit:hover,
+.heroEdit:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
 .heroEdit {
   box-sizing: border-box;
   display: grid;
@@ -117,25 +123,6 @@
   font-size: 15px;
 }
 
-.slider {
-  display: grid;
-  grid-template-columns: 96px minmax(0, 1fr) 52px;
-  align-items: center;
-  gap: 10px;
-  margin-top: 10px;
-  font-size: 13.5px;
-}
-
-.slider input {
-  accent-color: var(--accent);
-}
-
-.slider output {
-  font-family: var(--mono);
-  font-size: 12.5px;
-  text-align: right;
-}
-
 .welcomeFrame {
   display: flex;
   gap: 16px;
@@ -187,11 +174,8 @@
 }
 
 .banner {
+  composes: calloutBad from "./ui.module.css";
   margin-top: 12px;
-  padding: 10px 14px;
-  border: 1px solid color-mix(in srgb, var(--bad) 50%, var(--border));
-  border-radius: var(--radius);
-  background: color-mix(in srgb, var(--bad) 12%, var(--surface));
 }
 
 .loading {
@@ -289,17 +273,15 @@
   font-weight: 620;
 }
 
+/* A tile's state: a status pill with a lamp (docs/design/pills-and-chips.html, home-state),
+   at the head's right; the lamp's pulse may show past its edge. */
 .chip {
+  composes: cm-pill from global;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   margin-left: auto;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: color-mix(in srgb, currentColor 14%, transparent);
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
+  overflow: visible;
 }
 
 .dot {
@@ -310,6 +292,7 @@
 }
 
 .good {
+  --tone: var(--good);
   color: var(--good);
 }
 
@@ -335,14 +318,17 @@
 }
 
 .warn {
+  --tone: var(--warn);
   color: var(--warn);
 }
 
 .bad {
+  --tone: var(--bad);
   color: var(--bad);
 }
 
 .muted {
+  --tone: var(--muted);
   color: var(--muted);
 }
 
@@ -402,17 +388,10 @@
 }
 
 .empty {
+  composes: empty from "./ui.module.css";
   max-width: 640px;
   margin: 26px auto 0;
-  padding: 22px;
-  border: 1px dashed var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-}
-
-.empty h2 {
-  margin: 0 0 6px;
-  font-size: 18px;
+  text-align: left;
 }
 
 .empty p {
@@ -464,14 +443,6 @@
 .integration code {
   color: var(--text);
   font-family: var(--mono);
-}
-
-.integration button {
-  padding: 3px 10px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface-2);
-  cursor: pointer;
 }
 
 .footer {

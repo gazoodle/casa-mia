@@ -3,6 +3,7 @@
 import { LitElement, css, html, nothing } from "lit";
 import { fire, type Hass, haForm, withoutDefaults } from "../ha.ts";
 import { ANCHORS, type Anchor, type Config, DEFAULTS, anchorFor } from "./common.ts";
+import { PILLS } from "../pills.ts";
 
 const SCHEMA = [
   { name: "panel", selector: { boolean: {} } },
@@ -135,7 +136,7 @@ export class OverLayerEditor extends LitElement {
     return html`<h3>Its card</h3>
       ${card?.type
         ? html`<div class="actions">
-              <button type="button" @click=${() => this._save({ ...this._config!, card: undefined })}>Change the card</button>
+              <button type="button" class="cm-chip" @click=${() => this._save({ ...this._config!, card: undefined })}>Change the card</button>
             </div>
             <hui-card-element-editor
               .hass=${this.hass}
@@ -194,7 +195,9 @@ export class OverLayerEditor extends LitElement {
       </div>`;
   }
 
-  static styles = css`
+  static styles = [
+    PILLS,
+    css`
     .where {
       display: flex;
       gap: 16px;
@@ -239,15 +242,8 @@ export class OverLayerEditor extends LitElement {
       display: flex;
       justify-content: flex-end;
       margin-bottom: 8px;
+      --tone: var(--primary-color);
     }
-    .actions button {
-      font: inherit;
-      padding: 4px 10px;
-      border: 1px solid var(--primary-color);
-      border-radius: 12px;
-      color: var(--primary-color);
-      background: none;
-      cursor: pointer;
-    }
-  `;
+  `,
+  ];
 }

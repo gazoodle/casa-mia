@@ -16,6 +16,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 MARKER = ".restart_required.json"
+# Components once bundled and no longer: taken out of HA's config, so HA stops loading
+# them. casa_mia_sensor_watch joined casa_mia in 2026.10.10-b4 (casa_mia takes its
+# entities on).
+RETIRED = ("casa_mia_sensor_watch",)
 # HA's notification service through the Supervisor proxy. The notice needs no dismissing:
 # HA drops notifications when it restarts, which is what it asks for.
 NOTIFY_URL = "http://supervisor/core/api/services/persistent_notification/create"
@@ -114,11 +118,17 @@ def install_component(source: Path, destination: Path) -> InstallResult:
 
 
 def install_all(source_root: Path, config_folder: Path) -> list[InstallResult]:
-    return [
+    results = [
         install_component(src, config_folder / "custom_components" / src.name)
         for src in sorted(source_root.iterdir())
         if (src / "manifest.json").is_file()
     ]
+    for name in RETIRED:
+        old = config_folder / "custom_components" / name
+        if (old / "manifest.json").is_file():
+            shutil.rmtree(old)
+            _LOGGER.info("component %s retired: removed from %s", name, old.parent)
+    return results
 
 
 def ask_for_restart(

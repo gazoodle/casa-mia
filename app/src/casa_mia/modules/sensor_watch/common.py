@@ -18,7 +18,9 @@ A record watches one entity (keyed by its entity id):
 - all: `unavailable` (a level, or "ignore"), `hold_off` (seconds a new level must last
   before it counts), an optional display `name`, and an optional `attribute`: watch that
   attribute's value instead of the state (a climate's current_temperature, a cover's
-  current_position); and `disabled` (true: kept, with its group, but not watched: the
+  current_position); `days_until` (numeric only: the state is a date or timestamp, read
+  as the days until it, negative once it's passed, so a reminder's due date is banded
+  in days); and `disabled` (true: kept, with its group, but not watched: the
   integration isn't sent it, and the page lists it apart).
 The integration works out the levels (casa_mia_sensor_watch/levels.py, whose LEVELS
 must match these; a test checks)."""
@@ -38,7 +40,22 @@ MAX_STATES = 20
 MAX_TEXT = 80  # a name
 # A message: past 80 characters, notifications and cards may cut it short (the page says so).
 MAX_MESSAGE = 255
-DOMAIN = "casa_mia_sensor_watch"  # the integration: its websocket command, its entities
+# In Casa Mia's integration (its own, casa_mia_sensor_watch, until 2026.10.10-b3): the
+# event on each change of level, and the list service.
+EVENT = "casa_mia_sensor_watch"
+SERVICE = ("casa_mia", "sensor_watch_list")
+REFRESH = ("casa_mia", "sensor_watch_refresh")  # every watch judged afresh
+
+
+def own(entry: dict) -> bool:
+    """Is this entity registry entry one of Sensor Watch's own (status, counts, problem)?
+    Never watched: it would judge itself."""
+    if entry.get("platform") == "casa_mia_sensor_watch":  # before it joined Casa Mia
+        return True
+    return entry.get("platform") == "casa_mia" and str(
+        entry.get("translation_key") or ""
+    ).startswith("sensor_watch_")
+
 
 Response = tuple[int, str, bytes]
 
@@ -192,6 +209,8 @@ def clean(entity_id: str, body: dict[str, Any]) -> dict[str, Any]:
             raise BadRequest(f"Bands overlap: {_span(a)} and {_span(b)}.")
     record["bands"] = out
     record["otherwise"] = _level(body.get("otherwise", "error"), "Outside every band")
+    if body.get("days_until") is True:
+        record["days_until"] = True
     return record
 
 

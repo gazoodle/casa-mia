@@ -4,10 +4,11 @@ import { fills } from "../garnish.ts";
 import { autoSized, cardColumns, cardsWidth, type Gap, layerOf, placeOf, PLACES, type Section, seenOut, sides } from "../tablet.ts";
 import { tooTall, watchAppSettings, ROW, ROW_GAP, DIMS, cardsHeight } from "./common.ts";
 import { LOCK, FILL } from "./styles.ts";
+import { PILLS } from "../pills.ts";
 
 export const ViewBase = (Base: any) =>
   class extends Base {
-    static styles = [Base.styles, LOCK];
+    static styles = [Base.styles, PILLS, LOCK];
 
     protected cmDebug = false; // debug: true in the view's config
     protected cmApp: Record<string, any> = {}; // the app's settings, watchAppSettings

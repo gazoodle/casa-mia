@@ -11,6 +11,7 @@ import { LevelFields, useLevels, type Kind } from "./levels";
 import css from "./sensor-watch.module.css";
 import guest from "../guest.module.css";
 import ui from "../ui.module.css";
+import { confirmBox } from "../confirm";
 
 type Change = <V extends WatchView>(action: () => Promise<V>, done: string | ((v: V) => string)) => Promise<boolean>;
 
@@ -48,9 +49,9 @@ export function ProfilesSection({
       change(() => Promise.reject(err instanceof SyntaxError ? new Error(`${f.name} isn't JSON.`) : err), "");
     }
   };
-  const remove = (p: Profile) => {
+  const remove = async (p: Profile) => {
     const keep = p.followers ? ` Its ${p.followers} followers keep a copy of its levels as their own.` : "";
-    if (confirm(`Delete the profile "${p.name}"?${keep}`)) change(() => swApi.del<WatchView>(`profiles/${p.id}`), `${p.name} deleted`);
+    if ((await confirmBox(`Delete the profile "${p.name}"?${keep}`, { action: "Delete", danger: true }))) change(() => swApi.del<WatchView>(`profiles/${p.id}`), `${p.name} deleted`);
   };
   return (
     <section className={guest.area}>
@@ -111,7 +112,7 @@ export function ProfilesSection({
                 </span>
               </span>
               <button
-                className={`${css.level} ${css.lv_none} ${css.followers}`}
+                className={`${css.followers}`}
                 disabled={!p.followers}
                 onClick={() => onFollowers(p)}
                 aria-label={`Show the ${p.followers} sensors following ${p.name}`}
@@ -177,7 +178,7 @@ export function ProfileDialog({
   const [saving, setSaving] = useState(false);
 
   const save = async () => {
-    if (!L.sane()) return;
+    if (!(await L.sane())) return;
     setSaving(true);
     const body = { name: name.trim(), ...L.body() };
     const ok = await change(
@@ -231,7 +232,7 @@ export function ProfileDialog({
 }
 
 /** A profile as shared: its levels and name, and in the library what it's about. */
-type Shared = Omit<Profile, "id" | "followers"> & { about?: string; source?: string; category?: string };
+export type Shared = Omit<Profile, "id" | "followers"> & { about?: string; source?: string; category?: string; score?: number };
 
 /** Choose which shared profiles to take: new ones ticked; one named as a profile of
  * yours replaces its levels (and its followers'), so it starts unticked. */

@@ -8,6 +8,7 @@ import { AreaHead, Empty } from "./page";
 import { Segmented, type Toast } from "./ui";
 import css from "./guest.module.css";
 import ui from "./ui.module.css";
+import { Select } from "./controls";
 
 const PAGE = 100;
 
@@ -130,14 +131,14 @@ export function AuditArea({
             setShown(PAGE);
           }}
         />
-        <select className={css.auditPick} value={endpoint} onChange={(e) => setEndpoint(e.target.value)}>
+        <Select className={css.auditPick} value={endpoint} onChange={(picked) => setEndpoint(picked)}>
           <option value="">Every endpoint</option>
           {config.endpoints.map((e) => (
             <option key={e.id} value={e.id}>
               {e.label}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
       {!page ? (
         <Empty>Loading…</Empty>
@@ -152,9 +153,11 @@ export function AuditArea({
                   role="button"
                   tabIndex={0}
                   className={css.auditRow}
+                  aria-expanded={open === i}
                   onClick={() => setOpen(open === i ? undefined : i)}
                   onKeyDown={(k) => k.key === "Enter" && setOpen(open === i ? undefined : i)}
                 >
+                  <span className={ui.foldMark} />
                   <span className={r.ok ? css.auditOk : r.ok === false ? css.auditBad : css.auditNote}>{outcome(r)}</span>
                   <span className={css.auditWhat}>
                     <strong>{r.label ?? r.login ?? "No endpoint"}</strong>

@@ -124,14 +124,14 @@ def test_levels_come_from_the_integrations_service(tmp_path):
     got = call(watch, "GET", "levels")[1]
     assert got["levels"] == {"sensor.salt": rows[0]} and got["error"] is None
     # A value pushed by subscribe_entities moves the revision the page waits on.
-    own = {"sensor.casa_mia_sensor_watch_status"}
+    own = {"sensor.sensor_watch_status"}
     assert not live._heard({"c": {"sensor.salt": {"+": {"s": "19"}}}}, own)
     now = live.wait(got["rev"], 0.01)
     assert now["rev"] != got["rev"] and now["levels"]["sensor.salt"]["value"] == "19"
     assert (
         live.wait(now["rev"], 0.01)["rev"] == now["rev"]
     )  # nothing new: held, then as is
-    assert live._heard({"c": {"sensor.casa_mia_sensor_watch_status": {"+": {}}}}, own)
+    assert live._heard({"c": {"sensor.sensor_watch_status": {"+": {}}}}, own)
     # A change of level, as the integration fires it: that row at once, no asking.
     before = live.snapshot()["rev"]
     data = {
@@ -150,7 +150,7 @@ def test_levels_come_from_the_integrations_service(tmp_path):
     absent = make(tmp_path / "sw2.json", FakeHA(STATES, ENTITIES))
     assert absent.live is not None
     absent.live._refresh()
-    assert "Sensor Watch integration" in call(absent, "GET", "levels")[1]["error"]
+    assert "Restart Home Assistant" in call(absent, "GET", "levels")[1]["error"]
 
 
 def test_without_history_the_editor_still_gets_a_record_and_scans_go_on(tmp_path):
@@ -474,3 +474,19 @@ def test_a_machine_just_booted_still_reads_the_candidates(monkeypatch):
     watch = make(Path("/nonexistent/sw.json"), FakeHA(STATES, ENTITIES))
     _, got = call(watch, "GET", "candidates")
     assert got["total"] > 0
+
+
+def test_refresh_state_asks_the_integration_and_the_levels_again(tmp_path):
+    ha = FakeHA(STATES, ENTITIES, {})  # its services answer
+    watch = make(tmp_path / "sw.json", ha)
+    status, _ = call(watch, "POST", "refresh")
+    assert status == 200
+    asked = [c for c in ha.asked if c["type"] == "call_service"]
+    assert (asked[-1]["domain"], asked[-1]["service"]) == (
+        "casa_mia",
+        "sensor_watch_refresh",
+    )
+    assert watch.live and watch.live._due is not None  # the levels asked again soon
+    absent = make(tmp_path / "sw2.json", FakeHA(STATES, ENTITIES))  # no service yet
+    status, err = call(absent, "POST", "refresh")
+    assert status == 400 and "restart" in err["error"]

@@ -10,9 +10,18 @@ import re
 from typing import Any
 
 from ...ha import HAError
-from .common import BadRequest, Response, _json
+from .common import REFRESH, BadRequest, Response, _json
 from .groups import Grouper
-from .profiles import clean_profile, export, follower, library, merge, new_id, resolve
+from .profiles import (
+    clean_profile,
+    export,
+    follower,
+    library,
+    merge,
+    new_id,
+    resolve,
+    suited,
+)
 from .scans import _days
 from .store import _describe
 
@@ -56,6 +65,8 @@ class SensorWatch(Grouper):
             return _json(200, self.levels(q.get("after")))
         if method == "GET" and parts == ["candidates"]:
             return _json(200, self.candidates(q))
+        if method == "GET" and parts == ["library"]:  # the library, for one sensor
+            return _json(200, {"profiles": self.suited(q.get("entity", ""))})
         if method == "GET" and parts == ["suggest"]:
             return _json(
                 200,
@@ -68,6 +79,8 @@ class SensorWatch(Grouper):
             )
         if method == "POST" and parts == ["scan"]:
             return _json(200, self.scan(body, _days(body.get("days"))))
+        if method == "POST" and parts == ["refresh"]:
+            return _json(200, self.refresh())
         if method == "POST" and parts == ["forget"]:
             return self._forget(body.get("entity_ids"))
         if method == "POST" and parts == ["accept"]:
@@ -95,6 +108,32 @@ class SensorWatch(Grouper):
             )
             return _json(200, self.view())
         return _json(404, {"error": "Not found."})
+
+    def refresh(self) -> dict[str, Any]:
+        """Refresh state: the integration judges every watch afresh (its service), and
+        the page's levels are asked again once it has."""
+        if self.ha is None:
+            raise BadRequest("Home Assistant is not reachable.")
+        try:
+            self.ha.call(
+                {"type": "call_service", "domain": REFRESH[0], "service": REFRESH[1]}
+            )
+        except HAError as exc:
+            raise BadRequest(
+                f"Home Assistant couldn't refresh Sensor Watch ({exc}): restart it if "
+                "Casa Mia was updated."
+            ) from exc
+        _LOGGER.info("refresh state: asked the integration to judge every watch afresh")
+        if self.live:
+            self.live.taken()
+        return self.view()
+
+    def suited(self, entity_id: str) -> list[dict[str, Any]]:
+        """The library profiles that might suit this sensor, best first."""
+        c = self._reader().find(entity_id)
+        if c is None:
+            raise BadRequest(f"{entity_id} is not a sensor Sensor Watch can watch.")
+        return suited(c, library())
 
     def check(self) -> dict[str, Any]:
         """Are HA's Recorder and History running? A serious fault in HA if not."""

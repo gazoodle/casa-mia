@@ -8,6 +8,8 @@ import LAYOUT from "../../../src/casa_mia/layout.json";
 import { Camera, Thumb, plural } from "../cameras";
 import { Commander, DEBUG, Edits, HA, HIGHLIGHT, L, MOTION, P, PANELS, Panel, help } from "./common";
 import { AddMenu, Num, RatioInput } from "./inputs";
+import { confirmBox } from "../confirm";
+import { Select } from "../controls";
 
 /** Whether a commander's taps can work: they set its Main camera select in the integration,
  * so say plainly when Home Assistant doesn't have it (yet), or has it with no cameras. */
@@ -84,8 +86,8 @@ export function Commanders({
     const id = Array.from(crypto.getRandomValues(new Uint8Array(4)), (b) => b.toString(16).padStart(2, "0")).join("");
     change([...list, { ...structuredClone(from), name: `Commander ${n}`, id }], list.length);
   };
-  const remove = (i: number) =>
-    confirm(`Delete the ${list[i].name} commander?`) &&
+  const remove = async (i: number) =>
+    (await confirmBox(`Delete the ${list[i].name} commander?`, { action: "Delete", danger: true })) &&
     change(
       list.filter((_, j) => j !== i),
       open === i ? -1 : open > i ? open - 1 : open,
@@ -262,14 +264,14 @@ export function CommanderEditor({
           )}
           <div className={css.wide}>
             <Field label="Main camera at start">
-              <select value={value.main} onChange={(e) => set((c) => (c.main = e.target.value))}>
+              <Select value={value.main} onChange={(picked) => set((c) => (c.main = picked))}>
                 <option value="">The first one</option>
                 {inPanels.map((e) => (
                   <option key={e} value={e}>
                     {cameras[e]?.title ?? e}
                   </option>
                 ))}
-              </select>
+              </Select>
             </Field>
           </div>
         </section>

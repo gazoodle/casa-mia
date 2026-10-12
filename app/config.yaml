@@ -1,7 +1,7 @@
 name: Casa Mia
-version: "2026.10.9"
+version: "2026.10.10"
 slug: casa_mia
-description: "Wall tablet dashboards, cameras at a glance, guest QR login and Kiosk Satellite management, together in Home Assistant."
+description: "Wall tablet dashboards, cameras at a glance, guest QR login, Kiosk Satellite management and Sensor Watch, together in Home Assistant."
 url: "https://github.com/gazoodle/casa-mia/blob/main/docs/README.md"
 # No `image:` key: the Supervisor builds ./Dockerfile on the box itself, so this ships
 # without a registry. Only aarch64/amd64 are valid Supervisor architectures.

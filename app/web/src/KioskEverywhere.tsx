@@ -9,6 +9,7 @@ import { useEffect } from "react";
 import type { EverywhereRun } from "./api";
 import { ago } from "./format";
 import css from "./kiosks.module.css";
+import { confirmBox } from "./confirm";
 
 // Kiosk Satellite's icon discs: its four accents (light theme).
 const DISC = { d1: "#56814f", d2: "#44686c", d3: "#9c742a", d4: "#a9501f" };
@@ -67,8 +68,8 @@ export function Everywhere({
     const timer = setInterval(reload, 1000);
     return () => clearInterval(timer);
   }, [run?.running, reload]);
-  const press = (c: Control) => {
-    if (c.confirm && !confirm(c.confirm)) return;
+  const press = async (c: Control) => {
+    if (c.confirm && !(await confirmBox(c.confirm, { action: "Go ahead" }))) return;
     onRun(c.command);
   };
   return (

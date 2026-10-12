@@ -3,6 +3,7 @@ import { Field } from "../ui";
 import css from "../cameras.module.css";
 import { useClickAway } from "../cameras";
 import { Shape } from "./common";
+import { Select } from "../controls";
 
 /** "+ Add…" as a menu with a picture against each choice (a native select can't show
  * pictures). Keys as a select: arrows, Enter, Escape; a tap or click outside closes it. */
@@ -115,14 +116,14 @@ export function RatioInput({ label, value, onChange }: { label: string; value: S
     <Field label={label}>
       <span className={css.ratio}>
         <input value={String(value)} spellCheck={false} onChange={(e) => onChange(e.target.value)} />
-        <select value="" aria-label={`${label}: the usual shapes`} onChange={(e) => e.target.value && onChange(e.target.value)}>
+        <Select value="" aria-label={`${label}: the usual shapes`} onChange={(picked) => picked && onChange(picked)}>
           <option value="">▾</option>
           {RATIOS.map((r) => (
             <option key={r} value={r}>
               {r}
             </option>
           ))}
-        </select>
+        </Select>
       </span>
     </Field>
   );

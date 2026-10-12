@@ -6,6 +6,9 @@ import { Field } from "../ui";
 import { LEVELS, LEVEL_NAMES, type Band, type Level, type Side, type StateLevel, type WatchRecord } from "./common";
 import css from "./sensor-watch.module.css";
 import ui from "../ui.module.css";
+import { confirmBox } from "../confirm";
+import { Select } from "../controls";
+import { Slider } from "../controls";
 
 export type Kind = WatchRecord["kind"];
 type Draft = { from: string; to: string; level: Level; message: string };
@@ -31,6 +34,8 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
   const [exceptions, setExceptions] = useState<StateLevel[]>(start?.exceptions ?? []);
   const [unavailable, setUnavailable] = useState<Level | "ignore">(start?.unavailable ?? "error");
   const [holdOff, setHoldOff] = useState(String(start?.hold_off ?? 60));
+  const [daysUntil, setDaysUntil] = useState(start?.days_until ?? false);
+  const [problem, setProblem] = useState(""); // why the bands can't be saved, under them
 
   /** Take another set of levels (a suggestion, a profile). */
   const adopt = (r: Partial<WatchRecord>) => {
@@ -46,6 +51,7 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
     setExceptions(r.exceptions ?? []);
     if (r.unavailable) setUnavailable(r.unavailable);
     if (r.hold_off !== undefined) setHoldOff(String(r.hold_off));
+    setDaysUntil(r.days_until ?? false);
   };
 
   /** The levels as the app takes them. */
@@ -59,26 +65,27 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
         ? { available, message }
       : k === "state"
         ? { states: split(states), other, message, exceptions: exceptions.filter((e) => e.state.trim()) }
-        : { bands: bands.map(toBand), otherwise }),
+        : { bands: bands.map(toBand), otherwise, ...(daysUntil ? { days_until: true } : {}) }),
   });
 
   /** Bands that make sense, or say why not: a From or To that isn't a number stops the
    * save; a gap between bands (a range missed) asks first. Overlaps: the app says. */
-  const sane = () => {
+  const sane = async () => {
     if (k !== "numeric") return true;
     const bad = bands.findIndex((d) => [d.from, d.to].some((v) => v.trim() !== "" && !Number.isFinite(Number(v))));
     if (bad >= 0) {
-      alert(`Band ${bad + 1}: From and To must be numbers (with a point for decimals), or empty for open.`);
+      setProblem(`Band ${bad + 1}: From and To must be numbers (with a point for decimals), or empty for open.`);
       return false;
     }
+    setProblem("");
     const holes = gaps(bands.map(toBand));
-    return !holes.length || confirm(`No band covers ${holes.join(", ")}: a value there counts as ${LEVEL_NAMES[otherwise]} (Outside every band). Save anyway?`);
+    return !holes.length || (await confirmBox(`No band covers ${holes.join(", ")}: a value there counts as ${LEVEL_NAMES[otherwise]} (Outside every band). Save anyway?`, { action: "Save anyway" }));
   };
 
   return {
     kind: k, setKind, bands, setBands, otherwise, setOtherwise, off, setOff, on, setOn, other, setOther, available, setAvailable, message, setMessage,
-    states, setStates, exceptions, setExceptions, unavailable, setUnavailable, holdOff, setHoldOff,
-    adopt, body, sane, drawn: () => bands.map(toBand),
+    states, setStates, exceptions, setExceptions, unavailable, setUnavailable, holdOff, setHoldOff, daysUntil, setDaysUntil,
+    adopt, body, sane, problem, drawn: () => bands.map(toBand),
   };
 }
 
@@ -159,8 +166,18 @@ export function LevelFields({ L, unit = "", seen = [], seenLabel = "Seen", extra
         </div>
       )}
       {L.kind === "numeric" && <BandsEditor bands={L.bands} onChange={L.setBands} unit={unit} />}
+      {L.kind === "numeric" && L.problem && (
+        <span className={ui.fieldBad} role="alert">
+          {L.problem}
+        </span>
+      )}
 
       <div className={css.settings}>
+        {L.kind === "numeric" && (
+          <Field label="A date: days until it" help="Its state is a date (a reminder due): the bands are the days until it, negative once it's passed.">
+            <input type="checkbox" checked={L.daysUntil} onChange={(e) => L.setDaysUntil(e.target.checked)} />
+          </Field>
+        )}
         {L.kind === "numeric" && (
           <Field label="Outside every band" help="The level of a value no band covers.">
             <LevelSelect value={L.otherwise} onChange={(v) => L.setOtherwise(v as Level)} />
@@ -171,8 +188,8 @@ export function LevelFields({ L, unit = "", seen = [], seenLabel = "Seen", extra
             <LevelSelect value={L.unavailable} ignore onChange={L.setUnavailable} />
           </Field>
         )}
-        <Field label="Hold-off (seconds)" help="How long a new level must last before it counts.">
-          <input type="number" min={0} max={86400} value={L.holdOff} onChange={(e) => L.setHoldOff(e.target.value)} />
+        <Field label="Hold-off" help="How long a new level must last before it counts.">
+          <Slider value={Number(L.holdOff) || 0} steps={HOLD_OFFS} format={seconds} ends={["none", "a day"]} onChange={(v) => L.setHoldOff(String(v))} />
         </Field>
         {extra}
       </div>
@@ -182,14 +199,14 @@ export function LevelFields({ L, unit = "", seen = [], seenLabel = "Seen", extra
 
 function LevelSelect({ value, ignore, onChange }: { value: string; ignore?: boolean; onChange: (v: Level | "ignore") => void }) {
   return (
-    <select value={value} onChange={(e) => onChange(e.target.value as Level | "ignore")}>
+    <Select value={value} onChange={(picked) => onChange(picked as Level | "ignore")}>
       {LEVELS.map((l) => (
         <option key={l} value={l}>
           {LEVEL_NAMES[l]}
         </option>
       ))}
       {ignore && <option value="ignore">Ignore</option>}
-    </select>
+    </Select>
   );
 }
 
@@ -249,6 +266,17 @@ function MessageInput({ value, placeholder, onChange }: { value: string; placeho
 }
 
 /** The spans no band covers between two bands ("7.2–7.4"), lowest first. */
+/** A hold-off's steps, seconds: fine where it matters (the first minutes), up to a day. */
+const HOLD_OFFS = [0, 10, 30, 60, 120, 300, 600, 900, 1800, 3600, 7200, 21600, 43200, 86400];
+
+function seconds(s: number): string {
+  if (s === 0) return "none";
+  if (s < 60) return `${s} s`;
+  if (s < 3600) return `${+(s / 60).toFixed(1)} min`;
+  if (s < 86400) return `${+(s / 3600).toFixed(1)} h`;
+  return `${+(s / 86400).toFixed(1)} day${s === 86400 ? "" : "s"}`;
+}
+
 export function gaps(bands: Band[]): string[] {
   const low = (b: Band) => b.from ?? -Infinity;
   const sorted = [...bands].sort((a, b) => low(a) - low(b));

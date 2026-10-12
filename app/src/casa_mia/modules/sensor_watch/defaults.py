@@ -71,6 +71,36 @@ BATTERY = [
 ]
 
 
+# A date something is due (a spa's Rinse filter due): read as days until it, so the
+# bands are days. A task in the fortnight before, a warning in its week, an error once
+# it's passed, critical a month after.
+DUE = [
+    {
+        "from": None,
+        "to": -30,
+        "level": "critical",
+        "message": "Overdue by more than a month",
+    },
+    {"from": -30, "to": 0, "level": "error", "message": "Overdue"},
+    {"from": 0, "to": 7, "level": "warning", "message": "Due this week"},
+    {"from": 7, "to": 14, "level": "task", "message": "Due in under two weeks"},
+    {"from": 14, "to": None, "level": "nominal", "message": ""},
+]
+
+
+def due_record() -> dict[str, Any]:
+    """A due date's record: days until it, banded (DUE); judged at once."""
+    return {
+        "name": "",
+        "hold_off": 0,
+        "unavailable": "error",
+        "kind": "numeric",
+        "bands": DUE,
+        "otherwise": "error",
+        "days_until": True,
+    }
+
+
 def default_record(c: dict[str, Any]) -> dict[str, Any] | None:
     """The record for candidate `c` by what it is, or None to go by its history."""
     domain = c["entity_id"].split(".", 1)[0]
@@ -95,6 +125,10 @@ def default_record(c: dict[str, Any]) -> dict[str, Any] | None:
                 {"state": s, "level": lv, "message": m} for s, lv, m in exceptions
             ],
         }
+    # A date entity is a day to come (a reminder). Not a timestamp sensor: most of those
+    # are a day gone (last boot, last seen), so they go by what the user says.
+    if domain == "date":
+        return due_record()
     if domain == "sensor" and c["device_class"] == "battery" and c["unit"] == "%":
         return base | {"kind": "numeric", "bands": BATTERY, "otherwise": "error"}
     return None

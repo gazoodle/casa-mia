@@ -120,7 +120,7 @@ export const ViewDraw = (Base: ReturnType<typeof ViewEdit>) =>
         const fits = length >= (down ? h : w) + 2 * ARROW + 6;
         const [mx, my] = [(x1 + x2) / 2, (y1 + y2) / 2];
         const [lx, ly] = fits ? [mx, my] : down ? [mx + TICK + 4 + w / 2, my] : [mx, my - TICK - 4 - h / 2];
-        labels.push(`<button ${data} style="left:${lx}px;top:${ly}px">${text}</button>`);
+        labels.push(`<button class="cm-chip cm-mono" ${data} style="left:${lx}px;top:${ly}px">${text}</button>`);
       };
       const px = (v: number) => `${Math.round(v)} px`;
       const along = (a: number, b: number, f: number) => Math.round(a + f * (b - a));
@@ -178,7 +178,7 @@ export const ViewDraw = (Base: ReturnType<typeof ViewEdit>) =>
       // Each panel's size, in its bottom right corner.
       real.places.forEach((p, n) => {
         const r = p && on(n);
-        if (r) labels.push(`<button class="cm-size" data-n="${n}" title="Its size on the screen, out of edit mode; its options" style="left:${r.r - 6}px;top:${r.b - 6}px">${Math.round(p.rect[2])} × ${Math.round(p.rect[3])}</button>`);
+        if (r) labels.push(`<button class="cm-chip cm-mono cm-quiet cm-size" data-n="${n}" title="Its size on the screen, out of edit mode; its options" style="left:${r.r - 6}px;top:${r.b - 6}px">${Math.round(p.rect[2])} × ${Math.round(p.rect[3])}</button>`);
       });
       const html =
         `<svg><defs><marker id="cm-arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">` +
@@ -200,11 +200,11 @@ export const ViewDraw = (Base: ReturnType<typeof ViewEdit>) =>
         const r = root.querySelector(`hui-view-${end}`)?.getBoundingClientRect();
         const tip = end === "header" ? "The header: the space above it, and HA's own editor for the rest" : "The footer: take space under the panels or float over them, and HA's own editor";
         if (r && r.height > 0)
-          out.push(`<button class="cm-chip" data-end="${end}" title="${tip}" style="left:${Math.round(r.left - g.left + 10)}px;top:${Math.round(r.top - g.top + 6)}px">${end}</button>`);
+          out.push(`<button class="cm-chip cm-on" data-end="${end}" title="${tip}" style="left:${Math.round(r.left - g.left + 10)}px;top:${Math.round(r.top - g.top + 6)}px">${end}</button>`);
       }
       for (const l of drawn) {
         const [x, y] = [Math.round((l.x1 + l.x2) / 2), Math.round((l.y1 + l.y2) / 2)];
-        out.push(`<button class="cm-line" data-line="${l.id}" title="This line: its width, colour, style, knock and ends, or remove it" style="left:${x}px;top:${y}px">line</button>`);
+        out.push(`<button class="cm-chip cm-on cm-line" data-line="${l.id}" title="This line: its width, colour, style, knock and ends, or remove it" style="left:${x}px;top:${y}px">line</button>`);
       }
       const boxes = [...grid.querySelectorAll<HTMLElement>(":scope > .section")];
       const on = (n: number) => {
@@ -225,7 +225,7 @@ export const ViewDraw = (Base: ReturnType<typeof ViewEdit>) =>
             const x = Math.round(end === "left" ? edge.l : edge.r);
             const label = `${k > 1 ? `Layer ${k} ` : ""}${p} edge to the ${end} side: ${on ? "on" : "off"}`;
             const tip = `${k > 1 ? `Layer ${k}'s ` : "The "}${p} edge ${on ? "runs" : "stops short of the side panel; click to run it"} to the ${end} side${on ? ", over the side panel; click to stop it short" : ""}`;
-            out.push(`<button class="cm-lock ${on ? "on" : ""}" data-lock="${k}.${p}.${end}" aria-label="${label}" title="${tip}" style="left:${x}px;top:${y}px"><svg viewBox="0 0 24 24"><path d="${on ? LOCKED : UNLOCKED}"/></svg></button>`);
+            out.push(`<button class="cm-chip cm-icon cm-lock ${on ? "cm-on" : ""}" data-lock="${k}.${p}.${end}" aria-label="${label}" title="${tip}" style="left:${x}px;top:${y}px"><svg viewBox="0 0 24 24"><path d="${on ? LOCKED : UNLOCKED}"/></svg></button>`);
           }
         }
       }
@@ -261,15 +261,15 @@ export const ViewDraw = (Base: ReturnType<typeof ViewEdit>) =>
           : `${panelName(where, n)}: its own options, and its whole edge's`;
       const [back, on] = across ? ["left", "right"] : ["up", "down"];
       const html =
-        `<button class="cm-chip" data-act="options" title="${tip}">${name}</button>` +
+        `<button class="cm-chip cm-on cm-name" data-act="options" title="${tip}">${name}</button>` +
         (w.place === "main"
           ? depth < LAYERS
-            ? `<button data-act="add" aria-label="Add a layer" title="Add a layer inside this one: its four edges, a panel each">+</button>`
+            ? `<button class="cm-chip cm-on cm-tool" data-act="add" aria-label="Add a layer" title="Add a layer inside this one: its four edges, a panel each">+</button>`
             : ""
-          : `<button data-act="add" aria-label="Add a panel" title="Add a panel after this one, in its edge">+</button>` +
+          : `<button class="cm-chip cm-on cm-tool" data-act="add" aria-label="Add a panel" title="Add a panel after this one, in its edge">+</button>` +
             (stack.length > 1
-              ? `<button data-act="back" aria-label="Move earlier" title="Move it ${back}, along its edge" ${i === 0 ? "disabled" : ""}>${across ? "←" : "↑"}</button>` +
-                `<button data-act="on" aria-label="Move later" title="Move it ${on}, along its edge" ${i === stack.length - 1 ? "disabled" : ""}>${across ? "→" : "↓"}</button>`
+              ? `<button class="cm-chip cm-on cm-tool" data-act="back" aria-label="Move earlier" title="Move it ${back}, along its edge" ${i === 0 ? "disabled" : ""}>${across ? "←" : "↑"}</button>` +
+                `<button class="cm-chip cm-on cm-tool" data-act="on" aria-label="Move later" title="Move it ${on}, along its edge" ${i === stack.length - 1 ? "disabled" : ""}>${across ? "→" : "↓"}</button>`
               : ""));
       if (tools.dataset.html !== html) [tools.innerHTML, tools.dataset.html] = [html, html];
       tools.dataset.n = String(n);
@@ -281,7 +281,7 @@ export const ViewDraw = (Base: ReturnType<typeof ViewEdit>) =>
       tools.classList.toggle("cm-narrow", tools.scrollWidth > box.clientWidth - clear);
       // The panel's least width (its columns grow to it, and the view scrolls): its chip clear
       // of HA's actions, or HA's frame round its Add card button, square, if more.
-      const chip = (tools.querySelector(".cm-chip") as HTMLElement | null)?.offsetWidth ?? 0;
+      const chip = (tools.querySelector(".cm-name") as HTMLElement | null)?.offsetWidth ?? 0;
       const wrapper = frame?.shadowRoot?.querySelector(".section-wrapper") as HTMLElement | null;
       const cs = wrapper && getComputedStyle(wrapper);
       const round = cs ? ["paddingLeft", "paddingRight", "borderLeftWidth", "borderRightWidth"].reduce((t, k) => t + (parseFloat(cs[k as "paddingLeft"]) || 0), 0) : 0;

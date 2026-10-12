@@ -12,6 +12,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .coordinator import CasaMiaCoordinator, async_post
 from .sensor import CasaMiaEntity, only_on
+from .sensor_watch.entity import RefreshButton
 
 
 async def async_setup_entry(
@@ -37,6 +38,8 @@ async def async_setup_entry(
             ],
         )
     )
+    if coordinator.sensor_watch is not None:  # its module is on
+        async_add_entities([RefreshButton(coordinator.sensor_watch, entry)])
 
 
 class GitProxyCheckButton(CasaMiaEntity, ButtonEntity):

@@ -1,7 +1,8 @@
 """sensor_watch: Sensor Watch, any sensor given bands of values, each with a level
 (nominal, task, warning, error, critical), so what has gone wrong (or needs doing) shows
 before the family notices. The app keeps the records and suggests them from history;
-the Casa Mia Sensor Watch integration watches the states and tells Home Assistant.
+Casa Mia's integration watches the states and tells Home Assistant (its sensor_watch
+package).
 
 Layers: common (constants, records checked) → suggest (statistics), history (what
 HA is asked), profiles, status (overall health, for the Home tile) and live (the

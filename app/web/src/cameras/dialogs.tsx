@@ -43,7 +43,7 @@ export function AddCameras({
         <ul className={css.pick}>
           {left.map((c) => (
             <li key={c.entity}>
-              <label>
+              <label className={ui.choice}>
                 <input
                   type="checkbox"
                   checked={picked.includes(c.entity)}

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { SensorWatchIcon } from "../icons";
 import { AreaHead, Empty, Shell } from "../page";
 import { Toasts, type Toast } from "../ui";
-import { NO_FILTERS, swApi, type Filters, type LevelsView, type Profile, type WatchRecord, type WatchView } from "./common";
+import { levelsOf, NO_FILTERS, swApi, type Filters, type LevelsView, type Profile, type WatchRecord, type WatchView } from "./common";
 import { ApplyDialog, PickDialog, ScanDialog } from "./dialogs";
 import { RecordDialog } from "./editor";
 import { GroupsSection } from "./groups";
@@ -15,6 +15,7 @@ import { WatchedList } from "./watched";
 import css from "./sensor-watch.module.css";
 import guest from "../guest.module.css";
 import ui from "../ui.module.css";
+import { confirmBox } from "../confirm";
 
 const HEAD = {
   icon: <SensorWatchIcon />,
@@ -88,8 +89,29 @@ export function SensorWatchPage({ state }: { state?: string }) {
 
   if (!view) return <Shell {...HEAD} state={state}><p className={guest.notice}>Loading…</p></Shell>;
 
+  // Watched (not disabled) but no level from the integration yet: unavailable and
+  // waiting out its hold-off, or unavailable and set to Ignore. A diagnostic.
+  const levelless = live ? view.records.filter((r) => !r.disabled && !live.levels[r.entity_id]).length : 0;
   return (
-    <Shell {...HEAD} state={state}>
+    <Shell
+      {...HEAD}
+      state={state}
+      action={
+        <span className={css.actions}>
+          {levelless > 0 && (
+            <span className={css.levelless} role="status">
+              {levelless} with no level yet
+            </span>
+          )}
+          <button
+            className={`${ui.button} ${ui.small}`}
+            onClick={() => change(() => swApi.post<WatchView>("refresh"), "Every watch judged afresh")}
+          >
+            Refresh state
+          </button>
+        </span>
+      }
+    >
       {missing.length > 0 && (
         <div className={css.alarm} role="alert">
           <strong>Home Assistant isn't running its {missing.join(" or ")} integration.</strong> That's a serious fault in Home Assistant, not just here:
@@ -132,8 +154,21 @@ export function SensorWatchPage({ state }: { state?: string }) {
             onStopMany={(rs) =>
               change(() => swApi.post<WatchView>("forget", { entity_ids: rs.map((r) => r.entity_id) }), `${rs.length} sensors no longer watched`)
             }
-            onStop={(r) =>
-              confirm(`Stop watching ${r.label}?`) && change(() => swApi.del<WatchView>(encodeURIComponent(r.entity_id)), `${r.label}: no longer watched`)
+            onEnable={(r) =>
+              change(
+                () =>
+                  swApi.put<WatchView>(
+                    encodeURIComponent(r.entity_id),
+                    // As it was, watched again: its profile, or its own levels.
+                    r.profile
+                      ? { profile: r.profile, name: r.name, attribute: r.attribute, disabled: false }
+                      : { ...levelsOf(r), name: r.name, attribute: r.attribute, disabled: false },
+                  ),
+                `${r.label}: watched again`,
+              )
+            }
+            onStop={async (r) =>
+              (await confirmBox(`Stop watching ${r.label}?`, { action: "Stop watching", danger: true })) && change(() => swApi.del<WatchView>(encodeURIComponent(r.entity_id)), `${r.label}: no longer watched`)
             }
           />
         )}

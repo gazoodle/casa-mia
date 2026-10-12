@@ -64,27 +64,17 @@
 }
 
 .offChip {
+  composes: cm-pill cm-warn from global;
   margin-left: auto;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--warn) 18%, transparent);
-  color: var(--warn);
-  font-size: 12px;
-  font-weight: 600;
 }
 
 .notice {
-  color: var(--muted);
+  composes: help from "./ui.module.css";
 }
 
 .warning {
+  composes: calloutWarn from "./ui.module.css";
   margin-bottom: 14px;
-  padding: 10px 14px;
-  border: 1px solid color-mix(in srgb, var(--warn) 45%, var(--border));
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--warn) 10%, var(--surface));
-  font-size: 13.5px;
-  overflow-wrap: anywhere; /* errors carry URLs and paths with no spaces */
 }
 
 .area {
@@ -115,12 +105,7 @@
 }
 
 .empty {
-  margin: 0;
-  padding: 18px;
-  border: 1px dashed var(--border);
-  border-radius: 14px;
-  color: var(--muted);
-  text-align: center;
+  composes: empty from "./ui.module.css";
 }
 
 /* Endpoints: the list beside the selected endpoint's QR code. */
@@ -189,18 +174,11 @@
 }
 
 .badge {
-  padding: 1px 8px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-  color: var(--accent);
-  font-size: 11px;
-  font-weight: 600;
+  composes: cm-pill cm-accent from global;
 }
 
 .badgeEng {
-  composes: badge;
-  background: color-mix(in srgb, var(--bark) 20%, transparent);
-  color: var(--bark);
+  composes: cm-pill cm-bark from global;
 }
 
 .detail {
@@ -232,8 +210,7 @@
 }
 
 .closed {
-  color: var(--muted);
-  font-size: 13px;
+  composes: help from "./ui.module.css";
 }
 
 .qrFrame {
@@ -250,15 +227,7 @@
 }
 
 .url {
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--bg);
-  font-family: var(--mono);
-  font-size: 12px;
-  text-align: left;
-  word-break: break-all;
-  cursor: copy;
+  composes: copy from "./ui.module.css";
 }
 
 .lands {
@@ -395,9 +364,7 @@
 }
 
 .check input {
-  width: auto;
   margin-top: 3px;
-  accent-color: var(--accent);
 }
 
 .checkHelp {
@@ -491,22 +458,12 @@
   font-size: 15px;
 }
 
-.reachBad,
-.reachGood {
-  padding: 2px 9px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
 .reachBad {
-  background: color-mix(in srgb, var(--bad) 14%, transparent);
-  color: var(--bad);
+  composes: cm-pill cm-bad from global;
 }
 
 .reachGood {
-  background: color-mix(in srgb, var(--good) 14%, transparent);
-  color: var(--good);
+  composes: cm-pill cm-good from global;
 }
 
 .flags {
@@ -595,17 +552,14 @@
 }
 
 .view {
-  max-width: 100%;
-  padding: 1px 8px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  font-size: 12px;
+  composes: cm-pill cm-outline from global;
+  --tone: var(--text);
+  white-space: normal; /* a long title wraps, never cut short */
   overflow-wrap: anywhere;
 }
 
 .viewNoTab {
-  color: var(--muted);
-  border-style: dashed;
+  --tone: var(--muted);
 }
 
 .fieldset textarea {
@@ -668,6 +622,10 @@
   list-style: none;
 }
 
+.auditRow > :first-child {
+  margin-top: 5px;
+}
+
 .auditRow {
   display: flex;
   gap: 10px;
@@ -704,28 +662,20 @@
 .auditOk,
 .auditBad,
 .auditNote {
+  composes: cm-pill cm-fixed from global;
   flex: none;
-  width: 84px;
-  padding: 1px 0;
-  border-radius: 999px;
-  font-size: 11.5px;
-  font-weight: 600;
-  text-align: center;
 }
 
 .auditOk {
-  background: color-mix(in srgb, var(--good) 16%, transparent);
-  color: var(--good);
+  --tone: var(--good);
 }
 
 .auditBad {
-  background: color-mix(in srgb, var(--bad) 14%, transparent);
-  color: var(--bad);
+  --tone: var(--bad);
 }
 
 .auditNote {
-  background: color-mix(in srgb, var(--muted) 14%, transparent);
-  color: var(--muted);
+  --tone: var(--muted);
 }
 
 .auditDetails {
