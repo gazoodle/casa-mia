@@ -9,8 +9,7 @@ import maturity  # noqa: E402
 
 
 def test_written_everywhere():
-    stale = [p for p, text in maturity.wanted().items() if p.read_text() != text]
-    assert not stale, "run tools/maturity.py --update"
+    assert not maturity.stale(maturity.wanted()), "run tools/maturity.py --update"
 
 
 def test_every_module_option_is_rated():

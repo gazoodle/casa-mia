@@ -9,11 +9,12 @@
 
 <p align="center">
 A Home Assistant app and integration that take your home from smart to spectacular.<br>
-Dazzling home pages for every wall tablet. Guests signed in with a single scan.<br>
-Every sensor in the house watched, and you told only when it matters.<br>
-Interactions at jet-rapid speed. Camera dashboards MI5 would envy.<br>
-Every Kiosk Satellite managed from one place, and at your fingertips wherever you are.<br>
+Dazzling home pages for every wall tablet.<br>
 Alarm set? Every tablet becomes a window you can look through but not touch.<br>
+Every sensor in the house watched, and you told only when it matters.<br>
+Guests signed in with a single scan.<br>
+Camera dashboards MI5 would envy, snappy on the humblest tablet.<br>
+Every Kiosk Satellite managed from one place, and at your fingertips wherever you are.<br>
 Secure phone and SMS access to your home, even when the internet has left the building.<br>
 And that's just the start.
 </p>
@@ -38,16 +39,18 @@ No premium tier, no subscription, no catch. <a href="#licence">Here's the promis
 
 ## What is it?
 
-* A home assistant layout view, based on Sections, but locked to the rendering screen size while still being responsive to content changes ([the Tablet Layout](docs/tablet-layout.md))
-* An Over layer: one card over the whole dashboard while its conditions hold, everything beneath visible but untouchable ([more](#the-over-layer))
-* Garnish for every Sections dashboard: a heading that no longer keeps an empty section showing, so the section goes when its cards do ([more](#garnish-for-every-dashboard))
-* Sensor Watch: levels for every sensor in the house (nominal, a task, a warning, an error, critical), set up a whole class of things at a time, and told only when one changes ([more](#sensor-watch))
-* A multi-camera layout and composition system to allow near realtime surveillance views without swamping network bandwidth or overwhelming low-power tablets
-* A house guest login system that allows a QR scan to access a custom landing page
-* A firmware server for the amazing [Kiosk Satellite](https://kiosksatellite.com) so they can stay on an IoT network, with no internet access, and not repeatedly keep downloading Candy Crush yet can still get updates from the GitHub releases.
-* A (very) custom application to talk to my FONA GSM gateway (build notes to follow) that allows me to have secure phone and SMS access into my house.
-* Tools to analyse performance hits so that the system remains responsive (avoids rolled eyes and sighs from family simply trying to get the radio to their favourite station)
-* Some other very specialise stuff that I need in my house that I don't want to have to deploy separately, so it's in here too. Sorry, you don't have to turn it on.
+In order of how likely you are to want it, each with how far along it is
+([the levels](docs/README.md#maturity)):
+
+* <!--tablet_layout--><a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta"></a> **[Tablet Layout](#tablet-layout):** Home Assistant's Sections view, locked to the screen: no scrolling, ever, and panels that make room as cards come and go.
+* <!--garnish--><a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta"></a> **[Garnish](#garnish-for-every-dashboard):** a heading that no longer keeps an empty section showing, on every Sections dashboard.
+* <!--over_layer--><a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha"></a> **[The Over layer](#the-over-layer):** one card over the whole dashboard while its conditions hold; everything beneath seen, not touched.
+* <!--sensor_watch--><a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha"></a> **[Sensor Watch](#sensor-watch):** a level for every sensor in the house, set up a whole class of things at a time, and you told only when one changes.
+* <!--guest_login--><a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta"></a> **[Guest login](#guest-login):** a QR scan signs a guest into their own dashboard, no password typed.
+* <!--commander--><a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta"></a> **[Camera Commander](#camera-commander):** every camera in one live picture, drawn in the app by the <!--compositor--><a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha"></a> [compositor](#camera-compositor), so a low-power tablet plays one stream instead of a dozen.
+* <!--kiosks--><a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha"></a> **[Kiosk Satellites](#kiosk-satellite)** and <!--gitproxy--><a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta"></a> **[their firmware server](#kiosk-satellite):** every wall tablet's version, backups and control page in one place, and updates without the internet.
+* <!--kiosk_mode--><a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha"></a> **[Kiosk mode](#kiosk-mode):** what each dashboard hides (the header, the sidebar and more), and from whom, without touching YAML.
+* **[Built for my house](#built-for-my-house):** an <!--alarm--><a href="docs/README.md#maturity"><img src="docs/maturity/development.svg" alt="In development"></a> [alarm panel](#alarm-panel) and <!--fona--><a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha"></a> [phone and SMS access](#phone-and-sms-fona) through a GSM board. You almost certainly don't need them, and they're off unless you switch them on.
 
 ## Your house, at a glance
 
@@ -62,6 +65,8 @@ at the office, or on a beach on the other side of the world. No ports to open, n
 logins, no VPN.
 
 ## Tablet Layout
+
+<!--tablet_layout--><a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta"></a>
 
 A wall tablet should show its dashboard the way a picture frame shows a picture: all of it,
 edge to edge, nothing hanging off the bottom, and no scrolling. Ever. Home Assistant's views
@@ -105,14 +110,60 @@ The very same view in a wide desktop window, or on a tablet held upright. Nothin
 Panels in stacks, layers inside layers, gaps with lines in them, edges that hug their cards:
 [the Tablet Layout guide](docs/tablet-layout.md) has the lot.
 
+## Garnish, for every dashboard
+
+<!--garnish--><a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta"></a>
+
+Home Assistant quietly does something clever: when every card in a section is hidden, the
+section goes too, and the rest of the dashboard closes up. So a section of warnings, each
+card visible only while it has something to say, simply isn't there on a quiet day. Lovely,
+until you give that section a heading. Now the heading is always showing, so the section
+always shows: a proud **WARNINGS** with nothing under it, every hour of every day.
+
+Garnish fixes that. Mark the heading (or any card that only dresses a section) as garnish,
+with one tap on the sprig in its corner in edit mode, and it no longer keeps its section
+showing. The warnings come, the heading comes with them; they go, and the whole section
+goes, gap and all. One switch on Casa Mia's Settings page, **Enable garnish on all section
+dashboards**, and it works on every Sections dashboard you have, not just Casa Mia's Tablet
+Layout, where it was born.
+
+<p align="center">
+<img src="docs/screenshots/tablet-layout-garnish.webp" alt="A section in edit mode: a Warnings heading marked as garnish (dimmed, dashed, its sprig filled) over a Door tile" width="274">
+</p>
+
+It's the kind of small thing that makes a dashboard feel like it knows what it's doing.
+
+## The Over layer
+
+<!--over_layer--><a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha"></a>
+
+The alarm is set. The wall tablet in the hall still shows the house as it always does,
+lights, heating, cameras, but every tap goes nowhere, and in the middle, the alarm's disarm
+panel waits for its code. Disarm it, and the tablet is a tablet again.
+
+That's the Over layer: one card of your choosing, floating over the whole dashboard while
+its Visibility conditions hold, its backdrop dimming or blurring what's beneath, and taking
+every tap, so the dashboard can be seen, not touched. A visiting engineer gets a look at
+everything and a hand on nothing. A cover keeps little fingers off at night. A warning
+floats up until it's dealt with. It's an ordinary card: Home Assistant's own conditions say
+when, its own card picker says what, and while you edit the dashboard it sits in its place
+like any other. Or it can lift a whole panel: a section of warnings, headings and all,
+floating over the dashboard in one piece.
+
+And the way out is for admins alone. There's no magic word in the address; instead, over the
+whole window, a small lid pulses gently over Home Assistant's own edit button, and only an
+admin gets it. Everyone else gets the wall. [The guide](docs/over-layer.md).
+
 ## Sensor Watch
+
+<!--sensor_watch--><a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha"></a>
 
 Home Assistant knows the state of everything and the health of almost nothing. Is 198 V
 on that plug fine? Is the freezer at −12 °C a problem? Has that bulb been unavailable
 since the spring? It will show you the number, cheerfully, forever, and you find out when
 the ice cream is soup.
 
-Sensor Watch gives everything a level: **nominal**, a **task** (top up the softener's salt, as a
+Sensor Watch gives everything a level: **nominal**, a **task** (top up the softener's salt, as Erik Lemcke's
 [Salt Sentry](https://www.tindie.com/products/ErikLemcke/salt-sentry-water-softener-monitor/) measures it), a
 **warning**, an **error**, **critical**, and says so only when one changes, in its own
 words. The trick is saying it once, not fifty times:
@@ -155,98 +206,9 @@ Half an hour, and the house has plant-level monitoring. I tripped a breaker to t
 and a dozen lights turned up on the wall tablet, each saying where it was.
 ([The guide](docs/applets/sensor-watch.md))
 
-
-## Kiosk Satellite
-
-<a href="https://kiosksatellite.com"><img src="https://kiosksatellite.com/img/mark.svg" alt="Kiosk Satellite" width="72" align="left"></a>
-
-[Kiosk Satellite](https://kiosksatellite.com) is [Xavier Larrea](https://github.com/jxlarrea)'s
-wonderful app for putting Home Assistant on wall tablets ([source on GitHub](https://github.com/jxlarrea/kiosk-satellite)).
-I've got a bunch of tablets around the house and it is, by far, the best way to run them.
-Casa Mia looks after them for you. Kiosk Satellite and its logo are Xavier's (licensed
-[CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/)); Casa Mia is a
-separate project, not affiliated with it, and doesn't include any of it.
-
-<br clear="left">
-
-My tablets came with a bunch of nonsense pre-installed, so I deleted that, then had to put
-them on a LAN with no internet access so they didn't download it all again ... but then they
-couldn't update Kiosk Satellite. Xavier kindly added a custom update source, so Casa Mia
-mirrors his releases and serves them to the tablets locally. Painless now.
-
-Remembering to download each tablet's settings after I'd changed them was the one thing I
-thought I could automate ... I was right. Casa Mia finds every tablet, keeps its settings
-whenever they change, and Home Assistant's backups take them along. It also opens each
-tablet's own control page through Home Assistant, so you can look after your wall tablets
-when you're not at home. Nice!
-
-<table>
-<tr>
-<td width="50%" valign="top">
-<img src="docs/screenshots/firmware.webp" alt="The Firmware server page: the address for the tablets and the mirrored Kiosk Satellite releases">
-<h3>Firmware, on tap</h3>
-Every Kiosk Satellite release, fetched and served to your tablets on your own network. They update themselves, and never need the internet.
-</td>
-<td width="50%" valign="top">
-<img src="docs/screenshots/kiosks.webp" alt="The Kiosk Satellites page: each wall tablet with its version, battery and Wi-Fi, and its backups">
-<h3>Every tablet, one page</h3>
-Every Kiosk Satellite in the house, found by itself: its version, battery, Wi-Fi and last backup. Bring any of them up to date with a single press.
-</td>
-</tr>
-<tr>
-<td width="50%" valign="top">
-<img src="docs/screenshots/kiosk-backups.webp" alt="A wall tablet's kept backups: what changed in each, ready to download or restore">
-<h3>Backups that tell you what changed</h3>
-Each tablet's settings are kept whenever they change, and every backup says exactly what changed. Fiddled with something and regretted it? Restore it in one click.
-</td>
-<td width="50%" valign="top">
-<img src="docs/screenshots/kiosk-satellite.webp" alt="A wall tablet's own Kiosk Satellite settings, reached through Home Assistant: its screen showing the camera commander, its status and quick controls">
-<h3>Your tablet, from anywhere</h3>
-Any tablet's own Kiosk Satellite control page, straight through Home Assistant: its screen, its status, its quick controls and every setting. From your kitchen, or from another continent.
-</td>
-</tr>
-</table>
-
-## Camera commander
-
-What I wanted was simple to say and surprisingly hard to get: a home page on the wall
-tablets that looks great, shows the cameras I choose, laid out how I like, and responds the
-moment you touch it. Not a grid of spinners, not a tablet that lags behind every tap, not
-an afternoon of YAML every time a camera is added. Quick, good-looking, and configurable.
-
-Every camera in the house in one live picture: a big main camera framed by all the others.
-Tap a tile and it's on the big screen; tap the big screen and it plays live. You design it
-in the Casa Mia panel, and Save puts it on every wall tablet at once. And this is only the
-beginning: there's plenty more to come on this feature.
-
-<table>
-<tr>
-<td width="50%" valign="top">
-<img src="docs/screenshots/camera-dashboard.webp" alt="The Camera Commander page: a commander's composite of every camera around the main one, with its picture and layout settings">
-<h3>Design your control room</h3>
-Lay out a commander in the Casa Mia panel: which cameras go where, how big the main one is, the highlight on its tile and the motion tracking. Its preview follows every change; Save puts it live.
-</td>
-<td width="50%" valign="top">
-<img src="docs/screenshots/dashboard-commander.webp" alt="A camera commander on a Home Assistant dashboard: the main camera framed by every other camera, each a tap to make it the main one">
-<h3>On your dashboard</h3>
-The commander on a Home Assistant dashboard: every camera in one picture, and only one stream for the tablet to play, so even a modest wall tablet stays snappy.
-</td>
-</tr>
-<tr>
-<td width="50%" valign="top">
-<img src="docs/screenshots/dashboard-commander-loft.webp" alt="The same commander after a tap on the Loft tile: Loft is now the main camera, its tile outlined">
-<h3>Tap, and it's on the big screen</h3>
-Tap any tile and it becomes the main camera, in a moment. Switch on Track motion and the commander does it for you, following whatever moves around your home; a pulsing dot marks each camera seeing motion.
-</td>
-<td width="50%" valign="top">
-<img src="docs/screenshots/desk-tablet-security.webp" alt="A tablet in the dark theme with the commander's Security look on: every camera in a cool control-room blue">
-<h3>You want to feel like you work for MI5!</h3>
-Switch on the Camera Commander card's Security look and every camera takes on the cool blue of a government control room, or any tint you choose. Here on a test tablet, in Home Assistant's dark theme. Coming next: switching it by a template, so it follows the night, the alarm, or just because.
-</td>
-</tr>
-</table>
-
 ## Guest login
+
+<!--guest_login--><a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta"></a>
 
 QR codes that sign a guest straight into their own dashboard, no password typing on a
 stranger's phone. This started life as [ha-auto-guest-login](https://github.com/cnorick/ha-auto-guest-login)
@@ -302,7 +264,50 @@ Join the Wi-Fi, then scan to sign in: one card to print or send, and a sign-in l
 </tr>
 </table>
 
-## Camera compositor
+## Camera commander
+
+<!--commander--><a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta"></a>
+
+What I wanted was simple to say and surprisingly hard to get: a home page on the wall
+tablets that looks great, shows the cameras I choose, laid out how I like, and responds the
+moment you touch it. Not a grid of spinners, not a tablet that lags behind every tap, not
+an afternoon of YAML every time a camera is added. Quick, good-looking, and configurable.
+
+Every camera in the house in one live picture: a big main camera framed by all the others.
+Tap a tile and it's on the big screen; tap the big screen and it plays live. You design it
+in the Casa Mia panel, and Save puts it on every wall tablet at once. And this is only the
+beginning: there's plenty more to come on this feature.
+
+<table>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/screenshots/camera-dashboard.webp" alt="The Camera Commander page: a commander's composite of every camera around the main one, with its picture and layout settings">
+<h3>Design your control room</h3>
+Lay out a commander in the Casa Mia panel: which cameras go where, how big the main one is, the highlight on its tile and the motion tracking. Its preview follows every change; Save puts it live.
+</td>
+<td width="50%" valign="top">
+<img src="docs/screenshots/dashboard-commander.webp" alt="A camera commander on a Home Assistant dashboard: the main camera framed by every other camera, each a tap to make it the main one">
+<h3>On your dashboard</h3>
+The commander on a Home Assistant dashboard: every camera in one picture, and only one stream for the tablet to play, so even a modest wall tablet stays snappy.
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/screenshots/dashboard-commander-loft.webp" alt="The same commander after a tap on the Loft tile: Loft is now the main camera, its tile outlined">
+<h3>Tap, and it's on the big screen</h3>
+Tap any tile and it becomes the main camera, in a moment. Switch on Track motion and the commander does it for you, following whatever moves around your home; a pulsing dot marks each camera seeing motion.
+</td>
+<td width="50%" valign="top">
+<img src="docs/screenshots/desk-tablet-security.webp" alt="A tablet in the dark theme with the commander's Security look on: every camera in a cool control-room blue">
+<h3>You want to feel like you work for MI5!</h3>
+Switch on the Camera Commander card's Security look and every camera takes on the cool blue of a government control room, or any tint you choose. Here on a test tablet, in Home Assistant's dark theme. Coming next: switching it by a template, so it follows the night, the alarm, or just because.
+</td>
+</tr>
+</table>
+
+### Camera compositor
+
+<!--compositor--><a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha"></a>
 
 The engine behind the camera commander. The [Advanced Camera Card](https://github.com/dermotduffy/advanced-camera-card)
 is great, and it's still what plays a camera's own live page. But ask one of my poor
@@ -320,7 +325,78 @@ quick, and those not-so-powerful tablets stay nice and snappy.
 
 There's much more to come on this one.
 
+## Building on others' work
 
+Some of the best things in my house are other people's work. These parts don't replace
+them; they make them easier to live with.
+
+### Kiosk Satellite
+
+<!--kiosks--><a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha"></a> <!--gitproxy--><a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta"></a>
+
+<a href="https://kiosksatellite.com"><img src="https://kiosksatellite.com/img/mark.svg" alt="Kiosk Satellite" width="72" align="left"></a>
+
+[Kiosk Satellite](https://kiosksatellite.com) is [Xavier Larrea](https://github.com/jxlarrea)'s
+wonderful app for putting Home Assistant on wall tablets ([source on GitHub](https://github.com/jxlarrea/kiosk-satellite)).
+I've got a bunch of tablets around the house and it is, by far, the best way to run them.
+Casa Mia looks after them for you. Kiosk Satellite and its logo are Xavier's (licensed
+[CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/)); Casa Mia is a
+separate project, not affiliated with it, and doesn't include any of it.
+
+<br clear="left">
+
+My tablets came with a bunch of nonsense pre-installed, so I deleted that, then had to put
+them on a LAN with no internet access so they didn't download it all again ... but then they
+couldn't update Kiosk Satellite. Xavier kindly added a custom update source, so Casa Mia
+mirrors his releases and serves them to the tablets locally. Painless now.
+
+Remembering to download each tablet's settings after I'd changed them was the one thing I
+thought I could automate ... I was right. Casa Mia finds every tablet, keeps its settings
+whenever they change, and Home Assistant's backups take them along. It also opens each
+tablet's own control page through Home Assistant, so you can look after your wall tablets
+when you're not at home. Nice!
+
+<table>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/screenshots/firmware.webp" alt="The Firmware server page: the address for the tablets and the mirrored Kiosk Satellite releases">
+<h3>Firmware, on tap</h3>
+Every Kiosk Satellite release, fetched and served to your tablets on your own network. They update themselves, and never need the internet.
+</td>
+<td width="50%" valign="top">
+<img src="docs/screenshots/kiosks.webp" alt="The Kiosk Satellites page: each wall tablet with its version, battery and Wi-Fi, and its backups">
+<h3>Every tablet, one page</h3>
+Every Kiosk Satellite in the house, found by itself: its version, battery, Wi-Fi and last backup. Bring any of them up to date with a single press.
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/screenshots/kiosk-backups.webp" alt="A wall tablet's kept backups: what changed in each, ready to download or restore">
+<h3>Backups that tell you what changed</h3>
+Each tablet's settings are kept whenever they change, and every backup says exactly what changed. Fiddled with something and regretted it? Restore it in one click.
+</td>
+<td width="50%" valign="top">
+<img src="docs/screenshots/kiosk-satellite.webp" alt="A wall tablet's own Kiosk Satellite settings, reached through Home Assistant: its screen showing the camera commander, its status and quick controls">
+<h3>Your tablet, from anywhere</h3>
+Any tablet's own Kiosk Satellite control page, straight through Home Assistant: its screen, its status, its quick controls and every setting. From your kitchen, or from another continent.
+</td>
+</tr>
+</table>
+
+### Kiosk mode
+
+<!--kiosk_mode--><a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha"></a>
+
+[kiosk-mode](https://github.com/NemesisRE/kiosk-mode) hides Home Assistant's header,
+sidebar, menus and more, so a wall tablet or a guest's dashboard shows only its controls.
+It's set in each dashboard's YAML; Casa Mia gives you a grid instead: tick what's hidden
+for everyone, for admins or non-admins, or for people by name, dashboard by dashboard.
+Install kiosk-mode yourself (it's in HACS); Casa Mia doesn't include it.
+([The guide](docs/applets/kiosk-mode.md))
+
+<p align="center">
+<img src="docs/screenshots/kiosk-mode.webp" alt="The Kiosk mode page: the dashboards with kiosk-mode, and one dashboard's settings grid, the header and sidebar hidden from non-admins" width="800">
+</p>
 
 ## Dashboard helpers
 
@@ -336,46 +412,6 @@ its own switch on the Casa Mia panel's Settings page (the cog by the house photo
   is careful either way.
 - **Keep camera pictures live.** Stops the camera streams of pages that aren't on screen and
   restarts the ones that are, so a page you come back to has a live picture.
-
-## Garnish, for every dashboard
-
-Home Assistant quietly does something clever: when every card in a section is hidden, the
-section goes too, and the rest of the dashboard closes up. So a section of warnings, each
-card visible only while it has something to say, simply isn't there on a quiet day. Lovely,
-until you give that section a heading. Now the heading is always showing, so the section
-always shows: a proud **WARNINGS** with nothing under it, every hour of every day.
-
-Garnish fixes that. Mark the heading (or any card that only dresses a section) as garnish,
-with one tap on the sprig in its corner in edit mode, and it no longer keeps its section
-showing. The warnings come, the heading comes with them; they go, and the whole section
-goes, gap and all. One switch on Casa Mia's Settings page, **Enable garnish on all section
-dashboards**, and it works on every Sections dashboard you have, not just Casa Mia's Tablet
-Layout, where it was born.
-
-<p align="center">
-<img src="docs/screenshots/tablet-layout-garnish.webp" alt="A section in edit mode: a Warnings heading marked as garnish (dimmed, dashed, its sprig filled) over a Door tile" width="274">
-</p>
-
-It's the kind of small thing that makes a dashboard feel like it knows what it's doing.
-
-## The Over layer
-
-The alarm is set. The wall tablet in the hall still shows the house as it always does,
-lights, heating, cameras, but every tap goes nowhere, and in the middle, the alarm's disarm
-panel waits for its code. Disarm it, and the tablet is a tablet again.
-
-That's the Over layer: one card of your choosing, floating over the whole dashboard while
-its Visibility conditions hold, its backdrop dimming or blurring what's beneath, and taking
-every tap, so the dashboard can be seen, not touched. A visiting engineer gets a look at
-everything and a hand on nothing. A cover keeps little fingers off at night. A warning
-floats up until it's dealt with. It's an ordinary card: Home Assistant's own conditions say
-when, its own card picker says what, and while you edit the dashboard it sits in its place
-like any other. Or it can lift a whole panel: a section of warnings, headings and all,
-floating over the dashboard in one piece.
-
-And the way out is for admins alone. There's no magic word in the address; instead, over the
-whole window, a small lid pulses gently over Home Assistant's own edit button, and only an
-admin gets it. Everyone else gets the wall. [The guide](docs/over-layer.md).
 
 ## Working together
 
@@ -407,7 +443,15 @@ Coming next:
 - **Guests who say who they are:** an identify-yourself page with a PIN, so the house knows
   which guest is in.
 
-## Alarm panel
+## Built for my house
+
+These exist because my house needs them. You almost certainly don't: they're off unless
+you switch them on, and you'll never know they're there. But they're mine, I use them
+every day, and here they are.
+
+### Alarm panel
+
+<!--alarm--><a href="docs/README.md#maturity"><img src="docs/maturity/development.svg" alt="In development"></a>
 
 I've got a KNX system with a couple of sensors and switches, but I wanted a nice alarm panel
 with a code; you'd think that would be easy ... it's really not. My first go fell back to a
@@ -416,7 +460,9 @@ it while it was going off pressed the toggle, which disarmed it. This one refuse
 anything until you've set a code, tells you when the code is wrong, and leaves a triggered
 alarm well alone. It lives in the integration, so it keeps working while the app restarts.
 
-## Phone and SMS (FONA)
+### Phone and SMS (FONA)
+
+<!--fona--><a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha"></a>
 
 This one's a bit esoteric. What happens when the internet goes down and you're on the wrong
 side of the gate? An Arduino with an Adafruit FONA GSM board on the end of a USB cable,
@@ -463,9 +509,9 @@ You need **Home Assistant 2026.3 or later**, on Home Assistant OS or a Supervise
    the GitHub Container Registry, so there's nothing to compile.
 
 3. **Choose your modules.** On the app's **Configuration** tab, give your house its name and
-   switch on the modules you want (they all start off): the firmware server, Kiosk
-   Satellites, guest login, Camera Commander and Auto Dashboards, phone and SMS (FONA),
-   the alarm panel. Press **Save**. You can come back and change these at any time.
+   switch on the modules you want (they all start off): Sensor Watch, guest login, Camera
+   Commander and Auto Dashboards, Kiosk Satellites, the firmware server, phone and SMS
+   (FONA), the alarm panel. Press **Save**. You can come back and change these at any time.
 
 4. **Start it.** On the **Info** tab, switch on **Show in sidebar** and press **Start**.
    **Casa Mia** appears in the sidebar.
@@ -494,12 +540,22 @@ Tablet Layout reference, and, [behind the scenes](docs/architecture.md), how it'
 
 ## Thanks
 
+- [Thomas Lovén (thomasloven)](https://github.com/thomasloven), for [card-mod](https://github.com/thomasloven/lovelace-card-mod),
+  [browser_mod](https://github.com/thomasloven/hass-browser_mod) and layout-card, which showed
+  how far Home Assistant's frontend can be pushed, and inspired the Over layer.
+- [Erik Lemcke](https://www.tindie.com/products/ErikLemcke/salt-sentry-water-softener-monitor/), for the Salt Sentry,
+  the little laser-ranging gadget that tells Home Assistant how much salt is left in the
+  water softener, and the example that gave Sensor Watch its **task** level.
 - [Xavier Larrea (jxlarrea)](https://github.com/jxlarrea), for [Kiosk Satellite](https://kiosksatellite.com),
   and for adding the custom update source that made the firmware server possible.
 - [Nathan Orick (cnorick)](https://github.com/cnorick), for [ha-auto-guest-login](https://github.com/cnorick/ha-auto-guest-login),
   which guest login grew out of.
 - [Dermot Duffy (dermotduffy)](https://github.com/dermotduffy), for the [Advanced Camera Card](https://github.com/dermotduffy/advanced-camera-card),
   which the camera dashboards are built on.
+- [NemesisRE](https://github.com/NemesisRE), for [kiosk-mode](https://github.com/NemesisRE/kiosk-mode),
+  which the Kiosk mode page sets up for you.
+- [Franck Nijhof (frenck)](https://github.com/frenck), for [Spook](https://spook.boo), a
+  toolkit of the bits Home Assistant doesn't ship, and the idea that Casa Mia could be one too.
 - [Adafruit](https://www.adafruit.com), for the FONA GSM board and its Arduino library, the
   heart of the phone and SMS line.
 - The [Home Assistant](https://www.home-assistant.io) project and its community, for the

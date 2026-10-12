@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.11-b6
+
+- Garnish (Beta) and the Over layer (Alpha) have maturity levels. The README is ordered by who will find each part useful, with each part's level beside it.
+
 ## 2026.10.11-b5
 
 - **Breaking:** the Casa Mia integrations changed. Restart Home Assistant once; a Repair asks.

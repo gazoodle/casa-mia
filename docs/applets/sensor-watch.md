@@ -720,10 +720,4 @@ for a narrow panel, say).
 Hidden, it takes its panel with it in a Tablet Layout: put it in a side panel with a
 garnish heading ("Needs looking at") and the panel appears only when something does.
 
-## Thanks
-
-To **Erik Lemcke** for the [Salt Sentry][salt-sentry],
-the little laser-ranging gadget that tells Home Assistant how much salt is left in the
-water softener, and the example that gave Sensor Watch its **task** level.
-
 [salt-sentry]: https://www.tindie.com/products/ErikLemcke/salt-sentry-water-softener-monitor/
