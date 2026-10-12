@@ -298,7 +298,8 @@ on that plug fine? Is the freezer at −12 °C a problem? Has that bulb been una
 since the spring? It will show you the number, cheerfully, forever, and you find out when
 the ice cream is soup.
 
-Sensor Watch gives everything a level: **nominal**, a **task** (top up the salt), a
+Sensor Watch gives everything a level: **nominal**, a **task** (top up the softener's salt, as a
+[Salt Sentry](https://www.tindie.com/products/ErikLemcke/salt-sentry-water-softener-monitor/) measures it), a
 **warning**, an **error**, **critical**, and says so only when one changes, in its own
 words. The trick is saying it once, not fifty times:
 

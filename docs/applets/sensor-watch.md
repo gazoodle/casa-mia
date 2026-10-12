@@ -33,7 +33,8 @@ service always say what's wrong, so you choose what happens next:
   disappears with it on a quiet day, rather than a proud *WARNINGS* over nothing.
 - **Look into it:** hand the list to an AI agent (Home Assistant's AI tasks, say) to
   investigate what has gone wrong and why, before you even reach for the laptop.
-- **Keep a to-do list for the house:** each task (top up the salt, change a battery, a
+- **Keep a to-do list for the house:** each task (top up the salt a [Salt Sentry][salt-sentry]
+  measures, change a battery, a
   filter due) added to a Home Assistant to-do list, and ticked off by itself when the
   sensor is nominal again.
 - **Escalate:** a warning nobody has dealt with in a day becomes a text, through
@@ -49,7 +50,7 @@ Each sensor gets a level:
 
 | Level | Means | Example |
 |---|---|---|
-| **Nominal** | All is well. | The salt is above 25%. |
+| **Nominal** | All is well. | The softener's salt is above 25% (a [Salt Sentry][salt-sentry] measures it). |
 | **Task** | Something to do, not a fault. | Top up the salt. |
 | **Warning** | Worth a look. | The freezer is at −14 °C. |
 | **Error** | Something is wrong. | The freezer is at −8 °C, or its sensor is unavailable. |
@@ -71,7 +72,8 @@ of a broken integration or a flat battery.
    each saying where its numbers come from: mains voltage and frequency by country,
    inverter trip limits, batteries, broadband, pool and hot tub chemistry, indoor air,
    freezers, heating, the garden, computers, and plain "is it there?".
-3. **Watches for the one-offs:** the freezer, the softener's salt, the boiler pressure,
+3. **Watches for the one-offs:** the freezer, the softener's salt (a [Salt Sentry][salt-sentry]
+   measures it), the boiler pressure,
    with bands suggested from each one's own history.
 4. **One automation,** from the **Notify on Sensor Watch** blueprint: your phone, at the
    level you choose or worse, in each watch's own words.
@@ -420,7 +422,8 @@ and where its numbers come from:
 - **Broadband:** a speed test's download against your plan (ADSL, FTTC 40 and 80, fibre
   100 to 900, Starlink 100 to 300): fine at 70% of the plan, a warning under half.
 - **Water:** pool or hot tub pH, free chlorine for a pool and a hot tub, hot tub bromine,
-  a tropical or cold-water aquarium, a water softener's salt.
+  a tropical or cold-water aquarium, a water softener's salt (from a [Salt Sentry][salt-sentry],
+  say).
 - **Indoor air:** CO₂, humidity, PM2.5, radon.
 - **Cold and hot storage:** freezer, fridge, hot water cylinder.
 - **Heating:** boiler pressure, room temperature.
@@ -718,6 +721,8 @@ garnish heading ("Needs looking at") and the panel appears only when something d
 
 ## Thanks
 
-To **Erik Lemcke** for the [Salt Sentry](https://www.tindie.com/products/ErikLemcke/salt-sentry-water-softener-monitor/),
+To **Erik Lemcke** for the [Salt Sentry][salt-sentry],
 the little laser-ranging gadget that tells Home Assistant how much salt is left in the
 water softener, and the example that gave Sensor Watch its **task** level.
+
+[salt-sentry]: https://www.tindie.com/products/ErikLemcke/salt-sentry-water-softener-monitor/
