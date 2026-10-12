@@ -43,6 +43,51 @@ class Codes:
             return f"{base}/?d=/{_norm(ep['dashboard'])}"
         return f"{base}/e/{ep['slug']}"
 
+    def page_text(self, path: str) -> tuple[str, str]:
+        """A Home Assistant page's path, made tidy, and its address at the QR host."""
+        path = "/" + _norm(path)
+        if not re.match(r"^/[A-Za-z0-9._~/?=&%-]*$", path):
+            raise BadRequest("A path inside Home Assistant, such as /lovelace/hall.")
+        port = self.guest.ha_port()
+        return path, f"http://{self.qr_host()}" + (
+            "" if port == 80 else f":{port}"
+        ) + path
+
+    def for_card(self, query: dict[str, list[str]]) -> dict[str, Any]:
+        """The QR code card's codes (GET /guest-login/qr, for the integration): an
+        endpoint's (?endpoint=<id>) while it is open, or a page's (?path=...), and the
+        Wi-Fi's beside it (&wifi=1). A closed endpoint's code is not given: any signed-in
+        user can ask, a guest too, so only a code that works now is shown."""
+
+        def arg(name: str) -> str:
+            return (query.get(name) or [""])[0]
+
+        found: dict[str, Any] = {}
+        if ep_id := arg("endpoint"):
+            ep = next((e for e in self.data["endpoints"] if e["id"] == ep_id), None)
+            if ep is None:
+                return {"error": "No such endpoint."}
+            found["label"] = ep["label"]
+            live = self.guest.health()["endpoints"].get(ep_id, {})
+            if live.get("enabled"):
+                found["svg"] = qr.svg(swap.out(self.qr_text(ep))).decode()
+            else:
+                found["closed"] = True
+        elif arg("path"):
+            try:
+                _, text = self.page_text(arg("path"))
+            except BadRequest as exc:
+                return {"error": str(exc)}
+            found["svg"] = qr.svg(swap.out(text)).decode()
+        if arg("wifi"):
+            wifi = self.data["wifi"]
+            if wifi.get("ssid"):
+                found["wifi_svg"] = qr.svg(swap.out(wifi_text(wifi))).decode()
+                found["ssid"] = swap.out(wifi["ssid"])
+            else:
+                found["wifi_error"] = "No Wi-Fi network saved yet."
+        return found
+
     def wifi_qr(self, name: str) -> Response:
         """The saved Wi-Fi network's QR code: a phone's camera offers to join it."""
         if not self.data["wifi"].get("ssid"):
@@ -80,11 +125,7 @@ class Codes:
     def page_qr(self, method: str, name: str, query: dict[str, list[str]]) -> Response:
         """A QR code for any page of Home Assistant (a dashboard, a view), at the QR host:
         GET page-qr/code.svg|png?path=..., or POST page-qr/media?path=... to save it."""
-        path = "/" + _norm((query.get("path") or [""])[0])
-        if not re.match(r"^/[A-Za-z0-9._~/?=&%-]*$", path):
-            raise BadRequest("A path inside Home Assistant, such as /lovelace/hall.")
-        port = self.guest.ha_port()
-        text = f"http://{self.qr_host()}" + ("" if port == 80 else f":{port}") + path
+        path, text = self.page_text((query.get("path") or [""])[0])
         if method == "GET" and name in ("code.svg", "code.png"):
             shown = swap.out(text)
             if name == "code.svg":

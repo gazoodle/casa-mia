@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.10.11-b1
+
+- **Breaking:** the Casa Mia integrations and their cards changed. Restart Home Assistant once; a Repair asks.
+- New card: **Casa Mia QR code**. An open guest login endpoint's QR code on a dashboard (picked by its Access switch; *Closed* while it isn't open), or any page's, with the Wi-Fi's beside it if you like, drawn by the app as on the guest card. In an Over layer with the condition *Logins is 0*, the house's tablets show the code until the guest's first scan.
+- Guest login: an endpoint's **Logins** counts the sign-ins since it last opened, back to 0 each time it opens (it counted for ever). An Over layer with the condition *Logins is 0* can then cover the tablets until a stay's guest first scans in; the sign-in log keeps the full history.
+
 ## 2026.10.10
 
 - **Breaking:** the Casa Mia integration and its cards changed. Restart Home Assistant once; a Repair asks.

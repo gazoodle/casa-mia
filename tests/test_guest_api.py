@@ -164,6 +164,27 @@ def test_qr_images_and_media(api, tmp_path):
     assert call(api, "GET", "qr/nope.png")[0] == 404
 
 
+def test_the_qr_code_card_gets_open_endpoints_pages_and_wifi(api):
+    call(api, "POST", "logins", GUEST)
+    call(
+        api,
+        "POST",
+        "endpoints",
+        {**SUITE, "id": "a", "legacy": False, "slug": "s" * 16},
+    )
+    shut = api.for_card({"endpoint": ["a"], "wifi": ["1"]})
+    assert shut["closed"] and "svg" not in shut  # any user may ask: no closed codes
+    assert shut["wifi_error"]
+    api.guest.set_enabled("a", True)
+    api.data["wifi"] = {"ssid": "Barn Guests", "password": "pw", "security": "WPA"}
+    found = api.for_card({"endpoint": ["a"], "wifi": ["1"]})
+    assert found["svg"].startswith("<svg") and found["wifi_svg"].startswith("<svg")
+    assert found["ssid"] == "Barn Guests" and found["label"] == SUITE["label"]
+    assert api.for_card({"path": ["lovelace/pool"]})["svg"].startswith("<svg")
+    assert api.for_card({"path": ["<bad>"]})["error"]
+    assert api.for_card({"endpoint": ["nope"]})["error"]
+
+
 def test_ha_errors_are_partial(api):
     def broken():
         raise HAError("no HA")
@@ -215,6 +236,18 @@ def test_login_stats_survive_restart(tmp_path, login_server):
         *runtime(data)[:3], port=0, internal_url=login_server, state_path=state
     )
     assert again.health()["endpoints"]["a"]["logins"] == 2
+
+
+def test_opening_restarts_the_login_count(tmp_path, login_server):
+    data = empty_store()
+    data["endpoints"] = [{"id": "a", "label": "A", "dashboard": "/x", "legacy": True}]
+    g = GuestLogin(*runtime(data)[:3], port=0, internal_url=login_server)
+    g.endpoints["a"].logins = 2
+    g.set_enabled("a", True)
+    assert g.endpoints["a"].logins == 0  # a new stay: nobody has scanned yet
+    g.endpoints["a"].logins = 1
+    g.set_enabled("a", True, minutes=60)  # already open (extended): kept
+    assert g.endpoints["a"].logins == 1
 
 
 def test_ha_users_parse_ha_s_real_shape(monkeypatch):

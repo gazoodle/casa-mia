@@ -223,6 +223,31 @@ The **Settings** button holds:
 
 <img src="../screenshots/guest-wifi.webp" alt="The QR codes dialog on its Wi-Fi tab: network Oak Tree Guests, WPA, its password, and the network's QR code" width="800">
 
+### The QR code card
+
+**Casa Mia QR code**, in the card picker, shows a code on any dashboard, drawn by the app
+as on the guest card:
+
+- **Guest login endpoint:** pick its Access switch. The code shows while the endpoint is
+  open and says *Closed* otherwise; it follows the switch, so a code that gets a new
+  address on closing shows the new one at the next opening.
+- **Or a page:** any dashboard or view, as on the QR codes dialog's *A page* tab: a plain
+  link that signs nobody in. A grid of these makes a directory of your own: every
+  endpoint, a tech page, the pool's dashboard.
+- **The Wi-Fi's code beside it**, with the network's name.
+- A **title**, and a **caption** under the code (the endpoint's name, or the page's path,
+  unless you write one).
+
+**Tablets that open at the first scan.** Put the card in an [Over layer](../over-layer.md)
+on the house's tablets, with the Visibility condition *the endpoint's Logins is 0*. Logins
+counts the sign-ins since the endpoint last opened, so when your booking automation opens
+it, the tablets show the code; the guest's first scan signs their phone in and uncovers
+every tablet at once. Anything else (a checklist for the guest, the cleaner or you) is your
+own automation, on the endpoint's Login event.
+
+Any signed-in user can ask for a code the card shows, a guest too, which is why only an
+open endpoint's code is given: a closed one's would not work anyway.
+
 ### What each login can reach
 
 *A screenshot of this is coming soon.*
@@ -280,7 +305,9 @@ sign-out, newest first.
 Each endpoint is a device, *Guest: Oak Tree* or *Engineer: Plant room*, with:
 - an **Access** switch that opens and closes it;
 - a **Login** event that fires at each sign-in, with the phone's address;
-- **Logins** and **Last login** sensors.
+- **Logins** (sign-ins since it last opened, back to 0 at each opening) and **Last login**
+  sensors. An Over layer with the condition *Logins is 0* covers the house's tablets until
+  the guest's first scan of a stay.
 
 **Open for a time** (`casa_mia_guest_login.enable_for`) opens an endpoint, then closes it again after
 a number of minutes. For example, in an automation that runs when a booking starts:

@@ -126,7 +126,7 @@ def main() -> int:
         watch.start()
         modules["sensor_watch"] = watch.health
         api["/api/sensor-watch/"] = watch.handle
-        reads["/sensor-watch/records"] = watch.for_integration
+        reads["/sensor-watch/records"] = lambda _query: watch.for_integration()
     else:
         modules["sensor_watch"] = lambda: {"state": "disabled"}
     if options.get("fona_enabled", False):
@@ -155,7 +155,7 @@ def main() -> int:
         guest.start()
         modules["guest_login"] = guest.health
         post_handlers["/guest-login/"] = guest.control
-        api["/api/guest/"] = GuestAPI(
+        guest_api = GuestAPI(
             guest,
             GUEST_STORE,
             store,
@@ -163,7 +163,9 @@ def main() -> int:
             MEDIA,
             lan_host=lan_ip,
             mdns_name=mdns,
-        ).handle
+        )
+        api["/api/guest/"] = guest_api.handle
+        reads["/guest-login/qr"] = guest_api.for_card  # the QR code card's codes
     else:
         modules["guest_login"] = lambda: {"state": "disabled"}
     gitproxy = None

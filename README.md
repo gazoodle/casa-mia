@@ -216,6 +216,9 @@ version keeps the idea and adds:
 - **A sign-in log** of every scan and what came of it, kept by the app across restarts.
 - **House rules**, shown before guests sign in, and a **goodbye** when they're signed out.
 - **A guest card to print:** join the Wi-Fi, then scan to sign in, side by side.
+- **A QR code card for the dashboard:** a code on the wall tablet, shown while its endpoint
+  is open, or any page's code for a directory of your own. With an Over layer and the
+  endpoint's Logins sensor, the tablets stay covered until the guest's first scan.
 - **A nicer front end**, all in the Casa Mia panel.
 - **Your old cards still work.** If you've already printed QR cards for
   ha-auto-guest-login, tick **Legacy QR code** and they keep working.
