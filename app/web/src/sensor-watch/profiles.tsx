@@ -231,7 +231,7 @@ export function ProfileDialog({
 }
 
 /** A profile as shared: its levels and name, and in the library what it's about. */
-type Shared = Omit<Profile, "id" | "followers"> & { about?: string; source?: string; category?: string };
+export type Shared = Omit<Profile, "id" | "followers"> & { about?: string; source?: string; category?: string; score?: number };
 
 /** Choose which shared profiles to take: new ones ticked; one named as a profile of
  * yours replaces its levels (and its followers'), so it starts unticked. */

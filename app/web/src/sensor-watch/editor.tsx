@@ -4,8 +4,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { Dialog, Field, Segmented } from "../ui";
 import { HistoryChart } from "./chart";
-import { FITS, kindOf, levelsOf, swApi, type Profile, type Suggested, type WatchRecord, type WatchView } from "./common";
+import { FITS, kindOf, levelsOf, summary, swApi, type Profile, type Suggested, type WatchRecord, type WatchView } from "./common";
 import { LevelFields, useLevels, type Kind } from "./levels";
+import type { Shared } from "./profiles";
 import css from "./sensor-watch.module.css";
 import ui from "../ui.module.css";
 
@@ -30,6 +31,23 @@ export function RecordDialog({
   const L = useLevels(record, kindOf(entityId));
   const [name, setName] = useState(record?.name ?? "");
   const [follows, setFollows] = useState(record?.profile ?? "");
+  // Library profiles that might suit it (best first), and one being taken from there.
+  const [suggested, setSuggested] = useState<Shared[]>([]);
+  const [taking, setTaking] = useState<string>();
+  useEffect(() => {
+    swApi.get<{ profiles: Shared[] }>(`library?entity=${encodeURIComponent(entityId)}`).then(
+      (got) => setSuggested(got.profiles),
+      () => undefined, // no suggestions: its own profiles still offer
+    );
+  }, [entityId]);
+  // A library profile taken: once it's among the profiles, this sensor follows it.
+  useEffect(() => {
+    const took = taking && profiles.find((p) => p.name === taking);
+    if (!took) return;
+    setTaking(undefined);
+    setFollows(took.id);
+    L.adopt(took);
+  }, [profiles, taking]);
   const [attribute, setAttribute] = useState(record?.attribute ?? "");
   const [disabled, setDisabled] = useState(record?.disabled ?? false);
   const [saving, setSaving] = useState(false);
@@ -221,29 +239,62 @@ export function RecordDialog({
         )}
       </div>
 
-      {fitting.length > 0 && (
+      {(fitting.length > 0 || suggested.length > 0) && (
         <Field
           label="Follows"
           help={
             following
               ? `Its levels come from the profile ${following.name}, followed by ${following.followers} sensors: editing them here changes the profile.`
-              : "Its own levels, or a profile's (the same levels for many sensors, said once)."
+              : `Its own levels, or a profile's (the same levels for many sensors, said once).${
+                  suggested.length ? " The library has some that might suit it, under your own: choosing one takes it in." : ""
+                }`
           }
         >
           <select
             value={follows}
             onChange={(e) => {
-              setFollows(e.target.value);
-              const p = profiles.find((x) => x.id === e.target.value);
+              const v = e.target.value;
+              if (v.startsWith("library:")) {
+                // From the library: one you have by that name, or taken in now.
+                const want = suggested.find((p) => `library:${p.name}` === v);
+                if (!want) return;
+                const have = profiles.find((p) => p.name === want.name);
+                if (have) {
+                  setFollows(have.id);
+                  L.adopt(have);
+                  return;
+                }
+                const { score: _s, ...shared } = want;
+                setTaking(want.name);
+                change(() => swApi.post<WatchView>("profiles/import", { profiles: [shared] }), `${want.name} taken from the library`);
+                return;
+              }
+              setFollows(v);
+              const p = profiles.find((x) => x.id === v);
               if (p) L.adopt(p);
             }}
           >
             <option value="">Its own levels</option>
-            {fitting.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name} ({p.followers} following)
-              </option>
-            ))}
+            {fitting.length > 0 && (
+              <optgroup label="Your profiles">
+                {fitting.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({p.followers} following)
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {suggested.some((s) => !profiles.some((p) => p.name === s.name)) && (
+              <optgroup label="From the library (taken in when chosen)">
+                {suggested
+                  .filter((s) => !profiles.some((p) => p.name === s.name))
+                  .map((s) => (
+                    <option key={s.name} value={`library:${s.name}`}>
+                      {s.name} · {summary(s)}
+                    </option>
+                  ))}
+              </optgroup>
+            )}
           </select>
         </Field>
       )}

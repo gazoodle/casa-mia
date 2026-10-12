@@ -88,8 +88,29 @@ export function SensorWatchPage({ state }: { state?: string }) {
 
   if (!view) return <Shell {...HEAD} state={state}><p className={guest.notice}>Loading…</p></Shell>;
 
+  // Watched (not disabled) but no level from the integration yet: unavailable and
+  // waiting out its hold-off, or unavailable and set to Ignore. A diagnostic.
+  const levelless = live ? view.records.filter((r) => !r.disabled && !live.levels[r.entity_id]).length : 0;
   return (
-    <Shell {...HEAD} state={state}>
+    <Shell
+      {...HEAD}
+      state={state}
+      action={
+        <span className={css.actions}>
+          {levelless > 0 && (
+            <span className={css.levelless} role="status">
+              {levelless} with no level yet
+            </span>
+          )}
+          <button
+            className={`${ui.button} ${ui.small}`}
+            onClick={() => change(() => swApi.post<WatchView>("refresh"), "Every watch judged afresh")}
+          >
+            Refresh state
+          </button>
+        </span>
+      }
+    >
       {missing.length > 0 && (
         <div className={css.alarm} role="alert">
           <strong>Home Assistant isn't running its {missing.join(" or ")} integration.</strong> That's a serious fault in Home Assistant, not just here:

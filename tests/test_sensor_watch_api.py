@@ -474,3 +474,19 @@ def test_a_machine_just_booted_still_reads_the_candidates(monkeypatch):
     watch = make(Path("/nonexistent/sw.json"), FakeHA(STATES, ENTITIES))
     _, got = call(watch, "GET", "candidates")
     assert got["total"] > 0
+
+
+def test_refresh_state_asks_the_integration_and_the_levels_again(tmp_path):
+    ha = FakeHA(STATES, ENTITIES, {})  # its services answer
+    watch = make(tmp_path / "sw.json", ha)
+    status, _ = call(watch, "POST", "refresh")
+    assert status == 200
+    asked = [c for c in ha.asked if c["type"] == "call_service"]
+    assert (asked[-1]["domain"], asked[-1]["service"]) == (
+        "casa_mia",
+        "sensor_watch_refresh",
+    )
+    assert watch.live and watch.live._due is not None  # the levels asked again soon
+    absent = make(tmp_path / "sw2.json", FakeHA(STATES, ENTITIES))  # no service yet
+    status, err = call(absent, "POST", "refresh")
+    assert status == 400 and "restart" in err["error"]

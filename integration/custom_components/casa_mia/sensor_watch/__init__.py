@@ -29,7 +29,7 @@ from homeassistant.helpers.event import async_track_time_interval
 from ..const import DOMAIN
 from ..coordinator import CasaMiaCoordinator
 from . import blueprint, swap
-from .const import OLD_DOMAIN, SERVICE
+from .const import OLD_DOMAIN, REFRESH, SERVICE
 from .entity import KEYS, unique_id
 from .levels import LEVELS, listing, summary
 from .swap import shown
@@ -97,6 +97,12 @@ async def start(
         supports_response=SupportsResponse.ONLY,
     )
     entry.async_on_unload(lambda: hass.services.async_remove(DOMAIN, SERVICE))
+
+    async def refresh(_call: ServiceCall) -> None:
+        await watcher.afresh()
+
+    hass.services.async_register(DOMAIN, REFRESH, refresh)
+    entry.async_on_unload(lambda: hass.services.async_remove(DOMAIN, REFRESH))
     return watcher
 
 

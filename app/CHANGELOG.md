@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.10.10-b6
+
+- **Breaking:** the Casa Mia integration changed. Restart Home Assistant once; a Repair asks.
+- Sensor Watch: a watch whose entity was unavailable when Home Assistant started (a car asleep) got no level until its hold-off had passed after it came back, and again after each change meanwhile, so it showed `…` for as long as its hold-off (ten minutes for a car), and saving it did nothing. Its first real reading now gives it a level at once; the hold-off is for changes from a level it has. The page's header counts any watches with no level yet.
+- Sensor Watch: **Refresh state** judges every watch afresh, as at Home Assistant's start, for when a level looks stuck: a button on the page (top right), a button on the Sensor Watch device in Home Assistant, and the `casa_mia.sensor_watch_refresh` action.
+
+- Sensor Watch: a watch's **Follows** also offers the library's profiles that might suit the sensor, best first (by what it is, its unit and its name's words). Choosing one takes it into your profiles and follows it in one go; one you already have by that name is used as it is.
+
 ## 2026.10.10-b5
 
 - Sensor Watch: the library adds **Electric cars**, by what each maker advises for everyday charging: an 80% daily limit (Tesla, Volkswagen, Skoda, Audi, Hyundai, Kia, BMW, Mercedes, GM's Equinox EV), a 90% one (Polestar, Ford's Mustang Mach-E), and LFP packs (happy at 100%: a Standard Range Tesla, BYD). Above the daily limit is a trip charge, a warning if it sits there.

@@ -11,6 +11,7 @@ from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
 )
+from homeassistant.components.button import ButtonEntity
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -92,6 +93,16 @@ class ProblemSensor(WatchEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool:
         return rank(self.watcher.summary()["worst"]) >= rank("warning")
+
+
+class RefreshButton(WatchEntity, ButtonEntity):
+    """Refresh state: the watches fetched again and judged afresh (Watcher.afresh)."""
+
+    def __init__(self, watcher: Watcher, entry: ConfigEntry) -> None:
+        super().__init__(watcher, entry, "refresh")
+
+    async def async_press(self) -> None:
+        await self.watcher.afresh()
 
 
 def sensors(watcher: Watcher, entry: ConfigEntry) -> list[SensorEntity]:

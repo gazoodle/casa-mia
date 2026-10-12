@@ -44,6 +44,7 @@ MAX_MESSAGE = 255
 # event on each change of level, and the list service.
 EVENT = "casa_mia_sensor_watch"
 SERVICE = ("casa_mia", "sensor_watch_list")
+REFRESH = ("casa_mia", "sensor_watch_refresh")  # every watch judged afresh
 
 
 def own(entry: dict) -> bool:

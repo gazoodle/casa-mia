@@ -48,6 +48,7 @@
     },
     "binary_sensor": { "gitproxy_downloading": { "name": "Downloading firmware" }, "swap": { "name": "Swap" }, "sensor_watch_problem": { "name": "Problem" } },
     "button": {
+      "sensor_watch_refresh": { "name": "Refresh state" },
       "gitproxy_check": { "name": "Force firmware check" },
       "fona_reset": { "name": "Reset" },
       "compositor_restart": { "name": "Restart" },
@@ -116,6 +117,10 @@
     }
   },
   "services": {
+    "sensor_watch_refresh": {
+      "name": "Sensor Watch refresh state",
+      "description": "Fetch the watches from the app again and judge every one afresh, as at the start. For when a level looks stuck."
+    },
     "sensor_watch_list": {
       "name": "Sensor Watch list",
       "description": "Every watched entity at the chosen levels, worst first, then longest standing: its level, value, message and since when. Use it with a response variable, and loop over `sensors` in a template.",

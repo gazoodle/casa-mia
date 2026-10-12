@@ -163,3 +163,54 @@ def test_the_library_is_served(tmp_path):
     assert any(p["name"].startswith("UK mains voltage") for p in got["profiles"])
     status, view = call(watch, "POST", "profiles/import", body=got)
     assert status == 200 and len(view["added"]) == len(got["profiles"])
+
+
+def test_the_library_suggests_what_suits_a_sensor():
+    from casa_mia.modules.sensor_watch.profiles import library, suited
+
+    lib = library()
+    base = {"kind": "numeric", "device_class": "", "unit": "", "dated": False}
+
+    def first(**c):
+        found = suited(base | c, lib)
+        return found[0]["name"] if found else None
+
+    assert (
+        first(
+            entity_id="sensor.f_t",
+            name="Freezer",
+            device_class="temperature",
+            unit="°C",
+        )
+        == "Freezer (°C)"
+    )
+    assert (
+        first(entity_id="sensor.boiler", name="Boiler pressure", unit="bar")
+        == "Boiler pressure (bar)"
+    )
+    assert (first(entity_id="input_number.spa_ph", name="Spa pH") or "").startswith(
+        "Pool or hot tub pH"
+    )
+    assert (
+        first(entity_id="date.rinse", name="Rinse filter due", dated=True)
+        == "Reminder due (days)"
+    )
+    assert (
+        first(
+            entity_id="binary_sensor.leak",
+            name="Leak",
+            kind="binary",
+            device_class="moisture",
+        )
+        == "Leak (on/off)"
+    )
+    # a unit rules out what can't be meant: no volts for a temperature
+    temps = suited(base | {"entity_id": "sensor.x", "name": "X", "unit": "°C"}, lib)
+    assert all("(V)" not in p["name"] for p in temps)
+    # a reminder's days only for a date
+    assert all(
+        not p.get("days_until")
+        for p in suited(
+            base | {"entity_id": "sensor.d", "name": "Rinse filter due"}, lib
+        )
+    )

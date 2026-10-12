@@ -260,6 +260,16 @@ foot, greyed, each with an **Enable** chip that watches it again, back in its gr
 (or untick Disabled in its editor). Handy for a sensor that's
 being repaired, or a screenshot.
 
+A pill showing **…** has no level yet: its entity was unavailable when Home Assistant
+started and is waiting out its hold-off, or it's unavailable and set to Ignore. Its first
+real reading gives it a level at once. While any have none, the top of the page says how
+many ("2 with no level yet").
+
+**Refresh state** (top right) has Casa Mia's integration fetch the watches again and
+judge every one afresh, as at Home Assistant's start: for when a level looks stuck. The
+same is the **Refresh state** button on the Sensor Watch device in Home Assistant, and the
+`casa_mia.sensor_watch_refresh` action for automations.
+
 The list is live: a value or level changes on the page the moment Home Assistant has it
 (the app holds a subscription, as a dashboard does). A level waits out its hold-off
 first, so set it to 0 while trying a sensor out.
@@ -525,6 +535,12 @@ hold-off, how long a new level must last before it counts.
 <!-- end of library table -->
 
 </details>
+
+**In a watch's editor,** Follows offers the library too, under your own profiles: the
+ones that might suit this sensor, best first (by what it is, its unit, and the words in
+its name: a freezer finds Freezer, a spa's pH finds the pH profiles, a date finds
+Reminder due). Choosing one takes it into your profiles and has the sensor follow it,
+in one go; one you already have by that name is used as it is, never replaced.
 
 **Duplicate…** in a profile's editor starts a new one from its levels, to change what differs:
 one room temperature profile per floor, say, as each floor up runs a little warmer.

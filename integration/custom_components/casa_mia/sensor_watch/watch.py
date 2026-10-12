@@ -91,6 +91,26 @@ class Watcher:
         self._fetching = True
         self.hass.async_create_task(self._fetch(revision))
 
+    async def afresh(self) -> None:
+        """Refresh state (its button, its service): the records fetched again, and every
+        watch judged afresh, as at the start (each level as found, at once; one
+        unavailable waits out its hold-off). For when something looks stuck."""
+        if not self._fetching:
+            self._fetching = True
+            await self._fetch(module(self.coordinator).get("revision") or "")
+        for eid in list(self._pending):
+            self._cancel(eid)
+        for eid in self.records:
+            self.now.pop(eid, None)
+        for eid in self.records:
+            self._consider(eid, initial=True)
+        _LOGGER.info(
+            "refresh state: %d watches judged afresh (%d with a level now)",
+            len(self.records),
+            sum(1 for e in self.records if e in self.now),
+        )
+        self._tell()
+
     async def _fetch(self, revision: str) -> None:
         url = f"{self.coordinator.url}{RECORDS}"
         try:
@@ -177,8 +197,12 @@ class Watcher:
         if level is None or (current is not None and current["level"] == level):
             self._cancel(eid)  # back where it was (or no opinion): nothing to wait for
             return
-        if initial and state is not None and state.state not in UNAVAILABLE:
-            self._commit(eid, level, message, state, initial=True)  # as found, at once
+        # As found, at once: at the start, or its first real reading after it started
+        # unavailable (a car asleep at HA's start): the hold-off is for changes from a
+        # level it has, not for having one at all.
+        found = initial or current is None
+        if found and state is not None and state.state not in UNAVAILABLE:
+            self._commit(eid, level, message, state, initial=True)
             return
         if (pending := self._pending.get(eid)) and pending[0] == level:
             return  # already waiting to see whether it lasts

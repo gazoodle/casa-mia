@@ -11,6 +11,7 @@ with what it's about and its source)."""
 from __future__ import annotations
 
 import json
+import re
 import secrets
 from pathlib import Path
 from typing import Any
@@ -85,6 +86,61 @@ def follower(
         raise BadRequest(f"Name: at most {MAX_TEXT} characters.")
     record = {"entity_id": entity_id, "name": name, "profile": profile["id"]}
     return record | ({"attribute": attribute} if attribute else {})
+
+
+MAX_SUGGESTED = 12  # library profiles offered for one sensor
+# Words too common to tell sensors apart.
+NOISE = {"sensor", "the", "and", "for", "state", "value", "level", "status"}
+
+
+def _unit(name: str) -> str | None:
+    """A library profile's unit, from its name's last brackets when they hold one:
+    "Freezer (°C)" -> "°C"; not "(current law)", "(on/off)" or "(days)"."""
+    if not name.endswith(")") or "(" not in name:
+        return None
+    unit = name[name.rindex("(") + 1 : -1]
+    return None if " " in unit or len(unit) > 5 or unit in ("on/off", "days") else unit
+
+
+def _words(text: str) -> set[str]:
+    found = set(re.findall(r"[a-z0-9]+", text.lower()))
+    return {w for w in found if len(w) > 1 and not w.isdigit() and w not in NOISE}
+
+
+def suited(c: dict[str, Any], shipped: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The library profiles that might suit candidate `c`, best first, each with its
+    `score`. It must fit c's kind (and unit, when its name gives one). Then: the default
+    for what c is counts most; a date read as days; words of c's name in the profile's
+    name (four each; its entity id's, one), or in what it's for (one each); c's device
+    class named; the unit."""
+    domain = c["entity_id"].split(".", 1)[0]
+    unit = c.get("unit") or ""
+    named = _words(c.get("name") or "")  # what the user calls it counts most
+    mine = named | _words(c["entity_id"].split(".", 1)[1])
+    out = []
+    for p in shipped:
+        if p["kind"] not in FITS.get(c["kind"], ()):
+            continue
+        theirs = _unit(p["name"])
+        if theirs is not None and theirs.lower() != unit.lower():
+            continue  # bands in volts are no use for a temperature
+        if p.get("days_until") and not c.get("dated"):
+            continue
+        text = f"{p['name']} {p.get('category', '')} {p.get('about', '')}".lower()
+        title = _words(p["name"])
+        score = 3 * len(named & title) + len(mine & title) + len(mine & _words(text))
+        if p.get("default_for") == f"{domain}:{c.get('device_class') or ''}":
+            score += 10
+        if p.get("days_until"):
+            score += 6
+        if c.get("device_class") and c["device_class"].replace("_", " ") in text:
+            score += 2
+        if theirs is not None:
+            score += 2
+        if score >= 3:
+            out.append(p | {"score": score})
+    out.sort(key=lambda p: (-p["score"], p["name"]))
+    return out[:MAX_SUGGESTED]
 
 
 def library() -> list[dict[str, Any]]:
