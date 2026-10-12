@@ -16,7 +16,7 @@ Guests signed in with a single scan.<br>
 Camera dashboards MI5 would envy, snappy on the humblest tablet.<br>
 Every Kiosk Satellite managed from one place, and at your fingertips wherever you are.<br>
 Secure phone and SMS access to your home, even when the internet has left the building.<br>
-And that's just the start.
+And that's just <a href="#what-does-the-future-hold">the start</a>.
 </p>
 
 <p align="center">
@@ -486,6 +486,40 @@ The guest list for your home's own phone line: who may ring it and who may text 
 </td>
 </tr>
 </table>
+
+## What does the future hold?
+
+Plenty. These are the ideas at the top of the [backlog](BACKLOG.md), none of them started
+yet, so there's no promise on when (or, honestly, whether):
+
+- **Love it or Loathe it.** Your radio station plays something you love, or something you
+  loathe, and the house notices. Tell it the songs and artists either way, and it watches
+  any media player you choose: a match fires an event for your automations, or it acts by
+  itself. Love it? It bumps the volume up 10%, so you can sing along like no one's
+  listening. Loathe it? It fades that player over to your own house radio station,
+  playing your playlist 24/7/365, and nobody has to hear it.
+- **Cameras that fix themselves.** Stale or missing streams named on the Home page, with a
+  **Try to fix** button that works from the lightest fix to the heaviest.
+- **Commanders that follow the house.** A commander's layout as entities your automations
+  can change (the main camera filling the screen while the tablet sleeps, say), and
+  cameras placed for you instead of panel by panel.
+- **Tablets in distress, noticed and fixed.** Casa Mia knowing when a wall tablet's view
+  has broken, whatever the cause, and a way for whoever is standing in front of it to put
+  it right, with no admin, laptop or know-how.
+- **Install from any GitHub repository,** private ones too: apps, integrations and cards
+  that aren't in an App store or HACS, downloaded, installed and kept up to date.
+- **All your Casa Mia settings in git,** every change a commit, optionally pushed to a
+  private repository: a history of what changed, and a house you can rebuild.
+- **A tidier Home Assistant.** Orphaned and disabled entities found and removed, and
+  what's eating your recorder's database, entity by entity.
+- **A heating flow card.** Your boiler or heat pump, hot water, pumps and every heating
+  circuit as one animated diagram, in the style of the Sunsynk power flow card.
+- **The app's log, live in the panel,** followed, filtered and searched, without a trip
+  to Settings.
+- **A clean way out.** If Casa Mia isn't for you, one button takes out everything it put
+  into Home Assistant.
+
+Got an idea? [Open an issue](https://github.com/gazoodle/casa-mia/issues).
 
 ## Installation
 

@@ -1,6 +1,6 @@
 # Backlog
 
-Not scheduled. Newest ideas first within each section. Move an item into the README or code when it is started.
+Not scheduled. Newest ideas first within each section. Move an item into the README or code when it is started. The headline ideas are also in the README's "What does the future hold?": keep the two in step.
 
 ## Guest login
 
@@ -259,7 +259,7 @@ A major part of Casa Mia since 2026.10.8 (b1 built the module, the integration, 
 
 - **Entities Casa Mia makes: a registry** (asked 2026-10-11; a module of its own, name to agree before coding; not "auto-entities", which is Thomas Lovén's card). One place that creates entities in HA for the other modules, and keeps a record of each: first the template helpers Sensor Watch's "Watch a template" needs, later anything else a module wants (helpers for dashboards, difference sensors). Each is created through HA's own way (a template helper's config flow, over the websocket), carries a **Casa Mia label** (and one per module), so they can be found, and removed in one go to tidy up, from HA's own entity table or from Casa Mia. A page lists them: what made each, what it's for, whether anything still uses it. Removing goes through HA's registries, never `.storage`, and is logged. Feeds "If Casa Mia isn't for you: take it all out".
 
-- **Local radio: dodge songs you don't like** (asked 2026-10-10; goes with the local radio station stack, `radio` in the charter). A list of song titles and artists, with wildcards (`*`) but not regular expressions. When a watched media player's metadata (title, artist) matches one, switch that player to the local station, so the house never has to hear it. Open: which players are watched, whether it switches back when the next track starts, and where the list lives (a Casa Mia page, with a log of what was dodged).
+- **Love it or Loathe it** (asked 2026-10-10 as "dodge songs you don't like", named and widened 2026-10-12; an applet; goes with the local radio station stack, `radio` in the charter). Watches any chosen media player's metadata (title, artist) against two lists, songs you love and songs you loathe, with wildcards (`*`) but not regular expressions. A match fires an event (which list, the player, the track) for automations, and can take an action by itself on any watched player: a loathed song fades the player over to the house's own radio station, playing your playlist 24/7/365, so the house never has to hear it; a loved one bumps the volume up 10%, so you can sing along like no one is listening. Open: which players are watched, whether it switches back when the next track starts, the fade (HA's volume over a few seconds, or the player's own), and where the lists live (a Casa Mia page, with a log of what was loved and dodged).
 
 - **Heating flow card** (asked 2026-10-09). A Lovelace card in the style of the Sunsynk power flow card (`sunsynk-power-flow-card`), but for heating, and configurable enough to suit many homes, not just this one. It draws the system as an animated diagram:
   - the heat source: a boiler or a heat pump (or both, hybrid), with its flow and return temperatures, and whether it is firing or running;
