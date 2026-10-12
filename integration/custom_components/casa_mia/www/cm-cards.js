@@ -5115,7 +5115,7 @@ var Gr = {
 	render() {
 		if (!this._config) return V;
 		let e = this._found ?? {};
-		return B`<ha-card .header=${this._config.title || void 0}>
+		return B`<ha-card class=${this._config.border ? "printed" : ""} .header=${this._config.title || void 0}>
       ${this._problem ? B`<p class="note problem">${this._problem}</p>` : V}
       ${e.wifi_error ? B`<p class="note">${e.wifi_error} (Casa Mia → Guest login → QR codes → Wi-Fi)</p>` : V}
       ${e.svg ? B`<img src=${`data:image/svg+xml,${encodeURIComponent(e.svg)}`} alt="QR code" />` : V}
@@ -5125,6 +5125,11 @@ var Gr = {
 		this.styles = I`
     ha-card {
       overflow: hidden;
+    }
+    ha-card.printed {
+      background: none;
+      border: none;
+      box-shadow: none;
     }
     img {
       display: block;

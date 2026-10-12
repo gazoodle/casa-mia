@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.11-b4
+
+- QR code card: with the printed card's black border on, the card has no frame of its own round it (as the markdown card's Show only text), so the border is its edge. Reload the page to use it.
+
 ## 2026.10.11-b3
 
 - **Breaking:** the Casa Mia integrations and their cards changed. Restart Home Assistant once; a Repair asks.

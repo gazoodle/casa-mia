@@ -99,7 +99,9 @@ export class QrCodeCard extends LitElement {
   render() {
     if (!this._config) return nothing;
     const f = this._found ?? {};
-    return html`<ha-card .header=${this._config.title || undefined}>
+    // The printed border is the card's edge: no card round it (as the markdown card's
+    // Show only text).
+    return html`<ha-card class=${this._config.border ? "printed" : ""} .header=${this._config.title || undefined}>
       ${this._problem ? html`<p class="note problem">${this._problem}</p>` : nothing}
       ${f.wifi_error ? html`<p class="note">${f.wifi_error} (Casa Mia → Guest login → QR codes → Wi-Fi)</p>` : nothing}
       ${f.svg ? html`<img src=${`data:image/svg+xml,${encodeURIComponent(f.svg)}`} alt="QR code" />` : nothing}
@@ -109,6 +111,11 @@ export class QrCodeCard extends LitElement {
   static styles = css`
     ha-card {
       overflow: hidden;
+    }
+    ha-card.printed {
+      background: none;
+      border: none;
+      box-shadow: none;
     }
     img {
       display: block;
