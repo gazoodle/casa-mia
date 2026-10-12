@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from datetime import datetime
 from typing import Any
 
 import aiohttp
@@ -29,7 +30,7 @@ from homeassistant.util import dt as dt_util
 
 from ..coordinator import CasaMiaCoordinator
 from .const import EVENT, MODULE
-from .levels import UNAVAILABLE, level_of, reading, summary
+from .levels import UNAVAILABLE, UNAVAILABLE_HOLD, level_of, rank, reading, summary
 from .swap import Rule, same, shown
 
 _LOGGER = logging.getLogger(__name__)
@@ -94,7 +95,7 @@ class Watcher:
     async def afresh(self) -> None:
         """Refresh state (its button, its service): the records fetched again, and every
         watch judged afresh, as at the start (each level as found, at once; one
-        unavailable waits out its hold-off). For when something looks stuck."""
+        unavailable waits out its wait for unavailable). For when something looks stuck."""
         if not self._fetching:
             self._fetching = True
             await self._fetch(module(self.coordinator).get("revision") or "")
@@ -197,26 +198,56 @@ class Watcher:
         if level is None or (current is not None and current["level"] == level):
             self._cancel(eid)  # back where it was (or no opinion): nothing to wait for
             return
+        there = state is not None and state.state not in UNAVAILABLE
         # As found, at once: at the start, or its first real reading after it started
         # unavailable (a car asleep at HA's start): the hold-off is for changes from a
         # level it has, not for having one at all.
-        found = initial or current is None
-        if found and state is not None and state.state not in UNAVAILABLE:
+        if there and (initial or current is None):
             self._commit(eid, level, message, state, initial=True)
+            return
+        began = self._began(record, state)
+        # Better news counts at once: the hold-off guards against false alarms, and a
+        # sensor back from unavailable (a car's reload) shouldn't stay in error.
+        if there and current is not None and rank(level) < rank(current["level"]):
+            self._cancel(eid)
+            self._commit(eid, level, message, state, since=began)
             return
         if (pending := self._pending.get(eid)) and pending[0] == level:
             return  # already waiting to see whether it lasts
         self._cancel(eid)
-        hold = record.get("hold_off", 60)
-        if hold <= 0:
-            self._commit(eid, level, message, state)
+        # Unavailable waits longer than a value: a restart, a reload or a car asleep is
+        # usual, not trouble. An availability watch's whole point is unavailable: its
+        # hold-off is the wait.
+        gone = not there and record.get("kind") != "available"
+        hold = (
+            record.get("unavailable_hold", UNAVAILABLE_HOLD)
+            if gone
+            else record.get("hold_off", 60)
+        )
+        # Timed from when the entity changed (its last changed, as Home Assistant's own
+        # dialogs show it), so a level's "since" is the moment it began.
+        wait = hold - (dt_util.utcnow() - began).total_seconds()
+        if wait <= 0:
+            self._commit(eid, level, message, state, since=began)
             return
-        _LOGGER.debug("%s: %s for %s s before it counts", eid, level, hold)
-        timer = async_call_later(self.hass, hold, lambda _now: self._held(eid, level))
+        _LOGGER.debug("%s: %s for %.0f s more before it counts", eid, level, wait)
+        # @callback: on HA's loop. A bare lambda runs in a worker thread, where firing
+        # the event fails and nothing is told (the level changed, unseen).
+        timer = async_call_later(
+            self.hass, wait, callback(lambda _now: self._held(eid, level, began))
+        )
         self._pending[eid] = (level, timer)
 
+    @staticmethod
+    def _began(record: dict[str, Any], state: State | None) -> datetime:
+        """When the entity's reading last changed: its state's last changed (last
+        updated for an attribute); now for a date watch, whose days move without it."""
+        if state is None or record.get("days_until"):
+            return dt_util.utcnow()
+        return state.last_updated if record.get("attribute") else state.last_changed
+
     @callback
-    def _held(self, eid: str, level: str) -> None:
+    def _held(self, eid: str, level: str, began: datetime) -> None:
         self._pending.pop(eid, None)
         record = self.records.get(eid)
         if record is None:
@@ -224,7 +255,7 @@ class Watcher:
         state = self.hass.states.get(eid)
         now, message = level_of(record, reading(record, state, dt_util.now()))
         if now == level:
-            self._commit(eid, level, message, state)
+            self._commit(eid, level, message, state, since=began)
         else:
             self._consider(eid)
 
@@ -239,12 +270,14 @@ class Watcher:
         message: str | None,
         state: State | None,
         initial: bool = False,
+        since: datetime | None = None,
     ) -> None:
         record = self.records[eid]
         name = record.get("name") or (state.name if state else eid)
         previous = (self.now.get(eid) or {}).get("level")
         value = reading(record, state, dt_util.now())
-        since = state.last_changed if initial and state else dt_util.utcnow()
+        if since is None:
+            since = state.last_changed if initial and state else dt_util.utcnow()
         self.now[eid] = {
             "level": level,
             "message": message,

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.10.11-b8
+
+- Sensor Watch: a level that waited out its hold-off changed without telling anyone: no event, no notification from the blueprint, and the page and card stuck at the old level (a car's battery still in error, as unavailable, long after it was back) until something else changed. Its timer ran off Home Assistant's loop; it runs on it now.
+- Sensor Watch: a better level counts at once; only a worse one waits out its hold-off. A sensor back from unavailable, or back in its band, is told the moment it is.
+- Sensor Watch: unavailable has its own wait, **Unavailable for** (5 minutes by default, in each watch's editor and each profile), so a restart, a reload or a car asleep doesn't raise an error.
+- Sensor Watch: the hold-off is timed from when the entity changed (its Last changed in Home Assistant's dialogs), and a level's "since" is that moment, not when its wait ended.
+
 ## 2026.10.11-b7
 
 - Sensor Watch: the Notify on Sensor Watch blueprint works again on Home Assistant 2026.10, which refused it ("not a valid option at 'default'"): its Anything else actions run as a sequence. An automation made from it that failed to start: open it and save it again.

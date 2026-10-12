@@ -12,6 +12,9 @@ from typing import Any
 LEVELS = ("nominal", "task", "warning", "error", "critical")
 UNAVAILABLE = ("unavailable", "unknown")
 IGNORE = "ignore"  # a record's `unavailable`: no opinion while it is unavailable
+# seconds unavailable before that counts, unless a record says (its `unavailable_hold`):
+# a restart, a reload or a car asleep is usual, not trouble.
+UNAVAILABLE_HOLD = 300
 # Culprits listed per level in the status sensor's attributes, the longest standing
 # first: a glance, kept small (HA's recorder drops attributes over 16 kB, and a broken
 # integration can take hundreds of sensors with it). The `list` service gives them all.

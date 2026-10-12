@@ -34,6 +34,7 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
   const [exceptions, setExceptions] = useState<StateLevel[]>(start?.exceptions ?? []);
   const [unavailable, setUnavailable] = useState<Level | "ignore">(start?.unavailable ?? "error");
   const [holdOff, setHoldOff] = useState(String(start?.hold_off ?? 60));
+  const [goneHold, setGoneHold] = useState(String(start?.unavailable_hold ?? 300));
   const [daysUntil, setDaysUntil] = useState(start?.days_until ?? false);
   const [problem, setProblem] = useState(""); // why the bands can't be saved, under them
 
@@ -51,6 +52,7 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
     setExceptions(r.exceptions ?? []);
     if (r.unavailable) setUnavailable(r.unavailable);
     if (r.hold_off !== undefined) setHoldOff(String(r.hold_off));
+    if (r.unavailable_hold !== undefined) setGoneHold(String(r.unavailable_hold));
     setDaysUntil(r.days_until ?? false);
   };
 
@@ -58,6 +60,7 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
   const body = () => ({
     kind: k,
     hold_off: Number(holdOff),
+    unavailable_hold: Number(goneHold),
     unavailable,
     ...(k === "binary"
       ? { off, on }
@@ -84,7 +87,7 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
 
   return {
     kind: k, setKind, bands, setBands, otherwise, setOtherwise, off, setOff, on, setOn, other, setOther, available, setAvailable, message, setMessage,
-    states, setStates, exceptions, setExceptions, unavailable, setUnavailable, holdOff, setHoldOff, daysUntil, setDaysUntil,
+    states, setStates, exceptions, setExceptions, unavailable, setUnavailable, holdOff, setHoldOff, goneHold, setGoneHold, daysUntil, setDaysUntil,
     adopt, body, sane, problem, drawn: () => bands.map(toBand),
   };
 }
@@ -188,7 +191,15 @@ export function LevelFields({ L, unit = "", seen = [], seenLabel = "Seen", extra
             <LevelSelect value={L.unavailable} ignore onChange={L.setUnavailable} />
           </Field>
         )}
-        <Field label="Hold-off" help="How long a new level must last before it counts.">
+        {L.kind !== "available" && L.unavailable !== "ignore" && (
+          <Field label="Unavailable for" help="How long it must be unavailable before that counts: a restart, a reload or a car asleep is usual, not trouble.">
+            <Slider value={Number(L.goneHold) || 0} steps={HOLD_OFFS} format={seconds} ends={["none", "a day"]} onChange={(v) => L.setGoneHold(String(v))} />
+          </Field>
+        )}
+        <Field
+          label="Hold-off"
+          help={L.kind === "available" ? "How long it must be unavailable (or back) before that counts." : "How long a worse level must last before it counts. A better one counts at once."}
+        >
           <Slider value={Number(L.holdOff) || 0} steps={HOLD_OFFS} format={seconds} ends={["none", "a day"]} onChange={(v) => L.setHoldOff(String(v))} />
         </Field>
         {extra}

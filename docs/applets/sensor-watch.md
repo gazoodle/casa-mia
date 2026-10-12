@@ -58,7 +58,9 @@ Each sensor gets a level:
 
 A sensor that goes **unavailable** is part of this, not an afterthought: by default it
 counts as an error, because a sensor that has stopped reporting is often the first sign
-of a broken integration or a flat battery.
+of a broken integration or a flat battery. It counts only once it has been unavailable for
+five minutes (yours to change), as a restart, a reload or a car asleep is usual, not
+trouble.
 
 ## Half an hour to a watched house
 
@@ -263,7 +265,7 @@ foot, greyed, each with an **Enable** chip that watches it again, back in its gr
 being repaired, or a screenshot.
 
 A pill showing **…** has no level yet: its entity was unavailable when Home Assistant
-started and is waiting out its hold-off, or it's unavailable and set to Ignore. Its first
+started and is waiting out its time unavailable, or it's unavailable and set to Ignore. Its first
 real reading gives it a level at once. While any have none, the top of the page says how
 many ("2 with no level yet").
 
@@ -273,8 +275,8 @@ same is the **Refresh state** button on the Sensor Watch device in Home Assistan
 `casa_mia.sensor_watch_refresh` action for automations.
 
 The list is live: a value or level changes on the page the moment Home Assistant has it
-(the app holds a subscription, as a dashboard does). A level waits out its hold-off
-first, so set it to 0 while trying a sensor out.
+(the app holds a subscription, as a dashboard does). A worse level waits out its
+hold-off first, so set it to 0 while trying a sensor out.
 
 ### Watch an entity
 
@@ -380,8 +382,16 @@ Each sensor also has:
 
 - **Outside every band:** the level of a value no band covers (an error by default).
 - **When unavailable:** a level, or **Ignore** to have no opinion while it is.
-- **Hold-off:** how long a new level must last before it counts (60 seconds by default),
-  so a blip, or Home Assistant starting up, doesn't raise the alarm.
+- **Unavailable for:** how long it must be unavailable before that counts (5 minutes by
+  default), so a restart, a reload or a car asleep doesn't raise the alarm.
+- **Hold-off:** how long a worse level must last before it counts (60 seconds by
+  default), so a blip doesn't raise the alarm. A better level counts at once: a sensor
+  back from unavailable, or back in its band, is told the moment it is.
+
+Both are timed from when the entity changed, as Home Assistant's own dialogs show it
+("Last changed"), so a level's "since" on the page is the moment it began, not the
+moment its wait ended. An availability watch has no Unavailable for: its hold-off is
+the wait.
 
 ### Profiles
 
@@ -642,7 +652,7 @@ the rest of Home Assistant which ones they are.
 
 ### The event
 
-Each change of level (after its hold-off) fires `casa_mia_sensor_watch`, with
+Each change of level (a worse one after its hold-off) fires `casa_mia_sensor_watch`, with
 `entity_id`, `name`, `level`, `previous`, `value` and `message`, and `group` (its group's
 name), `area` and `attribute` (the attribute watched) when it has them.
 

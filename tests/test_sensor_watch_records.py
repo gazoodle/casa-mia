@@ -27,6 +27,12 @@ def test_clean_sorts_bands_and_refuses_overlaps():
         clean("sensor.salt", SALT | {"bands": [{"from": 5, "to": 6, "level": "fine"}]})
     with pytest.raises(BadRequest, match="Hold-off"):
         clean("sensor.salt", SALT | {"hold_off": -1})
+    assert clean("sensor.salt", SALT)["unavailable_hold"] == levels.UNAVAILABLE_HOLD
+    assert (
+        clean("sensor.car", SALT | {"unavailable_hold": 900})["unavailable_hold"] == 900
+    )
+    with pytest.raises(BadRequest, match="Unavailable for"):
+        clean("sensor.salt", SALT | {"unavailable_hold": -1})
     with pytest.raises(BadRequest, match="entity"):
         clean("salt", SALT)
     with pytest.raises(BadRequest, match="number"):
@@ -53,6 +59,7 @@ def test_clean_binary():
         "kind": "binary",
         "name": "",
         "hold_off": 60,
+        "unavailable_hold": 300,
         "unavailable": "ignore",
         "off": {"level": "nominal", "message": ""},  # the old form, turned into today's
         "on": {"level": "error", "message": ""},

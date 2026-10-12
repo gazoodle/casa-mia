@@ -28,6 +28,8 @@ export type WatchRecord = {
   kind: "numeric" | "binary" | "state" | "available";
   name: string;
   hold_off: number;
+  /** Seconds unavailable before that counts (an availability watch uses hold_off). */
+  unavailable_hold?: number;
   unavailable: Level | "ignore";
   bands?: Band[];
   otherwise?: Level;

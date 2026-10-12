@@ -15,8 +15,10 @@ A record watches one entity (keyed by its entity id):
   message} for any state, `unknown` included; `unavailable` (below) and its `message`
   for unavailable or gone from Home Assistant (renamed, its integration removed). Either
   may be nominal: a level when something that should stay gone comes back;
-- all: `unavailable` (a level, or "ignore"), `hold_off` (seconds a new level must last
-  before it counts), an optional display `name`, and an optional `attribute`: watch that
+- all: `unavailable` (a level, or "ignore"), `hold_off` (seconds a new, worse level
+  must last before it counts; a better one counts at once), `unavailable_hold` (seconds
+  it must be unavailable before that counts; an availability watch uses its hold-off),
+  an optional display `name`, and an optional `attribute`: watch that
   attribute's value instead of the state (a climate's current_temperature, a cover's
   current_position); `days_until` (numeric only: the state is a date or timestamp, read
   as the days until it, negative once it's passed, so a reminder's due date is banded
@@ -34,6 +36,9 @@ LEVELS = ("nominal", "task", "warning", "error", "critical")
 IGNORE = "ignore"
 KINDS = ("numeric", "binary", "state", "available")
 DEFAULT_HOLD_OFF = 60  # seconds
+# seconds unavailable before it counts: a restart, a reload or a car asleep is usual.
+# The integration's levels.UNAVAILABLE_HOLD, for records saved before it.
+DEFAULT_UNAVAILABLE_HOLD = 300
 MAX_HOLD_OFF = 24 * 3600
 MAX_BANDS = 12
 MAX_STATES = 20
@@ -107,6 +112,11 @@ def clean(entity_id: str, body: dict[str, Any]) -> dict[str, Any]:
     hold_off = _number(body.get("hold_off", DEFAULT_HOLD_OFF), "Hold-off")
     if hold_off is None or not 0 <= hold_off <= MAX_HOLD_OFF:
         raise BadRequest(f"Hold-off: 0 to {MAX_HOLD_OFF} seconds.")
+    gone_hold = _number(
+        body.get("unavailable_hold", DEFAULT_UNAVAILABLE_HOLD), "Unavailable for"
+    )
+    if gone_hold is None or not 0 <= gone_hold <= MAX_HOLD_OFF:
+        raise BadRequest(f"Unavailable for: 0 to {MAX_HOLD_OFF} seconds.")
     record: dict[str, Any] = {
         "entity_id": entity_id,
         "kind": kind,
@@ -115,6 +125,7 @@ def clean(entity_id: str, body: dict[str, Any]) -> dict[str, Any]:
             {"attribute": a} if (a := _text(body.get("attribute"), "Attribute")) else {}
         ),
         "hold_off": int(hold_off),
+        "unavailable_hold": int(gone_hold),
         "unavailable": _level(
             body.get("unavailable", "error"), "When unavailable", True
         ),
