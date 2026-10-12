@@ -231,7 +231,8 @@ version keeps the idea and adds:
 - **A guest card to print:** join the Wi-Fi, then scan to sign in, side by side.
 - **A QR code card for the dashboard:** a code on the wall tablet, shown while its endpoint
   is open, or any page's code for a directory of your own. With an Over layer and the
-  endpoint's Logins sensor, the tablets stay covered until the guest's first scan.
+  endpoint's Waiting for first login sensor, the tablets stay covered until the guest's
+  first scan.
 - **A nicer front end**, all in the Casa Mia panel.
 - **Your old cards still work.** If you've already printed QR cards for
   ha-auto-guest-login, tick **Legacy QR code** and they keep working.

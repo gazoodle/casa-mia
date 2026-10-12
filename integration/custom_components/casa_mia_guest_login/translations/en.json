@@ -14,6 +14,7 @@
   },
   "entity": {
     "switch": { "access": { "name": "Access" } },
+    "binary_sensor": { "waiting": { "name": "Waiting for first login" } },
     "event": {
       "login": { "name": "Login", "state_attributes": { "event_type": { "state": { "login": "Login" } } } }
     },

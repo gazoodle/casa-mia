@@ -1,5 +1,5 @@
 """Casa Mia Guest Login: the app's guest login endpoints in Home Assistant (an Access
-switch, logins and a login event per endpoint) and the QR code card's codes, on Casa
+switch, logins, Waiting for first login and a login event per endpoint) and the QR code card's codes, on Casa
 Mia's coordinator."""
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ from .qr import setup as setup_qr
 from .restart_notice import async_check_restart, manifest_version
 
 _LOGGER = logging.getLogger(__name__)
-PLATFORMS = [Platform.EVENT, Platform.SENSOR, Platform.SWITCH]
+PLATFORMS = [Platform.BINARY_SENSOR, Platform.EVENT, Platform.SENSOR, Platform.SWITCH]
 # Read at import, as Casa Mia's own: a reload must not take newer files as loaded.
 LOADED_VERSION = manifest_version()
 

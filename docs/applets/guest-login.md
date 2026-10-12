@@ -248,9 +248,9 @@ just as the guest card is:
   off and nothing else on, the code alone fills the card, to lay out round it as you like.
 
 **Tablets that open at the first scan.** Put the card in an [Over layer](../over-layer.md)
-on the house's tablets, with the Visibility condition *the endpoint's Logins is 0*. Logins
-counts the sign-ins since the endpoint last opened, so when your booking automation opens
-it, the tablets show the code; the guest's first scan signs their phone in and uncovers
+on the house's tablets, with the Visibility condition *the endpoint's Waiting for first
+login is on*. It's on while the endpoint is open and no one has signed in since it opened,
+so when your booking automation opens it, the tablets show the code; the guest's first scan signs their phone in and uncovers
 every tablet at once. Anything else (a checklist for the guest, the cleaner or you) is your
 own automation, on the endpoint's Login event.
 
@@ -314,9 +314,11 @@ sign-out, newest first.
 Each endpoint is a device, *Guest: Oak Tree* or *Engineer: Plant room*, with:
 - an **Access** switch that opens and closes it;
 - a **Login** event that fires at each sign-in, with the phone's address;
+- **Waiting for first login**, on while it's open and no one has signed in since it
+  opened. An Over layer with the condition *Waiting for first login is on* covers the
+  house's tablets until the guest's first scan of a stay;
 - **Logins** (sign-ins since it last opened, back to 0 at each opening) and **Last login**
-  sensors. An Over layer with the condition *Logins is 0* covers the house's tablets until
-  the guest's first scan of a stay.
+  sensors.
 
 **Open for a time** (`casa_mia_guest_login.enable_for`) opens an endpoint, then closes it again after
 a number of minutes. For example, in an automation that runs when a booking starts:

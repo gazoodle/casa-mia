@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.11-b9
+
+- Guest login: each endpoint has a **Waiting for first login** binary sensor, on while it's open and no one has signed in since it opened. An Over layer or a card's visibility can use it in place of a test that Logins is 0. Restart Home Assistant to add it.
+
 ## 2026.10.11-b8
 
 - Sensor Watch: a level that waited out its hold-off changed without telling anyone: no event, no notification from the blueprint, and the page and card stuck at the old level (a car's battery still in error, as unavailable, long after it was back) until something else changed. Its timer ran off Home Assistant's loop; it runs on it now.
