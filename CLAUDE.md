@@ -58,6 +58,21 @@ No source file (Python, TypeScript, tests, tools) over **800 lines**. `tests/tes
   - A test that patches a constant patches it where it is used; for the compositor, `set_compositor(monkeypatch, NAME, value)` in `tests/conftest.py` patches every part.
 - **No behaviour change in a split.** Move code verbatim, and keep the tests green before and after. A refactor and a fix are separate commits.
 
+## RULE FOUR: push, never poll, without the owner's explicit approval
+
+Anything that changes in the app reaches Home Assistant by a push: the app fires an event
+(`settings.CHANGED_EVENT`, or a module's own event carrying the new values) and the
+integration acts on it at once. Inside HA, listen to HA's own events and signals (state
+changes, `SIGNAL_CONFIG_ENTRY_CHANGED`), never a timer. **A new poll, a shorter interval,
+or "it'll update at the next refresh" needs the owner's explicit approval first, every
+time.** Ask; don't decide. The existing 30 s `/health` poll stays as the liveness check and
+backstop, not as the way a change arrives. Time-based work (a date coming due) is not a
+poll.
+
+Why: the owner has asked again and again for HA's push system to be used, and still found
+changes waiting for a poll: in 2026.10.11 a guest's sign-in reached HA at once as an event,
+but the Logins sensor an Over layer waited on ignored it and updated up to 30 s later.
+
 ## Status
 
 Skeleton stage: docs/architecture.md is the charter (moved out of README.md, which is now the shop window; user docs are in docs/); the app skeleton, tooling and fake git host exist, no modules yet. Existing code to learn from lives elsewhere (the earlier `fona_sms` component, an earlier app's `ingress.py`, the composite-test server); read it rather than rewriting from memory.

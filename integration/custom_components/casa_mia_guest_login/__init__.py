@@ -13,7 +13,7 @@ from homeassistant.helpers import device_registry as dr
 
 from ..casa_mia.children import add_module_device, follow_module, parent_coordinator
 from .const import DOMAIN, MODULE
-from .guest import async_prune_endpoint_devices, login_device
+from .guest import async_follow_logins, async_prune_endpoint_devices, login_device
 from .qr import setup as setup_qr
 from .restart_notice import async_check_restart, manifest_version
 
@@ -48,6 +48,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     prune = lambda: async_prune_endpoint_devices(hass, entry, coordinator)  # noqa: E731
     prune()
     entry.async_on_unload(coordinator.async_add_listener(prune))
+    async_follow_logins(hass, entry, coordinator)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 

@@ -96,6 +96,19 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_header("Cache-Control", "no-store")
                 self.end_headers()
                 self.wfile.write(data)
+                # Push, not poll (CLAUDE.md RULE FOUR): a change made here reaches Home
+                # Assistant now, whichever module it was, not at the integration's next
+                # poll. After the answer, so the page never waits on it.
+                changed = self.server.on_admin_change  # type: ignore[attr-defined]
+                if (
+                    changed
+                    and method != "GET"
+                    and url.path not in READS
+                    and status < 400
+                ):
+                    threading.Thread(
+                        target=changed, name="admin-changed", daemon=True
+                    ).start()
                 return True
         self.send_error(404)
         return True
@@ -273,13 +286,16 @@ def make_server(
     helpers: set[str] | None = None,
     on_cards: list[Callable[[str], None]] | None = None,
     reads: dict[str, Callable[[dict[str, list[str]]], Any]] | None = None,
+    on_admin_change: Callable[[], None] | None = None,
 ) -> ThreadingHTTPServer:
     """`modules` maps a module name to its health() callable, reported under /health.
     `actions` maps a POST path (e.g. /gitproxy/check) to a callable run in the background.
     `post_handlers` maps a POST path prefix to a handler(rest_of_path, body) -> HTTP
     status, run inline. `on_cards` are called with the cards version when the
     integration says Home Assistant serves a new one. `reads` maps a GET path to a
-    callable(query) whose JSON answer the integration fetches beside /health."""
+    callable(query) whose JSON answer the integration fetches beside /health.
+    `on_admin_change` is called after each change made on the admin page (it tells the
+    integration to ask now)."""
     server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
     server.modules = modules or {}  # type: ignore[attr-defined]
     server.actions = actions or {}  # type: ignore[attr-defined]
@@ -296,4 +312,5 @@ def make_server(
     server.cards = None  # type: ignore[attr-defined]
     server.on_cards = on_cards if on_cards is not None else []  # type: ignore[attr-defined]
     server.reads = reads or {}  # type: ignore[attr-defined]
+    server.on_admin_change = on_admin_change  # type: ignore[attr-defined]
     return server

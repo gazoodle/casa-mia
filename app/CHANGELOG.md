@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.10.11-b5
+
+- **Breaking:** the Casa Mia integrations changed. Restart Home Assistant once; a Repair asks.
+- Every change made on the Casa Mia admin page reaches Home Assistant at once, whichever page it was on (a compositor switch, a renamed endpoint, a pace), not at the integration's next poll, up to 30 seconds later.
+- FONA: its state, error and signal reach Home Assistant the moment they change (the modem dropping, coming back, a new signal reading), not at the next poll.
+- Sensor Watch: Home Assistant's own health (the Recorder and History, integrations that fail to set up) is checked the moment Home Assistant says an integration's state changed or a component loaded, not once a minute.
+- Guest login: an endpoint's **Logins** and **Last login** sensors change the moment a visitor signs in. The app's login event already reached Home Assistant at once, but only the Login event entity heard it; the sensors waited for the next poll, up to 30 seconds, so an Over layer waiting on *Logins is 0* lingered. The event now carries the new count and time, and the sensors take them straight from it.
+
 ## 2026.10.11-b4
 
 - QR code card: with the printed card's black border on, the card has no frame of its own round it (as the markdown card's Show only text), so the border is its edge. Reload the page to use it.

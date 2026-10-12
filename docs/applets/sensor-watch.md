@@ -632,7 +632,8 @@ kind (**The Recorder and History**, **Integrations that fail to set up**) and an
 **Ignore** on each failing integration (one you know about and don't need, say); the
 ignored ones are listed underneath, each with **Watch again**.
 
-These are checked once Home Assistant has started, and each minute after. In the event
+These are checked once Home Assistant has started, and again the moment Home Assistant
+says an integration's state changed or a component loaded (no waiting on a timer). In the event
 and the list service their `entity_id` is `homeassistant.recorder`,
 `homeassistant.history` or `integration.<its entry id>`.
 

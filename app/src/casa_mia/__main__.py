@@ -130,7 +130,11 @@ def main() -> int:
     else:
         modules["sensor_watch"] = lambda: {"state": "disabled"}
     if options.get("fona_enabled", False):
-        fona = Fona(people.check, lambda event: fire_event(token, FONA_EVENT, event))
+        fona = Fona(
+            people.check,
+            lambda event: fire_event(token, FONA_EVENT, event),
+            on_change=lambda: fire_event(token, settings.CHANGED_EVENT, {"fona": True}),
+        )
         fona.start()
         modules["fona"] = fona.health
         post_handlers["/fona/"] = fona.control
@@ -144,8 +148,18 @@ def main() -> int:
             state_path=OPTIONS.parent / "guest_login_state.json",
             ha_port=lambda: supervisor_ha_port(token),
             ha_hosts=lambda: [h for h in (lan_ip(), mdns()) if h],
+            # The new count and time ride on the event, so the integration's sensors
+            # change the moment a visitor signs in, not at its next poll.
             on_login=lambda ep, ip: fire_event(
-                token, EVENT, {"endpoint": ep.id, "label": ep.label, "ip": ip}
+                token,
+                EVENT,
+                {
+                    "endpoint": ep.id,
+                    "label": ep.label,
+                    "ip": ip,
+                    "logins": ep.logins,
+                    "last_login": ep.last_login,
+                },
             ),
         )
         guest.welcome, guest.house_info, guest.goodbye, guest.photo = runtime(store)[3:]
@@ -321,6 +335,11 @@ def main() -> int:
             helpers=helpers,
             on_cards=on_cards,
             reads=reads,
+            on_admin_change=(
+                (lambda: fire_event(token, settings.CHANGED_EVENT, {"admin": True}))
+                if token
+                else None
+            ),
         )
         if token:
             # Started (an update, say): have the integration ask now, so pages showing
