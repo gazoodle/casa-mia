@@ -254,13 +254,47 @@ guest card SVG), `page.py` (welcome, goodbye), `supervisor.py`.
   (`blueprint.py`: groups and notify actions filled in as dropdowns); the screenshot swap
   covers what the integration shows (`swap.py`, the app's rule); the page polls at most
   once a second (a busy loop hung Safari). Proven on the VM: the blueprint end to end.
+- **2026.10.11-b6…b11:** README ordered by usefulness with maturity chips, thanks, "What
+  does the future hold?"; the Sensor Watch blueprint valid on HA 2026.10 (`sequence:
+  !input more`, b7); Sensor Watch's hold-off timer ran off HA's loop, so a held level
+  fired no event and told nobody (the blueprint's silence) — fixed with `callback()`, plus
+  better news at once, **Unavailable for** (5 min default), and timing from the entity's
+  last changed (b8); guest login's **Waiting for first login** binary sensor (b9); the
+  Sensor Watch card's icon and drag-to-order parts (b10); the Commander's "(live)" as a
+  lease (b11, steps 1 and 2 of `docs/never-silently-stuck.md`).
+- **2026-10-12 evening, the stuck-camera investigation** (all in
+  `docs/never-silently-stuck.md`): a tablet showed "(live)" over a picture frozen for
+  hours; a Sensor Watch Save hung silently (Safari's ~6 connections to HA used up by
+  another window, refreshing it let the Save through). Cause: HA 2026.10.0's FFmpeg 9
+  checks TLS, the recorder's `rtsps` certificate is self-signed, so streams HA opens itself
+  fail and the camera entities flap (core #184775, fixed in 2026.10.1, which has its own
+  snapshot issue #185706). Only channels HA streams itself flap (our compositor's medium
+  warm-up, the advanced-camera-card's `ha` cameras); go2rtc still works. **The box stays on
+  2026.10.0 on purpose, as a live fault to test against.** Out of it: the purpose at the
+  top of CLAUDE.md (a helpful home: every problem known) and RULE FIVE (safe by
+  construction: a claim of working is a lease).
 
 ## Where things stand
 
+- **Never silently stuck (2026-10-12): go one step at a time.** The owner wants it slow and
+  methodical: one agreed step, built, recorded in `docs/never-silently-stuck.md`, seen on
+  the test tablet, never redone; nothing planned beyond it; analyse before code, and change
+  nothing while investigating. Steps 1–2 done (the Commander's "(live)" lapses into red
+  "Live lost … ago"). The doc holds the findings, the cause, and ideas (the camera ladder
+  of degradation with status pills, escalation with an Escalation-handler blueprint and
+  remedy tools from the Cameras applet, the goal of gathering a fault's evidence in one
+  place for users). The next step is the owner's to choose. The test tablet is on adb and
+  its Kiosk Satellite API (`/api/console`, `/api/logs`; console keeps only the first 300
+  entries).
+- **Paused: the owner's Sensor Watch migration** (old error/warning/task tiles into Sensor
+  Watch, to prove it before its release); it stopped when Save hung. Read entity ids in the
+  Companion app and edit in Safari (separate connection pools) to dodge the hang. A camera
+  group now watches all 88 camera channels (Available, a task; its 0 hold-off is the
+  owner's, for testing; the level is to be revisited).
 - **Sensor Watch is Alpha, in daily use on the box, heading for release:** the README
   section, the guide's opening and worked examples are written, and six screenshots taken
-  on the box with the swap on (b31). Still to do: the notifications shot (the blueprint
-  didn't notify on the box: backlogged, evidence first), re-taking the page and group
+  on the box with the swap on (b31). Still to do: the notifications shot (the blueprint's
+  silence was likely the b8 timer bug: check on the box first), re-taking the page and group
   shots once the subtitle changes, confirming b31's `…` fix after an HA restart, then a
   release. Its
   backlog section "Sensor Watch (alpha)" holds what's next (stale sensors, `list` by

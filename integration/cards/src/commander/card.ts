@@ -5,7 +5,7 @@ import { atHome, type Fit, fire, fitOf, type Hass, heightFor, inDialog, inPicker
 import { heightForMain, layout, PANELS, pyRound, type Rect } from "../layout.ts";
 import { playWebRTC } from "../../../../app/web/src/webrtc.ts";
 import { Motion, dot, motionStyles } from "./motion.ts";
-import { Config, Card, LIVE_WAIT_MS, LIVE_GIVE_UP, dashboard, LEAVE_AFTER, VERSION, BLANK, SETTLE_MS, Size, askFor, pictureToken, commanders } from "./common.ts";
+import { Config, Card, LIVE_WAIT_MS, LIVE_GIVE_UP, liveClaim, dashboard, LEAVE_AFTER, VERSION, BLANK, SETTLE_MS, Size, askFor, pictureToken, commanders } from "./common.ts";
 
 export class CommanderCard extends LitElement {
   static properties = {
@@ -38,6 +38,15 @@ export class CommanderCard extends LitElement {
   _playing = false;
   _liveFailed = "";
   private liveFails = 0; // failed in a row (see LIVE_GIVE_UP)
+  /** When the live main camera last put a frame on screen (0: none yet). The caption's
+   * "(live)" is worked out from it on each beat, never stored (CLAUDE.md RULE FIVE): only
+   * a frame actually presented renews it, so any stall, reported or not, lets it lapse
+   * into "Live lost … ago". */
+  private frameAt = 0;
+  private liveFrom = 0; // when this live session (or <video>) started: the lease's start
+  private watched: HTMLVideoElement | null = null; // the <video> whose frames are counted
+  private counting: HTMLVideoElement | null = null; // the one its per-frame callback runs on
+  private beat = 0; // the caption's once-a-second redraw, while the card is on the page
   /** Its picture's stream: 0 while the card is off the page or the page hidden, else
    * which showing this is (each showing a new <img>, so a fresh stream). */
   _shown = 0;
@@ -93,6 +102,7 @@ export class CommanderCard extends LitElement {
     this.unwatch = watchRoom(this.measure);
     this.widthWatch.observe(this);
     requestAnimationFrame(this.measure);
+    this.beat = window.setInterval(this.onBeat, 1000);
   }
   disconnectedCallback() {
     super.disconnectedCallback();
@@ -109,7 +119,38 @@ export class CommanderCard extends LitElement {
     clearTimeout(this.settle);
     clearTimeout(this.retry);
     clearTimeout(this.frameWait);
+    clearInterval(this.beat);
     this.stopLive();
+  }
+  /** Each second, apart from the stream: if the <video> drawn now isn't the one whose
+   * frames are counted (replaced, say), count its from now, as a new start; then redraw
+   * the live caption. */
+  private onBeat = () => {
+    const video = this.renderRoot?.querySelector<HTMLVideoElement>("video.live") ?? null;
+    if (video !== this.watched) this.watch(video);
+    if (video) this.requestUpdate();
+  };
+  /** Count `video`'s frames from now: a new start, no frame yet. */
+  private watch(video: HTMLVideoElement | null) {
+    this.watched = video;
+    this.frameAt = 0;
+    this.liveFrom = Date.now();
+    if (video) this.countFrames(video);
+  }
+  /** Note each frame `video` puts on screen, for as long as it is the one watched. A
+   * browser without the per-frame callback never notes one: never "(live)", which is safe. */
+  private countFrames(video: HTMLVideoElement) {
+    if (this.counting === video) return; // already counting its frames
+    this.counting = video;
+    const seen = () => {
+      if (this.watched !== video) {
+        if (this.counting === video) this.counting = null;
+        return;
+      }
+      this.frameAt = Date.now();
+      video.requestVideoFrameCallback(seen);
+    };
+    video.requestVideoFrameCallback?.(seen);
   }
   /** On screen: a stream (a fresh one when it had none). The page hidden (the app in
    * the background, another tab): none, at once (a hidden page's timers may never
@@ -330,6 +371,7 @@ export class CommanderCard extends LitElement {
     this.stopLive();
     if (!want || !video) return;
     this.liveOn = want;
+    this.watch(video); // a new session: its frames counted from its start, the first too
     const failed = (why: string) => {
       if (this.liveOn !== want) return;
       this.liveFails += 1;
@@ -356,6 +398,16 @@ export class CommanderCard extends LitElement {
     this.liveStop = undefined;
     this.liveOn = "";
     this._playing = false;
+  }
+
+  /** The live main camera's caption: its title, "(live)" while frames come, or in red
+   * how long since the last one. */
+  private caption(title: string, place: string) {
+    const claim = liveClaim(this.liveFrom, this.frameAt, Date.now());
+    return html`<div class="caption" style=${place}>
+      <span>${title}${claim && "live" in claim ? " (live)" : ""}</span>
+      ${claim && "lost" in claim ? html`<span class="lost">Live lost ${claim.lost} ago</span>` : nothing}
+    </div>`;
   }
 
   private main(card: Card, option?: string): string {
@@ -442,7 +494,7 @@ export class CommanderCard extends LitElement {
                 playsinline
                 .muted=${true}
               ></video>
-              <div class="caption" style=${at(mainRect)}><span>${card.cameras[main]?.title ?? main}${this._playing ? " (live)" : ""}</span></div>`
+              ${this.caption(card.cameras[main]?.title ?? main, at(mainRect))}`
           : nothing}
         </div>
         ${editing && !inPicker(this) ? html`<div class="hatch"><span>Still picture while editing</span></div>` : nothing}
@@ -566,6 +618,12 @@ export class CommanderCard extends LitElement {
       background: rgb(0 0 0 / 0.63);
       color: #fff;
       font: 20px/1.2 sans-serif;
+    }
+    /* No frame for a while: said in red beside the title (RULE FIVE). */
+    .caption .lost {
+      margin-left: 6px;
+      background: rgb(200 30 30 / 0.9);
+      font-weight: 600;
     }
     .zone {
       cursor: pointer;

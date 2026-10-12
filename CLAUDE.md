@@ -4,6 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Start of every session: read `HANDOVER.md`** (where the work stands, the camera modules, lessons learned, what's next). It stands in for old transcripts. **Keep it current:** when a piece of work ends, update its "Where things stand" and "What happened", compressing old history so it stays short.
 
+## The purpose, above every rule: a helpful home, not just a smart one
+
+Casa Mia is for building a home that is **helpful**, not just smart. A home with things
+not working that nobody knows about is of no use: every problem must be known, or it
+can't be fixed. So nothing may fail silently, anywhere: not a device, not a stream, not
+a save, not Casa Mia itself. When something stops working it says so, on screen (with
+how long) and where Sensor Watch and the log can see it. Silence about a fault is the
+worst bug there is. RULE FIVE is how code honours this.
+
 ## RULE MINUS ONE: NO REAL PRIVATE DATA IN THE REPO. EVER.
 
 **This repo is public.** Nothing that came from the owner's real life may be committed: not in code, comments, docstrings, tests, fixtures, `app/CHANGELOG.md`, docs, or **commit messages**. That means real people's names, phone numbers, the house's name, addresses and IPs, camera and room names, tablet names, guest slugs, tokens, serials, anything in `swap.json`, `people.json` or the box's config. **A real example the owner typed in chat is still real.**
@@ -72,6 +81,33 @@ poll.
 Why: the owner has asked again and again for HA's push system to be used, and still found
 changes waiting for a poll: in 2026.10.11 a guest's sign-in reached HA at once as an event,
 but the Logins sensor an Over layer waited on ignored it and updated up to 30 s later.
+
+## RULE FIVE: safe by construction, not by catching failures
+
+A claim that something is working ("live", "saving", "connected", "watching") is a
+**lease that lapses by itself**, never a flag that code sets and must remember to clear.
+Default is "not working". The only thing that renews the lease is direct proof that it
+is working (a video frame actually presented, an answer actually received); a timer
+independent of that path lets it lapse and says so ("Live lost 12 s ago"). Any failure,
+foreseen or not (a stall, an exception, an early return, a dead connection that never
+says so), stops the renewing, so the claim lapses: there is no path out that leaves it
+showing. The same for anything that must be undone: tie it to a construct the language
+or platform must run (Python's `with` or `try/finally`, an element's connect and
+disconnect, an `AbortController` with a deadline), so cleanup can't be skipped. Never
+rely on every failure path having been foreseen and handled.
+
+**Client and server state is the same claim.** Any copy of another side's state (the
+integration's copy of the app's records, the page's levels, a card's rows) claims to be
+current. It is a lease too: renewed only by an answer or a heartbeat actually received,
+carrying its age, and shown as "not current since …" when it lapses. Never "it was right
+when I last heard". Learnt the hard way in client/server computing over decades: every
+hop of an update path needs a heartbeat, a deadline and a visible age.
+
+Why: the owner's way since assembler (a `with` gated loop whose timeout is reset only on
+proof the stream runs). In 2026.10.11 the Camera Commander showed "(live)" over a picture
+frozen for 50 minutes: live was a flag set at the first frame and cleared only on a
+reported failure, and the stream stalled without reporting one
+(`docs/never-silently-stuck.md`).
 
 ## Status
 

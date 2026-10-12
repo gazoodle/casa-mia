@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.11-b11
+
+- Camera Commander card: the live main camera says "(live)" only while its frames are reaching the screen. When they stop, for any reason, its caption says so in red, "Live lost 12 s ago", counting up, and "(live)" comes back with the frames. It used to stay "(live)" over a frozen picture when a stream stalled without failing.
+- Camera Commander card: a live main camera that never shows a frame (or shows one and stops) also says "Live lost … ago", counted from when it started; it used to show just the camera's name.
+
 ## 2026.10.11-b10
 
 - Sensor Watch card: each row can show the entity's icon, coloured by the level, by its state as a tile does, or not at all; and the row's parts (icon, level, name, message, value, how long) are drag-to-order chips in the card's editor, shown in that order. Existing cards look as they did.
