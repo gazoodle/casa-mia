@@ -42,15 +42,15 @@ No premium tier, no subscription, no catch. <a href="#licence">Here's the promis
 In order of how likely you are to want it, each with how far along it is
 ([the levels](docs/README.md#maturity)):
 
-* <!--tablet_layout--><a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta"></a> **[Tablet Layout](#tablet-layout):** Home Assistant's Sections view, locked to the screen: no scrolling, ever, and panels that make room as cards come and go.
-* <!--garnish--><a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta"></a> **[Garnish](#garnish-for-every-dashboard):** a heading that no longer keeps an empty section showing, on every Sections dashboard.
-* <!--over_layer--><a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha"></a> **[The Over layer](#the-over-layer):** one card over the whole dashboard while its conditions hold; everything beneath seen, not touched.
-* <!--sensor_watch--><a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha"></a> **[Sensor Watch](#sensor-watch):** a level for every sensor in the house, set up a whole class of things at a time, and you told only when one changes.
-* <!--guest_login--><a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta"></a> **[Guest login](#guest-login):** a QR scan signs a guest into their own dashboard, no password typed.
-* <!--commander--><a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta"></a> **[Camera Commander](#camera-commander):** every camera in one live picture, drawn in the app by the <!--compositor--><a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha"></a> [compositor](#camera-compositor), so a low-power tablet plays one stream instead of a dozen.
-* <!--kiosks--><a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha"></a> **[Kiosk Satellites](#kiosk-satellite)** and <!--gitproxy--><a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta"></a> **[their firmware server](#kiosk-satellite):** every wall tablet's version, backups and control page in one place, and updates without the internet.
-* <!--kiosk_mode--><a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha"></a> **[Kiosk mode](#kiosk-mode):** what each dashboard hides (the header, the sidebar and more), and from whom, without touching YAML.
-* **[Built for my house](#built-for-my-house):** an <!--alarm--><a href="docs/README.md#maturity"><img src="docs/maturity/development.svg" alt="In development"></a> [alarm panel](#alarm-panel) and <!--fona--><a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha"></a> [phone and SMS access](#phone-and-sms-fona) through a GSM board. You almost certainly don't need them, and they're off unless you switch them on.
+* <a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta" align="absmiddle"></a><!--tablet_layout--> **[Tablet Layout](#tablet-layout):** Home Assistant's Sections view, locked to the screen: no scrolling, ever, and panels that make room as cards come and go.
+* <a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta" align="absmiddle"></a><!--garnish--> **[Garnish](#garnish-for-every-dashboard):** a heading that no longer keeps an empty section showing, on every Sections dashboard.
+* <a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha" align="absmiddle"></a><!--over_layer--> **[The Over layer](#the-over-layer):** one card over the whole dashboard while its conditions hold; everything beneath seen, not touched.
+* <a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha" align="absmiddle"></a><!--sensor_watch--> **[Sensor Watch](#sensor-watch):** a level for every sensor in the house, set up a whole class of things at a time, and you told only when one changes.
+* <a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta" align="absmiddle"></a><!--guest_login--> **[Guest login](#guest-login):** a QR scan signs a guest into their own dashboard, no password typed.
+* <a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta" align="absmiddle"></a><!--commander--> **[Camera Commander](#camera-commander):** every camera in one live picture, drawn in the app by the <a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha" align="absmiddle"></a><!--compositor--> [compositor](#camera-compositor), so a low-power tablet plays one stream instead of a dozen.
+* <a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha" align="absmiddle"></a><!--kiosks--> **[Kiosk Satellites](#kiosk-satellite)** and <a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta" align="absmiddle"></a><!--gitproxy--> **[their firmware server](#kiosk-satellite):** every wall tablet's version, backups and control page in one place, and updates without the internet.
+* <a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha" align="absmiddle"></a><!--kiosk_mode--> **[Kiosk mode](#kiosk-mode):** what each dashboard hides (the header, the sidebar and more), and from whom, without touching YAML.
+* **[Built for my house](#built-for-my-house):** an <a href="docs/README.md#maturity"><img src="docs/maturity/development.svg" alt="In development" align="absmiddle"></a><!--alarm--> [alarm panel](#alarm-panel) and <a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha" align="absmiddle"></a><!--fona--> [phone and SMS access](#phone-and-sms-fona) through a GSM board. You almost certainly don't need them, and they're off unless you switch them on.
 
 ## Your house, at a glance
 
@@ -66,7 +66,7 @@ logins, no VPN.
 
 ## Tablet Layout
 
-<!--tablet_layout--><a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta"></a>
+<a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta" align="absmiddle"></a><!--tablet_layout-->
 
 A wall tablet should show its dashboard the way a picture frame shows a picture: all of it,
 edge to edge, nothing hanging off the bottom, and no scrolling. Ever. Home Assistant's views
@@ -112,7 +112,7 @@ Panels in stacks, layers inside layers, gaps with lines in them, edges that hug 
 
 ## Garnish, for every dashboard
 
-<!--garnish--><a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta"></a>
+<a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta" align="absmiddle"></a><!--garnish-->
 
 Home Assistant quietly does something clever: when every card in a section is hidden, the
 section goes too, and the rest of the dashboard closes up. So a section of warnings, each
@@ -135,7 +135,7 @@ It's the kind of small thing that makes a dashboard feel like it knows what it's
 
 ## The Over layer
 
-<!--over_layer--><a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha"></a>
+<a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha" align="absmiddle"></a><!--over_layer-->
 
 The alarm is set. The wall tablet in the hall still shows the house as it always does,
 lights, heating, cameras, but every tap goes nowhere, and in the middle, the alarm's disarm
@@ -156,7 +156,7 @@ admin gets it. Everyone else gets the wall. [The guide](docs/over-layer.md).
 
 ## Sensor Watch
 
-<!--sensor_watch--><a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha"></a>
+<a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha" align="absmiddle"></a><!--sensor_watch-->
 
 Home Assistant knows the state of everything and the health of almost nothing. Is 198 V
 on that plug fine? Is the freezer at −12 °C a problem? Has that bulb been unavailable
@@ -208,7 +208,7 @@ and a dozen lights turned up on the wall tablet, each saying where it was.
 
 ## Guest login
 
-<!--guest_login--><a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta"></a>
+<a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta" align="absmiddle"></a><!--guest_login-->
 
 QR codes that sign a guest straight into their own dashboard, no password typing on a
 stranger's phone. This started life as [ha-auto-guest-login](https://github.com/cnorick/ha-auto-guest-login)
@@ -266,7 +266,7 @@ Join the Wi-Fi, then scan to sign in: one card to print or send, and a sign-in l
 
 ## Camera commander
 
-<!--commander--><a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta"></a>
+<a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta" align="absmiddle"></a><!--commander-->
 
 What I wanted was simple to say and surprisingly hard to get: a home page on the wall
 tablets that looks great, shows the cameras I choose, laid out how I like, and responds the
@@ -307,7 +307,7 @@ Switch on the Camera Commander card's Security look and every camera takes on th
 
 ### Camera compositor
 
-<!--compositor--><a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha"></a>
+<a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha" align="absmiddle"></a><!--compositor-->
 
 The engine behind the camera commander. The [Advanced Camera Card](https://github.com/dermotduffy/advanced-camera-card)
 is great, and it's still what plays a camera's own live page. But ask one of my poor
@@ -332,7 +332,7 @@ them; they make them easier to live with.
 
 ### Kiosk Satellite
 
-<!--kiosks--><a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha"></a> <!--gitproxy--><a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta"></a>
+<a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha" align="absmiddle"></a><!--kiosks--> <a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta" align="absmiddle"></a><!--gitproxy-->
 
 <a href="https://kiosksatellite.com"><img src="https://kiosksatellite.com/img/mark.svg" alt="Kiosk Satellite" width="72" align="left"></a>
 
@@ -385,7 +385,7 @@ Any tablet's own Kiosk Satellite control page, straight through Home Assistant: 
 
 ### Kiosk mode
 
-<!--kiosk_mode--><a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha"></a>
+<a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha" align="absmiddle"></a><!--kiosk_mode-->
 
 [kiosk-mode](https://github.com/NemesisRE/kiosk-mode) hides Home Assistant's header,
 sidebar, menus and more, so a wall tablet or a guest's dashboard shows only its controls.
@@ -451,7 +451,7 @@ every day, and here they are.
 
 ### Alarm panel
 
-<!--alarm--><a href="docs/README.md#maturity"><img src="docs/maturity/development.svg" alt="In development"></a>
+<a href="docs/README.md#maturity"><img src="docs/maturity/development.svg" alt="In development" align="absmiddle"></a><!--alarm-->
 
 I've got a KNX system with a couple of sensors and switches, but I wanted a nice alarm panel
 with a code; you'd think that would be easy ... it's really not. My first go fell back to a
@@ -462,7 +462,7 @@ alarm well alone. It lives in the integration, so it keeps working while the app
 
 ### Phone and SMS (FONA)
 
-<!--fona--><a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha"></a>
+<a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha" align="absmiddle"></a><!--fona-->
 
 This one's a bit esoteric. What happens when the internet goes down and you're on the wrong
 side of the gate? An Arduino with an Adafruit FONA GSM board on the end of a USB cable,

@@ -7,7 +7,7 @@ newcomer reads it before switching the module on:
   * its docs page, a line under the title;
   * the levels and their meanings in docs/README.md, between the maturity markers;
   * a chip per level (docs/maturity/<level>.svg), the admin page's outline pill in its own
-    tones and colours, light and dark; and in the README, after each `<!--module-->`
+    tones and colours, light and dark; and in the README, before each `<!--module-->`
     marker, that module's chip, linked to the levels.
 
 The admin page reads the JSON itself.
@@ -118,12 +118,14 @@ def chips_text(m: dict, text: str) -> str:
     def chip(g: re.Match) -> str:
         level = m["modules"][g[1]]["level"]
         name = m["levels"][level]["name"]
+        # The marker after the chip: a line starting `<!--` is raw HTML to GitHub, so
+        # the markdown after it (a **bold** name) would show as it's typed.
         return (
-            f'<!--{g[1]}--><a href="docs/README.md#maturity">'
-            f'<img src="docs/maturity/{level}.svg" alt="{name}"></a>'
+            f'<a href="docs/README.md#maturity"><img src="docs/maturity/{level}.svg" '
+            f'alt="{name}" align="absmiddle"></a><!--{g[1]}-->'
         )
 
-    return re.sub(r"<!--(\w+)-->(?:<a [^>]*><img [^>]*></a>)?", chip, text)
+    return re.sub(r"(?:<a [^>]*><img [^>]*></a>)?<!--(\w+)-->", chip, text)
 
 
 def wanted() -> dict[Path, str]:
