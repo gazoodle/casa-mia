@@ -7,7 +7,7 @@ blueprint:
     Casa Mia's Sensor Watch integration installs this file and replaces it when it
     changes: to change it, copy it under another name first.
   domain: automation
-  source_url: https://github.com/gazoodle/casa-mia/blob/main/integration/custom_components/casa_mia_sensor_watch/blueprints/notify.yaml
+  source_url: https://github.com/gazoodle/casa-mia/blob/main/integration/custom_components/casa_mia/sensor_watch/blueprints/notify.yaml
   homeassistant:
     min_version: "2024.10.0"
   input:
@@ -135,5 +135,4 @@ actions:
           notification_id: "{{ notification_id }}"
           title: "{{ title }}"
           message: "{{ text }}"
-  - choose: []
-    default: !input more
+  - sequence: !input more

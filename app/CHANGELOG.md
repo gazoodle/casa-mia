@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.11-b7
+
+- Sensor Watch: the Notify on Sensor Watch blueprint works again on Home Assistant 2026.10, which refused it ("not a valid option at 'default'"): its Anything else actions run as a sequence. An automation made from it that failed to start: open it and save it again.
+- Sensor Watch: the blueprint's source address points at where it lives now (it still named the old Sensor Watch integration's folder), so Home Assistant's re-import finds it.
+
 ## 2026.10.11-b6
 
 - Garnish (Beta) and the Over layer (Alpha) have maturity levels. The README is ordered by who will find each part useful, with each part's level beside it.
