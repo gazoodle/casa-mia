@@ -10,11 +10,11 @@
 <p align="center">
 A Home Assistant app and integration that take your home from smart to spectacular.<br>
 Dazzling home pages for every wall tablet. Guests signed in with a single scan.<br>
-Every Kiosk Satellite managed from one place, and at your fingertips wherever you are.<br>
+Every sensor in the house watched, and you told only when it matters.<br>
 Interactions at jet-rapid speed. Camera dashboards MI5 would envy.<br>
+Every Kiosk Satellite managed from one place, and at your fingertips wherever you are.<br>
 Alarm set? Every tablet becomes a window you can look through but not touch.<br>
 Secure phone and SMS access to your home, even when the internet has left the building.<br>
-Every sensor in the house watched, and you told only when it matters.<br>
 And that's just the start.
 </p>
 
