@@ -1,7 +1,7 @@
 # Handover: Casa Mia, for agents joining the work
 
-Where the project stands and how the work is done here, as of 2026-10-11 (`dev` at
-2026.10.8-b1; 2026.10.7 released). **Read this at the start of every
+Where the project stands and how the work is done here, as of 2026-10-20 (`dev` at
+2026.10.11-b11; 2026.10.10 released). **Read this at the start of every
 session**, then CLAUDE.md in full; where they disagree, CLAUDE.md wins. It replaces
 re-reading old transcripts: the history below is all a new session needs.
 
@@ -269,10 +269,59 @@ guest card SVG), `page.py` (welcome, goodbye), `supervisor.py`.
   checks TLS, the recorder's `rtsps` certificate is self-signed, so streams HA opens itself
   fail and the camera entities flap (core #184775, fixed in 2026.10.1, which has its own
   snapshot issue #185706). Only channels HA streams itself flap (our compositor's medium
-  warm-up, the advanced-camera-card's `ha` cameras); go2rtc still works. **The box stays on
-  2026.10.0 on purpose, as a live fault to test against.** Out of it: the purpose at the
+  warm-up, the advanced-camera-card's `ha` cameras); go2rtc still works. (The box has
+  since moved to 2026.10.2, and those warnings are gone.) Out of it: the purpose at the
   top of CLAUDE.md (a helpful home: every problem known) and RULE FIVE (safe by
   construction: a claim of working is a lease).
+- **2026-10-19, why the wall tablets show no live video** (investigated over adb; nothing
+  changed on the box, tablet or repo). Found:
+  - **Cause (strongly indicated, not proven on the tablet): H.265.** go2rtc's RTSP
+    DESCRIBE on every stream it had registered (read-only, port 8554 on the box) showed
+    H265. The tablet's Android WebView (131) generally cannot decode H.265 over WebRTC, so
+    no video track arrives: the Cameras applet's live view shows 0 × 0 and "Connecting…"
+    for ever. A camera with H.264 low and medium channels played those two and hung only
+    on its H.265 high. Desktop browsers play H.265, which is why the Mac "works".
+  - **Ruled out:** the network (the tablet sits on an IoT VLAN with no internet; TCP to
+    HA 8123, go2rtc 8555 and 1984 all open, and an H.264 camera plays, so UDP gets
+    through); the entity-id oddities in the registry (medium channels re-created or
+    renamed around the HA 2026.10.0 update; a red herring, so **don't recreate entity
+    ids**); a stale or diagnostic cards bundle (the box's `cm-cards.js` equals the
+    committed one; the card has only two `console.info` lines). The Cameras page's
+    Channels column leaves out the camera's own entity (the low channel) by design.
+  - **Gaps:** the other cameras' codecs (go2rtc registers a stream only when HA is asked,
+    so they were not listed: open a camera's live view on the tablet and list
+    `/api/streams` again); the WebView's H.265 support is unconfirmed; one observed case
+    of the card saying "(live)" over a frozen picture (a tablet had the lease code, the
+    frame was stamped a minute old) was never caught again, so whether the lease can be
+    fooled by a stalled WebRTC stream (`requestVideoFrameCallback` firing on a repeated
+    frame) is open. If it recurs, sample the tablet with `adb exec-out screencap` and
+    compare the main picture's pixels; renew the lease only when the frame's `rtpTimestamp`
+    moves, if so.
+  - **Relief that already exists, needing no code:** the Camera compositor page's **Live
+    main camera** switch (system-wide, saved, cards follow within a second). Off, every
+    card shows the compositor's drawn picture (about two a second). The owner was told;
+    whether they switched it off is not recorded.
+  - **Defects found in our code** (all in the backlog's spirit, none built): the Cameras
+    live-view dialog (`app/web/src/LiveView.tsx`) picks WebRTC from HA's capabilities and
+    then waits for ever, with no timeout and no MJPEG fallback (MJPEG goes over TCP 8123
+    and would work); the card's live failure goes only to the tablet's console, falls back
+    silently, and gives up for good after two failures until a reload (`LIVE_GIVE_UP`);
+    the card gets no channel availability or codec information.
+  - **Proposed next step, awaiting the owner's go:** one shared WebRTC check in
+    `app/web/src/webrtc.ts` (stage timings: config, offer, answer, ICE state, first frame;
+    a codec check with `RTCRtpReceiver.getCapabilities` before trying; a timeout; a plain
+    verdict, such as "this device cannot play H.265"), used by the Cameras dialog (fall
+    back to MJPEG and say so), the card (a pill with the verdict; the give-up lapses) and a
+    report to the app's log, so Sensor Watch can see it; and the same Live main camera
+    switch on the Commander page. Needs a version bump first.
+  - **For the owner (UniFi Protect):** set the H.265 channels the tablets use (medium) to
+    H.264 where the camera model allows it; not checked which models do.
+  - **How it was done, for the next session:** the test tablet is on adb (`adb devices`);
+    `adb exec-out screencap -p`, `adb logcat -d | grep chromium` (WebRTC logs there, but
+    the card's `console.info` lines are not visible without DevTools: no socket is open).
+    go2rtc's API is on the box's port 1984 (`/api/streams`), RTSP on 8554. A UDP STUN probe
+    from the Mac proved nothing (no reply to any STUN, even from outside), so don't repeat
+    it.
 
 ## Where things stand
 
@@ -283,7 +332,8 @@ guest card SVG), `page.py` (welcome, goodbye), `supervisor.py`.
   "Live lost … ago"). The doc holds the findings, the cause, and ideas (the camera ladder
   of degradation with status pills, escalation with an Escalation-handler blueprint and
   remedy tools from the Cameras applet, the goal of gathering a fault's evidence in one
-  place for users). The next step is the owner's to choose. The test tablet is on adb and
+  place for users). The next step is the owner's to choose; the 2026-10-19 findings above
+  (H.265 on the tablets) argue for the shared WebRTC check. The test tablet is on adb and
   its Kiosk Satellite API (`/api/console`, `/api/logs`; console keeps only the first 300
   entries).
 - **Paused: the owner's Sensor Watch migration** (old error/warning/task tiles into Sensor
