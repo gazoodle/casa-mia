@@ -3,6 +3,7 @@
 
 import importlib.util
 import re
+import threading
 from pathlib import Path
 
 import yaml
@@ -48,11 +49,44 @@ def _fire_body() -> str:
     return source.split("def _fire(", 1)[1].split("\n    def ", 1)[0]
 
 
-def test_its_dropdowns_offer_the_groups_and_notify_actions():
+def _module():
     spec = importlib.util.spec_from_file_location("bp", COMPONENT / "blueprint.py")
     assert spec and spec.loader
     bp = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(bp)
+    return bp
+
+
+def test_installs_in_flight_together_never_leave_a_torn_file(tmp_path):
+    """Several installs run in the executor at once (notify services register one by
+    one at start), each with a different-length text. Written in place, a longer text's
+    tail survived a shorter one's end and Home Assistant refused the file."""
+    bp = _module()
+    template = (COMPONENT / "blueprints" / "notify.yaml").read_text()
+    texts = [
+        bp.filled(template, ["Leaks"] * n, [f"notify.mobile_app_{i}" for i in range(n)])
+        for n in (1, 30, 2, 60, 3)
+    ]
+    target = tmp_path / "blueprints" / "sensor_watch_notify.yaml"
+    jobs = [
+        threading.Thread(target=bp.install, args=(str(target), lambda t=t: t))
+        for t in texts * 8
+    ]
+    for job in jobs:
+        job.start()
+    for job in jobs:
+        job.join()
+    assert target.read_text() in texts
+    yaml.load(target.read_text(), _Loader)  # noqa: S506
+    assert [p.name for p in target.parent.iterdir()] == [target.name]  # no part left
+
+    # the last to run writes the newest text, whatever order the jobs ran in
+    bp.install(str(target), lambda: texts[0])
+    assert target.read_text() == texts[0]
+
+
+def test_its_dropdowns_offer_the_groups_and_notify_actions():
+    bp = _module()
     template = (COMPONENT / "blueprints" / "notify.yaml").read_text()
     assert bp.GROUPS in template and bp.NOTIFIES in template
     text = bp.filled(template, ['Mains "UK"', "Leaks"], ["notify.mobile_app_ann"])

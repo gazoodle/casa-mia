@@ -153,6 +153,10 @@ async def follow_blueprint(
     target = hass.config.path(*blueprint.AT)
     shown_now: list[tuple[list[str], list[str]] | None] = [None]
 
+    def newest() -> str:
+        groups, notifies = shown_now[0] or ([], [])
+        return blueprint.filled(template, groups, notifies)
+
     @callback
     def choices(*_: object) -> None:
         groups = sorted(
@@ -166,9 +170,7 @@ async def follow_blueprint(
         if (groups, notifies) == shown_now[0]:
             return
         shown_now[0] = (groups, notifies)
-        hass.async_add_executor_job(
-            blueprint.install, target, blueprint.filled(template, groups, notifies)
-        )
+        hass.async_add_executor_job(blueprint.install, target, newest)
 
     @callback
     def service(event: Event) -> None:

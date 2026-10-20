@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.11-b12
+
+- Sensor Watch's Notify blueprint: Home Assistant could refuse it ("Failed to load blueprint … expected <block end>") because a piece of an older version was left after its last line. At start, several writes of the file ran at once, and a longer text's tail survived a shorter one's end. It is now written whole and one write at a time, always with the newest choices. Restart Home Assistant (or reload the Casa Mia integration) after updating, and the file is written again correctly.
+
 ## 2026.10.11-b11
 
 - Camera Commander card: the live main camera says "(live)" only while its frames are reaching the screen. When they stop, for any reason, its caption says so in red, "Live lost 12 s ago", counting up, and "(live)" comes back with the frames. It used to stay "(live)" over a frozen picture when a stream stalled without failing.
