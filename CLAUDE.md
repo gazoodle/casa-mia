@@ -249,9 +249,15 @@ One repo and one version, with two deliverables released together:
   ingress/token gate, supervisor client) and `modules/{fona,gitproxy,compositor}/`. The
   alarm panel is integration-only.
 - **Integration** (`integration/custom_components/casa_mia/`, domain `casa_mia`, tentative):
-  thin. Config flow, entities, services, events and Repairs only. It talks to the app over a
-  small versioned local API. Each side checks the other's version at runtime and surfaces a
-  mismatch as a Repair.
+  config flow, entities, services, events and Repairs, and whatever works on HA's own state,
+  registries and events, with the data it uses all the time stored there, not copied from
+  the app. It talks to the app over a small versioned local API and HA's websocket, pushing
+  changes. Each side checks the other's version at runtime and surfaces a mismatch as a
+  Repair.
+- **Each piece of work goes where it fits best** (owner, 2026-10-21; the placement rule in
+  `docs/architecture.md`). The integration is not kept thin for its own sake. Why: that
+  rule kept Sensor Watch's records in the app, and the integration had to copy them by a
+  chain of pulls.
 - **Module contract** (draft): `start()`, `stop()`, `health()`, a config schema, and it
   registers its own entities and routes. One module failing must not stop the others.
 - The app is meant to install the integration into `/config/custom_components` on start and

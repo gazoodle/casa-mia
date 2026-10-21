@@ -108,13 +108,20 @@ Hand-edited live config is the thing to eliminate.
                               │   ▲ local API + SUPERVISOR_TOKEN  │
                               │   ▼                               │
                               │ Core ─▶ casa_mia integration      │
-                              │   thin: entities, services, UI    │
+                              │   entities, services, HA's data   │
                               └──────────────────────────────────┘
 ```
 
-**Placement rule:** anything long-running, I/O-heavy, network-facing or that must survive a
-Core restart lives in the **app**. The **integration** is thin: config flow, entities,
-services, events, Repairs. They talk over a small versioned local API.
+**Placement rule: the best place for the job** (owner, 2026-10-21). Anything long-running,
+I/O-heavy, network-facing or that must survive a Core restart lives in the **app**. What works
+on Home Assistant's own state, registries and events lives in the **integration**, and so
+does data the integration uses all the time: it is stored there (HA's own storage, in HA's
+backup), never copied from the app. Neither side is kept thin, or fat, for its own sake.
+They talk over a small versioned local API and HA's websocket, and changes are pushed.
+Why: the earlier rule that the integration stays thin (config flow, entities, services,
+events, Repairs only) kept Sensor Watch's records in the app, so the integration, which
+uses them all the time, had to copy them by a chain of pulls. The rule was serving itself,
+not the job.
 
 **Child integrations** (2026.10.4-b22): Guest login and Camera Commander each have their
 own, `casa_mia_guest_login` and `casa_mia_commander`, so a house can add only what it uses.
