@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.11-b13
+
+- Sensor Watch: a save reaches Home Assistant at once, carrying only what changed. The app sends the watches you changed over the connection to Home Assistant it already holds, and the integration takes them and answers with each one's level. It used to ask Home Assistant to fetch, which then fetched every watch to find what had changed (and, if that failed, waited up to 30 s). If the two ever disagree, the app sends every watch again. Restart Home Assistant after updating to finish; until then it works the old way.
+- Sensor Watch: the Home tile's health follows the integration's own Status and count sensors as Home Assistant reports them, and the page's levels no longer reload in full after every change.
+
 ## 2026.10.11-b12
 
 - Sensor Watch's Notify blueprint: Home Assistant could refuse it ("Failed to load blueprint … expected <block end>") because a piece of an older version was left after its last line. At start, several writes of the file ran at once, and a longer text's tail survived a shorter one's end. It is now written whole and one write at a time, always with the newest choices. Restart Home Assistant (or reload the Casa Mia integration) after updating, and the file is written again correctly.

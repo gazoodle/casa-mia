@@ -1,7 +1,8 @@
 """The watching: each record's entity followed live, its level worked out (levels.py),
 held off so a blip doesn't count, and each change fired as an event and told to the
-entities. Built for thousands of records: they are fetched from the app only when the
-revision in its /health moves; HA's state tracker hands us only watched entities (one
+entities. Built for thousands of records: the app pushes only those changed (push.py,
+over its websocket), and they are fetched whole only at the start, or when the revision
+in its /health differs from ours (a push missed); HA's state tracker hands us only watched entities (one
 dict lookup per state change in the house); attribute-only updates stop at once; the
 summary is worked out once per change; and the entities write at most once a TELL."""
 
@@ -31,13 +32,16 @@ from homeassistant.util import dt as dt_util
 from ..coordinator import CasaMiaCoordinator
 from .const import EVENT, MODULE
 from .levels import UNAVAILABLE, UNAVAILABLE_HOLD, level_of, rank, reading, summary
+from .push import merged
 from .swap import Rule, same, shown
 
 _LOGGER = logging.getLogger(__name__)
 # seconds: the entities write at once, then at most once in this while changes keep
 # coming, so a storm is a write a TELL, not one per change.
 TELL = 0.2
-RECORDS = "/sensor-watch/records"  # the app's records, fetched when the revision moves
+RECORDS = (
+    "/sensor-watch/records"  # the app's records, fetched when we're not at its revision
+)
 
 
 def module(coordinator: CasaMiaCoordinator) -> dict[str, Any]:
@@ -85,7 +89,8 @@ class Watcher:
 
     @callback
     def refresh(self) -> None:
-        """Each report from the app: fetch the records if their revision moved."""
+        """Each report from the app: fetch the records if we're not at their revision
+        (the start, or a push missed: the app pushes each change as it's saved)."""
         revision = module(self.coordinator).get("revision")
         if revision is None or revision == self._revision or self._fetching:
             return
@@ -128,9 +133,44 @@ class Watcher:
             return
         finally:
             self._fetching = False
-        self._revision = data.get("revision", revision)
-        self._apply({r["entity_id"]: r for r in data.get("records") or []})
-        if (system := data.get("system") or {}) != self.system_settings:
+        self._take(
+            data.get("revision", revision),
+            {r["entity_id"]: r for r in data.get("records") or []},
+            data.get("system") or {},
+        )
+
+    @callback
+    def push(self, msg: dict[str, Any]) -> dict[str, dict[str, Any]] | None:
+        """Records pushed by the app (its websocket command), applied at once. For a
+        change: the levels of the records it carried, as judged now (applying fires no
+        event, so the app learns them here); every record: nothing (the app asks `list`).
+        None when it doesn't follow on from ours: the app then sends them all."""
+        records = merged(self.records, self._revision, msg)
+        if records is None:
+            _LOGGER.info(
+                "a push from revision %s, but we have %s: asked the app for every record",
+                msg.get("base"),
+                self._revision,
+            )
+            return None
+        self._take(msg["revision"], records, msg["system"])
+        if "base" not in msg:
+            return {}
+        sent = (r["entity_id"] for r in msg["records"])
+        return {
+            e: shown(self.swap, {"entity_id": e, **self.now[e]})
+            for e in sent
+            if e in self.now
+        }
+
+    @callback
+    def _take(
+        self, revision: str, records: dict[str, dict[str, Any]], system: dict[str, Any]
+    ) -> None:
+        """The app's records and settings at `revision`, fetched or pushed."""
+        self._revision = revision
+        self._apply(records)
+        if system != self.system_settings:
             self.system_settings = system
             _LOGGER.info("Home Assistant's own health: %s", system)
             if self.recheck:

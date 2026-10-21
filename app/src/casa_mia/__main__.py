@@ -115,7 +115,8 @@ def main() -> int:
     )
     modules["alarm"] = lambda: {"state": "running" if alarm_on else "disabled"}
     if options.get("sensor_watch_enabled", False):
-        # The records; the integration watches the states and asks again at once on a save.
+        # The records; pushed to the integration (which watches the states) as they're
+        # saved. The doorbell is for an integration older than the push, until HA restarts.
         watch = SensorWatch(
             SENSOR_WATCH_STORE,
             ha,

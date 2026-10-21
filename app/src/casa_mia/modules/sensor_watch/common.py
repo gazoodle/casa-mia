@@ -50,6 +50,11 @@ MAX_MESSAGE = 255
 EVENT = "casa_mia_sensor_watch"
 SERVICE = ("casa_mia", "sensor_watch_list")
 REFRESH = ("casa_mia", "sensor_watch_refresh")  # every watch judged afresh
+# The integration's websocket command the records are pushed by (its push.py), and its
+# own entities' translation keys (the Home tile's health comes from the status, counts).
+APPLY = "casa_mia/sensor_watch/apply"
+STATUS = "sensor_watch_status"
+COUNT = "sensor_watch_{}_count"
 
 
 def own(entry: dict) -> bool:

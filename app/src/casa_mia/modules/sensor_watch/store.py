@@ -1,6 +1,7 @@
 """Sensor Watch's store: the records (`sensor-watch.json`), Home Assistant's own health
-settings, the profiles and the groups, what the integration is sent (/health's revision, then the
-records), and saving a change. The layers above: scans (candidates, suggestions, the
+settings, the profiles and the groups, what the integration is sent (each change pushed
+by live.py; all of them for its fetch, when /health's revision isn't the one it has), and
+saving a change. The layers above: scans (candidates, suggestions, the
 scan), groups (keeping them up to date), then api (the admin page's routes)."""
 
 from __future__ import annotations
@@ -56,14 +57,16 @@ class Store:
         self.store_path = store_path
         self.reader = Reader(ha) if ha else None
         self.ha = ha
-        self.on_change = on_change
         self.status = Status(ha)  # overall health, for the Home tile (live.py feeds it)
-        # The levels as they change in Home Assistant, pushed (start() connects).
+        # The levels as they change in Home Assistant, pushed, and the records pushed to
+        # the integration as they change (start() connects).
         self.live = (
             Live(
                 ha,
                 self.status,
-                lambda: {e: r.get("attribute") for e, r in self.records.items()},
+                self._watched,
+                self.outgoing,
+                on_change,
             )
             if ha
             else None
@@ -90,8 +93,8 @@ class Store:
         _LOGGER.info("watching %d sensors", len(self.records))
 
     def health(self) -> dict[str, Any]:
-        """Small at any size: the integration fetches the records themselves (for_integration())
-        only when `revision` moves."""
+        """Small at any size: the integration fetches the records themselves
+        (for_integration()) only when `revision` isn't the one it has."""
         with self._lock:
             return {
                 "state": "offline" if self._broken else "running",
@@ -111,14 +114,28 @@ class Store:
         asked again once it has judged them."""
         if self.live:
             self.live.taken()
+        return self.outgoing(None)
+
+    def _watched(self) -> dict[str, str | None]:
+        """Each watched entity, with the attribute watched (None: its state)."""
         with self._lock:
+            return {e: r.get("attribute") for e, r in self.records.items()}
+
+    def outgoing(self, eids: set[str] | None) -> dict[str, Any]:
+        """What the integration is sent (live.py pushes it): the records in `eids` as it
+        has them, and those of them it should no longer watch (gone, or disabled: kept,
+        but not watched); every record when None. With the revision they make up."""
+        with self._lock:
+            if eids is None:
+                now = self.records
+            else:
+                now = {e: self.records.get(e) for e in sorted(eids)}
             return {
                 "revision": self._revision,
                 "records": [
-                    self._sent(r)
-                    for r in self.records.values()
-                    if not r.get("disabled")  # kept, but not watched
+                    self._sent(r) for r in now.values() if r and not r.get("disabled")
                 ],
+                "removed": [e for e, r in now.items() if not r or r.get("disabled")],
                 "system": self.system | {"ignore": sorted(self.system["ignore"])},
             }
 
@@ -186,8 +203,9 @@ class Store:
         groups: dict[str, dict[str, Any]] | None = None,
     ) -> None:
         """Apply record changes (None removes one) and any new `system` settings,
-        `profiles` or `groups`, then save, log `what`, and have the integration ask
-        again."""
+        `profiles` or `groups`, then save, log `what`, and push the change to the
+        integration: the records changed, or all of them when profiles or groups changed
+        (a profile's followers, a group's members, change with them)."""
         with self._lock:
             if self._broken:
                 raise BadRequest(
@@ -217,9 +235,8 @@ class Store:
             self._revise()
         _LOGGER.info("%s", what)
         if self.live:
-            self.live.resubscribe()
-        if self.on_change:
-            threading.Thread(target=self.on_change, daemon=True).start()
+            whole = profiles is not None or groups is not None
+            self.live.changed(None if whole else set(changes))
 
     def _record(self, entity_id: str, body: dict[str, Any]) -> dict[str, Any]:
         """A record to save: its own levels, or following a profile (`profile`);

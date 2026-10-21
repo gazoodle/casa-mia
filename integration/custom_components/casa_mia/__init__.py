@@ -1,4 +1,4 @@
-"""Casa Mia: thin integration for the Casa Mia app."""
+"""Casa Mia: the integration for the Casa Mia app."""
 
 from __future__ import annotations
 

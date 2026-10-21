@@ -322,6 +322,14 @@ guest card SVG), `page.py` (welcome, goodbye), `supervisor.py`.
     go2rtc's API is on the box's port 1984 (`/api/streams`), RTSP on 8554. A UDP STUN probe
     from the Mac proved nothing (no reply to any STUN, even from outside), so don't repeat
     it.
+- **2026.10.11-b13: Sensor Watch's records pushed** (step one of the backlog's "Sensor
+  Watch's records: pushed, then owned by the integration"; not yet on the box). The app
+  pushes each save over `live.py`'s websocket (the integration's
+  `casa_mia/sensor_watch/apply`, `push.py`): only the records changed, from the revision
+  the integration has. Every record is sent on connecting, after a refusal (`resync`), and
+  for profile and group saves. The answer carries the changed records' levels. The Home
+  tile reads the integration's own Status and count entities (`status.summarise`).
+  `tests/test_sensor_watch_push.py` runs the real feed against a stand-in HA websocket.
 
 ## Where things stand
 
