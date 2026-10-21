@@ -16,7 +16,7 @@ dependencies = ["aiohttp>=3.10,<4", "av>=14", "pillow>=10.1", "pyserial>=3.5,<4"
 test = ["pytest>=9,<10", "pytest-xdist>=3.8,<4", "pyyaml>=6,<7"]
 dev = [
     "pyright[nodejs]>=1.1,<2",
-    "ruff>=0.15,<0.17",
+    "ruff>=0.15,<0.18",
 ]
 
 [tool.setuptools.packages.find]
