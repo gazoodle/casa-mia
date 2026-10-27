@@ -3,10 +3,10 @@
 // moment a level moves (its casa_mia_sensor_watch event; its entities' writes are
 // the backstop), and shows each value live from the entity itself. With nothing to list it hides (HA's card wrapper honours a card's own
 // `hidden`), so in a Tablet Layout its panel closes, garnish heading and all, when all is well.
-import { LitElement, css, html, nothing } from "lit";
+import { LitElement, css, html, nothing, unsafeCSS } from "lit";
 import { fire, type Hass, inPicker } from "../ha.ts";
 import { PILLS } from "../pills.ts";
-import { type Column, type Config, DEFAULTS, EVENT, type Row, SERVICE, columns, due, own, parts, since, stateColor } from "./common.ts";
+import { type Column, type Config, DEFAULTS, EVENT, LEVEL_COLOR, type Row, SERVICE, columns, due, own, parts, since, stateColor } from "./common.ts";
 
 const ASK_AFTER = 300; // ms: the integration's entities write in a burst; one ask after
 const ago = (h: number) => new Date(Date.now() - h * 3600e3).toISOString();
@@ -17,20 +17,13 @@ const EXAMPLE: Row[] = [
   { entity_id: "", name: "Softener salt", level: "task", value: "18 %", message: "Top up the salt", since: ago(50) },
 ];
 
-/** Each level's colour (`--cm-level`) on an element classed by its level, in HA's theme;
- * the card's rows and the eye in an entity's dialog (watch-eye.ts). */
-export const LEVEL_TONES = css`
-  .task {
-    --cm-level: var(--info-color, #039be5);
-  }
-  .warning {
-    --cm-level: var(--warning-color, #ffa600);
-  }
-  .error,
-  .critical {
-    --cm-level: var(--error-color, #db4437);
-  }
-`;
+/** Each level's colour (`--cm-level`, from LEVEL_COLOR) on an element classed by its
+ * level; the card's rows and the eye in an entity's dialog (eye.ts). */
+export const LEVEL_TONES = unsafeCSS(
+  Object.entries(LEVEL_COLOR)
+    .map(([level, color]) => `.${level} { --cm-level: ${color}; }`)
+    .join("\n"),
+);
 
 export class SensorWatchCard extends LitElement {
   static properties = { _config: { state: true }, _rows: { state: true }, _problem: { state: true }, _editing: { state: true } };
@@ -168,8 +161,10 @@ export class SensorWatchCard extends LitElement {
         const st = this._hass?.states[r.entity_id];
         if (r.days_until) return this._row(r, due(r.attribute ? String(st?.attributes?.[r.attribute] ?? "") : st?.state, r.value), now);
         if (r.attribute) return this._row(r, String(st?.attributes?.[r.attribute] ?? r.value ?? ""), now);
+        // As HA shows it: rounded to its display precision, with its unit (formatEntityState).
         const unit = st?.attributes?.unit_of_measurement ?? "";
-        return this._row(r, st ? `${st.state}${unit ? ` ${unit}` : ""}` : (r.value ?? ""), now);
+        const shown = st && (this._hass?.formatEntityState?.(st) ?? `${st.state}${unit ? ` ${unit}` : ""}`);
+        return this._row(r, shown || (r.value ?? ""), now);
       })}
       ${more > 0 ? html`<p class="note">and ${more} more</p>` : nothing}
     </ha-card>`;

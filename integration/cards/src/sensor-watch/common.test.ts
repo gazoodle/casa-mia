@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { DEFAULTS, appPanel, columns, due, openNote, parts, since, stateColor } from "./common.ts";
+import { DEFAULTS, appPanel, columns, due, levelColour, openNote, parts, since, stateColor } from "./common.ts";
 
 test("how long a level has stood", () => {
   const now = Date.parse("2026-10-11T12:00:00Z");
@@ -44,4 +44,17 @@ test("the eye finds the app's panel and leaves its page a note", () => {
   assert.equal(appPanel({ lovelace: panels.lovelace }), undefined);
   assert.equal(appPanel(undefined), undefined);
   assert.deepEqual(JSON.parse(openNote("sensor.loft_tablet_battery", 5)), { hash: "#/sensor-watch?watch=sensor.loft_tablet_battery&at=5", at: 5 });
+});
+
+test("the Status sensor's icon takes its level's colour; nothing else does", () => {
+  const entities = {
+    "sensor.casa_mia_sensor_watch_status": { platform: "casa_mia", translation_key: "sensor_watch_status" },
+    "sensor.casa_mia_sensor_watch_warnings": { platform: "casa_mia", translation_key: "sensor_watch_warning_count" },
+  };
+  const status = (state: string) => ({ entity_id: "sensor.casa_mia_sensor_watch_status", state });
+  assert.equal(levelColour(status("warning"), entities), "var(--warning-color, #ffa600)");
+  assert.equal(levelColour(status("nominal"), entities), "var(--success-color, #43a047)");
+  assert.equal(levelColour(status("unavailable"), entities), undefined); // HA's own grey
+  assert.equal(levelColour({ entity_id: "sensor.casa_mia_sensor_watch_warnings", state: "2" }, entities), undefined);
+  assert.equal(levelColour(status("warning"), undefined), undefined);
 });

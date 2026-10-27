@@ -572,9 +572,10 @@ and the integrations are updated along with the app.
 
 **Leaning on Home Assistant's frontend.** Some parts reach into Home Assistant's own pages
 where there is no public API for it, as many community cards do: the Tablet Layout,
-garnish, the Over layer and Sensor Watch's eye in an entity's dialog. A Home Assistant
-update can change what they lean on. If it does, that part says so in the browser's
-console and stays out of the way, and a Casa Mia update follows.
+garnish, the Over layer, Sensor Watch's eye in an entity's dialog and its Status
+sensor's colour. A Home Assistant update can change what they lean on. If it does, that
+part says so in the browser's console and stays out of the way, and a Casa Mia update
+follows.
 
 ## Documentation
 

@@ -5,7 +5,7 @@
 // API, the same from 2026.3 to 2026.10); if they change, this says so in the console
 // and shows nothing.
 import { LitElement, css, html, nothing } from "lit";
-import { fire, type Hass, navigate } from "../ha.ts";
+import { fire, type Hass, navigate, warnOnce } from "../ha.ts";
 import { PILLS } from "../pills.ts";
 import { LEVEL_TONES } from "./card.ts";
 import { ENTITY, OPEN, type Watch, appPanel, openNote } from "./common.ts";
@@ -82,9 +82,6 @@ export class WatchEye extends LitElement {
     PILLS,
     LEVEL_TONES,
     css`
-      .nominal {
-        --cm-level: var(--success-color, #43a047);
-      }
       button {
         display: flex;
         align-items: center;
@@ -136,12 +133,6 @@ function place(dialog: any) {
   eye.hass = dialog.hass;
   eye.dialog = dialog;
   eye.entityId = dialog._entityId;
-}
-
-let warned = false;
-function warnOnce(text: string) {
-  if (!warned) console.warn(`CASA-MIA CARDS: ${text}`);
-  warned = true;
 }
 
 customElements.whenDefined("ha-more-info-dialog").then(() => {

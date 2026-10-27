@@ -16,7 +16,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from ...ha import HA
-from .common import own
+from .common import displayed, own, precision_of
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -221,7 +221,7 @@ class Reader:
                         "platform": entry.get("platform") or "",
                         "device_class": attrs.get("device_class") or "",
                         "unit": attrs.get("unit_of_measurement") or "",
-                        "state": st["state"],
+                        "state": displayed(st["state"], precision_of(entry)),
                         "statistics": bool(attrs.get("state_class")),
                         "options": [str(o) for o in attrs.get("options") or []][:50],
                         "attributes": readings(attrs),

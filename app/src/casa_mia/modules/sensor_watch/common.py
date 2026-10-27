@@ -327,3 +327,26 @@ def _span(band: dict[str, Any]) -> str:
     low = "…" if band["from"] is None else f"{band['from']:g}"
     high = "…" if band["to"] is None else f"{band['to']:g}"
     return f"{low}–{high}"
+
+
+def displayed(value: Any, precision: int | None) -> Any:
+    """A reading as Home Assistant shows it: a number rounded to the entity's display
+    precision when it has one, anything else as it is. The same rule as the integration's
+    levels.displayed, which gives each row its precision (a test holds them together)."""
+    if precision is None:
+        return value
+    try:
+        return f"{float(value):.{precision}f}"
+    except (TypeError, ValueError):
+        return value
+
+
+def precision_of(entry: dict[str, Any]) -> int | None:
+    """A sensor's display precision from its entity registry entry (yours, else its
+    integration's suggested one), as HA's frontend takes it; none for anything else."""
+    if not str(entry.get("entity_id", "")).startswith("sensor."):
+        return None
+    options = (entry.get("options") or {}).get("sensor") or {}
+    if (precision := options.get("display_precision")) is not None:
+        return precision
+    return options.get("suggested_display_precision")

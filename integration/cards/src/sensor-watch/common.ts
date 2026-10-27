@@ -105,3 +105,20 @@ export { OPEN, openNote } from "../../../../app/web/src/open.ts";
 export function appPanel(panels: Record<string, any> | undefined): { url_path: string } | undefined {
   return Object.values(panels ?? {}).find((p) => /(^|_)casa_mia$/.test(p?.config?.addon ?? ""));
 }
+
+/** Each level's colour, in HA's theme: the card's rows, the eye, the Status sensor's icon. */
+export const LEVEL_COLOR: Record<Level, string> = {
+  nominal: "var(--success-color, #43a047)",
+  task: "var(--info-color, #039be5)",
+  warning: "var(--warning-color, #ffa600)",
+  error: "var(--error-color, #db4437)",
+  critical: "var(--error-color, #db4437)",
+};
+
+/** The Status sensor's icon colour (its level's), or none for any other entity: HA colours
+ * no sensor by its state, so ours is told (level-colour.ts). */
+export function levelColour(stateObj: { entity_id: string; state: string } | undefined, entities: Record<string, any> | undefined): string | undefined {
+  const e = stateObj && entities?.[stateObj.entity_id];
+  if (e?.platform !== "casa_mia" || e?.translation_key !== "sensor_watch_status") return undefined;
+  return LEVEL_COLOR[stateObj!.state as Level];
+}

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.11-b18
+
+- Sensor Watch: values are shown rounded as Home Assistant shows them (the sensor's display precision, yours or its integration's), on the page, in the event and notifications, the list service and the card: a grid frequency reads 49.95, not 49.9500007629395.
+- Sensor Watch: the **Status** sensor's icon takes its level's colour on dashboards (tiles, badges, heading badges, and entity rows with State colour on): green when nominal, blue for a task, amber for a warning, red for an error or critical. Home Assistant colours no sensor by its state, so Casa Mia's cards do it. Restart Home Assistant after updating, then reload the browser.
 ## 2026.10.11-b17
 
 - Sensor Watch: a new group no longer greys out every match for no visible reason. "Members follow" is now **Their levels**. When nothing that matches has built-in levels (a pressure, most numbers), it asks you to choose instead of passing them all over. **New profile…** beside the choice makes a profile there and then and chooses it. Above the list it says when none would join and why, and the button says how many will ("Make it · 4 join").

@@ -21,7 +21,7 @@ from typing import Any
 import aiohttp
 
 from ...ha import HA, HAError
-from .common import APPLY, EVENT
+from .common import APPLY, EVENT, displayed
 from .common import own as is_own
 from .status import MISSING, Status
 
@@ -382,7 +382,15 @@ class Live:
         _LOGGER.debug("live levels: %s -> %s", eid, data.get("level"))
         row = {
             k: data.get(k)
-            for k in ("name", "level", "value", "message", "real", "escalated")
+            for k in (
+                "name",
+                "level",
+                "value",
+                "precision",
+                "message",
+                "real",
+                "escalated",
+            )
         }
         # The real level's since (an escalation keeps it); older integrations: now.
         since = data.get("since") or event.get("time_fired") or ""
@@ -408,11 +416,13 @@ class Live:
                 values[e] = v
         values = {e: v for e, v in values.items() if v is not None}
         with self._cond:
-            news = {
-                e: v
+            # Rounded as HA shows it, by the precision the integration's row carries.
+            shown = {
+                e: displayed(v, self._levels[e].get("precision"))
                 for e, v in values.items()
-                if e in self._levels and self._levels[e].get("value") != v
+                if e in self._levels
             }
+            news = {e: v for e, v in shown.items() if self._levels[e].get("value") != v}
         if news:
 
             def take() -> None:

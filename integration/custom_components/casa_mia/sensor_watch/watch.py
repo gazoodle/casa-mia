@@ -36,6 +36,7 @@ from .const import EVENT, MODULE
 from .levels import (
     UNAVAILABLE,
     UNAVAILABLE_HOLD,
+    displayed,
     escalation,
     level_of,
     rank,
@@ -349,7 +350,8 @@ class Watcher:
         name = record.get("name") or (state.name if state else eid)
         before = self.now.get(eid) or {}
         previous = before.get("level")
-        value = reading(record, state, dt_util.now())
+        precision = self._precision(eid, record)
+        value = displayed(reading(record, state, dt_util.now()), precision)
         if since is None:
             since = state.last_changed if initial and state else dt_util.utcnow()
         # Worse on its own: the ladder starts again from this level's time, but what's
@@ -366,6 +368,8 @@ class Watcher:
             "value": value,
             "since": since.isoformat(),
             "name": name,
+            # So the app rounds the live values it shows as this one is (live.py).
+            **({"precision": precision} if precision is not None else {}),
             **({"attribute": record["attribute"]} if record.get("attribute") else {}),
             **({"days_until": True} if record.get("days_until") else {}),
         }
@@ -381,6 +385,22 @@ class Watcher:
             self._tell()  # its reading's level moved, not what's shown
             return
         self._fire(eid, self.now[eid], previous)
+
+    def _precision(self, eid: str, record: dict[str, Any]) -> int | None:
+        """A sensor's display precision in Home Assistant (yours, else its
+        integration's suggested one), for its own state; none for an attribute or the
+        days until a date. Looked up at each change of level.
+        ponytail: a precision changed in HA's settings shows from the sensor's next
+        change of level, or Refresh state."""
+        if record.get("attribute") or record.get("days_until"):
+            return None
+        entry = er.async_get(self.hass).async_get(eid)
+        if entry is None or entry.domain != "sensor":
+            return None
+        options = entry.options.get("sensor") or {}
+        if (precision := options.get("display_precision")) is not None:
+            return precision
+        return options.get("suggested_display_precision")
 
     @callback
     def _escalate(self, eid: str) -> bool:
@@ -507,6 +527,7 @@ class Watcher:
                     "level": row["level"],
                     "previous": previous,
                     "value": row["value"],
+                    "precision": row.get("precision"),  # its value's, as HA shows it
                     "message": row["message"],
                     "group": (self.records.get(eid) or {}).get("group"),
                     "area": self._area(eid),

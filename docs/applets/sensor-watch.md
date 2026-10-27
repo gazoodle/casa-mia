@@ -631,7 +631,9 @@ watched until you accept it.
 
 The **Sensor Watch** device has:
 
-- **Status:** the worst level now (nominal, task, warning, error or critical). Its
+- **Status:** the worst level now (nominal, task, warning, error or critical), its icon
+  in that level's colour on a dashboard (a tile, a badge, an entity row with State colour
+  on): Home Assistant colours no sensor by its state, so Casa Mia's cards do. Its
   attributes hold `watching` (how many sensors) and, for each level, the ten longest
   standing culprits (`task_list`, `warning_list`, `error_list`, `critical_list`: each
   with its entity, name, value, message and since when).

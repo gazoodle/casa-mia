@@ -4,7 +4,12 @@ bands, on/off, exact states, the summary, and Home Assistant's own health."""
 import pytest
 
 from casa_mia.modules.sensor_watch import LEVELS
-from casa_mia.modules.sensor_watch.common import BadRequest, clean
+from casa_mia.modules.sensor_watch.common import (
+    BadRequest,
+    clean,
+    displayed,
+    precision_of,
+)
 from sensor_watch_fakes import ALARM, SALT, _entry, _now, levels
 
 
@@ -77,6 +82,46 @@ def test_listing_is_worst_first_and_skips_nominal_unless_asked():
     now = _now(a="warning", b="nominal", c="critical", d="task")
     assert [r["entity_id"] for r in levels.listing(now)] == ["c", "a", "d"]
     assert [r["entity_id"] for r in levels.listing(now, ["nominal"])] == ["b"]
+
+
+@pytest.mark.parametrize(
+    ("value", "precision", "shown"),
+    [
+        ("49.9500007629395", 2, "49.95"),  # a grid frequency, as HA shows it
+        ("230", 1, "230.0"),  # its precision's digits, as HA shows them
+        ("242.4", 0, "242"),
+        (
+            "49.9500007629395",
+            None,
+            "49.9500007629395",
+        ),  # no precision: every digit, as HA
+        ("unavailable", 1, "unavailable"),
+        ("on", 2, "on"),
+        (None, 2, None),
+    ],
+)
+def test_a_value_is_shown_rounded_as_home_assistant_shows_it(value, precision, shown):
+    # The integration's rows and the app's live values: the same rule.
+    assert levels.displayed(value, precision) == shown
+    assert displayed(value, precision) == shown
+
+
+def test_a_sensors_display_precision_as_home_assistant_takes_it():
+    def entry(eid, **sensor):
+        return {"entity_id": eid, "options": {"sensor": sensor} if sensor else {}}
+
+    assert precision_of(entry("sensor.freq", suggested_display_precision=2)) == 2
+    assert (
+        precision_of(
+            entry("sensor.freq", suggested_display_precision=2, display_precision=0)
+        )
+        == 0
+    )
+    assert precision_of(entry("sensor.freq")) is None
+    assert (
+        precision_of(entry("number.pace", display_precision=1)) is None
+    )  # sensors only
+    assert precision_of({}) is None
 
 
 def test_one_entitys_watch_for_the_eye_in_its_dialog():

@@ -185,6 +185,18 @@ def listing(
     return sorted(rows, key=lambda r: (-rank(r["level"]), r.get("since") or ""))
 
 
+def displayed(value: Any, precision: int | None) -> Any:
+    """A reading as Home Assistant shows it: a number rounded to the entity's display
+    precision when it has one (HA's frontend shows every digit otherwise), anything else
+    as it is. The app's live values use the same rule (its common.displayed)."""
+    if precision is None:
+        return value
+    try:
+        return f"{float(value):.{precision}f}"
+    except (TypeError, ValueError):
+        return value
+
+
 def watching(
     records: dict[str, Any], now: dict[str, dict[str, Any]], entity_id: str
 ) -> dict[str, Any]:
