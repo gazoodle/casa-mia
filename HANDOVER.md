@@ -335,7 +335,7 @@ guest card SVG), `page.py` (welcome, goodbye), `supervisor.py`.
   `levels.in_bands` holds the current level within it of an edge (worse only once
   surely past, better at the real edge, the start the better way), so `level_of` now
   takes the current level. The library's mains voltage profiles have ±1 %.
-- **2026.10.11-b16: the eye in HA's entity dialog, and editor fixes** (not yet on the box).
+- **2026.10.11-b16: the eye in HA's entity dialog, and editor fixes** (on the box 2026-10-27; the owner: works a treat).
   `cards/src/sensor-watch/eye.ts` patches `ha-more-info-dialog`'s `updated` and puts
   `casa-mia-watch-eye` just after the `headerTitle` span (outside the template's parts,
   so HA's redraws leave it), slot `headerActionItems`, in the `info` view only; the same
@@ -344,8 +344,7 @@ guest card SVG), `page.py` (welcome, goodbye), `supervisor.py`.
   hashed into both builds) and navigates to the app's panel (found by `config.addon`
   ending `casa_mia`); the page takes the note and opens the editor. Checked: the command
   under real HA (scratch harness), the note on the app run locally (headless Chromium).
-  **Not checked in a real HA page:** the eye's placement and the panel hop. Watch for it
-  on the box. The blueprint lost its `source_url` (Spook kept offering an "update").
+  Seen working on the box (2026-10-27): the eye's placement and the panel hop. The blueprint lost its `source_url` (Spook kept offering an "update").
   Running the app on the Mac for UI checks: see the UI review item in the backlog.
 - **2026.10.11-b15: notifications in words, and escalation** (not yet on the box).
   The blueprint's titles lead with the level as a word, and a `notify.mobile_app_…`

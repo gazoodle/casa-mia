@@ -8,6 +8,7 @@ import { Dialog, Field } from "../ui";
 import { FITS, MODE_NAMES, NO_FILTERS, swApi, type Filters, type Group, type Profile, type WatchRecord, type WatchView } from "./common";
 import { useCandidates } from "./dialogs";
 import { FilterBar } from "./filters";
+import { ProfileDialog } from "./profiles";
 import css from "./sensor-watch.module.css";
 import guest from "../guest.module.css";
 import ui from "../ui.module.css";
@@ -19,7 +20,7 @@ type Joined = WatchView & { joined: number };
 /** A group's "profile" that sets each member up by what it is (groups.py DEFAULTS). */
 const DEFAULTS = "defaults";
 const follows = (id: string, profiles: Profile[]) =>
-  id === DEFAULTS ? "the defaults, by what it is" : (profiles.find((p) => p.id === id)?.name ?? "a missing profile");
+  id === DEFAULTS ? "built-in levels, by what each is" : (profiles.find((p) => p.id === id)?.name ?? "a missing profile");
 
 const FILTER_NAMES: Partial<Record<keyof Filters, string>> = {
   q: "search",
@@ -80,7 +81,7 @@ export function GroupsSection({
               <span className={css.what}>
                 <strong>{g.name}</strong>
                 <span className={css.note}>
-                  {described(g, labels)} · follows {follows(g.profile, profiles)}
+                  {described(g, labels)} · levels: {follows(g.profile, profiles)}
                   {g.left.length > 0 && ` · ${g.left.length} left out by hand`}
                 </span>
               </span>
@@ -118,6 +119,7 @@ export function GroupsSection({
           group={editing ?? undefined}
           profiles={profiles}
           records={records}
+          change={change}
           onClose={() => setEditing(undefined)}
           onSave={(body) =>
             change(
@@ -135,36 +137,47 @@ function GroupDialog({
   group,
   profiles,
   records,
+  change,
   onClose,
   onSave,
 }: {
   group?: Group;
   profiles: Profile[];
   records: WatchRecord[];
+  change: Change;
   onClose: () => void;
   onSave: (body: { name: string; filters: Partial<Filters>; profile: string; left: string[] }) => Promise<boolean>;
 }) {
   const [name, setName] = useState(group?.name ?? "");
-  const [profile, setProfile] = useState(group?.profile ?? DEFAULTS);
+  // Where the members' levels come from: a profile's id, DEFAULTS, or "" (not chosen).
+  // Untouched in a new group: the built-in levels, unless no match has any (a pressure,
+  // most numbers), when it asks rather than pass every one over (seen 2026-10-27).
+  const [picked, setPicked] = useState<string | undefined>(group?.profile);
+  const [making, setMaking] = useState(false); // a new profile, from here
   const [filters, setFilters] = useState<Filters>({ ...NO_FILTERS, ...group?.filters });
   const [saving, setSaving] = useState(false);
   const { view, error } = useCandidates(filters);
   const chosen = Object.fromEntries(Object.entries(filters).filter(([k, v]) => v && k in FILTER_NAMES));
+  const shown = view?.sensors ?? [];
+  const profile = picked ?? (view && shown.length && !shown.some((c) => c.has_default) ? "" : DEFAULTS);
   const kind = profiles.find((p) => p.id === profile)?.kind;
   // Who each match would be: a member, or passed over (another kind, or watched already).
   const owner = new Map(records.map((r) => [r.entity_id, r.group]));
   const left = new Set(group?.left ?? []);
   const why = (eid: string, k: string, hasDefault?: boolean) =>
-    profile === DEFAULTS && !hasDefault
-      ? "no default for it: passed over"
-      : kind && !(FITS[k] ?? []).includes(kind)
-        ? "another kind: passed over"
-        : left.has(eid)
-          ? "stopped by hand: left out"
-          : owner.has(eid) && owner.get(eid) !== group?.id
-            ? "watched already: keeps its own levels"
-            : null;
-  const shown = view?.sensors ?? [];
+    !profile
+      ? "its levels not chosen yet"
+      : profile === DEFAULTS && !hasDefault
+        ? "no built-in levels for it: passed over"
+        : kind && !(FITS[k] ?? []).includes(kind)
+          ? "another kind: passed over"
+          : left.has(eid)
+            ? "stopped by hand: left out"
+            : owner.has(eid) && owner.get(eid) !== group?.id
+              ? "watched already: keeps its own levels"
+              : null;
+  const joining = shown.filter((c) => !why(c.entity_id, c.kind, c.has_default)).length;
+  const whole = !!view && view.total === shown.length; // every match shown, so the count is all of them
   const save = async () => {
     setSaving(true);
     const ok = await onSave({ name: name.trim(), filters: chosen, profile, left: [...left] });
@@ -182,8 +195,9 @@ function GroupDialog({
           <button className={ui.button} onClick={onClose}>
             Cancel
           </button>
-          <button className={ui.primary} disabled={saving || !name.trim() || !Object.keys(chosen).length} onClick={save}>
+          <button className={ui.primary} disabled={saving || !name.trim() || !Object.keys(chosen).length || !profile} onClick={save}>
             {group ? "Save" : "Make it"}
+            {whole && Object.keys(chosen).length > 0 && ` · ${joining} join`}
           </button>
         </>
       }
@@ -192,24 +206,38 @@ function GroupDialog({
         <input value={name} maxLength={80} onChange={(e) => setName(e.target.value)} autoFocus={!group} />
       </Field>
       <Field
-        label="Members follow"
-        help="The defaults set each member up by what it is (a cover closed, a lock locked, a leak critical), passing over what has no default. A profile gives them all the same levels; those it doesn't fit (another kind) are passed over."
+        label="Their levels"
+        help="What counts as nominal, a task, a warning and so on, for every member. Built-in levels suit things Sensor Watch knows (a door closed, a leak critical, a battery low) and pass over the rest. A profile gives them all the same levels: one of yours, from the library, or a new one made here."
       >
-        <Select value={profile} onChange={(picked) => setProfile(picked)}>
-          <option value={DEFAULTS}>The defaults, by what it is</option>
-          {profiles.map((p) => (
-            <option key={p.id} value={p.id}>
-              {/* Library names already say it: "Door (on/off)". */}
-              {p.name.endsWith(")") ? p.name : `${p.name} (${MODE_NAMES[p.kind]})`}
-            </option>
-          ))}
-        </Select>
+        <span className={css.levelsFrom}>
+          <Select value={profile} onChange={setPicked} placeholder="Choose their levels…" aria-label="Their levels">
+            <option value={DEFAULTS}>Built-in levels, by what each is</option>
+            {profiles.map((p) => (
+              <option key={p.id} value={p.id}>
+                {/* Library names already say it: "Door (on/off)". */}
+                {p.name.endsWith(")") ? p.name : `${p.name} (${MODE_NAMES[p.kind]})`}
+              </option>
+            ))}
+          </Select>
+          <button className={ui.button} onClick={() => setMaking(true)}>
+            New profile…
+          </button>
+        </span>
       </Field>
       <p className={css.note}>What it takes: at least one filter. Checked each minute, so new matches join by themselves.</p>
       <FilterBar value={filters} options={view?.options} onChange={setFilters} />
       {error && <p className={css.problem}>{error}</p>}
       {view && Object.keys(chosen).length > 0 && (
         <>
+          {shown.length > 0 && joining === 0 && (
+            <p className={ui.callout} role="status">
+              {!profile
+                ? `None of ${whole ? "these" : "the ones shown"} would join yet: they have no built-in levels (a pressure, most numbers), so choose their levels above, or make a profile for them with New profile…`
+                : profile === DEFAULTS
+                  ? "None would join: none of these has built-in levels. Choose a profile above, or make one with New profile…"
+                  : "None would join: each is passed over, for the reason beside it."}
+            </p>
+          )}
           <p className={css.note}>
             {view.total} match{view.total > shown.length ? `; the first ${shown.length} shown, narrow the filters to see the rest` : ""}. Anything here that
             shouldn't be? Rule it out in the search with a minus word (<code>-vcc</code>), so it stays out as new ones arrive too.
@@ -236,6 +264,7 @@ function GroupDialog({
           </ul>
         </>
       )}
+      {making && <ProfileDialog onSaved={(p) => setPicked(p.id)} onClose={() => setMaking(false)} change={change} />}
     </Dialog>
   );
 }

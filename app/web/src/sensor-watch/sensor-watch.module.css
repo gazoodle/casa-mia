@@ -629,3 +629,15 @@
 .levelless {
   composes: cm-pill cm-warn from global;
 }
+
+/* A group's levels: the choice taking the room, New profile… beside it. */
+.levelsFrom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.levelsFrom > :first-child {
+  flex: 1;
+  min-width: 0;
+}

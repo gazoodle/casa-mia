@@ -163,6 +163,7 @@ export function ProfileDialog({
   profile,
   copyOf,
   onDuplicate,
+  onSaved,
   onClose,
   change,
 }: {
@@ -170,6 +171,8 @@ export function ProfileDialog({
   copyOf?: Profile;
   /** Start a new profile from this one's levels (as they are saved). */
   onDuplicate?: (p: Profile) => void;
+  /** The profile as saved (a new group's dialog chooses the one made from it). */
+  onSaved?: (p: Profile) => void;
   onClose: () => void;
   change: Change;
 }) {
@@ -181,11 +184,17 @@ export function ProfileDialog({
     if (!(await L.sane())) return;
     setSaving(true);
     const body = { name: name.trim(), ...L.body() };
+    let saved: Profile | undefined;
     const ok = await change(
-      () => (profile ? swApi.put<WatchView>(`profiles/${profile.id}`, body) : swApi.post<WatchView>("profiles", body)),
+      async () => {
+        const v = await (profile ? swApi.put<WatchView>(`profiles/${profile.id}`, body) : swApi.post<WatchView>("profiles", body));
+        saved = v.profiles?.find((p) => p.name === body.name);
+        return v;
+      },
       profile ? `${body.name} saved${profile.followers ? `; ${profile.followers} sensors follow it` : ""}` : `New profile ${body.name}`,
     );
     setSaving(false);
+    if (ok && saved) onSaved?.(saved);
     if (ok) onClose();
   };
 

@@ -66,7 +66,7 @@ trouble.
 
 1. **Groups for the big classes of thing.** Every Shelly plug's voltage, every leak
    sensor, every battery, every Hue light, every window: a group is a saved filter and a
-   profile (or the defaults, by what each thing is). Everything matching is watched now,
+   profile (or built-in levels, by what each thing is). Everything matching is watched now,
    and whatever matches later joins by itself, so the plug you put in next month is
    watched without you remembering. The rule of thumb: **more than two of the same kind
    is a group; a single thing is a watch.**
@@ -172,7 +172,7 @@ Twenty Shelly plugs all measure the mains, so watch them as one.
 1. **Profiles → From the library…**, search "UK mains" (or your country) and tick **UK mains voltage (current law)**.
 2. **Groups → + New group**: name it *Mains voltage*; filter by integration *Shelly*,
    device class *voltage* and category *primary* (which leaves out an ESP board's own
-   VCC reading); members follow *UK mains voltage (current law)*. The preview lists what matches:
+   VCC reading); their levels are *UK mains voltage (current law)*. The preview lists what matches:
    anything that shouldn't be there, rule out with a minus word in the search
    (`-vcc`).
 3. **The card:** add a Sensor Watch card to the wall tablet's dashboard with group
@@ -213,7 +213,7 @@ reminders of its own: **Rinse filter**, **Clean filter**, **Change water**, **Ch
 due. Sensor Watch reads a date as the days until it, so:
 
 1. **Groups → + New group**: *Spa reminders*, domain *date* (and the spa's device, or
-   a search for "due"), members follow **the defaults, by what it is**, which for a date
+   a search for "due"), their levels are **built-in levels, by what each is**, which for a date
    is **Reminder due (days)**: a task in the fortnight before, a warning in its week, an
    error once it's passed, critical a month after. Or follow that profile from the
    library, under Reminders and due dates.
@@ -585,10 +585,13 @@ with it: the import starts those unticked, and says so.
 <img src="../screenshots/sensor-watch-group.webp" alt="Editing the group Flood Lights: its name, Members follow a security light profile, the search Flood -Unused with the Domain: light chip, and the preview of the lights that match" width="800">
 
 A group is a saved set of filters (domain, area, label, integration, device, device
-class, kind, a search) and what its members follow: a profile, or **the defaults, by
-what it is** (each member set up as Watch an entity would: a cover closed, a lock
-locked, a leak critical; what has no default is passed over). Every roof window is
-domain `cover` and the defaults: no profile needed. Everything matching is watched, following the
+class, kind, a search) and **their levels**: a profile, or **built-in levels, by what
+each is** (each member set up as Watch an entity would: a cover closed, a lock locked, a
+leak critical; what has no built-in levels is passed over). Every roof window is domain
+`cover` with built-in levels: no profile needed. A pressure, and most numbers, have no
+built-in levels: when nothing that matches has any, the dialog asks you to choose, and
+**New profile…** beside the choice makes one there and then. Above the list it says when
+none would join, and why; its button says how many will. Everything matching is watched, following the
 profile, and **whatever matches later joins by itself**: put in a new plug and it's
 watched within a minute, no setting up. Make one with **+ New group**: as you choose the
 filters it lists what they match (up to 200), so you see what it takes before it takes
