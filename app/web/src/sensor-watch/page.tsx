@@ -24,7 +24,9 @@ const HEAD = {
   blurb: "Any sensor given bands of values, each with a level, so what needs doing or has gone wrong shows before the family notices.",
 };
 
-export function SensorWatchPage({ state }: { state?: string }) {
+/** `watch`: an entity whose watch to open (new or not), asked at `at` (the eye in its
+ * Home Assistant dialog; open.ts). */
+export function SensorWatchPage({ state, watch, at }: { state?: string; watch?: string; at?: string }) {
   const [view, setView] = useState<WatchView>();
   const [live, setLive] = useState<LevelsView>();
   const [missing, setMissing] = useState<string[]>([]);
@@ -48,6 +50,16 @@ export function SensorWatchPage({ state }: { state?: string }) {
     swApi.get<WatchView>("").then(setView, (err) => toast((err as Error).message, "bad"));
     swApi.get<{ missing: string[] }>("check").then((c) => setMissing(c.missing), () => undefined);
   }, [toast]);
+
+  // An entity's watch asked for: open, once the records are here (so a watched one opens
+  // as it is), and the ask taken off the address, so a reload doesn't open it again.
+  const loaded = !!view;
+  useEffect(() => {
+    if (!watch || !loaded) return;
+    setEditing({ entityId: watch, record: view?.records.find((r) => r.entity_id === watch) });
+    history.replaceState(null, "", `${location.pathname}#/sensor-watch`); // not against <base>
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per ask, not per view
+  }, [watch, at, loaded]);
 
   // The live levels, pushed: each ask is held by the app until something changes in
   // Home Assistant (or 25 s pass), then asked again at once.

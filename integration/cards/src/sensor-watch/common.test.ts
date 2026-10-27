@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { DEFAULTS, columns, due, parts, since, stateColor } from "./common.ts";
+import { DEFAULTS, appPanel, columns, due, openNote, parts, since, stateColor } from "./common.ts";
 
 test("how long a level has stood", () => {
   const now = Date.parse("2026-10-11T12:00:00Z");
@@ -31,4 +31,17 @@ test("a state's colour falls back from device class to domain to active or not",
     "var(--state-binary_sensor-door-on-color, var(--state-binary_sensor-on-color, var(--state-binary_sensor-active-color, var(--state-icon-color))))",
   );
   assert.equal(stateColor("light.lamp", "off"), "var(--state-light-off-color, var(--state-light-inactive-color, var(--state-inactive-color)))");
+});
+
+test("the eye finds the app's panel and leaves its page a note", () => {
+  const panels = {
+    lovelace: { url_path: "lovelace", config: { mode: "storage" } },
+    other: { url_path: "abc_casa_mia_extra", config: { addon: "abc_casa_mia_extra" } },
+    mine: { url_path: "5c53de3b_casa_mia", config: { addon: "5c53de3b_casa_mia" } },
+  };
+  assert.equal(appPanel(panels)?.url_path, "5c53de3b_casa_mia");
+  assert.equal(appPanel({ l: { url_path: "local_casa_mia", config: { addon: "local_casa_mia" } } })?.url_path, "local_casa_mia");
+  assert.equal(appPanel({ lovelace: panels.lovelace }), undefined);
+  assert.equal(appPanel(undefined), undefined);
+  assert.deepEqual(JSON.parse(openNote("sensor.loft_tablet_battery", 5)), { hash: "#/sensor-watch?watch=sensor.loft_tablet_battery&at=5", at: 5 });
 });

@@ -79,6 +79,36 @@ def test_listing_is_worst_first_and_skips_nominal_unless_asked():
     assert [r["entity_id"] for r in levels.listing(now, ["nominal"])] == ["b"]
 
 
+def test_one_entitys_watch_for_the_eye_in_its_dialog():
+    now = {
+        "sensor.salt": {
+            "level": "warning",
+            "message": "m",
+            "since": "t",
+            "value": "9",
+            "real": "task",
+            "escalated": True,
+        }
+    }
+    records = {"sensor.salt": SALT, "sensor.new": SALT}
+    assert levels.watching(records, now, "sensor.salt") == {
+        "watched": True,
+        "level": "warning",
+        "message": "m",
+        "since": "t",
+        "real": "task",
+        "escalated": True,
+    }
+    assert levels.watching(records, now, "sensor.new") == {
+        "watched": True
+    }  # no level yet
+    # Not watched: HA's own health rows (in `now`, not records) and anything else.
+    assert levels.watching(
+        records, now | {"recorder": {"level": "error"}}, "recorder"
+    ) == {"watched": False}
+    assert levels.watching(records, now, "light.hall") == {"watched": False}
+
+
 def test_home_assistants_own_health():
     first_bad: dict[str, float] = {}
     rows = levels.system_rows(

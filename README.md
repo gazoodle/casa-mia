@@ -183,6 +183,8 @@ words. The trick is saying it once, not fifty times:
   its mode), or just "is it there?", either way round.
 - **Home Assistant itself:** the Recorder, History, and every integration that fails to
   set up.
+- **From any entity:** an eye in its own Home Assistant dialog says whether it's watched
+  and how it is; a tap opens its watch, or starts one.
 - **Told once, properly:** a blueprint sends it to your phone at the level you choose or
   worse, colour-coded, and clears it when it's sorted; a card shows what needs looking at
   and vanishes on a quiet day; an event and a service for everything else.
@@ -567,6 +569,12 @@ You need **Home Assistant 2026.3 or later**, on Home Assistant OS or a Supervise
 
 Updates arrive like any other app's: Home Assistant offers them under **Settings → Updates**,
 and the integrations are updated along with the app.
+
+**Leaning on Home Assistant's frontend.** Some parts reach into Home Assistant's own pages
+where there is no public API for it, as many community cards do: the Tablet Layout,
+garnish, the Over layer and Sensor Watch's eye in an entity's dialog. A Home Assistant
+update can change what they lean on. If it does, that part says so in the browser's
+console and stays out of the way, and a Casa Mia update follows.
 
 ## Documentation
 

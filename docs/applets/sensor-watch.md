@@ -635,6 +635,22 @@ The **Sensor Watch** device has:
 - **Tasks**, **Warnings**, **Errors** and **Critical:** how many sensors are at each level.
 - **Problem:** on while any sensor is at warning or worse (a task alone isn't a problem).
 
+### The eye in an entity's dialog
+
+Open any entity in Home Assistant (the dialog with its name, its history and the settings
+cog) and, for an admin, an eye sits among the icons at the top:
+
+- **An outlined eye with a plus:** not watched. Tap it to watch it: Casa Mia's Sensor
+  Watch page opens with its editor, its history drawn and the profiles that fit, as
+  **Watch an entity** does.
+- **An eye in its level's colour, with the level:** watched, and how it is now (on a
+  phone, the colour alone). Tap it to open its watch. The eye follows the level while the
+  dialog is open.
+
+It needs Casa Mia's app in the sidebar (**Show in sidebar** on its Info tab). It leans on
+the dialog's insides, which aren't public API: if a Home Assistant update moves them, the
+eye isn't shown and the browser's console says why.
+
 ### Home Assistant's own health
 
 Sensor Watch also watches Home Assistant itself, counted like any watched sensor (in the

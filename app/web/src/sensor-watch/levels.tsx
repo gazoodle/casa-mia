@@ -203,13 +203,13 @@ export function LevelFields({ L, unit = "", seen = [], seenLabel = "Seen", extra
         {L.kind === "numeric" && (
           <Field
             label="Accuracy"
-            help="How far the meter may be out. A reading that close to an edge holds its level: worse only once surely past it, better as soon as back inside. Empty for none."
+            help="How far the meter may be out, as a % of the edge or in its unit. A reading that close to an edge holds its level: worse only once surely past it, better as soon as back inside. Empty for none."
           >
             <span className={css.accuracy}>
               ±
               <input inputMode="decimal" placeholder="none" value={L.accuracyAmount} onChange={(e) => L.setAccuracyAmount(e.target.value)} aria-label="Accuracy" />
               <Select value={L.accuracyPercent ? "%" : "unit"} onChange={(v) => L.setAccuracyPercent(v === "%")}>
-                <option value="%">% of the edge</option>
+                <option value="%">%</option>
                 <option value="unit">{unit || "in its unit"}</option>
               </Select>
             </span>
@@ -235,26 +235,29 @@ export function LevelFields({ L, unit = "", seen = [], seenLabel = "Seen", extra
         >
           <Slider value={Number(L.holdOff) || 0} steps={HOLD_OFFS} format={seconds} ends={["none", "a day"]} onChange={(v) => L.setHoldOff(String(v))} />
         </Field>
-        <Field
-          label="Escalate"
-          help="A level left standing moves up: having been at it this long (timed from when it began), it shows the next one up, then that one's wait starts. Back to a better level starts again."
-        >
-          {LEVELS.slice(1, -1).map((lv, i) => (
-            <span key={lv} className={css.escalate}>
-              <span>
-                {LEVEL_NAMES[lv]} → {LEVEL_NAMES[LEVELS[i + 2]]}
-              </span>
-              <Slider
-                value={L.escalate[lv] ?? 0}
-                steps={ESCALATIONS}
-                format={(s) => (s ? `after ${seconds(s)}` : "never")}
-                ends={["never", "90 days"]}
-                onChange={(v) => L.setEscalate({ ...L.escalate, [lv]: v })}
-              />
-            </span>
-          ))}
-        </Field>
         {extra}
+        {/* A row of its own: three sliders don't fit one of the grid's columns. */}
+        <div className={css.escalateRow}>
+          <Field
+            label="Escalate"
+            help="A level left standing moves up: having been at it this long (timed from when it began), it shows the next one up, then that one's wait starts. Back to a better level starts again."
+          >
+            <span className={css.escalate}>
+              {LEVELS.slice(1, -1).map((lv, i) => (
+                <span key={lv}>
+                  {LEVEL_NAMES[lv]} → {LEVEL_NAMES[LEVELS[i + 2]]}
+                  <Slider
+                    value={L.escalate[lv] ?? 0}
+                    steps={ESCALATIONS}
+                    format={(s) => (s ? `after ${seconds(s)}` : "never")}
+                    ends={["never", "90 days"]}
+                    onChange={(v) => L.setEscalate({ ...L.escalate, [lv]: v })}
+                  />
+                </span>
+              ))}
+            </span>
+          </Field>
+        </div>
       </div>
     </>
   );

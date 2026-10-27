@@ -17,6 +17,21 @@ const EXAMPLE: Row[] = [
   { entity_id: "", name: "Softener salt", level: "task", value: "18 %", message: "Top up the salt", since: ago(50) },
 ];
 
+/** Each level's colour (`--cm-level`) on an element classed by its level, in HA's theme;
+ * the card's rows and the eye in an entity's dialog (watch-eye.ts). */
+export const LEVEL_TONES = css`
+  .task {
+    --cm-level: var(--info-color, #039be5);
+  }
+  .warning {
+    --cm-level: var(--warning-color, #ffa600);
+  }
+  .error,
+  .critical {
+    --cm-level: var(--error-color, #db4437);
+  }
+`;
+
 export class SensorWatchCard extends LitElement {
   static properties = { _config: { state: true }, _rows: { state: true }, _problem: { state: true }, _editing: { state: true } };
   _config?: Config;
@@ -198,6 +213,7 @@ export class SensorWatchCard extends LitElement {
 
   static styles = [
     PILLS,
+    LEVEL_TONES,
     css`
     ha-card {
       padding: 4px 0;
@@ -220,16 +236,6 @@ export class SensorWatchCard extends LitElement {
     }
     .row:hover {
       background: var(--secondary-background-color);
-    }
-    .task {
-      --cm-level: var(--info-color, #039be5);
-    }
-    .warning {
-      --cm-level: var(--warning-color, #ffa600);
-    }
-    .error,
-    .critical {
-      --cm-level: var(--error-color, #db4437);
     }
     /* A status pill in its level's colour (pills.ts; card-level), critical filled. */
     .icon {

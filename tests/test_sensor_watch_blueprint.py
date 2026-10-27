@@ -35,6 +35,10 @@ def test_the_blueprint_is_sound():
     text = (COMPONENT / "blueprints" / "notify.yaml").read_text()
     bp = yaml.load(text, _Loader)  # noqa: S506 (our own loader, SafeLoader based)
     assert bp["blueprint"]["domain"] == "automation"
+    # The integration keeps it current. A source_url (GitHub's main) never matched the
+    # copy written with the dropdowns filled in, so updaters (Spook) always offered an
+    # "update" that would have put back an older blueprint with empty dropdowns.
+    assert "source_url" not in bp["blueprint"]
     declared = set(bp["blueprint"]["input"])
     assert _inputs({k: v for k, v in bp.items() if k != "blueprint"}, set()) == declared
     fired = set(

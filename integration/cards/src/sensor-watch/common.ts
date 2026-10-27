@@ -90,3 +90,18 @@ export function since(iso: string, now: number): string {
   if (s < 86400) return `${Math.floor(s / 3600)} h`;
   return `${Math.floor(s / 86400)} d`;
 }
+
+// The eye in an entity's dialog (eye.ts): one entity's watch, from the integration's
+// websocket subscription (levels.watching), and a tap to its editor in the app.
+export const ENTITY = "casa_mia/sensor_watch/entity";
+/** Not watched; or watched, with its level once judged. */
+export type Watch = { watched: boolean; level?: Level; message?: string; escalated?: boolean; real?: Level; since?: string };
+
+// The note the app's page takes (its one source, also in the admin UI's build).
+export { OPEN, openNote } from "../../../../app/web/src/open.ts";
+
+/** The Casa Mia app's sidebar panel among HA's panels: its config names the app's slug,
+ * casa_mia after the repository's prefix (local_, or a hash for an added repository). */
+export function appPanel(panels: Record<string, any> | undefined): { url_path: string } | undefined {
+  return Object.values(panels ?? {}).find((p) => /(^|_)casa_mia$/.test(p?.config?.addon ?? ""));
+}

@@ -185,6 +185,18 @@ def listing(
     return sorted(rows, key=lambda r: (-rank(r["level"]), r.get("since") or ""))
 
 
+def watching(
+    records: dict[str, Any], now: dict[str, dict[str, Any]], entity_id: str
+) -> dict[str, Any]:
+    """One entity's watch, as the eye in its Home Assistant dialog shows it: whether it's
+    watched, and if so its level now (none yet while it waits out a hold-off)."""
+    if entity_id not in records:
+        return {"watched": False}
+    row = now.get(entity_id) or {}
+    keep = ("level", "message", "escalated", "real", "since")
+    return {"watched": True} | {k: row[k] for k in keep if row.get(k) is not None}
+
+
 def summary(now: dict[str, dict[str, Any]]) -> dict[str, Any]:
     """The worst level, a count per level, and the culprits per level (worst first,
     then longest standing), from each entity's current {level, message, value, since,

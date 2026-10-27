@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.10.11-b16
+
+- Sensor Watch: **an eye in Home Assistant's entity dialog**, for admins. An outlined eye with a plus when the entity isn't watched; a tap opens Casa Mia's Sensor Watch page with its editor, ready to watch it. When it's watched, the eye takes its level's colour, with the level beside it, and follows it live; a tap opens its watch. It needs the app in the sidebar. Restart Home Assistant after updating, then reload the browser.
+- Sensor Watch: in the watch and profile editors, Accuracy no longer runs into the field beside it, and Escalate has a row of its own (its three sliders side by side, stacked on a phone) instead of spilling off the dialog's edge.
+- Notify on Sensor Watch: no longer names a source on GitHub. Spook (and Home Assistant's re-import) compared the installed copy with GitHub's, which never matched (the installed one carries your groups and notify actions, and GitHub's lags behind), so it always offered an update that would have put back an older blueprint. The integration keeps it up to date itself. Restart Home Assistant after updating to have it written again.
+
 ## 2026.10.11-b15
 
 - Sensor Watch: a sensor found at a level other than nominal (at Home Assistant's start, when its watch is edited, or on Refresh state) now fires the event too, with `initial` true, once Home Assistant has started. Before, a problem that was there before a restart went unsaid, and the restart had cleared its notification. The Notify blueprint raises the sidebar notification again for it, but doesn't send it to a phone.

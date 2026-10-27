@@ -17,6 +17,7 @@ import { MODULES, type ModuleInfo } from "./modules";
 import type { HeaderView } from "./api";
 import { Photo, PhotoEditor, photoApi, photoUrl, type PhotoDraft } from "./photo";
 import { CopyButton } from "./ui";
+import { OPEN, takeOpen } from "./open";
 import css from "./app.module.css";
 import ui from "./ui.module.css";
 
@@ -28,14 +29,21 @@ const STATES: Record<string, [label: string, tone: string]> = {
   unconfigured: ["Needs setup", css.warn],
 };
 
-/** The page named by the URL's hash: "#/guest" opens Guest login. Hash routing works
- * unchanged under ingress's prefix. */
+/** The page named by the URL's hash: "#/guest" opens Guest login, and what follows a ?
+ * is for the page ("#/sensor-watch?watch=sensor.salt"). Hash routing works unchanged
+ * under ingress's prefix. */
 function useRoute(): string {
   const [route, setRoute] = useState(location.hash.slice(1) || "/");
   useEffect(() => {
     const onHash = () => setRoute(location.hash.slice(1) || "/");
+    const onNote = (e: StorageEvent) => e.key === OPEN && e.newValue && takeOpen();
     addEventListener("hashchange", onHash);
-    return () => removeEventListener("hashchange", onHash);
+    addEventListener("storage", onNote); // already open when the note came
+    takeOpen();
+    return () => {
+      removeEventListener("hashchange", onHash);
+      removeEventListener("storage", onNote);
+    };
   }, []);
   return route;
 }
@@ -130,7 +138,9 @@ export function App() {
 }
 
 /** The page for a route other than home (undefined for home). */
-function pageFor(route: string, modules: Record<string, ModuleHealth>): ReactNode {
+function pageFor(full: string, modules: Record<string, ModuleHealth>): ReactNode {
+  const [route, query] = full.split("?");
+  const asked = new URLSearchParams(query);
   if (route === "/guest") return <GuestPage state={modules.guest_login?.state} />;
   if (route === "/people") return <PeoplePage />;
   if (route === "/kiosks") return <KiosksPage state={modules.kiosks?.state} />;
@@ -140,7 +150,8 @@ function pageFor(route: string, modules: Record<string, ModuleHealth>): ReactNod
   if (route === "/auto-dashboards") return <AutoDashboardsPage state={modules.auto_dashboards?.state} />;
   if (route === "/compositor") return <CompositorPage state={modules.compositor?.state} />;
   if (route === "/kiosk-mode") return <KioskModePage state={modules.kiosk_mode?.state} />;
-  if (route === "/sensor-watch") return <SensorWatchPage state={modules.sensor_watch?.state} />;
+  if (route === "/sensor-watch")
+    return <SensorWatchPage state={modules.sensor_watch?.state} watch={asked.get("watch") ?? undefined} at={asked.get("at") ?? undefined} />;
   if (route === "/settings") return <SettingsPage />;
   if (route === "/firmware") return <FirmwarePage state={modules.gitproxy?.state} />;
 }

@@ -31,9 +31,9 @@ from homeassistant.helpers.event import async_track_time_interval
 from ..const import DOMAIN
 from ..coordinator import CasaMiaCoordinator, running_coordinator
 from . import blueprint, swap
-from .const import OLD_DOMAIN, REFRESH, SERVICE
+from .const import ENTITY, OLD_DOMAIN, REFRESH, SERVICE
 from .entity import KEYS, unique_id
-from .levels import LEVELS, listing, summary
+from .levels import LEVELS, listing, summary, watching
 from .push import APPLY
 from .swap import shown
 from .system import start_checks
@@ -57,6 +57,7 @@ async def start(
     watcher = Watcher(hass, coordinator)
     if not hass.data.get(APPLY):  # once per Home Assistant run: it can't be taken off
         websocket_api.async_register_command(hass, _ws_apply)
+        websocket_api.async_register_command(hass, _ws_entity)
         hass.data[APPLY] = True
     watcher.refresh()
     entry.async_on_unload(coordinator.async_add_listener(watcher.refresh))
@@ -144,6 +145,39 @@ def _ws_apply(
         )
         return
     connection.send_result(msg["id"], {"revision": msg["revision"], "levels": levels})
+
+
+@websocket_api.websocket_command(
+    {vol.Required("type"): ENTITY, vol.Required("entity_id"): str}
+)
+@websocket_api.require_admin
+@callback
+def _ws_entity(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    """One entity's watch (levels.watching), now and again at each change: the eye in
+    its dialog. Admins only, as the page it leads to. Error `not_running`: no eye.
+    ponytail: follows the watcher running when it subscribes; the dialog subscribes
+    afresh each time it opens."""
+    coordinator = running_coordinator(hass)
+    watcher = coordinator.sensor_watch if coordinator else None
+    if watcher is None:
+        connection.send_error(
+            msg["id"], "not_running", "Sensor Watch isn't running in Home Assistant"
+        )
+        return
+    last: list[dict] = []
+
+    @callback
+    def send() -> None:
+        now = watching(watcher.records, watcher.now, msg["entity_id"])
+        if last != [now]:
+            last[:] = [now]
+            connection.send_message(websocket_api.event_message(msg["id"], now))
+
+    connection.subscriptions[msg["id"]] = watcher.listen(send)
+    connection.send_result(msg["id"])
+    send()
 
 
 async def migrate(hass: HomeAssistant, entry: ConfigEntry, device_id: str) -> None:
