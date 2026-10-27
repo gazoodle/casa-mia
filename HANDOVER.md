@@ -335,6 +335,17 @@ guest card SVG), `page.py` (welcome, goodbye), `supervisor.py`.
   `levels.in_bands` holds the current level within it of an edge (worse only once
   surely past, better at the real edge, the start the better way), so `level_of` now
   takes the current level. The library's mains voltage profiles have ±1 %.
+- **2026.10.11-b15: notifications in words, and escalation** (not yet on the box).
+  The blueprint's titles lead with the level as a word, and a `notify.mobile_app_…`
+  action gets the phone's own severity (Android channels per level, iPhone interruption
+  levels, a tag per sensor). Escalation: `escalate` {level: seconds} on a record or
+  profile; `levels.escalation` works out the shown level from the real one and how long
+  it has stood; `watch.py` keeps `real` beside `level` in each row, compares with the
+  real one, and sets one timer per sensor for its next step. Checked under real HA in a
+  scratch harness (Python 3.13, pytest-homeassistant-custom-component), not in the repo.
+  Levels found at a level (start, an edited watch, Refresh state) fire the event too,
+  with `initial`, held until HA has started (`async_at_started`); the blueprint raises
+  the sidebar's notification again but leaves the phone alone.
 
 ## Where things stand
 

@@ -305,6 +305,13 @@
   fill: color-mix(in srgb, var(--bad) 34%, transparent);
 }
 
+.escalate {
+  display: grid;
+  grid-template-columns: 9em 1fr;
+  align-items: center;
+  gap: 0.6em;
+}
+
 .accuracy {
   display: flex;
   align-items: center;

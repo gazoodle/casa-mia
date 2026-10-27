@@ -25,7 +25,9 @@ A record watches one entity (keyed by its entity id):
   current_position); `days_until` (numeric only: the state is a date or timestamp, read
   as the days until it, negative once it's passed, so a reminder's due date is banded
   in days); and `disabled` (true: kept, with its group, but not watched: the
-  integration isn't sent it, and the page lists it apart).
+  integration isn't sent it, and the page lists it apart); `escalate` (optional)
+  {level: seconds}: having stood that long at a level (task, warning or error), it
+  shows the next one up, rung by rung (the integration's levels.escalation).
 The integration works out the levels (casa_mia_sensor_watch/levels.py, whose LEVELS
 must match these; a test checks)."""
 
@@ -44,6 +46,7 @@ DEFAULT_UNAVAILABLE_HOLD = 300
 MAX_HOLD_OFF = 24 * 3600
 MAX_BANDS = 12
 MAX_ACCURACY_PERCENT = 50
+MAX_ESCALATE = 365 * 24 * 3600  # seconds at one level before it moves up
 MAX_STATES = 20
 MAX_TEXT = 80  # a name
 # A message: past 80 characters, notifications and cards may cut it short (the page says so).
@@ -138,6 +141,8 @@ def clean(entity_id: str, body: dict[str, Any]) -> dict[str, Any]:
             body.get("unavailable", "error"), "When unavailable", True
         ),
     }
+    if escalate := _escalate(body.get("escalate")):
+        record["escalate"] = escalate
     if kind == "binary":
         if "on" not in body and "off" not in body:  # the form before b20
             nominal = body.get("nominal", "off")
@@ -233,6 +238,27 @@ def clean(entity_id: str, body: dict[str, Any]) -> dict[str, Any]:
     if body.get("days_until") is True:
         record["days_until"] = True
     return record
+
+
+def _escalate(value: Any) -> dict[str, int] | None:
+    """A ladder: {level: seconds at it before the next one up}, for the levels that
+    have one above them but nominal (nominal for too long is staleness, not severity);
+    None for none."""
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise BadRequest("Escalate: for each level, how long before it moves up.")
+    ladder = {}
+    for level, seconds in value.items():
+        if level not in LEVELS[1:-1]:
+            raise BadRequest(f"Escalate: {', '.join(LEVELS[1:-1])} only.")
+        n = _number(seconds, f"Escalate from {level}")
+        if n is None or n == 0:
+            continue
+        if not 60 <= n <= MAX_ESCALATE:
+            raise BadRequest(f"Escalate from {level}: a minute to a year.")
+        ladder[level] = int(n)
+    return ladder or None
 
 
 def _accuracy(value: Any) -> dict[str, Any] | None:

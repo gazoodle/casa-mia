@@ -380,8 +380,12 @@ class Live:
         if not eid:
             return
         _LOGGER.debug("live levels: %s -> %s", eid, data.get("level"))
-        row = {k: data.get(k) for k in ("name", "level", "value", "message")}
-        since = event.get("time_fired") or ""
+        row = {
+            k: data.get(k)
+            for k in ("name", "level", "value", "message", "real", "escalated")
+        }
+        # The real level's since (an escalation keeps it); older integrations: now.
+        since = data.get("since") or event.get("time_fired") or ""
 
         def take() -> None:
             self._levels[eid] = (

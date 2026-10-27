@@ -224,8 +224,8 @@ due. Sensor Watch reads a date as the days until it, so:
 3. **Its errors:** watch the spa's **Error(s)** sensor by exact states: *None* nominal,
    anything else an error. The row and the notification show the spa's own words.
 
-With the Notify on Sensor Watch blueprint at *Task*, the phone says "🔵 Rinse filter due:
-task" a fortnight out, and the card shows it until the filter is rinsed and the date set
+With the Notify on Sensor Watch blueprint at *Task*, the phone says "Task: Rinse filter
+due" a fortnight out, and the card shows it until the filter is rinsed and the date set
 again (on the spa, or the date entity in Home Assistant). They're judged every ten minutes
 as time passes, so a reminder comes due without anything in Home Assistant changing.
 
@@ -394,6 +394,16 @@ Each sensor also has:
 - **Hold-off:** how long a worse level must last before it counts (60 seconds by
   default), so a blip doesn't raise the alarm. A better level counts at once: a sensor
   back from unavailable, or back in its band, is told the moment it is.
+- **Escalate:** a level left standing moves up. For each of Task, Warning and Error, how
+  long it may stand before it shows the next one up (never, by default). Each rung is
+  timed from reaching it: salt that has needed topping up for a week becomes a warning,
+  and with a week on Warning too, an error a week after that. Back to a better level
+  starts again; worse on its own starts the ladder from its new level, without what's
+  shown dropping. The page says "escalated from Task (7 days ago)", the notification
+  ends "a task for 7 days", and the event carries `escalated` and `real` (the level its
+  reading gives). It's worked out from when the level began, so a restart doesn't reset
+  it. Several of the library's profiles come with one (the salt, batteries, boiler
+  pressure, pool and hot tub water, disk space).
 
 Both are timed from when the entity changed, as Home Assistant's own dialogs show it
 ("Last changed"), so a level's "since" on the page is the moment it began, not the
@@ -469,12 +479,12 @@ hold-off, how long a new level must last before it counts.
 | Available (a task after an hour) | Availability | available | there nominal · unavailable task; after 1 h |
 | Available (critical) | Availability | available | there nominal · unavailable critical; after 1 min |
 | Stays gone | Availability | available | there warning · unavailable nominal; after 5 min |
-| Battery, replaceable (%) | Batteries | bands | under 5 warning · 5–20 task · 20 and over nominal; after 10 min |
+| Battery, replaceable (%) | Batteries | bands | under 5 warning · 5–20 task · 20 and over nominal; after 10 min; task becomes warning after 14 days |
 | Home battery at its reserve (%) | Batteries | bands | under 10 task · 10 and over nominal; after 30 min |
 | Lead-acid 12 V battery (V) | Batteries | bands | under 11.8 error · 11.8–12.2 warning · 12.2–12.4 task · 12.4–14.8 nominal · 14.8–15.5 warning · 15.5 and over error; after 10 min |
 | LiFePO4 12 V battery (V) | Batteries | bands | under 12 error · 12–12.8 task · 12.8–14.6 nominal · 14.6–15 warning · 15 and over error; after 10 min |
 | LiFePO4 cell (V) | Batteries | bands | under 2.5 critical · 2.5–3 task · 3–3.5 nominal · 3.5–3.65 task · 3.65 and over critical; after 10 min |
-| Low battery (on/off) | Batteries | on/off | off nominal · on task; after 1 min |
+| Low battery (on/off) | Batteries | on/off | off nominal · on task; after 1 min; task becomes warning after 14 days |
 | Rechargeable battery, 20-100% (LiFePO4) (%) | Batteries | bands | under 10 error · 10–20 task · 20 and over nominal; after 10 min |
 | Rechargeable battery, 20-80% (%) | Batteries | bands | under 10 error · 10–20 task · 20–80 nominal · 80 and over task; after 10 min |
 | Rechargeable battery, 20-85% (%) | Batteries | bands | under 10 error · 10–20 task · 20–85 nominal · 85 and over task; after 10 min |
@@ -494,7 +504,7 @@ hold-off, how long a new level must last before it counts.
 | Hot water cylinder (°C) | Cold and hot storage | bands | under 46 warning · 46–50 task · 50–80 nominal · 80 and over warning; after 1 h |
 | CPU temperature (°C) | Computers and network | bands | under 70 nominal · 70–80 task · 80–85 warning · 85 and over error; after 10 min |
 | CPU use (%) | Computers and network | bands | under 80 nominal · 80–95 task · 95 and over warning; after 15 min |
-| Disk used (%) | Computers and network | bands | under 80 nominal · 80–90 task · 90–95 warning · 95 and over error; after 10 min |
+| Disk used (%) | Computers and network | bands | under 80 nominal · 80–90 task · 90–95 warning · 95 and over error; after 10 min; task becomes warning after 7 days |
 | Memory use (%) | Computers and network | bands | under 80 nominal · 80–90 task · 90 and over warning; after 15 min |
 | Wi-Fi signal (dBm) | Computers and network | bands | under -85 error · -85–-75 warning · -75–-67 task · -67 and over nominal; after 10 min |
 | Door (on/off) | Doors, windows and covers | on/off | off nominal · on task; after 1 min |
@@ -505,7 +515,7 @@ hold-off, how long a new level must last before it counts.
 | Electric car battery, 80% daily (%) | Electric cars | bands | under 10 error · 10–20 task · 20–80 nominal · 80 and over warning; after 10 min |
 | Electric car battery, 90% daily (%) | Electric cars | bands | under 10 error · 10–20 task · 20–90 nominal · 90 and over warning; after 10 min |
 | Electric car battery, LFP (%) | Electric cars | bands | under 10 error · 10–20 task · 20 and over nominal; after 10 min |
-| Boiler pressure (bar) | Heating | bands | under 0.5 error · 0.5–1 task · 1–2 nominal · 2–2.5 task · 2.5 and over warning; after 30 min |
+| Boiler pressure (bar) | Heating | bands | under 0.5 error · 0.5–1 task · 1–2 nominal · 2–2.5 task · 2.5 and over warning; after 30 min; task becomes warning after 3 days |
 | Room temperature (°C) | Heating | bands | under 12 warning · 12–16 task · 16–25 nominal · 25–28 task · 28 and over warning; after 30 min |
 | Indoor CO2 (ppm) | Indoor air | bands | under 380 task · 380–1000 nominal · 1000–1500 task · 1500–2500 warning · 2500 and over error; after 15 min |
 | Indoor humidity (%) | Indoor air | bands | under 30 task · 30–60 nominal · 60–70 task · 70 and over warning; after 1 h |
@@ -545,12 +555,12 @@ hold-off, how long a new level must last before it counts.
 | Tamper (on/off) | Safety | on/off | off nominal · on warning; after 1 min |
 | Aquarium, cold water (°C) | Water | bands | under 4 warning · 4–10 task · 10–22 nominal · 22–26 task · 26 and over warning; after 30 min |
 | Aquarium, tropical (°C) | Water | bands | under 20 error · 20–23 warning · 23–24 task · 24–27 nominal · 27–29 task · 29–31 warning · 31 and over error; after 30 min |
-| Hot tub bromine (ppm) | Water | bands | under 2 error · 2–4 task · 4–8 nominal · 8–10 task · 10 and over error; after 5 min |
-| Hot tub free chlorine (ppm) | Water | bands | under 1 error · 1–3 task · 3–5 nominal · 5–10 task · 10 and over error; after 5 min |
-| Pool free chlorine (ppm) | Water | bands | under 0.5 error · 0.5–1 task · 1–3 nominal · 3–5 task · 5–10 warning · 10 and over error; after 5 min |
-| Pool or hot tub pH | Water | bands | under 7 warning · 7–7.2 task · 7.2–7.8 nominal · 7.8–8 task · 8 and over warning; after 5 min |
-| Pool or hot tub pH (detailed) | Water | bands | under 5 critical · 5–7 error · 7–7.2 warning · 7.2–7.4 task · 7.4–7.6 nominal · 7.6–7.8 task · 7.8–8 warning · 8–9 error · 9 and over critical; after 5 min |
-| Water softener salt (%) | Water | bands | under 10 warning · 10–25 task · 25 and over nominal; after 1 h |
+| Hot tub bromine (ppm) | Water | bands | under 2 error · 2–4 task · 4–8 nominal · 8–10 task · 10 and over error; after 5 min; task becomes warning after 2 days |
+| Hot tub free chlorine (ppm) | Water | bands | under 1 error · 1–3 task · 3–5 nominal · 5–10 task · 10 and over error; after 5 min; task becomes warning after 2 days |
+| Pool free chlorine (ppm) | Water | bands | under 0.5 error · 0.5–1 task · 1–3 nominal · 3–5 task · 5–10 warning · 10 and over error; after 5 min; task becomes warning after 2 days |
+| Pool or hot tub pH | Water | bands | under 7 warning · 7–7.2 task · 7.2–7.8 nominal · 7.8–8 task · 8 and over warning; after 5 min; task becomes warning after 2 days |
+| Pool or hot tub pH (detailed) | Water | bands | under 5 critical · 5–7 error · 7–7.2 warning · 7.2–7.4 task · 7.4–7.6 nominal · 7.6–7.8 task · 7.8–8 warning · 8–9 error · 9 and over critical; after 5 min; task becomes warning after 2 days |
+| Water softener salt (%) | Water | bands | under 10 warning · 10–25 task · 25 and over nominal; after 1 h; task becomes warning after 7 days |
 
 <!-- end of library table -->
 
@@ -659,9 +669,18 @@ the rest of Home Assistant which ones they are.
 
 ### The event
 
-Each change of level (a worse one after its hold-off) fires `casa_mia_sensor_watch`, with
-`entity_id`, `name`, `level`, `previous`, `value` and `message`, and `group` (its group's
-name), `area` and `attribute` (the attribute watched) when it has them.
+Each change of level (a worse one after its hold-off, or a step of its escalation) fires
+`casa_mia_sensor_watch`, with `entity_id`, `name`, `level`, `previous`, `value` and
+`message`; `group` (its group's name), `area` and `attribute` (the attribute watched)
+when it has them; and `escalated` (true when it's shown a level up for having stood),
+`real` (the level its reading gives) and `since` (when that level began).
+
+A sensor found at a level other than nominal, rather than changed to it, fires it too,
+with `initial` true and no `previous`: at Home Assistant's start (held until it has
+started, so automations hear it), and when its watch is edited or Refresh state is
+pressed. A restart clears Home Assistant's own notifications, so this is how a problem
+that was there before it is raised again. The blueprint raises its notification in the
+sidebar again for it, but doesn't send it to a phone.
 
 **The easy way: the blueprint.** The integration installs **Notify on Sensor Watch**
 (Settings → Automations & scenes → Blueprints; it's in
@@ -675,12 +694,27 @@ name), `area` and `attribute` (the attribute watched) when it has them.
   its level changes and cleared when it's back.
 - **Say when it's back:** when it drops below the level again.
 - **Anything else:** more actions (a light, a speaker), with `title`, `text`, `name`,
-  `level`, `previous`, `value`, `message`, `area`, `group`, `entity_id` and `back` to
-  use in them.
+  `level`, `previous`, `value`, `message`, `area`, `group`, `entity_id`, `escalated`,
+  `real`, `since`, `initial` and `back` to use in them.
 
-Its title leads with the level's colour (🔵 task, 🟠 warning, 🔴 error, 🚨 critical,
-🟢 back to nominal): for example "🚨 Plug 3 voltage: critical", "Mains far too low (198) · Barn ·
-Mains voltage". The integration replaces the file when it changes, so to change the
+Its title leads with the level as a word: for example "Critical: Plug 3 voltage", then
+"Mains far too low (198) · Barn · Mains voltage"; and "Back to nominal: Plug 3 voltage"
+when it's back.
+
+On a phone with the Home Assistant app (a `notify.mobile_app_…` action), each
+notification also carries the phone's own sense of how much it matters:
+
+- **Android:** a channel per level (*Sensor Watch: Task*, *Warning*, *Error*,
+  *Critical* and *Back*), each with the level's colour and icon. Android makes a channel
+  when its first notification arrives; from then on its sound and importance are yours to
+  set in the phone's notification settings, so a critical can ring and a task stay quiet.
+- **iPhone:** a task (and being back) arrives quietly, a warning as usual, an error as
+  time-sensitive, and a critical as a critical alert, through silent mode and Focus once
+  you allow critical alerts for the app.
+- **Both:** a sensor's next notification replaces its last, so being back replaces the
+  alarm instead of adding to it.
+
+Other notify actions (email, Telegram) get the plain title and text. The integration replaces the file when it changes, so to change the
 blueprint itself, copy it under another name first.
 
 <img src="../screenshots/sensor-watch-blueprint.webp" alt="An automation from the Notify on Sensor Watch blueprint: at this level or worse (Warning chosen), only this group (Flood Lights, from a dropdown), the notify action, a Home Assistant notification and say when it's back switched on, and anything else" width="800">

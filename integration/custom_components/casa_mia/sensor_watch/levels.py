@@ -158,6 +158,23 @@ def in_bands(
     )
 
 
+def escalation(
+    record: dict[str, Any], real: str, stood: float
+) -> tuple[str, float | None]:
+    """The level shown for a `real` level that has stood `stood` seconds, by the record's
+    ladder (`escalate`: {level: seconds at that level before it moves up one}, each
+    rung timed from reaching it), and the seconds until the next step (None: it stops
+    there). Worked out each time, never counted, so a restart doesn't reset it."""
+    ladder = record.get("escalate") or {}
+    level, reached = real, 0.0
+    while level in ladder and rank(level) < len(LEVELS) - 1:
+        due = reached + ladder[level]
+        if stood < due:
+            return level, due - stood
+        level, reached = LEVELS[rank(level) + 1], due
+    return level, None
+
+
 def listing(
     now: dict[str, dict[str, Any]], levels: list[str] | None = None
 ) -> list[dict[str, Any]]:

@@ -59,6 +59,8 @@ export type WatchRecord = {
   disabled?: boolean;
   /** Numeric: the state is a date, read as the days until it (a reminder due). */
   days_until?: boolean;
+  /** Each level's seconds before it shows the next one up (task, warning, error). */
+  escalate?: Partial<Record<Level, number>>;
   /** Numeric: how far the meter may be out (a level holds that close to an edge). */
   accuracy?: Accuracy;
   /** The profile it follows (its levels then come from there). */
@@ -130,7 +132,8 @@ export type WatchView = {
 };
 
 /** A sensor's level now, from the integration. */
-export type Live = { entity_id: string; level: Level; value: string | null; message: string | null; since: string; name: string };
+/** A sensor's level now; escalated (a ladder's step), also the level its reading gives (`real`), since `since`. */
+export type Live = { entity_id: string; level: Level; value: string | null; message: string | null; since: string; name: string; real?: Level; escalated?: boolean };
 /** `rev`: the app's revision of the levels; asked with ?after=rev, it answers when they change. */
 export type LevelsView = { levels: Record<string, Live>; error: string | null; rev: number };
 

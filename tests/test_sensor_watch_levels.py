@@ -317,3 +317,49 @@ def test_a_band_narrower_than_the_accuracy_is_stepped_through_not_skipped():
     # 126-127 V is the warning; 127.5 V is surely past 126 V, not surely past 127 V.
     assert levels.level_of(us, "127.5", "nominal")[0] == "warning"
     assert levels.level_of(us, "128.5", "warning")[0] == "error"
+
+
+DAY = 86400
+LADDER = {"escalate": {"task": 7 * DAY, "warning": 7 * DAY}}
+
+
+@pytest.mark.parametrize(
+    ("real", "days", "shown", "next_in"),
+    [
+        ("task", 0, "task", 7),
+        ("task", 6.5, "task", 0.5),
+        ("task", 7, "warning", 7),  # each rung timed from reaching it
+        ("task", 13, "warning", 1),
+        ("task", 14, "error", None),  # no rung from error: it stops there
+        ("task", 400, "error", None),
+        ("warning", 7, "error", None),  # worse on its own: its own rung
+        ("error", 30, "error", None),
+        ("nominal", 30, "nominal", None),  # never from nominal
+    ],
+)
+def test_escalation_climbs_the_ladder_by_how_long_a_level_has_stood(
+    real, days, shown, next_in
+):
+    level, wait = levels.escalation(LADDER, real, days * DAY)
+    assert level == shown
+    assert wait == (None if next_in is None else pytest.approx(next_in * DAY))
+
+
+def test_escalation_stops_at_critical_and_needs_a_ladder():
+    assert levels.escalation({"escalate": {"error": 60}}, "error", 600) == (
+        "critical",
+        None,
+    )
+    assert levels.escalation({}, "task", 10 * DAY) == ("task", None)
+
+
+def test_escalate_is_checked_and_kept_for_any_kind():
+    rec = clean(
+        "binary_sensor.leak",
+        {"kind": "binary", "escalate": {"task": 3600, "warning": 0}},
+    )
+    assert rec["escalate"] == {"task": 3600}
+    assert "escalate" not in clean("sensor.salt", SALT | {"escalate": {}})
+    for bad in ({"nominal": 3600}, {"critical": 3600}, {"task": 5}, ["task"]):
+        with pytest.raises(BadRequest):
+            clean("sensor.salt", SALT | {"escalate": bad})

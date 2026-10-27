@@ -36,6 +36,7 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
   const [holdOff, setHoldOff] = useState(String(start?.hold_off ?? 60));
   const [goneHold, setGoneHold] = useState(String(start?.unavailable_hold ?? 300));
   const [daysUntil, setDaysUntil] = useState(start?.days_until ?? false);
+  const [escalate, setEscalate] = useState<Partial<Record<Level, number>>>(start?.escalate ?? {});
   const [accuracyAmount, setAccuracyAmount] = useState(start?.accuracy ? String(start.accuracy.amount) : "");
   const [accuracyPercent, setAccuracyPercent] = useState(start?.accuracy?.percent ?? true);
   const [problem, setProblem] = useState(""); // why the bands can't be saved, under them
@@ -56,6 +57,7 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
     if (r.hold_off !== undefined) setHoldOff(String(r.hold_off));
     if (r.unavailable_hold !== undefined) setGoneHold(String(r.unavailable_hold));
     setDaysUntil(r.days_until ?? false);
+    setEscalate(r.escalate ?? {});
     setAccuracyAmount(r.accuracy ? String(r.accuracy.amount) : "");
     setAccuracyPercent(r.accuracy?.percent ?? true);
   };
@@ -72,6 +74,7 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
     hold_off: Number(holdOff),
     unavailable_hold: Number(goneHold),
     unavailable,
+    ...(Object.values(escalate).some(Boolean) ? { escalate } : {}),
     ...(k === "binary"
       ? { off, on }
       : k === "available"
@@ -98,7 +101,7 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
   return {
     kind: k, setKind, bands, setBands, otherwise, setOtherwise, off, setOff, on, setOn, other, setOther, available, setAvailable, message, setMessage,
     states, setStates, exceptions, setExceptions, unavailable, setUnavailable, holdOff, setHoldOff, goneHold, setGoneHold, daysUntil, setDaysUntil,
-    accuracyAmount, setAccuracyAmount, accuracyPercent, setAccuracyPercent, accuracy,
+    accuracyAmount, setAccuracyAmount, accuracyPercent, setAccuracyPercent, accuracy, escalate, setEscalate,
     adopt, body, sane, problem, drawn: () => bands.map(toBand),
   };
 }
@@ -232,6 +235,25 @@ export function LevelFields({ L, unit = "", seen = [], seenLabel = "Seen", extra
         >
           <Slider value={Number(L.holdOff) || 0} steps={HOLD_OFFS} format={seconds} ends={["none", "a day"]} onChange={(v) => L.setHoldOff(String(v))} />
         </Field>
+        <Field
+          label="Escalate"
+          help="A level left standing moves up: having been at it this long (timed from when it began), it shows the next one up, then that one's wait starts. Back to a better level starts again."
+        >
+          {LEVELS.slice(1, -1).map((lv, i) => (
+            <span key={lv} className={css.escalate}>
+              <span>
+                {LEVEL_NAMES[lv]} → {LEVEL_NAMES[LEVELS[i + 2]]}
+              </span>
+              <Slider
+                value={L.escalate[lv] ?? 0}
+                steps={ESCALATIONS}
+                format={(s) => (s ? `after ${seconds(s)}` : "never")}
+                ends={["never", "90 days"]}
+                onChange={(v) => L.setEscalate({ ...L.escalate, [lv]: v })}
+              />
+            </span>
+          ))}
+        </Field>
         {extra}
       </div>
     </>
@@ -318,6 +340,9 @@ function MessageInput({ value, placeholder, onChange }: { value: string; placeho
 /** The spans no band covers between two bands ("7.2–7.4"), lowest first. */
 /** A hold-off's steps, seconds: fine where it matters (the first minutes), up to a day. */
 const HOLD_OFFS = [0, 10, 30, 60, 120, 300, 600, 900, 1800, 3600, 7200, 21600, 43200, 86400];
+
+/** An escalation's steps, seconds: never, then an hour to 90 days. */
+const ESCALATIONS = [0, 3600, 21600, 43200, 86400, 2 * 86400, 3 * 86400, 7 * 86400, 14 * 86400, 30 * 86400, 90 * 86400];
 
 function seconds(s: number): string {
   if (s === 0) return "none";

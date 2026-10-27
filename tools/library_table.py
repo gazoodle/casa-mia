@@ -18,6 +18,7 @@ LIBRARY = ROOT / "app/src/casa_mia/modules/sensor_watch/library.json"
 GUIDE = ROOT / "docs/applets/sensor-watch.md"
 START = "<!-- library table: tools/library_table.py --update -->"
 END = "<!-- end of library table -->"
+LEVELS = ("nominal", "task", "warning", "error", "critical")
 MODES = {
     "numeric": "bands",
     "binary": "on/off",
@@ -33,6 +34,8 @@ def _n(x: float) -> str:
 def _wait(seconds: int) -> str:
     if not seconds:
         return "at once"
+    if seconds >= 2 * 86400 and seconds % 86400 == 0:
+        return f"after {seconds // 86400} days"
     if seconds % 3600 == 0:
         return f"after {seconds // 3600} h"
     if seconds % 60 == 0:
@@ -68,7 +71,11 @@ def behaviour(p: dict[str, Any]) -> str:
         text += f" · else {p['other']}"
     else:
         text = f"there {p['available']['level']} · unavailable {p['unavailable']}"
-    return f"{text}; {_wait(p.get('hold_off', 60))}"
+    text = f"{text}; {_wait(p.get('hold_off', 60))}"
+    for level, seconds in (p.get("escalate") or {}).items():
+        up = LEVELS[LEVELS.index(level) + 1]
+        text += f"; {level} becomes {up} {_wait(seconds)}"
+    return text
 
 
 def table() -> str:

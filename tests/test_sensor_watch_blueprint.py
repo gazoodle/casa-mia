@@ -95,3 +95,16 @@ def test_its_dropdowns_offer_the_groups_and_notify_actions():
     assert group == {"custom_value": True, "options": ['Mains "UK"', "Leaks"]}
     notify = inputs["notify"]["selector"]["select"]
     assert notify["options"] == ["notify.mobile_app_ann"]
+
+
+def test_every_level_has_its_phone_style_and_titles_are_words():
+    from casa_mia.modules.sensor_watch import LEVELS
+
+    text = (COMPONENT / "blueprints" / "notify.yaml").read_text()
+    bp = yaml.load(text, _Loader)  # noqa: S506 (our own loader, SafeLoader based)
+    styles = bp["variables"]["styles"]
+    assert set(styles) == {*LEVELS[1:], "back"}
+    for style in styles.values():
+        assert {"channel", "importance", "color", "icon", "push"} <= set(style)
+    # The level as a word, no coloured symbols (2026-10-27).
+    assert all(ord(c) < 0x2000 for c in bp["variables"]["title"])

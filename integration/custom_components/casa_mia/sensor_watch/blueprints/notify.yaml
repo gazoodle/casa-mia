@@ -60,7 +60,8 @@ blueprint:
       description: >-
         More actions (a light, a speaker), with these variables: title and text (the
         notification's), name, level, previous, value, message, area, group, entity_id,
-        and back (true when it's back).
+        escalated, real, since, initial (found at its level, not changed to it: Home
+        Assistant's start, a watch edited), and back (true when it's back).
       default: []
       selector:
         action: {}
@@ -87,22 +88,48 @@ variables:
   message: "{{ trigger.event.data.message or '' }}"
   area: "{{ trigger.event.data.area or '' }}"
   group: "{{ trigger.event.data.group or '' }}"
+  # Escalated: shown a level up for how long its real level has stood.
+  escalated: "{{ trigger.event.data.escalated or false }}"
+  real: "{{ trigger.event.data.real or level }}"
+  since: "{{ trigger.event.data.since or '' }}"
+  # Found at its level (Home Assistant's start, a watch edited), not changed to it: the
+  # sidebar's notification is raised again (a restart clears them), the phone left be.
+  initial: "{{ trigger.event.data.initial or false }}"
   rank: "{{ order.index(level) if level in order else 0 }}"
   was: "{{ order.index(previous) if previous in order else 0 }}"
   least: "{{ order.index(least_level) }}"
   back: "{{ rank < least and was >= least }}"
-  # Each level's colour, as the Sensor Watch page shows it.
-  icons:
-    nominal: "🟢"
-    task: "🔵"
-    warning: "🟠"
-    error: "🔴"
-    critical: "🚨"
-  title: "{{ icons.get(level, '⚪') }} {{ name }}: {{ 'back to ' ~ level if back else level }}"
+  # The level as a word, first (as monitoring tools and logs put it): "Warning: Spa pH",
+  # "Back to nominal: Spa pH". No colour: Home Assistant's titles are plain text.
+  title: >-
+    {{ 'Back to ' ~ level if back else level | capitalize }}: {{ name }}
   text: >-
     {{ value if back or not message else message ~ ' (' ~ value ~ ')' }}{{
-    ' · ' ~ area if area else '' }}{{ ' · ' ~ group if group else '' }}
+    ' · ' ~ area if area else '' }}{{ ' · ' ~ group if group else '' }}{{
+    ' · ' ~ ('an ' if real[0] in 'aeiou' else 'a ') ~ real ~ ' for '
+    ~ relative_time(as_datetime(since)) if escalated and since and not back else '' }}
   notification_id: "sensor_watch_{{ entity_id | slugify }}"
+  # A phone (the Companion app) shows the level its own way: Android a channel per level
+  # (its sound and importance set on the phone once the first arrives), the level's
+  # colour and an icon; iPhone how far it interrupts (critical through silent and Focus,
+  # if allowed). The tag makes a sensor's next notification replace its last, so being
+  # back replaces the alarm. Other notify actions (email, Telegram) may refuse these.
+  phone: "{{ notify_action.startswith('notify.mobile_app_') }}"
+  styles:
+    back: {channel: Back, importance: low, color: "#43a047", icon: "mdi:check-circle-outline", push: {interruption-level: passive}}
+    task: {channel: Task, importance: low, color: "#039be5", icon: "mdi:clipboard-check-outline", push: {interruption-level: passive}}
+    warning: {channel: Warning, importance: high, color: "#fb8c00", icon: "mdi:alert-outline", push: {interruption-level: active}}
+    error: {channel: Error, importance: high, color: "#e53935", icon: "mdi:alert-circle-outline", push: {interruption-level: time-sensitive}}
+    critical: {channel: Critical, importance: max, color: "#b71c1c", icon: "mdi:alarm-light", push: {interruption-level: critical, sound: {name: default, critical: 1, volume: 1.0}}}
+  style: "{{ styles['back' if back else level] if (back or level in styles) else styles.warning }}"
+  phone_data:
+    tag: "{{ notification_id }}"
+    group: sensor_watch
+    channel: "Sensor Watch: {{ style.channel }}"
+    importance: "{{ style.importance }}"
+    color: "{{ style.color }}"
+    notification_icon: "{{ style.icon }}"
+    push: "{{ style.push }}"
 
 conditions:
   - condition: template
@@ -113,7 +140,16 @@ conditions:
 actions:
   - if:
       - condition: template
-        value_template: "{{ notify_action != '' }}"
+        value_template: "{{ notify_action != '' and phone and not initial }}"
+    then:
+      - action: "{{ notify_action }}"
+        data:
+          title: "{{ title }}"
+          message: "{{ text }}"
+          data: "{{ phone_data }}"
+  - if:
+      - condition: template
+        value_template: "{{ notify_action != '' and not phone and not initial }}"
     then:
       - action: "{{ notify_action }}"
         data:

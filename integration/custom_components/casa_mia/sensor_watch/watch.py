@@ -16,6 +16,7 @@ from typing import Any
 import aiohttp
 from homeassistant.core import (
     CALLBACK_TYPE,
+    CoreState,
     Event,
     EventStateChangedData,
     HomeAssistant,
@@ -27,11 +28,20 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_call_later, async_track_state_change_event
+from homeassistant.helpers.start import async_at_started
 from homeassistant.util import dt as dt_util
 
 from ..coordinator import CasaMiaCoordinator
 from .const import EVENT, MODULE
-from .levels import UNAVAILABLE, UNAVAILABLE_HOLD, level_of, rank, reading, summary
+from .levels import (
+    UNAVAILABLE,
+    UNAVAILABLE_HOLD,
+    escalation,
+    level_of,
+    rank,
+    reading,
+    summary,
+)
 from .push import merged
 from .swap import Rule, same, shown
 
@@ -54,9 +64,17 @@ class Watcher:
         self.hass = hass
         self.coordinator = coordinator
         self.records: dict[str, dict[str, Any]] = {}
-        # entity -> {level, message, value, since, name}: its level now, as counted
+        # entity -> {level, message, value, since, name}: its level now, as counted;
+        # escalated (levels.escalation), also `real`, the level its reading gives, and
+        # `escalated`; `since` is always the real level's.
         self.now: dict[str, dict[str, Any]] = {}
         self._pending: dict[str, tuple[str, CALLBACK_TYPE]] = {}  # level, its timer
+        self._steps: dict[str, CALLBACK_TYPE] = {}  # each escalation's next step
+        # The least an escalated sensor may show while its real level gets worse (it
+        # mustn't drop then): kept here, not in its row. ponytail: lost at a restart.
+        self._floors: dict[str, str] = {}
+        # Events held until Home Assistant has started (its automations listen then).
+        self._waiting: list[CALLBACK_TYPE] = []
         self._unsub: CALLBACK_TYPE | None = None
         self._listeners: list[Callable[[], None]] = []
         self.swap: Rule = same  # the screenshot swap (swap.py), looked at every few s
@@ -186,6 +204,7 @@ class Watcher:
         self.records = records
         for eid in changed | gone:
             self._cancel(eid)
+            self._unstep(eid)
             self.now.pop(eid, None)
         if self._unsub:
             self._unsub()
@@ -211,6 +230,11 @@ class Watcher:
             self._unsub = None
         for eid in list(self._pending):
             self._cancel(eid)
+        for eid in list(self._steps):
+            self._unstep(eid)
+        for waiting in self._waiting:
+            waiting()
+        self._waiting.clear()
         if self._telling:
             self._telling()
             self._telling = None
@@ -234,12 +258,9 @@ class Watcher:
             return
         state = self.hass.states.get(eid)
         current = self.now.get(eid)
-        level, message = level_of(
-            record,
-            reading(record, state, dt_util.now()),
-            current and current["level"],
-        )
-        if level is None or (current is not None and current["level"] == level):
+        real = current and _real(current)  # an escalated level isn't the reading's
+        level, message = level_of(record, reading(record, state, dt_util.now()), real)
+        if level is None or (current is not None and real == level):
             self._cancel(eid)  # back where it was (or no opinion): nothing to wait for
             return
         there = state is not None and state.state not in UNAVAILABLE
@@ -252,7 +273,7 @@ class Watcher:
         began = self._began(record, state)
         # Better news counts at once: the hold-off guards against false alarms, and a
         # sensor back from unavailable (a car's reload) shouldn't stay in error.
-        if there and current is not None and rank(level) < rank(current["level"]):
+        if there and current is not None and rank(level) < rank(real):
             self._cancel(eid)
             self._commit(eid, level, message, state, since=began)
             return
@@ -299,9 +320,7 @@ class Watcher:
         state = self.hass.states.get(eid)
         current = self.now.get(eid)
         now, message = level_of(
-            record,
-            reading(record, state, dt_util.now()),
-            current and current["level"],
+            record, reading(record, state, dt_util.now()), current and _real(current)
         )
         if now == level:
             self._commit(eid, level, message, state, since=began)
@@ -311,6 +330,11 @@ class Watcher:
     def _cancel(self, eid: str) -> None:
         if pending := self._pending.pop(eid, None):
             pending[1]()
+
+    def _unstep(self, eid: str) -> None:
+        if step := self._steps.pop(eid, None):
+            step()
+        self._floors.pop(eid, None)
 
     def _commit(
         self,
@@ -323,10 +347,19 @@ class Watcher:
     ) -> None:
         record = self.records[eid]
         name = record.get("name") or (state.name if state else eid)
-        previous = (self.now.get(eid) or {}).get("level")
+        before = self.now.get(eid) or {}
+        previous = before.get("level")
         value = reading(record, state, dt_util.now())
         if since is None:
             since = state.last_changed if initial and state else dt_util.utcnow()
+        # Worse on its own: the ladder starts again from this level's time, but what's
+        # shown mustn't drop. Better: escalation's done with (recovery resets it).
+        floor = None
+        if before and record.get("escalate") and rank(level) > rank(_real(before)):
+            floor = max(previous, self._floors.get(eid), key=rank)
+        self._unstep(eid)
+        if floor is not None:
+            self._floors[eid] = floor
         self.now[eid] = {
             "level": level,
             "message": message,
@@ -336,18 +369,61 @@ class Watcher:
             **({"attribute": record["attribute"]} if record.get("attribute") else {}),
             **({"days_until": True} if record.get("days_until") else {}),
         }
+        self._escalate(eid)
         if initial:
-            if level != "nominal":
-                _LOGGER.info(
-                    "%s (%s) found at %s: %s (%s)",
-                    name,
-                    eid,
-                    level,
-                    value,
-                    message or "no message",
-                )
-            return  # refresh tells the entities once for all
+            # Found at a level (Home Assistant's start, a watch edited, Refresh state):
+            # said, so an automation hears of a problem that was there before the
+            # restart, whose notification the restart cleared. Nominal goes unsaid.
+            if self.now[eid]["level"] != "nominal":
+                self._fire(eid, self.now[eid], None, initial=True)
+            return
+        if self.now[eid]["level"] == previous:
+            self._tell()  # its reading's level moved, not what's shown
+            return
         self._fire(eid, self.now[eid], previous)
+
+    @callback
+    def _escalate(self, eid: str) -> bool:
+        """Show the level the record's ladder gives for how long its real level has
+        stood (levels.escalation), and set the timer for its next step; True if what's
+        shown changed."""
+        row, record = self.now.get(eid), self.records.get(eid)
+        if row is None or record is None or not record.get("escalate"):
+            return False
+        real = _real(row)
+        stood = (
+            dt_util.utcnow() - datetime.fromisoformat(row["since"])
+        ).total_seconds()
+        shown, wait = escalation(record, real, stood)
+        shown = max(shown, self._floors.get(eid, shown), key=rank)
+        moved = shown != row["level"]
+        if shown == real:
+            row.pop("real", None)
+            row.pop("escalated", None)
+        else:
+            row.update(level=shown, real=real, escalated=True)
+        if wait is not None:
+            # @callback: on HA's loop, as the hold-off's timer (firing needs it).
+            self._steps[eid] = async_call_later(
+                self.hass, wait, callback(lambda _now: self._stepped(eid))
+            )
+        return moved
+
+    @callback
+    def _stepped(self, eid: str) -> None:
+        """An escalation's step came due: it moves up, and says so."""
+        self._steps.pop(eid, None)
+        previous = (self.now.get(eid) or {}).get("level")
+        if self._escalate(eid):
+            row = self.now[eid]
+            _LOGGER.info(
+                "%s (%s): escalated, %s for %s",
+                row["name"],
+                eid,
+                row["real"],
+                dt_util.utcnow() - datetime.fromisoformat(row["since"]),
+            )
+            self._fire(eid, row, previous)
 
     @callback
     def apply_system(self, rows: dict[str, dict[str, Any]]) -> None:
@@ -375,7 +451,9 @@ class Watcher:
             changed = True
             self.now[key] = row | {"since": dt_util.utcnow().isoformat()}
             if old is not None or row["level"] != "nominal":
-                self._fire(key, self.now[key], old and old["level"])
+                self._fire(
+                    key, self.now[key], old and old["level"], initial=old is None
+                )
         self._system = set(rows)
         if changed:
             self._tell()
@@ -390,14 +468,31 @@ class Watcher:
             )
         return s.get("core", True)
 
-    def _fire(self, eid: str, row: dict[str, Any], previous: str | None) -> None:
+    def _fire(
+        self,
+        eid: str,
+        row: dict[str, Any],
+        previous: str | None,
+        initial: bool = False,
+    ) -> None:
         """Log a change of level, fire the event (with its group, area and attribute,
-        for a notification to say), and have the entities write."""
+        for a notification to say), and have the entities write. `initial`: found at
+        that level, not changed to it. Held until Home Assistant has started: an event
+        before then reaches no automation."""
+        if self.hass.state is not CoreState.running:
+            self._waiting.append(
+                async_at_started(
+                    self.hass,
+                    callback(lambda _hass: self._fire(eid, row, previous, initial)),
+                )
+            )
+            self._tell()
+            return
         _LOGGER.info(
             "%s (%s): %s -> %s at %s (%s)",
             row["name"],
             eid,
-            previous or "nothing",
+            "found" if initial else previous or "nothing",
             row["level"],
             row["value"],
             row["message"] or "no message",
@@ -416,6 +511,12 @@ class Watcher:
                     "group": (self.records.get(eid) or {}).get("group"),
                     "area": self._area(eid),
                     "attribute": (self.records.get(eid) or {}).get("attribute"),
+                    # Escalated: the level its reading gives, since when.
+                    "escalated": bool(row.get("escalated")),
+                    "real": row.get("real") or row["level"],
+                    "since": row.get("since"),
+                    # Found at it (the start, a watch edited), not changed to it.
+                    "initial": initial,
                 },
             ),
         )
@@ -471,3 +572,8 @@ class Watcher:
         self._telling = None
         if self._more:
             self._told()  # what changed meanwhile, in one write
+
+
+def _real(row: dict[str, Any]) -> str:
+    """The level a row's reading gives (an escalated row shows another)."""
+    return row.get("real") or row["level"]

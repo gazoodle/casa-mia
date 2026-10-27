@@ -435,6 +435,7 @@
       "name": "Battery, replaceable (%)",
       "about": "A replaceable battery's level (a sensor's coin cell or AAs): replace it below 20%, flat below 5%. The same as Sensor Watch's default for battery sensors; unavailable is often the battery that died.",
       "kind": "numeric",
+      "escalate": {"task": 1209600},
       "category": "Batteries",
       "bands": [
         {"from": null, "to": 5, "level": "warning", "message": "Battery flat"},
@@ -563,6 +564,7 @@
       "category": "Batteries",
       "default_for": "binary_sensor:battery",
       "kind": "binary",
+      "escalate": {"task": 1209600},
       "off": {"level": "nominal", "message": ""},
       "on": {"level": "task", "message": "Replace the battery"},
       "unavailable": "error", "hold_off": 60
@@ -712,6 +714,7 @@
       "about": "Ideal 7.4-7.6; 7.2-7.8 is acceptable (the CDC says the same for pools and hot tubs: pH is the same chemistry in both). Below, the water is acidic and corrosive; above, chlorine stops working and scale forms. Works for a probe or an input_number you type test-strip readings into.",
       "source": "https://www.poolchemtracker.com/blog/ideal-pool-ph-level",
       "kind": "numeric",
+      "escalate": {"task": 172800},
       "category": "Water",
       "bands": [
         {"from": null, "to": 7.0, "level": "warning", "message": "pH far too low: corrosive, etches surfaces"},
@@ -728,6 +731,7 @@
       "about": "The same chemistry in finer steps, each saying what the water is like: ideal 7.4-7.6, a task either side up to 7.2 and 7.8, a warning to 7.0 and 8.0, an error beyond, and critical (do not enter) below 5 or above 9.",
       "source": "https://www.poolchemtracker.com/blog/ideal-pool-ph-level",
       "kind": "numeric",
+      "escalate": {"task": 172800},
       "category": "Water",
       "bands": [
         {"from": null, "to": 5.0, "level": "critical", "message": "Do not enter: dangerously acidic"},
@@ -748,6 +752,7 @@
       "about": "Free chlorine in a swimming pool: 1-3 ppm is the usual target (the CDC's minimum is 1 ppm). Low lets germs through; high irritates eyes and skin, and above 10 ppm nobody should swim. ppm and mg/l are the same thing.",
       "source": "https://www.poolcalculator.com/pool-maintenance/what-should-chlorine-levels-be-in-swimming-pools-and-hot-tubs/",
       "kind": "numeric",
+      "escalate": {"task": 172800},
       "category": "Water",
       "bands": [
         {"from": null, "to": 0.5, "level": "error", "message": "Chlorine far too low: not safe to swim"},
@@ -765,6 +770,7 @@
       "about": "Free chlorine in a hot tub or spa: higher than a pool, as warm water breeds germs (Legionella among them). The CDC says 3-10 ppm; 3-5 is the usual target. Above 10 ppm, don't use it.",
       "source": "https://www.cdc.gov/control-legionella/php/toolkit/hot-tub-module.html",
       "kind": "numeric",
+      "escalate": {"task": 172800},
       "category": "Water",
       "bands": [
         {"from": null, "to": 1.0, "level": "error", "message": "Chlorine far too low: not safe to use"},
@@ -781,6 +787,7 @@
       "about": "Bromine in a hot tub or spa, for those that use it instead of chlorine: the CDC says 4-8 ppm. Above 10 ppm, don't use it.",
       "source": "https://www.cdc.gov/control-legionella/php/toolkit/hot-tub-module.html",
       "kind": "numeric",
+      "escalate": {"task": 172800},
       "category": "Water",
       "bands": [
         {"from": null, "to": 2.0, "level": "error", "message": "Bromine far too low: not safe to use"},
@@ -828,6 +835,7 @@
       "name": "Water softener salt (%)",
       "about": "A water softener's salt level, where it reports one as a percentage: top up below 25%; empty, it stops softening.",
       "kind": "numeric",
+      "escalate": {"task": 604800},
       "category": "Water",
       "bands": [
         {"from": null, "to": 10, "level": "warning", "message": "Softener nearly out of salt"},
@@ -945,6 +953,7 @@
       "name": "Boiler pressure (bar)",
       "about": "A sealed heating system's pressure: 1-1.5 bar cold, up to 2 bar hot. Low wants topping up (and a slow leak finding); near 3 bar the relief valve opens.",
       "kind": "numeric",
+      "escalate": {"task": 259200},
       "bands": [
         {"from": null, "to": 0.5, "level": "error", "message": "Boiler pressure very low: top up, then find the leak"},
         {"from": 0.5, "to": 1.0, "level": "task", "message": "Boiler pressure low: top up"},
@@ -1070,6 +1079,7 @@
       "name": "Disk used (%)",
       "about": "A disk's use: past 80% it's time to tidy; a full disk stops databases (Home Assistant's own among them).",
       "kind": "numeric",
+      "escalate": {"task": 604800},
       "bands": [
         {"from": null, "to": 80, "level": "nominal", "message": ""},
         {"from": 80, "to": 90, "level": "task", "message": "Disk filling up: tidy it"},
