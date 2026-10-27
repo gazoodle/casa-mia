@@ -381,6 +381,13 @@ from when.
 Each sensor also has:
 
 - **Outside every band:** the level of a value no band covers (an error by default).
+- **Accuracy** (bands only): how far the meter may be out, as a percentage (of each edge)
+  or an amount in its unit (±0.5 °C). A reading that close to an edge might be either
+  side of it, so the level holds: a worse one counts only once the reading is past the
+  edge by the accuracy, and a better one as soon as it's back inside the real edge. A
+  mains plug reading 253.4 V against the 253 V limit stays nominal at ±1 %, and a
+  reading sitting on a line doesn't flap. The edges stay the standard's own numbers. The
+  library's mains voltage profiles come with ±1 %; leave it empty for none.
 - **When unavailable:** a level, or **Ignore** to have no opinion while it is.
 - **Unavailable for:** how long it must be unavailable before that counts (5 minutes by
   default), so a restart, a reload or a car asleep doesn't raise the alarm.
@@ -505,7 +512,7 @@ hold-off, how long a new level must last before it counts.
 | PM2.5 (µg/m³) | Indoor air | bands | under 15 nominal · 15–35 task · 35–55 warning · 55 and over error; after 30 min |
 | Radon (Bq/m³) | Indoor air | bands | under 100 nominal · 100–200 task · 200 and over warning; after 24 h |
 | UK inverter trips: frequency (G98/G99) | Inverters | bands | under 47 critical · 47–47.5 error · 47.5–49.8 warning · 49.8–50.2 nominal · 50.2–51.5 warning · 51.5–52 error · 52 and over critical; after 5 s |
-| UK inverter trips: voltage (G98/G99) | Inverters | bands | under 184 critical · 184–200.1 error · 200.1–216.2 warning · 216.2–253 nominal · 253–262.2 warning · 262.2–273.7 error · 273.7 and over critical; after 5 s |
+| UK inverter trips: voltage (G98/G99) | Inverters | bands | under 184 critical · 184–200.1 error · 200.1–216.2 warning · 216.2–253 nominal · 253–262.2 warning · 262.2–273.7 error · 273.7 and over critical, ±1 %; after 5 s |
 | Alarm panel (states) | Locks, alarms and appliances | exact states | disarmed, armed_home, armed_away, armed_night, armed_vacation, armed_custom_bypass, arming, pending, disarming nominal · triggered critical · else warning; at once |
 | Connected (on/off) | Locks, alarms and appliances | on/off | off error · on nominal; after 1 min |
 | Lock: locked (states) | Locks, alarms and appliances | exact states | locked nominal · jammed error · else task; after 1 min |
@@ -513,17 +520,17 @@ hold-off, how long a new level must last before it counts.
 | Robot vacuum (states) | Locks, alarms and appliances | exact states | docked, cleaning, returning, idle, paused nominal · else error; after 1 min |
 | Update available (on/off) | Locks, alarms and appliances | on/off | off nominal · on task; after 1 min |
 | Australia grid frequency (50 Hz) | Mains and grid | bands | under 49 critical · 49–49.5 error · 49.5–49.85 warning · 49.85–50.15 nominal · 50.15–50.5 warning · 50.5 and over error; after 30 s |
-| Australia mains voltage (230 V, AS 60038) | Mains and grid | bands | under 207 critical · 207–216.2 warning · 216.2–253 nominal · 253–262 warning · 262 and over critical; after 30 s |
+| Australia mains voltage (230 V, AS 60038) | Mains and grid | bands | under 207 critical · 207–216.2 warning · 216.2–253 nominal · 253–262 warning · 262 and over critical, ±1 %; after 30 s |
 | China grid frequency (50 Hz, GB/T 15945) | Mains and grid | bands | under 49.5 error · 49.5–49.8 warning · 49.8–50.2 nominal · 50.2–50.5 warning · 50.5 and over error; after 30 s |
-| China mains voltage (220 V, GB/T 12325) | Mains and grid | bands | under 187 critical · 187–198 warning · 198–235.4 nominal · 235.4–242 warning · 242 and over critical; after 30 s |
+| China mains voltage (220 V, GB/T 12325) | Mains and grid | bands | under 187 critical · 187–198 warning · 198–235.4 nominal · 235.4–242 warning · 242 and over critical, ±1 %; after 30 s |
 | EU grid frequency (50 Hz) | Mains and grid | bands | under 49 critical · 49–49.5 error · 49.5–49.8 warning · 49.8–50.2 nominal · 50.2–50.5 warning · 50.5 and over error; after 30 s |
-| EU mains voltage (230 V, EN 50160) | Mains and grid | bands | under 195.5 critical · 195.5–207 warning · 207–253 nominal · 253–264.5 warning · 264.5 and over critical; after 30 s |
-| Japan mains voltage (100 V) | Mains and grid | bands | under 90 critical · 90–95 warning · 95–107 nominal · 107–110 warning · 110 and over critical; after 30 s |
+| EU mains voltage (230 V, EN 50160) | Mains and grid | bands | under 195.5 critical · 195.5–207 warning · 207–253 nominal · 253–264.5 warning · 264.5 and over critical, ±1 %; after 30 s |
+| Japan mains voltage (100 V) | Mains and grid | bands | under 90 critical · 90–95 warning · 95–107 nominal · 107–110 warning · 110 and over critical, ±1 %; after 30 s |
 | UK grid frequency | Mains and grid | bands | under 48.8 critical · 48.8–49.5 error · 49.5–49.8 warning · 49.8–50.2 nominal · 50.2–50.5 warning · 50.5 and over error; after 30 s |
-| UK mains voltage (ENA proposed, 2026) | Mains and grid | bands | under 195.5 critical · 195.5–207 warning · 207–253 nominal · 253–262 warning · 262 and over critical; after 30 s |
-| UK mains voltage (current law) | Mains and grid | bands | under 207 critical · 207–216.2 warning · 216.2–253 nominal · 253–262 warning · 262 and over critical; after 30 s |
+| UK mains voltage (ENA proposed, 2026) | Mains and grid | bands | under 195.5 critical · 195.5–207 warning · 207–253 nominal · 253–262 warning · 262 and over critical, ±1 %; after 30 s |
+| UK mains voltage (current law) | Mains and grid | bands | under 207 critical · 207–216.2 warning · 216.2–253 nominal · 253–262 warning · 262 and over critical, ±1 %; after 30 s |
 | US grid frequency (60 Hz) | Mains and grid | bands | under 59.3 critical · 59.3–59.5 error · 59.5–59.9 warning · 59.9–60.1 nominal · 60.1–60.5 warning · 60.5 and over error; after 30 s |
-| US mains voltage (120 V, ANSI C84.1) | Mains and grid | bands | under 104 critical · 104–110 error · 110–114 warning · 114–126 nominal · 126–127 warning · 127–132 error · 132 and over critical; after 30 s |
+| US mains voltage (120 V, ANSI C84.1) | Mains and grid | bands | under 104 critical · 104–110 error · 110–114 warning · 114–126 nominal · 126–127 warning · 127–132 error · 132 and over critical, ±1 %; after 30 s |
 | Frost risk (°C) | Outdoors and garden | bands | under -5 warning · -5–3 task · 3 and over nominal; after 30 min |
 | Security light on too long (on/off) | Outdoors and garden | on/off | off nominal · on warning; after 30 min |
 | Soil moisture (%) | Outdoors and garden | bands | under 15 warning · 15–20 task · 20–60 nominal · 60–80 task · 80 and over warning; after 1 h |

@@ -21,6 +21,11 @@ export type Side = { level: Level; message: string };
 export type StateLevel = { state: string; level: Level; message: string };
 
 export type Band = { from: number | null; to: number | null; level: Level; message: string };
+/** How far a meter may be out: a percentage of each edge, or an amount in its unit. */
+export type Accuracy = { amount: number; percent: boolean };
+
+/** The doubt either side of an edge (levels.py in_bands holds a level within it). */
+export const margin = (edge: number, a?: Accuracy) => (!a ? 0 : a.percent ? (Math.abs(edge) * a.amount) / 100 : a.amount);
 
 /** A watched sensor's record, as the app keeps it (app/.../sensor_watch/common.py). */
 export type WatchRecord = {
@@ -54,6 +59,8 @@ export type WatchRecord = {
   disabled?: boolean;
   /** Numeric: the state is a date, read as the days until it (a reminder due). */
   days_until?: boolean;
+  /** Numeric: how far the meter may be out (a level holds that close to an edge). */
+  accuracy?: Accuracy;
   /** The profile it follows (its levels then come from there). */
   profile?: string;
   /** The group it joined by (groups.py), if any. */

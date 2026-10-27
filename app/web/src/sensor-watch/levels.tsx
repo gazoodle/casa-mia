@@ -3,7 +3,7 @@
 
 import { useState, type ReactNode } from "react";
 import { Field } from "../ui";
-import { LEVELS, LEVEL_NAMES, type Band, type Level, type Side, type StateLevel, type WatchRecord } from "./common";
+import { LEVELS, LEVEL_NAMES, margin, type Accuracy, type Band, type Level, type Side, type StateLevel, type WatchRecord } from "./common";
 import css from "./sensor-watch.module.css";
 import ui from "../ui.module.css";
 import { confirmBox } from "../confirm";
@@ -36,6 +36,8 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
   const [holdOff, setHoldOff] = useState(String(start?.hold_off ?? 60));
   const [goneHold, setGoneHold] = useState(String(start?.unavailable_hold ?? 300));
   const [daysUntil, setDaysUntil] = useState(start?.days_until ?? false);
+  const [accuracyAmount, setAccuracyAmount] = useState(start?.accuracy ? String(start.accuracy.amount) : "");
+  const [accuracyPercent, setAccuracyPercent] = useState(start?.accuracy?.percent ?? true);
   const [problem, setProblem] = useState(""); // why the bands can't be saved, under them
 
   /** Take another set of levels (a suggestion, a profile). */
@@ -54,6 +56,14 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
     if (r.hold_off !== undefined) setHoldOff(String(r.hold_off));
     if (r.unavailable_hold !== undefined) setGoneHold(String(r.unavailable_hold));
     setDaysUntil(r.days_until ?? false);
+    setAccuracyAmount(r.accuracy ? String(r.accuracy.amount) : "");
+    setAccuracyPercent(r.accuracy?.percent ?? true);
+  };
+
+  /** The accuracy as the app takes it; none when empty or 0. */
+  const accuracy = (): Accuracy | undefined => {
+    const amount = Number(accuracyAmount);
+    return accuracyAmount.trim() && amount > 0 ? { amount, percent: accuracyPercent } : undefined;
   };
 
   /** The levels as the app takes them. */
@@ -68,7 +78,7 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
         ? { available, message }
       : k === "state"
         ? { states: split(states), other, message, exceptions: exceptions.filter((e) => e.state.trim()) }
-        : { bands: bands.map(toBand), otherwise, ...(daysUntil ? { days_until: true } : {}) }),
+        : { bands: bands.map(toBand), otherwise, ...(daysUntil ? { days_until: true } : {}), ...(accuracy() ? { accuracy: accuracy() } : {}) }),
   });
 
   /** Bands that make sense, or say why not: a From or To that isn't a number stops the
@@ -88,6 +98,7 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
   return {
     kind: k, setKind, bands, setBands, otherwise, setOtherwise, off, setOff, on, setOn, other, setOther, available, setAvailable, message, setMessage,
     states, setStates, exceptions, setExceptions, unavailable, setUnavailable, holdOff, setHoldOff, goneHold, setGoneHold, daysUntil, setDaysUntil,
+    accuracyAmount, setAccuracyAmount, accuracyPercent, setAccuracyPercent, accuracy,
     adopt, body, sane, problem, drawn: () => bands.map(toBand),
   };
 }
@@ -186,6 +197,25 @@ export function LevelFields({ L, unit = "", seen = [], seenLabel = "Seen", extra
             <LevelSelect value={L.otherwise} onChange={(v) => L.setOtherwise(v as Level)} />
           </Field>
         )}
+        {L.kind === "numeric" && (
+          <Field
+            label="Accuracy"
+            help="How far the meter may be out. A reading that close to an edge holds its level: worse only once surely past it, better as soon as back inside. Empty for none."
+          >
+            <span className={css.accuracy}>
+              ±
+              <input inputMode="decimal" placeholder="none" value={L.accuracyAmount} onChange={(e) => L.setAccuracyAmount(e.target.value)} aria-label="Accuracy" />
+              <Select value={L.accuracyPercent ? "%" : "unit"} onChange={(v) => L.setAccuracyPercent(v === "%")}>
+                <option value="%">% of the edge</option>
+                <option value="unit">{unit || "in its unit"}</option>
+              </Select>
+            </span>
+            {(() => {
+              const narrow = tooNarrow(L.drawn(), L.accuracy());
+              return narrow && <span className={css.note}>Wider than half of the band {narrow}: a reading may step through it in one go.</span>;
+            })()}
+          </Field>
+        )}
         {L.kind !== "available" && (
           <Field label="When unavailable" help="Unavailable is often the first sign of trouble.">
             <LevelSelect value={L.unavailable} ignore onChange={L.setUnavailable} />
@@ -206,6 +236,15 @@ export function LevelFields({ L, unit = "", seen = [], seenLabel = "Seen", extra
       </div>
     </>
   );
+}
+
+/** The first band whose edges' doubt overlaps (more than half its width), as "126–127". */
+function tooNarrow(bands: Band[], a?: Accuracy): string | null {
+  for (const b of bands) {
+    if (b.from === null || b.to === null || !a) continue;
+    if (margin(b.from, a) + margin(b.to, a) > b.to - b.from) return `${b.from}–${b.to}`;
+  }
+  return null;
 }
 
 function LevelSelect({ value, ignore, onChange }: { value: string; ignore?: boolean; onChange: (v: Level | "ignore") => void }) {

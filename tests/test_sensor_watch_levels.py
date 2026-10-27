@@ -253,3 +253,67 @@ def test_a_date_is_read_as_the_days_until_it():
     assert at("2026-10-12T00:00:00+00:00") == ("-0.5", ("warning", "Overdue"))
     assert at("unavailable") == ("unavailable", ("error", "unavailable"))
     assert at("soon")[1] == ("error", "not a number: soon")
+
+
+UK_MAINS = {
+    "kind": "numeric",
+    "bands": [
+        {"from": None, "to": 207, "level": "critical", "message": "Very low"},
+        {"from": 207, "to": 216.2, "level": "warning", "message": "Low"},
+        {"from": 216.2, "to": 253, "level": "nominal", "message": ""},
+        {"from": 253, "to": 262, "level": "warning", "message": "High"},
+        {"from": 262, "to": None, "level": "critical", "message": "Very high"},
+    ],
+    "otherwise": "error",
+    "accuracy": {"amount": 1, "percent": True},  # ±2.53 V at 253 V, ±2.62 V at 262 V
+}
+
+
+@pytest.mark.parametrize(
+    ("current", "state", "level"),
+    [
+        (None, "254", "nominal"),  # the start: the doubt goes the better way
+        ("nominal", "254", "nominal"),  # within the accuracy: holds
+        ("nominal", "255.6", "warning"),  # surely past 253
+        ("warning", "254", "warning"),  # holds on the way back too
+        ("warning", "252.9", "nominal"),  # back inside the real edge: at once
+        ("nominal", "263", "warning"),  # past 253 surely, 262 not yet
+        ("nominal", "265", "critical"),
+        ("critical", "261", "warning"),
+        ("nominal", "215", "nominal"),  # the low edge: ±2.16 V at 216.2 V
+        ("nominal", "214", "warning"),
+        (None, "205.5", "warning"),  # critical only once surely below 207
+        ("error", "240", "nominal"),  # back from unavailable
+    ],
+)
+def test_accuracy_holds_a_level_near_an_edge(current, state, level):
+    assert levels.level_of(UK_MAINS, state, current)[0] == level
+
+
+def test_accuracy_as_an_amount_and_none_at_all():
+    fixed = UK_MAINS | {"accuracy": {"amount": 0.5, "percent": False}}
+    assert levels.level_of(fixed, "253.4", "nominal")[0] == "nominal"
+    assert levels.level_of(fixed, "253.6", "nominal") == ("warning", "High")
+    plain = {k: v for k, v in UK_MAINS.items() if k != "accuracy"}
+    assert levels.level_of(plain, "253.4", "nominal")[0] == "warning"
+
+
+def test_accuracy_is_checked_and_kept_for_numbers_only():
+    rec = clean("sensor.volts", UK_MAINS)
+    assert rec["accuracy"] == {"amount": 1.0, "percent": True}
+    assert "accuracy" not in clean(
+        "sensor.volts", UK_MAINS | {"accuracy": {"amount": 0}}
+    )
+    for bad in ({"amount": -1}, {"amount": 60, "percent": True}, "1%"):
+        with pytest.raises(BadRequest):
+            clean("sensor.volts", UK_MAINS | {"accuracy": bad})
+
+
+def test_a_band_narrower_than_the_accuracy_is_stepped_through_not_skipped():
+    from casa_mia.modules.sensor_watch import profiles
+
+    us = next(p for p in profiles.library() if p["name"].startswith("US mains"))
+    assert us["accuracy"] == {"amount": 1, "percent": True}
+    # 126-127 V is the warning; 127.5 V is surely past 126 V, not surely past 127 V.
+    assert levels.level_of(us, "127.5", "nominal")[0] == "warning"
+    assert levels.level_of(us, "128.5", "warning")[0] == "error"

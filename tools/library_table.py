@@ -55,6 +55,9 @@ def behaviour(p: dict[str, Any]) -> str:
                 )
             parts.append(f"{span} {b['level']}")
         text = " · ".join(parts)
+        if accuracy := p.get("accuracy"):
+            unit = " %" if accuracy["percent"] else ""
+            text += f", ±{_n(accuracy['amount'])}{unit}"
     elif kind == "binary":
         text = f"off {p['off']['level']} · on {p['on']['level']}"
     elif kind == "state":

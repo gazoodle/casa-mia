@@ -218,7 +218,7 @@ export function RecordDialog({
             read(k);
           }}
         />
-        {found?.points && L.kind === "numeric" && <HistoryChart points={found.points} bands={L.drawn()} unit={unit} />}
+        {found?.points && L.kind === "numeric" && <HistoryChart points={found.points} bands={L.drawn()} unit={unit} accuracy={L.accuracy()} />}
         {s && L.kind === "numeric" && s.count !== undefined && (
           <p className={css.note}>
             {s.count} samples, mean {s.mean?.toPrecision(4)} {unit}, from {s.min?.toPrecision(4)} to {s.max?.toPrecision(4)}.

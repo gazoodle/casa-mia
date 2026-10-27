@@ -305,6 +305,21 @@
   fill: color-mix(in srgb, var(--bad) 34%, transparent);
 }
 
+.accuracy {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+}
+
+.accuracy input {
+  width: 6em;
+}
+
+/* Either side of an edge, the meter's accuracy: a level holds in here. */
+.margin {
+  fill: color-mix(in srgb, var(--text) 14%, transparent);
+}
+
 .axis {
   display: flex;
   justify-content: space-between;

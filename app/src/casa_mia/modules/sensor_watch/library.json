@@ -16,6 +16,7 @@
         {"from": 262, "to": null, "level": "critical", "message": "Mains far too high: solar inverters trip about here"}
       ],
       "otherwise": "error",
+      "accuracy": {"amount": 1, "percent": true},
       "unavailable": "error", "hold_off": 30
     },
     {
@@ -32,6 +33,7 @@
         {"from": 262, "to": null, "level": "critical", "message": "Mains far too high: solar inverters trip about here"}
       ],
       "otherwise": "error",
+      "accuracy": {"amount": 1, "percent": true},
       "unavailable": "error", "hold_off": 30
     },
     {
@@ -67,6 +69,7 @@
         {"from": 132, "to": null, "level": "critical", "message": "Mains far too high: over 132 V"}
       ],
       "otherwise": "error",
+      "accuracy": {"amount": 1, "percent": true},
       "unavailable": "error", "hold_off": 30
     },
     {
@@ -100,6 +103,7 @@
         {"from": 264.5, "to": null, "level": "critical", "message": "Mains far too high: over 264.5 V"}
       ],
       "otherwise": "error",
+      "accuracy": {"amount": 1, "percent": true},
       "unavailable": "error", "hold_off": 30
     },
     {
@@ -132,6 +136,7 @@
         {"from": 110, "to": null, "level": "critical", "message": "Mains far too high: over 110 V"}
       ],
       "otherwise": "error",
+      "accuracy": {"amount": 1, "percent": true},
       "unavailable": "error", "hold_off": 30
     },
     {
@@ -148,6 +153,7 @@
         {"from": 242, "to": null, "level": "critical", "message": "Mains far too high: over 242 V"}
       ],
       "otherwise": "error",
+      "accuracy": {"amount": 1, "percent": true},
       "unavailable": "error", "hold_off": 30
     },
     {
@@ -179,6 +185,7 @@
         {"from": 262, "to": null, "level": "critical", "message": "Mains far too high: solar inverters trip about here"}
       ],
       "otherwise": "error",
+      "accuracy": {"amount": 1, "percent": true},
       "unavailable": "error", "hold_off": 30
     },
     {
@@ -213,6 +220,7 @@
         {"from": 273.7, "to": null, "level": "critical", "message": "Over G99 stage 2 (273.7 V): inverters trip in 0.5 s"}
       ],
       "otherwise": "error",
+      "accuracy": {"amount": 1, "percent": true},
       "unavailable": "error", "hold_off": 5
     },
     {

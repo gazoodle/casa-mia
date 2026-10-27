@@ -330,6 +330,11 @@ guest card SVG), `page.py` (welcome, goodbye), `supervisor.py`.
   for profile and group saves. The answer carries the changed records' levels. The Home
   tile reads the integration's own Status and count entities (`status.summarise`).
   `tests/test_sensor_watch_push.py` runs the real feed against a stand-in HA websocket.
+- **2026.10.11-b14: Sensor Watch accuracy** (the backlog's "Accuracy" item; not yet
+  on the box). A numeric record or profile may carry `accuracy` {amount, percent};
+  `levels.in_bands` holds the current level within it of an edge (worse only once
+  surely past, better at the real edge, the start the better way), so `level_of` now
+  takes the current level. The library's mains voltage profiles have ±1 %.
 
 ## Where things stand
 

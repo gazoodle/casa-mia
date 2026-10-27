@@ -233,8 +233,12 @@ class Watcher:
         if record is None:
             return
         state = self.hass.states.get(eid)
-        level, message = level_of(record, reading(record, state, dt_util.now()))
         current = self.now.get(eid)
+        level, message = level_of(
+            record,
+            reading(record, state, dt_util.now()),
+            current and current["level"],
+        )
         if level is None or (current is not None and current["level"] == level):
             self._cancel(eid)  # back where it was (or no opinion): nothing to wait for
             return
@@ -293,7 +297,12 @@ class Watcher:
         if record is None:
             return
         state = self.hass.states.get(eid)
-        now, message = level_of(record, reading(record, state, dt_util.now()))
+        current = self.now.get(eid)
+        now, message = level_of(
+            record,
+            reading(record, state, dt_util.now()),
+            current and current["level"],
+        )
         if now == level:
             self._commit(eid, level, message, state, since=began)
         else:

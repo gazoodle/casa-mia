@@ -2,7 +2,9 @@
 
 A record watches one entity (keyed by its entity id):
 - numeric: `bands`, each {from, to, level, message}: from inclusive, to exclusive,
-  either open (None); `otherwise`, the level of a value in no band;
+  either open (None); `otherwise`, the level of a value in no band; `accuracy`
+  (optional) {amount, percent}: how far the meter may be out, as a percentage of each
+  edge or an amount in its unit, so a reading that close to an edge holds its level;
 - binary: `off` and `on`, each {level, message}: what each state means, so either can
   be nominal, or neither (a task when off, an error when on). Records from before
   2026.10.8-b20 have `nominal` (the state all is well in), `other` (the other's level)
@@ -41,6 +43,7 @@ DEFAULT_HOLD_OFF = 60  # seconds
 DEFAULT_UNAVAILABLE_HOLD = 300
 MAX_HOLD_OFF = 24 * 3600
 MAX_BANDS = 12
+MAX_ACCURACY_PERCENT = 50
 MAX_STATES = 20
 MAX_TEXT = 80  # a name
 # A message: past 80 characters, notifications and cards may cut it short (the page says so).
@@ -225,9 +228,28 @@ def clean(entity_id: str, body: dict[str, Any]) -> dict[str, Any]:
             raise BadRequest(f"Bands overlap: {_span(a)} and {_span(b)}.")
     record["bands"] = out
     record["otherwise"] = _level(body.get("otherwise", "error"), "Outside every band")
+    if accuracy := _accuracy(body.get("accuracy")):
+        record["accuracy"] = accuracy
     if body.get("days_until") is True:
         record["days_until"] = True
     return record
+
+
+def _accuracy(value: Any) -> dict[str, Any] | None:
+    """A numeric record's accuracy, or None for none (missing, or an amount of 0)."""
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise BadRequest("Accuracy: an amount, and whether it's a percentage.")
+    amount = _number(value.get("amount"), "Accuracy")
+    if not amount:
+        return None
+    percent = value.get("percent") is True
+    if amount < 0 or (percent and amount > MAX_ACCURACY_PERCENT):
+        raise BadRequest(
+            f"Accuracy: more than 0{f', at most {MAX_ACCURACY_PERCENT} %' if percent else ''}."
+        )
+    return {"amount": amount, "percent": percent}
 
 
 def sides(record: dict[str, Any]) -> dict[str, dict[str, Any]]:

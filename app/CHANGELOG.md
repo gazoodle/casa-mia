@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.11-b14
+
+- Sensor Watch: bands can have an **accuracy**, how far the meter may be out (a percentage of each edge, or an amount in its unit). A reading that close to an edge holds its level: it gets worse only once the reading is surely past the edge, and better as soon as it is back inside. A mains plug reading 253.4 V against the 253 V limit no longer raises a warning, and a reading sitting on a line no longer flaps. The editor has the field, shades the margin on the chart, and says when it is wider than half a band. The library's mains voltage profiles come with ±1 %; re-import them from the library to get it on yours. Restart Home Assistant after updating to finish.
+
 ## 2026.10.11-b13
 
 - Sensor Watch: a save reaches Home Assistant at once, carrying only what changed. The app sends the watches you changed over the connection to Home Assistant it already holds, and the integration takes them and answers with each one's level. It used to ask Home Assistant to fetch, which then fetched every watch to find what had changed (and, if that failed, waited up to 30 s). If the two ever disagree, the app sends every watch again. Restart Home Assistant after updating to finish; until then it works the old way.
