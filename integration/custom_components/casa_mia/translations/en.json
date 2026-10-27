@@ -137,5 +137,13 @@
         "message": { "name": "Message", "description": "The text, up to 160 characters." }
       }
     }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "reached": "A watched sensor reached a level, or worse",
+      "escalated": "A watched sensor escalated",
+      "back": "A watched sensor is back to nominal"
+    },
+    "extra_fields": { "level": "Level", "group": "Only this group" }
   }
 }

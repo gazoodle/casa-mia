@@ -2,7 +2,7 @@
  * watched.tsx), Home Assistant itself, and the ways to add more. */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { SensorWatchIcon } from "../icons";
+import { MODULES } from "../modules";
 import { AreaHead, Empty, Shell } from "../page";
 import { Toasts, type Toast } from "../ui";
 import { levelsOf, NO_FILTERS, swApi, type Filters, type LevelsView, type Profile, type WatchRecord, type WatchView } from "./common";
@@ -17,12 +17,9 @@ import guest from "../guest.module.css";
 import ui from "../ui.module.css";
 import { confirmBox } from "../confirm";
 
-const HEAD = {
-  icon: <SensorWatchIcon />,
-  title: "Sensor Watch",
-  module: "sensor_watch",
-  blurb: "Any sensor given bands of values, each with a level, so what needs doing or has gone wrong shows before the family notices.",
-};
+// The Home tile's own words and icon (modules.tsx), so the two say the same.
+const { icon, title, blurb } = MODULES.sensor_watch;
+const HEAD = { icon, title, blurb, module: "sensor_watch" };
 
 /** `watch`: an entity whose watch to open (new or not), asked at `at` (the eye in its
  * Home Assistant dialog; open.ts). */

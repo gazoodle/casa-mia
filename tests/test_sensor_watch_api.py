@@ -68,6 +68,25 @@ def test_save_view_delete_and_tell_the_integration(tmp_path):
     assert call(watch, "DELETE", "sensor.salt")[0] == 404
 
 
+def test_its_own_entities_are_refused_however_they_come(tmp_path):
+    """Watching its own status would judge itself, each change feeding the next. The page
+    never offers them; a save by hand or a suggestion accepted could still name one."""
+    watch = make(tmp_path / "sw.json", FakeHA(STATES, ENTITIES))
+    status, got = call(watch, "PUT", "sensor.status", body=SALT)
+    assert status == 400 and "Sensor Watch's own" in got["error"]
+    records = [
+        SALT | {"entity_id": "sensor.salt"},
+        SALT | {"entity_id": "sensor.status"},
+    ]
+    assert call(watch, "POST", "accept", body={"records": records})[0] == 400
+    assert watch.records == {}  # nothing saved, not even the good one
+    # Home Assistant out of reach: saved unchecked (and logged), as before.
+    assert (
+        call(make(tmp_path / "sw2.json", None), "PUT", "sensor.status", body=SALT)[0]
+        == 200
+    )
+
+
 def test_suggest_one_sensor(watch):
     status, got = call(
         watch, "GET", "suggest", {"entity": ["sensor.salt"], "days": ["30"]}

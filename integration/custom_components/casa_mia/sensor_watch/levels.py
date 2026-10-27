@@ -280,3 +280,25 @@ def system_rows(
             "message": f"{state}: {e['reason']}" if e.get("reason") else state,
         }
     return rows
+
+
+TRIGGERS = ("reached", "escalated", "back")  # the device triggers (device_trigger.py)
+
+
+def trigger_matches(
+    kind: str, level: str | None = None, group: str | None = None
+) -> list[dict[str, Any]]:
+    """The events a device trigger fires on, as event data to match (each a subset of
+    the event's): `reached` a level or worse (one match per level, so a jump straight to
+    critical counts), `escalated` (a step of a ladder), `back` to nominal. Never a level
+    found at Home Assistant's start or an edited watch (`initial`): it wasn't reached then.
+    `group`: only that group's sensors."""
+    only = {"initial": False} | ({"group": group} if group else {})
+    if kind == "reached":
+        least = rank(level or "warning")
+        return [only | {"level": lv} for lv in LEVELS[max(1, least) :]]
+    if kind == "escalated":
+        return [only | {"escalated": True}]
+    if kind == "back":
+        return [only | {"level": "nominal"}]
+    raise ValueError(f"no device trigger {kind}")

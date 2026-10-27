@@ -438,3 +438,54 @@ def test_escalate_is_checked_and_kept_for_any_kind():
     for bad in ({"nominal": 3600}, {"critical": 3600}, {"task": 5}, ["task"]):
         with pytest.raises(BadRequest):
             clean("sensor.salt", SALT | {"escalate": bad})
+
+
+def test_device_triggers_match_the_events_that_count():
+    m = levels.trigger_matches
+    assert m("reached", "error") == [
+        {"initial": False, "level": "error"},
+        {
+            "initial": False,
+            "level": "critical",
+        },  # or worse: a jump straight there counts
+    ]
+    assert [d["level"] for d in m("reached", "task")] == [
+        "task",
+        "warning",
+        "error",
+        "critical",
+    ]
+    assert m("reached", "nominal") == m(
+        "reached", "task"
+    )  # nominal is no level to reach
+    assert m("escalated", group="Water") == [
+        {"initial": False, "group": "Water", "escalated": True}
+    ]
+    assert m("back") == [{"initial": False, "level": "nominal"}]
+    with pytest.raises(ValueError):
+        m("louder")
+
+
+def test_each_device_trigger_is_named_and_matches_what_the_event_carries():
+    import json
+    import re
+    from pathlib import Path
+
+    root = (
+        Path(__file__).resolve().parents[1]
+        / "integration"
+        / "custom_components"
+        / "casa_mia"
+    )
+    names = json.loads((root / "translations" / "en.json").read_text())[
+        "device_automation"
+    ]
+    assert set(names["trigger_type"]) == set(levels.TRIGGERS)
+    assert set(names["extra_fields"]) == {"level", "group"}
+    fire = (root / "sensor_watch" / "watch.py").read_text().split("def _fire(", 1)[1]
+    fired = set(
+        re.findall(r'^\s+"(\w+)":', fire.split("\n    def ", 1)[0], re.MULTILINE)
+    )
+    for kind in levels.TRIGGERS:
+        for data in levels.trigger_matches(kind, "warning", "Water"):
+            assert set(data) <= fired, set(data) - fired

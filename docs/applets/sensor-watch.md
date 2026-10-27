@@ -632,8 +632,8 @@ watched until you accept it.
 The **Sensor Watch** device has:
 
 - **Status:** the worst level now (nominal, task, warning, error or critical), its icon
-  in that level's colour on a dashboard (a tile, a badge, an entity row with State colour
-  on): Home Assistant colours no sensor by its state, so Casa Mia's cards do. Its
+  in that level's colour on every dashboard card, whatever its State colour setting: Home Assistant
+  colours no sensor by its state, so Casa Mia does. Its
   attributes hold `watching` (how many sensors) and, for each level, the ten longest
   standing culprits (`task_list`, `warning_list`, `error_list`, `critical_list`: each
   with its entity, name, value, message and since when).
@@ -687,6 +687,22 @@ and the list service their `entity_id` is `homeassistant.recorder`,
 
 There is no entity per watched sensor: the summary, the event and the service below tell
 the rest of Home Assistant which ones they are.
+
+### Device triggers
+
+The quickest way to build on Sensor Watch: in a new automation, **+ Add trigger → Device →
+Sensor Watch**, then one of:
+
+- **A watched sensor reached a level, or worse:** choose the level (Warning, say); a
+  sensor that jumps straight to Critical counts too.
+- **A watched sensor escalated:** a level left standing moved up a rung.
+- **A watched sensor is back to nominal.**
+
+Each can be narrowed to one of your groups. In the automation's actions,
+`{{ trigger.event.data.name }}`, `level`, `message`, `value` and the event's other fields
+say which sensor and why. A level found at Home Assistant's start (or when a watch is
+edited) doesn't fire them, since nothing reached it then; the event below carries those
+too, as `initial`.
 
 ### The event
 

@@ -243,6 +243,11 @@ class Store:
         disabled (kept, not watched) when the body says so."""
         if body.get("disabled") not in (None, True, False):
             raise BadRequest("disabled: true or false.")
+        if self._owned(entity_id):
+            raise BadRequest(
+                f"{entity_id} is Sensor Watch's own: watching it would judge itself, "
+                "each change of level feeding the next."
+            )
         off = {"disabled": True} if body.get("disabled") else {}
         return self._levels_record(entity_id, body) | off
 
@@ -274,6 +279,19 @@ class Store:
             value = c["attributes"].get(attribute)
             return None if value is None else kind_of("", value, {})
         return c["kind"] if c else None
+
+    def _owned(self, entity_id: str) -> bool:
+        """One of Sensor Watch's own entities? The page never offers them, but a save by
+        hand or an import could name one. Unknown while HA can't say: saved, and logged."""
+        if self.reader is None:
+            return False
+        try:
+            return self.reader.owned(entity_id)
+        except HAError as exc:
+            _LOGGER.warning(
+                "saving %s unchecked: is it Sensor Watch's own? (%s)", entity_id, exc
+            )
+            return False
 
     def _reader(self) -> Reader:
         if self.reader is None:

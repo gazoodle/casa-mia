@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.10.11-b19
+
+- Sensor Watch: **device triggers**. In the automation editor, + Add trigger → Device → Sensor Watch offers "A watched sensor reached a level, or worse" (choose the level), "A watched sensor escalated" and "A watched sensor is back to nominal", each narrowed to a group if you like: no YAML needed. Restart Home Assistant after updating.
+- Sensor Watch: the Status sensor's icon takes its level's colour on every card now (b18 reached only tiles, badges and entity rows with State colour on): Casa Mia colours the icon element every card draws, Mushroom's too. **Problem** stays red for a warning, as Home Assistant colours it; use Status for the level's colour.
+- Sensor Watch: the page and its Home tile say what it's for in today's words: "Tell it once what normal looks like, for every sensor in the house, and it tells you only when something isn't".
+- Sensor Watch: its own entities (the status, counts and problem) can't be watched, however they're named (a save by hand, an accepted suggestion): watching them would judge itself.
+- Sensor Watch: the editor's chart shows its top value at the top and its bottom value at the bottom, rather than both underneath, the wrong way round. Outliers are summed up ("31 low, down to 216.1 V") instead of listed.
 ## 2026.10.11-b18
 
 - Sensor Watch: values are shown rounded as Home Assistant shows them (the sensor's display precision, yours or its integration's), on the page, in the event and notifications, the list service and the card: a grid frequency reads 49.95, not 49.9500007629395.

@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Dialog, Field, Segmented } from "../ui";
 import { HistoryChart } from "./chart";
-import { FITS, kindOf, levelsOf, summary, swApi, type Profile, type Suggested, type WatchRecord, type WatchView, DAYS, dayText } from "./common";
+import { FITS, kindOf, levelsOf, summary, swApi, type Profile, type Suggested, type Suggestion, type WatchRecord, type WatchView, DAYS, dayText } from "./common";
 import { LevelFields, useLevels, type Kind } from "./levels";
 import type { Shared } from "./profiles";
 import css from "./sensor-watch.module.css";
@@ -222,7 +222,7 @@ export function RecordDialog({
         {s && L.kind === "numeric" && s.count !== undefined && (
           <p className={css.note}>
             {s.count} samples, mean {s.mean?.toPrecision(4)} {unit}, from {s.min?.toPrecision(4)} to {s.max?.toPrecision(4)}.
-            {s.outlier_count ? ` Set aside as outliers (worth a look): ${s.outliers?.map((o) => o.toPrecision(4)).join(", ")}${s.outlier_count > (s.outliers?.length ?? 0) ? " …" : ""}.` : " No outliers."}
+            {s.outlier_count ? ` Set aside as outliers, worth a look: ${outliers(s, unit)}.` : " No outliers."}
           </p>
         )}
         {s && L.kind === "binary" && s.share !== undefined && (
@@ -327,4 +327,18 @@ function same(a: object, b: object): boolean {
     Array.isArray(v) ? v.map(canon) : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).sort(([x], [y]) => x.localeCompare(y)).map(([k, w]) => [k, canon(w)])) : v;
   const { followers: _f, id: _i, ...rest } = a as Profile;
   return JSON.stringify(canon(rest)) === JSON.stringify(canon(b));
+}
+
+/** "31 low, down to 216.1 V; 2 high, up to 270.2 V": how many each side and how far, not
+ * every ordinary dip (a steady supply's spread is small, so many readings stand out). An
+ * outlier on a side is that side's extreme, so the samples' min and max say how far. */
+function outliers(s: Suggestion, unit: string): string {
+  const low = s.outliers_below ?? 0;
+  const high = (s.outlier_count ?? 0) - low;
+  return [
+    low ? `${low} low, down to ${s.min?.toPrecision(4)} ${unit}` : "",
+    high ? `${high} high, up to ${s.max?.toPrecision(4)} ${unit}` : "",
+  ]
+    .filter(Boolean)
+    .join("; ");
 }

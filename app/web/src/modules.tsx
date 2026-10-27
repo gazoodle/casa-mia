@@ -69,7 +69,7 @@ export const MODULES: Record<string, ModuleInfo> = {
   sensor_watch: {
     title: "Sensor Watch",
     option: "Sensor Watch",
-    blurb: "Any sensor given bands of values, each with a level, so what needs doing or has gone wrong shows before the family notices.",
+    blurb: "Tell it once what normal looks like, for every sensor in the house, and it tells you only when something isn't: what needs doing, or has gone wrong, before the family notices.",
     icon: <SensorWatchIcon />,
     chip: (h) => {
       const level = h.health as string | null | undefined;

@@ -222,6 +222,8 @@ export type Suggestion = {
   max?: number;
   outliers?: number[];
   outlier_count?: number;
+  /** How many outliers are low; the rest are high. */
+  outliers_below?: number;
   bands?: Band[];
   nominal?: "on" | "off";
   share?: number;

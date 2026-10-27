@@ -105,6 +105,15 @@ def test_numeric_suggestion_sets_outliers_aside():
     assert suggest.numeric([]) is None
 
 
+def test_outliers_are_counted_each_side():
+    # A steady supply with a few dips and one spike: the page says how many each side.
+    samples = [240.0 + (n % 3) * 0.1 for n in range(600)] + [216.1, 218.0, 225.5, 270.2]
+    s = suggest.numeric(samples)
+    assert s is not None
+    assert s["outlier_count"] == 4 and s["outliers_below"] == 3
+    assert (s["min"], s["max"]) == (216.1, 270.2)  # the extremes the page quotes
+
+
 def test_a_flat_sensor_still_gets_a_band_round_it():
     s = suggest.numeric([5.0] * 50)
     assert s is not None

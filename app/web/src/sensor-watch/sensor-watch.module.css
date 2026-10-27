@@ -270,8 +270,21 @@
 }
 
 .chart {
+  position: relative;
   width: 100%;
   margin: 0;
+}
+
+/* The chart's top value, inside its top-left corner, over the bands. */
+.axisTop {
+  position: absolute;
+  top: 4px;
+  left: 8px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .chart svg {

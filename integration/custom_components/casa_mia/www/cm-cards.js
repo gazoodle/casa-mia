@@ -5278,6 +5278,15 @@ function fi(e) {
 	let t = [document];
 	for (let n; n = t.pop();) for (let r of n.querySelectorAll("*")) r.localName === e && r.requestUpdate?.(), r.shadowRoot && t.push(r.shadowRoot);
 }
+customElements.whenDefined("ha-state-icon").then(() => {
+	let e = customElements.get("ha-state-icon").prototype, t = e.updated;
+	if (typeof t != "function") return r("ha-state-icon changed; the Status sensor keeps HA's colour");
+	e.updated = function(...e) {
+		t.apply(this, e);
+		let n = Xr(this.stateObj, this._entities ?? this.hass?.entities ?? di());
+		n ? (this.style.color !== n && (this.style.color = n), this.cmLevelColour = !0) : this.cmLevelColour &&= (this.style.removeProperty("color"), !1);
+	}, fi("ha-state-icon");
+});
 for (let e of [
 	"hui-tile-card",
 	"hui-entity-badge",
@@ -5293,17 +5302,7 @@ for (let e of [
 		return n.apply(this, t);
 	}, fi(e);
 });
-customElements.whenDefined("state-badge").then(() => {
-	let e = customElements.get("state-badge").prototype, t = e.willUpdate;
-	e.willUpdate = function(...e) {
-		if (t.apply(this, e), !("_iconStyle" in this)) return r("state-badge changed; the Status sensor keeps HA's colour");
-		let n = this._color === "state" && Xr(this.stateObj, di());
-		n && this._iconStyle.color !== n && (this._iconStyle = {
-			...this._iconStyle,
-			color: n
-		});
-	}, fi("state-badge");
-}), c("casa-mia-sensor-watch", ti), c("casa-mia-sensor-watch-editor", si), c(ci, li), l("casa-mia-sensor-watch", "Casa Mia Sensor Watch", "What needs doing or has gone wrong (all of it, or one group's), worst first; hidden when all is well.");
+c("casa-mia-sensor-watch", ti), c("casa-mia-sensor-watch-editor", si), c(ci, li), l("casa-mia-sensor-watch", "Casa Mia Sensor Watch", "What needs doing or has gone wrong (all of it, or one group's), worst first; hidden when all is well.");
 //#endregion
 //#region src/qr-code/card.ts
 var pi = {
