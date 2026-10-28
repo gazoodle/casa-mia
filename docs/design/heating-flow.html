@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Heating Flow Card</title>
+<!-- A throw-away playground for the Heating Flow card's look. NEVER TEST THIS.
+     Every name, entity and number here is invented. Open it from a checkout. -->
+<style>
+:root { --bg:#f4f5f7; --panel:#fff; --panel2:#eef0f4; --line:#c9ced8; --text:#1d2330; --muted:#667085; --edge:#3b4252;
+        --conduit:#2b3140; --off:#b6bcc8; --accent:#03a9f4; --run:#43a047; --warn:#e0a100; --bad:#db4437;
+        --zone-out:#e9f1fb; --zone-plant:#f3f4f7; --zone-house:#fbf4ec;
+        --earth1:#9a7b55; --earth2:#b89a70; --earth3:#8a8780; --grass:#6dae5a; }
+:root.dark { --bg:#14171d; --panel:#1c2027; --panel2:#262b35; --line:#3a4150; --text:#e6e9ef; --muted:#9aa3b2; --edge:#0b0d11;
+             --conduit:#0c0e12; --off:#4a5160; --zone-out:#16202c; --zone-plant:#1b1f26; --zone-house:#221e1a;
+             --earth1:#4a3c2a; --earth2:#3a3226; --earth3:#2e2e30; --grass:#2f6a2b; }
+* { box-sizing:border-box; }
+body { margin:0; padding:24px 16px 60px; background:var(--bg); color:var(--text); font:14px/1.45 system-ui,-apple-system,sans-serif; }
+main { max-width:1180px; margin:0 auto; }
+h1 { margin:0 0 4px; font-size:24px; } h2 { margin:30px 0 6px; font-size:18px; }
+p.note { margin:0 0 12px; color:var(--muted); max-width:80ch; }
+.controls { display:grid; grid-template-columns:repeat(auto-fill,minmax(330px,1fr)); gap:6px 24px; margin:14px 0; }
+.controls div { display:flex; flex-wrap:wrap; gap:2px 12px; align-items:center; }
+.controls b { width:100%; color:var(--muted); font-size:11.5px; text-transform:uppercase; letter-spacing:.05em; }
+.controls label { white-space:nowrap; cursor:pointer; }
+.controls label.dis { opacity:.4; pointer-events:none; }
+button { font:inherit; padding:3px 12px; border-radius:999px; border:1px solid var(--line); background:var(--panel); color:var(--text); cursor:pointer; }
+.card { background:var(--panel); border:1px solid var(--line); border-radius:16px; overflow:hidden; }
+.head { display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:10px 14px; border-bottom:1px solid var(--line); }
+.head h3 { margin:0 auto 0 0; font-size:16px; }
+.tabs { display:flex; gap:4px; } .tabs button.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+.chip { padding:2px 10px; border-radius:999px; font-size:12px; font-weight:600; white-space:normal; background:var(--panel2); }
+svg.flow { display:block; width:100%; height:auto; }
+.t { fill:var(--text); } .m { fill:var(--muted); } .w { fill:var(--warn); }
+.zl { fill:var(--muted); font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+.halo { paint-order:stroke; stroke:var(--panel); stroke-width:4px; stroke-linejoin:round; }
+.lt { fill:#fff; paint-order:stroke; stroke:rgba(0,0,0,.45); stroke-width:3px; }
+.hit { cursor:pointer; } .hit:hover .hl { stroke:var(--accent) !important; stroke-width:2.5px; }
+.spin { animation:spin var(--sd,3s) linear infinite; } @keyframes spin { to { transform:rotate(360deg); } }
+.dash { animation:dash var(--d,1.2s) linear infinite; } @keyframes dash { to { stroke-dashoffset:-28; } }
+.pulse { animation:pulse 1.2s ease-in-out infinite; } @keyframes pulse { 50% { opacity:.35; } }
+.rise { animation:rise 2.6s linear infinite; } @keyframes rise { from { transform:translateY(0); opacity:.8; } to { transform:translateY(-230px); opacity:0; } }
+.drip { animation:drip .7s linear infinite; } @keyframes drip { from { transform:translateY(0); opacity:1; } to { transform:translateY(22px); opacity:0; } }
+@media (prefers-reduced-motion: reduce) { .spin, .dash, .pulse, .rise, .drip { animation:none; } }
+#said { min-height:1.6em; margin:8px 2px 0; color:var(--muted); }
+.scale { position:relative; max-width:640px; margin:10px 4px 30px; }
+.scale .bar { height:14px; border-radius:7px; }
+.scale span { position:absolute; top:17px; transform:translateX(-50%); font-size:11px; color:var(--muted); }
+pre { background:var(--panel2); padding:12px; border-radius:10px; overflow:auto; font-size:12.5px; }
+li { margin:3px 0; }
+</style>
+</head>
+<body>
+<main>
+<div style="display:flex;justify-content:space-between;gap:12px;align-items:start">
+  <div><h1>Heating Flow Card</h1><p class="note">A playground: one card, three views, any installation. Invented sensors and numbers. Name to be agreed before coding.</p></div>
+  <button id="theme">Light / dark</button>
+</div>
+
+<div class="controls" id="controls"></div>
+
+<div class="card">
+  <div class="head"><h3>Heating &amp; hot water</h3><span id="chips" style="display:contents"></span>
+    <div class="tabs" id="tabs"></div></div>
+  <svg class="flow" id="flow" viewBox="0 0 1000 630" role="img" aria-label="Heating flow diagram"></svg>
+</div>
+<div class="scale" id="scale"></div>
+<div id="said">Tap, hold or double-tap any reading or part.</div>
+
+<h2>How to read it</h2>
+<ul>
+  <li><b>Colour is temperature.</b> Each sensor sits at its own point on its pipe, and its reading is a stop in that pipe's gradient: a run that loses heat fades along its length. On the scale above, or by circuit (C1).</li>
+  <li><b>Chevrons are flow.</b> They move only while that circuit flows, faster as its pump runs faster. Still water keeps its colour but dims.</li>
+  <li><b>Nothing fails silently.</b> A sensor that isn't current drops out of the gradient and shows how long it has been missing (try Fault). A pump that should be running and isn't is ringed amber.</li>
+  <li><b>Areas are generic.</b> Source (borehole, ground loop or air, with optional PVT), plant room (heat pump, pumps, diverter, tank), house (floors of underfloor loops or radiators, taps). The area names are options; nothing is drawn that the config doesn't name.</li>
+</ul>
+
+<h2>Config sketch</h2>
+<pre>type: custom:cm-heating-flow
+view: system                         # system | heat_pump | rooms
+range: [-5, 65]                      # the colour scale, °C
+areas: [Outside, Plant room, House]
+source:
+  type: borehole                     # borehole | horizontal | air
+  pump: sensor.brine_pump_speed
+  pvt: { valve: binary_sensor.pvt_valve }        # optional, ground source only
+heat_pump:
+  priority: sensor.priority
+  compressor: sensor.compressor_frequency
+  calculated_supply: sensor.calculated_supply
+  degree_minutes: sensor.degree_minutes
+  outdoor: sensor.outdoor_temperature
+  power: sensor.hp_power
+  heat: sensor.hp_heat_output
+  aux: sensor.aux_heater
+  alarm: sensor.hp_alarm
+  refrigerant: { suction: …, hot_gas: …, liquid: …, evaporating: …, condensing: … }
+  reversing_valve: binary_sensor.defrost         # air source
+heating:
+  pump: sensor.heating_pump_speed
+  diverter: sensor.diverter                      # heating | hot water
+  floors:
+    - name: Ground floor
+      emitters: underfloor                       # underfloor | radiators
+      mixing: { valve: …, pump: … }              # optional
+      loops:
+        - { name: Kitchen, actuator: binary_sensor.kitchen_actuator, climate: climate.kitchen, return: sensor.kitchen_loop_return }
+dhw:
+  tank: [sensor.tank_top, sensor.tank_middle, sensor.tank_bottom]
+  flow: sensor.hot_water_flow
+  recirculation: { pump: … }                     # optional
+# Every temperature sensor names the pipe it sits on and where:
+sensors:
+  - { entity: sensor.brine_in,      pipe: brine_in,      at: 0.5 }
+  - { entity: sensor.supply,        pipe: heating_supply, at: 0 }
+  - { entity: sensor.house_supply,  pipe: heating_supply, at: 0.8 }   # after the run to the house
+# any part: tap_action / hold_action / double_tap_action (default: more-info)</pre>
+
+<h2>Questions for you</h2>
+<ul>
+  <li>Which views earn their place: System, Heat pump and Rooms, or fewer, or a compact one for a small tile?</li>
+  <li>Pipes (P1–P4), markers (chevrons, arrows or bubbles), colours (temperature or circuit), readouts (pills or text): which?</li>
+  <li>Is "where on the pipe" as a fraction (0 to 1) a fair way to place a sensor in the editor, or would you rather drag it on the diagram?</li>
+  <li>The heat pump panel: what else is worth a line (flow rate, brine ΔT, compressor starts, hours)?</li>
+</ul>
+</main>
+
+<script src="heating-flow/engine.js"></script>
+<script src="heating-flow/data.js"></script>
+<script src="heating-flow/water.js"></script>
+<script src="heating-flow/system.js"></script>
+<script src="heating-flow/heatpump.js"></script>
+<script src="heating-flow/rooms.js"></script>
+<script>
+'use strict';
+const cfg = {view: 'system', source: 'borehole', pvt: true, dhw: true, recirc: true, immersion: true, softener: true, storage: true, pumps: 2, meter: false,
+             emitters: 'ufh', floors: 3, scenario: 'heating', inUse: false, hardTap: false, filling: false, saltLow: false, immOn: false,
+             zones: ['Outside', 'Plant room', 'House']};
+Object.assign(HF.opts, {style: 'outline', marker: 'chev', scheme: 'temp', read: 'pill'});
+
+// Controls: [label, kind, key, options], into cfg or into the look (HF.opts).
+const GROUPS = [
+  ['Source', 'radio', 'source', [['borehole', 'Borehole'], ['horizontal', 'Ground loop'], ['air', 'Air']]],
+  ['Parts', 'check', null, [['pvt', 'PVT'], ['dhw', 'Hot water'], ['recirc', 'Return loop'], ['immersion', 'Immersion']]],
+  ['Water', 'check', null, [['softener', 'Softener'], ['storage', 'Storage tank'], ['meter', 'Mains meter']]],
+  ['Storage pumps', 'radio', 'pumps', [[1, '1'], [2, '2']]],
+  ['Emitters', 'radio', 'emitters', [['ufh', 'Underfloor'], ['rad', 'Radiators'], ['mixed', 'Radiators + underfloor']]],
+  ['Floors', 'radio', 'floors', [[1, '1'], [2, '2'], [3, '3']]],
+  ['Scenario', 'radio', 'scenario', [['heating', 'Heating'], ['dhw', 'Hot water'], ['idle', 'Idle'], ['fault', 'Fault'], ['defrost', 'Defrost']]],
+  ['Right now', 'check', null, [['inUse', 'Soft water in use'], ['hardTap', 'Hard tap'], ['filling', 'Storage filling'], ['saltLow', 'Salt low'], ['immOn', 'Immersion on']]],
+  ['Pipes', 'radio', 'o.style', [['outline', 'P1 Outline'], ['glass', 'P2 Glass'], ['conduit', 'P3 Conduit'], ['neon', 'P4 Neon']]],
+  ['Markers', 'radio', 'o.marker', [['chev', 'Chevrons'], ['arrow', 'Arrows'], ['bub', 'Bubbles']]],
+  ['Colours', 'radio', 'o.scheme', [['temp', 'C2 Temperature'], ['circuit', 'C1 Circuit']]],
+  ['Readouts', 'radio', 'o.read', [['pill', 'R1 Pills'], ['text', 'R2 Text']]],
+];
+const get = k => k.startsWith('o.') ? HF.opts[k.slice(2)] : cfg[k];
+const set = (k, v) => { if (k.startsWith('o.')) HF.opts[k.slice(2)] = v; else cfg[k] = v; };
+document.getElementById('controls').innerHTML = GROUPS.map(([label, kind, key, opts]) => `<div><b>${label}</b>` + opts.map(([v, l]) => kind === 'radio'
+  ? `<label data-v="${v}"><input type="radio" name="${key}" value="${v}" ${String(get(key)) === String(v) ? 'checked' : ''}> ${l}</label>`
+  : `<label data-v="${v}"><input type="checkbox" name="${v}" ${cfg[v] ? 'checked' : ''}> ${l}</label>`).join(' ') + `</div>`).join('');
+document.getElementById('controls').onchange = e => {
+  const t = e.target;
+  if (t.type === 'checkbox') cfg[t.name] = t.checked;
+  else set(t.name, ['floors', 'pumps'].includes(t.name) ? +t.value : t.value);
+  render();
+};
+
+const VIEWS = [['system', 'System'], ['heatpump', 'Heat pump'], ['rooms', 'Rooms']];
+const tabs = document.getElementById('tabs');
+tabs.onclick = e => { if (e.target.dataset.v) { cfg.view = e.target.dataset.v; render(); } };
+
+const svg = document.getElementById('flow');
+function render() {
+  // Air has no PVT and ground has no defrost.
+  const air = cfg.source === 'air';
+  if (air) cfg.pvt = false;
+  if (!air && cfg.scenario === 'defrost') cfg.scenario = 'heating';
+  document.querySelector('label[data-v="pvt"]').classList.toggle('dis', air);
+  document.querySelector('input[name="pvt"]').checked = cfg.pvt;
+  document.querySelector('label[data-v="defrost"]').classList.toggle('dis', !air);
+  document.querySelector(`input[name="scenario"][value="${cfg.scenario}"]`).checked = true;
+
+  HF.load(cfg);
+  svg.setAttribute('viewBox', cfg.view === 'system' ? `0 0 ${HF.W} ${HF.H}` : '0 0 1000 630');
+  svg.innerHTML = HF.views[cfg.view](cfg);
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) svg.pauseAnimations();
+  tabs.innerHTML = VIEWS.map(([v, l]) => `<button data-v="${v}" class="${cfg.view === v ? 'on' : ''}">${l}</button>`).join('');
+
+  // The card's header: what it is doing, and anything wrong, in words.
+  const S = HF.status, st = S.stale;
+  document.getElementById('chips').innerHTML =
+    `<span class="chip" style="background:${HF.PRIO[S.prio]};color:#fff">${S.prio}</span>` +
+    `<span class="chip">${HF.data.hz.v ? HF.fmt(HF.data.hz) : 'Compressor off'}</span><span class="chip">Outdoor ${HF.fmt(HF.data.outdoor)}</span>` +
+    (S.alarm ? `<span class="chip" style="background:var(--bad);color:#fff">Alarm: ${S.alarm}</span>` : '') +
+    (S.warn ? `<span class="chip" style="background:var(--warn);color:#fff">${S.warn}</span>` : '') +
+    `<span class="chip" style="${st.length ? 'background:var(--warn);color:#fff' : 'color:var(--run)'}">${st.length ? `${st.length} sensor not current: ${st.map(d => `${d.e}, ${d.stale}`).join('; ')}` : 'All sensors current'}</span>`;
+}
+
+// Interaction demo: what each gesture would do on the card.
+const said = document.getElementById('said');
+const say = (e, how, what) => said.textContent = `${how} on ${e}: ${what}`;
+let timer, held;
+svg.addEventListener('pointerdown', ev => { const h = ev.target.closest('[data-e]'); held = false; if (h) timer = setTimeout(() => { held = true; say(h.dataset.e, 'Hold', 'hold_action (none unless set; e.g. its history)'); }, 500); });
+svg.addEventListener('pointerup', () => clearTimeout(timer));
+svg.addEventListener('click', ev => { const h = ev.target.closest('[data-e]'); if (h && !held) say(h.dataset.e, 'Tap', 'tap_action, by default HA\'s more-info'); });
+svg.addEventListener('dblclick', ev => { const h = ev.target.closest('[data-e]'); if (h) say(h.dataset.e, 'Double tap', 'double_tap_action (none unless set)'); });
+
+document.getElementById('scale').innerHTML = `<div class="bar" style="background:linear-gradient(90deg,${HF.STOPS.map(([t, c]) => `${c} ${(t + 5) / 70 * 100}%`).join(',')})"></div>` +
+  HF.STOPS.map(([t]) => `<span style="left:${(t + 5) / 70 * 100}%">${t}°</span>`).join('');
+
+const root = document.documentElement;
+root.classList.toggle('dark', matchMedia('(prefers-color-scheme: dark)').matches);
+document.getElementById('theme').onclick = () => root.classList.toggle('dark');
+render();
+</script>
+</body>
+</html>

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.11-b20
+
+- New card: **Heating Flow** (`custom:casa-mia-heating-flow`), the heating and hot water as a live diagram, set up entirely in the card editor. Colour is temperature: each sensor sits on its own pipe and is a stop in its colour, so a run that loses heat fades along it. Moving chevrons are flow, faster as a pump runs faster. Anything not current or wrong says so, on the part and in the header: a sensor unavailable or silent too long shows its age, a pump stopped while the compressor runs is ringed amber, and the heat pump's alarm and low salt are named. Parts are drawn only when the editor names them: a borehole, ground loop or air source (with PVT panels), the heat pump (priority, compressor, supply against calculated, COP, degree minutes), the diverter between heating and hot water, up to three floors of underfloor loops (each actuator open or closed) or radiators, the hot water tank (hot out of the top, its coil, sensors and an immersion through the bottom), the return loop, a softener, a storage tank and its pumps, and the hard and soft water to the house. The heat pump and the storage tank take your own names. Tap a part for its more-info (or set tap, hold and double tap actions). This first version is the System view; the Heat pump and Rooms views follow.
+- Restart Home Assistant after updating, then reload the browser.
+
 ## 2026.10.11-b19
 
 - Sensor Watch: **device triggers**. In the automation editor, + Add trigger → Device → Sensor Watch offers "A watched sensor reached a level, or worse" (choose the level), "A watched sensor escalated" and "A watched sensor is back to nominal", each narrowed to a group if you like: no YAML needed. Restart Home Assistant after updating.

@@ -357,6 +357,19 @@ guest card SVG), `page.py` (welcome, goodbye), `supervisor.py`.
   Levels found at a level (start, an edited watch, Refresh state) fire the event too,
   with `initial`, held until HA has started (`async_at_started`); the blueprint raises
   the sidebar's notification again but leaves the phone alone.
+- **2026.10.11-b20: the Heating Flow card, System view** (built 2026-10-28 overnight; not
+  yet on the box; uncommitted for the owner to look at). The design was settled in the
+  playground `docs/design/heating-flow.html` (scripts in `docs/design/heating-flow/`);
+  the card is its System view ported to `cards/src/heating-flow/`: `engine.ts` (geometry,
+  colour, sensor placement; pure, tested under Node), `draw.ts` (pipes drawn as one
+  network: every wall, then every fill, so tees join; ends square-capped; crossings on
+  top with a gap), `parts.ts`, `system.ts`, `common.ts` (options; each entity a reading,
+  not current when unavailable or silent past `stale_hours`; flows and priority from the
+  states), `card.ts` (fires HA's `hass-action`), `editor.ts` (ha-form, one fold per
+  area; sensor lists are ordered entity pickers). Checked: card tests, and the built
+  bundle rendered in a scratch harness with invented states (light, dark, faults, a tap).
+  Not yet seen under real HA: the editor's folds and entity lists, and `hass-action`.
+  Next: the Heat pump and Rooms views (the playground has both), which add view buttons.
 
 ## Where things stand
 
