@@ -30,7 +30,6 @@ const SCHEMA = [
     pick("markers", [["chev", "Chevrons"], ["arrow", "Arrows"], ["bub", "Bubbles"]]),
     pick("colours", [["temp", "By temperature"], ["circuit", "By circuit"]]),
     pick("readouts", [["pill", "Pills on the pipe"], ["text", "Text beside the pipe"]]),
-    { name: "stale_hours", selector: { number: { min: 0, max: 168, step: 1, mode: "box", unit_of_measurement: "h" } } },
     text("area_outside"),
     text("area_plant"),
     text("area_house"),
@@ -98,7 +97,7 @@ const SCHEMA = [
 
 const LABELS: Record<string, string> = {
   title: "Title", pipes: "Pipes", markers: "Flow markers", colours: "Colours", readouts: "Readings",
-  stale_hours: "Not current after", area_outside: "Outside area's name", area_plant: "Plant area's name", area_house: "House area's name",
+  area_outside: "Outside area's name", area_plant: "Plant area's name", area_house: "House area's name",
   label: "Heat pump's name", storage_label: "Storage tank's name",
   type: "Kind", outdoor: "Outdoor temperature", pump: "Pump (speed or on/off)", out: "Out to the ground", ground: "Back from the ground",
   in: "Into the heat pump", pvt: "PVT panels", pvt_out: "PVT out", pvt_valve: "PVT valve (open: through the panels)",
@@ -115,7 +114,6 @@ const LABELS: Record<string, string> = {
   tap_action: "Tap", hold_action: "Hold", double_tap_action: "Double tap",
 };
 const HELP: Record<string, string> = {
-  stale_hours: "A sensor silent for longer shows its age instead of a value (0: only when unavailable).",
   supply_plant: "In the order the water passes them; the card spaces them along the run.",
   return_plant: "In the order the water passes them, from the house back to the heat pump.",
   loops: "One per underfloor loop, open when on.",

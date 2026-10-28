@@ -9,19 +9,25 @@ HF.stopcock = (x, y) =>
   `<path d="M${x - 5} ${y - 5}L${x + 5} ${y + 5}" style="stroke:var(--edge)" stroke-width="2.5" stroke-linecap="round"/>` +
   `<text x="${x - 8}" y="${y + 24}" font-size="11" font-weight="700" class="t halo">Mains in</text></g>`;
 
-// The softener: a resin column beside a salt cabinet, its salt shown as a level. When it
-// needs topping up, the cabinet is ringed amber and says so.
+// The softener, one unit in its own border: the salt cabinet (its salt shown as a level) on
+// the left, the resin column on the right, where hard water rises in at the bottom and soft
+// leaves the side. When it needs salt, the border pulses amber and says so.
 HF.softener = (x, y, w, h) => {
   const salt = HF.data.salt, low = HF.data.salt_low.v, lvl = Math.max(0, Math.min(1, salt.v / 100));
-  const cx = x + 26, cw = w - 30, sy = y + 22, sh = h - 30;
+  const cw = w - 26, sy = y + 22, sh = h - 30, rx = x + w - 20, ry = y + 10, rh = h - 10, clip = HF.id('rc');
+  let beads = '';
+  for (let by = ry + 6; by < ry + rh - 3; by += 4.5) for (let k = 0; k < 3; k++) beads += `<circle cx="${rx + 5 + k * 5 + (Math.round(by) % 2) * 1.5}" cy="${by}" r="1.9"/>`;
   return `<g class="hit" data-e="${salt.e}"><title>Softener: salt ${HF.fmt(salt)}${low ? ', needs topping up' : ''}</title>` +
-    (low ? `<rect x="${x - 4}" y="${y - 4}" width="${w + 8}" height="${h + 8}" rx="12" fill="none" style="stroke:var(--warn)" stroke-width="3" class="pulse"/>` : '') +
-    `<rect class="hl" x="${x}" y="${y + 10}" width="20" height="${h - 10}" rx="10" fill="url(#panelg)" style="stroke:var(--edge)" stroke-width="1.5"/>` +
-    `<rect x="${cx}" y="${y}" width="${cw}" height="${h}" rx="8" fill="url(#panelg)" style="stroke:var(--edge)" stroke-width="1.5"/>` +
-    `<rect x="${cx + 6}" y="${sy}" width="${cw - 12}" height="${sh}" rx="4" style="fill:var(--panel2);stroke:var(--line)"/>` +
-    `<rect x="${cx + 6}" y="${sy + sh * (1 - lvl)}" width="${cw - 12}" height="${sh * lvl}" rx="4" fill="${low ? 'var(--warn)' : '#e8e2d4'}" style="stroke:var(--line)"/>` +
-    `<text x="${cx + cw / 2}" y="${y + 15}" text-anchor="middle" font-size="10.5" font-weight="700" class="t">${salt.v}%</text>` +
-    `<text x="${x + w / 2}" y="${y - 8}" text-anchor="middle" font-size="11" font-weight="700" class="${low ? 'w' : 't'} halo">${low ? 'Top up salt' : 'Softener'}</text></g>`;
+    `<rect class="hl" x="${x - 7}" y="${y - 7}" width="${w + 14}" height="${h + 14}" rx="10" style="fill:var(--panel2);stroke:${low ? 'var(--warn)' : 'var(--line)'}" stroke-width="${low ? 3 : 1.5}" class="${low ? 'pulse' : ''}"/>` +
+    `<rect x="${x}" y="${y}" width="${cw}" height="${h}" rx="8" fill="url(#panelg)" style="stroke:var(--edge)" stroke-width="1.5"/>` +
+    `<rect x="${x + 6}" y="${sy}" width="${cw - 12}" height="${sh}" rx="4" style="fill:var(--panel2);stroke:var(--line)"/>` +
+    `<rect x="${x + 6}" y="${sy + sh * (1 - lvl)}" width="${cw - 12}" height="${sh * lvl}" rx="4" fill="${low ? 'var(--warn)' : '#e8e2d4'}" style="stroke:var(--line)"/>` +
+    `<text x="${x + cw / 2}" y="${y + 15}" text-anchor="middle" font-size="10.5" font-weight="700" class="t">${salt.v}%</text>` +
+    `<clipPath id="${clip}"><rect x="${rx}" y="${ry}" width="20" height="${rh}" rx="10"/></clipPath>` +
+    `<rect x="${rx}" y="${ry}" width="20" height="${rh}" rx="10" fill="url(#panelg)"/>` +
+    `<g clip-path="url(#${clip})" fill="#d9a441" opacity=".75">${beads}</g>` +
+    `<rect x="${rx}" y="${ry}" width="20" height="${rh}" rx="10" fill="none" style="stroke:var(--edge)" stroke-width="1.5"/>` +
+    `<text x="${x + w / 2}" y="${y - 14}" text-anchor="middle" font-size="11" font-weight="700" class="${low ? 'w' : 't'} halo">${low ? 'Top up salt' : 'Softener'}</text></g>`;
 };
 
 // The storage tank: a tall vessel of soft water. With no level sensor its water is drawn
@@ -29,12 +35,12 @@ HF.softener = (x, y, w, h) => {
 HF.storage = (x, y, w, h, filling) => {
   const c = HF.CIRCUIT.cold;
   let g = `<g class="hit" data-e="binary_sensor.storage_inlet"><title>Storage tank${filling ? ': filling' : ''}; no level sensor</title>` +
-    `<rect class="hl" x="${x}" y="${y}" width="${w}" height="${h}" rx="${w / 2.4}" fill="url(#panelg)" style="stroke:var(--edge)" stroke-width="1.8"/>` +
-    `<rect x="${x + 7}" y="${y + 30}" width="${w - 14}" height="${h - 37}" rx="${w / 3}" fill="${c}" opacity=".22"/>` +
+    `<rect class="hl" x="${x}" y="${y}" width="${w}" height="${h}" rx="10" fill="url(#panelg)" style="stroke:var(--edge)" stroke-width="1.8"/>` +
+    `<rect x="${x + 7}" y="${y + 30}" width="${w - 14}" height="${h - 37}" rx="6" fill="${c}" opacity=".22"/>` +
     `<text x="${x + w / 2}" y="${y + 52}" text-anchor="middle" font-size="11" font-weight="700" class="t">Storage</text>` +
     `<text x="${x + w / 2}" y="${y + 67}" text-anchor="middle" font-size="10.5" class="m">level: no sensor</text>`;
   if (filling) {
-    g += Array.from({length: 5}, (_, j) => `<circle cx="${x + w * .33 + (j % 2) * 4}" cy="${y + 14}" r="2" fill="${c}" class="drip" style="animation-delay:-${(j * .14).toFixed(2)}s"/>`).join('');
+    g += Array.from({length: 5}, (_, j) => `<circle cx="${x + w / 2 + (j % 2) * 4 - 2}" cy="${y + 14}" r="2" fill="${c}" class="drip" style="animation-delay:-${(j * .14).toFixed(2)}s"/>`).join('');
     g += `<rect x="${x + w / 2 - 28}" y="${y + 76}" width="56" height="18" rx="9" fill="${c}"/><text x="${x + w / 2}" y="${y + 89}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#fff">Filling</text>`;
   }
   return g + `</g>`;
@@ -53,7 +59,8 @@ HF.outlets = (x, y, w, h, rows) => {
       icon(x + w - 40, r.y, r.icon, r.on) + (r.note ? `<text x="${x + 12}" y="${r.y + 18}" font-size="9.5" class="m">${r.note}</text>` : '') + `</g>`).join('') + `</g>`;
 };
 
-// The immersion heater: a rod through the tank wall, glowing while it is on.
+// The immersion heater: a rod in through the tank's side from its boss at x0 to x1, low down
+// (heat rises), glowing while it is on.
 HF.immersion = (x0, x1, y) => {
   const d = HF.data.immersion, on = d.v > 0;
   return `<g class="hit" data-e="${d.e}"><title>Immersion heater · ${on ? HF.fmt(d) : 'off'}</title>` +

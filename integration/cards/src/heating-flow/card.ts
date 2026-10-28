@@ -77,20 +77,17 @@ export class HeatingFlowCard extends LitElement {
     </ha-card>`;
   }
 
-  /** What it is doing and anything wrong, in words. */
+  /** What it is doing, and the system's own faults, in words. A sensor that is unavailable
+   * says so on its part; which sensors are broken is Sensor Watch's job. */
   private _chips(r: Readings) {
     const hz = this._config?.heat_pump?.compressor ? r.data[this._config.heat_pump.compressor] : undefined;
     const outdoor = this._config?.source?.outdoor ? r.data[this._config.source.outdoor] : undefined;
     const fmt = (d: { v: number; dp: number; unit: string; text?: string }) => d.text ?? d.v.toFixed(d.dp) + d.unit;
-    const stale = r.stale.map((d) => `${this._hass?.states[d.e]?.attributes?.friendly_name ?? d.e}, ${d.stale}`);
     return html`<span class="cm-pill cm-filled" style="--tone:${PRIO_COLOUR[r.prio] ?? "var(--secondary-text-color)"}">${r.prio}</span>
       ${hz && !hz.stale ? html`<span class="cm-pill">${hz.v > 0 ? fmt(hz) : "Compressor off"}</span>` : nothing}
       ${outdoor && !outdoor.stale ? html`<span class="cm-pill">Outdoor ${fmt(outdoor)}</span>` : nothing}
       ${r.alarm ? html`<span class="cm-pill cm-filled" style="--tone:var(--error-color, #db4437)">Alarm: ${r.alarm}</span>` : nothing}
-      ${r.saltLow ? html`<span class="cm-pill cm-filled" style="--tone:var(--warning-color, #ffa600)">Softener: top up salt</span>` : nothing}
-      ${stale.length
-        ? html`<span class="cm-pill cm-filled wrap" style="--tone:var(--warning-color, #ffa600)">${stale.length} not current: ${stale.join("; ")}</span>`
-        : html`<span class="cm-pill" style="--tone:var(--success-color, #43a047)">All sensors current</span>`}`;
+      ${r.saltLow ? html`<span class="cm-pill cm-filled" style="--tone:var(--warning-color, #ffa600)">Softener: top up salt</span>` : nothing}`;
   }
 
   // ---- HA's tap, hold and double-tap actions on the part under the pointer ----

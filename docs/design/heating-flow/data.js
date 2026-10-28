@@ -97,7 +97,7 @@ HF.load = cfg => {
   const brine = !air && D.pump_brine.v > 0;
   const softKnown = cfg.storage ? pumps : cfg.meter && used;   // water use we can see
   HF.flows = {brine, pvt: brine && pvt, bypass: brine && !pvt, hp_out: heat || dhw, heat, coil: dhw, comp: D.hz.v > 0,
-              hot: loop, recirc: loop, soft: softKnown, fill: cfg.storage && cfg.filling,
+              hot: loop || softKnown, recirc: loop, soft: softKnown, fill: cfg.storage && cfg.filling,
               mains: (cfg.storage && cfg.filling) || (cfg.meter && (cfg.hardTap || (!cfg.storage && used))),
               hard: cfg.meter && cfg.hardTap};
   HF.inUse = {soft: softKnown, hard: cfg.meter && cfg.hardTap};

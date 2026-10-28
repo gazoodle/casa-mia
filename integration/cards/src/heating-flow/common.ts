@@ -15,7 +15,6 @@ export type Config = {
   area_outside?: string;
   area_plant?: string;
   area_house?: string;
-  stale_hours?: number;
   tap_action?: object;
   hold_action?: object;
   double_tap_action?: object;
@@ -29,7 +28,7 @@ export type Config = {
   water?: { softener?: boolean; salt?: Id; salt_low?: Id; storage?: boolean; storage_label?: string; inlet?: Id; level?: Id; pumps?: Id[]; meter?: Id; cold?: Id };
 };
 
-export const DEFAULTS = { pipes: "outline", markers: "chev", colours: "temp", readouts: "pill", area_outside: "Outside", area_plant: "Plant room", area_house: "House", stale_hours: 6 } as const;
+export const DEFAULTS = { pipes: "outline", markers: "chev", colours: "temp", readouts: "pill", area_outside: "Outside", area_plant: "Plant room", area_house: "House" } as const;
 
 /** The floors configured, from the bottom up (floor_1 is the lowest). */
 export const floorsOf = (c: Config): Floor[] => [c.floor_1, c.floor_2, c.floor_3].filter((f): f is Floor => !!f && !!(f.name || f.supply || f.return || f.loops?.length));
@@ -59,15 +58,16 @@ const OFF = new Set(["off", "closed", "closing", "false", "idle", "standby"]);
 
 type St = { state: string; attributes: Record<string, any>; last_changed?: string; last_updated?: string; last_reported?: string };
 
-/** One entity as a reading. Unavailable, unknown or missing is not current; so is one that
- * hasn't reported for longer than staleHours (0: no limit). */
-export function reading(st: St | undefined, id: Id, precision: number | undefined, now: number, staleHours: number): Reading {
+/** One entity as a reading. Unavailable, unknown or missing is not current, and says for how
+ * long. Silence alone is not: HA stamps a state only when it changes, so a steady sensor (a
+ * pump idle all night) is quiet and right. Sensor Watch judges silence; the card doesn't. */
+export function reading(st: St | undefined, id: Id, precision: number | undefined, now: number): Reading {
   if (!st) return { v: NaN, unit: "", dp: 0, e: id, stale: "missing" };
   const unit0: string = st.attributes?.unit_of_measurement ?? "";
   const unit = /^°[CF]$/.test(unit0) ? "°" : unit0 === "%" ? "%" : unit0 ? ` ${unit0}` : "";
-  const seen = Date.parse(st.last_reported ?? st.last_updated ?? st.last_changed ?? "");
-  const age = Number.isFinite(seen) ? now - seen : 0;
-  const lapsed = st.state === "unavailable" || st.state === "unknown" || (staleHours > 0 && age > staleHours * 3600e3);
+  const since = Date.parse(st.last_changed ?? st.last_updated ?? "");
+  const age = Number.isFinite(since) ? now - since : 0;
+  const lapsed = st.state === "unavailable" || st.state === "unknown";
   const n = parseFloat(st.state), s = st.state.toLowerCase();
   const v = Number.isFinite(n) ? n : ON.has(s) ? 1 : OFF.has(s) ? 0 : NaN;
   // HA's display precision, or as many decimals as the state itself has.
@@ -98,14 +98,12 @@ export type Readings = {
   prio: string;
   alarm: string | null;
   saltLow: boolean;
-  stale: Reading[];
 };
 
 /** Everything the card shows, from the states. */
 export function readAll(hass: { states: Record<string, St>; entities?: Record<string, any> }, c: Config, now = Date.now()): Readings {
-  const hours = c.stale_hours ?? DEFAULTS.stale_hours;
   const data: Record<string, Reading> = {};
-  for (const id of entitiesOf(c)) data[id] = reading(hass.states[id], id, hass.entities?.[id]?.display_precision, now, hours);
+  for (const id of entitiesOf(c)) data[id] = reading(hass.states[id], id, hass.entities?.[id]?.display_precision, now);
   const val = (id?: Id) => (id && data[id] && !data[id].stale && Number.isFinite(data[id].v) ? data[id].v : null);
   const runs = (id?: Id) => (val(id) ?? 0) > 0;
 
@@ -123,7 +121,9 @@ export function readAll(hass: { states: Record<string, St>; entities?: Record<st
   const meter = runs(water.meter);
   const soft = water.storage ? storagePumps : meter;
   const flows: Record<string, boolean> = {
-    comp, heat, coil, hp_out: heat || coil, brine, pvt, hot: loop, recirc: loop, soft, fill,
+    // Hot flows while the loop runs, and while soft water is in use: the soft cold that
+    // refills the tank's bottom pushes hot out of its top.
+    comp, heat, coil, hp_out: heat || coil, brine, pvt, hot: loop || soft, recirc: loop, soft, fill,
     mains: fill || meter, hard: !!water.storage && meter && !fill,
   };
   for (const f of floorsOf(c)) for (const id of f.loops ?? []) flows[id] = heat && runs(id);
@@ -131,5 +131,5 @@ export function readAll(hass: { states: Record<string, St>; entities?: Record<st
   const alarmState = hp.alarm ? hass.states[hp.alarm]?.state : undefined;
   const alarm = alarmState && !QUIET_ALARM.test(alarmState.trim()) ? alarmState : null;
   const saltLow = !!water.softener && runs(water.salt_low);
-  return { data, flows, prio, alarm, saltLow, stale: Object.values(data).filter((d) => d.stale) };
+  return { data, flows, prio, alarm, saltLow };
 }

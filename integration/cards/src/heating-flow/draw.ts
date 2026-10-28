@@ -32,6 +32,11 @@ export class Draw {
     const t = this.val(k);
     return t == null ? OFF : ramp(t);
   }
+  /** A fitting's colour, as its pipe would show it there (dimmed while still). */
+  tint(k: string | undefined, flow: string, circ: string) {
+    const c = this.look.colours === "circuit" ? (CIRCUIT[circ] ?? OFF) : this.colourOf(k);
+    return this.flows[flow] ? c : mix(c, OFF, 0.35);
+  }
   bgAt(x: number) {
     return `var(${(this.areas.find((a) => x < a[2]) ?? this.areas[this.areas.length - 1])?.[4] ?? "--hf-panel"})`;
   }

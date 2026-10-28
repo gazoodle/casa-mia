@@ -207,6 +207,15 @@ HF.pipes = (list, bgAt) => {
   return {defs: r.map(x => x.defs).join(''), body, pills: r.map(x => x.pills).join('')};
 };
 
+// A reducer where a pipe W wide meets one w wide: a short taper from (x, y) in direction dir
+// (from the wide side to the narrow), its wall and water matching each pipe at its end, so the
+// thin pipe looks joined rather than pushed into the fat one.
+HF.reducer = (x, y, dir, W, w, colour, L = 12) => {
+  const [ux, uy] = {n: [0, -1], s: [0, 1], e: [1, 0], w: [-1, 0]}[dir], [px, py] = [-uy, ux];
+  const quad = (a, b) => `M${x + px * a} ${y + py * a}L${x + ux * L + px * b} ${y + uy * L + py * b}L${x + ux * L - px * b} ${y + uy * L - py * b}L${x - px * a} ${y - py * a}Z`;
+  return `<path d="${quad((W + 3) / 2, (w + 3) / 2)}" style="fill:var(--edge)"/><path d="${quad(W / 2, w / 2)}" fill="${colour}"/>`;
+};
+
 // ---- Readouts ----------------------------------------------------------------------------
 
 // A reading on a pipe: a pill on it, or text beside it. One not current shows its age, always as a pill.
@@ -286,9 +295,9 @@ HF.ground = (x, y, w, h, label) => {
 };
 
 HF.pvt = (x, y, w, h) => {
-  const cw = (w - 16) / 3, ch = (h - 12) / 2;
+  const cw = (w - 12) / 2, ch = (h - 12) / 2;
   let g = `<g class="hit" data-e="sensor.pvt_output"><rect class="hl" x="${x}" y="${y}" width="${w}" height="${h}" rx="8" fill="url(#panelg)" style="stroke:var(--edge)" stroke-width="1.2"/>`;
-  for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) {
+  for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) {
     const cx = x + 4 + i * (cw + 4), cy = y + 4 + j * (ch + 4);
     g += `<rect x="${cx}" y="${cy}" width="${cw}" height="${ch}" rx="3" fill="url(#cellg)"/><path d="M${cx} ${cy + ch / 2}h${cw}M${cx + cw / 2} ${cy}v${ch}" stroke="#fff" stroke-opacity=".18"/>`;
   }

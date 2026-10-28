@@ -43,9 +43,9 @@ export function ground(d: Draw, x: number, y: number, w: number, h: number, labe
 }
 
 export function pvt(x: number, y: number, w: number, h: number, e?: string) {
-  const cw = (w - 16) / 3, ch = (h - 12) / 2;
+  const cw = (w - 12) / 2, ch = (h - 12) / 2;
   let g = `<rect class="hl" x="${x}" y="${y}" width="${w}" height="${h}" rx="8" fill="url(#panelg)" style="stroke:var(--hf-edge)" stroke-width="1.2"/>`;
-  for (let i = 0; i < 3; i++)
+  for (let i = 0; i < 2; i++)
     for (let j = 0; j < 2; j++) {
       const cx = x + 4 + i * (cw + 4), cy = y + 4 + j * (ch + 4);
       g += `<rect x="${cx}" y="${cy}" width="${cw}" height="${ch}" rx="3" fill="url(#cellg)"/><path d="M${cx} ${cy + ch / 2}h${cw}M${cx + cw / 2} ${cy}v${ch}" stroke="#fff" stroke-opacity=".18"/>`;
@@ -101,13 +101,23 @@ export function compressor(d: Draw, x: number, y: number, r: number, k: string) 
     `<circle cx="${x}" cy="${y}" r="${r * 0.16}" style="fill:var(--hf-edge)"/>`);
 }
 
-/** The immersion heater: a rod up through the tank's bottom from its boss at y0 to y1,
- * glowing while it is on. */
-export function immersion(d: Draw, x: number, y0: number, y1: number, k: string) {
+/** The immersion heater: a rod in through the tank's side from its boss at x0 to x1, low down
+ * (heat rises), glowing while it is on. */
+export function immersion(d: Draw, x0: number, x1: number, y: number, k: string) {
   const r = d.data[k], on = (d.val(k) ?? 0) > 0;
   return hit(r?.e, `Immersion heater · ${r && on ? d.fmt(r) : "off"}`,
-    `<rect x="${x - 3}" y="${Math.min(y0, y1)}" width="6" height="${Math.abs(y1 - y0)}" rx="3" fill="${on ? "#ff7a1a" : "#8a8f99"}" style="${on ? "filter:drop-shadow(0 0 4px #ff7a1a)" : ""}" class="${on ? "pulse" : ""}"/>` +
-    `<rect class="hl" x="${x - 7}" y="${y0 - 4}" width="14" height="9" rx="2" style="fill:var(--hf-panel2);stroke:var(--hf-edge)" stroke-width="1.4"/>`);
+    `<rect x="${Math.min(x0, x1)}" y="${y - 3}" width="${Math.abs(x1 - x0)}" height="6" rx="3" fill="${on ? "#ff7a1a" : "#8a8f99"}" style="${on ? "filter:drop-shadow(0 0 4px #ff7a1a)" : ""}" class="${on ? "pulse" : ""}"/>` +
+    `<rect class="hl" x="${x0 - 4}" y="${y - 7}" width="9" height="14" rx="2" style="fill:var(--hf-panel2);stroke:var(--hf-edge)" stroke-width="1.4"/>`);
+}
+
+/** A reducer where a pipe W wide meets one w wide: a short taper from (x, y) in direction dir
+ * (from the wide side to the narrow), its wall and water matching each pipe at its end, so the
+ * thin pipe looks joined rather than pushed into the fat one. */
+export function reducer(x: number, y: number, dir: string, W: number, w: number, colour: string, L = 12) {
+  const [ux, uy] = ({ n: [0, -1], s: [0, 1], e: [1, 0], w: [-1, 0] } as Record<string, number[]>)[dir], [px, py] = [-uy, ux];
+  const quad = (a: number, b: number) =>
+    `M${x + px * a} ${y + py * a}L${x + ux * L + px * b} ${y + uy * L + py * b}L${x + ux * L - px * b} ${y + uy * L - py * b}L${x - px * a} ${y - py * a}Z`;
+  return `<path d="${quad((W + 3) / 2, (w + 3) / 2)}" style="fill:var(--hf-edge)"/><path d="${quad(W / 2, w / 2)}" fill="${colour}"/>`;
 }
 
 // ---- Water ------------------------------------------------------------------------------
@@ -118,19 +128,25 @@ export const stopcock = (x: number, y: number, e?: string) => hit(e, "Mains in",
   `<path d="M${x - 5} ${y - 5}L${x + 5} ${y + 5}" style="stroke:var(--hf-edge)" stroke-width="2.5" stroke-linecap="round"/>` +
   `<text x="${x - 8}" y="${y + 24}" font-size="11" font-weight="700" class="t halo">Mains in</text>`);
 
-/** The softener: a resin column beside a salt cabinet, its salt shown as a level. When it
- * needs topping up, it is ringed amber and says so. */
+/** The softener, one unit in its own border: the salt cabinet (its salt shown as a level) on
+ * the left, the resin column on the right, where hard water rises in at the bottom and soft
+ * leaves the side. When it needs salt, the border pulses amber and says so. */
 export function softener(d: Draw, x: number, y: number, w: number, h: number, low: boolean, saltId?: string, lowId?: string) {
   const salt = saltId ? d.data[saltId] : undefined, lvl = Math.max(0, Math.min(1, (d.val(saltId) ?? 0) / 100));
-  const cx = x + 26, cw = w - 30, sy = y + 22, sh = h - 30;
+  const cw = w - 26, sy = y + 22, sh = h - 30, rx = x + w - 20, ry = y + 10, rh = h - 10, clip = d.id("rc");
+  let beads = "";
+  for (let by = ry + 6; by < ry + rh - 3; by += 4.5) for (let k = 0; k < 3; k++) beads += `<circle cx="${rx + 5 + k * 5 + (Math.round(by) % 2) * 1.5}" cy="${by}" r="1.9"/>`;
   return hit(saltId ?? lowId, `Softener${salt ? ": salt " + d.fmt(salt) : ""}${low ? ", needs topping up" : ""}`,
-    (low ? `<rect x="${x - 4}" y="${y - 4}" width="${w + 8}" height="${h + 8}" rx="12" fill="none" style="stroke:var(--hf-warn)" stroke-width="3" class="pulse"/>` : "") +
-    `<rect class="hl" x="${x}" y="${y + 10}" width="20" height="${h - 10}" rx="10" fill="url(#panelg)" style="stroke:var(--hf-edge)" stroke-width="1.5"/>` +
-    `<rect x="${cx}" y="${y}" width="${cw}" height="${h}" rx="8" fill="url(#panelg)" style="stroke:var(--hf-edge)" stroke-width="1.5"/>` +
-    `<rect x="${cx + 6}" y="${sy}" width="${cw - 12}" height="${sh}" rx="4" style="fill:var(--hf-panel2);stroke:var(--hf-line)"/>` +
-    (salt ? `<rect x="${cx + 6}" y="${sy + sh * (1 - lvl)}" width="${cw - 12}" height="${sh * lvl}" rx="4" fill="${low ? "var(--hf-warn)" : "#e8e2d4"}" style="stroke:var(--hf-line)"/>` +
-      `<text x="${cx + cw / 2}" y="${y + 15}" text-anchor="middle" font-size="10.5" font-weight="700" class="t">${esc(salt.stale ? "—" : d.fmt(salt))}</text>` : "") +
-    `<text x="${x + w / 2}" y="${y - 8}" text-anchor="middle" font-size="11" font-weight="700" class="${low ? "w" : "t"} halo">${low ? "Top up salt" : "Softener"}</text>`);
+    `<rect class="hl ${low ? "pulse" : ""}" x="${x - 7}" y="${y - 7}" width="${w + 14}" height="${h + 14}" rx="10" style="fill:var(--hf-panel2);stroke:${low ? "var(--hf-warn)" : "var(--hf-line)"}" stroke-width="${low ? 3 : 1.5}"/>` +
+    `<rect x="${x}" y="${y}" width="${cw}" height="${h}" rx="8" fill="url(#panelg)" style="stroke:var(--hf-edge)" stroke-width="1.5"/>` +
+    `<rect x="${x + 6}" y="${sy}" width="${cw - 12}" height="${sh}" rx="4" style="fill:var(--hf-panel2);stroke:var(--hf-line)"/>` +
+    (salt ? `<rect x="${x + 6}" y="${sy + sh * (1 - lvl)}" width="${cw - 12}" height="${sh * lvl}" rx="4" fill="${low ? "var(--hf-warn)" : "#e8e2d4"}" style="stroke:var(--hf-line)"/>` +
+      `<text x="${x + cw / 2}" y="${y + 15}" text-anchor="middle" font-size="10.5" font-weight="700" class="t">${esc(salt.stale ? "—" : d.fmt(salt))}</text>` : "") +
+    `<clipPath id="${clip}"><rect x="${rx}" y="${ry}" width="20" height="${rh}" rx="10"/></clipPath>` +
+    `<rect x="${rx}" y="${ry}" width="20" height="${rh}" rx="10" fill="url(#panelg)"/>` +
+    `<g clip-path="url(#${clip})" fill="#d9a441" opacity=".75">${beads}</g>` +
+    `<rect x="${rx}" y="${ry}" width="20" height="${rh}" rx="10" fill="none" style="stroke:var(--hf-edge)" stroke-width="1.5"/>` +
+    `<text x="${x + w / 2}" y="${y - 14}" text-anchor="middle" font-size="11" font-weight="700" class="${low ? "w" : "t"} halo">${low ? "Top up salt" : "Softener"}</text>`);
 }
 
 /** The storage tank: a tall vessel of soft water, its level if it has a sensor. While its
@@ -138,8 +154,8 @@ export function softener(d: Draw, x: number, y: number, w: number, h: number, lo
 export function storage(d: Draw, x: number, y: number, w: number, h: number, filling: boolean, label: string, e?: string, levelId?: string) {
   const c = CIRCUIT.cold, lvl = d.val(levelId), fr = lvl == null ? 1 : Math.max(0, Math.min(1, lvl / 100));
   const wy = y + 30 + (h - 37) * (1 - fr);
-  let g = `<rect class="hl" x="${x}" y="${y}" width="${w}" height="${h}" rx="${w / 2.4}" fill="url(#panelg)" style="stroke:var(--hf-edge)" stroke-width="1.8"/>` +
-    `<rect x="${x + 7}" y="${wy}" width="${w - 14}" height="${y + h - 7 - wy}" rx="${w / 3}" fill="${c}" opacity=".22"/>` +
+  let g = `<rect class="hl" x="${x}" y="${y}" width="${w}" height="${h}" rx="10" fill="url(#panelg)" style="stroke:var(--hf-edge)" stroke-width="1.8"/>` +
+    `<rect x="${x + 7}" y="${wy}" width="${w - 14}" height="${y + h - 7 - wy}" rx="6" fill="${c}" opacity=".22"/>` +
     `<text x="${x + w / 2}" y="${y + 52}" text-anchor="middle" font-size="11" font-weight="700" class="t">${esc(label)}</text>` +
     `<text x="${x + w / 2}" y="${y + 67}" text-anchor="middle" font-size="10.5" class="m">${lvl == null ? "level: no sensor" : `level ${esc(d.fmt(d.data[levelId!]))}`}</text>`;
   if (filling) {

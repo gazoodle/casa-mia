@@ -3,22 +3,21 @@ import assert from "node:assert/strict";
 import { type Config, ago, entitiesOf, floorsOf, priorityOf, readAll, reading } from "./common.ts";
 
 const NOW = Date.parse("2026-10-28T03:00:00Z");
-const st = (state: string, unit = "", minutesAgo = 1) => ({ state, attributes: unit ? { unit_of_measurement: unit } : {}, last_updated: new Date(NOW - minutesAgo * 60e3).toISOString() });
+const st = (state: string, unit = "", minutesAgo = 1) => ({ state, attributes: unit ? { unit_of_measurement: unit } : {}, last_changed: new Date(NOW - minutesAgo * 60e3).toISOString() });
 
 test("a reading takes HA's unit and precision (or the state's own decimals); on and off are 1 and 0", () => {
-  assert.deepEqual(reading(st("38.44", "°C"), "sensor.s", undefined, NOW, 6), { v: 38.44, unit: "°", dp: 2, e: "sensor.s" });
-  assert.equal(reading(st("38.44", "°C"), "sensor.s", 1, NOW, 6).dp, 1);
-  assert.equal(reading(st("1.6", "kW"), "sensor.p", undefined, NOW, 6).dp, 1);
-  assert.equal(reading(st("52", "Hz"), "sensor.hz", 0, NOW, 6).unit, " Hz");
-  assert.equal(reading(st("on"), "binary_sensor.p", undefined, NOW, 6).v, 1);
-  assert.equal(reading(st("off"), "binary_sensor.p", undefined, NOW, 6).v, 0);
+  assert.deepEqual(reading(st("38.44", "°C"), "sensor.s", undefined, NOW), { v: 38.44, unit: "°", dp: 2, e: "sensor.s" });
+  assert.equal(reading(st("38.44", "°C"), "sensor.s", 1, NOW).dp, 1);
+  assert.equal(reading(st("1.6", "kW"), "sensor.p", undefined, NOW).dp, 1);
+  assert.equal(reading(st("52", "Hz"), "sensor.hz", 0, NOW).unit, " Hz");
+  assert.equal(reading(st("on"), "binary_sensor.p", undefined, NOW).v, 1);
+  assert.equal(reading(st("off"), "binary_sensor.p", undefined, NOW).v, 0);
 });
 
-test("unavailable, missing or silent too long is not current, and says for how long", () => {
-  assert.equal(reading(st("unavailable", "°C", 23), "sensor.s", undefined, NOW, 6).stale, "23 min");
-  assert.equal(reading(undefined, "sensor.gone", undefined, NOW, 6).stale, "missing");
-  assert.equal(reading(st("21.5", "°C", 3 * 24 * 60), "sensor.s", undefined, NOW, 6).stale, "3 days");
-  assert.equal(reading(st("21.5", "°C", 3 * 24 * 60), "sensor.s", undefined, NOW, 0).stale, undefined); // no limit
+test("unavailable or missing is not current, and says for how long; a steady sensor, however quiet, is current", () => {
+  assert.equal(reading(st("unavailable", "°C", 23), "sensor.s", undefined, NOW).stale, "23 min");
+  assert.equal(reading(undefined, "sensor.gone", undefined, NOW).stale, "missing");
+  assert.equal(reading(st("0", "Hz", 10 * 60), "sensor.idle_pump", undefined, NOW).stale, undefined); // idle all night
   assert.equal(ago(5 * 3600e3), "5 h");
 });
 
@@ -77,5 +76,5 @@ test("an alarm and low salt are said; a quiet alarm is not", () => {
   const r = readAll(states({ "sensor.alarm": st("Low brine flow"), "binary_sensor.salt": st("on") }), CONFIG, NOW);
   assert.equal(r.alarm, "Low brine flow");
   assert.ok(r.saltLow);
-  assert.deepEqual(readAll(states({ "sensor.p1": st("unavailable", "Hz", 40) }), CONFIG, NOW).stale.map((d) => d.e), ["sensor.p1"]);
+  assert.equal(readAll(states({ "sensor.p1": st("unavailable", "Hz", 40) }), CONFIG, NOW).data["sensor.p1"].stale, "40 min");
 });
