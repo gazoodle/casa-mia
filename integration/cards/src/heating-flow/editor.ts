@@ -30,6 +30,7 @@ const SCHEMA = [
     pick("markers", [["chev", "Chevrons"], ["arrow", "Arrows"], ["bub", "Bubbles"]]),
     pick("colours", [["temp", "By temperature"], ["circuit", "By circuit"]]),
     pick("readouts", [["pill", "Pills on the pipe"], ["text", "Text beside the pipe"]]),
+    flag("animations"),
     text("area_outside"),
     text("area_plant"),
     text("area_house"),
@@ -96,7 +97,7 @@ const SCHEMA = [
 ];
 
 const LABELS: Record<string, string> = {
-  title: "Title", pipes: "Pipes", markers: "Flow markers", colours: "Colours", readouts: "Readings",
+  title: "Title", pipes: "Pipes", markers: "Flow markers", colours: "Colours", readouts: "Readings", animations: "Enable animations",
   area_outside: "Outside area's name", area_plant: "Plant area's name", area_house: "House area's name",
   label: "Heat pump's name", storage_label: "Storage tank's name",
   type: "Kind", outdoor: "Outdoor temperature", pump: "Pump (speed or on/off)", out: "Out to the ground", ground: "Back from the ground",
@@ -114,6 +115,7 @@ const LABELS: Record<string, string> = {
   tap_action: "Tap", hold_action: "Hold", double_tap_action: "Double tap",
 };
 const HELP: Record<string, string> = {
+  animations: "Off: a still picture, with the flow markers standing on the pipes that flow. For low-powered tablets.",
   supply_plant: "In the order the water passes them; the card spaces them along the run.",
   return_plant: "In the order the water passes them, from the house back to the heat pump.",
   loops: "One per underfloor loop, open when on.",

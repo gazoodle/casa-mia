@@ -56,13 +56,13 @@ export class HeatingFlowCard extends LitElement {
     const o = { ...DEFAULTS, ...this._config };
     const look: Look = { pipes: o.pipes, markers: o.markers, colours: o.colours, readouts: o.readouts };
     const r = readAll(this._hass, this._config);
-    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
     return html`<ha-card>
       <div class="head">
         <span class="title">${o.title ?? "Heating & hot water"}</span>
         ${this._chips(r)}
       </div>
       <svg
+        class=${this._still() ? "still" : ""}
         viewBox="0 0 ${W} ${H}"
         role="img"
         aria-label="Heating and hot water"
@@ -72,9 +72,23 @@ export class HeatingFlowCard extends LitElement {
         @click=${this._click}
         @dblclick=${this._dbl}
       >
-        ${unsafeSVG(system(this._config, r, look, reduced))}
+        ${unsafeSVG(system(this._config, r, look))}
       </svg>
     </ha-card>`;
+  }
+
+  /** A still picture: animations off in the options, or reduced motion asked for. */
+  private _still() {
+    return this._config?.animations === false || matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
+
+  // Still, the SVG's clock stops, so the flow markers stand where they are and nothing is
+  // redrawn frame by frame (some tablet GPUs draw junk around a repaint under a filter).
+  updated() {
+    const svg = this.renderRoot.querySelector("svg");
+    if (!svg) return;
+    if (this._still()) svg.pauseAnimations();
+    else svg.unpauseAnimations();
   }
 
   /** What it is doing, and the system's own faults, in words. A sensor that is unavailable
@@ -181,9 +195,7 @@ export class HeatingFlowCard extends LitElement {
       @keyframes spin { to { transform: rotate(360deg); } }
       @keyframes pulse { 50% { opacity: 0.35; } }
       @keyframes drip { from { transform: translateY(0); opacity: 1; } to { transform: translateY(22px); opacity: 0; } }
-      @media (prefers-reduced-motion: reduce) {
-        .spin, .pulse, .drip { animation: none; }
-      }
+      .still .spin, .still .pulse, .still .drip { animation: none; }
     `,
   ];
 }

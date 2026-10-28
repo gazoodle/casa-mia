@@ -113,6 +113,14 @@ You start each session fresh, so files are your memory.
 
 Where `.tokensave/` exists, tokensave is the rule, not a suggestion:
 
+**NEVER BYPASS TOKENSAVE FOR CODE RESEARCH WITHOUT ASKING THE OWNER FIRST. AN OLD
+SYNC TIMESTAMP ALONE DOES NOT MEAN THE INDEX IS STALE: THERE MAY HAVE BEEN NO CODE
+ACTIVITY. CHECK FOR CODE CHANGES SINCE THE SYNC; DO NOT USE AGE AS AN EXCUSE TO
+READ OR SCAN SOURCE DIRECTLY. IF TOKENSAVE CANNOT ANSWER OR THE INDEX IS ACTUALLY
+STALE, ASK BEFORE ANY FALLBACK TO DIRECT SOURCE INSPECTION. USE `tokensave_read`
+FOR SOURCE CONTENT, EXCEPT THE HARNESS READER FOR A FILE YOU ARE ABOUT TO EDIT.
+WHY: ON 2026-10-27 AN AGENT BYPASSED THE INDEX BECAUSE OF ITS AGE, WASTING MONEY.
+
 - Understand code with `tokensave_context`. Find a symbol with `tokensave_search`, or with
   `literal: true` for call sites. Use `tokensave_callers`, `_callees` and `_impact` for
   connections and `tokensave_files` for layout. Don't use `grep`, `rg`, `find`, `ls -R` or

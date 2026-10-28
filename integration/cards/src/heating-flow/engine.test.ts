@@ -45,11 +45,10 @@ test("with no current sensor a pipe is grey, not a guess", () => {
   assert.ok(d.pipe({ circ: "heat", pts: [[0, 0], [100, 0]], flow: "f", sensors: [{ k: "a", f: 0 }] }).defs.includes(OFF));
 });
 
-test("chevrons ride a pipe only while it flows, and not with reduced motion", () => {
+test("chevrons ride a pipe only while it flows", () => {
   const pipe = { circ: "heat", pts: [[0, 0], [200, 0]] as [number, number][], flow: "f" };
   assert.match(new Draw({}, { f: true }, LOOK).pipe(pipe).marks, /animateMotion/);
   assert.equal(new Draw({}, { f: false }, LOOK).pipe(pipe).marks, "");
-  assert.equal(new Draw({}, { f: true }, LOOK, true).pipe(pipe).marks, "");
 });
 
 test("pipes are drawn as one network: every wall first, then the water, the pipes others tee into last", () => {

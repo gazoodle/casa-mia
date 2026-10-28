@@ -17,8 +17,8 @@ const one = (k: Id, more: Omit<Sensor, "k"> = {}): Sensor[] => (k ? [{ k, ...mor
 const quiet = (k: Id, f: number) => one(k, { f, show: false });
 const spread = (ids: string[] | undefined, area: string): Sensor[] => (ids ?? []).map((k) => ({ k, area }));
 
-export function system(c: Config, r: Readings, look: Look, reduced: boolean): string {
-  const d = new Draw(r.data, r.flows, look, reduced);
+export function system(c: Config, r: Readings, look: Look): string {
+  const d = new Draw(r.data, r.flows, look);
   const src = c.source ?? {}, hp = c.heat_pump ?? {}, heating = c.heating ?? {}, dhw = c.dhw ?? {}, water = c.water ?? {};
   const Z: Area[] = [["outside", 0, 245, c.area_outside ?? "Outside", "--hf-zone-out"], ["plant", 245, 900, c.area_plant ?? "Plant room", "--hf-zone-plant"], ["house", 900, 1180, c.area_house ?? "House", "--hf-zone-house"]];
   d.areas = Z;

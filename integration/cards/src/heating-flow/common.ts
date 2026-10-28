@@ -12,6 +12,7 @@ export type Config = {
   markers?: Look["markers"];
   colours?: Look["colours"];
   readouts?: Look["readouts"];
+  animations?: boolean;
   area_outside?: string;
   area_plant?: string;
   area_house?: string;
@@ -28,7 +29,7 @@ export type Config = {
   water?: { softener?: boolean; salt?: Id; salt_low?: Id; storage?: boolean; storage_label?: string; inlet?: Id; level?: Id; pumps?: Id[]; meter?: Id; cold?: Id };
 };
 
-export const DEFAULTS = { pipes: "outline", markers: "chev", colours: "temp", readouts: "pill", area_outside: "Outside", area_plant: "Plant room", area_house: "House" } as const;
+export const DEFAULTS = { pipes: "outline", markers: "chev", colours: "temp", readouts: "pill", animations: true, area_outside: "Outside", area_plant: "Plant room", area_house: "House" } as const;
 
 /** The floors configured, from the bottom up (floor_1 is the lowest). */
 export const floorsOf = (c: Config): Floor[] => [c.floor_1, c.floor_2, c.floor_3].filter((f): f is Floor => !!f && !!(f.name || f.supply || f.return || f.loops?.length));

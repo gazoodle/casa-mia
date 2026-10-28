@@ -8,13 +8,11 @@ export class Draw {
   data: Record<string, Reading>;
   flows: Record<string, boolean>;
   look: Look;
-  reduced: boolean; // reduced motion: no markers ride the pipes
 
-  constructor(data: Record<string, Reading>, flows: Record<string, boolean>, look: Look, reduced = false) {
+  constructor(data: Record<string, Reading>, flows: Record<string, boolean>, look: Look) {
     this.data = data;
     this.flows = flows;
     this.look = look;
-    this.reduced = reduced;
   }
 
   id(prefix: string) {
@@ -84,9 +82,10 @@ export class Draw {
       [outline, fill] = [full(w + 2, "var(--hf-conduit)"), colour(Math.max(3, w * 0.42), s === "neon" ? `style="filter:drop-shadow(0 0 3px ${mid})"` : "")];
 
     // Flow: markers ride along the pipe, faster when its pump runs faster or, with no
-    // reading, faster in a narrower pipe. No flow, no markers.
+    // reading, faster in a narrower pipe. No flow, no markers. Without animation (the option,
+    // or reduced motion) the card pauses the SVG's clock, so they stand still where they are.
     let marks = "";
-    if (flowing && !this.reduced) {
+    if (flowing) {
       const L = drawnLength(segs), n = Math.max(1, Math.round(L / 26)), sp = this.val(p.speed);
       const v = sp != null ? 18 + Math.min(sp, 100) * 0.5 : (48 * 12) / w, dur = L / v;
       const mc = s === "glass" ? "var(--hf-edge)" : "#fff", sc = w < 12 ? ` transform="scale(${Math.max(0.6, w / 12)})"` : "";

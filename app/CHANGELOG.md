@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.11-b22
+
+- Heating Flow: a new **Enable animations** option (on by default). Off, the card is a still picture: flow markers stand on the pipes that flow, and pumps and fans stop turning, so a low-powered tablet draws it once instead of every frame. Reduced motion now gives the same still picture, with the markers shown rather than hidden.
+- Reload the browser after updating.
+
 ## 2026.10.11-b21
 
 - Heating Flow: a sensor is no longer "not current" just because it has been quiet. Home Assistant updates a sensor only when its value changes, so a storage pump idle all night looked broken by morning. Only an unavailable or missing sensor is marked now, with "—" and how long on its part. The header's "not current" and "All sensors current" chips and the "Not current after" setting are gone: Sensor Watch is where to see which sensors have stopped.
