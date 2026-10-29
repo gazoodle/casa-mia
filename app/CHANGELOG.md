@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.11-b30
+
+- Sensor Watch: in the band editor, Nominal's message box lines up with the bands' boxes above and below it; it ran on past their ✕.
+
 ## 2026.10.11-b29
 
 - Sensor Watch: a notification from the blueprint gives the value with its unit, "(56.58 Mbit/s)" rather than "(56.58)". The event and the List service carry the sensor's `unit` too: none for an attribute (Home Assistant doesn't state its unit), `days` for a date. The blueprint's file is replaced by itself on the next Home Assistant restart.

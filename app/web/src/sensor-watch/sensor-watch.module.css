@@ -463,6 +463,11 @@
   white-space: nowrap;
 }
 
+/* Nominal's stand-in for a band's ✕ (levels.tsx): its width, unseen. */
+.twin {
+  visibility: hidden;
+}
+
 /* The nudge after a nominal edge moved: inline under nominal, never a dialog. */
 .nudge {
   display: flex;

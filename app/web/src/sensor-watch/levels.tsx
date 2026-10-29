@@ -346,7 +346,11 @@ function LadderEditor({ L, unit }: { L: Levels; unit: string }) {
           {unit}
         </span>
         <MessageInput value={l.message} onChange={(v) => edit({ ...l, message: v })} />
-        <span />
+        {/* Each row is its own grid, so an empty cell here would let the message take the
+            ✕'s room: an invisible twin keeps the column as wide as in the other rows. */}
+        <span className={`${ui.button} ${ui.small} ${css.twin}`} aria-hidden>
+          ✕
+        </span>
       </div>
       {L.edited && by && (
         <span className={css.nudge}>
