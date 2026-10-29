@@ -52,6 +52,20 @@ section instead ("core: Push, never poll").
 - **Context is a budget.** Start a new task in a fresh session. Compact, or suggest
   compacting, often. Design and implement at the same model and thinking level.
 
+## GPT/Codex only: challenge GPT-5.6 model choices (2026-10-29)
+
+- If the owner proposes or selects any GPT-5.6 model, or the current session visibly
+  uses one, warn plainly about the cost and recommend the appropriate GPT-6/6.1
+  successor. A brief moan is explicitly requested; do not let the choice pass silently.
+- Respect a deliberate exception after the warning. Never silently change the model,
+  and do not claim to detect model choices that are not visible to you.
+- Why: the owner wants to avoid paying more for an older model out of habit. Verified
+  on 2026-10-29: Standard Codex credit rates for GPT-5.6 Sol/Terra/Luna are 2x their
+  Sol/Terra/Luna successors for uncached input, 2-4x for cached input, and 2-2.4x for
+  output. GPT-6 Astra is a separate, more expensive tier. Recheck current rates before
+  quoting prices; credit rates do not directly determine included subscription usage.
+  Source: https://learn.chatgpt.com/docs/pricing
+
 ## The owner's rules are not suggestions
 
 - When the owner describes a design, build that design. You may ask about scope or order.

@@ -253,7 +253,8 @@ nominal under 3 V, a warning to 8 V, an error beyond.
 
 Every watched sensor, its level now (the **status pill** at the start of its row) and its
 value, with a search and filter **chips** along the top (a level, an area, a group…) so a
-house with hundreds of them stays manageable. **Edit** changes a sensor's bands;
+house with hundreds of them stays manageable. Click a row (anywhere but its buttons) to
+edit the sensor's bands;
 **Stop watching** removes it.
 **Grouped** (beside Sort) puts them under a heading per group, and Manual for those
 watched one by one; the sort applies within each.
@@ -440,7 +441,7 @@ my house**, choose **Use the profile … for the ticked**; or, on the watched li
 to them and choose **Follow a profile** under it.
 
 The **Profiles** section lists each with how many follow it in its status pill: tap
-**N following** to see them in the watched list. **Edit** changes its name and levels (every follower with it);
+**N following** to see them in the watched list. Click a row to change its name and levels (every follower with it);
 **Delete** removes it (its followers keep a copy of its levels as their own).
 
 <img src="../screenshots/sensor-watch-library.webp" alt="Profiles from the library, searched for voltage: UK mains voltage (current law) marked as replacing yours with 72 following, the ENA's 2026 proposal, the US and EU, each with its bands, hold-off, what it's for and a Source link; two ticked" width="800">
@@ -615,7 +616,7 @@ is a group, a single thing is a watch.
 
 - Members the profile doesn't fit (another kind) are passed over; sensors already
   watched keep their own levels.
-- **Edit** it and members the filters no longer take stop being watched.
+- Edit it (click its row) and members the filters no longer take stop being watched.
 - **Stop watching** a member and the group remembers it, so it isn't pulled back;
   **Let them back** on the group undoes that.
 - **N in it**, the group's status pill, shows the members in the watched list (a Group

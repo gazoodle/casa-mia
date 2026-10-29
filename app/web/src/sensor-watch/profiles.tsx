@@ -6,7 +6,7 @@
 import { useRef, useState } from "react";
 import { AreaHead } from "../page";
 import { Dialog, Field, Segmented } from "../ui";
-import { MODE_NAMES, summary, swApi, type Profile, type WatchView } from "./common";
+import { MODE_NAMES, opens, summary, swApi, type Profile, type WatchView } from "./common";
 import { LevelFields, useLevels, type Kind } from "./levels";
 import css from "./sensor-watch.module.css";
 import guest from "../guest.module.css";
@@ -104,9 +104,11 @@ export function ProfilesSection({
       {profiles.length > 0 && (
         <div className={css.table}>
           {profiles.map((p) => (
-            <div key={p.id} className={`${css.row} ${css.compact} ${css.named}`}>
+            <div key={p.id} className={`${css.row} ${css.editable} ${css.compact} ${css.named}`} onClick={opens(() => onEdit(p))}>
               <span className={css.what}>
-                <strong>{p.name}</strong>
+                <button type="button" className={css.name} onClick={() => onEdit(p)}>
+                  {p.name}
+                </button>
                 <span className={css.note}>
                   {MODE_NAMES[p.kind]} · {summary(p)}
                 </span>
@@ -120,9 +122,6 @@ export function ProfilesSection({
                 {p.followers} following
               </button>
               <span className={css.rowActions}>
-                <button className={`${ui.button} ${ui.small}`} onClick={() => onEdit(p)}>
-                  Edit
-                </button>
                 <button className={`${ui.button} ${ui.small}`} onClick={() => onApply(p)}>
                   Apply to…
                 </button>

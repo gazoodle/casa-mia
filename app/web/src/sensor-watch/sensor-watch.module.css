@@ -40,8 +40,25 @@
   border-radius: 10px;
 }
 
-.row:hover {
+/* A row that opens its editor on a click (opens() in common.ts); others don't light up. */
+.editable {
+  cursor: pointer;
+}
+
+.editable:hover {
   background: var(--surface-2);
+}
+
+/* The row's name: the button that opens its editor, for the keyboard; looks like text. */
+.name {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
 }
 
 .what {

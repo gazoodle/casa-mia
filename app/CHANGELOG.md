@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.11-b26
+
+- Sensor Watch: clicking a row in the Watched sensors, Profiles or Groups list opens its editor, and the Edit buttons are gone. Clicking one of the row's own buttons, or selecting text such as an entity id to copy it, doesn't open it. The name is the button for the keyboard. The System list's rows, which have no editor, no longer light up under the mouse.
+
 ## 2026.10.11-b25
 
 - Sensor Watch: the band editor is a ladder built out from Nominal. The nominal window is in the middle; each band above or below it has only its far edge ("Warning up to 24", "Critical above 26"), so no edge is typed twice and gaps and overlaps can't be written. Each band out from nominal must be worse than the one inside it, and the level menu offers only those. Moving a nominal edge offers, inline, to move the bands beyond it by the same amount, or the whole ladder.

@@ -5,7 +5,7 @@
 import { useState } from "react";
 import { AreaHead } from "../page";
 import { Dialog, Field } from "../ui";
-import { FITS, MODE_NAMES, NO_FILTERS, swApi, type Filters, type Group, type Profile, type WatchRecord, type WatchView } from "./common";
+import { FITS, MODE_NAMES, NO_FILTERS, opens, swApi, type Filters, type Group, type Profile, type WatchRecord, type WatchView } from "./common";
 import { useCandidates } from "./dialogs";
 import { FilterBar } from "./filters";
 import { ProfileDialog } from "./profiles";
@@ -77,9 +77,11 @@ export function GroupsSection({
       {groups.length > 0 && (
         <div className={css.table}>
           {groups.map((g) => (
-            <div key={g.id} className={`${css.row} ${css.compact} ${css.named}`}>
+            <div key={g.id} className={`${css.row} ${css.editable} ${css.compact} ${css.named}`} onClick={opens(() => setEditing(g))}>
               <span className={css.what}>
-                <strong>{g.name}</strong>
+                <button type="button" className={css.name} onClick={() => setEditing(g)}>
+                  {g.name}
+                </button>
                 <span className={css.note}>
                   {described(g, labels)} · levels: {follows(g.profile, profiles)}
                   {g.left.length > 0 && ` · ${g.left.length} left out by hand`}
@@ -97,9 +99,6 @@ export function GroupsSection({
                     Let them back
                   </button>
                 )}
-                <button className={`${ui.button} ${ui.small}`} onClick={() => setEditing(g)}>
-                  Edit
-                </button>
                 <button
                   className={`${ui.danger} ${ui.small}`}
                   onClick={async () =>

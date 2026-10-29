@@ -1,6 +1,7 @@
 /** Sensor Watch's types, API and level helpers, shared by its page and dialogs. */
 
 import { api } from "../api";
+import type { MouseEvent } from "react";
 import type { Level } from "./ladder";
 
 export { LEVELS, LEVEL_NAMES, type Level } from "./ladder";
@@ -18,6 +19,14 @@ export type Band = { from: number | null; to: number | null; level: Level; messa
 export type Accuracy = { amount: number; percent: boolean };
 
 /** The doubt either side of an edge (levels.py in_bands holds a level within it). */
+/** A list row's click: opens its editor, unless the click was on one of its own buttons
+ * or fields, or ended a text selection (an entity id being copied). The row's name is the
+ * button that does the same, for the keyboard. */
+export const opens = (edit: () => void) => (e: MouseEvent) => {
+  if ((e.target as Element).closest("button, a, input, select") || getSelection()?.toString()) return;
+  edit();
+};
+
 export const margin = (edge: number, a?: Accuracy) => (!a ? 0 : a.percent ? (Math.abs(edge) * a.amount) / 100 : a.amount);
 
 /** A watched sensor's record, as the app keeps it (app/.../sensor_watch/common.py). */
