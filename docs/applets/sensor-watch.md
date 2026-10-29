@@ -4,7 +4,7 @@ Tell it once what normal looks like, for every sensor in the house, and it tells
 
 > **Maturity: Alpha.** Does its job every day in the author's house, but hasn't been tried in many others. Expect rough edges and changes. ([The levels](../README.md#maturity))
 
-<img src="../screenshots/sensor-watch-card.webp" alt="A kitchen wall tablet: a camera picture in the middle and, in the side panel, the Sensor Watch card titled Action Items listing an error (Spa pH, highly acidic), a warning (a test switch) and a task (Tank State: get the order in)" width="800">
+<img src="../screenshots/sensor-watch-card.webp" alt="A kitchen wall tablet dashboard: a camera picture in the middle and, in the side panel, the Sensor Watch card titled Action Items listing an error (Spa pH, highly acidic), a warning (Download Speed, well below the plan) and a task (Tank State: get the order in), each with its icon in its level's colour, its value and how long it has stood" width="800">
 
 ## What it's for
 
@@ -285,7 +285,7 @@ hold-off first, so set it to 0 while trying a sensor out.
 
 ### Watch an entity
 
-<img src="../screenshots/sensor-watch-editor.webp" alt="Editing a plug's voltage watch: a month of hourly statistics drawn as a line over the coloured bands, the samples line, Follows set to UK mains voltage (current law) with 72 following, and the bands with their levels and messages" width="800">
+<img src="../screenshots/sensor-watch-editor.webp" alt="Editing a hot water temperature watch: a month of hourly statistics drawn as a line over the coloured bands, Levels from set to Its own, and the bands as a ladder: Warning above 55, Nominal 41 to 55 °C, Warning below 41, with Move too: Bands above +1 and Everything +1 offered under Nominal after its top edge was raised" width="800">
 
 Any entity can be watched: a sensor, but also an `input_number` you type a reading into
 (a pool's pH from a test strip), a `number`, a `switch` that should stay on, a `select`.
@@ -726,8 +726,8 @@ too, as `initial`.
 ### The event
 
 Each change of level (a worse one after its hold-off, or a step of its escalation) fires
-`casa_mia_sensor_watch`, with `entity_id`, `name`, `level`, `previous`, `value` and
-`message`; `group` (its group's name), `area` and `attribute` (the attribute watched)
+`casa_mia_sensor_watch`, with `entity_id`, `name`, `level`, `previous`, `value`,
+`unit` (its unit: none for an attribute, `days` for a date) and `message`; `group` (its group's name), `area` and `attribute` (the attribute watched)
 when it has them; and `escalated` (true when it's shown a level up for having stood),
 `real` (the level its reading gives) and `since` (when that level began).
 
@@ -750,11 +750,12 @@ sidebar again for it, but doesn't send it to a phone.
   its level changes and cleared when it's back.
 - **Say when it's back:** when it drops below the level again.
 - **Anything else:** more actions (a light, a speaker), with `title`, `text`, `name`,
-  `level`, `previous`, `value`, `message`, `area`, `group`, `entity_id`, `escalated`,
+  `level`, `previous`, `value`, `unit`, `reading` (the value with its unit), `message`,
+  `area`, `group`, `entity_id`, `escalated`,
   `real`, `since`, `initial` and `back` to use in them.
 
 Its title leads with the level as a word: for example "Critical: Plug 3 voltage", then
-"Mains far too low (198) · Barn · Mains voltage"; and "Back to nominal: Plug 3 voltage"
+"Mains far too low (198 V) · Barn · Mains voltage"; and "Back to nominal: Plug 3 voltage"
 when it's back.
 
 On a phone with the Home Assistant app (a `notify.mobile_app_…` action), each
@@ -775,7 +776,10 @@ blueprint itself, copy it under another name first.
 
 <img src="../screenshots/sensor-watch-blueprint.webp" alt="An automation from the Notify on Sensor Watch blueprint: at this level or worse (Warning chosen), only this group (Flood Lights, from a dropdown), the notify action, a Home Assistant notification and say when it's back switched on, and anything else" width="800">
 
-*A screenshot of these notifications is coming soon.*
+<img src="../screenshots/sensor-watch-notifications.webp" alt="The Home Assistant app's Notifications on a phone: Error: Spa pH, highly acidic (5.8), three minutes ago, and Warning: Download Speed, well below the plan (56.58), 22 minutes ago, each with Dismiss" width="300">
+
+*Also as a Home Assistant notification:* one per sensor, its level leading the title, in
+the app's Notifications.
 
 **By hand,** an automation on the event:
 

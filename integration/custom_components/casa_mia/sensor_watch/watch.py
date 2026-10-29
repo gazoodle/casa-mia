@@ -352,6 +352,7 @@ class Watcher:
         previous = before.get("level")
         precision = self._precision(eid, record)
         value = displayed(reading(record, state, dt_util.now()), precision)
+        unit = _unit(record, state)
         if since is None:
             since = state.last_changed if initial and state else dt_util.utcnow()
         # Worse on its own: the ladder starts again from this level's time, but what's
@@ -370,6 +371,7 @@ class Watcher:
             "name": name,
             # So the app rounds the live values it shows as this one is (live.py).
             **({"precision": precision} if precision is not None else {}),
+            **({"unit": unit} if unit else {}),
             **({"attribute": record["attribute"]} if record.get("attribute") else {}),
             **({"days_until": True} if record.get("days_until") else {}),
         }
@@ -528,6 +530,7 @@ class Watcher:
                     "previous": previous,
                     "value": row["value"],
                     "precision": row.get("precision"),  # its value's, as HA shows it
+                    "unit": row.get("unit"),
                     "message": row["message"],
                     "group": (self.records.get(eid) or {}).get("group"),
                     "area": self._area(eid),
@@ -598,3 +601,14 @@ class Watcher:
 def _real(row: dict[str, Any]) -> str:
     """The level a row's reading gives (an escalated row shows another)."""
     return row.get("real") or row["level"]
+
+
+def _unit(record: dict[str, Any], state: State | None) -> str | None:
+    """The unit its value is in, to say beside it ("56.58 Mbit/s"): days for a date's
+    days until it; its own unit for its state; none for an attribute, whose unit Home
+    Assistant doesn't state."""
+    if record.get("days_until"):
+        return "days"
+    if record.get("attribute") or state is None:
+        return None
+    return state.attributes.get("unit_of_measurement") or None

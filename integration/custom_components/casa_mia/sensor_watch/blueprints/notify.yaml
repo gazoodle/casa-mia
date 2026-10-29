@@ -58,7 +58,8 @@ blueprint:
       name: Anything else
       description: >-
         More actions (a light, a speaker), with these variables: title and text (the
-        notification's), name, level, previous, value, message, area, group, entity_id,
+        notification's), name, level, previous, value, unit, reading (the value with its
+        unit), message, area, group, entity_id,
         escalated, real, since, initial (found at its level, not changed to it: Home
         Assistant's start, a watch edited), and back (true when it's back).
       default: []
@@ -84,6 +85,9 @@ variables:
   level: "{{ trigger.event.data.level }}"
   previous: "{{ trigger.event.data.previous or 'nominal' }}"
   value: "{{ trigger.event.data.value }}"
+  unit: "{{ trigger.event.data.unit or '' }}"
+  # The value with its unit, so the number in brackets says what it is: "(56.58 Mbit/s)".
+  reading: "{{ value ~ (' ' ~ unit if unit else '') }}"
   message: "{{ trigger.event.data.message or '' }}"
   area: "{{ trigger.event.data.area or '' }}"
   group: "{{ trigger.event.data.group or '' }}"
@@ -103,7 +107,7 @@ variables:
   title: >-
     {{ 'Back to ' ~ level if back else level | capitalize }}: {{ name }}
   text: >-
-    {{ value if back or not message else message ~ ' (' ~ value ~ ')' }}{{
+    {{ reading if back or not message else message ~ ' (' ~ reading ~ ')' }}{{
     ' · ' ~ area if area else '' }}{{ ' · ' ~ group if group else '' }}{{
     ' · ' ~ ('an ' if real[0] in 'aeiou' else 'a ') ~ real ~ ' for '
     ~ relative_time(as_datetime(since)) if escalated and since and not back else '' }}

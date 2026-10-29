@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.11-b29
+
+- Sensor Watch: a notification from the blueprint gives the value with its unit, "(56.58 Mbit/s)" rather than "(56.58)". The event and the List service carry the sensor's `unit` too: none for an attribute (Home Assistant doesn't state its unit), `days` for a date. The blueprint's file is replaced by itself on the next Home Assistant restart.
+- Docs: Sensor Watch's guide has a new editor screenshot (the ladder and its nudge), a new card screenshot, and the Home Assistant app's notifications in place of "coming soon".
+
 ## 2026.10.11-b28
 
 - Sensor Watch: How Sensor Watch works no longer says each sensor has a Status entity of its own. It's the Sensor Watch device's Status, counts and Problem entities that say how the house is.
