@@ -82,6 +82,8 @@ Not scheduled. Newest ideas first within each section. Move an item into the REA
 
 ## Tablet Layout and the Lovelace cards
 
+- **A guide for the Heating Flow card** (asked 2026-10-29; after release 2026.10.11, which ships the card). It has none: only its design files (`docs/design/heating-flow.html` and `docs/design/heating-flow/`), so a newcomer can't find how to set it up. Wanted: a page in `docs/` like the other cards' (what it shows, its three views, setting it up in the card editor part by part, what each colour and marker means, Enable animations for a low-powered tablet), a screenshot of each view, and a line for it in the README's cards. It credits slipx06's [Sunsynk Power Flow Card](https://github.com/slipx06/sunsynk-power-flow-card), as the README's Thanks does.
+
 - **A template for any card option, in YAML** (asked 2026-10-28). Any option of our cards could take a Jinja `{{ … }}` template instead of a fixed value, rendered by HA (`render_template` subscription, pushed on change; no polling). The first use: Heating Flow's `animations` off on the low-powered wall tablets only (say, by the browser's user or a kiosk entity). Templates go in YAML only; the visual editor shows the option as set by a template and leaves it alone. One shared helper for every card: find string options containing `{{`, subscribe to each, and re-render with the rendered values.
 
 - **Heating Flow: junk blocks on the wall tablets** (found 2026-10-28, shelved by the owner). On the wall tablets' GPU (Mali-G52) the card paints square junk blocks beside its drawing; it is Android's WebView painting with the GPU under Vulkan (also in the HA app, not Kiosk Satellite), and clean when painted by the CPU. A bisection on the design prototype found a trigger (a dashed line with the borehole, PVT and softener in one SVG), but making those parts PNGs did not cure the real card. Notes, scripts and screenshots are kept outside the repo (the owner has the folder). Resume by bisecting the real card itself.
@@ -196,9 +198,9 @@ Not scheduled. Newest ideas first within each section. Move an item into the REA
   - **Guest login**: link endpoints and logins to people (who is staying, which suite, their car), and record what a visitor's phone tells us when it signs in (browser user agent and other browser variables), then drop a long-lived cookie once they are identified, so a returning phone is recognised.
   - Respect privacy: guests should be told what is kept (the welcome page can say so), and it should be easy to forget a person entirely.
 
-## Sensor Watch (alpha)
+## Sensor Watch (beta)
 
-A major part of Casa Mia since 2026.10.8 (b1 built the module, the integration, history suggestions and Scan my house; b2 to b21 the rest: exact states, defaults, HA's own health, profiles and their library, groups, the card, live push). Its guide (`docs/applets/sensor-watch.md`) says what it does; its maturity is Alpha (`maturity.json`). What's next:
+A major part of Casa Mia since 2026.10.8 (b1 built the module, the integration, history suggestions and Scan my house; b2 to b21 the rest: exact states, defaults, HA's own health, profiles and their library, groups, the card, live push). Its guide (`docs/applets/sensor-watch.md`) says what it does; its maturity is Beta since 2026.10.11 (`maturity.json`). What's next:
 
 - **A gauge whose coloured bands are the sensor's Sensor Watch ranges** (asked 2026-10-29). HA's own gauge card colours its arc by hand-typed `severity` or `segments`, which say again what a Sensor Watch record already says (the levels where a reading turns warning, error, critical) and drift the moment the record changes. Two ways, and the second is the one to build:
   - *A "Create me a gauge card" button* on a record, writing an HA gauge card with the record's ranges copied in as `segments`. Rejected: a copy taken once is out of date at the next edit, and nothing says so (core: DRY; RULE FIVE: a copy of the other side's state is a lease).

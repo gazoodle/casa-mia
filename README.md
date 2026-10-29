@@ -515,8 +515,6 @@ yet, so there's no promise on when (or, honestly, whether):
   private repository: a history of what changed, and a house you can rebuild.
 - **A tidier Home Assistant.** Orphaned and disabled entities found and removed, and
   what's eating your recorder's database, entity by entity.
-- **A heating flow card.** Your boiler or heat pump, hot water, pumps and every heating
-  circuit as one animated diagram, in the style of the Sunsynk power flow card.
 - **The app's log, live in the panel,** followed, filtered and searched, without a trip
   to Settings.
 - **A clean way out.** If Casa Mia isn't for you, one button takes out everything it put
@@ -598,6 +596,8 @@ Tablet Layout reference, and, [behind the scenes](docs/architecture.md), how it'
   which the camera dashboards are built on.
 - [NemesisRE](https://github.com/NemesisRE), for [kiosk-mode](https://github.com/NemesisRE/kiosk-mode),
   which the Kiosk mode page sets up for you.
+- [slipx06](https://github.com/slipx06), for the [Sunsynk Power Flow Card](https://github.com/slipx06/sunsynk-power-flow-card),
+  whose live diagram of an inverter's flows inspired the Heating Flow card.
 - [Franck Nijhof (frenck)](https://github.com/frenck), for [Spook](https://spook.boo), a
   toolkit of the bits Home Assistant doesn't ship, and the idea that Casa Mia could be one too.
 - [Adafruit](https://www.adafruit.com), for the FONA GSM board and its Arduino library, the
