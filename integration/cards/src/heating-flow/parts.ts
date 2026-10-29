@@ -91,14 +91,35 @@ export function radiator(d: Draw, x: number, y: number, w: number, h: number, ks
 }
 
 /** The compressor: an impeller turning at a speed that follows its frequency. */
-export function compressor(d: Draw, x: number, y: number, r: number, k: string) {
+export function compressor(d: Draw, x: number, y: number, r: number, k: string | undefined) {
   const v = d.val(k), on = v != null && v > 0;
   const blades = Array.from({ length: 7 }, (_, j) =>
     `<path d="M${x} ${y}q${r * 0.25} ${-r * 0.45} ${r * 0.12} ${-r * 0.72}" transform="rotate(${(j * 360) / 7} ${x} ${y})" fill="none" style="stroke:var(--hf-edge)" stroke-width="3" stroke-linecap="round"/>`).join("");
-  return hit(d.data[k]?.e, "Compressor",
+  return hit(k, "Compressor",
     `<circle class="hl" cx="${x}" cy="${y}" r="${r}" fill="url(#panelg)" style="stroke:var(--hf-edge)" stroke-width="2.5"/>` +
     `<g class="${on ? "spin" : ""}" style="transform-origin:${x}px ${y}px;--sd:${on ? (60 / Math.max(v!, 10)).toFixed(2) : 0}s">${blades}</g>` +
     `<circle cx="${x}" cy="${y}" r="${r * 0.16}" style="fill:var(--hf-edge)"/>`);
+}
+
+/** A refrigerant heat exchanger (evaporator or condenser): shaded from its top reading to its
+ * bottom one, bubbling while the compressor runs, with its own reading under its name. */
+export function vessel(d: Draw, x: number, y: number, w: number, h: number, kTop: string | undefined, kBottom: string | undefined, name: string, k: string | undefined, running: boolean) {
+  const gid = d.id("vg"), r = k ? d.data[k] : undefined;
+  let g = `<linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${d.colourOf(kTop)}" stop-opacity=".75"/><stop offset="1" stop-color="${d.colourOf(kBottom)}" stop-opacity=".75"/></linearGradient>` +
+    `<rect class="hl" x="${x}" y="${y}" width="${w}" height="${h}" rx="22" fill="url(#${gid})" style="stroke:var(--hf-edge)" stroke-width="2"/>`;
+  if (running) for (let j = 0; j < 9; j++) g += `<circle cx="${x + 14 + ((j * 37) % (w - 28))}" cy="${y + h - 14}" r="${2 + (j % 3)}" fill="#fff" opacity=".7" class="rise" style="animation-delay:-${(j * 0.41).toFixed(2)}s"/>`;
+  return hit(k, name, g + `<text x="${x + w / 2}" y="${y + 20}" text-anchor="middle" font-size="12" font-weight="700" class="lt">${esc(name)}</text>` +
+    (r ? `<text x="${x + w / 2}" y="${y + 37}" text-anchor="middle" font-size="12" class="lt">${r.stale ? "— " + esc(r.stale) : esc(d.fmt(r))}</text>` : ""));
+}
+
+/** A callout, as in the textbook diagrams: a box in the reading's colour, pointing at its pipe. */
+export function callout(d: Draw, x: number, y: number, w: number, title: string, k: string, note: string, [px, py]: [number, number]) {
+  const r = d.data[k], c = r?.stale ? "var(--hf-warn)" : d.colourOf(k);
+  return hit(k, title,
+    `<path d="M${x + w / 2} ${y + 22}L${px} ${py}" style="stroke:${c}" stroke-width="2"/><circle cx="${px}" cy="${py}" r="3.5" style="fill:${c}"/>` +
+    `<rect class="hl" x="${x}" y="${y}" width="${w}" height="44" rx="8" style="fill:${c}"/>` +
+    `<text x="${x + w / 2}" y="${y + 18}" text-anchor="middle" font-size="11" font-weight="700" fill="#fff" letter-spacing=".04em">${esc(title.toUpperCase())}</text>` +
+    `<text x="${x + w / 2}" y="${y + 35}" text-anchor="middle" font-size="12" fill="#fff">${r?.stale ? "— " + esc(r.stale) : r ? esc(d.fmt(r)) : ""} · ${esc(note)}</text>`);
 }
 
 /** The immersion heater: a rod in through the tank's side from its boss at x0 to x1, low down

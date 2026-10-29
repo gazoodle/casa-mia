@@ -72,6 +72,16 @@ test("water: the storage pumps say soft water is in use; the meter, while not fi
   assert.ok(filling.flows.fill && filling.flows.mains && !filling.flows.hard);
 });
 
+test("a room's thermostat gives its temperature, target and name; a plain sensor has no target", () => {
+  const c: Config = { type: "x", floor_1: { rooms: ["climate.snug", "sensor.loft"] } };
+  const thermostat = { state: "heat", attributes: { current_temperature: 18.6, temperature: 21, friendly_name: "Snug" }, last_changed: new Date(NOW).toISOString() };
+  const r = readAll({ states: { "climate.snug": thermostat, "sensor.loft": st("19.24", "°C") } }, c, NOW);
+  assert.deepEqual([r.data["climate.snug"].v, r.data["climate.snug"].unit], [18.6, "°"]);
+  assert.deepEqual(r.rooms["climate.snug"], { name: "Snug", target: 21 });
+  assert.equal(r.rooms["sensor.loft"].target, null);
+  assert.equal(readAll({ states: {} }, c, NOW).data["climate.snug"].stale, "missing");
+});
+
 test("an alarm and low salt are said; a quiet alarm is not", () => {
   const r = readAll(states({ "sensor.alarm": st("Low brine flow"), "binary_sensor.salt": st("on") }), CONFIG, NOW);
   assert.equal(r.alarm, "Low brine flow");

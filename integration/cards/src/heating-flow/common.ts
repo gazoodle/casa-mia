@@ -4,10 +4,13 @@
 import type { Look, Reading } from "./engine.ts";
 
 type Id = string;
-export type Floor = { name?: string; emitters?: "ufh" | "rad"; mixed?: boolean; supply?: Id; return?: Id; loops?: Id[] };
+// A floor's rooms, loops and loop returns are lists in the same order: room j is on loop j.
+export type Floor = { name?: string; emitters?: "ufh" | "rad"; mixed?: boolean; supply?: Id; return?: Id; loops?: Id[]; rooms?: Id[]; loop_returns?: Id[] };
+export type View = "system" | "heat_pump" | "rooms";
 export type Config = {
   type: string;
   title?: string;
+  view?: View;
   pipes?: Look["pipes"];
   markers?: Look["markers"];
   colours?: Look["colours"];
@@ -20,7 +23,10 @@ export type Config = {
   hold_action?: object;
   double_tap_action?: object;
   source?: { type?: "borehole" | "horizontal" | "air" | "none"; pump?: Id; out?: Id; ground?: Id; in?: Id; pvt?: boolean; pvt_out?: Id; pvt_valve?: Id; outdoor?: Id };
-  heat_pump?: { label?: string; priority?: Id; compressor?: Id; supply?: Id; calculated?: Id; return?: Id; power?: Id; heat?: Id; cop?: Id; aux?: Id; degree_minutes?: Id; alarm?: Id; pump?: Id };
+  heat_pump?: {
+    label?: string; priority?: Id; compressor?: Id; supply?: Id; calculated?: Id; return?: Id; power?: Id; heat?: Id; cop?: Id; aux?: Id; degree_minutes?: Id; alarm?: Id; pump?: Id; oil?: Id;
+    refrigerant?: { suction?: Id; hot_gas?: Id; liquid?: Id; evaporating?: Id; condensing?: Id; reversing_valve?: Id };
+  };
   heating?: { supply_plant?: Id[]; return_plant?: Id[]; house_supply?: Id; house_return?: Id };
   floor_1?: Floor;
   floor_2?: Floor;
@@ -29,10 +35,13 @@ export type Config = {
   water?: { softener?: boolean; salt?: Id; salt_low?: Id; storage?: boolean; storage_label?: string; inlet?: Id; level?: Id; pumps?: Id[]; meter?: Id; cold?: Id };
 };
 
-export const DEFAULTS = { pipes: "outline", markers: "chev", colours: "temp", readouts: "pill", animations: true, area_outside: "Outside", area_plant: "Plant room", area_house: "House" } as const;
+export const DEFAULTS = { view: "system", pipes: "outline", markers: "chev", colours: "temp", readouts: "pill", animations: true, area_outside: "Outside", area_plant: "Plant room", area_house: "House" } as const;
 
 /** The floors configured, from the bottom up (floor_1 is the lowest). */
-export const floorsOf = (c: Config): Floor[] => [c.floor_1, c.floor_2, c.floor_3].filter((f): f is Floor => !!f && !!(f.name || f.supply || f.return || f.loops?.length));
+export const floorsOf = (c: Config): Floor[] => [c.floor_1, c.floor_2, c.floor_3].filter((f): f is Floor => !!f && !!(f.name || f.supply || f.return || f.loops?.length || f.rooms?.length));
+
+/** A hot water tank: switched on, or any of its sensors named. */
+export const hasDhw = (c: Config) => c.dhw?.enabled ?? !!(c.dhw?.tank?.length || c.dhw?.coil_in || c.dhw?.hot_plant?.length);
 
 /** Every entity the options name. */
 export function entitiesOf(c: Config): Id[] {
@@ -93,8 +102,12 @@ export const PRIO_COLOUR: Record<string, string> = { Heating: "#e5443a", "Hot wa
 
 const QUIET_ALARM = /^(|0|ok|none|off|no alarm|no alarms|normal|false|unavailable|unknown)$/i;
 
+/** A room: its name and target. Its temperature is its reading in data. */
+export type Room = { name: string; target: number | null };
+
 export type Readings = {
   data: Record<string, Reading>;
+  rooms: Record<Id, Room>;
   flows: Record<string, boolean>;
   prio: string;
   alarm: string | null;
@@ -105,6 +118,17 @@ export type Readings = {
 export function readAll(hass: { states: Record<string, St>; entities?: Record<string, any> }, c: Config, now = Date.now()): Readings {
   const data: Record<string, Reading> = {};
   for (const id of entitiesOf(c)) data[id] = reading(hass.states[id], id, hass.entities?.[id]?.display_precision, now);
+
+  // A room's entity is its thermostat (its temperature and target are attributes) or a plain
+  // temperature sensor.
+  const rooms: Record<Id, Room> = {};
+  for (const id of floorsOf(c).flatMap((f) => f.rooms ?? [])) {
+    const st = hass.states[id], a = st?.attributes ?? {};
+    if (st && a.current_temperature != null && data[id].stale == null)
+      data[id] = { ...data[id], v: Number(a.current_temperature), unit: "°", dp: 1, text: undefined };
+    rooms[id] = { name: a.friendly_name ?? id, target: a.temperature != null && Number.isFinite(+a.temperature) ? +a.temperature : null };
+  }
+
   const val = (id?: Id) => (id && data[id] && !data[id].stale && Number.isFinite(data[id].v) ? data[id].v : null);
   const runs = (id?: Id) => (val(id) ?? 0) > 0;
 
@@ -132,5 +156,5 @@ export function readAll(hass: { states: Record<string, St>; entities?: Record<st
   const alarmState = hp.alarm ? hass.states[hp.alarm]?.state : undefined;
   const alarm = alarmState && !QUIET_ALARM.test(alarmState.trim()) ? alarmState : null;
   const saltLow = !!water.softener && runs(water.salt_low);
-  return { data, flows, prio, alarm, saltLow };
+  return { data, rooms, flows, prio, alarm, saltLow };
 }

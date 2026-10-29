@@ -5,15 +5,25 @@ import { LitElement, css, html, nothing } from "lit";
 import { unsafeSVG } from "lit/directives/unsafe-svg.js";
 import { fire, type Hass } from "../ha.ts";
 import { PILLS } from "../pills.ts";
-import { type Config, DEFAULTS, PRIO_COLOUR, type Readings, entitiesOf, readAll } from "./common.ts";
+import { type Config, DEFAULTS, PRIO_COLOUR, type Readings, type View, entitiesOf, readAll } from "./common.ts";
 import type { Look } from "./engine.ts";
-import { H, W, system } from "./system.ts";
+import * as hpView from "./heatpump.ts";
+import * as roomsView from "./rooms.ts";
+import * as sysView from "./system.ts";
 
 const HOLD_MS = 500;
 
+/** Each view: its tab's label, its size and its drawing. */
+const VIEWS: Record<View, [string, number, number, (c: Config, r: Readings, look: Look) => string]> = {
+  system: ["System", sysView.W, sysView.H, sysView.system],
+  heat_pump: ["Heat pump", hpView.W, hpView.H, hpView.heatPump],
+  rooms: ["Rooms", roomsView.W, roomsView.H, roomsView.rooms],
+};
+
 export class HeatingFlowCard extends LitElement {
-  static properties = { _config: { state: true } };
+  static properties = { _config: { state: true }, _view: { state: true } };
   _config?: Config;
+  _view: View = "system";
   private _hass?: Hass;
   private _seen = ""; // the states the card shows, as last drawn: redraw only when one moves
   private _timer?: number;
@@ -29,6 +39,7 @@ export class HeatingFlowCard extends LitElement {
 
   setConfig(config: Config) {
     this._config = { ...config };
+    this._view = config.view && config.view in VIEWS ? config.view : DEFAULTS.view;
     this._seen = "";
   }
 
@@ -56,23 +67,27 @@ export class HeatingFlowCard extends LitElement {
     const o = { ...DEFAULTS, ...this._config };
     const look: Look = { pipes: o.pipes, markers: o.markers, colours: o.colours, readouts: o.readouts };
     const r = readAll(this._hass, this._config);
+    const [label, W, H, draw] = VIEWS[this._view];
     return html`<ha-card>
       <div class="head">
         <span class="title">${o.title ?? "Heating & hot water"}</span>
         ${this._chips(r)}
+        <span class="tabs">
+          ${(Object.keys(VIEWS) as View[]).map((v) => html`<button class="cm-chip ${v === this._view ? "cm-on" : ""}" @click=${() => (this._view = v)}>${VIEWS[v][0]}</button>`)}
+        </span>
       </div>
       <svg
         class=${this._still() ? "still" : ""}
         viewBox="0 0 ${W} ${H}"
         role="img"
-        aria-label="Heating and hot water"
+        aria-label="Heating and hot water: ${label}"
         @pointerdown=${this._down}
         @pointerup=${this._up}
         @pointerleave=${this._up}
         @click=${this._click}
         @dblclick=${this._dbl}
       >
-        ${unsafeSVG(system(this._config, r, look))}
+        ${unsafeSVG(draw(this._config, r, look))}
       </svg>
     </ha-card>`;
   }
@@ -172,8 +187,9 @@ export class HeatingFlowCard extends LitElement {
         font-size: 16px;
         font-weight: 500;
       }
-      .wrap {
-        white-space: normal;
+      .tabs {
+        display: flex;
+        gap: 4px;
       }
       svg {
         display: block;
@@ -192,10 +208,14 @@ export class HeatingFlowCard extends LitElement {
       .spin { animation: spin var(--sd, 3s) linear infinite; }
       .pulse { animation: pulse 1.2s ease-in-out infinite; }
       .drip { animation: drip 0.7s linear infinite; }
+      .rise { animation: rise 2.6s linear infinite; }
+      .dash { animation: dash var(--d, 1.2s) linear infinite; }
       @keyframes spin { to { transform: rotate(360deg); } }
       @keyframes pulse { 50% { opacity: 0.35; } }
       @keyframes drip { from { transform: translateY(0); opacity: 1; } to { transform: translateY(22px); opacity: 0; } }
-      .still .spin, .still .pulse, .still .drip { animation: none; }
+      @keyframes rise { from { transform: translateY(0); opacity: 0.8; } to { transform: translateY(-230px); opacity: 0; } }
+      @keyframes dash { to { stroke-dashoffset: -28; } }
+      .still .spin, .still .pulse, .still .drip, .still .rise, .still .dash { animation: none; }
     `,
   ];
 }

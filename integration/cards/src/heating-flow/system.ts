@@ -4,7 +4,7 @@
 // Pipes are plumbed: every end lands on a part or tees into another pipe, and pipes others
 // tee into are z: 1, so their water covers the joins. Six runs cross into the house: heating
 // send and return, hot, its return loop, soft cold and hard (or plain cold, with no softener).
-import { type Config, type Floor, PRIO_COLOUR, type Readings, floorsOf } from "./common.ts";
+import { type Config, type Floor, PRIO_COLOUR, type Readings, floorsOf, hasDhw as dhwOf } from "./common.ts";
 import { DEFS, Draw } from "./draw.ts";
 import { type Area, type Look, type Pipe, type Sensor, esc } from "./engine.ts";
 import * as part from "./parts.ts";
@@ -13,8 +13,8 @@ export const W = 1180, H = 770;
 type Id = string | undefined;
 
 /** A sensor on a pipe, if the options name one. */
-const one = (k: Id, more: Omit<Sensor, "k"> = {}): Sensor[] => (k ? [{ k, ...more }] : []);
-const quiet = (k: Id, f: number) => one(k, { f, show: false });
+export const one = (k: Id, more: Omit<Sensor, "k"> = {}): Sensor[] => (k ? [{ k, ...more }] : []);
+export const quiet = (k: Id, f: number) => one(k, { f, show: false });
 const spread = (ids: string[] | undefined, area: string): Sensor[] => (ids ?? []).map((k) => ({ k, area }));
 
 export function system(c: Config, r: Readings, look: Look): string {
@@ -102,7 +102,7 @@ export function system(c: Config, r: Readings, look: Look): string {
   // out of its left side; the coil's return climbs to tee into the heating return. Hot leaves
   // the top, the return loop comes back in low and rises past its pump into the tank's side,
   // the immersion comes in through the side about 28% up (the bottom sensor sits below it) ----
-  const hasDhw = dhw.enabled ?? !!(dhw.tank?.length || dhw.coil_in || dhw.hot_plant?.length);
+  const hasDhw = dhwOf(c);
   let tankOver = "";
   if (hasDhw) {
     P.push({ circ: "dhw", pts: [[XD, YS], [XD, 545], [660, 545]], flow: "coil", speed: hp.pump, hops: [[XD, YR, "v"]], sensors: one(dhw.coil_in, { at: [XD, 250] }) });
@@ -166,7 +166,7 @@ export function system(c: Config, r: Readings, look: Look): string {
     `${tankOver}${boxes.map((b) => b.box).join("")}<g ${shadow}>${boxes.map((b) => b.pipes).join("")}</g>${boxes.map((b) => b.over).join("")}${over}${p.pills}`;
 }
 
-const rows = (d: Draw, list: [string, Id][], x: number, y: number, xr: number) =>
+export const rows = (d: Draw, list: [string, Id][], x: number, y: number, xr: number) =>
   list.filter(([, k]) => k).map(([label, k], i) => d.row(x, y + i * 22, label, k!, xr)).join("");
 
 /** One floor: its manifold (underfloor loops, each with its actuator) or its radiators. The

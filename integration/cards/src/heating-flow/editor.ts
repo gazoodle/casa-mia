@@ -21,10 +21,13 @@ const floor = (n: number, title: string) =>
     entity("supply", ["sensor"]),
     entity("return", ["sensor"]),
     entities("loops"),
+    entities("rooms"),
+    entities("loop_returns"),
   ], "mdi:floor-plan");
 
 const SCHEMA = [
   text("title"),
+  pick("view", [["system", "System"], ["heat_pump", "Heat pump"], ["rooms", "Rooms"]]),
   fold(undefined, "Look", [
     pick("pipes", [["outline", "Outline"], ["glass", "Glass"], ["conduit", "Conduit"], ["neon", "Neon"]]),
     pick("markers", [["chev", "Chevrons"], ["arrow", "Arrows"], ["bub", "Bubbles"]]),
@@ -60,6 +63,15 @@ const SCHEMA = [
     entity("aux", ["sensor"]),
     entity("degree_minutes", ["sensor"]),
     entity("alarm"),
+    entity("oil", ["sensor"]),
+    fold("refrigerant", "Refrigerant", [
+      entity("suction", ["sensor"]),
+      entity("hot_gas", ["sensor"]),
+      entity("liquid", ["sensor"]),
+      entity("evaporating", ["sensor"]),
+      entity("condensing", ["sensor"]),
+      entity("reversing_valve", ON_OFF),
+    ], "mdi:snowflake-thermometer"),
   ], "mdi:heat-pump"),
   fold("heating", "Heating runs", [entities("supply_plant"), entities("return_plant"), entity("house_supply", ["sensor"]), entity("house_return", ["sensor"])], "mdi:pipe"),
   floor(1, "Lowest floor"),
@@ -97,7 +109,7 @@ const SCHEMA = [
 ];
 
 const LABELS: Record<string, string> = {
-  title: "Title", pipes: "Pipes", markers: "Flow markers", colours: "Colours", readouts: "Readings", animations: "Enable animations",
+  title: "Title", view: "Opens on", pipes: "Pipes", markers: "Flow markers", colours: "Colours", readouts: "Readings", animations: "Enable animations",
   area_outside: "Outside area's name", area_plant: "Plant area's name", area_house: "House area's name",
   label: "Heat pump's name", storage_label: "Storage tank's name",
   type: "Kind", outdoor: "Outdoor temperature", pump: "Pump (speed or on/off)", out: "Out to the ground", ground: "Back from the ground",
@@ -106,7 +118,8 @@ const LABELS: Record<string, string> = {
   return: "Return", power: "Power in", heat: "Heat out", cop: "COP", aux: "Aux heater", degree_minutes: "Degree minutes", alarm: "Alarm",
   supply_plant: "Supply sensors in the plant room", return_plant: "Return sensors in the plant room",
   house_supply: "Supply arriving at the house", house_return: "Return leaving the house",
-  name: "Name", emitters: "Emitters", mixed: "Mixed down (its own mixing valve)", loops: "Loop actuators",
+  name: "Name", emitters: "Emitters", mixed: "Mixed down (its own mixing valve)", loops: "Loop actuators", rooms: "Rooms", loop_returns: "Loop returns",
+  suction: "Suction gas", hot_gas: "Hot gas", liquid: "Liquid", evaporating: "Evaporating", condensing: "Condensing", reversing_valve: "Reversing valve (on: defrost)", oil: "Compressor oil temperature",
   enabled: "Hot water tank", coil_in: "Coil in", coil_out: "Coil out", tank: "Tank sensors (top first)",
   hot_plant: "Hot sensors in the plant room", hot_house: "Hot sensors in the house", loop_pump: "Return loop pump",
   loop_house: "Return loop sensors in the house", loop_plant: "Return loop sensors in the plant room", immersion: "Immersion heater (power or on/off)",
@@ -118,7 +131,10 @@ const HELP: Record<string, string> = {
   animations: "Off: a still picture, with the flow markers standing on the pipes that flow. For low-powered tablets.",
   supply_plant: "In the order the water passes them; the card spaces them along the run.",
   return_plant: "In the order the water passes them, from the house back to the heat pump.",
-  loops: "One per underfloor loop, open when on.",
+  view: "The tab the card shows first.",
+  loops: "One per underfloor loop or radiator valve, open when on.",
+  rooms: "A thermostat (or temperature sensor) per room, in the same order as the loops: room 1 is on loop 1.",
+  loop_returns: "Each loop's return temperature, in the same order. Without one, the floor's return.",
   hot_plant: "Along the hot run from the tank, in order.",
   loop_house: "Along the return loop from its far end, in order.",
   meter: "With a storage tank, a flow while it isn't filling is the hard tap.",

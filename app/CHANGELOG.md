@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026.10.11-b23
+
+- Heating Flow card: two more views, as tabs in its header. **Heat pump** is a cutaway of the
+  refrigerant cycle (source, evaporator, compressor, condenser, expansion valve, load), with
+  the new Refrigerant options under Heat pump. **Rooms** is a tile per room on each floor: its
+  temperature, its target (amber when heating but more than a degree below it), its loop's
+  actuator and its loop or radiator, from the floor's new Rooms and Loop returns lists.
+  "Opens on" picks the tab it shows first.
+- Heating Flow card: a Compressor oil temperature option, shown beside the compressor's
+  frequency in the Heat pump view.
+
 ## 2026.10.11-b22
 
 - Heating Flow: a new **Enable animations** option (on by default). Off, the card is a still picture: flow markers stand on the pipes that flow, and pumps and fans stop turning, so a low-powered tablet draws it once instead of every frame. Reduced motion now gives the same still picture, with the markers shown rather than hidden.

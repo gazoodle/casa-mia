@@ -5565,6 +5565,7 @@ Oi.directiveName = "unsafeHTML", Oi.resultType = 1;
 var ki = class extends Oi {};
 ki.directiveName = "unsafeSVG", ki.resultType = 2;
 var Ai = ut(ki), ji = {
+	view: "system",
 	pipes: "outline",
 	markers: "chev",
 	colours: "temp",
@@ -5577,8 +5578,8 @@ var Ai = ut(ki), ji = {
 	e.floor_1,
 	e.floor_2,
 	e.floor_3
-].filter((e) => !!e && !!(e.name || e.supply || e.return || e.loops?.length));
-function Ni(e) {
+].filter((e) => !!e && !!(e.name || e.supply || e.return || e.loops?.length || e.rooms?.length)), Ni = (e) => e.dhw?.enabled ?? !!(e.dhw?.tank?.length || e.dhw?.coil_in || e.dhw?.hot_plant?.length);
+function Pi(e) {
 	let t = [], n = (e) => {
 		typeof e == "string" && /^[a-z_]+\.[a-z0-9_]+$/.test(e) ? t.push(e) : Array.isArray(e) ? e.forEach(n) : e && typeof e == "object" && Object.entries(e).forEach(([e, t]) => !e.endsWith("_action") && n(t));
 	};
@@ -5587,13 +5588,13 @@ function Ni(e) {
 		type: void 0
 	}), [...new Set(t)];
 }
-function Pi(e) {
+function Fi(e) {
 	let t = Math.max(1, Math.round(e / 6e4));
 	if (t < 60) return `${t} min`;
 	let n = Math.round(t / 60);
 	return n < 48 ? `${n} h` : `${Math.round(n / 24)} days`;
 }
-var Fi = /* @__PURE__ */ new Set([
+var Ii = /* @__PURE__ */ new Set([
 	"on",
 	"open",
 	"opening",
@@ -5602,7 +5603,7 @@ var Fi = /* @__PURE__ */ new Set([
 	"heat",
 	"heating",
 	"running"
-]), Ii = /* @__PURE__ */ new Set([
+]), Li = /* @__PURE__ */ new Set([
 	"off",
 	"closed",
 	"closing",
@@ -5610,7 +5611,7 @@ var Fi = /* @__PURE__ */ new Set([
 	"idle",
 	"standby"
 ]);
-function Li(e, t, n, r) {
+function Ri(e, t, n, r) {
 	if (!e) return {
 		v: NaN,
 		unit: "",
@@ -5619,54 +5620,69 @@ function Li(e, t, n, r) {
 		stale: "missing"
 	};
 	let i = e.attributes?.unit_of_measurement ?? "", a = /^°[CF]$/.test(i) ? "°" : i === "%" ? "%" : i ? ` ${i}` : "", o = Date.parse(e.last_changed ?? e.last_updated ?? ""), s = Number.isFinite(o) ? r - o : 0, c = e.state === "unavailable" || e.state === "unknown", l = parseFloat(e.state), u = e.state.toLowerCase(), d = {
-		v: Number.isFinite(l) ? l : Fi.has(u) ? 1 : Ii.has(u) ? 0 : NaN,
+		v: Number.isFinite(l) ? l : Ii.has(u) ? 1 : Li.has(u) ? 0 : NaN,
 		unit: a,
 		dp: n ?? e.state.split(".")[1]?.length ?? 0,
 		e: t
 	};
-	return Number.isFinite(l) || (d.text = e.state), c && (d.stale = Pi(s)), d;
+	return Number.isFinite(l) || (d.text = e.state), c && (d.stale = Fi(s)), d;
 }
-function Ri(e) {
+function zi(e) {
 	let t = (e ?? "").toLowerCase();
 	return !t || t === "unavailable" || t === "unknown" ? "Unknown" : /water|dhw|hot/.test(t) ? "Hot water" : /defrost/.test(t) ? "Defrost" : /cool/.test(t) ? "Cooling" : /heat/.test(t) ? "Heating" : /off|idle|stand|none/.test(t) ? "Off" : e;
 }
-var zi = {
+var Bi = {
 	Heating: "#e5443a",
 	"Hot water": "#a652d6",
 	Off: "#7a8190",
 	Defrost: "#2f86e0",
 	Cooling: "#2fbfd0"
-}, Bi = /^(|0|ok|none|off|no alarm|no alarms|normal|false|unavailable|unknown)$/i;
-function Vi(e, t, n = Date.now()) {
+}, Vi = /^(|0|ok|none|off|no alarm|no alarms|normal|false|unavailable|unknown)$/i;
+function Hi(e, t, n = Date.now()) {
 	let r = {};
-	for (let i of Ni(t)) r[i] = Li(e.states[i], i, e.entities?.[i]?.display_precision, n);
-	let i = (e) => e && r[e] && !r[e].stale && Number.isFinite(r[e].v) ? r[e].v : null, a = (e) => (i(e) ?? 0) > 0, o = t.heat_pump ?? {}, s = t.source ?? {}, c = t.dhw ?? {}, l = t.water ?? {}, u = Ri(o.priority ? e.states[o.priority]?.state : void 0), d = o.compressor ? a(o.compressor) : u !== "Off" && u !== "Unknown", f = (e) => !e || a(e), p = (u === "Heating" || u === "Defrost") && f(o.pump), m = u === "Hot water" && f(o.pump), h = s.type !== "air" && s.type !== "none" && (s.pump ? a(s.pump) : d), g = h && !!s.pvt && a(s.pvt_valve), _ = a(c.loop_pump), v = (l.pumps ?? []).some(a), y = !!l.storage && a(l.inlet), b = a(l.meter), x = l.storage ? v : b, S = {
-		comp: d,
-		heat: p,
-		coil: m,
-		hp_out: p || m,
-		brine: h,
-		pvt: g,
-		hot: _ || x,
-		recirc: _,
-		soft: x,
-		fill: y,
-		mains: y || b,
-		hard: !!l.storage && b && !y
+	for (let i of Pi(t)) r[i] = Ri(e.states[i], i, e.entities?.[i]?.display_precision, n);
+	let i = {};
+	for (let n of Mi(t).flatMap((e) => e.rooms ?? [])) {
+		let t = e.states[n], a = t?.attributes ?? {};
+		t && a.current_temperature != null && r[n].stale == null && (r[n] = {
+			...r[n],
+			v: Number(a.current_temperature),
+			unit: "°",
+			dp: 1,
+			text: void 0
+		}), i[n] = {
+			name: a.friendly_name ?? n,
+			target: a.temperature != null && Number.isFinite(+a.temperature) ? +a.temperature : null
+		};
+	}
+	let a = (e) => e && r[e] && !r[e].stale && Number.isFinite(r[e].v) ? r[e].v : null, o = (e) => (a(e) ?? 0) > 0, s = t.heat_pump ?? {}, c = t.source ?? {}, l = t.dhw ?? {}, u = t.water ?? {}, d = zi(s.priority ? e.states[s.priority]?.state : void 0), f = s.compressor ? o(s.compressor) : d !== "Off" && d !== "Unknown", p = (e) => !e || o(e), m = (d === "Heating" || d === "Defrost") && p(s.pump), h = d === "Hot water" && p(s.pump), g = c.type !== "air" && c.type !== "none" && (c.pump ? o(c.pump) : f), _ = g && !!c.pvt && o(c.pvt_valve), v = o(l.loop_pump), y = (u.pumps ?? []).some(o), b = !!u.storage && o(u.inlet), x = o(u.meter), S = u.storage ? y : x, C = {
+		comp: f,
+		heat: m,
+		coil: h,
+		hp_out: m || h,
+		brine: g,
+		pvt: _,
+		hot: v || S,
+		recirc: v,
+		soft: S,
+		fill: b,
+		mains: b || x,
+		hard: !!u.storage && x && !b
 	};
-	for (let e of Mi(t)) for (let t of e.loops ?? []) S[t] = p && a(t);
-	let C = o.alarm ? e.states[o.alarm]?.state : void 0;
+	for (let e of Mi(t)) for (let t of e.loops ?? []) C[t] = m && o(t);
+	let w = s.alarm ? e.states[s.alarm]?.state : void 0;
 	return {
 		data: r,
-		flows: S,
-		prio: u,
-		alarm: C && !Bi.test(C.trim()) ? C : null,
-		saltLow: !!l.softener && a(l.salt_low)
+		rooms: i,
+		flows: C,
+		prio: d,
+		alarm: w && !Vi.test(w.trim()) ? w : null,
+		saltLow: !!u.softener && o(u.salt_low)
 	};
 }
 //#endregion
 //#region src/heating-flow/engine.ts
-var Hi = [
+var Ui = [
 	[-5, "#3b47c9"],
 	[5, "#2f86e0"],
 	[15, "#2fbfd0"],
@@ -5675,7 +5691,7 @@ var Hi = [
 	[45, "#f2902a"],
 	[55, "#e8492f"],
 	[65, "#b31e3d"]
-], Ui = {
+], Wi = {
 	brine: "#3b6fe0",
 	pvt: "#f0a020",
 	heat: "#e5443a",
@@ -5683,21 +5699,21 @@ var Hi = [
 	hot: "#d6457f",
 	cold: "#38b8e0",
 	ref: "#7f8ea6"
-}, Wi = "#9aa3b2", Gi = (e) => [
+}, Gi = "#9aa3b2", Ki = (e) => [
 	1,
 	3,
 	5
-].map((t) => parseInt(e.slice(t, t + 2), 16)), Ki = (e) => "#" + e.map((e) => Math.round(e).toString(16).padStart(2, "0")).join(""), qi = (e, t, n) => Ki(Gi(e).map((e, r) => e + (Gi(t)[r] - e) * n));
-function Ji(e) {
-	if (e <= Hi[0][0]) return Hi[0][1];
-	for (let t = 1; t < Hi.length; t++) if (e <= Hi[t][0]) {
-		let [n, r] = Hi[t - 1], [i, a] = Hi[t];
-		return qi(r, a, (e - n) / (i - n));
+].map((t) => parseInt(e.slice(t, t + 2), 16)), qi = (e) => "#" + e.map((e) => Math.round(e).toString(16).padStart(2, "0")).join(""), Ji = (e, t, n) => qi(Ki(e).map((e, r) => e + (Ki(t)[r] - e) * n));
+function Yi(e) {
+	if (e <= Ui[0][0]) return Ui[0][1];
+	for (let t = 1; t < Ui.length; t++) if (e <= Ui[t][0]) {
+		let [n, r] = Ui[t - 1], [i, a] = Ui[t];
+		return Ji(r, a, (e - n) / (i - n));
 	}
-	return Hi[Hi.length - 1][1];
+	return Ui[Ui.length - 1][1];
 }
 var q = (e) => String(e ?? "").replace(/[&<>"']/g, (e) => `&#${e.charCodeAt(0)};`);
-function Yi(e, t) {
+function Xi(e, t) {
 	let n = [], r = 0;
 	for (let t = 1; t < e.length; t++) {
 		let [i, a] = e[t - 1], [o, s] = e[t], c = Math.hypot(o - i, s - a);
@@ -5720,14 +5736,14 @@ function Yi(e, t) {
 		total: r
 	};
 }
-function Xi(e, t) {
+function Zi(e, t) {
 	let n = e.slice(), r = e.length, i = ([e, n], [r, i]) => {
 		let a = Math.hypot(r - e, i - n);
 		return [r + (r - e) / a * t, i + (i - n) / a * t];
 	};
 	return n[0] = i(e[1], e[0]), n[r - 1] = i(e[r - 2], e[r - 1]), n;
 }
-function Zi(e) {
+function Qi(e) {
 	let t = 0;
 	return e.forEach((n, r) => {
 		if (t += n.L - n.k0 - n.k1, !n.k1) return;
@@ -5738,14 +5754,14 @@ function Zi(e) {
 		}
 	}), t;
 }
-function Qi(e, [t, n]) {
+function $i(e, [t, n]) {
 	for (let r of e) {
 		let e = (t - r.ax) * r.ux + (n - r.ay) * r.uy;
 		if (e >= -.5 && e <= r.L + .5 && Math.hypot(r.ax + r.ux * e - t, r.ay + r.uy * e - n) < 1) return r.s0 + e;
 	}
 	return 0;
 }
-function $i(e, t) {
+function ea(e, t) {
 	for (let n of e) if (t <= n.s0 + n.L || n === e[e.length - 1]) {
 		let e = Math.min(Math.max(t - n.s0, 0), n.L);
 		return {
@@ -5760,7 +5776,7 @@ function $i(e, t) {
 		horiz: !0
 	};
 }
-function ea(e, t) {
+function ta(e, t) {
 	if (!e.length) return null;
 	if (t <= e[0][0]) return e[0][1];
 	for (let n = 1; n < e.length; n++) if (t <= e[n][0]) {
@@ -5769,14 +5785,14 @@ function ea(e, t) {
 	}
 	return e[e.length - 1][1];
 }
-function ta(e, t, n, r, i) {
+function na(e, t, n, r, i) {
 	let a = {};
 	e.forEach((e) => e.area && (a[e.area] ||= []).push(e));
 	let o = {};
 	for (let e in a) {
 		let r = i.find((t) => t[0] === e), a = Infinity, s = -Infinity;
 		for (let e = 0; r && e <= n; e += 2) {
-			let n = $i(t, e);
+			let n = ea(t, e);
 			n.x >= r[1] && n.x < r[2] && ([a, s] = [Math.min(a, e), Math.max(s, e)]);
 		}
 		o[e] = a <= s ? [a, s] : [0, n];
@@ -5791,13 +5807,13 @@ function ta(e, t, n, r, i) {
 		}
 		return {
 			...e,
-			s: e.at ? Qi(t, e.at) : (r ? 1 - (e.f ?? 0) : e.f ?? 0) * n
+			s: e.at ? $i(t, e.at) : (r ? 1 - (e.f ?? 0) : e.f ?? 0) * n
 		};
 	});
 }
 //#endregion
 //#region src/heating-flow/draw.ts
-var na = class {
+var ra = class {
 	constructor(e, t, n) {
 		this.uid = 0, this.areas = [], this.data = e, this.flows = t, this.look = n;
 	}
@@ -5813,19 +5829,19 @@ var na = class {
 	}
 	colourOf(e) {
 		let t = this.val(e);
-		return t == null ? Wi : Ji(t);
+		return t == null ? Gi : Yi(t);
 	}
 	tint(e, t, n) {
-		let r = this.look.colours === "circuit" ? Ui[n] ?? "#9aa3b2" : this.colourOf(e);
-		return this.flows[t] ? r : qi(r, Wi, .35);
+		let r = this.look.colours === "circuit" ? Wi[n] ?? "#9aa3b2" : this.colourOf(e);
+		return this.flows[t] ? r : Ji(r, Gi, .35);
 	}
 	bgAt(e) {
 		return `var(${(this.areas.find((t) => e < t[2]) ?? this.areas[this.areas.length - 1])?.[4] ?? "--hf-panel"})`;
 	}
 	pipe(e) {
-		let t = e.w ?? 12, { segs: n, total: r } = Yi(Xi(e.rev ? e.pts.slice().reverse() : e.pts, t / 2), e.r ?? 12), i = ta(e.sensors ?? [], n, r, e.rev, this.areas), a = i.map((e) => [e.s, this.val(e.k)]).filter((e) => e[1] != null).sort((e, t) => e[0] - t[0]), o = !!(e.flow && this.flows[e.flow]), s = (t) => {
-			let n = ea(a, t), r = this.look.colours === "circuit" ? Ui[e.circ] ?? "#9aa3b2" : n == null ? Wi : Ji(n);
-			return o ? r : qi(r, Wi, .35);
+		let t = e.w ?? 12, { segs: n, total: r } = Xi(Zi(e.rev ? e.pts.slice().reverse() : e.pts, t / 2), e.r ?? 12), i = na(e.sensors ?? [], n, r, e.rev, this.areas), a = i.map((e) => [e.s, this.val(e.k)]).filter((e) => e[1] != null).sort((e, t) => e[0] - t[0]), o = !!(e.flow && this.flows[e.flow]), s = (t) => {
+			let n = ta(a, t), r = this.look.colours === "circuit" ? Wi[e.circ] ?? "#9aa3b2" : n == null ? Gi : Yi(n);
+			return o ? r : Ji(r, Gi, .35);
 		}, c = "", l = "", u = `M${n[0].ax} ${n[0].ay}`;
 		n.forEach((e, t) => {
 			let r = e.s0 + e.k0, i = e.s0 + e.L - e.k1, o = e.ax + e.ux * e.k0, d = e.ay + e.uy * e.k0, f = e.bx - e.ux * e.k1, p = e.by - e.uy * e.k1;
@@ -5846,11 +5862,11 @@ var na = class {
 		f === "outline" && ([h, g] = [p(t + 3, "var(--hf-edge)"), p(t, d) + m(t)]), f === "glass" && ([h, g] = [p(t + 3, d) + m(t + 3), p(t, "var(--hf-panel)") + m(t, "opacity=\".32\"")]), (f === "conduit" || f === "neon") && ([h, g] = [p(t + 2, "var(--hf-conduit)"), m(Math.max(3, t * .42), f === "neon" ? `style="filter:drop-shadow(0 0 3px ${d})"` : "")]);
 		let _ = "";
 		if (o) {
-			let r = Zi(n), i = Math.max(1, Math.round(r / 26)), a = this.val(e.speed), o = r / (a == null ? 576 / t : 18 + Math.min(a, 100) * .5), s = f === "glass" ? "var(--hf-edge)" : "#fff", c = t < 12 ? ` transform="scale(${Math.max(.6, t / 12)})"` : "";
+			let r = Qi(n), i = Math.max(1, Math.round(r / 26)), a = this.val(e.speed), o = r / (a == null ? 576 / t : 18 + Math.min(a, 100) * .5), s = f === "glass" ? "var(--hf-edge)" : "#fff", c = t < 12 ? ` transform="scale(${Math.max(.6, t / 12)})"` : "";
 			for (let e = 0; e < i; e++) _ += `<use href="#mk-${this.look.markers}"${c} style="color:${s}"><animateMotion dur="${o.toFixed(2)}s" begin="-${(o * e / i).toFixed(2)}s" repeatCount="indefinite" rotate="auto" path="${u}"/></use>`;
 		}
 		let v = (e.hops ?? []).map(([e, n, r]) => `<path d="${r === "h" ? `M${e - t} ${n}H${e + t}` : `M${e} ${n - t}V${n + t}`}" stroke-width="${t + 8}" style="stroke:${this.bgAt(e)}"/>`).join(""), y = i.filter((e) => e.show !== !1).map((e) => {
-			let t = $i(n, e.s);
+			let t = ea(n, e.s);
 			return this.readout(t.x, t.y, e.k, t.horiz);
 		}).join("");
 		return {
@@ -5876,7 +5892,7 @@ var na = class {
 	readout(e, t, n, r = !0) {
 		let i = this.data[n];
 		if (!i) return "";
-		let a = i.stale ? `— ${i.stale}` : this.fmt(i), o = i.stale ? "var(--hf-warn)" : i.unit === "°" && this.look.colours === "temp" ? Ji(i.v) : "var(--hf-line)", s = `<title>${q(i.e)}${i.stale ? `: not current for ${q(i.stale)}` : ""}</title>`;
+		let a = i.stale ? `— ${i.stale}` : this.fmt(i), o = i.stale ? "var(--hf-warn)" : i.unit === "°" && this.look.colours === "temp" ? Yi(i.v) : "var(--hf-line)", s = `<title>${q(i.e)}${i.stale ? `: not current for ${q(i.stale)}` : ""}</title>`;
 		if (this.look.readouts === "pill" || i.stale) {
 			let n = Math.max(46, a.length * 6.6 + 14);
 			return `<g class="hit" data-e="${q(i.e)}">${s}<rect class="hl" x="${e - n / 2}" y="${t - 10}" width="${n}" height="20" rx="10" style="fill:var(--hf-panel);stroke:${o}" stroke-width="2"/><text x="${e}" y="${t + 4}" text-anchor="middle" font-size="11" font-weight="700" class="${i.stale ? "w" : "t"}">${q(a)}</text></g>`;
@@ -5896,18 +5912,18 @@ var na = class {
 		let a = this.data[r];
 		return a ? `<g class="hit" data-e="${q(a.e)}"><rect class="hl" x="${e - 4}" y="${t - 13}" width="${i - e + 8}" height="18" rx="4" fill="transparent"/><text x="${e}" y="${t}" font-size="11.5" class="m">${q(n)}</text><text x="${i}" y="${t}" text-anchor="end" font-size="12" font-weight="700" class="${a.stale ? "w" : "t"}">${q(a.stale ? "— " + a.stale : this.fmt(a))}</text></g>` : "";
 	}
-}, ra = "\n  <path id=\"mk-chev\" d=\"M-3 -4L2 0L-3 4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\n  <path id=\"mk-arrow\" d=\"M-6 0H3M0 -3L3.5 0L0 3\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\n  <circle id=\"mk-bub\" r=\"2.1\" fill=\"currentColor\"/>\n  <linearGradient id=\"panelg\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" style=\"stop-color:var(--hf-panel)\"/><stop offset=\"1\" style=\"stop-color:var(--hf-panel2)\"/></linearGradient>\n  <linearGradient id=\"earthg\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" style=\"stop-color:var(--hf-earth1)\"/><stop offset=\".55\" style=\"stop-color:var(--hf-earth2)\"/><stop offset=\"1\" style=\"stop-color:var(--hf-earth3)\"/></linearGradient>\n  <linearGradient id=\"cellg\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#4a78c4\"/><stop offset=\"1\" stop-color=\"#1f3f7a\"/></linearGradient>\n  <linearGradient id=\"sheen\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#fff\" stop-opacity=\".3\"/><stop offset=\".5\" stop-color=\"#fff\" stop-opacity=\"0\"/></linearGradient>", ia = {
+}, ia = "\n  <path id=\"mk-chev\" d=\"M-3 -4L2 0L-3 4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\n  <path id=\"mk-arrow\" d=\"M-6 0H3M0 -3L3.5 0L0 3\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\n  <circle id=\"mk-bub\" r=\"2.1\" fill=\"currentColor\"/>\n  <linearGradient id=\"panelg\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" style=\"stop-color:var(--hf-panel)\"/><stop offset=\"1\" style=\"stop-color:var(--hf-panel2)\"/></linearGradient>\n  <linearGradient id=\"earthg\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" style=\"stop-color:var(--hf-earth1)\"/><stop offset=\".55\" style=\"stop-color:var(--hf-earth2)\"/><stop offset=\"1\" style=\"stop-color:var(--hf-earth3)\"/></linearGradient>\n  <linearGradient id=\"cellg\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#4a78c4\"/><stop offset=\"1\" stop-color=\"#1f3f7a\"/></linearGradient>\n  <linearGradient id=\"sheen\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#fff\" stop-opacity=\".3\"/><stop offset=\".5\" stop-color=\"#fff\" stop-opacity=\"0\"/></linearGradient>", aa = {
 	e: 0,
 	s: 90,
 	w: 180,
 	n: 270
 }, J = (e, t, n) => `<g class="hit" data-e="${q(e ?? "")}"><title>${q(t)}</title>${n}</g>`;
-function aa(e, t, n, r, i, a, [o, s, c], l = !1) {
+function oa(e, t, n, r, i, a, [o, s, c], l = !1) {
 	let u = e.data[i], d = e.val(i) != null && e.val(i) > 0;
-	return J(u?.e, a, (l ? `<circle cx="${t}" cy="${n}" r="22" fill="none" style="stroke:var(--hf-warn)" stroke-width="3" class="pulse"/>` : "") + (d ? `<circle cx="${t}" cy="${n}" r="18" fill="none" style="stroke:var(--hf-run);transform-origin:${t}px ${n}px" stroke-width="2" stroke-dasharray="3 4" class="spin"/>` : "") + `<circle class="hl" cx="${t}" cy="${n}" r="14" style="fill:var(--hf-panel);stroke:var(--hf-edge)" stroke-width="2"/><path d="M-7 -11L13 0L-7 11Z" transform="translate(${t} ${n}) rotate(${ia[r]})" style="fill:${d ? "var(--hf-run)" : "var(--hf-off)"};stroke:var(--hf-edge)" stroke-width="1.5" stroke-linejoin="round"/><text x="${o}" y="${s}" text-anchor="${c}" font-size="10.5" class="m halo">${q(a)} · ${u?.stale ? "— " + q(u.stale) : d && u?.unit ? q(e.fmt(u)) : d ? "on" : "off"}</text>`);
+	return J(u?.e, a, (l ? `<circle cx="${t}" cy="${n}" r="22" fill="none" style="stroke:var(--hf-warn)" stroke-width="3" class="pulse"/>` : "") + (d ? `<circle cx="${t}" cy="${n}" r="18" fill="none" style="stroke:var(--hf-run);transform-origin:${t}px ${n}px" stroke-width="2" stroke-dasharray="3 4" class="spin"/>` : "") + `<circle class="hl" cx="${t}" cy="${n}" r="14" style="fill:var(--hf-panel);stroke:var(--hf-edge)" stroke-width="2"/><path d="M-7 -11L13 0L-7 11Z" transform="translate(${t} ${n}) rotate(${aa[r]})" style="fill:${d ? "var(--hf-run)" : "var(--hf-off)"};stroke:var(--hf-edge)" stroke-width="1.5" stroke-linejoin="round"/><text x="${o}" y="${s}" text-anchor="${c}" font-size="10.5" class="m halo">${q(a)} · ${u?.stale ? "— " + q(u.stale) : d && u?.unit ? q(e.fmt(u)) : d ? "on" : "off"}</text>`);
 }
-function oa(e, t, n, r, i, a, o) {
-	let s = (n) => `<path d="M0 0L12 -8L12 8Z" transform="translate(${e} ${t}) rotate(${ia[n]})" style="fill:${r.includes(n) ? "var(--hf-edge)" : "var(--hf-panel)"};stroke:var(--hf-edge)" stroke-width="1.6" stroke-linejoin="round"/>`, [c, l] = {
+function sa(e, t, n, r, i, a, o) {
+	let s = (n) => `<path d="M0 0L12 -8L12 8Z" transform="translate(${e} ${t}) rotate(${aa[n]})" style="fill:${r.includes(n) ? "var(--hf-edge)" : "var(--hf-panel)"};stroke:var(--hf-edge)" stroke-width="1.6" stroke-linejoin="round"/>`, [c, l] = {
 		n: [0, -1],
 		s: [0, 1],
 		e: [1, 0],
@@ -5920,12 +5936,12 @@ function oa(e, t, n, r, i, a, o) {
 	].find((e) => !n.includes(e))];
 	return J(a, i, `<path d="M${e} ${t}L${e + c * 13} ${t + l * 13}" style="stroke:var(--hf-edge)" stroke-width="2"/><rect class="hl" x="${e + c * 18 - 6}" y="${t + l * 18 - 6}" width="12" height="12" rx="2" style="fill:var(--hf-panel2);stroke:var(--hf-edge)" stroke-width="1.6"/>` + n.map(s).join("") + (o ? `<text x="${o[0]}" y="${o[1]}" text-anchor="${o[2]}" font-size="10.5" class="m halo">${q(i)}</text>` : ""));
 }
-var sa = (e, t) => e.map(([, e, n, r, i]) => `<rect x="${e}" y="0" width="${n - e}" height="${t}" style="fill:var(${i})"/><text x="${e + 12}" y="20" class="zl">${q(r)}</text>`).join("") + e.slice(1).map(([, e]) => `<path d="M${e} 0V${t}" style="stroke:var(--hf-line)" stroke-dasharray="2 4"/>`).join("");
-function ca(e, t, n, r, i, a, o) {
+var ca = (e, t) => e.map(([, e, n, r, i]) => `<rect x="${e}" y="0" width="${n - e}" height="${t}" style="fill:var(${i})"/><text x="${e + 12}" y="20" class="zl">${q(r)}</text>`).join("") + e.slice(1).map(([, e]) => `<path d="M${e} 0V${t}" style="stroke:var(--hf-line)" stroke-dasharray="2 4"/>`).join("");
+function la(e, t, n, r, i, a, o) {
 	let s = e.id("gc");
 	return J(o, a, `<clipPath id="${s}"><rect x="${t}" y="${n}" width="${r}" height="${i}" rx="12"/></clipPath><g clip-path="url(#${s})"><rect x="${t}" y="${n}" width="${r}" height="${i}" fill="url(#earthg)"/><rect x="${t}" y="${n}" width="${r}" height="10" style="fill:var(--hf-grass)"/><path d="M${t} ${n + i * .4}q${r * .25} -8 ${r * .5} 0t${r * .5} -3M${t} ${n + i * .72}q${r * .3} 8 ${r * .55} 0t${r * .45} 4" fill="none" stroke="#000" stroke-opacity=".12" stroke-width="2"/></g><rect class="hl" x="${t}" y="${n}" width="${r}" height="${i}" rx="12" fill="none" style="stroke:var(--hf-line)"/><text x="${t + r - 10}" y="${n + i - 12}" text-anchor="end" font-size="12" font-weight="700" class="lt">${q(a)}</text>`);
 }
-function la(e, t, n, r, i) {
+function ua(e, t, n, r, i) {
 	let a = (n - 12) / 2, o = (r - 12) / 2, s = `<rect class="hl" x="${e}" y="${t}" width="${n}" height="${r}" rx="8" fill="url(#panelg)" style="stroke:var(--hf-edge)" stroke-width="1.2"/>`;
 	for (let n = 0; n < 2; n++) for (let r = 0; r < 2; r++) {
 		let i = e + 4 + n * (a + 4), c = t + 4 + r * (o + 4);
@@ -5942,7 +5958,7 @@ function la(e, t, n, r, i) {
 		315
 	].map((n) => `<path d="M${e + 10} ${t - 24.5}v-3" transform="rotate(${n} ${e + 10} ${t - 16})" stroke="#f4b400" stroke-width="1.6" stroke-linecap="round"/>`).join(""), J(i, "PVT panels", s + `<text x="${e + 24}" y="${t - 11}" font-size="12" font-weight="700" class="t">PVT panels</text>`);
 }
-function ua(e, t, n, r, i, a) {
+function da(e, t, n, r, i, a) {
 	let o = t + 8, s = n + 8, c = r - 16, l = i - 16, u = e.id("tw"), d = a.map(([t, n]) => [n, e.val(t)]).filter((e) => e[1] != null), f = (e) => {
 		if (!d.length) return null;
 		if (e <= d[0][0]) return d[0][1];
@@ -5953,7 +5969,7 @@ function ua(e, t, n, r, i, a) {
 		return d[d.length - 1][1];
 	}, p = Array.from({ length: 11 }, (e, t) => {
 		let n = f(t / 10);
-		return `<stop offset="${t / 10}" stop-color="${n == null ? Wi : Ji(n)}"/>`;
+		return `<stop offset="${t / 10}" stop-color="${n == null ? Gi : Yi(n)}"/>`;
 	}).join("");
 	return {
 		under: J(a[0]?.[0] && e.data[a[0][0]]?.e, "Hot water tank", `<linearGradient id="${u}" x1="0" y1="0" x2="0" y2="1">${p}</linearGradient><rect class="hl" x="${t}" y="${n}" width="${r}" height="${i}" rx="30" fill="url(#panelg)" style="stroke:var(--hf-edge)" stroke-width="1.5"/><rect x="${o}" y="${s}" width="${c}" height="${l}" rx="24" fill="url(#${u})"/><rect x="${o + 6}" y="${s + 12}" width="8" height="${l - 24}" rx="4" fill="#fff" opacity=".2"/>`),
@@ -5963,19 +5979,28 @@ function ua(e, t, n, r, i, a) {
 		}).join("")
 	};
 }
-function da(e, t, n, r, i, a, o) {
+function fa(e, t, n, r, i, a, o) {
 	let s = e.id("rg"), c = Math.max(3, Math.floor(r / 7)), l = r / c;
 	return `<g><linearGradient id="${s}" gradientUnits="userSpaceOnUse" x1="0" y1="${n}" x2="0" y2="${n + i}"><stop offset="0" stop-color="${e.colourOf(a)}"/><stop offset="1" stop-color="${e.colourOf(o)}"/></linearGradient>` + Array.from({ length: c }, (e, r) => `<rect x="${t + r * l}" y="${n}" width="${l - 2}" height="${i}" rx="${(l - 2) / 2}" fill="url(#${s})" style="stroke:var(--hf-edge)" stroke-width=".8"/>`).join("") + "</g>";
 }
-function fa(e, t, n, r, i) {
-	let a = e.val(i), o = a != null && a > 0, s = Array.from({ length: 7 }, (e, i) => `<path d="M${t} ${n}q${r * .25} ${-r * .45} ${r * .12} ${-r * .72}" transform="rotate(${i * 360 / 7} ${t} ${n})" fill="none" style="stroke:var(--hf-edge)" stroke-width="3" stroke-linecap="round"/>`).join("");
-	return J(e.data[i]?.e, "Compressor", `<circle class="hl" cx="${t}" cy="${n}" r="${r}" fill="url(#panelg)" style="stroke:var(--hf-edge)" stroke-width="2.5"/><g class="${o ? "spin" : ""}" style="transform-origin:${t}px ${n}px;--sd:${o ? (60 / Math.max(a, 10)).toFixed(2) : 0}s">${s}</g><circle cx="${t}" cy="${n}" r="${r * .16}" style="fill:var(--hf-edge)"/>`);
-}
 function pa(e, t, n, r, i) {
+	let a = e.val(i), o = a != null && a > 0, s = Array.from({ length: 7 }, (e, i) => `<path d="M${t} ${n}q${r * .25} ${-r * .45} ${r * .12} ${-r * .72}" transform="rotate(${i * 360 / 7} ${t} ${n})" fill="none" style="stroke:var(--hf-edge)" stroke-width="3" stroke-linecap="round"/>`).join("");
+	return J(i, "Compressor", `<circle class="hl" cx="${t}" cy="${n}" r="${r}" fill="url(#panelg)" style="stroke:var(--hf-edge)" stroke-width="2.5"/><g class="${o ? "spin" : ""}" style="transform-origin:${t}px ${n}px;--sd:${o ? (60 / Math.max(a, 10)).toFixed(2) : 0}s">${s}</g><circle cx="${t}" cy="${n}" r="${r * .16}" style="fill:var(--hf-edge)"/>`);
+}
+function ma(e, t, n, r, i, a, o, s, c, l) {
+	let u = e.id("vg"), d = c ? e.data[c] : void 0, f = `<linearGradient id="${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${e.colourOf(a)}" stop-opacity=".75"/><stop offset="1" stop-color="${e.colourOf(o)}" stop-opacity=".75"/></linearGradient><rect class="hl" x="${t}" y="${n}" width="${r}" height="${i}" rx="22" fill="url(#${u})" style="stroke:var(--hf-edge)" stroke-width="2"/>`;
+	if (l) for (let e = 0; e < 9; e++) f += `<circle cx="${t + 14 + e * 37 % (r - 28)}" cy="${n + i - 14}" r="${2 + e % 3}" fill="#fff" opacity=".7" class="rise" style="animation-delay:-${(e * .41).toFixed(2)}s"/>`;
+	return J(c, s, f + `<text x="${t + r / 2}" y="${n + 20}" text-anchor="middle" font-size="12" font-weight="700" class="lt">${q(s)}</text>` + (d ? `<text x="${t + r / 2}" y="${n + 37}" text-anchor="middle" font-size="12" class="lt">${d.stale ? "— " + q(d.stale) : q(e.fmt(d))}</text>` : ""));
+}
+function ha(e, t, n, r, i, a, o, [s, c]) {
+	let l = e.data[a], u = l?.stale ? "var(--hf-warn)" : e.colourOf(a);
+	return J(a, i, `<path d="M${t + r / 2} ${n + 22}L${s} ${c}" style="stroke:${u}" stroke-width="2"/><circle cx="${s}" cy="${c}" r="3.5" style="fill:${u}"/><rect class="hl" x="${t}" y="${n}" width="${r}" height="44" rx="8" style="fill:${u}"/><text x="${t + r / 2}" y="${n + 18}" text-anchor="middle" font-size="11" font-weight="700" fill="#fff" letter-spacing=".04em">${q(i.toUpperCase())}</text><text x="${t + r / 2}" y="${n + 35}" text-anchor="middle" font-size="12" fill="#fff">${l?.stale ? "— " + q(l.stale) : l ? q(e.fmt(l)) : ""} · ${q(o)}</text>`);
+}
+function ga(e, t, n, r, i) {
 	let a = e.data[i], o = (e.val(i) ?? 0) > 0;
 	return J(a?.e, `Immersion heater · ${a && o ? e.fmt(a) : "off"}`, `<rect x="${Math.min(t, n)}" y="${r - 3}" width="${Math.abs(n - t)}" height="6" rx="3" fill="${o ? "#ff7a1a" : "#8a8f99"}" style="${o ? "filter:drop-shadow(0 0 4px #ff7a1a)" : ""}" class="${o ? "pulse" : ""}"/><rect class="hl" x="${t - 4}" y="${r - 7}" width="9" height="14" rx="2" style="fill:var(--hf-panel2);stroke:var(--hf-edge)" stroke-width="1.4"/>`);
 }
-function ma(e, t, n, r, i, a, o = 12) {
+function _a(e, t, n, r, i, a, o = 12) {
 	let [s, c] = {
 		n: [0, -1],
 		s: [0, 1],
@@ -5984,34 +6009,34 @@ function ma(e, t, n, r, i, a, o = 12) {
 	}[n], [l, u] = [-c, s], d = (n, r) => `M${e + l * n} ${t + u * n}L${e + s * o + l * r} ${t + c * o + u * r}L${e + s * o - l * r} ${t + c * o - u * r}L${e - l * n} ${t - u * n}Z`;
 	return `<path d="${d((r + 3) / 2, (i + 3) / 2)}" style="fill:var(--hf-edge)"/><path d="${d(r / 2, i / 2)}" fill="${a}"/>`;
 }
-var ha = (e, t, n) => J(n, "Mains in", `<circle class="hl" cx="${e}" cy="${t}" r="9" style="fill:var(--hf-panel);stroke:var(--hf-edge)" stroke-width="2"/><path d="M${e - 5} ${t - 5}L${e + 5} ${t + 5}" style="stroke:var(--hf-edge)" stroke-width="2.5" stroke-linecap="round"/><text x="${e - 8}" y="${t + 24}" font-size="11" font-weight="700" class="t halo">Mains in</text>`);
-function ga(e, t, n, r, i, a, o, s) {
+var va = (e, t, n) => J(n, "Mains in", `<circle class="hl" cx="${e}" cy="${t}" r="9" style="fill:var(--hf-panel);stroke:var(--hf-edge)" stroke-width="2"/><path d="M${e - 5} ${t - 5}L${e + 5} ${t + 5}" style="stroke:var(--hf-edge)" stroke-width="2.5" stroke-linecap="round"/><text x="${e - 8}" y="${t + 24}" font-size="11" font-weight="700" class="t halo">Mains in</text>`);
+function ya(e, t, n, r, i, a, o, s) {
 	let c = o ? e.data[o] : void 0, l = Math.max(0, Math.min(1, (e.val(o) ?? 0) / 100)), u = r - 26, d = n + 22, f = i - 30, p = t + r - 20, m = n + 10, h = i - 10, g = e.id("rc"), _ = "";
 	for (let e = m + 6; e < m + h - 3; e += 4.5) for (let t = 0; t < 3; t++) _ += `<circle cx="${p + 5 + t * 5 + Math.round(e) % 2 * 1.5}" cy="${e}" r="1.9"/>`;
 	return J(o ?? s, `Softener${c ? ": salt " + e.fmt(c) : ""}${a ? ", needs topping up" : ""}`, `<rect class="hl ${a ? "pulse" : ""}" x="${t - 7}" y="${n - 7}" width="${r + 14}" height="${i + 14}" rx="10" style="fill:var(--hf-panel2);stroke:${a ? "var(--hf-warn)" : "var(--hf-line)"}" stroke-width="${a ? 3 : 1.5}"/><rect x="${t}" y="${n}" width="${u}" height="${i}" rx="8" fill="url(#panelg)" style="stroke:var(--hf-edge)" stroke-width="1.5"/><rect x="${t + 6}" y="${d}" width="${u - 12}" height="${f}" rx="4" style="fill:var(--hf-panel2);stroke:var(--hf-line)"/>` + (c ? `<rect x="${t + 6}" y="${d + f * (1 - l)}" width="${u - 12}" height="${f * l}" rx="4" fill="${a ? "var(--hf-warn)" : "#e8e2d4"}" style="stroke:var(--hf-line)"/><text x="${t + u / 2}" y="${n + 15}" text-anchor="middle" font-size="10.5" font-weight="700" class="t">${q(c.stale ? "—" : e.fmt(c))}</text>` : "") + `<clipPath id="${g}"><rect x="${p}" y="${m}" width="20" height="${h}" rx="10"/></clipPath><rect x="${p}" y="${m}" width="20" height="${h}" rx="10" fill="url(#panelg)"/><g clip-path="url(#${g})" fill="#d9a441" opacity=".75">${_}</g><rect x="${p}" y="${m}" width="20" height="${h}" rx="10" fill="none" style="stroke:var(--hf-edge)" stroke-width="1.5"/><text x="${t + r / 2}" y="${n - 14}" text-anchor="middle" font-size="11" font-weight="700" class="${a ? "w" : "t"} halo">${a ? "Top up salt" : "Softener"}</text>`);
 }
-function _a(e, t, n, r, i, a, o, s, c) {
-	let l = Ui.cold, u = e.val(c), d = u == null ? 1 : Math.max(0, Math.min(1, u / 100)), f = n + 30 + (i - 37) * (1 - d), p = `<rect class="hl" x="${t}" y="${n}" width="${r}" height="${i}" rx="10" fill="url(#panelg)" style="stroke:var(--hf-edge)" stroke-width="1.8"/><rect x="${t + 7}" y="${f}" width="${r - 14}" height="${n + i - 7 - f}" rx="6" fill="${l}" opacity=".22"/><text x="${t + r / 2}" y="${n + 52}" text-anchor="middle" font-size="11" font-weight="700" class="t">${q(o)}</text><text x="${t + r / 2}" y="${n + 67}" text-anchor="middle" font-size="10.5" class="m">${u == null ? "level: no sensor" : `level ${q(e.fmt(e.data[c]))}`}</text>`;
+function ba(e, t, n, r, i, a, o, s, c) {
+	let l = Wi.cold, u = e.val(c), d = u == null ? 1 : Math.max(0, Math.min(1, u / 100)), f = n + 30 + (i - 37) * (1 - d), p = `<rect class="hl" x="${t}" y="${n}" width="${r}" height="${i}" rx="10" fill="url(#panelg)" style="stroke:var(--hf-edge)" stroke-width="1.8"/><rect x="${t + 7}" y="${f}" width="${r - 14}" height="${n + i - 7 - f}" rx="6" fill="${l}" opacity=".22"/><text x="${t + r / 2}" y="${n + 52}" text-anchor="middle" font-size="11" font-weight="700" class="t">${q(o)}</text><text x="${t + r / 2}" y="${n + 67}" text-anchor="middle" font-size="10.5" class="m">${u == null ? "level: no sensor" : `level ${q(e.fmt(e.data[c]))}`}</text>`;
 	return a && (p += Array.from({ length: 5 }, (e, i) => `<circle cx="${t + r * .5 + i % 2 * 4}" cy="${n + 14}" r="2" fill="${l}" class="drip" style="animation-delay:-${(i * .14).toFixed(2)}s"/>`).join(""), p += `<rect x="${t + r / 2 - 28}" y="${n + 76}" width="56" height="18" rx="9" fill="${l}"/><text x="${t + r / 2}" y="${n + 89}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#fff">Filling</text>`), J(s, `${o}${a ? ": filling" : ""}`, p);
 }
-function va(e, t, n, r, i) {
-	let a = (e, t, n, r) => Array.from({ length: n }, (n, i) => `<circle cx="${e + (i % 3 - 1) * 4}" cy="${t}" r="1.8" fill="${Ui.cold}" class="${r ? "drip" : ""}" style="animation-delay:-${(i * .23).toFixed(2)}s" opacity="${r ? 1 : .25}"/>`).join(""), o = (e, t, n, r) => n === "none" ? "" : n === "shower" ? `<path d="M${e} ${t - 12}v6h8M${e + 2} ${t}a10 5 0 0 1 20 0z" fill="none" style="stroke:var(--hf-edge);fill:var(--hf-panel2)" stroke-width="2.5" stroke-linejoin="round"/>${a(e + 12, t + 10, 6, r)}` : `<path d="M${e} ${t - 6}h14a6 6 0 0 1 6 6v3M${e + 6} ${t - 6}v-5m-4 0h8" fill="none" style="stroke:var(--hf-edge)" stroke-width="3" stroke-linecap="round"/>${a(e + 20, t + 12, 3, r)}`;
+function xa(e, t, n, r, i) {
+	let a = (e, t, n, r) => Array.from({ length: n }, (n, i) => `<circle cx="${e + (i % 3 - 1) * 4}" cy="${t}" r="1.8" fill="${Wi.cold}" class="${r ? "drip" : ""}" style="animation-delay:-${(i * .23).toFixed(2)}s" opacity="${r ? 1 : .25}"/>`).join(""), o = (e, t, n, r) => n === "none" ? "" : n === "shower" ? `<path d="M${e} ${t - 12}v6h8M${e + 2} ${t}a10 5 0 0 1 20 0z" fill="none" style="stroke:var(--hf-edge);fill:var(--hf-panel2)" stroke-width="2.5" stroke-linejoin="round"/>${a(e + 12, t + 10, 6, r)}` : `<path d="M${e} ${t - 6}h14a6 6 0 0 1 6 6v3M${e + 6} ${t - 6}v-5m-4 0h8" fill="none" style="stroke:var(--hf-edge)" stroke-width="3" stroke-linecap="round"/>${a(e + 20, t + 12, 3, r)}`;
 	return `<g><rect x="${e}" y="${t}" width="${n}" height="${r}" rx="12" fill="url(#panelg)" style="stroke:var(--hf-line)"/><text x="${e + 12}" y="${t + 18}" font-size="12" font-weight="700" class="t">Taps &amp; showers</text>` + i.map((t) => J(t.e, t.label, `<text x="${e + 12}" y="${t.y + 4}" font-size="11" class="${t.on ? "t" : "m"}" font-weight="${t.on ? 700 : 400}">${q(t.label)}</text>` + o(e + n - 40, t.y, t.icon, t.on) + (t.note ? `<text x="${e + 12}" y="${t.y + 18}" font-size="9.5" class="m">${q(t.note)}</text>` : ""))).join("") + "</g>";
 }
 //#endregion
 //#region src/heating-flow/system.ts
-var ya = 1180, Y = (e, t = {}) => e ? [{
+var Sa = 1180, Y = (e, t = {}) => e ? [{
 	k: e,
 	...t
 }] : [], X = (e, t) => Y(e, {
 	f: t,
 	show: !1
-}), ba = (e, t) => (e ?? []).map((e) => ({
+}), Ca = (e, t) => (e ?? []).map((e) => ({
 	k: e,
 	area: t
 }));
-function xa(e, t, n) {
-	let r = new na(t.data, t.flows, n), i = e.source ?? {}, a = e.heat_pump ?? {}, o = e.heating ?? {}, s = e.dhw ?? {}, c = e.water ?? {}, l = [
+function wa(e, t, n) {
+	let r = new ra(t.data, t.flows, n), i = e.source ?? {}, a = e.heat_pump ?? {}, o = e.heating ?? {}, s = e.dhw ?? {}, c = e.water ?? {}, l = [
 		[
 			"outside",
 			0,
@@ -6037,7 +6062,7 @@ function xa(e, t, n) {
 	r.areas = l;
 	let u = [], d = "", f = "", p = i.type === "borehole" || i.type === "horizontal" || !i.type, m = i.type === "air", h = p && !!i.pvt;
 	if (p) {
-		d += ca(r, 25, 440, 200, 180, i.type === "horizontal" ? "Ground loop" : "Borehole", i.ground ?? i.out);
+		d += la(r, 25, 440, 200, 180, i.type === "horizontal" ? "Ground loop" : "Borehole", i.ground ?? i.out);
 		let e = [
 			[70, 440],
 			[70, 600],
@@ -6087,7 +6112,7 @@ function xa(e, t, n) {
 			flow: "brine",
 			speed: i.pump,
 			sensors: [...X(i.ground, 0), ...Y(i.in, { at: [262, 255] })]
-		}), h && (d += la(35, 62, 120, 85, i.pvt_out), u.push({
+		}), h && (d += ua(35, 62, 120, 85, i.pvt_out), u.push({
 			circ: "brine",
 			pts: [
 				[180, 255],
@@ -6107,7 +6132,7 @@ function xa(e, t, n) {
 			flow: "pvt",
 			speed: i.pump,
 			sensors: Y(i.pvt_out, { at: [215, 160] })
-		}), f += oa(180, 255, [
+		}), f += sa(180, 255, [
 			"w",
 			"e",
 			"n"
@@ -6115,7 +6140,7 @@ function xa(e, t, n) {
 			192,
 			278,
 			"start"
-		])), i.pump && (f += aa(r, 150, 412, "n", i.pump, "Brine pump", [
+		])), i.pump && (f += oa(r, 150, 412, "n", i.pump, "Brine pump", [
 			172,
 			426,
 			"start"
@@ -6143,15 +6168,15 @@ function xa(e, t, n) {
 		}), i.outdoor && (f += r.readout(130, 315, i.outdoor));
 	}
 	let g = a.compressor ? t.data[a.compressor] : void 0;
-	f += `<g transform="translate(0 -130)"><rect x="285" y="170" width="235" height="280" rx="18" fill="url(#panelg)" style="stroke:var(--hf-edge)" stroke-width="1.5"/><text x="300" y="194" font-size="13" font-weight="700" class="t">${q(a.label || `${m ? "Air" : p ? "Ground" : ""} source heat pump`)}</text><g class="hit" data-e="${q(a.priority ?? "")}"><title>Priority</title><rect class="hl" x="300" y="204" width="96" height="22" rx="11" fill="${zi[t.prio] ?? "#7a8190"}"/><text x="348" y="219" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">${q(t.prio)}</text></g>` + (t.alarm ? `<g class="hit" data-e="${q(a.alarm ?? "")}"><title>${q(t.alarm)}</title><rect class="hl pulse" x="404" y="204" width="104" height="22" rx="11" style="fill:var(--hf-bad)"/><text x="456" y="219" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Alarm</text></g>` : "") + (a.compressor ? fa(r, 337, 282, 30, a.compressor) + `<text x="337" y="330" text-anchor="middle" font-size="12" font-weight="700" class="t">${g && !g.stale && g.v > 0 ? q(r.fmt(g)) : g?.stale ? "— " + q(g.stale) : "Stopped"}</text>` : "") + Sa(r, [
+	f += `<g transform="translate(0 -130)"><rect x="285" y="170" width="235" height="280" rx="18" fill="url(#panelg)" style="stroke:var(--hf-edge)" stroke-width="1.5"/><text x="300" y="194" font-size="13" font-weight="700" class="t">${q(a.label || `${m ? "Air" : p ? "Ground" : ""} source heat pump`)}</text><g class="hit" data-e="${q(a.priority ?? "")}"><title>Priority</title><rect class="hl" x="300" y="204" width="96" height="22" rx="11" fill="${Bi[t.prio] ?? "#7a8190"}"/><text x="348" y="219" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">${q(t.prio)}</text></g>` + (t.alarm ? `<g class="hit" data-e="${q(a.alarm ?? "")}"><title>${q(t.alarm)}</title><rect class="hl pulse" x="404" y="204" width="104" height="22" rx="11" style="fill:var(--hf-bad)"/><text x="456" y="219" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Alarm</text></g>` : "") + (a.compressor ? pa(r, 337, 282, 30, a.compressor) + `<text x="337" y="330" text-anchor="middle" font-size="12" font-weight="700" class="t">${g && !g.stale && g.v > 0 ? q(r.fmt(g)) : g?.stale ? "— " + q(g.stale) : "Stopped"}</text>` : "") + Ta(r, [
 		["Supply", a.supply],
 		["Calculated", a.calculated],
 		["Return", a.return]
-	], 382, 258, 508) + "<path d=\"M300 344H506\" style=\"stroke:var(--hf-line)\"/>" + Sa(r, [
+	], 382, 258, 508) + "<path d=\"M300 344H506\" style=\"stroke:var(--hf-line)\"/>" + Ta(r, [
 		["Outdoor", i.outdoor],
 		["Power", a.power],
 		["Heat", a.heat]
-	], 300, 368, 396) + Sa(r, [
+	], 300, 368, 396) + Ta(r, [
 		["COP", a.cop],
 		["Aux", a.aux],
 		["DM", a.degree_minutes]
@@ -6178,7 +6203,7 @@ function xa(e, t, n) {
 	let C = _[v - 1];
 	S([[625, 120], [v ? 920 : 900, 120]], [
 		...X(a.supply, 0),
-		...ba(o.supply_plant, "plant"),
+		...Ca(o.supply_plant, "plant"),
 		...X(o.house_supply ?? C?.supply, 1)
 	]);
 	let w = [0, v - 1].filter((e, t, n) => v && n.indexOf(e) === t && b[e] !== 120);
@@ -6191,7 +6216,7 @@ function xa(e, t, n) {
 		[1165, x[0]],
 		[1165, 368],
 		[900, 368]
-	], [...X(_[0].return, 0), ...X(o.house_return, 1)], { z: 1 }), _.forEach((e, t) => t > 0 && S([[1150, x[t]], [1165, x[t]]], X(e.return, 0)))), S([[900, 368], [595, 368]], [...X(o.house_return ?? C?.return, 0), ...ba(o.return_plant, "plant")], {
+	], [...X(_[0].return, 0), ...X(o.house_return, 1)], { z: 1 }), _.forEach((e, t) => t > 0 && S([[1150, x[t]], [1165, x[t]]], X(e.return, 0)))), S([[900, 368], [595, 368]], [...X(o.house_return ?? C?.return, 0), ...Ca(o.return_plant, "plant")], {
 		z: 1,
 		r: 0
 	}), u.push({
@@ -6206,13 +6231,13 @@ function xa(e, t, n) {
 		flow: "hp_out",
 		speed: a.pump,
 		sensors: X(a.return, 1)
-	}), a.pump && (f += aa(r, 565, 120, "e", a.pump, "Pump", [
+	}), a.pump && (f += oa(r, 565, 120, "e", a.pump, "Pump", [
 		565,
 		153,
 		"middle"
 	]));
 	let T = t.prio === "Hot water";
-	f += oa(625, 120, [
+	f += sa(625, 120, [
 		"w",
 		"e",
 		"s"
@@ -6221,7 +6246,7 @@ function xa(e, t, n) {
 		86,
 		"middle"
 	]);
-	let E = _.map((e, t) => Ca(r, e, y[t], b[t], x[t])), D = s.enabled ?? !!(s.tank?.length || s.coil_in || s.hot_plant?.length), O = "";
+	let E = _.map((e, t) => Ea(r, e, y[t], b[t], x[t])), D = Ni(e), O = "";
 	if (D) {
 		u.push({
 			circ: "dhw",
@@ -6239,8 +6264,8 @@ function xa(e, t, n) {
 			]],
 			sensors: Y(s.coil_in, { at: [625, 250] })
 		});
-		let e = s.tank ?? [], t = ua(r, 660, 440, 140, 250, e.map((t, n) => [t, e.length > 1 ? .14 + .72 * n / (e.length - 1) : .5]));
-		if (d += t.under, O = t.over + (s.immersion ? pa(r, 800, 762, 620, s.immersion) : "") + ma(654, 545, "e", 12, 8, r.tint(s.coil_in, "coil", "dhw")) + ma(654, 645, "e", 12, 8, r.tint(s.coil_out, "coil", "dhw")), u.push({
+		let e = s.tank ?? [], t = da(r, 660, 440, 140, 250, e.map((t, n) => [t, e.length > 1 ? .14 + .72 * n / (e.length - 1) : .5]));
+		if (d += t.under, O = t.over + (s.immersion ? ga(r, 800, 762, 620, s.immersion) : "") + _a(654, 545, "e", 12, 8, r.tint(s.coil_in, "coil", "dhw")) + _a(654, 645, "e", 12, 8, r.tint(s.coil_out, "coil", "dhw")), u.push({
 			circ: "dhw",
 			w: 8,
 			r: 8,
@@ -6279,8 +6304,8 @@ function xa(e, t, n) {
 			flow: "hot",
 			sensors: [
 				...X(e[0], 0),
-				...ba(s.hot_plant, "plant"),
-				...ba(s.hot_house, "house")
+				...Ca(s.hot_plant, "plant"),
+				...Ca(s.hot_house, "house")
 			]
 		}), s.loop_pump || s.loop_house?.length || s.loop_plant?.length) {
 			let e = [[870, 592], [835, 500]], t = (s.loop_plant ?? []).map((t, n) => n < e.length ? {
@@ -6300,8 +6325,8 @@ function xa(e, t, n) {
 					[800, 500]
 				],
 				flow: "recirc",
-				sensors: [...ba(s.loop_house, "house"), ...t]
-			}), s.loop_pump && (f += aa(r, 870, 548, "n", s.loop_pump, "Loop", [
+				sensors: [...Ca(s.loop_house, "house"), ...t]
+			}), s.loop_pump && (f += oa(r, 870, 548, "n", s.loop_pump, "Loop", [
 				890,
 				552,
 				"start"
@@ -6309,7 +6334,7 @@ function xa(e, t, n) {
 		}
 	}
 	let k = !!c.softener, ee = !!c.storage, te = [[700, 708], [700, 690]];
-	d += ha(262, 742, c.meter ?? c.cold), k ? (d += ga(r, 285, 540, 60, 150, t.saltLow, c.salt, c.salt_low), u.push({
+	d += va(262, 742, c.meter ?? c.cold), k ? (d += ya(r, 285, 540, 60, 150, t.saltLow, c.salt, c.salt_low), u.push({
 		circ: "cold",
 		z: 1,
 		pts: [[262, 742], [335, 742]],
@@ -6338,7 +6363,7 @@ function xa(e, t, n) {
 		[362, 468]
 	] : [[330, 742], [330, 468]];
 	if (ee) {
-		d += _a(r, 375, 480, 180, 240, t.flows.fill, c.storage_label || "Storage", c.inlet ?? c.level, c.level), u.push({
+		d += ba(r, 375, 480, 180, 240, t.flows.fill, c.storage_label || "Storage", c.inlet ?? c.level, c.level), u.push({
 			circ: "cold",
 			pts: [
 				...ne,
@@ -6347,7 +6372,7 @@ function xa(e, t, n) {
 			],
 			flow: "fill",
 			sensors: X(c.cold, 0)
-		}), f += oa(410, 468, ["w", "e"], t.flows.fill ? ["w", "e"] : [], `Inlet${t.flows.fill ? " · open" : ""}`, c.inlet, [
+		}), f += sa(410, 468, ["w", "e"], t.flows.fill ? ["w", "e"] : [], `Inlet${t.flows.fill ? " · open" : ""}`, c.inlet, [
 			410,
 			434,
 			"middle"
@@ -6360,7 +6385,7 @@ function xa(e, t, n) {
 				flow: (r.val(e) ?? 0) > 0 ? "soft" : void 0,
 				speed: e,
 				sensors: X(c.cold, 0)
-			}), f += aa(r, n[t], 692, "n", e, `P${t + 1}`, [
+			}), f += oa(r, n[t], 692, "n", e, `P${t + 1}`, [
 				n[t],
 				650,
 				"middle"
@@ -6403,7 +6428,7 @@ function xa(e, t, n) {
 		sensors: X(c.cold, 0)
 	});
 	let A = t.flows.soft, j = A ? "in use · hot or cold?" : "";
-	f += va(1030, 380, 135, 382, [
+	f += xa(1030, 380, 135, 382, [
 		...D ? [{
 			y: 412,
 			label: k ? "Soft hot" : "Hot",
@@ -6437,10 +6462,10 @@ function xa(e, t, n) {
 		}] : []
 	]);
 	let M = r.pipes(u), re = "style=\"filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.25))\"";
-	return `<defs>${ra}${M.defs}${E.map((e) => e.defs).join("")}</defs>${sa(l, 770)}${d}<g ${re}>${M.body}</g>${O}${E.map((e) => e.box).join("")}<g ${re}>${E.map((e) => e.pipes).join("")}</g>${E.map((e) => e.over).join("")}${f}${M.pills}`;
+	return `<defs>${ia}${M.defs}${E.map((e) => e.defs).join("")}</defs>${ca(l, 770)}${d}<g ${re}>${M.body}</g>${O}${E.map((e) => e.box).join("")}<g ${re}>${E.map((e) => e.pipes).join("")}</g>${E.map((e) => e.over).join("")}${f}${M.pills}`;
 }
-var Sa = (e, t, n, r, i) => t.filter(([, e]) => e).map(([t, a], o) => e.row(n, r + o * 22, t, a, i)).join("");
-function Ca(e, t, n, r, i) {
+var Ta = (e, t, n, r, i) => t.filter(([, e]) => e).map(([t, a], o) => e.row(n, r + o * 22, t, a, i)).join("");
+function Ea(e, t, n, r, i) {
 	let a = t.emitters !== "rad", o = a && !!t.mixed, s = t.loops ?? [], c = s.filter((t) => (e.val(t) ?? 0) > 0).length, l = o ? 982 : 966, u = `<g class="hit" data-e="${q(t.supply ?? "")}"><rect class="hl" x="960" y="${n}" width="190" height="100" rx="12" fill="url(#panelg)" style="stroke:var(--hf-line)"/><text x="972" y="${n + 18}" font-size="12" font-weight="700" class="t">${q(t.name ?? "Floor")}</text><text x="1140" y="${n + 18}" text-anchor="end" font-size="10.5" class="m">${a ? "Underfloor" : "Radiators"}${o ? " · mixed" : ""}</text><text x="972" y="${n + 93}" font-size="10.5" class="m">${a ? s.length ? `${c} of ${s.length} loops open` : "" : "Radiators"}</text></g>`, d = [{
 		circ: "heat",
 		w: 6,
@@ -6469,8 +6494,8 @@ function Ca(e, t, n, r, i) {
 			sensors: s ? [...X(t.supply, 0), ...X(t.return, 1)] : []
 		}), f += `<g class="hit" data-e="${q(n)}"><title>${q(n)}: ${s ? "open" : "closed"}</title><circle class="hl" cx="${o}" cy="${r + 11}" r="4.5" style="fill:${s ? "var(--hf-run)" : "var(--hf-panel)"};stroke:var(--hf-edge)" stroke-width="1.5"/></g>`;
 	});
-	else for (let n = 0; n < 3; n++) f += da(e, l + 54 + n * 30, r + 7, 24, i - r - 20, t.supply ?? "", t.return ?? "");
-	o && (f += oa(974, r, [
+	else for (let n = 0; n < 3; n++) f += fa(e, l + 54 + n * 30, r + 7, 24, i - r - 20, t.supply ?? "", t.return ?? "");
+	o && (f += sa(974, r, [
 		"w",
 		"e",
 		"n"
@@ -6478,7 +6503,7 @@ function Ca(e, t, n, r, i) {
 		"w",
 		"e",
 		"n"
-	], "Mixing valve", void 0)), f += ma(954, r, "e", 12, 6, e.tint(t.supply, "heat", "heat")) + ma(1156, i, "w", 12, 6, e.tint(t.return, "heat", "heat")), t.supply && (f += e.readout(l + 24, r, t.supply)), t.return && (f += e.readout(1120, i, t.return));
+	], "Mixing valve", void 0)), f += _a(954, r, "e", 12, 6, e.tint(t.supply, "heat", "heat")) + _a(1156, i, "w", 12, 6, e.tint(t.return, "heat", "heat")), t.supply && (f += e.readout(l + 24, r, t.supply)), t.return && (f += e.readout(1120, i, t.return));
 	let p = e.pipes(d);
 	return {
 		defs: p.defs,
@@ -6488,12 +6513,276 @@ function Ca(e, t, n, r, i) {
 	};
 }
 //#endregion
+//#region src/heating-flow/heatpump.ts
+var Da = 1e3;
+function Oa(e, t, n) {
+	let r = new ra(t.data, t.flows, n), i = e.source ?? {}, a = e.heat_pump ?? {}, o = a.refrigerant ?? {}, s = e.heating ?? {}, c = e.dhw ?? {}, l = i.type === "air", u = !l && i.type !== "none", d = t.prio === "Defrost", f = t.flows.comp, p = [
+		[
+			"outside",
+			0,
+			230,
+			l ? e.area_outside ?? "Outside" : "Source",
+			"--hf-zone-out"
+		],
+		[
+			"plant",
+			230,
+			770,
+			a.label || "Heat pump",
+			"--hf-zone-plant"
+		],
+		[
+			"house",
+			770,
+			1e3,
+			"Load",
+			"--hf-zone-house"
+		]
+	];
+	r.areas = p;
+	let m = [], h = "<rect x=\"250\" y=\"62\" width=\"500\" height=\"555\" rx=\"28\" style=\"fill:var(--hf-panel);stroke:var(--hf-line)\" opacity=\".55\"/>", g = "";
+	if (u) {
+		h += la(r, 20, 470, 190, 150, i.type === "horizontal" ? "Ground loop" : "Borehole", i.ground ?? i.out);
+		let e = (e, t, n = {}) => m.push({
+			circ: "brine",
+			pts: e,
+			flow: "brine",
+			speed: i.pump,
+			sensors: t,
+			...n
+		});
+		e([
+			[150, 470],
+			[150, 595],
+			[70, 595],
+			[70, 470]
+		], [...X(i.out, 0), ...X(i.ground, 1)], {
+			r: 40,
+			w: 10
+		}), e([
+			[70, 470],
+			[70, 250],
+			[290, 250]
+		], [...X(i.ground, 0), ...Y(i.in, { at: [200, 250] })]), e([
+			[290, 440],
+			[150, 440],
+			[150, 470]
+		], Y(i.out, { at: [220, 440] })), e([
+			[290, 250],
+			[370, 250],
+			[370, 290],
+			[310, 290],
+			[310, 330],
+			[370, 330],
+			[370, 370],
+			[310, 370],
+			[310, 410],
+			[370, 410],
+			[370, 440],
+			[290, 440]
+		], [...X(i.in, 0), ...X(i.out, 1)], {
+			w: 9,
+			r: 9
+		}), i.pump && (g += oa(r, 70, 360, "n", i.pump, "Brine pump", [
+			92,
+			364,
+			"start"
+		], f && !t.flows.brine));
+	} else l && (h += `<g class="hit" data-e="${q(i.outdoor ?? "")}"><rect class="hl" x="20" y="200" width="190" height="290" rx="16" fill="url(#panelg)" style="stroke:var(--hf-edge)" stroke-width="1.5"/><circle cx="115" cy="345" r="70" style="fill:var(--hf-panel2);stroke:var(--hf-edge)" stroke-width="2"/><g class="${f ? "spin" : ""}" style="transform-origin:115px 345px;--sd:.8s">${[
+		0,
+		120,
+		240
+	].map((e) => `<path d="M115 345c10 -30 40 -40 52 -30c-8 20 -30 32 -52 30z" transform="rotate(${e} 115 345)" style="fill:var(--hf-line)"/>`).join("")}</g><text x="115" y="190" text-anchor="middle" font-size="12" font-weight="700" class="t">Outdoor fan</text></g>`, i.outdoor && (g += r.readout(115, 460, i.outdoor)), f && (g += [
+		270,
+		330,
+		390,
+		450
+	].map((e) => `<path d="M190 ${e}H385" fill="none" stroke="${Wi.cold}" stroke-width="3" stroke-dasharray="6 8" class="dash" style="--d:.5s" opacity=".8"/>`).join("")));
+	h += ma(r, 290, 200, 100, 280, o.suction, o.evaporating, "Evaporator", o.evaporating, f);
+	let _ = (e, t) => m.push({
+		circ: "ref",
+		pts: e,
+		flow: "comp",
+		speed: a.compressor,
+		rev: d,
+		sensors: X(t, 0)
+	});
+	_([
+		[340, 200],
+		[340, 110],
+		[456, 110]
+	], o.suction), _([
+		[544, 110],
+		[700, 110],
+		[700, 200]
+	], o.hot_gas), _([
+		[700, 480],
+		[700, 560],
+		[524, 560]
+	], o.liquid), _([
+		[476, 560],
+		[340, 560],
+		[340, 480]
+	], o.evaporating);
+	let v = a.compressor ? t.data[a.compressor] : void 0, y = a.oil ? t.data[a.oil] : void 0;
+	g += pa(r, 500, 110, 44, a.compressor) + `<text x="500" y="52" text-anchor="middle" font-size="12" font-weight="700" class="t">Compressor · ${v?.stale ? "— " + q(v.stale) : v && f ? q(r.fmt(v)) : f ? "running" : "stopped"}` + (y ? `<tspan class="hit ${y.stale ? "w" : "m"}" data-e="${q(y.e)}" font-weight="400"> · oil ${q(y.stale ? "— " + y.stale : r.fmt(y))}</tspan>` : "") + "</text>", g += sa(500, 560, ["w", "e"], ["w", "e"], "Expansion valve", void 0, [
+		500,
+		598,
+		"middle"
+	]), l && o.reversing_valve && (g += `<g class="hit" data-e="${q(o.reversing_valve)}"><title>Reversing valve</title><rect class="hl" x="603" y="97" width="34" height="26" rx="4" style="fill:var(--hf-panel2);stroke:var(--hf-edge)" stroke-width="1.6"/><path d="M610 104l20 12M610 116l20 -12" style="stroke:${d ? Wi.cold : "var(--hf-edge)"}" stroke-width="2"/><text x="620" y="88" text-anchor="middle" font-size="10.5" class="m halo">Reversing valve · ${d ? "defrost" : "heating"}</text></g>`), h += ma(r, 650, 200, 100, 280, o.hot_gas, o.liquid, "Condenser", o.condensing, f), o.suction && (g += ha(r, 115, 92, 140, "Suction gas", o.suction, "low pressure", [340, 150])), o.hot_gas && (g += ha(r, 540, 140, 150, "Hot gas", o.hot_gas, "high pressure", [700, 170])), o.liquid && (g += ha(r, 535, 490, 150, "Liquid", o.liquid, "high pressure", [620, 560]));
+	let b = (e, t, n, r = {}) => m.push({
+		circ: "heat",
+		pts: e,
+		flow: t,
+		speed: a.pump,
+		sensors: n,
+		...r
+	});
+	b([
+		[750, 460],
+		[670, 460],
+		[670, 420],
+		[730, 420],
+		[730, 380],
+		[670, 380],
+		[670, 340],
+		[730, 340],
+		[730, 300],
+		[670, 300],
+		[670, 260],
+		[750, 260]
+	], "hp_out", [...X(a.return, 0), ...X(a.supply, 1)], {
+		w: 9,
+		r: 9
+	}), b([[750, 260], [850, 260]], "hp_out", Y(a.supply, { at: [775, 260] })), b([[850, 260], [880, 260]], "heat", X(a.supply, 0)), b([
+		[880, 300],
+		[870, 300],
+		[870, 440]
+	], "heat", [...X(s.house_return, 0), ...X(a.return, 1)]), b([
+		[870, 440],
+		[870, 460],
+		[750, 460]
+	], "hp_out", [...X(a.return, 0), ...Y(a.return, { at: [800, 460] })], { z: 1 });
+	let x = Ni(e);
+	x && (m.push({
+		circ: "dhw",
+		pts: [
+			[850, 260],
+			[850, 390],
+			[880, 390]
+		],
+		flow: "coil",
+		speed: a.pump,
+		hops: [[
+			870,
+			390,
+			"h"
+		]],
+		sensors: X(c.coil_in ?? a.supply, 0)
+	}), m.push({
+		circ: "dhw",
+		pts: [[880, 440], [870, 440]],
+		flow: "coil",
+		speed: a.pump,
+		sensors: X(c.coil_out, 0)
+	})), a.pump && (g += oa(r, 815, 260, "e", a.pump, "Heating pump", [
+		815,
+		232,
+		"middle"
+	])), g += sa(850, 260, [
+		"w",
+		"e",
+		"s"
+	], ["w", t.prio === "Hot water" ? "s" : "e"], "Diverter", a.priority);
+	let S = (e, t, n) => `<g><rect x="880" y="${e}" width="110" height="${26 + n.filter(([, e]) => e).length * 22}" rx="10" fill="url(#panelg)" style="stroke:var(--hf-line)"/><text x="890" y="${e + 18}" font-size="12" font-weight="700" class="t">${q(t)}</text>` + Ta(r, n, 890, e + 40, 982) + "</g>";
+	g += S(200, "Heating", [
+		["Supply", s.house_supply],
+		["Target", a.calculated],
+		["Return", s.house_return],
+		["DM", a.degree_minutes]
+	]), x && (g += S(360, "Hot water", [
+		["Top", c.tank?.[0]],
+		["Coil in", c.coil_in],
+		["Coil out", c.coil_out]
+	]));
+	let C = r.pipes(m);
+	return `<defs>${ia}${C.defs}</defs>${ca(p, 630)}${h}<g style="filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.25))">${C.body}</g>${g}${C.pills}`;
+}
+//#endregion
+//#region src/heating-flow/rooms.ts
+var ka = 1e3;
+function Aa(e, t, n) {
+	let r = new ra(t.data, t.flows, n);
+	r.areas = [[
+		"house",
+		0,
+		ka,
+		"",
+		"--hf-zone-house"
+	]];
+	let i = Mi(e).reverse(), a = Math.min(205, 620 / Math.max(1, i.length)), o = [], s = "";
+	i.forEach((n, i) => s += ja(r, t, n, 10 + i * a, a - 14, o, e.heat_pump?.pump)), i.length || (s += `<text x="${ka / 2}" y="315" text-anchor="middle" font-size="14" class="m">No floors set: add them in the card's options.</text>`);
+	let c = r.pipes(o);
+	return `<defs>${ia}${c.defs}</defs><rect width="${ka}" height="630" style="fill:var(--hf-zone-house)"/>${s}${c.body}${c.pills}`;
+}
+function ja(e, t, n, r, i, a, o) {
+	let s = n.emitters !== "rad", c = n.loops ?? [], l = n.rooms ?? [], u = n.loop_returns ?? [], d = c.filter((t) => (e.val(t) ?? 0) > 0).length, f = Math.max(c.length, l.length), p = `<g class="hit" data-e="${q(n.supply ?? "")}"><rect class="hl" x="12" y="${r}" width="166" height="${i}" rx="14" fill="url(#panelg)" style="stroke:var(--hf-line)"/><text x="26" y="${r + 24}" font-size="14" font-weight="700" class="t">${q(n.name ?? "Floor")}</text><text x="26" y="${r + 42}" font-size="11" class="m">${s ? "Underfloor" : "Radiators"}${s && n.mixed ? " · mixed" : ""}</text>` + (n.supply ? `<text x="26" y="${r + 74}" font-size="11.5" class="m">Supply</text>` : "") + (n.return ? `<text x="26" y="${r + 102}" font-size="11.5" class="m">Return</text>` : "") + `<text x="26" y="${r + i - 14}" font-size="11" class="m">${c.length ? s ? `${d} of ${c.length} loops open` : `${d} of ${c.length} open` : f ? `${f} rooms` : "No rooms set"}</text></g>`;
+	n.supply && (p += e.readout(140, r + 70, n.supply)), n.return && (p += e.readout(140, r + 98, n.return));
+	let m = (800 - (f - 1) * 10) / f;
+	for (let d = 0; d < f; d++) {
+		let f = 190 + d * (m + 10), h = c[d], g = l[d], _ = u[d] ?? n.return, v = g ? t.data[g] : void 0, y = g ? t.rooms[g] : void 0, b = y?.target ?? null, x = !h || (e.val(h) ?? 0) > 0, S = x && t.flows.heat, C = g ? e.val(g) : null, w = S && C != null && b != null && C < b - 1, T = y?.name ?? (h ? h.replace(/^[^.]+\./, "") : `Room ${d + 1}`);
+		if (p += `<g class="hit" data-e="${q(g ?? h ?? "")}"><rect class="hl" x="${f}" y="${r}" width="${m}" height="${i}" rx="14" fill="url(#panelg)" style="stroke:${w ? "var(--hf-warn)" : "var(--hf-line)"}" stroke-width="${w ? 2.5 : 1}"/><text x="${f + 12}" y="${r + 22}" font-size="12.5" font-weight="700" class="t">${q(T)}</text>` + (v ? `<text x="${f + 12}" y="${r + 54}" font-size="${v.stale ? 14 : 24}" font-weight="700" class="${v.stale ? "w" : "t"}">${q(v.stale ? "— " + v.stale : e.fmt(v))}</text>` : "") + (b != null && C != null ? `<text x="${f + 12}" y="${r + 72}" font-size="11" class="${w ? "w" : "m"}">${w ? `${(b - C).toFixed(1)}° below ${b.toFixed(1)}°` : `target ${b.toFixed(1)}°`}</text>` : "") + "</g>", h) {
+			let n = t.data[h], i = n?.stale ? "—" : n?.unit === "%" ? e.fmt(n) : x ? "Open" : "Closed";
+			p += `<g class="hit" data-e="${q(h)}"><title>${q(h)}</title><rect class="hl" x="${f + m - 62}" y="${r + 9}" width="50" height="18" rx="9" style="fill:${x ? "var(--hf-run)" : "var(--hf-panel2)"};stroke:${n?.stale ? "var(--hf-warn)" : x ? "var(--hf-run)" : "var(--hf-line)"}"/><text x="${f + m - 37}" y="${r + 22}" text-anchor="middle" font-size="10.5" font-weight="700" style="fill:${x ? "#fff" : "var(--hf-muted)"}">${q(i)}</text></g>`;
+		}
+		let E = f + 14, D = f + m - 14, O = r + 88, k = r + i - 14;
+		if (!(k - O < 10)) {
+			if (s) {
+				let e = Math.max(2, Math.floor((k - O) / 15) + 1), t = [[E, O]];
+				for (let n = 0; n < e; n++) {
+					let r = O + n * (k - O) / (e - 1);
+					n && t.push([n % 2 ? D : E + 10, r]), t.push([n % 2 ? E + 10 : D, r]);
+				}
+				a.push({
+					circ: "heat",
+					w: 6,
+					r: 7,
+					pts: t,
+					flow: h ?? "heat",
+					speed: o,
+					sensors: [...x ? X(n.supply, 0) : [], ...X(_, 1)]
+				});
+			} else p += fa(e, E, O, Math.min(120, D - E), k - O, n.supply ?? "", _ ?? "");
+		}
+	}
+	return p;
+}
+//#endregion
 //#region src/heating-flow/card.ts
-var wa = 500, Ta = class extends z {
+var Ma = 500, Na = {
+	system: [
+		"System",
+		Sa,
+		770,
+		wa
+	],
+	heat_pump: [
+		"Heat pump",
+		Da,
+		630,
+		Oa
+	],
+	rooms: [
+		"Rooms",
+		ka,
+		630,
+		Aa
+	]
+}, Pa = class extends z {
 	constructor(...e) {
-		super(...e), this._seen = "", this._held = !1, this._down = (e) => {
+		super(...e), this._view = "system", this._seen = "", this._held = !1, this._down = (e) => {
 			let t = this._part(e);
-			this._held = !1, clearTimeout(this._timer), t && (this._timer = window.setTimeout(() => (this._held = !0, this._act(t, "hold")), wa));
+			this._held = !1, clearTimeout(this._timer), t && (this._timer = window.setTimeout(() => (this._held = !0, this._act(t, "hold")), Ma));
 		}, this._up = () => clearTimeout(this._timer), this._click = (e) => {
 			let t = this._part(e);
 			t && !this._held && this._act(t, "tap");
@@ -6503,7 +6792,10 @@ var wa = 500, Ta = class extends z {
 		};
 	}
 	static {
-		this.properties = { _config: { state: !0 } };
+		this.properties = {
+			_config: { state: !0 },
+			_view: { state: !0 }
+		};
 	}
 	static getStubConfig() {
 		return {
@@ -6517,11 +6809,11 @@ var wa = 500, Ta = class extends z {
 		return document.createElement("casa-mia-heating-flow-editor");
 	}
 	setConfig(e) {
-		this._config = { ...e }, this._seen = "";
+		this._config = { ...e }, this._view = e.view && e.view in Na ? e.view : ji.view, this._seen = "";
 	}
 	set hass(e) {
 		this._hass = e;
-		let t = (this._config ? Ni(this._config) : []).map((t) => `${t}@${e.states[t]?.last_updated ?? ""}`).join(",");
+		let t = (this._config ? Pi(this._config) : []).map((t) => `${t}@${e.states[t]?.last_updated ?? ""}`).join(",");
 		t !== this._seen && (this._seen = t, this.requestUpdate());
 	}
 	getCardSize() {
@@ -6544,24 +6836,27 @@ var wa = 500, Ta = class extends z {
 			markers: e.markers,
 			colours: e.colours,
 			readouts: e.readouts
-		}, n = Vi(this._hass, this._config);
+		}, n = Hi(this._hass, this._config), [r, i, a, o] = Na[this._view];
 		return L`<ha-card>
       <div class="head">
         <span class="title">${e.title ?? "Heating & hot water"}</span>
         ${this._chips(n)}
+        <span class="tabs">
+          ${Object.keys(Na).map((e) => L`<button class="cm-chip ${e === this._view ? "cm-on" : ""}" @click=${() => this._view = e}>${Na[e][0]}</button>`)}
+        </span>
       </div>
       <svg
         class=${this._still() ? "still" : ""}
-        viewBox="0 0 ${ya} ${770}"
+        viewBox="0 0 ${i} ${a}"
         role="img"
-        aria-label="Heating and hot water"
+        aria-label="Heating and hot water: ${r}"
         @pointerdown=${this._down}
         @pointerup=${this._up}
         @pointerleave=${this._up}
         @click=${this._click}
         @dblclick=${this._dbl}
       >
-        ${Ai(xa(this._config, n, t))}
+        ${Ai(o(this._config, n, t))}
       </svg>
     </ha-card>`;
 	}
@@ -6574,7 +6869,7 @@ var wa = 500, Ta = class extends z {
 	}
 	_chips(e) {
 		let t = this._config?.heat_pump?.compressor ? e.data[this._config.heat_pump.compressor] : void 0, n = this._config?.source?.outdoor ? e.data[this._config.source.outdoor] : void 0, r = (e) => e.text ?? e.v.toFixed(e.dp) + e.unit;
-		return L`<span class="cm-pill cm-filled" style="--tone:${zi[e.prio] ?? "var(--secondary-text-color)"}">${e.prio}</span>
+		return L`<span class="cm-pill cm-filled" style="--tone:${Bi[e.prio] ?? "var(--secondary-text-color)"}">${e.prio}</span>
       ${t && !t.stale ? L`<span class="cm-pill">${t.v > 0 ? r(t) : "Compressor off"}</span>` : R}
       ${n && !n.stale ? L`<span class="cm-pill">Outdoor ${r(n)}</span>` : R}
       ${e.alarm ? L`<span class="cm-pill cm-filled" style="--tone:var(--error-color, #db4437)">Alarm: ${e.alarm}</span>` : R}
@@ -6635,8 +6930,9 @@ var wa = 500, Ta = class extends z {
         font-size: 16px;
         font-weight: 500;
       }
-      .wrap {
-        white-space: normal;
+      .tabs {
+        display: flex;
+        gap: 4px;
       }
       svg {
         display: block;
@@ -6655,10 +6951,14 @@ var wa = 500, Ta = class extends z {
       .spin { animation: spin var(--sd, 3s) linear infinite; }
       .pulse { animation: pulse 1.2s ease-in-out infinite; }
       .drip { animation: drip 0.7s linear infinite; }
+      .rise { animation: rise 2.6s linear infinite; }
+      .dash { animation: dash var(--d, 1.2s) linear infinite; }
       @keyframes spin { to { transform: rotate(360deg); } }
       @keyframes pulse { 50% { opacity: 0.35; } }
       @keyframes drip { from { transform: translateY(0); opacity: 1; } to { transform: translateY(22px); opacity: 0; } }
-      .still .spin, .still .pulse, .still .drip { animation: none; }
+      @keyframes rise { from { transform: translateY(0); opacity: 0.8; } to { transform: translateY(-230px); opacity: 0; } }
+      @keyframes dash { to { stroke-dashoffset: -28; } }
+      .still .spin, .still .pulse, .still .drip, .still .rise, .still .dash { animation: none; }
     `];
 	}
 }, Z = (e, t) => ({
@@ -6670,7 +6970,7 @@ var wa = 500, Ta = class extends z {
 		multiple: !0,
 		reorder: !0
 	} }
-}), Ea = (e, t) => ({
+}), Fa = (e, t) => ({
 	name: e,
 	selector: { select: {
 		mode: "dropdown",
@@ -6679,10 +6979,10 @@ var wa = 500, Ta = class extends z {
 			label: t
 		}))
 	} }
-}), Da = (e) => ({
+}), Ia = (e) => ({
 	name: e,
 	selector: { boolean: {} }
-}), Oa = (e) => ({
+}), La = (e) => ({
 	name: e,
 	selector: { text: {} }
 }), $ = (e, t, n, r) => ({
@@ -6691,42 +6991,49 @@ var wa = 500, Ta = class extends z {
 	title: t,
 	icon: r,
 	schema: n
-}), ka = [
+}), Ra = [
 	"binary_sensor",
 	"switch",
 	"input_boolean",
 	"valve",
 	"sensor"
-], Aa = (e, t) => $(`floor_${e}`, t, [
-	Oa("name"),
-	Ea("emitters", [["ufh", "Underfloor"], ["rad", "Radiators"]]),
-	Da("mixed"),
+], za = (e, t) => $(`floor_${e}`, t, [
+	La("name"),
+	Fa("emitters", [["ufh", "Underfloor"], ["rad", "Radiators"]]),
+	Ia("mixed"),
 	Z("supply", ["sensor"]),
 	Z("return", ["sensor"]),
-	Q("loops")
-], "mdi:floor-plan"), ja = [
-	Oa("title"),
+	Q("loops"),
+	Q("rooms"),
+	Q("loop_returns")
+], "mdi:floor-plan"), Ba = [
+	La("title"),
+	Fa("view", [
+		["system", "System"],
+		["heat_pump", "Heat pump"],
+		["rooms", "Rooms"]
+	]),
 	$(void 0, "Look", [
-		Ea("pipes", [
+		Fa("pipes", [
 			["outline", "Outline"],
 			["glass", "Glass"],
 			["conduit", "Conduit"],
 			["neon", "Neon"]
 		]),
-		Ea("markers", [
+		Fa("markers", [
 			["chev", "Chevrons"],
 			["arrow", "Arrows"],
 			["bub", "Bubbles"]
 		]),
-		Ea("colours", [["temp", "By temperature"], ["circuit", "By circuit"]]),
-		Ea("readouts", [["pill", "Pills on the pipe"], ["text", "Text beside the pipe"]]),
-		Da("animations"),
-		Oa("area_outside"),
-		Oa("area_plant"),
-		Oa("area_house")
+		Fa("colours", [["temp", "By temperature"], ["circuit", "By circuit"]]),
+		Fa("readouts", [["pill", "Pills on the pipe"], ["text", "Text beside the pipe"]]),
+		Ia("animations"),
+		La("area_outside"),
+		La("area_plant"),
+		La("area_house")
 	], "mdi:palette"),
 	$("source", "Source", [
-		Ea("type", [
+		Fa("type", [
 			["borehole", "Borehole"],
 			["horizontal", "Horizontal ground loop"],
 			["air", "Air"],
@@ -6737,12 +7044,12 @@ var wa = 500, Ta = class extends z {
 		Z("out", ["sensor"]),
 		Z("ground", ["sensor"]),
 		Z("in", ["sensor"]),
-		Da("pvt"),
+		Ia("pvt"),
 		Z("pvt_out", ["sensor"]),
-		Z("pvt_valve", ka)
+		Z("pvt_valve", Ra)
 	], "mdi:earth"),
 	$("heat_pump", "Heat pump", [
-		Oa("label"),
+		La("label"),
 		Z("priority"),
 		Z("compressor"),
 		Z("supply", ["sensor"]),
@@ -6754,7 +7061,16 @@ var wa = 500, Ta = class extends z {
 		Z("cop", ["sensor"]),
 		Z("aux", ["sensor"]),
 		Z("degree_minutes", ["sensor"]),
-		Z("alarm")
+		Z("alarm"),
+		Z("oil", ["sensor"]),
+		$("refrigerant", "Refrigerant", [
+			Z("suction", ["sensor"]),
+			Z("hot_gas", ["sensor"]),
+			Z("liquid", ["sensor"]),
+			Z("evaporating", ["sensor"]),
+			Z("condensing", ["sensor"]),
+			Z("reversing_valve", Ra)
+		], "mdi:snowflake-thermometer")
 	], "mdi:heat-pump"),
 	$("heating", "Heating runs", [
 		Q("supply_plant"),
@@ -6762,28 +7078,28 @@ var wa = 500, Ta = class extends z {
 		Z("house_supply", ["sensor"]),
 		Z("house_return", ["sensor"])
 	], "mdi:pipe"),
-	Aa(1, "Lowest floor"),
-	Aa(2, "Next floor up"),
-	Aa(3, "Top floor"),
+	za(1, "Lowest floor"),
+	za(2, "Next floor up"),
+	za(3, "Top floor"),
 	$("dhw", "Hot water", [
-		Da("enabled"),
+		Ia("enabled"),
 		Z("coil_in", ["sensor"]),
 		Z("coil_out", ["sensor"]),
 		Q("tank"),
 		Q("hot_plant"),
 		Q("hot_house"),
-		Z("loop_pump", ka),
+		Z("loop_pump", Ra),
 		Q("loop_house"),
 		Q("loop_plant"),
 		Z("immersion")
 	], "mdi:water-boiler"),
 	$("water", "Water", [
-		Da("softener"),
+		Ia("softener"),
 		Z("salt", ["sensor"]),
-		Z("salt_low", ka),
-		Da("storage"),
-		Oa("storage_label"),
-		Z("inlet", ka),
+		Z("salt_low", Ra),
+		Ia("storage"),
+		La("storage_label"),
+		Z("inlet", Ra),
 		Z("level", ["sensor"]),
 		Q("pumps"),
 		Z("meter", ["sensor"]),
@@ -6803,8 +7119,9 @@ var wa = 500, Ta = class extends z {
 			selector: { ui_action: { default_action: "none" } }
 		}
 	], "mdi:gesture-tap")
-], Ma = {
+], Va = {
 	title: "Title",
+	view: "Opens on",
 	pipes: "Pipes",
 	markers: "Flow markers",
 	colours: "Colours",
@@ -6843,6 +7160,15 @@ var wa = 500, Ta = class extends z {
 	emitters: "Emitters",
 	mixed: "Mixed down (its own mixing valve)",
 	loops: "Loop actuators",
+	rooms: "Rooms",
+	loop_returns: "Loop returns",
+	suction: "Suction gas",
+	hot_gas: "Hot gas",
+	liquid: "Liquid",
+	evaporating: "Evaporating",
+	condensing: "Condensing",
+	reversing_valve: "Reversing valve (on: defrost)",
+	oil: "Compressor oil temperature",
 	enabled: "Hot water tank",
 	coil_in: "Coil in",
 	coil_out: "Coil out",
@@ -6865,16 +7191,19 @@ var wa = 500, Ta = class extends z {
 	tap_action: "Tap",
 	hold_action: "Hold",
 	double_tap_action: "Double tap"
-}, Na = {
+}, Ha = {
 	animations: "Off: a still picture, with the flow markers standing on the pipes that flow. For low-powered tablets.",
 	supply_plant: "In the order the water passes them; the card spaces them along the run.",
 	return_plant: "In the order the water passes them, from the house back to the heat pump.",
-	loops: "One per underfloor loop, open when on.",
+	view: "The tab the card shows first.",
+	loops: "One per underfloor loop or radiator valve, open when on.",
+	rooms: "A thermostat (or temperature sensor) per room, in the same order as the loops: room 1 is on loop 1.",
+	loop_returns: "Each loop's return temperature, in the same order. Without one, the floor's return.",
 	hot_plant: "Along the hot run from the tank, in order.",
 	loop_house: "Along the return loop from its far end, in order.",
 	meter: "With a storage tank, a flow while it isn't filling is the hard tap.",
 	priority: "Its state decides the diverter and which circuits flow."
-}, Pa = class extends z {
+}, Ua = class extends z {
 	constructor(...e) {
 		super(...e), this._ready = !1;
 	}
@@ -6898,9 +7227,9 @@ var wa = 500, Ta = class extends z {
 			...ji,
 			...this._config
 		}}
-      .schema=${ja}
-      .computeLabel=${(e) => Ma[e.name] ?? e.name}
-      .computeHelper=${(e) => Na[e.name]}
+      .schema=${Ba}
+      .computeLabel=${(e) => Va[e.name] ?? e.name}
+      .computeHelper=${(e) => Ha[e.name]}
       @value-changed=${(e) => {
 			e.stopPropagation(), this._config = {
 				...this._config,
@@ -6910,26 +7239,26 @@ var wa = 500, Ta = class extends z {
     ></ha-form>`;
 	}
 };
-c("casa-mia-heating-flow", Ta), c("casa-mia-heating-flow-editor", Pa), l("casa-mia-heating-flow", "Casa Mia Heating Flow", "The heating and hot water as a live diagram: colour is temperature, chevrons are flow, and anything not current says so.");
+c("casa-mia-heating-flow", Pa), c("casa-mia-heating-flow-editor", Ua), l("casa-mia-heating-flow", "Casa Mia Heating Flow", "The heating and hot water as a live diagram: colour is temperature, chevrons are flow, and anything not current says so.");
 //#endregion
 //#region src/guest-goodbye.ts
-var Fa = 1e3, Ia = (e, t) => e.state === "on" && !(e.attributes.closes_at && t / 1e3 >= e.attributes.closes_at);
-function La(e, t, n, r, i) {
+var Wa = 1e3, Ga = (e, t) => e.state === "on" && !(e.attributes.closes_at && t / 1e3 >= e.attributes.closes_at);
+function Ka(e, t, n, r, i) {
 	if (!t || t.is_admin) return null;
-	let a = Object.values(e).filter((e) => e.entity_id.startsWith("switch.") && e.attributes?.guest_user_id === t.id), o = a.find((e) => e.attributes.signs_out && n.get(e.entity_id) === !0 && !Ia(e, r));
-	for (let e of a) n.set(e.entity_id, Ia(e, r));
-	if (!o || a.some((e) => Ia(e, r))) return null;
+	let a = Object.values(e).filter((e) => e.entity_id.startsWith("switch.") && e.attributes?.guest_user_id === t.id), o = a.find((e) => e.attributes.signs_out && n.get(e.entity_id) === !0 && !Ga(e, r));
+	for (let e of a) n.set(e.entity_id, Ga(e, r));
+	if (!o || a.some((e) => Ga(e, r))) return null;
 	let s = o.attributes;
 	return s.goodbye_url || `http://${i}:${s.guest_port ?? 8675}/bye`;
 }
-function Ra() {
+function qa() {
 	let e = /* @__PURE__ */ new Map();
 	setInterval(() => {
 		let t = document.querySelector("home-assistant")?.hass;
 		if (!t?.states) return;
-		let n = La(t.states, t.user, e, Date.now(), location.hostname);
+		let n = Ka(t.states, t.user, e, Date.now(), location.hostname);
 		n && (console.info("CASA-MIA CARDS: this guest's endpoint closed; going to the goodbye page"), location.replace(n));
-	}, Fa);
+	}, Wa);
 }
 console.info(`%cCASA-MIA CARDS\n%ccommander, tablet layout (${It})`, "color: green; font-weight: bold;", ""), It !== "dev" && window.hassConnection?.then(({ conn: e }) => {
 	e.addEventListener("ready", () => e.sendMessagePromise({ type: "casa_mia/cards" }).then(({ version: e }) => {
@@ -6947,5 +7276,5 @@ console.info(`%cCASA-MIA CARDS\n%ccommander, tablet layout (${It})`, "color: gre
 			composed: !0
 		})));
 	}, () => {}));
-}), Ra();
+}), qa();
 //#endregion
