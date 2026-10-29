@@ -6,15 +6,11 @@ import { Field } from "../ui";
 import { LEVELS, LEVEL_NAMES, margin, type Accuracy, type Band, type Level, type Side, type StateLevel, type WatchRecord } from "./common";
 import css from "./sensor-watch.module.css";
 import ui from "../ui.module.css";
-import { confirmBox } from "../confirm";
 import { Select } from "../controls";
 import { Slider } from "../controls";
+import { moved, nudge, problemOf, toBands, toLadder, type Ladder, type Rung } from "./ladder";
 
 export type Kind = WatchRecord["kind"];
-type Draft = { from: string; to: string; level: Level; message: string };
-
-const toDraft = (b: Band): Draft => ({ from: b.from === null ? "" : String(b.from), to: b.to === null ? "" : String(b.to), level: b.level, message: b.message });
-const toBand = (d: Draft): Band => ({ from: d.from.trim() === "" ? null : Number(d.from), to: d.to.trim() === "" ? null : Number(d.to), level: d.level, message: d.message });
 // A message may be 255 characters; past 80, notifications and cards may cut it short.
 const MAX_MESSAGE = 255;
 const LONG = 80;
@@ -23,8 +19,11 @@ const LONG_HELP = `Up to ${MAX_MESSAGE} characters; keep it under ${LONG} to be 
 /** The levels' state, from a record or profile (or none: a new one of `kind`). */
 export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
   const [k, setKind] = useState<Kind>(start?.kind ?? kind);
-  const [bands, setBands] = useState<Draft[]>((start?.bands ?? []).map(toDraft));
   const [otherwise, setOtherwise] = useState<Level>(start?.otherwise ?? "error");
+  const [opened, setOpened] = useState(() => toLadder(start?.bands ?? [], start?.otherwise ?? "error"));
+  const [ladder, setLadder] = useState<Ladder>(opened.ladder);
+  // The nominal edge being typed in and its value before, for the nudge; any other edit ends it.
+  const [edited, setEdited] = useState<{ side: "low" | "high"; was: string } | null>(null);
   const [off, setOff] = useState<Side>(start?.off ?? { level: "nominal", message: "" });
   const [on, setOn] = useState<Side>(start?.on ?? { level: "warning", message: "" });
   const [other, setOther] = useState<Level>(start?.other ?? "warning");
@@ -39,12 +38,14 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
   const [escalate, setEscalate] = useState<Partial<Record<Level, number>>>(start?.escalate ?? {});
   const [accuracyAmount, setAccuracyAmount] = useState(start?.accuracy ? String(start.accuracy.amount) : "");
   const [accuracyPercent, setAccuracyPercent] = useState(start?.accuracy?.percent ?? true);
-  const [problem, setProblem] = useState(""); // why the bands can't be saved, under them
 
   /** Take another set of levels (a suggestion, a profile). */
   const adopt = (r: Partial<WatchRecord>) => {
     if (r.kind) setKind(r.kind);
-    setBands((r.bands ?? []).map(toDraft));
+    const next = toLadder(r.bands ?? [], r.otherwise ?? otherwise);
+    setOpened(next);
+    setLadder(next.ladder);
+    setEdited(null);
     if (r.otherwise) setOtherwise(r.otherwise);
     if (r.off) setOff(r.off);
     if (r.on) setOn(r.on);
@@ -81,28 +82,18 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
         ? { available, message }
       : k === "state"
         ? { states: split(states), other, message, exceptions: exceptions.filter((e) => e.state.trim()) }
-        : { bands: bands.map(toBand), otherwise, ...(daysUntil ? { days_until: true } : {}), ...(accuracy() ? { accuracy: accuracy() } : {}) }),
+        : { bands: toBands(ladder), otherwise, ...(daysUntil ? { days_until: true } : {}), ...(accuracy() ? { accuracy: accuracy() } : {}) }),
   });
 
-  /** Bands that make sense, or say why not: a From or To that isn't a number stops the
-   * save; a gap between bands (a range missed) asks first. Overlaps: the app says. */
-  const sane = async () => {
-    if (k !== "numeric") return true;
-    const bad = bands.findIndex((d) => [d.from, d.to].some((v) => v.trim() !== "" && !Number.isFinite(Number(v))));
-    if (bad >= 0) {
-      setProblem(`Band ${bad + 1}: From and To must be numbers (with a point for decimals), or empty for open.`);
-      return false;
-    }
-    setProblem("");
-    const holes = gaps(bands.map(toBand));
-    return !holes.length || (await confirmBox(`No band covers ${holes.join(", ")}: a value there counts as ${LEVEL_NAMES[otherwise]} (Outside every band). Save anyway?`, { action: "Save anyway" }));
-  };
+  /** Why the bands can't be saved (shown under them as they are edited), or "". */
+  const problem = (k === "numeric" && problemOf(ladder)) || "";
+  const sane = async () => !problem;
 
   return {
-    kind: k, setKind, bands, setBands, otherwise, setOtherwise, off, setOff, on, setOn, other, setOther, available, setAvailable, message, setMessage,
+    kind: k, setKind, ladder, setLadder, promoted: opened.promoted, edited, setEdited, otherwise, setOtherwise, off, setOff, on, setOn, other, setOther, available, setAvailable, message, setMessage,
     states, setStates, exceptions, setExceptions, unavailable, setUnavailable, holdOff, setHoldOff, goneHold, setGoneHold, daysUntil, setDaysUntil,
     accuracyAmount, setAccuracyAmount, accuracyPercent, setAccuracyPercent, accuracy, escalate, setEscalate,
-    adopt, body, sane, problem, drawn: () => bands.map(toBand),
+    adopt, body, sane, problem, drawn: () => toBands(ladder),
   };
 }
 
@@ -182,7 +173,7 @@ export function LevelFields({ L, unit = "", seen = [], seenLabel = "Seen", extra
           )}
         </div>
       )}
-      {L.kind === "numeric" && <BandsEditor bands={L.bands} onChange={L.setBands} unit={unit} />}
+      {L.kind === "numeric" && <LadderEditor L={L} unit={unit} />}
       {L.kind === "numeric" && L.problem && (
         <span className={ui.fieldBad} role="alert">
           {L.problem}
@@ -196,7 +187,7 @@ export function LevelFields({ L, unit = "", seen = [], seenLabel = "Seen", extra
           </Field>
         )}
         {L.kind === "numeric" && (
-          <Field label="Outside every band" help="The level of a value no band covers.">
+          <Field label="Not a number" help="The level of a state that isn't a number (a sensor reporting text, or a date it can't read).">
             <LevelSelect value={L.otherwise} onChange={(v) => L.setOtherwise(v as Level)} />
           </Field>
         )}
@@ -272,10 +263,12 @@ function tooNarrow(bands: Band[], a?: Accuracy): string | null {
   return null;
 }
 
-function LevelSelect({ value, ignore, onChange }: { value: string; ignore?: boolean; onChange: (v: Level | "ignore") => void }) {
+/** `beyond`: offer only the levels worse than it (and the one chosen, should it not be). */
+function LevelSelect({ value, ignore, beyond, onChange }: { value: string; ignore?: boolean; beyond?: Level; onChange: (v: Level | "ignore") => void }) {
+  const offered = beyond ? LEVELS.filter((l) => l === value || LEVELS.indexOf(l) > LEVELS.indexOf(beyond)) : LEVELS;
   return (
     <Select value={value} onChange={(picked) => onChange(picked as Level | "ignore")}>
-      {LEVELS.map((l) => (
+      {offered.map((l) => (
         <option key={l} value={l}>
           {LEVEL_NAMES[l]}
         </option>
@@ -285,42 +278,98 @@ function LevelSelect({ value, ignore, onChange }: { value: string; ignore?: bool
   );
 }
 
-function BandsEditor({ bands, onChange, unit }: { bands: Draft[]; onChange: (b: Draft[]) => void; unit: string }) {
-  const set = (i: number, part: Partial<Draft>) => onChange(bands.map((b, n) => (n === i ? { ...b, ...part } : b)));
-  /** A new band after band i, filling the span from its To to the next one's From. */
-  const insert = (i: number) =>
-    onChange([...bands.slice(0, i + 1), { from: bands[i].to, to: bands[i + 1]?.from ?? "", level: "warning", message: "" }, ...bands.slice(i + 1)]);
+/** The bands as a ladder out from nominal: the bands going up (highest first), nominal's
+ * window, the bands going down. Each band beyond types only its far edge. */
+function LadderEditor({ L, unit }: { L: Levels; unit: string }) {
+  const l = L.ladder;
+  const edit = (next: Ladder) => {
+    L.setEdited(null);
+    L.setLadder(next);
+  };
+  const edge = (side: "low" | "high", value: string) => {
+    if (L.edited?.side !== side) L.setEdited({ side, was: l[side] });
+    L.setLadder({ ...l, [side]: value });
+  };
+  const by = L.edited && moved(L.edited.was, l[L.edited.side]);
+  const sign = by && (by > 0 ? `+${by}` : `−${-by}`);
+
+  /** The rows of one side, nearest first: its level, its edge, its message. */
+  const rungs = (way: "up" | "down") =>
+    l[way].map((r, i) => {
+      const set = (part: Partial<Rung>) => edit({ ...l, [way]: l[way].map((x, n) => (n === i ? { ...x, ...part } : x)) });
+      const near = (i ? l[way][i - 1].edge : way === "up" ? l.high : l.low) || "…";
+      const outermost = i === l[way].length - 1;
+      return (
+        <div key={`${way}${i}`} className={`${css.bandRow} ${css[`edge_${r.level}`]}`}>
+          <LevelSelect value={r.level} beyond={i ? l[way][i - 1].level : "nominal"} onChange={(v) => set({ level: v as Level })} />
+          {outermost ? (
+            <span className={css.rungEdge}>
+              {way === "up" ? "above" : "below"} {near}
+            </span>
+          ) : (
+            <span className={css.rungEdge}>
+              {way === "up" ? "up to" : "down to"}
+              <input inputMode="decimal" placeholder="edge" value={r.edge} onChange={(e) => set({ edge: e.target.value })} aria-label={`${LEVEL_NAMES[r.level]} ${way} to`} />
+            </span>
+          )}
+          <MessageInput placeholder={r.level === "task" ? "e.g. Top up the salt" : ""} value={r.message} onChange={(v) => set({ message: v })} />
+          <button className={`${ui.button} ${ui.small}`} onClick={() => edit({ ...l, [way]: l[way].filter((_, n) => n !== i) })} aria-label={`Remove ${LEVEL_NAMES[r.level]}`}>
+            ✕
+          </button>
+        </div>
+      );
+    });
+
+  /** "+ Band above" (or below): one worse than the outermost; none past Critical. */
+  const add = (way: "up" | "down") => {
+    const outer = l[way].length ? l[way][l[way].length - 1].level : "nominal";
+    const level = outer === "nominal" ? "warning" : LEVELS[LEVELS.indexOf(outer) + 1];
+    return (
+      level && (
+        <button className={`${ui.button} ${ui.small}`} onClick={() => edit({ ...l, [way]: [...l[way], { edge: "", level, message: "" }] })}>
+          + Band {way === "up" ? "above" : "below"}
+        </button>
+      )
+    );
+  };
+
   return (
     <div className={css.bands}>
-      <div className={`${css.bandRow} ${css.bandHead}`}>
-        <span>From {unit && `(${unit})`}</span>
-        <span>To</span>
-        <span>Level</span>
-        <span>Message</span>
+      {add("up")}
+      {rungs("up").reverse()}
+      <div className={`${css.bandRow} ${css.edge_nominal}`}>
+        <strong>Nominal</strong>
+        <span className={css.rungEdge}>
+          <input inputMode="decimal" placeholder="open" value={l.low} onChange={(e) => edge("low", e.target.value)} aria-label="Nominal from" />
+          to
+          <input inputMode="decimal" placeholder="open" value={l.high} onChange={(e) => edge("high", e.target.value)} aria-label="Nominal to" />
+          {unit}
+        </span>
+        <MessageInput value={l.message} onChange={(v) => edit({ ...l, message: v })} />
         <span />
       </div>
-      {bands.map((b, i) => (
-        <div key={i} className={`${css.bandRow} ${css[`edge_${b.level}`]}`}>
-          <input inputMode="decimal" placeholder="open" value={b.from} onChange={(e) => set(i, { from: e.target.value })} aria-label="From" />
-          <input inputMode="decimal" placeholder="open" value={b.to} onChange={(e) => set(i, { to: e.target.value })} aria-label="To" />
-          <LevelSelect value={b.level} onChange={(v) => set(i, { level: v as Level })} />
-          <MessageInput placeholder={b.level === "task" ? "e.g. Top up the salt" : ""} value={b.message} onChange={(v) => set(i, { message: v })} />
-          <span className={css.bandActions}>
-            <button className={`${ui.button} ${ui.small}`} onClick={() => insert(i)} aria-label="Insert a band below this one">
-              + Below
-            </button>
-            <button className={`${ui.button} ${ui.small}`} onClick={() => onChange(bands.filter((_, n) => n !== i))} aria-label="Remove this band">
-              ✕
-            </button>
-          </span>
-        </div>
-      ))}
+      {L.edited && by && (
+        <span className={css.nudge}>
+          Move too:
+          <button className={`${ui.button} ${ui.small}`} onClick={() => edit(nudge(l, L.edited!.side, by, false))}>
+            Bands {L.edited.side === "high" ? "above" : "below"} {sign}
+          </button>
+          <button className={`${ui.button} ${ui.small}`} onClick={() => edit(nudge(l, L.edited!.side, by, true))}>
+            Everything {sign}
+          </button>
+        </span>
+      )}
+      {rungs("down")}
+      {add("down")}
+      {L.promoted && (
+        <p className={css.note}>
+          No band was nominal: {L.promoted.from ?? "below"}–{L.promoted.to ?? "above"} ({LEVEL_NAMES[L.promoted.level]}) is shown as Nominal, and saves as Nominal.
+        </p>
+      )}
       <p className={css.note}>
-        From is included, To is not; leave either empty for open-ended. A value in no band takes the level below. Bands are kept in order of From when saved. {LONG_HELP}
+        Out from nominal, each band starts where the one inside it ends and is worse than it. An edge belongs to the band above it. Leave a nominal edge empty for
+        open (a battery is nominal from 30% up). {LONG_HELP}
       </p>
-      <button className={`${ui.button} ${ui.small}`} onClick={() => onChange([...bands, { from: "", to: "", level: "warning", message: "" }])}>
-        + Add band
-      </button>
     </div>
   );
 }
@@ -340,7 +389,6 @@ function MessageInput({ value, placeholder, onChange }: { value: string; placeho
   );
 }
 
-/** The spans no band covers between two bands ("7.2–7.4"), lowest first. */
 /** A hold-off's steps, seconds: fine where it matters (the first minutes), up to a day. */
 const HOLD_OFFS = [0, 10, 30, 60, 120, 300, 600, 900, 1800, 3600, 7200, 21600, 43200, 86400];
 
@@ -353,15 +401,6 @@ function seconds(s: number): string {
   if (s < 3600) return `${+(s / 60).toFixed(1)} min`;
   if (s < 86400) return `${+(s / 3600).toFixed(1)} h`;
   return `${+(s / 86400).toFixed(1)} day${s === 86400 ? "" : "s"}`;
-}
-
-export function gaps(bands: Band[]): string[] {
-  const low = (b: Band) => b.from ?? -Infinity;
-  const sorted = [...bands].sort((a, b) => low(a) - low(b));
-  return sorted.slice(1).flatMap((b, i) => {
-    const a = sorted[i];
-    return a.to !== null && b.from !== null && a.to < b.from ? [`${a.to}–${b.from}`] : [];
-  });
 }
 
 const split = (list: string) =>

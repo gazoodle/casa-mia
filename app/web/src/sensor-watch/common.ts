@@ -1,18 +1,11 @@
 /** Sensor Watch's types, API and level helpers, shared by its page and dialogs. */
 
 import { api } from "../api";
+import type { Level } from "./ladder";
+
+export { LEVELS, LEVEL_NAMES, type Level } from "./ladder";
 
 export const swApi = api("sensor-watch");
-
-export const LEVELS = ["nominal", "task", "warning", "error", "critical"] as const;
-export type Level = (typeof LEVELS)[number];
-export const LEVEL_NAMES: Record<Level, string> = {
-  nominal: "Nominal",
-  task: "Task",
-  warning: "Warning",
-  error: "Error",
-  critical: "Critical",
-};
 
 /** One state of an on/off watch: its level and message. */
 export type Side = { level: Level; message: string };

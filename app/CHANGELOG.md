@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.10.11-b25
+
+- Sensor Watch: the band editor is a ladder built out from Nominal. The nominal window is in the middle; each band above or below it has only its far edge ("Warning up to 24", "Critical above 26"), so no edge is typed twice and gaps and overlaps can't be written. Each band out from nominal must be worse than the one inside it, and the level menu offers only those. Moving a nominal edge offers, inline, to move the bands beyond it by the same amount, or the whole ladder.
+- Sensor Watch: saving refuses bands that aren't such a ladder, from anywhere: a gap, an overlap, an end that isn't open, other than one nominal band, or a level that isn't worse going out. A record saved before this with a gap opens with the gap as a band at its old level, so it behaves as before.
+- Sensor Watch: "Outside every band" is now **Not a number**, the level of a state that isn't a number. It is no longer a level for values between bands, because there are no gaps now.
+
 ## 2026.10.11-b24
 
 - Heating Flow card: the mains pipe starts beside the Mains in stopcock, no longer over it.

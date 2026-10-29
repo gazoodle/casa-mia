@@ -15,8 +15,8 @@ def test_clean_sorts_bands_and_refuses_overlaps():
     assert record["hold_off"] == 60
     overlap = SALT | {
         "bands": [
-            {"from": 0, "to": 10, "level": "nominal"},
-            {"from": 5, "to": 20, "level": "task"},
+            {"from": None, "to": 10, "level": "nominal"},
+            {"from": 5, "to": None, "level": "task"},
         ]
     }
     with pytest.raises(BadRequest, match="overlap"):
@@ -39,9 +39,46 @@ def test_clean_sorts_bands_and_refuses_overlaps():
         clean("sensor.salt", SALT | {"bands": [{"from": "7,2", "level": "task"}]})
 
 
+def _bands(*edges_and_levels):
+    """Bands from levels and the edges between them: "error", 10, "nominal", 20, "task"."""
+    levels, edges = edges_and_levels[::2], [None, *edges_and_levels[1::2], None]
+    return [
+        {"from": low, "to": high, "level": level}
+        for low, high, level in zip(edges, edges[1:], levels)
+    ]
+
+
+def test_only_a_ladder_out_from_one_nominal_band_is_saved():
+    record = clean(
+        "sensor.t",
+        SALT | {"bands": _bands("error", 10, "nominal", 20, "task", 30, "critical")},
+    )
+    assert [b["level"] for b in record["bands"]] == [
+        "error",
+        "nominal",
+        "task",
+        "critical",
+    ]
+
+    refused = {
+        "open at both ends": _bands("error", 10, "nominal", 20, "task")[1:],
+        "No band covers 20–25": _bands("nominal", 20, "task")[:1]
+        + [{"from": 25, "to": None, "level": "task"}],
+        "Exactly one band must be nominal": _bands(
+            "nominal", 10, "task", 20, "nominal"
+        ),
+        "worse than the one inside": _bands("nominal", 10, "error", 20, "warning"),
+    }
+    for reason, bands in refused.items():
+        with pytest.raises(BadRequest, match=reason):
+            clean("sensor.t", SALT | {"bands": bands})
+    with pytest.raises(BadRequest, match="Exactly one band must be nominal"):
+        clean("sensor.t", SALT | {"bands": _bands("task")})
+
+
 def test_messages_may_be_long_names_may_not():
     long = "x" * 255
-    band = {"from": 0, "to": 10, "level": "task", "message": long}
+    band = {"from": None, "to": None, "level": "nominal", "message": long}
     assert clean("sensor.salt", SALT | {"bands": [band]})["bands"][0]["message"] == long
     with pytest.raises(BadRequest, match="255"):
         clean("sensor.salt", SALT | {"bands": [band | {"message": long + "x"}]})

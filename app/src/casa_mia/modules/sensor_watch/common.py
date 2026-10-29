@@ -2,7 +2,9 @@
 
 A record watches one entity (keyed by its entity id):
 - numeric: `bands`, each {from, to, level, message}: from inclusive, to exclusive,
-  either open (None); `otherwise`, the level of a value in no band; `accuracy`
+  either open (None), saved only as a ladder out from one nominal band (_ladder());
+  `otherwise`, the level of a state that isn't a number (and, in a record saved before
+  2026.10.11-b25, of a value in a gap between bands); `accuracy`
   (optional) {amount, percent}: how far the meter may be out, as a percentage of each
   edge or an amount in its unit, so a reading that close to an edge holds its level;
 - binary: `off` and `on`, each {level, message}: what each state means, so either can
@@ -226,18 +228,44 @@ def clean(entity_id: str, body: dict[str, Any]) -> dict[str, Any]:
             }
         )
     out.sort(key=lambda b: float("-inf") if b["from"] is None else b["from"])
-    for a, b in zip(out, out[1:]):
-        a_high = float("inf") if a["to"] is None else a["to"]
-        b_low = float("-inf") if b["from"] is None else b["from"]
-        if b_low < a_high:
-            raise BadRequest(f"Bands overlap: {_span(a)} and {_span(b)}.")
-    record["bands"] = out
-    record["otherwise"] = _level(body.get("otherwise", "error"), "Outside every band")
+    record["bands"] = _ladder(out)
+    record["otherwise"] = _level(body.get("otherwise", "error"), "Not a number")
     if accuracy := _accuracy(body.get("accuracy")):
         record["accuracy"] = accuracy
     if body.get("days_until") is True:
         record["days_until"] = True
     return record
+
+
+def _ladder(bands: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """`bands` (sorted) if they are a ladder out from nominal, else BadRequest: open at
+    both ends, each edge shared with the next band (no gap, no overlap), exactly one
+    nominal band, and each band out from it worse than the one inside. The editor can't
+    write anything else; this refuses it from anywhere."""
+    if bands[0]["from"] is not None or bands[-1]["to"] is not None:
+        raise BadRequest(
+            "Bands must be open at both ends: nothing below the lowest, nothing above the highest."
+        )
+
+    for a, b in zip(bands, bands[1:]):
+        if a["to"] is None or b["from"] is None or b["from"] < a["to"]:
+            raise BadRequest(f"Bands overlap: {_span(a)} and {_span(b)}.")
+        if b["from"] > a["to"]:
+            raise BadRequest(f"No band covers {a['to']:g}–{b['from']:g}.")
+
+    nominal = [i for i, b in enumerate(bands) if b["level"] == "nominal"]
+    if len(nominal) != 1:
+        raise BadRequest("Exactly one band must be nominal.")
+
+    # Walk out from nominal each way: the levels must only get worse.
+    n = nominal[0]
+    for side in (bands[n::-1], bands[n:]):
+        for inner, outer in zip(side, side[1:]):
+            if LEVELS.index(outer["level"]) <= LEVELS.index(inner["level"]):
+                raise BadRequest(
+                    f"Band {_span(outer)}: each band out from nominal must be worse than the one inside it."
+                )
+    return bands
 
 
 def _escalate(value: Any) -> dict[str, int] | None:

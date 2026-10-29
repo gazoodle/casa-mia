@@ -335,6 +335,14 @@ guest card SVG), `page.py` (welcome, goodbye), `supervisor.py`.
   `levels.in_bands` holds the current level within it of an edge (worse only once
   surely past, better at the real edge, the start the better way), so `level_of` now
   takes the current level. The library's mains voltage profiles have ±1 %.
+- **2026.10.11-b25: the band editor as a ladder** (the backlog item of 2026-10-29; not
+  yet on the box). The editor holds a numeric record's bands as a ladder out from nominal
+  (`app/web/src/sensor-watch/ladder.ts`: `toLadder`, `toBands`, `problemOf`, `nudge`; run
+  in node by `tests/test_sensor_watch_ladder.py`, so it imports types only, and the
+  levels' order and names moved there, re-exported by `common.ts`). The stored format is
+  unchanged. The app's `common.py` `_ladder` refuses anything else on every save path;
+  loading never runs `clean`, so old records with gaps still load, and the editor opens
+  each gap as a band at `otherwise`. "Outside every band" is now **Not a number**.
 - **2026.10.11-b16: the eye in HA's entity dialog, and editor fixes** (on the box 2026-10-27; the owner: works a treat).
   `cards/src/sensor-watch/eye.ts` patches `ha-more-info-dialog`'s `updated` and puts
   `casa-mia-watch-eye` just after the `headerTitle` span (outside the template's parts,

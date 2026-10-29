@@ -367,20 +367,12 @@
 
 .bandRow {
   display: grid;
-  grid-template-columns: 90px 90px 120px minmax(0, 1fr) auto;
+  grid-template-columns: 120px 230px minmax(0, 1fr) auto;
   gap: 8px;
   align-items: center;
   width: 100%;
   padding-left: 8px;
   border-left: 4px solid transparent;
-}
-
-.bandHead {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 .edge_nominal {
@@ -397,9 +389,24 @@
   border-left-color: var(--bad);
 }
 
-.bandActions {
+/* A band's edge: "up to [24]", "above 26", or nominal's "[18] to [22] °C". */
+.rungEdge {
   display: flex;
-  gap: 4px;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* The nudge after a nominal edge moved: inline under nominal, never a dialog. */
+.nudge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding-left: 12px;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .message {
@@ -573,11 +580,7 @@
   }
 
   .bandRow {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .bandHead {
-    display: none;
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 }
 

@@ -305,14 +305,27 @@ Watch reads its history (30 days unless you choose otherwise) and suggests its b
 - **Numeric sensors:** the history's spread gives the nominal band, rounded outwards to a
   tidy step, with a warning band either side and error beyond. Values far outside the
   rest (more than three standard deviations from the mean) are set aside and listed: they
-  may be incidents worth a look, and the suggestion assumes they were. Change any band,
-  its level and its message (the message is what a task or a warning says, such as "Top
-  up the salt") before saving. **+ Below** inserts a band after one, spanning the gap to
-  the next; bands are kept in order of their From. A message may be up to 255
-  characters, but past 80 notifications and cards may cut it short (the page shows
-  the count once you pass 80). Saving refuses a From or To that isn't a number (use a
-  point for decimals) and bands that overlap, and asks first when a range between two
-  bands is left uncovered.
+  may be incidents worth a look, and the suggestion assumes they were. The bands are a
+  ladder built out from **Nominal**, its window in the middle (either edge may be left
+  empty for open: a battery is nominal from 30% up). Above it are the bands going up,
+  each with only its far edge (*Warning up to 24*, *Error up to 26*, the last *Critical
+  above 26*); below it are the same going down (*Warning down to 16*, *Critical below
+  16*). Each band starts where the one inside it ends, so no edge is typed twice and
+  no value can fall between two bands. Each band out from nominal must be worse than
+  the one inside it (the level menu offers only those), so each side holds at most four
+  bands; for a wider band at the same level, move its edge instead. An edge belongs to
+  the band above it. **+ Band above** and **+ Band below** add one at the far end, and ✕
+  removes one. Change any level or message (what a task or a warning says, such as "Top
+  up the salt") before saving. A message may be up to 255 characters, but past 80
+  notifications and cards may cut it short (the page shows the count once you pass 80).
+  When you move a nominal edge, the band beyond it grows or shrinks. Beside it the page
+  offers to move **the bands above** (or below) by the same amount, keeping their widths,
+  or **everything**, which shifts the whole ladder. Ignore the offer and the edge alone
+  moves, so a fixed limit (frost at 0°) stays put. Saving is refused, with the reason
+  under the bands, while an edge is missing or isn't a number (use a point for
+  decimals), or while the edges are out of order. A record saved before the ladder
+  that left a gap opens with the gap as a band at its **Not a number** level, so it
+  behaves as before and the gap shows.
 - **On/off sensors:** two rows, **When off** and **When on**, each with its own level
   and message, so it reads as it means: a leak sensor is Nominal when off and Critical
   when on ("Leak detected"); a pump that should run is Nominal when on and an Error when
@@ -380,7 +393,7 @@ from when.
 
 Each sensor also has:
 
-- **Outside every band:** the level of a value no band covers (an error by default).
+- **Not a number** (bands only): the level of a state that isn't a number (an error by default).
 - **Accuracy** (bands only): how far the meter may be out, as a percentage (of each edge)
   or an amount in its unit (±0.5 °C). A reading that close to an edge might be either
   side of it, so the level holds: a worse one counts only once the reading is past the
