@@ -3,9 +3,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MODULES } from "../modules";
-import { AreaHead, Empty, Shell } from "../page";
+import { AreaHead, Shell } from "../page";
 import { Toasts, type Toast } from "../ui";
-import { levelsOf, NO_FILTERS, swApi, type Filters, type LevelsView, type Profile, type WatchRecord, type WatchView } from "./common";
+import { About, Start } from "./about";
+import { levelsOf, NO_FILTERS, swApi, type Filters, type Group, type LevelsView, type Profile, type WatchRecord, type WatchView } from "./common";
 import { ApplyDialog, PickDialog, ScanDialog } from "./dialogs";
 import { RecordDialog } from "./editor";
 import { GroupsSection } from "./groups";
@@ -33,6 +34,7 @@ export function SensorWatchPage({ state, watch, at }: { state?: string; watch?: 
   // A profile being edited (null: a new one), or followed by more sensors.
   const [profileEditing, setProfileEditing] = useState<Profile | null>();
   const [profileCopy, setProfileCopy] = useState<Profile>();
+  const [groupEditing, setGroupEditing] = useState<Group | null>(); // null: a new one
   const [applying, setApplying] = useState<Profile>();
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const watchedRef = useRef<HTMLElement>(null);
@@ -130,6 +132,7 @@ export function SensorWatchPage({ state, watch, at }: { state?: string; watch?: 
       )}
       {view.error && <div className={guest.warning}>sensor-watch.json could not be read ({view.error}), so nothing is watched. Fix or remove the file.</div>}
       {live?.error && <div className={guest.warning}>{live.error}</div>}
+      <About empty={!view.records.length} />
       <section className={guest.area} ref={watchedRef}>
         <AreaHead
           title="Watched sensors"
@@ -146,7 +149,20 @@ export function SensorWatchPage({ state, watch, at }: { state?: string; watch?: 
           }
         />
         {view.records.length === 0 ? (
-          <Empty>Watch an entity to give it bands, or scan the house for suggestions from history.</Empty>
+          <div className={`${ui.empty} ${css.emptyStart}`}>
+            <Start
+              actions={
+                <span className={css.actions}>
+                  <button className={ui.button} onClick={() => setGroupEditing(null)}>
+                    + New group
+                  </button>
+                  <button className={ui.button} onClick={() => setScanning(true)}>
+                    Scan my house
+                  </button>
+                </span>
+              }
+          />
+          </div>
         ) : (
           <WatchedList
             records={view.records}
@@ -184,6 +200,8 @@ export function SensorWatchPage({ state, watch, at }: { state?: string; watch?: 
       </section>
 
       <GroupsSection
+        editing={groupEditing}
+        setEditing={setGroupEditing}
         groups={view.groups ?? []}
         profiles={view.profiles ?? []}
         records={view.records}

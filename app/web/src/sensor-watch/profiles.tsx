@@ -57,7 +57,7 @@ export function ProfilesSection({
     <section className={guest.area}>
       <AreaHead
         title="Profiles"
-        blurb="The same levels for many sensors, said once: edit a profile and every sensor that follows it changes with it."
+        blurb="Levels set once and followed by many sensors: edit one and every follower changes. Groups use them, and a single sensor can follow one too."
         action={
           <span className={css.actions}>
             <button className={ui.button} onClick={fromLibrary}>

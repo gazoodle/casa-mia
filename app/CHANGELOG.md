@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.10.11-b27
+
+- Sensor Watch explains itself on its page. **How Sensor Watch works**, a fold at the top, says what levels, a watch, a profile and a group are for, how a level reaches you (the Notify blueprint, the card, the Status entities), and where to start. It's open while nothing is watched, and stays as each viewer last left it.
+- Sensor Watch: with nothing watched, the list shows the three steps to start, with **+ New group** and **Scan my house** beside them.
+- Sensor Watch: the Groups and Profiles blurbs now say when to use each. A sensor's **Follows** is now **Levels from** (**Its own**, or a profile), and a row says "levels from …", matching a group's "Their levels".
+
 ## 2026.10.11-b26
 
 - Sensor Watch: clicking a row in the Watched sensors, Profiles or Groups list opens its editor, and the Edit buttons are gone. Clicking one of the row's own buttons, or selecting text such as an entity id to copy it, doesn't open it. The name is the button for the keyboard. The System list's rows, which have no editor, no longer light up under the mouse.

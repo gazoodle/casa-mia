@@ -201,7 +201,7 @@ the room is warm.
 
 1. **+ Watch an entity**, pick the thermostat, and in **Watch** choose its
    `current_temperature`.
-2. Bands are suggested from its history; or **Follows** *Room temperature (°C)* from the
+2. Bands are suggested from its history; or **Levels from** *Room temperature (°C)* from the
    library. A room under 16 °C is a task, under 12 °C a warning.
 
 ### A hot tub: its reminders, its water and its errors
@@ -246,6 +246,11 @@ states('sensor.barn_meter_voltage') | float(0)) | abs }}`), then watch it with b
 nominal under 3 V, a warning to 8 V, an error beyond.
 
 ## On the page
+
+**How Sensor Watch works**, folded at the top, says what each part is for (levels, a
+watch, a profile, a group, how you hear) and where to start. It's open while nothing is
+watched, and stays as you last left it. With nothing watched, the list itself shows the
+three steps to start, with **+ New group** and **Scan my house**.
 
 ### Watched sensors
 
@@ -430,7 +435,7 @@ A profile is a set of levels said once for many sensors: twenty plugs on the sam
 want the same bands (critical below 207 V, a warning below 216 V), not twenty slightly
 different suggestions. Make one in the **Profiles** section with **+ New profile** (a
 name, then its bands, on/off or exact states), or, in a sensor's editor, **Save as a new
-profile** makes its levels a profile it then follows; **Follows** picks a profile for it (or its own levels again).
+profile** makes its levels a profile it then follows; **Levels from** picks a profile for it (or **Its own** again).
 Editing a follower's levels changes the profile, and so every sensor that follows it,
 after asking. A number can follow a bands or an exact-states profile; on/off and exact
 states only their own kind.
@@ -580,7 +585,7 @@ hold-off, how long a new level must last before it counts.
 
 </details>
 
-**In a watch's editor,** Follows offers the library too, under your own profiles: the
+**In a watch's editor,** Levels from offers the library too, under your own profiles: the
 ones that might suit this sensor, best first (by what it is, its unit, and the words in
 its name: a freezer finds Freezer, a spa's pH finds the pH profiles, a date finds
 Reminder due). Choosing one takes it into your profiles and has the sensor follow it,

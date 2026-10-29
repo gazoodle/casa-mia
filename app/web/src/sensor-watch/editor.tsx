@@ -244,7 +244,7 @@ export function RecordDialog({
 
       {(fitting.length > 0 || suggested.length > 0) && (
         <Field
-          label="Follows"
+          label="Levels from"
           help={
             following
               ? `Its levels come from the profile ${following.name}, followed by ${following.followers} sensors: editing them here changes the profile.`
@@ -277,7 +277,7 @@ export function RecordDialog({
               if (p) L.adopt(p);
             }}
           >
-            <option value="">Its own levels</option>
+            <option value="">Its own</option>
             {fitting.length > 0 && (
               <optgroup label="Your profiles">
                 {fitting.map((p) => (

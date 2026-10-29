@@ -40,6 +40,54 @@
   border-radius: 10px;
 }
 
+/* "How Sensor Watch works" (about.tsx): the parts as a list of terms, then where to start. */
+.about {
+  display: grid;
+  gap: 10px;
+}
+
+.about dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 6px 14px;
+  margin: 0;
+}
+
+.about dt {
+  font-weight: 600;
+}
+
+.about dd {
+  margin: 0;
+  color: var(--muted);
+}
+
+.start {
+  display: grid;
+  gap: 6px;
+}
+
+.start ol {
+  margin: 0;
+  padding-left: 22px;
+  color: var(--muted);
+}
+
+/* Nothing watched yet: the start steps in the empty box, a list read from the left. */
+.emptyStart {
+  text-align: left;
+}
+
+@media (max-width: 640px) {
+  .about dl {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .about dd {
+    margin-bottom: 6px;
+  }
+}
+
 /* A row that opens its editor on a click (opens() in common.ts); others don't light up. */
 .editable {
   cursor: pointer;

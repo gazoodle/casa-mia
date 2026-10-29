@@ -250,7 +250,7 @@ export function WatchedList({
                       {now?.escalated && now.real && !r.disabled && `escalated from ${LEVEL_NAMES[now.real]} (${ago(now.since) ?? "a while"}) · `}
                       {summary(r)}
                       {r.meta?.area && ` · ${r.meta.area}`}
-                      {r.profile && ` · follows ${profiles.find((p) => p.id === r.profile)?.name ?? "a profile"}`}
+                      {r.profile && ` · levels from ${profiles.find((p) => p.id === r.profile)?.name ?? "a profile"}`}
                       {r.group && ` · in ${groups.find((g) => g.id === r.group)?.name ?? "a group"}`}
                     </span>
                   </span>

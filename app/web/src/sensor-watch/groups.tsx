@@ -51,6 +51,8 @@ export function GroupsSection({
   labels,
   change,
   onMembers,
+  editing,
+  setEditing,
 }: {
   groups: Group[];
   profiles: Profile[];
@@ -60,14 +62,16 @@ export function GroupsSection({
   change: Change;
   /** Show its members in the watched list. */
   onMembers: (g: Group) => void;
+  /** The group being edited (null: a new one); the page's, so its empty state can start one. */
+  editing: Group | null | undefined;
+  setEditing: (g: Group | null | undefined) => void;
 }) {
-  const [editing, setEditing] = useState<Group | null>();
   const joined = (v: Joined) => (v.joined ? `; ${v.joined} joined` : "");
   return (
     <section className={guest.area}>
       <AreaHead
         title="Groups"
-        blurb="Saved filters and a profile: everything matching is watched, and what matches later joins by itself (a new plug, say). More than two of the same kind is a group; a single thing is a watch."
+        blurb="For things you have many of (every plug, every leak sensor): a search that stays current, watching everything it matches with the same levels, new arrivals included."
         action={
           <button className={ui.button} onClick={() => setEditing(null)}>
             + New group
