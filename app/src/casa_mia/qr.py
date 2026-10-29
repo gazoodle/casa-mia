@@ -44,10 +44,11 @@ def png(text: str, size: int = SIZE) -> bytes:
     return out.getvalue()
 
 
-def svg(text: str) -> bytes:
+def svg(text: str, frame: bool = True) -> bytes:
+    """The code; without its frame, the white card alone fills the square."""
     rows = _matrix(text)
     n = len(rows)
-    stroke, pad = SIZE * FRAME, SIZE * PAD
+    stroke, pad = (SIZE * FRAME if frame else 0), SIZE * PAD
     cell = (SIZE - 2 * (stroke + pad)) / n
     origin = (SIZE - cell * n) / 2
     path = "".join(
@@ -58,8 +59,8 @@ def svg(text: str) -> bytes:
     )
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {SIZE} {SIZE}">'
-        f'<rect width="{SIZE}" height="{SIZE}" fill="#000"/>'
-        f'<rect x="{stroke}" y="{stroke}" width="{SIZE - 2 * stroke}" '
+        + (f'<rect width="{SIZE}" height="{SIZE}" fill="#000"/>' if frame else "")
+        + f'<rect x="{stroke}" y="{stroke}" width="{SIZE - 2 * stroke}" '
         f'height="{SIZE - 2 * stroke}" rx="{SIZE * RADIUS}" fill="#fff"/>'
         f'<path d="{path}" fill="#000" shape-rendering="crispEdges"/></svg>'
     ).encode()

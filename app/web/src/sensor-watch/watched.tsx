@@ -5,7 +5,8 @@
 import { Fragment, useMemo, useState } from "react";
 import { Empty } from "../page";
 import { FilterChips, KINDS, LevelChips, type ChipOptions, type Choice } from "./chips";
-import { LEVELS, LEVEL_NAMES, NO_FILTERS, dueValue, searched, summary, type Filters, type Group, type Level, type LevelsView, type WatchRecord, FITS, type Profile } from "./common";
+import { LEVELS, LEVEL_NAMES, NO_FILTERS, dueValue, opens, searched, summary, type Filters, type Group, type Level, type LevelsView, type WatchRecord, FITS, type Profile } from "./common";
+import { ago } from "../format";
 import css from "./sensor-watch.module.css";
 import ui from "../ui.module.css";
 import { confirmBox } from "../confirm";
@@ -223,7 +224,7 @@ export function WatchedList({
                     </h4>
                   )}
                   {!isFolded(r) && (
-                <div className={`${css.row} ${css.compact} ${r.disabled ? css.off : ""}`}>
+                <div className={`${css.row} ${css.editable} ${css.compact} ${r.disabled ? css.off : ""}`} onClick={opens(() => onEdit(r))}>
                   {r.disabled ? (
                     <button
                       type="button"
@@ -238,21 +239,22 @@ export function WatchedList({
                   )}
                   <span className={css.what}>
                     <span className={css.nameLine}>
-                      <strong>{r.label}</strong> <code>{r.entity_id}</code>
+                      <button type="button" className={css.name} onClick={() => onEdit(r)}>
+                        {r.label}
+                      </button>{" "}
+                      <code>{r.entity_id}</code>
                       {r.attribute && <span className={css.note}> · its {r.attribute}</span>}
                     </span>
                     <span className={css.note}>
                       {now && !r.disabled ? `${r.days_until && now.value ? dueValue(now.value) : (now.value ?? "?")}${now.message ? ` · ${now.message}` : ""} · ` : ""}
+                      {now?.escalated && now.real && !r.disabled && `escalated from ${LEVEL_NAMES[now.real]} (${ago(now.since) ?? "a while"}) · `}
                       {summary(r)}
                       {r.meta?.area && ` · ${r.meta.area}`}
-                      {r.profile && ` · follows ${profiles.find((p) => p.id === r.profile)?.name ?? "a profile"}`}
+                      {r.profile && ` · levels from ${profiles.find((p) => p.id === r.profile)?.name ?? "a profile"}`}
                       {r.group && ` · in ${groups.find((g) => g.id === r.group)?.name ?? "a group"}`}
                     </span>
                   </span>
                   <span className={css.rowActions}>
-                    <button className={`${ui.button} ${ui.small}`} onClick={() => onEdit(r)}>
-                      Edit
-                    </button>
                     <button className={`${ui.danger} ${ui.small}`} onClick={() => onStop(r)}>
                       Stop watching
                     </button>

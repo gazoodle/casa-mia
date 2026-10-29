@@ -2,10 +2,11 @@
  * watched.tsx), Home Assistant itself, and the ways to add more. */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { SensorWatchIcon } from "../icons";
-import { AreaHead, Empty, Shell } from "../page";
+import { MODULES } from "../modules";
+import { AreaHead, Shell } from "../page";
 import { Toasts, type Toast } from "../ui";
-import { levelsOf, NO_FILTERS, swApi, type Filters, type LevelsView, type Profile, type WatchRecord, type WatchView } from "./common";
+import { About, Start } from "./about";
+import { levelsOf, NO_FILTERS, swApi, type Filters, type Group, type LevelsView, type Profile, type WatchRecord, type WatchView } from "./common";
 import { ApplyDialog, PickDialog, ScanDialog } from "./dialogs";
 import { RecordDialog } from "./editor";
 import { GroupsSection } from "./groups";
@@ -17,14 +18,13 @@ import guest from "../guest.module.css";
 import ui from "../ui.module.css";
 import { confirmBox } from "../confirm";
 
-const HEAD = {
-  icon: <SensorWatchIcon />,
-  title: "Sensor Watch",
-  module: "sensor_watch",
-  blurb: "Any sensor given bands of values, each with a level, so what needs doing or has gone wrong shows before the family notices.",
-};
+// The Home tile's own words and icon (modules.tsx), so the two say the same.
+const { icon, title, blurb } = MODULES.sensor_watch;
+const HEAD = { icon, title, blurb, module: "sensor_watch" };
 
-export function SensorWatchPage({ state }: { state?: string }) {
+/** `watch`: an entity whose watch to open (new or not), asked at `at` (the eye in its
+ * Home Assistant dialog; open.ts). */
+export function SensorWatchPage({ state, watch, at }: { state?: string; watch?: string; at?: string }) {
   const [view, setView] = useState<WatchView>();
   const [live, setLive] = useState<LevelsView>();
   const [missing, setMissing] = useState<string[]>([]);
@@ -34,6 +34,7 @@ export function SensorWatchPage({ state }: { state?: string }) {
   // A profile being edited (null: a new one), or followed by more sensors.
   const [profileEditing, setProfileEditing] = useState<Profile | null>();
   const [profileCopy, setProfileCopy] = useState<Profile>();
+  const [groupEditing, setGroupEditing] = useState<Group | null>(); // null: a new one
   const [applying, setApplying] = useState<Profile>();
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const watchedRef = useRef<HTMLElement>(null);
@@ -48,6 +49,16 @@ export function SensorWatchPage({ state }: { state?: string }) {
     swApi.get<WatchView>("").then(setView, (err) => toast((err as Error).message, "bad"));
     swApi.get<{ missing: string[] }>("check").then((c) => setMissing(c.missing), () => undefined);
   }, [toast]);
+
+  // An entity's watch asked for: open, once the records are here (so a watched one opens
+  // as it is), and the ask taken off the address, so a reload doesn't open it again.
+  const loaded = !!view;
+  useEffect(() => {
+    if (!watch || !loaded) return;
+    setEditing({ entityId: watch, record: view?.records.find((r) => r.entity_id === watch) });
+    history.replaceState(null, "", `${location.pathname}#/sensor-watch`); // not against <base>
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per ask, not per view
+  }, [watch, at, loaded]);
 
   // The live levels, pushed: each ask is held by the app until something changes in
   // Home Assistant (or 25 s pass), then asked again at once.
@@ -121,6 +132,7 @@ export function SensorWatchPage({ state }: { state?: string }) {
       )}
       {view.error && <div className={guest.warning}>sensor-watch.json could not be read ({view.error}), so nothing is watched. Fix or remove the file.</div>}
       {live?.error && <div className={guest.warning}>{live.error}</div>}
+      <About empty={!view.records.length} />
       <section className={guest.area} ref={watchedRef}>
         <AreaHead
           title="Watched sensors"
@@ -137,7 +149,20 @@ export function SensorWatchPage({ state }: { state?: string }) {
           }
         />
         {view.records.length === 0 ? (
-          <Empty>Watch an entity to give it bands, or scan the house for suggestions from history.</Empty>
+          <div className={`${ui.empty} ${css.emptyStart}`}>
+            <Start
+              actions={
+                <span className={css.actions}>
+                  <button className={ui.button} onClick={() => setGroupEditing(null)}>
+                    + New group
+                  </button>
+                  <button className={ui.button} onClick={() => setScanning(true)}>
+                    Scan my house
+                  </button>
+                </span>
+              }
+          />
+          </div>
         ) : (
           <WatchedList
             records={view.records}
@@ -175,6 +200,8 @@ export function SensorWatchPage({ state }: { state?: string }) {
       </section>
 
       <GroupsSection
+        editing={groupEditing}
+        setEditing={setGroupEditing}
         groups={view.groups ?? []}
         profiles={view.profiles ?? []}
         records={view.records}

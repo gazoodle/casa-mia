@@ -1,13 +1,13 @@
 /** A sensor's history with its bands shaded behind it, so a suggestion (or an edit) can
  * be checked against what the sensor really did. */
 
-import type { Band } from "./common";
+import { margin, type Accuracy, type Band } from "./common";
 import css from "./sensor-watch.module.css";
 
 const W = 600;
 const H = 160;
 
-export function HistoryChart({ points, bands, unit }: { points: [number, number][]; bands: Band[]; unit: string }) {
+export function HistoryChart({ points, bands, unit, accuracy }: { points: [number, number][]; bands: Band[]; unit: string; accuracy?: Accuracy }) {
   if (points.length < 2) return <p className={css.note}>Not enough history to draw.</p>;
   const values = points.map((p) => p[1]);
   const edges = bands.flatMap((b) => [b.from, b.to]).filter((v): v is number => v !== null);
@@ -32,17 +32,24 @@ export function HistoryChart({ points, bands, unit }: { points: [number, number]
           const bottom = y(Math.max(b.from ?? low, low));
           return bottom > top ? <rect key={i} x={0} width={W} y={top} height={bottom - top} className={css[`band_${b.level}`]} /> : null;
         })}
+        {[...new Set(edges)].map((e) => {
+          const m = margin(e, accuracy);
+          const top = y(Math.min(e + m, high));
+          const bottom = y(Math.max(e - m, low));
+          return m > 0 && bottom > top ? <rect key={`m${e}`} x={0} width={W} y={top} height={bottom - top} className={css.margin} /> : null;
+        })}
         <polyline points={line} className={css.line} vectorEffect="non-scaling-stroke" />
       </svg>
+      {/* Each value where it is: the top's at the top, the bottom's under the chart. */}
+      <span className={css.axisTop}>
+        {high.toPrecision(4)} {unit}
+      </span>
       <figcaption className={css.axis}>
         <span>
-          {high.toPrecision(4)} {unit}
+          {low.toPrecision(4)} {unit}
         </span>
         <span>
           {new Date(t0).toLocaleDateString()} – {new Date(t1).toLocaleDateString()}
-        </span>
-        <span>
-          {low.toPrecision(4)} {unit}
         </span>
       </figcaption>
     </figure>

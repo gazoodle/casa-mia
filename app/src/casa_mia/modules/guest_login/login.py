@@ -357,6 +357,8 @@ class GuestLogin(SignIn):
             if ep is None:
                 return False
             was_on = self._is_on(ep)
+            if on and not was_on:
+                ep.logins = 0  # counts this opening's sign-ins: 0 until someone scans
             ep.enabled = on
             ep.until = time.time() + minutes * 60 if on and minutes else None
             self._save()

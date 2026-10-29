@@ -1,5 +1,5 @@
 {
-  "_comment": "Each module's maturity, defined once (`option`: its option's key, when not <module>_enabled; \"\" for none of its own). The admin page reads it; tools/maturity.py --update writes it into the app's option descriptions and the docs (a test fails when they differ).",
+  "_comment": "Each module's maturity, defined once (`option`: its option's key, when not <module>_enabled; \"\" for none of its own; `docs`: its page, if it has one). The admin page reads it; tools/maturity.py --update writes it into the app's option descriptions and the docs (a test fails when they differ).",
   "levels": {
     "skeleton": {
       "name": "Skeleton",
@@ -33,8 +33,10 @@
     "kiosks": { "level": "alpha", "docs": "applets/kiosk-satellites.md" },
     "kiosk_mode": { "level": "alpha", "docs": "applets/kiosk-mode.md" },
     "people": { "level": "alpha", "docs": "applets/people.md" },
-    "sensor_watch": { "level": "alpha", "docs": "applets/sensor-watch.md" },
+    "sensor_watch": { "level": "beta", "docs": "applets/sensor-watch.md" },
     "fona": { "level": "alpha", "docs": "applets/phone-and-sms.md" },
-    "alarm": { "level": "development", "docs": "applets/alarm-panel.md" }
+    "alarm": { "level": "development", "docs": "applets/alarm-panel.md" },
+    "garnish": { "level": "beta", "option": "" },
+    "over_layer": { "level": "alpha", "docs": "over-layer.md", "option": "" }
   }
 }

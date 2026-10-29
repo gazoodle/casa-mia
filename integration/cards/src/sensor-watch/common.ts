@@ -26,20 +26,49 @@ export type Config = {
   /** With nothing to list: hide (and let its panel close), or say so. */
   when_clear?: "hide" | "message";
   clear_message?: string;
-  /** What each row shows; all of it by default. */
+  /** What each row shows, in this order; all but the icon by default. */
   show?: Column[];
+  /** The icon's colour: the row's level, the entity's own state colour (as a tile), or none. */
+  icon_color?: IconColor;
 };
 
-/** A row's parts, in order. */
-export const COLUMNS = ["level", "name", "message", "value", "since"] as const;
+export const ICON_COLORS = ["level", "state", "none"] as const;
+export type IconColor = (typeof ICON_COLORS)[number];
+
+/** A row's parts; a card shows them in the order of its `show`. */
+export const COLUMNS = ["icon", "level", "name", "message", "value", "since"] as const;
 export type Column = (typeof COLUMNS)[number];
 
-export const DEFAULTS = { levels: [...LEVELS] as Level[], max: 20, when_clear: "hide", clear_message: "All well.", show: [...COLUMNS] as Column[] } as const;
+export const DEFAULTS = { levels: [...LEVELS] as Level[], max: 20, when_clear: "hide", clear_message: "All well.", show: COLUMNS.filter((c) => c !== "icon") as Column[], icon_color: "level" } as const;
 
-/** The row's grid columns for what it shows (the name and message share one). */
+/** The row's parts in order, the name and message as one (`what`, where the first of
+ * them is), each once. */
+export function parts(show: readonly Column[]): (Column | "what")[] {
+  const out = show.map((c) => (c === "name" || c === "message" ? "what" : c));
+  return out.filter((c, i) => out.indexOf(c) === i);
+}
+
+const WIDTH: Record<Column | "what", string> = { icon: "24px", level: "72px", what: "minmax(0, 1fr)", name: "", message: "", value: "auto", since: "auto" };
+
+/** The row's grid columns for what it shows, in its order. */
 export function columns(show: readonly Column[]): string {
-  const has = (c: Column) => show.includes(c);
-  return [has("level") && "72px", (has("name") || has("message")) && "minmax(0, 1fr)", has("value") && "auto", has("since") && "auto"].filter(Boolean).join(" ");
+  return parts(show)
+    .map((p) => WIDTH[p])
+    .join(" ");
+}
+
+const INACTIVE = ["off", "closed", "locked", "idle", "standby", "docked", "not_home", "unavailable", "unknown"];
+
+/** An entity's state colour as a tile draws it, from HA's theme variables: its device
+ * class's and domain's for this state, then active or inactive. */
+// ponytail: HA's own stateColorCss isn't reachable from a card; this follows its variable
+// names for the common cases. Use HA's helper if the frontend ever exposes it.
+export function stateColor(entityId: string, state: string, deviceClass?: string): string {
+  const domain = entityId.split(".")[0];
+  const kind = INACTIVE.includes(state) ? "inactive" : "active";
+  const names = [...(deviceClass ? [`--state-${domain}-${deviceClass}-${state}-color`] : []), `--state-${domain}-${state}-color`, `--state-${domain}-${kind}-color`];
+  const last = kind === "inactive" ? "var(--state-inactive-color)" : "var(--state-icon-color)";
+  return names.reduceRight((inner, n) => `var(${n}, ${inner})`, last);
 }
 
 /** One row of the `list` service's answer. */
@@ -60,4 +89,36 @@ export function since(iso: string, now: number): string {
   if (s < 3600) return `${Math.floor(s / 60)} min`;
   if (s < 86400) return `${Math.floor(s / 3600)} h`;
   return `${Math.floor(s / 86400)} d`;
+}
+
+// The eye in an entity's dialog (eye.ts): one entity's watch, from the integration's
+// websocket subscription (levels.watching), and a tap to its editor in the app.
+export const ENTITY = "casa_mia/sensor_watch/entity";
+/** Not watched; or watched, with its level once judged. */
+export type Watch = { watched: boolean; level?: Level; message?: string; escalated?: boolean; real?: Level; since?: string };
+
+// The note the app's page takes (its one source, also in the admin UI's build).
+export { OPEN, openNote } from "../../../../app/web/src/open.ts";
+
+/** The Casa Mia app's sidebar panel among HA's panels: its config names the app's slug,
+ * casa_mia after the repository's prefix (local_, or a hash for an added repository). */
+export function appPanel(panels: Record<string, any> | undefined): { url_path: string } | undefined {
+  return Object.values(panels ?? {}).find((p) => /(^|_)casa_mia$/.test(p?.config?.addon ?? ""));
+}
+
+/** Each level's colour, in HA's theme: the card's rows, the eye, the Status sensor's icon. */
+export const LEVEL_COLOR: Record<Level, string> = {
+  nominal: "var(--success-color, #43a047)",
+  task: "var(--info-color, #039be5)",
+  warning: "var(--warning-color, #ffa600)",
+  error: "var(--error-color, #db4437)",
+  critical: "var(--error-color, #db4437)",
+};
+
+/** The Status sensor's icon colour (its level's), or none for any other entity: HA colours
+ * no sensor by its state, so ours is told (level-colour.ts). */
+export function levelColour(stateObj: { entity_id: string; state: string } | undefined, entities: Record<string, any> | undefined): string | undefined {
+  const e = stateObj && entities?.[stateObj.entity_id];
+  if (e?.platform !== "casa_mia" || e?.translation_key !== "sensor_watch_status") return undefined;
+  return LEVEL_COLOR[stateObj!.state as Level];
 }

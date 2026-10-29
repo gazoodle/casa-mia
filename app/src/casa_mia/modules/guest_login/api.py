@@ -37,7 +37,7 @@ from .common import (
 )
 from .login import GuestLogin
 from .page import header_jpeg, render_welcome
-from .printing import SECURITY
+from .printing import SECURITY, WORDS
 from .reach import fix, gather, report
 
 _LOGGER = logging.getLogger(__name__)
@@ -81,6 +81,7 @@ def empty_store() -> dict[str, Any]:
         "house_info": dict.fromkeys(HOUSE_INFO, ""),
         "goodbye": dict.fromkeys(GOODBYE, ""),
         "wifi": dict(WIFI),
+        "words": {},  # the cards' words other than English (printing.WORDS)
         "audit": {"days": KEEP_DAYS, "max": KEEP_MAX},
     }
 
@@ -346,6 +347,8 @@ class GuestAPI(Codes):
             "house_info": self.data["house_info"],
             "goodbye": self.data["goodbye"],
             "wifi": self.data["wifi"],
+            "words": self.data["words"],
+            "word_defaults": WORDS,
             "qr_host_effective": self.qr_host(),
             # Every name this box answers to; Try it picks one the admin isn't using.
             "hosts": list(
@@ -454,6 +457,11 @@ class GuestAPI(Codes):
                     else "WPA",
                     hidden=bool(got.get("hidden")),
                 )
+            said = dict(self.data["words"])
+            for key, value in (body.get("words") or {}).items():
+                if key in WORDS:  # blank: back to English
+                    said[key] = str(value or "").strip()
+            said = {k: v for k, v in said.items() if v}
             keep = dict(self.data["audit"])
             for key, low, high in (("days", 1, 3650), ("max", 100, 100000)):
                 if key in body.get("audit", {}):
@@ -475,6 +483,7 @@ class GuestAPI(Codes):
                 house_info=info,
                 goodbye=goodbye,
                 wifi=wifi,
+                words=said,
                 audit=keep,
             )
             self._commit()

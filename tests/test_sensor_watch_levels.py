@@ -4,7 +4,12 @@ bands, on/off, exact states, the summary, and Home Assistant's own health."""
 import pytest
 
 from casa_mia.modules.sensor_watch import LEVELS
-from casa_mia.modules.sensor_watch.common import BadRequest, clean
+from casa_mia.modules.sensor_watch.common import (
+    BadRequest,
+    clean,
+    displayed,
+    precision_of,
+)
 from sensor_watch_fakes import ALARM, SALT, _entry, _now, levels
 
 
@@ -77,6 +82,76 @@ def test_listing_is_worst_first_and_skips_nominal_unless_asked():
     now = _now(a="warning", b="nominal", c="critical", d="task")
     assert [r["entity_id"] for r in levels.listing(now)] == ["c", "a", "d"]
     assert [r["entity_id"] for r in levels.listing(now, ["nominal"])] == ["b"]
+
+
+@pytest.mark.parametrize(
+    ("value", "precision", "shown"),
+    [
+        ("49.9500007629395", 2, "49.95"),  # a grid frequency, as HA shows it
+        ("230", 1, "230.0"),  # its precision's digits, as HA shows them
+        ("242.4", 0, "242"),
+        (
+            "49.9500007629395",
+            None,
+            "49.9500007629395",
+        ),  # no precision: every digit, as HA
+        ("unavailable", 1, "unavailable"),
+        ("on", 2, "on"),
+        (None, 2, None),
+    ],
+)
+def test_a_value_is_shown_rounded_as_home_assistant_shows_it(value, precision, shown):
+    # The integration's rows and the app's live values: the same rule.
+    assert levels.displayed(value, precision) == shown
+    assert displayed(value, precision) == shown
+
+
+def test_a_sensors_display_precision_as_home_assistant_takes_it():
+    def entry(eid, **sensor):
+        return {"entity_id": eid, "options": {"sensor": sensor} if sensor else {}}
+
+    assert precision_of(entry("sensor.freq", suggested_display_precision=2)) == 2
+    assert (
+        precision_of(
+            entry("sensor.freq", suggested_display_precision=2, display_precision=0)
+        )
+        == 0
+    )
+    assert precision_of(entry("sensor.freq")) is None
+    assert (
+        precision_of(entry("number.pace", display_precision=1)) is None
+    )  # sensors only
+    assert precision_of({}) is None
+
+
+def test_one_entitys_watch_for_the_eye_in_its_dialog():
+    now = {
+        "sensor.salt": {
+            "level": "warning",
+            "message": "m",
+            "since": "t",
+            "value": "9",
+            "real": "task",
+            "escalated": True,
+        }
+    }
+    records = {"sensor.salt": SALT, "sensor.new": SALT}
+    assert levels.watching(records, now, "sensor.salt") == {
+        "watched": True,
+        "level": "warning",
+        "message": "m",
+        "since": "t",
+        "real": "task",
+        "escalated": True,
+    }
+    assert levels.watching(records, now, "sensor.new") == {
+        "watched": True
+    }  # no level yet
+    # Not watched: HA's own health rows (in `now`, not records) and anything else.
+    assert levels.watching(
+        records, now | {"recorder": {"level": "error"}}, "recorder"
+    ) == {"watched": False}
+    assert levels.watching(records, now, "light.hall") == {"watched": False}
 
 
 def test_home_assistants_own_health():
@@ -253,3 +328,164 @@ def test_a_date_is_read_as_the_days_until_it():
     assert at("2026-10-12T00:00:00+00:00") == ("-0.5", ("warning", "Overdue"))
     assert at("unavailable") == ("unavailable", ("error", "unavailable"))
     assert at("soon")[1] == ("error", "not a number: soon")
+
+
+UK_MAINS = {
+    "kind": "numeric",
+    "bands": [
+        {"from": None, "to": 207, "level": "critical", "message": "Very low"},
+        {"from": 207, "to": 216.2, "level": "warning", "message": "Low"},
+        {"from": 216.2, "to": 253, "level": "nominal", "message": ""},
+        {"from": 253, "to": 262, "level": "warning", "message": "High"},
+        {"from": 262, "to": None, "level": "critical", "message": "Very high"},
+    ],
+    "otherwise": "error",
+    "accuracy": {"amount": 1, "percent": True},  # ±2.53 V at 253 V, ±2.62 V at 262 V
+}
+
+
+@pytest.mark.parametrize(
+    ("current", "state", "level"),
+    [
+        (None, "254", "nominal"),  # the start: the doubt goes the better way
+        ("nominal", "254", "nominal"),  # within the accuracy: holds
+        ("nominal", "255.6", "warning"),  # surely past 253
+        ("warning", "254", "warning"),  # holds on the way back too
+        ("warning", "252.9", "nominal"),  # back inside the real edge: at once
+        ("nominal", "263", "warning"),  # past 253 surely, 262 not yet
+        ("nominal", "265", "critical"),
+        ("critical", "261", "warning"),
+        ("nominal", "215", "nominal"),  # the low edge: ±2.16 V at 216.2 V
+        ("nominal", "214", "warning"),
+        (None, "205.5", "warning"),  # critical only once surely below 207
+        ("error", "240", "nominal"),  # back from unavailable
+    ],
+)
+def test_accuracy_holds_a_level_near_an_edge(current, state, level):
+    assert levels.level_of(UK_MAINS, state, current)[0] == level
+
+
+def test_accuracy_as_an_amount_and_none_at_all():
+    fixed = UK_MAINS | {"accuracy": {"amount": 0.5, "percent": False}}
+    assert levels.level_of(fixed, "253.4", "nominal")[0] == "nominal"
+    assert levels.level_of(fixed, "253.6", "nominal") == ("warning", "High")
+    plain = {k: v for k, v in UK_MAINS.items() if k != "accuracy"}
+    assert levels.level_of(plain, "253.4", "nominal")[0] == "warning"
+
+
+def test_accuracy_is_checked_and_kept_for_numbers_only():
+    rec = clean("sensor.volts", UK_MAINS)
+    assert rec["accuracy"] == {"amount": 1.0, "percent": True}
+    assert "accuracy" not in clean(
+        "sensor.volts", UK_MAINS | {"accuracy": {"amount": 0}}
+    )
+    for bad in ({"amount": -1}, {"amount": 60, "percent": True}, "1%"):
+        with pytest.raises(BadRequest):
+            clean("sensor.volts", UK_MAINS | {"accuracy": bad})
+
+
+def test_a_band_narrower_than_the_accuracy_is_stepped_through_not_skipped():
+    from casa_mia.modules.sensor_watch import profiles
+
+    us = next(p for p in profiles.library() if p["name"].startswith("US mains"))
+    assert us["accuracy"] == {"amount": 1, "percent": True}
+    # 126-127 V is the warning; 127.5 V is surely past 126 V, not surely past 127 V.
+    assert levels.level_of(us, "127.5", "nominal")[0] == "warning"
+    assert levels.level_of(us, "128.5", "warning")[0] == "error"
+
+
+DAY = 86400
+LADDER = {"escalate": {"task": 7 * DAY, "warning": 7 * DAY}}
+
+
+@pytest.mark.parametrize(
+    ("real", "days", "shown", "next_in"),
+    [
+        ("task", 0, "task", 7),
+        ("task", 6.5, "task", 0.5),
+        ("task", 7, "warning", 7),  # each rung timed from reaching it
+        ("task", 13, "warning", 1),
+        ("task", 14, "error", None),  # no rung from error: it stops there
+        ("task", 400, "error", None),
+        ("warning", 7, "error", None),  # worse on its own: its own rung
+        ("error", 30, "error", None),
+        ("nominal", 30, "nominal", None),  # never from nominal
+    ],
+)
+def test_escalation_climbs_the_ladder_by_how_long_a_level_has_stood(
+    real, days, shown, next_in
+):
+    level, wait = levels.escalation(LADDER, real, days * DAY)
+    assert level == shown
+    assert wait == (None if next_in is None else pytest.approx(next_in * DAY))
+
+
+def test_escalation_stops_at_critical_and_needs_a_ladder():
+    assert levels.escalation({"escalate": {"error": 60}}, "error", 600) == (
+        "critical",
+        None,
+    )
+    assert levels.escalation({}, "task", 10 * DAY) == ("task", None)
+
+
+def test_escalate_is_checked_and_kept_for_any_kind():
+    rec = clean(
+        "binary_sensor.leak",
+        {"kind": "binary", "escalate": {"task": 3600, "warning": 0}},
+    )
+    assert rec["escalate"] == {"task": 3600}
+    assert "escalate" not in clean("sensor.salt", SALT | {"escalate": {}})
+    for bad in ({"nominal": 3600}, {"critical": 3600}, {"task": 5}, ["task"]):
+        with pytest.raises(BadRequest):
+            clean("sensor.salt", SALT | {"escalate": bad})
+
+
+def test_device_triggers_match_the_events_that_count():
+    m = levels.trigger_matches
+    assert m("reached", "error") == [
+        {"initial": False, "level": "error"},
+        {
+            "initial": False,
+            "level": "critical",
+        },  # or worse: a jump straight there counts
+    ]
+    assert [d["level"] for d in m("reached", "task")] == [
+        "task",
+        "warning",
+        "error",
+        "critical",
+    ]
+    assert m("reached", "nominal") == m(
+        "reached", "task"
+    )  # nominal is no level to reach
+    assert m("escalated", group="Water") == [
+        {"initial": False, "group": "Water", "escalated": True}
+    ]
+    assert m("back") == [{"initial": False, "level": "nominal"}]
+    with pytest.raises(ValueError):
+        m("louder")
+
+
+def test_each_device_trigger_is_named_and_matches_what_the_event_carries():
+    import json
+    import re
+    from pathlib import Path
+
+    root = (
+        Path(__file__).resolve().parents[1]
+        / "integration"
+        / "custom_components"
+        / "casa_mia"
+    )
+    names = json.loads((root / "translations" / "en.json").read_text())[
+        "device_automation"
+    ]
+    assert set(names["trigger_type"]) == set(levels.TRIGGERS)
+    assert set(names["extra_fields"]) == {"level", "group"}
+    fire = (root / "sensor_watch" / "watch.py").read_text().split("def _fire(", 1)[1]
+    fired = set(
+        re.findall(r'^\s+"(\w+)":', fire.split("\n    def ", 1)[0], re.MULTILINE)
+    )
+    for kind in levels.TRIGGERS:
+        for data in levels.trigger_matches(kind, "warning", "Water"):
+            assert set(data) <= fired, set(data) - fired

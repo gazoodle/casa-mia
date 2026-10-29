@@ -54,6 +54,9 @@ def numeric(samples: list[float]) -> dict[str, Any] | None:
         "max": max(samples),
         "outliers": outliers[:MAX_OUTLIERS],
         "outlier_count": len(outliers),
+        # How many are low (the rest are high): the page says "31 low, down to 216.1"
+        # rather than list ordinary dips (an outlier on a side is its min or max).
+        "outliers_below": sum(1 for x in outliers if x < mean),
         "bands": [
             {"from": None, "to": below, "level": "error", "message": ""},
             {"from": below, "to": low, "level": "warning", "message": ""},

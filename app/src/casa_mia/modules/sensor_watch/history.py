@@ -16,7 +16,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from ...ha import HA
-from .common import own
+from .common import displayed, own, precision_of
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -154,6 +154,7 @@ class Reader:
         self._labels: dict[
             str, str
         ] = {}  # label id -> its name, read with the candidates
+        self._own: set[str] = set()  # Sensor Watch's own entities, read with them too
 
     # -- the sensors
 
@@ -176,6 +177,7 @@ class Reader:
                 {"type": "config/floor_registry/list"},
             )
             reg = {e["entity_id"]: e for e in entities or []}
+            self._own = {eid for eid, e in reg.items() if own(e)}
             device_area = {d["id"]: d.get("area_id") for d in devices or []}
             device_name = {
                 d["id"]: d.get("name_by_user") or d.get("name") or ""
@@ -221,7 +223,7 @@ class Reader:
                         "platform": entry.get("platform") or "",
                         "device_class": attrs.get("device_class") or "",
                         "unit": attrs.get("unit_of_measurement") or "",
-                        "state": st["state"],
+                        "state": displayed(st["state"], precision_of(entry)),
                         "statistics": bool(attrs.get("state_class")),
                         "options": [str(o) for o in attrs.get("options") or []][:50],
                         "attributes": readings(attrs),
@@ -267,6 +269,11 @@ class Reader:
                 {c["device_class"] for c in cands if c["device_class"]}
             ),
         }
+
+    def owned(self, entity_id: str) -> bool:
+        """Is it one of Sensor Watch's own entities (its status, counts, problem)?"""
+        self.candidates()
+        return entity_id in self._own
 
     def find(self, entity_id: str) -> dict[str, Any] | None:
         return next((c for c in self.candidates() if c["entity_id"] == entity_id), None)

@@ -70,7 +70,9 @@ def test_the_guest_card(api):
         "Hi", {"ssid": "Oak", "password": "pw"}, "http://192.0.2.1:8675/e/x", "Annex"
     ).decode()
     assert (
-        "1. Join the Wi-Fi" in two and "Password: pw" in two and two.count("<svg") == 3
+        "1. Join the Wi-Fi" in two
+        and 'Password: <tspan font-family="ui-monospace' in two
+        and two.count("<svg") == 3
     )
     assert call(api, "POST", "logins", GUEST)[0] == 201
     ep = {"id": "s1", "label": "S1", "dashboard": "/g", "slug": "slug-1-abcdefgh"}
@@ -278,7 +280,7 @@ def test_a_screenshot_card_scans_to_the_stand_in(api, monkeypatch):
     monkeypatch.setattr(
         codes.swap, "out", lambda s: s.replace("192.168.1.20", "192.0.2.9")
     )
-    monkeypatch.setattr(codes, "card_svg", lambda *a: drawn.append(a) or b"<svg/>")
+    monkeypatch.setattr(codes, "card_svg", lambda *a, **_: drawn.append(a) or b"<svg/>")
     assert call(api, "POST", "logins", GUEST)[0] == 201
     ep = {"id": "s1", "label": "S1", "dashboard": "/g", "slug": "slug-1-abcdefgh"}
     assert call(api, "POST", "endpoints", ep)[0] == 201

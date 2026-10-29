@@ -13,7 +13,7 @@ from typing import Any
 from ... import qr, swap
 from .common import PORT, BadRequest, _norm, welcome_title
 from .login import GuestLogin
-from .printing import card_page, card_svg, wifi_text
+from .printing import card_page, card_svg, wifi_text, words
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -43,6 +43,81 @@ class Codes:
             return f"{base}/?d=/{_norm(ep['dashboard'])}"
         return f"{base}/e/{ep['slug']}"
 
+    def page_text(self, path: str) -> tuple[str, str]:
+        """A Home Assistant page's path, made tidy, and its address at the QR host."""
+        path = "/" + _norm(path)
+        if not re.match(r"^/[A-Za-z0-9._~/?=&%-]*$", path):
+            raise BadRequest("A path inside Home Assistant, such as /lovelace/hall.")
+        port = self.guest.ha_port()
+        return path, f"http://{self.qr_host()}" + (
+            "" if port == 80 else f":{port}"
+        ) + path
+
+    def for_card(self, query: dict[str, list[str]]) -> dict[str, Any]:
+        """The QR code card's picture (GET /guest-login/qr, for the integration), drawn as
+        the guest card is: an endpoint's code (?endpoint=<id>) while it is open, or a
+        page's (?path=...), the Wi-Fi's beside it (&wifi=1), or the Wi-Fi's alone. Its
+        options: &welcome=1 (the welcome title on top), &caption=..., &border=0,
+        &frame=0 (no frames round the codes), &details=0 (no network words), &steps=0 (no
+        headings, no name under the code; with nothing else, the code alone). A closed
+        endpoint's code is not given: any signed-in user can ask, a guest too, so only a
+        code that works now is shown."""
+
+        def arg(name: str) -> str:
+            return (query.get(name) or [""])[0]
+
+        said = words(self.data.get("words"))
+        title = self.data["welcome"].get("title") or welcome_title()
+        sign_in: str | None = None
+        label, note, heading = arg("caption"), None, said["sign_in"]
+        if ep_id := arg("endpoint"):
+            ep = next((e for e in self.data["endpoints"] if e["id"] == ep_id), None)
+            if ep is None:
+                return {"error": "No such endpoint."}
+            title = ep.get("title") or title
+            label = label or ep["label"]
+            if self.guest.health()["endpoints"].get(ep_id, {}).get("enabled"):
+                sign_in = self.qr_text(ep)
+                note = said["passcode"] if ep.get("pin") else None
+            else:
+                heading, note = said["closed"], said["closed_note"]
+        elif arg("path"):
+            try:
+                path, sign_in = self.page_text(arg("path"))
+            except BadRequest as exc:
+                return {"error": str(exc)}
+            label, heading = label or path, said["open"]
+        found: dict[str, Any] = {}
+        wifi = None
+        if arg("wifi"):
+            if self.data["wifi"].get("ssid"):
+                # Swapped before drawing, as the guest card's (see card).
+                wifi = {
+                    k: swap.out(v) if isinstance(v, str) else v
+                    for k, v in self.data["wifi"].items()
+                }
+            else:
+                found["wifi_error"] = "No Wi-Fi network saved yet."
+        code = bool(arg("endpoint") or arg("path"))
+        if not code and wifi is None:
+            return found
+        found["svg"] = card_svg(
+            swap.out(title) if arg("welcome") else None,
+            wifi,
+            swap.out(sign_in) if sign_in else None,
+            swap.out(label),
+            note,
+            heading=heading,
+            code=code,
+            border=arg("border") != "0",
+            frames=arg("frame") != "0",
+            details=arg("details") != "0",
+            steps=arg("steps") != "0",
+            width=600 * ((wifi is not None) + code),
+            said=said,
+        ).decode()
+        return found
+
     def wifi_qr(self, name: str) -> Response:
         """The saved Wi-Fi network's QR code: a phone's camera offers to join it."""
         if not self.data["wifi"].get("ssid"):
@@ -59,6 +134,7 @@ class Codes:
         if ep is None:
             return _json(404, {"error": "No such endpoint."})
         title = ep.get("title") or self.data["welcome"].get("title") or welcome_title()
+        said = words(self.data.get("words"))
         # Swapped before drawing, not after: a QR code's pattern carries its text where no
         # swap of the SVG can reach it, so a screenshot's card must be drawn from the
         # stand-ins or it would scan to the real address.
@@ -71,7 +147,8 @@ class Codes:
             wifi,
             swap.out(self.qr_text(ep)),
             swap.out(ep["label"]),
-            "Your host will give you a code" if ep.get("pin") else None,
+            said["passcode"] if ep.get("pin") else None,
+            said=said,
         )
         if name.endswith(".svg"):
             return 200, "image/svg+xml", svg
@@ -80,11 +157,7 @@ class Codes:
     def page_qr(self, method: str, name: str, query: dict[str, list[str]]) -> Response:
         """A QR code for any page of Home Assistant (a dashboard, a view), at the QR host:
         GET page-qr/code.svg|png?path=..., or POST page-qr/media?path=... to save it."""
-        path = "/" + _norm((query.get("path") or [""])[0])
-        if not re.match(r"^/[A-Za-z0-9._~/?=&%-]*$", path):
-            raise BadRequest("A path inside Home Assistant, such as /lovelace/hall.")
-        port = self.guest.ha_port()
-        text = f"http://{self.qr_host()}" + ("" if port == 80 else f":{port}") + path
+        path, text = self.page_text((query.get("path") or [""])[0])
         if method == "GET" and name in ("code.svg", "code.png"):
             shown = swap.out(text)
             if name == "code.svg":

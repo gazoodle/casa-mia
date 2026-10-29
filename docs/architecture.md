@@ -2,6 +2,12 @@
 
 The project's charter: why it exists, its goals, the design and how it is built and deployed. Moved here from the README unchanged (2026-10-09); parts are out of date and still to be reviewed.
 
+> **Being restructured (2026-10-13).** We are agreeing a modular architecture one piece at a
+> time, using a process being trialled on a sibling project. The charter below stays as the
+> source material; the agreed design grows in [The agreed architecture](#the-agreed-architecture)
+> at the end, heading by heading. Until a heading there holds an agreed decision, the charter
+> and the code are the reference, and nothing under those headings authorises implementation.
+
 ## Under the hood
 
 Everything custom one home needs from Home Assistant, in one repo: an HA **app**, an
@@ -102,13 +108,20 @@ Hand-edited live config is the thing to eliminate.
                               │   ▲ local API + SUPERVISOR_TOKEN  │
                               │   ▼                               │
                               │ Core ─▶ casa_mia integration      │
-                              │   thin: entities, services, UI    │
+                              │   entities, services, HA's data   │
                               └──────────────────────────────────┘
 ```
 
-**Placement rule:** anything long-running, I/O-heavy, network-facing or that must survive a
-Core restart lives in the **app**. The **integration** is thin: config flow, entities,
-services, events, Repairs. They talk over a small versioned local API.
+**Placement rule: the best place for the job** (owner, 2026-10-21). Anything long-running,
+I/O-heavy, network-facing or that must survive a Core restart lives in the **app**. What works
+on Home Assistant's own state, registries and events lives in the **integration**, and so
+does data the integration uses all the time: it is stored there (HA's own storage, in HA's
+backup), never copied from the app. Neither side is kept thin, or fat, for its own sake.
+They talk over a small versioned local API and HA's websocket, and changes are pushed.
+Why: the earlier rule that the integration stays thin (config flow, entities, services,
+events, Repairs only) kept Sensor Watch's records in the app, so the integration, which
+uses them all the time, had to copy them by a chain of pulls. The rule was serving itself,
+not the job.
 
 **Child integrations** (2026.10.4-b22): Guest login and Camera Commander each have their
 own, `casa_mia_guest_login` and `casa_mia_commander`, so a house can add only what it uses.
@@ -306,3 +319,117 @@ above).
    config, or discovery through the Supervisor?
 9. How are module health and "last heard" surfaced so a silent failure pages someone?
 10. What is the module enable flag's shape (one boolean option per module in the app's options, default off for modules that replace a live integration)?
+
+---
+
+# The agreed architecture
+
+Placeholder headings, specialised for Casa Mia. Each is filled only by an agreed decision,
+recorded with what, who, when and why. Pointers in brackets say where today's evidence lives.
+
+## Working together on this design
+
+### One piece at a time
+
+### Decision record: what, who, when and why
+
+### Proposals, agreed decisions and open questions
+
+(The charter's open questions above move here as each is taken up.)
+
+## Purpose and scope
+
+### A helpful home, not just a smart one
+
+(CLAUDE.md, the purpose: every problem known, nothing fails silently.)
+
+### Current scope and future work
+
+(The module table above; BACKLOG.md.)
+
+### Pieces shared with other projects
+
+(Copying from the author's own projects is fine; no dependency either way. See Why above.)
+
+## Existing behaviour to preserve
+
+### FONA: the way in when the internet is down
+
+### People and the alarm panel
+
+### Cameras, Camera Commander, the compositor and Auto Dashboards
+
+### Guest login
+
+### Kiosks, kiosk mode and the firmware server
+
+### Sensor Watch
+
+## System architecture
+
+### Deliverables: app, integrations, cards, firmware and generators
+
+### Placement: what lives in the app, what in the integration
+
+### Module responsibilities and ownership
+
+### The app and integration contract: health, events and push
+
+(RULE FOUR: push, never poll.)
+
+### Startup, shutdown and failure behaviour
+
+(RULE FIVE: working is a lease renewed only by proof.)
+
+### Access: ingress, the token gate and app ports
+
+## Shared components
+
+### Module host and lifecycle
+
+### Configuration, settings and their change events
+
+### HTTP serving and ingress
+
+### Logging, health and liveness leases
+
+(RULE TWO; Sensor Watch as the consumer.)
+
+### Admin UI chrome, pills and Lovelace cards
+
+(`ui.module.css`, `pills.css`, `integration/cards/`.)
+
+## Modules
+
+One section per module as it is agreed: purpose, owner of which state, its contract with the
+others, its failure behaviour and its acceptance checks.
+
+## Generated configuration
+
+### ESPHome, KNX and tablet provisioning
+
+### Determinism and drift from the live box
+
+## Testing and acceptance
+
+### Module tests with fakes
+
+### Contract tests: app and integration, the two layout engines
+
+### Fire drills on the real box
+
+## Incremental transition
+
+### Mapping today's code to the agreed modules
+
+(Files over 800 lines: `OVER` in `tests/test_file_sizes.py`.)
+
+### Order, verification, rollback and retirement of old code
+
+(The cut-over pattern under Develop and deploy.)
+
+## Development tooling and agreed checks
+
+(CLAUDE.md, Commands; not repeated here.)
+
+## Open questions

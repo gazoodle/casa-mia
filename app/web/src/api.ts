@@ -113,6 +113,9 @@ export type GuestConfig = {
   house_info: HouseInfo;
   goodbye: { title: string; message: string; url: string };
   wifi: Wifi;
+  /** The cards' words other than English, and the English of each (the default). */
+  words: Record<string, string>;
+  word_defaults: Record<string, string>;
   /** Every name the box answers to (QR host, LAN IP, .local name). */
   hosts: string[];
   port: number;

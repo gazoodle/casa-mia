@@ -33,6 +33,28 @@ export type Card = {
   run?: string;
 };
 export const LIVE_WAIT_MS = 10_000; // a live main camera not playing by then gives way to the picture
+/** The live main camera's lease (CLAUDE.md RULE FIVE): it says "(live)" only while a
+ * frame was put on screen within this time. Nothing else renews it. */
+export const LIVE_LEASE_MS = 5_000;
+
+/** What the live caption may claim, from when the live session started and when a frame
+ * was last put on screen (0: none yet). Fail-safe: live only on a recent frame. With
+ * none yet, nothing is said for the lease's length from the start (a stream takes a
+ * moment), then it is lost since the start; there is no state a stall can stay in. */
+export function liveClaim(startedAt: number, frameAt: number, now: number): { live: true } | { lost: string } | null {
+  if (frameAt && now - frameAt < LIVE_LEASE_MS) return { live: true };
+  const since = frameAt || startedAt;
+  return now - since < LIVE_LEASE_MS ? null : { lost: ago(now - since) };
+}
+
+/** A while, as people say it: "12 s", "4 min", "2 h 5 min". */
+export function ago(ms: number): string {
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return `${s} s`;
+  if (s < 3600) return `${Math.floor(s / 60)} min`;
+  const m = Math.floor(s / 60) % 60;
+  return `${Math.floor(s / 3600)} h${m ? ` ${m} min` : ""}`;
+}
 /** Live main cameras failed in a row before a card stops trying (until its page reloads):
  * each try and each failure changes its picture, a new stream each time. */
 export const LIVE_GIVE_UP = 2;

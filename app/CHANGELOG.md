@@ -1,5 +1,42 @@
 # Changelog
 
+## 2026.10.11
+
+- **Breaking:** the Casa Mia integrations and their cards changed. Restart Home Assistant once after updating (a Repair asks), then reload the browser.
+- **New card: Heating Flow** (`custom:casa-mia-heating-flow`): the heating and hot water as a live diagram, set up entirely in the card editor. Three views, as tabs: **System** (the source, heat pump, diverter, up to three floors of underfloor loops or radiators, the hot water tank, return loop, softener and storage tank), **Heat pump** (a cutaway of the refrigerant cycle, with compressor oil temperature), and **Rooms** (a tile per room with its temperature, target and loop). Colour is temperature, moving chevrons are flow, and a part whose sensor is unavailable says so, with how long. **Enable animations** off (or reduced motion) gives a still picture, for a low-powered tablet. Kudos to slipx06, whose [Sunsynk Power Flow Card](https://github.com/slipx06/sunsynk-power-flow-card) inspired it.
+- **Sensor Watch is now Beta.** In daily use, and it has already caught a real fault.
+  - **It explains itself on its page:** **How Sensor Watch works**, a fold at the top, says what levels, a watch, a profile and a group are for, how a level reaches you and where to start. With nothing watched, the list shows the three steps to start. The Groups and Profiles sections say when to use each, and a sensor's **Follows** is now **Levels from**.
+  - **Bands as a ladder built out from Nominal:** the nominal window in the middle, and each band above or below it with only its far edge ("Warning up to 24", "Critical above 26"), so no edge is typed twice and no value can fall between two bands. Each band out from nominal must be worse than the one inside it. Moving a nominal edge offers to move the bands beyond it by the same amount, or the whole ladder. A watch saved before with a gap between bands opens with the gap as a band at its old level, so it behaves as before. "Outside every band" is now **Not a number**.
+  - **Click a row** in the Watched sensors, Profiles or Groups list to open its editor; the Edit buttons are gone.
+  - **An eye in Home Assistant's entity dialog**, for admins: a tap watches the entity, or opens its watch; once watched, it shows the level in its colour, live. It needs the app in the sidebar.
+  - **Device triggers:** + Add trigger → Device → Sensor Watch offers "reached a level, or worse", "escalated" and "back to nominal", each narrowed to a group if you like. No YAML needed.
+  - **Escalation:** a level left standing moves up after a time you set for each of Task, Warning and Error ("escalated from Task (7 days ago)"). A new battery watch escalates to a warning after a fortnight.
+  - **Accuracy:** how far a meter may be out, so a reading that close to an edge holds its level instead of flapping. The library's mains voltage profiles come with ±1 %.
+  - The library's salt, battery, boiler pressure, pool and hot tub water, disk space and mains voltage profiles gained escalation or accuracy. Take them from the library again to get them on yours.
+  - **Unavailable for** (5 minutes by default) has its own wait, so a restart, a reload or a car asleep doesn't raise an error. A better level counts at once; only a worse one waits out its hold-off, which is timed from when the entity changed.
+  - The **Status** sensor's icon takes its level's colour on every card. **Problem** stays red for a warning, as Home Assistant colours it.
+  - Values are rounded as Home Assistant shows them, everywhere (49.95, not 49.9500007629395), and the event and the List service carry the sensor's `unit`.
+  - A sensor found at a level other than nominal (at Home Assistant's start, or when its watch is edited) now fires the event too, with `initial` true, so a problem from before a restart is raised again.
+  - A new group asks for its members' levels when none of them has built-in ones (a pressure, most numbers), instead of passing them all over in grey. **New profile…** makes one there and then, and the button says how many will join.
+  - The Sensor Watch card can show each row's icon, coloured by its level, and its parts (icon, level, name, message, value, how long) are drag-to-order chips in its editor. Existing cards look as they did.
+  - Sensor Watch's own entities can't be watched; that would judge itself.
+  - A save reaches Home Assistant at once, carrying only what changed, and Home Assistant's own health is checked the moment an integration's state changes rather than once a minute.
+  - The editor's chart labels its top and bottom values the right way up, and sums up outliers ("31 low, down to 216.1 V").
+  - **Fixed:** a level that waited out its hold-off changed without telling anyone (no event, no notification, the page and card stuck) until something else changed.
+- **Notify on Sensor Watch** (the blueprint):
+  - Titles lead with the level as a word ("Warning: Spa pH", "Back to nominal: Spa pH"), and the value carries its unit ("(56.58 Mbit/s)").
+  - On a phone with the Home Assistant app, each level shows the phone's own way: on Android a notification channel per level, with its colour and icon; on an iPhone a task arrives quietly and a critical as a critical alert. A sensor's next notification replaces its last.
+  - **Fixed:** Home Assistant 2026.10 refused it ("not a valid option at 'default'"). An automation made from it that failed to start: open it and save it again.
+  - **Fixed:** Home Assistant could refuse the file ("expected <block end>") when several writes of it ran at once. It's now written whole, one write at a time.
+  - Spook and Home Assistant's re-import no longer offer an "update" that would put back an older copy: the integration keeps it up to date itself.
+- **New card: QR code.** An open guest login endpoint's QR code on a dashboard, or any page's, with the Wi-Fi's code first, drawn by the app as the printed guest card is. **Show instructions** can hide the steps for a bare code; a closed endpoint shows a grey *Closed* tile; the network's name and password are in a fixed-pitch font, so an l and a 1 can't be mistaken. In an Over layer with the condition *Logins is 0*, the tablets show the code until the guest's first scan.
+- **Guest login:**
+  - An endpoint's **Logins** counts the sign-ins since it last opened (it counted for ever), and a new **Waiting for first login** binary sensor is on while it's open and no one has signed in. **Logins** and **Last login** change the moment a visitor signs in, not up to 30 seconds later.
+  - **QR codes → Words** puts the cards in your guests' language.
+- **Camera Commander card:** the live main camera says "(live)" only while its frames reach the screen. When they stop, its caption says "Live lost 12 s ago" in red, counting up. It used to stay "(live)" over a frozen picture.
+- Every change on the Casa Mia admin page, and FONA's state, error and signal, reach Home Assistant at once rather than at the next 30-second poll.
+- **Docs:** Garnish (Beta) and the Over layer (Alpha) have maturity levels, and the README is ordered by who will find each part useful. Sensor Watch's guide has new screenshots.
+
 ## 2026.10.10
 
 - **Breaking:** the Casa Mia integration and its cards changed. Restart Home Assistant once; a Repair asks.

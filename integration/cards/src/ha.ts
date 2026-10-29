@@ -17,6 +17,13 @@ export function fire(el: EventTarget, type: string, detail?: unknown): void {
   el.dispatchEvent(new CustomEvent(type, { detail, bubbles: true, composed: true }));
 }
 
+const warned = new Set<string>();
+/** Say in the console, once a page, that something leaning on HA's frontend can't. */
+export function warnOnce(text: string): void {
+  if (!warned.has(text)) console.warn(`CASA-MIA CARDS: ${text}`);
+  warned.add(text);
+}
+
 export function navigate(path: string): void {
   history.pushState(null, "", path);
   fire(window, "location-changed", { replace: false });

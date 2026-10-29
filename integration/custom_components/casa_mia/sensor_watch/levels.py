@@ -12,6 +12,9 @@ from typing import Any
 LEVELS = ("nominal", "task", "warning", "error", "critical")
 UNAVAILABLE = ("unavailable", "unknown")
 IGNORE = "ignore"  # a record's `unavailable`: no opinion while it is unavailable
+# seconds unavailable before that counts, unless a record says (its `unavailable_hold`):
+# a restart, a reload or a car asleep is usual, not trouble.
+UNAVAILABLE_HOLD = 300
 # Culprits listed per level in the status sensor's attributes, the longest standing
 # first: a glance, kept small (HA's recorder drops attributes over 16 kB, and a broken
 # integration can take hundreds of sensors with it). The `list` service gives them all.
@@ -71,10 +74,12 @@ def days_until(text: str, now: datetime) -> str:
 
 
 def level_of(
-    record: dict[str, Any], state: str | None
+    record: dict[str, Any], state: str | None, current: str | None = None
 ) -> tuple[str | None, str | None]:
     """The level a state puts its entity at, and why (a band's message, "unavailable",
-    "outside every band"); (None, None) while unavailable and the record ignores that."""
+    "outside every band"); (None, None) while unavailable and the record ignores that.
+    `current`: the level it has now, which a numeric record's `accuracy` holds to while
+    the reading is too close to an edge to be sure (in_bands)."""
     if record.get("kind") == "available":  # there at all; unknown counts as there
         if state is None or state == "unavailable":
             level = record.get("unavailable", "error")
@@ -105,11 +110,69 @@ def level_of(
         value = float(state)
     except ValueError:
         return record.get("otherwise", "error"), f"not a number: {state}"
+    return in_bands(record, value, current)
+
+
+def in_bands(
+    record: dict[str, Any], value: float, current: str | None
+) -> tuple[str, str | None]:
+    """A number's level by the bands. A meter is only so accurate (the record's
+    `accuracy`: {amount, percent}, a percentage of each edge or an amount in its unit),
+    so a reading within that of an edge might be either side of it. Then: a worse level
+    counts only once the reading is past the edge by the accuracy; a better one as soon
+    as it's back inside the real edge; in between the level holds, so a reading on the
+    line doesn't flap. At the start (no `current`), the doubt goes the better way."""
+    accuracy = record.get("accuracy") or {}
+    amount = accuracy.get("amount") or 0
+
+    def margin(edge: float | None) -> float:
+        if edge is None:
+            return 0
+        return abs(edge) * amount / 100 if accuracy.get("percent") else amount
+
+    # Each band the reading is in, or might be in: (level, message), the real one first.
+    real: tuple[str, str | None] = (
+        record.get("otherwise", "error"),
+        "outside every band",
+    )
+    maybe: list[tuple[str, str | None]] = []
     for band in record.get("bands") or []:
         low, high = band.get("from"), band.get("to")
+        found = (band.get("level", "nominal"), band.get("message") or None)
         if (low is None or value >= low) and (high is None or value < high):
-            return band.get("level", "nominal"), band.get("message") or None
-    return record.get("otherwise", "error"), "outside every band"
+            real = found
+        elif (low is None or value >= low - margin(low)) and (
+            high is None or value < high + margin(high)
+        ):
+            maybe.append(found)
+    if current is not None and rank(real[0]) <= rank(current):
+        return real  # better (or the same): the real edge is enough
+    held = [m for m in maybe if m[0] == current]
+    if held:
+        return held[0]
+    # Worse, or the start: the best it might be (no better than it was).
+    floor = -1 if current is None else rank(current)
+    return min(
+        (m for m in [real, *maybe] if rank(m[0]) > floor),
+        key=lambda m: rank(m[0]),
+    )
+
+
+def escalation(
+    record: dict[str, Any], real: str, stood: float
+) -> tuple[str, float | None]:
+    """The level shown for a `real` level that has stood `stood` seconds, by the record's
+    ladder (`escalate`: {level: seconds at that level before it moves up one}, each
+    rung timed from reaching it), and the seconds until the next step (None: it stops
+    there). Worked out each time, never counted, so a restart doesn't reset it."""
+    ladder = record.get("escalate") or {}
+    level, reached = real, 0.0
+    while level in ladder and rank(level) < len(LEVELS) - 1:
+        due = reached + ladder[level]
+        if stood < due:
+            return level, due - stood
+        level, reached = LEVELS[rank(level) + 1], due
+    return level, None
 
 
 def listing(
@@ -120,6 +183,30 @@ def listing(
     wanted = set(levels or LEVELS[1:])
     rows = [{"entity_id": e, **n} for e, n in now.items() if n.get("level") in wanted]
     return sorted(rows, key=lambda r: (-rank(r["level"]), r.get("since") or ""))
+
+
+def displayed(value: Any, precision: int | None) -> Any:
+    """A reading as Home Assistant shows it: a number rounded to the entity's display
+    precision when it has one (HA's frontend shows every digit otherwise), anything else
+    as it is. The app's live values use the same rule (its common.displayed)."""
+    if precision is None:
+        return value
+    try:
+        return f"{float(value):.{precision}f}"
+    except (TypeError, ValueError):
+        return value
+
+
+def watching(
+    records: dict[str, Any], now: dict[str, dict[str, Any]], entity_id: str
+) -> dict[str, Any]:
+    """One entity's watch, as the eye in its Home Assistant dialog shows it: whether it's
+    watched, and if so its level now (none yet while it waits out a hold-off)."""
+    if entity_id not in records:
+        return {"watched": False}
+    row = now.get(entity_id) or {}
+    keep = ("level", "message", "escalated", "real", "since")
+    return {"watched": True} | {k: row[k] for k in keep if row.get(k) is not None}
 
 
 def summary(now: dict[str, dict[str, Any]]) -> dict[str, Any]:
@@ -193,3 +280,25 @@ def system_rows(
             "message": f"{state}: {e['reason']}" if e.get("reason") else state,
         }
     return rows
+
+
+TRIGGERS = ("reached", "escalated", "back")  # the device triggers (device_trigger.py)
+
+
+def trigger_matches(
+    kind: str, level: str | None = None, group: str | None = None
+) -> list[dict[str, Any]]:
+    """The events a device trigger fires on, as event data to match (each a subset of
+    the event's): `reached` a level or worse (one match per level, so a jump straight to
+    critical counts), `escalated` (a step of a ladder), `back` to nominal. Never a level
+    found at Home Assistant's start or an edited watch (`initial`): it wasn't reached then.
+    `group`: only that group's sensors."""
+    only = {"initial": False} | ({"group": group} if group else {})
+    if kind == "reached":
+        least = rank(level or "warning")
+        return [only | {"level": lv} for lv in LEVELS[max(1, least) :]]
+    if kind == "escalated":
+        return [only | {"escalated": True}]
+    if kind == "back":
+        return [only | {"level": "nominal"}]
+    raise ValueError(f"no device trigger {kind}")

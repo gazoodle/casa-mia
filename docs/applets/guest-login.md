@@ -223,6 +223,40 @@ The **Settings** button holds:
 
 <img src="../screenshots/guest-wifi.webp" alt="The QR codes dialog on its Wi-Fi tab: network Oak Tree Guests, WPA, its password, and the network's QR code" width="800">
 
+- **Words:** the words on the guest card and the QR code card (*Join the Wi-Fi*, *Scan to
+  sign in*, *Network*, *Password*, the passcode note and the rest), for guests who read
+  another language. Leave one blank for its English.
+
+### The QR code card
+
+**Casa Mia QR code**, in the card picker, shows a code on any dashboard, drawn by the app
+just as the guest card is:
+
+- **Guest login endpoint:** pick it by name. The code shows while the endpoint is
+  open; otherwise a grey tile says *Closed*; it follows the switch, so a code that gets a new
+  address on closing shows the new one at the next opening.
+- **Or a page:** any dashboard or view, as on the QR codes dialog's *A page* tab: a plain
+  link that signs nobody in. A grid of these makes a directory of your own: every
+  endpoint, a tech page, the pool's dashboard.
+- **The Wi-Fi's code**, with the network's name: first (on the left), so a phone joins the
+  network before it scans to sign in; or on its own, with no endpoint or page.
+- A **title**, and a **caption** under the code (the endpoint's name, or the page's path,
+  unless you write one).
+- **The guest card's parts**, each yours to choose: the welcome title on top, the
+  instructions (the steps, and the name under the code), the network and password written
+  out, a black border round the card, a black frame round each code. With the instructions
+  off and nothing else on, the code alone fills the card, to lay out round it as you like.
+
+**Tablets that open at the first scan.** Put the card in an [Over layer](../over-layer.md)
+on the house's tablets, with the Visibility condition *the endpoint's Waiting for first
+login is on*. It's on while the endpoint is open and no one has signed in since it opened,
+so when your booking automation opens it, the tablets show the code; the guest's first scan signs their phone in and uncovers
+every tablet at once. Anything else (a checklist for the guest, the cleaner or you) is your
+own automation, on the endpoint's Login event.
+
+Any signed-in user can ask for a code the card shows, a guest too, which is why only an
+open endpoint's code is given: a closed one's would not work anyway.
+
 ### What each login can reach
 
 *A screenshot of this is coming soon.*
@@ -280,7 +314,11 @@ sign-out, newest first.
 Each endpoint is a device, *Guest: Oak Tree* or *Engineer: Plant room*, with:
 - an **Access** switch that opens and closes it;
 - a **Login** event that fires at each sign-in, with the phone's address;
-- **Logins** and **Last login** sensors.
+- **Waiting for first login**, on while it's open and no one has signed in since it
+  opened. An Over layer with the condition *Waiting for first login is on* covers the
+  house's tablets until the guest's first scan of a stay;
+- **Logins** (sign-ins since it last opened, back to 0 at each opening) and **Last login**
+  sensors.
 
 **Open for a time** (`casa_mia_guest_login.enable_for`) opens an endpoint, then closes it again after
 a number of minutes. For example, in an automation that runs when a booking starts:

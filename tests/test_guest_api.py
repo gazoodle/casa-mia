@@ -164,6 +164,40 @@ def test_qr_images_and_media(api, tmp_path):
     assert call(api, "GET", "qr/nope.png")[0] == 404
 
 
+def test_the_qr_code_card_gets_open_endpoints_pages_and_wifi(api):
+    call(api, "POST", "logins", GUEST)
+    call(
+        api,
+        "POST",
+        "endpoints",
+        {**SUITE, "id": "a", "legacy": False, "slug": "s" * 16},
+    )
+    shut = api.for_card({"endpoint": ["a"], "wifi": ["1"]})
+    assert (
+        "Closed" in shut["svg"] and shut["wifi_error"]
+    )  # any user asks: no closed codes
+    assert api.qr_text(api.data["endpoints"][0]) not in shut["svg"]
+    api.guest.set_enabled("a", True)
+    api.data["wifi"] = {"ssid": "Barn Guests", "password": "pw", "security": "WPA"}
+    found = api.for_card({"endpoint": ["a"], "wifi": ["1"], "welcome": ["1"]})["svg"]
+    assert "1. Join the Wi-Fi" in found and "2. Scan to sign in" in found
+    assert 'Password: <tspan font-family="ui-monospace' in found  # fixed pitch
+    assert 'stroke="#111"' in found  # the guest card's look
+    plain = api.for_card({"wifi": ["1"], "border": ["0"], "details": ["0"]})["svg"]
+    assert "Join the Wi-Fi" in plain and "Password" not in plain  # the Wi-Fi's alone
+    assert 'stroke="#111"' not in plain and "Scan" not in plain
+    page = api.for_card({"path": ["lovelace/pool"], "caption": ["Pool"]})["svg"]
+    assert "Scan to open" in page and "Pool" in page
+    bare = api.for_card({"endpoint": ["a"], "steps": ["0"]})["svg"]
+    assert "<text" not in bare and 'viewBox="0 0 600 600"' in bare  # the code alone
+    call(api, "PUT", "settings", {"words": {"join": "WLAN verbinden", "open": " "}})
+    worded = api.for_card({"endpoint": ["a"], "wifi": ["1"]})["svg"]
+    assert "1. WLAN verbinden" in worded and "2. Scan to sign in" in worded
+    assert api.data["words"] == {"join": "WLAN verbinden"}  # blank: back to English
+    assert api.for_card({"path": ["<bad>"]})["error"]
+    assert api.for_card({"endpoint": ["nope"]})["error"]
+
+
 def test_ha_errors_are_partial(api):
     def broken():
         raise HAError("no HA")
@@ -215,6 +249,18 @@ def test_login_stats_survive_restart(tmp_path, login_server):
         *runtime(data)[:3], port=0, internal_url=login_server, state_path=state
     )
     assert again.health()["endpoints"]["a"]["logins"] == 2
+
+
+def test_opening_restarts_the_login_count(tmp_path, login_server):
+    data = empty_store()
+    data["endpoints"] = [{"id": "a", "label": "A", "dashboard": "/x", "legacy": True}]
+    g = GuestLogin(*runtime(data)[:3], port=0, internal_url=login_server)
+    g.endpoints["a"].logins = 2
+    g.set_enabled("a", True)
+    assert g.endpoints["a"].logins == 0  # a new stay: nobody has scanned yet
+    g.endpoints["a"].logins = 1
+    g.set_enabled("a", True, minutes=60)  # already open (extended): kept
+    assert g.endpoints["a"].logins == 1
 
 
 def test_ha_users_parse_ha_s_real_shape(monkeypatch):
