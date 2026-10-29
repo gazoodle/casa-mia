@@ -343,6 +343,16 @@ guest card SVG), `page.py` (welcome, goodbye), `supervisor.py`.
   unchanged. The app's `common.py` `_ladder` refuses anything else on every save path;
   loading never runs `clean`, so old records with gaps still load, and the editor opens
   each gap as a band at `otherwise`. "Outside every band" is now **Not a number**.
+- **2026.10.11-b26…b30: Sensor Watch readied for the soft launch** (2026-10-29). A row
+  click opens its editor in Watched, Profiles and Groups (`opens()` in `common.ts`; Edit
+  buttons gone). The page explains itself: `about.tsx`, a fold with the parts, how you
+  hear and where to start, and the start steps in an empty list (the group dialog's open
+  state moved up to `page.tsx` for it). Follows is now **Levels from**. Guide read end to
+  end; editor, card and notifications screenshots retaken (watched list, group, library
+  and blueprint kept: the owner's setup is too big to recompose). The event, the List
+  service and the blueprint's text carry the value's `unit`. Not yet seen on the box:
+  units in a notification, the fold's Blueprints link (`target="_top"`, the first link
+  out of ingress), and Nominal's aligned message box.
 - **2026.10.11-b16: the eye in HA's entity dialog, and editor fixes** (on the box 2026-10-27; the owner: works a treat).
   `cards/src/sensor-watch/eye.ts` patches `ha-more-info-dialog`'s `updated` and puts
   `casa-mia-watch-eye` just after the `headerTitle` span (outside the template's parts,

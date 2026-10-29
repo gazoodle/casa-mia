@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.11-b31
+
+- Sensor Watch is now **Beta**: in daily use, and it has already caught a real fault.
+
 ## 2026.10.11-b30
 
 - Sensor Watch: in the band editor, Nominal's message box lines up with the bands' boxes above and below it; it ran on past their ✕.

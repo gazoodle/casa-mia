@@ -45,7 +45,7 @@ In order of how likely you are to want it, each with how far along it is
 * <a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta" align="absmiddle"></a><!--tablet_layout--> **[Tablet Layout](#tablet-layout):** Home Assistant's Sections view, locked to the screen: no scrolling, ever, and panels that make room as cards come and go.
 * <a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta" align="absmiddle"></a><!--garnish--> **[Garnish](#garnish-for-every-dashboard):** a heading that no longer keeps an empty section showing, on every Sections dashboard.
 * <a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha" align="absmiddle"></a><!--over_layer--> **[The Over layer](#the-over-layer):** one card over the whole dashboard while its conditions hold; everything beneath seen, not touched.
-* <a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha" align="absmiddle"></a><!--sensor_watch--> **[Sensor Watch](#sensor-watch):** a level for every sensor in the house, set up a whole class of things at a time, and you told only when one changes.
+* <a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta" align="absmiddle"></a><!--sensor_watch--> **[Sensor Watch](#sensor-watch):** a level for every sensor in the house, set up a whole class of things at a time, and you told only when one changes.
 * <a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta" align="absmiddle"></a><!--guest_login--> **[Guest login](#guest-login):** a QR scan signs a guest into their own dashboard, no password typed.
 * <a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta" align="absmiddle"></a><!--commander--> **[Camera Commander](#camera-commander):** every camera in one live picture, drawn in the app by the <a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha" align="absmiddle"></a><!--compositor--> [compositor](#camera-compositor), so a low-power tablet plays one stream instead of a dozen.
 * <a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha" align="absmiddle"></a><!--kiosks--> **[Kiosk Satellites](#kiosk-satellite)** and <a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta" align="absmiddle"></a><!--gitproxy--> **[their firmware server](#kiosk-satellite):** every wall tablet's version, backups and control page in one place, and updates without the internet.
@@ -156,7 +156,7 @@ admin gets it. Everyone else gets the wall. [The guide](docs/over-layer.md).
 
 ## Sensor Watch
 
-<a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha" align="absmiddle"></a><!--sensor_watch-->
+<a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta" align="absmiddle"></a><!--sensor_watch-->
 
 Home Assistant knows the state of everything and the health of almost nothing. Is 198 V
 on that plug fine? Is the freezer at −12 °C a problem? Has that bulb been unavailable

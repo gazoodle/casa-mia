@@ -2,7 +2,7 @@
 
 Tell it once what normal looks like, for every sensor in the house, and it tells you only when something isn't: what needs doing, or has gone wrong, before the family notices.
 
-> **Maturity: Alpha.** Does its job every day in the author's house, but hasn't been tried in many others. Expect rough edges and changes. ([The levels](../README.md#maturity))
+> **Maturity: Beta.** Complete and used every day; its features have settled. Please report what breaks in your setup. ([The levels](../README.md#maturity))
 
 <img src="../screenshots/sensor-watch-card.webp" alt="A kitchen wall tablet dashboard: a camera picture in the middle and, in the side panel, the Sensor Watch card titled Action Items listing an error (Spa pH, highly acidic), a warning (Download Speed, well below the plan) and a task (Tank State: get the order in), each with its icon in its level's colour, its value and how long it has stood" width="800">
 
