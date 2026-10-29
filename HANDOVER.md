@@ -435,11 +435,16 @@ guest card SVG), `page.py` (welcome, goodbye), `supervisor.py`.
   dashboard list).
 - **The owner tested the GitHub release install end to end** on the HAOS test VM. Don't
   offer to walk it again.
-- **Soft launch, on hold:** the owner wants a good spell of testing and using it first
-  (the backlog's Bugfest) before telling more people. The post is for HA Community → Share your Projects. Lead with the
-  Tablet Layout, then the Over layer, then garnish (and now guest login). Say up front:
-  needs HA OS or Supervised, it sends nothing home (the Pulls badge is GitHub's own
-  count), it's one house's system made general.
+- **Soft launched 2026-10-29** (release 2026.10.11, Sensor Watch Beta) to the owner's Gecko
+  integration users: a Share your Projects topic,
+  https://community.home-assistant.io/t/casa-mia-a-home-assistant-app-that-grew-out-of-my-hot-tubs-reminders/1030841
+  (the spa's reminders as the backstory, the Heating Flow card first, written with AI
+  assistance said plainly), and a reply pointing to it in the owner's Gecko thread,
+  https://community.home-assistant.io/t/gecko-in-touch2-integration-spa-wireless-remote-control-module/150764.
+  Feedback comes in there and as GitHub issues. The topic asks whether people want one app
+  or parts on their own (the backlog's appetite gate). Promised in the topic: a Heating
+  Flow guide next release (backlog; its screenshot is `docs/screenshots/heating-flow.webp`);
+  edit the topic to link it once it's out.
 - **Casa Mia is non-commercial, always** (the owner's commitment); the MIT licence stays,
   and what others do with it is on them.
 - **The 2026.3 floor (b1 of 2026.10.7) is read from HA's history, not tested:** everything
