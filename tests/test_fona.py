@@ -327,3 +327,23 @@ def test_modem_missing_is_reported_and_retried(run, monkeypatch):
 )
 def test_signal_quality(rssi, word):
     assert fona_module.quality(rssi) == word
+
+
+def test_a_change_of_state_or_signal_is_pushed_once():
+    from casa_mia.modules.fona import _Session
+
+    told = []
+    each = threading.Semaphore(0)
+
+    def changed():
+        told.append(1)
+        each.release()
+
+    f = Fona(lambda *a: {}, lambda e: None, port="x", on_change=changed)
+    f._line("RSSI:20:-73dBm", _Session())
+    assert each.acquire(timeout=2)
+    f._line("RSSI:20:-73dBm", _Session())  # the same again: nothing to tell
+    f._ready(_Session())  # offline -> connected
+    assert each.acquire(timeout=2)
+    f._ready(_Session())
+    assert not each.acquire(timeout=0.05) and len(told) == 2

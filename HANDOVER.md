@@ -1,7 +1,7 @@
 # Handover: Casa Mia, for agents joining the work
 
-Where the project stands and how the work is done here, as of 2026-10-11 (`dev` at
-2026.10.8-b1; 2026.10.7 released). **Read this at the start of every
+Where the project stands and how the work is done here, as of 2026-10-20 (`dev` at
+2026.10.11-b11; 2026.10.10 released). **Read this at the start of every
 session**, then CLAUDE.md in full; where they disagree, CLAUDE.md wins. It replaces
 re-reading old transcripts: the history below is all a new session needs.
 
@@ -254,13 +254,163 @@ guest card SVG), `page.py` (welcome, goodbye), `supervisor.py`.
   (`blueprint.py`: groups and notify actions filled in as dropdowns); the screenshot swap
   covers what the integration shows (`swap.py`, the app's rule); the page polls at most
   once a second (a busy loop hung Safari). Proven on the VM: the blueprint end to end.
+- **2026.10.11-b6…b11:** README ordered by usefulness with maturity chips, thanks, "What
+  does the future hold?"; the Sensor Watch blueprint valid on HA 2026.10 (`sequence:
+  !input more`, b7); Sensor Watch's hold-off timer ran off HA's loop, so a held level
+  fired no event and told nobody (the blueprint's silence) — fixed with `callback()`, plus
+  better news at once, **Unavailable for** (5 min default), and timing from the entity's
+  last changed (b8); guest login's **Waiting for first login** binary sensor (b9); the
+  Sensor Watch card's icon and drag-to-order parts (b10); the Commander's "(live)" as a
+  lease (b11, steps 1 and 2 of `docs/never-silently-stuck.md`).
+- **2026-10-12 evening, the stuck-camera investigation** (all in
+  `docs/never-silently-stuck.md`): a tablet showed "(live)" over a picture frozen for
+  hours; a Sensor Watch Save hung silently (Safari's ~6 connections to HA used up by
+  another window, refreshing it let the Save through). Cause: HA 2026.10.0's FFmpeg 9
+  checks TLS, the recorder's `rtsps` certificate is self-signed, so streams HA opens itself
+  fail and the camera entities flap (core #184775, fixed in 2026.10.1, which has its own
+  snapshot issue #185706). Only channels HA streams itself flap (our compositor's medium
+  warm-up, the advanced-camera-card's `ha` cameras); go2rtc still works. (The box has
+  since moved to 2026.10.2, and those warnings are gone.) Out of it: the purpose at the
+  top of CLAUDE.md (a helpful home: every problem known) and RULE FIVE (safe by
+  construction: a claim of working is a lease).
+- **2026-10-19, why the wall tablets show no live video** (investigated over adb; nothing
+  changed on the box, tablet or repo). Found:
+  - **Cause (strongly indicated, not proven on the tablet): H.265.** go2rtc's RTSP
+    DESCRIBE on every stream it had registered (read-only, port 8554 on the box) showed
+    H265. The tablet's Android WebView (131) generally cannot decode H.265 over WebRTC, so
+    no video track arrives: the Cameras applet's live view shows 0 × 0 and "Connecting…"
+    for ever. A camera with H.264 low and medium channels played those two and hung only
+    on its H.265 high. Desktop browsers play H.265, which is why the Mac "works".
+  - **Ruled out:** the network (the tablet sits on an IoT VLAN with no internet; TCP to
+    HA 8123, go2rtc 8555 and 1984 all open, and an H.264 camera plays, so UDP gets
+    through); the entity-id oddities in the registry (medium channels re-created or
+    renamed around the HA 2026.10.0 update; a red herring, so **don't recreate entity
+    ids**); a stale or diagnostic cards bundle (the box's `cm-cards.js` equals the
+    committed one; the card has only two `console.info` lines). The Cameras page's
+    Channels column leaves out the camera's own entity (the low channel) by design.
+  - **Gaps:** the other cameras' codecs (go2rtc registers a stream only when HA is asked,
+    so they were not listed: open a camera's live view on the tablet and list
+    `/api/streams` again); the WebView's H.265 support is unconfirmed; one observed case
+    of the card saying "(live)" over a frozen picture (a tablet had the lease code, the
+    frame was stamped a minute old) was never caught again, so whether the lease can be
+    fooled by a stalled WebRTC stream (`requestVideoFrameCallback` firing on a repeated
+    frame) is open. If it recurs, sample the tablet with `adb exec-out screencap` and
+    compare the main picture's pixels; renew the lease only when the frame's `rtpTimestamp`
+    moves, if so.
+  - **Relief that already exists, needing no code:** the Camera compositor page's **Live
+    main camera** switch (system-wide, saved, cards follow within a second). Off, every
+    card shows the compositor's drawn picture (about two a second). The owner was told;
+    whether they switched it off is not recorded.
+  - **Defects found in our code** (all in the backlog's spirit, none built): the Cameras
+    live-view dialog (`app/web/src/LiveView.tsx`) picks WebRTC from HA's capabilities and
+    then waits for ever, with no timeout and no MJPEG fallback (MJPEG goes over TCP 8123
+    and would work); the card's live failure goes only to the tablet's console, falls back
+    silently, and gives up for good after two failures until a reload (`LIVE_GIVE_UP`);
+    the card gets no channel availability or codec information.
+  - **Proposed next step, awaiting the owner's go:** one shared WebRTC check in
+    `app/web/src/webrtc.ts` (stage timings: config, offer, answer, ICE state, first frame;
+    a codec check with `RTCRtpReceiver.getCapabilities` before trying; a timeout; a plain
+    verdict, such as "this device cannot play H.265"), used by the Cameras dialog (fall
+    back to MJPEG and say so), the card (a pill with the verdict; the give-up lapses) and a
+    report to the app's log, so Sensor Watch can see it; and the same Live main camera
+    switch on the Commander page. Needs a version bump first.
+  - **For the owner (UniFi Protect):** set the H.265 channels the tablets use (medium) to
+    H.264 where the camera model allows it; not checked which models do.
+  - **How it was done, for the next session:** the test tablet is on adb (`adb devices`);
+    `adb exec-out screencap -p`, `adb logcat -d | grep chromium` (WebRTC logs there, but
+    the card's `console.info` lines are not visible without DevTools: no socket is open).
+    go2rtc's API is on the box's port 1984 (`/api/streams`), RTSP on 8554. A UDP STUN probe
+    from the Mac proved nothing (no reply to any STUN, even from outside), so don't repeat
+    it.
+- **2026.10.11-b13: Sensor Watch's records pushed** (step one of the backlog's "Sensor
+  Watch's records: pushed, then owned by the integration"; not yet on the box). The app
+  pushes each save over `live.py`'s websocket (the integration's
+  `casa_mia/sensor_watch/apply`, `push.py`): only the records changed, from the revision
+  the integration has. Every record is sent on connecting, after a refusal (`resync`), and
+  for profile and group saves. The answer carries the changed records' levels. The Home
+  tile reads the integration's own Status and count entities (`status.summarise`).
+  `tests/test_sensor_watch_push.py` runs the real feed against a stand-in HA websocket.
+- **2026.10.11-b14: Sensor Watch accuracy** (the backlog's "Accuracy" item; not yet
+  on the box). A numeric record or profile may carry `accuracy` {amount, percent};
+  `levels.in_bands` holds the current level within it of an edge (worse only once
+  surely past, better at the real edge, the start the better way), so `level_of` now
+  takes the current level. The library's mains voltage profiles have ±1 %.
+- **2026.10.11-b25: the band editor as a ladder** (the backlog item of 2026-10-29; not
+  yet on the box). The editor holds a numeric record's bands as a ladder out from nominal
+  (`app/web/src/sensor-watch/ladder.ts`: `toLadder`, `toBands`, `problemOf`, `nudge`; run
+  in node by `tests/test_sensor_watch_ladder.py`, so it imports types only, and the
+  levels' order and names moved there, re-exported by `common.ts`). The stored format is
+  unchanged. The app's `common.py` `_ladder` refuses anything else on every save path;
+  loading never runs `clean`, so old records with gaps still load, and the editor opens
+  each gap as a band at `otherwise`. "Outside every band" is now **Not a number**.
+- **2026.10.11-b26…b30: Sensor Watch readied for the soft launch** (2026-10-29). A row
+  click opens its editor in Watched, Profiles and Groups (`opens()` in `common.ts`; Edit
+  buttons gone). The page explains itself: `about.tsx`, a fold with the parts, how you
+  hear and where to start, and the start steps in an empty list (the group dialog's open
+  state moved up to `page.tsx` for it). Follows is now **Levels from**. Guide read end to
+  end; editor, card and notifications screenshots retaken (watched list, group, library
+  and blueprint kept: the owner's setup is too big to recompose). The event, the List
+  service and the blueprint's text carry the value's `unit`. Seen on the box 2026-10-29
+  (b31, now Beta): units in a notification, the fold's Blueprints link (`target="_top"`,
+  the first link out of ingress, works), and Nominal's aligned message box.
+- **2026.10.11-b16: the eye in HA's entity dialog, and editor fixes** (on the box 2026-10-27; the owner: works a treat).
+  `cards/src/sensor-watch/eye.ts` patches `ha-more-info-dialog`'s `updated` and puts
+  `casa-mia-watch-eye` just after the `headerTitle` span (outside the template's parts,
+  so HA's redraws leave it), slot `headerActionItems`, in the `info` view only; the same
+  slots from HA 2026.3 to 2026.10. It subscribes to `casa_mia/sensor_watch/entity`
+  (admin; `levels.watching`). A tap leaves a note in localStorage (`app/web/src/open.ts`,
+  hashed into both builds) and navigates to the app's panel (found by `config.addon`
+  ending `casa_mia`); the page takes the note and opens the editor. Checked: the command
+  under real HA (scratch harness), the note on the app run locally (headless Chromium).
+  Seen working on the box (2026-10-27): the eye's placement and the panel hop. The blueprint lost its `source_url` (Spook kept offering an "update").
+  Running the app on the Mac for UI checks: see the UI review item in the backlog.
+- **2026.10.11-b15: notifications in words, and escalation** (not yet on the box).
+  The blueprint's titles lead with the level as a word, and a `notify.mobile_app_…`
+  action gets the phone's own severity (Android channels per level, iPhone interruption
+  levels, a tag per sensor). Escalation: `escalate` {level: seconds} on a record or
+  profile; `levels.escalation` works out the shown level from the real one and how long
+  it has stood; `watch.py` keeps `real` beside `level` in each row, compares with the
+  real one, and sets one timer per sensor for its next step. Checked under real HA in a
+  scratch harness (Python 3.13, pytest-homeassistant-custom-component), not in the repo.
+  Levels found at a level (start, an edited watch, Refresh state) fire the event too,
+  with `initial`, held until HA has started (`async_at_started`); the blueprint raises
+  the sidebar's notification again but leaves the phone alone.
+- **2026.10.11-b20: the Heating Flow card, System view** (built 2026-10-28 overnight; not
+  yet on the box; uncommitted for the owner to look at). The design was settled in the
+  playground `docs/design/heating-flow.html` (scripts in `docs/design/heating-flow/`);
+  the card is its System view ported to `cards/src/heating-flow/`: `engine.ts` (geometry,
+  colour, sensor placement; pure, tested under Node), `draw.ts` (pipes drawn as one
+  network: every wall, then every fill, so tees join; ends square-capped; crossings on
+  top with a gap), `parts.ts`, `system.ts`, `common.ts` (options; each entity a reading,
+  not current when unavailable or silent past `stale_hours`; flows and priority from the
+  states), `card.ts` (fires HA's `hass-action`), `editor.ts` (ha-form, one fold per
+  area; sensor lists are ordered entity pickers). Checked: card tests, and the built
+  bundle rendered in a scratch harness with invented states (light, dark, faults, a tap).
+  Not yet seen under real HA: the editor's folds and entity lists, and `hass-action`.
+  Next: the Heat pump and Rooms views (the playground has both), which add view buttons.
 
 ## Where things stand
 
+- **Never silently stuck (2026-10-12): go one step at a time.** The owner wants it slow and
+  methodical: one agreed step, built, recorded in `docs/never-silently-stuck.md`, seen on
+  the test tablet, never redone; nothing planned beyond it; analyse before code, and change
+  nothing while investigating. Steps 1–2 done (the Commander's "(live)" lapses into red
+  "Live lost … ago"). The doc holds the findings, the cause, and ideas (the camera ladder
+  of degradation with status pills, escalation with an Escalation-handler blueprint and
+  remedy tools from the Cameras applet, the goal of gathering a fault's evidence in one
+  place for users). The next step is the owner's to choose; the 2026-10-19 findings above
+  (H.265 on the tablets) argue for the shared WebRTC check. The test tablet is on adb and
+  its Kiosk Satellite API (`/api/console`, `/api/logs`; console keeps only the first 300
+  entries).
+- **Paused: the owner's Sensor Watch migration** (old error/warning/task tiles into Sensor
+  Watch, to prove it before its release); it stopped when Save hung. Read entity ids in the
+  Companion app and edit in Safari (separate connection pools) to dodge the hang. A camera
+  group now watches all 88 camera channels (Available, a task; its 0 hold-off is the
+  owner's, for testing; the level is to be revisited).
 - **Sensor Watch is Alpha, in daily use on the box, heading for release:** the README
   section, the guide's opening and worked examples are written, and six screenshots taken
-  on the box with the swap on (b31). Still to do: the notifications shot (the blueprint
-  didn't notify on the box: backlogged, evidence first), re-taking the page and group
+  on the box with the swap on (b31). Still to do: the notifications shot (the blueprint's
+  silence was likely the b8 timer bug: check on the box first), re-taking the page and group
   shots once the subtitle changes, confirming b31's `…` fix after an HA restart, then a
   release. Its
   backlog section "Sensor Watch (alpha)" holds what's next (stale sensors, `list` by

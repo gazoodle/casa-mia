@@ -1,5 +1,6 @@
 """Casa Mia Guest Login: the app's guest login endpoints in Home Assistant (an Access
-switch, logins and a login event per endpoint), on Casa Mia's coordinator."""
+switch, logins, Waiting for first login and a login event per endpoint) and the QR code card's codes, on Casa
+Mia's coordinator."""
 
 from __future__ import annotations
 
@@ -11,12 +12,13 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 
 from ..casa_mia.children import add_module_device, follow_module, parent_coordinator
-from .const import MODULE
-from .guest import async_prune_endpoint_devices, login_device
+from .const import DOMAIN, MODULE
+from .guest import async_follow_logins, async_prune_endpoint_devices, login_device
+from .qr import setup as setup_qr
 from .restart_notice import async_check_restart, manifest_version
 
 _LOGGER = logging.getLogger(__name__)
-PLATFORMS = [Platform.EVENT, Platform.SENSOR, Platform.SWITCH]
+PLATFORMS = [Platform.BINARY_SENSOR, Platform.EVENT, Platform.SENSOR, Platform.SWITCH]
 # Read at import, as Casa Mia's own: a reload must not take newer files as loaded.
 LOADED_VERSION = manifest_version()
 
@@ -24,6 +26,9 @@ LOADED_VERSION = manifest_version()
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator = parent_coordinator(hass)
     entry.runtime_data = coordinator
+    if not hass.data.get(f"{DOMAIN}_qr"):  # once per HA run
+        setup_qr(hass)  # the QR code card's codes
+        hass.data[f"{DOMAIN}_qr"] = True
     off = follow_module(
         hass,
         entry,
@@ -43,6 +48,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     prune = lambda: async_prune_endpoint_devices(hass, entry, coordinator)  # noqa: E731
     prune()
     entry.async_on_unload(coordinator.async_add_listener(prune))
+    async_follow_logins(hass, entry, coordinator)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 

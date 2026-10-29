@@ -2,7 +2,11 @@
 
 A record watches one entity (keyed by its entity id):
 - numeric: `bands`, each {from, to, level, message}: from inclusive, to exclusive,
-  either open (None); `otherwise`, the level of a value in no band;
+  either open (None), saved only as a ladder out from one nominal band (_ladder());
+  `otherwise`, the level of a state that isn't a number (and, in a record saved before
+  2026.10.11-b25, of a value in a gap between bands); `accuracy`
+  (optional) {amount, percent}: how far the meter may be out, as a percentage of each
+  edge or an amount in its unit, so a reading that close to an edge holds its level;
 - binary: `off` and `on`, each {level, message}: what each state means, so either can
   be nominal, or neither (a task when off, an error when on). Records from before
   2026.10.8-b20 have `nominal` (the state all is well in), `other` (the other's level)
@@ -15,13 +19,17 @@ A record watches one entity (keyed by its entity id):
   message} for any state, `unknown` included; `unavailable` (below) and its `message`
   for unavailable or gone from Home Assistant (renamed, its integration removed). Either
   may be nominal: a level when something that should stay gone comes back;
-- all: `unavailable` (a level, or "ignore"), `hold_off` (seconds a new level must last
-  before it counts), an optional display `name`, and an optional `attribute`: watch that
+- all: `unavailable` (a level, or "ignore"), `hold_off` (seconds a new, worse level
+  must last before it counts; a better one counts at once), `unavailable_hold` (seconds
+  it must be unavailable before that counts; an availability watch uses its hold-off),
+  an optional display `name`, and an optional `attribute`: watch that
   attribute's value instead of the state (a climate's current_temperature, a cover's
   current_position); `days_until` (numeric only: the state is a date or timestamp, read
   as the days until it, negative once it's passed, so a reminder's due date is banded
   in days); and `disabled` (true: kept, with its group, but not watched: the
-  integration isn't sent it, and the page lists it apart).
+  integration isn't sent it, and the page lists it apart); `escalate` (optional)
+  {level: seconds}: having stood that long at a level (task, warning or error), it
+  shows the next one up, rung by rung (the integration's levels.escalation).
 The integration works out the levels (casa_mia_sensor_watch/levels.py, whose LEVELS
 must match these; a test checks)."""
 
@@ -34,8 +42,13 @@ LEVELS = ("nominal", "task", "warning", "error", "critical")
 IGNORE = "ignore"
 KINDS = ("numeric", "binary", "state", "available")
 DEFAULT_HOLD_OFF = 60  # seconds
+# seconds unavailable before it counts: a restart, a reload or a car asleep is usual.
+# The integration's levels.UNAVAILABLE_HOLD, for records saved before it.
+DEFAULT_UNAVAILABLE_HOLD = 300
 MAX_HOLD_OFF = 24 * 3600
 MAX_BANDS = 12
+MAX_ACCURACY_PERCENT = 50
+MAX_ESCALATE = 365 * 24 * 3600  # seconds at one level before it moves up
 MAX_STATES = 20
 MAX_TEXT = 80  # a name
 # A message: past 80 characters, notifications and cards may cut it short (the page says so).
@@ -45,6 +58,11 @@ MAX_MESSAGE = 255
 EVENT = "casa_mia_sensor_watch"
 SERVICE = ("casa_mia", "sensor_watch_list")
 REFRESH = ("casa_mia", "sensor_watch_refresh")  # every watch judged afresh
+# The integration's websocket command the records are pushed by (its push.py), and its
+# own entities' translation keys (the Home tile's health comes from the status, counts).
+APPLY = "casa_mia/sensor_watch/apply"
+STATUS = "sensor_watch_status"
+COUNT = "sensor_watch_{}_count"
 
 
 def own(entry: dict) -> bool:
@@ -107,6 +125,11 @@ def clean(entity_id: str, body: dict[str, Any]) -> dict[str, Any]:
     hold_off = _number(body.get("hold_off", DEFAULT_HOLD_OFF), "Hold-off")
     if hold_off is None or not 0 <= hold_off <= MAX_HOLD_OFF:
         raise BadRequest(f"Hold-off: 0 to {MAX_HOLD_OFF} seconds.")
+    gone_hold = _number(
+        body.get("unavailable_hold", DEFAULT_UNAVAILABLE_HOLD), "Unavailable for"
+    )
+    if gone_hold is None or not 0 <= gone_hold <= MAX_HOLD_OFF:
+        raise BadRequest(f"Unavailable for: 0 to {MAX_HOLD_OFF} seconds.")
     record: dict[str, Any] = {
         "entity_id": entity_id,
         "kind": kind,
@@ -115,10 +138,13 @@ def clean(entity_id: str, body: dict[str, Any]) -> dict[str, Any]:
             {"attribute": a} if (a := _text(body.get("attribute"), "Attribute")) else {}
         ),
         "hold_off": int(hold_off),
+        "unavailable_hold": int(gone_hold),
         "unavailable": _level(
             body.get("unavailable", "error"), "When unavailable", True
         ),
     }
+    if escalate := _escalate(body.get("escalate")):
+        record["escalate"] = escalate
     if kind == "binary":
         if "on" not in body and "off" not in body:  # the form before b20
             nominal = body.get("nominal", "off")
@@ -202,16 +228,82 @@ def clean(entity_id: str, body: dict[str, Any]) -> dict[str, Any]:
             }
         )
     out.sort(key=lambda b: float("-inf") if b["from"] is None else b["from"])
-    for a, b in zip(out, out[1:]):
-        a_high = float("inf") if a["to"] is None else a["to"]
-        b_low = float("-inf") if b["from"] is None else b["from"]
-        if b_low < a_high:
-            raise BadRequest(f"Bands overlap: {_span(a)} and {_span(b)}.")
-    record["bands"] = out
-    record["otherwise"] = _level(body.get("otherwise", "error"), "Outside every band")
+    record["bands"] = _ladder(out)
+    record["otherwise"] = _level(body.get("otherwise", "error"), "Not a number")
+    if accuracy := _accuracy(body.get("accuracy")):
+        record["accuracy"] = accuracy
     if body.get("days_until") is True:
         record["days_until"] = True
     return record
+
+
+def _ladder(bands: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """`bands` (sorted) if they are a ladder out from nominal, else BadRequest: open at
+    both ends, each edge shared with the next band (no gap, no overlap), exactly one
+    nominal band, and each band out from it worse than the one inside. The editor can't
+    write anything else; this refuses it from anywhere."""
+    if bands[0]["from"] is not None or bands[-1]["to"] is not None:
+        raise BadRequest(
+            "Bands must be open at both ends: nothing below the lowest, nothing above the highest."
+        )
+
+    for a, b in zip(bands, bands[1:]):
+        if a["to"] is None or b["from"] is None or b["from"] < a["to"]:
+            raise BadRequest(f"Bands overlap: {_span(a)} and {_span(b)}.")
+        if b["from"] > a["to"]:
+            raise BadRequest(f"No band covers {a['to']:g}–{b['from']:g}.")
+
+    nominal = [i for i, b in enumerate(bands) if b["level"] == "nominal"]
+    if len(nominal) != 1:
+        raise BadRequest("Exactly one band must be nominal.")
+
+    # Walk out from nominal each way: the levels must only get worse.
+    n = nominal[0]
+    for side in (bands[n::-1], bands[n:]):
+        for inner, outer in zip(side, side[1:]):
+            if LEVELS.index(outer["level"]) <= LEVELS.index(inner["level"]):
+                raise BadRequest(
+                    f"Band {_span(outer)}: each band out from nominal must be worse than the one inside it."
+                )
+    return bands
+
+
+def _escalate(value: Any) -> dict[str, int] | None:
+    """A ladder: {level: seconds at it before the next one up}, for the levels that
+    have one above them but nominal (nominal for too long is staleness, not severity);
+    None for none."""
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise BadRequest("Escalate: for each level, how long before it moves up.")
+    ladder = {}
+    for level, seconds in value.items():
+        if level not in LEVELS[1:-1]:
+            raise BadRequest(f"Escalate: {', '.join(LEVELS[1:-1])} only.")
+        n = _number(seconds, f"Escalate from {level}")
+        if n is None or n == 0:
+            continue
+        if not 60 <= n <= MAX_ESCALATE:
+            raise BadRequest(f"Escalate from {level}: a minute to a year.")
+        ladder[level] = int(n)
+    return ladder or None
+
+
+def _accuracy(value: Any) -> dict[str, Any] | None:
+    """A numeric record's accuracy, or None for none (missing, or an amount of 0)."""
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise BadRequest("Accuracy: an amount, and whether it's a percentage.")
+    amount = _number(value.get("amount"), "Accuracy")
+    if not amount:
+        return None
+    percent = value.get("percent") is True
+    if amount < 0 or (percent and amount > MAX_ACCURACY_PERCENT):
+        raise BadRequest(
+            f"Accuracy: more than 0{f', at most {MAX_ACCURACY_PERCENT} %' if percent else ''}."
+        )
+    return {"amount": amount, "percent": percent}
 
 
 def sides(record: dict[str, Any]) -> dict[str, dict[str, Any]]:
@@ -263,3 +355,26 @@ def _span(band: dict[str, Any]) -> str:
     low = "…" if band["from"] is None else f"{band['from']:g}"
     high = "…" if band["to"] is None else f"{band['to']:g}"
     return f"{low}–{high}"
+
+
+def displayed(value: Any, precision: int | None) -> Any:
+    """A reading as Home Assistant shows it: a number rounded to the entity's display
+    precision when it has one, anything else as it is. The same rule as the integration's
+    levels.displayed, which gives each row its precision (a test holds them together)."""
+    if precision is None:
+        return value
+    try:
+        return f"{float(value):.{precision}f}"
+    except (TypeError, ValueError):
+        return value
+
+
+def precision_of(entry: dict[str, Any]) -> int | None:
+    """A sensor's display precision from its entity registry entry (yours, else its
+    integration's suggested one), as HA's frontend takes it; none for anything else."""
+    if not str(entry.get("entity_id", "")).startswith("sensor."):
+        return None
+    options = (entry.get("options") or {}).get("sensor") or {}
+    if (precision := options.get("display_precision")) is not None:
+        return precision
+    return options.get("suggested_display_precision")

@@ -1,6 +1,7 @@
 """Sensor Watch, in Casa Mia's integration: the entities given levels on the app's
-Sensor Watch page, watched here (watch.py) and told to Home Assistant: a status, a count
-per level and a problem sensor on its module device, an event on each change, and the
+Sensor Watch page, pushed by the app as they change (its websocket command, APPLY),
+watched here (watch.py) and told to Home Assistant: a status, a count per level and a
+problem sensor on its module device, an event on each change, and the
 `casa_mia.sensor_watch_list` service. Started by Casa Mia's setup while the module is on.
 
 Until 2026.10.10-b3 it was its own integration (casa_mia_sensor_watch); migrate() moves
@@ -12,6 +13,7 @@ import logging
 from datetime import timedelta
 
 import voluptuous as vol
+from homeassistant.components import websocket_api
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.const import EVENT_SERVICE_REGISTERED, EVENT_SERVICE_REMOVED
 from homeassistant.core import (
@@ -27,11 +29,12 @@ from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.event import async_track_time_interval
 
 from ..const import DOMAIN
-from ..coordinator import CasaMiaCoordinator
+from ..coordinator import CasaMiaCoordinator, running_coordinator
 from . import blueprint, swap
-from .const import OLD_DOMAIN, REFRESH, SERVICE
+from .const import ENTITY, OLD_DOMAIN, REFRESH, SERVICE
 from .entity import KEYS, unique_id
-from .levels import LEVELS, listing, summary
+from .levels import LEVELS, listing, summary, watching
+from .push import APPLY
 from .swap import shown
 from .system import start_checks
 from .watch import Watcher
@@ -52,6 +55,10 @@ async def start(
     """Watch, check Home Assistant's own health, keep the blueprint, follow the swap,
     and offer the list service; all undone when Casa Mia's entry unloads."""
     watcher = Watcher(hass, coordinator)
+    if not hass.data.get(APPLY):  # once per Home Assistant run: it can't be taken off
+        websocket_api.async_register_command(hass, _ws_apply)
+        websocket_api.async_register_command(hass, _ws_entity)
+        hass.data[APPLY] = True
     watcher.refresh()
     entry.async_on_unload(coordinator.async_add_listener(watcher.refresh))
     entry.async_on_unload(watcher.unload)
@@ -106,6 +113,73 @@ async def start(
     return watcher
 
 
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): APPLY,
+        vol.Required("revision"): str,
+        vol.Optional("base"): str,
+        vol.Required("records"): [dict],
+        vol.Optional("removed", default=[]): [str],
+        vol.Required("system"): dict,
+    }
+)
+@websocket_api.require_admin
+@callback
+def _ws_apply(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    """The app pushing the records (Watcher.push): every one (no `base`), or those
+    changed and removed since `base`. Errors: `not_running` (Sensor Watch isn't running
+    here yet), `resync` (`base` isn't ours: send them all)."""
+    coordinator = running_coordinator(hass)
+    watcher = coordinator.sensor_watch if coordinator else None
+    if watcher is None:
+        connection.send_error(
+            msg["id"], "not_running", "Sensor Watch isn't running in Home Assistant"
+        )
+        return
+    levels = watcher.push(msg)
+    if levels is None:
+        connection.send_error(
+            msg["id"], "resync", f"not at revision {msg['base']}: send every record"
+        )
+        return
+    connection.send_result(msg["id"], {"revision": msg["revision"], "levels": levels})
+
+
+@websocket_api.websocket_command(
+    {vol.Required("type"): ENTITY, vol.Required("entity_id"): str}
+)
+@websocket_api.require_admin
+@callback
+def _ws_entity(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
+) -> None:
+    """One entity's watch (levels.watching), now and again at each change: the eye in
+    its dialog. Admins only, as the page it leads to. Error `not_running`: no eye.
+    ponytail: follows the watcher running when it subscribes; the dialog subscribes
+    afresh each time it opens."""
+    coordinator = running_coordinator(hass)
+    watcher = coordinator.sensor_watch if coordinator else None
+    if watcher is None:
+        connection.send_error(
+            msg["id"], "not_running", "Sensor Watch isn't running in Home Assistant"
+        )
+        return
+    last: list[dict] = []
+
+    @callback
+    def send() -> None:
+        now = watching(watcher.records, watcher.now, msg["entity_id"])
+        if last != [now]:
+            last[:] = [now]
+            connection.send_message(websocket_api.event_message(msg["id"], now))
+
+    connection.subscriptions[msg["id"]] = watcher.listen(send)
+    connection.send_result(msg["id"])
+    send()
+
+
 async def migrate(hass: HomeAssistant, entry: ConfigEntry, device_id: str) -> None:
     """Sensor Watch's own integration, from before it joined Casa Mia: its entities move
     onto Casa Mia's Sensor Watch device (same entity ids, so history and automations
@@ -153,6 +227,10 @@ async def follow_blueprint(
     target = hass.config.path(*blueprint.AT)
     shown_now: list[tuple[list[str], list[str]] | None] = [None]
 
+    def newest() -> str:
+        groups, notifies = shown_now[0] or ([], [])
+        return blueprint.filled(template, groups, notifies)
+
     @callback
     def choices(*_: object) -> None:
         groups = sorted(
@@ -166,9 +244,7 @@ async def follow_blueprint(
         if (groups, notifies) == shown_now[0]:
             return
         shown_now[0] = (groups, notifies)
-        hass.async_add_executor_job(
-            blueprint.install, target, blueprint.filled(template, groups, notifies)
-        )
+        hass.async_add_executor_job(blueprint.install, target, newest)
 
     @callback
     def service(event: Event) -> None:

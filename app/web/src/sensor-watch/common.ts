@@ -1,18 +1,12 @@
 /** Sensor Watch's types, API and level helpers, shared by its page and dialogs. */
 
 import { api } from "../api";
+import type { MouseEvent } from "react";
+import type { Level } from "./ladder";
+
+export { LEVELS, LEVEL_NAMES, type Level } from "./ladder";
 
 export const swApi = api("sensor-watch");
-
-export const LEVELS = ["nominal", "task", "warning", "error", "critical"] as const;
-export type Level = (typeof LEVELS)[number];
-export const LEVEL_NAMES: Record<Level, string> = {
-  nominal: "Nominal",
-  task: "Task",
-  warning: "Warning",
-  error: "Error",
-  critical: "Critical",
-};
 
 /** One state of an on/off watch: its level and message. */
 export type Side = { level: Level; message: string };
@@ -21,6 +15,19 @@ export type Side = { level: Level; message: string };
 export type StateLevel = { state: string; level: Level; message: string };
 
 export type Band = { from: number | null; to: number | null; level: Level; message: string };
+/** How far a meter may be out: a percentage of each edge, or an amount in its unit. */
+export type Accuracy = { amount: number; percent: boolean };
+
+/** The doubt either side of an edge (levels.py in_bands holds a level within it). */
+/** A list row's click: opens its editor, unless the click was on one of its own buttons
+ * or fields, or ended a text selection (an entity id being copied). The row's name is the
+ * button that does the same, for the keyboard. */
+export const opens = (edit: () => void) => (e: MouseEvent) => {
+  if ((e.target as Element).closest("button, a, input, select") || getSelection()?.toString()) return;
+  edit();
+};
+
+export const margin = (edge: number, a?: Accuracy) => (!a ? 0 : a.percent ? (Math.abs(edge) * a.amount) / 100 : a.amount);
 
 /** A watched sensor's record, as the app keeps it (app/.../sensor_watch/common.py). */
 export type WatchRecord = {
@@ -28,6 +35,8 @@ export type WatchRecord = {
   kind: "numeric" | "binary" | "state" | "available";
   name: string;
   hold_off: number;
+  /** Seconds unavailable before that counts (an availability watch uses hold_off). */
+  unavailable_hold?: number;
   unavailable: Level | "ignore";
   bands?: Band[];
   otherwise?: Level;
@@ -52,6 +61,10 @@ export type WatchRecord = {
   disabled?: boolean;
   /** Numeric: the state is a date, read as the days until it (a reminder due). */
   days_until?: boolean;
+  /** Each level's seconds before it shows the next one up (task, warning, error). */
+  escalate?: Partial<Record<Level, number>>;
+  /** Numeric: how far the meter may be out (a level holds that close to an edge). */
+  accuracy?: Accuracy;
   /** The profile it follows (its levels then come from there). */
   profile?: string;
   /** The group it joined by (groups.py), if any. */
@@ -121,7 +134,8 @@ export type WatchView = {
 };
 
 /** A sensor's level now, from the integration. */
-export type Live = { entity_id: string; level: Level; value: string | null; message: string | null; since: string; name: string };
+/** A sensor's level now; escalated (a ladder's step), also the level its reading gives (`real`), since `since`. */
+export type Live = { entity_id: string; level: Level; value: string | null; message: string | null; since: string; name: string; real?: Level; escalated?: boolean };
 /** `rev`: the app's revision of the levels; asked with ?after=rev, it answers when they change. */
 export type LevelsView = { levels: Record<string, Live>; error: string | null; rev: number };
 
@@ -210,6 +224,8 @@ export type Suggestion = {
   max?: number;
   outliers?: number[];
   outlier_count?: number;
+  /** How many outliers are low; the rest are high. */
+  outliers_below?: number;
   bands?: Band[];
   nominal?: "on" | "off";
   share?: number;

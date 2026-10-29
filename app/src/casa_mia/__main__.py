@@ -115,7 +115,8 @@ def main() -> int:
     )
     modules["alarm"] = lambda: {"state": "running" if alarm_on else "disabled"}
     if options.get("sensor_watch_enabled", False):
-        # The records; the integration watches the states and asks again at once on a save.
+        # The records; pushed to the integration (which watches the states) as they're
+        # saved. The doorbell is for an integration older than the push, until HA restarts.
         watch = SensorWatch(
             SENSOR_WATCH_STORE,
             ha,
@@ -126,11 +127,15 @@ def main() -> int:
         watch.start()
         modules["sensor_watch"] = watch.health
         api["/api/sensor-watch/"] = watch.handle
-        reads["/sensor-watch/records"] = watch.for_integration
+        reads["/sensor-watch/records"] = lambda _query: watch.for_integration()
     else:
         modules["sensor_watch"] = lambda: {"state": "disabled"}
     if options.get("fona_enabled", False):
-        fona = Fona(people.check, lambda event: fire_event(token, FONA_EVENT, event))
+        fona = Fona(
+            people.check,
+            lambda event: fire_event(token, FONA_EVENT, event),
+            on_change=lambda: fire_event(token, settings.CHANGED_EVENT, {"fona": True}),
+        )
         fona.start()
         modules["fona"] = fona.health
         post_handlers["/fona/"] = fona.control
@@ -144,8 +149,18 @@ def main() -> int:
             state_path=OPTIONS.parent / "guest_login_state.json",
             ha_port=lambda: supervisor_ha_port(token),
             ha_hosts=lambda: [h for h in (lan_ip(), mdns()) if h],
+            # The new count and time ride on the event, so the integration's sensors
+            # change the moment a visitor signs in, not at its next poll.
             on_login=lambda ep, ip: fire_event(
-                token, EVENT, {"endpoint": ep.id, "label": ep.label, "ip": ip}
+                token,
+                EVENT,
+                {
+                    "endpoint": ep.id,
+                    "label": ep.label,
+                    "ip": ip,
+                    "logins": ep.logins,
+                    "last_login": ep.last_login,
+                },
             ),
         )
         guest.welcome, guest.house_info, guest.goodbye, guest.photo = runtime(store)[3:]
@@ -155,7 +170,7 @@ def main() -> int:
         guest.start()
         modules["guest_login"] = guest.health
         post_handlers["/guest-login/"] = guest.control
-        api["/api/guest/"] = GuestAPI(
+        guest_api = GuestAPI(
             guest,
             GUEST_STORE,
             store,
@@ -163,7 +178,9 @@ def main() -> int:
             MEDIA,
             lan_host=lan_ip,
             mdns_name=mdns,
-        ).handle
+        )
+        api["/api/guest/"] = guest_api.handle
+        reads["/guest-login/qr"] = guest_api.for_card  # the QR code card's codes
     else:
         modules["guest_login"] = lambda: {"state": "disabled"}
     gitproxy = None
@@ -319,6 +336,11 @@ def main() -> int:
             helpers=helpers,
             on_cards=on_cards,
             reads=reads,
+            on_admin_change=(
+                (lambda: fire_event(token, settings.CHANGED_EVENT, {"admin": True}))
+                if token
+                else None
+            ),
         )
         if token:
             # Started (an update, say): have the integration ask now, so pages showing

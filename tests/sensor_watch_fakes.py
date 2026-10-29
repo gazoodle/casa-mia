@@ -1,4 +1,4 @@
-"""Sensor Watch's test helpers: the integration's levels.py loaded by path, a stand-in
+"""Sensor Watch's test helpers: the integration's levels.py and push.py loaded by path, a stand-in
 Home Assistant, and the records the tests share."""
 
 import importlib.util
@@ -9,23 +9,23 @@ from typing import Any
 from casa_mia.ha import HAError
 from casa_mia.modules.sensor_watch import SensorWatch
 
-# Loaded by path: the package __init__ needs Home Assistant, levels.py does not.
-FILE = (
+# Loaded by path: the package __init__ needs Home Assistant, levels.py and push.py don't.
+FOLDER = (
     Path(__file__).resolve().parents[1]
-    / "integration/custom_components/casa_mia/sensor_watch/levels.py"
+    / "integration/custom_components/casa_mia/sensor_watch"
 )
 
 
-spec = importlib.util.spec_from_file_location("sw_levels", FILE)
+def _load(name: str) -> Any:
+    spec = importlib.util.spec_from_file_location(f"sw_{name}", FOLDER / f"{name}.py")
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
-assert spec and spec.loader
-
-
-levels = importlib.util.module_from_spec(spec)
-
-
-spec.loader.exec_module(levels)
+levels = _load("levels")
+push = _load("push")
 
 
 SALT = {

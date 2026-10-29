@@ -6,7 +6,7 @@
 import { useRef, useState } from "react";
 import { AreaHead } from "../page";
 import { Dialog, Field, Segmented } from "../ui";
-import { MODE_NAMES, summary, swApi, type Profile, type WatchView } from "./common";
+import { MODE_NAMES, opens, summary, swApi, type Profile, type WatchView } from "./common";
 import { LevelFields, useLevels, type Kind } from "./levels";
 import css from "./sensor-watch.module.css";
 import guest from "../guest.module.css";
@@ -57,7 +57,7 @@ export function ProfilesSection({
     <section className={guest.area}>
       <AreaHead
         title="Profiles"
-        blurb="The same levels for many sensors, said once: edit a profile and every sensor that follows it changes with it."
+        blurb="Levels set once and followed by many sensors: edit one and every follower changes. Groups use them, and a single sensor can follow one too."
         action={
           <span className={css.actions}>
             <button className={ui.button} onClick={fromLibrary}>
@@ -104,9 +104,11 @@ export function ProfilesSection({
       {profiles.length > 0 && (
         <div className={css.table}>
           {profiles.map((p) => (
-            <div key={p.id} className={`${css.row} ${css.compact} ${css.named}`}>
+            <div key={p.id} className={`${css.row} ${css.editable} ${css.compact} ${css.named}`} onClick={opens(() => onEdit(p))}>
               <span className={css.what}>
-                <strong>{p.name}</strong>
+                <button type="button" className={css.name} onClick={() => onEdit(p)}>
+                  {p.name}
+                </button>
                 <span className={css.note}>
                   {MODE_NAMES[p.kind]} · {summary(p)}
                 </span>
@@ -120,9 +122,6 @@ export function ProfilesSection({
                 {p.followers} following
               </button>
               <span className={css.rowActions}>
-                <button className={`${ui.button} ${ui.small}`} onClick={() => onEdit(p)}>
-                  Edit
-                </button>
                 <button className={`${ui.button} ${ui.small}`} onClick={() => onApply(p)}>
                   Apply to…
                 </button>
@@ -163,6 +162,7 @@ export function ProfileDialog({
   profile,
   copyOf,
   onDuplicate,
+  onSaved,
   onClose,
   change,
 }: {
@@ -170,6 +170,8 @@ export function ProfileDialog({
   copyOf?: Profile;
   /** Start a new profile from this one's levels (as they are saved). */
   onDuplicate?: (p: Profile) => void;
+  /** The profile as saved (a new group's dialog chooses the one made from it). */
+  onSaved?: (p: Profile) => void;
   onClose: () => void;
   change: Change;
 }) {
@@ -181,11 +183,17 @@ export function ProfileDialog({
     if (!(await L.sane())) return;
     setSaving(true);
     const body = { name: name.trim(), ...L.body() };
+    let saved: Profile | undefined;
     const ok = await change(
-      () => (profile ? swApi.put<WatchView>(`profiles/${profile.id}`, body) : swApi.post<WatchView>("profiles", body)),
+      async () => {
+        const v = await (profile ? swApi.put<WatchView>(`profiles/${profile.id}`, body) : swApi.post<WatchView>("profiles", body));
+        saved = v.profiles?.find((p) => p.name === body.name);
+        return v;
+      },
       profile ? `${body.name} saved${profile.followers ? `; ${profile.followers} sensors follow it` : ""}` : `New profile ${body.name}`,
     );
     setSaving(false);
+    if (ok && saved) onSaved?.(saved);
     if (ok) onClose();
   };
 

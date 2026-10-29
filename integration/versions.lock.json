@@ -1,14 +1,14 @@
 {
   "casa_mia": {
-    "digest": "596661d6183ba5115c161294fc0383614a69cf8b804bfbf1b40dac807c933d6c",
-    "version": "2026.10.10-b8"
+    "digest": "645301b0610efb9dabe7eb63e6b87c816f04461de6879af5be8349ca366c632a",
+    "version": "2026.10.11-b29"
   },
   "casa_mia_commander": {
     "digest": "79ae6e11bbb194ffd478e9a1b267b843b3f9e54617595df24a63b3abcbcf6c3a",
     "version": "2026.10.4-b23"
   },
   "casa_mia_guest_login": {
-    "digest": "88d4574919667ff9f94c2dd0a5ad37f6625e6651416764dcb8ada426cfc75791",
-    "version": "2026.10.6-b6"
+    "digest": "4787a93f5fdf7de6d99af47cc3c556f80c68a6bd4a782a3f293f114ccd08ac70",
+    "version": "2026.10.11-b9"
   }
 }

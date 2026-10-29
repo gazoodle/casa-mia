@@ -93,9 +93,13 @@ class Fona:
         open_port: Callable[[str], Port] = open_serial,
         clock: Callable[[], float] = time.monotonic,
         backoff: tuple[float, ...] = BACKOFF,
+        on_change: Callable[[], object] | None = None,
     ) -> None:
         self.check = check
         self.on_event = on_event
+        # Told when its state, error or signal changes, so Home Assistant hears at once
+        # (CLAUDE.md RULE FOUR), not at the integration's next poll.
+        self.on_change = on_change
         self.port = port  # None: find it by id each time
         self.open_port = open_port
         self.clock = clock
@@ -196,10 +200,22 @@ class Fona:
             failures += 1
             self._stop.wait(wait)
 
+    def _set(self, **values: Any) -> None:
+        """Set some of its state (state, error, rssi, dbm) and, if any changed, tell
+        on_change, in a thread of its own: the serial loop never waits on Home Assistant."""
+        with self._lock:
+            changed = any(getattr(self, f"_{k}") != v for k, v in values.items())
+            for k, v in values.items():
+                setattr(self, f"_{k}", v)
+        if changed and self.on_change:
+            threading.Thread(
+                target=self.on_change, name="fona-changed", daemon=True
+            ).start()
+
     def _offline(self, why: str | None) -> None:
         with self._lock:
             changed = why != self._error
-            self._state, self._error = "offline", why
+        self._set(state="offline", error=why)
         if changed and why:
             _LOGGER.error("FONA offline: %s", why)
 
@@ -211,8 +227,7 @@ class Fona:
         start_at: float | None = None  # resend START after a failed start
         next_rssi = 0.0
         s = _Session()
-        with self._lock:
-            self._state, self._error = "starting", None
+        self._set(state="starting", error=None)
 
         def write(line: str) -> None:
             _LOGGER.debug("FONA <- %s", line)
@@ -308,8 +323,7 @@ class Fona:
             return []
         if line.startswith("ERROR: FONA not found"):
             _LOGGER.error("FONA modem not found; retrying in %ds", START_RETRY_SECONDS)
-            with self._lock:
-                self._state, self._error = "starting", "modem not found"
+            self._set(state="starting", error="modem not found")
             s.start_failed = True
             return []
         if line.startswith("RSSI:"):
@@ -319,8 +333,7 @@ class Fona:
             except (IndexError, ValueError):
                 _LOGGER.warning("FONA odd RSSI line %r", line)
                 return []
-            with self._lock:
-                self._rssi, self._dbm = rssi, dbm
+            self._set(rssi=rssi, dbm=dbm)
             return []
         if line.startswith("RING:"):
             self._handle("call", line[5:].strip(), None)
@@ -339,8 +352,7 @@ class Fona:
 
     def _ready(self, s: _Session) -> None:
         s.ready, s.erase = True, True  # clear the SIM's message store, as before
-        with self._lock:
-            self._state, self._error = "connected", None
+        self._set(state="connected", error=None)
         _LOGGER.info("FONA ready")
 
     def _handle(self, kind: str, number: str, message: str | None) -> None:

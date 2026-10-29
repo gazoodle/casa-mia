@@ -61,3 +61,27 @@ def test_ui_only_for_the_ingress_gateway(path):
     finally:
         server.shutdown()
         server.server_close()
+
+
+def test_an_admin_change_is_pushed_to_home_assistant():
+    told = threading.Event()
+    answers = {"PUT": 200, "POST": 400}
+
+    def api(method, rest, query, body):
+        return answers.get(method, 200), "application/json", b"{}"
+
+    server, base = serve(
+        admin_from=None, api={"/api/x/": api}, on_admin_change=told.set
+    )
+    try:
+        fetch(f"{base}/api/x/thing")  # a read: nothing to tell
+        req = urllib.request.Request(f"{base}/api/x/thing", data=b"{}", method="POST")
+        with pytest.raises(urllib.error.HTTPError):
+            urllib.request.urlopen(req)  # refused: nothing changed
+        assert not told.is_set()
+        req = urllib.request.Request(f"{base}/api/x/thing", data=b"{}", method="PUT")
+        urllib.request.urlopen(req).close()
+        assert told.wait(2)
+    finally:
+        server.shutdown()
+        server.server_close()

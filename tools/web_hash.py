@@ -5,7 +5,8 @@ Two builds are committed so nothing on the box needs Node: the admin UI (app/web
 app/src/casa_mia/web, by tools/build_web) and the Lovelace cards (integration/cards into
 the integration's www/cm-cards.js, by tools/build_cards). Each build stores a hash of its
 sources (node_modules aside; both also read SHARED: the layout options, the WebRTC
-player, and the pills and chips); a mismatch means the sources changed without a rebuild.
+player, the pills and chips, and the eye's note); a mismatch means the sources changed
+without a rebuild.
 
     web_hash.py                  check both (exit 1 on a mismatch)
     web_hash.py --write NAME     store NAME's current hash (web or cards; its build does)
@@ -24,6 +25,7 @@ SHARED = (
     LAYOUT,
     ROOT / "app" / "web" / "src" / "webrtc.ts",
     ROOT / "app" / "web" / "src" / "pills.css",  # the pills and chips, both builds
+    ROOT / "app" / "web" / "src" / "open.ts",  # a route left for the page by the eye
 )
 # name -> (its source folder, where its hash is stored, the tool that builds it)
 BUILDS = {

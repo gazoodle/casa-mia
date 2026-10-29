@@ -3,10 +3,10 @@
 // moment a level moves (its casa_mia_sensor_watch event; its entities' writes are
 // the backstop), and shows each value live from the entity itself. With nothing to list it hides (HA's card wrapper honours a card's own
 // `hidden`), so in a Tablet Layout its panel closes, garnish heading and all, when all is well.
-import { LitElement, css, html, nothing } from "lit";
+import { LitElement, css, html, nothing, unsafeCSS } from "lit";
 import { fire, type Hass, inPicker } from "../ha.ts";
 import { PILLS } from "../pills.ts";
-import { type Column, type Config, DEFAULTS, EVENT, type Row, SERVICE, columns, due, own, since } from "./common.ts";
+import { type Column, type Config, DEFAULTS, EVENT, LEVEL_COLOR, type Row, SERVICE, columns, due, own, parts, since, stateColor } from "./common.ts";
 
 const ASK_AFTER = 300; // ms: the integration's entities write in a burst; one ask after
 const ago = (h: number) => new Date(Date.now() - h * 3600e3).toISOString();
@@ -16,6 +16,14 @@ const EXAMPLE: Row[] = [
   { entity_id: "", name: "Freezer", level: "warning", value: "-12 °C", message: "Freezer too warm: check the door and seal", since: ago(1) },
   { entity_id: "", name: "Softener salt", level: "task", value: "18 %", message: "Top up the salt", since: ago(50) },
 ];
+
+/** Each level's colour (`--cm-level`, from LEVEL_COLOR) on an element classed by its
+ * level; the card's rows and the eye in an entity's dialog (eye.ts). */
+export const LEVEL_TONES = unsafeCSS(
+  Object.entries(LEVEL_COLOR)
+    .map(([level, color]) => `.${level} { --cm-level: ${color}; }`)
+    .join("\n"),
+);
 
 export class SensorWatchCard extends LitElement {
   static properties = { _config: { state: true }, _rows: { state: true }, _problem: { state: true }, _editing: { state: true } };
@@ -153,35 +161,54 @@ export class SensorWatchCard extends LitElement {
         const st = this._hass?.states[r.entity_id];
         if (r.days_until) return this._row(r, due(r.attribute ? String(st?.attributes?.[r.attribute] ?? "") : st?.state, r.value), now);
         if (r.attribute) return this._row(r, String(st?.attributes?.[r.attribute] ?? r.value ?? ""), now);
+        // As HA shows it: rounded to its display precision, with its unit (formatEntityState).
         const unit = st?.attributes?.unit_of_measurement ?? "";
-        return this._row(r, st ? `${st.state}${unit ? ` ${unit}` : ""}` : (r.value ?? ""), now);
+        const shown = st && (this._hass?.formatEntityState?.(st) ?? `${st.state}${unit ? ` ${unit}` : ""}`);
+        return this._row(r, shown || (r.value ?? ""), now);
       })}
       ${more > 0 ? html`<p class="note">and ${more} more</p>` : nothing}
     </ha-card>`;
   }
 
   private _row(r: Row, value: string, now: number) {
-    const show: readonly Column[] = this._config?.show ?? DEFAULTS.show;
-    const has = (c: Column) => show.includes(c);
+    const o = { ...DEFAULTS, ...this._config };
+    const show: readonly Column[] = o.show;
+    const st = this._hass?.states[r.entity_id];
+    const part = (p: Column | "what") => {
+      switch (p) {
+        case "icon": {
+          const color = o.icon_color === "level" ? "var(--cm-level)" : o.icon_color === "state" && st ? stateColor(r.entity_id, st.state, st.attributes?.device_class) : "";
+          // ponytail: ha-state-icon is HA's own, defined once any tile or entity row has loaded; until then the place stays empty.
+          return html`<ha-state-icon class="icon" style=${color ? `color:${color}` : ""} .hass=${this._hass} .stateObj=${st}></ha-state-icon>`;
+        }
+        case "level":
+          return html`<span class="level cm-pill ${r.level === "critical" ? "cm-filled" : ""}">${r.level}</span>`;
+        case "what":
+          return html`<span class="what">
+            ${show
+              .filter((c) => c === "name" || c === "message")
+              .map((c) => (c === "name" ? html`<span class="name">${r.name}</span>` : r.message ? html`<span class="message">${r.message}</span>` : nothing))}
+          </span>`;
+        case "value":
+          return html`<span class="value">${value}</span>`;
+        case "since":
+          return html`<span class="since">${since(r.since, now)}</span>`;
+        default:
+          return nothing;
+      }
+    };
     return html`<button
       class="row ${r.level}"
       style="grid-template-columns:${columns(show)}"
       @click=${() => r.entity_id && fire(this, "hass-more-info", { entityId: r.entity_id })}
     >
-      ${has("level") ? html`<span class="level cm-pill ${r.level === "critical" ? "cm-filled" : ""}">${r.level}</span>` : nothing}
-      ${has("name") || has("message")
-        ? html`<span class="what">
-            ${has("name") ? html`<span class="name">${r.name}</span>` : nothing}
-            ${has("message") && r.message ? html`<span class="message">${r.message}</span>` : nothing}
-          </span>`
-        : nothing}
-      ${has("value") ? html`<span class="value">${value}</span>` : nothing}
-      ${has("since") ? html`<span class="since">${since(r.since, now)}</span>` : nothing}
+      ${parts(show).map(part)}
     </button>`;
   }
 
   static styles = [
     PILLS,
+    LEVEL_TONES,
     css`
     ha-card {
       padding: 4px 0;
@@ -205,17 +232,12 @@ export class SensorWatchCard extends LitElement {
     .row:hover {
       background: var(--secondary-background-color);
     }
-    .task {
-      --cm-level: var(--info-color, #039be5);
-    }
-    .warning {
-      --cm-level: var(--warning-color, #ffa600);
-    }
-    .error,
-    .critical {
-      --cm-level: var(--error-color, #db4437);
-    }
     /* A status pill in its level's colour (pills.ts; card-level), critical filled. */
+    .icon {
+      --mdc-icon-size: 24px;
+      display: flex;
+      color: var(--state-icon-color);
+    }
     .level {
       justify-self: start;
       --tone: var(--cm-level);

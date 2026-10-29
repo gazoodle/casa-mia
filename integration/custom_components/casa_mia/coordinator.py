@@ -64,7 +64,7 @@ class CasaMiaCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Track motion, per commander id (casa_mia_commander's motion.MotionTracker)
         self.motion: dict[str, Any] = {}
         # Sensor Watch's watcher while its module is on (sensor_watch.start), for its
-        # entities on the sensor and binary_sensor platforms.
+        # entities on the sensor and binary_sensor platforms, and the app's pushes.
         self.sensor_watch: Any = None
 
     async def _async_update_data(self) -> dict[str, Any]:

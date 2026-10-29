@@ -8,7 +8,7 @@ from typing import Any
 
 import aiohttp
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceInfo
@@ -18,7 +18,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from ..casa_mia.const import DOMAIN as CASA_MIA
 from ..casa_mia.coordinator import CasaMiaCoordinator, async_post
-from .const import DOMAIN, MODULE
+from .const import DOMAIN, GUEST_LOGIN_EVENT, MODULE
 
 
 def guest_module(coordinator: CasaMiaCoordinator) -> dict[str, Any]:
@@ -99,6 +99,26 @@ def add_endpoint_entities(
 
     add()
     entry.async_on_unload(coordinator.async_add_listener(add))
+
+
+@callback
+def async_follow_logins(
+    hass: HomeAssistant, entry: ConfigEntry, coordinator: CasaMiaCoordinator
+) -> None:
+    """Push, not poll: the app's login event carries the endpoint's new count and time,
+    written into the coordinator's data at once, so its Logins and Last login sensors (and
+    an Over layer waiting on Logins) change the moment a visitor signs in."""
+
+    @callback
+    def signed_in(event: Event) -> None:
+        endpoints = guest_module(coordinator).get("endpoints", {})
+        ep = endpoints.get(event.data.get("endpoint"))
+        if ep is None or "logins" not in event.data:  # an app too old to send them
+            return
+        ep.update(logins=event.data["logins"], last_login=event.data.get("last_login"))
+        coordinator.async_update_listeners()
+
+    entry.async_on_unload(hass.bus.async_listen(GUEST_LOGIN_EVENT, signed_in))
 
 
 @callback

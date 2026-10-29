@@ -9,6 +9,7 @@ MAINS = {
         {"from": None, "to": 207, "level": "critical", "message": "Mains very low"},
         {"from": 207, "to": 216, "level": "warning", "message": "Mains low"},
         {"from": 216, "to": 253, "level": "nominal", "message": ""},
+        {"from": 253, "to": None, "level": "critical", "message": "Mains very high"},
     ],
     "otherwise": "error",
 }

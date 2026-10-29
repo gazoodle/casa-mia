@@ -1,5 +1,6 @@
-/** Guest login's QR codes beyond the endpoints': any Home Assistant page, the Wi-Fi, and the
- * printable guest card that puts the Wi-Fi beside an endpoint's code. */
+/** Guest login's QR codes beyond the endpoints': any Home Assistant page, the Wi-Fi, the
+ * printable guest card that puts the Wi-Fi beside an endpoint's code, and the words on the
+ * cards (the printed one and the QR code card's), for guests who read another language. */
 
 import { useState } from "react";
 import { post, put, type GuestConfig, type HAChoices, type Wifi } from "./api";
@@ -10,7 +11,7 @@ import { Select } from "./controls";
 
 const OTHER = "__other__";
 
-type Tab = "page" | "wifi" | "card";
+type Tab = "page" | "wifi" | "card" | "words";
 
 export function QrCodesDialog({
   config,
@@ -42,12 +43,14 @@ export function QrCodesDialog({
           ["card", "Guest card"],
           ["wifi", "Wi-Fi"],
           ["page", "A page"],
+          ["words", "Words"],
         ]}
         onChange={setTab}
       />
       {tab === "card" && <CardTab config={config} />}
       {tab === "wifi" && <WifiTab config={config} onConfig={onConfig} toast={toast} />}
       {tab === "page" && <PageTab ha={ha} toast={toast} />}
+      {tab === "words" && <WordsTab config={config} onConfig={onConfig} toast={toast} />}
     </Dialog>
   );
 }
@@ -75,7 +78,7 @@ function CardTab({ config }: { config: GuestConfig }) {
   const [id, setId] = useState(config.endpoints[0]?.id ?? "");
   if (!config.endpoints.length) return <p className={css.checkHelp}>Add an endpoint first: the card carries its QR code.</p>;
   const src = `api/guest/card/${id}`;
-  const v = encodeURIComponent(JSON.stringify([config.wifi, config.endpoints.find((e) => e.id === id)?.url]));
+  const v = encodeURIComponent(JSON.stringify([config.wifi, config.words, config.endpoints.find((e) => e.id === id)?.url]));
   return (
     <>
       <p className={css.checkHelp}>
@@ -231,6 +234,65 @@ function PageTab({ ha, toast }: { ha?: HAChoices; toast: (text: string, tone?: T
           <Downloads src="api/guest/page-qr/code" query={`?${q}`} file={`${file}-qr`} onMedia={media} />
         </>
       )}
+    </>
+  );
+}
+
+/** What each word on the cards is for. */
+const WORD_LABELS: Record<string, string> = {
+  join: "The Wi-Fi's step",
+  sign_in: "An endpoint's step",
+  open: "A page's step (QR code card)",
+  network: "Before the network's name",
+  password: "Before its password",
+  passcode: "When an endpoint asks for a passcode",
+  closed: "A closed endpoint (QR code card)",
+  closed_note: "Under it",
+};
+
+/** The words on the guest card and the QR code card, in the guests' language. Blank: English. */
+function WordsTab({
+  config,
+  onConfig,
+  toast,
+}: {
+  config: GuestConfig;
+  onConfig: (config: GuestConfig) => void;
+  toast: (text: string, tone?: Toast["tone"]) => void;
+}) {
+  const [said, setSaid] = useState<Record<string, string>>(config.words);
+  const [busy, setBusy] = useState(false);
+  const saved = Object.keys(config.word_defaults).every((k) => (said[k] ?? "").trim() === (config.words[k] ?? ""));
+  const save = async () => {
+    setBusy(true);
+    try {
+      const all = Object.fromEntries(Object.keys(config.word_defaults).map((k) => [k, said[k] ?? ""]));
+      const next = await put<GuestConfig>("settings", { words: all });
+      onConfig(next);
+      setSaid(next.words);
+      toast("Words saved");
+    } catch (err) {
+      toast((err as Error).message, "bad");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <>
+      <p className={css.checkHelp}>
+        The words on the printed guest card and on the QR code card, for guests who read another language. Leave one blank for its
+        English, shown greyed.
+      </p>
+      {Object.entries(config.word_defaults).map(([key, english]) => (
+        <Field key={key} label={WORD_LABELS[key] ?? key}>
+          <input value={said[key] ?? ""} placeholder={english} onChange={(e) => setSaid({ ...said, [key]: e.target.value })} />
+        </Field>
+      ))}
+      <div className={css.actions}>
+        <button className={`${ui.primary} ${ui.small}`} disabled={busy || saved} onClick={save}>
+          Save
+        </button>
+      </div>
     </>
   );
 }

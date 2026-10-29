@@ -69,6 +69,8 @@ BATTERY = [
     {"from": 5, "to": 20, "level": "task", "message": "Replace the battery"},
     {"from": 20, "to": None, "level": "nominal", "message": ""},
 ]
+# A battery left needing replacing for a fortnight: a warning (the device goes dark).
+BATTERY_ESCALATE = {"task": 14 * 86400}
 
 
 # A date something is due (a spa's Rinse filter due): read as days until it, so the
@@ -110,6 +112,8 @@ def default_record(c: dict[str, Any]) -> dict[str, Any] | None:
     if domain == "binary_sensor" and c["device_class"] in BINARY:
         nominal, other, message = BINARY[c["device_class"]]
         old = {"nominal": nominal, "other": other, "message": message}
+        if c["device_class"] == "battery":
+            base = base | {"escalate": BATTERY_ESCALATE}
         return base | {"kind": "binary"} | sides(old)
     if domain == "update":
         old = {"nominal": "off", "other": "task", "message": "Update available"}
@@ -130,5 +134,10 @@ def default_record(c: dict[str, Any]) -> dict[str, Any] | None:
     if domain == "date":
         return due_record()
     if domain == "sensor" and c["device_class"] == "battery" and c["unit"] == "%":
-        return base | {"kind": "numeric", "bands": BATTERY, "otherwise": "error"}
+        return base | {
+            "kind": "numeric",
+            "bands": BATTERY,
+            "otherwise": "error",
+            "escalate": BATTERY_ESCALATE,
+        }
     return None
