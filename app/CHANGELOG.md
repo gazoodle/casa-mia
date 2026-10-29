@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.10.11-b24
+
+- Heating Flow card: the mains pipe starts beside the Mains in stopcock, no longer over it.
+- Heating Flow card: the cold runs jog up and the hot run down as they cross into the house,
+  giving the Taps & showers panel room at its bottom and under its heading.
+
 ## 2026.10.11-b23
 
 - Heating Flow card: two more views, as tabs in its header. **Heat pump** is a cutaway of the

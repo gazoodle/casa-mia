@@ -24,6 +24,9 @@ export function system(c: Config, r: Readings, look: Look): string {
   d.areas = Z;
   const P: Pipe[] = [];
   let under = "", over = "";
+  // A run's last stretch into the Taps & showers panel jogs by dy as it crosses into the
+  // house: the colds up, clear of the panel's bottom; hot down, clear of its heading.
+  const JOG = 14, intoTaps = (y: number, dy: number): [number, number][] => [[888, y], [912, y + dy], [1030, y + dy]];
 
   // ---- Source ----
   const ground = src.type === "borehole" || src.type === "horizontal" || !src.type, air = src.type === "air", pvt = ground && !!src.pvt;
@@ -112,7 +115,7 @@ export function system(c: Config, r: Readings, look: Look): string {
       part.reducer(654, 545, "e", 12, 8, d.tint(dhw.coil_in, "coil", "dhw")) + part.reducer(654, 645, "e", 12, 8, d.tint(dhw.coil_out, "coil", "dhw"));
     P.push({ circ: "dhw", w: 8, r: 8, flow: "coil", speed: hp.pump, pts: [[660, 545], [748, 545], [748, 570], [684, 570], [684, 595], [748, 595], [748, 620], [684, 620], [684, 645], [660, 645]], sensors: [...quiet(dhw.coil_in, 0), ...quiet(dhw.coil_out, 1)] });
     P.push({ circ: "dhw", pts: [[660, 645], [XR, 645], [XR, YR]], flow: "coil", speed: hp.pump, sensors: one(dhw.coil_out, { at: [XR, 500] }) });
-    P.push({ circ: "hot", pts: [[730, 440], [730, 412], [1030, 412]], flow: "hot", sensors: [...quiet(tk[0], 0), ...spread(dhw.hot_plant, "plant"), ...spread(dhw.hot_house, "house")] });
+    P.push({ circ: "hot", pts: [[730, 440], [730, 412], ...intoTaps(412, JOG)], flow: "hot", sensors: [...quiet(tk[0], 0), ...spread(dhw.hot_plant, "plant"), ...spread(dhw.hot_house, "house")] });
     if (dhw.loop_pump || dhw.loop_house?.length || dhw.loop_plant?.length) {
       // The plant sensors take the drop below the pump, then the stub into the tank, so the
       // pump has room of its own; any more spread along the plant room's stretch.
@@ -128,13 +131,15 @@ export function system(c: Config, r: Readings, look: Look): string {
   // lift into a header that runs to the house and tees up into the hot tank's bottom at XC ----
   const soft = !!water.softener, store = !!water.storage;
   const YC = 708, YM = 742, XC = 700, toTank: [number, number][] = [[XC, YC], [XC, 690]];
-  under += part.stopcock(262, YM, water.meter ?? water.cold);
+  // The mains pipe starts clear of the stopcock (r 9) and its own end cap, not over it.
+  const XM = 262, M0 = XM + 16;
+  under += part.stopcock(XM, YM, water.meter ?? water.cold);
   if (soft) {
     under += part.softener(d, 285, 540, 60, 150, r.saltLow, water.salt, water.salt_low);
-    P.push({ circ: "cold", z: 1, pts: [[262, YM], [335, YM]], flow: "mains", sensors: quiet(water.cold, 0) });
+    P.push({ circ: "cold", z: 1, pts: [[M0, YM], [335, YM]], flow: "mains", sensors: quiet(water.cold, 0) });
     P.push({ circ: "cold", pts: [[335, YM], [335, 690]], flow: "mains", sensors: quiet(water.cold, 0) });
-    P.push({ circ: "cold", pts: [[335, YM], [1030, YM]], flow: "hard", sensors: quiet(water.cold, 0) });
-  } else P.push({ circ: "cold", z: 1, pts: [[262, YM], [330, YM]], flow: "mains", sensors: quiet(water.cold, 0) });
+    P.push({ circ: "cold", pts: [[335, YM], ...intoTaps(YM, -JOG)], flow: "hard", sensors: quiet(water.cold, 0) });
+  } else P.push({ circ: "cold", z: 1, pts: [[M0, YM], [330, YM]], flow: "mains", sensors: quiet(water.cold, 0) });
   const from: [number, number][] = soft ? [[345, 580], [362, 580], [362, 468]] : [[330, YM], [330, 468]];
   if (store) {
     under += part.storage(d, 375, 480, 180, 240, r.flows.fill, water.storage_label || "Storage", water.inlet ?? water.level, water.level);
@@ -152,13 +157,13 @@ export function system(c: Config, r: Readings, look: Look): string {
     P.push({ circ: "cold", z: 1, pts: soft ? [...from, [565, 468], [565, YC], ...toTank] : [[330, YM], [330, YC], ...toTank],
              flow: "soft", sensors: [...quiet(water.cold, 0), ...one(water.cold, { at: [640, YC] })] });
   }
-  P.push({ circ: "cold", pts: [[XC, YC], [1030, YC]], flow: "soft", speed: water.pumps?.[0], sensors: quiet(water.cold, 0) });
+  P.push({ circ: "cold", pts: [[XC, YC], ...intoTaps(YC, -JOG)], flow: "soft", speed: water.pumps?.[0], sensors: quiet(water.cold, 0) });
   const inUse = r.flows.soft, unsure = inUse ? "in use · hot or cold?" : "";
   over += part.outlets(1030, 380, 135, 382, [
-    ...(hasDhw ? [{ y: 412, label: soft ? "Soft hot" : "Hot", icon: "shower" as const, on: inUse, note: unsure, e: dhw.hot_house?.at(-1) }] : []),
+    ...(hasDhw ? [{ y: 412 + JOG, label: soft ? "Soft hot" : "Hot", icon: "shower" as const, on: inUse, note: unsure, e: dhw.hot_house?.at(-1) }] : []),
     ...(hasDhw && (dhw.loop_pump || dhw.loop_house?.length) ? [{ y: 620, label: "Return loop", icon: "none" as const, on: r.flows.recirc, e: dhw.loop_pump }] : []),
-    { y: YC, label: soft ? "Soft cold" : "Cold", icon: "tap", on: inUse, note: unsure, e: water.pumps?.[0] ?? water.cold },
-    ...(soft ? [{ y: YM, label: "Hard (kitchen)", icon: "tap" as const, on: r.flows.hard, note: water.meter ? "" : "needs a mains meter", e: water.meter }] : []),
+    { y: YC - JOG, label: soft ? "Soft cold" : "Cold", icon: "tap", on: inUse, note: unsure, e: water.pumps?.[0] ?? water.cold },
+    ...(soft ? [{ y: YM - JOG, label: "Hard (kitchen)", icon: "tap" as const, on: r.flows.hard, note: water.meter ? "" : "needs a mains meter", e: water.meter }] : []),
   ]);
 
   const p = d.pipes(P), shadow = `style="filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.25))"`;
