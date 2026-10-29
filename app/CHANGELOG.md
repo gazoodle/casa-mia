@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.11-b28
+
+- Sensor Watch: How Sensor Watch works no longer says each sensor has a Status entity of its own. It's the Sensor Watch device's Status, counts and Problem entities that say how the house is.
+
 ## 2026.10.11-b27
 
 - Sensor Watch explains itself on its page. **How Sensor Watch works**, a fold at the top, says what levels, a watch, a profile and a group are for, how a level reaches you (the Notify blueprint, the card, the Status entities), and where to start. It's open while nothing is watched, and stays as each viewer last left it.

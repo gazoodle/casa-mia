@@ -41,7 +41,8 @@ export function About({ empty }: { empty: boolean }) {
           <a href="/config/blueprint/dashboard" target="_top">
             Blueprints
           </a>
-          ); the Sensor Watch card shows them on a dashboard; and each sensor has a Status entity of its own.
+          ); the Sensor Watch card lists them on a dashboard; and the Sensor Watch device's Status, counts and Problem entities say how the house is, for a
+          dashboard or an automation's condition.
         </Part>
       </dl>
       <Start />

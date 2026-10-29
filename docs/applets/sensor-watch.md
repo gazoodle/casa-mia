@@ -259,8 +259,7 @@ three steps to start, with **+ New group** and **Scan my house**.
 Every watched sensor, its level now (the **status pill** at the start of its row) and its
 value, with a search and filter **chips** along the top (a level, an area, a group…) so a
 house with hundreds of them stays manageable. Click a row (anywhere but its buttons) to
-edit the sensor's bands;
-**Stop watching** removes it.
+edit its levels; **Stop watching** removes it.
 **Grouped** (beside Sort) puts them under a heading per group, and Manual for those
 watched one by one; the sort applies within each.
 
@@ -311,27 +310,8 @@ Watch reads its history (30 days unless you choose otherwise) and suggests its b
 - **Numeric sensors:** the history's spread gives the nominal band, rounded outwards to a
   tidy step, with a warning band either side and error beyond. Values far outside the
   rest (more than three standard deviations from the mean) are set aside and listed: they
-  may be incidents worth a look, and the suggestion assumes they were. The bands are a
-  ladder built out from **Nominal**, its window in the middle (either edge may be left
-  empty for open: a battery is nominal from 30% up). Above it are the bands going up,
-  each with only its far edge (*Warning up to 24*, *Error up to 26*, the last *Critical
-  above 26*); below it are the same going down (*Warning down to 16*, *Critical below
-  16*). Each band starts where the one inside it ends, so no edge is typed twice and
-  no value can fall between two bands. Each band out from nominal must be worse than
-  the one inside it (the level menu offers only those), so each side holds at most four
-  bands; for a wider band at the same level, move its edge instead. An edge belongs to
-  the band above it. **+ Band above** and **+ Band below** add one at the far end, and ✕
-  removes one. Change any level or message (what a task or a warning says, such as "Top
-  up the salt") before saving. A message may be up to 255 characters, but past 80
-  notifications and cards may cut it short (the page shows the count once you pass 80).
-  When you move a nominal edge, the band beyond it grows or shrinks. Beside it the page
-  offers to move **the bands above** (or below) by the same amount, keeping their widths,
-  or **everything**, which shifts the whole ladder. Ignore the offer and the edge alone
-  moves, so a fixed limit (frost at 0°) stays put. Saving is refused, with the reason
-  under the bands, while an edge is missing or isn't a number (use a point for
-  decimals), or while the edges are out of order. A record saved before the ladder
-  that left a gap opens with the gap as a band at its **Not a number** level, so it
-  behaves as before and the gap shows.
+  may be incidents worth a look, and the suggestion assumes they were. Setting the
+  bands yourself: below.
 - **On/off sensors:** two rows, **When off** and **When on**, each with its own level
   and message, so it reads as it means: a leak sensor is Nominal when off and Critical
   when on ("Leak detected"); a pump that should run is Nominal when on and an Error when
@@ -345,6 +325,27 @@ Watch reads its history (30 days unless you choose otherwise) and suggests its b
   so `0` matches `0.0`. A numeric sensor offers **Bands (a range)** or **Exact states**;
   the states it has spent most of its time in are shown (an enum's own states, for an
   enum), to tick into the list.
+
+**The bands** are a ladder built out from **Nominal**, its window in the middle (either
+edge may be left empty for open: a battery is nominal from 30% up). Above it are the
+bands going up, each with only its far edge (*Warning up to 24*, *Error up to 26*, the
+last *Critical above 26*); below it are the same going down (*Warning down to 16*,
+*Critical below 16*). Each band starts where the one inside it ends, so no edge is typed
+twice and no value can fall between two bands. Each band out from nominal must be worse
+than the one inside it (the level menu offers only those), so each side holds at most
+four bands; for a wider band at the same level, move its edge instead. An edge belongs
+to the band above it. **+ Band above** and **+ Band below** add one at the far end, and
+✕ removes one. Change any level or message (what a task or a warning says, such as "Top
+up the salt") before saving. A message may be up to 255 characters, but past 80
+notifications and cards may cut it short (the page shows the count once you pass 80).
+When you move a nominal edge, the band beyond it grows or shrinks. Beside it the page
+offers to move **the bands above** (or below) by the same amount, keeping their widths,
+or **everything**, which shifts the whole ladder. Ignore the offer and the edge alone
+moves, so a fixed limit (frost at 0°) stays put. Saving is refused, with the reason
+under the bands, while an edge is missing or isn't a number (use a point for decimals),
+or while the edges are out of order. A record saved before the ladder that left a gap
+opens with the gap as a band at its **Not a number** level, so it behaves as before and
+the gap shows.
 
 **By what it is.** Some sensors say what they mean, so Sensor Watch sets them up by
 their kind and device class rather than their history (change anything you like):
@@ -424,7 +425,7 @@ Each sensor also has:
   it. Several of the library's profiles come with one (the salt, batteries, boiler
   pressure, pool and hot tub water, disk space).
 
-Both are timed from when the entity changed, as Home Assistant's own dialogs show it
+Unavailable for and the hold-off are timed from when the entity changed, as Home Assistant's own dialogs show it
 ("Last changed"), so a level's "since" on the page is the moment it began, not the
 moment its wait ended. An availability watch has no Unavailable for: its hold-off is
 the wait.
@@ -446,8 +447,8 @@ my house**, choose **Use the profile … for the ticked**; or, on the watched li
 to them and choose **Follow a profile** under it.
 
 The **Profiles** section lists each with how many follow it in its status pill: tap
-**N following** to see them in the watched list. Click a row to change its name and levels (every follower with it);
-**Delete** removes it (its followers keep a copy of its levels as their own).
+**N following** to see them in the watched list. Click a row to change its name and
+levels (every follower with it); **Delete** removes it (its followers keep a copy of its levels as their own).
 
 <img src="../screenshots/sensor-watch-library.webp" alt="Profiles from the library, searched for voltage: UK mains voltage (current law) marked as replacing yours with 72 following, the ENA's 2026 proposal, the US and EU, each with its bands, hold-off, what it's for and a Source link; two ticked" width="800">
 
@@ -594,8 +595,7 @@ in one go; one you already have by that name is used as it is, never replaced.
 **Duplicate…** in a profile's editor starts a new one from its levels, to change what differs:
 one room temperature profile per floor, say, as each floor up runs a little warmer.
 
-Tick the ones you want. **Export all** saves all your
-profiles as a JSON file to share, and **Export…** in a profile's editor just that one; **Import…** takes one (yours, or someone else's). A
+**Export all** saves all your profiles as a JSON file to share, and **Export…** in a profile's editor just that one; **Import…** takes one (yours, or someone else's). A
 profile with the name of one you have replaces its levels, so its followers change
 with it: the import starts those unticked, and says so.
 
