@@ -350,9 +350,9 @@ guest card SVG), `page.py` (welcome, goodbye), `supervisor.py`.
   state moved up to `page.tsx` for it). Follows is now **Levels from**. Guide read end to
   end; editor, card and notifications screenshots retaken (watched list, group, library
   and blueprint kept: the owner's setup is too big to recompose). The event, the List
-  service and the blueprint's text carry the value's `unit`. Not yet seen on the box:
-  units in a notification, the fold's Blueprints link (`target="_top"`, the first link
-  out of ingress), and Nominal's aligned message box.
+  service and the blueprint's text carry the value's `unit`. Seen on the box 2026-10-29
+  (b31, now Beta): units in a notification, the fold's Blueprints link (`target="_top"`,
+  the first link out of ingress, works), and Nominal's aligned message box.
 - **2026.10.11-b16: the eye in HA's entity dialog, and editor fixes** (on the box 2026-10-27; the owner: works a treat).
   `cards/src/sensor-watch/eye.ts` patches `ha-more-info-dialog`'s `updated` and puts
   `casa-mia-watch-eye` just after the `headerTitle` span (outside the template's parts,
