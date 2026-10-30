@@ -220,7 +220,12 @@ class Kiosks(Remote):
             status, out_headers = int(resp.status or 502), resp.headers
         ctype = out_headers.get("Content-Type", "")
         plain = path.split("?")[0]
-        _LOGGER.debug("kiosk %s: %s /%s -> %d", k["name"], h.command, path, status)
+        # A command (Remote control's Android Settings, or a button on the kiosk's own page)
+        # is an action taken, so INFO (RULE TWO); the page's other traffic is DEBUG.
+        command = h.command == "POST" and plain.startswith("api/commands/")
+        (_LOGGER.info if command else _LOGGER.debug)(
+            "kiosk %s: %s /%s -> %d", k["name"], h.command, plain, status
+        )
         if ctype.startswith("text/html") and plain in ("", "index.html"):
             _LOGGER.info(
                 "kiosk %s: admin page opened through the app (version %s, %s)",

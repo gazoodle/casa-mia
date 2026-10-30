@@ -119,6 +119,33 @@
   align-content: start;
 }
 
+/* The whole window, less a margin to show it is still a dialog. The browser's own
+   max-width for <dialog> would stop it short of the edges. */
+.full {
+  width: calc(100vw - 24px);
+  max-width: none;
+  height: calc(100vh - 24px);
+  height: calc(100dvh - 24px);
+  max-height: none;
+}
+
+.full .dialogForm {
+  height: 100%;
+  max-height: none;
+}
+
+/* Its parts stack, and the last takes what the others leave. */
+.full .dialogBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.full .dialogBody > :last-child {
+  flex: 1;
+  min-height: 0;
+}
+
 .dialog::backdrop {
   background: rgb(0 0 0 / 55%);
   backdrop-filter: blur(3px);
@@ -156,6 +183,7 @@
 
 .dialogFoot {
   display: flex;
+  flex-wrap: wrap; /* many buttons (a tablet's remote) on a phone */
   justify-content: flex-end;
   gap: 8px;
   padding: 14px 18px 16px;

@@ -36,36 +36,55 @@ export type Press = { current?: (button: Button) => void };
 
 export type RemoteState = { phase: "connecting" } | { phase: "live"; changed: number } | { phase: "ended"; why: string };
 
-/** The live screen, laid over the dialog's snapshot (`stage`, which keeps its size). */
-export function RemoteView({ kiosk: k, onState, press }: { kiosk: Kiosk; onState: (s: RemoteState) => void; press: Press }) {
+/** The live screen, laid over the dialog's snapshot (`stage`, which keeps its size). Scaled
+ * to fit, or with `actual`, one tablet pixel per screen pixel, scrolling when it is larger. */
+export function RemoteView({ kiosk: k, onState, press, actual }: { kiosk: Kiosk; onState: (s: RemoteState) => void; press: Press; actual: boolean }) {
   const target = useRef<HTMLDivElement>(null);
   const report = useRef(onState);
   report.current = onState;
+  const view = useRef<RFB>(undefined);
+  const fit = !actual;
+  const fitNow = useRef(fit);
+  fitNow.current = fit;
+
+  // Switched on the running session: no reconnect.
+  useEffect(() => {
+    if (view.current) view.current.scaleViewport = fit;
+  }, [fit]);
 
   useEffect(() => {
     // noVNC loads only when Remote control is used, not with every admin page (190 kB).
     let stop: (() => void) | undefined;
     let gone = false;
     import("@novnc/novnc").then(
-      ({ default: rfbClass }) => !gone && (stop = session(rfbClass, target.current!, k.id, report, press)),
+      ({ default: rfbClass }) => {
+        if (gone) return;
+        const ws = websocket(k.id);
+        view.current = new rfbClass(target.current!, ws, { shared: true });
+        view.current.scaleViewport = fitNow.current;
+        stop = session(view.current, ws, target.current!, report, press);
+      },
       (err) => report.current({ phase: "ended", why: `the VNC viewer did not load (${err})` }),
     );
     return () => {
       gone = true;
       stop?.();
+      view.current = undefined;
     };
   }, [k.id, press]);
 
   return <div ref={target} className={css.remote} />;
 }
 
-/** One session: noVNC on the app's websocket, until the returned stop or its own end. */
-function session(rfbClass: typeof RFB, target: HTMLDivElement, id: string, report: { current: (s: RemoteState) => void }, press: Press) {
+/** The app's websocket to the tablet's VNC server; the app logs in. */
+function websocket(id: string) {
   const url = new URL(`kiosk/${id}/_vnc`, location.href);
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-  const ws = new WebSocket(url);
-  const rfb = new rfbClass(target, ws, { shared: true });
-  rfb.scaleViewport = true;
+  return new WebSocket(url);
+}
+
+/** One session: noVNC on the app's websocket, until the returned stop or its own end. */
+function session(rfb: RFB, ws: WebSocket, target: HTMLDivElement, report: { current: (s: RemoteState) => void }, press: Press) {
   rfb.resizeSession = false;
   rfb.background = "transparent";
   // droidVNC-NG sends an empty cursor shape, which noVNC draws as nothing: show a dot instead,
@@ -116,6 +135,23 @@ function session(rfbClass: typeof RFB, target: HTMLDivElement, id: string, repor
     why ??= "closed";
     rfb.disconnect();
   };
+}
+
+/** Open Android's Settings over the kiosk: Kiosk Satellite's own launchApp, through the app's
+ * logged-in proxy. The kiosk stays running behind it; Home brings it back. Why it failed, or
+ * nothing. */
+export async function openSettings(id: string): Promise<string | undefined> {
+  try {
+    const res = await fetch(`kiosk/${id}/api/commands/launchApp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ package: "com.android.settings" }),
+    });
+    const answer = await res.json().catch(() => ({}));
+    if (!res.ok || answer.ok === false) return answer.error ?? `Kiosk Satellite answered ${res.status}`;
+  } catch (err) {
+    return (err as Error).message;
+  }
 }
 
 /** The Kiosk Satellites page's VNC password: one for every tablet, set on their droidVNC-NG.

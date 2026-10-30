@@ -1,4 +1,5 @@
 import json
+import logging
 import shutil
 import socket
 import subprocess
@@ -115,6 +116,11 @@ class FakeKiosk(BaseHTTPRequestHandler):
                 return self._send(401, {})
             self.imported.append((self.path, None))
             self._send(200, {"ok": True, "data": {"availableVersion": "2026.10.2"}})
+        elif self.path == "/api/commands/launchApp":
+            if not self._authorised():
+                return self._send(401, {})
+            self.imported.append((self.path, json.loads(body)))
+            self._send(200, {"ok": True})
         elif self.path == "/api/commands/fleet":
             if not self._authorised():
                 return self._send(401, {})
@@ -364,6 +370,24 @@ def test_proxy_logs_in_for_the_page_and_leaves_its_scripts_alone(proxied):
     with urllib.request.urlopen(f"http://{base}/kiosk/k1/static/core.js?v=1") as r:
         # their scripts test and slice "/api/..." strings, so they pass through as they are
         assert b'fetch("/api/settings")' in r.read()
+
+
+def test_a_command_through_the_proxy_is_logged_as_an_action(proxied, caplog):
+    # Remote control's Android Settings: the page posts Kiosk Satellite's launchApp.
+    base, h1 = proxied
+    req = urllib.request.Request(
+        f"http://{base}/kiosk/k1/api/commands/launchApp",
+        data=json.dumps({"package": "com.android.settings"}).encode(),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with caplog.at_level(logging.INFO), urllib.request.urlopen(req) as r:
+        assert json.loads(r.read()) == {"ok": True}
+    assert h1.imported[-1] == (
+        "/api/commands/launchApp",
+        {"package": "com.android.settings"},
+    )
+    assert "kiosk Kitchen: POST /api/commands/launchApp -> 200" in caplog.text
 
 
 def test_proxy_unknown_kiosk_is_404(proxied):

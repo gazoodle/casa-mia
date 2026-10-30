@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.10.12-b4
+
+- Kiosk Satellites: **Full window** makes a tablet's screen dialog fill the browser window; **Smaller** puts it back.
+- Remote control: **1:1** shows the tablet's screen at its own size, one tablet pixel per screen pixel, and scrolls when it is larger than the window. **Fit** scales it to fit again.
+- Remote control: **Android Settings** opens the tablet's Settings app over the kiosk, through Kiosk Satellite. Kiosk Satellite keeps running behind it; **Home** brings it back.
+- Kiosk Satellites: commands sent through a tablet's admin page, and Android Settings, are now logged as actions (INFO), not only at DEBUG.
+- Dialogs: when there are too many buttons for one line (on a phone), they wrap onto the next.
+
 ## 2026.10.12-b3
 
 - Kiosk Satellites: the screen dialog checks for a VNC server on the tablet when it opens. Where there is none, **Remote control** is greyed out and the dialog says why, instead of failing only once pressed.

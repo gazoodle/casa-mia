@@ -402,6 +402,30 @@ guest card SVG), `page.py` (welcome, goodbye), `supervisor.py`.
   (H.265 on the tablets) argue for the shared WebRTC check. The test tablet is on adb and
   its Kiosk Satellite API (`/api/console`, `/api/logs`; console keeps only the first 300
   entries).
+- **Remote control of the wall tablets (2026.10.12-b2 to b4; 2026-10-30):** droidVNC-NG is
+  on every wall tablet, beside Kiosk Satellite, and the Kiosk Satellites page drives each
+  one (`modules/kiosks/vnc.py`: the app does the VNC login, noVNC in the page). All were
+  set up over Wireless debugging from the Mac in one walk; the owner used it on the box.
+  What the walk taught (also in BACKLOG's "Run the whole house from your desk"):
+  - mDNS doesn't cross the owner's subnets: read the IP and port off each tablet's
+    Wireless debugging page. The pairing box's port differs from the main one; label both.
+  - droidVNC-NG's notification channel exists only after its first start: grant
+    notifications first, start it, then set the channel to Silent (it chimes on every
+    connection otherwise). Switch the lock screen off (`locksettings set-disabled true`):
+    the tablets have no PIN, and after a reboot it stands in front of Kiosk Satellite.
+  - **DuraSpeed** (MediaTek, on the Lenovo Tab M9s) blocked one tablet's dashboard.
+    `settings put global setting.duraspeed.enabled 0`, then a **reboot**: a restart of
+    Kiosk Satellite isn't enough once Android has marked the renderer bad. Two more Tab M9s
+    still have DuraSpeed on (working today); the owner said not yet (2026-10-30).
+  - One tablet has Kiosk Satellite's System UI guard (its accessibility service) off.
+  - Kiosk Mode was switched off on the fleet leader for the walk; check it is back on.
+  - Android 15 blanks Developer options in any screen share. On all seven tablets,
+    `disable_screen_share_protections_for_apps_and_notifications 1`, then a droidVNC-NG
+    restart (the restart is what makes it work), shows them (2026-10-30).
+  - b4 added Full window, 1:1 and Android Settings (KS's `launchApp` through the proxy).
+    Android Settings hadn't been tried on a real tablet at commit time: try it on the box.
+  - Wireless debugging is off after every reboot. The routine and the proposed helper app
+    are in BACKLOG.
 - **Paused: the owner's Sensor Watch migration** (old error/warning/task tiles into Sensor
   Watch, to prove it before its release); it stopped when Save hung. Read entity ids in the
   Companion app and edit in Safari (separate connection pools) to dodge the hang. A camera

@@ -10,6 +10,7 @@ export function Dialog({
   footer,
   wide,
   tall,
+  full,
 }: {
   title: string;
   children: ReactNode;
@@ -19,6 +20,8 @@ export function Dialog({
   /** A fixed height (as much as the screen allows, up to a limit), for a dialog whose
    * content grows and shrinks as it fills (search results): it stays still, its body scrolls. */
   tall?: boolean;
+  /** The whole window (a tablet's live screen): the body's last part takes the height left. */
+  full?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -59,7 +62,7 @@ export function Dialog({
   return (
     <dialog
       ref={ref}
-      className={`${css.dialog} ${wide ? css.wide : ""} ${tall ? css.tall : ""}`}
+      className={`${css.dialog} ${wide ? css.wide : ""} ${tall ? css.tall : ""} ${full ? css.full : ""}`}
       onClose={onClose}
       onCancel={onClose}
       onKeyDown={onKeyDown}

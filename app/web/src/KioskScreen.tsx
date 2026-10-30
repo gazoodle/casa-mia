@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api, type Kiosk } from "./api";
 import { ago } from "./format";
-import { BUTTONS, RemoteView, type Button, type Press, type RemoteState } from "./KioskRemote";
+import { BUTTONS, openSettings, RemoteView, type Button, type Press, type RemoteState } from "./KioskRemote";
 import { Dialog } from "./ui";
 import css from "./kiosks.module.css";
 import guest from "./guest.module.css";
@@ -22,6 +22,9 @@ export function KioskScreen({ kiosk: k }: { kiosk: Kiosk }) {
   const [remote, setRemote] = useState<RemoteState>(); // set while Remote control runs or after it ended
   const driving = remote && remote.phase !== "ended";
   const press = useRef<Press["current"]>(undefined);
+  const [full, setFull] = useState(false); // the dialog fills the window
+  const [actual, setActual] = useState(false); // 1:1: one tablet pixel per screen pixel
+  const [settings, setSettings] = useState<string>(); // why Android Settings did not open
   // Whether the tablet has a VNC server: asked each time the dialog opens, never on a timer.
   const [vnc, setVnc] = useState<{ ok: boolean; why: string | null }>();
   useEffect(() => {
@@ -32,7 +35,9 @@ export function KioskScreen({ kiosk: k }: { kiosk: Kiosk }) {
   const close = () => {
     setOpen(false);
     setRemote(undefined);
+    setSettings(undefined);
   };
+  const android = async () => setSettings(await openSettings(k.id));
 
   // While live, "last change" is redrawn as it ages (ago() counts in minutes): a display
   // clock, not a poll.
@@ -76,6 +81,7 @@ export function KioskScreen({ kiosk: k }: { kiosk: Kiosk }) {
         <Dialog
           title={`${k.name}: screen`}
           wide
+          full={full}
           onClose={close}
           footer={
             <>
@@ -84,6 +90,19 @@ export function KioskScreen({ kiosk: k }: { kiosk: Kiosk }) {
                   {b}
                 </button>
               ))}
+              {driving && (
+                <>
+                  <button className={`${ui.button} ${ui.small}`} disabled={remote.phase !== "live"} onClick={android} title="Android's Settings, over the kiosk; Home brings the kiosk back">
+                    Android Settings
+                  </button>
+                  <button className={`${ui.button} ${ui.small}`} onClick={() => setActual((a) => !a)} title={actual ? "Scale the screen to fit" : "One tablet pixel per screen pixel; scroll when larger"}>
+                    {actual ? "Fit" : "1:1"}
+                  </button>
+                </>
+              )}
+              <button className={`${ui.button} ${ui.small}`} onClick={() => setFull((f) => !f)} title={full ? "Back to a dialog" : "Fill the window"}>
+                {full ? "Smaller" : "Full window"}
+              </button>
               {driving ? (
                 <button className={ui.button} onClick={() => setRemote({ phase: "ended", why: "ended here" })}>
                   End remote control
@@ -123,11 +142,12 @@ export function KioskScreen({ kiosk: k }: { kiosk: Kiosk }) {
                       : "Taking…"}
           </p>
           {!driving && vnc && !vnc.ok && <p className={guest.checkHelp}>Remote control is not available: {vnc.why}.</p>}
+          {driving && settings && <p className={guest.checkHelp}>Android Settings did not open: {settings}.</p>}
           {/* The snapshot keeps the stage its size; the live screen covers it from the first frame. */}
-          <div className={css.stage}>
+          <div className={`${css.stage} ${full ? css.stageFull : ""}`}>
             {!why && picture(`${css.screenFull} ${remote?.phase === "live" ? css.hidden : ""}`)}
             {driving && (
-              <RemoteView kiosk={k} press={press} onState={(s) => setRemote((r) => (r?.phase === "ended" ? r : s))} />
+              <RemoteView kiosk={k} press={press} actual={actual} onState={(s) => setRemote((r) => (r?.phase === "ended" ? r : s))} />
             )}
           </div>
         </Dialog>

@@ -63,6 +63,10 @@ never reaches your browser, and the page shows only whether it is set.
   **Remote control** is greyed out and the dialog says why.
 - **Back**, **Home** and **Recents** press Android's buttons. From a keyboard, Esc is
   Back and Home is Home. To open the notifications, drag down from the top edge.
+- **Android Settings** opens the tablet's Settings app over Kiosk Satellite, which keeps
+  running behind it. **Home** brings the kiosk back.
+- **Full window** fills your browser window with the dialog. **1:1** shows the tablet's
+  screen at its own size, scrolling if it doesn't fit, and **Fit** scales it down again.
 - The line above the screen says how long ago it last changed, so a frozen screen doesn't
   pass for live.
 - If Casa Mia can't connect, the picture stays and the dialog says why: no password set,
