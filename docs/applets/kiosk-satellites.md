@@ -48,6 +48,29 @@ Pictures are taken when the page opens and on Refresh, never on a timer, since e
 is a capture on the tablet. Without a login, or while the tablet is not answering, the
 frame says so instead.
 
+### Remote control
+
+**Remote control**, in the screen picture's dialog, replaces the picture with the
+tablet's live screen. Your clicks, drags and keys go to the tablet, so you can use
+Kiosk Satellite's settings or Android's from your desk, at home or away.
+
+It needs [droidVNC-NG](https://github.com/bk138/droidVNC-NG) on each tablet, beside Kiosk
+Satellite, with the same VNC password on all of them. Enter that password once under
+**Remote control** on this page. Casa Mia logs in to the tablet itself, so the password
+never reaches your browser, and the page shows only whether it is set.
+
+- The line above the screen says how long ago it last changed, so a frozen screen doesn't
+  pass for live.
+- If Casa Mia can't connect, the picture stays and the dialog says why: no password set,
+  the wrong password, or nothing listening on the tablet's VNC port (5900).
+- A session ends with **Done**, **End remote control**, or after 10 minutes without a
+  touch or key.
+- VNC between Casa Mia and the tablet is not encrypted, so it stays inside your network.
+  From away, your browser reaches Casa Mia through Home Assistant as usual.
+
+The viewer is [noVNC](https://github.com/novnc/noVNC) (MPL-2.0), loaded only when Remote
+control starts.
+
 **Log in** tries the password on every tablet that answers. Casa Mia keeps a login token
 for up to ten years, not the password. Logging in enables backups and update commands,
 and lets **Open** enter the tablet's admin page already signed in.

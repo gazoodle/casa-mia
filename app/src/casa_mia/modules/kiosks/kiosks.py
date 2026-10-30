@@ -13,7 +13,6 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler
 from typing import Any
 
-from .commands import Commands
 from .common import (
     BACKUP_NAME,
     HOP,
@@ -25,11 +24,12 @@ from .common import (
     _needs_shim,
     page_head,
 )
+from .vnc import Remote
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class Kiosks(Commands):
+class Kiosks(Remote):
     def _run(self) -> None:
         """Look for kiosks at start and on Look now; check the known ones every minute."""
         discover = True
@@ -84,6 +84,16 @@ class Kiosks(Commands):
                 return _json(400, {"error": "Enter the password."})
             results = self.login(password)
             return _json(200, {**self.view(), "results": results})
+        if method == "PUT" and parts == ["vnc"]:
+            try:
+                password = str(json.loads(body or b"{}").get("password") or "")
+            except (ValueError, AttributeError):
+                return _json(400, {"error": "Not JSON."})
+            with self._lock:
+                self.vnc_password = password or None
+                self._save()
+            _LOGGER.info("kiosks: VNC password %s", "set" if password else "cleared")
+            return _json(200, self.view())
         if method == "POST" and parts == ["addresses"]:
             try:
                 raw = str(json.loads(body or b"{}").get("address") or "").strip()
@@ -161,7 +171,12 @@ class Kiosks(Commands):
             return
         token = self.tokens.get(kid)
         if h.headers.get("Upgrade", "").lower() == "websocket":
-            self._tunnel(h, k, path, token)
+            if (
+                path.partition("?")[0] == "_vnc"
+            ):  # ours, not the kiosk's: remote control
+                self.remote(h, k)
+            else:
+                self._tunnel(h, k, path, token)
             return
         length = int(h.headers.get("Content-Length") or 0)
         body = h.rfile.read(length) if length else None

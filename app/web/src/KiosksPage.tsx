@@ -7,6 +7,7 @@ import { api, type Kiosk, type KioskBackup, type KioskKind, type KiosksView } fr
 import { ago } from "./format";
 import { TabletIcon } from "./icons";
 import { Everywhere } from "./KioskEverywhere";
+import { RemotePassword } from "./KioskRemote";
 import { KioskScreen } from "./KioskScreen";
 import { AreaHead, Empty, Shell } from "./page";
 import { Dialog, Field, Segmented, Toasts, type Toast } from "./ui";
@@ -226,6 +227,17 @@ export function KiosksPage({ state }: { state?: string }) {
           {view.kinds.config}: every setting with its secrets (the Home Assistant token too) and the page's stored data.{" "}
           {view.kinds.settings}: the settings alone. Lowering Keep removes the older copies now.
         </p>
+      </section>
+
+      <section className={guest.area}>
+        <AreaHead
+          title="Remote control"
+          blurb="Drive a tablet from here: click its picture, then Remote control. Needs droidVNC-NG on the tablet, all with the same VNC password, entered here once. The app logs in with it; your browser never sees it."
+        />
+        <RemotePassword
+          set={view.vnc_password_set}
+          onSave={(password) => change(() => put<KiosksView>("vnc", { password }), password ? "VNC password saved" : "VNC password cleared")}
+        />
       </section>
 
       <section className={guest.area}>

@@ -199,6 +199,8 @@ export type KiosksView = {
   results?: Record<string, string>;
   /** The last Run everywhere: its command, and each kiosk's result as it came. */
   everywhere: EverywhereRun | null;
+  /** Whether Remote control's VNC password is set (the app never sends it back). */
+  vnc_password_set: boolean;
 };
 
 export type EverywhereRun = {

@@ -95,6 +95,25 @@
   border-radius: 6px;
 }
 
+/* The screen dialog's picture area: the snapshot sets its size and the live screen
+   (noVNC, scaled to fit) lies over it. Without a snapshot it takes a fixed height. */
+.stage {
+  position: relative;
+}
+
+.stage:not(:has(img)) {
+  height: 60vh;
+}
+
+.remote {
+  position: absolute;
+  inset: 0;
+}
+
+.hidden {
+  visibility: hidden;
+}
+
 .backupBad {
   color: var(--warn);
 }

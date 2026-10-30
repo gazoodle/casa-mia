@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.10.12-b2
+
+- Kiosk Satellites: **Remote control**. In a tablet's screen picture, Remote control shows its live screen and sends it your clicks, drags and keys, from home or away. It needs [droidVNC-NG](https://github.com/bk138/droidVNC-NG) installed beside Kiosk Satellite, and the VNC password entered once under **Remote control** on the page. Casa Mia logs in to the tablet for you, so your browser never sees the password. If it can't connect, the dialog says why. A session ends with Done, End remote control, or after 10 minutes without a touch or key.
+
 ## 2026.10.12-b1
 
 - **Breaking:** Tablet Layout: the last panel of an edge now fills what the others leave by default, so the edge reaches its end and its corner locks move something you can see. Before, every panel of an edge holding more than one was as long as its cards. To keep the old look, set the last panel to **As its cards**. An edge arranged centre or end is unchanged.
