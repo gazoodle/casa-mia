@@ -27,6 +27,7 @@ from typing import Any
 from Crypto.Cipher import DES
 
 from .commands import Commands
+from .common import Response, _json
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -187,14 +188,35 @@ def _shut(*socks: socket.socket) -> None:
 
 
 class Remote(Commands):
+    def vnc_check(self, kid: str) -> Response:
+        """Whether the tablet has a VNC server, for the screen dialog's Remote control
+        button: asked when the dialog opens, never on a timer. Reads its greeting only;
+        no login."""
+        k = self.kiosks.get(kid)
+        if not k or "address" not in k:
+            return _json(404, {"error": "No such kiosk."})
+        try:
+            with self._vnc_connect(k) as sock:
+                if not _exact(sock, 12).startswith(b"RFB "):
+                    raise Refused(
+                        f"something answers on {k['name']}'s VNC port, but not VNC"
+                    )
+        except Refused as exc:
+            why = str(exc)
+        except OSError as exc:
+            why = f"{k['name']}'s VNC port sent no greeting ({exc})"
+        else:
+            why = None
+        _LOGGER.info("kiosk %s: VNC check: %s", k["name"], why or "answers")
+        return _json(200, {"ok": why is None, "why": why})
+
     def remote(self, h: BaseHTTPRequestHandler, k: dict[str, Any]) -> None:
         """/kiosk/<id>/_vnc: the tablet's VNC server, logged in, to the page's noVNC."""
         ws = WebSocket(h)
-        host = k.get("ip") or k["address"].rpartition(":")[0]
 
         # The page waits for a VNC greeting either way: the session, or a refusal it shows.
         try:
-            tablet = self._vnc_open(host, k["name"])
+            tablet = self._vnc_open(k)
         except Refused as exc:
             _LOGGER.warning("kiosk %s: remote control refused: %s", k["name"], exc)
             try:
@@ -229,23 +251,30 @@ class Remote(Commands):
                 ended,
             )
 
-    def _vnc_open(self, host: str, name: str) -> socket.socket:
-        """A connection to the tablet's VNC server, logged in."""
+    def _vnc_connect(self, k: dict[str, Any]) -> socket.socket:
+        """A connection to the tablet's VNC port, or why there is none."""
+        host = k.get("ip") or k["address"].rpartition(":")[0]
         try:
-            sock = socket.create_connection((host, VNC_PORT), timeout=self.timeout)
+            return socket.create_connection((host, VNC_PORT), timeout=self.timeout)
         except ConnectionRefusedError:
             raise Refused(
-                f"nothing listens on {name}'s VNC port {VNC_PORT}: is droidVNC-NG installed and running?"
+                f"{k['name']} has no VNC (droidVNC-NG is not installed or not running)"
             ) from None
         except OSError as exc:
-            raise Refused(f"{name} is not answering on its VNC port ({exc})") from exc
+            raise Refused(
+                f"{k['name']} is not answering on its VNC port ({exc})"
+            ) from exc
+
+    def _vnc_open(self, k: dict[str, Any]) -> socket.socket:
+        """A connection to the tablet's VNC server, logged in."""
+        sock = self._vnc_connect(k)
         with contextlib.ExitStack() as guard:  # closed on any failure, kept on success
             guard.enter_context(sock)
             try:
                 vnc_login(sock, self.vnc_password)
             except OSError as exc:
                 raise Refused(
-                    f"{name}'s VNC server did not finish the login ({exc})"
+                    f"{k['name']}'s VNC server did not finish the login ({exc})"
                 ) from exc
             sock.settimeout(None)
             guard.pop_all()

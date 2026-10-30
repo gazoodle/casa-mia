@@ -59,6 +59,10 @@ Satellite, with the same VNC password on all of them. Enter that password once u
 **Remote control** on this page. Casa Mia logs in to the tablet itself, so the password
 never reaches your browser, and the page shows only whether it is set.
 
+- When the dialog opens, Casa Mia checks for a VNC server on the tablet. Without one,
+  **Remote control** is greyed out and the dialog says why.
+- **Back**, **Home** and **Recents** press Android's buttons. From a keyboard, Esc is
+  Back and Home is Home. To open the notifications, drag down from the top edge.
 - The line above the screen says how long ago it last changed, so a frozen screen doesn't
   pass for live.
 - If Casa Mia can't connect, the picture stays and the dialog says why: no password set,

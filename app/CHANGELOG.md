@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.10.12-b3
+
+- Kiosk Satellites: the screen dialog checks for a VNC server on the tablet when it opens. Where there is none, **Remote control** is greyed out and the dialog says why, instead of failing only once pressed.
+- Remote control: **Back**, **Home** and **Recents** buttons while a session is live, for Android's own buttons (handy on an iPad, which has no Esc or Home key). To open the notifications, drag down from the top of the screen.
+- Remote control shows your pointer as a dot. droidVNC-NG sends no pointer of its own, so there was nothing to show where you were about to click.
+- Kiosk Satellites: the VNC password's Save and Clear buttons sit on one line with the box, at their normal size.
+
 ## 2026.10.12-b2
 
 - Kiosk Satellites: **Remote control**. In a tablet's screen picture, Remote control shows its live screen and sends it your clicks, drags and keys, from home or away. It needs [droidVNC-NG](https://github.com/bk138/droidVNC-NG) installed beside Kiosk Satellite, and the VNC password entered once under **Remote control** on the page. Casa Mia logs in to the tablet for you, so your browser never sees the password. If it can't connect, the dialog says why. A session ends with Done, End remote control, or after 10 minutes without a touch or key.

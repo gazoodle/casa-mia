@@ -1,6 +1,7 @@
 """Remote control: the app logs in to a tablet's VNC server and serves the page's noVNC."""
 
 import base64
+import contextlib
 import json
 import os
 import socket
@@ -39,31 +40,32 @@ class FakeVNC:
             except OSError:
                 return
         self.conns.append(conn)
-        with conn:
-            conn.sendall(b"RFB 003.008\n")
-            assert conn.recv(12) == b"RFB 003.008\n"
-            conn.sendall(bytes([1, 2]))
-            if conn.recv(1) != b"\x02":  # the app gave up first (no password set)
-                return
-            challenge = os.urandom(16)
-            conn.sendall(challenge)
-            answer = conn.recv(16)
-            if answer != DES.new(vnc_key(self.password), DES.MODE_ECB).encrypt(
-                challenge
-            ):
-                reason = b"Authentication failed"
-                conn.sendall(struct.pack(">II", 1, len(reason)) + reason)
-                return
-            conn.sendall(struct.pack(">I", 0))
-            if conn.recv(1) == b"\x01":  # ClientInit, shared
-                self.got_init.set()
-                conn.sendall(b"INIT")
-            try:
-                while data := conn.recv(1000):
-                    conn.sendall(b"echo:" + data)
-            except OSError:
-                return
-            self.page_left.set()
+        # Any step may meet a closed connection (the app hung up, or close() in a test):
+        # that ends the conversation.
+        with conn, contextlib.suppress(OSError):
+            self._talk(conn)
+
+    def _talk(self, conn):
+        conn.sendall(b"RFB 003.008\n")
+        if conn.recv(12) != b"RFB 003.008\n":  # a check: the greeting only
+            return
+        conn.sendall(bytes([1, 2]))
+        if conn.recv(1) != b"\x02":  # the app gave up first (no password set)
+            return
+        challenge = os.urandom(16)
+        conn.sendall(challenge)
+        answer = conn.recv(16)
+        if answer != DES.new(vnc_key(self.password), DES.MODE_ECB).encrypt(challenge):
+            reason = b"Authentication failed"
+            conn.sendall(struct.pack(">II", 1, len(reason)) + reason)
+            return
+        conn.sendall(struct.pack(">I", 0))
+        if conn.recv(1) == b"\x01":  # ClientInit, shared
+            self.got_init.set()
+            conn.sendall(b"INIT")
+        while data := conn.recv(1000):
+            conn.sendall(b"echo:" + data)
+        self.page_left.set()
 
     def close(self):
         self.server.close()
@@ -191,7 +193,23 @@ def test_nothing_on_the_vnc_port_asks_whether_droidvnc_runs(remote, monkeypatch)
     k, base, vnc = remote
     put_password(k, VNC_PASSWORD)
     vnc.close()
-    assert "is droidVNC-NG installed and running?" in Page(base).refusal()
+    assert "droidVNC-NG is not installed or not running" in Page(base).refusal()
+
+
+def test_the_dialogs_check_reads_the_greeting_without_logging_in(remote):
+    k, _, vnc = remote
+    status, _, data = k.handle("GET", "k1/vnc", {}, b"")
+    assert status == 200 and json.loads(data) == {"ok": True, "why": None}
+    assert not vnc.got_init.is_set()
+
+    vnc.close()
+    answer = json.loads(k.handle("GET", "k1/vnc", {}, b"")[2])
+    assert answer["ok"] is False
+    assert (
+        answer["why"]
+        == "Kitchen has no VNC (droidVNC-NG is not installed or not running)"
+    )
+    assert k.handle("GET", "nope/vnc", {}, b"")[0] == 404
 
 
 def test_the_password_is_kept_but_never_shown(remote, tmp_path):

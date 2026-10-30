@@ -3,14 +3,16 @@
  * and its age, and Remote control (KioskRemote) to drive it live. Taken when the page opens
  * and on Refresh, never on a timer (RULE FOUR): each one is a capture on the tablet. */
 
-import { useEffect, useState } from "react";
-import type { Kiosk } from "./api";
+import { useEffect, useRef, useState } from "react";
+import { api, type Kiosk } from "./api";
 import { ago } from "./format";
-import { RemoteView, type RemoteState } from "./KioskRemote";
+import { BUTTONS, RemoteView, type Button, type Press, type RemoteState } from "./KioskRemote";
 import { Dialog } from "./ui";
 import css from "./kiosks.module.css";
 import guest from "./guest.module.css";
 import ui from "./ui.module.css";
+
+const { get } = api("kiosks");
 
 export function KioskScreen({ kiosk: k }: { kiosk: Kiosk }) {
   const [asked, setAsked] = useState(() => Date.now()); // in the URL too, so Refresh is never answered from the browser's cache
@@ -19,6 +21,14 @@ export function KioskScreen({ kiosk: k }: { kiosk: Kiosk }) {
   const [open, setOpen] = useState(false);
   const [remote, setRemote] = useState<RemoteState>(); // set while Remote control runs or after it ended
   const driving = remote && remote.phase !== "ended";
+  const press = useRef<Press["current"]>(undefined);
+  // Whether the tablet has a VNC server: asked each time the dialog opens, never on a timer.
+  const [vnc, setVnc] = useState<{ ok: boolean; why: string | null }>();
+  useEffect(() => {
+    if (!open) return;
+    setVnc(undefined);
+    get<{ ok: boolean; why: string | null }>(`${k.id}/vnc`).then(setVnc, (err) => setVnc({ ok: false, why: (err as Error).message }));
+  }, [open, k.id]);
   const close = () => {
     setOpen(false);
     setRemote(undefined);
@@ -69,6 +79,11 @@ export function KioskScreen({ kiosk: k }: { kiosk: Kiosk }) {
           onClose={close}
           footer={
             <>
+              {driving && (Object.keys(BUTTONS) as Button[]).map((b) => (
+                <button key={b} className={`${ui.button} ${ui.small}`} disabled={remote.phase !== "live"} onClick={() => press.current?.(b)} title={`Android's ${b} button`}>
+                  {b}
+                </button>
+              ))}
               {driving ? (
                 <button className={ui.button} onClick={() => setRemote({ phase: "ended", why: "ended here" })}>
                   End remote control
@@ -80,11 +95,11 @@ export function KioskScreen({ kiosk: k }: { kiosk: Kiosk }) {
                   </button>
                   <button
                     className={ui.button}
-                    disabled={!k.online}
+                    disabled={!vnc?.ok}
                     onClick={() => setRemote({ phase: "connecting" })}
-                    title="Its live screen: your clicks, drags and keys go to the tablet (needs droidVNC-NG on it)"
+                    title="Its live screen: your clicks, drags and keys go to the tablet"
                   >
-                    Remote control
+                    {vnc ? "Remote control" : "Checking…"}
                   </button>
                 </>
               )}
@@ -107,11 +122,12 @@ export function KioskScreen({ kiosk: k }: { kiosk: Kiosk }) {
                       ? `Taken at ${new Date(got).toLocaleTimeString()} (${ago(new Date(got).toISOString())}).`
                       : "Taking…"}
           </p>
+          {!driving && vnc && !vnc.ok && <p className={guest.checkHelp}>Remote control is not available: {vnc.why}.</p>}
           {/* The snapshot keeps the stage its size; the live screen covers it from the first frame. */}
           <div className={css.stage}>
             {!why && picture(`${css.screenFull} ${remote?.phase === "live" ? css.hidden : ""}`)}
             {driving && (
-              <RemoteView kiosk={k} onState={(s) => setRemote((r) => (r?.phase === "ended" ? r : s))} />
+              <RemoteView kiosk={k} press={press} onState={(s) => setRemote((r) => (r?.phase === "ended" ? r : s))} />
             )}
           </div>
         </Dialog>

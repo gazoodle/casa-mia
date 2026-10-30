@@ -18,10 +18,26 @@ import ui from "./ui.module.css";
  * tablet capturing and streaming. */
 const IDLE_MS = 10 * 60 * 1000;
 
+/** Android's buttons, as droidVNC-NG's default key chords (its Preseed-Preferences doc):
+ * each [keysym, code], pressed in order and released in reverse. */
+export const BUTTONS = {
+  Back: [[0xff1b, "Escape"]],
+  Home: [[0xff50, "Home"]],
+  Recents: [
+    [0xffe3, "ControlLeft"],
+    [0xffe1, "ShiftLeft"],
+    [0xff1b, "Escape"],
+  ],
+} satisfies Record<string, [number, string][]>;
+export type Button = keyof typeof BUTTONS;
+
+/** Set by a live session: presses one of Android's buttons on the tablet. */
+export type Press = { current?: (button: Button) => void };
+
 export type RemoteState = { phase: "connecting" } | { phase: "live"; changed: number } | { phase: "ended"; why: string };
 
 /** The live screen, laid over the dialog's snapshot (`stage`, which keeps its size). */
-export function RemoteView({ kiosk: k, onState }: { kiosk: Kiosk; onState: (s: RemoteState) => void }) {
+export function RemoteView({ kiosk: k, onState, press }: { kiosk: Kiosk; onState: (s: RemoteState) => void; press: Press }) {
   const target = useRef<HTMLDivElement>(null);
   const report = useRef(onState);
   report.current = onState;
@@ -31,20 +47,20 @@ export function RemoteView({ kiosk: k, onState }: { kiosk: Kiosk; onState: (s: R
     let stop: (() => void) | undefined;
     let gone = false;
     import("@novnc/novnc").then(
-      ({ default: rfbClass }) => !gone && (stop = session(rfbClass, target.current!, k.id, report)),
+      ({ default: rfbClass }) => !gone && (stop = session(rfbClass, target.current!, k.id, report, press)),
       (err) => report.current({ phase: "ended", why: `the VNC viewer did not load (${err})` }),
     );
     return () => {
       gone = true;
       stop?.();
     };
-  }, [k.id]);
+  }, [k.id, press]);
 
   return <div ref={target} className={css.remote} />;
 }
 
 /** One session: noVNC on the app's websocket, until the returned stop or its own end. */
-function session(rfbClass: typeof RFB, target: HTMLDivElement, id: string, report: { current: (s: RemoteState) => void }) {
+function session(rfbClass: typeof RFB, target: HTMLDivElement, id: string, report: { current: (s: RemoteState) => void }, press: Press) {
   const url = new URL(`kiosk/${id}/_vnc`, location.href);
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
   const ws = new WebSocket(url);
@@ -52,6 +68,9 @@ function session(rfbClass: typeof RFB, target: HTMLDivElement, id: string, repor
   rfb.scaleViewport = true;
   rfb.resizeSession = false;
   rfb.background = "transparent";
+  // droidVNC-NG sends an empty cursor shape, which noVNC draws as nothing: show a dot instead,
+  // so you can see where you are about to click.
+  rfb.showDotCursor = true;
 
   // Set once, by whichever comes first: a refusal's reason, the idle limit, or the close.
   let why: string | undefined;
@@ -80,15 +99,20 @@ function session(rfbClass: typeof RFB, target: HTMLDivElement, id: string, repor
   rfb.addEventListener("disconnect", (e) =>
     report.current({ phase: "ended", why: why ?? ((e as CustomEvent<{ clean: boolean }>).detail.clean ? "the tablet closed it" : "the connection was lost") }),
   );
-  
   target.addEventListener("pointerdown", touched);
   target.addEventListener("keydown", touched);
+  press.current = (button) => {
+    touched();
+    for (const [sym, code] of BUTTONS[button]) rfb.sendKey(sym, code, true);
+    for (const [sym, code] of [...BUTTONS[button]].reverse()) rfb.sendKey(sym, code, false);
+  };
 
   // However the dialog goes (Done, close, the page left), the session ends with it.
   return () => {
     clearTimeout(idle);
     target.removeEventListener("pointerdown", touched);
     target.removeEventListener("keydown", touched);
+    press.current = undefined;
     why ??= "closed";
     rfb.disconnect();
   };
@@ -110,25 +134,25 @@ export function RemotePassword({ set, onSave }: { set: boolean; onSave: (passwor
   };
   return (
     <form
-      className={css.addRow}
       onSubmit={(e) => {
         e.preventDefault();
         save(password);
       }}
     >
+      {/* The box and its buttons on one line, as Add a kiosk; the label and help around them. */}
       <Field label="VNC password" help={set ? "Set. Enter a new one to change it." : "Not set: Remote control will say so."}>
-        <input type="password" autoComplete="off" value={password} onChange={(e) => setPassword(e.target.value)} />
-      </Field>
-      <span className={css.headActions}>
-        <button className={ui.button} disabled={!password || busy}>
-          Save
-        </button>
-        {set && (
-          <button type="button" className={ui.button} disabled={busy} onClick={() => save("")}>
-            Clear
+        <span className={css.addRow}>
+          <input type="password" autoComplete="off" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <button className={ui.button} disabled={!password || busy}>
+            Save
           </button>
-        )}
-      </span>
+          {set && (
+            <button type="button" className={ui.button} disabled={busy} onClick={() => save("")}>
+              Clear
+            </button>
+          )}
+        </span>
+      </Field>
     </form>
   );
 }

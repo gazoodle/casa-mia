@@ -134,6 +134,8 @@ class Kiosks(Remote):
                 "kiosk %s forgotten (comes back if still found)", k.get("name")
             )
             return _json(200, self.view())
+        if method == "GET" and len(parts) == 2 and parts[1] == "vnc":
+            return self.vnc_check(parts[0])
         if method == "POST" and len(parts) == 2 and parts[1] == "update":
             return self.update(parts[0])
         if method == "POST" and len(parts) == 2 and parts[1] == "firmware-server":
