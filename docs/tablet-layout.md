@@ -84,8 +84,7 @@ the top and bottom edges, one under the other in the left and right. A top edge 
 clock, the weather and the alarm, each its own section, is three panels in one edge.
 
 **Layers nest like an onion.** Layer 1's edges surround a middle; layer 2's edges sit
-*inside* that middle, round a smaller one; and so on, up to four layers, with main
-innermost.
+*inside* that middle, round a smaller one, with main innermost.
 
 ```yaml
 view_layout: { panel: right, layer: 2 }
@@ -106,6 +105,18 @@ In edit mode a layer's panels are named on their chips (*L2 TOP*), main says how
 Use a second layer when you want something to sit *between* the outer edges and main: a
 status strip that spans only the width of the camera picture, say, while the outer left edge
 runs the full height of the screen.
+
+**Two layers at most.** It used to allow four, but past two it became unusable: each layer
+grows edit mode outwards by another ring of frames, chips and gaps, until main is a small
+box in the middle of them. Anything a third layer was wanted for has another way:
+
+- **Several things along one edge:** a stack of panels in that edge (the + on its chip).
+- **A top or bottom that stops short of the sides, or runs over them:** the corner locks.
+- **Something kept to the far end of an edge:** hold it to the end.
+- **An edge exactly as deep as its contents:** `size: auto`.
+
+A view made earlier with three or four layers still shows them all, and the innermost can
+still be removed.
 
 The view's own `layout:` holds layer 1's edges; each further layer's are in `inner:`, one
 inside the last:
@@ -150,16 +161,19 @@ When an edge holds several panels, each one's **length** along it is one of:
 
 | Length | Set by | Meaning |
 |---|---|---|
-| As its cards | `view_layout: { length: cards }` | As wide (top, bottom) or tall (left, right) as its cards. The default when an edge has more than one panel. |
-| Fill | `view_layout: { length: fill }` | A share of whatever the others leave, alike between all that fill. The default for a panel alone in its edge. |
+| As its cards | `view_layout: { length: cards }` | As wide (top, bottom) or tall (left, right) as its cards. The default for every panel of an edge but the last. |
+| Fill | `view_layout: { length: fill }` | A share of whatever the others leave, alike between all that fill. The default for the last panel of an edge (so a panel alone fills it), unless another is set to fill or the edge is arranged `centre` or `end`. |
 | Fixed | the section's `column_span` (top, bottom) or `row_span` (left, right) | Top and bottom: a number of the view's columns (its `max_columns`, HA's Width in the section's Layout tab). Left and right: a number of HA's card rows, 56 px each plus the gap. |
 
-If they don't all fit, every panel but those filling shrinks alike.
+If they don't all fit, every panel but those filling shrinks alike. The last panel fills by
+default so the edge reaches its end, and the corner locks have something to move. To pack
+them all as their cards instead, set the last one to **As its cards**.
 
 <img src="screenshots/tablet-layout-edge-stack.webp" alt="A top edge of three panels in edit mode, with the third panel's options open: as wide as its cards, held to the right" width="800">
 
 **Room over** (when none fills) is arranged by the edge's `arrange`: `start` (from the left
-or the top, the default), `centre`, or `end`. A panel can also be **held to the end** of its
+or the top, the default), `centre`, or `end`. Choosing `centre` or `end` also turns off the
+last panel's default fill, since the room over is what they arrange. A panel can also be **held to the end** of its
 edge (`view_layout: { hold: end }`): it sits against the right or bottom whatever the others
 do. A row of buttons from the left with the clock held right is two panels, the second held.
 
@@ -265,7 +279,8 @@ any Sections view. Overrule either way with `view_layout: { fill: true }` or
 `{ fill: false }`.
 
 The exceptions: a top or bottom edge of `size: auto` (it is as tall as its cards, so there is
-nothing to fill), and a left or right edge with more than one panel (each is as its cards).
+nothing to fill), and the panels of a left or right edge that are as their cards (by default,
+all but the last).
 
 Otherwise HA's own grid places the cards, by their Width and rows, as in any Sections view.
 
@@ -372,7 +387,7 @@ top or bottom panel's fixed Width counts in) and `debug: true` (see [Debugging](
 |---|---|---|
 | `panel` | | `main`, `top`, `left`, `right` or `bottom`. |
 | `layer` | `1` | 1 to 4. |
-| `length` | fill when alone, else `cards` | Its length along its edge: `cards` or `fill`. A fixed one is HA's `column_span` (top, bottom) or `row_span` (left, right) on the section instead. |
+| `length` | fill for the last of its edge, else `cards` | Its length along its edge: `cards` or `fill`. A fixed one is HA's `column_span` (top, bottom) or `row_span` (left, right) on the section instead. |
 | `hold` | | `end`: held against the end of its edge. |
 | `padding` | `0` | px inside it round its cards; one number, or `{top, right, bottom, left}`. |
 | `gap_after` | the view's | px to the next panel along its edge. |

@@ -42,6 +42,12 @@ model, battery and Wi-Fi signal. Fleet leaders appear before their indented foll
 A version marked with an upward arrow is behind the latest release known to the
 firmware server. **Look now** asks for a fresh discovery scan.
 
+A logged-in, online tablet's row starts with a picture of its screen, as Kiosk Satellite
+captures it. Click it for the full size, with the time it was taken and **Refresh**.
+Pictures are taken when the page opens and on Refresh, never on a timer, since each one
+is a capture on the tablet. Without a login, or while the tablet is not answering, the
+frame says so instead.
+
 **Log in** tries the password on every tablet that answers. Casa Mia keeps a login token
 for up to ten years, not the password. Logging in enables backups and update commands,
 and lets **Open** enter the tablet's admin page already signed in.

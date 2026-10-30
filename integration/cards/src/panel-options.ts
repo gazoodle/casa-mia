@@ -151,10 +151,11 @@ export function formOf(hass: Hass, form: Form, onChange: (layout: Layout) => voi
 
 /** A panel's own: its length along its edge, as its cards, filling (what the others leave)
  * or fixed (a top or bottom one's Width, column_span, of the view's `columns`; a left or
- * right one's rows, row_span, HA's card rows), by default filling when `alone` and as its
- * cards otherwise; whether it is held against the end; its padding (main: its padding
- * only). Its change is its section's config (`view_layout: {length, hold, padding}`). */
-function panelForm(section: Layout, place: Place, columns: number, alone: boolean): Form {
+ * right one's rows, row_span, HA's card rows), by default filling when it `fills` (alone, or
+ * the last on its edge) and as its cards otherwise; whether it is held against the end; its
+ * padding (main: its padding only). Its change is its section's config (`view_layout:
+ * {length, hold, padding}`). */
+function panelForm(section: Layout, place: Place, columns: number, fills: boolean): Form {
   const vl: Layout = section.view_layout ?? {};
   const padding = sidesField("padding", vl.padding ?? 0, 400, "Padding", "Room inside it, round its cards, px: to line them up.");
   const { view_layout: _, ...rest } = section;
@@ -168,7 +169,7 @@ function panelForm(section: Layout, place: Place, columns: number, alone: boolea
   if (place === "main") return { schema: padding.schema, data: padding.data, labels: padding.labels, change: (v) => withPadding(v, vl) };
   const p = place;
   const key = across(p) ? "column_span" : "row_span";
-  const length = section[key] !== undefined ? "fixed" : (vl.length ?? (alone ? "fill" : "cards"));
+  const length = section[key] !== undefined ? "fixed" : (vl.length ?? (fills ? "fill" : "cards"));
   const what = across(p) ? "wide" : "tall";
   return {
     schema: [
@@ -415,6 +416,7 @@ export type PanelOptions = {
   place: Place;
   layer: number;
   count: number; // panels in its edge; main: the layers
+  fills: boolean; // without a length of its own, it fills (tablet.ts: fillers)
   columns: number; // the view's max_columns
   layout: Layout;
   section: Layout; // its section's config
@@ -495,7 +497,7 @@ class PanelOptionsBox extends Floating {
       html`${this.group(
         "This panel",
         main ? "" : `${o.name} only.`,
-        html`${formOf(o.hass, panelForm(this.section, o.place, o.columns, o.count === 1), (s) => this.change(this.layout, s))}
+        html`${formOf(o.hass, panelForm(this.section, o.place, o.columns, o.fills), (s) => this.change(this.layout, s))}
           <button class="link" @click=${() => this.act(o.edit)}>Visibility, background and more (HA's own)…</button>`,
       )}
       ${main

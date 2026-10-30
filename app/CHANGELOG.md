@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.10.12-b1
+
+- **Breaking:** Tablet Layout: the last panel of an edge now fills what the others leave by default, so the edge reaches its end and its corner locks move something you can see. Before, every panel of an edge holding more than one was as long as its cards. To keep the old look, set the last panel to **As its cards**. An edge arranged centre or end is unchanged.
+- Tablet Layout edit mode adds up to two layers, not four. Each one grew edit mode outwards into another ring of frames, and an edge's stack and corner locks now do what a third layer was for. A view that already has three or four still shows them, and the innermost can still be removed.
+- Tablet Layout edit mode: a short panel (a new empty one in a stack, say) is now tall enough for HA's Add card button. It used to spill out of its frame, because HA's strip over the frame shrank and wasn't counted.
+- Heating Flow card: a new card now takes the full width by default, in the Tablet Layout too.
+- Kiosk Satellites: each tablet's row starts with a picture of its screen. Click it for the full size, how old it is, and Refresh. It is taken when the page opens and on Refresh, never on a timer.
+
 ## 2026.10.11
 
 - **Breaking:** the Casa Mia integrations and their cards changed. Restart Home Assistant once after updating (a Repair asks), then reload the browser.

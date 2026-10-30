@@ -59,7 +59,7 @@ export class HeatingFlowCard extends LitElement {
   }
 
   getGridOptions() {
-    return { columns: 12, rows: "auto", min_columns: 6 };
+    return { columns: "full", rows: "auto", min_columns: 6 }; // "full", not 12: the Tablet Layout gives a whole panel only to "full"
   }
 
   render() {

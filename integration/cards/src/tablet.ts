@@ -21,7 +21,11 @@ import { LAYOUT, mainShape, type Panel, PANELS, pyRound, type Rect, type Setting
 
 export const PLACES = ["main", ...PANELS] as const;
 export type Place = (typeof PLACES)[number];
-export const LAYERS = 4;
+export const LAYERS = 4; // the most a view holds (and draws)
+// The most edit mode adds (2026.10.12): more grew edit mode into rings of frames round a
+// shrinking main, and stacks and corner locks do what a third layer was for. A view of more,
+// made before, still holds and draws them, and they can still be removed.
+export const ADD_LAYERS = 2;
 
 /** A section's panel: its `view_layout:`, else (a view from before panel stacks) by position,
  * the first five main, left, top, right, bottom. Null: no panel (not shown). */
@@ -136,7 +140,7 @@ function settingsOf(
  * column_span, of the view's max_columns), or `length`, a left or right one's, px
  * (row_span); else `size` (its `view_layout: {length}`): `fill`, a share of what the others
  * leave, or `cards`, its cards: `wide` (a top or bottom one's, px) or `tall` (a left or
- * right one's); without one, one alone fills and one of more is as its cards. `hold`: held
+ * right one's); without one, as fillers() says. `hold`: held
  * against the end of its edge (`view_layout: {hold: end}`). Its cards also size a panel of
  * size: auto: a top or bottom as its tallest, a left or right as its widest. */
 export type Section = {
@@ -176,37 +180,50 @@ function gapsOf(config: Record<string, any>, k: number) {
   return { gap, middle: Object.fromEntries(PANELS.map((p) => [p, spacing(own[p]?.gap, gap)])) as Record<Panel, number> };
 }
 
+/** Which of a stack's panels fill what the others leave: those set to; else, with no size of
+ * its own, one alone, or the last along the edge (held ones after the others) unless the
+ * edge is arranged centre or end. Why the last (2026.10.12): packed as their cards, the
+ * panels left the edge's end empty, and its corner locks moved nothing anyone could see. */
+export function fillers(items: readonly Pick<Section, "share" | "length" | "size" | "hold">[], across: boolean, arrange?: string): boolean[] {
+  const fixed = (it: (typeof items)[number]) => (across ? it.share !== undefined : it.length !== undefined);
+  const set = items.map((it) => !fixed(it) && it.size === "fill");
+  const unset = items.map((it) => !fixed(it) && it.size === undefined);
+  if (items.length === 1) return unset.map((u, i) => u || set[i]);
+  if (set.some(Boolean) || arrange === "centre" || arrange === "end") return set;
+
+  const ids = items.map((_, i) => i);
+  const last = [...ids.filter((i) => !items[i].hold), ...ids.filter((i) => items[i].hold)].filter((i) => unset[i]).at(-1);
+  return ids.map((i) => i === last);
+}
+
 /** Where a stack's panels go along an edge `length` long: each one's start and length, whole
  * px, from the edge's start. Each fixed (its share of the room, top and bottom, or its
- * length, left and right), filling (what the others leave, alike), or as its cards (as wide
- * or tall; a top or bottom one without cards: one of the view's `columns`, HA's own default
- * Width); without a setting, one alone fills. Too long: all but those filling shrink alike.
- * In order from the start, those held after them against the end; room over (none filling)
- * goes between, the others `arrange`d in what is left: from the start, centred, or against
- * the held ones (end). */
+ * length, left and right), filling (fillers(): what the others leave, alike), or as its
+ * cards (as wide or tall; a top or bottom one without cards: one of the view's `columns`,
+ * HA's own default Width). Too long: all but those filling shrink alike. In order from the
+ * start, those held after them against the end; room over (none filling) goes between, the
+ * others `arrange`d in what is left: from the start, centred, or against the held ones (end). */
 export function split(
   length: number,
   gap: number,
   items: readonly Section[],
   across: boolean,
   columns = 4,
-  arrange = "start",
+  arrange?: string,
 ): { at: number; length: number }[] {
-  const n = items.length;
   const ids = items.map((_, i) => i);
   const [free, held] = [ids.filter((i) => !items[i].hold), ids.filter((i) => items[i].hold)];
   const after = (i: number) => items[i].gapAfter ?? gap; // to the next along it
   const gaps = (is: number[]) => is.slice(0, -1).reduce((t, i) => t + after(i), 0);
   const room = Math.max(0, length - gaps([...free, ...held]));
-  const fixed = (it: Section) => (across ? it.share !== undefined : it.length !== undefined);
-  const fills = (it: Section) => !fixed(it) && (it.size === "fill" || (it.size === undefined && n === 1));
-  const own = items.map((it) =>
-    fills(it) ? 0 : across ? (it.share !== undefined ? room * it.share : it.wide || room / columns) : (it.length ?? it.tall ?? 0),
+  const fills = fillers(items, across, arrange);
+  const own = items.map((it, i) =>
+    fills[i] ? 0 : across ? (it.share !== undefined ? room * it.share : it.wide || room / columns) : (it.length ?? it.tall ?? 0),
   );
   const total = own.reduce((t, v) => t + v, 0);
-  const filling = items.filter(fills).length;
+  const filling = fills.filter(Boolean).length;
   const scale = total > room ? room / total : 1;
-  const want = own.map((v, i) => (fills(items[i]) ? Math.max(0, room - total) / filling : v * scale));
+  const want = own.map((v, i) => (fills[i] ? Math.max(0, room - total) / filling : v * scale));
   const span = (is: number[]) => is.reduce((t, i) => t + want[i], 0) + gaps(is);
   // The held ones against the end; the others in what is left, as arranged.
   const tail = held.length ? span(held) + (free.length ? after(free[free.length - 1]) : 0) : 0;
