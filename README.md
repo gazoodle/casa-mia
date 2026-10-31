@@ -48,7 +48,7 @@ In order of how likely you are to want it, each with how far along it is
 * <a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta" align="absmiddle"></a><!--sensor_watch--> **[Sensor Watch](#sensor-watch):** a level for every sensor in the house, set up a whole class of things at a time, and you told only when one changes.
 * <a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta" align="absmiddle"></a><!--guest_login--> **[Guest login](#guest-login):** a QR scan signs a guest into their own dashboard, no password typed.
 * <a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta" align="absmiddle"></a><!--commander--> **[Camera Commander](#camera-commander):** every camera in one live picture, drawn in the app by the <a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha" align="absmiddle"></a><!--compositor--> [compositor](#camera-compositor), so a low-power tablet plays one stream instead of a dozen.
-* <a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha" align="absmiddle"></a><!--kiosks--> **[Kiosk Satellites](#kiosk-satellite)** and <a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta" align="absmiddle"></a><!--gitproxy--> **[their firmware server](#kiosk-satellite):** every wall tablet's version, backups and control page in one place, and updates without the internet.
+* <a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha" align="absmiddle"></a><!--kiosks--> **[Kiosk Satellites](#kiosk-satellite)** and <a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta" align="absmiddle"></a><!--gitproxy--> **[their firmware server](#kiosk-satellite):** every wall tablet's version, backups, control page and live screen in one place, and updates without the internet.
 * <a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha" align="absmiddle"></a><!--kiosk_mode--> **[Kiosk mode](#kiosk-mode):** what each dashboard hides (the header, the sidebar and more), and from whom, without touching YAML.
 * **[Built for my house](#built-for-my-house):** an <a href="docs/README.md#maturity"><img src="docs/maturity/development.svg" alt="In development" align="absmiddle"></a><!--alarm--> [alarm panel](#alarm-panel) and <a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha" align="absmiddle"></a><!--fona--> [phone and SMS access](#phone-and-sms-fona) through a GSM board. You almost certainly don't need them, and they're off unless you switch them on.
 
@@ -358,6 +358,12 @@ thought I could automate ... I was right. Casa Mia finds every tablet, keeps its
 whenever they change, and Home Assistant's backups take them along. It also opens each
 tablet's own control page through Home Assistant, so you can look after your wall tablets
 when you're not at home. Nice!
+
+And then there's the screen itself. Add [droidVNC-NG](https://github.com/bk138/droidVNC-NG)
+beside Kiosk Satellite on the one visit you make anyway, and every tablet's live screen is
+on that page: tap it, open Android's settings, reboot it to its dashboard, all from my
+desk. No more ladders. [Run the whole house from your desk](docs/run-the-house-from-your-desk.md)
+says how.
 
 <table>
 <tr>

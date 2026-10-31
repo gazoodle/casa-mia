@@ -177,6 +177,8 @@ export type Kiosk = {
   /** When its backup was last checked, and why the last check failed (if it did). */
   checked: string | null;
   backup_error: string | null;
+  /** What its VNC (droidVNC-NG) last said, when last asked: none until then. */
+  vnc?: { ok: boolean; why: string | null; at: string };
 };
 
 /** One kept backup; `changes` are the keys that differ from the one before (null for the oldest). */

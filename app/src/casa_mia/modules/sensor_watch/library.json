@@ -1062,6 +1062,19 @@
       "unavailable": "warning", "hold_off": 900
     },
     {
+      "name": "Wall tablet CPU use (%)",
+      "about": "A wall tablet's processor use, as Kiosk Satellite reports it. What's normal depends on what the screen shows: a still page a few percent, live cameras or an animated card half the tablet or more. So this only catches a tablet stuck working flat out (a page in a loop, a runaway app), not a page that got heavier. The reading is a single sample and jumps about, so only a long stretch counts (a 15-minute hold-off).",
+      "category": "Computers and network",
+      "kind": "numeric",
+      "bands": [
+        {"from": null, "to": 75, "level": "nominal", "message": ""},
+        {"from": 75, "to": 90, "level": "warning", "message": "Tablet busy for a while: reload its page"},
+        {"from": 90, "to": null, "level": "error", "message": "Tablet flat out: restart Kiosk Satellite"}
+      ],
+      "otherwise": "error",
+      "unavailable": "warning", "hold_off": 900
+    },
+    {
       "name": "Memory use (%)",
       "about": "A computer's memory use: past 90% for a while it starts swapping or killing things.",
       "category": "Computers and network",

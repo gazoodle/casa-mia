@@ -55,12 +55,15 @@ tablet's live screen. Your clicks, drags and keys go to the tablet, so you can u
 Kiosk Satellite's settings or Android's from your desk, at home or away.
 
 It needs [droidVNC-NG](https://github.com/bk138/droidVNC-NG) on each tablet, beside Kiosk
-Satellite, with the same VNC password on all of them. Enter that password once under
+Satellite, with the same VNC password on all of them: [Run the whole house from your
+desk](../run-the-house-from-your-desk.md) sets it up in one visit. Enter that password once under
 **Remote control** on this page. Casa Mia logs in to the tablet itself, so the password
 never reaches your browser, and the page shows only whether it is set.
 
 - When the dialog opens, Casa Mia checks for a VNC server on the tablet. Without one,
-  **Remote control** is greyed out and the dialog says why.
+  **Remote control** is greyed out and the dialog says why, and the tablet's row says so
+  too, with when it was asked. Casa Mia asks only then, or when a session starts, since
+  droidVNC-NG notifies on every connection.
 - **Back**, **Home** and **Recents** press Android's buttons. From a keyboard, Esc is
   Back and Home is Home. To open the notifications, drag down from the top edge.
 - **Android Settings** opens the tablet's Settings app over Kiosk Satellite, which keeps

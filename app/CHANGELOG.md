@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026.10.12-b5
+
+- Remote control: [Run the whole house from your desk](https://github.com/Gazoodle/casa-mia/blob/main/docs/run-the-house-from-your-desk.md), a guide: one visit to each wall tablet, then its screen seen and driven from anywhere.
+- Fixed: a dialog opened from another (**New profile…** in a new group) closed both when a button in it was pressed, such as **+ Band below**. Every dialog now sits on its own, and closes only itself.
+- Fixed: what a dialog's Save met (an error, or done) showed under the dialog's blurred backdrop, unreadable. Messages now show above any open dialog.
+- Sensor Watch profiles: **Make it** waits for a name and bands that make sense, and says which is missing when you point at it.
+- Sensor Watch library: **Wall tablet CPU use (%)**, for Kiosk Satellite's CPU sensor. It catches a tablet stuck flat out for 15 minutes (a warning above 75%, an error above 90%), not a page that got heavier: what's normal depends on what the screen shows.
+- Sensor Watch: the eye in an entity's Home Assistant dialog says the watch's message too when you point at it (`Sensor Watch: warning: Tablet busy for a while: reload its page`), not only its level.
+- Sensor Watch: watching something new offers **Watch them all as a group…**, for one of many alike (every tablet's CPU). It opens a new group with filters to match those like it.
+- Sensor Watch groups: when some matches have no built-in levels and would be passed over (greyed out), the group dialog says so, and how to give them levels, even when others would join.
+- Kiosk Satellites: a tablet whose VNC was found missing (when its screen dialog checked, or a session was refused) says so on its row, with when it was asked.
+
 ## 2026.10.12-b4
 
 - Kiosk Satellites: **Full window** makes a tablet's screen dialog fill the browser window; **Smaller** puts it back.

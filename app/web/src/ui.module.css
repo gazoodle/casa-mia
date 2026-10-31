@@ -265,8 +265,12 @@
 
 .toasts {
   position: fixed;
-  right: 16px;
-  bottom: 16px;
+  inset: auto 16px 16px auto; /* not the popover's own centring */
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  overflow: visible;
   z-index: 10;
   display: grid;
   gap: 8px;

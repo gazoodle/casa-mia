@@ -27,7 +27,7 @@ from typing import Any
 from Crypto.Cipher import DES
 
 from .commands import Commands
-from .common import Response, _json
+from .common import Response, _json, _now
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -208,7 +208,15 @@ class Remote(Commands):
         else:
             why = None
         _LOGGER.info("kiosk %s: VNC check: %s", k["name"], why or "answers")
-        return _json(200, {"ok": why is None, "why": why})
+        return _json(200, self._vnc_seen(k, why))
+
+    def _vnc_seen(self, k: dict[str, Any], why: str | None) -> dict[str, Any]:
+        """Keep what the tablet's VNC last said, with when, for its row: learnt only when
+        asked (a check, a session), since droidVNC-NG notifies on every connection."""
+        seen = {"ok": why is None, "why": why, "at": _now()}
+        with self._lock:
+            k["vnc"] = seen
+        return seen
 
     def remote(self, h: BaseHTTPRequestHandler, k: dict[str, Any]) -> None:
         """/kiosk/<id>/_vnc: the tablet's VNC server, logged in, to the page's noVNC."""
@@ -219,6 +227,7 @@ class Remote(Commands):
             tablet = self._vnc_open(k)
         except Refused as exc:
             _LOGGER.warning("kiosk %s: remote control refused: %s", k["name"], exc)
+            self._vnc_seen(k, str(exc))
             try:
                 ws.send(RFB)
                 ws.read(12)
@@ -243,6 +252,7 @@ class Remote(Commands):
                 )
                 return
             _LOGGER.info("kiosk %s: remote control started", k["name"])
+            self._vnc_seen(k, None)
             ended = self._splice(ws, tablet)
             _LOGGER.info(
                 "kiosk %s: remote control ended after %d s (%s)",

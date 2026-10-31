@@ -199,7 +199,8 @@ def test_nothing_on_the_vnc_port_asks_whether_droidvnc_runs(remote, monkeypatch)
 def test_the_dialogs_check_reads_the_greeting_without_logging_in(remote):
     k, _, vnc = remote
     status, _, data = k.handle("GET", "k1/vnc", {}, b"")
-    assert status == 200 and json.loads(data) == {"ok": True, "why": None}
+    answer = json.loads(data)
+    assert status == 200 and (answer["ok"], answer["why"]) == (True, None)
     assert not vnc.got_init.is_set()
 
     vnc.close()
@@ -210,6 +211,20 @@ def test_the_dialogs_check_reads_the_greeting_without_logging_in(remote):
         == "Kitchen has no VNC (droidVNC-NG is not installed or not running)"
     )
     assert k.handle("GET", "nope/vnc", {}, b"")[0] == 404
+
+
+def test_the_row_shows_what_vnc_last_said_and_when(remote):
+    k, base, vnc = remote
+    row = lambda: k.view()["kiosks"][0]  # noqa: E731
+    assert "vnc" not in row()  # never asked: nothing claimed
+
+    k.handle("GET", "k1/vnc", {}, b"")
+    assert row()["vnc"]["ok"] is True and row()["vnc"]["at"]
+
+    # A refused session says so too (the fake takes one connection: its port is closed now).
+    Page(base).refusal()
+    assert row()["vnc"]["ok"] is False
+    assert "droidVNC-NG is not installed or not running" in row()["vnc"]["why"]
 
 
 def test_the_password_is_kept_but_never_shown(remote, tmp_path):

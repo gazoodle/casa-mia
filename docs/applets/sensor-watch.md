@@ -70,7 +70,7 @@ trouble.
    and whatever matches later joins by itself, so the plug you put in next month is
    watched without you remembering. The rule of thumb: **more than two of the same kind
    is a group; a single thing is a watch.**
-2. **Check the bands.** A group follows a profile, and the library has 85 to start from,
+2. **Check the bands.** A group follows a profile, and the library has 86 to start from,
    each saying where its numbers come from: mains voltage and frequency by country,
    inverter trip limits, batteries, broadband, pool and hot tub chemistry, indoor air,
    freezers, heating, the garden, computers, and plain "is it there?".
@@ -526,6 +526,7 @@ hold-off, how long a new level must last before it counts.
 | CPU use (%) | Computers and network | bands | under 80 nominal · 80–95 task · 95 and over warning; after 15 min |
 | Disk used (%) | Computers and network | bands | under 80 nominal · 80–90 task · 90–95 warning · 95 and over error; after 10 min; task becomes warning after 7 days |
 | Memory use (%) | Computers and network | bands | under 80 nominal · 80–90 task · 90 and over warning; after 15 min |
+| Wall tablet CPU use (%) | Computers and network | bands | under 75 nominal · 75–90 warning · 90 and over error; after 15 min |
 | Wi-Fi signal (dBm) | Computers and network | bands | under -85 error · -85–-75 warning · -75–-67 task · -67 and over nominal; after 10 min |
 | Door (on/off) | Doors, windows and covers | on/off | off nominal · on task; after 1 min |
 | Garage door (on/off) | Doors, windows and covers | on/off | off nominal · on task; after 1 min |
@@ -610,14 +611,18 @@ leak critical; what has no built-in levels is passed over). Every roof window is
 `cover` with built-in levels: no profile needed. A pressure, and most numbers, have no
 built-in levels: when nothing that matches has any, the dialog asks you to choose, and
 **New profile…** beside the choice makes one there and then. Above the list it says when
-none would join, and why; its button says how many will. Everything matching is watched, following the
+none would join, or when some would be passed over (greyed out) for want of levels, and
+what to do; its button says how many will. Everything matching is watched, following the
 profile, and **whatever matches later joins by itself**: put in a new plug and it's
 watched within a minute, no setting up. Make one with **+ New group**: as you choose the
 filters it lists what they match (up to 200), so you see what it takes before it takes
 it. Something there that shouldn't be (an ESP board's own VCC reading in a mains voltage
 group, say)? Rule it out in the search with a minus word, `-vcc`: it stays out as new
 devices arrive too. The rule of thumb is that more than two of the same kind
-is a group, a single thing is a watch.
+is a group, a single thing is a watch. Started watching one of many alike? Its editor
+offers **Watch them all as a group…**, which starts a new group with filters for those
+like it (its integration, its device class, its name without its device's): adjust them,
+choose their levels, and make it.
 
 - Members the profile doesn't fit (another kind) are passed over; sensors already
   watched keep their own levels.
@@ -668,8 +673,8 @@ cog) and, for an admin, an eye sits among the icons at the top:
   Watch page opens with its editor, its history drawn and the profiles that fit, as
   **Watch an entity** does.
 - **An eye in its level's colour, with the level:** watched, and how it is now (on a
-  phone, the colour alone). Tap it to open its watch. The eye follows the level while the
-  dialog is open.
+  phone, the colour alone). Point at it for its message too. Tap it to open its watch.
+  The eye follows the level while the dialog is open.
 
 It needs Casa Mia's app in the sidebar (**Show in sidebar** on its Info tab). It leans on
 the dialog's insides, which aren't public API: if a Home Assistant update moves them, the

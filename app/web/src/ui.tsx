@@ -1,6 +1,7 @@
 /** Small shared UI pieces: dialog, field with help, switch, toasts, copy. */
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import css from "./ui.module.css";
 
 export function Dialog({
@@ -59,12 +60,18 @@ export function Dialog({
     }
   };
 
-  return (
+  // A dialog opened inside another (a new profile from a new group) took its parent with
+  // it (2026.10.12-b5): its form sat inside the parent's, which HTML forbids, so a plain
+  // button there submitted and closed it, and React passes a dialog's close up through the
+  // components around it. Hence the portal (no form in a form) and only its own close.
+  const own = (e: React.SyntheticEvent) => e.target === ref.current && onClose();
+
+  return createPortal(
     <dialog
       ref={ref}
       className={`${css.dialog} ${wide ? css.wide : ""} ${tall ? css.tall : ""} ${full ? css.full : ""}`}
-      onClose={onClose}
-      onCancel={onClose}
+      onClose={own}
+      onCancel={own}
       onKeyDown={onKeyDown}
     >
       <form method="dialog" className={css.dialogForm} onSubmit={(e) => e.preventDefault()}>
@@ -77,7 +84,8 @@ export function Dialog({
         <div className={css.dialogBody}>{children}</div>
         <footer className={css.dialogFoot}>{footer}</footer>
       </form>
-    </dialog>
+    </dialog>,
+    document.body,
   );
 }
 
@@ -167,8 +175,19 @@ export function Segmented<T extends string>({
 export type Toast = { text: string; tone: "good" | "bad" };
 
 export function Toasts({ toasts }: { toasts: Toast[] }) {
+  // A popover, so it sits in the top layer: under a dialog's blurred backdrop, the error
+  // a dialog's Save met was unreadable (2026.10.12-b5). Shown afresh on each change, so
+  // it's above whichever dialog opened last.
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const box = ref.current;
+    if (!box?.showPopover) return; // too old a browser: it stays where it was
+    if (box.matches(":popover-open")) box.hidePopover();
+    if (toasts.length) box.showPopover();
+  }, [toasts]);
+
   return (
-    <div className={css.toasts} aria-live="polite">
+    <div ref={ref} popover="manual" className={css.toasts} aria-live="polite">
       {toasts.map((t, i) => (
         <div key={i} className={`${css.toast} ${t.tone === "bad" ? css.toastBad : css.toastGood}`}>
           {t.text}

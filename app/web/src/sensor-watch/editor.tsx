@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Dialog, Field, Segmented } from "../ui";
 import { HistoryChart } from "./chart";
-import { FITS, kindOf, levelsOf, summary, swApi, type Profile, type Suggested, type Suggestion, type WatchRecord, type WatchView, DAYS, dayText } from "./common";
+import { FITS, kindOf, levelsOf, summary, swApi, type Candidate, type Filters, type Profile, type Suggested, type Suggestion, type WatchRecord, type WatchView, DAYS, dayText } from "./common";
 import { LevelFields, useLevels, type Kind } from "./levels";
 import type { Shared } from "./profiles";
 import css from "./sensor-watch.module.css";
@@ -18,12 +18,15 @@ export function RecordDialog({
   record,
   profiles,
   onClose,
+  onGroup,
   change,
 }: {
   entityId: string;
   record?: WatchRecord;
   profiles: Profile[];
   onClose: () => void;
+  /** Watch it and those like it as a group instead, starting from these filters. */
+  onGroup: (filters: Partial<Filters>) => void;
   /** The page's: run the calls, show the view they end with, say `done`. */
   change: (action: () => Promise<WatchView>, done: string) => Promise<boolean>;
 }) {
@@ -172,6 +175,15 @@ export function RecordDialog({
           </span>
         )}
       </p>
+      {!record && found && (
+        <p className={css.note}>
+          One of many alike (every tablet's CPU, every plug)?{" "}
+          <button className={`${ui.button} ${ui.small}`} onClick={() => onGroup(alike(found.sensor))}>
+            Watch them all as a group…
+          </button>{" "}
+          A group watches everything its filters match with the same levels, and new ones join by themselves.
+        </p>
+      )}
 
       {(attribute || Object.keys(found?.sensor.attributes ?? {}).length > 0) && (
         <Field label="Watch" help="Its state, or one of its attributes: a thermostat's state is only its mode, so watch its current_temperature or hvac_action.">
@@ -341,4 +353,11 @@ function outliers(s: Suggestion, unit: string): string {
   ]
     .filter(Boolean)
     .join("; ");
+}
+
+/** Filters for those like `c`: its integration, its device class, and its name without
+ * its device's ("Hall tablet CPU" on the device Hall tablet: "CPU"). A start to adjust. */
+function alike(c: Candidate): Partial<Filters> {
+  const own = c.device && c.name.toLowerCase().startsWith(c.device.toLowerCase()) ? c.name.slice(c.device.length).trim() : c.name;
+  return { platform: c.platform, device_class: c.device_class, q: own };
 }

@@ -2,6 +2,7 @@
 
 - [Tablet Layout](tablet-layout.md): the view type that fits a wall tablet's screen exactly, and everything it can do.
 - [Over layer](over-layer.md): one card over the whole dashboard while its conditions hold; what's beneath can be seen, not touched.
+- [Run the whole house from your desk](run-the-house-from-your-desk.md): one visit to each wall tablet, then its screen seen and driven from anywhere.
 
 ## The applets
 

@@ -218,7 +218,7 @@ export function ProfileDialog({
               Duplicate…
             </button>
           )}
-          <button className={ui.primary} disabled={saving} onClick={save}>
+          <button className={ui.primary} disabled={saving || !name.trim() || !!L.problem} onClick={save} title={!name.trim() ? "Give it a name first" : (L.problem ?? undefined)}>
             {profile ? "Save" : "Make it"}
           </button>
         </>

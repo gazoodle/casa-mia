@@ -35,6 +35,7 @@ export function SensorWatchPage({ state, watch, at }: { state?: string; watch?: 
   const [profileEditing, setProfileEditing] = useState<Profile | null>();
   const [profileCopy, setProfileCopy] = useState<Profile>();
   const [groupEditing, setGroupEditing] = useState<Group | null>(); // null: a new one
+  const [groupSeed, setGroupSeed] = useState<Partial<Filters>>(); // a new one's filters
   const [applying, setApplying] = useState<Profile>();
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const watchedRef = useRef<HTMLElement>(null);
@@ -201,7 +202,11 @@ export function SensorWatchPage({ state, watch, at }: { state?: string; watch?: 
 
       <GroupsSection
         editing={groupEditing}
-        setEditing={setGroupEditing}
+        setEditing={(g) => {
+          setGroupEditing(g);
+          if (g === undefined) setGroupSeed(undefined);
+        }}
+        seed={groupSeed}
         groups={view.groups ?? []}
         profiles={view.profiles ?? []}
         records={view.records}
@@ -241,6 +246,11 @@ export function SensorWatchPage({ state, watch, at }: { state?: string; watch?: 
           record={editing.record}
           profiles={view.profiles ?? []}
           onClose={() => setEditing(undefined)}
+          onGroup={(f) => {
+            setEditing(undefined);
+            setGroupSeed(f);
+            setGroupEditing(null);
+          }}
           change={change}
         />
       )}

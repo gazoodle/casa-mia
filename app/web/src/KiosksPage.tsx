@@ -367,6 +367,13 @@ function KioskRow({
               </span>
             )}
           </div>
+          {k.vnc && !k.vnc.ok && (
+            <div className={css.meta}>
+              <span>
+                no remote control: {k.vnc.why} (asked {ago(k.vnc.at)})
+              </span>
+            </div>
+          )}
         </button>
       </div>
       <div className={css.actions}>
