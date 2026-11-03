@@ -15,7 +15,8 @@ panels grow and shrink with it; show or hide a card and the panels make room or 
 
 If you've ever spent an evening nudging `card-mod` CSS so a wall tablet's dashboard *just*
 fits, and then a card appeared under a condition and the page started scrolling again,
-this is what it's for.
+this is what it's for. And don't even get me started on using stack cards in section
+views ...
 
 **The same view on three screens.** Nothing was changed between these: the view simply fits.
 

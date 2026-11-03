@@ -37,6 +37,29 @@ tab and its page in the Casa Mia panel. Check a module's level before you switch
 - **Released:** Settled and dependable. Changes are announced, and existing setups keep working.
 <!-- /maturity -->
 
+## Working together
+
+Each module works on its own, but they live in one app and one integration, so they know
+about each other:
+
+- **Pages that keep up with updates.** After an update, a page that was open all along is
+  still running the old cards, so a new feature looks missing until someone refreshes. The
+  integration knows which cards it now serves, and every page checks after Home Assistant
+  restarts: an out-of-date one offers a **Reload** in Home Assistant's own toast.
+- **Wall tablets that reload themselves.** Nobody is there to press Reload on a wall
+  tablet, so when Home Assistant starts serving new cards, the Kiosk Satellites module asks
+  every tablet it looks after to reload.
+- **The compositor knows its viewers.** On the Camera compositor page, each stream sent to
+  a wall tablet shows the tablet's name from Kiosk Satellites beside its address, so a slow
+  or stuck one is easy to place.
+- **What needs attention, and only then.** Sensor Watch's status, counts and problem sensor
+  can drive a panel on a Tablet Layout edge, and garnish stops that panel's heading holding
+  it open, so on a quiet day the panel isn't there. A critical can come up over everything
+  with the Over layer, and the Home tile shows the house's health.
+
+Ideas that haven't been started yet are in the [backlog](../BACKLOG.md). Got one of your
+own? [Open an issue](https://github.com/gazoodle/casa-mia/issues).
+
 ## Recipes
 
 Coming soon: what you can build with Casa Mia, step by step.

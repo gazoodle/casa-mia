@@ -1,14 +1,15 @@
 # Heating Flow card
 
-Your heating and hot water as one live diagram: the heat source, the heat pump, the runs to
-each floor, the tank, the softener and the taps. Colour is temperature, moving markers are
-flow, and anything that isn't current says so on the part itself.
+A card that draws your heating and hot water as a live diagram: the heat source, the heat
+pump, the pipes to each floor, the tank, the softener and the taps. A pipe's colour shows its
+temperature, moving markers show where water is flowing, and a reading that isn't up to date
+is marked on the part it belongs to.
 
 <img src="screenshots/heating-flow.webp" alt="The Heating Flow card's System view: a borehole and PVT panels outside, the heat pump, hot water tank, softener and storage tank in the plant room, three floors and the taps in the house" width="800">
 
-It takes the idea from slipx06's
-[Sunsynk Power Flow Card](https://github.com/slipx06/sunsynk-power-flow-card), whose live
-diagram of an inverter's flows inspired it.
+The idea comes from slipx06's
+[Sunsynk Power Flow Card](https://github.com/slipx06/sunsynk-power-flow-card), a live diagram
+of an inverter's power flows.
 
 The card draws what you tell it you have, and works with whatever your heat pump's
 integration provides. You don't need every sensor: a part you don't name is left out, or
@@ -31,7 +32,7 @@ A new card starts as a borehole, a hot water tank and two floors. Then:
 
 A new card takes the full width of a section, and a whole panel in the
 [Tablet Layout](tablet-layout.md). The drawing keeps its shape and scales with the width, so
-give it room: it holds a lot.
+give it plenty of room.
 
 ## The three views
 
@@ -123,7 +124,7 @@ always three radiators for a radiator floor.
 
 | Option | What it does |
 |---|---|
-| **Hot water tank** | Draws the tank. Off, it's gone, even with sensors named. |
+| **Hot water tank** | Draws the tank. When it's off, the tank isn't drawn, even if its sensors are set. |
 | **Coil in**, **Coil out** | Readings on the coil's pipes. |
 | **Tank sensors** | Top first. They're spaced evenly down the tank, and shade the water between them. |
 | **Hot sensors in the plant room**, **Hot sensors in the house** | Along the hot run from the tank, in order. |
@@ -167,10 +168,10 @@ Each sensor is a stop on its pipe's colour, so a pipe shades from one reading to
 | 55° | Red |
 | 65° and above | Crimson |
 
-Water that isn't flowing keeps its colour, dimmed. A pipe with no reading is grey. **Glass**
-pipes show their water faintly, except below −5°, where they fill in to full by −10° so the
-coldest brine can't be mistaken for that grey. The scale
-is in Celsius, and a sensor in Fahrenheit shows its number correctly but gets the wrong colour.
+Water that isn't flowing is shown in a dimmed colour. A pipe with no reading is grey.
+**Glass** pipes show their water faintly, except below −5°, where they fill in to full
+strength by −10°, so the coldest brine can't be mistaken for that grey. The scale is in
+Celsius: a sensor in Fahrenheit shows its number correctly, but gets the wrong colour.
 
 **Colours → By circuit** gives each circuit one colour instead, so you can follow the
 plumbing rather than the temperature: brine blue, PVT amber, heating red, the coil purple,
@@ -178,8 +179,9 @@ hot water pink, cold water light blue, refrigerant grey.
 
 ### What flows, and when
 
-Markers ride a pipe only while it flows, and go faster when its pump runs faster. Most of it
-follows from the heat pump's **Priority**, read from the words in its state:
+Markers move along a pipe only while water is flowing in it, and move faster when its pump
+runs faster. Most of this depends on the heat pump's **Priority**, read from the words in its
+state:
 
 | The state has | The header says | What flows |
 |---|---|---|
@@ -203,8 +205,8 @@ The rest:
   flow meter reads above zero.
 - **Hot water to the house** flows while the return loop runs or soft water is in use, as the
   cold refilling the tank pushes hot out of the top.
-- **Hard water** flows only with a storage tank: mains flowing while the tank isn't filling
-  must be the hard tap.
+- **Hard water** flows only with a storage tank: if mains water is flowing while the tank
+  isn't filling, it must be going to the hard water tap.
 
 The card can't tell whether soft water in use is going to a hot tap or a cold one, so **Taps
 & showers** says "in use · hot or cold?" against both.
@@ -226,8 +228,8 @@ A sensor counts as running when it's a number above zero, or `on`, `open`, `open
 A sensor that's unavailable or unknown shows `— 23 min` in amber, with how long, and drops
 out of its pipe's colour. An entity that no longer exists shows `— missing`.
 
-A sensor that has simply gone quiet looks normal on the card, because Home Assistant only
-stamps a state when it changes, and a pump idle all night is quiet and right. Spotting a
+A sensor that has simply stopped reporting looks normal on the card, because Home Assistant
+only records a state when it changes, and a pump that's off all night doesn't change. Spotting a
 sensor that has stopped reporting is [Sensor Watch](applets/sensor-watch.md)'s job.
 
 ## The look
@@ -245,8 +247,8 @@ Under **Look**:
 ## Low-powered tablets
 
 The diagram is a lot of moving parts for a wall tablet. Turn off **Look → Enable animations**
-and it becomes a still picture: the markers stand on the pipes that flow, and the spinning,
-pulsing and dripping stop. It still updates when a reading changes. A browser or device set to
+and the card stops animating: the markers stay where they are on the pipes that are flowing,
+and the spinning, pulsing and dripping stops. It still updates when a reading changes. A browser or device set to
 reduce motion gets the same still picture, whatever the option says.
 
 The option belongs to the card, so to keep the animation on your desktop, give the tablet's

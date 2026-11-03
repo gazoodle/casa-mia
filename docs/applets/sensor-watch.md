@@ -29,7 +29,7 @@ service always say what's wrong, so you choose what happens next:
   of whoever's home, critical to everyone. The **Notify on Sensor Watch** blueprint does
   this in a few clicks ([The event](#the-event)).
 - **Show it:** a panel of what needs attention on the wall tablets. Pair it with
-  [garnish](../../README.md#garnish-for-every-dashboard), so the panel's heading
+  [garnish](../tablet-layout.md#showing-and-hiding), so the panel's heading
   disappears with it on a quiet day, rather than a proud *WARNINGS* over nothing.
 - **Look into it:** hand the list to an AI agent (Home Assistant's AI tasks, say) to
   investigate what has gone wrong and why, before you even reach for the laptop.
@@ -144,7 +144,7 @@ Sensor Watch tells; the rest of Casa Mia shows, and only when there's something 
   watch's message and its value live; hidden altogether when all is well.
 - **[Tablet Layout](../tablet-layout.md):** a panel on an edge of the wall tablet's screen
   for what needs attention, sized to its cards, and hidden when they are.
-- **[Garnish](../../README.md#garnish-for-every-dashboard):** the panel's heading is garnish,
+- **[Garnish](../tablet-layout.md#showing-and-hiding):** the panel's heading is garnish,
   so it never holds the panel open on its own. Things go wrong, the panel and its heading
   appear; they're dealt with, and the panel goes, gap and all: no proud *WARNINGS* over
   nothing.
