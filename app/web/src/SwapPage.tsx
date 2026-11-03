@@ -1,7 +1,6 @@
 /** Swap: the screenshot swap's rules (developer mode). Each rule shows a stand-in in place
  * of a real string on every Home Assistant page and Casa Mia's own. While a rule is being
- * written, every browser previews its matches; Save keeps it. The app hands this page the
- * real strings, never swapped (server.py RAW). */
+ * written, every browser previews its matches; Save keeps it. */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api";
@@ -54,6 +53,13 @@ export function SwapPage() {
   useEffect(() => {
     get<SwapView>("").then(setView, (err) => toast((err as Error).message, "bad"));
   }, [toast]);
+
+  // The browser swap (cm-cards.js, reaching in through the iframe) leaves this page alone:
+  // it edits the real strings.
+  useEffect(() => {
+    document.documentElement.setAttribute("data-swap", "off");
+    return () => document.documentElement.removeAttribute("data-swap");
+  }, []);
 
   const save = async (change: Partial<SwapView>, done: string) => {
     try {

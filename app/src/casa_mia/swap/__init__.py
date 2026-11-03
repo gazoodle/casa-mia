@@ -1,23 +1,21 @@
 """Screenshot swap: while it is on, each rule (a real string: a phone number, a name, an
-address, and its stand-in; see engine.py) shows the stand-in in place of the real string,
-and a stand-in coming back from the page is turned into the real string again. For
-screenshots and demos without private data. Developer mode only (the app option).
+address, and its stand-in; see engine.py) shows the stand-in in place of the real string.
+For screenshots and demos without private data. Developer mode only (the app option).
 
 The rules are kept in swap.json in the app's config folder and edited on the admin page's
 Swap page (api.py). A swap.json hand-edited in the integration's folder, as before
 2026.10.12-b8, is converted once and then left alone.
 
-Applied where strings leave and enter the app: the admin API and /health (so the
-integration too: only its shown text, see out_shown), the guest QR codes shown on the
-page, and the guest welcome page. The integration fetches the rules (for_integration)
-when /health's stamp moves, and every browser on Home Assistant swaps its own text."""
+Every browser on Home Assistant swaps its own text, Casa Mia's pages included: the
+integration fetches the rules (for_integration) when /health's stamp moves and tells them.
+The app swaps only what no browser can (`out`): text drawn into pictures (QR codes, guest
+cards, the compositor's labels) and the guest welcome and goodbye pages, which are public,
+so the rules (the real strings) must never be sent to them."""
 
 from __future__ import annotations
 
 import json
 import logging
-import re
-import urllib.parse
 import uuid
 from collections.abc import Callable
 from pathlib import Path
@@ -43,7 +41,6 @@ def _same(text: str) -> str:
 class State(NamedTuple):
     mtime: int | None
     out: Rule
-    back: Rule
     stamp: str
     photo: bool
     images: dict[str, Path]
@@ -51,8 +48,8 @@ class State(NamedTuple):
 
 
 # Replaced whole, so the server's threads see one or the other.
-_state = State(None, _same, _same, "", False, {})
-_OFF = State(None, _same, _same, "", False, {})
+_state = State(None, _same, "", False, {})
+_OFF = State(None, _same, "", False, {})
 
 
 def _rule(rules: list[dict[str, Any]]) -> Rule:
@@ -152,27 +149,10 @@ def _read(mtime: int) -> State:
     if not doc["on"] or not settings.DEVELOPER:
         return _OFF._replace(mtime=mtime)
     rules = [r for r in doc["rules"] if r.get("enabled", True) is not False]
-    out = list(rules)
-    # JSON answers send non-ASCII as escapes (é as a backslash-u code): match those too.
-    for r in rules:
-        match, replace = str(r.get("match", "")), str(r.get("replace", ""))
-        if (
-            r.get("mode", "exact") != "regex"
-            and (esc := json.dumps(match)[1:-1]) != match
-        ):
-            out.append({"match": esc, "replace": json.dumps(replace)[1:-1]})
-    # Back from a stand-in: exact and case rules only (a pattern can't be turned round).
-    back = [
-        {"match": r["replace"], "replace": r["match"], "mode": r.get("mode", "exact")}
-        for r in out
-        if r.get("mode", "exact") != "regex" and r.get("replace")
-    ]
     photo = doc["original_photo"]
     images = _images(doc["camera_images"], OLD.parent)
     on = bool(rules or photo or images)
-    return State(
-        mtime, _rule(out), _rule(back), str(mtime) if on else "", photo, images, rules
-    )
+    return State(mtime, _rule(rules), str(mtime) if on else "", photo, images, rules)
 
 
 def _current() -> State:
@@ -204,35 +184,13 @@ def for_integration() -> dict[str, Any]:
 
 
 def out(text: str) -> str:
-    """Real strings as their stand-ins, on the way to a page."""
+    """Real strings as their stand-ins: for a picture, or a public page."""
     return _current().out(text)
 
 
-# Strings a machine reads, not a person: an entity id, an address or a path. Home
-# Assistant keeps what the integration is given (it never comes back to be swapped back),
-# so these stay real there: a swapped one points at nothing.
-_MACHINE = re.compile(r"[a-z_]+\.[a-z0-9_]+|.*://.*|/.*", re.DOTALL)
-
-
-def out_shown(value: object) -> object:
-    """`out` for the integration's JSON: only the text it shows (string values), never
-    dict keys or machine strings (_MACHINE)."""
-    if isinstance(value, dict):
-        return {k: out_shown(v) for k, v in value.items()}
-    if isinstance(value, list):
-        return [out_shown(v) for v in value]
-    if isinstance(value, str) and not _MACHINE.fullmatch(value):
-        return out(value)
-    return value
-
-
-def back(text: str) -> str:
-    """Stand-ins as the real strings, on the way in from a page."""
-    return _current().back(text)
-
-
 def stamp() -> str:
-    """Changes whenever the swap does ("" while off), so an open panel can reload."""
+    """Changes whenever the swap does ("" while off): the integration fetches the rules
+    when it moves."""
     return _current().stamp
 
 
@@ -246,40 +204,3 @@ def camera_image(title: str) -> Path | None:
     and it is there."""
     path = _current().images.get(title)
     return path if path and path.is_file() else None
-
-
-def pairs() -> dict[str, str]:
-    """Real -> stand-in for the exact rules ({} while off): for a page to swap itself.
-    ponytail: exact rules only, until the kiosk page runs the browser's engine."""
-    return {
-        r["match"]: r.get("replace", "")
-        for r in _current().rules
-        if r.get("mode", "exact") == "exact"
-    }
-
-
-def out_bytes(data: bytes, ctype: str) -> bytes:
-    """`out` for a text answer (JSON, HTML, SVG...); anything else as it is."""
-    if not ctype.startswith("text/") and not any(
-        t in ctype for t in ("json", "javascript", "xml")
-    ):
-        return data
-    try:
-        return out(data.decode()).encode()
-    except UnicodeDecodeError:
-        return data
-
-
-def back_bytes(data: bytes) -> bytes:
-    """`back` for a request body, unless it is binary (an uploaded photo)."""
-    try:
-        return back(data.decode()).encode()
-    except UnicodeDecodeError:
-        return data
-
-
-def back_path(path: str) -> str:
-    """`back` for a URL path, which arrives %-encoded; as it came unless a stand-in is in it."""
-    plain = urllib.parse.unquote(path)
-    real = back(plain)
-    return path if real == plain else urllib.parse.quote(real, safe="/")

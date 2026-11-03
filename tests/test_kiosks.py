@@ -10,7 +10,6 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
 
-from casa_mia import swap
 from casa_mia.ha import HAError
 from casa_mia.modules.kiosks import PAGE_SHIM, PAGE_TOKEN, Kiosks, page_head
 from casa_mia.server import make_server
@@ -504,19 +503,7 @@ def test_page_script_prefixes_api_calls_once_under_ingress():
     ]
 
 
-def test_page_head_swaps_the_page_only_while_the_swap_is_on(monkeypatch):
-    monkeypatch.setattr(swap, "pairs", lambda: {})
-    assert page_head(False) == PAGE_SHIM.encode()
-    monkeypatch.setattr(swap, "pairs", lambda: {"Ann": "Bea", "a</script>": "x"})
-    head = page_head(False).decode()
-    assert '"Ann": "Bea"' in head and "MutationObserver" in head
-    assert head.count("</script>") == 2  # a pair can't close the script early
-
-
-def test_page_head_adds_the_shim_only_for_kiosks_older_than_subpath_support(
-    monkeypatch,
-):
-    monkeypatch.setattr(swap, "pairs", lambda: {})
+def test_page_head_adds_the_shim_only_for_kiosks_older_than_subpath_support():
     for old in ("2026.9.98", "2026.10.7", None, "dev"):
         assert PAGE_SHIM in page_head(True, old).decode()
     for new in ("2026.10.8", "2026.10.9", "2026.11.1", "2027.1.1-b2"):
@@ -528,10 +515,9 @@ def test_page_head_adds_the_shim_only_for_kiosks_older_than_subpath_support(
 
 
 @pytest.mark.skipif(not shutil.which("node"), reason="needs node")
-def test_page_head_runs_and_sets_both_tokens(monkeypatch):
+def test_page_head_runs_and_sets_both_tokens():
     # Run as the page would: a syntax error stops the whole script, and the page then
     # shows its login (2026.10.3-b80 and before, from Kiosk Satellite 2026.10.8).
-    monkeypatch.setattr(swap, "pairs", lambda: {})
     script = page_head(True, "2026.10.13").decode()
     script = script.removeprefix("<script>").removesuffix("</script>")
     page = (

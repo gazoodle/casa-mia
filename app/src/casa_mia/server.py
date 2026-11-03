@@ -30,8 +30,6 @@ INGRESS_GATEWAY = "172.30.32.2"
 # Requests that change nothing kept (the Camera Commander page's live previews, the swap's
 # draft, one per edit): not logged at INFO with the admin page's changes.
 READS = ("/api/commander/render", "/api/swap/draft")
-# Never swapped either way: the Swap page edits the real strings themselves.
-RAW = "/api/swap/"
 
 
 def integration_url() -> str:
@@ -77,20 +75,12 @@ class Handler(BaseHTTPRequestHandler):
             if url.path.startswith(prefix):
                 length = int(self.headers.get("Content-Length") or 0)
                 body = self.rfile.read(length) if length else b""
-                query = urllib.parse.parse_qs(url.query)
-                if prefix == RAW:
-                    status, ctype, data = handle(
-                        method, url.path[len(prefix) :], query, body
-                    )
-                else:
-                    # Screenshot swap: stand-ins in, real strings out of the handler.
-                    status, ctype, data = handle(
-                        method,
-                        swap.back_path(url.path[len(prefix) :]),
-                        {k: [swap.back(v) for v in vs] for k, vs in query.items()},
-                        swap.back_bytes(body),
-                    )
-                    data = swap.out_bytes(data, ctype)
+                status, ctype, data = handle(
+                    method,
+                    url.path[len(prefix) :],
+                    urllib.parse.parse_qs(url.query),
+                    body,
+                )
                 # Every change made on the admin page is logged (never the body: it can
                 # hold passwords); reads are not, the page polls.
                 if method != "GET" and url.path not in READS:
@@ -196,14 +186,10 @@ class Handler(BaseHTTPRequestHandler):
                 "modules": modules,
                 "developer": settings.DEVELOPER,  # the developer_mode option
                 "settings": settings.for_cards(),
+                "swap": swap.stamp(),  # the integration fetches the rules when it moves
             }
-        )
-        # Swapped before the stamp is added, so the stamp itself never is; only the text
-        # shown (HA keeps the rest: a swapped address or entity id points at nothing).
-        answer = swap.out_shown(json.loads(body))
-        assert isinstance(answer, dict)
-        answer["swap"] = swap.stamp()
-        body = json.dumps(answer).encode()
+        ).encode()
+
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
@@ -218,9 +204,7 @@ class Handler(BaseHTTPRequestHandler):
             if self.path.startswith(prefix):
                 length = int(self.headers.get("Content-Length") or 0)
                 body = self.rfile.read(length) if length else b""
-                status = handle(
-                    swap.back_path(self.path[len(prefix) :]), swap.back_bytes(body)
-                )
+                status = handle(self.path[len(prefix) :], body)
                 _LOGGER.info("integration: POST %s -> %d", self.path, status)
                 self.send_response(status)
                 self.send_header("Content-Length", "0")

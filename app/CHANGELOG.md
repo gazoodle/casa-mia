@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.10.12-b9
+
+- Screenshot swap: every browser on Home Assistant now swaps its own page, all of it: Home Assistant's own pages, dashboards, dialogs and Casa Mia's pages (and the Kiosk Satellite page inside them). It follows the page as it changes, and puts the real text back when a rule is changed, switched off or deleted. While a rule is being written on the Swap page, every browser shows it applied as you type.
+- Screenshot swap: while a rule is being written on the Swap page, every browser outlines what it matches with a thin red box, showing the replacement inside it as you type (or the text it matched, until there is a replacement).
+- Screenshot swap: a form field whose text would be swapped is covered by the stand-in while it isn't being edited, in the field's own font and colours. Its value is never changed, so saving a form never saves a stand-in; tap into the field and it shows the real text to edit.
+- Screenshot swap: what it can't change. Editable text such as the YAML editor, charts drawn as pictures (history, energy) and text inside camera video keep their real text.
+- Screenshot swap: the app no longer swaps text on its way out, now that the browsers do. Home Assistant's history and a dashboard deployed while the swap is on keep the real names, so nothing is left showing a stand-in after the swap is switched off. Pictures (QR codes, guest cards, the Camera Commander's labels) and the public guest welcome and goodbye pages are still swapped by the app: a browser can't change a picture, and the rules, which hold the real strings, are never sent to a public page.
+
 ## 2026.10.12-b8
 
 - **Breaking:** the screenshot swap works only in developer mode. Switch on **developer_mode** in the app's options to keep using it.

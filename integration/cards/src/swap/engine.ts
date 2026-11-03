@@ -13,8 +13,9 @@ export interface SwapRule {
   enabled?: boolean;
 }
 
-/** A match to replace: where it starts and ends, and what replaces it. */
-export type Span = [start: number, end: number, replacement: string];
+/** A match to replace: where it starts and ends, what replaces it, and the rule's index in
+ * the list given (which rule made it). */
+export type Span = [start: number, end: number, replacement: string, rule: number];
 
 const LETTERS = /\p{L}+/gu;
 
@@ -84,13 +85,13 @@ function next(p: RegExp, text: string, pos: number): RegExpExecArray | null {
  * `errors` (its index, why), for the caller to report. */
 export class Rules {
   readonly errors: [number, string][] = [];
-  private readonly rules: [RegExp, SwapRule][] = [];
+  private readonly rules: [RegExp, SwapRule, number][] = [];
 
   constructor(rules: SwapRule[]) {
     rules.forEach((rule, i) => {
       if (rule.enabled === false) return;
       try {
-        this.rules.push([pattern(rule), rule]);
+        this.rules.push([pattern(rule), rule, i]);
       } catch (err) {
         this.errors.push([i, String((err as Error).message ?? err)]);
       }
@@ -120,7 +121,8 @@ export class Rules {
       if (best < 0) return;
       const m = found[best]!;
       const end = m.index + m[0].length;
-      yield [m.index, end, this.replacement(this.rules[best][1], m)];
+      const [, rule, index] = this.rules[best];
+      yield [m.index, end, this.replacement(rule, m), index];
       pos = end;
     }
   }

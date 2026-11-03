@@ -10,6 +10,7 @@ import "./over-layer/index.ts";
 import "./sensor-watch/index.ts";
 import "./qr-code/index.ts";
 import "./heating-flow/index.ts";
+import "./swap/index.ts";
 import { watchForGoodbye } from "./guest-goodbye.ts";
 
 console.info(

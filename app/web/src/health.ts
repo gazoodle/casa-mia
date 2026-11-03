@@ -9,7 +9,6 @@ export type Health = {
   version: string;
   api: number;
   integration_url?: string;
-  swap?: string;
   developer?: boolean; // the developer_mode app option
   modules: Record<string, ModuleHealth>;
 };
@@ -18,11 +17,8 @@ export type Health = {
 export const Developer = createContext(false);
 
 const POLL_MS = 5000;
-/** The app version (and screenshot swap) this page was loaded from. An open page outlives
- * an app update, and would keep running the old UI: when the version changes, reload the
- * whole page; the same when the swap changes, so every string on it is swapped afresh.
- * Not on the Swap page, whose own saves change the swap: it shows the real strings, and
- * every other page loads its strings afresh when opened. */
+/** The app version this page was loaded from. An open page outlives an app update, and
+ * would keep running the old UI: when the version changes, reload the whole page. */
 let loadedVersion: string | undefined;
 
 export function useHealth(): { health?: Health; error?: string } {
@@ -35,15 +31,10 @@ export function useHealth(): { health?: Health; error?: string } {
         const response = await fetch("health", { cache: "no-store" });
         if (!response.ok) throw new Error(`the app answered ${response.status}`);
         const body = (await response.json()) as Health;
-        const loaded = `${body.version} ${body.swap ?? ""}`;
-        loadedVersion ??= loaded;
-        if (loaded !== loadedVersion) {
-          if (location.hash.startsWith("#/swap") && body.version === loadedVersion.split(" ")[0]) {
-            loadedVersion = loaded;
-          } else {
-            location.reload();
-            return;
-          }
+        loadedVersion ??= body.version;
+        if (body.version !== loadedVersion) {
+          location.reload();
+          return;
         }
         if (alive) {
           setHealth(body);

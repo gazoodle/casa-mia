@@ -30,26 +30,21 @@ def write(path, mtime=None, **doc):
         os.utime(path, ns=(mtime, mtime))
 
 
-def test_swap_both_ways(path):
+def test_rules_swap_out_while_on(path):
     assert swap.out("07700 900123") == "07700 900123" and swap.stamp() == ""
 
-    rules = [rule("07700 900123", "07700 900456"), rule("José", "Al"), rule("Jo", "X")]
+    rules = [
+        rule("07700 900123", "07700 900456"),
+        rule("Jo", "X"),
+        rule("oak tree", "barn", "case"),
+        rule(r"07700 9(\d{5})", "07700 0$1", "regex"),
+        rule("Ann", "Bea", enabled=False),
+    ]
     write(path, on=True, rules=rules)
-    # Longest first, one pass; JSON's escaped spelling too; binary left alone.
-    assert swap.out("José on 07700 900123, Jo") == "Al on 07700 900456, X"
     assert (
-        swap.out("Joe, +4407700 900123, cam_Jo_1, Jo2")
-        == "Joe, +4407700 900456, cam_X_1, X2"
+        swap.out("Joe, +4407700 900123, cam_Jo_1, OAK TREE, 07700 900789, Ann")
+        == "Joe, +4407700 900456, cam_X_1, BARN, 07700 000789, Ann"
     )
-    assert (
-        swap.out_bytes(json.dumps({"n": "José"}).encode(), "application/json")
-        == b'{"n": "Al"}'
-    )
-    assert swap.out_bytes("José".encode(), "image/png") == "José".encode()
-    assert swap.back("ring 07700 900456") == "ring 07700 900123"
-    assert swap.back_path("p/07700%20900456") == "p/07700%20900123"
-    assert swap.back_path("a%2Fb") == "a%2Fb"
-    assert swap.back_bytes(b"\xff\xd8") == b"\xff\xd8"
     assert swap.stamp() and not swap.original_photo()
 
     write(path, 2, on=True, rules=[], original_photo=True)
@@ -57,18 +52,6 @@ def test_swap_both_ways(path):
 
     write(path, 1, on=False, rules=[rule("Jo", "X")], original_photo=True)
     assert swap.out("Jo") == "Jo" and swap.stamp() == "" and not swap.original_photo()
-
-
-def test_case_and_regex_rules_swap_out_but_only_case_comes_back(path):
-    rules = [
-        rule("oak tree", "barn", "case"),
-        rule(r"07700 9(\d{5})", "07700 0$1", "regex"),
-        rule("Ann", "Bea", enabled=False),
-    ]
-    write(path, on=True, rules=rules)
-    assert swap.out("OAK TREE, 07700 900123, Ann") == "BARN, 07700 000123, Ann"
-    assert swap.back("Barn, 07700 000123") == "Oak Tree, 07700 000123"
-    assert swap.pairs() == {}  # the kiosk page's shim takes exact rules only
 
 
 def test_off_out_of_developer_mode(path, monkeypatch):
@@ -102,30 +85,6 @@ def test_camera_images(path):
     # A picture added after the rules were saved is used too.
     (folder / "swap" / "none.jpg").write_bytes(b"jpeg")
     assert swap.camera_image("Shed") == (folder / "swap" / "none.jpg").resolve()
-
-
-def test_the_integration_gets_only_its_shown_text_swapped(path):
-    # HA keeps what the integration is given: addresses, paths and entity ids stay real.
-    rules = [
-        rule("Oak Tree", "Barn"),
-        rule("oak_tree", "barn"),
-        rule("192.0.2.10", "x"),
-    ]
-    write(path, on=True, rules=rules)
-    card = {
-        "picture": "http://192.0.2.10:8099/g/cameras.mjpg",
-        "live": "/cameras/cam-oak-tree",
-        "start": "camera.oak_tree_high",
-        "cameras": {"camera.oak_tree_high": {"title": "Oak Tree"}},
-        "options": ["Oak Tree", "Shed"],
-        "address": "192.0.2.10",
-    }
-    assert swap.out_shown(card) == {
-        **card,
-        "cameras": {"camera.oak_tree_high": {"title": "Barn"}},
-        "options": ["Barn", "Shed"],
-        "address": "x",
-    }
 
 
 def test_the_old_file_is_converted_once_and_left_alone(path):
