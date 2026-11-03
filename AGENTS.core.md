@@ -36,6 +36,12 @@ rather than copying it.
 - **Report faithfully.** Failing tests are reported with their output, skipped steps are
   named, verified work is stated plainly. Never claim a fix that wasn't measured or run.
 - **Write in British English** (behaviour, optimise, colour) in prose, comments and docs.
+- **Write docs as a person would say it, not as marketing** (owner, 2026-11-03). No
+  slogans, no tricolons ("No ports to open, no extra logins, no VPN"), no clipped or
+  inverted phrasing ("Water that isn't flowing keeps its colour, dimmed", where a person
+  says "is shown in a dimmed colour"), no aphorisms ("quiet and right"). Plain sentences
+  that say what a thing does. Why: readers in the tech community recognise that style as
+  AI-written and are put off by it.
 - **Use absolute dates** (2026-10-16), never "yesterday" or "last week".
 - **Several agents may work in the same repo.** Never revert, reformat or "tidy" changes you
   didn't make and don't understand. Ask instead.
