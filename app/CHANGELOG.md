@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.10.12-b10
+
+- Swap page: a rule opens by clicking anywhere on its row (or Enter); the Edit button is gone.
+- People page: a person opens by clicking anywhere on their row (or Enter); the Edit button is gone.
+
 ## 2026.10.12-b9
 
 - Screenshot swap: every browser on Home Assistant now swaps its own page, all of it: Home Assistant's own pages, dashboards, dialogs and Casa Mia's pages (and the Kiosk Satellite page inside them). It follows the page as it changes, and puts the real text back when a rule is changed, switched off or deleted. While a rule is being written on the Swap page, every browser shows it applied as you type.

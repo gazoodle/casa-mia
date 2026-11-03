@@ -23,6 +23,16 @@
   background: var(--surface-2);
 }
 
+/* A row is pressed to edit its person. */
+.open {
+  cursor: pointer;
+}
+
+.open:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
 .head {
   color: var(--muted);
   font-size: 12px;

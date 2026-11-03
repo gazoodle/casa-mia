@@ -81,7 +81,16 @@ export function PeoplePage() {
               <span />
             </div>
             {view.people.map((p) => (
-              <div key={p.id} className={css.row}>
+              // The row opens its editor; its ticks and Remove do only their own thing.
+              <div
+                key={p.id}
+                className={`${css.row} ${css.open}`}
+                role="button"
+                tabIndex={0}
+                aria-label={`Edit ${p.name}`}
+                onClick={(e) => !(e.target as Element).closest("label, button") && setEditing(p)}
+                onKeyDown={(e) => e.target === e.currentTarget && e.key === "Enter" && setEditing(p)}
+              >
                 <span className={css.name}>
                   {p.name}
                   {p.person && <span className={guest.badge}>{personName(p.person) ?? "HA person"}</span>}
@@ -106,9 +115,6 @@ export function PeoplePage() {
                   </label>
                 ))}
                 <span className={css.actions}>
-                  <button className={`${ui.button} ${ui.small}`} onClick={() => setEditing(p)}>
-                    Edit
-                  </button>
                   <button
                     className={`${ui.danger} ${ui.small}`}
                     onClick={async () =>

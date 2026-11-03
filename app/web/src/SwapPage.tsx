@@ -126,7 +126,16 @@ export function SwapPage() {
               <span />
             </div>
             {shown.map((r) => (
-              <div key={r.id} className={`${css.row} ${r.enabled ? "" : css.off}`}>
+              // The row opens its editor; its tick and Delete do only their own thing.
+              <div
+                key={r.id}
+                className={`${css.row} ${css.open} ${r.enabled ? "" : css.off}`}
+                role="button"
+                tabIndex={0}
+                aria-label={`Edit the rule for ${r.match}`}
+                onClick={(e) => !(e.target as Element).closest("label, button") && setEditing(r)}
+                onKeyDown={(e) => e.target === e.currentTarget && e.key === "Enter" && setEditing(r)}
+              >
                 <label className={css.tick}>
                   <input
                     type="checkbox"
@@ -139,9 +148,6 @@ export function SwapPage() {
                 <code className={css.text}>{r.replace || <span className={css.nothing}>(nothing)</span>}</code>
                 <span className={`cm-pill cm-fixed ${css.mode} ${r.mode === "regex" ? css.regex : ""}`}>{MODES.find(([m]) => m === r.mode)?.[1]}</span>
                 <span className={css.actions}>
-                  <button className={`${ui.button} ${ui.small}`} onClick={() => setEditing(r)}>
-                    Edit
-                  </button>
                   <button
                     className={`${ui.danger} ${ui.small}`}
                     onClick={async () =>
