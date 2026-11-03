@@ -68,9 +68,13 @@ class FakeVNC:
         self.page_left.set()
 
     def close(self):
-        self.server.close()
-        for c in self.conns:
-            c.close()
+        # shutdown() first: on Linux, close() alone neither wakes the thread blocked in
+        # accept()/recv() nor tears the socket down, so the port kept accepting and the
+        # page never saw the hang-up (passed on macOS, failed in CI).
+        for s in (self.server, *self.conns):
+            with contextlib.suppress(OSError):
+                s.shutdown(socket.SHUT_RDWR)
+            s.close()
 
 
 class Page:
