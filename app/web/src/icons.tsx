@@ -131,3 +131,10 @@ export const SensorWatchIcon = () => (
     <path d="M6.3 10.3l1.1 1M17.7 10.3l-1.1 1M12 8v1.4" />
   </svg>
 );
+
+/** Swap: two arrows passing each other. */
+export const SwapIcon = () => (
+  <svg {...base}>
+    <path d="M4 8h14M14 4l4 4-4 4M20 16H6M10 12l-4 4 4 4" />
+  </svg>
+);

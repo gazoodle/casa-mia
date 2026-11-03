@@ -1,4 +1,5 @@
 import json
+import logging
 import shutil
 import socket
 import subprocess
@@ -9,7 +10,6 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
 
-from casa_mia import swap
 from casa_mia.ha import HAError
 from casa_mia.modules.kiosks import PAGE_SHIM, PAGE_TOKEN, Kiosks, page_head
 from casa_mia.server import make_server
@@ -115,6 +115,11 @@ class FakeKiosk(BaseHTTPRequestHandler):
                 return self._send(401, {})
             self.imported.append((self.path, None))
             self._send(200, {"ok": True, "data": {"availableVersion": "2026.10.2"}})
+        elif self.path == "/api/commands/launchApp":
+            if not self._authorised():
+                return self._send(401, {})
+            self.imported.append((self.path, json.loads(body)))
+            self._send(200, {"ok": True})
         elif self.path == "/api/commands/fleet":
             if not self._authorised():
                 return self._send(401, {})
@@ -366,6 +371,24 @@ def test_proxy_logs_in_for_the_page_and_leaves_its_scripts_alone(proxied):
         assert b'fetch("/api/settings")' in r.read()
 
 
+def test_a_command_through_the_proxy_is_logged_as_an_action(proxied, caplog):
+    # Remote control's Android Settings: the page posts Kiosk Satellite's launchApp.
+    base, h1 = proxied
+    req = urllib.request.Request(
+        f"http://{base}/kiosk/k1/api/commands/launchApp",
+        data=json.dumps({"package": "com.android.settings"}).encode(),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with caplog.at_level(logging.INFO), urllib.request.urlopen(req) as r:
+        assert json.loads(r.read()) == {"ok": True}
+    assert h1.imported[-1] == (
+        "/api/commands/launchApp",
+        {"package": "com.android.settings"},
+    )
+    assert "kiosk Kitchen: POST /api/commands/launchApp -> 200" in caplog.text
+
+
 def test_proxy_unknown_kiosk_is_404(proxied):
     base, _ = proxied
     with pytest.raises(urllib.error.HTTPError) as err:
@@ -480,19 +503,7 @@ def test_page_script_prefixes_api_calls_once_under_ingress():
     ]
 
 
-def test_page_head_swaps_the_page_only_while_the_swap_is_on(monkeypatch):
-    monkeypatch.setattr(swap, "pairs", lambda: {})
-    assert page_head(False) == PAGE_SHIM.encode()
-    monkeypatch.setattr(swap, "pairs", lambda: {"Ann": "Bea", "a</script>": "x"})
-    head = page_head(False).decode()
-    assert '"Ann": "Bea"' in head and "MutationObserver" in head
-    assert head.count("</script>") == 2  # a pair can't close the script early
-
-
-def test_page_head_adds_the_shim_only_for_kiosks_older_than_subpath_support(
-    monkeypatch,
-):
-    monkeypatch.setattr(swap, "pairs", lambda: {})
+def test_page_head_adds_the_shim_only_for_kiosks_older_than_subpath_support():
     for old in ("2026.9.98", "2026.10.7", None, "dev"):
         assert PAGE_SHIM in page_head(True, old).decode()
     for new in ("2026.10.8", "2026.10.9", "2026.11.1", "2027.1.1-b2"):
@@ -504,10 +515,9 @@ def test_page_head_adds_the_shim_only_for_kiosks_older_than_subpath_support(
 
 
 @pytest.mark.skipif(not shutil.which("node"), reason="needs node")
-def test_page_head_runs_and_sets_both_tokens(monkeypatch):
+def test_page_head_runs_and_sets_both_tokens():
     # Run as the page would: a syntax error stops the whole script, and the page then
     # shows its login (2026.10.3-b80 and before, from Kiosk Satellite 2026.10.8).
-    monkeypatch.setattr(swap, "pairs", lambda: {})
     script = page_head(True, "2026.10.13").decode()
     script = script.removeprefix("<script>").removesuffix("</script>")
     page = (

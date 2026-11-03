@@ -6,6 +6,12 @@ Calls and texts through the FONA GSM module: a way in that needs no internet.
 
 ## What it's for
 
+This one's a bit esoteric. What happens when the internet goes down and you're on the wrong
+side of the gate? An Arduino with an Adafruit FONA GSM board on the end of a USB cable,
+that's what. Ring the house or text it, and if your number is on the list, your automations
+do the rest (mine open the gates). You almost certainly don't need it; it's off unless you
+switch it on.
+
 Reach Home Assistant by calling or texting a GSM module connected to the box over USB.
 The phone path needs mobile coverage, but no internet connection. Home Assistant and
 the Casa Mia app must still be running locally.

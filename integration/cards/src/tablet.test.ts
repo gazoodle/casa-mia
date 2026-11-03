@@ -8,7 +8,7 @@ import { counts, cardPath, fills, onlyGarnish, setGarnish } from "./garnish.ts";
 import { writeFileSync } from "node:fs";
 import test from "node:test";
 import saved from "../../../tests/tablet_cases.json" with { type: "json" };
-import { SQUEEZE, cardColumns, cardsWidth, depthOf, draftsOf, type Gap, gapLines, layerOf, panelName, type Placement, placeOf, placePanels, PLACES, restack, type Section, seenOut, sides, stackOf, withLayer } from "./tablet.ts";
+import { SQUEEZE, cardColumns, cardsWidth, depthOf, draftsOf, fillers, type Gap, gapLines, layerOf, panelName, type Placement, placeOf, placePanels, PLACES, restack, type Section, seenOut, sides, stackOf, withLayer } from "./tablet.ts";
 
 type Case = { name: string; config: Record<string, any>; area: [number, number]; editing: boolean; fit?: boolean; sections: (Section | null)[] };
 
@@ -52,25 +52,30 @@ const INPUTS: Case[] = [
   { name: "a fixed main alone in edit mode: its width only", config: FIXED, area: IPAD, editing: true, sections: five(["main"]) },
   { name: "no main", config: {}, area: IPAD, editing: false, sections: five(["left", "right"]) },
   // Panel stacks.
-  { name: "a top stack of three: a column each, packed from the start", config: {}, area: IPAD, editing: false, sections: [at("main"), at("top"), at("top"), at("top")] },
+  { name: "a top stack of three: a column each, the last filling", config: {}, area: IPAD, editing: false, sections: [at("main"), at("top"), at("top"), at("top")] },
+  { name: "a top stack of three as their cards: a column each, packed from the start", config: {}, area: IPAD, editing: false, sections: [at("main"), at("top", { size: "cards" }), at("top", { size: "cards" }), at("top", { size: "cards" })] },
   { name: "a top stack of three, in edit mode", config: {}, area: IPAD, editing: true, sections: [at("main"), at("top"), at("top"), at("top")] },
-  { name: "a top stack: one of half its Width, the other a column", config: {}, area: IPAD, editing: false, sections: [at("main"), at("top", { share: 0.5 }), at("top")] },
+  { name: "a top stack: one of half its Width, the other the rest", config: {}, area: IPAD, editing: false, sections: [at("main"), at("top", { share: 0.5 }), at("top")] },
   { name: "a top stack all of a Width: packed from the start", config: {}, area: IPAD, editing: false, sections: [at("main"), at("top", { share: 0.25 }), at("top", { share: 0.25 })] },
   { name: "a top stack too wide: all shrink alike", config: {}, area: IPAD, editing: false, sections: [at("main"), at("top", { share: 0.75 }), at("top", { share: 0.75 })] },
-  { name: "a top stack as wide as their cards, packed from the start", config: {}, area: IPAD, editing: false, sections: [at("main"), at("top", { wide: 140 }), at("top", { wide: 290 })] },
-  { name: "a top stack, one without cards: a column", config: {}, area: IPAD, editing: true, sections: [at("main"), at("top", { wide: 140 }), at("top", { wide: 0 })] },
+  { name: "a top stack as wide as their cards, packed from the start", config: {}, area: IPAD, editing: false, sections: [at("main"), at("top", { size: "cards", wide: 140 }), at("top", { size: "cards", wide: 290 })] },
+  { name: "a top stack, none set: the last fills", config: {}, area: IPAD, editing: false, sections: [at("main"), at("top", { wide: 140 }), at("top", { wide: 290 })] },
+  { name: "a top stack, the last without cards: it fills", config: {}, area: IPAD, editing: true, sections: [at("main"), at("top", { wide: 140 }), at("top", { wide: 0 })] },
   { name: "a top stack of one, as wide as its cards: fills it", config: {}, area: IPAD, editing: false, sections: [at("main"), at("top", { wide: 140 })] },
   { name: "a left panel as wide as its cards: its widest", config: { left: { size: "auto" } }, area: IPAD, editing: false, sections: [at("main"), at("left", { wide: 140, tall: 300 }), at("left", { wide: 290, tall: 200 })] },
   { name: "a right panel as wide as its cards, in edit mode", config: { right: { size: "auto" } }, area: IPAD, editing: true, sections: [at("main"), at("right", { wide: 140 })] },
   { name: "a top stack of one of a Width", config: {}, area: IPAD, editing: false, sections: [at("main"), at("top", { share: 0.5 })] },
-  { name: "a left stack as tall as their cards, packed from the start", config: {}, area: IPAD, editing: false, sections: [at("main"), at("left", { tall: 200 }), at("left", { tall: 150 })] },
+  { name: "a left stack as tall as their cards, packed from the start", config: {}, area: IPAD, editing: false, sections: [at("main"), at("left", { size: "cards", tall: 200 }), at("left", { size: "cards", tall: 150 })] },
+  { name: "a left stack, none set: the last fills to the end", config: {}, area: IPAD, editing: false, sections: [at("main"), at("left", { tall: 200 }), at("left", { tall: 150 })] },
+  { name: "two new empty right panels in edit mode: the second fills", config: {}, area: IPAD, editing: true, sections: [at("main"), at("right", { tall: 56 }), at("right", { tall: 56 })] },
   { name: "a left stack with a length", config: {}, area: IPAD, editing: false, sections: [at("main"), at("left", { length: 120 }), at("left", { tall: 150 })] },
-  { name: "a left stack too tall: all shrink alike", config: {}, area: IPAD, editing: false, sections: [at("main"), at("left", { tall: 600 }), at("left", { tall: 600 })] },
+  { name: "a left stack too tall: all shrink alike", config: {}, area: IPAD, editing: false, sections: [at("main"), at("left", { size: "cards", tall: 600 }), at("left", { size: "cards", tall: 600 })] },
   { name: "a left stack in edit mode, one new and empty", config: {}, area: IPAD, editing: true, sections: [at("main"), at("left", { tall: 200 }), at("left", { tall: 0 })] },
   { name: "a right stack: one filling, one held to the end as its cards", config: {}, area: IPAD, editing: false, sections: [at("main"), at("right", { size: "fill" }), at("right", { tall: 180, hold: true })] },
-  { name: "a right stack: both as their cards, one held to the end", config: {}, area: IPAD, editing: false, sections: [at("main"), at("right", { tall: 200 }), at("right", { tall: 180, hold: true })] },
+  { name: "a right stack: both as their cards, one held to the end", config: {}, area: IPAD, editing: false, sections: [at("main"), at("right", { size: "cards", tall: 200 }), at("right", { size: "cards", tall: 180, hold: true })] },
+  { name: "a right stack, none set, one held: the other fills up to it", config: {}, area: IPAD, editing: false, sections: [at("main"), at("right", { tall: 200 }), at("right", { tall: 180, hold: true })] },
   { name: "a right stack held, in edit mode", config: {}, area: IPAD, editing: true, sections: [at("main"), at("right", { tall: 200 }), at("right", { tall: 180, hold: true })] },
-  { name: "a held one first in order: still at the end", config: {}, area: IPAD, editing: false, sections: [at("main"), at("left", { tall: 180, hold: true }), at("left", { tall: 200 })] },
+  { name: "a held one first in order: still at the end, the other filling up to it", config: {}, area: IPAD, editing: false, sections: [at("main"), at("left", { tall: 180, hold: true }), at("left", { tall: 200 })] },
   { name: "a left stack centred", config: { left: { arrange: "centre" } }, area: IPAD, editing: false, sections: [at("main"), at("left", { tall: 200 }), at("left", { tall: 150 })] },
   { name: "a top stack from the end", config: { top: { arrange: "end" } }, area: IPAD, editing: false, sections: [at("main"), at("top", { wide: 140 }), at("top", { wide: 290 })] },
   { name: "a top stack centred, one held: centred in what is left", config: { top: { arrange: "centre" } }, area: IPAD, editing: false, sections: [at("main"), at("top", { wide: 140 }), at("top", { wide: 290, hold: true })] },
@@ -370,4 +375,17 @@ test("an Over layer showing its whole panel keeps that panel out of its place", 
   assert.equal(holdsPanelLayer([tile]), false);
   assert.equal(holdsPanelLayer(undefined), false);
   assert.equal(badge(layer), "Over layer · its whole panel · float · the view");
+});
+
+test("fillers: who fills an edge by default", () => {
+  assert.deepEqual(fillers([{}], false), [true], "one alone");
+  assert.deepEqual(fillers([{ size: "cards" }], false), [false], "one alone, as its cards");
+  assert.deepEqual(fillers([{}, {}, {}], false), [false, false, true], "the last of several");
+  assert.deepEqual(fillers([{}, { size: "cards" }], false), [true, false], "the last without a setting");
+  assert.deepEqual(fillers([{ hold: true }, {}], false), [true, false], "held ones count after the others");
+  assert.deepEqual(fillers([{ size: "fill" }, {}], false), [true, false], "one set to fill: only it");
+  assert.deepEqual(fillers([{}, {}], false, "centre"), [false, false], "arranged centre: none");
+  assert.deepEqual(fillers([{}, {}], false, "start"), [false, true], "arranged start, the default");
+  assert.deepEqual(fillers([{}, { length: 120 }], false), [true, false], "a fixed one never fills");
+  assert.deepEqual(fillers([{}, { share: 0.5 }], true), [true, false], "a top or bottom one of a Width never fills");
 });

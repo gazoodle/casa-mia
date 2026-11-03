@@ -19,8 +19,10 @@ test("between sensors the temperature is interpolated, and held flat beyond the 
   assert.equal(tempAt([], 5), null);
 });
 
-test("the colour scale runs cold blue to hot red", () => {
-  assert.equal(ramp(-20), "#3b47c9");
+test("the colour scale runs off-black (the coldest brine) through blue to hot red", () => {
+  assert.equal(ramp(-20), "#17171f");
+  assert.equal(ramp(-10), "#2b2475");
+  assert.equal(ramp(-5), "#3b47c9");
   assert.equal(ramp(80), "#b31e3d");
   assert.notEqual(ramp(20), ramp(50));
 });

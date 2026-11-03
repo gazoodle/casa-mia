@@ -1,7 +1,7 @@
 // Layer 2: edit mode's actions and dialogs (toolbars, panel options, gaps, lines, margins, header, footer, locks).
 import { LAYOUT, type Panel, PANELS } from "../layout.ts";
 import { compact, confirmOnView, edgeForm, type Form, openMini, openPanelOptions, PX } from "../panel-options.ts";
-import { depthOf, type Draft, type Gap, type GapLine, draftsOf, LAYERS, layerOf, panelName, placeOf, restack, type Side, SIDES, sides, stackOf, withLayer } from "../tablet.ts";
+import { ADD_LAYERS, depthOf, type Draft, fillers, type Gap, type GapLine, draftsOf, layerOf, panelName, placeOf, restack, type Side, SIDES, sides, stackOf, withLayer } from "../tablet.ts";
 import { headerSpace } from "./common.ts";
 import { ViewBase } from "./base.ts";
 
@@ -54,7 +54,7 @@ export const ViewEdit = (Base: ReturnType<typeof ViewBase>) =>
 
 
     /** What section n's toolbar can do: add a panel after it, move it back or on along its
-     * edge (none at its start or end); main's, add a layer (up to LAYERS) or remove the
+     * edge (none at its start or end); main's, add a layer (up to ADD_LAYERS) or remove the
      * innermost (asked first when its panels hold cards). Saved at once. */
     protected cmActions(n: number): { add?: () => void; back?: () => void; on?: () => void; remove?: () => void } {
       const at = placeOf(this.cmSections[n], n);
@@ -63,7 +63,7 @@ export const ViewEdit = (Base: ReturnType<typeof ViewBase>) =>
         const depth = depthOf(draftsOf(this.cmSections));
         const edges = ["top", "left", "right", "bottom"] as const;
         return {
-          ...(depth < LAYERS && {
+          ...(depth < ADD_LAYERS && {
             add: () => this.cmRestack((ds) => [...ds, ...edges.map((place) => ({ from: null, layer: depth + 1, place }))]),
           }),
           ...(depth > 1 && {
@@ -109,6 +109,10 @@ export const ViewEdit = (Base: ReturnType<typeof ViewBase>) =>
       const where = (this.sections as unknown[]).map((_, i) => placeOf(this.cmSections[i], i));
       const box = this.shadowRoot?.querySelectorAll(".content > .section")[n];
       const [layout, sections] = [this.cmLayout, this.cmSections];
+      // Whether it fills by default: as split() decides it, among its stack.
+      const stack = at.place === "main" ? [] : stackOf(where, n);
+      const across = at.place === "top" || at.place === "bottom";
+      const fills = fillers(stack.map((i) => this.cmLock(sections[i], at.place)), across, layerOf(layout, at.layer)[at.place]?.arrange)[stack.indexOf(n)] ?? false;
       const show = (l: Record<string, any>, section: Record<string, any>) => {
         this.cmLayout = l;
         this.cmSections = sections.map((s, i) => (i === n ? section : s));
@@ -119,7 +123,8 @@ export const ViewEdit = (Base: ReturnType<typeof ViewBase>) =>
         anchor,
         name: panelName(where, n),
         ...at,
-        count: at.place === "main" ? depthOf(where) : stackOf(where, n).length,
+        count: at.place === "main" ? depthOf(where) : stack.length,
+        fills,
         columns: this.cmColumns,
         layout,
         section: sections[n] ?? {},

@@ -7,7 +7,9 @@ import { api, type Kiosk, type KioskBackup, type KioskKind, type KiosksView } fr
 import { ago } from "./format";
 import { TabletIcon } from "./icons";
 import { Everywhere } from "./KioskEverywhere";
-import { AreaHead, Empty, Shell } from "./page";
+import { RemotePassword } from "./KioskRemote";
+import { KioskScreen } from "./KioskScreen";
+import { AreaHead, Empty, Shell, Loading } from "./page";
 import { Dialog, Field, Segmented, Toasts, type Toast } from "./ui";
 import css from "./kiosks.module.css";
 import guest from "./guest.module.css";
@@ -72,7 +74,7 @@ export function KiosksPage({ state }: { state?: string }) {
       </Shell>
     );
   }
-  if (!view) return <Shell {...HEAD} state={state}><p className={guest.notice}>Loading…</p></Shell>;
+  if (!view) return <Shell {...HEAD} state={state}><Loading toasts={toasts} /></Shell>;
   const needLogin = view.kiosks.filter((k) => !k.logged_in).length;
   const loggedIn = view.kiosks.length - needLogin;
 
@@ -228,6 +230,17 @@ export function KiosksPage({ state }: { state?: string }) {
       </section>
 
       <section className={guest.area}>
+        <AreaHead
+          title="Remote control"
+          blurb="Drive a tablet from here: click its picture, then Remote control. Needs droidVNC-NG on the tablet, all with the same VNC password, entered here once. The app logs in with it; your browser never sees it."
+        />
+        <RemotePassword
+          set={view.vnc_password_set}
+          onSave={(password) => change(() => put<KiosksView>("vnc", { password }), password ? "VNC password saved" : "VNC password cleared")}
+        />
+      </section>
+
+      <section className={guest.area}>
         <AreaHead title="Add a kiosk" blurb="Only needed for a kiosk neither Home Assistant nor the other kiosks know." />
         <form
           className={css.addRow}
@@ -322,37 +335,47 @@ function KioskRow({
   ].filter(Boolean);
   return (
     <div className={`${css.kiosk} ${k.online ? "" : css.offline} ${follower ? css.follower : ""}`}>
-      <button className={css.main} onClick={onPanel} title="Its backups">
-        <div className={css.title}>
-          <span className={`${css.dot} ${k.online ? css.on : css.off}`} title={k.online ? "Online" : "Not answering"} />
-          <strong>{k.name}</strong>
-          <span className={`${css.version} ${k.behind ? css.behind : ""}`} title={k.behind ? `Latest is ${latest}` : "Up to date"}>
-            {k.version ?? "?"}
-            {k.behind && " ↑"}
-          </span>
-          {k.leader && <span className={`${guest.badge} ${css.leader}`} title="Leads a fleet: pushes its settings to the kiosks that follow it">leader</span>}
-          {k.follows && !follower && (
-            <span className={guest.badge} title="Follows a leader that is not on this list">follows {leaderName ?? "another kiosk"}</span>
-          )}
-          {!k.logged_in && <span className={guest.badge}>needs login</span>}
-        </div>
-        <div className={css.meta}>
-          <span className={css.ip}>{k.ip ?? k.address}</span>
-          {facts.length > 0 && <span>{facts.join(" · ")}</span>}
-          {!k.online && <span>last seen {ago(k.last_seen) ?? "never"}</span>}
-        </div>
-        <div className={css.meta}>
-          {k.backup_error ? (
-            <span className={css.backupBad}>backup: {k.backup_error}</span>
-          ) : (
-            <span>
-              {k.backups} backup{k.backups === 1 ? "" : "s"}
-              {k.last_backup && ` · last change ${ago(k.last_backup)}`}
-              {k.checked && ` · checked ${ago(k.checked)}`}
+      <div className={css.lead}>
+        <KioskScreen kiosk={k} />
+        <button className={css.main} onClick={onPanel} title="Its backups">
+          <div className={css.title}>
+            <span className={`${css.dot} ${k.online ? css.on : css.off}`} title={k.online ? "Online" : "Not answering"} />
+            <strong>{k.name}</strong>
+            <span className={`${css.version} ${k.behind ? css.behind : ""}`} title={k.behind ? `Latest is ${latest}` : "Up to date"}>
+              {k.version ?? "?"}
+              {k.behind && " ↑"}
             </span>
+            {k.leader && <span className={`${guest.badge} ${css.leader}`} title="Leads a fleet: pushes its settings to the kiosks that follow it">leader</span>}
+            {k.follows && !follower && (
+              <span className={guest.badge} title="Follows a leader that is not on this list">follows {leaderName ?? "another kiosk"}</span>
+            )}
+            {!k.logged_in && <span className={guest.badge}>needs login</span>}
+          </div>
+          <div className={css.meta}>
+            <span className={css.ip}>{k.ip ?? k.address}</span>
+            {facts.length > 0 && <span>{facts.join(" · ")}</span>}
+            {!k.online && <span>last seen {ago(k.last_seen) ?? "never"}</span>}
+          </div>
+          <div className={css.meta}>
+            {k.backup_error ? (
+              <span className={css.backupBad}>backup: {k.backup_error}</span>
+            ) : (
+              <span>
+                {k.backups} backup{k.backups === 1 ? "" : "s"}
+                {k.last_backup && ` · last change ${ago(k.last_backup)}`}
+                {k.checked && ` · checked ${ago(k.checked)}`}
+              </span>
+            )}
+          </div>
+          {k.vnc && !k.vnc.ok && (
+            <div className={css.meta}>
+              <span>
+                no remote control: {k.vnc.why} (asked {ago(k.vnc.at)})
+              </span>
+            </div>
           )}
-        </div>
-      </button>
+        </button>
+      </div>
       <div className={css.actions}>
         <a
           className={`${ui.primary} ${ui.small}`}

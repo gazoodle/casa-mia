@@ -57,3 +57,15 @@ test("rooms: a room heating but more than a degree below its target is ringed am
 test("rooms: no floors set says so", () => {
   assert.match(rooms({ type: "x" }, readings({}, {}), LOOK), /No floors set/);
 });
+
+test("glass: the coldest brine fills in to full strength; warmer water stays faint", () => {
+  const c: Config = { type: "x", source: { type: "borehole", out: "sensor.out", in: "sensor.in" } };
+  const glass = (v: number) =>
+    heatPump(c, readings({ "sensor.out": t(v, "sensor.out"), "sensor.in": t(v, "sensor.in") }, { comp: true, brine: true }), { ...LOOK, pipes: "glass" });
+  // The strengths the brine's colour is mixed at; the other pipes, with no readings, are grey.
+  const faint = (svg: string, colour: string) => new Set([...svg.matchAll(new RegExp(`color-mix\\(in srgb, ${colour} (\\d+)%`, "g"))].map((m) => m[1]));
+  assert.match(glass(-15), /stop-color:#17171f/);
+  assert.deepEqual(faint(glass(-15), "#17171f"), new Set());
+  assert.deepEqual(faint(glass(5), "#2f86e0"), new Set(["32"]));
+  assert.deepEqual(faint(heatPump(c, readings({ "sensor.out": t(5, "sensor.out") }, { brine: true }), LOOK), "#2f86e0"), new Set(), "only glass is faint");
+});

@@ -9,8 +9,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from ... import swap
-
 _LOGGER = logging.getLogger(__name__)
 
 PORT = 2324
@@ -91,27 +89,6 @@ PAGE_SHIM = (
 )
 
 
-# While the screenshot swap is on: the page's text shows the stand-ins (PAIRS: real ->
-# stand-in), as it is drawn and redrawn, matched as swap.py does (not inside a longer
-# word). Only the text shown: form fields keep the real values, so a save never writes a
-# stand-in to the tablet.
-SWAP_SHIM = (
-    "<script>(()=>{const P=PAIRS,"
-    "k=Object.keys(P).sort((a,b)=>b.length-a.length)"
-    '.map(s=>s.replace(/[.*+?^${}()|[\\]\\\\]/g,"\\\\$&")),'
-    'r=new RegExp("(?<!\\\\p{L})(?:"+k.join("|")+")(?!\\\\p{L})","gu"),'
-    "done=new WeakMap(),"
-    "fix=n=>{if(n.nodeType==3){if(done.get(n)===n.data)return;"
-    "const t=n.data.replace(r,m=>P[m]);if(t!==n.data)n.data=t;done.set(n,t)}"
-    "else if(n.nodeType==1&&!/^(SCRIPT|STYLE|TEXTAREA)$/.test(n.tagName))"
-    "n.childNodes.forEach(fix)};"
-    "new MutationObserver(ms=>ms.forEach(m=>m.type=='characterData'?fix(m.target)"
-    ":m.addedNodes.forEach(fix))).observe(document,"
-    "{subtree:true,childList:true,characterData:true})"
-    "})()</script>"
-)
-
-
 # From this Kiosk Satellite version the admin page works under a sub-path itself (its API
 # and websocket follow the page's path, its token is kept per path), so no shim.
 SUBPATH_VERSION = (2026, 10, 8)
@@ -125,8 +102,9 @@ def _needs_shim(version: Any) -> bool:
 
 def page_head(logged_in: bool, version: Any = None) -> bytes:
     """What goes straight after the page's <head>: the shim (only for a kiosk too old to
-    work under a sub-path), when the app holds a login for the kiosk the placeholder
-    token that skips their login screen, and while the screenshot swap is on its shim."""
+    work under a sub-path) and, when the app holds a login for the kiosk, the placeholder
+    token that skips their login screen. The screenshot swap needs nothing here: it
+    reaches the page through its iframe in Casa Mia's (cm-cards.js)."""
     shim = _needs_shim(version)
     head = PAGE_SHIM if shim else ""
     if logged_in:
@@ -137,8 +115,6 @@ def page_head(logged_in: bool, version: Any = None) -> bytes:
                 f'"{PAGE_TOKEN}")'
             )
         head += "</script>"
-    if pairs := swap.pairs():
-        head += SWAP_SHIM.replace("PAIRS", json.dumps(pairs).replace("</", "<\\/"))
     return head.encode()
 
 

@@ -4277,11 +4277,11 @@
     1180,
     760
    ],
-   "columns": "0px 0px 200px 30px 200px 4px 200px 546px 0px 0px",
+   "columns": "0px 0px 200px 30px 200px 4px 746px 0px 0px",
    "rows": "137px 4px 619px 0px 0px",
    "places": [
     {
-     "column": "3 / 9",
+     "column": "3 / 8",
      "row": "3 / 4",
      "rect": [
       0,
@@ -4316,7 +4316,7 @@
      "rect": [
       434,
       0,
-      200,
+      746,
       137
      ]
     }
@@ -4340,7 +4340,7 @@
      "across": true,
      "column": [
       3,
-      9
+      8
      ],
      "row": [
       2,
@@ -5486,7 +5486,7 @@
   }
  },
  {
-  "name": "a top stack of three: a column each, packed from the start",
+  "name": "a top stack of three: a column each, the last filling",
   "config": {},
   "area": [
    1180,
@@ -5513,6 +5513,169 @@
     "layer": 1,
     "place": "top",
     "shows": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "0px 0px 293px 4px 293px 4px 586px 0px 0px",
+   "rows": "137px 4px 619px 0px 0px",
+   "places": [
+    {
+     "column": "3 / 8",
+     "row": "3 / 4",
+     "rect": [
+      0,
+      141,
+      1180,
+      619
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "1 / 2",
+     "rect": [
+      0,
+      0,
+      293,
+      137
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 2",
+     "rect": [
+      297,
+      0,
+      293,
+      137
+     ]
+    },
+    {
+     "column": "7 / 8",
+     "row": "1 / 2",
+     "rect": [
+      594,
+      0,
+      586,
+      137
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      8
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      0,
+      137,
+      1180,
+      4
+     ]
+    },
+    {
+     "id": "after.1",
+     "after": 1,
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      2
+     ],
+     "rect": [
+      293,
+      0,
+      4,
+      137
+     ]
+    },
+    {
+     "id": "after.2",
+     "after": 2,
+     "size": 4,
+     "across": false,
+     "column": [
+      6,
+      7
+     ],
+     "row": [
+      1,
+      2
+     ],
+     "rect": [
+      590,
+      0,
+      4,
+      137
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a top stack of three as their cards: a column each, packed from the start",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true,
+    "size": "cards"
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true,
+    "size": "cards"
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true,
+    "size": "cards"
    }
   ],
   "expect": {
@@ -5686,11 +5849,11 @@
     1180,
     760
    ],
-   "columns": "minmax(auto, 0fr) minmax(auto, 0fr) minmax(auto, 293fr) minmax(auto, 4fr) minmax(auto, 293fr) minmax(auto, 4fr) minmax(auto, 293fr) minmax(auto, 293fr) minmax(auto, 0fr) minmax(auto, 0fr)",
+   "columns": "minmax(auto, 0fr) minmax(auto, 0fr) minmax(auto, 293fr) minmax(auto, 4fr) minmax(auto, 293fr) minmax(auto, 4fr) minmax(auto, 586fr) minmax(auto, 0fr) minmax(auto, 0fr)",
    "rows": "minmax(137px, auto) minmax(4px, auto) minmax(619px, auto) minmax(0px, auto) minmax(0px, auto)",
    "places": [
     {
-     "column": "3 / 9",
+     "column": "3 / 8",
      "row": "3 / 4",
      "rect": [
       0,
@@ -5725,7 +5888,7 @@
      "rect": [
       594,
       0,
-      293,
+      586,
       137
      ]
     }
@@ -5749,7 +5912,7 @@
      "across": true,
      "column": [
       3,
-      9
+      8
      ],
      "row": [
       2,
@@ -5806,7 +5969,7 @@
   }
  },
  {
-  "name": "a top stack: one of half its Width, the other a column",
+  "name": "a top stack: one of half its Width, the other the rest",
   "config": {},
   "area": [
    1180,
@@ -5842,11 +6005,11 @@
     1180,
     760
    ],
-   "columns": "0px 0px 588px 4px 294px 294px 0px 0px",
+   "columns": "0px 0px 588px 4px 588px 0px 0px",
    "rows": "137px 4px 619px 0px 0px",
    "places": [
     {
-     "column": "3 / 7",
+     "column": "3 / 6",
      "row": "3 / 4",
      "rect": [
       0,
@@ -5871,7 +6034,7 @@
      "rect": [
       592,
       0,
-      294,
+      588,
       137
      ]
     }
@@ -5895,7 +6058,7 @@
      "across": true,
      "column": [
       3,
-      7
+      6
      ],
      "row": [
       2,
@@ -6203,12 +6366,14 @@
     "layer": 1,
     "place": "top",
     "shows": true,
+    "size": "cards",
     "wide": 140
    },
    {
     "layer": 1,
     "place": "top",
     "shows": true,
+    "size": "cards",
     "wide": 290
    }
   ],
@@ -6313,7 +6478,134 @@
   }
  },
  {
-  "name": "a top stack, one without cards: a column",
+  "name": "a top stack, none set: the last fills",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true,
+    "wide": 140
+   },
+   {
+    "layer": 1,
+    "place": "top",
+    "shows": true,
+    "wide": 290
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "0px 0px 140px 4px 1036px 0px 0px",
+   "rows": "137px 4px 619px 0px 0px",
+   "places": [
+    {
+     "column": "3 / 6",
+     "row": "3 / 4",
+     "rect": [
+      0,
+      141,
+      1180,
+      619
+     ]
+    },
+    {
+     "column": "3 / 4",
+     "row": "1 / 2",
+     "rect": [
+      0,
+      0,
+      140,
+      137
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 2",
+     "rect": [
+      144,
+      0,
+      1036,
+      137
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.top",
+     "edge": {
+      "layer": 1,
+      "place": "top"
+     },
+     "size": 4,
+     "across": true,
+     "column": [
+      3,
+      6
+     ],
+     "row": [
+      2,
+      3
+     ],
+     "rect": [
+      0,
+      137,
+      1180,
+      4
+     ]
+    },
+    {
+     "id": "after.1",
+     "after": 1,
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      2
+     ],
+     "rect": [
+      140,
+      0,
+      4,
+      137
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a top stack, the last without cards: it fills",
   "config": {},
   "area": [
    1180,
@@ -6350,11 +6642,11 @@
     1180,
     760
    ],
-   "columns": "minmax(auto, 0fr) minmax(auto, 0fr) minmax(auto, 140fr) minmax(auto, 4fr) minmax(auto, 294fr) minmax(auto, 742fr) minmax(auto, 0fr) minmax(auto, 0fr)",
+   "columns": "minmax(auto, 0fr) minmax(auto, 0fr) minmax(auto, 140fr) minmax(auto, 4fr) minmax(auto, 1036fr) minmax(auto, 0fr) minmax(auto, 0fr)",
    "rows": "minmax(137px, auto) minmax(4px, auto) minmax(619px, auto) minmax(0px, auto) minmax(0px, auto)",
    "places": [
     {
-     "column": "3 / 7",
+     "column": "3 / 6",
      "row": "3 / 4",
      "rect": [
       0,
@@ -6379,7 +6671,7 @@
      "rect": [
       144,
       0,
-      294,
+      1036,
       137
      ]
     }
@@ -6403,7 +6695,7 @@
      "across": true,
      "column": [
       3,
-      7
+      6
      ],
      "row": [
       2,
@@ -6575,11 +6867,11 @@
     760
    ],
    "columns": "290px 4px 886px 0px 0px",
-   "rows": "0px 0px 300px 4px 200px 256px 0px 0px",
+   "rows": "0px 0px 300px 4px 456px 0px 0px",
    "places": [
     {
      "column": "3 / 4",
-     "row": "3 / 7",
+     "row": "3 / 6",
      "rect": [
       294,
       0,
@@ -6599,12 +6891,12 @@
     },
     {
      "column": "1 / 2",
-     "row": "5 / 6",
+     "row": "5 / 8",
      "rect": [
       0,
       304,
       290,
-      200
+      456
      ]
     }
    ],
@@ -6631,7 +6923,7 @@
      ],
      "row": [
       1,
-      9
+      8
      ],
      "rect": [
       290,
@@ -6867,12 +7159,14 @@
     "layer": 1,
     "place": "left",
     "shows": true,
+    "size": "cards",
     "tall": 200
    },
    {
     "layer": 1,
     "place": "left",
     "shows": true,
+    "size": "cards",
     "tall": 150
    }
   ],
@@ -6977,6 +7271,260 @@
   }
  },
  {
+  "name": "a left stack, none set: the last fills to the end",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": false,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true,
+    "tall": 200
+   },
+   {
+    "layer": 1,
+    "place": "left",
+    "shows": true,
+    "tall": 150
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "177px 4px 999px 0px 0px",
+   "rows": "0px 0px 200px 4px 556px 0px 0px",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 6",
+     "rect": [
+      181,
+      0,
+      999,
+      760
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "1 / 4",
+     "rect": [
+      0,
+      0,
+      177,
+      200
+     ]
+    },
+    {
+     "column": "1 / 2",
+     "row": "5 / 8",
+     "rect": [
+      0,
+      204,
+      177,
+      556
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.left",
+     "edge": {
+      "layer": 1,
+      "place": "left"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      2,
+      3
+     ],
+     "row": [
+      1,
+      8
+     ],
+     "rect": [
+      177,
+      0,
+      4,
+      760
+     ]
+    },
+    {
+     "id": "after.1",
+     "after": 1,
+     "size": 4,
+     "across": true,
+     "column": [
+      1,
+      2
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      0,
+      200,
+      177,
+      4
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "two new empty right panels in edit mode: the second fills",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": true,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true,
+    "tall": 56
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true,
+    "tall": 56
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "minmax(auto, 0fr) minmax(auto, 0fr) minmax(auto, 999fr) minmax(auto, 4fr) minmax(auto, 177fr)",
+   "rows": "minmax(0px, auto) minmax(0px, auto) minmax(56px, auto) minmax(4px, auto) minmax(700px, auto) minmax(0px, auto) minmax(0px, auto)",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 6",
+     "rect": [
+      0,
+      0,
+      999,
+      760
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 4",
+     "rect": [
+      1003,
+      0,
+      177,
+      56
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "5 / 8",
+     "rect": [
+      1003,
+      60,
+      177,
+      700
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      8
+     ],
+     "rect": [
+      999,
+      0,
+      4,
+      760
+     ]
+    },
+    {
+     "id": "after.1",
+     "after": 1,
+     "size": 4,
+     "across": true,
+     "column": [
+      5,
+      6
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      1003,
+      56,
+      177,
+      4
+     ]
+    }
+   ]
+  }
+ },
+ {
   "name": "a left stack with a length",
   "config": {},
   "area": [
@@ -7015,11 +7563,11 @@
     760
    ],
    "columns": "177px 4px 999px 0px 0px",
-   "rows": "0px 0px 120px 4px 150px 486px 0px 0px",
+   "rows": "0px 0px 120px 4px 636px 0px 0px",
    "places": [
     {
      "column": "3 / 4",
-     "row": "3 / 7",
+     "row": "3 / 6",
      "rect": [
       181,
       0,
@@ -7039,12 +7587,12 @@
     },
     {
      "column": "1 / 2",
-     "row": "5 / 6",
+     "row": "5 / 8",
      "rect": [
       0,
       124,
       177,
-      150
+      636
      ]
     }
    ],
@@ -7071,7 +7619,7 @@
      ],
      "row": [
       1,
-      9
+      8
      ],
      "rect": [
       177,
@@ -7121,12 +7669,14 @@
     "layer": 1,
     "place": "left",
     "shows": true,
+    "size": "cards",
     "tall": 600
    },
    {
     "layer": 1,
     "place": "left",
     "shows": true,
+    "size": "cards",
     "tall": 600
    }
   ],
@@ -7269,11 +7819,11 @@
     760
    ],
    "columns": "minmax(auto, 177fr) minmax(auto, 4fr) minmax(auto, 999fr) minmax(auto, 0fr) minmax(auto, 0fr)",
-   "rows": "minmax(0px, auto) minmax(0px, auto) minmax(200px, auto) minmax(4px, auto) minmax(0px, auto) minmax(556px, auto) minmax(0px, auto) minmax(0px, auto)",
+   "rows": "minmax(0px, auto) minmax(0px, auto) minmax(200px, auto) minmax(4px, auto) minmax(556px, auto) minmax(0px, auto) minmax(0px, auto)",
    "places": [
     {
      "column": "3 / 4",
-     "row": "3 / 7",
+     "row": "3 / 6",
      "rect": [
       181,
       0,
@@ -7293,12 +7843,12 @@
     },
     {
      "column": "1 / 2",
-     "row": "5 / 6",
+     "row": "5 / 8",
      "rect": [
       0,
       204,
       177,
-      0
+      556
      ]
     }
    ],
@@ -7325,7 +7875,7 @@
      ],
      "row": [
       1,
-      9
+      8
      ],
      "rect": [
       177,
@@ -7503,12 +8053,14 @@
     "layer": 1,
     "place": "right",
     "shows": true,
+    "size": "cards",
     "tall": 200
    },
    {
     "layer": 1,
     "place": "right",
     "shows": true,
+    "size": "cards",
     "tall": 180,
     "hold": true
    }
@@ -7614,13 +8166,13 @@
   }
  },
  {
-  "name": "a right stack held, in edit mode",
+  "name": "a right stack, none set, one held: the other fills up to it",
   "config": {},
   "area": [
    1180,
    760
   ],
-  "editing": true,
+  "editing": false,
   "sections": [
    {
     "layer": 1,
@@ -7652,8 +8204,8 @@
     1180,
     760
    ],
-   "columns": "minmax(auto, 0fr) minmax(auto, 0fr) minmax(auto, 999fr) minmax(auto, 4fr) minmax(auto, 177fr)",
-   "rows": "minmax(0px, auto) minmax(0px, auto) minmax(200px, auto) minmax(380px, auto) minmax(180px, auto) minmax(0px, auto) minmax(0px, auto)",
+   "columns": "0px 0px 999px 4px 177px",
+   "rows": "0px 0px 200px 4px 556px 0px 0px",
    "places": [
     {
      "column": "3 / 4",
@@ -7680,9 +8232,9 @@
      "row": "5 / 8",
      "rect": [
       1003,
-      580,
+      204,
       177,
-      180
+      556
      ]
     }
    ],
@@ -7735,14 +8287,142 @@
       1003,
       200,
       177,
-      380
+      4
      ]
     }
    ]
   }
  },
  {
-  "name": "a held one first in order: still at the end",
+  "name": "a right stack held, in edit mode",
+  "config": {},
+  "area": [
+   1180,
+   760
+  ],
+  "editing": true,
+  "sections": [
+   {
+    "layer": 1,
+    "place": "main",
+    "shows": true
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true,
+    "tall": 200
+   },
+   {
+    "layer": 1,
+    "place": "right",
+    "shows": true,
+    "tall": 180,
+    "hold": true
+   }
+  ],
+  "expect": {
+   "inset": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "canvas": [
+    1180,
+    760
+   ],
+   "columns": "minmax(auto, 0fr) minmax(auto, 0fr) minmax(auto, 999fr) minmax(auto, 4fr) minmax(auto, 177fr)",
+   "rows": "minmax(0px, auto) minmax(0px, auto) minmax(200px, auto) minmax(4px, auto) minmax(556px, auto) minmax(0px, auto) minmax(0px, auto)",
+   "places": [
+    {
+     "column": "3 / 4",
+     "row": "3 / 6",
+     "rect": [
+      0,
+      0,
+      999,
+      760
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "1 / 4",
+     "rect": [
+      1003,
+      0,
+      177,
+      200
+     ]
+    },
+    {
+     "column": "5 / 6",
+     "row": "5 / 8",
+     "rect": [
+      1003,
+      204,
+      177,
+      556
+     ]
+    }
+   ],
+   "boxes": [
+    [
+     0,
+     0,
+     1180,
+     760
+    ]
+   ],
+   "gaps": [
+    {
+     "id": "1.right",
+     "edge": {
+      "layer": 1,
+      "place": "right"
+     },
+     "size": 4,
+     "across": false,
+     "column": [
+      4,
+      5
+     ],
+     "row": [
+      1,
+      8
+     ],
+     "rect": [
+      999,
+      0,
+      4,
+      760
+     ]
+    },
+    {
+     "id": "after.1",
+     "after": 1,
+     "size": 4,
+     "across": true,
+     "column": [
+      5,
+      6
+     ],
+     "row": [
+      4,
+      5
+     ],
+     "rect": [
+      1003,
+      200,
+      177,
+      4
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "a held one first in order: still at the end, the other filling up to it",
   "config": {},
   "area": [
    1180,
@@ -7781,7 +8461,7 @@
     760
    ],
    "columns": "177px 4px 999px 0px 0px",
-   "rows": "0px 0px 200px 380px 180px 0px 0px",
+   "rows": "0px 0px 200px 4px 556px 0px 0px",
    "places": [
     {
      "column": "3 / 4",
@@ -7798,9 +8478,9 @@
      "row": "5 / 8",
      "rect": [
       0,
-      580,
+      204,
       177,
-      180
+      556
      ]
     },
     {
@@ -7863,7 +8543,7 @@
       0,
       200,
       177,
-      380
+      4
      ]
     }
    ]
@@ -8723,11 +9403,11 @@
     1180,
     760
    ],
-   "columns": "0px 0px 294px 4px 294px 588px 0px 0px",
+   "columns": "0px 0px 294px 4px 882px 0px 0px",
    "rows": "137px 4px 619px 0px 0px",
    "places": [
     {
-     "column": "3 / 7",
+     "column": "3 / 6",
      "row": "3 / 4",
      "rect": [
       0,
@@ -8753,7 +9433,7 @@
      "rect": [
       298,
       0,
-      294,
+      882,
       137
      ]
     }
@@ -8777,7 +9457,7 @@
      "across": true,
      "column": [
       3,
-      7
+      6
      ],
      "row": [
       2,
@@ -8858,11 +9538,11 @@
     1180,
     760
    ],
-   "columns": "0px 0px 294px 4px 294px 588px 0px 0px",
+   "columns": "0px 0px 294px 4px 882px 0px 0px",
    "rows": "140px 4px 616px 0px 0px",
    "places": [
     {
-     "column": "3 / 7",
+     "column": "3 / 6",
      "row": "3 / 4",
      "rect": [
       0,
@@ -8887,7 +9567,7 @@
      "rect": [
       298,
       0,
-      294,
+      882,
       140
      ]
     }
@@ -8911,7 +9591,7 @@
      "across": true,
      "column": [
       3,
-      7
+      6
      ],
      "row": [
       2,
@@ -10166,11 +10846,11 @@
     1180,
     760
    ],
-   "columns": "177px 4px 0px 0px 204px 4px 203px 407px 0px 0px 4px 177px",
+   "columns": "177px 4px 0px 0px 204px 4px 610px 0px 0px 4px 177px",
    "rows": "137px 4px 83px 4px 376px 0px 0px 4px 152px",
    "places": [
     {
-     "column": "5 / 9",
+     "column": "5 / 8",
      "row": "5 / 6",
      "rect": [
       181,
@@ -10190,7 +10870,7 @@
      ]
     },
     {
-     "column": "3 / 11",
+     "column": "3 / 10",
      "row": "1 / 2",
      "rect": [
       181,
@@ -10200,7 +10880,7 @@
      ]
     },
     {
-     "column": "12 / 13",
+     "column": "11 / 12",
      "row": "1 / 8",
      "rect": [
       1003,
@@ -10210,7 +10890,7 @@
      ]
     },
     {
-     "column": "1 / 13",
+     "column": "1 / 12",
      "row": "9 / 10",
      "rect": [
       0,
@@ -10235,7 +10915,7 @@
      "rect": [
       389,
       141,
-      203,
+      610,
       83
      ]
     }
@@ -10288,7 +10968,7 @@
      "across": true,
      "column": [
       3,
-      11
+      10
      ],
      "row": [
       2,
@@ -10310,8 +10990,8 @@
      "size": 4,
      "across": false,
      "column": [
-      11,
-      12
+      10,
+      11
      ],
      "row": [
       1,
@@ -10334,7 +11014,7 @@
      "across": true,
      "column": [
       1,
-      13
+      12
      ],
      "row": [
       8,
@@ -10357,7 +11037,7 @@
      "across": true,
      "column": [
       5,
-      9
+      8
      ],
      "row": [
       4,

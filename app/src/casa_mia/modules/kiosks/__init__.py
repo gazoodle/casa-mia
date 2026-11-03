@@ -24,10 +24,14 @@ paths, which under ingress would reach Home Assistant; a small script added to t
 Kiosk Satellite 2026.10.8 and later do this themselves, so the script is added only for
 older ones.
 
+Remote control (/kiosk/<id>/_vnc): the tablet's screen and touch through droidVNC-NG,
+installed beside Kiosk Satellite; the app logs in to it, so its password stays here.
+
 The parts, each a layer on the one before: store (Store: the saved kiosks, requests
 to them, how each is shown), finder (Finder: finding and logging in), backups
-(Backups), commands (Commands: update, firmware server), kiosks (Kiosks: the timer, the
-admin API, the proxy); shared constants and helpers in common.
+(Backups), commands (Commands: update, firmware server), vnc (Remote: remote control),
+kiosks (Kiosks: the timer, the admin API, the proxy); shared constants and helpers in
+common.
 """
 
 from .common import PAGE_SHIM, PAGE_TOKEN, page_head

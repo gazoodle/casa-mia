@@ -1,5 +1,43 @@
 # Changelog
 
+## 2026.11.1
+
+- **Breaking:** the Casa Mia integration and its cards changed. Restart Home Assistant once after updating (a Repair asks), then reload the browser.
+- **Breaking:** the screenshot swap works only in developer mode. Switch on **developer_mode** in the app's options to keep using it.
+- **Breaking:** Tablet Layout: the last panel of an edge now fills what the others leave by default, so the edge reaches its end and its corner locks move something you can see. Before, every panel of an edge holding more than one was as long as its cards. To keep the old look, set the last panel to **As its cards**. An edge arranged centre or end is unchanged.
+- **Kiosk Satellites: Remote control.** In a tablet's screen picture, **Remote control** shows its live screen and sends it your clicks, drags and keys, from home or away. It needs [droidVNC-NG](https://github.com/bk138/droidVNC-NG) installed beside Kiosk Satellite, and the VNC password entered once under **Remote control** on the page. Casa Mia logs in to the tablet for you, so your browser never sees the password. A session ends with Done, End remote control, or after 10 minutes without a touch or key. The guide [Run the whole house from your desk](https://github.com/Gazoodle/casa-mia/blob/main/docs/run-the-house-from-your-desk.md) covers the one visit each tablet needs.
+  - **Back**, **Home** and **Recents** buttons stand in for Android's own (handy on an iPad, which has no Esc or Home key). To open the notifications, drag down from the top of the screen.
+  - **Android Settings** opens the tablet's Settings app over the kiosk. Kiosk Satellite keeps running behind it, and **Home** brings it back.
+  - **1:1** shows the screen at the tablet's own size and scrolls when it is larger than the window; **Fit** scales it to fit again. **Full window** makes the dialog fill the browser window.
+  - Your pointer is shown as a dot, as droidVNC-NG sends no pointer of its own.
+  - The dialog checks for a VNC server when it opens. Where there is none, **Remote control** is greyed out with the reason, and the tablet's row says so too, with when it was checked.
+- **Kiosk Satellites:** each tablet's row starts with a picture of its screen. Click it for the full size, how old it is, and Refresh. It is taken when the page opens and on Refresh, never on a timer. Commands sent through a tablet's admin page are now logged at INFO.
+- **People: number plates.** A person can have number plates as well as, or instead of, a phone number, and a **Gates** tick says whether their cars may open the gates. The new **Check number plate** action (`casa_mia.check_plate`) answers for a plate a camera read, for an automation that opens the gates. O and 0, I and 1, and S and 5 count as the same, since cameras misread them. The People page has a plate checker too, and a person opens by clicking anywhere on their row.
+- **Screenshot swap** (developer mode):
+  - The rules now live in the app's own folder. The `swap.json` in the integration's folder is converted once on the first start and then left as it is; edits to it no longer do anything.
+  - A **Swap** page, opened from the developer section of Settings, adds, edits, switches off, deletes and filters the rules. Rules can match exactly as before, in any case (the replacement takes the case of the text it replaces), or by regular expression.
+  - Every browser on Home Assistant now swaps its own page: Home Assistant's pages, dashboards, dialogs and Casa Mia's pages. It follows the page as it changes, and puts the real text back when a rule is changed, switched off or deleted. While a rule is being written, every browser outlines what it matches with a thin red box and shows the replacement as you type.
+  - A form field whose text would be swapped is covered by the stand-in while it isn't being edited. Its value is never changed, so saving a form never saves a stand-in.
+  - Editable text such as the YAML editor, charts drawn as pictures (history, energy) and text inside camera video keep their real text.
+  - The app no longer swaps text on its way out, so Home Assistant's history and a dashboard deployed while the swap is on keep the real names. Pictures (QR codes, guest cards, the Camera Commander's labels) and the public guest welcome and goodbye pages are still swapped by the app.
+  - Home Assistant hears of a change at once, instead of looking at the file every 5 seconds, both for the **Swap** sensor and for Sensor Watch's notifications and card.
+- **Sensor Watch:**
+  - Watching something new offers **Watch them all as a group…**, for one of many alike (every tablet's CPU). It opens a new group with filters to match those like it.
+  - When some of a group's matches have no built-in levels and would be passed over, the group dialog says so, and how to give them levels.
+  - A new library profile, **Wall tablet CPU use (%)**, for Kiosk Satellite's CPU sensor. It catches a tablet stuck flat out for 15 minutes (a warning above 75%, an error above 90%).
+  - The eye in an entity's Home Assistant dialog shows the watch's message when you point at it, not only its level.
+  - A profile's **Make it** waits for a name and bands that make sense, and says which is missing when you point at it.
+- **Heating Flow card:** the colour scale goes down to −15 °C, for ground-source brine (indigo at −10 and off-black at −15, where everything below −5 used to be the same blue). A new card takes the full width by default, in the Tablet Layout too.
+- **Tablet Layout** edit mode adds up to two layers, not four, as an edge's stack and corner locks now do what a third layer was for. A view that already has three or four still shows them.
+- **Fixed:**
+  - The Back button helper (`#BACK`) sometimes didn't start when a page first loaded, usually just after an update, so Back did nothing until the page was reloaded. The same fault could stop **Reload dashboards when they change**, **Enable garnish on all section dashboards** and the offer to reload after an update. On the page a visit began on, `#BACK` now stays in Home Assistant instead of leaving it.
+  - When a Casa Mia page couldn't load, it said "Loading…" for ever. It now says "This page couldn't load", with the reason.
+  - A dialog opened from another closed both when a button in it was pressed, and a Save's message could show under a dialog's blurred backdrop.
+  - A card on an Over layer was drawn in a serif font instead of Home Assistant's.
+  - In the Home Assistant app on a Mac, the Casa Mia panel's messages ran the full height of the window.
+  - In Tablet Layout edit mode, a short panel is now tall enough for Home Assistant's Add card button.
+  - On a phone, a dialog's buttons wrap onto the next line when there are too many for one.
+
 ## 2026.10.11
 
 - **Breaking:** the Casa Mia integrations and their cards changed. Restart Home Assistant once after updating (a Repair asks), then reload the browser.

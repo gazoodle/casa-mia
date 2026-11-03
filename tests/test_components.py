@@ -1,6 +1,7 @@
 import json
+from pathlib import Path
 
-from casa_mia.components import MARKER, install_all
+from casa_mia.components import MARKER, install_all, is_ignored
 
 
 def make_component(root, domain="foo", version="1.0.0", body="x = 1\n"):
@@ -110,3 +111,15 @@ def test_a_retired_component_is_taken_out(tmp_path):
     install_all(src, config)
     left = sorted(p.name for p in (config / "custom_components").iterdir())
     assert left == ["casa_mia", "someone_elses"]
+
+
+def test_every_shipped_file_is_installed():
+    # is_ignored keeps the box's own files (the screenshot swap's pictures in swap/):
+    # a shipped file it matched would never reach the box.
+    root = Path(__file__).resolve().parents[1] / "integration/custom_components"
+    shipped = [
+        p.relative_to(root)
+        for p in root.rglob("*")
+        if p.is_file() and "__pycache__" not in p.parts and p.name != ".DS_Store"
+    ]
+    assert shipped and not [p for p in shipped if is_ignored(p)]

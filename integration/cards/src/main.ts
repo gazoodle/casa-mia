@@ -2,6 +2,7 @@
 // Camera Commander, Tablet Layout, Over layer, Sensor Watch, QR code, Heating Flow, a guest's goodbye. Source of the built
 // www/cm-cards.js.
 import { VERSION } from "./commander/index.ts";
+import { whenConnected } from "./connection.ts";
 import "./view/index.ts";
 import "./garnish-editor.ts";
 import "./garnish-sections.ts";
@@ -9,6 +10,7 @@ import "./over-layer/index.ts";
 import "./sensor-watch/index.ts";
 import "./qr-code/index.ts";
 import "./heating-flow/index.ts";
+import "./swap/index.ts";
 import { watchForGoodbye } from "./guest-goodbye.ts";
 
 console.info(
@@ -22,7 +24,7 @@ console.info(
 // restarts after an update) ask which cards HA serves now and, if they're newer, offer a
 // reload in HA's own toast, as HA does for its own frontend. Not in development (no ?v=).
 if (VERSION !== "dev")
-  (window as any).hassConnection?.then(({ conn }: any) => {
+  whenConnected("the offer to reload after an update", ({ conn }) => {
     const check = () =>
       conn.sendMessagePromise({ type: "casa_mia/cards" }).then(({ version }: { version: string | null }) => {
         if (!version || version === VERSION) return;

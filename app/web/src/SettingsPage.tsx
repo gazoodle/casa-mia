@@ -5,10 +5,11 @@ import { useCallback, useContext, useEffect, useState } from "react";
 import { api } from "./api";
 import { Developer } from "./health";
 import { SettingsIcon } from "./icons";
-import { AreaHead, Shell } from "./page";
+import { AreaHead, Shell, Loading } from "./page";
 import { Switch, Toasts, type Toast } from "./ui";
 import css from "./settings.module.css";
 import guest from "./guest.module.css";
+import ui from "./ui.module.css";
 
 const { get, put } = api("settings");
 
@@ -71,7 +72,7 @@ export function SettingsPage() {
     }
   };
 
-  if (!settings) return <Shell {...HEAD}><p className={guest.notice}>Loading…</p></Shell>;
+  if (!settings) return <Shell {...HEAD}><Loading toasts={toasts} /></Shell>;
   const tv = settings.tablet_view;
   const saveView = (change: Partial<TabletView>) =>
     save({ tablet_view: change as TabletView }, "Saved. Open Tablet Layouts show it within a few seconds.");
@@ -183,6 +184,24 @@ export function SettingsPage() {
                 </span>
               </div>
               <Switch label="Show the view size" on={tv.show_size} onChange={(on) => saveView({ show_size: on })} />
+            </div>
+          </div>
+        </section>
+      )}
+      {developer && (
+        <section className={`${guest.area} ${css.dev}`}>
+          <div className={css.devHead}>
+            <span className={css.devChip}>Developer · screenshots</span>
+          </div>
+          <div className={css.rows}>
+            <div className={css.row}>
+              <div className={css.text}>
+                <strong>Swap</strong>
+                <span>Stand-ins for real names, numbers and places on every Home Assistant page, for screenshots and demos.</span>
+              </div>
+              <a className={ui.button} href="#/swap">
+                Open
+              </a>
             </div>
           </div>
         </section>

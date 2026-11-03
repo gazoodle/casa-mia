@@ -38,7 +38,9 @@ function sectionOff(el: Element): boolean {
 }
 
 const LAYER = `
-  :host { all: initial; }
+  /* Cut off from the page's styles, but not its typography: all: initial alone sets the
+     font to the browser's default (Times), so a card on the layer lost Home Assistant's. */
+  :host { all: initial; font: inherit; color: inherit; -webkit-font-smoothing: inherit; }
   .layer { position: fixed; z-index: 7; display: flex; box-sizing: border-box; pointer-events: none; }
   .layer.scroll { position: absolute; }
   .backdrop { position: absolute; inset: 0; }

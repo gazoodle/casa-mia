@@ -10,6 +10,9 @@ See what Casa Mia is doing, then open the part you need. The home page brings to
 the modules' current state, useful facts and errors, with your house photo above them.
 It is the app's control panel, separate from the dashboards you show on wall tablets.
 
+It's served through Home Assistant's ingress, so it works wherever Home Assistant does,
+including away from home, without opening any extra ports or signing in again.
+
 ## Switching it on
 
 Start the Casa Mia app and use **Open web UI** on its Info tab, or its entry in Home
