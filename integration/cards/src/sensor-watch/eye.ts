@@ -71,7 +71,7 @@ export class WatchEye extends LitElement {
     const level = w.watched ? w.level : undefined;
     const said = !w.watched
       ? "Watch in Sensor Watch"
-      : `Sensor Watch: ${level ?? "watched, no level yet"}${w.escalated && w.real ? ` (escalated from ${w.real})` : ""}. Open its watch`;
+      : `Sensor Watch: ${level ?? "watched, no level yet"}${w.escalated && w.real ? ` (escalated from ${w.real})` : ""}${w.message ? `: ${w.message}` : ""}. Open its watch`;
     return html`<button class=${level ?? ""} title=${said} aria-label=${said} @click=${this._open}>
       <ha-icon icon=${w.watched ? "mdi:eye" : "mdi:eye-plus-outline"}></ha-icon>
       ${level ? html`<span class="cm-pill ${level === "critical" ? "cm-filled" : ""}">${level}</span>` : nothing}

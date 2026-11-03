@@ -119,6 +119,33 @@
   align-content: start;
 }
 
+/* The whole window, less a margin to show it is still a dialog. The browser's own
+   max-width for <dialog> would stop it short of the edges. */
+.full {
+  width: calc(100vw - 24px);
+  max-width: none;
+  height: calc(100vh - 24px);
+  height: calc(100dvh - 24px);
+  max-height: none;
+}
+
+.full .dialogForm {
+  height: 100%;
+  max-height: none;
+}
+
+/* Its parts stack, and the last takes what the others leave. */
+.full .dialogBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.full .dialogBody > :last-child {
+  flex: 1;
+  min-height: 0;
+}
+
 .dialog::backdrop {
   background: rgb(0 0 0 / 55%);
   backdrop-filter: blur(3px);
@@ -156,6 +183,7 @@
 
 .dialogFoot {
   display: flex;
+  flex-wrap: wrap; /* many buttons (a tablet's remote) on a phone */
   justify-content: flex-end;
   gap: 8px;
   padding: 14px 18px 16px;
@@ -237,15 +265,25 @@
 
 .toasts {
   position: fixed;
-  right: 16px;
-  bottom: 16px;
+  inset: auto 16px 16px auto; /* not the popover's own centring */
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  overflow: visible;
   z-index: 10;
   display: grid;
   gap: 8px;
   max-width: min(420px, calc(100vw - 32px));
+  /* Safari 26 (the HA Companion app) keeps the popover's top: 0, so the box runs the
+     window's full height: the toasts sit at its foot at their own height, and the empty
+     rest lets clicks through (2026.10.12-b7). */
+  align-content: end;
+  pointer-events: none;
 }
 
 .toast {
+  pointer-events: auto;
   padding: 10px 14px;
   border-radius: 12px;
   background: var(--surface-2);

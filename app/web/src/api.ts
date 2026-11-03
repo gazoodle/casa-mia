@@ -36,10 +36,14 @@ export type HeaderView = { house: string; custom: boolean; stamp: number; home: 
 export type Person = {
   id: string;
   name: string;
-  /** +447700900123 */
-  phone: string;
+  /** +447700900123, or null for someone known only by their car. */
+  phone: string | null;
   call: boolean;
   text: boolean;
+  /** As typed, in capitals: ZZ00 ZZZ. */
+  plates: string[];
+  /** May their cars open the gates (check_plate in HA). */
+  gate: boolean;
   /** HA person id, if linked. */
   person: string | null;
 };
@@ -49,6 +53,8 @@ export type PeopleView = { people: Person[]; error: string | null };
 export type HAPerson = { id: string; name: string; user_id: string | null };
 
 export type NumberCheck = { allowed: boolean; number: string | null; who: string | null; reason: string | null };
+
+export type PlateCheck = { allowed: boolean; plate: string | null; who: string | null; reason: string | null };
 
 export type FirmwareFile = { name: string; size: number; modified: string };
 
@@ -177,6 +183,8 @@ export type Kiosk = {
   /** When its backup was last checked, and why the last check failed (if it did). */
   checked: string | null;
   backup_error: string | null;
+  /** What its VNC (droidVNC-NG) last said, when last asked: none until then. */
+  vnc?: { ok: boolean; why: string | null; at: string };
 };
 
 /** One kept backup; `changes` are the keys that differ from the one before (null for the oldest). */
@@ -199,6 +207,8 @@ export type KiosksView = {
   results?: Record<string, string>;
   /** The last Run everywhere: its command, and each kiosk's result as it came. */
   everywhere: EverywhereRun | null;
+  /** Whether Remote control's VNC password is set (the app never sends it back). */
+  vnc_password_set: boolean;
 };
 
 export type EverywhereRun = {

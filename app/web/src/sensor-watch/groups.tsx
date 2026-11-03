@@ -53,6 +53,7 @@ export function GroupsSection({
   onMembers,
   editing,
   setEditing,
+  seed,
 }: {
   groups: Group[];
   profiles: Profile[];
@@ -65,6 +66,8 @@ export function GroupsSection({
   /** The group being edited (null: a new one); the page's, so its empty state can start one. */
   editing: Group | null | undefined;
   setEditing: (g: Group | null | undefined) => void;
+  /** A new group's filters to start from (one sensor's editor: those like it). */
+  seed?: Partial<Filters>;
 }) {
   const joined = (v: Joined) => (v.joined ? `; ${v.joined} joined` : "");
   return (
@@ -120,6 +123,7 @@ export function GroupsSection({
       {editing !== undefined && (
         <GroupDialog
           group={editing ?? undefined}
+          seed={editing ? undefined : seed}
           profiles={profiles}
           records={records}
           change={change}
@@ -138,6 +142,7 @@ export function GroupsSection({
 
 function GroupDialog({
   group,
+  seed,
   profiles,
   records,
   change,
@@ -145,6 +150,7 @@ function GroupDialog({
   onSave,
 }: {
   group?: Group;
+  seed?: Partial<Filters>;
   profiles: Profile[];
   records: WatchRecord[];
   change: Change;
@@ -157,7 +163,7 @@ function GroupDialog({
   // most numbers), when it asks rather than pass every one over (seen 2026-10-27).
   const [picked, setPicked] = useState<string | undefined>(group?.profile);
   const [making, setMaking] = useState(false); // a new profile, from here
-  const [filters, setFilters] = useState<Filters>({ ...NO_FILTERS, ...group?.filters });
+  const [filters, setFilters] = useState<Filters>({ ...NO_FILTERS, ...seed, ...group?.filters });
   const [saving, setSaving] = useState(false);
   const { view, error } = useCandidates(filters);
   const chosen = Object.fromEntries(Object.entries(filters).filter(([k, v]) => v && k in FILTER_NAMES));
@@ -180,6 +186,8 @@ function GroupDialog({
               ? "watched already: keeps its own levels"
               : null;
   const joining = shown.filter((c) => !why(c.entity_id, c.kind, c.has_default)).length;
+  // Passed over for want of levels: greyed out, which on its own wasn't obvious (2026.10.12-b5).
+  const levelless = profile === DEFAULTS ? shown.filter((c) => !c.has_default).length : 0;
   const whole = !!view && view.total === shown.length; // every match shown, so the count is all of them
   const save = async () => {
     setSaving(true);
@@ -232,9 +240,11 @@ function GroupDialog({
       {error && <p className={css.problem}>{error}</p>}
       {view && Object.keys(chosen).length > 0 && (
         <>
-          {shown.length > 0 && joining === 0 && (
+          {shown.length > 0 && (joining === 0 || levelless > 0) && (
             <p className={ui.callout} role="status">
-              {!profile
+              {joining > 0
+                ? `${levelless} of ${whole ? "these" : "the ones shown"} would be passed over (greyed out): they have no built-in levels. Choose a profile above for them all, or make one with New profile…`
+                : !profile
                 ? `None of ${whole ? "these" : "the ones shown"} would join yet: they have no built-in levels (a pressure, most numbers), so choose their levels above, or make a profile for them with New profile…`
                 : profile === DEFAULTS
                   ? "None would join: none of these has built-in levels. Choose a profile above, or make one with New profile…"

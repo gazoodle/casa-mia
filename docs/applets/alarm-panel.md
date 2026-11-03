@@ -16,6 +16,13 @@ button and enabling-switch entity names are fixed in the integration. The plan i
 make these configurable so other homes can use it with their own compatible alarm
 connections. That configuration is not available yet.
 
+Why it's here: I've got a KNX system with a couple of sensors and switches, but I wanted a
+nice alarm panel with a code; you'd think that would be easy ... it's really not. My first
+go fell back to a default code if you hadn't set one, silently ignored a wrong code, and (my
+favourite) arming it while it was going off pressed the toggle, which disarmed it. This one
+refuses to do anything until you've set a code, tells you when the code is wrong, and leaves
+a triggered alarm well alone.
+
 ## Switching it on
 
 1. Have the compatible ESPHome connection to your alarm working first: an armed

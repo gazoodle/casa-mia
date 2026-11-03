@@ -8,6 +8,11 @@ Draws the Camera Commander as one live picture for the dashboards and wall table
 
 ## What it's for
 
+The [Advanced Camera Card](https://github.com/dermotduffy/advanced-camera-card) is great,
+and it's still what plays a camera's own live page. But ask one of my poor low-power wall
+tablets to play a dozen camera streams at once and it struggles; then the streams struggle;
+then the tablet stops responding altogether. No one in the house likes this.
+
 A commander shows a dozen cameras at once. Played as a dozen live videos, that would sink a
 wall tablet (each one decoding every stream) and the network (every stream to every tablet).
 The compositor does the work once, on the box: it gathers each camera's newest picture,

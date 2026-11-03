@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import type { HeaderView } from "./api";
 import { Maturity } from "./maturity";
 import { photoApi } from "./photo";
+import type { Toast } from "./ui";
 import css from "./guest.module.css";
 
 export function Shell({
@@ -65,4 +66,21 @@ export function AreaHead({ title, blurb, action }: { title: string; blurb: React
 
 export function Empty({ children }: { children: ReactNode }) {
   return <p className={css.empty}>{children}</p>;
+}
+
+/** A page waiting for its first answer. A page says a refused load in a bad toast, but
+ * draws no toasts until it has loaded, so "Loading…" stood for ever with the error unseen
+ * (2026.10.12-b7): the latest bad one is shown here instead, and kept. */
+export function Loading({ toasts }: { toasts: Toast[] }) {
+  const [failed, setFailed] = useState<string>();
+  const bad = toasts.filter((t) => t.tone === "bad").at(-1)?.text;
+  useEffect(() => {
+    if (bad) setFailed(bad);
+  }, [bad]);
+
+  return failed ? (
+    <div className={css.warning}>This page couldn't load: {failed}</div>
+  ) : (
+    <p className={css.notice}>Loading…</p>
+  );
 }

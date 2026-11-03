@@ -14,7 +14,20 @@ own Kiosk Satellite admin page into Home Assistant, so you can use it away from 
 without exposing the tablet's admin port to the internet.
 
 Casa Mia works with [Kiosk Satellite](https://kiosksatellite.com); it does not install
-Kiosk Satellite on your tablets or replace its fleet management.
+Kiosk Satellite on your tablets or replace its fleet management. Kiosk Satellite and its
+logo are [Xavier Larrea](https://github.com/jxlarrea)'s (licensed
+[CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/)); Casa Mia is a
+separate project, not affiliated with it, and doesn't include any of it.
+
+How it came about: my tablets came with a bunch of nonsense pre-installed, so I deleted
+that, then had to put them on a LAN with no internet access so they didn't download it all
+again ... but then they couldn't update Kiosk Satellite. Xavier kindly added a custom update
+source, so Casa Mia mirrors his releases and serves them to the tablets locally (the
+[Firmware server](firmware-server.md)). Remembering to download each tablet's settings after
+I'd changed them was the one thing I thought I could automate ... I was right. Casa Mia
+keeps each tablet's settings whenever they change, and Home Assistant's backups take them
+along. With [droidVNC-NG](https://github.com/bk138/droidVNC-NG) on the tablets too, you can
+also see and use their screens from here: [Run the whole house from your desk](../run-the-house-from-your-desk.md).
 
 ## Switching it on
 
@@ -41,6 +54,50 @@ Each row shows the tablet's name, address, version, online state and, when repor
 model, battery and Wi-Fi signal. Fleet leaders appear before their indented followers.
 A version marked with an upward arrow is behind the latest release known to the
 firmware server. **Look now** asks for a fresh discovery scan.
+
+A logged-in, online tablet's row starts with a picture of its screen, as Kiosk Satellite
+captures it. Click it for the full size, with the time it was taken and **Refresh**.
+Pictures are taken when the page opens and on Refresh, never on a timer, since each one
+is a capture on the tablet. Without a login, or while the tablet is not answering, the
+frame says so instead.
+
+<img src="../screenshots/kiosk-screen.webp" alt="A tablet's screen at full size in a dialog, with the time it was taken and the Full window, Refresh, Remote control and Done buttons" width="800">
+
+### Remote control
+
+**Remote control**, in the screen picture's dialog, replaces the picture with the
+tablet's live screen. Your clicks, drags and keys go to the tablet, so you can use
+Kiosk Satellite's settings or Android's from your desk, at home or away.
+
+<img src="../screenshots/kiosk-remote.webp" alt="A tablet's live screen in Casa Mia, showing Android's Display settings, with the Back, Home, Recents, Android Settings, 1:1, Full window and End remote control buttons" width="800">
+
+It needs [droidVNC-NG](https://github.com/bk138/droidVNC-NG) on each tablet, beside Kiosk
+Satellite, with the same VNC password on all of them: [Run the whole house from your
+desk](../run-the-house-from-your-desk.md) sets it up in one visit. Enter that password once under
+**Remote control** on this page. Casa Mia logs in to the tablet itself, so the password
+never reaches your browser, and the page shows only whether it is set.
+
+- When the dialog opens, Casa Mia checks for a VNC server on the tablet. Without one,
+  **Remote control** is greyed out and the dialog says why, and the tablet's row says so
+  too, with when it was asked. Casa Mia asks only then, or when a session starts, since
+  droidVNC-NG notifies on every connection.
+- **Back**, **Home** and **Recents** press Android's buttons. From a keyboard, Esc is
+  Back and Home is Home. To open the notifications, drag down from the top edge.
+- **Android Settings** opens the tablet's Settings app over Kiosk Satellite, which keeps
+  running behind it. **Home** brings the kiosk back.
+- **Full window** fills your browser window with the dialog. **1:1** shows the tablet's
+  screen at its own size, scrolling if it doesn't fit, and **Fit** scales it down again.
+- The line above the screen says how long ago it last changed, so a frozen screen doesn't
+  pass for live.
+- If Casa Mia can't connect, the picture stays and the dialog says why: no password set,
+  the wrong password, or nothing listening on the tablet's VNC port (5900).
+- A session ends with **Done**, **End remote control**, or after 10 minutes without a
+  touch or key.
+- VNC between Casa Mia and the tablet is not encrypted, so it stays inside your network.
+  From away, your browser reaches Casa Mia through Home Assistant as usual.
+
+The viewer is [noVNC](https://github.com/novnc/noVNC) (MPL-2.0), loaded only when Remote
+control starts.
 
 **Log in** tries the password on every tablet that answers. Casa Mia keeps a login token
 for up to ten years, not the password. Logging in enables backups and update commands,

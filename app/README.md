@@ -32,5 +32,3 @@ together.
 
 [Read the guides](https://github.com/gazoodle/casa-mia/blob/main/docs/README.md)
 for setup, controls and troubleshooting.
-
-**Free, open source and MIT licensed. No subscription.**

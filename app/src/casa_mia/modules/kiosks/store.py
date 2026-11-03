@@ -53,6 +53,7 @@ class Store:
         self.kiosks: dict[str, dict[str, Any]] = {}  # id -> what we know
         self.addresses: list[str] = []  # host:port added on the admin page
         self.tokens: dict[str, str] = {}  # id -> token
+        self.vnc_password: str | None = None  # droidVNC-NG's, the same on every tablet
         self.ha_error: str | None = None
         self.last_scan: str | None = None
         self.settings: dict[str, Any] = dict(DEFAULT_BACKUP)
@@ -77,6 +78,8 @@ class Store:
         self.tokens = {
             k: v for k, v in (data.get("tokens") or {}).items() if isinstance(v, str)
         }
+        if isinstance(data.get("vnc_password"), str):
+            self.vnc_password = data["vnc_password"]
         for kid, known in (data.get("known") or {}).items():
             self.kiosks[kid] = {**known, "online": False}
         backup = data.get("backup") or {}
@@ -98,13 +101,14 @@ class Store:
         data = {
             "addresses": self.addresses,
             "tokens": self.tokens,
+            "vnc_password": self.vnc_password,
             "known": known,
             "backup": self.settings,
             "checked": self.checked,
         }
         tmp = self.store_path.with_suffix(".tmp")
         tmp.write_text(json.dumps(data, indent=2))
-        tmp.chmod(0o600)  # tokens
+        tmp.chmod(0o600)  # tokens and the VNC password
         tmp.replace(self.store_path)
 
     # -- talking to a kiosk
@@ -225,4 +229,5 @@ class Store:
             "max_keep": MAX_KEEP,
             "every_hours": EVERY_HOURS,
             "everywhere": self.everywhere,
+            "vnc_password_set": bool(self.vnc_password),  # never the password itself
         }

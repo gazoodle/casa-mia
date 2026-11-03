@@ -5,6 +5,8 @@ still be seen, but not touched: only the card on the layer works.
 
 > **Maturity: Alpha.** Does its job every day in the author's house, but hasn't been tried in many others. Expect rough edges and changes. ([The levels](README.md#maturity))
 
+<img src="screenshots/over-layer.webp" alt="An alarm panel card over a dashboard of lights, locks and temperatures, which shows through dimmed" width="800">
+
 - **The alarm is set:** the wall tablets show the alarm's disarm panel over everything,
   and nothing else can be pressed until it's disarmed.
 - **A visiting engineer:** sees how everything is doing, and can't change any of it.

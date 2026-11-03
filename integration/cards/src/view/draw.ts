@@ -1,6 +1,6 @@
 // Layer 3: edit mode's drawing (dimension lines, gap lines, marks, panel toolbars).
 import { LAYOUT, type Panel, type Rect } from "../layout.ts";
-import { depthOf, type Drawn, type Gap, gapLines, LAYERS, layerOf, panelName, placeOf, placePanels, type Side, sides, stackOf } from "../tablet.ts";
+import { ADD_LAYERS, depthOf, type Drawn, type Gap, gapLines, layerOf, panelName, placeOf, placePanels, type Side, sides, stackOf } from "../tablet.ts";
 import { headerSpace, ROW, LOCKED, UNLOCKED } from "./common.ts";
 import { ViewEdit } from "./edit.ts";
 
@@ -263,7 +263,7 @@ export const ViewDraw = (Base: ReturnType<typeof ViewEdit>) =>
       const html =
         `<button class="cm-chip cm-on cm-name" data-act="options" title="${tip}">${name}</button>` +
         (w.place === "main"
-          ? depth < LAYERS
+          ? depth < ADD_LAYERS
             ? `<button class="cm-chip cm-on cm-tool" data-act="add" aria-label="Add a layer" title="Add a layer inside this one: its four edges, a panel each">+</button>`
             : ""
           : `<button class="cm-chip cm-on cm-tool" data-act="add" aria-label="Add a panel" title="Add a panel after this one, in its edge">+</button>` +
@@ -287,10 +287,15 @@ export const ViewDraw = (Base: ReturnType<typeof ViewEdit>) =>
       const round = cs ? ["paddingLeft", "paddingRight", "borderLeftWidth", "borderRightWidth"].reduce((t, k) => t + (parseFloat(cs[k as "paddingLeft"]) || 0), 0) : 0;
       const row = parseFloat(getComputedStyle(box).getPropertyValue("--row-height")) || ROW;
       box.style.minWidth = `${Math.ceil(Math.max(chip + clear, row + round))}px`;
-      // And its least height: HA's frame round one row (its Add card button), so a panel
-      // squeezed to fit (an empty view fits the screen) never clips it.
+      // And its least height: HA's header strip (its chip and menu) over its frame round one
+      // row (its Add card button), so a panel squeezed (a stack's empty one, or an empty view
+      // fitting the screen) never clips it. The strip is a size by HA's CSS, with nothing in it
+      // to hold it open, and shrank first (34 px to 20 in 2026.10.11, the Add card spilling
+      // out of the frame): it is kept from shrinking, so its own height is what is measured.
+      const header = frame?.shadowRoot?.querySelector(".section-header") as HTMLElement | null;
+      if (header) header.style.flexShrink = "0";
       const tall = cs ? ["paddingTop", "paddingBottom", "borderTopWidth", "borderBottomWidth"].reduce((t, k) => t + (parseFloat(cs[k as "paddingTop"]) || 0), 0) : 0;
-      box.style.minHeight = `${Math.ceil(row + tall)}px`;
+      box.style.minHeight = `${Math.ceil((header?.offsetHeight ?? 0) + row + tall)}px`;
     }
 
   };

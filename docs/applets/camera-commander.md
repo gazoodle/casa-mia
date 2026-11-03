@@ -9,6 +9,10 @@ Camera Commander card and the camera dashboard.
 
 ## What it's for
 
+What I wanted was simple to say and surprisingly hard to get: a home page on the wall
+tablets that looks great, shows the cameras I choose, laid out how I like, and responds the
+moment you touch it, without an afternoon of YAML every time a camera is added.
+
 A wall tablet showing a grid of camera cards plays a stream for each, and soon stutters.
 A commander is drawn instead by the app's compositor as one picture: a big main camera
 framed by all the others. The tablet plays a single picture, so even a modest one stays

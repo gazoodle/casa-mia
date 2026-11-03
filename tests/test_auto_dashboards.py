@@ -357,9 +357,9 @@ def test_commander_overview_taps_choose_and_open():
     assert lit["style"]["border"] == "2px solid #7bd1a0"
 
 
-def test_commander_taps_use_the_screenshot_swaps_names(monkeypatch):
-    """The select's options come through the swap, so taps and conditions match them;
-    the camera pages keep their real paths."""
+def test_a_dashboard_keeps_the_real_names_while_the_swap_is_on(monkeypatch):
+    """The browsers swap what a dashboard shows; a deployed dashboard holding stand-ins
+    would keep them after the swap is off, and its taps would match no option."""
 
     monkeypatch.setattr(swap, "out", lambda t: {"Bay": "Barn"}.get(t, t))
     views = build_dashboard(commander_store(), "http://h:8099", "dashboard-cams")[
@@ -367,14 +367,11 @@ def test_commander_taps_use_the_screenshot_swaps_names(monkeypatch):
     ]
     (landscape,) = views[0]["sections"][0]["cards"]
     taps = [e for e in landscape["elements"] if e["type"] == "image"]
-    assert [t["tap_action"]["data"]["option"] for t in taps] == ["Barn", "Tablet"]
+    assert [t["tap_action"]["data"]["option"] for t in taps] == ["Bay", "Tablet"]
     mains = [e for e in landscape["elements"] if e["type"] == "conditional"]
-    assert mains[0]["conditions"][0]["state"] == "Barn"
-    assert mains[2]["conditions"][0]["state_not"] == ["Barn", "Tablet"]
-    opens = mains[0]["elements"][1]["tap_action"]["navigation_path"]
-    assert opens == "/dashboard-cams/cam-bay"
+    assert mains[0]["conditions"][0]["state"] == "Bay"
     bay = next(v for v in views if v["path"] == "cam-bay")
-    assert bay["title"] == "Barn"
+    assert bay["title"] == "Bay"
 
 
 def test_commander_problems():

@@ -1,7 +1,7 @@
 // Layer 1: HA's Sections view with the Tablet Layout's state, lifecycle and sizing (each panel's cards, columns, fill).
 import { type HuiCard, room, TABLET, watchRoom } from "../ha.ts";
 import { fills } from "../garnish.ts";
-import { autoSized, cardColumns, cardsWidth, type Gap, layerOf, placeOf, PLACES, type Section, seenOut, sides } from "../tablet.ts";
+import { autoSized, cardColumns, cardsWidth, fillers, type Gap, layerOf, placeOf, PLACES, type Section, seenOut, sides } from "../tablet.ts";
 import { tooTall, watchAppSettings, ROW, ROW_GAP, DIMS, cardsHeight } from "./common.ts";
 import { LOCK, FILL } from "./styles.ts";
 import { PILLS } from "../pills.ts";
@@ -230,13 +230,17 @@ export const ViewBase = (Base: any) =>
 
 
     /** How many card columns section n's grid has when its cards size it (else HA's own,
-     * 12 a Width): a top or bottom one as wide as its cards in a stack of more than one
-     * showing, its own; every one in a left or right panel of size: auto, the widest's. */
+     * 12 a Width): a top or bottom one as wide as its cards (neither fixed nor filling,
+     * tablet.ts: fillers), its own; every one in a left or right panel of size: auto, the
+     * widest's. */
     protected cmGridColumns(n: number, sections: (Section | null)[]): number | null {
       const s = sections[n]!;
       const peers = sections.flatMap((t, i) => (t?.shows && t.layer === s.layer && t.place === s.place ? [i] : []));
       const columns = (i: number) => this.cmCardColumns(i, s.place);
-      if (s.place === "top" || s.place === "bottom") return s.share === undefined && s.size !== "fill" && peers.length > 1 ? columns(n) || null : null;
+      if (s.place === "top" || s.place === "bottom") {
+        const fills = fillers(peers.map((i) => sections[i]!), true, layerOf(this.cmLayout, s.layer)[s.place]?.arrange);
+        return s.share === undefined && peers.length > 1 && !fills[peers.indexOf(n)] ? columns(n) || null : null;
+      }
       if (s.place === "main" || !autoSized(layerOf(this.cmLayout, s.layer), s.place)) return null;
       return Math.max(0, ...peers.map(columns)) || null;
     }

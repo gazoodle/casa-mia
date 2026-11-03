@@ -25,7 +25,7 @@ export type Pipe = {
   sensors?: Sensor[];
 };
 
-export const STOPS: [number, string][] = [[-5, "#3b47c9"], [5, "#2f86e0"], [15, "#2fbfd0"], [25, "#43c08a"], [35, "#e2c22e"], [45, "#f2902a"], [55, "#e8492f"], [65, "#b31e3d"]];
+export const STOPS: [number, string][] = [[-15, "#17171f"], [-10, "#2b2475"], [-5, "#3b47c9"], [5, "#2f86e0"], [15, "#2fbfd0"], [25, "#43c08a"], [35, "#e2c22e"], [45, "#f2902a"], [55, "#e8492f"], [65, "#b31e3d"]];
 export const CIRCUIT: Record<string, string> = { brine: "#3b6fe0", pvt: "#f0a020", heat: "#e5443a", dhw: "#a652d6", hot: "#d6457f", cold: "#38b8e0", ref: "#7f8ea6" };
 export const OFF = "#9aa3b2";
 

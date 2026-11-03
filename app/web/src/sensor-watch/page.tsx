@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MODULES } from "../modules";
-import { AreaHead, Shell } from "../page";
+import { AreaHead, Shell, Loading } from "../page";
 import { Toasts, type Toast } from "../ui";
 import { About, Start } from "./about";
 import { levelsOf, NO_FILTERS, swApi, type Filters, type Group, type LevelsView, type Profile, type WatchRecord, type WatchView } from "./common";
@@ -35,6 +35,7 @@ export function SensorWatchPage({ state, watch, at }: { state?: string; watch?: 
   const [profileEditing, setProfileEditing] = useState<Profile | null>();
   const [profileCopy, setProfileCopy] = useState<Profile>();
   const [groupEditing, setGroupEditing] = useState<Group | null>(); // null: a new one
+  const [groupSeed, setGroupSeed] = useState<Partial<Filters>>(); // a new one's filters
   const [applying, setApplying] = useState<Profile>();
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const watchedRef = useRef<HTMLElement>(null);
@@ -98,7 +99,7 @@ export function SensorWatchPage({ state, watch, at }: { state?: string; watch?: 
     }
   };
 
-  if (!view) return <Shell {...HEAD} state={state}><p className={guest.notice}>Loading…</p></Shell>;
+  if (!view) return <Shell {...HEAD} state={state}><Loading toasts={toasts} /></Shell>;
 
   // Watched (not disabled) but no level from the integration yet: unavailable and
   // waiting out its hold-off, or unavailable and set to Ignore. A diagnostic.
@@ -201,7 +202,11 @@ export function SensorWatchPage({ state, watch, at }: { state?: string; watch?: 
 
       <GroupsSection
         editing={groupEditing}
-        setEditing={setGroupEditing}
+        setEditing={(g) => {
+          setGroupEditing(g);
+          if (g === undefined) setGroupSeed(undefined);
+        }}
+        seed={groupSeed}
         groups={view.groups ?? []}
         profiles={view.profiles ?? []}
         records={view.records}
@@ -241,6 +246,11 @@ export function SensorWatchPage({ state, watch, at }: { state?: string; watch?: 
           record={editing.record}
           profiles={view.profiles ?? []}
           onClose={() => setEditing(undefined)}
+          onGroup={(f) => {
+            setEditing(undefined);
+            setGroupSeed(f);
+            setGroupEditing(null);
+          }}
           change={change}
         />
       )}

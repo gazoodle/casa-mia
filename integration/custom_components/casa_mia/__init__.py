@@ -11,11 +11,19 @@ from homeassistant.components import frontend, websocket_api
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
-from homeassistant.core import Event, HomeAssistant, ServiceCall, callback
+from homeassistant.core import (
+    Event,
+    HomeAssistant,
+    ServiceCall,
+    ServiceResponse,
+    SupportsResponse,
+    callback,
+)
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from . import sensor_watch
 from .children import discover_children, reload_children
@@ -28,6 +36,7 @@ from .coordinator import (
 )
 from .restart_notice import manifest_version
 from .sensor import MODULE_DEVICES, device_id, device_name, modules_off
+from .swap_rules import swap_of
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -39,6 +48,7 @@ SEND_SMS_SCHEMA = vol.Schema(
         vol.Required("message"): vol.All(cv.string, vol.Length(min=1, max=160)),
     }
 )
+CHECK_PLATE_SCHEMA = vol.Schema({vol.Required("plate"): cv.string})
 
 PLATFORMS = [
     Platform.ALARM_CONTROL_PANEL,
@@ -90,6 +100,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         elif device := registry.async_get_device(identifiers=identifiers):
             _LOGGER.info("%s is switched off in the app: removing its device", name)
             registry.async_remove_device(device.id)
+    # The screenshot swap's rules, now and whenever /health's stamp moves.
+    swap = swap_of(hass)
+    await swap.follow(coordinator)
+    entry.async_on_unload(
+        coordinator.async_add_listener(
+            lambda: hass.async_create_task(swap.follow(coordinator))
+        )
+    )
     # Sensor Watch, while its module is on: its own integration's entities taken on
     # (once), then the watching; its entities come with the platforms below.
     coordinator.sensor_watch = None
@@ -149,6 +167,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await _send(hass, coordinator, call.data["number"], call.data["message"])
 
     hass.services.async_register(DOMAIN, "send_sms", send_sms, schema=SEND_SMS_SCHEMA)
+
+    async def check_plate(call: ServiceCall) -> ServiceResponse:
+        return await _check_plate(hass, coordinator, call.data["plate"])
+
+    hass.services.async_register(
+        DOMAIN,
+        "check_plate",
+        check_plate,
+        schema=CHECK_PLATE_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
     return True
 
 
@@ -250,6 +279,25 @@ async def _send(
         ) from exc
 
 
+async def _check_plate(
+    hass: HomeAssistant, coordinator: CasaMiaCoordinator, plate: str
+) -> ServiceResponse:
+    """Ask the app, each time, whether this plate opens the gates: the list lives there,
+    so an edit applies to the next car. No answer is an error, never a refusal dressed
+    as one, so the automation's trace says why the gate stayed shut."""
+    try:
+        async with async_get_clientsession(hass).get(
+            f"{coordinator.url}/people/plate",
+            params={"plate": plate},
+            timeout=aiohttp.ClientTimeout(total=5),
+        ) as response:
+            response.raise_for_status()
+            return await response.json()
+    except (aiohttp.ClientError, TimeoutError, ValueError) as exc:
+        _LOGGER.warning("plate %s not checked: the app did not answer: %s", plate, exc)
+        raise HomeAssistantError(f"Plate not checked: Casa Mia app: {exc}") from exc
+
+
 def _pong(hass: HomeAssistant, coordinator: CasaMiaCoordinator):
     """Answer an authorised PING, proving the app reached Home Assistant."""
 
@@ -284,4 +332,5 @@ async def async_remove_config_entry_device(
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.services.async_remove(DOMAIN, "send_sms")
+    hass.services.async_remove(DOMAIN, "check_plate")
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)

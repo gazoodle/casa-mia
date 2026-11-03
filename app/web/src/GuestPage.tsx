@@ -9,7 +9,7 @@ import { AuditArea } from "./GuestAudit";
 import { QrCodesDialog } from "./GuestCodes";
 import { ReachArea } from "./GuestReach";
 import { GuestIcon } from "./icons";
-import { AreaHead, Empty, Shell } from "./page";
+import { AreaHead, Empty, Shell, Loading } from "./page";
 import { copyText, Switch, Toasts, type Toast } from "./ui";
 import css from "./guest.module.css";
 import ui from "./ui.module.css";
@@ -86,7 +86,7 @@ export function GuestPage({ state }: { state?: string }) {
       </Shell>
     );
   }
-  if (!config) return <Shell {...HEAD} state={state}><p className={css.notice}>Loading…</p></Shell>;
+  if (!config) return <Shell {...HEAD} state={state}><Loading toasts={toasts} /></Shell>;
 
   const current = config.endpoints.find((e) => e.id === selected) ?? config.endpoints[0];
   const noLogins = config.logins.length === 0;

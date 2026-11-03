@@ -1,0 +1,171 @@
+[
+ {
+  "name": "exact: not inside a longer word, but digits and _ are no word",
+  "rules": [{"match": "Jo", "replace": "X", "mode": "exact"}],
+  "text": "Jo, Joe, cam_Jo_1, Jo2, jo",
+  "expect": "X, Joe, cam_X_1, X2, jo"
+ },
+ {
+  "name": "exact: a number inside a longer one",
+  "rules": [{"match": "07700 900123", "replace": "07700 900456", "mode": "exact"}],
+  "text": "ring +4407700 900123",
+  "expect": "ring +4407700 900456"
+ },
+ {
+  "name": "exact: letters beyond ASCII are letters",
+  "rules": [{"match": "Jos", "replace": "X", "mode": "exact"}],
+  "text": "José, Jos.",
+  "expect": "José, X."
+ },
+ {
+  "name": "one pass: a replacement is never replaced again",
+  "rules": [
+   {"match": "Ann", "replace": "Bea", "mode": "exact"},
+   {"match": "Bea", "replace": "Cy", "mode": "exact"}
+  ],
+  "text": "Ann and Bea",
+  "expect": "Bea and Cy"
+ },
+ {
+  "name": "overlaps: the longest wins at the same start, whatever the order",
+  "rules": [
+   {"match": "Oak", "replace": "Elm", "mode": "exact"},
+   {"match": "Oak Tree", "replace": "Barn", "mode": "exact"}
+  ],
+  "text": "Oak Tree, Oak",
+  "expect": "Barn, Elm"
+ },
+ {
+  "name": "overlaps: the earliest wins over a longer one starting later",
+  "rules": [
+   {"match": "Tree House", "replace": "Shed", "mode": "exact"},
+   {"match": "Oak Tree", "replace": "Barn", "mode": "exact"}
+  ],
+  "text": "Oak Tree House",
+  "expect": "Barn House"
+ },
+ {
+  "name": "overlaps: the same match, the rule higher in the list wins",
+  "rules": [
+   {"match": "ann", "replace": "first", "mode": "case"},
+   {"match": "Ann", "replace": "second", "mode": "exact"}
+  ],
+  "text": "Ann",
+  "expect": "First"
+ },
+ {
+  "name": "a rule switched off does nothing; one with nothing to match is an error",
+  "rules": [
+   {"match": "Ann", "replace": "Bea", "mode": "exact", "enabled": false},
+   {"match": "", "replace": "x", "mode": "exact"}
+  ],
+  "text": "Ann",
+  "expect": "Ann",
+  "errors": [1]
+ },
+ {
+  "name": "case: lower, Title and UPPER follow the text replaced",
+  "rules": [{"match": "oak tree", "replace": "big barn", "mode": "case"}],
+  "text": "oak tree, Oak Tree, OAK TREE",
+  "expect": "big barn, Big Barn, BIG BARN"
+ },
+ {
+  "name": "case: mixed case takes the replacement as written",
+  "rules": [{"match": "mcdonald", "replace": "Smith-Jones", "mode": "case"}],
+  "text": "McDonald, mCdONALD",
+  "expect": "Smith-Jones, Smith-Jones"
+ },
+ {
+  "name": "case: a single capital is Title",
+  "rules": [{"match": "a", "replace": "bea", "mode": "case"}],
+  "text": "A a",
+  "expect": "Bea bea"
+ },
+ {
+  "name": "case: still not inside a longer word",
+  "rules": [{"match": "ann", "replace": "bea", "mode": "case"}],
+  "text": "ANNEX, Ann's",
+  "expect": "ANNEX, Bea's"
+ },
+ {
+  "name": "case: no letters to go by, as written",
+  "rules": [{"match": "42", "replace": "Answer", "mode": "case"}],
+  "text": "42",
+  "expect": "Answer"
+ },
+ {
+  "name": "regex: numbered groups, $& and $$",
+  "rules": [{"match": "(\\d{3}) (\\d{4})", "replace": "$2-$1 ($&) $$", "mode": "regex"}],
+  "text": "call 555 1234",
+  "expect": "call 1234-555 (555 1234) $"
+ },
+ {
+  "name": "regex: named groups in JavaScript's spelling",
+  "rules": [{"match": "(?<first>\\w+)@(?<host>\\w+)\\.test", "replace": "$<host>/$<first>", "mode": "regex"}],
+  "text": "mail ann@home.test now",
+  "expect": "mail home/ann now"
+ },
+ {
+  "name": "regex: a token naming no group stays as written; $12 with one group is $1 then 2",
+  "rules": [{"match": "(a)", "replace": "$12 $3 $<x> $0", "mode": "regex"}],
+  "text": "a",
+  "expect": "a2 $3 $<x> $0"
+ },
+ {
+  "name": "regex: an unmatched group is empty",
+  "rules": [{"match": "x(y)?", "replace": "[$1]", "mode": "regex"}],
+  "text": "x xy",
+  "expect": "[] [y]"
+ },
+ {
+  "name": "regex: lookbehind and lookahead",
+  "rules": [{"match": "(?<=Room )\\d+(?! ft)", "replace": "N", "mode": "regex"}],
+  "text": "Room 12, Room 3 ft, 7",
+  "expect": "Room N, Room 3 ft, 7"
+ },
+ {
+  "name": "regex: \\w and \\b are ASCII, as in JavaScript",
+  "rules": [{"match": "\\b\\w+\\b", "replace": "W", "mode": "regex"}],
+  "text": "José",
+  "expect": "Wé"
+ },
+ {
+  "name": "regex: empty matches are skipped",
+  "rules": [{"match": "z*", "replace": "!", "mode": "regex"}],
+  "text": "azzb",
+  "expect": "a!b"
+ },
+ {
+  "name": "regex: case-sensitive unless the pattern says otherwise",
+  "rules": [{"match": "[Aa]nn", "replace": "Bea", "mode": "regex"}],
+  "text": "Ann ann ANN",
+  "expect": "Bea Bea ANN"
+ },
+ {
+  "name": "a rule that won't compile is left out, the rest still apply",
+  "rules": [
+   {"match": "(", "replace": "x", "mode": "regex"},
+   {"match": "Ann", "replace": "Bea", "mode": "exact"}
+  ],
+  "text": "Ann (",
+  "expect": "Bea (",
+  "errors": [0]
+ },
+ {
+  "name": "modes: an unknown one is an error",
+  "rules": [{"match": "Ann", "replace": "Bea", "mode": "fuzzy"}],
+  "text": "Ann",
+  "expect": "Ann",
+  "errors": [0]
+ },
+ {
+  "name": "mixed: exact, case and regex in one pass",
+  "rules": [
+   {"match": "Ann", "replace": "Bea", "mode": "exact"},
+   {"match": "oak tree", "replace": "barn", "mode": "case"},
+   {"match": "07700 9\\d{5}", "replace": "07700 900000", "mode": "regex"}
+  ],
+  "text": "Ann at OAK TREE: 07700 900123",
+  "expect": "Bea at BARN: 07700 900000"
+ }
+]

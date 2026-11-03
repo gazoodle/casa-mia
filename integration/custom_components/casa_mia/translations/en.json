@@ -136,6 +136,13 @@
         "number": { "name": "Number", "description": "Phone number, as 07700 900123 or +44 7700 900123." },
         "message": { "name": "Message", "description": "The text, up to 160 characters." }
       }
+    },
+    "check_plate": {
+      "name": "Check number plate",
+      "description": "Whether a car with this number plate may open the gates, as set on Casa Mia's People page. Use it with a response variable: `allowed` is true or false, `who` is the person's name and `reason` says why it was refused.",
+      "fields": {
+        "plate": { "name": "Number plate", "description": "The plate as the camera read it. Spaces and dashes don't matter, and O and 0, I and 1, and S and 5 are taken as the same." }
+      }
     }
   },
   "device_automation": {
