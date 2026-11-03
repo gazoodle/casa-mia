@@ -1,7 +1,7 @@
 # Handover: Casa Mia, for agents joining the work
 
-Where the project stands and how the work is done here, as of 2026-10-31 (`dev` at
-2026.10.12-b5; 2026.10.11 released). **Read this at the start of every session**, then
+Where the project stands and how the work is done here, as of 2026-11-03 (`dev` at
+2026.10.12-b6; 2026.10.11 released). **Read this at the start of every session**, then
 CLAUDE.md in full; where they disagree, CLAUDE.md wins. It replaces re-reading old
 transcripts.
 
@@ -36,7 +36,8 @@ keys in brackets; some keep older names):
   tablet and relays it to noVNC in the page, so the VNC password never reaches the
   browser).
 - **Heating Flow card** (`cards/src/heating-flow/`): an animated diagram of a heating
-  system; the System view is built, its design lives in `docs/design/heating-flow.html`.
+  system, with System, Heat pump and Rooms views. Guide: `docs/heating-flow.md`; its design
+  lives in `docs/design/heating-flow.html`.
 - **Phone and SMS** (`fona_enabled`, FONA GSM gateway, mission critical), **git proxy**,
   **alarm panel** (integration only), **kiosk mode**, **firmware server**, **people**,
   **dashboard helpers**.
@@ -237,7 +238,10 @@ CLAUDE.md has them all. What trips agents here:
   closed both) and toasts in the top layer (they were under the backdrop); Sensor Watch's
   group prompt from a new watch and the passed-over callout; the Wall tablet CPU profile;
   the eye's tooltip with the message; a row's last VNC answer; the
-  `docs/run-the-house-from-your-desk.md` guide.
+  `docs/run-the-house-from-your-desk.md` guide. b6: scripts survive running before
+  `window.hassConnection` exists (HA imports them separately; `cards/src/connection.ts`), and
+  `#BACK` stays put on the page a visit began on; Heating Flow's scale reaches −15 °C (indigo,
+  off-black) and Glass draws the coldest water at full strength.
 
 ## Where things stand
 

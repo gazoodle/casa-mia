@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.10.12-b6
+
+- Heating Flow: the colour scale goes down to −15 °C, for ground-source brine: indigo at −10 and off-black at −15, where everything below −5 used to be the same blue. Glass pipes draw the coldest water at full strength, so it doesn't fade to the grey of no reading.
+- Fixed: the Back button helper (`#BACK`) sometimes didn't start when a page first loaded, usually just after an update, and Back then did nothing until the page was reloaded. It no longer waits on Home Assistant's connection.
+- Fixed: `#BACK` on the page a visit began on (a tablet opened straight on it) left Home Assistant. It now stays on the page.
+- Fixed: the same slip at page load could also stop **Reload dashboards when they change**, **Enable garnish on all section dashboards** and the offer to reload after an update, until the page was next reloaded. Each now waits for the connection, and says in the browser's console if it never comes.
+
 ## 2026.10.12-b5
 
 - Remote control: [Run the whole house from your desk](https://github.com/Gazoodle/casa-mia/blob/main/docs/run-the-house-from-your-desk.md), a guide: one visit to each wall tablet, then its screen seen and driven from anywhere.

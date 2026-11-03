@@ -2,7 +2,7 @@
 // lovelace_updated and reloads the page when the dashboard being shown was changed (the
 // home dashboard too), but not while it is being edited. Wall tablets pick up a deployed
 // dashboard this way. Loaded by the Casa Mia integration (switched on on the Casa Mia panel's Settings page).
-// Brought in from auto_refresh.js 0.0.5, unchanged but for this note and the banner.
+// Brought in from auto_refresh.js 0.0.5.
 
 function canReload() {
   // Dedide if we're in edit mode and ignore any events
@@ -59,8 +59,31 @@ function autoReloadHandler(e) {
   });   
 }
 
-window.hassConnection.then(t => t.conn.socket.addEventListener("message", autoReloadHandler));
-  
+// HA imports its core and these scripts separately, so the connection may not exist yet, and
+// nothing announces it: look until it's there (owner's approval of this start-up retry,
+// 2026-11-02), or say this won't work and give up. As cards/src/connection.ts does; this file
+// loads apart from that bundle.
+function whenConnected(use) {
+  const failed = why => console.error(`CASA-MIA REFRESH: dashboards won't reload when they change: ${why}`);
+  const attach = () => {
+    window.hassConnection?.then(use, code => failed(`Home Assistant's connection failed (${code})`));
+    return !!window.hassConnection;
+  };
+  if (attach()) return;
+
+  let left = 600; // about a minute, for a slow tablet on a cold load
+  const timer = setInterval(() => {
+    if (attach()) clearInterval(timer);
+    else if (--left === 0) {
+      clearInterval(timer);
+      failed("Home Assistant's connection never appeared");
+    }
+  }, 100);
+}
+
+whenConnected(t => t.conn.socket.addEventListener("message", autoReloadHandler));
+
+
 console.info(
   `%cCASA-MIA REFRESH\n%cauto-refresh 0.0.5`,
   "color: green; font-weight: bold;",

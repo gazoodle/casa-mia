@@ -36,12 +36,14 @@ Not scheduled. Sections are in order of their latest change; newest ideas first 
 
 ## Tablet Layout and the Lovelace cards
 
-- **A guide for the Heating Flow card** (asked 2026-10-29). It has only its design files (`docs/design/heating-flow.html` and `docs/design/heating-flow/`). A page in `docs/` like the other cards' (what it shows, its views, setting it up part by part, what each colour and marker means, Enable animations for a low-powered tablet), a screenshot per view, a line in the README's cards, and credit to slipx06's [Sunsynk Power Flow Card](https://github.com/slipx06/sunsynk-power-flow-card), as the README's Thanks does.
-- **Heating Flow: what's left** (System view and visual editor built in 2026.10.11-b20; the playground in `docs/design/heating-flow.html` holds the design). Still to build:
-  - **Heat pump view:** a cutaway of the refrigerant cycle, with the controller's data (priority, compressor speed, calculated supply, degree minutes, power, aux heat, alarms).
-  - **Rooms view:** manifolds with a loop and actuator per room, any number of floors, a return temperature per loop.
-  - Buttons to switch views; telling hot from cold water use at the outlets.
-  - Clicking a part opens HA's more-info or runs the usual `tap_action` / `hold_action` / `double_tap_action`.
+- **Heating Flow in the README's cards** (guide `docs/heating-flow.md` written 2026-11-03). Needs the card's maturity level in `app/src/casa_mia/maturity.json` first, since each entry carries its badge.
+- **`cm-refresh.js` after a reconnect** (seen reading the code, 2026-11-02; not reproduced). It listens on `conn.socket`, which is replaced when the websocket reconnects, so a page open through an HA restart may stop reloading on a saved dashboard. Check, then use `conn.subscribeEvents`, which survives a reconnect.
+- **Heating Flow: what's left** (all three views, their tabs, the visual editor and tap actions shipped in 2026.10.11; the playground in `docs/design/heating-flow.html` holds the design). Still to build:
+  - **Heat pump view:** the controller's power and aux heat (only the System view's panel shows them).
+  - **Any number of floors** (three today).
+  - Telling hot from cold water use at the outlets.
+  - **Reversing valve:** the editor's "(on: defrost)" is wrong. Defrost comes from the priority, and the valve's state is never read (found 2026-11-02). Either read it or change the label.
+  - **Unnamed heat pump with source None:** its panel's title reads " source heat pump" (found 2026-11-02). Fall back to "Heat pump".
 - **Heating Flow: junk blocks on the wall tablets** (found 2026-10-28, shelved by the owner). On their GPU (Mali-G52) the card paints square junk blocks beside its drawing: Android's WebView under Vulkan (in the HA app too), clean when painted by the CPU. A bisection on the prototype found a trigger (a dashed line with the borehole, PVT and softener in one SVG), but PNGs for those parts didn't cure the real card. The owner has the notes, scripts and screenshots. Resume by bisecting the real card.
 
 - **Power Flow card: where power logically flows** (asked 2026-10-31; needs more design). Not the Sunsynk card, and not proportional like HA's Sankey: a wiring diagram of the house, from the supply through the distribution boards (DBs) and their breakers to the circuits and devices, with a meter drawn wherever there is one, as Heating Flow does for the heating.

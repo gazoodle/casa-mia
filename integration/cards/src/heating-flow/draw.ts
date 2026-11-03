@@ -52,34 +52,48 @@ export class Draw {
       return flowing ? c : mix(c, OFF, 0.35); // still water keeps its colour, dimmed
     };
 
+    // Glass shows its water faintly, but the coldest (off-black, indigo) faint is the panel's
+    // own colour, or the grey of no reading: from -5° down to -10° it fills in to full. Faint is
+    // an opaque mix with the panel, not transparency, which doubles up where pieces overlap.
+    const glassy = (s: number) => {
+      const t = this.look.colours === "temp" ? tempAt(stops, s) : null;
+      const pct = Math.round(t == null ? 32 : 32 + 68 * Math.min(1, Math.max(0, (-5 - t) / 5)));
+      return pct < 100 ? `color-mix(in srgb, ${col(s)} ${pct}%, var(--hf-panel))` : col(s);
+    };
+
     // The colour, one straight piece at a time (each its own gradient through the sensors on
     // it), and each bend in the colour at its corner.
-    let defs = "", pieces = "", d = `M${segs[0].ax} ${segs[0].ay}`;
-    segs.forEach((g, i) => {
-      const s0 = g.s0 + g.k0, s1 = g.s0 + g.L - g.k1;
-      const x0 = g.ax + g.ux * g.k0, y0 = g.ay + g.uy * g.k0, x1 = g.bx - g.ux * g.k1, y1 = g.by - g.uy * g.k1;
-      d += `L${x1} ${y1}`;
-      if (s1 > s0 + 0.1) {
-        const gid = this.id("pg"), at = [s0, ...stops.map((q) => q[0]).filter((s) => s > s0 && s < s1), s1];
-        defs += `<linearGradient id="${gid}" gradientUnits="userSpaceOnUse" x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}">` +
-          at.map((s) => `<stop offset="${((s - s0) / (s1 - s0)).toFixed(4)}" stop-color="${col(s)}"/>`).join("") + `</linearGradient>`;
-        pieces += `<path d="M${x0} ${y0}L${x1} ${y1}" style="stroke:url(#${gid})"/>`;
-      }
-      if (g.k1) {
-        const n = segs[i + 1], q = `Q${g.bx} ${g.by} ${n.ax + n.ux * n.k0} ${n.ay + n.uy * n.k0}`;
-        d += q;
-        pieces += `<path d="M${x1} ${y1}${q}" style="stroke:${col(g.s0 + g.L)}"/>`;
-      }
+    const runs = segs.map((g, i) => {
+      const n = segs[i + 1];
+      return {
+        s0: g.s0 + g.k0, s1: g.s0 + g.L - g.k1, end: g.s0 + g.L,
+        x0: g.ax + g.ux * g.k0, y0: g.ay + g.uy * g.k0, x1: g.bx - g.ux * g.k1, y1: g.by - g.uy * g.k1,
+        bend: g.k1 ? `Q${g.bx} ${g.by} ${n.ax + n.ux * n.k0} ${n.ay + n.uy * n.k0}` : "",
+      };
     });
+    const d = `M${segs[0].ax} ${segs[0].ay}` + runs.map((r) => `L${r.x1} ${r.y1}${r.bend}`).join("");
+    let defs = "";
+    const paint = (tint: (s: number) => string = col) =>
+      runs.map(({ s0, s1, end, x0, y0, x1, y1, bend }) => {
+        let piece = "";
+        if (s1 > s0 + 0.1) {
+          const gid = this.id("pg"), at = [s0, ...stops.map((q) => q[0]).filter((s) => s > s0 && s < s1), s1];
+          defs += `<linearGradient id="${gid}" gradientUnits="userSpaceOnUse" x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}">` +
+            at.map((s) => `<stop offset="${((s - s0) / (s1 - s0)).toFixed(4)}" style="stop-color:${tint(s)}"/>`).join("") + `</linearGradient>`;
+          piece += `<path d="M${x0} ${y0}L${x1} ${y1}" style="stroke:url(#${gid})"/>`;
+        }
+        if (bend) piece += `<path d="M${x1} ${y1}${bend}" style="stroke:${tint(end)}"/>`;
+        return piece;
+      }).join("");
 
     const mid = col(total / 2), s = this.look.pipes;
     const full = (wd: number, stroke: string, extra = "") => `<path d="${d}" fill="none" stroke-width="${wd}" style="stroke:${stroke}" ${extra}/>`;
-    const colour = (wd: number, extra = "") => `<g fill="none" stroke-width="${wd}" ${extra}>${pieces}</g>`;
+    const colour = (wd: number, pieces = paint(), extra = "") => `<g fill="none" stroke-width="${wd}" ${extra}>${pieces}</g>`;
     let outline = "", fill = "";
     if (s === "outline") [outline, fill] = [full(w + 3, "var(--hf-edge)"), full(w, mid) + colour(w)];
-    if (s === "glass") [outline, fill] = [full(w + 3, mid) + colour(w + 3), full(w, "var(--hf-panel)") + colour(w, 'opacity=".32"')];
+    if (s === "glass") [outline, fill] = [full(w + 3, mid) + colour(w + 3), full(w, glassy(total / 2)) + colour(w, paint(glassy))];
     if (s === "conduit" || s === "neon")
-      [outline, fill] = [full(w + 2, "var(--hf-conduit)"), colour(Math.max(3, w * 0.42), s === "neon" ? `style="filter:drop-shadow(0 0 3px ${mid})"` : "")];
+      [outline, fill] = [full(w + 2, "var(--hf-conduit)"), colour(Math.max(3, w * 0.42), paint(), s === "neon" ? `style="filter:drop-shadow(0 0 3px ${mid})"` : "")];
 
     // Flow: markers ride along the pipe, faster when its pump runs faster or, with no
     // reading, faster in a narrower pipe. No flow, no markers. Without animation (the option,

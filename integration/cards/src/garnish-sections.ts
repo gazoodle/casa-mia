@@ -9,6 +9,7 @@
 // Leans on HA's frontend (a private method): if it is gone, this says so and does nothing.
 // A section hidden here is marked (cmContentHidden), so an Over layer in it can tell this
 // from the section's own Visibility.
+import { whenConnected } from "./connection.ts";
 import { inTablet, onlyGarnish } from "./garnish.ts";
 import { holdsPanelLayer } from "./over-layer/common.ts";
 
@@ -53,7 +54,7 @@ function set(on: boolean) {
 // The app's settings, now and at each change (none without the integration: off).
 // ponytail: the subscription follows the integration as it was when the page opened; after
 // an integration reload a page picks up a change at its next load.
-(window as any).hassConnection?.then(({ conn }: any) =>
+whenConnected("garnish on all section dashboards", ({ conn }) =>
   conn
     .subscribeMessage((s: any) => set(!!s?.dashboards?.garnish_everywhere), { type: "casa_mia/settings/subscribe" })
     .catch(() => set(false)),
