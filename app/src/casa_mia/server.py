@@ -27,9 +27,11 @@ API_VERSION = 1
 WEB_DIR = Path(__file__).parent / "web"
 # Ingress requests all come from the Supervisor's gateway; nothing else gets the UI.
 INGRESS_GATEWAY = "172.30.32.2"
-# POSTs that only read (the Camera Commander page's live previews, one per edit): not logged
-# at INFO with the admin page's changes.
-READS = ("/api/commander/render",)
+# Requests that change nothing kept (the Camera Commander page's live previews, the swap's
+# draft, one per edit): not logged at INFO with the admin page's changes.
+READS = ("/api/commander/render", "/api/swap/draft")
+# Never swapped either way: the Swap page edits the real strings themselves.
+RAW = "/api/swap/"
 
 
 def integration_url() -> str:
@@ -75,15 +77,20 @@ class Handler(BaseHTTPRequestHandler):
             if url.path.startswith(prefix):
                 length = int(self.headers.get("Content-Length") or 0)
                 body = self.rfile.read(length) if length else b""
-                # Screenshot swap: stand-ins in, real strings out of the handler.
                 query = urllib.parse.parse_qs(url.query)
-                status, ctype, data = handle(
-                    method,
-                    swap.back_path(url.path[len(prefix) :]),
-                    {k: [swap.back(v) for v in vs] for k, vs in query.items()},
-                    swap.back_bytes(body),
-                )
-                data = swap.out_bytes(data, ctype)
+                if prefix == RAW:
+                    status, ctype, data = handle(
+                        method, url.path[len(prefix) :], query, body
+                    )
+                else:
+                    # Screenshot swap: stand-ins in, real strings out of the handler.
+                    status, ctype, data = handle(
+                        method,
+                        swap.back_path(url.path[len(prefix) :]),
+                        {k: [swap.back(v) for v in vs] for k, vs in query.items()},
+                        swap.back_bytes(body),
+                    )
+                    data = swap.out_bytes(data, ctype)
                 # Every change made on the admin page is logged (never the body: it can
                 # hold passwords); reads are not, the page polls.
                 if method != "GET" and url.path not in READS:

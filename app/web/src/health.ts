@@ -20,7 +20,9 @@ export const Developer = createContext(false);
 const POLL_MS = 5000;
 /** The app version (and screenshot swap) this page was loaded from. An open page outlives
  * an app update, and would keep running the old UI: when the version changes, reload the
- * whole page; the same when the swap changes, so every string on it is swapped afresh. */
+ * whole page; the same when the swap changes, so every string on it is swapped afresh.
+ * Not on the Swap page, whose own saves change the swap: it shows the real strings, and
+ * every other page loads its strings afresh when opened. */
 let loadedVersion: string | undefined;
 
 export function useHealth(): { health?: Health; error?: string } {
@@ -36,8 +38,12 @@ export function useHealth(): { health?: Health; error?: string } {
         const loaded = `${body.version} ${body.swap ?? ""}`;
         loadedVersion ??= loaded;
         if (loaded !== loadedVersion) {
-          location.reload();
-          return;
+          if (location.hash.startsWith("#/swap") && body.version === loadedVersion.split(" ")[0]) {
+            loadedVersion = loaded;
+          } else {
+            location.reload();
+            return;
+          }
         }
         if (alive) {
           setHealth(body);

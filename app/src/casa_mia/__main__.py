@@ -9,7 +9,7 @@ import threading
 from pathlib import Path
 from typing import Any
 
-from . import app_version, header, settings
+from . import app_version, header, settings, swap
 from .components import ask_for_restart, install_bundled
 from .ha import HA
 from .log import configure_logging
@@ -42,6 +42,7 @@ from .modules.kiosks import Kiosks
 from .modules.people import People
 from .modules.sensor_watch import SensorWatch
 from .server import PORT, integration_url, make_server
+from .swap.api import SwapApi
 
 # HA writes the app's options here; absent on the Mac, so defaults apply.
 OPTIONS = Path("/data/options.json")
@@ -88,6 +89,11 @@ def main() -> int:
     settings.FOLDER = CONFIG
     settings.DEVELOPER = options.get("developer_mode", False)
     log.info("developer mode: %s", "on" if settings.DEVELOPER else "off")
+    # The screenshot swap: its rules, edited on the Swap page; the integration fetches
+    # them when /health's stamp moves.
+    swap.PATH = CONFIG / "swap.json"
+    swap.adopt()
+    reads["/swap"] = lambda _query: swap.for_integration()
     api["/api/settings/"] = (
         settings.handle
     )  # settings with no other home (home page cog)
@@ -98,6 +104,7 @@ def main() -> int:
     ha_token = os.environ.get("CM_HA_TOKEN", "") if direct else token
     ws_path = "/api/websocket" if direct else "/websocket"
     ha = HA(ha_url.replace("http", "ws", 1) + ws_path, ha_token)
+    api["/api/swap/"] = SwapApi(ha).handle  # the Swap page (developer mode)
     # Always on: it is only a list, and FONA (and later guest login) look people up in it.
     people = People(PEOPLE_STORE, ha)
     modules["people"] = people.health

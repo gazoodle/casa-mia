@@ -10,6 +10,7 @@ import { KioskModePage } from "./KioskModePage";
 import { PeoplePage } from "./PeoplePage";
 import { SensorWatchPage } from "./sensor-watch";
 import { SettingsPage } from "./SettingsPage";
+import { SwapPage } from "./SwapPage";
 import { Developer, useHealth, type ModuleHealth } from "./health";
 import { ModuleIcon, SettingsIcon } from "./icons";
 import { Maturity } from "./maturity";
@@ -153,6 +154,7 @@ function pageFor(full: string, modules: Record<string, ModuleHealth>): ReactNode
   if (route === "/sensor-watch")
     return <SensorWatchPage state={modules.sensor_watch?.state} watch={asked.get("watch") ?? undefined} at={asked.get("at") ?? undefined} />;
   if (route === "/settings") return <SettingsPage />;
+  if (route === "/swap") return <SwapPage />;
   if (route === "/firmware") return <FirmwarePage state={modules.gitproxy?.state} />;
 }
 

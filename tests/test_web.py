@@ -85,3 +85,29 @@ def test_an_admin_change_is_pushed_to_home_assistant():
     finally:
         server.shutdown()
         server.server_close()
+
+
+def test_the_swap_page_gets_the_real_strings_both_ways(monkeypatch):
+    # Every other page's requests and answers are swapped; the Swap page edits the rules
+    # themselves, so it sees and sends the real strings.
+    from casa_mia import swap
+
+    monkeypatch.setattr(swap, "out", lambda t: t.replace("Ann", "Bea"))
+    monkeypatch.setattr(swap, "back", lambda t: t.replace("Bea", "Ann"))
+    got = []
+
+    def api(method, rest, query, body):
+        got.append(body)
+        return 200, "application/json", b"Ann"
+
+    server, base = serve(admin_from=None, api={"/api/x/": api, "/api/swap/": api})
+    try:
+        answers = []
+        for path in ("/api/x/", "/api/swap/"):
+            req = urllib.request.Request(base + path, data=b"Bea", method="PUT")
+            with urllib.request.urlopen(req) as r:
+                answers.append(r.read())
+        assert got == [b"Ann", b"Bea"] and answers == [b"Bea", b"Ann"]
+    finally:
+        server.shutdown()
+        server.server_close()

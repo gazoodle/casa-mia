@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.10.12-b8
+
+- **Breaking:** the screenshot swap works only in developer mode. Switch on **developer_mode** in the app's options to keep using it.
+- Screenshot swap: a new matching engine, the first step towards swapping the whole of Home Assistant's UI. Rules can match exactly as before, in any case (the replacement takes the case of the text it replaces), or by regular expression.
+- Screenshot swap: the rules now live in the app's own folder. The `swap.json` you edited in the integration's folder is converted once on the first start and then left as it is; edits to it no longer do anything. The page for editing the rules comes in a later build.
+- Screenshot swap: a **Swap** page to add, edit, switch off, delete and filter the rules, opened from the developer section of Settings. While a rule is being written, Home Assistant is told of it as you type, ready for every browser to preview what it matches.
+- Screenshot swap: Home Assistant hears of a change at once instead of looking at the file every 5 seconds, both for the **Swap** sensor and for Sensor Watch's notifications and card.
+
 ## 2026.10.12-b7
 
 - People: number plates. A person can have number plates as well as, or instead of, a phone number, and a new **Gates** tick says whether their cars may open the gates. The new **Check number plate** action (`casa_mia.check_plate`) answers for a plate a camera read, for an automation that opens the gates; O and 0, I and 1, and S and 5 count as the same, since cameras misread them. The People page has a plate checker too.

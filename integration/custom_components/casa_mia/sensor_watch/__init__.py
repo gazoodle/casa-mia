@@ -30,17 +30,17 @@ from homeassistant.helpers.event import async_track_time_interval
 
 from ..const import DOMAIN
 from ..coordinator import CasaMiaCoordinator, running_coordinator
-from . import blueprint, swap
+from ..swap_rules import swap_of
+from . import blueprint
 from .const import ENTITY, OLD_DOMAIN, REFRESH, SERVICE
 from .entity import KEYS, unique_id
 from .levels import LEVELS, listing, summary, watching
 from .push import APPLY
-from .swap import shown
+from .swap import same, shown
 from .system import start_checks
 from .watch import Watcher
 
 _LOGGER = logging.getLogger(__name__)
-SWAP_EVERY = timedelta(seconds=5)  # the screenshot swap's file, looked at (as the app)
 # Date watches judged again as time passes (a reminder comes due without its state
 # changing). ponytail: every ten minutes; at the hour a band ends, if that's ever wanted.
 DAYS_EVERY = timedelta(minutes=10)
@@ -64,12 +64,10 @@ async def start(
     entry.async_on_unload(watcher.unload)
     entry.async_on_unload(start_checks(hass, watcher))
     await follow_blueprint(hass, entry, watcher)
-
-    async def look_at_swap(_now: object = None) -> None:
-        watcher.swapped(await hass.async_add_executor_job(swap.current))
-
-    await look_at_swap()
-    entry.async_on_unload(async_track_time_interval(hass, look_at_swap, SWAP_EVERY))
+    # The screenshot swap's rules, as they change (casa_mia/swap_rules).
+    rules = swap_of(hass)
+    watcher.swapped(rules.rule or same)
+    entry.async_on_unload(rules.listen(lambda: watcher.swapped(rules.rule or same)))
     entry.async_on_unload(async_track_time_interval(hass, watcher.tick, DAYS_EVERY))
 
     async def list_sensors(call: ServiceCall) -> ServiceResponse:

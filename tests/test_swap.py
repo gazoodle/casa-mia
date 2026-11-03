@@ -1,19 +1,40 @@
 import json
 import os
+from pathlib import Path
 
-from casa_mia import swap
+import pytest
+
+from casa_mia import settings, swap
+from casa_mia.ha import HA, HAError
+from casa_mia.swap import api
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_swap_both_ways(tmp_path, monkeypatch):
-    path = tmp_path / "swap.json"
-    monkeypatch.setattr(swap, "PATH", path)
+def rule(match, replace, mode="exact", **more):
+    return {"id": match, "match": match, "replace": replace, "mode": mode, **more}
+
+
+@pytest.fixture
+def path(tmp_path, monkeypatch):
+    """swap.json in a temporary folder, in developer mode; the old file beside it."""
+    monkeypatch.setattr(swap, "PATH", tmp_path / "swap.json")
+    monkeypatch.setattr(swap, "OLD", tmp_path / "old" / "swap.json")
+    monkeypatch.setattr(settings, "DEVELOPER", True)
+    return tmp_path / "swap.json"
+
+
+def write(path, mtime=None, **doc):
+    path.write_text(json.dumps(doc))
+    if mtime is not None:  # a new mtime even within the filesystem's resolution
+        os.utime(path, ns=(mtime, mtime))
+
+
+def test_swap_both_ways(path):
     assert swap.out("07700 900123") == "07700 900123" and swap.stamp() == ""
 
-    path.write_text(
-        json.dumps(
-            {"swap": True, "07700 900123": "07700 900456", "José": "Al", "Jo": "X"}
-        )
-    )
+    rules = [rule("07700 900123", "07700 900456"), rule("José", "Al"), rule("Jo", "X")]
+    write(path, on=True, rules=rules)
     # Longest first, one pass; JSON's escaped spelling too; binary left alone.
     assert swap.out("José on 07700 900123, Jo") == "Al on 07700 900456, X"
     assert (
@@ -29,46 +50,68 @@ def test_swap_both_ways(tmp_path, monkeypatch):
     assert swap.back_path("p/07700%20900456") == "p/07700%20900123"
     assert swap.back_path("a%2Fb") == "a%2Fb"
     assert swap.back_bytes(b"\xff\xd8") == b"\xff\xd8"
-    on = swap.stamp()
-    assert on
+    assert swap.stamp() and not swap.original_photo()
 
-    assert not swap.original_photo()
-
-    path.write_text(json.dumps({"swap": True, "original_photo": True}))
-    os.utime(path, ns=(2, 2))
+    write(path, 2, on=True, rules=[], original_photo=True)
     assert swap.original_photo() and swap.stamp() and swap.out("Jo") == "Jo"
 
-    path.write_text(json.dumps({"swap": False, "Jo": "X", "original_photo": True}))
-    os.utime(path, ns=(1, 1))  # a new mtime even within the filesystem's resolution
+    write(path, 1, on=False, rules=[rule("Jo", "X")], original_photo=True)
     assert swap.out("Jo") == "Jo" and swap.stamp() == "" and not swap.original_photo()
 
 
-def test_camera_images(tmp_path, monkeypatch):
-    path = tmp_path / "swap.json"
-    monkeypatch.setattr(swap, "PATH", path)
-    (tmp_path / "swap").mkdir()
-    (tmp_path / "swap" / "yard.jpg").write_bytes(b"jpeg")
+def test_case_and_regex_rules_swap_out_but_only_case_comes_back(path):
+    rules = [
+        rule("oak tree", "barn", "case"),
+        rule(r"07700 9(\d{5})", "07700 0$1", "regex"),
+        rule("Ann", "Bea", enabled=False),
+    ]
+    write(path, on=True, rules=rules)
+    assert swap.out("OAK TREE, 07700 900123, Ann") == "BARN, 07700 000123, Ann"
+    assert swap.back("Barn, 07700 000123") == "Oak Tree, 07700 000123"
+    assert swap.pairs() == {}  # the kiosk page's shim takes exact rules only
+
+
+def test_off_out_of_developer_mode(path, monkeypatch):
+    write(path, on=True, rules=[rule("Jo", "X")])
+    monkeypatch.setattr(settings, "DEVELOPER", False)
+    assert swap.out("Jo") == "Jo" and swap.stamp() == ""
+
+
+def test_the_integration_fetches_the_enabled_rules_while_on(path):
+    rules = [rule("Jo", "X"), rule("Ann", "Bea", enabled=False)]
+    write(path, 1, on=False, rules=rules)
+    assert swap.for_integration() == {"stamp": "", "rules": []}
+    write(path, 2, on=True, rules=rules)
+    assert swap.for_integration() == {"stamp": swap.stamp(), "rules": rules[:1]}
+
+
+def test_camera_images(path):
+    folder = swap.OLD.parent  # beside the old file, until the Swap page holds them
+    (folder / "swap").mkdir(parents=True)
+    (folder / "swap" / "yard.jpg").write_bytes(b"jpeg")
     images = {
         "Oak Tree": "swap/yard.jpg",
         "Shed": "swap/none.jpg",
         "Barn": "../x.jpg",
     }
-    path.write_text(json.dumps({"swap": True, "camera_images": images}))
-    # Kept only when the picture is there and inside swap.json's folder; not a string.
-    assert swap.camera_image("Oak Tree") == (tmp_path / "swap" / "yard.jpg").resolve()
+    write(path, on=True, rules=[], camera_images=images)
+    # Kept only when the picture is there and inside the folder.
+    assert swap.camera_image("Oak Tree") == (folder / "swap" / "yard.jpg").resolve()
     assert swap.camera_image("Shed") is None and swap.camera_image("Barn") is None
-    assert swap.out("camera_images") == "camera_images" and swap.stamp()
-    # A picture added after swap.json was saved is used too.
-    (tmp_path / "swap" / "none.jpg").write_bytes(b"jpeg")
-    assert swap.camera_image("Shed") == (tmp_path / "swap" / "none.jpg").resolve()
+    assert swap.stamp()
+    # A picture added after the rules were saved is used too.
+    (folder / "swap" / "none.jpg").write_bytes(b"jpeg")
+    assert swap.camera_image("Shed") == (folder / "swap" / "none.jpg").resolve()
 
 
-def test_the_integration_gets_only_its_shown_text_swapped(tmp_path, monkeypatch):
+def test_the_integration_gets_only_its_shown_text_swapped(path):
     # HA keeps what the integration is given: addresses, paths and entity ids stay real.
-    path = tmp_path / "swap.json"
-    monkeypatch.setattr(swap, "PATH", path)
-    pairs = {"swap": True, "Oak Tree": "Barn", "oak_tree": "barn", "192.0.2.10": "x"}
-    path.write_text(json.dumps(pairs))
+    rules = [
+        rule("Oak Tree", "Barn"),
+        rule("oak_tree", "barn"),
+        rule("192.0.2.10", "x"),
+    ]
+    write(path, on=True, rules=rules)
     card = {
         "picture": "http://192.0.2.10:8099/g/cameras.mjpg",
         "live": "/cameras/cam-oak-tree",
@@ -83,3 +126,90 @@ def test_the_integration_gets_only_its_shown_text_swapped(tmp_path, monkeypatch)
         "options": ["Barn", "Shed"],
         "address": "x",
     }
+
+
+def test_the_old_file_is_converted_once_and_left_alone(path):
+    swap.OLD.parent.mkdir()
+    old = {"swap": True, "Ann": "Bea", "original_photo": True, "camera_images": {}}
+    swap.OLD.write_text(json.dumps(old))
+    swap.adopt()
+    doc = json.loads(path.read_text())
+    assert doc["on"] and doc["original_photo"]
+    assert [(r["match"], r["replace"], r["mode"]) for r in doc["rules"]] == [
+        ("Ann", "Bea", "exact")
+    ]
+    assert json.loads(swap.OLD.read_text()) == old
+    # Once: the new file wins from then on.
+    swap.OLD.write_text(json.dumps({"swap": True, "Cy": "Di"}))
+    swap.adopt()
+    assert json.loads(path.read_text()) == doc
+
+
+class FakeHA(HA):
+    def __init__(self, fail=False):
+        self.calls, self.fail = [], fail
+
+    def call(self, *commands):
+        if self.fail:
+            raise HAError("cannot talk to Home Assistant: down")
+        self.calls += commands
+        return [None]
+
+
+def ask(handler, method, rest="", body=None):
+    status, _, data = handler(
+        method, rest, {}, json.dumps(body).encode() if body else b""
+    )
+    return status, json.loads(data)
+
+
+def test_the_api_saves_whole_rules_and_refuses_a_bad_one(path):
+    handle = api.SwapApi(FakeHA()).handle
+    assert ask(handle, "GET") == (200, {"on": False, "rules": []})
+
+    status, saved = ask(handle, "PUT", body={"on": True, "rules": [{"match": "Ann"}]})
+    assert status == 200 and saved["on"]
+    (r,) = saved["rules"]
+    assert r["id"] and (r["replace"], r["mode"], r["enabled"]) == ("", "exact", True)
+    assert ask(handle, "GET")[1] == saved
+
+    for bad in (
+        [{"match": "(", "mode": "regex"}],
+        [{"match": "Ann", "mode": "fuzzy"}],
+        [{"match": ""}],
+        [{"match": "Ann", "replace": 3}],
+        ["Ann"],
+    ):
+        status, answer = ask(handle, "PUT", body={"rules": bad})
+        assert status == 400 and answer["error"].startswith("Rule 1"), bad
+    assert ask(handle, "GET")[1] == saved  # nothing saved
+    assert ask(handle, "PUT", body={"on": "yes"})[0] == 400
+
+
+def test_a_draft_goes_straight_to_home_assistant(path):
+    ha = FakeHA()
+    handle = api.SwapApi(ha).handle
+    draft = {"match": "Ann", "replace": "B", "mode": "exact"}
+    assert ask(handle, "PUT", "draft", {"draft": draft}) == (200, {})
+    assert ask(handle, "PUT", "draft", {"draft": None}) == (200, {})
+    assert ha.calls == [
+        {"type": api.DRAFT, "draft": draft},
+        {"type": api.DRAFT, "draft": None},
+    ]
+    assert not path.exists()  # never saved
+
+    status, answer = ask(
+        api.SwapApi(FakeHA(fail=True)).handle, "PUT", "draft", {"draft": draft}
+    )
+    assert status == 502 and "didn't reach Home Assistant" in answer["error"]
+
+
+def test_the_api_is_developer_mode_only(path, monkeypatch):
+    monkeypatch.setattr(settings, "DEVELOPER", False)
+    assert ask(api.SwapApi(FakeHA()).handle, "GET")[0] == 404
+
+
+def test_the_integration_runs_the_apps_own_engine():
+    app = ROOT / "app/src/casa_mia/swap/engine.py"
+    copy = ROOT / "integration/custom_components/casa_mia/swap_rules/engine.py"
+    assert copy.read_text() == app.read_text(), "copy the app's engine.py over"

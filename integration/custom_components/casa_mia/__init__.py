@@ -36,6 +36,7 @@ from .coordinator import (
 )
 from .restart_notice import manifest_version
 from .sensor import MODULE_DEVICES, device_id, device_name, modules_off
+from .swap_rules import swap_of
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -99,6 +100,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         elif device := registry.async_get_device(identifiers=identifiers):
             _LOGGER.info("%s is switched off in the app: removing its device", name)
             registry.async_remove_device(device.id)
+    # The screenshot swap's rules, now and whenever /health's stamp moves.
+    swap = swap_of(hass)
+    await swap.follow(coordinator)
+    entry.async_on_unload(
+        coordinator.async_add_listener(
+            lambda: hass.async_create_task(swap.follow(coordinator))
+        )
+    )
     # Sensor Watch, while its module is on: its own integration's entities taken on
     # (once), then the watching; its entities come with the platforms below.
     coordinator.sensor_watch = None
