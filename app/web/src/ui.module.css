@@ -275,9 +275,15 @@
   display: grid;
   gap: 8px;
   max-width: min(420px, calc(100vw - 32px));
+  /* Safari 26 (the HA Companion app) keeps the popover's top: 0, so the box runs the
+     window's full height: the toasts sit at its foot at their own height, and the empty
+     rest lets clicks through (2026.10.12-b7). */
+  align-content: end;
+  pointer-events: none;
 }
 
 .toast {
+  pointer-events: auto;
   padding: 10px 14px;
   border-radius: 12px;
   background: var(--surface-2);

@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MODULES } from "../modules";
-import { AreaHead, Shell } from "../page";
+import { AreaHead, Shell, Loading } from "../page";
 import { Toasts, type Toast } from "../ui";
 import { About, Start } from "./about";
 import { levelsOf, NO_FILTERS, swApi, type Filters, type Group, type LevelsView, type Profile, type WatchRecord, type WatchView } from "./common";
@@ -99,7 +99,7 @@ export function SensorWatchPage({ state, watch, at }: { state?: string; watch?: 
     }
   };
 
-  if (!view) return <Shell {...HEAD} state={state}><p className={guest.notice}>Loading…</p></Shell>;
+  if (!view) return <Shell {...HEAD} state={state}><Loading toasts={toasts} /></Shell>;
 
   // Watched (not disabled) but no level from the integration yet: unavailable and
   // waiting out its hold-off, or unavailable and set to Ignore. A diagnostic.

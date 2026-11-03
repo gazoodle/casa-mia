@@ -5,7 +5,7 @@ import { useCallback, useContext, useEffect, useState } from "react";
 import { api } from "./api";
 import { Developer } from "./health";
 import { SettingsIcon } from "./icons";
-import { AreaHead, Shell } from "./page";
+import { AreaHead, Shell, Loading } from "./page";
 import { Switch, Toasts, type Toast } from "./ui";
 import css from "./settings.module.css";
 import guest from "./guest.module.css";
@@ -71,7 +71,7 @@ export function SettingsPage() {
     }
   };
 
-  if (!settings) return <Shell {...HEAD}><p className={guest.notice}>Loading…</p></Shell>;
+  if (!settings) return <Shell {...HEAD}><Loading toasts={toasts} /></Shell>;
   const tv = settings.tablet_view;
   const saveView = (change: Partial<TabletView>) =>
     save({ tablet_view: change as TabletView }, "Saved. Open Tablet Layouts show it within a few seconds.");

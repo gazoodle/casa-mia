@@ -36,10 +36,14 @@ export type HeaderView = { house: string; custom: boolean; stamp: number; home: 
 export type Person = {
   id: string;
   name: string;
-  /** +447700900123 */
-  phone: string;
+  /** +447700900123, or null for someone known only by their car. */
+  phone: string | null;
   call: boolean;
   text: boolean;
+  /** As typed, in capitals: ZZ00 ZZZ. */
+  plates: string[];
+  /** May their cars open the gates (check_plate in HA). */
+  gate: boolean;
   /** HA person id, if linked. */
   person: string | null;
 };
@@ -49,6 +53,8 @@ export type PeopleView = { people: Person[]; error: string | null };
 export type HAPerson = { id: string; name: string; user_id: string | null };
 
 export type NumberCheck = { allowed: boolean; number: string | null; who: string | null; reason: string | null };
+
+export type PlateCheck = { allowed: boolean; plate: string | null; who: string | null; reason: string | null };
 
 export type FirmwareFile = { name: string; size: number; modified: string };
 

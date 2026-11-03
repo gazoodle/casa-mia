@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api, type FirmwareFile, type FirmwareStatus } from "./api";
 import { ago, megabytes } from "./format";
 import { FirmwareIcon } from "./icons";
-import { AreaHead, Empty, Shell } from "./page";
+import { AreaHead, Empty, Shell, Loading } from "./page";
 import { copyText, Segmented, Toasts, type Toast } from "./ui";
 import css from "./firmware.module.css";
 import guest from "./guest.module.css";
@@ -67,7 +67,7 @@ export function FirmwarePage({ state }: { state?: string }) {
       </Shell>
     );
   }
-  if (!status) return <Shell {...HEAD} state={state}><p className={guest.notice}>Loading…</p></Shell>;
+  if (!status) return <Shell {...HEAD} state={state}><Loading toasts={toasts} /></Shell>;
 
   return (
     <Shell {...HEAD} state={state}>

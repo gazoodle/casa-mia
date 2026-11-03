@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.10.12-b7
+
+- People: number plates. A person can have number plates as well as, or instead of, a phone number, and a new **Gates** tick says whether their cars may open the gates. The new **Check number plate** action (`casa_mia.check_plate`) answers for a plate a camera read, for an automation that opens the gates; O and 0, I and 1, and S and 5 count as the same, since cameras misread them. The People page has a plate checker too.
+- Fixed: a card on an Over layer was drawn in the browser's default font (a serif) instead of Home Assistant's.
+- Fixed: in the Home Assistant app on a Mac, the Casa Mia panel's messages (such as "Live main camera on") ran the full height of the window. They're back to one line, bottom right.
+- Fixed: when a Casa Mia page couldn't load (Settings, People, Kiosk Satellites, Guest login, Firmware server, Sensor Watch), it said "Loading…" for ever and the reason was never shown. It now says "This page couldn't load", with the reason.
+
 ## 2026.10.12-b6
 
 - Heating Flow: the colour scale goes down to −15 °C, for ground-source brine: indigo at −10 and off-black at −15, where everything below −5 used to be the same blue. Glass pipes draw the coldest water at full strength, so it doesn't fade to the grey of no reading.

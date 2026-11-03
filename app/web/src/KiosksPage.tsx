@@ -9,7 +9,7 @@ import { TabletIcon } from "./icons";
 import { Everywhere } from "./KioskEverywhere";
 import { RemotePassword } from "./KioskRemote";
 import { KioskScreen } from "./KioskScreen";
-import { AreaHead, Empty, Shell } from "./page";
+import { AreaHead, Empty, Shell, Loading } from "./page";
 import { Dialog, Field, Segmented, Toasts, type Toast } from "./ui";
 import css from "./kiosks.module.css";
 import guest from "./guest.module.css";
@@ -74,7 +74,7 @@ export function KiosksPage({ state }: { state?: string }) {
       </Shell>
     );
   }
-  if (!view) return <Shell {...HEAD} state={state}><p className={guest.notice}>Loading…</p></Shell>;
+  if (!view) return <Shell {...HEAD} state={state}><Loading toasts={toasts} /></Shell>;
   const needLogin = view.kiosks.filter((k) => !k.logged_in).length;
   const loggedIn = view.kiosks.length - needLogin;
 

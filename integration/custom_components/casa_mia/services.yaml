@@ -1,3 +1,10 @@
+check_plate:
+  fields:
+    plate:
+      required: true
+      example: "ZZ00 ZZZ"
+      selector:
+        text:
 send_sms:
   fields:
     number:

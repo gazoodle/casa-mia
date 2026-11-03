@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from casa_mia.modules.people import People, normalise
+from casa_mia.modules.people import People, normalise, plate_key
 
 
 @pytest.mark.parametrize(
@@ -104,6 +104,60 @@ def test_api_add_edit_delete(tmp_path):
     assert call(p, "DELETE", alex["id"])[1]["people"] == []
     assert call(p, "DELETE", alex["id"])[0] == 404
     assert call(p, "GET", "nope/x")[0] == 404
+
+
+@pytest.mark.parametrize(
+    ("raw", "key"),
+    [
+        ("ZZ00 ZZZ", "ZZ00ZZZ"),
+        ("zz00-zzz", "ZZ00ZZZ"),
+        ("ZZOO ZZZ", "ZZ00ZZZ"),  # O read for 0
+        ("ZI5 SIX", "Z1551X"),
+        ("", ""),
+        (None, ""),
+    ],
+)
+def test_plate_key(raw, key):
+    assert plate_key(raw) == key
+
+
+def test_plates_and_gates(tmp_path):
+    p, _ = make(tmp_path)
+    # A person can be just a car: no phone number.
+    status, view = call(
+        p, "POST", "", {"name": "Alex", "plates": ["zz00  zzz"], "gate": True}
+    )
+    assert status == 201
+    (alex,) = view["people"]
+    assert alex["phone"] is None and alex["plates"] == ["ZZ00 ZZZ"]
+    assert call(p, "POST", "", {"name": "Sam", "plates": ["ZZ51 ZZZ"]})[0] == 201
+
+    assert p.check_plate("ZZ00ZZZ") == {
+        "allowed": True,
+        "plate": "ZZ00ZZZ",
+        "who": "Alex",
+        "reason": None,
+    }
+    assert p.check_plate("ZZOO ZZZ")["allowed"]  # misread, still Alex
+    sam = p.check_plate("ZZ5I ZZZ")
+    assert not sam["allowed"] and sam["who"] == "Sam"
+    assert sam["reason"] == "not allowed to open the gates"
+    assert p.check_plate("ZZ99 ZZZ")["reason"] == "unknown plate"
+    assert p.check_plate("")["reason"] == "no plate read"
+    assert call(p, "GET", "plate", query={"plate": ["ZZ00 ZZZ"]})[1]["allowed"]
+    # A person without a number never matches a call.
+    assert p.check("07700900123", "call")["reason"] == "unknown number"
+
+    # One plate, one person; look-alikes count as the same plate.
+    status, err = call(p, "POST", "", {"name": "Kim", "plates": ["ZZOO ZZZ"]})
+    assert status == 400 and "already belongs to Alex" in err["error"]
+    for bad in (
+        {"name": "Kim"},
+        {"name": "Kim", "plates": ["!"]},
+        {"name": "Kim", "plates": ["ZZ11 ZZZ", "zz11zzz"]},
+        {"name": "Kim", "plates": "ZZ11 ZZZ"},
+    ):
+        assert call(p, "POST", "", bad)[0] == 400
 
 
 def test_unreadable_store_refuses_everyone_and_is_kept(tmp_path):

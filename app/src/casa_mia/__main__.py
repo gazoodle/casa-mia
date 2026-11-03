@@ -102,6 +102,10 @@ def main() -> int:
     people = People(PEOPLE_STORE, ha)
     modules["people"] = people.health
     api["/api/people/"] = people.handle
+    # The integration's check_plate service: may this car open the gates?
+    reads["/people/plate"] = lambda query: people.check_plate(
+        (query.get("plate") or [""])[0]
+    )
     # Always on: an editor for kiosk-mode's settings in the dashboards (nothing runs).
     kiosk_mode = KioskMode(ha)
     kiosk_mode.start()
