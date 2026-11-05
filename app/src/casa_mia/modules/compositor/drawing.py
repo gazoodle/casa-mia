@@ -144,7 +144,45 @@ def _lines(
     return out
 
 
+def _squares(
+    rect: Rect, n: int, lines: int, down: bool, gap: int, spread: bool
+) -> list[Rect]:
+    """n equal squares in `lines` lines (columns when they run down, rows across), all
+    one size: the fullest line's share of the length, or the line's thickness when that
+    is less. They form a grid: every line uses the fullest line's slots from its start,
+    so a short line leaves its last slots empty, and the squares line up across lines.
+    The slots sit `gap` apart in the middle of the length; spread, the spare room is
+    shared evenly by the gaps and both ends (never less than `gap` between: with too
+    little room, as in the middle)."""
+    lines = max(1, min(lines, n))
+    strips = _line(rect, lines, not down, gap)
+    slots = -(-n // lines)  # the fullest line's count
+    span = rect[3] if down else rect[2]
+    thick = min(s[2] if down else s[3] for s in strips)
+    side = max(0, min(thick, (span - gap * (slots - 1)) // slots))
+    free = span - slots * side
+
+    if spread and free >= gap * (slots + 1):
+        starts = [round((i + 1) * free / (slots + 1)) + i * side for i in range(slots)]
+    else:
+        first = (free - gap * (slots - 1)) // 2
+        starts = [first + i * (side + gap) for i in range(slots)]
+
+    out: list[Rect] = []
+    for i, (x, y, w, h) in enumerate(strips):
+        count = n // lines + (1 if i < n % lines else 0)
+        off = ((w if down else h) - side) // 2  # in the middle across its line
+        out += [
+            (x + off, y + a, side, side) if down else (x + a, y + off, side, side)
+            for a in starts[:count]
+        ]
+    return out
+
+
 STACKS = ("stack", "reverse", "centre")  # panel fits: each camera at its own shape
+SQUARES = ("squares", "squares_spread")  # panel fits: equal squares (see _squares)
+# Panel fits whose cameras are cropped to fill their tiles.
+CROPPED = ("cover", *SQUARES)
 SIZED = ("own", "fixed")  # main camera fits that set its size, and the panels' sizes
 
 
@@ -271,20 +309,17 @@ def commander_layout(
         known = cmd.get("aspects") or {}
         return [float(known.get(e) or 16 / 9) for e in cmd[panel]["cameras"]]
 
-    tiles = {
-        p: _lines(
-            areas[p],
-            len(cmd[p]["cameras"]),
-            int(cmd[p].get("lines", 1)),
-            p in ("left", "right"),
-            gap,
-            shapes(p),
-            cmd[p].get("fit", "cover"),
-        )
-        if cmd[p]["cameras"]
-        else []
-        for p in PANELS
-    }
+    def tiled(p: str) -> list[Rect]:
+        """Panel p's tiles: none when it is empty."""
+        n, count = len(cmd[p]["cameras"]), int(cmd[p].get("lines", 1))
+        fit, down = cmd[p].get("fit", "cover"), p in ("left", "right")
+        if not n:
+            return []
+        if fit in SQUARES:
+            return _squares(areas[p], n, count, down, gap, fit == "squares_spread")
+        return _lines(areas[p], n, count, down, gap, shapes(p), fit)
+
+    tiles = {p: tiled(p) for p in PANELS}
     main_area = (x0, y0, x1 - x0, y1 - y0)
     if shape is not None:  # exactly its size, centred where the panels left room
         mw, mh = min(mw, x1 - x0), min(mh, y1 - y0)
@@ -371,7 +406,7 @@ def commander(
                     src = as_image(raw, (w, h))
                     img = (
                         ImageOps.fit(src, (w, h))
-                        if fit == "cover"
+                        if fit in CROPPED
                         else ImageOps.contain(src, (w, h))
                     )
                     canvas.paste(

@@ -241,6 +241,8 @@
 
 .segmented {
   display: inline-flex;
+  flex-wrap: wrap; /* many options (a panel's Fit) on a phone: onto a second row, not off the screen */
+  max-width: 100%;
   padding: 3px;
   border: 1px solid var(--border);
   border-radius: 11px;

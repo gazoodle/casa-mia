@@ -48,8 +48,8 @@
     "fit": {
       "label": "Fit",
       "default": "cover",
-      "options": [["cover", "Fill"], ["contain", "Whole"], ["stack", "Stack"], ["reverse", "Reverse"], ["centre", "Centre"]],
-      "help": "Fill: equal tiles, each {item} filling its own. Whole: equal tiles, each {item} whole in its own. Stack, Reverse, Centre: each {item} whole at its own shape, edge to edge, from the start, against the end, or in the middle; the spare room is left clear (too many to fit: all shrink alike)."
+      "options": [["cover", "Fill"], ["contain", "Whole"], ["stack", "Stack"], ["reverse", "Reverse"], ["centre", "Centre"], ["squares", "Squares"], ["squares_spread", "Squares, spread"]],
+      "help": "Fill: equal tiles, each {item} filling its own. Whole: equal tiles, each {item} whole in its own. Stack, Reverse, Centre: each {item} whole at its own shape, edge to edge, from the start, against the end, or in the middle; the spare room is left clear (too many to fit: all shrink alike). Squares: equal squares, each {item} cropped to fill its own, as thick as the panel (shared by its lines), in the middle; Squares, spread: the same, the spare room shared evenly between them and at both ends."
     },
     "anchor_left": { "label": "To the left edge", "edge": true, "help": "On: it runs to the view's edge and Left stops at it. Off: it stops at Left." },
     "anchor_right": { "label": "To the right edge", "edge": true, "help": "On: it runs to the view's edge and Right stops at it. Off: it stops at Right." },

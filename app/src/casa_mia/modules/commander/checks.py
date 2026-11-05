@@ -6,6 +6,7 @@ import re
 from typing import Any
 
 from ..compositor import (
+    LAYOUT,
     PANELS,
     commander_cameras,
     commanders_of,
@@ -14,7 +15,7 @@ from ..compositor import (
     visible,
 )
 
-FITS = ("cover", "contain", "stack", "reverse", "centre")
+FITS = tuple(value for value, _ in LAYOUT["panel"]["fit"]["options"])  # a panel's
 
 
 def problems(store: dict[str, Any]) -> list[str]:

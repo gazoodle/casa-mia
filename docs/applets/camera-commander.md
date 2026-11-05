@@ -54,7 +54,11 @@ pages follow), delete one, or add a copy of the one picked or a blank one. Each 
   road, a tree in the wind); **+ Add…** picks from the commander's cameras. The card still marks their motion with the dot, a
   tap still makes one the main camera, and their motion never holds off Go back after.
 - **Panels** (left, top, right, bottom): the cameras in each, in order; its size; how its
-  tiles fit; rows or columns; and whether it is shown.
+  tiles fit; rows or columns; and whether it is shown. **Squares** makes every tile in the
+  panel a square of the same size, as thick as the panel (shared between its rows or
+  columns), grouped in the middle; **Squares, spread** shares the spare room evenly between
+  them and at both ends. A camera is cropped to fill its square (a 16:9 camera loses some
+  of each side). With more than one row or column, the squares line up as a grid.
 
 **Pictures:** the **Compositor host**, the address the cards and the dashboard fetch the
 pictures from. Blank: this box's own address.

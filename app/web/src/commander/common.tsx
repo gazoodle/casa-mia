@@ -41,7 +41,7 @@ export type Panel = {
   unit?: "%" | "px";
   /** Fill (cover) or Whole (contain) equal tiles; or each camera at its own shape, edge to
    * edge, from the start (stack), against the end (reverse) or in the middle (centre). */
-  fit: "cover" | "contain" | "stack" | "reverse" | "centre";
+  fit: "cover" | "contain" | "stack" | "reverse" | "centre" | "squares" | "squares_spread";
   /** Top and bottom: run to the view's edge at that end (the side panel stops at them). */
   anchor_left?: boolean;
   anchor_right?: boolean;
