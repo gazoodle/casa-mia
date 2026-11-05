@@ -1,16 +1,17 @@
 // The Camera Commander card (see index.ts for how it works): its top layer, drawing it and
 // taking its taps. The layers: base.ts (the picture stream) → live.ts (the live main
-// camera) → card.ts; styles.ts holds its CSS.
+// camera) → talk.ts (talking to a doorbell) → card.ts; styles.ts holds its CSS.
 import { html, nothing } from "lit";
 import { keyed } from "lit/directives/keyed.js";
 import { fire, type Hass, heightFor, inPicker, navigate, TABLET } from "../ha.ts";
 import { heightForMain, layout, PANELS, pyRound, type Rect } from "../layout.ts";
 import { dot } from "./motion.ts";
 import { Config, Card, BLANK, Size, commanders } from "./common.ts";
-import { CommanderLive } from "./live.ts";
+import { PILLS } from "../pills.ts";
+import { CommanderTalk, talkStyles } from "./talk.ts";
 import { styles } from "./styles.ts";
 
-export class CommanderCard extends CommanderLive {
+export class CommanderCard extends CommanderTalk {
   updated() {
     // The app restarted (an update): its stream died with it, and a browser often says
     // nothing (the <img> keeps a blank or frozen picture), so start a fresh one.
@@ -28,6 +29,7 @@ export class CommanderCard extends CommanderLive {
       this.resize.observe(box);
       this.onScreen.observe(box);
     }
+    this.followCall();
     this.followLive();
     // Debug: the picture's own size as decoded (a stream may never fire load)
     const img = this.renderRoot.querySelector<HTMLImageElement>(".picture");
@@ -128,7 +130,7 @@ export class CommanderCard extends CommanderLive {
                 style="${at(mainRect)};object-fit:${({ fill: "fill", crop: "cover" } as Record<string, string>)[own.main_fit ?? "fit"] ?? "contain"};opacity:${this._playing ? 1 : 0}"
                 autoplay
                 playsinline
-                .muted=${true}
+                .muted=${!this.mic}
               ></video>
               ${this.caption(card.cameras[main]?.title ?? main, at(mainRect))}`
           : nothing}
@@ -165,11 +167,15 @@ export class CommanderCard extends CommanderLive {
           ),
         )}
         ${mainRect[2] > 0 ? dot(moving.get(main), at(mainRect), this._config!, () => this.open(card, main)) : nothing}
+        ${live && mainRect[2] > 0 ? this.talkParts(card, at(mainRect)) : nothing}
       </div>
     </ha-card>`;
   }
 
+  /** A tap on a panel camera makes it the main one, except while talking here: the
+   * select is shared, and changing it would leave the doorbell. */
   private choose(card: Card, camera: string) {
+    if (this._talk) return;
     this.hass?.callService("select", "select_option", { option: card.cameras[camera]?.title }, { entity_id: this._config!.entity });
   }
 
@@ -182,5 +188,5 @@ export class CommanderCard extends CommanderLive {
     else if (how !== "none") fire(this, "hass-more-info", { entityId: camera });
   }
 
-  static styles = styles;
+  static styles = [...styles, PILLS, talkStyles];
 }

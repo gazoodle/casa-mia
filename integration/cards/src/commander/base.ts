@@ -113,12 +113,7 @@ export class CommanderBase extends LitElement {
           : !this.inView
             ? "out of view"
             : "";
-    if (why) {
-      const after = document.hidden ? 0 : (this._config?.leave_after ?? LEAVE_AFTER);
-      if (!after) this.cut(why);
-      else if (this._shown && !this.leaving) this.leaving = window.setTimeout(() => this.cut(why), after * 1000);
-      return;
-    }
+    if (why) return this.outOfSight(why);
     clearTimeout(this.leaving);
     this.leaving = 0;
     if (!this._shown) {
@@ -126,6 +121,13 @@ export class CommanderBase extends LitElement {
       this._shown = ++this.shows;
     }
   };
+  /** Out of sight for `why`: its stream ends after leave_after seconds (at once when the
+   * page is hidden). A higher layer adds what must stop at once (talk.ts). */
+  protected outOfSight(why: string) {
+    const after = document.hidden ? 0 : (this._config?.leave_after ?? LEAVE_AFTER);
+    if (!after) this.cut(why);
+    else if (this._shown && !this.leaving) this.leaving = window.setTimeout(() => this.cut(why), after * 1000);
+  }
   /** This showing's name for its stream, so it can tell the server it is done with it. */
   protected sid = "";
   protected streaming = ""; // the stream's address while shown

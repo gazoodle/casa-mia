@@ -2,6 +2,7 @@
 
 ## 2026.11.2-b2
 
+- New: talk to a doorbell from the Camera Commander card, when its camera has an Intercom talkback call sensor: a Talk button over the live video (or your own button, with a `fire-dom-event` tap action), the call's state on every device (Ringing, Answered by …, Missed), and a hang-up as soon as the card is out of sight.
 - The Camera Commander card's code is split into layers (no change in what it does).
 
 ## 2026.11.2-b1

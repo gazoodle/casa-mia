@@ -100,6 +100,36 @@ Its options (each left at its default unless you change it):
   motion, and for a while after; hover it for when. Its colour, size, pulse (0: steady),
   how long it stays after the motion, and its corner. A camera whose own motion detection
   is off (see [Cameras](cameras.md)) never shows one.
+- **Talk button:** shown over a doorbell's live video (see below). Turn it off if you use
+  your own buttons.
+
+### Talking to a doorbell
+
+When the main camera is a doorbell with a call sensor from the Intercom talkback
+integration, and it is playing as live video, the card can talk to it. The page must be
+on an https address, because browsers only give a microphone to secure pages.
+
+- **Talk** asks for this device's microphone and restarts the live video with it, so the
+  visitor hears you and you hear them. A red **Live to …** label shows while the
+  microphone is on, and the tiles don't change the main camera until you hang up.
+- **Hang up** stops the microphone, and the call ends. Leaving the page, scrolling the
+  card away or switching to another app hangs up at once.
+- Every device shows the call: **Ringing**, **Answered by …** (the Home Assistant user
+  who answered) or **Missed**. While one device has answered, Talk on another is refused
+  and that device keeps its live video.
+
+To use one of your own dashboard buttons instead of the card's, give it this tap action:
+
+```yaml
+tap_action:
+  action: fire-dom-event
+  casa_mia_commander:
+    talk: toggle            # or "on" / "off"
+    entity: select.oak_door_commander   # optional: only this commander's card
+```
+
+The button can show the call sensor's state. This device is talking when the sensor is
+`answered` and its `answered_by` attribute is this device's Home Assistant user.
 
 ## Troubleshooting
 

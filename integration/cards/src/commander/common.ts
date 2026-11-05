@@ -1,5 +1,5 @@
 // The Camera Commander's types, constants and helpers, shared by the card and its editor.
-import { type Hass, type Sharpness } from "../ha.ts";
+import { type Hass, type Sharpness, type State } from "../ha.ts";
 import { pyRound, type Settings } from "../layout.ts";
 import type { Corner } from "./motion.ts";
 
@@ -20,6 +20,8 @@ export type Config = { type: string; entity?: string; tap_main?: "live" | "more-
   motion_pulse?: number;
   motion_linger?: number;
   motion_corner?: Corner;
+  /** The card's own Talk button, where talk is offered (talk.ts). */
+  talk_button?: boolean;
 };
 export type Card = {
   picture: string;
@@ -102,3 +104,24 @@ export function commanders(hass: Hass): { value: string; label: string }[] {
     .filter(([id, st]) => id.startsWith("select.") && st.attributes.card)
     .map(([id, st]) => ({ value: id, label: String(st.attributes.friendly_name ?? id) }));
 }
+
+/** A doorbell's call sensor (the intercom_talkback integration's, on the camera's own
+ * device): found in HA's entity registry by the camera's device, its platform and its
+ * translation key, never by its name. */
+export function callSensor(hass: Hass, camera: string): string | undefined {
+  const entities = (hass.entities ?? {}) as Record<string, { entity_id: string; device_id?: string; platform?: string; translation_key?: string }>;
+  const device = entities[camera]?.device_id;
+  if (!device) return undefined;
+  return Object.values(entities).find((e) => e.device_id === device && e.platform === "intercom_talkback" && e.translation_key === "call")?.entity_id;
+}
+
+/** What a call sensor's state says on the card, the same on every device: "Ringing",
+ * "Answered by X", "Missed", or nothing (idle, or a call that ended). */
+export function callWords(st?: State): string {
+  if (st?.state === "ringing") return "Ringing";
+  if (st?.state === "answered") return `Answered by ${st.attributes.answered_by ?? "someone"}`;
+  if (st?.state === "complete" && st.attributes.outcome === "missed") return "Missed";
+  return "";
+}
+/** How long a note about talk ("The call ended") stays on the card. */
+export const TALK_NOTE_MS = 10_000;

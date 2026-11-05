@@ -38,8 +38,8 @@
 // picture is asked for at no more than `away_sharpness`'s pixel ratio (Balanced: 1.5), as
 // a 2x or 3x screen's own is up to four times the bytes over a slower link.
 // The parts: common.ts (types, constants, helpers); the card in layers, base.ts (the picture
-// stream) → live.ts (the live main camera) → card.ts (drawing it, its taps), with
-// styles.ts; editor.ts (its editor).
+// stream) → live.ts (the live main camera) → talk.ts (talking to a doorbell) → card.ts
+// (drawing it, its taps), with styles.ts; editor.ts (its editor).
 import { define, register } from "../ha.ts";
 import { CommanderCard } from "./card.ts";
 import { CommanderEditor } from "./editor.ts";

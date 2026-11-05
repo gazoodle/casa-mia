@@ -292,5 +292,10 @@ CLAUDE.md has them all. What trips agents here:
 - **Loose ends:** move the card's motion test into the cards' `npm test`; HA warns about
   `via_device` in commanders' DeviceInfo (until 2027.8); the compositor's log lines give
   viewers' addresses only; the Tablet Layout guide's examples.
+- **Talk from the Commander card** (2026.11.2-b2, 2026-11-05; spec from the
+  owner's intercom repo, which Casa Mia must not depend on): `commander/talk.ts`, a
+  layer over `live.ts`; the card was split into base → live → talk → card. Built and
+  unit-tested, **not yet tried on hardware**: the owner's six acceptance checks (two
+  tablets and the iPhone) are still to do, with measured talk-to-audible delays.
 - **Next:** the owner picks from BACKLOG. Nested sections wait until HA ships them (don't
   build ahead of HA).

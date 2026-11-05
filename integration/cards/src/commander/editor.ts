@@ -11,6 +11,7 @@ const DEFAULTS: Record<string, unknown> = {
   route: "auto",
   away_sharpness: "balanced",
   live_main: true,
+  talk_button: true,
   leave_after: LEAVE_AFTER,
   security_look: false,
   look_tint: LOOK.tint,
@@ -65,6 +66,7 @@ export class CommanderEditor extends LitElement {
         },
       },
       { name: "live_main", selector: { boolean: {} } },
+      { name: "talk_button", selector: { boolean: {} } },
       { name: "security_look", selector: { boolean: {} } },
       { name: "look_tint", selector: { color_rgb: {} } },
       { name: "look_strength", selector: { number: { min: 0.5, max: 10, step: 0.5, mode: "slider" } } },
@@ -109,6 +111,7 @@ export class CommanderEditor extends LitElement {
       route: "The picture",
       away_sharpness: "Sharpness through Home Assistant",
       live_main: "Main camera as live video",
+      talk_button: "Talk button",
       leave_after: "Picture kept running once out of sight",
       security_look: "Security look",
       look_tint: "Security look: tint",
@@ -137,6 +140,8 @@ export class CommanderEditor extends LitElement {
             ? "How sharp the picture is when it comes through Home Assistant (away from home): a 2x screen at Full is four times the bytes of Light. Direct at home it is always the screen's own."
             : s.name === "live_main"
             ? "The main camera plays as live video over the picture, through Home Assistant's WebRTC (this device decodes it; the box does not). Needs the Camera compositor's Live main camera switch on; a video that does not start gives way to the drawn picture."
+            : s.name === "talk_button"
+            ? "A Talk button over a doorbell's live video (a camera with an Intercom talkback call sensor, on an https page). Turn it off to use your own buttons: a tap_action of fire-dom-event with casa_mia_commander: {talk: toggle} does the same."
             : s.name === "motion_dot"
             ? "A small dot on a camera's tile while its motion sensor sees motion (the sensor Track motion uses), and for a while after; hover it for when."
             : s.name === "motion_pulse"
