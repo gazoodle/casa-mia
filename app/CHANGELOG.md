@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.2-b2
+
+- The Camera Commander card's code is split into layers (no change in what it does).
+
 ## 2026.11.2-b1
 
 - Fixed: entities on an Over layer did nothing when tapped (no toggle, no more-info, no navigation), and some cards on it showed their entities as Unavailable.
