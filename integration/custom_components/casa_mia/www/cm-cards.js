@@ -4277,14 +4277,16 @@ ${Er}`, Fr = class extends B {
 	_putUp() {
 		this._host = document.createElement("casa-mia-over-layer-host");
 		let e = this._host.attachShadow({ mode: "open" });
-		e.innerHTML = `<style>${Pr}</style><div class="layer"><div class="backdrop"></div><div class="holder"></div></div>`, this._layer = e.querySelector(".layer"), this._config?.panel && this._makePanel(), this._child && this._layer.querySelector(".holder").append(this._child), this._door = new Ar(e), document.body.append(this._host);
-		let t = () => this._style(), n = jr(this), r = new ResizeObserver(t);
-		n && r.observe(n), addEventListener("resize", t), addEventListener("scroll", t, {
+		e.innerHTML = `<style>${Pr}</style><div class="layer"><div class="backdrop"></div><div class="holder"></div></div>`, this._layer = e.querySelector(".layer"), this._config?.panel && this._makePanel(), this._child && this._layer.querySelector(".holder").append(this._child), this._door = new Ar(e);
+		let t = document.querySelector("home-assistant")?.shadowRoot;
+		t || console.warn("CASA-MIA CARDS: over layer: no <home-assistant> found; taps on its cards may do nothing"), (t ?? document.body).append(this._host);
+		let n = () => this._style(), r = jr(this), i = new ResizeObserver(n);
+		r && i.observe(r), addEventListener("resize", n), addEventListener("scroll", n, {
 			capture: !0,
 			passive: !0
 		}), this._watch = () => {
-			r.disconnect(), removeEventListener("resize", t), removeEventListener("scroll", t, { capture: !0 });
-		}, setTimeout(t, 500), console.info(`CASA-MIA CARDS: over layer shown (${rn(this._config)})`), this.requestUpdate();
+			i.disconnect(), removeEventListener("resize", n), removeEventListener("scroll", n, { capture: !0 });
+		}, setTimeout(n, 500), console.info(`CASA-MIA CARDS: over layer shown (${rn(this._config)})`), this.requestUpdate();
 	}
 	_takeDown() {
 		this._host && (this._watch?.(), this._door?.remove(), this._host.remove(), this._host = this._layer = this._watch = this._door = void 0, this._config?.panel && (this._child = void 0), console.info("CASA-MIA CARDS: over layer taken down"));

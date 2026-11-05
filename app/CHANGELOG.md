@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.2-b1
+
+- Fixed: entities on an Over layer did nothing when tapped (no toggle, no more-info, no navigation), and some cards on it showed their entities as Unavailable.
+
 ## 2026.11.1
 
 - **Breaking:** the Casa Mia integration and its cards changed. Restart Home Assistant once after updating (a Repair asks), then reload the browser.
