@@ -1,7 +1,7 @@
 // Talk's pure parts (common.ts): finding a doorbell's call sensor, and what the call says.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { callSensor, callWords, countdown, talkOffered } from "./common.ts";
+import { callSensor, callWords, countdown, talkCamera, talkOffered } from "./common.ts";
 import type { Hass } from "../ha.ts";
 
 const cameras = (camera_entities: string[]) => ({ state: "idle", attributes: { camera_entities } });
@@ -63,4 +63,13 @@ test("the countdown to HA ending the call, the same on every device", () => {
   assert.equal(countdown(answered({ answered_by: "Hall tablet" }), now), null); // an integration without the timer
   assert.equal(countdown({ state: "ringing", attributes: { ends_at: "2026-11-06T12:01:00+00:00" } }, now), null);
   assert.equal(countdown(undefined, now), null);
+});
+
+test("the camera to talk to: the main one if it's the doorbell's, else the commander's, else the first", () => {
+  const call = cameras(["camera.oak_door_high", "camera.oak_door_low"]);
+  assert.equal(talkCamera(call, "camera.oak_door_low", ["camera.oak_door_low"]), "camera.oak_door_low");
+  assert.equal(talkCamera(call, "camera.barn", ["camera.barn", "camera.oak_door_low"]), "camera.oak_door_low");
+  assert.equal(talkCamera(call, "camera.barn", ["camera.barn"]), "camera.oak_door_high"); // not in this commander at all
+  assert.equal(talkCamera(cameras([]), "camera.barn", ["camera.barn"]), undefined);
+  assert.equal(talkCamera(undefined, "camera.barn", ["camera.barn"]), undefined);
 });

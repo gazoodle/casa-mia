@@ -180,8 +180,15 @@ tap_action:
   casa_mia_commander:
     talk: toggle            # or "on" / "off"
     duplex: half            # optional: answer in half duplex
+    call: sensor.oak_door_call          # optional: answer this doorbell, whatever is on screen
     entity: select.oak_door_commander   # optional: only this commander's card
 ```
+
+Without `call`, the button talks to the main camera's doorbell, and only while its live
+video is shown. With `call`, it answers that doorbell even when another camera is the
+main one: the call is sound only, so the doorbell needn't be on screen, and one Commander
+card on the page answers it. A toggle with `call` hangs up when this device has the call
+and answers otherwise.
 
 The button can show the call sensor's state. This device is talking when the sensor is
 `answered` and its `answered_by` attribute is this device's Home Assistant user.
@@ -201,8 +208,9 @@ every tile option, but its name and icon follow the call:
 | No call, or the sensor unavailable | Talk | `mdi:microphone` |
 
 "This tablet" means this tablet's Home Assistant user, so give each tablet its own user.
-A tap turns Talk on or off on the Commander card showing the doorbell; pick a
-**Commander** to send it to that one only. In the editor:
+A tap answers or hangs up through a Commander card on the page, even when the doorbell
+isn't its main camera (the page needs a Commander card, which owns the microphone); pick
+a **Commander** to send it to that one only. In the editor:
 
 - **Name** replaces "Talk" only. "Hang up" and "Answered by …" always show, because they
   say what a tap will do.

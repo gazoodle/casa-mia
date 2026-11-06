@@ -65,7 +65,7 @@ export class TalkTileCard extends HTMLElement {
   }
 
   private order(talk: "press" | "release") {
-    this.dispatchEvent(new CustomEvent("ll-custom", { bubbles: true, composed: true, detail: { casa_mia_commander: order(talk, this.config?.commander) } }));
+    this.dispatchEvent(new CustomEvent("ll-custom", { bubbles: true, composed: true, detail: { casa_mia_commander: order(talk, { entity: this.config?.commander }) } }));
   }
 
   /** Pressed: held only where the Commander is silent (answered here in half duplex);

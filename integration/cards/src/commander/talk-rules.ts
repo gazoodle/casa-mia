@@ -39,10 +39,11 @@ export function answeredHere(st: { state: string; attributes: Record<string, unk
 
 /** What a button sends the Commander card, as `casa_mia_commander` in HA's fire-dom-event
  * (or, from a Hold to talk tile, in an ll-custom event of its own): entity, only that
- * card; duplex, the card's own when not given. */
-export type Order = { talk: "toggle" | "on" | "off" | "press" | "release"; duplex?: Duplex; entity?: string };
-export function order(talk: Order["talk"], entity?: string, duplex?: Duplex): Order {
-  return { talk, ...(duplex === "half" ? { duplex } : {}), ...(entity ? { entity } : {}) };
+ * card; duplex, the card's own when not given; call, the doorbell's call sensor, so it is
+ * answered whatever the main camera is (else the main camera's doorbell). */
+export type Order = { talk: "toggle" | "on" | "off" | "press" | "release"; duplex?: Duplex; entity?: string; call?: string };
+export function order(talk: Order["talk"], o: { entity?: string; duplex?: Duplex; call?: string } = {}): Order {
+  return { talk, ...(o.duplex === "half" ? { duplex: o.duplex } : {}), ...(o.entity ? { entity: o.entity } : {}), ...(o.call ? { call: o.call } : {}) };
 }
 
 /** The choices for the duplex option, in both cards' editors. */
