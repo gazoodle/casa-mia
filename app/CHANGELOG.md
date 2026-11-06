@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.2-b14
+
+- No change you can see: the Camera Commander card and the Talk tile now share one set of talk rules (the button words, who answered, the duplex choices), so they can't drift apart.
+
 ## 2026.11.2-b13
 
 - Half duplex talking to a doorbell: the Camera Commander card and the Talk tile have a new Talking option. With half duplex, answering opens the call with the microphone silent, and your voice goes out only while you hold a Hold to talk button, with the visitor muted meanwhile. Lifting your finger anywhere, the browser losing focus, or locking the phone stops the voice.

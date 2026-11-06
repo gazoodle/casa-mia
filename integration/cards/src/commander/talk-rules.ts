@@ -1,11 +1,64 @@
-// Half duplex talk, its pure parts: the Commander's talk state, the hold to talk lease, and
-// the window event that announces the state to the Talk tiles on the page. The Commander
-// (talk.ts) owns the microphone; a Hold to talk tile only reports the finger.
+// Talking to a doorbell, its rules shared by the Commander card (talk.ts) and the Talk
+// tile (talk-tile/), pure: the Commander's talk state, the hold to talk lease, the window
+// event that announces the state to the tiles, what a button says and sends, and the
+// duplex choices. The Commander owns the microphone; a Hold to talk tile only reports the
+// finger.
 
 /** off; connecting; full (answered here, voice open); silent (answered here in half duplex,
  * not held); live (half duplex, held, the voice going out). */
 export type TalkState = "off" | "connecting" | "full" | "silent" | "live";
 export type Duplex = "full" | "half";
+
+/** What the buttons say, the same on the Commander card and on the Talk tile. */
+export const WORDS = { talk: "Talk", answer: "Answer", hang_up: "Hang up", hold: "Hold to talk", live: "Live" } as const;
+
+/** The button that starts a call: Answer in half duplex (the call opens silent), else Talk. */
+export const startWord = (half: boolean) => (half ? WORDS.answer : WORDS.talk);
+
+/** Hold to talk, from the Commander's talk state: enabled only where this page answered
+ * in half duplex; "Live" only while the voice is actually going out (a name the card's
+ * own can't replace; null: Hold to talk, which it can). */
+export function holdLook(talk: TalkState): { look: "hold" | "live"; name: string | null; enabled: boolean } {
+  if (talk === "live") return { look: "live", name: WORDS.live, enabled: true };
+  return { look: "hold", name: null, enabled: talk === "silent" };
+}
+
+/** The Commander card's own buttons: Hold to talk (or Live) while answered here in half
+ * duplex, else none; and the one that starts or ends the call. */
+export function commanderWords(said: TalkState, talking: boolean, half: boolean): { hold: string | null; main: string } {
+  const hold = said === "silent" || said === "live" ? (holdLook(said).name ?? WORDS.hold) : null;
+  return { hold, main: talking ? WORDS.hang_up : startWord(half) };
+}
+
+/** The call sensor says this HA user answered: one HA user per device makes that "this
+ * device is talking". Never true without an answered_by. */
+export function answeredHere(st: { state: string; attributes: Record<string, unknown> } | undefined, user: string | undefined): boolean {
+  const by = st?.state === "answered" ? st.attributes.answered_by : undefined;
+  return Boolean(by) && by === user;
+}
+
+/** What a button sends the Commander card, as `casa_mia_commander` in HA's fire-dom-event
+ * (or, from a Hold to talk tile, in an ll-custom event of its own): entity, only that
+ * card; duplex, the card's own when not given. */
+export type Order = { talk: "toggle" | "on" | "off" | "press" | "release"; duplex?: Duplex; entity?: string };
+export function order(talk: Order["talk"], entity?: string, duplex?: Duplex): Order {
+  return { talk, ...(duplex === "half" ? { duplex } : {}), ...(entity ? { entity } : {}) };
+}
+
+/** The choices for the duplex option, in both cards' editors. */
+export const DUPLEX_CHOICES = [
+  { value: "full", label: "Full duplex: your voice goes out as soon as you answer" },
+  { value: "half", label: "Half duplex: answering opens the call silent; your voice goes out only while Hold to talk is held" },
+];
+
+/** A hold is the page's, not the browser's: no scrolling, text selection or iPhone
+ * long-press menu taking it. On both cards' Hold to talk buttons. */
+export const NO_GRAB: Record<string, string> = {
+  "touch-action": "none",
+  "user-select": "none",
+  "-webkit-user-select": "none",
+  "-webkit-touch-callout": "none",
+};
 
 export function talkState(o: { talking: boolean; connected: boolean; half: boolean; held: boolean }): TalkState {
   if (!o.talking) return "off";

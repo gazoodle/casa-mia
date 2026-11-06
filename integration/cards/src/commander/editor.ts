@@ -3,6 +3,7 @@ import { LitElement, html, nothing } from "lit";
 import { fire, type Hass, LOOK, withoutDefaults as stripDefaults } from "../ha.ts";
 import { Config, LEAVE_AFTER, commanders } from "./common.ts";
 import { MOTION } from "./motion.ts";
+import { DUPLEX_CHOICES } from "./talk-rules.ts";
 
 /** Each option's default: shown in the form, and never saved (so a default changed later
  * reaches every card that was left at it). */
@@ -73,10 +74,7 @@ export class CommanderEditor extends LitElement {
         selector: {
           select: {
             mode: "list",
-            options: [
-              { value: "full", label: "Full duplex: your voice goes out as soon as you answer" },
-              { value: "half", label: "Half duplex: answering opens the call silent; your voice goes out only while Hold to talk is held" },
-            ],
+            options: DUPLEX_CHOICES,
           },
         },
       },

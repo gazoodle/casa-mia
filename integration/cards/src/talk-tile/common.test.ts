@@ -2,7 +2,8 @@
 // HA's tile card, and the config the editor saves.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { cleaned, holdLook, talkLook, tileConfig, type Config } from "./common.ts";
+import { cleaned, talkLook, tileConfig, type Config } from "./common.ts";
+import { commanderWords, holdLook } from "../commander/talk-rules.ts";
 
 const st = (state: string, attributes: Record<string, unknown> = {}) => ({ state, attributes });
 const ME = "Hall tablet";
@@ -127,4 +128,17 @@ test("the Hold to talk tile: its name, icon and colour per state, and no taps", 
 test("button and duplex at their defaults aren't saved", () => {
   assert.deepEqual(cleaned({ ...base, button: "answer", duplex: "full" }), base);
   assert.deepEqual(cleaned({ ...base, button: "hold" }), { ...base, button: "hold" });
+});
+
+test("the Commander's buttons and the Talk tile say the same words", () => {
+  const answered = st("answered", { answered_by: ME });
+  for (const duplex of ["full", "half"] as const) {
+    const half = duplex === "half";
+    const answer = { ...base, duplex };
+    assert.equal(commanderWords("off", false, half).main, tileConfig(answer, st("idle"), ME).name);
+    assert.equal(commanderWords(half ? "silent" : "full", true, half).main, tileConfig(answer, answered, ME).name);
+  }
+  const hold = { ...base, button: "hold" as const };
+  for (const said of ["silent", "live"] as const) assert.equal(commanderWords(said, true, true).hold, tileConfig(hold, st("answered", { answered_by: ME }), ME, said).name);
+  for (const said of ["off", "connecting", "full"] as const) assert.equal(commanderWords(said, said !== "off", false).hold, null);
 });

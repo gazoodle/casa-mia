@@ -4,9 +4,10 @@
 import { LitElement, html, nothing } from "lit";
 import { fire, type Hass } from "../ha.ts";
 import { callSensors, commanders } from "../commander/common.ts";
+import { DUPLEX_CHOICES, WORDS } from "../commander/talk-rules.ts";
 import { type Config, DEFAULTS, HOLD_LOOKS, ICONS, LOOKS, cleaned } from "./common.ts";
 
-const LOOK_NAMES = { talk: "Talk", ringing: "Ringing", hang_up: "Hang up", answered_elsewhere: "Answered elsewhere", hold: "Hold to talk", live: "Live" };
+const LOOK_NAMES = { talk: WORDS.talk, ringing: "Ringing", hang_up: WORDS.hang_up, answered_elsewhere: "Answered elsewhere", hold: WORDS.hold, live: WORDS.live };
 const TAP = { action: "fire-dom-event" }; // shown as the default; the card adds casa_mia_commander
 
 const choices = (options: { value: string; label: string }[]) => ({ select: { mode: "list", options } });
@@ -28,10 +29,7 @@ const schema = (hass: Hass, hold: boolean) => [
     : [
         {
           name: "duplex",
-          selector: choices([
-            { value: "full", label: "Full duplex: your voice goes out as soon as you answer" },
-            { value: "half", label: "Half duplex: answering opens the call silent, for a Hold to talk tile" },
-          ]),
+          selector: choices(DUPLEX_CHOICES),
         },
       ]),
   {

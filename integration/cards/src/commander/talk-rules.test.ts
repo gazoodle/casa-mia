@@ -1,8 +1,8 @@
-// Half duplex talk (hold.ts): the Commander's talk state, what each state switches, the
+// Half duplex talk (talk-rules.ts): the Commander's talk state, what each state switches, the
 // hold to talk lease, and the announced state a tile follows.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { Hold, type TalkState, announce, answerAsks, followTalk, talkState, talkSwitches } from "./hold.ts";
+import { Hold, type TalkState, announce, answerAsks, followTalk, talkState, talkSwitches } from "./talk-rules.ts";
 
 test("the talk state from what is true", () => {
   const s = (talking: boolean, connected: boolean, half: boolean, held: boolean) => talkState({ talking, connected, half, held });

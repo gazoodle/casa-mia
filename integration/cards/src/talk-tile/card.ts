@@ -5,12 +5,12 @@
 // tiles. A tap fires Talk's toggle to the Commander card (talk.ts), unless tap_action says
 // otherwise.
 // As Hold to talk (button: hold) it follows the Commander's announced talk state
-// (hold.ts) and only reports the finger: press on pointerdown, release on pointerup or
+// (talk-rules.ts) and only reports the finger: press on pointerdown, release on pointerup or
 // pointercancel. The Commander owns the microphone and ends a hold on every other path.
 import type { CardConfig, Hass } from "../ha.ts";
 import { callSensors } from "../commander/common.ts";
-import { type TalkState, followTalk } from "../commander/hold.ts";
-import { type Config, holdLook, tileConfig } from "./common.ts";
+import { type TalkState, NO_GRAB, followTalk, holdLook, order } from "../commander/talk-rules.ts";
+import { type Config, tileConfig } from "./common.ts";
 
 type Tile = HTMLElement & { hass?: Hass; setConfig(c: CardConfig): void; getCardSize?(): number; getGridOptions?(): object };
 
@@ -58,19 +58,14 @@ export class TalkTileCard extends HTMLElement {
     return this.config?.button === "hold";
   }
 
-  /** The hold is the page's, not the browser's: no scrolling, text selection or iPhone
-   * long-press menu taking it. */
+  /** As Hold to talk: the hold is the page's, not the browser's (talk-rules.ts: NO_GRAB). */
   private hostStyle() {
     const hold = this.holding();
-    for (const p of ["touch-action", "user-select", "-webkit-user-select", "-webkit-touch-callout"])
-      this.style.setProperty(p, hold ? "none" : "");
+    for (const [p, v] of Object.entries(NO_GRAB)) this.style.setProperty(p, hold ? v : "");
   }
 
   private order(talk: "press" | "release") {
-    const commander = this.config?.commander;
-    this.dispatchEvent(
-      new CustomEvent("ll-custom", { bubbles: true, composed: true, detail: { casa_mia_commander: { talk, ...(commander ? { entity: commander } : {}) } } }),
-    );
+    this.dispatchEvent(new CustomEvent("ll-custom", { bubbles: true, composed: true, detail: { casa_mia_commander: order(talk, this.config?.commander) } }));
   }
 
   /** Pressed: held only where the Commander is silent (answered here in half duplex);
