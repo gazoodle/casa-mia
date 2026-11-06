@@ -2,7 +2,7 @@
 // this tablet's user), or as Hold to talk (the Commander's announced talk state), and the
 // tile card config that follows from it and the card's own.
 import type { CardConfig, State } from "../ha.ts";
-import type { Duplex, TalkState } from "../commander/hold.ts";
+import { type Duplex, type TalkState, WORDS, answeredHere, holdLook, order, startWord } from "../commander/talk-rules.ts";
 
 /** The looks the tile can have; also the keys of `icons:` and `colors:`. An Answer tile
  * has the first four, a Hold to talk tile the last two. */
@@ -37,21 +37,10 @@ export type Config = CardConfig & {
  * the card's own name may replace; the others always show. One HA user per tablet makes
  * "this user answered" mean "this page is talking". */
 export function talkLook(st: State | undefined, user: string | undefined): { look: Look; name: string | null } {
-  if (st?.state === "answered") {
-    const by = st.attributes.answered_by;
-    if (by && by === user) return { look: "hang_up", name: "Hang up" };
-    return { look: "answered_elsewhere", name: `Answered by ${by ?? "someone"}` };
-  }
+  if (answeredHere(st, user)) return { look: "hang_up", name: WORDS.hang_up };
+  if (st?.state === "answered") return { look: "answered_elsewhere", name: `Answered by ${st.attributes.answered_by ?? "someone"}` };
   if (st?.state === "ringing") return { look: "ringing", name: null };
   return { look: "talk", name: null };
-}
-
-/** Hold to talk, from the Commander's talk state: enabled only where this page answered
- * in half duplex; "Live" only while the voice is actually going out. Greyed out, never
- * hidden, anywhere else, so the user knows where it is before they need it. */
-export function holdLook(talk: TalkState): { look: Look; name: string | null; enabled: boolean } {
-  if (talk === "live") return { look: "live", name: "Live", enabled: true };
-  return { look: "hold", name: null, enabled: talk === "silent" };
 }
 
 const NONE = { action: "none" };
@@ -62,15 +51,15 @@ const NONE = { action: "none" };
 export function tileConfig(config: Config, st: State | undefined, user: string | undefined, talk: TalkState = "off"): CardConfig {
   const { type: _, commander, icons, colors, button, duplex, ...tile } = config;
   const hold = button === "hold";
-  const half = duplex === "half";
+  // Hold to talk is greyed out, never hidden, where it isn't enabled (holdLook), so the
+  // user knows where it is before they need it.
   const { look, name, enabled } = hold ? holdLook(talk) : { ...talkLook(st, user), enabled: true };
-  const order = { talk: "toggle", ...(half ? { duplex } : {}), ...(commander ? { entity: commander } : {}) };
-  const tap = hold ? NONE : (config.tap_action ?? { action: "fire-dom-event", casa_mia_commander: order });
+  const tap = hold ? NONE : (config.tap_action ?? { action: "fire-dom-event", casa_mia_commander: order("toggle", commander, duplex) });
   const color = enabled ? (colors?.[look] ?? config.color ?? COLOURS[look]) : "disabled";
   const out: CardConfig = {
     ...tile,
     type: "tile",
-    name: name ?? config.name ?? (hold ? "Hold to talk" : half ? "Answer" : "Talk"),
+    name: name ?? config.name ?? (hold ? WORDS.hold : startWord(duplex === "half")),
     icon: config.icon ?? icons?.[look] ?? ICONS[look],
     tap_action: tap,
     icon_tap_action: hold ? NONE : (config.icon_tap_action ?? tap),

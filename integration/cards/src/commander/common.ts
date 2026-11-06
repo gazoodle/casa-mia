@@ -2,6 +2,7 @@
 import { type Hass, type Sharpness, type State } from "../ha.ts";
 import { pyRound, type Settings } from "../layout.ts";
 import type { Corner } from "./motion.ts";
+import type { Duplex } from "./talk-rules.ts";
 
 export type Route = "auto" | "direct" | "ha";
 export type Config = { type: string; entity?: string; tap_main?: "live" | "more-info" | "none"; route?: Route; away_sharpness?: Sharpness; live_main?: boolean;
@@ -22,8 +23,8 @@ export type Config = { type: string; entity?: string; tap_main?: "live" | "more-
   motion_corner?: Corner;
   /** The card's own Talk button, where talk is offered (talk.ts). */
   talk_button?: boolean;
-  /** full: the voice goes out from the answer; half: only while Hold to talk is held (hold.ts). */
-  duplex?: "full" | "half";
+  /** full: the voice goes out from the answer; half: only while Hold to talk is held (talk-rules.ts). */
+  duplex?: Duplex;
 };
 export type Card = {
   picture: string;

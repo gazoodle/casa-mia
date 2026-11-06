@@ -13,23 +13,18 @@
 // and its Hang up stay over the main camera, whichever it is, until hanging up.
 // Half duplex (the card's duplex option, or the order's): the session opens with the
 // microphone track disabled (it sends silence; the offer still claims the call), and the
-// voice goes out only while a Hold to talk is held (hold.ts: Hold), with the visitor muted
-// meanwhile. The state is announced on the window for the Talk tiles (hold.ts).
+// voice goes out only while a Hold to talk is held (talk-rules.ts: Hold), with the visitor muted
+// meanwhile. The state is announced on the window for the Talk tiles (talk-rules.ts).
 // HA times the answered call (intercom_talkback/call; the intercom repo's
 // docs/call-timer.md): 2 minutes in half duplex, stopped while held and restarted on
 // release; 10 minutes in full duplex, restarted by a touch anywhere on this page. Only
 // the device that answered tells HA; every device shows the countdown from the sensor.
 import { css, html, nothing } from "lit";
+import { styleMap } from "lit/directives/style-map.js";
 import { playWebRTC } from "../../../../app/web/src/webrtc.ts";
 import { Card, callSensor, callSensors, callWords, countdown, talkOffered, TALK_NOTE_MS, TOUCH_EVERY_MS } from "./common.ts";
 import { CommanderLive } from "./live.ts";
-import { type Duplex, type TalkState, Hold, announce, answerAsks, talkState, talkSwitches } from "./hold.ts";
-
-/** What a Lovelace button sends: `tap_action: {action: fire-dom-event, casa_mia_commander:
- * {talk: toggle | on | off, duplex: full | half, entity: <a commander's select>}}` (entity:
- * only that card; duplex: the card's own when not given). A Hold to talk tile sends press
- * and release. */
-type Order = { talk?: "toggle" | "on" | "off" | "press" | "release"; duplex?: Duplex; entity?: string };
+import { type TalkState, type Order, Hold, NO_GRAB, announce, answerAsks, answeredHere, commanderWords, talkState, talkSwitches } from "./talk-rules.ts";
 
 const TONES: Record<string, string> = { ringing: "cm-warn", answered: "cm-accent", complete: "cm-muted" };
 
@@ -83,7 +78,7 @@ export class CommanderTalk extends CommanderLive {
   };
 
   /** The microphone, the visitor's sound and the announced state, set from what is now
-   * true (hold.ts: talkState, talkSwitches). Called on every change. */
+   * true (talk-rules.ts: talkState, talkSwitches). Called on every change. */
   private sync() {
     const state = talkState({ talking: Boolean(this._talk), connected: this.connected, half: this.half, held: this.hold.held });
     const { mic, muted } = talkSwitches(state, this.half);
@@ -245,7 +240,7 @@ export class CommanderTalk extends CommanderLive {
     if (!this.mic) return;
     const sensor = this.call() ?? "";
     const st = this.hass?.states[sensor];
-    if (st?.state === "answered" && st.attributes.answered_by === this.hass?.user?.name) {
+    if (answeredHere(st, this.hass?.user?.name)) {
       this.claimed = true;
       if (!this.answered) this.answeredHere(sensor);
     } else if (this.claimed) this.hangUp("The call ended");
@@ -279,7 +274,7 @@ export class CommanderTalk extends CommanderLive {
     const left = countdown(st, Date.now());
     const button = this._config?.talk_button !== false && (this._talk || this.canTalk());
     const half = this._talk ? this.half : this._config?.duplex === "half";
-    const holding = button && (this.said === "silent" || this.said === "live");
+    const said = commanderWords(this.said, Boolean(this._talk), half);
     const out = this.said === "full" || this.said === "live"; // the voice going out
     return html`<div class="talk" style=${place}>
       <div class="talk-said">
@@ -289,18 +284,19 @@ export class CommanderTalk extends CommanderLive {
         ${this._talkNote && this._talkNote !== words ? html`<span class="cm-pill cm-filled cm-muted">${this._talkNote}</span>` : nothing}
       </div>
       <div class="talk-buttons">
-        ${holding
+        ${button && said.hold
           ? html`<button
-              class="cm-chip cm-on hold ${this.said === "live" ? "cm-bad" : "cm-good"}"
+              class="cm-chip cm-on ${this.said === "live" ? "cm-bad" : "cm-good"}"
+              style=${styleMap(NO_GRAB)}
               @pointerdown=${() => this.said === "silent" && this.hold.press()}
               @contextmenu=${(ev: Event) => ev.preventDefault()}
             >
-              ${this.said === "live" ? "Live" : "Hold to talk"}
+              ${said.hold}
             </button>`
           : nothing}
         ${button
           ? html`<button class="cm-chip cm-on ${this._talk ? "cm-bad" : "cm-good"}" @click=${() => (this._talk ? this.hangUp() : this.talkOn())}>
-              ${this._talk ? "Hang up" : half ? "Answer" : "Talk"}
+              ${said.main}
             </button>`
           : nothing}
       </div>
@@ -332,13 +328,5 @@ export const talkStyles = css`
   }
   .talk button {
     pointer-events: auto;
-  }
-  /* The hold is the page's, not the browser's: no scrolling, text selection or iPhone
-     long-press menu taking it. */
-  .talk button.hold {
-    touch-action: none;
-    user-select: none;
-    -webkit-user-select: none;
-    -webkit-touch-callout: none;
   }
 `;
