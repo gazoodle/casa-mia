@@ -16,20 +16,25 @@ ARG CM_REF
 # of the layer cache key, so each version re-clones; without it Docker reuses the first clone
 # forever (the command text never changes) and ships stale source.
 ARG BUILD_VERSION
-RUN echo "source for ${BUILD_VERSION}" && git clone --depth 1 --branch "${CM_REF}" "${CM_REPO}" /src
+# /deps.txt: pyproject.toml's runtime and build requirements, one per line. Its content only
+# changes when they do, so the layer installing them below stays cached between versions.
+RUN echo "source for ${BUILD_VERSION}" && git clone --depth 1 --branch "${CM_REF}" "${CM_REPO}" /src \
+    && grep -E '^(dependencies|requires) = \[' /src/pyproject.toml | grep -o '"[^"]*"' \
+       | tr -d '"' > /deps.txt
 
 FROM ghcr.io/home-assistant/base-debian:bookworm
 RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends \
         python3 python3-pip \
     && rm -rf /var/lib/apt/lists/*
-# PyAV (the camera streams, ~34 MB) in a layer of its own, before the source, so Docker keeps
-# it between versions instead of fetching it on every update. ponytail: its version range is
-# repeated from pyproject.toml; keep the two alike.
-RUN pip install --no-cache-dir --break-system-packages "av>=14"
-COPY --from=source /src /src
+# The dependencies (PyAV alone is ~34 MB) before the source. Installed with the source, they
+# were fetched again on every update, which made each local install wait on PyPI.
 # Bookworm's system Python is PEP 668 "externally managed"; this container only ever runs
 # this one install, so a venv buys nothing.
-RUN pip install --no-cache-dir --break-system-packages /src \
+COPY --from=source /deps.txt /deps.txt
+RUN pip install --no-cache-dir --break-system-packages -r /deps.txt
+COPY --from=source /src /src
+# --no-deps --no-build-isolation: everything it needs is in the layer above.
+RUN pip install --no-cache-dir --break-system-packages --no-deps --no-build-isolation /src \
     && cp -r /src/integration/custom_components /components \
     && rm -rf /src
 # Components land in /components; the app finds them there itself. An ENV would not reach it:

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.2-b16
+
+- Installing a development build is quicker: the app's Python packages are no longer downloaded again on every update, only when the list of them changes.
+
 ## 2026.11.2-b15
 
 - The Talk tile answers the doorbell even when the Camera Commander card is showing another camera. Before, its Answer did nothing unless the doorbell was the main camera with its live video playing. The call is sound only, so the view stays as it is. A refusal (the page not on https) is now shown on the card instead of being ignored. Your own buttons can do the same with `call: <the doorbell's call sensor>`.
