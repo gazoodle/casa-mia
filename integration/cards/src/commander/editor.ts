@@ -12,6 +12,7 @@ const DEFAULTS: Record<string, unknown> = {
   away_sharpness: "balanced",
   live_main: true,
   talk_button: true,
+  duplex: "full",
   leave_after: LEAVE_AFTER,
   security_look: false,
   look_tint: LOOK.tint,
@@ -67,6 +68,18 @@ export class CommanderEditor extends LitElement {
       },
       { name: "live_main", selector: { boolean: {} } },
       { name: "talk_button", selector: { boolean: {} } },
+      {
+        name: "duplex",
+        selector: {
+          select: {
+            mode: "list",
+            options: [
+              { value: "full", label: "Full duplex: your voice goes out as soon as you answer" },
+              { value: "half", label: "Half duplex: answering opens the call silent; your voice goes out only while Hold to talk is held" },
+            ],
+          },
+        },
+      },
       { name: "security_look", selector: { boolean: {} } },
       { name: "look_tint", selector: { color_rgb: {} } },
       { name: "look_strength", selector: { number: { min: 0.5, max: 10, step: 0.5, mode: "slider" } } },
@@ -112,6 +125,7 @@ export class CommanderEditor extends LitElement {
       away_sharpness: "Sharpness through Home Assistant",
       live_main: "Main camera as live video",
       talk_button: "Talk button",
+      duplex: "Talking",
       leave_after: "Picture kept running once out of sight",
       security_look: "Security look",
       look_tint: "Security look: tint",

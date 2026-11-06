@@ -120,6 +120,8 @@ Its options (each left at its default unless you change it):
   is off (see [Cameras](cameras.md)) never shows one.
 - **Talk button:** shown over a doorbell's live video (see below). Turn it off if you use
   your own buttons.
+- **Talking:** full duplex (the default), where your voice goes out as soon as you answer,
+  or half duplex, where it goes out only while you hold a button (see below).
 
 ### Talking to a doorbell
 
@@ -139,6 +141,37 @@ on an https address, because browsers only give a microphone to secure pages.
   who answered) or **Missed**. While one device has answered, Talk on another is refused
   and that device keeps its live video.
 
+#### Half duplex: hold to talk
+
+With **Talking** set to half duplex, the button says **Answer**. Answering opens the call
+with the microphone silent: you hear the visitor, and the door hears nothing. A **Hold to
+talk** button appears next to Hang up, and your voice goes out only while you hold it,
+like a walkie-talkie. While you hold it the button says **Live**, and the visitor's
+sound is muted on this device, so your own voice doesn't come back to you. The call is
+already connected, so your first word isn't lost.
+
+The voice stops when you lift your finger anywhere on the screen, when the browser loses
+focus, and when you lock the phone or switch app (which also hangs up). The browser's
+microphone indicator stays on for the whole call, because the page holds the microphone
+between holds.
+
+In half duplex the call ends after **2 minutes** without a hold. The timer stops while
+you hold the button and starts again from 2 minutes when you let go, so a long
+conversation carries on as long as you keep using it. A single hold counts for at most 2
+minutes, so a finger resting on the screen can't keep a call open forever. In full
+duplex the limit is 10 minutes, and any touch on the screen of the device that answered
+starts it again. Only the device that answered can extend a call: nothing the visitor
+does, such as ringing again, changes the timer. Every device showing the doorbell has a
+pill with the time left (**Hangs up in 1:42**, amber in the last 30 seconds), or
+**Held** while the button is held. The timer is the Intercom talkback integration's,
+and needs a version that has it; with an older one the call ends after 10 minutes and
+the card says so once.
+
+Half duplex suits phones, where a call left answered could otherwise play your voice at
+the door without your knowing. Each card has its own setting, so one dashboard can use
+half duplex on the phones and full duplex on the wall tablets: give each a card and show
+it with Home Assistant's **User** visibility condition.
+
 To use one of your own dashboard buttons instead of the card's, give it this tap action:
 
 ```yaml
@@ -146,6 +179,7 @@ tap_action:
   action: fire-dom-event
   casa_mia_commander:
     talk: toggle            # or "on" / "off"
+    duplex: half            # optional: answer in half duplex
     entity: select.oak_door_commander   # optional: only this commander's card
 ```
 
@@ -185,6 +219,32 @@ entity: sensor.gate_doorbell_call
 colors:
   hang_up: red
   ringing: amber
+```
+
+Two more options make it a half duplex pair:
+
+```yaml
+button: answer   # or hold
+duplex: full     # or half; only for button: answer
+```
+
+- **`duplex: half`** answers in half duplex (see above), and the tile says **Answer**
+  rather than Talk.
+- **`button: hold`** makes it the **Hold to talk** button. Your voice goes out while you
+  hold it, and it says **Live** while the voice is actually going out. It is enabled only
+  on the device that answered in half duplex; everywhere else it is greyed out and
+  ignores presses, but stays in place, so you know where it is before you need it. Its
+  states for `icons:` and `colors:` are `hold` and `live` (red unless you set one). It
+  takes no tap actions. A plain tile can't do this, because a tile's hold action fires
+  once and nothing tells it when the finger lifts.
+
+```yaml
+- type: custom:casa-mia-talk-tile
+  entity: sensor.gate_doorbell_call
+  duplex: half
+- type: custom:casa-mia-talk-tile
+  entity: sensor.gate_doorbell_call
+  button: hold
 ```
 
 ## Troubleshooting

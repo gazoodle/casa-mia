@@ -43,8 +43,13 @@ export class CommanderLive extends CommanderBase {
   protected onBeat = () => {
     const video = this.renderRoot?.querySelector<HTMLVideoElement>("video.live") ?? null;
     if (video !== this.watched) this.watch(video);
-    if (video) this.requestUpdate();
+    if (video || this.ticking()) this.requestUpdate();
   };
+  /** Something besides the live caption needs the once-a-second redraw (talk.ts: the
+   * call's countdown). */
+  protected ticking(): boolean {
+    return false;
+  }
   /** Count `video`'s frames from now: a new start, no frame yet. */
   protected watch(video: HTMLVideoElement | null) {
     this.watched = video;

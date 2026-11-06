@@ -1,22 +1,31 @@
 // The Talk tile's rules, pure: what the tile says for a call (the call sensor's state and
-// this tablet's user), and the tile card config that follows from it and the card's own.
+// this tablet's user), or as Hold to talk (the Commander's announced talk state), and the
+// tile card config that follows from it and the card's own.
 import type { CardConfig, State } from "../ha.ts";
+import type { Duplex, TalkState } from "../commander/hold.ts";
 
-/** The four looks the tile can have; also the keys of `icons:` and `colors:`. */
-export type Look = "talk" | "ringing" | "hang_up" | "answered_elsewhere";
+/** The looks the tile can have; also the keys of `icons:` and `colors:`. An Answer tile
+ * has the first four, a Hold to talk tile the last two. */
+export type Look = "talk" | "ringing" | "hang_up" | "answered_elsewhere" | "hold" | "live";
 export const LOOKS: Look[] = ["talk", "ringing", "hang_up", "answered_elsewhere"];
+export const HOLD_LOOKS: Look[] = ["hold", "live"];
 
 export const ICONS: Record<Look, string> = {
   talk: "mdi:microphone",
   ringing: "mdi:bell-ring",
   hang_up: "mdi:phone-hangup",
   answered_elsewhere: "mdi:microphone-off",
+  hold: "mdi:microphone",
+  live: "mdi:microphone",
 };
+const COLOURS: Partial<Record<Look, string>> = { live: "red" };
 
 export type Config = CardConfig & {
   entity: string; // the intercom_talkback call sensor
   commander?: string; // a Commander's Main camera select: only that card talks
-  name?: string; // replaces "Talk" only
+  button?: "answer" | "hold"; // answer and hang up, or Hold to talk
+  duplex?: Duplex; // answer only: half answers silent, for Hold to talk
+  name?: string; // replaces "Talk" (or "Answer", or "Hold to talk") only
   icon?: string; // every state
   icons?: Partial<Record<Look, string>>;
   color?: string; // every state
@@ -37,31 +46,43 @@ export function talkLook(st: State | undefined, user: string | undefined): { loo
   return { look: "talk", name: null };
 }
 
-/** The HA tile card's config for a call: the card's config passed through, with only the
- * name, icon and colour set from the call, and the tap defaulting to Talk's toggle. */
-export function tileConfig(config: Config, st: State | undefined, user: string | undefined): CardConfig {
-  const { type: _, commander, icons, colors, ...tile } = config;
-  const { look, name } = talkLook(st, user);
-  const tap = config.tap_action ?? {
-    action: "fire-dom-event",
-    casa_mia_commander: { talk: "toggle", ...(commander ? { entity: commander } : {}) },
-  };
-  const color = colors?.[look] ?? config.color;
+/** Hold to talk, from the Commander's talk state: enabled only where this page answered
+ * in half duplex; "Live" only while the voice is actually going out. Greyed out, never
+ * hidden, anywhere else, so the user knows where it is before they need it. */
+export function holdLook(talk: TalkState): { look: Look; name: string | null; enabled: boolean } {
+  if (talk === "live") return { look: "live", name: "Live", enabled: true };
+  return { look: "hold", name: null, enabled: talk === "silent" };
+}
+
+const NONE = { action: "none" };
+
+/** The HA tile card's config: the card's config passed through, with only the name, icon
+ * and colour set from the call (or from the talk state, for Hold to talk), and the tap
+ * defaulting to Talk's toggle. Hold to talk takes no taps: the card reports the finger. */
+export function tileConfig(config: Config, st: State | undefined, user: string | undefined, talk: TalkState = "off"): CardConfig {
+  const { type: _, commander, icons, colors, button, duplex, ...tile } = config;
+  const hold = button === "hold";
+  const half = duplex === "half";
+  const { look, name, enabled } = hold ? holdLook(talk) : { ...talkLook(st, user), enabled: true };
+  const order = { talk: "toggle", ...(half ? { duplex } : {}), ...(commander ? { entity: commander } : {}) };
+  const tap = hold ? NONE : (config.tap_action ?? { action: "fire-dom-event", casa_mia_commander: order });
+  const color = enabled ? (colors?.[look] ?? config.color ?? COLOURS[look]) : "disabled";
   const out: CardConfig = {
     ...tile,
     type: "tile",
-    name: name ?? config.name ?? "Talk",
+    name: name ?? config.name ?? (hold ? "Hold to talk" : half ? "Answer" : "Talk"),
     icon: config.icon ?? icons?.[look] ?? ICONS[look],
     tap_action: tap,
-    icon_tap_action: config.icon_tap_action ?? tap,
+    icon_tap_action: hold ? NONE : (config.icon_tap_action ?? tap),
   };
+  if (hold) Object.assign(out, { hold_action: NONE, double_tap_action: NONE });
   if (color) out.color = color;
   else delete out.color;
   return out;
 }
 
 /** The layout options' defaults, as HA's tile card has them: never saved. */
-export const DEFAULTS = { vertical: false, hide_state: false, features_position: "bottom" };
+export const DEFAULTS = { button: "answer", duplex: "full", vertical: false, hide_state: false, features_position: "bottom" };
 
 /** The config as saved from the editor: empty fields, empty groups (icons, colors) and
  * options at their default left out, so the YAML holds only what was set. */

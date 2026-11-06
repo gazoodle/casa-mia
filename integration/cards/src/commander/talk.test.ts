@@ -1,7 +1,7 @@
 // Talk's pure parts (common.ts): finding a doorbell's call sensor, and what the call says.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { callSensor, callWords, talkOffered } from "./common.ts";
+import { callSensor, callWords, countdown, talkOffered } from "./common.ts";
 import type { Hass } from "../ha.ts";
 
 const cameras = (camera_entities: string[]) => ({ state: "idle", attributes: { camera_entities } });
@@ -48,4 +48,19 @@ test("the call's words, the same on every device", () => {
   assert.equal(callWords(st("complete", { outcome: "ended" })), "");
   assert.equal(callWords(st("idle")), "");
   assert.equal(callWords(undefined), "");
+});
+
+test("the countdown to HA ending the call, the same on every device", () => {
+  const now = Date.parse("2026-11-06T12:00:00Z");
+  const answered = (attributes: Record<string, unknown>) => ({ state: "answered", attributes });
+  assert.deepEqual(countdown(answered({ ends_at: "2026-11-06T12:01:42+00:00" }), now), { text: "Hangs up in 1:42", warn: false });
+  assert.deepEqual(countdown(answered({ ends_at: "2026-11-06T12:00:30+00:00" }), now), { text: "Hangs up in 0:30", warn: true });
+  assert.deepEqual(countdown(answered({ ends_at: "2026-11-06T12:00:00.400+00:00" }), now), { text: "Hangs up in 0:01", warn: true });
+  assert.deepEqual(countdown(answered({ ends_at: "2026-11-06T11:59:00+00:00" }), now), { text: "Hangs up in 0:00", warn: true });
+  assert.deepEqual(countdown(answered({ ends_at: null, held: true }), now), { text: "Held", warn: false });
+  // a hold past its cap: the timer runs again, and the countdown shows
+  assert.deepEqual(countdown(answered({ ends_at: "2026-11-06T12:02:00+00:00", held: true }), now), { text: "Hangs up in 2:00", warn: false });
+  assert.equal(countdown(answered({ answered_by: "Hall tablet" }), now), null); // an integration without the timer
+  assert.equal(countdown({ state: "ringing", attributes: { ends_at: "2026-11-06T12:01:00+00:00" } }, now), null);
+  assert.equal(countdown(undefined, now), null);
 });
