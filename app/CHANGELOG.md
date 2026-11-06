@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.2-b5
+
+- The Camera Commander page's live preview moved to a file of its own (no change in what it does).
+
 ## 2026.11.2-b4
 
 - New: two more ways a Camera Commander panel can lay out its cameras: **Squares**, equal squares grouped in the middle of the panel, and **Squares, spread**, with the spare room shared evenly between them and at both ends. Each camera is cropped to fill its square.
