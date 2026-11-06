@@ -127,9 +127,12 @@ When the main camera is a doorbell with a call sensor from the Intercom talkback
 integration, and it is playing as live video, the card can talk to it. The page must be
 on an https address, because browsers only give a microphone to secure pages.
 
-- **Talk** asks for this device's microphone and restarts the live video with it, so the
-  visitor hears you and you hear them. A red **Live to …** label shows while the
-  microphone is on, and the tiles don't change the main camera until you hang up.
+- **Talk** asks for this device's microphone and opens a sound-only connection to the
+  doorbell, so the visitor hears you and you hear them. A red **Live to …** label shows
+  while the microphone is on. You can still tap other cameras during the call: the main
+  camera changes on every device showing the commander, as it always does, and the call
+  carries on. The label and Hang up stay over the main camera, and a tap on the
+  doorbell's tile brings it back.
 - **Hang up** stops the microphone, and the call ends. Leaving the page, scrolling the
   card away or switching to another app hangs up at once.
 - Every device shows the call: **Ringing**, **Answered by …** (the Home Assistant user

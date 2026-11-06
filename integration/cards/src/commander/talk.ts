@@ -2,15 +2,17 @@
 // live main camera's device has an intercom_talkback call sensor.
 // The microphone is this device's, switched on by a tap here (the card's Talk button, or
 // any Lovelace button firing a casa_mia_commander event): a tap lets the browser open the
-// microphone and play the visitor's voice. Talk restarts the live session with the
-// microphone; that offer answers the call, and HA refuses it (intercom_answered_elsewhere)
-// while another user holds the call. Hanging up restarts it without, which closes the
-// session that held the call. Nothing else can switch the microphone on, and it goes off
-// the moment the card is out of sight: a microphone must not stay live on a page nobody
-// is looking at.
-// While talking, the doorbell stays the main camera here whatever its select says (the
-// select is shared by every device showing the commander), and tiles don't change it.
+// microphone and play the visitor's voice. Talk opens a session of its own to the doorbell,
+// sound only (the microphone out, the visitor in); that offer answers the call, and HA
+// refuses it (intercom_answered_elsewhere) while another user holds the call. Hanging up
+// closes it, which ends the call. Nothing else can switch the microphone on, and it goes
+// off the moment the card is out of sight: a microphone must not stay live on a page
+// nobody is looking at.
+// The call is not the main camera's: the view can change while talking (a tile tap, as
+// ever, changes it on every device showing the commander), and the call, its "Live to …"
+// and its Hang up stay over the main camera, whichever it is, until hanging up.
 import { css, html, nothing } from "lit";
+import { playWebRTC } from "../../../../app/web/src/webrtc.ts";
 import { Card, callSensor, callSensors, callWords, talkOffered, TALK_NOTE_MS } from "./common.ts";
 import { CommanderLive } from "./live.ts";
 
@@ -23,9 +25,11 @@ const TONES: Record<string, string> = { ringing: "cm-warn", answered: "cm-accent
 export class CommanderTalk extends CommanderLive {
   static properties = { ...CommanderLive.properties, _talk: { state: true }, _talkNote: { state: true } };
   /** The camera talked to, from the tap until hanging up (the microphone may still be
-   * being asked for): the main camera here meanwhile. */
+   * being asked for). */
   _talk = "";
   _talkNote = "";
+  private mic?: MediaStreamTrack; // this device's, while talking
+  private voice?: () => void; // closes the talking session, which ends the call
   private claimed = false; // the call sensor has said this user answered
   private asking = 0; // which ask for the microphone is current: a hang-up makes it stale
   private noteGone = 0;
@@ -51,15 +55,15 @@ export class CommanderTalk extends CommanderLive {
     else this.hangUp();
   };
 
-  /** The call sensor of the main camera (the one talked to, while talking). The call
-   * sensors are listed again only when HA's registry changes; which one holds the camera
-   * is read from their states each time, as camera_entities can change on its own. */
+  /** The call sensor of the camera talked to, else of the main camera. The call sensors
+   * are listed again only when HA's registry changes; which one holds the camera is read
+   * from their states each time, as camera_entities can change on its own. */
   protected call(): string | undefined {
-    const { main } = this.now();
+    const camera = this._talk || this.now().main;
     const entities = this.hass?.entities;
-    if (!main || !entities) return undefined;
+    if (!camera || !entities) return undefined;
     if (this.found.entities !== entities) this.found = { entities, sensors: callSensors(this.hass!) };
-    return callSensor(this.hass!, main, this.found.sensors);
+    return callSensor(this.hass!, camera, this.found.sensors);
   }
 
   /** Talk is offered (common.ts: talkOffered). */
@@ -68,7 +72,7 @@ export class CommanderTalk extends CommanderLive {
   }
 
   /** Talk on: ask for the microphone at once (inside the tap, so the browser allows it),
-   * then restart the live session with it (live.ts: followLive). */
+   * then open the talking session with it (speak). */
   protected talkOn() {
     if (this._talk || !this.canTalk()) return;
     const camera = this.now().main;
@@ -82,6 +86,7 @@ export class CommanderTalk extends CommanderLive {
         console.info(`casa-mia: talk to ${camera}: microphone on`);
         this.mic = track;
         this.claimed = false;
+        this.speak(camera, track, ask);
         this.requestUpdate();
       },
       (err) => {
@@ -92,15 +97,34 @@ export class CommanderTalk extends CommanderLive {
     );
   }
 
-  /** Hang up: the microphone stopped (the browser's indicator goes out) and its session
-   * closed now, which ends the call; the next update starts one without it. */
+  /** The talking session: sound only, the microphone out and the visitor's voice in, to
+   * an <audio> of its own (playing it is allowed while the microphone is on). Its offer
+   * answers the call; HA refusing it, or ending the call, hangs up. */
+  private speak(camera: string, mic: MediaStreamTrack, ask: number) {
+    const voice = new Audio();
+    voice.autoplay = true;
+    const failed = (why: string, code?: string) => {
+      if (ask !== this.asking) return; // hung up meanwhile
+      if (code === "intercom_answered_elsewhere") this.hangUp(why || "Answered elsewhere");
+      else if (code === "intercom_call_ended") this.hangUp("The call ended");
+      else this.hangUp(`The call failed: ${why}`);
+    };
+    playWebRTC(this.hass!.connection, camera, voice, failed, mic).then(
+      (stop) => (ask === this.asking ? (this.voice = stop) : stop()),
+      (err) => failed(String(err)),
+    );
+  }
+
+  /** Hang up: the talking session closed, which ends the call, and the microphone
+   * stopped (the browser's indicator goes out). */
   protected hangUp(note = "") {
     this.asking++;
+    this.voice?.();
+    this.voice = undefined;
     if (this.mic) {
       console.info(`casa-mia: talk to ${this._talk}: hung up${note ? ` (${note})` : ""}`);
       this.mic.stop();
       this.mic = undefined;
-      this.stopLive();
     }
     this.claimed = false;
     this._talk = "";
@@ -111,14 +135,6 @@ export class CommanderTalk extends CommanderLive {
     clearTimeout(this.noteGone);
     this._talkNote = text;
     if (text) this.noteGone = window.setTimeout(() => (this._talkNote = ""), TALK_NOTE_MS);
-  }
-
-  /** HA refused the session or ended its call: not the stream's fault (live.ts). */
-  protected refusedBy(code: string, why: string): boolean {
-    if (code === "intercom_answered_elsewhere") this.hangUp(why || "Answered elsewhere");
-    else if (code === "intercom_call_ended") this.hangUp("The call ended");
-    else return false;
-    return true;
   }
 
   /** On each update while talking: the call sensor once said this user answered and no
@@ -137,11 +153,6 @@ export class CommanderTalk extends CommanderLive {
       this.hangUp();
     }
     super.outOfSight(why);
-  }
-
-  /** The camera talked to stays the main camera until hanging up. */
-  protected main(card: Card, option?: string): string {
-    return this._talk && card.cameras[this._talk] ? this._talk : super.main(card, option);
   }
 
   /** Over the main camera: the call's state, "Live to …" while the microphone is on, a

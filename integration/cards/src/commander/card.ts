@@ -130,7 +130,7 @@ export class CommanderCard extends CommanderTalk {
                 style="${at(mainRect)};object-fit:${({ fill: "fill", crop: "cover" } as Record<string, string>)[own.main_fit ?? "fit"] ?? "contain"};opacity:${this._playing ? 1 : 0}"
                 autoplay
                 playsinline
-                .muted=${!this.mic}
+                .muted=${true /* the visitor is heard through Talk's own session (talk.ts) */}
               ></video>
               ${this.caption(card.cameras[main]?.title ?? main, at(mainRect))}`
           : nothing}
@@ -167,15 +167,14 @@ export class CommanderCard extends CommanderTalk {
           ),
         )}
         ${mainRect[2] > 0 ? dot(moving.get(main), at(mainRect), this._config!, () => this.open(card, main)) : nothing}
-        ${live && mainRect[2] > 0 ? this.talkParts(card, at(mainRect)) : nothing}
+        ${(live || this._talk) && mainRect[2] > 0 ? this.talkParts(card, at(mainRect)) : nothing}
       </div>
     </ha-card>`;
   }
 
-  /** A tap on a panel camera makes it the main one, except while talking here: the
-   * select is shared, and changing it would leave the doorbell. */
+  /** A tap on a panel camera makes it the main one, on every device showing the commander
+   * (the select is shared); a call goes on, as talking is a session of its own (talk.ts). */
   private choose(card: Card, camera: string) {
-    if (this._talk) return;
     this.hass?.callService("select", "select_option", { option: card.cameras[camera]?.title }, { entity_id: this._config!.entity });
   }
 

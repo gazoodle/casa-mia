@@ -84,23 +84,19 @@ export class CommanderLive extends CommanderBase {
     return liveChannel(channels, [area[2], area[3]], fit !== "fill" && fit !== "crop");
   }
 
-  /** Start, switch or stop the live main camera to match what is shown, and the
-   * microphone sent with it (talk.ts): a session is its channel and its microphone, so a
-   * microphone given or taken back is a new session. */
+  /** Start, switch or stop the live main camera to match what is shown. It only watches:
+   * talking is a session of its own (talk.ts), so the view can change during a call. */
   protected followLive() {
     const { card, main } = this.now();
     const video = this.renderRoot.querySelector<HTMLVideoElement>("video.live");
-    const entity = card && video && this.liveMain(card, main) ? (video.dataset.entity ?? "") : "";
-    const mic = entity ? this.mic : undefined;
-    const want = mic ? `${entity} with microphone ${mic.id}` : entity;
+    const want = card && video && this.liveMain(card, main) ? (video.dataset.entity ?? "") : "";
     if (want === this.liveOn) return;
     this.stopLive();
     if (!want || !video) return;
     this.liveOn = want;
     this.watch(video); // a new session: its frames counted from its start, the first too
-    const failed = (why: string, code?: string) => {
+    const failed = (why: string) => {
       if (this.liveOn !== want) return;
-      if (code && this.refusedBy(code, why)) return this.stopLive(); // not the stream's fault: no strike
       this.liveFails += 1;
       const off = this.liveFails >= LIVE_GIVE_UP ? `; ${this.liveFails} in a row, so no more tries until the page reloads` : "";
       console.info(`casa-mia: live main camera ${want}: ${why}; the drawn picture instead${off}`);
@@ -113,19 +109,10 @@ export class CommanderLive extends CommanderBase {
       this.liveFails = 0;
       this._playing = true;
     };
-    playWebRTC(this.hass!.connection, entity, video, failed, mic).then(
+    playWebRTC(this.hass!.connection, want, video, failed).then(
       (stop) => (this.liveOn === want ? (this.liveStop = stop) : stop()),
       (err) => failed(String(err)),
     );
-  }
-
-  /** The microphone sent with the live session (two-way audio), set by talk.ts. */
-  protected mic?: MediaStreamTrack;
-  /** An error HA sent with a code, about the session rather than the stream (a call
-   * answered elsewhere): true when a higher layer dealt with it, so it is no strike
-   * towards LIVE_GIVE_UP. */
-  protected refusedBy(_code: string, _why: string): boolean {
-    return false;
   }
 
   protected stopLive() {

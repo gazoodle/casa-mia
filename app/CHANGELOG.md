@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.2-b12
+
+- While talking to a doorbell on the Camera Commander card, you can tap other cameras: the view changes and the call carries on. Talk now has a sound-only connection of its own instead of riding on the main camera's live video, so the tablet decodes no extra video. "Live to …" and Hang up stay over the main camera until you hang up.
+
 ## 2026.11.2-b11
 
 - New card, the Talk tile (`custom:casa-mia-talk-tile`): Home Assistant's own tile card on a doorbell's call sensor, whose name and icon say what a tap does on this tablet: Talk, Hang up, or Answered by whoever has the call. A tap turns Talk on or off on the Camera Commander card. It has a visual editor, with a colour and icon for each state, and is in the Add card list.

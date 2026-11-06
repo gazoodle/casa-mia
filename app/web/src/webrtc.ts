@@ -33,12 +33,13 @@ export async function canWebRTC(conn: Connection, entity: string): Promise<boole
  * of an error HA sent (so a refused microphone can be told from a broken stream). With
  * `mic`, it is sent to the camera (two-way audio): a new session, as HA's own player makes
  * one, since go2rtc answers a renegotiation with a new DTLS fingerprint; the offer itself
- * is then the claim on the camera's call. Returns the close: the session ends and the
- * connection is dropped. */
+ * is then the claim on the camera's call. Given an <audio> rather than a <video>, the
+ * offer asks for no video, so nothing is decoded but the sound. Returns the close: the
+ * session ends and the connection is dropped. */
 export async function playWebRTC(
   conn: Connection,
   entity: string,
-  video: HTMLVideoElement,
+  video: HTMLMediaElement,
   failed: (why: string, code?: string) => void,
   mic?: MediaStreamTrack,
 ): Promise<() => void> {
@@ -48,7 +49,7 @@ export async function playWebRTC(
   });
   const pc = new RTCPeerConnection(config.configuration);
   if (config.dataChannel) pc.createDataChannel(config.dataChannel); // some cameras need one
-  pc.addTransceiver("video", { direction: "recvonly" });
+  if (video instanceof HTMLVideoElement) pc.addTransceiver("video", { direction: "recvonly" });
   if (mic) pc.addTransceiver(mic, { direction: "sendrecv" });
   else pc.addTransceiver("audio", { direction: "recvonly" });
   const stream = new MediaStream();

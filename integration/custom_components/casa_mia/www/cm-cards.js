@@ -1220,7 +1220,7 @@ async function Xt(e, t, n, r, i) {
 		type: "camera/webrtc/get_client_config",
 		entity_id: t
 	}), o = new RTCPeerConnection(a.configuration);
-	a.dataChannel && o.createDataChannel(a.dataChannel), o.addTransceiver("video", { direction: "recvonly" }), i ? o.addTransceiver(i, { direction: "sendrecv" }) : o.addTransceiver("audio", { direction: "recvonly" });
+	a.dataChannel && o.createDataChannel(a.dataChannel), n instanceof HTMLVideoElement && o.addTransceiver("video", { direction: "recvonly" }), i ? o.addTransceiver(i, { direction: "sendrecv" }) : o.addTransceiver("audio", { direction: "recvonly" });
 	let s = new MediaStream();
 	o.ontrack = (e) => {
 		s.addTrack(e.track), n.srcObject = s;
@@ -1418,22 +1418,18 @@ var Zt = class extends B {
 		]], [n[2], n[3]], r !== "fill" && r !== "crop");
 	}
 	followLive() {
-		let { card: e, main: t } = this.now(), n = this.renderRoot.querySelector("video.live"), r = e && n && this.liveMain(e, t) ? n.dataset.entity ?? "" : "", i = r ? this.mic : void 0, a = i ? `${r} with microphone ${i.id}` : r;
-		if (a === this.liveOn || (this.stopLive(), !a || !n)) return;
-		this.liveOn = a, this.watch(n);
-		let o = (e, n) => {
-			if (this.liveOn !== a) return;
-			if (n && this.refusedBy(n, e)) return this.stopLive();
+		let { card: e, main: t } = this.now(), n = this.renderRoot.querySelector("video.live"), r = e && n && this.liveMain(e, t) ? n.dataset.entity ?? "" : "";
+		if (r === this.liveOn || (this.stopLive(), !r || !n)) return;
+		this.liveOn = r, this.watch(n);
+		let i = (e) => {
+			if (this.liveOn !== r) return;
 			this.liveFails += 1;
-			let r = this.liveFails >= 2 ? `; ${this.liveFails} in a row, so no more tries until the page reloads` : "";
-			console.info(`casa-mia: live main camera ${a}: ${e}; the drawn picture instead${r}`), this.stopLive(), this._liveFailed = t;
+			let n = this.liveFails >= 2 ? `; ${this.liveFails} in a row, so no more tries until the page reloads` : "";
+			console.info(`casa-mia: live main camera ${r}: ${e}; the drawn picture instead${n}`), this.stopLive(), this._liveFailed = t;
 		};
-		this.liveWait = window.setTimeout(() => o("not playing in time"), Mt), n.onplaying = () => {
+		this.liveWait = window.setTimeout(() => i("not playing in time"), Mt), n.onplaying = () => {
 			clearTimeout(this.liveWait), this.liveFails = 0, this._playing = !0;
-		}, Xt(this.hass.connection, r, n, o, i).then((e) => this.liveOn === a ? this.liveStop = e : e(), (e) => o(String(e)));
-	}
-	refusedBy(e, t) {
-		return !1;
+		}, Xt(this.hass.connection, r, n, i).then((e) => this.liveOn === r ? this.liveStop = e : e(), (e) => i(String(e)));
 	}
 	stopLive() {
 		clearTimeout(this.liveWait), this.liveStop?.(), this.liveStop = void 0, this.liveOn = "", this._playing = !1;
@@ -1470,7 +1466,7 @@ var Zt = class extends B {
 		super.disconnectedCallback(), window.removeEventListener("ll-custom", this.onOrder), clearTimeout(this.noteGone);
 	}
 	call() {
-		let { main: e } = this.now(), t = this.hass?.entities;
+		let e = this._talk || this.now().main, t = this.hass?.entities;
 		if (e && t) return this.found.entities !== t && (this.found = {
 			entities: t,
 			sensors: Ut(this.hass)
@@ -1491,22 +1487,24 @@ var Zt = class extends B {
 		this._talk = e, this.note(""), navigator.mediaDevices.getUserMedia({ audio: !0 }).then((n) => {
 			let [r] = n.getAudioTracks();
 			if (t !== this.asking) return r?.stop();
-			console.info(`casa-mia: talk to ${e}: microphone on`), this.mic = r, this.claimed = !1, this.requestUpdate();
+			console.info(`casa-mia: talk to ${e}: microphone on`), this.mic = r, this.claimed = !1, this.speak(e, r, t), this.requestUpdate();
 		}, (n) => {
 			t === this.asking && (console.info(`casa-mia: talk to ${e}: no microphone: ${n}`), this.hangUp(`No microphone: ${n?.message ?? n}`));
 		});
 	}
+	speak(e, t, n) {
+		let r = new Audio();
+		r.autoplay = !0;
+		let i = (e, t) => {
+			n === this.asking && (t === "intercom_answered_elsewhere" ? this.hangUp(e || "Answered elsewhere") : t === "intercom_call_ended" ? this.hangUp("The call ended") : this.hangUp(`The call failed: ${e}`));
+		};
+		Xt(this.hass.connection, e, r, i, t).then((e) => n === this.asking ? this.voice = e : e(), (e) => i(String(e)));
+	}
 	hangUp(e = "") {
-		this.asking++, this.mic && (console.info(`casa-mia: talk to ${this._talk}: hung up${e ? ` (${e})` : ""}`), this.mic.stop(), this.mic = void 0, this.stopLive()), this.claimed = !1, this._talk = "", e && this.note(e);
+		this.asking++, this.voice?.(), this.voice = void 0, this.mic &&= (console.info(`casa-mia: talk to ${this._talk}: hung up${e ? ` (${e})` : ""}`), this.mic.stop(), void 0), this.claimed = !1, this._talk = "", e && this.note(e);
 	}
 	note(e) {
 		clearTimeout(this.noteGone), this._talkNote = e, e && (this.noteGone = window.setTimeout(() => this._talkNote = "", qt));
-	}
-	refusedBy(e, t) {
-		if (e === "intercom_answered_elsewhere") this.hangUp(t || "Answered elsewhere");
-		else if (e === "intercom_call_ended") this.hangUp("The call ended");
-		else return !1;
-		return !0;
 	}
 	followCall() {
 		if (!this.mic) return;
@@ -1515,9 +1513,6 @@ var Zt = class extends B {
 	}
 	outOfSight(e) {
 		this._talk && (console.info(`casa-mia: talk ended: ${e}`), this.hangUp()), super.outOfSight(e);
-	}
-	main(e, t) {
-		return this._talk && e.cameras[this._talk] ? this._talk : super.main(e, t);
 	}
 	talkParts(e, t) {
 		let n = this.call();
@@ -1764,7 +1759,7 @@ var Zt = class extends B {
 		}[a.main_fit ?? "fit"] ?? "contain"};opacity:${+!!this._playing}"
                 autoplay
                 playsinline
-                .muted=${!this.mic}
+                .muted=${!0}
               ></video>
               ${this.caption(t.cameras[n]?.title ?? n, v(g))}` : z}
         </div>
@@ -1785,12 +1780,12 @@ var Zt = class extends B {
             />` : z}
         ${V.flatMap((e) => p[e].cameras.map((r, i) => _[e][i][2] > 0 ? At(b.get(r), v(_[e][i]), this._config, () => r === n ? this.open(t, r) : this.choose(t, r)) : z))}
         ${g[2] > 0 ? At(b.get(n), v(g), this._config, () => this.open(t, n)) : z}
-        ${i && g[2] > 0 ? this.talkParts(t, v(g)) : z}
+        ${(i || this._talk) && g[2] > 0 ? this.talkParts(t, v(g)) : z}
       </div>
     </ha-card>`;
 	}
 	choose(e, t) {
-		this._talk || this.hass?.callService("select", "select_option", { option: e.cameras[t]?.title }, { entity_id: this._config.entity });
+		this.hass?.callService("select", "select_option", { option: e.cameras[t]?.title }, { entity_id: this._config.entity });
 	}
 	open(e, n) {
 		let r = this._config?.tap_main ?? "more-info", a = e.cameras[n]?.live;
