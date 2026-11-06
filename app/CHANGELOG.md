@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.2-b7
+
+- Arrange has a **One row or column per edge** switch, on by default: it keeps to one row or column of tiles on each edge. Switch it off to be offered two as well.
+
 ## 2026.11.2-b6
 
 - New: **Arrange…** on the Camera Commander page lays a commander's cameras out for you, as tiles all of one size around the main camera, with as little of the picture unused as it can find. Choose the tile shape (16:9, 4:3 or square) and the edges it may use, then step between a bigger main camera and bigger tiles before you apply it.

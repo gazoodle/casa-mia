@@ -30,3 +30,10 @@ test("only the edges allowed, filled in order", () => {
   for (const a of list) assert.ok(Object.keys(a.counts).every((p) => p === "right" || p === "top"));
   assert.ok(list.every((a) => a.counts.right));
 });
+
+test("one row or column per edge: never two", () => {
+  const list = arrange(ask({ cameras: cameras(12), gap: 6, oneLine: true }));
+  assert.ok(list.length > 0);
+  assert.ok(list.every((a) => a.lines === 1));
+  assert.ok(arrange(ask({ cameras: cameras(12), gap: 6 })).some((a) => a.lines === 2)); // allowed otherwise
+});

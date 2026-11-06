@@ -22,11 +22,12 @@ const NAMES: Record<Side, string> = { bottom: "Bottom", left: "Left", right: "Ri
 export function ArrangeDialog({ value, onApply, onClose }: { value: Commander; onApply: (c: Commander) => void; onClose: () => void }) {
   const [cell, setCell] = useState("16:9");
   const [edges, setEdges] = useState<Side[]>([...ORDER]);
+  const [oneLine, setOneLine] = useState(true);
   const cameras = [...new Set(PANELS.flatMap((p) => value[p].cameras))];
   const options = useMemo(
-    () => arrange({ width: value.width, height: value.height, gap: value.gap, margin: value.margin, cameras, cell, edges }),
+    () => arrange({ width: value.width, height: value.height, gap: value.gap, margin: value.margin, cameras, cell, edges, oneLine }),
     // the cameras by what they are, not the array made each render
-    [value.width, value.height, value.gap, value.margin, cameras.join(), cell, edges],
+    [value.width, value.height, value.gap, value.margin, cameras.join(), cell, edges, oneLine],
   );
   const [picked, setPicked] = useState<number>();
   const at = picked !== undefined && picked < options.length ? picked : bestOf(options);
@@ -68,6 +69,16 @@ export function ArrangeDialog({ value, onApply, onClose }: { value: Commander; o
           options={SHAPES}
           onChange={(c) => {
             setCell(c);
+            restart();
+          }}
+        />
+      </Field>
+      <Field label="One row or column per edge" help="On: never two rows or columns of tiles on an edge.">
+        <Switch
+          on={oneLine}
+          label="One row or column per edge"
+          onChange={(on) => {
+            setOneLine(on);
             restart();
           }}
         />

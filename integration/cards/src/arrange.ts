@@ -20,6 +20,7 @@ export type Ask = {
   cameras: string[]; // in order: the first fill the first edge
   cell: string; // the tiles' shape, width:height ("16:9")
   edges: Panel[]; // those it may use
+  oneLine?: boolean; // one row or column on each edge, never two
   shape?: number; // the main camera's (16:9)
 };
 
@@ -100,7 +101,7 @@ export function arrange(ask: Ask): Arrangement[] {
   const best = new Map<string, Arrangement>();
   const most = Math.min(ask.height, ask.width / ratio(ask.cell));
   for (const set of edgeSets(ask.edges))
-    for (const lines of [1, 2])
+    for (const lines of ask.oneLine ? [1] : [1, 2])
       for (let t = 8; t <= most; t++) {
         const a = candidate(ask, set, lines, t);
         if (!a) continue;
