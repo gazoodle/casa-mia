@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.2-b11
+
+- New card, the Talk tile (`custom:casa-mia-talk-tile`): Home Assistant's own tile card on a doorbell's call sensor, whose name and icon say what a tap does on this tablet: Talk, Hang up, or Answered by whoever has the call. A tap turns Talk on or off on the Camera Commander card. It has a visual editor, with a colour and icon for each state, and is in the Add card list.
+
 ## 2026.11.2-b10
 
 - The Camera Commander's Talk button appears as soon as the doorbell's live video starts, not seconds later when its first frame plays.

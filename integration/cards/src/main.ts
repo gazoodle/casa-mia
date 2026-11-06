@@ -1,5 +1,5 @@
 // Casa Mia's Lovelace cards, one file (cm-cards.js) the integration loads into every HA page:
-// Camera Commander, Tablet Layout, Over layer, Sensor Watch, QR code, Heating Flow, a guest's goodbye. Source of the built
+// Camera Commander, Tablet Layout, Over layer, Sensor Watch, QR code, Heating Flow, the Talk tile, a guest's goodbye. Source of the built
 // www/cm-cards.js.
 import { VERSION } from "./commander/index.ts";
 import { whenConnected } from "./connection.ts";
@@ -11,6 +11,7 @@ import "./sensor-watch/index.ts";
 import "./qr-code/index.ts";
 import "./heating-flow/index.ts";
 import "./swap/index.ts";
+import "./talk-tile/index.ts";
 import { watchForGoodbye } from "./guest-goodbye.ts";
 
 console.info(

@@ -149,6 +149,41 @@ tap_action:
 The button can show the call sensor's state. This device is talking when the sensor is
 `answered` and its `answered_by` attribute is this device's Home Assistant user.
 
+### The Talk tile
+
+A plain tile can't say whether this tablet is the one talking, so Casa Mia has a card
+for it: **Casa Mia Talk tile** in the Add to dashboard dialog. It is Home Assistant's own
+tile card on the doorbell's call sensor, so it looks like your other tiles and takes
+every tile option, but its name and icon follow the call:
+
+| The call | Name | Icon |
+|---|---|---|
+| Answered on this tablet | Hang up | `mdi:phone-hangup` |
+| Answered by another user | Answered by … | `mdi:microphone-off` |
+| Ringing | Talk | `mdi:bell-ring` |
+| No call, or the sensor unavailable | Talk | `mdi:microphone` |
+
+"This tablet" means this tablet's Home Assistant user, so give each tablet its own user.
+A tap turns Talk on or off on the Commander card showing the doorbell; pick a
+**Commander** to send it to that one only. In the editor:
+
+- **Name** replaces "Talk" only. "Hang up" and "Answered by …" always show, because they
+  say what a tap will do.
+- **Icon** sets one icon for every state. Under **Icon for each state** you can change
+  just one of the icons above instead.
+- **Colour** sets one colour for every state. Under **Colour for each state** you can
+  set one per state; a state without one keeps the tile's normal colouring.
+- **Layout** and **Interactions** are the tile's own. A tap action you set replaces Talk,
+  and the icon's tap does the same as the tap unless you set it too.
+
+```yaml
+type: custom:casa-mia-talk-tile
+entity: sensor.gate_doorbell_call
+colors:
+  hang_up: red
+  ringing: amber
+```
+
 ## Troubleshooting
 
 - **Taps on the commander do nothing:** the page says so when Home Assistant has no Main
