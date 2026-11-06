@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.2-b8
+
+- Arrange shares the cameras for looks rather than packing: opposite edges differ by at most one camera, and of the ways that leaves it picks the one whose spacing between tiles is most even from edge to edge.
+
 ## 2026.11.2-b7
 
 - Arrange has a **One row or column per edge** switch, on by default: it keeps to one row or column of tiles on each edge. Switch it off to be offered two as well.

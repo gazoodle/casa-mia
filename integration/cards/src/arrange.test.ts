@@ -37,3 +37,13 @@ test("one row or column per edge: never two", () => {
   assert.ok(list.every((a) => a.lines === 1));
   assert.ok(arrange(ask({ cameras: cameras(12), gap: 6 })).some((a) => a.lines === 2)); // allowed otherwise
 });
+
+test("opposite edges at most one camera apart", () => {
+  for (const n of [5, 9, 12, 15]) {
+    for (const a of arrange(ask({ cameras: cameras(n), gap: 6, oneLine: false }))) {
+      const c = a.counts;
+      if (c.bottom && c.top) assert.ok(Math.abs(c.bottom - c.top) <= 1, `${n}: ${JSON.stringify(c)}`);
+      if (c.left && c.right) assert.ok(Math.abs(c.left - c.right) <= 1, `${n}: ${JSON.stringify(c)}`);
+    }
+  }
+});

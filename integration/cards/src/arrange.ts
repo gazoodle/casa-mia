@@ -44,8 +44,36 @@ function edgeSets(edges: Panel[]): Panel[][] {
   return allowed.map((_, i) => allowed.slice(0, i + 1));
 }
 
-/** One arrangement: tiles `t` px tall in `lines` lines on each of `set`, the cameras
- * filling the edges in order; null when they don't all fit or an edge would be empty. */
+/** The cameras shared between the edges in use, for looks rather than packing: opposite
+ * edges at most one apart (the extra to the one first in fill order), every edge at least one
+ * and no more than it has room for; of the ways that leaves, the one whose spare room between
+ * tiles is most even from edge to edge. Null when none fits. */
+function share(n: number, set: Panel[], lines: number, room: (p: Panel) => [span: number, along: number, most: number]) {
+  const pair = (a: Panel, b: Panel) => [a, b].filter((p) => set.includes(p));
+  const [rows, columns] = [pair("bottom", "top"), pair("left", "right")];
+  const split = (edges: Panel[], total: number): [Panel, number][] =>
+    edges.map((p, i) => [p, Math.floor(total / edges.length) + (i < total % edges.length ? 1 : 0)]);
+  const spacing = (p: Panel, k: number) => {
+    const [span, along] = room(p);
+    const slots = Math.ceil(k / lines);
+    return (span - slots * along) / (slots + 1);
+  };
+
+  let best: Partial<Record<Panel, number>> | null = null;
+  let bestSpread = Infinity;
+  for (let r = rows.length; r <= n - columns.length; r++) {
+    if (!columns.length && r !== n) continue;
+    const ways = [...split(rows, r), ...split(columns, n - r)];
+    if (ways.some(([p, k]) => k < 1 || k > room(p)[2])) continue;
+    const gaps = ways.map(([p, k]) => spacing(p, k));
+    const spread = Math.max(...gaps) - Math.min(...gaps);
+    if (spread < bestSpread) [best, bestSpread] = [Object.fromEntries(ways), spread];
+  }
+  return best;
+}
+
+/** One arrangement: tiles `t` px tall in `lines` lines on each of `set`, the cameras shared
+ * between them (see share); null when they don't all fit. */
 function candidate(ask: Ask, set: Panel[], lines: number, t: number): Arrangement | null {
   const { width, height, gap } = ask;
   const cell = ratio(ask.cell);
@@ -55,17 +83,12 @@ function candidate(ask: Ask, set: Panel[], lines: number, t: number): Arrangemen
   const thick = (p: Panel) => lines * (across(p) ? t : cw) + (lines - 1) * gap;
   const rows = set.filter(across);
   const columnSpan = h - rows.reduce((s, p) => s + thick(p) + gap, 0);
-  const perLine = (p: Panel) => Math.floor(((across(p) ? w : columnSpan) + gap) / ((across(p) ? cw : t) + gap));
-
-  // the cameras, edge by edge in order
-  const counts: Partial<Record<Panel, number>> = {};
-  let left = ask.cameras.length;
-  for (const p of set) {
-    counts[p] = Math.min(left, lines * perLine(p));
-    left -= counts[p]!;
-    if (!counts[p]) return null;
-  }
-  if (left) return null;
+  const room = (p: Panel): [number, number, number] => {
+    const [span, along] = across(p) ? [w, cw] : [columnSpan, t];
+    return [span, along, lines * Math.floor((span + gap) / (along + gap))];
+  };
+  const counts = share(ask.cameras.length, set, lines, room);
+  if (!counts) return null;
 
   let first = 0;
   const panels = Object.fromEntries(
@@ -94,7 +117,7 @@ function candidate(ask: Ask, set: Panel[], lines: number, t: number): Arrangemen
 }
 
 /** The arrangements worth offering, the biggest main camera first and the biggest tiles
- * last: for each way of sharing the cameras between the edges, its tile size with the least
+ * last: for each way the cameras are shared between the edges, its tile size with the least
  * unused; then only those no other beats on both main camera and tile size. */
 export function arrange(ask: Ask): Arrangement[] {
   if (!ask.cameras.length) return [];

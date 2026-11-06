@@ -63,7 +63,9 @@ pages follow), delete one, or add a copy of the one picked or a blank one. Each 
 
 **Arrange…**, under the settings, lays all the commander's cameras out for you as tiles of
 one size around the main camera, with as little of the picture left unused as it can find.
-It fills the bottom first, then the left, the right and the top. Choose the tile shape
+It uses the bottom first, then the left, the right and the top, and shares the cameras so
+that opposite edges differ by at most one, with the spacing between tiles as even as it
+can make it on every edge. Choose the tile shape
 (16:9 by default), the edges it may use, and **One row or column per edge** (on by default;
 switch it off to be offered two rows or columns of tiles on an edge as well); **Bigger main** and **Bigger tiles** step
 between the best layouts it found, drawn as a sketch. **Apply** replaces the panels'
