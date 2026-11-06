@@ -721,3 +721,39 @@
   justify-content: space-between;
   gap: 10px;
 }
+
+/* Arrange: the arrangement drawn plainly, at the commander's shape */
+.arrangeSketch {
+  display: block;
+  width: 100%;
+  max-height: 45vh;
+  margin: 12px 0;
+}
+
+.arrangePicture {
+  fill: var(--bg);
+  stroke: var(--border);
+  stroke-width: 4;
+}
+
+.arrangeMain {
+  fill: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.arrangeTile {
+  fill: color-mix(in srgb, var(--muted) 45%, transparent);
+}
+
+.arrangeRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.arrangeEdge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

@@ -16,6 +16,7 @@ from ... import swap
 from .common import (
     EMPTY_COMMANDER,
     JPEG_QUALITY,
+    LAYOUT,
     PANELS,
 )
 
@@ -144,45 +145,49 @@ def _lines(
     return out
 
 
-def _squares(
-    rect: Rect, n: int, lines: int, down: bool, gap: int, spread: bool
+def _equal(
+    rect: Rect, n: int, lines: int, down: bool, gap: int, spread: bool, cell: float
 ) -> list[Rect]:
-    """n equal squares in `lines` lines (columns when they run down, rows across), all
-    one size: the fullest line's share of the length, or the line's thickness when that
-    is less. They form a grid: every line uses the fullest line's slots from its start,
-    so a short line leaves its last slots empty, and the squares line up across lines.
-    The slots sit `gap` apart in the middle of the length; spread, the spare room is
-    shared evenly by the gaps and both ends (never less than `gap` between: with too
-    little room, as in the middle)."""
+    """n equal tiles of shape `cell` (width over height; 1: squares) in `lines` lines
+    (columns when they run down, rows across), all one size: as thick as the line, or
+    shorter when the fullest line's share of the length is less. They form a grid: every
+    line uses the fullest line's slots from its start, so a short line leaves its last
+    slots empty, and the tiles line up across lines. The slots sit `gap` apart in the
+    middle of the length; spread, the spare room is shared evenly by the gaps and both
+    ends (never less than `gap` between: with too little room, as in the middle)."""
     lines = max(1, min(lines, n))
     strips = _line(rect, lines, not down, gap)
     slots = -(-n // lines)  # the fullest line's count
     span = rect[3] if down else rect[2]
     thick = min(s[2] if down else s[3] for s in strips)
-    side = max(0, min(thick, (span - gap * (slots - 1)) // slots))
-    free = span - slots * side
+    stretch = 1 / cell if down else cell  # a tile's length over its thickness
+    along = max(0, min(round(thick * stretch), (span - gap * (slots - 1)) // slots))
+    across = min(thick, round(along / stretch))
+    free = span - slots * along
 
     if spread and free >= gap * (slots + 1):
-        starts = [round((i + 1) * free / (slots + 1)) + i * side for i in range(slots)]
+        starts = [round((i + 1) * free / (slots + 1)) + i * along for i in range(slots)]
     else:
         first = (free - gap * (slots - 1)) // 2
-        starts = [first + i * (side + gap) for i in range(slots)]
+        starts = [first + i * (along + gap) for i in range(slots)]
 
     out: list[Rect] = []
     for i, (x, y, w, h) in enumerate(strips):
         count = n // lines + (1 if i < n % lines else 0)
-        off = ((w if down else h) - side) // 2  # in the middle across its line
+        off = ((w if down else h) - across) // 2  # in the middle across its line
         out += [
-            (x + off, y + a, side, side) if down else (x + a, y + off, side, side)
+            (x + off, y + a, across, along) if down else (x + a, y + off, along, across)
             for a in starts[:count]
         ]
     return out
 
 
 STACKS = ("stack", "reverse", "centre")  # panel fits: each camera at its own shape
-SQUARES = ("squares", "squares_spread")  # panel fits: equal squares (see _squares)
+# panel fits: equal tiles of the panel's cell shape (see _equal); "squares" from when
+# they were only square, kept so saved commanders still read
+EQUAL = ("squares", "squares_spread")
 # Panel fits whose cameras are cropped to fill their tiles.
-CROPPED = ("cover", *SQUARES)
+CROPPED = ("cover", *EQUAL)
 SIZED = ("own", "fixed")  # main camera fits that set its size, and the panels' sizes
 
 
@@ -315,8 +320,9 @@ def commander_layout(
         fit, down = cmd[p].get("fit", "cover"), p in ("left", "right")
         if not n:
             return []
-        if fit in SQUARES:
-            return _squares(areas[p], n, count, down, gap, fit == "squares_spread")
+        if fit in EQUAL:
+            cell = ratio(cmd[p].get("cell", LAYOUT["panel"]["cell"]["default"]))
+            return _equal(areas[p], n, count, down, gap, fit == "squares_spread", cell)
         return _lines(areas[p], n, count, down, gap, shapes(p), fit)
 
     tiles = {p: tiled(p) for p in PANELS}

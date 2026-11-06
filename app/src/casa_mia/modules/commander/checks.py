@@ -71,9 +71,12 @@ def problems(store: dict[str, Any]) -> list[str]:
             if not isinstance(pane.get("hidden", False), bool):
                 out.append(f"{the}'s {panel} panel: hidden must be true or false.")
             if pane.get("fit", "cover") not in FITS:
+                out.append(f"{the}'s {panel} panel: fit must be {', '.join(FITS)}.")
+            try:
+                ratio(pane.get("cell", "1:1"))
+            except (TypeError, ValueError, ZeroDivisionError):
                 out.append(
-                    f"{the}'s {panel} panel: fit must be cover, contain, stack, "
-                    "reverse or centre."
+                    f"{the}'s {panel} panel: tile shape {pane.get('cell')!r} is not a shape."
                 )
             for e in pane.get("cameras", []):
                 if e not in cams:

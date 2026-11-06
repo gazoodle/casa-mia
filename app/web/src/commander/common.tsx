@@ -47,6 +47,8 @@ export type Panel = {
   anchor_right?: boolean;
   /** Rows (top, bottom) or columns (left, right) its cameras are shared between. */
   lines?: number;
+  /** Same size (squares, squares_spread): every tile's shape, width:height ("16:9"). */
+  cell?: string;
   /** Off the view: no room, no tiles; its cameras kept for when it is shown again. */
   hidden?: boolean;
 };

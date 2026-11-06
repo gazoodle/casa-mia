@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.2-b6
+
+- New: **Arrange…** on the Camera Commander page lays a commander's cameras out for you, as tiles all of one size around the main camera, with as little of the picture unused as it can find. Choose the tile shape (16:9, 4:3 or square) and the edges it may use, then step between a bigger main camera and bigger tiles before you apply it.
+- **Squares** and **Squares, spread** are now called **Same size** and **Same size, spread**, with a **Tile shape** for the panel (square by default, as before, or 16:9 so the cameras aren't cropped).
+
 ## 2026.11.2-b5
 
 - The Camera Commander page's live preview moved to a file of its own (no change in what it does).

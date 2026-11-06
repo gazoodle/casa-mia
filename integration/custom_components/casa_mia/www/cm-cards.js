@@ -87,10 +87,17 @@ var e = {
 				["stack", "Stack"],
 				["reverse", "Reverse"],
 				["centre", "Centre"],
-				["squares", "Squares"],
-				["squares_spread", "Squares, spread"]
+				["squares", "Same size"],
+				["squares_spread", "Same size, spread"]
 			],
-			help: "Fill: equal tiles, each {item} filling its own. Whole: equal tiles, each {item} whole in its own. Stack, Reverse, Centre: each {item} whole at its own shape, edge to edge, from the start, against the end, or in the middle; the spare room is left clear (too many to fit: all shrink alike). Squares: equal squares, each {item} cropped to fill its own, as thick as the panel (shared by its lines), in the middle; Squares, spread: the same, the spare room shared evenly between them and at both ends."
+			help: "Fill: equal tiles, each {item} filling its own. Whole: equal tiles, each {item} whole in its own. Stack, Reverse, Centre: each {item} whole at its own shape, edge to edge, from the start, against the end, or in the middle; the spare room is left clear (too many to fit: all shrink alike). Same size: tiles all of one size and of the Tile shape (square, 16:9…), each {item} cropped to fill its own, as thick as the panel (shared by its lines), in the middle; Same size, spread: the same, the spare room shared evenly between them and at both ends."
+		},
+		cell: {
+			label: "Tile shape",
+			default: "1:1",
+			when: ["squares", "squares_spread"],
+			for: "commander",
+			help: "Width:height of every tile, for Same size: 1:1 for squares, 16:9 for most cameras (none cropped)."
 		},
 		anchor_left: {
 			label: "To the left edge",
@@ -937,21 +944,21 @@ function vt(e, t, n, r, i, a, o) {
 		c.push(...a === null ? gt(e, u, r, i) : _t(e, a.slice(l, l + u), r, i, o)), l += u;
 	}), c;
 }
-function yt(e, t, n, r, i, a) {
+function yt(e, t, n, r, i, a, o) {
 	n = Math.max(1, Math.min(n, t));
-	let o = gt(e, n, !r, i), s = Math.ceil(t / n), c = r ? e[3] : e[2], l = Math.min(...o.map((e) => r ? e[2] : e[3])), u = Math.max(0, Math.min(l, W(c - i * (s - 1), s))), d = c - s * u, f = Array.from({ length: s }, (e, t) => t), p = a && d >= i * (s + 1) ? f.map((e) => U((e + 1) * d / (s + 1)) + e * u) : f.map((e) => W(d - i * (s - 1), 2) + e * (u + i));
-	return o.flatMap(([e, i, a, o], s) => {
-		let c = Math.floor(t / n) + +(s < t % n), l = W((r ? a : o) - u, 2);
-		return p.slice(0, c).map((t) => r ? [
+	let s = gt(e, n, !r, i), c = Math.ceil(t / n), l = r ? e[3] : e[2], u = Math.min(...s.map((e) => r ? e[2] : e[3])), d = r ? 1 / o : o, f = Math.max(0, Math.min(U(u * d), W(l - i * (c - 1), c))), p = Math.min(u, U(f / d)), m = l - c * f, h = Array.from({ length: c }, (e, t) => t), g = a && m >= i * (c + 1) ? h.map((e) => U((e + 1) * m / (c + 1)) + e * f) : h.map((e) => W(m - i * (c - 1), 2) + e * (f + i));
+	return s.flatMap(([e, i, a, o], s) => {
+		let c = Math.floor(t / n) + +(s < t % n), l = W((r ? a : o) - p, 2);
+		return g.slice(0, c).map((t) => r ? [
 			e + l,
 			i + t,
-			u,
-			u
+			p,
+			f
 		] : [
 			e + t,
 			i + l,
-			u,
-			u
+			f,
+			p
 		]);
 	});
 }
@@ -1030,14 +1037,14 @@ function Ct(t, n = null) {
 		bottom: x("bottom", i - m, m),
 		left: S(0, d, "left"),
 		right: S(r - f, f, "right")
-	}, w = (e) => mt.includes(t[e].fit ?? "") ? t[e].cameras.map((e) => Number((t.aspects ?? {})[e] || 16 / 9)) : null, T = (e) => {
-		let [n, r, i, o] = [
-			t[e].cameras.length,
-			Math.trunc(Number(t[e].lines ?? 1)),
-			t[e].fit ?? "cover",
-			e === "left" || e === "right"
+	}, w = (e) => mt.includes(t[e].fit ?? "") ? t[e].cameras.map((e) => Number((t.aspects ?? {})[e] || 16 / 9)) : null, T = (n) => {
+		let [r, i, o, s] = [
+			t[n].cameras.length,
+			Math.trunc(Number(t[n].lines ?? 1)),
+			t[n].fit ?? "cover",
+			n === "left" || n === "right"
 		];
-		return n ? ht.includes(i) ? yt(C[e], n, r, o, a, i === "squares_spread") : vt(C[e], n, r, o, a, w(e), i) : [];
+		return r ? ht.includes(o) ? yt(C[n], r, i, s, a, o === "squares_spread", bt(t[n].cell ?? e.panel.cell.default)) : vt(C[n], r, i, s, a, w(n), o) : [];
 	}, E = Object.fromEntries(H.map((e) => [e, T(e)])), D = [
 		_,
 		y,

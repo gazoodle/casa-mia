@@ -54,11 +54,22 @@ pages follow), delete one, or add a copy of the one picked or a blank one. Each 
   road, a tree in the wind); **+ Add…** picks from the commander's cameras. The card still marks their motion with the dot, a
   tap still makes one the main camera, and their motion never holds off Go back after.
 - **Panels** (left, top, right, bottom): the cameras in each, in order; its size; how its
-  tiles fit; rows or columns; and whether it is shown. **Squares** makes every tile in the
-  panel a square of the same size, as thick as the panel (shared between its rows or
-  columns), grouped in the middle; **Squares, spread** shares the spare room evenly between
-  them and at both ends. A camera is cropped to fill its square (a 16:9 camera loses some
-  of each side). With more than one row or column, the squares line up as a grid.
+  tiles fit; rows or columns; and whether it is shown. **Same size** makes every tile in
+  the panel the same size, at the panel's **Tile shape** (square unless you change it), as
+  thick as the panel (shared between its rows or columns), grouped in the middle; **Same
+  size, spread** shares the spare room evenly between them and at both ends. A camera is
+  cropped to fill its tile, so a 16:9 camera in a square tile loses some of each side.
+  With more than one row or column, the tiles line up as a grid.
+
+**Arrange…**, under the settings, lays all the commander's cameras out for you as tiles of
+one size around the main camera, with as little of the picture left unused as it can find.
+It fills the bottom first, then the left, the right and the top. Choose the tile shape
+(16:9 by default) and the edges it may use; **Bigger main** and **Bigger tiles** step
+between the best layouts it found, drawn as a sketch. **Apply** replaces the panels'
+cameras, sizes and fits and the main camera's fit, and nothing is saved until you Save.
+With 16:9 tiles on a 16:9 picture some counts fit with nothing left over (7 cameras: 4
+along the bottom and 3 up the side); otherwise the spare room is shared between the tiles,
+or the main camera loses a few per cent off its edges.
 
 **Pictures:** the **Compositor host**, the address the cards and the dashboard fetch the
 pictures from. Blank: this box's own address.

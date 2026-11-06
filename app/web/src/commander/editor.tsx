@@ -10,6 +10,7 @@ import { Commander, DEBUG, Edits, HA, HIGHLIGHT, L, MOTION, P, PANELS, Panel, he
 import { AddMenu, Num, RatioInput } from "./inputs";
 import { confirmBox } from "../confirm";
 import { LivePreview } from "./preview";
+import { ArrangeDialog } from "./arrange";
 import { Select } from "../controls";
 
 /** Whether a commander's taps can work: they set its Main camera select in the integration,
@@ -193,6 +194,7 @@ export function CommanderEditor({
   const dbg = { ...DEBUG, ...value.debug };
   const developer = useContext(Developer); // Debug options only in developer mode
   const moves = { ...MOTION, ...value.motion };
+  const [arranging, setArranging] = useState(false);
   return (
     <div className={css.commander}>
       <div className={css.commanderTop}>
@@ -401,6 +403,17 @@ export function CommanderEditor({
           </div>
         </section>
       </div>
+      <div className={css.actions}>
+        <button
+          className={ui.button}
+          disabled={!inPanels.length}
+          title="All its cameras as tiles of one size around the main camera, with the least room unused"
+          onClick={() => setArranging(true)}
+        >
+          Arrange…
+        </button>
+      </div>
+      {arranging && <ArrangeDialog value={value} onApply={onChange} onClose={() => setArranging(false)} />}
       <div className={css.panels}>
         {PANELS.map((p) => (
           <div key={p} className={`${css.overview} ${value[p].hidden ? css.hiddenPanel : ""}`}>
@@ -460,6 +473,13 @@ export function CommanderEditor({
                 />
               </Field>
               </div>
+              {P.cell.when.includes(value[p].fit) && (
+                <RatioInput
+                  label={P.cell.label}
+                  value={value[p].cell ?? P.cell.default}
+                  onChange={(r) => set((c) => (c[p].cell = String(r)))}
+                />
+              )}
               {(p === "top" || p === "bottom") &&
                 (["anchor_left", "anchor_right"] as const).map((end) => (
                   <Field key={end} label={P[end].label} help={help(P[end])}>
