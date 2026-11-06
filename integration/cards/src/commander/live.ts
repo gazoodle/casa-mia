@@ -8,7 +8,8 @@ import { Card, LIVE_WAIT_MS, LIVE_GIVE_UP, liveClaim } from "./common.ts";
 import { CommanderBase } from "./base.ts";
 
 export class CommanderLive extends CommanderBase {
-  static properties = { ...CommanderBase.properties, _playing: { state: true }, _liveFailed: { state: true } };
+  // liveOn is state too: Talk is offered from the moment a session starts (talk.ts).
+  static properties = { ...CommanderBase.properties, liveOn: { state: true }, _playing: { state: true }, _liveFailed: { state: true } };
   // The live main camera: the channel playing (or starting), its stop, whether it plays,
   // and the main camera it failed for (that one's drawn picture until the main changes).
   protected liveOn = "";

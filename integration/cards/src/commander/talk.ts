@@ -11,7 +11,7 @@
 // While talking, the doorbell stays the main camera here whatever its select says (the
 // select is shared by every device showing the commander), and tiles don't change it.
 import { css, html, nothing } from "lit";
-import { Card, callSensor, callSensors, callWords, TALK_NOTE_MS } from "./common.ts";
+import { Card, callSensor, callSensors, callWords, talkOffered, TALK_NOTE_MS } from "./common.ts";
 import { CommanderLive } from "./live.ts";
 
 /** What a Lovelace button sends: `tap_action: {action: fire-dom-event, casa_mia_commander:
@@ -62,10 +62,9 @@ export class CommanderTalk extends CommanderLive {
     return callSensor(this.hass!, main, this.found.sensors);
   }
 
-  /** Talk is offered: a doorbell with a call sensor, playing live here, on a secure page
-   * (the browser gives a microphone to no other), and not being edited. */
+  /** Talk is offered (common.ts: talkOffered). */
   protected canTalk(): boolean {
-    return Boolean(this.call() && (this._playing || this._talk) && window.isSecureContext && !this.editing());
+    return talkOffered({ sensor: this.call(), live: this.liveOn, talking: this._talk, secure: window.isSecureContext, editing: this.editing() });
   }
 
   /** Talk on: ask for the microphone at once (inside the tap, so the browser allows it),

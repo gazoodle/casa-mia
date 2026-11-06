@@ -121,6 +121,14 @@ export function callSensor(hass: Hass, camera: string, sensors = callSensors(has
   return sensors.find((id) => (hass.states[id]?.attributes.camera_entities as string[] | undefined)?.includes(camera));
 }
 
+/** Talk is offered: a doorbell with a call sensor, its live session started (not yet
+ * playing is fine: Talk opens a new session with the microphone anyway, and a session that
+ * fails clears it) or already talking, on a secure page (the browser gives a microphone to
+ * no other), and not being edited. */
+export function talkOffered(o: { sensor?: string; live: string; talking: string; secure: boolean; editing: boolean }): boolean {
+  return Boolean(o.sensor && (o.live !== "" || o.talking) && o.secure && !o.editing);
+}
+
 /** What a call sensor's state says on the card, the same on every device: "Ringing",
  * "Answered by X", "Missed", or nothing (idle, or a call that ended). */
 export function callWords(st?: State): string {

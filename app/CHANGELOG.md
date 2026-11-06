@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.2-b10
+
+- The Camera Commander's Talk button appears as soon as the doorbell's live video starts, not seconds later when its first frame plays.
+
 ## 2026.11.2-b9
 
 - The Camera Commander finds a doorbell's call sensor by its `camera_entities` attribute, not by the camera's device. Since Home Assistant 2026.8 a device belongs to one integration, so the intercom_talkback sensor is no longer on the camera's device, and Talk was never offered.

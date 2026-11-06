@@ -1,7 +1,7 @@
 // Talk's pure parts (common.ts): finding a doorbell's call sensor, and what the call says.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { callSensor, callWords } from "./common.ts";
+import { callSensor, callWords, talkOffered } from "./common.ts";
 import type { Hass } from "../ha.ts";
 
 const cameras = (camera_entities: string[]) => ({ state: "idle", attributes: { camera_entities } });
@@ -28,6 +28,16 @@ test("the call sensor whose camera_entities holds the camera", () => {
   assert.equal(callSensor(hass, "camera.barn"), undefined);
   assert.equal(callSensor(hass, "camera.unknown"), undefined);
   assert.equal(callSensor({ states: {} } as unknown as Hass, "camera.oak_door_low"), undefined);
+});
+
+test("Talk offered once the live session starts, before it plays", () => {
+  const ask = { sensor: "sensor.oak_door_call", live: "camera.oak_door_low", talking: "", secure: true, editing: false };
+  assert.equal(talkOffered(ask), true); // liveOn set, no frame played yet
+  assert.equal(talkOffered({ ...ask, live: "" }), false); // no session, or it failed
+  assert.equal(talkOffered({ ...ask, live: "", talking: "camera.oak_door_low" }), true);
+  assert.equal(talkOffered({ ...ask, sensor: undefined }), false);
+  assert.equal(talkOffered({ ...ask, secure: false }), false);
+  assert.equal(talkOffered({ ...ask, editing: true }), false);
 });
 
 test("the call's words, the same on every device", () => {
