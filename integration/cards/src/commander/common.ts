@@ -105,14 +105,20 @@ export function commanders(hass: Hass): { value: string; label: string }[] {
     .map(([id, st]) => ({ value: id, label: String(st.attributes.friendly_name ?? id) }));
 }
 
-/** A doorbell's call sensor (the intercom_talkback integration's, on the camera's own
- * device): found in HA's entity registry by the camera's device, its platform and its
- * translation key, never by its name. */
-export function callSensor(hass: Hass, camera: string): string | undefined {
-  const entities = (hass.entities ?? {}) as Record<string, { entity_id: string; device_id?: string; platform?: string; translation_key?: string }>;
-  const device = entities[camera]?.device_id;
-  if (!device) return undefined;
-  return Object.values(entities).find((e) => e.device_id === device && e.platform === "intercom_talkback" && e.translation_key === "call")?.entity_id;
+/** The intercom_talkback call sensors, from HA's entity registry by platform and
+ * translation key, never by name. */
+export function callSensors(hass: Hass): string[] {
+  const entities = (hass.entities ?? {}) as Record<string, { entity_id: string; platform?: string; translation_key?: string }>;
+  return Object.values(entities)
+    .filter((e) => e.platform === "intercom_talkback" && e.translation_key === "call")
+    .map((e) => e.entity_id);
+}
+
+/** A doorbell's call sensor: the one whose camera_entities attribute holds the camera. Not
+ * by the camera's device: since HA 2026.8 a device belongs to one integration, so the
+ * sensor is never on it. `sensors` lets a caller look the registry up once. */
+export function callSensor(hass: Hass, camera: string, sensors = callSensors(hass)): string | undefined {
+  return sensors.find((id) => (hass.states[id]?.attributes.camera_entities as string[] | undefined)?.includes(camera));
 }
 
 /** What a call sensor's state says on the card, the same on every device: "Ringing",

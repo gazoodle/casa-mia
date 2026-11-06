@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.2-b9
+
+- The Camera Commander finds a doorbell's call sensor by its `camera_entities` attribute, not by the camera's device. Since Home Assistant 2026.8 a device belongs to one integration, so the intercom_talkback sensor is no longer on the camera's device, and Talk was never offered.
+
 ## 2026.11.2-b8
 
 - Arrange shares the cameras for looks rather than packing: opposite edges differ by at most one camera, and of the ways that leaves it picks the one whose spacing between tiles is most even from edge to edge.

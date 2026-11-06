@@ -11,7 +11,7 @@
 // While talking, the doorbell stays the main camera here whatever its select says (the
 // select is shared by every device showing the commander), and tiles don't change it.
 import { css, html, nothing } from "lit";
-import { Card, callSensor, callWords, TALK_NOTE_MS } from "./common.ts";
+import { Card, callSensor, callSensors, callWords, TALK_NOTE_MS } from "./common.ts";
 import { CommanderLive } from "./live.ts";
 
 /** What a Lovelace button sends: `tap_action: {action: fire-dom-event, casa_mia_commander:
@@ -29,7 +29,7 @@ export class CommanderTalk extends CommanderLive {
   private claimed = false; // the call sensor has said this user answered
   private asking = 0; // which ask for the microphone is current: a hang-up makes it stale
   private noteGone = 0;
-  private found: { entities?: unknown; camera: string; sensor?: string } = { camera: "" };
+  private found: { entities?: unknown; sensors: string[] } = { sensors: [] };
 
   connectedCallback() {
     super.connectedCallback();
@@ -51,14 +51,15 @@ export class CommanderTalk extends CommanderLive {
     else this.hangUp();
   };
 
-  /** The call sensor of the main camera (the one talked to, while talking). Looked up
-   * again only when HA's registry or the camera changes. */
+  /** The call sensor of the main camera (the one talked to, while talking). The call
+   * sensors are listed again only when HA's registry changes; which one holds the camera
+   * is read from their states each time, as camera_entities can change on its own. */
   protected call(): string | undefined {
     const { main } = this.now();
     const entities = this.hass?.entities;
     if (!main || !entities) return undefined;
-    if (this.found.entities !== entities || this.found.camera !== main) this.found = { entities, camera: main, sensor: callSensor(this.hass!, main) };
-    return this.found.sensor;
+    if (this.found.entities !== entities) this.found = { entities, sensors: callSensors(this.hass!) };
+    return callSensor(this.hass!, main, this.found.sensors);
   }
 
   /** Talk is offered: a doorbell with a call sensor, playing live here, on a secure page
