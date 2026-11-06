@@ -36,11 +36,11 @@ test("the tile: passed through, with the name, icon, colour and tap from the cal
     vertical: true,
     name: "Talk",
     icon: "mdi:microphone",
-    tap_action: { action: "fire-dom-event", casa_mia_commander: { talk: "toggle" } },
-    icon_tap_action: { action: "fire-dom-event", casa_mia_commander: { talk: "toggle" } },
+    tap_action: { action: "fire-dom-event", casa_mia_commander: { talk: "toggle", call: "sensor.gate_call" } },
+    icon_tap_action: { action: "fire-dom-event", casa_mia_commander: { talk: "toggle", call: "sensor.gate_call" } },
   });
   const c = tileConfig({ ...base, commander: "select.gate_commander" }, st("idle"), ME);
-  assert.deepEqual(c.tap_action.casa_mia_commander, { talk: "toggle", entity: "select.gate_commander" });
+  assert.deepEqual(c.tap_action.casa_mia_commander, { talk: "toggle", entity: "select.gate_commander", call: "sensor.gate_call" });
   assert.equal("commander" in c, false);
 });
 
@@ -95,7 +95,7 @@ test("a half duplex Answer tile says Answer and sends duplex: half", () => {
   const half = { ...base, duplex: "half" as const, commander: "select.gate_commander" };
   const t = tileConfig(half, st("idle"), ME);
   assert.equal(t.name, "Answer");
-  assert.deepEqual(t.tap_action.casa_mia_commander, { talk: "toggle", duplex: "half", entity: "select.gate_commander" });
+  assert.deepEqual(t.tap_action.casa_mia_commander, { talk: "toggle", duplex: "half", entity: "select.gate_commander", call: "sensor.gate_call" });
   assert.equal("duplex" in t, false);
   assert.equal(tileConfig(half, st("answered", { answered_by: ME }), ME).name, "Hang up");
   assert.equal(tileConfig({ ...half, name: "Gate" }, st("idle"), ME).name, "Gate");

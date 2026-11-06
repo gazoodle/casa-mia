@@ -124,6 +124,14 @@ export function callSensor(hass: Hass, camera: string, sensors = callSensors(has
   return sensors.find((id) => (hass.states[id]?.attributes.camera_entities as string[] | undefined)?.includes(camera));
 }
 
+/** The camera to talk to for a call: the main camera when it is the doorbell's, else one
+ * of the commander's own cameras that is, else the doorbell's first. Talk is a session of
+ * its own (sound only), so the doorbell needn't be on screen. */
+export function talkCamera(st: State | undefined, main: string, own: string[]): string | undefined {
+  const cameras = (st?.attributes.camera_entities as string[] | undefined) ?? [];
+  return cameras.includes(main) ? main : (cameras.find((c) => own.includes(c)) ?? cameras[0]);
+}
+
 /** Talk is offered: a doorbell with a call sensor, its live session started (not yet
  * playing is fine: Talk opens a new session with the microphone anyway, and a session that
  * fails clears it) or already talking, on a secure page (the browser gives a microphone to

@@ -54,7 +54,7 @@ export function tileConfig(config: Config, st: State | undefined, user: string |
   // Hold to talk is greyed out, never hidden, where it isn't enabled (holdLook), so the
   // user knows where it is before they need it.
   const { look, name, enabled } = hold ? holdLook(talk) : { ...talkLook(st, user), enabled: true };
-  const tap = hold ? NONE : (config.tap_action ?? { action: "fire-dom-event", casa_mia_commander: order("toggle", commander, duplex) });
+  const tap = hold ? NONE : (config.tap_action ?? { action: "fire-dom-event", casa_mia_commander: order("toggle", { entity: commander, duplex, call: config.entity }) });
   const color = enabled ? (colors?.[look] ?? config.color ?? COLOURS[look]) : "disabled";
   const out: CardConfig = {
     ...tile,

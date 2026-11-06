@@ -22,9 +22,13 @@
 import { css, html, nothing } from "lit";
 import { styleMap } from "lit/directives/style-map.js";
 import { playWebRTC } from "../../../../app/web/src/webrtc.ts";
-import { Card, callSensor, callSensors, callWords, countdown, talkOffered, TALK_NOTE_MS, TOUCH_EVERY_MS } from "./common.ts";
+import { Card, callSensor, callSensors, callWords, countdown, talkCamera, talkOffered, TALK_NOTE_MS, TOUCH_EVERY_MS } from "./common.ts";
 import { CommanderLive } from "./live.ts";
 import { type TalkState, type Order, Hold, NO_GRAB, announce, answerAsks, answeredHere, commanderWords, talkState, talkSwitches } from "./talk-rules.ts";
+
+/** Answers already taken by a Commander card on this page: one card answers, however many
+ * show the doorbell or listen. */
+const taken = new WeakSet<Event>();
 
 const TONES: Record<string, string> = { ringing: "cm-warn", answered: "cm-accent", complete: "cm-muted" };
 
@@ -66,15 +70,19 @@ export class CommanderTalk extends CommanderLive {
   }
 
   /** HA's fire-dom-event action from any button on the page (handle-action.ts fires
-   * ll-custom with the action's config, bubbling to the window). */
+   * ll-custom with the action's config, bubbling to the window). An order naming its call
+   * (a Talk tile) answers that doorbell whatever the main camera is, and its toggle goes
+   * by the call: hang up when this user has it, else answer. */
   private onOrder = (ev: Event) => {
     const order = (ev as CustomEvent).detail?.casa_mia_commander as Order | undefined;
     if (!order?.talk || (order.entity && order.entity !== this._config?.entity)) return;
     if (order.talk === "press") return this.said === "silent" && this.hold.press();
     if (order.talk === "release") return this.hold.end();
-    const on = order.talk === "toggle" ? !this._talk : order.talk === "on";
-    if (on) this.talkOn(order.duplex);
-    else this.hangUp();
+    const sensor = order.call ?? this.call();
+    const mine = order.call ? answeredHere(this.hass?.states[order.call], this.hass?.user?.name) : Boolean(this._talk);
+    const on = order.talk === "toggle" ? !mine : order.talk === "on";
+    if (!on) return this.hangUp();
+    if (!taken.has(ev) && this.talkOn(order.duplex, sensor)) taken.add(ev);
   };
 
   /** The microphone, the visitor's sound and the announced state, set from what is now
@@ -152,11 +160,22 @@ export class CommanderTalk extends CommanderLive {
     return talkOffered({ sensor: this.call(), live: this.liveOn, talking: this._talk, secure: window.isSecureContext, editing: this.editing() });
   }
 
-  /** Talk on: ask for the microphone at once (inside the tap, so the browser allows it),
-   * then open the talking session with it (speak). */
-  protected talkOn(duplex = this._config?.duplex ?? "full") {
-    if (this._talk || !this.canTalk()) return;
-    const camera = this.now().main;
+  /** Talk on, to the doorbell of `sensor` (common.ts: talkCamera; it needn't be on
+   * screen): ask for the microphone at once (inside the tap, so the browser allows it),
+   * then open the talking session with it (speak). True when it started. */
+  protected talkOn(duplex = this._config?.duplex ?? "full", sensor = this.call()): boolean {
+    if (this._talk || this.editing()) return false;
+    const { card, main } = this.now();
+    const camera = talkCamera(this.hass?.states[sensor ?? ""], main, Object.keys(card?.cameras ?? {}));
+    if (!camera) {
+      console.info(`casa-mia: talk: no doorbell to answer (${sensor ? `${sensor} has no camera` : "the main camera has no call sensor"})`);
+      return false;
+    }
+    if (!window.isSecureContext) {
+      console.info(`casa-mia: talk to ${camera}: refused, the page isn't https`);
+      this.note("Talking needs this page on https");
+      return false;
+    }
     const ask = ++this.asking;
     this._talk = camera;
     this.half = duplex === "half";
@@ -179,6 +198,7 @@ export class CommanderTalk extends CommanderLive {
         this.hangUp(`No microphone: ${err?.message ?? err}`);
       },
     );
+    return true;
   }
 
   /** The talking session: sound only, the microphone out and the visitor's voice in, to
@@ -278,7 +298,7 @@ export class CommanderTalk extends CommanderLive {
     const out = this.said === "full" || this.said === "live"; // the voice going out
     return html`<div class="talk" style=${place}>
       <div class="talk-said">
-        ${out ? html`<span class="cm-pill cm-filled cm-bad">Live to ${card.cameras[this._talk]?.title ?? this._talk}</span>` : nothing}
+        ${out ? html`<span class="cm-pill cm-filled cm-bad">Live to ${card.cameras[this._talk]?.title ?? this.hass?.states[this._talk]?.attributes.friendly_name ?? this._talk}</span>` : nothing}
         ${words ? html`<span class="cm-pill cm-filled ${TONES[st!.state]}">${words}</span>` : nothing}
         ${left ? html`<span class="cm-pill cm-filled ${left.warn ? "cm-warn" : "cm-muted"}">${left.text}</span>` : nothing}
         ${this._talkNote && this._talkNote !== words ? html`<span class="cm-pill cm-filled cm-muted">${this._talkNote}</span>` : nothing}
