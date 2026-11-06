@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.11.2-b13
+
+- Half duplex talking to a doorbell: the Camera Commander card and the Talk tile have a new Talking option. With half duplex, answering opens the call with the microphone silent, and your voice goes out only while you hold a Hold to talk button, with the visitor muted meanwhile. Lifting your finger anywhere, the browser losing focus, or locking the phone stops the voice.
+- The Talk tile has a new Button option: `button: hold` makes it the Hold to talk button. It is enabled only on the device that answered in half duplex, says Live while your voice is going out, and is greyed out everywhere else.
+- A doorbell call has a countdown: in half duplex it ends after 2 minutes without a hold, the timer stopping while Hold to talk is held and starting again on release (a single hold counts for at most 2 minutes). In full duplex it ends after 10 minutes, and a touch on the answering device's screen starts that again. Every device shows the time left as a pill ("Hangs up in 1:42", or "Held"). This needs an Intercom talkback version with the call timer; with an older one the call ends after 10 minutes as before, and the card says so once.
+- "Live to …" on the Camera Commander now shows only once the call is connected and your voice is actually going out, not as soon as the microphone is granted.
+
 ## 2026.11.2-b12
 
 - While talking to a doorbell on the Camera Commander card, you can tap other cameras: the view changes and the call carries on. Talk now has a sound-only connection of its own instead of riding on the main camera's live video, so the tablet decodes no extra video. "Live to …" and Hang up stay over the main camera until you hang up.

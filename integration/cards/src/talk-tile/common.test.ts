@@ -2,7 +2,7 @@
 // HA's tile card, and the config the editor saves.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { cleaned, talkLook, tileConfig, type Config } from "./common.ts";
+import { cleaned, holdLook, talkLook, tileConfig, type Config } from "./common.ts";
 
 const st = (state: string, attributes: Record<string, unknown> = {}) => ({ state, attributes });
 const ME = "Hall tablet";
@@ -88,4 +88,43 @@ test("the editor saves only what was set", () => {
   assert.deepEqual(cleaned(fromForm), { type: base.type, entity: base.entity, colors: { hang_up: "red" } });
   const set = { ...base, features_position: "inline", hide_state: true, colors: { ringing: "amber" } };
   assert.deepEqual(cleaned(set), set);
+});
+
+test("a half duplex Answer tile says Answer and sends duplex: half", () => {
+  const half = { ...base, duplex: "half" as const, commander: "select.gate_commander" };
+  const t = tileConfig(half, st("idle"), ME);
+  assert.equal(t.name, "Answer");
+  assert.deepEqual(t.tap_action.casa_mia_commander, { talk: "toggle", duplex: "half", entity: "select.gate_commander" });
+  assert.equal("duplex" in t, false);
+  assert.equal(tileConfig(half, st("answered", { answered_by: ME }), ME).name, "Hang up");
+  assert.equal(tileConfig({ ...half, name: "Gate" }, st("idle"), ME).name, "Gate");
+});
+
+test("Hold to talk: enabled only when silent, Live only when live, else greyed out", () => {
+  assert.deepEqual(holdLook("silent"), { look: "hold", name: null, enabled: true });
+  assert.deepEqual(holdLook("live"), { look: "live", name: "Live", enabled: true });
+  for (const s of ["off", "connecting", "full"] as const) assert.deepEqual(holdLook(s), { look: "hold", name: null, enabled: false });
+});
+
+test("the Hold to talk tile: its name, icon and colour per state, and no taps", () => {
+  const hold = { ...base, button: "hold" as const };
+  const silent = tileConfig(hold, st("answered", { answered_by: ME }), ME, "silent");
+  assert.deepEqual([silent.name, silent.icon, "color" in silent], ["Hold to talk", "mdi:microphone", false]);
+  const live = tileConfig(hold, st("answered", { answered_by: ME }), ME, "live");
+  assert.deepEqual([live.name, live.icon, live.color], ["Live", "mdi:microphone", "red"]);
+  for (const s of ["off", "connecting", "full"] as const) {
+    const t = tileConfig({ ...hold, color: "green" }, st("idle"), ME, s);
+    assert.deepEqual([t.name, t.color], ["Hold to talk", "disabled"]);
+  }
+  const keyed = { ...hold, icons: { live: "mdi:account-voice" }, colors: { hold: "green", live: "orange" } };
+  assert.equal(tileConfig(keyed, st("idle"), ME, "live").icon, "mdi:account-voice");
+  assert.equal(tileConfig(keyed, st("idle"), ME, "live").color, "orange");
+  assert.equal(tileConfig(keyed, st("idle"), ME, "silent").color, "green");
+  for (const k of ["tap_action", "icon_tap_action", "hold_action", "double_tap_action"]) assert.deepEqual(silent[k], { action: "none" });
+  assert.equal("button" in silent, false);
+});
+
+test("button and duplex at their defaults aren't saved", () => {
+  assert.deepEqual(cleaned({ ...base, button: "answer", duplex: "full" }), base);
+  assert.deepEqual(cleaned({ ...base, button: "hold" }), { ...base, button: "hold" });
 });

@@ -22,6 +22,8 @@ export type Config = { type: string; entity?: string; tap_main?: "live" | "more-
   motion_corner?: Corner;
   /** The card's own Talk button, where talk is offered (talk.ts). */
   talk_button?: boolean;
+  /** full: the voice goes out from the answer; half: only while Hold to talk is held (hold.ts). */
+  duplex?: "full" | "half";
 };
 export type Card = {
   picture: string;
@@ -137,5 +139,20 @@ export function callWords(st?: State): string {
   if (st?.state === "complete" && st.attributes.outcome === "missed") return "Missed";
   return "";
 }
+/** When HA will end an answered call, as every device shows it: "Hangs up in 1:42" from
+ * the call sensor's ends_at (amber in its last 30 s), "Held" while Hold to talk stops the
+ * timer, or nothing (not answered, or an integration that doesn't time calls this way).
+ * Worked out against this device's clock on each redraw; HA ends the call on its own. */
+export function countdown(st: State | undefined, now: number): { text: string; warn: boolean } | null {
+  if (st?.state !== "answered") return null;
+  const ends = st.attributes.ends_at ? Date.parse(String(st.attributes.ends_at)) : NaN;
+  if (Number.isNaN(ends)) return st.attributes.held ? { text: "Held", warn: false } : null;
+  const s = Math.max(0, Math.ceil((ends - now) / 1000));
+  return { text: `Hangs up in ${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`, warn: s <= COUNTDOWN_WARN_S };
+}
+export const COUNTDOWN_WARN_S = 30;
+/** A touch on the page restarts a full duplex call's timer in HA, said at most this often. */
+export const TOUCH_EVERY_MS = 5_000;
+
 /** How long a note about talk ("The call ended") stays on the card. */
 export const TALK_NOTE_MS = 10_000;

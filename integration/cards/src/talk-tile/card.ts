@@ -4,9 +4,13 @@
 // tile's: the card's config is passed through, so it looks and behaves as the owner's other
 // tiles. A tap fires Talk's toggle to the Commander card (talk.ts), unless tap_action says
 // otherwise.
+// As Hold to talk (button: hold) it follows the Commander's announced talk state
+// (hold.ts) and only reports the finger: press on pointerdown, release on pointerup or
+// pointercancel. The Commander owns the microphone and ends a hold on every other path.
 import type { CardConfig, Hass } from "../ha.ts";
 import { callSensors } from "../commander/common.ts";
-import { type Config, tileConfig } from "./common.ts";
+import { type TalkState, followTalk } from "../commander/hold.ts";
+import { type Config, holdLook, tileConfig } from "./common.ts";
 
 type Tile = HTMLElement & { hass?: Hass; setConfig(c: CardConfig): void; getCardSize?(): number; getGridOptions?(): object };
 
@@ -16,11 +20,69 @@ export class TalkTileCard extends HTMLElement {
   private tile?: Tile;
   private shown = ""; // the tile config last given, as JSON
   private helpers?: { createCardElement(c: CardConfig): Tile };
+  private talk: TalkState = "off"; // the Commander's, as announced
+  private unfollow?: () => void;
+
+  constructor() {
+    super();
+    this.addEventListener("pointerdown", this.down);
+    this.addEventListener("pointerup", this.up);
+    this.addEventListener("pointercancel", this.up);
+    this.addEventListener("contextmenu", (ev) => this.holding() && ev.preventDefault());
+  }
 
   connectedCallback() {
     this.style.display = "block";
     this.style.height = "100%"; // the tile fills its grid cell, as on its own
+    this.listen();
   }
+
+  disconnectedCallback() {
+    this.unfollow?.();
+    this.unfollow = undefined;
+  }
+
+  /** The Commander's talk state followed, for the commander picked (again when it
+   * changes), while on the page. */
+  private listen() {
+    this.unfollow?.();
+    this.unfollow = this.isConnected
+      ? followTalk(window, this.config?.commander, (talk) => {
+          this.talk = talk;
+          this.follow();
+        })
+      : undefined;
+  }
+
+  private holding() {
+    return this.config?.button === "hold";
+  }
+
+  /** The hold is the page's, not the browser's: no scrolling, text selection or iPhone
+   * long-press menu taking it. */
+  private hostStyle() {
+    const hold = this.holding();
+    for (const p of ["touch-action", "user-select", "-webkit-user-select", "-webkit-touch-callout"])
+      this.style.setProperty(p, hold ? "none" : "");
+  }
+
+  private order(talk: "press" | "release") {
+    const commander = this.config?.commander;
+    this.dispatchEvent(
+      new CustomEvent("ll-custom", { bubbles: true, composed: true, detail: { casa_mia_commander: { talk, ...(commander ? { entity: commander } : {}) } } }),
+    );
+  }
+
+  /** Pressed: held only where the Commander is silent (answered here in half duplex);
+   * greyed out, presses are ignored. Captured, so the lift comes here wherever it is. */
+  private down = (ev: PointerEvent) => {
+    if (!this.holding() || !holdLook(this.talk).enabled) return;
+    ev.preventDefault();
+    this.setPointerCapture(ev.pointerId);
+    this.order("press");
+  };
+
+  private up = () => this.holding() && this.order("release");
 
   static getStubConfig(hass: Hass): Partial<Config> {
     return { entity: callSensors(hass)[0] ?? "" };
@@ -32,7 +94,10 @@ export class TalkTileCard extends HTMLElement {
 
   setConfig(config: Config) {
     if (!config.entity) throw new Error("Choose the doorbell's call sensor (entity).");
+    const commander = this.config?.commander;
     this.config = config;
+    if (config.commander !== commander) this.listen();
+    this.hostStyle();
     this.follow();
   }
 
@@ -65,7 +130,7 @@ export class TalkTileCard extends HTMLElement {
       return;
     }
 
-    const want = tileConfig(this.config, hass.states[this.config.entity], hass.user?.name);
+    const want = tileConfig(this.config, hass.states[this.config.entity], hass.user?.name, this.talk);
     const key = JSON.stringify(want);
     if (key !== this.shown) {
       this.shown = key;
