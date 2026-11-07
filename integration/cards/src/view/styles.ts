@@ -1,4 +1,5 @@
-// The Tablet Layout's styles: the view's own (LOCK) and its sections' grids (FILL).
+// The Tablet Layout's styles: the view's own (LOCK; NARROW, kept when it is taken out) and
+// its sections' grids (FILL).
 import { css } from "lit";
 
 export const LOCK = css`
@@ -234,8 +235,17 @@ export const LOCK = css`
   }
 `;
 
+/** Always on, narrow too (LOCK is taken out then): sections are made on the Tablet
+ * Layout's own surface, so never HA's Create section, which would make one without a panel. */
+export const NARROW = css`
+  :host([cm-narrow]) .create-section-container {
+    display: none;
+  }
+`;
+
 /** Into each section's grid (HA's hui-grid-section, its own shadow root): its Add card
- * button never narrower than tall (edit mode); with one card that
+ * button never narrower than tall (edit mode); narrow, its garnish cards (cm-garnish) left
+ * out; with one card that
  * counts showing (cm-fill on the grid and that card), the cards in a column, the others
  * (headings) their own height and that card all the rest. */
 export const FILL = new CSSStyleSheet();
@@ -246,4 +256,5 @@ FILL.replaceSync(`
   :host([cm-fill]) .card { flex: none; }
   :host([cm-fill]) .card:has(> [cm-fill]) { flex: 1 1 0; min-height: 0; }
   [cm-fill], [cm-fill] > * { display: block; height: 100%; }
+  .card:has(> [cm-garnish]) { display: none; } /* narrow (HA's own sections): garnish left out */
 `);

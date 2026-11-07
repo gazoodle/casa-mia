@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.2-b17
+
+- The Tablet Layout on a phone: narrower than 600 px, the view becomes Home Assistant's own sections view, in one column that scrolls, with the main panel first and garnish cards left out. It switches back as the screen widens. Change the width, or set 0 to keep the Tablet Layout everywhere, with **Phone layout below** in the main panel's options (`narrow_below`).
+
 ## 2026.11.2-b16
 
 - Installing a development build is quicker: the app's Python packages are no longer downloaded again on every update, only when the list of them changes.

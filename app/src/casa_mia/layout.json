@@ -33,6 +33,14 @@
       "max": 64,
       "for": "view",
       "help": "Room above the view's header (its heading card and badges), when it has one; Home Assistant's own is 24."
+    },
+    "narrow_below": {
+      "label": "Phone layout below, px",
+      "default": 600,
+      "min": 0,
+      "max": 2000,
+      "for": "view",
+      "help": "Narrower than this (a phone), the view is Home Assistant's own sections instead: one column that scrolls, the main panel first, garnish left out. 0: always the Tablet Layout."
     }
   },
   "panel": {
