@@ -257,6 +257,11 @@ duplex: full     # or half; only for button: answer
 
 ## Troubleshooting
 
+- **"Picture failing for … : retrying" over the card:** the browser keeps refusing or
+  cutting off the picture, and the card keeps asking for a new one. It goes once no
+  failure has come for 15 seconds. The browser's console has a `casa-mia: the picture
+  failed` line, and the app's log says how each stream ended.
+
 - **Taps on the commander do nothing:** the page says so when Home Assistant has no Main
   camera select for it yet: add the Casa Mia Camera Commander integration (see "In Home
   Assistant"), or restart Home Assistant if it was just updated (Settings → Repairs).

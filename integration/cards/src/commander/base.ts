@@ -3,7 +3,7 @@
 import { LitElement } from "lit";
 import { atHome, type Fit, fitOf, type Hass, inDialog, LOOK, lookCss, ratioFor, watchRoom } from "../ha.ts";
 import { Motion } from "./motion.ts";
-import { Config, Card, dashboard, LEAVE_AFTER, VERSION, BLANK, SETTLE_MS, Size, askFor, pictureToken } from "./common.ts";
+import { Config, Card, dashboard, LEAVE_AFTER, VERSION, BLANK, SETTLE_MS, Size, askFor, pictureToken, pictureDown } from "./common.ts";
 
 export class CommanderBase extends LitElement {
   static properties = {
@@ -26,6 +26,9 @@ export class CommanderBase extends LitElement {
   _natural = ""; // the picture's own size as the browser decoded it (debug)
   _token = ""; // for the picture through Home Assistant, once asked
   protected retry = 0;
+  /** The picture failing (common.ts: pictureDown): this run's first error, and the last. */
+  protected downSince = 0;
+  protected lastError = 0;
   /** Its picture's stream: 0 while the card is off the page or the page hidden, else
    * which showing this is (each showing a new <img>, so a fresh stream). */
   _shown = 0;
@@ -235,6 +238,13 @@ export class CommanderBase extends LitElement {
   /** Refused (an old token) or cut off (the app restarted, say): a new stream soon,
    * through Home Assistant with a new token, else directly as a new showing. */
   protected refused() {
+    const now = Date.now();
+    if (!pictureDown(this.downSince, this.lastError, now)) {
+      this.downSince = now;
+      console.warn(`casa-mia: the picture failed (${this.viaHa() ? "through Home Assistant" : "direct"}); retrying until it comes`);
+    }
+    this.lastError = now;
+    this.requestUpdate();
     clearTimeout(this.retry);
     this.retry = window.setTimeout(() => (this.viaHa() ? this.ask(true) : this.again()), this.viaHa() ? 5_000 : 3_000);
   }
