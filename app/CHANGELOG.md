@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.2-b19
+
+- The Tablet Layout on a phone shows its sections in the order top, main, left, right, bottom. Before, the main panel came first and the rest followed in the view's order.
+- A Tablet Layout panel no longer keeps its edit-mode least height after edit mode is left, or on a phone.
+
 ## 2026.11.2-b18
 
 - The Camera Commander card says when its picture keeps failing: a red "Picture failing for 3 min: retrying" over the card, until no failure has come for 15 seconds. Before, it retried every few seconds with nothing on screen.

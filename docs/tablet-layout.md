@@ -322,7 +322,8 @@ is narrower than `narrow_below` (600 px by default), it becomes Home Assistant's
 sections view instead: the sections in one column that scrolls, as on any other
 dashboard.
 
-- The main panel comes first, then the other sections in the view's order.
+- The top edge's panels come first, then the main panel, then the left, right and bottom
+  edges' panels. Panels of one edge keep the view's order.
 - What wouldn't show in the Tablet Layout doesn't show here either: a section with no
   panel, a hidden edge, and a section with no card that counts showing.
 - Garnish cards are left out, as they only make sense inside a panel.
