@@ -54,6 +54,11 @@ export const narrowBelow = (config: Record<string, any>) => Math.max(0, Number(c
  * coming or going as the view switches can't flip it to and fro. */
 export const NARROW_GIVE = 24;
 
+/** Narrow, the order sections go in (CSS order), by panel: the top edge, then main, left,
+ * right and bottom; a section with no panel last. Panels of one edge keep the view's order. */
+export const NARROW_ORDER = ["top", "main", "left", "right", "bottom"];
+export const narrowOrder = (place: string | undefined) => String(place && NARROW_ORDER.includes(place) ? NARROW_ORDER.indexOf(place) : NARROW_ORDER.length);
+
 /** Whether a view `width` wide is narrow (HA's own sections), given `below` and whether it
  * was. No width yet (not laid out): as it was. */
 export function narrow(width: number, below: number, was: boolean): boolean {

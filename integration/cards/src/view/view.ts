@@ -1,12 +1,12 @@
 // Layer 4: the Tablet Layout view, laying its panels out (cmPlace), defined on HA's Sections view.
 // Narrow (a phone: narrower than the view's narrow_below), it is HA's own sections view
-// instead (cmNarrowPlace): one column that scrolls, the main panel first, the sections that
-// wouldn't show left out, garnish too. Every style the Tablet Layout sets is cleared.
+// instead (cmNarrowPlace): one column that scrolls, top, main, left, right, bottom, the
+// sections that wouldn't show left out, garnish too. Every style the Tablet Layout sets is cleared.
 import { define, type HuiCard, sectionsView } from "../ha.ts";
 import { counts } from "../garnish.ts";
 import { holdsPanelLayer } from "../over-layer/common.ts";
 import { autoSized, layerOf, placeOf, placePanels, type Section, sides, stackOf } from "../tablet.ts";
-import { headerSpace, narrow, narrowBelow } from "./common.ts";
+import { headerSpace, narrow, narrowBelow, narrowOrder } from "./common.ts";
 import { ViewBase } from "./base.ts";
 import { ViewEdit } from "./edit.ts";
 import { ViewDraw } from "./draw.ts";
@@ -141,9 +141,10 @@ sectionsView().then((Base: any) => {
     }
 
     /** Narrow: HA's own sections view (LOCK is out, cmToNarrow). Everything cmPlace sets is
-     * cleared, by the same calls with nothing to place; the main panel goes first (CSS
-     * order), and out of edit mode a section that wouldn't show in the Tablet Layout (no
-     * panel, its edge hidden, nothing that counts) and garnish cards are left out. */
+     * cleared, by the same calls with nothing to place; the sections go top, main, left,
+     * right, bottom (CSS order, narrowOrder), and out of edit mode a section that wouldn't
+     * show in the Tablet Layout (no panel, its edge hidden, nothing that counts) and garnish
+     * cards are left out. */
     protected cmNarrowPlace(grid: HTMLElement, where: ReturnType<typeof placeOf>[], editing: boolean) {
       Object.assign(grid.style, { inset: "", margin: "", width: "", height: "", gridTemplateColumns: "", gridTemplateRows: "" });
       [...grid.querySelectorAll<HTMLElement>(":scope > .section")].forEach((box, n) => {
@@ -155,7 +156,7 @@ sectionsView().then((Base: any) => {
         this.cmFill(this.sections[n], []);
         this.cmGrid(this.sections[n], null);
         this.cmGarnish(n, !editing);
-        Object.assign(box.style, { ...UNPLACED, order: w?.place === "main" ? "-1" : "", display: shows ? "" : "none" });
+        Object.assign(box.style, { ...UNPLACED, order: narrowOrder(w?.place), display: shows ? "" : "none" });
       });
       this.cmLines(grid, [], [[], []], 0);
       this.cmDims(grid, false, where, {} as never, [], [[], []], 0); // not shown: nothing of the placing is read
