@@ -141,7 +141,7 @@ export class CommanderTalk extends CommanderLive {
 
   /** The countdown ticks each second while there is a call to show it for. */
   protected ticking(): boolean {
-    return this.hass?.states[this.call() ?? ""]?.state === "answered";
+    return super.ticking() || this.hass?.states[this.call() ?? ""]?.state === "answered";
   }
 
   /** The call sensor of the camera talked to, else of the main camera. The call sensors

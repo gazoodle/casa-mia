@@ -4,7 +4,7 @@ import { html, nothing } from "lit";
 import { liveChannel } from "../ha.ts";
 import { type Rect } from "../layout.ts";
 import { playWebRTC } from "../../../../app/web/src/webrtc.ts";
-import { Card, LIVE_WAIT_MS, LIVE_GIVE_UP, liveClaim } from "./common.ts";
+import { Card, LIVE_WAIT_MS, LIVE_GIVE_UP, PICTURE_DOWN_MS, liveClaim } from "./common.ts";
 import { CommanderBase } from "./base.ts";
 
 export class CommanderLive extends CommanderBase {
@@ -45,10 +45,10 @@ export class CommanderLive extends CommanderBase {
     if (video !== this.watched) this.watch(video);
     if (video || this.ticking()) this.requestUpdate();
   };
-  /** Something besides the live caption needs the once-a-second redraw (talk.ts: the
-   * call's countdown). */
+  /** Something besides the live caption needs the once-a-second redraw: the picture
+   * failing (base.ts: refused), and talk.ts adds the call's countdown. */
   protected ticking(): boolean {
-    return false;
+    return this.lastError > 0 && Date.now() - this.lastError < PICTURE_DOWN_MS;
   }
   /** Count `video`'s frames from now: a new start, no frame yet. */
   protected watch(video: HTMLVideoElement | null) {

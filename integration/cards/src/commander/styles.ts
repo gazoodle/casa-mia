@@ -81,6 +81,17 @@ export const styles = [motionStyles, css`
       background: rgb(200 30 30 / 0.9);
       font-weight: 600;
     }
+    /* The picture failing (common.ts: pictureDown): said over the card, top left, wrapping. */
+    .down {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      right: 8px;
+      pointer-events: none;
+    }
+    .down span {
+      white-space: normal;
+    }
     .zone {
       cursor: pointer;
     }

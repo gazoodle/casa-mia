@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.2-b18
+
+- The Camera Commander card says when its picture keeps failing: a red "Picture failing for 3 min: retrying" over the card, until no failure has come for 15 seconds. Before, it retried every few seconds with nothing on screen.
+
 ## 2026.11.2-b17
 
 - The Tablet Layout on a phone: narrower than 600 px, the view becomes Home Assistant's own sections view, in one column that scrolls, with the main panel first and garnish cards left out. It switches back as the screen widens. Change the width, or set 0 to keep the Tablet Layout everywhere, with **Phone layout below** in the main panel's options (`narrow_below`).

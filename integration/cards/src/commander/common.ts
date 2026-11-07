@@ -60,6 +60,18 @@ export function ago(ms: number): string {
   const m = Math.floor(s / 60) % 60;
   return `${Math.floor(s / 3600)} h${m ? ` ${m} min` : ""}`;
 }
+/** The picture failing is a lease (RULE FIVE): each error renews it, and it lapses this
+ * long after the last one, longer than a retry takes (base.ts: refused), so a run of
+ * failures reads as one. Nothing has to say the picture is back. */
+export const PICTURE_DOWN_MS = 15_000;
+
+/** What the card says while its picture fails: since when (the first error of this run)
+ * and that it is retrying; null once no error has come for PICTURE_DOWN_MS. */
+export function pictureDown(since: number, lastError: number, now: number): string | null {
+  if (!lastError || now - lastError >= PICTURE_DOWN_MS) return null;
+  return `Picture failing for ${ago(now - since)}: retrying`;
+}
+
 /** Live main cameras failed in a row before a card stops trying (until its page reloads):
  * each try and each failure changes its picture, a new stream each time. */
 export const LIVE_GIVE_UP = 2;

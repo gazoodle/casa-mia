@@ -6,7 +6,7 @@ import { keyed } from "lit/directives/keyed.js";
 import { fire, type Hass, heightFor, inPicker, navigate, TABLET } from "../ha.ts";
 import { heightForMain, layout, PANELS, pyRound, type Rect } from "../layout.ts";
 import { dot } from "./motion.ts";
-import { Config, Card, BLANK, Size, commanders } from "./common.ts";
+import { Config, Card, BLANK, Size, commanders, pictureDown } from "./common.ts";
 import { PILLS } from "../pills.ts";
 import { CommanderTalk, talkStyles } from "./talk.ts";
 import { styles } from "./styles.ts";
@@ -72,6 +72,7 @@ export class CommanderCard extends CommanderTalk {
     if (this._liveFailed && this._liveFailed !== main) this._liveFailed = ""; // a new main: try again
     const editing = this.editing();
     const live = !editing && this.liveMain(card, main);
+    const down = editing ? null : pictureDown(this.downSince, this.lastError, Date.now());
     // Laid out for the picture asked for, as the compositor draws it (compositor.sized).
     const own = card.layout;
     // In HA's card picker: drawn at its own size and shrunk, so its gaps and labels keep
@@ -168,6 +169,7 @@ export class CommanderCard extends CommanderTalk {
         )}
         ${mainRect[2] > 0 ? dot(moving.get(main), at(mainRect), this._config!, () => this.open(card, main)) : nothing}
         ${(live || this._talk) && mainRect[2] > 0 ? this.talkParts(card, at(mainRect)) : nothing}
+        ${down ? html`<div class="down"><span class="cm-pill cm-filled cm-bad">${down}</span></div>` : nothing}
       </div>
     </ha-card>`;
   }

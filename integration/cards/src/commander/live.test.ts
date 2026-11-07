@@ -2,7 +2,7 @@
 // recent frame; no state a stall can stay in.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { LIVE_LEASE_MS, ago, liveClaim } from "./common.ts";
+import { LIVE_LEASE_MS, PICTURE_DOWN_MS, ago, liveClaim, pictureDown } from "./common.ts";
 
 const now = 10_000_000;
 
@@ -26,4 +26,12 @@ test("how long, as people say it", () => {
   assert.equal(ago(4 * 60_000 + 5_000), "4 min");
   assert.equal(ago(2 * 3_600_000 + 5 * 60_000), "2 h 5 min");
   assert.equal(ago(3_600_000), "1 h");
+});
+
+test("the picture failing: said from the first error, until none comes for a while", () => {
+  const since = now - 3 * 60_000;
+  assert.equal(pictureDown(since, now - 2_000, now), "Picture failing for 3 min: retrying");
+  assert.equal(pictureDown(now - 5_000, now - 5_000, now), "Picture failing for 5 s: retrying");
+  assert.equal(pictureDown(since, now - PICTURE_DOWN_MS, now), null); // lapsed: no error since
+  assert.equal(pictureDown(0, 0, now), null); // never failed
 });
