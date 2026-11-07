@@ -46,3 +46,18 @@ export function cardsHeight(section: any): number {
   const grid = section?.querySelector("hui-grid-section") as HTMLElement | null;
   return (grid?.shadowRoot?.querySelector(".container") as HTMLElement | null)?.offsetHeight ?? 0;
 }
+
+/** Below the view's narrow_below (px; 0: never), it is HA's own sections view, as on a phone. */
+export const narrowBelow = (config: Record<string, any>) => Math.max(0, Number(config.narrow_below ?? LAYOUT.main.narrow_below.default) || 0);
+
+/** Once narrow, the width must pass the threshold by this much to go back: a scrollbar
+ * coming or going as the view switches can't flip it to and fro. */
+export const NARROW_GIVE = 24;
+
+/** Whether a view `width` wide is narrow (HA's own sections), given `below` and whether it
+ * was. No width yet (not laid out): as it was. */
+export function narrow(width: number, below: number, was: boolean): boolean {
+  if (below <= 0) return false;
+  if (width <= 0) return was;
+  return width < below + (was ? NARROW_GIVE : 0);
+}

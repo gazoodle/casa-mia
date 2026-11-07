@@ -3,12 +3,12 @@ import { type HuiCard, room, TABLET, watchRoom } from "../ha.ts";
 import { fills } from "../garnish.ts";
 import { autoSized, cardColumns, cardsWidth, fillers, type Gap, layerOf, placeOf, PLACES, type Section, seenOut, sides } from "../tablet.ts";
 import { tooTall, watchAppSettings, ROW, ROW_GAP, DIMS, cardsHeight } from "./common.ts";
-import { LOCK, FILL } from "./styles.ts";
+import { LOCK, FILL, NARROW } from "./styles.ts";
 import { PILLS } from "../pills.ts";
 
 export const ViewBase = (Base: any) =>
   class extends Base {
-    static styles = [Base.styles, PILLS, LOCK];
+    static styles = [Base.styles, PILLS, NARROW, LOCK]; // LOCK last: cmToNarrow takes it out and puts it back
 
     protected cmDebug = false; // debug: true in the view's config
     protected cmApp: Record<string, any> = {}; // the app's settings, watchAppSettings
@@ -26,6 +26,10 @@ export const ViewBase = (Base: any) =>
     protected cmFrame = 0;
 
     protected cmAdding = false;
+
+    /** Narrow (common.ts: narrow): HA's own sections view, as on a phone, the Tablet
+     * Layout's lock (LOCK) and placement off (view.ts: cmPlace). */
+    protected cmNarrow = false;
 
     /** Out of edit mode: the panels' area, the space above the header then (none: no
      * header), and the size: auto panels' heights. */
@@ -57,8 +61,7 @@ export const ViewBase = (Base: any) =>
       super.connectedCallback();
       TABLET.shown++;
       this.cmHolder = (this as unknown as HTMLElement).parentElement?.parentElement;
-      this.cmHolder?.style.setProperty("min-height", "100dvh");
-      document.documentElement.style.setProperty("height", "100dvh");
+      this.cmPage(!this.cmNarrow);
       this.cmSeen.observe(this as unknown as Element);
       this.cmStop = watchRoom(() => this.cmLater());
       this.addEventListener("section-visibility-changed", this.cmLater);
@@ -69,8 +72,7 @@ export const ViewBase = (Base: any) =>
     disconnectedCallback() {
       super.disconnectedCallback();
       TABLET.shown--;
-      this.cmHolder?.style.removeProperty("min-height");
-      document.documentElement.style.removeProperty("height");
+      this.cmPage(false);
       this.cmSeen.disconnect();
       this.cmStop?.();
       this.removeEventListener("section-visibility-changed", this.cmLater);
@@ -80,6 +82,30 @@ export const ViewBase = (Base: any) =>
       this.cmUnwatch = undefined; // watched again next time it shows
     }
 
+
+    /** The page locked to the visible screen (see cmHolder), or HA's own (narrow, or
+     * another view). */
+    protected cmPage(locked: boolean) {
+      for (const [el, prop] of [[this.cmHolder, "min-height"], [document.documentElement, "height"]] as const)
+        if (locked) el?.style.setProperty(prop, "100dvh");
+        else el?.style.removeProperty(prop);
+    }
+
+    /** Switch to or from narrow: the Tablet Layout's own styles (LOCK, adopted into the
+     * view's shadow root with HA's) taken out or put back, and the page unlocked or locked,
+     * so what is left is HA's own sections view. cmPlace does the rest. */
+    protected cmToNarrow(on: boolean) {
+      this.cmNarrow = on;
+      this.toggleAttribute("cm-narrow", on);
+      const root = this.shadowRoot as ShadowRoot | null;
+      const lock = LOCK.styleSheet;
+      if (root && lock) {
+        const others = root.adoptedStyleSheets.filter((s) => s !== lock);
+        root.adoptedStyleSheets = on ? others : [...others, lock];
+      } else console.warn("CASA-MIA CARDS: Tablet Layout: this browser keeps its styles in <style>, so the phone layout can't take them out");
+      this.cmPage(!on);
+      console.info(`CASA-MIA CARDS: Tablet Layout: ${on ? "narrow, Home Assistant's own sections" : "the Tablet Layout"} at ${this.clientWidth} px`);
+    }
 
     /** The panels' outline, on and its CSS, from the view's config and the app's settings. */
     protected cmMarks() {
