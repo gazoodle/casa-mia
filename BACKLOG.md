@@ -188,6 +188,26 @@ Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it d
   - **Migration** keeps the entity's unique id and configured code.
   - **Open:** the smallest HA-native way to select and invoke the script with blocking error propagation, and how a user takes ownership of the managed record.
 
+## Intercom and UniFi Protect talkback
+
+- **Retire Protect Talkback when upstream catches up** (owner, 2026-11-05: decide around
+  2026-11-12). Watch go2rtc PR #2340 (a native `unifi-talkback:` source), HA's UniFi
+  Protect integration declaring two-way audio, and HA's release notes. When they cover
+  it, add `casa_mia_protect_talkback` to `components.py` RETIRED and drop the module.
+  Otherwise, consider releasing it on its own for other Protect users (HACS; it must say
+  it patches HA internals and only covers HA's managed go2rtc). Either way, a test
+  report on PR #2340 from a G4 Doorbell Pro on Protect 7.3.
+- **Measure talk** on the owner's hardware: delay, intelligibility and echo.
+- **Audio route on the phone and tablets** (2026-11-09): the HA iOS Companion app plays
+  the visitor from the earpiece (Safari uses the loudspeaker), and Kiosk Satellite plays
+  it as quiet call audio. Both need fixes in those apps; the owner holds the drafted
+  feature requests.
+- **Number plate recognition** (after the intercom works): plate detection on an
+  inference host against the gate and driveway cameras, publishing events the intercom
+  and HA automations can use. First check whether Protect's own plate detection covers
+  it. Store only matches against a known-plates list (UK GDPR, ICO guidance on domestic
+  CCTV). The intercom must never depend on that host.
+
 ## New ideas, not started
 
 - **ProxyStick module** (asked 2026-10-16). Host ProxyStick's headless server (the `proxystick` package, a separate public repo) as a module, so an ESP32-S3 ProxyStick can present a folder under `/media` to a photo frame as a USB drive. A thin adapter (start, stop, health, its own port). Open: how the package reaches the box (a pip dependency from its GitHub URL for releases; for development, the Docker build reaching ProxyStick's fake git host).

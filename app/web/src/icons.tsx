@@ -12,6 +12,23 @@ const base = {
   "aria-hidden": true,
 };
 
+export const DoorbellIcon = () => (
+  <svg {...base}>
+    <rect x="7" y="2.5" width="10" height="19" rx="3" />
+    <circle cx="12" cy="7" r="1.8" />
+    <path d="M10 11h4M10 13h4" />
+    <circle cx="12" cy="17.5" r="1.5" />
+  </svg>
+);
+
+export const TalkbackIcon = () => (
+  <svg {...base}>
+    <rect x="3" y="5" width="9" height="14" rx="3" />
+    <circle cx="7.5" cy="9.5" r="2" />
+    <path d="M15.5 9.5a3.5 3.5 0 0 1 0 5M18.5 7a7 7 0 0 1 0 10" />
+  </svg>
+);
+
 export const FirmwareIcon = () => (
   <svg {...base}>
     <rect x="6" y="2.5" width="12" height="19" rx="2.5" />

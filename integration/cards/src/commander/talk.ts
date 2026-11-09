@@ -1,5 +1,5 @@
 // The Camera Commander card's third layer: talk to a doorbell (two-way audio), when the
-// live main camera's device has an intercom_talkback call sensor.
+// live main camera's device has a Casa Mia Intercom call sensor.
 // The microphone is this device's, switched on by a tap here (the card's Talk button, or
 // any Lovelace button firing a casa_mia_commander event): a tap lets the browser open the
 // microphone and play the visitor's voice. Talk opens a session of its own to the doorbell,
@@ -15,8 +15,8 @@
 // microphone track disabled (it sends silence; the offer still claims the call), and the
 // voice goes out only while a Hold to talk is held (talk-rules.ts: Hold), with the visitor muted
 // meanwhile. The state is announced on the window for the Talk tiles (talk-rules.ts).
-// HA times the answered call (intercom_talkback/call; the intercom repo's
-// docs/call-timer.md): 2 minutes in half duplex, stopped while held and restarted on
+// HA times the answered call (casa_mia_intercom/call; docs/applets/intercom.md):
+// 2 minutes in half duplex, stopped while held and restarted on
 // release; 10 minutes in full duplex, restarted by a touch anywhere on this page. Only
 // the device that answered tells HA; every device shows the countdown from the sensor.
 import { css, html, nothing } from "lit";
@@ -53,7 +53,6 @@ export class CommanderTalk extends CommanderLive {
   private answered = ""; // the call sensor HA says this user answered, while it does
   private toldHeld = false; // the hold HA was last told of
   private touchedAt = 0; // when HA was last told of a touch
-  private static timerless = false; // the integration has no call timer command: said once per page
 
   connectedCallback() {
     super.connectedCallback();
@@ -100,24 +99,16 @@ export class CommanderTalk extends CommanderLive {
     }
   }
 
-  /** Tell HA's call timer (the intercom repo's docs/call-timer.md) something only the
-   * device that answered may say. A refusal is logged and shown; an integration without
-   * the command is said once, as the call then ends after its 10 minutes as before. */
+  /** Tell HA's call timer (docs/applets/intercom.md) something only the device that
+   * answered may say. A refusal is logged and shown. */
   private tell(what: { duplex: "half" } | { held: boolean } | { touched: true }) {
     const sensor = this.answered;
     if (!sensor || !this.hass) return;
-    this.hass.callWS({ type: "intercom_talkback/call", entity_id: sensor, ...what }).then(
+    this.hass.callWS({ type: "casa_mia_intercom/call", entity_id: sensor, ...what }).then(
       () => console.info(`casa-mia: call timer for ${sensor}: ${JSON.stringify(what)}`),
       (err: { code?: string; message?: string }) => {
-        if (err?.code === "unknown_command") {
-          if (CommanderTalk.timerless) return;
-          CommanderTalk.timerless = true;
-          console.warn("casa-mia: Intercom talkback has no call timer command (an older version): the call ends after 10 minutes");
-          this.note("This Intercom talkback ends calls after 10 minutes: update it for the 2-minute half duplex timer");
-        } else {
-          console.warn(`casa-mia: call timer for ${sensor} refused ${JSON.stringify(what)}: ${err?.code ?? ""} ${err?.message ?? err}`);
-          this.note(`The call timer refused it: ${err?.message ?? err?.code ?? err}`);
-        }
+        console.warn(`casa-mia: call timer for ${sensor} refused ${JSON.stringify(what)}: ${err?.code ?? ""} ${err?.message ?? err}`);
+        this.note(`The call timer refused it: ${err?.message ?? err?.code ?? err}`);
       },
     );
   }

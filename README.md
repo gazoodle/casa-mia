@@ -144,6 +144,18 @@ documentation.
 <a href="docs/applets/alarm-panel.md"><img src="docs/screenshots/alarm-panel-detail.webp" alt="The Alarm panel tile: Running, in the integration so it stays up while the app restarts" width="100%"></a>
 <p>An intruder alarm as a Home Assistant alarm panel that refuses to work until it has a code. Built for my house; you probably don't need it.</p>
 </td>
+<td width="25%" valign="top">
+<h4><a href="docs/applets/intercom.md">Intercom</a> <a href="docs/README.md#maturity"><img src="docs/maturity/development.svg" alt="In development" align="absmiddle"></a><!--intercom--></h4>
+<p>One call per doorbell that every screen agrees on: whoever talks first answers, nobody else can talk over them, and a forgotten tablet hangs up by itself.</p>
+</td>
+</tr>
+<tr>
+<td width="25%" valign="top">
+<h4><a href="docs/applets/protect-talkback.md">UniFi Protect talkback</a> <a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha" align="absmiddle"></a><!--protect_talkback--></h4>
+<p>Talk through UniFi Protect doorbells from Home Assistant, by patching its go2rtc until Home Assistant can do it itself.</p>
+</td>
+<td width="25%"></td>
+<td width="25%"></td>
 <td width="25%"></td>
 </tr>
 </table>

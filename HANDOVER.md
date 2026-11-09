@@ -292,10 +292,27 @@ CLAUDE.md has them all. What trips agents here:
 - **Loose ends:** move the card's motion test into the cards' `npm test`; HA warns about
   `via_device` in commanders' DeviceInfo (until 2027.8); the compositor's log lines give
   viewers' addresses only; the Tablet Layout guide's examples.
-- **Talk from the Commander card** (2026.11.2-b2, 2026-11-05; spec from the
-  owner's intercom repo, which Casa Mia must not depend on): `commander/talk.ts`, a
+- **Talk from the Commander card** (2026.11.2-b2, 2026-11-05): `commander/talk.ts`, a
   layer over `live.ts`; the card was split into base → live → talk → card. Built and
   unit-tested, **not yet tried on hardware**: the owner's six acceptance checks (two
   tablets and the iPhone) are still to do, with measured talk-to-audible delays.
+- **Intercom and Protect Talkback moved in** (2026.11.2-b20, 2026-11-09) from the owner's
+  separate intercom repo (its `intercom_talkback`, up to 2026.11.1-b11; that repo's app
+  was only an installer, so nothing of it came over). Split in two children, each
+  following an integration-only app module as `alarm` does:
+  - `casa_mia_intercom` (module `intercom`): the calls and the WebRTC offer/close
+    patches. A doorbell is any device with a doorbell event entity and a camera, found
+    in the entity registry (reloads when one comes or goes), so it no longer knows about
+    Protect. Entities are keyed by HA device id. Its `call` websocket command (the
+    timer) has **never run on HA**.
+  - `casa_mia_protect_talkback` (module `protect_talkback`): one entry per console, the
+    go2rtc config and stream patches, the two-way flag, `talk.py` (must stay
+    executable; a test checks). Delete it when go2rtc PR #2340 and HA's UniFi Protect
+    two-way audio land (BACKLOG).
+  - Shared: `casa_mia/patching.py` (Patches: apply, put back, Repair on failure; and the
+    refusal to set up beside an enabled `intercom_talkback` entry). Brands from
+    `tools/brand_children.py`.
+  - **Cutover on the live box:** leave the old app and integration installed with its
+    entry disabled until these are proven, then remove them.
 - **Next:** the owner picks from BACKLOG. Nested sections wait until HA ships them (don't
   build ahead of HA).

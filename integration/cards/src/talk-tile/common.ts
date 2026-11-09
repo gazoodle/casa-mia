@@ -21,7 +21,7 @@ export const ICONS: Record<Look, string> = {
 const COLOURS: Partial<Record<Look, string>> = { live: "red" };
 
 export type Config = CardConfig & {
-  entity: string; // the intercom_talkback call sensor
+  entity: string; // the Casa Mia Intercom call sensor
   commander?: string; // a Commander's Main camera select: only that card talks
   button?: "answer" | "hold"; // answer and hang up, or Hold to talk
   duplex?: Duplex; // answer only: half answers silent, for Hold to talk

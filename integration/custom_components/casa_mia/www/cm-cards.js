@@ -1212,7 +1212,7 @@ function Ut(e) {
 }
 function Wt(e) {
 	let t = e.entities ?? {};
-	return Object.values(t).filter((e) => e.platform === "intercom_talkback" && e.translation_key === "call").map((e) => e.entity_id);
+	return Object.values(t).filter((e) => e.platform === "casa_mia_intercom" && e.translation_key === "call").map((e) => e.entity_id);
 }
 function Gt(e, t, n = Wt(e)) {
 	return n.find((n) => (e.states[n]?.attributes.camera_entities)?.includes(t));
@@ -1603,7 +1603,7 @@ var Cn = /* @__PURE__ */ new WeakSet(), wn = {
 	ringing: "cm-warn",
 	answered: "cm-accent",
 	complete: "cm-muted"
-}, Tn = class e extends an {
+}, Tn = class extends an {
 	constructor(...e) {
 		super(...e), this._talk = "", this._talkNote = "", this.claimed = !1, this.asking = 0, this.noteGone = 0, this.found = { sensors: [] }, this.half = !1, this.connected = !1, this.hold = new gn(() => this.sync()), this.said = "off", this.answered = "", this.toldHeld = !1, this.touchedAt = 0, this.onOrder = (e) => {
 			let t = e.detail?.casa_mia_commander;
@@ -1623,9 +1623,6 @@ var Cn = /* @__PURE__ */ new WeakSet(), wn = {
 			_talk: { state: !0 },
 			_talkNote: { state: !0 }
 		};
-	}
-	static {
-		this.timerless = !1;
 	}
 	connectedCallback() {
 		super.connectedCallback(), window.addEventListener("ll-custom", this.onOrder), this.unask = yn(window, () => ({
@@ -1648,17 +1645,14 @@ var Cn = /* @__PURE__ */ new WeakSet(), wn = {
 			state: e
 		}), this.requestUpdate());
 	}
-	tell(t) {
-		let n = this.answered;
-		n && this.hass && this.hass.callWS({
-			type: "intercom_talkback/call",
-			entity_id: n,
-			...t
-		}).then(() => console.info(`casa-mia: call timer for ${n}: ${JSON.stringify(t)}`), (r) => {
-			if (r?.code === "unknown_command") {
-				if (e.timerless) return;
-				e.timerless = !0, console.warn("casa-mia: Intercom talkback has no call timer command (an older version): the call ends after 10 minutes"), this.note("This Intercom talkback ends calls after 10 minutes: update it for the 2-minute half duplex timer");
-			} else console.warn(`casa-mia: call timer for ${n} refused ${JSON.stringify(t)}: ${r?.code ?? ""} ${r?.message ?? r}`), this.note(`The call timer refused it: ${r?.message ?? r?.code ?? r}`);
+	tell(e) {
+		let t = this.answered;
+		t && this.hass && this.hass.callWS({
+			type: "casa_mia_intercom/call",
+			entity_id: t,
+			...e
+		}).then(() => console.info(`casa-mia: call timer for ${t}: ${JSON.stringify(e)}`), (n) => {
+			console.warn(`casa-mia: call timer for ${t} refused ${JSON.stringify(e)}: ${n?.code ?? ""} ${n?.message ?? n}`), this.note(`The call timer refused it: ${n?.message ?? n?.code ?? n}`);
 		});
 	}
 	tellHeld() {
@@ -2278,7 +2272,7 @@ var jn = class extends B {
 		}}
       .schema=${e}
       .computeLabel=${(e) => n[e.name]}
-      .computeHelper=${(e) => e.name === "entity" ? "The commanders built on the Camera Commander page (each one's Main camera select)." : e.name === "security_look" ? "The pictures in monochrome, tinted, like a security control room: the picture, the main camera's live video and its caption (not the highlight)." : e.name === "route" ? "At home: this page reached Home Assistant over http at a home address (a private IP, a .local name). Through Home Assistant works anywhere you can sign in, at a little cost to Home Assistant." : e.name === "away_sharpness" ? "How sharp the picture is when it comes through Home Assistant (away from home): a 2x screen at Full is four times the bytes of Light. Direct at home it is always the screen's own." : e.name === "live_main" ? "The main camera plays as live video over the picture, through Home Assistant's WebRTC (this device decodes it; the box does not). Needs the Camera compositor's Live main camera switch on; a video that does not start gives way to the drawn picture." : e.name === "talk_button" ? "A Talk button over a doorbell's live video (a camera with an Intercom talkback call sensor, on an https page). Turn it off to use your own buttons: a tap_action of fire-dom-event with casa_mia_commander: {talk: toggle} does the same." : e.name === "motion_dot" ? "A small dot on a camera's tile while its motion sensor sees motion (the sensor Track motion uses), and for a while after; hover it for when." : e.name === "motion_pulse" ? "Seconds each pulse takes; 0: a steady dot." : e.name === "motion_linger" ? "Seconds the dot stays once the motion has stopped, so a short one is not missed. 0: it goes at once." : e.name === "leave_after" ? "Seconds the picture goes on once the card is out of sight (another page in Home Assistant, scrolled away), so coming back (the back button) finds it running; then it stops, and the box sends nothing more. 0: at once. Closing the app always stops it at once." : void 0}
+      .computeHelper=${(e) => e.name === "entity" ? "The commanders built on the Camera Commander page (each one's Main camera select)." : e.name === "security_look" ? "The pictures in monochrome, tinted, like a security control room: the picture, the main camera's live video and its caption (not the highlight)." : e.name === "route" ? "At home: this page reached Home Assistant over http at a home address (a private IP, a .local name). Through Home Assistant works anywhere you can sign in, at a little cost to Home Assistant." : e.name === "away_sharpness" ? "How sharp the picture is when it comes through Home Assistant (away from home): a 2x screen at Full is four times the bytes of Light. Direct at home it is always the screen's own." : e.name === "live_main" ? "The main camera plays as live video over the picture, through Home Assistant's WebRTC (this device decodes it; the box does not). Needs the Camera compositor's Live main camera switch on; a video that does not start gives way to the drawn picture." : e.name === "talk_button" ? "A Talk button over a doorbell's live video (a camera with a Casa Mia Intercom call sensor, on an https page). Turn it off to use your own buttons: a tap_action of fire-dom-event with casa_mia_commander: {talk: toggle} does the same." : e.name === "motion_dot" ? "A small dot on a camera's tile while its motion sensor sees motion (the sensor Track motion uses), and for a while after; hover it for when." : e.name === "motion_pulse" ? "Seconds each pulse takes; 0: a steady dot." : e.name === "motion_linger" ? "Seconds the dot stays once the motion has stopped, so a short one is not missed. 0: it goes at once." : e.name === "leave_after" ? "Seconds the picture goes on once the card is out of sight (another page in Home Assistant, scrolled away), so coming back (the back button) finds it running; then it stops, and the box sends nothing more. 0: at once. Closing the app always stops it at once." : void 0}
       @value-changed=${(e) => {
 			e.stopPropagation(), this._config = An(e.detail.value), t(this, "config-changed", { config: this._config });
 		}}
@@ -8369,7 +8363,7 @@ var Ys = class extends HTMLElement {
 	icon_tap_action: "Icon tap action",
 	...Xs
 }, tc = {
-	entity: "The doorbell's Intercom talkback call sensor.",
+	entity: "The doorbell's Casa Mia Intercom call sensor.",
 	commander: "Only that Commander card talks. Empty: every Commander card on the page showing the doorbell.",
 	name: "Replaces \"Talk\", \"Answer\" or \"Hold to talk\". \"Hang up\", \"Answered by …\" and \"Live\" always show, as they say what is happening.",
 	icon: "Empty: an icon for each state (below). Set: this one in every state.",

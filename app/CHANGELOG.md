@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.11.2-b20
+
+- **Breaking:** the Camera Commander card and the Talk tile now find a doorbell's call through Casa Mia Intercom (below), not the separate Intercom talkback integration. Turn on **Intercom** and **UniFi Protect talkback** in the app's Configuration, disable the Intercom talkback entry (Settings → Devices & services), add Casa Mia Intercom and Casa Mia Protect Talkback from Discovered, and point any Talk tile at the new Call sensor.
+- New: **Intercom** (in development), as the Casa Mia Intercom integration. Each doorbell has one call that every screen agrees on, with a Call sensor and an End call button. Whoever talks first answers it, and nobody else can talk until it ends. It ends after 10 minutes in full duplex, or 2 minutes after the last Hold to talk in half duplex. A doorbell is any device with a doorbell event and a camera, so it no longer needs UniFi Protect.
+- New: **UniFi Protect talkback** (alpha), as the Casa Mia Protect Talkback integration. It lets Home Assistant talk through UniFi Protect doorbells and cameras by patching its go2rtc, and will be removed once Home Assistant and go2rtc can do that themselves. It is set up per Protect console with an API key, as before.
+- Both moved in from the owner's separate intercom repo, which ends at Intercom talkback 2026.11.1-b11. Neither will set up while an Intercom talkback entry is still enabled, because both would patch the same parts of go2rtc.
+
 ## 2026.11.2-b19
 
 - The Tablet Layout on a phone shows its sections in the order top, main, left, right, bottom. Before, the main panel came first and the rest followed in the view's order.

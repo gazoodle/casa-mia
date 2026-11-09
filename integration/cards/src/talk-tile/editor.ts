@@ -94,7 +94,7 @@ const LABELS: Record<string, string> = {
   ...LOOK_NAMES,
 };
 const HELP: Record<string, string> = {
-  entity: "The doorbell's Intercom talkback call sensor.",
+  entity: "The doorbell's Casa Mia Intercom call sensor.",
   commander: "Only that Commander card talks. Empty: every Commander card on the page showing the doorbell.",
   name: 'Replaces "Talk", "Answer" or "Hold to talk". "Hang up", "Answered by …" and "Live" always show, as they say what is happening.',
   icon: "Empty: an icon for each state (below). Set: this one in every state.",

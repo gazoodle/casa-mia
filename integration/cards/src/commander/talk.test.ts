@@ -14,11 +14,11 @@ const hass = {
   callService: async () => undefined,
   entities: {
     "camera.oak_door_low": { entity_id: "camera.oak_door_low", platform: "unifiprotect" },
-    "sensor.oak_door_call": { entity_id: "sensor.oak_door_call", platform: "intercom_talkback", translation_key: "call" },
+    "sensor.oak_door_call": { entity_id: "sensor.oak_door_call", platform: "casa_mia_intercom", translation_key: "call" },
     "camera.barn": { entity_id: "camera.barn", platform: "unifiprotect" },
-    "sensor.barn_other": { entity_id: "sensor.barn_other", platform: "intercom_talkback", translation_key: "other" },
+    "sensor.barn_other": { entity_id: "sensor.barn_other", platform: "casa_mia_intercom", translation_key: "other" },
     // a call sensor not yet in HA's states
-    "sensor.gate_call": { entity_id: "sensor.gate_call", platform: "intercom_talkback", translation_key: "call" },
+    "sensor.gate_call": { entity_id: "sensor.gate_call", platform: "casa_mia_intercom", translation_key: "call" },
   },
 } as unknown as Hass;
 

@@ -120,12 +120,12 @@ export function commanders(hass: Hass): { value: string; label: string }[] {
     .map(([id, st]) => ({ value: id, label: String(st.attributes.friendly_name ?? id) }));
 }
 
-/** The intercom_talkback call sensors, from HA's entity registry by platform and
+/** The Casa Mia Intercom call sensors, from HA's entity registry by platform and
  * translation key, never by name. */
 export function callSensors(hass: Hass): string[] {
   const entities = (hass.entities ?? {}) as Record<string, { entity_id: string; platform?: string; translation_key?: string }>;
   return Object.values(entities)
-    .filter((e) => e.platform === "intercom_talkback" && e.translation_key === "call")
+    .filter((e) => e.platform === "casa_mia_intercom" && e.translation_key === "call")
     .map((e) => e.entity_id);
 }
 

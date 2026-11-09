@@ -125,8 +125,8 @@ Its options (each left at its default unless you change it):
 
 ### Talking to a doorbell
 
-When the main camera is a doorbell with a call sensor from the Intercom talkback
-integration, and it is playing as live video, the card can talk to it. The page must be
+When the main camera is a doorbell with a call sensor from the [Intercom](intercom.md),
+and it is playing as live video, the card can talk to it. The page must be
 on an https address, because browsers only give a microphone to secure pages.
 
 - **Talk** asks for this device's microphone and opens a sound-only connection to the
@@ -163,9 +163,7 @@ duplex the limit is 10 minutes, and any touch on the screen of the device that a
 starts it again. Only the device that answered can extend a call: nothing the visitor
 does, such as ringing again, changes the timer. Every device showing the doorbell has a
 pill with the time left (**Hangs up in 1:42**, amber in the last 30 seconds), or
-**Held** while the button is held. The timer is the Intercom talkback integration's,
-and needs a version that has it; with an older one the call ends after 10 minutes and
-the card says so once.
+**Held** while the button is held. The timer is the [Intercom](intercom.md)'s.
 
 Half duplex suits phones, where a call left answered could otherwise play your voice at
 the door without your knowing. Each card has its own setting, so one dashboard can use

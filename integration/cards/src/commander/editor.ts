@@ -153,7 +153,7 @@ export class CommanderEditor extends LitElement {
             : s.name === "live_main"
             ? "The main camera plays as live video over the picture, through Home Assistant's WebRTC (this device decodes it; the box does not). Needs the Camera compositor's Live main camera switch on; a video that does not start gives way to the drawn picture."
             : s.name === "talk_button"
-            ? "A Talk button over a doorbell's live video (a camera with an Intercom talkback call sensor, on an https page). Turn it off to use your own buttons: a tap_action of fire-dom-event with casa_mia_commander: {talk: toggle} does the same."
+            ? "A Talk button over a doorbell's live video (a camera with a Casa Mia Intercom call sensor, on an https page). Turn it off to use your own buttons: a tap_action of fire-dom-event with casa_mia_commander: {talk: toggle} does the same."
             : s.name === "motion_dot"
             ? "A small dot on a camera's tile while its motion sensor sees motion (the sensor Track motion uses), and for a while after; hover it for when."
             : s.name === "motion_pulse"

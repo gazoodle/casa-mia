@@ -118,13 +118,16 @@ def main() -> int:
     kiosk_mode.start()
     modules["kiosk_mode"] = kiosk_mode.health
     api["/api/kiosk-mode/"] = kiosk_mode.handle
-    # The alarm panel runs in the integration; the app only says whether it is switched on.
-    alarm_on = options.get("alarm_enabled", False)
-    log.info(
-        "alarm panel: switched %s (it runs in the integration)",
-        "on" if alarm_on else "off",
-    )
-    modules["alarm"] = lambda: {"state": "running" if alarm_on else "disabled"}
+    # These run in the integration; the app only says whether each is switched on.
+    for module in ("alarm", "intercom", "protect_talkback"):
+        on = options.get(f"{module}_enabled", False)
+        log.info(
+            "%s: switched %s (it runs in the integration)",
+            module,
+            "on" if on else "off",
+        )
+        state = {"state": "running" if on else "disabled"}
+        modules[module] = lambda state=state: state
     if options.get("sensor_watch_enabled", False):
         # The records; pushed to the integration (which watches the states) as they're
         # saved. The doorbell is for an integration older than the push, until HA restarts.
