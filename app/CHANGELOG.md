@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.2-b21
+
+- Casa Mia Camera Commander, Guest Login, Intercom and Protect Talkback each have their own icon and logo in Home Assistant: the Casa Mia house with a security camera, a QR code, an intercom panel or a small UniFi Protect camera in front of it. The logos read "Casa Mia" over the integration's name.
+- New how-to guides for talking to a UniFi Protect doorbell, putting talk buttons on a wall tablet, and showing the doorbell on every tablet when it rings (docs/how-to/).
+
 ## 2026.11.2-b20
 
 - **Breaking:** the Camera Commander card and the Talk tile now find a doorbell's call through Casa Mia Intercom (below), not the separate Intercom talkback integration. Turn on **Intercom** and **UniFi Protect talkback** in the app's Configuration, disable the Intercom talkback entry (Settings → Devices & services), add Casa Mia Intercom and Casa Mia Protect Talkback from Discovered, and point any Talk tile at the new Call sensor.

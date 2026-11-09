@@ -59,3 +59,9 @@ was added, checked against the live process).
   script doesn't support.
 - **The integration won't set up beside Intercom talkback.** The old Intercom talkback
   integration patches the same parts of go2rtc. Disable its entry, then reload this one.
+
+## How-to guides
+
+- [Talk to a UniFi Protect doorbell from Home Assistant](../how-to/talk-to-the-front-door.md)
+- [Put talk buttons on a wall tablet](../how-to/talk-buttons-on-a-tablet.md)
+- [Show the doorbell on every tablet when it rings](../how-to/doorbell-over-every-tablet.md)

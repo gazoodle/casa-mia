@@ -5,6 +5,12 @@
 - [Heating Flow card](heating-flow.md): the heating and hot water as a live diagram, where colour is temperature and moving markers are flow.
 - [Run the whole house from your desk](run-the-house-from-your-desk.md): one visit to each wall tablet, then its screen seen and driven from anywhere.
 
+## How-to guides
+
+- [Talk to a UniFi Protect doorbell from Home Assistant](how-to/talk-to-the-front-door.md): from a doorbell you can only watch to one you can answer from any tablet or phone.
+- [Put talk buttons on a wall tablet](how-to/talk-buttons-on-a-tablet.md): Talk and Hang up tiles, and hold to talk on the phones.
+- [Show the doorbell on every tablet when it rings](how-to/doorbell-over-every-tablet.md): an Over layer that comes up with the ring and goes when the call ends.
+
 ## The applets
 
 Each page of the Casa Mia panel in Home Assistant's sidebar.

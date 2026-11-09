@@ -88,3 +88,9 @@ it ends), and each refused microphone.
   The reason is in the Repair and the log. Cameras keep working.
 - **Talk is refused on one device.** Another user has answered: the Call sensor says who.
   Press End call to take it back.
+
+## How-to guides
+
+- [Talk to a UniFi Protect doorbell from Home Assistant](../how-to/talk-to-the-front-door.md)
+- [Put talk buttons on a wall tablet](../how-to/talk-buttons-on-a-tablet.md)
+- [Show the doorbell on every tablet when it rings](../how-to/doorbell-over-every-tablet.md)
