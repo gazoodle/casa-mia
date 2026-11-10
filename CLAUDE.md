@@ -105,7 +105,7 @@ and the stream stalled without reporting one (`docs/never-silently-stuck.md`).
 - **Lint, format, types:** `.venv/bin/ruff check .`, `.venv/bin/ruff format .`,
   `.venv/bin/pyright`. pyright excludes `integration/`: the `homeassistant` package needs
   Python 3.13, the venv is 3.11.
-- **Branches:** work on `dev`, never commit to `main` (protected: pull requests with the 8
+- **Branches:** work on `dev`, never commit to `main` (protected: pull requests with the 9
   CI checks, moved only by `tools/release.py`). "Push to GitHub" means `git push origin dev`.
 - **Deploy:** commit with the version bumped and keep `.venv/bin/python
   tools/fake_git_host.py` running; the owner refreshes the App store and installs. It serves
