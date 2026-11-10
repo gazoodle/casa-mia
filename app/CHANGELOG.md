@@ -1,133 +1,38 @@
 # Changelog
 
-## 2026.11.2-b27
+## 2026.11.2
 
-- Tablet Layout leaves a little room around cards so their edges are not clipped by the panel.
-- Sensor Watch no longer sends a burst of events when Home Assistant starts. Before, a watch whose entity hadn't loaded yet counted as unavailable, and once Home Assistant had started each one fired "unavailable" and then "back" in the same second (hundreds of events and log lines, and Home Assistant's "logging too frequently" warning). Now each watch whose level changed during the start fires once, at its level after the start, and says nothing when that is where it was or it is nominal. This part starts after the Home Assistant restart that the Repair asks for.
-
-## 2026.11.2-b26
-
-- The Camera Commander card editor gives the motion controls enough room so their sliders and values do not overlap.
-
-## 2026.11.2-b25
-
-- The Camera Commander card editor groups settings into Main camera, Security look, Motion dot, Talking, and a collapsed Connection and performance section. Colour controls stay compact. Security look and Motion dot hide their adjustments while off, retaining saved choices; sharpness hides when the connection is always direct.
-- Screen conditions no longer show two **Orientation** dropdowns when the cards bundle loads a second time. The augmentation and its settings subscription now start only once per page; saving widths also keeps just one orientation clause.
-
-## 2026.11.2-b24
-
-- Dashboard screen conditions have an **Orientation** control: **Any**, **Portrait** or **Landscape**, alongside Home Assistant's width choices. Select both to require a matching width and orientation. **Screen orientation conditions** in Casa Mia's Settings is on by default; turning it off keeps saved conditions working and editable in YAML.
-- The new **Augmenting Home Assistant** guide covers orientation conditions, dashboard helpers, garnish, Sensor Watch's frontend additions, Tablet Layout, the Over layer and UniFi Protect talkback, including what depends on HA internals and may change with an HA release.
-
-## 2026.11.2-b23
-
-- The Camera Commander's **Arrange…** shows the commander's real picture with your cameras in it. Before, it drew a sketch with numbered boxes.
-- Arrange: you choose the edges the tiles go on and the order they fill, with the same chips as a panel's cameras (‹ and › to move an edge, ✕ to take it out of use, + Add… to put one back). It starts with the edges the commander uses now. Before, switching edges off often left nothing to show.
-- Arrange: a new **Tile fit**. **Best fit** keeps the tiles one size and lets each be up to 10% off the tile shape, so that they fill their edges. **Sizes vary** also lets the tiles on one edge be bigger than those on another, which often fills the whole picture. **Exact shape** keeps every tile at exactly the tile shape, as before.
-- Arrange: **Bigger main** and **Bigger tiles** have more to step between. Every way of sharing the cameras between the edges is tried, and past the biggest main camera found that way there are smaller tile sizes for a bigger one still. Before, some choices of edges gave one arrangement and nothing to step to.
-
-## 2026.11.2-b22
-
-- The Camera Commander card no longer gives up on its live main camera. Before, one failed start showed the drawn picture until the main camera changed, and two in a row stopped live video until the page was reloaded, which on a wall tablet could be weeks later. Now a channel that fails is tried again after 30 seconds, then after longer each time up to 10 minutes, underneath whatever is showing. Choosing another main camera and coming back tries at once.
-- When one of a camera's channels won't play on a device, the card plays another of its channels live, the smaller ones first, and shows the drawn picture only when none plays. Before, a device that couldn't decode the video showed an empty main area.
-- A live video that stops is taken down after 5 seconds and the next channel or the drawn picture is shown, with "Live lost 3 min ago" and the reason in red. Before, the frozen video stayed under that caption.
-- Each loss and return of live video is written to Home Assistant's log, under `casa_mia_commander`: the user, the camera channel, the reason and the video formats the device plays. A wall tablet's trouble can now be read without going to the tablet. This part starts after the Home Assistant restart that the Repair asks for.
-- The Talk button stays on a doorbell whose live video has failed, because talking uses a connection of its own.
-- The live video now stops with the picture when the card's page is hidden or the card is out of sight, and starts again when it is back.
-- The Cameras page's live view says when a camera's video is in a format the browser can't play. Before, it showed nothing.
-
-## 2026.11.2-b21
-
-- Casa Mia Camera Commander, Guest Login, Intercom and Protect Talkback each have their own icon and logo in Home Assistant: the Casa Mia house with a security camera, a QR code, an intercom panel or a small UniFi Protect camera in front of it. The logos read "Casa Mia" over the integration's name.
-- New how-to guides for talking to a UniFi Protect doorbell, putting talk buttons on a wall tablet, and showing the doorbell on every tablet when it rings (docs/how-to/).
-
-## 2026.11.2-b20
-
-- **Breaking:** the Camera Commander card and the Talk tile now find a doorbell's call through Casa Mia Intercom (below), not the separate Intercom talkback integration. Turn on **Intercom** and **UniFi Protect talkback** in the app's Configuration, disable the Intercom talkback entry (Settings → Devices & services), add Casa Mia Intercom and Casa Mia Protect Talkback from Discovered, and point any Talk tile at the new Call sensor.
-- New: **Intercom** (in development), as the Casa Mia Intercom integration. Each doorbell has one call that every screen agrees on, with a Call sensor and an End call button. Whoever talks first answers it, and nobody else can talk until it ends. It ends after 10 minutes in full duplex, or 2 minutes after the last Hold to talk in half duplex. A doorbell is any device with a doorbell event and a camera, so it no longer needs UniFi Protect.
-- New: **UniFi Protect talkback** (alpha), as the Casa Mia Protect Talkback integration. It lets Home Assistant talk through UniFi Protect doorbells and cameras by patching its go2rtc, and will be removed once Home Assistant and go2rtc can do that themselves. It is set up per Protect console with an API key, as before.
-- Both moved in from the owner's separate intercom repo, which ends at Intercom talkback 2026.11.1-b11. Neither will set up while an Intercom talkback entry is still enabled, because both would patch the same parts of go2rtc.
-
-## 2026.11.2-b19
-
-- The Tablet Layout on a phone shows its sections in the order top, main, left, right, bottom. Before, the main panel came first and the rest followed in the view's order.
-- A Tablet Layout panel no longer keeps its edit-mode least height after edit mode is left, or on a phone.
-
-## 2026.11.2-b18
-
-- The Camera Commander card says when its picture keeps failing: a red "Picture failing for 3 min: retrying" over the card, until no failure has come for 15 seconds. Before, it retried every few seconds with nothing on screen.
-
-## 2026.11.2-b17
-
-- The Tablet Layout on a phone: narrower than 600 px, the view becomes Home Assistant's own sections view, in one column that scrolls, with the main panel first and garnish cards left out. It switches back as the screen widens. Change the width, or set 0 to keep the Tablet Layout everywhere, with **Phone layout below** in the main panel's options (`narrow_below`).
-
-## 2026.11.2-b16
-
-- Installing a development build is quicker: the app's Python packages are no longer downloaded again on every update, only when the list of them changes.
-
-## 2026.11.2-b15
-
-- The Talk tile answers the doorbell even when the Camera Commander card is showing another camera. Before, its Answer did nothing unless the doorbell was the main camera with its live video playing. The call is sound only, so the view stays as it is. A refusal (the page not on https) is now shown on the card instead of being ignored. Your own buttons can do the same with `call: <the doorbell's call sensor>`.
-
-## 2026.11.2-b14
-
-- No change you can see: the Camera Commander card and the Talk tile now share one set of talk rules (the button words, who answered, the duplex choices), so they can't drift apart.
-
-## 2026.11.2-b13
-
-- Half duplex talking to a doorbell: the Camera Commander card and the Talk tile have a new Talking option. With half duplex, answering opens the call with the microphone silent, and your voice goes out only while you hold a Hold to talk button, with the visitor muted meanwhile. Lifting your finger anywhere, the browser losing focus, or locking the phone stops the voice.
-- The Talk tile has a new Button option: `button: hold` makes it the Hold to talk button. It is enabled only on the device that answered in half duplex, says Live while your voice is going out, and is greyed out everywhere else.
-- A doorbell call has a countdown: in half duplex it ends after 2 minutes without a hold, the timer stopping while Hold to talk is held and starting again on release (a single hold counts for at most 2 minutes). In full duplex it ends after 10 minutes, and a touch on the answering device's screen starts that again. Every device shows the time left as a pill ("Hangs up in 1:42", or "Held"). This needs an Intercom talkback version with the call timer; with an older one the call ends after 10 minutes as before, and the card says so once.
-- "Live to …" on the Camera Commander now shows only once the call is connected and your voice is actually going out, not as soon as the microphone is granted.
-
-## 2026.11.2-b12
-
-- While talking to a doorbell on the Camera Commander card, you can tap other cameras: the view changes and the call carries on. Talk now has a sound-only connection of its own instead of riding on the main camera's live video, so the tablet decodes no extra video. "Live to …" and Hang up stay over the main camera until you hang up.
-
-## 2026.11.2-b11
-
-- New card, the Talk tile (`custom:casa-mia-talk-tile`): Home Assistant's own tile card on a doorbell's call sensor, whose name and icon say what a tap does on this tablet: Talk, Hang up, or Answered by whoever has the call. A tap turns Talk on or off on the Camera Commander card. It has a visual editor, with a colour and icon for each state, and is in the Add card list.
-
-## 2026.11.2-b10
-
-- The Camera Commander's Talk button appears as soon as the doorbell's live video starts, not seconds later when its first frame plays.
-
-## 2026.11.2-b9
-
-- The Camera Commander finds a doorbell's call sensor by its `camera_entities` attribute, not by the camera's device. Since Home Assistant 2026.8 a device belongs to one integration, so the intercom_talkback sensor is no longer on the camera's device, and Talk was never offered.
-
-## 2026.11.2-b8
-
-- Arrange shares the cameras for looks rather than packing: opposite edges differ by at most one camera, and of the ways that leaves it picks the one whose spacing between tiles is most even from edge to edge.
-
-## 2026.11.2-b7
-
-- Arrange has a **One row or column per edge** switch, on by default: it keeps to one row or column of tiles on each edge. Switch it off to be offered two as well.
-
-## 2026.11.2-b6
-
-- New: **Arrange…** on the Camera Commander page lays a commander's cameras out for you, as tiles all of one size around the main camera, with as little of the picture unused as it can find. Choose the tile shape (16:9, 4:3 or square) and the edges it may use, then step between a bigger main camera and bigger tiles before you apply it.
-- **Squares** and **Squares, spread** are now called **Same size** and **Same size, spread**, with a **Tile shape** for the panel (square by default, as before, or 16:9 so the cameras aren't cropped).
-
-## 2026.11.2-b5
-
-- The Camera Commander page's live preview moved to a file of its own (no change in what it does).
-
-## 2026.11.2-b4
-
-- New: two more ways a Camera Commander panel can lay out its cameras: **Squares**, equal squares grouped in the middle of the panel, and **Squares, spread**, with the spare room shared evenly between them and at both ends. Each camera is cropped to fill its square.
-- The admin page's segmented choices wrap onto a second row on a narrow screen.
-
-## 2026.11.2-b3
-
-## 2026.11.2-b2
-
-- New: talk to a doorbell from the Camera Commander card, when its camera has an Intercom talkback call sensor: a Talk button over the live video (or your own button, with a `fire-dom-event` tap action), the call's state on every device (Ringing, Answered by …, Missed), and a hang-up as soon as the card is out of sight.
-- The Camera Commander card's code is split into layers (no change in what it does).
-
-## 2026.11.2-b1
-
-- Fixed: entities on an Over layer did nothing when tapped (no toggle, no more-info, no navigation), and some cards on it showed their entities as Unavailable.
+- **Talking to a doorbell.**
+  - New: **Intercom** (in development), as the Casa Mia Intercom integration. Each doorbell has one call that every screen agrees on, with a Call sensor and an End call button. Whoever talks first answers it, and nobody else can talk until it ends. A doorbell is any device with a doorbell event and a camera, so it doesn't need UniFi Protect.
+  - New: **UniFi Protect talkback** (alpha), as the Casa Mia Protect Talkback integration. It lets Home Assistant talk through UniFi Protect doorbells and cameras by patching its go2rtc, and will be removed once Home Assistant and go2rtc can do that themselves. It is set up per Protect console with an API key.
+  - The Camera Commander card has a Talk button over the doorbell's live video (or use your own button, with a `fire-dom-event` tap action). Every device shows the call's state (Ringing, Answered by …, Missed), and the card hangs up when it goes out of sight. Talk has a sound-only connection of its own, so you can tap other cameras during a call, and the button stays even when the doorbell's live video has failed. "Live to …" shows once your voice is actually going out.
+  - **Half duplex:** a new Talking option on the card and the Talk tile. Answering opens the call with the microphone silent, and your voice goes out only while you hold a Hold to talk button, with the visitor muted meanwhile. Lifting your finger anywhere, the browser losing focus, or locking the phone stops your voice.
+  - A call hangs up by itself: in half duplex after 2 minutes without a hold (the timer stops while Hold to talk is held, and a single hold counts for at most 2 minutes), in full duplex after 10 minutes, which a touch on the answering device's screen starts again. Every device shows the time left as a pill ("Hangs up in 1:42", or "Held").
+  - New card, the **Talk tile** (`custom:casa-mia-talk-tile`): Home Assistant's own tile card on a doorbell's Call sensor, whose name and icon say what a tap does on this tablet (Talk, Hang up, or Answered by whoever has the call). It answers the doorbell even when the Camera Commander is showing another camera. `button: hold` makes it the Hold to talk button. It has a visual editor, with a colour and icon for each state. Your own buttons can answer too, with `call: <the doorbell's Call sensor>`.
+  - Camera Commander, Guest Login, Intercom and Protect Talkback each have their own icon and logo in Home Assistant.
+  - New how-to guides for talking to a UniFi Protect doorbell, putting talk buttons on a wall tablet, and showing the doorbell on every tablet when it rings (docs/how-to/).
+- **Camera Commander card:**
+  - It no longer gives up on its live main camera. Before, one failed start showed the drawn picture until the main camera changed, and two in a row stopped live video until the page was reloaded, which on a wall tablet could be weeks later. Now a channel that fails is tried again after 30 seconds, then after longer each time up to 10 minutes. Choosing another main camera and coming back tries at once.
+  - When one of a camera's channels won't play on a device, the card plays another of its channels, the smaller ones first, and shows the drawn picture only when none plays. Before, a device that couldn't decode the video showed an empty main area.
+  - A live video that stops is taken down after 5 seconds and the next channel or the drawn picture is shown, with "Live lost 3 min ago" and the reason in red. Before, the frozen video stayed on screen.
+  - When its picture keeps failing it says so: a red "Picture failing for 3 min: retrying" over the card, until no failure has come for 15 seconds. Before, it retried every few seconds with nothing on screen.
+  - The live video stops when the page is hidden or the card is out of sight, and starts again when it is back.
+  - The card editor groups its settings into Main camera, Security look, Motion dot, Talking, and a collapsed Connection and performance section. Settings that don't apply are hidden, and keep their saved values.
+- **Camera Commander page:**
+  - New: **Arrange…** lays a commander's cameras out for you, as tiles around the main camera, over the commander's real picture. Choose the tile shape (16:9, 4:3 or square), the edges the tiles go on and the order they fill (with the same chips as a panel's cameras), then step between **Bigger main** and **Bigger tiles** before you apply it.
+  - Arrange's **Tile fit**: **Best fit** keeps the tiles one size and lets each be up to 10% off the tile shape, so that they fill their edges. **Sizes vary** also lets the tiles on one edge be bigger than those on another, which often fills the whole picture. **Exact shape** keeps every tile exactly the tile shape.
+  - Arrange shares the cameras for looks: opposite edges differ by at most one camera, with the spacing between tiles as even as it can be. **One row or column per edge**, on by default, keeps to one row or column of tiles on each edge; switch it off to be offered two as well.
+  - Two more ways a panel can lay out its cameras: **Same size**, equal tiles grouped in the middle of the panel, and **Same size, spread**, with the spare room shared evenly between them and at both ends. The panel's **Tile shape** is square by default, or 16:9 so the cameras aren't cropped.
+  - The live view says when a camera's video is in a format the browser can't play. Before, it showed nothing.
+- **Screen orientation conditions:** dashboard screen conditions have an **Orientation** control (**Any**, **Portrait** or **Landscape**) alongside Home Assistant's width choices. Select both to require a matching width and orientation. It is on by default under **Screen orientation conditions** in Casa Mia's Settings; turning it off keeps saved conditions working and editable in YAML.
+- **Tablet Layout:**
+  - On a phone (narrower than 600 px) the view becomes Home Assistant's own sections view, in one column that scrolls, in the order top, main, left, right, bottom, with garnish cards left out. It switches back as the screen widens. Change the width, or set 0 to keep the Tablet Layout everywhere, with **Phone layout below** in the main panel's options (`narrow_below`).
+  - Cards have a little room around them so their edges are not clipped by the panel.
+- **Sensor Watch** no longer sends a burst of events when Home Assistant starts. Before, a watch whose entity hadn't loaded yet counted as unavailable, and each one fired "unavailable" and then "back" in the same second (hundreds of events and log lines, and Home Assistant's "logging too frequently" warning). Now each watch whose level changed during the start fires once, at its level after the start. This takes effect after the Home Assistant restart that the Repair asks for.
+- The new **Augmenting Home Assistant** guide covers orientation conditions, dashboard helpers, garnish, Sensor Watch's frontend additions, Tablet Layout, the Over layer and UniFi Protect talkback, including what depends on Home Assistant's internals and may change with a Home Assistant release.
+- **Fixed:**
+  - Entities on an Over layer did nothing when tapped (no toggle, no more-info, no navigation), and some cards on it showed their entities as Unavailable.
+  - The admin page's segmented choices wrap onto a second row on a narrow screen.
 
 ## 2026.11.1
 
