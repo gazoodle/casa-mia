@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.2-b26
+
+- The Camera Commander card editor gives the motion controls enough room so their sliders and values do not overlap.
+
 ## 2026.11.2-b25
 
 - The Camera Commander card editor groups settings into Main camera, Security look, Motion dot, Talking, and a collapsed Connection and performance section. Colour controls stay compact. Security look and Motion dot hide their adjustments while off, retaining saved choices; sharpness hides when the connection is always direct.

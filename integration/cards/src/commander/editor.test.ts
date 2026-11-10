@@ -74,4 +74,6 @@ test("colour selectors have their own compact cell with adjustments in a separat
   const controls = forms(value.render());
   assert.deepEqual(controls.filter((form) => form.className === "colour").map((form) => form.schema.map((field: any) => field.name)), [["look_tint"], ["motion_colour"]]);
   assert.equal(controls.filter((form) => form.className === "adjustments").length, 2);
+  assert.deepEqual(controls.filter((form) => form.className === "adjustments")[1].schema.map((field: any) => field.name),
+    ["motion_size", "motion_pulse", "motion_linger", "motion_corner"]);
 });

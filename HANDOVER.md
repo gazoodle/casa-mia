@@ -1,7 +1,7 @@
 # Handover: Casa Mia, for agents joining the work
 
 Where the project stands and how the work is done here, as of 2026-11-10 (`dev` at
-2026.11.2-b25; 2026.11.1 released). **Read this at the start of every session**, then
+2026.11.2-b26; 2026.11.1 released). **Read this at the start of every session**, then
 CLAUDE.md in full; where they disagree, CLAUDE.md wins. It replaces re-reading old
 transcripts.
 
@@ -211,6 +211,8 @@ CLAUDE.md has them all. What trips agents here:
 
 ## What happened
 
+- **2026.11.2-b26** (2026-11-10): Commander card motion controls use a single column so
+  Home Assistant's sliders and values have room in the editor.
 - **2026.11.2-b25** (2026-11-10): orientation setup guarded once per page: a second
   bundle load had added duplicate controls and query clauses; a retry-load test covers it.
   Commander card editor grouped, with compact colours and conditional settings that retain

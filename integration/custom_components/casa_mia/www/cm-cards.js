@@ -2436,12 +2436,7 @@ var Gn = class extends z {
         ${a(i("motion_dot"))}
         ${e.motion_dot ? L`<div class="details">
           ${a(i("motion_colour"), "colour")}
-          ${a([{
-			type: "grid",
-			name: "",
-			column_min_width: "160px",
-			schema: i("motion_size", "motion_pulse", "motion_linger", "motion_corner")
-		}], "adjustments")}
+          ${a(i("motion_size", "motion_pulse", "motion_linger", "motion_corner"), "adjustments")}
         </div>` : R}
       </section>
       <section aria-labelledby="talk-heading">

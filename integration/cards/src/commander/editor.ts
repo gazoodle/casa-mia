@@ -191,10 +191,7 @@ export class CommanderEditor extends LitElement {
         ${form(fields("motion_dot"))}
         ${data.motion_dot ? html`<div class="details">
           ${form(fields("motion_colour"), "colour")}
-          ${form([{
-            type: "grid", name: "", column_min_width: "160px",
-            schema: fields("motion_size", "motion_pulse", "motion_linger", "motion_corner"),
-          }], "adjustments")}
+          ${form(fields("motion_size", "motion_pulse", "motion_linger", "motion_corner"), "adjustments")}
         </div>` : nothing}
       </section>
       <section aria-labelledby="talk-heading">
