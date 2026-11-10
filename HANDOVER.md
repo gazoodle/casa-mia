@@ -211,6 +211,10 @@ CLAUDE.md has them all. What trips agents here:
 
 ## What happened
 
+- **2026-11-10:** agreed with the owner: Sensor Watch becomes its own integration
+  (`casa_mia_sensor_watch`), running wholly in HA, published to the Marketplace through a
+  generated mirror. Design, decisions and phases in `docs/design/marketplace-mirrors.md`;
+  nothing built yet.
 - **2026.11.2-b27** (2026-11-10): Tablet Layout adds a small inset inside each panel's
   clipping boundary and includes it when sizing panels to their cards.
 - **2026.11.2-b26** (2026-11-10): Commander card motion controls use a single column so
@@ -264,6 +268,8 @@ CLAUDE.md has them all. What trips agents here:
 
 ## Where things stand
 
+- **Next: Sensor Watch on its own, for the Marketplace** (agreed 2026-11-10). Start at
+  "Where to start" in `docs/design/marketplace-mirrors.md`, phase 0; the phases run in order.
 - **Never silently stuck: go one step at a time** (2026-10-12). The owner wants it slow and
   methodical: one agreed step, built, recorded in `docs/never-silently-stuck.md`, seen on
   the test tablet, never redone; nothing planned beyond it; analyse before code, change
