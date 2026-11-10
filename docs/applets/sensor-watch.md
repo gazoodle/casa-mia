@@ -155,20 +155,25 @@ Sensor Watch tells; the rest of Casa Mia shows, and only when there's something 
 
 ## Switching it on
 
-1. Turn on **Sensor Watch** in the app's Configuration tab (Settings → Apps → Casa Mia →
-   Configuration) and save. The app restarts.
-2. Restart Home Assistant when the Repair asks. The **Casa Mia** integration then has a
-   **Sensor Watch** device with its status, counts and problem sensor; there's nothing
-   else to add. (Until 2026.10.10 Sensor Watch was its own integration, Casa Mia Sensor
-   Watch; Casa Mia takes its entities over, same entity ids, and removes it.)
+Sensor Watch is an integration of its own, called **Sensor Watch**. It runs inside Home
+Assistant and needs nothing else of Casa Mia's.
+
+1. The Casa Mia app installs it along with Casa Mia's other integrations. Restart Home
+   Assistant when the Repair asks.
+2. Add it under Settings → Devices & services → Add integration → **Sensor Watch**. It
+   asks you nothing. It then has a **Sensor Watch** device with its status, counts and
+   problem sensor.
 3. Open **Sensor Watch** in Home Assistant's sidebar and choose what to watch. The page is
    for admins. The Sensor Watch tile on Casa Mia's home page opens it too.
 
-Sensor Watch runs inside Home Assistant and keeps its records in Home Assistant's own
-storage, so they are in Home Assistant's backups. (Until 2026.11.3 the Casa Mia app kept
-them, and the page was in the Casa Mia panel. The first start after that update brings the
-records over by itself; if it can't, a Repair says why and nothing is watched until it
-can. The app's copy is left where it was.)
+If Sensor Watch was switched on in the Casa Mia app before 2026.11.3, skip step 2. After
+the update and the restart, Casa Mia sets the integration up for you with the same
+device, entities, history and records. If it can't, a Repair says why and nothing is
+watched until it can; reload the Casa Mia integration to try again. The app's old copy of
+the records is left where it was.
+
+Sensor Watch keeps its records in Home Assistant's own storage, so they are in Home
+Assistant's backups.
 
 ## Worked examples
 
@@ -281,10 +286,10 @@ started and is waiting out its time unavailable, or it's unavailable and set to 
 real reading gives it a level at once. While any have none, the top of the page says how
 many ("2 with no level yet").
 
-**Refresh state** (top right) has Casa Mia's integration fetch the watches again and
-judge every one afresh, as at Home Assistant's start: for when a level looks stuck. The
+**Refresh state** (top right) judges every watch afresh, as at Home Assistant's start:
+for when a level looks stuck. The
 same is the **Refresh state** button on the Sensor Watch device in Home Assistant, and the
-`casa_mia.sensor_watch_refresh` action for automations.
+`casa_mia_sensor_watch.refresh` action for automations.
 
 The list is live: a value or level changes on the page the moment Home Assistant has it
 (the page holds a subscription, as a dashboard does). A worse level waits out its
@@ -664,7 +669,7 @@ The **Sensor Watch** device has:
 
 - **Status:** the worst level now (nominal, task, warning, error or critical), its icon
   in that level's colour on every dashboard card, whatever its State colour setting: Home Assistant
-  colours no sensor by its state, so Casa Mia does. Its
+  colours no sensor by its state, so Sensor Watch does. Its
   attributes hold `watching` (how many sensors) and, for each level, the ten longest
   standing culprits (`task_list`, `warning_list`, `error_list`, `critical_list`: each
   with its entity, name, value, message and since when).
@@ -808,13 +813,13 @@ actions:
 
 ### The List service
 
-`casa_mia.sensor_watch_list` returns every watched sensor at the levels you ask for
+`casa_mia_sensor_watch.list` returns every watched sensor at the levels you ask for
 (everything that isn't nominal by default), worst first, then longest standing; use it
 with a response variable and loop over it in a template:
 
 ```yaml
 actions:
-  - action: casa_mia.sensor_watch_list
+  - action: casa_mia_sensor_watch.list
     data:
       levels: [warning, error, critical]
     response_variable: watch
@@ -826,6 +831,10 @@ actions:
 ```
 
 Add `group: Mains voltage` to ask about one group only (and its own worst level).
+
+Until 2026.11.3 these two actions were `casa_mia.sensor_watch_list` and
+`casa_mia.sensor_watch_refresh`. Those names still work for now, with a warning in the
+log, and will be removed.
 
 ### The card
 

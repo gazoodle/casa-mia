@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026.11.3-b2
+
+- **Breaking:** Sensor Watch is now an integration of its own, **Sensor Watch**, beside Casa Mia's, and the app's **Sensor Watch** option is gone. Restart Home Assistant when the Repairs ask. If you had Sensor Watch switched on, Casa Mia then sets the new integration up for you, with the same device, entities, history and records. If you had it off and want it, add **Sensor Watch** under Settings → Devices & services → Add integration.
+- **Breaking:** Sensor Watch's actions are now `casa_mia_sensor_watch.list` and `casa_mia_sensor_watch.refresh`. Change them in your automations and scripts. The old names (`casa_mia.sensor_watch_list` and `casa_mia.sensor_watch_refresh`) still work for now, with a warning in the log, and will be removed.
+- **Sensor Watch needs no Casa Mia app.** It runs wholly inside Home Assistant, so it can be installed without the app. This is the step before it is published for the Home Assistant Community Store.
+  - Nothing else you have made changes: the `casa_mia_sensor_watch` event, the Notify on Sensor Watch blueprint and its automations, the card (`custom:casa-mia-sensor-watch`), the eye in an entity's dialog, and device triggers made on the Sensor Watch device all carry on.
+  - If Casa Mia can't hand Sensor Watch over (the app didn't answer, or the new integration isn't installed yet), a Repair says why and nothing is watched until it can. Reload the Casa Mia integration to try again.
+  - The Sensor Watch page stays in the sidebar while its integration is reloaded, and says that it isn't running. It leaves the sidebar when the integration is deleted.
+  - Casa Mia's home page shows the Sensor Watch tile when Sensor Watch is installed, and only when the page is opened inside Home Assistant.
+  - Sensor Watch has its own restart Repair, like Casa Mia's other integrations.
+
 ## 2026.11.3-b1
 
 - **Breaking:** Sensor Watch's page has moved from the Casa Mia panel to Home Assistant's own sidebar, as **Sensor Watch** (admins only). Restart Home Assistant when the Repair asks; until then the page isn't there. The Sensor Watch tile on Casa Mia's home page opens it, and so does the eye in an entity's dialog.

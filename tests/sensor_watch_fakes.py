@@ -14,7 +14,7 @@ from typing import Any
 # import from it as they are, relative imports and all, and nothing else is loaded.
 FOLDER = (
     Path(__file__).resolve().parents[1]
-    / "integration/custom_components/casa_mia/sensor_watch"
+    / "integration/custom_components/casa_mia_sensor_watch"
 )
 PACKAGE = "sensor_watch_under_test"
 if PACKAGE not in sys.modules:

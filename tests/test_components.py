@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+from casa_mia import components
 from casa_mia.components import MARKER, install_all, is_ignored
 
 
@@ -101,12 +102,11 @@ def test_a_first_install_asks_for_a_restart(tmp_path):
     assert not ask_for_restart([installed], "tok", url)
 
 
-def test_a_retired_component_is_taken_out(tmp_path):
+def test_a_retired_component_is_taken_out(tmp_path, monkeypatch):
+    monkeypatch.setattr(components, "RETIRED", ("casa_mia_gone",))
     src, config = tmp_path / "src", tmp_path / "config"
     make_component(src, "casa_mia")
-    make_component(
-        config / "custom_components", "casa_mia_sensor_watch"
-    )  # joined casa_mia
+    make_component(config / "custom_components", "casa_mia_gone")
     make_component(config / "custom_components", "someone_elses")
     install_all(src, config)
     left = sorted(p.name for p in (config / "custom_components").iterdir())

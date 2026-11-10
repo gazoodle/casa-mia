@@ -85,37 +85,54 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
 
 ## Sensor Watch
 
-Wholly in Home Assistant since 2026.11.3-b1 (phase 1 of
-`docs/design/marketplace-mirrors.md`); still part of `casa_mia` until phase 2.
+Its own integration, `casa_mia_sensor_watch`, since 2026.11.3-b2 (phase 2 of
+`docs/design/marketplace-mirrors.md`). It runs wholly in Home Assistant, imports nothing
+from `casa_mia` and works with no app. No app option: a user adds the integration.
 
-- **Records** (`casa_mia/sensor_watch/records/`: store → scans → groups → api, no HA
-  imports, moved verbatim from the app): kept in HA's storage (key
-  `casa_mia_sensor_watch`), profiles (`profiles.py`; followers stored as pointers, sent
-  resolved), the shipped library (`library.json`; `tools/library_table.py` writes the
-  guide's table), groups (saved filters, synced on HA's registry events), suggestions from
-  recorder statistics, Scan my house. `source.py` answers what the records ask of HA.
+- **Records** (`records/`: store → scans → groups → api, no HA imports): kept in HA's
+  storage (key `casa_mia_sensor_watch`), profiles (`profiles.py`; followers stored as
+  pointers, sent resolved), the shipped library (`library.json`; `tools/library_table.py`
+  writes the guide's table), groups (saved filters, synced on HA's registry events),
+  suggestions from recorder statistics, Scan my house. `source.py` answers what the
+  records ask of HA.
 - **`admin.py`** starts it and serves the page: one websocket command carrying the
   records' routes (`casa_mia_sensor_watch/api`), and pushed feeds (levels, summary, one
   entity's watch). A feed outlives the watcher: it says "not running" when Sensor Watch
   stops and sends everything when it starts again. All admin-only.
 - **Watching:** `levels.py` holds the one evaluator, with no HA imports (accuracy,
   escalation); `watch.py` tracks states, hold-offs and timers, fires
-  `casa_mia_sensor_watch`; status, counts and problem entities; the `list` service; device
-  triggers; `blueprint.py` installs and keeps up **Notify on Sensor Watch**.
+  `casa_mia_sensor_watch`; status, counts and problem entities; the `list` and `refresh`
+  services; device triggers; `blueprint.py` installs and keeps up **Notify on Sensor
+  Watch** (still at `blueprints/automation/casa_mia/`, so automations made from it carry
+  on).
 - **Page:** a custom panel in HA's sidebar (`panel.py`, `/sensor-watch`, in an iframe),
   built by `tools/build_web` from `app/web/src/sensor-watch/` (entry `panel.tsx`, config
-  `vite.panel.config.ts`) into `sensor_watch/www/`. `ha.ts` is its transport, `live.ts`
-  the levels feed plus values from HA's `subscribe_entities`, redrawn at most once a
-  second. The band editor holds a numeric record's bands as a ladder out from nominal
-  (`ladder.ts`, run in node by `tests/test_sensor_watch_ladder.py`); the stored format is
-  bands, and `records/common.py` `_ladder` refuses anything else on save.
-- **The app's part:** `/health` still reports `sensor_watch` running or disabled (the
-  `sensor_watch_enabled` option, until phase 2), `GET /sensor-watch/export` hands the old
-  `sensor-watch.json` to `casa_mia/sensor_watch_import.py` once (a failure is a Repair),
-  and the Home tile follows the summary feed over `window.parent.hassConnection`.
-- **Cards:** `custom:casa-mia-sensor-watch` (hides when clear), and the eye in HA's entity
-  dialog (`cards/src/sensor-watch/eye.ts` patches `ha-more-info-dialog`; a tap navigates
+  `vite.panel.config.ts`) into its `www/`. It stays through a reload and leaves when the
+  entry is deleted. `ha.ts` is its transport, `live.ts` the levels feed plus values from
+  HA's `subscribe_entities`, redrawn at most once a second. The band editor holds a
+  numeric record's bands as a ladder out from nominal (`ladder.ts`, run in node by
+  `tests/test_sensor_watch_ladder.py`); the stored format is bands, and
+  `records/common.py` `_ladder` refuses anything else on save.
+- **Cards:** a bundle of its own, `www/cards.js` (`integration/cards/src/sensor-watch/`,
+  `vite.sensor-watch.config.ts`): `custom:casa-mia-sensor-watch` (hides when clear), and
+  the eye in HA's entity dialog (`eye.ts` patches `ha-more-info-dialog`; a tap navigates
   to `/sensor-watch?watch=<entity>&at=<ms>`, which the panel reads off HA's address).
+- **Where it meets Casa Mia**, only through Home Assistant:
+  - **Handover** of a user who had it in `casa_mia` (to 2026.11.3-b1):
+    `casa_mia/sensor_watch.py` `hand_over` finds the old device, fetches the app's
+    `GET /sensor-watch/export` and starts this integration's import flow; its
+    `migrate.take_over` then moves the device and entities, ids unchanged. A failure is a
+    Repair, retried when `casa_mia` reloads.
+  - The old service names and `casa_mia`-domain device triggers are passed on
+    (`sensor_watch.old_services`, `casa_mia/device_trigger.py`); BACKLOG has their removal.
+  - The screenshot swap's rule arrives by dispatcher signal (`casa_mia_swap`, asked for
+    with `casa_mia_swap_ask`).
+  - The app fires `casa_mia_components_installed` after writing newer files, which is when
+    it checks for its restart Repair.
+  - Casa Mia's Home tile follows the summary feed over `window.parent.hassConnection`, and
+    shows only when Sensor Watch answers.
+- **Tests:** `tests/test_sensor_watch_*.py` (no HA), and `tests_ha/` inside a real Home
+  Assistant: added by hand, the handover, the old names.
 
 ## Guest login
 
@@ -225,6 +242,9 @@ CLAUDE.md has them all. What trips agents here:
 
 ## What happened
 
+- **2026.11.3-b2** (2026-11-10): phase 2. Sensor Watch is its own integration; the app's
+  option is retired, and a user who had it on is handed over with the same device,
+  entities and records. `tests_ha/` and `.venv-ha` added for tests inside a real HA.
 - **2026.11.3-b1** (2026-11-10): phase 1. Sensor Watch runs wholly in HA: records in HA's
   storage (imported once from the app), the page a sidebar panel over websocket commands
   and pushed feeds, the app's module gone.

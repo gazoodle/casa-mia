@@ -72,8 +72,10 @@ function openInHa(e: MouseEvent, path: string) {
 export function App() {
   const { health, error } = useHealth();
   const route = useRoute();
-  // Sensor Watch runs in Home Assistant: its tile's health comes from there.
-  const summary = useSummary(health?.modules.sensor_watch?.state === "running");
+  // Sensor Watch is its own integration in Home Assistant: its tile comes from there,
+  // once it has answered (never, where it isn't installed).
+  const summary = useSummary();
+  const watch: Record<string, ModuleHealth> = Object.keys(summary).length ? { sensor_watch: { state: "running", ...summary } } : {};
   const [photo, setPhoto] = useState<HeaderView>();
   const [draft, setDraft] = useState<PhotoDraft>(); // the photo being edited, shown live
   useEffect(() => {
@@ -81,7 +83,7 @@ export function App() {
   }, []);
   const page = pageFor(route, health?.modules ?? {});
   if (page) return <Developer.Provider value={!!health?.developer}>{page}</Developer.Provider>;
-  const modules = Object.entries(health?.modules ?? {});
+  const modules = Object.entries<ModuleHealth>({ ...health?.modules, ...watch });
   const on = modules.filter(([, h]) => h.state && h.state !== "disabled");
   const off = modules.filter(([, h]) => h.state === "disabled");
 
@@ -129,7 +131,7 @@ export function App() {
               key={key}
               module={key}
               info={MODULES[key] ?? fallback(key)}
-              health={key === "sensor_watch" ? { ...h, ...summary } : h}
+              health={h}
               href={PAGES[key]}
               ha={HA_PAGES[key]}
             />

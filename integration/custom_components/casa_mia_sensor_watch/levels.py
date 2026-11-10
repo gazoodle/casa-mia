@@ -1,7 +1,6 @@
 """Sensor Watch's levels: a watched entity's state against its record, Home Assistant's
-own health (system_rows), and the summary of them all. No Home Assistant imports, so the tests load it by path. The app checks
-the records when they are saved (app/src/casa_mia/modules/sensor_watch/common.py, whose
-LEVELS must match these; a test checks)."""
+own health (system_rows), and the summary of them all. No Home Assistant imports, so the
+tests load it by path."""
 
 from __future__ import annotations
 

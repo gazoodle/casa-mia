@@ -1,11 +1,10 @@
-// Sensor Watch, in Casa Mia's integration: its event on each change of level, its list
-// service, and its own entities (status, counts, problem; on casa_mia's platform, their
-// translation keys sensor_watch_*). Its own integration, casa_mia_sensor_watch, until
-// 2026.10.10-b3.
-export const EVENT = "casa_mia_sensor_watch";
-export const SERVICE = { domain: "casa_mia", service: "sensor_watch_list" };
-export function own(e: { platform?: string; translation_key?: string }): boolean {
-  return e.platform === "casa_mia" && (e.translation_key ?? "").startsWith("sensor_watch_");
+// Sensor Watch's integration (casa_mia_sensor_watch): its event on each change of level,
+// its list service, and its own entities (status, counts, problem).
+export const DOMAIN = "casa_mia_sensor_watch";
+export const EVENT = DOMAIN;
+export const SERVICE = { domain: DOMAIN, service: "list" };
+export function own(e: { platform?: string }): boolean {
+  return e.platform === DOMAIN;
 }
 
 // The Sensor Watch card's options, and what it reads: Sensor Watch's
@@ -93,7 +92,7 @@ export function since(iso: string, now: number): string {
 
 // The eye in an entity's dialog (eye.ts): one entity's watch, from the integration's
 // websocket subscription (levels.watching), and a tap to its editor on the page.
-export const ENTITY = "casa_mia/sensor_watch/entity";
+export const ENTITY = `${DOMAIN}/entity`;
 /** Not watched; or watched, with its level once judged. */
 export type Watch = { watched: boolean; level?: Level; message?: string; escalated?: boolean; real?: Level; since?: string };
 
@@ -116,6 +115,6 @@ export const LEVEL_COLOR: Record<Level, string> = {
  * no sensor by its state, so ours is told (level-colour.ts). */
 export function levelColour(stateObj: { entity_id: string; state: string } | undefined, entities: Record<string, any> | undefined): string | undefined {
   const e = stateObj && entities?.[stateObj.entity_id];
-  if (e?.platform !== "casa_mia" || e?.translation_key !== "sensor_watch_status") return undefined;
+  if (e?.platform !== DOMAIN || e?.translation_key !== "status") return undefined;
   return LEVEL_COLOR[stateObj!.state as Level];
 }

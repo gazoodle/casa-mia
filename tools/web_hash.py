@@ -3,8 +3,9 @@
 
 Two builds are committed so nothing on the box needs Node: the admin UI (app/web into
 app/src/casa_mia/web, and Sensor Watch's panel from the same sources into the
-integration's sensor_watch/www, by tools/build_web) and the Lovelace cards (integration/cards into
-the integration's www/cm-cards.js, by tools/build_cards). Each build stores a hash of its
+casa_mia_sensor_watch/www, by tools/build_web) and the Lovelace cards (integration/cards
+into casa_mia's www/cm-cards.js and casa_mia_sensor_watch's www/cards.js, by
+tools/build_cards). Each build stores a hash of its
 sources (node_modules aside; both also read SHARED: the layout options, the WebRTC
 player, and the pills and chips); a mismatch means the sources changed
 without a rebuild.

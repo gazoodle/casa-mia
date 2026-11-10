@@ -17,9 +17,13 @@ from pathlib import Path
 
 MARKER = ".restart_required.json"
 # Components once bundled and no longer: taken out of HA's config, so HA stops loading
-# them. casa_mia_sensor_watch joined casa_mia in 2026.10.10-b4 (casa_mia takes its
-# entities on).
-RETIRED = ("casa_mia_sensor_watch",)
+# them. None now: casa_mia_sensor_watch was here from 2026.10.10-b4, while Sensor Watch
+# was part of casa_mia, and is bundled again as its own integration since 2026.11.3.
+RETIRED: tuple[str, ...] = ()
+# Fired in Home Assistant when a start changed any component's files, with
+# {"components": {domain: version}}: Sensor Watch's integration, which doesn't know the
+# app, raises its restart Repair on it (its const.INSTALLED_EVENT).
+INSTALLED_EVENT = "casa_mia_components_installed"
 # HA's notification service through the Supervisor proxy. The notice needs no dismissing:
 # HA drops notifications when it restarts, which is what it asks for.
 NOTIFY_URL = "http://supervisor/core/api/services/persistent_notification/create"
@@ -147,7 +151,9 @@ def ask_for_restart(
             f"Installed: {names}. Restart Home Assistant (Settings → ⋮ → Restart "
             "Home Assistant), then set them up under "
             "[Devices & services](/config/integrations/dashboard): Casa Mia first; it "
-            "then offers the others under Discovered while their module is on in the app."
+            "then offers the others under Discovered while their module is on in the "
+            "app. Sensor Watch needs no Casa Mia: add it there yourself, unless it was "
+            "switched on in the app before, when it is set up for you."
         ),
     }
     req = urllib.request.Request(

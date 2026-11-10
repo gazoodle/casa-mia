@@ -479,14 +479,14 @@ def test_each_device_trigger_is_named_and_matches_what_the_event_carries():
         Path(__file__).resolve().parents[1]
         / "integration"
         / "custom_components"
-        / "casa_mia"
+        / "casa_mia_sensor_watch"
     )
     names = json.loads((root / "translations" / "en.json").read_text())[
         "device_automation"
     ]
     assert set(names["trigger_type"]) == set(levels.TRIGGERS)
     assert set(names["extra_fields"]) == {"level", "group"}
-    fire = (root / "sensor_watch" / "watch.py").read_text().split("def _fire(", 1)[1]
+    fire = (root / "watch.py").read_text().split("def _fire(", 1)[1]
     fired = set(
         re.findall(r'^\s+"(\w+)":', fire.split("\n    def ", 1)[0], re.MULTILINE)
     )

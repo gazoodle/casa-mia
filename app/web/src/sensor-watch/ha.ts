@@ -59,10 +59,11 @@ export const swApi = {
 };
 
 /** Follow a feed until the function returned is called (an effect's cleanup). `failed`
- * is told why if Home Assistant refuses it. */
-export function follow<T>(on: Conn, message: object, heard: (event: T) => void, failed: (why: string) => void): () => void {
+ * is told why if Home Assistant refuses it, and its code ("unknown_command": nothing in
+ * Home Assistant serves the feed). */
+export function follow<T>(on: Conn, message: object, heard: (event: T) => void, failed: (why: string, code?: string) => void): () => void {
   const off = on.subscribeMessage<T>(heard, message);
-  off.catch((err) => failed(why(err)));
+  off.catch((err) => failed(why(err), (err as { code?: string })?.code));
   // Nothing to stop if it was refused, or the connection has gone.
   return () => void off.then((stop) => stop()).catch(() => undefined);
 }

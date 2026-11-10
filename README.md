@@ -184,9 +184,9 @@ You need **Home Assistant 2026.3 or later**, on Home Assistant OS or a Supervise
    the GitHub Container Registry, so there's nothing to compile.
 
 3. **Choose your modules.** On the app's **Configuration** tab, give your house its name and
-   switch on the modules you want (they all start off): Sensor Watch, guest login, Camera
-   Commander and Auto Dashboards, Kiosk Satellites, the firmware server, phone and SMS
-   (FONA), the alarm panel. Press **Save**. You can come back and change these at any time.
+   switch on the modules you want (they all start off): guest login, Camera Commander and
+   Auto Dashboards, Kiosk Satellites, the firmware server, phone and SMS (FONA), the alarm
+   panel. Press **Save**. You can come back and change these at any time.
 
 4. **Start it.** On the **Info** tab, switch on **Show in sidebar** and press **Start**.
    **Casa Mia** appears in the sidebar.
@@ -200,7 +200,9 @@ You need **Home Assistant 2026.3 or later**, on Home Assistant OS or a Supervise
    **Integration URL** from the foot of the Casa Mia panel's home page and paste it in.)
    Guest login and Camera Commander each have an integration of their own, **Casa Mia Guest
    Login** and **Casa Mia Camera Commander**: while the module is on, Casa Mia offers it
-   under **Discovered** on the same page. Press **Add**.
+   under **Discovered** on the same page. Press **Add**. Sensor Watch is an integration of
+   its own too, with no option in the app: search for **Sensor Watch** and add it the same
+   way.
 
 7. **Make yourself at home.** Open **Casa Mia** from the sidebar and visit each module's page
    to set it up. Its devices and entities appear in Home Assistant as you go.

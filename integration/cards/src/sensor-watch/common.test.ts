@@ -40,8 +40,8 @@ test("the eye asks Sensor Watch's page for an entity's watch in the address", ()
 
 test("the Status sensor's icon takes its level's colour; nothing else does", () => {
   const entities = {
-    "sensor.casa_mia_sensor_watch_status": { platform: "casa_mia", translation_key: "sensor_watch_status" },
-    "sensor.casa_mia_sensor_watch_warnings": { platform: "casa_mia", translation_key: "sensor_watch_warning_count" },
+    "sensor.casa_mia_sensor_watch_status": { platform: "casa_mia_sensor_watch", translation_key: "status" },
+    "sensor.casa_mia_sensor_watch_warnings": { platform: "casa_mia_sensor_watch", translation_key: "warning_count" },
   };
   const status = (state: string) => ({ entity_id: "sensor.casa_mia_sensor_watch_status", state });
   assert.equal(levelColour(status("warning"), entities), "var(--warning-color, #ffa600)");

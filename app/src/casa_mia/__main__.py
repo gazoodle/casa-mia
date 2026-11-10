@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from . import app_version, header, settings, swap
-from .components import ask_for_restart, install_bundled
+from .components import INSTALLED_EVENT, ask_for_restart, install_bundled
 from .ha import HA
 from .log import configure_logging
 from .modules.auto_dashboards import AutoDashboards
@@ -84,7 +84,13 @@ def main() -> int:
     for line in banner(f"Casa Mia app {app_version()} starting"):
         log.info("%s", line)
     token = os.environ.get("SUPERVISOR_TOKEN", "")
-    ask_for_restart(install_bundled(), token)
+    installed = install_bundled()
+    ask_for_restart(installed, token)
+    # Told to Home Assistant, for a component that needs no Casa Mia integration to hear
+    # that its files changed under it (Sensor Watch: its restart Repair).
+    changed = {r.domain: r.version for r in installed if r.changed}
+    if changed:
+        fire_event(token, INSTALLED_EVENT, {"components": changed})
     modules = {}
     actions = {}
     post_handlers = {}
@@ -128,7 +134,7 @@ def main() -> int:
     modules["kiosk_mode"] = kiosk_mode.health
     api["/api/kiosk-mode/"] = kiosk_mode.handle
     # These run in the integration; the app only says whether each is switched on.
-    for module in ("alarm", "intercom", "protect_talkback", "sensor_watch"):
+    for module in ("alarm", "intercom", "protect_talkback"):
         on = options.get(f"{module}_enabled", False)
         log.info(
             "%s: switched %s (it runs in the integration)",
@@ -137,8 +143,8 @@ def main() -> int:
         )
         state = {"state": "running" if on else "disabled"}
         modules[module] = lambda state=state: state
-    # Sensor Watch's records as the app kept them until 2026.11.3, for the integration to
-    # take into Home Assistant's storage, once.
+    # Sensor Watch's records as the app kept them until 2026.11.3, for the Casa Mia
+    # integration to hand to Sensor Watch's own, once.
     reads["/sensor-watch/export"] = lambda _query: sensor_watch_export(
         SENSOR_WATCH_STORE
     )

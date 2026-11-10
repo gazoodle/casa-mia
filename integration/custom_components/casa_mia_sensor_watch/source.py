@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Iterable, Mapping
 from typing import Any
 
 from homeassistant.components.recorder import get_instance, history
@@ -56,6 +56,13 @@ async def _entities(hass: HomeAssistant, _c: Command) -> list[dict[str, Any]]:
     ]
 
 
+def _all_devices(hass: HomeAssistant) -> Iterable[dr.DeviceEntry]:
+    """Every device. Older Home Assistants keep them as a mapping by id; newer ones
+    give the devices when iterated, and warn of any use as a mapping."""
+    devices = dr.async_get(hass).devices
+    return devices.values() if isinstance(devices, Mapping) else devices
+
+
 async def _devices(hass: HomeAssistant, _c: Command) -> list[dict[str, Any]]:
     return [
         {
@@ -66,7 +73,7 @@ async def _devices(hass: HomeAssistant, _c: Command) -> list[dict[str, Any]]:
             "manufacturer": d.manufacturer,
             "model": d.model,
         }
-        for d in dr.async_get(hass).devices.values()
+        for d in _all_devices(hass)
     ]
 
 

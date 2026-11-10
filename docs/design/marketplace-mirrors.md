@@ -1,8 +1,10 @@
 # Marketplace mirrors, and Sensor Watch on its own
 
 **Status:** agreed design (2026-11-10). Phase 0 is done, and the owner agreed what its
-answers change the same day; the phases are edited to match. Start at "Where to start"
-below; the phases are in order, and each ends in a working build.
+answers change the same day; the phases are edited to match. Phase 1 was built in
+2026.11.3-b1 and phase 2 in 2026.11.3-b2 (both 2026-11-10); each phase below ends with
+what was built and where it differs from the plan. The phases are in order, and each ends
+in a working build.
 
 ## The goal
 
@@ -54,31 +56,24 @@ Each with its reason, so nobody argues it away later.
 
 ## Sensor Watch today
 
-The parts and their sizes (2026-11-10):
+As built by 2026.11.3-b2 (2026-11-10). `HANDOVER.md`'s Sensor Watch section has the detail.
 
-- **App** (`app/src/casa_mia/modules/sensor_watch/`, about 3,000 lines): records in
-  `sensor-watch.json`, profiles, the library (`library.json`), groups synced on HA's
-  registry events, suggestions from recorder statistics, Scan my house, and `live.py`,
-  which holds a websocket to HA and pushes each save to the integration. It reads HA through
-  the app's `HA` client (`app/src/casa_mia/ha.py`) and imports nothing else from the app.
-  Started in `__main__.py` while `sensor_watch_enabled` is on; serves `/api/sensor-watch/`
-  and `/sensor-watch/records`.
-- **Integration** (`integration/custom_components/casa_mia/sensor_watch/`, about 1,500
-  lines): the watcher (`watch.py`), the levels, the blueprint, HA's own health checks
-  (`system.py`), the `casa_mia.sensor_watch_list` and refresh services, and two websocket
-  commands. It takes its records from the app: the revision from `/health` through Casa
-  Mia's coordinator, the records from `/sensor-watch/records`, changes pushed over
-  `_ws_apply`. Its entities are made by `casa_mia`'s sensor, binary_sensor and button
-  platforms; its device triggers are in `casa_mia/device_trigger.py`; it follows the
-  screenshot swap (`casa_mia/swap_rules`).
-- **Page** (`app/web/src/sensor-watch/`, about 3,200 lines): talks REST to the app. Routed in
-  `App.tsx` (`#/sensor-watch`); the eye's jump to the editor goes through `open.ts`.
-- **Cards** (`integration/cards/src/sensor-watch/`): the card and the eye, in `cm-cards.js`.
-- **Tests:** about 2,300 lines (`tests/test_sensor_watch_*.py`, `tests/sensor_watch_fakes.py`).
+- **Integration** (`integration/custom_components/casa_mia_sensor_watch/`): everything.
+  The records, profiles, library, groups, suggestions and scans (`records/`, in Home
+  Assistant's storage), the watcher and levels, Home Assistant's own health checks, the
+  services, device triggers, blueprint, websocket commands, the panel and its own card
+  bundle. It imports nothing from `casa_mia`.
+- **App:** nothing of Sensor Watch runs there. `GET /sensor-watch/export` still hands over
+  the records file of an install from before 2026.11.3, and the Home tile shows Sensor
+  Watch's summary from Home Assistant.
+- **`casa_mia`:** `sensor_watch.py` (the handover and the old service names) and
+  `device_trigger.py` (a forwarder for triggers saved under its domain).
+- **Sources:** the page in `app/web/src/sensor-watch/`, the card and eye in
+  `integration/cards/src/sensor-watch/`. Both are built into the component's `www/`.
+- **Tests:** `tests/test_sensor_watch_*.py`, and `tests_ha/` inside a real Home Assistant.
 - **History:** built 2026-10-11 as an app module plus its own child integration,
   `casa_mia_sensor_watch`; that joined `casa_mia` in 2026.10.10-b4 ("one device, so one
-  integration"), whose `migrate()` moved the entities across. The domain is in
-  `components.py` `RETIRED`, so the app deletes that folder at every start.
+  integration"). It left again, to stand alone, in 2026.11.3-b2.
 
 ## Where to start
 
@@ -284,6 +279,17 @@ existing imports from `..` only until phase 2 removes them.
    `sensor_watch_enabled` option keeps its meaning until phase 2 (decision 7): the app tells
    the integration whether it is on.
 
+**Built in 2026.11.3-b1**, as one build rather than several, and tried on the test VM
+(a 2026.10.11 install updated to it). Where it differs:
+
+- The page's API is one websocket command carrying the records' routes
+  (`casa_mia_sensor_watch/api`), beside the pushed feeds, not a command per route.
+- A failed import is a Repair and nothing is watched until it succeeds; it doesn't stop
+  `casa_mia` setting up.
+- `npm run dev` can't show the Sensor Watch page, which talks to Home Assistant's websocket.
+- `open.ts`'s note in the browser's storage went: the eye's tap carries the entity in the
+  panel's address.
+
 ### Phase 2: its own integration, `casa_mia_sensor_watch`
 
 One build. The component moves to `integration/custom_components/casa_mia_sensor_watch/`,
@@ -317,6 +323,32 @@ taken off `RETIRED`.
 - **Tests:** the integration's tests under `pytest-homeassistant-custom-component` on
   Python 3.13 (the venv is 3.11 and pyright skips `integration/`), in a new CI job. Adding a
   required check to `main`'s ruleset is a remote change: ask the owner.
+
+**Built in 2026.11.3-b2.** Where it differs:
+
+- **The swap** reaches Sensor Watch by dispatcher signal (`casa_mia_swap`, asked for with
+  `casa_mia_swap_ask`), since a rule is a function and can't travel in a bus event.
+- **A failed handover** is a Repair, retried when `casa_mia` reloads, as in phase 1. One
+  edge: if the app can't be reached and the user then adds Sensor Watch by hand, the
+  device moves, and `casa_mia` no longer offers the app's old records. The app keeps its
+  file.
+- **The app tells the integrations when it has written newer files**
+  (`casa_mia_components_installed`), so Sensor Watch checks for its restart Repair without
+  `casa_mia`'s coordinator. Nobody fires it for an install from HACS.
+- **The panel** stays in the sidebar through a reload and leaves when the entry is deleted.
+  Removing it under an open page broke Home Assistant's own page in b1.
+- **The card bundle** (`www/cards.js`) has no "reload to update" toast, and
+  `tools/dev_cards` doesn't serve it.
+- **The Home tile** shows when Sensor Watch answers, last under "Running here", and only
+  when Casa Mia's page is open inside Home Assistant.
+- **The device move** uses `async_update_device(new_config_entry_id=…)` where Home Assistant
+  has it, and add-then-remove where it doesn't. Tested on Home Assistant 2026.10.4 and
+  2026.2.3; 2026.3.0 itself was not.
+- **The tests** need Python 3.14, not 3.13 (the current
+  `pytest-homeassistant-custom-component` runs Home Assistant 2026.10.4), and Home
+  Assistant's frontend package, because the panel depends on it. They are in `tests_ha/`,
+  with a venv of their own (`.venv-ha`) and a CI job, "Python / tests in Home Assistant".
+  It is not yet a required check on `main`: that is the owner's to add.
 
 ### Phase 3: versions and the supersede
 

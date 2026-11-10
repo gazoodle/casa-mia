@@ -9,7 +9,7 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-COMPONENT = ROOT / "integration" / "custom_components" / "casa_mia" / "sensor_watch"
+COMPONENT = ROOT / "integration" / "custom_components" / "casa_mia_sensor_watch"
 
 
 class _Loader(yaml.SafeLoader):
