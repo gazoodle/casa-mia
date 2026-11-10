@@ -3,10 +3,21 @@ defaults by what a sensor is."""
 
 import pytest
 
-from casa_mia.modules.sensor_watch import suggest
-from casa_mia.modules.sensor_watch.common import BadRequest, clean
-from casa_mia.modules.sensor_watch.history import from_history, thin
-from sensor_watch_fakes import ALARM, SALT, _cand, levels
+from sensor_watch_fakes import (
+    ALARM,
+    SALT,
+    _cand,
+    common,
+    defaults,
+    history,
+    levels,
+    suggest,
+)
+
+BadRequest, clean = common.BadRequest, common.clean
+normal, with_legacy = common.normal, common.with_legacy
+from_history, thin = history.from_history, history.thin
+default_record = defaults.default_record
 
 
 def test_clean_sorts_bands_and_refuses_overlaps():
@@ -110,8 +121,6 @@ def test_clean_binary():
 
 
 def test_binary_records_read_and_send_both_forms():
-    from casa_mia.modules.sensor_watch.common import normal, with_legacy
-
     old = {"kind": "binary", "nominal": "on", "other": "warning", "message": "Down"}
     new = normal(old)
     assert new == {
@@ -186,8 +195,6 @@ def test_clean_exact_states():
 
 
 def test_defaults_by_what_a_sensor_is():
-    from casa_mia.modules.sensor_watch.defaults import default_record
-
     leak = default_record(_cand("binary_sensor.sink_leak", "moisture"))
     assert leak and leak["kind"] == "binary" and leak["on"]["level"] == "critical"
     online = default_record(_cand("binary_sensor.hub", "connectivity"))
@@ -216,8 +223,6 @@ def test_defaults_by_what_a_sensor_is():
 
 
 def test_what_cannot_wait_has_no_hold_off():
-    from casa_mia.modules.sensor_watch.defaults import default_record
-
     leak = default_record(_cand("binary_sensor.leak", "moisture"))
     door = default_record(_cand("binary_sensor.door", "door"))
     alarm = default_record(_cand("alarm_control_panel.house"))

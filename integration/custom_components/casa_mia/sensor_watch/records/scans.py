@@ -8,9 +8,8 @@ import re
 from collections.abc import Callable
 from typing import Any
 
-from ...ha import HAError
 from . import suggest
-from .common import DEFAULT_HOLD_OFF, BadRequest, sides
+from .common import DEFAULT_HOLD_OFF, BadRequest, HAError, sides
 from .defaults import default_record, due_record
 from .history import (
     LIST_LIMIT,

@@ -1,16 +1,16 @@
-"""Sensor Watch in the app: the admin page's API (/api/sensor-watch/), on the store
-(store.py), the scans (scans.py) and the groups (groups.py). The integration reads the records from /health and
-does the watching; the page has the live levels from live.py."""
+"""The page's routes, on the store (store.py), the scans (scans.py) and the groups
+(groups.py). The page sends each as one websocket message (admin.py), with the method and
+path it always had; the watcher (watch.py) is told of each change and does the watching."""
 
 from __future__ import annotations
 
 import json
 import logging
 import re
+from collections.abc import Callable
 from typing import Any
 
-from ...ha import HAError
-from .common import REFRESH, BadRequest, Response, _json
+from .common import BadRequest, HAError, Response, Source, _json
 from .groups import Grouper
 from .profiles import (
     clean_profile,
@@ -28,13 +28,24 @@ from .store import _describe
 _LOGGER = logging.getLogger(__name__)
 
 MAX_TEXT_NAME = 120  # an ignored integration's name, as listed
-WAIT = 25.0  # seconds the page's long poll for the levels is held
-# What Sensor Watch needs running in Home Assistant: without them there is no history,
-# no statistics, no suggestions (and HA's own History panel is broken too).
-NEEDS = {"recorder": "Recorder", "history": "History"}
+# What Sensor Watch needs running in Home Assistant: without it there is no history,
+# no statistics, no suggestions.
+NEEDS = {"recorder": "Recorder"}
 
 
 class SensorWatch(Grouper):
+    def __init__(
+        self,
+        data: dict[str, Any] | None,
+        ha: Source | None,
+        save: Callable[[dict[str, Any]], None],
+        changed: Callable[[set[str] | None], None] | None = None,
+        afresh: Callable[[], None] = lambda: None,
+    ) -> None:
+        """As the store's, and `afresh`: have the watcher judge every watch again."""
+        super().__init__(data, ha, save, changed)
+        self.afresh = afresh
+
     def handle(
         self, method: str, path: str, query: dict[str, list[str]], body: bytes
     ) -> Response:
@@ -61,8 +72,6 @@ class SensorWatch(Grouper):
             return self._system(method, parts[1:], body)
         if method == "GET" and parts == ["check"]:
             return _json(200, self.check())
-        if method == "GET" and parts == ["levels"]:
-            return _json(200, self.levels(q.get("after")))
         if method == "GET" and parts == ["candidates"]:
             return _json(200, self.candidates(q))
         if method == "GET" and parts == ["library"]:  # the library, for one sensor
@@ -110,22 +119,10 @@ class SensorWatch(Grouper):
         return _json(404, {"error": "Not found."})
 
     def refresh(self) -> dict[str, Any]:
-        """Refresh state: the integration judges every watch afresh (its service), and
-        the page's levels are asked again once it has."""
-        if self.ha is None:
-            raise BadRequest("Home Assistant is not reachable.")
-        try:
-            self.ha.call(
-                {"type": "call_service", "domain": REFRESH[0], "service": REFRESH[1]}
-            )
-        except HAError as exc:
-            raise BadRequest(
-                f"Home Assistant couldn't refresh Sensor Watch ({exc}): restart it if "
-                "Casa Mia was updated."
-            ) from exc
-        _LOGGER.info("refresh state: asked the integration to judge every watch afresh")
-        if self.live:
-            self.live.taken()
+        """Refresh state: the watcher judges every watch afresh, and the page hears the
+        levels it comes to as it always does."""
+        self.afresh()
+        _LOGGER.info("refresh state: every watch judged afresh")
         return self.view()
 
     def suited(self, entity_id: str) -> list[dict[str, Any]]:
@@ -136,7 +133,7 @@ class SensorWatch(Grouper):
         return suited(c, library())
 
     def check(self) -> dict[str, Any]:
-        """Are HA's Recorder and History running? A serious fault in HA if not."""
+        """Is HA's Recorder running? A serious fault in HA if not."""
         if self.ha is None:
             return {"missing": [], "error": "Home Assistant is not reachable."}
         (config,) = self.ha.call({"type": "get_config"})
@@ -148,16 +145,6 @@ class SensorWatch(Grouper):
                 " or ".join(missing),
             )
         return {"missing": missing, "error": None}
-
-    def levels(self, after: str | None = None) -> dict[str, Any]:
-        """Each watched sensor's level now, as live.py hears it from the integration;
-        `after` (a revision the page has): held until something changes, or WAIT."""
-        if self.live is None:
-            return {"levels": {}, "error": "Home Assistant is not reachable.", "rev": 0}
-        try:
-            return self.live.wait(int(after), WAIT) if after else self.live.snapshot()
-        except ValueError:
-            raise BadRequest("after: a revision.") from None
 
     def _forget(self, entity_ids: Any) -> Response:
         """Stop watching many at once (the page's Stop watching these / all)."""

@@ -27,16 +27,16 @@ A record watches one entity (keyed by its entity id):
   current_position); `days_until` (numeric only: the state is a date or timestamp, read
   as the days until it, negative once it's passed, so a reminder's due date is banded
   in days); and `disabled` (true: kept, with its group, but not watched: the
-  integration isn't sent it, and the page lists it apart); `escalate` (optional)
+  watcher isn't given it, and the page lists it apart); `escalate` (optional)
   {level: seconds}: having stood that long at a level (task, warning or error), it
-  shows the next one up, rung by rung (the integration's levels.escalation).
-The integration works out the levels (casa_mia_sensor_watch/levels.py, whose LEVELS
-must match these; a test checks)."""
+  shows the next one up, rung by rung (levels.escalation, beside this package).
+The watcher works out the levels (levels.py, whose LEVELS must match these; a test
+checks)."""
 
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, Protocol
 
 LEVELS = ("nominal", "task", "warning", "error", "critical")
 IGNORE = "ignore"
@@ -53,16 +53,6 @@ MAX_STATES = 20
 MAX_TEXT = 80  # a name
 # A message: past 80 characters, notifications and cards may cut it short (the page says so).
 MAX_MESSAGE = 255
-# In Casa Mia's integration (its own, casa_mia_sensor_watch, until 2026.10.10-b3): the
-# event on each change of level, and the list service.
-EVENT = "casa_mia_sensor_watch"
-SERVICE = ("casa_mia", "sensor_watch_list")
-REFRESH = ("casa_mia", "sensor_watch_refresh")  # every watch judged afresh
-# The integration's websocket command the records are pushed by (its push.py), and its
-# own entities' translation keys (the Home tile's health comes from the status, counts).
-APPLY = "casa_mia/sensor_watch/apply"
-STATUS = "sensor_watch_status"
-COUNT = "sensor_watch_{}_count"
 
 
 def own(entry: dict) -> bool:
@@ -76,6 +66,18 @@ def own(entry: dict) -> bool:
 
 
 Response = tuple[int, str, bytes]
+
+
+class HAError(Exception):
+    """Home Assistant could not answer (the Recorder is down, a registry is not ready)."""
+
+
+class Source(Protocol):
+    """What Sensor Watch reads Home Assistant through: each command is one of its
+    websocket messages ({"type": "get_states"}), answered in order (source.py answers
+    them from inside Home Assistant; the tests, from a fake). Raises HAError."""
+
+    def call(self, *commands: dict[str, Any]) -> list[Any]: ...
 
 
 class BadRequest(Exception):

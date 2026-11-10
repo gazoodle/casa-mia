@@ -15,8 +15,7 @@ import time
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from ...ha import HA
-from .common import displayed, own, precision_of
+from .common import Source, displayed, own, precision_of
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -146,7 +145,7 @@ def _since(days: float) -> str:
 
 
 class Reader:
-    def __init__(self, ha: HA) -> None:
+    def __init__(self, ha: Source) -> None:
         self.ha = ha
         self._lock = threading.Lock()
         self._at = -math.inf  # never read (not 0: monotonic() counts from boot)

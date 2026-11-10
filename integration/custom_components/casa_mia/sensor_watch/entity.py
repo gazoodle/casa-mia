@@ -96,13 +96,13 @@ class ProblemSensor(WatchEntity, BinarySensorEntity):
 
 
 class RefreshButton(WatchEntity, ButtonEntity):
-    """Refresh state: the watches fetched again and judged afresh (Watcher.afresh)."""
+    """Refresh state: every watch judged afresh (Watcher.afresh)."""
 
     def __init__(self, watcher: Watcher, entry: ConfigEntry) -> None:
         super().__init__(watcher, entry, "refresh")
 
     async def async_press(self) -> None:
-        await self.watcher.afresh()
+        self.watcher.afresh()
 
 
 def sensors(watcher: Watcher, entry: ConfigEntry) -> list[SensorEntity]:

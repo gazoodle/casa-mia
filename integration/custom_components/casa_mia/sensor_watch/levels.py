@@ -244,7 +244,7 @@ def system_rows(
     has failed to set up for SETTLE seconds (error). `entries`: each config entry's
     entry_id, domain, title, state, reason, source and disabled; `first_bad`: when each
     was first seen failing, kept by the caller between checks (updated here); `settings`
-    (the app's page): `core` and `integrations` on or off, and `ignore` (entry ids)."""
+    (the page's): `core` and `integrations` on or off, and `ignore` (entry ids)."""
     settings = settings or {}
     rows: dict[str, dict[str, Any]] = {}
     if settings.get("core", True):

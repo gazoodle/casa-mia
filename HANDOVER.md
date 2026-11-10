@@ -85,23 +85,37 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
 
 ## Sensor Watch
 
-- **App** (`modules/sensor_watch/`: store → scans → groups → api): records in
-  `sensor-watch.json`, profiles (`profiles.py`; followers stored as pointers, sent
+Wholly in Home Assistant since 2026.11.3-b1 (phase 1 of
+`docs/design/marketplace-mirrors.md`); still part of `casa_mia` until phase 2.
+
+- **Records** (`casa_mia/sensor_watch/records/`: store → scans → groups → api, no HA
+  imports, moved verbatim from the app): kept in HA's storage (key
+  `casa_mia_sensor_watch`), profiles (`profiles.py`; followers stored as pointers, sent
   resolved), the shipped library (`library.json`; `tools/library_table.py` writes the
   guide's table), groups (saved filters, synced on HA's registry events), suggestions from
-  recorder statistics, Scan my house. `live.py` holds the websocket to HA and pushes each
-  save to the integration (the `casa_mia/sensor_watch/apply` command, handled by the
-  integration's `push.py`; the full set only to resync).
-- **Integration** (`casa_mia/sensor_watch/`): `levels.py` holds the one evaluator, with no
-  HA imports (accuracy, escalation); `watch.py` tracks states, hold-offs and timers, fires
+  recorder statistics, Scan my house. `source.py` answers what the records ask of HA.
+- **`admin.py`** starts it and serves the page: one websocket command carrying the
+  records' routes (`casa_mia_sensor_watch/api`), and pushed feeds (levels, summary, one
+  entity's watch). A feed outlives the watcher: it says "not running" when Sensor Watch
+  stops and sends everything when it starts again. All admin-only.
+- **Watching:** `levels.py` holds the one evaluator, with no HA imports (accuracy,
+  escalation); `watch.py` tracks states, hold-offs and timers, fires
   `casa_mia_sensor_watch`; status, counts and problem entities; the `list` service; device
   triggers; `blueprint.py` installs and keeps up **Notify on Sensor Watch**.
-- **Page:** the band editor holds a numeric record's bands as a ladder out from nominal
-  (`app/web/src/sensor-watch/ladder.ts`, run in node by `tests/test_sensor_watch_ladder.py`);
-  the stored format is bands, and `common.py` `_ladder` refuses anything else on save.
+- **Page:** a custom panel in HA's sidebar (`panel.py`, `/sensor-watch`, in an iframe),
+  built by `tools/build_web` from `app/web/src/sensor-watch/` (entry `panel.tsx`, config
+  `vite.panel.config.ts`) into `sensor_watch/www/`. `ha.ts` is its transport, `live.ts`
+  the levels feed plus values from HA's `subscribe_entities`, redrawn at most once a
+  second. The band editor holds a numeric record's bands as a ladder out from nominal
+  (`ladder.ts`, run in node by `tests/test_sensor_watch_ladder.py`); the stored format is
+  bands, and `records/common.py` `_ladder` refuses anything else on save.
+- **The app's part:** `/health` still reports `sensor_watch` running or disabled (the
+  `sensor_watch_enabled` option, until phase 2), `GET /sensor-watch/export` hands the old
+  `sensor-watch.json` to `casa_mia/sensor_watch_import.py` once (a failure is a Repair),
+  and the Home tile follows the summary feed over `window.parent.hassConnection`.
 - **Cards:** `custom:casa-mia-sensor-watch` (hides when clear), and the eye in HA's entity
-  dialog (`cards/src/sensor-watch/eye.ts` patches `ha-more-info-dialog`; a tap leaves a note
-  through `app/web/src/open.ts` and hops to the app's panel, which opens the editor).
+  dialog (`cards/src/sensor-watch/eye.ts` patches `ha-more-info-dialog`; a tap navigates
+  to `/sensor-watch?watch=<entity>&at=<ms>`, which the panel reads off HA's address).
 
 ## Guest login
 
@@ -211,10 +225,13 @@ CLAUDE.md has them all. What trips agents here:
 
 ## What happened
 
+- **2026.11.3-b1** (2026-11-10): phase 1. Sensor Watch runs wholly in HA: records in HA's
+  storage (imported once from the app), the page a sidebar panel over websocket commands
+  and pushed feeds, the app's module gone.
 - **2026-11-10:** agreed with the owner: Sensor Watch becomes its own integration
   (`casa_mia_sensor_watch`), running wholly in HA, published to the Marketplace through a
   generated mirror. Design, decisions and phases in `docs/design/marketplace-mirrors.md`;
-  nothing built yet.
+  nothing built yet. Phase 0 answered the same day from HA 2026.11.1 and HACS 2.0.5.
 - **2026.11.2-b27** (2026-11-10): Tablet Layout adds a small inset inside each panel's
   clipping boundary and includes it when sizing panels to their cards.
 - **2026.11.2-b26** (2026-11-10): Commander card motion controls use a single column so
@@ -268,8 +285,11 @@ CLAUDE.md has them all. What trips agents here:
 
 ## Where things stand
 
-- **Next: Sensor Watch on its own, for the Marketplace** (agreed 2026-11-10). Start at
-  "Where to start" in `docs/design/marketplace-mirrors.md`, phase 0; the phases run in order.
+- **Next: Sensor Watch on its own, for the Marketplace** (agreed 2026-11-10). Phase 0 (the
+  four source checks) is written into `docs/design/marketplace-mirrors.md`. The owner
+  agreed its eight decisions on 2026-11-10 ("Yes to all. Do the lot") and picks up at
+  phase 5: phases 1 to 4 are built without a review between them, committed on `dev`
+  (never pushed), tried on the test VM (never the live box), ending at phase 4's dry run.
 - **Never silently stuck: go one step at a time** (2026-10-12). The owner wants it slow and
   methodical: one agreed step, built, recorded in `docs/never-silently-stuck.md`, seen on
   the test tablet, never redone; nothing planned beyond it; analyse before code, change

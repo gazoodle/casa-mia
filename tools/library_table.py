@@ -14,7 +14,9 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-LIBRARY = ROOT / "app/src/casa_mia/modules/sensor_watch/library.json"
+LIBRARY = (
+    ROOT / "integration/custom_components/casa_mia/sensor_watch/records/library.json"
+)
 GUIDE = ROOT / "docs/applets/sensor-watch.md"
 START = "<!-- library table: tools/library_table.py --update -->"
 END = "<!-- end of library table -->"

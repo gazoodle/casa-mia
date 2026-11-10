@@ -1,6 +1,16 @@
 """Sensor Watch's band profiles: a range said once for many sensors."""
 
-from sensor_watch_fakes import ENTITIES, SALT, STATES, FakeHA, call, levels, make
+from sensor_watch_fakes import (
+    ENTITIES,
+    SALT,
+    STATES,
+    FakeHA,
+    call,
+    defaults,
+    levels,
+    make,
+    profiles,
+)
 
 MAINS = {
     "name": "Mains voltage",
@@ -35,7 +45,7 @@ def test_sensors_follow_a_profile_and_the_integration_sees_it_resolved(tmp_path)
     )
     assert status == 200
     assert next(p for p in view["profiles"] if p["id"] == pid)["followers"] == 2
-    sent = {r["entity_id"]: r for r in watch.for_integration()["records"]}
+    sent = {r["entity_id"]: r for r in watch.outgoing(None)["records"]}
     assert (
         sent["sensor.temp_00"]["bands"] == MAINS["bands"]
         and sent["sensor.temp_00"]["profile"] == pid
@@ -48,7 +58,7 @@ def test_sensors_follow_a_profile_and_the_integration_sees_it_resolved(tmp_path)
     }  # stored as a pointer
 
 
-def test_editing_the_profile_moves_every_follower_and_the_revision(tmp_path):
+def test_editing_the_profile_moves_every_follower(tmp_path):
     watch, pid = _two_plugs(tmp_path)
     call(
         watch,
@@ -56,7 +66,6 @@ def test_editing_the_profile_moves_every_follower_and_the_revision(tmp_path):
         f"profiles/{pid}/apply",
         body={"entity_ids": ["sensor.temp_00", "sensor.temp_01"]},
     )
-    before = watch.health()["revision"]
     stricter = MAINS | {
         "bands": [
             {"from": None, "to": 220, "level": "critical"},
@@ -64,8 +73,8 @@ def test_editing_the_profile_moves_every_follower_and_the_revision(tmp_path):
         ]
     }
     assert call(watch, "PUT", f"profiles/{pid}", body=stricter)[0] == 200
-    assert watch.health()["revision"] != before  # so the integration fetches it
-    sent = watch.for_integration()["records"]
+    assert watch.told[-1] is None  # the watcher is given every record again
+    sent = watch.outgoing(None)["records"]
     assert all(levels.level_of(r, "218")[0] == "critical" for r in sent)
 
 
@@ -112,8 +121,8 @@ def test_apply_watches_new_sensors_and_skips_those_it_doesnt_fit(tmp_path):
 
 
 def test_the_library_is_sound():
-    from casa_mia.modules.sensor_watch.defaults import default_record
-    from casa_mia.modules.sensor_watch.profiles import clean_profile, library
+    default_record = defaults.default_record
+    clean_profile, library = profiles.clean_profile, profiles.library
 
     shipped = library()
     assert len({p["name"] for p in shipped}) == len(shipped)
@@ -151,7 +160,7 @@ def test_export_and_import_round_trip(tmp_path):
     edited = shared | {"profiles": [shared["profiles"][0] | {"hold_off": 5}]}
     _, view = call(watch, "POST", "profiles/import", body=edited)
     assert view["replaced"] == ["Mains voltage"] and list(watch.profiles) == [pid]
-    assert watch.for_integration()["records"][0]["hold_off"] == 5
+    assert watch.outgoing(None)["records"][0]["hold_off"] == 5
     bad = {"profiles": [MAINS, MAINS | {"name": "Broken", "bands": []}]}
     status, got = call(other, "POST", "profiles/import", body=bad)
     assert status == 400 and "Broken" in got["error"]
@@ -167,7 +176,7 @@ def test_the_library_is_served(tmp_path):
 
 
 def test_the_library_suggests_what_suits_a_sensor():
-    from casa_mia.modules.sensor_watch.profiles import library, suited
+    library, suited = profiles.library, profiles.suited
 
     lib = library()
     base = {"kind": "numeric", "device_class": "", "unit": "", "dated": False}

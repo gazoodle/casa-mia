@@ -1,6 +1,6 @@
 // The eye in Home Assistant's entity dialog (more-info), for admins: whether Sensor Watch
-// watches this entity and at what level, and a tap to its watch in the app (a new one
-// if it isn't watched), with its history and the profiles that fit, as on the page.
+// watches this entity and at what level, and a tap to its watch on Sensor Watch's page
+// (a new one if it isn't watched), with its history and the profiles that fit.
 // Leans on the dialog's insides (its header's slots, _entityId, _currView: not public
 // API, the same from 2026.3 to 2026.10); if they change, this says so in the console
 // and shows nothing.
@@ -8,7 +8,7 @@ import { LitElement, css, html, nothing } from "lit";
 import { fire, type Hass, navigate, warnOnce } from "../ha.ts";
 import { PILLS } from "../pills.ts";
 import { LEVEL_TONES } from "./card.ts";
-import { ENTITY, OPEN, type Watch, appPanel, openNote } from "./common.ts";
+import { ENTITY, PANEL, type Watch, watchPath } from "./common.ts";
 
 export const TAG = "casa-mia-watch-eye";
 
@@ -36,7 +36,8 @@ export class WatchEye extends LitElement {
     const conn = this.hass?.connection;
     this._for = this.entityId;
     if (!this.entityId || !conn) return;
-    this._off = conn.subscribeMessage((w: Watch) => (this._watch = w), { type: ENTITY, entity_id: this.entityId });
+    // While Sensor Watch isn't running the feed says so ({error}): no eye until it is.
+    this._off = conn.subscribeMessage((w: Watch | { error: string }) => (this._watch = "error" in w ? undefined : w), { type: ENTITY, entity_id: this.entityId });
     this._off!.catch((err: any) => {
       // No Sensor Watch here (its module off, or an integration before the eye): no eye.
       if (err?.code !== "unknown_command" && err?.code !== "not_running") console.warn(`CASA-MIA CARDS: the eye: can't ask Sensor Watch (${err?.message ?? err})`);
@@ -49,20 +50,14 @@ export class WatchEye extends LitElement {
     this._watch = undefined;
   }
 
-  /** To the app's Sensor Watch page, with this entity's watch open there. */
+  /** To Sensor Watch's page, with this entity's watch open there (asked in the address). */
   private _open() {
-    const panel = appPanel(this.hass?.panels);
-    if (!panel) {
-      fire(this, "hass-notification", { message: "Casa Mia's app has no page in the sidebar: turn on Show in sidebar on its page in Settings → Apps.", duration: 10000 });
+    if (!this.hass?.panels?.[PANEL]) {
+      fire(this, "hass-notification", { message: "Sensor Watch's page isn't in Home Assistant's sidebar. Restart Home Assistant if Casa Mia has just been updated.", duration: 10000 });
       return;
     }
-    try {
-      localStorage.setItem(OPEN, openNote(this.entityId!, Date.now()));
-    } catch (err) {
-      console.warn(`CASA-MIA CARDS: the eye: can't leave the app its note (${err}); it opens at its home page`);
-    }
     this.dialog?.closeDialog?.();
-    navigate(`/${panel.url_path}`);
+    navigate(watchPath(this.entityId!, Date.now()));
   }
 
   render() {

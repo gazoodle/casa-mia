@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
 import { AutoDashboardsPage } from "./auto-dashboards";
 import { CamerasPage } from "./cameras";
 import { CommanderPage } from "./commander";
@@ -8,7 +8,7 @@ import { GuestPage } from "./GuestPage";
 import { KioskFrame, KiosksPage } from "./KiosksPage";
 import { KioskModePage } from "./KioskModePage";
 import { PeoplePage } from "./PeoplePage";
-import { SensorWatchPage } from "./sensor-watch";
+import { useSummary } from "./sensor-watch/summary";
 import { SettingsPage } from "./SettingsPage";
 import { SwapPage } from "./SwapPage";
 import { Developer, useHealth, type ModuleHealth } from "./health";
@@ -18,7 +18,6 @@ import { MODULES, type ModuleInfo } from "./modules";
 import type { HeaderView } from "./api";
 import { Photo, PhotoEditor, photoApi, photoUrl, type PhotoDraft } from "./photo";
 import { CopyButton } from "./ui";
-import { OPEN, takeOpen } from "./open";
 import css from "./app.module.css";
 import ui from "./ui.module.css";
 
@@ -30,21 +29,14 @@ const STATES: Record<string, [label: string, tone: string]> = {
   unconfigured: ["Needs setup", css.warn],
 };
 
-/** The page named by the URL's hash: "#/guest" opens Guest login, and what follows a ?
- * is for the page ("#/sensor-watch?watch=sensor.salt"). Hash routing works unchanged
- * under ingress's prefix. */
+/** The page named by the URL's hash: "#/guest" opens Guest login. Hash routing works
+ * unchanged under ingress's prefix. */
 function useRoute(): string {
   const [route, setRoute] = useState(location.hash.slice(1) || "/");
   useEffect(() => {
     const onHash = () => setRoute(location.hash.slice(1) || "/");
-    const onNote = (e: StorageEvent) => e.key === OPEN && e.newValue && takeOpen();
     addEventListener("hashchange", onHash);
-    addEventListener("storage", onNote); // already open when the note came
-    takeOpen();
-    return () => {
-      removeEventListener("hashchange", onHash);
-      removeEventListener("storage", onNote);
-    };
+    return () => removeEventListener("hashchange", onHash);
   }, []);
   return route;
 }
@@ -60,12 +52,28 @@ const PAGES: Record<string, string> = {
   auto_dashboards: "/auto-dashboards",
   compositor: "/compositor",
   kiosk_mode: "/kiosk-mode",
-  sensor_watch: "/sensor-watch",
 };
+/** Module pages in Home Assistant's own sidebar (the integration's panels). */
+const HA_PAGES: Record<string, string> = { sensor_watch: "/sensor-watch" };
+
+/** Open one of Home Assistant's pages from inside the app's panel as its own links do,
+ * by telling its router, so it isn't loaded afresh. Anywhere else, the link is followed. */
+function openInHa(e: MouseEvent, path: string) {
+  if (window.parent === window) return;
+  try {
+    window.parent.history.pushState(null, "", path);
+    window.parent.dispatchEvent(new CustomEvent("location-changed"));
+    e.preventDefault();
+  } catch {
+    // another origin's page holds this one: the link opens the page itself
+  }
+}
 
 export function App() {
   const { health, error } = useHealth();
   const route = useRoute();
+  // Sensor Watch runs in Home Assistant: its tile's health comes from there.
+  const summary = useSummary(health?.modules.sensor_watch?.state === "running");
   const [photo, setPhoto] = useState<HeaderView>();
   const [draft, setDraft] = useState<PhotoDraft>(); // the photo being edited, shown live
   useEffect(() => {
@@ -117,7 +125,14 @@ export function App() {
       {health && on.length > 0 && (
         <Section title="Running here">
           {on.map(([key, h]) => (
-            <Tile key={key} module={key} info={MODULES[key] ?? fallback(key)} health={h} href={PAGES[key]} />
+            <Tile
+              key={key}
+              module={key}
+              info={MODULES[key] ?? fallback(key)}
+              health={key === "sensor_watch" ? { ...h, ...summary } : h}
+              href={PAGES[key]}
+              ha={HA_PAGES[key]}
+            />
           ))}
         </Section>
       )}
@@ -139,9 +154,7 @@ export function App() {
 }
 
 /** The page for a route other than home (undefined for home). */
-function pageFor(full: string, modules: Record<string, ModuleHealth>): ReactNode {
-  const [route, query] = full.split("?");
-  const asked = new URLSearchParams(query);
+function pageFor(route: string, modules: Record<string, ModuleHealth>): ReactNode {
   if (route === "/guest") return <GuestPage state={modules.guest_login?.state} />;
   if (route === "/people") return <PeoplePage />;
   if (route === "/kiosks") return <KiosksPage state={modules.kiosks?.state} />;
@@ -151,8 +164,6 @@ function pageFor(full: string, modules: Record<string, ModuleHealth>): ReactNode
   if (route === "/auto-dashboards") return <AutoDashboardsPage state={modules.auto_dashboards?.state} />;
   if (route === "/compositor") return <CompositorPage state={modules.compositor?.state} />;
   if (route === "/kiosk-mode") return <KioskModePage state={modules.kiosk_mode?.state} />;
-  if (route === "/sensor-watch")
-    return <SensorWatchPage state={modules.sensor_watch?.state} watch={asked.get("watch") ?? undefined} at={asked.get("at") ?? undefined} />;
   if (route === "/settings") return <SettingsPage />;
   if (route === "/swap") return <SwapPage />;
   if (route === "/firmware") return <FirmwarePage state={modules.gitproxy?.state} />;
@@ -178,14 +189,16 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function Tile({ module, info, health, href }: { module: string; info: ModuleInfo; health: ModuleHealth; href?: string }) {
+/** `href`: its page in the app; `ha`: its page in Home Assistant's sidebar. */
+function Tile({ module, info, health, href, ha }: { module: string; info: ModuleInfo; health: ModuleHealth; href?: string; ha?: string }) {
   const own = info.chip?.(health);
   const [label, tone] = own ? [own[0], css[own[1]]] : (STATES[health.state ?? ""] ?? [health.state ?? "Unknown", css.muted]);
   const progress = info.progress?.(health);
   const facts = info.facts(health).filter(([, value]) => value !== undefined);
-  const Tag = href ? "a" : "article";
+  const link = ha ? { href: ha, target: "_top", onClick: (e: MouseEvent) => openInHa(e, ha) } : href ? { href: `#${href}` } : undefined;
+  const Tag = link ? "a" : "article";
   return (
-    <Tag className={`${css.tile} ${href ? css.tileLink : ""}`} {...(href ? { href: `#${href}` } : {})}>
+    <Tag className={`${css.tile} ${link ? css.tileLink : ""}`} {...link}>
       <div className={css.tileHead}>
         <span className={css.icon}>{info.icon}</span>
         <h3 className={css.tileTitle}>{info.title}</h3>
@@ -213,7 +226,7 @@ function Tile({ module, info, health, href }: { module: string; info: ModuleInfo
       {health.error && <p className={css.error}>{health.error}</p>}
       <div className={css.tileFoot}>
         <Maturity module={module} />
-        {href && <span className={css.more}>Open →</span>}
+        {link && <span className={css.more}>Open →</span>}
       </div>
     </Tag>
   );

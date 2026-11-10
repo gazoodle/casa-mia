@@ -25,7 +25,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from . import sensor_watch
+from . import sensor_watch, sensor_watch_import
 from .children import discover_children, reload_children
 from .const import CARDS_JS, DOMAIN, FONA_EVENT, SCRIPTS_URL, SETTINGS_EVENT
 from .coordinator import (
@@ -109,7 +109,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
     )
     # Sensor Watch, while its module is on: its own integration's entities taken on
-    # (once), then the watching; its entities come with the platforms below.
+    # (once), its records brought over from the app (once), then the watching; its
+    # entities come with the platforms below.
     coordinator.sensor_watch = None
     if "sensor_watch" not in off:
         found = registry.async_get_device(
@@ -117,7 +118,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
         if found is not None:
             await sensor_watch.migrate(hass, entry, found.id)
-        coordinator.sensor_watch = await sensor_watch.start(hass, entry, coordinator)
+        if await sensor_watch_import.bring(hass, coordinator.url):
+            coordinator.sensor_watch = await sensor_watch.start(
+                hass, entry, loaded_version
+            )
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     await _load_scripts(hass, entry, loaded_version, helpers)
 

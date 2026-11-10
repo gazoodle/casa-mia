@@ -135,7 +135,9 @@ and the stream stalled without reporting one (`docs/never-silently-stuck.md`).
 - **Admin UI** (React, `app/web/`): `tools/build_web` builds it into
   `app/src/casa_mia/web/` (committed; `tests/test_web_build.py` fails on a stale build).
   `server.py` serves it on 8780 to HA's ingress gateway only. Live editing: `cd app/web &&
-  npm run dev`.
+  npm run dev`. The same tool builds Sensor Watch's page (`src/sensor-watch/`, entry
+  `panel.tsx`) into the integration's `sensor_watch/www/` as a Home Assistant panel; it
+  talks to HA's websocket, so `npm run dev` can't show it.
 - **Pills, chips and chrome:** one source each, never hand-rolled. Pills and chips:
   `app/web/src/pills.css` (global `cm-` classes, coloured by `--tone`), adopted by the cards
   through `integration/cards/src/pills.ts`. Chrome (buttons, dialogs, menus, selects,

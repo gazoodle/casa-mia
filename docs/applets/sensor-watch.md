@@ -161,7 +161,14 @@ Sensor Watch tells; the rest of Casa Mia shows, and only when there's something 
    **Sensor Watch** device with its status, counts and problem sensor; there's nothing
    else to add. (Until 2026.10.10 Sensor Watch was its own integration, Casa Mia Sensor
    Watch; Casa Mia takes its entities over, same entity ids, and removes it.)
-3. Open **Sensor Watch** in the Casa Mia panel and choose what to watch.
+3. Open **Sensor Watch** in Home Assistant's sidebar and choose what to watch. The page is
+   for admins. The Sensor Watch tile on Casa Mia's home page opens it too.
+
+Sensor Watch runs inside Home Assistant and keeps its records in Home Assistant's own
+storage, so they are in Home Assistant's backups. (Until 2026.11.3 the Casa Mia app kept
+them, and the page was in the Casa Mia panel. The first start after that update brings the
+records over by itself; if it can't, a Repair says why and nothing is watched until it
+can. The app's copy is left where it was.)
 
 ## Worked examples
 
@@ -280,7 +287,7 @@ same is the **Refresh state** button on the Sensor Watch device in Home Assistan
 `casa_mia.sensor_watch_refresh` action for automations.
 
 The list is live: a value or level changes on the page the moment Home Assistant has it
-(the app holds a subscription, as a dashboard does). A worse level waits out its
+(the page holds a subscription, as a dashboard does). A worse level waits out its
 hold-off first, so set it to 0 while trying a sensor out.
 
 ### Watch an entity
@@ -669,16 +676,15 @@ The **Sensor Watch** device has:
 Open any entity in Home Assistant (the dialog with its name, its history and the settings
 cog) and, for an admin, an eye sits among the icons at the top:
 
-- **An outlined eye with a plus:** not watched. Tap it to watch it: Casa Mia's Sensor
+- **An outlined eye with a plus:** not watched. Tap it to watch it: the Sensor
   Watch page opens with its editor, its history drawn and the profiles that fit, as
   **Watch an entity** does.
 - **An eye in its level's colour, with the level:** watched, and how it is now (on a
   phone, the colour alone). Point at it for its message too. Tap it to open its watch.
   The eye follows the level while the dialog is open.
 
-It needs Casa Mia's app in the sidebar (**Show in sidebar** on its Info tab). It leans on
-the dialog's insides, which aren't public API: if a Home Assistant update moves them, the
-eye isn't shown and the browser's console says why.
+It leans on the dialog's insides, which aren't public API: if a Home Assistant update
+moves them, the eye isn't shown and the browser's console says why.
 
 ### Home Assistant's own health
 

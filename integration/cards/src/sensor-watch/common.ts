@@ -92,19 +92,16 @@ export function since(iso: string, now: number): string {
 }
 
 // The eye in an entity's dialog (eye.ts): one entity's watch, from the integration's
-// websocket subscription (levels.watching), and a tap to its editor in the app.
+// websocket subscription (levels.watching), and a tap to its editor on the page.
 export const ENTITY = "casa_mia/sensor_watch/entity";
 /** Not watched; or watched, with its level once judged. */
 export type Watch = { watched: boolean; level?: Level; message?: string; escalated?: boolean; real?: Level; since?: string };
 
-// The note the app's page takes (its one source, also in the admin UI's build).
-export { OPEN, openNote } from "../../../../app/web/src/open.ts";
-
-/** The Casa Mia app's sidebar panel among HA's panels: its config names the app's slug,
- * casa_mia after the repository's prefix (local_, or a hash for an added repository). */
-export function appPanel(panels: Record<string, any> | undefined): { url_path: string } | undefined {
-  return Object.values(panels ?? {}).find((p) => /(^|_)casa_mia$/.test(p?.config?.addon ?? ""));
-}
+/** Sensor Watch's page in Home Assistant's sidebar (the integration's panel.py). */
+export const PANEL = "sensor-watch";
+/** Its address with an entity's watch asked for (new or not); `at` makes each ask a new
+ * one, so the same entity asked twice opens twice. */
+export const watchPath = (entityId: string, at: number) => `/${PANEL}?watch=${encodeURIComponent(entityId)}&at=${at}`;
 
 /** Each level's colour, in HA's theme: the card's rows, the eye, the Status sensor's icon. */
 export const LEVEL_COLOR: Record<Level, string> = {

@@ -1,7 +1,8 @@
 # Marketplace mirrors, and Sensor Watch on its own
 
-**Status:** agreed design, ready to build (2026-11-10). Nothing in it is built yet. Start at
-"Where to start" below; the phases are in order, and each ends in a working build.
+**Status:** agreed design (2026-11-10). Phase 0 is done, and the owner agreed what its
+answers change the same day; the phases are edited to match. Start at "Where to start"
+below; the phases are in order, and each ends in a working build.
 
 ## The goal
 
@@ -37,10 +38,19 @@ Each with its reason, so nobody argues it away later.
    `2026.11.3-b14`). Why: a mirror's tag must equal its manifest version
    ([integrations][integrations]), and a trailing `-bN` reads as a beta.
 6. **A mirror is published by a local script, `tools/mirror.py`, which `release.py` runs as
-   its last step** (proposed 2026-11-10; taken as agreed when the owner asked for this doc to
-   be made ready; confirm with the owner before phase 4). It also runs alone, to retry. A
+   its last step** (confirmed by the owner, 2026-11-10). It also runs alone, to retry. A
    release publishes a mirror when it changed that item. It uses the owner's `gh` login.
+   Sensor Watch's mirror is `gazoodle/casa-mia-sensor-watch`.
    Why: no token able to create repositories sits in a public repository's secrets.
+7. **The `sensor_watch_enabled` app option is retired in phase 2.** A user who has it on is
+   migrated with nothing to do; a user who has it off gets no entry; a new user turns Sensor
+   Watch on by adding the integration, as a HACS user does. Until phase 2 it keeps its
+   meaning. Why: the option only ever decided whether the app started its module, and the
+   app does no Sensor Watch work any more (decision 3).
+8. **The store's own Update after a supersede is accepted.** HACS and the Marketplace keep
+   showing the version they installed themselves, and offer the mirror's release as an
+   update over files Casa Mia already wrote (phase 0, check 3). Phase 3 tests it and the
+   guide says so. Why: the only way to stop it is to write into the store's own storage.
 
 ## Sensor Watch today
 
@@ -83,9 +93,9 @@ until the new is proven.
 
 ## Phases
 
-### Phase 0: check the assumptions (no code)
+### Phase 0: check the assumptions (no code; done 2026-11-10)
 
-Answer each with evidence from HA's or HACS's source, and write the answers into this doc:
+The four questions, each answered from source below:
 
 - How HA finds a device trigger's code: by the `domain` in the trigger's config, or by the
   device's config entry. This decides the device-trigger shim in phase 2.
@@ -96,6 +106,155 @@ Answer each with evidence from HA's or HACS's source, and write the answers into
   how it treats a folder whose files changed under it.
 - How a sidebar panel registered by a custom integration is served and restricted to admins
   (`panel_custom`, `async_register_built_in_panel`, `require_admin`).
+
+#### The answers
+
+Read from Home Assistant core at tag `2026.11.1` (the latest release, 2026-11-09), from
+`2026.3.0` (Casa Mia's floor) where the two could differ, and from HACS at tag `2.0.5` (its
+latest release, 2025-01-28). "Core" paths are under `homeassistant/`, "HACS" paths under
+`custom_components/hacs/`. The Marketplace is a core integration
+(`components/marketplace/`) that first shipped in 2026.11 (it is not in `2026.10.0`) and
+takes over a HACS install's entry, entities and devices (`marketplace/migration.py`), so
+check 3 has two answers: HACS before 2026.11, the Marketplace from then on.
+
+**1. Device triggers: the code is found by the `domain` in the trigger's config.**
+
+- Attaching loads `<domain>.device_trigger` from `config[CONF_DOMAIN]` and calls its
+  `async_attach_trigger` (core `components/device_automation/trigger.py:71-74`; the loader
+  is `device_automation/__init__.py:181-207`).
+- Validating loads the same platform the same way (`device_automation/helpers.py:94-96`),
+  and refuses a device id that isn't in the registry ("Unknown device",
+  `helpers.py:98-104`).
+- The device's config entry is looked at in only two places. One is the list of triggers
+  the automation editor offers for a device, which asks the domains of the device's config
+  entry and of its entities (`__init__.py:254-285`). The other is validation, and only when
+  the platform defines `async_validate_trigger_config`: the device must then have a config
+  entry of the trigger's domain, or the trigger is refused with "Device … has no config
+  entry from domain …" (`helpers.py:132-141`). A platform that defines only `TRIGGER_SCHEMA`
+  returns before that check (`helpers.py:113-117`). `2026.3.0` has the same order.
+- `casa_mia/device_trigger.py` defines only `TRIGGER_SCHEMA` (line 37).
+
+What this means for phase 2: a stored trigger with `domain: casa_mia` keeps reaching
+`casa_mia/device_trigger.py` after the device belongs to `casa_mia_sensor_watch`. The shim
+is that file, kept, forwarding `async_attach_trigger` and `async_get_trigger_capabilities`
+to the new domain's platform (`async_get_device_automation_platform` is public,
+`__init__.py:86`), and returning nothing from `async_get_triggers` (HA no longer asks
+`casa_mia` for that device anyway, and new automations get the new domain). Two conditions:
+the shim must never gain an `async_validate_trigger_config`, and the device must keep its
+id through the move.
+
+**2. Another domain's config entry: yes, with no user step, and HA shows nothing.**
+
+- `hass.config_entries.flow.async_init(domain, context={"source": …}, data=…)` takes any
+  domain and doesn't check who calls it (core `config_entries.py:1626-1712`). The flow's
+  first step is named after the source (`config_entries.py:1995`), so `SOURCE_IMPORT` runs
+  the target's `async_step_import`, which it must define.
+- When that step returns `async_create_entry`, no discovery event fires and nothing is told
+  to the pages watching for flows: both happen only for a flow still in progress
+  (`config_entries.py:1696-1710`). The entry appears under Settings > Devices & services
+  with no notification and no Discovered card.
+- Core does this itself: the Marketplace creates its own entry at start with
+  `SOURCE_SYSTEM` (`components/marketplace/__init__.py:116-119`,
+  `marketplace/config_flow.py:64-68`).
+- With `"single_config_entry": true` in the target's manifest, a call when an entry exists
+  returns an abort, `single_instance_allowed`, before the flow starts
+  (`config_entries.py:1650-1667`). That makes the call repeatable, and covers a HACS user
+  who already has the entry.
+- The target must be known to the loader. The list of custom components is scanned once
+  and cached (core `loader.py:388-416`); for a folder written after the scan, `async_init`
+  raises `UnknownHandler` and logs "Cannot find integration" (`config_entries.py:4424-4430`).
+  The app writes both components and both wait for the same restart, so this shouldn't
+  happen, but the call must catch it, log a warning and try again at the next start.
+- **The entry is set up inside the call** (`config_entries.py:1962` calls `async_add`, which
+  awaits `async_setup`, `2378-2389`). And an entity can change platform only while it isn't
+  loaded (`helpers/entity_registry.py:2327-2328`). So `casa_mia` can't move the entities
+  after creating the entry (the new entry would already have made its own, with `_2`
+  entity ids) or before (there is no entry id yet). The move has to run in
+  `casa_mia_sensor_watch`'s own `async_setup_entry`, before it forwards its platforms. This
+  is what b4's `migrate()` did the other way, and what the Marketplace does to take over
+  HACS (`marketplace/__init__.py:186`, `marketplace/migration.py:156-213`).
+- Moving the device differs by version: `2026.11.1` has a device belong to one config entry
+  and moves it with `async_update_device(new_config_entry_id=…)`; `add_config_entry_id`
+  with `remove_config_entry_id` still moves it but is deprecated
+  (`helpers/device_registry.py:3978-3989`). `2026.3.0` has no `new_config_entry_id`.
+
+**3. Remove deletes the folder in HACS; the Marketplace refuses while the integration is
+set up. Neither notices files that changed.**
+
+- HACS 2.0.5: Remove calls `uninstall()` (HACS `websocket/repository.py:254-271`), which
+  deletes the whole `custom_components/<domain>/` folder (`repositories/base.py:758-819`,
+  `repositories/integration.py:36-38`). The only guard is against deleting
+  `custom_components` itself (`utils/path.py:13-41`). It doesn't look for config entries:
+  the entry stays, and fails to load after the next restart.
+- Marketplace 2026.11.1: uninstalling an integration whose domain has any config entry is
+  refused: "… is still set up, and without its files that setup would fail to load. Delete
+  it under Settings > Devices & services before uninstalling it." (core
+  `components/marketplace/websocket/repository.py:350-363`, `strings.json:247-249`). With
+  no entry it deletes the folder as HACS does (`marketplace/repositories/base.py:989-1064`)
+  and raises a restart Repair if the code was loaded (`repositories/integration.py:244-262`).
+- Changed files: neither reads the folder. The installed version is what the store wrote
+  to its own storage when it last installed (HACS `utils/data.py:293-301`; Marketplace
+  `utils/data.py:402`), and an update is offered by comparing that with the latest release
+  (HACS `repositories/base.py:410-428`). The Marketplace's one check of the disk is at
+  start: a folder that is gone is marked not installed, and logged
+  (`marketplace/utils/data.py:305-330`).
+- An update replaces the folder whole, whatever is in it: HACS copies it to a backup and
+  deletes it (`utils/backup.py:59-72`, `repositories/base.py:954-956`); the Marketplace
+  moves it into a backup, writes the new one, and puts the old one back if the result
+  wouldn't load (`marketplace/utils/backup.py:98-121`, `repositories/base.py:1269-1325`,
+  `repositories/integration.py:97-125`).
+
+What this means: after Casa Mia has superseded a HACS or Marketplace install, the store
+still shows the version it installed itself. When the mirror publishes the release Casa Mia
+already brought, the store offers it as an update; installing it rewrites the same files
+and asks for a restart. With a `-bN` build from the app on disk, that update is a downgrade
+until the app next starts and writes its own copy back.
+
+**4. The panel: a static path for the bundle, `panel_custom` to register it, and admin-only
+is enforced by the websocket commands, not by the panel.**
+
+- Serving: `hass.http.async_register_static_paths([StaticPathConfig(url, path)])` (core
+  `components/http/server.py:77-83`, `434-464`), as `casa_mia` does for `cm-cards.js`. These
+  are plain GET routes with no login check; only views check `requires_auth`
+  (`helpers/http.py:62`, `136`). The bundle can be fetched by anyone who can reach HA, so it
+  holds no secrets.
+- Registering: `panel_custom.async_register_panel(hass, frontend_url_path,
+  webcomponent_name, sidebar_title, sidebar_icon, module_url=…, embed_iframe=…,
+  require_admin=True)` (`components/panel_custom/__init__.py:80-145`), which calls
+  `frontend.async_register_built_in_panel(component_name="custom", …)`
+  (`components/frontend/__init__.py:246-283`). Registering a path twice raises
+  `ValueError` (`frontend/__init__.py:275-279`), so the entry's unload removes it with
+  `frontend.async_remove_panel` (`287-298`).
+- `require_admin=True` leaves the panel out of the list a non-admin user's page is given
+  (`frontend/__init__.py:755-775`). That hides it and nothing more, and an admin can turn it
+  off for any panel with HA's own `frontend/update_panel` command (`871-900`; in `2026.3.0`
+  too). What restricts the data is `@websocket_api.require_admin` on each command behind the
+  page, which raises `Unauthorized` (`components/websocket_api/decorators.py:54-69`). The
+  Marketplace does both (`marketplace/__init__.py:99-106`,
+  `marketplace/websocket/repository.py:321`).
+- The floor: `2026.3.0`'s `async_register_panel` takes the same arguments apart from
+  `handle_safe_area`, which is newer. Passing it would break 2026.3.
+- Not checked, because they are in the frontend's repository and not core: what a
+  non-admin sees at the panel's address, and how `embed_iframe` hands `hass` to the page.
+  Both belong to phase 1, step 4.
+
+#### What the answers changed (agreed by the owner, 2026-11-10; the phases below say the same)
+
+1. **Phase 2, the migration:** `casa_mia` creates the entry (an import flow, with
+   `single_config_entry`), but the entities and the device are moved by
+   `casa_mia_sensor_watch` in its own setup, not by `casa_mia`. The standalone component
+   then knows the string `casa_mia` and the old unique ids, with no import.
+2. **Phase 2, the device move** needs one call on 2026.11 and another on the floor, or the
+   deprecated pair on both.
+3. **Phase 2, the shim** is `casa_mia/device_trigger.py` kept as a forwarder, with only
+   `TRIGGER_SCHEMA`.
+4. **Phase 3:** the store's stale version and its Update after a supersede (check 3) are
+   not covered by "No downgrade", which only guards the app's side. Add to the supersede
+   tests: press Update in the store afterwards. The owner accepted the offered update
+   (decision 8).
+5. **The known trap** applies to HACS only (see below).
+6. **Phase 1, steps 2 and 4:** `require_admin` on every command, never the panel's flag
+   alone; don't pass `handle_safe_area`.
 
 ### Phase 1: Sensor Watch runs in HA, still inside `casa_mia`
 
@@ -121,9 +280,9 @@ existing imports from `..` only until phase 2 removes them.
    page links to it (`App.tsx`'s route becomes the link; `open.ts` lands on the panel). One
    page, never two.
 5. **The app's module retired:** `modules/sensor_watch/` deleted, `__main__.py`'s wiring and
-   routes gone. The Home tile reads Sensor Watch's status from HA. Decide with the owner what
-   the `sensor_watch_enabled` option means now (likely: nothing; the integration is set up or
-   not).
+   routes gone. The Home tile reads Sensor Watch's status from HA. The
+   `sensor_watch_enabled` option keeps its meaning until phase 2 (decision 7): the app tells
+   the integration whether it is on.
 
 ### Phase 2: its own integration, `casa_mia_sensor_watch`
 
@@ -138,14 +297,18 @@ taken off `RETIRED`.
 - **Card and eye** move into the component's own `www/` bundle, served and registered by it
   as `casa_mia` does with `cm-cards.js` (`async_register_static_paths`, `add_extra_js_url`);
   `cm-cards.js` drops them, since an element name can be registered only once.
-- **Migration, run by `casa_mia` at setup, once:** create the `casa_mia_sensor_watch` entry
-  without a user step (phase 0), move the entities across keeping their entity ids and
-  history (as `migrate()` did in b4, the other way), and the device. Logged; repeatable if
-  interrupted.
+- **Migration, in two halves** (phase 0, check 2). `casa_mia`, at setup, creates the
+  `casa_mia_sensor_watch` entry without a user step (an import flow; the manifest has
+  `single_config_entry`), and only for a user who had Sensor Watch on (decision 7).
+  `casa_mia_sensor_watch`, in its own setup and before it forwards its platforms, moves the
+  entities across keeping their entity ids and history (as `migrate()` did in b4, the other
+  way), and the device, which keeps its id. It knows the string `casa_mia` and the old
+  unique ids, and imports nothing. Logged; repeatable if interrupted.
 - **Nothing breaks for Casa Mia users:** `casa_mia.sensor_watch_list` stays as an alias in
   `casa_mia`, forwarding and logging a deprecation warning; automations with Sensor Watch
-  device triggers stored as `domain: casa_mia` keep working through a small shim in
-  `casa_mia` (how, from phase 0).
+  device triggers stored as `domain: casa_mia` keep working through a small shim:
+  `casa_mia/device_trigger.py` stays, with only `TRIGGER_SCHEMA`, and forwards to the new
+  domain's platform (phase 0, check 1). The `sensor_watch_enabled` option goes (decision 7).
 - **The screenshot swap:** with Casa Mia present, it reaches Sensor Watch through HA (an
   event, or a documented `hass.data` key), never an import; without Casa Mia there is none.
 - **Docs and rules:** `CLAUDE.md`'s component list and "a module with one device lives in
@@ -165,7 +328,8 @@ taken off `RETIRED`.
   the folder alone. Same version, same files: nothing written, no restart Repair.
 - **The supersede, tested:** a HACS-installed Sensor Watch, then Casa Mia installed, with
   the HACS copy at the same version, an older one and a newer one. Records, entity ids,
-  history, automations and the card all carry on, and the user does nothing.
+  history, automations and the card all carry on, and the user does nothing. Then press
+  Update in the store (decision 8): the same files are written again and nothing is lost.
 
 ### Phase 4: the mirror
 
@@ -202,14 +366,14 @@ promise of acceptance.
 
 ## Known trap
 
-**Remove in HACS deletes the folder** (to be confirmed in phase 0). After Casa Mia has
+**Remove in HACS deletes the folder** (confirmed in phase 0, check 3). After Casa Mia has
 superseded a HACS install, removing Sensor Watch in HACS takes the component away until the
-app next starts and installs it again. The guide says so; nothing is built for it.
+app next starts and installs it again. The guide says so; nothing is built for it. On Home
+Assistant 2026.11 and later the Marketplace refuses the removal while Sensor Watch is set
+up, so the trap is HACS's only.
 
 ## Open (owner)
 
-- Phase 1, step 5: what `sensor_watch_enabled` means once the app does no Sensor Watch work.
-- Phase 4: confirm the local-script decision before it is built.
 - Later items: which dashboard features (the Tablet Layout, Over layer, garnish) form one
   plugin mirror. The earlier notes on that bundle are in `BACKLOG.md`.
 

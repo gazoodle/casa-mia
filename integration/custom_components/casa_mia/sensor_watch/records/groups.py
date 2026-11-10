@@ -1,27 +1,24 @@
 """Sensor groups that keep themselves up to date: a group is a saved set of filters (the
 scan's: domain, area, label, integration, device, device class, kind, search) and a
 profile, or DEFAULTS: each member set up by what it is (defaults.py: a cover closed, a
-lock locked, a leak critical), passing over those with no default. Everything matching is watched, following the profile; whatever matches later
-(a new plug) joins by itself, checked each minute; a member stopped by hand is
+lock locked, a leak critical), passing over those with no default. Everything matching
+is watched, following the profile; whatever matches later (a new plug) joins by itself,
+when Home Assistant says its entities changed (look()); a member stopped by hand is
 remembered (`left`) and never pulled back. Deleting a group keeps its members watched."""
 
 from __future__ import annotations
 
 import logging
-import threading
-import time
 from typing import Any
 
-from ...ha import HAError
-from .common import MAX_TEXT, BadRequest, Response, _json, clean
+from .common import MAX_TEXT, BadRequest, HAError, Response, _json, clean
 from .defaults import default_record
 from .profiles import FITS, follower, new_id
 from .scans import FILTERS, Scanner, matches
 
 _LOGGER = logging.getLogger(__name__)
 
-SYNC = 60.0  # seconds between looking for new members (a backstop: see nudge)
-# Seconds after HA's registry changes (a new entity, a label added) before looking: its
+# Seconds after HA's entities change (a new one, a label added) before looking: its
 # state follows its registry entry, and an integration adding many sends many.
 SETTLE = 2.0
 DEFAULTS = "defaults"  # a group's "profile": each member by what it is
@@ -70,28 +67,17 @@ def member(
 
 
 class Grouper(Scanner):
-    def start(self) -> None:
-        super().start()
-        self._nudged = threading.Event()
-        if self.live:  # HA's entity registry changed: look now, not at the next sweep
-            self.live.on_registry = self._nudged.set
-        threading.Thread(
-            target=self._keep, name="sensor-watch-groups", daemon=True
-        ).start()
-
-    def _keep(self) -> None:
-        # ponytail: runs for the app's life, as the module does
-        while True:
-            if self._nudged.wait(SYNC):
-                time.sleep(SETTLE)  # let the rest come, and the new entity's state
-                self._nudged.clear()
-                if self.reader:
-                    self.reader.forget()  # read HA's entities afresh
-                _LOGGER.debug("groups: HA's registry changed; looking for new members")
-            try:
-                self.sync()
-            except (HAError, BadRequest) as exc:
-                _LOGGER.warning("groups: could not look for new members: %s", exc)
+    def look(self) -> None:
+        """Home Assistant's entities changed (a new one, an area or a label moved): read
+        them afresh and take in whatever now matches a group."""
+        if self.reader:
+            self.reader.forget()
+        try:
+            joined = self.sync()
+        except (HAError, BadRequest) as exc:
+            _LOGGER.warning("groups: could not look for new members: %s", exc)
+            return
+        _LOGGER.debug("groups: looked for new members, %d joined", joined)
 
     def sync(self, only: str | None = None) -> int:
         """Watch whatever matches a group (or just group `only`) and isn't watched or left

@@ -1,25 +1,28 @@
-"""Sensor Watch's store: the records (`sensor-watch.json`), Home Assistant's own health
-settings, the profiles and the groups, what the integration is sent (each change pushed
-by live.py; all of them for its fetch, when /health's revision isn't the one it has), and
-saving a change. The layers above: scans (candidates, suggestions, the
-scan), groups (keeping them up to date), then api (the admin page's routes)."""
+"""Sensor Watch's store: the records, Home Assistant's own health settings, the profiles
+and the groups, what the watcher is given of them (outgoing(), at each change), and
+saving a change. Loading and saving are handed in (Home Assistant's storage; a file in
+the tests), so nothing here needs Home Assistant. The layers above: scans (candidates,
+suggestions, the scan), groups (keeping them up to date), then api (the page's routes)."""
 
 from __future__ import annotations
 
-import hashlib
-import json
 import logging
 import threading
 from collections.abc import Callable, Mapping
-from pathlib import Path
 from typing import Any
 
-from ...ha import HA, HAError
-from .common import LEVELS, BadRequest, clean, normal, sides, with_legacy
+from .common import (
+    LEVELS,
+    BadRequest,
+    HAError,
+    Source,
+    clean,
+    normal,
+    sides,
+    with_legacy,
+)
 from .history import Reader, kind_of
-from .live import Live
 from .profiles import follower, resolve
-from .status import Status
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -50,88 +53,46 @@ META = (
 class Store:
     def __init__(
         self,
-        store_path: Path,
-        ha: HA | None,
-        on_change: Callable[[], None] | None = None,
+        data: dict[str, Any] | None,
+        ha: Source | None,
+        save: Callable[[dict[str, Any]], None],
+        changed: Callable[[set[str] | None], None] | None = None,
     ) -> None:
-        self.store_path = store_path
+        """`data`: what was saved (None: nothing yet). `save` keeps it, or raises (the
+        change is then refused, and said). `changed` is told after each save: the
+        entities whose records changed, or None for any of them."""
         self.reader = Reader(ha) if ha else None
         self.ha = ha
-        self.status = Status(ha)  # overall health, for the Home tile (live.py feeds it)
-        # The levels as they change in Home Assistant, pushed, and the records pushed to
-        # the integration as they change (start() connects).
-        self.live = (
-            Live(
-                ha,
-                self.status,
-                self._watched,
-                self.outgoing,
-                on_change,
-            )
-            if ha
-            else None
-        )
+        self.save = save
+        self.changed = changed
         self._lock = threading.Lock()
         self.records: dict[str, dict[str, Any]] = {}
         self.system: dict[str, Any] = dict(SYSTEM)
         self.profiles: dict[str, dict[str, Any]] = {}  # id -> a profile (profiles.py)
         self.groups: dict[str, dict[str, Any]] = {}  # id -> a group (groups.py)
         self._broken: str | None = None
-        self._revision = ""
         try:
-            data = json.loads(store_path.read_text())
+            data = data or {}
             self.records = {r["entity_id"]: r for r in data.get("records", [])}
             self.system = SYSTEM | (data.get("system") or {})
             self.profiles = data.get("profiles") or {}
             self.groups = data.get("groups") or {}
-        except FileNotFoundError:
-            pass
-        except (OSError, ValueError, AttributeError, KeyError, TypeError) as exc:
-            _LOGGER.error("cannot read %s, nothing is watched: %s", store_path, exc)
+        except (ValueError, AttributeError, KeyError, TypeError) as exc:
+            _LOGGER.error("cannot read the saved records, nothing is watched: %s", exc)
             self._broken = str(exc)
-        self._revise()
         _LOGGER.info("watching %d sensors", len(self.records))
 
-    def health(self) -> dict[str, Any]:
-        """Small at any size: the integration fetches the records themselves
-        (for_integration()) only when `revision` isn't the one it has."""
-        with self._lock:
-            return {
-                "state": "offline" if self._broken else "running",
-                "error": self._broken
-                and f"cannot read {self.store_path.name}: {self._broken}",
-                "watching": len(self.records),
-                "revision": self._revision,
-                **self.status.now(),
-            }
-
-    def start(self) -> None:
-        if self.live:
-            self.live.start()
-
-    def for_integration(self) -> dict[str, Any]:
-        """For the integration (GET /sensor-watch/records); the page's levels are
-        asked again once it has judged them."""
-        if self.live:
-            self.live.taken()
-        return self.outgoing(None)
-
-    def _watched(self) -> dict[str, str | None]:
-        """Each watched entity, with the attribute watched (None: its state)."""
-        with self._lock:
-            return {e: r.get("attribute") for e, r in self.records.items()}
-
     def outgoing(self, eids: set[str] | None) -> dict[str, Any]:
-        """What the integration is sent (live.py pushes it): the records in `eids` as it
-        has them, and those of them it should no longer watch (gone, or disabled: kept,
-        but not watched); every record when None. With the revision they make up."""
+        """What the watcher is given: the records in `eids` as it has them, and those of
+        them it should no longer watch (gone, or disabled: kept, but not watched); every
+        record when None."""
         with self._lock:
             if eids is None:
                 now = self.records
             else:
                 now = {e: self.records.get(e) for e in sorted(eids)}
             return {
-                "revision": self._revision,
+                "whole": eids is None,
                 "records": [
                     self._sent(r) for r in now.values() if r and not r.get("disabled")
                 ],
@@ -140,21 +101,13 @@ class Store:
             }
 
     def _sent(self, record: dict[str, Any]) -> dict[str, Any]:
-        """A record as the integration has it: resolved, with its group's name (the
+        """A record as the watcher has it: resolved, with its group's name (the
         `list` service filters by it). Caller holds the lock."""
         r = with_legacy(normal(resolve(record, self.profiles)))
         group = self.groups.get(r.get("group") or "")
         return {k: v for k, v in r.items() if k != "group"} | (
             {"group": group["name"]} if group else {}
         )
-
-    def _revise(self) -> None:
-        """A hash of the records and settings (caller holds the lock, or nobody else
-        has it yet)."""
-        text = json.dumps(
-            [self.records, self.system, self.profiles, self.groups], sort_keys=True
-        )
-        self._revision = hashlib.sha256(text.encode()).hexdigest()[:16]
 
     def view(self) -> dict[str, Any]:
         with self._lock:
@@ -203,40 +156,39 @@ class Store:
         groups: dict[str, dict[str, Any]] | None = None,
     ) -> None:
         """Apply record changes (None removes one) and any new `system` settings,
-        `profiles` or `groups`, then save, log `what`, and push the change to the
-        integration: the records changed, or all of them when profiles or groups changed
-        (a profile's followers, a group's members, change with them)."""
+        `profiles` or `groups`, then save, log `what`, and tell the watcher: the records
+        changed, or all of them when profiles or groups changed (a profile's followers,
+        a group's members, change with them)."""
         with self._lock:
             if self._broken:
                 raise BadRequest(
-                    f"{self.store_path.name} could not be read; fix or remove it first."
+                    f"The saved records could not be read ({self._broken}); "
+                    "nothing is saved over them."
                 )
-            if system is not None:
-                self.system = system
-            if profiles is not None:
-                self.profiles = profiles
-            if groups is not None:
-                self.groups = groups
+            records = dict(self.records)
             for eid, record in changes.items():
                 if record is None:
-                    self.records.pop(eid, None)
+                    records.pop(eid, None)
                 else:
-                    self.records[eid] = record
-            tmp = self.store_path.with_name(self.store_path.name + ".tmp")
-            self.store_path.parent.mkdir(parents=True, exist_ok=True)
+                    records[eid] = record
             data = {
-                "records": list(self.records.values()),
-                "system": self.system,
-                "profiles": self.profiles,
-                "groups": self.groups,
+                "records": list(records.values()),
+                "system": self.system if system is None else system,
+                "profiles": self.profiles if profiles is None else profiles,
+                "groups": self.groups if groups is None else groups,
             }
-            tmp.write_text(json.dumps(data, indent=2))
-            tmp.replace(self.store_path)
-            self._revise()
+
+            # Saved before it is taken up: a save that fails leaves what is watched as
+            # it was saved, not ahead of it until the next restart.
+            self.save(data)
+            self.records = records
+            self.system = data["system"]
+            self.profiles = data["profiles"]
+            self.groups = data["groups"]
         _LOGGER.info("%s", what)
-        if self.live:
+        if self.changed:
             whole = profiles is not None or groups is not None
-            self.live.changed(None if whole else set(changes))
+            self.changed(None if whole else set(changes))
 
     def _record(self, entity_id: str, body: dict[str, Any]) -> dict[str, Any]:
         """A record to save: its own levels, or following a profile (`profile`);
@@ -306,6 +258,18 @@ class Store:
             return {c["entity_id"]: c for c in self.reader.candidates()}
         except HAError:
             return {}
+
+
+def merged(
+    have: dict[str, dict[str, Any]], msg: dict[str, Any]
+) -> dict[str, dict[str, Any]]:
+    """The records the watcher watches once it is given `msg` (outgoing()): its records
+    alone when it is the whole set; else those it has, with the changes."""
+    sent = {r["entity_id"]: r for r in msg["records"]}
+    if msg["whole"]:
+        return sent
+    removed = set(msg["removed"])
+    return {e: r for e, r in have.items() if e not in removed} | sent
 
 
 def _describe(record: dict[str, Any]) -> str:

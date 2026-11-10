@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Build the admin UI (app/web) into the Python package and stamp it with its source hash.
-# The output is committed: the app image needs no Node. tests/test_web_build.py fails if the
-# sources change without running this.
+# Build the admin UI (app/web) into the Python package, and Sensor Watch's panel (the same
+# sources, vite.panel.config.ts) into the integration, and stamp them with their source
+# hash. The output is committed: nothing on the box needs Node. tests/test_web_build.py
+# fails if the sources change without running this.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 (cd app/web && { [ -d node_modules ] || npm ci --no-audit --no-fund; } && npm run build)
 .venv/bin/python tools/web_hash.py --write web
-echo "built app/src/casa_mia/web; commit it with the sources"
+echo "built app/src/casa_mia/web and the integration's sensor_watch/www; commit them with the sources"
