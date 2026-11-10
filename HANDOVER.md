@@ -242,6 +242,12 @@ CLAUDE.md has them all. What trips agents here:
 
 ## What happened
 
+- **2026-11-10:** phase 4, no build. `tools/mirror.py` generates a published component's
+  own repository (the mirror) and publishes it; `release.py` runs it as step 7. Only its
+  dry run has been run. Nothing is published and no mirror exists.
+- **2026.11.3-b3** (2026-11-10): phase 3. A release gives its version to the components
+  its builds changed; the app never puts a published component (`components.PUBLISHED`)
+  back to an older version than the one in HA's config.
 - **2026.11.3-b2** (2026-11-10): phase 2. Sensor Watch is its own integration; the app's
   option is retired, and a user who had it on is handed over with the same device,
   entities and records. `tests_ha/` and `.venv-ha` added for tests inside a real HA.
@@ -305,11 +311,19 @@ CLAUDE.md has them all. What trips agents here:
 
 ## Where things stand
 
-- **Next: Sensor Watch on its own, for the Marketplace** (agreed 2026-11-10). Phase 0 (the
-  four source checks) is written into `docs/design/marketplace-mirrors.md`. The owner
-  agreed its eight decisions on 2026-11-10 ("Yes to all. Do the lot") and picks up at
-  phase 5: phases 1 to 4 are built without a review between them, committed on `dev`
-  (never pushed), tried on the test VM (never the live box), ending at phase 4's dry run.
+- **Next: Sensor Watch's first publication, the owner's** (phase 5 of
+  `docs/design/marketplace-mirrors.md`). Phases 1 to 4 were built on 2026-11-10 without a
+  review between them, on the owner's "Yes to all. Do the lot": three builds
+  (2026.11.3-b1 to b3) and `tools/mirror.py`, committed on `dev` and **not pushed**, tried
+  on the test VM and never on the live box. Read the doc's "Before phase 5" first: HACS's
+  `brands` check, issues on in the mirror, the scope of "No downgrade", and what has not
+  run anywhere yet. The fake git host offers these builds to the live box; installing them
+  there is the owner's decision. Installing 2026.11.2 or earlier over them removes Sensor
+  Watch's folder (the doc's phase 3 notes).
+- **The test VM** was left on Home Assistant 2026.9.4 with the app at 2026.11.3-b3
+  (`local_casa_mia`), Sensor Watch at 2026.11.3-b2, the stable app
+  installed and stopped, and a test automation (`cm_old_trigger`) using the old device
+  trigger.
 - **Never silently stuck: go one step at a time** (2026-10-12). The owner wants it slow and
   methodical: one agreed step, built, recorded in `docs/never-silently-stuck.md`, seen on
   the test tablet, never redone; nothing planned beyond it; analyse before code, change

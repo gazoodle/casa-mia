@@ -277,6 +277,8 @@ Decided (2026-10-02): **ship everything.** Every module is off until enabled; no
 ## Housekeeping
 
 - **Home Assistant's device registry calls that stop working in 2027.8** (found 2026-11-10 on Home Assistant 2026.10.4). `async_get_device(identifiers=…)` is deprecated there in favour of `async_get_device_by_identifier`, and is still called in `casa_mia/__init__.py`, `casa_mia/children.py`, `casa_mia_commander/__init__.py` and `casa_mia_guest_login/__init__.py`. The new call isn't in the oldest Home Assistant Casa Mia allows (2026.3), so use it where it exists, as `casa_mia_sensor_watch/migrate.py` does. `tests_ha/` can cover each one as it is changed: Home Assistant raises on a deprecated call made from a test.
+- **`via_device` in `DeviceInfo` stops working in Home Assistant 2027.8 too** (seen 2026-11-10 on the test VM, Home Assistant 2026.9.4): "calls `device_registry.async_get_or_create` with a deprecated `via_device` parameter; use `via_device_id` instead". It is passed by `casa_mia`'s entity platforms and `casa_mia_guest_login/sensor.py`. Check that `via_device_id` exists in 2026.3 before changing them, as with the item above.
+- **The Supervisor warns that the app's `addon_config` map type is a legacy name** for `app_config` (seen 2026-11-10 in the test VM's Supervisor log). Find the oldest Supervisor that accepts the new name before changing `app/config.yaml`.
 - **Docs, from the owner's read-through** (2026-10-10):
   - **Problem-first reasons** in the README: "have you ever wanted to… fix your dashboard to the screen's size, get a full screen of cameras, keep a heading inside a warning panel", each pointing at its module.
   - **"Why should I use your AI slop?"**: a plain answer in the README.
@@ -286,7 +288,7 @@ Decided (2026-10-02): **ship everything.** Every module is off until enabled; no
   - **Every module's "why"** (asked 2026-10-11): each guide opens with the real problem in the author's house that started it and how it was made general. Sources: `BACKSTORY.md` and the README's "Working together"; the owner writes or approves the stories.
 - **The Tablet Layout brings responsive design to HA dashboards:** lead with that (README and `DOCS.md`). HA gives a card a width and never a height, so dashboards scroll; this view is exactly the screen and fits everything in it. Then the Commander and garnish, and the sizing rule they share.
 - `DOCS.md` is a placeholder; extend it as modules land.
-- Real-HA integration tests (a second venv on Python 3.13, or a trixie base image); pyright excludes `integration/` until then.
+- pyright still excludes `integration/` (the venv is Python 3.11). Tests inside a real Home Assistant exist since 2026.11.3-b2 (`tests_ha/`, `.venv-ha`), for Sensor Watch only so far.
 - `fake_git_host`'s version-bump check compares HEAD with HEAD~1 only; two quick commits inside one poll can slip past.
 
 ## Guest login

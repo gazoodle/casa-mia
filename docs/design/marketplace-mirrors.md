@@ -1,10 +1,11 @@
 # Marketplace mirrors, and Sensor Watch on its own
 
 **Status:** agreed design (2026-11-10). Phase 0 is done, and the owner agreed what its
-answers change the same day; the phases are edited to match. Phase 1 was built in
-2026.11.3-b1 and phase 2 in 2026.11.3-b2 (both 2026-11-10); each phase below ends with
-what was built and where it differs from the plan. The phases are in order, and each ends
-in a working build.
+answers change the same day; the phases are edited to match. Phases 1 to 4 were built on
+2026-11-10: phase 1 in 2026.11.3-b1, phase 2 in b2, phase 3 in b3, and phase 4 as
+`tools/mirror.py`, run only as a dry run. Each phase below ends with what was built and
+where it differs from the plan. Nothing is published: phase 5 is the owner's, and
+"Before phase 5" lists what they need to decide first.
 
 ## The goal
 
@@ -350,6 +351,12 @@ taken off `RETIRED`.
   with a venv of their own (`.venv-ha`) and a CI job, "Python / tests in Home Assistant".
   It is not yet a required check on `main`: that is the owner's to add.
 
+**Tried on the test VM** (Home Assistant 2026.9.4, 2026-11-10), from both starting points:
+2026.11.3-b1, with its records already in Home Assistant, and the 2026.11.2 release, with
+its records still in the app. Each time the device, the entity ids, the records and the
+List service's answer were the same afterwards, and an automation with the old
+`casa_mia` device trigger still fired.
+
 ### Phase 3: versions and the supersede
 
 - **Restamp at release** (decision 5): `versioning.py release` restamps each component
@@ -362,6 +369,31 @@ taken off `RETIRED`.
   the HACS copy at the same version, an older one and a newer one. Records, entity ids,
   history, automations and the card all carry on, and the user does nothing. Then press
   Update in the store (decision 8): the same files are written again and nothing is lost.
+
+**Built in 2026.11.3-b3.** Where it differs:
+
+- **No downgrade covers published components only**, not every component as the line
+  above says. They are listed once, in `components.PUBLISHED` (today Sensor Watch). Why:
+  only a store can put a newer copy in Home Assistant's config, and the rule applied to
+  the rest would stop the documented rollback (installing an earlier app,
+  `docs/releases.md`) from taking `casa_mia` and its children back with the app. The owner
+  was away when this was decided; widening it is one line.
+- **Rolling back to 2026.11.2 or earlier removes Sensor Watch's folder**, because those
+  versions list `casa_mia_sensor_watch` as retired. `docs/releases.md` says to restore a
+  backup instead.
+- **The restamp** gives the release's version to a component whose version is one of that
+  release's builds, and leaves the rest. `release.py` commits and restores the manifests
+  and the lock with the other release files.
+- **The supersede was tried on the test VM** (Home Assistant 2026.9.4) by editing the
+  installed copy's version, since there is no mirror to install from and no HACS on the VM:
+  - Same version: nothing written, no restart asked.
+  - Newer copy (2026.12.1): left alone, with a warning in the app's log.
+  - Older copy (2026.11.2): replaced, and Sensor Watch raised its restart Repair within
+    seconds. After the restart the device, entity ids, records and List answer were the
+    same, the old device trigger still fired, and the page and card loaded.
+  - The store's Update (the folder replaced whole with the same files): "current", no
+    restart asked, nothing lost.
+  A real install from HACS and from the Marketplace is still to be done, in phase 5.
 
 ### Phase 4: the mirror
 
@@ -386,6 +418,48 @@ Build it with a dry run (generate and validate, publish nothing) and run that be
 publishing. A fork running `release.py` skips this step unless it names its own mirror
 owner. The README comes from `docs/applets/sensor-watch.md`: what it does, what it needs,
 installing, and that it is part of Casa Mia.
+
+**Built as `tools/mirror.py`** (no app build: it changes nothing a box installs), with
+`release.py` running it as step 7 and `docs/releases.md` describing it. Only the dry run
+has been run: `tools/mirror.py --dry-run` generated the mirror from `HEAD` (48 files), its
+own checks passed and so did hassfest, in docker. Where it differs:
+
+- **Issues stay on in the mirror.** HACS's validation fails a repository with issues off
+  (its `issues` check, HACS 2.0.5), and the plan wants no check ignored. The mirror has an
+  issue form that allows no blank issue and offers one link, to Casa Mia's issues.
+- **The repository's description and topics** are set at every publish, because HACS
+  checks for both. The description is the guide's first paragraph.
+- **The README** is the guide from its top to the end of its first section, with every
+  link and picture pointed at Casa Mia on GitHub at the release's tag, then generated
+  sections for installing and for its place in Casa Mia. An anchor always points into the
+  whole guide, even when its section came along.
+- **A component's guide** is found by name: `docs/applets/` plus the mirror's name without
+  `casa-mia-`.
+- **A fork** is an origin that isn't the repository named in the component's
+  `issue_tracker`. It publishes no mirror unless `CM_MIRROR_OWNER` is set.
+- **It asks before publishing**, as every other step of `release.py` does.
+- **Retries compare git trees:** the generated files are committed on the mirror's own
+  history, and git says whether that is new, already pushed, or already tagged. A test
+  runs this against a local repository; nothing has run against GitHub.
+- **Waiting for a workflow** is `gh run watch`, after looking for the run for up to two
+  minutes (a run just started isn't listed at once).
+- **hassfest runs before the push** when docker is running, as well as in the mirror's
+  workflow. Its image is amd64 only, so it is emulated on an Apple silicon Mac.
+
+### Before phase 5 (found while building; the owner's to decide)
+
+- **HACS's `brands` check.** HACS 2.0.5 passes only a domain listed in the
+  `home-assistant/brands` repository; the component's own `brand/` folder doesn't satisfy
+  that version. Whether the current HACS action accepts the folder wasn't checked (it
+  runs only on GitHub). If it doesn't, the choice is a submission to the brands
+  repository or ignoring that one check, against "no checks ignored".
+- **Issues on, with a link to Casa Mia** (above), where the plan said issues off.
+- **The scope of "No downgrade"** (phase 3).
+- **The guide says "It isn't published there yet."** Remove that sentence when the mirror
+  is public: the mirror's README links to that section.
+- **"Python / tests in Home Assistant"** isn't a required check on `main` yet.
+- **Not yet run anywhere:** the publishing half of `tools/mirror.py` against GitHub, the
+  new CI job, and Home Assistant 2026.3.0 itself (the floor).
 
 ### Phase 5: first publication (the owner's call)
 

@@ -25,6 +25,10 @@ repository ruleset). The release rides on the working branch into that pull requ
      the branch is brought up to main (a fast-forward: it is already in the merge).
   6. GitHub: the Release workflow builds the images, publishes the release and updates the
      `stable` branch. What to do there (the first time: make the GHCR packages public).
+  7. Mirrors, after your OK: `tools/mirror.py` publishes each component that is also
+     offered by itself (Sensor Watch, for HACS and the Marketplace) to its own repository,
+     when this release changed it. It waits for the Release workflow first. A fork has
+     no mirrors unless CM_MIRROR_OWNER names an account for them.
 
 Needs git, the venv (`tools/setup`) and the GitHub CLI, `gh`, logged in (`gh auth login`).
 See docs/releases.md.
@@ -437,6 +441,16 @@ def on_github(release: str, repo: str) -> None:
     )
 
 
+def mirrors(release: str) -> None:
+    step(7, "Mirrors")
+    # Under the venv: it reads the list of published components from the app's source.
+    done = subprocess.run([VENV / "python", "tools/mirror.py", release], cwd=ROOT)
+    if done.returncode:
+        raise Stop(
+            f"The mirrors are not all published. To carry on: tools/mirror.py {release}"
+        )
+
+
 def main() -> int:
     say(f"{BOLD}Release{OFF} {DIM}(Ctrl-C at any prompt stops safely){OFF}")
     try:
@@ -466,6 +480,7 @@ def main() -> int:
             number = pull_request(branch, version, repo)
             publish(branch, version, number, repo)
         on_github(version, repo)
+        mirrors(version)
         return 0
     except Stop as stop:
         say(f"\n  {RED}■{OFF} {stop}")
