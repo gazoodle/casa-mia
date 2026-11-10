@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.2-b25
+
+- The Camera Commander card editor groups settings into Main camera, Security look, Motion dot, Talking, and a collapsed Connection and performance section. Colour controls stay compact. Security look and Motion dot hide their adjustments while off, retaining saved choices; sharpness hides when the connection is always direct.
+- Screen conditions no longer show two **Orientation** dropdowns when the cards bundle loads a second time. The augmentation and its settings subscription now start only once per page; saving widths also keeps just one orientation clause.
+
 ## 2026.11.2-b24
 
 - Dashboard screen conditions have an **Orientation** control: **Any**, **Portrait** or **Landscape**, alongside Home Assistant's width choices. Select both to require a matching width and orientation. **Screen orientation conditions** in Casa Mia's Settings is on by default; turning it off keeps saved conditions working and editable in YAML.

@@ -34,12 +34,14 @@ class ScreenEditor extends EventTarget {
 
 let settingsChanged: (settings: any) => void;
 let subscribed: unknown;
+let subscriptions = 0;
 (globalThis as any).customElements = {
   whenDefined: () => Promise.resolve(),
   get: () => ScreenEditor,
 };
 (globalThis as any).window = { hassConnection: Promise.resolve({ conn: {
   subscribeMessage(callback: typeof settingsChanged, command: unknown) {
+    subscriptions++;
     settingsChanged = callback;
     subscribed = command;
     return Promise.resolve();
@@ -49,6 +51,17 @@ const { screenParts, screenQuery } = await import("./screen-condition.ts");
 await new Promise((done) => setImmediate(done));
 
 beforeEach(() => settingsChanged({ dashboards: { screen_orientation: true } }));
+
+test("a bundle loaded again through a retry URL installs only one control and subscription", async () => {
+  const render = ScreenEditor.prototype.render;
+  const validate = ScreenEditor.validateUIConfig;
+  const changed = ScreenEditor.prototype._valueChanged;
+  await import(new URL("./screen-condition.ts?retry=1", import.meta.url).href);
+  assert.equal(ScreenEditor.prototype.render, render);
+  assert.equal(ScreenEditor.validateUIConfig, validate);
+  assert.equal(ScreenEditor.prototype._valueChanged, changed);
+  assert.equal(subscriptions, 1);
+});
 
 test("orientation alone and with every clause of a disjoint width query round-trip", () => {
   assert.deepEqual(subscribed, { type: "casa_mia/settings/subscribe" });

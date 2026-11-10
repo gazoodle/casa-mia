@@ -1,7 +1,7 @@
 // The Camera Commander card's editor.
-import { LitElement, html, nothing } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { fire, type Hass, LOOK, withoutDefaults as stripDefaults } from "../ha.ts";
-import { Config, LEAVE_AFTER, commanders } from "./common.ts";
+import { type Config, LEAVE_AFTER, commanders } from "./common.ts";
 import { MOTION } from "./motion.ts";
 import { DUPLEX_CHOICES } from "./talk-rules.ts";
 
@@ -38,6 +38,7 @@ export class CommanderEditor extends LitElement {
 
   render() {
     if (!this.hass || !this._config) return nothing;
+    const data = { ...DEFAULTS, ...this._config };
     const schema = [
       { name: "entity", selector: { select: { mode: "dropdown", options: commanders(this.hass) } } },
       {
@@ -123,22 +124,24 @@ export class CommanderEditor extends LitElement {
       away_sharpness: "Sharpness through Home Assistant",
       live_main: "Main camera as live video",
       talk_button: "Talk button",
-      duplex: "Talking",
+      duplex: "Mode",
       leave_after: "Picture kept running once out of sight",
-      security_look: "Security look",
-      look_tint: "Security look: tint",
-      look_strength: "Security look: strength",
-      look_darkness: "Security look: darker",
-      motion_dot: "Motion dot",
-      motion_colour: "Motion dot: colour",
-      motion_size: "Motion dot: size",
-      motion_pulse: "Motion dot: pulse",
-      motion_linger: "Motion dot: stays after the motion",
-      motion_corner: "Motion dot: corner",
+      security_look: "Apply security look",
+      look_tint: "Tint",
+      look_strength: "Strength",
+      look_darkness: "Darkness",
+      motion_dot: "Show motion dot",
+      motion_colour: "Colour",
+      motion_size: "Size",
+      motion_pulse: "Pulse",
+      motion_linger: "Keep after motion",
+      motion_corner: "Corner",
     };
-    return html`<ha-form
+    const fields = (...names: string[]) => schema.filter((field) => names.includes(field.name));
+    const form = (schema: object[], className = "") => html`<ha-form
+      class=${className}
       .hass=${this.hass}
-      .data=${{ ...DEFAULTS, ...this._config }}
+      .data=${data}
       .schema=${schema}
       .computeLabel=${(s: { name: string }) => labels[s.name]}
       .computeHelper=${(s: { name: string }) =>
@@ -165,9 +168,55 @@ export class CommanderEditor extends LitElement {
             : undefined}
       @value-changed=${(ev: CustomEvent) => {
         ev.stopPropagation();
-        this._config = withoutDefaults(ev.detail.value);
+        this._config = withoutDefaults({ ...this._config, ...ev.detail.value });
         fire(this, "config-changed", { config: this._config });
       }}
     ></ha-form>`;
+
+    return html`
+      <section aria-labelledby="main-heading">
+        <h3 id="main-heading">Main camera</h3>
+        ${form(fields("entity", "live_main", "tap_main"))}
+      </section>
+      <section aria-labelledby="security-heading">
+        <h3 id="security-heading">Security look</h3>
+        ${form(fields("security_look"))}
+        ${data.security_look ? html`<div class="details">
+          ${form(fields("look_tint"), "colour")}
+          ${form(fields("look_strength", "look_darkness"), "adjustments")}
+        </div>` : nothing}
+      </section>
+      <section aria-labelledby="motion-heading">
+        <h3 id="motion-heading">Motion dot</h3>
+        ${form(fields("motion_dot"))}
+        ${data.motion_dot ? html`<div class="details">
+          ${form(fields("motion_colour"), "colour")}
+          ${form([{
+            type: "grid", name: "", column_min_width: "160px",
+            schema: fields("motion_size", "motion_pulse", "motion_linger", "motion_corner"),
+          }], "adjustments")}
+        </div>` : nothing}
+      </section>
+      <section aria-labelledby="talk-heading">
+        <h3 id="talk-heading">Talking</h3>
+        ${form(fields("talk_button", "duplex"))}
+      </section>
+      <section>
+        ${form([{
+          type: "expandable", name: "", flatten: true,
+          title: "Connection and performance",
+          schema: fields("route", ...(data.route === "direct" ? [] : ["away_sharpness"]), "leave_after"),
+        }])}
+      </section>`;
   }
+
+  static styles = css`
+    :host { display: block; }
+    section { padding: 16px 0; }
+    section + section { border-top: 1px solid var(--divider-color); }
+    h3 { margin: 0 0 12px; font-size: var(--ha-font-size-m, 16px); }
+    .details { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px; margin-top: 16px; }
+    .colour { flex: 0 0 96px; width: 96px; }
+    .adjustments { flex: 1 1 220px; min-width: 0; }
+  `;
 }

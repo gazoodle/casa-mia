@@ -112,6 +112,12 @@ In Home Assistant's Add to dashboard dialog, choose **Casa Mia Camera Commander*
 preview uses the first commander, so you see its layout before adding it. In a Tablet
 Layout panel it takes the full width by default.
 
+The editor groups its options into **Main camera**, **Security look**, **Motion dot**,
+**Talking** and a collapsed **Connection and performance** section. Security look and
+Motion dot show their colour and adjustment controls only while their switches are on.
+Hidden choices are kept, so switching a feature back on restores them. Colour controls
+stay compact, with adjustments alongside on wider screens and below on narrow screens.
+
 Its options (each left at its default unless you change it):
 
 - **Commander:** which one.
@@ -120,7 +126,7 @@ Its options (each left at its default unless you change it):
   there is no dashboard); or nothing.
 - **The picture:** direct at home and through Home Assistant away (the default); always
   direct; or always through Home Assistant. **Sharpness through Home Assistant:** from
-  Full to Data saver.
+  Full to Data saver, hidden when **Always direct** is selected.
 - **Main camera as live video:** the main camera plays as live video over the picture
   (Home Assistant's WebRTC, decoded by the tablet), when the compositor's **Live main
   camera** switch is on. Its title says **(live)** while video is arriving. When a channel
@@ -137,8 +143,8 @@ Its options (each left at its default unless you change it):
   is off (see [Cameras](cameras.md)) never shows one.
 - **Talk button:** shown over a doorbell's live video (see below). Turn it off if you use
   your own buttons.
-- **Talking:** full duplex (the default), where your voice goes out as soon as you answer,
-  or half duplex, where it goes out only while you hold a button (see below).
+- **Talking → Mode:** full duplex (the default), where your voice goes out as soon as
+  you answer, or half duplex, where it goes out only while you hold a button (see below).
 
 ### Talking to a doorbell
 
@@ -161,8 +167,8 @@ on an https address, because browsers only give a microphone to secure pages.
 
 #### Half duplex: hold to talk
 
-With **Talking** set to half duplex, the button says **Answer**. Answering opens the call
-with the microphone silent: you hear the visitor, and the door hears nothing. A **Hold to
+With **Mode** under **Talking** set to half duplex, the button says **Answer**. Answering
+opens the call with the microphone silent: you hear the visitor, and the door hears nothing. A **Hold to
 talk** button appears next to Hang up, and your voice goes out only while you hold it,
 like a walkie-talkie. While you hold it the button says **Live**, and the visitor's
 sound is muted on this device, so your own voice doesn't come back to you. The call is
