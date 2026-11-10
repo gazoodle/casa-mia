@@ -315,8 +315,8 @@ CLAUDE.md has them all. What trips agents here:
   `docs/design/marketplace-mirrors.md`). Phases 1 to 4 were built on 2026-11-10 without a
   review between them, on the owner's "Yes to all. Do the lot": three builds
   (2026.11.3-b1 to b3) and `tools/mirror.py`, committed on `dev` and **not pushed**, tried
-  on the test VM. Read the doc's "Before phase 5" first: the scope of "No downgrade",
-  and what has not run anywhere yet. The live box took 2026.11.3-b3 on 2026-11-10 and Sensor Watch was
+  on the test VM. Read the doc's "Before phase 5" first: what has not run anywhere
+  yet. The owner settled the rest on 2026-11-10. The live box took 2026.11.3-b3 on 2026-11-10 and Sensor Watch was
   handed over correctly (phase 5, step 3). Installing 2026.11.2 or earlier now removes
   Sensor Watch's folder: restore a backup instead (the doc's phase 3 notes).
 - **The test VM** was left on Home Assistant 2026.9.4 with the app at 2026.11.3-b3

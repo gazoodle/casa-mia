@@ -455,7 +455,9 @@ own checks passed and so did hassfest, in docker. Where it differs:
   `hacs/action@main`. Its first run (step 5) is the proof.
 - **Issues on, with a link to Casa Mia: agreed** (owner, 2026-11-10). Why: HACS's
   validation fails a repository with issues off.
-- **The scope of "No downgrade"** (phase 3).
+- **"No downgrade" covers published components only: agreed** (owner, 2026-11-10). Why:
+  only the app installs the others, so a newer copy of one means the app was rolled
+  back, and `casa_mia` must match the app it talks to.
 - **The guide says "It isn't published there yet."** Remove that sentence in the release
   that first publishes the mirror: its README links to that section at the release's tag.
 - **"Python / tests in Home Assistant"** isn't a required check on `main` yet.
