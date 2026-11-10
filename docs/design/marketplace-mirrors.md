@@ -487,6 +487,12 @@ ask first. In order (written 2026-11-10; none of it is done):
    validation. That is the first time HACS's action sees it. If a check fails, nothing is
    tagged and no version is published: fix the cause and run `tools/mirror.py <version>`
    to carry on.
+   **Done 2026-11-10:** Casa Mia 2026.11.3 released, and
+   [gazoodle/casa-mia-sensor-watch](https://github.com/gazoodle/casa-mia-sensor-watch)
+   created and published as 2026.11.3. The mirror's validation passed first time, HACS's
+   action (the `brands` check included, from the `brand/` folder) and hassfest. The first
+   attempt stopped because `gh run watch` lost its connection; the retry only tagged and
+   released. `follow()` now asks GitHub how a run ended before calling it a failure.
 6. **Testers add the mirror as a custom repository**, by its URL. It is in no catalog, so
    nobody else is offered it.
 7. **The runs on a clean Home Assistant, before advertising:** a fresh install, setup,

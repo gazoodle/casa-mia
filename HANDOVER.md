@@ -242,6 +242,8 @@ CLAUDE.md has them all. What trips agents here:
 
 ## What happened
 
+- **2026.11.3** (2026-11-10): released, and Sensor Watch's mirror published for the first
+  time (phase 5, step 5).
 - **2026-11-10:** phase 4, no build. `tools/mirror.py` generates a published component's
   own repository (the mirror) and publishes it; `release.py` runs it as step 7. Only its
   dry run has been run. Nothing is published and no mirror exists.
@@ -311,14 +313,12 @@ CLAUDE.md has them all. What trips agents here:
 
 ## Where things stand
 
-- **Next: Sensor Watch's first publication, the owner's** (phase 5 of
-  `docs/design/marketplace-mirrors.md`). Phases 1 to 4 were built on 2026-11-10 without a
-  review between them, on the owner's "Yes to all. Do the lot": three builds
-  (2026.11.3-b1 to b3) and `tools/mirror.py`, committed on `dev` and **not pushed**, tried
-  on the test VM. Read the doc's "Before phase 5" first: what has not run anywhere
-  yet. The owner settled the rest on 2026-11-10. The live box took 2026.11.3-b3 on 2026-11-10 and Sensor Watch was
-  handed over correctly (phase 5, step 3). Installing 2026.11.2 or earlier now removes
-  Sensor Watch's folder: restore a backup instead (the doc's phase 3 notes).
+- **Next: Sensor Watch's testers and clean installs** (phase 5, steps 6 to 8 of
+  `docs/design/marketplace-mirrors.md`). Casa Mia 2026.11.3 was released on 2026-11-10,
+  and Sensor Watch is published by itself at `gazoodle/casa-mia-sensor-watch` (2026.11.3;
+  HACS's action and hassfest pass). It is in no catalog yet: testers add it as a custom
+  repository. The live box handed Sensor Watch over correctly on a b3 build. Installing
+  2026.11.2 or earlier now removes Sensor Watch's folder: restore a backup instead.
 - **The test VM** was left on Home Assistant 2026.9.4 with the app at 2026.11.3-b3
   (`local_casa_mia`), Sensor Watch at 2026.11.3-b2, the stable app
   installed and stopped, and a test automation (`cm_old_trigger`) using the old device
