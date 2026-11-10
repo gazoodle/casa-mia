@@ -211,6 +211,8 @@ CLAUDE.md has them all. What trips agents here:
 
 ## What happened
 
+- **2026.11.2-b27** (2026-11-10): Tablet Layout adds a small inset inside each panel's
+  clipping boundary and includes it when sizing panels to their cards.
 - **2026.11.2-b26** (2026-11-10): Commander card motion controls use a single column so
   Home Assistant's sliders and values have room in the editor.
 - **2026.11.2-b25** (2026-11-10): orientation setup guarded once per page: a second

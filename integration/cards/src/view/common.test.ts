@@ -1,7 +1,12 @@
 // The Tablet Layout's switch to HA's own sections on a narrow screen (common.ts: narrow).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { NARROW_GIVE, narrow, narrowBelow, narrowOrder } from "./common.ts";
+import { NARROW_GIVE, narrow, narrowBelow, narrowOrder, panelPadding } from "./common.ts";
+
+test("panel padding includes room for card edges", () => {
+  assert.deepEqual(panelPadding(undefined), [2, 2, 2, 2]);
+  assert.deepEqual(panelPadding({ top: 4, left: 12 }), [6, 2, 2, 14]);
+});
 
 test("narrow below the threshold, with some give on the way back", () => {
   assert.equal(narrow(390, 600, false), true); // a phone

@@ -1,5 +1,9 @@
 // The Tablet Layout's helpers and constants, shared by its parts.
 import { LAYOUT } from "../layout.ts";
+import { sides } from "../tablet.ts";
+
+// Keep card borders and shadows inside the section's clipping edge.
+export const panelPadding = (padding: unknown) => sides(padding).map((side) => side + 2);
 
 /** Each element above `el` (through shadow roots) taller than the window: what still
  * scrolls the page. Debug only. */

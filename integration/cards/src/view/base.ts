@@ -1,8 +1,8 @@
 // Layer 1: HA's Sections view with the Tablet Layout's state, lifecycle and sizing (each panel's cards, columns, fill).
 import { type HuiCard, room, TABLET, watchRoom } from "../ha.ts";
 import { fills } from "../garnish.ts";
-import { autoSized, cardColumns, cardsWidth, fillers, type Gap, layerOf, placeOf, PLACES, type Section, seenOut, sides } from "../tablet.ts";
-import { tooTall, watchAppSettings, ROW, ROW_GAP, DIMS, cardsHeight } from "./common.ts";
+import { autoSized, cardColumns, cardsWidth, fillers, type Gap, layerOf, placeOf, PLACES, type Section, seenOut } from "../tablet.ts";
+import { tooTall, watchAppSettings, ROW, ROW_GAP, DIMS, cardsHeight, panelPadding } from "./common.ts";
 import { LOCK, FILL, NARROW } from "./styles.ts";
 import { PILLS } from "../pills.ts";
 
@@ -233,7 +233,7 @@ export const ViewBase = (Base: any) =>
       const auto = autoSized(layerOf(this.cmLayout, at.layer), at.place);
       // Empty (no card showing), it keeps a size: one Width wide, one of HA's card rows tall.
       const columns = this.cmCardColumns(n, at.place);
-      const [pt, pr, pb, pl] = sides(this.cmSections[n]?.view_layout?.padding); // round its cards
+      const [pt, pr, pb, pl] = panelPadding(this.cmSections[n]?.view_layout?.padding);
       const wide = () => ({ wide: cardsWidth(columns || 12, width, this.cmColumns) + pl + pr });
       const tall = () => ({ tall: (columns ? this.cmNatural(n) : Math.max(ROW, this.cmNatural(n))) + pt + pb });
       return across ? { ...wide(), ...(auto && tall()) } : { ...tall(), ...(auto && wide()) };

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.2-b27
+
+- Tablet Layout leaves a little room around cards so their edges are not clipped by the panel.
+- Sensor Watch no longer sends a burst of events when Home Assistant starts. Before, a watch whose entity hadn't loaded yet counted as unavailable, and once Home Assistant had started each one fired "unavailable" and then "back" in the same second (hundreds of events and log lines, and Home Assistant's "logging too frequently" warning). Now each watch whose level changed during the start fires once, at its level after the start, and says nothing when that is where it was or it is nominal. This part starts after the Home Assistant restart that the Repair asks for.
+
 ## 2026.11.2-b26
 
 - The Camera Commander card editor gives the motion controls enough room so their sliders and values do not overlap.

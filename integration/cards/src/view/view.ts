@@ -5,8 +5,8 @@
 import { define, type HuiCard, sectionsView } from "../ha.ts";
 import { counts } from "../garnish.ts";
 import { holdsPanelLayer } from "../over-layer/common.ts";
-import { autoSized, layerOf, placeOf, placePanels, type Section, sides, stackOf } from "../tablet.ts";
-import { headerSpace, narrow, narrowBelow, narrowOrder } from "./common.ts";
+import { autoSized, layerOf, placeOf, placePanels, type Section, stackOf } from "../tablet.ts";
+import { headerSpace, narrow, narrowBelow, narrowOrder, panelPadding } from "./common.ts";
 import { ViewBase } from "./base.ts";
 import { ViewEdit } from "./edit.ts";
 import { ViewDraw } from "./draw.ts";
@@ -93,7 +93,7 @@ sectionsView().then((Base: any) => {
         this.cmGrid(this.sections[n], at && sections[n] ? this.cmGridColumns(n, sections) : null);
         this.cmGarnish(n, false);
         if (!at) return;
-        const pad = where[n] ? sides(this.cmSections[n]?.view_layout?.padding) : [0, 0, 0, 0];
+        const pad = where[n] ? panelPadding(this.cmSections[n]?.view_layout?.padding) : [0, 0, 0, 0];
         Object.assign(box.style, {
           ...UNPLACED,
           padding: pad.some(Boolean) ? pad.map((v) => `${v}px`).join(" ") : "",
