@@ -448,11 +448,11 @@ own checks passed and so did hassfest, in docker. Where it differs:
 
 ### Before phase 5 (found while building; the owner's to decide)
 
-- **HACS's `brands` check.** HACS 2.0.5 passes only a domain listed in the
-  `home-assistant/brands` repository; the component's own `brand/` folder doesn't satisfy
-  that version. Whether the current HACS action accepts the folder wasn't checked (it
-  runs only on GitHub). If it doesn't, the choice is a submission to the brands
-  repository or ignoring that one check, against "no checks ignored".
+- **HACS's `brands` check: settled, nothing to do.** HACS 2.0.5 passed only a domain
+  listed in the `home-assistant/brands` repository, but HACS's `main` accepts the
+  integration's own `brand/icon.png` since 2026-02-28 (hacs/integration#5128), and the
+  mirror carries Sensor Watch's `brand/` folder. The mirror's workflow uses
+  `hacs/action@main`. Its first run (step 5) is the proof.
 - **Issues on, with a link to Casa Mia** (above), where the plan said issues off.
 - **The scope of "No downgrade"** (phase 3).
 - **The guide says "It isn't published there yet."** Remove that sentence in the release
