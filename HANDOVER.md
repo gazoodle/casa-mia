@@ -1,7 +1,7 @@
 # Handover: Casa Mia, for agents joining the work
 
 Where the project stands and how the work is done here, as of 2026-11-10 (`dev` at
-2026.11.2-b23; 2026.11.1 released). **Read this at the start of every session**, then
+2026.11.2-b24; 2026.11.1 released). **Read this at the start of every session**, then
 CLAUDE.md in full; where they disagree, CLAUDE.md wins. It replaces re-reading old
 transcripts.
 
@@ -211,6 +211,9 @@ CLAUDE.md has them all. What trips agents here:
 
 ## What happened
 
+- **2026.11.2-b24** (2026-11-10): screen conditions gain Any / Portrait / Landscape,
+  default-on in Settings (`dashboards.screen_orientation`); `cards/src/screen-condition.ts`
+  augments HA's shared editor. `docs/augmenting-home-assistant.md` collects the HA patches.
 - **To 2026.10.5** (released): the Tablet Layout view; the Commander card with a live main
   picture; the compositor rebuilt as a pipeline and split into a package; the camera split;
   the integration split in three (`casa_mia` and its children, sharing a coordinator via

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.2-b24
+
+- Dashboard screen conditions have an **Orientation** control: **Any**, **Portrait** or **Landscape**, alongside Home Assistant's width choices. Select both to require a matching width and orientation. **Screen orientation conditions** in Casa Mia's Settings is on by default; turning it off keeps saved conditions working and editable in YAML.
+- The new **Augmenting Home Assistant** guide covers orientation conditions, dashboard helpers, garnish, Sensor Watch's frontend additions, Tablet Layout, the Over layer and UniFi Protect talkback, including what depends on HA internals and may change with an HA release.
+
 ## 2026.11.2-b23
 
 - The Camera Commander's **Arrange…** shows the commander's real picture with your cameras in it. Before, it drew a sketch with numbered boxes.

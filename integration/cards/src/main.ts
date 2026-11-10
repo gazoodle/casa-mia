@@ -6,6 +6,7 @@ import { whenConnected } from "./connection.ts";
 import "./view/index.ts";
 import "./garnish-editor.ts";
 import "./garnish-sections.ts";
+import "./screen-condition.ts";
 import "./over-layer/index.ts";
 import "./sensor-watch/index.ts";
 import "./qr-code/index.ts";

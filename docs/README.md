@@ -4,6 +4,7 @@
 - [Over layer](over-layer.md): one card over the whole dashboard while its conditions hold; what's beneath can be seen, not touched.
 - [Heating Flow card](heating-flow.md): the heating and hot water as a live diagram, where colour is temperature and moving markers are flow.
 - [Run the whole house from your desk](run-the-house-from-your-desk.md): one visit to each wall tablet, then its screen seen and driven from anywhere.
+- [Augmenting Home Assistant](augmenting-home-assistant.md): portrait and landscape conditions, dashboard helpers and the places Casa Mia extends HA's internals.
 
 ## How-to guides
 

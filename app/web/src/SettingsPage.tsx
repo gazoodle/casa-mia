@@ -15,7 +15,7 @@ const { get, put } = api("settings");
 
 type TabletView = { identify_panels: boolean; identify_outline: string; show_size: boolean };
 type Helpers = { streams: boolean; back: boolean; refresh: boolean };
-type Dashboards = { garnish_everywhere: boolean };
+type Dashboards = { garnish_everywhere: boolean; screen_orientation: boolean };
 type Settings = { helpers: Helpers; dashboards: Dashboards; tablet_view: TabletView };
 
 // The dashboard helpers the integration loads into every Home Assistant page.
@@ -128,10 +128,27 @@ export function SettingsPage() {
               on={settings.dashboards.garnish_everywhere}
               onChange={(on) =>
                 save(
-                  { dashboards: { garnish_everywhere: on } },
+                  { dashboards: { ...settings.dashboards, garnish_everywhere: on } },
                   `Garnish ${on ? "on" : "off"} for every section dashboard. Open dashboards follow within a few seconds.`,
                 )
               }
+            />
+          </div>
+          <div className={css.row}>
+            <div className={css.text}>
+              <strong>Screen orientation conditions</strong>
+              <span>
+                Adds Any, Portrait and Landscape beneath Home Assistant's screen-width choices in dashboard conditions.
+                On by default. Reopen the condition editor after changing this switch. Saved conditions keep working when it is off.
+              </span>
+            </div>
+            <Switch
+              label="Screen orientation conditions"
+              on={settings.dashboards.screen_orientation}
+              onChange={(on) => save(
+                { dashboards: { ...settings.dashboards, screen_orientation: on } },
+                `Screen orientation conditions ${on ? "on" : "off"}. Reopen the condition editor to see the change.`,
+              )}
             />
           </div>
         </div>
