@@ -1,7 +1,7 @@
 # Handover: Casa Mia, for agents joining the work
 
-Where the project stands and how the work is done here, as of 2026-11-03 (`dev` at
-2026.10.12-b6; 2026.10.11 released). **Read this at the start of every session**, then
+Where the project stands and how the work is done here, as of 2026-11-10 (`dev` at
+2026.11.2-b26; 2026.11.1 released). **Read this at the start of every session**, then
 CLAUDE.md in full; where they disagree, CLAUDE.md wins. It replaces re-reading old
 transcripts.
 
@@ -65,7 +65,11 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
   motion detection switch, thumbnails and a live view dialog. Saved at once.
 - **Camera Commander** (`modules/commander/`: store.Base → live.Live → api.Commander,
   `commanders.json`): saved straight to live; writes `compositor.json`. Track motion has
-  **Never takes over** (`motion_ignore`).
+  **Never takes over** (`motion_ignore`). **Arrange…** (`app/web/src/commander/arrange.tsx`)
+  searches with the cards' `arrange.ts`, which is for the admin page only and has no Python
+  twin: every sharing of the cameras between the edges picked is laid out by the real
+  engine and scored on that, in three tile fits (exact, best, vary). Its picture is the
+  app's own drawing of the draft (`LivePreview`).
 - **Compositor** (`modules/compositor/`: Generator → PictureServer → Compositor; gatherer
   Cache → Fetcher → Survey → Monitor → Gatherer): draws each commander as one picture from
   go2rtc streams.
@@ -207,6 +211,17 @@ CLAUDE.md has them all. What trips agents here:
 
 ## What happened
 
+- **2026.11.2-b27** (2026-11-10): Tablet Layout adds a small inset inside each panel's
+  clipping boundary and includes it when sizing panels to their cards.
+- **2026.11.2-b26** (2026-11-10): Commander card motion controls use a single column so
+  Home Assistant's sliders and values have room in the editor.
+- **2026.11.2-b25** (2026-11-10): orientation setup guarded once per page: a second
+  bundle load had added duplicate controls and query clauses; a retry-load test covers it.
+  Commander card editor grouped, with compact colours and conditional settings that retain
+  their values while hidden; connection settings start collapsed.
+- **2026.11.2-b24** (2026-11-10): screen conditions gain Any / Portrait / Landscape,
+  default-on in Settings (`dashboards.screen_orientation`); `cards/src/screen-condition.ts`
+  augments HA's shared editor. `docs/augmenting-home-assistant.md` collects the HA patches.
 - **To 2026.10.5** (released): the Tablet Layout view; the Commander card with a live main
   picture; the compositor rebuilt as a pipeline and split into a package; the camera split;
   the integration split in three (`casa_mia` and its children, sharing a coordinator via
@@ -226,7 +241,11 @@ CLAUDE.md has them all. What trips agents here:
   over a frozen picture, and a Save that hung silently. HA 2026.10.0's FFmpeg checked TLS
   against the recorder's self-signed certificate (fixed in HA 2026.10.1). Out of it: the
   purpose at the top of CLAUDE.md and RULE FIVE.
-- **2026-10-19, why the wall tablets show no live video:** see "Where things stand".
+- **2026-10-19 and 2026-11-10, why the wall tablets show no live video:** see "Where things
+  stand". 2026.11.2-b22 built the card's camera ladder out of it.
+- **2026.11.2-b23** (2026-11-10): the Commander's Arrange dialog reworked (edges and their
+  fill order as chips, the real picture, Best fit / Sizes vary / Exact shape, more to step
+  between).
 - **2026.10.11** (released; soft launch 2026-10-29): Sensor Watch pushed to the integration
   (b13), accuracy (b14), notifications in words and escalation (b15), the eye in HA's
   entity dialog (b16), the band ladder (b25), readied for launch and rated Beta (b26–b31);
@@ -248,27 +267,34 @@ CLAUDE.md has them all. What trips agents here:
 - **Never silently stuck: go one step at a time** (2026-10-12). The owner wants it slow and
   methodical: one agreed step, built, recorded in `docs/never-silently-stuck.md`, seen on
   the test tablet, never redone; nothing planned beyond it; analyse before code, change
-  nothing while investigating. Steps 1–2 done (the Commander's "(live)" lapses into "Live
-  lost … ago"). The next step is the owner's to choose.
-- **The wall tablets' live video (investigated 2026-10-19; nothing changed):**
-  - **Cause, strongly indicated:** go2rtc's streams are H.265, which the tablets' Android
-    WebView generally can't decode over WebRTC, so no video track arrives (the Cameras live
-    view shows 0 × 0, "Connecting…" for ever). A camera's H.264 channels played; desktop
-    browsers play H.265. Ruled out: the network, the entity ids, the cards bundle.
-  - **Relief that exists:** the compositor page's **Live main camera** switch off, so cards
-    show the drawn picture. For the owner: set the tablets' (medium) channels to H.264
-    where the camera allows.
-  - **Defects found, none fixed:** the Cameras live view (`LiveView.tsx`) waits for ever
-    with no MJPEG fallback; the card's live failure goes only to the tablet's console and
-    gives up for good after two (`LIVE_GIVE_UP`).
-  - **Proposed, awaiting the owner:** one shared WebRTC check (`app/web/src/webrtc.ts`:
-    stage timings, a codec check with `RTCRtpReceiver.getCapabilities`, a timeout, a plain
-    verdict such as "this device cannot play H.265"), used by the Cameras dialog, the card
-    (a pill) and the app's log. Bump first.
+  nothing while investigating. Steps 1–3 done. Step 3 (2026.11.2-b22, 2026-11-10) is the
+  first three rungs of the camera ladder for the Commander's main camera, built on the
+  owner's "get on with it" and not as a step agreed beforehand. Its card bundle was copied
+  to the live box that day; **what the wall tablets show hasn't been reported yet**, and
+  its `live_report` websocket command has never run on HA. The next step is the owner's.
+- **The wall tablets' live video** (investigated 2026-10-19 and 2026-11-10):
+  - **Causes:** the old card gave up after two failed starts until the page reloaded
+    (fixed in step 3). And the cameras' streams are H.265 (seen in go2rtc's stream list),
+    which go2rtc answers with no video at all for a browser that didn't offer H.265 (seen
+    with headless Chromium). On 2026-11-10 b22's card said exactly that on every wall
+    tablet but the test one, all the same model (Tab M9, Android 15). The one difference:
+    the test tablet's Android System WebView had been updated by hand over adb to 157 on
+    2026-10-28; the others were on the factory 131. 157 was installed on the other three
+    the same way (`adb install -r` of the APK pulled from the test tablet), and the main
+    camera came up "(live)". The same APK then worked on the three Tab M10 3rd gen
+    (TB310FU, Android 13, factory WebView 126), so all seven wall tablets run 157 and show
+    "(live)" (2026-11-10). After an install, check Kiosk Satellite is running: on one
+    tablet it stopped and stayed stopped because Settings was in front.
+  - **The tablets have no Play Store**, so WebView never updates by itself (BACKLOG).
+    Rollback for one tablet: `adb uninstall com.google.android.webview` (back to 131).
+  - **Not fixed:** the Cameras live view (`LiveView.tsx`) now names an unplayable format,
+    but has no timeout and no MJPEG fallback.
   - **Open:** whether a stalled WebRTC stream can fool the lease (`requestVideoFrameCallback`
     on a repeated frame); if seen again, compare screencaps and renew only when
     `rtpTimestamp` moves. go2rtc's API is on the box's port 1984, RTSP on 8554; a UDP STUN
-    probe from the Mac proves nothing, so don't repeat it.
+    probe from the Mac proves nothing, so don't repeat it. Headless Chromium connects only
+    the first pair of WebRTC peers made in one page, so a second session can't be tested
+    with same-page peers: use a real go2rtc.
 - **Remote control** (2026.10.12-b2 to b5): working on every wall tablet, Android Settings
   included. DuraSpeed is off on every Tab M9 (2026-10-31), but the last two haven't been
   rebooted since, which clears Android's mark against KS. Kiosk Mode was switched off on the fleet leader for the setup walk: check it is back on.
@@ -292,5 +318,27 @@ CLAUDE.md has them all. What trips agents here:
 - **Loose ends:** move the card's motion test into the cards' `npm test`; HA warns about
   `via_device` in commanders' DeviceInfo (until 2027.8); the compositor's log lines give
   viewers' addresses only; the Tablet Layout guide's examples.
+- **Talk from the Commander card** (2026.11.2-b2, 2026-11-05): `commander/talk.ts`, a
+  layer over `live.ts`; the card was split into base → live → talk → card. Built and
+  unit-tested, **not yet tried on hardware**: the owner's six acceptance checks (two
+  tablets and the iPhone) are still to do, with measured talk-to-audible delays.
+- **Intercom and Protect Talkback moved in** (2026.11.2-b20, 2026-11-09) from the owner's
+  separate intercom repo (its `intercom_talkback`, up to 2026.11.1-b11; that repo's app
+  was only an installer, so nothing of it came over). Split in two children, each
+  following an integration-only app module as `alarm` does:
+  - `casa_mia_intercom` (module `intercom`): the calls and the WebRTC offer/close
+    patches. A doorbell is any device with a doorbell event entity and a camera, found
+    in the entity registry (reloads when one comes or goes), so it no longer knows about
+    Protect. Entities are keyed by HA device id. Its `call` websocket command (the
+    timer) has **never run on HA**.
+  - `casa_mia_protect_talkback` (module `protect_talkback`): one entry per console, the
+    go2rtc config and stream patches, the two-way flag, `talk.py` (must stay
+    executable; a test checks). Delete it when go2rtc PR #2340 and HA's UniFi Protect
+    two-way audio land (BACKLOG).
+  - Shared: `casa_mia/patching.py` (Patches: apply, put back, Repair on failure; and the
+    refusal to set up beside an enabled `intercom_talkback` entry). Brands from
+    `tools/brand_children.py`.
+  - **Cutover on the live box:** leave the old app and integration installed with its
+    entry disabled until these are proven, then remove them.
 - **Next:** the owner picks from BACKLOG. Nested sections wait until HA ships them (don't
   build ahead of HA).

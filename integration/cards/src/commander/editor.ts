@@ -1,8 +1,9 @@
 // The Camera Commander card's editor.
-import { LitElement, html, nothing } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { fire, type Hass, LOOK, withoutDefaults as stripDefaults } from "../ha.ts";
-import { Config, LEAVE_AFTER, commanders } from "./common.ts";
+import { type Config, LEAVE_AFTER, commanders } from "./common.ts";
 import { MOTION } from "./motion.ts";
+import { DUPLEX_CHOICES } from "./talk-rules.ts";
 
 /** Each option's default: shown in the form, and never saved (so a default changed later
  * reaches every card that was left at it). */
@@ -11,6 +12,8 @@ const DEFAULTS: Record<string, unknown> = {
   route: "auto",
   away_sharpness: "balanced",
   live_main: true,
+  talk_button: true,
+  duplex: "full",
   leave_after: LEAVE_AFTER,
   security_look: false,
   look_tint: LOOK.tint,
@@ -35,6 +38,7 @@ export class CommanderEditor extends LitElement {
 
   render() {
     if (!this.hass || !this._config) return nothing;
+    const data = { ...DEFAULTS, ...this._config };
     const schema = [
       { name: "entity", selector: { select: { mode: "dropdown", options: commanders(this.hass) } } },
       {
@@ -65,6 +69,16 @@ export class CommanderEditor extends LitElement {
         },
       },
       { name: "live_main", selector: { boolean: {} } },
+      { name: "talk_button", selector: { boolean: {} } },
+      {
+        name: "duplex",
+        selector: {
+          select: {
+            mode: "list",
+            options: DUPLEX_CHOICES,
+          },
+        },
+      },
       { name: "security_look", selector: { boolean: {} } },
       { name: "look_tint", selector: { color_rgb: {} } },
       { name: "look_strength", selector: { number: { min: 0.5, max: 10, step: 0.5, mode: "slider" } } },
@@ -109,21 +123,25 @@ export class CommanderEditor extends LitElement {
       route: "The picture",
       away_sharpness: "Sharpness through Home Assistant",
       live_main: "Main camera as live video",
+      talk_button: "Talk button",
+      duplex: "Mode",
       leave_after: "Picture kept running once out of sight",
-      security_look: "Security look",
-      look_tint: "Security look: tint",
-      look_strength: "Security look: strength",
-      look_darkness: "Security look: darker",
-      motion_dot: "Motion dot",
-      motion_colour: "Motion dot: colour",
-      motion_size: "Motion dot: size",
-      motion_pulse: "Motion dot: pulse",
-      motion_linger: "Motion dot: stays after the motion",
-      motion_corner: "Motion dot: corner",
+      security_look: "Apply security look",
+      look_tint: "Tint",
+      look_strength: "Strength",
+      look_darkness: "Darkness",
+      motion_dot: "Show motion dot",
+      motion_colour: "Colour",
+      motion_size: "Size",
+      motion_pulse: "Pulse",
+      motion_linger: "Keep after motion",
+      motion_corner: "Corner",
     };
-    return html`<ha-form
+    const fields = (...names: string[]) => schema.filter((field) => names.includes(field.name));
+    const form = (schema: object[], className = "") => html`<ha-form
+      class=${className}
       .hass=${this.hass}
-      .data=${{ ...DEFAULTS, ...this._config }}
+      .data=${data}
       .schema=${schema}
       .computeLabel=${(s: { name: string }) => labels[s.name]}
       .computeHelper=${(s: { name: string }) =>
@@ -137,6 +155,8 @@ export class CommanderEditor extends LitElement {
             ? "How sharp the picture is when it comes through Home Assistant (away from home): a 2x screen at Full is four times the bytes of Light. Direct at home it is always the screen's own."
             : s.name === "live_main"
             ? "The main camera plays as live video over the picture, through Home Assistant's WebRTC (this device decodes it; the box does not). Needs the Camera compositor's Live main camera switch on; a video that does not start gives way to the drawn picture."
+            : s.name === "talk_button"
+            ? "A Talk button over a doorbell's live video (a camera with a Casa Mia Intercom call sensor, on an https page). Turn it off to use your own buttons: a tap_action of fire-dom-event with casa_mia_commander: {talk: toggle} does the same."
             : s.name === "motion_dot"
             ? "A small dot on a camera's tile while its motion sensor sees motion (the sensor Track motion uses), and for a while after; hover it for when."
             : s.name === "motion_pulse"
@@ -148,9 +168,52 @@ export class CommanderEditor extends LitElement {
             : undefined}
       @value-changed=${(ev: CustomEvent) => {
         ev.stopPropagation();
-        this._config = withoutDefaults(ev.detail.value);
+        this._config = withoutDefaults({ ...this._config, ...ev.detail.value });
         fire(this, "config-changed", { config: this._config });
       }}
     ></ha-form>`;
+
+    return html`
+      <section aria-labelledby="main-heading">
+        <h3 id="main-heading">Main camera</h3>
+        ${form(fields("entity", "live_main", "tap_main"))}
+      </section>
+      <section aria-labelledby="security-heading">
+        <h3 id="security-heading">Security look</h3>
+        ${form(fields("security_look"))}
+        ${data.security_look ? html`<div class="details">
+          ${form(fields("look_tint"), "colour")}
+          ${form(fields("look_strength", "look_darkness"), "adjustments")}
+        </div>` : nothing}
+      </section>
+      <section aria-labelledby="motion-heading">
+        <h3 id="motion-heading">Motion dot</h3>
+        ${form(fields("motion_dot"))}
+        ${data.motion_dot ? html`<div class="details">
+          ${form(fields("motion_colour"), "colour")}
+          ${form(fields("motion_size", "motion_pulse", "motion_linger", "motion_corner"), "adjustments")}
+        </div>` : nothing}
+      </section>
+      <section aria-labelledby="talk-heading">
+        <h3 id="talk-heading">Talking</h3>
+        ${form(fields("talk_button", "duplex"))}
+      </section>
+      <section>
+        ${form([{
+          type: "expandable", name: "", flatten: true,
+          title: "Connection and performance",
+          schema: fields("route", ...(data.route === "direct" ? [] : ["away_sharpness"]), "leave_after"),
+        }])}
+      </section>`;
   }
+
+  static styles = css`
+    :host { display: block; }
+    section { padding: 16px 0; }
+    section + section { border-top: 1px solid var(--divider-color); }
+    h3 { margin: 0 0 12px; font-size: var(--ha-font-size-m, 16px); }
+    .details { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px; margin-top: 16px; }
+    .colour { flex: 0 0 96px; width: 96px; }
+    .adjustments { flex: 1 1 220px; min-width: 0; }
+  `;
 }

@@ -9,6 +9,8 @@ export type Rect = [x: number, y: number, w: number, h: number];
 export const PANELS = ["left", "top", "right", "bottom"] as const;
 export type Panel = (typeof PANELS)[number];
 export const STACKS = ["stack", "reverse", "centre"];
+// equal tiles of the panel's cell shape; "squares" from when they were only square
+export const EQUAL = ["squares", "squares_spread"];
 
 export type PanelSettings = {
   cameras: string[]; // what it holds, by key (a commander's cameras, a layout's cards)
@@ -18,6 +20,7 @@ export type PanelSettings = {
   lines?: number;
   anchor_left?: boolean;
   anchor_right?: boolean;
+  cell?: string; // the tiles' shape, for the equal fits ("16:9")
 };
 export type Settings = {
   width: number;
@@ -87,6 +90,32 @@ function lines(rect: Rect, n: number, count: number, down: boolean, gap: number,
     first += k;
   });
   return out;
+}
+
+/** n equal tiles of shape `cell` in `lines` lines, all one size, as a grid; spread, the
+ * spare room shared evenly by the gaps and both ends: see the compositor's _equal. */
+function equal(rect: Rect, n: number, count: number, down: boolean, gap: number, spread: boolean, cell: number): Rect[] {
+  count = Math.max(1, Math.min(count, n));
+  const strips = line(rect, count, !down, gap);
+  const slots = Math.ceil(n / count); // the fullest line's count
+  const span = down ? rect[3] : rect[2];
+  const thick = Math.min(...strips.map((s) => (down ? s[2] : s[3])));
+  const stretch = down ? 1 / cell : cell; // a tile's length over its thickness
+  const along = Math.max(0, Math.min(pyRound(thick * stretch), floorDiv(span - gap * (slots - 1), slots)));
+  const across = Math.min(thick, pyRound(along / stretch));
+  const free = span - slots * along;
+
+  const slot = Array.from({ length: slots }, (_, i) => i);
+  const starts =
+    spread && free >= gap * (slots + 1)
+      ? slot.map((i) => pyRound(((i + 1) * free) / (slots + 1)) + i * along)
+      : slot.map((i) => floorDiv(free - gap * (slots - 1), 2) + i * (along + gap));
+
+  return strips.flatMap(([x, y, w, h], i) => {
+    const k = Math.floor(n / count) + (i < n % count ? 1 : 0);
+    const off = floorDiv((down ? w : h) - across, 2); // in the middle across its line
+    return starts.slice(0, k).map((a): Rect => (down ? [x + off, y + a, across, along] : [x + a, y + off, along, across]));
+  });
 }
 
 /** A shape as a number: 1.78, "1.78", "16:9" or "16/9" (width over height). */
@@ -171,14 +200,13 @@ export function layout(s: Settings, main: string | null = null): [[number, numbe
   };
   const shapes = (p: Panel) =>
     STACKS.includes(s[p].fit ?? "") ? s[p].cameras.map((e) => Number((s.aspects ?? {})[e] || 16 / 9)) : null;
-  const tiles = Object.fromEntries(
-    PANELS.map((p) => [
-      p,
-      has(p)
-        ? lines(areas[p], s[p].cameras.length, Math.trunc(Number(s[p].lines ?? 1)), p === "left" || p === "right", gap, shapes(p), s[p].fit ?? "cover")
-        : [],
-    ]),
-  ) as Record<Panel, Rect[]>;
+  const tiled = (p: Panel): Rect[] => {
+    const [n, count, fit, down] = [s[p].cameras.length, Math.trunc(Number(s[p].lines ?? 1)), s[p].fit ?? "cover", p === "left" || p === "right"];
+    if (!n) return [];
+    if (EQUAL.includes(fit)) return equal(areas[p], n, count, down, gap, fit === "squares_spread", ratio(s[p].cell ?? LAYOUT.panel.cell.default));
+    return lines(areas[p], n, count, down, gap, shapes(p), fit);
+  };
+  const tiles = Object.fromEntries(PANELS.map((p) => [p, tiled(p)])) as Record<Panel, Rect[]>;
   let mainArea: Rect = [x0, y0, x1 - x0, y1 - y0];
   if (shape !== null) {
     mw = Math.min(mw, x1 - x0);

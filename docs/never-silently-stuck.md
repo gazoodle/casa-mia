@@ -50,6 +50,38 @@ lapses. No flag that says "live" is ever stored, so nothing can leave one set.
 - **Seen on the tablet (2026-10-12): passed.** The frozen camera reads "Live lost … ago"
   in red, counting up.
 
+### Step 3: the first three rungs of the camera ladder (2026.11.2-b22)
+
+- **Why:** wall tablets sometimes had no live main camera, for days at a time. Found in
+  the code (2026-11-10): one failed start showed the drawn picture until the main camera
+  changed, and two in a row stopped live video until the page was reloaded, so a restart
+  of go2rtc or Home Assistant, or a Wi-Fi drop, was enough. A video that stalled stayed
+  frozen under "Live lost". The reasons went only to the tablet's console. Found on the
+  author's system: cameras send H.265, and go2rtc answers a browser that didn't offer
+  H.265 with no video at all while the sound plays, so nothing reported it.
+- **What:** rungs 1 to 3 of the ladder below. Live on the channel that fits; when it
+  fails, live on another channel, the smaller ones first; when none plays, the drawn
+  picture with "Live lost … ago" and the reason in red. A failed channel is marked bad
+  for 30 seconds, doubling with each failure in a row up to 10 minutes, then tried again
+  out of sight under whatever is showing. Another main camera clears the marks, so a tap
+  away and back tries at once. Each loss and return is written to Home Assistant's log.
+- **How:** nothing stores "live" or "failed for good". `liveLapsed` replaces `liveClaim`
+  (no frame within 10 s of the start, or none for 5 s after one); `liveMark` is the mark
+  and its backoff; `liveOrder` and `livePlan` choose what is shown and what is tried
+  (`common.ts`, `live.test.ts`). `live.ts` keeps one session per channel, and the
+  once-a-second beat ends a lapsed one by the clock alone. `webrtc.ts` reports an answer
+  with no video in it. The card sends each loss and return to the
+  `casa_mia_commander/live_report` websocket command (`casa_mia_commander/live.py`),
+  which logs it with the user and the video formats the device plays.
+- **Seen (2026-11-10), in headless Chromium, not yet on a wall tablet:** with simulated
+  channels, a stall was taken down after 5 s, a channel that never sent a frame after
+  10 s, an unplayable one at once, and all three were tried again once their marks
+  lapsed. Against the author's go2rtc, an H.265 stream was reported at once as a format
+  the browser can't play. The move to a second channel was seen playing once; it couldn't
+  be repeated, because headless Chromium connects only the first pair of peers made in
+  one page. The websocket command has no test (the repo's tests can't load Home
+  Assistant), so its log line is unseen until the first deploy.
+
 ## Findings (investigation, not fixes)
 
 - **Nothing in Casa Mia knew** about the stuck camera: the compositor was "fine" (its own
@@ -82,6 +114,7 @@ None is a step until it's chosen as the next one.
   tried and what came of it, what changed just before (an update), and known upstream
   issues.
 - **The camera ladder: always degrade, never die** (agreed with the owner, 2026-10-12).
+  Rungs 1 to 3 are built for the main camera (step 3); the rest, and the pills, are not.
   The best picture however we can, best first:
   1. Live, the channel that fits the main area best (WebRTC).
   2. Live, another channel, down the resolutions. A channel HA says is unavailable is
@@ -109,7 +142,6 @@ None is a step until it's chosen as the next one.
     warning, unavailable for 15 min"). The owner is the last resort.
 - The drawn picture (MJPEG) frozen without a sign: the same lease, renewed by frames
   arriving.
-- Live failures said on screen and to the app's log, not only the browser's console.
 - Casa Mia pages: no request waits for ever; Save says "Not saved" and keeps the edits.
 - The compositor's stream warm-up reports its failures instead of dropping them.
 - Sensor Watch watching Casa Mia's own parts (the compositor's health), so a stuck system

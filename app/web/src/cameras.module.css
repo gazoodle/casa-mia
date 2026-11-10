@@ -721,3 +721,44 @@
   justify-content: space-between;
   gap: 10px;
 }
+
+/* Arrange: the app's drawing of the arrangement, kept on screen with the controls */
+.arrangeOptions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 12px 24px;
+}
+
+.arrangePreview {
+  margin: 12px 0;
+}
+
+.arrangePreview img {
+  width: auto;
+  max-width: 100%;
+  max-height: 40vh;
+  margin: 0 auto;
+}
+
+/* the readout wraps between the two buttons, so a long one never moves them */
+.arrangeRow {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px 16px;
+}
+
+.arrangeRow span {
+  text-align: center;
+}
+
+.arrangeRow button:last-child {
+  grid-column: 3;
+}
+
+@media (max-width: 640px) {
+  .arrangeRow span {
+    grid-row: 2;
+    grid-column: 1 / -1;
+  }
+}

@@ -14,6 +14,7 @@ from homeassistant.helpers import device_registry as dr
 from ..casa_mia.children import add_module_device, follow_module, parent_coordinator
 from .commanders import async_prune_commander_devices, commander_device
 from .const import DOMAIN, MODULE
+from .live import setup as setup_live
 from .motion import commanders, tracker
 from .pictures import setup as setup_pictures
 from .restart_notice import async_check_restart, manifest_version
@@ -29,6 +30,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.runtime_data = coordinator
     if not hass.data.get(f"{DOMAIN}_pictures"):  # once per HA run
         setup_pictures(hass)  # the commanders' pictures, for viewers away from home
+        setup_live(hass)  # the cards' reports on their live video, for the log
         hass.data[f"{DOMAIN}_pictures"] = True
     off = follow_module(
         hass,

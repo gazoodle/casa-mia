@@ -74,8 +74,10 @@ class Watcher:
         # The least an escalated sensor may show while its real level gets worse (it
         # mustn't drop then): kept here, not in its row. ponytail: lost at a restart.
         self._floors: dict[str, str] = {}
-        # Events held until Home Assistant has started (its automations listen then).
-        self._waiting: list[CALLBACK_TYPE] = []
+        # Events held until Home Assistant has started (its automations listen then):
+        # entity -> its level before the first change held, and whether it was found.
+        self._held: dict[str, tuple[str | None, bool]] = {}
+        self._waiting: CALLBACK_TYPE | None = None  # for _started
         self._unsub: CALLBACK_TYPE | None = None
         self._listeners: list[Callable[[], None]] = []
         self.swap: Rule = same  # the screenshot swap (swap.py), looked at every few s
@@ -233,9 +235,10 @@ class Watcher:
             self._cancel(eid)
         for eid in list(self._steps):
             self._unstep(eid)
-        for waiting in self._waiting:
-            waiting()
-        self._waiting.clear()
+        if self._waiting:
+            self._waiting()
+            self._waiting = None
+        self._held.clear()
         if self._telling:
             self._telling()
             self._telling = None
@@ -490,6 +493,21 @@ class Watcher:
             )
         return s.get("core", True)
 
+    @callback
+    def _started(self, _hass: HomeAssistant) -> None:
+        """Home Assistant has started: each watch whose level changed while it started
+        says where it is now. Not when that's where it was, or when it had no level
+        before and is nominal now (as found at the start, nominal goes unsaid)."""
+        self._waiting = None
+        held, self._held = self._held, {}
+        for eid, (previous, initial) in held.items():
+            row = self.now.get(eid)  # none: no longer watched
+            if row is None or row["level"] == previous:
+                continue
+            if previous is None and row["level"] == "nominal":
+                continue
+            self._fire(eid, row, previous, initial or previous is None)
+
     def _fire(
         self,
         eid: str,
@@ -502,12 +520,12 @@ class Watcher:
         that level, not changed to it. Held until Home Assistant has started: an event
         before then reaches no automation."""
         if self.hass.state is not CoreState.running:
-            self._waiting.append(
-                async_at_started(
-                    self.hass,
-                    callback(lambda _hass: self._fire(eid, row, previous, initial)),
-                )
-            )
+            # One event per watch for the whole start, said by _started. Each change on
+            # its own let out a storm: in 2026.11.2-b26 every light not yet loaded fired
+            # "gone" and then "back" in the same second (a hold-off of 0).
+            self._held.setdefault(eid, (previous, initial))
+            if self._waiting is None:
+                self._waiting = async_at_started(self.hass, self._started)
             self._tell()
             return
         _LOGGER.info(

@@ -33,6 +33,14 @@
       "max": 64,
       "for": "view",
       "help": "Room above the view's header (its heading card and badges), when it has one; Home Assistant's own is 24."
+    },
+    "narrow_below": {
+      "label": "Phone layout below, px",
+      "default": 600,
+      "min": 0,
+      "max": 2000,
+      "for": "view",
+      "help": "Narrower than this (a phone), the view is Home Assistant's own sections instead: one column that scrolls, the main panel first, garnish left out. 0: always the Tablet Layout."
     }
   },
   "panel": {
@@ -48,8 +56,15 @@
     "fit": {
       "label": "Fit",
       "default": "cover",
-      "options": [["cover", "Fill"], ["contain", "Whole"], ["stack", "Stack"], ["reverse", "Reverse"], ["centre", "Centre"]],
-      "help": "Fill: equal tiles, each {item} filling its own. Whole: equal tiles, each {item} whole in its own. Stack, Reverse, Centre: each {item} whole at its own shape, edge to edge, from the start, against the end, or in the middle; the spare room is left clear (too many to fit: all shrink alike)."
+      "options": [["cover", "Fill"], ["contain", "Whole"], ["stack", "Stack"], ["reverse", "Reverse"], ["centre", "Centre"], ["squares", "Same size"], ["squares_spread", "Same size, spread"]],
+      "help": "Fill: equal tiles, each {item} filling its own. Whole: equal tiles, each {item} whole in its own. Stack, Reverse, Centre: each {item} whole at its own shape, edge to edge, from the start, against the end, or in the middle; the spare room is left clear (too many to fit: all shrink alike). Same size: tiles all of one size and of the Tile shape (square, 16:9…), each {item} cropped to fill its own, as thick as the panel (shared by its lines), in the middle; Same size, spread: the same, the spare room shared evenly between them and at both ends."
+    },
+    "cell": {
+      "label": "Tile shape",
+      "default": "1:1",
+      "when": ["squares", "squares_spread"],
+      "for": "commander",
+      "help": "Width:height of every tile, for Same size: 1:1 for squares, 16:9 for most cameras (none cropped)."
     },
     "anchor_left": { "label": "To the left edge", "edge": true, "help": "On: it runs to the view's edge and Left stops at it. Off: it stops at Left." },
     "anchor_right": { "label": "To the right edge", "edge": true, "help": "On: it runs to the view's edge and Right stops at it. Off: it stops at Right." },

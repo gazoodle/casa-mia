@@ -1,7 +1,8 @@
 # Tablet Layout
 
 A Home Assistant view that fits the screen exactly. No scrolling, nothing hanging off the
-edge, on any tablet, phone or desktop, in portrait or landscape.
+edge, on any tablet or desktop, in portrait or landscape. On a phone it becomes Home
+Assistant's own sections view instead (see [On a phone](#on-a-phone)).
 
 > **Maturity: Beta.** Complete and used every day; its features have settled. Please report what breaks in your setup. ([The levels](README.md#maturity))
 
@@ -314,6 +315,28 @@ The **footer** (HA's view footer) takes space under the panels by default. Set
 `footer: float` in `layout:` to float it over the bottom of the panels instead, as HA's
 Sections view does.
 
+## On a phone
+
+A layout of panels round a main panel doesn't fit a phone's narrow screen. When the view
+is narrower than `narrow_below` (600 px by default), it becomes Home Assistant's own
+sections view instead: the sections in one column that scrolls, as on any other
+dashboard.
+
+- The top edge's panels come first, then the main panel, then the left, right and bottom
+  edges' panels. Panels of one edge keep the view's order.
+- What wouldn't show in the Tablet Layout doesn't show here either: a section with no
+  panel, a hidden edge, and a section with no card that counts showing.
+- Garnish cards are left out, as they only make sense inside a panel.
+- A card that filled its panel (a Camera Commander, say) takes its own shape instead.
+- Home Assistant's own visibility conditions still apply. To hide a section on phones
+  only, give it the **Screen** condition.
+
+The switch happens as the width changes, so a tablet turned on its side, or a browser
+window made narrower, switches too. Edit mode on a phone is Home Assistant's own, for
+cards only: sections can't be moved or added there, so the panels are arranged on a wider
+screen. Set `narrow_below: 0` to keep the Tablet Layout on every screen. Set it in the
+main panel's options as **Phone layout below**.
+
 ## Edit mode
 
 Edit mode shows the layout as a drawing you can click.
@@ -363,6 +386,7 @@ panel keeps a section.
 | `panel_min` | `8` | With `fixed`: % an edge with cards keeps at least. |
 | `header_space` | `24` | px above the view's header, when it has one. |
 | `footer` | (takes space) | `float`: over the bottom of the panels. |
+| `narrow_below` | `600` | px: narrower than this, the view is HA's own sections view (see [On a phone](#on-a-phone)); `0`: never. |
 | `top`, `left`, `right`, `bottom` | | Layer 1's edges (below). |
 | `inner` | | The next layer in: its own `top`, `left`, `right`, `bottom` and `inner`. |
 

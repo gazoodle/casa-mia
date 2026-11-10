@@ -44,15 +44,6 @@ HIGHLIGHT = BLANK + "#cm-highlight"
 URL_PATH = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)+$")  # HA wants a hyphen in it
 
 
-FITS = (
-    "cover",
-    "contain",
-    "stack",
-    "reverse",
-    "centre",
-)  # a panel's (see EMPTY_COMMANDER)
-
-
 CARDS = ("picture-entity", "webrtc-camera", "advanced-camera-card")
 
 

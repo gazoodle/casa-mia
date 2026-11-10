@@ -53,6 +53,19 @@ configuration:
       In development. The intruder alarm as a Home Assistant alarm panel (arm away, disarm, triggered),
       driven by the alarm's ESPHome sensors. It runs in the integration, which sets the
       code; off removes its device and entity.
+  intercom_enabled:
+    name: Intercom
+    description: >-
+      In development. A call for each doorbell, shared by every screen: whoever talks
+      first answers it, nobody else can talk until it ends, and it ends by itself when the
+      answering device goes quiet. Runs in the integration (Casa Mia Intercom), which the
+      Camera Commander card and the Talk tile use.
+  protect_talkback_enabled:
+    name: UniFi Protect talkback
+    description: >-
+      Alpha. Talk through UniFi Protect doorbells and cameras from Home Assistant, by
+      patching its go2rtc until Home Assistant can do it itself. Runs in the integration
+      (Casa Mia Protect Talkback), set up per Protect console with an API key.
   developer_mode:
     name: Developer mode
     description: >-

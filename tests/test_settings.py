@@ -51,6 +51,26 @@ def test_a_save_tells_home_assistant(tmp_path, monkeypatch):
     assert fired == [("test-token", "casa_mia_settings_changed", {})]
 
 
+def test_screen_orientation_defaults_on_for_existing_settings_and_can_be_disabled(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(settings, "FOLDER", tmp_path)
+    (tmp_path / "settings.json").write_text(
+        '{"dashboards": {"garnish_everywhere": true}}'
+    )
+    assert settings.for_cards()["dashboards"] == {
+        "garnish_everywhere": True,
+        "screen_orientation": True,
+    }
+    assert call("PUT", {"dashboards": {"screen_orientation": False}})[0] == 200
+    assert call("GET")[1]["dashboards"] == {
+        "garnish_everywhere": True,
+        "screen_orientation": False,
+    }
+    assert not settings.for_cards()["dashboards"]["screen_orientation"]
+    assert call("PUT", {"dashboards": {"screen_orientation": "yes"}})[0] == 400
+
+
 class _Now:
     """A thread that runs at once."""
 

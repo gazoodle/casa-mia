@@ -239,7 +239,8 @@ export const ViewDraw = (Base: ReturnType<typeof ViewEdit>) =>
     protected cmTools(box: HTMLElement, show: boolean, where: ReturnType<typeof placeOf>[], n: number) {
       let tools = box.querySelector(":scope > .cm-tools") as HTMLElement | null;
       if (!show || !where[n]) {
-        box.style.minWidth = ""; // out of edit mode, its share alone
+        // Out of edit mode (or narrow), its share alone: neither least size is left behind.
+        Object.assign(box.style, { minWidth: "", minHeight: "" });
         return tools?.remove();
       }
       if (!tools) {

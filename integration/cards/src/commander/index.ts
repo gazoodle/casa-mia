@@ -27,8 +27,11 @@
 // Assistant's WebRTC as its own camera cards play it: the tablet decodes it (the box draws
 // the picture without it, ?main=video), at full frame rate. The channel is the smallest at
 // least the main area's size in device pixels (fewer away from home, as the picture). The
-// card draws its caption. A video that does not start within LIVE_WAIT_MS, or fails, gives
-// way to the drawn picture, until the main camera changes. The Security look covers it with
+// card draws its caption. A channel that shows no frame within LIVE_WAIT_MS, stops, or
+// fails is marked bad for a while and the next one is played (down the sizes, then up);
+// with none left the drawn picture shows, with "Live lost … ago" and why. A marked channel
+// is tried again under whatever shows, later after each failure in a row, and each loss
+// and return is sent to Home Assistant's log (live.ts). The Security look covers it with
 // the picture.
 // The picture comes straight from the compositor at home (its LAN address), else through
 // Home Assistant (the integration's pictures.py): away from home that address is out of
@@ -37,7 +40,9 @@
 // is on (its internal or external URL); `route` overrides it. Through Home Assistant the
 // picture is asked for at no more than `away_sharpness`'s pixel ratio (Balanced: 1.5), as
 // a 2x or 3x screen's own is up to four times the bytes over a slower link.
-// The parts: common.ts (types, constants, helpers), card.ts (the card), editor.ts (its editor).
+// The parts: common.ts (types, constants, helpers); the card in layers, base.ts (the picture
+// stream) → live.ts (the live main camera) → talk.ts (talking to a doorbell) → card.ts
+// (drawing it, its taps), with styles.ts; editor.ts (its editor).
 import { define, register } from "../ha.ts";
 import { CommanderCard } from "./card.ts";
 import { CommanderEditor } from "./editor.ts";

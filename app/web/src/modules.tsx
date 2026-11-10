@@ -5,7 +5,7 @@
 import type { ReactNode } from "react";
 import type { ModuleHealth } from "./health";
 import { ago, megabytes } from "./format";
-import { CameraGridIcon, CameraIcon, CommanderIcon, DashboardIcon, FirmwareIcon, GuestIcon, KioskModeIcon, PeopleIcon, PhoneIcon, SensorWatchIcon, ShieldIcon, TabletIcon } from "./icons";
+import { CameraGridIcon, CameraIcon, CommanderIcon, DashboardIcon, DoorbellIcon, FirmwareIcon, GuestIcon, KioskModeIcon, PeopleIcon, PhoneIcon, SensorWatchIcon, ShieldIcon, TabletIcon, TalkbackIcon } from "./icons";
 
 export type Fact = [label: string, value: string | undefined];
 
@@ -42,6 +42,26 @@ export const MODULES: Record<string, ModuleInfo> = {
     facts: () => [
       ["Runs in", "the integration, so it stays up while the app restarts"],
       ["Code", "set in the integration's options"],
+    ],
+  },
+  intercom: {
+    title: "Intercom",
+    option: "Intercom",
+    blurb: "A call for each doorbell, shared by every screen in the house, so only one person talks to the door at a time.",
+    icon: <DoorbellIcon />,
+    facts: () => [
+      ["Runs in", "the integration (Casa Mia Intercom)"],
+      ["Doorbells", "any device with a doorbell event and a camera"],
+    ],
+  },
+  protect_talkback: {
+    title: "UniFi Protect talkback",
+    option: "UniFi Protect talkback",
+    blurb: "Talk through UniFi Protect doorbells and cameras from Home Assistant, until it can do that itself.",
+    icon: <TalkbackIcon />,
+    facts: () => [
+      ["Runs in", "the integration (Casa Mia Protect Talkback)"],
+      ["Consoles", "added in the integration, each with its API key"],
     ],
   },
   fona: {

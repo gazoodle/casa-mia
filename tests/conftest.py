@@ -1,8 +1,11 @@
 """Test-wide speed-ups."""
 
+import importlib.util
 import socketserver
+import sys
 import threading
 import time
+from pathlib import Path
 
 import pytest
 
@@ -95,3 +98,20 @@ def api(tmp_path, login_server):
         lan_host=lambda: "192.168.1.20",
         grace=0,  # no wait between an endpoint closing and its sign-out
     )
+
+
+COMPONENTS = Path(__file__).resolve().parents[1] / "integration" / "custom_components"
+
+
+def load_component_file(domain: str, name: str):
+    """One file of a component, loaded by path: the package's __init__ needs Home
+    Assistant, which the venv doesn't have. Only for files that import no siblings."""
+    spec = importlib.util.spec_from_file_location(
+        f"{domain}_{name}", COMPONENTS / domain / f"{name}.py"
+    )
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    # Registered first: dataclasses look their module up in sys.modules while it loads.
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module

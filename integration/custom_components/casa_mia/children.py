@@ -1,5 +1,5 @@
-"""The integrations that hang off Casa Mia: Casa Mia Guest Login and Casa Mia Camera
-Commander (Sensor Watch was one until 2026.10.10-b3; it's part of Casa Mia now). Each sets up only beside a Casa Mia entry and uses
+"""The integrations that hang off Casa Mia: Casa Mia Guest Login, Casa Mia Camera
+Commander, Casa Mia Intercom and Casa Mia Protect Talkback (Sensor Watch was one until 2026.10.10-b3; it's part of Casa Mia now). Each sets up only beside a Casa Mia entry and uses
 its coordinator (one /health poll for them all); each comes and goes with its module in the app; Casa Mia
 offers each under Discovered while its module is on and it is not set up."""
 
@@ -31,6 +31,8 @@ _LOGGER = logging.getLogger(__name__)
 CHILDREN = {
     "casa_mia_guest_login": "guest_login",
     "casa_mia_commander": "commander",
+    "casa_mia_intercom": "intercom",
+    "casa_mia_protect_talkback": "protect_talkback",
 }
 OFFERED = f"{DOMAIN}_offered"  # hass.data: children offered under Discovered this run
 
