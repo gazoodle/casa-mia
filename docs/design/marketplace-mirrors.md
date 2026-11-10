@@ -453,7 +453,8 @@ own checks passed and so did hassfest, in docker. Where it differs:
   integration's own `brand/icon.png` since 2026-02-28 (hacs/integration#5128), and the
   mirror carries Sensor Watch's `brand/` folder. The mirror's workflow uses
   `hacs/action@main`. Its first run (step 5) is the proof.
-- **Issues on, with a link to Casa Mia** (above), where the plan said issues off.
+- **Issues on, with a link to Casa Mia: agreed** (owner, 2026-11-10). Why: HACS's
+  validation fails a repository with issues off.
 - **The scope of "No downgrade"** (phase 3).
 - **The guide says "It isn't published there yet."** Remove that sentence in the release
   that first publishes the mirror: its README links to that section at the release's tag.
