@@ -1,8 +1,9 @@
 import json
+import shutil
 from pathlib import Path
 
 from casa_mia import components
-from casa_mia.components import MARKER, install_all, is_ignored
+from casa_mia.components import MARKER, install_all, is_ignored, version_key
 
 
 def make_component(root, domain="foo", version="1.0.0", body="x = 1\n"):
@@ -100,6 +101,51 @@ def test_a_first_install_asks_for_a_restart(tmp_path):
     assert "Restart Home Assistant" in body["message"]
     # Home Assistant unreachable: no exception, just False.
     assert not ask_for_restart([installed], "tok", url)
+
+
+def test_a_release_is_newer_than_its_builds():
+    order = ["2026.9.4", "2026.11.3-b2", "2026.11.3-b10", "2026.11.3", "2026.11.4-b1"]
+    keys = [key for key in map(version_key, order) if key]
+    assert len(set(keys)) == len(order) and keys == sorted(keys)
+    assert version_key("1.0") is None and version_key(None) is None
+
+
+def test_a_store_copy_is_taken_over_and_never_taken_back(tmp_path, caplog):
+    # Sensor Watch is in HACS and the Marketplace too (docs/design/
+    # marketplace-mirrors.md): a copy one of them put there is superseded by the app's,
+    # unless it is newer. A component that is the app's alone follows the app back.
+    watch = "casa_mia_sensor_watch"
+    src, config = tmp_path / "src", tmp_path / "config"
+    theirs = config / "custom_components"
+    status = lambda: {r.domain: r.status for r in install_all(src, config)}  # noqa: E731
+    make_component(src, watch, "2026.11.3")
+    make_component(src, "foo", "2026.11.3")
+
+    # The store's copy is older: replaced, and the restart is asked for.
+    make_component(theirs, watch, "2026.11.2", "x = 0\n")
+    assert status()[watch] == "updated"
+    assert (marker(config, watch) or {}).get("from_version") == "2026.11.2"
+
+    # The same version and files, as a store's Update writes after that (it starts
+    # from an empty folder): nothing written, no restart asked for.
+    shutil.rmtree(theirs / watch)
+    make_component(theirs, watch, "2026.11.3")
+    assert status()[watch] == "current"
+    assert marker(config, watch) is None
+
+    # Newer (a store update the app hasn't caught up with): left alone, and said.
+    make_component(theirs, watch, "2026.12.1", "x = 9\n")
+    make_component(theirs, "foo", "2026.12.1", "x = 9\n")
+    assert status() == {watch: "kept", "foo": "updated"}
+    assert (theirs / watch / "mod.py").read_text() == "x = 9\n"
+    assert marker(config, watch) is None
+    assert [r.levelname for r in caplog.records if watch in r.message] == ["WARNING"]
+    [kept] = [r for r in install_all(src, config) if r.domain == watch]
+    assert not kept.changed and kept.version == "2026.12.1"
+
+    # The app's next build is newer than the store's release: written again.
+    make_component(src, watch, "2026.12.2-b1", "x = 10\n")
+    assert status()[watch] == "updated"
 
 
 def test_a_retired_component_is_taken_out(tmp_path, monkeypatch):

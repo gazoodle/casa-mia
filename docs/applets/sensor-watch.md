@@ -175,6 +175,26 @@ the records is left where it was.
 Sensor Watch keeps its records in Home Assistant's own storage, so they are in Home
 Assistant's backups.
 
+### With HACS or the Marketplace
+
+Sensor Watch is also to be published by itself, for HACS and Home Assistant's
+Marketplace, for a house without Casa Mia. It isn't published there yet. It is the same
+integration either way, so the two can meet in one house:
+
+- **Installed from a store first, Casa Mia added later.** The app takes over keeping
+  Sensor Watch up to date. If its copy is newer than the store's, it installs it and a
+  Repair asks for a restart. Your records, entities, history, automations and cards
+  carry on, and there is nothing for you to do.
+- **The store still offers an update.** A store goes by the version it installed
+  itself and doesn't see what the app wrote, so it offers a release the app has
+  already brought. Installing it writes the same files again and loses nothing.
+- **A store's version newer than the app's** is left alone, with a warning in the
+  app's log. The app installs its own again once that is the newer one.
+- **Remove in HACS deletes the integration's files,** even while Sensor Watch is set
+  up. If you remove it there while the Casa Mia app is installed, Sensor Watch stops
+  at the next restart of Home Assistant, until the app starts again and puts the
+  files back. The Marketplace refuses to remove it while it is set up.
+
 ## Worked examples
 
 ### Every mains plug, a panel and a phone call

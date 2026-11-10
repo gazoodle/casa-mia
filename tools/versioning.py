@@ -5,8 +5,9 @@ private builds on the way to one. pyproject.toml is the one source.
   bump     next build: 2026.10.1-b3 -> 2026.10.1-b4; after a release (or the old 0.1.x
            numbers) the first build of the next release, 2026.10.1 -> 2026.10.2-b1, or
            YYYY.M.1-b1 in a new month. Syncs app/config.yaml, adds the changelog heading.
-  release  drop the -bN (the month of the release, if it has moved on) and merge the
-           changelog sections of every build since the last release into one.
+  release  drop the -bN (the month of the release, if it has moved on), merge the
+           changelog sections of every build since the last release into one, and give
+           the release's version to each component changed in those builds.
   notes V  print release V's changelog section (the GitHub release body).
 """
 
@@ -126,8 +127,14 @@ def main() -> int:
         new = next_build(current(), today)
         CHANGELOG.write_text(add_heading(log, new), encoding="utf-8")
     else:
-        new = release_of(current(), today)
+        # Imported here: it needs the venv (casa_mia), which bump and notes don't.
+        import component_versions
+
+        old = current()
+        new = release_of(old, today)
         CHANGELOG.write_text(merge_builds(log, new), encoding="utf-8")
+        for domain in component_versions.restamp(old, new):
+            print(f"{domain}: {new}", file=sys.stderr)
     write(new)
     print(new)
     return 0

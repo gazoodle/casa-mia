@@ -14,8 +14,9 @@ repository ruleset). The release rides on the working branch into that pull requ
      everything main has.
   2. The checks CI runs: ruff, pyright, pytest (the web build and component versions too).
   3. Prepare: `tools/versioning.py release` (2026.10.1-b30 -> 2026.10.1, the builds'
-     changelog sections merged into one), then you review the release notes, editing them
-     if you like; then "Release <version>" is committed on the branch. Abort puts
+     changelog sections merged into one, and each component changed in those builds
+     given the release's version), then you review the release notes, editing them if
+     you like; then "Release <version>" is committed on the branch. Abort puts
      everything back.
   4. Pull request, after your OK: the branch pushed and a pull request into main opened
      (or the open one updated); then it waits for the checks. Nothing is published yet.
@@ -45,7 +46,14 @@ import versioning  # tools/, next to this script
 
 ROOT = Path(__file__).resolve().parents[1]
 VENV = ROOT / ".venv" / "bin"
-RELEASE_FILES = ("pyproject.toml", "app/config.yaml", "app/CHANGELOG.md")
+# What `versioning.py release` writes: committed as the release, put back on an abort.
+RELEASE_FILES = (
+    "pyproject.toml",
+    "app/config.yaml",
+    "app/CHANGELOG.md",
+    "integration/versions.lock.json",
+    "integration/custom_components/*/manifest.json",
+)
 CHECKS = (
     ("Lint", [VENV / "ruff", "check", "."]),
     ("Formatting", [VENV / "ruff", "format", "--check", "."]),
@@ -228,6 +236,8 @@ def prepare(version: str) -> str:
         raise Stop(f"tools/versioning.py release failed:\n{done.stderr.strip()}")
     good(f"pyproject.toml and app/config.yaml say {release}")
     good("the builds' changelog sections merged into one")
+    for path in git("diff", "--name-only", "--", RELEASE_FILES[-1]).splitlines():
+        good(f"component {Path(path).parent.name} is {release} too")
     review(release)
     git("add", "--", *RELEASE_FILES)
     git("commit", "-q", "-m", f"Release {release}")
@@ -254,9 +264,7 @@ def review(release: str) -> None:
             return
         if answer == "a":
             restore()
-            raise Stop(
-                "Aborted: pyproject.toml, app/config.yaml and the changelog put back."
-            )
+            raise Stop("Aborted: the versions and the changelog put back.")
         # nano when there is one (friendlier than a vi from $EDITOR); CM_EDITOR wins
         editor = (
             os.environ.get("CM_EDITOR")

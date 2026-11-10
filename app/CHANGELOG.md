@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.3-b3
+
+- Sensor Watch is never put back to an older version. If HACS or the Marketplace has installed a newer one than this app carries, the app leaves it alone and says so in its log.
+- A release gives its own version to each integration changed in it (`2026.11.3`, not a build's `2026.11.3-b14`).
+
 ## 2026.11.3-b2
 
 - **Breaking:** Sensor Watch is now an integration of its own, **Sensor Watch**, beside Casa Mia's, and the app's **Sensor Watch** option is gone. Restart Home Assistant when the Repairs ask. If you had Sensor Watch switched on, Casa Mia then sets the new integration up for you, with the same device, entities, history and records. If you had it off and want it, add **Sensor Watch** under Settings → Devices & services → Add integration.
