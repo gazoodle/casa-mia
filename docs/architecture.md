@@ -57,7 +57,8 @@ those once, and each piece becomes a **module** that plugs in.
 
 ## Non-goals (for now)
 
-- Publishing to HACS or the official app store.
+- Publishing Casa Mia as a whole to HACS or the official app store. Single features do go
+  out through HACS, Sensor Watch first: see `docs/design/marketplace-mirrors.md`.
 - Replacing Music Assistant, UniFi Protect or other maintained integrations. KNX the same:
   we generate and consume the KNX project and control it through HA, not replace the stack.
 - Supporting installs other than HA OS on one primary box.
@@ -129,6 +130,13 @@ not the job.
 own, `casa_mia_guest_login` and `casa_mia_commander`, so a house can add only what it uses.
 Each depends on `casa_mia` and uses its coordinator (one `/health` poll); Casa Mia offers
 each under Discovered while its module is on (`casa_mia/children.py`).
+
+**Sensor Watch stands alone** (2026.11.3): `casa_mia_sensor_watch` is not a child. It
+runs wholly in Home Assistant, depends on nothing of Casa Mia's and has no option in the
+app, because it is to be published by itself for people who don't run the app. Where both
+are installed they meet only through Home Assistant: a config-flow import that hands an
+older install over, a dispatcher signal for the screenshot swap, and the app's
+`casa_mia_components_installed` event.
 
 **FONA lives in the app** (owns the serial port, reconnect loop with backoff, handles the
 Arduino resetting when the port opens, by-id device path) and exposes sensors and events
@@ -204,11 +212,12 @@ app version (`2026.10.1-b3`) and records a digest of its files; a test fails on 
 since then. So a component's version only moves when its files do: an app update that leaves it
 alone does not ask for a restart, and its number still says which app build it came with.
 
-**Integration delivery is push (no HACS):** on start the app mirrors every bundled
+**Integration delivery is push:** on start the app mirrors every bundled
 component into `/config/custom_components` and writes a marker. Each component's
 `restart_notice.py` raises its own "restart required" Repair only if its loaded version differs
 from the installed one. App and integration also check an API number in `/health` and surface a
-mismatch as a Repair.
+mismatch as a Repair. Sensor Watch is to reach people without the app through HACS as
+well, from a generated mirror repository (`docs/design/marketplace-mirrors.md`).
 
 ## Develop and deploy
 

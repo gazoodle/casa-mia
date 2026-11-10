@@ -6,10 +6,11 @@ import { MODULES } from "../modules";
 import { AreaHead, Shell, Loading } from "../page";
 import { Toasts, type Toast } from "../ui";
 import { About, Start } from "./about";
-import { levelsOf, NO_FILTERS, swApi, type Filters, type Group, type LevelsView, type Profile, type WatchRecord, type WatchView } from "./common";
+import { levelsOf, NO_FILTERS, swApi, type Filters, type Group, type Profile, type WatchRecord, type WatchView } from "./common";
 import { ApplyDialog, PickDialog, ScanDialog } from "./dialogs";
 import { RecordDialog } from "./editor";
 import { GroupsSection } from "./groups";
+import { useLevels } from "./live";
 import { ProfileDialog, ProfilesSection } from "./profiles";
 import { SystemSection } from "./system";
 import { WatchedList } from "./watched";
@@ -22,11 +23,11 @@ import { confirmBox } from "../confirm";
 const { icon, title, blurb } = MODULES.sensor_watch;
 const HEAD = { icon, title, blurb, module: "sensor_watch" };
 
-/** `watch`: an entity whose watch to open (new or not), asked at `at` (the eye in its
- * Home Assistant dialog; open.ts). */
-export function SensorWatchPage({ state, watch, at }: { state?: string; watch?: string; at?: string }) {
+/** Drawn by the panel in Home Assistant's sidebar (panel.tsx). `menu`: opens the sidebar
+ * while Home Assistant hides it (a phone). `watch`: an entity whose watch to open (new
+ * or not), asked at `at` (the eye in its Home Assistant dialog, in the address). */
+export function SensorWatchPage({ menu, watch, at }: { menu?: () => void; watch?: string; at?: string }) {
   const [view, setView] = useState<WatchView>();
-  const [live, setLive] = useState<LevelsView>();
   const [missing, setMissing] = useState<string[]>([]);
   const [editing, setEditing] = useState<{ entityId: string; record?: WatchRecord }>();
   const [picking, setPicking] = useState(false);
@@ -46,10 +47,13 @@ export function SensorWatchPage({ state, watch, at }: { state?: string; watch?: 
     setTimeout(() => setToasts((t) => t.slice(1)), 5000);
   }, []);
 
-  useEffect(() => {
+  // The records, read each time every level arrives: at the start, and again when Sensor
+  // Watch starts after being down or the connection comes back, so the page recovers.
+  const load = useCallback(() => {
     swApi.get<WatchView>("").then(setView, (err) => toast((err as Error).message, "bad"));
     swApi.get<{ missing: string[] }>("check").then((c) => setMissing(c.missing), () => undefined);
   }, [toast]);
+  const live = useLevels(load);
 
   // An entity's watch asked for: open, once the records are here (so a watched one opens
   // as it is), and the ask taken off the address, so a reload doesn't open it again.
@@ -57,34 +61,10 @@ export function SensorWatchPage({ state, watch, at }: { state?: string; watch?: 
   useEffect(() => {
     if (!watch || !loaded) return;
     setEditing({ entityId: watch, record: view?.records.find((r) => r.entity_id === watch) });
-    history.replaceState(null, "", `${location.pathname}#/sensor-watch`); // not against <base>
+    // Home Assistant's address: this page is in an iframe whose own never changes.
+    window.parent.history.replaceState(null, "", window.parent.location.pathname);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per ask, not per view
   }, [watch, at, loaded]);
-
-  // The live levels, pushed: each ask is held by the app until something changes in
-  // Home Assistant (or 25 s pass), then asked again at once.
-  useEffect(() => {
-    let open = true;
-    (async () => {
-      let rev = -1;
-      while (open) {
-        try {
-          const asked = Date.now();
-          const got = await swApi.get<LevelsView>(`levels?after=${rev}`);
-          rev = got.rev;
-          if (open) setLive(got);
-          // Values move many times a second (a mains voltage, a CPU): ask at most once a
-          // second, or the page does nothing but fetch and redraw (Safari hung on it).
-          await new Promise((r) => setTimeout(r, Math.max(0, 1000 - (Date.now() - asked))));
-        } catch {
-          await new Promise((r) => setTimeout(r, 5000));
-        }
-      }
-    })();
-    return () => {
-      open = false;
-    };
-  }, []);
 
   /** Run `action`, show the view it ends with, and say `done` (or what it says of the view). */
   const change = async <V extends WatchView>(action: () => Promise<V>, done: string | ((v: V) => string)) => {
@@ -99,7 +79,19 @@ export function SensorWatchPage({ state, watch, at }: { state?: string; watch?: 
     }
   };
 
-  if (!view) return <Shell {...HEAD} state={state}><Loading toasts={toasts} /></Shell>;
+  const top = menu ? (
+    <button className={`${ui.button} ${ui.small}`} onClick={menu} aria-label="Open Home Assistant's sidebar">
+      ☰ Menu
+    </button>
+  ) : null;
+
+  // No records yet: say why if the feed has (Sensor Watch isn't running), else wait.
+  if (!view)
+    return (
+      <Shell {...HEAD} top={top}>
+        {live?.error ? <div className={guest.warning}>{live.error}</div> : <Loading toasts={toasts} />}
+      </Shell>
+    );
 
   // Watched (not disabled) but no level from the integration yet: unavailable and
   // waiting out its hold-off, or unavailable and set to Ignore. A diagnostic.
@@ -107,7 +99,7 @@ export function SensorWatchPage({ state, watch, at }: { state?: string; watch?: 
   return (
     <Shell
       {...HEAD}
-      state={state}
+      top={top}
       action={
         <span className={css.actions}>
           {levelless > 0 && (
@@ -131,7 +123,7 @@ export function SensorWatchPage({ state, watch, at }: { state?: string; watch?: 
           don't work either. Look in Settings → System → Logs for why it didn't start. You can still set sensors up by hand meanwhile.
         </div>
       )}
-      {view.error && <div className={guest.warning}>sensor-watch.json could not be read ({view.error}), so nothing is watched. Fix or remove the file.</div>}
+      {view.error && <div className={guest.warning}>The saved records could not be read ({view.error}), so nothing is watched.</div>}
       {live?.error && <div className={guest.warning}>{live.error}</div>}
       <About empty={!view.records.length} />
       <section className={guest.area} ref={watchedRef}>

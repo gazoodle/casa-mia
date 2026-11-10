@@ -1,12 +1,9 @@
-"""Sensor Watch's admin API in the app, against a stand-in Home Assistant."""
+"""The Sensor Watch page's routes, against a stand-in Home Assistant."""
 
 from pathlib import Path
 
 import pytest
 
-from casa_mia.modules.sensor_watch import scans as watch_scans
-from casa_mia.modules.sensor_watch import suggest
-from casa_mia.modules.sensor_watch.common import clean
 from sensor_watch_fakes import (
     ENTITIES,
     SALT,
@@ -15,8 +12,16 @@ from sensor_watch_fakes import (
     NoHistoryHA,
     _state,
     call,
+    common,
+    history,
     make,
+    records,
+    store,
+    suggest,
 )
+from sensor_watch_fakes import scans as watch_scans
+
+clean = common.clean
 
 
 @pytest.fixture
@@ -49,23 +54,46 @@ def test_candidates_and_their_filters(watch):
         ] == expect
 
 
-def test_save_view_delete_and_tell_the_integration(tmp_path):
+def test_save_view_delete_and_tell_the_watcher(tmp_path):
     watch = make(tmp_path / "sw.json", FakeHA(STATES, ENTITIES))
     status, view = call(watch, "PUT", "sensor.salt", body=SALT)
     assert status == 200 and view["records"][0]["label"] == "Salt"
-    # Pushed to the integration (live.py, once connected): the record changed.
-    assert watch.live and watch.live._pending == {"sensor.salt"}
-    assert watch.for_integration()["records"][0]["entity_id"] == "sensor.salt"
-    # /health stays small at any size: a revision the integration fetches the records by
-    assert "records" not in watch.health()
-    assert watch.health()["revision"] == watch.for_integration()["revision"]
-    before = watch.health()["revision"]
+    # The watcher is told which record changed, and is given it.
+    assert watch.told == [{"sensor.salt"}]
+    out = watch.outgoing({"sensor.salt"})
+    assert out["records"][0]["entity_id"] == "sensor.salt" and not out["whole"]
     again = make(tmp_path / "sw.json", None)
     assert list(again.records) == ["sensor.salt"]
     assert call(watch, "PUT", "sensor.salt", body=SALT | {"bands": []})[0] == 400
     assert call(watch, "DELETE", "sensor.salt")[1]["records"] == []
-    assert watch.health()["revision"] != before
+    assert watch.told == [{"sensor.salt"}] * 2  # the refused save told it nothing
+    gone = watch.outgoing({"sensor.salt"})
+    assert gone["records"] == [] and gone["removed"] == ["sensor.salt"]
     assert call(watch, "DELETE", "sensor.salt")[0] == 404
+
+
+def test_the_watcher_merges_what_it_is_given(tmp_path):
+    merged = store.merged
+    watch = make(tmp_path / "sw.json", FakeHA(STATES, ENTITIES))
+    for eid in ("sensor.salt", "sensor.temp_00"):
+        call(watch, "PUT", eid, body=SALT)
+    have = merged({"sensor.old": {"entity_id": "sensor.old"}}, watch.outgoing(None))
+    assert sorted(have) == ["sensor.salt", "sensor.temp_00"]  # every record: as sent
+    call(watch, "PUT", "sensor.salt", body=SALT | {"disabled": True})
+    call(watch, "PUT", "sensor.temp_01", body=SALT)
+    change = watch.outgoing({"sensor.salt", "sensor.temp_01"})
+    # A disabled record is kept, but not watched; the others stay as they were.
+    assert sorted(merged(have, change)) == ["sensor.temp_00", "sensor.temp_01"]
+
+
+def test_a_save_that_fails_is_refused_and_said(tmp_path):
+    def full(_data):
+        raise OSError("No space left on device")
+
+    watch = records.SensorWatch(None, FakeHA(STATES, ENTITIES), full)
+    with pytest.raises(OSError, match="No space"):
+        call(watch, "PUT", "sensor.salt", body=SALT)
+    assert watch.records == {}  # not taken up either
 
 
 def test_its_own_entities_are_refused_however_they_come(tmp_path):
@@ -130,49 +158,6 @@ def test_the_whole_house_scans_in_rounds(watch, monkeypatch):
     assert status == 200 and len(view["records"]) == 4
 
 
-def test_levels_come_from_the_integrations_service(tmp_path):
-    rows = [{"entity_id": "sensor.salt", "level": "task", "value": "20"}]
-    watch = make(
-        tmp_path / "sw.json",
-        FakeHA(STATES, ENTITIES, {"worst": "task", "sensors": rows}),
-    )
-    live = watch.live
-    assert live is not None
-    live._refresh()  # as on connecting, or when the integration's entities write
-    got = call(watch, "GET", "levels")[1]
-    assert got["levels"] == {"sensor.salt": rows[0]} and got["error"] is None
-    # A value pushed by subscribe_entities moves the revision the page waits on.
-    live._own = {"sensor.status": "sensor_watch_status"}
-    live._heard({"c": {"sensor.salt": {"+": {"s": "19"}}}})
-    now = live.wait(got["rev"], 0.01)
-    assert now["rev"] != got["rev"] and now["levels"]["sensor.salt"]["value"] == "19"
-    assert (
-        live.wait(now["rev"], 0.01)["rev"] == now["rev"]
-    )  # nothing new: held, then as is
-    # The integration's status, as pushed: the Home tile's health.
-    live._heard({"a": {"sensor.status": {"s": "task", "a": {}}}})
-    assert watch.health()["health"] == "task"
-    # A change of level, as the integration fires it: that row at once, no asking.
-    before = live.snapshot()["rev"]
-    data = {
-        "entity_id": "sensor.salt",
-        "level": "critical",
-        "value": "5",
-        "message": "Out",
-    }
-    live._moved({"data": data, "time_fired": "2026-10-11T12:00:00+00:00"})
-    row = live.wait(before, 0.01)["levels"]["sensor.salt"]
-    assert (row["level"], row["message"], row["since"]) == (
-        "critical",
-        "Out",
-        "2026-10-11T12:00:00+00:00",
-    )
-    absent = make(tmp_path / "sw2.json", FakeHA(STATES, ENTITIES))
-    assert absent.live is not None
-    absent.live._refresh()
-    assert "Restart Home Assistant" in call(absent, "GET", "levels")[1]["error"]
-
-
 def test_without_history_the_editor_still_gets_a_record_and_scans_go_on(tmp_path):
     watch = make(tmp_path / "sw.json", NoHistoryHA(STATES, ENTITIES))
     status, leak = call(watch, "GET", "suggest", {"entity": ["binary_sensor.leak"]})
@@ -188,12 +173,12 @@ def test_without_history_the_editor_still_gets_a_record_and_scans_go_on(tmp_path
     assert any(f["sensor"]["entity_id"] == "sensor.salt" for f in scan["found"])
 
 
-def test_check_shouts_when_recorder_or_history_is_not_running(tmp_path):
+def test_check_shouts_when_the_recorder_is_not_running(tmp_path):
     ha = FakeHA(STATES, ENTITIES)
     watch = make(tmp_path / "sw.json", ha)
     assert call(watch, "GET", "check")[1] == {"missing": [], "error": None}
     ha.components = ["sensor"]
-    assert call(watch, "GET", "check")[1]["missing"] == ["Recorder", "History"]
+    assert call(watch, "GET", "check")[1]["missing"] == ["Recorder"]
 
 
 @pytest.mark.parametrize("name", ["Tank - Top", "Top of tank", "Topup Tank"])
@@ -233,44 +218,6 @@ def test_states_suggestion_and_a_number_watched_as_exact_states(watch):
     )
 
 
-def test_overall_health_for_the_home_tile(tmp_path):
-    # From the integration's own entities as pushed (their translation keys): the
-    # status's level and the first of its culprits (longest standing), the counts.
-    from casa_mia.modules.sensor_watch.status import MISSING, summarise
-
-    culprits = [
-        {"entity_id": "homeassistant.recorder", "name": "Recorder", "value": "x"},
-        {"entity_id": "sensor.salt", "name": "Salt", "message": "not running"},
-    ]
-    own = {
-        "sensor_watch_status": {"s": "critical", "a": {"critical_list": culprits}},
-        "sensor_watch_critical_count": {"s": "1"},
-        "sensor_watch_task_count": {"s": "2"},
-        "sensor_watch_error_count": {"s": "0"},
-        "sensor_watch_warning_count": {"s": "unavailable"},
-    }
-    assert summarise(own) == {
-        "health": "critical",
-        "counts": {"critical": 1, "task": 2},
-        "worst": "Recorder: x",
-        "problem": None,
-    }
-    assert summarise({"sensor_watch_status": {"s": "nominal", "a": {}}}) == {
-        "health": "nominal",
-        "counts": {},
-        "worst": None,
-        "problem": None,
-    }
-    # No status entity: Sensor Watch isn't running in the integration.
-    assert summarise({})["problem"] == MISSING
-    watch = make(tmp_path / "sw.json", FakeHA(STATES, ENTITIES))
-    watch.status.heard(own)
-    assert watch.health()["health"] == "critical"
-    assert watch.health()["worst"] == "Recorder: x"
-    watch.status.poll()  # no list service: says why
-    assert watch.health()["problem"] == MISSING and watch.health()["health"] is None
-
-
 def test_floor_manufacturer_model_and_category_filter():
     watch = make(Path("/nonexistent/sw.json"), FakeHA(STATES, ENTITIES))
     _, got = call(watch, "GET", "candidates")
@@ -302,9 +249,8 @@ def test_the_device_filter_narrows_with_the_others():
     assert binary["options"]["devices"] == []  # no binary sensor on a device
 
 
-def test_settings_for_home_assistants_own_health_reach_the_integration(tmp_path):
+def test_settings_for_home_assistants_own_health_reach_the_watcher(tmp_path):
     watch = make(tmp_path / "sw.json", FakeHA(STATES, ENTITIES))
-    before = watch.health()["revision"]
     status, view = call(
         watch,
         "POST",
@@ -314,8 +260,8 @@ def test_settings_for_home_assistants_own_health_reach_the_integration(tmp_path)
     assert status == 200 and view["system"]["ignore"] == {
         "abc123": "Barn blinds (acme_hub)"
     }
-    assert watch.for_integration()["system"]["ignore"] == ["abc123"]
-    assert watch.health()["revision"] != before  # so the integration fetches it
+    assert watch.told == [set()]  # no record changed: the settings go with any telling
+    assert watch.outgoing(set())["system"]["ignore"] == ["abc123"]
     assert (
         call(watch, "PUT", "system", body={"integrations": False})[1]["system"][
             "integrations"
@@ -455,46 +401,19 @@ def test_an_attribute_is_watched_by_its_own_history(tmp_path):
     assert status == 400 and "no attribute" in err["error"]
 
 
-def test_the_live_feed_takes_the_watched_attribute():
-    from casa_mia.modules.sensor_watch.live import _value
-
-    assert _value({"s": "heat", "a": {"current_temperature": 21.5}}, None) == "heat"
-    assert (
-        _value({"s": "heat", "a": {"current_temperature": 21.5}}, "current_temperature")
-        == "21.5"
-    )
-    assert _value({"a": {"hvac_action": "idle"}}, "current_temperature") is None
-    assert _value({"s": "unavailable"}, "current_temperature") == "unavailable"
-
-
-def test_the_levels_are_asked_again_once_the_integration_takes_the_records(watch):
-    assert watch.live and watch.live._due is None
-    watch.for_integration()  # its start (after HA's restart), or a change
-    assert watch.live._due is not None
-
-
 def test_a_machine_just_booted_still_reads_the_candidates(monkeypatch):
     # time.monotonic() counts from boot: a minute in, a cache stamped 0 looked fresh
     # (the 2026.10.8 release run failed on a runner booted moments before).
-    from casa_mia.modules.sensor_watch import history
-
     monkeypatch.setattr(history.time, "monotonic", lambda: 5.0)
     watch = make(Path("/nonexistent/sw.json"), FakeHA(STATES, ENTITIES))
     _, got = call(watch, "GET", "candidates")
     assert got["total"] > 0
 
 
-def test_refresh_state_asks_the_integration_and_the_levels_again(tmp_path):
-    ha = FakeHA(STATES, ENTITIES, {})  # its services answer
-    watch = make(tmp_path / "sw.json", ha)
-    status, _ = call(watch, "POST", "refresh")
-    assert status == 200
-    asked = [c for c in ha.asked if c["type"] == "call_service"]
-    assert (asked[-1]["domain"], asked[-1]["service"]) == (
-        "casa_mia",
-        "sensor_watch_refresh",
+def test_refresh_state_has_the_watcher_judge_every_watch_afresh(tmp_path):
+    asked = []
+    watch = make(
+        tmp_path / "sw.json", FakeHA(STATES, ENTITIES), afresh=lambda: asked.append(1)
     )
-    assert watch.live and watch.live._due is not None  # the levels asked again soon
-    absent = make(tmp_path / "sw2.json", FakeHA(STATES, ENTITIES))  # no service yet
-    status, err = call(absent, "POST", "refresh")
-    assert status == 400 and "restart" in err["error"]
+    status, _ = call(watch, "POST", "refresh")
+    assert status == 200 and asked == [1]

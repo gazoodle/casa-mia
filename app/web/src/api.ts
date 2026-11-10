@@ -218,3 +218,7 @@ export type EverywhereRun = {
   total: number;
   results: { name: string; ok: boolean; error: string | null }[];
 };
+
+// The house photo's routes. Here, not in photo.tsx, so a page that only names the house
+// (page.tsx's Shell, and with it Sensor Watch's panel) doesn't bundle the photo itself.
+export const photoApi = api("header");

@@ -3,14 +3,20 @@ bands, on/off, exact states, the summary, and Home Assistant's own health."""
 
 import pytest
 
-from casa_mia.modules.sensor_watch import LEVELS
-from casa_mia.modules.sensor_watch.common import (
-    BadRequest,
-    clean,
-    displayed,
-    precision_of,
+from sensor_watch_fakes import (
+    ALARM,
+    SALT,
+    _entry,
+    _now,
+    common,
+    levels,
+    profiles,
+    records,
 )
-from sensor_watch_fakes import ALARM, SALT, _entry, _now, levels
+
+LEVELS = records.LEVELS
+BadRequest, clean = common.BadRequest, common.clean
+displayed, precision_of = common.displayed, common.precision_of
 
 
 def test_app_and_integration_agree_on_the_levels():
@@ -385,8 +391,6 @@ def test_accuracy_is_checked_and_kept_for_numbers_only():
 
 
 def test_a_band_narrower_than_the_accuracy_is_stepped_through_not_skipped():
-    from casa_mia.modules.sensor_watch import profiles
-
     us = next(p for p in profiles.library() if p["name"].startswith("US mains"))
     assert us["accuracy"] == {"amount": 1, "percent": True}
     # 126-127 V is the warning; 127.5 V is surely past 126 V, not surely past 127 V.
@@ -475,14 +479,14 @@ def test_each_device_trigger_is_named_and_matches_what_the_event_carries():
         Path(__file__).resolve().parents[1]
         / "integration"
         / "custom_components"
-        / "casa_mia"
+        / "casa_mia_sensor_watch"
     )
     names = json.loads((root / "translations" / "en.json").read_text())[
         "device_automation"
     ]
     assert set(names["trigger_type"]) == set(levels.TRIGGERS)
     assert set(names["extra_fields"]) == {"level", "group"}
-    fire = (root / "sensor_watch" / "watch.py").read_text().split("def _fire(", 1)[1]
+    fire = (root / "watch.py").read_text().split("def _fire(", 1)[1]
     fired = set(
         re.findall(r'^\s+"(\w+)":', fire.split("\n    def ", 1)[0], re.MULTILINE)
     )

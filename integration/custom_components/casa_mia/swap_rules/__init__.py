@@ -2,7 +2,8 @@
 /health's swap stamp moves (a save on the Swap page fires casa_mia_settings_changed, so at
 once). The draft the Swap page is writing is pushed by the app (casa_mia/swap/draft).
 Every browser is told of both (casa_mia/swap/subscribe, any user), and cm-cards.js swaps
-the page's text. Sensor Watch swaps what it shows by the same rules (`Swap.rule`).
+the page's text. Sensor Watch, an integration of its own, swaps what it shows by the same
+rule: it is sent the rule by dispatcher signal (RULE), at each change and when it asks.
 
 One Swap per Home Assistant run (hass.data), not per entry, so a browser's subscription
 outlives an entry reload. engine.py is the app's own (app/src/casa_mia/swap/engine.py),
@@ -19,6 +20,10 @@ import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.dispatcher import (
+    async_dispatcher_connect,
+    async_dispatcher_send,
+)
 from homeassistant.helpers.event import async_call_later
 
 from ..const import DOMAIN
@@ -28,6 +33,11 @@ from . import engine
 _LOGGER = logging.getLogger(__name__)
 
 DATA = f"{DOMAIN}_swap"
+# Sensor Watch's end is its const.SWAP and SWAP_ASK: RULE carries `Swap.rule` (a
+# function, so a signal, not a bus event) whenever anything of the swap changes, and
+# when RULE_ASK is sent.
+RULE = f"{DOMAIN}_swap"
+RULE_ASK = f"{DOMAIN}_swap_ask"
 # A draft is a lease: the page renews it while its dialog is open, so a closed tab
 # can't leave a preview on every screen for ever.
 DRAFT_LEASE = 60
@@ -105,6 +115,13 @@ def swap_of(hass: HomeAssistant) -> Swap:
         swap = hass.data[DATA] = Swap(hass)
         websocket_api.async_register_command(hass, _ws_subscribe)
         websocket_api.async_register_command(hass, _ws_draft)
+
+        @callback
+        def tell() -> None:
+            async_dispatcher_send(hass, RULE, swap.rule)
+
+        swap.listen(tell)
+        async_dispatcher_connect(hass, RULE_ASK, tell)
     return swap
 
 

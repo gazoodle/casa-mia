@@ -21,7 +21,7 @@ def test_a_group_watches_what_matches_with_its_profile(tmp_path):
     assert view["groups"][0]["members"] == 5
     temps = [r for r in view["records"] if r["entity_id"].startswith("sensor.temp_")]
     assert len(temps) == 5 and all(r["profile"] == pid for r in temps)
-    sent = watch.for_integration()["records"]
+    sent = watch.outgoing(None)["records"]
     assert {r["group"] for r in sent} == {
         "Temperatures"
     }  # the list service filters by it
@@ -157,10 +157,8 @@ def test_a_disabled_member_is_kept_but_not_watched(tmp_path):
     r = next(r for r in view["records"] if r["entity_id"] == "sensor.temp_02")
     assert r["disabled"] and r["group"] and r["profile"] == pid  # kept, with its group
     assert view["groups"][0]["members"] == 4  # not counted
-    sent = {r["entity_id"] for r in watch.for_integration()["records"]}
+    sent = {r["entity_id"] for r in watch.outgoing(None)["records"]}
     assert "sensor.temp_02" not in sent and len(sent) == 4  # not watched
     assert watch.sync() == 0  # nor pulled back in by the group
     call(watch, "PUT", "sensor.temp_02", body=body | {"disabled": False})
-    assert "sensor.temp_02" in {
-        r["entity_id"] for r in watch.for_integration()["records"]
-    }
+    assert "sensor.temp_02" in {r["entity_id"] for r in watch.outgoing(None)["records"]}

@@ -9,6 +9,10 @@ the component really changed, not on every app update.
 
     tools/component_versions.py            check (also run by pytest)
     tools/component_versions.py --update   stamp changed components with the app version, record
+
+At a release, `tools/versioning.py release` calls `restamp`: a component stamped with one of
+that release's builds takes the release's own version (2026.11.3-b14 -> 2026.11.3), because a
+published component's version must be its release's tag (docs/design/marketplace-mirrors.md).
 """
 
 from __future__ import annotations
@@ -20,7 +24,7 @@ import re
 import tomllib
 from pathlib import Path
 
-from casa_mia.components import is_ignored, manifest_version
+from casa_mia.components import is_ignored, manifest_version, version_key
 
 ROOT = Path(__file__).resolve().parents[1]
 COMPONENTS = ROOT / "integration" / "custom_components"
@@ -46,6 +50,35 @@ def current() -> dict[str, dict[str, str | None]]:
         for p in sorted(COMPONENTS.iterdir())
         if (p / "manifest.json").is_file()
     }
+
+
+def stamp(domain: str, version: str) -> None:
+    manifest = COMPONENTS / domain / "manifest.json"
+    manifest.write_bytes(
+        _VERSION_RE.sub(
+            rb'\1"' + version.encode() + b'"', manifest.read_bytes(), count=1
+        )
+    )
+
+
+def record() -> None:
+    LOCK.write_text(json.dumps(current(), indent=2, sort_keys=True) + "\n")
+
+
+def restamp(builds_of: str, release: str) -> list[str]:
+    """Give `release` as the version of each component last changed in one of its builds
+    (`builds_of` is the app's version before the release: 2026.11.3-b14), and record
+    it. A component last changed in an earlier release keeps that version. Returns the
+    components restamped."""
+    this = (version_key(builds_of) or ())[:3]
+    done = []
+    for domain, entry in current().items():
+        key = version_key(entry["version"])
+        if key and key[:3] == this and not key[3]:
+            stamp(domain, release)
+            done.append(domain)
+    record()
+    return done
 
 
 def problems(
@@ -80,15 +113,9 @@ def main() -> int:
             if (old is None or old["digest"] != entry["digest"]) and entry[
                 "version"
             ] != app:
-                manifest = COMPONENTS / domain / "manifest.json"
-                manifest.write_bytes(
-                    _VERSION_RE.sub(
-                        rb'\1"' + app.encode() + b'"', manifest.read_bytes(), count=1
-                    )
-                )
-                entry["version"] = app
+                stamp(domain, app)
                 print(f"{domain}: {old and old['version']} -> {app}")
-        LOCK.write_text(json.dumps(now, indent=2, sort_keys=True) + "\n")
+        record()
         return 0
     found = problems(now, lock)
     print("\n".join(found))

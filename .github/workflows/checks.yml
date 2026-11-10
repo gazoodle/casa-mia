@@ -35,6 +35,23 @@ jobs:
             types) .venv/bin/pyright ;;
             tests) .venv/bin/pytest ;;
           esac
+  home-assistant:
+    name: Python / tests in Home Assistant
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+      - uses: actions/setup-python@v7
+        with:
+          # 3.11 for tools/setup's own venv; 3.14 is the Python Home Assistant needs,
+          # which makes tools/setup build .venv-ha as well.
+          python-version: |
+            3.11
+            3.14
+          cache: pip
+      - run: bash tools/setup
+      - run: .venv-ha/bin/pytest tests_ha
   frontend:
     name: Frontend
     runs-on: ubuntu-latest

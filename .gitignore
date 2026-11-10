@@ -1,5 +1,6 @@
 .tokensave/
 .venv/
+.venv-ha/
 __pycache__/
 *.egg-info/
 .pytest_cache/

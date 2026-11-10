@@ -1,5 +1,5 @@
 """The integrations that hang off Casa Mia: Casa Mia Guest Login, Casa Mia Camera
-Commander, Casa Mia Intercom and Casa Mia Protect Talkback (Sensor Watch was one until 2026.10.10-b3; it's part of Casa Mia now). Each sets up only beside a Casa Mia entry and uses
+Commander, Casa Mia Intercom and Casa Mia Protect Talkback (Sensor Watch is an integration of its own, which needs no Casa Mia: sensor_watch.py). Each sets up only beside a Casa Mia entry and uses
 its coordinator (one /health poll for them all); each comes and goes with its module in the app; Casa Mia
 offers each under Discovered while its module is on and it is not set up."""
 

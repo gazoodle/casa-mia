@@ -2,10 +2,12 @@
 """Guard the committed frontend builds against stale source.
 
 Two builds are committed so nothing on the box needs Node: the admin UI (app/web into
-app/src/casa_mia/web, by tools/build_web) and the Lovelace cards (integration/cards into
-the integration's www/cm-cards.js, by tools/build_cards). Each build stores a hash of its
+app/src/casa_mia/web, and Sensor Watch's panel from the same sources into the
+casa_mia_sensor_watch/www, by tools/build_web) and the Lovelace cards (integration/cards
+into casa_mia's www/cm-cards.js and casa_mia_sensor_watch's www/cards.js, by
+tools/build_cards). Each build stores a hash of its
 sources (node_modules aside; both also read SHARED: the layout options, the WebRTC
-player, the pills and chips, and the eye's note); a mismatch means the sources changed
+player, and the pills and chips); a mismatch means the sources changed
 without a rebuild.
 
     web_hash.py                  check both (exit 1 on a mismatch)
@@ -25,7 +27,6 @@ SHARED = (
     LAYOUT,
     ROOT / "app" / "web" / "src" / "webrtc.ts",
     ROOT / "app" / "web" / "src" / "pills.css",  # the pills and chips, both builds
-    ROOT / "app" / "web" / "src" / "open.ts",  # a route left for the page by the eye
 )
 # name -> (its source folder, where its hash is stored, the tool that builds it)
 BUILDS = {

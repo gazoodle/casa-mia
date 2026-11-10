@@ -3,13 +3,13 @@
  * reaches the app until Save, the photo included, so Cancel undoes everything. */
 
 import { useState } from "react";
-import { api, type Frame, type HeaderView } from "./api";
+import { photoApi, type Frame, type HeaderView } from "./api";
 import bundled from "./assets/header.jpg";
 import css from "./app.module.css";
 import ui from "./ui.module.css";
 import { Slider } from "./controls";
 
-export const photoApi = api("header");
+export { photoApi };
 
 /** The settings being edited, plus a photo picked but not yet saved: a new file (shown
  * from the browser's memory), or "original" to go back to the bundled one. */

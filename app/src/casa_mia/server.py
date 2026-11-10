@@ -139,7 +139,12 @@ class Handler(BaseHTTPRequestHandler):
         url = urllib.parse.urlparse(self.path)
         read = self.server.reads.get(url.path)  # type: ignore[attr-defined]
         if read is not None:
-            body = json.dumps(read(urllib.parse.parse_qs(url.query))).encode()
+            try:
+                body = json.dumps(read(urllib.parse.parse_qs(url.query))).encode()
+            except Exception as exc:  # said to the integration, never an empty answer
+                _LOGGER.exception("integration: GET %s failed", url.path)
+                self.send_error(500, f"{type(exc).__name__}: {exc}")
+                return
             _LOGGER.debug("integration: GET %s -> %d bytes", self.path, len(body))
             self.send_response(200)
             self.send_header("Content-Type", "application/json")

@@ -55,7 +55,7 @@ conditions and conditional cards, and needs the Casa Mia integration.
 | Camera picture helpers | Stops supported streams on hidden pages and restarts them when shown. | [Settings → Dashboard helpers](applets/settings.md#dashboard-helpers), **Keep camera pictures live**. |
 | Garnish | Adds the sprig in HA's section editor and changes section visibility so headings and other garnish cannot hold an otherwise empty section open. | [Garnish](tablet-layout.md#showing-and-hiding); **Enable garnish on all section dashboards** in Settings extends it beyond Tablet Layouts. |
 | Tablet Layout and Over layer | Use HA's Sections view, card wrappers and editors to fit panels to the screen and show conditional content over a dashboard. | [Tablet Layout](tablet-layout.md) and [Over layer](over-layer.md). |
-| Sensor Watch | Adds the eye to HA's entity dialog and colours the Status sensor's icon according to its level. | [Sensor Watch](applets/sensor-watch.md). These additions come with the module. |
+| Sensor Watch | Adds the eye to HA's entity dialog and colours the Status sensor's icon according to its level. | [Sensor Watch](applets/sensor-watch.md). These additions come with its integration. |
 | UniFi Protect talkback | Adds talk sources to HA's managed go2rtc configuration and makes selected Protect cameras advertise two-way audio. | [UniFi Protect talkback](applets/protect-talkback.md). Enable the module, then choose cameras in its integration's options. |
 
 The eye and icon colour are the Sensor Watch augmentations covered here; its monitoring,

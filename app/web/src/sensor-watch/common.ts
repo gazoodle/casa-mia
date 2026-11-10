@@ -1,12 +1,10 @@
 /** Sensor Watch's types, API and level helpers, shared by its page and dialogs. */
 
-import { api } from "../api";
 import type { MouseEvent } from "react";
 import type { Level } from "./ladder";
 
+export { swApi } from "./ha";
 export { LEVELS, LEVEL_NAMES, type Level } from "./ladder";
-
-export const swApi = api("sensor-watch");
 
 /** One state of an on/off watch: its level and message. */
 export type Side = { level: Level; message: string };
@@ -29,7 +27,7 @@ export const opens = (edit: () => void) => (e: MouseEvent) => {
 
 export const margin = (edge: number, a?: Accuracy) => (!a ? 0 : a.percent ? (Math.abs(edge) * a.amount) / 100 : a.amount);
 
-/** A watched sensor's record, as the app keeps it (app/.../sensor_watch/common.py). */
+/** A watched sensor's record, as the integration keeps it (sensor_watch/records/common.py). */
 export type WatchRecord = {
   entity_id: string;
   kind: "numeric" | "binary" | "state" | "available";
@@ -93,7 +91,7 @@ export type WatchRecord = {
  * integrations, and those ignored (entry id -> its name). */
 export type SystemSettings = { core: boolean; integrations: boolean; ignore: Record<string, string> };
 
-/** A named set of levels many sensors follow (app/.../sensor_watch/profiles.py). */
+/** A named set of levels many sensors follow (sensor_watch/records/profiles.py). */
 export type Profile = Omit<WatchRecord, "entity_id" | "label" | "meta" | "profile"> & { id: string; followers: number };
 
 /** What a sensor of each kind may follow (profiles.py FITS). */
@@ -133,11 +131,35 @@ export type WatchView = {
   error: string | null;
 };
 
-/** A sensor's level now, from the integration. */
-/** A sensor's level now; escalated (a ladder's step), also the level its reading gives (`real`), since `since`. */
-export type Live = { entity_id: string; level: Level; value: string | null; message: string | null; since: string; name: string; real?: Level; escalated?: boolean };
-/** `rev`: the app's revision of the levels; asked with ?after=rev, it answers when they change. */
-export type LevelsView = { levels: Record<string, Live>; error: string | null; rev: number };
+/** A sensor's level now; escalated (a ladder's step), also the level its reading gives
+ * (`real`), since `since`. `precision`: the decimals Home Assistant shows its value to. */
+export type Live = {
+  entity_id: string;
+  level: Level;
+  value: string | null;
+  precision?: number | null;
+  /** The attribute watched instead of the state; a reminder (its value: the days left). */
+  attribute?: string;
+  days_until?: boolean;
+  message: string | null;
+  since: string;
+  name: string;
+  real?: Level;
+  escalated?: boolean;
+};
+/** Every watch's level, as the levels feed keeps it; `error`: why there are none (Sensor
+ * Watch isn't running, the connection is lost). */
+export type LevelsView = { levels: Record<string, Live>; error: string | null };
+/** The levels feed's event: every level (`whole`), or the rows that moved and went. */
+export type LevelsEvent = { whole: boolean; levels: Record<string, Live>; removed: string[] };
+
+/** A reading as Home Assistant shows it: a number to the entity's display precision
+ * when it has one, anything else as it is (the integration's levels.displayed). */
+export function displayed(value: string, precision?: number | null): string {
+  if (precision == null || value.trim() === "") return value;
+  const n = Number(value);
+  return Number.isNaN(n) ? value : n.toFixed(precision);
+}
 
 export type Candidate = {
   entity_id: string;

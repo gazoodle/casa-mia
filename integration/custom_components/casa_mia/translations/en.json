@@ -46,9 +46,8 @@
       "fona_call": { "name": "Call", "state_attributes": { "event_type": { "state": { "authorised": "Authorised", "intrusion": "Intrusion" } } } },
       "fona_text": { "name": "Text", "state_attributes": { "event_type": { "state": { "authorised": "Authorised", "intrusion": "Intrusion" } } } }
     },
-    "binary_sensor": { "gitproxy_downloading": { "name": "Downloading firmware" }, "swap": { "name": "Swap" }, "sensor_watch_problem": { "name": "Problem" } },
+    "binary_sensor": { "gitproxy_downloading": { "name": "Downloading firmware" }, "swap": { "name": "Swap" } },
     "button": {
-      "sensor_watch_refresh": { "name": "Refresh state" },
       "gitproxy_check": { "name": "Force firmware check" },
       "fona_reset": { "name": "Reset" },
       "compositor_restart": { "name": "Restart" },
@@ -56,14 +55,6 @@
       "compositor_gatherer_restart": { "name": "Restart gatherer" }
     },
     "sensor": {
-      "sensor_watch_status": {
-        "name": "Status",
-        "state": { "nominal": "Nominal", "task": "Task", "warning": "Warning", "error": "Error", "critical": "Critical" }
-      },
-      "sensor_watch_task_count": { "name": "Tasks" },
-      "sensor_watch_warning_count": { "name": "Warnings" },
-      "sensor_watch_error_count": { "name": "Errors" },
-      "sensor_watch_critical_count": { "name": "Critical" },
       "app_version": { "name": "App version" },
       "fona_state": {
         "name": "State",
@@ -114,20 +105,20 @@
     "api_mismatch": {
       "title": "Casa Mia app and integration disagree",
       "description": "The app speaks API {app_api} but this integration expects API {expected_api}. Update the app and the integration together."
+    },
+    "sensor_watch_import": {
+      "title": "Sensor Watch is not running: it could not be handed over to its own integration",
+      "description": "Sensor Watch is now an integration of its own, and Casa Mia sets it up for you, with its records, devices and entities as they were. It could not: {reason}. Nothing is watched until it can. Your records are kept. Reload the Casa Mia integration to try again."
     }
   },
   "services": {
     "sensor_watch_refresh": {
-      "name": "Sensor Watch refresh state",
-      "description": "Fetch the watches from the app again and judge every one afresh, as at the start. For when a level looks stuck."
+      "name": "Sensor Watch refresh state (old name)",
+      "description": "Now casa_mia_sensor_watch.refresh, which this passes on to. Change it where it is called: this name will be removed."
     },
     "sensor_watch_list": {
-      "name": "Sensor Watch list",
-      "description": "Every watched entity at the chosen levels, worst first, then longest standing: its level, value, message and since when. Use it with a response variable, and loop over `sensors` in a template.",
-      "fields": {
-        "levels": { "name": "Levels", "description": "Which levels to list. Leave empty for everything that isn't nominal." },
-        "group": { "name": "Group", "description": "Only the members of this group (as named on Casa Mia's Sensor Watch page), and its own worst level. Leave empty for every watched entity." }
-      }
+      "name": "Sensor Watch list (old name)",
+      "description": "Now casa_mia_sensor_watch.list, which this passes on to with the same fields and answer. Change it where it is called: this name will be removed."
     },
     "send_sms": {
       "name": "Send text",
@@ -144,13 +135,5 @@
         "plate": { "name": "Number plate", "description": "The plate as the camera read it. Spaces and dashes don't matter, and O and 0, I and 1, and S and 5 are taken as the same." }
       }
     }
-  },
-  "device_automation": {
-    "trigger_type": {
-      "reached": "A watched sensor reached a level, or worse",
-      "escalated": "A watched sensor escalated",
-      "back": "A watched sensor is back to nominal"
-    },
-    "extra_fields": { "level": "Level", "group": "Only this group" }
   }
 }

@@ -9,7 +9,7 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-COMPONENT = ROOT / "integration" / "custom_components" / "casa_mia" / "sensor_watch"
+COMPONENT = ROOT / "integration" / "custom_components" / "casa_mia_sensor_watch"
 
 
 class _Loader(yaml.SafeLoader):
@@ -102,8 +102,9 @@ def test_its_dropdowns_offer_the_groups_and_notify_actions():
 
 
 def test_every_level_has_its_phone_style_and_titles_are_words():
-    from casa_mia.modules.sensor_watch import LEVELS
+    from sensor_watch_fakes import records
 
+    LEVELS = records.LEVELS
     text = (COMPONENT / "blueprints" / "notify.yaml").read_text()
     bp = yaml.load(text, _Loader)  # noqa: S506 (our own loader, SafeLoader based)
     styles = bp["variables"]["styles"]

@@ -99,10 +99,13 @@ and the stream stalled without reporting one (`docs/never-silently-stuck.md`).
   rules and timings are in `tests/README.md`: camera teardown through `stop_compositor`,
   HTTP servers through the `serve` fixture. `tokensave_affected` finds the files to run
   while iterating.
+- **Tests inside a real Home Assistant:** `.venv-ha/bin/pytest tests_ha` (config flows,
+  registries, services, panels). `tools/setup` makes `.venv-ha` when `python3.14` is
+  installed; see `tests/README.md`. Run them when `integration/` changes.
 - **Lint, format, types:** `.venv/bin/ruff check .`, `.venv/bin/ruff format .`,
   `.venv/bin/pyright`. pyright excludes `integration/`: the `homeassistant` package needs
   Python 3.13, the venv is 3.11.
-- **Branches:** work on `dev`, never commit to `main` (protected: pull requests with the 8
+- **Branches:** work on `dev`, never commit to `main` (protected: pull requests with the 9
   CI checks, moved only by `tools/release.py`). "Push to GitHub" means `git push origin dev`.
 - **Deploy:** commit with the version bumped and keep `.venv/bin/python
   tools/fake_git_host.py` running; the owner refreshes the App store and installs. It serves
@@ -126,16 +129,23 @@ and the stream stalled without reporting one (`docs/never-silently-stuck.md`).
     (`tests/test_restart_notice.py`).
   - Three components: `casa_mia`, and its children `casa_mia_guest_login` and
     `casa_mia_commander`, sharing its coordinator (`casa_mia/children.py`). A child is for a
-    module with many devices; a module with one device lives in `casa_mia` (as
-    `casa_mia/sensor_watch/` does). `components.py` `RETIRED` removes an old component's
-    folder.
+    module with many devices; a module with one device lives in `casa_mia`.
+    `components.py` `RETIRED` removes an old component's folder.
+  - `casa_mia_sensor_watch` stands alone (2026.11.3): it is to be published by itself
+    (`docs/design/marketplace-mirrors.md`), so it imports nothing from `casa_mia` and must
+    work with no app. The two meet only through Home Assistant: `casa_mia/sensor_watch.py`
+    hands an old install over by a config-flow import, the screenshot swap arrives by
+    dispatcher signal, and the app's `casa_mia_components_installed` event prompts its
+    restart check.
 - **Maturity:** each module's level lives once, in `app/src/casa_mia/maturity.json`;
   `tools/maturity.py --update` writes it into `app/translations/en.yaml` and the docs
   (`tests/test_maturity.py` checks).
 - **Admin UI** (React, `app/web/`): `tools/build_web` builds it into
   `app/src/casa_mia/web/` (committed; `tests/test_web_build.py` fails on a stale build).
   `server.py` serves it on 8780 to HA's ingress gateway only. Live editing: `cd app/web &&
-  npm run dev`.
+  npm run dev`. The same tool builds Sensor Watch's page (`src/sensor-watch/`, entry
+  `panel.tsx`) into `casa_mia_sensor_watch/www/` as a Home Assistant panel; it talks to
+  HA's websocket, so `npm run dev` can't show it.
 - **Pills, chips and chrome:** one source each, never hand-rolled. Pills and chips:
   `app/web/src/pills.css` (global `cm-` classes, coloured by `--tone`), adopted by the cards
   through `integration/cards/src/pills.ts`. Chrome (buttons, dialogs, menus, selects,
@@ -143,9 +153,11 @@ and the stream stalled without reporting one (`docs/never-silently-stuck.md`).
   Slider) and `confirm.tsx` (confirmBox, askBox). The browser's `<select>`, `confirm()`,
   `prompt()` and `alert()` are banned (`tests/test_no_browser_controls.py`). The owner's
   cheatsheets, with an Id per style: `docs/design/pills-and-chips.html` and `chrome.html`.
-- **Lovelace cards** (Lit, `integration/cards/`), one bundle: `tools/build_cards` builds
-  `www/cm-cards.js` (committed). `tools/dev_cards` rebuilds into the box's copy
-  (`/Volumes/config`) on every save; the next app start restores the committed build.
+- **Lovelace cards** (Lit, `integration/cards/`): `tools/build_cards` builds
+  `www/cm-cards.js` (committed), and Sensor Watch's card and eye as a bundle of their own,
+  `casa_mia_sensor_watch/www/cards.js`. `tools/dev_cards` rebuilds `cm-cards.js` into the
+  box's copy (`/Volumes/config`) on every save, though not Sensor Watch's bundle; the next
+  app start restores the committed build.
   - The layout engine exists twice (`compositor.commander_layout` and
     `integration/cards/src/layout.ts`); both must pass `tests/layout_cases.json`.
     Regenerate the cases from Python after a deliberate change.
