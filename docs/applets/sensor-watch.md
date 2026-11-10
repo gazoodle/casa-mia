@@ -177,9 +177,11 @@ Assistant's backups.
 
 ### With HACS or the Marketplace
 
-Sensor Watch is also to be published by itself, for HACS and Home Assistant's
-Marketplace, for a house without Casa Mia. It isn't published there yet. It is the same
-integration either way, so the two can meet in one house:
+Sensor Watch is also published by itself, at
+[gazoodle/casa-mia-sensor-watch](https://github.com/gazoodle/casa-mia-sensor-watch), for a
+house without Casa Mia. Add that repository in HACS, or in Home Assistant's Marketplace
+(2026.11 and later), as a custom repository of the type Integration; its page says how. It
+is the same integration either way, so the two can meet in one house:
 
 - **Installed from a store first, Casa Mia added later.** The app takes over keeping
   Sensor Watch up to date. If its copy is newer than the store's, it installs it and a

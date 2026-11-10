@@ -458,8 +458,8 @@ own checks passed and so did hassfest, in docker. Where it differs:
 - **"No downgrade" covers published components only: agreed** (owner, 2026-11-10). Why:
   only the app installs the others, so a newer copy of one means the app was rolled
   back, and `casa_mia` must match the app it talks to.
-- **The guide says "It isn't published there yet."** Remove that sentence in the release
-  that first publishes the mirror: its README links to that section at the release's tag.
+- **The guide said "It isn't published there yet."** Replaced on 2026-11-10 with where the
+  mirror is and how to add it, ready for the release that first publishes it.
 - **"Python / tests in Home Assistant"** isn't a required check on `main` yet.
 - **Not yet run anywhere:** the publishing half of `tools/mirror.py` against GitHub, the
   new CI job, and Home Assistant 2026.3.0 itself (the floor).
