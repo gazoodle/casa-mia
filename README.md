@@ -144,6 +144,18 @@ documentation.
 <a href="docs/applets/alarm-panel.md"><img src="docs/screenshots/alarm-panel-detail.webp" alt="The Alarm panel tile: Running, in the integration so it stays up while the app restarts" width="100%"></a>
 <p>An intruder alarm as a Home Assistant alarm panel that refuses to work until it has a code. Built for my house; you probably don't need it.</p>
 </td>
+<td width="25%" valign="top">
+<h4><a href="docs/applets/intercom.md">Intercom</a> <a href="docs/README.md#maturity"><img src="docs/maturity/development.svg" alt="In development" align="absmiddle"></a><!--intercom--></h4>
+<p>One call per doorbell that every screen agrees on: whoever talks first answers, nobody else can talk over them, and a forgotten tablet hangs up by itself.</p>
+</td>
+</tr>
+<tr>
+<td width="25%" valign="top">
+<h4><a href="docs/applets/protect-talkback.md">UniFi Protect talkback</a> <a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha" align="absmiddle"></a><!--protect_talkback--></h4>
+<p>Talk through UniFi Protect doorbells from Home Assistant, by patching its go2rtc until Home Assistant can do it itself.</p>
+</td>
+<td width="25%"></td>
+<td width="25%"></td>
 <td width="25%"></td>
 </tr>
 </table>
@@ -196,12 +208,17 @@ You need **Home Assistant 2026.3 or later**, on Home Assistant OS or a Supervise
 Updates arrive like any other app's: Home Assistant offers them under **Settings → Updates**,
 and the integrations are updated along with the app.
 
-**Leaning on Home Assistant's frontend.** Some parts reach into Home Assistant's own pages
-where there is no public API for it, as many community cards do: the Tablet Layout,
-garnish, the Over layer, Sensor Watch's eye in an entity's dialog and its Status
-sensor's colour. A Home Assistant update can change what they lean on. If it does, that
-part says so in the browser's console and stays out of the way, and a Casa Mia update
-follows.
+## Augmenting Home Assistant
+
+Casa Mia adds portrait and landscape to dashboard screen conditions, can reload dashboards
+when they change, and extends HA's own pages with garnish, the Tablet Layout, the Over
+layer and Sensor Watch's eye and Status sensor colour. UniFi Protect talkback also patches
+HA's managed go2rtc so selected cameras can use its Talk button.
+
+These features use HA internals where there is no public API for what they need. An HA
+update can break them, or provide the feature itself so Casa Mia's version can retire.
+The [Augmenting Home Assistant guide](docs/augmenting-home-assistant.md) explains the
+orientation controls, the switches and the compatibility limits.
 
 ## Thanks
 

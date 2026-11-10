@@ -4,6 +4,13 @@
 - [Over layer](over-layer.md): one card over the whole dashboard while its conditions hold; what's beneath can be seen, not touched.
 - [Heating Flow card](heating-flow.md): the heating and hot water as a live diagram, where colour is temperature and moving markers are flow.
 - [Run the whole house from your desk](run-the-house-from-your-desk.md): one visit to each wall tablet, then its screen seen and driven from anywhere.
+- [Augmenting Home Assistant](augmenting-home-assistant.md): portrait and landscape conditions, dashboard helpers and the places Casa Mia extends HA's internals.
+
+## How-to guides
+
+- [Talk to a UniFi Protect doorbell from Home Assistant](how-to/talk-to-the-front-door.md): from a doorbell you can only watch to one you can answer from any tablet or phone.
+- [Put talk buttons on a wall tablet](how-to/talk-buttons-on-a-tablet.md): Talk and Hang up tiles, and hold to talk on the phones.
+- [Show the doorbell on every tablet when it rings](how-to/doorbell-over-every-tablet.md): an Over layer that comes up with the ring and goes when the call ends.
 
 ## The applets
 
@@ -23,6 +30,8 @@ Each page of the Casa Mia panel in Home Assistant's sidebar.
 - [Sensor Watch](applets/sensor-watch.md): Tell it once what normal looks like, for every sensor in the house, and it tells you only when something isn't.
 - [Phone and SMS (FONA)](applets/phone-and-sms.md): Calls and texts through the FONA GSM module: a way in that needs no internet.
 - [Alarm panel](applets/alarm-panel.md): The intruder alarm as a Home Assistant alarm panel: arm away, disarm, triggered.
+- [Intercom](applets/intercom.md): A call for each doorbell, shared by every screen in the house, so only one person talks to the door at a time.
+- [UniFi Protect talkback](applets/protect-talkback.md): Talk through UniFi Protect doorbells and cameras from Home Assistant.
 
 ## Maturity
 

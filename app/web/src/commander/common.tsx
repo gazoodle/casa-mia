@@ -41,12 +41,14 @@ export type Panel = {
   unit?: "%" | "px";
   /** Fill (cover) or Whole (contain) equal tiles; or each camera at its own shape, edge to
    * edge, from the start (stack), against the end (reverse) or in the middle (centre). */
-  fit: "cover" | "contain" | "stack" | "reverse" | "centre";
+  fit: "cover" | "contain" | "stack" | "reverse" | "centre" | "squares" | "squares_spread";
   /** Top and bottom: run to the view's edge at that end (the side panel stops at them). */
   anchor_left?: boolean;
   anchor_right?: boolean;
   /** Rows (top, bottom) or columns (left, right) its cameras are shared between. */
   lines?: number;
+  /** Same size (squares, squares_spread): every tile's shape, width:height ("16:9"). */
+  cell?: string;
   /** Off the view: no room, no tiles; its cameras kept for when it is shown again. */
   hidden?: boolean;
 };

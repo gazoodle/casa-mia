@@ -32,6 +32,7 @@ DEFAULTS: dict[str, dict[str, Any]] = {
     # Every Sections dashboard, through the cards (cm-cards.js loads on every HA page).
     "dashboards": {
         "garnish_everywhere": False,  # garnish in any section, not only a Tablet Layout's
+        "screen_orientation": True,  # portrait and landscape in HA's screen conditions
     },
     "tablet_view": {
         "identify_panels": False,  # an outline round each panel

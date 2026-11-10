@@ -91,6 +91,63 @@ def inputs() -> list[tuple[str, dict, str | None]]:
             ),
             None,
         ),
+        (
+            "squares",
+            cmd(left={"fit": "squares"}, bottom={"fit": "squares"}),
+            None,
+        ),
+        (
+            "squares spread, odd sizes",
+            cmd(
+                width=1366,
+                height=769,
+                gap=5,
+                top={"fit": "squares_spread", "cameras": [f"t{i}" for i in range(3)]},
+                right={"fit": "squares_spread"},
+                bottom={"fit": "squares_spread"},
+            ),
+            None,
+        ),
+        (
+            "squares in a grid over uneven lines",
+            cmd(
+                left={"fit": "squares", "lines": 2, "size": 25},
+                bottom={
+                    "fit": "squares_spread",
+                    "lines": 2,
+                    "cameras": [f"b{i}" for i in range(7)],
+                },
+            ),
+            None,
+        ),
+        (
+            "squares overflow: shrink, spread as centred",
+            cmd(
+                left={
+                    "fit": "squares",
+                    "size": 40,
+                    "cameras": [f"l{i}" for i in range(9)],
+                },
+                right={
+                    "fit": "squares_spread",
+                    "size": 40,
+                    "cameras": [f"r{i}" for i in range(9)],
+                },
+            ),
+            None,
+        ),
+        (
+            "same size 16:9 and 4:3 cells",
+            cmd(
+                width=1366,
+                height=769,
+                gap=5,
+                bottom={"fit": "squares_spread", "cell": "16:9", "size": 15},
+                right={"fit": "squares_spread", "cell": "16:9"},
+                left={"fit": "squares", "cell": "4:3", "lines": 2, "size": 25},
+            ),
+            None,
+        ),
         ("own", cmd(main_fit="own", aspects={**tall, "left1": 1.78}), "left1"),
         ("own tall", cmd(main_fit="own", aspects=tall), "left0"),
         (
@@ -165,6 +222,7 @@ def test_typescript_engine_matches_the_cases():
             "--no-warnings",
             "--test",
             "src/layout.test.ts",
+            "src/arrange.test.ts",  # and Arrange, which lays out by it
             "src/sizing.test.ts",  # the cards' sizing rule, alongside
             "src/tablet.test.ts",  # and the Tablet Layout's placement (tablet_cases.json)
             # and the card's motion dots, which import lit: only where it is installed

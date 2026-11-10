@@ -1,0 +1,64 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add a UniFi Protect console",
+        "description": "Add each console that runs UniFi Protect (for example each UNVR) separately: talk to a camera goes through the console that records it. Adding the first one restarts go2rtc once, so camera streams pause for a second or two. This patches Home Assistant's go2rtc until Home Assistant can talk through Protect cameras itself.",
+        "data": {
+          "host": "Console's IP address or hostname",
+          "api_key": "Protect API key from this console"
+        },
+        "data_description": {
+          "host": "The UNVR or other UniFi console running Protect, as you'd type it in a browser without https://, for example 192.0.2.20.",
+          "api_key": "Create a new API key on this console, in its UniFi settings, just for this integration, so it can be revoked on its own. The integration uses it to list the cameras and to open talkback sessions."
+        }
+      },
+      "cameras": {
+        "title": "Cameras that get talkback",
+        "description": "These are this console's cameras with a speaker. Only the doorbells are ticked to start with: talking through an indoor camera should be a deliberate choice.",
+        "data": {
+          "cameras": "Cameras"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Couldn't reach UniFi Protect at that address. Check it's the console's own address and that Home Assistant can reach it.",
+      "invalid_auth": "The console refused that API key. Check it was created on this console."
+    },
+    "abort": {
+      "already_configured": "That console is already added.",
+      "no_casa_mia": "Set up the Casa Mia integration first."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Cameras that get talkback",
+        "description": "Tick the cameras you want to talk through.",
+        "data": {
+          "cameras": "Cameras"
+        }
+      }
+    },
+    "abort": {
+      "cannot_connect": "Couldn't reach Protect to list its cameras."
+    }
+  },
+  "issues": {
+    "patch_failed": {
+      "title": "Talk through UniFi Protect cameras is unavailable",
+      "description": "Casa Mia Protect Talkback couldn't patch Home Assistant, so speaking through cameras won't work. Cameras are unaffected. Reason: {reason}. Check the log for details; a Home Assistant update may have changed go2rtc or the UniFi Protect integration."
+    },
+    "restart_required": {
+      "title": "Restart Home Assistant to finish updating Casa Mia Protect Talkback",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Restart Home Assistant",
+            "description": "The Casa Mia Protect Talkback integration was updated from {from_version} to {to_version}, but Home Assistant is still running {from_version}. Restart Home Assistant to load it."
+          }
+        }
+      }
+    }
+  }
+}

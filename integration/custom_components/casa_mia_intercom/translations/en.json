@@ -1,0 +1,81 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Casa Mia Intercom",
+        "description": "A call for each doorbell (any device with a doorbell event and a camera), shared by every screen: a Call sensor and an End call button on a device per doorbell. Talking into a doorbell's camera answers its call, and nobody else can talk until it ends. Uses the Casa Mia integration's connection to the app."
+      }
+    },
+    "abort": {
+      "already_configured": "Casa Mia Intercom is already set up.",
+      "single_instance_allowed": "Casa Mia Intercom is already set up.",
+      "no_casa_mia": "Set up the Casa Mia integration first."
+    }
+  },
+  "issues": {
+    "patch_failed": {
+      "title": "Doorbell calls are unavailable",
+      "description": "Casa Mia Intercom couldn't patch Home Assistant, so doorbell calls aren't kept and anyone can talk at once. Cameras are unaffected. Reason: {reason}. Check the log for details; a Home Assistant update may have changed its go2rtc integration."
+    },
+    "restart_required": {
+      "title": "Restart Home Assistant to finish updating Casa Mia Intercom",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Restart Home Assistant",
+            "description": "The Casa Mia Intercom integration was updated from {from_version} to {to_version}, but Home Assistant is still running {from_version}. Restart Home Assistant to load it."
+          }
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "call": {
+        "name": "Call",
+        "state": {
+          "idle": "Idle",
+          "ringing": "Ringing",
+          "answered": "Answered",
+          "complete": "Complete"
+        },
+        "state_attributes": {
+          "answered_by": {
+            "name": "Answered by"
+          },
+          "outcome": {
+            "name": "Outcome",
+            "state": {
+              "missed": "Missed",
+              "ended": "Ended"
+            }
+          },
+          "since": {
+            "name": "Since"
+          },
+          "camera_entities": {
+            "name": "Cameras"
+          },
+          "duplex": {
+            "name": "Duplex",
+            "state": {
+              "full": "Full (open microphone)",
+              "half": "Half (hold to talk)"
+            }
+          },
+          "held": {
+            "name": "Hold to talk held"
+          },
+          "ends_at": {
+            "name": "Hangs up at"
+          }
+        }
+      }
+    },
+    "button": {
+      "end_call": {
+        "name": "End call"
+      }
+    }
+  }
+}

@@ -36,6 +36,7 @@ from .common import (
     view_key,
 )
 from .drawing import (
+    CROPPED,
     cameras_of,
     commander,
     commander_cameras,
@@ -389,7 +390,7 @@ class Generator:
             out.append((where, camera, chan, size, whole))
 
         for panel in PANELS:
-            whole = cmd[panel].get("fit", "cover") != "cover"
+            whole = cmd[panel].get("fit", "cover") not in CROPPED
             for e, (_, _, w, h) in zip(
                 cmd[panel]["cameras"], rects[panel], strict=True
             ):

@@ -40,6 +40,13 @@ receive the changed scripts on their next reload.
 
 ### Dashboards
 
+- **Screen orientation conditions:** adds **Orientation: Any / Portrait / Landscape**
+  below Home Assistant's screen-width choices in dashboard condition editors. On by
+  default, including for existing installations. Leave widths unselected for any width,
+  or select widths to require both a matching width and orientation. Close and reopen
+  the condition editor after changing the switch. Switching it off preserves saved
+  conditions; HA continues to evaluate them, and orientation conditions remain editable
+  in YAML. See [Augmenting Home Assistant](../augmenting-home-assistant.md).
 - **Enable garnish on all section dashboards:** brings the Tablet Layout's garnish to every
   section of every Sections dashboard. Home Assistant already hides a section whose cards
   are all hidden, and its room goes to the others; garnish (a heading over some conditional

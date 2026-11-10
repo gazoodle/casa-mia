@@ -196,7 +196,14 @@ export class OverLayerCard extends LitElement {
     if (this._config?.panel) this._makePanel();
     if (this._child) this._layer.querySelector(".holder")!.append(this._child);
     this._door = new Door(root);
-    document.body.append(this._host);
+    // Inside <home-assistant>'s shadow root, as HA's own dialogs are: a card's tap fires
+    // hass-action or hass-more-info, and a card asks for states and formatters by Lit
+    // context, all of which HA answers on <home-assistant> itself. In the page's body,
+    // beside it, none arrived: the layer's entities did nothing when tapped and some
+    // showed as Unavailable.
+    const app = document.querySelector("home-assistant")?.shadowRoot;
+    if (!app) console.warn("CASA-MIA CARDS: over layer: no <home-assistant> found; taps on its cards may do nothing");
+    (app ?? document.body).append(this._host);
     // Covering the view: follow it as it moves or changes size (the window, the sidebar).
     const follow = () => this._style();
     const view = viewOf(this);

@@ -1,5 +1,9 @@
 // The Tablet Layout's helpers and constants, shared by its parts.
 import { LAYOUT } from "../layout.ts";
+import { sides } from "../tablet.ts";
+
+// Keep card borders and shadows inside the section's clipping edge.
+export const panelPadding = (padding: unknown) => sides(padding).map((side) => side + 2);
 
 /** Each element above `el` (through shadow roots) taller than the window: what still
  * scrolls the page. Debug only. */
@@ -45,4 +49,24 @@ export const UNLOCKED =
 export function cardsHeight(section: any): number {
   const grid = section?.querySelector("hui-grid-section") as HTMLElement | null;
   return (grid?.shadowRoot?.querySelector(".container") as HTMLElement | null)?.offsetHeight ?? 0;
+}
+
+/** Below the view's narrow_below (px; 0: never), it is HA's own sections view, as on a phone. */
+export const narrowBelow = (config: Record<string, any>) => Math.max(0, Number(config.narrow_below ?? LAYOUT.main.narrow_below.default) || 0);
+
+/** Once narrow, the width must pass the threshold by this much to go back: a scrollbar
+ * coming or going as the view switches can't flip it to and fro. */
+export const NARROW_GIVE = 24;
+
+/** Narrow, the order sections go in (CSS order), by panel: the top edge, then main, left,
+ * right and bottom; a section with no panel last. Panels of one edge keep the view's order. */
+export const NARROW_ORDER = ["top", "main", "left", "right", "bottom"];
+export const narrowOrder = (place: string | undefined) => String(place && NARROW_ORDER.includes(place) ? NARROW_ORDER.indexOf(place) : NARROW_ORDER.length);
+
+/** Whether a view `width` wide is narrow (HA's own sections), given `below` and whether it
+ * was. No width yet (not laid out): as it was. */
+export function narrow(width: number, below: number, was: boolean): boolean {
+  if (below <= 0) return false;
+  if (width <= 0) return was;
+  return width < below + (was ? NARROW_GIVE : 0);
 }
