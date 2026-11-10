@@ -109,7 +109,10 @@ Its options (each left at its default unless you change it):
   Full to Data saver.
 - **Main camera as live video:** the main camera plays as live video over the picture
   (Home Assistant's WebRTC, decoded by the tablet), when the compositor's **Live main
-  camera** switch is on.
+  camera** switch is on. Its title says **(live)** while video is arriving. When a channel
+  of the camera won't play, the card plays another of its channels, and when none plays
+  it shows the drawn picture and says **Live lost … ago** with the reason, and tries
+  again by itself (see Troubleshooting).
 - **Picture kept running once out of sight:** seconds, so the back button finds it
   running.
 - **Security look:** every picture in tinted monochrome, like a control room, with its
@@ -126,7 +129,8 @@ Its options (each left at its default unless you change it):
 ### Talking to a doorbell
 
 When the main camera is a doorbell with a call sensor from the [Intercom](intercom.md),
-and it is playing as live video, the card can talk to it. The page must be
+and the card shows its main camera as live video, the card can talk to it, even while the
+video itself is lost: talking uses a connection of its own. The page must be
 on an https address, because browsers only give a microphone to secure pages.
 
 - **Talk** asks for this device's microphone and opens a sound-only connection to the
@@ -259,6 +263,22 @@ duplex: full     # or half; only for button: answer
   cutting off the picture, and the card keeps asking for a new one. It goes once no
   failure has come for 15 seconds. The browser's console has a `casa-mia: the picture
   failed` line, and the app's log says how each stream ended.
+- **"Live lost … ago" in red under the main camera:** none of the camera's channels is
+  playing as live video on this device, and the drawn picture is shown instead. The
+  reason follows the time. Each channel is tried again after 30 seconds, then after
+  longer each time up to 10 minutes; choosing another main camera and coming back tries
+  at once. Home Assistant's log has a line for each loss and return, under
+  `casa_mia_commander`: the user, the channel, the reason and the video formats the
+  device plays.
+- **"The camera's video is in a format this device can't play":** the camera sends a
+  format, usually H.265, that this device's browser can't decode over WebRTC. The log
+  line lists what the device does play. On Android, update Android System WebView first:
+  a 2026 tablet still on its factory WebView 131 couldn't play H.265 live video, and
+  played it after an update to WebView 157 with nothing else changed. A tablet without
+  the Play Store never updates it by itself, so install the update with
+  `adb install -r`. Otherwise set the camera to H.264 (in UniFi Protect,
+  the camera's encoding setting: Standard is H.264, Enhanced is H.265), or leave it: the
+  drawn picture is the same camera.
 
 - **Taps on the commander do nothing:** the page says so when Home Assistant has no Main
   camera select for it yet: add the Casa Mia Camera Commander integration (see "In Home

@@ -30,10 +30,10 @@ test("the call sensor whose camera_entities holds the camera", () => {
   assert.equal(callSensor({ states: {} } as unknown as Hass, "camera.oak_door_low"), undefined);
 });
 
-test("Talk offered once the live session starts, before it plays", () => {
+test("Talk offered while the main camera is wanted live, playing or not", () => {
   const ask = { sensor: "sensor.oak_door_call", live: "camera.oak_door_low", talking: "", secure: true, editing: false };
-  assert.equal(talkOffered(ask), true); // liveOn set, no frame played yet
-  assert.equal(talkOffered({ ...ask, live: "" }), false); // no session, or it failed
+  assert.equal(talkOffered(ask), true); // liveOn set: no frame yet, or its video failed
+  assert.equal(talkOffered({ ...ask, live: "" }), false); // live not wanted (switched off, or out of sight)
   assert.equal(talkOffered({ ...ask, live: "", talking: "camera.oak_door_low" }), true);
   assert.equal(talkOffered({ ...ask, sensor: undefined }), false);
   assert.equal(talkOffered({ ...ask, secure: false }), false);

@@ -3,6 +3,7 @@
 // camera) → talk.ts (talking to a doorbell) → card.ts; styles.ts holds its CSS.
 import { html, nothing } from "lit";
 import { keyed } from "lit/directives/keyed.js";
+import { repeat } from "lit/directives/repeat.js";
 import { fire, type Hass, heightFor, inPicker, navigate, TABLET } from "../ha.ts";
 import { heightForMain, layout, PANELS, pyRound, type Rect } from "../layout.ts";
 import { dot } from "./motion.ts";
@@ -69,9 +70,7 @@ export class CommanderCard extends CommanderTalk {
       >`;
     if (!card.picture) return html`<ha-card><div class="note">Its picture's address is not known yet (the app has no LAN address).</div></ha-card>`;
     const main = this.main(card, st!.state);
-    if (this._liveFailed && this._liveFailed !== main) this._liveFailed = ""; // a new main: try again
     const editing = this.editing();
-    const live = !editing && this.liveMain(card, main);
     const down = editing ? null : pictureDown(this.downSince, this.lastError, Date.now());
     // Laid out for the picture asked for, as the compositor draws it (compositor.sized).
     const own = card.layout;
@@ -80,10 +79,13 @@ export class CommanderCard extends CommanderTalk {
     const sized: Size | null = inPicker(this) ? [own.width, own.height, 1] : this._size;
     const [W, H, scale] = sized ?? [own.width, own.height, 1];
     const asked = sized && !editing ? this.pictureUrl(card, sized) : "";
-    const src = asked && live ? `${asked}&main=video` : asked;
     const still = editing && sized ? this.stillUrl(card, sized) : "";
     const s = sized ? { ...own, width: W, height: H, gap: pyRound(own.gap * scale), margin: pyRound((own.margin ?? 0) * scale), scale } : own;
     const [[w, h], mainRect, tiles] = layout(s, main);
+    // The live main camera (live.ts): its videos, and whether the picture leaves the main
+    // area to one. With none to show, the picture draws the main camera itself.
+    const live = this.liveMain(card) && mainRect[2] > 0 ? this.liveNow(card, main, mainRect) : null;
+    const src = asked && live?.video ? `${asked}&main=video` : asked;
     const at = ([x, y, rw, rh]: Rect) =>
       `left:${(x / w) * 100}%;top:${(y / h) * 100}%;width:${(rw / w) * 100}%;height:${(rh / h) * 100}%`;
     const lit = s.highlight ?? {};
@@ -124,16 +126,22 @@ export class CommanderCard extends CommanderTalk {
               />`,
             )
           : nothing}
-        ${live && mainRect[2] > 0
-          ? html`<video
-                class="live"
-                data-entity=${this.liveEntity(card, main, mainRect) ?? ""}
-                style="${at(mainRect)};object-fit:${({ fill: "fill", crop: "cover" } as Record<string, string>)[own.main_fit ?? "fit"] ?? "contain"};opacity:${this._playing ? 1 : 0}"
-                autoplay
-                playsinline
-                .muted=${true /* the visitor is heard through Talk's own session (talk.ts) */}
-              ></video>
-              ${this.caption(card.cameras[main]?.title ?? main, at(mainRect))}`
+        ${live
+          ? html`${repeat(
+                live.videos,
+                (channel) => channel,
+                // One per channel played: the one shown, and a better one tried unseen under it.
+                (channel) =>
+                  html`<video
+                    class="live"
+                    data-entity=${channel}
+                    style="${at(mainRect)};object-fit:${({ fill: "fill", crop: "cover" } as Record<string, string>)[own.main_fit ?? "fit"] ?? "contain"};opacity:${channel === live.shown ? 1 : 0}"
+                    autoplay
+                    playsinline
+                    .muted=${true /* the visitor is heard through Talk's own session (talk.ts) */}
+                  ></video>`,
+              )}
+              ${this.caption(card.cameras[main]?.title ?? main, at(mainRect), live)}`
           : nothing}
         </div>
         ${editing && !inPicker(this) ? html`<div class="hatch"><span>Still picture while editing</span></div>` : nothing}

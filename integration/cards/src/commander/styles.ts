@@ -65,8 +65,11 @@ export const styles = [motionStyles, css`
     /* Its caption, as the compositor draws a main camera's: along the foot, on the left. */
     .caption {
       display: flex;
+      flex-wrap: wrap;
+      align-content: flex-end;
       align-items: flex-end;
-      padding: 0 0 10px 10px;
+      gap: 4px 6px;
+      padding: 0 10px 10px 10px;
       pointer-events: none;
     }
     .caption span {
@@ -75,9 +78,8 @@ export const styles = [motionStyles, css`
       color: #fff;
       font: 20px/1.2 sans-serif;
     }
-    /* No frame for a while: said in red beside the title (RULE FIVE). */
+    /* No live video: said in red beside the title, wrapping on a narrow card (RULE FIVE). */
     .caption .lost {
-      margin-left: 6px;
       background: rgb(200 30 30 / 0.9);
       font-weight: 600;
     }

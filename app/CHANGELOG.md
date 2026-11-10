@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026.11.2-b22
+
+- The Camera Commander card no longer gives up on its live main camera. Before, one failed start showed the drawn picture until the main camera changed, and two in a row stopped live video until the page was reloaded, which on a wall tablet could be weeks later. Now a channel that fails is tried again after 30 seconds, then after longer each time up to 10 minutes, underneath whatever is showing. Choosing another main camera and coming back tries at once.
+- When one of a camera's channels won't play on a device, the card plays another of its channels live, the smaller ones first, and shows the drawn picture only when none plays. Before, a device that couldn't decode the video showed an empty main area.
+- A live video that stops is taken down after 5 seconds and the next channel or the drawn picture is shown, with "Live lost 3 min ago" and the reason in red. Before, the frozen video stayed under that caption.
+- Each loss and return of live video is written to Home Assistant's log, under `casa_mia_commander`: the user, the camera channel, the reason and the video formats the device plays. A wall tablet's trouble can now be read without going to the tablet. This part starts after the Home Assistant restart that the Repair asks for.
+- The Talk button stays on a doorbell whose live video has failed, because talking uses a connection of its own.
+- The live video now stops with the picture when the card's page is hidden or the card is out of sight, and starts again when it is back.
+- The Cameras page's live view says when a camera's video is in a format the browser can't play. Before, it showed nothing.
+
 ## 2026.11.2-b21
 
 - Casa Mia Camera Commander, Guest Login, Intercom and Protect Talkback each have their own icon and logo in Home Assistant: the Casa Mia house with a security camera, a QR code, an intercom panel or a small UniFi Protect camera in front of it. The logos read "Casa Mia" over the integration's name.

@@ -1,7 +1,7 @@
 # Handover: Casa Mia, for agents joining the work
 
-Where the project stands and how the work is done here, as of 2026-11-03 (`dev` at
-2026.10.12-b6; 2026.10.11 released). **Read this at the start of every session**, then
+Where the project stands and how the work is done here, as of 2026-11-10 (`dev` at
+2026.11.2-b22; 2026.11.1 released). **Read this at the start of every session**, then
 CLAUDE.md in full; where they disagree, CLAUDE.md wins. It replaces re-reading old
 transcripts.
 
@@ -226,7 +226,8 @@ CLAUDE.md has them all. What trips agents here:
   over a frozen picture, and a Save that hung silently. HA 2026.10.0's FFmpeg checked TLS
   against the recorder's self-signed certificate (fixed in HA 2026.10.1). Out of it: the
   purpose at the top of CLAUDE.md and RULE FIVE.
-- **2026-10-19, why the wall tablets show no live video:** see "Where things stand".
+- **2026-10-19 and 2026-11-10, why the wall tablets show no live video:** see "Where things
+  stand". 2026.11.2-b22 built the card's camera ladder out of it.
 - **2026.10.11** (released; soft launch 2026-10-29): Sensor Watch pushed to the integration
   (b13), accuracy (b14), notifications in words and escalation (b15), the eye in HA's
   entity dialog (b16), the band ladder (b25), readied for launch and rated Beta (b26–b31);
@@ -248,27 +249,34 @@ CLAUDE.md has them all. What trips agents here:
 - **Never silently stuck: go one step at a time** (2026-10-12). The owner wants it slow and
   methodical: one agreed step, built, recorded in `docs/never-silently-stuck.md`, seen on
   the test tablet, never redone; nothing planned beyond it; analyse before code, change
-  nothing while investigating. Steps 1–2 done (the Commander's "(live)" lapses into "Live
-  lost … ago"). The next step is the owner's to choose.
-- **The wall tablets' live video (investigated 2026-10-19; nothing changed):**
-  - **Cause, strongly indicated:** go2rtc's streams are H.265, which the tablets' Android
-    WebView generally can't decode over WebRTC, so no video track arrives (the Cameras live
-    view shows 0 × 0, "Connecting…" for ever). A camera's H.264 channels played; desktop
-    browsers play H.265. Ruled out: the network, the entity ids, the cards bundle.
-  - **Relief that exists:** the compositor page's **Live main camera** switch off, so cards
-    show the drawn picture. For the owner: set the tablets' (medium) channels to H.264
-    where the camera allows.
-  - **Defects found, none fixed:** the Cameras live view (`LiveView.tsx`) waits for ever
-    with no MJPEG fallback; the card's live failure goes only to the tablet's console and
-    gives up for good after two (`LIVE_GIVE_UP`).
-  - **Proposed, awaiting the owner:** one shared WebRTC check (`app/web/src/webrtc.ts`:
-    stage timings, a codec check with `RTCRtpReceiver.getCapabilities`, a timeout, a plain
-    verdict such as "this device cannot play H.265"), used by the Cameras dialog, the card
-    (a pill) and the app's log. Bump first.
+  nothing while investigating. Steps 1–3 done. Step 3 (2026.11.2-b22, 2026-11-10) is the
+  first three rungs of the camera ladder for the Commander's main camera, built on the
+  owner's "get on with it" and not as a step agreed beforehand. Its card bundle was copied
+  to the live box that day; **what the wall tablets show hasn't been reported yet**, and
+  its `live_report` websocket command has never run on HA. The next step is the owner's.
+- **The wall tablets' live video** (investigated 2026-10-19 and 2026-11-10):
+  - **Causes:** the old card gave up after two failed starts until the page reloaded
+    (fixed in step 3). And the cameras' streams are H.265 (seen in go2rtc's stream list),
+    which go2rtc answers with no video at all for a browser that didn't offer H.265 (seen
+    with headless Chromium). On 2026-11-10 b22's card said exactly that on every wall
+    tablet but the test one, all the same model (Tab M9, Android 15). The one difference:
+    the test tablet's Android System WebView had been updated by hand over adb to 157 on
+    2026-10-28; the others were on the factory 131. 157 was installed on the other three
+    the same way (`adb install -r` of the APK pulled from the test tablet), and the main
+    camera came up "(live)". The same APK then worked on the three Tab M10 3rd gen
+    (TB310FU, Android 13, factory WebView 126), so all seven wall tablets run 157 and show
+    "(live)" (2026-11-10). After an install, check Kiosk Satellite is running: on one
+    tablet it stopped and stayed stopped because Settings was in front.
+  - **The tablets have no Play Store**, so WebView never updates by itself (BACKLOG).
+    Rollback for one tablet: `adb uninstall com.google.android.webview` (back to 131).
+  - **Not fixed:** the Cameras live view (`LiveView.tsx`) now names an unplayable format,
+    but has no timeout and no MJPEG fallback.
   - **Open:** whether a stalled WebRTC stream can fool the lease (`requestVideoFrameCallback`
     on a repeated frame); if seen again, compare screencaps and renew only when
     `rtpTimestamp` moves. go2rtc's API is on the box's port 1984, RTSP on 8554; a UDP STUN
-    probe from the Mac proves nothing, so don't repeat it.
+    probe from the Mac proves nothing, so don't repeat it. Headless Chromium connects only
+    the first pair of WebRTC peers made in one page, so a second session can't be tested
+    with same-page peers: use a real go2rtc.
 - **Remote control** (2026.10.12-b2 to b5): working on every wall tablet, Android Settings
   included. DuraSpeed is off on every Tab M9 (2026-10-31), but the last two haven't been
   rebooted since, which clears Android's mark against KS. Kiosk Mode was switched off on the fleet leader for the setup walk: check it is back on.

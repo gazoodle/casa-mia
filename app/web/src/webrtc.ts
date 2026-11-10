@@ -30,7 +30,8 @@ export async function canWebRTC(conn: Connection, entity: string): Promise<boole
 }
 
 /** Plays a camera's WebRTC stream in `video`; `failed` hears why it stopped, and the code
- * of an error HA sent (so a refused microphone can be told from a broken stream). With
+ * of an error HA sent (so a refused microphone can be told from a broken stream), or
+ * `no_video` when the answer holds no video (see below). With
  * `mic`, it is sent to the camera (two-way audio): a new session, as HA's own player makes
  * one, since go2rtc answers a renegotiation with a new DTLS fingerprint; the offer itself
  * is then the claim on the camera's call. Given an <audio> rather than a <video>, the
@@ -82,7 +83,16 @@ export async function playWebRTC(
         session = msg.session_id;
         waiting.splice(0).forEach(send);
       } else if (msg.type === "answer") {
-        pc.setRemoteDescription({ type: "answer", sdp: msg.answer }).catch((err) => failed(String(err)));
+        pc.setRemoteDescription({ type: "answer", sdp: msg.answer }).then(
+          () => {
+            // go2rtc leaves the video out of its answer when the camera's codec is none
+            // this device offered (H.265 to a browser without it, say). The sound still
+            // plays, so nothing else would report it.
+            const video_in = pc.getTransceivers().some((t) => t.receiver.track.kind === "video" && t.currentDirection?.includes("recv"));
+            if (video instanceof HTMLVideoElement && !video_in) failed("The camera's video is in a format this device can't play.", "no_video");
+          },
+          (err) => failed(String(err)),
+        );
       } else if (msg.type === "candidate") {
         pc.addIceCandidate(msg.candidate).catch(() => undefined);
       } else if (msg.type === "error") {

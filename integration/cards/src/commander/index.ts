@@ -27,8 +27,11 @@
 // Assistant's WebRTC as its own camera cards play it: the tablet decodes it (the box draws
 // the picture without it, ?main=video), at full frame rate. The channel is the smallest at
 // least the main area's size in device pixels (fewer away from home, as the picture). The
-// card draws its caption. A video that does not start within LIVE_WAIT_MS, or fails, gives
-// way to the drawn picture, until the main camera changes. The Security look covers it with
+// card draws its caption. A channel that shows no frame within LIVE_WAIT_MS, stops, or
+// fails is marked bad for a while and the next one is played (down the sizes, then up);
+// with none left the drawn picture shows, with "Live lost … ago" and why. A marked channel
+// is tried again under whatever shows, later after each failure in a row, and each loss
+// and return is sent to Home Assistant's log (live.ts). The Security look covers it with
 // the picture.
 // The picture comes straight from the compositor at home (its LAN address), else through
 // Home Assistant (the integration's pictures.py): away from home that address is out of

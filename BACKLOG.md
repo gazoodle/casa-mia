@@ -198,10 +198,18 @@ Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it d
   it patches HA internals and only covers HA's managed go2rtc). Either way, a test
   report on PR #2340 from a G4 Doorbell Pro on Protect 7.3.
 - **Measure talk** on the owner's hardware: delay, intelligibility and echo.
+- **Keep the wall tablets' WebView current** (2026-11-10): they have no Play Store, so
+  Android System WebView stays where it was last installed by hand (157 since 2026-11-10;
+  the factory 126 and 131 couldn't play H.265 live video). Security fixes need the
+  same. Decide how: a routine with the after-reboot one, or the helper app idea.
 - **Audio route on the phone and tablets** (2026-11-09): the HA iOS Companion app plays
   the visitor from the earpiece (Safari uses the loudspeaker), and Kiosk Satellite plays
   it as quiet call audio. Both need fixes in those apps; the owner holds the drafted
-  feature requests.
+  feature requests. Two things the card itself could do were never tried: setting
+  `navigator.audioSession.type` to `play-and-record`, and opening the microphone without
+  echo cancelling. A throw-away page that tries both (`/local/casa-mia-audio-test.html`
+  on the owner's box, 2026-11-10) is waiting for the owner to run it on the phone and a
+  tablet; change `commander/talk.ts` only on its result, then delete the page.
 - **Number plate recognition** (after the intercom works): plate detection on an
   inference host against the gate and driveway cameras, publishing events the intercom
   and HA automations can use. First check whether Protect's own plate detection covers
