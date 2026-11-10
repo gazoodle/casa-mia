@@ -61,18 +61,32 @@ pages follow), delete one, or add a copy of the one picked or a blank one. Each 
   cropped to fill its tile, so a 16:9 camera in a square tile loses some of each side.
   With more than one row or column, the tiles line up as a grid.
 
-**Arrange…**, under the settings, lays all the commander's cameras out for you as tiles of
-one size around the main camera, with as little of the picture left unused as it can find.
-It uses the bottom first, then the left, the right and the top, and shares the cameras so
-that opposite edges differ by at most one, with the spacing between tiles as even as it
-can make it on every edge. Choose the tile shape
-(16:9 by default), the edges it may use, and **One row or column per edge** (on by default;
-switch it off to be offered two rows or columns of tiles on an edge as well); **Bigger main** and **Bigger tiles** step
-between the best layouts it found, drawn as a sketch. **Apply** replaces the panels'
-cameras, sizes and fits and the main camera's fit, and nothing is saved until you Save.
-With 16:9 tiles on a 16:9 picture some counts fit with nothing left over (7 cameras: 4
-along the bottom and 3 up the side); otherwise the spare room is shared between the tiles,
-or the main camera loses a few per cent off its edges.
+**Arrange…**, under the settings, lays all the commander's cameras out for you as tiles
+around the main camera, and shows the result as the commander's real picture, with your
+cameras in it. You choose:
+
+- **Edges, in the order they fill**: the edges the tiles go on. The first cameras go on the
+  first edge. ‹ and › move an edge earlier or later, ✕ takes it out of use and **+ Add…**
+  puts one back. It starts with the edges the commander uses now. Opposite edges get the
+  same number of cameras, or one more on the earlier of the two.
+- **One row or column per edge** (on by default): switch it off to be offered two or three
+  rows or columns of tiles on an edge as well.
+- **Tile fit**: **Best fit** makes all the tiles one size, and lets each be up to 10% off
+  the tile shape so that they fill their edges. **Sizes vary** does the same and then lets
+  the tiles on an edge grow to fill it, so the tiles on one edge may be up to twice as wide
+  or tall as those on another. It often leaves nothing unused where Best fit can't.
+  **Exact shape** keeps every tile one size at exactly the tile shape, which usually leaves
+  gaps.
+- **Tile shape**: 16:9 (the default), 4:3 or square.
+
+**Bigger main** and **Bigger tiles** step between the arrangements it found, and the line
+between them gives the tile size and how much of the picture is left unused. It opens on
+the one with the least unused among those whose tiles fill their edges. Stepping towards a
+bigger main camera ends with tiles smaller than their edges could hold, which leaves room
+between them. In Best fit and Sizes vary the main camera may lose up to 10% off its edges
+to fill its space (6% in Exact shape); when it would lose more, it is shown whole.
+**Apply** replaces the panels' cameras, sizes and fits and the main camera's fit, and
+nothing is saved until you Save.
 
 **Pictures:** the **Compositor host**, the address the cards and the dashboard fetch the
 pictures from. Blank: this box's own address.

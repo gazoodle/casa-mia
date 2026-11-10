@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.11.2-b23
+
+- The Camera Commander's **Arrange…** shows the commander's real picture with your cameras in it. Before, it drew a sketch with numbered boxes.
+- Arrange: you choose the edges the tiles go on and the order they fill, with the same chips as a panel's cameras (‹ and › to move an edge, ✕ to take it out of use, + Add… to put one back). It starts with the edges the commander uses now. Before, switching edges off often left nothing to show.
+- Arrange: a new **Tile fit**. **Best fit** keeps the tiles one size and lets each be up to 10% off the tile shape, so that they fill their edges. **Sizes vary** also lets the tiles on one edge be bigger than those on another, which often fills the whole picture. **Exact shape** keeps every tile at exactly the tile shape, as before.
+- Arrange: **Bigger main** and **Bigger tiles** have more to step between. Every way of sharing the cameras between the edges is tried, and past the biggest main camera found that way there are smaller tile sizes for a bigger one still. Before, some choices of edges gave one arrangement and nothing to step to.
+
 ## 2026.11.2-b22
 
 - The Camera Commander card no longer gives up on its live main camera. Before, one failed start showed the drawn picture until the main camera changed, and two in a row stopped live video until the page was reloaded, which on a wall tablet could be weeks later. Now a channel that fails is tried again after 30 seconds, then after longer each time up to 10 minutes, underneath whatever is showing. Choosing another main camera and coming back tries at once.
