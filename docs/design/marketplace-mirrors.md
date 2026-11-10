@@ -455,8 +455,8 @@ own checks passed and so did hassfest, in docker. Where it differs:
   repository or ignoring that one check, against "no checks ignored".
 - **Issues on, with a link to Casa Mia** (above), where the plan said issues off.
 - **The scope of "No downgrade"** (phase 3).
-- **The guide says "It isn't published there yet."** Remove that sentence when the mirror
-  is public: the mirror's README links to that section.
+- **The guide says "It isn't published there yet."** Remove that sentence in the release
+  that first publishes the mirror: its README links to that section at the release's tag.
 - **"Python / tests in Home Assistant"** isn't a required check on `main` yet.
 - **Not yet run anywhere:** the publishing half of `tools/mirror.py` against GitHub, the
   new CI job, and Home Assistant 2026.3.0 itself (the floor).
@@ -464,11 +464,34 @@ own checks passed and so did hassfest, in docker. Where it differs:
 ### Phase 5: first publication (the owner's call)
 
 Creating the mirror, the first publication and the catalog submission are remote actions:
-ask first. Start as a custom repository for testers. Before advertising: a fresh install,
-setup, update, restart and removal on a clean HA, through HACS on a supported older version
-and the Marketplace on 2026.11 or later; then phase 3's supersede on the same machine. The
-catalog listing is a separate submission to `hacs/default` ([catalog][catalog]), with no
-promise of acceptance.
+ask first. In order (written 2026-11-10; none of it is done):
+
+1. **Settle the list above.** Whatever it changes goes into `dev` before the release. The
+   guide's "It isn't published there yet." is removed then too, because the mirror's
+   README links to the guide as it is at the release's tag.
+2. **Push `dev`.** The "Python / tests in Home Assistant" job runs on GitHub for the first
+   time. When it has passed, add it to `main`'s required checks and correct the number of
+   checks in `CLAUDE.md`.
+3. **Install the build on the live box** and see Sensor Watch handed over there: its own
+   integration set up, with the same device, entities and records, and no Repair left.
+   Only the test VM has done this so far, on Home Assistant 2026.9.4.
+4. **Run `tools/mirror.py --dry-run`** on the commit to be released.
+5. **Release with `tools/release.py`.** Its step 7 asks, then creates the mirror (public
+   from that moment), pushes the generated files and waits for the mirror's own
+   validation. That is the first time HACS's action sees it. If a check fails, nothing is
+   tagged and no version is published: fix the cause and run `tools/mirror.py <version>`
+   to carry on.
+6. **Testers add the mirror as a custom repository**, by its URL. It is in no catalog, so
+   nobody else is offered it.
+7. **The runs on a clean Home Assistant, before advertising:** a fresh install, setup,
+   restart and removal, through HACS on a supported older version and through the
+   Marketplace on 2026.11 or later. Using 2026.3 for the older one, if HACS still supports
+   it, also tries the floor. The update can't be tried until a second version is
+   published, so it waits for the next release that changes Sensor Watch. Then add the
+   Casa Mia app to the same machine and check each case in the guide's "With HACS or the
+   Marketplace" (phase 3's supersede).
+8. **The catalog:** a separate submission to `hacs/default` ([catalog][catalog]), with no
+   promise of acceptance.
 
 ## Known trap
 
