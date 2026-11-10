@@ -1,28 +1,18 @@
 # Changelog
 
-## 2026.11.3-b3
+## 2026.11.3
 
-- Sensor Watch is never put back to an older version. If HACS or the Marketplace has installed a newer one than this app carries, the app leaves it alone and says so in its log.
-- A release gives its own version to each integration changed in it (`2026.11.3`, not a build's `2026.11.3-b14`).
-
-## 2026.11.3-b2
-
-- **Breaking:** Sensor Watch is now an integration of its own, **Sensor Watch**, beside Casa Mia's, and the app's **Sensor Watch** option is gone. Restart Home Assistant when the Repairs ask. If you had Sensor Watch switched on, Casa Mia then sets the new integration up for you, with the same device, entities, history and records. If you had it off and want it, add **Sensor Watch** under Settings → Devices & services → Add integration.
+- **Breaking:** Sensor Watch is now an integration of its own, **Sensor Watch**, beside Casa Mia's, and the app's **Sensor Watch** option is gone. Restart Home Assistant when the Repairs ask. If you had Sensor Watch switched on, Casa Mia then sets the new integration up for you and brings your records over from the app, with the same device, entities and history. If you had it off and want it, add **Sensor Watch** under Settings → Devices & services → Add integration.
+- **Breaking:** Sensor Watch's page has moved from the Casa Mia panel to Home Assistant's own sidebar, as **Sensor Watch** (admins only). The Sensor Watch tile on Casa Mia's home page opens it, and so does the eye in an entity's dialog.
 - **Breaking:** Sensor Watch's actions are now `casa_mia_sensor_watch.list` and `casa_mia_sensor_watch.refresh`. Change them in your automations and scripts. The old names (`casa_mia.sensor_watch_list` and `casa_mia.sensor_watch_refresh`) still work for now, with a warning in the log, and will be removed.
-- **Sensor Watch needs no Casa Mia app.** It runs wholly inside Home Assistant, so it can be installed without the app. This is the step before it is published for the Home Assistant Community Store.
+- **Breaking:** Going back to 2026.11.2 or earlier removes Sensor Watch's integration. Restore a backup made before this update instead.
+- **Sensor Watch runs in Home Assistant and needs no Casa Mia app.** Its records, scans, groups and profiles are kept inside Home Assistant, so they are in Home Assistant's backups and Sensor Watch keeps working while the app restarts. It is also published by itself, at [gazoodle/casa-mia-sensor-watch](https://github.com/gazoodle/casa-mia-sensor-watch), for HACS and Home Assistant's Marketplace, for a house without Casa Mia. A house with both has nothing to do: the app keeps Sensor Watch up to date, and leaves it alone if a store has installed a newer version.
   - Nothing else you have made changes: the `casa_mia_sensor_watch` event, the Notify on Sensor Watch blueprint and its automations, the card (`custom:casa-mia-sensor-watch`), the eye in an entity's dialog, and device triggers made on the Sensor Watch device all carry on.
-  - If Casa Mia can't hand Sensor Watch over (the app didn't answer, or the new integration isn't installed yet), a Repair says why and nothing is watched until it can. Reload the Casa Mia integration to try again.
-  - The Sensor Watch page stays in the sidebar while its integration is reloaded, and says that it isn't running. It leaves the sidebar when the integration is deleted.
+  - If Casa Mia can't hand Sensor Watch over (the app didn't answer, or the new integration isn't installed yet), a Repair says why and nothing is watched until it can. Reload the Casa Mia integration to try again. The app's copy of the records is left where it was.
+  - The page's levels and values are pushed to it by Home Assistant. When Sensor Watch isn't running, or the connection to Home Assistant is lost, the page says so instead of showing old levels, and recovers by itself. The page stays in the sidebar while the integration is reloaded, and leaves it when the integration is deleted.
   - Casa Mia's home page shows the Sensor Watch tile when Sensor Watch is installed, and only when the page is opened inside Home Assistant.
-  - Sensor Watch has its own restart Repair, like Casa Mia's other integrations.
-
-## 2026.11.3-b1
-
-- **Breaking:** Sensor Watch's page has moved from the Casa Mia panel to Home Assistant's own sidebar, as **Sensor Watch** (admins only). Restart Home Assistant when the Repair asks; until then the page isn't there. The Sensor Watch tile on Casa Mia's home page opens it, and so does the eye in an entity's dialog.
-- **Sensor Watch runs in Home Assistant.** Its records, scans, groups and profiles are kept and worked out inside Home Assistant instead of in the Casa Mia app, so they are in Home Assistant's backups and Sensor Watch keeps working while the app restarts.
-  - The first start after this update brings your records over from the app by itself. If it can't, a Repair says why and nothing is watched until it can; reload the Casa Mia integration to try again. The app's copy is left where it was and is not used again.
-  - The page's levels and values are pushed to it by Home Assistant. When Sensor Watch isn't running, or the connection to Home Assistant is lost, the page says so instead of showing old levels, and recovers by itself.
   - The eye no longer needs the Casa Mia app's **Show in sidebar**.
+  - Sensor Watch has its own restart Repair, like Casa Mia's other integrations.
 
 ## 2026.11.2
 
