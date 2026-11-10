@@ -13,7 +13,7 @@ The release image uses `app/Dockerfile.release` with the repository root as its 
 `main` takes changes only through pull requests with the required checks passing (a repository ruleset), and it moves only at a release. Day-to-day work happens on `dev`:
 
 - Commit to `dev`. `tools/fake_git_host.py` serves whatever is checked out, so your own boxes (and any test systems) follow `dev` through the `#app-dev` URL.
-- Push `dev` to GitHub whenever you like (`git push origin dev`): a backup, and CI runs on it.
+- Push `dev` to GitHub whenever you like (`git push origin dev`) as a backup. CI doesn't run on that push; it runs on the release's pull request, or when started by hand (`gh workflow run ci.yml --ref dev`).
 - Never commit to `main` itself.
 
 ## Make a release
