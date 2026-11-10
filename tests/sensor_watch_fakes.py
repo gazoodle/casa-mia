@@ -1,31 +1,42 @@
-"""Sensor Watch's test helpers: the integration's levels.py and push.py loaded by path, a stand-in
-Home Assistant, and the records the tests share."""
+"""Sensor Watch's test helpers: the integration's files that don't need Home Assistant
+(levels.py and the records package) loaded as a package of their own, a stand-in Home
+Assistant, and the records the tests share."""
 
-import importlib.util
+import importlib
 import json
+import sys
+import types
 from pathlib import Path
 from typing import Any
 
-from casa_mia.ha import HAError
-from casa_mia.modules.sensor_watch import SensorWatch
-
-# Loaded by path: the package __init__ needs Home Assistant, levels.py and push.py don't.
+# The integration's package __init__ needs Home Assistant (Python 3.13; this venv is
+# 3.11), so its folder is given a bare package of another name: levels.py and records/
+# import from it as they are, relative imports and all, and nothing else is loaded.
 FOLDER = (
     Path(__file__).resolve().parents[1]
-    / "integration/custom_components/casa_mia/sensor_watch"
+    / "integration/custom_components/casa_mia_sensor_watch"
 )
+PACKAGE = "sensor_watch_under_test"
+if PACKAGE not in sys.modules:
+    _package = types.ModuleType(PACKAGE)
+    _package.__path__ = [str(FOLDER)]
+    sys.modules[PACKAGE] = _package
 
 
 def _load(name: str) -> Any:
-    spec = importlib.util.spec_from_file_location(f"sw_{name}", FOLDER / f"{name}.py")
-    assert spec and spec.loader
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    return importlib.import_module(f"{PACKAGE}.{name}")
 
 
 levels = _load("levels")
-push = _load("push")
+records = _load("records")
+common = _load("records.common")
+defaults = _load("records.defaults")
+history = _load("records.history")
+profiles = _load("records.profiles")
+scans = _load("records.scans")
+store = _load("records.store")
+suggest = _load("records.suggest")
+HAError = records.HAError
 
 
 SALT = {
@@ -54,10 +65,9 @@ def _now(**levels_by_entity):
 
 
 class FakeHA:
-    def __init__(self, states, entities=(), service=None):
+    def __init__(self, states, entities=()):
         self.states = states
         self.entities = list(entities)
-        self.service = service
         self.components = ["recorder", "history", "sensor"]
         self.asked: list[dict] = []
 
@@ -101,10 +111,6 @@ class FakeHA:
                 out.append({i: [{"s": "off", "lu": 0.0}] for i in c["entity_ids"]})
             elif kind == "get_config":
                 out.append({"components": self.components})
-            elif kind == "call_service":
-                if self.service is None:
-                    raise HAError("call_service: Service not found")
-                out.append({"response": self.service})
             else:
                 raise AssertionError(kind)
         return out
@@ -143,9 +149,17 @@ ENTITIES = [
 ]
 
 
-def make(path, ha, **kw) -> SensorWatch:
-    ha_: Any = ha  # a stand-in for HA
-    return SensorWatch(path, ha_, **kw)
+def make(path, ha, **kw) -> Any:
+    """A SensorWatch kept in the file at `path` (Home Assistant's storage, in the
+    integration). `told` gathers what the watcher is told of: the entities whose records
+    changed, or None for any of them."""
+    told: list[set[str] | None] = []
+    data = json.loads(path.read_text()) if path.exists() else None
+    watch = records.SensorWatch(
+        data, ha, lambda d: path.write_text(json.dumps(d)), told.append, **kw
+    )
+    watch.told = told
+    return watch
 
 
 def call(watch, method, path, query=None, body=None):

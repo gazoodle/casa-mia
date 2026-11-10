@@ -1,0 +1,3 @@
+# Home Assistant itself, with its test fixtures, pinned so a new Home Assistant doesn't
+# break CI unasked. Raise it deliberately; tools/setup installs it into .venv-ha.
+pytest-homeassistant-custom-component==0.13.375

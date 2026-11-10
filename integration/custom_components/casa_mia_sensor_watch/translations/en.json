@@ -1,0 +1,60 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Sensor Watch",
+        "description": "Give any entity bands of values, each with a level (nominal, task, warning, error, critical), so that Home Assistant knows what needs doing or has gone wrong. Adding it puts a Sensor Watch page in the sidebar, where the watches are set up."
+      }
+    },
+    "abort": { "single_instance_allowed": "Sensor Watch is already set up." }
+  },
+  "entity": {
+    "binary_sensor": { "problem": { "name": "Problem" } },
+    "button": { "refresh": { "name": "Refresh state" } },
+    "sensor": {
+      "status": {
+        "name": "Status",
+        "state": { "nominal": "Nominal", "task": "Task", "warning": "Warning", "error": "Error", "critical": "Critical" }
+      },
+      "task_count": { "name": "Tasks" },
+      "warning_count": { "name": "Warnings" },
+      "error_count": { "name": "Errors" },
+      "critical_count": { "name": "Critical" }
+    }
+  },
+  "issues": {
+    "restart_required": {
+      "title": "Restart Home Assistant to finish updating Sensor Watch",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Restart Home Assistant",
+            "description": "The Sensor Watch integration was updated from {from_version} to {to_version}, but Home Assistant is still running {from_version}. Until it restarts, nothing new in {to_version} works. Restart Home Assistant to load it."
+          }
+        }
+      }
+    }
+  },
+  "services": {
+    "refresh": {
+      "name": "Refresh state",
+      "description": "Judge every watch afresh, as at the start. For when a level looks stuck."
+    },
+    "list": {
+      "name": "List",
+      "description": "Every watched entity at the chosen levels, worst first, then longest standing: its level, value, message and since when. Use it with a response variable, and loop over `sensors` in a template.",
+      "fields": {
+        "levels": { "name": "Levels", "description": "Which levels to list. Leave empty for everything that isn't nominal." },
+        "group": { "name": "Group", "description": "Only the members of this group (as named on the Sensor Watch page), and its own worst level. Leave empty for every watched entity." }
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "reached": "A watched sensor reached a level, or worse",
+      "escalated": "A watched sensor escalated",
+      "back": "A watched sensor is back to nominal"
+    },
+    "extra_fields": { "level": "Level", "group": "Only this group" }
+  }
+}

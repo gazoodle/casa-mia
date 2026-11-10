@@ -88,3 +88,27 @@ def test_new_cards_in_ha_are_told_to_their_followers(serve):
     urllib.request.urlopen(f"{url}?cards=2026.10.4-b1").close()  # HA restarted, updated
     urllib.request.urlopen(url).close()  # an older integration says nothing
     assert told == ["2026.10.4-b1"]
+
+
+def test_sensor_watch_old_records_are_handed_over_or_refused_aloud(serve, tmp_path):
+    from casa_mia.__main__ import sensor_watch_export
+
+    store = tmp_path / "sensor-watch.json"
+    reads = {"/sensor-watch/export": lambda _query: sensor_watch_export(store)}
+    url = serve(make_server(0, reads=reads)) + "/sensor-watch/export"
+
+    with urllib.request.urlopen(url) as answer:  # the app never kept any
+        assert json.load(answer) == {}
+    store.write_text('{"records": {"sensor.loft_humidity": {"kind": "numeric"}}}')
+    with urllib.request.urlopen(url) as answer:
+        assert json.load(answer)["records"] == {
+            "sensor.loft_humidity": {"kind": "numeric"}
+        }
+
+    # A file that can't be read is said, with why: never an empty answer, which the
+    # integration would take as "nothing to bring over".
+    store.write_text("{not json")
+    with pytest.raises(urllib.error.HTTPError) as refused:
+        urllib.request.urlopen(url)
+    assert refused.value.code == 500
+    assert "JSONDecodeError" in refused.value.reason

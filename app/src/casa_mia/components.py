@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import shutil
 import urllib.request
 from dataclasses import dataclass
@@ -17,9 +18,20 @@ from pathlib import Path
 
 MARKER = ".restart_required.json"
 # Components once bundled and no longer: taken out of HA's config, so HA stops loading
-# them. casa_mia_sensor_watch joined casa_mia in 2026.10.10-b4 (casa_mia takes its
-# entities on).
-RETIRED = ("casa_mia_sensor_watch",)
+# them. None now: casa_mia_sensor_watch was here from 2026.10.10-b4, while Sensor Watch
+# was part of casa_mia, and is bundled again as its own integration since 2026.11.3.
+RETIRED: tuple[str, ...] = ()
+# Fired in Home Assistant when a start changed any component's files, with
+# {"components": {domain: version}}: Sensor Watch's integration, which doesn't know the
+# app, raises its restart Repair on it (its const.INSTALLED_EVENT).
+INSTALLED_EVENT = "casa_mia_components_installed"
+# Components also published by themselves, each from the mirror repository named here
+# (tools/mirror.py, docs/design/marketplace-mirrors.md). HACS or the Marketplace may have
+# put a newer one in HA's config than this app bundles, and that one is left alone. The
+# rest come from the app only and always follow it, so that installing an earlier app
+# takes them back with it (docs/releases.md).
+PUBLISHED = {"casa_mia_sensor_watch": "casa-mia-sensor-watch"}
+_VERSION = re.compile(r"(\d+)\.(\d+)\.(\d+)(?:-b(\d+))?")
 # HA's notification service through the Supervisor proxy. The notice needs no dismissing:
 # HA drops notifications when it restarts, which is what it asks for.
 NOTIFY_URL = "http://supervisor/core/api/services/persistent_notification/create"
@@ -45,13 +57,13 @@ COMPONENTS = Path(os.environ.get("CM_COMPONENTS") or default_components())
 @dataclass(frozen=True, slots=True)
 class InstallResult:
     domain: str
-    status: str  # "installed", "updated" or "current"
+    status: str  # "installed", "updated", "current", or "kept" (a newer one is there)
     previous_version: str | None
-    version: str | None
+    version: str | None  # the one in HA's config now
 
     @property
     def changed(self) -> bool:
-        return self.status != "current"
+        return self.status in ("installed", "updated")
 
 
 def is_ignored(path: Path) -> bool:
@@ -74,6 +86,16 @@ def manifest_version(folder: Path) -> str | None:
     return version if isinstance(version, str) and version.strip() else None
 
 
+def version_key(version: str | None) -> tuple[int, int, int, bool, int] | None:
+    """Puts versions in order, a release above its own builds (2026.11.3-b9 < 2026.11.3).
+    None for a version that isn't one of ours."""
+    found = _VERSION.fullmatch(version or "")
+    if not found:
+        return None
+    year, month, release, build = found.groups()
+    return int(year), int(month), int(release), build is None, int(build or 0)
+
+
 def manifest_name(folder: Path) -> str:
     try:
         return json.loads((folder / "manifest.json").read_text("utf-8"))["name"]
@@ -92,6 +114,20 @@ def _files(folder: Path) -> dict[Path, Path]:
 def install_component(source: Path, destination: Path) -> InstallResult:
     first_install = not destination.exists()
     previous = manifest_version(destination)
+    version = manifest_version(source)
+
+    # No downgrade of a component a store may have updated past this app. A version
+    # that can't be read, on either side, is no reason to hold back.
+    ours, theirs = version_key(version), version_key(previous)
+    if source.name in PUBLISHED and ours and theirs and ours < theirs:
+        _LOGGER.warning(
+            "component %s left at %s: this app bundles the older %s",
+            source.name,
+            previous,
+            version,
+        )
+        return InstallResult(source.name, "kept", previous, previous)
+
     wanted = _files(source)
     changed = False
     for relative, path in wanted.items():
@@ -109,7 +145,6 @@ def install_component(source: Path, destination: Path) -> InstallResult:
             if folder.is_dir() and not any(folder.iterdir()):
                 folder.rmdir()
 
-    version = manifest_version(source)
     status = "installed" if first_install else "updated" if changed else "current"
     if changed:
         marker = {"status": status, "from_version": previous, "to_version": version}
@@ -147,7 +182,9 @@ def ask_for_restart(
             f"Installed: {names}. Restart Home Assistant (Settings → ⋮ → Restart "
             "Home Assistant), then set them up under "
             "[Devices & services](/config/integrations/dashboard): Casa Mia first; it "
-            "then offers the others under Discovered while their module is on in the app."
+            "then offers the others under Discovered while their module is on in the "
+            "app. Sensor Watch needs no Casa Mia: add it there yourself, unless it was "
+            "switched on in the app before, when it is set up for you."
         ),
     }
     req = urllib.request.Request(

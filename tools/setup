@@ -7,3 +7,19 @@ cd "$(dirname "$0")/.."
 [ -x .venv/bin/python ] || "${PYTHON:-python3.11}" -m venv .venv
 .venv/bin/python -m pip install -q -U pip
 .venv/bin/python -m pip install -q -e '.[dev,test]'
+
+# The tests that run the integrations inside a real Home Assistant (tests_ha) need the
+# Python Home Assistant itself does, in a venv of their own. Skipped, and said, where
+# that Python isn't installed: the other tests don't need it.
+HA_PYTHON="${HA_PYTHON:-python3.14}"
+if command -v "$HA_PYTHON" >/dev/null; then
+  [ -x .venv-ha/bin/python ] || "$HA_PYTHON" -m venv .venv-ha
+  .venv-ha/bin/python -m pip install -q -U pip
+  .venv-ha/bin/python -m pip install -q -r tests_ha/requirements.txt
+  # Home Assistant's own pages, which Sensor Watch's panel needs, at the version this
+  # Home Assistant pins.
+  .venv-ha/bin/python -m pip install -q home-assistant-frontend \
+    -c "$(.venv-ha/bin/python -c 'import homeassistant, pathlib; print(pathlib.Path(homeassistant.__file__).parent / "package_constraints.txt")')"
+else
+  echo "no $HA_PYTHON: .venv-ha not made, so tests_ha can't run here (CI runs them)"
+fi

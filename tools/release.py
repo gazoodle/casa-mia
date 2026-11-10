@@ -14,8 +14,9 @@ repository ruleset). The release rides on the working branch into that pull requ
      everything main has.
   2. The checks CI runs: ruff, pyright, pytest (the web build and component versions too).
   3. Prepare: `tools/versioning.py release` (2026.10.1-b30 -> 2026.10.1, the builds'
-     changelog sections merged into one), then you review the release notes, editing them
-     if you like; then "Release <version>" is committed on the branch. Abort puts
+     changelog sections merged into one, and each component changed in those builds
+     given the release's version), then you review the release notes, editing them if
+     you like; then "Release <version>" is committed on the branch. Abort puts
      everything back.
   4. Pull request, after your OK: the branch pushed and a pull request into main opened
      (or the open one updated); then it waits for the checks. Nothing is published yet.
@@ -24,6 +25,10 @@ repository ruleset). The release rides on the working branch into that pull requ
      the branch is brought up to main (a fast-forward: it is already in the merge).
   6. GitHub: the Release workflow builds the images, publishes the release and updates the
      `stable` branch. What to do there (the first time: make the GHCR packages public).
+  7. Mirrors, after your OK: `tools/mirror.py` publishes each component that is also
+     offered by itself (Sensor Watch, for HACS and the Marketplace) to its own repository,
+     when this release changed it. It waits for the Release workflow first. A fork has
+     no mirrors unless CM_MIRROR_OWNER names an account for them.
 
 Needs git, the venv (`tools/setup`) and the GitHub CLI, `gh`, logged in (`gh auth login`).
 See docs/releases.md.
@@ -45,7 +50,14 @@ import versioning  # tools/, next to this script
 
 ROOT = Path(__file__).resolve().parents[1]
 VENV = ROOT / ".venv" / "bin"
-RELEASE_FILES = ("pyproject.toml", "app/config.yaml", "app/CHANGELOG.md")
+# What `versioning.py release` writes: committed as the release, put back on an abort.
+RELEASE_FILES = (
+    "pyproject.toml",
+    "app/config.yaml",
+    "app/CHANGELOG.md",
+    "integration/versions.lock.json",
+    "integration/custom_components/*/manifest.json",
+)
 CHECKS = (
     ("Lint", [VENV / "ruff", "check", "."]),
     ("Formatting", [VENV / "ruff", "format", "--check", "."]),
@@ -228,6 +240,8 @@ def prepare(version: str) -> str:
         raise Stop(f"tools/versioning.py release failed:\n{done.stderr.strip()}")
     good(f"pyproject.toml and app/config.yaml say {release}")
     good("the builds' changelog sections merged into one")
+    for path in git("diff", "--name-only", "--", RELEASE_FILES[-1]).splitlines():
+        good(f"component {Path(path).parent.name} is {release} too")
     review(release)
     git("add", "--", *RELEASE_FILES)
     git("commit", "-q", "-m", f"Release {release}")
@@ -254,9 +268,7 @@ def review(release: str) -> None:
             return
         if answer == "a":
             restore()
-            raise Stop(
-                "Aborted: pyproject.toml, app/config.yaml and the changelog put back."
-            )
+            raise Stop("Aborted: the versions and the changelog put back.")
         # nano when there is one (friendlier than a vi from $EDITOR); CM_EDITOR wins
         editor = (
             os.environ.get("CM_EDITOR")
@@ -429,6 +441,16 @@ def on_github(release: str, repo: str) -> None:
     )
 
 
+def mirrors(release: str) -> None:
+    step(7, "Mirrors")
+    # Under the venv: it reads the list of published components from the app's source.
+    done = subprocess.run([VENV / "python", "tools/mirror.py", release], cwd=ROOT)
+    if done.returncode:
+        raise Stop(
+            f"The mirrors are not all published. To carry on: tools/mirror.py {release}"
+        )
+
+
 def main() -> int:
     say(f"{BOLD}Release{OFF} {DIM}(Ctrl-C at any prompt stops safely){OFF}")
     try:
@@ -458,6 +480,7 @@ def main() -> int:
             number = pull_request(branch, version, repo)
             publish(branch, version, number, repo)
         on_github(version, repo)
+        mirrors(version)
         return 0
     except Stop as stop:
         say(f"\n  {RED}■{OFF} {stop}")

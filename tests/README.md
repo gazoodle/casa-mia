@@ -17,6 +17,22 @@ when it breaks. HTTP test servers use the `serve` fixture. Share stateless fixtu
 when it saves meaningful setup, but keep mutable stores and service instances
 isolated. Never use fixed ports or real household configuration.
 
+## Tests inside a real Home Assistant (`tests_ha/`)
+
+The tests here fake Home Assistant. Those in `tests_ha/` run the integrations inside a
+real one (`pytest-homeassistant-custom-component`), for what a fake can't show: config
+flows, the device and entity registries, services, the websocket commands and the panel.
+Sensor Watch's move out of the Casa Mia integration (2026.11.3) is tested there.
+
+- Run them with `.venv-ha/bin/pytest tests_ha`. They have their own `pytest.ini`.
+- Home Assistant needs a newer Python than the app's 3.11, so they have a venv of their
+  own, `.venv-ha`. `tools/setup` makes it when `python3.14` is installed (or the Python
+  named by `HA_PYTHON`), and says so when it isn't. It is a large download, because the
+  panel needs Home Assistant's frontend package.
+- `tests_ha/requirements.txt` pins the Home Assistant they run on. Raise it on purpose,
+  not as a side effect.
+- CI runs them as "Python / tests in Home Assistant".
+
 ## Worker measurements
 
 Measured on 2026-10-09 from an isolated checkout of

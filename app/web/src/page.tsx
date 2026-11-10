@@ -2,9 +2,8 @@
  * styles live in guest.module.css, where they started. */
 
 import { useEffect, useState, type ReactNode } from "react";
-import type { HeaderView } from "./api";
+import { photoApi, type HeaderView } from "./api";
 import { Maturity } from "./maturity";
-import { photoApi } from "./photo";
 import type { Toast } from "./ui";
 import css from "./guest.module.css";
 
@@ -15,6 +14,7 @@ export function Shell({
   module,
   state,
   action,
+  top,
   children,
 }: {
   icon: ReactNode;
@@ -24,19 +24,27 @@ export function Shell({
   module?: string;
   state?: string;
   action?: ReactNode;
+  /** A page outside the app's own (Sensor Watch, in Home Assistant's sidebar): what
+   * stands in place of the link back to Casa Mia's home, or null for nothing. */
+  top?: ReactNode;
   children: ReactNode;
 }) {
+  const inApp = top === undefined;
   const [house, setHouse] = useState<string>();
   useEffect(() => {
-    photoApi.get<HeaderView>("").then((v) => setHouse(v.house), () => undefined);
-  }, []);
+    if (inApp) photoApi.get<HeaderView>("").then((v) => setHouse(v.house), () => undefined);
+  }, [inApp]);
   return (
     <div className={css.page}>
-      <nav className={css.top}>
-        <a href="#/" className={css.back}>
-          ← {house ?? "Home"}
-        </a>
-      </nav>
+      {inApp ? (
+        <nav className={css.top}>
+          <a href="#/" className={css.back}>
+            ← {house ?? "Home"}
+          </a>
+        </nav>
+      ) : (
+        top && <nav className={css.top}>{top}</nav>
+      )}
       <header className={css.head}>
         <span className={css.headIcon}>{icon}</span>
         <div>

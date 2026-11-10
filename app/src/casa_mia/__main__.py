@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from . import app_version, header, settings, swap
-from .components import ask_for_restart, install_bundled
+from .components import INSTALLED_EVENT, ask_for_restart, install_bundled
 from .ha import HA
 from .log import configure_logging
 from .modules.auto_dashboards import AutoDashboards
@@ -40,7 +40,6 @@ from .modules.guest_login import (
 from .modules.kiosk_mode import KioskMode
 from .modules.kiosks import Kiosks
 from .modules.people import People
-from .modules.sensor_watch import SensorWatch
 from .server import PORT, integration_url, make_server
 from .swap.api import SwapApi
 
@@ -56,7 +55,8 @@ GITPROXY_STORE = CONFIG / "gitproxy.json"
 PEOPLE_STORE = CONFIG / "people.json"
 # The Kiosk Satellites: addresses added on the admin page and the app's login tokens.
 KIOSKS_STORE = CONFIG / "kiosks.json"
-# Sensor Watch's records (a sensor's bands and levels), edited on the admin page.
+# Sensor Watch's records as the app kept them until 2026.11.3. Sensor Watch runs in Home
+# Assistant now and takes this file once (sensor_watch_export); never written or deleted.
 SENSOR_WATCH_STORE = CONFIG / "sensor-watch.json"
 # HA's media folder (map media): where QR codes are saved for dashboards to show.
 MEDIA = Path("/media")
@@ -68,6 +68,15 @@ def banner(text: str) -> list[str]:
     return [f"┏{rule}┓", f"┃  {text}  ┃", f"┗{rule}┛"]
 
 
+def sensor_watch_export(store: Path) -> dict[str, Any]:
+    """What is in Sensor Watch's old file ({} if the app never kept one). A file that
+    can't be read raises: the integration is refused, and says so in a Repair."""
+    try:
+        return json.loads(store.read_text())
+    except FileNotFoundError:
+        return {}
+
+
 def main() -> int:
     options = json.loads(OPTIONS.read_text()) if OPTIONS.exists() else {}
     configure_logging(options.get("log_level", "info"))
@@ -75,7 +84,13 @@ def main() -> int:
     for line in banner(f"Casa Mia app {app_version()} starting"):
         log.info("%s", line)
     token = os.environ.get("SUPERVISOR_TOKEN", "")
-    ask_for_restart(install_bundled(), token)
+    installed = install_bundled()
+    ask_for_restart(installed, token)
+    # Told to Home Assistant, for a component that needs no Casa Mia integration to hear
+    # that its files changed under it (Sensor Watch: its restart Repair).
+    changed = {r.domain: r.version for r in installed if r.changed}
+    if changed:
+        fire_event(token, INSTALLED_EVENT, {"components": changed})
     modules = {}
     actions = {}
     post_handlers = {}
@@ -128,22 +143,11 @@ def main() -> int:
         )
         state = {"state": "running" if on else "disabled"}
         modules[module] = lambda state=state: state
-    if options.get("sensor_watch_enabled", False):
-        # The records; pushed to the integration (which watches the states) as they're
-        # saved. The doorbell is for an integration older than the push, until HA restarts.
-        watch = SensorWatch(
-            SENSOR_WATCH_STORE,
-            ha,
-            on_change=lambda: (
-                fire_event(token, settings.CHANGED_EVENT, {}) if token else None
-            ),
-        )
-        watch.start()
-        modules["sensor_watch"] = watch.health
-        api["/api/sensor-watch/"] = watch.handle
-        reads["/sensor-watch/records"] = lambda _query: watch.for_integration()
-    else:
-        modules["sensor_watch"] = lambda: {"state": "disabled"}
+    # Sensor Watch's records as the app kept them until 2026.11.3, for the Casa Mia
+    # integration to hand to Sensor Watch's own, once.
+    reads["/sensor-watch/export"] = lambda _query: sensor_watch_export(
+        SENSOR_WATCH_STORE
+    )
     if options.get("fona_enabled", False):
         fona = Fona(
             people.check,

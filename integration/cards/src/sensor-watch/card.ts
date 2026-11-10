@@ -1,5 +1,5 @@
 // The Sensor Watch card: what isn't nominal, worst first, from Sensor Watch's list
-// service (casa_mia.sensor_watch_list; a group's only, if it names one). It asks again the
+// service (casa_mia_sensor_watch.list; a group's only, if it names one). It asks again the
 // moment a level moves (its casa_mia_sensor_watch event; its entities' writes are
 // the backstop), and shows each value live from the entity itself. With nothing to list it hides (HA's card wrapper honours a card's own
 // `hidden`), so in a Tablet Layout its panel closes, garnish heading and all, when all is well.

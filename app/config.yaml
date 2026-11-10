@@ -1,5 +1,5 @@
 name: Casa Mia
-version: "2026.11.2"
+version: "2026.11.3"
 slug: casa_mia
 description: "Wall tablet dashboards, cameras at a glance, guest QR login, Kiosk Satellite management and Sensor Watch, together in Home Assistant."
 url: "https://github.com/gazoodle/casa-mia/blob/main/docs/README.md"
@@ -60,7 +60,6 @@ options:
   guest_login_enabled: false
   fona_enabled: false
   kiosks_enabled: false
-  sensor_watch_enabled: false
   alarm_enabled: false
   intercom_enabled: false
   protect_talkback_enabled: false
@@ -74,7 +73,6 @@ schema:
   guest_login_enabled: bool
   fona_enabled: bool
   kiosks_enabled: bool
-  sensor_watch_enabled: bool
   alarm_enabled: bool
   intercom_enabled: bool
   protect_talkback_enabled: bool

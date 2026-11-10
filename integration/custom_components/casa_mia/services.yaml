@@ -19,21 +19,6 @@ send_sms:
       selector:
         text:
           multiline: true
-sensor_watch_list:
-  fields:
-    levels:
-      example: ["warning", "error", "critical"]
-      selector:
-        select:
-          multiple: true
-          options:
-            - nominal
-            - task
-            - warning
-            - error
-            - critical
-    group:
-      example: "Mains voltage"
-      selector:
-        text:
+# Old names, passed on to casa_mia_sensor_watch.list and .refresh (sensor_watch.py).
+sensor_watch_list: {}
 sensor_watch_refresh: {}
