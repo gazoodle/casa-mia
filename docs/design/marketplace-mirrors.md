@@ -474,7 +474,10 @@ ask first. In order (written 2026-11-10; none of it is done):
    checks in `CLAUDE.md`.
 3. **Install the build on the live box** and see Sensor Watch handed over there: its own
    integration set up, with the same device, entities and records, and no Repair left.
-   Only the test VM has done this so far, on Home Assistant 2026.9.4.
+   **Done 2026-11-10** with 2026.11.3-b3 on Home Assistant 2026.11.1: the entry was made
+   by the import, the device and every entity moved to it, the records, profiles and
+   groups came over, and no Repair was left. That was read from the config share's
+   storage files; the log wasn't seen.
 4. **Run `tools/mirror.py --dry-run`** on the commit to be released.
 5. **Release with `tools/release.py`.** Its step 7 asks, then creates the mirror (public
    from that moment), pushes the generated files and waits for the mirror's own

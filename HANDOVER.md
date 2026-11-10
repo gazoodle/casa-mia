@@ -317,9 +317,9 @@ CLAUDE.md has them all. What trips agents here:
   (2026.11.3-b1 to b3) and `tools/mirror.py`, committed on `dev` and **not pushed**, tried
   on the test VM and never on the live box. Read the doc's "Before phase 5" first: HACS's
   `brands` check, issues on in the mirror, the scope of "No downgrade", and what has not
-  run anywhere yet. The fake git host offers these builds to the live box; installing them
-  there is the owner's decision. Installing 2026.11.2 or earlier over them removes Sensor
-  Watch's folder (the doc's phase 3 notes).
+  run anywhere yet. The live box took 2026.11.3-b3 on 2026-11-10 and Sensor Watch was
+  handed over correctly (phase 5, step 3). Installing 2026.11.2 or earlier now removes
+  Sensor Watch's folder: restore a backup instead (the doc's phase 3 notes).
 - **The test VM** was left on Home Assistant 2026.9.4 with the app at 2026.11.3-b3
   (`local_casa_mia`), Sensor Watch at 2026.11.3-b2, the stable app
   installed and stopped, and a test automation (`cm_old_trigger`) using the old device
