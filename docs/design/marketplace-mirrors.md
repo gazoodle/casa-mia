@@ -518,6 +518,8 @@ ask first. In order (written 2026-11-10; none of it is done):
    promise of acceptance. 2026.11.4 added `@gazoodle` as code owner first. HACS's action
    now warns that the manifest has no `categories`; they are optional for a custom
    integration.
+   **Submitted 2026-11-11** as [hacs/default#13883](https://github.com/hacs/default/pull/13883).
+   Reviews can take months; requesting one gets it closed.
 
 ## Known trap
 
