@@ -317,7 +317,8 @@ CLAUDE.md has them all. What trips agents here:
   `docs/design/marketplace-mirrors.md`). Casa Mia 2026.11.3 was released on 2026-11-10,
   and Sensor Watch is published by itself at `gazoodle/casa-mia-sensor-watch` (2026.11.3;
   HACS's action and hassfest pass). It is in no catalog yet: testers add it as a custom
-  repository. The live box handed Sensor Watch over correctly on a b3 build. Installing
+  repository; the test VM installed it that way from the Marketplace on 2026-11-11.
+  The live box handed Sensor Watch over correctly on a b3 build. Installing
   2026.11.2 or earlier now removes Sensor Watch's folder: restore a backup instead.
 - **The test VM** was left on Home Assistant 2026.9.4 with the app at 2026.11.3-b3
   (`local_casa_mia`), Sensor Watch at 2026.11.3-b2, the stable app

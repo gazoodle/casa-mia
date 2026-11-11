@@ -502,6 +502,17 @@ ask first. In order (written 2026-11-10; none of it is done):
    published, so it waits for the next release that changes Sensor Watch. Then add the
    Casa Mia app to the same machine and check each case in the guide's "With HACS or the
    Marketplace" (phase 3's supersede).
+   **Done on the test VM, 2026-11-11** (Home Assistant 2026.11.1, the Marketplace
+   connected to GitHub): the mirror added as a custom repository showed Sensor Watch
+   2026.11.3 with the guide's description, installed files identical to Casa Mia's tag,
+   and after a restart Add integration set it up with its device, seven entities and its
+   page ("Nothing watched yet." with no earlier records in storage). Removing it while set
+   up was refused (`repository_in_use`). Starting the Casa Mia app at 2026.11.3-b3 left the
+   newer copy alone, with its warning, no marker and no Repair. Still to do: HACS on an
+   older Home Assistant (the latest HACS release is 2.0.5, and it needs a GitHub sign-in
+   too), the update, which waits for a second release, and a house that has the app
+   first. Deleting the entry keeps its records in storage, by design, so a "clean" test
+   removes `.storage/casa_mia_sensor_watch` too.
 8. **The catalog:** a separate submission to `hacs/default` ([catalog][catalog]), with no
    promise of acceptance.
 
