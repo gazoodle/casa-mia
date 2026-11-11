@@ -7,6 +7,7 @@ import ui from "../ui.module.css";
 import LAYOUT from "../../../src/casa_mia/layout.json";
 import { Camera, Thumb, plural } from "../cameras";
 import { Commander, DEBUG, Edits, HA, HIGHLIGHT, L, MOTION, P, PANELS, Panel, camerasOf, help } from "./common";
+import { ResponsiveSettings, responsiveOf } from "./responsive";
 import { Chips, Num, RatioInput } from "./inputs";
 import { confirmBox } from "../confirm";
 import { LivePreview } from "./preview";
@@ -69,6 +70,8 @@ export function Commanders({
   const [open, setOpen] = useState(-1);
   // The preview: the stage (any size, laid out here) or the app's own drawing of it.
   const [preview, setPreview] = useState<"stage" | "app">("stage");
+  // The cameras there is no room for at the stage's size (a Responsive commander's).
+  const [hidden, setHidden] = useState<string[]>([]);
   const list = store.commanders;
   const picked = list[open];
   const change = (next: Commander[], opened = open) => {
@@ -161,11 +164,16 @@ export function Commanders({
               ]}
               onChange={setPreview}
             />
-            {preview === "stage" ? <Stage key={open} value={picked} cameras={store.cameras} /> : <LivePreview store={store} index={open} />}
+            {preview === "stage" ? (
+              <Stage key={open} value={picked} cameras={store.cameras} onHidden={setHidden} />
+            ) : (
+              <LivePreview store={store} index={open} />
+            )}
           </div>
           <CommanderEditor
             value={picked}
             cameras={store.cameras}
+            hidden={preview === "stage" ? hidden : []}
             trackMotion={trackMotion(picked.id ?? "")}
             onTrackMotion={(on) => onTrackMotion(picked.id ?? "", on)}
             onChange={(v) => change(list.map((x, j) => (j === open ? v : x)))}
@@ -182,12 +190,15 @@ export function Commanders({
 export function CommanderEditor({
   value,
   cameras,
+  hidden,
   trackMotion,
   onTrackMotion,
   onChange,
 }: {
   value: Commander;
   cameras: Record<string, Camera>;
+  /** A Responsive commander's cameras with no room at the preview's size. */
+  hidden: string[];
   /** The Track motion switch's state in Home Assistant (undefined: HA hasn't it). */
   trackMotion?: string;
   onTrackMotion: (on: boolean) => void;
@@ -199,7 +210,19 @@ export function CommanderEditor({
     onChange(next);
   };
   const inPanels = [...new Set(PANELS.flatMap((p) => value[p].cameras))];
+  const responsive = value.mode === "responsive";
+  // Its cameras in the mode it is in: the ones to start on, and to leave out of Track motion.
+  const mine = responsive ? camerasOf(value) : inPanels;
   const sized = value.main_fit === "own" || value.main_fit === "fixed"; // the panels take the rest
+  /** Its mode changed. Both modes' settings are kept. The first time it becomes
+   * Responsive, its list starts as its panels' cameras: left, top, right, bottom. */
+  const setMode = (mode: "fixed" | "responsive") =>
+    set((c) => {
+      c.mode = mode;
+      const r = responsiveOf(c);
+      if (mode === "responsive") c.responsive = r.cameras.length ? r : { ...r, cameras: camerasOf({ ...c, mode: "fixed" }) };
+      if (c.main && !camerasOf(c).includes(c.main)) c.main = ""; // not one of this mode's cameras
+    });
   const lit = { ...HIGHLIGHT, ...value.highlight };
   const dbg = { ...DEBUG, ...value.debug };
   const developer = useContext(Developer); // Debug options only in developer mode
@@ -226,6 +249,21 @@ export function CommanderEditor({
               />
             </Field>
           </div>
+          <div className={css.wide}>
+            <Field
+              label="Layout"
+              help="Fixed: its panels, each with its cameras and size, as you set them. It suits one shape of space. Responsive: worked out for whatever space it is given, from one list of cameras and a few limits. Each keeps its own settings, so you can change and change back."
+            >
+              <Segmented
+                value={value.mode ?? "fixed"}
+                options={[
+                  ["fixed", "Fixed"],
+                  ["responsive", "Responsive"],
+                ]}
+                onChange={setMode}
+              />
+            </Field>
+          </div>
           <Num label={L.gap.label} value={value.gap} help={help(L.gap)} onChange={(n) => set((c) => (c.gap = n))} />
           <Num
             label={L.margin.label}
@@ -246,16 +284,18 @@ export function CommanderEditor({
         </section>
         <section className={`${css.options} ${css.numbers}`}>
           <h4 className={css.sub}>Main camera</h4>
-          <div className={css.wide}>
-            <Field label={L.main_fit.label} help={help(L.main_fit)}>
-              <Segmented
-                value={value.main_fit ?? (L.main_fit.default as Commander["main_fit"])}
-                options={L.main_fit.options as [Commander["main_fit"], string][]}
-                onChange={(f) => set((c) => (c.main_fit = f))}
-              />
-            </Field>
-          </div>
-          {sized && (
+          {!responsive && (
+            <div className={css.wide}>
+              <Field label={L.main_fit.label} help={help(L.main_fit)}>
+                <Segmented
+                  value={value.main_fit ?? (L.main_fit.default as Commander["main_fit"])}
+                  options={L.main_fit.options as [Commander["main_fit"], string][]}
+                  onChange={(f) => set((c) => (c.main_fit = f))}
+                />
+              </Field>
+            </div>
+          )}
+          {!responsive && sized && (
             <Num
               label={L.main_width.label}
               value={value.main_width ?? L.main_width.default}
@@ -263,7 +303,7 @@ export function CommanderEditor({
               onChange={(n) => set((c) => (c.main_width = n))}
             />
           )}
-          {sized && (
+          {!responsive && sized && (
             <Num
               label={L.panel_min.label}
               value={value.panel_min ?? L.panel_min.default}
@@ -271,14 +311,14 @@ export function CommanderEditor({
               onChange={(n) => set((c) => (c.panel_min = n))}
             />
           )}
-          {value.main_fit === "fixed" && (
+          {!responsive && value.main_fit === "fixed" && (
             <RatioInput label={L.main_ratio.label} value={value.main_ratio ?? L.main_ratio.default} onChange={(r) => set((c) => (c.main_ratio = r))} />
           )}
           <div className={css.wide}>
             <Field label="Main camera at start">
               <Select value={value.main} onChange={(picked) => set((c) => (c.main = picked))}>
                 <option value="">The first one</option>
-                {inPanels.map((e) => (
+                {mine.map((e) => (
                   <option key={e} value={e}>
                     {cameras[e]?.title ?? e}
                   </option>
@@ -405,14 +445,15 @@ export function CommanderEditor({
                 ordered={false}
                 label={(e) => cameras[e]?.title ?? e}
                 thumb={(e) => <Thumb entity={e} />}
-                choices={inPanels.filter((e) => !(value.motion_ignore ?? []).includes(e))}
+                choices={mine.filter((e) => !(value.motion_ignore ?? []).includes(e))}
                 onChange={(items) => set((c) => (c.motion_ignore = items))}
               />
             </Field>
           </div>
         </section>
       </div>
-      <div className={css.panels}>
+      {responsive && <ResponsiveSettings value={value} cameras={cameras} hidden={hidden} onChange={(r) => set((c) => (c.responsive = r))} />}
+      <div className={css.panels} style={responsive ? { display: "none" } : undefined}>
         {PANELS.map((p) => (
           <div key={p} className={`${css.overview} ${value[p].hidden ? css.hiddenPanel : ""}`}>
             <header className={css.panelHead}>

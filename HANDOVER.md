@@ -274,6 +274,12 @@ CLAUDE.md has them all. What trips agents here:
     page sets the mode yet (step 4), so it was seen only on the stage against a mocked
     API with `mode` set by hand, and in tests. The card over a Responsive picture has not
     been seen in a browser.
+  - **Step 4, the editor, is built in 2026.11.5-b8** (not committed):
+    `app/web/src/commander/responsive.tsx` (the cameras, the limits, the edges as chips,
+    Reset to defaults), the Layout switch in `editor.tsx`, and the stage saying which
+    limits gave way and which cameras have no room. Driven in headless Chromium against
+    a mocked API: switch, slider, edges, reset, save, and back to Fixed. Not seen with
+    real cameras. Step 5 is what a tap on "+n more" does.
 - **2026.11.5-b3** (2026-11-11; committed, **not on the box**, unseen in Safari and the Mac app): two
   Camera Commander faults on the owner's Mac.
   - **Safari over https showed no tiles.** HA's service worker handles every GET on HA's

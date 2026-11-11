@@ -66,6 +66,11 @@ pages follow), delete one, or add a copy of the one picked or a blank one. Each 
   this long. **Never takes over:** the cameras whose motion should not take over (a busy
   road, a tree in the wind); **+ Add…** picks from the commander's cameras. The card still marks their motion with the dot, a
   tap still makes one the main camera, and their motion never holds off Go back after.
+- **Layout:** **Fixed** or **Responsive**, described below. A commander keeps both sets
+  of settings, so you can change and change back.
+
+### Fixed: panels set by hand
+
 - **Panels** (left, top, right, bottom): the cameras in each, in order; its size; how its
   tiles fit; rows or columns; and whether it is shown. **Same size** makes every tile in
   the panel the same size, at the panel's **Tile shape** (square unless you change it), as
@@ -73,6 +78,47 @@ pages follow), delete one, or add a copy of the one picked or a blank one. Each 
   size, spread** shares the spare room evenly between them and at both ends. A camera is
   cropped to fill its tile, so a 16:9 camera in a square tile loses some of each side.
   With more than one row or column, the tiles line up as a grid.
+
+A Fixed commander suits one shape of space. Drag the preview to the spaces you use to see
+what it does in them.
+
+### Responsive: worked out for the space
+
+A Responsive commander is laid out afresh for whatever space it is given. The picture is
+a grid of equal tiles, each near the tile shape, and the main camera is a block of them.
+Every grid your limits allow is tried, and the one that leaves the least space unused and
+crops the cameras least is used.
+
+- **Cameras:** one list, in the order the tiles fill, 32 at most. The first time a
+  commander is made Responsive it starts as the cameras of its panels. The main camera
+  keeps its own tile, outlined, so no tile moves when the main camera changes.
+- **Main camera at least** and **at most:** how small and how large it may be, as shares
+  of the biggest it could be in the space when shown whole. Room beyond its most goes to
+  bigger tiles when there are tiles to take it.
+- **A main camera of another shape:** **Crop to fill** crops it about its centre to fill
+  its place. **Show whole** shows it whole with bars, unless it would lose less than 5%.
+  **Re-lay out for its shape** makes the layout for that camera, so the tiles can move
+  when the main camera changes; the other two never move them.
+- **A camera may lose up to:** how far a tile may be from the tile shape, and the main
+  camera's place from 16:9. A camera is cropped about its centre and never squeezed.
+- **Smallest tile:** the narrowest a tile may be.
+- **Tile shape:** 16:9, 3:2, 4:3 or square.
+- **Edges, in the order they fill:** the edges the tiles go on. An edge in the list is
+  used whenever there are tiles for it, and the first cameras go on the first edge.
+  Bottom and Right gives tiles below, on the right, or both as a corner, whichever suits
+  the space; add Left for tiles on both sides. ‹ and › move an edge earlier or later, ✕
+  takes it out and **+ Add…** puts one back.
+- **Different when the space is taller than wide:** a second list of edges for a tall
+  space, such as a phone held upright.
+- **When the limits can't all be met:** **Find something that fits** uses other edges,
+  then lets the main camera go below its least, then the tiles below the smallest.
+  **Keep to my limits** shows the main camera alone, and the card says why.
+- **Reset to defaults** puts every Responsive setting back and leaves the cameras.
+
+When there are more cameras than the space can hold, the last in the list go into a
+**+n more** tile. The page names them at the preview's size, and motion on one of them
+marks that tile. Two to four cameras in a tall or very wide space leave room empty,
+because equal tiles can't fill it; Fixed suits those better.
 
 **Pictures:** the **Compositor host**, the address the cards and the dashboard fetch the
 pictures from. Blank: this box's own address.

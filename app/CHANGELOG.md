@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026.11.5-b8
+
+- **Camera Commander: a Responsive layout.** A commander's **Layout** can now be **Responsive** as well as **Fixed** (what it was, with its panels set by hand). A Responsive commander is laid out afresh for whatever space it is given, so it suits a wide tablet, a narrow column and a phone held upright from one set of settings. Existing commanders stay Fixed until you change them, and each keeps both sets of settings, so you can change and change back.
+  - **Cameras:** one list, in the order the tiles fill, 32 at most. It starts as the cameras of its panels. The main camera keeps its own tile, so no tile moves when the main camera changes.
+  - **The layout:** tiles all one size, held near the **Tile shape** (16:9, 3:2, 4:3 or square), and the main camera a block of them. A camera is cropped about its centre and never squeezed, by no more than **A camera may lose up to**.
+  - **The main camera** is kept between its **least** and its **most**, as shares of the biggest it could be in the space. **A main camera of another shape** is cropped to fill its place, shown whole with bars, or has the layout made for it.
+  - **Edges, in the order they fill:** the edges the tiles go on. The first cameras go on the first edge. **Different when the space is taller than wide** gives a second list for tall spaces.
+  - **Cameras there is no room for** go into a **+n more** tile, from the end of the list, and the page names them at the preview's size. Tapping the tile does nothing yet.
+  - **When the limits can't all be met:** **Find something that fits** uses other edges, then a smaller main camera, then smaller tiles. **Keep to my limits** shows the main camera alone and says why. The preview says which limits gave way.
+  - **Reset to defaults** puts every Responsive setting back and leaves the cameras as they are.
+  - Known: two to four cameras in a tall or very wide space leave room empty, as equal tiles can't fill it. Fixed suits those.
+
 ## 2026.11.5-b7
 
 - No change to the commanders you have: a commander can now be drawn in a second way, **Responsive**, worked out for the space it is given. It is not on the Camera Commander page yet (that is the next build), so nothing chooses it.

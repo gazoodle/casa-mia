@@ -229,6 +229,14 @@
   margin-top: 0;
 }
 
+/* A Responsive commander's sliders and choices, a few to a row (responsive.tsx) */
+.responsive {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  align-items: start;
+  gap: 12px 24px;
+}
+
 .numbers input:disabled {
   opacity: 0.45;
   cursor: not-allowed;

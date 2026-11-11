@@ -30,7 +30,24 @@ const HEIGHTS = [160, 1600];
 const within = (n: number, [lo, hi]: number[]) => Math.round(Math.min(hi, Math.max(lo, n)));
 const pct = (n: number) => `${Math.round(n * 100)}%`;
 
-export function Stage({ value, cameras }: { value: Commander; cameras: Record<string, Camera> }) {
+/** What gave way to find a layout that fits (the solver's `gave`), in words. */
+const GAVE: Record<string, string> = {
+  edges: "edges not in the list were used",
+  main_least: "the main camera went below its least",
+  tile_min: "the tiles went below the smallest tile",
+  main_alone: "only the main camera is shown",
+};
+
+export function Stage({
+  value,
+  cameras,
+  onHidden,
+}: {
+  value: Commander;
+  cameras: Record<string, Camera>;
+  /** Told the cameras there is no room for at the stage's size, as it changes. */
+  onHidden?: (cameras: string[]) => void;
+}) {
   const round = useContext(ThumbRound);
   // It starts at the commander's own shape.
   const [[W, H], setSize] = useState<[number, number]>(() => [960, within((960 * value.height) / value.width, HEIGHTS)]);
@@ -65,12 +82,19 @@ export function Stage({ value, cameras }: { value: Commander; cameras: Record<st
   const s = { ...value, ...panels, width: W, height: H, scale: 1 } as unknown as Laid;
   const main = camerasOf(s).includes(picked) ? picked : value.main;
   const shape = (e: string) => Number((s.aspects ?? {})[e]) || 16 / 9;
-  let laid: Placed;
+  let laid: Placed | null = null;
+  let wrong = "";
   try {
     laid = placed(s, main || null);
   } catch (err) {
-    return <div className={css.note}>This commander can't be laid out: {(err as Error).message}.</div>;
+    wrong = (err as Error).message;
   }
+
+  const hidden = laid?.more ? camerasOf(s).slice(laid.tiles.length) : [];
+  const hiddenKey = hidden.join("\n");
+  useEffect(() => onHidden?.(hiddenKey ? hiddenKey.split("\n") : []), [hiddenKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!laid) return <div className={css.note}>This commander can't be laid out: {wrong}.</div>;
   const mainRect = laid.main;
 
   const mainShown: Shown | null = main && mainRect[2] > 0 && mainRect[3] > 0 ? { rect: mainRect, shape: shape(main), how: laid.mainHow } : null;
@@ -146,6 +170,7 @@ export function Stage({ value, cameras }: { value: Commander; cameras: Record<st
         {m.squeezed > 0.02 && ` A camera is stretched ${pct(m.squeezed)} out of its shape.`}
         {m.tall > 0 && ` ${plural(m.tall, "tile")} ${m.tall === 1 ? "is" : "are"} taller than wide.`}
         {laid.more && ` ${plural(laid.more.count, "camera")} ${laid.more.count === 1 ? "doesn't" : "don't"} fit, and ${laid.more.count === 1 ? "is" : "are"} in +${laid.more.count} more.`}
+        {laid.gave.length > 0 && <strong> Its limits don't all fit this space: {laid.gave.map((g) => GAVE[g] ?? g).join("; ")}.</strong>}
       </p>
     </div>
   );
