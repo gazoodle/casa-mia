@@ -4,7 +4,7 @@ Tell it once what normal looks like, for every sensor in the house, and it tells
 
 > **Maturity: Beta.** Complete and used every day; its features have settled. Please report what breaks in your setup. ([The levels](../README.md#maturity))
 
-<img src="../screenshots/sensor-watch-card.webp" alt="A kitchen wall tablet dashboard: a camera picture in the middle and, in the side panel, the Sensor Watch card titled Action Items listing an error (Spa pH, highly acidic), a warning (Download Speed, well below the plan) and a task (Tank State: get the order in), each with its icon in its level's colour, its value and how long it has stood" width="800">
+<img src="../screenshots/sensor-watch-card.webp" alt="A Home Assistant dashboard view named Sensor Watch. On the left the Sensor Watch card lists what needs attention, worst first: an error (Boiler fault, problem reported), a warning (Hall smoke alarm battery, battery flat, 4%) and four tasks (three updates available, and a front door sensor battery to replace at 17%), each with its level as a coloured pill, its message, its value and how long it has stood. On the right four Sensor Watch gauges, each an arc of its watch's coloured bands with a needle: mains voltage 241 V, nominal; hot water 46.8 °C, nominal; the hall smoke alarm at 4%, warning, battery flat; and the landing smoke alarm at 88%, nominal" width="800">
 
 ## What it's for
 
@@ -61,6 +61,53 @@ counts as an error, because a sensor that has stopped reporting is often the fir
 of a broken integration or a flat battery. It counts only once it has been unavailable for
 five minutes (yours to change), as a restart, a reload or a car asleep is usual, not
 trouble.
+
+## How it works
+
+```mermaid
+flowchart TD
+    change["A watched sensor changes<br>(its state, or the attribute you chose)"]
+    silent["A sensor sends nothing, or nothing new,<br>for its Stale time"]
+    level["Its level is worked out from its bands:<br>its own, its group's or a profile's"]
+    compare{"Against the level<br>it has now"}
+    hold["Hold-off: it must stay that way<br>(1 minute; 5 minutes for unavailable)"]
+    blip["Nothing happens"]
+    counts(["The new level counts"])
+    escalate["Escalation: left at that level for<br>the time you set, it moves up one"]
+    subgraph out["Where the new level goes"]
+        shown["Shown: the page, the card, the gauge,<br>the eye in an entity's dialog"]
+        entities["The status, count and problem entities,<br>and the List action"]
+        event["The event and the device triggers:<br>your automations, the Notify blueprint"]
+    end
+
+    change --> level --> compare
+    compare -- "the same" --> blip
+    compare -- "better" --> counts
+    compare -- "worse" --> hold
+    hold -- "still so" --> counts
+    hold -- "back as it was" --> blip
+    silent -- "at once" --> counts
+    counts --> escalate
+    escalate -- "time's up" --> counts
+    counts --> shown
+    counts --> entities
+    counts --> event
+```
+
+- **Better news counts at once; worse news waits.** A level that gets worse has to last
+  for its hold-off before it counts, so a blip raises nothing. A sensor that recovers is
+  shown as recovered straight away.
+- **Unavailable waits longer** (five minutes unless you change it), because a restart, a
+  reload or a car asleep is usual.
+- **Stale** is for a sensor that still has a value but has stopped sending: no report,
+  or no change, for the time you set.
+- **Escalation** moves a level up one when nobody has dealt with it in the time you set:
+  a task becomes a warning, a warning an error.
+- Every change of level goes to all of the outputs together, so the card on the wall,
+  the count in an automation and the notification on a phone never disagree.
+
+The waits and levels are set per watch, or once for a group or a profile: see
+[Watch an entity](#watch-an-entity), [Profiles](#profiles) and [Groups](#groups).
 
 ## Half an hour to a watched house
 
