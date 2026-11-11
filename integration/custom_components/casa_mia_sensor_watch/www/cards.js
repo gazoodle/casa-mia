@@ -151,9 +151,9 @@ var n = {
 			options: [
 				["fill", "Crop to fill"],
 				["whole", "Show whole"],
-				["follow", "Re-lay out for its shape"]
+				["follow", "Fit the layout to it"]
 			],
-			help: "What a main camera does when its shape is not its place's. Crop to fill and Show whole never move a tile when the main camera changes; Re-lay out for its shape can."
+			help: "What a main camera does when its shape is not its place's. Crop to fill and Show whole never move a tile when the main camera changes; Fit the layout to it can."
 		},
 		cant_fit: {
 			label: "When the limits can't all be met",

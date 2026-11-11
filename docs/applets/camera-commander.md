@@ -102,7 +102,7 @@ crops the cameras least is used.
   bigger tiles when there are tiles to take it.
 - **A main camera of another shape:** **Crop to fill** crops it about its centre to fill
   its place. **Show whole** shows it whole with bars, unless it would lose less than 5%.
-  **Re-lay out for its shape** makes the layout for that camera, so the tiles can move
+  **Fit the layout to it** makes the layout for that camera, so the tiles can move
   when the main camera changes; the other two never move them.
 - **A camera may lose up to:** how far a tile may be from the tile shape, and the main
   camera's place from 16:9. A camera is cropped about its centre and never squeezed.
@@ -129,6 +129,16 @@ because equal tiles can't fill it; Fixed suits those better.
 
 **Pictures:** the **Compositor host**, the address the cards and the dashboard fetch the
 pictures from. Blank: this box's own address.
+
+### Which part of a cropped main camera is kept
+
+**Keep this part of the main camera** is a grid of nine places: the corners, the middle of
+each edge and the centre. When the main camera is cropped, the crop keeps that part of its
+picture and comes off the opposite side. Many cameras write the date and time in the top
+left of their own picture, and **Top left** keeps it whole. It applies in either layout,
+whenever the main camera is cropped, including the small crop that **Show whole** and
+**Fit the layout to it** make in place of thin bars. Tiles are always cropped about their
+centre.
 
 ### Camera names and Talk chips
 

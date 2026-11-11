@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.5-b12
+
+- **Camera Commander: choose which part of a cropped main camera is kept.** **Keep this part of the main camera**, a grid of nine places on the commander's page, says where the main camera is cropped about: the centre (as it was), an edge or a corner. The crop then comes off the opposite side, so **Top left** keeps the date and time many cameras write there. It applies whenever the main camera is cropped, in either layout: **Crop to fill**, the small crop **Show whole** and **Fit the layout to it** make to avoid thin bars, and a Fixed commander's **Crop**. The picture, the card's live video and the preview all follow it. Tiles are still cropped about their centre.
+- **Camera Commander: Re-lay out for its shape is now called Fit the layout to it.** It does what it did.
+
 ## 2026.11.5-b11
 
 - **Camera Commander: a name's pill has rounded ends**, as pills have everywhere else in Casa Mia, in the picture, on the card and in the preview. Every pill is the same height for its size of name. The main camera's name is a pill at first, so it looks a little different after this update.

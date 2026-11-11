@@ -136,6 +136,8 @@ EMPTY_COMMANDER = {
     # How the cameras' names are drawn (labels.py): font, sizes, colours, and a bar, a
     # pill or nothing; and where the card puts a call's state and the Talk buttons.
     "labels": {k: o["default"] for k, o in LABELS["labels"].items()},
+    # The part of the main camera's picture kept when it is cropped (labels.py: keep).
+    "main_keep": LABELS["picture"]["main_keep"]["default"],
     "aspects": {},  # camera -> its natural shape (width / height), recorded when saved
     # How it is laid out: fixed (the four panels below, set by hand) or responsive
     # (worked out for the space it is drawn in, see responsive.py). Responsive has its

@@ -7,7 +7,7 @@ import { repeat } from "lit/directives/repeat.js";
 import { fire, type Hass, heightFor, inPicker, navigate, TABLET } from "../ha.ts";
 import { heightForMain, pyRound, type Rect } from "../layout.ts";
 import { camerasOf, placed } from "../placed.ts";
-import { back, family, labelsOf, useFont } from "../labels.ts";
+import { back, family, keepPosition, labelsOf, useFont } from "../labels.ts";
 import { dot } from "./motion.ts";
 import { Config, Card, BLANK, Size, commanders, pictureDown } from "./common.ts";
 import { PILLS } from "../pills.ts";
@@ -158,7 +158,7 @@ export class CommanderCard extends CommanderTalk {
                   html`<video
                     class="live"
                     data-entity=${channel}
-                    style="${at(mainRect)};object-fit:${laid.mainHow};opacity:${channel === live.shown ? 1 : 0}"
+                    style="${at(mainRect)};object-fit:${laid.mainHow};${laid.mainHow === "cover" ? `object-position:${keepPosition(own.main_keep)};` : ""}opacity:${channel === live.shown ? 1 : 0}"
                     autoplay
                     playsinline
                     .muted=${true /* the visitor is heard through Talk's own session (talk.ts) */}

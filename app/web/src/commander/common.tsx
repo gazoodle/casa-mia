@@ -83,6 +83,8 @@ export type Commander = {
   highlight?: Highlight;
   /** How its camera names are drawn, and where its Talk chips go (labels.tsx). */
   labels?: Partial<Labels>;
+  /** The part of the main camera's picture kept when it is cropped; none: the centre. */
+  main_keep?: string;
   /** Debug options: the picture dimmed, corner Ls and diagonals, its ID and draw time. */
   debug?: Debug;
   /** Track motion (done by the integration), seconds. back 0: stays on the motion camera. */

@@ -63,7 +63,7 @@ cropping.
 | Smallest tile | The narrowest a tile may be, in CSS pixels on the device. | 110 px |
 | Tile shape | 16:9, 3:2, 4:3 or square. | 16:9 |
 | Edges, in the order they fill | Any of left, right, top and bottom, in an order. | bottom, right, left, top |
-| A main camera of another shape | Crop to fill, Show whole, or Re-lay out for its shape. | Crop to fill |
+| A main camera of another shape | Crop to fill, Show whole, or Fit the layout to it (called Re-lay out for its shape until 2026.11.5-b12). | Crop to fill |
 | When the limits can't all be met | Find something that fits, or Keep to my limits. | Find something that fits |
 
 The main camera's two limits are shares of the biggest it could be, not of the whole
@@ -113,7 +113,7 @@ limits. Tapping a tile never moves another tile.
 - **Show whole:** it is shown whole, with dark bars, where it would otherwise lose more
   than 5%. Below that it is cropped, so a 16:9 camera in a
   block that is nearly 16:9 gets no hairline bars.
-- **Re-lay out for its shape:** the grid is solved for the main camera's own shape, so it
+- **Fit the layout to it:** the grid is solved for the main camera's own shape, so it
   can change when a camera of another shape is chosen. Kept because it shows each main
   camera at its best; it is the one that can jump.
 
@@ -246,7 +246,7 @@ written above it, and where they differ this section is the one that holds.
    prototype chose (below, on the right, or the two as a corner). All four by default
    would put tiles all round the main camera in every space.
 3. **The main camera's block is held to the same tolerance as a tile**: within "may lose
-   up to" of 16:9 (or of the camera's own shape with Re-lay out). Without it, one edge in
+   up to" of 16:9 (or of the camera's own shape with Fit the layout to it). Without it, one edge in
    a tall space gave a tall thin block and Crop to fill cut the camera to a sliver. The
    setting is now labelled **A camera may lose up to**. A block within 5% always passes,
    so a tolerance of nothing still finds a layout.

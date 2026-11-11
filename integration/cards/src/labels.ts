@@ -86,3 +86,14 @@ export function corner(place: Place, foot = EDGE): Record<string, string> {
 export const nudge = (l: Labels, which: "talk_status" | "talk_buttons"): Record<string, string> => ({
   transform: `translate(${l[`${which}_x`]}px, ${l[`${which}_y`]}px)`,
 });
+
+/** The part of a cropped main camera that is kept (a commander's `main_keep`): the option. */
+export const KEEP = LABELS.picture.main_keep;
+
+/** Where a cropped main camera is cropped about, as CSS object-position: the compositor's
+ * `keep` (labels.py). "0% 0%" keeps the top left; the middle when none is set. */
+export function keepPosition(part: string = KEEP.default): string {
+  const across = part.includes("left") ? 0 : part.includes("right") ? 100 : 50;
+  const down = part.includes("top") ? 0 : part.includes("bottom") ? 100 : 50;
+  return `${across}% ${down}%`;
+}

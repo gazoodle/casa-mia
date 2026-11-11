@@ -1,9 +1,11 @@
 """How a commander's camera names are drawn (compositor/labels.py): the font, the size,
 the colours, and a bar, a pill or nothing, on the tiles and on the main camera."""
 
+import io
 import logging
 
 import pytest
+from PIL import Image, ImageDraw
 
 from casa_mia.modules.commander.checks import problems
 from casa_mia.modules.compositor import EMPTY_COMMANDER, placed
@@ -129,3 +131,55 @@ def test_what_is_wrong_with_labels_is_said():
         "call status, nudge down must be -300-300" in p
         for p in wrong(talk_status_y=900)
     )
+
+
+def banded() -> bytes:
+    """A 4:3 picture: a red band along the top, a green one along the foot, blue between."""
+    img = Image.new("RGB", (160, 120), "blue")
+    draw = ImageDraw.Draw(img)
+    draw.rectangle((0, 0, 160, 19), fill="red")
+    draw.rectangle((0, 100, 160, 120), fill="lime")
+    out = io.BytesIO()
+    img.save(out, "JPEG", quality=95)
+    return out.getvalue()
+
+
+@pytest.mark.parametrize(
+    ("part", "top", "foot"),
+    [
+        ("center", "blue", "blue"),  # cropped about its middle: most of each band lost
+        ("top-left", "red", "blue"),  # the top kept whole: all the crop off the foot
+        ("bottom", "blue", "green"),
+    ],
+)
+def test_a_cropped_main_camera_keeps_the_part_asked_for(part, top, foot):
+    from casa_mia.modules.compositor import commander
+
+    c = cmd(6)
+    c["labels"] = {**c["labels"], "main_style": "none"}
+    c["main_keep"] = part
+    data = commander(c, {}, {}, CAMS[1], banded())
+    pic = Image.open(io.BytesIO(data)).convert("RGBA")
+    x, y, w, h = placed(c, CAMS[1]).main
+
+    def colour(xy) -> str:
+        r, g, b, _ = rgba(pic, xy)
+        return (
+            "red" if r > 150 and g < 100 else "green" if g > 150 and r < 100 else "blue"
+        )
+
+    # a tenth of the way in from the top and the foot (and clear of the clock)
+    assert colour((x + w // 3, y + h // 10)) == top
+    assert colour((x + w // 3, y + h - h // 10)) == foot
+
+
+def test_the_part_to_keep_must_be_one_of_the_nine():
+    c = cmd(2)
+    c["main_keep"] = "middle"
+    said = problems(
+        {
+            "commanders": [c],
+            "cameras": {e: {} for e in [*CAMS, "camera.kept0", "camera.kept1"]},
+        }
+    )
+    assert any("part of the main camera to keep" in p for p in said)

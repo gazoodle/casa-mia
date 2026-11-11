@@ -8,7 +8,7 @@
 
 import { useContext, useEffect, useRef, useState } from "react";
 import type { Rect } from "../../../../integration/cards/src/layout.ts";
-import { back, corner, family, footOf, labelsOf, nudge } from "../../../../integration/cards/src/labels.ts";
+import { back, corner, family, footOf, keepPosition, labelsOf, nudge } from "../../../../integration/cards/src/labels.ts";
 import { lostBy, measure, shapeName, type Shown } from "../../../../integration/cards/src/measure.ts";
 import { camerasOf, placed, type Commander as Laid, type Placed } from "../../../../integration/cards/src/placed.ts";
 import { Camera, ThumbRound, plural } from "../cameras";
@@ -153,8 +153,10 @@ export function Stage({
   const noticed = cropped.filter((c) => lostBy(c) > 0.05).length;
 
   const at = ([x, y, w, h]: Rect) => ({ left: x * k, top: y * k, width: w * k, height: h * k });
-  const picture = (e: string, how: Shown["how"]) => (
-    <img src={`api/cameras/thumb/${encodeURIComponent(e)}?r=${round}`} alt="" draggable={false} style={{ objectFit: how }} />
+  // (a tile is cropped about its centre; the main camera about the part to keep)
+  const kept = keepPosition(value.main_keep);
+  const picture = (e: string, how: Shown["how"], about = "50% 50%") => (
+    <img src={`api/cameras/thumb/${encodeURIComponent(e)}?r=${round}`} alt="" draggable={false} style={{ objectFit: how, objectPosition: how === "cover" ? about : undefined }} />
   );
   // The main camera sharper: the compositor's own picture of its medium or high channel
   // (the ones a commander draws a main camera from), at the width its place needs, in
@@ -169,7 +171,7 @@ export function Stage({
         src={`api/compositor/thumb/${encodeURIComponent(channel)}?w=${wide}&whole=1&r=${round}`}
         alt=""
         draggable={false}
-        style={{ objectFit: how }}
+        style={{ objectFit: how, objectPosition: how === "cover" ? kept : undefined }}
         onLoad={(ev) => (ev.currentTarget.style.display = "")}
         onError={(ev) => (ev.currentTarget.style.display = "none")}
       />
@@ -241,7 +243,7 @@ export function Stage({
         >
           {mainShown && (
             <div className={`${css.tile} ${css.main}`} style={at(mainShown.rect)}>
-              {picture(main, mainShown.how)}
+              {picture(main, mainShown.how, kept)}
               {sharp(main, mainShown.how, mainShown.rect[2])}
               <span>{title(main)}</span>
             </div>

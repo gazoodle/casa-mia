@@ -19,7 +19,7 @@ from .common import (
     LAYOUT,
     PANELS,
 )
-from .labels import look, name
+from .labels import keep, look, name
 from .responsive import responsive
 
 _LOGGER = logging.getLogger(__name__)
@@ -393,7 +393,7 @@ def placed(cmd: dict, main: str | None = None) -> Placed:
 
 def follows_main(cmd: dict) -> bool:
     """Whether the whole layout can change with the main camera: one sized to its own
-    shape (fixed), or Re-lay out for its shape (Responsive)."""
+    shape (fixed), or Fit the layout to it (Responsive)."""
     if cmd.get("mode") == "responsive":
         return (cmd.get("responsive") or {}).get("main_other") == "follow"
     return cmd.get("main_fit") == "own"
@@ -528,7 +528,9 @@ def commander(
                 if main_fit == "fill":
                     img = src.resize((w, h))
                 elif main_fit == "crop":
-                    img = ImageOps.fit(src, (w, h))
+                    # cropped about the part to keep (its main_keep): the middle, or
+                    # an edge or corner, which then loses nothing
+                    img = ImageOps.fit(src, (w, h), centering=keep(cmd))
                 else:
                     img = ImageOps.contain(src, (w, h))
                 px, py, pw, ph = (

@@ -28,6 +28,9 @@ def _labels(the: str, cmd: dict) -> list[str]:
     if not isinstance(labels, dict):
         return [f"{the}'s labels must be a set of settings."]
     out: list[str] = []
+    kept = LABELS["picture"]["main_keep"]
+    if cmd.get("main_keep", kept["default"]) not in [v for v, _ in kept["options"]]:
+        out.append(f"{the}'s part of the main camera to keep is not one of the nine.")
     for key, o in LABELS["labels"].items():
         value = labels.get(key, o["default"])
         label = re.sub(r", (px|%)$", "", o["label"]).lower()  # (less its unit)

@@ -244,3 +244,16 @@ export function Slider({
     </Box>
   );
 }
+
+/** One of nine places (the corners, the edges' middles and the centre), as a 3 x 3 grid to
+ * tap: the Over layer card's editor has the same. `options` are the nine, row by row,
+ * each with its name. Arrow keys are the browser's own between buttons (Tab). */
+export function NinePoint({ value, options, onChange, label }: { value: string; options: [string, string][]; onChange: (v: string) => void; label: string }) {
+  return (
+    <div className={css.nine} role="radiogroup" aria-label={label}>
+      {options.map(([v, name]) => (
+        <button key={v} type="button" role="radio" aria-checked={v === value} aria-label={name} title={name} onClick={() => onChange(v)} />
+      ))}
+    </div>
+  );
+}

@@ -312,6 +312,14 @@ CLAUDE.md has them all. What trips agents here:
     by name. Not seen failing on a tablet. Also in b11: the stage takes its first
     camera when none is set at start (empty main area since b5), and the Camera
     compositor page's sections fold (`compositor/fold.tsx`, kept per browser).
+  - **2026.11.5-b12** (not committed): a commander's `main_keep` (one of nine places,
+    the Over layer's anchor names; `labels.json` `picture`) is where a cropped main
+    camera is cropped about: `labels.py` `keep` (Pillow's centering), `labels.ts`
+    `keepPosition` (object-position) for the card's live video and the stage. One
+    value for all modes, tiles stay centred; per-camera alignment was talked of and
+    left (owner, 2026-11-11). "Re-lay out for its shape" is now "Fit the layout to
+    it", which changes `layout.json` and so Sensor Watch's card bundle and version.
+    `NinePoint` is new chrome (`controls.tsx`), not yet on the chrome cheat sheet.
 - **2026.11.5-b3** (2026-11-11; **both seen working by the owner on the live box that day**): two
   Camera Commander faults on the owner's Mac.
   - **Safari over https showed no tiles.** HA's service worker handles every GET on HA's

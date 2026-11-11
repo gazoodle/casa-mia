@@ -51,7 +51,7 @@
     "tile_shape": { "label": "Tile shape", "default": "16:9", "options": [["16:9", "16:9"], ["3:2", "3:2"], ["4:3", "4:3"], ["1:1", "Square"]], "help": "Every tile is held near this shape. A camera of another shape is cropped about its centre." },
     "edges": { "label": "Edges, in the order they fill", "default": ["bottom", "right"], "help": "The edges the tiles go on. The first cameras go on the first edge." },
     "edges_tall": { "label": "Different when the space is taller than wide", "default": null, "help": "A second list of edges, used when the space is taller than it is wide." },
-    "main_other": { "label": "A main camera of another shape", "default": "fill", "options": [["fill", "Crop to fill"], ["whole", "Show whole"], ["follow", "Re-lay out for its shape"]], "help": "What a main camera does when its shape is not its place's. Crop to fill and Show whole never move a tile when the main camera changes; Re-lay out for its shape can." },
+    "main_other": { "label": "A main camera of another shape", "default": "fill", "options": [["fill", "Crop to fill"], ["whole", "Show whole"], ["follow", "Fit the layout to it"]], "help": "What a main camera does when its shape is not its place's. Crop to fill and Show whole never move a tile when the main camera changes; Fit the layout to it can." },
     "cant_fit": { "label": "When the limits can't all be met", "default": "find", "options": [["find", "Find something that fits"], ["keep", "Keep to my limits"]], "help": "Find something that fits allows other edges, then a smaller main camera, then smaller tiles. Keep to my limits shows the main camera alone and says so." }
   },
   "panel": {

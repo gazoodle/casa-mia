@@ -26,6 +26,17 @@ FONTS = COMPONENTS / "casa_mia" / "www" / "fonts"
 
 Colour = tuple[int, int, int, int]
 
+KEEP: dict[str, Any] = LABELS["picture"]["main_keep"]  # the part of a cropped main kept
+
+
+def keep(cmd: dict) -> tuple[float, float]:
+    """Where a commander's main camera is cropped about (its `main_keep`), as Pillow's
+    centering: 0 keeps the left or the top, 1 the right or the foot, 0.5 the middle."""
+    part = str(cmd.get("main_keep") or KEEP["default"])
+    across = 0.0 if "left" in part else 1.0 if "right" in part else 0.5
+    down = 0.0 if "top" in part else 1.0 if "bottom" in part else 0.5
+    return across, down
+
 
 @functools.lru_cache(maxsize=64)
 def font(name: str, size: int) -> Any:

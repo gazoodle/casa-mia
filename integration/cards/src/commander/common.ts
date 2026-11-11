@@ -30,7 +30,7 @@ export type Config = { type: string; entity?: string; tap_main?: "live" | "more-
 };
 export type Card = {
   picture: string;
-  layout: Commander & { labels?: Partial<Labels>; highlight?: Record<string, string | number>; debug?: { on?: boolean; colour?: string } };
+  layout: Commander & { labels?: Partial<Labels>; main_keep?: string; highlight?: Record<string, string | number>; debug?: { on?: boolean; colour?: string } };
   start: string;
   /** Each camera: its title, live page, and channels smallest first, with their sizes. */
   cameras: Record<string, { title: string; live: string; channels?: [string, number, number][] }>;

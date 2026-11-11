@@ -7,13 +7,14 @@ import ui from "../ui.module.css";
 import LAYOUT from "../../../src/casa_mia/layout.json";
 import { Camera, Thumb, plural } from "../cameras";
 import { Commander, DEBUG, Edits, HA, HIGHLIGHT, L, MOTION, P, PANELS, Panel, camerasOf, help } from "./common";
+import { KEEP } from "../../../../integration/cards/src/labels.ts";
 import { LabelSettings } from "./labels";
 import { ResponsiveSettings, responsiveOf } from "./responsive";
 import { Chips, Num, RatioInput } from "./inputs";
 import { confirmBox } from "../confirm";
 import { LivePreview } from "./preview";
 import { Stage } from "./stage";
-import { Select } from "../controls";
+import { NinePoint, Select } from "../controls";
 
 /** Whether a commander's taps can work: they set its Main camera select in the integration,
  * so say plainly when Home Assistant doesn't have it (yet), or has it with no cameras. */
@@ -323,6 +324,16 @@ export function CommanderEditor({
           {!responsive && value.main_fit === "fixed" && (
             <RatioInput label={L.main_ratio.label} value={value.main_ratio ?? L.main_ratio.default} onChange={(r) => set((c) => (c.main_ratio = r))} />
           )}
+          <div className={css.wide}>
+            <Field label={KEEP.label} help={`${KEEP.help} At first: Centre.`}>
+              <NinePoint
+                label={KEEP.label}
+                value={value.main_keep ?? KEEP.default}
+                options={KEEP.options as [string, string][]}
+                onChange={(part) => set((c) => (c.main_keep = part))}
+              />
+            </Field>
+          </div>
           <div className={css.wide}>
             <Field label="Main camera at start">
               <Select value={value.main} onChange={(picked) => set((c) => (c.main = picked))}>

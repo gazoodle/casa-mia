@@ -90,6 +90,7 @@ class Live(Base):
             "aspects",
             "highlight",
             "labels",
+            "main_keep",
             "debug",
             "mode",
             "responsive",
