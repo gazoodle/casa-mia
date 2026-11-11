@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.5-b4
+
+- **Removed: Arrange… on the Camera Commander page.** It didn't lay the cameras out well enough to be worth keeping. A commander's panels are set by hand, as before it existed, and commanders already saved are unchanged, including any it arranged.
+
 ## 2026.11.5-b3
 
 - **Fixed: the Camera Commander card in Safari over https showed no tiles, only the live main camera, and said "Picture failing".** Over https, Home Assistant's service worker handles every request to its address, and Safari drops an endless picture stream that comes through a worker, so the composited picture never arrived after the first load. Home Assistant's own camera streams fail there in the same way. When the card's stream fails on such a page it now takes the picture as frames over a WebSocket, which a worker never sees. Other browsers, and Safari over plain http, keep the stream they had. Home Assistant needs a restart after this update for the new address to exist; until then Safari behaves as before.

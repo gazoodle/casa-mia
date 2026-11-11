@@ -10,7 +10,6 @@ import { Commander, DEBUG, Edits, HA, HIGHLIGHT, L, MOTION, P, PANELS, Panel, he
 import { Chips, Num, RatioInput } from "./inputs";
 import { confirmBox } from "../confirm";
 import { LivePreview } from "./preview";
-import { ArrangeDialog } from "./arrange";
 import { Select } from "../controls";
 
 /** Whether a commander's taps can work: they set its Main camera select in the integration,
@@ -194,7 +193,6 @@ export function CommanderEditor({
   const dbg = { ...DEBUG, ...value.debug };
   const developer = useContext(Developer); // Debug options only in developer mode
   const moves = { ...MOTION, ...value.motion };
-  const [arranging, setArranging] = useState(false);
   return (
     <div className={css.commander}>
       <div className={css.commanderTop}>
@@ -403,17 +401,6 @@ export function CommanderEditor({
           </div>
         </section>
       </div>
-      <div className={css.actions}>
-        <button
-          className={ui.button}
-          disabled={!inPanels.length}
-          title="All its cameras as tiles of one size around the main camera, with the least room unused"
-          onClick={() => setArranging(true)}
-        >
-          Arrange…
-        </button>
-      </div>
-      {arranging && <ArrangeDialog value={value} cameras={cameras} onApply={onChange} onClose={() => setArranging(false)} />}
       <div className={css.panels}>
         {PANELS.map((p) => (
           <div key={p} className={`${css.overview} ${value[p].hidden ? css.hiddenPanel : ""}`}>

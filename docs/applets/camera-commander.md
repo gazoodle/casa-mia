@@ -61,33 +61,6 @@ pages follow), delete one, or add a copy of the one picked or a blank one. Each 
   cropped to fill its tile, so a 16:9 camera in a square tile loses some of each side.
   With more than one row or column, the tiles line up as a grid.
 
-**Arrange…**, under the settings, lays all the commander's cameras out for you as tiles
-around the main camera, and shows the result as the commander's real picture, with your
-cameras in it. You choose:
-
-- **Edges, in the order they fill**: the edges the tiles go on. The first cameras go on the
-  first edge. ‹ and › move an edge earlier or later, ✕ takes it out of use and **+ Add…**
-  puts one back. It starts with the edges the commander uses now. Opposite edges get the
-  same number of cameras, or one more on the earlier of the two.
-- **One row or column per edge** (on by default): switch it off to be offered two or three
-  rows or columns of tiles on an edge as well.
-- **Tile fit**: **Best fit** makes all the tiles one size, and lets each be up to 10% off
-  the tile shape so that they fill their edges. **Sizes vary** does the same and then lets
-  the tiles on an edge grow to fill it, so the tiles on one edge may be up to twice as wide
-  or tall as those on another. It often leaves nothing unused where Best fit can't.
-  **Exact shape** keeps every tile one size at exactly the tile shape, which usually leaves
-  gaps.
-- **Tile shape**: 16:9 (the default), 4:3 or square.
-
-**Bigger main** and **Bigger tiles** step between the arrangements it found, and the line
-between them gives the tile size and how much of the picture is left unused. It opens on
-the one with the least unused among those whose tiles fill their edges. Stepping towards a
-bigger main camera ends with tiles smaller than their edges could hold, which leaves room
-between them. In Best fit and Sizes vary the main camera may lose up to 10% off its edges
-to fill its space (6% in Exact shape); when it would lose more, it is shown whole.
-**Apply** replaces the panels' cameras, sizes and fits and the main camera's fit, and
-nothing is saved until you Save.
-
 **Pictures:** the **Compositor host**, the address the cards and the dashboard fetch the
 pictures from. Blank: this box's own address.
 

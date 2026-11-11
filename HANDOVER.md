@@ -65,11 +65,8 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
   motion detection switch, thumbnails and a live view dialog. Saved at once.
 - **Camera Commander** (`modules/commander/`: store.Base → live.Live → api.Commander,
   `commanders.json`): saved straight to live; writes `compositor.json`. Track motion has
-  **Never takes over** (`motion_ignore`). **Arrange…** (`app/web/src/commander/arrange.tsx`)
-  searches with the cards' `arrange.ts`, which is for the admin page only and has no Python
-  twin: every sharing of the cameras between the edges picked is laid out by the real
-  engine and scored on that, in three tile fits (exact, best, vary). Its picture is the
-  app's own drawing of the draft (`LivePreview`).
+  **Never takes over** (`motion_ignore`). Arrange… was removed in 2026.11.5-b4 (owner,
+  2026-11-11: it didn't work); the panels are set by hand. Its code is in git before then.
 - **Compositor** (`modules/compositor/`: Generator → PictureServer → Compositor; gatherer
   Cache → Fetcher → Survey → Monitor → Gatherer): draws each commander as one picture from
   go2rtc streams.
@@ -322,9 +319,6 @@ CLAUDE.md has them all. What trips agents here:
   purpose at the top of CLAUDE.md and RULE FIVE.
 - **2026-10-19 and 2026-11-10, why the wall tablets show no live video:** see "Where things
   stand". 2026.11.2-b22 built the card's camera ladder out of it.
-- **2026.11.2-b23** (2026-11-10): the Commander's Arrange dialog reworked (edges and their
-  fill order as chips, the real picture, Best fit / Sizes vary / Exact shape, more to step
-  between).
 - **2026.10.11** (released; soft launch 2026-10-29): Sensor Watch pushed to the integration
   (b13), accuracy (b14), notifications in words and escalation (b15), the eye in HA's
   entity dialog (b16), the band ladder (b25), readied for launch and rated Beta (b26–b31);
