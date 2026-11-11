@@ -1,5 +1,35 @@
 # Changelog
 
+## 2026.11.5-b1
+
+- **Fixed: Sensor Watch never counted a level that had to wait out its hold-off** (in 2026.11.2, 2026.11.3 and 2026.11.4). A worse level, or unavailable, that was still inside its hold-off when it began stayed at its old level when the wait ran out, with `TypeError: 'dict' object is not callable` in Home Assistant's log, and no event was sent. A level found when Home Assistant started, when a watch was saved or at Refresh state still counted, as did a better level and a level with no hold-off, so the page was right after a restart and went out of date afterwards. Nothing needs changing after the update: every sensor is judged again when Sensor Watch starts.
+- **Sensor Watch: Stale, for a sensor that is there but has gone quiet.** A watch or a profile can say "No report for 6 hours counts as Warning", with a message of its own. Home Assistant shows such a sensor's last value as if it were current, and until now Sensor Watch kept its level.
+  - **No report** counts any update from the sensor, even of the same value. **No change** is for a value that ought to move, such as a temperature: the same value sent again doesn't count.
+  - It counts only when it is worse than the level the sensor's last reading gives, and ends as soon as the sensor reports (or changes) again. An unavailable sensor is not stale: it has its own rule.
+  - The time is from 5 minutes to 30 days. Each sensor is looked at when its own time is up, so nothing polls.
+  - Home Assistant restarting looks like a report from every sensor, so a sensor that went quiet before a restart is found one full wait after the start. Its message then says "no report since Home Assistant started", because how long it has really been quiet isn't known.
+  - The `casa_mia_sensor_watch` event and the List action's rows carry `stale: true` for such a level. The gauge dims the value, which is the last one sent.
+- **Sensor Watch: a gauge card**, `custom:casa-mia-sensor-watch-gauge`. It shows one watched number on a half circle whose coloured parts are that sensor's bands. The bands are not typed into the card: they come from the watch, and the card changes when the watch is edited. The needle and the pill take the level that counts, which a hold-off, an escalation or Stale can make different from the band the needle is in; the message under the value says which.
+  - Its options are the entity, a name, and where the arc starts and ends (left empty, they come from the bands, or 0 and 100 for a percentage).
+  - An entity that isn't watched says so, with a link to watch it for an admin. One watched by on and off or by its states shows its value and level with no arc.
+  - When Sensor Watch or the connection to Home Assistant stops answering, the card says the level is not current, and since when.
+  - Any signed-in user sees it, not only admins. It tells them no more than the List action does.
+- **Sensor Watch's page: a set-up, from the Set up… button.** Four steps, each of which can be skipped, and what it makes is ordinary groups, profiles and one automation that you can change afterwards.
+  - **What's in your house:** the kinds you have several of that aren't watched yet (battery levels, leak sensors, smoke sensors, updates, locks and so on), each as a group to tick, with the levels it would get. An integration's mains voltage and frequency sensors are offered with the library's profile for Home Assistant's country; with no country set, they aren't offered. A voltage sensor that doesn't read like the mains now (a 12 V battery's) is left out of the group.
+  - **One of a kind:** Scan my house, as before, for sensors that need levels of their own.
+  - **Telling you:** an automation from the Notify on Sensor Watch blueprint, for a notify action and a level you choose. It says if you already have one.
+  - **Done:** what was made, each with a way to open it, and how to add the cards to a dashboard.
+  - "Where to start" on the page points at it.
+- **Sensor Watch's page: the watched list.**
+  - **Needs attention** is at the top of the grouped list: every sensor at a level other than nominal, whichever group it is in.
+  - A sensor's editor has **Stop watching** in its footer. The list's own button stops the sensors a filter leaves ("Stop watching these 4"), and "Stop watching all" is now a plain button.
+  - The filters for area, group and profile stay in the toolbar, and the others are behind **More filters…**.
+  - A row under a group's heading no longer repeats the group's name.
+  - "Levels from" is the wording everywhere a sensor, a group or a selection takes its levels from a profile.
+- **Sensor Watch's editor: an Over time block**, which reads as sentences: "Unavailable for 5 min counts as Error", "A worse level must last 1 min before it counts", "No report for 6 h counts as Warning", "Left at Task for 14 days it shows as Warning". Not a number and Accuracy, with the name and Disabled, are folded under **More**.
+- Sensor Watch's cards offer a reload, in Home Assistant's own toast, when a newer build of them has been installed, as Casa Mia's other cards do.
+- For developers: `tools/dev_cards` also rebuilds Sensor Watch's bundle onto the box.
+
 ## 2026.11.4
 
 - Sensor Watch names its code owner (`@gazoodle`), which the catalog for HACS and Home Assistant's Marketplace looks for. Nothing else changes, but Sensor Watch asks for a restart of Home Assistant after the update.

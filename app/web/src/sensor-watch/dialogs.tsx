@@ -251,7 +251,7 @@ export function ApplyDialog({ profile, onClose, onApply }: { profile: Profile; o
     <Dialog
       wide
       tall
-      title={`Follow ${profile.name}`}
+      title={`Levels from ${profile.name}`}
       onClose={onClose}
       footer={
         <>
@@ -259,13 +259,13 @@ export function ApplyDialog({ profile, onClose, onApply }: { profile: Profile; o
             Cancel
           </button>
           <button className={ui.primary} disabled={busy || ticked.size === 0} onClick={go}>
-            Follow it ({ticked.size})
+            Give them its levels ({ticked.size})
           </button>
         </>
       }
     >
       <p className={css.note}>
-        Tick the sensors to follow it: those watched already swap their own levels for its; the rest start being watched. Only sensors of a kind it fits are
+        Tick the sensors to have its levels: those watched already swap their own levels for its; the rest start being watched. Only sensors of a kind it fits are
         listed.
       </p>
       <FilterBar value={filters} options={view?.options} onChange={setFilters} />

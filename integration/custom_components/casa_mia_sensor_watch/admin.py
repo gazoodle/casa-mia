@@ -2,7 +2,8 @@
 Assistant's storage and given to the watcher as each is saved. The page talks to websocket
 commands, admins only: one that carries each of the records' routes (API), and feeds, each
 pushed as it changes: every watch's level (LEVELS_FEED), the overall health (SUMMARY, for
-Casa Mia's Home tile) and one entity's watch (ENTITY, the eye in its dialog).
+Casa Mia's Home tile) and one entity's watch (ENTITY: the eye in its dialog and the gauge
+card, so that one is any signed-in user's).
 
 A feed outlives the watcher it follows: when Sensor Watch stops (its entry reloads) every
 feed says so, and when it starts again each is sent everything, so an open page is never
@@ -298,13 +299,15 @@ def _ws_summary(
 @websocket_api.websocket_command(
     {vol.Required("type"): ENTITY, vol.Required("entity_id"): str}
 )
-@websocket_api.require_admin
 @callback
 def _ws_entity(
     hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
 ) -> None:
-    """One entity's watch (levels.watching), now and again at each change: the eye in
-    its dialog. Admins only, as the page it leads to. Error `not_running`: no eye."""
+    """One entity's watch (levels.watching), now and again at each change of its level
+    or its record: the eye in its dialog, and the gauge card. Any signed-in user's, as
+    the list service is: a dashboard's card is drawn for whoever looks at it, and this
+    tells no more than the levels they can list (the page it leads to stays an admin's).
+    Error `not_running`: no eye."""
     if running(hass) is None:
         connection.send_error(msg["id"], "not_running", NOT_RUNNING)
         return

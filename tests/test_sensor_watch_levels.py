@@ -142,7 +142,16 @@ def test_one_entitys_watch_for_the_eye_in_its_dialog():
         }
     }
     records = {"sensor.salt": SALT, "sensor.new": SALT}
-    assert levels.watching(records, now, "sensor.salt") == {
+    # What the gauge card draws: a numeric watch's bands, without their messages.
+    gauge = {
+        "kind": "numeric",
+        "bands": [
+            {"from": b.get("from"), "to": b.get("to"), "level": b["level"]}
+            for b in SALT["bands"]
+        ],
+        "otherwise": SALT.get("otherwise", "error"),
+    }
+    assert levels.watching(records, now, "sensor.salt") == gauge | {
         "watched": True,
         "level": "warning",
         "message": "m",
@@ -150,9 +159,19 @@ def test_one_entitys_watch_for_the_eye_in_its_dialog():
         "real": "task",
         "escalated": True,
     }
-    assert levels.watching(records, now, "sensor.new") == {
-        "watched": True
-    }  # no level yet
+    assert (
+        levels.watching(records, now, "sensor.new") == {"watched": True} | gauge
+    )  # no level yet
+    # One with no bands, reading an attribute, switched off; stale, as its row says.
+    door = {"kind": "binary", "attribute": "contact", "disabled": True}
+    assert (
+        levels.watching(
+            {"binary_sensor.door": door},
+            {"binary_sensor.door": {"level": "warning", "stale": True}},
+            "binary_sensor.door",
+        )
+        == {"watched": True, "level": "warning", "stale": True} | door
+    )
     # Not watched: HA's own health rows (in `now`, not records) and anything else.
     assert levels.watching(
         records, now | {"recorder": {"level": "error"}}, "recorder"
@@ -442,6 +461,39 @@ def test_escalate_is_checked_and_kept_for_any_kind():
     for bad in ({"nominal": 3600}, {"critical": 3600}, {"task": 5}, ["task"]):
         with pytest.raises(BadRequest):
             clean("sensor.salt", SALT | {"escalate": bad})
+
+
+def test_stale_is_checked_and_kept_for_any_kind():
+    rec = clean("binary_sensor.leak", {"kind": "binary", "stale": {"after": 21600}})
+    assert rec["stale"] == {
+        "after": 21600,
+        "by": "report",
+        "level": "warning",
+        "message": "",
+    }
+    for off in (None, {}, {"after": 0}):
+        assert "stale" not in clean("sensor.salt", SALT | {"stale": off})
+    for bad in (
+        {"after": 30},
+        {"after": 2 * 365 * DAY},
+        {"after": 3600, "by": "poll"},
+        {"after": 3600, "level": "ignore"},
+        ["report"],
+    ):
+        with pytest.raises(BadRequest):
+            clean("sensor.salt", SALT | {"stale": bad})
+
+
+def test_a_stale_sensors_message():
+    m = levels.stale_message
+    assert m({"after": 21600, "by": "report"}) == "no report for 6 h"
+    assert m({"after": 90, "by": "report"}) == "no report for 1.5 min"
+    assert m({"after": DAY, "by": "change"}) == "no change for 1 day"
+    assert m({"after": 1.5 * DAY, "by": "change"}) == "no change for 1.5 days"
+    # A restart stamps a restored sensor as just reported: only the start is known.
+    started = "no report since Home Assistant started"
+    assert m({"after": 3600, "by": "report"}, restamped=True) == started
+    assert m({"after": 3600, "message": "Dead?"}, restamped=True) == "Dead?"
 
 
 def test_device_triggers_match_the_events_that_count():

@@ -344,7 +344,7 @@ taken off `RETIRED`.
   when Casa Mia's page is open inside Home Assistant.
 - **The device move** uses `async_update_device(new_config_entry_id=…)` where Home Assistant
   has it, and add-then-remove where it doesn't. Tested on Home Assistant 2026.10.4 and
-  2026.2.3; 2026.3.0 itself was not.
+  2026.2.3; the owner tried 2026.3.0 itself and confirmed it works (reported 2026-11-11).
 - **The tests** need Python 3.14, not 3.13 (the current
   `pytest-homeassistant-custom-component` runs Home Assistant 2026.10.4), and Home
   Assistant's frontend package, because the panel depends on it. They are in `tests_ha/`,

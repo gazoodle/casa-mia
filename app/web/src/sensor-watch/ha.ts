@@ -1,6 +1,6 @@
 /** Sensor Watch's page talks to Home Assistant over the websocket Home Assistant's own
  * page already holds: the records' routes as one command (the integration's admin.py),
- * and feeds that are pushed. The panel's element hands the connection in (panel.tsx)
+ * and feeds that are pushed. The panel's element hands Home Assistant in (panel.tsx)
  * before anything is drawn. */
 
 import { ApiError } from "../api";
@@ -18,15 +18,28 @@ export const API = "casa_mia_sensor_watch/api";
 export const LEVELS_FEED = "casa_mia_sensor_watch/levels";
 export const SUMMARY = "casa_mia_sensor_watch/summary";
 
-let conn: Conn | undefined;
+/** As much of Home Assistant's `hass` as the page uses: its connection for nearly all of
+ * it; and, for the set-up's notify automation, its services (the notify actions there
+ * are) and its REST API (how Home Assistant's own editor saves an automation). */
+export type Home = {
+  connection: Conn;
+  services: Record<string, Record<string, unknown>>;
+  callApi<T>(method: string, path: string, body?: unknown): Promise<T>;
+};
 
-export function connect(given: Conn): void {
-  conn = given;
+let home: Home | undefined;
+
+export function connect(given: Home): void {
+  home = given;
+}
+
+export function hass(): Home {
+  if (!home) throw new ApiError("Home Assistant's connection isn't here yet.");
+  return home;
 }
 
 export function ha(): Conn {
-  if (!conn) throw new ApiError("Home Assistant's connection isn't here yet.");
-  return conn;
+  return hass().connection;
 }
 
 /** What Home Assistant says when it refuses a command: {code, message}. */

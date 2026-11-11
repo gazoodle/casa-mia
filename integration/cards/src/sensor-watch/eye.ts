@@ -8,7 +8,7 @@ import { LitElement, css, html, nothing } from "lit";
 import { fire, type Hass, navigate, warnOnce } from "../ha.ts";
 import { PILLS } from "../pills.ts";
 import { LEVEL_TONES } from "./card.ts";
-import { ENTITY, PANEL, type Watch, watchPath } from "./common.ts";
+import { PANEL, type Watch, follow, watchPath } from "./common.ts";
 
 export const TAG = "casa-mia-watch-eye";
 
@@ -19,7 +19,7 @@ export class WatchEye extends LitElement {
   dialog?: HTMLElement & { closeDialog?: () => void };
   _watch?: Watch; // none: not heard (yet), or Sensor Watch isn't running
   private _for?: string; // the entity subscribed to
-  private _off?: Promise<() => void>;
+  private _off?: () => void;
 
   disconnectedCallback() {
     super.disconnectedCallback();
@@ -36,16 +36,12 @@ export class WatchEye extends LitElement {
     const conn = this.hass?.connection;
     this._for = this.entityId;
     if (!this.entityId || !conn) return;
-    // While Sensor Watch isn't running the feed says so ({error}): no eye until it is.
-    this._off = conn.subscribeMessage((w: Watch | { error: string }) => (this._watch = "error" in w ? undefined : w), { type: ENTITY, entity_id: this.entityId });
-    this._off!.catch((err: any) => {
-      // No Sensor Watch here (its module off, or an integration before the eye): no eye.
-      if (err?.code !== "unknown_command" && err?.code !== "not_running") console.warn(`CASA-MIA CARDS: the eye: can't ask Sensor Watch (${err?.message ?? err})`);
-    });
+    // While Sensor Watch isn't running (or isn't here) there is no watch: no eye until it is.
+    this._off = follow(conn, this.entityId, (w) => (this._watch = w));
   }
 
   private _unsubscribe() {
-    this._off?.then((off) => off()).catch(() => {});
+    this._off?.();
     this._off = undefined;
     this._watch = undefined;
   }

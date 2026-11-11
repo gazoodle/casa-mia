@@ -25,3 +25,32 @@ export function whenConnected(what: string, use: (connection: { conn: any }) => 
     }
   }, EVERY_MS);
 }
+
+/** A page open since before an update keeps running the old cards (HA loads each script
+ * once per page), which looks like a bug that isn't there. So at each reconnect (HA
+ * restarts after an update) ask which version HA serves now (`command`, answering
+ * {version}) and, if it isn't the one `running`, offer a reload in HA's own toast, as HA
+ * does for its own frontend. Not in development (`running` "dev": no ?v= on the file). */
+export function offerReload(name: string, command: string, running: string): void {
+  if (running === "dev") return;
+  whenConnected(`${name}'s offer to reload after an update`, ({ conn }) => {
+    const check = () =>
+      conn.sendMessagePromise({ type: command }).then(({ version }: { version: string | null }) => {
+        if (!version || version === running) return;
+        console.warn(`CASA-MIA CARDS: ${name} ${running} running, ${version} served: reload to update`);
+        document.querySelector("home-assistant")?.dispatchEvent(
+          new CustomEvent("hass-notification", {
+            detail: {
+              message: `${name} updated to ${version}: reload to use it`,
+              duration: -1,
+              dismissable: true,
+              action: { text: "Reload", action: () => location.reload() },
+            },
+            bubbles: true,
+            composed: true,
+          }),
+        );
+      }, () => {}); // an older integration without the command: nothing to compare
+    conn.addEventListener("ready", check);
+  });
+}

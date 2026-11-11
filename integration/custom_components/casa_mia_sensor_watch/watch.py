@@ -42,6 +42,7 @@ from .levels import (
     summary,
 )
 from .records.store import merged
+from .stale import Stale
 from .swap import Rule, same, shown
 
 _LOGGER = logging.getLogger(__name__)
@@ -74,8 +75,11 @@ class Watcher:
         self.records: dict[str, dict[str, Any]] = {}
         # entity -> {level, message, value, since, name}: its level now, as counted;
         # escalated (levels.escalation), also `real`, the level its reading gives, and
-        # `escalated`; `since` is always the real level's.
+        # `escalated`; `since` is always the real level's. `stale`: the level is its
+        # record's stale rule's, not its reading's (stale.py).
         self.now = _Rows()
+        # Which entities have stopped reporting: it has us consider one when that changes.
+        self.stale = Stale(hass, self._consider)
         # The entities whose rows changed since the listeners were last told: read by a
         # listener while it is being told (_told).
         self.moved: set[str] = set()
@@ -86,7 +90,9 @@ class Watcher:
         self._floors: dict[str, str] = {}
         # Events held until Home Assistant has started (its automations listen then):
         # entity -> its level before the first change held, and whether it was found.
-        self._held: dict[str, tuple[str | None, bool]] = {}
+        # (Not `_held`: that is the hold-off's method, which a dict of that name hid, so
+        # no hold-off that had to wait ever counted, 2026.11.2-b27 to 2026.11.4.)
+        self._unsaid: dict[str, tuple[str | None, bool]] = {}
         self._waiting: CALLBACK_TYPE | None = None  # for _started
         self._unsub: CALLBACK_TYPE | None = None
         self._listeners: list[Callable[[], None]] = []
@@ -123,8 +129,9 @@ class Watcher:
         unavailable). For when something looks stuck."""
         for eid in list(self._pending):
             self._cancel(eid)
-        for eid in self.records:
+        for eid, record in self.records.items():
             self.now.pop(eid, None)
+            self.stale.watch(eid, record)
         for eid in self.records:
             self._consider(eid, initial=True)
         _LOGGER.info(
@@ -158,6 +165,7 @@ class Watcher:
         for eid in changed | gone:
             self._cancel(eid)
             self._unstep(eid)
+            self.stale.drop(eid)
             self.now.pop(eid, None)
         if self._unsub:
             self._unsub()
@@ -167,6 +175,7 @@ class Watcher:
             else None
         )
         for eid in changed:
+            self.stale.watch(eid, records[eid])
             self._consider(eid, initial=True)
         _LOGGER.info(
             "watching %d sensors (%d new or changed, %d no longer watched)",
@@ -185,10 +194,11 @@ class Watcher:
             self._cancel(eid)
         for eid in list(self._steps):
             self._unstep(eid)
+        self.stale.unload()
         if self._waiting:
             self._waiting()
             self._waiting = None
-        self._held.clear()
+        self._unsaid.clear()
         if self._telling:
             self._telling()
             self._telling = None
@@ -196,6 +206,8 @@ class Watcher:
     @callback
     def _changed(self, event: Event[EventStateChangedData]) -> None:
         old, new = event.data["old_state"], event.data["new_state"]
+        # Before the test below: a stale sensor's report may change nothing it watches.
+        self.stale.seen(event.data["entity_id"])
         record = self.records.get(event.data["entity_id"]) or {}
         if (
             old is not None
@@ -213,8 +225,32 @@ class Watcher:
         state = self.hass.states.get(eid)
         current = self.now.get(eid)
         real = current and _real(current)  # an escalated level isn't the reading's
-        level, message = level_of(record, reading(record, state, dt_util.now()), real)
-        if level is None or (current is not None and real == level):
+        # A stale row's level isn't its reading's either: nothing for the reading's
+        # accuracy to hold on to, and its message is to go when the sensor reports.
+        was_stale = bool(current and current.get("stale"))
+        level, message = level_of(
+            record, reading(record, state, dt_util.now()), None if was_stale else real
+        )
+
+        # Stale, and that's worse than what its (old) reading gives: counted at once,
+        # from the moment it went stale. Its own time is the wait; a hold-off on top
+        # would be a second one.
+        stale = self.stale.of(eid)
+        if stale and (level is None or rank(stale[0]) > rank(level)):
+            self._cancel(eid)
+            if not was_stale or real != stale[0]:
+                self._commit(
+                    eid,
+                    stale[0],
+                    stale[1],
+                    state,
+                    initial=initial,
+                    since=stale[2],
+                    stale=True,
+                )
+            return
+
+        if level is None or (current is not None and real == level and not was_stale):
             self._cancel(eid)  # back where it was (or no opinion): nothing to wait for
             return
         there = state is not None and state.state not in UNAVAILABLE
@@ -226,8 +262,9 @@ class Watcher:
             return
         began = self._began(record, state)
         # Better news counts at once: the hold-off guards against false alarms, and a
-        # sensor back from unavailable (a car's reload) shouldn't stay in error.
-        if there and current is not None and rank(level) < rank(real):
+        # sensor back from unavailable (a car's reload) shouldn't stay in error. So does
+        # a stale sensor's first report, whatever it reads: "no report" is no longer so.
+        if there and current is not None and (was_stale or rank(level) < rank(real)):
             self._cancel(eid)
             self._commit(eid, level, message, state, since=began)
             return
@@ -298,6 +335,7 @@ class Watcher:
         state: State | None,
         initial: bool = False,
         since: datetime | None = None,
+        stale: bool = False,
     ) -> None:
         record = self.records[eid]
         name = record.get("name") or (state.name if state else eid)
@@ -327,6 +365,7 @@ class Watcher:
             **({"unit": unit} if unit else {}),
             **({"attribute": record["attribute"]} if record.get("attribute") else {}),
             **({"days_until": True} if record.get("days_until") else {}),
+            **({"stale": True} if stale else {}),
         }
         self._escalate(eid)
         if initial:
@@ -451,7 +490,7 @@ class Watcher:
         says where it is now. Not when that's where it was, or when it had no level
         before and is nominal now (as found at the start, nominal goes unsaid)."""
         self._waiting = None
-        held, self._held = self._held, {}
+        held, self._unsaid = self._unsaid, {}
         for eid, (previous, initial) in held.items():
             row = self.now.get(eid)  # none: no longer watched
             if row is None or row["level"] == previous:
@@ -475,7 +514,7 @@ class Watcher:
             # One event per watch for the whole start, said by _started. Each change on
             # its own let out a storm: in 2026.11.2-b26 every light not yet loaded fired
             # "gone" and then "back" in the same second (a hold-off of 0).
-            self._held.setdefault(eid, (previous, initial))
+            self._unsaid.setdefault(eid, (previous, initial))
             if self._waiting is None:
                 self._waiting = async_at_started(self.hass, self._started)
             self._tell()
@@ -509,6 +548,8 @@ class Watcher:
                     "escalated": bool(row.get("escalated")),
                     "real": row.get("real") or row["level"],
                     "since": row.get("since"),
+                    # Its level is for having stopped reporting, not for its value.
+                    "stale": bool(row.get("stale")),
                     # Found at it (the start, a watch edited), not changed to it.
                     "initial": initial,
                 },

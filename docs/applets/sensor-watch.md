@@ -80,6 +80,8 @@ trouble.
 4. **One automation,** from the **Notify on Sensor Watch** blueprint: your phone, at the
    level you choose or worse, in each watch's own words.
 
+**Set up…** on the page takes you through these steps in order: see [Set up](#set-up).
+
 That's plant-level monitoring and signalling for the whole house, and the card on the
 wall tablet shows what needs attention, and nothing at all on a quiet day.
 
@@ -284,18 +286,56 @@ nominal under 3 V, a warning to 8 V, an error beyond.
 **How Sensor Watch works**, folded at the top, says what each part is for (levels, a
 watch, a profile, a group, how you hear) and where to start. It's open while nothing is
 watched, and stays as you last left it. With nothing watched, the list itself shows the
-three steps to start, with **+ New group** and **Scan my house**.
+three steps to start, with **Set up, step by step…**, **+ New group** and **Scan my house**.
+
+### Set up
+
+<img src="../screenshots/sensor-watch-setup.webp" alt="The set-up's first step, What's in your house: groups to tick for updates, battery levels, leak sensors, an integration's mains voltage (with the library's UK mains voltage profile), problem and smoke sensors, the alarm panel, covers and locks, each with how many it would watch and their levels" width="800">
+
+**Set up…**, beside Scan my house, goes through the first setting up in four steps. Any
+step can be skipped, it can be opened again at any time, and everything it makes is an
+ordinary group, profile or automation that you can change or delete afterwards.
+
+1. **What's in your house.** The kinds of thing you have that aren't watched yet and
+   that say what they mean (battery levels, leak sensors, smoke sensors, updates, covers,
+   locks: the **By what it is** table under [Watch an entity](#watch-an-entity)), each as
+   a group to tick. Each line says how many it would watch and the levels they would get.
+   An integration's mains voltage and frequency sensors (twenty plugs each measuring the
+   voltage) are offered as a group following the library's profile for the country set in
+   Home Assistant (Settings → System → General). With no country set, or one the library
+   has no mains profile for, they aren't offered, because the levels differ by country. A
+   voltage sensor that doesn't read like the mains at that moment (a 12 V battery's, from
+   the same integration) is left out of the group, and the line says how many were;
+   **Let them back** on the group takes them in. A kind that one of your groups already
+   covers isn't offered again.
+2. **One of a kind.** [Scan my house](#scan-my-house), for the things you have one of.
+3. **Telling you.** Choose a notify action and a level, and it makes an automation from
+   the **Notify on Sensor Watch** blueprint ([The event](#the-event)), named "Sensor
+   Watch: tell notify.…". It says when you already have automations from the blueprint,
+   since a second one for the same phone would tell you twice. With no notify actions in
+   Home Assistant yet (no phone with its app), it says how to get one.
+4. **Done.** What was made, with a way to open each, and how to add the cards to a
+   dashboard. Sensor Watch doesn't change your dashboards itself.
 
 ### Watched sensors
 
-<img src="../screenshots/sensor-watch.webp" alt="The Sensor Watch page: the watched sensors under one toolbar of search and filter chips, grouped under small-caps headings (Manual, BMS Faults, Flood Lights folded, Roof Windows), each row with its status pill, value, message and levels" width="800">
+<img src="../screenshots/sensor-watch.webp" alt="The Sensor Watch page: the watched sensors under one toolbar of search and filter chips, with Needs attention at the top (a boiler fault as an error, a smoke alarm's flat battery as a warning and three tasks), then the rest under a heading per group, each row with its status pill, value, message and levels" width="800">
 
 Every watched sensor, its level now (the **status pill** at the start of its row) and its
-value, with a search and filter **chips** along the top (a level, an area, a group…) so a
-house with hundreds of them stays manageable. Click a row (anywhere but its buttons) to
-edit its levels; **Stop watching** removes it.
+value, with a search and filter **chips** along the top so a house with hundreds of them
+stays manageable. The chips for a level, an area, a group and a profile are always there;
+**More filters…** has the rest (such as floor, label, integration, maker, model, device,
+device class, category and kind), and one that is set stays out as a chip of its own. Click a row to
+edit its levels.
 **Grouped** (beside Sort) puts them under a heading per group, and Manual for those
-watched one by one; the sort applies within each.
+watched one by one; the sort applies within each. Grouped, the list starts with **Needs
+attention**: every sensor at a level other than nominal, whichever group it is in, so a
+problem in the last group isn't a screen or two down.
+
+**Stop watching** is in a sensor's editor, at the foot. Under the list, **Levels from…**
+gives the sensors shown a profile's levels, and while a filter is set **Stop watching
+these N** stops the ones it leaves. Without a filter the button is **Stop watching all**.
+Each asks first.
 
 **Disabled** in a watch's editor keeps it, with its levels and its group, but stops
 watching it: no level, no event, not counted. Disabled ones are listed together at the
@@ -432,23 +472,37 @@ Assistant keeps for good. Others are read from their state history, which Home
 Assistant keeps for 10 days by default, so a 30-day ask may get less; the page says
 from when.
 
-Each sensor also has:
+Under the levels, **Over time** holds what depends on how long something has lasted.
+Each line reads as a sentence with its controls in it ("Unavailable for 5 min counts as
+Error"):
 
-- **Not a number** (bands only): the level of a state that isn't a number (an error by default).
-- **Accuracy** (bands only): how far the meter may be out, as a percentage (of each edge)
-  or an amount in its unit (±0.5 °C). A reading that close to an edge might be either
-  side of it, so the level holds: a worse one counts only once the reading is past the
-  edge by the accuracy, and a better one as soon as it's back inside the real edge. A
-  mains plug reading 253.4 V against the 253 V limit stays nominal at ±1 %, and a
-  reading sitting on a line doesn't flap. The edges stay the standard's own numbers. The
-  library's mains voltage profiles come with ±1 %; leave it empty for none.
-- **When unavailable:** a level, or **Ignore** to have no opinion while it is.
-- **Unavailable for:** how long it must be unavailable before that counts (5 minutes by
-  default), so a restart, a reload or a car asleep doesn't raise the alarm.
-- **Hold-off:** how long a worse level must last before it counts (60 seconds by
-  default), so a blip doesn't raise the alarm. A better level counts at once: a sensor
+- **Unavailable for … counts as:** a level, or **Ignore** to have no opinion while it is,
+  and how long it must be unavailable before that counts (5 minutes by default), so a
+  restart, a reload or a car asleep doesn't raise the alarm.
+- **A worse level must last … before it counts:** the hold-off (60 seconds by default),
+  so a blip doesn't raise the alarm. A better level counts at once: a sensor
   back from unavailable, or back in its band, is told the moment it is.
-- **Escalate:** a level left standing moves up. For each of Task, Warning and Error, how
+- **No report (or change) for … counts as:** Stale, for a sensor that is still there but
+  has gone quiet (never, by default). Home Assistant goes on showing such a sensor's last
+  value, so its level would otherwise stay as it was. Choose from 5 minutes to 30 days, a
+  level (a warning unless you change it) and, if you like, a message; without one it says
+  "no report for 6 h".
+  - **No report** counts any update from the sensor, even of the same value: right for a
+    battery sensor that reports on a schedule. **No change** is for a value that ought to
+    move (a temperature, a power reading): the same value sent again doesn't count.
+  - It counts only when it is worse than the level the sensor's last reading gives: a
+    sensor already at an error isn't brought down to a warning for going quiet.
+  - It ends the moment the sensor reports (or changes) again, and its level is then the
+    one its reading gives. An unavailable sensor isn't stale: the first line covers it.
+  - The hold-off doesn't apply: the wait is the time you chose.
+  - Each sensor is looked at when its own time is up. Sensor Watch doesn't go round
+    them all on a timer.
+  - **After a restart of Home Assistant** every sensor looks as if it had just reported,
+    so the time starts again then. A sensor that went quiet before the restart is found
+    one full wait after it, and its message says "no report since Home Assistant
+    started", because how long it has really been quiet isn't known.
+  - A profile can carry it, so a group of battery sensors gets it in one go.
+- **Left at … for … it shows as:** escalation. A level left standing moves up. For each of Task, Warning and Error, how
   long it may stand before it shows the next one up (never, by default). Each rung is
   timed from reaching it: salt that has needed topping up for a week becomes a warning,
   and with a week on Warning too, an error a week after that. Back to a better level
@@ -458,6 +512,18 @@ Each sensor also has:
   reading gives). It's worked out from when the level began, so a restart doesn't reset
   it. Several of the library's profiles come with one (the salt, batteries, boiler
   pressure, pool and hot tub water, disk space).
+
+Folded under **More** are the settings changed least:
+
+- **Not a number** (bands only): the level of a state that isn't a number (an error by default).
+- **Accuracy** (bands only): how far the meter may be out, as a percentage (of each edge)
+  or an amount in its unit (±0.5 °C). A reading that close to an edge might be either
+  side of it, so the level holds: a worse one counts only once the reading is past the
+  edge by the accuracy, and a better one as soon as it's back inside the real edge. A
+  mains plug reading 253.4 V against the 253 V limit stays nominal at ±1 %, and a
+  reading sitting on a line doesn't flap. The edges stay the standard's own numbers. The
+  library's mains voltage profiles come with ±1 %; leave it empty for none.
+- **Name** and **Disabled**, for a sensor's own watch.
 
 Unavailable for and the hold-off are timed from when the entity changed, as Home Assistant's own dialogs show it
 ("Last changed"), so a level's "since" on the page is the moment it began, not the
@@ -636,7 +702,7 @@ with it: the import starts those unticked, and says so.
 
 ### Groups
 
-<img src="../screenshots/sensor-watch-group.webp" alt="Editing the group Flood Lights: its name, Members follow a security light profile, the search Flood -Unused with the Domain: light chip, and the preview of the lights that match" width="800">
+<img src="../screenshots/sensor-watch-group.webp" alt="Editing the group Battery levels: its name, Levels from set to the built-in ones, by what each is, the chips Domain: sensor and Device class: battery, and the four battery sensors that match" width="800">
 
 A group is a saved set of filters (domain, area, label, integration, device, device
 class, kind, a search) and **their levels**: a profile, or **built-in levels, by what
@@ -767,7 +833,9 @@ Each change of level (a worse one after its hold-off, or a step of its escalatio
 `casa_mia_sensor_watch`, with `entity_id`, `name`, `level`, `previous`, `value`,
 `unit` (its unit: none for an attribute, `days` for a date) and `message`; `group` (its group's name), `area` and `attribute` (the attribute watched)
 when it has them; and `escalated` (true when it's shown a level up for having stood),
-`real` (the level its reading gives) and `since` (when that level began).
+`real` (the level its reading gives) and `since` (when that level began). `stale` is
+true when the level is for having gone quiet (Stale, under Over time), not for its value;
+`value` is then the last one it sent. The List action's rows carry it too.
 
 A sensor found at a level other than nominal, rather than changed to it, fires it too,
 with `initial` true and no `previous`: at Home Assistant's start (held until it has
@@ -875,5 +943,34 @@ it, or none.
 
 Hidden, it takes its panel with it in a Tablet Layout: put it in a side panel with a
 garnish heading ("Needs looking at") and the panel appears only when something does.
+
+### The gauge card
+
+<img src="../screenshots/sensor-watch-gauge.webp" alt="Three Sensor Watch gauges: mains voltage at 241 V, nominal, on an arc of red, amber and green bands; hot water at 46.8 °C, nominal; and a smoke alarm's battery at 4 %, a warning saying Battery flat" width="800">
+
+**Casa Mia Sensor Watch gauge** (`custom:casa-mia-sensor-watch-gauge`) shows one watched
+number on a half circle whose coloured parts are its bands. Home Assistant's own gauge
+has its colours typed into the card, where they go out of date the next time the watch
+is edited. This one has none of its own: Sensor Watch sends the bands with the level, and
+again when either changes, so the card follows the watch.
+
+Under the arc are the value, the name, the level as a pill and the watch's message. The
+needle and the pill are in the colour of the level that counts, which is not always the
+band the needle points into: a hold-off, an escalation or Stale can make them differ, and
+the message says which. A stale sensor's value is dimmed, as it is the last one it sent.
+Tap the card for the entity's details.
+
+Options: the **entity**, a **name** instead of the entity's own, and where the **arc
+starts and ends**. Left empty, the ends come from the bands (0 and 100 for a percentage).
+
+- An entity that isn't watched says so, with **Watch it** for an admin, which opens
+  Sensor Watch's page at that entity.
+- One watched by on and off, by its states or for being available has no bands, so the
+  card shows its value and level without an arc, and says why.
+- A watch that is disabled says so and shows no level.
+- When Sensor Watch isn't running, or the connection to Home Assistant is lost, the card
+  dims and says its level is not current, and since when. It recovers by itself.
+- Any signed-in user sees the card, not only admins: it tells them no more than the List
+  action does.
 
 [salt-sentry]: https://www.tindie.com/products/ErikLemcke/salt-sentry-water-softener-monitor/

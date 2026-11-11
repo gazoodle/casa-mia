@@ -18,6 +18,7 @@ export function RecordDialog({
   record,
   profiles,
   onClose,
+  onStop,
   onGroup,
   change,
 }: {
@@ -25,6 +26,8 @@ export function RecordDialog({
   record?: WatchRecord;
   profiles: Profile[];
   onClose: () => void;
+  /** Stop watching it (the page asks first, and closes this when it's done). */
+  onStop: (r: WatchRecord) => void;
   /** Watch it and those like it as a group instead, starting from these filters. */
   onGroup: (filters: Partial<Filters>) => void;
   /** The page's: run the calls, show the view they end with, say `done`. */
@@ -154,6 +157,11 @@ export function RecordDialog({
       onClose={onClose}
       footer={
         <>
+          {record && (
+            <button className={`${ui.danger} ${css.footLeft}`} disabled={saving} onClick={() => onStop(record)}>
+              Stop watching
+            </button>
+          )}
           <button className={ui.button} onClick={onClose}>
             Cancel
           </button>
@@ -318,6 +326,7 @@ export function RecordDialog({
         unit={unit}
         seen={seen}
         seenLabel={found?.sensor.options?.length ? "Its states" : "Seen"}
+        extraSet={!!record?.name || !!record?.disabled}
         extra={
           <>
             <Field label="Name" help="Leave empty to use Home Assistant's name.">

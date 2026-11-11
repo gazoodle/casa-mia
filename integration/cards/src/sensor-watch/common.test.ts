@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { DEFAULTS, columns, due, levelColour, parts, since, stateColor, watchPath } from "./common.ts";
+import { type Band, DEFAULTS, along, arcPath, arcs, columns, due, levelColour, parts, reading, scale, since, stateColor, tidy, watchPath } from "./common.ts";
 
 test("how long a level has stood", () => {
   const now = Date.parse("2026-10-11T12:00:00Z");
@@ -49,4 +49,64 @@ test("the Status sensor's icon takes its level's colour; nothing else does", () 
   assert.equal(levelColour(status("unavailable"), entities), undefined); // HA's own grey
   assert.equal(levelColour({ entity_id: "sensor.casa_mia_sensor_watch_warnings", state: "2" }, entities), undefined);
   assert.equal(levelColour(status("warning"), undefined), undefined);
+});
+
+// The gauge. A mains watch: open at both ends, as most are.
+const MAINS: Band[] = [
+  { from: null, to: 207, level: "critical" },
+  { from: 207, to: 216, level: "warning" },
+  { from: 216, to: 253, level: "nominal" },
+  { from: 253, to: null, level: "warning" },
+];
+
+test("the gauge's arc ends come from the bands unless the card gives them", () => {
+  // Edges 207 to 253: half their span more on each side, as both end bands go on for ever.
+  assert.deepEqual(scale(MAINS), [184, 276]);
+  assert.deepEqual(scale(MAINS, { min: 200 }), [200, 276]);
+  assert.deepEqual(scale(MAINS, { min: 190, max: 270, unit: "%" }), [190, 270]);
+  // Bands with ends of their own are shown as they are.
+  const closed: Band[] = [{ from: 0, to: 20, level: "warning" }, { from: 20, to: 80, level: "nominal" }];
+  assert.deepEqual(scale(closed), [0, 80]);
+  // A percentage is 0 to 100 whatever its bands; so is a watch with no edges at all.
+  assert.deepEqual(scale([{ from: null, to: 20, level: "task" }, { from: 20, to: null, level: "nominal" }], { unit: "%" }), [0, 100]);
+  assert.deepEqual(scale([{ from: null, to: null, level: "nominal" }]), [0, 100]);
+  // One edge only: half of it either side (a freezer at -15: -22.5 to -7.5).
+  assert.deepEqual(scale([{ from: null, to: -15, level: "nominal" }, { from: -15, to: null, level: "warning" }]), [-22.5, -7.5]);
+  assert.deepEqual(scale(closed, { min: 90 }), [90, 91]); // a min over the max: still an arc
+});
+
+test("each band's part of the gauge's arc, and where the needle points", () => {
+  const ends = scale(MAINS);
+  assert.deepEqual(arcs(MAINS, ends), [
+    { from: 0, to: 0.25, level: "critical" },
+    { from: 0.25, to: (216 - 184) / 92, level: "warning" },
+    { from: (216 - 184) / 92, to: 0.75, level: "nominal" },
+    { from: 0.75, to: 1, level: "warning" },
+  ]);
+  // A band wholly off the arc is left out; one partly off is cut at the end.
+  assert.deepEqual(arcs(MAINS, [210, 250]), [
+    { from: 0, to: 0.15, level: "warning" },
+    { from: 0.15, to: 1, level: "nominal" },
+  ]);
+  assert.equal(along(230, ends), 0.5);
+  assert.equal(along(100, ends), 0); // off the end: it stays there
+  assert.equal(along(999, ends), 1);
+  // The half circle, left to right over the top.
+  assert.equal(arcPath(0, 1), "M 20.0 100.0 A 80 80 0 0 1 180.0 100.0");
+  assert.equal(arcPath(0, 0.5), "M 20.0 100.0 A 80 80 0 0 1 100.0 20.0");
+  assert.equal(tidy(207.00000000000003), "207");
+  assert.equal(tidy(-22.5), "-22.5");
+});
+
+test("the number a gauge places is the one its watch reads", () => {
+  const now = Date.parse("2026-10-11T12:00:00Z");
+  const st = { state: "212.4", attributes: { battery: 31, due: "2026-10-13T12:00:00Z" } };
+  assert.equal(reading(st, {}, now), 212.4);
+  assert.equal(reading(st, { attribute: "battery" }, now), 31);
+  assert.equal(reading(st, { attribute: "due", days_until: true }, now), 2);
+  // No number to place: no needle.
+  assert.equal(reading({ state: "unavailable" }, {}, now), undefined);
+  assert.equal(reading({ state: "" }, {}, now), undefined);
+  assert.equal(reading(st, { attribute: "none" }, now), undefined);
+  assert.equal(reading(undefined, {}, now), undefined);
 });

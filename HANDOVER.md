@@ -98,9 +98,14 @@ from `casa_mia` and works with no app. No app option: a user adds the integratio
 - **`admin.py`** starts it and serves the page: one websocket command carrying the
   records' routes (`casa_mia_sensor_watch/api`), and pushed feeds (levels, summary, one
   entity's watch). A feed outlives the watcher: it says "not running" when Sensor Watch
-  stops and sends everything when it starts again. All admin-only.
+  stops and sends everything when it starts again. All admin-only but the one entity's
+  feed, which any signed-in user may have (the gauge card is on dashboards) and which
+  carries the watch's bands. `records/setup.py` offers the set-up's groups (the page's
+  `wizard.tsx` makes them with the ordinary routes).
 - **Watching:** `levels.py` holds the one evaluator, with no HA imports (accuracy,
-  escalation); `watch.py` tracks states, hold-offs and timers, fires
+  escalation); `stale.py` holds one deadline per entity with a stale rule, set from its
+  last report and looked at when due (a restart re-stamps every entity, so the message
+  then says only "since Home Assistant started"); `watch.py` tracks states, hold-offs and timers, fires
   `casa_mia_sensor_watch`; status, counts and problem entities; the `list` and `refresh`
   services; device triggers; `blueprint.py` installs and keeps up **Notify on Sensor
   Watch** (still at `blueprints/automation/casa_mia/`, so automations made from it carry
@@ -114,7 +119,9 @@ from `casa_mia` and works with no app. No app option: a user adds the integratio
   `tests/test_sensor_watch_ladder.py`); the stored format is bands, and
   `records/common.py` `_ladder` refuses anything else on save.
 - **Cards:** a bundle of its own, `www/cards.js` (`integration/cards/src/sensor-watch/`,
-  `vite.sensor-watch.config.ts`): `custom:casa-mia-sensor-watch` (hides when clear), and
+  `vite.sensor-watch.config.ts`): `custom:casa-mia-sensor-watch` (hides when clear),
+  `custom:casa-mia-sensor-watch-gauge` (its arc is the watch's bands, pushed; `gauge.ts`,
+  the maths in `common.ts`), and
   the eye in HA's entity dialog (`eye.ts` patches `ha-more-info-dialog`; a tap navigates
   to `/sensor-watch?watch=<entity>&at=<ms>`, which the panel reads off HA's address).
 - **Where it meets Casa Mia**, only through Home Assistant:
@@ -242,6 +249,14 @@ CLAUDE.md has them all. What trips agents here:
 
 ## What happened
 
+- **2026.11.5-b1** (2026-11-11, not committed when written): Sensor Watch gets Stale, the
+  gauge card, the set-up (Set up…, four steps), Needs attention, More filters, the
+  editor's Over time block. **A released bug fixed:** since 2026.11.2-b27 `Watcher._held`
+  was both the hold-off's method and a dict, so a level that had to wait out its hold-off
+  never counted (2026.11.2 to 2026.11.4); the dict is `_unsaid` now. No test had let a
+  hold-off's timer fire inside a real HA; `tests_ha` does now. Screenshots of the page,
+  group, set-up and gauge are from the test VM's invented house; the editor's is still
+  to retake on a box with a month of statistics.
 - **2026.11.3** (2026-11-10): released, and Sensor Watch's mirror published for the first
   time (phase 5, step 5).
 - **2026-11-10:** phase 4, no build. `tools/mirror.py` generates a published component's
@@ -322,10 +337,14 @@ CLAUDE.md has them all. What trips agents here:
   Marketplace on 2026-11-11.
   The live box handed Sensor Watch over correctly on a b3 build. Installing
   2026.11.2 or earlier now removes Sensor Watch's folder: restore a backup instead.
-- **The test VM** was left on Home Assistant 2026.9.4 with the app at 2026.11.3-b3
-  (`local_casa_mia`), Sensor Watch at 2026.11.3-b2, the stable app
-  installed and stopped, and a test automation (`cm_old_trigger`) using the old device
-  trigger.
+- **The test VM** (Home Assistant 2026.11.1 on 2026-11-11) has Sensor Watch's
+  2026.11.5-b1 files copied over the Marketplace's 2026.11.4, and **an invented house the
+  owner asked to keep** (2026-11-11): 16 template helpers (leak, smoke and problem
+  sensors, batteries, a hot water temperature, four plug voltages), and what the set-up
+  made from them (nine groups, 25 watched, the library's UK mains voltage profile, one
+  notify automation). The docs' screenshots come from it: don't clear it. Left there
+  earlier and not checked since: the stable app installed and stopped, and a test
+  automation (`cm_old_trigger`) using the old device trigger.
 - **Never silently stuck: go one step at a time** (2026-10-12). The owner wants it slow and
   methodical: one agreed step, built, recorded in `docs/never-silently-stuck.md`, seen on
   the test tablet, never redone; nothing planned beyond it; analyse before code, change
