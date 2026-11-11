@@ -3,9 +3,21 @@
 // can stay in, and no failure that stops the tries for good.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { LIVE_LEASE_MS, LIVE_RETRY_MAX_MS, LIVE_RETRY_MS, LIVE_WAIT_MS, PICTURE_DOWN_MS, ago, liveLapsed, liveMark, liveOrder, livePlan, pictureDown } from "./common.ts";
+import { LIVE_LEASE_MS, LIVE_RETRY_MAX_MS, LIVE_RETRY_MS, LIVE_WAIT_HLS_MS, LIVE_WAIT_MS, PICTURE_DOWN_MS, ago, framesAddress, liveBy, liveLapsed, liveMark, liveOrder, livePlan, pictureDown } from "./common.ts";
 
 const now = 10_000_000;
+
+test("live plays by WebRTC where the device has it, else HLS where it plays that, else not at all", () => {
+  const webrtc = { RTCPeerConnection: class {} };
+  assert.equal(liveBy(webrtc, () => true), "webrtc");
+  assert.equal(liveBy({}, () => true), "hls"); // the Home Assistant app for the Mac
+  assert.equal(liveBy({}, () => false), ""); // the drawn main camera, as with live off
+});
+
+test("HLS has longer to show its first frame", () => {
+  assert.equal(liveLapsed(now - LIVE_WAIT_MS, 0, now, LIVE_WAIT_HLS_MS), null);
+  assert.equal(liveLapsed(now - LIVE_WAIT_HLS_MS, 0, now, LIVE_WAIT_HLS_MS), "no video arrived");
+});
 
 test("a session holds only while frames are recent", () => {
   assert.equal(liveLapsed(now - 60_000, now - 100, now), null);
@@ -47,6 +59,14 @@ test("the plan: the best channel with frames is shown, a better one is tried uns
   assert.deepEqual(plan(["low"], []), { shown: "low", tried: "medium" }); // its mark lapsed: tried under the one shown
   assert.deepEqual(plan(["medium", "low"], []), { shown: "medium", tried: undefined }); // and it took over
   assert.deepEqual(plan([], order), { shown: undefined, tried: undefined }); // all bad: the drawn picture
+});
+
+test("frames over a WebSocket: only for a stream through Home Assistant, on the page's host", () => {
+  const page = "https://ha.example/lovelace/cameras";
+  assert.equal(framesAddress("/api/casa_mia_commander/live/g/cameras.mjpg?w=640&token=t&main=video", page), "wss://ha.example/api/casa_mia_commander/live/g/cameras.ws?w=640&token=t&main=video");
+  assert.equal(framesAddress("/api/casa_mia_commander/live/g/cameras.mjpg?w=640", "http://ha.example:8123/x"), "ws://ha.example:8123/api/casa_mia_commander/live/g/cameras.ws?w=640");
+  assert.equal(framesAddress("http://192.0.2.10:8781/g/cameras.mjpg?w=640", page), ""); // direct: the <img> stream
+  assert.equal(framesAddress("", page), "");
 });
 
 test("how long, as people say it", () => {

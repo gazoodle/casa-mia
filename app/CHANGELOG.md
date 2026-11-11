@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.5-b3
+
+- **Fixed: the Camera Commander card in Safari over https showed no tiles, only the live main camera, and said "Picture failing".** Over https, Home Assistant's service worker handles every request to its address, and Safari drops an endless picture stream that comes through a worker, so the composited picture never arrived after the first load. Home Assistant's own camera streams fail there in the same way. When the card's stream fails on such a page it now takes the picture as frames over a WebSocket, which a worker never sees. Other browsers, and Safari over plain http, keep the stream they had. Home Assistant needs a restart after this update for the new address to exist; until then Safari behaves as before.
+- **Fixed: the Camera Commander card in the Home Assistant app for the Mac said "Live lost … ReferenceError: Can't find variable: RTCPeerConnection" over every main camera.** That app's web view has no WebRTC, so the card's live video could never play there. On a device without WebRTC the card now plays the main camera as HLS, through Home Assistant's stream, and its caption says "(live, some seconds behind)". A device that plays neither shows the main camera as the compositor draws it, as with Live main camera off. Talk is offered only on a device with WebRTC, since nothing else sends a microphone to the camera; it couldn't work in the Mac app before either.
+
 ## 2026.11.5-b2
 
 - No change in behaviour: Casa Mia's cards and Sensor Watch's now share the code that offers a reload after an update.

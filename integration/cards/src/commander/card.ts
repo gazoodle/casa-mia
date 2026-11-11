@@ -30,6 +30,7 @@ export class CommanderCard extends CommanderTalk {
       this.resize.observe(box);
       this.onScreen.observe(box);
     }
+    this.followPicture();
     this.followCall();
     this.followLive();
     // Debug: the picture's own size as decoded (a stream may never fire load)
@@ -116,7 +117,7 @@ export class CommanderCard extends CommanderTalk {
               html`<img
                 class="picture"
                 data-cm-own
-                src=${(this.streaming = src)}
+                src=${(this.streaming = src) && this.frames ? BLANK : src /* frames: base.ts sets each one */}
                 alt=""
                 @load=${(ev: Event) => {
                   const img = ev.target as HTMLImageElement;

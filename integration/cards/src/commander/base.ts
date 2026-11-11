@@ -3,7 +3,11 @@
 import { LitElement } from "lit";
 import { atHome, type Fit, fitOf, type Hass, inDialog, LOOK, lookCss, ratioFor, watchRoom } from "../ha.ts";
 import { Motion } from "./motion.ts";
-import { Config, Card, dashboard, LEAVE_AFTER, VERSION, BLANK, SETTLE_MS, Size, askFor, pictureToken, pictureDown } from "./common.ts";
+import { Config, Card, dashboard, LEAVE_AFTER, VERSION, BLANK, SETTLE_MS, Size, askFor, framesAddress, pictureToken, pictureDown } from "./common.ts";
+
+/** Learned once for the page: its pictures through Home Assistant come as frames over a
+ * WebSocket (see CommanderBase.frames), so its other cards and later showings start so. */
+let pageFrames = false;
 
 export class CommanderBase extends LitElement {
   static properties = {
@@ -153,8 +157,54 @@ export class CommanderBase extends LitElement {
     this.done(why);
     this.renderRoot?.querySelector<HTMLImageElement>(".picture")?.setAttribute("src", BLANK); // and let go here too
   }
+  /** The picture comes as frames over a WebSocket, not as a stream in the <img>. Safari
+   * drops an endless stream that comes through a service worker, and Home Assistant's
+   * worker handles every GET on its address once it controls the page (over https), so
+   * there the <img> stream fails each time while everything else works. A worker never
+   * sees a WebSocket. It is found by the failure itself (refused), not by the browser's
+   * name, so Chrome keeps its stream, which the browser itself decodes. */
+  protected frames = pageFrames;
+  protected socket: WebSocket | null = null;
+  protected socketFor = ""; // the address its socket was opened for, open or failed
+  protected frameUrl = ""; // the frame shown, a blob: address
+
+  /** Match the socket to the picture drawn (card.ts: updated). A socket that failed is
+   * not opened again for the same address: refused asks for a new token, which makes a
+   * new one. */
+  protected followPicture() {
+    const want = this.frames && this._shown ? framesAddress(this.streaming, location.href) : "";
+    if (want === this.socketFor) return;
+    this.closeSocket();
+    if (!want) return;
+
+    this.socketFor = want;
+    const ws = (this.socket = new WebSocket(want));
+    ws.onmessage = (ev) => {
+      const img = this.renderRoot.querySelector<HTMLImageElement>(".picture");
+      if (this.socket !== ws || !img) return;
+      const old = this.frameUrl;
+      img.src = this.frameUrl = URL.createObjectURL(ev.data as Blob);
+      URL.revokeObjectURL(old);
+    };
+    // Ended by the other side (refused, the app restarted, the network): as an <img>'s error.
+    ws.onclose = () => {
+      if (this.socket !== ws) return;
+      this.socket = null;
+      this.refused();
+    };
+  }
+  private closeSocket() {
+    const ws = this.socket;
+    this.socket = null; // first, so its onclose is not taken for a failure
+    this.socketFor = "";
+    ws?.close();
+    URL.revokeObjectURL(this.frameUrl);
+    this.frameUrl = "";
+  }
+
   /** Its stream, if any, ended by the server. */
   protected done(why: string) {
+    this.closeSocket();
     // Said to the server (directly, or through Home Assistant: the same address with
     // /done for .mjpg), which ends it: no relying on the browser (WebKit keeps loading a
     // stream an <img> let go), Home Assistant or Nabu Casa letting the connection go. A
@@ -238,6 +288,16 @@ export class CommanderBase extends LitElement {
   /** Refused (an old token) or cut off (the app restarted, say): a new stream soon,
    * through Home Assistant with a new token, else directly as a new showing. */
   protected refused() {
+    // The first failure on a page a service worker controls: frames from now on, at
+    // once and without a word, as on Safari it is no failure of the picture (see
+    // frames). A real failure is then the socket's, and comes back here.
+    if (!this.frames && this.viaHa() && navigator.serviceWorker?.controller) {
+      if (!pageFrames) console.info("casa-mia: the picture's stream failed on a page a service worker controls; its frames come over a WebSocket from now on");
+      this.frames = pageFrames = true;
+      this.requestUpdate();
+      return;
+    }
+
     const now = Date.now();
     if (!pictureDown(this.downSince, this.lastError, now)) {
       this.downSince = now;
@@ -253,6 +313,7 @@ export class CommanderBase extends LitElement {
   protected again() {
     if (!this._shown) return;
     this.done("its stream failed");
+    this.frames ||= pageFrames; // another card on the page may have learned it since
     this.sid = Math.random().toString(36).slice(2);
     this._shown = ++this.shows;
   }

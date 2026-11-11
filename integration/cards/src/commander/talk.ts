@@ -23,7 +23,7 @@ import { css, html, nothing } from "lit";
 import { styleMap } from "lit/directives/style-map.js";
 import { playWebRTC } from "../../../../app/web/src/webrtc.ts";
 import { Card, callSensor, callSensors, callWords, countdown, talkCamera, talkOffered, TALK_NOTE_MS, TOUCH_EVERY_MS } from "./common.ts";
-import { CommanderLive } from "./live.ts";
+import { CommanderLive, LIVE_BY } from "./live.ts";
 import { type TalkState, type Order, Hold, NO_GRAB, announce, answerAsks, answeredHere, commanderWords, talkState, talkSwitches } from "./talk-rules.ts";
 
 /** Answers already taken by a Commander card on this page: one card answers, however many
@@ -146,9 +146,10 @@ export class CommanderTalk extends CommanderLive {
     return callSensor(this.hass!, camera, this.found.sensors);
   }
 
-  /** Talk is offered (common.ts: talkOffered). */
+  /** Talk is offered (common.ts: talkOffered), on a device with WebRTC: nothing else
+   * sends a microphone to the camera. */
   protected canTalk(): boolean {
-    return talkOffered({ sensor: this.call(), live: this.liveOn, talking: this._talk, secure: window.isSecureContext, editing: this.editing() });
+    return LIVE_BY === "webrtc" && talkOffered({ sensor: this.call(), live: this.liveOn, talking: this._talk, secure: window.isSecureContext, editing: this.editing() });
   }
 
   /** Talk on, to the doorbell of `sensor` (common.ts: talkCamera; it needn't be on

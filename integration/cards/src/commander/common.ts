@@ -43,13 +43,25 @@ export type Card = {
  * report a failure: a stall lapses by itself. */
 export const LIVE_WAIT_MS = 10_000;
 export const LIVE_LEASE_MS = 5_000;
+/** HLS has longer to show its first frame: Home Assistant starts the stream when asked,
+ * and the player fills a buffer before it plays: 8.5 s from a cold start in Safari (2026-11-11). */
+export const LIVE_WAIT_HLS_MS = 20_000;
 
 /** Why a live session has lapsed, from when it started and when it last put a frame on
- * screen (0: none yet); null while it holds. */
-export function liveLapsed(startedAt: number, frameAt: number, now: number): string | null {
+ * screen (0: none yet); null while it holds. `wait` is how long its first frame may take. */
+export function liveLapsed(startedAt: number, frameAt: number, now: number, wait = LIVE_WAIT_MS): string | null {
   if (frameAt) return now - frameAt < LIVE_LEASE_MS ? null : "the video stopped";
-  return now - startedAt < LIVE_WAIT_MS ? null : "no video arrived";
+  return now - startedAt < wait ? null : "no video arrived";
 }
+
+/** How this device plays live video: WebRTC where it has it; else HLS where its browser
+ * plays that by itself (the Home Assistant app for the Mac, whose web view has no WebRTC);
+ * else "", and the main camera is the drawn one, as with live off. Trying WebRTC without
+ * it only ever said "Live lost … ReferenceError" over a picture that was fine. */
+export type LiveBy = "webrtc" | "hls" | "";
+const playsHls = () => document.createElement("video").canPlayType("application/vnd.apple.mpegurl") !== "";
+export const liveBy = (scope: object = globalThis, hls: () => boolean = playsHls): LiveBy =>
+  "RTCPeerConnection" in scope ? "webrtc" : hls() ? "hls" : "";
 
 /** A channel that failed is marked bad, and the mark is a lease too: it lapses at `until`
  * and the channel is tried again (docs/never-silently-stuck.md, the camera ladder). Each
@@ -100,6 +112,14 @@ export const PICTURE_DOWN_MS = 15_000;
 export function pictureDown(since: number, lastError: number, now: number): string | null {
   if (!lastError || now - lastError >= PICTURE_DOWN_MS) return null;
   return `Picture failing for ${ago(now - since)}: retrying`;
+}
+
+/** The picture as frames over a WebSocket (base.ts: followPicture): the stream's address
+ * with .ws, on the page's own host. "" when the picture isn't a stream through Home
+ * Assistant (direct, or none), which is the only place frames are served. */
+export function framesAddress(picture: string, page: string): string {
+  if (!picture.startsWith("/api/") || !picture.includes(".mjpg?")) return "";
+  return new URL(picture.replace(".mjpg?", ".ws?"), page.replace(/^http/, "ws")).href;
 }
 
 /** The dashboard (or other page) shown: its path's first part, as a view's path may
