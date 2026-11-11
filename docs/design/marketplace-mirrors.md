@@ -510,11 +510,14 @@ ask first. In order (written 2026-11-10; none of it is done):
    up was refused (`repository_in_use`). Starting the Casa Mia app at 2026.11.3-b3 left the
    newer copy alone, with its warning, no marker and no Repair. Still to do: HACS on an
    older Home Assistant (the latest HACS release is 2.0.5, and it needs a GitHub sign-in
-   too), the update, which waits for a second release, and a house that has the app
-   first. Deleting the entry keeps its records in storage, by design, so a "clean" test
+   too) and a house that has the app first. The update was tried with 2026.11.4 the same
+   day: the Marketplace offered it, installed it, raised its own restart Repair (Sensor
+   Watch added none), and after the restart 2026.11.4 ran with nothing left to do. Deleting the entry keeps its records in storage, by design, so a "clean" test
    removes `.storage/casa_mia_sensor_watch` too.
 8. **The catalog:** a separate submission to `hacs/default` ([catalog][catalog]), with no
-   promise of acceptance.
+   promise of acceptance. 2026.11.4 added `@gazoodle` as code owner first. HACS's action
+   now warns that the manifest has no `categories`; they are optional for a custom
+   integration.
 
 ## Known trap
 
