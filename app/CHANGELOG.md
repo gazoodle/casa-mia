@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026.11.5-b10
+
+- **Camera Commander: the cameras' names can be set.** Each commander has a new box of settings, **Camera names**, on its page, for either layout:
+  - **Font:** Standard (as it was), DejaVu Sans, DejaVu Sans Bold or DejaVu Sans Mono (fixed width). The three DejaVu fonts come with Casa Mia, so the app, the card and the page all draw a name in the same one.
+  - **Size** of a tile's name and of the main camera's, in px, still scaled for each screen.
+  - **Style**, for the tiles and for the main camera: a bar across the foot, a pill only as wide as the name, or none.
+  - **Text colour**, **Background colour** and **Background opacity**.
+  - **Reset to defaults**, and the **Any size** preview shows the names as you change them.
+  - Nothing changes until you change a setting, except that the main camera's pill is a little lighter (55% where it was 63%), as one opacity now serves the tiles and the main camera.
+- **Camera Commander: the Talk chips can be moved.** **Call status at** and **Talk buttons at**, in the same box, put the call's state and the Talk buttons at the top or the foot of the main camera, on the left, in the centre or on the right, so they needn't cover the date and name a camera writes on its own picture. **Show where they go** puts a sample of each on the preview.
+- **Fixed: On screens now couldn't be read.** In 2026.11.5-b9 the preview's **On screens now** row asked the app at the wrong address, and said the sizes couldn't be read.
+
 ## 2026.11.5-b9
 
 - **Camera Commander, Responsive: tiles to spare are left in the corner.** Where two edges meet (Bottom and Right, say), the corner now belongs to the edge that is later in the list, so that edge runs through the corner and any cells with no camera are at its end, in the corner of the picture. They belonged to the earlier edge, which left the empty cells between the two strips of tiles. No layout changes size, only which camera is in which cell.

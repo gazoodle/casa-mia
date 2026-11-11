@@ -47,18 +47,58 @@
   height: 100%;
 }
 
+/* A camera's name, as the compositor draws it from the commander's labels (labels.py):
+   the box sets the font, colours, sizes and styles. A tile's bar is 22 px for a name of
+   16; the main camera's row is 18 px up from its foot for a name of 20. */
 .tile span {
   position: absolute;
-  right: 4px;
-  bottom: 2px;
-  left: 4px;
+  bottom: 0;
+  left: 0;
+  box-sizing: border-box;
+  max-width: 100%;
   overflow: hidden;
-  color: #fff;
-  font-size: 11px;
+  padding: 0 calc(var(--tile-px) * 0.375);
+  background: var(--label-back);
+  color: var(--label-colour);
+  font: var(--tile-px) / 1.375 var(--label-font);
   text-align: left;
   text-overflow: ellipsis;
-  text-shadow: 0 1px 2px #000;
   white-space: nowrap;
+}
+
+.box[data-tile="bar"] .tile:not(.main) span {
+  right: 0;
+}
+
+.box[data-tile="none"] .tile:not(.main) span,
+.box[data-main="none"] .main span {
+  display: none;
+}
+
+.main span {
+  bottom: calc(var(--main-px) * 0.25);
+  left: calc(var(--main-px) * 0.2);
+  padding: calc(var(--main-px) * 0.05) calc(var(--main-px) * 0.3);
+  font-size: var(--main-px);
+  line-height: 1.2;
+}
+
+.box[data-main="bar"] .main span {
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: calc(var(--main-px) * 0.3) calc(var(--main-px) * 0.5);
+}
+
+/* The sample Talk chips over the main camera (labels.tsx's switch). */
+.talk {
+  position: absolute;
+  pointer-events: none;
+}
+
+.talk div {
+  position: absolute;
+  display: flex;
 }
 
 /* the cameras there is no room for, as the compositor draws it */

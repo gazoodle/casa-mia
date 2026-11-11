@@ -8,6 +8,7 @@ from collections.abc import Callable
 from typing import Any
 from urllib.parse import unquote
 
+from . import labels
 from .common import (
     PACES,
 )
@@ -61,6 +62,18 @@ def admin_api(
         parts = [p for p in path.split("/") if p]
         if method == "GET" and not parts:
             return status()
+        if method == "GET" and len(parts) == 2 and parts[0] == "font":
+            # A label font's file, for the page's preview: the one copy the compositor
+            # draws with (labels.py). Only the files named in labels.json.
+            if parts[1] not in labels.FILES.values():
+                return fail(404, "no such font")
+            try:
+                return 200, "font/ttf", (labels.FONTS / parts[1]).read_bytes()
+            except OSError as err:
+                _LOGGER.error(
+                    "compositor: the font %s can't be read: %s", parts[1], err
+                )
+                return fail(500, f"the font {parts[1]} can't be read: {err}")
         if method == "GET" and len(parts) == 2 and parts[0] == "thumb":
             parts[1] = unquote(parts[1])  # a composite's key has an @ in it
             # A cached picture, width wide (whole: at its shape, else cut to 16:9).

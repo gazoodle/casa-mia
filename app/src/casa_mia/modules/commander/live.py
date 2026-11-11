@@ -89,6 +89,7 @@ class Live(Base):
             "height",
             "aspects",
             "highlight",
+            "labels",
             "debug",
             "mode",
             "responsive",

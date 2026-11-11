@@ -7,6 +7,7 @@ import { repeat } from "lit/directives/repeat.js";
 import { fire, type Hass, heightFor, inPicker, navigate, TABLET } from "../ha.ts";
 import { heightForMain, pyRound, type Rect } from "../layout.ts";
 import { camerasOf, placed } from "../placed.ts";
+import { back, family, labelsOf, useFont } from "../labels.ts";
 import { dot } from "./motion.ts";
 import { Config, Card, BLANK, Size, commanders, pictureDown } from "./common.ts";
 import { PILLS } from "../pills.ts";
@@ -95,6 +96,12 @@ export class CommanderCard extends CommanderTalk {
     const at = ([x, y, rw, rh]: Rect) =>
       `left:${(x / w) * 100}%;top:${(y / h) * 100}%;width:${(rw / w) * 100}%;height:${(rh / h) * 100}%`;
     const lit = s.highlight ?? {};
+    // Its labels (labels.ts), for what the card draws itself: the live main camera's
+    // caption, in the font the compositor draws the other names in. The fonts are the
+    // integration's own files (const.py: SCRIPTS_URL).
+    const labels = labelsOf(own.labels);
+    useFont(labels.font, (file) => `/casa_mia/fonts/${file}`);
+    const labelled = `--cm-label-font:${family(labels.font)};--cm-label-size:${labels.main_size}px;--cm-label-colour:${labels.colour};--cm-label-back:${back(labels)}`;
     const moving = this.motion.seen(this.hass!, st!.attributes.motion ?? {}, this._config!, () => this.requestUpdate());
     const mark = tiles.find((t) => t.camera === main)?.rect;
     // The cameras there is no room for ("+n more"): motion on one is marked on that tile.
@@ -122,7 +129,7 @@ export class CommanderCard extends CommanderTalk {
           ? `height:${tall}px`
           : "";
     return html`<ha-card style=${size}>
-      <div class="box">
+      <div class="box" style=${labelled}>
         <div class="seen" style="filter:${this.look()}">
         ${editing
           ? still ? html`<img class="still" src=${still} alt="" />` : nothing

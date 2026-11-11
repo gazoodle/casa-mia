@@ -3,6 +3,7 @@
 import { api } from "../api";
 import type { Camera, HAEntity } from "../cameras";
 import { CommanderIcon } from "../icons";
+import type { Labels } from "../../../../integration/cards/src/labels.ts";
 import LAYOUT from "../../../src/casa_mia/layout.json";
 
 // The layout options' labels, help and defaults, shared with the Tablet Layout.
@@ -80,6 +81,8 @@ export type Commander = {
   stale?: number;
   /** The outline on the main camera's tile, drawn by the browser on the dashboard. */
   highlight?: Highlight;
+  /** How its camera names are drawn, and where its Talk chips go (labels.tsx). */
+  labels?: Partial<Labels>;
   /** Debug options: the picture dimmed, corner Ls and diagonals, its ID and draw time. */
   debug?: Debug;
   /** Track motion (done by the integration), seconds. back 0: stays on the motion camera. */

@@ -2,11 +2,13 @@
  * thumbnails (docs/design/commander-responsive-layout.md). The cards' layout engine places
  * everything, as it does on a dashboard, so dragging the stage shows what the commander
  * does in a space of another shape without waiting for the app to draw it. It is the
- * engine's layout with thumbnails in it, not the compositor's picture: the labels, the
- * Stale marks and the Security look are only in "As the app draws it". */
+ * engine's layout with thumbnails in it, not the compositor's picture: the names are
+ * drawn here by the browser, from the commander's labels and in its font, and the Stale
+ * marks and the Security look are only in "As the app draws it". */
 
 import { useContext, useEffect, useRef, useState } from "react";
 import type { Rect } from "../../../../integration/cards/src/layout.ts";
+import { back, corner, family, footOf, labelsOf } from "../../../../integration/cards/src/labels.ts";
 import { measure, type Shown } from "../../../../integration/cards/src/measure.ts";
 import { camerasOf, placed, type Commander as Laid, type Placed } from "../../../../integration/cards/src/placed.ts";
 import { Camera, ThumbRound, plural } from "../cameras";
@@ -14,6 +16,7 @@ import { get, type Engine, type Status } from "../compositor/common";
 import ui from "../ui.module.css";
 import css from "./stage.module.css";
 import { Commander, HIGHLIGHT, PANELS } from "./common";
+import { usePageFont } from "./labels";
 
 /** Spaces a commander is often given, in CSS pixels. The phone's are its screen less Home
  * Assistant's header. */
@@ -68,11 +71,14 @@ export function Stage({
   value,
   cameras,
   onHidden,
+  talk,
 }: {
   value: Commander;
   cameras: Record<string, Camera>;
   /** Told the cameras there is no room for at the stage's size, as it changes. */
   onHidden?: (cameras: string[]) => void;
+  /** Show a sample of a call's state and the Talk button where its labels put them. */
+  talk?: boolean;
 }) {
   const round = useContext(ThumbRound);
   // It starts at the commander's own shape.
@@ -82,7 +88,7 @@ export function Stage({
   // The sizes it is being drawn at now, read once when it is opened (by its saved name).
   const [drawn, setDrawn] = useState<Drawn[] | string | null>(null);
   useEffect(() => {
-    get<Status>("status").then(
+    get<Status>("").then(
       (status) => setDrawn(drawnAt(status.live, value.name)),
       (err: Error) => setDrawn(err.message),
     );
@@ -143,6 +149,18 @@ export function Stage({
   const title = (e: string) => cameras[e]?.title ?? e;
   const lit = { ...HIGHLIGHT, ...value.highlight };
 
+  // Its names as the compositor draws them (labels.py): font, sizes, colours and style,
+  // at the stage's scale.
+  const labels = labelsOf(value.labels);
+  usePageFont(labels.font);
+  const named = {
+    "--label-font": family(labels.font),
+    "--label-colour": labels.colour,
+    "--label-back": back(labels),
+    "--tile-px": `${labels.tile_size * k}px`,
+    "--main-px": `${labels.main_size * k}px`,
+  } as React.CSSProperties;
+
   return (
     <div className={css.stage}>
       <div className={css.sizes}>
@@ -185,7 +203,13 @@ export function Stage({
       </div>
       <div ref={frame}>
         {/* data-tall: the dock holding it stops following the page (cameras.module.css) */}
-        <div className={css.box} style={{ width: W * k, height: H * k }} data-tall={H * k > window.innerHeight / 2 ? "" : undefined}>
+        <div
+          className={css.box}
+          style={{ width: W * k, height: H * k, ...named }}
+          data-tile={labels.tile_style}
+          data-main={labels.main_style}
+          data-tall={H * k > window.innerHeight / 2 ? "" : undefined}
+        >
           {mainShown && (
             <div className={`${css.tile} ${css.main}`} style={at(mainShown.rect)}>
               {picture(main, mainShown.how)}
@@ -207,6 +231,18 @@ export function Stage({
           {laid.more && (
             <div className={`${css.tile} ${css.more}`} style={at(laid.more.rect)}>
               +{laid.more.count} more
+            </div>
+          )}
+          {talk && mainShown && (
+            // A sample of what the card shows in a call, where the labels put each
+            // (the card's own chips, at their real size whatever the stage's scale).
+            <div className={css.talk} style={at(mainShown.rect)}>
+              <div style={corner(labels.talk_status, footOf(labels, labels.talk_status))}>
+                <span className="cm-pill cm-filled cm-warn">Ringing</span>
+              </div>
+              <div style={corner(labels.talk_buttons, footOf(labels, labels.talk_buttons))}>
+                <span className="cm-chip cm-on cm-good">Talk</span>
+              </div>
             </div>
           )}
           <span

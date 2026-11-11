@@ -128,6 +128,28 @@ because equal tiles can't fill it; Fixed suits those better.
 **Pictures:** the **Compositor host**, the address the cards and the dashboard fetch the
 pictures from. Blank: this box's own address.
 
+### Camera names and Talk chips
+
+Each commander has a box of settings for how its cameras' names look, in either layout.
+The **Any size** preview shows the names as you change them.
+
+- **Font:** Standard (the font the names were always in), DejaVu Sans, DejaVu Sans Bold or
+  DejaVu Sans Mono, which is fixed width. With Standard, the name over a live main camera
+  is in the browser's own font, which is a little different from the drawn one; with the
+  DejaVu fonts the two are the same.
+- **Tile name size** and **Main camera name size:** in px. A screen with more pixels draws
+  a name with more of them, so it looks the same size on every screen.
+- **A tile's name** and **The main camera's name:** a **Bar** across the foot, a **Pill**
+  only as wide as the name, or **None**. With None on the main camera the clock stays.
+- **Text colour**, **Background colour** and **Background opacity:** the colour of the
+  names and the clock, and the colour behind a name and how solid it is.
+- **Call status at** and **Talk buttons at:** where the call's state and the Talk buttons
+  go over the main camera when you [talk to a doorbell](#talking-to-a-doorbell): top or
+  bottom, and left, centre or right. Many cameras write the date and their name across
+  the top of their own picture, so move the call's state if it covers them. **Show where
+  they go** puts a sample of each on the preview; it isn't saved.
+- **Reset to defaults** puts every one of these back to what it was at first.
+
 ## In Home Assistant
 
 The commanders come into Home Assistant through the **Casa Mia Camera Commander**

@@ -6,6 +6,7 @@ import re
 from typing import Any
 
 from ..compositor import (
+    LABELS,
     LAYOUT,
     PANELS,
     commander_cameras,
@@ -19,6 +20,26 @@ FITS = tuple(value for value, _ in LAYOUT["panel"]["fit"]["options"])  # a panel
 RESPONSIVE = LAYOUT["responsive"]  # the Responsive layout's options
 MOST_CAMERAS = 32  # in a Responsive commander
 EDGES = ("bottom", "right", "left", "top")
+
+
+def _labels(the: str, cmd: dict) -> list[str]:
+    """What is wrong with how a commander's camera names are drawn."""
+    labels = cmd.get("labels", {})
+    if not isinstance(labels, dict):
+        return [f"{the}'s labels must be a set of settings."]
+    out: list[str] = []
+    for key, o in LABELS["labels"].items():
+        value, label = labels.get(key, o["default"]), o["label"].split(",")[0].lower()
+        if "min" in o:
+            ok = isinstance(value, int) and not isinstance(value, bool)
+            if not ok or not o["min"] <= value <= o["max"]:
+                out.append(f"{the}'s labels: {label} must be {o['min']}-{o['max']}.")
+        elif "options" in o:
+            if value not in [v for v, _ in o["options"]]:
+                out.append(f"{the}'s labels: {label} is not one of the choices.")
+        elif not re.fullmatch(r"#[0-9a-fA-F]{6}", str(value)):
+            out.append(f"{the}'s labels: {label} must be like #ffffff.")
+    return out
 
 
 def _responsive(the: str, cmd: dict, cams: dict) -> list[str]:
@@ -175,6 +196,7 @@ def problems(store: dict[str, Any]) -> list[str]:
             if not isinstance(value, (int, float)) or value < 0:
                 out.append(f"{the}'s Track motion {key} must be 0 seconds or more.")
         out += _responsive(the, cmd, cams)
+        out += _labels(the, cmd)
         if cmd.get("main") and cmd["main"] not in commander_cameras(cmd):
             out.append(f"{the}'s main camera must be one of its cameras.")
         if not commander_cameras(visible(cmd)):

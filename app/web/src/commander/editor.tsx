@@ -7,6 +7,7 @@ import ui from "../ui.module.css";
 import LAYOUT from "../../../src/casa_mia/layout.json";
 import { Camera, Thumb, plural } from "../cameras";
 import { Commander, DEBUG, Edits, HA, HIGHLIGHT, L, MOTION, P, PANELS, Panel, camerasOf, help } from "./common";
+import { LabelSettings } from "./labels";
 import { ResponsiveSettings, responsiveOf } from "./responsive";
 import { Chips, Num, RatioInput } from "./inputs";
 import { confirmBox } from "../confirm";
@@ -72,6 +73,7 @@ export function Commanders({
   const [preview, setPreview] = useState<"stage" | "app">("stage");
   // The cameras there is no room for at the stage's size (a Responsive commander's).
   const [hidden, setHidden] = useState<string[]>([]);
+  const [talkShown, setTalkShown] = useState(false); // the preview's sample Talk chips
   const list = store.commanders;
   const picked = list[open];
   const change = (next: Commander[], opened = open) => {
@@ -165,7 +167,7 @@ export function Commanders({
               onChange={setPreview}
             />
             {preview === "stage" ? (
-              <Stage key={open} value={picked} cameras={store.cameras} onHidden={setHidden} />
+              <Stage key={open} value={picked} cameras={store.cameras} onHidden={setHidden} talk={talkShown} />
             ) : (
               <LivePreview store={store} index={open} />
             )}
@@ -174,6 +176,8 @@ export function Commanders({
             value={picked}
             cameras={store.cameras}
             hidden={preview === "stage" ? hidden : []}
+            talkShown={talkShown}
+            onTalkShown={setTalkShown}
             trackMotion={trackMotion(picked.id ?? "")}
             onTrackMotion={(on) => onTrackMotion(picked.id ?? "", on)}
             onChange={(v) => change(list.map((x, j) => (j === open ? v : x)))}
@@ -191,12 +195,17 @@ export function CommanderEditor({
   value,
   cameras,
   hidden,
+  talkShown,
+  onTalkShown,
   trackMotion,
   onTrackMotion,
   onChange,
 }: {
   value: Commander;
   cameras: Record<string, Camera>;
+  /** Whether the preview shows where the Talk chips go, and its switch (labels.tsx). */
+  talkShown: boolean;
+  onTalkShown: (on: boolean) => void;
   /** A Responsive commander's cameras with no room at the preview's size. */
   hidden: string[];
   /** The Track motion switch's state in Home Assistant (undefined: HA hasn't it). */
@@ -327,6 +336,7 @@ export function CommanderEditor({
             </Field>
           </div>
         </section>
+        <LabelSettings value={value} talkShown={talkShown} onTalkShown={onTalkShown} onChange={(labels) => set((c) => (c.labels = labels))} />
         <section className={`${css.options} ${css.numbers}`}>
           <h4 className={css.sub}>Highlight on the main camera's tile</h4>
           <Field label="Colour">

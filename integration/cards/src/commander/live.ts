@@ -5,6 +5,7 @@
 // lease (RULE FIVE), and every loss is said on the card and in Home Assistant's log.
 import { html, nothing } from "lit";
 import { type Rect } from "../layout.ts";
+import { labelsOf } from "../labels.ts";
 import { playHLS, playWebRTC } from "../../../../app/web/src/webrtc.ts";
 import { Card, LIVE_WAIT_HLS_MS, LIVE_WAIT_MS, type LiveMark, PICTURE_DOWN_MS, ago, liveBy, liveLapsed, liveMark, liveOrder, livePlan } from "./common.ts";
 import { CommanderBase } from "./base.ts";
@@ -213,8 +214,8 @@ export class CommanderLive extends CommanderBase {
    * come; with none, and a channel failed, in red how long live has been lost and why. */
   // Over HLS it says it is behind: "live" alone would claim more than is shown.
   protected caption(title: string, place: string, live: LiveNow) {
-    return html`<div class="caption" style=${place}>
-      <span>${title}${live.shown ? (LIVE_BY === "hls" ? " (live, some seconds behind)" : " (live)") : ""}</span>
+    return html`<div class="caption ${labelsOf(this.now().card?.layout.labels).main_style}" style=${place}>
+      <span class="title">${title}${live.shown ? (LIVE_BY === "hls" ? " (live, some seconds behind)" : " (live)") : ""}</span>
       ${live.lost ? html`<span class="lost">Live lost ${ago(Date.now() - live.lost.since)} ago: ${live.lost.why}</span>` : nothing}
     </div>`;
   }

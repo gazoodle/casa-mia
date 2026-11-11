@@ -19,6 +19,7 @@ from .common import (
     LAYOUT,
     PANELS,
 )
+from .labels import look, name
 from .responsive import responsive
 
 _LOGGER = logging.getLogger(__name__)
@@ -455,12 +456,14 @@ def commander(
     size, main_rect, main_fit, places, more, _ = placed(cmd, main)
     # Drawn at a size asked for (see `sized`), text, bars and margins grow by its scale.
     scale = float(cmd.get("scale", 1))
-    small, font, big = _fonts(scale)
+    seen = look(cmd)  # its labels' font, colours and style (labels.py)
+    small, font, big = seen.small, seen.font, seen.big
 
     def u(n: float) -> int:
         return round(n * scale)
 
-    bar = u(SMALL_BAR)
+    # A tile's name bar: 22 px for a name of 16, and in step with it.
+    bar = round(seen.tile_px * SMALL_BAR / 16)
     # Drawn solid, so the name bars and labels shade the picture under them; the gaps
     # are cut out at the end. (Drawn on a transparent canvas, a see-through bar would
     # replace the picture under it, and the dashboard's background would show through.)
@@ -489,13 +492,15 @@ def commander(
                 font=small,
                 anchor="mm",
             )
-        draw.rectangle((x, y + h - bar, x + w, y + h), fill=(0, 0, 0, 140))
-        draw.text(
-            (x + u(6), y + h - bar // 2),
+        name(
+            draw,
             swap.out(str(titles.get(entity) or entity)),
-            fill="white",
-            font=small,
-            anchor="lm",
+            (x + u(6), y + h - bar // 2),
+            small,
+            seen,
+            seen.tile_style,
+            (x, y + h - bar, x + w, y + h),
+            (u(4), u(2)),
         )
         if raw and entity in stale:
             _stale_mark(draw, (x + w - u(6), y + h - bar // 2), small, scale)
@@ -568,18 +573,24 @@ def commander(
         live = bool(cmd.get("main_video"))  # the card's live video plays over it
         if main_image and main_stale and not live:
             _stale_mark(draw, (px + pw - u(10), py + u(22)), font, scale)
-        foot = py + ph - u(18)
+        # Its name's row: 18 px up from the foot for a name of 20, and in step with it.
+        up = round(seen.main_px * 0.9)
+        foot = py + ph - up
         if not live:  # (the card draws a live main camera's caption)
-            pill = draw.textbbox((px + u(10), foot), label, font=font, anchor="lm")
-            draw.rectangle(
-                (pill[0] - u(6), pill[1] - u(4), pill[2] + u(6), pill[3] + u(4)),
-                fill=(0, 0, 0, 160),
+            name(
+                draw,
+                label,
+                (px + u(10), foot),
+                font,
+                seen,
+                seen.main_style,
+                (px, foot - up, px + pw, py + ph),
+                (u(6), u(4)),
             )
-            draw.text((px + u(10), foot), label, fill="white", font=font, anchor="lm")
             draw.text(
                 (px + pw - u(10), foot),
                 datetime.now().strftime("%H:%M:%S"),
-                fill="white",
+                fill=seen.colour,
                 font=font,
                 anchor="rm",
             )

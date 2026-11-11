@@ -285,6 +285,16 @@ CLAUDE.md has them all. What trips agents here:
     are in the picture's corner, not between the strips. The owner turned down corners
     as items in the edge list (YAGNI). The stage lists the sizes on screens now
     (`drawnAt` in `stage.tsx`, from the compositor's status, read once on opening).
+  - **2026.11.5-b10** (not committed): each commander's `labels` (options once, in
+    `labels.json`, not `layout.json`, which Sensor Watch's cards bundle): font, sizes, colours, bar/pill/none, and where
+    the card's Talk chips go. `compositor/labels.py` draws the names; the card and the
+    stage draw theirs from `cards/src/labels.ts`. The three DejaVu fonts live once, in
+    `casa_mia/www/fonts` (the compositor reads them from the bundled component, the
+    card from HA, the page from `api/compositor/font/<file>`). Seen in headless
+    Chromium against a mocked API; **the card's caption and Talk chips are not seen in
+    a browser**, and nothing is seen on the box. Lesson: b9's "On screens now" asked
+    for `status` where the status is the API's root, and the mock had the same wrong
+    address, so it passed; check a mocked address against the app's own routes.
 - **2026.11.5-b3** (2026-11-11; **both seen working by the owner on the live box that day**): two
   Camera Commander faults on the owner's Mac.
   - **Safari over https showed no tiles.** HA's service worker handles every GET on HA's

@@ -340,6 +340,10 @@ def test_the_pages_controls_restart_flush_and_forget(compositor):
     status = both["live"]
     assert both["gatherer"]["channels"] and status["pictures"]
     assert status["size_test"] == f"http://10.0.0.2:{compositor.port}/size-test"
+    # a label font's file, for the page's preview; and no other file
+    code, kind, font = api("GET", "font/DejaVuSansMono.ttf", {}, b"")
+    assert (code, kind) == (200, "font/ttf") and len(font) > 100_000
+    assert api("GET", "font/layout.json", {}, b"")[0] == 404
     # a cached picture as a thumbnail, whole or cut to 16:9; the stages paused and run
     code, kind, thumb = api(
         "GET", "thumb/camera.a", {"w": ["120"], "whole": ["1"]}, b""
