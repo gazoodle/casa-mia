@@ -3,7 +3,7 @@
 // www/cm-cards.js. Sensor Watch's card is built by itself, for its own integration
 // (vite.sensor-watch.config.ts).
 import { VERSION } from "./commander/index.ts";
-import { whenConnected } from "./connection.ts";
+import { offerReload } from "./connection.ts";
 import "./view/index.ts";
 import "./garnish-editor.ts";
 import "./garnish-sections.ts";
@@ -21,30 +21,6 @@ console.info(
   "",
 );
 
-// A page open since before an update keeps running the old cards (HA loads each script
-// once per page), which looks like a bug that isn't there. So at each reconnect (HA
-// restarts after an update) ask which cards HA serves now and, if they're newer, offer a
-// reload in HA's own toast, as HA does for its own frontend. Not in development (no ?v=).
-if (VERSION !== "dev")
-  whenConnected("the offer to reload after an update", ({ conn }) => {
-    const check = () =>
-      conn.sendMessagePromise({ type: "casa_mia/cards" }).then(({ version }: { version: string | null }) => {
-        if (!version || version === VERSION) return;
-        console.warn(`CASA-MIA CARDS ${VERSION} running, ${version} served: reload to update`);
-        document.querySelector("home-assistant")?.dispatchEvent(
-          new CustomEvent("hass-notification", {
-            detail: {
-              message: `Casa Mia updated to ${version}: reload to use it`,
-              duration: -1,
-              dismissable: true,
-              action: { text: "Reload", action: () => location.reload() },
-            },
-            bubbles: true,
-            composed: true,
-          }),
-        );
-      }, () => {}); // an older integration without the command: nothing to compare
-    conn.addEventListener("ready", check);
-  });
+offerReload("Casa Mia", "casa_mia/cards", VERSION);
 
 watchForGoodbye();

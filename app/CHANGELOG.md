@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.5-b2
+
+- No change in behaviour: Casa Mia's cards and Sensor Watch's now share the code that offers a reload after an update.
+
 ## 2026.11.5-b1
 
 - **Fixed: Sensor Watch never counted a level that had to wait out its hold-off** (in 2026.11.2, 2026.11.3 and 2026.11.4). A worse level, or unavailable, that was still inside its hold-off when it began stayed at its old level when the wait ran out, with `TypeError: 'dict' object is not callable` in Home Assistant's log, and no event was sent. A level found when Home Assistant started, when a watch was saved or at Refresh state still counted, as did a better level and a level with no hold-off, so the page was right after a restart and went out of date afterwards. Nothing needs changing after the update: every sensor is judged again when Sensor Watch starts.
