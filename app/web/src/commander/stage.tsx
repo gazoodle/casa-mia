@@ -6,8 +6,9 @@
  * Stale marks and the Security look are only in "As the app draws it". */
 
 import { useContext, useEffect, useRef, useState } from "react";
-import { layout, type Rect, type Settings } from "../../../../integration/cards/src/layout.ts";
+import type { Rect } from "../../../../integration/cards/src/layout.ts";
 import { measure, type Shown } from "../../../../integration/cards/src/measure.ts";
+import { camerasOf, placed, type Commander as Laid, type Placed } from "../../../../integration/cards/src/placed.ts";
 import { Camera, ThumbRound, plural } from "../cameras";
 import ui from "../ui.module.css";
 import css from "./stage.module.css";
@@ -28,10 +29,6 @@ const WIDTHS = [240, 2600];
 const HEIGHTS = [160, 1600];
 const within = (n: number, [lo, hi]: number[]) => Math.round(Math.min(hi, Math.max(lo, n)));
 const pct = (n: number) => `${Math.round(n * 100)}%`;
-
-// How the compositor puts a camera in its place, as the card's own <video> does.
-const MAIN_HOW: Record<string, Shown["how"]> = { fit: "contain", fill: "fill", crop: "cover", own: "cover", fixed: "contain" };
-const tileHow = (fit: string): Shown["how"] => (fit === "contain" ? "contain" : "cover");
 
 export function Stage({ value, cameras }: { value: Commander; cameras: Record<string, Camera> }) {
   const round = useContext(ThumbRound);
@@ -62,24 +59,22 @@ export function Stage({ value, cameras }: { value: Commander; cameras: Record<st
     if (d) setSize([within(d.w + (e.clientX - d.x) / d.k, WIDTHS), within(d.h + (e.clientY - d.y) / d.k, HEIGHTS)]);
   };
 
-  // Laid out as the card lays it out: at this size, a hidden panel holding nothing.
+  // Laid out as the card lays it out (placed.ts), in either mode: at this size, a hidden
+  // panel holding nothing.
   const panels = Object.fromEntries(PANELS.map((p) => [p, value[p].hidden ? { ...value[p], cameras: [] } : value[p]]));
-  const inPanels = PANELS.flatMap((p) => panels[p].cameras);
-  const main = inPanels.includes(picked) ? picked : value.main;
-  const shapes = (value as { aspects?: Record<string, number> }).aspects ?? {};
-  const shape = (e: string) => Number(shapes[e]) || 16 / 9;
-  let laid: ReturnType<typeof layout>;
+  const s = { ...value, ...panels, width: W, height: H, scale: 1 } as unknown as Laid;
+  const main = camerasOf(s).includes(picked) ? picked : value.main;
+  const shape = (e: string) => Number((s.aspects ?? {})[e]) || 16 / 9;
+  let laid: Placed;
   try {
-    laid = layout({ ...value, ...panels, width: W, height: H, scale: 1 } as unknown as Settings, main || null);
+    laid = placed(s, main || null);
   } catch (err) {
     return <div className={css.note}>This commander can't be laid out: {(err as Error).message}.</div>;
   }
-  const [, mainRect, tiles] = laid;
+  const mainRect = laid.main;
 
-  const mainShown: Shown | null = main && mainRect[2] > 0 && mainRect[3] > 0 ? { rect: mainRect, shape: shape(main), how: MAIN_HOW[value.main_fit] ?? "contain" } : null;
-  const tilesShown = PANELS.flatMap((p) =>
-    panels[p].cameras.map((e, i) => ({ e, rect: tiles[p][i], shape: shape(e), how: tileHow(panels[p].fit) })).filter((t) => t.rect[2] > 0 && t.rect[3] > 0),
-  );
+  const mainShown: Shown | null = main && mainRect[2] > 0 && mainRect[3] > 0 ? { rect: mainRect, shape: shape(main), how: laid.mainHow } : null;
+  const tilesShown = laid.tiles.filter((t) => t.rect[2] > 0 && t.rect[3] > 0).map((t) => ({ e: t.camera, rect: t.rect, shape: shape(t.camera), how: t.how }));
   const m = measure([W, H], mainShown, tilesShown);
 
   const at = ([x, y, w, h]: Rect) => ({ left: x * k, top: y * k, width: w * k, height: h * k });
@@ -128,6 +123,11 @@ export function Stage({ value, cameras }: { value: Commander; cameras: Record<st
               <span>{title(t.e)}</span>
             </button>
           ))}
+          {laid.more && (
+            <div className={`${css.tile} ${css.more}`} style={at(laid.more.rect)}>
+              +{laid.more.count} more
+            </div>
+          )}
           <span
             className={css.handle}
             role="separator"
@@ -145,6 +145,7 @@ export function Stage({ value, cameras }: { value: Commander; cameras: Record<st
         {m.lost > 0.005 && ` A camera loses up to ${pct(m.lost)} of its picture.`}
         {m.squeezed > 0.02 && ` A camera is stretched ${pct(m.squeezed)} out of its shape.`}
         {m.tall > 0 && ` ${plural(m.tall, "tile")} ${m.tall === 1 ? "is" : "are"} taller than wide.`}
+        {laid.more && ` ${plural(laid.more.count, "camera")} ${laid.more.count === 1 ? "doesn't" : "don't"} fit, and ${laid.more.count === 1 ? "is" : "are"} in +${laid.more.count} more.`}
       </p>
     </div>
   );

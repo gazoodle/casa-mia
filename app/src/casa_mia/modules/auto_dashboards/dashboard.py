@@ -9,11 +9,11 @@ import yaml
 from ..commander import COMMANDER_SELECT, commander_selects
 from ..compositor import (
     EMPTY_COMMANDER,
-    PANELS,
     cameras_of,
     commander_cameras,
-    commander_layout,
     commanders_of,
+    follows_main,
+    placed,
     slug,
     visible,
 )
@@ -222,12 +222,12 @@ def build_dashboard(
                 "elements": elements,
             }
 
-        if cmd.get("main_fit") == "own":
+        if follows_main(cmd):
             return [
                 shown_while(e, highlight(cmd, m, m) + layout_zones(cmd, m, select))
                 for e, m in [*((e, e) for e in mine), (None, own)]
             ]
-        size, main_rect, _ = commander_layout(cmd)
+        size, main_rect, *_ = placed(cmd)
         return layout_zones(cmd, None, select) + [
             shown_while(
                 e,
@@ -241,29 +241,29 @@ def build_dashboard(
         """An outline over the main camera's own tile: drawn by the browser (so a tap
         shows it at once), its colour, width and blur (a glow) as set; it lets taps
         through, and pulses (Keep camera pictures live does that) unless pulse is 0."""
-        size, _, rects = commander_layout(cmd, main)
+        laid = placed(cmd, main)
         h = {**EMPTY_COMMANDER["highlight"], **(cmd.get("highlight") or {})}
-        for panel in PANELS:
-            for cam, rect in zip(cmd[panel]["cameras"], rects[panel], strict=True):
-                if cam == e and rect[2] > 0 and rect[3] > 0:
-                    mark = zone(rect, size, {"action": "none"})
-                    mark["image"] = HIGHLIGHT
-                    mark["style"] |= {
-                        "border": f"{h['width']}px solid {h['colour']}",
-                        "box-sizing": "border-box",
-                        "box-shadow": f"0 0 {h['blur']}px {h['colour']}",
-                        "pointer-events": "none",
-                        "--cm-colour": h["colour"],
-                        "--cm-blur": f"{h['blur']}px",
-                        "--cm-pulse": f"{h['pulse']}s",
-                        "--cm-style": h["style"],
-                    }
-                    return [mark]
+        for _, cam, rect, _ in laid.tiles:
+            if cam == e and rect[2] > 0 and rect[3] > 0:
+                mark = zone(rect, laid.size, {"action": "none"})
+                mark["image"] = HIGHLIGHT
+                mark["style"] |= {
+                    "border": f"{h['width']}px solid {h['colour']}",
+                    "box-sizing": "border-box",
+                    "box-shadow": f"0 0 {h['blur']}px {h['colour']}",
+                    "pointer-events": "none",
+                    "--cm-colour": h["colour"],
+                    "--cm-blur": f"{h['blur']}px",
+                    "--cm-pulse": f"{h['pulse']}s",
+                    "--cm-style": h["style"],
+                }
+                return [mark]
         return []
 
     def layout_zones(cmd: dict, main: str | None, select: str) -> list[dict]:
         """The panels' tap zones (and, given the main camera, its own) for one layout."""
-        size, main_rect, rects = commander_layout(cmd, main)
+        laid = placed(cmd, main)
+        size = laid.size
         title = lambda e: cams[e]["title"]  # noqa: E731
         out = [
             zone(
@@ -276,12 +276,11 @@ def build_dashboard(
                     "data": {"option": title(e)},
                 },
             )
-            for panel in PANELS
-            for e, rect in zip(cmd[panel]["cameras"], rects[panel], strict=True)
+            for _, e, rect, _ in laid.tiles
             if rect[2] > 0 and rect[3] > 0
         ]
         if main:
-            out.append(zone(main_rect, size, f"cam-{slug(title(main))}"))
+            out.append(zone(laid.main, size, f"cam-{slug(title(main))}"))
         return out
 
     def live_card(entity: str, title: str, condition: dict | None, kind: str) -> dict:

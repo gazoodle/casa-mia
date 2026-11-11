@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.11.5-b7
+
+- No change to the commanders you have: a commander can now be drawn in a second way, **Responsive**, worked out for the space it is given. It is not on the Camera Commander page yet (that is the next build), so nothing chooses it.
+  - The compositor draws it, the camera dashboard's page lays its taps over it, and the Camera Commander card lays its taps, highlight and motion dots over it, all from the one layout.
+  - Cameras there is no room for are drawn as a **+n more** tile, and motion on one of them marks that tile. Tapping it does nothing yet.
+  - With **Keep to my limits**, a space the limits don't fit shows the main camera alone, and the card says why.
+
 ## 2026.11.5-b6
 
 - No change in behaviour yet: the solver for the Camera Commander's Responsive layout is in, in the app and in the cards, with nothing using it. It works a commander's layout out for the space it is given, from the number of cameras and a few limits.

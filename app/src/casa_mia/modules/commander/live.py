@@ -90,6 +90,8 @@ class Live(Base):
             "aspects",
             "highlight",
             "debug",
+            "mode",
+            "responsive",
             *(k for k, o in LAYOUT["main"].items() if o.get("for") != "view"),
             *PANELS,
         )

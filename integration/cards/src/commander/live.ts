@@ -89,10 +89,10 @@ export class CommanderLive extends CommanderBase {
   }
 
   /** What the main area shows now (common.ts: liveOrder, livePlan), for its place, which
-   * is laid out in the picture's device pixels (as asked for; fewer away from home). */
-  protected liveNow(card: Card, main: string, area: Rect): LiveNow {
-    const fit = card.layout.main_fit ?? "fit";
-    const order = liveOrder(card.cameras[main]?.channels ?? [[main, 0, 0]], [area[2], area[3]], fit !== "fill" && fit !== "crop");
+   * is laid out in the picture's device pixels (as asked for; fewer away from home).
+   * `whole`: the main camera is shown whole in its place, not cropped or stretched to it. */
+  protected liveNow(card: Card, main: string, area: Rect, whole: boolean): LiveNow {
+    const order = liveOrder(card.cameras[main]?.channels ?? [[main, 0, 0]], [area[2], area[3]], whole);
     const now = Date.now();
     const live = (channel: string) => {
       const s = this.sessions.get(channel);

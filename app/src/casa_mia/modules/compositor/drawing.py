@@ -8,7 +8,7 @@ import logging
 from collections.abc import Mapping
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageOps
 
@@ -19,6 +19,7 @@ from .common import (
     LAYOUT,
     PANELS,
 )
+from .responsive import responsive
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -68,7 +69,10 @@ def as_image(raw: Picture, size: tuple[int, int]) -> Image.Image:
 
 
 def commander_cameras(cmd: dict) -> list[str]:
-    """The commander's cameras, each once, panel by panel (left, top, right, bottom)."""
+    """The commander's cameras, each once: panel by panel (left, top, right, bottom), or
+    a Responsive commander's own list."""
+    if cmd.get("mode") == "responsive":
+        return list(dict.fromkeys((cmd.get("responsive") or {}).get("cameras", [])))
     return list(
         dict.fromkeys(e for p in PANELS for e in cmd.get(p, {}).get("cameras", []))
     )
@@ -333,6 +337,67 @@ def commander_layout(
     return (w, h), main_area, tiles
 
 
+class Placed(NamedTuple):
+    """Where everything in a commander's picture is, whichever way it is laid out."""
+
+    size: tuple[int, int]
+    main: Rect
+    main_fit: str  # the main camera in its place: fit (whole), fill (stretched), crop
+    # Each tile: where it is (its panel, or "tiles"), its camera, its place, and
+    # whether the camera is shown whole in it (else cropped to fill).
+    tiles: list[tuple[str, str, Rect, bool]]
+    more: tuple[Rect, int] | None  # the "+n more" tile, and the cameras it stands for
+    gave: list[str]  # the limits that gave way (Responsive: see `responsive`)
+
+
+def placed(cmd: dict, main: str | None = None) -> Placed:
+    """A commander laid out at its size, by its mode. What draws it, chooses its
+    channels and lays its tap zones all read this, so none of them knows the modes."""
+    if cmd.get("mode") != "responsive":
+        size, area, rects = commander_layout(cmd, main)
+        fit = cmd.get("main_fit", "fit")
+        return Placed(
+            size,
+            area,
+            fit if fit in ("fill", "crop") else "fit",
+            [
+                (p, e, rect, cmd[p].get("fit", "cover") not in CROPPED)
+                for p in PANELS
+                for e, rect in zip(cmd[p]["cameras"], rects[p], strict=True)
+            ],
+            None,
+            [],
+        )
+
+    cameras = commander_cameras(cmd)
+    laid = responsive(
+        cmd["width"],
+        cmd["height"],
+        cmd["gap"],
+        cmd.get("margin", 0),
+        len(cameras),
+        cmd.get("responsive"),
+        (cmd.get("aspects") or {}).get(main or ""),
+        float(cmd.get("scale", 1)),
+    )
+    return Placed(
+        (cmd["width"], cmd["height"]),
+        tuple(laid["main"]),
+        "crop" if laid["main_how"] == "cover" else "fit",
+        [("tiles", e, tuple(r), False) for e, r in zip(cameras, laid["tiles"])],
+        (tuple(laid["more"]), laid["dropped"]) if laid["more"] else None,
+        laid["gave"],
+    )
+
+
+def follows_main(cmd: dict) -> bool:
+    """Whether the whole layout can change with the main camera: one sized to its own
+    shape (fixed), or Re-lay out for its shape (Responsive)."""
+    if cmd.get("mode") == "responsive":
+        return (cmd.get("responsive") or {}).get("main_other") == "follow"
+    return cmd.get("main_fit") == "own"
+
+
 STALE = (245, 166, 35)  # the Stale mark: amber
 
 
@@ -363,6 +428,8 @@ def see_through(cmd: dict) -> bool:
     shows: its gaps, and the borders beside a main camera kept whole (fit, fixed, own).
     Decided by its settings, not each picture, so its stream keeps one format (WebP
     with clear parts, else JPEG) whichever camera is the main one."""
+    if cmd.get("mode") == "responsive":
+        return True  # its grid seldom reaches every edge of the space
     return bool(cmd["gap"] or cmd.get("margin")) or cmd.get("main_fit", "fit") in (
         "fit",
         "fixed",
@@ -385,7 +452,7 @@ def commander(
     shown the moment the main camera is switched, from stills already to hand: blurred,
     with "Changing to <camera>" over it, until the sharp one is ready. `stale`: the
     cameras whose tile picture is old (marked Stale); `main_stale`: the main picture is."""
-    size, main_rect, rects = commander_layout(cmd, main)
+    size, main_rect, main_fit, places, more, _ = placed(cmd, main)
     # Drawn at a size asked for (see `sized`), text, bars and margins grow by its scale.
     scale = float(cmd.get("scale", 1))
     small, font, big = _fonts(scale)
@@ -399,45 +466,49 @@ def commander(
     # replace the picture under it, and the dashboard's background would show through.)
     canvas = Image.new("RGB", size, "black")
     draw = ImageDraw.Draw(canvas, "RGBA")
-    for panel in PANELS:
-        fit = cmd[panel].get("fit", "cover")
-        for entity, (x, y, w, h) in zip(
-            cmd[panel]["cameras"], rects[panel], strict=True
-        ):
-            if w <= 0 or h <= 0:  # no room left beside a large main camera
-                continue
-            raw = tiles.get(entity)
-            if raw:
-                try:
-                    src = as_image(raw, (w, h))
-                    img = (
-                        ImageOps.fit(src, (w, h))
-                        if fit in CROPPED
-                        else ImageOps.contain(src, (w, h))
-                    )
-                    canvas.paste(
-                        img, (x + (w - img.width) // 2, y + (h - img.height) // 2)
-                    )
-                except OSError:
-                    raw = None
-            if not raw:
-                draw.text(
-                    (x + w // 2, y + h // 2),
-                    "no signal",
-                    fill="white",
-                    font=small,
-                    anchor="mm",
+    for _, entity, (x, y, w, h), whole in places:
+        if w <= 0 or h <= 0:  # no room left beside a large main camera
+            continue
+        raw = tiles.get(entity)
+        if raw:
+            try:
+                src = as_image(raw, (w, h))
+                img = (
+                    ImageOps.contain(src, (w, h))
+                    if whole
+                    else ImageOps.fit(src, (w, h))
                 )
-            draw.rectangle((x, y + h - bar, x + w, y + h), fill=(0, 0, 0, 140))
+                canvas.paste(img, (x + (w - img.width) // 2, y + (h - img.height) // 2))
+            except OSError:
+                raw = None
+        if not raw:
             draw.text(
-                (x + u(6), y + h - bar // 2),
-                swap.out(str(titles.get(entity) or entity)),
+                (x + w // 2, y + h // 2),
+                "no signal",
                 fill="white",
                 font=small,
-                anchor="lm",
+                anchor="mm",
             )
-            if raw and entity in stale:
-                _stale_mark(draw, (x + w - u(6), y + h - bar // 2), small, scale)
+        draw.rectangle((x, y + h - bar, x + w, y + h), fill=(0, 0, 0, 140))
+        draw.text(
+            (x + u(6), y + h - bar // 2),
+            swap.out(str(titles.get(entity) or entity)),
+            fill="white",
+            font=small,
+            anchor="lm",
+        )
+        if raw and entity in stale:
+            _stale_mark(draw, (x + w - u(6), y + h - bar // 2), small, scale)
+    if more:  # the cameras there is no room for, said on a tile of its own
+        (x, y, w, h), count = more
+        draw.rectangle((x, y, x + w - 1, y + h - 1), fill=(42, 49, 64))
+        draw.text(
+            (x + w // 2, y + h // 2),
+            f"+{count} more",
+            fill="white",
+            font=small,
+            anchor="mm",
+        )
     x, y, w, h = main_rect
     shown = main_rect  # the main area that is solid: the camera's picture, once drawn
     if w > 0 and h > 0:
@@ -448,10 +519,9 @@ def commander(
         if main_image:
             try:
                 src = as_image(main_image, (w, h))
-                fit = cmd.get("main_fit", "fit")
-                if fit == "fill":
+                if main_fit == "fill":
                     img = src.resize((w, h))
-                elif fit == "crop":
+                elif main_fit == "crop":
                     img = ImageOps.fit(src, (w, h))
                 else:
                     img = ImageOps.contain(src, (w, h))
@@ -516,7 +586,11 @@ def commander(
     if see_through(cmd):  # every tile and the main picture solid; the rest is clear
         mask = Image.new("L", size, 0)
         solid = ImageDraw.Draw(mask)
-        for x, y, w, h in [shown, *(r for p in PANELS for r in rects[p])]:
+        for x, y, w, h in [
+            shown,
+            *(t[2] for t in places),
+            *(m[0] for m in [more] if m),
+        ]:
             if w > 0 and h > 0:
                 solid.rectangle((x, y, x + w - 1, y + h - 1), fill=255)
         canvas.putalpha(mask)

@@ -132,6 +132,15 @@ EMPTY_COMMANDER = {
         "style": "breathe",
     },
     "aspects": {},  # camera -> its natural shape (width / height), recorded when saved
+    # How it is laid out: fixed (the four panels below, set by hand) or responsive
+    # (worked out for the space it is drawn in, see responsive.py). Responsive has its
+    # own cameras, one list in the order the tiles fill, and its limits; both modes'
+    # settings are kept, so a commander can change mode and back.
+    "mode": "fixed",
+    "responsive": {
+        "cameras": [],
+        **{k: o["default"] for k, o in LAYOUT["responsive"].items()},
+    },
     # Each panel: its cameras, size, fit (cover: filling equal tiles, cropped; contain:
     # whole in equal tiles; stack: whole at its own shape, edge to edge from the top or
     # left, spare room at the far end; reverse: the same, against the bottom or right;

@@ -264,8 +264,16 @@ CLAUDE.md has them all. What trips agents here:
     `PYTHONPATH=app/src:tests .venv/bin/python tests/test_responsive_cases.py`). Its
     options and defaults are `layout.json`'s `responsive`. Nothing calls it yet. Building
     it changed seven points of the spec, which the owner agreed; they are listed there
-    and hold over the text above them. Step 3 is the compositor drawing it, the card's
-    zones, and where a commander keeps its mode and camera list.
+    and hold over the text above them.
+  - **Step 3, drawing it, is built in 2026.11.5-b7** (not committed). A commander has
+    `mode` (`fixed` or `responsive`) and `responsive` (its `cameras` and limits); both
+    modes' settings are kept. **`placed(cmd, main)`** (`compositor/drawing.py`, and
+    `integration/cards/src/placed.ts`) says where everything is in either mode, and the
+    picture, the channel choice, the camera dashboard's zones, the card and the page's
+    stage all read it: use it, not `commander_layout`, for anything new. Nothing on the
+    page sets the mode yet (step 4), so it was seen only on the stage against a mocked
+    API with `mode` set by hand, and in tests. The card over a Responsive picture has not
+    been seen in a browser.
 - **2026.11.5-b3** (2026-11-11; committed, **not on the box**, unseen in Safari and the Mac app): two
   Camera Commander faults on the owner's Mac.
   - **Safari over https showed no tiles.** HA's service worker handles every GET on HA's

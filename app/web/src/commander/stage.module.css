@@ -55,6 +55,16 @@
   white-space: nowrap;
 }
 
+/* the cameras there is no room for, as the compositor draws it */
+.more {
+  display: grid;
+  place-items: center;
+  background: #2a3140;
+  color: #fff;
+  font-size: 12px;
+  cursor: default;
+}
+
 .main {
   background: #000; /* its bars, as the compositor draws them */
   cursor: default;

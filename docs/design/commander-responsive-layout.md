@@ -219,7 +219,7 @@ mode and can follow it.
 2. The solver in Python with its cases, then the same in TypeScript against those cases.
    **Built in 2026.11.5-b6**, with nothing using it yet (see "Found while building the
    solver").
-3. The compositor drawing in Responsive, and the card's zones over it.
+3. The compositor drawing in Responsive, and the card's zones over it. **Built in 2026.11.5-b7.**
 4. Responsive's settings in the editor, on the same stage.
 5. **+n more** and the view of all cameras.
 6. The guide (`docs/applets/camera-commander.md`) and its screenshots.

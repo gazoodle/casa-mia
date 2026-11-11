@@ -6,7 +6,7 @@ import css from "../cameras.module.css";
 import ui from "../ui.module.css";
 import LAYOUT from "../../../src/casa_mia/layout.json";
 import { Camera, Thumb, plural } from "../cameras";
-import { Commander, DEBUG, Edits, HA, HIGHLIGHT, L, MOTION, P, PANELS, Panel, help } from "./common";
+import { Commander, DEBUG, Edits, HA, HIGHLIGHT, L, MOTION, P, PANELS, Panel, camerasOf, help } from "./common";
 import { Chips, Num, RatioInput } from "./inputs";
 import { confirmBox } from "../confirm";
 import { LivePreview } from "./preview";
@@ -104,7 +104,7 @@ export function Commanders({
             <button className={css.pick} aria-pressed={open === i} onClick={() => setOpen(open === i ? -1 : i)}>
               <strong>{c.name.trim() || "(no name)"}</strong>
               <span className={css.muted}>
-                {plural(new Set(PANELS.flatMap((p) => (c[p].hidden ? [] : c[p].cameras))).size, "camera")}
+                {plural(camerasOf(c).length, "camera")}
                 {c.page === false && " · no dashboard page"}
               </span>
             </button>

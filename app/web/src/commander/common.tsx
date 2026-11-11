@@ -83,7 +83,18 @@ export type Commander = {
   motion?: { hold: number; back: number; pause: number };
   /** Cameras Track motion never switches to; the card still marks their motion. */
   motion_ignore?: string[];
+  /** How it is laid out: fixed (its panels, set by hand) or responsive (worked out for
+   * the space it is drawn in). Both modes' settings are kept. */
+  mode?: "fixed" | "responsive";
+  /** Responsive: its cameras, one list in the order the tiles fill, and its limits
+   * (layout.json's `responsive`, which has their defaults). */
+  responsive?: { cameras: string[] } & Record<string, unknown>;
 } & Record<(typeof PANELS)[number], Panel>;
+
+/** A commander's cameras as shown, each once: its panels' (not a hidden one's), or a
+ * Responsive commander's own list. */
+export const camerasOf = (c: Commander): string[] =>
+  c.mode === "responsive" ? [...new Set(c.responsive?.cameras ?? [])] : [...new Set(PANELS.flatMap((p) => (c[p].hidden ? [] : c[p].cameras)))];
 
 /** What the commander editor works on: the commanders, and the cameras they show. */
 export type Edits = { commanders: Commander[]; cameras: Record<string, Camera> };

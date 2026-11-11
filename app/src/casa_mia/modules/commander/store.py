@@ -138,14 +138,18 @@ class Base:
             gone = {
                 e
                 for cmd in self.store["commanders"]
-                for e in commander_cameras({**EMPTY_COMMANDER, **cmd})
+                for mode in ("fixed", "responsive")
+                for e in commander_cameras({**EMPTY_COMMANDER, **cmd, "mode": mode})
             } - set(cameras)
             if gone and not self._error:
                 for cmd in self.store["commanders"]:
-                    for panel in PANELS:
-                        if panel in cmd:
-                            cmd[panel]["cameras"] = [
-                                e for e in cmd[panel]["cameras"] if e not in gone
+                    # from both modes' lists: the mode not in use is kept too
+                    for holder in (*PANELS, "responsive"):
+                        if isinstance(cmd.get(holder), dict):
+                            cmd[holder]["cameras"] = [
+                                e
+                                for e in cmd[holder].get("cameras", [])
+                                if e not in gone
                             ]
                     if cmd.get("main") in gone:
                         cmd["main"] = ""
