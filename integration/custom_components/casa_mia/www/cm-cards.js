@@ -1314,9 +1314,11 @@ function Kt([e, t, n, r, i, a], o) {
 		right: (e) => e >= i + n,
 		top: (e, t) => t < a,
 		bottom: (e, t) => t >= a + r
-	}, c = [], l = /* @__PURE__ */ new Set();
-	for (let n of o) for (let r = 0; r < t; r++) for (let t = 0; t < e; t++) s[n](t, r) && !l.has(r * e + t) && (l.add(r * e + t), c.push([t, r]));
-	return c;
+	}, c = [];
+	return o.forEach((n, r) => {
+		let i = o.slice(r + 1);
+		for (let r = 0; r < t; r++) for (let t = 0; t < e; t++) s[n](t, r) && !i.some((e) => s[e](t, r)) && c.push([t, r]);
+	}), c;
 }
 function qt(e, t, n, r, i, a = {}, o = null, s = 1) {
 	let c = {

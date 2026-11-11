@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.5-b9
+
+- **Camera Commander, Responsive: tiles to spare are left in the corner.** Where two edges meet (Bottom and Right, say), the corner now belongs to the edge that is later in the list, so that edge runs through the corner and any cells with no camera are at its end, in the corner of the picture. They belonged to the earlier edge, which left the empty cells between the two strips of tiles. No layout changes size, only which camera is in which cell.
+- **Camera Commander page: the preview offers the sizes on screens now.** Above the **Any size** preview, **On screens now** lists each size the commander is being shown at on a dashboard or tablet at the moment, read when the commander is opened. Click one to see the commander at that size; hover for the device. A screen of two device pixels to a CSS pixel is listed at its CSS size, which is the size its layout is made for.
+
 ## 2026.11.5-b8
 
 - **Camera Commander: a Responsive layout.** A commander's **Layout** can now be **Responsive** as well as **Fixed** (what it was, with its panels set by hand). A Responsive commander is laid out afresh for whatever space it is given, so it suits a wide tablet, a narrow column and a phone held upright from one set of settings. Existing commanders stay Fixed until you change them, and each keeps both sets of settings, so you can change and change back.

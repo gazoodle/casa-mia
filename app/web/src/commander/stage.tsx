@@ -10,6 +10,7 @@ import type { Rect } from "../../../../integration/cards/src/layout.ts";
 import { measure, type Shown } from "../../../../integration/cards/src/measure.ts";
 import { camerasOf, placed, type Commander as Laid, type Placed } from "../../../../integration/cards/src/placed.ts";
 import { Camera, ThumbRound, plural } from "../cameras";
+import { get, type Engine, type Status } from "../compositor/common";
 import ui from "../ui.module.css";
 import css from "./stage.module.css";
 import { Commander, HIGHLIGHT, PANELS } from "./common";
@@ -29,6 +30,31 @@ const WIDTHS = [240, 2600];
 const HEIGHTS = [160, 1600];
 const within = (n: number, [lo, hi]: number[]) => Math.round(Math.min(hi, Math.max(lo, n)));
 const pct = (n: number) => `${Math.round(n * 100)}%`;
+
+/** A size the app is drawing a commander at for a card showing it now: the card's space
+ * in CSS pixels, as the stage's sizes are, and who is watching. */
+type Drawn = { w: number; h: number; about: string };
+
+/** The sizes the live compositor is drawing the commander `name` at for cards (its
+ * status's pictures), one of each: a card on a screen of 2 device pixels to a CSS pixel
+ * asks for twice its space, laid out with everything doubled, so its space is the size
+ * to lay out here. */
+function drawnAt(live: Engine, name: string): Drawn[] {
+  const found = new Map<string, Drawn & { who: Set<string> }>();
+  for (const p of live.pictures ?? []) {
+    if (!p.asked || p.commander !== name || !p.scale) continue;
+    const [w, h] = [Math.round(p.width / p.scale), Math.round(p.height / p.scale)];
+    const one = found.get(`${w}x${h}`) ?? { w, h, about: "", who: new Set<string>() };
+    for (const s of live.sending ?? []) if (s.picture === p.key) one.who.add(s.name || s.viewer);
+    one.about = `${p.width} × ${p.height} px at ${p.scale}×`;
+    found.set(`${w}x${h}`, one);
+  }
+  return [...found.values()].map(({ w, h, about, who }) => ({
+    w,
+    h,
+    about: `Drawn now (${about}) for ${who.size ? [...who].sort().join(", ") : "a card that has just closed"}`,
+  }));
+}
 
 /** What gave way to find a layout that fits (the solver's `gave`), in words. */
 const GAVE: Record<string, string> = {
@@ -52,6 +78,15 @@ export function Stage({
   // It starts at the commander's own shape.
   const [[W, H], setSize] = useState<[number, number]>(() => [960, within((960 * value.height) / value.width, HEIGHTS)]);
   const [picked, setPicked] = useState("");
+
+  // The sizes it is being drawn at now, read once when it is opened (by its saved name).
+  const [drawn, setDrawn] = useState<Drawn[] | string | null>(null);
+  useEffect(() => {
+    get<Status>("status").then(
+      (status) => setDrawn(drawnAt(status.live, value.name)),
+      (err: Error) => setDrawn(err.message),
+    );
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Shown smaller when the space is wider than the page has room for.
   const frame = useRef<HTMLDivElement>(null);
@@ -125,6 +160,28 @@ export function Stage({
         <span>
           {W} × {H} px{k < 1 ? `, shown at ${pct(k)}` : ""}
         </span>
+      </div>
+      <div className={css.sizes}>
+        <em>On screens now:</em>
+        {typeof drawn === "string" ? (
+          <em>couldn't be read ({drawn})</em>
+        ) : !drawn ? (
+          <em>…</em>
+        ) : drawn.length ? (
+          drawn.map(({ w, h, about }) => (
+            <button
+              key={`${w}x${h}`}
+              className={`${ui.button} ${ui.small}`}
+              aria-pressed={within(w, WIDTHS) === W && within(h, HEIGHTS) === H}
+              title={about}
+              onClick={() => setSize([within(w, WIDTHS), within(h, HEIGHTS)])}
+            >
+              {w} × {h}
+            </button>
+          ))
+        ) : (
+          <em>no card is showing it</em>
+        )}
       </div>
       <div ref={frame}>
         {/* data-tall: the dock holding it stops following the page (cameras.module.css) */}

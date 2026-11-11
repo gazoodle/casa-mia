@@ -280,20 +280,23 @@ CLAUDE.md has them all. What trips agents here:
     limits gave way and which cameras have no room. Driven in headless Chromium against
     a mocked API: switch, slider, edges, reset, save, and back to Fixed. Not seen with
     real cameras. Step 5 is what a tap on "+n more" does.
-- **2026.11.5-b3** (2026-11-11; committed, **not on the box**, unseen in Safari and the Mac app): two
+  - **2026.11.5-b9** (owner, 2026-11-11, after seeing b8 on the test tablet): a cell
+    where two edges meet is the *later* edge's (`_cells` and its twin), so spare cells
+    are in the picture's corner, not between the strips. The owner turned down corners
+    as items in the edge list (YAGNI). The stage lists the sizes on screens now
+    (`drawnAt` in `stage.tsx`, from the compositor's status, read once on opening).
+- **2026.11.5-b3** (2026-11-11; **both seen working by the owner on the live box that day**): two
   Camera Commander faults on the owner's Mac.
   - **Safari over https showed no tiles.** HA's service worker handles every GET on HA's
     address, and Safari drops an endless stream that comes through a worker (shown with a
     stand-in page with no HA or Casa Mia code). The card, when its `<img>` stream fails
     on a page a worker controls, takes the picture as frames over a WebSocket
-    (`pictures.py` `.ws`, `base.ts` `followPicture`). The view is tested inside HA; the
-    card's switch has not been seen in Safari, which needs the build installed and HA
-    restarted. A hard refresh does not skip the worker in Safari: don't suggest it.
+    (`pictures.py` `.ws`, `base.ts` `followPicture`). A hard refresh does not skip the
+    worker in Safari: don't suggest it.
   - **The HA app for the Mac has no WebRTC.** `liveBy` picks WebRTC, else HLS
     (`webrtc.ts` `playHLS`, HA's `camera/stream`), else the drawn main camera; Talk needs
-    WebRTC. Seen in Safari against the live box: HLS needs an explicit `play()`, a frame
-    callback asked for before it loads is dropped, first frame 8.5 s from cold. Not seen
-    in the Mac app itself.
+    WebRTC. HLS needs an explicit `play()`, a frame callback asked for before it loads
+    is dropped, and its first frame took 8.5 s from cold (measured in Safari).
 - **2026.11.5-b1** (2026-11-11; b2 is a refactor of the cards' reload offer; committed for the
   owner to try on the live box, where none of it has run yet): Sensor Watch gets Stale, the
   gauge card, the set-up (Set up…, four steps), Needs attention, More filters, the

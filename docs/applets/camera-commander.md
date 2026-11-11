@@ -41,7 +41,10 @@ drawn from your unsaved changes, with its settings below it.
 The preview is a stage that you can make any size, because a commander is given a
 different space on each dashboard and device. Drag its bottom right corner, or pick a
 common space with the buttons above it (Wide, Tablet, Squarer, Banner, Tall, Phone upright,
-Phone on its side). The commander is laid out again as the size changes, by the same
+Phone on its side). **On screens now** lists the sizes the commander is being shown at on
+your dashboards and tablets at the moment, read when you open the commander, so you can
+see it here as each of them shows it. Hover over one for which device it is. The
+commander is laid out again as the size changes, by the same
 layout the card uses, with small pictures of your cameras. The line under it says how much
 of the space the main camera takes, how much shows no camera, how much of its picture a
 camera loses, and how many tiles are taller than wide. A commander's panels are set for
@@ -106,7 +109,9 @@ crops the cameras least is used.
 - **Edges, in the order they fill:** the edges the tiles go on. An edge in the list is
   used whenever there are tiles for it, and the first cameras go on the first edge.
   Bottom and Right gives tiles below, on the right, or both as a corner, whichever suits
-  the space; add Left for tiles on both sides. ‹ and › move an edge earlier or later, ✕
+  the space; add Left for tiles on both sides. Where two edges meet, the corner belongs
+  to the later edge, so tiles to spare are left at its end, in the corner of the picture.
+  ‹ and › move an edge earlier or later, ✕
   takes it out and **+ Add…** puts one back.
 - **Different when the space is taller than wide:** a second list of edges for a tall
   space, such as a phone held upright.

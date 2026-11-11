@@ -123,7 +123,8 @@ function earlier(a: number[], b: number[]): boolean {
   return false;
 }
 
-/** The tiles' cells in the order they fill: an edge at a time, each across then down. */
+/** The tiles' cells in the order they fill: an edge at a time, each across then down. A
+ * cell where two edges meet is the later edge's (see the compositor's). */
 function cells([cols, rows, mc, mr, left, top]: Grid, edges: string[]): [number, number][] {
   const on: Record<string, (c: number, r: number) => boolean> = {
     left: (c) => c < left,
@@ -132,14 +133,11 @@ function cells([cols, rows, mc, mr, left, top]: Grid, edges: string[]): [number,
     bottom: (_, r) => r >= top + mr,
   };
   const out: [number, number][] = [];
-  const taken = new Set<number>();
-  for (const edge of edges)
+  edges.forEach((edge, i) => {
+    const later = edges.slice(i + 1);
     for (let r = 0; r < rows; r++)
-      for (let c = 0; c < cols; c++)
-        if (on[edge](c, r) && !taken.has(r * cols + c)) {
-          taken.add(r * cols + c);
-          out.push([c, r]);
-        }
+      for (let c = 0; c < cols; c++) if (on[edge](c, r) && !later.some((e) => on[e](c, r))) out.push([c, r]);
+  });
   return out;
 }
 

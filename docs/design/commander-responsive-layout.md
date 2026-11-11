@@ -87,7 +87,10 @@ round. The order never changes which layout is chosen, only which camera goes wh
 
 - Left and right edges fill from the top; top and bottom edges from the left. An edge two
   or more tiles deep fills across, then down.
-- The cells where two edges meet belong to the edge that is earlier in the list.
+- The cells where two edges meet belong to the edge that is later in the list. That edge
+  runs through the corner, and any cells to spare are at its end, in the corner of the
+  picture. (Changed in 2026.11.5-b9. They first belonged to the earlier edge, and on the
+  owner's test tablet, 2026-11-11, the spare cells were then between the two strips.)
 - At a size where the solver uses only some of the edges, the cameras start on the first
   edge it does use. So a camera can sit on a different edge at a different size, but never
   moves while the size stays the same.

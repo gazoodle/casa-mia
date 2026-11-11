@@ -159,7 +159,10 @@ def _best(
 
 def _cells(grid: tuple[int, ...], edges: tuple[str, ...]) -> list[tuple[int, int]]:
     """The tiles' cells in the order they fill: an edge at a time in the list's order,
-    each across then down. A cell where two edges meet is the earlier edge's."""
+    each across then down. A cell where two edges meet is the later edge's, so the
+    last edge runs through the corner and any cells to spare are at its end, in the
+    picture's corner. (The earlier edge's, to begin with: the spare cells were then
+    in the crook of the L, between the two strips.)"""
     cols, rows, mc, mr, left, top = grid[:6]
     on = {
         "left": lambda c, r: c < left,
@@ -168,12 +171,13 @@ def _cells(grid: tuple[int, ...], edges: tuple[str, ...]) -> list[tuple[int, int
         "bottom": lambda c, r: r >= top + mr,
     }
     out: list[tuple[int, int]] = []
-    for edge in edges:
+    for i, edge in enumerate(edges):
+        later = [on[e] for e in edges[i + 1 :]]
         out += [
             (c, r)
             for r in range(rows)
             for c in range(cols)
-            if on[edge](c, r) and (c, r) not in out
+            if on[edge](c, r) and not any(theirs(c, r) for theirs in later)
         ]
     return out
 
