@@ -246,7 +246,12 @@ CLAUDE.md has them all. What trips agents here:
 
 ## What happened
 
-- **2026.11.5-b3** (2026-11-11; built and tested, **not committed, not on the box**): two
+- **2026-11-11: the Camera Commander's Responsive layout is specified, not built**
+  (`docs/design/commander-responsive-layout.md`, agreed by the owner): a second mode
+  beside today's (now called Fixed), in which the layout is worked out for each size from
+  the camera list and a few limits. Read the spec before touching the commander's layout;
+  its order of work starts with a draggable stage on the editor, for Fixed.
+- **2026.11.5-b3** (2026-11-11; committed, **not on the box**, unseen in Safari and the Mac app): two
   Camera Commander faults on the owner's Mac.
   - **Safari over https showed no tiles.** HA's service worker handles every GET on HA's
     address, and Safari drops an endless stream that comes through a worker (shown with a
