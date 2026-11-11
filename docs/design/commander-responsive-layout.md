@@ -217,6 +217,8 @@ mode and can follow it.
 1. The stage, for Fixed: drag sizing and the size buttons on today's editor. It needs no
    solver and is useful by itself. **Built in 2026.11.5-b5.**
 2. The solver in Python with its cases, then the same in TypeScript against those cases.
+   **Built in 2026.11.5-b6**, with nothing using it yet (see "Found while building the
+   solver").
 3. The compositor drawing in Responsive, and the card's zones over it.
 4. Responsive's settings in the editor, on the same stage.
 5. **+n more** and the view of all cameras.
@@ -224,6 +226,43 @@ mode and can follow it.
 7. Measuring the main camera change, and the quicker change if it is wanted.
 
 Each is a build of its own that leaves existing commanders unchanged.
+
+## Found while building the solver (agreed by the owner, 2026-11-11)
+
+The solver (step 2) is built as below. Each point differs from, or adds to, what is
+written above it, and where they differ this section is the one that holds.
+
+1. **An edge in the list is always used when there are tiles for it.** Above, the solver
+   was to choose among the listed edges "whichever scores best". But the score is the
+   same wherever the block sits, so there was nothing to choose by. Built: with left and
+   right both listed, tiles go on both sides (the odd column to the earlier edge); with
+   one listed, on that side. Whether there are tiles beside the block or below it at all
+   is still the solver's choice. This makes the list say exactly what is wanted, and
+   "around the main camera" is all four edges.
+2. **So the default list is bottom, right**, not all four: that gives the layouts the
+   prototype chose (below, on the right, or the two as a corner). All four by default
+   would put tiles all round the main camera in every space.
+3. **The main camera's block is held to the same tolerance as a tile**: within "may lose
+   up to" of 16:9 (or of the camera's own shape with Re-lay out). Without it, one edge in
+   a tall space gave a tall thin block and Crop to fill cut the camera to a sliver. The
+   setting is now labelled **A camera may lose up to**. A block within 5% always passes,
+   so a tolerance of nothing still finds a layout.
+4. **The block is at least two cells each way.** Without it, a tight space gave a main
+   camera the same size as a tile.
+5. **The score**, in shares of the space: what shows no camera, plus half of what the
+   tiles and the main camera lose to cropping, plus nine tenths of the main camera's room
+   beyond its most. Room beyond its most therefore goes to bigger tiles when there are
+   tiles to take it, and to the main camera only when the alternative is leaving it
+   empty. The fewest cameras in **+n more** comes before the score.
+6. **Other edges are added one at a time** when the listed ones can't hold a layout, in
+   the order bottom, right, left, top, and the first that works is used.
+7. **Known weak spot: two to four cameras** in a tall or very wide space leave room
+   empty (two cameras in a phone held upright leave half of it). Equal cells can't fill
+   it. Fixed does well there, and the editor will show it.
+
+Measured: the two engines agree on the 154 shared cases and on 4,000 random spaces and
+limits. A layout takes under 3 ms in Python at the defaults and 53 ms at worst, once for
+each size.
 
 ## Decided (owner, 2026-11-11)
 

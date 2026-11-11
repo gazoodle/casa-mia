@@ -43,6 +43,17 @@
       "help": "Narrower than this (a phone), the view is Home Assistant's own sections instead: one column that scrolls, the main panel first, garnish left out. 0: always the Tablet Layout."
     }
   },
+  "responsive": {
+    "main_least": { "label": "Main camera at least, %", "default": 40, "min": 10, "max": 100, "help": "The smallest the main camera may be, as a share of the biggest it could be in the space, shown whole. Cameras go into +n more before it gets smaller than this." },
+    "main_most": { "label": "Main camera at most, %", "default": 60, "min": 10, "max": 100, "help": "Beyond this the room goes to bigger tiles. The same measure as the least." },
+    "tile_loss": { "label": "A camera may lose up to, %", "default": 12, "min": 0, "max": 30, "help": "How far a tile may be from the tile shape, and the main camera's place from 16:9, which is how much of a camera of that shape is cropped. A camera is cropped about its centre, never squeezed." },
+    "tile_min": { "label": "Smallest tile, px", "default": 110, "min": 40, "max": 400, "help": "The narrowest a tile may be. Smaller than this, a camera can't be made out." },
+    "tile_shape": { "label": "Tile shape", "default": "16:9", "options": [["16:9", "16:9"], ["3:2", "3:2"], ["4:3", "4:3"], ["1:1", "Square"]], "help": "Every tile is held near this shape. A camera of another shape is cropped about its centre." },
+    "edges": { "label": "Edges, in the order they fill", "default": ["bottom", "right"], "help": "The edges the tiles go on. The first cameras go on the first edge." },
+    "edges_tall": { "label": "Different when the space is taller than wide", "default": null, "help": "A second list of edges, used when the space is taller than it is wide." },
+    "main_other": { "label": "A main camera of another shape", "default": "fill", "options": [["fill", "Crop to fill"], ["whole", "Show whole"], ["follow", "Re-lay out for its shape"]], "help": "What a main camera does when its shape is not its place's. Crop to fill and Show whole never move a tile when the main camera changes; Re-lay out for its shape can." },
+    "cant_fit": { "label": "When the limits can't all be met", "default": "find", "options": [["find", "Find something that fits"], ["keep", "Keep to my limits"]], "help": "Find something that fits allows other edges, then a smaller main camera, then smaller tiles. Keep to my limits shows the main camera alone and says so." }
+  },
   "panel": {
     "size": { "label": "Size", "min": 0, "max": 100, "help": "Left and right: its width. Top and bottom: its height. In % of the view's, or in px (at most 45% of the view's: a smaller screen gets less)." },
     "unit": { "label": "Size in", "default": "%", "options": [["%", "% of the view"], ["px", "px"]], "help": "% of the view: grows and shrinks with the screen. px: the same on any screen." },

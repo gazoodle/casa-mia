@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.5-b6
+
+- No change in behaviour yet: the solver for the Camera Commander's Responsive layout is in, in the app and in the cards, with nothing using it. It works a commander's layout out for the space it is given, from the number of cameras and a few limits.
+
 ## 2026.11.5-b5
 
 - **Camera Commander page: try a commander at any size.** The preview is now a stage you can drag by its bottom right corner, with buttons for common spaces (wide, tablet, squarer, banner, tall, a phone upright and on its side). The commander is laid out again as you drag, by the same engine the card uses, with the page's own camera thumbnails. Under it, in words: how much of the space the main camera takes, how much shows no camera, how much of a picture a camera loses, and how many tiles have gone taller than wide. Click a tile to make it the main camera in the preview. A commander's panels are set for one shape of space, and this shows what they do in the others.

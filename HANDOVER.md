@@ -257,7 +257,15 @@ CLAUDE.md has them all. What trips agents here:
     `integration/cards/src/measure.ts` gives the facts under it. Seen in headless
     Chromium against a mocked API with an invented commander (the handover's "UI checks
     without the box" recipe; the API's addresses end in a slash, so mock with a regex).
-    Not seen with real cameras, by touch on an iPad, or in Safari. Step 2 is the solver.
+    Not seen with real cameras, by touch on an iPad, or in Safari.
+  - **Step 2, the solver, is built in 2026.11.5-b6**: `responsive()` in
+    `modules/compositor/responsive.py` and `integration/cards/src/responsive.ts`, whole
+    numbers only, checked against `tests/responsive_cases.json` (write it again with
+    `PYTHONPATH=app/src:tests .venv/bin/python tests/test_responsive_cases.py`). Its
+    options and defaults are `layout.json`'s `responsive`. Nothing calls it yet. Building
+    it changed seven points of the spec, which the owner agreed; they are listed there
+    and hold over the text above them. Step 3 is the compositor drawing it, the card's
+    zones, and where a commander keeps its mode and camera list.
 - **2026.11.5-b3** (2026-11-11; committed, **not on the box**, unseen in Safari and the Mac app): two
   Camera Commander faults on the owner's Mac.
   - **Safari over https showed no tiles.** HA's service worker handles every GET on HA's
