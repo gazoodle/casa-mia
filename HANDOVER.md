@@ -249,7 +249,8 @@ CLAUDE.md has them all. What trips agents here:
 
 ## What happened
 
-- **2026.11.5-b1** (2026-11-11, not committed when written): Sensor Watch gets Stale, the
+- **2026.11.5-b1** (2026-11-11; b2 is a refactor of the cards' reload offer; committed for the
+  owner to try on the live box, where none of it has run yet): Sensor Watch gets Stale, the
   gauge card, the set-up (Set up…, four steps), Needs attention, More filters, the
   editor's Over time block. **A released bug fixed:** since 2026.11.2-b27 `Watcher._held`
   was both the hold-off's method and a dict, so a level that had to wait out its hold-off
