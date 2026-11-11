@@ -1,8 +1,8 @@
 # Changelog
 
-## 2026.11.4-b1
+## 2026.11.4
 
-- Sensor Watch names its code owner (`@gazoodle`), which the catalog for HACS and Home Assistant's Marketplace looks for. Nothing else changes.
+- Sensor Watch names its code owner (`@gazoodle`), which the catalog for HACS and Home Assistant's Marketplace looks for. Nothing else changes, but Sensor Watch asks for a restart of Home Assistant after the update.
 
 ## 2026.11.3
 
