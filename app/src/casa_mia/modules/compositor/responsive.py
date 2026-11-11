@@ -224,20 +224,28 @@ def responsive(
         )
 
     # The limits as set; then, to find something that fits, they give way in a fixed
-    # order: other edges one at a time, the main camera's least, the smallest tile.
-    least, gave = int(o["main_least"]), []
-    grid = solve(edges, least, tile_min) if tiles else None
+    # order: the main camera's least, then the smallest tile too. At each, the listed
+    # edges are tried first, then other edges added one at a time; edges that find no
+    # fit are taken off again. (Until 2026.11.5-b13 they stayed on while the main camera
+    # gave way: a commander set for tiles on the right and below, in a phone's short
+    # wide strip, came out as a small main camera with tiles all round it.)
+    listed, gave = edges, []
+    grid = solve(edges, int(o["main_least"]), tile_min) if tiles else None
     if grid is None and tiles and o["cant_fit"] == "find":
-        for edge in (e for e in EDGES if e not in edges):
-            edges, gave = (*edges, edge), ["edges"]
-            if grid := solve(edges, least, tile_min):
+        for least, smallest, given in (
+            (int(o["main_least"]), tile_min, []),
+            (0, tile_min, ["main_least"]),
+            (0, 1, ["main_least", "tile_min"]),
+        ):
+            edges, gave = listed, given
+            if grid := solve(edges, least, smallest):
                 break
-        if grid is None:
-            gave.append("main_least")
-            grid = solve(edges, 0, tile_min)
-        if grid is None:
-            gave.append("tile_min")
-            grid = solve(edges, 0, 1)
+            for edge in (e for e in EDGES if e not in listed):
+                edges, gave = (*edges, edge), ["edges", *given]
+                if grid := solve(edges, least, smallest):
+                    break
+            if grid:
+                break
 
     if grid is None:  # the main camera alone: it always fits
         how = "cover" if _lost(w, h, own) <= WHOLE_OVER else "contain"

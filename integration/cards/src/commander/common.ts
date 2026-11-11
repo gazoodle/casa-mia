@@ -1,5 +1,5 @@
 // The Camera Commander's types, constants and helpers, shared by the card and its editor.
-import { type Hass, liveChannel, type Sharpness, type State } from "../ha.ts";
+import { type Fit, type Hass, heightFor, liveChannel, type Sharpness, type State } from "../ha.ts";
 import { pyRound } from "../layout.ts";
 import type { Commander } from "../placed.ts";
 import type { Labels } from "../labels.ts";
@@ -226,3 +226,17 @@ export const TOUCH_EVERY_MS = 5_000;
 
 /** How long a note about talk ("The call ended") stays on the card. */
 export const TALK_NOTE_MS = 10_000;
+
+/** px: a column narrower than this is a phone held upright, or a space as narrow. */
+export const NARROW_COLUMN = 500;
+
+/** The card's height where it sets its own (ha.ts: heightFor), for its width and shape.
+ * A Responsive commander in a narrow column takes the room below it instead, when that is
+ * more: it is laid out for whatever space it has, and a phone held upright has far more
+ * height than a 16:9 strip of its width. (Until 2026.11.5-b13 it took the strip, where a
+ * commander set for a wide tablet had no room for a tile beside its main camera.) A
+ * card further down the page, with less room than its own shape, keeps its shape. */
+export function columnHeight(fit: Pick<Fit, "mode" | "room">, width: number, shape: number, responsive: boolean): number | null {
+  const own = heightFor(fit, width, shape);
+  return responsive && fit.mode === "column" && width < NARROW_COLUMN && own !== null && fit.room > own ? fit.room : own;
+}

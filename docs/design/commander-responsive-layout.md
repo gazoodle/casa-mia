@@ -141,6 +141,17 @@ always ends with one:
 4. Tiles may go below the smallest tile.
 5. The main camera alone.
 
+At steps 3 and 4 the listed edges are tried first, and other edges only if those still
+hold no layout. Edges that were tried and found no fit are taken off again, so a commander
+set for tiles on the right and below keeps that arrangement when its main camera gives
+way. (Changed in 2026.11.5-b13. The other edges used to stay on from step 2, and on the
+owner's phone, 2026-11-12, a commander set for a wide tablet came out as a small main
+camera with tiles on all four sides.)
+
+**A Responsive card in a narrow column** (under 500 px wide, where nothing gives the card a
+height) takes the height of the screen below it, not a 16:9 strip of its width, so a phone
+held upright is a tall space and the second list of edges applies (2026.11.5-b13).
+
 **Keep to my limits** shows the main camera alone, with a line on the card saying the
 limits don't fit this space and giving its size. It is never a blank box: a card that
 shows nothing and says nothing is a silent failure.

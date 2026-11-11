@@ -4,12 +4,12 @@
 import { html, nothing } from "lit";
 import { keyed } from "lit/directives/keyed.js";
 import { repeat } from "lit/directives/repeat.js";
-import { fire, type Hass, heightFor, inPicker, navigate, TABLET } from "../ha.ts";
+import { fire, type Hass, inPicker, navigate, TABLET } from "../ha.ts";
 import { heightForMain, pyRound, type Rect } from "../layout.ts";
 import { camerasOf, placed } from "../placed.ts";
 import { back, family, keepPosition, labelsOf, useFont } from "../labels.ts";
 import { dot } from "./motion.ts";
-import { Config, Card, BLANK, Size, commanders, pictureDown } from "./common.ts";
+import { Config, Card, BLANK, Size, columnHeight, commanders, pictureDown } from "./common.ts";
 import { PILLS } from "../pills.ts";
 import { CommanderTalk, talkStyles } from "./talk.ts";
 import { styles } from "./styles.ts";
@@ -119,7 +119,7 @@ export class CommanderCard extends CommanderTalk {
     // (Responsive is laid out for whatever space it has, so it brings no shape but its own size's.)
     const shape =
       this._width && own.mode !== "responsive" ? this._width / heightForMain(own, main, this._width, this.shapeOf(card, main)) : own.width / own.height;
-    const tall = f && this._width ? heightFor(f, this._width, shape) : null;
+    const tall = f && this._width ? columnHeight(f, this._width, shape, own.mode === "responsive") : null;
     // In HA's card picker: just its own shape, so the picker centres it as it does the others.
     const size = inPicker(this)
       ? `aspect-ratio:${own.width}/${own.height}`
@@ -174,6 +174,7 @@ export class CommanderCard extends CommanderTalk {
               card box ${this._box[0]} x ${this._box[1]} CSS px, screen ${window.devicePixelRatio}x<br />
               asked ${this._size ? `${W} x ${H} @${scale}x` : "nothing yet"}; picture ${this._natural || "not loaded"}
               ${this.viaHa() ? "through Home Assistant" : "direct"}
+              ${laid.gave.length ? html`<br />its limits gave way here: ${laid.gave.join(", ")}` : nothing}
             </div>`
           : nothing}
         ${tiles.map((t) =>

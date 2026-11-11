@@ -3,7 +3,7 @@
 // can stay in, and no failure that stops the tries for good.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { LIVE_LEASE_MS, LIVE_RETRY_MAX_MS, LIVE_RETRY_MS, LIVE_WAIT_HLS_MS, LIVE_WAIT_MS, PICTURE_DOWN_MS, ago, framesAddress, liveBy, liveLapsed, liveMark, liveOrder, livePlan, pictureDown } from "./common.ts";
+import { LIVE_LEASE_MS, LIVE_RETRY_MAX_MS, LIVE_RETRY_MS, LIVE_WAIT_HLS_MS, LIVE_WAIT_MS, NARROW_COLUMN, PICTURE_DOWN_MS, ago, columnHeight, framesAddress, liveBy, liveLapsed, liveMark, liveOrder, livePlan, pictureDown } from "./common.ts";
 
 const now = 10_000_000;
 
@@ -82,4 +82,22 @@ test("the picture failing: said from the first error, until none comes for a whi
   assert.equal(pictureDown(now - 5_000, now - 5_000, now), "Picture failing for 5 s: retrying");
   assert.equal(pictureDown(since, now - PICTURE_DOWN_MS, now), null); // lapsed: no error since
   assert.equal(pictureDown(0, 0, now), null); // never failed
+});
+
+test("a Responsive commander in a phone's column takes the room below it, not a 16:9 strip", () => {
+  const column = { mode: "column" as const, room: 700 };
+  assert.equal(columnHeight(column, 393, 16 / 9, true), 700);
+  // a Fixed one keeps its own shape, as its panels are set for it
+  assert.equal(columnHeight(column, 393, 16 / 9, false), 221);
+  // a wide column (a tablet, a desktop) keeps its shape too
+  assert.equal(columnHeight(column, NARROW_COLUMN, 16 / 9, true), Math.round(NARROW_COLUMN / (16 / 9)));
+  // low on the page, with less room than its own shape: its shape
+  assert.equal(columnHeight({ mode: "column", room: 150 }, 393, 16 / 9, true), 221);
+});
+
+test("where its container gives the height, a Responsive commander takes that as before", () => {
+  assert.equal(columnHeight({ mode: "tile", room: 700 }, 393, 16 / 9, true), null);
+  assert.equal(columnHeight({ mode: "cell", room: 700 }, 393, 16 / 9, true), null);
+  assert.equal(columnHeight({ mode: "screen", room: 640 }, 393, 16 / 9, true), 640);
+  assert.equal(columnHeight({ mode: "preview", room: 700 }, 393, 16 / 9, true), 221);
 });

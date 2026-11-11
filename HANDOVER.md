@@ -320,6 +320,13 @@ CLAUDE.md has them all. What trips agents here:
     left (owner, 2026-11-11). "Re-lay out for its shape" is now "Fit the layout to
     it", which changes `layout.json` and so Sensor Watch's card bundle and version.
     `NinePoint` is new chrome (`controls.tsx`), not yet on the chrome cheat sheet.
+  - **2026.11.5-b13** (not committed; the owner's phone showed tiles on all four
+    sides and "+6 more" top right): the solver's fallback no longer keeps edges that
+    found no fit (both engines; `STRIP` and the "phone's strip" cases in
+    `tests/test_responsive_cases.py`), and a Responsive card in a column under 500 px
+    takes the room below it (`columnHeight` in `commander/common.ts`). Still open: at
+    a boundary the same CSS space lays out differently at 1x and 3x (the "phone's
+    strip, 3x" case fits where 1x gives way), as the arithmetic is in device pixels.
 - **2026.11.5-b3** (2026-11-11; **both seen working by the owner on the live box that day**): two
   Camera Commander faults on the owner's Mac.
   - **Safari over https showed no tiles.** HA's service worker handles every GET on HA's

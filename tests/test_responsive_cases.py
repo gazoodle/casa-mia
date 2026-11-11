@@ -110,6 +110,20 @@ def inputs() -> list[dict]:
     # The limits can't all be met.
     case("too small: something is found", 200, 150, 12)
     case("too small: kept to", 200, 150, 12, {"cant_fit": "keep"})
+    # A large main camera asked for in a phone's short wide strip (see STRIP below): the
+    # edges tried and not needed are not kept; at a scale of 3; and upright it all fits.
+    strip = {
+        "main_least": 75,
+        "main_most": 80,
+        "tile_min": 60,
+        "tile_shape": "3:2",
+        "edges": ["right", "bottom"],
+        "edges_tall": ["bottom"],
+    }
+    case("a phone's strip: the main camera gives way", 400, 225, 20, strip)
+    case("a phone's strip, 3x", 1200, 675, 20, strip, gap=6, scale=3)
+    case("a phone upright: its tall edges", 400, 720, 20, strip)
+    case("a phone's strip: kept to", 400, 225, 20, {**strip, "cant_fit": "keep"})
     case(
         "one edge can't hold them: another is added", 393, 700, 12, {"edges": ["right"]}
     )
@@ -298,7 +312,8 @@ def test_too_many_cameras_go_into_more_from_the_end_of_the_list():
 
 def test_when_the_limits_cannot_be_met():
     found = laid(200, 150, 12)
-    assert found["gave"] == ["edges", "main_least", "tile_min"] and found["tiles"]
+    # (the listed edges still: other edges were tried at each step and found no fit)
+    assert found["gave"] == ["main_least", "tile_min"] and found["tiles"]
     kept = laid(200, 150, 12, cant_fit="keep")
     assert kept["gave"] == ["main_alone"] and kept["tiles"] == []
     assert kept["main"] == [0, 0, 200, 150] and kept["dropped"] == 12
@@ -323,3 +338,59 @@ if __name__ == "__main__":
         json.dumps([{**c, "expect": result(c)} for c in inputs()], indent=1) + "\n"
     )
     print(f"wrote {len(inputs())} cases to {CASES.name}")
+
+
+# --- what gives way, and that a concession that found nothing is not kept (2026.11.5-b13)
+
+# A commander set for a wide tablet (a large main camera, tiles on the right and below),
+# drawn in a phone's short wide strip: no tile fits beside a main camera that large.
+STRIP = {
+    "main_least": 75,
+    "main_most": 80,
+    "tile_min": 60,
+    "tile_shape": "3:2",
+    "edges": ["right", "bottom"],
+}
+
+
+def test_edges_that_found_no_fit_are_not_kept_when_the_main_camera_gives_way():
+    r = responsive(400, 225, 2, 0, 20, STRIP)
+    # Other edges were tried and found nothing, so they are not in what gave way, and
+    # the layout is still the one asked for: tiles on the right and below only.
+    assert r["gave"] == ["main_least"]
+    x, y, w, h = r["main"]
+    assert all(tx >= x + w or ty >= y + h for tx, ty, _, _ in r["tiles"])
+    # (until b13 the edges stayed on: a small main camera with tiles all round it)
+    assert not any(tx + tw <= x or ty + th <= y for tx, ty, tw, th in r["tiles"])
+
+
+def test_other_edges_are_used_when_they_are_what_finds_a_fit():
+    # No edge listed: any edge is a concession, and the first that fits is kept.
+    r = responsive(1100, 560, 4, 0, 12, {"edges": []})
+    assert r["gave"] == ["edges"] and r["dropped"] == 0
+
+
+def test_what_gives_way_is_tried_in_order_the_listed_edges_first_each_time():
+    # The limits as set, then the main camera's least, then the smallest tile; and at
+    # each, the listed edges before any other.
+    assert responsive(400, 225, 2, 0, 20, {**STRIP, "main_least": 20})["gave"] == []
+    assert responsive(400, 225, 2, 0, 20, STRIP)["gave"] == ["main_least"]
+    tiny = responsive(150, 90, 2, 0, 20, {**STRIP, "tile_min": 100})
+    assert tiny["gave"] in (
+        ["main_least", "tile_min"],
+        ["edges", "main_least", "tile_min"],
+    )
+    assert "main_alone" not in tiny["gave"] and tiny["tiles"]
+
+
+def test_keep_to_my_limits_is_the_main_camera_alone_in_that_strip():
+    r = responsive(400, 225, 2, 0, 20, {**STRIP, "cant_fit": "keep"})
+    assert r["gave"] == ["main_alone"] and r["main"] == [0, 0, 400, 225]
+
+
+def test_the_same_commander_upright_on_a_phone_fits_with_nothing_given_way():
+    # Given a phone's height (the card's, since b13), its tall edges hold every camera.
+    r = responsive(400, 720, 2, 0, 20, {**STRIP, "edges_tall": ["bottom"]})
+    assert r["gave"] == [] and r["dropped"] == 0 and len(r["tiles"]) == 20
+    x, y, w, h = r["main"]
+    assert all(ty >= y + h for _, ty, _, _ in r["tiles"])  # all below the main camera

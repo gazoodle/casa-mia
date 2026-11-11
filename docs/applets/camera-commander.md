@@ -118,7 +118,9 @@ crops the cameras least is used.
 - **Different when the space is taller than wide:** a second list of edges for a tall
   space, such as a phone held upright.
 - **When the limits can't all be met:** **Find something that fits** uses other edges,
-  then lets the main camera go below its least, then the tiles below the smallest.
+  then lets the main camera go below its least, then the tiles below the smallest. Each
+  time, your own edges are tried before any other, and an edge that didn't help is not
+  kept.
   **Keep to my limits** shows the main camera alone, and the card says why.
 - **Reset to defaults** puts every Responsive setting back and leaves the cameras.
 
@@ -184,6 +186,12 @@ Each commander is a device: **Camera Commander** for the first, then **Camera Co
 In Home Assistant's Add to dashboard dialog, choose **Casa Mia Camera Commander**. Its
 preview uses the first commander, so you see its layout before adding it. In a Tablet
 Layout panel it takes the full width by default.
+
+Where the dashboard gives the card a height (a Tablet Layout panel, a cell with its rows
+set, a panel view), the card fills it. Elsewhere it takes the commander's own shape for
+its width. A Responsive commander in a narrow column, such as a phone held upright, takes
+the height of the screen below it instead, so it is laid out as a tall space and not as a
+short strip.
 
 The editor groups its options into **Main camera**, **Security look**, **Motion dot**,
 **Talking** and a collapsed **Connection and performance** section. Security look and

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.11.5-b13
+
+- **Fixed: a Responsive commander on a phone had tiles on all four sides.** Two causes:
+  - **The card took a 16:9 strip of the phone's width**, a short wide space in which a commander set for a wide tablet has no room for a tile beside its main camera. A Responsive commander's card in a narrow column (under 500 px) now takes the height of the screen below it, so a phone held upright is a tall space and **Different when the space is taller than wide** applies. A Fixed commander keeps its own shape, as its panels are set for it.
+  - **Find something that fits kept edges that hadn't helped.** It tried the other edges, found no fit, and left them on while the main camera went below its least. Your own edges are now tried first each time something gives way, and an edge that finds no fit is taken off again.
+- **Camera Commander card: its Debug overlay says which limits gave way** at its size, when any did.
+
 ## 2026.11.5-b12
 
 - **Camera Commander: choose which part of a cropped main camera is kept.** **Keep this part of the main camera**, a grid of nine places on the commander's page, says where the main camera is cropped about: the centre (as it was), an edge or a corner. The crop then comes off the opposite side, so **Top left** keeps the date and time many cameras write there. It applies whenever the main camera is cropped, in either layout: **Crop to fill**, the small crop **Show whole** and **Fit the layout to it** make to avoid thin bars, and a Fixed commander's **Crop**. The picture, the card's live video and the preview all follow it. Tiles are still cropped about their centre.

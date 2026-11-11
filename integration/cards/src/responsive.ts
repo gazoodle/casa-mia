@@ -155,21 +155,26 @@ export function responsive(width: number, height: number, gap: number, margin: n
   const solve = (among: string[], least: number, smallest: number) =>
     best(w, h, gap, tiles, shapeOf(o.tile_shape), main, Math.trunc(o.tile_loss), smallest, least, Math.trunc(o.main_most), among);
 
-  const least = Math.trunc(o.main_least);
+  // What gives way, in order (see the compositor's): the main camera's least, then the
+  // smallest tile too; at each, the listed edges first, then others added one at a time,
+  // and edges that find no fit are taken off again.
+  const listed = edges;
   let gave: string[] = [];
-  let grid = tiles ? solve(edges, least, tileMin) : null;
+  let grid = tiles ? solve(edges, Math.trunc(o.main_least), tileMin) : null;
   if (grid === null && tiles && o.cant_fit === "find") {
-    for (const edge of EDGES.filter((e) => !edges.includes(e))) {
-      [edges, gave] = [[...edges, edge], ["edges"]];
-      if ((grid = solve(edges, least, tileMin))) break;
-    }
-    if (grid === null) {
-      gave.push("main_least");
-      grid = solve(edges, 0, tileMin);
-    }
-    if (grid === null) {
-      gave.push("tile_min");
-      grid = solve(edges, 0, 1);
+    const steps: [number, number, string[]][] = [
+      [Math.trunc(o.main_least), tileMin, []],
+      [0, tileMin, ["main_least"]],
+      [0, 1, ["main_least", "tile_min"]],
+    ];
+    for (const [least, smallest, given] of steps) {
+      [edges, gave] = [listed, given];
+      if ((grid = solve(edges, least, smallest))) break;
+      for (const edge of EDGES.filter((e) => !listed.includes(e))) {
+        [edges, gave] = [[...edges, edge], ["edges", ...given]];
+        if ((grid = solve(edges, least, smallest))) break;
+      }
+      if (grid) break;
     }
   }
 
