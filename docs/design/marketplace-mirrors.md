@@ -487,6 +487,12 @@ ask first. In order (written 2026-11-10; none of it is done):
    validation. That is the first time HACS's action sees it. If a check fails, nothing is
    tagged and no version is published: fix the cause and run `tools/mirror.py <version>`
    to carry on.
+   **Done 2026-11-10:** Casa Mia 2026.11.3 released, and
+   [gazoodle/casa-mia-sensor-watch](https://github.com/gazoodle/casa-mia-sensor-watch)
+   created and published as 2026.11.3. The mirror's validation passed first time, HACS's
+   action (the `brands` check included, from the `brand/` folder) and hassfest. The first
+   attempt stopped because `gh run watch` lost its connection; the retry only tagged and
+   released. `follow()` now asks GitHub how a run ended before calling it a failure.
 6. **Testers add the mirror as a custom repository**, by its URL. It is in no catalog, so
    nobody else is offered it.
 7. **The runs on a clean Home Assistant, before advertising:** a fresh install, setup,
@@ -496,6 +502,17 @@ ask first. In order (written 2026-11-10; none of it is done):
    published, so it waits for the next release that changes Sensor Watch. Then add the
    Casa Mia app to the same machine and check each case in the guide's "With HACS or the
    Marketplace" (phase 3's supersede).
+   **Done on the test VM, 2026-11-11** (Home Assistant 2026.11.1, the Marketplace
+   connected to GitHub): the mirror added as a custom repository showed Sensor Watch
+   2026.11.3 with the guide's description, installed files identical to Casa Mia's tag,
+   and after a restart Add integration set it up with its device, seven entities and its
+   page ("Nothing watched yet." with no earlier records in storage). Removing it while set
+   up was refused (`repository_in_use`). Starting the Casa Mia app at 2026.11.3-b3 left the
+   newer copy alone, with its warning, no marker and no Repair. Still to do: HACS on an
+   older Home Assistant (the latest HACS release is 2.0.5, and it needs a GitHub sign-in
+   too), the update, which waits for a second release, and a house that has the app
+   first. Deleting the entry keeps its records in storage, by design, so a "clean" test
+   removes `.storage/casa_mia_sensor_watch` too.
 8. **The catalog:** a separate submission to `hacs/default` ([catalog][catalog]), with no
    promise of acceptance.
 

@@ -326,10 +326,21 @@ def follow(repo: str, what: str, *narrow: str, **match: str) -> None:
         say(f"  waiting for {what} to start …")
         time.sleep(10)
 
-    say(f"  {what}: {runs[0]['url']}")
-    watch = ["gh", "run", "watch", str(runs[0]["databaseId"]), "--repo", repo]
+    url, number = runs[0]["url"], str(runs[0]["databaseId"])
+    say(f"  {what}: {url}")
+    watch = ["gh", "run", "watch", number, "--repo", repo]
     if subprocess.run([*watch, "--exit-status", "--interval", "15"]).returncode:
-        raise Stop(f"{what} did not succeed: {runs[0]['url']}")
+        # The watch also fails when its connection drops (2026.11.3's first mirror run
+        # was reported failed while it passed): GitHub's own answer decides.
+        state = run(
+            "gh", "run", "view", number, "--repo", repo,
+            "--json", "status,conclusion", "--jq", '.status + " " + .conclusion',
+            check=False,
+        )  # fmt: skip
+        if state != "completed success":
+            if not state.startswith("completed"):
+                raise Stop(f"Lost track of {what} before it ended: {url}")
+            raise Stop(f"{what} did not succeed: {url}")
     good(f"{what} succeeded")
 
 

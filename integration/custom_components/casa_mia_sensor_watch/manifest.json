@@ -2,7 +2,7 @@
   "domain": "casa_mia_sensor_watch",
   "name": "Sensor Watch",
   "after_dependencies": ["recorder"],
-  "codeowners": [],
+  "codeowners": ["@gazoodle"],
   "config_flow": true,
   "dependencies": ["frontend", "http", "panel_custom", "websocket_api"],
   "documentation": "https://github.com/gazoodle/casa-mia/blob/main/docs/applets/sensor-watch.md",
@@ -11,5 +11,5 @@
   "issue_tracker": "https://github.com/gazoodle/casa-mia/issues",
   "requirements": [],
   "single_config_entry": true,
-  "version": "2026.11.3"
+  "version": "2026.11.4"
 }
