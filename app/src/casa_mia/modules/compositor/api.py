@@ -34,7 +34,9 @@ def admin_api(
     <live|draft>/forget {"camera": <entity>} (the cache, shared: whole or one
     channel), cache/purge, cache/forget {"camera": <entity>}, gatherer/<pause|run>
     and <live|draft>/<generator|server>/<pause|run> answer with it afresh; GET
-    thumb/<entity>?w=<px>[&whole=1] is a cached picture as a thumbnail."""
+    thumb/<entity>?w=<px>[&whole=1] is a cached picture as a thumbnail
+    (&largest=1: <entity> is a camera, and the picture the largest of its channels'
+    that has come)."""
     engines = {"live": live, "draft": draft}
 
     def one(engine: Compositor) -> dict[str, Any]:
@@ -83,6 +85,16 @@ def admin_api(
                 return fail(400, "w: a width in px")
             whole = (query.get("whole") or ["0"])[0] == "1"
             which = (query.get("engine") or [""])[0]
+            if (query.get("largest") or ["0"])[0] == "1":
+                # A camera, not a channel: the largest picture of it that has really
+                # come, for the Camera Commander page's preview. Never "(Waiting …)":
+                # a channel nobody is watching is not fetched, and its placeholder
+                # over the page's own thumbnail hid a picture behind a notice.
+                found = live.gather.largest(parts[1])
+                if found is None:
+                    return fail(404, "no picture of that camera has come yet")
+                made = live.gather.thumb(found[0], width, whole, found[1])
+                return (200, mime(made), made) if made else fail(404, "no such picture")
             if which:  # a composite: a picture a compositor drew
                 drawer = engines.get(which)
                 drawn = drawer._pictures.get(parts[1]) if drawer else None

@@ -158,17 +158,17 @@ export function Stage({
   const picture = (e: string, how: Shown["how"], about = "50% 50%") => (
     <img src={`api/cameras/thumb/${encodeURIComponent(e)}?r=${round}`} alt="" draggable={false} style={{ objectFit: how, objectPosition: how === "cover" ? about : undefined }} />
   );
-  // The main camera sharper: the compositor's own picture of its medium or high channel
-  // (the ones a commander draws a main camera from), at the width its place needs, in
-  // steps so that a drag doesn't ask for a new one at every pixel. Laid over the
-  // thumbnail, which shows until it loads and stays if the compositor holds none.
+  // The main camera sharper: the largest picture of it the compositor holds (its high,
+  // medium or own channel, whichever has come; a channel nobody is watching isn't
+  // fetched), at the width its place needs, in steps so that a drag doesn't ask for a
+  // new one at every pixel. Laid over the thumbnail, which shows until it loads and
+  // stays if the compositor holds none.
   const sharp = (e: string, how: Shown["how"], width: number) => {
-    const channel = cameras[e]?.medium || cameras[e]?.high || e;
     const wide = Math.min(1920, Math.ceil((width * k * window.devicePixelRatio) / 320) * 320);
     return (
       <img
         className={css.sharp}
-        src={`api/compositor/thumb/${encodeURIComponent(channel)}?w=${wide}&whole=1&r=${round}`}
+        src={`api/compositor/thumb/${encodeURIComponent(e)}?w=${wide}&whole=1&largest=1&r=${round}`}
         alt=""
         draggable={false}
         style={{ objectFit: how, objectPosition: how === "cover" ? kept : undefined }}

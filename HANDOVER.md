@@ -327,6 +327,15 @@ CLAUDE.md has them all. What trips agents here:
     takes the room below it (`columnHeight` in `commander/common.ts`). Still open: at
     a boundary the same CSS space lays out differently at 1x and 3x (the "phone's
     strip, 3x" case fits where 1x gives way), as the arithmetic is in device pixels.
+  - **2026.11.5-b14** (not committed): the stage's sharper main picture asked for the
+    medium channel, whose cache entry is the "(Waiting …)" placeholder unless a watched
+    commander has fetched it. It now asks `thumb/<camera>?largest=1` (`cache.largest`:
+    the biggest channel that has really come, else 404 and the thumbnail stays).
+- **Sensor Watch's guide (2026-11-12, docs only):** its first picture is retaken from the
+  test VM (the card and four gauges, nothing else), and **How it works** near the top is
+  a Mermaid diagram written to match `watch.py` `_consider` (better at once, worse after
+  the hold-off, unavailable's longer wait, Stale at once, escalation). Rendered with
+  Mermaid 10.9 to check it parses; not yet seen on GitHub.
 - **2026.11.5-b3** (2026-11-11; **both seen working by the owner on the live box that day**): two
   Camera Commander faults on the owner's Mac.
   - **Safari over https showed no tiles.** HA's service worker handles every GET on HA's

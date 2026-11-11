@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.5-b14
+
+- **Fixed: the Any size preview's main camera often said (Waiting …).** Since 2026.11.5-b11 the preview asked the compositor for the camera's medium channel, which it only fetches for a commander somebody is watching; for any other it holds a (Waiting …) notice, and that was laid over the picture. The preview now gets the largest picture of the camera that has really arrived (its high, medium or own channel), and keeps its thumbnail when none has. **As the app draws it** was not affected.
+
 ## 2026.11.5-b13
 
 - **Fixed: a Responsive commander on a phone had tiles on all four sides.** Two causes:

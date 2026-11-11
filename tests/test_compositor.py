@@ -352,6 +352,25 @@ def test_the_pages_controls_restart_flush_and_forget(compositor):
         io.BytesIO(thumb)
     ).width == 120
     assert api("GET", "thumb/camera.none", {}, b"")[0] == 404
+    # a camera's largest picture that has really come, for the commander page's preview:
+    # never the "(Waiting …)" of a channel nobody is watching (shown there in b11 to b13)
+    big = {"w": ["120"], "whole": ["1"], "largest": ["1"]}
+    assert api("GET", "thumb/camera.a", big, b"")[:2] == (200, "image/jpeg")
+    gather = compositor.gather
+    gather.cfg.entities["camera.a"] = {"medium": "camera.a_medium"}
+    gather.shots["camera.a_medium"] = (time.monotonic(), jpeg("blue"))
+    gather.res |= {"camera.a": (160, 90), "camera.a_medium": (1280, 720)}
+    assert gather.largest("camera.a")[0] == "camera.a_medium"
+    gather._waiting.add("camera.a_medium")  # its medium channel has no picture yet
+    assert gather.largest("camera.a")[0] == "camera.a"
+    assert api("GET", "thumb/camera.a", big, b"")[0] == 200
+    gather._waiting.add("camera.a")  # nor its own
+    assert gather.largest("camera.a") is None
+    code, _, said = api("GET", "thumb/camera.a", big, b"")
+    assert code == 404 and b"has come yet" in said
+    assert api("GET", "thumb/camera.a", {"w": ["120"]}, b"")[0] == 200  # (the notice)
+    gather._waiting -= {"camera.a", "camera.a_medium"}
+    del gather.shots["camera.a_medium"], gather.cfg.entities["camera.a"]["medium"]
     # a composite's (the key a card's size: its @ comes URL-encoded)
     urllib.request.urlopen(f"{base}/g/cameras.jpg?w=800&h=600").read()
     key = urllib.parse.quote(next(k for k in compositor._pictures if "@" in k))
