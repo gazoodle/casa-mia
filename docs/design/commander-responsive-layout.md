@@ -215,7 +215,7 @@ mode and can follow it.
 ## Order of work
 
 1. The stage, for Fixed: drag sizing and the size buttons on today's editor. It needs no
-   solver and is useful by itself.
+   solver and is useful by itself. **Built in 2026.11.5-b5.**
 2. The solver in Python with its cases, then the same in TypeScript against those cases.
 3. The compositor drawing in Responsive, and the card's zones over it.
 4. Responsive's settings in the editor, on the same stage.

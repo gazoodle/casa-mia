@@ -10,6 +10,7 @@ import { Commander, DEBUG, Edits, HA, HIGHLIGHT, L, MOTION, P, PANELS, Panel, he
 import { Chips, Num, RatioInput } from "./inputs";
 import { confirmBox } from "../confirm";
 import { LivePreview } from "./preview";
+import { Stage } from "./stage";
 import { Select } from "../controls";
 
 /** Whether a commander's taps can work: they set its Main camera select in the integration,
@@ -66,6 +67,8 @@ export function Commanders({
   onChange: (c: Commander[]) => void;
 }) {
   const [open, setOpen] = useState(-1);
+  // The preview: the stage (any size, laid out here) or the app's own drawing of it.
+  const [preview, setPreview] = useState<"stage" | "app">("stage");
   const list = store.commanders;
   const picked = list[open];
   const change = (next: Commander[], opened = open) => {
@@ -150,7 +153,15 @@ export function Commanders({
         <>
           <CommanderSelectCheck ha={ha} id={picked.id ?? ""} />
           <div className={css.previewDock}>
-            <LivePreview store={store} index={open} />
+            <Segmented
+              value={preview}
+              options={[
+                ["stage", "Any size"],
+                ["app", "As the app draws it"],
+              ]}
+              onChange={setPreview}
+            />
+            {preview === "stage" ? <Stage key={open} value={picked} cameras={store.cameras} /> : <LivePreview store={store} index={open} />}
           </div>
           <CommanderEditor
             value={picked}

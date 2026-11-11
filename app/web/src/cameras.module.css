@@ -197,8 +197,15 @@
   position: sticky;
   top: 64px; /* the Save bar's height; a wrapped bar overlaps it a little */
   z-index: 4;
+  display: grid;
+  gap: 8px;
   padding: 6px 10%;
   background: var(--surface);
+}
+
+/* A stage dragged tall (stage.tsx) would cover the settings if it followed the page. */
+.previewDock:has([data-tall]) {
+  position: static;
 }
 
 /* The option groups, three to a row; each row's boxes as tall as the tallest. */

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.5-b5
+
+- **Camera Commander page: try a commander at any size.** The preview is now a stage you can drag by its bottom right corner, with buttons for common spaces (wide, tablet, squarer, banner, tall, a phone upright and on its side). The commander is laid out again as you drag, by the same engine the card uses, with the page's own camera thumbnails. Under it, in words: how much of the space the main camera takes, how much shows no camera, how much of a picture a camera loses, and how many tiles have gone taller than wide. Click a tile to make it the main camera in the preview. A commander's panels are set for one shape of space, and this shows what they do in the others.
+  - **As the app draws it** switches back to the compositor's own picture of the commander, with its labels and marks, at the commander's own size.
+
 ## 2026.11.5-b4
 
 - **Removed: Arrange… on the Camera Commander page.** It didn't lay the cameras out well enough to be worth keeping. A commander's panels are set by hand, as before it existed, and commanders already saved are unchanged, including any it arranged.

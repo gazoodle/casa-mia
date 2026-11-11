@@ -36,8 +36,21 @@ card. **Discard** throws away what you haven't saved. A commander with a problem
 cameras, a bad size) is refused, with what to fix, rather than shown broken on the wall.
 
 The commanders are a list at the top. Pick one and its preview appears under the list,
-drawn from your unsaved changes, with its settings below it; the preview stays in view
-while you scroll through them. Move the commanders up and down (the camera dashboard's
+drawn from your unsaved changes, with its settings below it.
+
+The preview is a stage that you can make any size, because a commander is given a
+different space on each dashboard and device. Drag its bottom right corner, or pick a
+common space with the buttons above it (Wide, Tablet, Squarer, Banner, Tall, Phone upright,
+Phone on its side). The commander is laid out again as the size changes, by the same
+layout the card uses, with small pictures of your cameras. The line under it says how much
+of the space the main camera takes, how much shows no camera, how much of its picture a
+camera loses, and how many tiles are taller than wide. A commander's panels are set for
+one shape of space, so try the spaces you use before you rely on them. Click a tile to
+make it the main camera in the preview. **As the app draws it** shows the compositor's
+own picture instead, with its labels and marks, at the commander's own size. The preview
+stays in view while you scroll through the settings, unless you have made it tall.
+
+Move the commanders up and down (the camera dashboard's
 pages follow), delete one, or add a copy of the one picked or a blank one. Each has:
 
 - **Picture:** its name (its page's title on the dashboard), whether it has a dashboard

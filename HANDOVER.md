@@ -251,6 +251,13 @@ CLAUDE.md has them all. What trips agents here:
   beside today's (now called Fixed), in which the layout is worked out for each size from
   the camera list and a few limits. Read the spec before touching the commander's layout;
   its order of work starts with a draggable stage on the editor, for Fixed.
+  - **Step 1, the stage, is built in 2026.11.5-b5** (not committed, not on the box):
+    `app/web/src/commander/stage.tsx` lays the commander out in the browser with the
+    cards' `layout.ts` and the page's thumbnails, at a size dragged by a corner handle;
+    `integration/cards/src/measure.ts` gives the facts under it. Seen in headless
+    Chromium against a mocked API with an invented commander (the handover's "UI checks
+    without the box" recipe; the API's addresses end in a slash, so mock with a regex).
+    Not seen with real cameras, by touch on an iPad, or in Safari. Step 2 is the solver.
 - **2026.11.5-b3** (2026-11-11; committed, **not on the box**, unseen in Safari and the Mac app): two
   Camera Commander faults on the owner's Mac.
   - **Safari over https showed no tiles.** HA's service worker handles every GET on HA's
