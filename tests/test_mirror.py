@@ -194,3 +194,28 @@ def test_publishing_is_safe_to_run_again(tmp_path, monkeypatch):
     assert mirror.publish(WATCH, REPO, "example", "2026.12.2") == "published"
     assert there("rev-list", "--count", "main") == "2"
     assert there("rev-parse", "2026.12.2^{commit}") == there("rev-parse", "main")
+
+
+def test_a_lost_watch_asks_github_how_the_run_ended(monkeypatch):
+    # The run is listed, then `gh run watch` fails; `gh run view` has the answer.
+    answers = {}
+    monkeypatch.setattr(
+        mirror.subprocess, "run", lambda *_, **__: type("Done", (), {"returncode": 1})
+    )
+
+    def gh(*command, **_):
+        if command[2] == "list":
+            return json.dumps([{"databaseId": 7, "headBranch": "main", "url": "u"}])
+        return answers["view"]
+
+    monkeypatch.setattr(mirror, "run", gh)
+    answers["view"] = "completed success"
+    mirror.follow("o/m", "its validation")
+    for state, words in (
+        ("completed failure", "did not succeed"),
+        ("in_progress ", "Lost track"),
+        ("", "Lost track"),
+    ):
+        answers["view"] = state
+        with pytest.raises(mirror.Stop, match=words):
+            mirror.follow("o/m", "its validation")

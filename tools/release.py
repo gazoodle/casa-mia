@@ -435,10 +435,6 @@ def on_github(release: str, repo: str) -> None:
             )
         else:
             warn("No Release run yet; open the link above.")
-    say(
-        "\n  Then carry on as usual on your branch: the next change starts the next"
-        "\n  release's builds (tools/versioning.py bump, Rule Zero)."
-    )
 
 
 def mirrors(release: str) -> None:
@@ -481,6 +477,10 @@ def main() -> int:
             publish(branch, version, number, repo)
         on_github(version, repo)
         mirrors(version)
+        say(
+            "\n  Then carry on as usual on your branch: the next change starts the next"
+            "\n  release's builds (tools/versioning.py bump, Rule Zero)."
+        )
         return 0
     except Stop as stop:
         say(f"\n  {RED}■{OFF} {stop}")

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.4
+
+- Sensor Watch names its code owner (`@gazoodle`), which the catalog for HACS and Home Assistant's Marketplace looks for. Nothing else changes, but Sensor Watch asks for a restart of Home Assistant after the update.
+
 ## 2026.11.3
 
 - **Breaking:** Sensor Watch is now an integration of its own, **Sensor Watch**, beside Casa Mia's, and the app's **Sensor Watch** option is gone. Restart Home Assistant when the Repairs ask. If you had Sensor Watch switched on, Casa Mia then sets the new integration up for you and brings your records over from the app, with the same device, entities and history. If you had it off and want it, add **Sensor Watch** under Settings → Devices & services → Add integration.
