@@ -37,8 +37,8 @@ export function LabelSettings({
   const l = labelsOf(value.labels);
   const set = (change: Partial<Labels>) => onChange({ ...l, ...change });
 
-  const size = (key: "tile_size" | "main_size" | "opacity") => (
-    <Field label={OPTIONS[key].label.split(",")[0]} help={help(key)}>
+  const size = (key: "tile_size" | "main_size" | "opacity" | "talk_status_x" | "talk_status_y" | "talk_buttons_x" | "talk_buttons_y") => (
+    <Field label={OPTIONS[key].label.replace(/, (px|%)$/, "")} help={help(key)}>
       <Slider value={l[key]} min={OPTIONS[key].min} max={OPTIONS[key].max} format={(n) => `${n}${key === "opacity" ? "%" : " px"}`} onChange={(n) => set({ [key]: n })} />
     </Field>
   );
@@ -78,7 +78,11 @@ export function LabelSettings({
       {size("opacity")}
       <h4 className={css.sub}>Talk, over the main camera</h4>
       {pick("talk_status")}
+      {size("talk_status_x")}
+      {size("talk_status_y")}
       {pick("talk_buttons")}
+      {size("talk_buttons_x")}
+      {size("talk_buttons_y")}
       <Field label="In the preview" help="Shows a call's state and the Talk button on the Any size preview, where these settings put them. Only on this page: nothing is saved.">
         <Switch on={talkShown} label="Show where they go" onChange={onTalkShown} />
       </Field>

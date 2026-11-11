@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026.11.5-b11
+
+- **Camera Commander: a name's pill has rounded ends**, as pills have everywhere else in Casa Mia, in the picture, on the card and in the preview. Every pill is the same height for its size of name. The main camera's name is a pill at first, so it looks a little different after this update.
+- **Camera Commander: the Talk chips can be nudged.** **Call status** and **Talk buttons** each have **nudge across** and **nudge down**, in px (below 0 for left and up), to move them a little from the place they are put.
+- **Camera Commander page: the preview says when Show whole changes nothing.** A main camera within 5% of the shape of its place is cropped by that little whichever is chosen, so **Crop to fill** and **Show whole** look the same for it; the line under the preview now says so. A camera of another shape (4:3, say) shows the difference.
+- **Camera Commander page: the preview names the camera that is cropped the most.** The line under the preview said "A camera loses up to 26% of its picture" without saying which. It now names the camera, says whether it is the main camera or a tile, gives its own shape and the shape of its place, counts the pictures that lose more than 5%, and names the settings that decide it.
+- **Camera Commander page: the preview's main camera is sharp.** It was the tiles' small thumbnail, enlarged. It now shows the compositor's picture of the camera's medium or high channel at the size its place needs, over the thumbnail, which shows first and stays when the compositor holds no picture of that channel.
+- **Camera compositor page: its sections fold.** Click a section's heading (Gatherer, Cache, each generator and server) to fold it to that heading, and again to open it. Its pause or purge button stays. Each browser remembers which are folded.
+- **Fixed: the preview showed no main camera for some commanders.** A commander whose **Main camera at start** is **The first one** had an empty main area on the **Any size** preview, which also said there was no room for a main camera. It now shows the first camera, as the app does. **As the app draws it**, the dashboards and the cards were always right.
+- **Fixed: the preview ignored Main camera name size.** On the Camera Commander page's **Any size** preview the main camera's name stayed one size whatever was set. The picture itself was drawn at the size set.
+
 ## 2026.11.5-b10
 
 - **Camera Commander: the cameras' names can be set.** Each commander has a new box of settings, **Camera names**, on its page, for either layout:

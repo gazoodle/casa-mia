@@ -67,6 +67,20 @@ def test_a_pill_is_only_as_wide_as_the_name():
     assert any(green(pic, (x + dx, row - 4)) for dx in range(2, 12))  # by the name
 
 
+def test_a_pill_has_rounded_ends():
+    c = labelled(main_style="pill", main_size=40)
+    pic, (x, y, _, h) = picture(c, CAMS[1]), placed(c, CAMS[1]).main
+    # the pill's rows, and where it starts on each: further in at its top than half-way
+    rows = [
+        r
+        for r in range(y + h - 80, y + h)
+        if any(green(pic, (x + d, r)) for d in range(60))
+    ]
+    start = {r: next(d for d in range(60) if green(pic, (x + d, r))) for r in rows}
+    assert start[rows[0]] > start[rows[len(rows) // 2]] + 5
+    assert start[rows[-1]] > start[rows[len(rows) // 2]] + 5
+
+
 def test_none_draws_no_name():
     c = labelled(tile_style="none", main_style="none")
     pic, (x, row, w, _) = picture(c, CAMS[1]), tile_foot(c)
@@ -111,3 +125,7 @@ def test_what_is_wrong_with_labels_is_said():
     assert any("tile name size must be 8-40" in p for p in wrong(tile_size=4))
     assert any("text colour must be like" in p for p in wrong(colour="white"))
     assert any("call status at is not one" in p for p in wrong(talk_status="middle"))
+    assert any(
+        "call status, nudge down must be -300-300" in p
+        for p in wrong(talk_status_y=900)
+    )

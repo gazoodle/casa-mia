@@ -295,6 +295,23 @@ CLAUDE.md has them all. What trips agents here:
     a browser**, and nothing is seen on the box. Lesson: b9's "On screens now" asked
     for `status` where the status is the API's root, and the mock had the same wrong
     address, so it passed; check a mocked address against the app's own routes.
+  - **2026.11.5-b11** (not committed; the owner's notes on b10): pills have rounded
+    ends and one height for their size (`labels.py` `name`, the card's `.caption.pill`,
+    the stage's CSS); `talk_status_x/_y` and `talk_buttons_x/_y` nudge the Talk chips
+    (`labels.ts` `nudge`); and the stage had an older `.main span` rule holding the
+    main name at 14 px. Lesson: measure each setting in the browser at more than one
+    value; b10's check only looked at one.
+    Also in b11: the stage names the camera cropped the most (`lostBy`, `shapeName` in
+    `measure.ts`), says when Show whole changes nothing, and lays the compositor's
+    picture of the main camera's medium or high channel over its thumbnail.
+  - **Looked into and not a fault (2026-11-11):** the owner saw no change between Crop
+    to fill and Show whole with one camera as the main one. Read from the live box's
+    state: that camera's recorded shape matches every one of its channels, so the
+    recorded shape is right. The stage shows the commander's main camera *at start*, not the one now
+    chosen on a tablet, so a 16:9 start camera shows no change; the stage now says so
+    by name. Not seen failing on a tablet. Also in b11: the stage takes its first
+    camera when none is set at start (empty main area since b5), and the Camera
+    compositor page's sections fold (`compositor/fold.tsx`, kept per browser).
 - **2026.11.5-b3** (2026-11-11; **both seen working by the owner on the live box that day**): two
   Camera Commander faults on the owner's Mac.
   - **Safari over https showed no tiles.** HA's service worker handles every GET on HA's

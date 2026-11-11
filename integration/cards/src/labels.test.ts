@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { DEFAULTS, FILES, OPTIONS, back, corner, family, footOf, labelsOf } from "./labels.ts";
+import { DEFAULTS, FILES, OPTIONS, back, corner, family, footOf, labelsOf, nudge } from "./labels.ts";
 
 test("every setting has a default, and a commander saved without labels gets them", () => {
   assert.deepEqual(Object.keys(DEFAULTS), Object.keys(OPTIONS));
@@ -35,4 +35,9 @@ test("chips at the foot sit clear of the main camera's name", () => {
   assert.equal(footOf(pill, "bottom-left"), 44); // over it
   assert.equal(footOf(labelsOf({ main_style: "bar", main_size: 20 }), "bottom-right"), 44);
   assert.equal(footOf(labelsOf({ main_style: "none" }), "bottom-left"), 10);
+});
+
+test("a nudge moves a group across and down from its corner, and is nothing at first", () => {
+  assert.deepEqual(nudge(DEFAULTS, "talk_status"), { transform: "translate(0px, 0px)" });
+  assert.deepEqual(nudge(labelsOf({ talk_buttons_x: -12, talk_buttons_y: 30 }), "talk_buttons"), { transform: "translate(-12px, 30px)" });
 });

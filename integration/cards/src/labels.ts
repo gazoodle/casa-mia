@@ -22,7 +22,11 @@ export type Labels = {
   tile_style: Style;
   main_style: Style;
   talk_status: Place;
+  talk_status_x: number;
+  talk_status_y: number;
   talk_buttons: Place;
+  talk_buttons_x: number;
+  talk_buttons_y: number;
 };
 
 export const DEFAULTS = Object.fromEntries(Object.entries(OPTIONS).map(([k, o]) => [k, o.default])) as unknown as Labels;
@@ -76,3 +80,9 @@ export function corner(place: Place, foot = EDGE): Record<string, string> {
   };
   return { ...(v === "top" ? { top: `${EDGE}px` } : { bottom: `${foot}px` }), ...across[h] };
 }
+
+/** A group of chips moved from its corner by its nudge, as CSS: across (to the right)
+ * and down, in px. */
+export const nudge = (l: Labels, which: "talk_status" | "talk_buttons"): Record<string, string> => ({
+  transform: `translate(${l[`${which}_x`]}px, ${l[`${which}_y`]}px)`,
+});

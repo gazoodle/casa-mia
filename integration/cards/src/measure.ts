@@ -30,6 +30,16 @@ function off({ rect: [, , w, h], shape }: Shown): number {
 /** The room a camera's picture takes: all of its place, less its bars when shown whole. */
 const area = (s: Shown) => Math.max(0, s.rect[2]) * Math.max(0, s.rect[3]) * (s.how === "contain" ? 1 - off(s) : 1);
 
+/** How much of its picture a camera loses to cropping (0.25: a quarter): what its place's
+ * shape is off its own, when it is cropped to fill; nothing when whole or stretched. */
+export const lostBy = (s: Shown): number => (s.how === "cover" ? off(s) : 0);
+
+/** A shape in words: a common one by its name (16:9, 4:3, 3:2, square), else as n:1. */
+export function shapeName(shape: number): string {
+  const known: [number, string][] = [[16 / 9, "16:9"], [4 / 3, "4:3"], [3 / 2, "3:2"], [1, "square"]];
+  return known.find(([r]) => Math.abs(shape / r - 1) < 0.02)?.[1] ?? `${shape.toFixed(2)}:1`;
+}
+
 export function measure([w, h]: [number, number], main: Shown | null, tiles: Shown[]): Measured {
   const all = main ? [main, ...tiles] : tiles;
   const most = (how: Shown["how"]) => Math.max(0, ...all.filter((s) => s.how === how).map(off));
@@ -37,7 +47,7 @@ export function measure([w, h]: [number, number], main: Shown | null, tiles: Sho
   return {
     main: main ? area(main) / (w * h) : 0,
     unused: 1 - all.reduce((sum, s) => sum + area(s), 0) / (w * h),
-    lost: most("cover"),
+    lost: Math.max(0, ...all.map(lostBy)),
     squeezed: most("fill"),
     tall: tiles.filter((s) => s.rect[3] > s.rect[2] && s.rect[2] > 0).length,
   };

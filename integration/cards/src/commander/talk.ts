@@ -21,7 +21,7 @@
 // the device that answered tells HA; every device shows the countdown from the sensor.
 import { css, html, nothing } from "lit";
 import { styleMap } from "lit/directives/style-map.js";
-import { type Place, corner, footOf, labelsOf } from "../labels.ts";
+import { type Place, corner, footOf, labelsOf, nudge } from "../labels.ts";
 import { playWebRTC } from "../../../../app/web/src/webrtc.ts";
 import { Card, callSensor, callSensors, callWords, countdown, talkCamera, talkOffered, TALK_NOTE_MS, TOUCH_EVERY_MS } from "./common.ts";
 import { CommanderLive, LIVE_BY } from "./live.ts";
@@ -293,13 +293,13 @@ export class CommanderTalk extends CommanderLive {
     // writes on its own picture; in the same corner, what is said stands over the buttons.
     const labels = labelsOf(card.layout.labels);
     const at = (where: Place, parts: unknown) => html`<div class="talk-at" style=${styleMap(corner(where, footOf(labels, where)))}>${parts}</div>`;
-    const status = html`<div class="talk-said">
+    const status = html`<div class="talk-said" style=${styleMap(nudge(labels, "talk_status"))}>
         ${out ? html`<span class="cm-pill cm-filled cm-bad">Live to ${card.cameras[this._talk]?.title ?? this.hass?.states[this._talk]?.attributes.friendly_name ?? this._talk}</span>` : nothing}
         ${words ? html`<span class="cm-pill cm-filled ${TONES[st!.state]}">${words}</span>` : nothing}
         ${left ? html`<span class="cm-pill cm-filled ${left.warn ? "cm-warn" : "cm-muted"}">${left.text}</span>` : nothing}
         ${this._talkNote && this._talkNote !== words ? html`<span class="cm-pill cm-filled cm-muted">${this._talkNote}</span>` : nothing}
       </div>`;
-    const buttons = html`<div class="talk-buttons">
+    const buttons = html`<div class="talk-buttons" style=${styleMap(nudge(labels, "talk_buttons"))}>
         ${button && said.hold
           ? html`<button
               class="cm-chip cm-on ${this.said === "live" ? "cm-bad" : "cm-good"}"

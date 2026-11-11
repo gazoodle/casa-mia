@@ -8,8 +8,8 @@
 
 import { useContext, useEffect, useRef, useState } from "react";
 import type { Rect } from "../../../../integration/cards/src/layout.ts";
-import { back, corner, family, footOf, labelsOf } from "../../../../integration/cards/src/labels.ts";
-import { measure, type Shown } from "../../../../integration/cards/src/measure.ts";
+import { back, corner, family, footOf, labelsOf, nudge } from "../../../../integration/cards/src/labels.ts";
+import { lostBy, measure, shapeName, type Shown } from "../../../../integration/cards/src/measure.ts";
 import { camerasOf, placed, type Commander as Laid, type Placed } from "../../../../integration/cards/src/placed.ts";
 import { Camera, ThumbRound, plural } from "../cameras";
 import { get, type Engine, type Status } from "../compositor/common";
@@ -121,7 +121,11 @@ export function Stage({
   // panel holding nothing.
   const panels = Object.fromEntries(PANELS.map((p) => [p, value[p].hidden ? { ...value[p], cameras: [] } : value[p]]));
   const s = { ...value, ...panels, width: W, height: H, scale: 1 } as unknown as Laid;
-  const main = camerasOf(s).includes(picked) ? picked : value.main;
+  // As the app has it (the compositor's main_camera): the tile clicked here, else its main
+  // camera at start, each only if it is one of its cameras; else its first camera, which
+  // is what "The first one" means.
+  const mine = camerasOf(s);
+  const main = [picked, value.main].find((e) => mine.includes(e)) ?? mine[0] ?? "";
   const shape = (e: string) => Number((s.aspects ?? {})[e]) || 16 / 9;
   let laid: Placed | null = null;
   let wrong = "";
@@ -142,10 +146,35 @@ export function Stage({
   const tilesShown = laid.tiles.filter((t) => t.rect[2] > 0 && t.rect[3] > 0).map((t) => ({ e: t.camera, rect: t.rect, shape: shape(t.camera), how: t.how }));
   const m = measure([W, H], mainShown, tilesShown);
 
+  // The camera cropped the most, and how many are cropped enough to notice: said by name,
+  // with the two shapes that cause it, so the figure can be traced to a camera.
+  const cropped = [...(mainShown ? [{ ...mainShown, e: main, where: "as the main camera" }] : []), ...tilesShown.map((t) => ({ ...t, where: "on its tile" }))];
+  const worst = cropped.reduce<(typeof cropped)[number] | null>((most, c) => (lostBy(c) > (most ? lostBy(most) : 0.005) ? c : most), null);
+  const noticed = cropped.filter((c) => lostBy(c) > 0.05).length;
+
   const at = ([x, y, w, h]: Rect) => ({ left: x * k, top: y * k, width: w * k, height: h * k });
   const picture = (e: string, how: Shown["how"]) => (
     <img src={`api/cameras/thumb/${encodeURIComponent(e)}?r=${round}`} alt="" draggable={false} style={{ objectFit: how }} />
   );
+  // The main camera sharper: the compositor's own picture of its medium or high channel
+  // (the ones a commander draws a main camera from), at the width its place needs, in
+  // steps so that a drag doesn't ask for a new one at every pixel. Laid over the
+  // thumbnail, which shows until it loads and stays if the compositor holds none.
+  const sharp = (e: string, how: Shown["how"], width: number) => {
+    const channel = cameras[e]?.medium || cameras[e]?.high || e;
+    const wide = Math.min(1920, Math.ceil((width * k * window.devicePixelRatio) / 320) * 320);
+    return (
+      <img
+        className={css.sharp}
+        src={`api/compositor/thumb/${encodeURIComponent(channel)}?w=${wide}&whole=1&r=${round}`}
+        alt=""
+        draggable={false}
+        style={{ objectFit: how }}
+        onLoad={(ev) => (ev.currentTarget.style.display = "")}
+        onError={(ev) => (ev.currentTarget.style.display = "none")}
+      />
+    );
+  };
   const title = (e: string) => cameras[e]?.title ?? e;
   const lit = { ...HIGHLIGHT, ...value.highlight };
 
@@ -213,6 +242,7 @@ export function Stage({
           {mainShown && (
             <div className={`${css.tile} ${css.main}`} style={at(mainShown.rect)}>
               {picture(main, mainShown.how)}
+              {sharp(main, mainShown.how, mainShown.rect[2])}
               <span>{title(main)}</span>
             </div>
           )}
@@ -238,10 +268,14 @@ export function Stage({
             // (the card's own chips, at their real size whatever the stage's scale).
             <div className={css.talk} style={at(mainShown.rect)}>
               <div style={corner(labels.talk_status, footOf(labels, labels.talk_status))}>
-                <span className="cm-pill cm-filled cm-warn">Ringing</span>
+                <span className="cm-pill cm-filled cm-warn" style={nudge(labels, "talk_status")}>
+                  Ringing
+                </span>
               </div>
               <div style={corner(labels.talk_buttons, footOf(labels, labels.talk_buttons))}>
-                <span className="cm-chip cm-on cm-good">Talk</span>
+                <span className="cm-chip cm-on cm-good" style={nudge(labels, "talk_buttons")}>
+                  Talk
+                </span>
               </div>
             </div>
           )}
@@ -259,10 +293,20 @@ export function Stage({
       <p className={css.facts}>
         {mainShown ? `The main camera is ${pct(m.main)} of the space. ` : "There is no room for a main camera. "}
         {pct(m.unused)} of the space shows no camera.
-        {m.lost > 0.005 && ` A camera loses up to ${pct(m.lost)} of its picture.`}
+        {worst &&
+          ` The camera cropped the most is ${title(worst.e)}, ${worst.where}: it loses ${pct(lostBy(worst))} of its picture, because its own shape is ${shapeName(worst.shape)} and its place is ${shapeName(worst.rect[2] / worst.rect[3])}.` +
+            (noticed > 1 ? ` ${noticed} of the ${cropped.length} pictures lose more than 5%.` : "") +
+            (value.mode === "responsive"
+              ? " Tile shape and A camera may lose up to set the shape of a tile; A main camera of another shape decides whether the main camera is cropped."
+              : " A panel's size, lines and Fit set the shape of its tiles; the main camera's Fit decides whether it is cropped.")}
         {m.squeezed > 0.02 && ` A camera is stretched ${pct(m.squeezed)} out of its shape.`}
         {m.tall > 0 && ` ${plural(m.tall, "tile")} ${m.tall === 1 ? "is" : "are"} taller than wide.`}
         {laid.more && ` ${plural(laid.more.count, "camera")} ${laid.more.count === 1 ? "doesn't" : "don't"} fit, and ${laid.more.count === 1 ? "is" : "are"} in +${laid.more.count} more.`}
+        {/* Show whole, and nothing changed: said, or the choice looks broken. */}
+        {value.mode === "responsive" &&
+          value.responsive?.main_other === "whole" &&
+          mainShown?.how === "cover" &&
+          ` Show whole changes nothing here: ${title(main)} is within 5% of the shape of its place, so it is cropped by that little, not given thin bars.`}
         {laid.gave.length > 0 && <strong> Its limits don't all fit this space: {laid.gave.map((g) => GAVE[g] ?? g).join("; ")}.</strong>}
       </p>
     </div>

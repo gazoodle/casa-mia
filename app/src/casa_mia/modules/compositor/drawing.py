@@ -500,7 +500,8 @@ def commander(
             seen,
             seen.tile_style,
             (x, y + h - bar, x + w, y + h),
-            (u(4), u(2)),
+            seen.tile_px,
+            u(2),
         )
         if raw and entity in stale:
             _stale_mark(draw, (x + w - u(6), y + h - bar // 2), small, scale)
@@ -585,7 +586,8 @@ def commander(
                 seen,
                 seen.main_style,
                 (px, foot - up, px + pw, py + ph),
-                (u(6), u(4)),
+                seen.main_px,
+                u(6),
             )
             draw.text(
                 (px + pw - u(10), foot),

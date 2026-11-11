@@ -79,6 +79,11 @@ export const styles = [motionStyles, css`
       color: var(--cm-label-colour);
       font: var(--cm-label-size) / 1.2 var(--cm-label-font);
     }
+    /* A pill: rounded ends, as the style guide's pills have. */
+    .caption.pill span {
+      padding: 0.1em 0.5em;
+      border-radius: 999px;
+    }
     /* A bar: the name across the foot, anything said beside it standing above. */
     .caption.bar {
       padding: 0;

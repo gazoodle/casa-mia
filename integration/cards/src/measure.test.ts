@@ -1,7 +1,7 @@
 // What a laid-out commander does with its space (measure.ts).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { measure, type Shown } from "./measure.ts";
+import { measure, type Shown, lostBy, shapeName } from "./measure.ts";
 
 const WIDE = 16 / 9;
 const near = (a: number, b: number) => assert.ok(Math.abs(a - b) < 1e-9, `${a} is not ${b}`);
@@ -52,4 +52,12 @@ test("no main camera: only the tiles count", () => {
   const m = measure([320, 180], null, [{ rect: [0, 0, 320, 180], shape: WIDE, how: "cover" }]);
   near(m.main, 0);
   near(m.unused, 0);
+});
+
+test("a camera loses to cropping only when it is cropped, and a shape has a name", () => {
+  assert.ok(Math.abs(lostBy({ rect: [0, 0, 160, 90], shape: 4 / 3, how: "cover" }) - 0.25) < 1e-9);
+  assert.equal(lostBy({ rect: [0, 0, 160, 90], shape: 4 / 3, how: "contain" }), 0);
+  assert.equal(shapeName(1920 / 1080), "16:9");
+  assert.equal(shapeName(1.34), "4:3");
+  assert.equal(shapeName(2.5), "2.50:1");
 });

@@ -47,6 +47,12 @@
   height: 100%;
 }
 
+/* the main camera's sharper picture, over its thumbnail */
+.tile .sharp {
+  position: absolute;
+  inset: 0;
+}
+
 /* A camera's name, as the compositor draws it from the commander's labels (labels.py):
    the box sets the font, colours, sizes and styles. A tile's bar is 22 px for a name of
    16; the main camera's row is 18 px up from its foot for a name of 20. */
@@ -70,24 +76,37 @@
   right: 0;
 }
 
+/* A pill: rounded ends, as the style guide's pills have. */
+.box[data-tile="pill"] .tile:not(.main) span {
+  bottom: 0.1em;
+  left: 0.125em;
+  max-width: calc(100% - 0.25em);
+  padding: 0 0.5em;
+  border-radius: 999px;
+  line-height: 1.2;
+}
+
 .box[data-tile="none"] .tile:not(.main) span,
 .box[data-main="none"] .main span {
   display: none;
 }
 
 .main span {
-  bottom: calc(var(--main-px) * 0.25);
-  left: calc(var(--main-px) * 0.2);
-  padding: calc(var(--main-px) * 0.05) calc(var(--main-px) * 0.3);
   font-size: var(--main-px);
   line-height: 1.2;
 }
 
+.box[data-main="pill"] .main span {
+  bottom: 0.25em;
+  left: 0.3em;
+  max-width: calc(100% - 0.6em);
+  padding: 0.05em 0.5em;
+  border-radius: 999px;
+}
+
 .box[data-main="bar"] .main span {
   right: 0;
-  bottom: 0;
-  left: 0;
-  padding: calc(var(--main-px) * 0.3) calc(var(--main-px) * 0.5);
+  padding: 0.3em 0.5em;
 }
 
 /* The sample Talk chips over the main camera (labels.tsx's switch). */
@@ -114,12 +133,6 @@
 .main {
   background: #000; /* its bars, as the compositor draws them */
   cursor: default;
-}
-
-.main span {
-  bottom: 6px;
-  left: 8px;
-  font-size: 14px;
 }
 
 /* the corner to drag; touch-action so a finger drags it and doesn't scroll the page */

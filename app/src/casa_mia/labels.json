@@ -10,7 +10,11 @@
     "tile_style": { "label": "A tile's name", "default": "bar", "options": [["bar", "Bar"], ["pill", "Pill"], ["none", "None"]], "help": "Bar: across the foot of the tile. Pill: only as wide as the name. None: no name." },
     "main_style": { "label": "The main camera's name", "default": "pill", "options": [["bar", "Bar"], ["pill", "Pill"], ["none", "None"]], "help": "Bar: across the foot of the main camera. Pill: only as wide as the name. None: no name; the clock stays." },
     "talk_status": { "label": "Call status at", "default": "top-left", "options": [["top-left", "Top, left"], ["top-centre", "Top, centre"], ["top-right", "Top, right"], ["bottom-left", "Bottom, left"], ["bottom-centre", "Bottom, centre"], ["bottom-right", "Bottom, right"]], "help": "Where the call's state (ringing, answered, time left) goes over the main camera. Put it clear of the date and name your cameras write on their own picture." },
-    "talk_buttons": { "label": "Talk buttons at", "default": "bottom-right", "options": [["top-left", "Top, left"], ["top-centre", "Top, centre"], ["top-right", "Top, right"], ["bottom-left", "Bottom, left"], ["bottom-centre", "Bottom, centre"], ["bottom-right", "Bottom, right"]], "help": "Where the Talk and hold-to-talk buttons go over the main camera." }
+    "talk_status_x": { "label": "Call status, nudge across, px", "default": 0, "min": -300, "max": 300, "help": "Moves the call's state sideways from where it is put: to the right, or to the left below 0." },
+    "talk_status_y": { "label": "Call status, nudge down, px", "default": 0, "min": -300, "max": 300, "help": "Moves the call's state down from where it is put, or up below 0." },
+    "talk_buttons": { "label": "Talk buttons at", "default": "bottom-right", "options": [["top-left", "Top, left"], ["top-centre", "Top, centre"], ["top-right", "Top, right"], ["bottom-left", "Bottom, left"], ["bottom-centre", "Bottom, centre"], ["bottom-right", "Bottom, right"]], "help": "Where the Talk and hold-to-talk buttons go over the main camera." },
+    "talk_buttons_x": { "label": "Talk buttons, nudge across, px", "default": 0, "min": -300, "max": 300, "help": "Moves the Talk buttons sideways from where it is put: to the right, or to the left below 0." },
+    "talk_buttons_y": { "label": "Talk buttons, nudge down, px", "default": 0, "min": -300, "max": 300, "help": "Moves the Talk buttons down from where it is put, or up below 0." }
   },
   "fonts": { "sans": "DejaVuSans.ttf", "sans_bold": "DejaVuSans-Bold.ttf", "mono": "DejaVuSansMono.ttf" }
 }

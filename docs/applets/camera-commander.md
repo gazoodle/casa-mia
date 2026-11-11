@@ -46,8 +46,10 @@ your dashboards and tablets at the moment, read when you open the commander, so 
 see it here as each of them shows it. Hover over one for which device it is. The
 commander is laid out again as the size changes, by the same
 layout the card uses, with small pictures of your cameras. The line under it says how much
-of the space the main camera takes, how much shows no camera, how much of its picture a
-camera loses, and how many tiles are taller than wide. A commander's panels are set for
+of the space the main camera takes, how much shows no camera, which camera is cropped
+the most (by name, whether it is the main camera or a tile, how much of its picture it
+loses, and the two shapes that cause it), and how many tiles are taller than wide. A
+camera is cropped when its own shape is not the shape of its place. A commander's panels are set for
 one shape of space, so try the spaces you use before you rely on them. Click a tile to
 make it the main camera in the preview. **As the app draws it** shows the compositor's
 own picture instead, with its labels and marks, at the commander's own size. The preview
@@ -140,14 +142,16 @@ The **Any size** preview shows the names as you change them.
 - **Tile name size** and **Main camera name size:** in px. A screen with more pixels draws
   a name with more of them, so it looks the same size on every screen.
 - **A tile's name** and **The main camera's name:** a **Bar** across the foot, a **Pill**
-  only as wide as the name, or **None**. With None on the main camera the clock stays.
+  with rounded ends, only as wide as the name, or **None**. With None on the main camera the clock stays.
 - **Text colour**, **Background colour** and **Background opacity:** the colour of the
   names and the clock, and the colour behind a name and how solid it is.
 - **Call status at** and **Talk buttons at:** where the call's state and the Talk buttons
   go over the main camera when you [talk to a doorbell](#talking-to-a-doorbell): top or
   bottom, and left, centre or right. Many cameras write the date and their name across
-  the top of their own picture, so move the call's state if it covers them. **Show where
-  they go** puts a sample of each on the preview; it isn't saved.
+  the top of their own picture, so move the call's state if it covers them. Each has a
+  **nudge across** and a **nudge down**, in px, to move it a little from that place:
+  below 0 moves it left or up. **Show where they go** puts a sample of each on the
+  preview; it isn't saved.
 - **Reset to defaults** puts every one of these back to what it was at first.
 
 ## In Home Assistant

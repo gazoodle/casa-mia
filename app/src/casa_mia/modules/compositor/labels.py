@@ -93,19 +93,23 @@ def name(
     seen: Look,
     style: str,
     bar: tuple[int, int, int, int],
-    pad: tuple[int, int],
+    px: int,
+    inset: int,
 ) -> None:
-    """A camera's name, its left end at `at` (vertically centred there), in a style: on
-    a bar (the rectangle `bar`), in a pill (its own size, `pad` round it), or none (not
-    drawn at all)."""
+    """A camera's name, vertically centred on `at`, in a style: on a bar (the rectangle
+    `bar`), its left end at `at`; in a pill with rounded ends, as wide as the name and
+    `inset` in from the bar's left; or none (not drawn at all). `px` is the name's size:
+    a pill's padding is in step with it, wide enough that its curve clears the text."""
     if style == "none":
         return
     if style == "bar":
         draw.rectangle(bar, fill=seen.back)
     else:
+        # Its height is the size's, not the text's: a name with no tails ("Mill") would
+        # otherwise get a shorter pill than one with ("Piggery").
+        pad, half = round(px * 0.5), round(px * 0.7)
+        at = (bar[0] + inset + pad, at[1])
         box = draw.textbbox(at, text, font=font, anchor="lm")
-        draw.rectangle(
-            (box[0] - pad[0], box[1] - pad[1], box[2] + pad[0], box[3] + pad[1]),
-            fill=seen.back,
-        )
+        ends = (box[0] - pad, at[1] - half, box[2] + pad, at[1] + half)
+        draw.rounded_rectangle(ends, radius=half, fill=seen.back)
     draw.text(at, text, fill=seen.colour, font=font, anchor="lm")

@@ -29,7 +29,8 @@ def _labels(the: str, cmd: dict) -> list[str]:
         return [f"{the}'s labels must be a set of settings."]
     out: list[str] = []
     for key, o in LABELS["labels"].items():
-        value, label = labels.get(key, o["default"]), o["label"].split(",")[0].lower()
+        value = labels.get(key, o["default"])
+        label = re.sub(r", (px|%)$", "", o["label"]).lower()  # (less its unit)
         if "min" in o:
             ok = isinstance(value, int) and not isinstance(value, bool)
             if not ok or not o["min"] <= value <= o["max"]:
