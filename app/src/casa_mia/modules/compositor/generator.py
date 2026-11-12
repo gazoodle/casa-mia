@@ -22,7 +22,6 @@ from .common import (
     LIVE_MAIN,
     LIVE_STORE,
     PACES,
-    PANELS,
     PORT,
     Config,
     Size,
@@ -36,11 +35,10 @@ from .common import (
     view_key,
 )
 from .drawing import (
-    CROPPED,
     cameras_of,
     commander,
     commander_cameras,
-    commander_layout,
+    placed,
 )
 from .gatherer import (
     Gatherer,
@@ -380,7 +378,7 @@ class Generator:
         each tile (where: its panel) and the main area. The channel is the one to draw it
         from (see `choose`); until the channels' sizes are known, a tile's low channel
         and the main camera's medium."""
-        _, (_, _, mw, mh), rects = commander_layout(cmd, main)
+        _, (_, _, mw, mh), main_fit, tiles, _, _ = placed(cmd, main)
         out = []
 
         def place(where: str, camera: str, size: tuple[int, int], whole: bool) -> None:
@@ -389,15 +387,10 @@ class Generator:
             chan = choose(list(ladder.values()), self.gather.res, size, whole, default)
             out.append((where, camera, chan, size, whole))
 
-        for panel in PANELS:
-            whole = cmd[panel].get("fit", "cover") not in CROPPED
-            for e, (_, _, w, h) in zip(
-                cmd[panel]["cameras"], rects[panel], strict=True
-            ):
-                place(panel, e, (max(w, 16), max(h, 9)), whole)
+        for where, e, (_, _, w, h), whole in tiles:
+            place(where, e, (max(w, 16), max(h, 9)), whole)
         if main:
-            whole = cmd.get("main_fit", "fit") not in ("fill", "crop")
-            place("main", main, (max(mw, 16), max(mh, 9)), whole)
+            place("main", main, (max(mw, 16), max(mh, 9)), main_fit == "fit")
         return out
 
     def _want(self, cmds: list[dict]) -> None:

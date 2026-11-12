@@ -464,6 +464,20 @@ class Cache:
         out = dict.fromkeys(cameras_of(self.cfg.commanders))
         return list(out | dict.fromkeys(self.cfg.entities))
 
+    def largest(self, camera: str) -> tuple[str, Picture] | None:
+        """The largest picture of a camera that has really come, with its channel: its
+        high, medium or own channel, whichever the cache holds, never one still
+        "(Waiting …)". None when none has come."""
+        come = [
+            c
+            for c in channels(self.cfg, camera).values()
+            if c in self.shots and c not in self._waiting
+        ]
+        if not come:
+            return None
+        best = max(come, key=lambda c: self.res.get(c, (0, 0))[0])
+        return best, self.shots[best][1]
+
     def pick(
         self, camera: str, channel: str | None = None
     ) -> tuple[Picture | None, float]:

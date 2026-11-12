@@ -107,3 +107,20 @@ export async function playWebRTC(
     video.srcObject = null;
   };
 }
+
+/** Plays a camera's HLS stream (Home Assistant's stream component) in `video`, for a device
+ * with no WebRTC whose browser plays HLS by itself: the Home Assistant app for the Mac. It
+ * runs some seconds behind, and it only receives, so there is no talking over it. `failed`
+ * hears why it stopped. Returns the close. */
+export async function playHLS(conn: Connection, entity: string, video: HTMLVideoElement, failed: (why: string) => void): Promise<() => void> {
+  const { url } = await conn.sendMessagePromise<{ url: string }>({ type: "camera/stream", entity_id: entity });
+  video.onerror = () => failed(video.error?.message || "The video stream failed.");
+  video.src = url;
+  // Asked to play: with autoplay alone Safari never loads an HLS stream (seen 2026-11-11).
+  video.play().catch((err) => failed(`It wouldn't play: ${err?.message ?? err}`));
+  return () => {
+    video.onerror = null;
+    video.removeAttribute("src");
+    video.load(); // lets the stream go
+  };
+}

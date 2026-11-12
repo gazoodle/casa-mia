@@ -29,7 +29,10 @@ A record watches one entity (keyed by its entity id):
   in days); and `disabled` (true: kept, with its group, but not watched: the
   watcher isn't given it, and the page lists it apart); `escalate` (optional)
   {level: seconds}: having stood that long at a level (task, warning or error), it
-  shows the next one up, rung by rung (levels.escalation, beside this package).
+  shows the next one up, rung by rung (levels.escalation, beside this package);
+  `stale` (optional) {after, by, level, message}: there, but no report (`by` "report")
+  or no change ("change") for `after` seconds counts as that level (stale.py, beside
+  this package).
 The watcher works out the levels (levels.py, whose LEVELS must match these; a test
 checks)."""
 
@@ -49,6 +52,8 @@ MAX_HOLD_OFF = 24 * 3600
 MAX_BANDS = 12
 MAX_ACCURACY_PERCENT = 50
 MAX_ESCALATE = 365 * 24 * 3600  # seconds at one level before it moves up
+MAX_STALE = 365 * 24 * 3600  # seconds without a report before that counts
+STALE_BY = ("report", "change")
 MAX_STATES = 20
 MAX_TEXT = 80  # a name
 # A message: past 80 characters, notifications and cards may cut it short (the page says so).
@@ -147,6 +152,8 @@ def clean(entity_id: str, body: dict[str, Any]) -> dict[str, Any]:
     }
     if escalate := _escalate(body.get("escalate")):
         record["escalate"] = escalate
+    if stale := _stale(body.get("stale")):
+        record["stale"] = stale
     if kind == "binary":
         if "on" not in body and "off" not in body:  # the form before b20
             nominal = body.get("nominal", "off")
@@ -289,6 +296,28 @@ def _escalate(value: Any) -> dict[str, int] | None:
             raise BadRequest(f"Escalate from {level}: a minute to a year.")
         ladder[level] = int(n)
     return ladder or None
+
+
+def _stale(value: Any) -> dict[str, Any] | None:
+    """A record's stale rule, or None for none (missing, or no time given)."""
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise BadRequest("Stale: how long, by report or change, a level and a message.")
+    after = _number(value.get("after"), "Stale after")
+    if not after:
+        return None
+    if not 60 <= after <= MAX_STALE:
+        raise BadRequest("Stale after: a minute to a year.")
+    by = value.get("by", "report")
+    if by not in STALE_BY:
+        raise BadRequest("Stale by: report or change.")
+    return {
+        "after": int(after),
+        "by": by,
+        "level": _level(value.get("level", "warning"), "Stale's level"),
+        "message": _text(value.get("message"), "Stale's message", MAX_MESSAGE),
+    }
 
 
 def _accuracy(value: Any) -> dict[str, Any] | None:

@@ -69,6 +69,7 @@ class FakeHA:
         self.states = states
         self.entities = list(entities)
         self.components = ["recorder", "history", "sensor"]
+        self.country: str | None = None  # Home Assistant's, when it has been told
         self.asked: list[dict] = []
 
     def call(self, *commands):
@@ -110,7 +111,7 @@ class FakeHA:
             elif kind == "history/history_during_period":
                 out.append({i: [{"s": "off", "lu": 0.0}] for i in c["entity_ids"]})
             elif kind == "get_config":
-                out.append({"components": self.components})
+                out.append({"components": self.components, "country": self.country})
             else:
                 raise AssertionError(kind)
         return out

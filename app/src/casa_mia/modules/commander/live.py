@@ -89,7 +89,11 @@ class Live(Base):
             "height",
             "aspects",
             "highlight",
+            "labels",
+            "main_keep",
             "debug",
+            "mode",
+            "responsive",
             *(k for k, o in LAYOUT["main"].items() if o.get("for") != "view"),
             *PANELS,
         )

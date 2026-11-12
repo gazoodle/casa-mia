@@ -5,6 +5,12 @@ card asks for a token (websocket casa_mia_commander/picture_token, any signed-in
 /api/casa_mia_commander/live/g/<name>.mjpg?token=...; this passes the app's stream through
 as it comes, so the compositor's trick of opening each next part at once still works.
 The card being edited shows one still instead, the same address with .jpg.
+
+The same address with .ws sends the stream's frames over a WebSocket, one message each,
+for a page controlled by Home Assistant's service worker in Safari. That worker handles
+every GET on HA's address, and Safari drops an endless stream that comes through a worker
+(HA's own /api/camera_proxy_stream fails there the same way). A worker never sees a
+WebSocket.
 Only the pictures the app lists for its commanders can be reached this way.
 
 Not HA's signed paths: an <img> can't send a login, and a signed path is refused once a
@@ -128,7 +134,7 @@ class DoneView(HomeAssistantView):
 
 
 class PictureView(HomeAssistantView):
-    url = PROXY + "/{which:live}/g/{name}.{kind:mjpg|jpg}"
+    url = PROXY + "/{which:live}/g/{name}.{kind:mjpg|jpg|ws}"
     name = f"api:{DOMAIN}:picture"
     requires_auth = False  # the token instead (see the module's doc)
 
@@ -162,11 +168,12 @@ class PictureView(HomeAssistantView):
         headers = {"X-Forwarded-For": request.remote or ""}
         session = async_get_clientsession(self.hass)
         _LOGGER.info(
-            "picture %s/%s to %s (%s) through Home Assistant",
+            "picture %s/%s to %s (%s) through Home Assistant%s",
             which,
             name,
             user,
             request.remote,
+            ", as frames over a WebSocket" if kind == "ws" else "",
         )
         resp: web.StreamResponse | None = None
         began, sent, waiting = time.monotonic(), 0, 0.0
@@ -185,6 +192,24 @@ class PictureView(HomeAssistantView):
                         upstream.status,
                     )
                     return web.Response(status=502)
+
+                if kind == "ws":
+                    # Nothing is read from the viewer: the card says it is done by
+                    # DoneView, which ends the app's stream and so this loop, and a
+                    # connection that is gone fails the next send.
+                    resp = socket = web.WebSocketResponse()
+                    await socket.prepare(request)
+                    parts = aiohttp.MultipartReader.from_response(upstream)
+                    async for part in parts:
+                        # The last part is the one the compositor opened for a frame
+                        # that never came: empty.
+                        if frame := await part.read():  # type: ignore[union-attr]
+                            at = time.monotonic()
+                            await socket.send_bytes(bytes(frame))
+                            waiting += time.monotonic() - at
+                            sent += len(frame)
+                    return resp
+
                 resp = web.StreamResponse(
                     headers={
                         "Content-Type": upstream.headers.get("Content-Type", ""),

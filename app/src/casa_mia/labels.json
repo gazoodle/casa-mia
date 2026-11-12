@@ -1,0 +1,23 @@
+{
+  "about": "How a commander's camera names are drawn, and where the Camera Commander card puts its Talk chips: each commander's `labels`. Each option: label, help, default, and its range or its choices (neither: a colour). `picture`: which part of a cropped main camera is kept (the commander's `main_keep`). `fonts`: the file of each font but the standard one (Pillow's built-in), in the casa_mia component's www/fonts. Read by the compositor (compositor/labels.py), the app's checks, the cards (integration/cards/src/labels.ts) and the admin page. Not in layout.json, which Sensor Watch's cards bundle.",
+  "labels": {
+    "font": { "label": "Font", "default": "standard", "options": [["standard", "Standard"], ["sans", "DejaVu Sans"], ["sans_bold", "DejaVu Sans Bold"], ["mono", "DejaVu Sans Mono (fixed width)"]], "help": "The font the cameras' names are in. Standard is the one they were always in; a live main camera's name is then in the browser's own font." },
+    "tile_size": { "label": "Tile name size, px", "default": 16, "min": 8, "max": 40, "help": "The height of a tile's name. A screen with more pixels draws it with more of them, so it looks the same size everywhere." },
+    "main_size": { "label": "Main camera name size, px", "default": 20, "min": 10, "max": 60, "help": "The height of the main camera's name and of the clock beside it." },
+    "colour": { "label": "Text colour", "default": "#ffffff", "help": "The colour of the names and the clock." },
+    "tint": { "label": "Background colour", "default": "#000000", "help": "The colour behind a name." },
+    "opacity": { "label": "Background opacity, %", "default": 55, "min": 0, "max": 100, "help": "How solid the colour behind a name is. 0 leaves the name alone on the picture." },
+    "tile_style": { "label": "A tile's name", "default": "bar", "options": [["bar", "Bar"], ["pill", "Pill"], ["none", "None"]], "help": "Bar: across the foot of the tile. Pill: only as wide as the name. None: no name." },
+    "main_style": { "label": "The main camera's name", "default": "pill", "options": [["bar", "Bar"], ["pill", "Pill"], ["none", "None"]], "help": "Bar: across the foot of the main camera. Pill: only as wide as the name. None: no name; the clock stays." },
+    "talk_status": { "label": "Call status at", "default": "top-left", "options": [["top-left", "Top, left"], ["top-centre", "Top, centre"], ["top-right", "Top, right"], ["bottom-left", "Bottom, left"], ["bottom-centre", "Bottom, centre"], ["bottom-right", "Bottom, right"]], "help": "Where the call's state (ringing, answered, time left) goes over the main camera. Put it clear of the date and name your cameras write on their own picture." },
+    "talk_status_x": { "label": "Call status, nudge across, px", "default": 0, "min": -300, "max": 300, "help": "Moves the call's state sideways from where it is put: to the right, or to the left below 0." },
+    "talk_status_y": { "label": "Call status, nudge down, px", "default": 0, "min": -300, "max": 300, "help": "Moves the call's state down from where it is put, or up below 0." },
+    "talk_buttons": { "label": "Talk buttons at", "default": "bottom-right", "options": [["top-left", "Top, left"], ["top-centre", "Top, centre"], ["top-right", "Top, right"], ["bottom-left", "Bottom, left"], ["bottom-centre", "Bottom, centre"], ["bottom-right", "Bottom, right"]], "help": "Where the Talk and hold-to-talk buttons go over the main camera." },
+    "talk_buttons_x": { "label": "Talk buttons, nudge across, px", "default": 0, "min": -300, "max": 300, "help": "Moves the Talk buttons sideways from where it is put: to the right, or to the left below 0." },
+    "talk_buttons_y": { "label": "Talk buttons, nudge down, px", "default": 0, "min": -300, "max": 300, "help": "Moves the Talk buttons down from where it is put, or up below 0." }
+  },
+  "picture": {
+    "main_keep": { "label": "Keep this part of the main camera", "default": "center", "options": [["top-left", "Top left"], ["top", "Top"], ["top-right", "Top right"], ["left", "Left"], ["center", "Centre"], ["right", "Right"], ["bottom-left", "Bottom left"], ["bottom", "Bottom"], ["bottom-right", "Bottom right"]], "help": "When the main camera is cropped, in any layout, the crop keeps this part of its picture and comes off the opposite side. Top left keeps the date and time many cameras write there." }
+  },
+  "fonts": { "sans": "DejaVuSans.ttf", "sans_bold": "DejaVuSans-Bold.ttf", "mono": "DejaVuSansMono.ttf" }
+}

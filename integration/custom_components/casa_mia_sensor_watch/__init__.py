@@ -14,9 +14,10 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from datetime import timedelta
+from typing import Any
 
 import voluptuous as vol
-from homeassistant.components import frontend
+from homeassistant.components import frontend, websocket_api
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     EVENT_SERVICE_REGISTERED,
@@ -54,7 +55,8 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 # setup again with this same code, so reading the manifest then would take a newer
 # version installed since as loaded, and drop its restart Repair.
 LOADED_VERSION = manifest_version()
-CARDS = "cards.js"  # the dashboard card, its editor and the eye, in www/
+CARDS = "cards.js"  # the dashboard cards, their editors and the eye, in www/
+CARDS_VERSION = f"{DOMAIN}/cards"  # the websocket command: which version is served
 # Date watches judged again as time passes (a reminder comes due without its state
 # changing). ponytail: every ten minutes; at the hour a band ends, if that's ever wanted.
 DAYS_EVERY = timedelta(minutes=10)
@@ -141,10 +143,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     cards = f"{panel.URL}/{CARDS}?v={LOADED_VERSION}"
     frontend.add_extra_js_url(hass, cards)
     entry.async_on_unload(lambda: frontend.remove_extra_js_url(hass, cards))
+    websocket_api.async_register_command(hass, _ws_cards)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     _LOGGER.info("Sensor Watch %s started", LOADED_VERSION)
     return True
+
+
+@websocket_api.websocket_command({vol.Required("type"): CARDS_VERSION})
+@callback
+def _ws_cards(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """The version of the cards served now. A page open since before an update still
+    runs the old ones (a browser loads each script once), so they ask at each reconnect
+    and offer a reload when this is newer."""
+    connection.send_result(msg["id"], {"version": LOADED_VERSION})
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

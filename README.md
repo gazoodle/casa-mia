@@ -43,7 +43,7 @@ documentation.
 <tr>
 <td width="25%" valign="top">
 <h4><a href="docs/applets/sensor-watch.md">Sensor Watch</a> <a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta" align="absmiddle"></a><!--sensor_watch--></h4>
-<a href="docs/applets/sensor-watch.md"><img src="docs/screenshots/sensor-watch-detail.webp" alt="Watched sensors, each with its level, value and message: an error, a warning and a task above the nominal ones" width="100%"></a>
+<a href="docs/applets/sensor-watch.md"><img src="docs/screenshots/sensor-watch-detail.webp" alt="Watched sensors, each with its level, value and message: an error, a warning and three tasks under Needs attention, above the nominal ones" width="100%"></a>
 <p>Gives every sensor a level (nominal, task, warning, error or critical) and tells you when one changes. A group covers a whole class of device, so new ones are watched automatically.</p>
 </td>
 <td width="25%" valign="top">

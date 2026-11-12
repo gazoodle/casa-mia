@@ -1,7 +1,8 @@
-import { AreaHead, Empty } from "../page";
+import { Empty } from "../page";
 import guest from "../guest.module.css";
 import pipe from "../pipeline.module.css";
 import ui from "../ui.module.css";
+import { FoldArea } from "./fold";
 import { Act, DRAW_STEPS, Engine, PaceSlider, PauseButton, Table, paceText, seconds } from "./common";
 
 export function GeneratorArea({
@@ -22,12 +23,12 @@ export function GeneratorArea({
   onShow: (id: string) => void;
 }) {
   return (
-    <section className={guest.area}>
-      <AreaHead
+    <FoldArea
+        id={`${which}-generator`}
         title={`${name} generator`}
         blurb={`${blurb} Draws each commander watched from the cache, ${paceText(e.pace ?? 2)}${e.generator_paused ? "; paused: the last pictures are served on" : ""}.`}
         action={<PauseButton paused={!!e.generator_paused} path={`${which}/generator`} name={`${name} generator`} busy={busy} act={act} />}
-      />
+      >
       <PaceSlider which={which} value={e.pace ?? 2} steps={DRAW_STEPS} act={act} />
       {e.error && <p className={guest.empty}>{e.error}</p>}
       {e.needs && <Empty>It needs {e.needs}.</Empty>}
@@ -54,18 +55,18 @@ export function GeneratorArea({
       ) : (
         <Empty>None drawn since nobody last looked.</Empty>
       )}
-    </section>
+    </FoldArea>
   );
 }
 
 export function ServerArea({ which, name, e, busy, act }: { which: string; name: string; e: Engine; busy: boolean; act: Act }) {
   return (
-    <section className={guest.area}>
-      <AreaHead
+    <FoldArea
+        id={`${which}-server`}
         title={`${name} server`}
         blurb={`Port ${e.port}. Sends each viewer the newest picture as it is drawn${e.server_paused ? "; paused: streams hold, single pictures are refused" : ""}. Card: the version of the Camera Commander card that asked, and its name for the stream, which it ends by when it is done with it (none: an older card, or not a card).`}
         action={<PauseButton paused={!!e.server_paused} path={`${which}/server`} name={`${name} server`} busy={busy} act={act} />}
-      />
+      >
       {e.size_test && (
         <p>
           <a href={e.size_test} target="_blank" rel="noopener">
@@ -104,6 +105,6 @@ export function ServerArea({ which, name, e, busy, act }: { which: string; name:
       ) : (
         <Empty>No streams open.</Empty>
       )}
-    </section>
+    </FoldArea>
   );
 }

@@ -1,9 +1,10 @@
-/** A set of levels being edited: bands (or on/off, or exact states), what's outside them,
- * unavailable and the hold-off. Shared by a sensor's editor and a profile's. */
+/** A set of levels being edited: bands (or on/off, or exact states), then what time does to
+ * them (unavailable, hold-off, stale, escalation) and the rest folded under More. Shared by
+ * a sensor's editor and a profile's. */
 
 import { useState, type ReactNode } from "react";
 import { Field } from "../ui";
-import { LEVELS, LEVEL_NAMES, margin, type Accuracy, type Band, type Level, type Side, type StateLevel, type WatchRecord } from "./common";
+import { LEVELS, LEVEL_NAMES, margin, type Accuracy, type Band, type Level, type Side, type Stale, type StateLevel, type WatchRecord } from "./common";
 import css from "./sensor-watch.module.css";
 import ui from "../ui.module.css";
 import { Select } from "../controls";
@@ -36,6 +37,7 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
   const [goneHold, setGoneHold] = useState(String(start?.unavailable_hold ?? 300));
   const [daysUntil, setDaysUntil] = useState(start?.days_until ?? false);
   const [escalate, setEscalate] = useState<Partial<Record<Level, number>>>(start?.escalate ?? {});
+  const [stale, setStale] = useState<Stale>(start?.stale ?? NO_STALE);
   const [accuracyAmount, setAccuracyAmount] = useState(start?.accuracy ? String(start.accuracy.amount) : "");
   const [accuracyPercent, setAccuracyPercent] = useState(start?.accuracy?.percent ?? true);
 
@@ -59,6 +61,7 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
     if (r.unavailable_hold !== undefined) setGoneHold(String(r.unavailable_hold));
     setDaysUntil(r.days_until ?? false);
     setEscalate(r.escalate ?? {});
+    setStale(r.stale ?? NO_STALE);
     setAccuracyAmount(r.accuracy ? String(r.accuracy.amount) : "");
     setAccuracyPercent(r.accuracy?.percent ?? true);
   };
@@ -76,6 +79,7 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
     unavailable_hold: Number(goneHold),
     unavailable,
     ...(Object.values(escalate).some(Boolean) ? { escalate } : {}),
+    ...(stale.after ? { stale } : {}),
     ...(k === "binary"
       ? { off, on }
       : k === "available"
@@ -92,16 +96,33 @@ export function useLevels(start: Partial<WatchRecord> | undefined, kind: Kind) {
   return {
     kind: k, setKind, ladder, setLadder, promoted: opened.promoted, edited, setEdited, otherwise, setOtherwise, off, setOff, on, setOn, other, setOther, available, setAvailable, message, setMessage,
     states, setStates, exceptions, setExceptions, unavailable, setUnavailable, holdOff, setHoldOff, goneHold, setGoneHold, daysUntil, setDaysUntil,
-    accuracyAmount, setAccuracyAmount, accuracyPercent, setAccuracyPercent, accuracy, escalate, setEscalate,
+    accuracyAmount, setAccuracyAmount, accuracyPercent, setAccuracyPercent, accuracy, escalate, setEscalate, stale, setStale,
     adopt, body, sane, problem, drawn: () => toBands(ladder),
   };
 }
 
 export type Levels = ReturnType<typeof useLevels>;
 
-/** The fields for `L`: by its kind, then outside every band, unavailable, hold-off and
- * `extra` (a sensor's name). `seen`: states to tick into the nominal list, with their share. */
-export function LevelFields({ L, unit = "", seen = [], seenLabel = "Seen", extra }: { L: Levels; unit?: string; seen?: [string, number | undefined][]; seenLabel?: string; extra?: ReactNode }) {
+/** The fields for `L`: by its kind, then Over time, then More: what few change, with `extra`
+ * (a sensor's name and Disabled; `extraSet`: one of them is set, so More starts open).
+ * `seen`: states to tick into the nominal list, with their share. */
+export function LevelFields({
+  L,
+  unit = "",
+  seen = [],
+  seenLabel = "Seen",
+  extra,
+  extraSet = false,
+}: {
+  L: Levels;
+  unit?: string;
+  seen?: [string, number | undefined][];
+  seenLabel?: string;
+  extra?: ReactNode;
+  extraSet?: boolean;
+}) {
+  // Open when something in it is set, or it would hide why the sensor behaves as it does.
+  const [more] = useState(() => extraSet || (L.kind === "numeric" && (!!L.accuracy() || L.otherwise !== "error")));
   return (
     <>
       {L.kind === "binary" && (
@@ -180,77 +201,122 @@ export function LevelFields({ L, unit = "", seen = [], seenLabel = "Seen", extra
         </span>
       )}
 
-      <div className={css.settings}>
-        {L.kind === "numeric" && (
-          <Field label="A date: days until it" help="Its state is a date (a reminder due): the bands are the days until it, negative once it's passed.">
-            <input type="checkbox" checked={L.daysUntil} onChange={(e) => L.setDaysUntil(e.target.checked)} />
-          </Field>
-        )}
-        {L.kind === "numeric" && (
-          <Field label="Not a number" help="The level of a state that isn't a number (a sensor reporting text, or a date it can't read).">
-            <LevelSelect value={L.otherwise} onChange={(v) => L.setOtherwise(v as Level)} />
-          </Field>
-        )}
-        {L.kind === "numeric" && (
-          <Field
-            label="Accuracy"
-            help="How far the meter may be out, as a % of the edge or in its unit. A reading that close to an edge holds its level: worse only once surely past it, better as soon as back inside. Empty for none."
-          >
-            <span className={css.accuracy}>
-              ±
-              <input inputMode="decimal" placeholder="none" value={L.accuracyAmount} onChange={(e) => L.setAccuracyAmount(e.target.value)} aria-label="Accuracy" />
-              <Select value={L.accuracyPercent ? "%" : "unit"} onChange={(v) => L.setAccuracyPercent(v === "%")}>
-                <option value="%">%</option>
-                <option value="unit">{unit || "in its unit"}</option>
-              </Select>
-            </span>
-            {(() => {
-              const narrow = tooNarrow(L.drawn(), L.accuracy());
-              return narrow && <span className={css.note}>Wider than half of the band {narrow}: a reading may step through it in one go.</span>;
-            })()}
-          </Field>
-        )}
+      {L.kind === "numeric" && (
+        <label className={css.tick}>
+          <input type="checkbox" checked={L.daysUntil} onChange={(e) => L.setDaysUntil(e.target.checked)} />
+          <span>
+            A date: days until it
+            <span className={css.note}>Its state is a date (a reminder due): the bands are the days until it, negative once it's passed.</span>
+          </span>
+        </label>
+      )}
+
+      <h4 className={css.category}>Over time</h4>
+      <div className={css.overTime}>
         {L.kind !== "available" && (
-          <Field label="When unavailable" help="Unavailable is often the first sign of trouble.">
+          <Sentence note="Unavailable is often the first sign of trouble, but a restart, a reload or a car asleep is usual: it has to last this long first.">
+            {L.unavailable === "ignore" ? (
+              "Unavailable:"
+            ) : (
+              <>
+                Unavailable for
+                <Wait value={Number(L.goneHold) || 0} steps={HOLD_OFFS} format={seconds} onChange={(v) => L.setGoneHold(String(v))} />
+                counts as
+              </>
+            )}
             <LevelSelect value={L.unavailable} ignore onChange={L.setUnavailable} />
-          </Field>
+          </Sentence>
         )}
-        {L.kind !== "available" && L.unavailable !== "ignore" && (
-          <Field label="Unavailable for" help="How long it must be unavailable before that counts: a restart, a reload or a car asleep is usual, not trouble.">
-            <Slider value={Number(L.goneHold) || 0} steps={HOLD_OFFS} format={seconds} ends={["none", "a day"]} onChange={(v) => L.setGoneHold(String(v))} />
-          </Field>
-        )}
-        <Field
-          label="Hold-off"
-          help={L.kind === "available" ? "How long it must be unavailable (or back) before that counts." : "How long a worse level must last before it counts. A better one counts at once."}
-        >
-          <Slider value={Number(L.holdOff) || 0} steps={HOLD_OFFS} format={seconds} ends={["none", "a day"]} onChange={(v) => L.setHoldOff(String(v))} />
-        </Field>
-        {extra}
-        {/* A row of its own: three sliders don't fit one of the grid's columns. */}
-        <div className={css.escalateRow}>
-          <Field
-            label="Escalate"
-            help="A level left standing moves up: having been at it this long (timed from when it began), it shows the next one up, then that one's wait starts. Back to a better level starts again."
+        <Sentence note={L.kind === "available" ? undefined : "The hold-off. A better level counts at once."}>
+          {L.kind === "available" ? "Unavailable (or back) must last" : "A worse level must last"}
+          <Wait value={Number(L.holdOff) || 0} steps={HOLD_OFFS} format={seconds} onChange={(v) => L.setHoldOff(String(v))} />
+          before it counts
+        </Sentence>
+        <Sentence note="Stale: for a sensor that is there but has gone quiet. A report is any update, even of the same value; pick change for a value that ought to move. Home Assistant restarting looks like a report, so the time starts again then.">
+          No
+          <Select value={L.stale.by} onChange={(by) => L.setStale({ ...L.stale, by: by as Stale["by"] })}>
+            <option value="report">report</option>
+            <option value="change">change</option>
+          </Select>
+          for
+          <Wait value={L.stale.after} steps={STALES} format={(s) => (s ? seconds(s) : "never")} onChange={(after) => L.setStale({ ...L.stale, after })} />
+          {L.stale.after > 0 && (
+            <>
+              counts as
+              <LevelSelect value={L.stale.level} beyond="nominal" onChange={(v) => L.setStale({ ...L.stale, level: v as Level })} />
+              <MessageInput placeholder={`no ${L.stale.by} for ${seconds(L.stale.after)}`} value={L.stale.message} onChange={(message) => L.setStale({ ...L.stale, message })} />
+            </>
+          )}
+        </Sentence>
+        {LEVELS.slice(1, -1).map((lv, i) => (
+          <Sentence
+            key={lv}
+            note={lv === "error" ? "Escalation: timed from when the level began. The next level's own time starts then; back to a better level starts again." : undefined}
           >
-            <span className={css.escalate}>
-              {LEVELS.slice(1, -1).map((lv, i) => (
-                <span key={lv}>
-                  {LEVEL_NAMES[lv]} → {LEVEL_NAMES[LEVELS[i + 2]]}
-                  <Slider
-                    value={L.escalate[lv] ?? 0}
-                    steps={ESCALATIONS}
-                    format={(s) => (s ? `after ${seconds(s)}` : "never")}
-                    ends={["never", "90 days"]}
-                    onChange={(v) => L.setEscalate({ ...L.escalate, [lv]: v })}
-                  />
-                </span>
-              ))}
-            </span>
-          </Field>
-        </div>
+            Left at {LEVEL_NAMES[lv]} for
+            <Wait
+              value={L.escalate[lv] ?? 0}
+              steps={ESCALATIONS}
+              format={(s) => (s ? seconds(s) : "never")}
+              onChange={(v) => L.setEscalate({ ...L.escalate, [lv]: v })}
+            />
+            {(L.escalate[lv] ?? 0) > 0 && <>it shows as {LEVEL_NAMES[LEVELS[i + 2]]}</>}
+          </Sentence>
+        ))}
       </div>
+
+      {(L.kind === "numeric" || extra) && (
+        <details className={`${ui.details} ${css.more}`} open={more}>
+          <summary>More</summary>
+          <div className={css.settings}>
+            {L.kind === "numeric" && (
+              <Field label="Not a number" help="The level of a state that isn't a number (a sensor reporting text, or a date it can't read).">
+                <LevelSelect value={L.otherwise} onChange={(v) => L.setOtherwise(v as Level)} />
+              </Field>
+            )}
+            {L.kind === "numeric" && (
+            <Field
+              label="Accuracy"
+              help="How far the meter may be out, as a % of the edge or in its unit. A reading that close to an edge holds its level: worse only once surely past it, better as soon as back inside. Empty for none."
+            >
+              <span className={css.accuracy}>
+                ±
+                <input inputMode="decimal" placeholder="none" value={L.accuracyAmount} onChange={(e) => L.setAccuracyAmount(e.target.value)} aria-label="Accuracy" />
+                <Select value={L.accuracyPercent ? "%" : "unit"} onChange={(v) => L.setAccuracyPercent(v === "%")}>
+                  <option value="%">%</option>
+                  <option value="unit">{unit || "in its unit"}</option>
+                </Select>
+              </span>
+              {(() => {
+                const narrow = tooNarrow(L.drawn(), L.accuracy());
+                return narrow && <span className={css.note}>Wider than half of the band {narrow}: a reading may step through it in one go.</span>;
+              })()}
+            </Field>
+            )}
+            {extra}
+          </div>
+        </details>
+      )}
     </>
+  );
+}
+
+/** One line of Over time, read as a sentence, its controls in their places in it. */
+function Sentence({ note, children }: { note?: string; children: ReactNode }) {
+  return (
+    <div className={css.sentence}>
+      <div>{children}</div>
+      {note && <span className={css.note}>{note}</span>}
+    </div>
+  );
+}
+
+/** A length of time in a sentence: a slider with its value after it. */
+function Wait(props: { value: number; steps: number[]; format: (s: number) => string; onChange: (v: number) => void }) {
+  return (
+    <span className={css.wait}>
+      <Slider {...props} />
+    </span>
   );
 }
 
@@ -395,6 +461,12 @@ function MessageInput({ value, placeholder, onChange }: { value: string; placeho
 
 /** A hold-off's steps, seconds: fine where it matters (the first minutes), up to a day. */
 const HOLD_OFFS = [0, 10, 30, 60, 120, 300, 600, 900, 1800, 3600, 7200, 21600, 43200, 86400];
+
+/** No stale rule (never), with what one starts as when its time is set. */
+const NO_STALE: Stale = { after: 0, by: "report", level: "warning", message: "" };
+
+/** Stale's steps, seconds: never, then five minutes to 30 days. */
+const STALES = [0, 300, 900, 1800, 3600, 2 * 3600, 6 * 3600, 12 * 3600, 86400, 2 * 86400, 3 * 86400, 7 * 86400, 14 * 86400, 30 * 86400];
 
 /** An escalation's steps, seconds: never, then an hour to 90 days. */
 const ESCALATIONS = [0, 3600, 21600, 43200, 86400, 2 * 86400, 3 * 86400, 7 * 86400, 14 * 86400, 30 * 86400, 90 * 86400];

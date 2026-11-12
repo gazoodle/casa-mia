@@ -1,7 +1,8 @@
 /** The filters a big house needs, on one line: a search (names, entity ids and device
- * names) and a chip per filter (domain, area, floor, label, integration, maker, model,
- * device, device class, category, kind), each offering only what some sensor has; the devices only those matching the
- * other filters. The same chips as the watched list's. */
+ * names) and a chip per filter, each offering only what some sensor has; the devices only
+ * those matching the other filters. Domain and area are out from the start (a scan is
+ * told its domain here); floor, label, integration, maker, model, device, device class,
+ * category and kind are behind "More filters". The same chips as the watched list's. */
 
 import { FilterChips, KINDS, type ChipOptions } from "./chips";
 import { NO_FILTERS, type Filters, type Options } from "./common";
@@ -35,7 +36,7 @@ export function FilterBar({ value, options, onChange }: { value: Filters; option
         onChange={(e) => onChange({ ...value, q: e.target.value })}
         aria-label="Search"
       />
-      <FilterChips value={value} options={chips} onChange={onChange} />
+      <FilterChips value={value} options={chips} onChange={onChange} common={["domain", "area"]} />
       {filtering && (
         <button type="button" className={css.chip} onClick={() => onChange(NO_FILTERS)}>
           Clear all

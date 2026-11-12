@@ -123,7 +123,7 @@ export function ProfilesSection({
               </button>
               <span className={css.rowActions}>
                 <button className={`${ui.button} ${ui.small}`} onClick={() => onApply(p)}>
-                  Apply to…
+                  Give its levels to…
                 </button>
                 <button className={`${ui.danger} ${ui.small}`} onClick={() => remove(p)}>
                   Delete

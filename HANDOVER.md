@@ -65,11 +65,8 @@ labels did: `compositor_enabled` is **Camera Commander**, `camera_dashboard_enab
   motion detection switch, thumbnails and a live view dialog. Saved at once.
 - **Camera Commander** (`modules/commander/`: store.Base → live.Live → api.Commander,
   `commanders.json`): saved straight to live; writes `compositor.json`. Track motion has
-  **Never takes over** (`motion_ignore`). **Arrange…** (`app/web/src/commander/arrange.tsx`)
-  searches with the cards' `arrange.ts`, which is for the admin page only and has no Python
-  twin: every sharing of the cameras between the edges picked is laid out by the real
-  engine and scored on that, in three tile fits (exact, best, vary). Its picture is the
-  app's own drawing of the draft (`LivePreview`).
+  **Never takes over** (`motion_ignore`). Arrange… was removed in 2026.11.5-b4 (owner,
+  2026-11-11: it didn't work); the panels are set by hand. Its code is in git before then.
 - **Compositor** (`modules/compositor/`: Generator → PictureServer → Compositor; gatherer
   Cache → Fetcher → Survey → Monitor → Gatherer): draws each commander as one picture from
   go2rtc streams.
@@ -98,9 +95,14 @@ from `casa_mia` and works with no app. No app option: a user adds the integratio
 - **`admin.py`** starts it and serves the page: one websocket command carrying the
   records' routes (`casa_mia_sensor_watch/api`), and pushed feeds (levels, summary, one
   entity's watch). A feed outlives the watcher: it says "not running" when Sensor Watch
-  stops and sends everything when it starts again. All admin-only.
+  stops and sends everything when it starts again. All admin-only but the one entity's
+  feed, which any signed-in user may have (the gauge card is on dashboards) and which
+  carries the watch's bands. `records/setup.py` offers the set-up's groups (the page's
+  `wizard.tsx` makes them with the ordinary routes).
 - **Watching:** `levels.py` holds the one evaluator, with no HA imports (accuracy,
-  escalation); `watch.py` tracks states, hold-offs and timers, fires
+  escalation); `stale.py` holds one deadline per entity with a stale rule, set from its
+  last report and looked at when due (a restart re-stamps every entity, so the message
+  then says only "since Home Assistant started"); `watch.py` tracks states, hold-offs and timers, fires
   `casa_mia_sensor_watch`; status, counts and problem entities; the `list` and `refresh`
   services; device triggers; `blueprint.py` installs and keeps up **Notify on Sensor
   Watch** (still at `blueprints/automation/casa_mia/`, so automations made from it carry
@@ -114,7 +116,9 @@ from `casa_mia` and works with no app. No app option: a user adds the integratio
   `tests/test_sensor_watch_ladder.py`); the stored format is bands, and
   `records/common.py` `_ladder` refuses anything else on save.
 - **Cards:** a bundle of its own, `www/cards.js` (`integration/cards/src/sensor-watch/`,
-  `vite.sensor-watch.config.ts`): `custom:casa-mia-sensor-watch` (hides when clear), and
+  `vite.sensor-watch.config.ts`): `custom:casa-mia-sensor-watch` (hides when clear),
+  `custom:casa-mia-sensor-watch-gauge` (its arc is the watch's bands, pushed; `gauge.ts`,
+  the maths in `common.ts`), and
   the eye in HA's entity dialog (`eye.ts` patches `ha-more-info-dialog`; a tap navigates
   to `/sensor-watch?watch=<entity>&at=<ms>`, which the panel reads off HA's address).
 - **Where it meets Casa Mia**, only through Home Assistant:
@@ -242,6 +246,126 @@ CLAUDE.md has them all. What trips agents here:
 
 ## What happened
 
+- **2026-11-11: the Camera Commander's Responsive layout is specified, not built**
+  (`docs/design/commander-responsive-layout.md`, agreed by the owner): a second mode
+  beside today's (now called Fixed), in which the layout is worked out for each size from
+  the camera list and a few limits. Read the spec before touching the commander's layout;
+  its order of work starts with a draggable stage on the editor, for Fixed.
+  - **Step 1, the stage, is built in 2026.11.5-b5** (not committed, not on the box):
+    `app/web/src/commander/stage.tsx` lays the commander out in the browser with the
+    cards' `layout.ts` and the page's thumbnails, at a size dragged by a corner handle;
+    `integration/cards/src/measure.ts` gives the facts under it. Seen in headless
+    Chromium against a mocked API with an invented commander (the handover's "UI checks
+    without the box" recipe; the API's addresses end in a slash, so mock with a regex).
+    Not seen with real cameras, by touch on an iPad, or in Safari.
+  - **Step 2, the solver, is built in 2026.11.5-b6**: `responsive()` in
+    `modules/compositor/responsive.py` and `integration/cards/src/responsive.ts`, whole
+    numbers only, checked against `tests/responsive_cases.json` (write it again with
+    `PYTHONPATH=app/src:tests .venv/bin/python tests/test_responsive_cases.py`). Its
+    options and defaults are `layout.json`'s `responsive`. Nothing calls it yet. Building
+    it changed seven points of the spec, which the owner agreed; they are listed there
+    and hold over the text above them.
+  - **Step 3, drawing it, is built in 2026.11.5-b7** (not committed). A commander has
+    `mode` (`fixed` or `responsive`) and `responsive` (its `cameras` and limits); both
+    modes' settings are kept. **`placed(cmd, main)`** (`compositor/drawing.py`, and
+    `integration/cards/src/placed.ts`) says where everything is in either mode, and the
+    picture, the channel choice, the camera dashboard's zones, the card and the page's
+    stage all read it: use it, not `commander_layout`, for anything new. Nothing on the
+    page sets the mode yet (step 4), so it was seen only on the stage against a mocked
+    API with `mode` set by hand, and in tests. The card over a Responsive picture has not
+    been seen in a browser.
+  - **Step 4, the editor, is built in 2026.11.5-b8** (not committed):
+    `app/web/src/commander/responsive.tsx` (the cameras, the limits, the edges as chips,
+    Reset to defaults), the Layout switch in `editor.tsx`, and the stage saying which
+    limits gave way and which cameras have no room. Driven in headless Chromium against
+    a mocked API: switch, slider, edges, reset, save, and back to Fixed. Not seen with
+    real cameras. Step 5 is what a tap on "+n more" does.
+  - **2026.11.5-b9** (owner, 2026-11-11, after seeing b8 on the test tablet): a cell
+    where two edges meet is the *later* edge's (`_cells` and its twin), so spare cells
+    are in the picture's corner, not between the strips. The owner turned down corners
+    as items in the edge list (YAGNI). The stage lists the sizes on screens now
+    (`drawnAt` in `stage.tsx`, from the compositor's status, read once on opening).
+  - **2026.11.5-b10** (not committed): each commander's `labels` (options once, in
+    `labels.json`, not `layout.json`, which Sensor Watch's cards bundle): font, sizes, colours, bar/pill/none, and where
+    the card's Talk chips go. `compositor/labels.py` draws the names; the card and the
+    stage draw theirs from `cards/src/labels.ts`. The three DejaVu fonts live once, in
+    `casa_mia/www/fonts` (the compositor reads them from the bundled component, the
+    card from HA, the page from `api/compositor/font/<file>`). Seen in headless
+    Chromium against a mocked API; **the card's caption and Talk chips are not seen in
+    a browser**, and nothing is seen on the box. Lesson: b9's "On screens now" asked
+    for `status` where the status is the API's root, and the mock had the same wrong
+    address, so it passed; check a mocked address against the app's own routes.
+  - **2026.11.5-b11** (not committed; the owner's notes on b10): pills have rounded
+    ends and one height for their size (`labels.py` `name`, the card's `.caption.pill`,
+    the stage's CSS); `talk_status_x/_y` and `talk_buttons_x/_y` nudge the Talk chips
+    (`labels.ts` `nudge`); and the stage had an older `.main span` rule holding the
+    main name at 14 px. Lesson: measure each setting in the browser at more than one
+    value; b10's check only looked at one.
+    Also in b11: the stage names the camera cropped the most (`lostBy`, `shapeName` in
+    `measure.ts`), says when Show whole changes nothing, and lays the compositor's
+    picture of the main camera's medium or high channel over its thumbnail.
+  - **Looked into and not a fault (2026-11-11):** the owner saw no change between Crop
+    to fill and Show whole with one camera as the main one. Read from the live box's
+    state: that camera's recorded shape matches every one of its channels, so the
+    recorded shape is right. The stage shows the commander's main camera *at start*, not the one now
+    chosen on a tablet, so a 16:9 start camera shows no change; the stage now says so
+    by name. Not seen failing on a tablet. Also in b11: the stage takes its first
+    camera when none is set at start (empty main area since b5), and the Camera
+    compositor page's sections fold (`compositor/fold.tsx`, kept per browser).
+  - **2026.11.5-b12** (not committed): a commander's `main_keep` (one of nine places,
+    the Over layer's anchor names; `labels.json` `picture`) is where a cropped main
+    camera is cropped about: `labels.py` `keep` (Pillow's centering), `labels.ts`
+    `keepPosition` (object-position) for the card's live video and the stage. One
+    value for all modes, tiles stay centred; per-camera alignment was talked of and
+    left (owner, 2026-11-11). "Re-lay out for its shape" is now "Fit the layout to
+    it", which changes `layout.json` and so Sensor Watch's card bundle and version.
+    `NinePoint` is new chrome (`controls.tsx`), not yet on the chrome cheat sheet.
+  - **2026.11.5-b13** (not committed; the owner's phone showed tiles on all four
+    sides and "+6 more" top right): the solver's fallback no longer keeps edges that
+    found no fit (both engines; `STRIP` and the "phone's strip" cases in
+    `tests/test_responsive_cases.py`), and a Responsive card in a column under 500 px
+    takes the room below it (`columnHeight` in `commander/common.ts`). Still open: at
+    a boundary the same CSS space lays out differently at 1x and 3x (the "phone's
+    strip, 3x" case fits where 1x gives way), as the arithmetic is in device pixels.
+  - **2026.11.5-b14** (not committed): the stage's sharper main picture asked for the
+    medium channel, whose cache entry is the "(Waiting …)" placeholder unless a watched
+    commander has fetched it. It now asks `thumb/<camera>?largest=1` (`cache.largest`:
+    the biggest channel that has really come, else 404 and the thumbnail stays).
+- **Camera Commander's guide (2026-11-12, docs only):** reworked for Responsive: Fixed or
+  Responsive?, four worked examples, and eight pictures, all taken on the test VM. The
+  VM's invented house now has 26 Generic Cameras, each a still served from its own
+  `www/cams` (the Swap's AI-generated stand-in pictures and names, by the owner's word),
+  three commanders (Whole house, Front of house, Doorbells) and views for them on its
+  House dashboard, with Live main camera off there (a still has no live video). The
+  Camera Commander integration had to be accepted under Discovered once the module had
+  commanders. The scripts that made it were scratch files and are gone; the steps are in
+  the saved note on the test VM.
+- **Sensor Watch's guide (2026-11-12, docs only):** its first picture is retaken from the
+  test VM (the card and four gauges, nothing else), and **How it works** near the top is
+  a Mermaid diagram written to match `watch.py` `_consider` (better at once, worse after
+  the hold-off, unavailable's longer wait, Stale at once, escalation). Rendered with
+  Mermaid 10.9 to check it parses; not yet seen on GitHub.
+- **2026.11.5-b3** (2026-11-11; **both seen working by the owner on the live box that day**): two
+  Camera Commander faults on the owner's Mac.
+  - **Safari over https showed no tiles.** HA's service worker handles every GET on HA's
+    address, and Safari drops an endless stream that comes through a worker (shown with a
+    stand-in page with no HA or Casa Mia code). The card, when its `<img>` stream fails
+    on a page a worker controls, takes the picture as frames over a WebSocket
+    (`pictures.py` `.ws`, `base.ts` `followPicture`). A hard refresh does not skip the
+    worker in Safari: don't suggest it.
+  - **The HA app for the Mac has no WebRTC.** `liveBy` picks WebRTC, else HLS
+    (`webrtc.ts` `playHLS`, HA's `camera/stream`), else the drawn main camera; Talk needs
+    WebRTC. HLS needs an explicit `play()`, a frame callback asked for before it loads
+    is dropped, and its first frame took 8.5 s from cold (measured in Safari).
+- **2026.11.5-b1** (2026-11-11; b2 is a refactor of the cards' reload offer; committed for the
+  owner to try on the live box, where none of it has run yet): Sensor Watch gets Stale, the
+  gauge card, the set-up (Set up…, four steps), Needs attention, More filters, the
+  editor's Over time block. **A released bug fixed:** since 2026.11.2-b27 `Watcher._held`
+  was both the hold-off's method and a dict, so a level that had to wait out its hold-off
+  never counted (2026.11.2 to 2026.11.4); the dict is `_unsaid` now. No test had let a
+  hold-off's timer fire inside a real HA; `tests_ha` does now. Screenshots of the page,
+  group, set-up and gauge are from the test VM's invented house; the editor's is still
+  to retake on a box with a month of statistics.
 - **2026.11.3** (2026-11-10): released, and Sensor Watch's mirror published for the first
   time (phase 5, step 5).
 - **2026-11-10:** phase 4, no build. `tools/mirror.py` generates a published component's
@@ -292,9 +416,6 @@ CLAUDE.md has them all. What trips agents here:
   purpose at the top of CLAUDE.md and RULE FIVE.
 - **2026-10-19 and 2026-11-10, why the wall tablets show no live video:** see "Where things
   stand". 2026.11.2-b22 built the card's camera ladder out of it.
-- **2026.11.2-b23** (2026-11-10): the Commander's Arrange dialog reworked (edges and their
-  fill order as chips, the real picture, Best fit / Sizes vary / Exact shape, more to step
-  between).
 - **2026.10.11** (released; soft launch 2026-10-29): Sensor Watch pushed to the integration
   (b13), accuracy (b14), notifications in words and escalation (b15), the eye in HA's
   entity dialog (b16), the band ladder (b25), readied for launch and rated Beta (b26–b31);
@@ -316,14 +437,20 @@ CLAUDE.md has them all. What trips agents here:
 - **Next: Sensor Watch's testers and clean installs** (phase 5, steps 6 to 8 of
   `docs/design/marketplace-mirrors.md`). Casa Mia 2026.11.3 was released on 2026-11-10,
   and Sensor Watch is published by itself at `gazoodle/casa-mia-sensor-watch` (2026.11.3;
-  HACS's action and hassfest pass). It is in no catalog yet: testers add it as a custom
-  repository; the test VM installed it that way from the Marketplace on 2026-11-11.
+  HACS's action and hassfest pass; 2026.11.4 added its code owner). Its catalog
+  submission is hacs/default#13883 (2026-11-11; reviews take months). Until then testers
+  add it as a custom repository; the test VM installed and updated it that way from the
+  Marketplace on 2026-11-11.
   The live box handed Sensor Watch over correctly on a b3 build. Installing
   2026.11.2 or earlier now removes Sensor Watch's folder: restore a backup instead.
-- **The test VM** was left on Home Assistant 2026.9.4 with the app at 2026.11.3-b3
-  (`local_casa_mia`), Sensor Watch at 2026.11.3-b2, the stable app
-  installed and stopped, and a test automation (`cm_old_trigger`) using the old device
-  trigger.
+- **The test VM** (Home Assistant 2026.11.1 on 2026-11-11) has Sensor Watch's
+  2026.11.5-b1 files copied over the Marketplace's 2026.11.4, and **an invented house the
+  owner asked to keep** (2026-11-11): 16 template helpers (leak, smoke and problem
+  sensors, batteries, a hot water temperature, four plug voltages), and what the set-up
+  made from them (nine groups, 25 watched, the library's UK mains voltage profile, one
+  notify automation). The docs' screenshots come from it: don't clear it. Left there
+  earlier and not checked since: the stable app installed and stopped, and a test
+  automation (`cm_old_trigger`) using the old device trigger.
 - **Never silently stuck: go one step at a time** (2026-10-12). The owner wants it slow and
   methodical: one agreed step, built, recorded in `docs/never-silently-stuck.md`, seen on
   the test tablet, never redone; nothing planned beyond it; analyse before code, change

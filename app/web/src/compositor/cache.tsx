@@ -1,10 +1,9 @@
-import { useState } from "react";
 import { BinIcon } from "../icons";
-import { AreaHead } from "../page";
 import { Dialog, Segmented } from "../ui";
 import guest from "../guest.module.css";
 import pipe from "../pipeline.module.css";
 import ui from "../ui.module.css";
+import { FoldArea, useKept } from "./fold";
 import { Act, Cache, Channel, ENGINES, State, StateBadge, Status, Table, Use, mb, ms, plural, seconds } from "./common";
 
 /** A picture in the cache: a camera channel's (from the gatherer) or a composite (a
@@ -74,26 +73,6 @@ export type View = "tiles" | "list";
 
 export type Sort = "name" | "age";
 
-/** A per-viewer choice kept in this browser (try: storage may be blocked). */
-export function useKept<T extends string>(key: string, fallback: T): [T, (v: T) => void] {
-  const [value, setValue] = useState<T>(() => {
-    try {
-      return (localStorage.getItem(key) as T) || fallback;
-    } catch {
-      return fallback;
-    }
-  });
-  const set = (v: T) => {
-    setValue(v);
-    try {
-      localStorage.setItem(key, v);
-    } catch {
-      /* not kept: fine */
-    }
-  };
-  return [value, set];
-}
-
 export function CacheArea({
   items,
   cache,
@@ -128,8 +107,8 @@ export function CacheArea({
     </button>
   );
   return (
-    <section className={guest.area}>
-      <AreaHead
+    <FoldArea
+        id="cache"
         title="Cache"
         blurb={`Every picture kept: each camera channel's newest (“(Waiting …)” until its first comes) and each composite the generators drew. ${plural(cache.pictures, "picture")} (${cache.cameras} cameras', ${cache.composites} composites; ${cache.waiting} channels waiting) and ${plural(cache.thumbnails, "thumbnail")}: ${mb(cache.bytes)}. Tap one for a live view; a bin purges it.`}
         action={
@@ -137,7 +116,7 @@ export function CacheArea({
             Purge all
           </button>
         }
-      />
+      >
       <div className={pipe.controls}>
         <Segmented value={view} options={[["tiles", "Tiles"], ["list", "List"]]} onChange={setView} />
         <Segmented value={sort} options={[["name", "By name"], ["age", "Newest first"]]} onChange={setSort} />
@@ -190,7 +169,7 @@ export function CacheArea({
           ))}
         </Table>
       )}
-    </section>
+    </FoldArea>
   );
 }
 

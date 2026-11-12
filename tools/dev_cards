@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Work on the Lovelace cards against the box, with no app update and no HA restart: rebuild
-# cm-cards.js on every save straight into the box's own copy (its config share mounted on
-# this Mac), then hard-refresh the browser (Cmd-Shift-R). The integration must already load
-# cm-cards.js (one normal deploy). The next app start puts the committed build back, so run
+# cm-cards.js, and Sensor Watch's cards.js where its integration is installed, on every
+# save straight into the box's own copies (its config share mounted on this Mac), then
+# hard-refresh the browser (Cmd-Shift-R). The integrations must already load them (one
+# normal deploy). The next app start puts the committed builds back, so run
 # tools/build_cards and commit when done.
 #   CM_BOX_CONFIG  the mounted config share (default /Volumes/config)
 set -euo pipefail
@@ -10,5 +11,11 @@ cd "$(dirname "$0")/../integration/cards"
 out="${CM_BOX_CONFIG:-/Volumes/config}/custom_components/casa_mia/www"
 [ -d "$out" ] || { echo "no $out: mount the box's config share (Samba) first" >&2; exit 1; }
 [ -d node_modules ] || npm ci --no-audit --no-fund
+sw="$(dirname "$(dirname "$out")")/casa_mia_sensor_watch/www"
+if [ -d "$sw" ]; then
+  echo "watching integration/cards/src -> $sw/cards.js"
+  CM_SW_CARDS_OUT="$sw" npx vite build --watch --minify false -c vite.sensor-watch.config.ts &
+  trap 'kill $!' EXIT  # the second watcher ends with this script
+fi
 echo "watching integration/cards/src -> $out/cm-cards.js (Ctrl-C to stop)"
-CM_CARDS_OUT="$out" exec npx vite build --watch --minify false
+CM_CARDS_OUT="$out" npx vite build --watch --minify false

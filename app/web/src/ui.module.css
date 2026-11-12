@@ -861,3 +861,29 @@
     transition: none;
   }
 }
+
+/* One of nine places, a 3 x 3 grid to tap (controls.tsx: NinePoint), as the Over layer
+   card's editor draws its own. */
+.nine {
+  display: inline-grid;
+  grid-template-columns: repeat(3, 26px);
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+}
+
+.nine button {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--accent);
+  border-radius: 5px;
+  background: none;
+  cursor: pointer;
+}
+
+.nine button[aria-checked="true"] {
+  background: var(--accent);
+}

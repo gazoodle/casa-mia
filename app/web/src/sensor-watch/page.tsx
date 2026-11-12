@@ -14,6 +14,7 @@ import { useLevels } from "./live";
 import { ProfileDialog, ProfilesSection } from "./profiles";
 import { SystemSection } from "./system";
 import { WatchedList } from "./watched";
+import { SetupDialog } from "./wizard";
 import css from "./sensor-watch.module.css";
 import guest from "../guest.module.css";
 import ui from "../ui.module.css";
@@ -32,6 +33,7 @@ export function SensorWatchPage({ menu, watch, at }: { menu?: () => void; watch?
   const [editing, setEditing] = useState<{ entityId: string; record?: WatchRecord }>();
   const [picking, setPicking] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [settingUp, setSettingUp] = useState(false);
   // A profile being edited (null: a new one), or followed by more sensors.
   const [profileEditing, setProfileEditing] = useState<Profile | null>();
   const [profileCopy, setProfileCopy] = useState<Profile>();
@@ -132,6 +134,9 @@ export function SensorWatchPage({ menu, watch, at }: { menu?: () => void; watch?
           blurb={view.records.length ? `${view.records.length} watched; the chips filter them and give the counts.` : "Nothing watched yet."}
           action={
             <span className={css.actions}>
+              <button className={ui.button} onClick={() => setSettingUp(true)}>
+                Set up…
+              </button>
               <button className={ui.button} onClick={() => setScanning(true)}>
                 Scan my house
               </button>
@@ -146,6 +151,9 @@ export function SensorWatchPage({ menu, watch, at }: { menu?: () => void; watch?
             <Start
               actions={
                 <span className={css.actions}>
+                  <button className={ui.primary} onClick={() => setSettingUp(true)}>
+                    Set up, step by step…
+                  </button>
                   <button className={ui.button} onClick={() => setGroupEditing(null)}>
                     + New group
                   </button>
@@ -184,9 +192,6 @@ export function SensorWatchPage({ menu, watch, at }: { menu?: () => void; watch?
                   ),
                 `${r.label}: watched again`,
               )
-            }
-            onStop={async (r) =>
-              (await confirmBox(`Stop watching ${r.label}?`, { action: "Stop watching", danger: true })) && change(() => swApi.del<WatchView>(encodeURIComponent(r.entity_id)), `${r.label}: no longer watched`)
             }
           />
         )}
@@ -238,6 +243,10 @@ export function SensorWatchPage({ menu, watch, at }: { menu?: () => void; watch?
           record={editing.record}
           profiles={view.profiles ?? []}
           onClose={() => setEditing(undefined)}
+          onStop={async (r) => {
+            if (!(await confirmBox(`Stop watching ${r.label}?`, { action: "Stop watching", danger: true }))) return;
+            if (await change(() => swApi.del<WatchView>(encodeURIComponent(r.entity_id)), `${r.label}: no longer watched`)) setEditing(undefined);
+          }}
           onGroup={(f) => {
             setEditing(undefined);
             setGroupSeed(f);
@@ -250,6 +259,18 @@ export function SensorWatchPage({ menu, watch, at }: { menu?: () => void; watch?
         <ScanDialog
           profiles={view.profiles ?? []}
           onClose={() => setScanning(false)}
+          onAccepted={(records) => change(() => swApi.post<WatchView>("accept", { records }), `${records.length} sensors watched`)}
+        />
+      )}
+      {settingUp && (
+        <SetupDialog
+          view={view}
+          onView={setView}
+          onClose={() => setSettingUp(false)}
+          onGroup={(id) => {
+            setSettingUp(false);
+            setGroupEditing(view.groups.find((g) => g.id === id));
+          }}
           onAccepted={(records) => change(() => swApi.post<WatchView>("accept", { records }), `${records.length} sensors watched`)}
         />
       )}

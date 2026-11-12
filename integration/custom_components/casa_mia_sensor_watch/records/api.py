@@ -23,6 +23,7 @@ from .profiles import (
     suited,
 )
 from .scans import _days
+from .setup import classes
 from .store import _describe
 
 _LOGGER = logging.getLogger(__name__)
@@ -72,6 +73,8 @@ class SensorWatch(Grouper):
             return self._system(method, parts[1:], body)
         if method == "GET" and parts == ["check"]:
             return _json(200, self.check())
+        if method == "GET" and parts == ["setup"]:
+            return _json(200, self.setup())
         if method == "GET" and parts == ["candidates"]:
             return _json(200, self.candidates(q))
         if method == "GET" and parts == ["library"]:  # the library, for one sensor
@@ -131,6 +134,18 @@ class SensorWatch(Grouper):
         if c is None:
             raise BadRequest(f"{entity_id} is not a sensor Sensor Watch can watch.")
         return suited(c, library())
+
+    def setup(self) -> dict[str, Any]:
+        """The set-up's first step (setup.py): what the house has many of, as groups to
+        make, with the mains profile for Home Assistant's country."""
+        reader = self._reader()
+        (config,) = reader.ha.call({"type": "get_config"})
+        country = (config or {}).get("country")
+        with self._lock:
+            watched = set(self.records)
+            groups = [dict(g) for g in self.groups.values()]
+        found = classes(reader.candidates(), watched, groups, library(), country)
+        return {"classes": found, "country": country}
 
     def check(self) -> dict[str, Any]:
         """Is HA's Recorder running? A serious fault in HA if not."""

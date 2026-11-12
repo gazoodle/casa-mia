@@ -9,7 +9,7 @@ import { StrictMode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { Asks } from "../confirm";
 import "../styles.css";
-import { connect, type Conn } from "./ha";
+import { connect, type Home } from "./ha";
 import { SensorWatchPage } from "./page";
 
 // The build's one stylesheet, beside this file; it keeps this file's ?v=<version>, so
@@ -26,7 +26,7 @@ const styled = new Promise<void>((done) => {
   document.head.append(sheet);
 });
 
-type Hass = { connection: Conn; dockedSidebar?: string };
+type Hass = Home & { dockedSidebar?: string };
 
 class Panel extends HTMLElement {
   private root?: Root;
@@ -34,10 +34,11 @@ class Panel extends HTMLElement {
   private isNarrow = false;
   private docked?: string;
 
-  // Set at every state change in Home Assistant: only its connection and the sidebar's
-  // setting are used, so nothing is drawn again for the rest.
+  // Set at every state change in Home Assistant: only its connection, its services (read
+  // when the set-up asks) and the sidebar's setting are used, so nothing is drawn again
+  // for the rest.
   set hass(hass: Hass) {
-    connect(hass.connection);
+    connect(hass);
     this.docked = hass.dockedSidebar;
     this.draw();
   }
