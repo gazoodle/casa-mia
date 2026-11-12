@@ -1,7 +1,10 @@
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import css from "../cameras.module.css";
 import ui from "../ui.module.css";
+import edges from "./edges.module.css";
+import { Segmented } from "../ui";
 import { Control, Entities, ThumbRound } from "./common";
+import { type ControlsAt, EDGES, controlsAt } from "./controls";
 
 /** Closes a popup (calls `close`) on a tap or click outside the returned ref. On the
  * finished click, not the press: closing a tall list moves the page, and a press that
@@ -116,18 +119,59 @@ export function EntityInput({
 }
 
 /** A camera's small still, fetched again each thumbnail round; a blank frame if it has none. */
-export function Thumb({ entity }: { entity: string }) {
+export function Thumb({ entity, className = css.thumb }: { entity: string; className?: string }) {
   const round = useContext(ThumbRound);
   const [failed, setFailed] = useState<number>();
-  if (failed === round) return <span className={css.thumb} aria-hidden="true" />;
+  if (failed === round) return <span className={className} aria-hidden="true" />;
   return (
     <img
-      className={css.thumb}
+      className={className}
       src={`api/cameras/thumb/${encodeURIComponent(entity)}?r=${round}`}
       alt=""
       loading="lazy"
       onError={() => setFailed(round)}
     />
+  );
+}
+
+/** Where a camera's controls go on a commander's full screen: an edge for a wide screen
+ * and one for a tall one, each shown on a screen of that shape over the camera's still. */
+export function ControlsEdges({
+  entity,
+  controls,
+  value,
+  onChange,
+}: {
+  entity: string;
+  controls: Control[];
+  value?: Partial<ControlsAt>;
+  onChange: (at: ControlsAt) => void;
+}) {
+  const at = controlsAt(value);
+  const entities = useContext(Entities);
+  const names = controls.map((c) => c.name || entities.find((e) => e.entity === c.entity)?.name || c.entity);
+  return (
+    <div className={edges.edges}>
+      {(["landscape", "portrait"] as const).map((shape) => (
+        <div key={shape} className={edges.edgeOf}>
+          <Segmented
+            value={at[shape]}
+            options={EDGES.map((e) => [e, e[0].toUpperCase() + e.slice(1)])}
+            onChange={(edge) => onChange({ ...at, [shape]: edge })}
+          />
+          <div className={`${edges.screen} ${edges[shape]}`} aria-label={`A ${shape} screen`}>
+            <Thumb entity={entity} className={edges.screenPicture} />
+            <div className={`${edges.screenControls} ${edges[at[shape]]}`}>
+              {names.map((n, i) => (
+                <span key={i} className="cm-pill cm-filled">
+                  {n}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 

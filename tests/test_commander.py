@@ -207,6 +207,8 @@ def test_the_page_flips_only_the_commanders_switches(tmp_path):
 def test_each_commander_has_its_own_main_camera(tmp_path, monkeypatch):
     store = commander_store()
     store["commanders"].append({**store["commanders"][0], "name": "Phone", "id": "p1"})
+    edges = {"landscape": "right", "portrait": "bottom"}
+    store["cameras"]["camera.a_low"]["controls_at"] = edges
     live = Compositor(tmp_path, "http://127.0.0.1:1", "t", port=0)
     cmd = make(
         tmp_path,
@@ -234,6 +236,10 @@ def test_each_commander_has_its_own_main_camera(tmp_path, monkeypatch):
             "live": "/dashboard-cams/cam-tablet",
             "channels": [["camera.b", 0, 0]],  # each channel, its size not known yet
         }
+        # a camera's controls and their edges, for the card's full screen
+        bay = card["cameras"]["camera.a_low"]
+        assert bay["controls"] == [{"entity": "button.gate"}]
+        assert bay["controls_at"] == edges
         assert card["layout"]["main_fit"] == "fit" and "left" in card["layout"]
         body = b'{"main": "Tablet", "commander": "p1"}'
         assert cmd.control("main", body) == 200

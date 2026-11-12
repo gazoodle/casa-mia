@@ -5,9 +5,10 @@ import type { Commander } from "../placed.ts";
 import type { Labels } from "../labels.ts";
 import type { Corner } from "./motion.ts";
 import type { Duplex } from "./talk-rules.ts";
+import type { Control, ControlsAt } from "../../../../app/web/src/cameras/controls.ts";
 
 export type Route = "auto" | "direct" | "ha";
-export type Config = { type: string; entity?: string; tap_main?: "live" | "more-info" | "none"; route?: Route; away_sharpness?: Sharpness; live_main?: boolean;
+export type Config = { type: string; entity?: string; tap_main?: "live" | "more-info" | "full" | "none"; route?: Route; away_sharpness?: Sharpness; live_main?: boolean;
   leave_after?: number;
   grid_options?: { rows?: number | string };
   /** The Security look, on or off (a template, later), and its tint ([r, g, b]), strength and darkness (%). */
@@ -32,8 +33,9 @@ export type Card = {
   picture: string;
   layout: Commander & { labels?: Partial<Labels>; main_keep?: string; highlight?: Record<string, string | number>; debug?: { on?: boolean; colour?: string } };
   start: string;
-  /** Each camera: its title, live page, and channels smallest first, with their sizes. */
-  cameras: Record<string, { title: string; live: string; channels?: [string, number, number][] }>;
+  /** Each camera: its title, live page, channels smallest first, with their sizes, and
+   * its controls with the edge they go along on a full screen (card.ts: full screen). */
+  cameras: Record<string, { title: string; live: string; channels?: [string, number, number][]; controls?: Control[]; controls_at?: Partial<ControlsAt> }>;
   /** The compositor's Live main camera switch. */
   live_main?: boolean;
   /** This run of the app: when it changes, the app restarted and the stream with it. */

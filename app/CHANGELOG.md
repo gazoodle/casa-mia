@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.6-b1
+
+- **Camera Commander: a main camera can be shown full screen, with its controls.** The card's **A tap on the main camera** has a new choice, **Shows it full screen, with its controls**. A tap then shows that camera live over the whole screen, Home Assistant's header and sidebar too, with its **Page controls** (a gate, a light) as buttons along one edge. A tap on a button toggles it, as on the camera dashboard. A control that is unavailable or not found is greyed and says so. A tap anywhere else on the picture goes back to the commander. Talk carries on through it, so you can answer the door, open the gate and keep talking. The camera stays full screen when another device changes the main camera. Where the camera can't play live (the compositor's **Live main camera** switch off, or a device without WebRTC or HLS) the tap opens its more-info instead, and full screen ends by itself if live stops being possible, such as when the page is hidden.
+  - **Where the controls go** is set per camera on the **Cameras** page, under **Controls on a full screen**: one edge for a wide screen and one for a tall one, each with a preview over the camera's still. Both start at the bottom.
+
 ## 2026.11.5
 
 - **Fixed: Sensor Watch never counted a level that had to wait out its hold-off** (in 2026.11.2, 2026.11.3 and 2026.11.4). A worse level, or unavailable, that was still inside its hold-off when it began stayed at its old level when the wait ran out, with `TypeError: 'dict' object is not callable` in Home Assistant's log, and no event was sent. A level found when Home Assistant started, when a watch was saved or at Refresh state still counted, as did a better level and a level with no hold-off, so the page was right after a restart and went out of date afterwards. Nothing needs changing after the update: every sensor is judged again when Sensor Watch starts.

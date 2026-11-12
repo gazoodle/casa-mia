@@ -304,7 +304,10 @@ Its options (each left at its default unless you change it):
 - **Commander:** which one.
 - **A tap on the main camera:** opens its **more-info**, Home Assistant's camera dialog
   with live video (the default); or **its page on the camera dashboard** (more-info when
-  there is no dashboard); or nothing.
+  there is no dashboard); or **full screen, with its controls**; or nothing. Full screen
+  shows the camera live over the whole screen, with its page controls as buttons along
+  the edge set on the Cameras page, and a tap on the picture goes back. Talk carries on
+  through it. Where the camera can't play live on the device, the tap opens more-info.
 - **The picture:** direct at home and through Home Assistant away (the default); always
   direct; or always through Home Assistant. **Sharpness through Home Assistant:** from
   Full to Data saver, hidden when **Always direct** is selected.

@@ -20,6 +20,7 @@ export class CommanderBase extends LitElement {
     _token: { state: true },
     _shown: { state: true },
     _framed: { state: true },
+    _full: { state: true },
     preview: { type: Boolean },
     layout: { attribute: false },
   };
@@ -40,6 +41,9 @@ export class CommanderBase extends LitElement {
   /** Which picture has shown a frame: "s<n>" for showing n's stream, "still" while editing.
    * The highlight waits for it, so it never stands over an empty card. */
   _framed = "";
+  /** The camera shown full screen ("" when none is): the one tapped, kept even when the
+   * shared Main camera select changes on another device (card.ts: full screen). */
+  _full = "";
   protected frameWait = 0;
   protected motion = new Motion(); // the dots on tiles seeing motion
   protected run = ""; // the app's run the stream comes from (Card.run)
@@ -326,6 +330,7 @@ export class CommanderBase extends LitElement {
   }
 
   protected main(card: Card, option?: string): string {
+    if (this._full && card.cameras[this._full]) return this._full;
     const found = Object.entries(card.cameras).find(([, c]) => c.title === option);
     return found ? found[0] : card.start;
   }

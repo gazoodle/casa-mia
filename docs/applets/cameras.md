@@ -34,7 +34,10 @@ Every change is saved at once: there is no Save button.
   - **Medium channel:** for the wall tablets and phones. **High channel:** for everyone
     else. Blank: the camera itself.
   - **Zoom:** a number entity, shown on its page.
-  - **PTZ presets** and **page controls** (a gate, a light): shown on its page.
+  - **PTZ presets** and **page controls** (a gate, a light): shown on its page. The page
+    controls are also the buttons on a Camera Commander card's full screen. **Controls
+    on a full screen** sets the edge they go along, one for a wide screen and one for a
+    tall one, with a preview of each.
 - **Remove:** it also leaves every commander that shows it.
 
 ### Motion

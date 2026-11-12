@@ -111,6 +111,7 @@ export class CommanderEditor extends LitElement {
             options: [
               { value: "more-info", label: "Opens its more-info (live video)" },
               { value: "live", label: "Opens its page on the camera dashboard" },
+              { value: "full", label: "Shows it full screen, with its controls" },
               { value: "none", label: "Nothing" },
             ],
           },

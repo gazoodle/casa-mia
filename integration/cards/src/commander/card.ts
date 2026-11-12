@@ -9,6 +9,7 @@ import { heightForMain, pyRound, type Rect } from "../layout.ts";
 import { camerasOf, placed } from "../placed.ts";
 import { back, family, keepPosition, labelsOf, useFont } from "../labels.ts";
 import { dot } from "./motion.ts";
+import { controlsBar, fullStyles } from "./full.ts";
 import { Config, Card, BLANK, Size, columnHeight, commanders, pictureDown } from "./common.ts";
 import { PILLS } from "../pills.ts";
 import { CommanderTalk, talkStyles } from "./talk.ts";
@@ -24,6 +25,10 @@ export class CommanderCard extends CommanderTalk {
       this.again();
     }
     if (run) this.run = run;
+    // Full screen is the live camera: where it can't play any more (the compositor's
+    // switch off, the page hidden or edited), back to the commander, not a black screen.
+    const card = this.now().card;
+    if (this._full && card && !this.liveMain(card)) this._full = "";
     this.watchFrame();
     this.measure(); // its rows may have been set or cleared (a new config, or layout)
     if (this.streaming && this.editing()) this.done("editing");
@@ -89,9 +94,32 @@ export class CommanderCard extends CommanderTalk {
     const [w, h] = laid.size;
     const mainRect = laid.main;
     const tiles = laid.tiles.filter((t) => t.rect[2] > 0);
+    // Full screen (tap_main: full): the camera tapped, live over the whole screen, shown
+    // whole; its channel chosen for the screen's device pixels, as the main area's is.
+    const full = Boolean(this._full && card.cameras[this._full]);
+    const screen: Rect = [0, 0, Math.round(innerWidth * devicePixelRatio), Math.round(innerHeight * devicePixelRatio)];
     // The live main camera (live.ts): its videos, and whether the picture leaves the main
     // area to one. With none to show, the picture draws the main camera itself.
-    const live = this.liveMain(card) && mainRect[2] > 0 ? this.liveNow(card, main, mainRect, laid.mainHow === "contain") : null;
+    const live =
+      this.liveMain(card) && (full || mainRect[2] > 0) ? this.liveNow(card, main, full ? screen : mainRect, full || laid.mainHow === "contain") : null;
+    // One <video> per channel played: the one shown, and a better one tried unseen under it.
+    const videos = (place: string) =>
+      live
+        ? repeat(
+            live.videos,
+            (channel) => channel,
+            (channel) =>
+              html`<video
+                class="live"
+                data-entity=${channel}
+                style="${place};opacity:${channel === live.shown ? 1 : 0}"
+                autoplay
+                playsinline
+                .muted=${true /* the visitor is heard through Talk's own session (talk.ts) */}
+              ></video>`,
+          )
+        : nothing;
+    const whole = "left:0;top:0;width:100%;height:100%";
     const src = asked && live?.video ? `${asked}&main=video` : asked;
     const at = ([x, y, rw, rh]: Rect) =>
       `left:${(x / w) * 100}%;top:${(y / h) * 100}%;width:${(rw / w) * 100}%;height:${(rh / h) * 100}%`;
@@ -149,20 +177,9 @@ export class CommanderCard extends CommanderTalk {
               />`,
             )
           : nothing}
-        ${live
-          ? html`${repeat(
-                live.videos,
-                (channel) => channel,
-                // One per channel played: the one shown, and a better one tried unseen under it.
-                (channel) =>
-                  html`<video
-                    class="live"
-                    data-entity=${channel}
-                    style="${at(mainRect)};object-fit:${laid.mainHow};${laid.mainHow === "cover" ? `object-position:${keepPosition(own.main_keep)};` : ""}opacity:${channel === live.shown ? 1 : 0}"
-                    autoplay
-                    playsinline
-                    .muted=${true /* the visitor is heard through Talk's own session (talk.ts) */}
-                  ></video>`,
+        ${live && !full
+          ? html`${videos(
+                `${at(mainRect)};object-fit:${laid.mainHow};${laid.mainHow === "cover" ? `object-position:${keepPosition(own.main_keep)}` : ""}`,
               )}
               ${this.caption(card.cameras[main]?.title ?? main, at(mainRect), live)}`
           : nothing}
@@ -198,13 +215,22 @@ export class CommanderCard extends CommanderTalk {
         )}
         ${laid.more ? dot(hidden.map((e) => moving.get(e)).find(Boolean), at(laid.more.rect), this._config!, () => undefined) : nothing}
         ${mainRect[2] > 0 ? dot(moving.get(main), at(mainRect), this._config!, () => this.open(card, main)) : nothing}
-        ${(live || this._talk) && mainRect[2] > 0 ? this.talkParts(card, at(mainRect)) : nothing}
+        ${(live || this._talk) && mainRect[2] > 0 && !full ? this.talkParts(card, at(mainRect)) : nothing}
         ${down
           ? html`<div class="down"><span class="cm-pill cm-filled cm-bad">${down}</span></div>`
           : unfit
             ? html`<div class="down"><span class="cm-pill cm-filled cm-warn">${unfit}</span></div>`
             : nothing}
       </div>
+      ${full
+        ? html`<div class="full" style=${labelled}>
+            <div class="seen" style="filter:${this.look()}">${videos(`${whole};object-fit:contain`)}</div>
+            ${live ? this.caption(card.cameras[main].title, whole, live) : nothing}
+            <div class="zone" style=${whole} title="Back" @click=${() => (this._full = "")}></div>
+            ${controlsBar(this, this.hass!, card.cameras[main])}
+            ${this.talkParts(card, whole)}
+          </div>`
+        : nothing}
     </ha-card>`;
   }
 
@@ -215,13 +241,15 @@ export class CommanderCard extends CommanderTalk {
   }
 
   /** A tap on the main camera: its more-info (HA's camera dialog, the default), its live
-   * page on the camera dashboard (more-info when there is no dashboard), or nothing. */
+   * page on the camera dashboard (more-info when there is no dashboard), it full screen
+   * (more-info where it can't play live here), or nothing. */
   private open(card: Card, camera: string) {
     const how = this._config?.tap_main ?? "more-info";
     const page = card.cameras[camera]?.live;
     if (how === "live" && page) navigate(page);
+    else if (how === "full" && this.liveMain(card)) this._full = camera;
     else if (how !== "none") fire(this, "hass-more-info", { entityId: camera });
   }
 
-  static styles = [...styles, PILLS, talkStyles];
+  static styles = [...styles, PILLS, talkStyles, fullStyles];
 }
