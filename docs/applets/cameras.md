@@ -37,6 +37,35 @@ Every change is saved at once: there is no Save button.
   - **PTZ presets** and **page controls** (a gate, a light): shown on its page.
 - **Remove:** it also leaves every commander that shows it.
 
+### Page controls
+
+A camera's page controls are entities from Home Assistant that belong with what the
+camera sees: the gate it looks at, the lock on the door, a light. Each has its entity, an
+optional name and an optional icon; left blank, the entity's own name and icon are used.
+**+ Control** adds one.
+
+<img src="../screenshots/cameras-controls.webp" alt="Editing the Entrance camera on the Cameras page. Under Page controls are two rows, lock.front_door named Front door and light.hall_light named Hall light, and a + Control button. Under Controls on a full screen are a choice of Top, Bottom, Left or Right for a wide screen and for a tall one, each above a small preview of the camera on that screen with the two buttons along its foot, then Size (Small, Medium, Large), Along the edge (Left or top, Centre, Right or bottom) and a Background slider at 60%" width="480">
+
+They are shown in three places, and a tap on one is Home Assistant's toggle in each:
+
+- on the camera's page on the camera dashboard (see [Auto Dashboards](auto-dashboards.md));
+- as buttons on a Camera Commander card's full screen for that camera;
+- as buttons over the main camera on a Camera Commander card, when the card's **Its
+  controls over the main camera** is on.
+
+**Controls on a full screen** sets how the buttons look on the card, in both of its
+places:
+
+- **The edge** they go along: one choice for a wide screen and one for a tall one, so a
+  tablet turned upright can have them somewhere else.
+- **Along the edge:** at its start, its middle or its end.
+- **Size:** small, medium or large.
+- **Background:** from clear to solid.
+
+The two previews show the camera on a 1280 × 800 tablet, wide and upright, drawn to
+scale. The buttons themselves are described under
+[Controls and buttons over the main camera](camera-commander.md#controls-and-buttons-over-the-main-camera).
+
 ### Motion
 
 The **Motion** column shows the camera's motion sensor: a motion binary sensor on the

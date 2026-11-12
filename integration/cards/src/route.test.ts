@@ -39,3 +39,18 @@ test("a live main camera plays the smallest channel big enough", async () => {
   assert.equal(liveChannel([["only", 0, 0]], [800, 600], true), "only"); // sizes not known
   assert.equal(liveChannel([["low", 640, 360], ["high", 0, 0]], [1600, 900], true), "low");
 });
+
+test("a direct picture that never showed a frame is given up for Home Assistant's route, on auto only", async () => {
+  const { throughHa, givesUpDirect } = await import("./commander/common.ts");
+  // At a home address the picture is direct, until direct is given up on.
+  assert.equal(throughHa("auto", true, false), false);
+  assert.equal(throughHa("auto", true, true), true);
+  assert.equal(throughHa("auto", false, false), true);
+  assert.equal(throughHa("direct", true, true), false); // chosen by hand: kept
+  assert.equal(throughHa("ha", true, false), true);
+  // Given up only where it never worked: a failure after a frame is the app or the network.
+  assert.equal(givesUpDirect("auto", false, false), true);
+  assert.equal(givesUpDirect("auto", false, true), false);
+  assert.equal(givesUpDirect("direct", false, false), false);
+  assert.equal(givesUpDirect("auto", true, false), false); // already through Home Assistant
+});

@@ -4,6 +4,7 @@
 import { createContext } from "react";
 import { api } from "../api";
 import { CameraIcon } from "../icons";
+import type { Control, ControlsAt } from "./controls";
 
 export const { get, post, put } = api("cameras");
 
@@ -14,7 +15,7 @@ export const HEAD = {
   blurb: "The house's cameras: their names, streams and controls, for the commanders and the dashboard.",
 };
 
-export type Control = { entity: string; name?: string; icon?: string };
+export type { Control } from "./controls";
 
 export type Preset = string | { preset: string; label?: string };
 
@@ -29,6 +30,8 @@ export type Camera = {
   live?: string;
   ptz?: Ptz;
   controls?: Control[];
+  /** The edge its controls go along on the commander's full screen, by the screen's shape. */
+  controls_at?: ControlsAt;
 };
 
 export type Cameras = Record<string, Camera>;

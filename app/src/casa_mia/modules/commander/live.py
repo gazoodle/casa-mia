@@ -73,16 +73,23 @@ class Live(Base):
         """What the Camera Commander card draws a commander from (its Main camera
         select's `card` attribute): the layout (it lays it out with the same engine, so
         its taps line up), its picture's address, the main camera at start, and each
-        camera's title (its select's option) and live page on the dashboard, and its
+        camera's title (its select's option) and live page on the dashboard, its
         channels, smallest first, each with its size where known (the card plays its
-        main camera's as live video, when the compositor's live_main switch is on)."""
+        main camera's as live video, when the compositor's live_main switch is on), and
+        its controls with their edges, where it has them (the card's full screen)."""
         try:
             url_path, base = self._target()
         except BadRequest:  # the LAN address not known yet: no picture until it is
             url_path, base = self.dashboard() or "", ""
         mine = commander_cameras(cmd)
         comp = self.live
-        cfg = config_from_store(self.full())
+        full = self.full()
+        cfg = config_from_store(full)
+        # each camera's controls and their edges, for the card's full screen
+        own = {
+            e: {k: cam[k] for k in ("controls", "controls_at") if cam.get(k)}
+            for e, cam in full["cameras"].items()
+        }
         sizes = comp.gather.res if comp else {}
         keys = (
             "width",
@@ -116,6 +123,7 @@ class Live(Base):
                         [c, *sizes[c]] if c in sizes else [c, 0, 0]
                         for c in channels(cfg, e).values()
                     ],
+                    **own.get(e, {}),
                 }
                 for e in mine
             },
