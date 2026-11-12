@@ -28,6 +28,8 @@ export type Config = { type: string; entity?: string; tap_main?: "live" | "more-
   main_controls?: boolean;
   /** A Sound button with the controls, to hear the main camera's live video (full.ts). */
   sound_button?: boolean;
+  /** A Full screen button with the controls: the card over the whole screen (screen.ts). */
+  screen_button?: boolean;
   /** The card's own Talk button, where talk is offered (talk.ts). */
   talk_button?: boolean;
   /** full: the voice goes out from the answer; half: only while Hold to talk is held (talk-rules.ts). */

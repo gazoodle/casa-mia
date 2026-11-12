@@ -15,6 +15,7 @@ const DEFAULTS: Record<string, unknown> = {
   talk_button: true,
   main_controls: false,
   sound_button: false,
+  screen_button: false,
   duplex: "full",
   leave_after: LEAVE_AFTER,
   security_look: false,
@@ -121,6 +122,7 @@ export class CommanderEditor extends LitElement {
       },
       { name: "main_controls", selector: { boolean: {} } },
       { name: "sound_button", selector: { boolean: {} } },
+      { name: "screen_button", selector: { boolean: {} } },
     ];
     const labels: Record<string, string> = {
       entity: "Commander",
@@ -131,6 +133,7 @@ export class CommanderEditor extends LitElement {
       talk_button: "Talk button",
       main_controls: "Its controls over the main camera",
       sound_button: "Sound button",
+      screen_button: "Full screen button",
       duplex: "Mode",
       leave_after: "Picture kept running once out of sight",
       security_look: "Apply security look",
@@ -166,6 +169,8 @@ export class CommanderEditor extends LitElement {
             ? "The main camera's page controls (a gate, a light) over it, as on its full screen: the edge, size and background set for it on the Cameras page, the wide or tall edge by the main camera's own shape."
             : s.name === "sound_button"
             ? "A Sound button with the main camera's controls (on its full screen, and over it when its controls are), to hear the camera. It goes back to off when the main camera changes, and the camera is not heard while you talk (the visitor is heard through Talk)."
+            : s.name === "screen_button"
+            ? "A Full screen button over the main camera: the whole commander takes the screen, with the browser's bars and Home Assistant's header gone. Tap it again to go back. It is not shown where the browser can't do it (Safari on an iPhone), and it has to be tapped again after the page reloads."
             : s.name === "talk_button"
             ? "A Talk button over a doorbell's live video (a camera with a Casa Mia Intercom call sensor, on an https page). Turn it off to use your own buttons: a tap_action of fire-dom-event with casa_mia_commander: {talk: toggle} does the same."
             : s.name === "motion_dot"
@@ -187,7 +192,7 @@ export class CommanderEditor extends LitElement {
     return html`
       <section aria-labelledby="main-heading">
         <h3 id="main-heading">Main camera</h3>
-        ${form(fields("entity", "live_main", "tap_main", "main_controls", "sound_button"))}
+        ${form(fields("entity", "live_main", "tap_main", "main_controls", "sound_button", "screen_button"))}
       </section>
       <section aria-labelledby="security-heading">
         <h3 id="security-heading">Security look</h3>

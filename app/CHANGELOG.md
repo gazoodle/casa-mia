@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.6-b5
+
+- **Camera Commander: a Full screen button.** A new option on the card, **Full screen button**, off by default. It puts a button over the main camera that shows the whole commander over the entire screen, without the browser's address bar and tabs or Home Assistant's header and sidebar; a second tap goes back. It is for a browser on a tablet or a computer, Safari on an iPad included. Safari on an iPhone can't show a page full screen, so the button is not shown there. A browser only allows full screen from a tap, so after the page reloads it has to be tapped again. A tap on the main camera that opens its more-info leaves full screen first, because the dialog would open underneath.
+
 ## 2026.11.6-b4
 
 - **Camera Commander: fixed a blank card on a network that reaches Home Assistant but not the app's own port.** At a home address the card asks the app directly for its picture, on port 8099. On a guest network whose firewall passes Home Assistant's port and not that one, the request was never answered or refused, so the card stayed blank with nothing on it to say why. A page that has had no picture from the direct address now takes it through Home Assistant instead, until the app next restarts. **Always direct** on the card is kept as chosen.

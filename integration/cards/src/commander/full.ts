@@ -1,6 +1,7 @@
 // The Camera Commander card's controls bar, on its full screen (Tap on the main camera:
 // Full screen) and over its main area (Config.main_controls): the camera's controls
-// along the edge set for the place's shape on the Cameras page, and the Sound button. A
+// along the edge set for the place's shape on the Cameras page, and the card's own
+// buttons (Sound, Full screen). A
 // tap on one is Home Assistant's own toggle, as on the camera dashboard's tiles
 // (auto_dashboards/dashboard.py: control_tile), so a lock, a cover or a button does
 // what it does there.
@@ -12,15 +13,16 @@ import type { Card } from "./common.ts";
 /** States a control can't be used in: shown dimmed and said, never a dead button. */
 const OUT = new Set(["unavailable", "unknown"]);
 
-/** The Sound button's state, where the card offers it (Config.sound_button). */
-export type Sound = { on: boolean; toggle: () => void };
+/** One of the card's own buttons, where it offers them (Config.sound_button,
+ * screen_button): what it says and shows in its state now, and its tap. */
+export type Own = { on: boolean; icon: string; label: string; title: string; toggle: () => void };
 
-/** The camera's controls (and the Sound button) along their edge of `place`: the full
- * screen, or the main area (Config.main_controls). The wide or the tall edge goes by the
- * shape of that place, not the screen's: a main area can be wide on an upright tablet. */
-export function controlsBar(el: HTMLElement, hass: Hass, camera: Card["cameras"][string], place: string, wide: boolean, sound?: Sound) {
+/** The camera's controls (after the card's own buttons) along their edge of `place`: the
+ * full screen, or the main area (Config.main_controls). The wide or the tall edge goes by
+ * the shape of that place, not the screen's: a main area can be wide on an upright tablet. */
+export function controlsBar(el: HTMLElement, hass: Hass, camera: Card["cameras"][string], place: string, wide: boolean, own: Own[]) {
   const controls = camera.controls ?? [];
-  if (!controls.length && !sound) return nothing;
+  if (!controls.length && !own.length) return nothing;
   const at = controlsAt(camera.controls_at);
   // Its size, place along the edge and background, as the Cameras page previews them.
   const look = Object.entries(controlsStyle(at))
@@ -28,12 +30,13 @@ export function controlsBar(el: HTMLElement, hass: Hass, camera: Card["cameras"]
     .join(";");
   return html`<div class="controls-area" style=${place}>
     <div class="controls" style=${look} data-edge=${wide ? at.landscape : at.portrait}>
-      ${sound
-        ? html`<button class="control ${sound.on ? "on" : ""}" title=${sound.on ? "Mute the camera" : "Hear the camera"} @click=${sound.toggle}>
-            <ha-icon icon=${sound.on ? "mdi:volume-high" : "mdi:volume-off"}></ha-icon>
-            <span>${sound.on ? "Sound on" : "Sound off"}</span>
-          </button>`
-        : nothing}
+      ${own.map(
+        (b) =>
+          html`<button class="control ${b.on ? "on" : ""}" title=${b.title} @click=${b.toggle}>
+            <ha-icon icon=${b.icon}></ha-icon>
+            <span>${b.label}</span>
+          </button>`,
+      )}
       ${controls.map((c) => {
         const st = hass.states[c.entity];
         const name = c.name || (st?.attributes.friendly_name as string | undefined) || c.entity;

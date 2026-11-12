@@ -9,17 +9,27 @@ import { heightForMain, pyRound, type Rect } from "../layout.ts";
 import { camerasOf, placed } from "../placed.ts";
 import { back, family, keepPosition, labelsOf, useFont } from "../labels.ts";
 import { dot } from "./motion.ts";
-import { controlsBar, fullStyles } from "./full.ts";
+import { controlsBar, fullStyles, type Own } from "./full.ts";
+import { canFill, fill, filling, SCREEN_EVENTS } from "./screen.ts";
 import { Config, Card, BLANK, Size, columnHeight, commanders, pictureDown } from "./common.ts";
 import { PILLS } from "../pills.ts";
 import { CommanderTalk, talkStyles } from "./talk.ts";
 import { styles } from "./styles.ts";
 
 export class CommanderCard extends CommanderTalk {
-  static properties = { ...CommanderTalk.properties, _sound: { state: true } };
+  static properties = { ...CommanderTalk.properties, _sound: { state: true }, _screen: { state: true } };
   /** The camera heard (its Sound button), "" for none: a camera's own, so another main
    * camera (a tap, Track motion) is never heard without a tap of its own. */
   _sound = "";
+  /** The card has the whole screen (its Full screen button, screen.ts). */
+  _screen = false;
+
+  constructor() {
+    super();
+    // The browser says when the card takes or leaves the screen, by the button or by its
+    // own ways out. Listened for on the card itself, so there is nothing to remove.
+    for (const name of SCREEN_EVENTS) this.addEventListener(name, () => (this._screen = filling()));
+  }
 
   updated() {
     // The app restarted (an update): its stream died with it, and a browser often says
@@ -109,7 +119,31 @@ export class CommanderCard extends CommanderTalk {
       this.liveMain(card) && (full || mainRect[2] > 0) ? this.liveNow(card, main, full ? screen : mainRect, full || laid.mainHow === "contain") : null;
     // The Sound button, where offered and there is live video to hear.
     const heard = this._sound === main && !this._talk;
-    const sound = this._config?.sound_button && live ? { on: this._sound === main, toggle: () => (this._sound = this._sound === main ? "" : main) } : undefined;
+    const sound: Own[] =
+      this._config?.sound_button && live
+        ? [
+            {
+              on: this._sound === main,
+              icon: this._sound === main ? "mdi:volume-high" : "mdi:volume-off",
+              label: this._sound === main ? "Sound on" : "Sound off",
+              title: this._sound === main ? "Mute the camera" : "Hear the camera",
+              toggle: () => (this._sound = this._sound === main ? "" : main),
+            },
+          ]
+        : [];
+    // The Full screen button, where offered and the browser has it (not Safari on an iPhone).
+    const fills: Own[] =
+      this._config?.screen_button && canFill()
+        ? [
+            {
+              on: this._screen,
+              icon: this._screen ? "mdi:fullscreen-exit" : "mdi:fullscreen",
+              label: this._screen ? "Exit full screen" : "Full screen",
+              title: this._screen ? "Back to the page" : "The commander over the whole screen",
+              toggle: () => fill(this, !this._screen),
+            },
+          ]
+        : [];
     // One <video> per channel played: the one shown, and a better one tried unseen under it.
     const videos = (place: string) =>
       live
@@ -157,7 +191,10 @@ export class CommanderCard extends CommanderTalk {
       this._width && own.mode !== "responsive" ? this._width / heightForMain(own, main, this._width, this.shapeOf(card, main)) : own.width / own.height;
     const tall = f && this._width ? columnHeight(f, this._width, shape, own.mode === "responsive") : null;
     // In HA's card picker: just its own shape, so the picker centres it as it does the others.
-    const size = inPicker(this)
+    // With the whole screen (screen.ts), all of it: the browser sizes the card to the screen.
+    const size = this._screen
+      ? "height:100%"
+      : inPicker(this)
       ? `aspect-ratio:${own.width}/${own.height}`
       : !f || f.mode === "tile" || f.mode === "cell"
         ? `height:100%;aspect-ratio:${own.width}/${own.height}`
@@ -223,9 +260,15 @@ export class CommanderCard extends CommanderTalk {
         )}
         ${laid.more ? dot(hidden.map((e) => moving.get(e)).find(Boolean), at(laid.more.rect), this._config!, () => undefined) : nothing}
         ${mainRect[2] > 0 ? dot(moving.get(main), at(mainRect), this._config!, () => this.open(card, main)) : nothing}
-        ${this._config?.main_controls && card.cameras[main] && mainRect[2] > 0 && !full && !editing
-          ? controlsBar(this, this.hass!, card.cameras[main], at(mainRect), mainRect[2] >= mainRect[3], sound)
-          : nothing}
+        ${
+          // The Full screen button stands here without the camera's controls too: it is the
+          // card's, and the only way to it.
+          (this._config?.main_controls || fills.length) && card.cameras[main] && mainRect[2] > 0 && !full && !editing
+            ? this._config?.main_controls
+              ? controlsBar(this, this.hass!, card.cameras[main], at(mainRect), mainRect[2] >= mainRect[3], [...sound, ...fills])
+              : controlsBar(this, this.hass!, { ...card.cameras[main], controls: [] }, at(mainRect), mainRect[2] >= mainRect[3], fills)
+            : nothing
+        }
         ${(live || this._talk) && mainRect[2] > 0 && !full ? this.talkParts(card, at(mainRect)) : nothing}
         ${down
           ? html`<div class="down"><span class="cm-pill cm-filled cm-bad">${down}</span></div>`
@@ -241,7 +284,7 @@ export class CommanderCard extends CommanderTalk {
             ${
               // the screen's shape as drawn: the once-a-second redraw while live (live.ts)
               // follows the tablet being turned round
-              controlsBar(this, this.hass!, card.cameras[main], whole, innerWidth >= innerHeight, sound)
+              controlsBar(this, this.hass!, card.cameras[main], whole, innerWidth >= innerHeight, [...sound, ...fills])
             }
             ${this.talkParts(card, whole)}
           </div>`
@@ -263,7 +306,11 @@ export class CommanderCard extends CommanderTalk {
     const page = card.cameras[camera]?.live;
     if (how === "live" && page) navigate(page);
     else if (how === "full" && this.liveMain(card)) this._full = camera;
-    else if (how !== "none") fire(this, "hass-more-info", { entityId: camera });
+    else if (how !== "none") {
+      // Home Assistant's dialog is outside the card, so under it while it has the screen.
+      if (this._screen) fill(this, false);
+      fire(this, "hass-more-info", { entityId: camera });
+    }
   }
 
   static styles = [...styles, PILLS, talkStyles, fullStyles];

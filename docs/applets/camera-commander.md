@@ -312,6 +312,16 @@ Its options (each left at its default unless you change it):
   commander too, set as on the Cameras page; the wide or tall edge goes by the main
   camera's own shape. **Sound button:** a Sound button with the controls, to hear the
   main camera. It turns off when the main camera changes, and while you talk.
+- **Full screen button:** a button over the main camera, shown whether or not its controls
+  are, that puts the whole commander over the entire screen. The browser's address bar
+  and tabs go, and so do Home Assistant's header and sidebar. Tap it again to go back, or
+  use the browser's own way out (Esc, or the close button Safari shows). This is not the
+  same as a tap showing the main camera full screen, which fills the browser's window
+  with one camera. The button works in a browser on a tablet or a computer, Safari on an
+  iPad included. Safari on an iPhone can't show a page full screen, so it is not offered
+  there. A browser only allows it from a tap, so it has to be tapped again after the page
+  reloads; for a tablet left on one page, add the page to its Home Screen instead. A tap
+  that opens the main camera's more-info leaves full screen first.
 - **The picture:** direct at home and through Home Assistant away (the default); always
   direct; or always through Home Assistant. Direct means the app's own address, on port
   8099. With the default, a page at home that gets no picture from that address within
