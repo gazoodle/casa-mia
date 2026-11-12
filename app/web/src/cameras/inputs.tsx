@@ -3,8 +3,9 @@ import css from "../cameras.module.css";
 import ui from "../ui.module.css";
 import edges from "./edges.module.css";
 import { Segmented } from "../ui";
+import { Slider } from "../controls";
 import { Control, Entities, ThumbRound } from "./common";
-import { type ControlsAt, EDGES, controlsAt } from "./controls";
+import { type ControlsAt, EDGES, controlsAt, controlsStyle } from "./controls";
 
 /** Closes a popup (calls `close`) on a tap or click outside the returned ref. On the
  * finished click, not the press: closing a tall list moves the page, and a press that
@@ -134,8 +135,13 @@ export function Thumb({ entity, className = css.thumb }: { entity: string; class
   );
 }
 
-/** Where a camera's controls go on a commander's full screen: an edge for a wide screen
- * and one for a tall one, each shown on a screen of that shape over the camera's still. */
+/** The previews' scale: a 1280 x 800 tablet each way round, drawn 384 px wide in
+ * landscape and 240 px in portrait (edges.module.css). */
+const PREVIEW = 0.3;
+
+/** How a camera's controls are shown on a commander's full screen: an edge for a wide
+ * screen and one for a tall one, where along it, the pills' size and background, each
+ * screen previewed to scale over the camera's still. */
 export function ControlsEdges({
   entity,
   controls,
@@ -148,30 +154,41 @@ export function ControlsEdges({
   onChange: (at: ControlsAt) => void;
 }) {
   const at = controlsAt(value);
+  const set = (change: Partial<ControlsAt>) => onChange({ ...at, ...change });
   const entities = useContext(Entities);
   const names = controls.map((c) => c.name || entities.find((e) => e.entity === c.entity)?.name || c.entity);
   return (
-    <div className={edges.edges}>
-      {(["landscape", "portrait"] as const).map((shape) => (
-        <div key={shape} className={edges.edgeOf}>
-          <Segmented
-            value={at[shape]}
-            options={EDGES.map((e) => [e, e[0].toUpperCase() + e.slice(1)])}
-            onChange={(edge) => onChange({ ...at, [shape]: edge })}
-          />
-          <div className={`${edges.screen} ${edges[shape]}`} aria-label={`A ${shape} screen`}>
-            <Thumb entity={entity} className={edges.screenPicture} />
-            <div className={`${edges.screenControls} ${edges[at[shape]]}`}>
-              {names.map((n, i) => (
-                <span key={i} className="cm-pill cm-filled">
-                  {n}
-                </span>
-              ))}
+    <>
+      <div className={edges.edges}>
+        {(["landscape", "portrait"] as const).map((shape) => (
+          <div key={shape} className={edges.edgeOf}>
+            <Segmented value={at[shape]} options={EDGES.map((e) => [e, e[0].toUpperCase() + e.slice(1)])} onChange={(edge) => set({ [shape]: edge })} />
+            <div className={`${edges.screen} ${edges[shape]}`} aria-label={`A ${shape} screen`}>
+              <Thumb entity={entity} className={edges.screenPicture} />
+              <div className={`${edges.screenControls} ${edges[at[shape]]}`} style={controlsStyle(at, PREVIEW)}>
+                {names.map((n, i) => (
+                  <span key={i} className={edges.pill} title={n}>
+                    {n}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+      <div className={edges.look}>
+        <span>Size</span>
+        <Segmented value={at.size} options={[["small", "Small"], ["medium", "Medium"], ["large", "Large"]]} onChange={(size) => set({ size })} />
+        <span>Along the edge</span>
+        <Segmented
+          value={at.align}
+          options={[["start", "Left or top"], ["center", "Centre"], ["end", "Right or bottom"]]}
+          onChange={(align) => set({ align })}
+        />
+        <span>Background</span>
+        <Slider value={at.opacity} min={0} max={100} step={5} format={(v) => (v ? (v === 100 ? "solid" : `${v}%`) : "clear")} onChange={(opacity) => set({ opacity })} />
+      </div>
+    </>
   );
 }
 

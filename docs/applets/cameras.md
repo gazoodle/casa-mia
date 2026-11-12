@@ -37,7 +37,8 @@ Every change is saved at once: there is no Save button.
   - **PTZ presets** and **page controls** (a gate, a light): shown on its page. The page
     controls are also the buttons on a Camera Commander card's full screen. **Controls
     on a full screen** sets the edge they go along, one for a wide screen and one for a
-    tall one, with a preview of each.
+    tall one, where along it they sit, their size and how solid their background is,
+    with a preview of each screen drawn to scale.
 - **Remove:** it also leaves every commander that shows it.
 
 ### Motion

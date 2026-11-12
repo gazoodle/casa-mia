@@ -158,7 +158,7 @@ export function CameraDialog({
       {!!c.controls?.length && (
         <Field
           label="Controls on a full screen"
-          help="Where they go when a Camera Commander card shows this camera full screen (its Tap on the main camera: Full screen), for a wide screen and a tall one."
+          help="How they are shown when a Camera Commander card shows this camera full screen (its Tap on the main camera: Full screen): the edge for a wide screen and for a tall one, where along it, and the buttons' size and background. The previews are a 1280 × 800 tablet, to scale."
         >
           <ControlsEdges entity={entity} controls={c.controls} value={c.controls_at} onChange={(controls_at) => set({ controls_at })} />
         </Field>

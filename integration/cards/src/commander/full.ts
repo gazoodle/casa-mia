@@ -1,38 +1,57 @@
-// The Camera Commander card's full screen (Tap on the main camera: Full screen): the
-// camera's controls along the edge set for the screen's shape on the Cameras page. A
+// The Camera Commander card's controls bar, on its full screen (Tap on the main camera:
+// Full screen) and over its main area (Config.main_controls): the camera's controls
+// along the edge set for the place's shape on the Cameras page, and the Sound button. A
 // tap on one is Home Assistant's own toggle, as on the camera dashboard's tiles
 // (auto_dashboards/dashboard.py: control_tile), so a lock, a cover or a button does
 // what it does there.
 import { css, html, nothing } from "lit";
 import { fire, type Hass } from "../ha.ts";
-import { controlsAt } from "../../../../app/web/src/cameras/controls.ts";
+import { controlsAt, controlsStyle } from "../../../../app/web/src/cameras/controls.ts";
 import type { Card } from "./common.ts";
 
 /** States a control can't be used in: shown dimmed and said, never a dead button. */
 const OUT = new Set(["unavailable", "unknown"]);
 
-export function controlsBar(el: HTMLElement, hass: Hass, camera: Card["cameras"][string]) {
+/** The Sound button's state, where the card offers it (Config.sound_button). */
+export type Sound = { on: boolean; toggle: () => void };
+
+/** The camera's controls (and the Sound button) along their edge of `place`: the full
+ * screen, or the main area (Config.main_controls). The wide or the tall edge goes by the
+ * shape of that place, not the screen's: a main area can be wide on an upright tablet. */
+export function controlsBar(el: HTMLElement, hass: Hass, camera: Card["cameras"][string], place: string, wide: boolean, sound?: Sound) {
   const controls = camera.controls ?? [];
-  if (!controls.length) return nothing;
+  if (!controls.length && !sound) return nothing;
   const at = controlsAt(camera.controls_at);
-  return html`<div class="controls" data-landscape=${at.landscape} data-portrait=${at.portrait}>
-    ${controls.map((c) => {
-      const st = hass.states[c.entity];
-      const name = c.name || (st?.attributes.friendly_name as string | undefined) || c.entity;
-      const out = !st ? "Not found" : OUT.has(st.state) ? "Unavailable" : "";
-      return html`<button
-        class="control ${st?.state === "on" || st?.state === "open" || st?.state === "unlocked" ? "on" : ""}"
-        ?disabled=${Boolean(out)}
-        title=${out ? `${c.entity}: ${out}` : name}
-        @click=${() => fire(el, "hass-action", { config: { entity: c.entity, tap_action: { action: "toggle" } }, action: "tap" })}
-      >
-        ${st
-          ? html`<ha-state-icon .hass=${hass} .stateObj=${st} .icon=${c.icon}></ha-state-icon>`
-          : html`<ha-icon icon="mdi:alert-circle-outline"></ha-icon>`}
-        <span>${name}</span>
-        ${out ? html`<span class="cm-pill cm-filled cm-bad">${out}</span>` : nothing}
-      </button>`;
-    })}
+  // Its size, place along the edge and background, as the Cameras page previews them.
+  const look = Object.entries(controlsStyle(at))
+    .map(([k, v]) => `${k}:${v}`)
+    .join(";");
+  return html`<div class="controls-area" style=${place}>
+    <div class="controls" style=${look} data-edge=${wide ? at.landscape : at.portrait}>
+      ${sound
+        ? html`<button class="control ${sound.on ? "on" : ""}" title=${sound.on ? "Mute the camera" : "Hear the camera"} @click=${sound.toggle}>
+            <ha-icon icon=${sound.on ? "mdi:volume-high" : "mdi:volume-off"}></ha-icon>
+            <span>${sound.on ? "Sound on" : "Sound off"}</span>
+          </button>`
+        : nothing}
+      ${controls.map((c) => {
+        const st = hass.states[c.entity];
+        const name = c.name || (st?.attributes.friendly_name as string | undefined) || c.entity;
+        const out = !st ? "Not found" : OUT.has(st.state) ? "Unavailable" : "";
+        return html`<button
+          class="control ${st?.state === "on" || st?.state === "open" || st?.state === "unlocked" ? "on" : ""}"
+          ?disabled=${Boolean(out)}
+          title=${out ? `${c.entity}: ${out}` : name}
+          @click=${() => fire(el, "hass-action", { config: { entity: c.entity, tap_action: { action: "toggle" } }, action: "tap" })}
+        >
+          ${st
+            ? html`<ha-state-icon .hass=${hass} .stateObj=${st} .icon=${c.icon}></ha-state-icon>`
+            : html`<ha-icon icon="mdi:alert-circle-outline"></ha-icon>`}
+          <span>${name}</span>
+          ${out ? html`<span class="cm-pill cm-filled cm-bad">${out}</span>` : nothing}
+        </button>`;
+      })}
+    </div>
   </div>`;
 }
 
@@ -44,45 +63,49 @@ export const fullStyles = css`
     z-index: 10;
     background: #000;
   }
+  /* Sized from the pill's height (controls.ts: controlsStyle), as the page's preview is. */
   .controls {
     position: absolute;
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
-    gap: 12px;
-    padding: 16px;
+    justify-content: var(--cm-pill-align);
+    gap: calc(var(--cm-pill-height) * 0.2);
+    padding: calc(var(--cm-pill-height) * 0.3);
   }
   .control {
     display: flex;
     align-items: center;
-    gap: 8px;
-    min-height: 56px;
-    padding: 8px 18px;
+    gap: calc(var(--cm-pill-height) * 0.14);
+    height: var(--cm-pill-height);
+    padding: 0 calc(var(--cm-pill-height) * 0.32);
     border: none;
-    border-radius: 28px;
-    background: rgb(0 0 0 / 0.6);
+    border-radius: calc(var(--cm-pill-height) / 2);
+    background: rgb(0 0 0 / var(--cm-pill-alpha));
     color: #fff;
-    font: 500 16px/1.2 var(--ha-font-family-body, sans-serif);
+    font: 500 calc(var(--cm-pill-height) * 0.29) / 1.2 var(--ha-font-family-body, sans-serif);
+    white-space: nowrap;
     cursor: pointer;
+    --mdc-icon-size: calc(var(--cm-pill-height) * 0.43);
   }
   .control.on {
-    background: var(--state-active-color, var(--primary-color));
+    background: color-mix(in srgb, var(--state-active-color, var(--primary-color)) var(--cm-pill-alpha), transparent);
   }
   .control:disabled {
     opacity: 0.7;
     cursor: default;
   }
-  /* The edge for the screen's shape now: set on the Cameras page. */
-  @media (orientation: landscape) {
-    .controls[data-landscape="top"] { top: 0; left: 0; right: 0; }
-    .controls[data-landscape="bottom"] { bottom: 0; left: 0; right: 0; }
-    .controls[data-landscape="left"] { left: 0; top: 0; bottom: 0; flex-direction: column; flex-wrap: nowrap; }
-    .controls[data-landscape="right"] { right: 0; top: 0; bottom: 0; flex-direction: column; flex-wrap: nowrap; }
+  /* Its place (the full screen or the main area) lets taps through to the picture
+     under it, but for the buttons themselves. */
+  .controls-area {
+    position: absolute;
+    pointer-events: none;
   }
-  @media (orientation: portrait) {
-    .controls[data-portrait="top"] { top: 0; left: 0; right: 0; }
-    .controls[data-portrait="bottom"] { bottom: 0; left: 0; right: 0; }
-    .controls[data-portrait="left"] { left: 0; top: 0; bottom: 0; flex-direction: column; flex-wrap: nowrap; }
-    .controls[data-portrait="right"] { right: 0; top: 0; bottom: 0; flex-direction: column; flex-wrap: nowrap; }
+  .control {
+    pointer-events: auto;
   }
+  /* The edge for its place's shape: set on the Cameras page. */
+  .controls[data-edge="top"] { top: 0; left: 0; right: 0; }
+  .controls[data-edge="bottom"] { bottom: 0; left: 0; right: 0; }
+  .controls[data-edge="left"] { left: 0; top: 0; bottom: 0; flex-direction: column; flex-wrap: nowrap; }
+  .controls[data-edge="right"] { right: 0; top: 0; bottom: 0; flex-direction: column; flex-wrap: nowrap; }
 `;

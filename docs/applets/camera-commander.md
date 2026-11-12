@@ -308,6 +308,10 @@ Its options (each left at its default unless you change it):
   shows the camera live over the whole screen, with its page controls as buttons along
   the edge set on the Cameras page, and a tap on the picture goes back. Talk carries on
   through it. Where the camera can't play live on the device, the tap opens more-info.
+- **Its controls over the main camera:** the main camera's page controls over it on the
+  commander too, set as on the Cameras page; the wide or tall edge goes by the main
+  camera's own shape. **Sound button:** a Sound button with the controls, to hear the
+  main camera. It turns off when the main camera changes, and while you talk.
 - **The picture:** direct at home and through Home Assistant away (the default); always
   direct; or always through Home Assistant. **Sharpness through Home Assistant:** from
   Full to Data saver, hidden when **Always direct** is selected.

@@ -1,5 +1,6 @@
-/* A camera's controls on a commander's full screen: a wide and a tall screen, each with
-   the camera shown whole and its controls along the edge chosen. */
+/* A camera's controls on a commander's full screen: a 1280 x 800 tablet each way round,
+   drawn to scale (inputs.tsx: PREVIEW), with the camera shown whole and its controls
+   along the edge chosen, as the card draws them (commander/full.ts). */
 .edges {
   display: flex;
   flex-wrap: wrap;
@@ -21,12 +22,12 @@
 }
 
 .landscape {
-  width: 240px;
+  width: 384px;
   aspect-ratio: 16 / 10;
 }
 
 .portrait {
-  width: 120px;
+  width: 240px;
   aspect-ratio: 10 / 16;
 }
 
@@ -41,10 +42,43 @@
   position: absolute;
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
-  gap: 4px;
-  padding: 6px;
-  font-size: 10px;
+  justify-content: var(--cm-pill-align);
+  gap: calc(var(--cm-pill-height) * 0.2);
+  padding: calc(var(--cm-pill-height) * 0.3);
+}
+
+.pill {
+  display: flex;
+  align-items: center;
+  height: var(--cm-pill-height);
+  padding: 0 calc(var(--cm-pill-height) * 0.32);
+  border-radius: calc(var(--cm-pill-height) / 2);
+  background: rgb(0 0 0 / var(--cm-pill-alpha));
+  color: #fff;
+  font-size: calc(var(--cm-pill-height) * 0.29);
+  white-space: nowrap;
+}
+
+/* Where the card draws the entity's icon (the page has no icons of its own). */
+.pill::before {
+  content: "";
+  flex: none;
+  width: calc(var(--cm-pill-height) * 0.43);
+  height: calc(var(--cm-pill-height) * 0.43);
+  margin-right: calc(var(--cm-pill-height) * 0.14);
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.8;
+}
+
+/* The pills' size, place along the edge and background, under the two screens. */
+.look {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 12px;
+  max-width: 640px;
 }
 
 .top,

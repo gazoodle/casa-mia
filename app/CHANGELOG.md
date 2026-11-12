@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.11.6-b3
+
+- **Camera Commander: the main camera's controls over it, and a Sound button.** Two new options on the card, under **Main camera**:
+  - **Its controls over the main camera** puts the main camera's page controls over it on the commander too, not only on its full screen, with the edge, size and background set on the Cameras page. The wide or the tall edge goes by the main camera's own shape, as a main area can be wide on an upright tablet.
+  - **Sound button** adds a **Sound** button before the controls, wherever they are shown, to hear the main camera's live video. It goes back to off when the main camera changes, so a camera Track motion switches to is never heard without a tap, and the camera is not heard while you talk, as the visitor is heard through Talk.
+- **Camera Commander: the full screen's buttons can be sized, placed along their edge and made more or less see-through.** Under **Controls on a full screen** on the Cameras page, each camera now also has a **Size** (Small, Medium or Large), where the buttons sit **Along the edge** (left or top, centre, right or bottom), and how solid their **Background** is, from clear to solid. The previews are now drawn to scale, as a 1280 × 800 tablet each way round, with the buttons as the card draws them. Cameras keep the look they had (medium, centred, 60 %).
+
 ## 2026.11.6-b2
 
 - **Heating Flow: fixed the square black blocks beside the pipes on Android wall tablets.** On tablets with a Mali GPU, Android's WebView painted small black blocks beside the pipes in the System view: in the borehole, on the cylinder's coil, in the floor boxes and by the softener. The cause was two things the card drew off screen first: the pipes' shadow, and the softener's resin beads. The shadow is now drawn as a darker line under each pipe and the beads are drawn directly, so the card looks the same. Measured on a Lenovo tablet with a Mali-G52 (Android 15, WebView 157): about 5,000 junk pixels on every load before, none after, in all three views with the flow markers moving.

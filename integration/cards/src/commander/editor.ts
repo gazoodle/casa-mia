@@ -13,6 +13,8 @@ const DEFAULTS: Record<string, unknown> = {
   away_sharpness: "balanced",
   live_main: true,
   talk_button: true,
+  main_controls: false,
+  sound_button: false,
   duplex: "full",
   leave_after: LEAVE_AFTER,
   security_look: false,
@@ -117,6 +119,8 @@ export class CommanderEditor extends LitElement {
           },
         },
       },
+      { name: "main_controls", selector: { boolean: {} } },
+      { name: "sound_button", selector: { boolean: {} } },
     ];
     const labels: Record<string, string> = {
       entity: "Commander",
@@ -125,6 +129,8 @@ export class CommanderEditor extends LitElement {
       away_sharpness: "Sharpness through Home Assistant",
       live_main: "Main camera as live video",
       talk_button: "Talk button",
+      main_controls: "Its controls over the main camera",
+      sound_button: "Sound button",
       duplex: "Mode",
       leave_after: "Picture kept running once out of sight",
       security_look: "Apply security look",
@@ -156,6 +162,10 @@ export class CommanderEditor extends LitElement {
             ? "How sharp the picture is when it comes through Home Assistant (away from home): a 2x screen at Full is four times the bytes of Light. Direct at home it is always the screen's own."
             : s.name === "live_main"
             ? "The main camera plays as live video over the picture, through Home Assistant's WebRTC (this device decodes it; the box does not). Needs the Camera compositor's Live main camera switch on; a video that does not start gives way to the drawn picture."
+            : s.name === "main_controls"
+            ? "The main camera's page controls (a gate, a light) over it, as on its full screen: the edge, size and background set for it on the Cameras page, the wide or tall edge by the main camera's own shape."
+            : s.name === "sound_button"
+            ? "A Sound button with the main camera's controls (on its full screen, and over it when its controls are), to hear the camera. It goes back to off when the main camera changes, and the camera is not heard while you talk (the visitor is heard through Talk)."
             : s.name === "talk_button"
             ? "A Talk button over a doorbell's live video (a camera with a Casa Mia Intercom call sensor, on an https page). Turn it off to use your own buttons: a tap_action of fire-dom-event with casa_mia_commander: {talk: toggle} does the same."
             : s.name === "motion_dot"
@@ -177,7 +187,7 @@ export class CommanderEditor extends LitElement {
     return html`
       <section aria-labelledby="main-heading">
         <h3 id="main-heading">Main camera</h3>
-        ${form(fields("entity", "live_main", "tap_main"))}
+        ${form(fields("entity", "live_main", "tap_main", "main_controls", "sound_button"))}
       </section>
       <section aria-labelledby="security-heading">
         <h3 id="security-heading">Security look</h3>
