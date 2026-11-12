@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.11.6-b4
+
+- **Camera Commander: fixed a blank card on a network that reaches Home Assistant but not the app's own port.** At a home address the card asks the app directly for its picture, on port 8099. On a guest network whose firewall passes Home Assistant's port and not that one, the request was never answered or refused, so the card stayed blank with nothing on it to say why. A page that has had no picture from the direct address now takes it through Home Assistant instead, until the app next restarts. **Always direct** on the card is kept as chosen.
+- **Camera Commander: a picture that shows nothing for 10 seconds now says so.** The card showed **Picture failing** only when the browser reported an error, and a request that is never answered gives none for minutes. No picture after 10 seconds is now a failure like any other: the card says so and asks again. Home Assistant giving no token for the picture is said too, on the card and in the browser's console; it was retried without a word.
+- **Camera Commander: fixed an error in Home Assistant's log each time a picture sent as frames ended.** Every such stream ended with `ValueError: Reading after EOF` and a traceback, though nothing was wrong.
+- **Camera Commander: a lost live video whose reason came as an object** is now logged with its content, not as `[object Object]`.
+
 ## 2026.11.6-b3
 
 - **Camera Commander: the main camera's controls over it, and a Sound button.** Two new options on the card, under **Main camera**:

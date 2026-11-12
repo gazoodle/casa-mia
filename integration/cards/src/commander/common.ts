@@ -122,6 +122,25 @@ export function pictureDown(since: number, lastError: number, now: number): stri
   return `Picture failing for ${ago(now - since)}: retrying`;
 }
 
+/** How long a picture may go without its first frame before that counts as a failure
+ * (base.ts: watchFrame). A request a firewall swallows gives the <img> no error for
+ * minutes, and the card stood blank and silent the whole time (found 2026-11-12 on a
+ * guest network that could reach Home Assistant but not the compositor's port). */
+export const NO_FRAME_MS = 10_000;
+
+/** Whether the picture comes through Home Assistant: by the card's `route`; on auto, when
+ * the page is not at a home address, or the direct address has been given up on. */
+export function throughHa(route: string, home: boolean, directOut: boolean): boolean {
+  return route === "ha" || (route === "auto" && (directOut || !home));
+}
+/** Whether a failed direct picture gives the direct address up: on auto only, and only
+ * while direct has shown no frame on this page. A home address is no proof the page can
+ * reach the compositor's port; where it has shown a frame, a failure is the app
+ * restarting or the network, and direct is tried again. */
+export function givesUpDirect(route: string, viaHa: boolean, directFramed: boolean): boolean {
+  return route === "auto" && !viaHa && !directFramed;
+}
+
 /** The picture as frames over a WebSocket (base.ts: followPicture): the stream's address
  * with .ws, on the page's own host. "" when the picture isn't a stream through Home
  * Assistant (direct, or none), which is the only place frames are served. */

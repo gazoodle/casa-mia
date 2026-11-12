@@ -27,7 +27,7 @@ export class CommanderCard extends CommanderTalk {
     const run = this.now().card?.run ?? "";
     if (run && this.run && run !== this.run) {
       console.info("casa-mia: the app restarted; a fresh picture stream");
-      this.again();
+      this.restarted();
     }
     if (run) this.run = run;
     // Full screen is the live camera: where it can't play any more (the compositor's

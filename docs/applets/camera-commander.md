@@ -313,7 +313,10 @@ Its options (each left at its default unless you change it):
   camera's own shape. **Sound button:** a Sound button with the controls, to hear the
   main camera. It turns off when the main camera changes, and while you talk.
 - **The picture:** direct at home and through Home Assistant away (the default); always
-  direct; or always through Home Assistant. **Sharpness through Home Assistant:** from
+  direct; or always through Home Assistant. Direct means the app's own address, on port
+  8099. With the default, a page at home that gets no picture from that address within
+  10 seconds (a guest network that may reach Home Assistant but not that port, say) takes
+  it through Home Assistant instead, until the app next restarts. **Sharpness through Home Assistant:** from
   Full to Data saver, hidden when **Always direct** is selected.
 - **Main camera as live video:** the main camera plays as live video over the picture
   (Home Assistant's WebRTC, decoded by the tablet), when the compositor's **Live main
@@ -469,8 +472,10 @@ duplex: full     # or half; only for button: answer
 
 - **"Picture failing for … : retrying" over the card:** the browser keeps refusing or
   cutting off the picture, and the card keeps asking for a new one. It goes once no
-  failure has come for 15 seconds. The browser's console has a `casa-mia: the picture
-  failed` line, and the app's log says how each stream ended.
+  failure has come for 15 seconds. A picture that shows nothing for 10 seconds counts as
+  a failure too, as does Home Assistant giving no token for it. The browser's console
+  has a `casa-mia: the picture failed` line, and the app's log says how each stream
+  ended.
 - **"Live lost … ago" in red under the main camera:** none of the camera's channels is
   playing as live video on this device, and the drawn picture is shown instead. The
   reason follows the time. Each channel is tried again after 30 seconds, then after

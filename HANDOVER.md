@@ -170,6 +170,14 @@ CLAUDE.md has them all. What trips agents here:
 
 ## Lessons learned (working practice not in CLAUDE.md)
 
+- **A home address is not proof of reach** (2026-11-12). A guest network's firewall passed
+  Home Assistant's port and not the compositor's 8099, so the Commander's direct picture
+  was never answered: no error, a blank card. Since 2026.11.6-b4 no frame in 10 s is a
+  failure (`common.ts` `NO_FRAME_MS`), and on `route: auto` a direct address that never
+  showed a frame is given up for Home Assistant's route until the app restarts
+  (`givesUpDirect`). To diagnose one: both logs name every stream's client address, and
+  Home Assistant's log gives a signed-in user's address.
+
 - **No filter or opacity on an SVG `<g>` of many shapes** (2026-11-12). The browser draws
   such a group off screen first, and the wall tablets' GPU (Mali-G52, WebView under Vulkan)
   then paints square black blocks beside its shapes. Heating Flow's pipe shadow and resin
