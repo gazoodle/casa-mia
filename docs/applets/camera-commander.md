@@ -5,7 +5,10 @@ Camera Commander card and the camera dashboard.
 
 > **Maturity: Beta.** Complete and used every day; its features have settled. Please report what breaks in your setup. ([The levels](../README.md#maturity))
 
-<img src="../screenshots/dashboard-commander.webp" alt="A camera commander on a dashboard: the main camera framed by every other camera" width="800">
+<img src="../screenshots/commander-responsive.webp" alt="A Camera Commander filling a Home Assistant dashboard view: a large main camera, Forecourt, showing a gravel drive with a car, with its name and the time at its foot, and the house's other 25 cameras as tiles of one size down the right and along the bottom, each with its name on a bar. Forecourt's own tile is outlined in green" width="800">
+
+The pictures in this guide are of an invented house. Its camera pictures are AI-generated,
+as the mark in their corner says, and the names are made up.
 
 ## What it's for
 
@@ -18,6 +21,88 @@ A commander is drawn instead by the app's compositor as one picture: a big main 
 framed by all the others. The tablet plays a single picture, so even a modest one stays
 quick. Tap a tile and it becomes the main camera; switch on Track motion and the
 commander follows whatever moves.
+
+## Fixed or Responsive?
+
+A commander is laid out in one of two ways, chosen with **Layout** on its page. It keeps
+both sets of settings, so you can change and change back.
+
+| | Fixed | Responsive |
+|---|---|---|
+| You set | Four panels (left, top, right, bottom), each with its cameras and its size | One list of cameras, and a few limits |
+| It suits | One shape of space, such as a wall tablet that never changes | Any space: a wide tablet, a narrow column, a phone |
+| Tiles | Whatever size each panel gives them | All one size, near the shape you choose |
+| A camera added | You put it in a panel | It takes the next place by itself |
+| A space of another shape | The same arrangement, squeezed or stretched to fit | Laid out again for that space |
+| Best with | A few cameras placed just so | Many cameras, or more than one kind of screen |
+
+Start with Responsive unless you want to place every camera by hand. A commander you
+already have stays Fixed until you change it.
+
+## Worked examples
+
+Each of these is a commander on the invented house, with the settings that made it.
+
+### Every camera on a wall tablet
+
+The picture at the top of this page: 26 cameras, one main camera, nothing set by hand
+beyond the list.
+
+- **Layout:** Responsive.
+- **Cameras:** all 26, in the order they should fill. The front of the house comes first,
+  so those tiles are nearest the main camera.
+- **Edges, in the order they fill:** Bottom, then Right. The spare cells, if there are
+  any, are left in the bottom right corner.
+- Everything else as it comes: the main camera between 40% and 60% of the biggest it
+  could be, tiles of 16:9 and no narrower than 110 px.
+
+Add a camera to the list and it appears as one more tile. Nothing else needs changing.
+
+### The same commander on a phone
+
+<img src="../screenshots/commander-phone.webp" alt="The same commander on a phone held upright: the main camera, Forecourt, across the top, and under it the house's cameras as tiles three across, nine rows of them, each with its name" width="300">
+
+The same commander, with no settings of its own for the phone, in a dashboard view of one
+column.
+
+- **Different when the space is taller than wide:** on, with **Bottom** as its only edge.
+  A tall space then has the main camera on top and every tile under it.
+- The card does the rest. In a narrow column it takes the height of the screen, so the
+  commander is laid out for a tall space and not for a short strip.
+
+On the page, the **Phone upright** button above the preview shows this before you pick up
+the phone.
+
+### A doorbell whose date and time stay in view
+
+<img src="../screenshots/commander-doorbell.webp" alt="A commander of six cameras whose main camera is a doorbell with a 4:3 picture. The main camera is nearly square and takes most of the view, with the mark in its top left corner whole, and its name, Main Doorbell, on a dark blue bar across its foot with the time. Three tiles go down the right and three along the bottom, each with its name in bold on a rounded pill" width="800">
+
+Doorbells and some other cameras have a 4:3 picture, and most cameras write the date and
+time in a corner. This commander is made for one.
+
+- **A main camera of another shape:** **Fit the layout to it**. The layout is made for the
+  main camera's own shape, so a 4:3 doorbell gets a place that is 4:3 and loses almost
+  nothing. The tiles can move when another camera becomes the main one.
+- **Main camera at most:** 100%, so the main camera takes the room six cameras leave.
+- **Keep this part of the main camera:** top left. What little is cropped comes off the
+  bottom and the right, and the corner where the camera writes stays whole.
+- **Camera names:** DejaVu Sans Bold, a **Bar** for the main camera and a **Pill** for the
+  tiles, on dark blue at 80%.
+
+### A few cameras, placed by hand
+
+<img src="../screenshots/commander-fixed.webp" alt="A Fixed commander: the main camera, Entrance, showing a front door, takes most of the view. Three tiles are stacked down the left, the first of them Entrance outlined in green, and four are in a row along the bottom" width="800">
+
+Seven cameras at the front of the house, each where it was put.
+
+- **Layout:** Fixed.
+- **Left:** Entrance, Main Doorbell and Gate Bell. **Bottom:** Forecourt, Road Gates,
+  Approach & Gate and Track. **Top** and **Right** hold nothing, so they take no room.
+- **Main camera:** **Crop**, so it fills its place.
+
+It looks exactly like this on the tablet it was made for. On a screen of another shape
+the panels keep their shares of the space, which is why a commander for several kinds of
+screen is better Responsive.
 
 ## Switching it on
 
@@ -38,22 +123,31 @@ cameras, a bad size) is refused, with what to fix, rather than shown broken on t
 The commanders are a list at the top. Pick one and its preview appears under the list,
 drawn from your unsaved changes, with its settings below it.
 
+<img src="../screenshots/commander-page.webp" alt="The Camera Commander page inside Home Assistant: three commanders in a list (Whole house with 26 cameras, Front of house, Doorbells), and under them the preview of Whole house at the Wide size, 1100 by 560 px, with buttons for other sizes above it and a line under it saying how much of the space the main camera takes" width="800">
+
 The preview is a stage that you can make any size, because a commander is given a
-different space on each dashboard and device. Drag its bottom right corner, or pick a
-common space with the buttons above it (Wide, Tablet, Squarer, Banner, Tall, Phone upright,
-Phone on its side). **On screens now** lists the sizes the commander is being shown at on
-your dashboards and tablets at the moment, read when you open the commander, so you can
-see it here as each of them shows it. Hover over one for which device it is. The
-commander is laid out again as the size changes, by the same
-layout the card uses, with small pictures of your cameras. The line under it says how much
-of the space the main camera takes, how much shows no camera, which camera is cropped
-the most (by name, whether it is the main camera or a tile, how much of its picture it
-loses, and the two shapes that cause it), and how many tiles are taller than wide. A
-camera is cropped when its own shape is not the shape of its place. A commander's panels are set for
-one shape of space, so try the spaces you use before you rely on them. Click a tile to
-make it the main camera in the preview. **As the app draws it** shows the compositor's
-own picture instead, with its labels and marks, at the commander's own size. The preview
-stays in view while you scroll through the settings, unless you have made it tall.
+different space on each dashboard and device.
+
+- **Change its size:** drag its bottom right corner, or pick a common space with the
+  buttons above it (Wide, Tablet, Squarer, Banner, Tall, Phone upright, Phone on its
+  side). The commander is laid out again as the size changes, by the same layout the card
+  uses.
+- **On screens now** lists the sizes the commander is being shown at on your dashboards
+  and tablets at the moment, read when you open the commander, so you can see it here as
+  each of them shows it. Hover over one for which device it is.
+- **The line under it** says how much of the space the main camera takes, how much shows
+  no camera, which camera is cropped the most (by name, whether it is the main camera or
+  a tile, how much of its picture it loses, and the two shapes that cause it), and how
+  many tiles are taller than wide. A camera is cropped when its own shape is not the
+  shape of its place.
+- **Click a tile** to make it the main camera in the preview.
+- **As the app draws it** shows the compositor's own picture instead, with its marks, at
+  the commander's own size.
+- The preview stays in view while you scroll through the settings, unless you have made
+  it tall.
+
+A Fixed commander's panels are set for one shape of space, so try the spaces you use
+before you rely on them.
 
 Move the commanders up and down (the camera dashboard's
 pages follow), delete one, or add a copy of the one picked or a blank one. Each has:
@@ -88,6 +182,8 @@ A Fixed commander suits one shape of space. Drag the preview to the spaces you u
 what it does in them.
 
 ### Responsive: worked out for the space
+
+<img src="../screenshots/commander-responsive-settings.webp" alt="A Responsive commander's settings: its cameras as a row of chips in the order their tiles fill, then The main camera (at least 40%, at most 60%, and Crop to fill, Show whole or Fit the layout to it), The tiles (a camera may lose up to, smallest tile, tile shape) and where the tiles go (the edges in the order they fill, a second list for a tall space, and what happens when the limits can't all be met)" width="800">
 
 A Responsive commander is laid out afresh for whatever space it is given. The picture is
 a grid of equal tiles, each near the tile shape, and the main camera is a block of them.
@@ -134,6 +230,8 @@ pictures from. Blank: this box's own address.
 
 ### Which part of a cropped main camera is kept
 
+<img src="../screenshots/commander-keep-settings.webp" alt="Keep this part of the main camera: a grid of nine squares, three by three, with the top left one filled in" width="300">
+
 **Keep this part of the main camera** is a grid of nine places: the corners, the middle of
 each edge and the centre. When the main camera is cropped, the crop keeps that part of its
 picture and comes off the opposite side. Many cameras write the date and time in the top
@@ -143,6 +241,8 @@ whenever the main camera is cropped, including the small crop that **Show whole*
 centre.
 
 ### Camera names and Talk chips
+
+<img src="../screenshots/commander-names-settings.webp" alt="The Camera names box: Font (DejaVu Sans Bold), Tile name size and Main camera name size as sliders, A tile's name and The main camera's name each as Bar, Pill or None, Text colour, Background colour and Background opacity; then Talk, over the main camera: Call status at and Talk buttons at, each with nudge across and nudge down sliders, a switch to show where they go in the preview, and Reset to defaults" width="800">
 
 Each commander has a box of settings for how its cameras' names look, in either layout.
 The **Any size** preview shows the names as you change them.

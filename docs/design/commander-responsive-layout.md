@@ -236,7 +236,7 @@ mode and can follow it.
 3. The compositor drawing in Responsive, and the card's zones over it. **Built in 2026.11.5-b7.**
 4. Responsive's settings in the editor, on the same stage. **Built in 2026.11.5-b8.**
 5. **+n more** and the view of all cameras.
-6. The guide (`docs/applets/camera-commander.md`) and its screenshots.
+6. The guide (`docs/applets/camera-commander.md`) and its screenshots. **Written 2026-11-12**, with pictures from the test rig's invented house.
 7. Measuring the main camera change, and the quicker change if it is wanted.
 
 Each is a build of its own that leaves existing commanders unchanged.

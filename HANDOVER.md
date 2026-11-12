@@ -331,6 +331,15 @@ CLAUDE.md has them all. What trips agents here:
     medium channel, whose cache entry is the "(Waiting …)" placeholder unless a watched
     commander has fetched it. It now asks `thumb/<camera>?largest=1` (`cache.largest`:
     the biggest channel that has really come, else 404 and the thumbnail stays).
+- **Camera Commander's guide (2026-11-12, docs only):** reworked for Responsive: Fixed or
+  Responsive?, four worked examples, and eight pictures, all taken on the test VM. The
+  VM's invented house now has 26 Generic Cameras, each a still served from its own
+  `www/cams` (the Swap's AI-generated stand-in pictures and names, by the owner's word),
+  three commanders (Whole house, Front of house, Doorbells) and views for them on its
+  House dashboard, with Live main camera off there (a still has no live video). The
+  Camera Commander integration had to be accepted under Discovered once the module had
+  commanders. The scripts that made it were scratch files and are gone; the steps are in
+  the saved note on the test VM.
 - **Sensor Watch's guide (2026-11-12, docs only):** its first picture is retaken from the
   test VM (the card and four gauges, nothing else), and **How it works** near the top is
   a Mermaid diagram written to match `watch.py` `_consider` (better at once, worse after
