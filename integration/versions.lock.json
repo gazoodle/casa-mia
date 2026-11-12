@@ -1,11 +1,11 @@
 {
   "casa_mia": {
     "digest": "d598b3bc45ce5e234e1521f443360d85a9fa2cd0c8372a18e47efaf9513691c0",
-    "version": "2026.11.6-b5"
+    "version": "2026.11.6"
   },
   "casa_mia_commander": {
     "digest": "8eab6fc3499a2dfadf7e5f54cf801a7fc7e05eb3e00f1d7025e9121d227a99b5",
-    "version": "2026.11.6-b4"
+    "version": "2026.11.6"
   },
   "casa_mia_guest_login": {
     "digest": "d6f2c3ccefd94beb06d3cc97d5a9e3b6696ee9654a1bed36cc9f26a2431d9378",
