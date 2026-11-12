@@ -200,14 +200,20 @@ class PictureView(HomeAssistantView):
                     resp = socket = web.WebSocketResponse()
                     await socket.prepare(request)
                     parts = aiohttp.MultipartReader.from_response(upstream)
-                    async for part in parts:
-                        # The last part is the one the compositor opened for a frame
-                        # that never came: empty.
-                        if frame := await part.read():  # type: ignore[union-attr]
-                            at = time.monotonic()
-                            await socket.send_bytes(bytes(frame))
-                            waiting += time.monotonic() - at
-                            sent += len(frame)
+                    try:
+                        async for part in parts:
+                            # The last part is the one the compositor opened for a frame
+                            # that never came: empty.
+                            if frame := await part.read():  # type: ignore[union-attr]
+                                at = time.monotonic()
+                                await socket.send_bytes(bytes(frame))
+                                waiting += time.monotonic() - at
+                                sent += len(frame)
+                    except ValueError:
+                        # aiohttp's "Reading after EOF": the app ended its stream inside
+                        # a part (the card was done with it), which is how every stream
+                        # ends. Unhandled, each one logged an error with a traceback.
+                        pass
                     return resp
 
                 resp = web.StreamResponse(

@@ -109,18 +109,24 @@ export class Draw {
 
     const gap = (p.hops ?? []).map(([x, y, dir]) => `<path d="${dir === "h" ? `M${x - w} ${y}H${x + w}` : `M${x} ${y - w}V${y + w}`}" stroke-width="${w + 8}" style="stroke:${this.bgAt(x)}"/>`).join("");
     const pills = sens.filter((x) => x.show !== false).map((x) => { const pt = pointAt(segs, x.s); return this.readout(pt.x, pt.y, x.k, pt.horiz); }).join("");
-    return { defs, gap, outline, fill, marks, pills };
+    // The shadow is a darker stroke, a little wider and 1 down, drawn under the whole network.
+    // Not a drop-shadow filter on the network's group: a filter (or group opacity) makes the
+    // browser draw the group off screen first, and with this many shapes in it the wall
+    // tablets' GPU (Mali-G52, WebView under Vulkan) paints square black blocks beside the pipes.
+    const shadow = full(w + 4, "rgba(0,0,0,.18)", `transform="translate(0 1)"`);
+    return { defs, gap, outline, fill, marks, pills, shadow };
   }
 
   /** Pipes as one plumbed network: every outline, then every fill, so where pipes meet the
    * water joins and the walls don't cross it. Pipes others tee into (z: 1) fill last. A pipe
-   * that crosses another (hops) goes on top, whole, with its gap cut first. */
+   * that crosses another (hops) goes on top, whole, with its gap cut first. A view that wants
+   * the pipes' shadow draws `shadow` just before `body`. */
   pipes(list: Pipe[]) {
     const r = list.map((p) => ({ p, ...this.pipe(p) }));
     const net = r.filter((x) => !x.p.hops).sort((a, b) => (a.p.z ?? 0) - (b.p.z ?? 0)), over = r.filter((x) => x.p.hops);
     const body = net.map((x) => x.outline).join("") + net.map((x) => x.fill).join("") + net.map((x) => x.marks).join("") +
       over.map((x) => x.gap + x.outline + x.fill + x.marks).join("");
-    return { defs: r.map((x) => x.defs).join(""), body, pills: r.map((x) => x.pills).join("") };
+    return { defs: r.map((x) => x.defs).join(""), shadow: r.map((x) => x.shadow).join(""), body, pills: r.map((x) => x.pills).join("") };
   }
 
   /** A reading on a pipe: a pill on it, or text beside it. One not current shows its age,

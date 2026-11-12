@@ -3,11 +3,15 @@
 import { LitElement } from "lit";
 import { atHome, type Fit, fitOf, type Hass, inDialog, LOOK, lookCss, ratioFor, watchRoom } from "../ha.ts";
 import { Motion } from "./motion.ts";
-import { Config, Card, dashboard, LEAVE_AFTER, VERSION, BLANK, SETTLE_MS, Size, askFor, framesAddress, pictureToken, pictureDown } from "./common.ts";
+import { Config, Card, dashboard, LEAVE_AFTER, VERSION, BLANK, SETTLE_MS, Size, askFor, framesAddress, pictureToken, pictureDown, NO_FRAME_MS, throughHa, givesUpDirect } from "./common.ts";
 
 /** Learned once for the page: its pictures through Home Assistant come as frames over a
  * WebSocket (see CommanderBase.frames), so its other cards and later showings start so. */
 let pageFrames = false;
+/** Learned for the page: the direct address showed a frame, or was given up on (common.ts:
+ * givesUpDirect). Given up lasts until the app restarts (restarted), when it is tried again. */
+let directFramed = false;
+let directOut = false;
 
 export class CommanderBase extends LitElement {
   static properties = {
@@ -20,6 +24,7 @@ export class CommanderBase extends LitElement {
     _token: { state: true },
     _shown: { state: true },
     _framed: { state: true },
+    _full: { state: true },
     preview: { type: Boolean },
     layout: { attribute: false },
   };
@@ -40,7 +45,12 @@ export class CommanderBase extends LitElement {
   /** Which picture has shown a frame: "s<n>" for showing n's stream, "still" while editing.
    * The highlight waits for it, so it never stands over an empty card. */
   _framed = "";
+  /** The camera shown full screen ("" when none is): the one tapped, kept even when the
+   * shared Main camera select changes on another device (card.ts: full screen). */
+  _full = "";
   protected frameWait = 0;
+  protected awaited = ""; // the picture whose first frame is awaited, and since when
+  protected awaitedSince = 0;
   protected motion = new Motion(); // the dots on tiles seeing motion
   protected run = ""; // the app's run the stream comes from (Card.run)
 
@@ -255,14 +265,24 @@ export class CommanderBase extends LitElement {
     if (!img) return;
     const key = img.classList.contains("still") ? "still" : `s${this._shown}`;
     if (key === this._framed) return;
-    if (img.naturalWidth > 0) this._framed = key;
-    else this.frameWait = window.setTimeout(() => this.watchFrame(), 200);
+    if (key !== this.awaited) {
+      this.awaited = key;
+      this.awaitedSince = Date.now();
+    }
+
+    if (img.naturalWidth > 0) {
+      this._framed = key;
+      if (key !== "still" && !this.viaHa()) directFramed = true;
+    } else if (key !== "still" && Date.now() - this.awaitedSince > NO_FRAME_MS) {
+      // No frame and no error either: a failure all the same (common.ts: NO_FRAME_MS).
+      this.awaited = "";
+      this.refused();
+    } else this.frameWait = window.setTimeout(() => this.watchFrame(), 200);
   }
   /** The main camera now: the select's option, by title; else the one at start. */
   /** Through Home Assistant, by the card's `route`, else by where this page is. */
   protected viaHa(): boolean {
-    const route = this._config?.route ?? "auto";
-    return route === "ha" || (route === "auto" && !atHome(location));
+    return throughHa(this._config?.route ?? "auto", atHome(location), directOut);
   }
 
   /** The picture's address, at the size asked for; "" while its token is being asked. */
@@ -281,8 +301,23 @@ export class CommanderBase extends LitElement {
     if (!this.hass) return;
     pictureToken(this.hass, fresh).then(
       (t) => (this._token = t),
-      () => (this.retry = window.setTimeout(() => this.ask(true), 10_000)),
+      (err) => {
+        this.failed(`Home Assistant gave no token for it: ${err?.message ?? JSON.stringify(err)}`);
+        this.retry = window.setTimeout(() => this.ask(true), 10_000);
+      },
     );
+  }
+
+  /** The picture failed: said on the card (common.ts: pictureDown) and, once for each
+   * run of failures, in the console. */
+  protected failed(how: string) {
+    const now = Date.now();
+    if (!pictureDown(this.downSince, this.lastError, now)) {
+      this.downSince = now;
+      console.warn(`casa-mia: the picture failed (${how}); retrying until it comes`);
+    }
+    this.lastError = now;
+    this.requestUpdate();
   }
 
   /** Refused (an old token) or cut off (the app restarted, say): a new stream soon,
@@ -298,15 +333,26 @@ export class CommanderBase extends LitElement {
       return;
     }
 
-    const now = Date.now();
-    if (!pictureDown(this.downSince, this.lastError, now)) {
-      this.downSince = now;
-      console.warn(`casa-mia: the picture failed (${this.viaHa() ? "through Home Assistant" : "direct"}); retrying until it comes`);
+    // The direct address has never shown a frame here: through Home Assistant from now
+    // on, which this page has already reached.
+    if (givesUpDirect(this._config?.route ?? "auto", this.viaHa(), directFramed)) {
+      console.warn("casa-mia: the picture's direct address gave nothing from this page; it comes through Home Assistant until the app restarts");
+      directOut = true;
+      // Asked for again at Home Assistant's sharpness, as the resize would have (resize).
+      this._size = askFor(this._box[0], this._box[1], ratioFor(window.devicePixelRatio || 1, true, this._config?.away_sharpness));
+      this.requestUpdate();
+      return;
     }
-    this.lastError = now;
-    this.requestUpdate();
+
+    this.failed(this.viaHa() ? "through Home Assistant" : "direct");
     clearTimeout(this.retry);
     this.retry = window.setTimeout(() => (this.viaHa() ? this.ask(true) : this.again()), this.viaHa() ? 5_000 : 3_000);
+  }
+
+  /** The app restarted: a fresh stream, and the direct address is tried again. */
+  protected restarted() {
+    directOut = false;
+    this.again();
   }
 
   /** A new showing (a new <img>, so a fresh stream), while it is shown. */
@@ -326,6 +372,7 @@ export class CommanderBase extends LitElement {
   }
 
   protected main(card: Card, option?: string): string {
+    if (this._full && card.cameras[this._full]) return this._full;
     const found = Object.entries(card.cameras).find(([, c]) => c.title === option);
     return found ? found[0] : card.start;
   }

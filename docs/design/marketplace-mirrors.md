@@ -443,6 +443,28 @@ own checks passed and so did hassfest, in docker. Where it differs:
   runs this against a local repository; nothing has run against GitHub.
 - **Waiting for a workflow** is `gh run watch`, after looking for the run for up to two
   minutes (a run just started isn't listed at once).
+- **ZIP releases (2026-11-12).** Each release carries the component as `sensor_watch.zip`
+  (`hacs.json`: `zip_release`, `filename`), so GitHub counts its downloads, shown by a
+  Downloads badge in the README.
+  - **Its layout:** the component's files at the archive's root. HACS 2.0.5 unpacks the
+    archive into `custom_components/<domain>` (`repositories/base.py`
+    `async_download_zip_file`), and so does the Marketplace (core 2026.11.1,
+    `marketplace/repositories/base.py`).
+  - **Older releases:** both stores read `hacs.json` from the latest release, then fetch
+    `releases/download/<tag>/<filename>` for whichever version is chosen. A release
+    without the ZIP would then fail to install; the store logs it and puts the old copy
+    back. So every release of the mirror without the ZIP is given one, built from Casa
+    Mia's tag of the same name. This happens only when that tag holds the same git tree
+    as the mirror's, and before the new release is created. The files in a tag are never
+    changed.
+  - **The default branch:** HACS 2's dialog offers releases only, but the Marketplace can
+    offer the default branch, which has no ZIP to download. `hide_default_branch` stops
+    it being offered.
+  - **The check:** `archive_problems` compares the ZIP with the component as committed,
+    by git blob id: a missing file, an extra one, a changed one or a folder around them
+    stops the publish. The ZIP is built the same way each time, so a retry makes the same
+    asset.
+  - The Casa Mia app still installs the component from its own image, as before.
 - **hassfest runs before the push** when docker is running, as well as in the mirror's
   workflow. Its image is amd64 only, so it is emulated on an Apple silicon Mac.
 

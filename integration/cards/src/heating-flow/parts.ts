@@ -165,7 +165,9 @@ export function softener(d: Draw, x: number, y: number, w: number, h: number, lo
       `<text x="${x + cw / 2}" y="${y + 15}" text-anchor="middle" font-size="10.5" font-weight="700" class="t">${esc(salt.stale ? "—" : d.fmt(salt))}</text>` : "") +
     `<clipPath id="${clip}"><rect x="${rx}" y="${ry}" width="20" height="${rh}" rx="10"/></clipPath>` +
     `<rect x="${rx}" y="${ry}" width="20" height="${rh}" rx="10" fill="url(#panelg)"/>` +
-    `<g clip-path="url(#${clip})" fill="#d9a441" opacity=".75">${beads}</g>` +
+    // fill-opacity, not the group's opacity: the beads don't overlap, so it looks the same, and
+    // group opacity is drawn off screen first, which paints junk on the wall tablets (see Draw.pipe).
+    `<g clip-path="url(#${clip})" fill="#d9a441" fill-opacity=".75">${beads}</g>` +
     `<rect x="${rx}" y="${ry}" width="20" height="${rh}" rx="10" fill="none" style="stroke:var(--hf-edge)" stroke-width="1.5"/>` +
     `<text x="${x + w / 2}" y="${y - 14}" text-anchor="middle" font-size="11" font-weight="700" class="${low ? "w" : "t"} halo">${low ? "Top up salt" : "Softener"}</text>`);
 }

@@ -5,9 +5,10 @@ import type { Commander } from "../placed.ts";
 import type { Labels } from "../labels.ts";
 import type { Corner } from "./motion.ts";
 import type { Duplex } from "./talk-rules.ts";
+import type { Control, ControlsAt } from "../../../../app/web/src/cameras/controls.ts";
 
 export type Route = "auto" | "direct" | "ha";
-export type Config = { type: string; entity?: string; tap_main?: "live" | "more-info" | "none"; route?: Route; away_sharpness?: Sharpness; live_main?: boolean;
+export type Config = { type: string; entity?: string; tap_main?: "live" | "more-info" | "full" | "none"; route?: Route; away_sharpness?: Sharpness; live_main?: boolean;
   leave_after?: number;
   grid_options?: { rows?: number | string };
   /** The Security look, on or off (a template, later), and its tint ([r, g, b]), strength and darkness (%). */
@@ -23,6 +24,12 @@ export type Config = { type: string; entity?: string; tap_main?: "live" | "more-
   motion_pulse?: number;
   motion_linger?: number;
   motion_corner?: Corner;
+  /** The main camera's controls over the main area too, not only on its full screen (full.ts). */
+  main_controls?: boolean;
+  /** A Sound button with the controls, to hear the main camera's live video (full.ts). */
+  sound_button?: boolean;
+  /** A Full screen button with the controls: the card over the whole screen (screen.ts). */
+  screen_button?: boolean;
   /** The card's own Talk button, where talk is offered (talk.ts). */
   talk_button?: boolean;
   /** full: the voice goes out from the answer; half: only while Hold to talk is held (talk-rules.ts). */
@@ -32,8 +39,9 @@ export type Card = {
   picture: string;
   layout: Commander & { labels?: Partial<Labels>; main_keep?: string; highlight?: Record<string, string | number>; debug?: { on?: boolean; colour?: string } };
   start: string;
-  /** Each camera: its title, live page, and channels smallest first, with their sizes. */
-  cameras: Record<string, { title: string; live: string; channels?: [string, number, number][] }>;
+  /** Each camera: its title, live page, channels smallest first, with their sizes, and
+   * its controls with the edge they go along on a full screen (card.ts: full screen). */
+  cameras: Record<string, { title: string; live: string; channels?: [string, number, number][]; controls?: Control[]; controls_at?: Partial<ControlsAt> }>;
   /** The compositor's Live main camera switch. */
   live_main?: boolean;
   /** This run of the app: when it changes, the app restarted and the stream with it. */
@@ -114,6 +122,25 @@ export const PICTURE_DOWN_MS = 15_000;
 export function pictureDown(since: number, lastError: number, now: number): string | null {
   if (!lastError || now - lastError >= PICTURE_DOWN_MS) return null;
   return `Picture failing for ${ago(now - since)}: retrying`;
+}
+
+/** How long a picture may go without its first frame before that counts as a failure
+ * (base.ts: watchFrame). A request a firewall swallows gives the <img> no error for
+ * minutes, and the card stood blank and silent the whole time (found 2026-11-12 on a
+ * guest network that could reach Home Assistant but not the compositor's port). */
+export const NO_FRAME_MS = 10_000;
+
+/** Whether the picture comes through Home Assistant: by the card's `route`; on auto, when
+ * the page is not at a home address, or the direct address has been given up on. */
+export function throughHa(route: string, home: boolean, directOut: boolean): boolean {
+  return route === "ha" || (route === "auto" && (directOut || !home));
+}
+/** Whether a failed direct picture gives the direct address up: on auto only, and only
+ * while direct has shown no frame on this page. A home address is no proof the page can
+ * reach the compositor's port; where it has shown a frame, a failure is the app
+ * restarting or the network, and direct is tried again. */
+export function givesUpDirect(route: string, viaHa: boolean, directFramed: boolean): boolean {
+  return route === "auto" && !viaHa && !directFramed;
 }
 
 /** The picture as frames over a WebSocket (base.ts: followPicture): the stream's address

@@ -38,7 +38,7 @@ async def _setup(hass, aiohttp_server, monkeypatch):
 
 
 async def test_frames_arrive_one_message_each(
-    hass, hass_client_no_auth, aiohttp_server, monkeypatch
+    hass, hass_client_no_auth, aiohttp_server, monkeypatch, caplog
 ):
     await _setup(hass, aiohttp_server, monkeypatch)
     client = await hass_client_no_auth()
@@ -50,6 +50,10 @@ async def test_frames_arrive_one_message_each(
         assert (await ws.receive()).type.name in ("CLOSE", "CLOSED", "CLOSING")
 
     assert got == FRAMES  # whole frames, and the app's stream ending closes the socket
+    # The app ending its stream is how every stream ends: not an error in the log.
+    await hass.async_block_till_done()
+    assert "Reading after EOF" not in caplog.text
+    assert "Error handling request" not in caplog.text
 
 
 async def test_frames_refused_without_a_token(

@@ -4,7 +4,7 @@ import { Dialog, Field, Switch } from "../ui";
 import css from "../cameras.module.css";
 import ui from "../ui.module.css";
 import { Camera, DEFAULT_PTZ, HACamera, Preset } from "./common";
-import { Controls, EntityInput } from "./inputs";
+import { Controls, ControlsEdges, EntityInput } from "./inputs";
 
 export function AddCameras({
   ha,
@@ -98,7 +98,10 @@ export function CameraDialog({
               for (const k of ["medium", "high", "zoom"] as const) if (!out[k]) delete out[k];
               delete out.live; // the dashboard's choice now (Auto Dashboards)
               if (out.ptz) out.ptz = { ...out.ptz, presets: parsePresets(presets) };
-              if (!out.controls?.length) delete out.controls;
+              if (!out.controls?.length) {
+                delete out.controls;
+                delete out.controls_at;
+              }
               onSave(out);
             }}
           >
@@ -152,6 +155,14 @@ export function CameraDialog({
       <Field label="Page controls" help="Entities at the top of its live page (a gate, a light); a tap toggles them.">
         <Controls value={c.controls ?? []} onChange={(controls) => set({ controls })} />
       </Field>
+      {!!c.controls?.length && (
+        <Field
+          label="Controls on a full screen"
+          help="How they are shown when a Camera Commander card shows this camera full screen (its Tap on the main camera: Full screen): the edge for a wide screen and for a tall one, where along it, and the buttons' size and background. The previews are a 1280 × 800 tablet, to scale."
+        >
+          <ControlsEdges entity={entity} controls={c.controls} value={c.controls_at} onChange={(controls_at) => set({ controls_at })} />
+        </Field>
+      )}
     </Dialog>
   );
 }

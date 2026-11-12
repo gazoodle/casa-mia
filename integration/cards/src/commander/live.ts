@@ -164,7 +164,7 @@ export class CommanderLive extends CommanderBase {
 
     (LIVE_BY === "hls" ? playHLS : playWebRTC)(this.hass!.connection, channel, video, failed).then(
       (stop) => (current() ? (s.stop = stop) : stop()),
-      (err) => failed(err?.message ?? String(err)), // Home Assistant refuses with { code, message }
+      (err) => failed(err?.message ?? JSON.stringify(err)), // Home Assistant refuses with { code, message }
     );
   }
 
