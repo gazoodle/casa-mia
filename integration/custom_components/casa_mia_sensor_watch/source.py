@@ -149,7 +149,10 @@ async def _history(hass: HomeAssistant, c: Command) -> dict[str, list[dict]]:
 
 
 async def _config(hass: HomeAssistant, _c: Command) -> dict[str, Any]:
-    return {"components": sorted(hass.config.components)}
+    return {
+        "components": sorted(hass.config.components),
+        "country": hass.config.country,  # for the mains profile the set-up offers
+    }
 
 
 ANSWERS: dict[str, Callable[[HomeAssistant, Command], Awaitable[Any]]] = {

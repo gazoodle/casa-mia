@@ -72,15 +72,38 @@ export const styles = [motionStyles, css`
       padding: 0 10px 10px 10px;
       pointer-events: none;
     }
+    /* Its font, size and colours are the commander's labels (labels.ts), set on the box. */
     .caption span {
       padding: 2px 6px;
-      background: rgb(0 0 0 / 0.63);
-      color: #fff;
-      font: 20px/1.2 sans-serif;
+      background: var(--cm-label-back);
+      color: var(--cm-label-colour);
+      font: var(--cm-label-size) / 1.2 var(--cm-label-font);
+    }
+    /* A pill: rounded ends, as the style guide's pills have. */
+    .caption.pill span {
+      padding: 0.1em 0.5em;
+      border-radius: 999px;
+    }
+    /* A bar: the name across the foot, anything said beside it standing above. */
+    .caption.bar {
+      padding: 0;
+    }
+    .caption.bar .title {
+      order: 1;
+      flex: 1 0 100%;
+      box-sizing: border-box;
+      padding: 0.35em 10px;
+    }
+    .caption.bar .lost {
+      margin-left: 10px;
+    }
+    .caption.none .title {
+      display: none;
     }
     /* No live video: said in red beside the title, wrapping on a narrow card (RULE FIVE). */
     .caption .lost {
       background: rgb(200 30 30 / 0.9);
+      color: #fff;
       font-weight: 600;
     }
     /* The picture failing (common.ts: pictureDown): said over the card, top left, wrapping. */

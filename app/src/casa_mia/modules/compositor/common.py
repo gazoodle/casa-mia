@@ -90,6 +90,8 @@ DRAFT_STORE = "camera-dashboard.json"
 # or more, each a page of the dashboard named after it.
 PANELS = ("left", "top", "right", "bottom")
 LAYOUT = json.loads((Path(__file__).parents[2] / "layout.json").read_text())
+# How the cameras' names are drawn: the options (`labels`) and the fonts' files (`fonts`).
+LABELS = json.loads((Path(__file__).parents[2] / "labels.json").read_text())
 EMPTY_COMMANDER = {
     "name": "Cameras",  # its page's title; as a slug, its page's path and picture's
     # Never changes: its device in the integration (Main camera, Track motion). "": the
@@ -131,7 +133,21 @@ EMPTY_COMMANDER = {
         "pulse": 1.8,
         "style": "breathe",
     },
+    # How the cameras' names are drawn (labels.py): font, sizes, colours, and a bar, a
+    # pill or nothing; and where the card puts a call's state and the Talk buttons.
+    "labels": {k: o["default"] for k, o in LABELS["labels"].items()},
+    # The part of the main camera's picture kept when it is cropped (labels.py: keep).
+    "main_keep": LABELS["picture"]["main_keep"]["default"],
     "aspects": {},  # camera -> its natural shape (width / height), recorded when saved
+    # How it is laid out: fixed (the four panels below, set by hand) or responsive
+    # (worked out for the space it is drawn in, see responsive.py). Responsive has its
+    # own cameras, one list in the order the tiles fill, and its limits; both modes'
+    # settings are kept, so a commander can change mode and back.
+    "mode": "fixed",
+    "responsive": {
+        "cameras": [],
+        **{k: o["default"] for k, o in LAYOUT["responsive"].items()},
+    },
     # Each panel: its cameras, size, fit (cover: filling equal tiles, cropped; contain:
     # whole in equal tiles; stack: whole at its own shape, edge to edge from the top or
     # left, spare room at the far end; reverse: the same, against the bottom or right;

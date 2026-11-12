@@ -21,9 +21,10 @@
 // the device that answered tells HA; every device shows the countdown from the sensor.
 import { css, html, nothing } from "lit";
 import { styleMap } from "lit/directives/style-map.js";
+import { type Place, corner, footOf, labelsOf, nudge } from "../labels.ts";
 import { playWebRTC } from "../../../../app/web/src/webrtc.ts";
 import { Card, callSensor, callSensors, callWords, countdown, talkCamera, talkOffered, TALK_NOTE_MS, TOUCH_EVERY_MS } from "./common.ts";
-import { CommanderLive } from "./live.ts";
+import { CommanderLive, LIVE_BY } from "./live.ts";
 import { type TalkState, type Order, Hold, NO_GRAB, announce, answerAsks, answeredHere, commanderWords, talkState, talkSwitches } from "./talk-rules.ts";
 
 /** Answers already taken by a Commander card on this page: one card answers, however many
@@ -146,9 +147,10 @@ export class CommanderTalk extends CommanderLive {
     return callSensor(this.hass!, camera, this.found.sensors);
   }
 
-  /** Talk is offered (common.ts: talkOffered). */
+  /** Talk is offered (common.ts: talkOffered), on a device with WebRTC: nothing else
+   * sends a microphone to the camera. */
   protected canTalk(): boolean {
-    return talkOffered({ sensor: this.call(), live: this.liveOn, talking: this._talk, secure: window.isSecureContext, editing: this.editing() });
+    return LIVE_BY === "webrtc" && talkOffered({ sensor: this.call(), live: this.liveOn, talking: this._talk, secure: window.isSecureContext, editing: this.editing() });
   }
 
   /** Talk on, to the doorbell of `sensor` (common.ts: talkCamera; it needn't be on
@@ -287,14 +289,17 @@ export class CommanderTalk extends CommanderLive {
     const half = this._talk ? this.half : this._config?.duplex === "half";
     const said = commanderWords(this.said, Boolean(this._talk), half);
     const out = this.said === "full" || this.said === "live"; // the voice going out
-    return html`<div class="talk" style=${place}>
-      <div class="talk-said">
+    // Each where the commander's labels put it (labels.ts), clear of what the camera
+    // writes on its own picture; in the same corner, what is said stands over the buttons.
+    const labels = labelsOf(card.layout.labels);
+    const at = (where: Place, parts: unknown) => html`<div class="talk-at" style=${styleMap(corner(where, footOf(labels, where)))}>${parts}</div>`;
+    const status = html`<div class="talk-said" style=${styleMap(nudge(labels, "talk_status"))}>
         ${out ? html`<span class="cm-pill cm-filled cm-bad">Live to ${card.cameras[this._talk]?.title ?? this.hass?.states[this._talk]?.attributes.friendly_name ?? this._talk}</span>` : nothing}
         ${words ? html`<span class="cm-pill cm-filled ${TONES[st!.state]}">${words}</span>` : nothing}
         ${left ? html`<span class="cm-pill cm-filled ${left.warn ? "cm-warn" : "cm-muted"}">${left.text}</span>` : nothing}
         ${this._talkNote && this._talkNote !== words ? html`<span class="cm-pill cm-filled cm-muted">${this._talkNote}</span>` : nothing}
-      </div>
-      <div class="talk-buttons">
+      </div>`;
+    const buttons = html`<div class="talk-buttons" style=${styleMap(nudge(labels, "talk_buttons"))}>
         ${button && said.hold
           ? html`<button
               class="cm-chip cm-on ${this.said === "live" ? "cm-bad" : "cm-good"}"
@@ -310,31 +315,34 @@ export class CommanderTalk extends CommanderLive {
               ${said.main}
             </button>`
           : nothing}
-      </div>
+      </div>`;
+    return html`<div class="talk" style=${place}>
+      ${labels.talk_status === labels.talk_buttons ? at(labels.talk_status, [status, buttons]) : [at(labels.talk_status, status), at(labels.talk_buttons, buttons)]}
     </div>`;
   }
 }
 
-/** Its parts over the main camera: what is said along the top, the button at the foot on
- * the right (the caption is on the left). Taps pass through all but the button. */
+/** Its parts over the main camera: what is said and the buttons, each in the corner the
+ * commander's labels give it (at first: said along the top, the buttons at the foot on
+ * the right, the caption being on the left). Taps pass through all but the button. */
 export const talkStyles = css`
   .talk {
     position: absolute;
     box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: 10px;
     pointer-events: none;
   }
-  .talk-said {
+  .talk-at {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: calc(100% - 20px);
+  }
+  .talk-said,
+  .talk-buttons {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
-  }
-  .talk-buttons {
-    align-self: flex-end;
-    display: flex;
+    justify-content: var(--cm-just);
     gap: 6px;
   }
   .talk button {

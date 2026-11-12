@@ -28,6 +28,9 @@ export const opens = (edit: () => void) => (e: MouseEvent) => {
 export const margin = (edge: number, a?: Accuracy) => (!a ? 0 : a.percent ? (Math.abs(edge) * a.amount) / 100 : a.amount);
 
 /** A watched sensor's record, as the integration keeps it (sensor_watch/records/common.py). */
+/** There but quiet: no report (or no change) for `after` seconds counts as `level`. */
+export type Stale = { after: number; by: "report" | "change"; level: Level; message: string };
+
 export type WatchRecord = {
   entity_id: string;
   kind: "numeric" | "binary" | "state" | "available";
@@ -61,6 +64,7 @@ export type WatchRecord = {
   days_until?: boolean;
   /** Each level's seconds before it shows the next one up (task, warning, error). */
   escalate?: Partial<Record<Level, number>>;
+  stale?: Stale;
   /** Numeric: how far the meter may be out (a level holds that close to an edge). */
   accuracy?: Accuracy;
   /** The profile it follows (its levels then come from there). */
@@ -108,6 +112,19 @@ export function levelsOf(r: Partial<WatchRecord>): Partial<WatchRecord> {
   const { entity_id: _e, label: _l, meta: _m, profile: _p, name: _n, attribute: _a, disabled: _d, ...levels } = r as WatchRecord;
   return levels;
 }
+
+/** A group the set-up offers to make (records/setup.py): how many it would take now, a
+ * `record` showing the levels, and the built-in levels (`profile`) or a library profile
+ * to take and follow, with those its filters match that don't read like mains (`left`). */
+export type SetupClass = {
+  name: string;
+  filters: Partial<Filters>;
+  count: number;
+  left: string[];
+  profile?: string;
+  library?: Partial<WatchRecord> & { name: string };
+  record: WatchRecord;
+};
 
 /** A group: saved filters and a profile; what matches is watched, new arrivals too. */
 export type Group = {

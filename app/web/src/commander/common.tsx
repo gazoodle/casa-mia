@@ -3,12 +3,16 @@
 import { api } from "../api";
 import type { Camera, HAEntity } from "../cameras";
 import { CommanderIcon } from "../icons";
+import type { Labels } from "../../../../integration/cards/src/labels.ts";
 import LAYOUT from "../../../src/casa_mia/layout.json";
 
 // The layout options' labels, help and defaults, shared with the Tablet Layout.
 export const L = LAYOUT.main;
 
 export const P = LAYOUT.panel;
+
+// The Responsive layout's options, and their defaults as a commander holds them.
+export const R = LAYOUT.responsive;
 
 export const help = (o: { help?: string }) => o.help?.replaceAll("{item}", "camera");
 
@@ -77,13 +81,47 @@ export type Commander = {
   stale?: number;
   /** The outline on the main camera's tile, drawn by the browser on the dashboard. */
   highlight?: Highlight;
+  /** How its camera names are drawn, and where its Talk chips go (labels.tsx). */
+  labels?: Partial<Labels>;
+  /** The part of the main camera's picture kept when it is cropped; none: the centre. */
+  main_keep?: string;
   /** Debug options: the picture dimmed, corner Ls and diagonals, its ID and draw time. */
   debug?: Debug;
   /** Track motion (done by the integration), seconds. back 0: stays on the motion camera. */
   motion?: { hold: number; back: number; pause: number };
   /** Cameras Track motion never switches to; the card still marks their motion. */
   motion_ignore?: string[];
+  /** How it is laid out: fixed (its panels, set by hand) or responsive (worked out for
+   * the space it is drawn in). Both modes' settings are kept. */
+  mode?: "fixed" | "responsive";
+  /** Responsive: its cameras and its limits. */
+  responsive?: Partial<Responsive>;
 } & Record<(typeof PANELS)[number], Panel>;
+
+export type Edge = "bottom" | "right" | "left" | "top";
+
+/** A Responsive commander's own settings (layout.json's `responsive` says what each is). */
+export type Responsive = {
+  /** Its cameras, one list, in the order the tiles fill. */
+  cameras: string[];
+  main_least: number;
+  main_most: number;
+  tile_loss: number;
+  tile_min: number;
+  tile_shape: string;
+  edges: Edge[];
+  /** A second list for a space taller than wide; null: the one list everywhere. */
+  edges_tall: Edge[] | null;
+  main_other: string;
+  cant_fit: string;
+};
+
+export const RESPONSIVE = { cameras: [], ...Object.fromEntries(Object.entries(R).map(([k, o]) => [k, o.default])) } as unknown as Responsive;
+
+/** A commander's cameras as shown, each once: its panels' (not a hidden one's), or a
+ * Responsive commander's own list. */
+export const camerasOf = (c: Commander): string[] =>
+  c.mode === "responsive" ? [...new Set(c.responsive?.cameras ?? [])] : [...new Set(PANELS.flatMap((p) => (c[p].hidden ? [] : c[p].cameras)))];
 
 /** What the commander editor works on: the commanders, and the cameras they show. */
 export type Edits = { commanders: Commander[]; cameras: Record<string, Camera> };

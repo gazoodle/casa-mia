@@ -1,7 +1,8 @@
-import { AreaHead, Empty } from "../page";
+import { Empty } from "../page";
 import guest from "../guest.module.css";
 import pipe from "../pipeline.module.css";
 import ui from "../ui.module.css";
+import { FoldArea } from "./fold";
 import { Act, Channel, GATHER_STEPS, Gatherer, PaceSlider, PauseButton, SURVEY_STEPS, StateBadge, Table, ms, owner, paceText, plural, seconds } from "./common";
 
 export const TIERS = ["high", "medium", "low"];
@@ -24,8 +25,8 @@ export function GathererArea({
   onSurveys: (camera: string) => void;
 }) {
   return (
-    <section className={guest.area}>
-      <AreaHead
+    <FoldArea
+        id="gatherer"
         title="Gatherer"
         blurb={`Each camera channel wanted is fetched on its own, ${paceText(g.pace)}: its stream's frames where Home Assistant's go2rtc carries it (${g.go2rtc ? "reachable" : "not reachable"}), else snapshots. Restart reads every stream again and forgets every failure, the pictures kept. ${g.paused ? "Paused: nothing is fetched." : ""}`}
         action={
@@ -41,7 +42,7 @@ export function GathererArea({
             <PauseButton paused={g.paused} path="gatherer" name="Gatherer" busy={busy} act={act} />
           </span>
         }
-      />
+      >
       <PaceSlider which="gatherer" value={g.pace} steps={GATHER_STEPS} act={act} />
       <p className={pipe.use}>
         A picture fresher than its stream's last keyframe needs every frame since it decoded (most of the CPU a stream
@@ -140,6 +141,6 @@ export function GathererArea({
       ) : (
         <Empty>No cameras yet.</Empty>
       )}
-    </section>
+    </FoldArea>
   );
 }

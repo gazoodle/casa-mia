@@ -174,6 +174,28 @@ def escalation(
     return level, None
 
 
+def span(seconds: float) -> str:
+    """A length of time as the page writes it: "45 s", "90 min", "6 h", "1.5 days"."""
+    for size, unit in ((86400, "day"), (3600, "h"), (60, "min")):
+        if seconds >= size:
+            n = f"{seconds / size:.1f}".removesuffix(".0")
+            return f"{n} {unit}{'s' if unit == 'day' and n != '1' else ''}"
+    return f"{seconds:.0f} s"
+
+
+def stale_message(stale: dict[str, Any], restamped: bool = False) -> str:
+    """What a stale sensor says: its record's message, else "no report for 6 h" (or "no
+    change"). `restamped`: its last report is from before Home Assistant finished
+    starting, which stamps every restored entity as just reported, so how long it has
+    really been silent isn't known and the message says only that."""
+    if stale.get("message"):
+        return stale["message"]
+    what = "change" if stale.get("by") == "change" else "report"
+    if restamped:
+        return f"no {what} since Home Assistant started"
+    return f"no {what} for {span(stale['after'])}"
+
+
 def listing(
     now: dict[str, dict[str, Any]], levels: list[str] | None = None
 ) -> list[dict[str, Any]]:
@@ -199,13 +221,32 @@ def displayed(value: Any, precision: int | None) -> Any:
 def watching(
     records: dict[str, Any], now: dict[str, dict[str, Any]], entity_id: str
 ) -> dict[str, Any]:
-    """One entity's watch, as the eye in its Home Assistant dialog shows it: whether it's
-    watched, and if so its level now (none yet while it waits out a hold-off)."""
-    if entity_id not in records:
+    """One entity's watch, as the eye in its Home Assistant dialog and the gauge card
+    show it: whether it's watched, and if so its level now (none yet while it waits out
+    a hold-off) and what the gauge draws from its record: its kind, what it reads, and
+    a numeric one's bands (their edges and levels; the level at none of them)."""
+    record = records.get(entity_id)
+    if record is None:
         return {"watched": False}
     row = now.get(entity_id) or {}
-    keep = ("level", "message", "escalated", "real", "since")
-    return {"watched": True} | {k: row[k] for k in keep if row.get(k) is not None}
+
+    keep = ("level", "message", "escalated", "real", "since", "stale")
+    watch = {"watched": True, "kind": record.get("kind", "numeric")}
+    watch |= {k: row[k] for k in keep if row.get(k) is not None}
+    watch |= {
+        k: record[k] for k in ("attribute", "days_until", "disabled") if record.get(k)
+    }
+    if watch["kind"] == "numeric":
+        watch["bands"] = [
+            {
+                "from": b.get("from"),
+                "to": b.get("to"),
+                "level": b.get("level", LEVELS[0]),
+            }
+            for b in record.get("bands") or []
+        ]
+        watch["otherwise"] = record.get("otherwise", "error")
+    return watch
 
 
 def summary(now: dict[str, dict[str, Any]]) -> dict[str, Any]:

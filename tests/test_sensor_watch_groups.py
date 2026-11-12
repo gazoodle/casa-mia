@@ -162,3 +162,46 @@ def test_a_disabled_member_is_kept_but_not_watched(tmp_path):
     assert watch.sync() == 0  # nor pulled back in by the group
     call(watch, "PUT", "sensor.temp_02", body=body | {"disabled": False})
     assert "sensor.temp_02" in {r["entity_id"] for r in watch.outgoing(None)["records"]}
+
+
+def test_the_set_up_offers_groups_for_what_the_house_has_many_of(tmp_path):
+    volts = {"device_class": "voltage", "unit_of_measurement": "V"}
+    plugs = [_state(f"sensor.plug_{n}_voltage", "241.2", **volts) for n in range(3)]
+    cell = _state("sensor.plug_cell_voltage", "3.3", **volts)  # its own battery's
+    leak = _state("binary_sensor.leak_2", "off", device_class="moisture")
+    made_by = [
+        {"entity_id": s["entity_id"], "platform": "plugco"} for s in [*plugs, cell]
+    ]
+    ha = FakeHA([*STATES, *plugs, cell, leak], [*ENTITIES, *made_by])
+    watch = make(tmp_path / "sw.json", ha)
+
+    # No country set in Home Assistant: no mains profile to offer, so only the leaks.
+    _, got = call(watch, "GET", "setup")
+    assert [c["name"] for c in got["classes"]] == ["Leak sensors"]
+    assert got["classes"][0] | {"record": None} == {
+        "name": "Leak sensors",
+        "filters": {"domain": "binary_sensor", "device_class": "moisture"},
+        "count": 2,
+        "left": [],
+        "profile": "defaults",
+        "record": None,
+    }
+
+    ha.country = "GB"
+    _, got = call(watch, "GET", "setup")
+    mains = got["classes"][0]  # the biggest first
+    assert (mains["name"], mains["count"]) == ("Plugco mains voltage", 3)
+    assert mains["left"] == ["sensor.plug_cell_voltage"]  # 3.3 V is not the mains
+    assert mains["library"]["name"].startswith("UK mains voltage")
+
+    # Made as the page makes it: the library's profile taken, then a group following it.
+    _, view = call(watch, "POST", "profiles", body=mains["library"])
+    group = {k: mains[k] for k in ("name", "filters", "left")}
+    status, view = call(
+        watch, "POST", "groups", body=group | {"profile": view["created"]}
+    )
+    assert status == 201 and view["joined"] == 3
+    assert "sensor.plug_cell_voltage" not in watch.records
+
+    _, got = call(watch, "GET", "setup")  # a class with its group is not offered again
+    assert [c["name"] for c in got["classes"]] == ["Leak sensors"]

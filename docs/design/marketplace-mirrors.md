@@ -344,7 +344,7 @@ taken off `RETIRED`.
   when Casa Mia's page is open inside Home Assistant.
 - **The device move** uses `async_update_device(new_config_entry_id=…)` where Home Assistant
   has it, and add-then-remove where it doesn't. Tested on Home Assistant 2026.10.4 and
-  2026.2.3; 2026.3.0 itself was not.
+  2026.2.3; the owner tried 2026.3.0 itself and confirmed it works (reported 2026-11-11).
 - **The tests** need Python 3.14, not 3.13 (the current
   `pytest-homeassistant-custom-component` runs Home Assistant 2026.10.4), and Home
   Assistant's frontend package, because the panel depends on it. They are in `tests_ha/`,
@@ -510,11 +510,16 @@ ask first. In order (written 2026-11-10; none of it is done):
    up was refused (`repository_in_use`). Starting the Casa Mia app at 2026.11.3-b3 left the
    newer copy alone, with its warning, no marker and no Repair. Still to do: HACS on an
    older Home Assistant (the latest HACS release is 2.0.5, and it needs a GitHub sign-in
-   too), the update, which waits for a second release, and a house that has the app
-   first. Deleting the entry keeps its records in storage, by design, so a "clean" test
+   too) and a house that has the app first. The update was tried with 2026.11.4 the same
+   day: the Marketplace offered it, installed it, raised its own restart Repair (Sensor
+   Watch added none), and after the restart 2026.11.4 ran with nothing left to do. Deleting the entry keeps its records in storage, by design, so a "clean" test
    removes `.storage/casa_mia_sensor_watch` too.
 8. **The catalog:** a separate submission to `hacs/default` ([catalog][catalog]), with no
-   promise of acceptance.
+   promise of acceptance. 2026.11.4 added `@gazoodle` as code owner first. HACS's action
+   now warns that the manifest has no `categories`; they are optional for a custom
+   integration.
+   **Submitted 2026-11-11** as [hacs/default#13883](https://github.com/hacs/default/pull/13883).
+   Reviews can take months; requesting one gets it closed.
 
 ## Known trap
 

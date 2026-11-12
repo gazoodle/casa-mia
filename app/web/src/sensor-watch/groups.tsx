@@ -20,7 +20,7 @@ type Joined = WatchView & { joined: number };
 /** A group's "profile" that sets each member up by what it is (groups.py DEFAULTS). */
 const DEFAULTS = "defaults";
 const follows = (id: string, profiles: Profile[]) =>
-  id === DEFAULTS ? "built-in levels, by what each is" : (profiles.find((p) => p.id === id)?.name ?? "a missing profile");
+  id === DEFAULTS ? "the built-in ones, by what each is" : (profiles.find((p) => p.id === id)?.name ?? "a missing profile");
 
 const FILTER_NAMES: Partial<Record<keyof Filters, string>> = {
   q: "search",
@@ -90,7 +90,7 @@ export function GroupsSection({
                   {g.name}
                 </button>
                 <span className={css.note}>
-                  {described(g, labels)} · levels: {follows(g.profile, profiles)}
+                  {described(g, labels)} · levels from {follows(g.profile, profiles)}
                   {g.left.length > 0 && ` · ${g.left.length} left out by hand`}
                 </span>
               </span>
@@ -217,12 +217,12 @@ function GroupDialog({
         <input value={name} maxLength={80} onChange={(e) => setName(e.target.value)} autoFocus={!group} />
       </Field>
       <Field
-        label="Their levels"
+        label="Levels from"
         help="What counts as nominal, a task, a warning and so on, for every member. Built-in levels suit things Sensor Watch knows (a door closed, a leak critical, a battery low) and pass over the rest. A profile gives them all the same levels: one of yours, from the library, or a new one made here."
       >
         <span className={css.levelsFrom}>
-          <Select value={profile} onChange={setPicked} placeholder="Choose their levels…" aria-label="Their levels">
-            <option value={DEFAULTS}>Built-in levels, by what each is</option>
+          <Select value={profile} onChange={setPicked} placeholder="Choose where their levels come from…" aria-label="Levels from">
+            <option value={DEFAULTS}>The built-in ones, by what each is</option>
             {profiles.map((p) => (
               <option key={p.id} value={p.id}>
                 {/* Library names already say it: "Door (on/off)". */}

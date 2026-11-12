@@ -45,7 +45,8 @@ export function About({ empty }: { empty: boolean }) {
           dashboard or an automation's condition.
         </Part>
       </dl>
-      <Start />
+      {/* With nothing watched, the empty list below says it, with its buttons. */}
+      {!empty && <Start />}
     </details>
   );
 }
@@ -59,7 +60,7 @@ function Part({ name, children }: { name: string; children: ReactNode }) {
   );
 }
 
-/** Where to start: the guide's half-hour recipe, in three steps. */
+/** Where to start: the guide's half-hour recipe, in three steps (the set-up's, wizard.tsx). */
 export function Start({ actions }: { actions?: ReactNode }) {
   return (
     <div className={css.start}>
@@ -71,6 +72,9 @@ export function Start({ actions }: { actions?: ReactNode }) {
         </li>
         <li>Make the notify automation from the blueprint, so the levels reach you.</li>
       </ol>
+      <p>
+        The <strong>Set up…</strong> button by Watched sensors takes you through all three.
+      </p>
       {actions}
     </div>
   );

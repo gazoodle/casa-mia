@@ -197,8 +197,15 @@
   position: sticky;
   top: 64px; /* the Save bar's height; a wrapped bar overlaps it a little */
   z-index: 4;
+  display: grid;
+  gap: 8px;
   padding: 6px 10%;
   background: var(--surface);
+}
+
+/* A stage dragged tall (stage.tsx) would cover the settings if it followed the page. */
+.previewDock:has([data-tall]) {
+  position: static;
 }
 
 /* The option groups, three to a row; each row's boxes as tall as the tallest. */
@@ -220,6 +227,14 @@
 
 .options .sub {
   margin-top: 0;
+}
+
+/* A Responsive commander's sliders and choices, a few to a row (responsive.tsx) */
+.responsive {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  align-items: start;
+  gap: 12px 24px;
 }
 
 .numbers input:disabled {
@@ -720,45 +735,4 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-}
-
-/* Arrange: the app's drawing of the arrangement, kept on screen with the controls */
-.arrangeOptions {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
-  gap: 12px 24px;
-}
-
-.arrangePreview {
-  margin: 12px 0;
-}
-
-.arrangePreview img {
-  width: auto;
-  max-width: 100%;
-  max-height: 40vh;
-  margin: 0 auto;
-}
-
-/* the readout wraps between the two buttons, so a long one never moves them */
-.arrangeRow {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 8px 16px;
-}
-
-.arrangeRow span {
-  text-align: center;
-}
-
-.arrangeRow button:last-child {
-  grid-column: 3;
-}
-
-@media (max-width: 640px) {
-  .arrangeRow span {
-    grid-row: 2;
-    grid-column: 1 / -1;
-  }
 }

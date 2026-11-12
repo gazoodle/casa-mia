@@ -1,6 +1,8 @@
 /** Compact filters as chips: a chip per filter that opens a short menu (with its own
  * search when the list is long) and reads "Area: Kitchen ✕" once set; and level chips
- * with their counts. Made for the watched list; the scan and add dialogs can share them. */
+ * with their counts. Made for the watched list; the scan and add dialogs share them. Only
+ * the filters used most are out; the others are behind "More filters", and one that is
+ * set stays out wherever it lives. */
 
 import { useEffect, useRef, useState } from "react";
 import { LEVELS, LEVEL_NAMES, type Filters, type Level } from "./common";
@@ -33,22 +35,35 @@ const NAMES: Record<Exclude<keyof Filters, "q">, string> = {
   group: "Group",
 };
 
-export function FilterChips({ value, options, onChange }: { value: Filters; options: ChipOptions; onChange: (f: Filters) => void }) {
+type Key = keyof typeof NAMES;
+/** The filters out from the start on the watched list. */
+const COMMON: Key[] = ["area", "profile", "group"];
+
+export function FilterChips({
+  value,
+  options,
+  onChange,
+  common = COMMON,
+}: {
+  value: Filters;
+  options: ChipOptions;
+  onChange: (f: Filters) => void;
+  common?: Key[];
+}) {
+  const [more, setMore] = useState(false);
+  // Those with something to choose (or set already), in one order whether folded or not.
+  const keys = (Object.keys(NAMES) as Key[]).filter((key) => value[key] || (options[key] ?? []).length > 0);
+  const out = (key: Key) => more || common.includes(key) || !!value[key];
   return (
     <>
-      {(Object.keys(NAMES) as (keyof typeof NAMES)[]).map((key) => {
-        const choices = options[key] ?? [];
-        if (!value[key] && choices.length === 0) return null; // nothing to choose
-        return (
-          <ChipMenu
-            key={key}
-            title={NAMES[key]}
-            choices={choices}
-            chosen={value[key] ?? ""}
-            onChoose={(id) => onChange({ ...value, [key]: id })}
-          />
-        );
-      })}
+      {keys.filter(out).map((key) => (
+        <ChipMenu key={key} title={NAMES[key]} choices={options[key] ?? []} chosen={value[key] ?? ""} onChoose={(id) => onChange({ ...value, [key]: id })} />
+      ))}
+      {keys.some((key) => !common.includes(key) && !value[key]) && (
+        <button type="button" className={css.chip} aria-expanded={more} onClick={() => setMore(!more)}>
+          {more ? "Fewer filters" : "More filters…"}
+        </button>
+      )}
     </>
   );
 }

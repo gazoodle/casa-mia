@@ -222,7 +222,6 @@ def test_typescript_engine_matches_the_cases():
             "--no-warnings",
             "--test",
             "src/layout.test.ts",
-            "src/arrange.test.ts",  # and Arrange, which lays out by it
             "src/sizing.test.ts",  # the cards' sizing rule, alongside
             "src/tablet.test.ts",  # and the Tablet Layout's placement (tablet_cases.json)
             # and the card's motion dots, which import lit: only where it is installed

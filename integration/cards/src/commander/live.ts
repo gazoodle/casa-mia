@@ -5,8 +5,9 @@
 // lease (RULE FIVE), and every loss is said on the card and in Home Assistant's log.
 import { html, nothing } from "lit";
 import { type Rect } from "../layout.ts";
-import { playWebRTC } from "../../../../app/web/src/webrtc.ts";
-import { Card, type LiveMark, PICTURE_DOWN_MS, ago, liveLapsed, liveMark, liveOrder, livePlan } from "./common.ts";
+import { labelsOf } from "../labels.ts";
+import { playHLS, playWebRTC } from "../../../../app/web/src/webrtc.ts";
+import { Card, LIVE_WAIT_HLS_MS, LIVE_WAIT_MS, type LiveMark, PICTURE_DOWN_MS, ago, liveBy, liveLapsed, liveMark, liveOrder, livePlan } from "./common.ts";
 import { CommanderBase } from "./base.ts";
 
 /** One channel playing (or starting) in its <video>: when it started, and when it last put
@@ -24,6 +25,12 @@ function plays(): string {
   const names = new Set(codecs.map((c) => c.mimeType.replace("video/", "")).filter((c) => !/^(rtx|red|ulpfec|flexfec)/i.test(c)));
   return [...names].join(", ") || "no video it can name";
 }
+
+/** How this device plays live video (common.ts: liveBy). Without WebRTC it is said once
+ * for the page, in the console: it is how the device is, not a failure. */
+export const LIVE_BY = liveBy();
+if (LIVE_BY !== "webrtc")
+  console.info(`casa-mia: this device has no WebRTC, so ${LIVE_BY ? "live main cameras play as HLS, some seconds behind" : "main cameras are drawn, not live"}, and Talk is not offered`);
 
 export class CommanderLive extends CommanderBase {
   // liveOn is state: Talk is offered while the main camera is wanted live (talk.ts).
@@ -72,21 +79,21 @@ export class CommanderLive extends CommanderBase {
     return this.lastError > 0 && Date.now() - this.lastError < PICTURE_DOWN_MS;
   }
   private lapsed(s: Session, now: number): string | null {
-    return liveLapsed(Math.max(s.from, this.unseen), s.frameAt && Math.max(s.frameAt, this.unseen), now);
+    return liveLapsed(Math.max(s.from, this.unseen), s.frameAt && Math.max(s.frameAt, this.unseen), now, LIVE_BY === "hls" ? LIVE_WAIT_HLS_MS : LIVE_WAIT_MS);
   }
 
-  /** Whether the main camera is wanted live: allowed (the compositor's switch, this
-   * card's option), and the card shown and not being edited. A failure never changes
-   * this: it only marks a channel, for a while. */
+  /** Whether the main camera is wanted live: possible here (LIVE_BY), allowed
+   * (the compositor's switch, this card's option), and the card shown and not being
+   * edited. A failure never changes this: it only marks a channel, for a while. */
   protected liveMain(card: Card): boolean {
-    return Boolean(card.live_main && this._config?.live_main !== false && this.hass?.connection && this._shown && !this.editing());
+    return Boolean(LIVE_BY && card.live_main && this._config?.live_main !== false && this.hass?.connection && this._shown && !this.editing());
   }
 
   /** What the main area shows now (common.ts: liveOrder, livePlan), for its place, which
-   * is laid out in the picture's device pixels (as asked for; fewer away from home). */
-  protected liveNow(card: Card, main: string, area: Rect): LiveNow {
-    const fit = card.layout.main_fit ?? "fit";
-    const order = liveOrder(card.cameras[main]?.channels ?? [[main, 0, 0]], [area[2], area[3]], fit !== "fill" && fit !== "crop");
+   * is laid out in the picture's device pixels (as asked for; fewer away from home).
+   * `whole`: the main camera is shown whole in its place, not cropped or stretched to it. */
+  protected liveNow(card: Card, main: string, area: Rect, whole: boolean): LiveNow {
+    const order = liveOrder(card.cameras[main]?.channels ?? [[main, 0, 0]], [area[2], area[3]], whole);
     const now = Date.now();
     const live = (channel: string) => {
       const s = this.sessions.get(channel);
@@ -134,21 +141,30 @@ export class CommanderLive extends CommanderBase {
       s.frameAt = Date.now();
       if (first) this.liveBack(channel);
     };
+    let asked = 0; // the one frame callback waited for
+    const ask = () => {
+      video.cancelVideoFrameCallback(asked);
+      asked = video.requestVideoFrameCallback(frame);
+    };
     const frame = () => {
       if (!current()) return;
       seen();
-      video.requestVideoFrameCallback(frame);
+      ask();
     };
-    video.requestVideoFrameCallback(frame);
+    ask();
     // A video not yet seen (opacity 0) may be given no frame callback, so its first proof
     // is also a decoded picture's size. Only the first: after it, frames alone renew.
+    // And asked again: Safari drops a callback asked for before an HLS stream has loaded
+    // (seen 2026-11-11), and with it every renewal after the first.
     video.onloadeddata = video.onresize = video.onplaying = () => {
-      if (current() && !s.frameAt && video.videoWidth > 0) seen();
+      if (!current()) return;
+      ask();
+      if (!s.frameAt && video.videoWidth > 0) seen();
     };
 
-    playWebRTC(this.hass!.connection, channel, video, failed).then(
+    (LIVE_BY === "hls" ? playHLS : playWebRTC)(this.hass!.connection, channel, video, failed).then(
       (stop) => (current() ? (s.stop = stop) : stop()),
-      (err) => failed(String(err)),
+      (err) => failed(err?.message ?? String(err)), // Home Assistant refuses with { code, message }
     );
   }
 
@@ -172,7 +188,7 @@ export class CommanderLive extends CommanderBase {
     const mark = liveMark(this.bad.get(channel), why, s?.frameAt || s?.from || now, now);
     this.bad.set(channel, mark);
     this.endSession(channel);
-    this.report(channel, "lost", `${why}; this device plays ${plays()}; next try in ${ago(mark.until - now)}`, mark.fails);
+    this.report(channel, "lost", `${why}; this device plays ${LIVE_BY === "hls" ? "HLS, having no WebRTC" : plays()}; next try in ${ago(mark.until - now)}`, mark.fails);
     this.requestUpdate();
   }
   /** A channel's first frame: shown at once, and its mark, if it had one, is gone. */
@@ -196,9 +212,10 @@ export class CommanderLive extends CommanderBase {
 
   /** The live main camera's caption: its title with "(live)" while a channel's frames
    * come; with none, and a channel failed, in red how long live has been lost and why. */
+  // Over HLS it says it is behind: "live" alone would claim more than is shown.
   protected caption(title: string, place: string, live: LiveNow) {
-    return html`<div class="caption" style=${place}>
-      <span>${title}${live.shown ? " (live)" : ""}</span>
+    return html`<div class="caption ${labelsOf(this.now().card?.layout.labels).main_style}" style=${place}>
+      <span class="title">${title}${live.shown ? (LIVE_BY === "hls" ? " (live, some seconds behind)" : " (live)") : ""}</span>
       ${live.lost ? html`<span class="lost">Live lost ${ago(Date.now() - live.lost.since)} ago: ${live.lost.why}</span>` : nothing}
     </div>`;
   }

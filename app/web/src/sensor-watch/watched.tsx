@@ -15,6 +15,7 @@ import { Select } from "../controls";
 const PAGE = 200; // rows drawn, then "Show more" at the foot of the box
 const MANUAL = "Manual"; // the heading for those watched one by one, not by a group
 const DISABLED = "Disabled"; // the heading for those kept but not watched, last
+const ATTENTION = "Needs attention"; // the heading for those above nominal, first
 /** Does a watched sensor pass the filters (and every word of the search)? `skip`: a
  * filter left out, to offer what the others leave (the devices, say). */
 function passes(r: WatchRecord, f: Filters, skip?: keyof Filters): boolean {
@@ -55,7 +56,6 @@ export function WatchedList({
   onFollow,
   onEdit,
   onEnable,
-  onStop,
   onStopMany,
 }: {
   records: WatchRecord[];
@@ -71,7 +71,6 @@ export function WatchedList({
   onEdit: (r: WatchRecord) => void;
   /** Watch a disabled one again. */
   onEnable: (r: WatchRecord) => void;
-  onStop: (r: WatchRecord) => void;
   /** Stop watching these (already confirmed by the user). */
   onStopMany: (rs: WatchRecord[]) => void;
 }) {
@@ -148,11 +147,15 @@ export function WatchedList({
     return l ? LEVELS.indexOf(l) : -1; // not known yet: after nominal
   };
   const groupName = new Map(groups.map((g) => [g.id, g.name]));
-  // Disabled ones apart (grouped or not), out of their groups.
-  const section = (r: WatchRecord) => (r.disabled ? DISABLED : grouped ? (r.group && groupName.get(r.group)) || MANUAL : "");
+  // Disabled ones apart (grouped or not), out of their groups. Grouped, so are those above
+  // nominal, whatever their group: a problem in the last group was a screen or two down.
+  // (Ungrouped and sorted by level they lead the list as it is.)
+  const section = (r: WatchRecord) =>
+    r.disabled ? DISABLED : !grouped ? "" : rank(r) > 0 ? ATTENTION : (r.group && groupName.get(r.group)) || MANUAL;
   const headed = (r: WatchRecord) => grouped || !!r.disabled;
-  // Manual first, then the groups by name, Disabled last; the sort applies within each.
-  const place = (s: string) => (s === MANUAL ? 0 : s === DISABLED ? 2 : 1);
+  // Needs attention first, Manual, then the groups by name, Disabled last; the sort
+  // applies within each.
+  const place = (s: string) => (s === ATTENTION ? -1 : s === MANUAL ? 0 : s === DISABLED ? 2 : 1);
   const sectionOrder = (a: string, b: string) => place(a) - place(b) || a.localeCompare(b);
   const rows = matched
     .filter((r) => levels.size === 0 || levels.has(levelOf(r) as Level))
@@ -251,13 +254,9 @@ export function WatchedList({
                       {summary(r)}
                       {r.meta?.area && ` · ${r.meta.area}`}
                       {r.profile && ` · levels from ${profiles.find((p) => p.id === r.profile)?.name ?? "a profile"}`}
-                      {r.group && ` · in ${groups.find((g) => g.id === r.group)?.name ?? "a group"}`}
+                      {/* Not under its group's own heading, which says so already. */}
+                      {r.group && section(r) !== groupName.get(r.group) && ` · in ${groupName.get(r.group) ?? "a group"}`}
                     </span>
-                  </span>
-                  <span className={css.rowActions}>
-                    <button className={`${ui.danger} ${ui.small}`} onClick={() => onStop(r)}>
-                      Stop watching
-                    </button>
                   </span>
                 </div>
                   )}
@@ -277,17 +276,17 @@ export function WatchedList({
           <Select
             className={css.profilePick}
             value=""
-            aria-label="Follow a profile"
+            aria-label="Levels from a profile, for the sensors shown"
             onChange={async (picked) => {
               const p = profiles.find((x) => x.id === picked);
               if (!p) return;
               const fit = rows.filter((r) => (FITS[r.meta?.kind ?? r.kind] ?? []).includes(p.kind));
               const skipped = rows.length - fit.length;
-              if ((await confirmBox(`Have ${fit.length} sensors follow ${p.name}?${skipped ? ` ${skipped} others can't (a different kind).` : ""} Their own levels are replaced.`, { action: "Follow it" })))
+              if ((await confirmBox(`Levels from ${p.name} for ${fit.length} sensors?${skipped ? ` ${skipped} others can't have them (a different kind).` : ""} Their own levels are replaced.`, { action: "Replace their levels" })))
                 onFollow(fit, p);
             }}
           >
-            <option value="">Follow a profile ({rows.length} shown)…</option>
+            <option value="">Levels from… (for the {rows.length} shown)</option>
             {profiles.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
@@ -295,20 +294,24 @@ export function WatchedList({
             ))}
           </Select>
         )}
-        {filtering && rows.length > 0 && rows.length < records.length && (
+        {/* One way to stop many: those a filter leaves (red, it's what the filter was for),
+            or all of them, which is rarely wanted and so is a plain button. One sensor is
+            stopped from its editor. */}
+        {filtering && rows.length > 0 && rows.length < records.length ? (
           <button
             className={`${ui.danger} ${ui.small}`}
             onClick={async () => (await confirmBox(`Stop watching the ${rows.length} sensors shown?`, { action: "Stop watching", danger: true })) && onStopMany(rows)}
           >
             Stop watching these {rows.length}
           </button>
+        ) : (
+          <button
+            className={`${ui.button} ${ui.small}`}
+            onClick={async () => (await confirmBox(`Stop watching all ${records.length} sensors? Their bands are forgotten.`, { action: "Stop watching all", danger: true })) && onStopMany(records)}
+          >
+            Stop watching all {records.length}…
+          </button>
         )}
-        <button
-          className={`${ui.danger} ${ui.small}`}
-          onClick={async () => (await confirmBox(`Stop watching all ${records.length} sensors? Their bands are forgotten.`, { action: "Stop watching all", danger: true })) && onStopMany(records)}
-        >
-          Stop watching all {records.length}
-        </button>
       </div>
     </>
   );

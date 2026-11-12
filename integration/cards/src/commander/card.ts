@@ -4,10 +4,12 @@
 import { html, nothing } from "lit";
 import { keyed } from "lit/directives/keyed.js";
 import { repeat } from "lit/directives/repeat.js";
-import { fire, type Hass, heightFor, inPicker, navigate, TABLET } from "../ha.ts";
-import { heightForMain, layout, PANELS, pyRound, type Rect } from "../layout.ts";
+import { fire, type Hass, inPicker, navigate, TABLET } from "../ha.ts";
+import { heightForMain, pyRound, type Rect } from "../layout.ts";
+import { camerasOf, placed } from "../placed.ts";
+import { back, family, keepPosition, labelsOf, useFont } from "../labels.ts";
 import { dot } from "./motion.ts";
-import { Config, Card, BLANK, Size, commanders, pictureDown } from "./common.ts";
+import { Config, Card, BLANK, Size, columnHeight, commanders, pictureDown } from "./common.ts";
 import { PILLS } from "../pills.ts";
 import { CommanderTalk, talkStyles } from "./talk.ts";
 import { styles } from "./styles.ts";
@@ -30,6 +32,7 @@ export class CommanderCard extends CommanderTalk {
       this.resize.observe(box);
       this.onScreen.observe(box);
     }
+    this.followPicture();
     this.followCall();
     this.followLive();
     // Debug: the picture's own size as decoded (a stream may never fire load)
@@ -81,22 +84,42 @@ export class CommanderCard extends CommanderTalk {
     const asked = sized && !editing ? this.pictureUrl(card, sized) : "";
     const still = editing && sized ? this.stillUrl(card, sized) : "";
     const s = sized ? { ...own, width: W, height: H, gap: pyRound(own.gap * scale), margin: pyRound((own.margin ?? 0) * scale), scale } : own;
-    const [[w, h], mainRect, tiles] = layout(s, main);
+    // Where everything is, in either mode (placed.ts), as the compositor has it.
+    const laid = placed(s, main);
+    const [w, h] = laid.size;
+    const mainRect = laid.main;
+    const tiles = laid.tiles.filter((t) => t.rect[2] > 0);
     // The live main camera (live.ts): its videos, and whether the picture leaves the main
     // area to one. With none to show, the picture draws the main camera itself.
-    const live = this.liveMain(card) && mainRect[2] > 0 ? this.liveNow(card, main, mainRect) : null;
+    const live = this.liveMain(card) && mainRect[2] > 0 ? this.liveNow(card, main, mainRect, laid.mainHow === "contain") : null;
     const src = asked && live?.video ? `${asked}&main=video` : asked;
     const at = ([x, y, rw, rh]: Rect) =>
       `left:${(x / w) * 100}%;top:${(y / h) * 100}%;width:${(rw / w) * 100}%;height:${(rh / h) * 100}%`;
     const lit = s.highlight ?? {};
+    // Its labels (labels.ts), for what the card draws itself: the live main camera's
+    // caption, in the font the compositor draws the other names in. The fonts are the
+    // integration's own files (const.py: SCRIPTS_URL).
+    const labels = labelsOf(own.labels);
+    useFont(labels.font, (file) => `/casa_mia/fonts/${file}`);
+    const labelled = `--cm-label-font:${family(labels.font)};--cm-label-size:${labels.main_size}px;--cm-label-colour:${labels.colour};--cm-label-back:${back(labels)}`;
     const moving = this.motion.seen(this.hass!, st!.attributes.motion ?? {}, this._config!, () => this.requestUpdate());
-    const mark = PANELS.flatMap((p) => s[p].cameras.map((e, i) => [e, tiles[p][i]] as const)).find(([e]) => e === main)?.[1];
+    const mark = tiles.find((t) => t.camera === main)?.rect;
+    // The cameras there is no room for ("+n more"): motion on one is marked on that tile.
+    const hidden = laid.more ? camerasOf(s).slice(laid.tiles.length) : [];
+    // Keep to my limits, and they don't fit: the main camera alone, and said (RULE TWO's
+    // sibling: nothing fails silently, a blank reason least of all).
+    const unfit =
+      laid.gave.includes("main_alone") && own.responsive?.cant_fit === "keep"
+        ? `Its limits don't fit this space (${Math.round(W / scale)} × ${Math.round(H / scale)} px), so only the main camera is shown`
+        : "";
     // The rule (ha.ts: heightFor). In a tile or a cell, CSS: its height when it gives one,
     // else its own shape.
     const f = this._fit;
     // Its own shape (column, preview): the one that shows the main camera at its own.
-    const shape = this._width ? this._width / heightForMain(own, main, this._width, this.shapeOf(card, main)) : own.width / own.height;
-    const tall = f && this._width ? heightFor(f, this._width, shape) : null;
+    // (Responsive is laid out for whatever space it has, so it brings no shape but its own size's.)
+    const shape =
+      this._width && own.mode !== "responsive" ? this._width / heightForMain(own, main, this._width, this.shapeOf(card, main)) : own.width / own.height;
+    const tall = f && this._width ? columnHeight(f, this._width, shape, own.mode === "responsive") : null;
     // In HA's card picker: just its own shape, so the picker centres it as it does the others.
     const size = inPicker(this)
       ? `aspect-ratio:${own.width}/${own.height}`
@@ -106,7 +129,7 @@ export class CommanderCard extends CommanderTalk {
           ? `height:${tall}px`
           : "";
     return html`<ha-card style=${size}>
-      <div class="box">
+      <div class="box" style=${labelled}>
         <div class="seen" style="filter:${this.look()}">
         ${editing
           ? still ? html`<img class="still" src=${still} alt="" />` : nothing
@@ -116,7 +139,7 @@ export class CommanderCard extends CommanderTalk {
               html`<img
                 class="picture"
                 data-cm-own
-                src=${(this.streaming = src)}
+                src=${(this.streaming = src) && this.frames ? BLANK : src /* frames: base.ts sets each one */}
                 alt=""
                 @load=${(ev: Event) => {
                   const img = ev.target as HTMLImageElement;
@@ -135,7 +158,7 @@ export class CommanderCard extends CommanderTalk {
                   html`<video
                     class="live"
                     data-entity=${channel}
-                    style="${at(mainRect)};object-fit:${({ fill: "fill", crop: "cover" } as Record<string, string>)[own.main_fit ?? "fit"] ?? "contain"};opacity:${channel === live.shown ? 1 : 0}"
+                    style="${at(mainRect)};object-fit:${laid.mainHow};${laid.mainHow === "cover" ? `object-position:${keepPosition(own.main_keep)};` : ""}opacity:${channel === live.shown ? 1 : 0}"
                     autoplay
                     playsinline
                     .muted=${true /* the visitor is heard through Talk's own session (talk.ts) */}
@@ -151,15 +174,15 @@ export class CommanderCard extends CommanderTalk {
               card box ${this._box[0]} x ${this._box[1]} CSS px, screen ${window.devicePixelRatio}x<br />
               asked ${this._size ? `${W} x ${H} @${scale}x` : "nothing yet"}; picture ${this._natural || "not loaded"}
               ${this.viaHa() ? "through Home Assistant" : "direct"}
+              ${laid.gave.length ? html`<br />its limits gave way here: ${laid.gave.join(", ")}` : nothing}
             </div>`
           : nothing}
-        ${PANELS.flatMap((p) =>
-          s[p].cameras.map((e, i) =>
-            tiles[p][i][2] > 0 && e !== main
-              ? html`<div class="zone" style=${at(tiles[p][i])} title=${card.cameras[e]?.title ?? e} @click=${() => this.choose(card, e)}></div>`
-              : nothing,
-          ),
+        ${tiles.map((t) =>
+          t.camera !== main
+            ? html`<div class="zone" style=${at(t.rect)} title=${card.cameras[t.camera]?.title ?? t.camera} @click=${() => this.choose(card, t.camera)}></div>`
+            : nothing,
         )}
+        ${laid.more ? html`<div class="zone" style="${at(laid.more.rect)};cursor:default" title="${laid.more.count} more cameras"></div>` : nothing}
         <div class="zone" style=${at(mainRect)} @click=${() => this.open(card, main)}></div>
         ${mark && mark[2] > 0 && this._framed === (editing ? "still" : `s${this._shown}`)
           ? html`<img
@@ -169,15 +192,18 @@ export class CommanderCard extends CommanderTalk {
               style="${at(mark)};border:${lit.width}px solid ${lit.colour};box-shadow:0 0 ${lit.blur}px ${lit.colour};--cm-colour:${lit.colour};--cm-blur:${lit.blur}px;--cm-pulse:${lit.pulse}s;--cm-style:${lit.style}"
             />`
           : nothing}
-        ${PANELS.flatMap((p) =>
-          s[p].cameras.map((e, i) =>
-            // on the main camera's own tile too (as well as on the main picture)
-            tiles[p][i][2] > 0 ? dot(moving.get(e), at(tiles[p][i]), this._config!, () => (e === main ? this.open(card, e) : this.choose(card, e))) : nothing,
-          ),
+        ${tiles.map((t) =>
+          // on the main camera's own tile too (as well as on the main picture)
+          dot(moving.get(t.camera), at(t.rect), this._config!, () => (t.camera === main ? this.open(card, t.camera) : this.choose(card, t.camera))),
         )}
+        ${laid.more ? dot(hidden.map((e) => moving.get(e)).find(Boolean), at(laid.more.rect), this._config!, () => undefined) : nothing}
         ${mainRect[2] > 0 ? dot(moving.get(main), at(mainRect), this._config!, () => this.open(card, main)) : nothing}
         ${(live || this._talk) && mainRect[2] > 0 ? this.talkParts(card, at(mainRect)) : nothing}
-        ${down ? html`<div class="down"><span class="cm-pill cm-filled cm-bad">${down}</span></div>` : nothing}
+        ${down
+          ? html`<div class="down"><span class="cm-pill cm-filled cm-bad">${down}</span></div>`
+          : unfit
+            ? html`<div class="down"><span class="cm-pill cm-filled cm-warn">${unfit}</span></div>`
+            : nothing}
       </div>
     </ha-card>`;
   }

@@ -78,6 +78,18 @@
   text-align: left;
 }
 
+/* A name in bold inside a step stays in its line (the empty box makes its heading a block). */
+.emptyStart :is(ol, p) strong:first-child {
+  display: inline;
+  margin: 0;
+  font-size: inherit;
+}
+
+.start p {
+  margin: 0;
+  color: var(--muted);
+}
+
 @media (max-width: 640px) {
   .about dl {
     grid-template-columns: minmax(0, 1fr);
@@ -303,6 +315,11 @@
 
 /* The record dialog */
 
+/* Stop watching: at the footer's other end from Save. */
+.footLeft {
+  margin-right: auto;
+}
+
 .entity {
   display: flex;
   flex-wrap: wrap;
@@ -383,22 +400,45 @@
   fill: color-mix(in srgb, var(--bad) 34%, transparent);
 }
 
-.escalateRow {
-  grid-column: 1 / -1;
-  margin-top: 10px;
+/* Over time: each rule a sentence with its controls in it, wrapping on a phone. */
+.overTime {
+  display: grid;
+  gap: 10px;
 }
 
-/* Its three rungs side by side, each its name over its slider; stacked on a phone. */
-.escalate {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 6px 16px;
+.sentence > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
 }
 
-.escalate > span {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
+/* A select in a sentence is as wide as its word, not the line (the shared one fills its field). */
+.sentence > div > button {
+  width: auto;
+}
+
+.sentence .note {
+  display: block;
+  margin: 2px 0 0;
+}
+
+/* A slider in a sentence: room to drag, its value after it. */
+.wait {
+  flex: 0 1 260px;
+  min-width: 200px;
+}
+
+.sentence .message {
+  flex: 1 1 200px;
+}
+
+.more {
+  margin-top: 14px;
+}
+
+.more .settings {
+  margin-top: 4px;
 }
 
 .accuracy {
@@ -586,6 +626,11 @@
   list-style: none;
   max-height: 50vh;
   overflow: auto;
+}
+
+/* In the set-up nothing sits under the list, so the dialog scrolls, not the list in it. */
+.whole {
+  max-height: none;
 }
 
 .pick {
