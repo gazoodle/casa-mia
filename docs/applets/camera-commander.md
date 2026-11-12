@@ -299,6 +299,8 @@ Motion dot show their colour and adjustment controls only while their switches a
 Hidden choices are kept, so switching a feature back on restores them. Colour controls
 stay compact, with adjustments alongside on wider screens and below on narrow screens.
 
+<img src="../screenshots/commander-card-options.webp" alt="The Camera Commander card's editor, its Main camera section: the Commander chosen (Front of house), a switch for Main camera as live video, a list for A tap on the main camera set to Opens its more-info, then three switches, each with a line of help under it: Its controls over the main camera, Sound button and Full screen button. A hatched preview of the commander, marked Still picture while editing, is on the right" width="640">
+
 Its options (each left at its default unless you change it):
 
 - **Commander:** which one.
@@ -308,20 +310,9 @@ Its options (each left at its default unless you change it):
   shows the camera live over the whole screen, with its page controls as buttons along
   the edge set on the Cameras page, and a tap on the picture goes back. Talk carries on
   through it. Where the camera can't play live on the device, the tap opens more-info.
-- **Its controls over the main camera:** the main camera's page controls over it on the
-  commander too, set as on the Cameras page; the wide or tall edge goes by the main
-  camera's own shape. **Sound button:** a Sound button with the controls, to hear the
-  main camera. It turns off when the main camera changes, and while you talk.
-- **Full screen button:** a button over the main camera, shown whether or not its controls
-  are, that puts the whole commander over the entire screen. The browser's address bar
-  and tabs go, and so do Home Assistant's header and sidebar. Tap it again to go back, or
-  use the browser's own way out (Esc, or the close button Safari shows). This is not the
-  same as a tap showing the main camera full screen, which fills the browser's window
-  with one camera. The button works in a browser on a tablet or a computer, Safari on an
-  iPad included. Safari on an iPhone can't show a page full screen, so it is not offered
-  there. A browser only allows it from a tap, so it has to be tapped again after the page
-  reloads; for a tablet left on one page, add the page to its Home Screen instead. A tap
-  that opens the main camera's more-info leaves full screen first.
+- **Its controls over the main camera**, **Sound button** and **Full screen button:**
+  buttons over the main camera. See
+  [Controls and buttons over the main camera](#controls-and-buttons-over-the-main-camera).
 - **The picture:** direct at home and through Home Assistant away (the default); always
   direct; or always through Home Assistant. Direct means the app's own address, on port
   8099. With the default, a page at home that gets no picture from that address within
@@ -346,6 +337,60 @@ Its options (each left at its default unless you change it):
   your own buttons.
 - **Talking → Mode:** full duplex (the default), where your voice goes out as soon as
   you answer, or half duplex, where it goes out only while you hold a button (see below).
+
+### Controls and buttons over the main camera
+
+A camera can have page controls: entities you choose for it on the
+[Cameras](cameras.md) page, such as a gate, a lock or a light. The card can show them as
+buttons over the main camera, in one bar with two buttons of its own.
+
+<img src="../screenshots/commander-controls.webp" alt="A commander on a dashboard whose main camera, Entrance, shows a front door. Along the foot of the main camera are three rounded buttons: Full screen, Front door with a padlock icon, and Hall light with a lamp icon. Panels of other cameras run down the left and along the bottom" width="800">
+
+- **The camera's controls.** Each button shows the entity's own icon and the name you
+  gave it, and is coloured while the entity is on, open or unlocked. A tap is Home
+  Assistant's toggle, the same as a tap on the entity's tile on a dashboard: a light
+  switches, a lock locks or unlocks, a cover opens or closes. An entity that Home
+  Assistant can't find, or that is unavailable, has a dimmed button that says so. The
+  controls belong to the camera, so they change when the main camera does.
+- **Where they show.** With **Its controls over the main camera** on, over the main
+  camera on the commander. They are always on the main camera's full screen (**A tap on
+  the main camera: full screen, with its controls**), whatever that switch says.
+- **How they look.** The edge they go along, where along it they sit, their size and how
+  solid their background is are set for each camera on the Cameras page, under
+  **Controls on a full screen**. There is one edge for a wide space and one for a tall
+  one. Over the main camera, wide or tall goes by the shape of the main camera's area,
+  not by the screen's.
+- **Sound button.** Off by default. A button to hear the main camera, shown wherever the
+  camera's controls are, when the main camera is playing as live video. Sound goes back
+  to off when the main camera changes, so a camera is never heard without a tap of its
+  own. The camera is not heard while you talk to a doorbell, because the visitor is heard
+  through Talk.
+- **Full screen button.** Off by default. A button that puts the whole commander over
+  the entire screen. It shows over the main camera whether or not the camera's controls
+  do.
+
+#### The commander full screen
+
+<img src="../screenshots/commander-full-screen.webp" alt="The same commander after a tap on Full screen: it fills the whole screen, with no browser bars and none of Home Assistant's header or sidebar. The first button now reads Exit full screen and is coloured; Front door and Hall light are beside it" width="800">
+
+A tap on **Full screen** asks the browser to show the card by itself. The browser's
+address bar and tabs go, and so do Home Assistant's header and sidebar. The commander is
+drawn again for the larger space. Tap **Exit full screen** to go back, or use the
+browser's own way out (Esc on a keyboard, or the close button Safari shows).
+
+- It works in a browser on a computer or a tablet, Safari on an iPad included. Safari on
+  an iPhone can't show a page full screen, so the button is not shown there, and it is
+  not shown in an app or frame that doesn't allow it.
+- A browser only allows full screen from a tap, so after the page reloads it has to be
+  tapped again. For a tablet that is left on one page,
+  add the page to its Home Screen instead (Safari: Share, then **Add to Home Screen**),
+  which opens it without the browser's bars every time.
+- A tap on the main camera that opens its more-info leaves full screen first, because
+  Home Assistant's dialog would otherwise open underneath the card.
+- This is not the same as **A tap on the main camera: full screen, with its controls**.
+  That shows one camera, live, over the browser's window. The Full screen button shows
+  the whole commander over the entire screen. The two work together: the button is on
+  the camera's full screen too.
 
 ### Talking to a doorbell
 
