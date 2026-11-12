@@ -16,7 +16,9 @@ version is the release's, after your OK:
      an app that failed to build.
   2. Generate the mirror's tree from the release's tag, and check it here.
   3. Create the mirror if it is missing, then commit and push.
-  4. Wait for the mirror's own validation; only then tag it and publish its release.
+  4. Wait for the mirror's own validation; only then tag it and publish its release, with
+     the component as a ZIP (`hacs.json`'s `filename`), which HACS and the Marketplace
+     download. A release of the mirror still without its ZIP is given one too.
 
 Run again after a failure, it carries on: a mirror already tagged with the same files is
 done, and one tagged with different files stops and says so. A fork publishes no mirror
@@ -28,6 +30,7 @@ Needs the venv, git and the GitHub CLI logged in. hassfest runs here when docker
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import posixpath
@@ -37,6 +40,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import zipfile
 from pathlib import Path
 
 from casa_mia.components import PUBLISHED
@@ -61,6 +65,8 @@ GUIDES = "docs/applets"
 TOPICS = "home-assistant,hacs,custom-integration"
 HASSFEST = "ghcr.io/home-assistant/hassfest"
 PICTURES = (".webp", ".png", ".jpg", ".gif", ".svg")
+# Every member's time in a release's ZIP, so the same files always give the same bytes.
+ZIP_TIME = (1980, 1, 1, 0, 0, 0)
 # What HACS's validation requires of a component's manifest.
 MANIFEST_KEYS = (
     "codeowners",
@@ -109,6 +115,12 @@ contact_links:
 README = """\
 
 ## Installing
+
+[![Downloads](https://img.shields.io/github/downloads/{mirror}/total?label=Downloads)](https://github.com/{mirror}/releases)
+
+The Downloads badge is GitHub's count of downloads of the releases' packages. Every
+update and every repeat download adds to it, so it isn't the number of houses using
+{name}.
 
 {name} needs Home Assistant {minimum} or later.
 
@@ -198,11 +210,15 @@ def opening(guide_text: str) -> str:
     return top.rstrip() + "\n" + "".join(f"\n{line}" for line in definitions) + "\n"
 
 
-def build(domain: str, repo: str, ref: str, owner: str, out: Path) -> dict:
-    """Writes `domain`'s mirror, as Casa Mia was at `ref`, into the empty folder `out`.
-    Returns the component's manifest."""
-    # The component exactly as committed, compiled assets included.
-    (out / "custom_components").mkdir(parents=True)
+def zip_name(domain: str) -> str:
+    """The release asset a store downloads: sensor_watch.zip for casa-mia-sensor-watch."""
+    return PUBLISHED[domain].removeprefix("casa-mia-").replace("-", "_") + ".zip"
+
+
+def component_at(domain: str, ref: str, into: Path) -> Path:
+    """Writes the component exactly as committed at `ref`, compiled assets included, into
+    `into`/<domain>, and returns that folder."""
+    into.mkdir(parents=True, exist_ok=True)
     archive = subprocess.run(
         ["git", "archive", f"{ref}:{COMPONENTS}", domain],
         cwd=ROOT,
@@ -210,10 +226,63 @@ def build(domain: str, repo: str, ref: str, owner: str, out: Path) -> dict:
     )
     if archive.returncode:
         raise Stop(f"{domain} at {ref}: {archive.stderr.decode().strip()}")
-    subprocess.run(
-        ["tar", "-x", "-C", out / "custom_components"], input=archive.stdout, check=True
+    subprocess.run(["tar", "-x", "-C", into], input=archive.stdout, check=True)
+    return into / domain
+
+
+def package(component: Path, archive: Path) -> Path:
+    """The component as the ZIP a store unpacks into custom_components/<domain>: its files
+    at the archive's root, with no folder around them (HACS 2.0.5
+    `repositories/base.py` `async_download_zip_file`, and the Marketplace's, extract it
+    there whole)."""
+    with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as out:
+        for path in sorted(p for p in component.rglob("*") if p.is_file()):
+            member = zipfile.ZipInfo(path.relative_to(component).as_posix(), ZIP_TIME)
+            member.compress_type = zipfile.ZIP_DEFLATED
+            member.external_attr = 0o644 << 16
+            out.writestr(member, path.read_bytes())
+    return archive
+
+
+def archive_problems(archive: Path, domain: str, ref: str) -> list[str]:
+    """What is wrong with a release's ZIP, against the component as committed at `ref`
+    (the files the Casa Mia app installs): each of them at the archive's root, byte for
+    byte, and nothing else. Compared by git's own blob ids, so the check doesn't share
+    the code that built the archive."""
+    want = {}
+    for line in git("ls-tree", "-r", f"{ref}:{COMPONENTS}/{domain}").splitlines():
+        info, path = line.split("\t", 1)
+        want[path] = info.split()[2]
+    with zipfile.ZipFile(archive) as zipped:
+        got = {
+            member.filename: hashlib.sha1(
+                b"blob %d\0" % member.file_size + zipped.read(member)
+            ).hexdigest()
+            for member in zipped.infolist()
+            if not member.is_dir()
+        }
+
+    name = archive.name
+    found = (
+        [] if "manifest.json" in got else [f"{name} has no manifest.json at its root"]
     )
-    component = out / "custom_components" / domain
+    found += [f"{name} lacks {path}" for path in sorted(want.keys() - got.keys())]
+    found += [
+        f"{name} holds {path}, not in {domain}"
+        for path in sorted(got.keys() - want.keys())
+    ]
+    found += [
+        f"{name}'s {path} differs from the committed one"
+        for path in sorted(want.keys() & got.keys())
+        if want[path] != got[path]
+    ]
+    return found
+
+
+def build(domain: str, repo: str, ref: str, owner: str, out: Path) -> dict:
+    """Writes `domain`'s mirror, as Casa Mia was at `ref`, into the empty folder `out`.
+    Returns the component's manifest."""
+    component = component_at(domain, ref, out / "custom_components")
     manifest = json.loads((component / "manifest.json").read_text("utf-8"))
 
     # Links name the release's tag when there is one, so they still work when main moves on.
@@ -239,8 +308,17 @@ def build(domain: str, repo: str, ref: str, owner: str, out: Path) -> dict:
     files = {
         "README.md": absolute(opening(git("show", f"{ref}:{guide}")), guide, repo, at)
         + README.format(**words),
+        # zip_release: a store downloads the release's ZIP rather than the repository's
+        # files. That has no default branch to come from, so it isn't offered.
         "hacs.json": json.dumps(
-            {"name": manifest["name"], "homeassistant": minimum[1]}, indent=2
+            {
+                "name": manifest["name"],
+                "homeassistant": minimum[1],
+                "zip_release": True,
+                "filename": zip_name(domain),
+                "hide_default_branch": True,
+            },
+            indent=2,
         )
         + "\n",
         "LICENSE": git("show", f"{ref}:LICENSE") + "\n",
@@ -348,10 +426,21 @@ def publish(domain: str, repo: str, owner: str, version: str) -> str:
     """Brings one mirror to `version`, from Casa Mia's tag of that name. Returns what was
     done, in a word or two; Stop says why it wasn't."""
     mirror = f"{owner}/{PUBLISHED[domain]}"
-    with tempfile.TemporaryDirectory() as folder:
+    with (
+        tempfile.TemporaryDirectory() as folder,
+        tempfile.TemporaryDirectory() as spare,
+    ):
         work = Path(folder)
         manifest = build(domain, repo, version, owner, work)
-        wrong = problems(work, domain, repo, version) + hassfest(work)
+        # Outside the mirror's tree: a release asset, never a committed file.
+        archive = package(
+            work / "custom_components" / domain, Path(spare) / zip_name(domain)
+        )
+        wrong = (
+            problems(work, domain, repo, version)
+            + archive_problems(archive, domain, version)
+            + hassfest(work)
+        )
         if wrong:
             raise Stop("\n    ".join(wrong))
 
@@ -414,6 +503,7 @@ def publish(domain: str, repo: str, owner: str, version: str) -> str:
             )
             at("tag", version)
             at("push", "-q", "origin", f"refs/tags/{version}")
+        attach_missing(domain, mirror, at, Path(spare))
         if not run(
             "gh",
             "release",
@@ -426,13 +516,46 @@ def publish(domain: str, repo: str, owner: str, version: str) -> str:
             check=False,
         ):
             run(
-                "gh", "release", "create", version, "--repo", mirror, "--verify-tag",
+                "gh", "release", "create", version, str(archive), "--repo", mirror,
+                "--verify-tag",
                 "--title", f"{manifest['name']} {version}",
                 "--notes",
                 f"Generated from [Casa Mia {version}](https://github.com/{repo}/releases/tag/{version}),"
                 f" commit {commit}. What changed is in Casa Mia's release notes.",
             )  # fmt: skip
         return "already published" if action == "done" else "published"
+
+
+def attach_missing(domain: str, mirror: str, at, spare: Path) -> None:
+    """Gives each release of the mirror that has no ZIP one, before a release with
+    `zip_release` exists to need it: a store reads hacs.json from the latest release and
+    then downloads the ZIP of whichever version is chosen, so an older release without
+    one would fail to install (HACS 2.0.5 `repositories/base.py`). The ZIP is built from
+    Casa Mia's tag of the same name, and only when that holds the very files the
+    mirror's tag does (the same git tree), so the release's files are not changed."""
+    name = zip_name(domain)
+    listing = run(
+        "gh", "api", f"repos/{mirror}/releases?per_page=100", "--jq",
+        '.[] | [.tag_name, ([.assets[].name] | join(","))] | @tsv',
+    )  # fmt: skip
+    for line in listing.splitlines():
+        tag, _, assets = line.partition("\t")
+        if name in assets.split(","):
+            continue
+        theirs = at(
+            "rev-parse", f"refs/tags/{tag}:custom_components/{domain}", check=False
+        )
+        ours = git("rev-parse", f"{tag}:{COMPONENTS}/{domain}", check=False)
+        if not theirs or theirs != ours:
+            warn(
+                f"{mirror} {tag}: not given {name}, as Casa Mia's {tag} holds other files"
+            )
+            continue
+        archive = package(component_at(domain, tag, spare / tag), spare / tag / name)
+        if wrong := archive_problems(archive, domain, tag):
+            raise Stop(f"{name} for {tag}:\n    " + "\n    ".join(wrong))
+        run("gh", "release", "upload", tag, str(archive), "--repo", mirror)
+        good(f"{mirror} {tag}: {name} attached")
 
 
 def publish_all(repo: str, version: str) -> int:
@@ -505,8 +628,17 @@ def dry_run(repo: str, ref: str) -> int:
         build(domain, repo, ref, mirror.split("/")[0], out)
         count = sum(1 for path in out.rglob("*") if path.is_file())
         say(f"\n  {mirror}: {count} files in {out}")
+        archive = package(
+            out / "custom_components" / domain,
+            out.with_name(f"{out.name}-{zip_name(domain)}"),
+        )
+        say(f"  its release's ZIP: {archive} ({archive.stat().st_size // 1024} KB)")
 
-        found = problems(out, domain, repo, ref) + hassfest(out)
+        found = (
+            problems(out, domain, repo, ref)
+            + archive_problems(archive, domain, ref)
+            + hassfest(out)
+        )
         for problem in found:
             warn(problem)
         if not found:
@@ -527,7 +659,8 @@ def dry_run(repo: str, ref: str) -> int:
             f"\n    gh repo edit {mirror} --description … --add-topic {TOPICS}"
             "\n    git push origin main                      (the files above, one commit)"
             "\n    wait for the mirror's Validate workflow   (HACS's action and hassfest)"
-            "\n    git push origin <version>; gh release create <version>"
+            "\n    git push origin <version>; gh release create <version> <its ZIP>"
+            "\n    gh release upload <tag> <its ZIP>       (each release without one)"
             "\n  Checked only on GitHub, by HACS's action: the repository's description,"
             "\n  topics and issues, and its brand."
         )
