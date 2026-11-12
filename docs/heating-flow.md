@@ -254,10 +254,6 @@ reduce motion gets the same still picture, whatever the option says.
 The option belongs to the card, so to keep the animation on your desktop, give the tablet's
 dashboard its own copy with animations off.
 
-**Known issue:** on some Android tablets, the card can paint square blocks of junk beside the
-drawing. It comes from Android's WebView painting through the GPU, and isn't solved yet.
-Turning animations off stops the constant repainting, but it isn't a proven cure.
-
 ## Tap, hold and double tap
 
 A part with an entity is a target: its reading, pump, valve or room tile. A tap opens the

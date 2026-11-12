@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.6-b2
+
+- **Heating Flow: fixed the square black blocks beside the pipes on Android wall tablets.** On tablets with a Mali GPU, Android's WebView painted small black blocks beside the pipes in the System view: in the borehole, on the cylinder's coil, in the floor boxes and by the softener. The cause was two things the card drew off screen first: the pipes' shadow, and the softener's resin beads. The shadow is now drawn as a darker line under each pipe and the beads are drawn directly, so the card looks the same. Measured on a Lenovo tablet with a Mali-G52 (Android 15, WebView 157): about 5,000 junk pixels on every load before, none after, in all three views with the flow markers moving.
+
 ## 2026.11.6-b1
 
 - **Camera Commander: a main camera can be shown full screen, with its controls.** The card's **A tap on the main camera** has a new choice, **Shows it full screen, with its controls**. A tap then shows that camera live over the whole screen, Home Assistant's header and sidebar too, with its **Page controls** (a gate, a light) as buttons along one edge. A tap on a button toggles it, as on the camera dashboard. A control that is unavailable or not found is greyed and says so. A tap anywhere else on the picture goes back to the commander. Talk carries on through it, so you can answer the door, open the gate and keep talking. The camera stays full screen when another device changes the main camera. Where the camera can't play live (the compositor's **Live main camera** switch off, or a device without WebRTC or HLS) the tap opens its more-info instead, and full screen ends by itself if live stops being possible, such as when the page is hidden.

@@ -170,6 +170,14 @@ CLAUDE.md has them all. What trips agents here:
 
 ## Lessons learned (working practice not in CLAUDE.md)
 
+- **No filter or opacity on an SVG `<g>` of many shapes** (2026-11-12). The browser draws
+  such a group off screen first, and the wall tablets' GPU (Mali-G52, WebView under Vulkan)
+  then paints square black blocks beside its shapes. Heating Flow's pipe shadow and resin
+  beads did this until 2026.11.6-b2; `views.test.ts` now refuses either on a `<g>`. A filter
+  or opacity on one shape is fine. To measure on a tablet: Kiosk Satellite's Remote API
+  (port 2324, over `adb forward`) has `evalJs` and `loadUrl`, so a change can be tried on
+  the page in place, or a built bundle shown from the Mac over `adb reverse`; junk is the
+  count of pure black pixels in `adb exec-out screencap`.
 - **Codex shares this checkout.** Before bumping, check `git status`: don't bump over
   Codex's uncommitted bump; stage only your own files when it has work in progress.
 - **Confirm a feature before building** when the owner says so: restate it with your

@@ -4,6 +4,9 @@ import type { Config, Readings } from "./common.ts";
 import type { Look } from "./engine.ts";
 import { heatPump } from "./heatpump.ts";
 import { rooms } from "./rooms.ts";
+import { system } from "./system.ts";
+import { Draw } from "./draw.ts";
+import { softener } from "./parts.ts";
 
 const LOOK: Look = { pipes: "outline", markers: "chev", colours: "temp", readouts: "pill" };
 const t = (v: number, e: string, stale?: string) => ({ v, unit: "°", dp: 1, e, stale });
@@ -68,4 +71,13 @@ test("glass: the coldest brine fills in to full strength; warmer water stays fai
   assert.deepEqual(faint(glass(-15), "#17171f"), new Set());
   assert.deepEqual(faint(glass(5), "#2f86e0"), new Set(["32"]));
   assert.deepEqual(faint(heatPump(c, readings({ "sensor.out": t(5, "sensor.out") }, { brine: true }), LOOK), "#2f86e0"), new Set(), "only glass is faint");
+});
+
+test("no group is drawn off screen: no filter or opacity on a <g> (the wall tablets' GPU paints junk beside one)", () => {
+  const c: Config = { type: "x", dhw: { enabled: true } }, r = readings({}, { comp: true, hp_out: true, heat: true });
+  const d = new Draw({}, {}, LOOK);
+  for (const svg of [system(c, r, LOOK), heatPump(c, r, LOOK), softener(d, 0, 0, 60, 120, false)])
+    assert.doesNotMatch(svg, /<g\b[^>]*(filter|\sopacity=)/);
+  // The pipes keep a shadow: a dark stroke, 1 down, under the network.
+  assert.match(system(c, r, LOOK), /rgba\(0,0,0,\.18\)" transform="translate\(0 1\)"/);
 });

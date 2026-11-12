@@ -166,9 +166,9 @@ export function system(c: Config, r: Readings, look: Look): string {
     ...(soft ? [{ y: YM - JOG, label: "Hard (kitchen)", icon: "tap" as const, on: r.flows.hard, note: water.meter ? "" : "needs a mains meter", e: water.meter }] : []),
   ]);
 
-  const p = d.pipes(P), shadow = `style="filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.25))"`;
-  return `<defs>${DEFS}${p.defs}${boxes.map((b) => b.defs).join("")}</defs>${part.zones(Z, H)}${under}<g ${shadow}>${p.body}</g>` +
-    `${tankOver}${boxes.map((b) => b.box).join("")}<g ${shadow}>${boxes.map((b) => b.pipes).join("")}</g>${boxes.map((b) => b.over).join("")}${over}${p.pills}`;
+  const p = d.pipes(P);
+  return `<defs>${DEFS}${p.defs}${boxes.map((b) => b.defs).join("")}</defs>${part.zones(Z, H)}${under}${p.shadow}${p.body}` +
+    `${tankOver}${boxes.map((b) => b.box).join("")}${boxes.map((b) => b.pipes).join("")}${boxes.map((b) => b.over).join("")}${over}${p.pills}`;
 }
 
 export const rows = (d: Draw, list: [string, Id][], x: number, y: number, xr: number) =>
@@ -201,5 +201,5 @@ function floorBox(d: Draw, f: Floor, y0: number, ys: number, yr: number) {
   if (f.supply) over += d.readout(x0 + 24, ys, f.supply);
   if (f.return) over += d.readout(1120, yr, f.return);
   const p = d.pipes(P);
-  return { defs: p.defs, box, pipes: p.body, over };
+  return { defs: p.defs, box, pipes: p.shadow + p.body, over };
 }

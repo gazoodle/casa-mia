@@ -6734,14 +6734,15 @@ var Oo = class {
 		let b = (e.hops ?? []).map(([e, n, r]) => `<path d="${r === "h" ? `M${e - t} ${n}H${e + t}` : `M${e} ${n - t}V${n + t}`}" stroke-width="${t + 8}" style="stroke:${this.bgAt(e)}"/>`).join(""), x = i.filter((e) => e.show !== !1).map((e) => {
 			let t = To(n, e.s);
 			return this.readout(t.x, t.y, e.k, t.horiz);
-		}).join("");
+		}).join(""), S = h(t + 4, "rgba(0,0,0,.18)", "transform=\"translate(0 1)\"");
 		return {
 			defs: d,
 			gap: b,
 			outline: _,
 			fill: v,
 			marks: y,
-			pills: x
+			pills: x,
+			shadow: S
 		};
 	}
 	pipes(e) {
@@ -6751,6 +6752,7 @@ var Oo = class {
 		})), n = t.filter((e) => !e.p.hops).sort((e, t) => (e.p.z ?? 0) - (t.p.z ?? 0)), r = t.filter((e) => e.p.hops), i = n.map((e) => e.outline).join("") + n.map((e) => e.fill).join("") + n.map((e) => e.marks).join("") + r.map((e) => e.gap + e.outline + e.fill + e.marks).join("");
 		return {
 			defs: t.map((e) => e.defs).join(""),
+			shadow: t.map((e) => e.shadow).join(""),
 			body: i,
 			pills: t.map((e) => e.pills).join("")
 		};
@@ -6879,7 +6881,7 @@ var Uo = (e, t, n) => Y(n, "Mains in", `<circle class="hl" cx="${e}" cy="${t}" r
 function Wo(e, t, n, r, i, a, o, s) {
 	let c = o ? e.data[o] : void 0, l = Math.max(0, Math.min(1, (e.val(o) ?? 0) / 100)), u = r - 26, d = n + 22, f = i - 30, p = t + r - 20, m = n + 10, h = i - 10, g = e.id("rc"), _ = "";
 	for (let e = m + 6; e < m + h - 3; e += 4.5) for (let t = 0; t < 3; t++) _ += `<circle cx="${p + 5 + t * 5 + Math.round(e) % 2 * 1.5}" cy="${e}" r="1.9"/>`;
-	return Y(o ?? s, `Softener${c ? ": salt " + e.fmt(c) : ""}${a ? ", needs topping up" : ""}`, `<rect class="hl ${a ? "pulse" : ""}" x="${t - 7}" y="${n - 7}" width="${r + 14}" height="${i + 14}" rx="10" style="fill:var(--hf-panel2);stroke:${a ? "var(--hf-warn)" : "var(--hf-line)"}" stroke-width="${a ? 3 : 1.5}"/><rect x="${t}" y="${n}" width="${u}" height="${i}" rx="8" fill="url(#panelg)" style="stroke:var(--hf-edge)" stroke-width="1.5"/><rect x="${t + 6}" y="${d}" width="${u - 12}" height="${f}" rx="4" style="fill:var(--hf-panel2);stroke:var(--hf-line)"/>` + (c ? `<rect x="${t + 6}" y="${d + f * (1 - l)}" width="${u - 12}" height="${f * l}" rx="4" fill="${a ? "var(--hf-warn)" : "#e8e2d4"}" style="stroke:var(--hf-line)"/><text x="${t + u / 2}" y="${n + 15}" text-anchor="middle" font-size="10.5" font-weight="700" class="t">${J(c.stale ? "—" : e.fmt(c))}</text>` : "") + `<clipPath id="${g}"><rect x="${p}" y="${m}" width="20" height="${h}" rx="10"/></clipPath><rect x="${p}" y="${m}" width="20" height="${h}" rx="10" fill="url(#panelg)"/><g clip-path="url(#${g})" fill="#d9a441" opacity=".75">${_}</g><rect x="${p}" y="${m}" width="20" height="${h}" rx="10" fill="none" style="stroke:var(--hf-edge)" stroke-width="1.5"/><text x="${t + r / 2}" y="${n - 14}" text-anchor="middle" font-size="11" font-weight="700" class="${a ? "w" : "t"} halo">${a ? "Top up salt" : "Softener"}</text>`);
+	return Y(o ?? s, `Softener${c ? ": salt " + e.fmt(c) : ""}${a ? ", needs topping up" : ""}`, `<rect class="hl ${a ? "pulse" : ""}" x="${t - 7}" y="${n - 7}" width="${r + 14}" height="${i + 14}" rx="10" style="fill:var(--hf-panel2);stroke:${a ? "var(--hf-warn)" : "var(--hf-line)"}" stroke-width="${a ? 3 : 1.5}"/><rect x="${t}" y="${n}" width="${u}" height="${i}" rx="8" fill="url(#panelg)" style="stroke:var(--hf-edge)" stroke-width="1.5"/><rect x="${t + 6}" y="${d}" width="${u - 12}" height="${f}" rx="4" style="fill:var(--hf-panel2);stroke:var(--hf-line)"/>` + (c ? `<rect x="${t + 6}" y="${d + f * (1 - l)}" width="${u - 12}" height="${f * l}" rx="4" fill="${a ? "var(--hf-warn)" : "#e8e2d4"}" style="stroke:var(--hf-line)"/><text x="${t + u / 2}" y="${n + 15}" text-anchor="middle" font-size="10.5" font-weight="700" class="t">${J(c.stale ? "—" : e.fmt(c))}</text>` : "") + `<clipPath id="${g}"><rect x="${p}" y="${m}" width="20" height="${h}" rx="10"/></clipPath><rect x="${p}" y="${m}" width="20" height="${h}" rx="10" fill="url(#panelg)"/><g clip-path="url(#${g})" fill="#d9a441" fill-opacity=".75">${_}</g><rect x="${p}" y="${m}" width="20" height="${h}" rx="10" fill="none" style="stroke:var(--hf-edge)" stroke-width="1.5"/><text x="${t + r / 2}" y="${n - 14}" text-anchor="middle" font-size="11" font-weight="700" class="${a ? "w" : "t"} halo">${a ? "Top up salt" : "Softener"}</text>`);
 }
 function Go(e, t, n, r, i, a, o, s, c) {
 	let l = ho.cold, u = e.val(c), d = u == null ? 1 : Math.max(0, Math.min(1, u / 100)), f = n + 30 + (i - 37) * (1 - d), p = `<rect class="hl" x="${t}" y="${n}" width="${r}" height="${i}" rx="10" fill="url(#panelg)" style="stroke:var(--hf-edge)" stroke-width="1.8"/><rect x="${t + 7}" y="${f}" width="${r - 14}" height="${n + i - 7 - f}" rx="6" fill="${l}" opacity=".22"/><text x="${t + r / 2}" y="${n + 52}" text-anchor="middle" font-size="11" font-weight="700" class="t">${J(o)}</text><text x="${t + r / 2}" y="${n + 67}" text-anchor="middle" font-size="10.5" class="m">${u == null ? "level: no sensor" : `level ${J(e.fmt(e.data[c]))}`}</text>`;
@@ -7331,8 +7333,8 @@ function Yo(e, t, n) {
 			e: c.meter
 		}] : []
 	]);
-	let F = r.pipes(u), te = "style=\"filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.25))\"";
-	return `<defs>${ko}${F.defs}${D.map((e) => e.defs).join("")}</defs>${No(l, 770)}${d}<g ${te}>${F.body}</g>${k}${D.map((e) => e.box).join("")}<g ${te}>${D.map((e) => e.pipes).join("")}</g>${D.map((e) => e.over).join("")}${f}${F.pills}`;
+	let F = r.pipes(u);
+	return `<defs>${ko}${F.defs}${D.map((e) => e.defs).join("")}</defs>${No(l, 770)}${d}${F.shadow}${F.body}${k}${D.map((e) => e.box).join("")}${D.map((e) => e.pipes).join("")}${D.map((e) => e.over).join("")}${f}${F.pills}`;
 }
 var Xo = (e, t, n, r, i) => t.filter(([, e]) => e).map(([t, a], o) => e.row(n, r + o * 22, t, a, i)).join("");
 function Zo(e, t, n, r, i) {
@@ -7378,7 +7380,7 @@ function Zo(e, t, n, r, i) {
 	return {
 		defs: p.defs,
 		box: u,
-		pipes: p.body,
+		pipes: p.shadow + p.body,
 		over: f
 	};
 }
@@ -7576,7 +7578,7 @@ function $o(e, t, n) {
 		["Coil out", c.coil_out]
 	]));
 	let C = r.pipes(m);
-	return `<defs>${ko}${C.defs}</defs>${No(p, 630)}${h}<g style="filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.25))">${C.body}</g>${g}${C.pills}`;
+	return `<defs>${ko}${C.defs}</defs>${No(p, 630)}${h}${C.shadow}${C.body}${g}${C.pills}`;
 }
 //#endregion
 //#region src/heating-flow/rooms.ts

@@ -87,5 +87,5 @@ export function heatPump(c: Config, r: Readings, look: Look): string {
 
   const p = d.pipes(P);
   return `<defs>${DEFS}${p.defs}</defs>${part.zones(Z, H)}${under}` +
-    `<g style="filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.25))">${p.body}</g>${over}${p.pills}`;
+    `${p.shadow}${p.body}${over}${p.pills}`;
 }
