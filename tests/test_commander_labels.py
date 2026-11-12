@@ -47,7 +47,10 @@ def test_each_font_is_a_file_the_app_holds(font):
 def test_a_font_that_cant_be_read_is_said_and_the_standard_one_drawn(
     monkeypatch, tmp_path, caplog
 ):
+    # A name no machine has: for a path that isn't there, Pillow looks among the system's
+    # fonts for a file of that name, and a Linux box has DejaVuSansMono.ttf.
     monkeypatch.setattr(L, "FONTS", tmp_path)
+    monkeypatch.setitem(L.FILES, "mono", "casa-mia-no-such-font.ttf")
     L.font.cache_clear()
     with caplog.at_level(logging.ERROR):
         drawn = L.font("mono", 16)
