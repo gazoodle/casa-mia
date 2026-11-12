@@ -1,93 +1,38 @@
 # Changelog
 
-## 2026.11.5-b14
+## 2026.11.5
 
-- **Fixed: the Any size preview's main camera often said (Waiting …).** Since 2026.11.5-b11 the preview asked the compositor for the camera's medium channel, which it only fetches for a commander somebody is watching; for any other it holds a (Waiting …) notice, and that was laid over the picture. The preview now gets the largest picture of the camera that has really arrived (its high, medium or own channel), and keeps its thumbnail when none has. **As the app draws it** was not affected.
-
-## 2026.11.5-b13
-
-- **Fixed: a Responsive commander on a phone had tiles on all four sides.** Two causes:
-  - **The card took a 16:9 strip of the phone's width**, a short wide space in which a commander set for a wide tablet has no room for a tile beside its main camera. A Responsive commander's card in a narrow column (under 500 px) now takes the height of the screen below it, so a phone held upright is a tall space and **Different when the space is taller than wide** applies. A Fixed commander keeps its own shape, as its panels are set for it.
-  - **Find something that fits kept edges that hadn't helped.** It tried the other edges, found no fit, and left them on while the main camera went below its least. Your own edges are now tried first each time something gives way, and an edge that finds no fit is taken off again.
-- **Camera Commander card: its Debug overlay says which limits gave way** at its size, when any did.
-
-## 2026.11.5-b12
-
+- **Fixed: Sensor Watch never counted a level that had to wait out its hold-off** (in 2026.11.2, 2026.11.3 and 2026.11.4). A worse level, or unavailable, that was still inside its hold-off when it began stayed at its old level when the wait ran out, with `TypeError: 'dict' object is not callable` in Home Assistant's log, and no event was sent. A level found when Home Assistant started, when a watch was saved or at Refresh state still counted, as did a better level and a level with no hold-off, so the page was right after a restart and went out of date afterwards. Nothing needs changing after the update: every sensor is judged again when Sensor Watch starts.
+- **Camera Commander: a Responsive layout.** A commander's **Layout** can now be **Responsive** as well as **Fixed** (what it was, with its panels set by hand). A Responsive commander is laid out afresh for whatever space it is given, so it suits a wide tablet, a narrow column and a phone held upright from one set of settings. Existing commanders stay Fixed until you change them, and each keeps both sets of settings, so you can change and change back. The guide has worked examples.
+  - **Cameras:** one list, in the order the tiles fill, 32 at most. It starts as the cameras of its panels. The main camera keeps its own tile, so no tile moves when the main camera changes.
+  - **The layout:** tiles all one size, held near the **Tile shape** (16:9, 3:2, 4:3 or square), and the main camera a block of them. A tile is cropped about its centre and never squeezed, by no more than **A camera may lose up to**.
+  - **The main camera** is kept between its **least** and its **most**, as shares of the biggest it could be in the space. **A main camera of another shape** is cropped to fill its place (**Crop to fill**), shown whole with bars (**Show whole**), or has the layout made for it (**Fit the layout to it**).
+  - **Edges, in the order they fill:** the edges the tiles go on. The first cameras go on the first edge. Where two edges meet, the corner belongs to the later one, so any cells with no camera are in the corner of the picture. **Different when the space is taller than wide** gives a second list for tall spaces.
+  - **Cameras there is no room for** go into a **+n more** tile, from the end of the list, and the page names them at the preview's size. Motion on one of them marks that tile. Tapping the tile does nothing yet.
+  - **When the limits can't all be met:** **Find something that fits** lets the main camera go below its least, then the tiles below their smallest. At each step it tries your own edges first and adds others only when yours find no fit. **Keep to my limits** shows the main camera alone and says why. The preview, and the card's Debug overlay, say which limits gave way.
+  - **On a phone:** a Responsive commander's card in a narrow column (under 500 px) takes the height of the screen below it, so a phone held upright is a tall space. A Fixed commander keeps its own shape.
+  - The compositor's picture, the camera dashboard's page and the Camera Commander card all work from the one layout, so taps, the highlight and the motion dots line up.
+  - **Reset to defaults** puts every Responsive setting back and leaves the cameras as they are.
+  - Known: two to four cameras in a tall or very wide space leave room empty, as equal tiles can't fill it. Fixed suits those.
 - **Camera Commander: choose which part of a cropped main camera is kept.** **Keep this part of the main camera**, a grid of nine places on the commander's page, says where the main camera is cropped about: the centre (as it was), an edge or a corner. The crop then comes off the opposite side, so **Top left** keeps the date and time many cameras write there. It applies whenever the main camera is cropped, in either layout: **Crop to fill**, the small crop **Show whole** and **Fit the layout to it** make to avoid thin bars, and a Fixed commander's **Crop**. The picture, the card's live video and the preview all follow it. Tiles are still cropped about their centre.
-- **Camera Commander: Re-lay out for its shape is now called Fit the layout to it.** It does what it did.
-
-## 2026.11.5-b11
-
-- **Camera Commander: a name's pill has rounded ends**, as pills have everywhere else in Casa Mia, in the picture, on the card and in the preview. Every pill is the same height for its size of name. The main camera's name is a pill at first, so it looks a little different after this update.
-- **Camera Commander: the Talk chips can be nudged.** **Call status** and **Talk buttons** each have **nudge across** and **nudge down**, in px (below 0 for left and up), to move them a little from the place they are put.
-- **Camera Commander page: the preview says when Show whole changes nothing.** A main camera within 5% of the shape of its place is cropped by that little whichever is chosen, so **Crop to fill** and **Show whole** look the same for it; the line under the preview now says so. A camera of another shape (4:3, say) shows the difference.
-- **Camera Commander page: the preview names the camera that is cropped the most.** The line under the preview said "A camera loses up to 26% of its picture" without saying which. It now names the camera, says whether it is the main camera or a tile, gives its own shape and the shape of its place, counts the pictures that lose more than 5%, and names the settings that decide it.
-- **Camera Commander page: the preview's main camera is sharp.** It was the tiles' small thumbnail, enlarged. It now shows the compositor's picture of the camera's medium or high channel at the size its place needs, over the thumbnail, which shows first and stays when the compositor holds no picture of that channel.
-- **Camera compositor page: its sections fold.** Click a section's heading (Gatherer, Cache, each generator and server) to fold it to that heading, and again to open it. Its pause or purge button stays. Each browser remembers which are folded.
-- **Fixed: the preview showed no main camera for some commanders.** A commander whose **Main camera at start** is **The first one** had an empty main area on the **Any size** preview, which also said there was no room for a main camera. It now shows the first camera, as the app does. **As the app draws it**, the dashboards and the cards were always right.
-- **Fixed: the preview ignored Main camera name size.** On the Camera Commander page's **Any size** preview the main camera's name stayed one size whatever was set. The picture itself was drawn at the size set.
-
-## 2026.11.5-b10
-
 - **Camera Commander: the cameras' names can be set.** Each commander has a new box of settings, **Camera names**, on its page, for either layout:
   - **Font:** Standard (as it was), DejaVu Sans, DejaVu Sans Bold or DejaVu Sans Mono (fixed width). The three DejaVu fonts come with Casa Mia, so the app, the card and the page all draw a name in the same one.
   - **Size** of a tile's name and of the main camera's, in px, still scaled for each screen.
-  - **Style**, for the tiles and for the main camera: a bar across the foot, a pill only as wide as the name, or none.
+  - **Style**, for the tiles and for the main camera: a bar across the foot, a pill only as wide as the name, or none. A pill has rounded ends, as pills have everywhere else in Casa Mia.
   - **Text colour**, **Background colour** and **Background opacity**.
   - **Reset to defaults**, and the **Any size** preview shows the names as you change them.
-  - Nothing changes until you change a setting, except that the main camera's pill is a little lighter (55% where it was 63%), as one opacity now serves the tiles and the main camera.
-- **Camera Commander: the Talk chips can be moved.** **Call status at** and **Talk buttons at**, in the same box, put the call's state and the Talk buttons at the top or the foot of the main camera, on the left, in the centre or on the right, so they needn't cover the date and name a camera writes on its own picture. **Show where they go** puts a sample of each on the preview.
-- **Fixed: On screens now couldn't be read.** In 2026.11.5-b9 the preview's **On screens now** row asked the app at the wrong address, and said the sizes couldn't be read.
-
-## 2026.11.5-b9
-
-- **Camera Commander, Responsive: tiles to spare are left in the corner.** Where two edges meet (Bottom and Right, say), the corner now belongs to the edge that is later in the list, so that edge runs through the corner and any cells with no camera are at its end, in the corner of the picture. They belonged to the earlier edge, which left the empty cells between the two strips of tiles. No layout changes size, only which camera is in which cell.
-- **Camera Commander page: the preview offers the sizes on screens now.** Above the **Any size** preview, **On screens now** lists each size the commander is being shown at on a dashboard or tablet at the moment, read when the commander is opened. Click one to see the commander at that size; hover for the device. A screen of two device pixels to a CSS pixel is listed at its CSS size, which is the size its layout is made for.
-
-## 2026.11.5-b8
-
-- **Camera Commander: a Responsive layout.** A commander's **Layout** can now be **Responsive** as well as **Fixed** (what it was, with its panels set by hand). A Responsive commander is laid out afresh for whatever space it is given, so it suits a wide tablet, a narrow column and a phone held upright from one set of settings. Existing commanders stay Fixed until you change them, and each keeps both sets of settings, so you can change and change back.
-  - **Cameras:** one list, in the order the tiles fill, 32 at most. It starts as the cameras of its panels. The main camera keeps its own tile, so no tile moves when the main camera changes.
-  - **The layout:** tiles all one size, held near the **Tile shape** (16:9, 3:2, 4:3 or square), and the main camera a block of them. A camera is cropped about its centre and never squeezed, by no more than **A camera may lose up to**.
-  - **The main camera** is kept between its **least** and its **most**, as shares of the biggest it could be in the space. **A main camera of another shape** is cropped to fill its place, shown whole with bars, or has the layout made for it.
-  - **Edges, in the order they fill:** the edges the tiles go on. The first cameras go on the first edge. **Different when the space is taller than wide** gives a second list for tall spaces.
-  - **Cameras there is no room for** go into a **+n more** tile, from the end of the list, and the page names them at the preview's size. Tapping the tile does nothing yet.
-  - **When the limits can't all be met:** **Find something that fits** uses other edges, then a smaller main camera, then smaller tiles. **Keep to my limits** shows the main camera alone and says why. The preview says which limits gave way.
-  - **Reset to defaults** puts every Responsive setting back and leaves the cameras as they are.
-  - Known: two to four cameras in a tall or very wide space leave room empty, as equal tiles can't fill it. Fixed suits those.
-
-## 2026.11.5-b7
-
-- No change to the commanders you have: a commander can now be drawn in a second way, **Responsive**, worked out for the space it is given. It is not on the Camera Commander page yet (that is the next build), so nothing chooses it.
-  - The compositor draws it, the camera dashboard's page lays its taps over it, and the Camera Commander card lays its taps, highlight and motion dots over it, all from the one layout.
-  - Cameras there is no room for are drawn as a **+n more** tile, and motion on one of them marks that tile. Tapping it does nothing yet.
-  - With **Keep to my limits**, a space the limits don't fit shows the main camera alone, and the card says why.
-
-## 2026.11.5-b6
-
-- No change in behaviour yet: the solver for the Camera Commander's Responsive layout is in, in the app and in the cards, with nothing using it. It works a commander's layout out for the space it is given, from the number of cameras and a few limits.
-
-## 2026.11.5-b5
-
-- **Camera Commander page: try a commander at any size.** The preview is now a stage you can drag by its bottom right corner, with buttons for common spaces (wide, tablet, squarer, banner, tall, a phone upright and on its side). The commander is laid out again as you drag, by the same engine the card uses, with the page's own camera thumbnails. Under it, in words: how much of the space the main camera takes, how much shows no camera, how much of a picture a camera loses, and how many tiles have gone taller than wide. Click a tile to make it the main camera in the preview. A commander's panels are set for one shape of space, and this shows what they do in the others.
+  - The main camera's name looks a little different after this update, with nothing set: its pill has rounded ends and is a little lighter (55% where it was 63%), as one opacity now serves the tiles and the main camera.
+- **Camera Commander: the Talk chips can be moved.** **Call status at** and **Talk buttons at**, in the same box, put the call's state and the Talk buttons at the top or the foot of the main camera, on the left, in the centre or on the right, so they needn't cover the date and name a camera writes on its own picture. Each has **nudge across** and **nudge down**, in px (below 0 for left and up), to move it a little from that place. **Show where they go** puts a sample of each on the preview.
+- **Camera Commander page: try a commander at any size.** The preview is now a stage you can drag by its bottom right corner, with buttons for common spaces (wide, tablet, squarer, banner, tall, a phone upright and on its side). The commander is laid out again as you drag, by the same layout the card uses. Click a tile to make it the main camera in the preview.
+  - **On screens now** lists each size the commander is being shown at on a dashboard or tablet at the moment, read when the commander is opened. Click one to see the commander at that size; hover for the device. A screen of two device pixels to a CSS pixel is listed at its CSS size, which is the size its layout is made for.
+  - **The line under it** says how much of the space the main camera takes, how much shows no camera, and how many tiles have gone taller than wide. It names the camera that is cropped the most, says whether it is the main camera or a tile, and gives its own shape and the shape of its place.
+  - It says when **Crop to fill** and **Show whole** look the same: a main camera within 5% of the shape of its place is cropped by that little whichever is chosen.
+  - The main camera is the compositor's largest picture of it, over the small thumbnail the tiles use.
   - **As the app draws it** switches back to the compositor's own picture of the commander, with its labels and marks, at the commander's own size.
-
-## 2026.11.5-b4
-
 - **Removed: Arrange… on the Camera Commander page.** It didn't lay the cameras out well enough to be worth keeping. A commander's panels are set by hand, as before it existed, and commanders already saved are unchanged, including any it arranged.
-
-## 2026.11.5-b3
-
+- **Camera compositor page: its sections fold.** Click a section's heading (Gatherer, Cache, each generator and server) to fold it to that heading, and again to open it. Its pause or purge button stays. Each browser remembers which are folded.
 - **Fixed: the Camera Commander card in Safari over https showed no tiles, only the live main camera, and said "Picture failing".** Over https, Home Assistant's service worker handles every request to its address, and Safari drops an endless picture stream that comes through a worker, so the composited picture never arrived after the first load. Home Assistant's own camera streams fail there in the same way. When the card's stream fails on such a page it now takes the picture as frames over a WebSocket, which a worker never sees. Other browsers, and Safari over plain http, keep the stream they had. Home Assistant needs a restart after this update for the new address to exist; until then Safari behaves as before.
 - **Fixed: the Camera Commander card in the Home Assistant app for the Mac said "Live lost … ReferenceError: Can't find variable: RTCPeerConnection" over every main camera.** That app's web view has no WebRTC, so the card's live video could never play there. On a device without WebRTC the card now plays the main camera as HLS, through Home Assistant's stream, and its caption says "(live, some seconds behind)". A device that plays neither shows the main camera as the compositor draws it, as with Live main camera off. Talk is offered only on a device with WebRTC, since nothing else sends a microphone to the camera; it couldn't work in the Mac app before either.
-
-## 2026.11.5-b2
-
-- No change in behaviour: Casa Mia's cards and Sensor Watch's now share the code that offers a reload after an update.
-
-## 2026.11.5-b1
-
-- **Fixed: Sensor Watch never counted a level that had to wait out its hold-off** (in 2026.11.2, 2026.11.3 and 2026.11.4). A worse level, or unavailable, that was still inside its hold-off when it began stayed at its old level when the wait ran out, with `TypeError: 'dict' object is not callable` in Home Assistant's log, and no event was sent. A level found when Home Assistant started, when a watch was saved or at Refresh state still counted, as did a better level and a level with no hold-off, so the page was right after a restart and went out of date afterwards. Nothing needs changing after the update: every sensor is judged again when Sensor Watch starts.
 - **Sensor Watch: Stale, for a sensor that is there but has gone quiet.** A watch or a profile can say "No report for 6 hours counts as Warning", with a message of its own. Home Assistant shows such a sensor's last value as if it were current, and until now Sensor Watch kept its level.
   - **No report** counts any update from the sensor, even of the same value. **No change** is for a value that ought to move, such as a temperature: the same value sent again doesn't count.
   - It counts only when it is worse than the level the sensor's last reading gives, and ends as soon as the sensor reports (or changes) again. An unavailable sensor is not stale: it has its own rule.
