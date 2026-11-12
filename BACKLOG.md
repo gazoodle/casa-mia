@@ -226,6 +226,11 @@ Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it d
 
 ## Cameras, Camera Commander and the compositor
 
+- **PTZ presets on the commander's main camera** (asked 2026-11-12; the owner: "we need to do this"). A camera's PTZ presets show only on its page on the camera dashboard (`auto_dashboards/dashboard.py`: `preset_entries`, `preset_action`). The Camera Commander card shows none, over the main camera or on its full screen, so a PTZ camera can't be moved from a commander.
+  - **The design (owner):** one button in the bar with the others (the camera's controls, Sound, Full screen; `integration/cards/src/commander/full.ts`: `controlsBar`), which opens a drop-down or menu of the camera's presets. A tap on a preset performs the camera's PTZ action with that preset, as its page's tile does.
+  - **What it needs:** the presets and their action are not in the card's data today (`Card.cameras` carries `controls` and `controls_at`), so the app sends each camera's `ptz` too. The button is shown only for a camera that has presets. Build the action once and share it with the dashboard's, not a second copy.
+  - **To settle when built:** whether it is a card option like the Sound button or always shown with the controls; and the menu, which is new chrome on the card (none of its buttons opens one today) and must stay inside the card to be seen while the commander is full screen.
+
 - **A commander on a guest Wi-Fi: live video is slow to start and keeps dropping** (found 2026-11-12, an iPad in Safari signed in as a guest). On the main network the same iPad and page are instant, so the cause is what the guest network may reach, not Safari or the card. Where it stands:
   - **Seen on the guest network:** the low channel plays; the medium channel shows a first frame and is lost about 10 seconds later, on a regular cycle; nothing arrives on the high channel. Each loss and return also restarts the card's picture stream (see below), which is what makes the page feel slow.
   - **Ports that are known, guest network to the box, all TCP:** Home Assistant's own port, the guest sign-in's (8675), the compositor's (8099; optional since 2026.11.6-b4, as the card falls back through Home Assistant) and 18555, the built-in go2rtc's WebRTC port.
