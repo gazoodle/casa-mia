@@ -23,7 +23,7 @@ included: its Recorder, and every integration that fails to set up.
 It isn't a replacement for automations: it's a grown-up notification system that you
 configure once. Automations are for taking action; Sensor Watch is the trigger that
 starts them. On each change of level it fires an event, and its status, counts and List
-service always say what's wrong, so you choose what happens next:
+action always say what's wrong, so you choose what happens next:
 
 - **Tell someone:** a notification when anything becomes a task, a warning to the phone
   of whoever's home, critical to everyone. The **Notify on Sensor Watch** blueprint does
@@ -50,7 +50,7 @@ Each sensor gets a level:
 
 | Level | Means | Example |
 |---|---|---|
-| **Nominal** | All is well. | The softener's salt is above 25% (a [Salt Sentry][salt-sentry] measures it). |
+| **Nominal** | All is well. | The softener's salt is above 25%. |
 | **Task** | Something to do, not a fault. | Top up the salt. |
 | **Warning** | Worth a look. | The freezer is at −14 °C. |
 | **Error** | Something is wrong. | The freezer is at −8 °C, or its sensor is unavailable. |
@@ -97,8 +97,7 @@ flowchart TD
 - **Better news counts at once; worse news waits.** A level that gets worse has to last
   for its hold-off before it counts, so a blip raises nothing. A sensor that recovers is
   shown as recovered straight away.
-- **Unavailable waits longer** (five minutes unless you change it), because a restart, a
-  reload or a car asleep is usual.
+- **Unavailable waits longer:** five minutes unless you change it.
 - **Stale** is for a sensor that still has a value but has stopped sending: no report,
   or no change, for the time you set.
 - **Escalation** moves a level up one when nobody has dealt with it in the time you set:
@@ -121,8 +120,7 @@ The waits and levels are set per watch, or once for a group or a profile: see
    each saying where its numbers come from: mains voltage and frequency by country,
    inverter trip limits, batteries, broadband, pool and hot tub chemistry, indoor air,
    freezers, heating, the garden, computers, and plain "is it there?".
-3. **Watches for the one-offs:** the freezer, the softener's salt (a [Salt Sentry][salt-sentry]
-   measures it), the boiler pressure,
+3. **Watches for the one-offs:** the freezer, the softener's salt, the boiler pressure,
    with bands suggested from each one's own history.
 4. **One automation,** from the **Notify on Sensor Watch** blueprint: your phone, at the
    level you choose or worse, in each watch's own words.
@@ -167,7 +165,7 @@ If one of these is all you need, use it. Sensor Watch puts them in one place, co
 once: levels (a task isn't a critical), normal suggested from history, what a sensor
 means known from its device class, a whole house scanned and filtered rather than one
 entity at a time, Home Assistant's own health in the same picture, and one event and one
-service to hang every automation on.
+action to hang every automation on.
 
 **What it won't do: complex conditions.** Sensor Watch judges one entity (its state or one attribute) at a
 time, against its levels. It isn't trying to replace the freedom Home Assistant gives
@@ -195,8 +193,7 @@ Sensor Watch tells; the rest of Casa Mia shows, and only when there's something 
   for what needs attention, sized to its cards, and hidden when they are.
 - **[Garnish](../tablet-layout.md#showing-and-hiding):** the panel's heading is garnish,
   so it never holds the panel open on its own. Things go wrong, the panel and its heading
-  appear; they're dealt with, and the panel goes, gap and all: no proud *WARNINGS* over
-  nothing.
+  appear; they're dealt with, and the panel goes, gap and all.
 - **[The Over layer](../over-layer.md):** a critical comes up over whatever the tablet is
   showing, and goes when it's sorted.
 - **The Home tile** in the Casa Mia panel shows the house's health at a glance: the
@@ -525,7 +522,7 @@ Error"):
 
 - **Unavailable for … counts as:** a level, or **Ignore** to have no opinion while it is,
   and how long it must be unavailable before that counts (5 minutes by default), so a
-  restart, a reload or a car asleep doesn't raise the alarm.
+  short absence doesn't raise the alarm.
 - **A worse level must last … before it counts:** the hold-off (60 seconds by default),
   so a blip doesn't raise the alarm. A better level counts at once: a sensor
   back from unavailable, or back in its band, is told the moment it is.
@@ -765,8 +762,7 @@ watched within a minute, no setting up. Make one with **+ New group**: as you ch
 filters it lists what they match (up to 200), so you see what it takes before it takes
 it. Something there that shouldn't be (an ESP board's own VCC reading in a mains voltage
 group, say)? Rule it out in the search with a minus word, `-vcc`: it stays out as new
-devices arrive too. The rule of thumb is that more than two of the same kind
-is a group, a single thing is a watch. Started watching one of many alike? Its editor
+devices arrive too. Started watching one of many alike? Its editor
 offers **Watch them all as a group…**, which starts a new group with filters for those
 like it (its integration, its device class, its name without its device's): adjust them,
 choose their levels, and make it.
@@ -779,7 +775,7 @@ choose their levels, and make it.
 - **N in it**, the group's status pill, shows the members in the watched list (a Group
   chip there too).
 - **Delete** a group and its members stay watched, as they are; new ones stop joining.
-- The `list` service takes `group` (the group's name): only its members, and its own
+- The `list` action takes `group` (the group's name): only its members, and its own
   worst level, for a panel or an automation about just the mains plugs.
 
 **Watch anything from Home Assistant's own pages, with a label.** Make a group whose
@@ -813,6 +809,8 @@ The **Sensor Watch** device has:
 
 ### The eye in an entity's dialog
 
+<img src="../screenshots/sensor-watch-eye-detail.webp" alt="An entity's dialog in Home Assistant with Sensor Watch's eye at the top, in amber with WARNING beside it" width="600">
+
 Open any entity in Home Assistant (the dialog with its name, its history and the settings
 cog) and, for an admin, an eye sits among the icons at the top:
 
@@ -829,7 +827,7 @@ moves them, the eye isn't shown and the browser's console says why.
 ### Home Assistant's own health
 
 Sensor Watch also watches Home Assistant itself, counted like any watched sensor (in the
-status, the counts, the problem sensor, the event and the list service), so it never
+status, the counts, the problem sensor, the event and the List action), so it never
 says all is well while Home Assistant is broken:
 
 - **Recorder** and **History** not running: **critical**. Without them there is no
@@ -852,10 +850,10 @@ ignored ones are listed underneath, each with **Watch again**.
 
 These are checked once Home Assistant has started, and again the moment Home Assistant
 says an integration's state changed or a component loaded (no waiting on a timer). In the event
-and the list service their `entity_id` is `homeassistant.recorder`,
+and the List action their `entity_id` is `homeassistant.recorder`,
 `homeassistant.history` or `integration.<its entry id>`.
 
-There is no entity per watched sensor: the summary, the event and the service below tell
+There is no entity per watched sensor: the summary, the event and the action below tell
 the rest of Home Assistant which ones they are.
 
 ### Device triggers
@@ -948,7 +946,7 @@ actions:
       message: "{{ trigger.event.data.message or trigger.event.data.name }}"
 ```
 
-### The List service
+### The List action
 
 `casa_mia_sensor_watch.list` returns every watched sensor at the levels you ask for
 (everything that isn't nominal by default), worst first, then longest standing; use it
@@ -974,6 +972,8 @@ Until 2026.11.3 these two actions were `casa_mia.sensor_watch_list` and
 log, and will be removed.
 
 ### The card
+
+<img src="../screenshots/sensor-watch-card-detail.webp" alt="The Sensor Watch card listing an error, a warning and a task, each with its value and how long it has stood" width="380">
 
 <img src="../screenshots/card-picker.webp" alt="Home Assistant's Add to dashboard dialog searched for casa: previews of the Camera Commander, the Over layer and the Sensor Watch card (an example of a bad day: a critical plug voltage, a warm freezer, the softener's salt)" width="800">
 
