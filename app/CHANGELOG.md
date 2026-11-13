@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.11.7-b1
+
+- **Cameras: the size of a camera's full screen buttons is now a slider.** **Size** under **Controls on a full screen** was a choice of Small, Medium or Large. It is now a slider for the buttons' height, from 24 px to 96 px in steps of 8. Small, Medium and Large were 40, 56 and 72 px, and a camera saved with one of them keeps that height. Under about 44 px a button is hard to hit with a finger.
+- **Camera Commander: the Full screen button now works on an iPhone.** Safari on an iPhone can't show a page full screen, only a video, so the button was not shown there. It now puts the main camera's live video in the phone's own player, as the Advanced Camera Card does, and is shown only while that video is playing. The player's own button goes back to the commander.
+- **Camera Commander: fixed the full screen commander sitting under an iPad's clock and date.** An iPad keeps its status bar (the time, the date, the battery) on top of a full screen page, and it was drawn over the top of the picture. The commander now leaves a black strip for it.
+
 ## 2026.11.6
 
 - **Camera Commander: a main camera can be shown full screen, with its controls.** The card's **A tap on the main camera** has a new choice, **Shows it full screen, with its controls**. A tap then shows that camera live over the whole window, covering Home Assistant's header and sidebar, with its **Page controls** (a gate, a light) as buttons along one edge. A tap on a button toggles it, as on the camera dashboard. A control that is unavailable or not found is greyed and says so. A tap anywhere else on the picture goes back to the commander. Talk carries on through it, so you can answer the door, open the gate and keep talking. The camera stays full screen when another device changes the main camera. Where the camera can't play live (the compositor's **Live main camera** switch off, or a device without WebRTC or HLS) the tap opens its more-info instead, and full screen ends by itself if live stops being possible, such as when the page is hidden.

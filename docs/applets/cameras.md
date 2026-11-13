@@ -59,7 +59,7 @@ places:
 - **The edge** they go along: one choice for a wide screen and one for a tall one, so a
   tablet turned upright can have them somewhere else.
 - **Along the edge:** at its start, its middle or its end.
-- **Size:** small, medium or large.
+- **Size:** a slider for the buttons' height, from 24 px to 96 px. They start at 56 px. Under about 44 px a button is hard to hit with a finger.
 - **Background:** from clear to solid.
 
 The two previews show the camera on a 1280 × 800 tablet, wide and upright, drawn to
