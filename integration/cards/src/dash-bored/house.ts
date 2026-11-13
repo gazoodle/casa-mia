@@ -17,7 +17,7 @@ export type Device = {
   guarded: boolean; // never operated by a tap on a sentence: see GUARDED
   room: string;
 };
-export type Room = { id: string; name: string; temp?: number; target?: number; humidity?: number; devices: Device[] };
+export type Room = { id: string; name: string; floor?: string; temp?: number; target?: number; humidity?: number; devices: Device[] };
 export type Appliance = { id: string; name: string; room: string; kw: number };
 export type House = {
   rooms: Room[];
@@ -29,8 +29,8 @@ export type House = {
 /** The card's options: a weather entity and a whole-house power sensor, both optional. */
 export type Options = { weather?: string; power?: string };
 
-type Found = { id: string; kind: Kind; name: string; guarded: boolean; power?: string };
-type FoundRoom = { id: string; name: string; temp?: string; humidity?: string; climate?: string; devices: Found[] };
+type Found = { id: string; kind: Kind; name: string; full: string; guarded: boolean; power?: string };
+type FoundRoom = { id: string; name: string; floor?: string; level: number; temp?: string; humidity?: string; climate?: string; devices: Found[] };
 export type Survey = { rooms: FoundRoom[]; scenes: string[]; weather?: string; power?: string; watched: string[] };
 
 const KINDS = new Set(["light", "switch", "cover", "lock"]);
@@ -38,10 +38,15 @@ const KINDS = new Set(["light", "switch", "cover", "lock"]);
 // These open Home Assistant's own dialog instead.
 const GUARDED = new Set(["garage", "gate", "door"]);
 
-/** "Kitchen Ceiling" in the kitchen is "Ceiling". */
-function short(name: string, room: string): string {
-  const rest = name.toLowerCase().startsWith(room.toLowerCase() + " ") ? name.slice(room.length + 1).trim() : "";
-  return rest ? rest[0].toUpperCase() + rest.slice(1) : name;
+/** "Kitchen Ceiling Light" in the kitchen is "Ceiling": the room and the kind of thing are
+ * said by where it is shown. "Landing - Left" is "Left", and "Kitchen" alone is "Light". */
+function short(name: string, room: string, kind: Kind): string {
+  const after = name.slice(room.length);
+  // "Kitchenette lamp" is not in the kitchen: the room's name must end where a word does.
+  const inRoom = name.toLowerCase().startsWith(room.toLowerCase()) && !/^[a-z0-9]/i.test(after);
+  const rest = (inRoom ? after.replace(/^[\s\-–—:,.]+/, "") : name).replace(kind === "light" ? /\s+lights?$/i : kind === "switch" ? /\s+switch$/i : /$^/, "");
+  const left = !rest || new RegExp(`^${kind}s?$`, "i").test(rest) ? kind : rest;
+  return left[0].toUpperCase() + left.slice(1);
 }
 
 export function survey(hass: Hass, options: Options): Survey {
@@ -64,16 +69,20 @@ export function survey(hass: Hass, options: Options): Survey {
 
     const area = hass.areas?.[entry.area_id ?? hass.devices?.[entry.device_id]?.area_id];
     if (!area || (domain !== "climate" && !KINDS.has(domain))) continue;
-    if (!rooms.has(area.area_id))
-      rooms.set(area.area_id, { id: area.area_id, name: area.name, temp: area.temperature_entity_id ?? undefined, humidity: area.humidity_entity_id ?? undefined, devices: [] });
+    if (!rooms.has(area.area_id)) {
+      const floor = hass.floors?.[area.floor_id];
+      rooms.set(area.area_id, { id: area.area_id, name: area.name, floor: floor?.name, level: floor ? (floor.level ?? 0) : Infinity, temp: area.temperature_entity_id ?? undefined, humidity: area.humidity_entity_id ?? undefined, devices: [] });
+    }
     const room = rooms.get(area.area_id)!;
 
     if (domain === "climate") room.climate ??= id;
     else {
+      const full: string = state.attributes.friendly_name ?? entry.name ?? id;
       const found: Found = {
         id,
         kind: domain as Kind,
-        name: short(state.attributes.friendly_name ?? entry.name ?? id, area.name),
+        name: short(full, area.name, domain as Kind),
+        full,
         guarded: domain === "lock" || GUARDED.has(state.attributes.device_class),
       };
       room.devices.push(found);
@@ -81,9 +90,20 @@ export function survey(hass: Hass, options: Options): Survey {
     }
   }
   // A switch with a power sensor on the same device is a smart plug: its load is news.
-  for (const [found, device] of owner) found.power = meters.get(device);
+  // A device with several switches is something else (a controller, a car), and its
+  // power is not any one switch's: each of five once claimed the same 4.9 kW.
+  const switches = new Map<string, number>();
+  for (const device of owner.values()) switches.set(device, (switches.get(device) ?? 0) + 1);
+  for (const [found, device] of owner) if (switches.get(device) === 1) found.power = meters.get(device);
 
-  const kept = [...rooms.values()].filter((r) => r.devices.length || r.temp).sort((a, b) => a.name.localeCompare(b.name));
+  // By floor from the lowest up, then the rooms that are on no floor.
+  const kept = [...rooms.values()].filter((r) => r.devices.length || r.temp).sort((a, b) => a.level - b.level || (a.floor ?? "").localeCompare(b.floor ?? "") || a.name.localeCompare(b.name));
+  for (const room of kept) {
+    // Two devices that shorten to the same name ("Light" and "Light") keep their own.
+    const times = new Map<string, number>();
+    for (const d of room.devices) times.set(d.name, (times.get(d.name) ?? 0) + 1);
+    for (const d of room.devices) if (times.get(d.name)! > 1) d.name = d.full;
+  }
   for (const room of kept) room.devices.sort((a, b) => a.kind.localeCompare(b.kind) || a.name.localeCompare(b.name));
   const watched = kept.flatMap((r) => [r.temp, r.humidity, r.climate, ...r.devices.flatMap((d) => [d.id, d.power])]);
   return {
@@ -125,6 +145,7 @@ export function read(found: Survey, hass: Hass): House {
     return {
       id: room.id,
       name: room.name,
+      floor: room.floor,
       temp: number(room.temp) ?? (typeof climate?.attributes.current_temperature === "number" ? climate.attributes.current_temperature : undefined),
       // A thermostat that is off is asking for nothing.
       target: climate && climate.state !== "off" && typeof set === "number" ? set : undefined,

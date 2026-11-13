@@ -19,6 +19,12 @@ becomes a room, and those devices are what it reports on. Entities you have hidd
 a device's configuration and diagnostic entities, are left out. If a room is missing,
 give its devices an area in Home Assistant.
 
+If your areas are on floors, the rooms are grouped under a heading for each floor, from
+the lowest up, and the areas on no floor come last under **Elsewhere**. A device is named
+without its room or its kind: "Kitchen Ceiling Light" in the kitchen is "Ceiling". The
+page has no filter of its own yet, so a switch you don't want on it has to be hidden in
+Home Assistant (the entity's settings, **Visible**).
+
 ## The Gazette
 
 The page works out what is worth saying about the house and puts the most important
@@ -30,7 +36,7 @@ thing at the top:
 | A door found unlocked | Any lock that is unlocked. |
 | Devices not answering | Any shown device that is unavailable, with since when. |
 | A sensor back to normal | For ten minutes after a Sensor Watch alert clears. |
-| An appliance at work | A switch whose device also has a power sensor reading 1 kW or more. |
+| An appliance at work | A switch that is the only one on its device, where that device also has a power sensor reading 1 kW or more. |
 | Lights left on | Any lights on. "Ablaze" when it is seven or more and at least half of them. |
 | A cold room | A room more than 0.8° below its thermostat's target. |
 | Power in use | Only if the card names a power sensor (see below). |
@@ -39,6 +45,14 @@ thing at the top:
 Under the main story is a report on every room. Each underlined fact is a switch: press
 "the counter light is out" and the light comes on. **The switchboard** at the side has
 every device as a plain button, and **Notices** has your scenes.
+
+A house with more than 30 devices is reported differently, because a sentence for each
+device would run to many screens. The report then covers only what is on, open, unlocked
+or not answering, and ends with a count of the rooms where nothing is. A room with more
+than three lights lit has them as one fact, such as "five lights are lit"; press it and
+those lights go out. More than three switches running in a room are given as a count,
+which can't be pressed. The switchboard
+still has every device, and is set in columns across the foot of the page.
 
 Some stories have a button that puts them right, such as **Lock it** or **Lights out**.
 

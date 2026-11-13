@@ -17,11 +17,12 @@ export type Voice = {
   strap: string;
   price: string;
   flash: string; // the word before breaking news
-  titles: { more: string; briefs: string; late: string; temps: string; board: string; notices: string };
+  titles: { more: string; briefs: string; late: string; temps: string; board: string; notices: string; elsewhere: string }; // elsewhere: the rooms on no floor
   join: string; // between a room's devices
   end: string;
   nothing: string; // the late news before anything has happened
-  words: Record<string, string>; // one device, by `kind.state`
+  rest: string; // a big house: the rooms with nothing to report, counted
+  words: Record<string, string>; // one device, by `kind.state`; `kind.many` is a room's count of them, in a big house
   wire: { trouble: string; clear: string }; // an alert in the late news
   notices: string[]; // under each scene, in turn
   stories: Record<string, Entry>; // by `kind.variant`, else `kind`
@@ -47,10 +48,14 @@ export function tell(voice: Voice, story: Story, turn: number): Told {
 
 /** One device as a clause: "the ceiling light burns at 80 per cent". */
 export function words(voice: Voice, d: Device): string {
-  const plural = /s$/i.test(d.name);
+  // "Blinds - left" are plural too: it is the thing that counts, not which one.
   const name = d.name.toLowerCase();
+  const lamp = /lamp|light/i.test(name) ? name : `${name} light`;
+  const plural = /s$/i.test((d.kind === "light" ? lamp : name).split(" - ")[0]);
   const state = d.away ? "away" : !d.on ? `${d.kind}.off` : d.level === undefined && (d.kind === "light" || d.kind === "cover") ? `${d.kind}.plain` : `${d.kind}.on`;
-  return fill(voice.words[state], { name, lamp: /lamp|light/i.test(name) ? name : `${name} light`, level: String(d.level ?? ""), is: plural ? "are" : "is", v: plural ? "" : "s" });
+  const said = fill(voice.words[state], { name, lamp, level: String(d.level ?? ""), is: plural ? "are" : "is", v: plural ? "" : "s" });
+  // "The ann's lamp" is "ann's lamp".
+  return said.replace(/^the (?=\S+['’]s )/, "");
 }
 
 /** An alert as a line of late news. */
@@ -72,14 +77,17 @@ const broadsheet: Voice = {
   strap: "",
   price: "Price: nothing",
   flash: "Stop press",
-  titles: { more: "Other news", briefs: "In brief", late: "Late news", temps: "The temperatures", board: "The switchboard", notices: "Notices" },
+  titles: { more: "Other news", briefs: "In brief", late: "Late news", temps: "The temperatures", board: "The switchboard", notices: "Notices", elsewhere: "Elsewhere" },
   join: "; ",
   end: ".",
   nothing: "Nothing has happened yet.",
+  rest: "In {n_word} room{s} nothing is switched on.",
   words: {
     "light.on": "the {lamp} burn{v} at {level} per cent",
     "light.plain": "the {lamp} {is} lit",
     "light.off": "the {lamp} {is} out",
+    "light.many": "{n_word} lights are lit",
+    "switch.many": "{n_word} switches are running",
     "cover.on": "the {name} stand{v} {level} per cent open",
     "cover.plain": "the {name} {is} open",
     "cover.off": "the {name} {is} closed",
@@ -118,14 +126,17 @@ const tabloid: Voice = {
   strap: "The paper that's always switched on",
   price: "Still FREE!",
   flash: "Breaking",
-  titles: { more: "Also today", briefs: "Quick ones", late: "Latest", temps: "Hot or not", board: "Flick a switch", notices: "Do it now" },
+  titles: { more: "Also today", briefs: "Quick ones", late: "Latest", temps: "Hot or not", board: "Flick a switch", notices: "Do it now", elsewhere: "Everywhere else" },
   join: " • ",
   end: "",
   nothing: "Nothing yet. Give it a minute.",
+  rest: "{n} room{s} with NOTHING ON!",
   words: {
     "light.on": "{lamp} ON at {level}%",
     "light.plain": "{lamp} ON",
     "light.off": "{lamp} off",
+    "light.many": "{n} lights ON",
+    "switch.many": "{n} switches ON",
     "cover.on": "{name} {level}% open",
     "cover.plain": "{name} open",
     "cover.off": "{name} shut",

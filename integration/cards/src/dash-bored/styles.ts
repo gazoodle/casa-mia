@@ -47,8 +47,12 @@ export const STYLES = css`
   .act:hover { background: var(--ink); color: var(--paper); }
   .copy { columns: 2; column-gap: 22px; column-rule: 1px solid rgba(0,0,0,.25); font-size: 15px; line-height: 1.42; clear: both; }
   .copy p { margin: 0 0 8px; break-inside: avoid; }
-  [data-style="broadsheet"] .copy p:first-child::first-letter { font-size: 52px; float: left; line-height: .82; padding: 4px 6px 0 0; font-family: var(--head); }
+  [data-style="broadsheet"] .copy p:first-of-type::first-letter { font-size: 52px; float: left; line-height: .82; padding: 4px 6px 0 0; font-family: var(--head); }
   .copy b { text-transform: uppercase; font-size: 12px; letter-spacing: .12em; }
+  /* A crosshead: the floor, over its rooms in the report and on the switchboard. */
+  h5 { margin: 12px 0 6px; font: italic 400 16px/1.2 var(--head); text-align: center; break-after: avoid; }
+  h5::before, h5::after { content: " — "; }
+  h5:first-child { margin-top: 0; }
   /* Anything in the report that can be switched is set like a correction: underlined, and pressable. */
   .fact { border-bottom: 1.5px dotted var(--ink); cursor: pointer; }
   .fact:hover { background: var(--ink); color: var(--paper); }
@@ -66,7 +70,12 @@ export const STYLES = css`
   table { width: 100%; border-collapse: collapse; font-size: 15px; margin-bottom: 16px; }
   td { padding: 4px 2px; border-bottom: 1px dotted rgba(0,0,0,.4); } td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
   /* The switchboard: every device as a plain button, for when you only want a switch. */
-  .row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+  .row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; break-inside: avoid; }
+  /* A big house: the switchboard is a spread across the foot of the page, in columns. */
+  .page > .board { grid-column: 1 / -1; border-left: 0; padding-left: 0; margin-top: 18px; }
+  .board .rows { columns: 230px; column-gap: 26px; column-rule: 1px solid rgba(0,0,0,.25); }
+  /* One story and no others: it takes the empty column too. */
+  .solo > article { grid-column: span 2; }
   .row > span { flex: 0 0 100%; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; }
   .chip { border: 1.5px solid var(--ink); padding: 3px 7px; font-size: 13px; }
   .chip.on { background: var(--ink); color: var(--paper); }
@@ -96,6 +105,9 @@ export const STYLES = css`
   [data-style="tabloid"] .act:hover { background: var(--ink); }
   [data-style="tabloid"] .copy { column-rule: 0; font-size: 14px; }
   [data-style="tabloid"] .fact { border-bottom: 2px solid var(--flash); }
+  [data-style="tabloid"] h5 { font: italic 900 14px/1 "Arial Black", sans-serif; text-transform: uppercase; text-align: left; color: var(--flash); }
+  [data-style="tabloid"] h5::before, [data-style="tabloid"] h5::after { content: none; }
+  [data-style="tabloid"] .board .rows { column-rule: 0; }
   [data-style="tabloid"] .fact:hover { background: var(--mark); color: #111; }
   [data-style="tabloid"] h3 { text-align: left; border: 0; background: var(--flash); color: #fff; padding: 5px 8px; letter-spacing: .02em; font: italic 900 14px/1 "Arial Black", sans-serif; }
   [data-style="tabloid"] .item h4 { font: 400 34px/.95 var(--head); text-transform: uppercase; }
@@ -106,7 +118,7 @@ export const STYLES = css`
   /* ---------- narrow: one column, in reading order ---------- */
   @container (max-width: 900px) {
     .paper { padding: 10px 14px 20px; }
-    .page { grid-template-columns: 1fr; } .page > * + * { border-left: 0; padding-left: 0; margin-top: 18px; }
+    .page { grid-template-columns: 1fr; } .page > * + * { border-left: 0; padding-left: 0; margin-top: 18px; } .solo > article { grid-column: auto; }
     .copy { columns: 1; } h2 { font-size: 34px; } .masthead h1 { font-size: 42px; }
     [data-style="tabloid"] h2 { font-size: 62px; } [data-style="tabloid"] .masthead h1 { font-size: 36px; }
     .figure, [data-style="tabloid"] .figure { width: 104px; } .figure b, [data-style="tabloid"] .figure b { font-size: 28px; }

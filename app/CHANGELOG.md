@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.11.8-b2
+
+- **Dash-Bored: a large house now fits the page.** A house with more than 30 devices has a report of only what is on, open, unlocked or not answering, with a count of the rooms where nothing is. A room with more than three lights lit has them as one fact, such as "five lights are lit", and a press on it puts those out; more than three switches running are a count that can't be pressed. Before, every device had a sentence, and a large house was many screens long on a phone. The switchboard still has every device, and in such a house it is set in columns across the foot of the page.
+- **Dash-Bored: floors are headings.** Where your areas are on floors, the report and the switchboard group the rooms under each floor, from the lowest up, with the areas on no floor last.
+- **Dash-Bored: shorter device names.** A name loses its room, the punctuation after it and a closing "Light" or "Switch", so "Landing - Left Light" on the landing is "Left". Two devices that would then share a name keep their own.
+- **Dash-Bored: fixed** a device with several switches and one power sensor being reported as several appliances, each drawing the same power. A power reading now belongs to a switch only when it is the device's only switch.
+- **Dash-Bored: fixed** an empty **Other news** column when there was only one story; the story now takes that space. Fixed sentences such as "the Ann's lamp is lit" and "the blinds - left stands open".
+
 ## 2026.11.8-b1
 
 - **New: Dash-Bored** (In development), an integration of its own. Add it under Settings → Devices & services; it needs neither the app nor the Casa Mia integration. It adds a Dash-Bored page to the sidebar, written from your areas and the lights, switches, covers and locks in them. The first style is the Gazette: the house as a newspaper. What matters most is the headline, such as an unlocked door, devices that have stopped answering or lights left on. Every underlined fact in the report is a switch, and some stories have a button that puts them right. A lock, a garage door or a gate is never operated by a press on a sentence: those open Home Assistant's own dialog. There are two papers, a broadsheet and a red-top, written from the same stories. With Sensor Watch installed, a sensor above its normal level is breaking news. The same page is a dashboard card, Dash-Bored Gazette. [The guide](https://github.com/gazoodle/casa-mia/blob/main/docs/applets/dash-bored.md) says what is not built yet.

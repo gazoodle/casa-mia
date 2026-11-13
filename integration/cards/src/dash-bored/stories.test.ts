@@ -127,3 +127,9 @@ test("every voice can tell every story and describe every device, with nothing l
   assert.equal(tell(VOICES.tabloid, fault, 0).deck, "Boiler fault: Problem reported");
   assert.match(tell(VOICES.broadsheet, stories(troubled, alerts, 2000)[0], 0).body, /worsened/);
 });
+
+test("a name with an owner takes no article, and a plural before a dash is still plural", () => {
+  const device = (name: string, kind: "light" | "cover") => ({ id: "x", name, kind, on: true, away: false, since: 0, guarded: false, room: "Den" });
+  assert.equal(words(VOICES.broadsheet, device("Ann's lamp", "light")), "ann's lamp is lit");
+  assert.equal(words(VOICES.broadsheet, device("Blinds - left", "cover")), "the blinds - left are open");
+});

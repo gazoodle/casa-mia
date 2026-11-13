@@ -5,14 +5,20 @@
 import { LitElement, html, nothing, type TemplateResult } from "lit";
 import { keyed } from "lit/directives/keyed.js";
 import { fire, type Hass } from "../ha.ts";
-import { read, survey, type Device, type House, type Options, type Survey } from "./house.ts";
-import { NOMINAL, RECOVERED, cap, clock, flavourOf, stories, type Alert, type Press } from "./stories.ts";
+import { read, survey, type Device, type House, type Options, type Room, type Survey } from "./house.ts";
+import { NOMINAL, RECOVERED, cap, clock, counted, flavourOf, stories, type Alert, type Press } from "./stories.ts";
 import { STYLES } from "./styles.ts";
-import { VOICES, tell, wired, words, type Told } from "./voices.ts";
+import { VOICES, fill, tell, wired, words, type Told } from "./voices.ts";
 
 export const CARD = "dash-bored-gazette";
 const ALERTS = "casa_mia_dash_bored/alerts"; // the integration's feed (alerts.py)
 const REMEMBERED = "dash-bored-style"; // this browser's choice of paper
+// A house with more devices than this can't be reported device by device: the page was
+// many screens long on a phone for a large one. Its report is of what is on, unlocked or
+// not answering, and its switchboard, which still has everything, goes across the foot.
+const BIG = 30;
+const MANY = 3; // more lights lit in one of its rooms than this are a count, not a list
+const notable = (d: Device) => d.away || (d.kind === "lock" ? !d.on : d.on);
 type Config = Options & { type?: string; style?: string };
 type Line = { time: number; device?: Device; alert?: Alert };
 
@@ -69,7 +75,7 @@ export class Gazette extends LitElement {
     this._lost = 0;
     this._listen();
 
-    if (!this._survey || !was || was.entities !== hass.entities || was.areas !== hass.areas || was.devices !== hass.devices) this._survey = survey(hass, this._config);
+    if (!this._survey || !was || was.entities !== hass.entities || was.areas !== hass.areas || was.devices !== hass.devices || was.floors !== hass.floors) this._survey = survey(hass, this._config);
     // ponytail: `hass` is set at every state change in the house, and the page isn't told
     // which entity changed, so this looks at each watched one. If that ever shows in a
     // profile, follow the entities with a subscription of our own instead.
@@ -201,6 +207,37 @@ export class Gazette extends LitElement {
       html`<span class="fact ${d.away ? "away" : ""}" role="button" tabindex="0" @click=${() => this._press(d)} @keydown=${this._key}>${first ? cap(words(voice, d)) : words(voice, d)}</span>`;
     const warm = house.rooms.filter((r) => r.temp !== undefined);
 
+    const rooms = house.rooms.filter((r) => r.devices.length);
+    const big = rooms.reduce((n, r) => n + r.devices.length, 0) > BIG;
+    const reported = big ? rooms.map((r) => ({ ...r, devices: r.devices.filter(notable) })).filter((r) => r.devices.length) : rooms;
+    // Rooms come sorted by floor (house.ts). A house with no floors has no crossheads.
+    const floored = rooms.some((r) => r.floor);
+    const byFloor = (list: Room[], draw: (r: Room) => TemplateResult, wrap = (drawn: TemplateResult[]): unknown => drawn) => {
+      const floors = new Map<string, Room[]>();
+      for (const r of list) floors.set(r.floor ?? "", [...(floors.get(r.floor ?? "") ?? []), r]);
+      return [...floors].map(([floor, on]) => html`${floored ? html`<h5>${floor || voice.titles.elsewhere}</h5>` : nothing}${wrap(on.map(draw))}`);
+    };
+    // A room's sentence. In a big house its lit lights, if many, are one fact that puts
+    // them out; its running switches are a count and no more, since nobody means to stop
+    // nine relays with one press.
+    const report = (r: Room) => {
+      const many = (kind: string) => {
+        const on = r.devices.filter((d) => big && d.kind === kind && d.on && !d.away);
+        return on.length > MANY ? on : [];
+      };
+      const lit = many("light");
+      const running = many("switch");
+      const parts: unknown[] = r.devices.filter((d) => !lit.includes(d) && !running.includes(d)).map((d, i) => fact(d, !i && !lit.length && !running.length));
+      if (running.length) parts.unshift(lit.length ? fill(voice.words["switch.many"], counted(running.length)) : cap(fill(voice.words["switch.many"], counted(running.length))));
+      if (lit.length)
+        parts.unshift(html`<span class="fact" role="button" tabindex="0" @click=${() => this._call({ domain: "light", service: "turn_off", ids: lit.map((d) => d.id) }, r.name)} @keydown=${this._key}>${cap(fill(voice.words["light.many"], counted(lit.length)))}</span>`);
+      return html`<p><b>${r.name}.</b> ${parts.map((part, i) => html`${i ? voice.join : ""}${part}`)}${voice.end}</p>`;
+    };
+    const board = html`<h3>${voice.titles.board}</h3>
+      ${byFloor(rooms, (r) => html`<div class="row"><span>${r.name}</span>${r.devices.map((d) =>
+        html`<button class="chip ${d.on ? "on" : ""} ${d.away ? "away" : ""}" aria-pressed=${d.on} @click=${() => this._press(d)}>${d.name}</button>`)}</div>`,
+        (drawn) => html`<div class="rows">${drawn}</div>`)}`;
+
     return html`<div class="paper" data-style=${this._style}>
       ${this._lost ? html`<div class="fault" role="alert">Not connected to Home Assistant since ${clock(this._lost)}. What follows is how things stood then.</div>` : nothing}
       ${this._fault ? html`<div class="fault" role="alert">${this._fault}</div>` : nothing}
@@ -214,7 +251,7 @@ export class Gazette extends LitElement {
           : html`<span class="styles">${Object.entries(VOICES).map(([id, v]) => html`<button aria-pressed=${id === this._style} @click=${() => this._dress(id)}>${v.label}</button>`)}</span>`}
         <span>${voice.price} · ${clock(Date.now())}</span>
       </div>
-      <main class="page">
+      <main class="page ${rest.length ? "" : "solo"}">
         <article>
           <div class="figure"><b>${lead.s.figure[0]}</b><span>${lead.s.figure[1]}</span></div>
           <p class="kicker">${lead.kicker}</p>
@@ -223,15 +260,18 @@ export class Gazette extends LitElement {
           ${act(lead)}
           <div class="copy">
             ${lead.body ? html`<p>${lead.body}</p>` : nothing}
-            ${house.rooms.filter((r) => r.devices.length).map((r) => html`<p><b>${r.name}.</b> ${r.devices.map((d, i) => html`${i ? voice.join : ""}${fact(d, !i)}`)}${voice.end}</p>`)}
-            ${house.rooms.some((r) => r.devices.length) ? nothing : html`<p>No areas with lights, switches, covers or locks were found. Give your devices areas in Home Assistant's settings and this page fills itself in.</p>`}
+            ${byFloor(reported, report)}
+            ${rooms.length > reported.length ? html`<p>${fill(voice.rest, counted(rooms.length - reported.length))}</p>` : nothing}
+            ${rooms.length ? nothing : html`<p>No areas with lights, switches, covers or locks were found. Give your devices areas in Home Assistant's settings and this page fills itself in.</p>`}
           </div>
         </article>
-        <section>
-          <h3>${voice.titles.more}</h3>
-          ${rest.slice(0, 3).map((t) => html`<div class="item"><p class="kicker">${t.kicker}</p><h4>${t.head}</h4><p>${t.deck}</p>${act(t)}</div>`)}
-          ${rest.length > 3 ? html`<h3>${voice.titles.briefs}</h3><ul>${rest.slice(3).map((t) => html`<li><b>${t.head}.</b> ${t.deck}</li>`)}</ul>` : nothing}
-        </section>
+        ${rest.length
+          ? html`<section>
+              <h3>${voice.titles.more}</h3>
+              ${rest.slice(0, 3).map((t) => html`<div class="item"><p class="kicker">${t.kicker}</p><h4>${t.head}</h4><p>${t.deck}</p>${act(t)}</div>`)}
+              ${rest.length > 3 ? html`<h3>${voice.titles.briefs}</h3><ul>${rest.slice(3).map((t) => html`<li><b>${t.head}.</b> ${t.deck}</li>`)}</ul>` : nothing}
+            </section>`
+          : nothing}
         <aside>
           <h3>${voice.titles.late}</h3>
           <ol>${this._late.length
@@ -240,14 +280,13 @@ export class Gazette extends LitElement {
           ${warm.length
             ? html`<h3>${voice.titles.temps}</h3><table>${warm.map((r) => html`<tr><td>${r.name}</td><td>${r.temp!.toFixed(1)}° ${r.target === undefined ? "" : r.temp! < r.target - 0.5 ? "▼" : r.temp! > r.target + 0.5 ? "▲" : "="}</td></tr>`)}</table>`
             : nothing}
-          <h3>${voice.titles.board}</h3>
-          ${house.rooms.filter((r) => r.devices.length).map((r) => html`<div class="row"><span>${r.name}</span>${r.devices.map((d) =>
-            html`<button class="chip ${d.on ? "on" : ""} ${d.away ? "away" : ""}" aria-pressed=${d.on} @click=${() => this._press(d)}>${d.name}</button>`)}</div>`)}
+          ${big ? nothing : board}
           ${house.scenes.length
             ? html`<h3>${voice.titles.notices}</h3>${house.scenes.slice(0, 8).map((s, i) =>
                 html`<button class="ad" @click=${() => this._call({ domain: "scene", service: "turn_on", ids: [s.id] }, s.name)}><b>${s.name}</b>${voice.notices[i % voice.notices.length]}</button>`)}`
             : nothing}
         </aside>
+        ${big ? html`<section class="board">${board}</section>` : nothing}
       </main>
     </div>`;
   }
