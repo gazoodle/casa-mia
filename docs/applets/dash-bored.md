@@ -56,6 +56,35 @@ still has every device, and is set in columns across the foot of the page.
 
 Some stories have a button that puts them right, such as **Lock it** or **Lights out**.
 
+### Photographs
+
+A camera that can tell what it has seen gets its picture in the paper. When one of its
+detections fires, Dash-Bored takes a still from the camera at that moment and the Gazette
+prints it with a headline for ten minutes. Pressing the photograph opens the camera.
+
+These detections take a photograph: somebody at the doorbell, a person, a vehicle, an
+animal, and a smoke or carbon monoxide alarm heard by the camera. A doorbell story is near
+the top of the page, a person is above the lights that are left on, and a vehicle or an
+animal is lower down. Plain motion takes no photograph, because in a house with several
+cameras it would fill the paper.
+
+It works with any camera whose detections are entities on the same device as the camera
+entity, which is how UniFi Protect and Frigate set theirs up. The sort of detection is told
+from English words in the detection's name.
+
+Each such camera gets one new entity on its device, an image called **Last sighting**. It
+holds the latest photograph and the sort of sighting, and you can use it on any other
+dashboard. Things to know:
+
+- The photographs are kept in memory, one for each camera. After Home Assistant restarts
+  there is none until the next detection.
+- Two detections on one camera within five seconds share one photograph.
+- If the camera does not answer, the story is printed without a photograph, and the reason
+  is in Home Assistant's log.
+- A camera added later gets its entity when Dash-Bored is next reloaded.
+- The label **Dash-Bored hide** on the camera, its device or its area keeps its sightings
+  off the page.
+
 ### What your house is missing
 
 **Corrections and clarifications** lists what Home Assistant has not been told about the

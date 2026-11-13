@@ -6,7 +6,7 @@ import { LitElement, html, nothing, type TemplateResult } from "lit";
 import { keyed } from "lit/directives/keyed.js";
 import { fire, navigate, type Hass } from "../ha.ts";
 import { read, survey, type Device, type House, type Options, type Room, type Survey } from "./house.ts";
-import { NOMINAL, RECOVERED, cap, clock, counted, flavourOf, stories, type Alert, type Press } from "./stories.ts";
+import { NOMINAL, RECOVERED, cap, clock, counted, flavourOf, stories, type Alert, type Press, type Story } from "./stories.ts";
 import { STYLES } from "./styles.ts";
 import { FIXES, VOICES, fill, tell, wired, words, type Told } from "./voices.ts";
 
@@ -20,7 +20,7 @@ const BIG = 30;
 const MANY = 3; // more lights lit in one of its rooms than this are a count, not a list
 const notable = (d: Device) => d.away || (d.kind === "lock" ? !d.on : d.on);
 type Config = Options & { type?: string; style?: string };
-type Line = { time: number; device?: Device; alert?: Alert };
+type Line = { time: number; device?: Device; alert?: Alert; seen?: Story };
 
 export class Gazette extends LitElement {
   static styles = STYLES;
@@ -82,7 +82,16 @@ export class Gazette extends LitElement {
     else if (was.states === hass.states || !this._survey.watched.some((id) => was.states[id] !== hass.states[id])) return;
 
     const before = new Map(this._house?.rooms.flatMap((r) => r.devices).map((d) => [d.id, d]));
+    const seen = this._house && new Map(this._house.sightings.map((s) => [s.id, s.at]));
     this._house = read(this._survey, hass);
+    // A sighting, new or found on opening the page, leaves the paper when its time is up.
+    const now = Date.now();
+    for (const s of this._house.sightings) {
+      if (seen?.get(s.id) === s.at || now - s.at >= RECOVERED) continue;
+      this._later(RECOVERED - (now - s.at));
+      const story = stories(this._house, [], now).find((told) => told.id === "sighting." + s.id);
+      if (seen && story) this._note({ time: s.at, seen: story });
+    }
     for (const d of this._house.rooms.flatMap((r) => r.devices)) {
       const old = before.get(d.id);
       if (old && (old.on !== d.on || old.level !== d.level || old.away !== d.away)) this._note({ time: Date.now(), device: d });
@@ -148,17 +157,20 @@ export class Gazette extends LitElement {
 
       this._note({ time: alert.at, alert });
       if (alert.level !== NOMINAL) this.scrollIntoView({ block: "start", behavior: "smooth" }); // breaking news is no use below the fold
-      // A date coming due, not a poll: the recovery leaves the paper when its time is up.
-      else {
-        const timer = setTimeout(() => {
-          this._timers.delete(timer);
-          this.requestUpdate();
-        }, RECOVERED + 1000);
-        this._timers.add(timer);
-      }
+      else this._later(RECOVERED);
     }
     this._primed = true;
     this._alerts = [...held.values()];
+  }
+
+  /** Draw the page again once `ms` have passed. A date coming due, not a poll: a recovery
+   * or a sighting leaves the paper when its time is up. */
+  private _later(ms: number) {
+    const timer = setTimeout(() => {
+      this._timers.delete(timer);
+      this.requestUpdate();
+    }, ms + 1000);
+    this._timers.add(timer);
   }
 
   private _note(line: Line) {
@@ -205,6 +217,14 @@ export class Gazette extends LitElement {
     const act = (t: Told & { s: (typeof running)[number] }) => (t.act ? html`<button class="act" @click=${() => this._call(t.s.press!, t.head)}>${t.act}</button>` : nothing);
     const fact = (d: Device, first: boolean): TemplateResult =>
       html`<span class="fact ${d.away ? "away" : ""}" role="button" tabindex="0" @click=${() => this._press(d)} @keydown=${this._key}>${first ? cap(words(voice, d)) : words(voice, d)}</span>`;
+    // A photograph, where the story has one. Pressing it opens the camera that took it.
+    const photo = (s: Story) =>
+      s.photo
+        ? html`<figure class="photo" role="button" tabindex="0" @click=${() => fire(this, "hass-more-info", { entityId: s.see })} @keydown=${this._key}>
+            <img src=${s.photo} alt=${s.figure[1]} loading="lazy" @error=${() => (this._fault = `The photograph from ${s.figure[1]} could not be fetched.`)} />
+            <figcaption>${s.figure[1]}, ${s.figure[0]}</figcaption>
+          </figure>`
+        : nothing;
     const warm = house.rooms.filter((r) => r.temp !== undefined);
 
     const rooms = house.rooms.filter((r) => r.devices.length);
@@ -258,6 +278,7 @@ export class Gazette extends LitElement {
           ${keyed(lead.head, html`<h2>${lead.head}</h2>`)}
           <p class="deck">${lead.deck}</p>
           ${act(lead)}
+          ${photo(lead.s)}
           <div class="copy">
             ${lead.body ? html`<p>${lead.body}</p>` : nothing}
             ${byFloor(reported, report)}
@@ -268,14 +289,14 @@ export class Gazette extends LitElement {
         ${rest.length
           ? html`<section>
               <h3>${voice.titles.more}</h3>
-              ${rest.slice(0, 3).map((t) => html`<div class="item"><p class="kicker">${t.kicker}</p><h4>${t.head}</h4><p>${t.deck}</p>${act(t)}</div>`)}
+              ${rest.slice(0, 3).map((t) => html`<div class="item"><p class="kicker">${t.kicker}</p><h4>${t.head}</h4>${photo(t.s)}<p>${t.deck}</p>${act(t)}</div>`)}
               ${rest.length > 3 ? html`<h3>${voice.titles.briefs}</h3><ul>${rest.slice(3).map((t) => html`<li><b>${t.head}.</b> ${t.deck}</li>`)}</ul>` : nothing}
             </section>`
           : nothing}
         <aside>
           <h3>${voice.titles.late}</h3>
           <ol>${this._late.length
-            ? this._late.map((l) => html`<li><time>${clock(l.time)}</time>${l.alert ? wired(voice, l.alert) : `${l.device!.room}: ${words(voice, l.device!)}`}</li>`)
+            ? this._late.map((l) => html`<li><time>${clock(l.time)}</time>${l.alert ? wired(voice, l.alert) : l.seen ? `${l.seen.vars.name}: ${tell(voice, l.seen, 0).kicker.toLowerCase()}` : `${l.device!.room}: ${words(voice, l.device!)}`}</li>`)
             : html`<li>${voice.nothing}</li>`}</ol>
           ${warm.length
             ? html`<h3>${voice.titles.temps}</h3><table>${warm.map((r) => html`<tr><td>${r.name}</td><td>${r.temp!.toFixed(1)}° ${r.target === undefined ? "" : r.temp! < r.target - 0.5 ? "▼" : r.temp! > r.target + 0.5 ? "▲" : "="}</td></tr>`)}</table>`

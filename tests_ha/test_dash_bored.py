@@ -1,7 +1,10 @@
-"""Dash-Bored inside a real Home Assistant: its set-up, its page in the sidebar, and the
-feed of Sensor Watch's alerts that its pages follow. Sensor Watch itself is not loaded:
+"""Dash-Bored inside a real Home Assistant: its set-up, its page in the sidebar, the
+photographs it takes of what the cameras see, and the feed of Sensor Watch's alerts that
+its pages follow. Sensor Watch itself is not loaded:
 the two meet only through its bus event, which each test fires by hand."""
 
+import pytest
+from custom_components.casa_mia_dash_bored import image as sightings
 from custom_components.casa_mia_dash_bored.const import (
     ALERTS,
     CARDS_VERSION,
@@ -12,6 +15,9 @@ from custom_components.casa_mia_dash_bored.const import (
 from homeassistant.components import frontend
 from homeassistant.config_entries import SOURCE_USER, ConfigEntryState
 from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import label_registry as lr
 from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -172,3 +178,137 @@ async def test_an_event_with_no_entity_is_ignored_aloud(hass, hass_ws_client, ca
     assert "no entity_id was ignored" in caplog.text
     _, held = await feed(hass, hass_ws_client)
     assert held == []
+
+
+@pytest.mark.parametrize(
+    ("domain", "name", "device_class", "kind"),
+    [
+        ("binary_sensor", "person_detected", None, "person"),
+        ("binary_sensor", "Person occupancy", "occupancy", "person"),
+        ("binary_sensor", "vehicle_detected", None, "vehicle"),
+        ("binary_sensor", "animal_detected", None, "animal"),
+        ("binary_sensor", "doorbell", "occupancy", "doorbell"),
+        ("event", "ring", "doorbell", "doorbell"),
+        ("binary_sensor", "smoke_alarm_detected", None, "alarm"),
+        ("binary_sensor", "co_alarm_detected", "carbon_monoxide", "alarm"),
+        # Heard, not seen; and what would fill the paper.
+        ("binary_sensor", "car_alarm_detected", None, None),
+        ("binary_sensor", "car_horn_detected", None, None),
+        ("binary_sensor", "Motion", "motion", None),
+        ("binary_sensor", "is_dark", None, None),
+        ("event", "motion", "motion", None),
+    ],
+)
+def test_which_detections_are_worth_a_photograph(domain, name, device_class, kind):
+    assert sightings.kind_of(domain, name, device_class) == kind
+
+
+async def shed(hass, monkeypatch):
+    """An invented camera with a person sensor, a motion sensor and a doorbell, and Dash-
+    Bored set up beside it. Gives the stills asked for, and the sighting's entity id."""
+    source = MockConfigEntry(domain="test")
+    source.add_to_hass(hass)
+    device = dr.async_get(hass).async_get_or_create(
+        config_entry_id=source.entry_id,
+        identifiers={("test", "shed")},
+        name="Shed camera",
+    )
+    entities = er.async_get(hass)
+    for domain, uid, key, device_class in (
+        ("camera", "cam", None, None),
+        ("binary_sensor", "person", "person_detected", None),
+        ("binary_sensor", "motion", None, "motion"),
+        ("event", "ring", None, "doorbell"),
+    ):
+        entities.async_get_or_create(
+            domain,
+            "test",
+            uid,
+            device_id=device.id,
+            translation_key=key,
+            original_device_class=device_class,
+            suggested_object_id=f"shed_{uid}",
+        )
+        hass.states.async_set(f"{domain}.shed_{uid}", "off")
+
+    asked: list[str] = []
+
+    async def still(_hass, camera_id):
+        asked.append(camera_id)
+        if camera_id == "broken":
+            raise HomeAssistantError("the camera did not answer")
+        return b"a photograph", "image/jpeg"
+
+    monkeypatch.setattr(sightings, "still", still)
+    await set_up(hass)
+    entity_id = entities.async_get_entity_id("image", DOMAIN, f"sighting-{device.id}")
+    assert entity_id and entities.async_get(entity_id).device_id == device.id
+    return asked, entity_id
+
+
+async def test_a_person_seen_is_photographed_and_plain_motion_is_not(
+    hass, hass_client, monkeypatch
+):
+    asked, entity_id = await shed(hass, monkeypatch)
+    assert hass.states.get(entity_id).state == "unknown"
+
+    hass.states.async_set("binary_sensor.shed_motion", "on")
+    await hass.async_block_till_done()
+    assert asked == []
+
+    hass.states.async_set("binary_sensor.shed_person", "on")
+    await hass.async_block_till_done()
+    assert asked == ["camera.shed_cam"]
+    state = hass.states.get(entity_id)
+    assert state.attributes["kind"] == "person" and state.attributes["photo"]
+    assert state.attributes["camera"] == "camera.shed_cam"
+
+    # Home Assistant serves it to a page by the address in the entity's own state.
+    client = await hass_client()
+    served = await client.get(state.attributes["entity_picture"])
+    assert await served.read() == b"a photograph"
+
+
+async def test_a_doorbell_rung_as_the_person_is_seen_is_one_photograph(
+    hass, monkeypatch, freezer
+):
+    asked, entity_id = await shed(hass, monkeypatch)
+    hass.states.async_set("binary_sensor.shed_person", "on")
+    await hass.async_block_till_done()
+    taken = hass.states.get(entity_id).state
+
+    freezer.tick(2)
+    hass.states.async_set("event.shed_ring", "2026-11-13T10:00:02+00:00")
+    await hass.async_block_till_done()
+    state = hass.states.get(entity_id)
+    assert len(asked) == 1 and state.state == taken
+    assert state.attributes["kind"] == "doorbell"
+
+    # Later, it is a new sighting with a photograph of its own.
+    freezer.tick(sightings.APART)
+    hass.states.async_set("binary_sensor.shed_person", "off")
+    hass.states.async_set("binary_sensor.shed_person", "on")
+    await hass.async_block_till_done()
+    state = hass.states.get(entity_id)
+    assert len(asked) == 2 and state.state != taken
+    assert state.attributes["kind"] == "person"
+
+
+async def test_a_camera_that_does_not_answer_is_told_with_no_photograph(
+    hass, monkeypatch, caplog
+):
+    """Never an old photograph under a new headline."""
+    _, entity_id = await shed(hass, monkeypatch)
+    hass.states.async_set("binary_sensor.shed_person", "on")
+    await hass.async_block_till_done()
+    assert hass.states.get(entity_id).attributes["photo"]
+
+    entity = hass.data["image"].get_entity(entity_id)
+    entity._camera = "broken"
+    entity._at = None
+    hass.states.async_set("binary_sensor.shed_person", "off")
+    hass.states.async_set("binary_sensor.shed_person", "on")
+    await hass.async_block_till_done()
+    state = hass.states.get(entity_id)
+    assert state.attributes["kind"] == "person" and not state.attributes["photo"]
+    assert "No photograph of the person at broken" in caplog.text

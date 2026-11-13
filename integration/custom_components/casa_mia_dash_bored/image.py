@@ -1,0 +1,190 @@
+"""Sightings: the photograph a paper needs. Each camera that can tell what it has seen
+gets one image entity on the camera's own device, "Last sighting". When one of the
+camera's detections fires (somebody at the door, a person, a vehicle, an animal, a smoke
+or CO alarm heard), a still is taken from the camera at that moment and kept, with what
+sort of sighting it was. The pages read it like any other entity: Home Assistant serves
+the picture and pushes the change.
+
+Plain motion takes no photograph: in a house with many cameras it would never stop.
+
+Kept in memory, the latest for each camera and no more: after a restart there is no
+sighting until the next detection. Any brand of camera, as long as its detections are
+entities on the same device as its camera entity.
+"""
+
+from __future__ import annotations
+
+import logging
+import re
+from datetime import datetime
+from typing import Any
+
+from homeassistant.components.image import ImageEntity
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNAVAILABLE
+from homeassistant.core import Event, EventStateChangedData, HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.helpers.event import async_track_state_change_event
+from homeassistant.util import dt as dt_util
+
+from .const import DOMAIN
+
+_LOGGER = logging.getLogger(__name__)
+# The sorts of sighting, the most pressing first, each with the words that mark it in a
+# detection's name. stories.ts ranks them by the same names.
+KINDS: dict[str, set[str]] = {
+    "alarm": {"smoke", "co"},
+    "doorbell": {"doorbell"},
+    "person": {"person", "people", "human"},
+    "vehicle": {"vehicle", "car"},
+    "animal": {"animal", "pet", "dog", "cat"},
+}
+ORDER = list(KINDS)
+# A car alarm or a car horn heard is not a vehicle seen.
+SOUNDS = {"alarm", "horn", "siren"}
+# One still for each camera in this many seconds: a person and their car arrive together.
+APART = 5
+WIDTH = 960  # pixels: wide enough for the front page, small enough to keep many
+TIMEOUT = 10  # seconds for the camera to answer
+
+
+def kind_of(domain: str, name: str, device_class: str | None) -> str | None:
+    """What sort of sighting a detection reports, or None for one that takes no
+    photograph. `name` is the entity's translation key or its own name.
+
+    ponytail: told from English words in the name. Cameras whose detections are named
+    otherwise get no sightings; a table for each integration if that is ever met."""
+    if domain == "event":
+        return "doorbell" if device_class == "doorbell" else None
+
+    words = set(re.split(r"[^a-z]+", name.lower()))
+    if device_class in ("smoke", "carbon_monoxide") or words & KINDS["alarm"]:
+        return "alarm"
+    if words & SOUNDS:
+        return None
+    return next((kind for kind, marks in KINDS.items() if words & marks), None)
+
+
+async def still(hass: HomeAssistant, camera_id: str) -> tuple[bytes, str]:
+    """A picture from a camera now, and its content type."""
+    # Imported here: the camera integration brings an image library with it, which a
+    # house with no cameras need not load.
+    from homeassistant.components import camera  # noqa: PLC0415
+
+    image = await camera.async_get_image(hass, camera_id, timeout=TIMEOUT, width=WIDTH)
+    return image.content, image.content_type
+
+
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry, add: AddConfigEntryEntitiesCallback
+) -> None:
+    """One entity for each device that has a camera and a detection worth a photograph.
+
+    ponytail: found once, at set-up. A camera added later gets its entity when the
+    integration is next reloaded or Home Assistant restarts."""
+    entities, devices = er.async_get(hass), dr.async_get(hass)
+    cameras: dict[str, str] = {}
+    triggers: dict[str, dict[str, str]] = {}
+
+    for found in entities.entities.values():
+        if not found.device_id or found.disabled or found.platform == DOMAIN:
+            continue
+        if found.domain == "camera":
+            cameras.setdefault(found.device_id, found.entity_id)
+        elif found.domain in ("binary_sensor", "event"):
+            kind = kind_of(
+                found.domain,
+                found.translation_key or found.original_name or found.entity_id,
+                found.device_class or found.original_device_class,
+            )
+            if kind:
+                triggers.setdefault(found.device_id, {})[found.entity_id] = kind
+
+    sightings = [
+        Sighting(hass, device, camera_id, triggers[device_id])
+        for device_id, camera_id in cameras.items()
+        if device_id in triggers and (device := devices.async_get(device_id))
+    ]
+    _LOGGER.info("Dash-Bored takes photographs from %d camera(s)", len(sightings))
+    add(sightings)
+
+
+class Sighting(ImageEntity):
+    """The still from one camera's latest sighting. Its state is when that was."""
+
+    _attr_has_entity_name = True
+    _attr_name = "Last sighting"
+    _attr_should_poll = False
+    _attr_content_type = "image/jpeg"
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        device: dr.DeviceEntry,
+        camera_id: str,
+        triggers: dict[str, str],
+    ) -> None:
+        super().__init__(hass)
+        self._camera = camera_id
+        self._triggers = triggers
+        self._kind = ""
+        self._at: datetime | None = None
+        self._photo: bytes | None = None
+        self._attr_unique_id = f"sighting-{device.id}"
+        # The camera's own device, as a helper's entity joins one: the pages find the
+        # room there.
+        self.device_entry = device
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {
+            "kind": self._kind,
+            "camera": self._camera,
+            "photo": self._photo is not None,
+        }
+
+    async def async_image(self) -> bytes | None:
+        return self._photo
+
+    async def async_added_to_hass(self) -> None:
+        self.async_on_remove(
+            async_track_state_change_event(self.hass, list(self._triggers), self._seen)
+        )
+
+    async def _seen(self, event: Event[EventStateChangedData]) -> None:
+        old, new = event.data["old_state"], event.data["new_state"]
+        if not old or not new or old.state == STATE_UNAVAILABLE:
+            return  # found at start-up, or come back: not something just seen
+        if new.domain == "binary_sensor":
+            if old.state != STATE_OFF or new.state != STATE_ON:
+                return
+        elif new.state in (old.state, STATE_UNAVAILABLE):
+            return  # an event entity's state is when it last fired
+
+        kind = self._triggers[new.entity_id]
+        now = dt_util.utcnow()
+        fresh = self._at is None or (now - self._at).total_seconds() >= APART
+        # Within APART of the last still there is no new one, but a doorbell rung as
+        # the person is seen makes the sighting a doorbell's.
+        if not fresh and ORDER.index(kind) >= ORDER.index(self._kind):
+            return
+        self._kind = kind
+
+        if fresh:
+            self._at = now  # before the wait, so that what comes during it is not fresh
+            try:
+                self._photo, self._attr_content_type = await still(
+                    self.hass, self._camera
+                )
+            except (HomeAssistantError, TimeoutError) as err:
+                # Still a sighting: told without a photograph, never with an old one.
+                self._photo = None
+                _LOGGER.warning(
+                    "No photograph of the %s at %s: %s", kind, self._camera, err
+                )
+            self._attr_image_last_updated = now
+        _LOGGER.info("Sighting at %s: %s", self._camera, kind)
+        self.async_write_ha_state()

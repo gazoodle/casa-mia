@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.8-b6
+
+- **Dash-Bored: photographs from your cameras.** When a camera reports a person, a vehicle, an animal, somebody at the doorbell, or a smoke or carbon monoxide alarm heard, Dash-Bored takes a still from that camera at that moment. The Gazette prints it with a headline for ten minutes: a caller at the door near the top of the page, a person above the lights left on, a vehicle or an animal lower down. Pressing the photograph opens the camera. Plain motion takes no photograph.
+- **A new entity on each such camera, Last sighting.** It is an image entity on the camera's own device, holding the latest photograph and what sort of sighting it was, so it can be used on other dashboards too. The photographs are kept in memory only, one for each camera. A camera added later gets its entity when Dash-Bored is next reloaded.
+
 ## 2026.11.8-b5
 
 - **Dash-Bored has its own icon and logo.** Home Assistant shows them on the integrations page: the Casa Mia house with a bored face on a dashboard tile in front of it.

@@ -11,6 +11,9 @@ mock-ups are in `docs/design/dash-bored/`. What's next, in the order the owner g
   paper's own style in place of Home Assistant's dialog; thermostats, media players and
   cameras as devices; a third paper in the style of a rolling news site (a voice and a
   block of CSS); which rooms and devices appear and their order.
+- **Photographs, further** (2026-11-13, not asked for yet): UniFi Protect's own event
+  thumbnails, which are cropped to the person; an entity for a camera added after set-up
+  without a reload; detections named in other languages.
 - **What the house is missing, further** (discussed 2026-11-13, not asked for yet): the
   report as a page of its own; fixing from the page (setting an area or the label in
   bulk), which needs the owner's say as it writes to the registries; the ESPHome

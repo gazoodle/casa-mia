@@ -19,8 +19,12 @@ export type Device = {
 };
 export type Room = { id: string; name: string; floor?: string; temp?: number; target?: number; humidity?: number; devices: Device[] };
 export type Appliance = { id: string; name: string; room: string; kw: number };
+/** What a camera last saw that was worth a photograph (the integration's image.py takes
+ * it). `kind` is alarm, doorbell, person, vehicle or animal. */
+export type Sighting = { id: string; camera: string; name: string; room?: string; kind: string; at: number; photo?: string };
 export type House = {
   rooms: Room[];
+  sightings: Sighting[];
   gaps: Gap[];
   scenes: { id: string; name: string }[];
   appliances: Appliance[];
@@ -39,11 +43,13 @@ export type Options = { weather?: string; power?: string };
 
 type Found = { id: string; kind: Kind; name: string; full: string; guarded: boolean; power?: string };
 type FoundRoom = { id: string; name: string; floor?: string; level: number; temp?: string; humidity?: string; climate?: string; devices: Found[] };
-export type Survey = { rooms: FoundRoom[]; gaps: Gap[]; scenes: string[]; weather?: string; power?: string; watched: string[] };
+type FoundSighting = { id: string; name: string; room?: string };
+export type Survey = { rooms: FoundRoom[]; sightings: FoundSighting[]; gaps: Gap[]; scenes: string[]; weather?: string; power?: string; watched: string[] };
 
 /** The id of the label that keeps a thing off these pages: on an entity, its device or
  * its area. The integration makes the label, "Dash-Bored hide" (const.py HIDE_LABEL). */
 export const HIDE = "dash_bored_hide";
+const OURS = "casa_mia_dash_bored"; // the integration, whose image entities are the sightings
 // ponytail: names in English that mark a setting or an indicator, not a thing in a room.
 // A guess, and only ever shown as one; a list per language if this is ever translated.
 const PLUMBING = /\b(led|relay|screen|screensaver|in use|enabled|watching|mode|program(me)?|charge)\b/i;
@@ -66,6 +72,7 @@ function short(name: string, room: string, kind: Kind): string {
 export function survey(hass: Hass, options: Options): Survey {
   const rooms = new Map<string, FoundRoom>();
   const scenes: string[] = [];
+  const sightings: FoundSighting[] = [];
   const meters = new Map<string, string>(); // device id -> its power sensor
   const owner = new Map<Found, string>(); // a switch -> its device id
   let weather = options.weather;
@@ -85,8 +92,12 @@ export function survey(hass: Hass, options: Options): Survey {
     if (domain === "weather" && (!weather || id === "weather.home") && !options.weather) weather = id;
     if (domain === "sensor" && state.attributes.device_class === "power" && entry.device_id) meters.set(entry.device_id, id);
 
-    const area = hass.areas?.[entry.area_id ?? hass.devices?.[entry.device_id]?.area_id];
-    if (hidden(entry) || hidden(hass.devices?.[entry.device_id]) || hidden(area)) continue;
+    const device = hass.devices?.[entry.device_id];
+    const area = hass.areas?.[entry.area_id ?? device?.area_id];
+    if (hidden(entry) || hidden(device) || hidden(area)) continue;
+    // A sighting is named for its camera, and a camera kept off the page takes it along.
+    if (domain === "image" && entry.platform === OURS && !hidden(hass.entities[state.attributes.camera]))
+      sightings.push({ id, name: device?.name_by_user ?? device?.name ?? id, room: area?.name });
     if (KINDS.has(domain)) {
       const name: string = state.attributes.friendly_name ?? entry.name ?? id;
       if (!area) loose.push({ id, name });
@@ -144,11 +155,12 @@ export function survey(hass: Hass, options: Options): Survey {
   ];
   return {
     rooms: kept,
+    sightings,
     gaps: gaps.filter((g) => g.items.length),
     scenes: scenes.sort(),
     weather,
     power: options.power,
-    watched: [...watched, ...scenes, weather, options.power].filter((id): id is string => !!id),
+    watched: [...watched, ...sightings.map((s) => s.id), ...scenes, weather, options.power].filter((id): id is string => !!id),
   };
 }
 
@@ -191,9 +203,20 @@ export function read(found: Survey, hass: Hass): House {
     };
   });
 
+  // A camera that has seen nothing since Home Assistant started has no state to parse.
+  const sightings = found.sightings.flatMap((s): Sighting[] => {
+    const state = hass.states[s.id];
+    const at = Date.parse(state?.state ?? "");
+    if (!at) return [];
+    // The address is the same for every photograph: `at` makes the browser fetch this one.
+    const photo = state.attributes.photo ? `${state.attributes.entity_picture}&at=${at}` : undefined;
+    return [{ ...s, camera: state.attributes.camera, kind: state.attributes.kind, at, photo }];
+  });
+
   const sky = found.weather ? hass.states[found.weather] : undefined;
   return {
     rooms,
+    sightings,
     gaps: found.gaps,
     scenes: found.scenes.filter((id) => hass.states[id]).map((id) => ({ id, name: hass.states[id].attributes.friendly_name ?? id })),
     appliances,

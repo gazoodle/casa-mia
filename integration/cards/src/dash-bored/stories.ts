@@ -29,6 +29,8 @@ export type Story = {
   vars: Record<string, string>;
   figure: [string, string];
   press?: Press;
+  photo?: string; // a photograph's address
+  see?: string; // the entity whose dialog shows more: the camera that took it
 };
 
 export const NOMINAL = "nominal";
@@ -36,6 +38,9 @@ export const NOMINAL = "nominal";
 export const RECOVERED = 600_000;
 // Sensor Watch's levels above nominal, by how far up the page each belongs.
 const RANK: Record<string, number> = { critical: 100, error: 95, warning: 70, task: 40 };
+// What a camera saw (image.py's kinds): an alarm heard beside trouble, somebody at the
+// door above what is left on, a passing cat below it.
+const SEEN: Record<string, number> = { alarm: 92, doorbell: 80, person: 62, vehicle: 42, animal: 41 };
 const NUM = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
 
 export const clock = (ms: number) => new Date(ms).toTimeString().slice(0, 5);
@@ -69,6 +74,12 @@ export function stories(house: House, alerts: Alert[], now: number): Story[] {
     const figure: [string, string] = reading(a) ? [reading(a), a.area ?? a.name] : [cap(a.level), a.name];
     if (a.level !== NOMINAL) add({ kind: "alert", variant: a.level, flavour: a.flavour, id: a.entity_id, rank: RANK[a.level] ?? 70, vars, figure });
     else if (now - a.at < RECOVERED) add({ kind: "recovered", id: a.entity_id + ".ok", rank: 45, vars: { ...vars, minutes: String(Math.max(1, Math.round((a.at - a.began) / 60_000))) }, figure });
+  }
+
+  // A sighting is news for as long as a recovery is, counted from the photograph.
+  for (const s of house.sightings) {
+    if (now - s.at < RECOVERED && s.kind in SEEN)
+      add({ kind: "sighting", variant: s.kind, id: "sighting." + s.id, rank: SEEN[s.kind], vars: { name: s.name, room: (s.room ?? "house").toLowerCase(), at: clock(s.at) }, figure: [clock(s.at), s.name], photo: s.photo, see: s.camera });
   }
 
   for (const d of devices) {

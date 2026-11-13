@@ -5,8 +5,8 @@ with what matters most as the headline, and a Sensor Watch alert as breaking new
 The page is one custom element (www/cards.js, built from integration/cards/src/dash-bored
 by tools/build_cards). It is the Dash-Bored entry in the sidebar, and the same element is
 a dashboard card. It reads areas, entities and states from the connection every Home
-Assistant page already has; all this side does is serve it and feed it Sensor Watch's
-alerts (alerts.py).
+Assistant page already has; all this side does is serve it, feed it Sensor Watch's
+alerts (alerts.py) and take the photographs of what the cameras see (image.py).
 
 An integration of its own, wholly in Home Assistant: it imports nothing from Casa Mia
 and works with no app, and with or without Sensor Watch.
@@ -22,6 +22,7 @@ import voluptuous as vol
 from homeassistant.components import frontend, panel_custom, websocket_api
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
 from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import label_registry as lr
@@ -44,6 +45,7 @@ _LOGGER = logging.getLogger(__name__)
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 # Read once, at import: a reload must not take newer files as loaded.
 LOADED_VERSION = manifest_version()
+PLATFORMS = [Platform.IMAGE]
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -104,12 +106,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             embed_iframe=False,
             require_admin=False,
         )
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     _LOGGER.info("Dash-Bored %s started", LOADED_VERSION)
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    return True
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:

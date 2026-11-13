@@ -307,6 +307,18 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   from the invented house as breaking news, ranked. **Not seen:** rooms and devices from
   real areas (the VM's lights and locks have no areas), a press reaching a real device,
   Safari, a wall tablet. Its folder is still on the VM, copied by hand.
+- **Photographs** (owner's idea, 2026-11-13; 2026.11.8-b6, option 2 of three: a still
+  at the moment of detection, any brand). `image.py` gives each device with a camera and
+  a detection worth a photograph one image entity, "Last sighting", joined to the
+  camera's device the way a helper's entity is (`device_entry`; device info with another
+  integration's identifiers makes a second device in current Home Assistant). `kind_of`
+  tells the sort from English words in the detection's translation key or name. The
+  page finds the entities by platform (`OURS` in `house.ts`); `SEEN` in `stories.ts`
+  ranks them. The still goes through `image.still`, which tests replace: the test Home
+  Assistant can't import the camera integration (no turbojpeg). **Not seen:** any of it
+  on a real camera. Unknown until then: how often the owner's cameras report a person
+  (is ten minutes right?) and how fast a still comes back. Not done: UniFi Protect's own
+  event thumbnails (cropped to the person), cameras added after set-up.
 - **Brand** (2026.11.8-b5): a bored face on a tile, drawn by `tools/brand_children.py`.
 - **Not done:** publishing by itself, levels
   (dimming), a detail view and history of its own, other languages. BACKLOG has the list.
