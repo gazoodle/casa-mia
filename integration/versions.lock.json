@@ -1,7 +1,7 @@
 {
   "casa_mia": {
     "digest": "3ae838127545f06f55aee002f30ddcaff6a31469c246044107b5ac7cf99523c1",
-    "version": "2026.11.7-b1"
+    "version": "2026.11.7"
   },
   "casa_mia_commander": {
     "digest": "8eab6fc3499a2dfadf7e5f54cf801a7fc7e05eb3e00f1d7025e9121d227a99b5",
@@ -17,7 +17,7 @@
   },
   "casa_mia_love_or_loathe": {
     "digest": "e01da425992854559e2f42f7bf20e3720c53eb9eb50b28ca94a0b6661a1a2780",
-    "version": "2026.11.7-b8"
+    "version": "2026.11.7"
   },
   "casa_mia_protect_talkback": {
     "digest": "dde0abdacfc4178e08b84f524d976cce2e6f6d342058476fcdb56bcd0079dc7e",
@@ -25,6 +25,6 @@
   },
   "casa_mia_sensor_watch": {
     "digest": "ac04908196d7c4fde4c98137a71bc311f410c47e0a565d7554f707d2e1fad818",
-    "version": "2026.11.7-b8"
+    "version": "2026.11.7"
   }
 }
