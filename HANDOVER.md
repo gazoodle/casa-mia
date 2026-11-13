@@ -626,6 +626,12 @@ CLAUDE.md has them all. What trips agents here:
   submission is hacs/default#13883 (2026-11-11; reviews take months). Until then testers
   add it as a custom repository; the test VM installed and updated it that way from the
   Marketplace on 2026-11-11.
+  Love it or Loathe it is published the same way at `gazoodle/casa-mia-love-or-loathe`
+  (2026.11.7, released 2026-11-13); its catalog submission is hacs/default#14085.
+  For the next build: `_reload` starts the reload with `eager_start=False`, so a page
+  change's trail line comes before the restart it causes; the return line names the
+  station ("Switched back to radio://harbour-fm" today, when Harbour FM is a station);
+  the guide gets `docs/screenshots/love-or-loathe-logbook.webp` (taken 2026-11-13).
   The live box handed Sensor Watch over correctly on a b3 build. Installing
   2026.11.2 or earlier now removes Sensor Watch's folder: restore a backup instead.
 - **The test VM** (Home Assistant 2026.11.1 on 2026-11-11) has Sensor Watch's
