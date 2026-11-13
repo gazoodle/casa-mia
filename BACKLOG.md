@@ -10,7 +10,7 @@ mock-ups are in `docs/design/dash-bored/`. What's next, in the order the owner g
 - **Gazette, to finish it** (asked 2026-11-13): see it on a wall tablet; levels (dim a light, part-open a blind); a detail view and history in the
   paper's own style in place of Home Assistant's dialog; thermostats, media players and
   cameras as devices; a third paper in the style of a rolling news site (a voice and a
-  block of CSS); which rooms and devices appear and their order; brand images.
+  block of CSS); which rooms and devices appear and their order.
 - **What the house is missing, further** (discussed 2026-11-13, not asked for yet): the
   report as a page of its own; fixing from the page (setting an area or the label in
   bulk), which needs the owner's say as it writes to the registries; the ESPHome

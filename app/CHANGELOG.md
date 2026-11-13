@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.8-b5
+
+- **Dash-Bored has its own icon and logo.** Home Assistant shows them on the integrations page: the Casa Mia house with a bored face on a dashboard tile in front of it.
+
 ## 2026.11.8-b4
 
 - **Dash-Bored: a label that keeps things off its pages.** Dash-Bored makes a label, **Dash-Bored hide**. Put it on an entity, a device or an area, and that entity, the device's entities or everything in the area are left out of Dash-Bored's pages. Unlike hiding an entity in Home Assistant, it changes no other dashboard.

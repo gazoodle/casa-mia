@@ -307,7 +307,8 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   from the invented house as breaking news, ranked. **Not seen:** rooms and devices from
   real areas (the VM's lights and locks have no areas), a press reaching a real device,
   Safari, a wall tablet. Its folder is still on the VM, copied by hand.
-- **Not done:** brand images (`tools/brand_children.py`), publishing by itself, levels
+- **Brand** (2026.11.8-b5): a bored face on a tile, drawn by `tools/brand_children.py`.
+- **Not done:** publishing by itself, levels
   (dimming), a detail view and history of its own, other languages. BACKLOG has the list.
 - **Tests:** `src/dash-bored/stories.test.ts` (house, ranking, every voice tells every
   story), `tests_ha/test_dash_bored.py` (set-up, the panel, the alerts feed).
