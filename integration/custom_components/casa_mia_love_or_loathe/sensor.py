@@ -13,7 +13,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .const import DOMAIN, TITLE
+from .const import DOMAIN
 from .engine import Engine
 
 
@@ -36,7 +36,7 @@ class LastMatch(SensorEntity):
         self._attr_unique_id = f"{entry.entry_id}_last_match"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
-            name=TITLE,
+            name=entry.title,
             manufacturer="Casa Mia",
             entry_type=DeviceEntryType.SERVICE,
         )

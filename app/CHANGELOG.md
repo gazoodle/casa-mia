@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.11.7-b3
+
+- **Love it or Loathe it: a shipped list now fills in the group's songs.** Adding a group first asks what to start with, an empty list or a shipped one such as Christmas songs. A shipped list is put into the **Songs** box, and from then on the songs are yours to add to and cut. Before, the list was only named on the group and its songs were never shown. A group made that way in b2 is given its list's songs when this build starts.
+- **Love it or Loathe it: a song named outright beats a `*`.** A line with no `*` beats a line with one, whichever group it is in. To loathe `*christmas*` but keep "Last Christmas", love `Last Christmas` by name in another group.
+- **Love it or Loathe it: the integration can be added more than once.** Each entry has a name, its own media players (as many as you choose), and its own groups and stations, for players that want different treatment. A player can be in only one entry. The set-up screen now says that several players can be chosen.
+
 ## 2026.11.7-b2
 
 - **New: Love it or Loathe it**, an integration of its own (add it under Settings → Devices & services; it needs neither the app nor the Casa Mia integration). It watches the title and artist your chosen media players report against your groups of songs. When a song in a group comes on it can change the volume by a percentage until the next track, mute until the next track, switch to another station for some minutes and then go back, or only fire the `casa_mia_love_or_loathe` event. Each group has a switch, so an automation can turn it on and off. A list of Christmas songs is shipped. The stations to switch to are your own list. In development: [its guide](https://github.com/gazoodle/casa-mia/blob/main/docs/applets/love-or-loathe.md) says what it can't do yet.

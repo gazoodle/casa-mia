@@ -41,7 +41,6 @@ from .const import (
     CONF_AMOUNT,
     CONF_DELAY,
     CONF_KIND,
-    CONF_LIBRARY,
     CONF_MEDIA,
     CONF_MINUTES,
     CONF_PATTERNS,
@@ -87,12 +86,7 @@ class Player:
 
 
 class Engine:
-    def __init__(
-        self,
-        hass: HomeAssistant,
-        entry: ConfigEntry,
-        libraries: dict[str, dict[str, Any]],
-    ) -> None:
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.hass = hass
         self.entry = entry
         self.delay = float(entry.options.get(CONF_DELAY, 0))
@@ -106,16 +100,13 @@ class Engine:
         ]
         self.groups = [
             Group(
-                id=s.subentry_id,
-                name=s.title,
-                kind=s.data[CONF_KIND],
-                action=s.data[CONF_ACTION],
-                amount=s.data[CONF_AMOUNT],
-                minutes=s.data[CONF_MINUTES],
-                own=Matcher.of(s.data.get(CONF_PATTERNS, "").splitlines()),
-                library=Matcher.of(
-                    libraries.get(s.data.get(CONF_LIBRARY, ""), {}).get("patterns", [])
-                ),
+                s.subentry_id,
+                s.title,
+                s.data[CONF_KIND],
+                s.data[CONF_ACTION],
+                s.data[CONF_AMOUNT],
+                s.data[CONF_MINUTES],
+                *Matcher.split(s.data.get(CONF_PATTERNS, "").splitlines()),
             )
             for s in subentries
             if s.subentry_type == GROUP
@@ -128,7 +119,7 @@ class Engine:
         # The content id each station turned out to have on a player, which can differ
         # from the one it was started with: how a station already playing is recognised.
         self.learned: dict[str, str] = {}
-        self._store: Store[dict[str, Any]] = Store(hass, 1, DOMAIN)
+        self._store: Store[dict[str, Any]] = Store(hass, 1, store_key(entry))
         self._listeners: list[Callable[[], None]] = []
         self._actions: dict[
             str, Callable[[str, Player, Group, State], Awaitable[str]]
@@ -456,6 +447,11 @@ class Engine:
         if self.last and self.last[ATTR_ENTITY_ID] == entity:
             self.last = {**self.last, "result": f"failed: {what}"}
         self._tell()
+
+
+def store_key(entry: ConfigEntry) -> str:
+    """Each entry's own file in Home Assistant's storage."""
+    return f"{DOMAIN}.{entry.entry_id}"
 
 
 def _track(state: State) -> tuple[str, str]:

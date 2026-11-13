@@ -13,7 +13,7 @@ from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .const import DOMAIN, GROUP, TITLE
+from .const import DOMAIN, GROUP
 from .engine import Engine
 
 
@@ -46,7 +46,7 @@ class GroupSwitch(SwitchEntity, RestoreEntity):
         self._attr_unique_id = group_id
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, group_id)},
-            name=f"{TITLE}: {entry.subentries[group_id].title}",
+            name=f"{entry.title}: {entry.subentries[group_id].title}",
             manufacturer="Casa Mia",
             entry_type=DeviceEntryType.SERVICE,
         )

@@ -19,7 +19,7 @@ STATION = "station"
 
 # A group's fields.
 CONF_KIND = "kind"
-CONF_LIBRARY = "library"
+CONF_LIBRARY = "library"  # the shipped list a new group starts from (not kept)
 CONF_PATTERNS = "patterns"
 CONF_ACTION = "action"
 CONF_AMOUNT = "amount"

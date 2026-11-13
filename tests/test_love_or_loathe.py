@@ -6,17 +6,8 @@ pure = load_component_file("casa_mia_love_or_loathe", "pure")
 CHRISTMAS = pure.libraries()["christmas"]["patterns"]
 
 
-def group(id, kind="loathe", own=(), library=()):
-    return pure.Group(
-        id=id,
-        name=id,
-        kind=kind,
-        action="mute",
-        amount=0,
-        minutes=5,
-        own=pure.Matcher.of(own),
-        library=pure.Matcher.of(library),
-    )
+def group(id, songs, kind="loathe"):
+    return pure.Group(id, id, kind, "mute", 0, 5, *pure.Matcher.split(songs))
 
 
 def test_case_accents_and_punctuation_dont_count():
@@ -28,7 +19,7 @@ def test_case_accents_and_punctuation_dont_count():
 
 
 def test_a_pattern_is_a_title_or_a_title_and_an_artist():
-    songs = group("mine", own=["Stay Another Day | East 17", "*love*", "* | Wham!"])
+    songs = group("mine", ["Stay Another Day | East 17", "*love*", "* | Wham!"])
     assert pure.pick([songs], "Stay Another Day", "East 17") is songs
     assert pure.pick([songs], "Stay Another Day", "Girls Aloud") is None
     assert pure.pick([songs], "The Power of Love", "Anyone") is songs
@@ -37,7 +28,7 @@ def test_a_pattern_is_a_title_or_a_title_and_an_artist():
 
 
 def test_what_a_player_adds_to_a_title_is_seen_through():
-    songs = group("mine", own=["Last Night", "Happy Day (Live)"])
+    songs = group("mine", ["Last Night", "Happy Day (Live)"])
     assert pure.pick([songs], "Last Night (Remastered 2011)", "A Band") is songs
     assert pure.pick([songs], "Last Night - Single Version", "A Band") is songs
     assert pure.pick([songs], "Happy Day (Live)", "A Band") is songs
@@ -45,7 +36,7 @@ def test_what_a_player_adds_to_a_title_is_seen_through():
 
 
 def test_a_radio_stream_with_the_artist_in_the_title():
-    songs = group("mine", own=["Stay Another Day | East 17"])
+    songs = group("mine", ["Stay Another Day | East 17"])
     assert pure.pick([songs], "East 17 - Stay Another Day", "") is songs
     assert pure.pick([songs], "Stay Another Day - East 17", "") is songs
 
@@ -57,7 +48,7 @@ def test_a_line_of_only_stars_is_refused():
 
 
 def test_the_christmas_list_knows_its_songs_and_leaves_the_rest():
-    xmas = group("xmas", library=CHRISTMAS)
+    xmas = group("xmas", CHRISTMAS)
     for title, artist in [
         ("Last Christmas", "Wham!"),
         ("All I Want for Christmas Is You", "Mariah Carey"),
@@ -81,11 +72,14 @@ def test_the_christmas_list_knows_its_songs_and_leaves_the_rest():
         assert pure.pick([xmas], title, artist) is None, title
 
 
-def test_a_groups_own_songs_beat_any_shipped_list():
-    xmas = group("xmas", library=CHRISTMAS)
-    loved = group("loved", kind="love", own=["Fairytale of New York"])
-    assert pure.pick([xmas, loved], "Fairytale of New York", "The Pogues") is loved
-    assert pure.pick([xmas, loved], "Last Christmas", "Wham!") is xmas
+def test_a_song_named_outright_beats_a_star_whichever_group_it_is_in():
+    xmas = group("xmas", ["*christmas*", "Stay Another Day | East 17"])
+    loved = group("loved", ["Last Christmas", "*day*"], kind="love")
+    assert pure.pick([xmas, loved], "Last Christmas", "Wham!") is loved
+    assert pure.pick([xmas, loved], "White Christmas", "Bing Crosby") is xmas
+    # Both name it outright or both by a star: the first group has it.
+    assert pure.pick([xmas, loved], "Stay Another Day", "East 17") is xmas
+    assert pure.pick([xmas, loved], "Christmas Day", "A Band") is xmas
 
 
 def test_a_volume_change_is_a_percentage_kept_within_the_scale():

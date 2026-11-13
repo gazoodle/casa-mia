@@ -1,6 +1,10 @@
-"""Set-up: which media players to watch. Then, on the integration's own page, a subentry
-for each group of songs and each station to switch to, added, changed and deleted with
-Home Assistant's own screens."""
+"""Set-up: a name and the media players to watch, as many as wanted; more entries can be
+added for players that want different groups or stations. Then, on the integration's
+page, a subentry for each group of songs and each station to switch to, added, changed
+and deleted with Home Assistant's own screens.
+
+A new group starts from a shipped list or from nothing. A shipped list is put into the
+group's Songs box, and from then on its songs are the group's own."""
 
 from __future__ import annotations
 
@@ -71,15 +75,36 @@ PLAYERS = vol.Schema(
 )
 
 
+def _taken(flow: ConfigFlow | OptionsFlow, players: list[str], own: str = "") -> bool:
+    """Whether another entry already watches one of these players: two entries acting
+    on one player would undo each other's work."""
+    return any(
+        set(players) & set(entry.options.get(CONF_PLAYERS, []))
+        for entry in flow.hass.config_entries.async_entries(DOMAIN)
+        if entry.entry_id != own
+    )
+
+
 class LoveOrLoatheConfigFlow(ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
+        errors: dict[str, str] = {}
         if user_input is not None:
-            return self.async_create_entry(title=TITLE, data={}, options=user_input)
-        return self.async_show_form(step_id="user", data_schema=PLAYERS)
+            if not _taken(self, user_input[CONF_PLAYERS]):
+                title = user_input.pop(CONF_NAME)
+                return self.async_create_entry(title=title, data={}, options=user_input)
+            errors[CONF_PLAYERS] = "player_taken"
+        named = vol.Schema({vol.Required(CONF_NAME, default=TITLE): str}).extend(
+            PLAYERS.schema
+        )
+        return self.async_show_form(
+            step_id="user",
+            data_schema=self.add_suggested_values_to_schema(named, user_input),
+            errors=errors,
+        )
 
     @staticmethod
     @callback
@@ -98,19 +123,28 @@ class LoveOrLoatheOptionsFlow(OptionsFlow):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
+        errors: dict[str, str] = {}
         if user_input is not None:
-            return self.async_create_entry(data=user_input)
+            own = self.config_entry.entry_id
+            if not _taken(self, user_input[CONF_PLAYERS], own):
+                return self.async_create_entry(data=user_input)
+            errors[CONF_PLAYERS] = "player_taken"
         return self.async_show_form(
             step_id="init",
             data_schema=self.add_suggested_values_to_schema(
-                PLAYERS, self.config_entry.options
+                PLAYERS, user_input or self.config_entry.options
             ),
+            errors=errors,
         )
 
 
 class _NamedFlow(ConfigSubentryFlow):
     """A subentry made of a name (its title) and one form, the same form to add it and
-    to change it."""
+    to change it, shown at the step FORM."""
+
+    FORM = "user"
+    # What a new one's form starts with.
+    start: dict[str, Any] | None = None
 
     async def _schema(self) -> vol.Schema:
         raise NotImplementedError
@@ -122,7 +156,7 @@ class _NamedFlow(ConfigSubentryFlow):
         """The subentry's data: the form without the name."""
         return {k: v for k, v in user_input.items() if k != CONF_NAME}
 
-    async def async_step_user(
+    async def _form(
         self, user_input: dict[str, Any] | None = None
     ) -> SubentryFlowResult:
         changing = self.source == SOURCE_RECONFIGURE
@@ -141,24 +175,58 @@ class _NamedFlow(ConfigSubentryFlow):
                     data=data,
                 )
 
-        shown = user_input
+        shown = user_input or self.start
         if shown is None and changing:
             subentry = self._get_reconfigure_subentry()
             shown = {CONF_NAME: subentry.title, **subentry.data}
         return self.async_show_form(
-            step_id="user",
+            step_id=self.FORM,
             data_schema=self.add_suggested_values_to_schema(
                 await self._schema(), shown
             ),
             errors=errors,
         )
 
-    async_step_reconfigure = async_step_user
+    async_step_user = async_step_reconfigure = _form
 
 
 class GroupFlow(_NamedFlow):
-    async def _schema(self) -> vol.Schema:
+    FORM = "songs"
+    EMPTY = "empty"
+
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """What a new group starts from: nothing, or a shipped list, whose songs then
+        fill the form's Songs box to be added to and cut like any others."""
         shipped = await self.hass.async_add_executor_job(libraries)
+        if user_input is not None:
+            chosen = shipped.get(user_input[CONF_LIBRARY])
+            if chosen:
+                self.start = {
+                    CONF_NAME: chosen["name"],
+                    CONF_PATTERNS: "\n".join(chosen["patterns"]),
+                }
+            return await self.async_step_songs()
+
+        options = [SelectOptionDict(value=self.EMPTY, label="An empty list")] + [
+            SelectOptionDict(value=key, label=str(lib["name"]))
+            for key, lib in shipped.items()
+        ]
+        return self.async_show_form(
+            step_id="user",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_LIBRARY, default=self.EMPTY): SelectSelector(
+                        SelectSelectorConfig(options=options)
+                    )
+                }
+            ),
+        )
+
+    async_step_songs = _NamedFlow._form
+
+    async def _schema(self) -> vol.Schema:
         return vol.Schema(
             {
                 vol.Required(CONF_NAME): str,
@@ -167,15 +235,7 @@ class GroupFlow(_NamedFlow):
                         options=[LOVE, LOATHE], translation_key=CONF_KIND
                     )
                 ),
-                vol.Optional(CONF_LIBRARY): SelectSelector(
-                    SelectSelectorConfig(
-                        options=[
-                            SelectOptionDict(value=key, label=str(lib["name"]))
-                            for key, lib in shipped.items()
-                        ]
-                    )
-                ),
-                vol.Optional(CONF_PATTERNS): TextSelector(
+                vol.Required(CONF_PATTERNS): TextSelector(
                     TextSelectorConfig(multiline=True)
                 ),
                 vol.Required(CONF_ACTION, default=SWITCH): SelectSelector(
@@ -208,7 +268,7 @@ class GroupFlow(_NamedFlow):
         good, bad = parse(user_input.get(CONF_PATTERNS, "").splitlines())
         if bad:
             return {CONF_PATTERNS: "bad_pattern"}
-        if not good and not user_input.get(CONF_LIBRARY):
+        if not good:
             return {CONF_PATTERNS: "no_patterns"}
         stations = [
             s

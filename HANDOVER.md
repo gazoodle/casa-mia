@@ -145,13 +145,19 @@ Its own integration, `casa_mia_love_or_loathe`, since 2026.11.7-b2 (design agree
 owner, 2026-11-13). Standalone like Sensor Watch: wholly in Home Assistant, nothing
 imported from `casa_mia`, no app option. Guide: `docs/applets/love-or-loathe.md`.
 
-- **Config:** one entry (the players, a delay) with a subentry per group of songs and
-  per station (`config_flow.py`, HA's own add, change and delete screens). A group's
-  device and switch belong to its subentry; HA refuses a device shared between an entry
-  and its subentries.
+- **Config:** an entry is a name, its players (many) and a delay; several entries can
+  be added, a player in only one (owner, 2026-11-13: one entry manages many players,
+  separate entries allow variation). A subentry per group of songs and per station
+  (`config_flow.py`, HA's own add, change and delete screens). A group's device and
+  switch belong to its subentry; HA refuses a device shared between an entry and its
+  subentries.
+- **Shipped lists fill the Songs box** (owner, 2026-11-13, after b2 only named the list
+  on the group and showed no songs: "once used it's like you just typed it in
+  yourself"). A new group's first step asks what to start from; nothing of the list is
+  kept but its songs. `__init__._take_in_libraries` converts b2's groups and can go.
 - **`pure.py`** (no HA imports): folding, patterns (`title` or `title | artist`, `*`),
-  `pick` (every group's own patterns before any shipped library). Libraries are JSON in
-  `library/`; `christmas.json` is the first.
+  `pick` (a pattern with no `*` beats one with, in any group; then group order).
+  Libraries are JSON in `library/`; `christmas.json` is the first.
 - **`engine.py`:** follows `state_changed` on the players (pushed). At a new track it
   undoes the last action, then acts: volume by a percentage or mute until the next
   track, or a switch of station for some minutes. `undo` and `away` are kept in HA's
@@ -286,8 +292,8 @@ CLAUDE.md has them all. What trips agents here:
 
 ## What happened
 
-- **2026-11-13: Love it or Loathe it built** (2026.11.7-b2, not committed or deployed
-  when written). See its section above. Left for later in BACKLOG: the fade, and the
+- **2026-11-13: Love it or Loathe it built** (2026.11.7-b2, reworked in b3 after the
+  owner's first use). See its section above. Left for later in BACKLOG: the fade, and the
   house's own radio station as one of its stations.
 - **2026-11-11: the Camera Commander's Responsive layout is specified, not built**
   (`docs/design/commander-responsive-layout.md`, agreed by the owner): a second mode

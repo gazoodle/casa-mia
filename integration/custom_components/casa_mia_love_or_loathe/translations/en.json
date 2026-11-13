@@ -3,32 +3,39 @@
     "step": {
       "user": {
         "title": "Love it or Loathe it",
-        "description": "Choose the media players to watch. After this, add your groups of songs and the stations to switch to on the integration's page.",
+        "description": "Choose the media players to watch, one or several. After this, add your groups of songs and the stations to switch to on the integration's page. To give other players different groups or stations, add the integration again.",
         "data": {
-          "players": "Media players to watch",
+          "name": "Name",
+          "players": "Media players to watch (one or more)",
           "delay": "Delay"
         },
         "data_description": {
-          "players": "Any player that reports the title of what it is playing. For speakers playing as one group, only the group's leader acts.",
-          "delay": "Seconds to wait after a player reports a new track before acting. Leave it at 0 unless the title changes before the song does."
+          "players": "Any player that reports the title of what it is playing. Choose as many as you like: after the first, the box offers another. For speakers playing as one group, only the group's leader acts.",
+          "delay": "Seconds to wait after a player reports a new track before acting. Leave it at 0 unless the title changes before the song does.",
+          "name": "Shown on its device and entities. It matters when you add the integration more than once."
         }
       }
     },
-    "abort": { "single_instance_allowed": "Love it or Loathe it is already set up." }
+    "error": {
+      "player_taken": "One of those players is already watched by another Love it or Loathe it entry. Two entries acting on one player would undo each other's work."
+    }
   },
   "options": {
     "step": {
       "init": {
         "title": "Media players to watch",
         "data": {
-          "players": "Media players to watch",
+          "players": "Media players to watch (one or more)",
           "delay": "Delay"
         },
         "data_description": {
-          "players": "Any player that reports the title of what it is playing. For speakers playing as one group, only the group's leader acts.",
+          "players": "Any player that reports the title of what it is playing. Choose as many as you like: after the first, the box offers another. For speakers playing as one group, only the group's leader acts.",
           "delay": "Seconds to wait after a player reports a new track before acting. Leave it at 0 unless the title changes before the song does."
         }
       }
+    },
+    "error": {
+      "player_taken": "One of those players is already watched by another Love it or Loathe it entry. Two entries acting on one player would undo each other's work."
     }
   },
   "config_subentries": {
@@ -41,19 +48,24 @@
       "step": {
         "user": {
           "title": "A group of songs",
+          "description": "Start with an empty list and type the songs in, or start from a shipped list. A shipped list is put into the Songs box on the next screen, and from then on the songs are yours to add to and cut.",
+          "data": {
+            "library": "Start with"
+          }
+        },
+        "songs": {
+          "title": "A group of songs",
           "description": "Songs you love or loathe, and what to do when one comes on. The group gets a switch of its own, so an automation can turn it on and off.",
           "data": {
             "name": "Name",
             "kind": "These are songs I",
-            "library": "Shipped list",
             "patterns": "Songs",
             "action": "When one comes on",
             "amount": "Volume change",
             "minutes": "Minutes on the other station"
           },
           "data_description": {
-            "library": "A ready-made list to include. Your own groups come first: a song named in any group's Songs box is that group's, whatever a shipped list says.",
-            "patterns": "One per line: a title, or a title and an artist as Title | Artist. Use * for anything, for example *love* or * | Cliff Richard. Capitals and punctuation don't matter.",
+            "patterns": "One per line: a title, or a title and an artist as Title | Artist. Use * for anything, for example *love* or * | Cliff Richard. Capitals and punctuation don't matter. A line with no * beats a line with one, whichever group it is in, so one song can be kept out of another group's *christmas*.",
             "amount": "For Change the volume: a percentage of the volume at the time, so 10 turns it up a tenth and -50 halves it. It is put back at the next track.",
             "minutes": "For Switch station: how long to stay away before going back."
           }
@@ -61,10 +73,12 @@
       },
       "error": {
         "bad_pattern": "A line of nothing but * would match every song. Remove it or add a title or an artist.",
-        "no_patterns": "Add at least one song, or choose a shipped list.",
+        "no_patterns": "Add at least one song.",
         "no_stations": "Add a station to switch to first, from the integration's page."
       },
-      "abort": { "reconfigure_successful": "Saved." }
+      "abort": {
+        "reconfigure_successful": "Saved."
+      }
     },
     "station": {
       "entry_type": "Station",
@@ -85,12 +99,17 @@
           }
         }
       },
-      "abort": { "reconfigure_successful": "Saved." }
+      "abort": {
+        "reconfigure_successful": "Saved."
+      }
     }
   },
   "selector": {
     "kind": {
-      "options": { "love": "Love", "loathe": "Loathe" }
+      "options": {
+        "love": "Love",
+        "loathe": "Loathe"
+      }
     },
     "action": {
       "options": {
@@ -102,7 +121,11 @@
     }
   },
   "entity": {
-    "sensor": { "last_match": { "name": "Last match" } }
+    "sensor": {
+      "last_match": {
+        "name": "Last match"
+      }
+    }
   },
   "issues": {
     "restart_required": {

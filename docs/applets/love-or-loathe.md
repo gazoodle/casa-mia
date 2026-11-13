@@ -32,12 +32,17 @@ To change the volume, mute or switch station, the player must support Home Assis
 
 ## Setting it up
 
-1. Settings → Devices & services → **Add integration** → **Love it or Loathe it**. Choose
-   the media players to watch.
+1. Settings → Devices & services → **Add integration** → **Love it or Loathe it**. Give
+   it a name and choose the media players to watch. One entry watches as many players
+   as you give it: after you choose the first, the box offers another.
 2. On the integration's page, **Add a station** for each station you are happy to be
    switched to. Give it a name, choose a player to browse on, and choose the station.
    The station is kept without the player, so it can be played on any of them.
 3. **Add a group of songs** for each set of songs and what to do about them.
+
+The groups and stations you add belong to that entry and apply to all its players. To
+give other players different groups or stations, add the integration again with those
+players. A player can be in only one entry.
 
 The **Delay** set with the players is the number of seconds to wait after a player
 reports a new track before acting. Leave it at 0 unless a player changes its title
@@ -61,14 +66,17 @@ Capitals, accents and punctuation don't matter. Text in brackets after a title, 
 "(Remastered 2011)", is ignored unless your pattern has it too. A radio stream that sends
 "Artist - Title" as the title is understood.
 
-**Shipped list** adds a ready-made list to the group. There is one so far, **Christmas
-songs**: titles with "Christmas", "Xmas", "Santa Claus", "sleigh" and the like, the
-carols, and the seasonal songs with no such word in the title ("Stay Another Day" by
-East 17, "Fairytale of New York").
+When you add a group you are first asked what to start with: an empty list, or a
+shipped list. A shipped list is put into the **Songs** box on the next screen, and from
+then on the songs are yours: add lines, or delete the ones you don't want. There is one
+shipped list so far, **Christmas songs**: titles with "Christmas", "Xmas", "Santa
+Claus", "sleigh" and the like, the carols, and the seasonal songs with no such word in
+the title ("Stay Another Day" by East 17, "Fairytale of New York").
 
-A song named in any group's own **Songs** box belongs to that group, whatever a shipped
-list says. So to loathe the Christmas songs but keep one, make a second group that
-loves it by name, with **Only fire the event** as its action.
+A line with no `*` beats a line with one, whichever group it is in. So to loathe
+`*christmas*` but keep "Last Christmas", make a second group that loves `Last Christmas`
+by name, with **Only fire the event** as its action. A song that a list names outright,
+such as "Fairytale of New York", is kept by deleting its line.
 
 ### What happens when one comes on
 
@@ -94,7 +102,8 @@ For speakers playing as one group, only the group's leader acts.
 
 ## Turning a group on and off
 
-Each group has a switch, named after it (`switch.love_it_or_loathe_it_<name>`). While it
+Each group has a switch, named after the entry and the group
+(`switch.love_it_or_loathe_it_<group>` when the entry has the name it is offered). While it
 is off, the group's songs are ignored. An automation can turn it on and off, for example
 to loathe the Christmas songs until 1 December:
 
@@ -112,7 +121,7 @@ automation:
 
 ## Seeing what it did
 
-**Last match** (`sensor.love_it_or_loathe_it_last_match`) holds the song last acted on.
+**Last match** (`sensor.love_it_or_loathe_it_last_match`; each entry has its own) holds the song last acted on.
 Its attributes:
 
 | Attribute | Holds |

@@ -5,6 +5,7 @@ media_player services are caught, so each test says what the player then reports
 from datetime import timedelta
 
 from custom_components.casa_mia_love_or_loathe.const import DOMAIN, EVENT
+from custom_components.casa_mia_love_or_loathe.pure import libraries
 from homeassistant.config_entries import (
     SOURCE_USER,
     ConfigEntryState,
@@ -25,6 +26,7 @@ SENSOR = "sensor.love_it_or_loathe_it_last_match"
 HOME = {"media_content_id": "radio://home", "media_content_type": "music"}
 JAZZ = {"media_content_id": "radio://jazz", "media_content_type": "music"}
 ROCK = {"media_content_id": "radio://rock", "media_content_type": "music"}
+XMAS = "\n".join(libraries()["christmas"]["patterns"])
 
 
 def a_group(title, **data):
@@ -47,7 +49,7 @@ def play(hass, title, artist="", entity=PLAYER, state="playing", **attributes):
     hass.states.async_set(entity, state, attributes)
 
 
-async def add(hass, *subentries, players=(PLAYER,)):
+async def add(hass, *subentries, players=(PLAYER,), title="Love it or Loathe it"):
     """Set up with a player already on an unremarkable song; the services it would be
     sent, by name."""
     play(hass, "Something Ordinary", "A Band", **HOME)
@@ -57,6 +59,7 @@ async def add(hass, *subentries, players=(PLAYER,)):
     }
     entry = MockConfigEntry(
         domain=DOMAIN,
+        title=title,
         options={"players": list(players), "delay": 0},
         subentries_data=list(subentries),
     )
@@ -73,60 +76,89 @@ async def settled(hass):
 
 async def test_set_up_then_a_station_and_a_group_from_its_page(hass):
     hass.states.async_set(PLAYER, "idle")
-    flow = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": SOURCE_USER}
-    )
-    made = await hass.config_entries.flow.async_configure(
-        flow["flow_id"], {"players": [PLAYER], "delay": 0}
-    )
+
+    async def set_up(name, players):
+        flow = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": SOURCE_USER}
+        )
+        return await hass.config_entries.flow.async_configure(
+            flow["flow_id"], {"name": name, "players": players, "delay": 0}
+        )
+
+    made = await set_up("Downstairs", [PLAYER, "media_player.hall"])
     assert made["type"] is FlowResultType.CREATE_ENTRY
     entry = made["result"]
+    assert entry.title == "Downstairs" and len(entry.options["players"]) == 2
     await hass.async_block_till_done()
 
-    async def subentry(kind, answers):
-        flow = await hass.config_entries.subentries.async_init(
+    # A second entry, for players that want different treatment; not a player twice.
+    assert (await set_up("Upstairs", [PLAYER]))["errors"] == {"players": "player_taken"}
+    upstairs = await set_up("Upstairs", ["media_player.landing"])
+    assert upstairs["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+
+    async def subentry(kind, *answers):
+        step = await hass.config_entries.subentries.async_init(
             (entry.entry_id, kind), context={"source": SOURCE_USER}
         )
-        return await hass.config_entries.subentries.async_configure(
-            flow["flow_id"], answers
-        )
+        for answer in answers:
+            step = await hass.config_entries.subentries.async_configure(
+                step["flow_id"], answer
+            )
+        return step
+
+    # Starting from the shipped list puts its songs in the box, and its name.
+    start = await subentry("group", {"library": "christmas"})
+    assert start["step_id"] == "songs"
+    offered = {
+        key.schema: key.description["suggested_value"]
+        for key in start["data_schema"].schema
+        if key.description
+    }
+    assert offered == {"name": "Christmas songs", "patterns": XMAS}
 
     group = {
         "name": "Christmas",
         "kind": "loathe",
-        "library": "christmas",
+        "patterns": XMAS,
         "action": "switch",
         "amount": 10,
         "minutes": 5,
     }
     # Nowhere to switch to yet, and a pattern that would match everything.
-    assert (await subentry("group", group))["errors"] == {"action": "no_stations"}
-    refused = await subentry("group", {**group, "action": "mute", "patterns": "*"})
+    empty = {"library": "empty"}
+    assert (await subentry("group", empty, group))["errors"] == {
+        "action": "no_stations"
+    }
+    refused = await subentry("group", empty, {**group, "patterns": "*"})
     assert refused["errors"] == {"patterns": "bad_pattern"}
 
     station = await subentry(
         "station", {"name": "Jazz", "media": {**JAZZ, "entity_id": PLAYER}}
     )
     assert station["type"] is FlowResultType.CREATE_ENTRY
-    assert (await subentry("group", group))["type"] is FlowResultType.CREATE_ENTRY
+    made = await subentry("group", empty, group)
+    assert made["type"] is FlowResultType.CREATE_ENTRY
     await hass.async_block_till_done()
 
     kept = {s.subentry_type: s for s in entry.subentries.values()}
     assert kept["station"].data == {"media": JAZZ}  # not the player it was browsed on
     assert kept["group"].title == "Christmas"
-    assert hass.states.get("switch.love_it_or_loathe_it_christmas").state == "on"
+    assert kept["group"].data["patterns"] == XMAS  # the group's own songs now
+    assert hass.states.get("switch.downstairs_christmas").state == "on"
 
-    # Changing it shows what it holds, and saves over it.
+    # Changing it goes straight to the form, shows what it holds, and saves over it.
     flow = await hass.config_entries.subentries.async_init(
         (entry.entry_id, "group"),
         context={"source": "reconfigure", "subentry_id": kept["group"].subentry_id},
     )
+    assert flow["step_id"] == "songs"
     saved = await hass.config_entries.subentries.async_configure(
-        flow["flow_id"], {**group, "name": "Too soon", "minutes": 10}
+        flow["flow_id"], {**group, "name": "Too soon", "patterns": "*xmas*"}
     )
     assert saved["reason"] == "reconfigure_successful"
     [changed] = [s for s in entry.subentries.values() if s.subentry_type == "group"]
-    assert (changed.title, changed.data["minutes"]) == ("Too soon", 10)
+    assert (changed.title, changed.data["patterns"]) == ("Too soon", "*xmas*")
 
     # Home Assistant saves its registries a little later: let that happen in the test.
     async_fire_time_changed(
@@ -135,8 +167,21 @@ async def test_set_up_then_a_station_and_a_group_from_its_page(hass):
     await hass.async_block_till_done()
 
 
+async def test_a_group_from_b2_is_given_its_shipped_lists_songs(hass):
+    """2026.11.7-b2 kept the list's name on the group, not its songs."""
+    old = a_group("Christmas", library="christmas", patterns="My Own Song")
+    entry, calls = await add(hass, old)
+    [group] = entry.subentries.values()
+    assert group.data["patterns"] == f"{XMAS}\nMy Own Song"
+    assert "library" not in group.data
+
+    play(hass, "Last Christmas", "Wham!")
+    await settled(hass)
+    assert len(calls["volume_mute"]) == 1
+
+
 async def test_a_loathed_song_is_muted_until_the_next_track(hass):
-    _, calls = await add(hass, a_group("Christmas", library="christmas"))
+    _, calls = await add(hass, a_group("Christmas", patterns=XMAS))
     events = async_capture_events(hass, EVENT)
 
     play(hass, "Last Christmas", "Wham!")
@@ -182,13 +227,13 @@ async def test_a_loved_song_is_turned_up_and_put_back_unless_someone_moved_it(ha
 async def test_a_group_switched_off_and_a_song_loved_by_name(hass):
     entry, calls = await add(
         hass,
-        a_group("Christmas", library="christmas"),
-        a_group("Keep", kind="love", action="event", patterns="Fairytale of New York"),
+        a_group("Christmas", patterns=XMAS),
+        a_group("Keep", kind="love", action="event", patterns="Last Christmas"),
     )
     events = async_capture_events(hass, EVENT)
 
-    # Named in a group of its own, so the shipped list doesn't have it.
-    play(hass, "Fairytale of New York", "The Pogues")
+    # Named outright in a group of its own, which beats the other's *christmas*.
+    play(hass, "Last Christmas", "Wham!")
     await settled(hass)
     assert events[0].data["group"] == "Keep" and not calls["volume_mute"]
 
@@ -197,7 +242,7 @@ async def test_a_group_switched_off_and_a_song_loved_by_name(hass):
     await hass.services.async_call(
         "switch", "turn_off", {"entity_id": switch}, blocking=True
     )
-    play(hass, "Last Christmas", "Wham!")
+    play(hass, "White Christmas", "Bing Crosby")
     await settled(hass)
     assert not calls["volume_mute"] and len(events) == 1
 
@@ -210,7 +255,7 @@ async def test_a_group_switched_off_and_a_song_loved_by_name(hass):
 async def test_a_switch_of_station_and_back_when_its_minutes_are_up(hass, freezer):
     _, calls = await add(
         hass,
-        a_group("Christmas", library="christmas", action="switch", minutes=5),
+        a_group("Christmas", patterns=XMAS, action="switch", minutes=5),
         a_station("Home", HOME),
         a_station("Jazz", JAZZ),
         a_station("Rock", ROCK),
@@ -240,7 +285,7 @@ async def test_a_switch_of_station_and_back_when_its_minutes_are_up(hass, freeze
 async def test_no_switching_back_over_a_persons_own_choice(hass, freezer):
     entry, calls = await add(
         hass,
-        a_group("Christmas", library="christmas", action="switch", minutes=5),
+        a_group("Christmas", patterns=XMAS, action="switch", minutes=5),
         a_station("Jazz", JAZZ),
     )
 
@@ -283,7 +328,7 @@ async def test_only_a_groups_leader_acts_and_a_player_with_no_title_is_named(has
     other = "media_player.hall"
     play(hass, "Something Ordinary", "A Band", entity=other)
     _, calls = await add(
-        hass, a_group("Christmas", library="christmas"), players=(PLAYER, other)
+        hass, a_group("Christmas", patterns=XMAS), players=(PLAYER, other)
     )
 
     members = [PLAYER, other]

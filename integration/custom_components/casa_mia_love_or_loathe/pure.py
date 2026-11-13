@@ -3,8 +3,8 @@ artist against each group's patterns.
 
 A pattern is one line: a title, or `title | artist`, with `*` for any run of characters
 (`* | Cliff Richard` is everything by one artist). Case, accents and punctuation don't
-count. A group's own patterns beat every shipped library's, so a love group naming one
-song exempts it from a library that loathes it.
+count. A pattern with no `*` beats one with, whichever group it is in, so a love group
+naming one song exempts it from another group's `*christmas*`.
 """
 
 from __future__ import annotations
@@ -78,13 +78,21 @@ class Matcher:
     pairs: tuple[tuple[re.Pattern[str], re.Pattern[str]], ...]
 
     @classmethod
-    def of(cls, lines: Iterable[str]) -> Matcher:
-        good, _bad = parse(lines)
-        titles = [t for t, a in good if not a]
+    def of(cls, patterns: Iterable[tuple[str, str]]) -> Matcher:
+        """From parsed patterns (parse)."""
+        patterns = list(patterns)
+        titles = [t for t, a in patterns if not a]
         return cls(
             _regex(titles) if titles else None,
-            tuple((_regex([t]), _regex([a])) for t, a in good if a),
+            tuple((_regex([t]), _regex([a])) for t, a in patterns if a),
         )
+
+    @classmethod
+    def split(cls, lines: Iterable[str]) -> tuple[Matcher, Matcher]:
+        """A group's songs as two matchers: the patterns with no `*`, and the rest."""
+        good, _bad = parse(lines)
+        wild = [pattern for pattern in good if "*" in "".join(pattern)]
+        return cls.of(p for p in good if p not in wild), cls.of(wild)
 
     def matches(self, tracks: set[tuple[str, str]]) -> bool:
         return any(
@@ -102,15 +110,15 @@ class Group:
     action: str
     amount: float  # the volume change, in per cent of the volume now
     minutes: float  # how long a switch of station lasts
-    own: Matcher
-    library: Matcher
+    exact: Matcher  # its patterns with no *
+    wild: Matcher
 
 
 def pick(groups: Iterable[Group], title: str, artist: str) -> Group | None:
-    """The group this track belongs to: the first whose own patterns match, else the
-    first whose library does."""
+    """The group this track belongs to: the first with a pattern naming it outright,
+    else the first with a `*` pattern that takes it in."""
     groups, tracks = list(groups), candidates(title, artist)
-    for part in ("own", "library"):
+    for part in ("exact", "wild"):
         for group in groups:
             if getattr(group, part).matches(tracks):
                 return group
@@ -129,7 +137,8 @@ def leads(entity_id: str, members: object) -> bool:
 
 
 def libraries() -> dict[str, dict[str, object]]:
-    """The shipped lists, by file name: {"name": ..., "patterns": [...]}."""
+    """The shipped lists, by file name: {"name": ..., "patterns": [...]}. A group can
+    start from one; after that its songs are the group's own, to add to and cut."""
     return {
         path.stem: json.loads(path.read_text("utf-8"))
         for path in sorted(LIBRARY.glob("*.json"))
