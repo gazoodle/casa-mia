@@ -205,6 +205,37 @@ async def test_a_loathed_song_is_muted_until_the_next_track(hass):
     assert len(events) == 1
 
 
+async def test_a_song_already_playing_is_acted_on_when_its_list_is_saved(hass):
+    entry, calls = await add(hass, a_group("Mine", patterns="Some Other Song"))
+    [group] = entry.subentries.values()
+    switch = "switch.love_it_or_loathe_it_mine"
+    play(hass, "Dreadful Song", "A Band")
+    await settled(hass)
+    assert not calls["volume_mute"]
+
+    # Added to the list while it plays: muted at the save, not at the next track.
+    hass.config_entries.async_update_subentry(
+        entry, group, data={**group.data, "patterns": "Dreadful Song"}
+    )
+    await settled(hass)
+    assert [c.data["is_volume_muted"] for c in calls["volume_mute"]] == [True]
+
+    # And when its group is switched back on while it plays.
+    await hass.services.async_call(
+        "switch", "turn_off", {"entity_id": switch}, blocking=True
+    )
+    play(hass, "Dreadful Song", "A Band", is_volume_muted=True)
+    await hass.services.async_call(
+        "switch", "turn_on", {"entity_id": switch}, blocking=True
+    )
+    await settled(hass)
+    assert [c.data["is_volume_muted"] for c in calls["volume_mute"]] == [
+        True,
+        False,
+        True,
+    ]
+
+
 async def test_a_loved_song_is_turned_up_and_put_back_unless_someone_moved_it(hass):
     loved = a_group("Mine", kind="love", action="volume", patterns="Good Song")
     _, calls = await add(hass, loved)

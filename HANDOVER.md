@@ -163,6 +163,9 @@ imported from `casa_mia`, no app option. Guide: `docs/applets/love-or-loathe.md`
   track, or a switch of station for some minutes. `undo` and `away` are kept in HA's
   storage, so a restart loses neither; unloading puts volumes and mutes back at once.
   It never puts back over a person's change.
+  `afresh` judges what is playing now, at start (so at every save of a group) and when
+  a group is switched on (owner, 2026-11-13: a song added to a list while it plays
+  must be acted on then). Safe because unloading undoes volumes and mutes first.
 - **Not yet proven on a real player** (2026-11-13): only inside the test Home Assistant,
   with caught services. To watch on the first real one: what `media_content_id` it
   reports for a station (`_settle` and `_switch` depend on it).

@@ -78,6 +78,9 @@ A line with no `*` beats a line with one, whichever group it is in. So to loathe
 by name, with **Only fire the event** as its action. A song that a list names outright,
 such as "Fairytale of New York", is kept by deleting its line.
 
+A song that is already playing counts too: add it to a group's list and save, or turn
+the group's switch on, and it is acted on at once.
+
 ### What happens when one comes on
 
 - **Change the volume until the next track.** **Volume change** is a percentage of the

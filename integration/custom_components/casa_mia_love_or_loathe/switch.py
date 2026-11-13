@@ -63,6 +63,8 @@ class GroupSwitch(SwitchEntity, RestoreEntity):
     async def async_turn_on(self, **kwargs: Any) -> None:
         self.engine.off.discard(self.group_id)
         self.async_write_ha_state()
+        # Its songs count from now, the one playing included.
+        self.engine.afresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         self.engine.off.add(self.group_id)

@@ -144,8 +144,8 @@ class Engine:
 
     async def start(self) -> None:
         """Take up what storage says was in force (a restart came between an action and
-        its undoing), then follow the players. The track playing now is taken as heard:
-        a reload must not act on it a second time."""
+        its undoing), then follow the players, starting with what each is playing now:
+        a song already on when its group's list is saved is acted on at that save."""
         kept = await self._store.async_load() or {}
         self.learned = kept.get("learned", {})
         for entity, was in kept.get("players", {}).items():
@@ -156,14 +156,10 @@ class Engine:
             if player.away:
                 self._arm(entity, player)
 
-        for entity, player in self.players.items():
-            state = self.hass.states.get(entity)
-            if state is not None and state.state == STATE_PLAYING:
-                player.track = _track(state)
-
         self.entry.async_on_unload(
             async_track_state_change_event(self.hass, list(self.players), self._changed)
         )
+        self.afresh()
         _LOGGER.info(
             "Watching %d players against %d groups, with %d stations to switch to",
             len(self.players),
@@ -192,10 +188,23 @@ class Engine:
     # --- following the players ---------------------------------------------------
 
     @callback
+    def afresh(self) -> None:
+        """Judge again what each player is playing now, as if it had just come on: at
+        start, and when a group is switched on. What the track had brought is undone
+        first, as at any new track, so nothing is done twice over."""
+        for entity, player in self.players.items():
+            player.track = None
+            state = self.hass.states.get(entity)
+            if state is not None:
+                self._look(state)
+
+    @callback
     def _changed(self, event: Event[EventStateChangedData]) -> None:
         state = event.data["new_state"]
-        if state is None:
-            return
+        if state is not None:
+            self._look(state)
+
+    def _look(self, state: State) -> None:
         entity, player = state.entity_id, self.players[state.entity_id]
 
         if state.state != STATE_PLAYING:

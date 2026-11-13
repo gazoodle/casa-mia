@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.7-b4
+
+- **Love it or Loathe it: a song that is already playing is acted on when you save its group.** Adding the song that is on to a group's list, or turning a group's switch on, now acts on it at once. Before, nothing happened until the next track. The same goes for what is playing when Home Assistant starts.
+
 ## 2026.11.7-b3
 
 - **Love it or Loathe it: a shipped list now fills in the group's songs.** Adding a group first asks what to start with, an empty list or a shipped one such as Christmas songs. A shipped list is put into the **Songs** box, and from then on the songs are yours to add to and cut. Before, the list was only named on the group and its songs were never shown. A group made that way in b2 is given its list's songs when this build starts.
