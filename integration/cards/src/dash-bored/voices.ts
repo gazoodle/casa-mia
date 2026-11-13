@@ -17,11 +17,13 @@ export type Voice = {
   strap: string;
   price: string;
   flash: string; // the word before breaking news
-  titles: { more: string; briefs: string; late: string; temps: string; board: string; notices: string; elsewhere: string }; // elsewhere: the rooms on no floor
+  titles: { more: string; briefs: string; late: string; temps: string; board: string; notices: string; elsewhere: string; gaps: string }; // elsewhere: the rooms on no floor
   join: string; // between a room's devices
   end: string;
   nothing: string; // the late news before anything has happened
   rest: string; // a big house: the rooms with nothing to report, counted
+  gaps: Record<string, string>; // what Home Assistant isn't told about the house, by a Gap's kind, counted
+  mend: string; // under them: what to do about it
   words: Record<string, string>; // one device, by `kind.state`; `kind.many` is a room's count of them, in a big house
   wire: { trouble: string; clear: string }; // an alert in the late news
   notices: string[]; // under each scene, in turn
@@ -77,11 +79,13 @@ const broadsheet: Voice = {
   strap: "",
   price: "Price: nothing",
   flash: "Stop press",
-  titles: { more: "Other news", briefs: "In brief", late: "Late news", temps: "The temperatures", board: "The switchboard", notices: "Notices", elsewhere: "Elsewhere" },
+  titles: { more: "Other news", briefs: "In brief", late: "Late news", temps: "The temperatures", board: "The switchboard", notices: "Notices", elsewhere: "Elsewhere", gaps: "Corrections and clarifications" },
   join: "; ",
   end: ".",
   nothing: "Nothing has happened yet.",
   rest: "In {n_word} room{s} nothing is switched on.",
+  gaps: { loose: "{N} device{s} of no fixed abode", clash: "{N} device{s} sharing a name with a neighbour", floorless: "{N} room{s} on no floor", cold: "{N} room{s} without a thermometer" },
+  mend: "Each opens where it is put right. An area, a floor, a name or a temperature sensor in Home Assistant, and this paper reports the better for it.",
   words: {
     "light.on": "the {lamp} burn{v} at {level} per cent",
     "light.plain": "the {lamp} {is} lit",
@@ -126,11 +130,13 @@ const tabloid: Voice = {
   strap: "The paper that's always switched on",
   price: "Still FREE!",
   flash: "Breaking",
-  titles: { more: "Also today", briefs: "Quick ones", late: "Latest", temps: "Hot or not", board: "Flick a switch", notices: "Do it now", elsewhere: "Everywhere else" },
+  titles: { more: "Also today", briefs: "Quick ones", late: "Latest", temps: "Hot or not", board: "Flick a switch", notices: "Do it now", elsewhere: "Everywhere else", gaps: "Sort it out" },
   join: " • ",
   end: "",
   nothing: "Nothing yet. Give it a minute.",
   rest: "{n} room{s} with NOTHING ON!",
+  gaps: { loose: "{n} device{s} HOMELESS!", clash: "{n} device{s} in name mix-up", floorless: "{n} room{s} floating in mid-air", cold: "{n} room{s}: hot or not? No idea" },
+  mend: "Tap one to fix it. Give it an area, a floor, a name or a thermometer in Home Assistant.",
   words: {
     "light.on": "{lamp} ON at {level}%",
     "light.plain": "{lamp} ON",

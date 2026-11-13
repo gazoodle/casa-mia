@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.8-b3
+
+- **Dash-Bored: what your house is missing.** The Gazette has a new column, **Corrections and clarifications**, that lists what Home Assistant has not been told and the page needs: devices in no area, devices in one room whose names shorten to the same thing, areas on no floor (in a house that has floors), and rooms with neither a temperature sensor nor a thermostat. Each is a count that opens into a list. A device in the list opens its dialog, and a room opens its area's settings. The column is not shown when nothing is missing.
+- **Love it or Loathe it and the Camera Commander: their switches are marked as configuration.** An entry's **Watching** switch and a commander's **Track motion** switch are settings, so Home Assistant now lists them under Configuration on the device's page, and automatic dashboards (Dash-Bored among them) leave them out. They work as before in automations and on a dashboard you add them to. An action aimed at a whole area no longer reaches them.
+
 ## 2026.11.8-b2
 
 - **Dash-Bored: a large house now fits the page.** A house with more than 30 devices has a report of only what is on, open, unlocked or not answering, with a count of the rooms where nothing is. A room with more than three lights lit has them as one fact, such as "five lights are lit", and a press on it puts those out; more than three switches running are a count that can't be pressed. Before, every device had a sentence, and a large house was many screens long on a phone. The switchboard still has every device, and in such a house it is set in columns across the foot of the page.

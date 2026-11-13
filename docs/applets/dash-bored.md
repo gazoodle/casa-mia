@@ -56,6 +56,21 @@ still has every device, and is set in columns across the foot of the page.
 
 Some stories have a button that puts them right, such as **Lock it** or **Lights out**.
 
+### What your house is missing
+
+**Corrections and clarifications** lists what Home Assistant has not been told about the
+house and the page needs. It is not shown when nothing is missing.
+
+| It lists | What to do |
+|---|---|
+| Devices in no area | Give the device an area, or hide it. Until then it is not on the page. |
+| Devices sharing a name | Two devices in one room whose names shorten to the same thing. Rename one. |
+| Rooms on no floor | Only in a house that has floors. Give the area a floor. |
+| Rooms without a thermometer | Set the area's temperature sensor, or put its thermostat in the area. |
+
+Each line is a count that opens into a list. Press a device to open its dialog, or a room
+to open its area's settings.
+
 ### What a press will never do
 
 A lock, a garage door or a gate is never operated by a press on a sentence or on the

@@ -10,6 +10,7 @@ from typing import Any
 
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
@@ -33,6 +34,8 @@ class Watching(SwitchEntity):
     _attr_has_entity_name = True
     _attr_should_poll = False
     _attr_translation_key = "watching"
+    # A setting, not something in a room: automatic dashboards leave configuration out.
+    _attr_entity_category = EntityCategory.CONFIG
     _attr_icon = "mdi:radio"
 
     def __init__(self, entry: ConfigEntry) -> None:

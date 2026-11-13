@@ -4,12 +4,12 @@
     "version": "2026.11.7"
   },
   "casa_mia_commander": {
-    "digest": "8eab6fc3499a2dfadf7e5f54cf801a7fc7e05eb3e00f1d7025e9121d227a99b5",
-    "version": "2026.11.6"
+    "digest": "b0c344fd7199a626ffd549a7c88c72fa555785782bde15f8376483b25c319ed6",
+    "version": "2026.11.8-b3"
   },
   "casa_mia_dash_bored": {
-    "digest": "36131e7e4566abba1670ae3572f02f848e24c9c45fc1493a414b290430e3fdc2",
-    "version": "2026.11.8-b2"
+    "digest": "c5c751d6e9827356b6bdb7985e0efd9d2250f9c6b0a8bce457a8d9626c1ced97",
+    "version": "2026.11.8-b3"
   },
   "casa_mia_guest_login": {
     "digest": "d6f2c3ccefd94beb06d3cc97d5a9e3b6696ee9654a1bed36cc9f26a2431d9378",
@@ -20,8 +20,8 @@
     "version": "2026.11.2-b20"
   },
   "casa_mia_love_or_loathe": {
-    "digest": "e01da425992854559e2f42f7bf20e3720c53eb9eb50b28ca94a0b6661a1a2780",
-    "version": "2026.11.7"
+    "digest": "9bb562deae02ab06e2ab97aa1658e2e9e4955583506aaac3e859276c447f2206",
+    "version": "2026.11.8-b3"
   },
   "casa_mia_protect_talkback": {
     "digest": "dde0abdacfc4178e08b84f524d976cce2e6f6d342058476fcdb56bcd0079dc7e",

@@ -69,3 +69,19 @@ test("a power sensor is a switch's own only when it is the device's one switch",
   Object.assign(h.entities["switch.valve"], { device_id: "plant" });
   assert.deepEqual(survey(h, {}).rooms[0].devices.map((d) => [d.id, d.power]), [["switch.kettle", "sensor.plug_power"], ["switch.pump", undefined], ["switch.valve", undefined]]);
 });
+
+test("what Home Assistant isn't told is listed: no area, a shared name, no floor, no thermometer", () => {
+  const h = hass(
+    { "light.a": ["den", "Den"], "light.b": ["den", "Den Light"], "light.c": ["", "Stray lamp"], "light.d": ["attic", "Attic lamp"] },
+    { den: { name: "Den" }, attic: { name: "Attic", floor_id: "up" } },
+    { up: { name: "Upstairs", level: 1 } },
+  );
+  Object.assign(h.states, { "sensor.t": { state: "20", attributes: {} } });
+  Object.assign(h.areas.attic, { temperature_entity_id: "sensor.t" });
+  assert.deepEqual(survey(h, {}).gaps, [
+    { kind: "loose", items: [{ id: "light.c", name: "Stray lamp" }] },
+    { kind: "clash", items: [{ id: "light.a", name: "Den" }, { id: "light.b", name: "Den Light" }] },
+    { kind: "floorless", items: [{ id: "den", name: "Den" }] },
+    { kind: "cold", items: [{ id: "den", name: "Den" }] },
+  ]);
+});

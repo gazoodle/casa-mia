@@ -21,17 +21,23 @@ export type Room = { id: string; name: string; floor?: string; temp?: number; ta
 export type Appliance = { id: string; name: string; room: string; kw: number };
 export type House = {
   rooms: Room[];
+  gaps: Gap[];
   scenes: { id: string; name: string }[];
   appliances: Appliance[];
   outside?: { temp: number; humidity?: number };
   kw?: number;
 };
+/** What Home Assistant doesn't know about the house, that an automatic dashboard needs:
+ * devices in no area, areas on no floor (in a house that has floors), devices in one room
+ * whose names shorten to the same thing, and rooms with nothing to tell their temperature.
+ * An item is an entity, or for `floorless` and `cold` an area. Most pressing first. */
+export type Gap = { kind: "loose" | "clash" | "floorless" | "cold"; items: { id: string; name: string }[] };
 /** The card's options: a weather entity and a whole-house power sensor, both optional. */
 export type Options = { weather?: string; power?: string };
 
 type Found = { id: string; kind: Kind; name: string; full: string; guarded: boolean; power?: string };
 type FoundRoom = { id: string; name: string; floor?: string; level: number; temp?: string; humidity?: string; climate?: string; devices: Found[] };
-export type Survey = { rooms: FoundRoom[]; scenes: string[]; weather?: string; power?: string; watched: string[] };
+export type Survey = { rooms: FoundRoom[]; gaps: Gap[]; scenes: string[]; weather?: string; power?: string; watched: string[] };
 
 const KINDS = new Set(["light", "switch", "cover", "lock"]);
 // A lock, a garage door or a gate must not move because a finger brushed a sentence.
@@ -55,6 +61,8 @@ export function survey(hass: Hass, options: Options): Survey {
   const meters = new Map<string, string>(); // device id -> its power sensor
   const owner = new Map<Found, string>(); // a switch -> its device id
   let weather = options.weather;
+  const loose: Gap["items"] = [];
+  const clash: Gap["items"] = [];
 
   for (const entry of Object.values<any>(hass.entities ?? {})) {
     const id: string = entry.entity_id;
@@ -68,6 +76,7 @@ export function survey(hass: Hass, options: Options): Survey {
     if (domain === "sensor" && state.attributes.device_class === "power" && entry.device_id) meters.set(entry.device_id, id);
 
     const area = hass.areas?.[entry.area_id ?? hass.devices?.[entry.device_id]?.area_id];
+    if (!area && KINDS.has(domain)) loose.push({ id, name: state.attributes.friendly_name ?? entry.name ?? id });
     if (!area || (domain !== "climate" && !KINDS.has(domain))) continue;
     if (!rooms.has(area.area_id)) {
       const floor = hass.floors?.[area.floor_id];
@@ -102,12 +111,24 @@ export function survey(hass: Hass, options: Options): Survey {
     // Two devices that shorten to the same name ("Light" and "Light") keep their own.
     const times = new Map<string, number>();
     for (const d of room.devices) times.set(d.name, (times.get(d.name) ?? 0) + 1);
-    for (const d of room.devices) if (times.get(d.name)! > 1) d.name = d.full;
+    for (const d of room.devices) {
+      if (times.get(d.name)! === 1) continue;
+      d.name = d.full;
+      clash.push({ id: d.id, name: d.full });
+    }
   }
   for (const room of kept) room.devices.sort((a, b) => a.kind.localeCompare(b.kind) || a.name.localeCompare(b.name));
   const watched = kept.flatMap((r) => [r.temp, r.humidity, r.climate, ...r.devices.flatMap((d) => [d.id, d.power])]);
+  const areas = (list: FoundRoom[]) => list.map((r) => ({ id: r.id, name: r.name }));
+  const gaps: Gap[] = [
+    { kind: "loose", items: loose },
+    { kind: "clash", items: clash },
+    { kind: "floorless", items: kept.some((r) => r.floor) ? areas(kept.filter((r) => !r.floor)) : [] },
+    { kind: "cold", items: areas(kept.filter((r) => !r.temp && !r.climate)) },
+  ];
   return {
     rooms: kept,
+    gaps: gaps.filter((g) => g.items.length),
     scenes: scenes.sort(),
     weather,
     power: options.power,
@@ -157,6 +178,7 @@ export function read(found: Survey, hass: Hass): House {
   const sky = found.weather ? hass.states[found.weather] : undefined;
   return {
     rooms,
+    gaps: found.gaps,
     scenes: found.scenes.filter((id) => hass.states[id]).map((id) => ({ id, name: hass.states[id].attributes.friendly_name ?? id })),
     appliances,
     outside: typeof sky?.attributes.temperature === "number" ? { temp: sky.attributes.temperature, humidity: sky.attributes.humidity } : undefined,

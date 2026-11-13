@@ -4,7 +4,7 @@
 // the page and acts on what is pressed.
 import { LitElement, html, nothing, type TemplateResult } from "lit";
 import { keyed } from "lit/directives/keyed.js";
-import { fire, type Hass } from "../ha.ts";
+import { fire, navigate, type Hass } from "../ha.ts";
 import { read, survey, type Device, type House, type Options, type Room, type Survey } from "./house.ts";
 import { NOMINAL, RECOVERED, cap, clock, counted, flavourOf, stories, type Alert, type Press } from "./stories.ts";
 import { STYLES } from "./styles.ts";
@@ -281,6 +281,14 @@ export class Gazette extends LitElement {
             ? html`<h3>${voice.titles.temps}</h3><table>${warm.map((r) => html`<tr><td>${r.name}</td><td>${r.temp!.toFixed(1)}° ${r.target === undefined ? "" : r.temp! < r.target - 0.5 ? "▼" : r.temp! > r.target + 0.5 ? "▲" : "="}</td></tr>`)}</table>`
             : nothing}
           ${big ? nothing : board}
+          ${house.gaps.length
+            ? html`<h3>${voice.titles.gaps}</h3>
+                ${house.gaps.map((g) => html`<details><summary>${fill(voice.gaps[g.kind], counted(g.items.length))}</summary>
+                  <ul>${g.items.map((item) =>
+                    // An entity opens its own dialog, an area its page in the settings.
+                    html`<li><button class="mend" @click=${() => (g.kind === "floorless" || g.kind === "cold" ? navigate(`/config/areas/area/${item.id}`) : fire(this, "hass-more-info", { entityId: item.id }))}>${item.name}</button></li>`)}</ul></details>`)}
+                <p class="mend">${voice.mend}</p>`
+            : nothing}
           ${house.scenes.length
             ? html`<h3>${voice.titles.notices}</h3>${house.scenes.slice(0, 8).map((s, i) =>
                 html`<button class="ad" @click=${() => this._call({ domain: "scene", service: "turn_on", ids: [s.id] }, s.name)}><b>${s.name}</b>${voice.notices[i % voice.notices.length]}</button>`)}`

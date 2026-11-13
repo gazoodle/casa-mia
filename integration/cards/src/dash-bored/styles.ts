@@ -69,6 +69,13 @@ export const STYLES = css`
   time { font-variant-numeric: tabular-nums; font-weight: 700; margin-right: 6px; }
   table { width: 100%; border-collapse: collapse; font-size: 15px; margin-bottom: 16px; }
   td { padding: 4px 2px; border-bottom: 1px dotted rgba(0,0,0,.4); } td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+  /* What Home Assistant isn't told about the house: a count that opens into its list. */
+  details { border-bottom: 1px dotted rgba(0,0,0,.4); padding: 5px 0; font-size: 15px; }
+  summary { cursor: pointer; font-weight: 700; }
+  details ul { margin: 4px 0 0 16px; max-height: 260px; overflow-y: auto; }
+  details li { border: 0; padding: 2px 0; }
+  button.mend { border-bottom: 1.5px dotted var(--ink); overflow-wrap: anywhere; }
+  p.mend { margin: 6px 0 16px; font-size: 13px; font-style: italic; line-height: 1.3; }
   /* The switchboard: every device as a plain button, for when you only want a switch. */
   .row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; break-inside: avoid; }
   /* A big house: the switchboard is a spread across the foot of the page, in columns. */
