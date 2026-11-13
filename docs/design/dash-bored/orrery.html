@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Orrery</title>
+<style>
+:root { --brass: #d9b55f; --ink: #e9dcb8; }
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body { color: var(--ink); font-family: "Hoefler Text", "Baskerville", "Palatino Linotype", Georgia, serif;
+  background: radial-gradient(90% 90% at 35% 50%, #14244a, #070b18 75%);
+  display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 10px; min-height: 100vh; align-items: center; padding: 14px 26px 14px 10px; }
+svg { display: block; width: 100%; height: auto; max-height: calc(100vh - 28px); }
+.ring { fill: none; stroke: var(--brass); stroke-opacity: .55; stroke-width: 1.2; }
+.ring.ticks { stroke-width: 7; stroke-dasharray: 1 9; stroke-opacity: .5; }
+.orbit-name { fill: var(--brass); font-size: 10px; letter-spacing: .4em; text-transform: uppercase; opacity: .75; }
+.planet { cursor: pointer; } .planet circle.body { stroke: var(--brass); stroke-width: 1.5; }
+.planet .halo { opacity: var(--lit, 0); transition: opacity .8s; }
+.planet.sel circle.body { stroke: #fff; stroke-width: 3; }
+.planet text { fill: #10182e; font-size: 13px; text-anchor: middle; font-weight: 700; pointer-events: none; }
+.moon { cursor: pointer; fill: #3c4664; stroke: var(--brass); stroke-width: 1; transition: fill .4s; }
+.moon.on { fill: #ffe28a; filter: drop-shadow(0 0 5px #ffd76a); }
+.arm { stroke: var(--brass); stroke-width: 2; stroke-opacity: .7; }
+aside { border: 1px solid var(--brass); border-radius: 4px; padding: 26px 26px 20px; position: relative; background: rgba(8,14,32,.6);
+  box-shadow: inset 0 0 0 4px rgba(8,14,32,.6), inset 0 0 0 5px rgba(217,181,95,.45); }
+h1 { margin: 0; font-size: 15px; letter-spacing: .34em; text-transform: uppercase; font-weight: 400; color: var(--brass); }
+h2 { margin: 12px 0 0; font-size: 44px; font-weight: 400; font-style: italic; }
+aside p { margin: 6px 0 16px; font-size: 16px; opacity: .85; }
+ul { list-style: none; margin: 0; padding: 0; border-top: 1px solid rgba(217,181,95,.4); }
+li button { all: unset; cursor: pointer; display: flex; justify-content: space-between; width: 100%; padding: 12px 2px; font-size: 18px;
+  border-bottom: 1px solid rgba(217,181,95,.4); }
+li button i { font-style: italic; opacity: .7; } li button.on i { color: #ffe28a; opacity: 1; }
+li button:hover, li button:focus-visible { color: #fff; }
+.scenes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.scenes button { all: unset; cursor: pointer; padding: 7px 14px; border: 1px solid var(--brass); border-radius: 30px; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; }
+.scenes button:hover, .scenes button:focus-visible { background: var(--brass); color: #10182e; }
+.foot { font-size: 12px; font-style: italic; opacity: .6; margin: 16px 0 0; }
+@media (max-width: 900px) { body { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<svg id="sky" viewBox="-400 -400 800 800">
+  <defs>
+    <radialGradient id="sun"><stop offset="0" stop-color="#fff8d6"/><stop offset=".5" stop-color="#ffcf52"/><stop offset="1" stop-color="#b9731a"/></radialGradient>
+    <radialGradient id="halo"><stop offset=".3" stop-color="#ffe28a" stop-opacity=".8"/><stop offset="1" stop-color="#ffe28a" stop-opacity="0"/></radialGradient>
+  </defs>
+</svg>
+<aside><h1>The Casa Mia Orrery</h1><h2 id="name"></h2><p id="facts"></p><ul id="list"></ul>
+  <div class="scenes" id="scenes"></div>
+  <p class="foot">Each room is a planet and each device a moon. The sun grows with the house's draw. The machine slows while the pointer is over it, so a moon can be caught.</p></aside>
+
+<script src="house.js"></script>
+<script>
+const TAU = Math.PI * 2, sky = document.getElementById("sky");
+const TINT = ["#e8c27a", "#d98f6a", "#9fc5a0", "#8fb0e0", "#c9a0dc", "#7fcf9a"];
+let selected = House.rooms[0], pace = 1;
+
+// A fixed scatter of stars: the same sky every time, from a small seeded generator.
+let seed = 7;
+const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const stars = Array.from({ length: 140 }, () => `<circle cx="${rnd() * 800 - 400}" cy="${rnd() * 800 - 400}" r="${rnd() * 1.2 + 0.2}" fill="#fff" opacity="${rnd() * 0.7 + 0.1}"/>`).join("");
+
+const bodies = House.rooms.map((room, i) => ({ room, r: 92 + i * 52, size: 17 + room.devices.length * 1.5,
+  angle: i * 2.1, speed: 0.11 * Math.pow(92 / (92 + i * 52), 1.5), moons: room.devices.map((d, k) => ({ d, angle: k * (TAU / room.devices.length) })) }));
+
+sky.innerHTML = stars + `<circle class="ring ticks" r="388"/><circle class="ring" r="380"/><g id="hour"><circle cy="-388" r="7" fill="url(#sun)"/></g>` +
+  bodies.map((b, i) => `<circle class="ring" r="${b.r}" id="o${i}"/><path id="p${i}" fill="none" d="M${-b.r - 6},0 A${b.r + 6},${b.r + 6} 0 0 1 ${b.r + 6},0"/>
+    <text class="orbit-name"><textPath href="#p${i}" startOffset="${8 + i * 4}%">${b.room.name}</textPath></text>`).join("") +
+  `<circle r="60" fill="url(#halo)" opacity=".5"/><circle id="sun-body" r="30" fill="url(#sun)"/>` +
+  bodies.map((b, i) => `<line class="arm" id="a${i}"/><g class="planet" id="b${i}" data-room="${b.room.id}" tabindex="0">
+      <circle class="halo" r="${b.size * 2.4}" fill="url(#halo)"/><circle class="body" r="${b.size}" fill="${TINT[i]}"/>
+      <text y="4.5">${b.room.temp.toFixed(0)}°</text>
+      ${b.moons.map((m) => `<circle class="moon" r="6" data-id="${m.d.id}"><title>${m.d.name}</title></circle>`).join("")}</g>`).join("");
+
+sky.addEventListener("pointerenter", () => (pace = 0.06));
+sky.addEventListener("pointerleave", () => (pace = 1));
+sky.addEventListener("click", (e) => {
+  if (e.target.dataset.id) return House.toggle(e.target.dataset.id);
+  const planet = e.target.closest(".planet");
+  if (planet) { selected = House.rooms.find((r) => r.id === planet.dataset.room); paint(); }
+});
+sky.addEventListener("keydown", (e) => e.key === "Enter" && e.target.matches(".planet") && e.target.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+document.getElementById("list").onclick = (e) => { const b = e.target.closest("button"); if (b) House.toggle(b.dataset.id); };
+document.getElementById("scenes").innerHTML = House.scenes.map((s) => `<button data-scene="${s.id}">${s.name}</button>`).join("");
+document.getElementById("scenes").onclick = (e) => e.target.dataset.scene && House.scene(e.target.dataset.scene);
+
+function paint() {
+  bodies.forEach((b, i) => {
+    const el = document.getElementById("b" + i), lights = House.lights(b.room);
+    el.classList.toggle("sel", b.room === selected);
+    el.style.setProperty("--lit", lights.reduce((s, d) => s + (d.on ? d.level : 0), 0) / (lights.length * 100));
+  });
+  for (const d of House.devices) document.querySelector(`.moon[data-id="${d.id}"]`).classList.toggle("on", d.on);
+  document.getElementById("sun-body").setAttribute("r", 22 + Math.min(26, House.watts() / 60));
+  document.getElementById("name").textContent = selected.name;
+  document.getElementById("facts").textContent = `${selected.temp.toFixed(1)}°, wanting ${selected.target}°. Humidity ${selected.humidity} per cent.`;
+  document.getElementById("list").innerHTML = selected.devices.map((d) =>
+    `<li><button data-id="${d.id}" class="${d.on ? "on" : ""}">${d.name}<i>${House.state(d)}</i></button></li>`).join("");
+}
+
+let last = performance.now();
+function turn(now) {
+  const dt = Math.min(0.05, (now - last) / 1000) * (matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : pace); last = now;
+  bodies.forEach((b, i) => {
+    b.angle += b.speed * dt;
+    const x = b.r * Math.cos(b.angle), y = b.r * Math.sin(b.angle), el = document.getElementById("b" + i);
+    el.setAttribute("transform", `translate(${x},${y})`);
+    const arm = document.getElementById("a" + i);
+    arm.setAttribute("x2", x); arm.setAttribute("y2", y);
+    b.moons.forEach((m, k) => {
+      m.angle += (0.5 + k * 0.12) * dt;
+      const moon = el.querySelectorAll(".moon")[k], orbit = b.size + 12;
+      moon.setAttribute("cx", orbit * Math.cos(m.angle)); moon.setAttribute("cy", orbit * Math.sin(m.angle));
+    });
+  });
+  const t = new Date();
+  document.getElementById("hour").setAttribute("transform", `rotate(${(t.getHours() + t.getMinutes() / 60) * 15})`);
+  requestAnimationFrame(turn);
+}
+
+House.on(paint);
+paint(); requestAnimationFrame(turn);
+</script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Moth</title>
+<style>
+html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+body { display: grid; place-items: center; font-family: "Courier New", ui-monospace, monospace; }
+.cab { position: relative; width: min(100vw, 167.5vh); aspect-ratio: 1340 / 800; }
+canvas { width: 100%; height: 100%; display: block; cursor: pointer; touch-action: none; }
+nav { position: absolute; left: 0; right: 0; bottom: 1.4%; display: flex; gap: 3%; justify-content: center; }
+nav button { all: unset; cursor: pointer; color: #ff9ad5; font-weight: 700; font-size: min(1.5vw, 2.5vh); letter-spacing: .12em; }
+nav button:hover, nav button:focus-visible { color: #fff; text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="cab"><canvas id="tube" width="1340" height="800" tabindex="0" aria-label="Send the moth to a lamp to switch it"></canvas><nav id="scenes"></nav></div>
+
+<script src="house.js"></script>
+<script>
+// The house as a maze: six rooms in two rows, joined by doorways. A moth lives in it, and
+// flies to whatever you press; when it reaches a device, the device switches.
+const COLS = 31, ROWS = 17, T = 40, OX = 50, OY = 62;
+const DOORS = new Set(["10,4", "20,4", "10,12", "20,12", "5,8", "15,8", "25,8"]);
+const wall = (x, y) => x < 0 || y < 0 || x >= COLS || y >= ROWS || ((x % 10 === 0 || y % 8 === 0) && !DOORS.has(`${x},${y}`));
+const roomAt = (x, y) => House.rooms[Math.min(2, Math.floor(x / 10)) + (y > 8 ? 3 : 0)];
+const SPOTS = [[2, 2], [6, 2], [2, 5], [6, 5]];
+const posts = House.devices.map((d) => {
+  const n = House.rooms.indexOf(d.room), [px, py] = SPOTS[d.room.devices.indexOf(d)];
+  return { d, x: (n % 3) * 10 + 1 + px, y: (n > 2 ? 8 : 0) + 1 + py };
+});
+const postAt = (x, y) => posts.find((p) => p.x === x && p.y === y);
+const MOTH = [["#..#.#..#", "##.###.##", "#########", ".#######.", "..##.##.."], [".........", "#..###..#", "#########", "#########", "#.##.##.#"]];
+
+const cv = document.getElementById("tube"), ctx = cv.getContext("2d");
+const moth = { x: 5, y: 4, path: [], goal: null };
+
+// The shortest way through the doorways, by breadth-first search over the tiles.
+function route(from, to) {
+  const key = (p) => p.x + "," + p.y, seen = new Map([[key(from), null]]), queue = [from];
+  while (queue.length) {
+    const p = queue.shift();
+    if (p.x === to.x && p.y === to.y) {
+      const path = [];
+      for (let q = p; q && key(q) !== key(from); q = seen.get(key(q))) path.unshift(q);
+      return path;
+    }
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const n = { x: p.x + dx, y: p.y + dy };
+      if (!wall(n.x, n.y) && !seen.has(key(n))) { seen.set(key(n), p); queue.push(n); }
+    }
+  }
+  return [];
+}
+function send(x, y) {
+  const here = { x: Math.round(moth.x), y: Math.round(moth.y) };
+  if (wall(x, y)) return;
+  moth.goal = postAt(x, y) ?? null;
+  moth.path = route(here, { x, y });
+  if (!moth.path.length && moth.goal) { House.toggle(moth.goal.d.id); moth.goal = null; }
+}
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  // Fly along the route a tile at a time; arriving at the goal switches it.
+  let step = 11 * dt;
+  while (step > 0 && moth.path.length) {
+    const next = moth.path[0], dx = next.x - moth.x, dy = next.y - moth.y, far = Math.hypot(dx, dy);
+    if (far <= step) {
+      moth.x = next.x; moth.y = next.y; moth.path.shift(); step -= far;
+      if (!moth.path.length && moth.goal) { House.toggle(moth.goal.d.id); moth.goal = null; }
+    } else { moth.x += (dx / far) * step; moth.y += (dy / far) * step; step = 0; }
+  }
+
+  ctx.fillStyle = "#07040f"; ctx.fillRect(0, 0, 1340, 800);
+  ctx.font = '700 22px "Courier New", monospace';
+  ctx.fillStyle = "#ff9ad5"; ctx.fillText("MOTH & LAMPS", OX, 40);
+  ctx.fillStyle = "#fff"; ctx.fillText(`DRAW ${(House.watts() / 1000).toFixed(2)} KW`, 520, 40);
+  ctx.fillStyle = "#8fe8d0"; ctx.fillText(`LIT ${House.devices.filter((d) => d.kind === "light" && d.on).length}`, 1160, 40);
+
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    const sx = OX + x * T, sy = OY + y * T;
+    if (wall(x, y)) {
+      ctx.fillStyle = "#1c0f3d"; ctx.fillRect(sx + 6, sy + 6, T - 12, T - 12);
+      ctx.strokeStyle = "#9a5cff"; ctx.lineWidth = 2; ctx.strokeRect(sx + 6, sy + 6, T - 12, T - 12);
+    } else if ((x + y) % 2 === 0 && !postAt(x, y)) {
+      // Floor studs: bright where the room's lights are on, so a lit room reads at a glance.
+      ctx.fillStyle = House.lightsOn(roomAt(x, y)) ? "#ffe9a8" : "#2d2750";
+      ctx.fillRect(sx + T / 2 - 2, sy + T / 2 - 2, 4, 4);
+    }
+  }
+  House.rooms.forEach((r, n) => {
+    const sx = OX + ((n % 3) * 10 + 1) * T + 6, sy = OY + ((n > 2 ? 8 : 0) + 1) * T + 14;
+    ctx.font = '700 15px "Courier New", monospace'; ctx.fillStyle = "#8fe8d0"; ctx.fillText(`${r.name.toUpperCase()}  ${r.temp.toFixed(1)}°`, sx, sy);
+  });
+  for (const p of posts) {
+    const cx = OX + p.x * T + T / 2, cy = OY + p.y * T + T / 2, pulse = p.d.on ? 12 + Math.sin(now / 260 + p.x) * 2 : 10;
+    ctx.beginPath(); ctx.arc(cx, cy, pulse, 0, Math.PI * 2);
+    if (p.d.on) { ctx.fillStyle = "#ffd84d"; ctx.shadowColor = "#ffd84d"; ctx.shadowBlur = 22; ctx.fill(); ctx.shadowBlur = 0; }
+    else { ctx.strokeStyle = "#6a62a0"; ctx.lineWidth = 2; ctx.stroke(); }
+    ctx.font = '700 11px "Courier New", monospace'; ctx.fillStyle = p.d.on ? "#fff" : "#6a62a0"; ctx.textAlign = "center";
+    ctx.fillText(p.d.name.toUpperCase(), cx, cy + 30); ctx.textAlign = "left";
+  }
+  const art = MOTH[moth.path.length && Math.floor(now / 90) % 2 ? 1 : Math.floor(now / 400) % 2];
+  ctx.fillStyle = "#efe9ff";
+  art.forEach((row, r) => [...row].forEach((c, k) => c === "#" && ctx.fillRect(OX + moth.x * T + 2 + k * 4, OY + moth.y * T + 8 + r * 4, 4, 4)));
+  requestAnimationFrame(frame);
+}
+
+cv.addEventListener("pointerdown", (e) => {
+  const b = cv.getBoundingClientRect(), x = (e.clientX - b.left) * (1340 / b.width), y = (e.clientY - b.top) * (800 / b.height);
+  const tx = Math.floor((x - OX) / T), ty = Math.floor((y - OY) / T);
+  // A press near a device counts as a press on it: fingers are bigger than tiles.
+  const near = posts.find((p) => Math.abs(p.x - tx) <= 1 && Math.abs(p.y - ty) <= 1 && Math.hypot(OX + p.x * T + 20 - x, OY + p.y * T + 24 - y) < 46);
+  near ? send(near.x, near.y) : send(tx, ty);
+});
+addEventListener("keydown", (e) => {
+  const move = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key], scene = House.scenes[+e.key - 1];
+  if (scene) House.scene(scene.id);
+  if (!move || moth.path.length) return;
+  e.preventDefault();
+  send(Math.round(moth.x) + move[0], Math.round(moth.y) + move[1]);
+});
+document.getElementById("scenes").innerHTML = House.scenes.map((s, i) => `<button data-scene="${s.id}">${i + 1} ${s.name.toUpperCase()}</button>`).join("");
+document.getElementById("scenes").onclick = (e) => e.target.dataset.scene && House.scene(e.target.dataset.scene);
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

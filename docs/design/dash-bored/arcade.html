@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Arcade</title>
+<style>
+html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+body { display: grid; place-items: center; font-family: "Press Start 2P", "Courier New", ui-monospace, monospace; }
+.cab { position: relative; width: min(100vw, 167.5vh); aspect-ratio: 1340 / 800; }
+canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; cursor: crosshair; touch-action: none; }
+/* Scan lines over the tube. */
+.cab::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,.28) 0 2px, transparent 2px 4px), radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,.5)); }
+nav { position: absolute; left: 0; right: 0; bottom: 1.2%; display: flex; gap: 3%; justify-content: center; z-index: 1; }
+nav button { all: unset; cursor: pointer; color: #6cf; font-weight: 700; font-size: min(1.5vw, 2.5vh); letter-spacing: .1em; }
+nav button:hover, nav button:focus-visible { color: #fff; text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="cab"><canvas id="tube" width="1340" height="800" tabindex="0" aria-label="Shoot a device to switch it"></canvas><nav id="scenes"></nav></div>
+
+<script src="house.js"></script>
+<script>
+// Original sprites, one per kind of device: a bulb, a plug, a slatted blind and a key.
+const ART = {
+  light: ["...#####...", "..#######..", ".#########.", ".###.#.###.", ".#########.", "..#######..", "...#.#.#...", "...#####..."],
+  switch: ["..#.....#..", "..#.....#..", ".#########.", ".#########.", ".#########.", "..#######..", "....###....", "....###...."],
+  cover: ["###########", "#.........#", "###########", "#.........#", "###########", "#.........#", "###########", "....#.#...."],
+  lock: [".####......", "#....#.....", "#....######", "#....#..#.#", ".####...#.#", "...........", "...........", "..........."],
+  ship: [".....#.....", "....###....", "....###....", ".#########.", "###########", "###########", "###.....###", "##.......##"],
+};
+const TINT = { light: "#ffe14d", switch: "#5dff8a", cover: "#5cc8ff", lock: "#ff7ad9" };
+const PX = 4, cv = document.getElementById("tube"), ctx = cv.getContext("2d");
+
+const units = House.devices.map((d) => ({ d, x: 400 + d.room.devices.indexOf(d) * 190, y: 96 + House.rooms.indexOf(d.room) * 92 }));
+const stars = Array.from({ length: 70 }, (_, i) => ({ x: (i * 197) % 1340, y: (i * 89) % 800, v: 12 + (i % 5) * 9 }));
+const ship = { x: 670 }, shots = [], bits = [], held = new Set();
+let sway = 0;
+
+function sprite(art, x, y, colour) {
+  ctx.fillStyle = colour;
+  art.forEach((row, r) => [...row].forEach((c, k) => c === "#" && ctx.fillRect(Math.round(x) + k * PX, Math.round(y) + r * PX, PX, PX)));
+}
+const text = (s, x, y, colour = "#fff", size = 20) => { ctx.fillStyle = colour; ctx.font = `700 ${size}px "Courier New", monospace`; ctx.fillText(s, x, y); };
+
+// A shot aimed at one device flies to it; an unaimed one switches whatever it meets first.
+function fire(target) { if (shots.length < 3) shots.push({ x: target ? target.x + sway + 22 : ship.x + 22, y: 716, target }); }
+function hit(u) {
+  House.toggle(u.d.id);
+  for (let i = 0; i < 14; i++) bits.push({ x: u.x + sway + 22, y: u.y + 16, vx: (Math.random() - 0.5) * 420, vy: (Math.random() - 0.5) * 420, life: 0.45, c: TINT[u.d.kind] });
+}
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  sway = still ? 0 : Math.sin(now / 1500) * 46;
+  if (held.has("ArrowLeft")) ship.x = Math.max(20, ship.x - 520 * dt);
+  if (held.has("ArrowRight")) ship.x = Math.min(1276, ship.x + 520 * dt);
+
+  ctx.fillStyle = "#04040c"; ctx.fillRect(0, 0, 1340, 800);
+  for (const s of stars) { s.y = (s.y + s.v * dt * (still ? 0 : 1)) % 800; ctx.fillStyle = "#56608a"; ctx.fillRect(s.x, s.y, 2, 2); }
+
+  text(`DRAW ${String(Math.round(House.watts())).padStart(4, "0")}W`, 30, 44, "#ff5a4d", 24);
+  text(`LIT ${String(House.devices.filter((d) => d.kind === "light" && d.on).length).padStart(2, "0")}`, 560, 44, "#fff", 24);
+  text(`BATT ${House.energy.battery}%`, 1140, 44, "#5dff8a", 24);
+
+  House.rooms.forEach((r, i) => { text(r.name.toUpperCase(), 30, 116 + i * 92, "#6cf"); text(`${r.temp.toFixed(1)}°`, 30, 138 + i * 92, "#8a93b8", 16); });
+  for (const u of units) {
+    // A device that is on is bright and bobs; one that is off is a dim shape waiting to be hit.
+    const bob = u.d.on && !still ? Math.round(Math.sin(now / 240 + u.x) * 3) : 0;
+    sprite(ART[u.d.kind], u.x + sway, u.y + bob, u.d.on ? TINT[u.d.kind] : "#2a3152");
+    text(u.d.name.toUpperCase().slice(0, 13), u.x + sway - 8, u.y + 50, u.d.on ? "#fff" : "#4a5378", 12);
+  }
+
+  for (const s of shots) {
+    s.y -= 1100 * dt;
+    ctx.fillStyle = "#fff"; ctx.fillRect(s.x - 2, s.y, 4, 16);
+    const struck = s.target ? (s.y <= s.target.y + 30 ? s.target : null)
+      : units.find((u) => s.x > u.x + sway && s.x < u.x + sway + 44 && s.y > u.y && s.y < u.y + 34);
+    if (struck) { hit(struck); s.y = -99; }
+  }
+  for (const b of bits) { b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt; ctx.fillStyle = b.c; ctx.fillRect(b.x, b.y, PX, PX); }
+  shots.splice(0, shots.length, ...shots.filter((s) => s.y > 60));
+  bits.splice(0, bits.length, ...bits.filter((b) => b.life > 0));
+
+  sprite(ART.ship, ship.x, 724, "#fff");
+  text("AIM AT A DEVICE AND FIRE TO SWITCH IT", 420, 70, "#4a5378", 14);
+  requestAnimationFrame(frame);
+}
+
+const at = (e) => { const b = cv.getBoundingClientRect(); return { x: (e.clientX - b.left) * (1340 / b.width), y: (e.clientY - b.top) * (800 / b.height) }; };
+cv.addEventListener("pointermove", (e) => (ship.x = Math.max(20, Math.min(1276, at(e).x - 22))));
+cv.addEventListener("pointerdown", (e) => {
+  const p = at(e);
+  ship.x = Math.max(20, Math.min(1276, p.x - 22));
+  fire(units.find((u) => p.x > u.x + sway - 14 && p.x < u.x + sway + 110 && p.y > u.y - 10 && p.y < u.y + 58));
+});
+addEventListener("keydown", (e) => {
+  held.add(e.key);
+  if (e.key === " ") { e.preventDefault(); fire(); }
+  const scene = House.scenes[+e.key - 1];
+  if (scene) House.scene(scene.id);
+});
+addEventListener("keyup", (e) => held.delete(e.key));
+document.getElementById("scenes").innerHTML = House.scenes.map((s, i) => `<button data-scene="${s.id}">${i + 1} ${s.name.toUpperCase()}</button>`).join("");
+document.getElementById("scenes").onclick = (e) => e.target.dataset.scene && House.scene(e.target.dataset.scene);
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Text Mode</title>
+<style>
+/* Four tubes: a colour business display and three single-colour phosphors. */
+:root { --bg: #0000a8; --fg: #a8a8a8; --hi: #ffffff; --bar: #00a8a8; --bar-fg: #000000; --on: #ffff54; --glow: 0px; }
+:root[data-tube="green"] { --bg: #021005; --fg: #2fd65a; --hi: #7dff9c; --bar: #2fd65a; --bar-fg: #021005; --on: #b6ffc6; --glow: 6px; }
+:root[data-tube="amber"] { --bg: #120900; --fg: #e89a10; --hi: #ffc64d; --bar: #e89a10; --bar-fg: #120900; --on: #ffe2a0; --glow: 6px; }
+:root[data-tube="white"] { --bg: #0b0c0d; --fg: #c9d1d3; --hi: #ffffff; --bar: #c9d1d3; --bar-fg: #0b0c0d; --on: #ffffff; --glow: 4px; }
+html, body { margin: 0; height: 100%; background: #000; }
+body { display: grid; place-items: center; overflow: hidden; }
+/* 80 columns by 25 rows, sized so the whole screen is exactly the grid. */
+pre { margin: 0; background: var(--bg); color: var(--fg); font: 400 min(2.03vw, 3.5vh) / 1.14 "IBM Plex Mono", "Menlo", "Consolas", monospace;
+  width: 80ch; text-shadow: 0 0 var(--glow) currentColor; position: relative; outline: 0; cursor: default; user-select: none; }
+/* Scan lines, and a tube that is darker towards its corners. */
+pre::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,.22) 0 1px, transparent 1px 3px), radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,.4)); }
+pre span { display: block; white-space: pre; }
+.bar { background: var(--bar); color: var(--bar-fg); text-shadow: none; }
+.hi { color: var(--hi); } .on { color: var(--on); }
+.cur { background: var(--hi); color: var(--bg); text-shadow: none; }
+.row { cursor: pointer; }
+.blink { animation: blink 1s steps(2) infinite; display: inline !important; } @keyframes blink { 50% { opacity: 0; } }
+</style>
+</head>
+<body>
+<pre id="screen" tabindex="0" aria-label="House worksheet. Arrow keys move, space switches."></pre>
+
+<script src="house.js"></script>
+<script>
+const TUBES = ["blue", "green", "amber", "white"];
+const screen = document.getElementById("screen"), W = 80;
+let cursor = 0, tube = 0;
+
+const fit = (text) => text.padEnd(W).slice(0, W);
+const esc = (text) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+const line = (text, cls = "", attrs = "") => `<span class="${cls}" ${attrs}>${esc(fit(text))}</span>`;
+// A level as ten characters of block graphics.
+const gauge = (d) => d.kind === "light" || d.kind === "cover" ? "█".repeat(Math.round((d.on ? d.level : 0) / 10)).padEnd(10, "░") : " ".repeat(10);
+
+function draw() {
+  const d0 = House.devices[cursor], kw = House.watts() / 1000;
+  const lit = House.devices.filter((d) => d.kind === "light" && d.on).length;
+  const rows = [
+    line(" Worksheet  Range  Copy  Move  File  Print  Graph  Scene  System  Quit", "bar"),
+    line(` D${cursor + 4}: '${House.state(d0).toUpperCase()}`.padEnd(W - 6) + "READY", "hi"),
+    line("     A-ROOM       B-DEVICE       D-STATE    E-LEVEL       F-WATTS  G-TEMP", "bar"),
+    ...House.devices.map((d, i) => {
+      const first = d.room.devices[0] === d, watts = d.on ? Math.round(d.watts * (d.kind === "light" ? d.level / 100 : 1)) : 0;
+      const text = `${String(i + 4).padStart(3)}  ${(first ? d.room.name : "").padEnd(13)}${d.name.padEnd(15)}${House.state(d).padEnd(11)}${gauge(d)}  ${String(watts).padStart(7)}  ${first ? d.room.temp.toFixed(1).padStart(5) + "°" : ""}`;
+      return line(text, `row ${i === cursor ? "cur" : d.on ? "on" : ""}`, `data-row="${i}"`);
+    }),
+    line(` 24  ${"TOTAL".padEnd(13)}${(lit + " lights lit").padEnd(15)}${"@SUM(F4..F23)".padEnd(21)}  ${String(Math.round(House.watts())).padStart(7)}  ${kw.toFixed(2)}kW`, "hi"),
+    line(" F2 Tube  1 Evening  2 Film  3 Bedtime  4 Away    ↑↓ Move  SPACE Switch  ←→ Dim", "bar"),
+  ];
+  screen.innerHTML = rows.join("");
+  // The cursor block after READY, as the machine waits for a key.
+  screen.children[1].innerHTML = screen.children[1].innerHTML.trimEnd() + `<i class="blink">█</i>`;
+}
+
+const KEYS = {
+  ArrowDown: () => (cursor = (cursor + 1) % House.devices.length),
+  ArrowUp: () => (cursor = (cursor + House.devices.length - 1) % House.devices.length),
+  ArrowRight: () => dim(10), ArrowLeft: () => dim(-10),
+  " ": () => House.toggle(House.devices[cursor].id), Enter: () => House.toggle(House.devices[cursor].id),
+  F2: () => (document.documentElement.dataset.tube = TUBES[(tube = (tube + 1) % TUBES.length)]),
+  1: () => House.scene("evening"), 2: () => House.scene("film"), 3: () => House.scene("bedtime"), 4: () => House.scene("away"),
+};
+function dim(step) {
+  const d = House.devices[cursor];
+  if (d.kind === "light" || d.kind === "cover") House.set(d.id, Math.max(0, Math.min(100, (d.on ? d.level : 0) + step)));
+}
+addEventListener("keydown", (e) => { if (KEYS[e.key]) { e.preventDefault(); KEYS[e.key](); draw(); } });
+// On a touch screen: press a row to move there, press it again to switch it. The key
+// bar's own words work as buttons too.
+screen.addEventListener("click", (e) => {
+  const row = e.target.closest("[data-row]");
+  if (row) { if (+row.dataset.row === cursor) House.toggle(House.devices[cursor].id); cursor = +row.dataset.row; return draw(); }
+  if (e.target === screen.lastElementChild) {
+    const col = Math.floor(((e.clientX - screen.getBoundingClientRect().left) / screen.offsetWidth) * W);
+    const key = col < 9 ? "F2" : col < 20 ? "1" : col < 28 ? "2" : col < 39 ? "3" : col < 47 ? "4" : null;
+    if (key) { KEYS[key](); draw(); }
+  }
+});
+
+const want = new URLSearchParams(location.search).get("tube");
+if (TUBES.includes(want)) document.documentElement.dataset.tube = TUBES[(tube = TUBES.indexOf(want))];
+House.on(draw);
+draw(); screen.focus();
+</script>
+</body>
+</html>

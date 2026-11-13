@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Patch Bay</title>
+<style>
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body { background: #17130f; font-family: "Futura", "Avenir Next Condensed", "Century Gothic", sans-serif; color: #1b1b1b;
+  padding: 20px 22px; }
+/* The rack: wooden cheeks, rails top and bottom, modules bolted between. */
+.rack { position: relative; display: grid; grid-template-columns: 1.25fr repeat(6, 1fr); gap: 3px; padding: 16px 30px;
+  border-radius: 8px; min-height: calc(100vh - 40px);
+  background: linear-gradient(90deg, #6b3f1d 0 22px, #111 22px calc(100% - 22px), #6b3f1d calc(100% - 22px)); }
+.module { position: relative; padding: 26px 12px 18px; display: flex; flex-direction: column; gap: 14px; align-items: center;
+  background: linear-gradient(180deg, rgba(255,255,255,.5), transparent 30%), repeating-linear-gradient(0deg, #cfcfca 0 1px, #c5c5c0 1px 2px);
+  border-radius: 2px; box-shadow: inset 0 0 0 1px #8a8a86; }
+.module.master { background: #23262b; color: #e9e9e4; box-shadow: inset 0 0 0 1px #000; }
+/* Rack screws in the four corners. */
+.module::before, .module::after { content: ""; position: absolute; left: 8px; right: 8px; height: 10px;
+  background: radial-gradient(circle at 5px 5px, #555 0 2px, #9a9a9a 2.5px 4.5px, transparent 5px),
+              radial-gradient(circle at calc(100% - 5px) 5px, #555 0 2px, #9a9a9a 2.5px 4.5px, transparent 5px); }
+.module::before { top: 6px; } .module::after { bottom: 5px; }
+h2 { margin: 0; font-size: 15px; letter-spacing: .2em; text-transform: uppercase; font-weight: 600; text-align: center; }
+h2 small { display: block; font-size: 22px; letter-spacing: 0; font-weight: 300; font-variant-numeric: tabular-nums; }
+.ctl { text-align: center; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; }
+.knob { width: 62px; height: 62px; border-radius: 50%; margin: 0 auto 6px; cursor: ns-resize; touch-action: none; position: relative;
+  background: radial-gradient(circle at 35% 30%, #5a5a5a, #111 70%); box-shadow: 0 5px 8px rgba(0,0,0,.5), 0 0 0 4px #b9b9b4, 0 0 0 5px #77777a;
+  rotate: calc(-135deg + var(--lvl) * 2.7deg); transition: rotate .25s; }
+.knob.drag { transition: none; }
+.knob::after { content: ""; position: absolute; left: 50%; top: 5px; width: 4px; height: 20px; margin-left: -2px; border-radius: 2px; background: #fff; }
+.knob.on::after { background: #ffcf3f; box-shadow: 0 0 8px #ffcf3f; }
+.sw { all: unset; cursor: pointer; display: block; width: 26px; height: 46px; margin: 0 auto 6px; border-radius: 13px; position: relative;
+  background: #222; box-shadow: inset 0 2px 4px #000, 0 0 0 3px #9a9a96; }
+.sw::after { content: ""; position: absolute; left: 4px; top: 22px; width: 18px; height: 20px; border-radius: 9px;
+  background: linear-gradient(#f4f4f4, #9c9c9c); transition: top .15s cubic-bezier(.3, 1.8, .5, 1); }
+.sw.on::after { top: 4px; }
+.sw.on { box-shadow: inset 0 2px 4px #000, 0 0 0 3px #9a9a96, 0 0 14px #5dff8a; }
+.ctls { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 10px; flex: 1; align-content: start; }
+.jack { width: 26px; height: 26px; border-radius: 50%; display: inline-block; cursor: pointer; border: 0; padding: 0;
+  background: radial-gradient(circle, #000 0 32%, #777 34% 50%, #d6d6d2 52% 68%, #7b7b78 70%); }
+.jacks { display: flex; gap: 12px; margin-top: auto; align-items: flex-end; font-size: 8.5px; letter-spacing: .12em; text-transform: uppercase; text-align: center; }
+.jacks span { display: block; margin-top: 3px; }
+canvas { width: 100%; height: 120px; border-radius: 8px; background: #06140a; box-shadow: inset 0 0 0 3px #000, 0 0 0 2px #555; }
+.scene { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; width: 100%; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; }
+.scene .jack { box-shadow: 0 0 0 3px var(--c); }
+#cables { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+#cables path { fill: none; stroke-width: 7; stroke-linecap: round; opacity: .92; filter: drop-shadow(0 6px 4px rgba(0,0,0,.45)); }
+#cables circle { stroke: #222; stroke-width: 2; }
+.hint { font-size: 10px; letter-spacing: .08em; opacity: .7; text-align: center; line-height: 1.5; }
+:focus-visible { outline: 2px solid #ffcf3f; outline-offset: 2px; }
+@media (max-width: 900px) { .rack { grid-template-columns: 1fr 1fr; } #cables { display: none; } }
+</style>
+</head>
+<body>
+<div class="rack" id="rack">
+  <section class="module master"><h2>Casa Mia<small id="kw"></small></h2><canvas id="scope" width="300" height="120"></canvas>
+    <p class="hint">Plug a scene by pressing its socket: the cables run to the rooms it lights. Turn a knob by dragging it up or down.</p>
+    <div id="scenes" style="display:grid;gap:14px;width:100%;margin-top:auto"></div></section>
+  <svg id="cables"></svg>
+</div>
+
+<script src="house.js"></script>
+<script>
+const CABLE = { evening: "#e2542f", film: "#3f7fe0", bedtime: "#8a54d6", away: "#e0b53f" };
+const rack = document.getElementById("rack");
+let plugged = "evening";
+
+House.rooms.forEach((r) => {
+  const el = document.createElement("section");
+  el.className = "module";
+  el.innerHTML = `<h2>${r.name}<small>${r.temp.toFixed(1)}°</small></h2><div class="ctls">${r.devices.map((d) => d.kind === "light"
+      ? `<div class="ctl"><div class="knob" data-id="${d.id}" role="slider" aria-label="${d.name}" tabindex="0"></div>${d.name}</div>`
+      : `<div class="ctl"><button class="sw" data-id="${d.id}" aria-label="${d.name}"></button>${d.name}</div>`).join("")}</div>
+    <div class="jacks"><div><i class="jack" data-in="${r.id}"></i><span>Scene in</span></div><div><i class="jack"></i><span>CV out</span></div></div>`;
+  rack.insertBefore(el, document.getElementById("cables"));
+});
+document.getElementById("scenes").innerHTML = House.scenes.map((s) =>
+  `<div class="scene"><button class="jack" data-scene="${s.id}" style="--c:${CABLE[s.id]}" aria-label="${s.name}"></button>${s.name}</div>`).join("");
+
+rack.addEventListener("click", (e) => {
+  if (e.target.matches(".sw")) House.toggle(e.target.dataset.id);
+  if (e.target.dataset.scene) { plugged = e.target.dataset.scene; House.scene(plugged); cables(); }
+});
+// A knob turns by dragging vertically, as on a real synth where there is no room to circle it.
+rack.addEventListener("pointerdown", (e) => {
+  const knob = e.target.closest(".knob");
+  if (!knob) return;
+  const d = House.find(knob.dataset.id), from = d.on ? d.level : 0, y0 = e.clientY;
+  let moved = false;
+  knob.setPointerCapture(e.pointerId);
+  knob.classList.add("drag");
+  knob.onpointermove = (ev) => { moved = true; House.set(d.id, Math.max(0, Math.min(100, from + (y0 - ev.clientY) * 0.8))); };
+  knob.onpointerup = () => { knob.onpointermove = null; knob.classList.remove("drag"); if (!moved) House.toggle(d.id); };
+});
+
+// Cables hang: each is a curve whose middle sags below both plugs.
+function cables() {
+  const box = rack.getBoundingClientRect();
+  const at = (el) => { const b = el.getBoundingClientRect(); return [b.left - box.left + b.width / 2, b.top - box.top + b.height / 2]; };
+  const [x0, y0] = at(document.querySelector(`[data-scene="${plugged}"]`)), colour = CABLE[plugged];
+  const rooms = new Set(House.scenes.find((s) => s.id === plugged).on.map((id) => House.find(id).room.id));
+  document.getElementById("cables").innerHTML = [...rooms].map((id) => {
+    const [x1, y1] = at(document.querySelector(`[data-in="${id}"]`)), sag = Math.min(box.height - 12, Math.max(y0, y1) + 30 + Math.abs(x1 - x0) * 0.05);
+    return `<path stroke="${colour}" d="M${x0},${y0} C${x0 + 40},${sag} ${x1 - 40},${sag} ${x1},${y1}"/>
+      <circle cx="${x1}" cy="${y1}" r="9" fill="${colour}"/>`;
+  }).join("") + `<circle cx="${x0}" cy="${y0}" r="9" fill="${colour}"/>`;
+}
+
+// The scope: a trace whose height follows the house's draw.
+const ctx = document.getElementById("scope").getContext("2d");
+function scope(t) {
+  const amp = Math.min(50, House.watts() / 25);
+  ctx.fillStyle = "rgba(6,20,10,.35)"; ctx.fillRect(0, 0, 300, 120);
+  ctx.strokeStyle = "#5dff8a"; ctx.lineWidth = 2; ctx.shadowColor = "#5dff8a"; ctx.shadowBlur = 8;
+  ctx.beginPath();
+  for (let x = 0; x <= 300; x += 3) ctx.lineTo(x, 60 + Math.sin(x / 14 + t / 300) * amp * Math.sin(x / 95 + t / 1700));
+  ctx.stroke();
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) requestAnimationFrame(scope);
+}
+
+function paint() {
+  for (const d of House.devices) {
+    const el = document.querySelector(`[data-id="${d.id}"]`);
+    el.classList.toggle("on", d.on);
+    el.style.setProperty("--lvl", d.on ? d.level : 0);
+  }
+  document.getElementById("kw").textContent = `${(House.watts() / 1000).toFixed(2)} kW`;
+}
+House.on(paint);
+addEventListener("resize", cables);
+paint(); cables(); requestAnimationFrame(scope);
+</script>
+</body>
+</html>
