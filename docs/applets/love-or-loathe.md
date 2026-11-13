@@ -1,8 +1,27 @@
-# Love it or Loathe it
+# Love it or Loathe it?
 
-Acts when a song you love or loathe comes on a media player.
+An automatic media watcher that boosts the volume for a song you love, or changes the
+radio station for one you loathe.
 
 > **Maturity: In development.** Being built: parts work, it changes often, and an update may break it. For the curious. ([The levels](../README.md#maturity))
+
+Sick of Xmas songs in November, yet love them in December? Then this is for you. But
+that's not all: you can mark songs as loved or loathed, live, as they are playing.
+
+Bored of radio stations with a short playlist? Then ask this integration to watch for
+songs repeated within a period of time, and use those as triggers to change station too.
+
+Or maybe you don't want the adverts? Shunt them too.
+
+Pair it with Casa Mia's local radio station system and you can fade across to songs you
+truly love to hear.
+
+A full integration with events, so you can trigger your own automations too, including
+notifications of what happened!
+
+**Not built yet:** shunting the adverts, and the fade. Casa Mia's local radio station
+is a Casa Mia feature still to come, not part of this integration: when it exists, it
+is one more station to switch to. The rest of this guide describes what works today.
 
 ## What it's for
 
@@ -53,6 +72,31 @@ The **Delay** set with the players is the number of seconds to wait after a play
 reports a new track before acting. Leave it at 0 unless a player changes its title
 before the song itself changes.
 
+## Its page in Casa Mia
+
+Everything below can be done with Home Assistant's own screens. Where the Casa Mia app
+is installed as well, its Home page has a **Love it or Loathe it** tile once the
+integration has been added, and the tile opens a page with all of it on one screen:
+
+- **Playing now:** each player, the song it is on, and the group that has the song.
+  **Love it** and **Loathe it** rate the song, as yourself or as a person who has
+  groups there (**Rate as**). **Make it a station** adds what the player is on as a
+  station to switch to.
+- **Groups of songs:** each group with its feeling to click, and its form when the row
+  is clicked. The up and down buttons change the order, which decides which group has
+  a song that is in two. Home Assistant's own screens can't change the order.
+- **Stations to switch to**, in the order they are tried, with the same buttons.
+- **Players** changes an entry's name, its players and its delay.
+
+The page keeps nothing of its own. It changes what Home Assistant holds, so a group
+made on the page is the same group on Home Assistant's screens, with the same select,
+and a save is refused for the same reasons. Adding the integration, adding it again for
+other players and deleting an entry are done in Home Assistant.
+
+The page can't browse for a station. Tune a player to the station and use **Make it a
+station**, or add the station from the integration's page in Home Assistant, which can
+browse.
+
 ## Groups of songs
 
 A group has a name, its songs, how you feel about them now (**Loved**, **Loathed** or
@@ -83,10 +127,29 @@ When a song is in more than one group:
 
 1. A line with no `*` beats a line with one, whichever groups they are in.
 2. If that doesn't settle it, a loved group beats a loathed one.
-3. If that doesn't either, the group made first has it.
+3. If that doesn't either, the group that comes first has it: the one made first,
+   unless the order was changed on the page in Casa Mia.
 
 So to loathe `*christmas*` but keep "Last Christmas", put `Last Christmas` in a loved
 group. Ignored groups take no part.
+
+### Songs played too often
+
+For a station with a short playlist, a group can also have any song that has been
+played a number of times in the last so many hours, whatever the song. On its form this
+is **Songs played too often**: **Times played** and **In the last** (hours, up to 48).
+Set to 3 times in 4 hours, a song is the group's the third time it comes round in four
+hours, and the group's action is taken then. At 0 times this is off.
+
+A group for this needs no songs of its own: call it "Heard too often", leave **Songs**
+empty, set it to Loathed and its action to switch station.
+
+- A song that any group names is treated as that group says, however often it is
+  played. Only songs that no group names are counted against this.
+- The count is kept for each entry, over all its players, and through a restart of
+  Home Assistant. Two players on the same station hear a song once, not twice.
+- What a player plays while it is away on another station counts as well.
+- Only tracks that report a title are counted.
 
 A song that is already playing counts too: add it to a group's list and save, or change
 the group's feeling, and it is acted on at once.
@@ -98,7 +161,8 @@ the group's feeling, and it is acted on at once.
   volume is put back, unless someone has moved it since.
 - **Mute until the next track.**
 - **Switch station for some minutes.** The player is switched to the first station in
-  your list that isn't the one playing. If that station is playing a loathed song as
+  your list that isn't the one playing (the list is in the order the stations were
+  added, unless changed on the page in Casa Mia). If that station is playing a loathed song as
   well, it moves on to the next. When every station has been tried, the song is muted
   instead. After **Minutes on the other station**, counted from the first switch, the
   player goes back to what it was playing.
@@ -144,8 +208,11 @@ automation:
 
 ## Each person's own songs
 
-A group can belong to a person (**Belongs to** on its form). Give a person two groups,
-one set to Loved and one to Loathed. Both can start empty.
+A group can belong to a person (**Belongs to** on its form): one set to Loved and one
+set to Loathed. You can make them yourself, or leave it to the first rating: a person's
+first loved song makes a group "Loved by" them, and their first loathed song a group
+"Loathed by" them, with the usual actions (volume up 10% for loved, mute for loathed),
+which you can then change.
 
 The action `casa_mia_love_or_loathe.rate` adds the song a player is playing to the
 person's loved or loathed group, as a line `Title | Artist`, and takes it out of their
@@ -187,8 +254,9 @@ A shared screen, such as a wall tablet, is signed in as nobody in particular. Th
 give each person their own pair of buttons with `person: person.ann` added to `data`.
 
 The action refuses, and says why, when the login belongs to no person and none is
-named, when the person has no group for that feeling, and when the player has no title
-to rate.
+named, when the name given is not a person in Home Assistant, and when the player has
+no title to rate. So a shared screen can't make groups of its own: a group is only ever
+made for a person.
 
 A person's groups count for every player in the entry, whoever is listening. To stop
 them counting while the person is out, set their groups to `ignore` with an automation
@@ -205,6 +273,7 @@ Its attributes:
 | `entity_id`, `title`, `artist` | The player and the track. |
 | `group`, `feeling`, `action` | The group it matched, whether it was loved or loathed at the time, and the action taken. |
 | `result` | What was done, or `failed:` and the reason. |
+| `repeats` | How many times the song has been played in the group's hours, when that is why the group had it; 0 when the group names the song. |
 | `at` | When. |
 | `away` | Each player now on another station, and when it goes back. |
 | `no_titles` | Players that are playing but report no title, so nothing can be matched. |
@@ -222,6 +291,16 @@ triggers:
 
 Every match, action and return is in Home Assistant's log.
 
+## Being told what it did
+
+The integration installs a blueprint, **Notify on Love it or Loathe it** (Settings →
+Automations & scenes → Blueprints). An automation made from it sends each match to a
+notify action, to Home Assistant's own notifications, or both: the song, the player,
+what was done and the group. It can be limited to loved songs, to loathed songs, or to
+the times something failed, and it can run more actions of your own with the same
+facts. The integration replaces the blueprint's file when it changes, so copy it under
+another name before changing it.
+
 ## What it can't do
 
 - Go back to what was playing when the player doesn't say what that was (no
@@ -230,6 +309,10 @@ Every match, action and return is in Home Assistant's log.
 - Tell a person's choice from a station whose `media_content_id` changes with every
   track. Such a player is not switched back.
 - Fade between stations. The switch is immediate.
+- Tell an advert from a song. A group can only match what a station reports as the
+  title.
+- Change a group's feeling by the calendar. That is an automation's work: the example
+  under "Changing how you feel about a group" does it for Christmas.
 - Show on a dashboard whether the song playing is already loved or loathed. The buttons
   only add it.
 - Know who is in the room. A person's groups count wherever the entry's players are.

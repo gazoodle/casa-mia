@@ -1,4 +1,10 @@
-"""Love it or Loathe it's matching (pure.py), which needs no Home Assistant."""
+"""Love it or Loathe it's matching (pure.py), which needs no Home Assistant, and its
+notification blueprint."""
+
+import re
+from pathlib import Path
+
+import yaml
 
 from conftest import load_component_file
 
@@ -100,6 +106,73 @@ def test_a_rated_song_is_a_line_of_its_own_and_comes_out_again():
     # A title that would read as a pattern is made safe.
     assert pure.with_song("", "This | That *", "A Band") == "This That | A Band"
     assert pure.without_song(songs, "Dreadful Song", "A Band") == "Old Song\n*dreadful*"
+
+
+def test_an_ignored_group_remembers_which_list_it_was():
+    loathed = {"feeling": "loathe", "patterns": "Old Song"}
+    ignored = pure.felt(loathed, {**loathed, "feeling": "ignore"})
+    assert ignored["before"] == "loathe" and pure.home(ignored) == "loathe"
+    # Saved again while ignored, it still does; loved again, it has nothing to remember.
+    assert pure.felt(ignored, {"feeling": "ignore"}) == {
+        "feeling": "ignore",
+        "before": "loathe",
+    }
+    assert pure.felt(ignored, {"feeling": "love"}) == {"feeling": "love"}
+    # A new group made ignored was never either.
+    assert pure.home(pure.felt({}, {"feeling": "ignore"})) == "ignore"
+
+
+def test_a_song_heard_often_enough_is_a_groups_and_plays_are_forgotten():
+    hour = 3600.0
+    history = pure.History()
+    for at in (0, 0.05, 1, 2, 5):  # 0.05 h: within ten minutes, the same play
+        history.heard("Round Again!", "A Band", at * hour)
+    assert history.count("round again", "a band", 5 * hour, 4.5) == 3
+    assert history.count("Round Again", "A Band", 5 * hour, 3.5) == 2
+    assert history.count("Round Again", "Another Band", 5 * hour, 48) == 0
+
+    act = pure.Act("mute", 0, 5)
+    split = pure.Matcher.split([])
+    bored = pure.Group("bored", "Bored", "loathe", "", act, act, *split, 3, 4.5)
+    fond = pure.Group("fond", "Fond", "love", "", act, act, *split, 2, 48)
+
+    def heard(hours):
+        return history.count("Round Again", "A Band", 5 * hour, hours)
+
+    assert pure.repeated([bored], heard) is bored
+    assert pure.repeated([bored, fond], heard) is fond  # love beats loathe
+    assert (
+        pure.repeated([pure.Group("off", "Off", "loathe", "", act, act, *split)], heard)
+        is None
+    )
+
+    # Kept through storage, and forgotten after two days.
+    again = pure.History(history.dump(5 * hour))
+    assert again.count("Round Again", "A Band", 5 * hour, 48) == 4
+    assert again.dump(50 * hour) == [(5 * hour, "round again", "a band")]
+
+
+def test_the_notify_blueprint_is_sound_and_reads_only_what_the_event_carries():
+    root = Path(__file__).resolve().parents[1]
+    component = root / "integration/custom_components/casa_mia_love_or_loathe"
+
+    class Loader(yaml.SafeLoader):
+        pass
+
+    Loader.add_constructor("!input", lambda loader, node: ("input", node.value))
+    text = (component / "blueprints" / "notify.yaml").read_text()
+    bp = yaml.load(text, Loader)  # noqa: S506 (our own loader, SafeLoader based)
+    assert bp["blueprint"]["domain"] == "automation"
+
+    used = set(re.findall(r"!input (\w+)", text))
+    assert used == set(bp["blueprint"]["input"])
+    # The event is the engine's `last`.
+    engine = (component / "engine.py").read_text()
+    fired = set(
+        re.findall(r'"(\w+)":', engine.split("self.last = {", 1)[1].split("}", 1)[0])
+    )
+    read = set(re.findall(r"trigger\.event\.data\.(\w+)", text))
+    assert read and read <= fired | {"entity_id"}, read - fired
 
 
 def test_a_volume_change_is_a_percentage_kept_within_the_scale():

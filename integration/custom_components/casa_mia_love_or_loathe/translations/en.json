@@ -68,6 +68,18 @@
             "person": "Optional. The rate action adds the song that is playing to this person's loved group or loathed group. Give a person one group set to Love and one set to Loathe."
           },
           "sections": {
+            "repeats": {
+              "name": "Songs played too often",
+              "description": "For a station with a short playlist: this group also has any song that has been played this many times in the last so many hours, whatever the song. A song that a group names is treated as that group says.",
+              "data": {
+                "times": "Times played",
+                "hours": "In the last"
+              },
+              "data_description": {
+                "times": "0 switches this off. At 3, a song is the group's the third time it is played.",
+                "hours": "Hours to look back, up to 48."
+              }
+            },
             "love": {
               "name": "While loved",
               "data": {
@@ -112,7 +124,7 @@
       "step": {
         "user": {
           "title": "A station to switch to",
-          "description": "Somewhere to go when a loathed song comes on. Stations are tried in the order they were added, skipping the one that is playing.",
+          "description": "Somewhere to go when a loathed song comes on. Stations are tried in order, skipping the one that is playing: the order they were added in, unless it was changed on the page in Casa Mia.",
           "data": {
             "name": "Name",
             "media": "What to play"
@@ -182,7 +194,7 @@
   "services": {
     "rate": {
       "name": "Rate the song playing",
-      "description": "Adds the song a player is playing to a person's loved or loathed group, and takes it out of their other one. It is then acted on at once.",
+      "description": "Adds the song a player is playing to a person's loved or loathed group, and takes it out of their other one. It is then acted on at once. A person's first loved or loathed song makes that group for them.",
       "fields": {
         "entity_id": {
           "name": "Media player",

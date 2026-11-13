@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
 
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntry, ConfigSubentry
 from homeassistant.const import ATTR_ENTITY_ID, STATE_PLAYING
 from homeassistant.core import (
     CALLBACK_TYPE,
@@ -41,11 +41,15 @@ from .const import (
     CONF_AMOUNT,
     CONF_DELAY,
     CONF_FEELING,
+    CONF_HOURS,
     CONF_MEDIA,
     CONF_MINUTES,
+    CONF_ORDER,
     CONF_PATTERNS,
     CONF_PERSON,
     CONF_PLAYERS,
+    CONF_REPEATS,
+    CONF_TIMES,
     DOMAIN,
     EVENT,
     GROUP,
@@ -56,7 +60,7 @@ from .const import (
     SWITCH,
     VOLUME,
 )
-from .pure import Act, Group, Matcher, leads, pick, scaled
+from .pure import Act, Group, History, Matcher, leads, pick, repeated, scaled
 
 _LOGGER = logging.getLogger(__name__)
 ID = "media_content_id"
@@ -77,6 +81,7 @@ class Player:
     """One watched player. `undo` and `away` are kept in storage (Engine._save)."""
 
     track: tuple[str, str] | None = None
+    playing: bool = False  # as last told to the listeners
     # What to put back at the next track: ["volume", was, set] or ["mute"].
     undo: list[Any] | None = None
     # Switched to another station: {"until": ISO time, "origin": media to go back to or
@@ -95,7 +100,7 @@ class Engine:
         self.delay = float(entry.options.get(CONF_DELAY, 0))
         self.players = {e: Player() for e in entry.options.get(CONF_PLAYERS, [])}
 
-        subentries = list(entry.subentries.values())
+        subentries = ordered(entry)
         self.stations = [
             Station(s.subentry_id, s.title, dict(s.data[CONF_MEDIA]))
             for s in subentries
@@ -110,6 +115,8 @@ class Engine:
                 _act(s.data[LOVE]),
                 _act(s.data[LOATHE]),
                 *Matcher.split(s.data.get(CONF_PATTERNS, "").splitlines()),
+                int(s.data.get(CONF_REPEATS, {}).get(CONF_TIMES, 0)),
+                float(s.data.get(CONF_REPEATS, {}).get(CONF_HOURS, 0)),
             )
             for s in subentries
             if s.subentry_type == GROUP
@@ -120,6 +127,8 @@ class Engine:
         # The content id each station turned out to have on a player, which can differ
         # from the one it was started with: how a station already playing is recognised.
         self.learned: dict[str, str] = {}
+        # What has been played, for the groups that act on a song heard too often.
+        self.history = History()
         self._store: Store[dict[str, Any]] = Store(hass, 1, store_key(entry))
         self._listeners: list[Callable[[], None]] = []
         self._actions: dict[
@@ -149,6 +158,7 @@ class Engine:
         a song already on when its group's list is saved is acted on at that save."""
         kept = await self._store.async_load() or {}
         self.learned = kept.get("learned", {})
+        self.history = History(kept.get("plays", []))
         for entity, was in kept.get("players", {}).items():
             player = self.players.get(entity)
             if player is None:
@@ -184,9 +194,30 @@ class Engine:
             for e, p in self.players.items()
             if p.undo or p.away
         }
-        await self._store.async_save({"players": players, "learned": self.learned})
+        plays = self.history.dump(dt_util.utcnow().timestamp())
+        await self._store.async_save(
+            {"players": players, "learned": self.learned, "plays": plays}
+        )
 
     # --- following the players ---------------------------------------------------
+
+    def judge(self, title: str, artist: str) -> tuple[Group | None, int]:
+        """The group that has a song now. A group that names it comes first; failing
+        that, one that has it for how often it has been played, and then the second
+        answer is how many times that is (else 0)."""
+        if not title:
+            return None, 0
+        named = pick(self.groups, title, artist)
+        if named:
+            return named, 0
+
+        now = dt_util.utcnow().timestamp()
+
+        def heard(hours: float) -> int:
+            return self.history.count(title, artist, now, hours)
+
+        often = repeated(self.groups, heard)
+        return often, heard(often.hours) if often else 0
 
     @callback
     def afresh(self) -> None:
@@ -208,25 +239,29 @@ class Engine:
     def _look(self, state: State) -> None:
         entity, player = state.entity_id, self.players[state.entity_id]
 
-        if state.state != STATE_PLAYING:
-            if entity in self.silent:
-                self.silent.discard(entity)
+        playing = state.state == STATE_PLAYING
+        started, player.playing = playing != player.playing, playing
+        if not playing:
+            self.silent.discard(entity)
+            if started:
                 self._tell()
             return
         self._settle(entity, player, state)
 
         track = _track(state)
         if track == player.track:
+            if started:
+                self._tell()
             return
         player.track = track
         _LOGGER.debug("%s: now %r by %r", entity, *track)
         if (not track[0]) != (entity in self.silent):
             self.silent ^= {entity}
-            self._tell()
             if not track[0]:
                 _LOGGER.info(
                     "%s is playing but reports no title: nothing to match", entity
                 )
+        self._tell()  # the page shows what each player is playing (admin.py)
 
         # A background task of the entry's: cancelled when it unloads.
         self.entry.async_create_background_task(
@@ -265,9 +300,11 @@ class Engine:
         title, artist = track
         async with player.lock:
             await self._undo(entity, player)
+            if title:
+                self.history.heard(title, artist, dt_util.utcnow().timestamp())
             await self._save()
 
-            group = pick(self.groups, title, artist) if title else None
+            group, repeats = self.judge(title, artist)
             if group is None or not leads(
                 entity, state.attributes.get("group_members")
             ):
@@ -298,12 +335,13 @@ class Engine:
                 )
             else:
                 _LOGGER.info(
-                    "%s: %r by %r is in %s (%s): %s",
+                    "%s: %r by %r is in %s (%s%s): %s",
                     entity,
                     title,
                     artist,
                     group.name,
                     group.feeling,
+                    f", played {repeats} times in {group.hours:g} h" if repeats else "",
                     result,
                 )
             await self._save()
@@ -316,6 +354,9 @@ class Engine:
             "feeling": group.feeling,
             "action": action,
             "result": result,
+            # How many times it has been played in the group's hours, when that is why
+            # the group has it; 0 when the group names it.
+            "repeats": repeats,
             "at": dt_util.utcnow().isoformat(),
         }
         self.hass.bus.async_fire(EVENT, self.last)
@@ -461,6 +502,17 @@ class Engine:
 
 def _act(data: dict[str, Any]) -> Act:
     return Act(data[CONF_ACTION], data[CONF_AMOUNT], data[CONF_MINUTES])
+
+
+def ordered(entry: ConfigEntry) -> list[ConfigSubentry]:
+    """The entry's groups and stations in the order the page gave them (CONF_ORDER);
+    any it doesn't name come after, as made."""
+    order = entry.options.get(CONF_ORDER, [])
+    place = {id: n for n, id in enumerate(order)}
+    return sorted(
+        entry.subentries.values(),
+        key=lambda s: place.get(s.subentry_id, len(place)),
+    )
 
 
 def store_key(entry: ConfigEntry) -> str:

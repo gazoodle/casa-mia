@@ -14,6 +14,9 @@ INSTALLED_EVENT = "casa_mia_components_installed"
 # The entry's options.
 CONF_PLAYERS = "players"
 CONF_DELAY = "delay"  # seconds between a player reporting a track and it being heard
+# Subentry ids in the order the page gave them (admin.py): the order groups settle a tie
+# in, and stations are tried in. Home Assistant keeps them as made, and can't move one.
+CONF_ORDER = "order"
 
 # Subentry types: a group of songs, and a station to switch to.
 GROUP = "group"
@@ -28,6 +31,11 @@ CONF_BEFORE = (
 CONF_PERSON = "person"  # the person entity whose ratings it collects
 CONF_LIBRARY = "library"  # the shipped list a new group starts from (not kept)
 CONF_PATTERNS = "patterns"
+# It also has any song heard CONF_TIMES times in the last CONF_HOURS hours (0 times: off).
+CONF_REPEATS = "repeats"
+CONF_TIMES = "times"
+CONF_HOURS = "hours"
+DEFAULT_REPEATS = {CONF_TIMES: 0, CONF_HOURS: 4}
 # Under LOVE and under LOATHE, what to do while the group is that:
 CONF_ACTION = "action"
 CONF_AMOUNT = "amount"

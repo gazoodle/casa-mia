@@ -374,14 +374,92 @@ async def test_rating_the_song_playing_into_a_persons_groups(hass):
     await rate("loathe", "the-tablet", person="person.ben")
     assert songs("Ben loathes") == "Dreadful Song | A Band"
 
-    # Refused, with the reason: nobody's login, no such group, not a watched player.
+    # Ben has no loved group yet: his first loved song makes it, and it is his.
+    await rate("love", "ben-login")
+    assert songs("Loved by ben") == "Dreadful Song | A Band"
+    assert songs("Ben loathes") == ""
+    [made] = [g for g in entry.subentries.values() if g.title == "Loved by ben"]
+    assert (made.data["feeling"], made.data["person"]) == ("love", "person.ben")
+    assert hass.states.get("select.love_it_or_loathe_it_loved_by_ben").state == "love"
+
+    # Refused, with the reason, and nothing is made: nobody's login, a name that is
+    # no person, not a watched player.
+    groups = len(entry.subentries)
     for login, more, reason in (
         ("the-tablet", {}, "belongs to no person"),
-        ("ben-login", {"feeling": "love"}, "has no love group"),
+        ("the-tablet", {"person": "person.nobody"}, "is not a person"),
+        ("the-tablet", {"person": PLAYER}, "is not a person"),
         ("ann-login", {"entity_id": "media_player.shed"}, "is not a player"),
     ):
         with pytest.raises(ServiceValidationError, match=reason):
-            await rate(more.pop("feeling", "loathe"), login, **more)
+            await rate("loathe", login, **more)
+    assert len(entry.subentries) == groups
+
+
+async def test_a_song_heard_too_often_is_the_groups_too(hass, freezer):
+    often = a_group("Heard too often", repeats={"times": 3, "hours": 4})
+    entry, calls = await add(
+        hass, often, a_group("Loved", "love", "event", patterns="Agadoo")
+    )
+    events = async_capture_events(hass, EVENT)
+
+    fillers = iter(range(100))
+
+    async def hear(title, after=30):
+        """The song, half an hour after the last; "" for one never heard before."""
+        freezer.tick(timedelta(minutes=after))
+        title = title or f"Filler {next(fillers)}"
+        play(hass, title, "A Band")
+        await settled(hass)
+
+    # Twice is not three times, and the same play judged afresh is not another.
+    await hear("Round Again")
+    await hear("")
+    await hear("Round Again")
+    await hass.config_entries.async_reload(entry.entry_id)
+    await settled(hass)
+    assert not calls["volume_mute"]
+
+    # The third time in four hours it is muted, and the event says why.
+    await hear("")
+    await hear("Round Again")
+    assert [c.data["is_volume_muted"] for c in calls["volume_mute"]] == [True]
+    assert (events[-1].data["group"], events[-1].data["repeats"]) == (
+        "Heard too often",
+        3,
+    )
+
+    # A song a group names is treated as that group says, however often it comes.
+    for _ in range(3):
+        await hear("Agadoo")
+        await hear("")
+    assert events[-1].data["group"] == "Loved" and events[-1].data["repeats"] == 0
+
+    # Four hours on, the early plays no longer count: it is the first again.
+    await hear("Round Again", after=300)
+    assert events[-1].data["group"] == "Loved"
+
+    # A restart of Home Assistant keeps what was played.
+    await hear("")
+    await hear("Round Again")
+    await hass.config_entries.async_reload(entry.entry_id)
+    await settled(hass)
+    await hear("")
+    await hear("Round Again")
+    assert (events[-1].data["title"], events[-1].data["repeats"]) == ("Round Again", 3)
+
+
+async def test_the_notify_blueprint_is_installed(hass):
+    await add(hass)
+    await settled(hass)
+    assert (
+        "Notify on Love it or Loathe it"
+        in open(
+            hass.config.path(
+                "blueprints/automation/casa_mia/love_or_loathe_notify.yaml"
+            )
+        ).read()
+    )
 
 
 async def test_a_switch_of_station_and_back_when_its_minutes_are_up(hass, freezer):
@@ -472,3 +550,200 @@ async def test_only_a_groups_leader_acts_and_a_player_with_no_title_is_named(has
     play(hass, "", entity=other)
     await settled(hass)
     assert hass.states.get(SENSOR).attributes["no_titles"] == [other]
+
+
+# --- the page's commands (admin.py) ---------------------------------------------------
+
+
+class Page:
+    """The page's end of the websocket: its feed, and its changes."""
+
+    def __init__(self, hass, ws):
+        self.hass, self.ws, self.n = hass, ws, 1
+
+    async def open(self):
+        await self.ws.send_json({"id": 1, "type": f"{DOMAIN}/view"})
+        assert (await self.ws.receive_json())["success"]
+        self.last = (await self.ws.receive_json())["event"]
+        return self.last
+
+    async def view(self):
+        """The view as last pushed, once everything has settled."""
+        await settled(self.hass)
+        self.n += 1
+        await self.ws.send_json({"id": self.n, "type": "ping"})
+        while (msg := await self.ws.receive_json())["type"] != "pong":
+            self.last = msg["event"]
+        return self.last
+
+    async def change(self, command, entry, /, **fields):
+        """Its error's words if it is refused, else None."""
+        self.n += 1
+        await self.ws.send_json(
+            {
+                "id": self.n,
+                "type": f"{DOMAIN}/{command}",
+                "entry_id": entry.entry_id,
+                **fields,
+            }
+        )
+        while (msg := await self.ws.receive_json())["type"] != "result":
+            self.last = msg["event"]
+        return None if msg["success"] else msg["error"]["message"]
+
+
+MUTES = {"action": "mute", "amount": 0, "minutes": 5}
+GROUP = {"feeling": "loathe", "love": MUTES, "loathe": MUTES}
+
+
+async def test_the_page_is_pushed_what_each_player_is_playing(hass, hass_ws_client):
+    entry, _calls = await add(
+        hass, a_group("Dreadful", patterns="*dreadful*"), a_station("Jazz", JAZZ)
+    )
+    page = Page(hass, await hass_ws_client(hass))
+
+    view = await page.open()
+    (shown,) = view["entries"]
+    (group,) = shown["groups"]
+    assert shown["running"] and shown["players"] == [PLAYER]
+    assert (group["name"], group["feeling"], group["home"]) == (
+        "Dreadful",
+        "loathe",
+        "loathe",
+    )
+    assert (
+        shown["stations"][0]
+        == {"id": shown["stations"][0]["id"], "name": "Jazz"} | JAZZ
+    )
+    assert shown["playing"][PLAYER]["title"] == "Something Ordinary"
+    assert shown["playing"][PLAYER]["group"] is None
+    assert "christmas" in view["libraries"]
+    assert {"entity_id": PLAYER, "name": "kitchen"} in view["players"]
+
+    play(hass, "A Dreadful Song", "A Band", **HOME)
+    (shown,) = (await page.view())["entries"]
+    assert (
+        shown["playing"][PLAYER]
+        == {
+            "state": "playing",
+            "title": "A Dreadful Song",
+            "artist": "A Band",
+            "group": group["id"],
+            "repeats": 0,
+        }
+        | HOME
+    )
+    assert shown["last"]["result"] == "muted until the next track"
+
+    # Not running, it says so, and nothing of what was playing.
+    await hass.config_entries.async_unload(entry.entry_id)
+    (shown,) = (await page.view())["entries"]
+    assert not shown["running"] and shown["playing"] == {}
+    assert shown["groups"] == [group]
+
+
+async def test_the_page_saves_groups_and_stations_and_is_refused_as_the_form_is(
+    hass, hass_ws_client
+):
+    entry, _calls = await add(hass)
+    page = Page(hass, await hass_ws_client(hass))
+    await page.open()
+
+    switch = {"action": "switch", "amount": 0, "minutes": 5}
+    refused = await page.change(
+        "save_group", entry, name="Dreadful", **GROUP | {"loathe": switch}
+    )
+    assert refused.startswith("Add a station to switch to first")
+    refused = await page.change(
+        "save_group", entry, name="Dreadful", patterns="*", **GROUP
+    )
+    assert refused.startswith("A line of nothing but *")
+
+    assert not await page.change("save_station", entry, name="Jazz", **JAZZ)
+    assert not await page.change(
+        "save_group",
+        entry,
+        name="Dreadful",
+        patterns="*dreadful*",
+        person="person.ann",
+        **GROUP,
+    )
+    (shown,) = (await page.view())["entries"]
+    (group,), (station,) = shown["groups"], shown["stations"]
+    assert group["patterns"] == "*dreadful*" and group["person"] == "person.ann"
+    assert station["name"] == "Jazz"
+
+    # Saved, it acts at once on what is playing, as a save from the form does.
+    play(hass, "A Dreadful Song", "A Band", **HOME)
+    assert (await page.view())["entries"][0]["last"]["group"] == "Dreadful"
+
+    # Ignored from the page, it is still Ann's loathed list.
+    changed = GROUP | {"feeling": "ignore"}
+    assert not await page.change(
+        "save_group",
+        entry,
+        subentry_id=group["id"],
+        name="Awful",
+        patterns="*awful*",
+        **changed,
+    )
+    (shown,) = (await page.view())["entries"]
+    (group,) = shown["groups"]
+    assert (group["name"], group["feeling"], group["home"]) == (
+        "Awful",
+        "ignore",
+        "loathe",
+    )
+    assert "person" not in group
+
+    assert not await page.change("remove", entry, subentry_id=station["id"])
+    assert await page.change(
+        "remove", entry, subentry_id=station["id"]
+    )  # no longer there
+    assert (await page.view())["entries"][0]["stations"] == []
+
+
+async def test_the_page_orders_the_groups_and_changes_the_players(hass, hass_ws_client):
+    entry, _calls = await add(
+        hass,
+        a_group("First", patterns="*song*"),
+        a_group("Second", patterns="*song*"),
+    )
+    await add(hass, players=["media_player.shed"], title="Shed")
+    page = Page(hass, await hass_ws_client(hass))
+    first, second = [g["id"] for g in (await page.open())["entries"][0]["groups"]]
+
+    play(hass, "A Song", "A Band", **HOME)
+    assert (await page.view())["entries"][0]["last"]["group"] == "First"
+
+    # A tie between two groups goes to the one the page puts first.
+    assert not await page.change("order", entry, order=[second, first])
+    shown = (await page.view())["entries"][0]
+    assert [g["name"] for g in shown["groups"]] == ["Second", "First"]
+    assert shown["playing"][PLAYER]["group"] == second
+
+    taken = await page.change(
+        "save_entry",
+        entry,
+        name="Kitchen",
+        players=[PLAYER, "media_player.shed"],
+        delay=0,
+    )
+    assert taken.startswith("One of those players is already watched")
+    assert not await page.change(
+        "save_entry",
+        entry,
+        name="Kitchen",
+        players=[PLAYER, "media_player.hall"],
+        delay=2,
+    )
+    shown = (await page.view())["entries"][0]
+    assert (shown["title"], shown["delay"]) == ("Kitchen", 2)
+    assert shown["players"] == [PLAYER, "media_player.hall"]
+    # The players' own form keeps the order.
+    assert [g["name"] for g in shown["groups"]] == ["Second", "First"]
+    form = await hass.config_entries.options.async_init(entry.entry_id)
+    await hass.config_entries.options.async_configure(
+        form["flow_id"], {"players": [PLAYER], "delay": 0}
+    )
+    assert entry.options["order"] == [second, first]

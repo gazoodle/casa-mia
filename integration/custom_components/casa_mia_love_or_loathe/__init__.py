@@ -8,7 +8,8 @@ for each of the first two, so an automation can change how a group is treated (t
 shipped Christmas songs: loathed in November, loved in December). A group can belong to
 a person, and the `rate` action (rating.py) adds the song playing to that person's loved
 or loathed group. Each station to switch to is a subentry too. engine.py does the
-watching and acting, pure.py the matching.
+watching and acting, pure.py the matching, and admin.py serves the page the Casa Mia
+app has for all of it.
 
 Several entries can be added, each with its own players, groups and stations, for rooms
 that want different treatment; one entry watches as many players as it is given.
@@ -29,7 +30,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.typing import ConfigType
 
-from . import rating
+from . import admin, blueprint, rating
 from .const import (
     CONF_ACTION,
     CONF_AMOUNT,
@@ -61,6 +62,10 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         await rating.rate(hass, call)
 
     hass.services.async_register(DOMAIN, RATE, rate, schema=rating.SCHEMA)
+    await admin.setup(hass)
+    await hass.async_add_executor_job(
+        blueprint.install, hass.config.path(*blueprint.AT)
+    )
     return True
 
 
@@ -79,6 +84,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.runtime_data = engine
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     await engine.start()
+
+    # The page's feed (admin.py), at whatever the engine tells.
+    entry.async_on_unload(engine.listen(lambda: admin.tell(hass)))
 
     # A group or station added or changed, or the players: start again with them.
     entry.async_on_unload(entry.add_update_listener(_reload))

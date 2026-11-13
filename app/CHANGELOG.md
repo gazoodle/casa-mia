@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026.11.7-b6
+
+- **Love it or Loathe it has a page in Casa Mia.** Where the integration is set up in Home Assistant, Casa Mia's Home page has a tile for it, and its page shows each entry on one screen: what each player is playing now and which group has the song, the groups of songs with their feeling to click (Love, Loathe, Ignore), and the stations. Groups, stations and an entry's players are added, changed and removed there. The page keeps nothing of its own: it changes what Home Assistant holds, so it and Home Assistant's own screens edit the same thing, and a save is refused for the same reasons. Adding the integration, and adding it again for other players, is still done in Home Assistant.
+- **Love it or Loathe it: groups and stations can be put in order**, with the up and down buttons on the page. The order decides which group has a song that is in two, and which station is tried first. Home Assistant's own screens can't change it.
+- **Love it or Loathe it: love or loathe the song that is playing from the page.** Each playing player has Love it and Loathe it, as yourself or as any person of the house.
+- **Love it or Loathe it: a station can be made from what a player is on.** Tune a player to the station, then press Make it a station. Browsing for a station is still in Home Assistant's own screen.
+- **Love it or Loathe it: a group set to Ignore from its form remembers whether it was the loved or the loathed list**, as one set to Ignore from its select already did, so rating into it still works.
+- **Love it or Loathe it: songs played too often.** A group can also have any song that has been played a number of times in the last so many hours (Songs played too often, on its form and on the page): for a station with a short playlist, set a group to Loathed with 3 times in 4 hours and the action to switch station. A song that a group names is treated as that group says, however often it is played. The count is kept through a restart, and the event and the Last match sensor carry it as `repeats`.
+- **Love it or Loathe it: a person's first rating makes their group.** Rating a song for a person who has no loved (or loathed) group yet makes one, "Loved by" or "Loathed by" them, in place of refusing. Only a person gets one: a login that belongs to no person, such as a wall tablet's, is still refused unless its button names a person in Home Assistant.
+- **Love it or Loathe it: a blueprint to be told what it did.** The integration installs **Notify on Love it or Loathe it**: each match sent to a notify action, Home Assistant's notifications or both, for loved songs, loathed songs or only failures.
+- Sensor Watch's page was rebuilt with the new tile's words in it; nothing in Sensor Watch changed.
+
 ## 2026.11.7-b5
 
 - **Love it or Loathe it: a group is loved, loathed or ignored at the moment, and has an action for each.** The same songs can be treated differently as time goes on: Christmas songs loathed in November, loved in December, ignored from January. Each group now has a select (Love, Loathe, Ignore) in place of its on/off switch, and its form has two actions, one for while it is loved and one for while it is loathed. Choosing a feeling acts at once on what is playing. Groups made in earlier builds are converted: the old kind becomes the feeling and the old action that feeling's. An automation that used a group's switch must use its select, and the event's `kind` field is now `feeling`.

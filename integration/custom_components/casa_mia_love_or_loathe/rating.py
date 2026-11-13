@@ -4,11 +4,15 @@ is comes from the login that pressed, or from the person named in the call (a wa
 tablet is signed in as nobody in particular).
 
 A person's loved group is the group that belongs to them and is set to Love, or was
-before it was set to Ignore; the same for loathed."""
+before it was set to Ignore; the same for loathed. One they don't have yet is made at
+their first rating. Only a person gets one: a login that belongs to no person (a wall
+tablet's) is refused unless its button names the person, so a screen can't fill the
+entry with groups of its own."""
 
 from __future__ import annotations
 
 import logging
+from types import MappingProxyType
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry, ConfigSubentry
@@ -18,18 +22,19 @@ from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 
 from .const import (
-    CONF_BEFORE,
     CONF_FEELING,
     CONF_PATTERNS,
     CONF_PERSON,
     CONF_PLAYERS,
+    CONF_REPEATS,
+    DEFAULT_ACTS,
+    DEFAULT_REPEATS,
     DOMAIN,
     GROUP,
-    IGNORE,
     LOATHE,
     LOVE,
 )
-from .pure import with_song, without_song
+from .pure import home, with_song, without_song
 
 _LOGGER = logging.getLogger(__name__)
 SCHEMA = vol.Schema(
@@ -51,12 +56,6 @@ def _person_of(hass: HomeAssistant, user_id: str | None) -> str | None:
         ),
         None,
     )
-
-
-def _home(group: ConfigSubentry) -> str:
-    """Love or loathe: what the group is for, even while it is ignored."""
-    feeling = group.data[CONF_FEELING]
-    return group.data.get(CONF_BEFORE, IGNORE) if feeling == IGNORE else feeling
 
 
 def _songs(
@@ -97,24 +96,44 @@ async def rate(hass: HomeAssistant, call: ServiceCall) -> None:
         raise ServiceValidationError(f"{player} is not playing anything with a title")
 
     theirs = {
-        _home(group): group
+        home(group.data): group
         for group in entry.subentries.values()
         if group.subentry_type == GROUP and group.data.get(CONF_PERSON) == person
     }
-    if feeling not in theirs:
-        raise ServiceValidationError(
-            f"{person} has no {feeling} group in {entry.title}: add a group of songs "
-            f"that belongs to them, with its feeling set to {feeling}"
-        )
+    known = hass.states.get(person)
+    if feeling not in theirs and (known is None or known.domain != "person"):
+        raise ServiceValidationError(f"{person} is not a person in Home Assistant")
 
     # Out of their other list first, so the last save has the song where it belongs.
     other = theirs.get(LOVE if feeling == LOATHE else LOATHE)
     if other is not None:
         was = other.data.get(CONF_PATTERNS, "")
         _songs(hass, entry, other, without_song(was, title, artist))
-    group = theirs[feeling]
-    was = group.data.get(CONF_PATTERNS, "")
-    _songs(hass, entry, group, with_song(was, title, artist))
+
+    group = theirs.get(feeling)
+    if group is not None:
+        was = group.data.get(CONF_PATTERNS, "")
+        _songs(hass, entry, group, with_song(was, title, artist))
+    else:
+        # Their first of this feeling: its group is made, with the usual actions.
+        assert known is not None
+        group = ConfigSubentry(
+            data=MappingProxyType(
+                {
+                    CONF_FEELING: feeling,
+                    CONF_PATTERNS: with_song("", title, artist),
+                    CONF_PERSON: person,
+                    CONF_REPEATS: dict(DEFAULT_REPEATS),
+                    LOVE: dict(DEFAULT_ACTS[LOVE]),
+                    LOATHE: dict(DEFAULT_ACTS[LOATHE]),
+                }
+            ),
+            subentry_type=GROUP,
+            title=f"{'Loved' if feeling == LOVE else 'Loathed'} by {known.name}",
+            unique_id=None,
+        )
+        hass.config_entries.async_add_subentry(entry, group)
+        _LOGGER.info("%s made in %s, at %s's first", group.title, entry.title, person)
     _LOGGER.info(
         "%s: %r by %r is now in %s (%s) for %s",
         player,

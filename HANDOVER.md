@@ -177,10 +177,44 @@ imported from `casa_mia`, no app option. Guide: `docs/applets/love-or-loathe.md`
   `afresh` judges what is playing now at every start, so at each save of a group,
   change of feeling and rating (owner, 2026-11-13: a song added to a list while it
   plays must be acted on then). Safe because unloading undoes volumes and mutes first.
-- **Not yet proven on a real player** (2026-11-13): only inside the test Home Assistant,
-  with caught services. To watch on the first real one: what `media_content_id` it
-  reports for a station (`_settle` and `_switch` depend on it).
-- **Tests:** `tests/test_love_or_loathe.py` (matching), `tests_ha/test_love_or_loathe.py`.
+- **Works against a real player** (owner, 2026-11-13, on b5).
+- **The guide's opening is the owner's own words** (2026-11-13), tidied: keep its tone.
+  Under it a "Not built yet" line names what the opening promises that isn't there
+  (adverts, the fade); shorten it as each lands.
+- **Owner's rulings, 2026-11-13:** never give a group dates of its own (a feeling by the
+  calendar is an automation's work; the guide has the YAML). The local radio station is
+  a Casa Mia item, never part of this integration. Adverts are a nice-to-have, only
+  where a station says so in its metadata (BACKLOG).
+- **Songs played too often** (b6): a group's `repeats` (`times`, `hours`; 0 times is
+  off). `pure.History` holds each entry's plays (folded title and artist, times), kept
+  in the entry's storage and for 48 hours; a song heard again within ten minutes is the
+  same play (two players on one station, a reload judging afresh). `engine.judge`: a
+  group that names the song first (`pick`), else `pure.repeated`.
+- **A person's first rating makes their group** (b6, `rating.py`): only for a person
+  entity, found from the login or named in the call. A login with no person is refused,
+  so a wall tablet can't make groups (the owner asked what stops it).
+- **The notify blueprint** (b6): `blueprints/notify.yaml`, written to
+  `blueprints/automation/casa_mia/love_or_loathe_notify.yaml` at each start
+  (`blueprint.py`), as Sensor Watch's is. A test holds it to the event's fields.
+- **Its page in Casa Mia** (b6; owner, 2026-11-13: "better in Casa Mia", the same config
+  with Casa Mia's UX). `app/web/src/love-or-loathe/`, route `#/love-or-loathe`, and a
+  Home tile shown where the integration answers. No app Python: the page talks to the
+  integration's websocket commands (`admin.py`, admins only) over the connection Home
+  Assistant's own page holds (`app/web/src/home.ts`, as Sensor Watch's tile does).
+  - The page keeps no copy. One feed, `casa_mia_love_or_loathe/view`, carries all it
+    shows and is pushed at each change: the engine's `listen`, and HA's
+    `SIGNAL_CONFIG_ENTRY_CHANGED` for every save, load and unload.
+  - Changes (`save_group`, `save_station`, `remove`, `order`, `save_entry`) share the
+    forms' checks (`config_flow.group_errors`, `taken`) and answer a refusal in the
+    forms' own words, read from the translations.
+  - **Order** is the entry option `order` (subentry ids; `engine.ordered`), since HA
+    keeps subentries as made. The options form keeps it.
+  - A command's subentry field is `subentry_id`: `id` is the websocket message's own.
+  - Seen in headless Chromium with a stand-in for `window.hassConnection` and an
+    invented view (wide and phone), not yet inside Home Assistant.
+  - Not on the page: adding or deleting an entry, and browsing for a station.
+- **Tests:** `tests/test_love_or_loathe.py` (matching), `tests_ha/test_love_or_loathe.py`
+  (the page's commands too, through a websocket client).
 
 ## Guest login
 
@@ -307,8 +341,9 @@ CLAUDE.md has them all. What trips agents here:
 ## What happened
 
 - **2026-11-13: Love it or Loathe it built** (2026.11.7-b2, reworked to b5 the same day as
-  the owner used it). See its section above. Left for later in BACKLOG: the fade, and the
-  house's own radio station as one of its stations.
+  the owner used it; its page in Casa Mia in b6). See its section above. Left for later in
+  BACKLOG: the page's song rows and "who would take this", the thumbs card, the fade,
+  and the house's own radio station as one of its stations.
 - **2026-11-11: the Camera Commander's Responsive layout is specified, not built**
   (`docs/design/commander-responsive-layout.md`, agreed by the owner): a second mode
   beside today's (now called Fixed), in which the layout is worked out for each size from

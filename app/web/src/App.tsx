@@ -7,6 +7,7 @@ import { FirmwarePage } from "./FirmwarePage";
 import { GuestPage } from "./GuestPage";
 import { KioskFrame, KiosksPage } from "./KiosksPage";
 import { KioskModePage } from "./KioskModePage";
+import { LoveOrLoathePage, useView as useLoveOrLoathe, type Fed } from "./love-or-loathe";
 import { PeoplePage } from "./PeoplePage";
 import { useSummary } from "./sensor-watch/summary";
 import { SettingsPage } from "./SettingsPage";
@@ -52,6 +53,7 @@ const PAGES: Record<string, string> = {
   auto_dashboards: "/auto-dashboards",
   compositor: "/compositor",
   kiosk_mode: "/kiosk-mode",
+  love_or_loathe: "/love-or-loathe",
 };
 /** Module pages in Home Assistant's own sidebar (the integration's panels). */
 const HA_PAGES: Record<string, string> = { sensor_watch: "/sensor-watch" };
@@ -81,7 +83,21 @@ export function App() {
   useEffect(() => {
     photoApi.get<HeaderView>("").then(setPhoto, () => undefined);
   }, []);
-  const page = pageFor(route, health?.modules ?? {});
+  // Love it or Loathe it is another: its tile is shown where it is set up there.
+  const loveOrLoathe = useLoveOrLoathe();
+  const songs = loveOrLoathe.view;
+  if (songs) {
+    const entries = songs.entries;
+    const last = entries.map((e) => e.last).filter((l) => !!l).sort((a, b) => b.at.localeCompare(a.at))[0];
+    watch.love_or_loathe = {
+      state: entries.some((e) => e.running) ? "running" : entries.length ? "offline" : "unconfigured",
+      players: entries.reduce((n, e) => n + e.players.length, 0),
+      groups: entries.reduce((n, e) => n + e.groups.length, 0),
+      last_at: last?.at,
+      last_song: last && `${last.title}${last.artist ? ` by ${last.artist}` : ""}`,
+    };
+  }
+  const page = pageFor(route, health?.modules ?? {}, loveOrLoathe);
   if (page) return <Developer.Provider value={!!health?.developer}>{page}</Developer.Provider>;
   const modules = Object.entries<ModuleHealth>({ ...health?.modules, ...watch });
   const on = modules.filter(([, h]) => h.state && h.state !== "disabled");
@@ -156,7 +172,7 @@ export function App() {
 }
 
 /** The page for a route other than home (undefined for home). */
-function pageFor(route: string, modules: Record<string, ModuleHealth>): ReactNode {
+function pageFor(route: string, modules: Record<string, ModuleHealth>, loveOrLoathe: Fed): ReactNode {
   if (route === "/guest") return <GuestPage state={modules.guest_login?.state} />;
   if (route === "/people") return <PeoplePage />;
   if (route === "/kiosks") return <KiosksPage state={modules.kiosks?.state} />;
@@ -165,6 +181,7 @@ function pageFor(route: string, modules: Record<string, ModuleHealth>): ReactNod
   if (route === "/commander") return <CommanderPage state={modules.commander?.state} />;
   if (route === "/auto-dashboards") return <AutoDashboardsPage state={modules.auto_dashboards?.state} />;
   if (route === "/compositor") return <CompositorPage state={modules.compositor?.state} />;
+  if (route === "/love-or-loathe") return <LoveOrLoathePage fed={loveOrLoathe} />;
   if (route === "/kiosk-mode") return <KioskModePage state={modules.kiosk_mode?.state} />;
   if (route === "/settings") return <SettingsPage />;
   if (route === "/swap") return <SwapPage />;

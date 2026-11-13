@@ -21,7 +21,7 @@ from homeassistant.config_entries import (
     SubentryFlowResult,
 )
 from homeassistant.const import CONF_NAME
-from homeassistant.core import callback
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import section
 from homeassistant.helpers.selector import (
     EntitySelector,
@@ -41,16 +41,19 @@ from .const import (
     ACTIONS,
     CONF_ACTION,
     CONF_AMOUNT,
-    CONF_BEFORE,
     CONF_DELAY,
     CONF_FEELING,
+    CONF_HOURS,
     CONF_LIBRARY,
     CONF_MEDIA,
     CONF_MINUTES,
     CONF_PATTERNS,
     CONF_PERSON,
     CONF_PLAYERS,
+    CONF_REPEATS,
+    CONF_TIMES,
     DEFAULT_ACTS,
+    DEFAULT_REPEATS,
     DOMAIN,
     GROUP,
     IGNORE,
@@ -60,7 +63,7 @@ from .const import (
     SWITCH,
     TITLE,
 )
-from .pure import libraries, parse
+from .pure import felt, libraries, parse
 
 PLAYERS = vol.Schema(
     {
@@ -80,14 +83,27 @@ PLAYERS = vol.Schema(
 )
 
 
-def _taken(flow: ConfigFlow | OptionsFlow, players: list[str], own: str = "") -> bool:
+def taken(hass: HomeAssistant, players: list[str], own: str = "") -> bool:
     """Whether another entry already watches one of these players: two entries acting
     on one player would undo each other's work."""
     return any(
         set(players) & set(entry.options.get(CONF_PLAYERS, []))
-        for entry in flow.hass.config_entries.async_entries(DOMAIN)
+        for entry in hass.config_entries.async_entries(DOMAIN)
         if entry.entry_id != own
     )
+
+
+def group_errors(entry: ConfigEntry, group: dict[str, Any]) -> dict[str, str]:
+    """What is wrong with a group about to be saved, as its form's errors. The page's
+    save (admin.py) is refused for the same."""
+    _good, bad = parse(group.get(CONF_PATTERNS, "").splitlines())
+    if bad:
+        return {CONF_PATTERNS: "bad_pattern"}
+    stations = [s for s in entry.subentries.values() if s.subentry_type == STATION]
+    switches = any(group[f][CONF_ACTION] == SWITCH for f in (LOVE, LOATHE))
+    if switches and not stations:
+        return {"base": "no_stations"}
+    return {}
 
 
 class LoveOrLoatheConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -98,7 +114,7 @@ class LoveOrLoatheConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         errors: dict[str, str] = {}
         if user_input is not None:
-            if not _taken(self, user_input[CONF_PLAYERS]):
+            if not taken(self.hass, user_input[CONF_PLAYERS]):
                 title = user_input.pop(CONF_NAME)
                 return self.async_create_entry(title=title, data={}, options=user_input)
             errors[CONF_PLAYERS] = "player_taken"
@@ -131,8 +147,11 @@ class LoveOrLoatheOptionsFlow(OptionsFlow):
         errors: dict[str, str] = {}
         if user_input is not None:
             own = self.config_entry.entry_id
-            if not _taken(self, user_input[CONF_PLAYERS], own):
-                return self.async_create_entry(data=user_input)
+            if not taken(self.hass, user_input[CONF_PLAYERS], own):
+                # With what the form doesn't show: the order the page gave (admin.py).
+                return self.async_create_entry(
+                    data={**self.config_entry.options, **user_input}
+                )
             errors[CONF_PLAYERS] = "player_taken"
         return self.async_show_form(
             step_id="init",
@@ -246,33 +265,46 @@ class GroupFlow(_NamedFlow):
                 vol.Optional(CONF_PERSON): EntitySelector(
                     EntitySelectorConfig(domain="person")
                 ),
+                vol.Optional(CONF_REPEATS): _REPEATS,
                 vol.Required(LOVE): _act_section(LOVE),
                 vol.Required(LOATHE): _act_section(LOATHE),
             }
         )
 
     def _errors(self, user_input: dict[str, Any]) -> dict[str, str]:
-        _good, bad = parse(user_input.get(CONF_PATTERNS, "").splitlines())
-        if bad:
-            return {CONF_PATTERNS: "bad_pattern"}
-        stations = [
-            s
-            for s in self._get_entry().subentries.values()
-            if s.subentry_type == STATION
-        ]
-        switches = any(user_input[f][CONF_ACTION] == SWITCH for f in (LOVE, LOATHE))
-        if switches and not stations:
-            return {"base": "no_stations"}
-        return {}
+        return group_errors(self._get_entry(), user_input)
 
     def _kept(self, user_input: dict[str, Any]) -> dict[str, Any]:
-        data = super()._kept(user_input)
-        # Whose list an ignored group still is (select.py) isn't on the form.
-        if self.source == SOURCE_RECONFIGURE:
-            before = self._get_reconfigure_subentry().data.get(CONF_BEFORE)
-            if before and data[CONF_FEELING] == IGNORE:
-                data[CONF_BEFORE] = before
-        return data
+        # Whose list an ignored group still is isn't on the form.
+        changing = self.source == SOURCE_RECONFIGURE
+        was = self._get_reconfigure_subentry().data if changing else {}
+        return felt(was, super()._kept(user_input))
+
+
+def _number(least: float, most: float, unit: str = "") -> NumberSelector:
+    config = NumberSelectorConfig(
+        min=least, max=most, step=1, mode=NumberSelectorMode.BOX
+    )
+    if unit:
+        config["unit_of_measurement"] = unit
+    return NumberSelector(config)
+
+
+# Any song heard so many times in so many hours is the group's too. The most hours is
+# how long the plays are remembered (pure.KEPT).
+_REPEATS = section(
+    vol.Schema(
+        {
+            vol.Required(CONF_TIMES, default=DEFAULT_REPEATS[CONF_TIMES]): _number(
+                0, 20
+            ),
+            vol.Required(CONF_HOURS, default=DEFAULT_REPEATS[CONF_HOURS]): _number(
+                1, 48, "h"
+            ),
+        }
+    ),
+    {"collapsed": True},
+)
 
 
 def _act_section(feeling: str) -> section:
