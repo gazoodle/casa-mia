@@ -3,8 +3,11 @@ artist against each group's patterns.
 
 A pattern is one line: a title, or `title | artist`, with `*` for any run of characters
 (`* | Cliff Richard` is everything by one artist). Case, accents and punctuation don't
-count. A pattern with no `*` beats one with, whichever group it is in, so a love group
-naming one song exempts it from another group's `*christmas*`.
+count.
+
+A group is loved, loathed or ignored at the moment (its feeling), and has an action for
+each. When a song is in more than one group, a pattern with no `*` beats one with; when
+that doesn't settle it, a loved group beats a loathed one.
 """
 
 from __future__ import annotations
@@ -18,6 +21,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 LIBRARY = Path(__file__).parent / "library"
+LOVE, LOATHE, IGNORE = "love", "loathe", "ignore"  # a group's feeling
 _BRACKETS = re.compile(r"[(\[][^)\]]*[)\]]")
 _APOSTROPHES = re.compile(r"['’`]")
 _JUNK = re.compile(r"[^a-z0-9*]+")
@@ -103,26 +107,75 @@ class Matcher:
 
 
 @dataclass(frozen=True, slots=True)
-class Group:
-    id: str
-    name: str
-    kind: str  # const.LOVE or const.LOATHE
+class Act:
+    """What to do when a song comes on."""
+
     action: str
     amount: float  # the volume change, in per cent of the volume now
     minutes: float  # how long a switch of station lasts
+
+
+@dataclass(frozen=True, slots=True)
+class Group:
+    id: str
+    name: str
+    feeling: str  # LOVE, LOATHE or IGNORE, now
+    person: str  # the person entity whose ratings it collects, or ""
+    love: Act  # what to do while it is loved
+    loathe: Act
     exact: Matcher  # its patterns with no *
     wild: Matcher
 
+    @property
+    def act(self) -> Act:
+        return self.love if self.feeling == LOVE else self.loathe
+
 
 def pick(groups: Iterable[Group], title: str, artist: str) -> Group | None:
-    """The group this track belongs to: the first with a pattern naming it outright,
-    else the first with a `*` pattern that takes it in."""
-    groups, tracks = list(groups), candidates(title, artist)
+    """The group this track belongs to, of those not ignored: the first with a pattern
+    naming it outright, else the first with a `*` pattern that takes it in; loved
+    groups before loathed ones each time."""
+    tracks = candidates(title, artist)
+    # The sort is stable: within a feeling, the order the groups were made in.
+    live = sorted(
+        (g for g in groups if g.feeling != IGNORE), key=lambda g: g.feeling != LOVE
+    )
     for part in ("exact", "wild"):
-        for group in groups:
+        for group in live:
             if getattr(group, part).matches(tracks):
                 return group
     return None
+
+
+def _names(line: str, title: str, artist: str) -> bool:
+    """Whether a line names this very song, with no `*`."""
+    good, _bad = parse([line])
+    return (
+        bool(good)
+        and "*" not in "".join(good[0])
+        and Matcher.of(good).matches(candidates(title, artist))
+    )
+
+
+def with_song(songs: str, title: str, artist: str) -> str:
+    """A group's songs with this one added as a line, `Title | Artist`, unless a line
+    names it already."""
+    lines = songs.splitlines()
+    if any(_names(line, title, artist) for line in lines):
+        return songs
+    title, artist = (
+        " ".join(part.replace("|", " ").replace("*", " ").split())
+        for part in (title, artist)
+    )
+    return "\n".join([*lines, f"{title} | {artist}" if artist else title]).strip()
+
+
+def without_song(songs: str, title: str, artist: str) -> str:
+    """A group's songs without the lines naming this one. A `*` line that takes it in
+    stays: it was written for more than this song."""
+    return "\n".join(
+        line for line in songs.splitlines() if not _names(line, title, artist)
+    )
 
 
 def scaled(level: float, percent: float) -> float:

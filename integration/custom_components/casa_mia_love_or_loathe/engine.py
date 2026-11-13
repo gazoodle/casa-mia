@@ -40,20 +40,23 @@ from .const import (
     CONF_ACTION,
     CONF_AMOUNT,
     CONF_DELAY,
-    CONF_KIND,
+    CONF_FEELING,
     CONF_MEDIA,
     CONF_MINUTES,
     CONF_PATTERNS,
+    CONF_PERSON,
     CONF_PLAYERS,
     DOMAIN,
     EVENT,
     GROUP,
+    LOATHE,
+    LOVE,
     MUTE,
     STATION,
     SWITCH,
     VOLUME,
 )
-from .pure import Group, Matcher, leads, pick, scaled
+from .pure import Act, Group, Matcher, leads, pick, scaled
 
 _LOGGER = logging.getLogger(__name__)
 ID = "media_content_id"
@@ -102,17 +105,15 @@ class Engine:
             Group(
                 s.subentry_id,
                 s.title,
-                s.data[CONF_KIND],
-                s.data[CONF_ACTION],
-                s.data[CONF_AMOUNT],
-                s.data[CONF_MINUTES],
+                s.data[CONF_FEELING],
+                s.data.get(CONF_PERSON, ""),
+                _act(s.data[LOVE]),
+                _act(s.data[LOATHE]),
                 *Matcher.split(s.data.get(CONF_PATTERNS, "").splitlines()),
             )
             for s in subentries
             if s.subentry_type == GROUP
         ]
-        # Each group's switch (switch.py) says whether it counts; on until it says not.
-        self.off: set[str] = set()
 
         self.last: dict[str, Any] | None = None  # the last match, for the sensor
         self.silent: set[str] = set()  # playing, but reporting no title
@@ -189,9 +190,9 @@ class Engine:
 
     @callback
     def afresh(self) -> None:
-        """Judge again what each player is playing now, as if it had just come on: at
-        start, and when a group is switched on. What the track had brought is undone
-        first, as at any new track, so nothing is done twice over."""
+        """Judge what each player is playing now, as if it had just come on: at every
+        start, so at each save of a group, change of its feeling and song rated. What
+        the track had brought was undone at the unload, so nothing is done twice."""
         for entity, player in self.players.items():
             player.track = None
             state = self.hass.states.get(entity)
@@ -266,8 +267,7 @@ class Engine:
             await self._undo(entity, player)
             await self._save()
 
-            groups = [g for g in self.groups if g.id not in self.off]
-            group = pick(groups, title, artist) if title else None
+            group = pick(self.groups, title, artist) if title else None
             if group is None or not leads(
                 entity, state.attributes.get("group_members")
             ):
@@ -279,7 +279,8 @@ class Engine:
                 if player.track != track:
                     return
 
-            act = self._actions.get(group.action)
+            action = group.act.action
+            act = self._actions.get(action)
             try:
                 result = (
                     await act(entity, player, group, state) if act else "event only"
@@ -289,7 +290,7 @@ class Engine:
                 _LOGGER.warning(
                     "%s: could not %s for %r by %r (%s): %s",
                     entity,
-                    group.action,
+                    action,
                     title,
                     artist,
                     group.name,
@@ -302,7 +303,7 @@ class Engine:
                     title,
                     artist,
                     group.name,
-                    group.kind,
+                    group.feeling,
                     result,
                 )
             await self._save()
@@ -312,8 +313,8 @@ class Engine:
             "title": title,
             "artist": artist,
             "group": group.name,
-            "kind": group.kind,
-            "action": group.action,
+            "feeling": group.feeling,
+            "action": action,
             "result": result,
             "at": dt_util.utcnow().isoformat(),
         }
@@ -333,7 +334,7 @@ class Engine:
         was = state.attributes.get("volume_level")
         if was is None:
             raise HomeAssistantError("the player reports no volume")
-        to = scaled(was, group.amount)
+        to = scaled(was, group.act.amount)
         await self._call("volume_set", entity, volume_level=to)
         player.undo = ["volume", was, to]
         return f"volume {was:.0%} to {to:.0%} until the next track"
@@ -371,7 +372,7 @@ class Engine:
             origin = here.media if here else None
             if origin is None and now:
                 origin = {ID: now, TYPE: state.attributes.get(TYPE) or "music"}
-            until = dt_util.utcnow() + timedelta(minutes=group.minutes)
+            until = dt_util.utcnow() + timedelta(minutes=group.act.minutes)
             away = player.away = {"until": until.isoformat(), "origin": origin}
             self._arm(entity, player)
         away.update(tried=[*tried, station.id], was=now, ours=None)
@@ -456,6 +457,10 @@ class Engine:
         if self.last and self.last[ATTR_ENTITY_ID] == entity:
             self.last = {**self.last, "result": f"failed: {what}"}
         self._tell()
+
+
+def _act(data: dict[str, Any]) -> Act:
+    return Act(data[CONF_ACTION], data[CONF_AMOUNT], data[CONF_MINUTES])
 
 
 def store_key(entry: ConfigEntry) -> str:

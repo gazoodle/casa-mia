@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.11.7-b5
+
+- **Love it or Loathe it: a group is loved, loathed or ignored at the moment, and has an action for each.** The same songs can be treated differently as time goes on: Christmas songs loathed in November, loved in December, ignored from January. Each group now has a select (Love, Loathe, Ignore) in place of its on/off switch, and its form has two actions, one for while it is loved and one for while it is loathed. Choosing a feeling acts at once on what is playing. Groups made in earlier builds are converted: the old kind becomes the feeling and the old action that feeling's. An automation that used a group's switch must use its select, and the event's `kind` field is now `feeling`.
+- **Love it or Loathe it: when a song is in two groups, love wins.** A line with no `*` still beats a line with one; when that doesn't settle it, a loved group beats a loathed one.
+- **Love it or Loathe it: each person's own songs, added from a dashboard.** A group can belong to a person. The new action `casa_mia_love_or_loathe.rate` adds the song a player is playing to that person's loved or loathed group and takes it out of their other one. It uses the person whose login pressed the button, or a person named in the call, for a shared wall tablet. Ordinary dashboard buttons call it; [the guide](https://github.com/gazoodle/casa-mia/blob/main/docs/applets/love-or-loathe.md#each-persons-own-songs) has the YAML.
+- **Love it or Loathe it: a group's Songs box can be left empty**, for a person's list that fills up as they rate songs.
+
 ## 2026.11.7-b4
 
 - **Love it or Loathe it: a song that is already playing is acted on when you save its group.** Adding the song that is on to a group's list, or turning a group's switch on, now acts on it at once. Before, nothing happened until the next track. The same goes for what is playing when Home Assistant starts.

@@ -149,23 +149,34 @@ imported from `casa_mia`, no app option. Guide: `docs/applets/love-or-loathe.md`
   be added, a player in only one (owner, 2026-11-13: one entry manages many players,
   separate entries allow variation). A subentry per group of songs and per station
   (`config_flow.py`, HA's own add, change and delete screens). A group's device and
-  switch belong to its subentry; HA refuses a device shared between an entry and its
+  select belong to its subentry; HA refuses a device shared between an entry and its
   subentries.
-- **Shipped lists fill the Songs box** (owner, 2026-11-13, after b2 only named the list
-  on the group and showed no songs: "once used it's like you just typed it in
-  yourself"). A new group's first step asks what to start from; nothing of the list is
-  kept but its songs. `__init__._take_in_libraries` converts b2's groups and can go.
+- **A group's feeling is state, not kind** (owner, 2026-11-13: "I love Xmas songs, just
+  not in November"). Love, Loathe or Ignore, kept in the subentry's data and shown by
+  its select (`select.py`) and its form; the group holds an action for loved and one for
+  loathed (form sections). Any change saves the subentry, which reloads the entry.
+- **Shipped lists fill the Songs box** (owner, 2026-11-13: "once used it's like you just
+  typed it in yourself"). A new group's first step asks what to start from; nothing of
+  the list is kept but its songs.
+- **A person's groups and the `rate` action** (`rating.py`, b5): a group can belong to a
+  person entity; `rate` adds the playing song to the caller's (or the named person's)
+  loved or loathed group and removes it from the other. A person's loved group is the
+  one set to Love, or that was before it was set to Ignore (`before` in its data).
+  The thumbs card is in BACKLOG; buttons call the action for now.
 - **`pure.py`** (no HA imports): folding, patterns (`title` or `title | artist`, `*`),
-  `pick` (a pattern with no `*` beats one with, in any group; then group order).
-  Libraries are JSON in `library/`; `christmas.json` is the first.
+  `pick` (no `*` beats `*`, then love beats loathe, then group order), `with_song` and
+  `without_song` for rating. Libraries are JSON in `library/`; `christmas.json` is the
+  first.
+- **`__init__._convert`** turns groups from b2 to b4 (never released) into today's shape
+  and removes their switches; it can go once the boxes that ran those have moved on.
 - **`engine.py`:** follows `state_changed` on the players (pushed). At a new track it
   undoes the last action, then acts: volume by a percentage or mute until the next
   track, or a switch of station for some minutes. `undo` and `away` are kept in HA's
   storage, so a restart loses neither; unloading puts volumes and mutes back at once.
   It never puts back over a person's change.
-  `afresh` judges what is playing now, at start (so at every save of a group) and when
-  a group is switched on (owner, 2026-11-13: a song added to a list while it plays
-  must be acted on then). Safe because unloading undoes volumes and mutes first.
+  `afresh` judges what is playing now at every start, so at each save of a group,
+  change of feeling and rating (owner, 2026-11-13: a song added to a list while it
+  plays must be acted on then). Safe because unloading undoes volumes and mutes first.
 - **Not yet proven on a real player** (2026-11-13): only inside the test Home Assistant,
   with caught services. To watch on the first real one: what `media_content_id` it
   reports for a station (`_settle` and `_switch` depend on it).
@@ -295,8 +306,8 @@ CLAUDE.md has them all. What trips agents here:
 
 ## What happened
 
-- **2026-11-13: Love it or Loathe it built** (2026.11.7-b2, reworked in b3 after the
-  owner's first use). See its section above. Left for later in BACKLOG: the fade, and the
+- **2026-11-13: Love it or Loathe it built** (2026.11.7-b2, reworked to b5 the same day as
+  the owner used it). See its section above. Left for later in BACKLOG: the fade, and the
   house's own radio station as one of its stations.
 - **2026-11-11: the Camera Commander's Responsive layout is specified, not built**
   (`docs/design/commander-responsive-layout.md`, agreed by the owner): a second mode

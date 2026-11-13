@@ -15,8 +15,13 @@ report, and acts when a track matches one of your groups of songs:
 - switch to another station for some minutes, then go back,
 - or only fire an event, for an automation to act on.
 
-It ships with a list of Christmas songs, for the weeks when a station starts playing
-them earlier than you would like.
+How you feel about a group of songs can change. Each group is loved, loathed or ignored
+at the moment, with an action for loved and another for loathed, and an automation can
+change the feeling. The shipped list of Christmas songs is the example: loathed in
+November, when a station starts playing them too early, and loved in December.
+
+Each person in the house can have their own loved and loathed groups, and add the song
+that is playing to them with a button on a dashboard.
 
 It is an integration of its own, **Love it or Loathe it**. It runs wholly in Home
 Assistant and needs neither the Casa Mia app nor the Casa Mia integration.
@@ -38,7 +43,7 @@ To change the volume, mute or switch station, the player must support Home Assis
 2. On the integration's page, **Add a station** for each station you are happy to be
    switched to. Give it a name, choose a player to browse on, and choose the station.
    The station is kept without the player, so it can be played on any of them.
-3. **Add a group of songs** for each set of songs and what to do about them.
+3. **Add a group of songs** for each set of songs.
 
 The groups and stations you add belong to that entry and apply to all its players. To
 give other players different groups or stations, add the integration again with those
@@ -50,8 +55,9 @@ before the song itself changes.
 
 ## Groups of songs
 
-A group has a name, whether you love or loathe its songs, the songs, and what happens
-when one comes on.
+A group has a name, its songs, how you feel about them now (**Loved**, **Loathed** or
+**Ignored**), and two actions: what to do when one comes on while the group is loved,
+and what to do while it is loathed. Ignored, the group does nothing.
 
 **Songs** takes one pattern per line:
 
@@ -73,13 +79,17 @@ shipped list so far, **Christmas songs**: titles with "Christmas", "Xmas", "Sant
 Claus", "sleigh" and the like, the carols, and the seasonal songs with no such word in
 the title ("Stay Another Day" by East 17, "Fairytale of New York").
 
-A line with no `*` beats a line with one, whichever group it is in. So to loathe
-`*christmas*` but keep "Last Christmas", make a second group that loves `Last Christmas`
-by name, with **Only fire the event** as its action. A song that a list names outright,
-such as "Fairytale of New York", is kept by deleting its line.
+When a song is in more than one group:
 
-A song that is already playing counts too: add it to a group's list and save, or turn
-the group's switch on, and it is acted on at once.
+1. A line with no `*` beats a line with one, whichever groups they are in.
+2. If that doesn't settle it, a loved group beats a loathed one.
+3. If that doesn't either, the group made first has it.
+
+So to loathe `*christmas*` but keep "Last Christmas", put `Last Christmas` in a loved
+group. Ignored groups take no part.
+
+A song that is already playing counts too: add it to a group's list and save, or change
+the group's feeling, and it is acted on at once.
 
 ### What happens when one comes on
 
@@ -103,24 +113,87 @@ lose the return.
 
 For speakers playing as one group, only the group's leader acts.
 
-## Turning a group on and off
+## Changing how you feel about a group
 
-Each group has a switch, named after the entry and the group
-(`switch.love_it_or_loathe_it_<group>` when the entry has the name it is offered). While it
-is off, the group's songs are ignored. An automation can turn it on and off, for example
-to loathe the Christmas songs until 1 December:
+Each group has a select, named after the entry and the group
+(`select.love_it_or_loathe_it_<group>` when the entry has the name it is offered), with
+the options `love`, `loathe` and `ignore`. It shows the same feeling as the group's
+form, and choosing one acts at once on whatever is playing.
+
+An automation can set it. For Christmas songs that are loathed until December, loved
+during it and ignored afterwards:
 
 ```yaml
 automation:
-  - alias: Christmas songs are welcome in December
+  - alias: How we feel about Christmas songs
     triggers:
       - trigger: time
         at: "00:00:00"
+      - trigger: homeassistant
+        event: start
     actions:
-      - action: "switch.turn_{{ 'off' if now().month == 12 else 'on' }}"
+      - action: select.select_option
         target:
-          entity_id: switch.love_it_or_loathe_it_christmas
+          entity_id: select.love_it_or_loathe_it_christmas
+        data:
+          option: >-
+            {{ 'love' if now().month == 12
+               else 'loathe' if now().month == 11
+               else 'ignore' }}
 ```
+
+## Each person's own songs
+
+A group can belong to a person (**Belongs to** on its form). Give a person two groups,
+one set to Loved and one to Loathed. Both can start empty.
+
+The action `casa_mia_love_or_loathe.rate` adds the song a player is playing to the
+person's loved or loathed group, as a line `Title | Artist`, and takes it out of their
+other group if it was named there. The song is then acted on at once.
+
+| Field | Holds |
+|---|---|
+| `entity_id` | The media player. It must be one the integration watches. |
+| `feeling` | `love` or `loathe`. |
+| `person` | Optional. Whose song it is. |
+
+Without `person`, the action uses the person whose login pressed the button. So the
+same two buttons work for everyone who signs in to Home Assistant as themselves:
+
+```yaml
+type: horizontal-stack
+cards:
+  - type: button
+    icon: mdi:thumb-up
+    name: Love it
+    tap_action:
+      action: perform-action
+      perform_action: casa_mia_love_or_loathe.rate
+      data:
+        entity_id: media_player.kitchen
+        feeling: love
+  - type: button
+    icon: mdi:thumb-down
+    name: Loathe it
+    tap_action:
+      action: perform-action
+      perform_action: casa_mia_love_or_loathe.rate
+      data:
+        entity_id: media_player.kitchen
+        feeling: loathe
+```
+
+A shared screen, such as a wall tablet, is signed in as nobody in particular. There,
+give each person their own pair of buttons with `person: person.ann` added to `data`.
+
+The action refuses, and says why, when the login belongs to no person and none is
+named, when the person has no group for that feeling, and when the player has no title
+to rate.
+
+A person's groups count for every player in the entry, whoever is listening. To stop
+them counting while the person is out, set their groups to `ignore` with an automation
+on the person's state, and back when they return. A group that is ignored is still that
+person's loved or loathed list, so rating into it still works.
 
 ## Seeing what it did
 
@@ -130,7 +203,7 @@ Its attributes:
 | Attribute | Holds |
 |---|---|
 | `entity_id`, `title`, `artist` | The player and the track. |
-| `group`, `kind`, `action` | The group it matched, `love` or `loathe`, and the group's action. |
+| `group`, `feeling`, `action` | The group it matched, whether it was loved or loathed at the time, and the action taken. |
 | `result` | What was done, or `failed:` and the reason. |
 | `at` | When. |
 | `away` | Each player now on another station, and when it goes back. |
@@ -144,7 +217,7 @@ triggers:
   - trigger: event
     event_type: casa_mia_love_or_loathe
     event_data:
-      kind: love
+      feeling: love
 ```
 
 Every match, action and return is in Home Assistant's log.
@@ -157,3 +230,6 @@ Every match, action and return is in Home Assistant's log.
 - Tell a person's choice from a station whose `media_content_id` changes with every
   track. Such a player is not switched back.
 - Fade between stations. The switch is immediate.
+- Show on a dashboard whether the song playing is already loved or loathed. The buttons
+  only add it.
+- Know who is in the room. A person's groups count wherever the entry's players are.

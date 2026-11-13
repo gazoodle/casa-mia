@@ -6,8 +6,9 @@ pure = load_component_file("casa_mia_love_or_loathe", "pure")
 CHRISTMAS = pure.libraries()["christmas"]["patterns"]
 
 
-def group(id, songs, kind="loathe"):
-    return pure.Group(id, id, kind, "mute", 0, 5, *pure.Matcher.split(songs))
+def group(id, songs, feeling="loathe"):
+    act = pure.Act("mute", 0, 5)
+    return pure.Group(id, id, feeling, "", act, act, *pure.Matcher.split(songs))
 
 
 def test_case_accents_and_punctuation_dont_count():
@@ -72,14 +73,33 @@ def test_the_christmas_list_knows_its_songs_and_leaves_the_rest():
         assert pure.pick([xmas], title, artist) is None, title
 
 
-def test_a_song_named_outright_beats_a_star_whichever_group_it_is_in():
+def test_a_song_named_outright_beats_a_star_and_then_love_beats_loathe():
     xmas = group("xmas", ["*christmas*", "Stay Another Day | East 17"])
-    loved = group("loved", ["Last Christmas", "*day*"], kind="love")
-    assert pure.pick([xmas, loved], "Last Christmas", "Wham!") is loved
-    assert pure.pick([xmas, loved], "White Christmas", "Bing Crosby") is xmas
-    # Both name it outright or both by a star: the first group has it.
-    assert pure.pick([xmas, loved], "Stay Another Day", "East 17") is xmas
-    assert pure.pick([xmas, loved], "Christmas Day", "A Band") is xmas
+    loved = group("loved", ["Last Christmas", "*day*", "*white*"], feeling="love")
+    both = [xmas, loved]
+    assert pure.pick(both, "Last Christmas", "Wham!") is loved
+    assert pure.pick(both, "Blue Christmas", "Elvis Presley") is xmas
+    # Named outright by the loathed group, taken in by a star of the loved one.
+    assert pure.pick(both, "Stay Another Day", "East 17") is xmas
+    # A star in each: the loved group has it, though it was made second.
+    assert pure.pick(both, "White Christmas", "Bing Crosby") is loved
+
+
+def test_an_ignored_group_has_no_songs():
+    xmas = group("xmas", ["*christmas*"], feeling="ignore")
+    assert pure.pick([xmas], "Last Christmas", "Wham!") is None
+
+
+def test_a_rated_song_is_a_line_of_its_own_and_comes_out_again():
+    songs = pure.with_song("Old Song\n*dreadful*", "Dreadful Song", "A Band")
+    assert songs == "Old Song\n*dreadful*\nDreadful Song | A Band"
+    assert pure.with_song(songs, "Dreadful Song (Live)", "A Band") == songs
+    assert pure.with_song("", "East 17 - Stay Another Day", "") == (
+        "East 17 - Stay Another Day"
+    )
+    # A title that would read as a pattern is made safe.
+    assert pure.with_song("", "This | That *", "A Band") == "This That | A Band"
+    assert pure.without_song(songs, "Dreadful Song", "A Band") == "Old Song\n*dreadful*"
 
 
 def test_a_volume_change_is_a_percentage_kept_within_the_scale():

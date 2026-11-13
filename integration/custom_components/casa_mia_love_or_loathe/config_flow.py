@@ -22,6 +22,7 @@ from homeassistant.config_entries import (
 )
 from homeassistant.const import CONF_NAME
 from homeassistant.core import callback
+from homeassistant.data_entry_flow import section
 from homeassistant.helpers.selector import (
     EntitySelector,
     EntitySelectorConfig,
@@ -40,15 +41,19 @@ from .const import (
     ACTIONS,
     CONF_ACTION,
     CONF_AMOUNT,
+    CONF_BEFORE,
     CONF_DELAY,
-    CONF_KIND,
+    CONF_FEELING,
     CONF_LIBRARY,
     CONF_MEDIA,
     CONF_MINUTES,
     CONF_PATTERNS,
+    CONF_PERSON,
     CONF_PLAYERS,
+    DEFAULT_ACTS,
     DOMAIN,
     GROUP,
+    IGNORE,
     LOATHE,
     LOVE,
     STATION,
@@ -230,20 +235,58 @@ class GroupFlow(_NamedFlow):
         return vol.Schema(
             {
                 vol.Required(CONF_NAME): str,
-                vol.Required(CONF_KIND, default=LOATHE): SelectSelector(
+                vol.Required(CONF_FEELING, default=LOATHE): SelectSelector(
                     SelectSelectorConfig(
-                        options=[LOVE, LOATHE], translation_key=CONF_KIND
+                        options=[LOVE, LOATHE, IGNORE], translation_key=CONF_FEELING
                     )
                 ),
-                vol.Required(CONF_PATTERNS): TextSelector(
+                vol.Optional(CONF_PATTERNS): TextSelector(
                     TextSelectorConfig(multiline=True)
                 ),
-                vol.Required(CONF_ACTION, default=SWITCH): SelectSelector(
+                vol.Optional(CONF_PERSON): EntitySelector(
+                    EntitySelectorConfig(domain="person")
+                ),
+                vol.Required(LOVE): _act_section(LOVE),
+                vol.Required(LOATHE): _act_section(LOATHE),
+            }
+        )
+
+    def _errors(self, user_input: dict[str, Any]) -> dict[str, str]:
+        _good, bad = parse(user_input.get(CONF_PATTERNS, "").splitlines())
+        if bad:
+            return {CONF_PATTERNS: "bad_pattern"}
+        stations = [
+            s
+            for s in self._get_entry().subentries.values()
+            if s.subentry_type == STATION
+        ]
+        switches = any(user_input[f][CONF_ACTION] == SWITCH for f in (LOVE, LOATHE))
+        if switches and not stations:
+            return {"base": "no_stations"}
+        return {}
+
+    def _kept(self, user_input: dict[str, Any]) -> dict[str, Any]:
+        data = super()._kept(user_input)
+        # Whose list an ignored group still is (select.py) isn't on the form.
+        if self.source == SOURCE_RECONFIGURE:
+            before = self._get_reconfigure_subentry().data.get(CONF_BEFORE)
+            if before and data[CONF_FEELING] == IGNORE:
+                data[CONF_BEFORE] = before
+        return data
+
+
+def _act_section(feeling: str) -> section:
+    """What to do while the group is loved, or loathed: one part of its form."""
+    usual = DEFAULT_ACTS[feeling]
+    return section(
+        vol.Schema(
+            {
+                vol.Required(CONF_ACTION, default=usual[CONF_ACTION]): SelectSelector(
                     SelectSelectorConfig(
                         options=list(ACTIONS), translation_key=CONF_ACTION
                     )
                 ),
-                vol.Required(CONF_AMOUNT, default=10): NumberSelector(
+                vol.Required(CONF_AMOUNT, default=usual[CONF_AMOUNT]): NumberSelector(
                     NumberSelectorConfig(
                         min=-100,
                         max=200,
@@ -252,7 +295,7 @@ class GroupFlow(_NamedFlow):
                         mode=NumberSelectorMode.BOX,
                     )
                 ),
-                vol.Required(CONF_MINUTES, default=5): NumberSelector(
+                vol.Required(CONF_MINUTES, default=usual[CONF_MINUTES]): NumberSelector(
                     NumberSelectorConfig(
                         min=1,
                         max=120,
@@ -262,22 +305,9 @@ class GroupFlow(_NamedFlow):
                     )
                 ),
             }
-        )
-
-    def _errors(self, user_input: dict[str, Any]) -> dict[str, str]:
-        good, bad = parse(user_input.get(CONF_PATTERNS, "").splitlines())
-        if bad:
-            return {CONF_PATTERNS: "bad_pattern"}
-        if not good:
-            return {CONF_PATTERNS: "no_patterns"}
-        stations = [
-            s
-            for s in self._get_entry().subentries.values()
-            if s.subentry_type == STATION
-        ]
-        if user_input[CONF_ACTION] == SWITCH and not stations:
-            return {CONF_ACTION: "no_stations"}
-        return {}
+        ),
+        {"collapsed": False},
+    )
 
 
 class StationFlow(_NamedFlow):
