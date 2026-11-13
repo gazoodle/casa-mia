@@ -1,0 +1,20 @@
+rate:
+  fields:
+    entity_id:
+      required: true
+      selector:
+        entity:
+          domain: media_player
+    feeling:
+      required: true
+      selector:
+        select:
+          translation_key: rating
+          options:
+            - love
+            - loathe
+            - clear
+    person:
+      selector:
+        entity:
+          domain: person

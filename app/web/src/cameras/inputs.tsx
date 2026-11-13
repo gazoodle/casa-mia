@@ -5,7 +5,7 @@ import edges from "./edges.module.css";
 import { Segmented } from "../ui";
 import { Slider } from "../controls";
 import { Control, Entities, ThumbRound } from "./common";
-import { type ControlsAt, EDGES, controlsAt, controlsStyle } from "./controls";
+import { type ControlsAt, EDGES, PILL_SIZES, controlsAt, controlsStyle } from "./controls";
 
 /** Closes a popup (calls `close`) on a tap or click outside the returned ref. On the
  * finished click, not the press: closing a tall list moves the page, and a press that
@@ -178,7 +178,7 @@ export function ControlsEdges({
       </div>
       <div className={edges.look}>
         <span>Size</span>
-        <Segmented value={at.size} options={[["small", "Small"], ["medium", "Medium"], ["large", "Large"]]} onChange={(size) => set({ size })} />
+        <Slider value={at.size} {...PILL_SIZES} format={(v) => `${v} px`} onChange={(size) => set({ size })} />
         <span>Along the edge</span>
         <Segmented
           value={at.align}

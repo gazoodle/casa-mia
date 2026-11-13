@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Scope</title>
+<style>
+:root { --panel: #4f7f8c; --panel2: #3c6570; --silk: #f1eede; --knob: #2b2f33; }
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; color: var(--silk); padding: 16px 20px;
+  /* The blue-grey wrinkle paint of a 1970s bench instrument. */
+  background: radial-gradient(rgba(255,255,255,.05) 1px, transparent 1.5px) 0 0 / 4px 4px, linear-gradient(170deg, var(--panel), var(--panel2));
+  display: grid; grid-template-columns: minmax(0, 1fr) 380px; grid-template-rows: auto auto; gap: 14px 20px; min-height: 100vh; align-content: start; }
+.silk { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; font-weight: 700; }
+h2 { margin: 0 0 10px; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; font-weight: 700; border-bottom: 2px solid var(--silk); padding-bottom: 4px; }
+
+/* ---------- the tube ---------- */
+.tube { background: #17191b; border-radius: 22px; padding: 22px; box-shadow: inset 0 0 0 3px #000, inset 0 0 0 5px #5d6266, 0 10px 20px rgba(0,0,0,.4); position: relative; }
+.tube canvas { display: block; width: 100%; height: auto; border-radius: 26px / 20px; }
+/* The glass: a curved highlight and darker corners over the phosphor. */
+.tube::after { content: ""; position: absolute; inset: 22px; border-radius: 26px / 20px; pointer-events: none;
+  background: radial-gradient(120% 90% at 30% 10%, rgba(255,255,255,.13), transparent 45%), radial-gradient(ellipse at center, transparent 62%, rgba(0,0,0,.55));
+  box-shadow: inset 0 0 30px #000; }
+.maker { position: absolute; left: 30px; bottom: 5px; font-size: 9px; letter-spacing: .3em; color: #9aa0a4; font-weight: 700; }
+
+/* ---------- controls ---------- */
+.controls { display: grid; gap: 14px; align-content: start; }
+.block { border: 2px solid var(--silk); border-radius: 6px; padding: 10px 14px 12px; }
+.pair { display: flex; gap: 18px; justify-content: space-around; text-align: center; }
+/* A rotary switch: it steps between marked positions, and the skirt carries the pointer. */
+.rotary { all: unset; cursor: pointer; display: block; width: 92px; height: 92px; margin: 14px auto 16px; border-radius: 50%; position: relative;
+  background: radial-gradient(circle at 35% 30%, #5a6066, var(--knob) 60%, #0d0f10); box-shadow: 0 6px 9px rgba(0,0,0,.5), 0 0 0 5px #c9ccce, 0 0 0 6px #555;
+  rotate: calc(var(--at, 0) * 40deg - 40deg); transition: rotate .12s cubic-bezier(.3, 1.9, .5, 1); }
+.rotary::before { content: ""; position: absolute; left: 50%; top: -3px; width: 5px; height: 26px; margin-left: -2.5px; background: #fff; border-radius: 2px; }
+.rotary::after { content: ""; position: absolute; inset: 30px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ff6a5a, #9a1d14); }
+.marks { display: flex; justify-content: space-between; margin: 0 4px; }
+.marks b { opacity: .55; } .marks b.at { opacity: 1; text-decoration: underline; }
+.chans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.chan { all: unset; cursor: pointer; text-align: center; }
+.chan i { display: block; width: 44px; height: 30px; margin: 0 auto 5px; border-radius: 4px; background: #d9d9d4; box-shadow: 0 4px 0 #777, 0 6px 6px rgba(0,0,0,.4); position: relative; transition: translate .06s, box-shadow .06s; }
+.chan.on i { translate: 0 3px; box-shadow: 0 1px 0 #777; }
+.chan i::after { content: ""; position: absolute; left: 50%; top: 9px; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: #333; }
+.chan.on i::after { background: var(--c); box-shadow: 0 0 10px var(--c); }
+.lamp { display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: #5a1b12; vertical-align: middle; margin-right: 6px; box-shadow: inset 0 0 0 2px #0004; }
+.lamp.fire { animation: fire .5s ease-out; } @keyframes fire { 0% { background: #ffb199; box-shadow: 0 0 14px #ff5a3c; } }
+
+/* ---------- bat-handle toggles, one per device ---------- */
+.bench { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.group { text-align: center; } .group > div { display: flex; gap: 6px; margin-top: 8px; }
+/* Embossed tape labels, as stuck on every piece of lab kit. */
+.tape { display: inline-block; background: #14181a; color: #fff; font: 700 11px/1 "Courier New", monospace; letter-spacing: .14em; padding: 4px 8px; border-radius: 2px;
+  text-shadow: 0 1px 0 #000, 0 -1px 0 #777; }
+.bat { all: unset; cursor: pointer; width: 46px; text-align: center; font-size: 8px; letter-spacing: .08em; text-transform: uppercase; font-weight: 700; }
+.bat i { display: block; width: 26px; height: 26px; margin: 22px auto 20px; border-radius: 50%; position: relative;
+  background: radial-gradient(circle, #777 0 30%, #d6d6d2 34% 62%, #8a8a86 66%); box-shadow: 0 2px 3px rgba(0,0,0,.5); }
+.bat i::after { content: ""; position: absolute; left: 50%; top: 50%; width: 9px; height: 21px; margin-left: -4.5px; border-radius: 5px 5px 3px 3px;
+  background: linear-gradient(90deg, #fafafa, #a9a9a9 55%, #6f6f6f); transform-origin: 50% 0; rotate: 0deg; box-shadow: 2px 2px 3px rgba(0,0,0,.45);
+  transition: rotate .08s cubic-bezier(.5, 0, 1, .5); }
+.bat.on i::after { rotate: 180deg; }
+.bat i::before { content: ""; position: absolute; left: 50%; top: -19px; width: 8px; height: 8px; margin-left: -4px; border-radius: 50%; background: #4a1410; }
+.bat.on i::before { background: #ff7a3c; box-shadow: 0 0 8px #ff7a3c; }
+:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+@media (max-width: 900px) { body { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="tube"><canvas id="crt" width="900" height="560"></canvas><span class="maker">CASA MIA INSTRUMENTS · TYPE 545 HOUSE OSCILLOSCOPE</span></div>
+<div class="controls">
+  <div class="block"><h2>Horizontal · Vertical</h2><div class="pair">
+    <div><button class="rotary" id="time" aria-label="Time across the screen"></button><div class="marks silk" id="time-marks"></div><span class="silk">Time base</span></div>
+    <div><button class="rotary" id="volts" aria-label="Degrees per division"></button><div class="marks silk" id="volts-marks"></div><span class="silk">Degrees / div</span></div></div></div>
+  <div class="block"><h2>Channels</h2><div class="chans" id="chans"></div></div>
+  <div class="block"><h2>Trigger · Scenes</h2><p class="silk" style="margin:0 0 10px"><i class="lamp" id="trig"></i>Trig'd on any change</p>
+    <div class="chans" id="scenes" style="grid-template-columns:repeat(4,1fr)"></div></div>
+</div>
+<div class="bench" id="bench"></div>
+
+<script src="house.js"></script>
+<script src="trace.js"></script>
+<script>
+const SPANS = [6, 24, 168], SCALES = [1, 2, 5];
+const view = { span: 1, scale: 1, shown: new Set(["kitchen", "sitting", "garden"]) };
+
+// A rotary switch steps to its next position on each press and wraps round.
+function rotary(id, labels, key) {
+  const el = document.getElementById(id);
+  document.getElementById(id + "-marks").innerHTML = labels.map((l) => `<b>${l}</b>`).join("");
+  const show = () => { el.style.setProperty("--at", view[key]); [...document.getElementById(id + "-marks").children].forEach((b, i) => b.classList.toggle("at", i === view[key])); };
+  el.onclick = () => { view[key] = (view[key] + 1) % labels.length; show(); draw(); };
+  show();
+}
+rotary("time", ["6 h", "24 h", "7 d"], "span");
+rotary("volts", ["1°", "2°", "5°"], "scale");
+
+document.getElementById("chans").innerHTML = House.rooms.map((r, i) =>
+  `<button class="chan silk" data-room="${r.id}" style="--c:${Trace.COLOURS[i]}"><i></i>CH${i + 1} ${r.name.split(" ")[0]}</button>`).join("");
+document.getElementById("chans").onclick = (e) => {
+  const b = e.target.closest(".chan");
+  if (!b) return;
+  view.shown.has(b.dataset.room) ? view.shown.delete(b.dataset.room) : view.shown.add(b.dataset.room);
+  draw();
+};
+document.getElementById("scenes").innerHTML = House.scenes.map((s) => `<button class="chan silk" data-scene="${s.id}"><i></i>${s.name}</button>`).join("");
+document.getElementById("scenes").onclick = (e) => { const b = e.target.closest(".chan"); if (b) House.scene(b.dataset.scene); };
+
+document.getElementById("bench").innerHTML = House.rooms.map((r) => `<div class="group"><span class="tape">${r.name.toUpperCase()}</span><div>${
+  r.devices.map((d) => `<button class="bat" data-id="${d.id}" aria-label="${r.name} ${d.name}"><i></i>${d.name.split(" ")[0].slice(0, 7)}</button>`).join("")}</div></div>`).join("");
+document.getElementById("bench").onclick = (e) => { const b = e.target.closest(".bat"); if (b) House.toggle(b.dataset.id); };
+
+function draw() {
+  const rooms = House.rooms.filter((r) => view.shown.has(r.id));
+  Trace.draw(document.getElementById("crt"), rooms, { span: SPANS[view.span], perDiv: SCALES[view.scale], centre: SCALES[view.scale] === 1 ? 20 : 16, colours: Trace.COLOURS });
+  document.querySelectorAll("#chans .chan").forEach((b) => b.classList.toggle("on", view.shown.has(b.dataset.room)));
+  for (const d of House.devices) document.querySelector(`[data-id="${d.id}"]`).classList.toggle("on", d.on);
+}
+House.on(() => {
+  const lamp = document.getElementById("trig");
+  lamp.classList.remove("fire"); void lamp.offsetWidth; lamp.classList.add("fire");
+  draw();
+});
+draw();
+</script>
+</body>
+</html>

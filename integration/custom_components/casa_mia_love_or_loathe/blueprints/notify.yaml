@@ -1,0 +1,109 @@
+blueprint:
+  name: Notify on Love it or Loathe it
+  author: Casa Mia
+  description: >-
+    Tell someone when Love it or Loathe it acts on a song: the song, the player, the
+    group that had it and what was done. The Love it or Loathe it integration installs
+    this file and replaces it when it changes: to change it, copy it under another name
+    first.
+  domain: automation
+  homeassistant:
+    min_version: "2024.10.0"
+  input:
+    feeling:
+      name: For songs that are
+      default: any
+      selector:
+        select:
+          options:
+            - label: Loved or loathed
+              value: any
+            - label: Loved
+              value: love
+            - label: Loathed
+              value: loathe
+    failures:
+      name: Only when it failed
+      description: Only when what was to be done could not be (a player that refused, a station that could not be put back).
+      default: false
+      selector:
+        boolean: {}
+    notify:
+      name: Notify action
+      description: >-
+        Where to send it, e.g. notify.mobile_app_ann_phone (a phone with the Home
+        Assistant app); leave empty for none.
+      default: ""
+      selector:
+        text: {}
+    persistent:
+      name: Also as a Home Assistant notification
+      description: In the sidebar's notifications, one per player, each replacing that player's last.
+      default: true
+      selector:
+        boolean: {}
+    more:
+      name: Anything else
+      description: >-
+        More actions (a light, a speaker), with these variables: title and text (the
+        notification's), song, player, entity_id, song_title, artist, group, feeling,
+        action, result, repeats (how many times it has been played, when that is why
+        the group had it) and failed.
+      default: []
+      selector:
+        action: {}
+
+mode: queued
+max: 10
+
+triggers:
+  - trigger: event
+    event_type: casa_mia_love_or_loathe
+
+variables:
+  only_feeling: !input feeling
+  only_failures: !input failures
+  notify_action: !input notify
+  persistent: !input persistent
+  entity_id: "{{ trigger.event.data.entity_id }}"
+  song_title: "{{ trigger.event.data.title }}"
+  artist: "{{ trigger.event.data.artist or '' }}"
+  group: "{{ trigger.event.data.group }}"
+  feeling: "{{ trigger.event.data.feeling }}"
+  action: "{{ trigger.event.data.action }}"
+  result: "{{ trigger.event.data.result }}"
+  repeats: "{{ trigger.event.data.repeats or 0 }}"
+  failed: "{{ result.startswith('failed') }}"
+  song: "{{ song_title ~ (' by ' ~ artist if artist else '') }}"
+  player: "{{ state_attr(entity_id, 'friendly_name') or entity_id }}"
+  title: "{{ 'Loved' if feeling == 'love' else 'Loathed' }}: {{ song }}"
+  text: >-
+    {{ player }}: {{ result }} · {{ group }}{{
+    ' · played ' ~ repeats ~ ' times lately' if repeats | int > 0 else '' }}
+  notification_id: "love_or_loathe_{{ entity_id | slugify }}"
+
+conditions:
+  - condition: template
+    value_template: "{{ only_feeling == 'any' or feeling == only_feeling }}"
+  - condition: template
+    value_template: "{{ failed or not only_failures }}"
+
+actions:
+  - if:
+      - condition: template
+        value_template: "{{ notify_action != '' }}"
+    then:
+      - action: "{{ notify_action }}"
+        data:
+          title: "{{ title }}"
+          message: "{{ text }}"
+  - if:
+      - condition: template
+        value_template: "{{ persistent }}"
+    then:
+      - action: persistent_notification.create
+        data:
+          notification_id: "{{ notification_id }}"
+          title: "{{ title }}"
+          message: "{{ text }}"
+  - sequence: !input more

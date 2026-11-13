@@ -9,6 +9,7 @@ NEVER TEST THIS: run it after changing a design, and look at the results.
 - Camera Commander: a security camera on a wall bracket.
 - Guest Login: a QR code (a drawing of one, not a real code).
 - Intercom: an intercom panel.
+- Love it or Loathe it: a heart on the left and a vomiting face on the right.
 - Protect Talkback: UniFi Protect's camera (branding/unifiprotect-icon.png, from
   brands.home-assistant.io), taken off its blue background and drawn small.
 
@@ -33,6 +34,7 @@ CREAM = (247, 232, 211, 255)
 GREEN = (30, 74, 56, 255)
 DARK_LENS = (18, 42, 33, 255)
 LIGHT_TERRACOTTA = (233, 132, 96, 255)
+VOMIT = (139, 178, 84, 255)  # Love it or Loathe it's face only
 
 Box = Callable[[float, float, float, float], tuple[float, float, float, float]]
 
@@ -176,16 +178,43 @@ def _protect(image: Image.Image, s: float) -> None:
     image.alpha_composite(camera, (round(410 * s - camera.width / 2), round(321 * s)))
 
 
+def _love_and_loathe(image: Image.Image, s: float) -> None:
+    """A heart on the left and a vomiting face on the right, each on a cream disc in
+    front of the house."""
+    draw = ImageDraw.Draw(image)
+    width = round(10 * s)
+
+    def at(*points: float) -> list[float]:
+        return [p * s for p in points]
+
+    # Love: the heart, two circles over a triangle.
+    draw.ellipse(at(12, 280, 212, 480), fill=CREAM)
+    draw.ellipse(at(44, 326, 116, 398), fill=TERRACOTTA)
+    draw.ellipse(at(108, 326, 180, 398), fill=TERRACOTTA)
+    draw.polygon(at(46, 372, 178, 372, 112, 448), fill=TERRACOTTA)
+
+    # Loathe: a face with its eyes screwed shut, and what comes out of its mouth.
+    draw.ellipse(at(300, 280, 500, 480), fill=CREAM)
+    draw.ellipse(at(322, 296, 478, 452), fill=GREEN)
+    draw.line(at(350, 340, 378, 354, 350, 368), fill=CREAM, width=width, joint="curve")
+    draw.line(at(450, 340, 422, 354, 450, 368), fill=CREAM, width=width, joint="curve")
+    draw.ellipse(at(370, 380, 430, 424), fill=DARK_LENS)
+    draw.rounded_rectangle(at(380, 398, 420, 468), radius=20 * s, fill=VOMIT)
+    draw.ellipse(at(362, 448, 438, 478), fill=VOMIT)
+
+
 OVERLAYS: dict[str, Callable[[Image.Image, float], None]] = {
     "casa_mia_commander": lambda image, s: _camera(ImageDraw.Draw(image), s),
     "casa_mia_guest_login": lambda image, s: _qr(ImageDraw.Draw(image), s),
     "casa_mia_intercom": lambda image, s: _panel(ImageDraw.Draw(image), s),
+    "casa_mia_love_or_loathe": _love_and_loathe,
     "casa_mia_protect_talkback": _protect,
 }
 WORDS = {
     "casa_mia_commander": "Camera Commander",
     "casa_mia_guest_login": "Guest Login",
     "casa_mia_intercom": "Intercom",
+    "casa_mia_love_or_loathe": "Love it or Loathe it",
     "casa_mia_protect_talkback": "Protect Talkback",
 }
 

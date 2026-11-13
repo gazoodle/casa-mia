@@ -155,3 +155,11 @@ export const SwapIcon = () => (
     <path d="M4 8h14M14 4l4 4-4 4M20 16H6M10 12l-4 4 4 4" />
   </svg>
 );
+
+/** Love it or Loathe it: a heart, one half filled in. */
+export const HeartIcon = () => (
+  <svg {...base}>
+    <path d="M12 20.5C6 16 3 12.8 3 9a4.5 4.5 0 0 1 9-1.2A4.5 4.5 0 0 1 21 9c0 3.8-3 7-9 11.5z" />
+    <path d="M12 7.8v12.7" />
+  </svg>
+);

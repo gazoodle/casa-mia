@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fridge</title>
+<style>
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body { font-family: "Noteworthy", "Marker Felt", "Bradley Hand", "Comic Sans MS", cursive; color: #2b2b2b; padding: 18px 26px 26px 70px;
+  /* A cream enamel fridge door, with the chrome handle down its left edge. */
+  background: linear-gradient(90deg, rgba(0,0,0,.1), transparent 3%, transparent 96%, rgba(0,0,0,.12)), linear-gradient(175deg, #f4f1e6, #dcd8c8);
+  min-height: 100vh; position: relative; }
+body::before { content: ""; position: fixed; left: 22px; top: 18%; width: 22px; height: 46%; border-radius: 11px;
+  background: linear-gradient(90deg, #fafafa, #b9bcc0 45%, #7d8186); box-shadow: 4px 6px 10px rgba(0,0,0,.3); }
+
+/* ---------- alphabet magnets ---------- */
+.letters { display: flex; gap: 5px; margin-bottom: 8px; align-items: flex-end; flex-wrap: wrap; }
+.letters b { font: 900 54px/1 "Arial Rounded MT Bold", "Chalkboard SE", "Helvetica Neue", sans-serif; color: var(--c); rotate: var(--r);
+  text-shadow: 0 2px 0 rgba(0,0,0,.25), 2px 4px 5px rgba(0,0,0,.25); -webkit-text-stroke: 1px rgba(0,0,0,.12); }
+.letters i { width: 22px; }
+.door { display: grid; grid-template-columns: minmax(0, 2.4fr) minmax(0, 1fr); gap: 26px; align-items: start; }
+.photos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px 20px; }
+
+/* ---------- a polaroid per room ---------- */
+.snap { background: #fdfdf8; padding: 10px 10px 8px; rotate: var(--r); box-shadow: 2px 5px 10px rgba(0,0,0,.28); position: relative; }
+/* The magnet that holds it up. */
+.snap::before { content: ""; position: absolute; left: 50%; top: -9px; width: 22px; height: 22px; margin-left: -11px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff8, transparent 40%), var(--c); box-shadow: 0 3px 4px rgba(0,0,0,.35); }
+.pic { all: unset; cursor: pointer; display: grid; place-items: center; width: 100%; height: 112px; font-size: 58px; position: relative; overflow: hidden;
+  background: linear-gradient(160deg, #26304f, #131a30); transition: background .6s; }
+.pic span { filter: grayscale(.9) brightness(.55); transition: filter .6s, scale .5s cubic-bezier(.3, 1.6, .5, 1); }
+.lit .pic { background: radial-gradient(circle at 50% 20%, #fff4c4, #ffd166 55%, #f2a541); }
+.lit .pic span { filter: none; scale: 1.12; }
+.cap { display: flex; justify-content: space-between; font-size: 19px; margin: 5px 2px 6px; }
+.cap small { font-size: 16px; opacity: .7; }
+.magnets { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+/* Button magnets: grey until switched on, then their own colour. A tap makes them wobble. */
+.mag { all: unset; cursor: pointer; width: 48px; text-align: center; font-size: 11px; line-height: 1.1; }
+.mag i { display: grid; place-items: center; width: 46px; height: 46px; margin: 0 auto 3px; border-radius: 50%; font-style: normal; font-size: 23px;
+  background: radial-gradient(circle at 35% 28%, #fff9, transparent 45%), #b9b9b2; box-shadow: 0 3px 5px rgba(0,0,0,.35), inset 0 -3px 0 rgba(0,0,0,.15);
+  filter: grayscale(1); transition: filter .3s, background-color .3s; }
+.mag.on i { background-color: var(--c); filter: none; }
+.mag.tapped i { animation: wobble .5s; } @keyframes wobble { 30% { rotate: -14deg; scale: 1.15; } 60% { rotate: 9deg; } }
+:focus-visible { outline: 3px solid #2b6cb0; outline-offset: 3px; }
+
+/* ---------- the notepad and the word magnets ---------- */
+.pad { background: repeating-linear-gradient(#fffbe0 0 31px, #b9d3ea 31px 32px); padding: 46px 18px 14px 26px; rotate: 1.5deg; position: relative;
+  box-shadow: 2px 5px 10px rgba(0,0,0,.25); font-size: 21px; line-height: 32px; border-left: 3px double #e88; }
+.pad::before { content: ""; position: absolute; left: 50%; top: -12px; width: 86px; height: 34px; margin-left: -43px; border-radius: 6px;
+  background: linear-gradient(#3d3d3d, #111); box-shadow: 0 3px 5px rgba(0,0,0,.4); }
+.pad h2 { margin: 0; font-size: 25px; line-height: 32px; }
+.pad ul { margin: 0; padding: 0; list-style: none; }
+.words { display: flex; flex-wrap: wrap; gap: 10px 8px; margin-top: 26px; }
+.words button, .words span { all: unset; font: 400 21px/1 Georgia, "Times New Roman", serif; background: #fff; color: #111; padding: 6px 10px; rotate: var(--r);
+  box-shadow: 1px 3px 4px rgba(0,0,0,.3); }
+.words button { cursor: pointer; border-bottom: 3px solid #f2a541; }
+.words button:active { scale: .94; }
+@media (max-width: 900px) { body { padding-left: 22px; } body::before { display: none; } .door { grid-template-columns: 1fr; } .photos { grid-template-columns: 1fr 1fr; } }
+</style>
+</head>
+<body>
+<div class="letters" id="letters"></div>
+<div class="door"><div class="photos" id="photos"></div>
+  <div><div class="pad"><h2>Today</h2><ul id="notes"></ul></div><div class="words" id="words"></div></div></div>
+
+<script src="house.js"></script>
+<script>
+const PIC = { kitchen: "🍳", sitting: "🛋️", study: "📚", hall: "🚪", bedroom: "🛏️", garden: "🌳" };
+const ICON = { light: "💡", switch: "🔌", cover: "🪟", lock: "🔑" };
+const PAINT = ["#e63946", "#f4a261", "#2a9d8f", "#457b9d", "#9b5de5", "#f15bb5", "#e9c46a"];
+
+document.getElementById("letters").innerHTML = [..."CASA MIA"].map((ch, i) =>
+  ch === " " ? "<i></i>" : `<b style="--c:${PAINT[i % PAINT.length]};--r:${((i * 37) % 17) - 8}deg">${ch}</b>`).join("");
+
+document.getElementById("photos").innerHTML = House.rooms.map((r, i) => `
+  <div class="snap" data-room="${r.id}" style="--r:${((i * 53) % 7) - 3}deg;--c:${PAINT[(i + 2) % PAINT.length]}">
+    <button class="pic" aria-label="${r.name}: lights"><span>${PIC[r.id]}</span></button>
+    <div class="cap">${r.name}<small>${r.temp.toFixed(1)}°</small></div>
+    <div class="magnets">${r.devices.map((d, k) =>
+      `<button class="mag" data-id="${d.id}" style="--c:${PAINT[(i + k) % PAINT.length]}"><i>${ICON[d.kind]}</i>${d.name}</button>`).join("")}</div></div>`).join("");
+
+// Fridge poetry: the underlined words run a scene, the rest are only there for the look.
+const WORDS = ["we", ["evening", "evening"], "love", ["film", "film"], "tea", ["bedtime", "bedtime"], "and", ["away", "away"], "toast"];
+document.getElementById("words").innerHTML = WORDS.map((w, i) => {
+  const tilt = `style="--r:${((i * 29) % 9) - 4}deg"`;
+  return Array.isArray(w) ? `<button data-scene="${w[1]}" ${tilt}>${w[0]}</button>` : `<span ${tilt}>${w}</span>`;
+}).join("");
+
+document.body.addEventListener("click", (e) => {
+  const mag = e.target.closest(".mag"), pic = e.target.closest(".pic"), word = e.target.closest("[data-scene]");
+  if (mag) { House.toggle(mag.dataset.id); mag.classList.remove("tapped"); void mag.offsetWidth; mag.classList.add("tapped"); }
+  if (word) House.scene(word.dataset.scene);
+  if (pic) {
+    // The photo is the room's lights: tap it to turn them all off, or all on if none were.
+    const room = House.rooms.find((r) => r.id === pic.closest(".snap").dataset.room), on = House.lightsOn(room) > 0;
+    House.lights(room).forEach((d) => d.on === on && House.toggle(d.id));
+  }
+});
+
+function paint() {
+  for (const r of House.rooms) document.querySelector(`[data-room="${r.id}"]`).classList.toggle("lit", House.lightsOn(r) > 0);
+  for (const d of House.devices) document.querySelector(`[data-id="${d.id}"]`).classList.toggle("on", d.on);
+  const lit = House.devices.filter((d) => d.kind === "light" && d.on).length, door = House.find("h_lock");
+  const cold = [...House.rooms.slice(0, 5)].sort((a, b) => a.temp - b.temp)[0];
+  document.getElementById("notes").innerHTML = [
+    lit ? `${lit} ${lit === 1 ? "light" : "lights"} on` : "All the lights are off",
+    `Using ${(House.watts() / 1000).toFixed(2)} kW`,
+    door.on ? "Front door locked ✔" : "Front door is UNLOCKED!",
+    House.find("k_kettle").on ? "Kettle's on ☕" : `Coldest: ${cold.name} ${cold.temp.toFixed(1)}°`,
+    `Outside it's ${House.rooms[5].temp.toFixed(1)}°`,
+  ].map((n) => `<li>${n}</li>`).join("");
+}
+House.on(paint);
+paint();
+</script>
+</body>
+</html>

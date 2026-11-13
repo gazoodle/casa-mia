@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cutaway</title>
+<style>
+:root { --paper: #12397a; --line: #dbe9ff; --warm: #ffd76a; }
+html, body { margin: 0; min-height: 100%; }
+body { background: var(--paper); color: var(--line); font-family: "Courier New", ui-monospace, monospace;
+  /* Drawing-office grid: fine squares, with a heavier line every fifth. */
+  background-image: linear-gradient(rgba(219,233,255,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(219,233,255,.07) 1px, transparent 1px),
+    linear-gradient(rgba(219,233,255,.13) 1px, transparent 1px), linear-gradient(90deg, rgba(219,233,255,.13) 1px, transparent 1px);
+  background-size: 20px 20px, 20px 20px, 100px 100px, 100px 100px; }
+svg { display: block; width: 100%; height: auto; max-height: 100vh; }
+svg * { vector-effect: non-scaling-stroke; }
+.l { fill: none; stroke: var(--line); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
+.thin { stroke-width: .8; } .heavy { stroke-width: 3; }
+.hatch { fill: url(#hatch); stroke: var(--line); stroke-width: 1.5; }
+text { fill: var(--line); font-size: 13px; letter-spacing: .12em; text-transform: uppercase; }
+text.name { font-size: 16px; font-weight: 700; } text.small { font-size: 10.5px; }
+/* A lit room is washed in from its back wall forwards, as light fills a real one. */
+.wash { fill: var(--warm); opacity: 0; transition: opacity .7s; }
+.lit .wash { opacity: .5; } .lit .wash.floor { opacity: .28; } .lit .wash.side { opacity: .16; }
+.glow { fill: url(#lamp); opacity: 0; transition: opacity .7s; } .lit .glow { opacity: 1; }
+.shade { fill: var(--paper); stroke: var(--line); stroke-width: 1.5; transition: fill .4s; } .lit .shade { fill: var(--warm); }
+.room { cursor: pointer; } .room:hover .l.frame, .room:focus-visible .l.frame { stroke-width: 3.5; } .room:focus-visible { outline: 0; }
+.tag { cursor: pointer; } .tag circle { fill: var(--paper); stroke: var(--line); stroke-width: 1.5; transition: fill .3s; }
+.tag.on circle { fill: var(--warm); } .tag.on text.n { fill: #12397a; }
+.tag:hover text, .tag:focus-visible text { text-decoration: underline; } .tag:focus-visible { outline: 0; }
+.smoke { animation: rise 4s ease-out infinite; opacity: 0; } @keyframes rise { 0% { opacity: .9; } 100% { opacity: 0; translate: 26px -70px; scale: 2; } }
+.spray, .ripple { opacity: 0; transition: opacity .4s; } .on .spray, .on .ripple { opacity: 1; }
+.on .ripple { animation: ripple 2s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes ripple { from { scale: .3; opacity: 1; } to { scale: 1.2; opacity: 0; } }
+.bulb { fill: var(--paper); transition: fill .3s; } .on .bulb { fill: var(--warm); filter: drop-shadow(0 0 8px var(--warm)); }
+@media (prefers-reduced-motion: reduce) { .smoke, .on .ripple { animation: none; } }
+</style>
+</head>
+<body>
+<svg id="sheet" viewBox="0 0 1340 780">
+  <defs>
+    <pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line y2="7" stroke="#dbe9ff" stroke-width="1"/></pattern>
+    <radialGradient id="lamp"><stop offset="0" stop-color="#fff3c2" stop-opacity=".95"/><stop offset="1" stop-color="#ffd76a" stop-opacity="0"/></radialGradient>
+  </defs>
+</svg>
+
+<script src="house.js"></script>
+<script>
+const X0 = 360, Y0 = 170, W = 226, H = 216, IN = 36;   // house corner, a room's size, and how far its back wall is set in
+// Where each room sits (column, floor) and the furniture drawn on its back wall.
+const PLAN = {
+  study: [0, 0, `<path class="l" d="M60,150 h80 v30 M60,150 v30 M70,150 v-14 h26 v14"/><path class="l thin" d="M150,70 h36 M150,90 h36 M150,110 h36 M150,60 v60 M186,60 v60"/>`],
+  bedroom: [1, 0, `<path class="l" d="M50,180 v-40 h14 v18 h100 v22 M50,158 h114 M164,158 v22"/><path class="l thin" d="M66,150 q10,-10 20,0"/>`],
+  kitchen: [0, 1, `<path class="l" d="M52,180 v-36 h70 v36 M52,156 h70 M140,180 v-70 h40 v70 M140,140 h40"/><path class="l thin" d="M76,144 v-10 h14 v10 M90,138 h5"/>`],
+  sitting: [1, 1, `<path class="l" d="M48,180 v-30 q0,-8 8,-8 h70 q8,0 8,8 v30 M48,164 h86 M150,180 v-52 h36 v52 z"/><path class="l thin" d="M154,132 h28 v24 h-28 z"/>`],
+  hall: [2, 1, `<path class="l" d="M92,180 v-92 h44 v92"/><circle class="l" cx="128" cy="138" r="2.5"/><path class="l thin" d="M56,96 h20 M60,96 v14 M72,96 v10"/>`],
+};
+
+function roomSvg(room) {
+  const [col, floor, art] = PLAN[room.id], x = X0 + col * W, y = Y0 + floor * H, x1 = x + W, y1 = y + H;
+  const tags = room.devices.map((d, i) => `<g class="tag" data-id="${d.id}" tabindex="0" transform="translate(${x + 14},${y + 62 + i * 24})">
+    <circle r="9"/><text class="small n" x="-3.5" y="4">${i + 1}</text><text class="small" x="16" y="4"></text></g>`).join("");
+  return `<g class="room" data-room="${room.id}" tabindex="0">
+    <path class="wash floor" d="M${x},${y1} L${x + IN},${y1 - IN} H${x1 - IN} L${x1},${y1}Z"/>
+    <path class="wash side" d="M${x},${y} L${x + IN},${y + IN} V${y1 - IN} L${x},${y1}Z M${x1},${y} L${x1 - IN},${y + IN} V${y1 - IN} L${x1},${y1}Z M${x},${y} L${x + IN},${y + IN} H${x1 - IN} L${x1},${y}Z"/>
+    <rect class="wash" x="${x + IN}" y="${y + IN}" width="${W - 2 * IN}" height="${H - 2 * IN}"/>
+    <circle class="glow" cx="${x + W / 2}" cy="${y + 62}" r="78"/>
+    <rect class="l frame" x="${x}" y="${y}" width="${W}" height="${H}"/><rect class="l thin" x="${x + IN}" y="${y + IN}" width="${W - 2 * IN}" height="${H - 2 * IN}"/>
+    <path class="l thin" d="M${x},${y} l${IN},${IN} M${x1},${y} l${-IN},${IN} M${x},${y1} l${IN},${-IN} M${x1},${y1} l${-IN},${-IN}"/>
+    <g transform="translate(${x},${y})">${art}</g>
+    <path class="l" d="M${x + W / 2},${y} v40"/><path class="shade" d="M${x + W / 2 - 12},${y + 54} l6,-14 h12 l6,14 z"/>
+    <rect x="${x}" y="${y}" width="${W}" height="${H}" fill="transparent"/>
+    <text class="name" x="${x + 14}" y="${y + 24}">${room.name}</text><text class="small" x="${x + 14}" y="${y + 40}">${room.temp.toFixed(1)}° · wants ${room.target}°</text>
+  </g>${tags}`;
+}
+
+const garden = House.rooms.find((r) => r.id === "garden"), right = X0 + 3 * W, ground = Y0 + 2 * H;
+document.getElementById("sheet").innerHTML += `
+  <path class="l heavy" d="M${X0 - 26},${Y0} L${X0 + 1.5 * W},${Y0 - 124} L${right + 26},${Y0}"/>
+  <path class="hatch" d="M${X0 + 2.2 * W},${Y0 - 66} v-58 h34 v82 z"/>
+  <circle class="l smoke" cx="${X0 + 2.2 * W + 17}" cy="${Y0 - 134}" r="8"/><circle class="l smoke" cx="${X0 + 2.2 * W + 17}" cy="${Y0 - 134}" r="8" style="animation-delay:1.4s"/>
+  <circle class="l smoke" cx="${X0 + 2.2 * W + 17}" cy="${Y0 - 134}" r="8" style="animation-delay:2.8s"/>
+  <!-- the landing: stairs, not a room -->
+  <rect class="l" x="${X0 + 2 * W}" y="${Y0}" width="${W}" height="${H}"/>
+  <path class="l thin" d="${Array.from({ length: 9 }, (_, i) => `M${X0 + 2 * W + 30 + i * 18},${Y0 + H - i * 20} v-20 h18`).join(" ")}"/>
+  <text class="small" x="${X0 + 2 * W + 14}" y="${Y0 + 24}">Landing</text>
+  ${House.rooms.filter((r) => PLAN[r.id]).map(roomSvg).join("")}
+  <rect class="hatch" x="${X0 - 14}" y="${ground}" width="${3 * W + 28}" height="16"/>
+  <path class="l heavy" d="M20,${ground} H1320"/>
+  <!-- the garden: path lights, a pond and a sprinkler -->
+  <text class="name" x="40" y="${ground - 250}">Garden</text><text class="small" x="40" y="${ground - 234}">${garden.temp.toFixed(1)}° outside</text>
+  <path class="l" d="M250,${ground} v-90 M250,${ground - 90} q-50,-10 -40,-56 q-14,-44 34,-50 q30,-40 62,0 q40,8 28,52 q12,44 -44,54 z"/>
+  <g class="tag" data-id="g_path" tabindex="0">${[60, 120, 180].map((x) => `<path class="l" d="M${x},${ground} v-34"/><circle class="l bulb" cx="${x}" cy="${ground - 40}" r="7"/>`).join("")}
+    <text class="small" x="52" y="${ground + 34}">1 Path lights</text></g>
+  <g class="tag" data-id="g_pond" tabindex="0" transform="translate(1236,${ground})"><ellipse class="l" cy="16" rx="80" ry="12"/>
+    <ellipse class="l thin ripple" cy="16" rx="50" ry="7"/><path class="l" d="M0,16 v-18"/><path class="l thin spray" d="M0,-2 q-14,-26 -26,2 M0,-2 q14,-26 26,2"/>
+    <text class="small" x="-60" y="50">2 Pond pump</text></g>
+  <g class="tag" data-id="g_water" tabindex="0" transform="translate(${right + 52},${ground})"><path class="l" d="M0,0 v-14 M-6,-14 h12"/>
+    <path class="l thin spray" stroke-dasharray="2 6" d="M0,-14 q-30,-50 -60,6 M0,-14 q30,-50 60,6 M0,-14 q-14,-64 -34,4 M0,-14 q14,-64 34,4"/>
+    <text class="small" x="-44" y="34">3 Sprinkler</text></g>
+  <!-- title block -->
+  <g transform="translate(1070,40)"><rect class="l heavy" width="240" height="118"/><path class="l" d="M0,40 h240 M0,80 h240 M120,80 v38"/>
+    <text class="name" x="14" y="27">Casa Mia</text><text x="14" y="66">Section A–A, lit rooms</text>
+    <text class="small" x="12" y="98">Scale 1:50</text><text class="small" x="12" y="111">Drg DB-007</text>
+    <text class="small" x="132" y="98" id="kw"></text><text class="small" x="132" y="111">Rev C</text></g>
+  <text class="small" x="40" y="60">Press a room to light it. Press a numbered fitting to switch only that.</text>`;
+
+const sheet = document.getElementById("sheet");
+function act(target) {
+  const tag = target.closest(".tag"), room = target.closest(".room");
+  if (tag) return House.toggle(tag.dataset.id);
+  if (!room) return;
+  const r = House.rooms.find((x) => x.id === room.dataset.room), on = House.lightsOn(r) > 0;
+  House.lights(r).forEach((d) => d.on === on && House.toggle(d.id));
+}
+sheet.addEventListener("click", (e) => act(e.target));
+sheet.addEventListener("keydown", (e) => e.key === "Enter" && act(e.target));
+
+function paint() {
+  for (const r of House.rooms) document.querySelector(`[data-room="${r.id}"]`)?.classList.toggle("lit", House.lightsOn(r) > 0);
+  for (const d of House.devices) {
+    const tag = document.querySelector(`[data-id="${d.id}"]`), label = tag.querySelector("text:not(.n)");
+    tag.classList.toggle("on", d.on);
+    if (PLAN[d.room.id]) label.textContent = `${d.name}: ${House.state(d)}`;
+  }
+  document.getElementById("kw").textContent = `${(House.watts() / 1000).toFixed(2)} kW`;
+}
+House.on(paint);
+paint();
+</script>
+</body>
+</html>

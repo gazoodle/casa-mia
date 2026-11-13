@@ -1,0 +1,224 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Love it or Loathe it",
+        "description": "Choose the media players to watch, one or several. After this, add your groups of songs and the stations to switch to on the integration's page. To give other players different groups or stations, add the integration again.",
+        "data": {
+          "name": "Name",
+          "players": "Media players to watch (one or more)",
+          "delay": "Delay"
+        },
+        "data_description": {
+          "players": "Any player that reports the title of what it is playing. Choose as many as you like: after the first, the box offers another. For speakers playing as one group, only the group's leader acts.",
+          "delay": "Seconds to wait after a player reports a new track before acting. Leave it at 0 unless the title changes before the song does.",
+          "name": "Shown on its device and entities. It matters when you add the integration more than once."
+        }
+      }
+    },
+    "error": {
+      "player_taken": "One of those players is already watched by another Love it or Loathe it entry. Two entries acting on one player would undo each other's work."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Media players to watch, and who may rate",
+        "data": {
+          "players": "Media players to watch (one or more)",
+          "delay": "Delay",
+          "raters": "Who may rate",
+          "screens": "Screens that may rate for them"
+        },
+        "data_description": {
+          "players": "Any player that reports the title of what it is playing. Choose as many as you like: after the first, the box offers another. For speakers playing as one group, only the group's leader acts.",
+          "delay": "Seconds to wait after a player reports a new track before acting. Leave it at 0 unless the title changes before the song does.",
+          "raters": "The people whose loves and loathes count here. Only they can rate a song, with the thumbs or the rate action, and only they get loved and loathed groups. Left empty, nobody can.",
+          "screens": "The logins that may rate for one of those people by naming them, such as a wall tablet's. Anyone else can only rate as themselves; an administrator may always name a person."
+        }
+      }
+    },
+    "error": {
+      "player_taken": "One of those players is already watched by another Love it or Loathe it entry. Two entries acting on one player would undo each other's work."
+    }
+  },
+  "config_subentries": {
+    "group": {
+      "entry_type": "Group of songs",
+      "initiate_flow": {
+        "user": "Add a group of songs",
+        "reconfigure": "Change this group"
+      },
+      "step": {
+        "user": {
+          "title": "A group of songs",
+          "description": "Start with an empty list and type the songs in, or start from a shipped list. A shipped list is put into the Songs box on the next screen, and from then on the songs are yours to add to and cut.",
+          "data": {
+            "library": "Start with"
+          }
+        },
+        "songs": {
+          "title": "A group of songs",
+          "description": "Some songs, how you feel about them now, and what to do when one comes on. The group gets a select of its own (Love, Loathe, Ignore), so an automation can change the feeling.",
+          "data": {
+            "name": "Name",
+            "feeling": "Right now these songs are",
+            "patterns": "Songs",
+            "person": "Belongs to"
+          },
+          "data_description": {
+            "feeling": "Chooses which of the two actions below applies. Ignored, the group does nothing.",
+            "patterns": "One per line: a title, or a title and an artist as Title | Artist. Use * for anything, for example *love* or * | Cliff Richard. Capitals and punctuation don't matter. It can be left empty for a person's list that fills up as they rate songs.",
+            "person": "Optional. The rate action adds the song that is playing to this person's loved group or loathed group. Give a person one group set to Love and one set to Loathe."
+          },
+          "sections": {
+            "repeats": {
+              "name": "Songs played too often",
+              "description": "For a station with a short playlist: this group also has any song that has been played this many times in the last so many hours, whatever the song. A song that a group names is treated as that group says.",
+              "data": {
+                "times": "Times played",
+                "hours": "In the last"
+              },
+              "data_description": {
+                "times": "0 switches this off. At 3, a song is the group's the third time it is played.",
+                "hours": "Hours to look back, up to 48."
+              }
+            },
+            "love": {
+              "name": "While loved",
+              "data": {
+                "action": "When one comes on",
+                "amount": "Volume change",
+                "minutes": "Minutes on the other station"
+              },
+              "data_description": {
+                "amount": "For Change the volume: a percentage of the volume at the time, so 10 turns it up a tenth and -50 halves it. It is put back at the next track.",
+                "minutes": "For Switch station: how long to stay away before going back."
+              }
+            },
+            "loathe": {
+              "name": "While loathed",
+              "data": {
+                "action": "When one comes on",
+                "amount": "Volume change",
+                "minutes": "Minutes on the other station"
+              },
+              "data_description": {
+                "amount": "For Change the volume: a percentage of the volume at the time, so 10 turns it up a tenth and -50 halves it. It is put back at the next track.",
+                "minutes": "For Switch station: how long to stay away before going back."
+              }
+            }
+          }
+        }
+      },
+      "error": {
+        "bad_pattern": "A line of nothing but * would match every song. Remove it or add a title or an artist.",
+        "no_stations": "Add a station to switch to first, from the integration's page."
+      },
+      "abort": {
+        "reconfigure_successful": "Saved."
+      }
+    },
+    "station": {
+      "entry_type": "Station",
+      "initiate_flow": {
+        "user": "Add a station",
+        "reconfigure": "Change this station"
+      },
+      "step": {
+        "user": {
+          "title": "A station to switch to",
+          "description": "Somewhere to go when a loathed song comes on. Stations are tried in order, skipping the one that is playing: the order they were added in, unless it was changed on the page in Casa Mia.",
+          "data": {
+            "name": "Name",
+            "media": "What to play"
+          },
+          "data_description": {
+            "media": "Choose a player to browse on, then the station. The station is then played on whichever player needs it."
+          }
+        }
+      },
+      "abort": {
+        "reconfigure_successful": "Saved."
+      }
+    }
+  },
+  "selector": {
+    "feeling": {
+      "options": {
+        "love": "Loved",
+        "loathe": "Loathed",
+        "ignore": "Ignored"
+      }
+    },
+    "rating": {
+      "options": {
+        "love": "Love",
+        "loathe": "Loathe",
+        "clear": "Neither (take the rating away)"
+      }
+    },
+    "action": {
+      "options": {
+        "volume": "Change the volume until the next track",
+        "mute": "Mute until the next track",
+        "switch": "Switch station for some minutes",
+        "event": "Only fire the event"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "last_match": {
+        "name": "Last match"
+      }
+    },
+    "select": {
+      "feeling": {
+        "state": {
+          "love": "Love",
+          "loathe": "Loathe",
+          "ignore": "Ignore"
+        }
+      }
+    },
+    "switch": {
+      "watching": {
+        "name": "Watching"
+      }
+    }
+  },
+  "issues": {
+    "restart_required": {
+      "title": "Restart Home Assistant to finish updating Love it or Loathe it",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Restart Home Assistant",
+            "description": "The Love it or Loathe it integration was updated from {from_version} to {to_version}, but Home Assistant is still running {from_version}. Until it restarts, nothing new in {to_version} works. Restart Home Assistant to load it."
+          }
+        }
+      }
+    }
+  },
+  "services": {
+    "rate": {
+      "name": "Rate the song playing",
+      "description": "Adds the song a player is playing to a person's loved or loathed group, and takes it out of their other one. It is then acted on at once. A person's first loved or loathed song makes that group for them.",
+      "fields": {
+        "entity_id": {
+          "name": "Media player",
+          "description": "The player whose song is being rated. It must be one that Love it or Loathe it watches."
+        },
+        "feeling": {
+          "name": "Feeling",
+          "description": "Love or loathe; or clear, to take the song out of both of the person's groups."
+        },
+        "person": {
+          "name": "Person",
+          "description": "Whose song it is. Leave it out on a dashboard people sign in to as themselves: the person who pressed is used. Give it on a shared screen such as a wall tablet."
+        }
+      }
+    }
+  }
+}

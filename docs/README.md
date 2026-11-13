@@ -32,6 +32,7 @@ Each page of the Casa Mia panel in Home Assistant's sidebar.
 - [Alarm panel](applets/alarm-panel.md): The intruder alarm as a Home Assistant alarm panel: arm away, disarm, triggered.
 - [Intercom](applets/intercom.md): A call for each doorbell, shared by every screen in the house, so only one person talks to the door at a time.
 - [UniFi Protect talkback](applets/protect-talkback.md): Talk through UniFi Protect doorbells and cameras from Home Assistant.
+- [Love it or Loathe it](applets/love-or-loathe.md): Boosts the volume for a song you love, and changes the radio station for one you loathe.
 
 ## Maturity
 

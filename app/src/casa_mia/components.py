@@ -30,7 +30,10 @@ INSTALLED_EVENT = "casa_mia_components_installed"
 # put a newer one in HA's config than this app bundles, and that one is left alone. The
 # rest come from the app only and always follow it, so that installing an earlier app
 # takes them back with it (docs/releases.md).
-PUBLISHED = {"casa_mia_sensor_watch": "casa-mia-sensor-watch"}
+PUBLISHED = {
+    "casa_mia_sensor_watch": "casa-mia-sensor-watch",
+    "casa_mia_love_or_loathe": "casa-mia-love-or-loathe",
+}
 _VERSION = re.compile(r"(\d+)\.(\d+)\.(\d+)(?:-b(\d+))?")
 # HA's notification service through the Supervisor proxy. The notice needs no dismissing:
 # HA drops notifications when it restarts, which is what it asks for.

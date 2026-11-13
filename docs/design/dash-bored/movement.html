@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Movement</title>
+<style>
+html, body { margin: 0; height: 100%; background: #111; overflow: hidden; }
+canvas { display: block; touch-action: none; cursor: pointer; }
+/* A lens darkens towards its edges; this is most of the "macro photograph" look for free. */
+body::after { content: ""; position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 45% 45%, transparent 60%, rgba(0,0,0,.35)); }
+/* The frame rate, so a tablet's result is a number and not an impression. */
+#cost { position: fixed; left: 10px; bottom: 8px; z-index: 1; font: 700 11px/1 "Courier New", monospace; color: #fff9; letter-spacing: .1em; pointer-events: none; }
+/* Real buttons for the keyboard and screen readers; the screws are only pictures to them. */
+nav { position: fixed; left: 0; top: 0; z-index: 1; }
+nav button { position: absolute; opacity: 0; pointer-events: none; }
+nav button:focus-visible { opacity: 1; position: static; }
+</style>
+<!-- ponytail: three.js comes from a CDN for this mock-up; bundle it into the card if the family goes ahead. -->
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }</script>
+</head>
+<body>
+<nav id="buttons"></nav>
+<div id="cost"></div>
+
+<script src="house.js"></script>
+<script type="module">
+import * as THREE from "three";
+
+const TAU = Math.PI * 2, MODULE = 0.2;
+const GILT = 0xe2b35a, RHODIUM = 0x9aa0a8, STEEL = new THREE.Color(0xdfe3ea), BLUED = new THREE.Color(0x1638b8);
+// Wheels run on three levels above the main plate; the bridges lie over all of them.
+// A screen taller than the design's shape has the two rows pushed apart, which shows more
+// of the train. ponytail: worked out once at load, so turning the tablet needs a reload.
+const SPARE = Math.max(0, 22.6 / (innerWidth / innerHeight) - 12) * 0.75;
+const LEVELS = [0.5, 1.0, 1.5], BRIDGE = 2.7, TOP = 3.6, EDGE = 3.9 + SPARE;
+
+// ---------- the bench: renderer, the studio it reflects, one lamp ----------
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.prepend(renderer.domElement);
+
+const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(28, 1, 1, 300);
+// Polished metal is only as good as what it reflects: a dark studio with one big, soft
+// softbox above and to the left with a dimmer one beside it, a hot strip low on that side for the glints on bevels,
+// and two weak strips so the shadowed side is not dead black.
+const studio = new THREE.Scene();
+studio.add(new THREE.Mesh(new THREE.BoxGeometry(60, 60, 60), new THREE.MeshBasicMaterial({ color: 0x15171b, side: THREE.BackSide })));
+for (const [w, h, x, y, z, colour, power] of [[16, 12, -6, 8, 16, 0xfff0d8, 0.85], [14, 14, 9, 3, 16, 0xe6ecff, 0.5], [2, 14, -19, 11, 7, 0xffffff, 16], [3, 18, 17, -3, 10, 0xcfe0ff, 5], [22, 3, 0, -17, 7, 0xffd9a8, 3]]) {
+  const panel = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(colour).multiplyScalar(power), side: THREE.DoubleSide }));
+  panel.position.set(x, y, z); panel.lookAt(0, 0, 0);
+  studio.add(panel);
+}
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(studio, 0.03).texture;
+
+// One lamp, upper left, for every shadow in the movement.
+const lamp = new THREE.DirectionalLight(0xfff1dc, 1.5);
+lamp.position.set(-14, 16, 30);
+lamp.castShadow = true;
+Object.assign(lamp.shadow.camera, { left: -30, right: 30, top: 22, bottom: -22, near: 1, far: 80 });
+lamp.shadow.mapSize.set(2048, 2048);
+lamp.shadow.radius = 5;
+lamp.shadow.bias = -0.0004;
+scene.add(lamp);
+
+// ---------- finishes ----------
+const metal = (color, roughness, more) => new THREE.MeshPhysicalMaterial({ color, metalness: 1, roughness, ...more });
+
+// A grain map says which way a surface is rougher at each point. `centre(x, y)` gives the
+// middle of the brushing that covers a pixel, and the grain runs out from it.
+function grain(n, centre) {
+  const px = new Uint8Array(n * n * 4);
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    const [cx, cy] = centre(x, y), a = Math.atan2(y - cy + 0.5, x - cx + 0.5);
+    px.set([Math.cos(a) * 127 + 128, Math.sin(a) * 127 + 128, 255, 255], (y * n + x) * 4);
+  }
+  return px;
+}
+function grained(px, n) {
+  const map = new THREE.DataTexture(px, n, n);
+  map.magFilter = map.minFilter = THREE.LinearFilter;
+  map.needsUpdate = true;
+  return map;
+}
+
+// Circular brushing: rougher along the radius, so a highlight stretches into the "bow tie"
+// that stays under the lamp while the wheel turns beneath it.
+const RADIAL = grain(128, () => [64, 64]);
+function brushed(color, radius) {
+  const map = grained(RADIAL, 128);
+  // An extruded face's UVs are its x and y, so this lays the map over a disc of `radius`.
+  map.repeat.setScalar(1 / (2 * radius)); map.offset.setScalar(0.5);
+  return metal(color, 0.32, { anisotropy: 1, anisotropyMap: map });
+}
+
+// Perlage for the main plate: rows of overlapping engine-turned spots, each one a small
+// circular brushing of its own, so every spot answers the lamp.
+function perlage() {
+  const map = grained(grain(256, (x, y) => {
+    let at = [0, 0];
+    for (let j = -1; j <= 4; j++) for (let i = -1; i <= 4; i++) {
+      const sx = i * 64 + (j & 1 ? 32 : 0), sy = j * 64;
+      if (Math.hypot(x - sx, y - sy) < 46) at = [sx, sy];
+    }
+    return at;
+  }), 256);
+  map.wrapS = map.wrapT = THREE.RepeatWrapping;
+  map.repeat.setScalar(160 / 3);
+  return metal(0x868a91, 0.44, { anisotropy: 0.5, anisotropyMap: map });
+}
+
+// Geneva stripes: each band is a shallow trough, so each catches the lamp at its own angle.
+function striped(color) {
+  const n = 64, px = new Uint8Array(n * 4);
+  for (let i = 0; i < n; i++) px.set([(i / n - 0.5) * 0.12 * 127 + 128, 128, 255, 255], i * 4);
+  const map = new THREE.DataTexture(px, n, 1);
+  map.wrapS = map.wrapT = THREE.RepeatWrapping;
+  map.magFilter = map.minFilter = THREE.LinearFilter;
+  map.repeat.setScalar(1 / 1.3); map.rotation = 0.5;
+  map.needsUpdate = true;
+  return metal(color, 0.3, { normalMap: map });
+}
+
+// ---------- parts ----------
+// A flat part with polished bevels (group 0 of an extrusion is its faces, group 1 its edges).
+function solid(shape, z, depth, bevel, face, edge) {
+  const geo = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelOffset: -bevel, bevelSegments: 3, curveSegments: 20 });
+  const mesh = new THREE.Mesh(geo, [face, edge]);
+  mesh.position.z = z + bevel;
+  mesh.castShadow = mesh.receiveShadow = true;
+  return mesh;
+}
+const cast = (mesh) => { mesh.castShadow = true; return mesh; };
+const turned = (r0, r1, height, material) => cast(new THREE.Mesh(new THREE.CylinderGeometry(r0, r1, height, 40).rotateX(Math.PI / 2), material));
+
+// The outline of a toothed wheel, with a tooth centred on angle zero.
+function gear(teeth) {
+  const r = (teeth * MODULE) / 2, tip = r + MODULE, root = r - 1.25 * MODULE, pitch = TAU / teeth, shape = new THREE.Shape();
+  for (let i = 0; i < teeth; i++) [[-0.5, root], [-0.27, root], [-0.12, tip], [0.12, tip], [0.27, root]].forEach(([f, rad], k) =>
+    shape[i || k ? "lineTo" : "moveTo"](Math.cos((i + f) * pitch) * rad, Math.sin((i + f) * pitch) * rad));
+  shape.closePath();
+  return shape;
+}
+
+// The escape wheel: fifteen hooked teeth, each with a steep face for the pallets to catch.
+function escapeWheel() {
+  const pitch = TAU / 15, shape = new THREE.Shape();
+  for (let i = 0; i < 15; i++) [[0, 1.55], [0.1, 2.2], [0.24, 2.14], [0.8, 1.55]].forEach(([f, rad], k) =>
+    shape[i || k ? "lineTo" : "moveTo"](Math.cos((i + f) * pitch) * rad, Math.sin((i + f) * pitch) * rad));
+  shape.closePath();
+  return spokes(shape, 3, 1.25, 0.5, 0.15);
+}
+
+// The windows between a wheel's spokes, cut so that every spoke has parallel sides.
+function spokes(shape, count, rim, hub, half) {
+  for (let i = 0; i < count; i++) {
+    const a0 = (i * TAU) / count, a1 = a0 + TAU / count, out = Math.asin(half / rim), inn = Math.asin(half / hub), hole = new THREE.Path();
+    hole.absarc(0, 0, rim, a0 + out, a1 - out, false);
+    hole.absarc(0, 0, hub, a1 - inn, a0 + inn, true);
+    hole.closePath();
+    shape.holes.push(hole);
+  }
+  return shape;
+}
+
+// The mainspring barrel has no spokes, only a ring of holes drilled through it.
+function drilled(shape, count, at, r) {
+  for (let i = 0; i < count; i++) shape.holes.push(new THREE.Path().absarc(Math.cos((i * TAU) / count) * at, Math.sin((i * TAU) / count) * at, r, 0, TAU, true));
+  return shape;
+}
+
+// Lettering engraved and filled with ink, as on a real bridge.
+function engrave(text, x, y, height, widest) {
+  const c = document.createElement("canvas"), ctx = c.getContext("2d"), font = '700 96px Copperplate, "Copperplate Gothic Bold", Georgia, serif';
+  ctx.font = font;
+  c.width = Math.ceil(ctx.measureText(text).width) + 16; c.height = 120;
+  ctx.font = font; ctx.fillStyle = "#fff"; ctx.textBaseline = "middle"; ctx.fillText(text, 8, 64);
+  const h = Math.min(height, (widest * c.height) / c.width);
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry((h * c.width) / c.height, h),
+    new THREE.MeshStandardMaterial({ color: 0x101216, map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false, roughness: 0.9 }));
+  mesh.position.set(x, y, TOP + 0.01);
+  scene.add(mesh);
+}
+
+// A slotted screw standing on a bridge. Its head material is returned so it can be blued.
+function screw(x, y, r, turn = 0) {
+  const group = new THREE.Group(), head = metal(STEEL, 0.24);
+  const slot = new THREE.Mesh(new THREE.BoxGeometry(r * 1.76, r * 0.22, r * 0.2), new THREE.MeshStandardMaterial({ color: 0x08080a, roughness: 0.8 }));
+  slot.position.z = r * 0.16;
+  group.add(turned(r * 0.9, r, r * 0.5, head), slot);
+  group.position.set(x, y, TOP + r * 0.25);
+  group.rotation.z = turn;
+  scene.add(group);
+  return { group, head };
+}
+
+// ---------- the main plate ----------
+const plate = new THREE.Mesh(new THREE.PlaneGeometry(160, 160), perlage());
+plate.receiveShadow = true;
+scene.add(plate);
+
+// ---------- the going train ----------
+// Each arbor carries a steel pinion, driven by the wheel before it, and a gilt wheel that
+// drives the next: [pinion teeth, wheel teeth, bearing from the last arbor, spokes]. Each
+// mesh is on the next level up, so the wheels overlap as they do in a real movement.
+const ARBORS = [[0, 72, 0, 0], [16, 56, 0.25, 5], [14, 50, -0.45, 5], [12, 48, 0.4, 4], [10, 0, -0.35, 0]];
+const train = [];
+ARBORS.forEach(([pinion, teeth, bearing, arms], j) => {
+  const last = train[j - 1], reach = last ? ((last.teeth + pinion) * MODULE) / 2 : 0;
+  const x = last ? last.x + Math.cos(bearing) * reach : -15, y = last ? last.y + Math.sin(bearing) * reach : -0.5;
+  const group = new THREE.Group(), r = (teeth * MODULE) / 2;
+
+  if (last) {
+    // Turned on its arbor so that a leaf sits in a gap of the wheel that drives it.
+    const leaves = solid(gear(pinion), LEVELS[(j - 1) % 3], 0.3, 0.04, metal(STEEL, 0.16), metal(STEEL, 0.07));
+    leaves.rotation.z = bearing + Math.PI + Math.PI / pinion + (bearing * last.teeth) / pinion;
+    group.add(leaves);
+  }
+  const face = teeth ? brushed(GILT, r + MODULE) : metal(STEEL, 0.16), edge = teeth ? metal(GILT, 0.12) : metal(STEEL, 0.06);
+  const shape = !teeth ? escapeWheel() : j ? spokes(gear(teeth), arms, r - 1.05, Math.max(0.9, r * 0.2), 0.34) : drilled(gear(teeth), 6, 4.3, 1.25);
+  const staff = turned(0.28, 0.28, BRIDGE, metal(STEEL, 0.1)), collet = turned(0.55, 0.62, 0.16, metal(GILT, 0.1));
+  staff.position.z = BRIDGE / 2; collet.position.z = LEVELS[j % 3] + 0.46;
+  group.add(solid(shape, LEVELS[j % 3], 0.3, 0.04, face, edge), staff, collet);
+
+  group.position.set(x, y, 0);
+  scene.add(group);
+  train.push({ group, teeth, pinion, x, y });
+});
+
+// ---------- the lever and the balance ----------
+const escape = train.at(-1), wheelAt = new THREE.Vector2(16.2, 0.2), toBalance = wheelAt.clone().sub(escape).normalize();
+const anchor = new THREE.Shape();
+[[-0.2, -0.16], [1.5, -0.13], [2, -0.42], [2.1, -0.22], [1.65, 0], [2.1, 0.22], [2, 0.42], [1.5, 0.13], [-0.2, 0.16], [-1, 1.05], [-1.25, 0.85], [-0.6, 0], [-1.25, -0.85], [-1, -1.05]]
+  .forEach(([x, y], k) => anchor[k ? "lineTo" : "moveTo"](x, y));
+anchor.closePath();
+const lever = solid(anchor, 1.75, 0.14, 0.03, metal(STEEL, 0.14), metal(STEEL, 0.06)), leverRest = toBalance.angle();
+lever.position.set(escape.x + toBalance.x * 2.7, escape.y + toBalance.y * 2.7, lever.position.z);
+scene.add(lever);
+
+const balance = new THREE.Group();
+const coil = [];
+for (let i = 0; i <= 300; i++) coil.push(new THREE.Vector3(Math.cos(i * 0.13) * (0.5 + i * 0.0066), Math.sin(i * 0.13) * (0.5 + i * 0.0066), -0.15));
+balance.add(solid(spokes(new THREE.Shape().absarc(0, 0, 3.6, 0, TAU), 2, 3.05, 0.5, 0.26), 0, 0.32, 0.05, brushed(GILT, 3.6), metal(GILT, 0.1)),
+  cast(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(coil), 600, 0.03, 5), metal(BLUED, 0.2))));
+// The timing screws round the rim.
+for (let i = 0; i < 12; i++) {
+  const weight = cast(new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.3, 12).rotateZ(Math.PI / 2), metal(GILT, 0.1)));
+  weight.position.set(Math.cos((i * TAU) / 12 + 0.26) * 3.7, Math.sin((i * TAU) / 12 + 0.26) * 3.7, 0.21);
+  weight.rotation.z = (i * TAU) / 12 + 0.26;
+  balance.add(weight);
+}
+balance.position.set(wheelAt.x, wheelAt.y, 2.2);
+const balanceStaff = turned(0.26, 0.26, BRIDGE, metal(STEEL, 0.1));
+balanceStaff.position.set(wheelAt.x, wheelAt.y, BRIDGE / 2);
+scene.add(balance, balanceStaff);
+
+// ---------- the bridges ----------
+// One along the top for each of three rooms, four along the bottom, each running off the
+// edge of the view. A bridge is there to hold pivots: it reaches a finger out over an arbor
+// and carries the jewel that the arbor's top pivot runs in.
+const STRIPES = striped(RHODIUM), POLISH = metal(RHODIUM, 0.06);
+function bridge(x0, x1, lower, arbor) {
+  const c = 1.5, shape = new THREE.Shape();
+  shape.moveTo(x0, 40); shape.lineTo(x0, EDGE + c);
+  shape.quadraticCurveTo(x0, EDGE, x0 + c, EDGE);
+  if (arbor) {
+    // Drawn as for a top bridge; a lower one is this shape turned over.
+    const ax = arbor.x, ay = lower ? -arbor.y : arbor.y;
+    shape.lineTo(ax - 1.9, EDGE);
+    shape.bezierCurveTo(ax - 1, EDGE, ax - 0.7, EDGE - 0.5, ax - 0.7, EDGE - 1.5);
+    shape.absarc(ax, ay, 1, 2.346, 0.795 + TAU, false);
+    shape.lineTo(ax + 0.7, EDGE - 1.5);
+    shape.bezierCurveTo(ax + 0.7, EDGE - 0.5, ax + 1, EDGE, ax + 1.9, EDGE);
+    jewel(arbor.x, arbor.y);
+  }
+  shape.lineTo(x1 - c, EDGE);
+  shape.quadraticCurveTo(x1, EDGE, x1, EDGE + c);
+  shape.lineTo(x1, 40); shape.closePath();
+  const mesh = solid(shape, BRIDGE, 0.7, 0.1, STRIPES, POLISH);
+  if (lower) mesh.scale.y = -1;
+  scene.add(mesh);
+  // The plain screws that hold it down, at whichever ends are in view.
+  for (const x of [x0 + 1, x1 - 1]) if (Math.abs(x) < 21) screw(x, (lower ? -1 : 1) * (EDGE + 1.5), 0.4, x * 1.7);
+}
+
+// A ruby in a gold chaton. Its material is returned so that a pilot lamp can light it.
+function jewel(x, y) {
+  const ruby = new THREE.MeshPhysicalMaterial({ color: 0x8a0018, roughness: 0.05, clearcoat: 1, emissive: 0xff1030, emissiveIntensity: 0 });
+  const stone = new THREE.Mesh(new THREE.SphereGeometry(0.36, 24, 16), ruby), chaton = new THREE.Mesh(new THREE.TorusGeometry(0.43, 0.11, 12, 40), metal(GILT, 0.1));
+  stone.scale.z = 0.45;
+  for (const o of [stone, chaton]) { o.position.set(x, y, TOP + 0.05); scene.add(o); }
+  return ruby;
+}
+[[-60, -7.3, train[0]], [-6.6, 6.6, train[2]], [7.3, 60, train[4]]].forEach(([a, b, arbor]) => bridge(a, b, false, arbor));
+[[-60, -10.6], [-9.9, -0.4, train[1]], [0.3, 10.6, train[3]], [11.3, 60, wheelAt]].forEach(([a, b, arbor]) => bridge(a, b, true, arbor));
+
+const glow = (() => {
+  const c = document.createElement("canvas"), ctx = c.getContext("2d");
+  c.width = c.height = 64;
+  const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+  g.addColorStop(0, "#ff6a7a"); g.addColorStop(0.4, "#ff203a66"); g.addColorStop(1, "#ff203a00");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 64, 64);
+  return new THREE.CanvasTexture(c);
+})();
+
+// Everything that can be pressed: where it is, what pressing does, and its name for a reader.
+const controls = [];
+const along = (cx, i, n) => cx + (i - (n - 1) / 2) * 2.4;
+
+// The scale of a regulator: eleven strokes round the jewel, longer at the ends and middle.
+const SCALE = (() => {
+  const c = document.createElement("canvas"), ctx = c.getContext("2d");
+  c.width = c.height = 128;
+  ctx.translate(64, 64); ctx.strokeStyle = "#fff"; ctx.lineWidth = 3;
+  for (let i = 0; i <= 10; i++) {
+    const a = ((i - 5) / 5) * (TAU / 3), from = i % 5 ? 55 : 50;
+    ctx.beginPath(); ctx.moveTo(Math.sin(a) * from, -Math.cos(a) * from); ctx.lineTo(Math.sin(a) * 62, -Math.cos(a) * 62); ctx.stroke();
+  }
+  return new THREE.CanvasTexture(c);
+})();
+const BLUE = metal(BLUED, 0.2);
+
+// A room: its name and temperature, then for each device a ruby pilot lamp, a screw to
+// turn and a label. A light or a blind also has a regulator: a blued index that sweeps
+// the scale round its jewel, set by dragging sideways on the screw.
+const PLACES = [[-13.9, 9.6 + SPARE], [0, 9.6 + SPARE], [13.9, 9.6 + SPARE], [-15.6, -5.3 - SPARE], [-5.15, -5.3 - SPARE], [15.9, -5.3 - SPARE]];
+const label = (name, x, y) => name.toUpperCase().split(" ").forEach((word, k, words) =>
+  engrave(word, x, y + (words.length - 1) * 0.25 - k * 0.5, words.length > 1 ? 0.42 : 0.5, 2.2));
+const parts = House.rooms.flatMap((room, n) => {
+  const [cx, top] = PLACES[n], devices = room.devices.slice(0, 4);
+  engrave(`${room.name.toUpperCase()}  ${room.temp.toFixed(1)}°`, cx, top, 0.8, 6);
+
+  return devices.map((d, i) => {
+    const x = along(cx, i, devices.length), lampAt = top - 1.75;
+    const part = { d, ...screw(x, top - 3.2, 0.7), ruby: jewel(x, lampAt), k: d.on ? 1 : 0 };
+    part.halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: glow, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, opacity: 0 }));
+    part.halo.scale.setScalar(2.2);
+    part.halo.position.set(x, lampAt, TOP + 0.05);
+    scene.add(part.halo);
+
+    const control = { at: part.group.position, press: () => House.toggle(d.id), name: `${room.name} ${d.name}`, on: () => d.on };
+    if ("level" in d) {
+      const strokes = new THREE.Mesh(new THREE.PlaneGeometry(2.3, 2.3), new THREE.MeshStandardMaterial({ color: 0x101216, map: SCALE, transparent: true, depthWrite: false, roughness: 0.9 }));
+      strokes.position.set(x, lampAt, TOP + 0.01);
+      const needle = cast(new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.42, 0.05), BLUE));
+      needle.position.y = 0.72;
+      part.index = new THREE.Group().add(needle);
+      part.index.position.set(x, lampAt, TOP + 0.1);
+      scene.add(strokes, part.index);
+      control.level = () => d.level;
+      control.set = (level) => House.set(d.id, level);
+    }
+    label(d.name, x, top - 4.6);
+    controls.push(control);
+    return part;
+  });
+});
+
+// Scenes: gilt push-pieces that dip when pressed.
+const sceneTop = -5.3 - SPARE;
+engrave("SCENES", 5.45, sceneTop, 0.8, 6);
+const pushers = House.scenes.map((s, i) => {
+  const x = along(5.45, i, House.scenes.length), dome = cast(new THREE.Mesh(new THREE.SphereGeometry(0.75, 32, 16), metal(GILT, 0.14)));
+  const collar = new THREE.Mesh(new THREE.TorusGeometry(0.82, 0.12, 12, 48), metal(STEEL, 0.1)), pusher = { dome, k: 0 };
+  dome.scale.z = 0.45;
+  dome.position.set(x, sceneTop - 2.8, TOP + 0.12); collar.position.set(x, sceneTop - 2.8, TOP + 0.04);
+  scene.add(dome, collar);
+  label(s.name, x, sceneTop - 4.6);
+  controls.push({ at: dome.position, press: () => { pusher.k = 1; House.scene(s.id); }, name: `Scene: ${s.name}` });
+  return pusher;
+});
+
+// ---------- pressing ----------
+// A press counts for the nearest control within a finger's width, not only a pixel-exact
+// hit. It acts on release, so that a sideways drag can set a level instead.
+const tube = renderer.domElement;
+let held = null;
+tube.addEventListener("pointerdown", (e) => {
+  let best = null, least = 44;
+  for (const c of controls) {
+    const at = c.at.clone().project(camera);
+    const far = Math.hypot(((at.x + 1) / 2) * innerWidth - e.clientX, ((1 - at.y) / 2) * innerHeight - e.clientY);
+    if (far < least) { least = far; best = c; }
+  }
+  held = best && { control: best, x: e.clientX, from: best.level?.(), dragged: false };
+  tube.setPointerCapture(e.pointerId);
+});
+tube.addEventListener("pointermove", (e) => {
+  if (!held?.control.set) return;
+  const dx = e.clientX - held.x;
+  if (Math.abs(dx) > 8) held.dragged = true;
+  if (held.dragged) held.control.set(Math.max(0, Math.min(100, held.from + dx / 1.5)));
+});
+tube.addEventListener("pointerup", () => { if (held && !held.dragged) held.control.press(); held = null; });
+tube.addEventListener("pointercancel", () => { held = null; });
+const lean = { x: 0, y: 0, tx: 0, ty: 0 };
+addEventListener("pointermove", (e) => { lean.tx = (e.clientX / innerWidth - 0.5) * 3; lean.ty = (0.5 - e.clientY / innerHeight) * 3; });
+
+const buttons = document.getElementById("buttons");
+buttons.innerHTML = controls.map((c, i) => `<button data-n="${i}">${c.name}</button>`).join("");
+buttons.onclick = (e) => controls[e.target.dataset.n]?.press();
+const pressed = () => controls.forEach((c, i) => c.on && buttons.children[i].setAttribute("aria-pressed", c.on()));
+House.on(pressed);
+pressed();
+
+// ---------- running ----------
+let back = 60;
+function fit() {
+  renderer.setSize(innerWidth, innerHeight);
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  // Far enough back to hold the working area, whichever way the screen is turned. The
+  // bridges stand nearer the lens than the plate, hence the margin.
+  const t = Math.tan((camera.fov * Math.PI) / 360);
+  back = Math.max(12 / t, 22.6 / (t * camera.aspect));
+}
+addEventListener("resize", fit);
+fit();
+
+const PERIOD = 0.5, STEP = TAU / 15, CENTRE = new THREE.Vector3();
+let last = performance.now(), let_on = 0, target = 0, beats = 0, frames = 0, since = last;
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000), t = now / 1000; last = now;
+
+  // The balance swings freely. Each time it passes the middle it throws the lever across,
+  // and the lever lets the escape wheel on by one tooth.
+  const swing = Math.sin((TAU * t) / PERIOD);
+  balance.rotation.z = 2.4 * swing;
+  lever.rotation.z += (leverRest + (swing > 0 ? 0.13 : -0.13) - lever.rotation.z) * Math.min(1, dt * 40);
+  if (Math.floor((2 * t) / PERIOD) !== beats) { beats = Math.floor((2 * t) / PERIOD); target += STEP / 2; }
+  let_on += (target - let_on) * Math.min(1, dt * 30);
+
+  // Back down the train from the escape wheel: each arbor turns the other way, slower by
+  // the ratio of its wheel to the pinion it drives.
+  let turn = let_on;
+  for (let j = train.length - 1; j >= 0; j--) {
+    train[j].group.rotation.z = turn;
+    if (j) turn *= -train[j].pinion / train[j - 1].teeth;
+  }
+
+  for (const p of parts) {
+    p.k += ((p.d.on ? 1 : 0) - p.k) * Math.min(1, dt * 10);
+    p.group.rotation.z = (-p.k * Math.PI) / 2;
+    p.head.color.lerpColors(STEEL, BLUED, p.k);
+    p.ruby.emissiveIntensity = p.k * 1.3;
+    p.halo.material.opacity = p.k * 0.55;
+    if (p.index) p.index.rotation.z += ((0.5 - p.d.level / 100) * (TAU / 1.5) - p.index.rotation.z) * Math.min(1, dt * 14);
+  }
+  for (const p of pushers) { p.k -= p.k * Math.min(1, dt * 6); p.dome.position.z = TOP + 0.12 - p.k * 0.16; }
+
+  // Looked at from a little below, leaning slightly with the pointer so the levels part.
+  lean.x += (lean.tx - lean.x) * Math.min(1, dt * 5); lean.y += (lean.ty - lean.y) * Math.min(1, dt * 5);
+  camera.position.set(lean.x, lean.y - back * 0.22, back * 0.975);
+  camera.lookAt(CENTRE);
+  renderer.render(scene, camera);
+
+  if (++frames && now - since >= 1000) { document.getElementById("cost").textContent = `${Math.round((frames * 1000) / (now - since))} FPS`; frames = 0; since = now; }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

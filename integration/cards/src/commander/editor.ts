@@ -170,7 +170,7 @@ export class CommanderEditor extends LitElement {
             : s.name === "sound_button"
             ? "A Sound button with the main camera's controls (on its full screen, and over it when its controls are), to hear the camera. It goes back to off when the main camera changes, and the camera is not heard while you talk (the visitor is heard through Talk)."
             : s.name === "screen_button"
-            ? "A Full screen button over the main camera: the whole commander takes the screen, with the browser's bars and Home Assistant's header gone. Tap it again to go back. It is not shown where the browser can't do it (Safari on an iPhone), and it has to be tapped again after the page reloads."
+            ? "A Full screen button over the main camera: the whole commander takes the screen, with the browser's bars and Home Assistant's header gone. Tap it again to go back. On an iPhone, where a browser can't show a page full screen, it shows the main camera's live video in the phone's own player instead. It has to be tapped again after the page reloads."
             : s.name === "talk_button"
             ? "A Talk button over a doorbell's live video (a camera with a Casa Mia Intercom call sensor, on an https page). Turn it off to use your own buttons: a tap_action of fire-dom-event with casa_mia_commander: {talk: toggle} does the same."
             : s.name === "motion_dot"

@@ -38,6 +38,7 @@
     "alarm": { "level": "development", "docs": "applets/alarm-panel.md" },
     "intercom": { "level": "development", "docs": "applets/intercom.md" },
     "protect_talkback": { "level": "alpha", "docs": "applets/protect-talkback.md" },
+    "love_or_loathe": { "level": "alpha", "docs": "applets/love-or-loathe.md", "option": "" },
     "garnish": { "level": "beta", "option": "" },
     "over_layer": { "level": "alpha", "docs": "over-layer.md", "option": "" }
   }

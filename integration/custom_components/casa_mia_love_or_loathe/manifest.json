@@ -1,0 +1,14 @@
+{
+  "domain": "casa_mia_love_or_loathe",
+  "name": "Love it or Loathe it",
+  "after_dependencies": ["media_player"],
+  "codeowners": ["@gazoodle"],
+  "config_flow": true,
+  "dependencies": ["frontend", "http", "websocket_api"],
+  "documentation": "https://github.com/gazoodle/casa-mia/blob/main/docs/applets/love-or-loathe.md",
+  "integration_type": "service",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/gazoodle/casa-mia/issues",
+  "requirements": [],
+  "version": "2026.11.7"
+}

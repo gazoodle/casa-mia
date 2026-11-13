@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Calibre</title>
+<style>
+/* One number drives each room's mechanism: the pinion's turn, the rack's travel and the
+   panel's height all read --open, so they cannot drift apart. */
+@property --open { syntax: "<number>"; inherits: true; initial-value: 0; }
+
+:root {
+  --travel: 151px;            /* one full turn of a 12-tooth pinion of 24px pitch radius */
+  --bg1: #17181b; --bg2: #2a2d33; --bg3: #1f2125;
+  --plate-a: #5f636c; --plate-b: #393c43; --plate-c: #2a2c32; --edge: #8d929c;
+  --ink: #e2c887; --ink-dim: #a8966a; --dial: #101114; --dial-ink: #efe6cf;
+  --brass-a: #f6e3a4; --brass-b: #b98b3c; --brass-c: #74531c; --well: rgba(0,0,0,.45);
+}
+:root[data-theme="light"] {
+  --bg1: #c9cacc; --bg2: #eceded; --bg3: #d7d8da;
+  --plate-a: #fbfbfa; --plate-b: #d9dadb; --plate-c: #bfc1c4; --edge: #fff;
+  --ink: #5a3d12; --ink-dim: #7d6a48; --dial: #f4f1e8; --dial-ink: #23201a;
+  --brass-a: #f8d9b8; --brass-b: #c98a5e; --brass-c: #7c4a2a; --well: rgba(60,50,40,.18);
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  font-family: "Didot", "Bodoni 72", "Playfair Display", Georgia, serif;
+  color: var(--ink);
+  /* Côtes de Genève: the striped finish of a movement's plates. */
+  background:
+    radial-gradient(120% 90% at 30% 15%, transparent 35%, rgba(0,0,0,.45)),
+    repeating-linear-gradient(105deg, var(--bg1) 0 2px, var(--bg2) 15px, var(--bg3) 27px, var(--bg1) 30px);
+  display: grid; grid-template-columns: 410px 1fr 1fr; gap: 20px 24px; padding: 20px 26px;
+  min-height: 100vh;
+}
+.left { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+svg { display: block; overflow: visible; }
+.brass { fill: url(#brass); stroke: var(--brass-c); stroke-width: .6; }
+.engrave { letter-spacing: .22em; text-transform: uppercase;
+  text-shadow: 0 1px 0 rgba(0,0,0,.7), 0 -1px 0 rgba(255,255,255,.12); }
+:root[data-theme="light"] .engrave { text-shadow: 0 1px 0 rgba(255,255,255,.9); }
+
+/* ---------- a room: bridge plate, pinion and rack ---------- */
+.bridge { display: grid; grid-template-columns: 74px 1fr; --open: 0;
+  transition: --open 1.15s cubic-bezier(.5, .05, .25, 1); }
+.bridge.open { --open: 1; }
+.works { position: relative; overflow: hidden; }
+.pinion { position: absolute; left: 0; top: -2px; width: 68px; height: 68px;
+  rotate: calc(var(--open) * 1turn); filter: drop-shadow(0 3px 3px rgba(0,0,0,.6)); }
+/* The rack hangs from the bottom of the room, so as the panel grows the rack travels
+   down past the pinion at exactly the speed the pinion's teeth move. */
+.rack { position: absolute; left: 55px; bottom: 0; width: 17px; height: 258.5px;
+  filter: drop-shadow(0 3px 3px rgba(0,0,0,.6)); }
+.pawl { position: absolute; left: 1px; top: 0; width: 20px; height: 18px; transform-origin: 3px 3px; }
+.winding .pawl { animation: rattle .06s linear infinite alternate; }
+@keyframes rattle { to { rotate: -11deg; } }
+.plate {
+  all: unset; box-sizing: border-box; cursor: pointer; width: 100%; height: 64px;
+  display: grid; grid-template-columns: 16px 1fr auto 20px 16px; align-items: center; gap: 12px;
+  padding: 0 16px; border-radius: 32px 12px 12px 32px; border: 1px solid var(--edge);
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, var(--plate-a), var(--plate-b) 42%, var(--plate-c));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.45), inset 0 -3px 4px rgba(0,0,0,.4), 0 7px 14px rgba(0,0,0,.5);
+}
+.plate:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.name { font-size: 19px; }
+.read { font-size: 12px; color: var(--ink-dim); letter-spacing: .12em; }
+.screw { width: 15px; height: 15px; border-radius: 50%; position: relative; rotate: var(--r, 20deg);
+  background: radial-gradient(circle at 35% 30%, #86a4f0, #2b4699 55%, #111d47);
+  box-shadow: 0 1px 2px rgba(0,0,0,.7), inset 0 0 0 1px rgba(0,0,0,.35); }
+.screw::after { content: ""; position: absolute; inset: 6.5px 1.5px; background: #0a0f24; border-radius: 1px; }
+.jewel { width: 14px; height: 14px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #c98a9a, #6d1632 40%, #2c0613 80%);
+  box-shadow: 0 0 0 3px var(--brass-b), 0 0 0 4px var(--brass-c); transition: box-shadow .6s, background .6s; }
+.lit .jewel { background: radial-gradient(circle at 35% 30%, #ffd6e0, #ff2d6a 40%, #8a0a30 85%);
+  box-shadow: 0 0 0 3px var(--brass-a), 0 0 0 4px var(--brass-c), 0 0 16px 4px rgba(255,60,120,.75); }
+
+.panel { height: calc(var(--open) * var(--travel)); overflow: hidden; }
+.inner { height: var(--travel); margin: 0 10px 0 22px; padding: 14px 8px 0;
+  display: flex; justify-content: space-around; gap: 6px;
+  background: var(--well); border: 1px solid rgba(0,0,0,.5); border-top: 0;
+  border-bottom: 5px solid var(--brass-b); border-radius: 0 0 10px 10px;
+  box-shadow: inset 0 8px 14px rgba(0,0,0,.55); }
+.bridge > div { min-width: 0; }
+.comp { all: unset; cursor: pointer; text-align: center; flex: 1 1 0; min-width: 0; max-width: 84px; --lvl: 0; }
+.comp svg { width: 100%; max-width: 78px; height: auto; margin: 0 auto; }
+.comp .hand { rotate: calc(-130deg + var(--lvl) * 2.6deg);
+  transition: rotate .9s cubic-bezier(.3, 1.5, .5, 1); }
+.comp b { display: block; font-weight: 400; font-size: 12px; margin-top: 5px; }
+.comp small { font-size: 10px; color: var(--ink-dim); letter-spacing: .14em; text-transform: uppercase; }
+.comp .pip { fill: #4b1024; transition: fill .5s; }
+.comp.on .pip { fill: #ff3d77; filter: drop-shadow(0 0 4px #ff3d77); }
+.comp:focus-visible svg { outline: 1px solid var(--ink); border-radius: 50%; }
+
+/* ---------- the pushers: scenes ---------- */
+.pushers { display: flex; gap: 12px; }
+.pushers button { all: unset; cursor: pointer; padding: 9px 16px 8px; font-size: 11px; border-radius: 6px 6px 14px 14px;
+  color: #3a2a0c; background: linear-gradient(180deg, var(--brass-a), var(--brass-b) 60%, var(--brass-c));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 5px 0 var(--brass-c), 0 9px 10px rgba(0,0,0,.5);
+  transition: translate .08s, box-shadow .08s; }
+.pushers button:active { translate: 0 4px; box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 1px 0 var(--brass-c); }
+.note { font-size: 11px; color: var(--ink-dim); text-align: center; letter-spacing: .08em; margin: 0; font-style: italic; }
+
+.stale { opacity: 0; fill: #ff5a5a; transition: opacity .3s; }
+.stopped .stale { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .bridge { transition: none; } .winding .pawl { animation: none; } }
+@media (max-width: 900px) { body { grid-template-columns: 1fr; padding: 14px; } .left svg.face { width: 100%; height: auto; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="brass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="var(--brass-a)"/><stop offset=".45" stop-color="var(--brass-b)"/>
+      <stop offset=".6" stop-color="var(--brass-c)"/><stop offset="1" stop-color="var(--brass-a)"/>
+    </linearGradient>
+    <linearGradient id="blued" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#1c2c6e"/><stop offset=".5" stop-color="#6f8ff0"/><stop offset="1" stop-color="#1c2c6e"/>
+    </linearGradient>
+    <radialGradient id="ruby" cx=".35" cy=".3"><stop offset="0" stop-color="#ffc9d6"/>
+      <stop offset=".4" stop-color="#e0245e"/><stop offset="1" stop-color="#5a0620"/></radialGradient>
+    <!-- Perlage: the overlapping circular graining under a movement's wheels. -->
+    <pattern id="perlage" width="16" height="16" patternUnits="userSpaceOnUse">
+      <rect width="16" height="16" fill="var(--dial)"/>
+      <circle cx="8" cy="8" r="9" fill="none" stroke="var(--dial-ink)" stroke-opacity=".09" stroke-width="1.2"/>
+      <circle cx="0" cy="0" r="9" fill="none" stroke="var(--dial-ink)" stroke-opacity=".06" stroke-width="1.2"/>
+      <circle cx="16" cy="16" r="9" fill="none" stroke="var(--dial-ink)" stroke-opacity=".06" stroke-width="1.2"/>
+    </pattern>
+  </defs>
+</svg>
+
+<div class="left">
+  <svg class="face" id="face" viewBox="-205 -205 410 410" width="400" height="400"></svg>
+  <svg id="train" viewBox="0 0 400 150" width="400" height="150"></svg>
+  <p class="note" id="draw"></p>
+  <div class="pushers" id="pushers"></div>
+  <p class="note">Press a bridge to wind its room open. Press the balance wheel in the dial to see stale data.</p>
+</div>
+<div class="col" id="col1"></div>
+<div class="col" id="col2"></div>
+
+<script src="house.js"></script>
+<script>
+const TAU = Math.PI * 2;
+const pt = (r, a) => `${(r * Math.cos(a)).toFixed(2)},${(r * Math.sin(a)).toFixed(2)}`;
+
+// A spur gear's outline around (0,0): `r` is the pitch radius, where two gears touch.
+// The second sub-path is the hole inside the rim (fill-rule evenodd shows through it).
+function gearPath(teeth, r, hole = r * 0.68) {
+  const depth = Math.min(r * 0.22, 5.3), ro = r + depth / 2, rr = r - depth / 2, s = TAU / teeth;
+  let d = "";
+  for (let i = 0; i < teeth; i++) {
+    const a = i * s;
+    d += `${i ? "L" : "M"}${pt(rr, a - s * 0.28)}L${pt(ro, a - s * 0.12)}L${pt(ro, a + s * 0.12)}L${pt(rr, a + s * 0.28)}`;
+  }
+  return `${d}Z M${hole},0 A${hole},${hole} 0 1 0 ${-hole},0 A${hole},${hole} 0 1 0 ${hole},0Z`;
+}
+
+// The middle of a wheel, in one of four styles: straight spokes, curved spokes, a drilled
+// disc, or a mainspring barrel with its coiled spring showing.
+function gear(teeth, r, spokes = 5, style = "spokes") {
+  const width = Math.max(2.5, r * 0.13), each = (fn) => Array.from({ length: spokes }, (_, i) => fn((i * TAU) / spokes)).join("");
+  let inside;
+  if (style === "barrel") {
+    let coil = "M0,0";
+    for (let t = 0; t < TAU * 5; t += 0.25) coil += ` L${pt((r * 0.64 * t) / (TAU * 5), t)}`;
+    inside = `<circle r="${r * 0.7}" fill="#0b0c0e"/><path d="${coil}" fill="none" stroke="#8fa8ff" stroke-width="1.1"/>`;
+  } else if (style === "drilled") {
+    inside = `<circle r="${r * 0.7}" class="brass"/>` + each((a) => `<circle cx="${pt(r * 0.44, a).replace(",", '" cy="')}" r="${r * 0.15}" fill="#0b0c0e"/>`);
+  } else if (style === "curved") {
+    inside = each((a) => `<path d="M0,0 Q${pt(r * 0.45, a + 0.9)} ${pt(r * 0.72, a)}" fill="none" stroke="url(#brass)" stroke-width="${width}"/>`);
+  } else {
+    inside = each((a) => `<line x2="${pt(r * 0.72, a).replace(",", '" y2="')}" stroke="url(#brass)" stroke-width="${width}"/>`);
+  }
+  return `<path class="brass" fill-rule="evenodd" d="${gearPath(teeth, r)}"/>${inside}
+    <circle r="${r * 0.24}" class="brass"/><circle r="${Math.max(1.8, r * 0.1)}" fill="url(#ruby)"/>`;
+}
+
+// An escape wheel: hooked teeth that the pallets catch and release, one at each beat.
+function escapePath(teeth, ro, rr) {
+  const s = TAU / teeth;
+  let d = "";
+  for (let i = 0; i < teeth; i++) {
+    const a = i * s;
+    d += `${i ? "L" : "M"}${pt(rr, a)}L${pt(ro, a + s * 0.5)}L${pt(ro - 1.5, a + s * 0.62)}L${pt(rr, a + s * 0.75)}`;
+  }
+  return d + "Z";
+}
+
+// ---------- rooms ----------
+const PITCH = 151 / 12;   // the rack's tooth spacing matches the pinion's
+function rackSvg() {
+  let teeth = "";
+  for (let k = 0; k < 21; k++) {
+    const y = k * PITCH;
+    teeth += `M6,${y + PITCH * 0.22} L0,${y + PITCH * 0.38} L0,${y + PITCH * 0.62} L6,${y + PITCH * 0.78} `;
+  }
+  return `<svg class="rack" viewBox="0 0 17 258.5"><path class="brass" d="${teeth}"/>
+    <rect x="5.5" width="11.5" height="258.5" rx="2" class="brass"/></svg>`;
+}
+
+function dial(d) {
+  const ticks = Array.from({ length: 11 }, (_, i) => {
+    const a = ((-130 + i * 26 - 90) * Math.PI) / 180;
+    return `<line x1="${pt(27, a).replace(",", '" y1="')}" x2="${pt(i % 5 ? 30 : 33, a).replace(",", '" y2="')}" stroke="var(--ink)" stroke-width="${i % 5 ? 0.7 : 1.4}"/>`;
+  }).join("");
+  return `<button class="comp" data-id="${d.id}">
+    <svg viewBox="-39 -39 78 78"><circle r="37" class="brass"/><circle r="33.5" fill="url(#perlage)"/>${ticks}
+      <g class="hand"><path d="M-1.6,5 L0,-27 L1.6,5Z" fill="url(#blued)"/></g>
+      <circle r="4.2" class="brass"/><circle r="2.2" class="pip"/></svg>
+    <b>${d.name}</b><small></small></button>`;
+}
+
+House.rooms.forEach((room, i) => {
+  const el = document.createElement("section");
+  el.className = "bridge";
+  el.dataset.room = room.id;
+  el.innerHTML = `
+    <div class="works">${rackSvg()}<svg class="pinion" viewBox="-34 -34 68 68">${gear(12, 24, 4)}</svg>
+      <svg class="pawl" viewBox="0 0 20 18"><path d="M3,3 L14,13" stroke="url(#blued)" stroke-width="3" stroke-linecap="round"/><circle cx="3" cy="3" r="2.6" class="brass"/></svg></div>
+    <div><button class="plate engrave" aria-expanded="false">
+        <i class="screw" style="--r:${(i * 47) % 180}deg"></i><span class="name">${room.name}</span>
+        <span class="read"></span><i class="jewel"></i><i class="screw" style="--r:${(i * 83 + 30) % 180}deg"></i></button>
+      <div class="panel"><div class="inner">${room.devices.map(dial).join("")}</div></div></div>`;
+  // The click rattles over the pinion's teeth for as long as the room is winding.
+  el.addEventListener("transitionrun", (e) => e.propertyName === "--open" && el.classList.add("winding"));
+  el.addEventListener("transitionend", (e) => e.propertyName === "--open" && el.classList.remove("winding"));
+  el.querySelector(".plate").onclick = (e) =>
+    e.currentTarget.setAttribute("aria-expanded", el.classList.toggle("open"));
+  document.getElementById(i < 3 ? "col1" : "col2").append(el);
+});
+document.querySelector(".bridge").classList.add("open");
+
+document.body.addEventListener("click", (e) => {
+  const comp = e.target.closest(".comp");
+  if (comp) House.toggle(comp.dataset.id);
+});
+
+function paint() {
+  for (const room of House.rooms) {
+    const el = document.querySelector(`[data-room="${room.id}"]`), lit = House.lightsOn(room);
+    el.classList.toggle("lit", lit > 0);
+    el.querySelector(".read").textContent = `${room.temp.toFixed(1)}° · ${lit ? lit + " lit" : "dark"}`;
+  }
+  for (const d of House.devices) {
+    const comp = document.querySelector(`[data-id="${d.id}"]`);
+    comp.classList.toggle("on", d.on);
+    comp.style.setProperty("--lvl", d.on ? (d.kind === "light" || d.kind === "cover" ? d.level : 100) : 0);
+    comp.querySelector("small").textContent = House.state(d);
+  }
+  const kw = House.watts() / 1000;
+  document.getElementById("draw").textContent =
+    `Going train: it runs faster as the house draws more. Now ${kw.toFixed(2)} kW.`;
+  document.getElementById("kw").style.rotate = `${-120 + Math.min(kw, 3) * 80}deg`;
+}
+
+// ---------- scenes ----------
+document.getElementById("pushers").innerHTML =
+  House.scenes.map((s) => `<button class="engrave" data-scene="${s.id}">${s.name}</button>`).join("");
+document.getElementById("pushers").onclick = (e) => e.target.dataset.scene && House.scene(e.target.dataset.scene);
+
+// ---------- the main dial ----------
+function sub(x, label, id, lo, hi) {
+  const ticks = Array.from({ length: 9 }, (_, i) => {
+    const a = ((-120 + i * 30 - 90) * Math.PI) / 180;
+    return `<line x1="${pt(34, a).replace(",", '" y1="')}" x2="${pt(39, a).replace(",", '" y2="')}" stroke="var(--dial-ink)" stroke-width="1"/>`;
+  }).join("");
+  return `<g transform="translate(${x},-6)"><circle r="46" fill="var(--dial)" stroke="url(#brass)" stroke-width="2.5"/>${ticks}
+    <text y="24" text-anchor="middle" font-size="7.5" fill="var(--dial-ink)" letter-spacing="1.5">${label}</text>
+    <text x="-27" y="12" font-size="7" fill="var(--dial-ink)" text-anchor="middle">${lo}</text>
+    <text x="27" y="12" font-size="7" fill="var(--dial-ink)" text-anchor="middle">${hi}</text>
+    <g id="${id}" style="transition:rotate 1s cubic-bezier(.3,1.5,.5,1)"><path d="M-1.8,7 L0,-34 L1.8,7Z" fill="url(#blued)"/></g>
+    <circle r="3.5" class="brass"/></g>`;
+}
+const indices = Array.from({ length: 60 }, (_, i) => {
+  const a = (i * 6 - 90) * Math.PI / 180, big = i % 5 === 0;
+  return `<line x1="${pt(big ? 158 : 168, a).replace(",", '" y1="')}" x2="${pt(176, a).replace(",", '" y2="')}"
+    stroke="${big ? "url(#brass)" : "var(--dial-ink)"}" stroke-width="${big ? 5 : 1}" stroke-linecap="round"/>`;
+}).join("");
+// The hairspring: a spiral from the balance staff outwards.
+let spring = "M0,0";
+for (let t = 0; t < 26; t += 0.3) spring += ` L${pt(1.1 * t, t)}`;
+
+document.getElementById("face").innerHTML = `
+  <circle r="203" class="brass"/><circle r="190" fill="url(#perlage)" stroke="#000" stroke-opacity=".5"/>
+  ${indices}
+  <text y="-112" text-anchor="middle" font-size="19" fill="var(--dial-ink)" letter-spacing="7">CASA MIA</text>
+  <text y="-94" text-anchor="middle" font-size="8.5" fill="var(--dial-ink)" letter-spacing="4">DASH-BORED · AUTOMATIC</text>
+  ${sub(-90, "RESERVE %", "reserve", 0, 100)}${sub(90, "DRAW kW", "kw", 0, 3)}
+  <g transform="translate(0,104)" id="heart" style="cursor:pointer">
+    <circle r="48" fill="#08090b" stroke="url(#brass)" stroke-width="3"/>
+    <g class="balance"><circle r="38" fill="none" stroke="url(#brass)" stroke-width="5"/>
+      <path d="M-38,0 H38 M0,-38 V38" stroke="url(#brass)" stroke-width="3.5"/>
+      <circle cx="38" r="3" fill="var(--brass-a)"/><circle cx="-38" r="3" fill="var(--brass-a)"/>
+      <path d="${spring}" fill="none" stroke="#7d9bff" stroke-width=".8"/></g>
+    <circle r="4" fill="url(#ruby)"/>
+    <text class="stale" y="66" text-anchor="middle" font-size="9" letter-spacing="2" id="since"></text></g>
+  <g id="hh"><path d="M-5,18 L-3,-92 L0,-104 L3,-92 L5,18Z" fill="url(#blued)" stroke="#0b1335" stroke-width=".5"/></g>
+  <g id="mm"><path d="M-3.6,22 L-2,-140 L0,-152 L2,-140 L3.6,22Z" fill="url(#blued)" stroke="#0b1335" stroke-width=".5"/></g>
+  <g id="ss"><path d="M-.8,34 L-.5,-160 L.5,-160 L.8,34Z" fill="#e23b3b"/><circle cy="-128" r="4.5" fill="none" stroke="#e23b3b" stroke-width="1.4"/></g>
+  <circle r="7" class="brass"/><circle r="2.5" fill="#0b1335"/>`;
+
+document.getElementById("reserve").style.rotate = `${-120 + House.energy.battery * 2.4}deg`;
+document.getElementById("heart").onclick = () => {
+  const stopped = document.getElementById("face").classList.toggle("stopped");
+  document.getElementById("since").textContent =
+    stopped ? `NOT CURRENT SINCE ${new Date().toTimeString().slice(0, 5)}` : "";
+};
+
+// ---------- the going train: six wheels in mesh ----------
+const TEETH = [30, 12, 24, 10, 20, 14], MODULE = 2.9;
+const wheels = [];
+TEETH.forEach((teeth, i) => {
+  const r = (teeth * MODULE) / 2, prev = wheels[i - 1];
+  // Each wheel sits against the last one, alternately above and below the centre line.
+  const lean = (i % 2 ? -1 : 1) * 0.32;
+  const w = prev
+    ? { x: prev.x + (prev.r + r) * Math.cos(lean), y: prev.y + (prev.r + r) * Math.sin(lean), lean }
+    : { x: 48, y: 98, lean: 0 };
+  Object.assign(w, { teeth, r, step: TAU / teeth });
+  if (prev) {
+    // Counter-rotate at the tooth ratio, starting with a gap where the last wheel has a tooth.
+    w.speed = (-prev.speed * prev.teeth) / teeth;
+    const frac = (((lean - prev.angle) / prev.step) % 1 + 1) % 1;
+    w.angle = lean + Math.PI - (0.5 - frac) * w.step;
+  } else { w.speed = 1; w.angle = 0; }
+  wheels.push(w);
+});
+const STYLES = ["barrel", "spokes", "curved", "spokes", "drilled", "curved"];
+// The train ends in a lever escapement: escape wheel, pallet fork and a second balance.
+const end = wheels.at(-1), ex = end.x + end.r + 25;
+document.getElementById("train").innerHTML =
+  wheels.map((w, i) => `<g id="w${i}">${gear(w.teeth, w.r, 5, STYLES[i])}</g>`).join("") + `
+  <g transform="translate(${ex},118)"><g id="esc"><path class="brass" d="${escapePath(15, 21, 14)}"/>
+    <circle r="5" class="brass"/><circle r="2" fill="url(#ruby)"/></g></g>
+  <g transform="translate(${ex},92)"><g id="fork">
+    <path d="M0,-30 L0,0 M-16,13 L0,0 L16,13" stroke="url(#brass)" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+    <path d="M-5,-35 L0,-28 L5,-35" stroke="url(#brass)" stroke-width="2.4" fill="none"/>
+    <rect x="-19" y="11" width="6" height="4" fill="url(#ruby)" transform="rotate(35 -16 13)"/>
+    <rect x="13" y="11" width="6" height="4" fill="url(#ruby)" transform="rotate(-35 16 13)"/><circle r="3" class="brass"/></g></g>
+  <g transform="translate(${ex},40)"><g class="balance"><circle r="27" fill="none" stroke="url(#brass)" stroke-width="4"/>
+    <path d="M-27,0 H27" stroke="url(#brass)" stroke-width="3"/><circle cy="14" r="2.2" fill="url(#ruby)"/>
+    <path d="${spring}" fill="none" stroke="#7d9bff" stroke-width=".7" transform="scale(.7)"/></g><circle r="2.6" fill="url(#ruby)"/></g>`;
+
+let last = performance.now(), beat = 0;
+function tick(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const pace = still ? 0 : 0.25 + House.watts() / 900;
+  wheels.forEach((w, i) => {
+    w.angle += w.speed * pace * dt;
+    document.getElementById("w" + i).setAttribute("transform", `translate(${w.x},${w.y}) rotate(${(w.angle * 180) / Math.PI})`);
+  });
+
+  // One beat every 0.42 s. The balance swings through centre, the fork snaps across and
+  // lets the escape wheel on by half a tooth. Stop the balance and all three stop.
+  if (!still && !document.getElementById("face").classList.contains("stopped")) beat += dt / 0.42;
+  const swing = Math.sin(Math.PI * beat);
+  document.querySelectorAll(".balance").forEach((b) => b.setAttribute("transform", `rotate(${140 * swing})`));
+  document.getElementById("fork").setAttribute("transform", `rotate(${7 * Math.tanh(6 * swing)})`);
+  document.getElementById("esc").setAttribute("transform", `rotate(${12 * (Math.floor(beat) + Math.min(1, (beat % 1) / 0.18))})`);
+
+  const t = new Date(), s = t.getSeconds() + t.getMilliseconds() / 1000, m = t.getMinutes() + s / 60;
+  document.getElementById("ss").setAttribute("transform", `rotate(${s * 6})`);
+  document.getElementById("mm").setAttribute("transform", `rotate(${m * 6})`);
+  document.getElementById("hh").setAttribute("transform", `rotate(${((t.getHours() % 12) + m / 60) * 30})`);
+  requestAnimationFrame(tick);
+}
+
+if (new URLSearchParams(location.search).get("theme")) document.documentElement.dataset.theme = "light";
+else if (matchMedia("(prefers-color-scheme: light)").matches) document.documentElement.dataset.theme = "light";
+House.on(paint);
+paint();
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
