@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.11.7-b8
+
+- **Love it or Loathe it is now Alpha.** It does its job every day in the author's house: a loved song turned up and put back at the next track.
+- **Love it or Loathe it: a switch of station says when the player goes back as a time of day**, such as "switched to Jazz until 14:10", in What happened, the Last match sensor and the event. It gave the full date and time down to the microsecond.
+- **Love it or Loathe it's guide has pictures and worked examples**, and it is in the README's gallery with its thumbs card and the thumbs in a media player's dialog.
+- **Love it or Loathe it is to be published by itself**, for a house without Casa Mia, at [gazoodle/casa-mia-love-or-loathe](https://github.com/gazoodle/casa-mia-love-or-loathe) for HACS and Home Assistant's Marketplace, as Sensor Watch is. It is the same integration either way. A copy that a store has updated past the one this app bundles is now left alone, as Sensor Watch's is.
+
 ## 2026.11.7-b7
 
 - **Love it or Loathe it: what happened, line by line.** Each entry now keeps a record of what it did: when its watching started and stopped, each song a group had, what was then done to the player or why nothing was (the player isn't its speaker group's leader, the track changed within the delay, the group's action only fires the event), what was put back at the next track, each return from another station, each failure, and each change to its groups. The page in Casa Mia shows the last 100 lines since Home Assistant started, under **What happened**. Every line also goes to Home Assistant's Logbook, under the entry's Last match sensor, where it is kept.

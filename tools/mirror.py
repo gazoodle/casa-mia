@@ -112,13 +112,25 @@ contact_links:
     about: {name} is part of Casa Mia, and its issues are kept there.
 """
 
+# Under the README's title: the same set, in the same style and colours, as Casa Mia's own
+# README has, each about the mirror. Downloads stands where Casa Mia has its image pulls,
+# and the mirror's Validate workflow where Casa Mia has its build.
+BADGES = """\
+
+<p align="center">
+<img src="https://img.shields.io/github/stars/{mirror}?style=for-the-badge&label=Stars&color=d6a102" alt="Stars">
+<a href="https://github.com/{mirror}/releases"><img src="https://img.shields.io/github/downloads/{mirror}/total?style=for-the-badge&label=Downloads&color=e8604c" alt="Downloads"></a>
+<a href="https://github.com/{mirror}/releases/latest"><img src="https://shields.io/github/v/release/{mirror}?style=for-the-badge&color=5da3a6" alt="version"></a>
+<a href="https://github.com/{mirror}/actions/workflows/validate.yml"><img src="https://img.shields.io/github/actions/workflow/status/{mirror}/validate.yml?style=for-the-badge&label=Validated&color=3fbf5f" alt="Validated"></a>
+<a href="https://github.com/{mirror}/blob/main/LICENSE"><img src="https://img.shields.io/badge/licence-MIT-5da3a6?style=for-the-badge" alt="Licence: MIT"></a>
+</p>
+"""
+
 README = """\
 
 ## Installing
 
-[![Downloads](https://img.shields.io/github/downloads/{mirror}/total?label=Downloads)](https://github.com/{mirror}/releases)
-
-The Downloads badge is GitHub's count of downloads of the releases' packages. Every
+The Downloads badge at the top is GitHub's count of downloads of the releases' packages. Every
 update and every repeat download adds to it, so it isn't the number of houses using
 {name}.
 
@@ -129,7 +141,7 @@ update and every repeat download adds to it, so it isn't the number of houses us
 2. Download {name} there, then restart Home Assistant.
 3. In Settings → Devices & services, choose Add integration and pick {name}.
 
-The [guide]({guide}) covers setting it up and everything on its page.
+The [guide]({guide}) covers setting it up and everything it does.
 
 ## Part of Casa Mia
 
@@ -194,6 +206,12 @@ def absolute(text: str, guide: str, repo: str, ref: str) -> str:
         return f"{lead}{base}/{path}{'#' + anchor if anchor else ''}"
 
     return LINK.sub(swap, text)
+
+
+def badged(text: str, badges: str) -> str:
+    """The README's opening with the badges put straight under its title."""
+    title, _, rest = text.partition("\n")
+    return f"{title}\n{badges}{rest}"
 
 
 def opening(guide_text: str) -> str:
@@ -306,7 +324,10 @@ def build(domain: str, repo: str, ref: str, owner: str, out: Path) -> dict:
     }
 
     files = {
-        "README.md": absolute(opening(git("show", f"{ref}:{guide}")), guide, repo, at)
+        "README.md": badged(
+            absolute(opening(git("show", f"{ref}:{guide}")), guide, repo, at),
+            BADGES.format(**words),
+        )
         + README.format(**words),
         # zip_release: a store downloads the release's ZIP rather than the repository's
         # files. That has no default branch to come from, so it isn't offered.

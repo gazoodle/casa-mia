@@ -25,7 +25,7 @@ keys in brackets; some keep older names):
 - **Cameras, Camera Commander, Auto Dashboards** (`compositor_enabled`,
   `camera_dashboard_enabled`): see "The camera modules" below.
 - **Sensor Watch:** see "Sensor Watch" below. Beta.
-- **Love it or Loathe it:** see "Love it or Loathe it" below. In development.
+- **Love it or Loathe it:** see "Love it or Loathe it" below. Alpha.
 - **Guest login** (`guest_login_enabled`): see "Guest login" below. Security is by limiting
   what a code is worth (closed, signed out), not by locking HA down; the guide says why
   (xkcd).
@@ -178,6 +178,24 @@ imported from `casa_mia`, no app option. Guide: `docs/applets/love-or-loathe.md`
   change of feeling and rating (owner, 2026-11-13: a song added to a list while it
   plays must be acted on then). Safe because unloading undoes volumes and mutes first.
 - **Works against a real player** (owner, 2026-11-13, on b5).
+- **Its pictures** (b8) are from the test VM, where stand-in media players
+  (`custom_components/cm_demo_players`, on the VM only) give it Kitchen, Living room,
+  Bedroom and Garden to watch, with the people Ann and Ben, the entry Downstairs and
+  the dashboard `music-demo`. Keep them there for the next pictures.
+- **The mirrors' READMEs** carry Casa Mia's set of badges under the title
+  (`tools/mirror.py` `BADGES`: Stars, Downloads, version, Validated, Licence), and each
+  release has the integration as a ZIP (`hacs.json` `zip_release`).
+- **Alpha since b8** (owner, 2026-11-13): live in the owner's house, where it turned a
+  loved song up and put the volume back afterwards.
+- **b7 seen on the box by the owner** (2026-11-13): the thumbs card and its editor, the
+  thumbs in a media player's dialog, the trail (page and Logbook), the Watching switch,
+  who may rate and the notify blueprint. Notes below that say "seen outside Home
+  Assistant only" are about how they were checked before that.
+- **Published by itself** (b8; owner, 2026-11-13): in `components.PUBLISHED`, mirror
+  `gazoodle/casa-mia-love-or-loathe`, made by `tools/mirror.py` at a release
+  (`docs/design/marketplace-mirrors.md`). The dry run passes; nothing is published yet.
+  So the "no downgrade" rule covers it, and its guide is the mirror's README: keep the
+  guide's links and pictures ones the mirror can carry.
 - **The guide's opening is the owner's own words** (2026-11-13), tidied: keep its tone.
   Under it a "Not built yet" line names what the opening promises that isn't there
   (adverts, the fade); shorten it as each lands.

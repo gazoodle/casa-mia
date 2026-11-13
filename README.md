@@ -14,7 +14,8 @@
 </p>
 
 Casa Mia is a Home Assistant app and integration: the things I've built for my own house,
-mostly for wall tablets, cameras, guests and keeping an eye on sensors. Click a picture for its
+mostly for wall tablets, cameras, guests, keeping an eye on sensors, and the songs on the
+radio that I love or loathe. Click a picture for its
 documentation.
 
 <table>
@@ -154,9 +155,21 @@ documentation.
 <h4><a href="docs/applets/protect-talkback.md">UniFi Protect talkback</a> <a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha" align="absmiddle"></a><!--protect_talkback--></h4>
 <p>Talk through UniFi Protect doorbells from Home Assistant, by patching its go2rtc until Home Assistant can do it itself.</p>
 </td>
-<td width="25%"></td>
-<td width="25%"></td>
-<td width="25%"></td>
+<td width="25%" valign="top">
+<h4><a href="docs/applets/love-or-loathe.md">Love it or Loathe it</a> <a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha" align="absmiddle"></a><!--love_or_loathe--></h4>
+<a href="docs/applets/love-or-loathe.md"><img src="docs/screenshots/love-or-loathe-detail.webp" alt="Love it or Loathe it's page: what each player is playing and the group that has the song, and the groups of songs with Love, Loathe and Ignore to click" width="100%"></a>
+<p>Boosts the volume for a song you love, and changes the radio station for one you loathe. Sick of Xmas songs in November, yet love them in December? This is for you.</p>
+</td>
+<td width="25%" valign="top">
+<h4><a href="docs/applets/love-or-loathe.md#the-thumbs-card">Thumbs card</a></h4>
+<a href="docs/applets/love-or-loathe.md#the-thumbs-card"><img src="docs/screenshots/love-or-loathe-thumbs-card.webp" alt="Media players on a dashboard, each with thumbs cards: a thumb up lit green for a song Ann loves, a thumb down lit red for one Ben loathes" width="100%"></a>
+<p>A thumb up and a thumb down for the song that is playing, for each person you choose. The song is loved or loathed from then on.</p>
+</td>
+<td width="25%" valign="top">
+<h4><a href="docs/applets/love-or-loathe.md#the-thumbs-in-a-media-players-own-dialog">Thumbs on every player</a></h4>
+<a href="docs/applets/love-or-loathe.md#the-thumbs-in-a-media-players-own-dialog"><img src="docs/screenshots/love-or-loathe-thumbs-dialog.webp" alt="A media player's dialog in Home Assistant with a lit thumb up and a thumb down in its header" width="100%"></a>
+<p>The same thumbs are in every watched media player's own dialog, so no dashboard needs editing.</p>
+</td>
 </tr>
 </table>
 
@@ -200,8 +213,8 @@ You need **Home Assistant 2026.3 or later**, on Home Assistant OS or a Supervise
    **Integration URL** from the foot of the Casa Mia panel's home page and paste it in.)
    Guest login and Camera Commander each have an integration of their own, **Casa Mia Guest
    Login** and **Casa Mia Camera Commander**: while the module is on, Casa Mia offers it
-   under **Discovered** on the same page. Press **Add**. Sensor Watch is an integration of
-   its own too, with no option in the app: search for **Sensor Watch** and add it the same
+   under **Discovered** on the same page. Press **Add**. Sensor Watch and Love it or Loathe it are integrations of
+   their own too, with no option in the app: search for each by name and add it the same
    way.
 
 7. **Make yourself at home.** Open **Casa Mia** from the sidebar and visit each module's page

@@ -439,7 +439,11 @@ class Engine:
             away = player.away = {"until": until.isoformat(), "origin": origin}
             self._arm(entity, player)
         away.update(tried=[*tried, station.id], was=now, ours=None)
-        return f"switched to {station.name} until {away['until']}"
+        # In words for the trail, the sensor and the event: the time as the house reads it.
+        back = dt_util.as_local(
+            dt_util.parse_datetime(away["until"]) or dt_util.utcnow()
+        )
+        return f"switched to {station.name} until {back:%H:%M}"
 
     async def _undo(self, entity: str, player: Player) -> None:
         undo, player.undo = player.undo, None

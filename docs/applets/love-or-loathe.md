@@ -3,7 +3,7 @@
 An automatic media watcher that boosts the volume for a song you love, or changes the
 radio station for one you loathe.
 
-> **Maturity: In development.** Being built: parts work, it changes often, and an update may break it. For the curious. ([The levels](../README.md#maturity))
+> **Maturity: Alpha.** Does its job every day in the author's house, but hasn't been tried in many others. Expect rough edges and changes. ([The levels](../README.md#maturity))
 
 Sick of Xmas songs in November, yet love them in December? Then this is for you. But
 that's not all: you can mark songs as loved or loathed, live, as they are playing.
@@ -18,6 +18,8 @@ truly love to hear.
 
 A full integration with events, so you can trigger your own automations too, including
 notifications of what happened!
+
+<img src="../screenshots/love-or-loathe-detail.webp" alt="Love it or Loathe it's page in Casa Mia for an entry named Downstairs. Playing now: the kitchen is away on another station until 14:10, the living room is playing a song in the group Loathed by Ben, and the garden a song in Loved by Ann, each with Love it and Loathe it buttons. Under them the groups of songs, each with Love, Loathe and Ignore to click: Christmas songs, Heard too often, Loved by Ann and Loathed by Ben" width="800">
 
 **Not built yet:** shunting the adverts, and the fade. Casa Mia's local radio station
 is a Casa Mia feature still to come, not part of this integration: when it exists, it
@@ -43,7 +45,11 @@ Each person in the house can have their own loved and loathed groups, and add th
 that is playing to them with a button on a dashboard.
 
 It is an integration of its own, **Love it or Loathe it**. It runs wholly in Home
-Assistant and needs neither the Casa Mia app nor the Casa Mia integration.
+Assistant and needs neither the Casa Mia app nor the Casa Mia integration. Installed by
+itself, from HACS or the Marketplace, it is set up and changed with Home Assistant's own
+screens. With the Casa Mia app it also has a page there, which changes the same
+settings. [Two ways to change its settings](#two-ways-to-change-its-settings) lists
+both.
 
 ## What it needs from a player
 
@@ -53,6 +59,35 @@ player under Developer tools → States while a song is on.
 
 To change the volume, mute or switch station, the player must support Home Assistant's
 `volume_set`, `volume_mute` and `play_media` actions.
+
+## Installing it
+
+The Casa Mia app installs the integration for you: there is nothing to download, and
+you go straight to "Setting it up".
+
+### With HACS or the Marketplace
+
+Love it or Loathe it is also published by itself, at
+[gazoodle/casa-mia-love-or-loathe](https://github.com/gazoodle/casa-mia-love-or-loathe),
+for a house without Casa Mia. Add that repository in HACS, or in Home Assistant's
+Marketplace (2026.11 and later), as a custom repository of the type Integration; its
+page says how. Everything in this guide works that way except the page in Casa Mia,
+which needs the app. It is the same integration either way, so the two can meet in one
+house:
+
+- **Installed from a store first, Casa Mia added later.** The app takes over keeping it
+  up to date. If its copy is newer than the store's, it installs it and a Repair asks
+  for a restart. Your groups, stations and ratings carry on, and there is nothing for
+  you to do.
+- **The store still offers an update.** A store goes by the version it installed itself
+  and doesn't see what the app wrote, so it offers a release the app has already
+  brought. Installing it writes the same files again and loses nothing.
+- **A store's version newer than the app's** is left alone, with a warning in the app's
+  log. The app installs its own again once that is the newer one.
+- **Remove in HACS deletes the integration's files,** even while it is set up. If you
+  remove it there while the Casa Mia app is installed, it stops at the next restart of
+  Home Assistant, until the app starts again and puts the files back. The Marketplace
+  refuses to remove it while it is set up.
 
 ## Setting it up
 
@@ -72,11 +107,42 @@ The **Delay** set with the players is the number of seconds to wait after a play
 reports a new track before acting. Leave it at 0 unless a player changes its title
 before the song itself changes.
 
+## Two ways to change its settings
+
+The settings are kept in Home Assistant, whichever way the integration was installed.
+There are two places to change them, and both change the same thing:
+
+- **Home Assistant's own screens.** This is the only way for the integration installed
+  by itself, and it is always there with Casa Mia too. Everything is on the
+  integration's page: Settings → Devices & services → **Love it or Loathe it**.
+- **The page in Casa Mia**, for a house with the Casa Mia app. It has everything on one
+  screen, and a few things Home Assistant's screens can't do.
+
+| To | In Home Assistant | On the page in Casa Mia |
+|---|---|---|
+| Add an entry, or delete one | **Add integration**; an entry's menu → Delete | Not on the page: it links to Home Assistant |
+| Change an entry's players and delay | The entry's **Configure** | **Players** |
+| Choose who may rate | The entry's **Configure** | **Players** |
+| Add a group of songs | **Add a group of songs** | **+ Add a group** |
+| Change a group | The group's menu → **Reconfigure** | Click the group |
+| Change a group's feeling | The group's select, or its form | Love, Loathe or Ignore on its row |
+| Add a station | **Add a station**, which browses for it | **+ Add a station**, taken from what a player is on |
+| Remove a group or a station | Its menu → Delete | **Remove** |
+| Put groups or stations in order | Not possible: they stay in the order made | The up and down buttons |
+| Switch an entry off | Its **Watching** switch | The switch beside its name |
+| Rate the song playing | The thumbs card, the thumbs in a player's dialog, or the `rate` action | The same, and **Love it** and **Loathe it** on the page |
+| See what happened | The Logbook, under the entry's Last match sensor | **What happened** |
+
+The rest of this guide gives Home Assistant's screens first, since everyone has them,
+and says where the page in Casa Mia differs.
+
 ## Its page in Casa Mia
 
 Everything below can be done with Home Assistant's own screens. Where the Casa Mia app
 is installed as well, its Home page has a **Love it or Loathe it** tile once the
 integration has been added, and the tile opens a page with all of it on one screen:
+
+<img src="../screenshots/love-or-loathe.webp" alt="The Love it or Loathe it page inside Home Assistant: the entry Downstairs with its Watching switch and Players button, what its three players are playing now, and its groups of songs and stations" width="800">
 
 - **Playing now:** each player, the song it is on, and the group that has the song.
   **Love it** and **Loathe it** rate the song, as yourself or as a person who has
@@ -145,6 +211,8 @@ hours, and the group's action is taken then. At 0 times this is off.
 
 A group for this needs no songs of its own: call it "Heard too often", leave **Songs**
 empty, set it to Loathed and its action to switch station.
+
+<img src="../screenshots/love-or-loathe-group.webp" alt="A group's form on the page in Casa Mia, for a group named Heard too often: Loathe chosen, no songs, Songs played too often set to 3 times in the last 4 hours, belonging to nobody, with its action while loved (change the volume by 10) and while loathed (switch station)" width="800">
 
 - A song that any group names is treated as that group says, however often it is
   played. Only songs that no group names are counted against this.
@@ -228,6 +296,8 @@ Assistant:
   by naming them, such as a wall tablet's. Any other login can only rate as the person
   it belongs to. An administrator may always name a person, and so may an automation.
 
+<img src="../screenshots/love-or-loathe-who-may-rate.webp" alt="The foot of an entry's Players dialog: Who may rate, with Ann and Ben switched on, and Screens that may rate for them, with two logins switched off" width="800">
+
 So a guest's login can't rate: it belongs to nobody on the first list, and it isn't on
 the second, so it can't name someone who is. A rating that isn't allowed is refused with
 the reason, the thumbs card says the same, and the thumbs are left out of the media
@@ -242,6 +312,8 @@ be changed by anyone who is shown it. Leave them off a guest's dashboard.
 The integration brings a dashboard card with it, **Casa Mia Love it or Loathe it**: a
 thumb up and a thumb down for the song a media player is playing. Add it from the
 dashboard's card picker and choose the player.
+
+<img src="../screenshots/love-or-loathe-thumbs-card.webp" alt="Three media players on a dashboard, each with thumbs cards under it. Ann's thumb up is lit green for the song in the garden, and Ben's thumb down is lit red for the song in the living room; the other thumbs are outlines" width="800">
 
 - A tap on a thumb rates the song for whoever is signed in. The thumb then stays lit
   for that person whenever the song is on.
@@ -268,6 +340,8 @@ line with a `*` takes in is not a rating of that song, so its thumb is not lit.
 The same thumbs are in the top of Home Assistant's dialog for a media player, the one
 that opens when you tap a player on any card. So every card that shows a watched player
 has them one tap away, and no dashboard needs editing.
+
+<img src="../screenshots/love-or-loathe-thumbs-dialog.webp" alt="Home Assistant's dialog for the media player Garden, playing a song. In its header, before the dialog's own icons, a thumb up lit green and a thumb down in outline" width="450">
 
 They are added only for a player the integration watches, and only for a login that
 may rate. Another player's dialog, a guest's, and a wall tablet signed in as nobody are
@@ -326,6 +400,102 @@ them counting while the person is out, set their groups to `ignore` with an auto
 on the person's state, and back when they return. A group that is ignored is still that
 person's loved or loathed list, so rating into it still works.
 
+## Worked examples
+
+### Christmas songs: too soon in November, welcome in December
+
+1. **Add a station** or two that you are happy to be sent to, if you have none yet.
+2. **Add a group of songs**, starting with the shipped list **Christmas songs**. Set it
+   to **Loathed**. **While loathed:** switch station for 5 minutes. **While loved:**
+   change the volume by 10.
+3. Add the automation under [Changing how you feel about a
+   group](#changing-how-you-feel-about-a-group), with your group's select in it. It
+   sets the group to loathe in November, love in December and ignore for the rest of
+   the year.
+
+In November "Last Christmas" sends the kitchen to the other station for five minutes
+and brings it back. From the first of December the same song is turned up a little.
+To keep one song whatever the month, put its title in another group that is loved:
+a song named outright beats `*christmas*`.
+
+### A station with a short playlist
+
+1. **Add a group of songs** called *Heard too often*, starting with an empty list, and
+   leave **Songs** empty.
+2. Under **Songs played too often**, set 3 times in the last 4 hours.
+3. Set it to **Loathed**, and **While loathed** to switch station for 10 minutes.
+
+The third time any song comes round in four hours, the player goes to another station
+for ten minutes. Songs you have named in other groups are not counted: a favourite is
+still turned up however often it is played.
+
+### Thumbs for the family
+
+1. On the page in Casa Mia, open the entry's **Players** and tick the family under
+   **Who may rate**.
+2. Add the **Casa Mia Love it or Loathe it** card to a dashboard each of them uses,
+   and choose the player. Or add nothing: the thumbs are in the player's own dialog.
+3. Ann taps the thumb up while a song she likes is on. The group *Loved by Ann* is made
+   with that song in it, and the song is turned up 10% until the next track.
+4. Ben taps the thumb down on another. *Loathed by Ben* is made, and the song is muted.
+
+A group made this way has the usual actions. Open *Loathed by Ben* and change **While
+loathed** to switch station, if a mute isn't what Ben wants. Each person's groups count
+for everyone who is listening; to count them only while that person is at home, set the
+groups to `ignore` from an automation on the person's state.
+
+### Thumbs on a wall tablet
+
+A wall tablet is signed in as nobody in particular, so it has to say whose song it is.
+
+1. In the entry's **Players**, tick the tablet's login under **Screens that may rate
+   for them**.
+2. On the tablet's dashboard, add one card for each person, with **Whose song it is**
+   set to that person and **Only the thumbs** ticked, beside the media card:
+
+```yaml
+type: horizontal-stack
+cards:
+  - type: custom:casa-mia-love-or-loathe
+    entity: media_player.kitchen
+    person: person.ann
+    compact: true
+  - type: custom:casa-mia-love-or-loathe
+    entity: media_player.kitchen
+    person: person.ben
+    compact: true
+```
+
+A guest who finds the tablet can press those thumbs, and what they press counts as Ann's
+or Ben's. The same guest signed in on their own phone can't rate at all.
+
+### Tell my phone only when something goes wrong
+
+1. Settings → Automations & scenes → Blueprints → **Notify on Love it or Loathe it** →
+   **Create automation**.
+2. Tick **Only when it failed**, and give your phone's notify action.
+
+You hear nothing while it works. A player that refuses a volume change, or that can't be
+switched back to its station, sends a notification with the song, the player and the
+reason. For the whole story of one evening, read **What happened** on the page.
+
+### Leave the music alone tonight
+
+Each entry's **Watching** switch stops it acting. Turn it off by hand for a party, or
+from an automation:
+
+```yaml
+automation:
+  - alias: Leave the music alone while we have guests
+    triggers:
+      - trigger: state
+        entity_id: input_boolean.guests
+    actions:
+      - action: "switch.turn_{{ 'off' if trigger.to_state.state == 'on' else 'on' }}"
+        target:
+          entity_id: switch.love_it_or_loathe_it_watching
+```
+
 ## Seeing what it did
 
 **Last match** (`sensor.love_it_or_loathe_it_last_match`; each entry has its own) holds the song last acted on.
@@ -373,6 +543,8 @@ The page in Casa Mia shows the last 100 lines since Home Assistant started, unde
 **What happened**. Every line also goes to Home Assistant's Logbook, under the entry's
 Last match sensor: open the sensor, or the entry's device, to read them there. The
 Logbook keeps them for as long as it keeps anything.
+
+<img src="../screenshots/love-or-loathe-what-happened.webp" alt="What happened, on the page: lines with a time, a pill and the words. A match for a Christmas song in the kitchen, then Done: switched to another station until 14:10. A match for a song Ann loves in the garden, then the volume from 40% to 44% until the next track. A match for a song Ben loathes, then muted. Before them, Started, Stopped, a rating by Ben and a volume put back" width="800">
 
 ## Switching an entry off
 
