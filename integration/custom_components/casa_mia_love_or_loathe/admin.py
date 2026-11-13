@@ -18,6 +18,7 @@ from types import MappingProxyType
 from typing import Any
 
 import voluptuous as vol
+from homeassistant.auth import EVENT_USER_ADDED, EVENT_USER_REMOVED, EVENT_USER_UPDATED
 from homeassistant.components import websocket_api
 from homeassistant.config_entries import (
     SIGNAL_CONFIG_ENTRY_CHANGED,
@@ -27,16 +28,18 @@ from homeassistant.config_entries import (
     ConfigSubentry,
 )
 from homeassistant.const import CONF_NAME
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.translation import async_get_translations
 
+from . import trail
 from .config_flow import group_errors, taken
 from .const import (
     ACTIONS,
     CONF_ACTION,
     CONF_AMOUNT,
     CONF_DELAY,
+    CONF_ENABLED,
     CONF_FEELING,
     CONF_HOURS,
     CONF_MEDIA,
@@ -45,7 +48,9 @@ from .const import (
     CONF_PATTERNS,
     CONF_PERSON,
     CONF_PLAYERS,
+    CONF_RATERS,
     CONF_REPEATS,
+    CONF_SCREENS,
     CONF_TIMES,
     DEFAULT_REPEATS,
     DOMAIN,
@@ -61,6 +66,7 @@ from .pure import felt, home, libraries
 _LOGGER = logging.getLogger(__name__)
 VIEW = f"{DOMAIN}/view"
 FEEDS = f"{DOMAIN}_feeds"  # hass.data: what each open feed is sent by
+USERS = f"{DOMAIN}_users"  # hass.data: the logins, by name
 LIBRARIES = f"{DOMAIN}_libraries"  # hass.data: the shipped lists, read once
 # A group or station's subentry id: "id" in the view, and this in a command (whose own
 # "id" is the websocket message's).
@@ -85,8 +91,31 @@ async def setup(hass: HomeAssistant) -> None:
             tell(hass)
 
     async_dispatcher_connect(hass, SIGNAL_CONFIG_ENTRY_CHANGED, entry_changed)
+    await _users(hass)
+
+    async def users_changed(_event: Event) -> None:
+        await _users(hass)
+
+    for changed in (EVENT_USER_ADDED, EVENT_USER_REMOVED, EVENT_USER_UPDATED):
+        hass.bus.async_listen(changed, users_changed)
+    # And of each line added to what happened (trail.py).
+    async_dispatcher_connect(hass, trail.NOTED, callback(lambda: tell(hass)))
     for command in _CHANGES:
         websocket_api.async_register_command(hass, command)
+
+
+async def _users(hass: HomeAssistant) -> None:
+    """Home Assistant's logins by name, kept for the view (which is built without
+    waiting) and read again when one is added, removed or changed."""
+    hass.data[USERS] = sorted(
+        (
+            {"id": user.id, "name": user.name or user.id}
+            for user in await hass.auth.async_get_users()
+            if not user.system_generated and user.is_active
+        ),
+        key=lambda user: user["name"].lower(),
+    )
+    tell(hass)
 
 
 @callback
@@ -112,6 +141,8 @@ def _view(hass: HomeAssistant) -> dict[str, Any]:
         # Every player and person there is, to choose from.
         "players": named("media_player"),
         "people": named("person"),
+        # The logins there are, for the screens that may rate for someone.
+        "users": hass.data[USERS],
     }
 
 
@@ -124,8 +155,14 @@ def _entry(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:
         "id": entry.entry_id,
         "title": entry.title,
         "running": running,
+        "enabled": entry.options.get(CONF_ENABLED, True),
+        # What happened, the newest first (trail.py).
+        "trail": list(reversed(trail.lines(hass, entry))),
         "players": players,
         "delay": entry.options.get(CONF_DELAY, 0),
+        # Who may rate: the people, and the logins that may rate for them.
+        CONF_RATERS: entry.options.get(CONF_RATERS, []),
+        CONF_SCREENS: entry.options.get(CONF_SCREENS, []),
         "groups": [
             # `home`: love or loathe, which list it is even while ignored.
             {
@@ -142,7 +179,9 @@ def _entry(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:
             for s in subentries
             if s.subentry_type == STATION
         ],
-        "playing": {e: _playing(hass, engine, e) for e in players} if engine else {},
+        "playing": {e: _playing(hass, engine, e) for e in players}
+        if engine and engine.enabled
+        else {},
         "away": engine.away if engine else {},
         "last": engine.last if engine else None,
     }
@@ -200,10 +239,11 @@ _NAME = vol.All(str, vol.Strip, vol.Length(min=1))
 
 def _change(name: str, fields: dict[Any, Any]) -> Callable[[Any], Any]:
     """Makes a websocket command of a function that changes one entry: it is given the
-    entry and the message, and raises Refused. Every change is logged here, with its
+    entry and the message, answers what it did in words for the trail (trail.py), and
+    raises Refused. Every change is logged here, with its
     result; each then reaches the page by the feed, as a change made anywhere does."""
 
-    def wrap(change: Callable[[HomeAssistant, ConfigEntry, dict[str, Any]], None]):
+    def wrap(change: Callable[[HomeAssistant, ConfigEntry, dict[str, Any]], str]):
         @websocket_api.websocket_command(
             {
                 vol.Required("type"): f"{DOMAIN}/{name}",
@@ -222,13 +262,14 @@ def _change(name: str, fields: dict[Any, Any]) -> Callable[[Any], Any]:
             try:
                 if entry is None or entry.domain != DOMAIN:
                     raise Refused("That entry is no longer in Home Assistant.")
-                change(hass, entry, msg)
+                said = change(hass, entry, msg)
             except Refused as exc:
                 why = await _words(hass, str(exc))
                 _LOGGER.warning("page: %s refused: %s", name, why)
                 connection.send_error(msg["id"], "refused", why)
                 return
             _LOGGER.info("page: %s in %s", name, entry.title)
+            trail.note(hass, entry, trail.EDIT, f"Changed from the page: {said}")
             connection.send_result(msg["id"])
 
         _CHANGES.append(command)
@@ -294,7 +335,7 @@ def _subentry(entry: ConfigEntry, id: str, kind: str | None = None) -> ConfigSub
         vol.Required(LOATHE): _ACT,
     },
 )
-def _save_group(hass: HomeAssistant, entry: ConfigEntry, msg: dict[str, Any]) -> None:
+def _save_group(hass: HomeAssistant, entry: ConfigEntry, msg: dict[str, Any]) -> str:
     group = {
         key: msg[key]
         for key in (
@@ -311,6 +352,7 @@ def _save_group(hass: HomeAssistant, entry: ConfigEntry, msg: dict[str, Any]) ->
     for error in group_errors(entry, group).values():
         raise Refused(f"config_subentries.group.error.{error}")
     _save(hass, entry, GROUP, msg, lambda was: felt(was.data if was else {}, group))
+    return f"the group {msg[CONF_NAME]} saved, {group[CONF_FEELING]}"
 
 
 @_change(
@@ -322,24 +364,27 @@ def _save_group(hass: HomeAssistant, entry: ConfigEntry, msg: dict[str, Any]) ->
         vol.Required(TYPE): _NAME,
     },
 )
-def _save_station(hass: HomeAssistant, entry: ConfigEntry, msg: dict[str, Any]) -> None:
+def _save_station(hass: HomeAssistant, entry: ConfigEntry, msg: dict[str, Any]) -> str:
     media = {CONF_MEDIA: {ID: msg[ID], TYPE: msg[TYPE]}}
     _save(hass, entry, STATION, msg, lambda _was: media)
+    return f"the station {msg[CONF_NAME]} saved"
 
 
 @_change("remove", {vol.Required(SUBENTRY): str})
-def _remove(hass: HomeAssistant, entry: ConfigEntry, msg: dict[str, Any]) -> None:
-    _subentry(entry, msg[SUBENTRY])
+def _remove(hass: HomeAssistant, entry: ConfigEntry, msg: dict[str, Any]) -> str:
+    gone = _subentry(entry, msg[SUBENTRY])
     hass.config_entries.async_remove_subentry(entry, msg[SUBENTRY])
+    return f"the {gone.subentry_type} {gone.title} removed"
 
 
 @_change("order", {vol.Required(CONF_ORDER): [str]})
-def _order(hass: HomeAssistant, entry: ConfigEntry, msg: dict[str, Any]) -> None:
+def _order(hass: HomeAssistant, entry: ConfigEntry, msg: dict[str, Any]) -> str:
     """The groups and the stations, in the order given: which group has a song that is
     in two, and which station is tried first."""
     hass.config_entries.async_update_entry(
         entry, options={**entry.options, CONF_ORDER: msg[CONF_ORDER]}
     )
+    return "the order of the groups or the stations"
 
 
 @_change(
@@ -348,12 +393,25 @@ def _order(hass: HomeAssistant, entry: ConfigEntry, msg: dict[str, Any]) -> None
         vol.Required(CONF_NAME): _NAME,
         vol.Required(CONF_PLAYERS): vol.All([str], vol.Length(min=1)),
         vol.Required(CONF_DELAY): vol.All(vol.Coerce(float), vol.Range(0, 60)),
+        vol.Required(CONF_RATERS): [str],
+        vol.Required(CONF_SCREENS): [str],
     },
 )
-def _save_entry(hass: HomeAssistant, entry: ConfigEntry, msg: dict[str, Any]) -> None:
+def _save_entry(hass: HomeAssistant, entry: ConfigEntry, msg: dict[str, Any]) -> str:
     if taken(hass, msg[CONF_PLAYERS], entry.entry_id):
         raise Refused("config.error.player_taken")
-    options = {key: msg[key] for key in (CONF_PLAYERS, CONF_DELAY)}
+    kept = (CONF_PLAYERS, CONF_DELAY, CONF_RATERS, CONF_SCREENS)
+    options = {key: msg[key] for key in kept}
     hass.config_entries.async_update_entry(
         entry, title=msg[CONF_NAME], options={**entry.options, **options}
     )
+    return "its name, players, delay or who may rate"
+
+
+@_change("enable", {vol.Required(CONF_ENABLED): bool})
+def _enable(hass: HomeAssistant, entry: ConfigEntry, msg: dict[str, Any]) -> str:
+    """Whether the entry watches its players at all: what its switch does (switch.py)."""
+    hass.config_entries.async_update_entry(
+        entry, options={**entry.options, CONF_ENABLED: msg[CONF_ENABLED]}
+    )
+    return "switched on" if msg[CONF_ENABLED] else "switched off"

@@ -3,11 +3,16 @@ group, and taken out of their other one. Buttons on a dashboard call it; whose s
 is comes from the login that pressed, or from the person named in the call (a wall
 tablet is signed in as nobody in particular).
 
+The feeling `clear` takes a rating away: the song comes out of both their lists.
+
 A person's loved group is the group that belongs to them and is set to Love, or was
 before it was set to Ignore; the same for loathed. One they don't have yet is made at
 their first rating. Only a person gets one: a login that belongs to no person (a wall
 tablet's) is refused unless its button names the person, so a screen can't fill the
-entry with groups of its own."""
+entry with groups of its own.
+
+Who may rate is the entry's to say (`refused`): only the people it lists, and only a
+login it lists may rate for someone other than itself. Both lists start empty."""
 
 from __future__ import annotations
 
@@ -21,12 +26,16 @@ from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 
+from . import trail
 from .const import (
+    CLEAR,
     CONF_FEELING,
     CONF_PATTERNS,
     CONF_PERSON,
     CONF_PLAYERS,
+    CONF_RATERS,
     CONF_REPEATS,
+    CONF_SCREENS,
     DEFAULT_ACTS,
     DEFAULT_REPEATS,
     DOMAIN,
@@ -40,13 +49,13 @@ _LOGGER = logging.getLogger(__name__)
 SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_ENTITY_ID): cv.entity_id,
-        vol.Required(CONF_FEELING): vol.In([LOVE, LOATHE]),
+        vol.Required(CONF_FEELING): vol.In([LOVE, LOATHE, CLEAR]),
         vol.Optional(CONF_PERSON): cv.entity_id,
     }
 )
 
 
-def _person_of(hass: HomeAssistant, user_id: str | None) -> str | None:
+def person_of(hass: HomeAssistant, user_id: str | None) -> str | None:
     """The person a login belongs to."""
     return next(
         (
@@ -56,6 +65,48 @@ def _person_of(hass: HomeAssistant, user_id: str | None) -> str | None:
         ),
         None,
     )
+
+
+def entry_of(hass: HomeAssistant, player: str) -> ConfigEntry | None:
+    """The running entry that watches a player."""
+    return next(
+        (
+            e
+            for e in hass.config_entries.async_loaded_entries(DOMAIN)
+            if player in e.options.get(CONF_PLAYERS, [])
+        ),
+        None,
+    )
+
+
+def refused(
+    entry: ConfigEntry,
+    person: str | None,
+    own: str | None,
+    user_id: str | None,
+    admin: bool,
+) -> str | None:
+    """Why a rating may not be made in this entry, or None when it may. `person`: whose
+    song it would be; `own`: the person the login belongs to; `user_id`: the login, None
+    for a call with none behind it (an automation); `admin`: it is an administrator's."""
+    if person is None:
+        return (
+            "Can't tell whose song this is: this login belongs to no person. "
+            "Name the person in the action."
+        )
+    if person != own and not (
+        admin or user_id is None or user_id in entry.options.get(CONF_SCREENS, [])
+    ):
+        return (
+            "This login may not rate for someone else. An admin can allow it in "
+            f"{entry.title}'s players: Screens that may rate for them."
+        )
+    if person not in entry.options.get(CONF_RATERS, []):
+        return (
+            f"{person} is not one of the people who may rate in {entry.title}. "
+            "An admin can add them in its players: Who may rate."
+        )
+    return None
 
 
 def _songs(
@@ -69,25 +120,21 @@ def _songs(
 
 async def rate(hass: HomeAssistant, call: ServiceCall) -> None:
     player, feeling = call.data[ATTR_ENTITY_ID], call.data[CONF_FEELING]
-    entry = next(
-        (
-            e
-            for e in hass.config_entries.async_loaded_entries(DOMAIN)
-            if player in e.options.get(CONF_PLAYERS, [])
-        ),
-        None,
-    )
+    entry = entry_of(hass, player)
     if entry is None:
         raise ServiceValidationError(
             f"{player} is not a player that Love it or Loathe it watches"
         )
 
-    person = call.data.get(CONF_PERSON) or _person_of(hass, call.context.user_id)
-    if person is None:
-        raise ServiceValidationError(
-            "Can't tell whose song this is: this login belongs to no person. "
-            "Name the person in the action."
-        )
+    login = call.context.user_id
+    user = await hass.auth.async_get_user(login) if login else None
+    own = person_of(hass, login)
+    person = call.data.get(CONF_PERSON) or own
+    why = refused(entry, person, own, login, user is not None and user.is_admin)
+    if why:
+        _LOGGER.warning("%s: rating refused: %s", player, why)
+        raise ServiceValidationError(why)
+    assert person is not None
 
     state = hass.states.get(player)
     title = str(state.attributes.get("media_title") or "") if state else ""
@@ -100,6 +147,20 @@ async def rate(hass: HomeAssistant, call: ServiceCall) -> None:
         for group in entry.subentries.values()
         if group.subentry_type == GROUP and group.data.get(CONF_PERSON) == person
     }
+    by = f" by {artist}" if artist else ""
+    if feeling == CLEAR:
+        # No rating at all: out of both their lists, and nothing is made.
+        for group in theirs.values():
+            was = group.data.get(CONF_PATTERNS, "")
+            _songs(hass, entry, group, without_song(was, title, artist))
+        _LOGGER.info(
+            "%s: %r by %r is no longer rated by %s", player, title, artist, person
+        )
+        trail.note(
+            hass, entry, trail.EDIT, f"{person} no longer rates {title}{by}", player
+        )
+        return
+
     known = hass.states.get(person)
     if feeling not in theirs and (known is None or known.domain != "person"):
         raise ServiceValidationError(f"{person} is not a person in Home Assistant")
@@ -142,4 +203,11 @@ async def rate(hass: HomeAssistant, call: ServiceCall) -> None:
         group.title,
         feeling,
         person,
+    )
+    trail.note(
+        hass,
+        entry,
+        trail.EDIT,
+        f"{known.name if known else person} rated {title}{by}: now in {group.title}",
+        player,
     )

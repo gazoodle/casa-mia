@@ -213,12 +213,16 @@ export function StationDialog({
   );
 }
 
-export type EntryBody = { name: string; players: string[]; delay: number };
+export type EntryBody = { name: string; players: string[]; delay: number; raters: string[]; screens: string[] };
 
 export function PlayersDialog({ entry, view, onClose, onSave }: { entry: Entry; view: View; onClose: () => void; onSave: (body: EntryBody) => void }) {
   const [name, setName] = useState(entry.title);
   const [players, setPlayers] = useState(entry.players);
   const [delay, setDelay] = useState(entry.delay);
+  const [raters, setRaters] = useState(entry.raters);
+  const [screens, setScreens] = useState(entry.screens);
+  const tick = (set: (change: (was: string[]) => string[]) => void, id: string) => (e: { target: { checked: boolean } }) =>
+    set((was) => (e.target.checked ? [...was, id] : was.filter((other) => other !== id)));
   // Another entry's players can't be taken: two acting on one would undo each other.
   const elsewhere = new Map(view.entries.filter((e) => e.id !== entry.id).flatMap((e) => e.players.map((p) => [p, e.title] as const)));
   // One that is watched but no longer in Home Assistant is still shown, to be unticked.
@@ -226,9 +230,10 @@ export function PlayersDialog({ entry, view, onClose, onSave }: { entry: Entry; 
 
   return (
     <Dialog
-      title={`${entry.title}: its players`}
+      title={`${entry.title}: its players, and who may rate`}
+      wide
       onClose={onClose}
-      footer={<Buttons onClose={onClose} ready={!!name.trim() && players.length > 0} onSave={() => onSave({ name: name.trim(), players, delay })} />}
+      footer={<Buttons onClose={onClose} ready={!!name.trim() && players.length > 0} onSave={() => onSave({ name: name.trim(), players, delay, raters, screens })} />}
     >
       <Field label="Name" help="Shown on its device and entities in Home Assistant.">
         <input value={name} onChange={(e) => setName(e.target.value)} />
@@ -253,6 +258,33 @@ export function PlayersDialog({ entry, view, onClose, onSave }: { entry: Entry; 
       </Field>
       <Field label="Delay, in seconds" help="How long to wait after a player reports a new track before acting. Leave it at 0 unless the title changes before the song does.">
         <input type="number" min={0} max={60} value={delay} onChange={(e) => setDelay(number(e.target.value))} />
+      </Field>
+      <Field
+        label="Who may rate"
+        help="The people whose loves and loathes count here. Only they can rate a song, with the thumbs or the rate action, and only they get loved and loathed groups. With nobody ticked, nobody can."
+      >
+        <div className={css.players}>
+          {view.people.map((p) => (
+            <label key={p.entity_id} className={guest.check}>
+              <input type="checkbox" checked={raters.includes(p.entity_id)} onChange={tick(setRaters, p.entity_id)} />
+              <span>{p.name}</span>
+            </label>
+          ))}
+          {view.people.length === 0 && <span className={guest.checkHelp}>Home Assistant has no people yet (Settings → People).</span>}
+        </div>
+      </Field>
+      <Field
+        label="Screens that may rate for them"
+        help="The logins that may rate for one of those people by naming them, such as a wall tablet's. Anyone else can only rate as themselves. An administrator may always name a person."
+      >
+        <div className={css.players}>
+          {view.users.map((u) => (
+            <label key={u.id} className={guest.check}>
+              <input type="checkbox" checked={screens.includes(u.id)} onChange={tick(setScreens, u.id)} />
+              <span>{u.name}</span>
+            </label>
+          ))}
+        </div>
       </Field>
     </Dialog>
   );

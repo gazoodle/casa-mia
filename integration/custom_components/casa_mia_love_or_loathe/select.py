@@ -14,6 +14,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
+from . import trail
 from .const import CONF_FEELING, DOMAIN, GROUP, IGNORE, LOATHE, LOVE
 from .pure import felt
 
@@ -66,4 +67,5 @@ class Feeling(SelectEntity):
     async def async_select_option(self, option: str) -> None:
         group = self.entry.subentries[self.group_id]
         data = felt(group.data, {**group.data, CONF_FEELING: option})
+        trail.note(self.hass, self.entry, trail.EDIT, f"{group.title} set to {option}")
         self.hass.config_entries.async_update_subentry(self.entry, group, data=data)

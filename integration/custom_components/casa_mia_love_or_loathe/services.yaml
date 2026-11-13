@@ -13,6 +13,7 @@ rate:
           options:
             - love
             - loathe
+            - clear
     person:
       selector:
         entity:

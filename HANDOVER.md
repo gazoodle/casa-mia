@@ -193,6 +193,31 @@ imported from `casa_mia`, no app option. Guide: `docs/applets/love-or-loathe.md`
 - **A person's first rating makes their group** (b6, `rating.py`): only for a person
   entity, found from the login or named in the call. A login with no person is refused,
   so a wall tablet can't make groups (the owner asked what stops it).
+- **What happened** (b7; owner, 2026-11-13: "I saw the match, but not the action"):
+  `trail.py` keeps each entry's last 100 lines in `hass.data` (they outlive a reload,
+  not a restart), sends each to HA's Logbook (`logbook_entry`, against the Last match
+  sensor) and signals the page's feed. `engine._note` writes the log line and the trail
+  line together, so use it in place of `_LOGGER` for anything the owner should see.
+  Every reason a match leads to no action has a line.
+- **An entry's Watching switch** (b7, `switch.py`, option `enabled`): off, the engine
+  starts but follows nothing; armed returns still fire. `_convert` removes the old
+  per-group switches but must leave this one (it checks the unique id).
+- **Who may rate** (b7; owner, 2026-11-13: "default none"): entry options `raters`
+  (person entities) and `screens` (HA user ids that may name a person; a wall tablet's).
+  `rating.refused` is the one check, used by the `rate` action and by the thumbs' feed
+  (its `refused` words). An admin and a call with no login (an automation) may name
+  any rater. `_convert` adopts the people who already own a group, once, when the
+  option is absent. HA doesn't limit what a non-admin may call, so the selects and the
+  Watching switch are only as private as the dashboards they are on; the guide says so.
+- **The thumbs card** (b7): `integration/cards/src/love-or-loathe/`, built by
+  `tools/build_cards` into the integration's own `www/cards.js`, which `cards.py`
+  serves and loads into every HA page (the integration is standalone, as Sensor Watch
+  is). `casa-mia-thumbs` is whole in itself (its own feed), so it can be reused in the
+  entity dialog, which `dialog.ts` does for a watched media player (b7; `quiet`
+  draws nothing where they could never be used). The feed, `casa_mia_love_or_loathe/song`, is any signed-in
+  user's; it looks the entry up whether or not it is loaded at that instant, because
+  every save reloads and the thumbs flickered. Seen outside Home Assistant only, with
+  stand-ins for `ha-card`, `ha-icon` and the dialog.
 - **The notify blueprint** (b6): `blueprints/notify.yaml`, written to
   `blueprints/automation/casa_mia/love_or_loathe_notify.yaml` at each start
   (`blueprint.py`), as Sensor Watch's is. A test holds it to the event's fields.

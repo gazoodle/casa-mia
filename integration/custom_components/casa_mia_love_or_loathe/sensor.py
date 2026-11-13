@@ -15,6 +15,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import DOMAIN
 from .engine import Engine
+from .trail import last_match
 
 
 async def async_setup_entry(
@@ -33,7 +34,7 @@ class LastMatch(SensorEntity):
 
     def __init__(self, engine: Engine, entry: ConfigEntry) -> None:
         self.engine = engine
-        self._attr_unique_id = f"{entry.entry_id}_last_match"
+        self._attr_unique_id = last_match(entry)
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
             name=entry.title,

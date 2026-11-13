@@ -36,10 +36,12 @@ from homeassistant.helpers.event import (
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
+from . import trail
 from .const import (
     CONF_ACTION,
     CONF_AMOUNT,
     CONF_DELAY,
+    CONF_ENABLED,
     CONF_FEELING,
     CONF_HOURS,
     CONF_MEDIA,
@@ -98,6 +100,7 @@ class Engine:
         self.hass = hass
         self.entry = entry
         self.delay = float(entry.options.get(CONF_DELAY, 0))
+        self.enabled: bool = entry.options.get(CONF_ENABLED, True)
         self.players = {e: Player() for e in entry.options.get(CONF_PLAYERS, [])}
 
         subentries = ordered(entry)
@@ -145,6 +148,12 @@ class Engine:
         for heard in list(self._listeners):
             heard()
 
+    def _note(self, kind: str, text: str, entity: str = "") -> None:
+        """Something happened: into the log, and the trail the owner reads (trail.py)."""
+        level = logging.WARNING if kind == trail.PROBLEM else logging.INFO
+        _LOGGER.log(level, "%s%s", f"{entity}: " if entity else "", text)
+        trail.note(self.hass, self.entry, kind, text, entity)
+
     @property
     def away(self) -> dict[str, str]:
         """Each player on another station now, and when it goes back."""
@@ -167,16 +176,19 @@ class Engine:
             if player.away:
                 self._arm(entity, player)
 
+        if not self.enabled:
+            # Returns stay armed above, so a player that is away still comes back.
+            self._note(trail.START, "Started, but switched off: nothing is watched")
+            return
         self.entry.async_on_unload(
             async_track_state_change_event(self.hass, list(self.players), self._changed)
         )
-        self.afresh()
-        _LOGGER.info(
-            "Watching %d players against %d groups, with %d stations to switch to",
-            len(self.players),
-            len(self.groups),
-            len(self.stations),
+        self._note(
+            trail.START,
+            f"Started watching {len(self.players)} players against "
+            f"{len(self.groups)} groups, with {len(self.stations)} stations to switch to",
         )
+        self.afresh()
 
     async def stop(self) -> None:
         """Unloading: put back every volume and mute now, since nothing will be here at
@@ -187,6 +199,7 @@ class Engine:
             async with player.lock:
                 await self._undo(entity, player)
         await self._save()
+        self._note(trail.STOP, "Stopped")
 
     async def _save(self) -> None:
         players = {
@@ -258,8 +271,10 @@ class Engine:
         if (not track[0]) != (entity in self.silent):
             self.silent ^= {entity}
             if not track[0]:
-                _LOGGER.info(
-                    "%s is playing but reports no title: nothing to match", entity
+                self._note(
+                    trail.SKIP,
+                    "Playing, but reports no title: nothing to match",
+                    entity,
                 )
         self._tell()  # the page shows what each player is playing (admin.py)
 
@@ -284,8 +299,10 @@ class Engine:
             away["ours"] = now
             self.learned[away["tried"][-1]] = now
         elif now != away["ours"]:
-            _LOGGER.info(
-                "%s was changed by someone while away: not switching it back", entity
+            self._note(
+                trail.RETURN,
+                "Changed by someone while on the other station: not switching it back",
+                entity,
             )
             self._home(player)
         else:
@@ -305,15 +322,37 @@ class Engine:
             await self._save()
 
             group, repeats = self.judge(title, artist)
-            if group is None or not leads(
-                entity, state.attributes.get("group_members")
-            ):
+            if group is None:
+                return
+            often = f", played {repeats} times in {group.hours:g} h" if repeats else ""
+            by = f" by {artist}" if artist else ""
+            self._note(
+                trail.MATCH,
+                f"{title}{by} is in {group.name} ({group.feeling}{often})",
+                entity,
+            )
+
+            # Every reason nothing is then done is said: a match with no action after it
+            # otherwise looks like a fault.
+            members = state.attributes.get("group_members")
+            if not leads(entity, members):
+                assert isinstance(members, list)
+                self._note(
+                    trail.SKIP,
+                    f"Nothing done: {members[0]} leads its speaker group and acts for it",
+                    entity,
+                )
                 return
 
             # The report runs ahead of the sound on some players (the entry's Delay).
             if self.delay:
                 await asyncio.sleep(self.delay)
                 if player.track != track:
+                    self._note(
+                        trail.SKIP,
+                        f"Nothing done: the track changed within the {self.delay:g} s delay",
+                        entity,
+                    )
                     return
 
             action = group.act.action
@@ -324,26 +363,9 @@ class Engine:
                 )
             except HomeAssistantError as exc:
                 result = f"failed: {exc}"
-                _LOGGER.warning(
-                    "%s: could not %s for %r by %r (%s): %s",
-                    entity,
-                    action,
-                    title,
-                    artist,
-                    group.name,
-                    exc,
-                )
+                self._note(trail.PROBLEM, f"Could not {action}: {exc}", entity)
             else:
-                _LOGGER.info(
-                    "%s: %r by %r is in %s (%s%s): %s",
-                    entity,
-                    title,
-                    artist,
-                    group.name,
-                    group.feeling,
-                    f", played {repeats} times in {group.hours:g} h" if repeats else "",
-                    result,
-                )
+                self._note(trail.CHANGE if act else trail.SKIP, _said(result), entity)
             await self._save()
 
         self.last = {
@@ -429,15 +451,20 @@ class Engine:
             if undo[0] == "mute":
                 if state.attributes.get("is_volume_muted"):
                     await self._call("volume_mute", entity, is_volume_muted=False)
+                    self._note(trail.BACK, "Unmuted", entity)
+                else:
+                    self._note(trail.BACK, "Already unmuted by someone", entity)
                 return
             _, was, to = undo
             now = state.attributes.get("volume_level")
             if now is not None and abs(now - to) < SAME_VOLUME:
                 await self._call("volume_set", entity, volume_level=was)
+                self._note(trail.BACK, f"Volume put back to {was:.0%}", entity)
             else:
-                _LOGGER.info("%s: volume moved by someone since: left alone", entity)
+                self._note(
+                    trail.BACK, "Volume moved by someone since: left alone", entity
+                )
         except HomeAssistantError as exc:
-            _LOGGER.warning("%s: could not put back %s: %s", entity, undo[0], exc)
             self._problem(entity, f"could not put back {undo[0]}: {exc}")
 
     # --- coming back from another station ----------------------------------------
@@ -474,11 +501,10 @@ class Engine:
             state = self.hass.states.get(entity)
             origin = away["origin"]
             if state is None or state.state != STATE_PLAYING:
-                _LOGGER.info("%s is no longer playing: not switching it back", entity)
-            elif origin is None:
-                _LOGGER.warning(
-                    "%s never said what it was playing: can't switch it back", entity
+                self._note(
+                    trail.RETURN, "No longer playing: not switching it back", entity
                 )
+            elif origin is None:
                 self._problem(
                     entity,
                     "can't switch back: the player never said what it was playing",
@@ -487,17 +513,26 @@ class Engine:
                 try:
                     await self._call("play_media", entity, **origin)
                 except HomeAssistantError as exc:
-                    _LOGGER.warning("%s: could not switch back: %s", entity, exc)
                     self._problem(entity, f"could not switch back: {exc}")
                 else:
-                    _LOGGER.info("%s: switched back to %s", entity, origin[ID])
+                    self._note(trail.RETURN, f"Switched back to {origin[ID]}", entity)
         self._tell()
 
     def _problem(self, entity: str, what: str) -> None:
         """A failure after the match was reported: shown on the sensor as its result."""
+        self._note(trail.PROBLEM, what[0].upper() + what[1:], entity)
         if self.last and self.last[ATTR_ENTITY_ID] == entity:
             self.last = {**self.last, "result": f"failed: {what}"}
         self._tell()
+
+
+def _said(result: str) -> str:
+    """An action's own account of itself, as a line of the trail."""
+    if result == "event only":
+        return (
+            "Nothing done to the player: the group's action is to fire the event only"
+        )
+    return result[0].upper() + result[1:]
 
 
 def _act(data: dict[str, Any]) -> Act:

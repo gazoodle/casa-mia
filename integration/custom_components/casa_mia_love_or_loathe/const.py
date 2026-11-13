@@ -13,6 +13,12 @@ INSTALLED_EVENT = "casa_mia_components_installed"
 
 # The entry's options.
 CONF_PLAYERS = "players"
+# Who may rate songs here: the person entities whose loves and loathes count, and the
+# logins (Home Assistant user ids) that may rate for one of them, such as a wall tablet's.
+# Both empty until chosen, so nobody rates by default (owner, 2026-11-13).
+CONF_RATERS = "raters"
+CONF_SCREENS = "screens"
+CONF_ENABLED = "enabled"  # off: the entry watches nothing (switch.py); on if absent
 CONF_DELAY = "delay"  # seconds between a player reporting a track and it being heard
 # Subentry ids in the order the page gave them (admin.py): the order groups settle a tie
 # in, and stations are tried in. Home Assistant keeps them as made, and can't move one.
@@ -51,6 +57,7 @@ DEFAULT_ACTS = {
     LOATHE: {CONF_ACTION: MUTE, CONF_AMOUNT: -50, CONF_MINUTES: 5},
 }
 
+CLEAR = "clear"  # the rate action's third feeling: take the rating away
 RATE = "rate"  # casa_mia_love_or_loathe.rate: add the song playing to a person's group
 
 # A station's field: what media_player.play_media is given.

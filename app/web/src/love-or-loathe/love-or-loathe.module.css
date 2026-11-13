@@ -79,6 +79,52 @@
   resize: vertical;
 }
 
+/* What happened: a list that scrolls in its own box, a line a row. */
+.trail {
+  display: grid;
+  gap: 4px;
+  max-height: 320px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  font-size: 12.5px;
+}
+
+.trail li {
+  display: grid;
+  grid-template-columns: 88px 104px 1fr;
+  align-items: baseline;
+  gap: 8px;
+  overflow-wrap: anywhere;
+}
+
+.trail li > :global(.cm-pill) {
+  justify-self: start;
+}
+
+.trail time {
+  color: var(--muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 520px) {
+  .trail li {
+    grid-template-columns: 88px 1fr;
+  }
+
+  .trail li > :last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+.headControls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .often {
   display: flex;
   flex-wrap: wrap;

@@ -56,7 +56,15 @@ export type Entry = {
   id: string;
   title: string;
   running: boolean;
+  /** Off: it watches nothing (its switch in Home Assistant, and on this page). */
+  enabled: boolean;
+  /** What happened, the newest first: kept in memory by the integration, so it starts
+   * again at a restart of Home Assistant. Home Assistant's Logbook has it all. */
+  trail: Line[];
   players: string[];
+  /** Who may rate: the people, and the logins (user ids) that may rate for them. */
+  raters: string[];
+  screens: string[];
   delay: number;
   groups: Group[];
   stations: Station[];
@@ -65,12 +73,27 @@ export type Entry = {
   away: Record<string, string>;
   last: Last | null;
 };
+export type Line = { at: string; kind: "start" | "stop" | "match" | "change" | "skip" | "back" | "return" | "problem" | "edit"; player: string; text: string };
+/** A line's pill: its word and its tone. */
+export const KINDS: Record<Line["kind"], [string, string]> = {
+  start: ["Started", "cm-muted"],
+  stop: ["Stopped", "cm-muted"],
+  match: ["Match", "cm-accent"],
+  change: ["Done", "cm-good"],
+  skip: ["Nothing done", "cm-warn"],
+  back: ["Put back", "cm-muted"],
+  return: ["Return", "cm-bark"],
+  problem: ["Failed", "cm-bad"],
+  edit: ["Changed", "cm-muted"],
+};
 export type Named = { entity_id: string; name: string };
 export type View = {
   entries: Entry[];
   libraries: Record<string, { name: string; patterns: string[] }>;
   players: Named[];
   people: Named[];
+  /** Home Assistant's logins, for the screens that may rate for someone. */
+  users: { id: string; name: string }[];
 };
 
 export const FEELINGS: [Feeling, string][] = [

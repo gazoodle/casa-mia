@@ -23,14 +23,18 @@
   "options": {
     "step": {
       "init": {
-        "title": "Media players to watch",
+        "title": "Media players to watch, and who may rate",
         "data": {
           "players": "Media players to watch (one or more)",
-          "delay": "Delay"
+          "delay": "Delay",
+          "raters": "Who may rate",
+          "screens": "Screens that may rate for them"
         },
         "data_description": {
           "players": "Any player that reports the title of what it is playing. Choose as many as you like: after the first, the box offers another. For speakers playing as one group, only the group's leader acts.",
-          "delay": "Seconds to wait after a player reports a new track before acting. Leave it at 0 unless the title changes before the song does."
+          "delay": "Seconds to wait after a player reports a new track before acting. Leave it at 0 unless the title changes before the song does.",
+          "raters": "The people whose loves and loathes count here. Only they can rate a song, with the thumbs or the rate action, and only they get loved and loathed groups. Left empty, nobody can.",
+          "screens": "The logins that may rate for one of those people by naming them, such as a wall tablet's. Anyone else can only rate as themselves; an administrator may always name a person."
         }
       }
     },
@@ -150,7 +154,8 @@
     "rating": {
       "options": {
         "love": "Love",
-        "loathe": "Loathe"
+        "loathe": "Loathe",
+        "clear": "Neither (take the rating away)"
       }
     },
     "action": {
@@ -175,6 +180,11 @@
           "loathe": "Loathe",
           "ignore": "Ignore"
         }
+      }
+    },
+    "switch": {
+      "watching": {
+        "name": "Watching"
       }
     }
   },
@@ -202,7 +212,7 @@
         },
         "feeling": {
           "name": "Feeling",
-          "description": "Love or loathe."
+          "description": "Love or loathe; or clear, to take the song out of both of the person's groups."
         },
         "person": {
           "name": "Person",

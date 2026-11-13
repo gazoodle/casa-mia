@@ -86,7 +86,9 @@ integration has been added, and the tile opens a page with all of it on one scre
   is clicked. The up and down buttons change the order, which decides which group has
   a song that is in two. Home Assistant's own screens can't change the order.
 - **Stations to switch to**, in the order they are tried, with the same buttons.
-- **Players** changes an entry's name, its players and its delay.
+- **Players** changes an entry's name, its players and its delay, and the switch
+  beside it turns the entry's watching off and on.
+- **What happened:** what the entry did, line by line.
 
 The page keeps nothing of its own. It changes what Home Assistant holds, so a group
 made on the page is the same group on Home Assistant's screens, with the same select,
@@ -214,6 +216,65 @@ first loved song makes a group "Loved by" them, and their first loathed song a g
 "Loathed by" them, with the usual actions (volume up 10% for loved, mute for loathed),
 which you can then change.
 
+### Who may rate
+
+Nobody may rate until you say who. Each entry has two lists, on its **Players** dialog
+on the page in Casa Mia and under **Configure** on the integration's page in Home
+Assistant:
+
+- **Who may rate:** the people whose loves and loathes count. Only they can rate a
+  song, and only they get loved and loathed groups.
+- **Screens that may rate for them:** the logins that may rate for one of those people
+  by naming them, such as a wall tablet's. Any other login can only rate as the person
+  it belongs to. An administrator may always name a person, and so may an automation.
+
+So a guest's login can't rate: it belongs to nobody on the first list, and it isn't on
+the second, so it can't name someone who is. A rating that isn't allowed is refused with
+the reason, the thumbs card says the same, and the thumbs are left out of the media
+player's dialog.
+
+This covers ratings. Home Assistant itself doesn't limit which actions a login without
+administrator rights may call, so a group's select or an entry's Watching switch can
+be changed by anyone who is shown it. Leave them off a guest's dashboard.
+
+### The thumbs card
+
+The integration brings a dashboard card with it, **Casa Mia Love it or Loathe it**: a
+thumb up and a thumb down for the song a media player is playing. Add it from the
+dashboard's card picker and choose the player.
+
+- A tap on a thumb rates the song for whoever is signed in. The thumb then stays lit
+  for that person whenever the song is on.
+- A tap on the lit thumb takes the rating away.
+- The thumbs are greyed out when they can't be used, and the card says why: the
+  player isn't one the integration watches, whoever is signed in may not rate, nothing
+  is playing, or the player reports no title.
+- **Whose song it is** names a person, for a shared screen such as a wall tablet,
+  which is signed in as nobody in particular. Give each person a card there, and add
+  the tablet's login to **Screens that may rate for them**.
+- **Only the thumbs** leaves out the name and the song, for beside a media card that
+  already shows them.
+
+```yaml
+type: custom:casa-mia-love-or-loathe
+entity: media_player.kitchen
+```
+
+A thumb is lit only for a song that one of the person's groups names. A song that a
+line with a `*` takes in is not a rating of that song, so its thumb is not lit.
+
+### The thumbs in a media player's own dialog
+
+The same thumbs are in the top of Home Assistant's dialog for a media player, the one
+that opens when you tap a player on any card. So every card that shows a watched player
+has them one tap away, and no dashboard needs editing.
+
+They are added only for a player the integration watches, and only for a login that
+may rate. Another player's dialog, a guest's, and a wall tablet signed in as nobody are
+left as they were.
+
+### The action behind it
+
 The action `casa_mia_love_or_loathe.rate` adds the song a player is playing to the
 person's loved or loathed group, as a line `Title | Artist`, and takes it out of their
 other group if it was named there. The song is then acted on at once.
@@ -221,11 +282,12 @@ other group if it was named there. The song is then acted on at once.
 | Field | Holds |
 |---|---|
 | `entity_id` | The media player. It must be one the integration watches. |
-| `feeling` | `love` or `loathe`. |
+| `feeling` | `love` or `loathe`; or `clear`, to take the song out of both of the person's groups. |
 | `person` | Optional. Whose song it is. |
 
-Without `person`, the action uses the person whose login pressed the button. So the
-same two buttons work for everyone who signs in to Home Assistant as themselves:
+Without `person`, the action uses the person whose login pressed the button. The card
+uses this action; ordinary buttons can too, and the same two then work for everyone
+who signs in to Home Assistant as themselves:
 
 ```yaml
 type: horizontal-stack
@@ -251,12 +313,13 @@ cards:
 ```
 
 A shared screen, such as a wall tablet, is signed in as nobody in particular. There,
-give each person their own pair of buttons with `person: person.ann` added to `data`.
+give each person their own pair of buttons with `person: person.ann` added to `data`,
+and add the tablet's login to **Screens that may rate for them**.
 
 The action refuses, and says why, when the login belongs to no person and none is
-named, when the name given is not a person in Home Assistant, and when the player has
-no title to rate. So a shared screen can't make groups of its own: a group is only ever
-made for a person.
+named, when the person isn't one who may rate, when the login names someone else and
+isn't a screen that may, and when the player has no title to rate. So a group is only
+ever made for a person you chose.
 
 A person's groups count for every player in the entry, whoever is listening. To stop
 them counting while the person is out, set their groups to `ignore` with an automation
@@ -291,6 +354,35 @@ triggers:
 
 Every match, action and return is in Home Assistant's log.
 
+### What happened, line by line
+
+A match is a song that a group has. What was then done is a separate fact, and there
+are reasons for nothing to be done: the player is not the leader of its speaker group,
+the track changed within the entry's delay, or the group's action only fires the event.
+So each entry keeps a record with a line for each of these:
+
+- its watching started, or stopped (at every save, and at a restart),
+- a song a group had, and why if it was for being played too often,
+- what was done to the player, or why nothing was,
+- what was put back at the next track, or that someone had changed it since,
+- a return from another station, or why there was none,
+- anything that failed,
+- a change to a group, a station or the entry, and each song rated.
+
+The page in Casa Mia shows the last 100 lines since Home Assistant started, under
+**What happened**. Every line also goes to Home Assistant's Logbook, under the entry's
+Last match sensor: open the sensor, or the entry's device, to read them there. The
+Logbook keeps them for as long as it keeps anything.
+
+## Switching an entry off
+
+Each entry has a switch, **Watching** (`switch.love_it_or_loathe_it_watching` when the
+entry has the name it is offered), and the same switch is beside the entry's name on
+the page in Casa Mia. Off, nothing is matched and nothing is done to the entry's
+players. A player that is away on another station at the time still comes back.
+
+A group has no switch of its own. Set it to Ignore, with its select or on the page.
+
 ## Being told what it did
 
 The integration installs a blueprint, **Notify on Love it or Loathe it** (Settings →
@@ -313,6 +405,6 @@ another name before changing it.
   title.
 - Change a group's feeling by the calendar. That is an automation's work: the example
   under "Changing how you feel about a group" does it for Christmas.
-- Show on a dashboard whether the song playing is already loved or loathed. The buttons
-  only add it.
+- Put the thumbs on other cards themselves. They are a card of their own, to place
+  beside a media card, and they are in a media player's own dialog.
 - Know who is in the room. A person's groups count wherever the entry's players are.

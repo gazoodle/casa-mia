@@ -30,7 +30,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.typing import ConfigType
 
-from . import admin, blueprint, rating
+from . import admin, blueprint, cards, rating, trail
 from .const import (
     CONF_ACTION,
     CONF_AMOUNT,
@@ -38,6 +38,8 @@ from .const import (
     CONF_LIBRARY,
     CONF_MINUTES,
     CONF_PATTERNS,
+    CONF_PERSON,
+    CONF_RATERS,
     DEFAULT_ACTS,
     DOMAIN,
     GROUP,
@@ -49,9 +51,10 @@ from .const import (
 from .engine import Engine, store_key
 from .pure import libraries
 from .restart_notice import async_check_restart, manifest_version
+from .switch import enabled_id
 
 _LOGGER = logging.getLogger(__name__)
-PLATFORMS = [Platform.SELECT, Platform.SENSOR]
+PLATFORMS = [Platform.SELECT, Platform.SENSOR, Platform.SWITCH]
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 # Read once, at import: a reload must not take newer files as loaded.
 LOADED_VERSION = manifest_version()
@@ -63,6 +66,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
     hass.services.async_register(DOMAIN, RATE, rate, schema=rating.SCHEMA)
     await admin.setup(hass)
+    await cards.setup(hass, LOADED_VERSION)
     await hass.async_add_executor_job(
         blueprint.install, hass.config.path(*blueprint.AT)
     )
@@ -103,6 +107,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     await Store(hass, 1, store_key(entry)).async_remove()
+    trail.forget(hass, entry)
 
 
 async def _convert(hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -132,10 +137,25 @@ async def _convert(hass: HomeAssistant, entry: ConfigEntry) -> None:
         hass.config_entries.async_update_subentry(entry, group, data=data)
         _LOGGER.info("%s converted: its feeling is %s", group.title, kind)
 
+    # Who may rate, from before the entry said (2026.11.7-b7): the people who already
+    # have a group, so nothing that works stops. Once only: the list is then the
+    # owner's, and a new entry's starts empty.
+    if CONF_RATERS not in entry.options:
+        owners = sorted(
+            {
+                g.data[CONF_PERSON]
+                for g in entry.subentries.values()
+                if g.subentry_type == GROUP and g.data.get(CONF_PERSON)
+            }
+        )
+        hass.config_entries.async_update_entry(
+            entry, options={**entry.options, CONF_RATERS: owners}
+        )
+
     # The switch each group had; its select takes the switch's place.
     registry = er.async_get(hass)
     for entity in er.async_entries_for_config_entry(registry, entry.entry_id):
-        if entity.domain == "switch":
+        if entity.domain == "switch" and entity.unique_id != enabled_id(entry):
             registry.async_remove(entity.entity_id)
 
 

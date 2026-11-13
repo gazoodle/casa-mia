@@ -5,13 +5,12 @@
 import { useCallback, useState, type ReactNode } from "react";
 import { confirmBox } from "../confirm";
 import { Select } from "../controls";
-import { ago } from "../format";
 import { AreaHead, Empty, Shell } from "../page";
-import { Segmented, Toasts, type Toast } from "../ui";
+import { Segmented, Switch, Toasts, type Toast } from "../ui";
 import guest from "../guest.module.css";
 import ui from "../ui.module.css";
 import css from "./love-or-loathe.module.css";
-import { FEELINGS, HEAD, IN_HA, TONE, change, holds, inShort, nameOf, rate, songs, type Entry, type Fed, type Feeling, type Group, type Playing, type Station, type View } from "./common";
+import { FEELINGS, HEAD, IN_HA, KINDS, TONE, change, holds, inShort, nameOf, rate, songs, type Entry, type Fed, type Feeling, type Group, type Playing, type Station, type View } from "./common";
 import { GroupDialog, PlayersDialog, StationDialog, type StationBody } from "./dialogs";
 
 /** Do something in Home Assistant; whether it was done. Refused, the reason is shown. */
@@ -110,14 +109,18 @@ function EntryArea({ entry, view, current, act, show }: { entry: Entry; view: Vi
         title={entry.title}
         blurb={`Watching ${names || "no players"}${entry.delay ? `, acting ${entry.delay} s after a new track` : ""}.`}
         action={
-          <button className={ui.button} onClick={() => show(<PlayersDialog entry={entry} view={view} onClose={close} onSave={(body) => save("save_entry", body, `${body.name} saved`)} />)}>
-            Players
-          </button>
+          <span className={css.headControls}>
+            <Switch on={entry.enabled} label={`${entry.title} is watching its players`} onChange={(on) => act(() => change("enable", entry, { enabled: on }), on ? `${entry.title} is watching` : `${entry.title} is switched off`)} />
+            <button className={ui.button} onClick={() => show(<PlayersDialog entry={entry} view={view} onClose={close} onSave={(body) => save("save_entry", body, `${body.name} saved`)} />)}>
+              Players
+            </button>
+          </span>
         }
       />
       {!entry.running && <div className={guest.warning}>This entry isn't running in Home Assistant, so nothing is being watched. Its groups and stations can still be changed.</div>}
+      {entry.running && !entry.enabled && <div className={guest.warning}>Switched off: nothing is watched and nothing is done until it is switched on again, here or with its Watching switch in Home Assistant.</div>}
 
-      {entry.running && current && <NowPlaying entry={entry} view={view} act={act} station={(from) => station(undefined, from)} />}
+      {entry.running && entry.enabled && current && <NowPlaying entry={entry} view={view} act={act} station={(from) => station(undefined, from)} />}
 
       <div className={css.subHead}>
         <h3 className={css.sub}>Groups of songs</h3>
@@ -187,12 +190,31 @@ function EntryArea({ entry, view, current, act, show }: { entry: Entry; view: Vi
       )}
       {entry.stations.length > 1 && <p className={guest.notice}>Stations are tried from the top, skipping the one that is playing.</p>}
 
-      {entry.last && (
-        <p className={guest.notice}>
-          Last match, {ago(entry.last.at)}: {entry.last.title}
-          {entry.last.artist && ` by ${entry.last.artist}`} on {nameOf(view.players, entry.last.entity_id)}, in {entry.last.group} ({entry.last.feeling}): {entry.last.result}.
-        </p>
+      <div className={css.subHead}>
+        <h3 className={css.sub}>What happened</h3>
+      </div>
+      {entry.trail.length === 0 ? (
+        <Empty>Nothing yet since Home Assistant started.</Empty>
+      ) : (
+        <ul className={css.trail}>
+          {entry.trail.map((line, n) => (
+            <li key={`${line.at}${n}`}>
+              <time dateTime={line.at} title={new Date(line.at).toLocaleString()}>
+                {new Date(line.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+              </time>
+              <span className={`cm-pill ${KINDS[line.kind]?.[1] ?? "cm-muted"}`}>{KINDS[line.kind]?.[0] ?? line.kind}</span>
+              <span>
+                {line.player && <strong>{nameOf(view.players, line.player)}: </strong>}
+                {line.text}
+              </span>
+            </li>
+          ))}
+        </ul>
       )}
+      <p className={guest.notice}>
+        A match is a song that a group has; the line after it says what was done, or why nothing was. This list holds the last 100 lines since Home Assistant started; its Logbook keeps
+        them all, under this entry's Last match sensor.
+      </p>
     </section>
   );
 }
@@ -216,26 +238,30 @@ const STATES: Record<string, string> = { paused: "Paused", idle: "Idle", off: "O
 
 /** What each player is playing, which group has it, and Love and Loathe for it. */
 function NowPlaying({ entry, view, act, station }: { entry: Entry; view: View; act: Act; station: (from: StationBody) => void }) {
-  // Whose song a rating is: whoever is signed in, or a person of the house. Their first
-  // loved or loathed song makes that group for them.
+  // Whose song a rating is: one of the people the entry lets rate. Their first loved or
+  // loathed song makes that group for them. "Me" is whoever is signed in, who must be
+  // one of them too; Home Assistant says so if not.
   const [as, setAs] = useState("");
-  const person = view.people.some((p) => p.entity_id === as) ? as : "";
+  const person = entry.raters.includes(as) ? as : "";
+  const rated = entry.raters.length > 0;
 
   return (
     <>
       <div className={css.subHead}>
         <h3 className={css.sub}>Playing now</h3>
-        <label className={css.rateAs}>
-          Rate as
-          <Select value={person} onChange={setAs} aria-label="Whose song a rating is">
-            <option value="">Me</option>
-            {view.people.map((p) => (
-              <option key={p.entity_id} value={p.entity_id}>
-                {p.name}
-              </option>
-            ))}
-          </Select>
-        </label>
+        {rated && (
+          <label className={css.rateAs}>
+            Rate as
+            <Select value={person} onChange={setAs} aria-label="Whose song a rating is">
+              <option value="">Me</option>
+              {entry.raters.map((p) => (
+                <option key={p} value={p}>
+                  {nameOf(view.people, p)}
+                </option>
+              ))}
+            </Select>
+          </label>
+        )}
       </div>
       <ul className={css.rows}>
         {entry.players.map((id) => {
@@ -268,7 +294,7 @@ function NowPlaying({ entry, view, act, station }: { entry: Entry; view: View; a
               </span>
               {on && (
                 <span className={css.controls}>
-                  {playing.title && (
+                  {rated && playing.title && (
                     <>
                       <button className="cm-chip cm-good" onClick={() => act(() => rate(id, "love", person), `Loved: ${playing.title}`)}>
                         Love it
@@ -293,6 +319,7 @@ function NowPlaying({ entry, view, act, station }: { entry: Entry; view: View; a
           );
         })}
       </ul>
+      {!rated && <p className={guest.notice}>Nobody may rate songs here yet. Choose who under Players: Who may rate.</p>}
     </>
   );
 }

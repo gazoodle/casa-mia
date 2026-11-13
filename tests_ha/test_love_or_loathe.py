@@ -64,7 +64,9 @@ def play(hass, title, artist="", entity=PLAYER, state="playing", **attributes):
     hass.states.async_set(entity, state, attributes)
 
 
-async def add(hass, *subentries, players=(PLAYER,), title="Love it or Loathe it"):
+async def add(
+    hass, *subentries, players=(PLAYER,), title="Love it or Loathe it", **options
+):
     """Set up with a player already on an unremarkable song; the services it would be
     sent, by name."""
     play(hass, "Something Ordinary", "A Band", **HOME)
@@ -75,7 +77,7 @@ async def add(hass, *subentries, players=(PLAYER,), title="Love it or Loathe it"
     entry = MockConfigEntry(
         domain=DOMAIN,
         title=title,
-        options={"players": list(players), "delay": 0},
+        options={"players": list(players), "delay": 0, **options},
         subentries_data=list(subentries),
     )
     entry.add_to_hass(hass)
@@ -336,7 +338,10 @@ async def test_rating_the_song_playing_into_a_persons_groups(hass):
         a_group("Ann loves", feeling="love", action="event", person="person.ann"),
         a_group("Ann loathes", person="person.ann", patterns="Old Song\n*awful*"),
         a_group("Ben loathes", person="person.ben"),
+        screens=["the-tablet"],
     )
+    # People who had a group before the entry said who may rate are the ones who may.
+    assert entry.options["raters"] == ["person.ann", "person.ben"]
 
     def songs(title):
         [group] = [g for g in entry.subentries.values() if g.title == title]
@@ -387,8 +392,10 @@ async def test_rating_the_song_playing_into_a_persons_groups(hass):
     groups = len(entry.subentries)
     for login, more, reason in (
         ("the-tablet", {}, "belongs to no person"),
-        ("the-tablet", {"person": "person.nobody"}, "is not a person"),
-        ("the-tablet", {"person": PLAYER}, "is not a person"),
+        ("the-tablet", {"person": "person.nobody"}, "is not one of the people"),
+        ("the-tablet", {"person": PLAYER}, "is not one of the people"),
+        # A guest's login may not rate as someone else, though that someone may rate.
+        ("a-guest", {"person": "person.ann"}, "may not rate for someone else"),
         ("ann-login", {"entity_id": "media_player.shed"}, "is not a player"),
     ):
         with pytest.raises(ServiceValidationError, match=reason):
@@ -728,6 +735,8 @@ async def test_the_page_orders_the_groups_and_changes_the_players(hass, hass_ws_
         name="Kitchen",
         players=[PLAYER, "media_player.shed"],
         delay=0,
+        raters=[],
+        screens=[],
     )
     assert taken.startswith("One of those players is already watched")
     assert not await page.change(
@@ -736,6 +745,8 @@ async def test_the_page_orders_the_groups_and_changes_the_players(hass, hass_ws_
         name="Kitchen",
         players=[PLAYER, "media_player.hall"],
         delay=2,
+        raters=[],
+        screens=[],
     )
     shown = (await page.view())["entries"][0]
     assert (shown["title"], shown["delay"]) == ("Kitchen", 2)
@@ -747,3 +758,209 @@ async def test_the_page_orders_the_groups_and_changes_the_players(hass, hass_ws_
         form["flow_id"], {"players": [PLAYER], "delay": 0}
     )
     assert entry.options["order"] == [second, first]
+
+
+async def test_what_happened_is_kept_and_an_entry_can_be_switched_off(
+    hass, hass_ws_client
+):
+    entry, calls = await add(hass, a_group("Dreadful", patterns="*dreadful*"))
+    page = Page(hass, await hass_ws_client(hass))
+    await page.open()
+    logbook = async_capture_events(hass, "logbook_entry")
+
+    async def happened():
+        """The trail's lines, the oldest first, as (what about, the words)."""
+        (shown,) = (await page.view())["entries"]
+        return [(line["kind"], line["text"]) for line in reversed(shown["trail"])]
+
+    # A match, then what was done; and at the next track, what was put back.
+    play(hass, "A Dreadful Song", "A Band")
+    assert (await happened())[-2:] == [
+        ("match", "A Dreadful Song by A Band is in Dreadful (loathe)"),
+        ("change", "Muted until the next track"),
+    ]
+    play(hass, "A Fine Song", "A Band", is_volume_muted=True)
+    assert (await happened())[-1] == ("back", "Unmuted")
+
+    # Home Assistant's Logbook has each line too, against the Last match sensor.
+    assert logbook[-1].data == {
+        "name": "Love it or Loathe it",
+        "message": "kitchen: Unmuted",
+        "domain": DOMAIN,
+        "entity_id": SENSOR,
+    }
+
+    # A match with nothing done says why.
+    play(hass, "A Dreadful Tune", group_members=["media_player.hall", PLAYER])
+    assert (await happened())[-1] == (
+        "skip",
+        "Nothing done: media_player.hall leads its speaker group and acts for it",
+    )
+
+    # Switched off, it watches nothing; the trail outlives the restart of the watching.
+    switch = "switch.love_it_or_loathe_it_watching"
+    assert hass.states.get(switch).state == "on"
+    await hass.services.async_call(
+        "switch", "turn_off", {"entity_id": switch}, blocking=True
+    )
+    (shown,) = (await page.view())["entries"]
+    assert not shown["enabled"] and shown["playing"] == {}
+    assert (await happened())[-2:] == [
+        ("stop", "Stopped"),
+        ("start", "Started, but switched off: nothing is watched"),
+    ]
+    muted = len(calls["volume_mute"])
+    play(hass, "Another Dreadful Song", "A Band")
+    await settled(hass)
+    assert len(calls["volume_mute"]) == muted
+
+    # On again from the page, it acts on what is playing.
+    assert not await page.change("enable", entry, enabled=True)
+    lines = await happened()
+    assert ("edit", "Changed from the page: switched on") in lines
+    assert lines[-1] == ("change", "Muted until the next track")
+    assert hass.states.get(switch).state == "on"
+
+
+async def test_the_thumbs_are_told_whether_the_song_is_already_rated(
+    hass, hass_ws_client, hass_admin_user
+):
+    hass.states.async_set("person.ann", "home", {"user_id": hass_admin_user.id})
+    hass.states.async_set("person.ben", "home", {"user_id": "ben-login"})
+    entry, _calls = await add(
+        hass,
+        a_group("Stars", "love", "event", patterns="*song*"),
+        raters=["person.ann", "person.ben"],
+    )
+    ws = await hass_ws_client(hass)
+    n = iter(range(1, 100))
+
+    async def follow(entity, **more):
+        """Subscribe; the first thing sent."""
+        await ws.send_json(
+            {"id": next(n), "type": f"{DOMAIN}/song", "entity_id": entity, **more}
+        )
+        assert (await ws.receive_json())["success"]
+        return (await ws.receive_json())["event"]
+
+    async def rate(feeling, **more):
+        await hass.services.async_call(
+            DOMAIN,
+            "rate",
+            {"entity_id": PLAYER, "feeling": feeling, **more},
+            blocking=True,
+            context=Context(user_id=hass_admin_user.id),
+        )
+        await settled(hass)
+
+    async def told():
+        """What the thumbs were last sent, each subscription's by its id."""
+        await settled(hass)
+        await ws.send_json({"id": next(n), "type": "ping"})
+        out = {}
+        while (msg := await ws.receive_json())["type"] != "pong":
+            out[msg["id"]] = msg["event"]
+        return out
+
+    # The login's own person; a song a star takes in is not a rating of it.
+    play(hass, "A Song", "A Band")
+    await settled(hass)
+    assert await follow(PLAYER) == {
+        "watched": True,
+        "playing": True,
+        "title": "A Song",
+        "artist": "A Band",
+        "person": "person.ann",
+        "feeling": None,
+        "refused": None,
+    }
+    # A card that names its person, as on a wall tablet; and a player nobody watches.
+    assert (await follow(PLAYER, person="person.ben"))["person"] == "person.ben"
+    assert not (await follow("media_player.shed"))["watched"]
+
+    # Rated, the thumb lights for her and not for him; cleared, it goes out again.
+    await rate("love")
+    lit = await told()
+    assert lit[1]["feeling"] == "love" and 2 not in lit
+    await rate("loathe", person="person.ben")
+    assert (await told())[2]["feeling"] == "loathe"
+    await rate("clear")
+    assert (await told())[1]["feeling"] is None
+
+    # The next track is sent as it comes on.
+    play(hass, "Another", "A Band")
+    assert (await told())[1]["title"] == "Another"
+
+    # The cards say which version is served, to offer a reload after an update.
+    await ws.send_json({"id": next(n), "type": f"{DOMAIN}/cards"})
+    assert (await ws.receive_json())["result"]["version"]
+
+
+async def test_only_the_people_chosen_may_rate_and_nobody_at_first(
+    hass, hass_ws_client, hass_admin_user
+):
+    hass.states.async_set("person.ann", "home", {"user_id": "ann-login"})
+    hass.states.async_set("person.ben", "home", {"user_id": "ben-login"})
+    entry, _calls = await add(hass)
+    page = Page(hass, await hass_ws_client(hass))
+    view = await page.open()
+    assert view["entries"][0]["raters"] == [] and view["entries"][0]["screens"] == []
+    assert {"id": hass_admin_user.id, "name": hass_admin_user.name} in view["users"]
+
+    async def rate(login, **more):
+        await hass.services.async_call(
+            DOMAIN,
+            "rate",
+            {"entity_id": PLAYER, "feeling": "love", **more},
+            blocking=True,
+            context=Context(user_id=login),
+        )
+        await settled(hass)
+
+    def refused(match):
+        return pytest.raises(ServiceValidationError, match=match)
+
+    # A new entry: nobody may rate, and no group is made for anyone.
+    with refused("is not one of the people who may rate"):
+        await rate("ann-login")
+    assert not entry.subentries
+
+    # Ann is chosen from the page, and the wall tablet's login may rate for her.
+    assert not await page.change(
+        "save_entry",
+        entry,
+        name=entry.title,
+        players=[PLAYER],
+        delay=0,
+        raters=["person.ann"],
+        screens=["the-tablet"],
+    )
+    await rate("ann-login")
+    await rate("the-tablet", person="person.ann")
+    assert [g.title for g in entry.subentries.values()] == ["Loved by ann"]
+
+    # Ben isn't chosen, as himself or named by the tablet; a guest can't name Ann.
+    with refused("person.ben is not one of the people"):
+        await rate("ben-login")
+    with refused("person.ben is not one of the people"):
+        await rate("the-tablet", person="person.ben")
+    with refused("may not rate for someone else"):
+        await rate("a-guest", person="person.ann")
+    assert len(entry.subentries) == 1
+
+    # An administrator may name a person, and so may an automation (no login at all).
+    await rate(hass_admin_user.id, person="person.ann")
+    await rate(None, person="person.ann")
+
+    # The form in Home Assistant shows the two lists, and an emptied one is empty.
+    form = await hass.config_entries.options.async_init(entry.entry_id)
+    assert {"raters", "screens"} <= {key.schema for key in form["data_schema"].schema}
+    await hass.config_entries.options.async_configure(
+        form["flow_id"],
+        {"players": [PLAYER], "delay": 0, "screens": [hass_admin_user.id]},
+    )
+    await settled(hass)
+    assert entry.options["raters"] == []
+    assert entry.options["screens"] == [hass_admin_user.id]
+    with refused("is not one of the people who may rate"):
+        await rate("ann-login")

@@ -50,7 +50,9 @@ from .const import (
     CONF_PATTERNS,
     CONF_PERSON,
     CONF_PLAYERS,
+    CONF_RATERS,
     CONF_REPEATS,
+    CONF_SCREENS,
     CONF_TIMES,
     DEFAULT_ACTS,
     DEFAULT_REPEATS,
@@ -81,6 +83,24 @@ PLAYERS = vol.Schema(
         ),
     }
 )
+
+
+async def _raters(hass: HomeAssistant) -> dict[Any, Any]:
+    """The two lists of who may rate, for the options form: people, and the logins that
+    may rate for them (Home Assistant's own users, by name)."""
+    users = [
+        SelectOptionDict(value=user.id, label=user.name or user.id)
+        for user in await hass.auth.async_get_users()
+        if not user.system_generated and user.is_active
+    ]
+    return {
+        vol.Optional(CONF_RATERS): EntitySelector(
+            EntitySelectorConfig(domain="person", multiple=True)
+        ),
+        vol.Optional(CONF_SCREENS): SelectSelector(
+            SelectSelectorConfig(options=users, multiple=True)
+        ),
+    }
 
 
 def taken(hass: HomeAssistant, players: list[str], own: str = "") -> bool:
@@ -149,14 +169,17 @@ class LoveOrLoatheOptionsFlow(OptionsFlow):
             own = self.config_entry.entry_id
             if not taken(self.hass, user_input[CONF_PLAYERS], own):
                 # With what the form doesn't show: the order the page gave (admin.py).
+                # A list of who may rate that was emptied comes back as no key at all.
+                emptied = {CONF_RATERS: [], CONF_SCREENS: []}
                 return self.async_create_entry(
-                    data={**self.config_entry.options, **user_input}
+                    data={**self.config_entry.options, **emptied, **user_input}
                 )
             errors[CONF_PLAYERS] = "player_taken"
         return self.async_show_form(
             step_id="init",
             data_schema=self.add_suggested_values_to_schema(
-                PLAYERS, user_input or self.config_entry.options
+                PLAYERS.extend(await _raters(self.hass)),
+                user_input or self.config_entry.options,
             ),
             errors=errors,
         )

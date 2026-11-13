@@ -222,6 +222,11 @@ def with_song(songs: str, title: str, artist: str) -> str:
     return "\n".join([*lines, f"{title} | {artist}" if artist else title]).strip()
 
 
+def has_song(songs: str, title: str, artist: str) -> bool:
+    """Whether a line of a group's songs names this one (not a `*` that takes it in)."""
+    return any(_names(line, title, artist) for line in songs.splitlines())
+
+
 def without_song(songs: str, title: str, artist: str) -> str:
     """A group's songs without the lines naming this one. A `*` line that takes it in
     stays: it was written for more than this song."""
