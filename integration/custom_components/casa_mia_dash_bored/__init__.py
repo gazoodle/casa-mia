@@ -28,7 +28,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import label_registry as lr
 from homeassistant.helpers.typing import ConfigType
 
-from . import alerts
+from . import alerts, sightings
 from .const import (
     CARDS_VERSION,
     DOMAIN,
@@ -57,6 +57,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     frontend.add_extra_js_url(hass, f"{URL}/cards.js?v={LOADED_VERSION}")
     websocket_api.async_register_command(hass, _ws_cards)
     alerts.setup(hass)
+    sightings.setup(hass)
     return True
 
 

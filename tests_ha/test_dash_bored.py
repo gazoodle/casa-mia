@@ -7,6 +7,7 @@ import asyncio
 
 import pytest
 from custom_components.casa_mia_dash_bored import image as sightings
+from custom_components.casa_mia_dash_bored import sightings as log
 from custom_components.casa_mia_dash_bored.const import (
     ALERTS,
     CARDS_VERSION,
@@ -184,31 +185,36 @@ async def test_an_event_with_no_entity_is_ignored_aloud(hass, hass_ws_client, ca
 
 
 @pytest.mark.parametrize(
-    ("domain", "name", "device_class", "kind"),
+    ("name", "device_class", "kind"),
     [
-        ("binary_sensor", "person_detected", None, "person"),
-        ("binary_sensor", "Person occupancy", "occupancy", "person"),
-        ("binary_sensor", "vehicle_detected", None, "vehicle"),
-        ("binary_sensor", "animal_detected", None, "animal"),
-        ("binary_sensor", "doorbell", "occupancy", "doorbell"),
-        ("event", "ring", "doorbell", "doorbell"),
-        ("binary_sensor", "smoke_alarm_detected", None, "alarm"),
-        ("binary_sensor", "co_alarm_detected", "carbon_monoxide", "alarm"),
+        ("person_detected", None, "person"),
+        ("Person occupancy", "occupancy", "person"),
+        ("vehicle_detected", None, "vehicle"),
+        ("animal_detected", None, "animal"),
+        ("doorbell", "occupancy", "doorbell"),
+        ("smoke_alarm_detected", None, "alarm"),
+        ("co_alarm_detected", "carbon_monoxide", "alarm"),
+        # The type of event an event entity fires.
+        ("person", None, "person"),
+        ("pet", None, "animal"),
+        ("car", None, "vehicle"),
+        ("smoke", None, "alarm"),
         # Heard, not seen; and what would fill the paper.
-        ("binary_sensor", "car_alarm_detected", None, None),
-        ("binary_sensor", "car_horn_detected", None, None),
-        ("binary_sensor", "Motion", "motion", None),
-        ("binary_sensor", "is_dark", None, None),
-        ("event", "motion", "motion", None),
+        ("car_alarm_detected", None, None),
+        ("car_horn_detected", None, None),
+        ("siren", None, None),
+        ("license_plate", None, None),
+        ("Motion", "motion", None),
+        ("is_dark", None, None),
     ],
 )
-def test_which_detections_are_worth_a_photograph(domain, name, device_class, kind):
-    assert sightings.kind_of(domain, name, device_class) == kind
+def test_which_detections_are_worth_a_photograph(name, device_class, kind):
+    assert sightings.kind_of(name, device_class) == kind
 
 
 async def shed(hass, monkeypatch, platform="test"):
-    """An invented camera with a person sensor, a motion sensor and a doorbell, and Dash-
-    Bored set up beside it. Gives the stills asked for, and the sighting's entity id."""
+    """An invented camera with a person sensor, a motion sensor, a doorbell and an event
+    entity that says what it detected, and Dash-Bored set up beside it. Gives the stills asked for, and the sighting's entity id."""
     source = MockConfigEntry(domain="test")
     source.add_to_hass(hass)
     device = dr.async_get(hass).async_get_or_create(
@@ -217,11 +223,15 @@ async def shed(hass, monkeypatch, platform="test"):
         name="Shed camera",
     )
     entities = er.async_get(hass)
-    for domain, uid, key, device_class in (
-        ("camera", "cam", None, None),
-        ("binary_sensor", "person", "person_detected", None),
-        ("binary_sensor", "motion", None, "motion"),
-        ("event", "ring", None, "doorbell"),
+    detects = {"event_types": ["person", "animal", "vehicle", "license_plate"]}
+    for domain, uid, key, device_class, capabilities in (
+        ("camera", "cam", None, None, None),
+        ("binary_sensor", "person", "person_detected", None, None),
+        ("binary_sensor", "animal", "animal_detected", None, None),
+        ("binary_sensor", "motion", None, "motion", None),
+        ("event", "ring", None, "doorbell", None),
+        ("event", "detect", None, None, detects),
+        ("event", "motion", None, "motion", {"event_types": ["motion"]}),
     ):
         entities.async_get_or_create(
             domain,
@@ -231,6 +241,7 @@ async def shed(hass, monkeypatch, platform="test"):
             device_id=device.id,
             translation_key=key,
             original_device_class=device_class,
+            capabilities=capabilities,
             suggested_object_id=f"shed_{uid}",
         )
         hass.states.async_set(f"{domain}.shed_{uid}", "off")
@@ -364,38 +375,88 @@ async def test_casa_mias_picture_is_used_when_it_has_one_and_the_camera_when_not
 async def test_protects_thumbnail_replaces_the_first_photograph_when_it_comes(
     hass, monkeypatch, freezer, caplog
 ):
-    """The sighting is told at once with the first photograph; Protect's own picture of
-    the event follows, and its failure leaves the first in place."""
-    ready, asked = asyncio.Event(), []
+    """As UniFi Protect tells it: the sensor turns on, with no word of which event, and
+    the event entity fires a moment later naming it. One sighting, told at once with the
+    first photograph; Protect's own picture follows, and its failure leaves the first."""
+    ready, wanted = asyncio.Event(), []
 
     async def thumbnail(_hass, entry_id, event_id):
-        asked.append(event_id)
+        wanted.append(event_id)
         await ready.wait()
         if event_id == "gone":
             raise RuntimeError("no such event")
         return b"protect's choice"
 
     monkeypatch.setattr(sightings, "protect_thumbnail", thumbnail)
-    _, entity_id = await shed(hass, monkeypatch, platform="unifiprotect")
+    asked, entity_id = await shed(hass, monkeypatch, platform="unifiprotect")
     entity = hass.data["image"].get_entity(entity_id)
 
-    hass.states.async_set("binary_sensor.shed_person", "on", {"event_id": "e1"})
+    hass.states.async_set("binary_sensor.shed_person", "on")
     await hass.async_block_till_done()
-    seen = hass.states.get(entity_id).state
-    assert entity._photo == b"a photograph" and asked == ["e1"]
-    assert hass.states.get(entity_id).attributes["seen"] == seen
+    assert entity._photo == b"a photograph" and wanted == []
+    seen, first = hass.states.get(entity_id).state, entity._id
 
-    freezer.tick(3)
+    freezer.tick(1)
+    fired = {"event_type": "person", "event_id": "e1"}
+    hass.states.async_set("event.shed_detect", "2026-11-13T10:00:01+00:00", fired)
+    await hass.async_block_till_done()
+    assert wanted == ["e1"] and len(asked) == 1 and entity._id == first
+
+    freezer.tick(2)
     ready.set()
     await hass.async_block_till_done(wait_background_tasks=True)
     state = hass.states.get(entity_id)
     assert entity._photo == b"protect's choice"
     # The photograph is newer, so a page fetches it; the sighting is when it was.
     assert state.state != seen and state.attributes["seen"] == seen
+    (item,) = hass.data[log.KEY].items.values()
+    assert item["id"] == first and item["changed"] == item["at"] + 3
+    assert hass.data[log.KEY].photos[first] == (b"protect's choice", "image/jpeg")
 
-    entity._at = None  # no wait between stills
-    hass.states.async_set("binary_sensor.shed_person", "off")
-    hass.states.async_set("binary_sensor.shed_person", "on", {"event_id": "gone"})
+    # An event entity alone is a sighting too, of the kind it says; and what it does
+    # not say is worth a photograph (a number plate read) is none.
+    freezer.tick(sightings.APART)
+    fired = {"event_type": "license_plate", "event_id": "plate"}
+    hass.states.async_set("event.shed_detect", "2026-11-13T10:00:09+00:00", fired)
+    fired = {"event_type": "animal", "event_id": "gone"}
+    hass.states.async_set("event.shed_detect", "2026-11-13T10:00:10+00:00", fired)
     await hass.async_block_till_done(wait_background_tasks=True)
-    assert entity._photo == b"a photograph" and asked == ["e1", "gone"]
+    assert entity._kind == "animal" and entity._id != first
+    assert entity._photo == b"a photograph" and wanted == ["e1", "gone"]
     assert "the first photograph stays: RuntimeError: no such event" in caplog.text
+
+
+async def test_each_sighting_is_kept_with_its_own_photograph_for_half_an_hour(
+    hass, hass_ws_client, hass_client_no_auth, monkeypatch, freezer
+):
+    """An animal reported after a person does not take the person's picture away: both
+    are in the feed. A page opened later is told them, and fetches each photograph by
+    its sighting's id."""
+    _, entity_id = await shed(hass, monkeypatch)
+    hass.states.async_set("binary_sensor.shed_person", "on")
+    await hass.async_block_till_done()
+    freezer.tick(30)
+    hass.states.async_set("binary_sensor.shed_animal", "on")
+    await hass.async_block_till_done()
+
+    client = await hass_ws_client(hass)
+    await client.send_json_auto_id({"type": log.SIGHTINGS})
+    assert (await client.receive_json())["success"]
+    person, animal = (await client.receive_json())["event"]
+    assert [person["kind"], animal["kind"]] == ["person", "animal"]
+    assert animal["at"] == person["at"] + 30 and person["id"] != animal["id"]
+    assert person["entity"] == entity_id and person["camera"] == "camera.shed_cam"
+
+    photos = await hass_client_no_auth()
+    served = await photos.get(log.PHOTO.format(sighting_id=person["id"]))
+    assert await served.read() == b"a photograph"
+    assert (await photos.get(log.PHOTO.format(sighting_id="guess"))).status == 404
+
+    # Half an hour on, the next sighting finds the old ones gone, photographs and all.
+    freezer.tick(log.KEEP + 1)
+    hass.states.async_set("binary_sensor.shed_person", "off")
+    hass.states.async_set("binary_sensor.shed_person", "on")
+    await hass.async_block_till_done()
+    kept = hass.data[log.KEY]
+    assert [item["kind"] for item in kept.items.values()] == ["person"]
+    assert list(kept.photos) == list(kept.items) != [person["id"]]

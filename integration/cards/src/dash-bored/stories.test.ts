@@ -72,7 +72,7 @@ test("what matters most leads", () => {
   const kinds = (h = house(), alerts: Alert[] = [], now = 2000) => stories(h, alerts, now).map((s) => s.kind);
   assert.deepEqual(kinds(), ["appliance", "lights", "cold", "weather"]);
   // A house with nothing to report still has a front page.
-  assert.deepEqual(kinds({ rooms: [], sightings: [], scenes: [], appliances: [] }), ["quiet"]);
+  assert.deepEqual(kinds({ rooms: [], scenes: [], appliances: [] }), ["quiet"]);
   assert.equal(kinds(house({ "lock.front_door": state("unlocked", { friendly_name: "Front door" }) }))[0], "unlocked");
   assert.equal(kinds(house({ "lock.front_door": state("unlocked", { friendly_name: "Front door" }) }), [raised("critical")])[0], "alert");
   // A warning is below an unlocked door; a job to do is below a kettle.
@@ -101,15 +101,24 @@ test("the remedies are the safe ones", () => {
   assert.deepEqual(press.appliance, { domain: "switch", service: "turn_off", ids: ["switch.kettle"] });
 });
 
-const seen = (kind: string, at = 1000) => ({ id: "image." + kind, camera: "camera.shed", name: "Shed camera", room: "Shed", kind, at, photo: "/photo" });
+const seen = (kind: string, at = 1000, camera = "camera." + kind) => ({ id: `${camera}.${at}`, camera, name: "Shed camera", room: "Shed", kind, at, photo: "/photo" });
 
 test("a sighting is news with its photograph for ten minutes, a caller above what is left on and a cat below", () => {
-  const h = { ...house(), sightings: ["animal", "doorbell", "person", "gust"].map((kind) => seen(kind)) };
-  const told = stories(h, [], 2000);
   // A kind this page does not know (a newer integration's) is left out, not guessed at.
+  const told = stories(house(), [], 2000, ["animal", "doorbell", "person", "gust"].map((kind) => seen(kind)));
   assert.deepEqual(told.map((s) => (s.kind === "sighting" ? s.variant : s.kind)), ["doorbell", "person", "appliance", "animal", "lights", "cold", "weather"]);
-  assert.deepEqual([told[0].photo, told[0].see, told[0].figure[1]], ["/photo", "camera.shed", "Shed camera"]);
-  assert.equal(stories(h, [], 1000 + RECOVERED).some((s) => s.kind === "sighting"), false);
+  assert.deepEqual([told[0].photo, told[0].see, told[0].figure[1]], ["/photo", "camera.doorbell", "Shed camera"]);
+  assert.equal(stories(house(), [], 1000 + RECOVERED, [seen("person")]).some((s) => s.kind === "sighting"), false);
+});
+
+test("a camera has one story: the most pressing thing it saw, and of those the latest", () => {
+  const told = (sightings: ReturnType<typeof seen>[]) => stories(house(), [], 5000, sightings).filter((s) => s.kind === "sighting").map((s) => [s.variant, s.vars.at, s.see]);
+  const at = (ms: number) => new Date(ms).toTimeString().slice(0, 5);
+  // The animal a camera reports after a person does not take the person's place.
+  assert.deepEqual(told([seen("person", 1000, "camera.a"), seen("animal", 3000, "camera.a")]), [["person", at(1000), "camera.a"]]);
+  // Two people on one camera are the later one; two cameras are two stories, the newest first.
+  assert.deepEqual(told([seen("person", 1000, "camera.a"), seen("person", 2000, "camera.a"), seen("person", 4000, "camera.b")]).map((s) => s[2]), ["camera.b", "camera.a"]);
+  assert.equal(stories(house(), [], 5000, [seen("person", 1000, "camera.a"), seen("person", 2000, "camera.a")]).find((s) => s.kind === "sighting")!.id, "sighting.camera.a");
 });
 
 test("every voice can tell every story and describe every device, with nothing left unfilled", () => {
@@ -120,8 +129,8 @@ test("every voice can tell every story and describe every device, with nothing l
   });
   const alerts = ["critical", "error", "warning", "task", "nominal"].map((level, i) => raised(level, { entity_id: `sensor.s${i}`, escalated: i === 0, flavour: i ? "" : "temperature" }));
   const dark = house({ "light.kitchen_ceiling": state("off", { friendly_name: "Kitchen Ceiling" }) });
-  const sights = { ...dark, sightings: ["alarm", "doorbell", "person", "vehicle", "animal"].map((kind) => seen(kind)) };
-  const all = [...stories(troubled, alerts, 2000), ...stories(sights, [], 2000).filter((s) => s.kind === "sighting"), ...stories(dark, [], 2000), ...stories({ rooms: [], sightings: [], scenes: [], appliances: [] }, [], 2000), ...["freezing", "hot", "mild"].map((variant) => ({ ...stories(dark, [], 2000).find((s) => s.kind === "weather")!, variant }))];
+  const sights = ["alarm", "doorbell", "person", "vehicle", "animal"].map((kind) => seen(kind));
+  const all = [...stories(troubled, alerts, 2000), ...stories(dark, [], 2000, sights).filter((s) => s.kind === "sighting"), ...stories(dark, [], 2000), ...stories({ rooms: [], scenes: [], appliances: [] }, [], 2000), ...["freezing", "hot", "mild"].map((variant) => ({ ...stories(dark, [], 2000).find((s) => s.kind === "weather")!, variant }))];
 
   for (const [id, voice] of Object.entries(VOICES)) {
     for (const story of all) for (const turn of [0, 1, 2]) {

@@ -1,7 +1,7 @@
 // The survey of the house: which room and floor a device is in, and what it is called there.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { HIDE, read, survey } from "./house.ts";
+import { HIDE, sighted, survey } from "./house.ts";
 
 const named = (friendly_name: string) => ({ state: "off", attributes: { friendly_name } });
 
@@ -103,25 +103,27 @@ test("the hide label takes an entity, a device's entities or an area's off the p
   ]);
 });
 
-test("a sighting is its camera's, in the camera's room, and only once something has been seen", () => {
+test("a sighting from the feed is named for its camera and put in the camera's room, and a hidden camera's is left out", () => {
   const h = hass({ "light.a": ["shed", "Lamp"] }, { shed: { name: "Shed" } });
-  const sighting = (id: string, device_id: string, state: string, camera: string, photo = true, seen?: string) => {
-    Object.assign(h.states, { [id]: { state, attributes: { kind: "person", camera, photo, seen, entity_picture: `/api/image_proxy/${id}?token=t` } } });
+  const camera = (id: string, device_id: string, camera: string) => {
+    Object.assign(h.states, { [id]: { state: "unknown", attributes: { camera } } });
     Object.assign(h.entities, { [id]: { entity_id: id, device_id, platform: "casa_mia_dash_bored" } });
   };
-  // Its photograph was replaced by a better one seven seconds after the sighting.
-  sighting("image.shed", "cam", "2026-11-13T10:00:07+00:00", "camera.shed", true, "2026-11-13T10:00:00+00:00");
-  sighting("image.barn", "barn", "unknown", "camera.barn"); // nothing seen since the start
-  sighting("image.attic", "attic", "2026-11-13T10:00:00+00:00", "camera.attic"); // its camera is kept off the page
-  sighting("image.den", "den", "2026-11-13T10:01:00+00:00", "camera.den", false); // the camera did not answer
+  camera("image.shed", "cam", "camera.shed");
+  camera("image.attic", "attic", "camera.attic"); // its camera is kept off the page
+  camera("image.den", "den", "camera.den");
   Object.assign(h.entities, { "camera.attic": { entity_id: "camera.attic", labels: [HIDE] } });
-  Object.assign(h, { devices: { cam: { area_id: "shed", name: "Shed camera" }, barn: { name: "Barn" }, attic: { name: "Attic" }, den: { name: "G4", name_by_user: "Den" } } });
+  Object.assign(h, { devices: { cam: { area_id: "shed", name: "Shed camera" }, attic: { name: "Attic" }, den: { name: "G4", name_by_user: "Den" } } });
 
-  const found = survey(h, {});
-  assert.equal(found.watched.includes("image.shed"), true);
-  const at = Date.parse("2026-11-13T10:00:00Z");
-  assert.deepEqual(read(found, h).sightings, [
-    { id: "image.shed", name: "Shed camera", room: "Shed", camera: "camera.shed", kind: "person", at, photo: `/api/image_proxy/image.shed?token=t&at=${at + 7000}` },
-    { id: "image.den", name: "Den", room: undefined, camera: "camera.den", kind: "person", at: at + 60_000, photo: undefined },
+  const seen = (id: string, entity: string, more = {}) => ({ id, entity, camera: entity.replace("image", "camera"), kind: "person", at: 1000, changed: 1000, photo: true, ...more });
+  const told = sighted(survey(h, {}), [
+    seen("one", "image.shed", { changed: 1007 }), // its photograph was replaced seven seconds on
+    seen("two", "image.attic"),
+    seen("three", "image.den", { photo: false, at: 1060 }), // the camera did not answer
+    seen("four", "image.gone"), // a camera no longer in the house
+  ]);
+  assert.deepEqual(told, [
+    { id: "one", name: "Shed camera", room: "Shed", camera: "camera.shed", kind: "person", at: 1_000_000, photo: "/api/casa_mia_dash_bored/photo/one?v=1007" },
+    { id: "three", name: "Den", room: undefined, camera: "camera.den", kind: "person", at: 1_060_000, photo: undefined },
   ]);
 });

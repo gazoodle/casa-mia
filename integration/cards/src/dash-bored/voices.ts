@@ -17,7 +17,7 @@ export type Voice = {
   strap: string;
   price: string;
   flash: string; // the word before breaking news
-  titles: { more: string; briefs: string; late: string; temps: string; board: string; notices: string; elsewhere: string; gaps: string }; // elsewhere: the rooms on no floor
+  titles: { more: string; briefs: string; late: string; archive: string; temps: string; board: string; notices: string; elsewhere: string; gaps: string }; // archive: the last half hour's sightings; elsewhere: the rooms on no floor
   join: string; // between a room's devices
   end: string;
   nothing: string; // the late news before anything has happened
@@ -87,7 +87,7 @@ const broadsheet: Voice = {
   strap: "",
   price: "Price: nothing",
   flash: "Stop press",
-  titles: { more: "Other news", briefs: "In brief", late: "Late news", temps: "The temperatures", board: "The switchboard", notices: "Notices", elsewhere: "Elsewhere", gaps: "Corrections and clarifications" },
+  titles: { more: "Other news", briefs: "In brief", late: "Late news", archive: "Thirty minutes ago", temps: "The temperatures", board: "The switchboard", notices: "Notices", elsewhere: "Elsewhere", gaps: "Corrections and clarifications" },
   join: "; ",
   end: ".",
   nothing: "Nothing has happened yet.",
@@ -143,7 +143,7 @@ const tabloid: Voice = {
   strap: "The paper that's always switched on",
   price: "Still FREE!",
   flash: "Breaking",
-  titles: { more: "Also today", briefs: "Quick ones", late: "Latest", temps: "Hot or not", board: "Flick a switch", notices: "Do it now", elsewhere: "Everywhere else", gaps: "Sort it out" },
+  titles: { more: "Also today", briefs: "Quick ones", late: "Latest", archive: "Rewind", temps: "Hot or not", board: "Flick a switch", notices: "Do it now", elsewhere: "Everywhere else", gaps: "Sort it out" },
   join: " • ",
   end: "",
   nothing: "Nothing yet. Give it a minute.",

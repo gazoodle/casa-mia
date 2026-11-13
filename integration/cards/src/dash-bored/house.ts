@@ -19,12 +19,14 @@ export type Device = {
 };
 export type Room = { id: string; name: string; floor?: string; temp?: number; target?: number; humidity?: number; devices: Device[] };
 export type Appliance = { id: string; name: string; room: string; kw: number };
-/** What a camera last saw that was worth a photograph (the integration's image.py takes
- * it). `kind` is alarm, doorbell, person, vehicle or animal. */
+/** Something a camera saw that was worth a photograph. `kind` is alarm, doorbell, person,
+ * vehicle or animal; `photo` is its photograph's address. */
 export type Sighting = { id: string; camera: string; name: string; room?: string; kind: string; at: number; photo?: string };
+/** A sighting as the integration's feed tells it (sightings.py), its times in seconds:
+ * `entity` is the camera's Last sighting entity, `changed` when its photograph last was. */
+export type Seen = { id: string; entity: string; camera: string; kind: string; at: number; changed: number; photo: boolean };
 export type House = {
   rooms: Room[];
-  sightings: Sighting[];
   gaps: Gap[];
   scenes: { id: string; name: string }[];
   appliances: Appliance[];
@@ -49,7 +51,7 @@ export type Survey = { rooms: FoundRoom[]; sightings: FoundSighting[]; gaps: Gap
 /** The id of the label that keeps a thing off these pages: on an entity, its device or
  * its area. The integration makes the label, "Dash-Bored hide" (const.py HIDE_LABEL). */
 export const HIDE = "dash_bored_hide";
-const OURS = "casa_mia_dash_bored"; // the integration, whose image entities are the sightings
+const OURS = "casa_mia_dash_bored"; // the integration: its image entities are the cameras that are photographed
 // ponytail: names in English that mark a setting or an indicator, not a thing in a room.
 // A guess, and only ever shown as one; a list per language if this is ever translated.
 const PLUMBING = /\b(led|relay|screen|screensaver|in use|enabled|watching|mode|program(me)?|charge)\b/i;
@@ -160,7 +162,7 @@ export function survey(hass: Hass, options: Options): Survey {
     scenes: scenes.sort(),
     weather,
     power: options.power,
-    watched: [...watched, ...sightings.map((s) => s.id), ...scenes, weather, options.power].filter((id): id is string => !!id),
+    watched: [...watched, ...scenes, weather, options.power].filter((id): id is string => !!id),
   };
 }
 
@@ -203,27 +205,25 @@ export function read(found: Survey, hass: Hass): House {
     };
   });
 
-  // A camera that has seen nothing since Home Assistant started has no state to parse.
-  const sightings = found.sightings.flatMap((s): Sighting[] => {
-    const state = hass.states[s.id];
-    // The state is when the photograph last changed: later than the sighting when a
-    // better one has replaced the first (image.py).
-    const changed = Date.parse(state?.state ?? "");
-    const at = Date.parse(state?.attributes.seen ?? "") || changed;
-    if (!at) return [];
-    // The address is the same for every photograph: `changed` makes the browser fetch this one.
-    const photo = state.attributes.photo ? `${state.attributes.entity_picture}&at=${changed}` : undefined;
-    return [{ ...s, camera: state.attributes.camera, kind: state.attributes.kind, at, photo }];
-  });
-
   const sky = found.weather ? hass.states[found.weather] : undefined;
   return {
     rooms,
-    sightings,
     gaps: found.gaps,
     scenes: found.scenes.filter((id) => hass.states[id]).map((id) => ({ id, name: hass.states[id].attributes.friendly_name ?? id })),
     appliances,
     outside: typeof sky?.attributes.temperature === "number" ? { temp: sky.attributes.temperature, humidity: sky.attributes.humidity } : undefined,
     kw: kilowatts(found.power),
   };
+}
+
+/** The feed's sightings as the page tells them: named for their camera, in its room. One
+ * whose camera is kept off the page, or is no longer in the house, is left out. */
+export function sighted(found: Survey, feed: Seen[]): Sighting[] {
+  const cameras = new Map(found.sightings.map((s) => [s.id, s]));
+  return feed.flatMap((s): Sighting[] => {
+    const camera = cameras.get(s.entity);
+    // A photograph that is replaced keeps its address: `changed` makes the browser fetch the new one.
+    const photo = s.photo ? `/api/${OURS}/photo/${s.id}?v=${s.changed}` : undefined;
+    return camera ? [{ id: s.id, camera: s.camera, name: camera.name, room: camera.room, kind: s.kind, at: s.at * 1000, photo }] : [];
+  });
 }

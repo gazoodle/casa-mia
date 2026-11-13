@@ -328,7 +328,17 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   integration's insides, so any failure leaves the first photograph). It follows in a
   background task, never awaited; the entity's state is then the photograph's time and
   `seen` the sighting's. Not known: how soon Protect has a thumbnail, its size, and
-  whether it beats the compositor's frame. The log gives both sizes. Unknown until then: how often the owner's cameras report a person
+  whether it beats the compositor's frame. The log gives both sizes. **The half hour's log** (2026.11.8-b9, from the box's log: sightings come many to the
+  minute, and "animal" a moment after "person" took the person's photograph away):
+  every sighting is its own item with its own photograph in `sightings.py` (`Log`, 30
+  minutes, 40 at most), fed to the pages by the `sightings` websocket command and served
+  at `/api/casa_mia_dash_bored/photo/<id>` (no sign-in: the id is random). The page no
+  longer reads sightings from the image entities, only which cameras there are
+  (`sighted` in `house.ts`); `stories` tells one per camera, and the column Thirty
+  minutes ago lists the rest. Protect names its event on the camera's **event entity**,
+  not on the detection sensor, so event entities are triggers too, their kind told by
+  `event_type` at each firing (`BY_EVENT`). The box's core log is read at
+  `/api/hassio/core/logs`. Still unknown: how often the owner's cameras report a person
   (is ten minutes right?) and how fast a still comes back. Not done: cameras added after set-up.
 - **The masthead's font** (2026.11.8-b8, the owner's iPhone): UnifrakturCook is
   bundled in `www/fonts` with its licence and given to the document by `masthead()` in

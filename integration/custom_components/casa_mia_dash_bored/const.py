@@ -21,6 +21,7 @@ HIDE_LABEL = "Dash-Bored hide"
 # Websocket commands, any signed-in user's.
 CARDS_VERSION = f"{DOMAIN}/cards"  # which version of cards.js is served
 ALERTS = f"{DOMAIN}/alerts"  # the feed of Sensor Watch's alerts
+SIGHTINGS = f"{DOMAIN}/sightings"  # the feed of what the cameras have seen
 
 # Sensor Watch's bus event, and the level it gives a sensor with nothing wrong. Named
 # here and not imported: the two integrations meet only through Home Assistant, and each

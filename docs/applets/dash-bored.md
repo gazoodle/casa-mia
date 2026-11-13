@@ -62,14 +62,21 @@ A camera that can tell what it has seen gets its picture in the paper. When one 
 detections fires, Dash-Bored takes a still from the camera at that moment and the Gazette
 prints it with a headline for ten minutes. Pressing the photograph opens the camera.
 
+Each camera has one story at a time: the most pressing thing it saw in the last ten
+minutes. If a camera reports an animal just after a person, the person stays.
+
+A column called **Thirty minutes ago** (**Rewind** in the red-top) lists the latest ten
+sightings of the last half hour, newest first, each with its time, its camera and a small
+photograph. Pressing one opens the camera.
+
 These detections take a photograph: somebody at the doorbell, a person, a vehicle, an
 animal, and a smoke or carbon monoxide alarm heard by the camera. A doorbell story is near
 the top of the page, a person is above the lights that are left on, and a vehicle or an
 animal is lower down. Plain motion takes no photograph, because in a house with several
 cameras it would fill the paper.
 
-It works with any camera whose detections are entities on the same device as the camera
-entity, which is how UniFi Protect and Frigate set theirs up. The sort of detection is told
+It works with any camera whose detections are binary sensors or event entities on the
+same device as the camera entity, which is how UniFi Protect and Frigate set theirs up. The sort of detection is told
 from English words in the detection's name.
 
 If you run the Casa Mia app with Camera Commander, Dash-Bored first asks it for the
@@ -89,8 +96,8 @@ holds the latest photograph and the sort of sighting, and you can use it on any 
 dashboard. Its state is when the photograph last changed, and its `seen` attribute is when
 the camera saw it. Things to know:
 
-- The photographs are kept in memory, one for each camera. After Home Assistant restarts
-  there is none until the next detection.
+- The photographs are kept in memory: up to 40 sightings from the last half hour. After
+  Home Assistant restarts there are none until the next detection.
 - Two detections on one camera within five seconds share one photograph.
 - If the camera does not answer, the story is printed without a photograph, and the reason
   is in Home Assistant's log.

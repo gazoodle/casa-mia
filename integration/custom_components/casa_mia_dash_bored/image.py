@@ -17,8 +17,9 @@ each event, choosing the frame itself. The photograph taken at once is replaced 
 thumbnail when Protect has it, so a sighting never waits for Protect and is never
 without a picture because of it.
 
-Kept in memory, the latest for each camera and no more: after a restart there is no
-sighting until the next detection. Any brand of camera, as long as its detections are
+The entity holds the latest for its camera. Each sighting is also told to sightings.py,
+which keeps the last half hour's with their photographs for the pages. All in memory:
+after a restart there is no sighting until the next detection. Any brand of camera, as long as its detections are
 entities on the same device as its camera entity.
 """
 
@@ -29,6 +30,7 @@ import base64
 import binascii
 import logging
 import re
+import secrets
 from datetime import datetime
 from typing import Any
 
@@ -43,6 +45,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.util import dt as dt_util
 
+from . import sightings
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -56,6 +59,7 @@ KINDS: dict[str, set[str]] = {
     "animal": {"animal", "pet", "dog", "cat"},
 }
 ORDER = list(KINDS)
+BY_EVENT = ""  # a trigger whose kind is told by the type of each event it fires
 # A car alarm or a car horn heard is not a vehicle seen.
 SOUNDS = {"alarm", "horn", "siren"}
 # One still for each camera in this many seconds: a person and their car arrive together.
@@ -70,15 +74,13 @@ PROTECT = "unifiprotect"  # the integration whose detections name their event
 THUMB_WAIT = 15  # seconds for Protect to have an event's thumbnail
 
 
-def kind_of(domain: str, name: str, device_class: str | None) -> str | None:
+def kind_of(name: str, device_class: str | None = None) -> str | None:
     """What sort of sighting a detection reports, or None for one that takes no
-    photograph. `name` is the entity's translation key or its own name.
+    photograph. `name` is a sensor's translation key or its own name, or the type of
+    event an event entity has just fired.
 
     ponytail: told from English words in the name. Cameras whose detections are named
     otherwise get no sightings; a table for each integration if that is ever met."""
-    if domain == "event":
-        return "doorbell" if device_class == "doorbell" else None
-
     words = set(re.split(r"[^a-z]+", name.lower()))
     if device_class in ("smoke", "carbon_monoxide") or words & KINDS["alarm"]:
         return "alarm"
@@ -152,12 +154,20 @@ async def async_setup_entry(
         if found.domain == "camera":
             cameras.setdefault(found.device_id, found.entity_id)
         elif found.domain in ("binary_sensor", "event"):
-            kind = kind_of(
-                found.domain,
-                found.translation_key or found.original_name or found.entity_id,
-                found.device_class or found.original_device_class,
-            )
-            if kind:
+            device_class = found.device_class or found.original_device_class
+            kinds = (found.capabilities or {}).get("event_types") or []
+            if found.domain == "binary_sensor":
+                kind = kind_of(
+                    found.translation_key or found.original_name or found.entity_id,
+                    device_class,
+                )
+            elif device_class == "doorbell":
+                kind = "doorbell"
+            else:
+                # An event entity that can report several things (UniFi Protect's
+                # says person, animal or vehicle): which, it says each time it fires.
+                kind = BY_EVENT if any(kind_of(str(k)) for k in kinds) else None
+            if kind is not None:
                 triggers.setdefault(found.device_id, {})[found.entity_id] = kind
                 if found.platform == PROTECT and found.config_entry_id:
                     protect[found.entity_id] = found.config_entry_id
@@ -195,6 +205,8 @@ class Sighting(ImageEntity):
         self._at: datetime | None = None
         self._photo: bytes | None = None
         self._source = ""  # where the photograph came from, for the log
+        self._id = ""  # this sighting's, in sightings.py's log
+        self._event = ""  # Protect's event whose thumbnail has been asked for
         self._attr_unique_id = f"sighting-{device.id}"
         # The camera's own device, as a helper's entity joins one: the pages find the
         # room there.
@@ -229,17 +241,26 @@ class Sighting(ImageEntity):
         elif new.state in (old.state, STATE_UNAVAILABLE):
             return  # an event entity's state is when it last fired
 
-        kind = self._triggers[new.entity_id]
+        kind = self._triggers[new.entity_id] or kind_of(
+            str(new.attributes.get("event_type") or "")
+        )
+        if not kind:
+            return
         now = dt_util.utcnow()
         fresh = self._at is None or (now - self._at).total_seconds() >= APART
-        # Within APART of the last still there is no new one, but a doorbell rung as
-        # the person is seen makes the sighting a doorbell's.
-        if not fresh and ORDER.index(kind) >= ORDER.index(self._kind):
+        # Within APART of the last still there is no new one: the same thing told again
+        # by another of the camera's entities. But a doorbell rung as the person is seen
+        # makes the sighting a doorbell's, and an entity that names Protect's event
+        # (not all do) lets its thumbnail be asked for.
+        better = not fresh and ORDER.index(kind) < ORDER.index(self._kind)
+        entry_id = self._protect.get(new.entity_id)
+        event_id = str(new.attributes.get("event_id") or "") if entry_id else ""
+        if not fresh and not better and event_id in ("", self._event):
             return
-        self._kind = kind
 
         if fresh:
             self._at = now  # before the wait, so that what comes during it is not fresh
+            self._id, self._event = secrets.token_urlsafe(16), ""
             try:
                 held = await cached(self.hass, self._camera)
                 self._source = "Casa Mia" if held else "the camera"
@@ -253,30 +274,47 @@ class Sighting(ImageEntity):
                     "No photograph of the %s at %s: %s", kind, self._camera, err
                 )
             self._attr_image_last_updated = now
-        _LOGGER.info(
-            "Sighting at %s: %s (photograph from %s)",
-            self._camera,
-            kind,
-            self._source if self._photo else "nobody",
-        )
-        self.async_write_ha_state()
+        if fresh or better:
+            self._kind = kind
+            _LOGGER.info(
+                "Sighting at %s: %s (photograph from %s)",
+                self._camera,
+                kind,
+                self._source if self._photo else "nobody",
+            )
+            self._tell()
 
-        entry_id, event_id = (
-            self._protect.get(new.entity_id),
-            new.attributes.get("event_id"),
-        )
-        if fresh and entry_id and event_id and self.platform.config_entry:
+        if entry_id and event_id and event_id != self._event:
+            self._event = event_id
             # Not awaited: the sighting is told now, and the better picture follows.
             # The entry's task, so that unloading the integration ends it.
+            assert self.platform.config_entry
             self.platform.config_entry.async_create_background_task(
                 self.hass,
-                self._better(now, entry_id, str(event_id)),
+                self._better(self._id, entry_id, event_id),
                 f"{DOMAIN} thumbnail {event_id}",
             )
 
-    async def _better(self, at: datetime, entry_id: str, event_id: str) -> None:
-        """Replace the photograph of the sighting at `at` with Protect's thumbnail of its
-        event, if that comes within THUMB_WAIT and no later sighting has taken its place."""
+    def _tell(self) -> None:
+        """This sighting, as it now is: to Home Assistant, and to the pages' log."""
+        assert self._at and self.image_last_updated
+        self.async_write_ha_state()
+        self.hass.data[sightings.KEY].tell(
+            {
+                "id": self._id,
+                "entity": self.entity_id,
+                "camera": self._camera,
+                "kind": self._kind,
+                "at": self._at.timestamp(),
+                "changed": self.image_last_updated.timestamp(),
+                "photo": self._photo is not None,
+            },
+            (self._photo, self.content_type) if self._photo else None,
+        )
+
+    async def _better(self, sighting: str, entry_id: str, event_id: str) -> None:
+        """Replace that sighting's photograph with Protect's thumbnail of its event, if
+        that comes within THUMB_WAIT and no later sighting has taken its place."""
         try:
             async with asyncio.timeout(THUMB_WAIT):
                 thumbnail = await protect_thumbnail(self.hass, entry_id, event_id)
@@ -298,7 +336,7 @@ class Sighting(ImageEntity):
                     event_id,
                     self._camera,
                 )
-        if not thumbnail or self._at != at:
+        if not thumbnail or self._id != sighting:
             return
 
         was = len(self._photo or b"")
@@ -312,4 +350,4 @@ class Sighting(ImageEntity):
             len(thumbnail),
             was,
         )
-        self.async_write_ha_state()
+        self._tell()

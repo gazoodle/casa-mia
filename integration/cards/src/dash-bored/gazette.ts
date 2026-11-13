@@ -5,13 +5,16 @@
 import { LitElement, html, nothing, type TemplateResult } from "lit";
 import { keyed } from "lit/directives/keyed.js";
 import { fire, navigate, type Hass } from "../ha.ts";
-import { read, survey, type Device, type House, type Options, type Room, type Survey } from "./house.ts";
+import { read, sighted, survey, type Device, type House, type Options, type Room, type Seen, type Sighting, type Survey } from "./house.ts";
 import { NOMINAL, RECOVERED, cap, clock, counted, flavourOf, stories, type Alert, type Press, type Story } from "./stories.ts";
 import { STYLES } from "./styles.ts";
 import { FIXES, VOICES, fill, tell, wired, words, type Told } from "./voices.ts";
 
 export const CARD = "dash-bored-gazette";
-const ALERTS = "casa_mia_dash_bored/alerts"; // the integration's feed (alerts.py)
+const ALERTS = "casa_mia_dash_bored/alerts"; // the integration's feeds: Sensor Watch's alerts (alerts.py)
+const SIGHTINGS = "casa_mia_dash_bored/sightings"; // and what the cameras have seen (sightings.py)
+const ARCHIVE = 30 * 60_000; // ms: how far back the column of past sightings goes
+const PAST = 10; // and how many of them it lists
 const REMEMBERED = "dash-bored-style"; // this browser's choice of paper
 // The broadsheet's masthead (UnifrakturCook, Open Font Licence), served by the integration
 // beside this file. A shadow root can't declare a font, so the document is given it, once.
@@ -32,15 +35,16 @@ const BIG = 30;
 const MANY = 3; // more lights lit in one of its rooms than this are a count, not a list
 const notable = (d: Device) => d.away || (d.kind === "lock" ? !d.on : d.on);
 type Config = Options & { type?: string; style?: string };
-type Line = { time: number; device?: Device; alert?: Alert; seen?: Story };
+type Line = { time: number; device?: Device; alert?: Alert; seen?: Sighting };
 
 export class Gazette extends LitElement {
   static styles = STYLES;
-  static properties = { narrow: { type: Boolean }, _house: { state: true }, _style: { state: true }, _alerts: { state: true }, _fault: { state: true }, _lost: { state: true } };
+  static properties = { narrow: { type: Boolean }, _house: { state: true }, _style: { state: true }, _alerts: { state: true }, _seen: { state: true }, _fault: { state: true }, _lost: { state: true } };
   narrow = false;
   _house?: House;
   _style = "broadsheet";
   _alerts: Alert[] = [];
+  _seen: Seen[] = []; // the feed's sightings of the last half hour
   _fault = ""; // an action Home Assistant refused, or a feed that failed, in words
   _lost = 0; // ms: since when there has been no connection (0: connected)
   private _hass?: Hass;
@@ -49,8 +53,9 @@ export class Gazette extends LitElement {
   private _late: Line[] = [];
   private _turn = new Map<string, number>();
   private _showing = new Set<string>();
-  private _feed?: Promise<() => void>;
+  private _feeds = new Map<string, Promise<() => void>>(); // by the feed's command
   private _primed = false;
+  private _seenPrimed = false;
   private _timers = new Set<ReturnType<typeof setTimeout>>();
 
   static getStubConfig() {
@@ -94,16 +99,7 @@ export class Gazette extends LitElement {
     else if (was.states === hass.states || !this._survey.watched.some((id) => was.states[id] !== hass.states[id])) return;
 
     const before = new Map(this._house?.rooms.flatMap((r) => r.devices).map((d) => [d.id, d]));
-    const seen = this._house && new Map(this._house.sightings.map((s) => [s.id, s.at]));
     this._house = read(this._survey, hass);
-    // A sighting, new or found on opening the page, leaves the paper when its time is up.
-    const now = Date.now();
-    for (const s of this._house.sightings) {
-      if (seen?.get(s.id) === s.at || now - s.at >= RECOVERED) continue;
-      this._later(RECOVERED - (now - s.at));
-      const story = stories(this._house, [], now).find((told) => told.id === "sighting." + s.id);
-      if (seen && story) this._note({ time: s.at, seen: story });
-    }
     for (const d of this._house.rooms.flatMap((r) => r.devices)) {
       const old = before.get(d.id);
       if (old && (old.on !== d.on || old.level !== d.level || old.away !== d.away)) this._note({ time: Date.now(), device: d });
@@ -119,9 +115,9 @@ export class Gazette extends LitElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    this._feed?.then((stop) => stop()).catch(() => undefined);
-    this._feed = undefined;
-    this._primed = false;
+    for (const feed of this._feeds.values()) feed.then((stop) => stop()).catch(() => undefined);
+    this._feeds.clear();
+    this._primed = this._seenPrimed = false;
     for (const timer of this._timers) clearTimeout(timer);
     this._timers.clear();
   }
@@ -146,18 +142,44 @@ export class Gazette extends LitElement {
     }
   }
 
-  /** Follow Sensor Watch's alerts through the integration. Home Assistant's connection
-   * subscribes again by itself after a break, and the feed then says them all again. */
+  /** Follow the integration's feeds: Sensor Watch's alerts and the cameras' sightings.
+   * Home Assistant's connection subscribes again by itself after a break, and each feed
+   * then says all it holds again. */
   private _listen() {
     const connection = this._hass?.connection;
-    if (this._feed || !connection || !this.isConnected) return;
-    const feed: Promise<() => void> = connection.subscribeMessage((alerts: Alert[]) => this._take(alerts), { type: ALERTS });
-    this._feed = feed;
-    feed.catch((err: any) => {
-      this._feed = undefined;
-      console.error("Dash-Bored: the alerts feed failed", err);
-      this._fault = `Sensor Watch's alerts are not reaching this page (${err?.message ?? err}).`;
-    });
+    if (!connection || !this.isConnected) return;
+    const follow = <T>(type: string, what: string, take: (items: T[]) => void) => {
+      if (this._feeds.has(type)) return;
+      const feed: Promise<() => void> = connection.subscribeMessage(take, { type });
+      this._feeds.set(type, feed);
+      feed.catch((err: any) => {
+        this._feeds.delete(type);
+        console.error(`Dash-Bored: the feed ${type} failed`, err);
+        this._fault = `${what} are not reaching this page (${err?.message ?? err}).`;
+      });
+    };
+    follow(ALERTS, "Sensor Watch's alerts", (alerts: Alert[]) => this._take(alerts));
+    follow(SIGHTINGS, "The cameras' sightings", (seen: Seen[]) => this._sight(seen));
+  }
+
+  /** Sightings from the feed: all it holds at first, then each as it comes, and again
+   * (under the same id) when its kind or its photograph changes. */
+  private _sight(items: Seen[]) {
+    const held = new Map(this._seen.map((s) => [s.id, s]));
+    const now = Date.now();
+    for (const s of items) {
+      const known = held.has(s.id);
+      held.set(s.id, s);
+      const age = now - s.at * 1000;
+      if (known || age >= RECOVERED) continue;
+
+      // It leaves the front page when its time is up.
+      this._later(RECOVERED - age);
+      const [told] = this._seenPrimed && this._survey ? sighted(this._survey, [s]) : [];
+      if (told) this._note({ time: told.at, seen: told });
+    }
+    this._seenPrimed = true;
+    this._seen = [...held.values()].filter((s) => now - s.at * 1000 < ARCHIVE);
   }
 
   private _take(alerts: Alert[]) {
@@ -219,7 +241,12 @@ export class Gazette extends LitElement {
     const voice = VOICES[this._style];
     if (!hass || !house) return html`<div class="paper" data-style=${this._style}><p class="wait">Waiting for Home Assistant.</p></div>`;
 
-    const running = stories(house, this._alerts, Date.now());
+    const now = Date.now();
+    const sightings = sighted(this._survey!, this._seen).filter((s) => now - s.at < ARCHIVE);
+    const past = [...sightings].sort((a, b) => b.at - a.at).slice(0, PAST);
+    // What sort of sighting, in a word or two of this paper's: its story's kicker.
+    const sort = (kind: string) => (voice.stories[`sighting.${kind}`]?.kicker ?? kind).toLowerCase();
+    const running = stories(house, this._alerts, now, sightings);
     // A story that was not in the last edition takes the next wording from its pool.
     for (const s of running) if (!this._showing.has(s.id)) this._turn.set(s.id, (this._turn.get(s.id) ?? -1) + 1);
     this._showing = new Set(running.map((s) => s.id));
@@ -309,8 +336,14 @@ export class Gazette extends LitElement {
         <aside>
           <h3>${voice.titles.late}</h3>
           <ol>${this._late.length
-            ? this._late.map((l) => html`<li><time>${clock(l.time)}</time>${l.alert ? wired(voice, l.alert) : l.seen ? `${l.seen.vars.name}: ${tell(voice, l.seen, 0).kicker.toLowerCase()}` : `${l.device!.room}: ${words(voice, l.device!)}`}</li>`)
+            ? this._late.map((l) => html`<li><time>${clock(l.time)}</time>${l.alert ? wired(voice, l.alert) : l.seen ? `${l.seen.name}: ${sort(l.seen.kind)}` : `${l.device!.room}: ${words(voice, l.device!)}`}</li>`)
             : html`<li>${voice.nothing}</li>`}</ol>
+          ${past.length
+            ? html`<h3>${voice.titles.archive}</h3>
+                <ol class="archive">${past.map((s) =>
+                  html`<li role="button" tabindex="0" @click=${() => fire(this, "hass-more-info", { entityId: s.camera })} @keydown=${this._key}>
+                    ${s.photo ? html`<img src=${s.photo} alt="" loading="lazy" />` : html`<i></i>`}<span><time>${clock(s.at)}</time>${s.name}: ${sort(s.kind)}</span></li>`)}</ol>`
+            : nothing}
           ${warm.length
             ? html`<h3>${voice.titles.temps}</h3><table>${warm.map((r) => html`<tr><td>${r.name}</td><td>${r.temp!.toFixed(1)}° ${r.target === undefined ? "" : r.temp! < r.target - 0.5 ? "▼" : r.temp! > r.target + 0.5 ? "▲" : "="}</td></tr>`)}</table>`
             : nothing}

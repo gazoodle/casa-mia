@@ -53,6 +53,10 @@ export const STYLES = css`
   .photo img { display: block; width: 100%; border: 1px solid var(--ink); filter: grayscale(1) contrast(1.15); }
   .photo figcaption { padding-top: 3px; font-size: 12px; font-style: italic; overflow-wrap: anywhere; }
   .item .photo { margin-bottom: 6px; }
+  /* The archive: the last half hour's sightings, each with its photograph small. */
+  .archive li { display: grid; grid-template-columns: 72px 1fr; gap: 8px; align-items: center; cursor: pointer; overflow-wrap: anywhere; }
+  .archive img, .archive i { width: 72px; aspect-ratio: 16 / 9; object-fit: cover; border: 1px solid var(--ink); filter: grayscale(1) contrast(1.15); }
+  .archive i { background: repeating-linear-gradient(45deg, transparent 0 3px, rgba(0,0,0,.07) 3px 4px); }
   .copy { columns: 2; column-gap: 22px; column-rule: 1px solid rgba(0,0,0,.25); font-size: 15px; line-height: 1.42; clear: both; }
   .copy p { margin: 0 0 8px; break-inside: avoid; }
   [data-style="broadsheet"] .copy p:first-of-type::first-letter { font-size: 52px; float: left; line-height: .82; padding: 4px 6px 0 0; font-family: var(--head); }
@@ -117,6 +121,7 @@ export const STYLES = css`
   [data-style="tabloid"] .deck { font: 800 22px/1.15 inherit; }
   [data-style="tabloid"] .figure { border: 0; color: #fff; rotate: 2deg; width: 120px; background: radial-gradient(#fff3 1.2px, transparent 1.6px) 0 0 / 6px 6px, #111; }
   [data-style="tabloid"] .photo img { filter: none; border: 4px solid #111; }
+  [data-style="tabloid"] .archive img { filter: none; }
   [data-style="tabloid"] .photo figcaption { font: 700 11px/1.3 system-ui, sans-serif; text-transform: uppercase; letter-spacing: .06em; }
   [data-style="tabloid"] .figure b { font: 400 36px/1 var(--head); color: var(--mark); }
   [data-style="tabloid"] .act { background: var(--flash); color: #fff; border: 0; font-weight: 900; font-style: italic; padding: 7px 14px; }

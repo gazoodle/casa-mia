@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.11.8-b9
+
+- **Dash-Bored: photographs stay their ten minutes.** Each camera used to hold only its latest sighting, so an animal reported a moment after a person replaced the person, and the photograph went from the front page. Every sighting is now kept by itself with its own photograph, and a camera's story is the most pressing thing it saw in the last ten minutes.
+- **Dash-Bored: a column of the last half hour.** **Thirty minutes ago** (**Rewind** in the red-top) lists the latest ten sightings of the last half hour, each with its time, its camera and a small photograph. Pressing one opens the camera. Up to 40 sightings are kept, in memory.
+- **Fixed: UniFi Protect's thumbnails were never fetched.** Protect names a detection's event on the camera's event entity, not on the detection sensor that 2026.11.8-b8 read. Dash-Bored now follows the event entities too, which also say whether a person, an animal or a vehicle was detected.
+
 ## 2026.11.8-b8
 
 - **Dash-Bored: UniFi Protect's own picture of each event.** UniFi Protect makes a thumbnail of every detection, choosing the frame itself. A sighting on a Protect camera is still printed at once with the photograph taken at that moment, and Protect's thumbnail replaces it when Protect has it, within 15 seconds. If Protect has none, the first photograph stays. Home Assistant's log says which happened.

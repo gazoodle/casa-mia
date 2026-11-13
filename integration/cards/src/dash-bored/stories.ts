@@ -2,7 +2,7 @@
 // They know nothing of wording. Each carries a `kind` (and a `variant` of it) for a voice
 // to look up, the `vars` a voice's sentences are filled from, the one number that goes
 // in the figure, and what the reader can do about it.
-import type { House } from "./house.ts";
+import type { House, Sighting } from "./house.ts";
 
 /** One of Sensor Watch's alerts, as Dash-Bored's integration feeds it (alerts.py). */
 export type Alert = {
@@ -64,7 +64,7 @@ function reading(alert: Alert): string {
   return measured ? `${alert.value}${alert.unit ? ` ${alert.unit}` : ""}` : "";
 }
 
-export function stories(house: House, alerts: Alert[], now: number): Story[] {
+export function stories(house: House, alerts: Alert[], now: number, sightings: Sighting[] = []): Story[] {
   const out: Story[] = [];
   const add = (story: Omit<Story, "variant" | "flavour"> & { variant?: string; flavour?: string }) => out.push({ variant: "", flavour: "", ...story });
   const devices = house.rooms.flatMap((r) => r.devices);
@@ -76,11 +76,18 @@ export function stories(house: House, alerts: Alert[], now: number): Story[] {
     else if (now - a.at < RECOVERED) add({ kind: "recovered", id: a.entity_id + ".ok", rank: 45, vars: { ...vars, minutes: String(Math.max(1, Math.round((a.at - a.began) / 60_000))) }, figure });
   }
 
-  // A sighting is news for as long as a recovery is, counted from the photograph.
-  for (const s of house.sightings) {
-    if (now - s.at < RECOVERED && s.kind in SEEN)
-      add({ kind: "sighting", variant: s.kind, id: "sighting." + s.id, rank: SEEN[s.kind], vars: { name: s.name, room: (s.room ?? "house").toLowerCase(), at: clock(s.at) }, figure: [clock(s.at), s.name], photo: s.photo, see: s.camera });
+  // A sighting is news for as long as a recovery is. A camera has one story: the most
+  // pressing thing it saw in that time, and of those the latest. So the animal a camera
+  // reports a moment after a person does not take the person's place.
+  const best = new Map<string, Sighting>();
+  for (const s of sightings) {
+    if (now - s.at >= RECOVERED || !(s.kind in SEEN)) continue;
+    const held = best.get(s.camera);
+    if (!held || SEEN[s.kind] > SEEN[held.kind] || (SEEN[s.kind] === SEEN[held.kind] && s.at > held.at)) best.set(s.camera, s);
   }
+  // Newest first: where several rank alike, that is the order they are told in.
+  for (const s of [...best.values()].sort((a, b) => b.at - a.at))
+    add({ kind: "sighting", variant: s.kind, id: "sighting." + s.camera, rank: SEEN[s.kind], vars: { name: s.name, room: (s.room ?? "house").toLowerCase(), at: clock(s.at) }, figure: [clock(s.at), s.name], photo: s.photo, see: s.camera });
 
   for (const d of devices) {
     if (d.kind === "lock" && !d.on && !d.away)
