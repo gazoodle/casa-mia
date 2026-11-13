@@ -79,9 +79,15 @@ camera is not asked again. A camera that no commander being watched shows has no
 that new, and is asked directly. Home Assistant's log says where each photograph came
 from.
 
+A UniFi Protect camera gets one thing more. Protect makes its own thumbnail of each
+detection, choosing the frame itself. The sighting is printed at once with the photograph
+taken at that moment, and Protect's thumbnail replaces it when Protect has it, within 15
+seconds. If Protect has none, the first photograph stays.
+
 Each such camera gets one new entity on its device, an image called **Last sighting**. It
 holds the latest photograph and the sort of sighting, and you can use it on any other
-dashboard. Things to know:
+dashboard. Its state is when the photograph last changed, and its `seen` attribute is when
+the camera saw it. Things to know:
 
 - The photographs are kept in memory, one for each camera. After Home Assistant restarts
   there is none until the next detection.

@@ -24,7 +24,10 @@ export const STYLES = css`
   .fault { background: var(--flash); color: #fff; padding: 6px 12px; margin-bottom: 10px; font: 600 15px/1.3 system-ui, sans-serif; overflow-wrap: anywhere; }
 
   .masthead { text-align: center; border-bottom: 4px double var(--ink); padding-bottom: 6px; }
-  .masthead h1 { margin: 0; font: 400 62px/1 "UnifrakturCook", "Old English Text MT", "Luminari", "Blackletter", fantasy; }
+  /* The masthead's blackletter is the page's own font (gazette.ts loads it), sized to the
+     paper's width so that the name stays on one line on a phone. Never the browser's
+     "fantasy": on an iPhone that is a script whose swashes ran up over the breaking news. */
+  .masthead h1 { margin: 0; font: 400 clamp(30px, 10.5cqi, 62px)/1.1 "Dash-Bored Masthead", var(--head); overflow-wrap: anywhere; }
   .masthead p { margin: 0; } .masthead p:empty { display: none; }
   .dateline { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; justify-content: space-between; font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
     border-bottom: 1px solid var(--ink); padding: 5px 2px; margin-bottom: 14px; }
@@ -134,7 +137,7 @@ export const STYLES = css`
   @container (max-width: 900px) {
     .paper { padding: 10px 14px 20px; }
     .page { grid-template-columns: 1fr; } .page > * + * { border-left: 0; padding-left: 0; margin-top: 18px; } .solo > article { grid-column: auto; }
-    .copy { columns: 1; } h2 { font-size: 34px; } .masthead h1 { font-size: 42px; }
+    .copy { columns: 1; } h2 { font-size: 34px; }
     [data-style="tabloid"] h2 { font-size: 62px; } [data-style="tabloid"] .masthead h1 { font-size: 36px; }
     .figure, [data-style="tabloid"] .figure { width: 104px; } .figure b, [data-style="tabloid"] .figure b { font-size: 28px; }
   }

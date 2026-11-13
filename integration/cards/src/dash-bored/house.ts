@@ -206,10 +206,13 @@ export function read(found: Survey, hass: Hass): House {
   // A camera that has seen nothing since Home Assistant started has no state to parse.
   const sightings = found.sightings.flatMap((s): Sighting[] => {
     const state = hass.states[s.id];
-    const at = Date.parse(state?.state ?? "");
+    // The state is when the photograph last changed: later than the sighting when a
+    // better one has replaced the first (image.py).
+    const changed = Date.parse(state?.state ?? "");
+    const at = Date.parse(state?.attributes.seen ?? "") || changed;
     if (!at) return [];
-    // The address is the same for every photograph: `at` makes the browser fetch this one.
-    const photo = state.attributes.photo ? `${state.attributes.entity_picture}&at=${at}` : undefined;
+    // The address is the same for every photograph: `changed` makes the browser fetch this one.
+    const photo = state.attributes.photo ? `${state.attributes.entity_picture}&at=${changed}` : undefined;
     return [{ ...s, camera: state.attributes.camera, kind: state.attributes.kind, at, photo }];
   });
 

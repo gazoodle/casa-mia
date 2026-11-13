@@ -3,6 +3,8 @@ photographs it takes of what the cameras see, and the feed of Sensor Watch's ale
 its pages follow. Sensor Watch itself is not loaded:
 the two meet only through its bus event, which each test fires by hand."""
 
+import asyncio
+
 import pytest
 from custom_components.casa_mia_dash_bored import image as sightings
 from custom_components.casa_mia_dash_bored.const import (
@@ -204,7 +206,7 @@ def test_which_detections_are_worth_a_photograph(domain, name, device_class, kin
     assert sightings.kind_of(domain, name, device_class) == kind
 
 
-async def shed(hass, monkeypatch):
+async def shed(hass, monkeypatch, platform="test"):
     """An invented camera with a person sensor, a motion sensor and a doorbell, and Dash-
     Bored set up beside it. Gives the stills asked for, and the sighting's entity id."""
     source = MockConfigEntry(domain="test")
@@ -223,8 +225,9 @@ async def shed(hass, monkeypatch):
     ):
         entities.async_get_or_create(
             domain,
-            "test",
+            platform,
             uid,
+            config_entry=source,
             device_id=device.id,
             translation_key=key,
             original_device_class=device_class,
@@ -356,3 +359,43 @@ async def test_casa_mias_picture_is_used_when_it_has_one_and_the_camera_when_not
     entity = await seen()
     assert entity._photo == b"a photograph" and len(asked) == 2
     assert "could not be had, so the camera is asked" in caplog.text
+
+
+async def test_protects_thumbnail_replaces_the_first_photograph_when_it_comes(
+    hass, monkeypatch, freezer, caplog
+):
+    """The sighting is told at once with the first photograph; Protect's own picture of
+    the event follows, and its failure leaves the first in place."""
+    ready, asked = asyncio.Event(), []
+
+    async def thumbnail(_hass, entry_id, event_id):
+        asked.append(event_id)
+        await ready.wait()
+        if event_id == "gone":
+            raise RuntimeError("no such event")
+        return b"protect's choice"
+
+    monkeypatch.setattr(sightings, "protect_thumbnail", thumbnail)
+    _, entity_id = await shed(hass, monkeypatch, platform="unifiprotect")
+    entity = hass.data["image"].get_entity(entity_id)
+
+    hass.states.async_set("binary_sensor.shed_person", "on", {"event_id": "e1"})
+    await hass.async_block_till_done()
+    seen = hass.states.get(entity_id).state
+    assert entity._photo == b"a photograph" and asked == ["e1"]
+    assert hass.states.get(entity_id).attributes["seen"] == seen
+
+    freezer.tick(3)
+    ready.set()
+    await hass.async_block_till_done(wait_background_tasks=True)
+    state = hass.states.get(entity_id)
+    assert entity._photo == b"protect's choice"
+    # The photograph is newer, so a page fetches it; the sighting is when it was.
+    assert state.state != seen and state.attributes["seen"] == seen
+
+    entity._at = None  # no wait between stills
+    hass.states.async_set("binary_sensor.shed_person", "off")
+    hass.states.async_set("binary_sensor.shed_person", "on", {"event_id": "gone"})
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert entity._photo == b"a photograph" and asked == ["e1", "gone"]
+    assert "the first photograph stays: RuntimeError: no such event" in caplog.text

@@ -13,6 +13,18 @@ import { FIXES, VOICES, fill, tell, wired, words, type Told } from "./voices.ts"
 export const CARD = "dash-bored-gazette";
 const ALERTS = "casa_mia_dash_bored/alerts"; // the integration's feed (alerts.py)
 const REMEMBERED = "dash-bored-style"; // this browser's choice of paper
+// The broadsheet's masthead (UnifrakturCook, Open Font Licence), served by the integration
+// beside this file. A shadow root can't declare a font, so the document is given it, once.
+const MASTHEAD = "/casa_mia_dash_bored/fonts/UnifrakturCook-Bold.ttf";
+let mastheadAsked = false;
+function masthead() {
+  if (mastheadAsked) return;
+  mastheadAsked = true;
+  const face = new FontFace("Dash-Bored Masthead", `url(${MASTHEAD})`);
+  document.fonts.add(face);
+  // Without it the masthead is set in the headline's face: said in the console, not hidden.
+  face.load().catch((err) => console.error("Dash-Bored: the masthead's font could not be loaded", err));
+}
 // A house with more devices than this can't be reported device by device: the page was
 // many screens long on a phone for a large one. Its report is of what is on, unlocked or
 // not answering, and its switchboard, which still has everything, goes across the foot.
@@ -100,6 +112,7 @@ export class Gazette extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
+    masthead();
     this._choose();
     if (this._hass?.connected !== false) this._listen();
   }

@@ -322,9 +322,18 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   `picture`) → the service `casa_mia.camera_picture` → `image.cached`, which falls
   back to `from_camera`. The cache is new only for cameras a watched commander shows,
   and UniFi Protect's own snapshot is 640 x 360 (the cache's `keep` says so), which is
-  the gain. Unknown until then: how often the owner's cameras report a person
-  (is ten minutes right?) and how fast a still comes back. Not done: UniFi Protect's own
-  event thumbnails (cropped to the person), cameras added after set-up.
+  the gain. **UniFi Protect's thumbnail** (2026.11.8-b8): a Protect detection's state
+  carries `event_id`; `protect_thumbnail` fetches that event's thumbnail through
+  Protect's own config entry (`runtime_data.api`, as its view does: another
+  integration's insides, so any failure leaves the first photograph). It follows in a
+  background task, never awaited; the entity's state is then the photograph's time and
+  `seen` the sighting's. Not known: how soon Protect has a thumbnail, its size, and
+  whether it beats the compositor's frame. The log gives both sizes. Unknown until then: how often the owner's cameras report a person
+  (is ten minutes right?) and how fast a still comes back. Not done: cameras added after set-up.
+- **The masthead's font** (2026.11.8-b8, the owner's iPhone): UnifrakturCook is
+  bundled in `www/fonts` with its licence and given to the document by `masthead()` in
+  `gazette.ts` (a shadow root can't declare a font). Never name a generic family such
+  as `fantasy` in a stack: each platform maps it to something different.
 - **Brand** (2026.11.8-b5): a bored face on a tile, drawn by `tools/brand_children.py`.
 - **Not done:** publishing by itself, levels
   (dimming), a detail view and history of its own, other languages. BACKLOG has the list.

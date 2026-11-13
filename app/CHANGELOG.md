@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.11.8-b8
+
+- **Dash-Bored: UniFi Protect's own picture of each event.** UniFi Protect makes a thumbnail of every detection, choosing the frame itself. A sighting on a Protect camera is still printed at once with the photograph taken at that moment, and Protect's thumbnail replaces it when Protect has it, within 15 seconds. If Protect has none, the first photograph stays. Home Assistant's log says which happened.
+- **Dash-Bored: the Casa Courier's masthead on a phone.** On an iPhone the name was set in a script font whose flourishes ran over the breaking news above it, because the page relied on fonts the phone does not have. Dash-Bored now carries the masthead's own font (UnifrakturCook, Open Font Licence), so it looks the same on every device, and its size follows the page's width so the name stays on one line.
+- The **Last sighting** entity has a new attribute, `seen`: when the camera saw it. The entity's state is when its photograph last changed.
+
 ## 2026.11.8-b7
 
 - **Dash-Bored: photographs from Camera Commander's pictures, where it has them.** Camera Commander is already fetching the cameras that its commanders show, at their streams' full size. When Dash-Bored wants a photograph and Camera Commander has a picture of that camera from the last five seconds, that picture is used and the camera is not asked again. A camera that no commander being watched shows is asked as before. Home Assistant's log says where each photograph came from. Without the Casa Mia app nothing changes.
