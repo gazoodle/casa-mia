@@ -814,11 +814,16 @@ async def test_what_happened_is_kept_and_an_entry_can_be_switched_off(
     await settled(hass)
     assert len(calls["volume_mute"]) == muted
 
-    # On again from the page, it acts on what is playing.
+    # On again from the page, it acts on what is playing. The change's own line may come
+    # before or after the restart it causes: Home Assistant starts the reload eagerly,
+    # and it can finish inside the call that made the change (it did on GitHub's
+    # runners, 2026-11-13). What follows the restart is fixed: the song matched, muted.
     assert not await page.change("enable", entry, enabled=True)
     lines = await happened()
     assert ("edit", "Changed from the page: switched on") in lines
-    assert lines[-1] == ("change", "Muted until the next track")
+    restarted = max(n for n, (kind, _) in enumerate(lines) if kind == "start")
+    assert lines[restarted][1].startswith("Started watching")
+    assert ("change", "Muted until the next track") in lines[restarted:]
     assert hass.states.get(switch).state == "on"
 
 
