@@ -1,7 +1,7 @@
 // The survey of the house: which room and floor a device is in, and what it is called there.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { survey } from "./house.ts";
+import { HIDE, survey } from "./house.ts";
 
 const named = (friendly_name: string) => ({ state: "off", attributes: { friendly_name } });
 
@@ -83,5 +83,22 @@ test("what Home Assistant isn't told is listed: no area, a shared name, no floor
     { kind: "clash", items: [{ id: "light.a", name: "Den" }, { id: "light.b", name: "Den Light" }] },
     { kind: "floorless", items: [{ id: "den", name: "Den" }] },
     { kind: "cold", items: [{ id: "den", name: "Den" }] },
+  ]);
+});
+
+test("the hide label takes an entity, a device's entities or an area's off the page, and a setting by its name is suspected", () => {
+  const h = hass(
+    { "light.a": ["den", "Lamp"], "light.b": ["den", "Glow"], "light.c": ["den", "Spot"], "light.d": ["shed", "Bulb"], "switch.e": ["den", "Pump relay"], "light.f": ["", "Status LED"] },
+    { den: { name: "Den" }, shed: { name: "Shed", labels: [HIDE] } },
+  );
+  Object.assign(h.entities["light.a"], { labels: [HIDE] });
+  Object.assign(h.entities["light.b"], { device_id: "strip" });
+  Object.assign(h.entities["switch.e"], { platform: "esphome" });
+  Object.assign(h, { devices: { strip: { area_id: "den", labels: [HIDE] } } });
+  const found = survey(h, {});
+  assert.deepEqual(found.rooms.map((r) => [r.name, r.devices.map((d) => d.id)]), [["Den", ["light.c", "switch.e"]]]);
+  assert.deepEqual(found.gaps.slice(0, 2), [
+    { kind: "loose", items: [{ id: "light.f", name: "Status LED" }] },
+    { kind: "plumbing", items: [{ id: "light.f", name: "Status LED", via: undefined }, { id: "switch.e", name: "Pump relay", via: "esphome" }] },
   ]);
 });

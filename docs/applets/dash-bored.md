@@ -21,9 +21,9 @@ give its devices an area in Home Assistant.
 
 If your areas are on floors, the rooms are grouped under a heading for each floor, from
 the lowest up, and the areas on no floor come last under **Elsewhere**. A device is named
-without its room or its kind: "Kitchen Ceiling Light" in the kitchen is "Ceiling". The
-page has no filter of its own yet, so a switch you don't want on it has to be hidden in
-Home Assistant (the entity's settings, **Visible**).
+without its room or its kind: "Kitchen Ceiling Light" in the kitchen is "Ceiling". To
+keep a device off the page, give it the label **Dash-Bored hide** (see What your house is
+missing).
 
 ## The Gazette
 
@@ -64,12 +64,26 @@ house and the page needs. It is not shown when nothing is missing.
 | It lists | What to do |
 |---|---|
 | Devices in no area | Give the device an area, or hide it. Until then it is not on the page. |
+| Suspected plumbing | Things that by their names are settings or indicators, not devices in a room: a status LED, a relay, a screensaver switch. A guess from the name, in English only. See below. |
 | Devices sharing a name | Two devices in one room whose names shorten to the same thing. Rename one. |
 | Rooms on no floor | Only in a house that has floors. Give the area a floor. |
 | Rooms without a thermometer | Set the area's temperature sensor, or put its thermostat in the area. |
 
 Each line is a count that opens into a list. Press a device to open its dialog, or a room
 to open its area's settings.
+
+Home Assistant already has a way to say that an entity is a setting: its category,
+configuration or diagnostic. Dash-Bored leaves those out, and so do Home Assistant's own
+automatic dashboards. An integration sets the category, and it can't be changed in Home
+Assistant's settings, so the suspected plumbing is grouped by integration:
+
+- **ESPHome:** add `entity_category: config` (or `diagnostic`) to the light or switch in
+  the device's YAML.
+- **KNX:** add `entity_category: config` to the entity in the KNX YAML.
+- **Anything else:** give it the label **Dash-Bored hide**, which Dash-Bored makes when it
+  is set up. The label works on an entity, on a device (all its entities) and on an area
+  (everything in it), and takes them off Dash-Bored's pages only. Hiding the entity in
+  Home Assistant takes it off every dashboard.
 
 ### What a press will never do
 

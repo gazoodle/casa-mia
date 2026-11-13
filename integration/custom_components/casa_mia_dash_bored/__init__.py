@@ -24,10 +24,20 @@ from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import label_registry as lr
 from homeassistant.helpers.typing import ConfigType
 
 from . import alerts
-from .const import CARDS_VERSION, DOMAIN, ELEMENT, INSTALLED_EVENT, PANEL, TITLE, URL
+from .const import (
+    CARDS_VERSION,
+    DOMAIN,
+    ELEMENT,
+    HIDE_LABEL,
+    INSTALLED_EVENT,
+    PANEL,
+    TITLE,
+    URL,
+)
 from .restart_notice import async_check_restart, manifest_version
 
 _LOGGER = logging.getLogger(__name__)
@@ -68,6 +78,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await async_check_restart(hass, LOADED_VERSION)
 
     entry.async_on_unload(hass.bus.async_listen(INSTALLED_EVENT, installed))
+
+    labels = lr.async_get(hass)
+    if not labels.async_get_label_by_name(HIDE_LABEL):
+        labels.async_create(
+            HIDE_LABEL,
+            icon="mdi:newspaper-remove",
+            description="Kept off Dash-Bored's pages. Put it on an entity, a device or an area.",
+        )
+        _LOGGER.info("Dash-Bored made the label %r", HIDE_LABEL)
 
     # The sidebar entry stays through a reload, and goes only when the integration is
     # deleted: taking a panel out from under an open page broke Home Assistant's own

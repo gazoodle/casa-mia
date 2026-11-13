@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.8-b4
+
+- **Dash-Bored: a label that keeps things off its pages.** Dash-Bored makes a label, **Dash-Bored hide**. Put it on an entity, a device or an area, and that entity, the device's entities or everything in the area are left out of Dash-Bored's pages. Unlike hiding an entity in Home Assistant, it changes no other dashboard.
+- **Dash-Bored: settings shown as devices.** **Corrections and clarifications** has a new list of lights, switches, covers and locks that by their names are probably settings or indicators, such as a status LED, a relay or a screensaver switch. It is a guess from the name, in English only. They are grouped by the integration they come from, with where each group is best put right: ESPHome and KNX entities in their YAML, the rest with the label.
+
 ## 2026.11.8-b3
 
 - **Dash-Bored: what your house is missing.** The Gazette has a new column, **Corrections and clarifications**, that lists what Home Assistant has not been told and the page needs: devices in no area, devices in one room whose names shorten to the same thing, areas on no floor (in a house that has floors), and rooms with neither a temperature sensor nor a thermostat. Each is a count that opens into a list. A device in the list opens its dialog, and a room opens its area's settings. The column is not shown when nothing is missing.

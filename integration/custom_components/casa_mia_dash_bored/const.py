@@ -12,6 +12,12 @@ ELEMENT = (
     "dash-bored-gazette"  # the custom element cards.js defines, page and card both
 )
 
+# The label that keeps an entity, a device's entities or an area's off Dash-Bored's pages
+# and nowhere else (hiding it in Home Assistant takes it off every dashboard). Made at
+# set-up so that it is there to pick. The pages know it by the id Home Assistant derives
+# from this name (HIDE in house.ts), which a later rename of the label does not change.
+HIDE_LABEL = "Dash-Bored hide"
+
 # Websocket commands, any signed-in user's.
 CARDS_VERSION = f"{DOMAIN}/cards"  # which version of cards.js is served
 ALERTS = f"{DOMAIN}/alerts"  # the feed of Sensor Watch's alerts

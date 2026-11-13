@@ -12,6 +12,7 @@ from custom_components.casa_mia_dash_bored.const import (
 from homeassistant.components import frontend
 from homeassistant.config_entries import SOURCE_USER, ConfigEntryState
 from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.helpers import label_registry as lr
 from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -35,6 +36,17 @@ async def set_up(hass):
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
     return entry
+
+
+async def test_the_hide_label_is_made_once_under_the_id_the_pages_know(hass):
+    entry = await set_up(hass)
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # house.ts knows it as HIDE: the two must not drift apart.
+    assert [label.label_id for label in lr.async_get(hass).async_list_labels()] == [
+        "dash_bored_hide"
+    ]
 
 
 async def feed(hass, hass_ws_client):

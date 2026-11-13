@@ -8,7 +8,7 @@ import { fire, navigate, type Hass } from "../ha.ts";
 import { read, survey, type Device, type House, type Options, type Room, type Survey } from "./house.ts";
 import { NOMINAL, RECOVERED, cap, clock, counted, flavourOf, stories, type Alert, type Press } from "./stories.ts";
 import { STYLES } from "./styles.ts";
-import { VOICES, fill, tell, wired, words, type Told } from "./voices.ts";
+import { FIXES, VOICES, fill, tell, wired, words, type Told } from "./voices.ts";
 
 export const CARD = "dash-bored-gazette";
 const ALERTS = "casa_mia_dash_bored/alerts"; // the integration's feed (alerts.py)
@@ -284,9 +284,9 @@ export class Gazette extends LitElement {
           ${house.gaps.length
             ? html`<h3>${voice.titles.gaps}</h3>
                 ${house.gaps.map((g) => html`<details><summary>${fill(voice.gaps[g.kind], counted(g.items.length))}</summary>
-                  <ul>${g.items.map((item) =>
+                  <ul>${g.items.map((item, i) =>
                     // An entity opens its own dialog, an area its page in the settings.
-                    html`<li><button class="mend" @click=${() => (g.kind === "floorless" || g.kind === "cold" ? navigate(`/config/areas/area/${item.id}`) : fire(this, "hass-more-info", { entityId: item.id }))}>${item.name}</button></li>`)}</ul></details>`)}
+                    html`${g.kind === "plumbing" && item.via !== g.items[i - 1]?.via ? html`<li class="via">${FIXES[item.via ?? ""] ?? `${item.via}. ${FIXES[""]}`}:</li>` : nothing}<li><button class="mend" @click=${() => (g.kind === "floorless" || g.kind === "cold" ? navigate(`/config/areas/area/${item.id}`) : fire(this, "hass-more-info", { entityId: item.id }))}>${item.name}</button></li>`)}</ul></details>`)}
                 <p class="mend">${voice.mend}</p>`
             : nothing}
           ${house.scenes.length

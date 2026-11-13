@@ -282,6 +282,17 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
     The owner wants the jokes and sentences configurable later (2026-11-13): keep voices
     as data so that stays possible. Nothing configures them yet.
   - `styles.ts` is the look; a new paper is a voice and a block of CSS.
+- **A big house** (2026.11.8-b2, found on the owner's own). Over 30 devices (`BIG` in `gazette.ts`) the report is by
+  exception, a room's many lit lights are one pressable count (`MANY`), and the
+  switchboard goes across the foot in columns. Floors are the crossheads. Test any
+  change to the page at that size as well as on four rooms.
+- **What the house is missing** (owner's idea, 2026-11-13; b3 and b4): `survey` also
+  returns `gaps` (no area, suspected plumbing, shared names, no floor, no thermometer),
+  shown as Corrections and clarifications. Suspected plumbing is a guess from English
+  names (`PLUMBING` in `house.ts`), grouped by integration, because an entity's category
+  is set at its source (ESPHome and KNX YAML). The label **Dash-Bored hide**
+  (`HIDE_LABEL` in `const.py`, id `HIDE` in `house.ts`; a tests_ha test ties the two) is
+  for the rest. The page changes nothing in the registries: the owner was told so.
 - **Guarded devices** (my ruling for a live house, told to the owner): a lock, or a cover
   whose class is garage, gate or door, is never operated by a press on a sentence or a
   chip; that opens Home Assistant's dialog. The story's own remedy button may lock.
@@ -426,7 +437,8 @@ CLAUDE.md has them all. What trips agents here:
 ## What happened
 
 - **2026-11-13: Dash-Bored started** (2026.11.8-b1): seventeen mock-ups, then the Gazette
-  as a real integration. See its section above. Not committed when this was written.
+  as a real integration. b2 to b4 the same day made it fit the owner's house and added
+  the report on what the house is missing. See its section above.
 - **2026-11-13: Love it or Loathe it built** (2026.11.7-b2, reworked to b5 the same day as
   the owner used it; its page in Casa Mia in b6). See its section above. Left for later in
   BACKLOG: the page's song rows and "who would take this", the thumbs card, the fade,

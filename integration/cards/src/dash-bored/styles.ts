@@ -74,6 +74,7 @@ export const STYLES = css`
   summary { cursor: pointer; font-weight: 700; }
   details ul { margin: 4px 0 0 16px; max-height: 260px; overflow-y: auto; }
   details li { border: 0; padding: 2px 0; }
+  details li.via { font-style: italic; margin: 6px 0 2px; overflow-wrap: anywhere; }
   button.mend { border-bottom: 1.5px dotted var(--ink); overflow-wrap: anywhere; }
   p.mend { margin: 6px 0 16px; font-size: 13px; font-style: italic; line-height: 1.3; }
   /* The switchboard: every device as a plain button, for when you only want a switch. */

@@ -33,6 +33,14 @@ export type Told = { kicker: string; head: string; deck: string; body: string; a
 
 export const fill = (text: string, vars: Record<string, string>) => text.replace(/\{(\w+)\}/g, (_, key) => vars[key] ?? "");
 
+/** Where a setting that is shown as a device is put right, by the integration it comes
+ * from. Instructions, so the same in every paper. */
+export const FIXES: Record<string, string> = {
+  esphome: "ESPHome. Add entity_category: config (or diagnostic) to each in its device's YAML",
+  knx: "KNX. Add entity_category: config to each in the KNX YAML",
+  "": "Give each the label Dash-Bored hide, or hide it in Home Assistant",
+};
+
 /** One story in a voice. `turn` moves on each time the story comes round again, so the
  * same headline is not used twice running. */
 export function tell(voice: Voice, story: Story, turn: number): Told {
@@ -84,7 +92,7 @@ const broadsheet: Voice = {
   end: ".",
   nothing: "Nothing has happened yet.",
   rest: "In {n_word} room{s} nothing is switched on.",
-  gaps: { loose: "{N} device{s} of no fixed abode", clash: "{N} device{s} sharing a name with a neighbour", floorless: "{N} room{s} on no floor", cold: "{N} room{s} without a thermometer" },
+  gaps: { loose: "{N} device{s} of no fixed abode", plumbing: "{N} suspected of being plumbing", clash: "{N} device{s} sharing a name with a neighbour", floorless: "{N} room{s} on no floor", cold: "{N} room{s} without a thermometer" },
   mend: "Each opens where it is put right. An area, a floor, a name or a temperature sensor in Home Assistant, and this paper reports the better for it.",
   words: {
     "light.on": "the {lamp} burn{v} at {level} per cent",
@@ -135,7 +143,7 @@ const tabloid: Voice = {
   end: "",
   nothing: "Nothing yet. Give it a minute.",
   rest: "{n} room{s} with NOTHING ON!",
-  gaps: { loose: "{n} device{s} HOMELESS!", clash: "{n} device{s} in name mix-up", floorless: "{n} room{s} floating in mid-air", cold: "{n} room{s}: hot or not? No idea" },
+  gaps: { loose: "{n} device{s} HOMELESS!", plumbing: "{n} FAKE gadget{s} exposed", clash: "{n} device{s} in name mix-up", floorless: "{n} room{s} floating in mid-air", cold: "{n} room{s}: hot or not? No idea" },
   mend: "Tap one to fix it. Give it an area, a floor, a name or a thermometer in Home Assistant.",
   words: {
     "light.on": "{lamp} ON at {level}%",

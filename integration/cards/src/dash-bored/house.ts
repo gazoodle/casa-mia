@@ -30,8 +30,10 @@ export type House = {
 /** What Home Assistant doesn't know about the house, that an automatic dashboard needs:
  * devices in no area, areas on no floor (in a house that has floors), devices in one room
  * whose names shorten to the same thing, and rooms with nothing to tell their temperature.
- * An item is an entity, or for `floorless` and `cold` an area. Most pressing first. */
-export type Gap = { kind: "loose" | "clash" | "floorless" | "cold"; items: { id: string; name: string }[] };
+ * `plumbing` is a guess: things shown as devices that by their names are settings or
+ * indicators, each with the integration it comes from (`via`), since that is where it is
+ * best put right. An item is an entity, or for `floorless` and `cold` an area. */
+export type Gap = { kind: "loose" | "plumbing" | "clash" | "floorless" | "cold"; items: { id: string; name: string; via?: string }[] };
 /** The card's options: a weather entity and a whole-house power sensor, both optional. */
 export type Options = { weather?: string; power?: string };
 
@@ -39,6 +41,12 @@ type Found = { id: string; kind: Kind; name: string; full: string; guarded: bool
 type FoundRoom = { id: string; name: string; floor?: string; level: number; temp?: string; humidity?: string; climate?: string; devices: Found[] };
 export type Survey = { rooms: FoundRoom[]; gaps: Gap[]; scenes: string[]; weather?: string; power?: string; watched: string[] };
 
+/** The id of the label that keeps a thing off these pages: on an entity, its device or
+ * its area. The integration makes the label, "Dash-Bored hide" (const.py HIDE_LABEL). */
+export const HIDE = "dash_bored_hide";
+// ponytail: names in English that mark a setting or an indicator, not a thing in a room.
+// A guess, and only ever shown as one; a list per language if this is ever translated.
+const PLUMBING = /\b(led|relay|screen|screensaver|in use|enabled|watching|mode|program(me)?|charge)\b/i;
 const KINDS = new Set(["light", "switch", "cover", "lock"]);
 // A lock, a garage door or a gate must not move because a finger brushed a sentence.
 // These open Home Assistant's own dialog instead.
@@ -63,6 +71,8 @@ export function survey(hass: Hass, options: Options): Survey {
   let weather = options.weather;
   const loose: Gap["items"] = [];
   const clash: Gap["items"] = [];
+  const plumbing: Gap["items"] = [];
+  const hidden = (thing?: { labels?: string[] }) => !!thing?.labels?.includes(HIDE);
 
   for (const entry of Object.values<any>(hass.entities ?? {})) {
     const id: string = entry.entity_id;
@@ -76,7 +86,12 @@ export function survey(hass: Hass, options: Options): Survey {
     if (domain === "sensor" && state.attributes.device_class === "power" && entry.device_id) meters.set(entry.device_id, id);
 
     const area = hass.areas?.[entry.area_id ?? hass.devices?.[entry.device_id]?.area_id];
-    if (!area && KINDS.has(domain)) loose.push({ id, name: state.attributes.friendly_name ?? entry.name ?? id });
+    if (hidden(entry) || hidden(hass.devices?.[entry.device_id]) || hidden(area)) continue;
+    if (KINDS.has(domain)) {
+      const name: string = state.attributes.friendly_name ?? entry.name ?? id;
+      if (!area) loose.push({ id, name });
+      if (PLUMBING.test(name)) plumbing.push({ id, name, via: entry.platform });
+    }
     if (!area || (domain !== "climate" && !KINDS.has(domain))) continue;
     if (!rooms.has(area.area_id)) {
       const floor = hass.floors?.[area.floor_id];
@@ -122,6 +137,7 @@ export function survey(hass: Hass, options: Options): Survey {
   const areas = (list: FoundRoom[]) => list.map((r) => ({ id: r.id, name: r.name }));
   const gaps: Gap[] = [
     { kind: "loose", items: loose },
+    { kind: "plumbing", items: plumbing.sort((a, b) => (a.via ?? "").localeCompare(b.via ?? "") || a.name.localeCompare(b.name)) },
     { kind: "clash", items: clash },
     { kind: "floorless", items: kept.some((r) => r.floor) ? areas(kept.filter((r) => !r.floor)) : [] },
     { kind: "cold", items: areas(kept.filter((r) => !r.temp && !r.climate)) },
