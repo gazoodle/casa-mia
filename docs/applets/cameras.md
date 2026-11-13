@@ -44,7 +44,7 @@ camera sees: the gate it looks at, the lock on the door, a light. Each has its e
 optional name and an optional icon; left blank, the entity's own name and icon are used.
 **+ Control** adds one.
 
-<img src="../screenshots/cameras-controls.webp" alt="Editing the Entrance camera on the Cameras page. Under Page controls are two rows, lock.front_door named Front door and light.hall_light named Hall light, and a + Control button. Under Controls on a full screen are a choice of Top, Bottom, Left or Right for a wide screen and for a tall one, each above a small preview of the camera on that screen with the two buttons along its foot, then Size (Small, Medium, Large), Along the edge (Left or top, Centre, Right or bottom) and a Background slider at 60%" width="480">
+<img src="../screenshots/cameras-controls.webp" alt="Editing the Entrance camera on the Cameras page. Under Page controls are two rows, lock.front_door named Front door and light.hall_light named Hall light, and a + Control button. Under Controls on a full screen are a choice of Top, Bottom, Left or Right for a wide screen and for a tall one, each above a small preview of the camera on that screen with the two buttons along its foot, then a Size slider at 56 px, Along the edge (Left or top, Centre, Right or bottom) and a Background slider at 60%" width="480">
 
 They are shown in three places, and a tap on one is Home Assistant's toggle in each:
 
