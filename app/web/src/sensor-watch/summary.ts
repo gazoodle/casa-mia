@@ -4,7 +4,8 @@
  * is inside it, on the same origin), and is shown only where Sensor Watch is installed. */
 
 import { useEffect, useState } from "react";
-import { follow, SUMMARY, type Conn, type NotRunning } from "./ha";
+import { homeConnection } from "../home";
+import { follow, SUMMARY, type NotRunning } from "./ha";
 
 /** What the tile shows (modules.tsx): the feed's event, or `problem`: why there is none.
  * Empty until Sensor Watch answers, and for good where it isn't installed: no tile. */
@@ -15,12 +16,7 @@ export function useSummary(): Summary {
   const [summary, setSummary] = useState<Summary>({});
   useEffect(() => {
     const none = (problem: string) => setSummary({ problem });
-    let asked: Promise<{ conn: Conn }> | undefined;
-    try {
-      asked = (window.parent as unknown as { hassConnection?: Promise<{ conn: Conn }> }).hassConnection;
-    } catch {
-      // another origin's page holds this one
-    }
+    const asked = homeConnection();
     if (!asked) return; // not inside Home Assistant: nothing to ask, so no tile
 
     let over = false;

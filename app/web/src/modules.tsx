@@ -5,7 +5,7 @@
 import type { ReactNode } from "react";
 import type { ModuleHealth } from "./health";
 import { ago, megabytes } from "./format";
-import { CameraGridIcon, CameraIcon, CommanderIcon, DashboardIcon, DoorbellIcon, FirmwareIcon, GuestIcon, KioskModeIcon, PeopleIcon, PhoneIcon, SensorWatchIcon, ShieldIcon, TabletIcon, TalkbackIcon } from "./icons";
+import { CameraGridIcon, CameraIcon, CommanderIcon, DashboardIcon, DoorbellIcon, FirmwareIcon, GuestIcon, HeartIcon, KioskModeIcon, PeopleIcon, PhoneIcon, SensorWatchIcon, ShieldIcon, TabletIcon, TalkbackIcon } from "./icons";
 
 export type Fact = [label: string, value: string | undefined];
 
@@ -114,6 +114,17 @@ export const MODULES: Record<string, ModuleInfo> = {
         ["Worst", (h.worst as string | null) ?? undefined],
       ];
     },
+  },
+  love_or_loathe: {
+    title: "Love it or Loathe it",
+    option: "Love it or Loathe it",
+    blurb: "Acts when a song you love or loathe comes on a media player: turn it up, mute it, or go to another station for a few minutes.",
+    icon: <HeartIcon />,
+    facts: (h) => [
+      ["Players", String(h.players ?? 0)],
+      ["Groups of songs", String(h.groups ?? 0)],
+      ["Last match", h.last_at ? `${ago(h.last_at)} · ${h.last_song}` : "none since it started"],
+    ],
   },
   gitproxy: {
     title: "Firmware server",

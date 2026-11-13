@@ -10,7 +10,7 @@ import { camerasOf, placed } from "../placed.ts";
 import { back, family, keepPosition, labelsOf, useFont } from "../labels.ts";
 import { dot } from "./motion.ts";
 import { controlsBar, fullStyles, type Own } from "./full.ts";
-import { canFill, fill, filling, SCREEN_EVENTS } from "./screen.ts";
+import { barRoom, canFill, canPlayFull, fill, filling, playFull, SCREEN_EVENTS } from "./screen.ts";
 import { Config, Card, BLANK, Size, columnHeight, commanders, pictureDown } from "./common.ts";
 import { PILLS } from "../pills.ts";
 import { CommanderTalk, talkStyles } from "./talk.ts";
@@ -131,9 +131,14 @@ export class CommanderCard extends CommanderTalk {
             },
           ]
         : [];
-    // The Full screen button, where offered and the browser has it (not Safari on an iPhone).
-    const fills: Own[] =
-      this._config?.screen_button && canFill()
+    // The Full screen button, where offered. Where the browser gives a page the screen,
+    // the whole commander. Where it gives it only to a video (Safari on an iPhone), the
+    // main camera's live video in the phone's own player, as drawn the last time: the
+    // once-a-second redraw while live (live.ts) finds a video that has just begun.
+    const playing = live?.shown && !canFill() ? this.renderRoot.querySelector<HTMLVideoElement>(`video.live[data-entity="${live.shown}"]`) : null;
+    const fills: Own[] = !this._config?.screen_button
+      ? []
+      : canFill()
         ? [
             {
               on: this._screen,
@@ -143,7 +148,9 @@ export class CommanderCard extends CommanderTalk {
               toggle: () => fill(this, !this._screen),
             },
           ]
-        : [];
+        : playing && canPlayFull(playing)
+          ? [{ on: false, icon: "mdi:fullscreen", label: "Full screen", title: "The main camera over the whole screen", toggle: () => playFull(playing) }]
+          : [];
     // One <video> per channel played: the one shown, and a better one tried unseen under it.
     const videos = (place: string) =>
       live
@@ -192,8 +199,9 @@ export class CommanderCard extends CommanderTalk {
     const tall = f && this._width ? columnHeight(f, this._width, shape, own.mode === "responsive") : null;
     // In HA's card picker: just its own shape, so the picker centres it as it does the others.
     // With the whole screen (screen.ts), all of it: the browser sizes the card to the screen.
+    // But for the room an iPad's status bar needs (screen.ts: barRoom), left black.
     const size = this._screen
-      ? "height:100%"
+      ? `height:calc(100% - ${barRoom()});margin-top:${barRoom()}`
       : inPicker(this)
       ? `aspect-ratio:${own.width}/${own.height}`
       : !f || f.mode === "tile" || f.mode === "cell"

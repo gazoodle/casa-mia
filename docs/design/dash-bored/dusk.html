@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dusk</title>
+<style>
+html, body { margin: 0; height: 100%; background: #0b1030; overflow: hidden; }
+body { font-family: "Hoefler Text", "Baskerville", Georgia, serif; }
+svg { display: block; width: 100%; height: 100%; }
+.sky stop, .dark, .ground { transition: stop-color 1.5s, fill 1.5s, opacity 1.5s; }
+.stars, .moon { transition: opacity 1.5s; }
+.win { cursor: pointer; } .win:focus, .plate:focus, .scene:focus { outline: 0; }
+.plate:focus-visible rect { stroke: #fff; stroke-width: 3; } .win:focus-visible .frame { stroke: #fff; stroke-width: 6; }
+/* A lit window glows and throws light on the ground below it; a dark one reflects the sky. */
+.glass { fill: #1b2444; transition: fill .6s; } .lit .glass { fill: url(#warm); }
+.spill, .halo { opacity: 0; transition: opacity .8s; } .lit .spill, .lit .halo { opacity: 1; }
+.shape { opacity: 0; transition: opacity .6s; } .lit .shape { opacity: .75; }
+.curtain { fill: #7d3b3b; transition: transform .7s cubic-bezier(.4, 0, .2, 1); transform-box: fill-box; }
+.curtain.l { transform-origin: left; } .curtain.r { transform-origin: right; }
+.open .curtain { transform: scaleX(.28); }
+/* Drawn curtains still show that the light is on behind them. */
+.lit .curtain { fill: #e08a4a; }
+.plate { cursor: pointer; } .plate rect { fill: #f3e9cf; stroke: #5a4630; stroke-width: 1.5; } .plate text { fill: #3a2a18; font-size: 15px; text-anchor: middle; }
+.bulb { fill: #3a3f55; transition: fill .4s; } .on .bulb { fill: #ffe9a8; } .on .halo { opacity: 1; }
+.door { transition: transform .5s; transform-box: fill-box; transform-origin: left; } .unlocked .door { transform: scaleX(.72); }
+.smoke { animation: rise 5s ease-out infinite; opacity: 0; transform-box: fill-box; transform-origin: center; } @keyframes rise { 0% { opacity: .7; } 100% { opacity: 0; translate: 40px -110px; scale: 2.4; } }
+.fountain, .spray { opacity: 0; transition: opacity .5s; } .on .fountain, .on .spray { opacity: 1; }
+.caption { fill: #fff; font-size: 25px; font-style: italic; text-anchor: middle; paint-order: stroke; stroke: rgba(10,14,40,.55); stroke-width: 5px; }
+.hint { fill: #fff; opacity: .7; font-size: 14px; text-anchor: middle; }
+.scene { cursor: pointer; } .scene[data-scene] rect { fill: #6b4a2b; stroke: #2e1e0f; stroke-width: 2; } .scene text { fill: #f6ead0; font-size: 17px; text-anchor: middle; letter-spacing: .06em; }
+.scene[data-scene]:hover rect, .scene[data-scene]:focus-visible rect { fill: #8a6238; } .scene:focus-visible { outline: 0; }
+/* The card of a room's other things. */
+#card { position: fixed; left: 50%; top: 50%; translate: -50% -50%; margin: 0; border: 0; border-radius: 18px; padding: 22px 24px; min-width: 300px;
+  background: #fbf4e2; color: #3a2a18; box-shadow: 0 20px 50px rgba(0,0,0,.5); }
+#card::backdrop { background: rgba(10,14,40,.45); }
+#card h2 { margin: 0 0 12px; font-size: 28px; font-style: italic; font-weight: 400; }
+#card button { all: unset; cursor: pointer; display: flex; justify-content: space-between; gap: 30px; width: 100%; box-sizing: border-box; padding: 13px 4px; font-size: 20px; border-top: 1px solid #d9cba8; }
+#card button i { opacity: .65; } #card button.on i { opacity: 1; color: #b9600c; }
+@media (prefers-reduced-motion: reduce) { .smoke { animation: none; } }
+</style>
+</head>
+<body>
+<svg id="scene" viewBox="0 0 1340 800" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <linearGradient id="sky" class="sky" x1="0" y1="0" x2="0" y2="1"><stop id="sky0" offset="0"/><stop id="sky1" offset="1"/></linearGradient>
+    <radialGradient id="warm" cx=".5" cy=".3"><stop offset="0" stop-color="#fff6cf"/><stop offset="1" stop-color="#ffb84d"/></radialGradient>
+    <radialGradient id="glow"><stop offset="0" stop-color="#ffd27a" stop-opacity=".75"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/></radialGradient>
+    <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd27a" stop-opacity=".55"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/></linearGradient>
+  </defs>
+</svg>
+<dialog id="card"><h2 id="card-name"></h2><div id="card-list"></div></dialog>
+
+<script src="house.js"></script>
+<script>
+// Four skies. The picture starts on the one for the real time; tapping the sky moves on.
+const SKIES = [
+  { name: "morning", from: 5, sky: ["#8fb7e8", "#fbd9b0"], dark: 0.12, stars: 0, ground: "#7fae6b" },
+  { name: "afternoon", from: 10, sky: ["#6fb6ea", "#d6efff"], dark: 0, stars: 0, ground: "#86bd6c" },
+  { name: "evening", from: 17, sky: ["#3a2c6e", "#f29062"], dark: 0.34, stars: 0.35, ground: "#5d8257" },
+  { name: "night", from: 21, sky: ["#070b24", "#263070"], dark: 0.58, stars: 1, ground: "#3d6046" },
+];
+const hour = new Date().getHours();
+let sky = Math.max(0, SKIES.findLastIndex((s) => hour >= s.from));
+if (hour < 5) sky = 3;
+
+// Each room's window on the front of the house, and the shape seen inside when it is lit.
+const WINDOWS = {
+  study: { x: 486, y: 330, w: 112, h: 112, shape: `<path d="M12,30 h60 M12,56 h60 M12,82 h60 M20,12 v18 M30,8 v22 M42,14 v16 M56,38 v18 M66,34 v22"/>` },
+  bedroom: { x: 742, y: 330, w: 112, h: 112, shape: `<path d="M20,84 v-34 q26,-22 52,0 v34"/><circle cx="46" cy="30" r="9"/>` },
+  kitchen: { x: 478, y: 492, w: 124, h: 112, shape: `<path d="M58,100 q-22,0 -22,-18 q0,-14 14,-18 q-4,-12 6,-14 q2,-10 8,0 q10,2 6,14 q14,4 14,18 q0,18 -26,18 z"/>` },
+  sitting: { x: 738, y: 492, w: 124, h: 112, shape: `<path d="M30,104 v-52 M12,52 h36 l-8,-26 h-20 z"/>` },
+};
+const window_ = (room) => {
+  const w = WINDOWS[room.id], cover = room.devices.find((d) => d.kind === "cover");
+  return `<path class="spill" data-spill="${room.id}" fill="url(#beam)" d="M${w.x},${Math.max(640, w.y + w.h)} h${w.w} l40,150 h${-w.w - 80} z"/>
+    <g class="win" data-room="${room.id}" tabindex="0" role="button" aria-label="${room.name} lights">
+      <circle class="halo" cx="${w.x + w.w / 2}" cy="${w.y + w.h / 2}" r="${w.w * 1.1}" fill="url(#glow)"/>
+      <rect class="glass" x="${w.x}" y="${w.y}" width="${w.w}" height="${w.h}"/>
+      <g class="shape" transform="translate(${w.x + 14},${w.y})" fill="none" stroke="#5a3210" stroke-width="5" stroke-linecap="round">${w.shape}</g>
+      ${cover ? `<rect class="curtain l" data-cover="${cover.id}" x="${w.x}" y="${w.y}" width="${w.w / 2}" height="${w.h}"/><rect class="curtain r" data-cover="${cover.id}" x="${w.x + w.w / 2}" y="${w.y}" width="${w.w / 2}" height="${w.h}"/>` : ""}
+      <rect class="frame" x="${w.x}" y="${w.y}" width="${w.w}" height="${w.h}" fill="none" stroke="#f6efdd" stroke-width="8"/>
+      <path d="M${w.x + w.w / 2},${w.y} v${w.h} M${w.x},${w.y + w.h / 2} h${w.w}" stroke="#f6efdd" stroke-width="5"/>
+      <rect x="${w.x - 10}" y="${w.y + w.h}" width="${w.w + 20}" height="10" fill="#e9dfc6"/></g>
+    <g class="plate" data-card="${room.id}" tabindex="0" role="button" aria-label="${room.name}: everything"><rect x="${w.x + w.w / 2 - 66}" y="${w.y - 34}" width="132" height="24" rx="5"/>
+      <text x="${w.x + w.w / 2}" y="${w.y - 17}">${room.name} ${room.temp.toFixed(0)}°</text></g>`;
+};
+
+let seed = 11;
+const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const svg = document.getElementById("scene");
+svg.innerHTML += `
+  <rect id="heavens" width="1340" height="800" fill="url(#sky)"/>
+  <g class="stars" id="stars">${Array.from({ length: 90 }, () => `<circle cx="${rnd() * 1340}" cy="${rnd() * 420}" r="${rnd() * 1.6 + 0.4}" fill="#fff" opacity="${rnd() * 0.8 + 0.2}"/>`).join("")}</g>
+  <g class="moon" id="moon"><circle cx="1130" cy="120" r="44" fill="#fdf6d8"/><circle cx="1112" cy="108" r="40" fill="url(#sky)"/></g>
+  <path class="ground" d="M0,560 q200,-90 430,-40 q260,-70 500,-10 q240,-60 410,30 V800 H0 Z" fill="#6a9a66" opacity=".55"/>
+  <path class="ground" id="lawn" d="M0,640 H1340 V800 H0 Z"/>
+  <path d="M640,640 q-30,70 -90,160 h220 q-70,-90 -70,-160 z" fill="#d9c9a3"/>
+  <!-- the tree and the house -->
+  <rect x="204" y="470" width="26" height="176" fill="#5b3d24"/><circle cx="217" cy="420" r="92" fill="#3f7a4d"/><circle cx="160" cy="462" r="58" fill="#3f7a4d"/><circle cx="280" cy="458" r="62" fill="#46855a"/>
+  <rect x="796" y="176" width="46" height="110" fill="#a8553f"/><rect x="788" y="168" width="62" height="14" fill="#7d3b2b"/>
+  <circle class="smoke" cx="819" cy="160" r="12" fill="#e9e9ee"/><circle class="smoke" cx="819" cy="160" r="12" fill="#e9e9ee" style="animation-delay:1.7s"/><circle class="smoke" cx="819" cy="160" r="12" fill="#e9e9ee" style="animation-delay:3.4s"/>
+  <rect x="430" y="296" width="480" height="346" fill="#efe3c4"/>
+  <path d="M396,304 L670,140 L944,304 Z" fill="#b5553d"/><path d="M396,304 L670,140 L944,304" fill="none" stroke="#8a3d2b" stroke-width="10" stroke-linejoin="round"/>
+  <circle cx="670" cy="240" r="24" fill="#1b2444" stroke="#f6efdd" stroke-width="6"/>
+  <rect class="dark" id="dark" width="1340" height="800" fill="#0a0e2c" pointer-events="none"/>
+  <!-- everything below is drawn over the darkness, so light shines through the night -->
+  ${House.rooms.filter((r) => WINDOWS[r.id]).map(window_).join("")}
+  <g id="porch" data-id="h_porch" class="scene" tabindex="0" role="button" aria-label="Porch light"><circle class="halo" cx="670" cy="470" r="80" fill="url(#glow)"/><circle class="bulb" cx="670" cy="470" r="9" stroke="#3a2a18" stroke-width="2"/></g>
+  <g class="win" data-room="hall" tabindex="0" role="button" aria-label="Hall lights"><rect class="glass" x="632" y="496" width="76" height="26" rx="13"/>
+    <rect x="632" y="528" width="76" height="114" fill="#141a33"/><rect class="door" x="632" y="528" width="76" height="114" fill="#2f6f73" stroke="#f6efdd" stroke-width="5"/><circle cx="696" cy="588" r="4" fill="#f2c14e"/></g>
+  <g class="plate" data-card="hall" tabindex="0" role="button"><rect x="604" y="652" width="132" height="24" rx="5"/><text x="670" y="669" id="hall-plate"></text></g>
+  <g data-id="g_path" class="scene" tabindex="0" role="button" aria-label="Path lights">${[[560, 716], [770, 716], [520, 776], [820, 776]].map(([x, y]) =>
+    `<circle class="halo" cx="${x}" cy="${y - 20}" r="46" fill="url(#glow)"/><rect x="${x - 2}" y="${y - 18}" width="4" height="20" fill="#3a3f55"/><circle class="bulb" cx="${x}" cy="${y - 22}" r="7"/>`).join("")}</g>
+  <g data-id="g_pond" class="scene" tabindex="0" role="button" aria-label="Pond pump"><ellipse cx="1110" cy="716" rx="120" ry="30" fill="#3d6fa8"/><ellipse cx="1110" cy="712" rx="96" ry="20" fill="#5b93cf"/>
+    <path class="fountain" d="M1110,712 q-22,-70 -44,-4 M1110,712 q22,-70 44,-4 M1110,712 v-62" fill="none" stroke="#dff1ff" stroke-width="3" stroke-linecap="round"/></g>
+  <g data-id="g_water" class="scene" tabindex="0" role="button" aria-label="Sprinkler"><rect x="318" y="700" width="6" height="22" fill="#3a3f55"/><circle cx="321" cy="698" r="6" fill="#8a8f9c"/>
+    <path class="spray" d="M321,696 q-50,-70 -96,10 M321,696 q50,-70 96,10 M321,696 q-22,-90 -52,6 M321,696 q22,-90 52,6" fill="none" stroke="#dff1ff" stroke-width="2.5" stroke-dasharray="3 9" stroke-linecap="round"/>
+    <rect x="286" y="676" width="70" height="56" fill="transparent"/></g>
+  <text class="caption" id="caption" x="670" y="58"></text><text class="hint" x="670" y="84">Tap a window for its lights, a name for everything in the room, or the sky to change the time of day.</text>
+  ${House.scenes.map((s, i) => `<g class="scene" data-scene="${s.id}" tabindex="0" role="button"><rect x="${30 + i * 0}" y="${150 + i * 50}" width="130" height="38" rx="6"/><text x="95" y="${175 + i * 50}">${s.name}</text></g>`).join("")}`;
+
+const NUM = ["No", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven"];
+function paint() {
+  const now = SKIES[sky];
+  document.getElementById("sky0").setAttribute("stop-color", now.sky[0]); document.getElementById("sky1").setAttribute("stop-color", now.sky[1]);
+  document.getElementById("dark").style.opacity = now.dark; document.getElementById("stars").style.opacity = now.stars; document.getElementById("moon").style.opacity = now.stars;
+  document.getElementById("lawn").style.fill = now.ground;
+  for (const r of House.rooms) {
+    const lit = House.lightsOn(r) > 0;
+    svg.querySelector(`.win[data-room="${r.id}"]`)?.classList.toggle("lit", lit);
+    svg.querySelector(`[data-spill="${r.id}"]`)?.classList.toggle("lit", lit);
+  }
+  svg.querySelectorAll("[data-cover]").forEach((c) => c.closest(".win").classList.toggle("open", House.find(c.dataset.cover).on));
+  svg.querySelectorAll("[data-id]").forEach((el) => el.classList.toggle("on", House.find(el.dataset.id).on));
+  const door = House.find("h_lock");
+  svg.querySelector('.win[data-room="hall"]').classList.toggle("unlocked", !door.on);
+  document.getElementById("hall-plate").textContent = `Hall · ${door.on ? "locked" : "open!"}`;
+  const lit = House.devices.filter((d) => d.kind === "light" && d.on).length, warm = [...House.rooms.slice(0, 5)].sort((a, b) => b.temp - a.temp)[0];
+  document.getElementById("caption").textContent = `It is ${now.name}. ${NUM[lit] ?? lit} ${lit === 1 ? "light is" : "lights are"} on, and the ${warm.name.toLowerCase()} is the warmest room.`;
+  if (card.open) fill();
+}
+
+const card = document.getElementById("card");
+let shown = null;
+function fill() {
+  document.getElementById("card-name").textContent = `${shown.name}, ${shown.temp.toFixed(1)}°`;
+  document.getElementById("card-list").innerHTML = shown.devices.map((d) => `<button data-id="${d.id}" class="${d.on ? "on" : ""}">${d.name}<i>${House.state(d)}</i></button>`).join("");
+}
+card.addEventListener("click", (e) => { const b = e.target.closest("[data-id]"); if (b) House.toggle(b.dataset.id); else if (e.target === card) card.close(); });
+
+function act(target) {
+  const el = target.closest("[data-card], [data-scene], [data-id], .win, #heavens");
+  if (!el) return;
+  if (el.dataset.card) { shown = House.rooms.find((r) => r.id === el.dataset.card); fill(); return card.showModal(); }
+  if (el.dataset.scene) return House.scene(el.dataset.scene);
+  if (el.dataset.id) return House.toggle(el.dataset.id);
+  if (el.id === "heavens") { sky = (sky + 1) % SKIES.length; return paint(); }
+  const room = House.rooms.find((r) => r.id === el.dataset.room), on = House.lightsOn(room) > 0;
+  House.lights(room).filter((d) => d.id !== "h_porch").forEach((d) => d.on === on && House.toggle(d.id));
+}
+svg.addEventListener("click", (e) => act(e.target));
+svg.addEventListener("keydown", (e) => e.key === "Enter" && act(e.target));
+House.on(paint);
+paint();
+</script>
+</body>
+</html>

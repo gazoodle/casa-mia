@@ -1,0 +1,566 @@
+"""The watching and the acting: each chosen media player's track, as Home Assistant
+reports it changing (pushed, never polled), against the groups; then the group's action,
+and its undoing.
+
+What an action changes is always put back by something that must happen: a volume change
+or a mute at the player's next track, a switch of station at a time kept in Home
+Assistant's storage, so a restart in between loses neither. Nothing is put back over a
+person's own change: a volume someone has moved since is left alone, and a player that
+is no longer playing what was put on is not switched back.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import logging
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from typing import Any
+
+from homeassistant.config_entries import ConfigEntry, ConfigSubentry
+from homeassistant.const import ATTR_ENTITY_ID, STATE_PLAYING
+from homeassistant.core import (
+    CALLBACK_TYPE,
+    Event,
+    EventStateChangedData,
+    HomeAssistant,
+    State,
+    callback,
+)
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.event import (
+    async_track_point_in_time,
+    async_track_state_change_event,
+)
+from homeassistant.helpers.storage import Store
+from homeassistant.util import dt as dt_util
+
+from . import trail
+from .const import (
+    CONF_ACTION,
+    CONF_AMOUNT,
+    CONF_DELAY,
+    CONF_ENABLED,
+    CONF_FEELING,
+    CONF_HOURS,
+    CONF_MEDIA,
+    CONF_MINUTES,
+    CONF_ORDER,
+    CONF_PATTERNS,
+    CONF_PERSON,
+    CONF_PLAYERS,
+    CONF_REPEATS,
+    CONF_TIMES,
+    DOMAIN,
+    EVENT,
+    GROUP,
+    LOATHE,
+    LOVE,
+    MUTE,
+    STATION,
+    SWITCH,
+    VOLUME,
+)
+from .pure import Act, Group, History, Matcher, leads, pick, repeated, scaled
+
+_LOGGER = logging.getLogger(__name__)
+ID = "media_content_id"
+TYPE = "media_content_type"
+# A player rounds the volume it is given; within this it is still the one set here.
+SAME_VOLUME = 0.011
+
+
+@dataclass(frozen=True, slots=True)
+class Station:
+    id: str
+    name: str
+    media: dict[str, str]  # media_content_id and media_content_type, for play_media
+
+
+@dataclass(slots=True)
+class Player:
+    """One watched player. `undo` and `away` are kept in storage (Engine._save)."""
+
+    track: tuple[str, str] | None = None
+    playing: bool = False  # as last told to the listeners
+    # What to put back at the next track: ["volume", was, set] or ["mute"].
+    undo: list[Any] | None = None
+    # Switched to another station: {"until": ISO time, "origin": media to go back to or
+    # None, "tried": station ids, "was": the content id before the switch, "ours": the
+    # one the player reported after it}.
+    away: dict[str, Any] | None = None
+    back: CALLBACK_TYPE | None = None  # the timer for the return
+    # One track's work at a time: the undo of the last before the action of the next.
+    lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+
+
+class Engine:
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        self.hass = hass
+        self.entry = entry
+        self.delay = float(entry.options.get(CONF_DELAY, 0))
+        self.enabled: bool = entry.options.get(CONF_ENABLED, True)
+        self.players = {e: Player() for e in entry.options.get(CONF_PLAYERS, [])}
+
+        subentries = ordered(entry)
+        self.stations = [
+            Station(s.subentry_id, s.title, dict(s.data[CONF_MEDIA]))
+            for s in subentries
+            if s.subentry_type == STATION
+        ]
+        self.groups = [
+            Group(
+                s.subentry_id,
+                s.title,
+                s.data[CONF_FEELING],
+                s.data.get(CONF_PERSON, ""),
+                _act(s.data[LOVE]),
+                _act(s.data[LOATHE]),
+                *Matcher.split(s.data.get(CONF_PATTERNS, "").splitlines()),
+                int(s.data.get(CONF_REPEATS, {}).get(CONF_TIMES, 0)),
+                float(s.data.get(CONF_REPEATS, {}).get(CONF_HOURS, 0)),
+            )
+            for s in subentries
+            if s.subentry_type == GROUP
+        ]
+
+        self.last: dict[str, Any] | None = None  # the last match, for the sensor
+        self.silent: set[str] = set()  # playing, but reporting no title
+        # The content id each station turned out to have on a player, which can differ
+        # from the one it was started with: how a station already playing is recognised.
+        self.learned: dict[str, str] = {}
+        # What has been played, for the groups that act on a song heard too often.
+        self.history = History()
+        self._store: Store[dict[str, Any]] = Store(hass, 1, store_key(entry))
+        self._listeners: list[Callable[[], None]] = []
+        self._actions: dict[
+            str, Callable[[str, Player, Group, State], Awaitable[str]]
+        ] = {VOLUME: self._volume, MUTE: self._mute, SWITCH: self._switch}
+
+    # --- the sensor's side -------------------------------------------------------
+
+    def listen(self, heard: Callable[[], None]) -> Callable[[], None]:
+        self._listeners.append(heard)
+        return lambda: self._listeners.remove(heard)
+
+    def _tell(self) -> None:
+        for heard in list(self._listeners):
+            heard()
+
+    def _note(self, kind: str, text: str, entity: str = "") -> None:
+        """Something happened: into the log, and the trail the owner reads (trail.py)."""
+        level = logging.WARNING if kind == trail.PROBLEM else logging.INFO
+        _LOGGER.log(level, "%s%s", f"{entity}: " if entity else "", text)
+        trail.note(self.hass, self.entry, kind, text, entity)
+
+    @property
+    def away(self) -> dict[str, str]:
+        """Each player on another station now, and when it goes back."""
+        return {e: p.away["until"] for e, p in self.players.items() if p.away}
+
+    # --- starting and stopping ---------------------------------------------------
+
+    async def start(self) -> None:
+        """Take up what storage says was in force (a restart came between an action and
+        its undoing), then follow the players, starting with what each is playing now:
+        a song already on when its group's list is saved is acted on at that save."""
+        kept = await self._store.async_load() or {}
+        self.learned = kept.get("learned", {})
+        self.history = History(kept.get("plays", []))
+        for entity, was in kept.get("players", {}).items():
+            player = self.players.get(entity)
+            if player is None:
+                continue
+            player.undo, player.away = was.get("undo"), was.get("away")
+            if player.away:
+                self._arm(entity, player)
+
+        if not self.enabled:
+            # Returns stay armed above, so a player that is away still comes back.
+            self._note(trail.START, "Started, but switched off: nothing is watched")
+            return
+        self.entry.async_on_unload(
+            async_track_state_change_event(self.hass, list(self.players), self._changed)
+        )
+        self._note(
+            trail.START,
+            f"Started watching {len(self.players)} players against "
+            f"{len(self.groups)} groups, with {len(self.stations)} stations to switch to",
+        )
+        self.afresh()
+
+    async def stop(self) -> None:
+        """Unloading: put back every volume and mute now, since nothing will be here at
+        the next track. A switch of station stays in storage and is taken up again."""
+        for entity, player in self.players.items():
+            if player.back:
+                player.back()
+            async with player.lock:
+                await self._undo(entity, player)
+        await self._save()
+        self._note(trail.STOP, "Stopped")
+
+    async def _save(self) -> None:
+        players = {
+            e: {"undo": p.undo, "away": p.away}
+            for e, p in self.players.items()
+            if p.undo or p.away
+        }
+        plays = self.history.dump(dt_util.utcnow().timestamp())
+        await self._store.async_save(
+            {"players": players, "learned": self.learned, "plays": plays}
+        )
+
+    # --- following the players ---------------------------------------------------
+
+    def judge(self, title: str, artist: str) -> tuple[Group | None, int]:
+        """The group that has a song now. A group that names it comes first; failing
+        that, one that has it for how often it has been played, and then the second
+        answer is how many times that is (else 0)."""
+        if not title:
+            return None, 0
+        named = pick(self.groups, title, artist)
+        if named:
+            return named, 0
+
+        now = dt_util.utcnow().timestamp()
+
+        def heard(hours: float) -> int:
+            return self.history.count(title, artist, now, hours)
+
+        often = repeated(self.groups, heard)
+        return often, heard(often.hours) if often else 0
+
+    @callback
+    def afresh(self) -> None:
+        """Judge what each player is playing now, as if it had just come on: at every
+        start, so at each save of a group, change of its feeling and song rated. What
+        the track had brought was undone at the unload, so nothing is done twice."""
+        for entity, player in self.players.items():
+            player.track = None
+            state = self.hass.states.get(entity)
+            if state is not None:
+                self._look(state)
+
+    @callback
+    def _changed(self, event: Event[EventStateChangedData]) -> None:
+        state = event.data["new_state"]
+        if state is not None:
+            self._look(state)
+
+    def _look(self, state: State) -> None:
+        entity, player = state.entity_id, self.players[state.entity_id]
+
+        playing = state.state == STATE_PLAYING
+        started, player.playing = playing != player.playing, playing
+        if not playing:
+            self.silent.discard(entity)
+            if started:
+                self._tell()
+            return
+        self._settle(entity, player, state)
+
+        track = _track(state)
+        if track == player.track:
+            if started:
+                self._tell()
+            return
+        player.track = track
+        _LOGGER.debug("%s: now %r by %r", entity, *track)
+        if (not track[0]) != (entity in self.silent):
+            self.silent ^= {entity}
+            if not track[0]:
+                self._note(
+                    trail.SKIP,
+                    "Playing, but reports no title: nothing to match",
+                    entity,
+                )
+        self._tell()  # the page shows what each player is playing (admin.py)
+
+        # A background task of the entry's: cancelled when it unloads.
+        self.entry.async_create_background_task(
+            self.hass, self._heard(entity, player, state, track), f"{DOMAIN} {entity}"
+        )
+
+    def _settle(self, entity: str, player: Player, state: State) -> None:
+        """While away: learn the content id the station put on turned out to have, and
+        after that take a different one as a person choosing something else, which
+        calls the return off.
+
+        ponytail: a player whose content id changes with every track of one station
+        looks like a person's choice, and it then stays on the new station. Compare the
+        station's name instead if such a player turns up."""
+        away, now = player.away, state.attributes.get(ID)
+        if away is None or not now or now == away["was"]:
+            return
+
+        if away["ours"] is None:
+            away["ours"] = now
+            self.learned[away["tried"][-1]] = now
+        elif now != away["ours"]:
+            self._note(
+                trail.RETURN,
+                "Changed by someone while on the other station: not switching it back",
+                entity,
+            )
+            self._home(player)
+        else:
+            return
+        self.entry.async_create_background_task(self.hass, self._save(), DOMAIN)
+        self._tell()
+
+    async def _heard(
+        self, entity: str, player: Player, state: State, track: tuple[str, str]
+    ) -> None:
+        """A new track on a player: undo what the last one brought, then act on this."""
+        title, artist = track
+        async with player.lock:
+            await self._undo(entity, player)
+            if title:
+                self.history.heard(title, artist, dt_util.utcnow().timestamp())
+            await self._save()
+
+            group, repeats = self.judge(title, artist)
+            if group is None:
+                return
+            often = f", played {repeats} times in {group.hours:g} h" if repeats else ""
+            by = f" by {artist}" if artist else ""
+            self._note(
+                trail.MATCH,
+                f"{title}{by} is in {group.name} ({group.feeling}{often})",
+                entity,
+            )
+
+            # Every reason nothing is then done is said: a match with no action after it
+            # otherwise looks like a fault.
+            members = state.attributes.get("group_members")
+            if not leads(entity, members):
+                assert isinstance(members, list)
+                self._note(
+                    trail.SKIP,
+                    f"Nothing done: {members[0]} leads its speaker group and acts for it",
+                    entity,
+                )
+                return
+
+            # The report runs ahead of the sound on some players (the entry's Delay).
+            if self.delay:
+                await asyncio.sleep(self.delay)
+                if player.track != track:
+                    self._note(
+                        trail.SKIP,
+                        f"Nothing done: the track changed within the {self.delay:g} s delay",
+                        entity,
+                    )
+                    return
+
+            action = group.act.action
+            act = self._actions.get(action)
+            try:
+                result = (
+                    await act(entity, player, group, state) if act else "event only"
+                )
+            except HomeAssistantError as exc:
+                result = f"failed: {exc}"
+                self._note(trail.PROBLEM, f"Could not {action}: {exc}", entity)
+            else:
+                self._note(trail.CHANGE if act else trail.SKIP, _said(result), entity)
+            await self._save()
+
+        self.last = {
+            ATTR_ENTITY_ID: entity,
+            "title": title,
+            "artist": artist,
+            "group": group.name,
+            "feeling": group.feeling,
+            "action": action,
+            "result": result,
+            # How many times it has been played in the group's hours, when that is why
+            # the group has it; 0 when the group names it.
+            "repeats": repeats,
+            "at": dt_util.utcnow().isoformat(),
+        }
+        self.hass.bus.async_fire(EVENT, self.last)
+        self._tell()
+
+    # --- the actions: each answers what it did -----------------------------------
+
+    async def _call(self, service: str, entity: str, **data: Any) -> None:
+        await self.hass.services.async_call(
+            "media_player", service, {ATTR_ENTITY_ID: entity, **data}, blocking=True
+        )
+
+    async def _volume(
+        self, entity: str, player: Player, group: Group, state: State
+    ) -> str:
+        was = state.attributes.get("volume_level")
+        if was is None:
+            raise HomeAssistantError("the player reports no volume")
+        to = scaled(was, group.act.amount)
+        await self._call("volume_set", entity, volume_level=to)
+        player.undo = ["volume", was, to]
+        return f"volume {was:.0%} to {to:.0%} until the next track"
+
+    async def _mute(
+        self, entity: str, player: Player, group: Group, state: State
+    ) -> str:
+        await self._call("volume_mute", entity, is_volume_muted=True)
+        player.undo = ["mute"]
+        return "muted until the next track"
+
+    async def _switch(
+        self, entity: str, player: Player, group: Group, state: State
+    ) -> str:
+        """To the next station not yet tried. One round of the list at most: when every
+        station is playing something loathed, mute this track instead."""
+        away, now = player.away, state.attributes.get(ID)
+        tried = list(away["tried"]) if away else []
+        here = next(
+            (s for s in self.stations if now in (s.media[ID], self.learned.get(s.id))),
+            None,
+        )
+        if here and here.id not in tried:
+            tried.append(here.id)
+        station = next((s for s in self.stations if s.id not in tried), None)
+        if station is None:
+            return "no station left to try: " + await self._mute(
+                entity, player, group, state
+            )
+
+        await self._call("play_media", entity, **station.media)
+        if away is None:
+            # Where to go back to: the station it was on, or whatever the player says it
+            # was playing. A player that says nothing can't be switched back.
+            origin = here.media if here else None
+            if origin is None and now:
+                origin = {ID: now, TYPE: state.attributes.get(TYPE) or "music"}
+            until = dt_util.utcnow() + timedelta(minutes=group.act.minutes)
+            away = player.away = {"until": until.isoformat(), "origin": origin}
+            self._arm(entity, player)
+        away.update(tried=[*tried, station.id], was=now, ours=None)
+        # In words for the trail, the sensor and the event: the time as the house reads it.
+        back = dt_util.as_local(
+            dt_util.parse_datetime(away["until"]) or dt_util.utcnow()
+        )
+        return f"switched to {station.name} until {back:%H:%M}"
+
+    async def _undo(self, entity: str, player: Player) -> None:
+        undo, player.undo = player.undo, None
+        state = self.hass.states.get(entity)
+        if undo is None or state is None:
+            return
+
+        try:
+            if undo[0] == "mute":
+                if state.attributes.get("is_volume_muted"):
+                    await self._call("volume_mute", entity, is_volume_muted=False)
+                    self._note(trail.BACK, "Unmuted", entity)
+                else:
+                    self._note(trail.BACK, "Already unmuted by someone", entity)
+                return
+            _, was, to = undo
+            now = state.attributes.get("volume_level")
+            if now is not None and abs(now - to) < SAME_VOLUME:
+                await self._call("volume_set", entity, volume_level=was)
+                self._note(trail.BACK, f"Volume put back to {was:.0%}", entity)
+            else:
+                self._note(
+                    trail.BACK, "Volume moved by someone since: left alone", entity
+                )
+        except HomeAssistantError as exc:
+            self._problem(entity, f"could not put back {undo[0]}: {exc}")
+
+    # --- coming back from another station ----------------------------------------
+
+    def _arm(self, entity: str, player: Player) -> None:
+        """The return, at its time; at once when that passed while nothing ran."""
+        assert player.away is not None
+        until = dt_util.parse_datetime(player.away["until"])
+        assert until is not None
+
+        @callback
+        def due(_now: datetime) -> None:
+            player.back = None
+            self.entry.async_create_background_task(
+                self.hass, self._return(entity, player), f"{DOMAIN} return {entity}"
+            )
+
+        player.back = async_track_point_in_time(self.hass, due, until)
+
+    def _home(self, player: Player) -> None:
+        """No longer away, whether back or staying where it is."""
+        if player.back:
+            player.back()
+        player.back = player.away = None
+
+    async def _return(self, entity: str, player: Player) -> None:
+        async with player.lock:
+            away = player.away
+            if away is None:
+                return
+            self._home(player)
+            await self._save()
+
+            state = self.hass.states.get(entity)
+            origin = away["origin"]
+            if state is None or state.state != STATE_PLAYING:
+                self._note(
+                    trail.RETURN, "No longer playing: not switching it back", entity
+                )
+            elif origin is None:
+                self._problem(
+                    entity,
+                    "can't switch back: the player never said what it was playing",
+                )
+            else:
+                try:
+                    await self._call("play_media", entity, **origin)
+                except HomeAssistantError as exc:
+                    self._problem(entity, f"could not switch back: {exc}")
+                else:
+                    self._note(trail.RETURN, f"Switched back to {origin[ID]}", entity)
+        self._tell()
+
+    def _problem(self, entity: str, what: str) -> None:
+        """A failure after the match was reported: shown on the sensor as its result."""
+        self._note(trail.PROBLEM, what[0].upper() + what[1:], entity)
+        if self.last and self.last[ATTR_ENTITY_ID] == entity:
+            self.last = {**self.last, "result": f"failed: {what}"}
+        self._tell()
+
+
+def _said(result: str) -> str:
+    """An action's own account of itself, as a line of the trail."""
+    if result == "event only":
+        return (
+            "Nothing done to the player: the group's action is to fire the event only"
+        )
+    return result[0].upper() + result[1:]
+
+
+def _act(data: dict[str, Any]) -> Act:
+    return Act(data[CONF_ACTION], data[CONF_AMOUNT], data[CONF_MINUTES])
+
+
+def ordered(entry: ConfigEntry) -> list[ConfigSubentry]:
+    """The entry's groups and stations in the order the page gave them (CONF_ORDER);
+    any it doesn't name come after, as made."""
+    order = entry.options.get(CONF_ORDER, [])
+    place = {id: n for n, id in enumerate(order)}
+    return sorted(
+        entry.subentries.values(),
+        key=lambda s: place.get(s.subentry_id, len(place)),
+    )
+
+
+def store_key(entry: ConfigEntry) -> str:
+    """Each entry's own file in Home Assistant's storage."""
+    return f"{DOMAIN}.{entry.entry_id}"
+
+
+def _track(state: State) -> tuple[str, str]:
+    return (
+        str(state.attributes.get("media_title") or ""),
+        str(state.attributes.get("media_artist") or ""),
+    )

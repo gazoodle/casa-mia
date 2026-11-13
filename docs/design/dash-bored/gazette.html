@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gazette</title>
+<style>
+:root { --paper: #f3eee0; --ink: #1c1a17; }
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body { background: var(--paper); color: var(--ink); padding: 18px 34px 24px;
+  font-family: "Hoefler Text", "Baskerville", "Times New Roman", serif;
+  background-image: radial-gradient(rgba(0,0,0,.05) 1px, transparent 1px); background-size: 4px 4px; }
+.masthead { text-align: center; border-bottom: 4px double var(--ink); padding-bottom: 6px; }
+.masthead h1 { margin: 0; font: 400 62px/1 "UnifrakturCook", "Old English Text MT", "Luminari", "Blackletter", fantasy; }
+.dateline { display: flex; justify-content: space-between; font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+  border-bottom: 1px solid var(--ink); padding: 5px 2px; margin-bottom: 14px; }
+.page { display: grid; grid-template-columns: 2.1fr 1.5fr 1fr; gap: 0 26px; }
+.page > * + * { border-left: 1px solid var(--ink); padding-left: 26px; }
+h2 { margin: 0 0 8px; font-size: 46px; line-height: .98; font-weight: 900; font-family: "Bodoni 72", "Didot", "Playfair Display", serif;
+  text-transform: uppercase; letter-spacing: -.01em; text-wrap: balance; }
+.deck { font-size: 19px; font-style: italic; margin: 0 0 12px; line-height: 1.25; }
+.copy { columns: 2; column-gap: 22px; column-rule: 1px solid rgba(0,0,0,.25); font-size: 15px; line-height: 1.42; }
+.copy p { margin: 0 0 8px; break-inside: avoid; }
+.copy p:first-child::first-letter { font-size: 52px; float: left; line-height: .82; padding: 4px 6px 0 0; font-family: "Bodoni 72", "Didot", serif; }
+.copy b { text-transform: uppercase; font-size: 12px; letter-spacing: .12em; }
+/* Anything in the report that can be switched is set like a correction: underlined, and pressable. */
+.fact { all: unset; cursor: pointer; border-bottom: 1.5px dotted var(--ink); }
+.fact:hover, .fact:focus-visible { background: var(--ink); color: var(--paper); }
+.changed { animation: ink 1.2s ease-out; } @keyframes ink { from { background: #f6d95a; } }
+h3 { margin: 0 0 8px; font-size: 13px; letter-spacing: .3em; text-transform: uppercase; text-align: center;
+  border-top: 2px solid var(--ink); border-bottom: 1px solid var(--ink); padding: 4px 0; }
+table { width: 100%; border-collapse: collapse; font-size: 15px; margin-bottom: 16px; }
+td { padding: 4px 2px; border-bottom: 1px dotted rgba(0,0,0,.4); } td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.grid { display: grid; grid-template-columns: auto repeat(2, 30px); gap: 3px 4px; align-items: center; font-size: 14px; margin-bottom: 16px; }
+.grid button { all: unset; cursor: pointer; width: 30px; height: 30px; border: 1.5px solid var(--ink); background: var(--ink); transition: background .3s; }
+.grid button.on { background: var(--paper); box-shadow: inset 0 0 0 4px #f6d95a; }
+.grid button:focus-visible { outline: 2px solid #b33; }
+.ad { all: unset; cursor: pointer; display: block; width: 100%; border: 1px solid var(--ink); padding: 8px 10px; margin-bottom: 8px; text-align: center; font-size: 14px; line-height: 1.3; }
+.ad b { display: block; font-size: 17px; letter-spacing: .14em; text-transform: uppercase; font-family: "Bodoni 72", "Didot", serif; }
+.ad:hover, .ad:focus-visible { background: var(--ink); color: var(--paper); }
+@media (max-width: 900px) { .page { grid-template-columns: 1fr; } .page > * + * { border-left: 0; padding-left: 0; margin-top: 18px; } .copy { columns: 1; } h2 { font-size: 34px; } }
+</style>
+</head>
+<body>
+<header class="masthead"><h1>The Casa Courier</h1></header>
+<div class="dateline"><span id="date"></span><span>Printed fresh whenever anything changes</span><span id="price"></span></div>
+<main class="page">
+  <article><h2 id="headline"></h2><p class="deck" id="deck"></p><div class="copy" id="copy"></div></article>
+  <section><h3>The Temperatures</h3><table id="temps"></table>
+    <h3>Lights, by room</h3><div class="grid" id="grid"></div></section>
+  <section><h3>Notices</h3><div id="ads"></div></section>
+</main>
+
+<script src="house.js"></script>
+<script>
+const NUM = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
+const ADS = { evening: "Lamps lit at dusk, in the usual rooms. Apply within.", film: "Dim lights and one television. No talking.",
+  bedtime: "Everything out but the bedside. Sleep well.", away: "Nobody home. The porch light keeps watch." };
+const fact = (d, text) => `<button class="fact" data-id="${d.id}">${text}</button>`;
+
+// What the paper says about one device, as a clause that can be pressed.
+function clause(d) {
+  const name = d.name.toLowerCase();
+  if (d.kind === "light") return fact(d, d.on ? `the ${name} light burns at ${d.level} per cent` : `the ${name} light is out`);
+  if (d.kind === "cover") return fact(d, d.on ? `the ${name} ${name.endsWith("s") ? "stand" : "stands"} ${d.level} per cent open` : `the ${name} ${name.endsWith("s") ? "are" : "is"} drawn`);
+  if (d.kind === "lock") return fact(d, d.on ? `the ${name} is locked` : `the ${name} is UNLOCKED`);
+  return fact(d, d.on ? `the ${name} is running` : `the ${name} is idle`);
+}
+const sentence = (parts) => { const s = parts.join("; ") + "."; return s.replace(/^(<button[^>]*>)?(\w)/, (_, tag, c) => (tag ?? "") + c.toUpperCase()); };
+
+function headline() {
+  const lit = House.devices.filter((d) => d.kind === "light" && d.on).length, kettle = House.find("k_kettle").on, lock = House.find("h_lock").on;
+  if (!lock) return ["Front door found unlocked", "Hall in uproar as the household is urged to turn the key."];
+  if (kettle) return ["Kettle on: tea expected shortly", "Kitchen sources confirm that the meter is spinning in a good cause."];
+  if (lit === 0) return ["Darkness falls on entire household", "Not one lamp is left burning, our correspondent reports from the landing."];
+  if (lit >= 7) return ["House ablaze with light", `With ${NUM[lit] ?? lit} lamps burning at once, questions are asked about the bill.`];
+  return [`${NUM[lit]} ${lit === 1 ? "light" : "lights"} still burning at this hour`, "The remainder of the house is reported quiet and in good order."];
+}
+
+let before = "";
+function paint() {
+  const [head, deck] = headline(), kw = House.watts() / 1000;
+  const el = document.getElementById("headline");
+  if (el.textContent !== head) { el.textContent = head; el.classList.remove("changed"); void el.offsetWidth; el.classList.add("changed"); }
+  document.getElementById("deck").textContent = deck;
+  document.getElementById("copy").innerHTML = `<p>The house was drawing ${kw.toFixed(2)} kilowatts as we went to press, with the battery at ${House.energy.battery} per cent.</p>` +
+    House.rooms.map((r) => `<p><b>${r.name}.</b> ${sentence(r.devices.map(clause))}</p>`).join("");
+  document.getElementById("temps").innerHTML = House.rooms.map((r) =>
+    `<tr><td>${r.name}</td><td>${r.temp.toFixed(1)}° ${r.temp < r.target - 0.5 ? "▼" : r.temp > r.target + 0.5 ? "▲" : "="}</td></tr>`).join("");
+  document.getElementById("grid").innerHTML = House.rooms.map((r) => `<span>${r.name}</span>` +
+    [0, 1].map((i) => { const d = House.lights(r)[i]; return d ? `<button data-id="${d.id}" class="${d.on ? "on" : ""}" aria-label="${r.name} ${d.name}" title="${d.name}"></button>` : "<span></span>"; }).join("")).join("");
+  before = head;
+}
+
+document.body.addEventListener("click", (e) => {
+  const hit = e.target.closest("[data-id], [data-scene]");
+  if (hit?.dataset.id) House.toggle(hit.dataset.id);
+  if (hit?.dataset.scene) House.scene(hit.dataset.scene);
+});
+document.getElementById("ads").innerHTML = House.scenes.map((s) => `<button class="ad" data-scene="${s.id}"><b>${s.name}</b>${ADS[s.id]}</button>`).join("");
+document.getElementById("date").textContent = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+document.getElementById("price").textContent = `Late edition · ${new Date().toTimeString().slice(0, 5)}`;
+
+House.on(paint);
+paint();
+</script>
+</body>
+</html>

@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Aurora</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --bg: light-dark(#e9edf5, #07080d);
+  --text: light-dark(#0d1220, #f4f6fb);
+  --soft: light-dark(rgba(13,18,32,.6), rgba(244,246,251,.62));
+  --glass: light-dark(rgba(255,255,255,.5), rgba(255,255,255,.07));
+  --glass-hi: light-dark(rgba(255,255,255,.85), rgba(255,255,255,.16));
+  --rim: light-dark(rgba(255,255,255,.9), rgba(255,255,255,.2));
+  --track: light-dark(rgba(13,18,32,.1), rgba(255,255,255,.1));
+  --warm: 0;      /* 0..1: how much of the house is lit; warms the sky behind the glass */
+  /* A spring as an easing curve: overshoots once and settles. */
+  --spring: linear(0, .009, .035 2.1%, .141 4.4%, .723 12.9%, .938 16.7%, 1.017, 1.077, 1.121, 1.149 24.3%,
+    1.159, 1.163, 1.161, 1.154 29.9%, 1.129 32.8%, 1.051 39.6%, 1.017 43.1%, .991, .977 51%, .974 53.8%,
+    .975 57.1%, .997 69.8%, 1.003 76.9%, 1.004 83.8%, 1);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { font-family: ui-rounded, "SF Pro Rounded", system-ui, sans-serif; color: var(--text); background: var(--bg);
+  overflow: hidden; -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; }
+
+/* ---------- the sky ---------- */
+.sky { position: fixed; inset: -10%; filter: blur(70px) saturate(140%); z-index: -1; opacity: .5; }
+@media (prefers-color-scheme: light) { .sky { opacity: .8; } }
+.sky i { position: absolute; width: 46vmax; height: 46vmax; border-radius: 50%; opacity: .75;
+  animation: drift 26s ease-in-out infinite alternate; }
+.sky i:nth-child(1) { background: oklch(.68 .2 calc(265 - var(--warm) * 60)); left: 0; top: 0; }
+.sky i:nth-child(2) { background: oklch(.74 .19 calc(190 - var(--warm) * 120)); right: 0; top: 10%; animation-delay: -8s; animation-duration: 32s; }
+.sky i:nth-child(3) { background: oklch(.7 .22 calc(330 + var(--warm) * 50)); left: 30%; bottom: -10%; animation-delay: -15s; animation-duration: 38s; }
+.sky i:nth-child(4) { background: oklch(.82 .17 85); right: 12%; bottom: 0; opacity: calc(.1 + var(--warm) * .7); transition: opacity 1.2s; }
+@keyframes drift { to { translate: 12vw 9vh; scale: 1.25; } }
+
+/* ---------- glass ---------- */
+.glass { position: relative; border-radius: 30px; overflow: hidden; isolation: isolate;
+  background: linear-gradient(140deg, var(--glass-hi), var(--glass) 45%);
+  backdrop-filter: blur(30px) saturate(180%); -webkit-backdrop-filter: blur(30px) saturate(180%);
+  border: 1px solid var(--rim);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.5), inset 0 -1px 0 rgba(0,0,0,.12), 0 30px 50px -30px rgba(0,0,20,.5); }
+/* A highlight that follows the pointer, so the glass seems to catch the light. */
+.glass::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: var(--shine, 0); transition: opacity .4s;
+  background: radial-gradient(240px circle at var(--mx, 50%) var(--my, 0%), rgba(255,255,255,.34), transparent 70%); }
+
+/* ---------- bento ---------- */
+.bento { height: 100%; padding: 22px 22px 74px; display: grid; gap: 16px;
+  grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: repeat(6, minmax(0, 1fr)); }
+.hero { grid-area: 1 / 1 / 4 / 6; padding: 30px 32px; display: flex; flex-direction: column; justify-content: space-between; }
+.hero time { font-size: 15px; color: var(--soft); font-variant-numeric: tabular-nums; }
+.hero h1 { margin: 0; font-size: 56px; line-height: .98; font-weight: 650; letter-spacing: -.035em; }
+.hero p { margin: 0; font-size: 20px; line-height: 1.35; color: var(--soft); max-width: 28ch; text-wrap: balance; }
+.hero p b { color: var(--text); font-weight: 600; }
+.scenes { grid-area: 4 / 1 / 5 / 6; display: flex; gap: 10px; padding: 12px; align-items: stretch; }
+.scenes button { flex: 1; border: 0; border-radius: 20px; background: var(--track); cursor: pointer; font-size: 16px; font-weight: 600;
+  transition: scale .5s var(--spring), background .3s; }
+.scenes button:active { scale: .92; }
+.scenes button.active { background: var(--text); color: var(--bg); }
+.energy { grid-area: 5 / 1 / 7 / 4; padding: 22px 24px 0; display: flex; flex-direction: column; }
+.label { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--soft); font-weight: 600; }
+.big { font-size: 54px; font-weight: 650; letter-spacing: -.04em; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.big small { font-size: 20px; color: var(--soft); letter-spacing: 0; margin-left: 4px; }
+.energy svg { flex: 1; width: calc(100% + 48px); margin: 0 -24px; min-height: 0; }
+.climate { grid-area: 5 / 4 / 7 / 6; padding: 18px; display: grid; place-items: center; }
+.ring { width: 150px; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; position: relative;
+  background: conic-gradient(from 220deg, oklch(.75 .16 230), oklch(.8 .17 60) calc(var(--pct) * 280deg), var(--track) 0 280deg, transparent 0);
+  -webkit-mask: radial-gradient(circle, transparent 57%, #000 58%); mask: radial-gradient(circle, transparent 57%, #000 58%);
+  transition: --pct .6s; }
+.ringwrap { position: relative; display: grid; place-items: center; }
+.ringwrap .read { position: absolute; text-align: center; }
+.ringwrap .read b { display: block; font-size: 38px; font-weight: 650; letter-spacing: -.04em; }
+.ringwrap .read span { font-size: 12px; color: var(--soft); }
+.steps { display: flex; gap: 10px; margin-top: -18px; z-index: 1; }
+.steps button { width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--track); font-size: 22px; cursor: pointer;
+  transition: scale .5s var(--spring); }
+.steps button:active { scale: .85; }
+
+/* ---------- rooms ---------- */
+.rooms { grid-area: 1 / 6 / 7 / 13; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.room { cursor: pointer; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; text-align: left;
+  --lit: 0; --hue: 60; transition: scale .6s var(--spring), opacity .3s; }
+.room:hover { scale: 1.02; }
+.room.dim { opacity: .3; }
+/* The room glows from a corner in proportion to the light actually on in it. */
+.room::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: var(--lit); transition: opacity .8s;
+  background: radial-gradient(120% 90% at 100% 0%, oklch(.86 .17 var(--hue) / .85), transparent 62%); }
+.room h2 { margin: 0; font-size: 25px; font-weight: 650; letter-spacing: -.02em; }
+.room .temp { font-size: 46px; font-weight: 300; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.room .sub { font-size: 14px; color: var(--soft); }
+.dots { display: flex; gap: 8px; }
+.dot { width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--track); cursor: pointer; font-size: 18px;
+  display: grid; place-items: center; transition: scale .5s var(--spring), background .3s, box-shadow .3s; }
+.dot.on { background: #fff; color: #111; box-shadow: 0 0 22px rgba(255,235,170,.9); }
+.dot:active { scale: .8; }
+:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+
+/* ---------- the room sheet ---------- */
+dialog { border: 0; padding: 30px; width: min(720px, 92vw); color: var(--text); view-transition-name: none; }
+dialog::backdrop { background: rgba(0,0,10,.35); backdrop-filter: blur(6px); }
+dialog header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 22px; }
+dialog h2 { margin: 0; font-size: 40px; letter-spacing: -.03em; }
+.controls { display: flex; gap: 16px; flex-wrap: wrap; }
+.fader { width: 104px; height: 250px; border-radius: 30px; background: var(--track); position: relative; overflow: hidden;
+  cursor: ns-resize; touch-action: none; user-select: none; }
+.fader i { position: absolute; inset: auto 0 0; height: calc(var(--lvl) * 1%); background: #fff;
+  transition: height .5s var(--spring); box-shadow: 0 0 30px rgba(255,235,170,.8); }
+.fader.drag i { transition: none; }
+.fader span { position: absolute; inset: auto 0 14px; text-align: center; font-size: 13px; font-weight: 600; mix-blend-mode: difference; color: #fff; }
+.fader b { position: absolute; inset: 16px 0 auto; text-align: center; font-size: 22px; mix-blend-mode: difference; color: #fff; }
+.key { width: 104px; height: 250px; border-radius: 30px; border: 0; background: var(--track); cursor: pointer;
+  display: flex; flex-direction: column; justify-content: space-between; padding: 16px 0 14px; align-items: center;
+  font-size: 13px; font-weight: 600; transition: scale .5s var(--spring), background .3s; }
+.key b { font-size: 22px; }
+.key.on { background: #fff; color: #111; }
+.key:active { scale: .94; }
+.close { border: 0; background: var(--track); border-radius: 99px; padding: 8px 16px; cursor: pointer; }
+::view-transition-group(room) { animation-duration: .55s; animation-timing-function: var(--spring); }
+
+.ask { position: fixed; left: 50%; bottom: 14px; translate: -50%; border-radius: 99px; padding: 4px 6px 4px 18px; display: flex; align-items: center; gap: 8px; }
+.ask input { border: 0; background: none; outline: 0; font: inherit; color: inherit; width: 210px; height: 36px; }
+.ask kbd { font: inherit; font-size: 12px; color: var(--soft); border: 1px solid var(--rim); border-radius: 8px; padding: 3px 8px; }
+@property --pct { syntax: "<number>"; inherits: true; initial-value: 0; }
+@media (prefers-reduced-motion: reduce) { .sky i { animation: none; } * { transition-duration: 0s !important; } }
+@media (max-width: 900px) {
+  body { overflow: auto; }
+  .bento { display: flex; flex-direction: column; height: auto; padding-bottom: 80px; }
+  .rooms { grid-template-columns: 1fr 1fr; grid-template-rows: none; } .room { min-height: 190px; }
+  .hero h1 { font-size: 44px; } .energy { height: 220px; } .scenes button { padding: 16px 0; }
+}
+</style>
+</head>
+<body>
+<div class="sky"><i></i><i></i><i></i><i></i></div>
+
+<div class="bento">
+  <section class="hero glass"><time id="clock"></time><h1 id="hello"></h1><p id="story"></p></section>
+  <nav class="scenes glass" id="scenes"></nav>
+  <section class="energy glass"><span class="label">Drawing now</span><div class="big"><span id="kw"></span><small>kW</small></div>
+    <svg id="spark" viewBox="0 0 300 90" preserveAspectRatio="none">
+      <defs><linearGradient id="fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="currentColor" stop-opacity=".35"/>
+        <stop offset="1" stop-color="currentColor" stop-opacity="0"/></linearGradient></defs>
+      <path id="area" fill="url(#fade)"/><path id="line" fill="none" stroke="currentColor" stroke-width="2.5" vector-effect="non-scaling-stroke"/></svg></section>
+  <section class="climate glass"><div class="ringwrap"><div class="ring" id="ring"></div>
+      <div class="read"><b id="target"></b><span id="actual"></span></div></div>
+    <div class="steps"><button id="cooler" aria-label="Cooler">−</button><button id="warmer" aria-label="Warmer">+</button></div></section>
+  <div class="rooms" id="rooms"></div>
+</div>
+
+<label class="ask glass"><input id="ask" placeholder="Find a room or a light…" autocomplete="off"><kbd>/</kbd></label>
+<dialog class="glass" id="sheet"><header><h2 id="sheet-name"></h2><button class="close" id="close">Done</button></header>
+  <div class="controls" id="controls"></div></dialog>
+
+<script src="house.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const ICON = { light: "☀", switch: "⏻", cover: "▤", lock: "⚿" };
+const HUES = [70, 45, 150, 200, 320, 130];
+
+// ---------- rooms ----------
+$("rooms").innerHTML = House.rooms.map((r, i) => `
+  <article class="room glass" data-room="${r.id}" style="--hue:${HUES[i]}" tabindex="0">
+    <div><h2>${r.name}</h2><span class="sub"></span></div>
+    <div class="temp">${r.temp.toFixed(1)}°</div>
+    <div class="dots">${r.devices.map((d) =>
+      `<button class="dot" data-id="${d.id}" title="${d.name}" aria-label="${d.name}">${ICON[d.kind]}</button>`).join("")}</div>
+  </article>`).join("");
+
+$("rooms").addEventListener("click", (e) => {
+  const dot = e.target.closest(".dot"), room = e.target.closest(".room");
+  if (dot) House.toggle(dot.dataset.id);
+  else if (room) openSheet(room);
+});
+$("rooms").addEventListener("keydown", (e) => e.key === "Enter" && e.target.matches(".room") && openSheet(e.target));
+
+// The tile grows into the sheet: both take the same view-transition name in turn.
+function morph(change) {
+  if (document.startViewTransition) document.startViewTransition(change); else change();
+}
+let from = null;
+function openSheet(tile) {
+  const room = House.rooms.find((r) => r.id === tile.dataset.room);
+  from = tile;
+  tile.style.viewTransitionName = "room";
+  morph(() => {
+    tile.style.viewTransitionName = "";
+    $("sheet-name").textContent = room.name;
+    $("controls").innerHTML = room.devices.map((d) => d.kind === "light"
+      ? `<div class="fader" data-id="${d.id}" role="slider" aria-label="${d.name}" tabindex="0"><i></i><b>${ICON.light}</b><span>${d.name}</span></div>`
+      : `<button class="key" data-id="${d.id}"><b>${ICON[d.kind]}</b><span>${d.name}<br><em></em></span></button>`).join("");
+    $("sheet").style.viewTransitionName = "room";
+    $("sheet").showModal();
+    paint();
+  });
+}
+function closeSheet() {
+  morph(() => {
+    $("sheet").style.viewTransitionName = "";
+    $("sheet").close();
+    if (from) { from.style.viewTransitionName = "room"; setTimeout(() => (from.style.viewTransitionName = ""), 700); }
+  });
+}
+$("close").onclick = closeSheet;
+$("sheet").addEventListener("cancel", (e) => { e.preventDefault(); closeSheet(); });
+$("sheet").addEventListener("click", (e) => e.target === $("sheet") && closeSheet());
+
+// Faders: drag anywhere on one to set the level; the fill follows the finger.
+$("controls").addEventListener("pointerdown", (e) => {
+  const fader = e.target.closest(".fader"), key = e.target.closest(".key");
+  if (key) return House.toggle(key.dataset.id);
+  if (!fader) return;
+  const set = (ev) => {
+    const box = fader.getBoundingClientRect();
+    House.set(fader.dataset.id, Math.max(0, Math.min(100, ((box.bottom - ev.clientY) / box.height) * 100)));
+  };
+  fader.setPointerCapture(e.pointerId);
+  fader.classList.add("drag");
+  fader.onpointermove = set;
+  fader.onpointerup = () => { fader.onpointermove = null; fader.classList.remove("drag"); };
+  set(e);
+});
+$("controls").addEventListener("keydown", (e) => {
+  const fader = e.target.closest(".fader"), step = { ArrowUp: 10, ArrowDown: -10 }[e.key];
+  if (fader && step) { const d = House.find(fader.dataset.id); House.set(d.id, Math.max(0, Math.min(100, (d.on ? d.level : 0) + step))); }
+});
+
+// ---------- scenes, climate, search ----------
+$("scenes").innerHTML = House.scenes.map((s) => `<button data-scene="${s.id}">${s.name}</button>`).join("");
+$("scenes").onclick = (e) => {
+  if (!e.target.dataset.scene) return;
+  House.scene(e.target.dataset.scene);
+  document.querySelectorAll("#scenes button").forEach((b) => b.classList.toggle("active", b === e.target));
+};
+const sitting = House.rooms[1];
+$("cooler").onclick = () => { sitting.target -= 0.5; paint(); };
+$("warmer").onclick = () => { sitting.target += 0.5; paint(); };
+$("ask").oninput = (e) => {
+  const q = e.target.value.trim().toLowerCase();
+  document.querySelectorAll(".room").forEach((tile) => {
+    const r = House.rooms.find((x) => x.id === tile.dataset.room);
+    tile.classList.toggle("dim", !!q && ![r.name, ...r.devices.map((d) => d.name)].some((n) => n.toLowerCase().includes(q)));
+  });
+};
+addEventListener("keydown", (e) => { if (e.key === "/" && document.activeElement !== $("ask")) { e.preventDefault(); $("ask").focus(); } });
+addEventListener("pointermove", (e) => {
+  for (const g of document.querySelectorAll(".glass")) {
+    const b = g.getBoundingClientRect();
+    g.style.setProperty("--mx", `${e.clientX - b.left}px`);
+    g.style.setProperty("--my", `${e.clientY - b.top}px`);
+    g.style.setProperty("--shine", 1);
+  }
+});
+
+// ---------- painting ----------
+const history = Array.from({ length: 40 }, (_, i) => 480 + Math.sin(i / 3) * 90 + (i % 7) * 12);
+function spark() {
+  const max = Math.max(...history, 900), step = 300 / (history.length - 1);
+  const pts = history.map((w, i) => [i * step, 84 - (w / max) * 74]);
+  // Smooth the line through the midpoints, so it reads as a curve and not a zigzag.
+  let d = `M${pts[0]}`;
+  for (let i = 1; i < pts.length; i++) {
+    const [x0, y0] = pts[i - 1], [x1, y1] = pts[i];
+    d += ` Q${x0},${y0} ${(x0 + x1) / 2},${(y0 + y1) / 2}`;
+  }
+  d += ` L${pts.at(-1)}`;
+  $("line").setAttribute("d", d);
+  $("area").setAttribute("d", `${d} L300,90 L0,90Z`);
+}
+
+const words = ["No", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve"];
+function paint() {
+  let lit = 0, out = 0, total = 0;
+  for (const r of House.rooms) {
+    const tile = document.querySelector(`[data-room="${r.id}"]`), lights = House.lights(r);
+    const share = lights.reduce((s, d) => s + (d.on ? d.level : 0), 0) / (lights.length * 100);
+    tile.style.setProperty("--lit", share ? 0.35 + share * 0.65 : 0);
+    tile.querySelector(".sub").textContent = House.lightsOn(r) ? `${House.lightsOn(r)} of ${lights.length} lights on` : "All lights off";
+    lit += House.lightsOn(r); out += share * lights.length; total += lights.length;
+  }
+  for (const d of House.devices) {
+    document.querySelectorAll(`[data-id="${d.id}"]`).forEach((el) => {
+      el.classList.toggle("on", d.on);
+      el.style.setProperty("--lvl", d.on ? d.level : 0);
+      const em = el.querySelector("em");
+      if (em) em.textContent = House.state(d);
+      if (el.matches(".fader")) el.setAttribute("aria-valuenow", d.on ? d.level : 0);
+    });
+  }
+  document.documentElement.style.setProperty("--warm", (out / total).toFixed(3));
+
+  const kw = House.watts() / 1000, warmest = [...House.rooms].sort((a, b) => b.temp - a.temp)[0];
+  $("kw").textContent = kw.toFixed(2);
+  $("story").innerHTML = `<b>${words[lit] ?? lit} ${lit === 1 ? "light is" : "lights are"} on</b>, the house is drawing
+    ${kw.toFixed(1)} kW and the ${warmest.name.toLowerCase()} is warmest at <b>${warmest.temp.toFixed(1)}°</b>.`;
+  $("target").textContent = `${sitting.target.toFixed(1)}°`;
+  $("actual").textContent = `${sitting.name} · now ${sitting.temp.toFixed(1)}°`;
+  $("ring").style.setProperty("--pct", Math.max(0, Math.min(1, (sitting.target - 15) / 10)));
+}
+
+function clock() {
+  const now = new Date(), h = now.getHours();
+  $("clock").textContent = now.toLocaleString("en-GB", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+  $("hello").textContent = h < 12 ? "Good morning." : h < 18 ? "Good afternoon." : "Good evening.";
+}
+
+House.on(paint);
+setInterval(() => { history.push(House.watts() + Math.random() * 40); history.shift(); spark(); }, 1500);
+setInterval(clock, 10000);
+clock(); spark(); paint();
+</script>
+</body>
+</html>

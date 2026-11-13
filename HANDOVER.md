@@ -25,6 +25,7 @@ keys in brackets; some keep older names):
 - **Cameras, Camera Commander, Auto Dashboards** (`compositor_enabled`,
   `camera_dashboard_enabled`): see "The camera modules" below.
 - **Sensor Watch:** see "Sensor Watch" below. Beta.
+- **Love it or Loathe it:** see "Love it or Loathe it" below. Alpha.
 - **Guest login** (`guest_login_enabled`): see "Guest login" below. Security is by limiting
   what a code is worth (closed, signed out), not by locking HA down; the guide says why
   (xkcd).
@@ -137,6 +138,126 @@ from `casa_mia` and works with no app. No app option: a user adds the integratio
     shows only when Sensor Watch answers.
 - **Tests:** `tests/test_sensor_watch_*.py` (no HA), and `tests_ha/` inside a real Home
   Assistant: added by hand, the handover, the old names.
+
+## Love it or Loathe it
+
+Its own integration, `casa_mia_love_or_loathe`, since 2026.11.7-b2 (design agreed with the
+owner, 2026-11-13). Standalone like Sensor Watch: wholly in Home Assistant, nothing
+imported from `casa_mia`, no app option. Guide: `docs/applets/love-or-loathe.md`.
+
+- **Config:** an entry is a name, its players (many) and a delay; several entries can
+  be added, a player in only one (owner, 2026-11-13: one entry manages many players,
+  separate entries allow variation). A subentry per group of songs and per station
+  (`config_flow.py`, HA's own add, change and delete screens). A group's device and
+  select belong to its subentry; HA refuses a device shared between an entry and its
+  subentries.
+- **A group's feeling is state, not kind** (owner, 2026-11-13: "I love Xmas songs, just
+  not in November"). Love, Loathe or Ignore, kept in the subentry's data and shown by
+  its select (`select.py`) and its form; the group holds an action for loved and one for
+  loathed (form sections). Any change saves the subentry, which reloads the entry.
+- **Shipped lists fill the Songs box** (owner, 2026-11-13: "once used it's like you just
+  typed it in yourself"). A new group's first step asks what to start from; nothing of
+  the list is kept but its songs.
+- **A person's groups and the `rate` action** (`rating.py`, b5): a group can belong to a
+  person entity; `rate` adds the playing song to the caller's (or the named person's)
+  loved or loathed group and removes it from the other. A person's loved group is the
+  one set to Love, or that was before it was set to Ignore (`before` in its data).
+  The thumbs card is in BACKLOG; buttons call the action for now.
+- **`pure.py`** (no HA imports): folding, patterns (`title` or `title | artist`, `*`),
+  `pick` (no `*` beats `*`, then love beats loathe, then group order), `with_song` and
+  `without_song` for rating. Libraries are JSON in `library/`; `christmas.json` is the
+  first.
+- **`__init__._convert`** turns groups from b2 to b4 (never released) into today's shape
+  and removes their switches; it can go once the boxes that ran those have moved on.
+- **`engine.py`:** follows `state_changed` on the players (pushed). At a new track it
+  undoes the last action, then acts: volume by a percentage or mute until the next
+  track, or a switch of station for some minutes. `undo` and `away` are kept in HA's
+  storage, so a restart loses neither; unloading puts volumes and mutes back at once.
+  It never puts back over a person's change.
+  `afresh` judges what is playing now at every start, so at each save of a group,
+  change of feeling and rating (owner, 2026-11-13: a song added to a list while it
+  plays must be acted on then). Safe because unloading undoes volumes and mutes first.
+- **Works against a real player** (owner, 2026-11-13, on b5).
+- **Its pictures** (b8) are from the test VM, where stand-in media players
+  (`custom_components/cm_demo_players`, on the VM only) give it Kitchen, Living room,
+  Bedroom and Garden to watch, with the people Ann and Ben, the entry Downstairs and
+  the dashboard `music-demo`. Keep them there for the next pictures.
+- **The mirrors' READMEs** carry Casa Mia's set of badges under the title
+  (`tools/mirror.py` `BADGES`: Stars, Downloads, version, Validated, Licence), and each
+  release has the integration as a ZIP (`hacs.json` `zip_release`).
+- **Alpha since b8** (owner, 2026-11-13): live in the owner's house, where it turned a
+  loved song up and put the volume back afterwards.
+- **b7 seen on the box by the owner** (2026-11-13): the thumbs card and its editor, the
+  thumbs in a media player's dialog, the trail (page and Logbook), the Watching switch,
+  who may rate and the notify blueprint. Notes below that say "seen outside Home
+  Assistant only" are about how they were checked before that.
+- **Published by itself** (b8; owner, 2026-11-13): in `components.PUBLISHED`, mirror
+  `gazoodle/casa-mia-love-or-loathe`, made by `tools/mirror.py` at a release
+  (`docs/design/marketplace-mirrors.md`). The dry run passes; nothing is published yet.
+  So the "no downgrade" rule covers it, and its guide is the mirror's README: keep the
+  guide's links and pictures ones the mirror can carry.
+- **The guide's opening is the owner's own words** (2026-11-13), tidied: keep its tone.
+  Under it a "Not built yet" line names what the opening promises that isn't there
+  (adverts, the fade); shorten it as each lands.
+- **Owner's rulings, 2026-11-13:** never give a group dates of its own (a feeling by the
+  calendar is an automation's work; the guide has the YAML). The local radio station is
+  a Casa Mia item, never part of this integration. Adverts are a nice-to-have, only
+  where a station says so in its metadata (BACKLOG).
+- **Songs played too often** (b6): a group's `repeats` (`times`, `hours`; 0 times is
+  off). `pure.History` holds each entry's plays (folded title and artist, times), kept
+  in the entry's storage and for 48 hours; a song heard again within ten minutes is the
+  same play (two players on one station, a reload judging afresh). `engine.judge`: a
+  group that names the song first (`pick`), else `pure.repeated`.
+- **A person's first rating makes their group** (b6, `rating.py`): only for a person
+  entity, found from the login or named in the call. A login with no person is refused,
+  so a wall tablet can't make groups (the owner asked what stops it).
+- **What happened** (b7; owner, 2026-11-13: "I saw the match, but not the action"):
+  `trail.py` keeps each entry's last 100 lines in `hass.data` (they outlive a reload,
+  not a restart), sends each to HA's Logbook (`logbook_entry`, against the Last match
+  sensor) and signals the page's feed. `engine._note` writes the log line and the trail
+  line together, so use it in place of `_LOGGER` for anything the owner should see.
+  Every reason a match leads to no action has a line.
+- **An entry's Watching switch** (b7, `switch.py`, option `enabled`): off, the engine
+  starts but follows nothing; armed returns still fire. `_convert` removes the old
+  per-group switches but must leave this one (it checks the unique id).
+- **Who may rate** (b7; owner, 2026-11-13: "default none"): entry options `raters`
+  (person entities) and `screens` (HA user ids that may name a person; a wall tablet's).
+  `rating.refused` is the one check, used by the `rate` action and by the thumbs' feed
+  (its `refused` words). An admin and a call with no login (an automation) may name
+  any rater. `_convert` adopts the people who already own a group, once, when the
+  option is absent. HA doesn't limit what a non-admin may call, so the selects and the
+  Watching switch are only as private as the dashboards they are on; the guide says so.
+- **The thumbs card** (b7): `integration/cards/src/love-or-loathe/`, built by
+  `tools/build_cards` into the integration's own `www/cards.js`, which `cards.py`
+  serves and loads into every HA page (the integration is standalone, as Sensor Watch
+  is). `casa-mia-thumbs` is whole in itself (its own feed), so it can be reused in the
+  entity dialog, which `dialog.ts` does for a watched media player (b7; `quiet`
+  draws nothing where they could never be used). The feed, `casa_mia_love_or_loathe/song`, is any signed-in
+  user's; it looks the entry up whether or not it is loaded at that instant, because
+  every save reloads and the thumbs flickered. Seen outside Home Assistant only, with
+  stand-ins for `ha-card`, `ha-icon` and the dialog.
+- **The notify blueprint** (b6): `blueprints/notify.yaml`, written to
+  `blueprints/automation/casa_mia/love_or_loathe_notify.yaml` at each start
+  (`blueprint.py`), as Sensor Watch's is. A test holds it to the event's fields.
+- **Its page in Casa Mia** (b6; owner, 2026-11-13: "better in Casa Mia", the same config
+  with Casa Mia's UX). `app/web/src/love-or-loathe/`, route `#/love-or-loathe`, and a
+  Home tile shown where the integration answers. No app Python: the page talks to the
+  integration's websocket commands (`admin.py`, admins only) over the connection Home
+  Assistant's own page holds (`app/web/src/home.ts`, as Sensor Watch's tile does).
+  - The page keeps no copy. One feed, `casa_mia_love_or_loathe/view`, carries all it
+    shows and is pushed at each change: the engine's `listen`, and HA's
+    `SIGNAL_CONFIG_ENTRY_CHANGED` for every save, load and unload.
+  - Changes (`save_group`, `save_station`, `remove`, `order`, `save_entry`) share the
+    forms' checks (`config_flow.group_errors`, `taken`) and answer a refusal in the
+    forms' own words, read from the translations.
+  - **Order** is the entry option `order` (subentry ids; `engine.ordered`), since HA
+    keeps subentries as made. The options form keeps it.
+  - A command's subentry field is `subentry_id`: `id` is the websocket message's own.
+  - Seen in headless Chromium with a stand-in for `window.hassConnection` and an
+    invented view (wide and phone), not yet inside Home Assistant.
+  - Not on the page: adding or deleting an entry, and browsing for a station.
+- **Tests:** `tests/test_love_or_loathe.py` (matching), `tests_ha/test_love_or_loathe.py`
+  (the page's commands too, through a websocket client).
 
 ## Guest login
 
@@ -262,6 +383,10 @@ CLAUDE.md has them all. What trips agents here:
 
 ## What happened
 
+- **2026-11-13: Love it or Loathe it built** (2026.11.7-b2, reworked to b5 the same day as
+  the owner used it; its page in Casa Mia in b6). See its section above. Left for later in
+  BACKLOG: the page's song rows and "who would take this", the thumbs card, the fade,
+  and the house's own radio station as one of its stations.
 - **2026-11-11: the Camera Commander's Responsive layout is specified, not built**
   (`docs/design/commander-responsive-layout.md`, agreed by the owner): a second mode
   beside today's (now called Fixed), in which the layout is worked out for each size from

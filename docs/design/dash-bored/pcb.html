@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Board</title>
+<style>
+:root { --mask: #0c4f37; --mask2: #0a4530; --trace: #17805a; --silk: #e9efe6; --gold: #d8b45a; --red: #ff3a2a; --green: #57ff7a; --amber: #ffb52e; }
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; background: #111; }
+body { font-family: "OCR A Std", "OCR A Extended", ui-monospace, "SF Mono", Menlo, monospace; color: var(--silk);
+  font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+/* The board: solder mask over a hatched copper pour. */
+.board { position: relative; min-height: 100vh; padding: 26px 34px; overflow: hidden;
+  background:
+    repeating-linear-gradient(45deg, transparent 0 5px, rgba(255,255,255,.022) 5px 6px),
+    repeating-linear-gradient(-45deg, transparent 0 5px, rgba(255,255,255,.022) 5px 6px),
+    radial-gradient(120% 100% at 30% 0%, var(--mask), var(--mask2));
+  display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: auto auto auto auto; gap: 34px 44px; align-content: start; }
+#traces { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+#traces path { fill: none; stroke: #1c9166; stroke-width: 3.2; stroke-linejoin: round; }
+#traces path.live { stroke: #9dffcf; stroke-width: 1.6; stroke-dasharray: 3 14; opacity: 0; animation: flow .6s linear infinite; }
+#traces path.live.on { opacity: 1; }
+#traces circle { fill: #06281c; stroke: var(--gold); stroke-width: 2.5; }
+@keyframes flow { to { stroke-dashoffset: -17; } }
+.hole { position: absolute; width: 22px; height: 22px; border-radius: 50%; background: #111; box-shadow: 0 0 0 5px var(--gold), 0 0 0 6px #7a6222; }
+.board > section, .board > nav { position: relative; }
+
+/* ---------- segment displays ---------- */
+.lcd { display: inline-block; padding: 7px 9px 5px; border-radius: 4px; background: #130303; --lit: var(--red); --off: #3a0d0a;
+  box-shadow: inset 0 0 0 2px #000, 0 2px 0 #052b1d, 0 0 0 1px #2c2c2c; }
+.lcd.green { background: #021207; --lit: var(--green); --off: #0b3317; }
+.lcd.amber { background: #140c01; --lit: var(--amber); --off: #3b2706; }
+.lcd svg { display: block; }
+.lcd line { stroke: var(--off); stroke-width: 2.7; stroke-linecap: round; }
+.lcd circle { fill: var(--off); }
+.lcd .on line { stroke: var(--lit); } .lcd .on circle { fill: var(--lit); }
+.lcd .on { filter: drop-shadow(0 0 3px var(--lit)); }
+.ref { display: block; margin: 5px 0 3px; opacity: .9; }
+
+/* ---------- top row ---------- */
+.top { display: flex; align-items: flex-end; gap: 18px; }
+.chip { background: linear-gradient(#262626, #141414); border-radius: 3px; color: #9a9a9a; padding: 10px 14px; position: relative;
+  margin: 9px 0; letter-spacing: .14em; font-size: 9px; line-height: 1.5; box-shadow: 0 3px 0 rgba(0,0,0,.35); }
+/* Pins: a row of tinned legs above and below the package. */
+.chip::before, .chip::after { content: ""; position: absolute; left: 8px; right: 8px; height: 9px;
+  background: repeating-linear-gradient(90deg, #c9ccce 0 5px, transparent 5px 12px); }
+.chip::before { top: -9px; } .chip::after { bottom: -9px; }
+.chip i { position: absolute; left: -1px; top: 50%; width: 8px; height: 14px; margin-top: -7px; border-radius: 0 8px 8px 0; background: #050505; }
+.eprom b { display: block; width: 30px; height: 30px; margin: 2px auto; border-radius: 50%;
+  background: radial-gradient(circle, #b9a5ff 0 18%, #3b2a6b 20% 45%, #1a1230 70%); box-shadow: inset 0 0 0 2px #555; }
+.eprom span { display: block; background: #f3ecd2; color: #222; padding: 1px 5px; rotate: -2deg; text-align: center; }
+.cap { width: 30px; height: 30px; border-radius: 50%; background: conic-gradient(#1c2f6b 0 70%, #cfd3da 70% 100%); box-shadow: inset 0 0 0 3px #101c44, 0 3px 0 rgba(0,0,0,.35); }
+.xtal { width: 46px; height: 18px; border-radius: 9px; background: linear-gradient(#f2f3f4, #9fa3a8); color: #333; text-align: center; line-height: 18px; font-size: 8px; }
+.parts { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.res { width: 34px; height: 10px; border-radius: 5px; background: linear-gradient(90deg, #d9c39a 0 18%, #7a3b12 18% 28%, #d9c39a 28% 38%, #111 38% 48%, #d9c39a 48% 58%, #c22 58% 68%, #d9c39a 68% 80%, #c9a23a 80% 88%, #d9c39a 88%); }
+.led { width: 13px; height: 13px; border-radius: 50%; display: inline-block; vertical-align: middle; --c: var(--red);
+  background: radial-gradient(circle at 35% 30%, #777, #2a2a2a); box-shadow: 0 0 0 2px #0003; transition: box-shadow .2s, background .2s; }
+.led.on { background: radial-gradient(circle at 35% 30%, #fff, var(--c) 45%); box-shadow: 0 0 12px 3px var(--c); }
+.led.g { --c: var(--green); } .led.a { --c: var(--amber); }
+.led.blink { animation: blink 1s steps(2) infinite; }
+@keyframes blink { 50% { background: radial-gradient(circle at 35% 30%, #777, #2a2a2a); box-shadow: none; } }
+.bar { display: inline-flex; gap: 2px; padding: 4px; background: #111; border-radius: 2px; vertical-align: middle; }
+.bar i { width: 7px; height: 20px; background: #3a0d0a; }
+.bar i.on { background: var(--red); box-shadow: 0 0 6px var(--red); }
+.bar.green i { background: #0b3317; } .bar.green i.on { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.bar.green i.on:nth-child(-n+2) { background: var(--red); box-shadow: 0 0 6px var(--red); }
+
+/* ---------- a room: silkscreened outline, displays, DIP switches ---------- */
+.room { border: 1.5px solid var(--silk); border-radius: 3px; padding: 12px 14px 10px; background: rgba(4,40,27,.82); }
+.room > .ref:first-child { position: absolute; top: -8px; left: 10px; margin: 0; padding: 0 6px; background: var(--mask2); }
+.row { display: flex; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 9px; }
+.dip { display: inline-flex; gap: 0; padding: 5px 6px 3px; background: #c0281d; border-radius: 3px; box-shadow: 0 3px 0 rgba(0,0,0,.4); }
+.dip button { all: unset; cursor: pointer; width: 44px; text-align: center; color: #fff; font-size: 8px; }
+.dip button::before { content: ""; display: block; width: 14px; height: 32px; margin: 0 auto 3px; border-radius: 2px;
+  background: linear-gradient(#f4f4f4 0 14px, transparent 14px) 0 16px / 100% 100% no-repeat, #3a0805;
+  transition: background-position .12s; }
+.dip button.on::before { background-position: 0 2px; }
+.dip button:focus-visible { outline: 1px dashed #fff; }
+.leds { display: flex; }
+.leds span { width: 44px; text-align: center; font-size: 8px; }
+.leds .led { display: block; margin: 0 auto 3px; }
+
+/* ---------- scenes: tactile switches ---------- */
+nav { grid-column: 1 / -1; display: flex; gap: 26px; align-items: center; }
+.tact { all: unset; cursor: pointer; text-align: center; }
+.tact::before { content: ""; display: block; width: 46px; height: 46px; margin: 0 auto 5px; border-radius: 5px;
+  background: radial-gradient(circle, #d9d9d9 0 34%, #777 36% 42%, #1b1b1b 44%); box-shadow: 0 0 0 2px #c9ccce, 0 4px 0 rgba(0,0,0,.4); }
+.tact:active::before { background: radial-gradient(circle, #aaa 0 31%, #555 33% 40%, #1b1b1b 42%); }
+.silk { margin-left: auto; text-align: right; line-height: 1.7; font-size: 11px; }
+.silk b { font-size: 22px; letter-spacing: .2em; }
+/* ---------- the probe: a room's history on a scope tube ---------- */
+.temp { cursor: pointer; } .temp:hover { box-shadow: inset 0 0 0 2px #000, 0 0 0 2px var(--silk); }
+#probe { background: #1b1d1f; color: var(--silk); border: 2px solid var(--silk); border-radius: 10px; padding: 14px 16px; font: inherit; letter-spacing: .08em; text-transform: uppercase; }
+#probe::backdrop { background: rgba(0,10,6,.6); }
+#probe canvas { display: block; width: min(760px, 86vw); height: auto; border-radius: 18px / 14px; box-shadow: inset 0 0 0 3px #000, 0 0 0 3px #555; margin: 8px 0 12px; }
+.range { display: flex; gap: 10px; }
+.range button { all: unset; cursor: pointer; padding: 6px 12px; border: 1.5px solid var(--silk); border-radius: 3px; }
+.range button.at, .range button:hover, .range button:focus-visible { background: var(--silk); color: #111; }
+.range [data-close] { margin-left: auto; }
+@media (prefers-reduced-motion: reduce) { #traces path.live, .led.blink { animation: none; } }
+@media (max-width: 1000px) { .board { grid-template-columns: 1fr; padding: 18px; } #traces { display: none; } .top { flex-wrap: wrap; } }
+</style>
+</head>
+<body>
+<div class="board" id="board">
+  <svg id="traces"></svg>
+  <i class="hole" style="left:8px;top:8px"></i><i class="hole" style="right:8px;top:8px"></i>
+  <i class="hole" style="left:8px;bottom:8px"></i><i class="hole" style="right:8px;bottom:8px"></i>
+
+  <section class="top"><div><span class="ref">DS1 · Time</span><span class="lcd" id="clock"></span></div>
+    <div class="parts"><i class="cap"></i><i class="xtal">32.768</i></div></section>
+  <section class="top" style="justify-content:center">
+    <div class="chip eprom"><i></i><b></b><span>Dash-Bored V1.3</span></div>
+    <div class="chip" id="cpu"><i></i>CM-Z80A CPU<br>8434 · Casa Mia<br>&nbsp;</div>
+    <div><div class="parts"><i class="res"></i><i class="res"></i></div><br>
+      <span class="led g on blink"></span> Run &nbsp; <span class="led"></span> Stale</div></section>
+  <section class="top" style="justify-content:flex-end"><div><span class="ref">LD1 · Battery</span><span class="bar green" id="battery"></span></div>
+    <div><span class="ref">DS2 · Draw kW</span><span class="lcd green" id="kw"></span></div></section>
+
+  <nav id="scenes"></nav>
+</div>
+
+<dialog id="probe"><span class="ref" id="probe-title"></span><canvas id="probe-crt" width="760" height="420"></canvas>
+  <div class="range"><button data-span="6">6 H</button><button data-span="24">24 H</button><button data-span="168">7 D</button><button data-close autofocus>Remove probe</button></div></dialog>
+
+<script src="house.js"></script>
+<script src="trace.js"></script>
+<script>
+// A 14-segment "starburst" character: each segment is one line in a 22 x 34 cell.
+const SEG = { a: [4, 1, 18, 1], b: [20, 3, 20, 15], c: [20, 19, 20, 31], d: [4, 33, 18, 33], e: [2, 19, 2, 31], f: [2, 3, 2, 15],
+  g: [4.5, 17, 9.5, 17], G: [12.5, 17, 17.5, 17], h: [5, 4.5, 9.5, 14], i: [11, 4, 11, 14.5], j: [17, 4.5, 12.5, 14],
+  k: [9.5, 20, 5, 29.5], l: [11, 19.5, 11, 30], m: [12.5, 20, 17, 29.5] };
+const FONT = { A: "abcefgG", B: "abcdGil", C: "adef", D: "abcdil", E: "adefg", F: "aefg", G: "acdefG", H: "bcefgG", I: "adil",
+  J: "bcde", K: "efgjm", L: "def", M: "bcefhj", N: "bcefhm", O: "abcdef", P: "abefgG", Q: "abcdefm", R: "abefgGm", S: "acdfgG",
+  T: "ail", U: "bcdef", V: "efkj", W: "bcefkm", X: "hjkm", Y: "hjl", Z: "adjk", 0: "abcdef", 1: "bc", 2: "abdegG", 3: "abcdG",
+  4: "bcfgG", 5: "acdfgG", 6: "acdefgG", 7: "abc", 8: "abcdefgG", 9: "abcdfgG", "-": "gG", "°": "abfgG", " ": "" };
+
+// Draw `text` on a display of `cells` characters. A full stop lights the decimal point of
+// the character before it, as on a real module, and a colon is a pair of dots.
+function display(text, cells, scale = 1) {
+  const chars = [];
+  for (const ch of text.toUpperCase()) {
+    if (ch === "." && chars.length) chars.at(-1).dot = true; else chars.push({ ch });
+  }
+  while (chars.length < cells) chars.push({ ch: " " });
+  const cell = chars.slice(0, cells).map(({ ch, dot }, n) => {
+    const lit = FONT[ch] ?? "", lines = { on: "", off: "" };
+    if (ch === ":") lines.on = `<circle cx="11" cy="10" r="2"/><circle cx="11" cy="24" r="2"/>`;
+    else for (const [key, [x1, y1, x2, y2]] of Object.entries(SEG))
+      lines[lit.includes(key) ? "on" : "off"] += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+    lines[dot ? "on" : "off"] += `<circle cx="24" cy="33" r="1.7"/>`;
+    return `<g transform="translate(${n * 29 + 5},0) skewX(-7)"><g>${lines.off}</g><g class="on">${lines.on}</g></g>`;
+  }).join("");
+  return `<svg viewBox="0 -1 ${cells * 29 + 2} 37" width="${(cells * 29 + 2) * scale}" height="${37 * scale}">${cell}</svg>`;
+}
+const bar = (n) => Array.from({ length: 10 }, (_, i) => `<i class="${i < n ? "on" : ""}"></i>`).join("");
+const LED = { light: "", switch: "g", cover: "a", lock: "a" };
+
+// ---------- rooms ----------
+const nav = document.getElementById("scenes");
+House.rooms.forEach((room, n) => {
+  const el = document.createElement("section");
+  el.className = "room";
+  el.dataset.room = room.id;
+  el.innerHTML = `<span class="ref">U${n + 3} · Room ${n + 1}</span>
+    <div class="row"><span class="lcd amber name">${display(room.name.split(" ")[0], 7, 0.82)}</span>
+      <span class="lcd temp">${display(room.temp.toFixed(1) + "°", 4, 0.82)}</span></div>
+    <div class="row"><div><div class="leds">${room.devices.map((d) =>
+        `<span><i class="led ${LED[d.kind]}" data-led="${d.id}"></i>${d.name.slice(0, 5)}</span>`).join("")}</div>
+      <div class="dip">${room.devices.map((d, i) => `<button data-id="${d.id}" aria-label="${d.name}">${i + 1}</button>`).join("")}</div></div>
+      <div><span class="ref">Light out</span><span class="bar" data-bar></span></div></div>`;
+  nav.before(el);
+});
+// Press a room's temperature to put a probe on it: its history on a scope tube, with the
+// times its lights were on as a square wave along the bottom.
+const probe = document.getElementById("probe");
+let probed = null, span = 24;
+function scope() {
+  if (!probed) return;
+  document.getElementById("probe-title").textContent = `Probe on TP${House.rooms.indexOf(probed) + 1} · ${probed.name} · temperature and lights`;
+  Trace.draw(document.getElementById("probe-crt"), [probed], { span, perDiv: probed.id === "garden" ? 2 : 1, centre: Math.round(probed.temp), colours: Trace.COLOURS });
+  probe.querySelectorAll("[data-span]").forEach((b) => b.classList.toggle("at", +b.dataset.span === span));
+}
+probe.addEventListener("click", (e) => {
+  if (e.target.dataset.span) { span = +e.target.dataset.span; scope(); }
+  if (e.target.dataset.close !== undefined || e.target === probe) probe.close();
+});
+House.on(scope);
+
+document.getElementById("board").addEventListener("click", (e) => {
+  const temp = e.target.closest(".temp");
+  if (temp) { probed = House.rooms.find((r) => r.id === temp.closest(".room").dataset.room); scope(); probe.showModal(); }
+  if (e.target.dataset.id) House.toggle(e.target.dataset.id);
+  if (e.target.dataset.scene) House.scene(e.target.dataset.scene);
+});
+nav.innerHTML = House.scenes.map((s, i) => `<button class="tact" data-scene="${s.id}">SW${i + 1} ${s.name}</button>`).join("") +
+  `<div class="silk"><b>Casa Mia</b><br>Dash-Bored main board · Rev C · 1984<br>Set a DIP switch to switch a device · press a temperature to probe it</div>`;
+
+// ---------- traces: one from each room to the processor ----------
+// Routed as a board is: straight runs joined by 45-degree corners, never right angles.
+function route(points, cut = 9) {
+  let d = `M${points[0]}`;
+  for (let i = 1; i < points.length - 1; i++) {
+    const [px, py] = points[i - 1], [x, y] = points[i], [nx, ny] = points[i + 1];
+    const a = Math.hypot(x - px, y - py), b = Math.hypot(nx - x, ny - y);
+    d += ` L${x - ((x - px) / a) * cut},${y - ((y - py) / a) * cut} L${x + ((nx - x) / b) * cut},${y + ((ny - y) / b) * cut}`;
+  }
+  return `${d} L${points.at(-1)}`;
+}
+function traces() {
+  const board = document.getElementById("board").getBoundingClientRect();
+  const box = (el) => { const b = el.getBoundingClientRect(); return { l: b.left - board.left, t: b.top - board.top, r: b.right - board.left, b: b.bottom - board.top }; };
+  const cpu = box(document.getElementById("cpu"));
+  let out = "";
+  House.rooms.forEach((room, n) => {
+    const m = box(document.querySelector(`[data-room="${room.id}"]`)), pin = cpu.l + 14 + n * 12, bus = cpu.b + 22 + (5 - n) * 6;
+    // The top row leaves through its top edge; the bottom row leaves sideways into the gutter.
+    const start = n < 3 ? [[m.l + 60 + n * 30, m.t], [m.l + 60 + n * 30, bus]] : [[m.l, m.t + 30], [m.l - 16 - (n - 3) * 6, m.t + 30], [m.l - 16 - (n - 3) * 6, bus]];
+    const d = route([...start, [pin, bus], [pin, cpu.b + 9]]);
+    out += `<path d="${d}"/><path class="live" data-live="${room.id}" d="${d}"/><circle cx="${start[0][0]}" cy="${start[0][1]}" r="4"/>`;
+  });
+  document.getElementById("traces").innerHTML = out;
+  paint();
+}
+
+function paint() {
+  for (const room of House.rooms) {
+    const el = document.querySelector(`[data-room="${room.id}"]`), lights = House.lights(room);
+    const share = lights.reduce((s, d) => s + (d.on ? d.level : 0), 0) / (lights.length * 100);
+    el.querySelector("[data-bar]").innerHTML = bar(Math.round(share * 10));
+    document.querySelector(`[data-live="${room.id}"]`)?.classList.toggle("on", room.devices.some((d) => d.on && d.kind !== "lock"));
+  }
+  for (const d of House.devices) {
+    document.querySelector(`[data-id="${d.id}"]`).classList.toggle("on", d.on);
+    document.querySelector(`[data-led="${d.id}"]`).classList.toggle("on", d.on);
+  }
+  document.getElementById("kw").innerHTML = display((House.watts() / 1000).toFixed(2), 3, 1.25);
+  document.getElementById("battery").innerHTML = bar(Math.round(House.energy.battery / 10));
+}
+const clock = () => (document.getElementById("clock").innerHTML = display(new Date().toTimeString().slice(0, 8), 8, 1.25));
+
+House.on(paint);
+addEventListener("resize", traces);
+setInterval(clock, 1000);
+clock(); traces();
+</script>
+</body>
+</html>

@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Departures</title>
+<style>
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body { background: radial-gradient(120% 100% at 50% 0%, #2b2d31, #0c0d0f); color: #f2d21b; padding: 26px 34px;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; }
+header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+h1 { margin: 0; font-size: 26px; letter-spacing: .32em; text-transform: uppercase; font-weight: 700; }
+.board { background: #0a0a0a; border-radius: 10px; padding: 20px 22px; box-shadow: inset 0 0 0 3px #2c2c2c, 0 20px 40px rgba(0,0,0,.6); }
+.row { display: grid; grid-template-columns: 12fr 6fr 5fr 12fr; gap: 22px; padding: 7px 0; cursor: pointer; border-radius: 6px; }
+.row:hover, .row:focus-visible { background: rgba(255,255,255,.04); outline: 0; }
+.row.head { cursor: default; color: #9a9a9a; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; padding-bottom: 2px; }
+.cells { display: flex; gap: 3px; perspective: 300px; }
+/* One flap: a dark tile with a hinge line across the middle. */
+.cells i { flex: 1; max-width: 34px; aspect-ratio: 0.68; border-radius: 4px; font-style: normal; display: grid; place-items: center;
+  font-size: clamp(14px, 2.2vw, 30px); font-weight: 700; color: #f6f6f1;
+  background: linear-gradient(#2a2a2a 0 49%, #050505 49% 51%, #1d1d1d 51%); box-shadow: inset 0 1px 0 rgba(255,255,255,.12); }
+.row[data-lit="1"] .state i { color: #ffd21b; }
+.row .note i { color: #9fe3a8; }
+footer { margin-top: 16px; display: flex; gap: 12px; align-items: center; color: #bdbdbd; font-size: 13px; }
+footer button { all: unset; cursor: pointer; padding: 9px 18px; border: 2px solid #f2d21b; border-radius: 4px; color: #f2d21b;
+  font-weight: 700; letter-spacing: .2em; text-transform: uppercase; font-size: 12px; }
+footer button:hover, footer button:focus-visible { background: #f2d21b; color: #111; }
+footer span { margin-left: auto; }
+</style>
+</head>
+<body>
+<header><h1>Casa Mia · Departures</h1><div class="cells" id="clock" style="width:300px"></div></header>
+<div class="board" id="board">
+  <div class="row head"><span>Room</span><span>Lights</span><span>Temp</span><span>Remarks</span></div>
+</div>
+<footer id="foot"></footer>
+
+<script src="house.js"></script>
+<script>
+const ALPHABET = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.:°-";
+const flaps = [];   // every flap on the board: its element, what it shows and what it should show
+
+function cells(host, count) {
+  host.classList.add("cells");
+  return Array.from({ length: count }, () => {
+    const el = host.appendChild(document.createElement("i")), flap = { el, at: 0, want: 0 };
+    flaps.push(flap);
+    return flap;
+  });
+}
+function show(group, text) {
+  const padded = text.toUpperCase().padEnd(group.length).slice(0, group.length);
+  group.forEach((flap, i) => (flap.want = Math.max(0, ALPHABET.indexOf(padded[i]))));
+  if (!running) { running = true; step(); }
+}
+
+// A split-flap cannot jump: it turns through every card between where it is and where it
+// is going, so a changed word ripples into place.
+let running = false;
+function step() {
+  let busy = false;
+  for (const flap of flaps) {
+    if (flap.at === flap.want) continue;
+    flap.at = (flap.at + 1) % ALPHABET.length;
+    flap.el.textContent = ALPHABET[flap.at];
+    flap.el.animate([{ transform: "rotateX(-70deg)", filter: "brightness(.5)" }, { transform: "none", filter: "none" }], { duration: 55 });
+    busy = true;
+  }
+  running = busy;
+  if (busy) setTimeout(step, 38);
+}
+
+function remark(room) {
+  const kettle = room.devices.find((d) => d.name === "Kettle" && d.on);
+  if (kettle) return "Kettle on";
+  const lock = room.devices.find((d) => d.kind === "lock");
+  if (lock) return lock.on ? "Door locked" : "Door unlocked";
+  const cover = room.devices.find((d) => d.kind === "cover");
+  if (cover) return cover.on ? `${cover.name} open` : `${cover.name} shut`;
+  const other = room.devices.find((d) => d.kind === "switch" && d.on);
+  return other ? `${other.name} on` : room.temp < room.target - 0.5 ? "Running cold" : "On time";
+}
+
+const rows = House.rooms.map((room) => {
+  const el = document.getElementById("board").appendChild(document.createElement("div"));
+  el.className = "row"; el.tabIndex = 0;
+  el.innerHTML = `<span></span><span class="state"></span><span></span><span class="note"></span>`;
+  const [name, state, temp, note] = [...el.children].map((host, i) => cells(host, [12, 6, 5, 12][i]));
+  // Pressing a row turns the room's lights all off, or all on if none were lit.
+  el.onclick = () => { const on = House.lightsOn(room) > 0; House.lights(room).forEach((d) => d.on === on && House.toggle(d.id)); };
+  el.onkeydown = (e) => e.key === "Enter" && el.onclick();
+  return { room, el, name, state, temp, note };
+});
+const clock = cells(document.getElementById("clock"), 8);
+
+function paint() {
+  for (const r of rows) {
+    const lit = House.lightsOn(r.room);
+    r.el.dataset.lit = lit ? 1 : 0;
+    show(r.name, r.room.name); show(r.state, lit ? `${lit} ON` : "OFF");
+    show(r.temp, `${r.room.temp.toFixed(1)}°`); show(r.note, remark(r.room));
+  }
+}
+document.getElementById("foot").innerHTML = House.scenes.map((s) => `<button data-scene="${s.id}">${s.name}</button>`).join("") +
+  `<span>Press a row to turn its lights off or on.</span>`;
+document.getElementById("foot").onclick = (e) => e.target.dataset.scene && House.scene(e.target.dataset.scene);
+
+House.on(paint);
+setInterval(() => show(clock, new Date().toTimeString().slice(0, 8)), 1000);
+paint();
+</script>
+</body>
+</html>

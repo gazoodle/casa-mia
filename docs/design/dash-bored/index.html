@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dash-Bored directions</title>
+<style>
+:root { color-scheme: light dark; --bg: light-dark(#f4f2ec, #121316); --text: light-dark(#1b1a17, #ecebe6); --soft: light-dark(#6b675e, #a09d94); --line: light-dark(#d8d4c8, #2c2e33); }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 32px 36px 48px; background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; }
+h1 { margin: 0 0 6px; font-size: 30px; letter-spacing: -.02em; }
+p.lead { margin: 0 0 26px; color: var(--soft); max-width: 78ch; line-height: 1.5; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 22px; }
+a { color: inherit; text-decoration: none; display: block; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; transition: translate .2s, box-shadow .2s; }
+a:hover, a:focus-visible { translate: 0 -3px; box-shadow: 0 12px 24px -12px rgba(0,0,0,.5); outline: 0; border-color: var(--text); }
+/* A live thumbnail: the real page at tablet size, scaled down and not clickable. */
+.thumb { aspect-ratio: 1340 / 800; overflow: hidden; position: relative; background: #000; container-type: inline-size; }
+.thumb iframe { width: 1340px; height: 800px; border: 0; transform-origin: 0 0; scale: calc(100cqw / 1340px); pointer-events: none; }
+.text { padding: 12px 14px 14px; }
+h2 { margin: 0 0 4px; font-size: 17px; display: flex; gap: 8px; align-items: center; }
+h2 small { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; border: 1px solid currentColor; border-radius: 20px; padding: 1px 7px; font-weight: 600; }
+.text p { margin: 0; font-size: 13.5px; color: var(--soft); line-height: 1.45; }
+</style>
+</head>
+<body>
+<h1>Dash-Bored: eighteen directions</h1>
+<p class="lead">Each page is a working mock-up of the same invented house at wall-tablet size (1340 × 800). Everything can be pressed: lights switch, scenes run and the page reacts. None of them talks to Home Assistant. The first four are finished to a higher standard; the other fourteen are sketches of an idea. Movement is rendered in 3D and needs an internet connection to load.</p>
+<div class="grid" id="grid"></div>
+<script>
+const PAGES = [
+  ["calibre", "Calibre", "Finished", "A watch movement. Each room is a bridge wound open by a pinion and rack, the going train runs faster as the house draws more, and a lever escapement ticks while data is fresh."],
+  ["contraption", "Contraption", "Finished", "A Heath Robinson apparatus in pen and wash. Pull a lever and a rope lifts a boot, a kipper or a small anvil off a candle to light the room."],
+  ["aurora", "Aurora", "Finished", "Current web style: glass tiles in a bento grid over a sky that warms as lights come on. A room tile grows into a sheet of faders."],
+  ["pcb", "Board", "Finished", "A 1984 circuit board. Starburst and seven-segment LED displays, DIP switches for devices and traces that carry a signal while a room is on."],
+  ["movement", "Movement", "Sketch", "A watch movement that fills the screen, rendered as real 3D metal under one lamp. A going train, lever and balance run across the middle; each room is a bridge, with screws for switches and jewels for pilot lamps."],
+  ["dusk", "Dusk", "Sketch", "A storybook picture of the house from the garden. Lit rooms have glowing windows, curtains draw, the door stands ajar when unlocked, and the sky follows the time of day."],
+  ["fridge", "Fridge", "Sketch", "The fridge door: a polaroid per room, button magnets for devices, a notepad of the day's facts and fridge-poetry words for scenes."],
+  ["levers", "Lever Frame", "Sketch", "A railway signal box: an illuminated diagram, block instruments for temperature and a frame of coloured levers to pull."],
+  ["patchbay", "Patch Bay", "Sketch", "A modular synthesiser. Knobs for lights, toggles for switches, and scenes patched to rooms with hanging cables."],
+  ["departures", "Departures", "Sketch", "A split-flap station board that turns through every letter to reach the new state."],
+  ["cutaway", "Cutaway", "Sketch", "A blueprint section through the house. Lit rooms fill with warm light; fittings are numbered as on a drawing."],
+  ["orrery", "Orrery", "Sketch", "Rooms as planets and devices as moons, on brass arms around a sun that grows with the power drawn."],
+  ["bakelite", "Bakelite", "Sketch", "A 1950s instrument panel: glowing valves, moving-coil meters whose pointers never sit still, fluted dimmer knobs, dolly switches and knife switches for scenes."],
+  ["scope", "Scope", "Sketch", "A 1970s bench oscilloscope. Each room is a channel: its temperature history as a phosphor trace, its lights as a square wave, with rotary switches for the time base and scale."],
+  ["textmode", "Text Mode", "Sketch", "An 80 by 25 character worksheet driven from the keyboard, on a choice of four tubes: business blue, green, amber and white phosphor."],
+  ["arcade", "Arcade", "Sketch", "A fixed-shooter cabinet. Devices hang in formation by room; aim and fire to switch one."],
+  ["maze", "Moth", "Sketch", "The house as a maze. Press a lamp and a moth flies to it through the doorways and switches it."],
+  ["gazette", "Gazette", "Sketch", "A newspaper front page that rewrites its headline and reports as the house changes. Every underlined fact can be pressed."],
+];
+document.getElementById("grid").innerHTML = PAGES.map(([file, name, level, text]) => `<a href="${file}.html">
+  <div class="thumb"><iframe src="${file}.html" loading="lazy" tabindex="-1" title="${name}"></iframe></div>
+  <div class="text"><h2>${name} <small>${level}</small></h2><p>${text}</p></div></a>`).join("");
+</script>
+</body>
+</html>

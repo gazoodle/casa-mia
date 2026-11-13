@@ -378,9 +378,15 @@ address bar and tabs go, and so do Home Assistant's header and sidebar. The comm
 drawn again for the larger space. Tap **Exit full screen** to go back, or use the
 browser's own way out (Esc on a keyboard, or the close button Safari shows).
 
-- It works in a browser on a computer or a tablet, Safari on an iPad included. Safari on
-  an iPhone can't show a page full screen, so the button is not shown there, and it is
-  not shown in an app or frame that doesn't allow it.
+- It works in a browser on a computer or a tablet, Safari on an iPad included. It is not
+  shown in an app or frame that doesn't allow full screen.
+- An iPad keeps its status bar (the time, the date, the battery) on top of a full screen
+  page. The commander leaves a black strip at the top for it, so the status bar doesn't
+  sit over the picture.
+- Safari on an iPhone can't show a page full screen, only a video. There the button
+  puts the main camera's live video in the phone's own player, without the other
+  cameras or the buttons, and the player's own close button comes back to the
+  commander. The button is shown only while the main camera is playing as live video.
 - A browser only allows full screen from a tap, so after the page reloads it has to be
   tapped again. For a tablet that is left on one page,
   add the page to its Home Screen instead (Safari: Share, then **Add to Home Screen**),

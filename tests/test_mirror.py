@@ -45,10 +45,17 @@ def test_the_tree_is_the_component_and_what_a_store_needs(tmp_path):
     readme = (out / "README.md").read_text()
     assert readme.startswith(f"# {manifest['name']}\n")
     assert "https://github.com/example/casa-mia-sensor-watch" in readme
-    assert (
-        "[![Downloads](https://img.shields.io/github/downloads/example/casa-mia-sensor-watch"
-        "/total?label=Downloads)](https://github.com/example/casa-mia-sensor-watch/releases)"
-    ) in readme
+    # Under the title, the set of badges Casa Mia's own README has, about the mirror.
+    title, badges = readme.split("\n", 2)[:2], readme.split("</p>")[0]
+    assert title[1] == "" and badges.count("style=for-the-badge") == 5
+    for badge in (
+        "github/stars/example/casa-mia-sensor-watch",
+        "github/downloads/example/casa-mia-sensor-watch/total",
+        "github/v/release/example/casa-mia-sensor-watch",
+        "workflow/status/example/casa-mia-sensor-watch/validate.yml",
+        "badge/licence-MIT",
+    ):
+        assert badge in badges, badge
     assert "isn't the number of houses" in readme
     assert (
         manifest["issue_tracker"]

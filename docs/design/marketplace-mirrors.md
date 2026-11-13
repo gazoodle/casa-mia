@@ -55,6 +55,17 @@ Each with its reason, so nobody argues it away later.
    update over files Casa Mia already wrote (phase 0, check 3). Phase 3 tests it and the
    guide says so. Why: the only way to stop it is to write into the store's own storage.
 
+## The second item: Love it or Loathe it
+
+Declared on 2026-11-13 in 2026.11.7-b8 (`components.PUBLISHED`), at the owner's word.
+Its mirror is `gazoodle/casa-mia-love-or-loathe`. It was built standalone from the
+start (2026.11.7-b2), so none of Sensor Watch's phases apply: there is no old install to
+hand over and nothing in the app to retire. Its page in Casa Mia is the app's, reached
+over Home Assistant's own websocket, and a store's user simply has no such page.
+`tools/mirror.py --dry-run` passes for it, hassfest included. Not yet done: its first
+publication (the release's last step, which asks first), and a run on Home Assistant
+2026.3.0, the floor its `hacs.json` names.
+
 ## Sensor Watch today
 
 As built by 2026.11.3-b2 (2026-11-10). `HANDOVER.md`'s Sensor Watch section has the detail.
