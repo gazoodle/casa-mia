@@ -259,6 +259,48 @@ imported from `casa_mia`, no app option. Guide: `docs/applets/love-or-loathe.md`
 - **Tests:** `tests/test_love_or_loathe.py` (matching), `tests_ha/test_love_or_loathe.py`
   (the page's commands too, through a websocket client).
 
+## Dash-Bored
+
+Its own integration, `casa_mia_dash_bored`, since 2026.11.8-b1 (2026-11-13; name and
+sidebar label agreed with the owner). Standalone like Sensor Watch: nothing imported from
+`casa_mia`, no app option, no entities. In development. Guide: `docs/applets/dash-bored.md`.
+
+- **Why it exists** (owner, 2026-11-13): dashboards that write themselves from the house,
+  in styles people enjoy using; "it must not look cheap". The looks were tried first as
+  working mock-ups on an invented house, in `docs/design/dash-bored/` (`index.html` is the
+  gallery; `house.js` the house). The owner chose three families to build out: Gazette,
+  Bakelite and Fridge, in that order, for the family first and the community after.
+  Movement (a watch movement in three.js) and Contraption are the showpieces, not built.
+- **Gazette is the first family, and the only one built.** One element,
+  `dash-bored-gazette` (`integration/cards/src/dash-bored/`, its own `www/cards.js`): it
+  is the sidebar's page (`panel_custom`, not in a frame, for every user) and a dashboard
+  card. Three layers, kept apart on purpose:
+  - `house.ts`: `survey` reads the registries (areas, shown entities) once per registry
+    change; `read` reads only those entities' states.
+  - `stories.ts`: what is worth saying, ranked. No wording.
+  - `voices.ts`: each paper as **data** (text with `{placeholders}`, pools of headlines).
+    The owner wants the jokes and sentences configurable later (2026-11-13): keep voices
+    as data so that stays possible. Nothing configures them yet.
+  - `styles.ts` is the look; a new paper is a voice and a block of CSS.
+- **Guarded devices** (my ruling for a live house, told to the owner): a lock, or a cover
+  whose class is garage, gate or door, is never operated by a press on a sentence or a
+  chip; that opens Home Assistant's dialog. The story's own remedy button may lock.
+- **Sensor Watch's alerts come through `alerts.py`, not straight to the page.** Home
+  Assistant lets only admins subscribe to a custom bus event, and a wall tablet's login
+  is not one. `alerts.py` listens for `casa_mia_sensor_watch`, keeps the latest per
+  sensor for this run (Sensor Watch says them all again at each start), and feeds any
+  signed-in page (`casa_mia_dash_bored/alerts`). The two integrations name each other's
+  event and nothing else.
+- **Seen on the test VM** (2026-11-13, Home Assistant 2026.11.1): set up through its
+  flow, the page in the sidebar at tablet and phone widths, and Sensor Watch's real alerts
+  from the invented house as breaking news, ranked. **Not seen:** rooms and devices from
+  real areas (the VM's lights and locks have no areas), a press reaching a real device,
+  Safari, a wall tablet. Its folder is still on the VM, copied by hand.
+- **Not done:** brand images (`tools/brand_children.py`), publishing by itself, levels
+  (dimming), a detail view and history of its own, other languages. BACKLOG has the list.
+- **Tests:** `src/dash-bored/stories.test.ts` (house, ranking, every voice tells every
+  story), `tests_ha/test_dash_bored.py` (set-up, the panel, the alerts feed).
+
 ## Guest login
 
 `modules/guest_login/`, layered: `common.py` → `signin.py` (HA's login flow, 2FA,
@@ -383,6 +425,8 @@ CLAUDE.md has them all. What trips agents here:
 
 ## What happened
 
+- **2026-11-13: Dash-Bored started** (2026.11.8-b1): seventeen mock-ups, then the Gazette
+  as a real integration. See its section above. Not committed when this was written.
 - **2026-11-13: Love it or Loathe it built** (2026.11.7-b2, reworked to b5 the same day as
   the owner used it; its page in Casa Mia in b6). See its section above. Left for later in
   BACKLOG: the page's song rows and "who would take this", the thumbs card, the fade,

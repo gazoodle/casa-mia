@@ -5,105 +5,335 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Gazette</title>
 <style>
-:root { --paper: #f3eee0; --ink: #1c1a17; }
+/* ================= the look: broadsheet, which is also the base ================= */
+:root { --paper: #f3eee0; --ink: #1c1a17; --flash: #8c1c13; --mark: #f6d95a; --head: "Bodoni 72", "Didot", "Playfair Display", serif; }
 * { box-sizing: border-box; }
 html, body { margin: 0; min-height: 100%; }
-body { background: var(--paper); color: var(--ink); padding: 18px 34px 24px;
+body { background: var(--paper); color: var(--ink); padding: 14px 30px 24px;
   font-family: "Hoefler Text", "Baskerville", "Times New Roman", serif;
   background-image: radial-gradient(rgba(0,0,0,.05) 1px, transparent 1px); background-size: 4px 4px; }
+button { all: unset; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--flash); outline-offset: 2px; }
+
+.breaking { border: 3px double var(--flash); color: var(--flash); padding: 6px 12px; margin-bottom: 10px; font-size: 17px; text-align: center; }
+.breaking b { letter-spacing: .3em; text-transform: uppercase; margin-right: 12px; }
+.breaking.fresh { animation: flash 1.6s ease-out; } @keyframes flash { 0%, 45% { background: var(--mark); } }
+
 .masthead { text-align: center; border-bottom: 4px double var(--ink); padding-bottom: 6px; }
 .masthead h1 { margin: 0; font: 400 62px/1 "UnifrakturCook", "Old English Text MT", "Luminari", "Blackletter", fantasy; }
-.dateline { display: flex; justify-content: space-between; font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+.masthead p { margin: 0; } .masthead p:empty { display: none; }
+.dateline { display: flex; flex-wrap: wrap; gap: 4px 16px; justify-content: space-between; font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
   border-bottom: 1px solid var(--ink); padding: 5px 2px; margin-bottom: 14px; }
-.page { display: grid; grid-template-columns: 2.1fr 1.5fr 1fr; gap: 0 26px; }
+.styles button { padding: 1px 8px; border-bottom: 1.5px dotted; }
+.styles button[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: transparent; }
+
+.page { display: grid; grid-template-columns: 2.1fr 1.4fr 1.1fr; gap: 0 26px; }
+.page > * { min-width: 0; }
 .page > * + * { border-left: 1px solid var(--ink); padding-left: 26px; }
-h2 { margin: 0 0 8px; font-size: 46px; line-height: .98; font-weight: 900; font-family: "Bodoni 72", "Didot", "Playfair Display", serif;
-  text-transform: uppercase; letter-spacing: -.01em; text-wrap: balance; }
+.kicker { margin: 0 0 6px; font-size: 12px; letter-spacing: .3em; text-transform: uppercase; color: var(--flash); }
+h2 { margin: 0 0 8px; font: 900 46px/.98 var(--head); text-transform: uppercase; letter-spacing: -.01em; text-wrap: balance; }
 .deck { font-size: 19px; font-style: italic; margin: 0 0 12px; line-height: 1.25; }
-.copy { columns: 2; column-gap: 22px; column-rule: 1px solid rgba(0,0,0,.25); font-size: 15px; line-height: 1.42; }
+/* The figure: the story's one number, set like an engraving. */
+.figure { float: right; width: 150px; margin: 4px 0 8px 16px; border: 3px double var(--ink); text-align: center; padding: 10px 6px;
+  background: repeating-linear-gradient(45deg, transparent 0 3px, rgba(0,0,0,.07) 3px 4px); }
+.figure b { display: block; font: 900 42px/1 var(--head); overflow-wrap: anywhere; }
+.figure span { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; }
+.act { display: inline-block; border: 1.5px solid var(--ink); padding: 3px 12px; margin-bottom: 10px; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; }
+.act:hover { background: var(--ink); color: var(--paper); }
+.copy { columns: 2; column-gap: 22px; column-rule: 1px solid rgba(0,0,0,.25); font-size: 15px; line-height: 1.42; clear: both; }
 .copy p { margin: 0 0 8px; break-inside: avoid; }
-.copy p:first-child::first-letter { font-size: 52px; float: left; line-height: .82; padding: 4px 6px 0 0; font-family: "Bodoni 72", "Didot", serif; }
+[data-style="broadsheet"] .copy p:first-child::first-letter { font-size: 52px; float: left; line-height: .82; padding: 4px 6px 0 0; font-family: var(--head); }
 .copy b { text-transform: uppercase; font-size: 12px; letter-spacing: .12em; }
 /* Anything in the report that can be switched is set like a correction: underlined, and pressable. */
-.fact { all: unset; cursor: pointer; border-bottom: 1.5px dotted var(--ink); }
-.fact:hover, .fact:focus-visible { background: var(--ink); color: var(--paper); }
-.changed { animation: ink 1.2s ease-out; } @keyframes ink { from { background: #f6d95a; } }
+.fact { border-bottom: 1.5px dotted var(--ink); cursor: pointer; }
+.fact:hover { background: var(--ink); color: var(--paper); }
+.changed { animation: ink 1.2s ease-out; } @keyframes ink { from { background: var(--mark); } }
+
 h3 { margin: 0 0 8px; font-size: 13px; letter-spacing: .3em; text-transform: uppercase; text-align: center;
   border-top: 2px solid var(--ink); border-bottom: 1px solid var(--ink); padding: 4px 0; }
+.item { border-bottom: 1px solid var(--ink); padding-bottom: 8px; margin-bottom: 10px; }
+.item h4 { margin: 0 0 4px; font: 900 24px/1.05 var(--head); text-wrap: balance; }
+.item p { margin: 0 0 6px; font-size: 15px; line-height: 1.35; }
+.item .act { margin-bottom: 2px; font-size: 11px; }
+ul, ol { list-style: none; padding: 0; margin: 0 0 16px; font-size: 14px; line-height: 1.35; }
+li { padding: 4px 0; border-bottom: 1px dotted rgba(0,0,0,.4); }
+time { font-variant-numeric: tabular-nums; font-weight: 700; margin-right: 6px; }
 table { width: 100%; border-collapse: collapse; font-size: 15px; margin-bottom: 16px; }
 td { padding: 4px 2px; border-bottom: 1px dotted rgba(0,0,0,.4); } td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
-.grid { display: grid; grid-template-columns: auto repeat(2, 30px); gap: 3px 4px; align-items: center; font-size: 14px; margin-bottom: 16px; }
-.grid button { all: unset; cursor: pointer; width: 30px; height: 30px; border: 1.5px solid var(--ink); background: var(--ink); transition: background .3s; }
-.grid button.on { background: var(--paper); box-shadow: inset 0 0 0 4px #f6d95a; }
-.grid button:focus-visible { outline: 2px solid #b33; }
-.ad { all: unset; cursor: pointer; display: block; width: 100%; border: 1px solid var(--ink); padding: 8px 10px; margin-bottom: 8px; text-align: center; font-size: 14px; line-height: 1.3; }
-.ad b { display: block; font-size: 17px; letter-spacing: .14em; text-transform: uppercase; font-family: "Bodoni 72", "Didot", serif; }
-.ad:hover, .ad:focus-visible { background: var(--ink); color: var(--paper); }
-@media (max-width: 900px) { .page { grid-template-columns: 1fr; } .page > * + * { border-left: 0; padding-left: 0; margin-top: 18px; } .copy { columns: 1; } h2 { font-size: 34px; } }
+/* The switchboard: every device as a plain button, for when you only want a switch. */
+.row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+.row > span { flex: 0 0 100%; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; }
+.chip { border: 1.5px solid var(--ink); padding: 3px 7px; font-size: 13px; }
+.chip.on { background: var(--ink); color: var(--paper); }
+.ad { display: block; width: 100%; border: 1px solid var(--ink); padding: 8px 10px; margin-bottom: 8px; text-align: center; font-size: 14px; line-height: 1.3; }
+.ad b { display: block; font: 400 17px var(--head); letter-spacing: .14em; text-transform: uppercase; }
+.ad:hover { background: var(--ink); color: var(--paper); }
+/* Not part of the paper: the strip that stands in for Sensor Watch in this mock-up. */
+.mock { margin-top: 22px; border: 1px dashed #888; padding: 8px 12px; font: 13px/1.6 system-ui, sans-serif; color: #444; background: #fff9; }
+.mock button { border: 1px solid #888; border-radius: 4px; padding: 1px 10px; margin-left: 8px; background: #fff; }
+
+/* ================= the look: red-top tabloid ================= */
+[data-style="tabloid"] { --paper: #fff; --ink: #111; --flash: #d7141a; --mark: #ffe600; --head: Impact, "Haettenschweiler", "Arial Narrow Bold", "Arial Black", sans-serif;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; background-image: none; }
+[data-style="tabloid"] .breaking { border: 0; background: var(--flash); color: #fff; font-weight: 800; text-align: left; text-transform: uppercase; }
+[data-style="tabloid"] .breaking b { background: var(--mark); color: #111; padding: 2px 8px; letter-spacing: 0; font-style: italic; }
+[data-style="tabloid"] .masthead { text-align: left; border: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; }
+[data-style="tabloid"] .masthead h1 { font: italic 900 52px/1 "Arial Black", "Helvetica Neue", sans-serif; background: var(--flash); color: #fff; padding: 6px 20px 8px 14px; letter-spacing: -.05em; text-transform: uppercase; }
+[data-style="tabloid"] .masthead p { font: italic 800 16px/1.1 inherit; }
+[data-style="tabloid"] .dateline { background: var(--ink); color: #fff; border: 0; padding: 5px 10px; letter-spacing: .06em; font-weight: 700; }
+[data-style="tabloid"] .styles button[aria-pressed="true"] { background: var(--mark); color: #111; }
+[data-style="tabloid"] .page { gap: 0 22px; }
+[data-style="tabloid"] .page > * + * { border-left: 0; padding-left: 0; }
+[data-style="tabloid"] .kicker { display: inline-block; background: var(--mark); color: #111; font: italic 900 15px/1 "Arial Black", sans-serif; padding: 5px 10px; rotate: -2deg; letter-spacing: 0; }
+[data-style="tabloid"] h2 { font: 400 92px/.88 var(--head); letter-spacing: 0; }
+[data-style="tabloid"] .deck { font: 800 22px/1.15 inherit; }
+[data-style="tabloid"] .figure { border: 0; color: #fff; rotate: 2deg; width: 120px; background: radial-gradient(#fff3 1.2px, transparent 1.6px) 0 0 / 6px 6px, #111; }
+[data-style="tabloid"] .figure b { font: 400 40px/1 var(--head); color: var(--mark); }
+[data-style="tabloid"] .act { background: var(--flash); color: #fff; border: 0; font-weight: 900; font-style: italic; padding: 7px 14px; }
+[data-style="tabloid"] .act:hover { background: var(--ink); }
+[data-style="tabloid"] .copy { column-rule: 0; font-size: 14px; }
+[data-style="tabloid"] .fact { border-bottom: 2px solid var(--flash); }
+[data-style="tabloid"] .fact:hover { background: var(--mark); color: #111; }
+[data-style="tabloid"] h3 { text-align: left; border: 0; background: var(--flash); color: #fff; padding: 5px 8px; letter-spacing: .02em; font: italic 900 14px/1 "Arial Black", sans-serif; }
+[data-style="tabloid"] .item h4 { font: 400 34px/.95 var(--head); text-transform: uppercase; }
+[data-style="tabloid"] .chip.on { background: var(--mark); color: #111; font-weight: 800; }
+[data-style="tabloid"] .ad { border: 3px solid var(--ink); } [data-style="tabloid"] .ad b { font: 400 24px/1 var(--head); letter-spacing: .02em; }
+[data-style="tabloid"] .ad:hover { background: var(--mark); color: #111; }
+
+/* ================= a narrow screen: one column, in reading order ================= */
+@media (max-width: 900px) {
+  body { padding: 10px 14px 20px; }
+  .page { grid-template-columns: 1fr; } .page > * + * { border-left: 0; padding-left: 0; margin-top: 18px; }
+  .copy { columns: 1; } h2 { font-size: 34px; } .masthead h1 { font-size: 42px; }
+  [data-style="tabloid"] h2 { font-size: 62px; } [data-style="tabloid"] .masthead h1 { font-size: 36px; }
+  .figure, [data-style="tabloid"] .figure { width: 104px; } .figure b, [data-style="tabloid"] .figure b { font-size: 30px; }
+}
 </style>
 </head>
-<body>
-<header class="masthead"><h1>The Casa Courier</h1></header>
-<div class="dateline"><span id="date"></span><span>Printed fresh whenever anything changes</span><span id="price"></span></div>
+<body data-style="broadsheet">
+<div class="breaking" id="breaking" hidden role="status"></div>
+<header class="masthead"><h1 id="name"></h1><p id="strap"></p></header>
+<div class="dateline"><span id="date"></span><span class="styles" id="styles"></span><span id="price"></span></div>
 <main class="page">
-  <article><h2 id="headline"></h2><p class="deck" id="deck"></p><div class="copy" id="copy"></div></article>
-  <section><h3>The Temperatures</h3><table id="temps"></table>
-    <h3>Lights, by room</h3><div class="grid" id="grid"></div></section>
-  <section><h3>Notices</h3><div id="ads"></div></section>
+  <article id="splash"></article>
+  <section><h3 id="t-more"></h3><div id="more"></div><h3 id="t-briefs"></h3><ul id="briefs"></ul></section>
+  <aside><h3 id="t-late"></h3><ol id="late"></ol><h3 id="t-temps"></h3><table id="temps"></table>
+    <h3 id="t-board"></h3><div id="board"></div><h3 id="t-notices"></h3><div id="notices"></div></aside>
 </main>
+<footer class="mock" id="mock"></footer>
 
 <script src="house.js"></script>
 <script>
-const NUM = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
-const ADS = { evening: "Lamps lit at dusk, in the usual rooms. Apply within.", film: "Dim lights and one television. No talking.",
-  bedtime: "Everything out but the bedside. Sleep well.", away: "Nobody home. The porch light keeps watch." };
-const fact = (d, text) => `<button class="fact" data-id="${d.id}">${text}</button>`;
+// The paper is made in three layers. The STORIES are what is true of the house, ranked by
+// how much it matters; they know nothing of wording. A VOICE writes each kind of story its
+// own way. The LOOK is the stylesheet above. A new paper is a voice and a block of CSS.
+//
+// ponytail: every string here is ours, so it goes into innerHTML as it is. The real thing
+// must escape entity names and Sensor Watch's messages first.
 
-// What the paper says about one device, as a clause that can be pressed.
-function clause(d) {
-  const name = d.name.toLowerCase();
-  if (d.kind === "light") return fact(d, d.on ? `the ${name} light burns at ${d.level} per cent` : `the ${name} light is out`);
-  if (d.kind === "cover") return fact(d, d.on ? `the ${name} ${name.endsWith("s") ? "stand" : "stands"} ${d.level} per cent open` : `the ${name} ${name.endsWith("s") ? "are" : "is"} drawn`);
-  if (d.kind === "lock") return fact(d, d.on ? `the ${name} is locked` : `the ${name} is UNLOCKED`);
-  return fact(d, d.on ? `the ${name} is running` : `the ${name} is idle`);
+const at = (ms) => new Date(ms).toTimeString().slice(0, 5);
+const cap = (text) => text[0].toUpperCase() + text.slice(1);
+const mins = (ms) => { const m = Math.max(1, Math.round(ms / 6e4)); return m === 1 ? "a minute" : `${m} minutes`; };
+const plural = (d) => /s$/i.test(d.name);
+const lamp = (d) => /lamp|light/i.test(d.name) ? d.name.toLowerCase() : `${d.name.toLowerCase()} light`;
+const reading = (a) => typeof a.value === "number" ? `${a.value}${a.unit ?? ""}` : String(a.value);
+
+// ================= the wire: Sensor Watch's events =================
+// Sensor Watch fires an event each time a watched sensor changes level. These stand in for
+// it: the fields are the ones its event carries, but the level names here are the
+// mock-up's own. `kind` is the entity's device class, which the real page would read from
+// its state.
+const SENSORS = [
+  { id: "sensor.freezer", name: "Freezer", area: "Kitchen", kind: "temperature", unit: "°C",
+    steps: [["ok", -18, ""], ["warning", -11, "The freezer is warmer than it should be."], ["alarm", -4, "The freezer is thawing. Check the door."]] },
+  { id: "binary_sensor.sink_leak", name: "Sink leak sensor", area: "Kitchen", kind: "moisture",
+    steps: [["ok", "dry", ""], ["alarm", "wet", "Water has been found under the kitchen sink."]] },
+  { id: "binary_sensor.study_window", name: "Study window", area: "Study", kind: "opening",
+    steps: [["ok", "closed", ""], ["warning", "open", "The study window has been open for an hour."]] },
+];
+const wire = new Map(), late = [];
+let fresh = false;
+
+function receive(e) {
+  const was = wire.get(e.entity_id), trouble = e.level !== "ok";
+  // `began` is when the trouble started, kept across an escalation and after it clears.
+  wire.set(e.entity_id, { ...e, kind: SENSORS.find((s) => s.id === e.entity_id).kind, began: was && was.level !== "ok" ? was.began : e.since, cleared: trouble ? 0 : e.since });
+  late.unshift({ time: e.since, alert: wire.get(e.entity_id) });
+  fresh = trouble;
+  paint();
+  // Breaking news is no use below the fold: bring the reader back to the front page.
+  if (trouble) scrollTo({ top: 0, behavior: "smooth" });
 }
-const sentence = (parts) => { const s = parts.join("; ") + "."; return s.replace(/^(<button[^>]*>)?(\w)/, (_, tag, c) => (tag ?? "") + c.toUpperCase()); };
 
-function headline() {
-  const lit = House.devices.filter((d) => d.kind === "light" && d.on).length, kettle = House.find("k_kettle").on, lock = House.find("h_lock").on;
-  if (!lock) return ["Front door found unlocked", "Hall in uproar as the household is urged to turn the key."];
-  if (kettle) return ["Kettle on: tea expected shortly", "Kitchen sources confirm that the meter is spinning in a good cause."];
-  if (lit === 0) return ["Darkness falls on entire household", "Not one lamp is left burning, our correspondent reports from the landing."];
-  if (lit >= 7) return ["House ablaze with light", `With ${NUM[lit] ?? lit} lamps burning at once, questions are asked about the bill.`];
-  return [`${NUM[lit]} ${lit === 1 ? "light" : "lights"} still burning at this hour`, "The remainder of the house is reported quiet and in good order."];
+// ================= the stories =================
+// Everything worth reporting, most important first. `figure` is the story's one number;
+// `press` is what the reader can do about it.
+function stories() {
+  const out = [], lit = House.devices.filter((d) => d.kind === "light" && d.on), garden = House.rooms.at(-1);
+
+  for (const a of wire.values()) {
+    if (a.level !== "ok") out.push({ kind: "alert", id: a.entity_id, rank: a.level === "alarm" ? 100 : 70, a, figure: [reading(a), a.area] });
+    // ponytail: a recovery drops off at the first change after ten minutes; a real page would set a timer for it.
+    else if (Date.now() - a.cleared < 6e5) out.push({ kind: "recovered", id: a.entity_id + ".ok", rank: 45, a, figure: [reading(a), a.area] });
+  }
+  for (const d of House.devices) {
+    const press = () => House.toggle(d.id);
+    if (d.kind === "lock" && !d.on) out.push({ kind: "unlocked", id: d.id, rank: 90, d, press, figure: ["Open", d.name] });
+    if (d.kind === "switch" && d.on && d.watts >= 1000) out.push({ kind: "appliance", id: d.id, rank: 55, d, press, figure: [(d.watts / 1000).toFixed(1), "kilowatts"] });
+  }
+  const kind = lit.length >= 7 ? "ablaze" : lit.length ? "lights" : "dark";
+  out.push({ kind, id: kind, rank: { ablaze: 60, lights: 30, dark: 35 }[kind], n: lit.length, figure: [lit.length, lit.length === 1 ? "light on" : "lights on"],
+    press: lit.length ? () => lit.forEach((d) => House.toggle(d.id)) : null });
+  for (const room of House.rooms) if (room.temp < room.target - 0.8)
+    out.push({ kind: "cold", id: "cold." + room.id, rank: 25, room, short: (room.target - room.temp).toFixed(1), figure: [room.temp.toFixed(1) + "°", room.name] });
+  out.push({ kind: "power", id: "power", rank: 20, kw: (House.watts() / 1000).toFixed(2), battery: House.energy.battery, figure: [(House.watts() / 1000).toFixed(2), "kilowatts"] });
+  out.push({ kind: "weather", id: "weather", rank: 10, room: garden, figure: [garden.temp.toFixed(1) + "°", "outside"] });
+
+  return out.sort((a, b) => b.rank - a.rank);
 }
 
-let before = "";
+// ================= the voices =================
+// For each kind of story a voice gives a kicker, a headline, a deck, perhaps a paragraph,
+// and the wording of the button. `pick` chooses from a pool of wordings, and moves on each
+// time the story comes round again, so the same joke is not told twice running.
+const NUM = ["No", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve"];
+
+const VOICES = {
+  broadsheet: {
+    label: "Broadsheet", name: "The Casa Courier", strap: "", price: "Price: nothing", flash: "Stop press",
+    titles: { more: "Other news", briefs: "In brief", late: "Late news", temps: "The temperatures", board: "The switchboard", notices: "Notices" },
+    scenes: { evening: "Lamps lit at dusk, in the usual rooms. Apply within.", film: "Dim lights and one television. No talking.",
+      bedtime: "Everything out but the bedside. Sleep well.", away: "Nobody home. The porch light keeps watch." },
+    lede: (kw, battery) => `The house was drawing ${kw} kilowatts as we went to press, with the battery at ${battery} per cent.`,
+    join: (parts) => parts.join("; ") + ".",
+    words(d) {
+      const name = d.name.toLowerCase(), are = plural(d) ? "are" : "is";
+      if (d.kind === "light") return d.on ? `the ${lamp(d)} ${plural(d) ? "burn" : "burns"} at ${d.level} per cent` : `the ${lamp(d)} ${are} out`;
+      if (d.kind === "cover") return d.on ? `the ${name} ${plural(d) ? "stand" : "stands"} ${d.level} per cent open` : `the ${name} ${are} drawn`;
+      if (d.kind === "lock") return d.on ? `the ${name} is locked` : `the ${name} stands unlocked`;
+      return d.on ? `the ${name} ${are} running` : `the ${name} ${are} idle`;
+    },
+    wire: (a) => a.level === "ok" ? `${a.name}: all is well again.` : `${a.name}: ${a.message}`,
+    kinds: {
+      alert: ({ a }) => ({ kicker: a.level === "alarm" ? "Stop press" : "Late report", head: `${a.name} gives cause for ${a.level === "alarm" ? "alarm" : "concern"}`, deck: a.message,
+        body: `The reading stood at ${reading(a)} in the ${a.area.toLowerCase()} as this edition went to press, and the trouble dates from ${at(a.began)}.${a.escalated ? " Matters have worsened since our earlier report." : ""}` }),
+      recovered: ({ a }) => ({ kicker: "Resolved", head: `${a.name} returns to normal`, deck: `Calm is restored in the ${a.area.toLowerCase()} after ${mins(a.cleared - a.began)} of difficulty.` }),
+      unlocked: ({ d }) => ({ kicker: "Security", head: `${d.name} found unlocked`, deck: `${d.room.name} in uproar as the household is urged to turn the key.`, act: "Lock it" }),
+      appliance: ({ d }) => ({ kicker: "Industry", head: `${d.name} draws ${(d.watts / 1000).toFixed(1)} kilowatts`, deck: `${d.room.name} sources confirm that the meter is spinning in a good cause.`, act: "Switch it off" }),
+      ablaze: ({ n }) => ({ kicker: "Economy", head: "House ablaze with light", deck: `With ${(NUM[n] ?? n).toString().toLowerCase()} lamps burning at once, questions are asked about the bill.`, act: "Put them all out" }),
+      lights: ({ n }) => ({ kicker: "Home affairs", head: `${NUM[n] ?? n} ${n === 1 ? "light" : "lights"} still burning at this hour`, deck: "The remainder of the house is reported quiet and in good order.", act: n === 1 ? "Put it out" : "Put them out" }),
+      dark: () => ({ kicker: "Home affairs", head: "Darkness falls on entire household", deck: "Not one lamp is left burning, our correspondent reports from the landing." }),
+      cold: ({ room, short }) => ({ kicker: "Climate", head: `${room.name} falls short of its target`, deck: `At ${room.temp.toFixed(1)}°, the room is ${short} degrees below what was asked of it.` }),
+      power: ({ kw, battery }) => ({ kicker: "Energy", head: `House draws ${kw} kilowatts`, deck: `The battery stands at ${battery} per cent.` }),
+      weather: ({ room }) => ({ kicker: "Outlook", head: `${room.temp.toFixed(1)}° in the garden`, deck: `Humidity ${room.humidity} per cent. ${room.temp < 12 ? "A coat is advised." : "Fair."}` }),
+    },
+  },
+
+  tabloid: {
+    label: "Red-top", name: "Daily Fuse", strap: "The paper that's always switched on", price: "Still FREE!", flash: "Breaking",
+    titles: { more: "Also today", briefs: "Quick ones", late: "Latest", temps: "Hot or not", board: "Flick a switch", notices: "Do it now" },
+    scenes: { evening: "Lamps on, feet up.", film: "Lights down. Telly on. Shhh!", bedtime: "Everything off. Night night!", away: "We're out. Porch light's in charge." },
+    lede: (kw, battery) => `The meter's spinning at ${kw}kW and the battery's on ${battery}%. Here's who's to blame.`,
+    join: (parts) => parts.join(" • "),
+    words(d) {
+      if (d.kind === "light") return d.on ? `${lamp(d)} ON at ${d.level}%` : `${lamp(d)} off`;
+      if (d.kind === "cover") return d.on ? `${d.name.toLowerCase()} ${d.level}% open` : `${d.name.toLowerCase()} shut`;
+      if (d.kind === "lock") return d.on ? `${d.name.toLowerCase()} locked` : `${d.name.toLowerCase()} UNLOCKED!`;
+      return d.on ? `${d.name.toLowerCase()} ON` : `${d.name.toLowerCase()} off`;
+    },
+    wire: (a) => a.level === "ok" ? `${a.name}: PANIC OVER` : `${a.name}: ${a.level.toUpperCase()}!`,
+    kinds: {
+      alert: ({ a }, pick) => ({ kicker: a.level === "alarm" ? "Red alert" : "Uh-oh",
+        head: pick({ temperature: ["Meltdown!", "Hot stuff", "Too hot to handle"], moisture: ["Sink or swim", "What a drip", "Leak shock"], opening: ["Open season", "Draught dodgers", "Wide open"] }[a.kind]
+          ?? [`${a.name} shock`, `${a.name} drama`, "It's all kicking off"]),
+        deck: a.message, body: `It's ${reading(a)} in the ${a.area.toLowerCase()} and it's been going on since ${at(a.began)}.${a.escalated ? " And it's getting WORSE." : ""}` }),
+      recovered: ({ a }, pick) => ({ kicker: "Phew", head: pick(["Panic over", "And relax", "Stand down"]), deck: `${a.name} back to normal after ${mins(a.cleared - a.began)} of drama.` }),
+      unlocked: ({ d }, pick) => ({ kicker: "Exclusive", head: pick(["Lock shock", "Come on in!", "Open house"]), deck: `${d.name} left UNLOCKED as household carries on regardless.`, act: "Lock it NOW" }),
+      appliance: ({ d }, pick) => ({ kicker: "Power mad", head: pick(["Full steam ahead", "Watt a whopper", "Going large"]), deck: `${d.name} guzzles ${(d.watts / 1000).toFixed(1)}kW in ${d.room.name.toLowerCase()} power binge.`, act: "Pull the plug" }),
+      ablaze: ({ n }, pick) => ({ kicker: "Bill shock", head: pick(["Lit up like a Christmas tree", "Who's paying for this?", "Blaze of glory"]), deck: `${n} lights on AT ONCE in bill-busting bonanza.`, act: "Kill the lights" }),
+      lights: ({ n }, pick) => ({ kicker: "Still on", head: pick([`${n} and counting`, "Left on again", "Switched on"]), deck: `${n} ${n === 1 ? "light burns" : "lights burn"} while the meter ticks.`, act: "Kill the lights" }),
+      dark: (s, pick) => ({ kicker: "Blackout", head: pick(["Lights out!", "Dark days", "Who turned out the lights?"]), deck: "Not a single bulb on in the WHOLE house." }),
+      cold: ({ room, short }, pick) => ({ kicker: "Chilly", head: pick(["Brrr!", "Cold comfort", "Frozen out"]), deck: `${room.name} shivers at ${room.temp.toFixed(1)}°, a full ${short}° short.` }),
+      power: ({ kw, battery }, pick) => ({ kicker: "Kerching", head: pick(["Watt a carry on", "Meter madness", "Power trip"]), deck: `House burns ${kw}kW with the battery on ${battery}%.` }),
+      weather: ({ room }, pick) => ({ kicker: "Weather", head: pick(room.temp < 5 ? ["Big freeze"] : room.temp < 12 ? ["Coat weather", "Bit nippy", "Grey day"] : room.temp > 24 ? ["What a scorcher"] : ["Not bad out"]),
+        deck: `${room.temp.toFixed(1)}° in the garden, ${room.humidity}% humidity.` }),
+    },
+  },
+};
+
+// ================= the press =================
+const $ = (id) => document.getElementById(id);
+// A span, not a <button>: a button cannot break across lines, and these sit inside sentences.
+const fact = (d, text) => `<span class="fact" role="button" tabindex="0" data-id="${d.id}">${text}</span>`;
+const turn = new Map();
+let voice, running = [], showing = new Set();
+
 function paint() {
-  const [head, deck] = headline(), kw = House.watts() / 1000;
-  const el = document.getElementById("headline");
-  if (el.textContent !== head) { el.textContent = head; el.classList.remove("changed"); void el.offsetWidth; el.classList.add("changed"); }
-  document.getElementById("deck").textContent = deck;
-  document.getElementById("copy").innerHTML = `<p>The house was drawing ${kw.toFixed(2)} kilowatts as we went to press, with the battery at ${House.energy.battery} per cent.</p>` +
-    House.rooms.map((r) => `<p><b>${r.name}.</b> ${sentence(r.devices.map(clause))}</p>`).join("");
-  document.getElementById("temps").innerHTML = House.rooms.map((r) =>
-    `<tr><td>${r.name}</td><td>${r.temp.toFixed(1)}° ${r.temp < r.target - 0.5 ? "▼" : r.temp > r.target + 0.5 ? "▲" : "="}</td></tr>`).join("");
-  document.getElementById("grid").innerHTML = House.rooms.map((r) => `<span>${r.name}</span>` +
-    [0, 1].map((i) => { const d = House.lights(r)[i]; return d ? `<button data-id="${d.id}" class="${d.on ? "on" : ""}" aria-label="${r.name} ${d.name}" title="${d.name}"></button>` : "<span></span>"; }).join("")).join("");
-  before = head;
+  running = stories();
+  // A story that was not in the last edition takes the next wording from its pools.
+  for (const s of running) if (!showing.has(s.id)) turn.set(s.id, (turn.get(s.id) ?? -1) + 1);
+  showing = new Set(running.map((s) => s.id));
+
+  const told = running.map((s) => ({ ...voice.kinds[s.kind](s, (pool) => pool[turn.get(s.id) % pool.length]), s }));
+  const button = (t, i) => t.act && t.s.press ? `<button class="act" data-story="${i}">${t.act}</button>` : "";
+  const [lead, ...rest] = told;
+
+  // Breaking news: the worst alert on the wire, across the top for as long as it holds.
+  const alert = told.find((t) => t.s.kind === "alert"), banner = $("breaking");
+  banner.hidden = !alert;
+  if (alert) banner.innerHTML = `<b>${voice.flash}</b>${alert.head}${/[!?]$/.test(alert.head) ? "" : ":"} ${alert.deck}`;
+  if (fresh) { banner.classList.remove("fresh"); void banner.offsetWidth; banner.classList.add("fresh"); fresh = false; }
+
+  const old = $("splash").querySelector("h2")?.textContent;
+  $("splash").innerHTML = `<div class="figure"><b>${lead.s.figure[0]}</b><span>${lead.s.figure[1]}</span></div>
+    <p class="kicker">${lead.kicker}</p><h2 class="${old && old !== lead.head ? "changed" : ""}">${lead.head}</h2><p class="deck">${lead.deck}</p>${button(lead, 0)}
+    <div class="copy">${lead.body ? `<p>${lead.body}</p>` : ""}<p>${voice.lede((House.watts() / 1000).toFixed(2), House.energy.battery)}</p>${
+      House.rooms.map((r) => `<p><b>${r.name}.</b> ${voice.join(r.devices.map((d, i) => fact(d, i ? voice.words(d) : cap(voice.words(d)))))}</p>`).join("")}</div>`;
+
+  $("more").innerHTML = rest.slice(0, 3).map((t, i) => `<div class="item"><p class="kicker">${t.kicker}</p><h4>${t.head}</h4><p>${t.deck}</p>${button(t, i + 1)}</div>`).join("");
+  $("t-briefs").hidden = rest.length <= 3;
+  $("briefs").innerHTML = rest.slice(3).map((t) => `<li><b>${t.head}.</b> ${t.deck}</li>`).join("");
+  $("late").innerHTML = late.slice(0, 6).map((l) => `<li><time>${at(l.time)}</time>${l.alert ? voice.wire(l.alert) : `${l.d.room.name}: ${voice.words(l.d)}`}</li>`).join("")
+    || "<li>Nothing has happened yet.</li>";
+  $("temps").innerHTML = House.rooms.map((r) => `<tr><td>${r.name}</td><td>${r.temp.toFixed(1)}° ${r.temp < r.target - 0.5 ? "▼" : r.temp > r.target + 0.5 ? "▲" : "="}</td></tr>`).join("");
+  $("board").innerHTML = House.rooms.map((r) => `<div class="row"><span>${r.name}</span>${
+    r.devices.map((d) => `<button class="chip ${d.on ? "on" : ""}" data-id="${d.id}" aria-pressed="${d.on}">${d.name}</button>`).join("")}</div>`).join("");
+}
+
+// Putting on a different paper: the masthead and section titles change once, here.
+function dress(style) {
+  voice = VOICES[style];
+  document.body.dataset.style = style;
+  history.replaceState(null, "", "?style=" + style);
+  $("name").textContent = voice.name; $("strap").textContent = voice.strap; $("price").textContent = `${voice.price} · ${at(Date.now())}`;
+  for (const [key, title] of Object.entries(voice.titles)) $("t-" + key).textContent = title;
+  $("styles").innerHTML = Object.entries(VOICES).map(([id, v]) => `<button data-style="${id}" aria-pressed="${id === style}">${v.label}</button>`).join("");
+  $("notices").innerHTML = House.scenes.map((s) => `<button class="ad" data-scene="${s.id}"><b>${s.name}</b>${voice.scenes[s.id]}</button>`).join("");
+  showing = new Set();
+  paint();
 }
 
 document.body.addEventListener("click", (e) => {
-  const hit = e.target.closest("[data-id], [data-scene]");
-  if (hit?.dataset.id) House.toggle(hit.dataset.id);
-  if (hit?.dataset.scene) House.scene(hit.dataset.scene);
+  const hit = e.target.closest("button, [role=button]")?.dataset ?? {};
+  if (hit.id) House.toggle(hit.id);
+  if (hit.scene) House.scene(hit.scene);
+  if (hit.story) running[hit.story].press();
+  if (hit.style) dress(hit.style);
+  if (hit.sensor) {
+    // The mock-up's own: step the sensor on, and send what Sensor Watch would send.
+    const sensor = SENSORS[hit.sensor], [previous] = sensor.steps[sensor.at ?? 0];
+    sensor.at = ((sensor.at ?? 0) + 1) % sensor.steps.length;
+    const [level, value, message] = sensor.steps[sensor.at];
+    receive({ entity_id: sensor.id, name: sensor.name, area: sensor.area, unit: sensor.unit, level, previous, value, message, escalated: previous !== "ok" && level !== "ok", since: Date.now() });
+  }
 });
-document.getElementById("ads").innerHTML = House.scenes.map((s) => `<button class="ad" data-scene="${s.id}"><b>${s.name}</b>${ADS[s.id]}</button>`).join("");
-document.getElementById("date").textContent = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-document.getElementById("price").textContent = `Late edition · ${new Date().toTimeString().slice(0, 5)}`;
 
-House.on(paint);
-paint();
+addEventListener("keydown", (e) => { if ((e.key === "Enter" || e.key === " ") && e.target.matches("[role=button]")) { e.preventDefault(); e.target.click(); } });
+$("date").textContent = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+$("mock").innerHTML = "Mock-up only. Send the event that Sensor Watch would:" + SENSORS.map((s, i) => `<button data-sensor="${i}">${s.name}</button>`).join("");
+// A snapshot of the device as it was, so the late news still reads right after it changes again.
+House.on((d) => { late.unshift({ time: Date.now(), d: { ...d } }); paint(); });
+dress(VOICES[new URLSearchParams(location.search).get("style")] ? new URLSearchParams(location.search).get("style") : "broadsheet");
 </script>
 </body>
 </html>

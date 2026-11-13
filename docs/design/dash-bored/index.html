@@ -45,7 +45,7 @@ const PAGES = [
   ["textmode", "Text Mode", "Sketch", "An 80 by 25 character worksheet driven from the keyboard, on a choice of four tubes: business blue, green, amber and white phosphor."],
   ["arcade", "Arcade", "Sketch", "A fixed-shooter cabinet. Devices hang in formation by room; aim and fire to switch one."],
   ["maze", "Moth", "Sketch", "The house as a maze. Press a lamp and a moth flies to it through the doorways and switches it."],
-  ["gazette", "Gazette", "Sketch", "A newspaper front page that rewrites its headline and reports as the house changes. Every underlined fact can be pressed."],
+  ["gazette", "Gazette", "Sketch", "The house as a newspaper. Stories are ranked, so what matters most leads; a Sensor Watch alert is breaking news. Two papers from the same stories: a broadsheet and a red-top. One column on a phone."],
 ];
 document.getElementById("grid").innerHTML = PAGES.map(([file, name, level, text]) => `<a href="${file}.html">
   <div class="thumb"><iframe src="${file}.html" loading="lazy" tabindex="-1" title="${name}"></iframe></div>

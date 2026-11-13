@@ -1,0 +1,13 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Dash-Bored",
+        "description": "Adds a Dash-Bored page to the sidebar: your house as a newspaper, written from your areas and the lights, switches, covers and locks in them. Nothing needs setting up. The same page is available as a dashboard card, Dash-Bored Gazette."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Dash-Bored is already set up."
+    }
+  }
+}

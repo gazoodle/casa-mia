@@ -2,6 +2,27 @@
 
 Not scheduled. Sections are in order of their latest change; newest ideas first within each. Move an item into the README or code when it is started, and remove it when it is done. The headline ideas are also in the README's "What does the future hold?": keep the two in step.
 
+## Dash-Bored (in development)
+
+Started 2026-11-13 (2026.11.8-b1) with the Gazette. HANDOVER has how it is built; the
+mock-ups are in `docs/design/dash-bored/`. What's next, in the order the owner gave:
+
+- **Gazette, to finish it** (asked 2026-11-13): see it on the owner's house and a wall
+  tablet; levels (dim a light, part-open a blind); a detail view and history in the
+  paper's own style in place of Home Assistant's dialog; thermostats, media players and
+  cameras as devices; a third paper in the style of a rolling news site (a voice and a
+  block of CSS); which rooms and devices appear and their order; brand images.
+- **Configurable wording** (asked 2026-11-13, "future"): the jokes and sentences. The
+  voices are data so this needs a place to keep the owner's text and a page to edit it.
+  Other languages go the same way.
+- **Bakelite, then Fridge** (asked 2026-11-13): the next two families. Bakelite needs
+  its whole control kit drawn, and a chart recorder on sepia paper for history (the
+  owner's idea). Fridge needs drawn magnets in place of the mock-up's emoji, and could
+  use each area's own picture for its polaroid.
+- **The showpieces** (owner, 2026-11-13: "we're not leaving it behind"): Contraption, and
+  Movement, which ran at 60 fps on the owner's iPad.
+- **Publish it by itself** once it is past In development, as Sensor Watch is.
+
 ## Sensor Watch (beta)
 
 Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it does. What's next:
