@@ -1,0 +1,120 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Love it or Loathe it",
+        "description": "Choose the media players to watch. After this, add your groups of songs and the stations to switch to on the integration's page.",
+        "data": {
+          "players": "Media players to watch",
+          "delay": "Delay"
+        },
+        "data_description": {
+          "players": "Any player that reports the title of what it is playing. For speakers playing as one group, only the group's leader acts.",
+          "delay": "Seconds to wait after a player reports a new track before acting. Leave it at 0 unless the title changes before the song does."
+        }
+      }
+    },
+    "abort": { "single_instance_allowed": "Love it or Loathe it is already set up." }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Media players to watch",
+        "data": {
+          "players": "Media players to watch",
+          "delay": "Delay"
+        },
+        "data_description": {
+          "players": "Any player that reports the title of what it is playing. For speakers playing as one group, only the group's leader acts.",
+          "delay": "Seconds to wait after a player reports a new track before acting. Leave it at 0 unless the title changes before the song does."
+        }
+      }
+    }
+  },
+  "config_subentries": {
+    "group": {
+      "entry_type": "Group of songs",
+      "initiate_flow": {
+        "user": "Add a group of songs",
+        "reconfigure": "Change this group"
+      },
+      "step": {
+        "user": {
+          "title": "A group of songs",
+          "description": "Songs you love or loathe, and what to do when one comes on. The group gets a switch of its own, so an automation can turn it on and off.",
+          "data": {
+            "name": "Name",
+            "kind": "These are songs I",
+            "library": "Shipped list",
+            "patterns": "Songs",
+            "action": "When one comes on",
+            "amount": "Volume change",
+            "minutes": "Minutes on the other station"
+          },
+          "data_description": {
+            "library": "A ready-made list to include. Your own groups come first: a song named in any group's Songs box is that group's, whatever a shipped list says.",
+            "patterns": "One per line: a title, or a title and an artist as Title | Artist. Use * for anything, for example *love* or * | Cliff Richard. Capitals and punctuation don't matter.",
+            "amount": "For Change the volume: a percentage of the volume at the time, so 10 turns it up a tenth and -50 halves it. It is put back at the next track.",
+            "minutes": "For Switch station: how long to stay away before going back."
+          }
+        }
+      },
+      "error": {
+        "bad_pattern": "A line of nothing but * would match every song. Remove it or add a title or an artist.",
+        "no_patterns": "Add at least one song, or choose a shipped list.",
+        "no_stations": "Add a station to switch to first, from the integration's page."
+      },
+      "abort": { "reconfigure_successful": "Saved." }
+    },
+    "station": {
+      "entry_type": "Station",
+      "initiate_flow": {
+        "user": "Add a station",
+        "reconfigure": "Change this station"
+      },
+      "step": {
+        "user": {
+          "title": "A station to switch to",
+          "description": "Somewhere to go when a loathed song comes on. Stations are tried in the order they were added, skipping the one that is playing.",
+          "data": {
+            "name": "Name",
+            "media": "What to play"
+          },
+          "data_description": {
+            "media": "Choose a player to browse on, then the station. The station is then played on whichever player needs it."
+          }
+        }
+      },
+      "abort": { "reconfigure_successful": "Saved." }
+    }
+  },
+  "selector": {
+    "kind": {
+      "options": { "love": "Love", "loathe": "Loathe" }
+    },
+    "action": {
+      "options": {
+        "volume": "Change the volume until the next track",
+        "mute": "Mute until the next track",
+        "switch": "Switch station for some minutes",
+        "event": "Only fire the event"
+      }
+    }
+  },
+  "entity": {
+    "sensor": { "last_match": { "name": "Last match" } }
+  },
+  "issues": {
+    "restart_required": {
+      "title": "Restart Home Assistant to finish updating Love it or Loathe it",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Restart Home Assistant",
+            "description": "The Love it or Loathe it integration was updated from {from_version} to {to_version}, but Home Assistant is still running {from_version}. Until it restarts, nothing new in {to_version} works. Restart Home Assistant to load it."
+          }
+        }
+      }
+    }
+  }
+}

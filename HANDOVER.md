@@ -25,6 +25,7 @@ keys in brackets; some keep older names):
 - **Cameras, Camera Commander, Auto Dashboards** (`compositor_enabled`,
   `camera_dashboard_enabled`): see "The camera modules" below.
 - **Sensor Watch:** see "Sensor Watch" below. Beta.
+- **Love it or Loathe it:** see "Love it or Loathe it" below. In development.
 - **Guest login** (`guest_login_enabled`): see "Guest login" below. Security is by limiting
   what a code is worth (closed, signed out), not by locking HA down; the guide says why
   (xkcd).
@@ -137,6 +138,29 @@ from `casa_mia` and works with no app. No app option: a user adds the integratio
     shows only when Sensor Watch answers.
 - **Tests:** `tests/test_sensor_watch_*.py` (no HA), and `tests_ha/` inside a real Home
   Assistant: added by hand, the handover, the old names.
+
+## Love it or Loathe it
+
+Its own integration, `casa_mia_love_or_loathe`, since 2026.11.7-b2 (design agreed with the
+owner, 2026-11-13). Standalone like Sensor Watch: wholly in Home Assistant, nothing
+imported from `casa_mia`, no app option. Guide: `docs/applets/love-or-loathe.md`.
+
+- **Config:** one entry (the players, a delay) with a subentry per group of songs and
+  per station (`config_flow.py`, HA's own add, change and delete screens). A group's
+  device and switch belong to its subentry; HA refuses a device shared between an entry
+  and its subentries.
+- **`pure.py`** (no HA imports): folding, patterns (`title` or `title | artist`, `*`),
+  `pick` (every group's own patterns before any shipped library). Libraries are JSON in
+  `library/`; `christmas.json` is the first.
+- **`engine.py`:** follows `state_changed` on the players (pushed). At a new track it
+  undoes the last action, then acts: volume by a percentage or mute until the next
+  track, or a switch of station for some minutes. `undo` and `away` are kept in HA's
+  storage, so a restart loses neither; unloading puts volumes and mutes back at once.
+  It never puts back over a person's change.
+- **Not yet proven on a real player** (2026-11-13): only inside the test Home Assistant,
+  with caught services. To watch on the first real one: what `media_content_id` it
+  reports for a station (`_settle` and `_switch` depend on it).
+- **Tests:** `tests/test_love_or_loathe.py` (matching), `tests_ha/test_love_or_loathe.py`.
 
 ## Guest login
 
@@ -262,6 +286,9 @@ CLAUDE.md has them all. What trips agents here:
 
 ## What happened
 
+- **2026-11-13: Love it or Loathe it built** (2026.11.7-b2, not committed or deployed
+  when written). See its section above. Left for later in BACKLOG: the fade, and the
+  house's own radio station as one of its stations.
 - **2026-11-11: the Camera Commander's Responsive layout is specified, not built**
   (`docs/design/commander-responsive-layout.md`, agreed by the owner): a second mode
   beside today's (now called Fixed), in which the layout is worked out for each size from

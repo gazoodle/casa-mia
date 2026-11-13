@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.7-b2
+
+- **New: Love it or Loathe it**, an integration of its own (add it under Settings → Devices & services; it needs neither the app nor the Casa Mia integration). It watches the title and artist your chosen media players report against your groups of songs. When a song in a group comes on it can change the volume by a percentage until the next track, mute until the next track, switch to another station for some minutes and then go back, or only fire the `casa_mia_love_or_loathe` event. Each group has a switch, so an automation can turn it on and off. A list of Christmas songs is shipped. The stations to switch to are your own list. In development: [its guide](https://github.com/gazoodle/casa-mia/blob/main/docs/applets/love-or-loathe.md) says what it can't do yet.
+
 ## 2026.11.7-b1
 
 - **Cameras: the size of a camera's full screen buttons is now a slider.** **Size** under **Controls on a full screen** was a choice of Small, Medium or Large. It is now a slider for the buttons' height, from 24 px to 96 px in steps of 8. Small, Medium and Large were 40, 56 and 72 px, and a camera saved with one of them keeps that height. Under about 44 px a button is hard to hit with a finger.
