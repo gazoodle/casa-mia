@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import logging
 from collections.abc import Callable
@@ -184,6 +185,39 @@ def admin_api(
         return fail(404, "not found")
 
     return handle
+
+
+def picture(live: Compositor) -> Callable[[dict[str, list[str]]], dict[str, Any]]:
+    """What the integration fetches at GET /compositor/picture?camera=<entity>
+    [&fresh=<seconds>][&w=<px>]: the largest picture the cache holds of that camera (or
+    of the camera that channel is of), if it came in the last `fresh` seconds, `w` wide
+    and in base64, with its age. For whoever wants a photograph of what a camera sees now
+    without asking the camera again. {"picture": None, "why": …} when there is none so
+    new, which is the usual answer for a camera no watched commander shows."""
+
+    def read(query: dict[str, list[str]]) -> dict[str, Any]:
+        def asked(key: str, default: float) -> float:
+            try:
+                return float((query.get(key) or [default])[0])
+            except ValueError:
+                return default
+
+        camera = (query.get("camera") or [""])[0]
+        fresh, width = asked("fresh", 5.0), int(max(32, min(asked("w", 960), 1920)))
+        found = live.gather.recent(camera, fresh)
+        if found is None:
+            why = f"no picture of {camera} in the last {fresh:g} s"
+            return {"picture": None, "why": why}
+        made = live.gather.thumb(found[0], width, True, found[1])
+        if made is None:
+            return {"picture": None, "why": f"the picture of {camera} can't be read"}
+        return {
+            "picture": base64.b64encode(made).decode(),
+            "type": mime(made),
+            "age": round(found[2], 2),
+        }
+
+    return read
 
 
 def control(live: Compositor, draft: Compositor | None) -> Callable[[str, bytes], int]:

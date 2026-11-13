@@ -128,6 +128,14 @@
         "message": { "name": "Message", "description": "The text, up to 160 characters." }
       }
     },
+    "camera_picture": {
+      "name": "Camera picture",
+      "description": "A camera's latest picture from Camera Commander's compositor, without asking the camera again. Use it with a response variable: `picture` is the JPEG in base64, with its `type` and its `age` in seconds. `picture` is empty, and `why` says so, when the compositor has none that new, which is usual for a camera that no commander being watched shows.",
+      "fields": {
+        "entity_id": { "name": "Camera", "description": "The camera, by any of its channels' entities." },
+        "fresh": { "name": "No older than", "description": "The oldest the picture may be, in seconds." }
+      }
+    },
     "check_plate": {
       "name": "Check number plate",
       "description": "Whether a car with this number plate may open the gates, as set on Casa Mia's People page. Use it with a response variable: `allowed` is true or false, `who` is the person's name and `reason` says why it was refused.",

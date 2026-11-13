@@ -72,6 +72,13 @@ It works with any camera whose detections are entities on the same device as the
 entity, which is how UniFi Protect and Frigate set theirs up. The sort of detection is told
 from English words in the detection's name.
 
+If you run the Casa Mia app with Camera Commander, Dash-Bored first asks it for the
+picture. Camera Commander is already fetching the cameras that its commanders show, at
+their streams' full size, so a picture it has from the last five seconds is used and the
+camera is not asked again. A camera that no commander being watched shows has no picture
+that new, and is asked directly. Home Assistant's log says where each photograph came
+from.
+
 Each such camera gets one new entity on its device, an image called **Last sighting**. It
 holds the latest photograph and the sort of sighting, and you can use it on any other
 dashboard. Things to know:

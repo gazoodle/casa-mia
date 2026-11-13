@@ -7,6 +7,11 @@ the picture and pushes the change.
 
 Plain motion takes no photograph: in a house with many cameras it would never stop.
 
+Where Casa Mia's app is running, its compositor is already fetching the cameras that
+its commanders show, at their streams' full size: a picture it has from the last few
+seconds is used, and the camera is asked only when it has none. The two meet through a
+Home Assistant service and nothing else, so this works the same with no app.
+
 Kept in memory, the latest for each camera and no more: after a restart there is no
 sighting until the next detection. Any brand of camera, as long as its detections are
 entities on the same device as its camera entity.
@@ -14,6 +19,8 @@ entities on the same device as its camera entity.
 
 from __future__ import annotations
 
+import base64
+import binascii
 import logging
 import re
 from datetime import datetime
@@ -49,6 +56,10 @@ SOUNDS = {"alarm", "horn", "siren"}
 APART = 5
 WIDTH = 960  # pixels: wide enough for the front page, small enough to keep many
 TIMEOUT = 10  # seconds for the camera to answer
+# Casa Mia's service that answers with a picture its compositor already holds, and the
+# oldest one worth having (s): the compositor's own default for how old a picture may be.
+CACHE = ("casa_mia", "camera_picture")
+FRESH = 5
 
 
 def kind_of(domain: str, name: str, device_class: str | None) -> str | None:
@@ -68,7 +79,33 @@ def kind_of(domain: str, name: str, device_class: str | None) -> str | None:
     return next((kind for kind, marks in KINDS.items() if words & marks), None)
 
 
-async def still(hass: HomeAssistant, camera_id: str) -> tuple[bytes, str]:
+async def cached(hass: HomeAssistant, camera_id: str) -> tuple[bytes, str] | None:
+    """The picture Casa Mia's compositor holds of a camera, if there is such a service
+    and it has one new enough. None otherwise, said in the log at DEBUG: the camera is
+    asked instead, so nothing is lost."""
+    if not hass.services.has_service(*CACHE):
+        return None
+    try:
+        got = await hass.services.async_call(
+            *CACHE,
+            {"entity_id": camera_id, "fresh": FRESH},
+            blocking=True,
+            return_response=True,
+        )
+        if not got or not got.get("picture"):
+            _LOGGER.debug("Casa Mia has no picture of %s: %s", camera_id, got)
+            return None
+        return base64.b64decode(str(got["picture"])), str(got["type"])
+    except (HomeAssistantError, KeyError, binascii.Error) as err:
+        _LOGGER.warning(
+            "Casa Mia's picture of %s could not be had, so the camera is asked: %s",
+            camera_id,
+            err,
+        )
+        return None
+
+
+async def from_camera(hass: HomeAssistant, camera_id: str) -> tuple[bytes, str]:
     """A picture from a camera now, and its content type."""
     # Imported here: the camera integration brings an image library with it, which a
     # house with no cameras need not load.
@@ -133,6 +170,7 @@ class Sighting(ImageEntity):
         self._kind = ""
         self._at: datetime | None = None
         self._photo: bytes | None = None
+        self._source = ""  # where the photograph came from, for the log
         self._attr_unique_id = f"sighting-{device.id}"
         # The camera's own device, as a helper's entity joins one: the pages find the
         # room there.
@@ -176,7 +214,9 @@ class Sighting(ImageEntity):
         if fresh:
             self._at = now  # before the wait, so that what comes during it is not fresh
             try:
-                self._photo, self._attr_content_type = await still(
+                held = await cached(self.hass, self._camera)
+                self._source = "Casa Mia" if held else "the camera"
+                self._photo, self._attr_content_type = held or await from_camera(
                     self.hass, self._camera
                 )
             except (HomeAssistantError, TimeoutError) as err:
@@ -186,5 +226,10 @@ class Sighting(ImageEntity):
                     "No photograph of the %s at %s: %s", kind, self._camera, err
                 )
             self._attr_image_last_updated = now
-        _LOGGER.info("Sighting at %s: %s", self._camera, kind)
+        _LOGGER.info(
+            "Sighting at %s: %s (photograph from %s)",
+            self._camera,
+            kind,
+            self._source if self._photo else "nobody",
+        )
         self.async_write_ha_state()

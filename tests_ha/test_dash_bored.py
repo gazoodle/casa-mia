@@ -14,6 +14,7 @@ from custom_components.casa_mia_dash_bored.const import (
 )
 from homeassistant.components import frontend
 from homeassistant.config_entries import SOURCE_USER, ConfigEntryState
+from homeassistant.core import SupportsResponse
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
@@ -239,7 +240,7 @@ async def shed(hass, monkeypatch):
             raise HomeAssistantError("the camera did not answer")
         return b"a photograph", "image/jpeg"
 
-    monkeypatch.setattr(sightings, "still", still)
+    monkeypatch.setattr(sightings, "from_camera", still)
     await set_up(hass)
     entity_id = entities.async_get_entity_id("image", DOMAIN, f"sighting-{device.id}")
     assert entity_id and entities.async_get(entity_id).device_id == device.id
@@ -312,3 +313,46 @@ async def test_a_camera_that_does_not_answer_is_told_with_no_photograph(
     state = hass.states.get(entity_id)
     assert state.attributes["kind"] == "person" and not state.attributes["photo"]
     assert "No photograph of the person at broken" in caplog.text
+
+
+async def test_casa_mias_picture_is_used_when_it_has_one_and_the_camera_when_not(
+    hass, monkeypatch, caplog
+):
+    """Casa Mia itself is not loaded: the two meet only through its service, which is
+    stood in for here."""
+    held: dict = {"picture": "ZnJvbSB0aGUgY2FjaGU=", "type": "image/png", "age": 1.2}
+    calls: list[dict] = []
+
+    async def camera_picture(call):
+        calls.append(dict(call.data))
+        if held.get("fail"):
+            raise HomeAssistantError("the app did not answer")
+        return held
+
+    hass.services.async_register(
+        *sightings.CACHE, camera_picture, supports_response=SupportsResponse.ONLY
+    )
+    asked, entity_id = await shed(hass, monkeypatch)
+
+    async def seen():
+        hass.data["image"].get_entity(entity_id)._at = None  # no wait between stills
+        hass.states.async_set("binary_sensor.shed_person", "off")
+        hass.states.async_set("binary_sensor.shed_person", "on")
+        await hass.async_block_till_done()
+        return hass.data["image"].get_entity(entity_id)
+
+    entity = await seen()
+    assert calls == [{"entity_id": "camera.shed_cam", "fresh": sightings.FRESH}]
+    assert (entity._photo, entity.content_type) == (b"from the cache", "image/png")
+    assert asked == [] and "photograph from Casa Mia" in caplog.text
+
+    # Nothing new enough there (a camera nobody is watching): the camera is asked.
+    held.update(picture=None, why="no picture in the last 5 s")
+    entity = await seen()
+    assert entity._photo == b"a photograph" and asked == ["camera.shed_cam"]
+
+    # And the same when the app does not answer, said aloud.
+    held.update(fail=True)
+    entity = await seen()
+    assert entity._photo == b"a photograph" and len(asked) == 2
+    assert "could not be had, so the camera is asked" in caplog.text

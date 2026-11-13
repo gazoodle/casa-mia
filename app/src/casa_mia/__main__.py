@@ -21,6 +21,7 @@ from .modules.compositor import (
     Gatherer,
     admin_api,
     control,
+    picture,
 )
 from .modules.fona import EVENT as FONA_EVENT
 from .modules.fona import Fona
@@ -302,6 +303,7 @@ def main() -> int:
             names=lambda: kiosks.names() if kiosks else {},
         )
         post_handlers["/compositor/"] = control(compositor, None)  # its buttons
+        reads["/compositor/picture"] = picture(compositor)  # the casa_mia service's
     else:
         modules["compositor"] = lambda: {"state": "disabled"}
     on_cards: list = []  # told when HA serves new cards (server.make_server)

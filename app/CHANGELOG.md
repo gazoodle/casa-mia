@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.8-b7
+
+- **Dash-Bored: photographs from Camera Commander's pictures, where it has them.** Camera Commander is already fetching the cameras that its commanders show, at their streams' full size. When Dash-Bored wants a photograph and Camera Commander has a picture of that camera from the last five seconds, that picture is used and the camera is not asked again. A camera that no commander being watched shows is asked as before. Home Assistant's log says where each photograph came from. Without the Casa Mia app nothing changes.
+- **A new action, Camera picture (`casa_mia.camera_picture`).** It answers with a camera's latest picture from Camera Commander, in base64 with its age, or says that it has none new enough. Dash-Bored uses it, and an automation can too.
+
 ## 2026.11.8-b6
 
 - **Dash-Bored: photographs from your cameras.** When a camera reports a person, a vehicle, an animal, somebody at the doorbell, or a smoke or carbon monoxide alarm heard, Dash-Bored takes a still from that camera at that moment. The Gazette prints it with a headline for ten minutes: a caller at the door near the top of the page, a person above the lights left on, a vehicle or an animal lower down. Pressing the photograph opens the camera. Plain motion takes no photograph.

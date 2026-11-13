@@ -316,7 +316,13 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   page finds the entities by platform (`OURS` in `house.ts`); `SEEN` in `stories.ts`
   ranks them. The still goes through `image.still`, which tests replace: the test Home
   Assistant can't import the camera integration (no turbojpeg). **Not seen:** any of it
-  on a real camera. Unknown until then: how often the owner's cameras report a person
+  on a real camera. **With the app** (owner's idea, 2026-11-13; 2026.11.8-b7): the
+  compositor's cache is asked first, through Home Assistant only, since Dash-Bored
+  stands alone: `Cache.recent` → the read `/compositor/picture` (`compositor/api.py`
+  `picture`) → the service `casa_mia.camera_picture` → `image.cached`, which falls
+  back to `from_camera`. The cache is new only for cameras a watched commander shows,
+  and UniFi Protect's own snapshot is 640 x 360 (the cache's `keep` says so), which is
+  the gain. Unknown until then: how often the owner's cameras report a person
   (is ten minutes right?) and how fast a still comes back. Not done: UniFi Protect's own
   event thumbnails (cropped to the person), cameras added after set-up.
 - **Brand** (2026.11.8-b5): a bored face on a tile, drawn by `tools/brand_children.py`.
