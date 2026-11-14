@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { plot } from "./recorder.ts";
+import { plot } from "./plot.ts";
 
 const at = (t: number, on: boolean, level?: number, away = false) => ({ at: t, on, level, away });
 

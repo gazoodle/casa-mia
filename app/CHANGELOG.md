@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.8-b31
+
+- **Dash-Bored: Bakelite's panel is split from its look.** What the panel does has moved to one place and what Bakelite draws to another, ready for the panel's other eras. Nothing on the page has changed.
+
 ## 2026.11.8-b30
 
 - **Dash-Bored: Bakelite's knobs are redrawn.** A fluted body shaded from the upper left, a domed cap in a metal ring and a white pointer line. The flutes and the pointer turn; the light on the knob and its shadow on the panel stay where they are.

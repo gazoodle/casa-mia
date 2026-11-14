@@ -27,6 +27,10 @@ the Gazette's own work is parked below it.
   and from a phosphor oscilloscope or television for pictures to a digital panel. They
   are to be designed with care, not rushed. Bakelite keeps its name, because it is
   distinctive. The mock-ups Board (1984) and Scope (1970s) are likely starting points.
+  The 1970s come next and the 1960s are skipped for now (owner, 2026-11-14). Its guarded
+  switches are chrome toggle switches under red flip-up covers, each with a pilot lamp,
+  after a picture the owner gave. Its design is to be agreed with him before any of it
+  is drawn, and its name before any code.
   How it would be built: another kit and stylesheet over `bakelite.ts`'s panel, as a new
   paper is another voice for the Gazette (my reading, not yet agreed).
 - **Fridge** (asked 2026-11-13): the family after Bakelite. It needs drawn magnets in

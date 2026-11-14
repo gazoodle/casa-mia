@@ -1,9 +1,10 @@
-// Bakelite's control kit: each control drawn once, as a function of what it shows. They
+// Bakelite's control kit, to the shape in ../kit.ts: each control drawn once, as a function of what it shows. They
 // are drawn after 1950s equipment: moving-coil meters, a valve that glows, a fluted
-// dimmer knob, tumbler ("dolly") switches and knife switches. bakelite.ts puts them on
+// dimmer knob, tumbler ("dolly") switches and knife switches. ../panel.ts puts them on
 // the panel and acts on what is pressed; styles.ts is their look and how they move.
 import { html, nothing, svg, type TemplateResult } from "lit";
 import { repeat } from "lit/directives/repeat.js";
+import { face } from "../kit.ts";
 
 /** The gradients the controls are filled with. Once in each shadow root that draws any. */
 export const DEFS = html`<svg class="defs" width="0" height="0" aria-hidden="true"><defs>
@@ -161,14 +162,6 @@ export const tv = (caption: string, picture: string, press: () => void) => html`
   ${label(caption)}
 </button>`;
 
-// A thumbwheel has eleven places round it: a blank, then the digits.
-const PLACES = 11;
-/** What a thumbwheel shows at a place: nothing at its blank, then the digits. A wheel's
- * place is counted on and on as it is turned, so any whole number is one. */
-export const face = (place: number) => {
-  const at = ((place % PLACES) + PLACES) % PLACES;
-  return at ? String(at - 1) : "";
-};
 const PITCH = 27; // px: from one digit to the next round the barrel (styles.ts sets the rest)
 // How far each wheel's digits sit off true, in px: no two the same, as on a worn padlock.
 const OFF = [0.9, -1.3, 0.4, 1.6, -0.7, -1.7];

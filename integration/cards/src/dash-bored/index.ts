@@ -1,11 +1,11 @@
 // Dash-Bored's bundle: its page in the sidebar (shell.ts), which shows one family of
 // dashboard at a time, and each family, which is also a dashboard card: the Gazette
-// (gazette.ts) and Bakelite (bakelite.ts). house.ts reads the house from Home Assistant
+// (gazette.ts) and Bakelite (console/bakelite.ts). house.ts reads the house from Home Assistant
 // for them all, and family.ts is what their elements are built on.
 // Built into the integration's own www/cards.js, since it works without Casa Mia's.
 import { offerReload } from "../connection.ts";
 import { define, register } from "../ha.ts";
-import { Bakelite, CARD as BAKELITE } from "./bakelite.ts";
+import { Bakelite, CARD as BAKELITE } from "./console/bakelite.ts";
 import { CARD, Gazette } from "./gazette.ts";
 import { PAGE, Shell } from "./shell.ts";
 

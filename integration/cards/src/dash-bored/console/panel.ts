@@ -1,22 +1,18 @@
-// Bakelite: the house as a 1950s instrument panel. A chassis for each room, with a valve
-// that glows with the room's lights, a meter for its temperature, a knob for each device
-// with a level that can be set, a tumbler switch for each that is only on or off, a
-// television screen for each camera and thumbwheels for an alarm. Scenes are knife
-// switches, Sensor Watch's alerts are lamps, and a room's history is a chart recorder
-// (bakelite/recorder.ts). It is built on what every family shares (family.ts), and draws
-// with the controls in bakelite/kit.ts.
+// The Console's panel, the same in every era: a chassis for each room, with a lamp that
+// glows with the room's lights, a meter for its temperature, a knob for each device with
+// a level that can be set, a switch for each that is only on or off, a screen for each
+// camera and thumbwheels for an alarm. Scenes are switches along the top, Sensor Watch's
+// alerts are lamps, and a room's history is a recorder. It is built on what every family
+// shares (../family.ts), and draws with its era's kit (kit.ts): Bakelite's is the 1950s.
 import { html, nothing } from "lit";
-import { fire } from "../ha.ts";
-import { widths } from "./bakelite/balance.ts";
-import { DEFS, dolly, face, jewel, knife, knob, label, meter, push, tv, valve, wheels } from "./bakelite/kit.ts";
-import { recorder } from "./bakelite/recorder.ts";
-import { STYLES } from "./bakelite/styles.ts";
-import { ALERTS, Family, SIGHTINGS } from "./family.ts";
-import { DEGREES, sighted, type Device, type Room, type Seen, type Sighting } from "./house.ts";
-import { recorded, type Change } from "./record.ts";
-import { NOMINAL, RANK, clock, flip, type Alert } from "./stories.ts";
+import { fire } from "../../ha.ts";
+import { ALERTS, Family, SIGHTINGS } from "../family.ts";
+import { DEGREES, sighted, type Device, type Room, type Seen, type Sighting } from "../house.ts";
+import { recorded, type Change } from "../record.ts";
+import { NOMINAL, RANK, clock, flip, type Alert } from "../stories.ts";
+import { widths } from "./balance.ts";
+import { face, type Kit } from "./kit.ts";
 
-export const CARD = "dash-bored-bakelite";
 const ALARM = "alarm_control_panel";
 const CAMERA = "camera";
 // Each kind's knob, for one whose level can be set: its class in styles.ts, and the word
@@ -46,8 +42,8 @@ function bearing(e: PointerEvent) {
   return (Math.atan2(e.clientY - (box.top + box.height / 2), e.clientX - (box.left + box.width / 2)) * 180) / Math.PI;
 }
 
-export class Bakelite extends Family {
-  static styles = STYLES;
+export class Panel extends Family {
+  protected kit!: Kit; // the era's controls: set by the era's own class
   static properties = { _want: { state: true }, _thrown: { state: true }, _armed: { state: true }, _code: { state: true }, _alerts: { state: true }, _seen: { state: true }, _chart: { state: true } };
   _want?: { id: string; level: number }; // where a knob was put, until its light says it is there
   _thrown = ""; // the scene whose knife switch is closed
@@ -140,6 +136,7 @@ export class Bakelite extends Family {
   private _alarm(d: Device) {
     const has = this._hass!.states[d.id]?.attributes ?? {};
     const stands = d.away ? "not answering" : d.phase === "triggered" ? "sounding" : (d.phase ?? (d.on ? "set" : "unset"));
+    const { label, push, wheels } = this.kit;
     const mine = this._code?.id === d.id ? this._code.wheels : Array<number>(WHEELS).fill(0);
     // The code is never logged, nor kept anywhere but on the wheels.
     const code = mine.map(face).join("");
@@ -250,6 +247,7 @@ export class Bakelite extends Family {
   }
 
   render() {
+    const { DEFS, dolly, jewel, knife, knob, label, meter, recorder, tv, valve } = this.kit;
     const house = this._house;
     if (!this._hass || !house) return html`<div class="panel">${label("Waiting for Home Assistant")}</div>`;
 

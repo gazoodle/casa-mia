@@ -284,8 +284,9 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   `_follow` for a feed, `_call`, `_ask`, `_fault` and `_lost`. Each family's element is
   also a dashboard card.
 - **Bakelite is the second family, begun** (owner, 2026-11-14: Bakelite now, the
-  newspapers' work to the backlog). `bakelite.ts` on `bakelite/kit.ts` (each control drawn
-  once, as a function) and `bakelite/styles.ts`, after `docs/design/dash-bored/bakelite.html`.
+  newspapers' work to the backlog). `console/panel.ts` is the panel, the same in every era; an era is a kit to the shape
+  in `console/kit.ts` and a stylesheet (`console/bakelite.ts` with `console/bakelite/`),
+  after `docs/design/dash-bored/bakelite.html`.
   It has lights, switches, covers, the guarded kinds (`SHOWN`; a guarded one takes two
   presses both ways, `_guarded`) and alarms (`_alarm`: thumbwheels for a code in digits,
   which is held only in `_code` and never logged); what's left is in BACKLOG. Knobs
@@ -293,10 +294,10 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   along the top (`_alerts`, straight from the feed, so in seconds). A meter is lit only
   while the connection is up. Since b30 every kind is on it: `_dial` works in a device's
   own span (per cent or degrees), a camera is a `tv` that shows its last sighting for
-  half an hour (`_seen`), and Chart opens a room's day (`bakelite/recorder.ts`, `plot`). Needles
+  half an hour (`_seen`), and Chart opens a room's day (`console/plot.ts`, drawn by the era's `recorder`). Needles
   swing by a CSS easing and waver smoothly by a CSS animation (owner, 2026-11-14: smooth, not in steps, and each
   meter's period from a prime so that none are in step: `BEATS` in kit.ts).
-  A chassis is one to three widths across (`bakelite/balance.ts`, `widths`): its sizes
+  A chassis is one to three widths across (`console/balance.ts`, `widths`): its sizes
   are a model of `styles.ts`, so change the two together.
   Seen on the test VM at desktop and phone widths, and by the owner on an iPad
   (2026-11-14), not yet on a wall tablet.

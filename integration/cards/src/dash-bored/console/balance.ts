@@ -4,7 +4,7 @@ export type Load = { knobs: number; dollies: number; alarms: number; tvs: number
 
 // What a chassis of each width has room for across, and the size of each control as
 // [width, height] with its plate and the gap beside it. They follow the sizes in
-// styles.ts: change them together.
+// bakelite/styles.ts: change them together. Every era keeps to these sizes.
 const ROOM = [140, 312, 484];
 const METER = [156, 185];
 const KNOB = [110, 140];
