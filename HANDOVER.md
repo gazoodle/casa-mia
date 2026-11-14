@@ -400,9 +400,7 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   come by a third feed: Love it or Loathe it fires `casa_mia_love_or_loathe_rated`
   (`rating.py` `told`), Dash-Bored's `personal.py` keeps the latest 20 for this run and
   feeds them (`casa_mia_dash_bored/personal`). `feed.py` `follow` is the subscription
-  all three feeds make; only `personal.py` uses it, since `alerts.py` and
-  `sightings.py` were written before it and moving them is a refactor for a commit of
-  its own. A voice's `personal` words it. Known: after a restart every person's
+  all four feeds make (`alerts.py` and `sightings.py` moved to it in 2026.11.8-b17). A voice's `personal` words it. Known: after a restart every person's
   `last_changed` is the restart's time, so each "arrives" then. The owner was told the
   column shows guests who is at home.
 - **A photograph's clipping, and the Amusements column** (owner's ideas, 2026-11-14;

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.8-b17
+
+- **Dash-Bored: its four feeds share one piece of code.** The alerts' and the sightings' feeds now subscribe a page the way the two newer feeds do. Nothing a page sees has changed.
+
 ## 2026.11.8-b16
 
 - **Dash-Bored: a photograph opens as a clipping.** Pressing a photograph in a story, in the last half hour's column or in a camera's clipping shows it large, as it was taken. Two fingers pinch it closer, one drags it, and a double tap or the mouse wheel zooms too. The camera as it is now is a press away, in Home Assistant's own dialog. Before, a press went straight to the camera, where what was photographed had already gone.

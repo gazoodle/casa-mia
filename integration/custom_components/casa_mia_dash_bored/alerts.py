@@ -12,7 +12,6 @@ is empty."""
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
 from typing import Any
 
 import voluptuous as vol
@@ -21,6 +20,7 @@ from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.util import dt as dt_util
 
 from .const import ALERTS, DOMAIN, NOMINAL, WATCH_EVENT
+from .feed import Send, follow
 
 _LOGGER = logging.getLogger(__name__)
 # What a page is told of an event: enough to write the story, and no more.
@@ -35,7 +35,7 @@ class Alerts:
 
     def __init__(self) -> None:
         self.latest: dict[str, dict[str, Any]] = {}
-        self.feeds: list[Callable[[dict[str, Any]], None]] = []
+        self.feeds: list[Send] = []
 
     @callback
     def take(self, event: Event) -> None:
@@ -86,14 +86,4 @@ def _ws_alerts(
 ) -> None:
     """Every alert held now, then each as it comes."""
     alerts: Alerts = hass.data[DOMAIN]
-
-    @callback
-    def send(alert: dict[str, Any]) -> None:
-        connection.send_message(websocket_api.event_message(msg["id"], [alert]))
-
-    alerts.feeds.append(send)
-    connection.subscriptions[msg["id"]] = lambda: alerts.feeds.remove(send)
-    connection.send_result(msg["id"])
-    connection.send_message(
-        websocket_api.event_message(msg["id"], list(alerts.latest.values()))
-    )
+    follow(connection, msg, alerts.feeds, alerts.latest.values())

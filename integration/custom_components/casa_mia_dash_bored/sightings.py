@@ -10,7 +10,6 @@ Kept in memory, for this run of Home Assistant only, and never more than MOST of
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
 from typing import Any
 
 import voluptuous as vol
@@ -21,6 +20,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN, SIGHTINGS
+from .feed import Send, follow
 
 _LOGGER = logging.getLogger(__name__)
 KEY = f"{DOMAIN}_sightings"
@@ -35,7 +35,7 @@ class Log:
     def __init__(self) -> None:
         self.items: dict[str, dict[str, Any]] = {}
         self.photos: dict[str, tuple[bytes, str]] = {}
-        self.feeds: list[Callable[[dict[str, Any]], None]] = []
+        self.feeds: list[Send] = []
 
     @callback
     def tell(self, item: dict[str, Any], photo: tuple[bytes, str] | None) -> None:
@@ -69,17 +69,7 @@ def _ws_sightings(
 ) -> None:
     """Every sighting held now, then each as it comes."""
     log: Log = hass.data[KEY]
-
-    @callback
-    def send(item: dict[str, Any]) -> None:
-        connection.send_message(websocket_api.event_message(msg["id"], [item]))
-
-    log.feeds.append(send)
-    connection.subscriptions[msg["id"]] = lambda: log.feeds.remove(send)
-    connection.send_result(msg["id"])
-    connection.send_message(
-        websocket_api.event_message(msg["id"], list(log.items.values()))
-    )
+    follow(connection, msg, log.feeds, log.items.values())
 
 
 class PhotoView(HomeAssistantView):
