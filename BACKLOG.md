@@ -5,7 +5,25 @@ Not scheduled. Sections are in order of their latest change; newest ideas first 
 ## Dash-Bored (in development)
 
 Started 2026-11-13 (2026.11.8-b1) with the Gazette. HANDOVER has how it is built; the
-mock-ups are in `docs/design/dash-bored/`. What's next, in the order the owner gave:
+mock-ups are in `docs/design/dash-bored/`. The owner is on Bakelite now (2026-11-14), and
+the Gazette's own work is parked below it.
+
+- **Bakelite, what's left** (first panel built in 2026.11.8-b23: lights, switches, scenes,
+  temperatures). The rest of its control kit needs drawing, a control for each kind the
+  Gazette knows: blinds, locks and the other guarded kinds (which must keep their two
+  presses), the heating, players, cameras and the rest. Then what the Gazette has that
+  it lacks: Sensor Watch's alerts, the cameras' sightings, a device's history (the owner's
+  idea: a chart recorder on sepia paper). The mock-up's needles trembled all the time;
+  the built ones only swing to a new reading. A chassis is as tall as its controls, so
+  short ones leave gaps in a row. Not yet seen on a tablet.
+- **The choice of family, further**: an address for each family, so that a tablet can be
+  fixed to one from its kiosk settings (offered 2026-11-14, not asked for). A scene made
+  without a unique id (in YAML, or by `scene.create`) is in no registry, so no family
+  shows it.
+- **Fridge** (asked 2026-11-13): the family after Bakelite. It needs drawn magnets in
+  place of the mock-up's emoji, and could use each area's own picture for its polaroid.
+
+**The Gazette, parked** (owner, 2026-11-14):
 
 - **The house's settings, further** (2026-11-14): the Configure dialog now holds the order
   of floors and rooms (2026.11.8-b19). Parked by the owner the same day ("Not yet"): the
@@ -21,10 +39,8 @@ mock-ups are in `docs/design/dash-bored/`. What's next, in the order the owner g
 - **Configurable wording** (asked 2026-11-13, "future"): the jokes and sentences. The
   voices are data so this needs a place to keep the owner's text and a page to edit it.
   Other languages go the same way.
-- **Bakelite, then Fridge** (asked 2026-11-13): the next two families. Bakelite needs
-  its whole control kit drawn, and a chart recorder on sepia paper for history (the
-  owner's idea). Fridge needs drawn magnets in place of the mock-up's emoji, and could
-  use each area's own picture for its polaroid.
+**After the families:**
+
 - **The showpieces** (owner, 2026-11-13: "we're not leaving it behind"): Contraption, and
   Movement, which ran at 60 fps on the owner's iPad.
 - **Publish it by itself** once it is past In development, as Sensor Watch is.
@@ -245,7 +261,7 @@ Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it d
 
 - **ProxyStick module** (asked 2026-10-16). Host ProxyStick's headless server (the `proxystick` package, a separate public repo) as a module, so an ESP32-S3 ProxyStick can present a folder under `/media` to a photo frame as a USB drive. A thin adapter (start, stop, health, its own port). Open: how the package reaches the box (a pip dependency from its GitHub URL for releases; for development, the Docker build reaching ProxyStick's fake git host).
 - **Entities Casa Mia makes: a registry** (asked 2026-10-11; name to agree; not "auto-entities", which is Thomas Lovén's card). One place that creates entities in HA for the other modules and records each: first the template helpers "Watch a template" needs. Created HA's own way (config flows over the websocket), labelled Casa Mia (and per module), listed on a page (what made it, whether anything uses it), removable in one go through HA's registries, never `.storage`, logged. Feeds "take it all out".
-- **Love it or Loathe it: what's left** (asked 2026-10-10; the integration was built in 2026.11.7, its page in Casa Mia in 2026.11.7-b6). **On the page** (agreed 2026-11-13, to follow the first build): a group's songs as rows with a search, delete a line, and which lines matched lately, in place of the one text box; and "who would take this?", a title and artist typed in to see which group wins and why. Also not on the page: adding or deleting an entry, and browsing for a station. **Docs: rating with ordinary dashboard buttons, step by step** (asked 2026-11-13): the guide has the buttons' YAML under "The action behind it", but not the walk-through given to the owner in chat: edit the dashboard, Add card, Manual, paste, put in your own player; the wall-tablet version with `person` and a pair of buttons per person; what a tap then does (the song added and taken out of the other list, the first tap making the group, the song acted on at once, a refusal shown with its reason); and when to use buttons in place of the thumbs card (a button already on a dashboard, an automation, a card that takes actions). A fade over to the other station instead of an immediate switch (a volume ramp either side of `play_media`). **Adverts** (owner, 2026-11-13: a nice-to-have, and only for a station that says so in its metadata, an "adbreak" or the like): today a track with no title is never matched, and a group can only match what the station reports as the title. More shipped lists beside the Christmas songs, as they are asked for. **Not this integration's:** the house's own radio station is a Casa Mia item (owner, 2026-11-13: never part of this integration); when it exists it is one more station to switch to, and the guide's opening already says so.
+- **Love it or Loathe it: what's left** (asked 2026-10-10; the integration was built in 2026.11.7, its page in Casa Mia in 2026.11.7-b6). **On the page** (agreed 2026-11-13, to follow the first build): a group's songs as rows with a search, delete a line, and which lines matched lately, in place of the one text box; and "who would take this?", a title and artist typed in to see which group wins and why. Also not on the page: adding or deleting an entry, and browsing for a station. **Collapsible sections** (asked 2026-11-14): each entry, and each section under it (Playing now, Groups of songs, Stations to switch to, What happened), folds away, remembered per section, using the compositor's `FoldArea` (`app/web/src/compositor/fold.tsx`, the shared `fold` styles in `ui.module.css`); move it out of the compositor if it is to be shared, never copy it. **Docs: rating with ordinary dashboard buttons, step by step** (asked 2026-11-13): the guide has the buttons' YAML under "The action behind it", but not the walk-through given to the owner in chat: edit the dashboard, Add card, Manual, paste, put in your own player; the wall-tablet version with `person` and a pair of buttons per person; what a tap then does (the song added and taken out of the other list, the first tap making the group, the song acted on at once, a refusal shown with its reason); and when to use buttons in place of the thumbs card (a button already on a dashboard, an automation, a card that takes actions). A fade over to the other station instead of an immediate switch (a volume ramp either side of `play_media`). **Adverts** (owner, 2026-11-13: a nice-to-have, and only for a station that says so in its metadata, an "adbreak" or the like): today a track with no title is never matched, and a group can only match what the station reports as the title. More shipped lists beside the Christmas songs, as they are asked for. **Not this integration's:** the house's own radio station is a Casa Mia item (owner, 2026-11-13: never part of this integration); when it exists it is one more station to switch to, and the guide's opening already says so.
 - **Entity clean-up: orphaned and disabled entities** (asked 2026-10-10). A page listing them by kind (orphaned, disabled, unavailable for N days), integration and device, with last seen; remove one or a selection after a confirmation. A service for automations, with a dry run. Through HA's entity registry (`config/entity_registry/remove`), never `.storage`, logged. Look at the AI-generated clean-up app the owner has used; fold in what's useful, respecting its licence.
 - **"What's eating your recorder space?"** (asked 2026-10-10). The recorder's database by entity: rows and bytes, the noisiest entities, growth, and what an `exclude` or `recorder.purge_entities` would save. Pairs with the clean-up.
 - **A doorbell that answers itself** (asked 2026-11-03). When nobody answers the doorbell, Casa Mia does: speech to text on the caller, a local AI (inference on the house's own hardware, no cloud) deciding what to say and do, and text to speech back through the doorbell. It helps callers in place of the family: tells a delivery driver where to leave a parcel and opens the gates for them, takes a message, says nobody's in. Open: which doorbells give two-way audio to HA (UniFi Protect's talkback, others), the speech engines and the model and where they run, what the AI may do (open the gates? only for a delivery it can check against an expected order?), how it hands over to the family (a notification with the live conversation, take over by voice), and how every call is logged with its transcript. Shares the audio plumbing with "FONA voice calls into the voice assistant" and the gate action with `casa_mia.check_plate`.

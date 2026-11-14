@@ -271,10 +271,24 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   gallery; `house.js` the house). The owner chose three families to build out: Gazette,
   Bakelite and Fridge, in that order, for the family first and the community after.
   Movement (a watch movement in three.js) and Contraption are the showpieces, not built.
-- **Gazette is the first family, and the only one built.** One element,
-  `dash-bored-gazette` (`integration/cards/src/dash-bored/`, its own `www/cards.js`): it
-  is the sidebar's page (`panel_custom`, not in a frame, for every user) and a dashboard
-  card. Three layers, kept apart on purpose:
+- **The page and the families** (2026.11.8-b23). The sidebar's page (`panel_custom`, not in
+  a frame, for every user) is `dash-bored-page` (`shell.ts`). It shows one family's
+  element and holds the choice between them: two presses within `TWICE` in its top right
+  corner, on nothing in `PRESSED`, open a dialog; the choice is in the browser's storage
+  (`dash-bored-family`). A new family is an entry in `FAMILIES` there, an element defined
+  in `index.ts`, and a class on `family.ts`, which holds what they all need: the house
+  (`survey`/`read`, with `_surveyed` and `_moved` to override), the settings feed,
+  `_follow` for a feed, `_call`, `_ask`, `_fault` and `_lost`. Each family's element is
+  also a dashboard card.
+- **Bakelite is the second family, begun** (owner, 2026-11-14: Bakelite now, the
+  newspapers' work to the backlog). `bakelite.ts` on `bakelite/kit.ts` (each control drawn
+  once, as a function) and `bakelite/styles.ts`, after `docs/design/dash-bored/bakelite.html`.
+  Its first panel has lights and switches (`SHOWN`); what's left is in BACKLOG. Needles
+  move by a CSS easing, not the mock-up's frame loop (a `ponytail:` note in its styles).
+  Seen on the test VM at desktop and phone widths, not on a tablet.
+- **Gazette is the first family.** Its element is
+  `dash-bored-gazette` (`integration/cards/src/dash-bored/`, its own `www/cards.js`).
+  Three layers, kept apart on purpose:
   - `house.ts`: `survey` reads the registries (areas, shown entities) once per registry
     change; `read` reads only those entities' states.
   - `stories.ts`: what is worth saying, ranked. No wording.

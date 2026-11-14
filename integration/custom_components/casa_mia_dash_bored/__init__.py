@@ -2,9 +2,9 @@
 knows, in a style worth looking at. The first is the Gazette: the house as a newspaper,
 with what matters most as the headline, and a Sensor Watch alert as breaking news.
 
-The page is one custom element (www/cards.js, built from integration/cards/src/dash-bored
-by tools/build_cards). It is the Dash-Bored entry in the sidebar, and the same element is
-a dashboard card. It reads areas, entities and states from the connection every Home
+The page is a custom element (www/cards.js, built from integration/cards/src/dash-bored
+by tools/build_cards). It is the Dash-Bored entry in the sidebar, and shows one family of
+dashboard at a time (the Gazette, Bakelite); each family is a dashboard card too. It reads areas, entities and states from the connection every Home
 Assistant page already has; all this side does is serve it, feed it Sensor Watch's
 alerts (alerts.py), the songs people rate (personal.py) and what the players have
 played (playing.py), and take the photographs of what the cameras see (image.py).

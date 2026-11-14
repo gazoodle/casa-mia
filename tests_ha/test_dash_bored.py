@@ -96,7 +96,7 @@ async def test_the_page_is_in_the_sidebar_for_everyone_until_removed(
     panel = hass.data[frontend.DATA_PANELS][PANEL]
     assert panel.sidebar_title == "Dash-Bored" and not panel.require_admin
     served = panel.config["_panel_custom"]
-    assert served["name"] == "dash-bored-gazette" and not served["embed_iframe"]
+    assert served["name"] == "dash-bored-page" and not served["embed_iframe"]
     assert served["module_url"].startswith("/casa_mia_dash_bored/cards.js?v=")
 
     # A reload leaves it: taking a panel from under an open page breaks the page.

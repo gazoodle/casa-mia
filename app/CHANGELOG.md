@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.8-b23
+
+- **Dash-Bored: a second family of dashboard, Bakelite.** The house as a 1950s instrument panel. Each room is a chassis with a valve that glows with the room's lights, a meter for its temperature, a knob for each light that dims and a tumbler switch for each other light and switch. Scenes are knife switches, and there are meters for the outside air and for the house's power. This is its first panel: blinds, locks, heating and the other kinds of device are not on it yet, and a room says how many of its devices are missing. It is also a card, **Casa Mia Dash-Bored Bakelite** (`custom:dash-bored-bakelite`).
+- **Dash-Bored: the page can be switched between families.** Press twice quickly in the top right corner of the Dash-Bored page, on a part of it that is not a control, and a choice of the families opens. The choice is remembered by that browser, so each tablet and phone can show a different one. The Gazette's three papers are chosen where they were, on the paper itself.
+
 ## 2026.11.8-b22
 
 - **Dash-Bored: what every family of dashboards shares is in one place.** Reading the house, the house's settings and the calls that change a device have moved out of the Gazette, ready for the next family. Nothing on the page has changed.

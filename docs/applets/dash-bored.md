@@ -1,8 +1,9 @@
 # Dash-Bored
 
 A dashboard that writes itself from the house Home Assistant already knows, in a style
-you might enjoy looking at. The first style is the Gazette, which shows the house as a
-newspaper.
+you might enjoy looking at. There are two styles so far, called families: the Gazette,
+which shows the house as a newspaper, and Bakelite, which shows it as a 1950s instrument
+panel.
 
 > **Maturity: In development.** Being built: parts work, it changes often, and an update may break it. For the curious. ([The levels](../README.md#maturity))
 
@@ -24,6 +25,16 @@ the lowest up, and the areas on no floor come last under **Elsewhere**. A device
 without its room or its kind: "Kitchen Ceiling Light" in the kitchen is "Ceiling". To
 keep a device off the page, give it the label **Dash-Bored hide** (see What your house is
 missing).
+
+## Choosing a family
+
+The page opens as the Gazette. To change it, press twice quickly in the top right corner
+of the page, on a part of it that is not a button or another control. A choice opens with
+a small drawing of each family; press one and the page becomes it.
+
+The choice is remembered by the browser it was made in. A tablet on the wall, a phone and
+a desktop each keep their own. The Gazette's three papers are a separate choice, made on
+the paper itself (see [Three papers](#three-papers)).
 
 ## The Gazette
 
@@ -304,6 +315,35 @@ Dash-Bored works without Sensor Watch; there is then no breaking news.
   is shown below it is how things stood at that time.
 - If Home Assistant refuses an action, a red line says which and why.
 
+## Bakelite
+
+The house as a 1950s instrument panel. It is in its first form and shows less of the house
+than the Gazette does.
+
+Along the top are a meter for the outside air, from a weather entity, a meter for the
+house's power if a card names a power sensor, and a knife switch for each scene. Press a
+knife switch and the scene is turned on; the blade closes for a moment and opens again.
+
+Below is a chassis for each room, under a plate for each floor:
+
+- **A valve**, which glows with the room's lights: brighter the more of them are lit and
+  the higher they are set.
+- **A meter** for the room's temperature, if the room has one.
+- **A knob for each light that dims.** Drag it up to brighten the light and down to dim
+  it; all the way down switches it off. A press on the knob without dragging switches the
+  light on or off. With a keyboard, the arrow keys move it ten per cent at a time. A knob
+  that was turned goes back to where the light really is if the light has not answered in
+  five seconds.
+- **A tumbler switch for each other light and each switch**, with a pilot lamp over it.
+  Down is on. One whose device is not answering is faded, with its name struck through,
+  and can't be pressed.
+
+So far the panel has lights and switches only. Blinds, locks, the heating, players and the
+other kinds are not on it, and nor are Sensor Watch's alerts, the cameras' sightings and
+the Gazette's columns. A room with devices that are not shown has a small plate saying
+how many, such as "and 4 more". If the connection to Home Assistant is lost, or Home
+Assistant refuses a press, a red lamp and a plate at the top say so.
+
 ## The order of floors and rooms
 
 Floors are shown from the lowest up and the rooms on each by name. To change that, open
@@ -334,6 +374,9 @@ weather: weather.home     # optional: which weather entity gives the outside tem
 floors: [First floor]     # optional: show only these floors, in this order
 rooms: [Kitchen, Hall]    # optional: show only these rooms, in this order on their floor
 ```
+
+Bakelite is a card too, **Casa Mia Dash-Bored Bakelite** (`type: custom:dash-bored-bakelite`).
+It takes `power`, `weather`, `floors` and `rooms` in the same way, and has no `style`.
 
 `floors` and `rooms` are for a screen that should show part of the house, such as a
 tablet upstairs. Each takes names or ids, and on that card they take the place of the

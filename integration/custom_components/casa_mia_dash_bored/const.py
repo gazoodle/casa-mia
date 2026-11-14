@@ -8,9 +8,9 @@ INSTALLED_EVENT = "casa_mia_components_installed"
 
 URL = f"/{DOMAIN}"  # where www/ is served
 PANEL = "dash-bored"  # the page's address in Home Assistant: /dash-bored
-ELEMENT = (
-    "dash-bored-gazette"  # the custom element cards.js defines, page and card both
-)
+# The page's custom element, which cards.js defines. It shows one family of dashboard
+# (the Gazette, Bakelite), as the browser last chose.
+ELEMENT = "dash-bored-page"
 
 # The label that keeps an entity, a device's entities or an area's off Dash-Bored's pages
 # and nowhere else (hiding it in Home Assistant takes it off every dashboard). Made at
