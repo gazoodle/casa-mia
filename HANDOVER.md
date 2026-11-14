@@ -271,6 +271,9 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   gallery; `house.js` the house). The owner chose three families to build out: Gazette,
   Bakelite and Fridge, in that order, for the family first and the community after.
   Movement (a watch movement in three.js) and Contraption are the showpieces, not built.
+  Bakelite is to be the 1950s of a family of control panels, a decade each to the 1990s
+  (owner, 2026-11-14; in BACKLOG). Why: they are the same panel in different skins, as
+  the Gazette's papers are. Bakelite is completed first and keeps its name.
 - **The page and the families** (2026.11.8-b23). The sidebar's page (`panel_custom`, not in
   a frame, for every user) is `dash-bored-page` (`shell.ts`). It shows one family's
   element and holds the choice between them: two presses within `TWICE` in its top right
@@ -287,7 +290,8 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   presses both ways, `_guarded`) and alarms (`_alarm`: thumbwheels for a code in digits,
   which is held only in `_code` and never logged); what's left is in BACKLOG. Knobs
   are cranked round their middle (`bearing`). Needles
-  move by a CSS easing, not the mock-up's frame loop (a `ponytail:` note in its styles).
+  swing by a CSS easing and waver smoothly by a CSS animation (owner, 2026-11-14: smooth, not in steps, and each
+  meter's period from a prime so that none are in step: `BEATS` in kit.ts).
   A chassis is one to three widths across (`bakelite/balance.ts`, `widths`): its sizes
   are a model of `styles.ts`, so change the two together.
   Seen on the test VM at desktop and phone widths, not on a tablet.

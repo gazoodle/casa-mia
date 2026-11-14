@@ -6,7 +6,7 @@ export type Load = { knobs: number; dollies: number; alarms: number; meter: bool
 // [width, height] with its plate and the gap beside it. They follow the sizes in
 // styles.ts: change them together.
 const ROOM = [140, 312, 484];
-const METER = [196, 150];
+const METER = [156, 185];
 const KNOB = [110, 140];
 const DOLLY = [98, 100];
 const ALARM = [146, 170];

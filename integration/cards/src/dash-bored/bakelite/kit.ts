@@ -10,6 +10,8 @@ export const DEFS = html`<svg class="defs" width="0" height="0" aria-hidden="tru
   <radialGradient id="hot"><stop offset="0" stop-color="#fff2b0"/><stop offset=".4" stop-color="#ff8a1e"/><stop offset="1" stop-color="#ff4a00" stop-opacity="0"/></radialGradient>
   <radialGradient id="bake" cx=".32" cy=".25"><stop offset="0" stop-color="#6a3f2c"/><stop offset=".5" stop-color="#34190f"/><stop offset="1" stop-color="#150a06"/></radialGradient>
   <radialGradient id="dome" cx=".35" cy=".28"><stop offset="0" stop-color="#8a5740"/><stop offset=".55" stop-color="#3a1d12"/><stop offset="1" stop-color="#1a0c07"/></radialGradient>
+  <radialGradient id="ebon" cx=".35" cy=".25" r=".9"><stop offset="0" stop-color="#3a3a3a"/><stop offset=".45" stop-color="#151515"/><stop offset="1" stop-color="#050505"/></radialGradient>
+  <path id="arch" d="M24.9,39.1 A57,57 0 0 1 95.1,39.1"/>
   <linearGradient id="lever" x1="0" x2="1"><stop offset="0" stop-color="#b98a6c"/><stop offset=".4" stop-color="#6a3f2c"/><stop offset="1" stop-color="#2a140c"/></linearGradient>
 </defs></svg>`;
 
@@ -19,7 +21,7 @@ export const label = (text: string) => html`<span class="label">${text}</span>`;
 // A point on a meter's face, `r` from the needle's pivot and `deg` from straight up.
 const at = (r: number, deg: number): [number, number] => {
   const a = ((deg - 90) * Math.PI) / 180;
-  return [60 + r * Math.cos(a), 66 + r * Math.sin(a)];
+  return [60 + r * Math.cos(a), 84 + r * Math.sin(a)];
 };
 const xy = (r: number, deg: number) => at(r, deg).map((n) => n.toFixed(1)).join(",");
 
@@ -27,17 +29,37 @@ const xy = (r: number, deg: number) => at(r, deg).map((n) => n.toFixed(1)).join(
  * runs 50° each way, and a value off either end rests against the stop. */
 export const swing = (value: number, lo: number, hi: number) => -50 + 100 * Math.min(1, Math.max(0, (value - lo) / (hi - lo)));
 
-/** A moving-coil meter with a scale from `lo` to `hi`. */
-export function meter(title: string, lo: number, hi: number, value: number, unit: string): TemplateResult {
-  const marks = Array.from({ length: 11 }, (_, i) => {
-    const deg = -50 + i * 10;
-    const [x, y] = at(38, deg);
-    return svg`<path class="scale" d="M${xy(46, deg)} L${xy(i % 5 ? 50 : 54, deg)}"/>${i % 5 ? nothing : svg`<text x=${x.toFixed(1)} y=${(y + 3).toFixed(1)}>${Math.round(lo + ((hi - lo) * i) / 10)}</text>`}`;
+// A meter's unit as its maker would have lettered it round the top of the face.
+const LEGEND: Record<string, string> = { "°C": "Degrees Celsius", kW: "Kilowatts" };
+// How long each meter's pointer takes to waver through its seven places, in units of
+// 16 ms. They are primes so that no two meters fall into step with each other; the
+// eleventh meter on a panel shares the first's.
+const BEATS = [53, 97, 61, 83, 71, 59, 89, 67, 79, 73];
+// The scale is a ladder: two arcs with a rung every 2°, a longer one at each tenth of it.
+const RUNGS = Array.from({ length: 51 }, (_, i) => svg`<path class="scale" d="M${xy(36, -50 + i * 2)} L${xy(i % 5 ? 40 : 43, -50 + i * 2)}"/>`);
+
+/** A moving-coil meter of the kind a 1950s panel carried, with a scale from `lo` to `hi`: a round black case,
+ * and a face whose lower edge rises over the movement, hiding the needle's pivot. The
+ * pointer is a pale shaft with a black blob and a fine tip where it crosses the scale.
+ * `beat` is which meter on the panel this is, and chooses how fast its pointer wavers. */
+export function meter(title: string, lo: number, hi: number, value: number, unit: string, beat = 0): TemplateResult {
+  const figures = Array.from({ length: 6 }, (_, i) => {
+    const [x, y] = at(48, -50 + i * 20);
+    return svg`<text x=${x.toFixed(1)} y=${(y + 2).toFixed(1)}>${+(lo + ((hi - lo) * i) / 5).toFixed(1)}</text>`;
   });
   return html`<div class="meter">
-    <svg viewBox="0 0 120 76" role="img" aria-label="${title}: ${value} ${unit}"><rect class="face" x="2" y="2" width="116" height="72" rx="6"/>
-      <path class="scale" d="M${xy(46, -50)} A46,46 0 0 1 ${xy(46, 50)}"/>${marks}<text x="60" y="52">${unit}</text>
-      <line class="needle" x1="60" y1="66" x2="60" y2="16" style="transform: rotate(${swing(value, lo, hi).toFixed(1)}deg)"/><path d="M40,74 a20,20 0 0 1 40,0 z" fill="#1c0f0a"/></svg>
+    <svg viewBox="0 0 120 120" role="img" aria-label="${title}: ${value} ${unit}">
+      <circle cx="60" cy="60" r="59" fill="url(#ebon)"/><circle cx="60" cy="60" r="58" fill="none" stroke="#fff" stroke-opacity=".12"/><circle cx="60" cy="62" r="49" fill="none" stroke="#000" stroke-width="2.5"/>
+      <path class="face" d="M17,78 A46,46 0 1 1 103,78 Q100,92 86,92 C76,92 78,75 60,75 C42,75 44,92 34,92 Q20,92 17,78 Z"/>
+      <path class="scale" d="M${xy(36, -50)} A36,36 0 0 1 ${xy(36, 50)} M${xy(40, -50)} A40,40 0 0 1 ${xy(40, 50)}"/>${RUNGS}${figures}
+      <text class="legend"><textPath href="#arch" startOffset="50%">${LEGEND[unit] ?? unit}</textPath></text>
+      <text class="unit" x="60" y="66">${unit}</text><text class="small" x="33" y="84">MOVING COIL</text><text class="small" x="87" y="84">DASH-BORED</text>
+      <g class="needle" style="transform: rotate(${swing(value, lo, hi).toFixed(1)}deg)"><g class="waver" style="animation-duration: ${BEATS[beat % BEATS.length] * 16}ms">
+        <path d="M60,84 V51" stroke="#b4b1a4" stroke-width=".8"/><path d="M60,51 V42" stroke="#111" stroke-width=".8" stroke-linecap="round"/><circle cx="60" cy="50" r="1.5" fill="#111"/></g></g>
+      <path d="M17,79 Q20,93 34,93 C45,93 43,76 60,76 C77,76 75,93 86,93 Q100,93 103,79 A46,46 0 0 1 17,79 Z" fill="url(#ebon)"/>
+      <circle cx="60" cy="103" r="4.5" fill="#1a1a1a" stroke="#000"/><path d="M56.5,102 l7,2" stroke="#000" stroke-width="1.3"/>
+      <g fill="#161616" stroke="#000" stroke-width=".6"><circle cx="60" cy="6" r="2.2"/><circle cx="13" cy="87" r="2.2"/><circle cx="107" cy="87" r="2.2"/></g>
+    </svg>
     ${label(title)}
   </div>`;
 }

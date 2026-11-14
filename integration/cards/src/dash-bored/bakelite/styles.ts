@@ -24,7 +24,7 @@ export const STYLES = css`
   .lamp { flex: none; width: 16px; height: 16px; border-radius: 50%; background: #ff5a3c; box-shadow: 0 0 0 2px var(--brass), 0 0 10px #ff5a3c; }
 
   .top { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-end; margin-bottom: 16px; }
-  .top .meter { flex: 0 1 200px; }
+  .top .meter { flex: 0 1 170px; }
   .floor { flex: 0 0 100%; margin-top: 6px; }
   .floor .label { font-size: 12px; }
   /* A chassis is one, two or three widths across (balance.ts chooses, and counts on these
@@ -35,20 +35,24 @@ export const STYLES = css`
     box-shadow: inset 0 2px 0 rgba(255,255,255,.15), inset 0 -4px 8px rgba(0,0,0,.5), 0 8px 14px rgba(0,0,0,.35); }
   /* A room's meter, knobs and switches share rows where the chassis is wide enough. */
   .works { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 6px; }
-  .works > .meter { flex: 0 1 190px; margin-top: 8px; }
+  .works > .meter { flex: 0 1 150px; margin-top: 8px; }
   .more { margin-top: 10px; opacity: .7; }
   .more .label { font-size: 8.5px; letter-spacing: .12em; }
 
-  /* Moving-coil meters. */
-  .meter { background: linear-gradient(170deg, #2b1811, #120906); border-radius: 12px 12px 40px 40px; padding: 8px 8px 10px; text-align: center;
-    box-shadow: inset 0 2px 0 rgba(255,255,255,.14), 0 8px 14px rgba(0,0,0,.4); }
-  .meter svg { width: 100%; height: auto; margin-bottom: 6px; }
-  .face { fill: #efe6c8; } .scale { fill: none; stroke: #2a1a10; stroke-width: 1.2; }
-  /* ponytail: the needle overshoots and settles by its easing alone. The mock-up's needles
-     also trembled all the time, which is a frame drawn sixty times a second for ever; if
-     that is wanted, give each needle a spring in a requestAnimationFrame loop. */
-  .needle { stroke: #151515; stroke-width: 1.6; stroke-linecap: round; transform-origin: 60px 66px; transition: transform 1.1s cubic-bezier(.3, 1.7, .5, 1); }
-  .meter text { fill: #2a1a10; font-size: 8px; text-anchor: middle; letter-spacing: .08em; }
+  /* Moving-coil meters: the case and face are drawn in kit.ts, the lettering set here. */
+  .meter { text-align: center; }
+  .meter svg { width: 100%; height: auto; margin-bottom: 6px; filter: drop-shadow(0 6px 8px rgba(0,0,0,.5)); }
+  .face { fill: #efe6c8; } .scale { fill: none; stroke: #2a1a10; stroke-width: .6; }
+  /* The needle swings to a new reading and settles by its easing. Inside it, the pointer
+     wavers a little all the time, as a moving coil does: it glides between seven places
+     in about a second (owner, 2026-11-14: smooth, not in steps). Each meter has a period
+     of its own (kit.ts), so they are never in step. The browser draws it; no script runs. */
+  .needle { transform-origin: 60px 84px; transition: transform 1.1s cubic-bezier(.3, 1.7, .5, 1); }
+  .waver { transform-origin: 60px 84px; animation: waver 1.2s ease-in-out infinite; }
+  @keyframes waver { 0% { transform: rotate(0deg); } 14% { transform: rotate(.5deg); } 29% { transform: rotate(-.3deg); } 43% { transform: rotate(.7deg); } 57% { transform: rotate(-.6deg); } 71% { transform: rotate(.2deg); } 86% { transform: rotate(-.4deg); } }
+  .meter text { fill: #2a1a10; font-size: 6px; text-anchor: middle; letter-spacing: .04em; }
+  .meter .legend { font-size: 5.6px; letter-spacing: .12em; text-transform: uppercase; }
+  .meter .unit { font-size: 6.5px; } .meter .small { font-size: 2.6px; letter-spacing: .1em; }
 
   /* Valves: one to a room, glowing with its lights. */
   .valve .heater { opacity: calc(.12 + var(--heat, 0) * .88); transition: opacity 1.4s; }
@@ -119,5 +123,5 @@ export const STYLES = css`
   .spark { opacity: 0; transform-box: fill-box; transform-origin: center; } .knife.closed .spark { animation: spark .35s ease-out; }
   @keyframes spark { 10% { opacity: 1; } 100% { opacity: 0; transform: scale(2); } }
   .knife:focus-visible { outline: 2px solid var(--cream); outline-offset: 3px; }
-  @media (prefers-reduced-motion: reduce) { .valve .halo { animation: none; } .needle { transition: none; } }
+  @media (prefers-reduced-motion: reduce) { .valve .halo, .waver { animation: none; } .needle { transition: none; } }
 `;

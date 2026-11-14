@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.8-b26
+
+- **Dash-Bored: Bakelite's meters are drawn as the moving-coil meters of its time.** A round black case, a cream face whose lower edge rises over the movement, a ladder scale with its figures above it, and the unit lettered in capitals round the top of the face. The pointer is a pale shaft with a black blob and tip at the scale, and it wavers gently all the time. Each meter wavers at its own pace, so they are never in step.
+
 ## 2026.11.8-b25
 
 - **Dash-Bored: Bakelite has alarms, with thumbwheels for the code.** An alarm has a plate saying how it stands and a push button for each way it can be set (Away, Home, Night), or Unset once it is set. One that takes a code in digits has six thumbwheels, like a combination padlock: set the code from the left, leave the rest blank and press a button. The wheels go back to blank when the alarm answers, or after 30 seconds untouched. A wrong or missing code shows Home Assistant's refusal at the top of the panel.

@@ -14,8 +14,8 @@ test("a room with many controls is widened, and the others only as far as its he
   const wide = widths(rooms);
   assert.deepEqual(wide, [3, 2, 1, 1]);
   // A meter and two knobs share a row at three wide, and stand in a column at one.
-  assert.equal(tall(room(2, 0, true), 3), 150);
-  assert.equal(tall(room(2, 0, true), 1), 430);
+  assert.equal(tall(room(2, 0, true), 3), 185);
+  assert.equal(tall(room(2, 0, true), 1), 465);
   // An alarm is too wide to share a one-wide chassis's row.
   assert.equal(tall(room(0, 1, false, 1), 1), 270);
   // Nothing is taller than the biggest room is at its widest.

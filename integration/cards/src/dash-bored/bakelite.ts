@@ -191,6 +191,7 @@ export class Bakelite extends Family {
     const alarm = (d: Device) => d.kind === ALARM;
     // A room with many controls has a wider chassis, so that none is far taller than the rest.
     const wide = widths(house.rooms.map((r) => ({ knobs: shows(r).filter(dims).length, dollies: shows(r).filter((d) => !dims(d) && !alarm(d)).length, alarms: shows(r).filter(alarm).length, meter: r.temp !== undefined })));
+    let beat = 1; // the meters are numbered as they are drawn, the two at the top first: see kit.ts
     const chassis = (r: Room, i: number) => {
       const shown = shows(r);
       if (!shown.length && r.temp === undefined) return nothing;
@@ -199,7 +200,7 @@ export class Bakelite extends Family {
       const more = r.devices.length - shown.length;
       return html`<section class="room" style="--wide: ${wide[i]}">
         ${valve(lit ? 0.35 + lit * 0.65 : 0)}${label(r.name)}
-        <div class="works">${r.temp === undefined ? nothing : meter(`${r.temp.toFixed(1)}°`, 5, 30, r.temp, "°C")}
+        <div class="works">${r.temp === undefined ? nothing : meter(`${r.temp.toFixed(1)}°`, 5, 30, r.temp, "°C", ++beat)}
         <div class="dials">${shown.filter(dims).map((d) => {
           const dial = this._dial(d);
           return knob(d.name, d.kind === "light" ? "dimmer" : "position", dial.level, dial.held, dial.on);
@@ -227,7 +228,7 @@ export class Bakelite extends Family {
       ${this._fault ? html`<div class="warn"><span class="lamp"></span>${label(this._fault)}</div>` : nothing}
       <div class="top">
         ${house.kw === undefined ? nothing : meter("Mains draw", 0, MAINS.find((top) => house.kw! <= top) ?? MAINS.at(-1)!, house.kw, "kW")}
-        ${house.outside ? meter("Outside air", -10, 30, house.outside.temp, "°C") : nothing}
+        ${house.outside ? meter("Outside air", -10, 30, house.outside.temp, "°C", 1) : nothing}
         ${house.scenes.length ? html`<div class="knives">${house.scenes.map((s) => knife(s.name, this._thrown === s.id, () => this._throw(s)))}</div>` : nothing}
       </div>
       <div class="rooms">${rooms}</div>
