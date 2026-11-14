@@ -6,6 +6,7 @@ import type { Device } from "./house.ts";
 import { DAY, lit, type Change } from "./record.ts";
 import { cap, clock } from "./stories.ts";
 import { fill, words, type Voice } from "./voices.ts";
+import { look } from "./zoom.ts";
 
 /** The clipping that is open: its record once fetched, why it could not be, and whether
  * a press that unlocks or opens the house has been made once and waits for its second. */
@@ -37,7 +38,35 @@ export function ragged(seed: string): string {
   return outline;
 }
 
-export function clipping(voice: Voice, d: Device, open: Open, now: number, scale: unknown, scraps: Scraps, on: { flip(): void; more(): void; shut(): void }): TemplateResult {
+/** A photograph that is open as a clipping: its address, what is printed over it, and the
+ * camera to see live. */
+export type Shot = { src: string; caption: string; see?: string };
+
+/** The cutting itself, with what came away round it. The dialog is the margin round the
+ * cutting: a press there, or Escape, folds it away. */
+const cutting = (seed: string, scraps: Scraps, shut: () => void, story: unknown, how = "") =>
+  html`<dialog class="clipping ${how}" @close=${shut} @click=${(e: Event) => e.target === e.currentTarget && shut()}>
+    <div class="cutting" style="clip-path:${ragged(seed)}">
+      <div class="scrap above" aria-hidden="true">${scraps.above}</div>
+      <div class="story">${story}</div>
+      <div class="scrap beside" aria-hidden="true"><span>${scraps.beside}</span></div>
+      <div class="scrap below" aria-hidden="true">${scraps.below}</div>
+    </div>
+  </dialog>`;
+
+/** A photograph cut from the paper, to be looked at closely (zoom.ts): the picture as it
+ * was taken. The camera as it is now is a press away, in Home Assistant's own dialog. */
+export function photograph(voice: Voice, shot: Shot, scraps: Scraps, on: { more(): void; shut(): void }): TemplateResult {
+  const c = voice.clipping;
+  return cutting(shot.src, scraps, on.shut, html`<p class="kicker">${shot.caption}</p>
+    <div class="zoom" @pointerdown=${look.down} @pointermove=${look.move} @pointerup=${look.up} @pointercancel=${look.up} @wheel=${look.wheel} @dblclick=${look.twice}>
+      <img src=${shot.src} alt=${shot.caption} draggable="false" @load=${look.whole} />
+    </div>
+    <p class="hint">${c.closer}</p>
+    <div class="foot">${shot.see ? html`<button class="mend" @click=${on.more}>${c.live}</button>` : html`<span></span>`}<button class="act" @click=${on.shut}>${c.shut}</button></div>`, "shot");
+}
+
+export function clipping(voice: Voice, d: Device, open: Open, now: number, scale: unknown, scraps: Scraps, on: { flip(): void; more(): void; picture(): void; shut(): void }): TemplateResult {
   const c = voice.clipping;
   const told = (change: Change) => cap(words(voice, { ...d, on: change.on, phase: change.phase, level: change.level, away: change.away }));
   const record = open.record;
@@ -45,16 +74,11 @@ export function clipping(voice: Voice, d: Device, open: Open, now: number, scale
   // day to tell. An alarm has no button either: it is set and unset in Home Assistant's
   // own dialog, which has its keypad, and not from a page that a guest may open.
   const act = voice.acts[`${d.kind}.${d.on ? "on" : "off"}`];
-  // The dialog itself is the margin round the cutting: a press there, or Escape, folds it away.
-  return html`<dialog class="clipping" @close=${on.shut} @click=${(e: Event) => e.target === e.currentTarget && on.shut()}>
-    <div class="cutting" style="clip-path:${ragged(d.id)}">
-      <div class="scrap above" aria-hidden="true">${scraps.above}</div>
-      <div class="story">
-      <p class="kicker">${d.room}</p>
+  return cutting(d.id, scraps, on.shut, html`<p class="kicker">${d.room}</p>
       <h4 class="title">${d.name}</h4>
       <p class="deck">${cap(words(voice, d))}. ${d.since && d.kind !== "camera" ? fill(c.since, { at: clock(d.since) }) : ""}
         ${d.temp === undefined ? "" : fill(c.reads, { temp: d.temp.toFixed(1) })} ${d.title ? fill(c.playing, { title: d.title }) : ""}</p>
-      ${d.picture ? html`<img class="still" src=${d.picture} alt=${d.name} />` : nothing}
+      ${d.picture ? html`<img class="still" src=${d.picture} alt=${d.name} role="button" tabindex="0" @click=${on.picture} @keydown=${(e: KeyboardEvent) => e.key === "Enter" && on.picture()} />` : nothing}
       ${d.away || !act ? nothing : html`<button class="act ${open.armed ? "sure" : ""}" @click=${on.flip}>${open.armed ? c.sure : act}</button>`}
       ${scale}
       ${d.kind === "camera" ? nothing : html`<h3>${c.record}</h3>`}
@@ -67,10 +91,5 @@ export function clipping(voice: Voice, d: Device, open: Open, now: number, scale
           : html`<div class="band">${lit(record, now - DAY, now).map(([left, width]) => html`<i style="left:${left}%;width:${width}%"></i>`)}</div>
               <div class="span"><span>${c.ago}</span><span>${c.now}</span></div>
               <ol>${record.length ? record.slice(-LINES).reverse().map((change) => html`<li><time>${clock(change.at)}</time>${told(change)}</li>`) : html`<li>${c.none}</li>`}</ol>`}
-      <div class="foot"><button class="mend" @click=${on.more}>${c.more}</button><button class="act" @click=${on.shut}>${c.shut}</button></div>
-      </div>
-      <div class="scrap beside" aria-hidden="true"><span>${scraps.beside}</span></div>
-      <div class="scrap below" aria-hidden="true">${scraps.below}</div>
-    </div>
-  </dialog>`;
+      <div class="foot"><button class="mend" @click=${on.more}>${c.more}</button><button class="act" @click=${on.shut}>${c.shut}</button></div>`);
 }

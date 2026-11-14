@@ -23,6 +23,7 @@ CARDS_VERSION = f"{DOMAIN}/cards"  # which version of cards.js is served
 ALERTS = f"{DOMAIN}/alerts"  # the feed of Sensor Watch's alerts
 SIGHTINGS = f"{DOMAIN}/sightings"  # the feed of what the cameras have seen
 PERSONAL = f"{DOMAIN}/personal"  # the feed of the Personal column's announcements
+PLAYING = f"{DOMAIN}/playing"  # the feed of what the media players have played
 
 # Sensor Watch's bus event, and the level it gives a sensor with nothing wrong. Named
 # here and not imported: the two integrations meet only through Home Assistant, and each

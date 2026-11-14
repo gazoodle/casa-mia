@@ -4,7 +4,7 @@
 // touching the ranking or the page, and a new paper is one more entry here and a block
 // of CSS (styles.ts).
 import { DEGREES, type Device, type Kind } from "./house.ts";
-import type { Alert, Notice, Story } from "./stories.ts";
+import type { Alert, Billing, Notice, Story } from "./stories.ts";
 import { NOMINAL } from "./stories.ts";
 
 /** How one kind of story is told. `flavours` are headlines for a particular sort of
@@ -17,7 +17,7 @@ export type Voice = {
   strap: string;
   price: string;
   flash: string; // the word before breaking news
-  titles: { more: string; briefs: string; late: string; archive: string; temps: string; board: string; notices: string; elsewhere: string; gaps: string; personal: string }; // archive: the last half hour's sightings; elsewhere: the rooms on no floor
+  titles: { more: string; briefs: string; late: string; archive: string; temps: string; board: string; notices: string; elsewhere: string; gaps: string; personal: string; celebrity: string }; // archive: the last half hour's sightings; elsewhere: the rooms on no floor
   join: string; // between a room's devices
   end: string;
   nothing: string; // the late news before anything has happened
@@ -27,8 +27,9 @@ export type Voice = {
   words: Record<string, string>; // one device, by `kind.on`, `kind.off`, `kind.plain` (on, with a level that isn't known) or `kind.<phase>`; `kind.many` is a room's count of them, in a big house; `percent` and `degrees` are how a level is said, and are a clause's {level}
   polls: Record<string, { ask: string; less: string; more: string }>; // by kind: the question over a level's scale, and its two votes
   acts: Record<string, string>; // on a device's clipping: the button that puts it the other way, by `kind.on` or `kind.off` as it stands
-  clipping: { since: string; record: string; wait: string; none: string; ago: string; now: string; reads: string; playing: string; sure: string; more: string; shut: string }; // the rest of a clipping's words; `ago` and `now` are the ends of the record's band, `reads` is a thermostat's own reading, `playing` what a player has on, and `sure` is the second press that unlocks or opens
+  clipping: { since: string; record: string; wait: string; none: string; ago: string; now: string; reads: string; playing: string; sure: string; more: string; shut: string; closer: string; live: string }; // the rest of a clipping's words; `ago` and `now` are the ends of the record's band, `reads` is a thermostat's own reading, `playing` what a player has on, and `sure` is the second press that unlocks or opens
   wire: { trouble: string; clear: string }; // an alert in the late news
+  celebrity: Record<string, string>; // the celebrity column, by a Billing's kind, `kind.live` while it is on, and a rating's kind for what was said of it
   personal: Record<string, string>; // the Personal column, by a Notice's kind; `song` and `tune` are how a song is named, with its artist and without
   notices: string[]; // under each scene, in turn
   stories: Record<string, Entry>; // by `kind.variant`, else `kind`
@@ -99,6 +100,12 @@ export function clause(voice: Voice, d: Device): [string, string, string] {
 /** One device as a clause: "the ceiling light burns at 80 per cent". */
 export const words = (voice: Voice, d: Device) => clause(voice, d).join("");
 
+/** A line of the celebrity column: what was played, and what each person said of it. */
+export function billed(voice: Voice, b: Billing): [string, string[]] {
+  const song = fill(b.vars.artist ? voice.personal.song : voice.personal.tune, b.vars);
+  return [fill(voice.celebrity[b.live ? `${b.kind}.live` : b.kind], { ...b.vars, song }), b.marks.map((r) => fill(voice.celebrity[r.kind], { name: r.name }))];
+}
+
 /** A line of the Personal column. */
 export function announce(voice: Voice, notice: Notice): string {
   const song = fill(notice.vars.artist ? voice.personal.song : voice.personal.tune, notice.vars);
@@ -124,7 +131,7 @@ const broadsheet: Voice = {
   strap: "",
   price: "Price: nothing",
   flash: "Stop press",
-  titles: { more: "Other news", briefs: "In brief", late: "Late news", archive: "Thirty minutes ago", temps: "The temperatures", board: "The switchboard", notices: "Notices", elsewhere: "Elsewhere", gaps: "Corrections and clarifications", personal: "Personal" },
+  titles: { more: "Other news", briefs: "In brief", late: "Late news", archive: "Thirty minutes ago", temps: "The temperatures", board: "The switchboard", notices: "Notices", elsewhere: "Elsewhere", gaps: "Corrections and clarifications", personal: "Personal", celebrity: "Amusements" },
   join: "; ",
   end: ".",
   nothing: "Nothing has happened yet.",
@@ -201,7 +208,9 @@ const broadsheet: Voice = {
     "lawn_mower.on": "Send it home", "lawn_mower.off": "Set it mowing", "water_heater.on": "Turn it off", "water_heater.off": "Turn it on",
     "humidifier.on": "Turn it off", "humidifier.off": "Turn it on", "siren.on": "Silence it", "siren.off": "Sound it" },
   clipping: { since: "So it has stood since {at}.", record: "The record", wait: "Our archivist is consulting the files.", none: "Nothing is recorded of the last day.", ago: "This time yesterday", now: "Now", reads: "The glass reads {temp}°.", playing: "On the air: {title}.",
-    sure: "Press again to confirm", more: "Home Assistant's own page", shut: "Fold away" },
+    sure: "Press again to confirm", more: "Home Assistant's own page", shut: "Fold away", closer: "Pinch, or tap twice, for a closer look.", live: "See the camera as it is now" },
+  celebrity: { song: "{song} was heard in the {room}.", "song.live": "{song} is being heard in the {room}.", show: "“{title}” was shown in the {room}.", "show.live": "“{title}” is being shown in the {room}.",
+    love: "Admired by {name}.", loathe: "Deplored by {name}." },
   wire: { trouble: "{name}: {message}", clear: "{name}: all is well again." },
   personal: { home: "{name} has arrived home.", left: "{name} has left the house.", zone: "{name} has arrived at {place}.",
     love: "{name} wishes it known that {song} is greatly to their liking.", loathe: "{name} begs that {song} be played no more.", song: "“{title}” by {artist}", tune: "“{title}”" },
@@ -239,7 +248,7 @@ const tabloid: Voice = {
   strap: "The paper that's always switched on",
   price: "Still FREE!",
   flash: "Breaking",
-  titles: { more: "Also today", briefs: "Quick ones", late: "Latest", archive: "Rewind", temps: "Hot or not", board: "Flick a switch", notices: "Do it now", elsewhere: "Everywhere else", gaps: "Sort it out", personal: "Goss" },
+  titles: { more: "Also today", briefs: "Quick ones", late: "Latest", archive: "Rewind", temps: "Hot or not", board: "Flick a switch", notices: "Do it now", elsewhere: "Everywhere else", gaps: "Sort it out", personal: "Goss", celebrity: "Showbiz" },
   join: " • ",
   end: "",
   nothing: "Nothing yet. Give it a minute.",
@@ -316,7 +325,9 @@ const tabloid: Voice = {
     "lawn_mower.on": "Go home!", "lawn_mower.off": "Get mowing", "water_heater.on": "Kill the heat", "water_heater.off": "Heat on!",
     "humidifier.on": "Off!", "humidifier.off": "On!", "siren.on": "SHUT IT UP", "siren.off": "Sound it" },
   clipping: { since: "Been that way since {at}.", record: "The story so far", wait: "Digging the dirt…", none: "Nothing all day. Dull!", ago: "Yesterday", now: "Now", reads: "It's {temp}° in there.", playing: "Now playing: {title}.",
-    sure: "SURE? Press again", more: "Home Assistant's page", shut: "Bin it" },
+    sure: "SURE? Press again", more: "Home Assistant's page", shut: "Bin it", closer: "Pinch or double-tap to ZOOM IN", live: "Watch it LIVE" },
+  celebrity: { song: "{song} rocked the {room}", "song.live": "ON NOW in the {room}: {song}", show: "“{title}” was on in the {room}", "show.live": "ON NOW in the {room}: “{title}”",
+    love: "{name} LOVES it", loathe: "{name} HATES it" },
   wire: { trouble: "{name}: {level}!", clear: "{name}: PANIC OVER" },
   personal: { home: "{name}'s HOME!", left: "{name} has LEFT the building", zone: "{name} spotted at {place}",
     love: "{name} LOVES {song}", loathe: "{name} can't STAND {song}", song: "“{title}” by {artist}", tune: "“{title}”" },

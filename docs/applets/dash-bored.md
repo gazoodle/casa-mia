@@ -80,14 +80,21 @@ A garage door or a gate has no scale, for the reason given under
 
 A camera that can tell what it has seen gets its picture in the paper. When one of its
 detections fires, Dash-Bored takes a still from the camera at that moment and the Gazette
-prints it with a headline for ten minutes. Pressing the photograph opens the camera.
+prints it with a headline for ten minutes.
+
+Pressing a photograph opens it as a clipping, large and as it was taken, so that you can
+look at what was seen. Pinch it with two fingers to go closer and drag it to move about;
+a double tap, or the mouse wheel, zooms too. **See the camera as it is now** under it
+opens the camera in Home Assistant's own dialog, with its live view. A closer look shows
+more only as far as the photograph has detail, and one that came from UniFi Protect's
+thumbnail may be smaller than a still from the camera.
 
 Each camera has one story at a time: the most pressing thing it saw in the last ten
 minutes. If a camera reports an animal just after a person, the person stays.
 
 A column called **Thirty minutes ago** (**Rewind** in the red-top) lists the latest ten
 sightings of the last half hour, newest first, each with its time, its camera and a small
-photograph. Pressing one opens the camera.
+photograph. Pressing one opens its photograph in the same way.
 
 These detections take a photograph: somebody at the doorbell, a person, a vehicle, an
 animal, and a smoke or carbon monoxide alarm heard by the camera. A doorbell story is near
@@ -183,7 +190,8 @@ doesn't stop the heating or the music.
   cent". Its poll asks whether it is too loud, in steps of five. Its clipping says what is
   playing, and its button pauses or plays.
 - **A camera** is on the switchboard, and in the report only if it stops answering. Its
-  clipping shows its latest picture; **Home Assistant's own page** has the live view.
+  clipping shows its latest picture, which opens large when pressed; **Home Assistant's
+  own page** has the live view.
 
 ### The other devices
 
@@ -230,7 +238,8 @@ A column of announcements about the household, each with its time, newest first:
   needs people with a device tracker.
 - **Songs.** With [Love it or Loathe it](love-or-loathe.md), each song somebody loves or
   loathes: "Ann wishes it known that “Night Train” by The Sleepers is greatly to their
-  liking". A rating taken away is not announced.
+  liking". The column prints each person's latest word on a song, and a rating taken
+  away takes its announcement with it.
 
 An announcement stays for twelve hours and the column holds the latest eight. It is left
 out while there is nothing to announce. A person with the label **Dash-Bored hide** is
@@ -242,6 +251,24 @@ announced as having arrived or left then.
 
 The page is in the sidebar for every user, guests included, so this column tells anyone
 who can open it who is at home.
+
+### Amusements
+
+A column of the last six things the house's media players played, newest first: the
+song or programme, the room, and whether it is on now. It is called **Showbiz** in the
+red-top. Speakers that began the same song within a minute of each other are one line
+with all their rooms. Pressing a line opens that player's clipping.
+
+With [Love it or Loathe it](love-or-loathe.md), a song is followed by who loved it and
+who loathed it. These change as soon as somebody rates the song or takes a rating away.
+
+- A player is listed only if it is a device on the page, and only when it gives a title.
+  Many televisions tell Home Assistant their input or app and nothing else, and those
+  are left out. A programme is named by its series, or by its channel if that is all
+  there is.
+- The list is kept in memory. A restart of Home Assistant empties it, and it then starts
+  again with whatever is playing.
+- The column is left out while there is nothing to list.
 
 ### Sensor Watch
 

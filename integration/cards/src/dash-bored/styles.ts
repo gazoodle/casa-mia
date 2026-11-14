@@ -103,6 +103,16 @@ export const STYLES = css`
   .cutting .title { margin: 0 0 6px; font: 900 32px/1.02 var(--head); text-wrap: balance; overflow-wrap: anywhere; }
   .cutting .deck { font-size: 17px; }
   .cutting .still { display: block; width: 100%; margin: 0 0 12px; border: 1px solid var(--ink); filter: grayscale(1) contrast(1.15); }
+  .cutting .still { cursor: zoom-in; }
+  /* A photograph as a clipping: wider, in its own colours, and zoomed by the fingers
+     (zoom.ts), so the browser is told to leave the touches alone. */
+  dialog.clipping.shot { width: min(920px, calc(100vw - 24px)); }
+  .zoom { overflow: hidden; border: 1px solid var(--ink); touch-action: none; cursor: zoom-in; background: #111; }
+  .zoom.near { cursor: grab; }
+  .zoom img { display: block; width: 100%; max-height: calc(100vh - 190px); object-fit: contain; user-select: none; -webkit-user-drag: none; }
+  .hint { margin: 4px 0 10px; font-size: 12px; font-style: italic; }
+  /* What somebody said of a song, in the celebrity column. */
+  .mark { white-space: nowrap; font-style: italic; } .mark.loathe { color: var(--flash); }
   .cutting .act { margin: 0 0 12px; }
   .act.sure { background: var(--flash); color: #fff; border-color: var(--flash); }
   .cutting .scale > button { display: none; }

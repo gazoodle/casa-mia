@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { read, survey } from "./house.ts";
-import { RECOVERED, flip, personal, setting, stories, type Alert } from "./stories.ts";
-import { VOICES, announce, clause, poll, tell, words } from "./voices.ts";
+import { RECOVERED, billing, flip, personal, setting, stories, type Alert, type Rated } from "./stories.ts";
+import { VOICES, announce, billed, clause, poll, tell, words } from "./voices.ts";
 
 // An invented house, as Home Assistant's page would hold it.
 const state = (value: string, attributes: Record<string, unknown> = {}) => ({ state: value, attributes, last_changed: "2026-11-13T18:00:00Z" });
@@ -296,4 +296,41 @@ test("fans, valves, robots, water heaters, humidifiers, sirens and alarms are de
     }
     assert.ok(tell(voice, lead, 0).deck);
   }
+});
+
+test("the celebrity column lists what the players played, with what was said of each as it stands now", () => {
+  const h = hass({ "media_player.kitchen": state("playing", { friendly_name: "Kitchen Radio", media_title: "Night Train" }), "media_player.den": state("off", { friendly_name: "Kitchen Television" }) });
+  for (const id of ["media_player.kitchen", "media_player.den"]) (h.entities as Record<string, object>)[id] = { entity_id: id, area_id: "kitchen" };
+  const devices = new Map(read(survey(h, {}), h).rooms.flatMap((r) => r.devices).map((d) => [d.id, d]));
+  const played = [
+    { id: "a", entity_id: "media_player.kitchen", title: "Old Song", artist: "", show: false, at: 100 },
+    { id: "b", entity_id: "media_player.den", title: "The Lighthouse", artist: "", show: true, at: 200 },
+    { id: "c", entity_id: "media_player.kitchen", title: "Night Train", artist: "The Sleepers", show: false, at: 300 },
+    { id: "d", entity_id: "media_player.attic", title: "Unseen", artist: "", show: false, at: 400 }, // not a player the page shows
+  ];
+  const rated: Rated[] = [
+    { kind: "love", name: "Ann", title: "night train", artist: "The Sleepers", at: 310 },
+    { kind: "loathe", name: "Ben", title: "Night Train", artist: "", at: 320 },
+    { kind: "love", name: "Ben", title: "Old Song", artist: "", at: 330 },
+  ];
+  const lines = (r: Rated[]) => billing(played, r, devices).map((b) => [billed(VOICES.broadsheet, b)[0], ...billed(VOICES.broadsheet, b)[1]]);
+  assert.deepEqual(lines(rated), [
+    ["“Night Train” by The Sleepers is being heard in the kitchen.", "Admired by Ann.", "Deplored by Ben."],
+    ["“The Lighthouse” was shown in the kitchen."],
+    ["“Old Song” was heard in the kitchen.", "Admired by Ben."],
+  ]);
+
+  // Speakers that began a song together are one line, with their rooms.
+  const hall = hass({ "media_player.kitchen": state("playing", { friendly_name: "Kitchen Radio", media_title: "Night Train", media_artist: "The Sleepers" }), "media_player.hall": state("playing", { friendly_name: "Hall Speaker", media_title: "Night Train", media_artist: "The Sleepers" }) });
+  (hall.entities as Record<string, object>)["media_player.kitchen"] = { entity_id: "media_player.kitchen", area_id: "kitchen" };
+  (hall.entities as Record<string, object>)["media_player.hall"] = { entity_id: "media_player.hall", area_id: "hall" };
+  const both = new Map(read(survey(hall, {}), hall).rooms.flatMap((r) => r.devices).map((d) => [d.id, d]));
+  const group = [played[2], { ...played[2], id: "e", entity_id: "media_player.hall", at: 301 }];
+  assert.deepEqual(billing(group, [], both).map((b) => billed(VOICES.broadsheet, b)[0]), ["“Night Train” by The Sleepers is being heard in the kitchen and hall."]);
+
+  // Ann changes her mind and Ben takes his back: the column, and the Personal one, follow.
+  const since: Rated[] = [...rated, { kind: "loathe", name: "Ann", title: "Night Train", artist: "The Sleepers", at: 340 }, { kind: "clear", name: "Ben", title: "Old Song", artist: "", at: 350 }];
+  assert.deepEqual(lines(since).map((line) => line.slice(1)), [["Deplored by Ann.", "Deplored by Ben."], [], []]);
+  assert.deepEqual(personal([], since, 400_000).map((n) => [n.kind, n.vars.name]), [["loathe", "Ann"], ["loathe", "Ben"]]);
+  for (const voice of Object.values(VOICES)) for (const b of billing(played, since, devices)) assert.ok(billed(voice, { ...b, live: !b.live })[0]);
 });

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.11.8-b16
+
+- **Dash-Bored: a photograph opens as a clipping.** Pressing a photograph in a story, in the last half hour's column or in a camera's clipping shows it large, as it was taken. Two fingers pinch it closer, one drags it, and a double tap or the mouse wheel zooms too. The camera as it is now is a press away, in Home Assistant's own dialog. Before, a press went straight to the camera, where what was photographed had already gone.
+- **Dash-Bored: a column of what has been played.** **Amusements** (**Showbiz** in the red-top) lists the last six songs and programmes the house's media players played, with the room and whether it is on now. Speakers that began a song together are one line. With Love it or Loathe it, each song shows who loved or loathed it, and changes as they do.
+- **Dash-Bored: a rating taken away is taken back.** The Personal column drops "Ann loved…" when Ann takes the rating away, and shows only her latest word on a song.
+
 ## 2026.11.8-b15
 
 - **Dash-Bored: the rest of the house's devices.** Fans, humidifiers, water heaters, valves, sirens, vacuums, lawn mowers and alarm panels are devices in their rooms.

@@ -14,6 +14,7 @@ from custom_components.casa_mia_dash_bored.const import (
     DOMAIN,
     PANEL,
     PERSONAL,
+    PLAYING,
     RATED_EVENT,
     WATCH_EVENT,
 )
@@ -206,13 +207,64 @@ async def test_a_song_somebody_rated_is_announced_and_a_rating_taken_away_is_not
         }
     ]
 
+    # A rating taken away is fed too, so that the page takes back what it printed.
     hass.bus.async_fire(RATED_EVENT, {**rating, "feeling": "clear"})
     hass.bus.async_fire(
         RATED_EVENT, {**rating, "feeling": "loathe", "title": "Old Song", "artist": ""}
     )
-    pushed = (await client.receive_json())["event"]
+    pushed = [(await client.receive_json())["event"][0] for _ in range(2)]
     assert [(item["kind"], item["title"]) for item in pushed] == [
-        ("loathe", "Old Song")
+        ("clear", "Night Train"),
+        ("loathe", "Old Song"),
+    ]
+
+
+async def test_what_the_players_play_is_kept_and_fed_once_each(hass, hass_ws_client):
+    await set_up(hass)
+    song = {"media_title": "Night Train", "media_artist": "The Sleepers"}
+    hass.states.async_set("media_player.den", "playing", song)
+    # Louder, paused and resumed: the same playing of it.
+    hass.states.async_set("media_player.den", "playing", {**song, "volume_level": 0.4})
+    hass.states.async_set("media_player.den", "paused", song)
+    hass.states.async_set("media_player.den", "playing", song)
+    # A television that gives only its input has nothing to tell.
+    hass.states.async_set("media_player.tv", "playing", {"source": "HDMI 2"})
+    hass.states.async_set("light.den", "playing", song)
+    # A player's first state counts: it is what was playing as Home Assistant started.
+    hass.states.async_set("media_player.attic", "playing", {"media_title": "Old Song"})
+    await hass.async_block_till_done()
+
+    client, held = await feed(hass, hass_ws_client, PLAYING)
+    assert [
+        {k: v for k, v in item.items() if k not in ("at", "id")} for item in held
+    ] == [
+        {
+            "entity_id": "media_player.den",
+            "title": "Night Train",
+            "artist": "The Sleepers",
+            "show": False,
+        },
+        {
+            "entity_id": "media_player.attic",
+            "title": "Old Song",
+            "artist": "",
+            "show": False,
+        },
+    ]
+
+    # A programme is told by its series.
+    hass.states.async_set(
+        "media_player.tv",
+        "playing",
+        {
+            "media_title": "Episode 4",
+            "media_series_title": "The Lighthouse",
+            "media_content_type": "tvshow",
+        },
+    )
+    pushed = (await client.receive_json())["event"]
+    assert [(item["title"], item["show"]) for item in pushed] == [
+        ("The Lighthouse", True)
     ]
 
 

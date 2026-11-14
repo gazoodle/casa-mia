@@ -6,17 +6,18 @@ import { LitElement, html, nothing, type TemplateResult } from "lit";
 import { keyed } from "lit/directives/keyed.js";
 import { live } from "lit/directives/live.js";
 import { fire, navigate, type Hass } from "../ha.ts";
-import { clipping, type Open } from "./clipping.ts";
+import { clipping, photograph, type Open, type Shot } from "./clipping.ts";
 import { DEGREES, read, sighted, survey, type Device, type House, type Options, type Room, type Seen, type Sighting, type Survey } from "./house.ts";
 import { recorded } from "./record.ts";
-import { NOMINAL, RECOVERED, cap, clock, counted, flavourOf, flip, personal, setting, stories, type Alert, type Press, type Rated, type Story } from "./stories.ts";
+import { NOMINAL, RECOVERED, cap, clock, counted, flavourOf, billing, flip, personal, setting, stories, type Alert, type Played, type Press, type Rated, type Story } from "./stories.ts";
 import { STYLES } from "./styles.ts";
-import { FIXES, VOICES, amount, announce, clause, fill, poll, tell, wired, words, type Told } from "./voices.ts";
+import { FIXES, VOICES, amount, announce, billed, clause, fill, poll, tell, wired, words, type Told } from "./voices.ts";
 
 export const CARD = "dash-bored-gazette";
 const ALERTS = "casa_mia_dash_bored/alerts"; // the integration's feeds: Sensor Watch's alerts (alerts.py)
 const SIGHTINGS = "casa_mia_dash_bored/sightings"; // what the cameras have seen (sightings.py)
-const PERSONAL = "casa_mia_dash_bored/personal"; // and the songs people have rated (personal.py)
+const PERSONAL = "casa_mia_dash_bored/personal"; // the songs people have rated (personal.py)
+const PLAYING = "casa_mia_dash_bored/playing"; // and what the players have played (playing.py)
 const ARCHIVE = 30 * 60_000; // ms: how far back the column of past sightings goes
 const PAST = 10; // and how many of them it lists
 const REMEMBERED = "dash-bored-style"; // this browser's choice of paper
@@ -56,7 +57,7 @@ type Line = { time: number; device?: Device; alert?: Alert; seen?: Sighting };
 
 export class Gazette extends LitElement {
   static styles = STYLES;
-  static properties = { narrow: { type: Boolean }, _house: { state: true }, _style: { state: true }, _alerts: { state: true }, _seen: { state: true }, _fault: { state: true }, _lost: { state: true }, _scale: { state: true }, _open: { state: true }, _rated: { state: true } };
+  static properties = { narrow: { type: Boolean }, _house: { state: true }, _style: { state: true }, _alerts: { state: true }, _seen: { state: true }, _fault: { state: true }, _lost: { state: true }, _scale: { state: true }, _open: { state: true }, _shot: { state: true }, _rated: { state: true }, _played: { state: true } };
   narrow = false;
   _house?: House;
   // The one scale that is open: for which device, and the level asked for that the
@@ -64,6 +65,8 @@ export class Gazette extends LitElement {
   // its clipping when that is open.
   _scale?: { id: string; want?: number };
   _open?: Open; // the clipping that is open: see clipping.ts
+  _shot?: Shot; // or the photograph that is
+  _played: Played[] = []; // the feed's songs and programmes
   _style = "broadsheet";
   _alerts: Alert[] = [];
   _seen: Seen[] = []; // the feed's sightings of the last half hour
@@ -189,8 +192,10 @@ export class Gazette extends LitElement {
     };
     follow(ALERTS, "Sensor Watch's alerts", (alerts: Alert[]) => this._take(alerts));
     follow(SIGHTINGS, "The cameras' sightings", (seen: Seen[]) => this._sight(seen));
-    // The feed says all it holds again after a break, so each is kept once.
-    follow(PERSONAL, "The Personal column's announcements", (rated: Rated[]) => (this._rated = [...new Map([...this._rated, ...rated].map((r) => [`${r.at} ${r.name} ${r.title}`, r])).values()]));
+    // A feed says all it holds again after a break, so each item is kept once.
+    const once = <T>(items: T[], key: (item: T) => string) => [...new Map(items.map((item) => [key(item), item])).values()];
+    follow(PERSONAL, "The Personal column's announcements", (rated: Rated[]) => (this._rated = once([...this._rated, ...rated], (r) => `${r.at} ${r.name} ${r.title}`)));
+    follow(PLAYING, "What the players have played", (played: Played[]) => (this._played = once([...this._played, ...played], (p) => p.id)));
   }
 
   /** Sightings from the feed: all it holds at first, then each as it comes, and again
@@ -278,7 +283,20 @@ export class Gazette extends LitElement {
   }
 
   private _shut() {
-    this._open = this._scale = undefined;
+    this._open = this._scale = this._shot = undefined;
+  }
+
+  /** Home Assistant's own dialog for an entity. It would open beneath a modal one, so the
+   * clipping is folded away first. */
+  private _live(entityId: string) {
+    this._shut();
+    fire(this, "hass-more-info", { entityId });
+  }
+
+  /** Open a photograph as a clipping, in place of whichever clipping was open. */
+  private _look(shot: Shot) {
+    this._shut();
+    this._shot = shot;
   }
 
   /** The clipping's button. To unlock a lock, or open a garage door or a gate, it must
@@ -383,10 +401,10 @@ export class Gazette extends LitElement {
         <button aria-label="Close" @click=${() => (this._scale = undefined)}>×</button>
       </span>`;
     };
-    // A photograph, where the story has one. Pressing it opens the camera that took it.
+    // A photograph, where the story has one. Pressing it opens it as a clipping, to be looked at closely.
     const photo = (s: Story) =>
       s.photo
-        ? html`<figure class="photo" role="button" tabindex="0" @click=${() => fire(this, "hass-more-info", { entityId: s.see })} @keydown=${this._key}>
+        ? html`<figure class="photo" role="button" tabindex="0" @click=${() => this._look({ src: s.photo!, caption: `${s.figure[1]}, ${s.figure[0]}`, see: s.see })} @keydown=${this._key}>
             <img src=${s.photo} alt=${s.figure[1]} loading="lazy" @error=${() => (this._fault = `The photograph from ${s.figure[1]} could not be fetched.`)} />
             <figcaption>${s.figure[1]}, ${s.figure[0]}</figcaption>
           </figure>`
@@ -427,6 +445,7 @@ export class Gazette extends LitElement {
         ><button class="chip tab" aria-label="${d.name}: its story" @click=${() => this._story(d)}>${d.dims && !d.away ? `${d.level ?? d.span.min}${DEGREES.has(d.kind) ? "°" : "%"}` : "›"}</button></div>`;
     const devices = new Map(house.rooms.flatMap((r) => r.devices).map((d) => [d.id, d]));
     const subject = this._open && devices.get(this._open.id);
+    const bill = billing(this._played, this._rated, devices);
     // What comes away with a clipping: the paper's own stories, from round where it was cut.
     const others = rest.length ? rest : told;
     const scraps = { above: others[0].deck, beside: [...others, ...told].map((t) => `${t.head}. ${t.deck}`).join(" "), below: others.at(-1)!.head };
@@ -481,10 +500,16 @@ export class Gazette extends LitElement {
           ${past.length
             ? html`<h3>${voice.titles.archive}</h3>
                 <ol class="archive">${past.map((s) =>
-                  html`<li role="button" tabindex="0" @click=${() => fire(this, "hass-more-info", { entityId: s.camera })} @keydown=${this._key}>
+                  html`<li role="button" tabindex="0" @click=${() => (s.photo ? this._look({ src: s.photo, caption: `${s.name}, ${clock(s.at)}`, see: s.camera }) : fire(this, "hass-more-info", { entityId: s.camera }))} @keydown=${this._key}>
                     ${s.photo ? html`<img src=${s.photo} alt="" loading="lazy" />` : html`<i></i>`}<span><time>${clock(s.at)}</time>${s.name}: ${sort(s.kind)}</span></li>`)}</ol>`
             : nothing}
           ${column.length ? html`<h3>${voice.titles.personal}</h3><ol>${column.map((n) => html`<li><time>${clock(n.at)}</time>${announce(voice, n)}</li>`)}</ol>` : nothing}
+          ${bill.length
+            ? html`<h3>${voice.titles.celebrity}</h3><ol>${bill.map((b) => {
+                const [text, marks] = billed(voice, b);
+                return html`<li role="button" tabindex="0" @click=${() => this._story(devices.get(b.id)!)} @keydown=${this._key}><time>${clock(b.at)}</time>${text}${marks.map((mark, i) => html` <span class="mark ${b.marks[i].kind}">${mark}</span>`)}</li>`;
+              })}</ol>`
+            : nothing}
           ${warm.length
             ? html`<h3>${voice.titles.temps}</h3><table>${warm.map((r) => html`<tr><td>${r.name}</td><td>${r.temp!.toFixed(1)}° ${r.target === undefined ? "" : r.temp! < r.target - 0.5 ? "▼" : r.temp! > r.target + 0.5 ? "▲" : "="}</td></tr>`)}</table>`
             : nothing}
@@ -507,11 +532,13 @@ export class Gazette extends LitElement {
       ${subject
         ? clipping(voice, subject, this._open!, now, scale(subject), scraps, {
             flip: () => this._flip(subject),
-            // Home Assistant's dialog would open beneath a modal one: this is folded away first.
-            more: () => (this._shut(), fire(this, "hass-more-info", { entityId: subject.id })),
+            more: () => this._live(subject.id),
+            picture: () => this._look({ src: subject.picture!, caption: `${subject.room}: ${subject.name}`, see: subject.id }),
             shut: () => this._shut(),
           })
-        : nothing}
+        : this._shot
+          ? photograph(voice, this._shot, scraps, { more: () => this._live(this._shot!.see!), shut: () => this._shut() })
+          : nothing}
     </div>`;
   }
 }

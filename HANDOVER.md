@@ -405,6 +405,21 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   its own. A voice's `personal` words it. Known: after a restart every person's
   `last_changed` is the restart's time, so each "arrives" then. The owner was told the
   column shows guests who is at home.
+- **A photograph's clipping, and the Amusements column** (owner's ideas, 2026-11-14;
+  2026.11.8-b16). A press on a photograph (a story's, the archive's, a camera
+  clipping's still) opens it as a clipping (`photograph` in `clipping.ts`, `_shot` in
+  the page); "See the camera as it is now" goes on to Home Assistant's dialog.
+  `zoom.ts` does the pinch, drag, wheel and double tap itself, because Home
+  Assistant's page turns the browser's zoom off; `zoomed` is the tested arithmetic.
+  The column: `playing.py` keeps the last 30 titles the media players began and feeds
+  them (`casa_mia_dash_bored/playing`); `billing` in `stories.ts` makes the lines and
+  `verdicts` is each person's latest word on a song, which the Personal column now
+  uses too (`personal.py` feeds `clear`). **Lesson:** `async_track_state_change_filtered`
+  by domain does not report an entity's first state, so what was playing at start-up
+  was missed, and a test that set the state twice hid it; the feed listens to
+  `EVENT_STATE_CHANGED` with an `event_filter`. My rulings: the enlarged photograph
+  is in colour in both papers (it is for looking closely), and nothing is rated from
+  the page.
 - **Seen on the test VM, 2026-11-14** (it now has Home Assistant's demo devices in rooms
   on four floors, and a dimmable Pendant and a Blind as template helpers): floors as
   crossheads, votes and the scale moving a light and a blind, a clipping's record from
@@ -417,6 +432,13 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   sounding, a person
   truly coming or going (the VM's people have no trackers; their states were set by hand), a real dimmer, blind
   or lock, touch on a tablet, Safari, a history failure (the path is written, not run).
+  **b16, seen:** the column filled from what was playing at start-up, four speakers on
+  one line, a rating and its taking away changing the line and the Personal column at
+  once, a camera's still opened large, zoomed by the wheel, dragged, reset by a double
+  click, and its link opening Home Assistant's dialog, at desktop and phone widths.
+  **b16, not seen:** a pinch by real fingers (only the arithmetic is tested, and the
+  wheel in a browser), a sighting's photograph opened (the VM had no sighting; it is
+  the same code as a camera's still), a television's programme.
 - **Not done:** publishing by itself, other languages. BACKLOG has the list.
 - **Tests:** `src/dash-bored/stories.test.ts` (house, ranking, every voice tells every
   story), `tests_ha/test_dash_bored.py` (set-up, the panel, the alerts feed).

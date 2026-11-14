@@ -1,5 +1,6 @@
 """The Personal column's announcements that are moments: for now, a song somebody loved
-or loathed, which Love it or Loathe it says by a bus event. They are kept here and fed
+or loathed, which Love it or Loathe it says by a bus event. A rating taken away is fed
+too ("clear"), so that a page takes back what it printed. They are kept here and fed
 to the pages (feed.py says why a page can't listen for itself).
 
 Kept for this run of Home Assistant only, and the latest KEPT of them. Without Love it
@@ -23,7 +24,7 @@ from .feed import Send, follow
 _LOGGER = logging.getLogger(__name__)
 KEY = f"{DOMAIN}_personal"
 KEPT = 20
-FEELINGS = ("love", "loathe")  # taking a rating away is not an announcement
+FEELINGS = ("love", "loathe", "clear")
 
 
 class Personal:

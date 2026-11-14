@@ -62,7 +62,50 @@ export type Story = {
 
 /** A song somebody loved or loathed, as the integration's feed tells it (personal.py), its
  * time in seconds. */
-export type Rated = { kind: "love" | "loathe"; name: string; title: string; artist: string; at: number };
+export type Rated = { kind: "love" | "loathe" | "clear"; name: string; title: string; artist: string; at: number };
+/** What a player played, as the integration's feed tells it (playing.py), its time in
+ * seconds. `show` is a programme or a film, not a song. */
+export type Played = { id: string; entity_id: string; title: string; artist: string; show: boolean; at: number };
+/** A line of the celebrity column: what was played and where, whether it is on now, and
+ * what people have said of it. */
+export type Billing = { id: string; at: number; kind: "song" | "show"; live: boolean; vars: Record<string, string>; marks: Rated[] };
+const BILL = 6; // how many the column holds
+const TOGETHER = 60; // seconds: players that began the same thing within this are playing it together
+
+const lower = (text: string) => text.trim().toLowerCase();
+// The same song: its title, and its artist where both name one.
+const same = (a: { title: string; artist: string }, b: { title: string; artist: string }) => lower(a.title) === lower(b.title) && (!a.artist || !b.artist || lower(a.artist) === lower(b.artist));
+
+/** What each person thinks of each song now: their latest word on it, and nothing where
+ * that was to take the rating away. */
+export function verdicts(rated: Rated[]): Rated[] {
+  const latest = new Map<string, Rated>();
+  for (const r of [...rated].sort((a, b) => a.at - b.at)) latest.set(`${lower(r.name)}\n${lower(r.title)}\n${lower(r.artist)}`, r);
+  return [...latest.values()].filter((r) => r.kind !== "clear");
+}
+
+/** The celebrity column, newest first: the last things the house's players played, each
+ * with what was said of it. A player the page does not show is left out, and players
+ * that began the same thing together (a group of speakers) are one line, with its rooms. */
+export function billing(played: Played[], rated: Rated[], devices: Map<string, Device>): Billing[] {
+  const said = verdicts(rated);
+  const newest = new Map<string, string>(); // by player: the last thing it played
+  for (const p of [...played].sort((a, b) => a.at - b.at)) newest.set(p.entity_id, p.id);
+  const bill: (Billing & { rooms: string[] })[] = [];
+  for (const p of [...played].sort((a, b) => b.at - a.at)) {
+    const d = devices.get(p.entity_id);
+    if (!d) continue;
+    // A device's title is the song and its artist (house.ts), so it begins with the song's.
+    const live = d.on && newest.get(d.id) === p.id && (!d.title || lower(d.title).startsWith(lower(p.title)));
+    const room = d.room.toLowerCase();
+    const with_ = bill.find((b) => b.live === live && b.vars.title === p.title && b.vars.artist === p.artist && b.at - p.at * 1000 < TOGETHER * 1000);
+    if (with_) {
+      if (!with_.rooms.includes(room)) with_.rooms.unshift(room);
+      with_.vars.room = with_.rooms.length > 1 ? `${with_.rooms.slice(0, -1).join(", ")} and ${with_.rooms.at(-1)}` : room;
+    } else bill.push({ id: d.id, at: p.at * 1000, kind: p.show ? "show" : "song", live, rooms: [room], vars: { title: p.title, artist: p.artist, name: d.name, room }, marks: p.show ? [] : said.filter((r) => same(r, p)) });
+  }
+  return bill.slice(0, BILL);
+}
 /** A line for the Personal column: somebody came home, left or reached a zone, or rated a song. */
 export type Notice = { kind: "home" | "left" | "zone" | "love" | "loathe"; at: number; vars: Record<string, string> };
 const PERSONAL = 12 * 3_600_000; // ms: how long an announcement stays in the column
@@ -72,7 +115,7 @@ const NOTICES = 8; // and how many it holds
  * songs that were rated. */
 export function personal(people: Person[], rated: Rated[], now: number): Notice[] {
   const moves = people.map((p): Notice => ({ kind: p.place === "home" ? "home" : p.place === "not_home" ? "left" : "zone", at: p.since, vars: { name: p.name, place: p.place } }));
-  const songs = rated.map((r): Notice => ({ kind: r.kind, at: r.at * 1000, vars: { name: r.name, title: r.title, artist: r.artist } }));
+  const songs = verdicts(rated).map((r): Notice => ({ kind: r.kind as Notice["kind"], at: r.at * 1000, vars: { name: r.name, title: r.title, artist: r.artist } }));
   return [...moves, ...songs].filter((n) => n.at && now - n.at < PERSONAL).sort((a, b) => b.at - a.at).slice(0, NOTICES);
 }
 
