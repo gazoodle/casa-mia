@@ -357,7 +357,8 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   the scale is a readers' poll (owner's idea, 2026-11-13, to sit beside the scale, not
   replace it): a voice's `polls` by kind, each vote `VOTE` per cent from `want`. The
   figure is the device's own, and `want` shows beside it until the device's state
-  changes.
+  changes. A story can carry a gentler remedy too (`Story.vote`, an entry's `vote`,
+  2026.11.8-b21): the lights' stories dim the lit lights that are brighter than `DIMMED`.
 - **The clipping** (2026.11.8-b11): one device's story in a native `<dialog>`, in
   place of Home Assistant's dialog (`clipping.ts` draws it; `_open` in `gazette.ts` is
   the one that is open). It opens from the tab beside every chip, from a late-news line

@@ -46,7 +46,7 @@ export const STYLES = css`
     background: repeating-linear-gradient(45deg, transparent 0 3px, rgba(0,0,0,.07) 3px 4px); }
   .figure b { display: block; font: 900 38px/1 var(--head); overflow-wrap: anywhere; }
   .figure span { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; }
-  .act { display: inline-block; border: 1.5px solid var(--ink); padding: 3px 12px; margin-bottom: 10px; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; }
+  .act { display: inline-block; border: 1.5px solid var(--ink); padding: 3px 12px; margin: 0 8px 10px 0; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; }
   .act:hover { background: var(--ink); color: var(--paper); }
   /* A photograph: printed in black and white, as a broadsheet's are. */
   .photo { margin: 0 0 12px; clear: both; cursor: pointer; }

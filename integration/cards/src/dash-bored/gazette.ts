@@ -12,7 +12,7 @@ import { clipping, photograph } from "./clipping.ts";
 import { Acts } from "./gazette/acts.ts";
 import { ARCHIVE, PAST } from "./gazette/page.ts";
 import { DEGREES, sighted, type Device, type Room } from "./house.ts";
-import { cap, clock, counted, billing, personal, stories, type Story } from "./stories.ts";
+import { cap, clock, counted, billing, personal, stories, type Press, type Story } from "./stories.ts";
 import { FIXES, VOICES, amount, announce, billed, clause, fill, poll, sky, tell, wired, words, type Told } from "./voices.ts";
 
 export const CARD = "dash-bored-gazette";
@@ -50,7 +50,11 @@ export class Gazette extends Acts {
     const [lead, ...rest] = told;
     const alert = told.find((t) => t.s.kind === "alert");
 
-    const act = (t: Told & { s: (typeof running)[number] }) => (t.act ? html`<button class="act" @click=${() => this._call(t.s.press!, t.head)}>${t.act}</button>` : nothing);
+    // What a story's reader can do about it: its remedy, and a gentler one beside it where there is one.
+    const act = (t: Told & { s: (typeof running)[number] }) => {
+      const button = (words: string, press?: Press) => (words ? html`<button class="act" @click=${() => this._call(press!, t.head)}>${words}</button>` : nothing);
+      return html`${button(t.act, t.s.press)}${button(t.vote, t.s.vote)}`;
+    };
     // A device's clause switches it when pressed. Where its level can be set, the level
     // is a press of its own, which opens the scale.
     const fact = (d: Device, first: boolean): TemplateResult => {

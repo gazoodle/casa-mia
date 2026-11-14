@@ -1,8 +1,9 @@
 // What a voice is made of: the shape every paper fills in. voices.ts has what is done with one.
 /** How one kind of story is told. `flavours` are headlines for a particular sort of
  * sensor; `plain` is the body for a sensor with no reading to quote (one that is only
- * on or off); `worse` is added to the body when the trouble has escalated. */
-export type Entry = { kicker: string; head: string[]; flavours?: Record<string, string[]>; deck: string; body?: string; plain?: string; worse?: string; act?: string };
+ * on or off); `worse` is added to the body when the trouble has escalated; `vote` is
+ * on the button for the story's gentler remedy, beside `act`. */
+export type Entry = { kicker: string; head: string[]; flavours?: Record<string, string[]>; deck: string; body?: string; plain?: string; worse?: string; act?: string; vote?: string };
 export type Voice = {
   label: string; // on the button that chooses it
   name: string; // the masthead
@@ -29,4 +30,4 @@ export type Voice = {
   notices: string[]; // under each scene, in turn
   stories: Record<string, Entry>; // by `kind.variant`, else `kind`
 };
-export type Told = { kicker: string; head: string; deck: string; body: string; act: string };
+export type Told = { kicker: string; head: string; deck: string; body: string; act: string; vote: string };

@@ -101,6 +101,20 @@ test("the remedies are the safe ones", () => {
   assert.deepEqual(press.appliance, { domain: "switch", service: "turn_off", ids: ["switch.kettle"] });
 });
 
+test("the lights' story has a vote to dim them: those that can be, and are brighter", () => {
+  const dimmer = (name: string, brightness: number) => state("on", { friendly_name: name, brightness, supported_color_modes: ["brightness"] });
+  const h = house({ "light.kitchen_counter": dimmer("Kitchen Counter", 204), "light.hidden": dimmer("Hidden", 204) });
+  const lights = stories(h, [], 2000).find((s) => s.kind === "lights")!;
+  // The ceiling light is on too, and only switches.
+  assert.deepEqual(lights.vote, { domain: "light", service: "turn_on", ids: ["light.kitchen_counter"], data: { brightness_pct: 30 } });
+  assert.deepEqual([tell(VOICES.broadsheet, lights, 0).act, tell(VOICES.broadsheet, lights, 0).vote], ["Lights out", "Dim them"]);
+
+  // Once they are dim there is nothing to vote for.
+  const dim = stories(house({ "light.kitchen_counter": dimmer("Kitchen Counter", 51) }), [], 2000).find((s) => s.kind === "lights")!;
+  assert.equal(dim.vote, undefined);
+  assert.equal(tell(VOICES.broadsheet, dim, 0).vote, "");
+});
+
 const seen = (kind: string, at = 1000, camera = "camera." + kind) => ({ id: `${camera}.${at}`, camera, name: "Shed camera", room: "Shed", kind, at, photo: "/photo" });
 
 test("a sighting is news with its photograph for ten minutes, a caller above what is left on and a cat below", () => {

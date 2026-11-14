@@ -56,6 +56,7 @@ export type Story = {
   vars: Record<string, string>;
   figure: [string, string];
   press?: Press;
+  vote?: Press; // a gentler thing to do in its place: the lights dimmed, where the press puts them out
   photo?: string; // a photograph's address
   see?: string; // the entity whose dialog shows more: the camera that took it
 };
@@ -127,6 +128,7 @@ const RANK: Record<string, number> = { critical: 100, error: 95, warning: 70, ta
 // What a camera saw (image.py's kinds): an alarm heard beside trouble, somebody at the
 // door above what is left on, a passing cat below it.
 const SEEN: Record<string, number> = { alarm: 92, doorbell: 80, person: 62, vehicle: 42, animal: 41 };
+const DIMMED = 30; // per cent: what a vote to dim the lights asks of each
 const NUM = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
 
 export const clock = (ms: number) => new Date(ms).toTimeString().slice(0, 5);
@@ -198,9 +200,13 @@ export function stories(house: House, alerts: Alert[], now: number, sightings: S
   const lit = lights.filter((d) => d.on);
   if (lights.length) {
     // Ablaze is most of the lights in the house, not merely several.
+    // The lights a vote would dim: those that can be, and are brighter than it asks. A
+    // light whose level isn't known is asked too.
+    const bright = lit.filter((d) => d.dims && (d.level ?? 100) > DIMMED);
     const kind = lit.length >= 7 && lit.length * 2 >= lights.length ? "ablaze" : lit.length ? "lights" : "dark";
     add({ kind, id: kind, rank: { ablaze: 60, lights: 30, dark: 35 }[kind], vars: counted(lit.length), figure: [String(lit.length), lit.length === 1 ? "light on" : "lights on"],
-      press: lit.length ? { domain: "light", service: "turn_off", ids: lit.map((d) => d.id) } : undefined });
+      press: lit.length ? { domain: "light", service: "turn_off", ids: lit.map((d) => d.id) } : undefined,
+      vote: bright.length ? { domain: "light", service: "turn_on", ids: bright.map((d) => d.id), data: { brightness_pct: DIMMED } } : undefined });
   }
 
   for (const room of house.rooms) {

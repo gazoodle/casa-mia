@@ -11,9 +11,6 @@ mock-ups are in `docs/design/dash-bored/`. What's next, in the order the owner g
   of floors and rooms (2026.11.8-b19). Parked by the owner the same day ("Not yet"): the
   Gazette's masthead names there, one for each paper, which is a family's setting and
   not the house's; then the strap line and the tone.
-- **Reader polls for other continuous controls** (owner's idea, 2026-11-13; built for
-  lights and blinds in 2026.11.8-b10): a vote on a
-  story, such as "Dim them all" beside "Put them all out".
 - **Photographs, further** (2026-11-13, not asked for yet): Protect's snapshot at the
   event's own timestamp, if its thumbnails prove poor; an entity for a camera added after set-up
   without a reload; detections named in other languages.

@@ -36,6 +36,7 @@ export function tell(voice: Voice, story: Story, turn: number): Told {
     deck: fill(entry.deck, story.vars),
     body: entry.body ? fill(story.vars.reading === "" && entry.plain ? entry.plain : entry.body, story.vars) + worse : "",
     act: story.press && entry.act ? entry.act : "",
+    vote: story.vote && entry.vote ? entry.vote : "",
   };
 }
 

@@ -38,6 +38,7 @@ thing at the top:
 | A sensor back to normal | For ten minutes after a Sensor Watch alert clears. |
 | An appliance at work | A switch that is the only one on its device, where that device also has a power sensor reading 1 kW or more. |
 | Lights left on | Any lights on. "Ablaze" when it is seven or more and at least half of them. |
+| | The story has two buttons. One puts the lights out. The other dims them: each lit light that can be dimmed and is brighter than 30 per cent is set to 30 per cent, and it is shown only when there is such a light. |
 | A cold room | A room more than 0.8° below its thermostat's target. |
 | Power in use | Only if the card names a power sensor (see below). |
 | The weather | The outside temperature, from a weather entity. |

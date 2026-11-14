@@ -1311,7 +1311,7 @@ var At = 6e5, jt = {
 	person: 62,
 	vehicle: 42,
 	animal: 41
-}, Mt = [
+}, Mt = 30, Nt = [
 	"no",
 	"one",
 	"two",
@@ -1327,7 +1327,7 @@ var At = 6e5, jt = {
 	"twelve"
 ], K = (e) => new Date(e).toTimeString().slice(0, 5), q = (e) => e && e[0].toUpperCase() + e.slice(1);
 function J(e) {
-	let t = Mt[e] ?? String(e);
+	let t = Nt[e] ?? String(e);
 	return {
 		n: String(e),
 		N: q(t),
@@ -1336,7 +1336,7 @@ function J(e) {
 		v: e === 1 ? "s" : ""
 	};
 }
-function Nt(e) {
+function Pt(e) {
 	return {
 		temperature: "temperature",
 		moisture: "moisture",
@@ -1348,10 +1348,10 @@ function Nt(e) {
 		smoke: "smoke"
 	}[String(e)] ?? "";
 }
-function Pt(e) {
+function Ft(e) {
 	return typeof e.value == "number" || typeof e.value == "string" && e.value.trim() !== "" && Number.isFinite(Number(e.value)) ? `${e.value}${e.unit ? ` ${e.unit}` : ""}` : "";
 }
-function Ft(e, t, n, r = []) {
+function It(e, t, n, r = []) {
 	let i = [], a = (e) => i.push({
 		variant: "",
 		flavour: "",
@@ -1362,10 +1362,10 @@ function Ft(e, t, n, r = []) {
 			name: e.name,
 			area: (e.area ?? "house").toLowerCase(),
 			message: e.message || `${q(e.level)}.`,
-			reading: Pt(e),
+			reading: Ft(e),
 			since: K(e.began),
 			escalated: e.escalated ? "yes" : ""
-		}, r = Pt(e) ? [Pt(e), e.area ?? e.name] : [q(e.level), e.name];
+		}, r = Ft(e) ? [Ft(e), e.area ?? e.name] : [q(e.level), e.name];
 		e.level === "nominal" ? n - e.at < 6e5 && a({
 			kind: "recovered",
 			id: e.entity_id + ".ok",
@@ -1463,21 +1463,27 @@ function Ft(e, t, n, r = []) {
 	});
 	let l = o.filter((e) => e.kind === "light" && !e.away), u = l.filter((e) => e.on);
 	if (l.length) {
-		let e = u.length >= 7 && u.length * 2 >= l.length ? "ablaze" : u.length ? "lights" : "dark";
+		let e = u.filter((e) => e.dims && (e.level ?? 100) > Mt), t = u.length >= 7 && u.length * 2 >= l.length ? "ablaze" : u.length ? "lights" : "dark";
 		a({
-			kind: e,
-			id: e,
+			kind: t,
+			id: t,
 			rank: {
 				ablaze: 60,
 				lights: 30,
 				dark: 35
-			}[e],
+			}[t],
 			vars: J(u.length),
 			figure: [String(u.length), u.length === 1 ? "light on" : "lights on"],
 			press: u.length ? {
 				domain: "light",
 				service: "turn_off",
 				ids: u.map((e) => e.id)
+			} : void 0,
+			vote: e.length ? {
+				domain: "light",
+				service: "turn_on",
+				ids: e.map((e) => e.id),
+				data: { brightness_pct: Mt }
 			} : void 0
 		});
 	}
@@ -1519,14 +1525,14 @@ function Ft(e, t, n, r = []) {
 }
 //#endregion
 //#region src/dash-bored/voices/broadsheet.ts
-var It = {
+var Lt = {
 	kicker: "Stop press",
 	head: ["{name} gives cause for alarm"],
 	deck: "{message}",
 	body: "The reading stood at {reading} in the {area} as this edition went to press, and the trouble dates from {since}.",
 	plain: "The trouble in the {area} dates from {since}.",
 	worse: "Matters have worsened since our earlier report."
-}, Lt = {
+}, Rt = {
 	label: "Broadsheet",
 	name: "The Casa Courier",
 	strap: "",
@@ -1743,9 +1749,9 @@ var It = {
 		"Enquire at this office."
 	],
 	stories: {
-		alert: It,
+		alert: Lt,
 		"alert.warning": {
-			...It,
+			...Lt,
 			kicker: "Late report",
 			head: ["{name} gives cause for concern"]
 		},
@@ -1811,13 +1817,15 @@ var It = {
 			kicker: "Economy",
 			head: ["House ablaze with light"],
 			deck: "With {n_word} lamps burning at once, questions are asked about the bill.",
-			act: "Put them all out"
+			act: "Put them all out",
+			vote: "Dim them all"
 		},
 		lights: {
 			kicker: "Home affairs",
 			head: ["{N} light{s} still burning at this hour"],
 			deck: "The remainder of the house is reported quiet and in good order.",
-			act: "Lights out"
+			act: "Lights out",
+			vote: "Dim them"
 		},
 		dark: {
 			kicker: "Home affairs",
@@ -1860,14 +1868,14 @@ var It = {
 			deck: "Nothing of note has occurred. {N} device{s} stand{v} ready."
 		}
 	}
-}, Rt = {
+}, zt = {
 	kicker: "Breaking",
 	head: ["{name}: what we know so far", "Live: {name}"],
 	deck: "{message}",
 	body: "The latest reading in the {area} is {reading}. It began at {since}.",
 	plain: "It began in the {area} at {since}.",
 	worse: "Update: it has got worse."
-}, zt = {
+}, Bt = {
 	label: "Rolling news",
 	name: "The Thermostat",
 	strap: "Live from every room",
@@ -2084,9 +2092,9 @@ var It = {
 		"Ready to run"
 	],
 	stories: {
-		alert: Rt,
+		alert: zt,
 		"alert.warning": {
-			...Rt,
+			...zt,
 			kicker: "Developing",
 			head: ["{name} needs checking", "{name}: what we know so far"]
 		},
@@ -2152,13 +2160,15 @@ var It = {
 			kicker: "Energy",
 			head: ["{N} lights are on at once"],
 			deck: "Most of the lights in the house are on.",
-			act: "Turn them all off"
+			act: "Turn them all off",
+			vote: "Dim them all"
 		},
 		lights: {
 			kicker: "At home",
 			head: ["{N} light{s} on"],
 			deck: "Everything else is as expected.",
-			act: "Turn off"
+			act: "Turn off",
+			vote: "Dim"
 		},
 		dark: {
 			kicker: "At home",
@@ -2201,7 +2211,7 @@ var It = {
 			deck: "No changes. Devices watched: {n}."
 		}
 	}
-}, Bt = {
+}, Vt = {
 	kicker: "Red alert",
 	head: [
 		"{name} shock",
@@ -2235,7 +2245,7 @@ var It = {
 	body: "It's {reading} in the {area} and it's been going on since {since}.",
 	plain: "It's been going on in the {area} since {since}.",
 	worse: "And it's getting WORSE."
-}, Vt = {
+}, Ht = {
 	label: "Red-top",
 	name: "Daily Fuse",
 	strap: "The paper that's always switched on",
@@ -2452,9 +2462,9 @@ var It = {
 		"Easy as that."
 	],
 	stories: {
-		alert: Bt,
+		alert: Vt,
 		"alert.warning": {
-			...Bt,
+			...Vt,
 			kicker: "Uh-oh"
 		},
 		"alert.task": {
@@ -2563,7 +2573,8 @@ var It = {
 				"Blaze of glory"
 			],
 			deck: "{n} lights on AT ONCE in bill-busting bonanza.",
-			act: "Kill the lights"
+			act: "Kill the lights",
+			vote: "Dim the lot"
 		},
 		lights: {
 			kicker: "Still on",
@@ -2573,7 +2584,8 @@ var It = {
 				"Switched on"
 			],
 			deck: "{n} light{s} burn{v} while the meter ticks.",
-			act: "Kill the lights"
+			act: "Kill the lights",
+			vote: "Dim the lot"
 		},
 		dark: {
 			kicker: "Blackout",
@@ -2636,23 +2648,24 @@ var It = {
 			deck: "Nothing going on. {n} device{s} behaving."
 		}
 	}
-}, Y = (e, t) => e.replace(/\{(\w+)\}/g, (e, n) => t[n] ?? ""), Ht = {
+}, Y = (e, t) => e.replace(/\{(\w+)\}/g, (e, n) => t[n] ?? ""), Ut = {
 	esphome: "ESPHome. Add entity_category: config (or diagnostic) to each in its device's YAML",
 	knx: "KNX. Add entity_category: config to each in the KNX YAML",
 	"": "Give each the label Dash-Bored hide, or hide it in Home Assistant"
 };
-function Ut(e, t, n) {
+function Wt(e, t, n) {
 	let r = e.stories[`${t.kind}.${t.variant}`] ?? e.stories[t.kind], i = r.flavours?.[t.flavour] ?? r.head, a = t.vars.escalated && r.worse ? " " + r.worse : "";
 	return {
 		kicker: r.kicker,
 		head: Y(i[n % i.length], t.vars),
 		deck: Y(r.deck, t.vars),
 		body: r.body ? Y(t.vars.reading === "" && r.plain ? r.plain : r.body, t.vars) + a : "",
-		act: t.press && r.act ? r.act : ""
+		act: t.press && r.act ? r.act : "",
+		vote: t.vote && r.vote ? r.vote : ""
 	};
 }
-var Wt = (e, t, n) => Y(e.words[Ye.has(t) ? "degrees" : "percent"], { n: String(n) });
-function Gt(e) {
+var Gt = (e, t, n) => Y(e.words[Ye.has(t) ? "degrees" : "percent"], { n: String(n) });
+function Kt(e) {
 	let t = e.name.toLowerCase(), n = /lamp|light/i.test(t) ? t : `${t} light`, r = /s$/i.test((e.kind === "light" ? n : t).split(" - ")[0]);
 	return {
 		name: t,
@@ -2663,17 +2676,17 @@ function Gt(e) {
 		v: r ? "" : "s"
 	};
 }
-function Kt(e, t) {
+function qt(e, t) {
 	let { ask: n, less: r, more: i } = e.polls[t.kind];
 	return {
-		ask: Y(n, Gt(t)),
+		ask: Y(n, Kt(t)),
 		less: r,
 		more: i
 	};
 }
-function qt(e, t) {
+function Jt(e, t) {
 	let n = (n) => `${t.kind}.${n}` in e.words, r = t.away ? "away" : t.phase && n(t.phase) ? `${t.kind}.${t.phase}` : t.on ? t.level === void 0 && n("plain") ? `${t.kind}.plain` : `${t.kind}.on` : `${t.kind}.off`, [i, a] = Y(e.words[r], {
-		...Gt(t),
+		...Kt(t),
 		level: "\0"
 	}).replace(/^the (?=\S+['’]s )/, "").split("\0");
 	return a === void 0 ? [
@@ -2682,48 +2695,48 @@ function qt(e, t) {
 		""
 	] : [
 		i,
-		Wt(e, t.kind, t.level),
+		Gt(e, t.kind, t.level),
 		a
 	];
 }
-var Jt = (e, t) => qt(e, t).join(""), Yt = (e, t) => e.skies[t] ?? q(t.replace(/[-_]/g, " "));
-function Xt(e, t) {
+var Yt = (e, t) => Jt(e, t).join(""), Xt = (e, t) => e.skies[t] ?? q(t.replace(/[-_]/g, " "));
+function Zt(e, t) {
 	let n = Y(t.vars.artist ? e.personal.song : e.personal.tune, t.vars);
 	return [Y(e.celebrity[t.live ? `${t.kind}.live` : t.kind], {
 		...t.vars,
 		song: n
 	}), t.marks.map((t) => Y(e.celebrity[t.kind], { name: t.name }))];
 }
-function Zt(e, t) {
+function Qt(e, t) {
 	let n = Y(t.vars.artist ? e.personal.song : e.personal.tune, t.vars);
 	return Y(e.personal[t.kind], {
 		...t.vars,
 		song: n
 	});
 }
-var Qt = (e, t) => Y(t.level === "nominal" ? e.wire.clear : e.wire.trouble, {
+var $t = (e, t) => Y(t.level === "nominal" ? e.wire.clear : e.wire.trouble, {
 	name: t.name,
 	message: t.message || t.level,
 	level: t.level.toUpperCase()
-}), $t = {
-	broadsheet: Lt,
-	tabloid: Vt,
-	rolling: zt
-}, en = {
+}), en = {
+	broadsheet: Rt,
+	tabloid: Ht,
+	rolling: Bt
+}, tn = {
 	s: 1,
 	x: 0,
 	y: 0
-}, tn = 6, nn = 1.2, rn = 2.5;
-function an(e, t, n, r, i, a, o, s) {
-	let c = Math.min(tn, Math.max(1, e.s * t)), l = c / e.s, u = (e, t) => Math.min(t, Math.max(-t, e)) || 0;
+}, nn = 6, rn = 1.2, an = 2.5;
+function on(e, t, n, r, i, a, o, s) {
+	let c = Math.min(nn, Math.max(1, e.s * t)), l = c / e.s, u = (e, t) => Math.min(t, Math.max(-t, e)) || 0;
 	return {
 		s: c,
 		x: u(n - (n - e.x - i) * l, (c - 1) * o / 2),
 		y: u(r - (r - e.y - a) * l, (c - 1) * s / 2)
 	};
 }
-var X = en, Z = /* @__PURE__ */ new Map();
-function on() {
+var X = tn, Z = /* @__PURE__ */ new Map();
+function sn() {
 	let e = [...Z.values()], t = (t) => e.reduce((e, n) => e + n[t], 0) / e.length;
 	return [
 		t(0),
@@ -2731,73 +2744,73 @@ function on() {
 		e.length > 1 ? Math.hypot(e[0][0] - e[1][0], e[0][1] - e[1][1]) : 0
 	];
 }
-function sn(e, t, n, r, i = 0, a = 0) {
+function cn(e, t, n, r, i = 0, a = 0) {
 	let o = e.getBoundingClientRect();
-	X = an(X, t, n - o.left - o.width / 2, r - o.top - o.height / 2, i, a, o.width, o.height), e.firstElementChild.style.transform = `translate(${X.x}px, ${X.y}px) scale(${X.s})`, e.classList.toggle("near", X.s > 1);
+	X = on(X, t, n - o.left - o.width / 2, r - o.top - o.height / 2, i, a, o.width, o.height), e.firstElementChild.style.transform = `translate(${X.x}px, ${X.y}px) scale(${X.s})`, e.classList.toggle("near", X.s > 1);
 }
-var cn = (e) => e.currentTarget, Q = {
+var ln = (e) => e.currentTarget, Q = {
 	whole() {
-		X = en, Z.clear();
+		X = tn, Z.clear();
 	},
 	down(e) {
-		cn(e).setPointerCapture(e.pointerId), Z.set(e.pointerId, [e.clientX, e.clientY]);
+		ln(e).setPointerCapture(e.pointerId), Z.set(e.pointerId, [e.clientX, e.clientY]);
 	},
 	move(e) {
 		if (!Z.has(e.pointerId)) return;
-		let [t, n, r] = on();
+		let [t, n, r] = sn();
 		Z.set(e.pointerId, [e.clientX, e.clientY]);
-		let [i, a, o] = on();
-		sn(cn(e), r && o ? o / r : 1, i, a, i - t, a - n);
+		let [i, a, o] = sn();
+		cn(ln(e), r && o ? o / r : 1, i, a, i - t, a - n);
 	},
 	up(e) {
 		Z.delete(e.pointerId);
 	},
 	wheel(e) {
-		e.preventDefault(), sn(cn(e), e.deltaY < 0 ? nn : 1 / nn, e.clientX, e.clientY);
+		e.preventDefault(), cn(ln(e), e.deltaY < 0 ? rn : 1 / rn, e.clientX, e.clientY);
 	},
 	twice(e) {
-		sn(cn(e), X.s > 1 ? 1 / X.s : rn, e.clientX, e.clientY);
+		cn(ln(e), X.s > 1 ? 1 / X.s : an, e.clientX, e.clientY);
 	}
-}, ln = 5, un = /* @__PURE__ */ new Map();
-function dn(e) {
-	let t = un.get(e);
+}, un = 5, dn = /* @__PURE__ */ new Map();
+function fn(e) {
+	let t = dn.get(e);
 	if (t) return t;
-	let n = [...e].reduce((e, t) => e * 31 + t.charCodeAt(0) >>> 0, 7), r = () => (n = n * 1664525 + 1013904223 >>> 0) / 2 ** 32, i = (e) => Array.from({ length: e }, (t, n) => ((n + r() * .8) / e * 100).toFixed(1)), a = () => (r() * ln).toFixed(1), o = `polygon(${[
+	let n = [...e].reduce((e, t) => e * 31 + t.charCodeAt(0) >>> 0, 7), r = () => (n = n * 1664525 + 1013904223 >>> 0) / 2 ** 32, i = (e) => Array.from({ length: e }, (t, n) => ((n + r() * .8) / e * 100).toFixed(1)), a = () => (r() * un).toFixed(1), o = `polygon(${[
 		...i(30).map((e) => `${e}% ${a()}px`),
 		...i(22).map((e) => `calc(100% - ${a()}px) ${e}%`),
 		...i(30).map((e) => `calc(100% - ${e}%) calc(100% - ${a()}px)`),
 		...i(22).map((e) => `${a()}px calc(100% - ${e}%)`)
 	].join(",")})`;
-	return un.set(e, o), o;
+	return dn.set(e, o), o;
 }
-var fn = (e, t, n, r, i = "") => P`<dialog class="clipping ${i}" @close=${n} @click=${(e) => e.target === e.currentTarget && n()}>
-    <div class="cutting" style="clip-path:${dn(e)}">
+var pn = (e, t, n, r, i = "") => P`<dialog class="clipping ${i}" @close=${n} @click=${(e) => e.target === e.currentTarget && n()}>
+    <div class="cutting" style="clip-path:${fn(e)}">
       <div class="scrap above" aria-hidden="true">${t.above}</div>
       <div class="story">${r}</div>
       <div class="scrap beside" aria-hidden="true"><span>${t.beside}</span></div>
       <div class="scrap below" aria-hidden="true">${t.below}</div>
     </div>
   </dialog>`;
-function pn(e, t, n, r) {
+function mn(e, t, n, r) {
 	let i = e.clipping;
-	return fn(t.src, n, r.shut, P`<p class="kicker">${t.caption}</p>
+	return pn(t.src, n, r.shut, P`<p class="kicker">${t.caption}</p>
     <div class="zoom" @pointerdown=${Q.down} @pointermove=${Q.move} @pointerup=${Q.up} @pointercancel=${Q.up} @wheel=${Q.wheel} @dblclick=${Q.twice}>
       <img src=${t.src} alt=${t.caption} draggable="false" @load=${Q.whole} />
     </div>
     <p class="hint">${i.closer}</p>
     <div class="foot">${t.see ? P`<button class="mend" @click=${r.more}>${i.live}</button>` : P`<span></span>`}<button class="act" @click=${r.shut}>${i.shut}</button></div>`, "shot");
 }
-function mn(e, t, n, r, i, a, o) {
-	let s = e.clipping, c = (n) => q(Jt(e, {
+function hn(e, t, n, r, i, a, o) {
+	let s = e.clipping, c = (n) => q(Yt(e, {
 		...t,
 		on: n.on,
 		phase: n.phase,
 		level: n.level,
 		away: n.away
 	})), l = n.record, u = e.acts[`${t.kind}.${t.on ? "on" : "off"}`];
-	return fn(t.id, a, o.shut, P`<p class="kicker">${t.room}</p>
+	return pn(t.id, a, o.shut, P`<p class="kicker">${t.room}</p>
       <h4 class="title">${t.name}</h4>
-      <p class="deck">${q(Jt(e, t))}. ${t.since && t.kind !== "camera" ? Y(s.since, { at: K(t.since) }) : ""}
+      <p class="deck">${q(Yt(e, t))}. ${t.since && t.kind !== "camera" ? Y(s.since, { at: K(t.since) }) : ""}
         ${t.temp === void 0 ? "" : Y(s.reads, { temp: t.temp.toFixed(1) })} ${t.title ? Y(s.playing, { title: t.title }) : ""}</p>
       ${t.picture ? P`<img class="still" src=${t.picture} alt=${t.name} role="button" tabindex="0" @click=${o.picture} @keydown=${(e) => e.key === "Enter" && o.picture()} />` : I}
       ${t.away || !u ? I : P`<button class="act ${n.armed ? "sure" : ""}" @click=${o.flip}>${n.armed ? s.sure : u}</button>`}
@@ -2810,7 +2823,7 @@ function mn(e, t, n, r, i, a, o) {
 }
 //#endregion
 //#region src/dash-bored/styles.ts
-var hn = h`
+var gn = h`
   :host { display: block; container-type: inline-size; }
   :host([panel]) { height: 100vh; overflow-y: auto; }
   .paper { --paper: #f3eee0; --ink: #1c1a17; --flash: #8c1c13; --mark: #f6d95a; --head: "Bodoni 72", "Didot", "Playfair Display", serif;
@@ -2852,7 +2865,7 @@ var hn = h`
     background: repeating-linear-gradient(45deg, transparent 0 3px, rgba(0,0,0,.07) 3px 4px); }
   .figure b { display: block; font: 900 38px/1 var(--head); overflow-wrap: anywhere; }
   .figure span { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; }
-  .act { display: inline-block; border: 1.5px solid var(--ink); padding: 3px 12px; margin-bottom: 10px; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; }
+  .act { display: inline-block; border: 1.5px solid var(--ink); padding: 3px 12px; margin: 0 8px 10px 0; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; }
   .act:hover { background: var(--ink); color: var(--paper); }
   /* A photograph: printed in black and white, as a broadsheet's are. */
   .photo { margin: 0 0 12px; clear: both; cursor: pointer; }
@@ -3072,19 +3085,19 @@ var hn = h`
     [data-style="rolling"] .page > * + * { padding-left: 0; }
     .figure, [data-style="tabloid"] .figure { width: 104px; } .figure b, [data-style="tabloid"] .figure b { font-size: 28px; }
   }
-`, gn = "casa_mia_dash_bored/alerts", _n = "casa_mia_dash_bored/sightings", vn = "casa_mia_dash_bored/personal", yn = "casa_mia_dash_bored/playing", bn = "casa_mia_dash_bored/settings", $ = "weather/subscribe_forecast", xn = 18e5, Sn = "dash-bored-style", Cn = "/casa_mia_dash_bored/fonts/ManufacturingConsent-Regular.ttf", wn = !1;
-function Tn() {
-	if (wn) return;
-	wn = !0;
-	let e = new FontFace("Dash-Bored Masthead", `url(${Cn})`);
+`, _n = "casa_mia_dash_bored/alerts", vn = "casa_mia_dash_bored/sightings", yn = "casa_mia_dash_bored/personal", bn = "casa_mia_dash_bored/playing", xn = "casa_mia_dash_bored/settings", $ = "weather/subscribe_forecast", Sn = 18e5, Cn = "dash-bored-style", wn = "/casa_mia_dash_bored/fonts/ManufacturingConsent-Regular.ttf", Tn = !1;
+function En() {
+	if (Tn) return;
+	Tn = !0;
+	let e = new FontFace("Dash-Bored Masthead", `url(${wn})`);
 	document.fonts.add(e), e.load().catch((e) => console.error("Dash-Bored: the masthead's font could not be loaded", e));
 }
-var En = class extends V {
+var Dn = class extends V {
 	constructor(...e) {
 		super(...e), this.narrow = !1, this._played = [], this._days = [], this._style = "broadsheet", this._alerts = [], this._seen = [], this._rated = [], this._fault = "", this._lost = 0, this._config = {}, this._settings = {}, this._late = [], this._turn = /* @__PURE__ */ new Map(), this._showing = /* @__PURE__ */ new Set(), this._feeds = /* @__PURE__ */ new Map(), this._primed = !1, this._seenPrimed = !1, this._timers = /* @__PURE__ */ new Set();
 	}
 	static {
-		this.styles = hn;
+		this.styles = gn;
 	}
 	static {
 		this.properties = {
@@ -3153,7 +3166,7 @@ var En = class extends V {
 		}
 	}
 	connectedCallback() {
-		super.connectedCallback(), Tn(), this._choose(), this._hass?.connected !== !1 && this._listen();
+		super.connectedCallback(), En(), this._choose(), this._hass?.connected !== !1 && this._listen();
 	}
 	disconnectedCallback() {
 		super.disconnectedCallback();
@@ -3165,14 +3178,14 @@ var En = class extends V {
 	_choose() {
 		let e = this._config.style;
 		try {
-			e ??= localStorage.getItem(Sn) ?? void 0;
+			e ??= localStorage.getItem(Cn) ?? void 0;
 		} catch {}
-		e && e in $t && (this._style = e);
+		e && e in en && (this._style = e);
 	}
 	_dress(e) {
 		this._style = e;
 		try {
-			localStorage.setItem(Sn, e);
+			localStorage.setItem(Cn, e);
 		} catch {}
 	}
 	_listen() {
@@ -3185,11 +3198,11 @@ var En = class extends V {
 				this._feeds.delete(t), console.error(`Dash-Bored: the feed ${t} failed`, e), this._fault = `${n} are not reaching this page (${e?.message ?? e}).`;
 			});
 		};
-		t(gn, "Sensor Watch's alerts", (e) => this._take(e)), t(_n, "The cameras' sightings", (e) => this._sight(e));
+		t(_n, "Sensor Watch's alerts", (e) => this._take(e)), t(vn, "The cameras' sightings", (e) => this._sight(e));
 		let n = (e, t) => [...new Map(e.map((e) => [t(e), e])).values()];
-		t(vn, "The Personal column's announcements", (e) => this._rated = n([...this._rated, ...e], (e) => `${e.at} ${e.name} ${e.title}`)), t(bn, "Dash-Bored's settings", (e) => {
+		t(yn, "The Personal column's announcements", (e) => this._rated = n([...this._rated, ...e], (e) => `${e.at} ${e.name} ${e.title}`)), t(xn, "Dash-Bored's settings", (e) => {
 			this._settings = e.at(-1) ?? this._settings, this._survey = void 0, this._hass && (this.hass = this._hass);
-		}), t(yn, "What the players have played", (e) => this._played = n([...this._played, ...e], (e) => e.id));
+		}), t(bn, "What the players have played", (e) => this._played = n([...this._played, ...e], (e) => e.id));
 	}
 	_outlook() {
 		let e = this._hass?.connection, t = this._house?.outside, n = t?.daily ? t.id : void 0;
@@ -3217,7 +3230,7 @@ var En = class extends V {
 				seen: a
 			});
 		}
-		this._seenPrimed = !0, this._seen = [...t.values()].filter((e) => n - e.at * 1e3 < xn);
+		this._seenPrimed = !0, this._seen = [...t.values()].filter((e) => n - e.at * 1e3 < Sn);
 	}
 	_take(e) {
 		let t = new Map(this._alerts.map((e) => [e.entity_id, e]));
@@ -3226,7 +3239,7 @@ var En = class extends V {
 				...n,
 				at: n.at * 1e3,
 				began: n.began * 1e3,
-				flavour: Nt(this._hass?.states[n.entity_id]?.attributes.device_class)
+				flavour: Pt(this._hass?.states[n.entity_id]?.attributes.device_class)
 			};
 			t.set(e.entity_id, e), this._primed && (this._note({
 				time: e.at,
@@ -3247,7 +3260,7 @@ var En = class extends V {
 	_note(e) {
 		this._late = [e, ...this._late].slice(0, 8);
 	}
-}, Dn = 6e3, On = 350, kn = /* @__PURE__ */ new Set([
+}, On = 6e3, kn = 350, An = /* @__PURE__ */ new Set([
 	"climate",
 	"media_player",
 	"camera",
@@ -3255,7 +3268,7 @@ var En = class extends V {
 	"vacuum",
 	"lawn_mower",
 	"alarm_control_panel"
-]), An = class extends En {
+]), jn = class extends Dn {
 	_call(e, t) {
 		this._hass.callService(e.domain, e.service, {
 			entity_id: e.ids,
@@ -3265,7 +3278,7 @@ var En = class extends V {
 		});
 	}
 	_press(e) {
-		e.guarded || e.away || kn.has(e.kind) ? this._story(e) : this._call(yt(e), `${e.room} ${e.name}`);
+		e.guarded || e.away || An.has(e.kind) ? this._story(e) : this._call(yt(e), `${e.room} ${e.name}`);
 	}
 	_story(e) {
 		this._open = { id: e.id }, this._scale = e.dims && !e.away ? { id: e.id } : void 0;
@@ -3300,7 +3313,7 @@ var En = class extends V {
 					...this._open,
 					armed: !1
 				});
-			}, Dn);
+			}, On);
 			this._timers.add(n);
 			return;
 		}
@@ -3316,7 +3329,7 @@ var En = class extends V {
 	_ask(e, t) {
 		clearTimeout(this._asking), this._timers.delete(this._asking), this._asking = setTimeout(() => {
 			this._timers.delete(this._asking), this._call(xt(e, t), `${e.room} ${e.name}`);
-		}, On), this._timers.add(this._asking);
+		}, kn), this._timers.add(this._asking);
 	}
 	_measure(e) {
 		this._scale = this._scale?.id === e.id ? void 0 : { id: e.id };
@@ -3324,24 +3337,27 @@ var En = class extends V {
 	_key(e) {
 		(e.key === "Enter" || e.key === " ") && (e.preventDefault(), e.currentTarget.click());
 	}
-}, jn = "dash-bored-gazette", Mn = 30, Nn = 3, Pn = /* @__PURE__ */ new Set([
+}, Mn = "dash-bored-gazette", Nn = 30, Pn = 3, Fn = /* @__PURE__ */ new Set([
 	"climate",
 	"camera",
 	"water_heater",
 	"alarm_control_panel"
-]), Fn = /* @__PURE__ */ new Set(["docked"]), In = (e) => e.away || !!e.phase && !Fn.has(e.phase) || !Pn.has(e.kind) && (e.kind === "lock" ? !e.on : e.on), Ln = (e) => e.kind !== "camera" || e.away, Rn = class extends An {
+]), In = /* @__PURE__ */ new Set(["docked"]), Ln = (e) => e.away || !!e.phase && !In.has(e.phase) || !Fn.has(e.kind) && (e.kind === "lock" ? !e.on : e.on), Rn = (e) => e.kind !== "camera" || e.away, zn = class extends jn {
 	render() {
-		let e = this._hass, t = this._house, n = $t[this._style];
+		let e = this._hass, t = this._house, n = en[this._style];
 		if (!e || !t) return P`<div class="paper" data-style=${this._style}><p class="wait">Waiting for Home Assistant.</p></div>`;
-		let a = Date.now(), o = pt(this._survey, this._seen).filter((e) => a - e.at < xn), s = [...o].sort((e, t) => t.at - e.at).slice(0, 10), c = (e) => (n.stories[`sighting.${e}`]?.kicker ?? e).toLowerCase(), l = Ft(t, this._alerts, a, o);
+		let a = Date.now(), o = pt(this._survey, this._seen).filter((e) => a - e.at < Sn), s = [...o].sort((e, t) => t.at - e.at).slice(0, 10), c = (e) => (n.stories[`sighting.${e}`]?.kicker ?? e).toLowerCase(), l = It(t, this._alerts, a, o);
 		for (let e of l) this._showing.has(e.id) || this._turn.set(e.id, (this._turn.get(e.id) ?? -1) + 1);
 		this._showing = new Set(l.map((e) => e.id));
 		let u = l.map((e) => ({
 			s: e,
-			...Ut(n, e, this._turn.get(e.id))
-		})), [d, ...f] = u, p = u.find((e) => e.s.kind === "alert"), m = (e) => e.act ? P`<button class="act" @click=${() => this._call(e.s.press, e.head)}>${e.act}</button>` : I, h = (e, t) => {
-			let [r, i, a] = e.dims && !e.away ? qt(n, e) : [
-				Jt(n, e),
+			...Wt(n, e, this._turn.get(e.id))
+		})), [d, ...f] = u, p = u.find((e) => e.s.kind === "alert"), m = (e) => {
+			let t = (t, n) => t ? P`<button class="act" @click=${() => this._call(n, e.head)}>${t}</button>` : I;
+			return P`${t(e.act, e.s.press)}${t(e.vote, e.s.vote)}`;
+		}, h = (e, t) => {
+			let [r, i, a] = e.dims && !e.away ? Jt(n, e) : [
+				Yt(n, e),
 				"",
 				""
 			], o = (e, t, n) => e ? P`<span class="fact ${t}" role="button" tabindex="0" @click=${n} @keydown=${this._key}>${e}</span>` : I;
@@ -3349,7 +3365,7 @@ var En = class extends V {
 		}, g = (e) => {
 			let t = this._scale;
 			if (!e || !t || t.id !== e.id || !e.dims || e.away) return I;
-			let { min: r, max: i, step: a, vote: o } = e.span, s = e.level ?? r, c = (e) => Number(e.target.value), l = t.want ?? s, u = Kt(n, e), d = (n, a) => {
+			let { min: r, max: i, step: a, vote: o } = e.span, s = e.level ?? r, c = (e) => Number(e.target.value), l = t.want ?? s, u = qt(n, e), d = (n, a) => {
 				let o = Math.min(i, Math.max(r, Math.round((l + a) * 10) / 10));
 				return P`<button class="act" ?disabled=${o === l} @click=${() => (this._scale = {
 					...t,
@@ -3364,7 +3380,7 @@ var En = class extends V {
 				want: c(e)
 			}}
           @change=${(t) => this._ask(e, c(t))} />
-        <output>${Wt(n, e.kind, s)}${t.want === void 0 || t.want === s ? "" : ` → ${t.want}`}</output>
+        <output>${Gt(n, e.kind, s)}${t.want === void 0 || t.want === s ? "" : ` → ${t.want}`}</output>
         <button aria-label="Close" @click=${() => this._scale = void 0}>×</button>
       </span>`;
 		}, _ = (e) => e.photo ? P`<figure class="photo" role="button" tabindex="0" @click=${() => this._look({
@@ -3374,9 +3390,9 @@ var En = class extends V {
 		})} @keydown=${this._key}>
             <img src=${e.photo} alt=${e.figure[1]} loading="lazy" @error=${() => this._fault = `The photograph from ${e.figure[1]} could not be fetched.`} />
             <figcaption>${e.figure[1]}, ${e.figure[0]}</figcaption>
-          </figure>` : I, v = t.rooms.filter((e) => e.temp !== void 0), y = kt(t.people, this._rated, a), b = t.rooms.filter((e) => e.devices.length), x = b.reduce((e, t) => e + t.devices.length, 0) > Mn, ee = b.map((e) => ({
+          </figure>` : I, v = t.rooms.filter((e) => e.temp !== void 0), y = kt(t.people, this._rated, a), b = t.rooms.filter((e) => e.devices.length), x = b.reduce((e, t) => e + t.devices.length, 0) > Nn, ee = b.map((e) => ({
 			...e,
-			devices: e.devices.filter(x ? In : Ln)
+			devices: e.devices.filter(x ? Ln : Rn)
 		})).filter((e) => e.devices.length), te = b.some((e) => e.floor), S = (e, t, r = (e) => e) => {
 			let i = /* @__PURE__ */ new Map();
 			for (let t of e) i.set(t.floor ?? "", [...i.get(t.floor ?? "") ?? [], t]);
@@ -3384,7 +3400,7 @@ var En = class extends V {
 		}, ne = (e) => {
 			let t = (t) => {
 				let n = e.devices.filter((e) => x && e.kind === t && e.on && !e.away);
-				return n.length > Nn ? n : [];
+				return n.length > Pn ? n : [];
 			}, r = t("light"), i = t("switch"), a = e.devices.filter((e) => !r.includes(e) && !i.includes(e)).map((e, t) => h(e, !t && !r.length && !i.length));
 			return i.length && a.unshift(r.length ? Y(n.words["switch.many"], J(i.length)) : q(Y(n.words["switch.many"], J(i.length)))), r.length && a.unshift(P`<span class="fact" role="button" tabindex="0" @click=${() => this._call({
 				domain: "light",
@@ -3411,7 +3427,7 @@ var En = class extends V {
 			month: "long",
 			year: "numeric"
 		})}</span>
-        ${this._config.style ? I : P`<span class="styles">${Object.entries($t).map(([e, t]) => P`<button aria-pressed=${e === this._style} @click=${() => this._dress(e)}>${t.label}</button>`)}</span>`}
+        ${this._config.style ? I : P`<span class="styles">${Object.entries(en).map(([e, t]) => P`<button aria-pressed=${e === this._style} @click=${() => this._dress(e)}>${t.label}</button>`)}</span>`}
         <span>${n.price} · ${K(Date.now())}</span>
       </div>
       ${n.ticker ? P`<div class="ticker" aria-hidden="true"><b>${n.ticker}</b><div><span>${u.map((e) => e.head).join("  •  ")}</span></div></div>` : I}
@@ -3439,7 +3455,7 @@ var En = class extends V {
           <h3>${n.titles.late}</h3>
           <ol>${this._late.length ? this._late.map((e) => {
 			let t = e.device && C.get(e.device.id);
-			return P`<li role=${t ? "button" : I} tabindex=${t ? 0 : I} @click=${() => t && this._story(t)} @keydown=${this._key}><time>${K(e.time)}</time>${e.alert ? Qt(n, e.alert) : e.seen ? `${e.seen.name}: ${c(e.seen.kind)}` : `${e.device.room}: ${Jt(n, e.device)}`}</li>`;
+			return P`<li role=${t ? "button" : I} tabindex=${t ? 0 : I} @click=${() => t && this._story(t)} @keydown=${this._key}><time>${K(e.time)}</time>${e.alert ? $t(n, e.alert) : e.seen ? `${e.seen.name}: ${c(e.seen.kind)}` : `${e.device.room}: ${Yt(n, e.device)}`}</li>`;
 		}) : P`<li>${n.nothing}</li>`}</ol>
           ${s.length ? P`<h3>${n.titles.archive}</h3>
                 <ol class="archive">${s.map((e) => P`<li role="button" tabindex="0" @click=${() => e.photo ? this._look({
@@ -3448,23 +3464,23 @@ var En = class extends V {
 			see: e.camera
 		}) : r(this, "hass-more-info", { entityId: e.camera })} @keydown=${this._key}>
                     ${e.photo ? P`<img src=${e.photo} alt="" loading="lazy" />` : P`<i></i>`}<span><time>${K(e.at)}</time>${e.name}: ${c(e.kind)}</span></li>`)}</ol>` : I}
-          ${y.length ? P`<h3>${n.titles.personal}</h3><ol>${y.map((e) => P`<li><time>${K(e.at)}</time>${Zt(n, e)}</li>`)}</ol>` : I}
+          ${y.length ? P`<h3>${n.titles.personal}</h3><ol>${y.map((e) => P`<li><time>${K(e.at)}</time>${Qt(n, e)}</li>`)}</ol>` : I}
           ${T.length ? P`<h3>${n.titles.celebrity}</h3><ol>${T.map((e) => {
-			let [t, r] = Xt(n, e);
+			let [t, r] = Zt(n, e);
 			return P`<li role="button" tabindex="0" @click=${() => this._story(C.get(e.id))} @keydown=${this._key}><time>${K(e.at)}</time>${t}${r.map((t, n) => P` <span class="mark ${e.marks[n].kind}">${t}</span>`)}</li>`;
 		})}</ol>` : I}
           ${t.outside ? P`<h3>${n.titles.weather}</h3>
                 <p class="now">${Y(n.forecast.now, {
-			sky: Yt(n, t.outside.sky),
+			sky: Xt(n, t.outside.sky),
 			temp: t.outside.temp.toFixed(1)
 		})}</p>
                 ${this._days.length ? P`<table class="days">${this._days.map((t) => P`<tr><td>${new Date(t.at).toDateString() === new Date(a).toDateString() ? n.forecast.today : new Date(t.at).toLocaleDateString(e.locale?.language ?? "en-GB", { weekday: "long" })}</td>
-                        <td>${Yt(n, t.sky)}</td><td>${Math.round(t.high)}°${t.low === void 0 ? "" : ` / ${Math.round(t.low)}°`}</td></tr>`)}</table>` : I}` : I}
+                        <td>${Xt(n, t.sky)}</td><td>${Math.round(t.high)}°${t.low === void 0 ? "" : ` / ${Math.round(t.low)}°`}</td></tr>`)}</table>` : I}` : I}
           ${v.length ? P`<h3>${n.titles.temps}</h3><table>${v.map((e) => P`<tr><td>${e.name}</td><td>${e.temp.toFixed(1)}° ${e.target === void 0 ? "" : e.temp < e.target - .5 ? "▼" : e.temp > e.target + .5 ? "▲" : "="}</td></tr>`)}</table>` : I}
           ${x ? I : D}
           ${t.gaps.length ? P`<h3>${n.titles.gaps}</h3>
                 ${t.gaps.map((e) => P`<details><summary>${Y(n.gaps[e.kind], J(e.items.length))}</summary>
-                  <ul>${e.items.map((t, n) => P`${e.kind === "plumbing" && t.via !== e.items[n - 1]?.via ? P`<li class="via">${Ht[t.via ?? ""] ?? `${t.via}. ${Ht[""]}`}:</li>` : I}<li><button class="mend" @click=${() => e.kind === "floorless" || e.kind === "cold" ? i(`/config/areas/area/${t.id}`) : r(this, "hass-more-info", { entityId: t.id })}>${t.name}</button></li>`)}</ul></details>`)}
+                  <ul>${e.items.map((t, n) => P`${e.kind === "plumbing" && t.via !== e.items[n - 1]?.via ? P`<li class="via">${Ut[t.via ?? ""] ?? `${t.via}. ${Ut[""]}`}:</li>` : I}<li><button class="mend" @click=${() => e.kind === "floorless" || e.kind === "cold" ? i(`/config/areas/area/${t.id}`) : r(this, "hass-more-info", { entityId: t.id })}>${t.name}</button></li>`)}</ul></details>`)}
                 <p class="mend">${n.mend}</p>` : I}
           ${t.scenes.length ? P`<h3>${n.titles.notices}</h3>${t.scenes.slice(0, 8).map((e, t) => P`<button class="ad" @click=${() => this._call({
 			domain: "scene",
@@ -3474,7 +3490,7 @@ var En = class extends V {
         </aside>
         ${x ? P`<section class="board">${D}</section>` : I}
       </main>
-      ${w ? mn(n, w, this._open, a, g(w), ie, {
+      ${w ? hn(n, w, this._open, a, g(w), ie, {
 			flip: () => this._flip(w),
 			more: () => this._live(w.id),
 			picture: () => this._look({
@@ -3483,12 +3499,12 @@ var En = class extends V {
 				see: w.id
 			}),
 			shut: () => this._shut()
-		}) : this._shot ? pn(n, this._shot, ie, {
+		}) : this._shot ? mn(n, this._shot, ie, {
 			more: () => this._live(this._shot.see),
 			shut: () => this._shut()
 		}) : I}
     </div>`;
 	}
-}, zn = new URL(import.meta.url).searchParams.get("v") || "dev";
-a(jn, Rn), o(jn, "Casa Mia Dash-Bored Gazette", "Your house as a newspaper: what matters most is the headline, and every underlined fact is a switch. Best in a panel view."), t("Dash-Bored", "casa_mia_dash_bored/cards", zn);
+}, Bn = new URL(import.meta.url).searchParams.get("v") || "dev";
+a(Mn, zn), o(Mn, "Casa Mia Dash-Bored Gazette", "Your house as a newspaper: what matters most is the headline, and every underlined fact is a switch. Best in a panel view."), t("Dash-Bored", "casa_mia_dash_bored/cards", Bn);
 //#endregion
