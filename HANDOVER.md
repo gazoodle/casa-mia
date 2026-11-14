@@ -340,7 +340,9 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   `event_type` at each firing (`BY_EVENT`). The box's core log is read at
   `/api/hassio/core/logs`. Still unknown: how often the owner's cameras report a person
   (is ten minutes right?) and how fast a still comes back. Not done: cameras added after set-up.
-- **The masthead's font** (2026.11.8-b8, the owner's iPhone): UnifrakturCook is
+- **The masthead's font** (2026.11.8-b8, the owner's iPhone; changed in b13): Manufacturing
+  Consent, a textura (the English blackletter of a Victorian nameplate; UnifrakturCook
+  before it was a Fraktur, the German kind, which the owner questioned 2026-11-14), is
   bundled in `www/fonts` with its licence and given to the document by `masthead()` in
   `gazette.ts` (a shadow root can't declare a font). Never name a generic family such
   as `fantasy` in a stack: each platform maps it to something different.

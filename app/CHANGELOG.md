@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.8-b13
+
+- **Dash-Bored: the Casa Courier's masthead in an English blackletter.** The name was set in a Fraktur, the German style. It is now in Manufacturing Consent (Open Font Licence), a textura of the kind a Victorian English paper set its name in.
+
 ## 2026.11.8-b12
 
 - **Dash-Bored: a clipping looks cut from the paper** (the owner's idea). Its edges are torn, differently for each device, and it brings a little of what was next to it: the last line of the story above, the edge of the next column and the top of the headline below, all taken from the paper's own stories.

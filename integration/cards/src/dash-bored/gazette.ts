@@ -19,9 +19,10 @@ const SIGHTINGS = "casa_mia_dash_bored/sightings"; // and what the cameras have 
 const ARCHIVE = 30 * 60_000; // ms: how far back the column of past sightings goes
 const PAST = 10; // and how many of them it lists
 const REMEMBERED = "dash-bored-style"; // this browser's choice of paper
-// The broadsheet's masthead (UnifrakturCook, Open Font Licence), served by the integration
-// beside this file. A shadow root can't declare a font, so the document is given it, once.
-const MASTHEAD = "/casa_mia_dash_bored/fonts/UnifrakturCook-Bold.ttf";
+// The broadsheet's masthead (Manufacturing Consent, Open Font Licence), served by the
+// integration beside this file. It is a textura, the English blackletter of a Victorian
+// paper's nameplate; a Fraktur, which it once was, is the German kind and looks it. A shadow root can't declare a font, so the document is given it, once.
+const MASTHEAD = "/casa_mia_dash_bored/fonts/ManufacturingConsent-Regular.ttf";
 let mastheadAsked = false;
 function masthead() {
   if (mastheadAsked) return;

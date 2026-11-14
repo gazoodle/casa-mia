@@ -27,7 +27,7 @@ export const STYLES = css`
   /* The masthead's blackletter is the page's own font (gazette.ts loads it), sized to the
      paper's width so that the name stays on one line on a phone. Never the browser's
      "fantasy": on an iPhone that is a script whose swashes ran up over the breaking news. */
-  .masthead h1 { margin: 0; font: 400 clamp(30px, 10.5cqi, 62px)/1.1 "Dash-Bored Masthead", var(--head); overflow-wrap: anywhere; }
+  .masthead h1 { margin: 0; font: 400 clamp(32px, 12cqi, 74px)/1.1 "Dash-Bored Masthead", var(--head); overflow-wrap: anywhere; }
   .masthead p { margin: 0; } .masthead p:empty { display: none; }
   .dateline { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; justify-content: space-between; font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
     border-bottom: 1px solid var(--ink); padding: 5px 2px; margin-bottom: 14px; }

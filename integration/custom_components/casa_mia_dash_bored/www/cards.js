@@ -1956,7 +1956,7 @@ var yt = h`
   /* The masthead's blackletter is the page's own font (gazette.ts loads it), sized to the
      paper's width so that the name stays on one line on a phone. Never the browser's
      "fantasy": on an iPhone that is a script whose swashes ran up over the breaking news. */
-  .masthead h1 { margin: 0; font: 400 clamp(30px, 10.5cqi, 62px)/1.1 "Dash-Bored Masthead", var(--head); overflow-wrap: anywhere; }
+  .masthead h1 { margin: 0; font: 400 clamp(32px, 12cqi, 74px)/1.1 "Dash-Bored Masthead", var(--head); overflow-wrap: anywhere; }
   .masthead p { margin: 0; } .masthead p:empty { display: none; }
   .dateline { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; justify-content: space-between; font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
     border-bottom: 1px solid var(--ink); padding: 5px 2px; margin-bottom: 14px; }
@@ -2123,7 +2123,7 @@ var yt = h`
     [data-style="tabloid"] h2 { font-size: 62px; } [data-style="tabloid"] .masthead h1 { font-size: 36px; }
     .figure, [data-style="tabloid"] .figure { width: 104px; } .figure b, [data-style="tabloid"] .figure b { font-size: 28px; }
   }
-`, bt = "dash-bored-gazette", xt = "casa_mia_dash_bored/alerts", St = "casa_mia_dash_bored/sightings", Ct = 18e5, wt = 10, Tt = "dash-bored-style", Et = "/casa_mia_dash_bored/fonts/UnifrakturCook-Bold.ttf", Dt = !1;
+`, bt = "dash-bored-gazette", xt = "casa_mia_dash_bored/alerts", St = "casa_mia_dash_bored/sightings", Ct = 18e5, wt = 10, Tt = "dash-bored-style", Et = "/casa_mia_dash_bored/fonts/ManufacturingConsent-Regular.ttf", Dt = !1;
 function Ot() {
 	if (Dt) return;
 	Dt = !0;
