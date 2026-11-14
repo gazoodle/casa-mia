@@ -60,10 +60,12 @@ export const STYLES = css`
   .dial { flex: 0 1 104px; min-width: 0; }
   .dimmer { position: relative; width: 104px; height: 104px; margin: 8px auto 6px; }
   .dimmer svg { position: absolute; inset: 0; }
-  .knob { position: absolute; inset: 20px; border-radius: 50%; cursor: ns-resize; touch-action: none;
+  .knob { position: absolute; inset: 20px; border-radius: 50%; cursor: grab; touch-action: none;
     background: repeating-conic-gradient(#1a1a1a 0 9deg, #333 9deg 18deg); box-shadow: 0 5px 8px rgba(0,0,0,.6), inset 0 0 0 9px #161616, inset 0 2px 0 9px #444;
     transform: rotate(calc(-135deg + var(--lvl, 0) * 2.7deg)); transition: transform .3s; }
   .knob.drag { transition: none; }
+  /* A blind's winder is the same knob in brass. */
+  .knob.wind { background: repeating-conic-gradient(#6b5018 0 9deg, #c9a24b 9deg 18deg); box-shadow: 0 5px 8px rgba(0,0,0,.6), inset 0 0 0 9px #4a3610, inset 0 2px 0 9px #e2c070; }
   .knob::after { content: ""; position: absolute; left: 50%; top: -6px; margin-left: -3px; border: 3px solid transparent; border-bottom: 12px solid #f4f0e4; }
   .knob:focus-visible { outline: 2px solid var(--cream); outline-offset: 2px; }
 
@@ -75,8 +77,37 @@ export const STYLES = css`
   .dolly.on .lever { transform: scaleY(-1); }
   .dolly .pilot { fill: #4a1410; transition: fill .15s; }
   .dolly.on .pilot { fill: #ff5a3c; filter: drop-shadow(0 0 4px #ff5a3c); }
+  /* A guard over a switch that must not be thrown by accident: hinged at its top, and lifted by the first press. */
+  .dolly .guard { transform-origin: 32px 4px; transition: transform .18s; }
+  .dolly.up .guard { transform: scaleY(.1); }
   .dolly.away { cursor: default; } .dolly.away svg { opacity: .45; } .dolly.away .pilot { fill: #222; filter: none; } .dolly.away .label { text-decoration: line-through; }
   .dolly:focus-visible svg { outline: 2px solid var(--cream); border-radius: 8px; }
+
+  /* An alarm: a plate saying how it stands, thumbwheels for its code, and push buttons. */
+  .alarm { flex: 0 1 140px; display: flex; flex-direction: column; align-items: center; gap: 7px; margin-top: 10px; }
+  .alarm.sounding > .label { background: #c8281e; }
+  /* Thumbwheels: brass barrels seen from the front. The shading makes the barrel round,
+     and the digits above and below are squashed as they curve away. */
+  .wheels { display: flex; gap: 3px; padding: 5px; background: #0b0605; border-radius: 5px; box-shadow: inset 0 0 0 1px #000, 0 1px 0 rgba(255,255,255,.12); }
+  .wheel { position: relative; width: 19px; height: 62px; overflow: hidden; border-radius: 4px; color: var(--bake2); font: bold 17px/18px "Gill Sans", "Gill Sans MT", sans-serif; text-align: center;
+    background: linear-gradient(#2e2006, #8a6a22 10%, #c9a24b 24%, #f3dc9a 44%, #f8e9b8 52%, #c9a24b 76%, #7a5c1e 90%, #2e2006);
+    box-shadow: inset 0 0 0 1px #2a1c05, 0 2px 3px rgba(0,0,0,.6); }
+  /* The grooves either side of the front face. */
+  .wheel::before, .wheel::after { content: ""; position: absolute; left: 0; right: 0; height: 1px; background: rgba(60,40,5,.65); box-shadow: 0 1px 0 rgba(255,255,255,.45); }
+  .wheel::before { top: 16px; } .wheel::after { bottom: 17px; }
+  .wheel span { position: absolute; left: 0; right: 0; height: 18px; }
+  .wheel .at { top: 22px; }
+  .wheel .above { top: -3px; transform: scaleY(.6); transform-origin: top; opacity: .7; }
+  .wheel .below { bottom: -3px; transform: scaleY(.6); transform-origin: bottom; opacity: .7; }
+  .wheel button { position: absolute; left: 0; right: 0; height: 50%; } .wheel button:first-of-type { top: 0; } .wheel button:last-of-type { bottom: 0; }
+  .wheel button:focus-visible { outline: 2px solid var(--cream); outline-offset: -2px; }
+  .pushes { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+  .push { text-align: center; }
+  .push .cap { display: block; width: 28px; height: 28px; margin: 4px auto 6px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #b8433a, #4a0f0a);
+    box-shadow: 0 0 0 3px var(--bake2), 0 0 0 4px var(--brass), 0 3px 4px rgba(0,0,0,.6); }
+  .push:active .cap { transform: translateY(1px); }
+  .push .label { font-size: 8px; letter-spacing: .1em; padding: 2px 5px; }
+  .push:focus-visible .cap { outline: 2px solid var(--cream); outline-offset: 4px; }
 
   /* Knife switches: the scenes. */
   .knives { display: flex; flex: 1 1 300px; flex-wrap: wrap; gap: 14px; justify-content: space-around; align-items: flex-end; padding: 12px 18px 10px;

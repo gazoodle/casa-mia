@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.11.8-b25
+
+- **Dash-Bored: Bakelite has alarms, with thumbwheels for the code.** An alarm has a plate saying how it stands and a push button for each way it can be set (Away, Home, Night), or Unset once it is set. One that takes a code in digits has six thumbwheels, like a combination padlock: set the code from the left, leave the rest blank and press a button. The wheels go back to blank when the alarm answers, or after 30 seconds untouched. A wrong or missing code shows Home Assistant's refusal at the top of the panel.
+- **Dash-Bored: Bakelite's knobs are turned, not dragged up and down.** Drag round a knob clockwise for more and anticlockwise for less, and it turns with your finger. A press without dragging still switches the light.
+- **Dash-Bored: Bakelite has blinds, locks and the other guarded devices.** A blind that takes a position has a brass knob: clockwise opens it, anticlockwise closes it. A blind that only opens and closes has a tumbler switch. A lock, a garage door, a gate, a valve and a siren each have a tumbler switch under a red guard: the first press lifts the guard and the second throws the switch, and a lifted guard drops again after six seconds. Unlike the Gazette, where only unlocking and opening take two presses, the guard is over the switch both ways.
+
 ## 2026.11.8-b24
 
 - **Dash-Bored: Bakelite's rooms are one, two or three wide.** A room with many controls has a wider chassis, with its meter, knobs and switches side by side, so that no room is far taller than the others. The widths are chosen together: the room that is tallest at three wide sets the height, and each room takes the narrowest width that fits under it. A house of small rooms keeps them all one wide.

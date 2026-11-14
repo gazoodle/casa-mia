@@ -5,18 +5,27 @@
 // controls in bakelite/kit.ts.
 import { html, nothing } from "lit";
 import { widths } from "./bakelite/balance.ts";
-import { DEFS, dolly, knife, knob, label, meter, valve } from "./bakelite/kit.ts";
+import { DEFS, dolly, knife, knob, label, meter, push, valve, wheels } from "./bakelite/kit.ts";
 import { STYLES } from "./bakelite/styles.ts";
 import { Family } from "./family.ts";
 import type { Device, Room } from "./house.ts";
 import { clock, flip } from "./stories.ts";
 
 export const CARD = "dash-bored-bakelite";
-// ponytail: this first panel has lights and switches. Each other kind (a blind, a lock,
-// the heating) needs a control drawn for it in kit.ts; until then a room says how many
-// of its devices are not on the panel.
-const SHOWN = new Set(["light", "switch"]);
-const DRAG = 0.8; // per cent for each pixel a knob is dragged up
+// ponytail: the panel has the kinds that a knob or a tumbler switch can work, and alarms.
+// Each other kind (the heating, a player, a camera) needs a control drawn for it in kit.ts; until
+// then a room says how many of its devices are not on the panel.
+const SHOWN = new Set(["light", "switch", "cover", "lock", "valve", "siren", "alarm_control_panel"]);
+const ALARM = "alarm_control_panel";
+// An alarm's ways of being set, in the order of their buttons: Home Assistant's service,
+// the bit of the alarm's supported features that says it has it, and the button's plate.
+const SETS: [string, number, string][] = [["alarm_arm_away", 2, "Away"], ["alarm_arm_home", 1, "Home"], ["alarm_arm_night", 4, "Night"]];
+const WHEELS = 6; // thumbwheels for a code: a shorter code leaves some blank
+const SHOWING = 30_000; // ms: how long a code stays on its wheels with nothing pressed
+// What a screen reader is told a guarded switch does when it is down, and when it is up.
+const STANDS: Record<string, [string, string]> = { lock: ["locked", "unlocked"], cover: ["open", "closed"], valve: ["open", "closed"], siren: ["sounding", "silent"] };
+const ARMED = 6000; // ms: how long a lifted guard waits for the press that throws its switch
+const SWEEP = 270; // degrees: how far a knob turns from nothing to full, as it is drawn (styles.ts)
 const MOVED = 4; // px: a press that travels less than this is a press, not a drag
 const NUDGE = 10; // per cent: an arrow key's step
 const THROWN = 1200; // ms: how long a knife switch stays closed once thrown
@@ -24,16 +33,78 @@ const WANTED = 5000; // ms: how long a knob stays where it was put, waiting for 
 // The top of the mains meter's scale, in kW: the first that the house's draw fits under.
 const MAINS = [3, 6, 12, 24, 48];
 
+/** What a thumbwheel shows at a place on it: nothing at its blank, then the digits. */
+const face = (w: number) => (w ? String(w - 1) : "");
+
+/** Where a pointer is round the middle of the knob it is on, in degrees. */
+function bearing(e: PointerEvent) {
+  const box = (e.currentTarget as HTMLElement).getBoundingClientRect();
+  return (Math.atan2(e.clientY - (box.top + box.height / 2), e.clientX - (box.left + box.width / 2)) * 180) / Math.PI;
+}
+
 export class Bakelite extends Family {
   static styles = STYLES;
-  static properties = { _want: { state: true }, _thrown: { state: true } };
+  static properties = { _want: { state: true }, _thrown: { state: true }, _armed: { state: true }, _code: { state: true } };
   _want?: { id: string; level: number }; // where a knob was put, until its light says it is there
   _thrown = ""; // the scene whose knife switch is closed
-  private _grip?: { id: string; from: number; y: number; moved: boolean };
+  _armed = ""; // the device whose switch has its guard lifted
+  // The code on an alarm's thumbwheels: each wheel is 0 for blank, or one more than its digit.
+  _code?: { id: string; wheels: number[] };
+  private _hiding?: ReturnType<typeof setTimeout>;
+  private _grip?: { id: string; level: number; angle: number; x: number; y: number; moved: boolean };
   private _waiting?: ReturnType<typeof setTimeout>;
 
   protected _moved(d: Device) {
     if (this._want?.id === d.id) this._want = undefined;
+    if (this._armed === d.id) this._armed = "";
+    // The alarm has answered: its code is not left on the wheels.
+    if (this._code?.id === d.id) this._code = undefined;
+  }
+
+  /** Turn one of an alarm's thumbwheels. A code that is left on the wheels is cleared
+   * after a while, so that it is not there for the next person to read. */
+  private _spin(d: Device, i: number, by: number) {
+    const was = this._code?.id === d.id ? this._code.wheels : Array<number>(WHEELS).fill(0);
+    this._code = { id: d.id, wheels: was.map((w, at) => (at === i ? (w + by + 11) % 11 : w)) };
+    clearTimeout(this._hiding);
+    this._timers.delete(this._hiding!);
+    this._hiding = setTimeout(() => {
+      this._timers.delete(this._hiding!);
+      this._code = undefined;
+    }, SHOWING);
+    this._timers.add(this._hiding);
+  }
+
+  /** An alarm: how it stands, its thumbwheels if it takes a code in digits, and its buttons. */
+  private _alarm(d: Device) {
+    const has = this._hass!.states[d.id]?.attributes ?? {};
+    const stands = d.away ? "not answering" : d.phase === "triggered" ? "sounding" : (d.phase ?? (d.on ? "set" : "unset"));
+    const mine = this._code?.id === d.id ? this._code.wheels : Array<number>(WHEELS).fill(0);
+    // The code is never logged, nor kept anywhere but on the wheels.
+    const code = mine.filter(Boolean).map((w) => w - 1).join("");
+    const ask = (service: string, what: string) => () => this._call({ domain: ALARM, service, ids: [d.id], data: code ? { code } : undefined }, `${d.room} ${d.name} (${what})`);
+    const sets = SETS.filter(([, bit]) => has.supported_features & bit);
+    const buttons = d.on || d.phase ? [push("Unset", ask("alarm_disarm", "unset"))] : sets.map(([service, , name]) => push(name, ask(service, name.toLowerCase())));
+    return html`<div class="alarm ${stands}">
+      ${label(`${d.name}: ${stands}`)}
+      ${has.code_format === "number" && !d.away ? wheels(d.name, mine.map((w) => [face((w + 10) % 11), face(w), face((w + 1) % 11)]), (i, by) => this._spin(d, i, by)) : nothing}
+      ${d.away ? nothing : html`<div class="pushes">${buttons}</div>`}
+    </div>`;
+  }
+
+  /** A press on a guarded switch (a lock, a garage door, a valve). The first lifts its
+   * guard, for a few seconds; the second throws the switch. */
+  private _guarded(d: Device) {
+    if (this._armed === d.id) {
+      this._armed = "";
+      return this._call(flip(d), `${d.room} ${d.name}`);
+    }
+    this._armed = d.id;
+    const timer = setTimeout(() => {
+      this._timers.delete(timer);
+      if (this._armed === d.id) this._armed = "";
+    }, ARMED);
+    this._timers.add(timer);
   }
 
   /** Put a knob at a level and ask its light for it. The knob goes back to where the
@@ -57,14 +128,21 @@ export class Bakelite extends Family {
       on: {
         down: (e: PointerEvent) => {
           (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-          this._grip = { id: d.id, from: stands(), y: e.clientY, moved: false };
+          this._grip = { id: d.id, level: stands(), angle: bearing(e), x: e.clientX, y: e.clientY, moved: false };
         },
+        // The knob is cranked: it turns as far as the finger has gone round its middle,
+        // clockwise for more. Each move adds the little it turned since the last, so a
+        // finger may go right round, and at either end the knob stops with it.
         move: (e: PointerEvent) => {
           const grip = this._grip;
           if (grip?.id !== d.id) return;
-          const up = grip.y - e.clientY;
-          grip.moved ||= Math.abs(up) > MOVED;
-          if (grip.moved) this._turn(d, Math.round(Math.min(100, Math.max(0, grip.from + up * DRAG))));
+          grip.moved ||= Math.hypot(e.clientX - grip.x, e.clientY - grip.y) > MOVED;
+          if (!grip.moved) return;
+          const angle = bearing(e);
+          const turned = ((angle - grip.angle + 540) % 360) - 180;
+          grip.angle = angle;
+          grip.level = Math.min(100, Math.max(0, grip.level + (turned / SWEEP) * 100));
+          this._turn(d, Math.round(grip.level));
         },
         // Let go: a knob that was turned asks for its level, and one that was only pressed switches its light.
         up: () => {
@@ -107,10 +185,12 @@ export class Bakelite extends Family {
     const house = this._house;
     if (!this._hass || !house) return html`<div class="panel">${label("Waiting for Home Assistant")}</div>`;
 
-    const dims = (d: Device) => d.kind === "light" && d.dims && !d.away;
-    const shows = (r: Room) => r.devices.filter((d) => SHOWN.has(d.kind) && !d.guarded);
+    const dims = (d: Device) => d.dims && !d.away;
+    // An alarm whose code is words can't be set on wheels: it stays off the panel.
+    const shows = (r: Room) => r.devices.filter((d) => SHOWN.has(d.kind) && !(d.kind === ALARM && this._hass!.states[d.id]?.attributes.code_format === "text"));
+    const alarm = (d: Device) => d.kind === ALARM;
     // A room with many controls has a wider chassis, so that none is far taller than the rest.
-    const wide = widths(house.rooms.map((r) => ({ knobs: shows(r).filter(dims).length, dollies: shows(r).filter((d) => !dims(d)).length, meter: r.temp !== undefined })));
+    const wide = widths(house.rooms.map((r) => ({ knobs: shows(r).filter(dims).length, dollies: shows(r).filter((d) => !dims(d) && !alarm(d)).length, alarms: shows(r).filter(alarm).length, meter: r.temp !== undefined })));
     const chassis = (r: Room, i: number) => {
       const shown = shows(r);
       if (!shown.length && r.temp === undefined) return nothing;
@@ -122,10 +202,15 @@ export class Bakelite extends Family {
         <div class="works">${r.temp === undefined ? nothing : meter(`${r.temp.toFixed(1)}°`, 5, 30, r.temp, "°C")}
         <div class="dials">${shown.filter(dims).map((d) => {
           const dial = this._dial(d);
-          return knob(d.name, dial.level, dial.held, dial.on);
+          return knob(d.name, d.kind === "light" ? "dimmer" : "position", dial.level, dial.held, dial.on);
         })}</div>
-        <div class="dollies">${shown.filter((d) => !dims(d)).map((d) => dolly(d.name, d.on, d.away, () => d.away || this._call(flip(d), `${r.name} ${d.name}`)))}</div></div>
-        ${more ? html`<div class="more" title="This panel has lights and switches so far.">${label(`and ${more} more`)}</div>` : nothing}
+        <div class="dollies">${shown.filter((d) => !dims(d) && !alarm(d)).map((d) => {
+          const says = STANDS[d.kind] ? `: ${STANDS[d.kind][d.on ? 0 : 1]}` : "";
+          if (!d.guarded) return dolly(d.name, d.on, d.away, () => d.away || this._call(flip(d), `${r.name} ${d.name}`), "", says);
+          const up = this._armed === d.id;
+          return dolly(d.name, d.on, d.away, () => d.away || this._guarded(d), up ? "up" : "shut", `${says}. Under a guard: ${up ? "press again to throw it" : "press to lift it"}`);
+        })}</div>${shown.filter(alarm).map((d) => this._alarm(d))}</div>
+        ${more ? html`<div class="more" title="The heating, players, cameras and some other kinds are not on this panel yet.">${label(`and ${more} more`)}</div>` : nothing}
       </section>`;
     };
     // Rooms come sorted by floor (house.ts). A house with no floors has no plates for them.

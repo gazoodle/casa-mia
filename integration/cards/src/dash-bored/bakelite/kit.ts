@@ -52,8 +52,10 @@ export const valve = (heat: number) => html`<svg class="valve" viewBox="0 0 80 1
   <ellipse cx="40" cy="14" rx="12" ry="5" fill="#333" opacity=".55"/></svg>`;
 
 /** A tumbler switch with a pilot lamp over it. Down is on, as on a British wall. A
- * device that is not answering has its pilot out and its label struck through. */
-export const dolly = (name: string, on: boolean, away: boolean, press: () => void) => html`<button class="dolly ${on ? "on" : ""} ${away ? "away" : ""}" aria-pressed=${on} aria-label=${away ? `${name}: not answering` : name} @click=${press}>
+ * device that is not answering has its pilot out and its label struck through. `guard`
+ * is for a switch under a red guard, which is "shut" over it or lifted "up"; `says` is
+ * what a screen reader is told of it beside its name. */
+export const dolly = (name: string, on: boolean, away: boolean, press: () => void, guard: "" | "shut" | "up" = "", says = "") => html`<button class="dolly ${on ? "on" : ""} ${away ? "away" : ""} ${guard}" aria-pressed=${on} aria-label=${away ? `${name}: not answering` : name + says} @click=${press}>
   <svg viewBox="0 -8 64 74"><circle class="pilot" cx="32" cy="-3" r="3.6" stroke="#c9a24b" stroke-width="1.2"/>
     <circle cx="32" cy="34" r="30" fill="#0e0705"/><circle cx="32" cy="32" r="30" fill="url(#bake)"/>
     <circle cx="32" cy="32" r="29" fill="none" stroke="#fff" stroke-opacity=".16"/><circle cx="32" cy="32" r="23.5" fill="none" stroke="#000" stroke-opacity=".55" stroke-width="1.6"/>
@@ -62,6 +64,7 @@ export const dolly = (name: string, on: boolean, away: boolean, press: () => voi
     <circle cx="32" cy="32" r="19" fill="url(#dome)"/><rect x="25" y="19" width="14" height="26" rx="3" fill="#050201" stroke="#9a6a50" stroke-opacity=".5" stroke-width=".8"/>
     <g class="lever"><path d="M26.5,34 L28,9 Q32,5 36,9 L37.5,34 Z" fill="url(#lever)" stroke="#060302" stroke-width=".8"/>
       <path d="M30,11 L29.2,31" stroke="#fff" stroke-opacity=".35" stroke-width="1.6" stroke-linecap="round"/></g>
+    ${guard ? svg`<g class="guard"><rect x="17" y="4" width="30" height="56" rx="5" fill="#c8281e" fill-opacity=".82" stroke="#5a0f0a" stroke-width="1.2"/><path d="M21,9 h22" stroke="#fff" stroke-opacity=".4" stroke-width="2" stroke-linecap="round"/><rect x="14" y="1" width="36" height="6" rx="2" fill="#8a8473" stroke="#2a1a10" stroke-width=".8"/></g>` : nothing}
     <ellipse cx="24" cy="23" rx="5" ry="3" fill="#fff" opacity=".22" transform="rotate(-35 24 23)"/></svg>
   ${label(name)}
 </button>`;
@@ -75,15 +78,29 @@ const TICKS = Array.from({ length: 11 }, (_, i) => {
   return svg`<line x1=${x1} y1=${y1} x2=${x2} y2=${y2} stroke="#e9dfc3" stroke-width=${i % 5 ? 1 : 2.2}/>`;
 });
 
-/** A dimmer: a fluted knob over its scale, turned to `level` per cent. `on` are the
- * knob's event handlers; `held` is true while it is being dragged, when it follows the
- * finger without easing. */
-export const knob = (name: string, level: number, held: boolean, on: { down(e: PointerEvent): void; move(e: PointerEvent): void; up(e: PointerEvent): void; drop(): void; key(e: KeyboardEvent): void }) => html`<div class="dial">
+/** A fluted knob over its scale, turned to `level` per cent: a light's "dimmer", or in
+ * brass the winder for a blind's "position". `on` are the knob's event handlers; `held`
+ * is true while it is being dragged, when it follows the finger without easing. */
+export const knob = (name: string, what: "dimmer" | "position", level: number, held: boolean, on: { down(e: PointerEvent): void; move(e: PointerEvent): void; up(e: PointerEvent): void; drop(): void; key(e: KeyboardEvent): void }) => html`<div class="dial">
   <div class="dimmer"><svg viewBox="0 0 104 104" aria-hidden="true">${TICKS}</svg>
-    <div class="knob ${held ? "drag" : ""}" role="slider" tabindex="0" aria-label="${name} dimmer" aria-valuemin="0" aria-valuemax="100" aria-valuenow=${level} style="--lvl: ${level}"
+    <div class="knob ${what === "position" ? "wind" : ""} ${held ? "drag" : ""}" role="slider" tabindex="0" aria-label="${name} ${what}" aria-valuemin="0" aria-valuemax="100" aria-valuenow=${level} style="--lvl: ${level}"
       @pointerdown=${on.down} @pointermove=${on.move} @pointerup=${on.up} @pointercancel=${on.drop} @keydown=${on.key}></div></div>
   ${label(name)}
 </div>`;
+
+/** A row of thumbwheels, as on a combination padlock, for an alarm's code: brass barrels
+ * with a digit on the front and its neighbours curving away above and below. `shown` is,
+ * for each wheel, what is above, on the front and below; nothing for a blank. A press on
+ * a wheel's top half turns it on by one and on its bottom half back: `turn`. */
+export const wheels = (name: string, shown: [string, string, string][], turn: (i: number, by: number) => void) => html`<div class="wheels" role="group" aria-label="${name} code">${shown.map(
+  ([above, at, below], i) => html`<div class="wheel">
+    <span class="above" aria-hidden="true">${above}</span><span class="at" aria-live="polite" aria-label="Wheel ${i + 1}: ${at || "blank"}">${at}</span><span class="below" aria-hidden="true">${below}</span>
+    <button aria-label="Wheel ${i + 1} on" @click=${() => turn(i, 1)}></button><button aria-label="Wheel ${i + 1} back" @click=${() => turn(i, -1)}></button>
+  </div>`,
+)}</div>`;
+
+/** A push button over its plate. */
+export const push = (name: string, press: () => void) => html`<button class="push" @click=${press}><span class="cap"></span>${label(name)}</button>`;
 
 /** A knife switch, for a scene. Its blade is closed for a moment after it is thrown. */
 export const knife = (name: string, closed: boolean, press: () => void) => html`<button class="knife ${closed ? "closed" : ""}" @click=${press}>

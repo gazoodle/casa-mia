@@ -50,7 +50,7 @@ The first two can be used. The pictures of the others are of their mock-ups.
 </td>
 <td width="33%" valign="top">
 <a href="#bakelite"><img src="../screenshots/dash-bored-bakelite.webp" alt="Bakelite" width="100%"></a>
-<p><b><a href="#bakelite">Bakelite</a></b> · Being built: lights, switches and scenes so far<br>A 1950s instrument panel: glowing valves, moving-coil meters, fluted dimmer knobs, tumbler switches and knife switches for scenes.</p>
+<p><b><a href="#bakelite">Bakelite</a></b> · Being built: lights, switches, blinds, locks, alarms and scenes so far<br>A 1950s instrument panel: glowing valves, moving-coil meters, fluted dimmer knobs, tumbler switches and knife switches for scenes.</p>
 </td>
 <td width="33%" valign="top">
 <img src="../screenshots/dash-bored-mock-calibre.webp" alt="Calibre, as a mock-up" width="100%">
@@ -454,17 +454,36 @@ is far taller than the others. Each chassis has:
 - **A valve**, which glows with the room's lights: brighter the more of them are lit and
   the higher they are set.
 - **A meter** for the room's temperature, if the room has one.
-- **A knob for each light that dims.** Drag it up to brighten the light and down to dim
-  it; all the way down switches it off. A press on the knob without dragging switches the
-  light on or off. With a keyboard, the arrow keys move it ten per cent at a time. A knob
+- **A knob for each light that dims.** Turn it as you would a real one: drag round it
+  clockwise to brighten the light and anticlockwise to dim it. Turned right down, the
+  light is switched off. A press on the knob without dragging switches the light on or
+  off. With a keyboard, the arrow keys move it ten per cent at a time. A knob
   that was turned goes back to where the light really is if the light has not answered in
   five seconds.
-- **A tumbler switch for each other light and each switch**, with a pilot lamp over it.
-  Down is on. One whose device is not answering is faded, with its name struck through,
-  and can't be pressed.
+- **A brass knob for each blind that takes a position.** It works as a light's knob does:
+  clockwise opens the blind, anticlockwise closes it, and a press without dragging opens or closes it
+  fully.
+- **A tumbler switch for each other light, switch and blind**, with a pilot lamp over it.
+  Down is on, or open. One whose device is not answering is faded, with its name struck
+  through, and can't be pressed.
+- **A tumbler switch under a red guard** for each lock, garage door, gate, valve and siren.
+  The first press lifts the guard and the second throws the switch. A guard that is
+  lifted and then left alone drops again after six seconds. Down is locked for a lock,
+  open for a door or a valve, and sounding for a siren. Both directions take two presses,
+  locking as well as unlocking.
+- **An alarm** has a plate saying how it stands (unset, arming, set, pending or sounding)
+  and a push button for each way it can be set: Away, Home and Night, as the alarm has
+  them. Once it is set there is one button, Unset. If the alarm takes a code in digits,
+  there is a row of six brass thumbwheels above the buttons, like a combination padlock.
+  Press the top half of a wheel to turn it on and the bottom half to turn it back; set the
+  code from the left and leave the other wheels blank, then press a button. The wheels
+  go back to blank when the alarm answers, and after 30 seconds if nothing is pressed, so
+  the code is not left on show. If the code is wrong or missing, Home Assistant's refusal
+  is shown on the plate at the top of the panel, and the wheels stay as they are for you
+  to correct. An alarm whose code is words, not digits, is not on the panel.
 
-So far the panel has lights and switches only. Blinds, locks, the heating, players and the
-other kinds are not on it, and nor are Sensor Watch's alerts, the cameras' sightings and
+The heating, players, cameras, fans and vacuums are not on the panel yet,
+and nor are Sensor Watch's alerts, the cameras' sightings and
 the Gazette's columns. A room with devices that are not shown has a small plate saying
 how many, such as "and 4 more". If the connection to Home Assistant is lost, or Home
 Assistant refuses a press, a red lamp and a plate at the top say so.

@@ -283,7 +283,10 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
 - **Bakelite is the second family, begun** (owner, 2026-11-14: Bakelite now, the
   newspapers' work to the backlog). `bakelite.ts` on `bakelite/kit.ts` (each control drawn
   once, as a function) and `bakelite/styles.ts`, after `docs/design/dash-bored/bakelite.html`.
-  Its first panel has lights and switches (`SHOWN`); what's left is in BACKLOG. Needles
+  It has lights, switches, covers, the guarded kinds (`SHOWN`; a guarded one takes two
+  presses both ways, `_guarded`) and alarms (`_alarm`: thumbwheels for a code in digits,
+  which is held only in `_code` and never logged); what's left is in BACKLOG. Knobs
+  are cranked round their middle (`bearing`). Needles
   move by a CSS easing, not the mock-up's frame loop (a `ponytail:` note in its styles).
   A chassis is one to three widths across (`bakelite/balance.ts`, `widths`): its sizes
   are a model of `styles.ts`, so change the two together.
