@@ -10,6 +10,7 @@ import { setting, type Press } from "./stories.ts";
 // The integration's feed of Sensor Watch's alerts (alerts.py). A family follows it as it
 // likes: each shows trouble in its own way.
 export const ALERTS = "casa_mia_dash_bored/alerts";
+export const SIGHTINGS = "casa_mia_dash_bored/sightings"; // and of what the cameras have seen (sightings.py)
 const SETTINGS = "casa_mia_dash_bored/settings"; // the integration's feed of the house's settings (settings.py)
 const SETTLE = 350; // ms: a level is asked for once it has been still this long
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.8-b29
+
+- **Dash-Bored: the address of the cameras' sightings is shared by the families.** It has moved out of the Gazette, ready for Bakelite's television screens. Nothing on the page has changed.
+
 ## 2026.11.8-b28
 
 - **Dash-Bored: Bakelite's valves are drawn as real ones.** A clear glass envelope with a dark getter flash at its top, and inside it the mica discs, the two anode plates, the grid's winding and the heater, which glows with the room's lights.

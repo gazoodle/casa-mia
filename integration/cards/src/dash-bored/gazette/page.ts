@@ -2,14 +2,13 @@
 // the paper holds beside the house, and how that reaches it. The integration's feeds and
 // the forecast are followed here. acts.ts does what is pressed, and gazette.ts draws it.
 import type { Open, Shot } from "../clipping.ts";
-import { ALERTS, Family } from "../family.ts";
+import { ALERTS, Family, SIGHTINGS } from "../family.ts";
 import { days, sighted, type Day, type Device, type Options, type Seen, type Sighting } from "../house.ts";
 import { NOMINAL, RECOVERED, flavourOf, type Alert, type Played, type Rated } from "../stories.ts";
 import { STYLES } from "../styles.ts";
 import { VOICES } from "../voices.ts";
 
-const SIGHTINGS = "casa_mia_dash_bored/sightings"; // the integration's feeds: what the cameras have seen (sightings.py)
-const PERSONAL = "casa_mia_dash_bored/personal"; // the songs people have rated (personal.py)
+const PERSONAL = "casa_mia_dash_bored/personal"; // the integration's feeds for the columns: the songs people have rated (personal.py)
 const PLAYING = "casa_mia_dash_bored/playing"; // what the players have played (playing.py)
 const FORECAST = "weather/subscribe_forecast"; // Home Assistant's own: a weather entity's forecast, pushed
 export const ARCHIVE = 30 * 60_000; // ms: how far back the column of past sightings goes
