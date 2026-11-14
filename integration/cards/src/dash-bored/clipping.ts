@@ -11,14 +11,41 @@ import { fill, words, type Voice } from "./voices.ts";
  * a press that unlocks or opens the house has been made once and waits for its second. */
 export type Open = { id: string; record?: Change[]; fault?: string; armed?: boolean };
 const LINES = 12; // the record lists this many of the latest changes
+/** What was next to the story on the page it was cut from, and came away with it: the
+ * end of the story above, the edge of the next column, and the headline below. */
+export type Scraps = { above: string; beside: string; below: string };
 
-export function clipping(voice: Voice, d: Device, open: Open, now: number, scale: unknown, on: { flip(): void; more(): void; shut(): void }): TemplateResult {
+const TEAR = 5; // px: how far in a torn edge wanders
+const torn = new Map<string, string>();
+/** A torn outline for the cutting, as a clip-path. It is worked out from the device's id,
+ * so each clipping has its own and keeps it: an edge that moved at every state change in
+ * the house would be worse than a straight one. */
+export function ragged(seed: string): string {
+  const known = torn.get(seed);
+  if (known) return known;
+  let n = [...seed].reduce((hash, c) => (hash * 31 + c.charCodeAt(0)) >>> 0, 7);
+  const chance = () => (n = (n * 1664525 + 1013904223) >>> 0) / 2 ** 32;
+  const along = (count: number) => Array.from({ length: count }, (_, i) => (((i + chance() * 0.8) / count) * 100).toFixed(1));
+  const depth = () => (chance() * TEAR).toFixed(1);
+  const outline = `polygon(${[
+    ...along(30).map((p) => `${p}% ${depth()}px`),
+    ...along(22).map((p) => `calc(100% - ${depth()}px) ${p}%`),
+    ...along(30).map((p) => `calc(100% - ${p}%) calc(100% - ${depth()}px)`),
+    ...along(22).map((p) => `${depth()}px calc(100% - ${p}%)`),
+  ].join(",")})`;
+  torn.set(seed, outline);
+  return outline;
+}
+
+export function clipping(voice: Voice, d: Device, open: Open, now: number, scale: unknown, scraps: Scraps, on: { flip(): void; more(): void; shut(): void }): TemplateResult {
   const c = voice.clipping;
   const told = (change: Change) => cap(words(voice, { ...d, on: change.on, level: change.level, away: change.away }));
   const record = open.record;
   // The dialog itself is the margin round the cutting: a press there, or Escape, folds it away.
   return html`<dialog class="clipping" @close=${on.shut} @click=${(e: Event) => e.target === e.currentTarget && on.shut()}>
-    <div class="cutting">
+    <div class="cutting" style="clip-path:${ragged(d.id)}">
+      <div class="scrap above" aria-hidden="true">${scraps.above}</div>
+      <div class="story">
       <p class="kicker">${d.room}</p>
       <h4 class="title">${d.name}</h4>
       <p class="deck">${cap(words(voice, d))}. ${d.since ? fill(c.since, { at: clock(d.since) }) : ""}</p>
@@ -33,6 +60,9 @@ export function clipping(voice: Voice, d: Device, open: Open, now: number, scale
               <div class="span"><span>${c.ago}</span><span>${c.now}</span></div>
               <ol>${record.length ? record.slice(-LINES).reverse().map((change) => html`<li><time>${clock(change.at)}</time>${told(change)}</li>`) : html`<li>${c.none}</li>`}</ol>`}
       <div class="foot"><button class="mend" @click=${on.more}>${c.more}</button><button class="act" @click=${on.shut}>${c.shut}</button></div>
+      </div>
+      <div class="scrap beside" aria-hidden="true"><span>${scraps.beside}</span></div>
+      <div class="scrap below" aria-hidden="true">${scraps.below}</div>
     </div>
   </dialog>`;
 }

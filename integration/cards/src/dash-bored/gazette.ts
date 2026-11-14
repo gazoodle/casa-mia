@@ -410,6 +410,9 @@ export class Gazette extends LitElement {
         ><button class="chip tab" aria-label="${d.name}: its story" @click=${() => this._story(d)}>${d.dims && !d.away ? `${d.on ? (d.level ?? "") : 0}%` : "›"}</button></div>`;
     const devices = new Map(house.rooms.flatMap((r) => r.devices).map((d) => [d.id, d]));
     const subject = this._open && devices.get(this._open.id);
+    // What comes away with a clipping: the paper's own stories, from round where it was cut.
+    const others = rest.length ? rest : told;
+    const scraps = { above: others[0].deck, beside: [...others, ...told].map((t) => `${t.head}. ${t.deck}`).join(" "), below: others.at(-1)!.head };
     const board = html`<h3>${voice.titles.board}</h3>
       ${byFloor(rooms, (r) => html`<div class="row"><span>${r.name}</span>${r.devices.map(chip)}</div>`,
         (drawn) => html`<div class="rows">${drawn}</div>`)}`;
@@ -484,7 +487,7 @@ export class Gazette extends LitElement {
         ${big ? html`<section class="board">${board}</section>` : nothing}
       </main>
       ${subject
-        ? clipping(voice, subject, this._open!, now, scale(subject), {
+        ? clipping(voice, subject, this._open!, now, scale(subject), scraps, {
             flip: () => this._flip(subject),
             // Home Assistant's dialog would open beneath a modal one: this is folded away first.
             more: () => (this._shut(), fire(this, "hass-more-info", { entityId: subject.id })),

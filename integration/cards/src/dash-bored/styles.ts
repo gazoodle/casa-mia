@@ -88,7 +88,18 @@ export const STYLES = css`
   /* The clipping: one device's story, cut out and laid over the page a little askew. */
   dialog.clipping { width: min(540px, calc(100vw - 24px)); max-height: calc(100vh - 24px); padding: 0; border: 0; background: none; color: var(--ink); font: inherit; overflow: visible; }
   dialog.clipping::backdrop { background: rgba(0, 0, 0, .5); }
-  .cutting { max-height: calc(100vh - 40px); overflow-y: auto; padding: 16px 20px; background: var(--paper); border: 1px solid var(--ink); box-shadow: 5px 7px 0 rgba(0, 0, 0, .4); rotate: -.5deg; }
+  /* Its edges are torn (clipping.ts gives the outline), so the shadow is the dialog's: a box's own shadow is cut off with it. */
+  dialog.clipping { filter: drop-shadow(5px 7px 0 rgba(0, 0, 0, .4)); }
+  .cutting { display: grid; grid-template-columns: minmax(0, 1fr) 30px; max-height: calc(100vh - 40px); overflow-y: auto; background: var(--paper); rotate: -.5deg;
+    background-image: radial-gradient(rgba(0,0,0,.05) 1px, transparent 1px); background-size: 4px 4px; }
+  .story { padding: 12px 16px 12px 20px; border-right: 1px solid var(--ink); min-width: 0; }
+  /* What came away with it: the foot of the story above, cut through its last line; the
+     edge of the next column, cut through its words; and the top of the headline below. */
+  .scrap { overflow: hidden; opacity: .8; user-select: none; pointer-events: none; }
+  .above { grid-column: 1 / -1; height: 15px; padding: 0 20px; border-bottom: 2px solid var(--ink); font-size: 15px; line-height: 5px; white-space: nowrap; } /* a line shorter than its type: the words stand half above the edge, where the tear takes them */
+  .beside { position: relative; }
+  .beside span { position: absolute; top: 6px; left: 8px; width: 190px; font-size: 14px; line-height: 1.42; }
+  .below { grid-column: 1 / -1; height: 21px; padding: 5px 20px 0; border-top: 2px solid var(--ink); font: 900 28px/1 var(--head); white-space: nowrap; }
   .cutting .title { margin: 0 0 6px; font: 900 32px/1.02 var(--head); text-wrap: balance; overflow-wrap: anywhere; }
   .cutting .deck { font-size: 17px; }
   .cutting .act { margin: 0 0 12px; }

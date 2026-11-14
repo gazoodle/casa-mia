@@ -369,6 +369,11 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   (`_flip`, armed for `ARMED`); my ruling again, and no looser than Home Assistant's
   dialog, which does it in one. A voice's `acts` and `clipping` are its words.
   Cameras, photographs and the gaps' entities still open Home Assistant's dialog.
+  Its edges are torn and it carries scraps of the neighbouring stories (owner, 2026-11-14,
+  so it feels less like a computer's dialog): `ragged` gives a clip-path worked out from
+  the device's id, so it never changes between draws, and `scraps` are the paper's own
+  other stories. The shadow is a `drop-shadow` on the dialog, since a clip-path cuts a
+  box's own shadow off.
 - **Seen on the test VM, 2026-11-14** (it now has Home Assistant's demo devices in rooms
   on four floors, and a dimmable Pendant and a Blind as template helpers): floors as
   crossheads, votes and the scale moving a light and a blind, a clipping's record from

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.8-b12
+
+- **Dash-Bored: a clipping looks cut from the paper** (the owner's idea). Its edges are torn, differently for each device, and it brings a little of what was next to it: the last line of the story above, the edge of the next column and the top of the headline below, all taken from the paper's own stories.
+
 ## 2026.11.8-b11
 
 - **Dash-Bored: a device's clipping, in place of Home Assistant's dialog.** Every device has a story of its own, laid over the page: how it stands and since when, a button that puts it the other way, its poll and scale if it has a level, and **The record**, a band of the last 24 hours with its latest changes from Home Assistant's history (which keeps a blind's positions, but not a light's brightness). It opens from the tab now beside every device on the switchboard, and from a line about the device in the late news. Home Assistant's own dialog is a link at its foot.
