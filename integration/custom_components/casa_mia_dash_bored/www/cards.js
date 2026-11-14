@@ -2822,8 +2822,91 @@ function hn(e, t, n, r, i, a, o) {
       <div class="foot"><button class="mend" @click=${o.more}>${s.more}</button><button class="act" @click=${o.shut}>${s.shut}</button></div>`);
 }
 //#endregion
-//#region src/dash-bored/styles.ts
-var gn = h`
+//#region src/dash-bored/family.ts
+var gn = "casa_mia_dash_bored/settings", _n = 350, vn = class extends V {
+	constructor(...e) {
+		super(...e), this.narrow = !1, this._fault = "", this._lost = 0, this._config = {}, this._settings = {}, this._feeds = /* @__PURE__ */ new Map(), this._timers = /* @__PURE__ */ new Set();
+	}
+	static {
+		this.properties = {
+			narrow: { type: Boolean },
+			_house: { state: !0 },
+			_fault: { state: !0 },
+			_lost: { state: !0 }
+		};
+	}
+	static getStubConfig() {
+		return {};
+	}
+	setConfig(e) {
+		this._config = { ...e }, this._survey = void 0;
+	}
+	getCardSize() {
+		return 12;
+	}
+	getGridOptions() {
+		return { columns: "full" };
+	}
+	set panel(e) {
+		this.toggleAttribute("panel", !0);
+	}
+	set hass(e) {
+		let t = this._hass;
+		if (this._hass = e, e.connected === !1) {
+			this._lost ||= Date.now();
+			return;
+		}
+		if (this._lost = 0, this._listen(), !this._survey || !t || t.entities !== e.entities || t.areas !== e.areas || t.devices !== e.devices || t.floors !== e.floors) this._survey = $e(e, {
+			...this._settings,
+			...this._config
+		});
+		else if (t.states === e.states || !this._survey.watched.some((n) => t.states[n] !== e.states[n])) return;
+		let n = new Map(this._house?.rooms.flatMap((e) => e.devices).map((e) => [e.id, e]));
+		this._house = ft(this._survey, e), this._surveyed();
+		for (let e of this._house.rooms.flatMap((e) => e.devices)) {
+			let t = n.get(e.id);
+			t && (t.on !== e.on || t.phase !== e.phase || t.level !== e.level || t.away !== e.away) && this._moved(e);
+		}
+	}
+	_surveyed() {}
+	_moved(e) {}
+	connectedCallback() {
+		super.connectedCallback(), this._hass?.connected !== !1 && this._listen();
+	}
+	disconnectedCallback() {
+		super.disconnectedCallback();
+		for (let e of this._feeds.values()) e.then((e) => e()).catch(() => void 0);
+		this._feeds.clear();
+		for (let e of this._timers) clearTimeout(e);
+		this._timers.clear();
+	}
+	_follow(e, t, n) {
+		let r = this._hass?.connection;
+		if (!r || !this.isConnected || this._feeds.has(e)) return;
+		let i = r.subscribeMessage(n, { type: e });
+		this._feeds.set(e, i), i.catch((n) => {
+			this._feeds.delete(e), console.error(`Dash-Bored: the feed ${e} failed`, n), this._fault = `${t} are not reaching this page (${n?.message ?? n}).`;
+		});
+	}
+	_listen() {
+		this._follow(gn, "Dash-Bored's settings", (e) => {
+			this._settings = e.at(-1) ?? this._settings, this._survey = void 0, this._hass && (this.hass = this._hass);
+		});
+	}
+	_call(e, t) {
+		this._hass.callService(e.domain, e.service, {
+			entity_id: e.ids,
+			...e.data
+		}).then(() => this._fault = "", (n) => {
+			console.error(`Dash-Bored: ${e.domain}.${e.service} refused`, n), this._fault = `${t}: Home Assistant refused (${n?.message ?? n}).`;
+		});
+	}
+	_ask(e, t) {
+		clearTimeout(this._asking), this._timers.delete(this._asking), this._asking = setTimeout(() => {
+			this._timers.delete(this._asking), this._call(xt(e, t), `${e.room} ${e.name}`);
+		}, _n), this._timers.add(this._asking);
+	}
+}, yn = h`
   :host { display: block; container-type: inline-size; }
   :host([panel]) { height: 100vh; overflow-y: auto; }
   .paper { --paper: #f3eee0; --ink: #1c1a17; --flash: #8c1c13; --mark: #f6d95a; --head: "Bodoni 72", "Didot", "Playfair Display", serif;
@@ -3085,29 +3168,25 @@ var gn = h`
     [data-style="rolling"] .page > * + * { padding-left: 0; }
     .figure, [data-style="tabloid"] .figure { width: 104px; } .figure b, [data-style="tabloid"] .figure b { font-size: 28px; }
   }
-`, _n = "casa_mia_dash_bored/alerts", vn = "casa_mia_dash_bored/sightings", yn = "casa_mia_dash_bored/personal", bn = "casa_mia_dash_bored/playing", xn = "casa_mia_dash_bored/settings", $ = "weather/subscribe_forecast", Sn = 18e5, Cn = "dash-bored-style", wn = "/casa_mia_dash_bored/fonts/ManufacturingConsent-Regular.ttf", Tn = !1;
-function En() {
-	if (Tn) return;
-	Tn = !0;
-	let e = new FontFace("Dash-Bored Masthead", `url(${wn})`);
+`, bn = "casa_mia_dash_bored/alerts", xn = "casa_mia_dash_bored/sightings", Sn = "casa_mia_dash_bored/personal", Cn = "casa_mia_dash_bored/playing", $ = "weather/subscribe_forecast", wn = 18e5, Tn = "dash-bored-style", En = "/casa_mia_dash_bored/fonts/ManufacturingConsent-Regular.ttf", Dn = !1;
+function On() {
+	if (Dn) return;
+	Dn = !0;
+	let e = new FontFace("Dash-Bored Masthead", `url(${En})`);
 	document.fonts.add(e), e.load().catch((e) => console.error("Dash-Bored: the masthead's font could not be loaded", e));
 }
-var Dn = class extends V {
+var kn = class extends vn {
 	constructor(...e) {
-		super(...e), this.narrow = !1, this._played = [], this._days = [], this._style = "broadsheet", this._alerts = [], this._seen = [], this._rated = [], this._fault = "", this._lost = 0, this._config = {}, this._settings = {}, this._late = [], this._turn = /* @__PURE__ */ new Map(), this._showing = /* @__PURE__ */ new Set(), this._feeds = /* @__PURE__ */ new Map(), this._primed = !1, this._seenPrimed = !1, this._timers = /* @__PURE__ */ new Set();
+		super(...e), this._played = [], this._days = [], this._style = "broadsheet", this._alerts = [], this._seen = [], this._rated = [], this._late = [], this._turn = /* @__PURE__ */ new Map(), this._showing = /* @__PURE__ */ new Set(), this._primed = !1, this._seenPrimed = !1;
 	}
 	static {
-		this.styles = gn;
+		this.styles = yn;
 	}
 	static {
 		this.properties = {
-			narrow: { type: Boolean },
-			_house: { state: !0 },
 			_style: { state: !0 },
 			_alerts: { state: !0 },
 			_seen: { state: !0 },
-			_fault: { state: !0 },
-			_lost: { state: !0 },
 			_scale: { state: !0 },
 			_open: { state: !0 },
 			_shot: { state: !0 },
@@ -3116,93 +3195,54 @@ var Dn = class extends V {
 			_days: { state: !0 }
 		};
 	}
-	static getStubConfig() {
-		return {};
-	}
 	setConfig(e) {
-		this._config = { ...e }, this._survey = void 0, this._choose();
+		super.setConfig(e), this._choose();
 	}
-	getCardSize() {
-		return 12;
+	_surveyed() {
+		this._outlook();
 	}
-	getGridOptions() {
-		return { columns: "full" };
-	}
-	set panel(e) {
-		this.toggleAttribute("panel", !0);
-	}
-	set hass(e) {
-		let t = this._hass;
-		if (this._hass = e, e.connected === !1) {
-			this._lost ||= Date.now();
-			return;
-		}
-		if (this._lost = 0, this._listen(), !this._survey || !t || t.entities !== e.entities || t.areas !== e.areas || t.devices !== e.devices || t.floors !== e.floors) this._survey = $e(e, {
-			...this._settings,
-			...this._config
+	_moved(e) {
+		this._note({
+			time: Date.now(),
+			device: e
+		}), this._scale?.id === e.id && (this._scale = {
+			...this._scale,
+			want: void 0
+		}), this._open?.id === e.id && (this._open = {
+			...this._open,
+			armed: !1,
+			record: this._open.record && [...this._open.record, {
+				at: Date.now(),
+				on: e.on,
+				phase: e.phase,
+				level: e.level,
+				away: e.away
+			}]
 		});
-		else if (t.states === e.states || !this._survey.watched.some((n) => t.states[n] !== e.states[n])) return;
-		let n = new Map(this._house?.rooms.flatMap((e) => e.devices).map((e) => [e.id, e]));
-		this._house = ft(this._survey, e), this._outlook();
-		for (let e of this._house.rooms.flatMap((e) => e.devices)) {
-			let t = n.get(e.id);
-			!t || t.on === e.on && t.phase === e.phase && t.level === e.level && t.away === e.away || (this._note({
-				time: Date.now(),
-				device: e
-			}), this._scale?.id === e.id && (this._scale = {
-				...this._scale,
-				want: void 0
-			}), this._open?.id === e.id && (this._open = {
-				...this._open,
-				armed: !1,
-				record: this._open.record && [...this._open.record, {
-					at: Date.now(),
-					on: e.on,
-					phase: e.phase,
-					level: e.level,
-					away: e.away
-				}]
-			}));
-		}
 	}
 	connectedCallback() {
-		super.connectedCallback(), En(), this._choose(), this._hass?.connected !== !1 && this._listen();
+		super.connectedCallback(), On(), this._choose();
 	}
 	disconnectedCallback() {
-		super.disconnectedCallback();
-		for (let e of this._feeds.values()) e.then((e) => e()).catch(() => void 0);
-		this._feeds.clear(), this._primed = this._seenPrimed = !1, this._forecastOf = void 0;
-		for (let e of this._timers) clearTimeout(e);
-		this._timers.clear();
+		super.disconnectedCallback(), this._primed = this._seenPrimed = !1, this._forecastOf = void 0;
 	}
 	_choose() {
 		let e = this._config.style;
 		try {
-			e ??= localStorage.getItem(Cn) ?? void 0;
+			e ??= localStorage.getItem(Tn) ?? void 0;
 		} catch {}
 		e && e in en && (this._style = e);
 	}
 	_dress(e) {
 		this._style = e;
 		try {
-			localStorage.setItem(Cn, e);
+			localStorage.setItem(Tn, e);
 		} catch {}
 	}
 	_listen() {
-		let e = this._hass?.connection;
-		if (!e || !this.isConnected) return;
-		let t = (t, n, r) => {
-			if (this._feeds.has(t)) return;
-			let i = e.subscribeMessage(r, { type: t });
-			this._feeds.set(t, i), i.catch((e) => {
-				this._feeds.delete(t), console.error(`Dash-Bored: the feed ${t} failed`, e), this._fault = `${n} are not reaching this page (${e?.message ?? e}).`;
-			});
-		};
-		t(_n, "Sensor Watch's alerts", (e) => this._take(e)), t(vn, "The cameras' sightings", (e) => this._sight(e));
-		let n = (e, t) => [...new Map(e.map((e) => [t(e), e])).values()];
-		t(yn, "The Personal column's announcements", (e) => this._rated = n([...this._rated, ...e], (e) => `${e.at} ${e.name} ${e.title}`)), t(xn, "Dash-Bored's settings", (e) => {
-			this._settings = e.at(-1) ?? this._settings, this._survey = void 0, this._hass && (this.hass = this._hass);
-		}), t(bn, "What the players have played", (e) => this._played = n([...this._played, ...e], (e) => e.id));
+		super._listen(), this._follow(bn, "Sensor Watch's alerts", (e) => this._take(e)), this._follow(xn, "The cameras' sightings", (e) => this._sight(e));
+		let e = (e, t) => [...new Map(e.map((e) => [t(e), e])).values()];
+		this._follow(Sn, "The Personal column's announcements", (t) => this._rated = e([...this._rated, ...t], (e) => `${e.at} ${e.name} ${e.title}`)), this._follow(Cn, "What the players have played", (t) => this._played = e([...this._played, ...t], (e) => e.id));
 	}
 	_outlook() {
 		let e = this._hass?.connection, t = this._house?.outside, n = t?.daily ? t.id : void 0;
@@ -3230,7 +3270,7 @@ var Dn = class extends V {
 				seen: a
 			});
 		}
-		this._seenPrimed = !0, this._seen = [...t.values()].filter((e) => n - e.at * 1e3 < Sn);
+		this._seenPrimed = !0, this._seen = [...t.values()].filter((e) => n - e.at * 1e3 < wn);
 	}
 	_take(e) {
 		let t = new Map(this._alerts.map((e) => [e.entity_id, e]));
@@ -3260,7 +3300,7 @@ var Dn = class extends V {
 	_note(e) {
 		this._late = [e, ...this._late].slice(0, 8);
 	}
-}, On = 6e3, kn = 350, An = /* @__PURE__ */ new Set([
+}, An = 6e3, jn = /* @__PURE__ */ new Set([
 	"climate",
 	"media_player",
 	"camera",
@@ -3268,17 +3308,9 @@ var Dn = class extends V {
 	"vacuum",
 	"lawn_mower",
 	"alarm_control_panel"
-]), jn = class extends Dn {
-	_call(e, t) {
-		this._hass.callService(e.domain, e.service, {
-			entity_id: e.ids,
-			...e.data
-		}).then(() => this._fault = "", (n) => {
-			console.error(`Dash-Bored: ${e.domain}.${e.service} refused`, n), this._fault = `${t}: Home Assistant refused (${n?.message ?? n}).`;
-		});
-	}
+]), Mn = class extends kn {
 	_press(e) {
-		e.guarded || e.away || An.has(e.kind) ? this._story(e) : this._call(yt(e), `${e.room} ${e.name}`);
+		e.guarded || e.away || jn.has(e.kind) ? this._story(e) : this._call(yt(e), `${e.room} ${e.name}`);
 	}
 	_story(e) {
 		this._open = { id: e.id }, this._scale = e.dims && !e.away ? { id: e.id } : void 0;
@@ -3313,7 +3345,7 @@ var Dn = class extends V {
 					...this._open,
 					armed: !1
 				});
-			}, On);
+			}, An);
 			this._timers.add(n);
 			return;
 		}
@@ -3326,27 +3358,22 @@ var Dn = class extends V {
 		let e = this.renderRoot.querySelector("dialog");
 		e && !e.open && e.showModal();
 	}
-	_ask(e, t) {
-		clearTimeout(this._asking), this._timers.delete(this._asking), this._asking = setTimeout(() => {
-			this._timers.delete(this._asking), this._call(xt(e, t), `${e.room} ${e.name}`);
-		}, kn), this._timers.add(this._asking);
-	}
 	_measure(e) {
 		this._scale = this._scale?.id === e.id ? void 0 : { id: e.id };
 	}
 	_key(e) {
 		(e.key === "Enter" || e.key === " ") && (e.preventDefault(), e.currentTarget.click());
 	}
-}, Mn = "dash-bored-gazette", Nn = 30, Pn = 3, Fn = /* @__PURE__ */ new Set([
+}, Nn = "dash-bored-gazette", Pn = 30, Fn = 3, In = /* @__PURE__ */ new Set([
 	"climate",
 	"camera",
 	"water_heater",
 	"alarm_control_panel"
-]), In = /* @__PURE__ */ new Set(["docked"]), Ln = (e) => e.away || !!e.phase && !In.has(e.phase) || !Fn.has(e.kind) && (e.kind === "lock" ? !e.on : e.on), Rn = (e) => e.kind !== "camera" || e.away, zn = class extends jn {
+]), Ln = /* @__PURE__ */ new Set(["docked"]), Rn = (e) => e.away || !!e.phase && !Ln.has(e.phase) || !In.has(e.kind) && (e.kind === "lock" ? !e.on : e.on), zn = (e) => e.kind !== "camera" || e.away, Bn = class extends Mn {
 	render() {
 		let e = this._hass, t = this._house, n = en[this._style];
 		if (!e || !t) return P`<div class="paper" data-style=${this._style}><p class="wait">Waiting for Home Assistant.</p></div>`;
-		let a = Date.now(), o = pt(this._survey, this._seen).filter((e) => a - e.at < Sn), s = [...o].sort((e, t) => t.at - e.at).slice(0, 10), c = (e) => (n.stories[`sighting.${e}`]?.kicker ?? e).toLowerCase(), l = It(t, this._alerts, a, o);
+		let a = Date.now(), o = pt(this._survey, this._seen).filter((e) => a - e.at < wn), s = [...o].sort((e, t) => t.at - e.at).slice(0, 10), c = (e) => (n.stories[`sighting.${e}`]?.kicker ?? e).toLowerCase(), l = It(t, this._alerts, a, o);
 		for (let e of l) this._showing.has(e.id) || this._turn.set(e.id, (this._turn.get(e.id) ?? -1) + 1);
 		this._showing = new Set(l.map((e) => e.id));
 		let u = l.map((e) => ({
@@ -3390,9 +3417,9 @@ var Dn = class extends V {
 		})} @keydown=${this._key}>
             <img src=${e.photo} alt=${e.figure[1]} loading="lazy" @error=${() => this._fault = `The photograph from ${e.figure[1]} could not be fetched.`} />
             <figcaption>${e.figure[1]}, ${e.figure[0]}</figcaption>
-          </figure>` : I, v = t.rooms.filter((e) => e.temp !== void 0), y = kt(t.people, this._rated, a), b = t.rooms.filter((e) => e.devices.length), x = b.reduce((e, t) => e + t.devices.length, 0) > Nn, ee = b.map((e) => ({
+          </figure>` : I, v = t.rooms.filter((e) => e.temp !== void 0), y = kt(t.people, this._rated, a), b = t.rooms.filter((e) => e.devices.length), x = b.reduce((e, t) => e + t.devices.length, 0) > Pn, ee = b.map((e) => ({
 			...e,
-			devices: e.devices.filter(x ? Ln : Rn)
+			devices: e.devices.filter(x ? Rn : zn)
 		})).filter((e) => e.devices.length), te = b.some((e) => e.floor), S = (e, t, r = (e) => e) => {
 			let i = /* @__PURE__ */ new Map();
 			for (let t of e) i.set(t.floor ?? "", [...i.get(t.floor ?? "") ?? [], t]);
@@ -3400,7 +3427,7 @@ var Dn = class extends V {
 		}, ne = (e) => {
 			let t = (t) => {
 				let n = e.devices.filter((e) => x && e.kind === t && e.on && !e.away);
-				return n.length > Pn ? n : [];
+				return n.length > Fn ? n : [];
 			}, r = t("light"), i = t("switch"), a = e.devices.filter((e) => !r.includes(e) && !i.includes(e)).map((e, t) => h(e, !t && !r.length && !i.length));
 			return i.length && a.unshift(r.length ? Y(n.words["switch.many"], J(i.length)) : q(Y(n.words["switch.many"], J(i.length)))), r.length && a.unshift(P`<span class="fact" role="button" tabindex="0" @click=${() => this._call({
 				domain: "light",
@@ -3505,6 +3532,6 @@ var Dn = class extends V {
 		}) : I}
     </div>`;
 	}
-}, Bn = new URL(import.meta.url).searchParams.get("v") || "dev";
-a(Mn, zn), o(Mn, "Casa Mia Dash-Bored Gazette", "Your house as a newspaper: what matters most is the headline, and every underlined fact is a switch. Best in a panel view."), t("Dash-Bored", "casa_mia_dash_bored/cards", Bn);
+}, Vn = new URL(import.meta.url).searchParams.get("v") || "dev";
+a(Nn, Bn), o(Nn, "Casa Mia Dash-Bored Gazette", "Your house as a newspaper: what matters most is the headline, and every underlined fact is a switch. Best in a panel view."), t("Dash-Bored", "casa_mia_dash_bored/cards", Vn);
 //#endregion

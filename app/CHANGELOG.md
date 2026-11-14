@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.8-b22
+
+- **Dash-Bored: what every family of dashboards shares is in one place.** Reading the house, the house's settings and the calls that change a device have moved out of the Gazette, ready for the next family. Nothing on the page has changed.
+
 ## 2026.11.8-b21
 
 - **Dash-Bored: the lights' story has a second button, to dim them.** Beside the button that puts the lights out is one that dims them: every lit light that can be dimmed and is brighter than 30 per cent is set to 30 per cent. Lights that only switch are left as they are, and the button is not shown when there is nothing to dim.

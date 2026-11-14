@@ -4,26 +4,15 @@ import { fire } from "../../ha.ts";
 import type { Open, Shot } from "../clipping.ts";
 import type { Device } from "../house.ts";
 import { recorded } from "../record.ts";
-import { flip, setting, type Press } from "../stories.ts";
+import { flip } from "../stories.ts";
 import { Page } from "./page.ts";
 
 const ARMED = 6000; // ms: how long a first press to unlock or open waits for its second
-const SETTLE = 350; // ms: a level on the scale is asked for once it has been still this long
 // The heating, the hot water, the music, a robot and an alarm are not switched by a press
 // on a sentence or a chip: that opens the clipping, as it does for a lock.
 const OPENS = new Set(["climate", "media_player", "camera", "water_heater", "vacuum", "lawn_mower", "alarm_control_panel"]);
 
 export class Acts extends Page {
-  protected _call(press: Press, what: string) {
-    this._hass!.callService(press.domain, press.service, { entity_id: press.ids, ...press.data }).then(
-      () => (this._fault = ""),
-      (err: any) => {
-        console.error(`Dash-Bored: ${press.domain}.${press.service} refused`, err);
-        this._fault = `${what}: Home Assistant refused (${err?.message ?? err}).`;
-      },
-    );
-  }
-
   protected _press(d: Device) {
     // A lock or a garage door is never moved from a sentence, and a device that isn't
     // answering can't be: its clipping, where unlocking or opening takes two presses.
@@ -87,19 +76,6 @@ export class Acts extends Page {
   protected updated() {
     const cutting = this.renderRoot.querySelector("dialog");
     if (cutting && !cutting.open) cutting.showModal();
-  }
-
-  /** Ask a device for a level, once the level has stopped changing: a drag asks when the
-   * handle is let go, but an arrow key held down reports a change at every step, and a
-   * bus of real dimmers would be sent them all. */
-  protected _ask(d: Device, level: number) {
-    clearTimeout(this._asking);
-    this._timers.delete(this._asking!);
-    this._asking = setTimeout(() => {
-      this._timers.delete(this._asking!);
-      this._call(setting(d, level), `${d.room} ${d.name}`);
-    }, SETTLE);
-    this._timers.add(this._asking);
   }
 
   /** Open the scale for a device, or close it if it is the one that is open. */
