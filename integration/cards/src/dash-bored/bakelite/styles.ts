@@ -76,14 +76,36 @@ export const STYLES = css`
   .dial { flex: 0 1 104px; min-width: 0; }
   .dimmer { position: relative; width: 104px; height: 104px; margin: 8px auto 6px; }
   .dimmer svg { position: absolute; inset: 0; }
-  .knob { position: absolute; inset: 20px; border-radius: 50%; cursor: grab; touch-action: none;
-    background: repeating-conic-gradient(#1a1a1a 0 9deg, #333 9deg 18deg); box-shadow: 0 5px 8px rgba(0,0,0,.6), inset 0 0 0 9px #161616, inset 0 2px 0 9px #444;
-    transform: rotate(calc(-135deg + var(--lvl, 0) * 2.7deg)); transition: transform .3s; }
-  .knob.drag { transition: none; }
-  /* A blind's winder is the same knob in brass. */
-  .knob.wind { background: repeating-conic-gradient(#6b5018 0 9deg, #c9a24b 9deg 18deg); box-shadow: 0 5px 8px rgba(0,0,0,.6), inset 0 0 0 9px #4a3610, inset 0 2px 0 9px #e2c070; }
-  .knob::after { content: ""; position: absolute; left: 50%; top: -6px; margin-left: -3px; border: 3px solid transparent; border-bottom: 12px solid #f4f0e4; }
-  .knob:focus-visible { outline: 2px solid var(--cream); outline-offset: 2px; }
+  /* A fluted Bakelite knob, in layers. The flutes and the pointer turn with the level. The
+     light does not: the shading over the flutes, the cap's highlight and the shadow on the
+     panel stay where they are, as they would on a real knob lit from the upper left.
+     --k1 to --k3 are the flutes from their shadow to their shine; --c1 and --c2 the cap. */
+  .knob { --k1: #0b0b0b; --k2: #262626; --k3: #4d4d4d; --c1: #5c5c5c; --c2: #151515; --ring: #8f8f86; --line: #f4f0e4;
+    position: absolute; inset: 14px; border-radius: 50%; cursor: grab; touch-action: none;
+    box-shadow: 0 9px 12px rgba(0,0,0,.6), 0 3px 3px rgba(0,0,0,.55), 0 0 0 1.5px rgba(0,0,0,.6); }
+  .knob span { position: absolute; border-radius: 50%; }
+  .flutes, .mark { inset: 0; transform: rotate(calc(-135deg + var(--lvl, 0) * 2.7deg)); transition: transform .3s; }
+  .knob.drag .flutes, .knob.drag .mark { transition: none; }
+  .flutes { background: repeating-conic-gradient(var(--k1) 0deg, var(--k2) 5deg, var(--k3) 9deg, var(--k2) 12deg, var(--k1) 15deg); }
+  /* The light on the flutes: bright at the upper left, dark at the lower right, and a darker edge all round. */
+  .knob::before { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: 50%; pointer-events: none;
+    background: radial-gradient(circle at 30% 24%, rgba(255,255,255,.3), transparent 46%), radial-gradient(circle at 72% 80%, rgba(0,0,0,.55), transparent 58%);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.1), inset 0 -3px 6px rgba(0,0,0,.55), inset 0 2px 3px rgba(255,255,255,.18); }
+  /* The cap: a shallow dome inside a metal ring. Named with its knob: a push button has a cap too. */
+  .knob .cap { inset: 23%; z-index: 2; background: radial-gradient(circle at 34% 28%, var(--c1), var(--c2) 72%);
+    box-shadow: 0 0 0 1.5px rgba(0,0,0,.7), 0 0 0 3px var(--ring), 0 0 0 4px rgba(0,0,0,.55), 0 3px 5px 4px rgba(0,0,0,.45), inset 0 2px 2px rgba(255,255,255,.3), inset 0 -3px 4px rgba(0,0,0,.5); }
+  .knob .cap::after { content: ""; position: absolute; left: 18%; top: 12%; width: 34%; height: 20%; border-radius: 50%; background: rgba(255,255,255,.3); transform: rotate(-32deg); filter: blur(1.5px); }
+  /* The pointer: a white line let into the knob, from the cap to the rim. */
+  .mark { z-index: 3; pointer-events: none; }
+  .mark::after { content: ""; position: absolute; left: 50%; top: 3%; width: 3.4px; height: 25%; margin-left: -1.7px; border-radius: 1.5px;
+    background: var(--line); box-shadow: 0 0 0 .6px rgba(0,0,0,.6), inset 0 -1px 1px rgba(0,0,0,.25); }
+  .knob:focus-visible { outline: 2px solid var(--cream); outline-offset: 3px; }
+  .note { display: block; margin-top: 4px; } .note .label { font-size: 8px; letter-spacing: .08em; text-transform: none; }
+  /* A blind's winder is brass, the heating's knob oxblood, a player's ivory and a fan's grey-green. */
+  .knob.wind { --k1: #4d370c; --k2: #a8832f; --k3: #f3dc94; --c1: #f8e7ae; --c2: #7d5e1c; --ring: #5a4210; --line: #2a1a05; }
+  .knob.heat { --k1: #230504; --k2: #651711; --k3: #b54a3f; --c1: #b0483d; --c2: #330907; }
+  .knob.sound { --k1: #776f5a; --k2: #cbc1a2; --k3: #fffbe8; --c1: #fffaea; --c2: #a1977a; --ring: #6f6853; --line: #1c0f0a; }
+  .knob.air { --k1: #121a16; --k2: #3b4e43; --k3: #7f9d8b; --c1: #86a391; --c2: #1b2620; }
 
   /* Dolly switches: a stepped round base, a dome with a slot, a lever in the slot. */
   .dolly { width: 92px; margin-top: 10px; text-align: center; }
@@ -125,6 +147,29 @@ export const STYLES = css`
   .push:active .cap { transform: translateY(1px); }
   .push .label { font-size: 8px; letter-spacing: .1em; padding: 2px 5px; }
   .push:focus-visible .cap { outline: 2px solid var(--cream); outline-offset: 4px; }
+
+  /* A television screen: a camera's picture in black and white, behind a curved glass
+     with its lines and a reflection. The surround is Bakelite with a brass trim. */
+  .tv { flex: 0 1 150px; margin-top: 10px; text-align: center; }
+  .tube { display: block; position: relative; aspect-ratio: 4 / 3; margin: 0 6px 8px; overflow: hidden; border-radius: 22% / 26%; background: radial-gradient(#27302b, #0a0d0b);
+    box-shadow: 0 0 0 5px #1c0f0a, 0 0 0 6px var(--brass), 0 6px 10px rgba(0,0,0,.6); }
+  .tube img { display: block; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.15) brightness(1.05) sepia(.14); }
+  .tube::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+    background: linear-gradient(125deg, rgba(255,255,255,.2), transparent 32%), repeating-linear-gradient(rgba(0,0,0,.2) 0 1px, transparent 1px 3px), radial-gradient(transparent 55%, rgba(0,0,0,.6));
+    box-shadow: inset 0 0 14px #000; }
+  .tv .label { font-size: 8.5px; letter-spacing: .1em; padding: 2px 6px; }
+  .tv:focus-visible .tube { outline: 2px solid var(--cream); outline-offset: 7px; }
+  .top .tv { flex-basis: 170px; }
+
+  /* The chart recorder: a strip of sepia paper in a Bakelite case. */
+  .rec { margin-top: 10px; opacity: .85; } .rec .label { font-size: 8.5px; letter-spacing: .12em; }
+  .rec:focus-visible { outline: 2px solid var(--cream); outline-offset: 3px; }
+  dialog.recorder { width: min(760px, 94vw); padding: 14px; border: 0; border-radius: 14px; color: var(--cream); text-align: center;
+    background: linear-gradient(170deg, #4a2a1d, #1c0f0a); box-shadow: inset 0 2px 0 rgba(255,255,255,.15), 0 20px 40px rgba(0,0,0,.6); }
+  dialog.recorder::backdrop { background: rgba(0,0,0,.55); }
+  .paper { width: 100%; height: auto; margin: 10px 0 6px; border-radius: 3px; box-shadow: inset 0 0 0 1px #7a5a2c, 0 2px 6px rgba(0,0,0,.6); }
+  .paper text { fill: #5a3d16; }
+  .paper .lane { font-size: 9px; text-anchor: end; letter-spacing: .04em; } .paper .hour { font-size: 8px; text-anchor: middle; }
 
   /* Knife switches: the scenes. */
   .knives { display: flex; flex: 1 1 300px; flex-wrap: wrap; gap: 14px; justify-content: space-around; align-items: flex-end; padding: 12px 18px 10px;

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { tall, widths } from "./balance.ts";
 
-const room = (knobs: number, dollies = 0, meter = false, alarms = 0) => ({ knobs, dollies, meter, alarms });
+const room = (knobs: number, dollies = 0, meter = false, alarms = 0, tvs = 0) => ({ knobs, dollies, meter, alarms, tvs });
 
 test("a house of small rooms keeps every chassis one wide", () => {
   assert.deepEqual(widths([room(1), room(2), room(0, 2), room(0, 0, true)]), [1, 1, 1, 1]);

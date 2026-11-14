@@ -8,13 +8,14 @@ Started 2026-11-13 (2026.11.8-b1) with the Gazette. HANDOVER has how it is built
 mock-ups are in `docs/design/dash-bored/`. The owner is on Bakelite now (2026-11-14), and
 the Gazette's own work is parked below it.
 
-- **Bakelite, what's left** (built so far: lights, switches, scenes, temperatures, and in
-  2026.11.8-b25 blinds, locks, the other guarded kinds and alarms). The rest of its
-  control kit needs drawing, a control for each kind the Gazette knows: the heating,
-  players, cameras and the rest. An alarm's thumbwheels turn by a press on their top or bottom half, not by
-  a drag, and an alarm with a code in words is left off. Then what the Gazette has that
-  it lacks: the cameras' sightings, a device's history (the owner's
-  idea: a chart recorder on sepia paper). Not yet seen on a tablet.
+- **Bakelite, what's left** (every kind of device, Sensor Watch's alerts, the cameras'
+  sightings and a chart recorder are built, to 2026.11.8-b30). The owner tried it on an iPad on 2026-11-14: the cranked
+  knobs, the thumbwheels' size and the motion were all right. Not yet on a wall tablet.
+  Small things known: an alarm's thumbwheels turn by a press
+  on their top or bottom half, not by a drag; an alarm with a code in words is left off;
+  the chart is of the day up to when it was opened and does not run on; a thermostat's
+  modes (heat, cool, auto) and a player's source are not on the panel; the Gazette's
+  columns (forecast, Personal, Amusements) have no place on it.
 - **The choice of family, further**: an address for each family, so that a tablet can be
   fixed to one from its kiosk settings (offered 2026-11-14, not asked for). A scene made
   without a unique id (in YAML, or by `scene.create`) is in no registry, so no family

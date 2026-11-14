@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.11.8-b30
+
+- **Dash-Bored: Bakelite's knobs are redrawn.** A fluted body shaded from the upper left, a domed cap in a metal ring and a white pointer line. The flutes and the pointer turn; the light on the knob and its shadow on the panel stay where they are.
+- **Dash-Bored: Bakelite has every kind of device.** The heating and hot water have a red knob for their target, with a plate for what they read now. A player has an ivory knob for its volume and a plate for what is playing. A fan and a humidifier have a grey-green knob. A vacuum and a mower have a tumbler switch that says where they have got to. A room no longer says "and 4 more".
+- **Dash-Bored: Bakelite has television screens for the cameras.** Each camera's latest picture, in black and white behind a curved glass. What a camera saw in the last half hour is shown on its screen, with what and when on its plate. Press a screen for Home Assistant's dialog.
+- **Dash-Bored: Bakelite has a chart recorder.** The Chart plate at the foot of each room opens a strip of paper for the last day, with a line for each of the room's devices.
+- A knob's arrow keys now move it by a step that suits what it sets: ten per cent for a light, half a degree for a thermostat.
+
 ## 2026.11.8-b29
 
 - **Dash-Bored: the address of the cameras' sightings is shared by the families.** It has moved out of the Gazette, ready for Bakelite's television screens. Nothing on the page has changed.

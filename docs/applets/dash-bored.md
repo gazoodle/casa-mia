@@ -50,7 +50,7 @@ The first two can be used. The pictures of the others are of their mock-ups.
 </td>
 <td width="33%" valign="top">
 <a href="#bakelite"><img src="../screenshots/dash-bored-bakelite.webp" alt="Bakelite" width="100%"></a>
-<p><b><a href="#bakelite">Bakelite</a></b> · Being built: lights, switches, blinds, locks, alarms, scenes and Sensor Watch's alerts so far<br>A 1950s instrument panel: glowing valves, moving-coil meters, fluted dimmer knobs, tumbler switches and knife switches for scenes.</p>
+<p><b><a href="#bakelite">Bakelite</a></b> · Being built: every kind of device the Gazette shows, with Sensor Watch's alerts and a chart recorder<br>A 1950s instrument panel: glowing valves, moving-coil meters, fluted dimmer knobs, tumbler switches and knife switches for scenes.</p>
 </td>
 <td width="33%" valign="top">
 <img src="../screenshots/dash-bored-mock-calibre.webp" alt="Calibre, as a mock-up" width="100%">
@@ -438,8 +438,7 @@ Dash-Bored works without Sensor Watch; there is then no breaking news.
 
 ## Bakelite
 
-The house as a 1950s instrument panel. It is in its first form and shows less of the house
-than the Gazette does.
+The house as a 1950s instrument panel. It shows every kind of device the Gazette does.
 
 ![Bakelite: a meter for the outside air over a chassis for each room, each with a valve, knobs and tumbler switches](../screenshots/dash-bored-bakelite.webp)
 
@@ -487,12 +486,29 @@ is far taller than the others. Each chassis has:
   the code is not left on show. If the code is wrong or missing, Home Assistant's refusal
   is shown on the plate at the top of the panel, and the wheels stay as they are for you
   to correct. An alarm whose code is words, not digits, is not on the panel.
+- **The heating and the hot water** each have a red knob for the temperature they are set
+  to, which the plate under the knob gives ("Thermostat 21°"). A second, smaller plate
+  gives what the thermostat reads now. Turn the knob to change the target; a press
+  without turning switches the heating off or on.
+- **A player** has an ivory knob for its volume, with a plate under it for what is
+  playing. A press without turning pauses it or plays it.
+- **A fan** has a grey-green knob for its speed, and **a humidifier** one for the humidity
+  it is set to.
+- **A vacuum and a mower** have a tumbler switch: down starts it, up sends it home. The
+  plate says where it has got to, such as "Vacuum: returning".
+- **A camera** has a small television screen showing its latest picture in black and
+  white. If the camera saw something in the last half hour (a person, a vehicle, the
+  doorbell), the screen shows that photograph and the plate says what and when. Press
+  the screen for Home Assistant's own dialog, with the live picture. Something seen by a
+  camera that is in no room has a screen at the top of the panel.
+- **Chart**, the plate at the foot of each chassis, opens the room's chart recorder: a
+  strip of paper for the last day with a line for each device, drawn up while it was on
+  and at its level if it has one. The pen is lifted while a device was not answering.
 
 The meters are lit from behind while Home Assistant is answering. If the connection is
 lost their lamps go out and the faces turn grey, so a dark meter is one not to believe.
 
-The heating, players, cameras, fans and vacuums are not on the panel yet,
-and nor are the cameras' sightings and the Gazette's columns. A room with devices that are not shown has a small plate saying
+The Gazette's columns (the weather forecast, Personal, Amusements) are not on the panel. A room with devices that are not shown has a small plate saying
 how many, such as "and 4 more". If the connection to Home Assistant is lost, or Home
 Assistant refuses a press, a red lamp and a plate at the top say so.
 

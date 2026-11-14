@@ -291,12 +291,15 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   which is held only in `_code` and never logged); what's left is in BACKLOG. Knobs
   are cranked round their middle (`bearing`). Sensor Watch's alerts are pilot lamps
   along the top (`_alerts`, straight from the feed, so in seconds). A meter is lit only
-  while the connection is up. Needles
+  while the connection is up. Since b30 every kind is on it: `_dial` works in a device's
+  own span (per cent or degrees), a camera is a `tv` that shows its last sighting for
+  half an hour (`_seen`), and Chart opens a room's day (`bakelite/recorder.ts`, `plot`). Needles
   swing by a CSS easing and waver smoothly by a CSS animation (owner, 2026-11-14: smooth, not in steps, and each
   meter's period from a prime so that none are in step: `BEATS` in kit.ts).
   A chassis is one to three widths across (`bakelite/balance.ts`, `widths`): its sizes
   are a model of `styles.ts`, so change the two together.
-  Seen on the test VM at desktop and phone widths, not on a tablet.
+  Seen on the test VM at desktop and phone widths, and by the owner on an iPad
+  (2026-11-14), not yet on a wall tablet.
 - **Gazette is the first family.** Its element is
   `dash-bored-gazette` (`integration/cards/src/dash-bored/`, its own `www/cards.js`).
   Three layers, kept apart on purpose:

@@ -18,6 +18,7 @@ export const DEFS = html`<svg class="defs" width="0" height="0" aria-hidden="tru
   <radialGradient id="spot"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/></radialGradient>
   <radialGradient id="rim"><stop offset=".5" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".6"/></radialGradient>
   <linearGradient id="brass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f1d98d"/><stop offset=".45" stop-color="#b98f3a"/><stop offset=".7" stop-color="#7a5c1e"/><stop offset="1" stop-color="#d8b765"/></linearGradient>
+  <linearGradient id="sepia" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#efe0b9"/><stop offset=".6" stop-color="#e3cf9f"/><stop offset="1" stop-color="#d2b983"/></linearGradient>
   <path id="arch" d="M24.9,39.1 A57,57 0 0 1 95.1,39.1"/>
   <linearGradient id="lever" x1="0" x2="1"><stop offset="0" stop-color="#b98a6c"/><stop offset=".4" stop-color="#6a3f2c"/><stop offset="1" stop-color="#2a140c"/></linearGradient>
 </defs></svg>`;
@@ -140,15 +141,25 @@ const TICKS = Array.from({ length: 11 }, (_, i) => {
   return svg`<line x1=${x1} y1=${y1} x2=${x2} y2=${y2} stroke="#e9dfc3" stroke-width=${i % 5 ? 1 : 2.2}/>`;
 });
 
-/** A fluted knob over its scale, turned to `level` per cent: a light's "dimmer", or in
- * brass the winder for a blind's "position". `on` are the knob's event handlers; `held`
- * is true while it is being dragged, when it follows the finger without easing. */
-export const knob = (name: string, what: "dimmer" | "position", level: number, held: boolean, on: { down(e: PointerEvent): void; move(e: PointerEvent): void; up(e: PointerEvent): void; drop(): void; key(e: KeyboardEvent): void }) => html`<div class="dial">
+/** A fluted knob over its scale, turned to `level` per cent of its travel. `sort` is its
+ * class in styles.ts (a blind's winder is brass, the heating's is red) and `what` the
+ * word for what it sets. `on` are the knob's event handlers; `held` is true while it is
+ * being dragged, when it follows the finger without easing. `said` is its setting in
+ * words, for a screen reader, and `note` a second plate under its name. The knob is in
+ * layers: its flutes and its pointer turn, and the light on it (styles.ts) stays where it is. */
+export const knob = (name: string, sort: string, what: string, level: number, held: boolean, said: string, note: string, on: { down(e: PointerEvent): void; move(e: PointerEvent): void; up(e: PointerEvent): void; drop(): void; key(e: KeyboardEvent): void }) => html`<div class="dial">
   <div class="dimmer"><svg viewBox="0 0 104 104" aria-hidden="true">${TICKS}</svg>
-    <div class="knob ${what === "position" ? "wind" : ""} ${held ? "drag" : ""}" role="slider" tabindex="0" aria-label="${name} ${what}" aria-valuemin="0" aria-valuemax="100" aria-valuenow=${level} style="--lvl: ${level}"
-      @pointerdown=${on.down} @pointermove=${on.move} @pointerup=${on.up} @pointercancel=${on.drop} @keydown=${on.key}></div></div>
-  ${label(name)}
+    <div class="knob ${sort} ${held ? "drag" : ""}" role="slider" tabindex="0" aria-label="${name} ${what}" aria-valuemin="0" aria-valuemax="100" aria-valuenow=${Math.round(level)} aria-valuetext=${said} style="--lvl: ${level.toFixed(1)}"
+      @pointerdown=${on.down} @pointermove=${on.move} @pointerup=${on.up} @pointercancel=${on.drop} @keydown=${on.key}><span class="flutes"></span><span class="cap"></span><span class="mark"></span></div></div>
+  ${label(name)}${note ? html`<span class="note">${label(note)}</span>` : nothing}
 </div>`;
+
+/** A television screen, for a camera: the picture in black and white behind a curved
+ * glass, with its lines. With no `picture` the tube is dark. `caption` is on its plate. */
+export const tv = (caption: string, picture: string, press: () => void) => html`<button class="tv" aria-label=${caption} @click=${press}>
+  <span class="tube">${picture ? html`<img src=${picture} alt="" loading="lazy" />` : nothing}</span>
+  ${label(caption)}
+</button>`;
 
 // A thumbwheel has eleven places round it: a blank, then the digits.
 const PLACES = 11;
