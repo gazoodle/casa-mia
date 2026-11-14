@@ -1664,7 +1664,7 @@ function Xt(e, t, n, r = []) {
 }
 //#endregion
 //#region src/dash-bored/family.ts
-var Zt = "casa_mia_dash_bored/settings", Qt = 350, $t = class extends z {
+var Zt = "casa_mia_dash_bored/alerts", Qt = "casa_mia_dash_bored/settings", $t = 350, en = class extends z {
 	constructor(...e) {
 		super(...e), this.narrow = !1, this._fault = "", this._lost = 0, this._config = {}, this._settings = {}, this._feeds = /* @__PURE__ */ new Map(), this._timers = /* @__PURE__ */ new Set();
 	}
@@ -1730,7 +1730,7 @@ var Zt = "casa_mia_dash_bored/settings", Qt = 350, $t = class extends z {
 		});
 	}
 	_listen() {
-		this._follow(Zt, "Dash-Bored's settings", (e) => {
+		this._follow(Qt, "Dash-Bored's settings", (e) => {
 			this._settings = e.at(-1) ?? this._settings, this._survey = void 0, this._hass && (this.hass = this._hass);
 		});
 	}
@@ -1745,9 +1745,9 @@ var Zt = "casa_mia_dash_bored/settings", Qt = 350, $t = class extends z {
 	_ask(e, t) {
 		clearTimeout(this._asking), this._timers.delete(this._asking), this._asking = setTimeout(() => {
 			this._timers.delete(this._asking), this._call(Ft(e, t), `${e.room} ${e.name}`);
-		}, Qt), this._timers.add(this._asking);
+		}, $t), this._timers.add(this._asking);
 	}
-}, en = "dash-bored-bakelite", tn = /* @__PURE__ */ new Set([
+}, tn = "dash-bored-bakelite", nn = /* @__PURE__ */ new Set([
 	"light",
 	"switch",
 	"cover",
@@ -1755,7 +1755,7 @@ var Zt = "casa_mia_dash_bored/settings", Qt = 350, $t = class extends z {
 	"valve",
 	"siren",
 	"alarm_control_panel"
-]), nn = "alarm_control_panel", rn = [
+]), rn = "alarm_control_panel", an = [
 	[
 		"alarm_arm_away",
 		2,
@@ -1771,23 +1771,23 @@ var Zt = "casa_mia_dash_bored/settings", Qt = 350, $t = class extends z {
 		4,
 		"Night"
 	]
-], an = 6, on = 3e4, sn = {
+], on = 6, sn = 3e4, cn = {
 	lock: ["locked", "unlocked"],
 	cover: ["open", "closed"],
 	valve: ["open", "closed"],
 	siren: ["sounding", "silent"]
-}, cn = 6e3, ln = 270, un = 4, dn = 10, fn = 1200, pn = 5e3, mn = [
+}, ln = 6e3, un = 270, dn = 4, fn = 10, pn = 1200, mn = 5e3, hn = [
 	3,
 	6,
 	12,
 	24,
 	48
-], hn = (e) => e ? String(e - 1) : "";
-function gn(e) {
+], gn = (e) => e ? String(e - 1) : "";
+function _n(e) {
 	let t = e.currentTarget.getBoundingClientRect();
 	return Math.atan2(e.clientY - (t.top + t.height / 2), e.clientX - (t.left + t.width / 2)) * 180 / Math.PI;
 }
-var _n = class extends $t {
+var vn = class extends en {
 	constructor(...e) {
 		super(...e), this._thrown = "", this._armed = "";
 	}
@@ -1806,27 +1806,27 @@ var _n = class extends $t {
 		this._want?.id === e.id && (this._want = void 0), this._armed === e.id && (this._armed = ""), this._code?.id === e.id && (this._code = void 0);
 	}
 	_spin(e, t, n) {
-		let r = this._code?.id === e.id ? this._code.wheels : Array(an).fill(0);
+		let r = this._code?.id === e.id ? this._code.wheels : Array(on).fill(0);
 		this._code = {
 			id: e.id,
 			wheels: r.map((e, r) => r === t ? (e + n + 11) % 11 : e)
 		}, clearTimeout(this._hiding), this._timers.delete(this._hiding), this._hiding = setTimeout(() => {
 			this._timers.delete(this._hiding), this._code = void 0;
-		}, on), this._timers.add(this._hiding);
+		}, sn), this._timers.add(this._hiding);
 	}
 	_alarm(e) {
-		let t = this._hass.states[e.id]?.attributes ?? {}, n = e.away ? "not answering" : e.phase === "triggered" ? "sounding" : e.phase ?? (e.on ? "set" : "unset"), r = this._code?.id === e.id ? this._code.wheels : Array(an).fill(0), i = r.filter(Boolean).map((e) => e - 1).join(""), a = (t, n) => () => this._call({
-			domain: nn,
+		let t = this._hass.states[e.id]?.attributes ?? {}, n = e.away ? "not answering" : e.phase === "triggered" ? "sounding" : e.phase ?? (e.on ? "set" : "unset"), r = this._code?.id === e.id ? this._code.wheels : Array(on).fill(0), i = r.filter(Boolean).map((e) => e - 1).join(""), a = (t, n) => () => this._call({
+			domain: rn,
 			service: t,
 			ids: [e.id],
 			data: i ? { code: i } : void 0
-		}, `${e.room} ${e.name} (${n})`), o = rn.filter(([, e]) => t.supported_features & e), s = e.on || e.phase ? [it("Unset", a("alarm_disarm", "unset"))] : o.map(([e, , t]) => it(t, a(e, t.toLowerCase())));
+		}, `${e.room} ${e.name} (${n})`), o = an.filter(([, e]) => t.supported_features & e), s = e.on || e.phase ? [it("Unset", a("alarm_disarm", "unset"))] : o.map(([e, , t]) => it(t, a(e, t.toLowerCase())));
 		return N`<div class="alarm ${n}">
       ${B(`${e.name}: ${n}`)}
       ${t.code_format === "number" && !e.away ? rt(e.name, r.map((e) => [
-			hn((e + 10) % 11),
-			hn(e),
-			hn((e + 1) % 11)
+			gn((e + 10) % 11),
+			gn(e),
+			gn((e + 1) % 11)
 		]), (t, n) => this._spin(e, t, n)) : F}
       ${e.away ? F : N`<div class="pushes">${s}</div>`}
     </div>`;
@@ -1836,7 +1836,7 @@ var _n = class extends $t {
 		this._armed = e.id;
 		let t = setTimeout(() => {
 			this._timers.delete(t), this._armed === e.id && (this._armed = "");
-		}, cn);
+		}, ln);
 		this._timers.add(t);
 	}
 	_turn(e, t) {
@@ -1845,7 +1845,7 @@ var _n = class extends $t {
 			level: t
 		}, clearTimeout(this._waiting), this._timers.delete(this._waiting), this._waiting = setTimeout(() => {
 			this._timers.delete(this._waiting), this._grip || (this._want = void 0);
-		}, pn), this._timers.add(this._waiting);
+		}, mn), this._timers.add(this._waiting);
 	}
 	_dial(e) {
 		let t = () => this._want?.id === e.id ? this._want.level : e.on ? e.level ?? 100 : 0;
@@ -1857,7 +1857,7 @@ var _n = class extends $t {
 					n.currentTarget.setPointerCapture(n.pointerId), this._grip = {
 						id: e.id,
 						level: t(),
-						angle: gn(n),
+						angle: _n(n),
 						x: n.clientX,
 						y: n.clientY,
 						moved: !1
@@ -1865,9 +1865,9 @@ var _n = class extends $t {
 				},
 				move: (t) => {
 					let n = this._grip;
-					if (n?.id !== e.id || (n.moved ||= Math.hypot(t.clientX - n.x, t.clientY - n.y) > un, !n.moved)) return;
-					let r = gn(t), i = (r - n.angle + 540) % 360 - 180;
-					n.angle = r, n.level = Math.min(100, Math.max(0, n.level + i / ln * 100)), this._turn(e, Math.round(n.level));
+					if (n?.id !== e.id || (n.moved ||= Math.hypot(t.clientX - n.x, t.clientY - n.y) > dn, !n.moved)) return;
+					let r = _n(t), i = (r - n.angle + 540) % 360 - 180;
+					n.angle = r, n.level = Math.min(100, Math.max(0, n.level + i / un * 100)), this._turn(e, Math.round(n.level));
 				},
 				up: () => {
 					let t = this._grip;
@@ -1878,8 +1878,8 @@ var _n = class extends $t {
 				},
 				key: (n) => {
 					let r = {
-						ArrowUp: dn,
-						ArrowRight: dn,
+						ArrowUp: fn,
+						ArrowRight: fn,
 						ArrowDown: -10,
 						ArrowLeft: -10
 					}[n.key];
@@ -1900,13 +1900,13 @@ var _n = class extends $t {
 		}, e.name), this._thrown = e.id;
 		let t = setTimeout(() => {
 			this._timers.delete(t), this._thrown === e.id && (this._thrown = "");
-		}, fn);
+		}, pn);
 		this._timers.add(t);
 	}
 	render() {
 		let e = this._house;
 		if (!this._hass || !e) return N`<div class="panel">${B("Waiting for Home Assistant")}</div>`;
-		let t = (e) => e.dims && !e.away, n = (e) => e.devices.filter((e) => tn.has(e.kind) && (e.kind !== nn || this._hass.states[e.id]?.attributes.code_format !== "text")), r = (e) => e.kind === nn, i = Ge(e.rooms.map((e) => ({
+		let t = (e) => e.dims && !e.away, n = (e) => e.devices.filter((e) => nn.has(e.kind) && (e.kind !== rn || this._hass.states[e.id]?.attributes.code_format !== "text")), r = (e) => e.kind === rn, i = Ge(e.rooms.map((e) => ({
 			knobs: n(e).filter(t).length,
 			dollies: n(e).filter((e) => !t(e) && !r(e)).length,
 			alarms: n(e).filter(r).length,
@@ -1923,7 +1923,7 @@ var _n = class extends $t {
 				return nt(e.name, e.kind === "light" ? "dimmer" : "position", t.level, t.held, t.on);
 			})}</div>
         <div class="dollies">${s.filter((e) => !t(e) && !r(e)).map((t) => {
-				let n = sn[t.kind] ? `: ${sn[t.kind][+!t.on]}` : "";
+				let n = cn[t.kind] ? `: ${cn[t.kind][+!t.on]}` : "";
 				if (!t.guarded) return et(t.name, t.on, t.away, () => t.away || this._call(U(t), `${e.name} ${t.name}`), "", n);
 				let r = this._armed === t.id;
 				return et(t.name, t.on, t.away, () => t.away || this._guarded(t), r ? "up" : "shut", `${n}. Under a guard: ${r ? "press again to throw it" : "press to lift it"}`);
@@ -1939,7 +1939,7 @@ var _n = class extends $t {
       ${this._lost ? N`<div class="warn"><span class="lamp"></span>${B(`No connection to Home Assistant since ${K(this._lost)}. What is shown is as it was then.`)}</div>` : F}
       ${this._fault ? N`<div class="warn"><span class="lamp"></span>${B(this._fault)}</div>` : F}
       <div class="top">
-        ${e.kw === void 0 ? F : Qe("Mains draw", 0, mn.find((t) => e.kw <= t) ?? mn.at(-1), e.kw, "kW")}
+        ${e.kw === void 0 ? F : Qe("Mains draw", 0, hn.find((t) => e.kw <= t) ?? hn.at(-1), e.kw, "kW")}
         ${e.outside ? Qe("Outside air", -10, 30, e.outside.temp, "°C", 1) : F}
         ${e.scenes.length ? N`<div class="knives">${e.scenes.map((e) => at(e.name, this._thrown === e.id, () => this._throw(e)))}</div>` : F}
       </div>
@@ -1953,10 +1953,10 @@ var _n = class extends $t {
 	BOOLEAN_ATTRIBUTE: 4,
 	EVENT: 5,
 	ELEMENT: 6
-}, vn = (e) => (...t) => ({
+}, yn = (e) => (...t) => ({
 	_$litDirective$: e,
 	values: t
-}), yn = class {
+}), bn = class {
 	constructor(e) {}
 	get _$AU() {
 		return this._$AM._$AU;
@@ -1970,7 +1970,7 @@ var _n = class extends $t {
 	update(e, t) {
 		return this.render(...t);
 	}
-}, { I: bn } = Ne, xn = (e) => e.strings === void 0, Sn = {}, Cn = (e, t = Sn) => e._$AH = t, wn = vn(class extends yn {
+}, { I: xn } = Ne, Sn = (e) => e.strings === void 0, Cn = {}, wn = (e, t = Cn) => e._$AH = t, Tn = yn(class extends bn {
 	constructor() {
 		super(...arguments), this.key = F;
 	}
@@ -1978,12 +1978,12 @@ var _n = class extends $t {
 		return this.key = e, t;
 	}
 	update(e, [t, n]) {
-		return t !== this.key && (Cn(e), this.key = t), n;
+		return t !== this.key && (wn(e), this.key = t), n;
 	}
-}), Tn = vn(class extends yn {
+}), En = yn(class extends bn {
 	constructor(e) {
 		if (super(e), e.type !== Y.PROPERTY && e.type !== Y.ATTRIBUTE && e.type !== Y.BOOLEAN_ATTRIBUTE) throw Error("The `live` directive is not allowed on child or event bindings");
-		if (!xn(e)) throw Error("`live` bindings can only contain a single expression");
+		if (!Sn(e)) throw Error("`live` bindings can only contain a single expression");
 	}
 	render(e) {
 		return e;
@@ -1996,10 +1996,10 @@ var _n = class extends $t {
 		} else if (e.type === Y.BOOLEAN_ATTRIBUTE) {
 			if (!!t === n.hasAttribute(r)) return P;
 		} else if (e.type === Y.ATTRIBUTE && n.getAttribute(r) === t + "") return P;
-		return Cn(e), t;
+		return wn(e), t;
 	}
-}), En = 864e5;
-function Dn(e, t) {
+}), Dn = 864e5;
+function On(e, t) {
 	let n = [];
 	for (let r of t) {
 		let t = {
@@ -2013,33 +2013,33 @@ function Dn(e, t) {
 	}
 	return n;
 }
-function On(e, t, n) {
+function kn(e, t, n) {
 	let r = [];
 	return e.forEach((i, a) => {
 		let o = Math.max(i.at, t), s = Math.min(e[a + 1]?.at ?? n, n);
 		i.on && s > o && r.push([(o - t) / (n - t) * 100, (s - o) / (n - t) * 100]);
 	}), r;
 }
-async function kn(e, t, n) {
+async function An(e, t, n) {
 	let r = await e.connection.sendMessagePromise({
 		type: "history/history_during_period",
-		start_time: (/* @__PURE__ */ new Date(n - En)).toISOString(),
+		start_time: (/* @__PURE__ */ new Date(n - Dn)).toISOString(),
 		entity_ids: [t.id],
 		significant_changes_only: !1,
 		no_attributes: t.kind === "light" || !Tt(t.kind)
 	});
-	return Dn(t.kind, r[t.id] ?? []);
+	return On(t.kind, r[t.id] ?? []);
 }
 //#endregion
 //#region src/dash-bored/voices/broadsheet.ts
-var An = {
+var jn = {
 	kicker: "Stop press",
 	head: ["{name} gives cause for alarm"],
 	deck: "{message}",
 	body: "The reading stood at {reading} in the {area} as this edition went to press, and the trouble dates from {since}.",
 	plain: "The trouble in the {area} dates from {since}.",
 	worse: "Matters have worsened since our earlier report."
-}, jn = {
+}, Mn = {
 	label: "Broadsheet",
 	name: "The Casa Courier",
 	strap: "",
@@ -2256,9 +2256,9 @@ var An = {
 		"Enquire at this office."
 	],
 	stories: {
-		alert: An,
+		alert: jn,
 		"alert.warning": {
-			...An,
+			...jn,
 			kicker: "Late report",
 			head: ["{name} gives cause for concern"]
 		},
@@ -2375,14 +2375,14 @@ var An = {
 			deck: "Nothing of note has occurred. {N} device{s} stand{v} ready."
 		}
 	}
-}, Mn = {
+}, Nn = {
 	kicker: "Breaking",
 	head: ["{name}: what we know so far", "Live: {name}"],
 	deck: "{message}",
 	body: "The latest reading in the {area} is {reading}. It began at {since}.",
 	plain: "It began in the {area} at {since}.",
 	worse: "Update: it has got worse."
-}, Nn = {
+}, Pn = {
 	label: "Rolling news",
 	name: "The Thermostat",
 	strap: "Live from every room",
@@ -2599,9 +2599,9 @@ var An = {
 		"Ready to run"
 	],
 	stories: {
-		alert: Mn,
+		alert: Nn,
 		"alert.warning": {
-			...Mn,
+			...Nn,
 			kicker: "Developing",
 			head: ["{name} needs checking", "{name}: what we know so far"]
 		},
@@ -2718,7 +2718,7 @@ var An = {
 			deck: "No changes. Devices watched: {n}."
 		}
 	}
-}, Pn = {
+}, Fn = {
 	kicker: "Red alert",
 	head: [
 		"{name} shock",
@@ -2752,7 +2752,7 @@ var An = {
 	body: "It's {reading} in the {area} and it's been going on since {since}.",
 	plain: "It's been going on in the {area} since {since}.",
 	worse: "And it's getting WORSE."
-}, Fn = {
+}, In = {
 	label: "Red-top",
 	name: "Daily Fuse",
 	strap: "The paper that's always switched on",
@@ -2969,9 +2969,9 @@ var An = {
 		"Easy as that."
 	],
 	stories: {
-		alert: Pn,
+		alert: Fn,
 		"alert.warning": {
-			...Pn,
+			...Fn,
 			kicker: "Uh-oh"
 		},
 		"alert.task": {
@@ -3155,12 +3155,12 @@ var An = {
 			deck: "Nothing going on. {n} device{s} behaving."
 		}
 	}
-}, X = (e, t) => e.replace(/\{(\w+)\}/g, (e, n) => t[n] ?? ""), In = {
+}, X = (e, t) => e.replace(/\{(\w+)\}/g, (e, n) => t[n] ?? ""), Ln = {
 	esphome: "ESPHome. Add entity_category: config (or diagnostic) to each in its device's YAML",
 	knx: "KNX. Add entity_category: config to each in the KNX YAML",
 	"": "Give each the label Dash-Bored hide, or hide it in Home Assistant"
 };
-function Ln(e, t, n) {
+function Rn(e, t, n) {
 	let r = e.stories[`${t.kind}.${t.variant}`] ?? e.stories[t.kind], i = r.flavours?.[t.flavour] ?? r.head, a = t.vars.escalated && r.worse ? " " + r.worse : "";
 	return {
 		kicker: r.kicker,
@@ -3171,8 +3171,8 @@ function Ln(e, t, n) {
 		vote: t.vote && r.vote ? r.vote : ""
 	};
 }
-var Rn = (e, t, n) => X(e.words[mt.has(t) ? "degrees" : "percent"], { n: String(n) });
-function zn(e) {
+var zn = (e, t, n) => X(e.words[mt.has(t) ? "degrees" : "percent"], { n: String(n) });
+function Bn(e) {
 	let t = e.name.toLowerCase(), n = /lamp|light/i.test(t) ? t : `${t} light`, r = /s$/i.test((e.kind === "light" ? n : t).split(" - ")[0]);
 	return {
 		name: t,
@@ -3183,17 +3183,17 @@ function zn(e) {
 		v: r ? "" : "s"
 	};
 }
-function Bn(e, t) {
+function Vn(e, t) {
 	let { ask: n, less: r, more: i } = e.polls[t.kind];
 	return {
-		ask: X(n, zn(t)),
+		ask: X(n, Bn(t)),
 		less: r,
 		more: i
 	};
 }
-function Vn(e, t) {
+function Hn(e, t) {
 	let n = (n) => `${t.kind}.${n}` in e.words, r = t.away ? "away" : t.phase && n(t.phase) ? `${t.kind}.${t.phase}` : t.on ? t.level === void 0 && n("plain") ? `${t.kind}.plain` : `${t.kind}.on` : `${t.kind}.off`, [i, a] = X(e.words[r], {
-		...zn(t),
+		...Bn(t),
 		level: "\0"
 	}).replace(/^the (?=\S+['’]s )/, "").split("\0");
 	return a === void 0 ? [
@@ -3202,48 +3202,48 @@ function Vn(e, t) {
 		""
 	] : [
 		i,
-		Rn(e, t.kind, t.level),
+		zn(e, t.kind, t.level),
 		a
 	];
 }
-var Hn = (e, t) => Vn(e, t).join(""), Un = (e, t) => e.skies[t] ?? q(t.replace(/[-_]/g, " "));
-function Wn(e, t) {
+var Un = (e, t) => Hn(e, t).join(""), Wn = (e, t) => e.skies[t] ?? q(t.replace(/[-_]/g, " "));
+function Gn(e, t) {
 	let n = X(t.vars.artist ? e.personal.song : e.personal.tune, t.vars);
 	return [X(e.celebrity[t.live ? `${t.kind}.live` : t.kind], {
 		...t.vars,
 		song: n
 	}), t.marks.map((t) => X(e.celebrity[t.kind], { name: t.name }))];
 }
-function Gn(e, t) {
+function Kn(e, t) {
 	let n = X(t.vars.artist ? e.personal.song : e.personal.tune, t.vars);
 	return X(e.personal[t.kind], {
 		...t.vars,
 		song: n
 	});
 }
-var Kn = (e, t) => X(t.level === "nominal" ? e.wire.clear : e.wire.trouble, {
+var qn = (e, t) => X(t.level === "nominal" ? e.wire.clear : e.wire.trouble, {
 	name: t.name,
 	message: t.message || t.level,
 	level: t.level.toUpperCase()
-}), qn = {
-	broadsheet: jn,
-	tabloid: Fn,
-	rolling: Nn
-}, Jn = {
+}), Jn = {
+	broadsheet: Mn,
+	tabloid: In,
+	rolling: Pn
+}, Yn = {
 	s: 1,
 	x: 0,
 	y: 0
-}, Yn = 6, Xn = 1.2, Zn = 2.5;
-function Qn(e, t, n, r, i, a, o, s) {
-	let c = Math.min(Yn, Math.max(1, e.s * t)), l = c / e.s, u = (e, t) => Math.min(t, Math.max(-t, e)) || 0;
+}, Xn = 6, Zn = 1.2, Qn = 2.5;
+function $n(e, t, n, r, i, a, o, s) {
+	let c = Math.min(Xn, Math.max(1, e.s * t)), l = c / e.s, u = (e, t) => Math.min(t, Math.max(-t, e)) || 0;
 	return {
 		s: c,
 		x: u(n - (n - e.x - i) * l, (c - 1) * o / 2),
 		y: u(r - (r - e.y - a) * l, (c - 1) * s / 2)
 	};
 }
-var Z = Jn, Q = /* @__PURE__ */ new Map();
-function $n() {
+var Z = Yn, Q = /* @__PURE__ */ new Map();
+function er() {
 	let e = [...Q.values()], t = (t) => e.reduce((e, n) => e + n[t], 0) / e.length;
 	return [
 		t(0),
@@ -3251,86 +3251,86 @@ function $n() {
 		e.length > 1 ? Math.hypot(e[0][0] - e[1][0], e[0][1] - e[1][1]) : 0
 	];
 }
-function er(e, t, n, r, i = 0, a = 0) {
+function tr(e, t, n, r, i = 0, a = 0) {
 	let o = e.getBoundingClientRect();
-	Z = Qn(Z, t, n - o.left - o.width / 2, r - o.top - o.height / 2, i, a, o.width, o.height), e.firstElementChild.style.transform = `translate(${Z.x}px, ${Z.y}px) scale(${Z.s})`, e.classList.toggle("near", Z.s > 1);
+	Z = $n(Z, t, n - o.left - o.width / 2, r - o.top - o.height / 2, i, a, o.width, o.height), e.firstElementChild.style.transform = `translate(${Z.x}px, ${Z.y}px) scale(${Z.s})`, e.classList.toggle("near", Z.s > 1);
 }
-var tr = (e) => e.currentTarget, $ = {
+var nr = (e) => e.currentTarget, $ = {
 	whole() {
-		Z = Jn, Q.clear();
+		Z = Yn, Q.clear();
 	},
 	down(e) {
-		tr(e).setPointerCapture(e.pointerId), Q.set(e.pointerId, [e.clientX, e.clientY]);
+		nr(e).setPointerCapture(e.pointerId), Q.set(e.pointerId, [e.clientX, e.clientY]);
 	},
 	move(e) {
 		if (!Q.has(e.pointerId)) return;
-		let [t, n, r] = $n();
+		let [t, n, r] = er();
 		Q.set(e.pointerId, [e.clientX, e.clientY]);
-		let [i, a, o] = $n();
-		er(tr(e), r && o ? o / r : 1, i, a, i - t, a - n);
+		let [i, a, o] = er();
+		tr(nr(e), r && o ? o / r : 1, i, a, i - t, a - n);
 	},
 	up(e) {
 		Q.delete(e.pointerId);
 	},
 	wheel(e) {
-		e.preventDefault(), er(tr(e), e.deltaY < 0 ? Xn : 1 / Xn, e.clientX, e.clientY);
+		e.preventDefault(), tr(nr(e), e.deltaY < 0 ? Zn : 1 / Zn, e.clientX, e.clientY);
 	},
 	twice(e) {
-		er(tr(e), Z.s > 1 ? 1 / Z.s : Zn, e.clientX, e.clientY);
+		tr(nr(e), Z.s > 1 ? 1 / Z.s : Qn, e.clientX, e.clientY);
 	}
-}, nr = 5, rr = /* @__PURE__ */ new Map();
-function ir(e) {
-	let t = rr.get(e);
+}, rr = 5, ir = /* @__PURE__ */ new Map();
+function ar(e) {
+	let t = ir.get(e);
 	if (t) return t;
-	let n = [...e].reduce((e, t) => e * 31 + t.charCodeAt(0) >>> 0, 7), r = () => (n = n * 1664525 + 1013904223 >>> 0) / 2 ** 32, i = (e) => Array.from({ length: e }, (t, n) => ((n + r() * .8) / e * 100).toFixed(1)), a = () => (r() * nr).toFixed(1), o = `polygon(${[
+	let n = [...e].reduce((e, t) => e * 31 + t.charCodeAt(0) >>> 0, 7), r = () => (n = n * 1664525 + 1013904223 >>> 0) / 2 ** 32, i = (e) => Array.from({ length: e }, (t, n) => ((n + r() * .8) / e * 100).toFixed(1)), a = () => (r() * rr).toFixed(1), o = `polygon(${[
 		...i(30).map((e) => `${e}% ${a()}px`),
 		...i(22).map((e) => `calc(100% - ${a()}px) ${e}%`),
 		...i(30).map((e) => `calc(100% - ${e}%) calc(100% - ${a()}px)`),
 		...i(22).map((e) => `${a()}px calc(100% - ${e}%)`)
 	].join(",")})`;
-	return rr.set(e, o), o;
+	return ir.set(e, o), o;
 }
-var ar = (e, t, n, r, i = "") => N`<dialog class="clipping ${i}" @close=${n} @click=${(e) => e.target === e.currentTarget && n()}>
-    <div class="cutting" style="clip-path:${ir(e)}">
+var or = (e, t, n, r, i = "") => N`<dialog class="clipping ${i}" @close=${n} @click=${(e) => e.target === e.currentTarget && n()}>
+    <div class="cutting" style="clip-path:${ar(e)}">
       <div class="scrap above" aria-hidden="true">${t.above}</div>
       <div class="story">${r}</div>
       <div class="scrap beside" aria-hidden="true"><span>${t.beside}</span></div>
       <div class="scrap below" aria-hidden="true">${t.below}</div>
     </div>
   </dialog>`;
-function or(e, t, n, r) {
+function sr(e, t, n, r) {
 	let i = e.clipping;
-	return ar(t.src, n, r.shut, N`<p class="kicker">${t.caption}</p>
+	return or(t.src, n, r.shut, N`<p class="kicker">${t.caption}</p>
     <div class="zoom" @pointerdown=${$.down} @pointermove=${$.move} @pointerup=${$.up} @pointercancel=${$.up} @wheel=${$.wheel} @dblclick=${$.twice}>
       <img src=${t.src} alt=${t.caption} draggable="false" @load=${$.whole} />
     </div>
     <p class="hint">${i.closer}</p>
     <div class="foot">${t.see ? N`<button class="mend" @click=${r.more}>${i.live}</button>` : N`<span></span>`}<button class="act" @click=${r.shut}>${i.shut}</button></div>`, "shot");
 }
-function sr(e, t, n, r, i, a, o) {
-	let s = e.clipping, c = (n) => q(Hn(e, {
+function cr(e, t, n, r, i, a, o) {
+	let s = e.clipping, c = (n) => q(Un(e, {
 		...t,
 		on: n.on,
 		phase: n.phase,
 		level: n.level,
 		away: n.away
 	})), l = n.record, u = e.acts[`${t.kind}.${t.on ? "on" : "off"}`];
-	return ar(t.id, a, o.shut, N`<p class="kicker">${t.room}</p>
+	return or(t.id, a, o.shut, N`<p class="kicker">${t.room}</p>
       <h4 class="title">${t.name}</h4>
-      <p class="deck">${q(Hn(e, t))}. ${t.since && t.kind !== "camera" ? X(s.since, { at: K(t.since) }) : ""}
+      <p class="deck">${q(Un(e, t))}. ${t.since && t.kind !== "camera" ? X(s.since, { at: K(t.since) }) : ""}
         ${t.temp === void 0 ? "" : X(s.reads, { temp: t.temp.toFixed(1) })} ${t.title ? X(s.playing, { title: t.title }) : ""}</p>
       ${t.picture ? N`<img class="still" src=${t.picture} alt=${t.name} role="button" tabindex="0" @click=${o.picture} @keydown=${(e) => e.key === "Enter" && o.picture()} />` : F}
       ${t.away || !u ? F : N`<button class="act ${n.armed ? "sure" : ""}" @click=${o.flip}>${n.armed ? s.sure : u}</button>`}
       ${i}
       ${t.kind === "camera" ? F : N`<h3>${s.record}</h3>`}
-      ${t.kind === "camera" ? F : n.fault ? N`<p class="fault" role="alert">Home Assistant's history could not be read (${n.fault}).</p>` : l ? N`<div class="band">${On(l, r - En, r).map(([e, t]) => N`<i style="left:${e}%;width:${t}%"></i>`)}</div>
+      ${t.kind === "camera" ? F : n.fault ? N`<p class="fault" role="alert">Home Assistant's history could not be read (${n.fault}).</p>` : l ? N`<div class="band">${kn(l, r - Dn, r).map(([e, t]) => N`<i style="left:${e}%;width:${t}%"></i>`)}</div>
               <div class="span"><span>${s.ago}</span><span>${s.now}</span></div>
               <ol>${l.length ? l.slice(-12).reverse().map((e) => N`<li><time>${K(e.at)}</time>${c(e)}</li>`) : N`<li>${s.none}</li>`}</ol>` : N`<p class="wait">${s.wait}</p>`}
       <div class="foot"><button class="mend" @click=${o.more}>${s.more}</button><button class="act" @click=${o.shut}>${s.shut}</button></div>`);
 }
 //#endregion
 //#region src/dash-bored/styles.ts
-var cr = h`
+var lr = h`
   :host { display: block; container-type: inline-size; }
   :host([panel]) { height: 100vh; overflow-y: auto; }
   .paper { --paper: #f3eee0; --ink: #1c1a17; --flash: #8c1c13; --mark: #f6d95a; --head: "Bodoni 72", "Didot", "Playfair Display", serif;
@@ -3592,19 +3592,19 @@ var cr = h`
     [data-style="rolling"] .page > * + * { padding-left: 0; }
     .figure, [data-style="tabloid"] .figure { width: 104px; } .figure b, [data-style="tabloid"] .figure b { font-size: 28px; }
   }
-`, lr = "casa_mia_dash_bored/alerts", ur = "casa_mia_dash_bored/sightings", dr = "casa_mia_dash_bored/personal", fr = "casa_mia_dash_bored/playing", pr = "weather/subscribe_forecast", mr = 18e5, hr = "dash-bored-style", gr = "/casa_mia_dash_bored/fonts/ManufacturingConsent-Regular.ttf", _r = !1;
+`, ur = "casa_mia_dash_bored/sightings", dr = "casa_mia_dash_bored/personal", fr = "casa_mia_dash_bored/playing", pr = "weather/subscribe_forecast", mr = 18e5, hr = "dash-bored-style", gr = "/casa_mia_dash_bored/fonts/ManufacturingConsent-Regular.ttf", _r = !1;
 function vr() {
 	if (_r) return;
 	_r = !0;
 	let e = new FontFace("Dash-Bored Masthead", `url(${gr})`);
 	document.fonts.add(e), e.load().catch((e) => console.error("Dash-Bored: the masthead's font could not be loaded", e));
 }
-var yr = class extends $t {
+var yr = class extends en {
 	constructor(...e) {
 		super(...e), this._played = [], this._days = [], this._style = "broadsheet", this._alerts = [], this._seen = [], this._rated = [], this._late = [], this._turn = /* @__PURE__ */ new Map(), this._showing = /* @__PURE__ */ new Set(), this._primed = !1, this._seenPrimed = !1;
 	}
 	static {
-		this.styles = cr;
+		this.styles = lr;
 	}
 	static {
 		this.properties = {
@@ -3655,7 +3655,7 @@ var yr = class extends $t {
 		try {
 			e ??= localStorage.getItem(hr) ?? void 0;
 		} catch {}
-		e && e in qn && (this._style = e);
+		e && e in Jn && (this._style = e);
 	}
 	_dress(e) {
 		this._style = e;
@@ -3664,7 +3664,7 @@ var yr = class extends $t {
 		} catch {}
 	}
 	_listen() {
-		super._listen(), this._follow(lr, "Sensor Watch's alerts", (e) => this._take(e)), this._follow(ur, "The cameras' sightings", (e) => this._sight(e));
+		super._listen(), this._follow(Zt, "Sensor Watch's alerts", (e) => this._take(e)), this._follow(ur, "The cameras' sightings", (e) => this._sight(e));
 		let e = (e, t) => [...new Map(e.map((e) => [t(e), e])).values()];
 		this._follow(dr, "The Personal column's announcements", (t) => this._rated = e([...this._rated, ...t], (e) => `${e.at} ${e.name} ${e.title}`)), this._follow(fr, "What the players have played", (t) => this._played = e([...this._played, ...t], (e) => e.id));
 	}
@@ -3744,7 +3744,7 @@ var yr = class extends $t {
 				...t
 			});
 		};
-		e.kind !== "camera" && kn(this._hass, e, Date.now()).then((e) => t({ record: e }), (n) => {
+		e.kind !== "camera" && An(this._hass, e, Date.now()).then((e) => t({ record: e }), (n) => {
 			console.error(`Dash-Bored: the history of ${e.id} could not be read`, n), t({ fault: n?.message ?? String(n) });
 		});
 	}
@@ -3795,20 +3795,20 @@ var yr = class extends $t {
 	"alarm_control_panel"
 ]), Dr = /* @__PURE__ */ new Set(["docked"]), Or = (e) => e.away || !!e.phase && !Dr.has(e.phase) || !Er.has(e.kind) && (e.kind === "lock" ? !e.on : e.on), kr = (e) => e.kind !== "camera" || e.away, Ar = class extends Sr {
 	render() {
-		let e = this._hass, t = this._house, n = qn[this._style];
+		let e = this._hass, t = this._house, n = Jn[this._style];
 		if (!e || !t) return N`<div class="paper" data-style=${this._style}><p class="wait">Waiting for Home Assistant.</p></div>`;
 		let a = Date.now(), o = Mt(this._survey, this._seen).filter((e) => a - e.at < mr), s = [...o].sort((e, t) => t.at - e.at).slice(0, 10), c = (e) => (n.stories[`sighting.${e}`]?.kicker ?? e).toLowerCase(), l = Xt(t, this._alerts, a, o);
 		for (let e of l) this._showing.has(e.id) || this._turn.set(e.id, (this._turn.get(e.id) ?? -1) + 1);
 		this._showing = new Set(l.map((e) => e.id));
 		let u = l.map((e) => ({
 			s: e,
-			...Ln(n, e, this._turn.get(e.id))
+			...Rn(n, e, this._turn.get(e.id))
 		})), [d, ...f] = u, p = u.find((e) => e.s.kind === "alert"), m = (e) => {
 			let t = (t, n) => t ? N`<button class="act" @click=${() => this._call(n, e.head)}>${t}</button>` : F;
 			return N`${t(e.act, e.s.press)}${t(e.vote, e.s.vote)}`;
 		}, h = (e, t) => {
-			let [r, i, a] = e.dims && !e.away ? Vn(n, e) : [
-				Hn(n, e),
+			let [r, i, a] = e.dims && !e.away ? Hn(n, e) : [
+				Un(n, e),
 				"",
 				""
 			], o = (e, t, n) => e ? N`<span class="fact ${t}" role="button" tabindex="0" @click=${n} @keydown=${this._key}>${e}</span>` : F;
@@ -3816,7 +3816,7 @@ var yr = class extends $t {
 		}, g = (e) => {
 			let t = this._scale;
 			if (!e || !t || t.id !== e.id || !e.dims || e.away) return F;
-			let { min: r, max: i, step: a, vote: o } = e.span, s = e.level ?? r, c = (e) => Number(e.target.value), l = t.want ?? s, u = Bn(n, e), d = (n, a) => {
+			let { min: r, max: i, step: a, vote: o } = e.span, s = e.level ?? r, c = (e) => Number(e.target.value), l = t.want ?? s, u = Vn(n, e), d = (n, a) => {
 				let o = Math.min(i, Math.max(r, Math.round((l + a) * 10) / 10));
 				return N`<button class="act" ?disabled=${o === l} @click=${() => (this._scale = {
 					...t,
@@ -3825,13 +3825,13 @@ var yr = class extends $t {
 			};
 			return N`<span class="scale">
         <span class="poll"><i>${q(u.ask)}</i>${d(u.less, -o)}${d(u.more, o)}</span>
-        <input type="range" min=${r} max=${i} step=${a} aria-label=${e.name} .value=${Tn(String(l))}
+        <input type="range" min=${r} max=${i} step=${a} aria-label=${e.name} .value=${En(String(l))}
           @input=${(e) => this._scale = {
 				...t,
 				want: c(e)
 			}}
           @change=${(t) => this._ask(e, c(t))} />
-        <output>${Rn(n, e.kind, s)}${t.want === void 0 || t.want === s ? "" : ` → ${t.want}`}</output>
+        <output>${zn(n, e.kind, s)}${t.want === void 0 || t.want === s ? "" : ` → ${t.want}`}</output>
         <button aria-label="Close" @click=${() => this._scale = void 0}>×</button>
       </span>`;
 		}, _ = (e) => e.photo ? N`<figure class="photo" role="button" tabindex="0" @click=${() => this._look({
@@ -3868,7 +3868,7 @@ var yr = class extends $t {
 		return N`<div class="paper" data-style=${this._style}>
       ${this._lost ? N`<div class="fault" role="alert">Not connected to Home Assistant since ${K(this._lost)}. What follows is how things stood then.</div>` : F}
       ${this._fault ? N`<div class="fault" role="alert">${this._fault}</div>` : F}
-      ${p ? wn(p.s.id + p.s.variant, N`<div class="breaking" role="status"><b>${n.flash}</b>${p.head}${/[!?]$/.test(p.head) ? "" : ":"} ${p.s.vars.message}</div>`) : F}
+      ${p ? Tn(p.s.id + p.s.variant, N`<div class="breaking" role="status"><b>${n.flash}</b>${p.head}${/[!?]$/.test(p.head) ? "" : ":"} ${p.s.vars.message}</div>`) : F}
       <header class="masthead"><h1>${n.name}</h1><p>${n.strap}</p></header>
       <div class="dateline">
         ${this.hasAttribute("panel") ? N`<ha-menu-button .hass=${e} .narrow=${this.narrow}></ha-menu-button>` : F}
@@ -3878,7 +3878,7 @@ var yr = class extends $t {
 			month: "long",
 			year: "numeric"
 		})}</span>
-        ${this._config.style ? F : N`<span class="styles">${Object.entries(qn).map(([e, t]) => N`<button aria-pressed=${e === this._style} @click=${() => this._dress(e)}>${t.label}</button>`)}</span>`}
+        ${this._config.style ? F : N`<span class="styles">${Object.entries(Jn).map(([e, t]) => N`<button aria-pressed=${e === this._style} @click=${() => this._dress(e)}>${t.label}</button>`)}</span>`}
         <span>${n.price} · ${K(Date.now())}</span>
       </div>
       ${n.ticker ? N`<div class="ticker" aria-hidden="true"><b>${n.ticker}</b><div><span>${u.map((e) => e.head).join("  •  ")}</span></div></div>` : F}
@@ -3886,7 +3886,7 @@ var yr = class extends $t {
         <article>
           <div class="figure"><b>${d.s.figure[0]}</b><span>${d.s.figure[1]}</span></div>
           <p class="kicker">${d.kicker}</p>
-          ${wn(d.head, N`<h2>${d.head}</h2>`)}
+          ${Tn(d.head, N`<h2>${d.head}</h2>`)}
           <p class="deck">${d.deck}</p>
           ${m(d)}
           ${_(d.s)}
@@ -3906,7 +3906,7 @@ var yr = class extends $t {
           <h3>${n.titles.late}</h3>
           <ol>${this._late.length ? this._late.map((e) => {
 			let t = e.device && C.get(e.device.id);
-			return N`<li role=${t ? "button" : F} tabindex=${t ? 0 : F} @click=${() => t && this._story(t)} @keydown=${this._key}><time>${K(e.time)}</time>${e.alert ? Kn(n, e.alert) : e.seen ? `${e.seen.name}: ${c(e.seen.kind)}` : `${e.device.room}: ${Hn(n, e.device)}`}</li>`;
+			return N`<li role=${t ? "button" : F} tabindex=${t ? 0 : F} @click=${() => t && this._story(t)} @keydown=${this._key}><time>${K(e.time)}</time>${e.alert ? qn(n, e.alert) : e.seen ? `${e.seen.name}: ${c(e.seen.kind)}` : `${e.device.room}: ${Un(n, e.device)}`}</li>`;
 		}) : N`<li>${n.nothing}</li>`}</ol>
           ${s.length ? N`<h3>${n.titles.archive}</h3>
                 <ol class="archive">${s.map((e) => N`<li role="button" tabindex="0" @click=${() => e.photo ? this._look({
@@ -3915,23 +3915,23 @@ var yr = class extends $t {
 			see: e.camera
 		}) : r(this, "hass-more-info", { entityId: e.camera })} @keydown=${this._key}>
                     ${e.photo ? N`<img src=${e.photo} alt="" loading="lazy" />` : N`<i></i>`}<span><time>${K(e.at)}</time>${e.name}: ${c(e.kind)}</span></li>`)}</ol>` : F}
-          ${y.length ? N`<h3>${n.titles.personal}</h3><ol>${y.map((e) => N`<li><time>${K(e.at)}</time>${Gn(n, e)}</li>`)}</ol>` : F}
+          ${y.length ? N`<h3>${n.titles.personal}</h3><ol>${y.map((e) => N`<li><time>${K(e.at)}</time>${Kn(n, e)}</li>`)}</ol>` : F}
           ${ie.length ? N`<h3>${n.titles.celebrity}</h3><ol>${ie.map((e) => {
-			let [t, r] = Wn(n, e);
+			let [t, r] = Gn(n, e);
 			return N`<li role="button" tabindex="0" @click=${() => this._story(C.get(e.id))} @keydown=${this._key}><time>${K(e.at)}</time>${t}${r.map((t, n) => N` <span class="mark ${e.marks[n].kind}">${t}</span>`)}</li>`;
 		})}</ol>` : F}
           ${t.outside ? N`<h3>${n.titles.weather}</h3>
                 <p class="now">${X(n.forecast.now, {
-			sky: Un(n, t.outside.sky),
+			sky: Wn(n, t.outside.sky),
 			temp: t.outside.temp.toFixed(1)
 		})}</p>
                 ${this._days.length ? N`<table class="days">${this._days.map((t) => N`<tr><td>${new Date(t.at).toDateString() === new Date(a).toDateString() ? n.forecast.today : new Date(t.at).toLocaleDateString(e.locale?.language ?? "en-GB", { weekday: "long" })}</td>
-                        <td>${Un(n, t.sky)}</td><td>${Math.round(t.high)}°${t.low === void 0 ? "" : ` / ${Math.round(t.low)}°`}</td></tr>`)}</table>` : F}` : F}
+                        <td>${Wn(n, t.sky)}</td><td>${Math.round(t.high)}°${t.low === void 0 ? "" : ` / ${Math.round(t.low)}°`}</td></tr>`)}</table>` : F}` : F}
           ${v.length ? N`<h3>${n.titles.temps}</h3><table>${v.map((e) => N`<tr><td>${e.name}</td><td>${e.temp.toFixed(1)}° ${e.target === void 0 ? "" : e.temp < e.target - .5 ? "▼" : e.temp > e.target + .5 ? "▲" : "="}</td></tr>`)}</table>` : F}
           ${x ? F : E}
           ${t.gaps.length ? N`<h3>${n.titles.gaps}</h3>
                 ${t.gaps.map((e) => N`<details><summary>${X(n.gaps[e.kind], J(e.items.length))}</summary>
-                  <ul>${e.items.map((t, n) => N`${e.kind === "plumbing" && t.via !== e.items[n - 1]?.via ? N`<li class="via">${In[t.via ?? ""] ?? `${t.via}. ${In[""]}`}:</li>` : F}<li><button class="mend" @click=${() => e.kind === "floorless" || e.kind === "cold" ? i(`/config/areas/area/${t.id}`) : r(this, "hass-more-info", { entityId: t.id })}>${t.name}</button></li>`)}</ul></details>`)}
+                  <ul>${e.items.map((t, n) => N`${e.kind === "plumbing" && t.via !== e.items[n - 1]?.via ? N`<li class="via">${Ln[t.via ?? ""] ?? `${t.via}. ${Ln[""]}`}:</li>` : F}<li><button class="mend" @click=${() => e.kind === "floorless" || e.kind === "cold" ? i(`/config/areas/area/${t.id}`) : r(this, "hass-more-info", { entityId: t.id })}>${t.name}</button></li>`)}</ul></details>`)}
                 <p class="mend">${n.mend}</p>` : F}
           ${t.scenes.length ? N`<h3>${n.titles.notices}</h3>${t.scenes.slice(0, 8).map((e, t) => N`<button class="ad" @click=${() => this._call({
 			domain: "scene",
@@ -3941,7 +3941,7 @@ var yr = class extends $t {
         </aside>
         ${x ? N`<section class="board">${E}</section>` : F}
       </main>
-      ${w ? sr(n, w, this._open, a, g(w), ae, {
+      ${w ? cr(n, w, this._open, a, g(w), ae, {
 			flip: () => this._flip(w),
 			more: () => this._live(w.id),
 			picture: () => this._look({
@@ -3950,7 +3950,7 @@ var yr = class extends $t {
 				see: w.id
 			}),
 			shut: () => this._shut()
-		}) : this._shot ? or(n, this._shot, ae, {
+		}) : this._shot ? sr(n, this._shot, ae, {
 			more: () => this._live(this._shot.see),
 			shut: () => this._shut()
 		}) : F}
@@ -4044,5 +4044,5 @@ var yr = class extends $t {
           </dialog>` : F}`;
 	}
 }, zr = new URL(import.meta.url).searchParams.get("v") || "dev";
-a(Cr, Ar), a(en, _n), a(jr, Rr), o(Cr, "Casa Mia Dash-Bored Gazette", "Your house as a newspaper: what matters most is the headline, and every underlined fact is a switch. Best in a panel view."), o(en, "Casa Mia Dash-Bored Bakelite", "Your house as a 1950s instrument panel: a knob for each dimmer, a tumbler switch for each light and switch, and a meter for each room's temperature. Best in a panel view."), t("Dash-Bored", "casa_mia_dash_bored/cards", zr);
+a(Cr, Ar), a(tn, vn), a(jr, Rr), o(Cr, "Casa Mia Dash-Bored Gazette", "Your house as a newspaper: what matters most is the headline, and every underlined fact is a switch. Best in a panel view."), o(tn, "Casa Mia Dash-Bored Bakelite", "Your house as a 1950s instrument panel: a knob for each dimmer, a tumbler switch for each light and switch, and a meter for each room's temperature. Best in a panel view."), t("Dash-Bored", "casa_mia_dash_bored/cards", zr);
 //#endregion

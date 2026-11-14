@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.8-b27
+
+- **Dash-Bored: the address of Sensor Watch's alerts is shared by the families.** It has moved out of the Gazette, ready for Bakelite's warning lamps. Nothing on the page has changed.
+
 ## 2026.11.8-b26
 
 - **Dash-Bored: Bakelite's meters are drawn as the moving-coil meters of its time.** A round black case, a cream face whose lower edge rises over the movement, a ladder scale with its figures above it, and the unit lettered in capitals round the top of the face. The pointer is a pale shaft with a black blob and tip at the scale, and it wavers gently all the time. Each meter wavers at its own pace, so they are never in step.

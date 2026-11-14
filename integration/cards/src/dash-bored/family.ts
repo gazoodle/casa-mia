@@ -7,6 +7,9 @@ import type { Hass } from "../ha.ts";
 import { read, survey, type Device, type House, type Options, type Survey } from "./house.ts";
 import { setting, type Press } from "./stories.ts";
 
+// The integration's feed of Sensor Watch's alerts (alerts.py). A family follows it as it
+// likes: each shows trouble in its own way.
+export const ALERTS = "casa_mia_dash_bored/alerts";
 const SETTINGS = "casa_mia_dash_bored/settings"; // the integration's feed of the house's settings (settings.py)
 const SETTLE = 350; // ms: a level is asked for once it has been still this long
 
