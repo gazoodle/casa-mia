@@ -5,11 +5,11 @@
 // controls in bakelite/kit.ts.
 import { html, nothing } from "lit";
 import { widths } from "./bakelite/balance.ts";
-import { DEFS, dolly, knife, knob, label, meter, push, valve, wheels } from "./bakelite/kit.ts";
+import { DEFS, dolly, face, jewel, knife, knob, label, meter, push, valve, wheels } from "./bakelite/kit.ts";
 import { STYLES } from "./bakelite/styles.ts";
-import { Family } from "./family.ts";
+import { ALERTS, Family } from "./family.ts";
 import type { Device, Room } from "./house.ts";
-import { clock, flip } from "./stories.ts";
+import { NOMINAL, RANK, clock, flip, type Alert } from "./stories.ts";
 
 export const CARD = "dash-bored-bakelite";
 // ponytail: the panel has the kinds that a knob or a tumbler switch can work, and alarms.
@@ -33,9 +33,6 @@ const WANTED = 5000; // ms: how long a knob stays where it was put, waiting for 
 // The top of the mains meter's scale, in kW: the first that the house's draw fits under.
 const MAINS = [3, 6, 12, 24, 48];
 
-/** What a thumbwheel shows at a place on it: nothing at its blank, then the digits. */
-const face = (w: number) => (w ? String(w - 1) : "");
-
 /** Where a pointer is round the middle of the knob it is on, in degrees. */
 function bearing(e: PointerEvent) {
   const box = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -44,13 +41,25 @@ function bearing(e: PointerEvent) {
 
 export class Bakelite extends Family {
   static styles = STYLES;
-  static properties = { _want: { state: true }, _thrown: { state: true }, _armed: { state: true }, _code: { state: true } };
+  static properties = { _want: { state: true }, _thrown: { state: true }, _armed: { state: true }, _code: { state: true }, _alerts: { state: true } };
   _want?: { id: string; level: number }; // where a knob was put, until its light says it is there
   _thrown = ""; // the scene whose knife switch is closed
   _armed = ""; // the device whose switch has its guard lifted
-  // The code on an alarm's thumbwheels: each wheel is 0 for blank, or one more than its digit.
+  // The code on an alarm's thumbwheels: the place each wheel stands at, counted on and on
+  // as it is turned (kit.ts's `face` says what a place shows).
   _code?: { id: string; wheels: number[] };
   private _hiding?: ReturnType<typeof setTimeout>;
+  _alerts: Alert[] = []; // what Sensor Watch has said of each sensor it has spoken of
+
+  /** Sensor Watch's alerts, for the warning lamps: all it holds at first, then each as it changes. */
+  protected _listen() {
+    super._listen();
+    this._follow(ALERTS, "Sensor Watch's alerts", (alerts: Alert[]) => {
+      const held = new Map(this._alerts.map((a) => [a.entity_id, a]));
+      for (const a of alerts) held.set(a.entity_id, a);
+      this._alerts = [...held.values()];
+    });
+  }
   private _grip?: { id: string; level: number; angle: number; x: number; y: number; moved: boolean };
   private _waiting?: ReturnType<typeof setTimeout>;
 
@@ -65,7 +74,7 @@ export class Bakelite extends Family {
    * after a while, so that it is not there for the next person to read. */
   private _spin(d: Device, i: number, by: number) {
     const was = this._code?.id === d.id ? this._code.wheels : Array<number>(WHEELS).fill(0);
-    this._code = { id: d.id, wheels: was.map((w, at) => (at === i ? (w + by + 11) % 11 : w)) };
+    this._code = { id: d.id, wheels: was.map((w, at) => (at === i ? w + by : w)) };
     clearTimeout(this._hiding);
     this._timers.delete(this._hiding!);
     this._hiding = setTimeout(() => {
@@ -81,13 +90,13 @@ export class Bakelite extends Family {
     const stands = d.away ? "not answering" : d.phase === "triggered" ? "sounding" : (d.phase ?? (d.on ? "set" : "unset"));
     const mine = this._code?.id === d.id ? this._code.wheels : Array<number>(WHEELS).fill(0);
     // The code is never logged, nor kept anywhere but on the wheels.
-    const code = mine.filter(Boolean).map((w) => w - 1).join("");
+    const code = mine.map(face).join("");
     const ask = (service: string, what: string) => () => this._call({ domain: ALARM, service, ids: [d.id], data: code ? { code } : undefined }, `${d.room} ${d.name} (${what})`);
     const sets = SETS.filter(([, bit]) => has.supported_features & bit);
     const buttons = d.on || d.phase ? [push("Unset", ask("alarm_disarm", "unset"))] : sets.map(([service, , name]) => push(name, ask(service, name.toLowerCase())));
     return html`<div class="alarm ${stands}">
       ${label(`${d.name}: ${stands}`)}
-      ${has.code_format === "number" && !d.away ? wheels(d.name, mine.map((w) => [face((w + 10) % 11), face(w), face((w + 1) % 11)]), (i, by) => this._spin(d, i, by)) : nothing}
+      ${has.code_format === "number" && !d.away ? wheels(d.name, mine, (i, by) => this._spin(d, i, by)) : nothing}
       ${d.away ? nothing : html`<div class="pushes">${buttons}</div>`}
     </div>`;
   }
@@ -191,6 +200,10 @@ export class Bakelite extends Family {
     const alarm = (d: Device) => d.kind === ALARM;
     // A room with many controls has a wider chassis, so that none is far taller than the rest.
     const wide = widths(house.rooms.map((r) => ({ knobs: shows(r).filter(dims).length, dollies: shows(r).filter((d) => !dims(d) && !alarm(d)).length, alarms: shows(r).filter(alarm).length, meter: r.temp !== undefined })));
+    // A meter is lit while Home Assistant is answering: a dark one is not to be believed.
+    const live = !this._lost;
+    // The sensors in trouble, the worst first. The feed counts in seconds.
+    const lamps = this._alerts.filter((a) => a.level !== NOMINAL).sort((a, b) => (RANK[b.level] ?? 0) - (RANK[a.level] ?? 0) || a.began - b.began);
     let beat = 1; // the meters are numbered as they are drawn, the two at the top first: see kit.ts
     const chassis = (r: Room, i: number) => {
       const shown = shows(r);
@@ -200,7 +213,7 @@ export class Bakelite extends Family {
       const more = r.devices.length - shown.length;
       return html`<section class="room" style="--wide: ${wide[i]}">
         ${valve(lit ? 0.35 + lit * 0.65 : 0)}${label(r.name)}
-        <div class="works">${r.temp === undefined ? nothing : meter(`${r.temp.toFixed(1)}°`, 5, 30, r.temp, "°C", ++beat)}
+        <div class="works">${r.temp === undefined ? nothing : meter(`${r.temp.toFixed(1)}°`, 5, 30, r.temp, "°C", ++beat, live)}
         <div class="dials">${shown.filter(dims).map((d) => {
           const dial = this._dial(d);
           return knob(d.name, d.kind === "light" ? "dimmer" : "position", dial.level, dial.held, dial.on);
@@ -226,9 +239,10 @@ export class Bakelite extends Family {
       ${DEFS}
       ${this._lost ? html`<div class="warn"><span class="lamp"></span>${label(`No connection to Home Assistant since ${clock(this._lost)}. What is shown is as it was then.`)}</div>` : nothing}
       ${this._fault ? html`<div class="warn"><span class="lamp"></span>${label(this._fault)}</div>` : nothing}
+      ${lamps.length ? html`<div class="lamps">${lamps.map((a) => html`<div class="alert" role="status">${jewel(a.level)}${label(`${a.name}: ${a.message || a.level}, since ${clock(a.began * 1000)}`)}</div>`)}</div>` : nothing}
       <div class="top">
-        ${house.kw === undefined ? nothing : meter("Mains draw", 0, MAINS.find((top) => house.kw! <= top) ?? MAINS.at(-1)!, house.kw, "kW")}
-        ${house.outside ? meter("Outside air", -10, 30, house.outside.temp, "°C", 1) : nothing}
+        ${house.kw === undefined ? nothing : meter("Mains draw", 0, MAINS.find((top) => house.kw! <= top) ?? MAINS.at(-1)!, house.kw, "kW", 0, live)}
+        ${house.outside ? meter("Outside air", -10, 30, house.outside.temp, "°C", 1, live) : nothing}
         ${house.scenes.length ? html`<div class="knives">${house.scenes.map((s) => knife(s.name, this._thrown === s.id, () => this._throw(s)))}</div>` : nothing}
       </div>
       <div class="rooms">${rooms}</div>

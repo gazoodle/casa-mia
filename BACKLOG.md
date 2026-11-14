@@ -13,7 +13,7 @@ the Gazette's own work is parked below it.
   control kit needs drawing, a control for each kind the Gazette knows: the heating,
   players, cameras and the rest. An alarm's thumbwheels turn by a press on their top or bottom half, not by
   a drag, and an alarm with a code in words is left off. Then what the Gazette has that
-  it lacks: Sensor Watch's alerts, the cameras' sightings, a device's history (the owner's
+  it lacks: the cameras' sightings, a device's history (the owner's
   idea: a chart recorder on sepia paper). Not yet seen on a tablet.
 - **The choice of family, further**: an address for each family, so that a tablet can be
   fixed to one from its kiosk settings (offered 2026-11-14, not asked for). A scene made

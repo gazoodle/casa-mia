@@ -50,7 +50,7 @@ The first two can be used. The pictures of the others are of their mock-ups.
 </td>
 <td width="33%" valign="top">
 <a href="#bakelite"><img src="../screenshots/dash-bored-bakelite.webp" alt="Bakelite" width="100%"></a>
-<p><b><a href="#bakelite">Bakelite</a></b> · Being built: lights, switches, blinds, locks, alarms and scenes so far<br>A 1950s instrument panel: glowing valves, moving-coil meters, fluted dimmer knobs, tumbler switches and knife switches for scenes.</p>
+<p><b><a href="#bakelite">Bakelite</a></b> · Being built: lights, switches, blinds, locks, alarms, scenes and Sensor Watch's alerts so far<br>A 1950s instrument panel: glowing valves, moving-coil meters, fluted dimmer knobs, tumbler switches and knife switches for scenes.</p>
 </td>
 <td width="33%" valign="top">
 <img src="../screenshots/dash-bored-mock-calibre.webp" alt="Calibre, as a mock-up" width="100%">
@@ -443,7 +443,12 @@ than the Gazette does.
 
 ![Bakelite: a meter for the outside air over a chassis for each room, each with a valve, knobs and tumbler switches](../screenshots/dash-bored-bakelite.webp)
 
-Along the top are a meter for the outside air, from a weather entity, a meter for the
+At the very top is a warning lamp for each sensor that [Sensor Watch](sensor-watch.md)
+has above its normal level, the worst first, with a plate giving the sensor's name, what
+is wrong and since when. The lamp is red for an error, red and flashing for a critical
+one, amber for a warning and white for a task. When nothing is wrong there are no lamps.
+
+Under the lamps are a meter for the outside air, from a weather entity, a meter for the
 house's power if a card names a power sensor, and a knife switch for each scene. Press a
 knife switch and the scene is turned on; the blade closes for a moment and opens again.
 
@@ -475,16 +480,19 @@ is far taller than the others. Each chassis has:
   and a push button for each way it can be set: Away, Home and Night, as the alarm has
   them. Once it is set there is one button, Unset. If the alarm takes a code in digits,
   there is a row of six brass thumbwheels above the buttons, like a combination padlock.
-  Press the top half of a wheel to turn it on and the bottom half to turn it back; set the
+  Press the top half of a wheel to turn it on and the bottom half to turn it back, and
+  the digits roll round to the next; set the
   code from the left and leave the other wheels blank, then press a button. The wheels
   go back to blank when the alarm answers, and after 30 seconds if nothing is pressed, so
   the code is not left on show. If the code is wrong or missing, Home Assistant's refusal
   is shown on the plate at the top of the panel, and the wheels stay as they are for you
   to correct. An alarm whose code is words, not digits, is not on the panel.
 
+The meters are lit from behind while Home Assistant is answering. If the connection is
+lost their lamps go out and the faces turn grey, so a dark meter is one not to believe.
+
 The heating, players, cameras, fans and vacuums are not on the panel yet,
-and nor are Sensor Watch's alerts, the cameras' sightings and
-the Gazette's columns. A room with devices that are not shown has a small plate saying
+and nor are the cameras' sightings and the Gazette's columns. A room with devices that are not shown has a small plate saying
 how many, such as "and 4 more". If the connection to Home Assistant is lost, or Home
 Assistant refuses a press, a red lamp and a plate at the top say so.
 

@@ -289,7 +289,9 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   It has lights, switches, covers, the guarded kinds (`SHOWN`; a guarded one takes two
   presses both ways, `_guarded`) and alarms (`_alarm`: thumbwheels for a code in digits,
   which is held only in `_code` and never logged); what's left is in BACKLOG. Knobs
-  are cranked round their middle (`bearing`). Needles
+  are cranked round their middle (`bearing`). Sensor Watch's alerts are pilot lamps
+  along the top (`_alerts`, straight from the feed, so in seconds). A meter is lit only
+  while the connection is up. Needles
   swing by a CSS easing and waver smoothly by a CSS animation (owner, 2026-11-14: smooth, not in steps, and each
   meter's period from a prime so that none are in step: `BEATS` in kit.ts).
   A chassis is one to three widths across (`bakelite/balance.ts`, `widths`): its sizes

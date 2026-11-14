@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.11.8-b28
+
+- **Dash-Bored: Bakelite's valves are drawn as real ones.** A clear glass envelope with a dark getter flash at its top, and inside it the mica discs, the two anode plates, the grid's winding and the heater, which glows with the room's lights.
+- **Dash-Bored: Bakelite's thumbwheels roll.** A wheel's digits are seen to roll round to the next when it is turned. They are engraved into the brass, and no two wheels sit quite in line.
+- **Dash-Bored: Bakelite has warning lamps for Sensor Watch's alerts.** A pilot lamp, a glass dome in a ribbed brass bezel, for each sensor above its normal level, the worst first, with a plate saying what is wrong and since when. Red is an error, red and flashing is critical, amber a warning and white a task.
+- **Dash-Bored: Bakelite's meters are lit.** A lamp behind the top of each face makes it glow, brightest at the top and amber at the edges. The lamps go out and the faces turn grey when the connection to Home Assistant is lost.
+
 ## 2026.11.8-b27
 
 - **Dash-Bored: the address of Sensor Watch's alerts is shared by the families.** It has moved out of the Gazette, ready for Bakelite's warning lamps. Nothing on the page has changed.

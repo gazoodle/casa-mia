@@ -124,7 +124,7 @@ export const NOMINAL = "nominal";
 /** How long a sensor that is right again stays in the paper. */
 export const RECOVERED = 600_000;
 // Sensor Watch's levels above nominal, by how far up the page each belongs.
-const RANK: Record<string, number> = { critical: 100, error: 95, warning: 70, task: 40 };
+export const RANK: Record<string, number> = { critical: 100, error: 95, warning: 70, task: 40 };
 // What a camera saw (image.py's kinds): an alarm heard beside trouble, somebody at the
 // door above what is left on, a passing cat below it.
 const SEEN: Record<string, number> = { alarm: 92, doorbell: 80, person: 62, vehicle: 42, animal: 41 };

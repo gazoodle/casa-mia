@@ -42,7 +42,7 @@ export const STYLES = css`
   /* Moving-coil meters: the case and face are drawn in kit.ts, the lettering set here. */
   .meter { text-align: center; }
   .meter svg { width: 100%; height: auto; margin-bottom: 6px; filter: drop-shadow(0 6px 8px rgba(0,0,0,.5)); }
-  .face { fill: #efe6c8; } .scale { fill: none; stroke: #2a1a10; stroke-width: .6; }
+  .scale { fill: none; stroke: #2a1a10; stroke-width: .6; }
   /* The needle swings to a new reading and settles by its easing. Inside it, the pointer
      wavers a little all the time, as a moving coil does: it glides between seven places
      in about a second (owner, 2026-11-14: smooth, not in steps). Each meter has a period
@@ -53,6 +53,18 @@ export const STYLES = css`
   .meter text { fill: #2a1a10; font-size: 6px; text-anchor: middle; letter-spacing: .04em; }
   .meter .legend { font-size: 5.6px; letter-spacing: .12em; text-transform: uppercase; }
   .meter .unit { font-size: 6.5px; } .meter .small { font-size: 2.6px; letter-spacing: .1em; }
+
+  /* Warning lamps: Sensor Watch's alerts, a pilot lamp and a plate each. The glass takes the
+     level's colour; the lamp behind it is the white spot, and the light it throws on the
+     panel is the shadow. A critical one flashes, as an annunciator's does. */
+  .lamps { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 16px; }
+  .alert { display: flex; align-items: center; gap: 8px; max-width: 100%; }
+  .alert .label { font-size: 11px; letter-spacing: .1em; text-transform: none; }
+  .jewel { flex: none; margin: 0; filter: drop-shadow(0 0 4px var(--glow)) drop-shadow(0 0 14px var(--glow)); }
+  .jewel .glass { fill: var(--glow); }
+  .jewel.task { --glow: #efe7cc; } .jewel.warning { --glow: #ff9d14; } .jewel.error, .jewel.critical { --glow: #ff3b1f; }
+  .jewel.critical { animation: flash 1s steps(2, jump-none) infinite; }
+  @keyframes flash { 0% { filter: none; opacity: .45; } 100% { opacity: 1; } }
 
   /* Valves: one to a room, glowing with its lights. */
   .valve .heater { opacity: calc(.12 + var(--heat, 0) * .88); transition: opacity 1.4s; }
@@ -99,10 +111,11 @@ export const STYLES = css`
   /* The grooves either side of the front face. */
   .wheel::before, .wheel::after { content: ""; position: absolute; left: 0; right: 0; height: 1px; background: rgba(60,40,5,.65); box-shadow: 0 1px 0 rgba(255,255,255,.45); }
   .wheel::before { top: 16px; } .wheel::after { bottom: 17px; }
-  .wheel span { position: absolute; left: 0; right: 0; height: 18px; }
-  .wheel .at { top: 22px; }
-  .wheel .above { top: -3px; transform: scaleY(.6); transform-origin: top; opacity: .7; }
-  .wheel .below { bottom: -3px; transform: scaleY(.6); transform-origin: bottom; opacity: .7; }
+  /* The digits are engraved: dark in the cut, with a bright edge below where the light
+     catches it. They roll to their new places when a wheel is turned, a little past and back. */
+  .wheel span { position: absolute; left: 0; right: 0; top: 22px; height: 18px; color: rgba(46, 28, 4, .88);
+    text-shadow: 0 1px 0 rgba(255, 246, 205, .85), 0 -.6px 0 rgba(0, 0, 0, .45); transition: transform .6s cubic-bezier(.45, 0, .3, 1.25); }
+  .wheel span:not(.at) { opacity: .7; }
   .wheel button { position: absolute; left: 0; right: 0; height: 50%; } .wheel button:first-of-type { top: 0; } .wheel button:last-of-type { bottom: 0; }
   .wheel button:focus-visible { outline: 2px solid var(--cream); outline-offset: -2px; }
   .pushes { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
@@ -123,5 +136,5 @@ export const STYLES = css`
   .spark { opacity: 0; transform-box: fill-box; transform-origin: center; } .knife.closed .spark { animation: spark .35s ease-out; }
   @keyframes spark { 10% { opacity: 1; } 100% { opacity: 0; transform: scale(2); } }
   .knife:focus-visible { outline: 2px solid var(--cream); outline-offset: 3px; }
-  @media (prefers-reduced-motion: reduce) { .valve .halo, .waver { animation: none; } .needle { transition: none; } }
+  @media (prefers-reduced-motion: reduce) { .valve .halo, .waver, .jewel.critical { animation: none; } .needle { transition: none; } }
 `;
