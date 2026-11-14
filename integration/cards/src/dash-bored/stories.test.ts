@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { read, survey } from "./house.ts";
-import { RECOVERED, stories, type Alert } from "./stories.ts";
-import { VOICES, tell, words } from "./voices.ts";
+import { RECOVERED, setting, stories, type Alert } from "./stories.ts";
+import { VOICES, clause, poll, tell, words } from "./voices.ts";
 
 // An invented house, as Home Assistant's page would hold it.
 const state = (value: string, attributes: Record<string, unknown> = {}) => ({ state: value, attributes, last_changed: "2026-11-13T18:00:00Z" });
@@ -150,7 +150,29 @@ test("every voice can tell every story and describe every device, with nothing l
 });
 
 test("a name with an owner takes no article, and a plural before a dash is still plural", () => {
-  const device = (name: string, kind: "light" | "cover") => ({ id: "x", name, kind, on: true, away: false, since: 0, guarded: false, room: "Den" });
+  const device = (name: string, kind: "light" | "cover") => ({ id: "x", name, kind, on: true, dims: false, away: false, since: 0, guarded: false, room: "Den" });
   assert.equal(words(VOICES.broadsheet, device("Ann's lamp", "light")), "ann's lamp is lit");
   assert.equal(words(VOICES.broadsheet, device("Blinds - left", "cover")), "the blinds - left are open");
+});
+
+test("a level can be set on a dimmable light and a cover that takes a position, and never on a guarded one", () => {
+  const h = house({
+    "light.kitchen_ceiling": state("on", { friendly_name: "Kitchen Ceiling", brightness: 204, supported_color_modes: ["brightness"] }),
+    "light.kitchen_counter": state("off", { friendly_name: "Kitchen Counter", supported_color_modes: ["onoff"] }),
+    "cover.garage": state("open", { friendly_name: "Garage door", device_class: "garage", supported_features: 15, current_position: 100 }),
+  });
+  const [ceiling, counter] = h.rooms[1].devices;
+  assert.deepEqual([ceiling.dims, counter.dims, h.rooms[0].devices[0].dims], [true, false, false]);
+
+  // The level is the clause's own piece, in each paper's way of saying it.
+  assert.deepEqual(clause(VOICES.broadsheet, ceiling), ["the ceiling light burns at ", "80 per cent", ""]);
+  assert.deepEqual(clause(VOICES.tabloid, { ...ceiling, kind: "cover", name: "Blind", level: 30 }), ["blind ", "30%", " open"]);
+  assert.deepEqual(clause(VOICES.broadsheet, counter), ["the counter light is out", "", ""]);
+  // Every paper has a poll for each kind that has a level.
+  assert.equal(poll(VOICES.broadsheet, ceiling).ask, "Readers are invited to say whether the ceiling light is too bright.");
+  for (const voice of Object.values(VOICES)) for (const kind of ["light", "cover"] as const) assert.ok(poll(voice, { ...ceiling, kind }).less);
+
+  assert.deepEqual(setting(ceiling, 40), { domain: "light", service: "turn_on", ids: ["light.kitchen_ceiling"], data: { brightness_pct: 40 } });
+  assert.deepEqual(setting(ceiling, 0), { domain: "light", service: "turn_off", ids: ["light.kitchen_ceiling"] });
+  assert.deepEqual(setting({ ...ceiling, kind: "cover", id: "cover.blind" }, 0), { domain: "cover", service: "set_cover_position", ids: ["cover.blind"], data: { position: 0 } });
 });

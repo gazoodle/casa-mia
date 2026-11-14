@@ -69,6 +69,22 @@ export const STYLES = css`
   .fact { border-bottom: 1.5px dotted var(--ink); cursor: pointer; }
   .fact:hover { background: var(--ink); color: var(--paper); }
   .fact.away { border-bottom-style: solid; border-bottom-color: var(--flash); color: var(--flash); }
+  /* A level that can be set is ruled twice: pressing it opens the scale, not the switch. */
+  .fact.level { border-bottom: 3px double var(--ink); }
+  /* The scale: a printed rule with a mark at every ten, and a slide in the paper's red. */
+  .scale { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; margin: 6px 0 8px; padding: 4px 8px; border: 1px solid var(--ink); break-inside: avoid; font-size: 13px; }
+  /* The readers' poll over it: a question, and a vote each way. */
+  .poll { flex: 1 1 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+  .poll i { flex: 1 1 100%; font-size: 14px; }
+  .poll .act { margin: 0; font-size: 11px; padding: 6px 10px; }
+  .poll .act[disabled] { opacity: .35; cursor: default; pointer-events: none; }
+  .scale input { flex: 1 1 130px; min-width: 0; height: 34px; margin: 0; appearance: none; -webkit-appearance: none; cursor: pointer;
+    background: repeating-linear-gradient(90deg, var(--ink) 0 1px, transparent 1px 10%) bottom / 100% 9px no-repeat, linear-gradient(var(--ink), var(--ink)) bottom / 100% 1px no-repeat; }
+  .scale input::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 34px; background: var(--flash); border: 0; border-radius: 0; }
+  .scale input::-moz-range-thumb { width: 14px; height: 34px; background: var(--flash); border: 0; border-radius: 0; }
+  .scale output { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+  .scale > button { padding: 4px 8px; font-size: 18px; line-height: 1; }
+  .copy .scale { margin-bottom: 0; }
 
   h3 { margin: 0 0 8px; font-size: 13px; letter-spacing: .3em; text-transform: uppercase; text-align: center;
     border-top: 2px solid var(--ink); border-bottom: 1px solid var(--ink); padding: 4px 0; }
@@ -99,6 +115,8 @@ export const STYLES = css`
   .row > span { flex: 0 0 100%; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; }
   .chip { border: 1.5px solid var(--ink); padding: 3px 7px; font-size: 13px; }
   .chip.on { background: var(--ink); color: var(--paper); }
+  .pair { display: inline-flex; } .chip.tab { border-left: 0; font-variant-numeric: tabular-nums; }
+  .chip.tab[aria-expanded="true"] { background: var(--mark); color: #111; }
   .chip.away { border-style: dashed; border-color: var(--flash); color: var(--flash); text-decoration: line-through; }
   .ad { display: block; width: 100%; border: 1px solid var(--ink); padding: 8px 10px; margin-bottom: 8px; text-align: center; font-size: 14px; line-height: 1.3; }
   .ad b { display: block; font: 400 17px var(--head); letter-spacing: .14em; text-transform: uppercase; }
@@ -132,6 +150,7 @@ export const STYLES = css`
   [data-style="tabloid"] h5::before, [data-style="tabloid"] h5::after { content: none; }
   [data-style="tabloid"] .board .rows { column-rule: 0; }
   [data-style="tabloid"] .fact:hover { background: var(--mark); color: #111; }
+  [data-style="tabloid"] .fact.level { border: 0; background: var(--mark); color: #111; padding: 0 3px; font-weight: 800; }
   [data-style="tabloid"] h3 { text-align: left; border: 0; background: var(--flash); color: #fff; padding: 5px 8px; letter-spacing: .02em; font: italic 900 14px/1 "Arial Black", sans-serif; }
   [data-style="tabloid"] .item h4 { font: 400 34px/.95 var(--head); text-transform: uppercase; }
   [data-style="tabloid"] .chip.on { background: var(--mark); color: #111; font-weight: 800; }

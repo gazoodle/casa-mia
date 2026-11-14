@@ -345,8 +345,19 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   `gazette.ts` (a shadow root can't declare a font). Never name a generic family such
   as `fantasy` in a stack: each platform maps it to something different.
 - **Brand** (2026.11.8-b5): a bored face on a tile, drawn by `tools/brand_children.py`.
-- **Not done:** publishing by itself, levels
-  (dimming), a detail view and history of its own, other languages. BACKLOG has the list.
+- **Levels** (2026.11.8-b10): `read` marks a device `dims` (a light with a colour mode
+  beyond on/off, a cover with SET_POSITION; never a guarded one). `clause` in `voices.ts`
+  gives a device's wording in three pieces so the level is its own press; a voice's
+  `percent` says a level and is every clause's `{level}`. One scale is open at a time
+  (`_scale` in `gazette.ts`), a native range input inside the room's paragraph (so it
+  stays in its column) or under the switchboard's row. `_ask` sends one call when the
+  level has been still for `SETTLE`: an arrow key reports a change at every step. Over
+  the scale is a readers' poll (owner's idea, 2026-11-13, to sit beside the scale, not
+  replace it): a voice's `polls` by kind, each vote `VOTE` per cent from `want`. The
+  figure is the device's own, and `want` shows beside it until the device's state
+  changes. **Seen** in headless Chromium on an invented room, both papers, 1100 and
+  390 px wide. **Not seen:** a real dimmer or blind, touch on a tablet, Safari.
+- **Not done:** publishing by itself, a detail view and history of its own, other languages. BACKLOG has the list.
 - **Tests:** `src/dash-bored/stories.test.ts` (house, ranking, every voice tells every
   story), `tests_ha/test_dash_bored.py` (set-up, the panel, the alerts feed).
 

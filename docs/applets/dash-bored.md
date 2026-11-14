@@ -56,6 +56,26 @@ still has every device, and is set in columns across the foot of the page.
 
 Some stories have a button that puts them right, such as **Lock it** or **Lights out**.
 
+### Dimming a light, and part-opening a blind
+
+A light that can be dimmed, or a blind that can be set to a position, has its level as a
+separate press. In the report the level is underlined twice (highlighted in the red-top):
+press "40 per cent" and a scale opens under the sentence. On the switchboard such a device
+has a tab beside its button showing its level, which opens the same scale. That is how to
+bring a light that is off on at a low level.
+
+Over the scale is a readers' poll: a question, such as "Readers are invited to say whether
+the ceiling light is too bright", and a vote each way. Each vote moves the level by 10 per
+cent, which is easier than the handle on a wall tablet. The scale is for a large change.
+
+Slide the handle, vote, or use the arrow keys, and the level is sent when you stop. The figure
+beside the scale is what the device itself reports. Until it reports that it has moved,
+the level you asked for is shown after an arrow, as in "40 per cent → 70". If that stays,
+the device has not done as it was asked.
+
+A garage door or a gate has no scale, for the reason given under
+[What a press will never do](#what-a-press-will-never-do).
+
 ### Photographs
 
 A camera that can tell what it has seen gets its picture in the paper. When one of its
@@ -162,7 +182,7 @@ Dash-Bored works without Sensor Watch; there is then no breaking news.
 
 ## As a dashboard card
 
-The same page is a card, **Dash-Bored Gazette**. It wants room, so put it in a view of
+The same page is a card, **Casa Mia Dash-Bored Gazette**. It wants room, so put it in a view of
 type **Panel (single card)**.
 
 ```yaml
@@ -176,7 +196,6 @@ On a phone, or in a narrow column, the paper is a single column.
 
 ## Not built yet
 
-- Dimming a light or part-opening a blind from the page.
 - A detail view and history of Dash-Bored's own: for now the lock and garage door use
   Home Assistant's dialog.
 - Thermostats, media players and cameras as devices in a room.

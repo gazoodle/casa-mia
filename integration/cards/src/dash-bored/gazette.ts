@@ -4,11 +4,12 @@
 // the page and acts on what is pressed.
 import { LitElement, html, nothing, type TemplateResult } from "lit";
 import { keyed } from "lit/directives/keyed.js";
+import { live } from "lit/directives/live.js";
 import { fire, navigate, type Hass } from "../ha.ts";
 import { read, sighted, survey, type Device, type House, type Options, type Room, type Seen, type Sighting, type Survey } from "./house.ts";
-import { NOMINAL, RECOVERED, cap, clock, counted, flavourOf, stories, type Alert, type Press, type Story } from "./stories.ts";
+import { NOMINAL, RECOVERED, cap, clock, counted, flavourOf, setting, stories, type Alert, type Press, type Story } from "./stories.ts";
 import { STYLES } from "./styles.ts";
-import { FIXES, VOICES, fill, tell, wired, words, type Told } from "./voices.ts";
+import { FIXES, VOICES, clause, fill, percent, poll, tell, wired, words, type Told } from "./voices.ts";
 
 export const CARD = "dash-bored-gazette";
 const ALERTS = "casa_mia_dash_bored/alerts"; // the integration's feeds: Sensor Watch's alerts (alerts.py)
@@ -33,15 +34,20 @@ function masthead() {
 // not answering, and its switchboard, which still has everything, goes across the foot.
 const BIG = 30;
 const MANY = 3; // more lights lit in one of its rooms than this are a count, not a list
+const VOTE = 10; // per cent: what one vote in a level's poll moves it by
+const SETTLE = 350; // ms: a level on the scale is asked for once it has been still this long
 const notable = (d: Device) => d.away || (d.kind === "lock" ? !d.on : d.on);
 type Config = Options & { type?: string; style?: string };
 type Line = { time: number; device?: Device; alert?: Alert; seen?: Sighting };
 
 export class Gazette extends LitElement {
   static styles = STYLES;
-  static properties = { narrow: { type: Boolean }, _house: { state: true }, _style: { state: true }, _alerts: { state: true }, _seen: { state: true }, _fault: { state: true }, _lost: { state: true } };
+  static properties = { narrow: { type: Boolean }, _house: { state: true }, _style: { state: true }, _alerts: { state: true }, _seen: { state: true }, _fault: { state: true }, _lost: { state: true }, _scale: { state: true } };
   narrow = false;
   _house?: House;
+  // The one scale that is open: for which device, under its sentence or (`board`) its
+  // chip, and the level asked for that the device has not yet said it has come to.
+  _scale?: { id: string; board: boolean; want?: number };
   _style = "broadsheet";
   _alerts: Alert[] = [];
   _seen: Seen[] = []; // the feed's sightings of the last half hour
@@ -57,6 +63,7 @@ export class Gazette extends LitElement {
   private _primed = false;
   private _seenPrimed = false;
   private _timers = new Set<ReturnType<typeof setTimeout>>();
+  private _asking?: ReturnType<typeof setTimeout>; // the level waiting to be asked for: see _ask
 
   static getStubConfig() {
     return {};
@@ -102,7 +109,10 @@ export class Gazette extends LitElement {
     this._house = read(this._survey, hass);
     for (const d of this._house.rooms.flatMap((r) => r.devices)) {
       const old = before.get(d.id);
-      if (old && (old.on !== d.on || old.level !== d.level || old.away !== d.away)) this._note({ time: Date.now(), device: d });
+      if (!old || (old.on === d.on && old.level === d.level && old.away === d.away)) continue;
+      this._note({ time: Date.now(), device: d });
+      // The device has moved: what was asked of it is answered, and the scale shows where it is.
+      if (this._scale?.id === d.id) this._scale = { ...this._scale, want: undefined };
     }
   }
 
@@ -213,7 +223,7 @@ export class Gazette extends LitElement {
   }
 
   private _call(press: Press, what: string) {
-    this._hass!.callService(press.domain, press.service, { entity_id: press.ids }).then(
+    this._hass!.callService(press.domain, press.service, { entity_id: press.ids, ...press.data }).then(
       () => (this._fault = ""),
       (err: any) => {
         console.error(`Dash-Bored: ${press.domain}.${press.service} refused`, err);
@@ -227,6 +237,24 @@ export class Gazette extends LitElement {
     // answering can't be: Home Assistant's own dialog, with its own confirmation.
     if (d.guarded || d.away) fire(this, "hass-more-info", { entityId: d.id });
     else this._call({ domain: d.kind, service: "toggle", ids: [d.id] }, `${d.room} ${d.name}`);
+  }
+
+  /** Ask a device for a level, once the level has stopped changing: a drag asks when the
+   * handle is let go, but an arrow key held down reports a change at every step, and a
+   * bus of real dimmers would be sent them all. */
+  private _ask(d: Device, level: number) {
+    clearTimeout(this._asking);
+    this._timers.delete(this._asking!);
+    this._asking = setTimeout(() => {
+      this._timers.delete(this._asking!);
+      this._call(setting(d, level), `${d.room} ${d.name}`);
+    }, SETTLE);
+    this._timers.add(this._asking);
+  }
+
+  /** Open the scale for a device, or close it if it is the one that is open. */
+  private _measure(d: Device, board: boolean) {
+    this._scale = this._scale?.id === d.id && this._scale.board === board ? undefined : { id: d.id, board };
   }
 
   private _key(event: KeyboardEvent) {
@@ -255,8 +283,40 @@ export class Gazette extends LitElement {
     const alert = told.find((t) => t.s.kind === "alert");
 
     const act = (t: Told & { s: (typeof running)[number] }) => (t.act ? html`<button class="act" @click=${() => this._call(t.s.press!, t.head)}>${t.act}</button>` : nothing);
-    const fact = (d: Device, first: boolean): TemplateResult =>
-      html`<span class="fact ${d.away ? "away" : ""}" role="button" tabindex="0" @click=${() => this._press(d)} @keydown=${this._key}>${first ? cap(words(voice, d)) : words(voice, d)}</span>`;
+    // A device's clause switches it when pressed. Where its level can be set, the level
+    // is a press of its own, which opens the scale.
+    const fact = (d: Device, first: boolean): TemplateResult => {
+      const [before, level, after] = d.dims && !d.away ? clause(voice, d) : [words(voice, d), "", ""];
+      const part = (text: string, how: string, press: () => void) =>
+        text ? html`<span class="fact ${how}" role="button" tabindex="0" @click=${press} @keydown=${this._key}>${text}</span>` : nothing;
+      return html`${part(first ? cap(before) : before, d.away ? "away" : "", () => this._press(d))}${part(level, "level", () => this._measure(d, false))}${part(after, "", () => this._press(d))}`;
+    };
+    // The scale and its poll, under the sentence or the row of chips they were opened from. In the report
+    // it is inside the room's paragraph, so that the two stay in one column. The figure is
+    // the device's own, with what was asked beside it until the device says it has moved.
+    const scale = (r: Room, board: boolean) => {
+      const open = this._scale;
+      const d = open?.board === board ? r.devices.find((d) => d.id === open.id && d.dims && !d.away) : undefined;
+      if (!d || !open) return nothing;
+      const at = d.on ? (d.level ?? 0) : 0;
+      const ask = (event: Event) => Number((event.target as HTMLInputElement).value);
+      // The readers' poll: each vote moves the level a step from where it was last asked
+      // to be, so three votes in a row are one call for thirty per cent.
+      const now = open.want ?? at;
+      const asked = poll(voice, d);
+      const vote = (words: string, by: number) => {
+        const to = Math.min(100, Math.max(0, now + by));
+        return html`<button class="act" ?disabled=${to === now} @click=${() => ((this._scale = { ...open, want: to }), this._ask(d, to))}>${words}</button>`;
+      };
+      return html`<span class="scale">
+        <span class="poll"><i>${cap(asked.ask)}</i>${vote(asked.less, -VOTE)}${vote(asked.more, VOTE)}</span>
+        <input type="range" min="0" max="100" aria-label=${d.name} .value=${live(String(now))}
+          @input=${(e: Event) => (this._scale = { ...open, want: ask(e) })}
+          @change=${(e: Event) => this._ask(d, ask(e))} />
+        <output>${percent(voice, at)}${open.want === undefined || open.want === at ? "" : ` → ${open.want}`}</output>
+        <button aria-label="Close" @click=${() => (this._scale = undefined)}>×</button>
+      </span>`;
+    };
     // A photograph, where the story has one. Pressing it opens the camera that took it.
     const photo = (s: Story) =>
       s.photo
@@ -291,11 +351,16 @@ export class Gazette extends LitElement {
       if (running.length) parts.unshift(lit.length ? fill(voice.words["switch.many"], counted(running.length)) : cap(fill(voice.words["switch.many"], counted(running.length))));
       if (lit.length)
         parts.unshift(html`<span class="fact" role="button" tabindex="0" @click=${() => this._call({ domain: "light", service: "turn_off", ids: lit.map((d) => d.id) }, r.name)} @keydown=${this._key}>${cap(fill(voice.words["light.many"], counted(lit.length)))}</span>`);
-      return html`<p><b>${r.name}.</b> ${parts.map((part, i) => html`${i ? voice.join : ""}${part}`)}${voice.end}</p>`;
+      return html`<p><b>${r.name}.</b> ${parts.map((part, i) => html`${i ? voice.join : ""}${part}`)}${voice.end}${scale(r, false)}</p>`;
+    };
+    // A chip switches its device. One whose level can be set has a tab that opens the scale.
+    const chip = (d: Device) => {
+      const button = html`<button class="chip ${d.on ? "on" : ""} ${d.away ? "away" : ""}" aria-pressed=${d.on} @click=${() => this._press(d)}>${d.name}</button>`;
+      if (!d.dims || d.away) return button;
+      return html`<div class="pair">${button}<button class="chip tab" aria-label="${d.name}: set the level" aria-expanded=${this._scale?.id === d.id && this._scale.board} @click=${() => this._measure(d, true)}>${d.on ? (d.level ?? "") : 0}%</button></div>`;
     };
     const board = html`<h3>${voice.titles.board}</h3>
-      ${byFloor(rooms, (r) => html`<div class="row"><span>${r.name}</span>${r.devices.map((d) =>
-        html`<button class="chip ${d.on ? "on" : ""} ${d.away ? "away" : ""}" aria-pressed=${d.on} @click=${() => this._press(d)}>${d.name}</button>`)}</div>`,
+      ${byFloor(rooms, (r) => html`<div class="row"><span>${r.name}</span>${r.devices.map(chip)}</div>${scale(r, true)}`,
         (drawn) => html`<div class="rows">${drawn}</div>`)}`;
 
     return html`<div class="paper" data-style=${this._style}>

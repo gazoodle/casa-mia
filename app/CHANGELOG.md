@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.8-b10
+
+- **Dash-Bored: dim a light or part-open a blind from the page.** A dimmable light's level, or a positionable cover's, is now a press of its own: in the report it is underlined twice (highlighted in the red-top), and on the switchboard it is a tab beside the device's button. Either opens a scale under the sentence or the row, with a readers' poll over it: a question in the paper's own words and a vote each way, each vote moving the level by 10 per cent. The level is sent once the handle or the voting has been still for a moment, not at every step. The figure shown is the device's own, with the level asked for after an arrow until the device reports that it has moved. A garage door or a gate has no scale.
+- **Fixed: the Gazette was missing from the card picker when searching for "Casa".** Its card was named Dash-Bored Gazette; it is now Casa Mia Dash-Bored Gazette, like the other eight cards.
+
 ## 2026.11.8-b9
 
 - **Dash-Bored: photographs stay their ten minutes.** Each camera used to hold only its latest sighting, so an animal reported a moment after a person replaced the person, and the photograph went from the front page. Every sighting is now kept by itself with its own photograph, and a camera's story is the most pressing thing it saw in the last ten minutes.

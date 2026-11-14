@@ -2,7 +2,7 @@
 // They know nothing of wording. Each carries a `kind` (and a `variant` of it) for a voice
 // to look up, the `vars` a voice's sentences are filled from, the one number that goes
 // in the figure, and what the reader can do about it.
-import type { House, Sighting } from "./house.ts";
+import type { Device, House, Sighting } from "./house.ts";
 
 /** One of Sensor Watch's alerts, as Dash-Bored's integration feeds it (alerts.py). */
 export type Alert = {
@@ -19,7 +19,15 @@ export type Alert = {
   flavour?: string; // what sort of sensor: see flavourOf
 };
 /** A service call that would put the story right. */
-export type Press = { domain: string; service: string; ids: string[] };
+export type Press = { domain: string; service: string; ids: string[]; data?: Record<string, unknown> };
+/** The call that sets a light's brightness or a cover's position, in per cent. A light
+ * asked for nothing is switched off by name: not every light takes a brightness of 0. */
+export const setting = (d: Device, level: number): Press =>
+  d.kind === "cover"
+    ? { domain: "cover", service: "set_cover_position", ids: [d.id], data: { position: level } }
+    : level
+      ? { domain: "light", service: "turn_on", ids: [d.id], data: { brightness_pct: level } }
+      : { domain: "light", service: "turn_off", ids: [d.id] };
 export type Story = {
   kind: string;
   variant: string;

@@ -12,6 +12,7 @@ export type Device = {
   kind: Kind;
   on: boolean; // a lock is on when locked, a cover when not closed
   level?: number; // per cent: a light's brightness, a cover's position
+  dims: boolean; // its level can be set from the page: a dimmable light, a cover that takes a position
   away: boolean; // unavailable
   since: number; // ms: when it came to this state
   guarded: boolean; // never operated by a tap on a sentence: see GUARDED
@@ -188,10 +189,14 @@ export function read(found: Survey, hass: Hass): House {
       const on = !away && (d.kind === "lock" ? state.state === "locked" : d.kind === "cover" ? state.state !== "closed" : state.state === "on");
       const raw = d.kind === "light" ? state?.attributes.brightness : d.kind === "cover" ? state?.attributes.current_position : undefined;
       const level = typeof raw !== "number" ? undefined : d.kind === "light" ? Math.round((raw / 255) * 100) : raw;
+      // A light with a colour mode other than on/off has a brightness; 4 is a cover's
+      // SET_POSITION feature. A guarded cover is not set from the page either.
+      const modes: string[] = state?.attributes.supported_color_modes ?? [];
+      const dims = !d.guarded && (d.kind === "light" ? modes.some((mode) => mode !== "onoff") : d.kind === "cover" && !!(state?.attributes.supported_features & 4));
 
       const kw = on ? kilowatts(d.power) : undefined;
       if (kw !== undefined && kw >= 1) appliances.push({ id: d.id, name: d.name, room: room.name, kw });
-      return { id: d.id, name: d.name, kind: d.kind, on, level, away, since: Date.parse(state?.last_changed ?? "") || 0, guarded: d.guarded, room: room.name };
+      return { id: d.id, name: d.name, kind: d.kind, on, level, dims, away, since: Date.parse(state?.last_changed ?? "") || 0, guarded: d.guarded, room: room.name };
     });
     return {
       id: room.id,

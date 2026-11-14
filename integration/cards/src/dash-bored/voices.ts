@@ -24,7 +24,8 @@ export type Voice = {
   rest: string; // a big house: the rooms with nothing to report, counted
   gaps: Record<string, string>; // what Home Assistant isn't told about the house, by a Gap's kind, counted
   mend: string; // under them: what to do about it
-  words: Record<string, string>; // one device, by `kind.state`; `kind.many` is a room's count of them, in a big house
+  words: Record<string, string>; // one device, by `kind.state`; `kind.many` is a room's count of them, in a big house; `percent` is how a level is said, and is a clause's {level}
+  polls: Record<string, { ask: string; less: string; more: string }>; // by kind: the question over a level's scale, and its two votes
   wire: { trouble: string; clear: string }; // an alert in the late news
   notices: string[]; // under each scene, in turn
   stories: Record<string, Entry>; // by `kind.variant`, else `kind`
@@ -56,17 +57,38 @@ export function tell(voice: Voice, story: Story, turn: number): Told {
   };
 }
 
-/** One device as a clause: "the ceiling light burns at 80 per cent". */
-export function words(voice: Voice, d: Device): string {
+/** A level as this paper says it: "80 per cent". */
+export const percent = (voice: Voice, level: number) => fill(voice.words.percent, { n: String(level) });
+
+/** One device as a clause, in three pieces: what comes before its level, the level, and
+ * what comes after ("the ceiling light burns at ", "80 per cent", ""). The level is its
+ * own piece so that the page can make it the thing to press to change it; with no level
+ * the clause is all in the first. */
+/** What a voice's sentences about one device are filled from. */
+function named(d: Device) {
   // "Blinds - left" are plural too: it is the thing that counts, not which one.
   const name = d.name.toLowerCase();
   const lamp = /lamp|light/i.test(name) ? name : `${name} light`;
   const plural = /s$/i.test((d.kind === "light" ? lamp : name).split(" - ")[0]);
-  const state = d.away ? "away" : !d.on ? `${d.kind}.off` : d.level === undefined && (d.kind === "light" || d.kind === "cover") ? `${d.kind}.plain` : `${d.kind}.on`;
-  const said = fill(voice.words[state], { name, lamp, level: String(d.level ?? ""), is: plural ? "are" : "is", v: plural ? "" : "s" });
-  // "The ann's lamp" is "ann's lamp".
-  return said.replace(/^the (?=\S+['’]s )/, "");
+  return { name, lamp, is: plural ? "are" : "is", v: plural ? "" : "s" };
 }
+
+/** The readers' poll on a device's level: a question, and the vote for less and for more. */
+export function poll(voice: Voice, d: Device) {
+  const { ask, less, more } = voice.polls[d.kind];
+  return { ask: fill(ask, named(d)), less, more };
+}
+
+export function clause(voice: Voice, d: Device): [string, string, string] {
+  const state = d.away ? "away" : !d.on ? `${d.kind}.off` : d.level === undefined && (d.kind === "light" || d.kind === "cover") ? `${d.kind}.plain` : `${d.kind}.on`;
+  const said = fill(voice.words[state], { ...named(d), level: "\0" });
+  // "The ann's lamp" is "ann's lamp".
+  const [before, after] = said.replace(/^the (?=\S+['’]s )/, "").split("\0");
+  return after === undefined ? [before, "", ""] : [before, percent(voice, d.level!), after];
+}
+
+/** One device as a clause: "the ceiling light burns at 80 per cent". */
+export const words = (voice: Voice, d: Device) => clause(voice, d).join("");
 
 /** An alert as a line of late news. */
 export const wired = (voice: Voice, a: Alert) =>
@@ -95,12 +117,13 @@ const broadsheet: Voice = {
   gaps: { loose: "{N} device{s} of no fixed abode", plumbing: "{N} suspected of being plumbing", clash: "{N} device{s} sharing a name with a neighbour", floorless: "{N} room{s} on no floor", cold: "{N} room{s} without a thermometer" },
   mend: "Each opens where it is put right. An area, a floor, a name or a temperature sensor in Home Assistant, and this paper reports the better for it.",
   words: {
-    "light.on": "the {lamp} burn{v} at {level} per cent",
+    percent: "{n} per cent",
+    "light.on": "the {lamp} burn{v} at {level}",
     "light.plain": "the {lamp} {is} lit",
     "light.off": "the {lamp} {is} out",
     "light.many": "{n_word} lights are lit",
     "switch.many": "{n_word} switches are running",
-    "cover.on": "the {name} stand{v} {level} per cent open",
+    "cover.on": "the {name} stand{v} {level} open",
     "cover.plain": "the {name} {is} open",
     "cover.off": "the {name} {is} closed",
     "lock.on": "the {name} {is} locked",
@@ -108,6 +131,10 @@ const broadsheet: Voice = {
     "switch.on": "the {name} {is} running",
     "switch.off": "the {name} {is} idle",
     away: "the {name} {is} not answering",
+  },
+  polls: {
+    light: { ask: "Readers are invited to say whether the {lamp} {is} too bright.", less: "Too bright", more: "Not bright enough" },
+    cover: { ask: "Readers are invited to say whether the {name} stand{v} too far open.", less: "Too far", more: "Not far enough" },
   },
   wire: { trouble: "{name}: {message}", clear: "{name}: all is well again." },
   notices: ["Arranged at a touch. Apply within.", "By appointment to the household.", "Satisfaction assured.", "Enquire at this office."],
@@ -151,12 +178,13 @@ const tabloid: Voice = {
   gaps: { loose: "{n} device{s} HOMELESS!", plumbing: "{n} FAKE gadget{s} exposed", clash: "{n} device{s} in name mix-up", floorless: "{n} room{s} floating in mid-air", cold: "{n} room{s}: hot or not? No idea" },
   mend: "Tap one to fix it. Give it an area, a floor, a name or a thermometer in Home Assistant.",
   words: {
-    "light.on": "{lamp} ON at {level}%",
+    percent: "{n}%",
+    "light.on": "{lamp} ON at {level}",
     "light.plain": "{lamp} ON",
     "light.off": "{lamp} off",
     "light.many": "{n} lights ON",
     "switch.many": "{n} switches ON",
-    "cover.on": "{name} {level}% open",
+    "cover.on": "{name} {level} open",
     "cover.plain": "{name} open",
     "cover.off": "{name} shut",
     "lock.on": "{name} locked",
@@ -164,6 +192,10 @@ const tabloid: Voice = {
     "switch.on": "{name} ON",
     "switch.off": "{name} off",
     away: "{name} GONE QUIET",
+  },
+  polls: {
+    light: { ask: "{lamp}: TOO BRIGHT? You decide!", less: "Dim it", more: "Crank it up" },
+    cover: { ask: "{name}: TOO OPEN? You decide!", less: "Shut it a bit", more: "Open up" },
   },
   wire: { trouble: "{name}: {level}!", clear: "{name}: PANIC OVER" },
   notices: ["Go on, press it.", "One tap. Job done.", "You know you want to.", "Easy as that."],

@@ -10,5 +10,5 @@ import { CARD, Gazette } from "./gazette.ts";
 const VERSION = new URL(import.meta.url).searchParams.get("v") || "dev";
 
 define(CARD, Gazette);
-register(CARD, "Dash-Bored Gazette", "Your house as a newspaper: what matters most is the headline, and every underlined fact is a switch. Best in a panel view.");
+register(CARD, "Casa Mia Dash-Bored Gazette", "Your house as a newspaper: what matters most is the headline, and every underlined fact is a switch. Best in a panel view.");
 offerReload("Dash-Bored", "casa_mia_dash_bored/cards", VERSION);
