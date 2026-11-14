@@ -29,7 +29,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import label_registry as lr
 from homeassistant.helpers.typing import ConfigType
 
-from . import alerts, personal, playing, sightings
+from . import alerts, personal, playing, settings, sightings
 from .const import (
     CARDS_VERSION,
     DOMAIN,
@@ -61,6 +61,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     sightings.setup(hass)
     personal.setup(hass)
     playing.setup(hass)
+    settings.setup(hass)
     return True
 
 
@@ -84,6 +85,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await async_check_restart(hass, LOADED_VERSION)
 
     entry.async_on_unload(hass.bus.async_listen(INSTALLED_EVENT, installed))
+
+    # The house's settings: as they stand now, and each time the Configure dialog saves.
+    house: settings.Settings = hass.data[settings.KEY]
+    house.tell(entry.options)
+
+    async def saved(hass: HomeAssistant, entry: ConfigEntry) -> None:
+        house.tell(entry.options)
+
+    entry.async_on_unload(entry.add_update_listener(saved))
 
     labels = lr.async_get(hass)
     if not labels.async_get_label_by_name(HIDE_LABEL):

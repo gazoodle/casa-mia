@@ -5,7 +5,7 @@
 // of CSS (styles.ts).
 import { DEGREES, type Device, type Kind } from "./house.ts";
 import type { Alert, Billing, Notice, Story } from "./stories.ts";
-import { NOMINAL } from "./stories.ts";
+import { NOMINAL, cap } from "./stories.ts";
 
 /** How one kind of story is told. `flavours` are headlines for a particular sort of
  * sensor; `plain` is the body for a sensor with no reading to quote (one that is only
@@ -18,7 +18,7 @@ export type Voice = {
   price: string;
   flash: string; // the word before breaking news
   ticker: string; // the word before a ticker of the headlines; empty in a paper that has none
-  titles: { more: string; briefs: string; late: string; archive: string; temps: string; board: string; notices: string; elsewhere: string; gaps: string; personal: string; celebrity: string }; // archive: the last half hour's sightings; elsewhere: the rooms on no floor
+  titles: { more: string; briefs: string; late: string; archive: string; temps: string; board: string; notices: string; elsewhere: string; gaps: string; personal: string; celebrity: string; weather: string }; // archive: the last half hour's sightings; elsewhere: the rooms on no floor
   join: string; // between a room's devices
   end: string;
   nothing: string; // the late news before anything has happened
@@ -30,6 +30,8 @@ export type Voice = {
   acts: Record<string, string>; // on a device's clipping: the button that puts it the other way, by `kind.on` or `kind.off` as it stands
   clipping: { since: string; record: string; wait: string; none: string; ago: string; now: string; reads: string; playing: string; sure: string; more: string; shut: string; closer: string; live: string }; // the rest of a clipping's words; `ago` and `now` are the ends of the record's band, `reads` is a thermostat's own reading, `playing` what a player has on, and `sure` is the second press that unlocks or opens
   wire: { trouble: string; clear: string }; // an alert in the late news
+  forecast: { now: string; today: string }; // the weather column: the weather at present, and what the forecast's first day is called
+  skies: Record<string, string>; // Home Assistant's word for the weather (its condition), as this paper says it
   celebrity: Record<string, string>; // the celebrity column, by a Billing's kind, `kind.live` while it is on, and a rating's kind for what was said of it
   personal: Record<string, string>; // the Personal column, by a Notice's kind; `song` and `tune` are how a song is named, with its artist and without
   notices: string[]; // under each scene, in turn
@@ -101,6 +103,9 @@ export function clause(voice: Voice, d: Device): [string, string, string] {
 /** One device as a clause: "the ceiling light burns at 80 per cent". */
 export const words = (voice: Voice, d: Device) => clause(voice, d).join("");
 
+/** The weather as this paper says it. A condition the paper has no word for is given as Home Assistant has it. */
+export const sky = (voice: Voice, condition: string) => voice.skies[condition] ?? cap(condition.replace(/[-_]/g, " "));
+
 /** A line of the celebrity column: what was played, and what each person said of it. */
 export function billed(voice: Voice, b: Billing): [string, string[]] {
   const song = fill(b.vars.artist ? voice.personal.song : voice.personal.tune, b.vars);
@@ -133,7 +138,7 @@ const broadsheet: Voice = {
   price: "Price: nothing",
   flash: "Stop press",
   ticker: "",
-  titles: { more: "Other news", briefs: "In brief", late: "Late news", archive: "Thirty minutes ago", temps: "The temperatures", board: "The switchboard", notices: "Notices", elsewhere: "Elsewhere", gaps: "Corrections and clarifications", personal: "Personal", celebrity: "Amusements" },
+  titles: { more: "Other news", briefs: "In brief", late: "Late news", archive: "Thirty minutes ago", temps: "The temperatures", board: "The switchboard", notices: "Notices", elsewhere: "Elsewhere", gaps: "Corrections and clarifications", personal: "Personal", celebrity: "Amusements", weather: "The weather" },
   join: "; ",
   end: ".",
   nothing: "Nothing has happened yet.",
@@ -214,6 +219,8 @@ const broadsheet: Voice = {
   celebrity: { song: "{song} was heard in the {room}.", "song.live": "{song} is being heard in the {room}.", show: "“{title}” was shown in the {room}.", "show.live": "“{title}” is being shown in the {room}.",
     love: "Admired by {name}.", loathe: "Deplored by {name}." },
   wire: { trouble: "{name}: {message}", clear: "{name}: all is well again." },
+  forecast: { now: "{sky} at present, and {temp}° outside.", today: "To-day" },
+  skies: { sunny: "Fair and bright", cloudy: "Overcast", partlycloudy: "Fair, with cloud", rainy: "Rain", pouring: "Heavy rain", snowy: "Snow", "snowy-rainy": "Sleet", fog: "Fog", hail: "Hail", lightning: "Thunder", "lightning-rainy": "Thunder and rain", windy: "Blustery", "windy-variant": "Blustery, with cloud", "clear-night": "Clear", exceptional: "Unsettled" },
   personal: { home: "{name} has arrived home.", left: "{name} has left the house.", zone: "{name} has arrived at {place}.",
     love: "{name} wishes it known that {song} is greatly to their liking.", loathe: "{name} begs that {song} be played no more.", song: "“{title}” by {artist}", tune: "“{title}”" },
   notices: ["Arranged at a touch. Apply within.", "By appointment to the household.", "Satisfaction assured.", "Enquire at this office."],
@@ -251,7 +258,7 @@ const tabloid: Voice = {
   price: "Still FREE!",
   flash: "Breaking",
   ticker: "",
-  titles: { more: "Also today", briefs: "Quick ones", late: "Latest", archive: "Rewind", temps: "Hot or not", board: "Flick a switch", notices: "Do it now", elsewhere: "Everywhere else", gaps: "Sort it out", personal: "Goss", celebrity: "Showbiz" },
+  titles: { more: "Also today", briefs: "Quick ones", late: "Latest", archive: "Rewind", temps: "Hot or not", board: "Flick a switch", notices: "Do it now", elsewhere: "Everywhere else", gaps: "Sort it out", personal: "Goss", celebrity: "Showbiz", weather: "Brolly watch" },
   join: " • ",
   end: "",
   nothing: "Nothing yet. Give it a minute.",
@@ -332,6 +339,8 @@ const tabloid: Voice = {
   celebrity: { song: "{song} rocked the {room}", "song.live": "ON NOW in the {room}: {song}", show: "“{title}” was on in the {room}", "show.live": "ON NOW in the {room}: “{title}”",
     love: "{name} LOVES it", loathe: "{name} HATES it" },
   wire: { trouble: "{name}: {level}!", clear: "{name}: PANIC OVER" },
+  forecast: { now: "{sky} {temp}° out there.", today: "Today" },
+  skies: { sunny: "SUN!", cloudy: "Grey.", partlycloudy: "Bit of both.", rainy: "Wet.", pouring: "CHUCKING IT DOWN!", snowy: "SNOW!", "snowy-rainy": "Sleet. Grim.", fog: "Pea-souper.", hail: "HAIL!", lightning: "THUNDER!", "lightning-rainy": "Thunder AND rain!", windy: "Blowy.", "windy-variant": "Blowy and grey.", "clear-night": "Clear.", exceptional: "Weird." },
   personal: { home: "{name}'s HOME!", left: "{name} has LEFT the building", zone: "{name} spotted at {place}",
     love: "{name} LOVES {song}", loathe: "{name} can't STAND {song}", song: "“{title}” by {artist}", tune: "“{title}”" },
   notices: ["Go on, press it.", "One tap. Job done.", "You know you want to.", "Easy as that."],
@@ -374,7 +383,7 @@ const rolling: Voice = {
   price: "Free to read",
   flash: "Breaking",
   ticker: "Headlines",
-  titles: { more: "Top stories", briefs: "More headlines", late: "Live updates", archive: "Last 30 minutes", temps: "Temperatures", board: "Controls", notices: "Quick actions", elsewhere: "Other rooms", gaps: "Needs attention", personal: "People", celebrity: "Now playing" },
+  titles: { more: "Top stories", briefs: "More headlines", late: "Live updates", archive: "Last 30 minutes", temps: "Temperatures", board: "Controls", notices: "Quick actions", elsewhere: "Other rooms", gaps: "Needs attention", personal: "People", celebrity: "Now playing", weather: "Forecast" },
   join: ", ",
   end: ".",
   nothing: "No updates yet.",
@@ -455,6 +464,8 @@ const rolling: Voice = {
   celebrity: { song: "{song} played in the {room}", "song.live": "Live in the {room}: {song}", show: "“{title}” was on in the {room}", "show.live": "Live in the {room}: “{title}”",
     love: "{name} loved it", loathe: "{name} loathed it" },
   wire: { trouble: "{name}: {message}", clear: "{name}: back to normal" },
+  forecast: { now: "Now: {sky}, {temp}°.", today: "Today" },
+  skies: { sunny: "Sunny", cloudy: "Cloudy", partlycloudy: "Partly cloudy", rainy: "Rain", pouring: "Heavy rain", snowy: "Snow", "snowy-rainy": "Sleet", fog: "Fog", hail: "Hail", lightning: "Thunderstorms", "lightning-rainy": "Thunderstorms with rain", windy: "Windy", "windy-variant": "Windy and cloudy", "clear-night": "Clear", exceptional: "Exceptional conditions" },
   personal: { home: "{name} arrived home", left: "{name} left home", zone: "{name} arrived at {place}",
     love: "{name} loved {song}", loathe: "{name} loathed {song}", song: "“{title}” by {artist}", tune: "“{title}”" },
   notices: ["Tap to run", "Runs at once", "One tap", "Ready to run"],

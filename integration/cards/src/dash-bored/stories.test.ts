@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { read, survey } from "./house.ts";
+import { days, read, survey } from "./house.ts";
 import { RECOVERED, billing, flip, personal, setting, stories, type Alert, type Rated } from "./stories.ts";
-import { VOICES, announce, billed, clause, poll, tell, words } from "./voices.ts";
+import { VOICES, announce, billed, clause, poll, sky, tell, words } from "./voices.ts";
 
 // An invented house, as Home Assistant's page would hold it.
 const state = (value: string, attributes: Record<string, unknown> = {}) => ({ state: value, attributes, last_changed: "2026-11-13T18:00:00Z" });
@@ -50,7 +50,7 @@ test("the house is read from areas, with names shortened and settings left out",
   assert.equal(kitchen.temp, 19.6);
   assert.equal(kitchen.target, 21);
   assert.deepEqual(h.scenes, [{ id: "scene.evening", name: "Evening" }]);
-  assert.deepEqual(h.outside, { temp: 9.3, humidity: 81 });
+  assert.deepEqual(h.outside, { temp: 9.3, humidity: 81, sky: "cloudy", id: "weather.home", daily: false });
   // A plug drawing a kilowatt or more is an appliance at work.
   assert.deepEqual(h.appliances, [{ id: "switch.kettle", name: "Kettle", room: "Kitchen", kw: 2.2 }]);
 });
@@ -333,4 +333,28 @@ test("the celebrity column lists what the players played, with what was said of 
   assert.deepEqual(lines(since).map((line) => line.slice(1)), [["Deplored by Ann.", "Deplored by Ben."], [], []]);
   assert.deepEqual(personal([], since, 400_000).map((n) => [n.kind, n.vars.name]), [["loathe", "Ann"], ["loathe", "Ben"]]);
   for (const voice of Object.values(VOICES)) for (const b of billing(played, since, devices)) assert.ok(billed(voice, { ...b, live: !b.live })[0]);
+});
+
+test("the weather column has the forecast's days, and every paper a word for every sky", () => {
+  // As weather/subscribe_forecast sends them: more than are printed, and one with no temperature.
+  const sent = [
+    { datetime: "2026-11-14T00:00:00Z", condition: "rainy", temperature: 11.4, templow: 4.2 },
+    { datetime: "2026-11-15T00:00:00Z", condition: "partlycloudy", temperature: 9 },
+    { datetime: "2026-11-16T00:00:00Z", condition: "sunny" },
+    ...[17, 18, 19].map((day) => ({ datetime: `2026-11-${day}T00:00:00Z`, condition: "fog", temperature: 7, templow: 1 })),
+  ];
+  const told = days(sent);
+  assert.deepEqual(told.slice(0, 2), [{ at: Date.parse("2026-11-14T00:00:00Z"), sky: "rainy", high: 11.4, low: 4.2 }, { at: Date.parse("2026-11-15T00:00:00Z"), sky: "partlycloudy", high: 9, low: undefined }]);
+  assert.deepEqual(told.map((d) => d.sky), ["rainy", "partlycloudy", "fog", "fog"]);
+  assert.deepEqual(days(undefined), []);
+
+  // Home Assistant's fifteen conditions. One it adds later is told in its own word.
+  const skies = ["clear-night", "cloudy", "exceptional", "fog", "hail", "lightning", "lightning-rainy", "partlycloudy", "pouring", "rainy", "snowy", "snowy-rainy", "sunny", "windy", "windy-variant"];
+  for (const voice of Object.values(VOICES)) assert.deepEqual(skies.filter((s) => !(s in voice.skies)), [], voice.label);
+  assert.equal(sky(VOICES.broadsheet, "snowy-rainy"), "Sleet");
+  assert.equal(sky(VOICES.broadsheet, "volcanic-ash"), "Volcanic ash");
+
+  // An entity that gives a forecast by the day says so, and the page then follows it.
+  const h = hass({ "weather.home": state("rainy", { temperature: 9.3, humidity: 81, supported_features: 3 }) });
+  assert.deepEqual(read(survey(h, {}), h).outside, { temp: 9.3, humidity: 81, sky: "rainy", id: "weather.home", daily: true });
 });

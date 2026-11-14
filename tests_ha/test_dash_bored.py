@@ -16,6 +16,7 @@ from custom_components.casa_mia_dash_bored.const import (
     PERSONAL,
     PLAYING,
     RATED_EVENT,
+    SETTINGS,
     WATCH_EVENT,
 )
 from homeassistant.components import frontend
@@ -553,3 +554,27 @@ async def test_each_sighting_is_kept_with_its_own_photograph_for_half_an_hour(
     kept = hass.data[log.KEY]
     assert [item["kind"] for item in kept.items.values()] == ["person"]
     assert list(kept.photos) == list(kept.items) != [person["id"]]
+
+
+async def test_the_house_settings_are_saved_in_the_dialog_and_pushed_to_the_pages(
+    hass, hass_ws_client
+):
+    entry = await set_up(hass)
+    client, held = await feed(hass, hass_ws_client, SETTINGS)
+    assert held == [{"floor_order": [], "room_order": []}]
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] is FlowResultType.FORM
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {"floor_order": ["ground"], "room_order": ["kitchen", "hall"]},
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+
+    # An open page is told at once, and one opened after a reload is told the same.
+    saved = {"floor_order": ["ground"], "room_order": ["kitchen", "hall"]}
+    assert (await client.receive_json())["event"] == [saved]
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    _, held = await feed(hass, hass_ws_client, SETTINGS)
+    assert held == [saved]

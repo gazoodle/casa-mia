@@ -7,17 +7,19 @@ import { keyed } from "lit/directives/keyed.js";
 import { live } from "lit/directives/live.js";
 import { fire, navigate, type Hass } from "../ha.ts";
 import { clipping, photograph, type Open, type Shot } from "./clipping.ts";
-import { DEGREES, read, sighted, survey, type Device, type House, type Options, type Room, type Seen, type Sighting, type Survey } from "./house.ts";
+import { DEGREES, days, read, sighted, survey, type Day, type Device, type House, type Options, type Room, type Seen, type Sighting, type Survey } from "./house.ts";
 import { recorded } from "./record.ts";
 import { NOMINAL, RECOVERED, cap, clock, counted, flavourOf, billing, flip, personal, setting, stories, type Alert, type Played, type Press, type Rated, type Story } from "./stories.ts";
 import { STYLES } from "./styles.ts";
-import { FIXES, VOICES, amount, announce, billed, clause, fill, poll, tell, wired, words, type Told } from "./voices.ts";
+import { FIXES, VOICES, amount, announce, billed, clause, fill, poll, sky, tell, wired, words, type Told } from "./voices.ts";
 
 export const CARD = "dash-bored-gazette";
 const ALERTS = "casa_mia_dash_bored/alerts"; // the integration's feeds: Sensor Watch's alerts (alerts.py)
 const SIGHTINGS = "casa_mia_dash_bored/sightings"; // what the cameras have seen (sightings.py)
 const PERSONAL = "casa_mia_dash_bored/personal"; // the songs people have rated (personal.py)
-const PLAYING = "casa_mia_dash_bored/playing"; // and what the players have played (playing.py)
+const PLAYING = "casa_mia_dash_bored/playing"; // what the players have played (playing.py)
+const SETTINGS = "casa_mia_dash_bored/settings"; // and the house's settings (settings.py)
+const FORECAST = "weather/subscribe_forecast"; // Home Assistant's own: a weather entity's forecast, pushed
 const ARCHIVE = 30 * 60_000; // ms: how far back the column of past sightings goes
 const PAST = 10; // and how many of them it lists
 const REMEMBERED = "dash-bored-style"; // this browser's choice of paper
@@ -57,7 +59,7 @@ type Line = { time: number; device?: Device; alert?: Alert; seen?: Sighting };
 
 export class Gazette extends LitElement {
   static styles = STYLES;
-  static properties = { narrow: { type: Boolean }, _house: { state: true }, _style: { state: true }, _alerts: { state: true }, _seen: { state: true }, _fault: { state: true }, _lost: { state: true }, _scale: { state: true }, _open: { state: true }, _shot: { state: true }, _rated: { state: true }, _played: { state: true } };
+  static properties = { narrow: { type: Boolean }, _house: { state: true }, _style: { state: true }, _alerts: { state: true }, _seen: { state: true }, _fault: { state: true }, _lost: { state: true }, _scale: { state: true }, _open: { state: true }, _shot: { state: true }, _rated: { state: true }, _played: { state: true }, _days: { state: true } };
   narrow = false;
   _house?: House;
   // The one scale that is open: for which device, and the level asked for that the
@@ -67,6 +69,8 @@ export class Gazette extends LitElement {
   _open?: Open; // the clipping that is open: see clipping.ts
   _shot?: Shot; // or the photograph that is
   _played: Played[] = []; // the feed's songs and programmes
+  _days: Day[] = []; // the forecast, by the day
+  private _forecastOf?: string; // the weather entity whose forecast is followed
   _style = "broadsheet";
   _alerts: Alert[] = [];
   _seen: Seen[] = []; // the feed's sightings of the last half hour
@@ -75,6 +79,7 @@ export class Gazette extends LitElement {
   _lost = 0; // ms: since when there has been no connection (0: connected)
   private _hass?: Hass;
   private _config: Config = {};
+  private _settings: Options = {}; // the house's, from the integration: a card's own come before them
   private _survey?: Survey;
   private _late: Line[] = [];
   private _turn = new Map<string, number>();
@@ -119,7 +124,7 @@ export class Gazette extends LitElement {
     this._lost = 0;
     this._listen();
 
-    if (!this._survey || !was || was.entities !== hass.entities || was.areas !== hass.areas || was.devices !== hass.devices || was.floors !== hass.floors) this._survey = survey(hass, this._config);
+    if (!this._survey || !was || was.entities !== hass.entities || was.areas !== hass.areas || was.devices !== hass.devices || was.floors !== hass.floors) this._survey = survey(hass, { ...this._settings, ...this._config });
     // ponytail: `hass` is set at every state change in the house, and the page isn't told
     // which entity changed, so this looks at each watched one. If that ever shows in a
     // profile, follow the entities with a subscription of our own instead.
@@ -127,6 +132,7 @@ export class Gazette extends LitElement {
 
     const before = new Map(this._house?.rooms.flatMap((r) => r.devices).map((d) => [d.id, d]));
     this._house = read(this._survey, hass);
+    this._outlook();
     for (const d of this._house.rooms.flatMap((r) => r.devices)) {
       const old = before.get(d.id);
       if (!old || (old.on === d.on && old.phase === d.phase && old.level === d.level && old.away === d.away)) continue;
@@ -150,6 +156,7 @@ export class Gazette extends LitElement {
     for (const feed of this._feeds.values()) feed.then((stop) => stop()).catch(() => undefined);
     this._feeds.clear();
     this._primed = this._seenPrimed = false;
+    this._forecastOf = undefined;
     for (const timer of this._timers) clearTimeout(timer);
     this._timers.clear();
   }
@@ -195,7 +202,36 @@ export class Gazette extends LitElement {
     // A feed says all it holds again after a break, so each item is kept once.
     const once = <T>(items: T[], key: (item: T) => string) => [...new Map(items.map((item) => [key(item), item])).values()];
     follow(PERSONAL, "The Personal column's announcements", (rated: Rated[]) => (this._rated = once([...this._rated, ...rated], (r) => `${r.at} ${r.name} ${r.title}`)));
+    // The settings come whole each time they are saved: the latest stands, and the house is read again by it.
+    follow(SETTINGS, "Dash-Bored's settings", (settings: Options[]) => {
+      this._settings = settings.at(-1) ?? this._settings;
+      this._survey = undefined;
+      if (this._hass) this.hass = this._hass;
+    });
     follow(PLAYING, "What the players have played", (played: Played[]) => (this._played = once([...this._played, ...played], (p) => p.id)));
+  }
+
+  /** Follow the forecast of the weather entity the page reads, if it gives one by the day.
+   * Home Assistant pushes it, at subscribing and whenever it changes. */
+  private _outlook() {
+    const connection = this._hass?.connection;
+    const outside = this._house?.outside;
+    const entity = outside?.daily ? outside.id : undefined;
+    if (!connection || !this.isConnected || entity === this._forecastOf) return;
+
+    // Another entity, or none: the old forecast is no longer this page's.
+    this._feeds.get(FORECAST)?.then((stop) => stop()).catch(() => undefined);
+    this._feeds.delete(FORECAST);
+    this._forecastOf = entity;
+    this._days = [];
+    if (!entity) return;
+    const feed: Promise<() => void> = connection.subscribeMessage((told: { forecast?: unknown }) => (this._days = days(told.forecast)), { type: FORECAST, forecast_type: "daily", entity_id: entity });
+    this._feeds.set(FORECAST, feed);
+    feed.catch((err: any) => {
+      this._feeds.delete(FORECAST);
+      console.error(`Dash-Bored: the forecast of ${entity} failed`, err);
+      this._fault = `The weather forecast is not reaching this page (${err?.message ?? err}).`;
+    });
   }
 
   /** Sightings from the feed: all it holds at first, then each as it comes, and again
@@ -510,6 +546,15 @@ export class Gazette extends LitElement {
                 const [text, marks] = billed(voice, b);
                 return html`<li role="button" tabindex="0" @click=${() => this._story(devices.get(b.id)!)} @keydown=${this._key}><time>${clock(b.at)}</time>${text}${marks.map((mark, i) => html` <span class="mark ${b.marks[i].kind}">${mark}</span>`)}</li>`;
               })}</ol>`
+            : nothing}
+          ${house.outside
+            ? html`<h3>${voice.titles.weather}</h3>
+                <p class="now">${fill(voice.forecast.now, { sky: sky(voice, house.outside.sky), temp: house.outside.temp.toFixed(1) })}</p>
+                ${this._days.length
+                  ? html`<table class="days">${this._days.map((d) =>
+                      html`<tr><td>${new Date(d.at).toDateString() === new Date(now).toDateString() ? voice.forecast.today : new Date(d.at).toLocaleDateString(hass.locale?.language ?? "en-GB", { weekday: "long" })}</td>
+                        <td>${sky(voice, d.sky)}</td><td>${Math.round(d.high)}°${d.low === undefined ? "" : ` / ${Math.round(d.low)}°`}</td></tr>`)}</table>`
+                  : nothing}`
             : nothing}
           ${warm.length
             ? html`<h3>${voice.titles.temps}</h3><table>${warm.map((r) => html`<tr><td>${r.name}</td><td>${r.temp!.toFixed(1)}° ${r.target === undefined ? "" : r.temp! < r.target - 0.5 ? "▼" : r.temp! > r.target + 0.5 ? "▲" : "="}</td></tr>`)}</table>`

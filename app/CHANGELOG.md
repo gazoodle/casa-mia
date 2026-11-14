@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.11.8-b19
+
+- **Dash-Bored: the order of floors and rooms can be set.** Dash-Bored's **Configure** dialog (Settings → Devices & services) takes the floors in the order to show them and the rooms to put first on their floor. It applies to every Dash-Bored page and card, and an open page follows as soon as it is saved. Left empty, the order is as before: floors from the lowest up, rooms by name.
+- **Dash-Bored: a weather column.** Each paper says what the sky is doing now and prints the next four days of the forecast, each with its weather and its high and low, in the paper's own words. It needs a weather entity, and the forecast needs one that gives a forecast by the day.
+- **Dash-Bored: a card can show only some of the house.** `floors` and `rooms` on a card list what it shows, in that order, for a tablet that should lead with its own floor or show nothing else.
+
 ## 2026.11.8-b18
 
 - **Dash-Bored: a third paper, Rolling news.** The Thermostat tells the same stories as a news website does: plain sentences, a ticker of the headlines under the dateline, and clippings as cards. Its colour is blue, and red is kept for what is wrong. Choose it beside Broadsheet and Red-top under the masthead, or with `style: rolling` on a card.

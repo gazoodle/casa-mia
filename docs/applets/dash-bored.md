@@ -276,6 +276,20 @@ who loathed it. These change as soon as somebody rates the song or takes a ratin
   again with whatever is playing.
 - The column is left out while there is nothing to list.
 
+### The weather
+
+A column with the weather now and the forecast for the next four days, each day with
+its weather and its high and low. Each paper has its own words for the sky: rain is
+"Rain" in the broadsheet and "Wet." in the red-top.
+
+- It uses the weather entity the page reads the outside temperature from: the one a
+  card names with `weather`, else `weather.home`, else the first it finds. With no
+  weather entity there is no column.
+- The forecast is the entity's forecast by the day, which Home Assistant sends to the
+  page whenever it changes. An entity that gives only an hourly forecast, or none, gets
+  the line about the weather now and no days.
+- Temperatures are in whatever unit the entity uses.
+
 ### Sensor Watch
 
 If you use [Sensor Watch](sensor-watch.md), a sensor that goes above its normal level is
@@ -289,6 +303,23 @@ Dash-Bored works without Sensor Watch; there is then no breaking news.
   is shown below it is how things stood at that time.
 - If Home Assistant refuses an action, a red line says which and why.
 
+## The order of floors and rooms
+
+Floors are shown from the lowest up and the rooms on each by name. To change that, open
+**Settings → Devices & services → Dash-Bored → Configure**:
+
+- **Floors, in the order to show them.** Any floor you don't list follows, from the
+  lowest up. Home Assistant's floor picker can't be dragged, so to move a floor take it
+  out and add it again.
+- **Rooms to put first on their floor**, in the order you list them. Any room you don't
+  list follows, by name. A room stays under its own floor: listing the kitchen first
+  puts it first on the ground floor, not at the top of the page.
+
+The order is for the whole house. Every Dash-Bored page and card uses it, and a page
+that is open changes as soon as you save. Nothing is left out by it: to keep a room or a
+device off the pages, give it the label **Dash-Bored hide**. Devices in a room are
+always in the same order, by kind and then by name.
+
 ## As a dashboard card
 
 The same page is a card, **Casa Mia Dash-Bored Gazette**. It wants room, so put it in a view of
@@ -299,12 +330,19 @@ type: custom:dash-bored-gazette
 style: tabloid            # optional: broadsheet, tabloid or rolling; fixes the paper for this card
 power: sensor.house_power # optional: a whole-house power sensor, in W or kW
 weather: weather.home     # optional: which weather entity gives the outside temperature
+floors: [First floor]     # optional: show only these floors, in this order
+rooms: [Kitchen, Hall]    # optional: show only these rooms, in this order on their floor
 ```
+
+`floors` and `rooms` are for a screen that should show part of the house, such as a
+tablet upstairs. Each takes names or ids, and on that card they take the place of the
+house's order. The cameras' sightings and the Personal column are still of the whole
+house.
 
 On a phone, or in a narrow column, the paper is a single column.
 
 ## Not built yet
 
-- Choosing which rooms and devices appear, and their order.
+- The order of the devices in a room.
 - Changing the wording, and other languages. The text is English only.
 - More styles. The Gazette is the first.

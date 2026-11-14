@@ -403,6 +403,25 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   all four feeds make (`alerts.py` and `sightings.py` moved to it in 2026.11.8-b17). A voice's `personal` words it. Known: after a restart every person's
   `last_changed` is the restart's time, so each "arrives" then. The owner was told the
   column shows guests who is at home.
+- **The house's settings** (2026.11.8-b19; owner, 2026-11-14: they must serve every
+  family of dashboard, not the Gazette alone). The config entry's options
+  (`config_flow.py` `DashBoredOptions`: `floor_order`, `room_order`) are fed whole to
+  every page by `settings.py` (`casa_mia_dash_bored/settings`), at subscribing and at
+  each save, with no reload. `survey` in `house.ts` does the ordering, so a later
+  family gets it for nothing; a card's `floors` and `rooms` show only those and come
+  before the house's. A setting of one family (a masthead's name) is not to go in
+  `settings.py`'s house settings without a section of its own. Leaving out is still
+  the hide label only: a second way to hide was not added. Seen on the VM: an order
+  saved through the options flow's API reordering an open page at once, and cleared
+  again. Not seen: the dialog itself in a browser (its fields and their wording), a
+  card with `floors` or `rooms`.
+- **The weather column** (owner, 2026-11-14: "All papers cover that too"; in
+  2026.11.8-b19). `House.outside` now has the sky and whether its entity gives a daily
+  forecast; the page follows Home Assistant's own `weather/subscribe_forecast`
+  (`_outlook` in `gazette.ts`, pushed, any user's) and `days` in `house.ts` keeps the
+  first four. A voice's `skies` words Home Assistant's fifteen conditions and
+  `forecast` the rest. Seen on the VM with the demo's weather, in all three papers.
+  Not seen: an entity with no daily forecast, the forecast failing.
 - **The third paper, Rolling news** (asked 2026-11-13; 2026.11.8-b18): the voice
   `rolling` ("The Thermostat") in `voices.ts` and the block `[data-style="rolling"]` in
   `styles.ts`. It needed one thing the page did not have, a ticker of the headlines:

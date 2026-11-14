@@ -127,3 +127,21 @@ test("a sighting from the feed is named for its camera and put in the camera's r
     { id: "three", name: "Den", room: undefined, camera: "camera.den", kind: "person", at: 1_060_000, photo: undefined },
   ]);
 });
+
+test("the floors and rooms come in the order asked for, and a card may show only some", () => {
+  const h = hass(
+    { "light.a": ["attic", "Attic"], "light.b": ["hall", "Hall"], "light.c": ["kitchen", "Kitchen"], "light.d": ["cellar", "Cellar"], "light.e": ["shed", "Shed"] },
+    { attic: { name: "Attic", floor_id: "top" }, hall: { name: "Hall", floor_id: "ground" }, kitchen: { name: "Kitchen", floor_id: "ground" }, cellar: { name: "Cellar", floor_id: "below" }, shed: { name: "Shed" } },
+    { top: { floor_id: "top", name: "Top floor", level: 2 }, ground: { floor_id: "ground", name: "Ground floor", level: 0 }, below: { floor_id: "below", name: "Basement", level: -1 } },
+  );
+  const order = (options: Parameters<typeof survey>[1]) => survey(h, options).rooms.map((r) => r.id);
+  assert.deepEqual(order({}), ["cellar", "hall", "kitchen", "attic", "shed"]);
+
+  // The house's order leaves nothing out: the ground floor first with the kitchen leading
+  // it, then the floors not named from the lowest up. A name does as well as an id.
+  assert.deepEqual(order({ floor_order: ["ground"], room_order: ["Kitchen"] }), ["kitchen", "hall", "cellar", "attic", "shed"]);
+
+  // A card's own lists show only what they name, and come before the house's.
+  assert.deepEqual(order({ floors: ["top", "ground"], floor_order: ["below"] }), ["attic", "hall", "kitchen"]);
+  assert.deepEqual(order({ rooms: ["shed", "kitchen"], room_order: ["hall"] }), ["kitchen", "shed"]);
+});

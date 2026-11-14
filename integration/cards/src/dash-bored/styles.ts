@@ -137,6 +137,9 @@ export const STYLES = css`
   time { font-variant-numeric: tabular-nums; font-weight: 700; margin-right: 6px; }
   table { width: 100%; border-collapse: collapse; font-size: 15px; margin-bottom: 16px; }
   td { padding: 4px 2px; border-bottom: 1px dotted rgba(0,0,0,.4); } td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+  /* The weather: the sky now, then the forecast's days, each with its sky and its high and low. */
+  .now { margin: 0 0 6px; font-size: 15px; line-height: 1.35; }
+  .days td:nth-child(2) { font-style: italic; } .days td:last-child { white-space: nowrap; }
   /* What Home Assistant isn't told about the house: a count that opens into its list. */
   details { border-bottom: 1px dotted rgba(0,0,0,.4); padding: 5px 0; font-size: 15px; }
   summary { cursor: pointer; font-weight: 700; }

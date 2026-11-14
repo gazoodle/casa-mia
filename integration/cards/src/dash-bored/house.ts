@@ -42,7 +42,7 @@ export type House = {
   gaps: Gap[];
   scenes: { id: string; name: string }[];
   appliances: Appliance[];
-  outside?: { temp: number; humidity?: number };
+  outside?: { temp: number; humidity?: number; sky: string; id: string; daily: boolean }; // sky: Home Assistant's word for the weather now; daily: its entity gives a forecast by the day
   kw?: number;
 };
 /** What Home Assistant doesn't know about the house, that an automatic dashboard needs:
@@ -52,13 +52,32 @@ export type House = {
  * indicators, each with the integration it comes from (`via`), since that is where it is
  * best put right. An item is an entity, or for `floorless` and `cold` an area. */
 export type Gap = { kind: "loose" | "plumbing" | "clash" | "floorless" | "cold"; items: { id: string; name: string; via?: string }[] };
-/** The card's options: a weather entity and a whole-house power sensor, both optional. */
-export type Options = { weather?: string; power?: string };
+/** What a page is told about reading the house, all of it optional. A card's own: a
+ * weather entity, a whole-house power sensor, and `floors` and `rooms`, which show only
+ * those and in that order. The house's, set once in the integration and fed to every page
+ * (settings.py): `floor_order` and `room_order`, which leave nothing out. A floor or a
+ * room is named by its id or by its name. */
+export type Options = { weather?: string; power?: string; floors?: string[]; rooms?: string[]; floor_order?: string[]; room_order?: string[] };
 
 type Found = { id: string; kind: Kind; name: string; full: string; guarded: boolean; power?: string };
-type FoundRoom = { id: string; name: string; floor?: string; level: number; temp?: string; humidity?: string; climate?: string; devices: Found[] };
+type FoundRoom = { id: string; name: string; floor?: string; floorId?: string; level: number; temp?: string; humidity?: string; climate?: string; devices: Found[] };
 type FoundSighting = { id: string; name: string; room?: string };
 export type Survey = { rooms: FoundRoom[]; people: string[]; sightings: FoundSighting[]; gaps: Gap[]; scenes: string[]; weather?: string; power?: string; watched: string[] };
+
+const FORECAST_DAILY = 1; // a weather entity's supported_features bit for a forecast by the day
+/** A day of the forecast: its start, Home Assistant's word for its weather, and its high and low. */
+export type Day = { at: number; sky: string; high: number; low?: number };
+const DAYS = 4; // how many the pages print
+
+/** The days of a forecast as Home Assistant's weather/subscribe_forecast sends it, the
+ * first DAYS of those that have a temperature. */
+export function days(forecast: unknown): Day[] {
+  const list = Array.isArray(forecast) ? forecast : [];
+  return list
+    .filter((f) => typeof f?.temperature === "number" && Date.parse(f.datetime))
+    .slice(0, DAYS)
+    .map((f) => ({ at: Date.parse(f.datetime), sky: String(f.condition ?? ""), high: f.temperature, low: typeof f.templow === "number" ? f.templow : undefined }));
+}
 
 /** The id of the label that keeps a thing off these pages: on an entity, its device or
  * its area. The integration makes the label, "Dash-Bored hide" (const.py HIDE_LABEL). */
@@ -128,7 +147,7 @@ export function survey(hass: Hass, options: Options): Survey {
     if (!area || !KINDS.has(domain)) continue;
     if (!rooms.has(area.area_id)) {
       const floor = hass.floors?.[area.floor_id];
-      rooms.set(area.area_id, { id: area.area_id, name: area.name, floor: floor?.name, level: floor ? (floor.level ?? 0) : Infinity, temp: area.temperature_entity_id ?? undefined, humidity: area.humidity_entity_id ?? undefined, devices: [] });
+      rooms.set(area.area_id, { id: area.area_id, name: area.name, floor: floor?.name, floorId: floor?.floor_id, level: floor ? (floor.level ?? 0) : Infinity, temp: area.temperature_entity_id ?? undefined, humidity: area.humidity_entity_id ?? undefined, devices: [] });
     }
     const room = rooms.get(area.area_id)!;
 
@@ -152,8 +171,20 @@ export function survey(hass: Hass, options: Options): Survey {
   for (const device of owner.values()) switches.set(device, (switches.get(device) ?? 0) + 1);
   for (const [found, device] of owner) if (switches.get(device) === 1) found.power = meters.get(device);
 
-  // By floor from the lowest up, then the rooms that are on no floor.
-  const kept = [...rooms.values()].filter((r) => r.devices.length || r.temp).sort((a, b) => a.level - b.level || (a.floor ?? "").localeCompare(b.floor ?? "") || a.name.localeCompare(b.name));
+  // Where a floor or a room stands in a list that names it by id or by name: last, if it doesn't.
+  const place = (list: string[] | undefined, id?: string, name?: string) => {
+    const at = (list ?? []).findIndex((x) => x === id || (!!name && x.toLowerCase() === name.toLowerCase()));
+    return at < 0 ? Infinity : at;
+  };
+  const { floors, rooms: chosen } = options;
+  const floorAt = (r: FoundRoom) => place(floors ?? options.floor_order, r.floorId, r.floor);
+  const roomAt = (r: FoundRoom) => place(chosen ?? options.room_order, r.id, r.name);
+  // The floors in the order asked for, then the rest from the lowest up, then the rooms on
+  // no floor. On a floor, the rooms asked for first, then the rest by name. A difference
+  // of two that are both unplaced is not a number, and falls through to the next.
+  const kept = [...rooms.values()]
+    .filter((r) => (r.devices.length || r.temp) && (!floors || floorAt(r) < Infinity) && (!chosen || roomAt(r) < Infinity))
+    .sort((a, b) => floorAt(a) - floorAt(b) || a.level - b.level || (a.floor ?? "").localeCompare(b.floor ?? "") || roomAt(a) - roomAt(b) || a.name.localeCompare(b.name));
   for (const room of kept) {
     // Two devices that shorten to the same name ("Light" and "Light") keep their own.
     const times = new Map<string, number>();
@@ -294,7 +325,7 @@ export function read(found: Survey, hass: Hass): House {
     gaps: found.gaps,
     scenes: found.scenes.filter((id) => hass.states[id]).map((id) => ({ id, name: hass.states[id].attributes.friendly_name ?? id })),
     appliances,
-    outside: typeof sky?.attributes.temperature === "number" ? { temp: sky.attributes.temperature, humidity: sky.attributes.humidity } : undefined,
+    outside: typeof sky?.attributes.temperature === "number" ? { temp: sky.attributes.temperature, humidity: sky.attributes.humidity, sky: sky.state, id: found.weather!, daily: !!(sky.attributes.supported_features & FORECAST_DAILY) } : undefined,
     kw: kilowatts(found.power),
   };
 }

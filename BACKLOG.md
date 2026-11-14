@@ -7,7 +7,10 @@ Not scheduled. Sections are in order of their latest change; newest ideas first 
 Started 2026-11-13 (2026.11.8-b1) with the Gazette. HANDOVER has how it is built; the
 mock-ups are in `docs/design/dash-bored/`. What's next, in the order the owner gave:
 
-- **Gazette, to finish it** (asked 2026-11-13): which rooms and devices appear and their order.
+- **The house's settings, further** (2026-11-14): the Configure dialog now holds the order
+  of floors and rooms (2026.11.8-b19). Parked by the owner the same day ("Not yet"): the
+  Gazette's masthead names there, one for each paper, which is a family's setting and
+  not the house's; then the strap line and the tone.
 - **Reader polls for other continuous controls** (owner's idea, 2026-11-13; built for
   lights and blinds in 2026.11.8-b10): a vote on a
   story, such as "Dim them all" beside "Put them all out".
