@@ -30,8 +30,8 @@ const FAMILIES: Family[] = [
       <path d="M99,30 v60" stroke="#1c1a17" stroke-width=".6"/></svg>`,
   },
   {
-    id: "bakelite", name: "Bakelite", says: "The house as a 1950s instrument panel.",
-    draw: (hass, narrow) => html`<dash-bored-bakelite .hass=${hass} .narrow=${narrow} .panel=${true}></dash-bored-bakelite>`,
+    id: "console", name: "Console", says: "The house as a control panel, in the style of a decade. Bakelite is the 1950s.",
+    draw: (hass, narrow) => html`<dash-bored-console .hass=${hass} .narrow=${narrow} .panel=${true}></dash-bored-console>`,
     still: html`<svg viewBox="0 0 160 100" aria-hidden="true"><rect width="160" height="100" fill="#66756a"/>
       <rect x="10" y="10" width="64" height="80" rx="8" fill="#2b1811"/><rect x="86" y="10" width="64" height="80" rx="8" fill="#2b1811"/>
       <rect x="18" y="17" width="48" height="30" rx="3" fill="#efe6c8"/><path d="M24,42 a18,18 0 0 1 36,0" fill="none" stroke="#2a1a10"/><path d="M42,44 L52,24" stroke="#151515" stroke-width="1.5"/>
@@ -70,7 +70,8 @@ export class Shell extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     try {
-      const family = localStorage.getItem(REMEMBERED);
+      // Bakelite was a family of its own before it was the Console's first era: a browser that chose it has the Console.
+      const family = localStorage.getItem(REMEMBERED)?.replace(/^bakelite$/, "console");
       if (FAMILIES.some((f) => f.id === family)) this._family = family!;
     } catch {
       // No storage here (a private window): the first family, then.

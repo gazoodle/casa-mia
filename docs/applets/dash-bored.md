@@ -49,8 +49,8 @@ The first two can be used. The pictures of the others are of their mock-ups.
 <p><b><a href="#the-gazette">Gazette</a></b> · Being built<br>The house as a newspaper. Stories are ranked, so what matters most leads; a Sensor Watch alert is breaking news. Three papers from the same stories: a broadsheet, a red-top and a rolling news channel. One column on a phone.</p>
 </td>
 <td width="33%" valign="top">
-<a href="#bakelite"><img src="../screenshots/dash-bored-bakelite.webp" alt="Bakelite" width="100%"></a>
-<p><b><a href="#bakelite">Bakelite</a></b> · Being built: every kind of device the Gazette shows, with Sensor Watch's alerts and a chart recorder<br>A 1950s instrument panel: glowing valves, moving-coil meters, fluted dimmer knobs, tumbler switches and knife switches for scenes.</p>
+<a href="#the-console"><img src="../screenshots/dash-bored-bakelite.webp" alt="Bakelite" width="100%"></a>
+<p><b><a href="#the-console">Bakelite</a></b> · Being built: every kind of device the Gazette shows, with Sensor Watch's alerts and a chart recorder<br>A 1950s instrument panel: glowing valves, moving-coil meters, fluted dimmer knobs, tumbler switches and knife switches for scenes.</p>
 </td>
 <td width="33%" valign="top">
 <img src="../screenshots/dash-bored-mock-calibre.webp" alt="Calibre, as a mock-up" width="100%">
@@ -152,8 +152,10 @@ of the page, on a part of it that is not a button or another control. A choice o
 a small drawing of each family; press one and the page becomes it.
 
 The choice is remembered by the browser it was made in. A tablet on the wall, a phone and
-a desktop each keep their own. The Gazette's three papers are a separate choice, made on
-the paper itself (see [Three papers](#three-papers)).
+a desktop each keep their own. There are two families: the Gazette and the Console. The
+Gazette's three papers are a separate choice, made on the paper itself (see
+[Three papers](#three-papers)), and so is the Console's era, made with a switch on the
+panel (see [The Console](#the-console)).
 
 ## The Gazette
 
@@ -436,9 +438,28 @@ Dash-Bored works without Sensor Watch; there is then no breaking news.
   is shown below it is how things stood at that time.
 - If Home Assistant refuses an action, a red line says which and why.
 
-## Bakelite
+## The Console
 
-The house as a 1950s instrument panel. It shows every kind of device the Gazette does.
+The house as a control panel, in the style of a decade. It is to have five eras, one for
+each decade from the 1950s to the 1990s. They are the same panel with the same controls
+in the same places, drawn as the equipment of their time:
+
+| Era | Decade | Stage |
+|---|---|---|
+| Bakelite | 1950s | Being built, and described below |
+| Nixie | 1960s | Not built yet |
+| Silverface | 1970s | Not built yet; the next to be built |
+| Bargraph | 1980s | Not built yet |
+| Beige | 1990s | Not built yet |
+
+The era is chosen with the rotary switch at the top right of the panel, lettered 50 to
+90: press a decade, or press the knob to step to the next. An era that is not built yet
+shows a plate saying so. The choice is remembered by the browser it was made in, as the
+family is.
+
+### Bakelite
+
+The Console of the 1950s. It shows every kind of device the Gazette does.
 
 ![Bakelite: a meter for the outside air over a chassis for each room, each with a valve, knobs and tumbler switches](../screenshots/dash-bored-bakelite.webp)
 
@@ -543,7 +564,9 @@ floors: [First floor]     # optional: show only these floors, in this order
 rooms: [Kitchen, Hall]    # optional: show only these rooms, in this order on their floor
 ```
 
-Bakelite is a card too, **Casa Mia Dash-Bored Bakelite** (`type: custom:dash-bored-bakelite`).
+The Console is a card too, **Casa Mia Dash-Bored Console** (`type: custom:dash-bored-console`),
+with its era switch. Give it `era: bakelite` and it is that era with no switch, which is
+also what **Casa Mia Dash-Bored Bakelite** (`type: custom:dash-bored-bakelite`) is.
 It takes `power`, `weather`, `floors` and `rooms` in the same way, and has no `style`.
 
 `floors` and `rooms` are for a screen that should show part of the house, such as a

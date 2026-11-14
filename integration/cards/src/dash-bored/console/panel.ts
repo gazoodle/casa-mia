@@ -329,6 +329,7 @@ export class Panel extends Family {
         ${house.outside ? meter("Outside air", -10, 30, house.outside.temp, "°C", 1, live) : nothing}
         ${[...seen.values()].filter((s) => !placed.has(s.camera)).map((s) => tv(`${s.name}: ${s.kind} ${clock(s.at)}`, s.photo ?? "", look(s.camera)))}
         ${house.scenes.length ? html`<div class="knives">${house.scenes.map((s) => knife(s.name, this._thrown === s.id, () => this._throw(s)))}</div>` : nothing}
+        <slot name="era"></slot>
       </div>
       <div class="rooms">${rooms}</div>
       ${chart}

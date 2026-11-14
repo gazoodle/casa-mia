@@ -20,19 +20,27 @@ the Gazette's own work is parked below it.
   fixed to one from its kiosk settings (offered 2026-11-14, not asked for). A scene made
   without a unique id (in YAML, or by `scene.create`) is in no registry, so no family
   shows it.
-- **The control panel's other eras** (owner, 2026-11-14; not to start until Bakelite is
-  complete). Bakelite is the 1950s of a family of control panels, one for each decade:
-  1950s, 60s, 70s, 80s and 90s. They are the same panel underneath, each with its own
-  skin and a few controls or lights of its own that mark the era: from valves to LEDs,
-  and from a phosphor oscilloscope or television for pictures to a digital panel. They
-  are to be designed with care, not rushed. Bakelite keeps its name, because it is
-  distinctive. The mock-ups Board (1984) and Scope (1970s) are likely starting points.
-  The 1970s come next and the 1960s are skipped for now (owner, 2026-11-14). Its guarded
-  switches are chrome toggle switches under red flip-up covers, each with a pilot lamp,
-  after a picture the owner gave. Its design is to be agreed with him before any of it
-  is drawn, and its name before any code.
-  How it would be built: another kit and stylesheet over `bakelite.ts`'s panel, as a new
-  paper is another voice for the Gazette (my reading, not yet agreed).
+- **The Console's other eras** (owner, 2026-11-14). The Console is the family and its
+  eras are Bakelite (1950s, built), Nixie (1960s), Silverface (1970s), Bargraph (1980s)
+  and Beige (1990s). They are the same panel underneath (`console/panel.ts`), each with
+  its own kit and stylesheet and a few controls or lights that mark its time: from valves
+  to LEDs, and from a phosphor oscilloscope or television to a digital panel. They are
+  to be designed with care, and each design agreed with the owner before it is drawn.
+  The era switch is in (2026.11.8-b32) and shows the unbuilt ones as not built yet; it
+  is drawn one way for every era, not in each era's own style.
+  - **Silverface is next**, the 1960s being skipped for now. Agreed 2026-11-14: brushed
+    aluminium faceplates with black screen-printed legends and teak cheeks; a row of red
+    LEDs for a room's lights; rectangular meters with a backlit blue-green face; machined
+    aluminium knobs with a coloured cap for the kind; chrome bat-handle toggles, and for
+    the guarded kinds the same toggle under a red flip-up cover with a red pilot lamp
+    (after the owner's picture); square illuminated push buttons for scenes; annunciator
+    tiles for alerts; black plastic thumbwheels for the alarm; red seven-segment digits
+    for a setting; a colour television for a camera; a green-phosphor oscilloscope for a
+    room's day. Helvetica capitals.
+  - Kept for Bargraph: LED bar graphs, fluorescent displays, membrane keys. Kept for
+    Nixie: nixie tubes.
+  - The sizes `console/balance.ts` counts on are Bakelite's; an era with other sizes
+    needs its own.
 - **Fridge** (asked 2026-11-13): the family after Bakelite. It needs drawn magnets in
   place of the mock-up's emoji, and could use each area's own picture for its polaroid.
 

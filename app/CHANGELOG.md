@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.8-b32
+
+- **Dash-Bored: Bakelite is now the first era of a family, the Console.** The Console is the house as a control panel in the style of a decade: Bakelite (1950s), Nixie (1960s), Silverface (1970s), Bargraph (1980s) and Beige (1990s). Only Bakelite is built. A rotary switch at the top right of the panel chooses the era, and an era that is not built yet says so. A browser that had chosen Bakelite opens the Console at Bakelite.
+- The Console is a card too, **Casa Mia Dash-Bored Console** (`custom:dash-bored-console`). The Bakelite card is unchanged.
+
 ## 2026.11.8-b31
 
 - **Dash-Bored: Bakelite's panel is split from its look.** What the panel does has moved to one place and what Bakelite draws to another, ready for the panel's other eras. Nothing on the page has changed.

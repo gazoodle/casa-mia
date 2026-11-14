@@ -271,8 +271,11 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   gallery; `house.js` the house). The owner chose three families to build out: Gazette,
   Bakelite and Fridge, in that order, for the family first and the community after.
   Movement (a watch movement in three.js) and Contraption are the showpieces, not built.
-  Bakelite is to be the 1950s of a family of control panels, a decade each to the 1990s
-  (owner, 2026-11-14; in BACKLOG). Why: they are the same panel in different skins, as
+  Bakelite is the 1950s of a family of control panels, the **Console**, a decade each
+  to the 1990s: Bakelite, Nixie, Silverface, Bargraph, Beige (names agreed with the
+  owner, 2026-11-14). `console/host.ts` is the family's element and its era switch
+  (`ERAS`); an era is an element on `console/panel.ts`, shown in the host with the
+  switch in its `era` slot. Silverface is next, to the design agreed that day (BACKLOG). Why: they are the same panel in different skins, as
   the Gazette's papers are. Bakelite is completed first and keeps its name.
 - **The page and the families** (2026.11.8-b23). The sidebar's page (`panel_custom`, not in
   a frame, for every user) is `dash-bored-page` (`shell.ts`). It shows one family's
