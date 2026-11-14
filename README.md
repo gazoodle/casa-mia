@@ -26,6 +26,11 @@ documentation.
 <p>A view type for wall tablets. It's Home Assistant's Sections view fitted to the screen: it never scrolls, and the panels resize as cards appear and disappear.</p>
 </td>
 <td width="25%" valign="top">
+<h4><a href="docs/applets/dash-bored.md">Dash-Bored</a> <a href="docs/README.md#maturity"><img src="docs/maturity/development.svg" alt="In development" align="absmiddle"></a><!--dash_bored--></h4>
+<a href="docs/applets/dash-bored.md"><img src="docs/screenshots/dash-bored-gazette.webp" alt="Dash-Bored's Gazette: the house as a broadsheet newspaper, leading on a boiler fault, with the rooms' devices in its columns" width="100%"></a>
+<p>Yet another dashboard designer: eighteen ways of controlling the same house, from a newspaper to a 1950s instrument panel. Two are being built and the rest are mock-ups.</p>
+</td>
+<td width="25%" valign="top">
 <h4><a href="docs/tablet-layout.md#showing-and-hiding">Garnish</a> <a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta" align="absmiddle"></a><!--garnish--></h4>
 <a href="docs/tablet-layout.md#showing-and-hiding"><img src="docs/screenshots/tablet-layout-garnish.webp" alt="A Warnings heading marked as garnish over a Door tile, in edit mode" width="100%"></a>
 <p>Mark a section's heading as garnish and it no longer keeps an otherwise empty section on screen. Works on any Sections dashboard.</p>
@@ -35,13 +40,13 @@ documentation.
 <a href="docs/over-layer.md"><img src="docs/screenshots/over-layer.webp" alt="An alarm panel card over a dashboard of lights, locks and temperatures, which shows through dimmed" width="100%"></a>
 <p>One card shown over a whole dashboard while its conditions hold, such as the alarm's keypad while it's armed. The dashboard can be seen underneath, but not used.</p>
 </td>
+</tr>
+<tr>
 <td width="25%" valign="top">
 <h4><a href="docs/heating-flow.md">Heating Flow card</a></h4>
 <a href="docs/heating-flow.md"><img src="docs/screenshots/heating-flow.webp" alt="The Heating Flow card's System view: source, heat pump, hot water tank and heating" width="100%"></a>
 <p>A card that draws your heating and hot water as a diagram. Pipe colour shows temperature and moving markers show flow.</p>
 </td>
-</tr>
-<tr>
 <td width="25%" valign="top">
 <h4><a href="docs/applets/sensor-watch.md">Sensor Watch</a> <a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta" align="absmiddle"></a><!--sensor_watch--></h4>
 <a href="docs/applets/sensor-watch.md"><img src="docs/screenshots/sensor-watch-detail.webp" alt="Watched sensors, each with its level, value and message: an error, a warning and three tasks under Needs attention, above the nominal ones" width="100%"></a>
@@ -57,13 +62,13 @@ documentation.
 <a href="docs/applets/sensor-watch.md#the-eye-in-an-entitys-dialog"><img src="docs/screenshots/sensor-watch-eye-detail.webp" alt="An entity's dialog in Home Assistant with Sensor Watch's eye at the top, in amber with WARNING beside it" width="100%"></a>
 <p>An eye in every entity's Home Assistant dialog shows whether it's watched and how it is. Tap it to open the watch, or start one.</p>
 </td>
+</tr>
+<tr>
 <td width="25%" valign="top">
 <h4><a href="docs/applets/guest-login.md">Guest login</a> <a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta" align="absmiddle"></a><!--guest_login--></h4>
 <a href="docs/applets/guest-login.md"><img src="docs/screenshots/guest-card.webp" alt="A printable guest card: join the Wi-Fi, then scan to sign in" width="100%"></a>
 <p>A QR code signs a guest into their own dashboard without typing a password. Each code can be opened and closed by hand or by an automation.</p>
 </td>
-</tr>
-<tr>
 <td width="25%" valign="top">
 <h4><a href="docs/applets/guest-login.md#the-qr-code-card">QR code card</a></h4>
 <a href="docs/applets/guest-login.md#the-qr-code-card"><img src="docs/screenshots/qr-code-card-detail.webp" alt="The QR code card on a dashboard: Welcome, the code, and Scan to sign in with the endpoint's name" width="100%"></a>
@@ -79,13 +84,13 @@ documentation.
 <a href="docs/applets/camera-compositor.md"><img src="docs/screenshots/camera-compositor-detail.webp" alt="The Camera compositor's CPU, memory, network and bottleneck graphs" width="100%"></a>
 <p>Draws each commander on the Home Assistant box, so a wall tablet plays one stream instead of one per camera.</p>
 </td>
+</tr>
+<tr>
 <td width="25%" valign="top">
 <h4><a href="docs/applets/cameras.md">Cameras</a> <a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha" align="absmiddle"></a><!--cameras--></h4>
 <a href="docs/applets/cameras.md"><img src="docs/screenshots/cameras-detail.webp" alt="The Cameras page: each camera with its picture, channels, motion sensor and its Motion detection switch" width="100%"></a>
 <p>Choose which of Home Assistant's cameras Casa Mia uses, with their names, streams and controls.</p>
 </td>
-</tr>
-<tr>
 <td width="25%" valign="top">
 <h4><a href="docs/applets/auto-dashboards.md">Auto Dashboards</a> <a href="docs/README.md#maturity"><img src="docs/maturity/development.svg" alt="In development" align="absmiddle"></a><!--auto_dashboards--></h4>
 <a href="docs/applets/auto-dashboards.md"><img src="docs/screenshots/dashboard-security-look.webp" alt="The camera dashboard made by Auto Dashboards, in the commander's Security look" width="100%"></a>
@@ -101,13 +106,13 @@ documentation.
 <a href="docs/run-the-house-from-your-desk.md"><img src="docs/screenshots/kiosk-remote.webp" alt="A tablet's live screen in Casa Mia, showing Android's Display settings, with the Back, Home, Recents, Android Settings, 1:1, Full window and End remote control buttons" width="100%"></a>
 <p>With droidVNC-NG on each tablet, you can see and use any tablet's screen from the Kiosk Satellites page, at home or away.</p>
 </td>
+</tr>
+<tr>
 <td width="25%" valign="top">
 <h4><a href="docs/applets/firmware-server.md">Firmware server</a> <a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta" align="absmiddle"></a><!--gitproxy--></h4>
 <a href="docs/applets/firmware-server.md"><img src="docs/screenshots/firmware-detail.webp" alt="The Firmware server's mirrored Kiosk Satellite releases" width="100%"></a>
 <p>Mirrors Kiosk Satellite's releases and serves them to your tablets locally, so they can update without the internet.</p>
 </td>
-</tr>
-<tr>
 <td width="25%" valign="top">
 <h4><a href="docs/applets/kiosk-mode.md">Kiosk mode</a> <a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha" align="absmiddle"></a><!--kiosk_mode--></h4>
 <a href="docs/applets/kiosk-mode.md"><img src="docs/screenshots/kiosk-mode-detail.webp" alt="The Kiosk mode grid: what a dashboard hides from everyone, non-admins and admins" width="100%"></a>
@@ -123,13 +128,13 @@ documentation.
 <a href="docs/README.md#working-together"><img src="docs/screenshots/reload-toast-detail.webp" alt="Home Assistant's toast saying Casa Mia updated to 2026.10.12: reload to use it, with a Reload button" width="100%"></a>
 <p>After an update, a page that's been open all along offers a Reload, and wall tablets reload by themselves.</p>
 </td>
+</tr>
+<tr>
 <td width="25%" valign="top">
 <h4><a href="docs/applets/home.md">The Casa Mia panel</a></h4>
 <a href="docs/applets/home.md"><img src="docs/screenshots/home-detail.webp" alt="The Casa Mia panel's tiles, one per module, each with its state" width="100%"></a>
 <p>Casa Mia's page in Home Assistant's sidebar, with a tile per module showing whether it's working. It works wherever Home Assistant does.</p>
 </td>
-</tr>
-<tr>
 <td width="25%" valign="top">
 <h4><a href="docs/applets/people.md">People</a> <a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha" align="absmiddle"></a><!--people--></h4>
 <a href="docs/applets/people.md"><img src="docs/screenshots/people-detail.webp" alt="The People list: who may call and text the house" width="100%"></a>
@@ -145,12 +150,12 @@ documentation.
 <a href="docs/applets/alarm-panel.md"><img src="docs/screenshots/alarm-panel-detail.webp" alt="The Alarm panel tile: Running, in the integration so it stays up while the app restarts" width="100%"></a>
 <p>An intruder alarm as a Home Assistant alarm panel that refuses to work until it has a code. Built for my house; you probably don't need it.</p>
 </td>
+</tr>
+<tr>
 <td width="25%" valign="top">
 <h4><a href="docs/applets/intercom.md">Intercom</a> <a href="docs/README.md#maturity"><img src="docs/maturity/development.svg" alt="In development" align="absmiddle"></a><!--intercom--></h4>
 <p>One call per doorbell that every screen agrees on: whoever talks first answers, nobody else can talk over them, and a forgotten tablet hangs up by itself.</p>
 </td>
-</tr>
-<tr>
 <td width="25%" valign="top">
 <h4><a href="docs/applets/protect-talkback.md">UniFi Protect talkback</a> <a href="docs/README.md#maturity"><img src="docs/maturity/alpha.svg" alt="Alpha" align="absmiddle"></a><!--protect_talkback--></h4>
 <p>Talk through UniFi Protect doorbells from Home Assistant, by patching its go2rtc until Home Assistant can do it itself.</p>
@@ -165,6 +170,8 @@ documentation.
 <a href="docs/applets/love-or-loathe.md#the-thumbs-card"><img src="docs/screenshots/love-or-loathe-thumbs-card.webp" alt="Media players on a dashboard, each with thumbs cards: a thumb up lit green for a song Ann loves, a thumb down lit red for one Ben loathes" width="100%"></a>
 <p>A thumb up and a thumb down for the song that is playing, for each person you choose. The song is loved or loathed from then on.</p>
 </td>
+</tr>
+<tr>
 <td width="25%" valign="top">
 <h4><a href="docs/applets/love-or-loathe.md#the-thumbs-in-a-media-players-own-dialog">Thumbs on every player</a></h4>
 <a href="docs/applets/love-or-loathe.md#the-thumbs-in-a-media-players-own-dialog"><img src="docs/screenshots/love-or-loathe-thumbs-dialog.webp" alt="A media player's dialog in Home Assistant with a lit thumb up and a thumb down in its header" width="100%"></a>

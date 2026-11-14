@@ -1,14 +1,133 @@
-# Dash-Bored
+# Dash-Bored — YADD
 
-A dashboard that writes itself from the house Home Assistant already knows, in a style
-you might enjoy looking at. There are two styles so far, called families: the Gazette,
-which shows the house as a newspaper, and Bakelite, which shows it as a 1950s instrument
-panel.
+**Yet Another Dashboard Designer**
 
 > **Maturity: In development.** Being built: parts work, it changes often, and an update may break it. For the curious. ([The levels](../README.md#maturity))
 
-Dash-Bored is an integration of its own. It needs neither the Casa Mia app nor the Casa
-Mia integration.
+> **This is a work in progress.** Of the eighteen, one runs in Home Assistant today (the
+> Gazette) and a second is about half built (Bakelite). The other sixteen are mock-ups:
+> designs that work against an invented house but don't talk to Home Assistant yet. They
+> are being built one at a time, and what is here changes often.
+
+Aren't you bored with the endless proliferation of Home Assistant dashboards being churned
+out by AI? Often by well-meaning folk, mostly similar, all beautiful, but sadly forgettable
+in today's ecosystem.
+
+I was.
+
+But taking the pee is much more fun than shouting into the wind.
+
+So I decided to have some fun.
+
+Eighteen wildly different ways of controlling the same house. From a mechanical watch
+movement to a Heath Robinson contraption, a 1980s circuit board, a railway departures
+board, a modular synthesiser, and even a newspaper that reports on the goings-on in your
+house.
+
+Some are beautiful. Some are bonkers. A few might actually be useful.
+
+And they're not just pictures. The switches switch, the levers lever, the lights light, and
+the house responds.
+
+It's free, it's open source, and there's no business model lurking behind it.
+
+Dash-Bored. Because the world clearly needed another dashboard designer.
+
+Part of Casa Mia.
+
+Dash-Bored is an integration of its own. It installs without the Casa Mia app and without
+the Casa Mia integration.
+
+## The eighteen, and where each has got to
+
+The first two can be used. The pictures of the others are of their mock-ups.
+
+<table>
+<tr>
+<td width="33%" valign="top">
+<a href="#the-gazette"><img src="../screenshots/dash-bored-gazette.webp" alt="Gazette" width="100%"></a>
+<p><b><a href="#the-gazette">Gazette</a></b> · Being built<br>The house as a newspaper. Stories are ranked, so what matters most leads; a Sensor Watch alert is breaking news. Three papers from the same stories: a broadsheet, a red-top and a rolling news channel. One column on a phone.</p>
+</td>
+<td width="33%" valign="top">
+<a href="#bakelite"><img src="../screenshots/dash-bored-bakelite.webp" alt="Bakelite" width="100%"></a>
+<p><b><a href="#bakelite">Bakelite</a></b> · Being built: lights, switches and scenes so far<br>A 1950s instrument panel: glowing valves, moving-coil meters, fluted dimmer knobs, tumbler switches and knife switches for scenes.</p>
+</td>
+<td width="33%" valign="top">
+<img src="../screenshots/dash-bored-mock-calibre.webp" alt="Calibre, as a mock-up" width="100%">
+<p><b>Calibre</b> · Mock-up<br>A watch movement. Each room is a bridge wound open by a pinion and rack, the going train runs faster as the house draws more, and a lever escapement ticks while data is fresh.</p>
+</td>
+</tr>
+<tr>
+<td width="33%" valign="top">
+<img src="../screenshots/dash-bored-mock-contraption.webp" alt="Contraption, as a mock-up" width="100%">
+<p><b>Contraption</b> · Mock-up<br>A Heath Robinson apparatus in pen and wash. Pull a lever and a rope lifts a boot, a kipper or a small anvil off a candle to light the room.</p>
+</td>
+<td width="33%" valign="top">
+<img src="../screenshots/dash-bored-mock-aurora.webp" alt="Aurora, as a mock-up" width="100%">
+<p><b>Aurora</b> · Mock-up<br>Current web style: glass tiles in a bento grid over a sky that warms as lights come on. A room tile grows into a sheet of faders.</p>
+</td>
+<td width="33%" valign="top">
+<img src="../screenshots/dash-bored-mock-pcb.webp" alt="Board, as a mock-up" width="100%">
+<p><b>Board</b> · Mock-up<br>A 1984 circuit board. Starburst and seven-segment LED displays, DIP switches for devices and traces that carry a signal while a room is on.</p>
+</td>
+</tr>
+<tr>
+<td width="33%" valign="top">
+<img src="../screenshots/dash-bored-mock-movement.webp" alt="Movement, as a mock-up" width="100%">
+<p><b>Movement</b> · Mock-up<br>A watch movement that fills the screen, rendered as real 3D metal under one lamp. A going train, lever and balance run across the middle; each room is a bridge, with screws for switches and jewels for pilot lamps.</p>
+</td>
+<td width="33%" valign="top">
+<img src="../screenshots/dash-bored-mock-dusk.webp" alt="Dusk, as a mock-up" width="100%">
+<p><b>Dusk</b> · Mock-up<br>A storybook picture of the house from the garden. Lit rooms have glowing windows, curtains draw, the door stands ajar when unlocked, and the sky follows the time of day.</p>
+</td>
+<td width="33%" valign="top">
+<img src="../screenshots/dash-bored-mock-fridge.webp" alt="Fridge, as a mock-up" width="100%">
+<p><b>Fridge</b> · Mock-up<br>The fridge door: a polaroid per room, button magnets for devices, a notepad of the day's facts and fridge-poetry words for scenes.</p>
+</td>
+</tr>
+<tr>
+<td width="33%" valign="top">
+<img src="../screenshots/dash-bored-mock-levers.webp" alt="Lever Frame, as a mock-up" width="100%">
+<p><b>Lever Frame</b> · Mock-up<br>A railway signal box: an illuminated diagram, block instruments for temperature and a frame of coloured levers to pull.</p>
+</td>
+<td width="33%" valign="top">
+<img src="../screenshots/dash-bored-mock-patchbay.webp" alt="Patch Bay, as a mock-up" width="100%">
+<p><b>Patch Bay</b> · Mock-up<br>A modular synthesiser. Knobs for lights, toggles for switches, and scenes patched to rooms with hanging cables.</p>
+</td>
+<td width="33%" valign="top">
+<img src="../screenshots/dash-bored-mock-departures.webp" alt="Departures, as a mock-up" width="100%">
+<p><b>Departures</b> · Mock-up<br>A split-flap station board that turns through every letter to reach the new state.</p>
+</td>
+</tr>
+<tr>
+<td width="33%" valign="top">
+<img src="../screenshots/dash-bored-mock-cutaway.webp" alt="Cutaway, as a mock-up" width="100%">
+<p><b>Cutaway</b> · Mock-up<br>A blueprint section through the house. Lit rooms fill with warm light; fittings are numbered as on a drawing.</p>
+</td>
+<td width="33%" valign="top">
+<img src="../screenshots/dash-bored-mock-orrery.webp" alt="Orrery, as a mock-up" width="100%">
+<p><b>Orrery</b> · Mock-up<br>Rooms as planets and devices as moons, on brass arms around a sun that grows with the power drawn.</p>
+</td>
+<td width="33%" valign="top">
+<img src="../screenshots/dash-bored-mock-scope.webp" alt="Scope, as a mock-up" width="100%">
+<p><b>Scope</b> · Mock-up<br>A 1970s bench oscilloscope. Each room is a channel: its temperature history as a phosphor trace, its lights as a square wave, with rotary switches for the time base and scale.</p>
+</td>
+</tr>
+<tr>
+<td width="33%" valign="top">
+<img src="../screenshots/dash-bored-mock-textmode.webp" alt="Text Mode, as a mock-up" width="100%">
+<p><b>Text Mode</b> · Mock-up<br>An 80 by 25 character worksheet driven from the keyboard, on a choice of four tubes: business blue, green, amber and white phosphor.</p>
+</td>
+<td width="33%" valign="top">
+<img src="../screenshots/dash-bored-mock-arcade.webp" alt="Arcade, as a mock-up" width="100%">
+<p><b>Arcade</b> · Mock-up<br>A fixed-shooter cabinet. Devices hang in formation by room; aim and fire to switch one.</p>
+</td>
+<td width="33%" valign="top">
+<img src="../screenshots/dash-bored-mock-maze.webp" alt="Moth, as a mock-up" width="100%">
+<p><b>Moth</b> · Mock-up<br>The house as a maze. Press a lamp and a moth flies to it through the doorways and switches it.</p>
+</td>
+</tr>
+</table>
 
 ## Setting it up
 
@@ -37,6 +156,8 @@ a desktop each keep their own. The Gazette's three papers are a separate choice,
 the paper itself (see [Three papers](#three-papers)).
 
 ## The Gazette
+
+![The Gazette's broadsheet: a boiler fault leads, with the rooms' devices in the columns below it and the other news, the late news and the weather beside](../screenshots/dash-bored-gazette.webp)
 
 The page works out what is worth saying about the house and puts the most important
 thing at the top:
@@ -320,6 +441,8 @@ Dash-Bored works without Sensor Watch; there is then no breaking news.
 The house as a 1950s instrument panel. It is in its first form and shows less of the house
 than the Gazette does.
 
+![Bakelite: a meter for the outside air over a chassis for each room, each with a valve, knobs and tumbler switches](../screenshots/dash-bored-bakelite.webp)
+
 Along the top are a meter for the outside air, from a weather entity, a meter for the
 house's power if a card names a power sensor, and a knife switch for each scene. Press a
 knife switch and the scene is turned on; the blade closes for a moment and opens again.
@@ -389,4 +512,4 @@ On a phone, or in a narrow column, the paper is a single column.
 
 - The order of the devices in a room.
 - Changing the wording, and other languages. The text is English only.
-- More styles. The Gazette is the first.
+- The rest of Bakelite, and the sixteen styles that are still mock-ups (see the list at the top).

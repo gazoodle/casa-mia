@@ -33,7 +33,7 @@ Each page of the Casa Mia panel in Home Assistant's sidebar.
 - [Intercom](applets/intercom.md): A call for each doorbell, shared by every screen in the house, so only one person talks to the door at a time.
 - [UniFi Protect talkback](applets/protect-talkback.md): Talk through UniFi Protect doorbells and cameras from Home Assistant.
 - [Love it or Loathe it](applets/love-or-loathe.md): Boosts the volume for a song you love, and changes the radio station for one you loathe.
-- [Dash-Bored](applets/dash-bored.md): A dashboard that writes itself from your areas and devices. Its first style shows the house as a newspaper.
+- [Dash-Bored](applets/dash-bored.md): A dashboard that writes itself from your areas and devices, in eighteen styles. A newspaper and a 1950s instrument panel are being built, and the rest are mock-ups.
 
 ## Maturity
 
