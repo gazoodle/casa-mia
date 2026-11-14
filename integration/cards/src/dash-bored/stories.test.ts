@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { read, survey } from "./house.ts";
-import { RECOVERED, flip, setting, stories, type Alert } from "./stories.ts";
-import { VOICES, clause, poll, tell, words } from "./voices.ts";
+import { RECOVERED, flip, personal, setting, stories, type Alert } from "./stories.ts";
+import { VOICES, announce, clause, poll, tell, words } from "./voices.ts";
 
 // An invented house, as Home Assistant's page would hold it.
 const state = (value: string, attributes: Record<string, unknown> = {}) => ({ state: value, attributes, last_changed: "2026-11-13T18:00:00Z" });
@@ -16,7 +16,7 @@ function hass(over: Record<string, ReturnType<typeof state>> = {}) {
     "lock.front_door": state("locked", { friendly_name: "Front door" }),
     "cover.garage": state("closed", { friendly_name: "Garage door", device_class: "garage" }),
     "light.hidden": state("on", { friendly_name: "Hidden" }),
-    "climate.kitchen": state("heat", { temperature: 21, current_temperature: 19.5 }),
+    "climate.kitchen": state("heat", { friendly_name: "Kitchen Thermostat", temperature: 21, current_temperature: 19.5 }),
     "sensor.kitchen_temp": state("19.6"),
     "scene.evening": state("unknown", { friendly_name: "Evening" }),
     "weather.home": state("cloudy", { temperature: 9.3, humidity: 81 }),
@@ -46,7 +46,7 @@ test("the house is read from areas, with names shortened and settings left out",
   const h = house();
   assert.deepEqual(h.rooms.map((r) => r.name), ["Hall", "Kitchen"]);
   const kitchen = h.rooms[1];
-  assert.deepEqual(kitchen.devices.map((d) => [d.name, d.kind, d.on, d.level]), [["Ceiling", "light", true, 80], ["Counter", "light", false, undefined], ["Kettle", "switch", true, undefined]]);
+  assert.deepEqual(kitchen.devices.map((d) => [d.name, d.kind, d.on, d.level]), [["Thermostat", "climate", true, 21], ["Ceiling", "light", true, 80], ["Counter", "light", false, undefined], ["Kettle", "switch", true, undefined]]);
   assert.equal(kitchen.temp, 19.6);
   assert.equal(kitchen.target, 21);
   assert.deepEqual(h.scenes, [{ id: "scene.evening", name: "Evening" }]);
@@ -150,7 +150,7 @@ test("every voice can tell every story and describe every device, with nothing l
 });
 
 test("a name with an owner takes no article, and a plural before a dash is still plural", () => {
-  const device = (name: string, kind: "light" | "cover") => ({ id: "x", name, kind, on: true, dims: false, away: false, since: 0, guarded: false, room: "Den" });
+  const device = (name: string, kind: "light" | "cover") => ({ id: "x", name, kind, on: true, dims: false, span: { min: 0, max: 100, step: 1, vote: 10 }, away: false, since: 0, guarded: false, room: "Den" });
   assert.equal(words(VOICES.broadsheet, device("Ann's lamp", "light")), "ann's lamp is lit");
   assert.equal(words(VOICES.broadsheet, device("Blinds - left", "cover")), "the blinds - left are open");
 });
@@ -161,7 +161,7 @@ test("a level can be set on a dimmable light and a cover that takes a position, 
     "light.kitchen_counter": state("off", { friendly_name: "Kitchen Counter", supported_color_modes: ["onoff"] }),
     "cover.garage": state("open", { friendly_name: "Garage door", device_class: "garage", supported_features: 15, current_position: 100 }),
   });
-  const [ceiling, counter] = h.rooms[1].devices;
+  const [ceiling, counter] = h.rooms[1].devices.filter((d) => d.kind === "light");
   assert.deepEqual([ceiling.dims, counter.dims, h.rooms[0].devices[0].dims], [true, false, false]);
 
   // The level is the clause's own piece, in each paper's way of saying it.
@@ -179,8 +179,71 @@ test("a level can be set on a dimmable light and a cover that takes a position, 
 
 test("a device is put the other way by its own kind of call, and every paper has a word for each", () => {
   const [garage, front] = house().rooms[0].devices;
-  const [ceiling, counter] = house().rooms[1].devices;
+  const [ceiling, counter] = house().rooms[1].devices.filter((d) => d.kind === "light");
   assert.deepEqual([front, garage, ceiling, counter].map((d) => flip(d).service), ["unlock", "open_cover", "turn_off", "turn_on"]);
   assert.deepEqual(flip({ ...front, on: false }), { domain: "lock", service: "lock", ids: ["lock.front_door"] });
   for (const voice of Object.values(VOICES)) for (const kind of ["light", "switch", "cover", "lock"]) for (const state of ["on", "off"]) assert.ok(voice.acts[`${kind}.${state}`]);
+});
+
+test("a thermostat, a player and a camera are devices in their rooms, each with its own level and calls", () => {
+  const h = hass({
+    "climate.kitchen": state("heat", { friendly_name: "Kitchen Thermostat", temperature: 21, current_temperature: 19.5, supported_features: 1, min_temp: 7, max_temp: 30 }),
+    "media_player.kitchen": state("playing", { friendly_name: "Kitchen Radio", volume_level: 0.4, supported_features: 4, media_title: "Night Train", media_artist: "The Sleepers" }),
+    "camera.kitchen": state("idle", { friendly_name: "Kitchen Camera", entity_picture: "/api/camera_proxy/camera.kitchen?token=x" }),
+  });
+  for (const id of ["media_player.kitchen", "camera.kitchen"]) (h.entities as Record<string, object>)[id] = { entity_id: id, area_id: "kitchen" };
+  const kitchen = read(survey(h, {}), h).rooms[1];
+  const by = Object.fromEntries(kitchen.devices.map((d) => [d.kind, d]));
+
+  assert.deepEqual([by.climate.name, by.climate.on, by.climate.level, by.climate.temp, by.climate.dims], ["Thermostat", true, 21, 19.5, true]);
+  assert.deepEqual(by.climate.span, { min: 7, max: 30, step: 0.5, vote: 0.5 });
+  assert.deepEqual(clause(VOICES.broadsheet, by.climate), ["the thermostat is set to ", "21°", ""]);
+  assert.deepEqual(setting(by.climate, 20.5), { domain: "climate", service: "set_temperature", ids: ["climate.kitchen"], data: { temperature: 20.5 } });
+  // The room's own temperature still comes from its sensor, and its target from the thermostat.
+  assert.deepEqual([kitchen.temp, kitchen.target], [19.6, 21]);
+
+  assert.deepEqual([by.media_player.name, by.media_player.on, by.media_player.level, by.media_player.title, by.media_player.span.vote], ["Radio", true, 40, "Night Train, The Sleepers", 5]);
+  assert.equal(words(VOICES.tabloid, by.media_player), "radio BLARING at 40%");
+  assert.deepEqual(setting(by.media_player, 35).data, { volume_level: 0.35 });
+  assert.equal(flip(by.media_player).service, "media_pause");
+
+  assert.deepEqual([by.camera.on, by.camera.dims, by.camera.picture], [false, false, "/api/camera_proxy/camera.kitchen?token=x"]);
+  assert.equal(words(VOICES.broadsheet, by.camera), "the camera keeps watch");
+  assert.equal(words(VOICES.broadsheet, { ...by.camera, name: "Entrance" }), "the entrance camera keeps watch");
+  // Every paper words every kind, on and off, and has a poll for each that has a level.
+  for (const voice of Object.values(VOICES)) {
+    // A camera is never on.
+    for (const d of kitchen.devices) for (const on of d.kind === "camera" ? [false] : [true, false]) assert.ok(words(voice, { ...d, on }), `${d.kind} ${on}`);
+    for (const kind of ["climate", "media_player"] as const) assert.ok(poll(voice, { ...by[kind], kind }).ask);
+  }
+});
+
+test("the Personal column: each person's latest coming or going and the songs rated, newest first, for twelve hours", () => {
+  const person = (place: string, at: string, friendly_name: string) => ({ state: place, attributes: { friendly_name }, last_changed: at });
+  const h = hass({
+    "person.ann": person("home", "2026-11-13T18:02:00Z", "Ann"),
+    "person.ben": person("not_home", "2026-11-13T08:15:00Z", "Ben"),
+    "person.cat": person("Work", "2026-11-13T09:00:00Z", "Cat"),
+    "person.dan": person("unknown", "2026-11-13T17:00:00Z", "Dan"),
+  });
+  for (const id of ["person.ann", "person.ben", "person.cat", "person.dan"]) (h.entities as Record<string, object>)[id] = { entity_id: id };
+  const people = read(survey(h, {}), h).people;
+  assert.deepEqual(people.map((p) => p.name), ["Ann", "Ben", "Cat"]);
+
+  const at = (time: string) => Date.parse(time) / 1000;
+  const rated = [
+    { kind: "love" as const, name: "Ann", title: "Night Train", artist: "The Sleepers", at: at("2026-11-13T18:30:00Z") },
+    { kind: "loathe" as const, name: "Ben", title: "Old Song", artist: "", at: at("2026-11-13T12:00:00Z") },
+  ];
+  // At 19:00 Ben's leaving at 08:15 is nearly eleven hours old, and still in; at 21:00 it has gone.
+  const column = personal(people, rated, Date.parse("2026-11-13T19:00:00Z"));
+  assert.deepEqual(column.map((n) => announce(VOICES.broadsheet, n)), [
+    "Ann wishes it known that “Night Train” by The Sleepers is greatly to their liking.",
+    "Ann has arrived home.",
+    "Ben begs that “Old Song” be played no more.",
+    "Cat has arrived at Work.",
+    "Ben has left the house.",
+  ]);
+  assert.equal(personal(people, rated, Date.parse("2026-11-13T21:00:00Z")).length, 3);
+  for (const voice of Object.values(VOICES)) for (const n of column) assert.ok(announce(voice, n));
 });

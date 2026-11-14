@@ -102,6 +102,7 @@ export const STYLES = css`
   .below { grid-column: 1 / -1; height: 21px; padding: 5px 20px 0; border-top: 2px solid var(--ink); font: 900 28px/1 var(--head); white-space: nowrap; }
   .cutting .title { margin: 0 0 6px; font: 900 32px/1.02 var(--head); text-wrap: balance; overflow-wrap: anywhere; }
   .cutting .deck { font-size: 17px; }
+  .cutting .still { display: block; width: 100%; margin: 0 0 12px; border: 1px solid var(--ink); filter: grayscale(1) contrast(1.15); }
   .cutting .act { margin: 0 0 12px; }
   .act.sure { background: var(--flash); color: #fff; border-color: var(--flash); }
   .cutting .scale > button { display: none; }
@@ -168,7 +169,7 @@ export const STYLES = css`
   [data-style="tabloid"] .deck { font: 800 22px/1.15 inherit; }
   [data-style="tabloid"] .figure { border: 0; color: #fff; rotate: 2deg; width: 120px; background: radial-gradient(#fff3 1.2px, transparent 1.6px) 0 0 / 6px 6px, #111; }
   [data-style="tabloid"] .photo img { filter: none; border: 4px solid #111; }
-  [data-style="tabloid"] .archive img { filter: none; }
+  [data-style="tabloid"] .archive img, [data-style="tabloid"] .cutting .still { filter: none; }
   [data-style="tabloid"] .photo figcaption { font: 700 11px/1.3 system-ui, sans-serif; text-transform: uppercase; letter-spacing: .06em; }
   [data-style="tabloid"] .figure b { font: 400 36px/1 var(--head); color: var(--mark); }
   [data-style="tabloid"] .act { background: var(--flash); color: #fff; border: 0; font-weight: 900; font-style: italic; padding: 7px 14px; }

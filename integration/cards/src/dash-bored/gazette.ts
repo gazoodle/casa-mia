@@ -9,13 +9,14 @@ import { fire, navigate, type Hass } from "../ha.ts";
 import { clipping, type Open } from "./clipping.ts";
 import { read, sighted, survey, type Device, type House, type Options, type Room, type Seen, type Sighting, type Survey } from "./house.ts";
 import { recorded } from "./record.ts";
-import { NOMINAL, RECOVERED, cap, clock, counted, flavourOf, flip, setting, stories, type Alert, type Press, type Story } from "./stories.ts";
+import { NOMINAL, RECOVERED, cap, clock, counted, flavourOf, flip, personal, setting, stories, type Alert, type Press, type Rated, type Story } from "./stories.ts";
 import { STYLES } from "./styles.ts";
-import { FIXES, VOICES, clause, fill, percent, poll, tell, wired, words, type Told } from "./voices.ts";
+import { FIXES, VOICES, amount, announce, clause, fill, poll, tell, wired, words, type Told } from "./voices.ts";
 
 export const CARD = "dash-bored-gazette";
 const ALERTS = "casa_mia_dash_bored/alerts"; // the integration's feeds: Sensor Watch's alerts (alerts.py)
-const SIGHTINGS = "casa_mia_dash_bored/sightings"; // and what the cameras have seen (sightings.py)
+const SIGHTINGS = "casa_mia_dash_bored/sightings"; // what the cameras have seen (sightings.py)
+const PERSONAL = "casa_mia_dash_bored/personal"; // and the songs people have rated (personal.py)
 const ARCHIVE = 30 * 60_000; // ms: how far back the column of past sightings goes
 const PAST = 10; // and how many of them it lists
 const REMEMBERED = "dash-bored-style"; // this browser's choice of paper
@@ -37,16 +38,23 @@ function masthead() {
 // not answering, and its switchboard, which still has everything, goes across the foot.
 const BIG = 30;
 const MANY = 3; // more lights lit in one of its rooms than this are a count, not a list
-const VOTE = 10; // per cent: what one vote in a level's poll moves it by
 const ARMED = 6000; // ms: how long a first press to unlock or open waits for its second
 const SETTLE = 350; // ms: a level on the scale is asked for once it has been still this long
-const notable = (d: Device) => d.away || (d.kind === "lock" ? !d.on : d.on);
+// What a big house's report tells of: a lock that is open, a thing that is on. A
+// thermostat at work and a camera watching are how things should be, and no news.
+const UNREMARKABLE = new Set(["climate", "camera"]);
+const notable = (d: Device) => d.away || (!UNREMARKABLE.has(d.kind) && (d.kind === "lock" ? !d.on : d.on));
+// A camera is in the report only when it stops answering: "keeps watch" for each is noise.
+const reportable = (d: Device) => d.kind !== "camera" || d.away;
+// The heating, the music and a camera are not switched by a press on a sentence or a chip:
+// that opens the clipping, as it does for a lock.
+const OPENS = new Set(["climate", "media_player", "camera"]);
 type Config = Options & { type?: string; style?: string };
 type Line = { time: number; device?: Device; alert?: Alert; seen?: Sighting };
 
 export class Gazette extends LitElement {
   static styles = STYLES;
-  static properties = { narrow: { type: Boolean }, _house: { state: true }, _style: { state: true }, _alerts: { state: true }, _seen: { state: true }, _fault: { state: true }, _lost: { state: true }, _scale: { state: true }, _open: { state: true } };
+  static properties = { narrow: { type: Boolean }, _house: { state: true }, _style: { state: true }, _alerts: { state: true }, _seen: { state: true }, _fault: { state: true }, _lost: { state: true }, _scale: { state: true }, _open: { state: true }, _rated: { state: true } };
   narrow = false;
   _house?: House;
   // The one scale that is open: for which device, and the level asked for that the
@@ -57,6 +65,7 @@ export class Gazette extends LitElement {
   _style = "broadsheet";
   _alerts: Alert[] = [];
   _seen: Seen[] = []; // the feed's sightings of the last half hour
+  _rated: Rated[] = []; // the feed's rated songs
   _fault = ""; // an action Home Assistant refused, or a feed that failed, in words
   _lost = 0; // ms: since when there has been no connection (0: connected)
   private _hass?: Hass;
@@ -178,6 +187,8 @@ export class Gazette extends LitElement {
     };
     follow(ALERTS, "Sensor Watch's alerts", (alerts: Alert[]) => this._take(alerts));
     follow(SIGHTINGS, "The cameras' sightings", (seen: Seen[]) => this._sight(seen));
+    // The feed says all it holds again after a break, so each is kept once.
+    follow(PERSONAL, "The Personal column's announcements", (rated: Rated[]) => (this._rated = [...new Map([...this._rated, ...rated].map((r) => [`${r.at} ${r.name} ${r.title}`, r])).values()]));
   }
 
   /** Sightings from the feed: all it holds at first, then each as it comes, and again
@@ -243,7 +254,7 @@ export class Gazette extends LitElement {
   private _press(d: Device) {
     // A lock or a garage door is never moved from a sentence, and a device that isn't
     // answering can't be: its clipping, where unlocking or opening takes two presses.
-    if (d.guarded || d.away) this._story(d);
+    if (d.guarded || d.away || OPENS.has(d.kind)) this._story(d);
     else this._call(flip(d), `${d.room} ${d.name}`);
   }
 
@@ -254,6 +265,7 @@ export class Gazette extends LitElement {
     const mine = (more: Partial<Open>) => {
       if (this._open?.id === d.id) this._open = { ...this._open, ...more };
     };
+    if (d.kind === "camera") return;
     recorded(this._hass!, d, Date.now()).then(
       (record) => mine({ record }),
       (err: any) => {
@@ -349,22 +361,23 @@ export class Gazette extends LitElement {
     const scale = (d?: Device) => {
       const open = this._scale;
       if (!d || !open || open.id !== d.id || !d.dims || d.away) return nothing;
-      const at = d.on ? (d.level ?? 0) : 0;
+      const { min, max, step, vote: by } = d.span;
+      const at = d.level ?? min;
       const ask = (event: Event) => Number((event.target as HTMLInputElement).value);
       // The readers' poll: each vote moves the level a step from where it was last asked
       // to be, so three votes in a row are one call for thirty per cent.
       const now = open.want ?? at;
       const asked = poll(voice, d);
-      const vote = (words: string, by: number) => {
-        const to = Math.min(100, Math.max(0, now + by));
+      const vote = (words: string, move: number) => {
+        const to = Math.min(max, Math.max(min, Math.round((now + move) * 10) / 10));
         return html`<button class="act" ?disabled=${to === now} @click=${() => ((this._scale = { ...open, want: to }), this._ask(d, to))}>${words}</button>`;
       };
       return html`<span class="scale">
-        <span class="poll"><i>${cap(asked.ask)}</i>${vote(asked.less, -VOTE)}${vote(asked.more, VOTE)}</span>
-        <input type="range" min="0" max="100" aria-label=${d.name} .value=${live(String(now))}
+        <span class="poll"><i>${cap(asked.ask)}</i>${vote(asked.less, -by)}${vote(asked.more, by)}</span>
+        <input type="range" min=${min} max=${max} step=${step} aria-label=${d.name} .value=${live(String(now))}
           @input=${(e: Event) => (this._scale = { ...open, want: ask(e) })}
           @change=${(e: Event) => this._ask(d, ask(e))} />
-        <output>${percent(voice, at)}${open.want === undefined || open.want === at ? "" : ` → ${open.want}`}</output>
+        <output>${amount(voice, d.kind, at)}${open.want === undefined || open.want === at ? "" : ` → ${open.want}`}</output>
         <button aria-label="Close" @click=${() => (this._scale = undefined)}>×</button>
       </span>`;
     };
@@ -377,10 +390,11 @@ export class Gazette extends LitElement {
           </figure>`
         : nothing;
     const warm = house.rooms.filter((r) => r.temp !== undefined);
+    const column = personal(house.people, this._rated, now);
 
     const rooms = house.rooms.filter((r) => r.devices.length);
     const big = rooms.reduce((n, r) => n + r.devices.length, 0) > BIG;
-    const reported = big ? rooms.map((r) => ({ ...r, devices: r.devices.filter(notable) })).filter((r) => r.devices.length) : rooms;
+    const reported = rooms.map((r) => ({ ...r, devices: r.devices.filter(big ? notable : reportable) })).filter((r) => r.devices.length);
     // Rooms come sorted by floor (house.ts). A house with no floors has no crossheads.
     const floored = rooms.some((r) => r.floor);
     const byFloor = (list: Room[], draw: (r: Room) => TemplateResult, wrap = (drawn: TemplateResult[]): unknown => drawn) => {
@@ -408,7 +422,7 @@ export class Gazette extends LitElement {
     // the level where there is one to set.
     const chip = (d: Device) =>
       html`<div class="pair"><button class="chip ${d.on ? "on" : ""} ${d.away ? "away" : ""}" aria-pressed=${d.on} @click=${() => this._press(d)}>${d.name}</button
-        ><button class="chip tab" aria-label="${d.name}: its story" @click=${() => this._story(d)}>${d.dims && !d.away ? `${d.on ? (d.level ?? "") : 0}%` : "›"}</button></div>`;
+        ><button class="chip tab" aria-label="${d.name}: its story" @click=${() => this._story(d)}>${d.dims && !d.away ? `${d.level ?? d.span.min}${d.kind === "climate" ? "°" : "%"}` : "›"}</button></div>`;
     const devices = new Map(house.rooms.flatMap((r) => r.devices).map((d) => [d.id, d]));
     const subject = this._open && devices.get(this._open.id);
     // What comes away with a clipping: the paper's own stories, from round where it was cut.
@@ -443,7 +457,7 @@ export class Gazette extends LitElement {
             ${lead.body ? html`<p>${lead.body}</p>` : nothing}
             ${byFloor(reported, report)}
             ${rooms.length > reported.length ? html`<p>${fill(voice.rest, counted(rooms.length - reported.length))}</p>` : nothing}
-            ${rooms.length ? nothing : html`<p>No areas with lights, switches, covers or locks were found. Give your devices areas in Home Assistant's settings and this page fills itself in.</p>`}
+            ${rooms.length ? nothing : html`<p>No areas with lights, switches, covers, locks, thermostats, media players or cameras were found. Give your devices areas in Home Assistant's settings and this page fills itself in.</p>`}
           </div>
         </article>
         ${rest.length
@@ -468,6 +482,7 @@ export class Gazette extends LitElement {
                   html`<li role="button" tabindex="0" @click=${() => fire(this, "hass-more-info", { entityId: s.camera })} @keydown=${this._key}>
                     ${s.photo ? html`<img src=${s.photo} alt="" loading="lazy" />` : html`<i></i>`}<span><time>${clock(s.at)}</time>${s.name}: ${sort(s.kind)}</span></li>`)}</ol>`
             : nothing}
+          ${column.length ? html`<h3>${voice.titles.personal}</h3><ol>${column.map((n) => html`<li><time>${clock(n.at)}</time>${announce(voice, n)}</li>`)}</ol>` : nothing}
           ${warm.length
             ? html`<h3>${voice.titles.temps}</h3><table>${warm.map((r) => html`<tr><td>${r.name}</td><td>${r.temp!.toFixed(1)}° ${r.target === undefined ? "" : r.temp! < r.target - 0.5 ? "▼" : r.temp! > r.target + 0.5 ? "▲" : "="}</td></tr>`)}</table>`
             : nothing}

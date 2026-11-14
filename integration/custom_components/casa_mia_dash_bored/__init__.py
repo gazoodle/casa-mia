@@ -6,7 +6,8 @@ The page is one custom element (www/cards.js, built from integration/cards/src/d
 by tools/build_cards). It is the Dash-Bored entry in the sidebar, and the same element is
 a dashboard card. It reads areas, entities and states from the connection every Home
 Assistant page already has; all this side does is serve it, feed it Sensor Watch's
-alerts (alerts.py) and take the photographs of what the cameras see (image.py).
+alerts (alerts.py) and the songs people rate (personal.py), and take the photographs of
+what the cameras see (image.py).
 
 An integration of its own, wholly in Home Assistant: it imports nothing from Casa Mia
 and works with no app, and with or without Sensor Watch.
@@ -28,7 +29,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import label_registry as lr
 from homeassistant.helpers.typing import ConfigType
 
-from . import alerts, sightings
+from . import alerts, personal, sightings
 from .const import (
     CARDS_VERSION,
     DOMAIN,
@@ -58,6 +59,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     websocket_api.async_register_command(hass, _ws_cards)
     alerts.setup(hass)
     sightings.setup(hass)
+    personal.setup(hass)
     return True
 
 

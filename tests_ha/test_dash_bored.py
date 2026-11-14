@@ -13,6 +13,8 @@ from custom_components.casa_mia_dash_bored.const import (
     CARDS_VERSION,
     DOMAIN,
     PANEL,
+    PERSONAL,
+    RATED_EVENT,
     WATCH_EVENT,
 )
 from homeassistant.components import frontend
@@ -59,10 +61,11 @@ async def test_the_hide_label_is_made_once_under_the_id_the_pages_know(hass):
     ]
 
 
-async def feed(hass, hass_ws_client):
-    """A page following the alerts: its client, and what it was told on subscribing."""
+async def feed(hass, hass_ws_client, which=ALERTS):
+    """A page following a feed (the alerts, unless another is named): its client, and
+    what it was told on subscribing."""
     client = await hass_ws_client(hass)
-    await client.send_json_auto_id({"type": ALERTS})
+    await client.send_json_auto_id({"type": which})
     assert (await client.receive_json())["success"]
     return client, (await client.receive_json())["event"]
 
@@ -173,6 +176,44 @@ async def test_when_the_trouble_began_outlives_an_escalation_and_the_recovery(
         WATCH_EVENT, {**FREEZER, "entity_id": "sensor.loft", "level": "nominal"}
     )
     assert await now_held() == []
+
+
+async def test_a_song_somebody_rated_is_announced_and_a_rating_taken_away_is_not(
+    hass, hass_ws_client
+):
+    """Love it or Loathe it is not loaded: its event is fired by hand, as Sensor
+    Watch's is."""
+    await set_up(hass)
+    rating = {
+        "entity_id": "media_player.kitchen",
+        "person": "person.ann",
+        "name": "Ann",
+        "feeling": "love",
+        "title": "Night Train",
+        "artist": "The Sleepers",
+    }
+    hass.bus.async_fire(RATED_EVENT, rating)
+    await hass.async_block_till_done()
+
+    # A page opened afterwards is still told, and of no more than it tells.
+    client, held = await feed(hass, hass_ws_client, PERSONAL)
+    assert [{k: v for k, v in item.items() if k != "at"} for item in held] == [
+        {
+            "kind": "love",
+            "name": "Ann",
+            "title": "Night Train",
+            "artist": "The Sleepers",
+        }
+    ]
+
+    hass.bus.async_fire(RATED_EVENT, {**rating, "feeling": "clear"})
+    hass.bus.async_fire(
+        RATED_EVENT, {**rating, "feeling": "loathe", "title": "Old Song", "artist": ""}
+    )
+    pushed = (await client.receive_json())["event"]
+    assert [(item["kind"], item["title"]) for item in pushed] == [
+        ("loathe", "Old Song")
+    ]
 
 
 async def test_an_event_with_no_entity_is_ignored_aloud(hass, hass_ws_client, caplog):

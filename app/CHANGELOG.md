@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.11.8-b14
+
+- **Dash-Bored: thermostats, media players and cameras are devices in their rooms.** A thermostat is told with its target ("set to 21°") and a media player with its volume, and each has the scale and a readers' poll: "Too warm" or "Too cold" by half a degree, "Too loud" or "Not loud enough" by five per cent. A press on one opens its clipping and switches nothing, so a stray touch doesn't stop the heating or the music. The clipping has a thermostat's own reading and what a player has on, with a button to turn the heating off or pause. A camera has a button on the switchboard and a clipping with its latest picture; it is in the report only when it stops answering.
+- **Dash-Bored: a Personal column** (the owner's idea). Announcements about the household, each with its time: a person's latest coming or going (arrived home, left the house, arrived at a zone), from Home Assistant's person entities, and each song somebody loved or loathed in Love it or Loathe it. They stay for twelve hours. The page is open to every user, so the column tells whoever can open it who is at home; the label Dash-Bored hide on a person keeps them out of it.
+- **Love it or Loathe it: an event when a song is rated.** `casa_mia_love_or_loathe_rated` carries the person, the feeling (`love`, `loathe`, or `clear` for a rating taken away), the song and the player, for automations and for Dash-Bored's column.
+- **Dash-Bored: "of no fixed abode" now counts those too.** A thermostat, media player or camera in no area is listed with the lights and switches that have none.
+
 ## 2026.11.8-b13
 
 - **Dash-Bored: the Casa Courier's masthead in an English blackletter.** The name was set in a Fraktur, the German style. It is now in Manufacturing Consent (Open Font Licence), a textura of the kind a Victorian English paper set its name in.

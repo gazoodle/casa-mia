@@ -2,7 +2,7 @@
 // They know nothing of wording. Each carries a `kind` (and a `variant` of it) for a voice
 // to look up, the `vars` a voice's sentences are filled from, the one number that goes
 // in the figure, and what the reader can do about it.
-import type { Device, House, Sighting } from "./house.ts";
+import type { Device, House, Kind, Person, Sighting } from "./house.ts";
 
 /** One of Sensor Watch's alerts, as Dash-Bored's integration feeds it (alerts.py). */
 export type Alert = {
@@ -20,20 +20,27 @@ export type Alert = {
 };
 /** A service call that would put the story right. */
 export type Press = { domain: string; service: string; ids: string[]; data?: Record<string, unknown> };
-/** The call that puts a device the other way: on or off, open or closed, locked or unlocked. */
-export const flip = (d: Device): Press => ({
-  domain: d.kind,
-  service: d.kind === "lock" ? (d.on ? "unlock" : "lock") : d.kind === "cover" ? (d.on ? "close_cover" : "open_cover") : d.on ? "turn_off" : "turn_on",
-  ids: [d.id],
-});
-/** The call that sets a light's brightness or a cover's position, in per cent. A light
- * asked for nothing is switched off by name: not every light takes a brightness of 0. */
-export const setting = (d: Device, level: number): Press =>
-  d.kind === "cover"
-    ? { domain: "cover", service: "set_cover_position", ids: [d.id], data: { position: level } }
-    : level
-      ? { domain: "light", service: "turn_on", ids: [d.id], data: { brightness_pct: level } }
-      : { domain: "light", service: "turn_off", ids: [d.id] };
+// The service that puts each kind the other way: [when it is on, when it is off]. A
+// camera has neither.
+const FLIP: Partial<Record<Kind, [string, string]>> = { lock: ["unlock", "lock"], cover: ["close_cover", "open_cover"], media_player: ["media_pause", "media_play"] };
+/** The call that puts a device the other way: on or off, open or closed, locked or
+ * unlocked, playing or paused. */
+export const flip = (d: Device): Press => ({ domain: d.kind, service: (FLIP[d.kind] ?? ["turn_off", "turn_on"])[d.on ? 0 : 1], ids: [d.id] });
+// The service that sets each kind's level, and what it calls the level.
+const SET: Partial<Record<Kind, [service: string, data: (level: number) => Record<string, unknown>]>> = {
+  light: ["turn_on", (level) => ({ brightness_pct: level })],
+  cover: ["set_cover_position", (level) => ({ position: level })],
+  climate: ["set_temperature", (level) => ({ temperature: level })],
+  media_player: ["volume_set", (level) => ({ volume_level: level / 100 })],
+};
+/** The call that sets a device's level: a light's brightness, a cover's position, a
+ * player's volume, a thermostat's target. A light asked for nothing is switched off by
+ * name: not every light takes a brightness of 0. */
+export function setting(d: Device, level: number): Press {
+  if (d.kind === "light" && !level) return { domain: "light", service: "turn_off", ids: [d.id] };
+  const [service, data] = SET[d.kind]!;
+  return { domain: d.kind, service, ids: [d.id], data: data(level) };
+}
 export type Story = {
   kind: string;
   variant: string;
@@ -46,6 +53,22 @@ export type Story = {
   photo?: string; // a photograph's address
   see?: string; // the entity whose dialog shows more: the camera that took it
 };
+
+/** A song somebody loved or loathed, as the integration's feed tells it (personal.py), its
+ * time in seconds. */
+export type Rated = { kind: "love" | "loathe"; name: string; title: string; artist: string; at: number };
+/** A line for the Personal column: somebody came home, left or reached a zone, or rated a song. */
+export type Notice = { kind: "home" | "left" | "zone" | "love" | "loathe"; at: number; vars: Record<string, string> };
+const PERSONAL = 12 * 3_600_000; // ms: how long an announcement stays in the column
+const NOTICES = 8; // and how many it holds
+
+/** The Personal column, newest first: each person's latest coming or going, and the
+ * songs that were rated. */
+export function personal(people: Person[], rated: Rated[], now: number): Notice[] {
+  const moves = people.map((p): Notice => ({ kind: p.place === "home" ? "home" : p.place === "not_home" ? "left" : "zone", at: p.since, vars: { name: p.name, place: p.place } }));
+  const songs = rated.map((r): Notice => ({ kind: r.kind, at: r.at * 1000, vars: { name: r.name, title: r.title, artist: r.artist } }));
+  return [...moves, ...songs].filter((n) => n.at && now - n.at < PERSONAL).sort((a, b) => b.at - a.at).slice(0, NOTICES);
+}
 
 export const NOMINAL = "nominal";
 /** How long a sensor that is right again stays in the paper. */

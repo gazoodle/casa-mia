@@ -22,9 +22,12 @@ HIDE_LABEL = "Dash-Bored hide"
 CARDS_VERSION = f"{DOMAIN}/cards"  # which version of cards.js is served
 ALERTS = f"{DOMAIN}/alerts"  # the feed of Sensor Watch's alerts
 SIGHTINGS = f"{DOMAIN}/sightings"  # the feed of what the cameras have seen
+PERSONAL = f"{DOMAIN}/personal"  # the feed of the Personal column's announcements
 
 # Sensor Watch's bus event, and the level it gives a sensor with nothing wrong. Named
 # here and not imported: the two integrations meet only through Home Assistant, and each
 # works without the other.
 WATCH_EVENT = "casa_mia_sensor_watch"
 NOMINAL = "nominal"
+# Love it or Loathe it's bus event for a song somebody rated: named, not imported, as above.
+RATED_EVENT = "casa_mia_love_or_loathe_rated"

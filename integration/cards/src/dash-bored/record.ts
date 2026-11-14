@@ -38,9 +38,10 @@ export async function recorded(hass: Hass, d: Device, now: number): Promise<Chan
     entity_ids: [d.id],
     // A cover's position is in its attributes, and a change of position alone is not
     // "significant". Home Assistant keeps a light's brightness out of its history
-    // altogether, so a light's record is of when it was on, and not of how brightly.
+    // altogether, so a light's record is of when it was on, and not of how brightly. A
+    // thermostat's target is kept.
     significant_changes_only: false,
-    no_attributes: d.kind !== "cover",
+    no_attributes: d.kind !== "cover" && d.kind !== "climate",
   });
   return chronicle(d.kind, found[d.id] ?? []);
 }

@@ -3,8 +3,8 @@
 // Keep it so. Then a settings page or a translation can replace any of it later without
 // touching the ranking or the page, and a new paper is one more entry here and a block
 // of CSS (styles.ts).
-import type { Device } from "./house.ts";
-import type { Alert, Story } from "./stories.ts";
+import type { Device, Kind } from "./house.ts";
+import type { Alert, Notice, Story } from "./stories.ts";
 import { NOMINAL } from "./stories.ts";
 
 /** How one kind of story is told. `flavours` are headlines for a particular sort of
@@ -17,18 +17,19 @@ export type Voice = {
   strap: string;
   price: string;
   flash: string; // the word before breaking news
-  titles: { more: string; briefs: string; late: string; archive: string; temps: string; board: string; notices: string; elsewhere: string; gaps: string }; // archive: the last half hour's sightings; elsewhere: the rooms on no floor
+  titles: { more: string; briefs: string; late: string; archive: string; temps: string; board: string; notices: string; elsewhere: string; gaps: string; personal: string }; // archive: the last half hour's sightings; elsewhere: the rooms on no floor
   join: string; // between a room's devices
   end: string;
   nothing: string; // the late news before anything has happened
   rest: string; // a big house: the rooms with nothing to report, counted
   gaps: Record<string, string>; // what Home Assistant isn't told about the house, by a Gap's kind, counted
   mend: string; // under them: what to do about it
-  words: Record<string, string>; // one device, by `kind.state`; `kind.many` is a room's count of them, in a big house; `percent` is how a level is said, and is a clause's {level}
+  words: Record<string, string>; // one device, by `kind.state`; `kind.many` is a room's count of them, in a big house; `percent` and `degrees` are how a level is said, and are a clause's {level}
   polls: Record<string, { ask: string; less: string; more: string }>; // by kind: the question over a level's scale, and its two votes
   acts: Record<string, string>; // on a device's clipping: the button that puts it the other way, by `kind.on` or `kind.off` as it stands
-  clipping: { since: string; record: string; wait: string; none: string; ago: string; now: string; sure: string; more: string; shut: string }; // the rest of a clipping's words; `ago` and `now` are the ends of the record's band, and `sure` is the second press that unlocks or opens
+  clipping: { since: string; record: string; wait: string; none: string; ago: string; now: string; reads: string; playing: string; sure: string; more: string; shut: string }; // the rest of a clipping's words; `ago` and `now` are the ends of the record's band, `reads` is a thermostat's own reading, `playing` what a player has on, and `sure` is the second press that unlocks or opens
   wire: { trouble: string; clear: string }; // an alert in the late news
+  personal: Record<string, string>; // the Personal column, by a Notice's kind; `song` and `tune` are how a song is named, with its artist and without
   notices: string[]; // under each scene, in turn
   stories: Record<string, Entry>; // by `kind.variant`, else `kind`
 };
@@ -59,8 +60,8 @@ export function tell(voice: Voice, story: Story, turn: number): Told {
   };
 }
 
-/** A level as this paper says it: "80 per cent". */
-export const percent = (voice: Voice, level: number) => fill(voice.words.percent, { n: String(level) });
+/** A level as this paper says it: "80 per cent", or for a thermostat "21°". */
+export const amount = (voice: Voice, kind: Kind, level: number) => fill(voice.words[kind === "climate" ? "degrees" : "percent"], { n: String(level) });
 
 /** One device as a clause, in three pieces: what comes before its level, the level, and
  * what comes after ("the ceiling light burns at ", "80 per cent", ""). The level is its
@@ -72,7 +73,9 @@ function named(d: Device) {
   const name = d.name.toLowerCase();
   const lamp = /lamp|light/i.test(name) ? name : `${name} light`;
   const plural = /s$/i.test((d.kind === "light" ? lamp : name).split(" - ")[0]);
-  return { name, lamp, is: plural ? "are" : "is", v: plural ? "" : "s" };
+  // "Entrance" is a camera's name, and not what keeps watch.
+  const camera = /cam/i.test(name) ? name : `${name} camera`;
+  return { name, lamp, camera, is: plural ? "are" : "is", v: plural ? "" : "s" };
 }
 
 /** The readers' poll on a device's level: a question, and the vote for less and for more. */
@@ -82,15 +85,22 @@ export function poll(voice: Voice, d: Device) {
 }
 
 export function clause(voice: Voice, d: Device): [string, string, string] {
-  const state = d.away ? "away" : !d.on ? `${d.kind}.off` : d.level === undefined && (d.kind === "light" || d.kind === "cover") ? `${d.kind}.plain` : `${d.kind}.on`;
+  // A kind that has a level has a plain way of being on, for when the level isn't known.
+  const state = d.away ? "away" : !d.on ? `${d.kind}.off` : d.level === undefined && `${d.kind}.plain` in voice.words ? `${d.kind}.plain` : `${d.kind}.on`;
   const said = fill(voice.words[state], { ...named(d), level: "\0" });
   // "The ann's lamp" is "ann's lamp".
   const [before, after] = said.replace(/^the (?=\S+['’]s )/, "").split("\0");
-  return after === undefined ? [before, "", ""] : [before, percent(voice, d.level!), after];
+  return after === undefined ? [before, "", ""] : [before, amount(voice, d.kind, d.level!), after];
 }
 
 /** One device as a clause: "the ceiling light burns at 80 per cent". */
 export const words = (voice: Voice, d: Device) => clause(voice, d).join("");
+
+/** A line of the Personal column. */
+export function announce(voice: Voice, notice: Notice): string {
+  const song = fill(notice.vars.artist ? voice.personal.song : voice.personal.tune, notice.vars);
+  return fill(voice.personal[notice.kind], { ...notice.vars, song });
+}
 
 /** An alert as a line of late news. */
 export const wired = (voice: Voice, a: Alert) =>
@@ -111,7 +121,7 @@ const broadsheet: Voice = {
   strap: "",
   price: "Price: nothing",
   flash: "Stop press",
-  titles: { more: "Other news", briefs: "In brief", late: "Late news", archive: "Thirty minutes ago", temps: "The temperatures", board: "The switchboard", notices: "Notices", elsewhere: "Elsewhere", gaps: "Corrections and clarifications" },
+  titles: { more: "Other news", briefs: "In brief", late: "Late news", archive: "Thirty minutes ago", temps: "The temperatures", board: "The switchboard", notices: "Notices", elsewhere: "Elsewhere", gaps: "Corrections and clarifications", personal: "Personal" },
   join: "; ",
   end: ".",
   nothing: "Nothing has happened yet.",
@@ -120,6 +130,14 @@ const broadsheet: Voice = {
   mend: "Each opens where it is put right. An area, a floor, a name or a temperature sensor in Home Assistant, and this paper reports the better for it.",
   words: {
     percent: "{n} per cent",
+    degrees: "{n}°",
+    "climate.on": "the {name} is set to {level}",
+    "climate.plain": "the {name} is at work",
+    "climate.off": "the {name} is off",
+    "media_player.on": "the {name} is playing at {level}",
+    "media_player.plain": "the {name} is playing",
+    "media_player.off": "the {name} is silent",
+    "camera.off": "the {camera} keeps watch",
     "light.on": "the {lamp} burn{v} at {level}",
     "light.plain": "the {lamp} {is} lit",
     "light.off": "the {lamp} {is} out",
@@ -137,11 +155,16 @@ const broadsheet: Voice = {
   polls: {
     light: { ask: "Readers are invited to say whether the {lamp} {is} too bright.", less: "Too bright", more: "Not bright enough" },
     cover: { ask: "Readers are invited to say whether the {name} stand{v} too far open.", less: "Too far", more: "Not far enough" },
+    climate: { ask: "Readers are invited to say whether the {name} is set too warm.", less: "Too warm", more: "Too cold" },
+    media_player: { ask: "Readers are invited to say whether the {name} is too loud.", less: "Too loud", more: "Not loud enough" },
   },
-  acts: { "light.on": "Put it out", "light.off": "Light it", "switch.on": "Switch it off", "switch.off": "Switch it on", "cover.on": "Close it", "cover.off": "Open it", "lock.on": "Unlock it", "lock.off": "Lock it" },
-  clipping: { since: "So it has stood since {at}.", record: "The record", wait: "Our archivist is consulting the files.", none: "Nothing is recorded of the last day.", ago: "This time yesterday", now: "Now",
+  acts: { "light.on": "Put it out", "light.off": "Light it", "switch.on": "Switch it off", "switch.off": "Switch it on", "cover.on": "Close it", "cover.off": "Open it", "lock.on": "Unlock it", "lock.off": "Lock it",
+    "climate.on": "Turn it off", "climate.off": "Turn it on", "media_player.on": "Pause it", "media_player.off": "Play on" },
+  clipping: { since: "So it has stood since {at}.", record: "The record", wait: "Our archivist is consulting the files.", none: "Nothing is recorded of the last day.", ago: "This time yesterday", now: "Now", reads: "The glass reads {temp}°.", playing: "On the air: {title}.",
     sure: "Press again to confirm", more: "Home Assistant's own page", shut: "Fold away" },
   wire: { trouble: "{name}: {message}", clear: "{name}: all is well again." },
+  personal: { home: "{name} has arrived home.", left: "{name} has left the house.", zone: "{name} has arrived at {place}.",
+    love: "{name} wishes it known that {song} is greatly to their liking.", loathe: "{name} begs that {song} be played no more.", song: "“{title}” by {artist}", tune: "“{title}”" },
   notices: ["Arranged at a touch. Apply within.", "By appointment to the household.", "Satisfaction assured.", "Enquire at this office."],
   stories: {
     alert: ALARM,
@@ -175,7 +198,7 @@ const tabloid: Voice = {
   strap: "The paper that's always switched on",
   price: "Still FREE!",
   flash: "Breaking",
-  titles: { more: "Also today", briefs: "Quick ones", late: "Latest", archive: "Rewind", temps: "Hot or not", board: "Flick a switch", notices: "Do it now", elsewhere: "Everywhere else", gaps: "Sort it out" },
+  titles: { more: "Also today", briefs: "Quick ones", late: "Latest", archive: "Rewind", temps: "Hot or not", board: "Flick a switch", notices: "Do it now", elsewhere: "Everywhere else", gaps: "Sort it out", personal: "Goss" },
   join: " • ",
   end: "",
   nothing: "Nothing yet. Give it a minute.",
@@ -184,6 +207,14 @@ const tabloid: Voice = {
   mend: "Tap one to fix it. Give it an area, a floor, a name or a thermometer in Home Assistant.",
   words: {
     percent: "{n}%",
+    degrees: "{n}°",
+    "climate.on": "{name} set to {level}",
+    "climate.plain": "{name} ON",
+    "climate.off": "{name} off",
+    "media_player.on": "{name} BLARING at {level}",
+    "media_player.plain": "{name} playing",
+    "media_player.off": "{name} quiet",
+    "camera.off": "{camera} watching",
     "light.on": "{lamp} ON at {level}",
     "light.plain": "{lamp} ON",
     "light.off": "{lamp} off",
@@ -201,11 +232,16 @@ const tabloid: Voice = {
   polls: {
     light: { ask: "{lamp}: TOO BRIGHT? You decide!", less: "Dim it", more: "Crank it up" },
     cover: { ask: "{name}: TOO OPEN? You decide!", less: "Shut it a bit", more: "Open up" },
+    climate: { ask: "{name}: TOO HOT? You decide!", less: "Cool it", more: "Warm it up" },
+    media_player: { ask: "{name}: TOO LOUD? You decide!", less: "Pipe down", more: "Louder!" },
   },
-  acts: { "light.on": "Kill it", "light.off": "Light it up", "switch.on": "Off!", "switch.off": "On!", "cover.on": "Shut it", "cover.off": "Open up", "lock.on": "Unlock it", "lock.off": "Lock it" },
-  clipping: { since: "Been that way since {at}.", record: "The story so far", wait: "Digging the dirt…", none: "Nothing all day. Dull!", ago: "Yesterday", now: "Now",
+  acts: { "light.on": "Kill it", "light.off": "Light it up", "switch.on": "Off!", "switch.off": "On!", "cover.on": "Shut it", "cover.off": "Open up", "lock.on": "Unlock it", "lock.off": "Lock it",
+    "climate.on": "Kill the heat", "climate.off": "Heat on!", "media_player.on": "Shush!", "media_player.off": "Play it!" },
+  clipping: { since: "Been that way since {at}.", record: "The story so far", wait: "Digging the dirt…", none: "Nothing all day. Dull!", ago: "Yesterday", now: "Now", reads: "It's {temp}° in there.", playing: "Now playing: {title}.",
     sure: "SURE? Press again", more: "Home Assistant's page", shut: "Bin it" },
   wire: { trouble: "{name}: {level}!", clear: "{name}: PANIC OVER" },
+  personal: { home: "{name}'s HOME!", left: "{name} has LEFT the building", zone: "{name} spotted at {place}",
+    love: "{name} LOVES {song}", loathe: "{name} can't STAND {song}", song: "“{title}” by {artist}", tune: "“{title}”" },
   notices: ["Go on, press it.", "One tap. Job done.", "You know you want to.", "Easy as that."],
   stories: {
     alert: SHOCK,

@@ -7,6 +7,9 @@ TITLE = "Love it or Loathe it"
 # Bus event on each match, for automations: the player, the track, the group and what
 # was done about it.
 EVENT = DOMAIN
+# Bus event when somebody rates a song (rating.py): who, the feeling (love, loathe or
+# clear), the song and the player. For automations, and for any page that announces it.
+RATED_EVENT = f"{DOMAIN}_rated"
 # Fired by the Casa Mia app when it has written newer files for its components: the
 # moment to look for this one's restart marker (restart_notice.py).
 INSTALLED_EVENT = "casa_mia_components_installed"

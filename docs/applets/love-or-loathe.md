@@ -522,6 +522,19 @@ triggers:
       feeling: love
 ```
 
+A rating fires an event of its own, `casa_mia_love_or_loathe_rated`, when somebody loves
+or loathes a song, or takes their rating away:
+
+| Field | What it holds |
+|---|---|
+| `entity_id` | The player the song was on. |
+| `person` | The person's entity. |
+| `name` | The person's name. |
+| `feeling` | `love`, `loathe`, or `clear` for a rating taken away. |
+| `title`, `artist` | The song. |
+
+[Dash-Bored](dash-bored.md) announces these in its Personal column.
+
 Every match, action and return is in Home Assistant's log.
 
 ### What happened, line by line

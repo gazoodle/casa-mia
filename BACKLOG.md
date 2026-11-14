@@ -7,12 +7,10 @@ Not scheduled. Sections are in order of their latest change; newest ideas first 
 Started 2026-11-13 (2026.11.8-b1) with the Gazette. HANDOVER has how it is built; the
 mock-ups are in `docs/design/dash-bored/`. What's next, in the order the owner gave:
 
-- **Gazette, to finish it** (asked 2026-11-13): see it on a wall tablet; thermostats, media players and
-  cameras as devices; a third paper in the style of a rolling news site (a voice and a
+- **Gazette, to finish it** (asked 2026-11-13): see it on a wall tablet; a third paper in the style of a rolling news site (a voice and a
   block of CSS); which rooms and devices appear and their order.
 - **Reader polls for other continuous controls** (owner's idea, 2026-11-13; built for
-  lights and blinds in 2026.11.8-b10): a thermostat's target ("Too cold? / Too warm?",
-  half a degree a vote) and a media player's volume, when those are devices; a vote on a
+  lights and blinds in 2026.11.8-b10): a vote on a
   story, such as "Dim them all" beside "Put them all out".
 - **Photographs, further** (2026-11-13, not asked for yet): Protect's snapshot at the
   event's own timestamp, if its thumbnails prove poor; an entity for a camera added after set-up

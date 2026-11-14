@@ -42,6 +42,7 @@ from .const import (
     GROUP,
     LOATHE,
     LOVE,
+    RATED_EVENT,
 )
 from .pure import home, with_song, without_song
 
@@ -148,6 +149,22 @@ async def rate(hass: HomeAssistant, call: ServiceCall) -> None:
         if group.subentry_type == GROUP and group.data.get(CONF_PERSON) == person
     }
     by = f" by {artist}" if artist else ""
+    known = hass.states.get(person)
+
+    def told(feeling: str) -> None:
+        """Say it on the bus."""
+        hass.bus.async_fire(
+            RATED_EVENT,
+            {
+                ATTR_ENTITY_ID: player,
+                CONF_PERSON: person,
+                "name": known.name if known else person,
+                CONF_FEELING: feeling,
+                "title": title,
+                "artist": artist,
+            },
+        )
+
     if feeling == CLEAR:
         # No rating at all: out of both their lists, and nothing is made.
         for group in theirs.values():
@@ -159,9 +176,9 @@ async def rate(hass: HomeAssistant, call: ServiceCall) -> None:
         trail.note(
             hass, entry, trail.EDIT, f"{person} no longer rates {title}{by}", player
         )
+        told(CLEAR)
         return
 
-    known = hass.states.get(person)
     if feeling not in theirs and (known is None or known.domain != "person"):
         raise ServiceValidationError(f"{person} is not a person in Home Assistant")
 
@@ -211,3 +228,4 @@ async def rate(hass: HomeAssistant, call: ServiceCall) -> None:
         f"{known.name if known else person} rated {title}{by}: now in {group.title}",
         player,
     )
+    told(feeling)

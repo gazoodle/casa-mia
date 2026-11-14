@@ -5,7 +5,7 @@ media_player services are caught, so each test says what the player then reports
 from datetime import timedelta
 
 import pytest
-from custom_components.casa_mia_love_or_loathe.const import DOMAIN, EVENT
+from custom_components.casa_mia_love_or_loathe.const import DOMAIN, EVENT, RATED_EVENT
 from custom_components.casa_mia_love_or_loathe.pure import libraries
 from homeassistant.config_entries import (
     SOURCE_USER,
@@ -358,10 +358,23 @@ async def test_rating_the_song_playing_into_a_persons_groups(hass):
         await settled(hass)
 
     # Whoever pressed: Ann loathes it, and it is muted at once.
+    rated = []
+    hass.bus.async_listen(RATED_EVENT, lambda event: rated.append(dict(event.data)))
     play(hass, "Dreadful Song", "A Band")
     await settled(hass)
     await rate("loathe", "ann-login")
     assert songs("Ann loathes") == "Old Song\n*awful*\nDreadful Song | A Band"
+    # And it is said on the bus, for automations and for pages that announce it.
+    assert rated == [
+        {
+            "entity_id": PLAYER,
+            "person": "person.ann",
+            "name": "ann",
+            "feeling": "loathe",
+            "title": "Dreadful Song",
+            "artist": "A Band",
+        }
+    ]
     assert songs("Ben loathes") == ""
     assert [c.data["is_volume_muted"] for c in calls["volume_mute"]] == [True]
     # Pressed twice, it is there once.

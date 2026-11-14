@@ -41,6 +41,8 @@ export function clipping(voice: Voice, d: Device, open: Open, now: number, scale
   const c = voice.clipping;
   const told = (change: Change) => cap(words(voice, { ...d, on: change.on, level: change.level, away: change.away }));
   const record = open.record;
+  // A camera has no button and no record: nothing puts it the other way, and it has no day to tell.
+  const act = voice.acts[`${d.kind}.${d.on ? "on" : "off"}`];
   // The dialog itself is the margin round the cutting: a press there, or Escape, folds it away.
   return html`<dialog class="clipping" @close=${on.shut} @click=${(e: Event) => e.target === e.currentTarget && on.shut()}>
     <div class="cutting" style="clip-path:${ragged(d.id)}">
@@ -48,11 +50,15 @@ export function clipping(voice: Voice, d: Device, open: Open, now: number, scale
       <div class="story">
       <p class="kicker">${d.room}</p>
       <h4 class="title">${d.name}</h4>
-      <p class="deck">${cap(words(voice, d))}. ${d.since ? fill(c.since, { at: clock(d.since) }) : ""}</p>
-      ${d.away ? nothing : html`<button class="act ${open.armed ? "sure" : ""}" @click=${on.flip}>${open.armed ? c.sure : voice.acts[`${d.kind}.${d.on ? "on" : "off"}`]}</button>`}
+      <p class="deck">${cap(words(voice, d))}. ${d.since && d.kind !== "camera" ? fill(c.since, { at: clock(d.since) }) : ""}
+        ${d.temp === undefined ? "" : fill(c.reads, { temp: d.temp.toFixed(1) })} ${d.title ? fill(c.playing, { title: d.title }) : ""}</p>
+      ${d.picture ? html`<img class="still" src=${d.picture} alt=${d.name} />` : nothing}
+      ${d.away || !act ? nothing : html`<button class="act ${open.armed ? "sure" : ""}" @click=${on.flip}>${open.armed ? c.sure : act}</button>`}
       ${scale}
-      <h3>${c.record}</h3>
-      ${open.fault
+      ${d.kind === "camera" ? nothing : html`<h3>${c.record}</h3>`}
+      ${d.kind === "camera"
+        ? nothing
+        : open.fault
         ? html`<p class="fault" role="alert">Home Assistant's history could not be read (${open.fault}).</p>`
         : !record
           ? html`<p class="wait">${c.wait}</p>`

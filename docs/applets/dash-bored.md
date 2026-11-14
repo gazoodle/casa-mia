@@ -14,8 +14,8 @@ Mia integration.
 Add **Dash-Bored** under **Settings → Devices & services → Add integration**. There is
 nothing to fill in. A **Dash-Bored** entry appears in the sidebar for every user.
 
-The page is built from your areas. Each area that has lights, switches, covers or locks
-becomes a room, and those devices are what it reports on. Entities you have hidden, and
+The page is built from your areas. Each area that has lights, switches, covers, locks, thermostats,
+media players or cameras becomes a room, and those devices are what it reports on. Entities you have hidden, and
 a device's configuration and diagnostic entities, are left out. If a room is missing,
 give its devices an area in Home Assistant.
 
@@ -163,6 +163,23 @@ again to confirm** for a few seconds. Locking and closing take one. A device tha
 answering opens its clipping too. The **Lock it** button under an unlocked door does lock
 it.
 
+### Thermostats, media players and cameras
+
+These are devices in their rooms too, but a press on one in a sentence or on the
+switchboard switches nothing: it opens the device's clipping, so that a stray touch
+doesn't stop the heating or the music.
+
+- **A thermostat** is told with its target, as in "the thermostat is set to 21°". The
+  target is a level like a light's: its poll asks whether it is set too warm, and each
+  vote moves it half a degree. Its clipping gives its own reading, and has a button that
+  turns it off or on. A thermostat that holds a range, not a single target, is told as
+  "at work" and has no scale.
+- **A media player** is told with its volume, as in "the player is playing at 40 per
+  cent". Its poll asks whether it is too loud, in steps of five. Its clipping says what is
+  playing, and its button pauses or plays.
+- **A camera** is on the switchboard, and in the report only if it stops answering. Its
+  clipping shows its latest picture; **Home Assistant's own page** has the live view.
+
 ### A device's clipping
 
 Every device has a story of its own, laid over the page like a cutting. It opens from the
@@ -186,6 +203,28 @@ for its settings. Escape, **Fold away** or a press outside the clipping closes i
 The names in the line under the masthead choose the paper. The **Broadsheet** is sober
 and the **Red-top** is not, and both are written from the same stories. Each browser
 remembers its own choice.
+
+### Personal
+
+A column of announcements about the household, each with its time, newest first:
+
+- **Comings and goings.** Each person's latest move: arrived home, left the house, or
+  arrived at one of your zones. It is read from Home Assistant's person entities, so it
+  needs people with a device tracker.
+- **Songs.** With [Love it or Loathe it](love-or-loathe.md), each song somebody loves or
+  loathes: "Ann wishes it known that “Night Train” by The Sleepers is greatly to their
+  liking". A rating taken away is not announced.
+
+An announcement stays for twelve hours and the column holds the latest eight. It is left
+out while there is nothing to announce. A person with the label **Dash-Bored hide** is
+left out of it.
+
+Songs are kept in memory, so a restart of Home Assistant empties them. After a restart
+Home Assistant also gives every person's state the time of the restart, so each is
+announced as having arrived or left then.
+
+The page is in the sidebar for every user, guests included, so this column tells anyone
+who can open it who is at home.
 
 ### Sensor Watch
 
@@ -216,7 +255,6 @@ On a phone, or in a narrow column, the paper is a single column.
 
 ## Not built yet
 
-- Thermostats, media players and cameras as devices in a room.
 - Choosing which rooms and devices appear, and their order.
 - Changing the wording, and other languages. The text is English only.
 - More styles. The Gazette is the first.

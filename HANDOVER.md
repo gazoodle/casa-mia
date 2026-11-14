@@ -376,11 +376,35 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   the device's id, so it never changes between draws, and `scraps` are the paper's own
   other stories. The shadow is a `drop-shadow` on the dialog, since a clip-path cuts a
   box's own shadow off.
+- **Thermostats, media players and cameras** (2026.11.8-b14) are kinds like the first
+  four. Each kind's ways are tables: `ON`, `LEVEL`, `DIMS` and `span` in `house.ts`
+  (a thermostat's level is its target in degrees, a player's its volume), `FLIP` and
+  `SET` in `stories.ts`. A device carries its `span` (ends, step, and what a vote moves
+  it by), so the scale and poll need know nothing of kinds. A new kind is a row in each
+  table, its words in each voice (`kind.on`, `.off`, `.plain` if it has a level, a poll,
+  two `acts`) and, in `gazette.ts`, whether a press opens its clipping (`OPENS`: my
+  ruling for heating and music, as for locks) and whether it is news (`UNREMARKABLE`,
+  `reportable`). A thermostat is still the source of its room's temperature and target.
+  Fans, valves, vacuums and the rest are not kinds yet.
+- **The Personal column** (owner's idea, 2026-11-14; 2026.11.8-b14): `personal` in
+  `stories.ts` joins each person's latest move (`House.people`, read from the person
+  entities, which are in `watched`) with the songs rated, for twelve hours. The songs
+  come by a third feed: Love it or Loathe it fires `casa_mia_love_or_loathe_rated`
+  (`rating.py` `told`), Dash-Bored's `personal.py` keeps the latest 20 for this run and
+  feeds them (`casa_mia_dash_bored/personal`). `feed.py` `follow` is the subscription
+  all three feeds make; only `personal.py` uses it, since `alerts.py` and
+  `sightings.py` were written before it and moving them is a refactor for a commit of
+  its own. A voice's `personal` words it. Known: after a restart every person's
+  `last_changed` is the restart's time, so each "arrives" then. The owner was told the
+  column shows guests who is at home.
 - **Seen on the test VM, 2026-11-14** (it now has Home Assistant's demo devices in rooms
   on four floors, and a dimmable Pendant and a Blind as template helpers): floors as
   crossheads, votes and the scale moving a light and a blind, a clipping's record from
   real history growing by push, Escape closing it, and the demo garage door staying
-  closed after one press and opening on the second. **Not seen:** a real dimmer, blind
+  closed after one press and opening on the second, a vote moving a thermostat's target
+  and a player's volume, a player pausing, a camera's picture, and two songs rated through
+  Love it or Loathe it's action reaching the Personal column. **Not seen:** a person
+  truly coming or going (the VM's people have no trackers; their states were set by hand), a real dimmer, blind
   or lock, touch on a tablet, Safari, a history failure (the path is written, not run).
 - **Not done:** publishing by itself, other languages. BACKLOG has the list.
 - **Tests:** `src/dash-bored/stories.test.ts` (house, ranking, every voice tells every
