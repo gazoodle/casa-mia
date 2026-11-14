@@ -1,6 +1,6 @@
 // The look of each paper. `.paper` carries the broadsheet, which is also the base;
 // `[data-style="tabloid"]` overrides it. A new paper is another block like that one and
-// a voice in voices.ts. Sizes follow the element's own width (a container query), since
+// a voice in voices/. Sizes follow the element's own width (a container query), since
 // the Gazette may be a whole page or a card in a column.
 import { css } from "lit";
 

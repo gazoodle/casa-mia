@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.8-b20
+
+- **Dash-Bored: two long files split.** Each paper's wording is a file of its own, and the page is in three layers (what it knows, what a press does, how it is drawn). Nothing on the page has changed.
+
 ## 2026.11.8-b19
 
 - **Dash-Bored: the order of floors and rooms can be set.** Dash-Bored's **Configure** dialog (Settings → Devices & services) takes the floors in the order to show them and the rooms to put first on their floor. It applies to every Dash-Bored page and card, and an open page follows as soon as it is saved. Left empty, the order is as before: floors from the lowest up, rooms by name.

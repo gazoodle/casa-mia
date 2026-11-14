@@ -429,8 +429,12 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   card (the torn outline is switched off in CSS, the scraps hidden). Its colour is blue (`--site`; owner, 2026-11-14: red was "too similar to the red-top"),
   and red (`--flash`) is kept there for what is wrong. The wording did
   prove to be all data: no code names a paper. The owner saw the Gazette on a wall
-  tablet on 2026-11-14 ("It looks fantastic"), before this paper. `voices.ts` is now
-  488 lines; a fourth voice should come with a split into a package, a file a voice.
+  tablet on 2026-11-14 ("It looks fantastic"), before this paper. Split in 2026.11.8-b20 (a
+  refactor, code moved as it was): each voice is `voices/<name>.ts` to the shape in
+  `voices/voice.ts`, with `voices.ts` keeping the functions and `VOICES`; and the page
+  is three layers, `gazette/page.ts` (state, `hass`, the feeds) under `gazette/acts.ts`
+  (what a press does) under `gazette.ts` (`render`). Members shared between layers
+  are `protected`. A new feed goes in page.ts, a new press in acts.ts.
 - **A photograph's clipping, and the Amusements column** (owner's ideas, 2026-11-14;
   2026.11.8-b16). A press on a photograph (a story's, the archive's, a camera
   clipping's still) opens it as a clipping (`photograph` in `clipping.ts`, `_shot` in
