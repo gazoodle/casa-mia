@@ -2,10 +2,10 @@
 // Asked for once, when its clipping is opened; what happens after that is already told to
 // the page as it happens.
 import type { Hass } from "../ha.ts";
-import { standing, type Device, type Kind } from "./house.ts";
+import { levelled, standing, type Device, type Kind } from "./house.ts";
 
 export const DAY = 24 * 3_600_000;
-export type Change = { at: number; on: boolean; level?: number; away: boolean };
+export type Change = { at: number; on: boolean; phase?: string; level?: number; away: boolean };
 /** A state as the history command sends it: its state, attributes and time, in seconds. */
 export type Row = { s: string; a?: Record<string, any>; lu: number };
 
@@ -15,7 +15,7 @@ export function chronicle(kind: Kind, rows: Row[]): Change[] {
   for (const row of rows) {
     const next = { at: row.lu * 1000, ...standing(kind, { state: row.s, attributes: row.a ?? {} }) };
     const last = changes.at(-1);
-    if (!last || last.on !== next.on || last.level !== next.level || last.away !== next.away) changes.push(next);
+    if (!last || last.on !== next.on || last.phase !== next.phase || last.level !== next.level || last.away !== next.away) changes.push(next);
   }
   return changes;
 }
@@ -38,10 +38,10 @@ export async function recorded(hass: Hass, d: Device, now: number): Promise<Chan
     entity_ids: [d.id],
     // A cover's position is in its attributes, and a change of position alone is not
     // "significant". Home Assistant keeps a light's brightness out of its history
-    // altogether, so a light's record is of when it was on, and not of how brightly. A
-    // thermostat's target is kept.
+    // altogether, so a light's record is of when it was on, and not of how brightly.
+    // The other kinds' levels are asked for.
     significant_changes_only: false,
-    no_attributes: d.kind !== "cover" && d.kind !== "climate",
+    no_attributes: d.kind === "light" || !levelled(d.kind),
   });
   return chronicle(d.kind, found[d.id] ?? []);
 }

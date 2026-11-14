@@ -12,14 +12,16 @@ test("the history is one change for each time the device came to stand different
     { s: "unavailable", lu: 400 },
   ];
   assert.deepEqual(chronicle("light", rows), [
-    { at: 100_000, on: false, level: undefined, away: false },
-    { at: 200_000, on: true, level: 100, away: false },
-    { at: 300_000, on: true, level: 40, away: false },
-    { at: 400_000, on: false, level: undefined, away: true },
+    { at: 100_000, on: false, phase: undefined, level: undefined, away: false },
+    { at: 200_000, on: true, phase: undefined, level: 100, away: false },
+    { at: 300_000, on: true, phase: undefined, level: 40, away: false },
+    { at: 400_000, on: false, phase: undefined, level: undefined, away: true },
   ]);
   // A lock is on when locked, and a cover when not closed.
   assert.deepEqual(chronicle("lock", [{ s: "locked", lu: 1 }, { s: "unlocked", lu: 2 }]).map((c) => c.on), [true, false]);
-  assert.deepEqual(chronicle("cover", [{ s: "open", a: { current_position: 30 }, lu: 1 }])[0], { at: 1000, on: true, level: 30, away: false });
+  // A robot's day is told by its phases, and a state that is only on its way is no change.
+  assert.deepEqual(chronicle("vacuum", [{ s: "docked", lu: 1 }, { s: "cleaning", lu: 2 }, { s: "returning", lu: 3 }, { s: "docked", lu: 4 }]).map((c) => [c.on, c.phase]), [[false, "docked"], [true, undefined], [false, "returning"], [false, "docked"]]);
+  assert.deepEqual(chronicle("cover", [{ s: "open", a: { current_position: 30 }, lu: 1 }])[0], { at: 1000, on: true, phase: undefined, level: 30, away: false });
 });
 
 test("when it was on, as parts of the span: cut off at its ends, and running to now if it still is", () => {

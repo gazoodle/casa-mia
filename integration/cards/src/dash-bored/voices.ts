@@ -3,7 +3,7 @@
 // Keep it so. Then a settings page or a translation can replace any of it later without
 // touching the ranking or the page, and a new paper is one more entry here and a block
 // of CSS (styles.ts).
-import type { Device, Kind } from "./house.ts";
+import { DEGREES, type Device, type Kind } from "./house.ts";
 import type { Alert, Notice, Story } from "./stories.ts";
 import { NOMINAL } from "./stories.ts";
 
@@ -24,7 +24,7 @@ export type Voice = {
   rest: string; // a big house: the rooms with nothing to report, counted
   gaps: Record<string, string>; // what Home Assistant isn't told about the house, by a Gap's kind, counted
   mend: string; // under them: what to do about it
-  words: Record<string, string>; // one device, by `kind.state`; `kind.many` is a room's count of them, in a big house; `percent` and `degrees` are how a level is said, and are a clause's {level}
+  words: Record<string, string>; // one device, by `kind.on`, `kind.off`, `kind.plain` (on, with a level that isn't known) or `kind.<phase>`; `kind.many` is a room's count of them, in a big house; `percent` and `degrees` are how a level is said, and are a clause's {level}
   polls: Record<string, { ask: string; less: string; more: string }>; // by kind: the question over a level's scale, and its two votes
   acts: Record<string, string>; // on a device's clipping: the button that puts it the other way, by `kind.on` or `kind.off` as it stands
   clipping: { since: string; record: string; wait: string; none: string; ago: string; now: string; reads: string; playing: string; sure: string; more: string; shut: string }; // the rest of a clipping's words; `ago` and `now` are the ends of the record's band, `reads` is a thermostat's own reading, `playing` what a player has on, and `sure` is the second press that unlocks or opens
@@ -60,8 +60,8 @@ export function tell(voice: Voice, story: Story, turn: number): Told {
   };
 }
 
-/** A level as this paper says it: "80 per cent", or for a thermostat "21°". */
-export const amount = (voice: Voice, kind: Kind, level: number) => fill(voice.words[kind === "climate" ? "degrees" : "percent"], { n: String(level) });
+/** A level as this paper says it: "80 per cent", or for a temperature "21°". */
+export const amount = (voice: Voice, kind: Kind, level: number) => fill(voice.words[DEGREES.has(kind) ? "degrees" : "percent"], { n: String(level) });
 
 /** One device as a clause, in three pieces: what comes before its level, the level, and
  * what comes after ("the ceiling light burns at ", "80 per cent", ""). The level is its
@@ -75,7 +75,8 @@ function named(d: Device) {
   const plural = /s$/i.test((d.kind === "light" ? lamp : name).split(" - ")[0]);
   // "Entrance" is a camera's name, and not what keeps watch.
   const camera = /cam/i.test(name) ? name : `${name} camera`;
-  return { name, lamp, camera, is: plural ? "are" : "is", v: plural ? "" : "s" };
+  const alarm = /alarm/i.test(name) ? name : `${name} alarm`;
+  return { name, lamp, camera, alarm, is: plural ? "are" : "is", v: plural ? "" : "s" };
 }
 
 /** The readers' poll on a device's level: a question, and the vote for less and for more. */
@@ -85,8 +86,10 @@ export function poll(voice: Voice, d: Device) {
 }
 
 export function clause(voice: Voice, d: Device): [string, string, string] {
-  // A kind that has a level has a plain way of being on, for when the level isn't known.
-  const state = d.away ? "away" : !d.on ? `${d.kind}.off` : d.level === undefined && `${d.kind}.plain` in voice.words ? `${d.kind}.plain` : `${d.kind}.on`;
+  // A phase has words of its own where the paper has any. A kind that has a level has a
+  // plain way of being on, for when the level isn't known.
+  const has = (state: string) => `${d.kind}.${state}` in voice.words;
+  const state = d.away ? "away" : d.phase && has(d.phase) ? `${d.kind}.${d.phase}` : !d.on ? `${d.kind}.off` : d.level === undefined && has("plain") ? `${d.kind}.plain` : `${d.kind}.on`;
   const said = fill(voice.words[state], { ...named(d), level: "\0" });
   // "The ann's lamp" is "ann's lamp".
   const [before, after] = said.replace(/^the (?=\S+['’]s )/, "").split("\0");
@@ -138,6 +141,37 @@ const broadsheet: Voice = {
     "media_player.plain": "the {name} is playing",
     "media_player.off": "the {name} is silent",
     "camera.off": "the {camera} keeps watch",
+    "fan.on": "the {name} turn{v} at {level}",
+    "fan.plain": "the {name} {is} turning",
+    "fan.off": "the {name} {is} still",
+    "valve.on": "the {name} stand{v} {level} open",
+    "valve.plain": "the {name} {is} open",
+    "valve.off": "the {name} {is} shut",
+    "vacuum.on": "the {name} is cleaning",
+    "vacuum.off": "the {name} is at rest",
+    "vacuum.docked": "the {name} is docked",
+    "vacuum.returning": "the {name} is on its way home",
+    "vacuum.paused": "the {name} has paused",
+    "vacuum.error": "the {name} has come to grief",
+    "lawn_mower.on": "the {name} is mowing",
+    "lawn_mower.off": "the {name} is at rest",
+    "lawn_mower.docked": "the {name} is docked",
+    "lawn_mower.returning": "the {name} is on its way home",
+    "lawn_mower.paused": "the {name} has paused",
+    "lawn_mower.error": "the {name} has come to grief",
+    "water_heater.on": "the {name} is set to {level}",
+    "water_heater.plain": "the {name} is heating",
+    "water_heater.off": "the {name} is off",
+    "humidifier.on": "the {name} is set to {level}",
+    "humidifier.plain": "the {name} is running",
+    "humidifier.off": "the {name} is off",
+    "siren.on": "the {name} is sounding",
+    "siren.off": "the {name} is silent",
+    "alarm_control_panel.on": "the {alarm} is set",
+    "alarm_control_panel.off": "the {alarm} is not set",
+    "alarm_control_panel.arming": "the {alarm} is being set",
+    "alarm_control_panel.pending": "the {alarm} is about to sound",
+    "alarm_control_panel.triggered": "the {alarm} is sounding",
     "light.on": "the {lamp} burn{v} at {level}",
     "light.plain": "the {lamp} {is} lit",
     "light.off": "the {lamp} {is} out",
@@ -157,9 +191,15 @@ const broadsheet: Voice = {
     cover: { ask: "Readers are invited to say whether the {name} stand{v} too far open.", less: "Too far", more: "Not far enough" },
     climate: { ask: "Readers are invited to say whether the {name} is set too warm.", less: "Too warm", more: "Too cold" },
     media_player: { ask: "Readers are invited to say whether the {name} is too loud.", less: "Too loud", more: "Not loud enough" },
+    fan: { ask: "Readers are invited to say whether the {name} turn{v} too fast.", less: "Too fast", more: "Not fast enough" },
+    water_heater: { ask: "Readers are invited to say whether the {name} is set too hot.", less: "Too hot", more: "Not hot enough" },
+    humidifier: { ask: "Readers are invited to say whether the {name} is set too damp.", less: "Too damp", more: "Too dry" },
   },
   acts: { "light.on": "Put it out", "light.off": "Light it", "switch.on": "Switch it off", "switch.off": "Switch it on", "cover.on": "Close it", "cover.off": "Open it", "lock.on": "Unlock it", "lock.off": "Lock it",
-    "climate.on": "Turn it off", "climate.off": "Turn it on", "media_player.on": "Pause it", "media_player.off": "Play on" },
+    "climate.on": "Turn it off", "climate.off": "Turn it on", "media_player.on": "Pause it", "media_player.off": "Play on",
+    "fan.on": "Stop it", "fan.off": "Start it", "valve.on": "Shut it", "valve.off": "Open it", "vacuum.on": "Send it home", "vacuum.off": "Set it cleaning",
+    "lawn_mower.on": "Send it home", "lawn_mower.off": "Set it mowing", "water_heater.on": "Turn it off", "water_heater.off": "Turn it on",
+    "humidifier.on": "Turn it off", "humidifier.off": "Turn it on", "siren.on": "Silence it", "siren.off": "Sound it" },
   clipping: { since: "So it has stood since {at}.", record: "The record", wait: "Our archivist is consulting the files.", none: "Nothing is recorded of the last day.", ago: "This time yesterday", now: "Now", reads: "The glass reads {temp}°.", playing: "On the air: {title}.",
     sure: "Press again to confirm", more: "Home Assistant's own page", shut: "Fold away" },
   wire: { trouble: "{name}: {message}", clear: "{name}: all is well again." },
@@ -176,6 +216,7 @@ const broadsheet: Voice = {
     "sighting.person": { kicker: "Person seen", head: ["A figure is observed", "Person seen on the premises"], deck: "Photographed by the {name} at {at}. Identity unconfirmed as this edition went to press." },
     "sighting.vehicle": { kicker: "Vehicle seen", head: ["A vehicle draws up", "Motor traffic is reported"], deck: "Photographed by the {name} at {at}." },
     "sighting.animal": { kicker: "Nature notes", head: ["Wildlife reported in the grounds", "A creature is observed"], deck: "Photographed by the {name} at {at}. It declined to comment." },
+    triggered: { kicker: "Stop press", head: ["The alarm is sounding"], deck: "The {name} alarm was set off in the {room}. Readers are urged to look at once." },
     unlocked: { kicker: "Security", head: ["{name} found unlocked"], deck: "{room} in uproar as the household is urged to turn the key.", act: "Lock it" },
     offline: { kicker: "Missing", head: ["{N} device{s} not answering"], deck: "Silent since {since}: {names}." },
     appliance: { kicker: "Industry", head: ["{name} draws {kw} kilowatts"], deck: "{room} sources confirm that the meter is spinning in a good cause.", act: "Switch it off" },
@@ -215,6 +256,37 @@ const tabloid: Voice = {
     "media_player.plain": "{name} playing",
     "media_player.off": "{name} quiet",
     "camera.off": "{camera} watching",
+    "fan.on": "{name} SPINNING at {level}",
+    "fan.plain": "{name} spinning",
+    "fan.off": "{name} off",
+    "valve.on": "{name} {level} open",
+    "valve.plain": "{name} OPEN",
+    "valve.off": "{name} shut",
+    "vacuum.on": "{name} HOOVERING",
+    "vacuum.off": "{name} slacking",
+    "vacuum.docked": "{name} docked",
+    "vacuum.returning": "{name} heading home",
+    "vacuum.paused": "{name} on a break",
+    "vacuum.error": "{name} STUCK!",
+    "lawn_mower.on": "{name} MOWING",
+    "lawn_mower.off": "{name} slacking",
+    "lawn_mower.docked": "{name} docked",
+    "lawn_mower.returning": "{name} heading home",
+    "lawn_mower.paused": "{name} on a break",
+    "lawn_mower.error": "{name} STUCK!",
+    "water_heater.on": "{name} set to {level}",
+    "water_heater.plain": "{name} ON",
+    "water_heater.off": "{name} off",
+    "humidifier.on": "{name} set to {level}",
+    "humidifier.plain": "{name} ON",
+    "humidifier.off": "{name} off",
+    "siren.on": "{name} WAILING!",
+    "siren.off": "{name} quiet",
+    "alarm_control_panel.on": "{alarm} SET",
+    "alarm_control_panel.off": "{alarm} off",
+    "alarm_control_panel.arming": "{alarm} setting…",
+    "alarm_control_panel.pending": "{alarm} about to GO OFF",
+    "alarm_control_panel.triggered": "{alarm} GOING OFF!",
     "light.on": "{lamp} ON at {level}",
     "light.plain": "{lamp} ON",
     "light.off": "{lamp} off",
@@ -234,9 +306,15 @@ const tabloid: Voice = {
     cover: { ask: "{name}: TOO OPEN? You decide!", less: "Shut it a bit", more: "Open up" },
     climate: { ask: "{name}: TOO HOT? You decide!", less: "Cool it", more: "Warm it up" },
     media_player: { ask: "{name}: TOO LOUD? You decide!", less: "Pipe down", more: "Louder!" },
+    fan: { ask: "{name}: TOO FAST? You decide!", less: "Slow down", more: "Faster!" },
+    water_heater: { ask: "{name}: TOO HOT? You decide!", less: "Cool it", more: "Hotter!" },
+    humidifier: { ask: "{name}: TOO DAMP? You decide!", less: "Dry it out", more: "Damper!" },
   },
   acts: { "light.on": "Kill it", "light.off": "Light it up", "switch.on": "Off!", "switch.off": "On!", "cover.on": "Shut it", "cover.off": "Open up", "lock.on": "Unlock it", "lock.off": "Lock it",
-    "climate.on": "Kill the heat", "climate.off": "Heat on!", "media_player.on": "Shush!", "media_player.off": "Play it!" },
+    "climate.on": "Kill the heat", "climate.off": "Heat on!", "media_player.on": "Shush!", "media_player.off": "Play it!",
+    "fan.on": "Kill it", "fan.off": "Spin it", "valve.on": "Shut it", "valve.off": "Open up", "vacuum.on": "Go home!", "vacuum.off": "Get hoovering",
+    "lawn_mower.on": "Go home!", "lawn_mower.off": "Get mowing", "water_heater.on": "Kill the heat", "water_heater.off": "Heat on!",
+    "humidifier.on": "Off!", "humidifier.off": "On!", "siren.on": "SHUT IT UP", "siren.off": "Sound it" },
   clipping: { since: "Been that way since {at}.", record: "The story so far", wait: "Digging the dirt…", none: "Nothing all day. Dull!", ago: "Yesterday", now: "Now", reads: "It's {temp}° in there.", playing: "Now playing: {title}.",
     sure: "SURE? Press again", more: "Home Assistant's page", shut: "Bin it" },
   wire: { trouble: "{name}: {level}!", clear: "{name}: PANIC OVER" },
@@ -253,6 +331,7 @@ const tabloid: Voice = {
     "sighting.person": { kicker: "Spotted", head: ["Who goes there?", "Caught on camera", "Smile!"], deck: "{name} snaps mystery figure at {at}." },
     "sighting.vehicle": { kicker: "Wheels", head: ["Park life", "Vroom!", "On the drive"], deck: "Motor caught on {name} at {at}." },
     "sighting.animal": { kicker: "Beast", head: ["Paws for thought", "Beast on the loose", "Fur real"], deck: "Creature caught on {name} at {at}." },
+    triggered: { kicker: "Red alert", head: ["ALARM!", "Burglars?!", "It's going off!"], deck: "{name} alarm GOING OFF in the {room}. Go and LOOK." },
     unlocked: { kicker: "Exclusive", head: ["Lock shock", "Come on in!", "Open house"], deck: "{name} left UNLOCKED as household carries on regardless.", act: "Lock it NOW" },
     offline: { kicker: "Vanished", head: ["Gone quiet", "Missing in action", "Hello? Anyone?"], deck: "{n} device{s} not answering since {since}: {names}." },
     appliance: { kicker: "Power mad", head: ["Full steam ahead", "Watt a whopper", "Going large"], deck: "{name} guzzles {kw}kW in {room} power binge.", act: "Pull the plug" },

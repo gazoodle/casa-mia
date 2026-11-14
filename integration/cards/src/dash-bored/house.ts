@@ -5,16 +5,17 @@
 // entities alone.
 import type { Hass } from "../ha.ts";
 
-export type Kind = "light" | "switch" | "cover" | "lock" | "climate" | "media_player" | "camera";
+export type Kind = "light" | "switch" | "cover" | "lock" | "climate" | "media_player" | "camera" | "fan" | "valve" | "vacuum" | "lawn_mower" | "water_heater" | "humidifier" | "siren" | "alarm_control_panel";
 export type Device = {
   id: string;
   name: string;
   kind: Kind;
-  on: boolean; // a lock is on when locked, a cover when not closed, a thermostat when not off, a player when playing; a camera never is
-  level?: number; // a light's brightness, a cover's position and a player's volume in per cent; a thermostat's target in degrees
+  on: boolean; // each kind's own way of being on (ON below): a lock is when locked, a cover when not closed, a vacuum when cleaning, an alarm when set
+  phase?: string; // a state between on and off that is worth its own words (PHASES): a vacuum returning, an alarm sounding
+  level?: number; // in per cent (a light's brightness, a cover's position, a fan's speed, a target humidity) or degrees (DEGREES: a target temperature)
   dims: boolean; // its level can be set from the page: a dimmable light, a cover that takes a position, a thermostat's target, a player's volume
   span: Span; // what its level runs over
-  temp?: number; // a thermostat's own reading
+  temp?: number; // a thermostat's or a water heater's own reading
   title?: string; // what a player is playing
   picture?: string; // a camera's latest picture, as an address
   away: boolean; // unavailable
@@ -66,11 +67,14 @@ const OURS = "casa_mia_dash_bored"; // the integration: its image entities are t
 // ponytail: names in English that mark a setting or an indicator, not a thing in a room.
 // A guess, and only ever shown as one; a list per language if this is ever translated.
 const PLUMBING = /\b(led|relay|screen|screensaver|in use|enabled|watching|mode|program(me)?|charge)\b/i;
-const KINDS = new Set(["light", "switch", "cover", "lock", "climate", "media_player", "camera"]);
 // What a thing is called when its name says no more than its room: "Kitchen" alone is "Light".
-const NOUN: Partial<Record<Kind, string>> = { climate: "thermostat", media_player: "player" };
-// A lock, a garage door or a gate must not move because a finger brushed a sentence.
-// These open Home Assistant's own dialog instead.
+const NOUN: Partial<Record<Kind, string>> = { climate: "thermostat", media_player: "player", lawn_mower: "mower", water_heater: "water heater", alarm_control_panel: "alarm" };
+/** The kinds whose level is a temperature, in degrees; every other level is in per cent. */
+export const DEGREES: ReadonlySet<string> = new Set(["climate", "water_heater"]);
+// These never move because a finger brushed a sentence, and to unlock, open or sound one
+// takes two presses in its clipping: a lock, a valve (water or gas), a siren.
+const GUARDED_KINDS = new Set(["lock", "valve", "siren"]);
+// So are these classes of cover: a garage door, a gate, a door.
 const GUARDED = new Set(["garage", "gate", "door"]);
 
 /** "Kitchen Ceiling Light" in the kitchen is "Ceiling": the room and the kind of thing are
@@ -136,7 +140,7 @@ export function survey(hass: Hass, options: Options): Survey {
       kind: domain as Kind,
       name: short(full, area.name, domain as Kind),
       full,
-      guarded: domain === "lock" || (domain === "cover" && GUARDED.has(state.attributes.device_class)),
+      guarded: GUARDED_KINDS.has(domain) || (domain === "cover" && GUARDED.has(state.attributes.device_class)),
     };
     room.devices.push(found);
     if (domain === "switch" && entry.device_id) owner.set(found, entry.device_id);
@@ -185,34 +189,57 @@ export function survey(hass: Hass, options: Options): Survey {
 // Each kind's own way of being on, of having a level, and of letting it be set.
 const is = (on: string) => (state: string) => state === on;
 const not = (off: string) => (state: string) => state !== off;
-const ON: Record<Kind, (state: string) => boolean> = { light: is("on"), switch: is("on"), lock: is("locked"), cover: not("closed"), climate: not("off"), media_player: is("playing"), camera: () => false };
+const ON: Record<Kind, (state: string) => boolean> = {
+  light: is("on"), switch: is("on"), lock: is("locked"), cover: not("closed"), climate: not("off"), media_player: is("playing"), camera: () => false,
+  fan: is("on"), valve: not("closed"), vacuum: is("cleaning"), lawn_mower: is("mowing"), water_heater: not("off"), humidifier: is("on"), siren: is("on"),
+  alarm_control_panel: (state) => state.startsWith("armed"),
+};
+const KINDS = new Set(Object.keys(ON));
+// The states between on and off that a voice has words for.
+const RESTING = ["docked", "returning", "paused", "error"];
+const PHASES: Partial<Record<Kind, string[]>> = { vacuum: RESTING, lawn_mower: RESTING, alarm_control_panel: ["triggered", "pending", "arming"] };
 // The attribute a level is read from, and how it becomes what the page tells.
 const LEVEL: Partial<Record<Kind, [attribute: string, told: (raw: number) => number]>> = {
   light: ["brightness", (raw) => Math.round((raw / 255) * 100)],
   cover: ["current_position", (raw) => raw],
   climate: ["temperature", (raw) => raw],
   media_player: ["volume_level", (raw) => Math.round(raw * 100)],
+  fan: ["percentage", (raw) => raw],
+  valve: ["current_position", (raw) => raw],
+  water_heater: ["temperature", (raw) => raw],
+  humidifier: ["humidity", (raw) => raw],
 };
+/** Whether a kind has a level at all. */
+export const levelled = (kind: Kind) => kind in LEVEL;
 // A light with a colour mode other than on/off has a brightness. The numbers are Home
-// Assistant's feature flags: a cover's SET_POSITION, a thermostat's TARGET_TEMPERATURE
-// and a player's VOLUME_SET.
+// Assistant's feature flags: a cover's SET_POSITION, a thermostat's and a water heater's
+// TARGET_TEMPERATURE, a player's VOLUME_SET, a fan's SET_SPEED. A humidifier's target can
+// always be set. (A valve is guarded, so its position is told and not set.)
 const DIMS: Partial<Record<Kind, (attributes: Record<string, any>) => boolean>> = {
   light: (a) => (a.supported_color_modes ?? []).some((mode: string) => mode !== "onoff"),
   cover: (a) => !!(a.supported_features & 4),
   climate: (a) => !!(a.supported_features & 1),
   media_player: (a) => !!(a.supported_features & 4),
+  fan: (a) => !!(a.supported_features & 1),
+  water_heater: (a) => !!(a.supported_features & 1),
+  humidifier: () => true,
 };
 const PER_CENT: Span = { min: 0, max: 100, step: 1, vote: 10 };
-const span = (kind: Kind, a: Record<string, any>): Span =>
-  kind === "climate" ? { min: a.min_temp ?? 7, max: a.max_temp ?? 35, step: a.target_temp_step ?? 0.5, vote: 0.5 } : kind === "media_player" ? { ...PER_CENT, vote: 5 } : PER_CENT;
+const SPAN: Partial<Record<Kind, (attributes: Record<string, any>) => Span>> = {
+  climate: (a) => ({ min: a.min_temp ?? 7, max: a.max_temp ?? 35, step: a.target_temp_step ?? 0.5, vote: 0.5 }),
+  water_heater: (a) => ({ min: a.min_temp ?? 30, max: a.max_temp ?? 70, step: a.target_temp_step ?? 1, vote: 1 }),
+  humidifier: (a) => ({ min: a.min_humidity ?? 0, max: a.max_humidity ?? 100, step: 1, vote: 5 }),
+  media_player: () => ({ ...PER_CENT, vote: 5 }),
+};
+const span = (kind: Kind, a: Record<string, any>): Span => SPAN[kind]?.(a) ?? PER_CENT;
 
 /** How a device stands, by one of its states: the one it is in now, or one from its history. */
-export function standing(kind: Kind, state?: { state: string; attributes: Record<string, any> }): { on: boolean; level?: number; away: boolean } {
+export function standing(kind: Kind, state?: { state: string; attributes: Record<string, any> }): { on: boolean; phase?: string; level?: number; away: boolean } {
   const away = !state || state.state === "unavailable";
   const on = !away && ON[kind](state.state);
   const [attribute, told] = LEVEL[kind] ?? [];
   const raw = attribute && state?.attributes[attribute];
-  return { on, level: typeof raw === "number" && told ? told(raw) : undefined, away };
+  return { on, phase: state && PHASES[kind]?.includes(state.state) ? state.state : undefined, level: typeof raw === "number" && told ? told(raw) : undefined, away };
 }
 
 export function read(found: Survey, hass: Hass): House {
@@ -233,14 +260,14 @@ export function read(found: Survey, hass: Hass): House {
     const set = climate?.attributes.temperature;
     const devices = room.devices.map((d): Device => {
       const state = hass.states[d.id];
-      const { on, level, away } = standing(d.kind, state);
+      const { on, phase, level, away } = standing(d.kind, state);
       const a = state?.attributes ?? {};
       // A guarded cover is not set from the page either.
       const dims = !d.guarded && !!DIMS[d.kind]?.(a);
 
       const kw = on ? kilowatts(d.power) : undefined;
       if (kw !== undefined && kw >= 1) appliances.push({ id: d.id, name: d.name, room: room.name, kw });
-      return { id: d.id, name: d.name, kind: d.kind, on, level, dims, span: span(d.kind, a), temp: d.kind === "climate" && typeof a.current_temperature === "number" ? a.current_temperature : undefined,
+      return { id: d.id, name: d.name, kind: d.kind, on, phase, level, dims, span: span(d.kind, a), temp: DEGREES.has(d.kind) && typeof a.current_temperature === "number" ? a.current_temperature : undefined,
         title: d.kind === "media_player" && on ? [a.media_title, a.media_artist].filter(Boolean).join(", ") || undefined : undefined, picture: d.kind === "camera" ? a.entity_picture : undefined, away, since: Date.parse(state?.last_changed ?? "") || 0, guarded: d.guarded, room: room.name };
     });
     return {

@@ -39,9 +39,11 @@ export function ragged(seed: string): string {
 
 export function clipping(voice: Voice, d: Device, open: Open, now: number, scale: unknown, scraps: Scraps, on: { flip(): void; more(): void; shut(): void }): TemplateResult {
   const c = voice.clipping;
-  const told = (change: Change) => cap(words(voice, { ...d, on: change.on, level: change.level, away: change.away }));
+  const told = (change: Change) => cap(words(voice, { ...d, on: change.on, phase: change.phase, level: change.level, away: change.away }));
   const record = open.record;
-  // A camera has no button and no record: nothing puts it the other way, and it has no day to tell.
+  // A camera has no button and no record: nothing puts it the other way, and it has no
+  // day to tell. An alarm has no button either: it is set and unset in Home Assistant's
+  // own dialog, which has its keypad, and not from a page that a guest may open.
   const act = voice.acts[`${d.kind}.${d.on ? "on" : "off"}`];
   // The dialog itself is the margin round the cutting: a press there, or Escape, folds it away.
   return html`<dialog class="clipping" @close=${on.shut} @click=${(e: Event) => e.target === e.currentTarget && on.shut()}>

@@ -14,8 +14,8 @@ Mia integration.
 Add **Dash-Bored** under **Settings → Devices & services → Add integration**. There is
 nothing to fill in. A **Dash-Bored** entry appears in the sidebar for every user.
 
-The page is built from your areas. Each area that has lights, switches, covers, locks, thermostats,
-media players or cameras becomes a room, and those devices are what it reports on. Entities you have hidden, and
+The page is built from your areas. Each area that has lights, switches, covers, locks or any of the
+other devices listed below becomes a room, and those devices are what it reports on. Entities you have hidden, and
 a device's configuration and diagnostic entities, are left out. If a room is missing,
 give its devices an area in Home Assistant.
 
@@ -156,11 +156,16 @@ Assistant's settings, so the suspected plumbing is grouped by integration:
 
 ### What a press will never do
 
-A lock, a garage door or a gate is never operated by a press on a sentence or on the
-switchboard, because a stray touch must not unlock the house. Pressing one opens its
-clipping, where unlocking or opening takes two presses: the button changes to **Press
+A lock, a garage door, a gate, a valve or a siren is never operated by a press on a
+sentence or on the switchboard, because a stray touch must not unlock the house, turn
+the water on or set a siren off. Pressing one opens its
+clipping, where unlocking, opening or sounding takes two presses: the button changes to **Press
 again to confirm** for a few seconds. Locking and closing take one. A device that is not
-answering opens its clipping too. The **Lock it** button under an unlocked door does lock
+answering opens its clipping too.
+
+An alarm panel can't be set or unset from the page at all. The page is open to every
+user and has no keypad, so that stays in Home Assistant's own dialog, which the
+alarm's clipping links to. The **Lock it** button under an unlocked door does lock
 it.
 
 ### Thermostats, media players and cameras
@@ -179,6 +184,18 @@ doesn't stop the heating or the music.
   playing, and its button pauses or plays.
 - **A camera** is on the switchboard, and in the report only if it stops answering. Its
   clipping shows its latest picture; **Home Assistant's own page** has the live view.
+
+### The other devices
+
+| Device | How it is told | What a press does |
+|---|---|---|
+| Fan | On or off, with its speed as a level: "the fan turns at 60 per cent". | Switches it. Its level has the scale and a poll. |
+| Humidifier | On or off, with its target humidity as a level. | Switches it. Its level has the scale and a poll, in fives. |
+| Water heater | Its target temperature, as a thermostat's is. | Opens its clipping, which has its own reading, the scale and poll (a degree a vote) and an on and off button. |
+| Valve | Open, shut, or how far open. | Opens its clipping. Opening takes two presses. |
+| Siren | Sounding or silent. | Opens its clipping. Sounding it takes two presses. |
+| Vacuum, lawn mower | Cleaning or mowing, docked, on its way home, paused, or in trouble. | Opens its clipping, which starts it or sends it home. |
+| Alarm panel | Set, not set, being set, about to sound, or sounding. | Opens its clipping, which has no button. An alarm that is sounding leads the paper, above everything else. |
 
 ### A device's clipping
 

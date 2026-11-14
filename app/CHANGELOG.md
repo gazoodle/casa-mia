@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026.11.8-b15
+
+- **Dash-Bored: the rest of the house's devices.** Fans, humidifiers, water heaters, valves, sirens, vacuums, lawn mowers and alarm panels are devices in their rooms.
+  - A fan's speed, a humidifier's target and a water heater's temperature are levels, with the scale and a readers' poll.
+  - A valve and a siren are guarded as a garage door is: a press opens the clipping, and opening a valve or sounding a siren takes two presses.
+  - A vacuum and a mower are started and sent home from their clippings, and are told as docked, on the way home, paused or in trouble.
+  - An alarm panel is told but can't be set or unset from the page, which every user can open and which has no keypad. An alarm that is sounding leads the paper.
+- **Dash-Bored: a big house's report leaves out what is as it should be.** A water heater at work, an alarm that is set and a robot in its dock are not listed, as a thermostat at work already was not.
+
 ## 2026.11.8-b14
 
 - **Dash-Bored: thermostats, media players and cameras are devices in their rooms.** A thermostat is told with its target ("set to 21°") and a media player with its volume, and each has the scale and a readers' poll: "Too warm" or "Too cold" by half a degree, "Too loud" or "Not loud enough" by five per cent. A press on one opens its clipping and switches nothing, so a stray touch doesn't stop the heating or the music. The clipping has a thermostat's own reading and what a player has on, with a button to turn the heating off or pause. A camera has a button on the switchboard and a clipping with its latest picture; it is in the report only when it stops answering.

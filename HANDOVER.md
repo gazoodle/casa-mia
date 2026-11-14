@@ -385,7 +385,15 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   two `acts`) and, in `gazette.ts`, whether a press opens its clipping (`OPENS`: my
   ruling for heating and music, as for locks) and whether it is news (`UNREMARKABLE`,
   `reportable`). A thermostat is still the source of its room's temperature and target.
-  Fans, valves, vacuums and the rest are not kinds yet.
+  **The rest** (2026.11.8-b15, built while the owner slept, so these rulings are mine
+  and are his to overturn): fan and humidifier toggle like a light; water heater is a
+  thermostat by another name (`DEGREES`); valve and siren are guarded
+  (`GUARDED_KINDS`: two presses to open or sound, and a valve's position is told, not
+  set); vacuum and lawn mower open their clipping; an alarm panel has no `acts`, so no
+  button, because the page is every user's and has no keypad. `phase` is a state
+  between on and off that a voice words (`PHASES`: a robot docked, returning, paused or
+  in error; an alarm arming, pending or triggered). A triggered alarm is the story
+  `triggered`, rank 110. Not kinds: `input_boolean`, `remote`, `button`, `script`.
 - **The Personal column** (owner's idea, 2026-11-14; 2026.11.8-b14): `personal` in
   `stories.ts` joins each person's latest move (`House.people`, read from the person
   entities, which are in `watched`) with the songs rated, for twelve hours. The songs
@@ -401,9 +409,12 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   on four floors, and a dimmable Pendant and a Blind as template helpers): floors as
   crossheads, votes and the scale moving a light and a blind, a clipping's record from
   real history growing by push, Escape closing it, and the demo garage door staying
-  closed after one press and opening on the second, a vote moving a thermostat's target
+  closed after one press and opening on the second (a sprinkler valve the same), a vote
+  moving a fan's speed and a water heater's target, a vacuum started and sent home, the
+  alarm's clipping with no button, the big-house report with every kind (42 devices), a vote moving a thermostat's target
   and a player's volume, a player pausing, a camera's picture, and two songs rated through
-  Love it or Loathe it's action reaching the Personal column. **Not seen:** a person
+  Love it or Loathe it's action reaching the Personal column. **Not seen:** a humidifier or a siren (the demo's are in no registry), an alarm
+  sounding, a person
   truly coming or going (the VM's people have no trackers; their states were set by hand), a real dimmer, blind
   or lock, touch on a tablet, Safari, a history failure (the path is written, not run).
 - **Not done:** publishing by itself, other languages. BACKLOG has the list.

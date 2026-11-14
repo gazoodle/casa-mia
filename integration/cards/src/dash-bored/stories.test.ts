@@ -247,3 +247,53 @@ test("the Personal column: each person's latest coming or going and the songs ra
   assert.equal(personal(people, rated, Date.parse("2026-11-13T21:00:00Z")).length, 3);
   for (const voice of Object.values(VOICES)) for (const n of column) assert.ok(announce(voice, n));
 });
+
+test("fans, valves, robots, water heaters, humidifiers, sirens and alarms are devices too, each in its own way", () => {
+  const things: Record<string, ReturnType<typeof state>> = {
+    "fan.hall": state("on", { friendly_name: "Hall Fan", percentage: 60, supported_features: 1 }),
+    "valve.hall": state("open", { friendly_name: "Hall Sprinkler", current_position: 50, supported_features: 7 }),
+    "vacuum.hall": state("docked", { friendly_name: "Hall Vacuum" }),
+    "lawn_mower.hall": state("mowing", { friendly_name: "Hall Mower" }),
+    "water_heater.hall": state("eco", { friendly_name: "Hall Cylinder", temperature: 55, current_temperature: 48, supported_features: 1, min_temp: 40, max_temp: 65 }),
+    "humidifier.hall": state("on", { friendly_name: "Hall Humidifier", humidity: 45, min_humidity: 30, max_humidity: 70 }),
+    "siren.hall": state("off", { friendly_name: "Hall Siren" }),
+    "alarm_control_panel.hall": state("triggered", { friendly_name: "Security" }),
+  };
+  const h = hass(things);
+  for (const id of Object.keys(things)) (h.entities as Record<string, object>)[id] = { entity_id: id, area_id: "hall" };
+  const house = read(survey(h, {}), h);
+  const by = Object.fromEntries(house.rooms[0].devices.map((d) => [d.kind, d]));
+  const said = (kind: string) => words(VOICES.broadsheet, by[kind]);
+
+  // A fan and a humidifier are like a light: on or off, with a level that can be set.
+  assert.deepEqual([by.fan.on, by.fan.level, by.fan.dims, said("fan")], [true, 60, true, "the fan turns at 60 per cent"]);
+  assert.deepEqual(setting(by.fan, 30), { domain: "fan", service: "set_percentage", ids: ["fan.hall"], data: { percentage: 30 } });
+  assert.deepEqual([by.humidifier.level, by.humidifier.dims, by.humidifier.span], [45, true, { min: 30, max: 70, step: 1, vote: 5 }]);
+  assert.deepEqual(setting(by.humidifier, 50).data, { humidity: 50 });
+
+  // A water heater is like a thermostat: its level is a temperature.
+  assert.deepEqual([by.water_heater.on, by.water_heater.temp, by.water_heater.span.vote, said("water_heater")], [true, 48, 1, "the cylinder is set to 55°"]);
+  assert.deepEqual(setting(by.water_heater, 60), { domain: "water_heater", service: "set_temperature", ids: ["water_heater.hall"], data: { temperature: 60 } });
+
+  // A valve and a siren are guarded, as a garage door is: told, and never set by a scale.
+  assert.deepEqual([by.valve.guarded, by.valve.dims, said("valve"), flip(by.valve).service], [true, false, "the sprinkler stands 50 per cent open", "close_valve"]);
+  assert.deepEqual([by.siren.guarded, said("siren"), flip(by.siren).service], [true, "the siren is silent", "turn_on"]);
+
+  // A robot's phases have words of their own.
+  assert.deepEqual([by.vacuum.on, by.vacuum.phase, said("vacuum"), flip(by.vacuum).service], [false, "docked", "the vacuum is docked", "start"]);
+  assert.deepEqual([by.lawn_mower.on, said("lawn_mower"), flip(by.lawn_mower).service], [true, "the mower is mowing", "dock"]);
+
+  // An alarm that is sounding leads the paper, and no paper has a button for an alarm.
+  assert.equal(said("alarm_control_panel"), "the security alarm is sounding");
+  const lead = stories(house, [], 0)[0];
+  assert.deepEqual([lead.kind, tell(VOICES.broadsheet, lead, 0).head], ["triggered", "The alarm is sounding"]);
+
+  for (const voice of Object.values(VOICES)) {
+    for (const d of Object.values(by)) {
+      for (const phase of [undefined, "docked", "returning", "paused", "error", "triggered", "pending", "arming"]) for (const on of [true, false]) assert.ok(words(voice, { ...d, on, phase }), `${d.kind} ${on} ${phase}`);
+      if (d.dims) assert.ok(poll(voice, d).ask, d.kind);
+      assert.equal(`${d.kind}.on` in voice.acts && `${d.kind}.off` in voice.acts, d.kind !== "alarm_control_panel", d.kind);
+    }
+    assert.ok(tell(voice, lead, 0).deck);
+  }
+});

@@ -22,7 +22,10 @@ export type Alert = {
 export type Press = { domain: string; service: string; ids: string[]; data?: Record<string, unknown> };
 // The service that puts each kind the other way: [when it is on, when it is off]. A
 // camera has neither.
-const FLIP: Partial<Record<Kind, [string, string]>> = { lock: ["unlock", "lock"], cover: ["close_cover", "open_cover"], media_player: ["media_pause", "media_play"] };
+const FLIP: Partial<Record<Kind, [string, string]>> = {
+  lock: ["unlock", "lock"], cover: ["close_cover", "open_cover"], media_player: ["media_pause", "media_play"],
+  valve: ["close_valve", "open_valve"], vacuum: ["return_to_base", "start"], lawn_mower: ["dock", "start_mowing"],
+};
 /** The call that puts a device the other way: on or off, open or closed, locked or
  * unlocked, playing or paused. */
 export const flip = (d: Device): Press => ({ domain: d.kind, service: (FLIP[d.kind] ?? ["turn_off", "turn_on"])[d.on ? 0 : 1], ids: [d.id] });
@@ -32,6 +35,9 @@ const SET: Partial<Record<Kind, [service: string, data: (level: number) => Recor
   cover: ["set_cover_position", (level) => ({ position: level })],
   climate: ["set_temperature", (level) => ({ temperature: level })],
   media_player: ["volume_set", (level) => ({ volume_level: level / 100 })],
+  fan: ["set_percentage", (level) => ({ percentage: level })],
+  water_heater: ["set_temperature", (level) => ({ temperature: level })],
+  humidifier: ["set_humidity", (level) => ({ humidity: level })],
 };
 /** The call that sets a device's level: a light's brightness, a cover's position, a
  * player's volume, a thermostat's target. A light asked for nothing is switched off by
@@ -130,6 +136,9 @@ export function stories(house: House, alerts: Alert[], now: number, sightings: S
     if (d.kind === "lock" && !d.on && !d.away)
       add({ kind: "unlocked", id: d.id, rank: 90, vars: { name: d.name, room: d.room }, figure: ["Open", d.name], press: { domain: "lock", service: "lock", ids: [d.id] } });
   }
+
+  // An alarm that is sounding leads the paper, above any sensor.
+  for (const d of devices) if (d.phase === "triggered") add({ kind: "triggered", id: d.id, rank: 110, vars: { name: d.name, room: d.room.toLowerCase() }, figure: ["Alarm", d.room] });
 
   // Devices that have stopped answering: a fault nobody knows about can't be fixed.
   const away = devices.filter((d) => d.away);

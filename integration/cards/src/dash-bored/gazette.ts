@@ -7,7 +7,7 @@ import { keyed } from "lit/directives/keyed.js";
 import { live } from "lit/directives/live.js";
 import { fire, navigate, type Hass } from "../ha.ts";
 import { clipping, type Open } from "./clipping.ts";
-import { read, sighted, survey, type Device, type House, type Options, type Room, type Seen, type Sighting, type Survey } from "./house.ts";
+import { DEGREES, read, sighted, survey, type Device, type House, type Options, type Room, type Seen, type Sighting, type Survey } from "./house.ts";
 import { recorded } from "./record.ts";
 import { NOMINAL, RECOVERED, cap, clock, counted, flavourOf, flip, personal, setting, stories, type Alert, type Press, type Rated, type Story } from "./stories.ts";
 import { STYLES } from "./styles.ts";
@@ -40,15 +40,17 @@ const BIG = 30;
 const MANY = 3; // more lights lit in one of its rooms than this are a count, not a list
 const ARMED = 6000; // ms: how long a first press to unlock or open waits for its second
 const SETTLE = 350; // ms: a level on the scale is asked for once it has been still this long
-// What a big house's report tells of: a lock that is open, a thing that is on. A
-// thermostat at work and a camera watching are how things should be, and no news.
-const UNREMARKABLE = new Set(["climate", "camera"]);
-const notable = (d: Device) => d.away || (!UNREMARKABLE.has(d.kind) && (d.kind === "lock" ? !d.on : d.on));
+// What a big house's report tells of: a lock that is open, a thing that is on, a thing
+// in a phase of its own (a mower in trouble, an alarm sounding). A thermostat or a water
+// heater at work, a camera watching and an alarm set are how things should be, and no news.
+const UNREMARKABLE = new Set(["climate", "camera", "water_heater", "alarm_control_panel"]);
+const AT_REST = new Set(["docked"]);
+const notable = (d: Device) => d.away || (!!d.phase && !AT_REST.has(d.phase)) || (!UNREMARKABLE.has(d.kind) && (d.kind === "lock" ? !d.on : d.on));
 // A camera is in the report only when it stops answering: "keeps watch" for each is noise.
 const reportable = (d: Device) => d.kind !== "camera" || d.away;
-// The heating, the music and a camera are not switched by a press on a sentence or a chip:
-// that opens the clipping, as it does for a lock.
-const OPENS = new Set(["climate", "media_player", "camera"]);
+// The heating, the hot water, the music, a robot and an alarm are not switched by a press
+// on a sentence or a chip: that opens the clipping, as it does for a lock.
+const OPENS = new Set(["climate", "media_player", "camera", "water_heater", "vacuum", "lawn_mower", "alarm_control_panel"]);
 type Config = Options & { type?: string; style?: string };
 type Line = { time: number; device?: Device; alert?: Alert; seen?: Sighting };
 
@@ -124,12 +126,12 @@ export class Gazette extends LitElement {
     this._house = read(this._survey, hass);
     for (const d of this._house.rooms.flatMap((r) => r.devices)) {
       const old = before.get(d.id);
-      if (!old || (old.on === d.on && old.level === d.level && old.away === d.away)) continue;
+      if (!old || (old.on === d.on && old.phase === d.phase && old.level === d.level && old.away === d.away)) continue;
       this._note({ time: Date.now(), device: d });
       // The device has moved: what was asked of it is answered, and the scale shows where it is.
       if (this._scale?.id === d.id) this._scale = { ...this._scale, want: undefined };
       // Its clipping's record goes on, and a press that was waiting for its second is forgotten.
-      if (this._open?.id === d.id) this._open = { ...this._open, armed: false, record: this._open.record && [...this._open.record, { at: Date.now(), on: d.on, level: d.level, away: d.away }] };
+      if (this._open?.id === d.id) this._open = { ...this._open, armed: false, record: this._open.record && [...this._open.record, { at: Date.now(), on: d.on, phase: d.phase, level: d.level, away: d.away }] };
     }
   }
 
@@ -422,7 +424,7 @@ export class Gazette extends LitElement {
     // the level where there is one to set.
     const chip = (d: Device) =>
       html`<div class="pair"><button class="chip ${d.on ? "on" : ""} ${d.away ? "away" : ""}" aria-pressed=${d.on} @click=${() => this._press(d)}>${d.name}</button
-        ><button class="chip tab" aria-label="${d.name}: its story" @click=${() => this._story(d)}>${d.dims && !d.away ? `${d.level ?? d.span.min}${d.kind === "climate" ? "°" : "%"}` : "›"}</button></div>`;
+        ><button class="chip tab" aria-label="${d.name}: its story" @click=${() => this._story(d)}>${d.dims && !d.away ? `${d.level ?? d.span.min}${DEGREES.has(d.kind) ? "°" : "%"}` : "›"}</button></div>`;
     const devices = new Map(house.rooms.flatMap((r) => r.devices).map((d) => [d.id, d]));
     const subject = this._open && devices.get(this._open.id);
     // What comes away with a clipping: the paper's own stories, from round where it was cut.
@@ -457,7 +459,7 @@ export class Gazette extends LitElement {
             ${lead.body ? html`<p>${lead.body}</p>` : nothing}
             ${byFloor(reported, report)}
             ${rooms.length > reported.length ? html`<p>${fill(voice.rest, counted(rooms.length - reported.length))}</p>` : nothing}
-            ${rooms.length ? nothing : html`<p>No areas with lights, switches, covers, locks, thermostats, media players or cameras were found. Give your devices areas in Home Assistant's settings and this page fills itself in.</p>`}
+            ${rooms.length ? nothing : html`<p>No areas with lights, switches or other devices were found. Give your devices areas in Home Assistant's settings and this page fills itself in.</p>`}
           </div>
         </article>
         ${rest.length
