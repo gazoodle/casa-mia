@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.8-b24
+
+- **Dash-Bored: Bakelite's rooms are one, two or three wide.** A room with many controls has a wider chassis, with its meter, knobs and switches side by side, so that no room is far taller than the others. The widths are chosen together: the room that is tallest at three wide sets the height, and each room takes the narrowest width that fits under it. A house of small rooms keeps them all one wide.
+
 ## 2026.11.8-b23
 
 - **Dash-Bored: a second family of dashboard, Bakelite.** The house as a 1950s instrument panel. Each room is a chassis with a valve that glows with the room's lights, a meter for its temperature, a knob for each light that dims and a tumbler switch for each other light and switch. Scenes are knife switches, and there are meters for the outside air and for the house's power. This is its first panel: blinds, locks, heating and the other kinds of device are not on it yet, and a room says how many of its devices are missing. It is also a card, **Casa Mia Dash-Bored Bakelite** (`custom:dash-bored-bakelite`).

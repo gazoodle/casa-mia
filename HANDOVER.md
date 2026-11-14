@@ -285,6 +285,8 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   once, as a function) and `bakelite/styles.ts`, after `docs/design/dash-bored/bakelite.html`.
   Its first panel has lights and switches (`SHOWN`); what's left is in BACKLOG. Needles
   move by a CSS easing, not the mock-up's frame loop (a `ponytail:` note in its styles).
+  A chassis is one to three widths across (`bakelite/balance.ts`, `widths`): its sizes
+  are a model of `styles.ts`, so change the two together.
   Seen on the test VM at desktop and phone widths, not on a tablet.
 - **Gazette is the first family.** Its element is
   `dash-bored-gazette` (`integration/cards/src/dash-bored/`, its own `www/cards.js`).

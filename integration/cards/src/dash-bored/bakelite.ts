@@ -4,6 +4,7 @@
 // switches. It is built on what every family shares (family.ts), and draws with the
 // controls in bakelite/kit.ts.
 import { html, nothing } from "lit";
+import { widths } from "./bakelite/balance.ts";
 import { DEFS, dolly, knife, knob, label, meter, valve } from "./bakelite/kit.ts";
 import { STYLES } from "./bakelite/styles.ts";
 import { Family } from "./family.ts";
@@ -106,28 +107,31 @@ export class Bakelite extends Family {
     const house = this._house;
     if (!this._hass || !house) return html`<div class="panel">${label("Waiting for Home Assistant")}</div>`;
 
-    const chassis = (r: Room) => {
-      const shown = r.devices.filter((d) => SHOWN.has(d.kind) && !d.guarded);
+    const dims = (d: Device) => d.kind === "light" && d.dims && !d.away;
+    const shows = (r: Room) => r.devices.filter((d) => SHOWN.has(d.kind) && !d.guarded);
+    // A room with many controls has a wider chassis, so that none is far taller than the rest.
+    const wide = widths(house.rooms.map((r) => ({ knobs: shows(r).filter(dims).length, dollies: shows(r).filter((d) => !dims(d)).length, meter: r.temp !== undefined })));
+    const chassis = (r: Room, i: number) => {
+      const shown = shows(r);
       if (!shown.length && r.temp === undefined) return nothing;
       const lights = shown.filter((d) => d.kind === "light" && !d.away);
       const lit = lights.reduce((sum, d) => sum + (d.on ? (d.level ?? 100) : 0), 0) / (lights.length * 100 || 1);
-      const dims = (d: Device) => d.kind === "light" && d.dims && !d.away;
       const more = r.devices.length - shown.length;
-      return html`<section class="room">
+      return html`<section class="room" style="--wide: ${wide[i]}">
         ${valve(lit ? 0.35 + lit * 0.65 : 0)}${label(r.name)}
-        ${r.temp === undefined ? nothing : meter(`${r.temp.toFixed(1)}°`, 5, 30, r.temp, "°C")}
+        <div class="works">${r.temp === undefined ? nothing : meter(`${r.temp.toFixed(1)}°`, 5, 30, r.temp, "°C")}
         <div class="dials">${shown.filter(dims).map((d) => {
           const dial = this._dial(d);
           return knob(d.name, dial.level, dial.held, dial.on);
         })}</div>
-        <div class="dollies">${shown.filter((d) => !dims(d)).map((d) => dolly(d.name, d.on, d.away, () => d.away || this._call(flip(d), `${r.name} ${d.name}`)))}</div>
+        <div class="dollies">${shown.filter((d) => !dims(d)).map((d) => dolly(d.name, d.on, d.away, () => d.away || this._call(flip(d), `${r.name} ${d.name}`)))}</div></div>
         ${more ? html`<div class="more" title="This panel has lights and switches so far.">${label(`and ${more} more`)}</div>` : nothing}
       </section>`;
     };
     // Rooms come sorted by floor (house.ts). A house with no floors has no plates for them.
     const floored = house.rooms.some((r) => r.floor);
     const rooms = house.rooms.map((r, i) => {
-      const drawn = chassis(r);
+      const drawn = chassis(r, i);
       const first = floored && drawn !== nothing && r.floor !== house.rooms[i - 1]?.floor;
       return html`${first ? html`<div class="floor">${label(r.floor ?? "Elsewhere")}</div>` : nothing}${drawn}`;
     });

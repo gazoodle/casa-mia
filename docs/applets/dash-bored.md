@@ -447,7 +447,9 @@ Along the top are a meter for the outside air, from a weather entity, a meter fo
 house's power if a card names a power sensor, and a knife switch for each scene. Press a
 knife switch and the scene is turned on; the blade closes for a moment and opens again.
 
-Below is a chassis for each room, under a plate for each floor:
+Below is a chassis for each room, under a plate for each floor. A room with many controls
+has a chassis two or three times as wide, with its controls side by side, so that no room
+is far taller than the others. Each chassis has:
 
 - **A valve**, which glows with the room's lights: brighter the more of them are lit and
   the higher they are set.

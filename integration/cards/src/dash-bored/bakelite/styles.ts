@@ -25,12 +25,17 @@ export const STYLES = css`
 
   .top { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-end; margin-bottom: 16px; }
   .top .meter { flex: 0 1 200px; }
-  .floor { grid-column: 1 / -1; margin-top: 6px; }
+  .floor { flex: 0 0 100%; margin-top: 6px; }
   .floor .label { font-size: 12px; }
-  .rooms { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; align-items: start; }
-  .room { background: linear-gradient(170deg, #4a2a1d, var(--bake2)); border-radius: 14px; padding: 10px 10px 14px; text-align: center;
+  /* A chassis is one, two or three widths across (balance.ts chooses, and counts on these
+     sizes). They wrap and share out a row's spare width, but one alone on a row is not stretched right across. */
+  .rooms { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+  .room { flex: var(--wide, 1) 1 calc(var(--wide, 1) * 172px - 12px); max-width: min(100%, calc(var(--wide, 1) * 250px));
+    background: linear-gradient(170deg, #4a2a1d, var(--bake2)); border-radius: 14px; padding: 10px 10px 14px; text-align: center;
     box-shadow: inset 0 2px 0 rgba(255,255,255,.15), inset 0 -4px 8px rgba(0,0,0,.5), 0 8px 14px rgba(0,0,0,.35); }
-  .room > .meter { margin: 8px 6px 0; }
+  /* A room's meter, knobs and switches share rows where the chassis is wide enough. */
+  .works { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 6px; }
+  .works > .meter { flex: 0 1 190px; margin-top: 8px; }
   .more { margin-top: 10px; opacity: .7; }
   .more .label { font-size: 8.5px; letter-spacing: .12em; }
 
@@ -51,7 +56,7 @@ export const STYLES = css`
   @keyframes flicker { 0%, 100% { transform: scale(1); } 40% { transform: scale(1.06); } 43% { transform: scale(.97); } 70% { transform: scale(1.03); } }
 
   /* The dimmer: a fluted knob over an engraved scale. */
-  .dials { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 6px; }
+  .dials, .dollies { display: contents; }
   .dial { flex: 0 1 104px; min-width: 0; }
   .dimmer { position: relative; width: 104px; height: 104px; margin: 8px auto 6px; }
   .dimmer svg { position: absolute; inset: 0; }
@@ -63,8 +68,7 @@ export const STYLES = css`
   .knob:focus-visible { outline: 2px solid var(--cream); outline-offset: 2px; }
 
   /* Dolly switches: a stepped round base, a dome with a slot, a lever in the slot. */
-  .dollies { display: flex; justify-content: center; gap: 8px 6px; margin-top: 10px; flex-wrap: wrap; }
-  .dolly { width: 92px; text-align: center; }
+  .dolly { width: 92px; margin-top: 10px; text-align: center; }
   .dolly svg { width: 60px; height: 70px; filter: drop-shadow(0 4px 4px rgba(0,0,0,.55)); }
   .dolly .label { font-size: 8px; letter-spacing: .1em; padding: 2px 5px; }
   .dolly .lever { transform-origin: 32px 32px; transition: transform .1s cubic-bezier(.5, 0, 1, .5); }
