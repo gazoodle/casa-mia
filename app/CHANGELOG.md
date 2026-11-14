@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.8-b18
+
+- **Dash-Bored: a third paper, Rolling news.** The Thermostat tells the same stories as a news website does: plain sentences, a ticker of the headlines under the dateline, and clippings as cards. Its colour is blue, and red is kept for what is wrong. Choose it beside Broadsheet and Red-top under the masthead, or with `style: rolling` on a card.
+
 ## 2026.11.8-b17
 
 - **Dash-Bored: its four feeds share one piece of code.** The alerts' and the sightings' feeds now subscribe a page the way the two newer feeds do. Nothing a page sees has changed.

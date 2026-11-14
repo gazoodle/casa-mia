@@ -223,11 +223,17 @@ clipping is open.
 **Home Assistant's own page** at the foot opens Home Assistant's dialog for the device,
 for its settings. Escape, **Fold away** or a press outside the clipping closes it.
 
-### Two papers
+### Three papers
 
-The names in the line under the masthead choose the paper. The **Broadsheet** is sober
-and the **Red-top** is not, and both are written from the same stories. Each browser
-remembers its own choice.
+The names in the line under the masthead choose the paper, and all three are written
+from the same stories. Each browser remembers its own choice.
+
+- **Broadsheet**, The Casa Courier, is sober.
+- **Red-top**, the Daily Fuse, is not.
+- **Rolling news**, The Thermostat, is written and laid out as a news website: plain sentences
+  in the present tense, blue where the other two are red, the headlines passing in a ticker under the dateline, and a
+  clipping as a card with straight edges. If your device is set to reduce motion, the
+  ticker stands still.
 
 ### Personal
 
@@ -290,7 +296,7 @@ type **Panel (single card)**.
 
 ```yaml
 type: custom:dash-bored-gazette
-style: tabloid            # optional: broadsheet or tabloid; fixes the paper for this card
+style: tabloid            # optional: broadsheet, tabloid or rolling; fixes the paper for this card
 power: sensor.house_power # optional: a whole-house power sensor, in W or kW
 weather: weather.home     # optional: which weather entity gives the outside temperature
 ```

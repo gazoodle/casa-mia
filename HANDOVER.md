@@ -403,6 +403,15 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   all four feeds make (`alerts.py` and `sightings.py` moved to it in 2026.11.8-b17). A voice's `personal` words it. Known: after a restart every person's
   `last_changed` is the restart's time, so each "arrives" then. The owner was told the
   column shows guests who is at home.
+- **The third paper, Rolling news** (asked 2026-11-13; 2026.11.8-b18): the voice
+  `rolling` ("The Thermostat") in `voices.ts` and the block `[data-style="rolling"]` in
+  `styles.ts`. It needed one thing the page did not have, a ticker of the headlines:
+  a voice's `ticker` is its label, and empty in a paper without one. Its clipping is a
+  card (the torn outline is switched off in CSS, the scraps hidden). Its colour is blue (`--site`; owner, 2026-11-14: red was "too similar to the red-top"),
+  and red (`--flash`) is kept there for what is wrong. The wording did
+  prove to be all data: no code names a paper. The owner saw the Gazette on a wall
+  tablet on 2026-11-14 ("It looks fantastic"), before this paper. `voices.ts` is now
+  488 lines; a fourth voice should come with a split into a package, a file a voice.
 - **A photograph's clipping, and the Amusements column** (owner's ideas, 2026-11-14;
   2026.11.8-b16). A press on a photograph (a story's, the archive's, a camera
   clipping's still) opens it as a clipping (`photograph` in `clipping.ts`, `_shot` in

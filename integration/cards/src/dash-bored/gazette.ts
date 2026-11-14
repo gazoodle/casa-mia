@@ -466,6 +466,7 @@ export class Gazette extends LitElement {
           : html`<span class="styles">${Object.entries(VOICES).map(([id, v]) => html`<button aria-pressed=${id === this._style} @click=${() => this._dress(id)}>${v.label}</button>`)}</span>`}
         <span>${voice.price} · ${clock(Date.now())}</span>
       </div>
+      ${voice.ticker ? html`<div class="ticker" aria-hidden="true"><b>${voice.ticker}</b><div><span>${told.map((t) => t.head).join("  •  ")}</span></div></div>` : nothing}
       <main class="page ${rest.length ? "" : "solo"}">
         <article>
           <div class="figure"><b>${lead.s.figure[0]}</b><span>${lead.s.figure[1]}</span></div>

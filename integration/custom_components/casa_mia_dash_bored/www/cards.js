@@ -1614,70 +1614,771 @@ var Vt = (e, t) => X(t.level === "nominal" ? e.wire.clear : e.wire.trouble, {
 	plain: "It's been going on in the {area} since {since}.",
 	worse: "And it's getting WORSE."
 }, Wt = {
-	broadsheet: {
-		label: "Broadsheet",
-		name: "The Casa Courier",
-		strap: "",
-		price: "Price: nothing",
-		flash: "Stop press",
+	label: "Broadsheet",
+	name: "The Casa Courier",
+	strap: "",
+	price: "Price: nothing",
+	flash: "Stop press",
+	ticker: "",
+	titles: {
+		more: "Other news",
+		briefs: "In brief",
+		late: "Late news",
+		archive: "Thirty minutes ago",
+		temps: "The temperatures",
+		board: "The switchboard",
+		notices: "Notices",
+		elsewhere: "Elsewhere",
+		gaps: "Corrections and clarifications",
+		personal: "Personal",
+		celebrity: "Amusements"
+	},
+	join: "; ",
+	end: ".",
+	nothing: "Nothing has happened yet.",
+	rest: "In {n_word} room{s} nothing is switched on.",
+	gaps: {
+		loose: "{N} device{s} of no fixed abode",
+		plumbing: "{N} suspected of being plumbing",
+		clash: "{N} device{s} sharing a name with a neighbour",
+		floorless: "{N} room{s} on no floor",
+		cold: "{N} room{s} without a thermometer"
+	},
+	mend: "Each opens where it is put right. An area, a floor, a name or a temperature sensor in Home Assistant, and this paper reports the better for it.",
+	words: {
+		percent: "{n} per cent",
+		degrees: "{n}°",
+		"climate.on": "the {name} is set to {level}",
+		"climate.plain": "the {name} is at work",
+		"climate.off": "the {name} is off",
+		"media_player.on": "the {name} is playing at {level}",
+		"media_player.plain": "the {name} is playing",
+		"media_player.off": "the {name} is silent",
+		"camera.off": "the {camera} keeps watch",
+		"fan.on": "the {name} turn{v} at {level}",
+		"fan.plain": "the {name} {is} turning",
+		"fan.off": "the {name} {is} still",
+		"valve.on": "the {name} stand{v} {level} open",
+		"valve.plain": "the {name} {is} open",
+		"valve.off": "the {name} {is} shut",
+		"vacuum.on": "the {name} is cleaning",
+		"vacuum.off": "the {name} is at rest",
+		"vacuum.docked": "the {name} is docked",
+		"vacuum.returning": "the {name} is on its way home",
+		"vacuum.paused": "the {name} has paused",
+		"vacuum.error": "the {name} has come to grief",
+		"lawn_mower.on": "the {name} is mowing",
+		"lawn_mower.off": "the {name} is at rest",
+		"lawn_mower.docked": "the {name} is docked",
+		"lawn_mower.returning": "the {name} is on its way home",
+		"lawn_mower.paused": "the {name} has paused",
+		"lawn_mower.error": "the {name} has come to grief",
+		"water_heater.on": "the {name} is set to {level}",
+		"water_heater.plain": "the {name} is heating",
+		"water_heater.off": "the {name} is off",
+		"humidifier.on": "the {name} is set to {level}",
+		"humidifier.plain": "the {name} is running",
+		"humidifier.off": "the {name} is off",
+		"siren.on": "the {name} is sounding",
+		"siren.off": "the {name} is silent",
+		"alarm_control_panel.on": "the {alarm} is set",
+		"alarm_control_panel.off": "the {alarm} is not set",
+		"alarm_control_panel.arming": "the {alarm} is being set",
+		"alarm_control_panel.pending": "the {alarm} is about to sound",
+		"alarm_control_panel.triggered": "the {alarm} is sounding",
+		"light.on": "the {lamp} burn{v} at {level}",
+		"light.plain": "the {lamp} {is} lit",
+		"light.off": "the {lamp} {is} out",
+		"light.many": "{n_word} lights are lit",
+		"switch.many": "{n_word} switches are running",
+		"cover.on": "the {name} stand{v} {level} open",
+		"cover.plain": "the {name} {is} open",
+		"cover.off": "the {name} {is} closed",
+		"lock.on": "the {name} {is} locked",
+		"lock.off": "the {name} stand{v} unlocked",
+		"switch.on": "the {name} {is} running",
+		"switch.off": "the {name} {is} idle",
+		away: "the {name} {is} not answering"
+	},
+	polls: {
+		light: {
+			ask: "Readers are invited to say whether the {lamp} {is} too bright.",
+			less: "Too bright",
+			more: "Not bright enough"
+		},
+		cover: {
+			ask: "Readers are invited to say whether the {name} stand{v} too far open.",
+			less: "Too far",
+			more: "Not far enough"
+		},
+		climate: {
+			ask: "Readers are invited to say whether the {name} is set too warm.",
+			less: "Too warm",
+			more: "Too cold"
+		},
+		media_player: {
+			ask: "Readers are invited to say whether the {name} is too loud.",
+			less: "Too loud",
+			more: "Not loud enough"
+		},
+		fan: {
+			ask: "Readers are invited to say whether the {name} turn{v} too fast.",
+			less: "Too fast",
+			more: "Not fast enough"
+		},
+		water_heater: {
+			ask: "Readers are invited to say whether the {name} is set too hot.",
+			less: "Too hot",
+			more: "Not hot enough"
+		},
+		humidifier: {
+			ask: "Readers are invited to say whether the {name} is set too damp.",
+			less: "Too damp",
+			more: "Too dry"
+		}
+	},
+	acts: {
+		"light.on": "Put it out",
+		"light.off": "Light it",
+		"switch.on": "Switch it off",
+		"switch.off": "Switch it on",
+		"cover.on": "Close it",
+		"cover.off": "Open it",
+		"lock.on": "Unlock it",
+		"lock.off": "Lock it",
+		"climate.on": "Turn it off",
+		"climate.off": "Turn it on",
+		"media_player.on": "Pause it",
+		"media_player.off": "Play on",
+		"fan.on": "Stop it",
+		"fan.off": "Start it",
+		"valve.on": "Shut it",
+		"valve.off": "Open it",
+		"vacuum.on": "Send it home",
+		"vacuum.off": "Set it cleaning",
+		"lawn_mower.on": "Send it home",
+		"lawn_mower.off": "Set it mowing",
+		"water_heater.on": "Turn it off",
+		"water_heater.off": "Turn it on",
+		"humidifier.on": "Turn it off",
+		"humidifier.off": "Turn it on",
+		"siren.on": "Silence it",
+		"siren.off": "Sound it"
+	},
+	clipping: {
+		since: "So it has stood since {at}.",
+		record: "The record",
+		wait: "Our archivist is consulting the files.",
+		none: "Nothing is recorded of the last day.",
+		ago: "This time yesterday",
+		now: "Now",
+		reads: "The glass reads {temp}°.",
+		playing: "On the air: {title}.",
+		sure: "Press again to confirm",
+		more: "Home Assistant's own page",
+		shut: "Fold away",
+		closer: "Pinch, or tap twice, for a closer look.",
+		live: "See the camera as it is now"
+	},
+	celebrity: {
+		song: "{song} was heard in the {room}.",
+		"song.live": "{song} is being heard in the {room}.",
+		show: "“{title}” was shown in the {room}.",
+		"show.live": "“{title}” is being shown in the {room}.",
+		love: "Admired by {name}.",
+		loathe: "Deplored by {name}."
+	},
+	wire: {
+		trouble: "{name}: {message}",
+		clear: "{name}: all is well again."
+	},
+	personal: {
+		home: "{name} has arrived home.",
+		left: "{name} has left the house.",
+		zone: "{name} has arrived at {place}.",
+		love: "{name} wishes it known that {song} is greatly to their liking.",
+		loathe: "{name} begs that {song} be played no more.",
+		song: "“{title}” by {artist}",
+		tune: "“{title}”"
+	},
+	notices: [
+		"Arranged at a touch. Apply within.",
+		"By appointment to the household.",
+		"Satisfaction assured.",
+		"Enquire at this office."
+	],
+	stories: {
+		alert: Ht,
+		"alert.warning": {
+			...Ht,
+			kicker: "Late report",
+			head: ["{name} gives cause for concern"]
+		},
+		"alert.task": {
+			kicker: "Notice",
+			head: ["{name} wants attention"],
+			deck: "{message}",
+			body: "It has been so since {since}."
+		},
+		recovered: {
+			kicker: "Resolved",
+			head: ["{name} returns to normal"],
+			deck: "Calm is restored in the {area}. The trouble began at {since}."
+		},
+		"sighting.alarm": {
+			kicker: "Alarm heard",
+			head: ["An alarm is heard sounding"],
+			deck: "A smoke or carbon monoxide alarm was heard by the {name} at {at}. Readers are urged to look at once."
+		},
+		"sighting.doorbell": {
+			kicker: "At the door",
+			head: ["A caller rings the bell", "A visitor presents at the door"],
+			deck: "The bell was rung at {at}, and the {name} obliged with a likeness."
+		},
+		"sighting.person": {
+			kicker: "Person seen",
+			head: ["A figure is observed", "Person seen on the premises"],
+			deck: "Photographed by the {name} at {at}. Identity unconfirmed as this edition went to press."
+		},
+		"sighting.vehicle": {
+			kicker: "Vehicle seen",
+			head: ["A vehicle draws up", "Motor traffic is reported"],
+			deck: "Photographed by the {name} at {at}."
+		},
+		"sighting.animal": {
+			kicker: "Nature notes",
+			head: ["Wildlife reported in the grounds", "A creature is observed"],
+			deck: "Photographed by the {name} at {at}. It declined to comment."
+		},
+		triggered: {
+			kicker: "Stop press",
+			head: ["The alarm is sounding"],
+			deck: "The {name} alarm was set off in the {room}. Readers are urged to look at once."
+		},
+		unlocked: {
+			kicker: "Security",
+			head: ["{name} found unlocked"],
+			deck: "{room} in uproar as the household is urged to turn the key.",
+			act: "Lock it"
+		},
+		offline: {
+			kicker: "Missing",
+			head: ["{N} device{s} not answering"],
+			deck: "Silent since {since}: {names}."
+		},
+		appliance: {
+			kicker: "Industry",
+			head: ["{name} draws {kw} kilowatts"],
+			deck: "{room} sources confirm that the meter is spinning in a good cause.",
+			act: "Switch it off"
+		},
+		ablaze: {
+			kicker: "Economy",
+			head: ["House ablaze with light"],
+			deck: "With {n_word} lamps burning at once, questions are asked about the bill.",
+			act: "Put them all out"
+		},
+		lights: {
+			kicker: "Home affairs",
+			head: ["{N} light{s} still burning at this hour"],
+			deck: "The remainder of the house is reported quiet and in good order.",
+			act: "Lights out"
+		},
+		dark: {
+			kicker: "Home affairs",
+			head: ["Darkness falls on entire household"],
+			deck: "Not one lamp is left burning, our correspondent reports from the landing."
+		},
+		cold: {
+			kicker: "Climate",
+			head: ["{room} falls short of its target"],
+			deck: "At {temp}°, the room is {short} degrees below what was asked of it."
+		},
+		power: {
+			kicker: "Energy",
+			head: ["House draws {kw} kilowatts"],
+			deck: "The meter was read as this edition went to press."
+		},
+		weather: {
+			kicker: "Outlook",
+			head: ["{temp}° outside"],
+			deck: "Fair."
+		},
+		"weather.freezing": {
+			kicker: "Outlook",
+			head: ["{temp}° outside"],
+			deck: "Frost is likely. Mind the step."
+		},
+		"weather.cold": {
+			kicker: "Outlook",
+			head: ["{temp}° outside"],
+			deck: "A coat is advised."
+		},
+		"weather.hot": {
+			kicker: "Outlook",
+			head: ["{temp}° outside"],
+			deck: "Readers are advised to seek the shade."
+		},
+		quiet: {
+			kicker: "Home affairs",
+			head: ["All quiet in the house"],
+			deck: "Nothing of note has occurred. {N} device{s} stand{v} ready."
+		}
+	}
+}, Gt = {
+	label: "Red-top",
+	name: "Daily Fuse",
+	strap: "The paper that's always switched on",
+	price: "Still FREE!",
+	flash: "Breaking",
+	ticker: "",
+	titles: {
+		more: "Also today",
+		briefs: "Quick ones",
+		late: "Latest",
+		archive: "Rewind",
+		temps: "Hot or not",
+		board: "Flick a switch",
+		notices: "Do it now",
+		elsewhere: "Everywhere else",
+		gaps: "Sort it out",
+		personal: "Goss",
+		celebrity: "Showbiz"
+	},
+	join: " • ",
+	end: "",
+	nothing: "Nothing yet. Give it a minute.",
+	rest: "{n} room{s} with NOTHING ON!",
+	gaps: {
+		loose: "{n} device{s} HOMELESS!",
+		plumbing: "{n} FAKE gadget{s} exposed",
+		clash: "{n} device{s} in name mix-up",
+		floorless: "{n} room{s} floating in mid-air",
+		cold: "{n} room{s}: hot or not? No idea"
+	},
+	mend: "Tap one to fix it. Give it an area, a floor, a name or a thermometer in Home Assistant.",
+	words: {
+		percent: "{n}%",
+		degrees: "{n}°",
+		"climate.on": "{name} set to {level}",
+		"climate.plain": "{name} ON",
+		"climate.off": "{name} off",
+		"media_player.on": "{name} BLARING at {level}",
+		"media_player.plain": "{name} playing",
+		"media_player.off": "{name} quiet",
+		"camera.off": "{camera} watching",
+		"fan.on": "{name} SPINNING at {level}",
+		"fan.plain": "{name} spinning",
+		"fan.off": "{name} off",
+		"valve.on": "{name} {level} open",
+		"valve.plain": "{name} OPEN",
+		"valve.off": "{name} shut",
+		"vacuum.on": "{name} HOOVERING",
+		"vacuum.off": "{name} slacking",
+		"vacuum.docked": "{name} docked",
+		"vacuum.returning": "{name} heading home",
+		"vacuum.paused": "{name} on a break",
+		"vacuum.error": "{name} STUCK!",
+		"lawn_mower.on": "{name} MOWING",
+		"lawn_mower.off": "{name} slacking",
+		"lawn_mower.docked": "{name} docked",
+		"lawn_mower.returning": "{name} heading home",
+		"lawn_mower.paused": "{name} on a break",
+		"lawn_mower.error": "{name} STUCK!",
+		"water_heater.on": "{name} set to {level}",
+		"water_heater.plain": "{name} ON",
+		"water_heater.off": "{name} off",
+		"humidifier.on": "{name} set to {level}",
+		"humidifier.plain": "{name} ON",
+		"humidifier.off": "{name} off",
+		"siren.on": "{name} WAILING!",
+		"siren.off": "{name} quiet",
+		"alarm_control_panel.on": "{alarm} SET",
+		"alarm_control_panel.off": "{alarm} off",
+		"alarm_control_panel.arming": "{alarm} setting…",
+		"alarm_control_panel.pending": "{alarm} about to GO OFF",
+		"alarm_control_panel.triggered": "{alarm} GOING OFF!",
+		"light.on": "{lamp} ON at {level}",
+		"light.plain": "{lamp} ON",
+		"light.off": "{lamp} off",
+		"light.many": "{n} lights ON",
+		"switch.many": "{n} switches ON",
+		"cover.on": "{name} {level} open",
+		"cover.plain": "{name} open",
+		"cover.off": "{name} shut",
+		"lock.on": "{name} locked",
+		"lock.off": "{name} UNLOCKED!",
+		"switch.on": "{name} ON",
+		"switch.off": "{name} off",
+		away: "{name} GONE QUIET"
+	},
+	polls: {
+		light: {
+			ask: "{lamp}: TOO BRIGHT? You decide!",
+			less: "Dim it",
+			more: "Crank it up"
+		},
+		cover: {
+			ask: "{name}: TOO OPEN? You decide!",
+			less: "Shut it a bit",
+			more: "Open up"
+		},
+		climate: {
+			ask: "{name}: TOO HOT? You decide!",
+			less: "Cool it",
+			more: "Warm it up"
+		},
+		media_player: {
+			ask: "{name}: TOO LOUD? You decide!",
+			less: "Pipe down",
+			more: "Louder!"
+		},
+		fan: {
+			ask: "{name}: TOO FAST? You decide!",
+			less: "Slow down",
+			more: "Faster!"
+		},
+		water_heater: {
+			ask: "{name}: TOO HOT? You decide!",
+			less: "Cool it",
+			more: "Hotter!"
+		},
+		humidifier: {
+			ask: "{name}: TOO DAMP? You decide!",
+			less: "Dry it out",
+			more: "Damper!"
+		}
+	},
+	acts: {
+		"light.on": "Kill it",
+		"light.off": "Light it up",
+		"switch.on": "Off!",
+		"switch.off": "On!",
+		"cover.on": "Shut it",
+		"cover.off": "Open up",
+		"lock.on": "Unlock it",
+		"lock.off": "Lock it",
+		"climate.on": "Kill the heat",
+		"climate.off": "Heat on!",
+		"media_player.on": "Shush!",
+		"media_player.off": "Play it!",
+		"fan.on": "Kill it",
+		"fan.off": "Spin it",
+		"valve.on": "Shut it",
+		"valve.off": "Open up",
+		"vacuum.on": "Go home!",
+		"vacuum.off": "Get hoovering",
+		"lawn_mower.on": "Go home!",
+		"lawn_mower.off": "Get mowing",
+		"water_heater.on": "Kill the heat",
+		"water_heater.off": "Heat on!",
+		"humidifier.on": "Off!",
+		"humidifier.off": "On!",
+		"siren.on": "SHUT IT UP",
+		"siren.off": "Sound it"
+	},
+	clipping: {
+		since: "Been that way since {at}.",
+		record: "The story so far",
+		wait: "Digging the dirt…",
+		none: "Nothing all day. Dull!",
+		ago: "Yesterday",
+		now: "Now",
+		reads: "It's {temp}° in there.",
+		playing: "Now playing: {title}.",
+		sure: "SURE? Press again",
+		more: "Home Assistant's page",
+		shut: "Bin it",
+		closer: "Pinch or double-tap to ZOOM IN",
+		live: "Watch it LIVE"
+	},
+	celebrity: {
+		song: "{song} rocked the {room}",
+		"song.live": "ON NOW in the {room}: {song}",
+		show: "“{title}” was on in the {room}",
+		"show.live": "ON NOW in the {room}: “{title}”",
+		love: "{name} LOVES it",
+		loathe: "{name} HATES it"
+	},
+	wire: {
+		trouble: "{name}: {level}!",
+		clear: "{name}: PANIC OVER"
+	},
+	personal: {
+		home: "{name}'s HOME!",
+		left: "{name} has LEFT the building",
+		zone: "{name} spotted at {place}",
+		love: "{name} LOVES {song}",
+		loathe: "{name} can't STAND {song}",
+		song: "“{title}” by {artist}",
+		tune: "“{title}”"
+	},
+	notices: [
+		"Go on, press it.",
+		"One tap. Job done.",
+		"You know you want to.",
+		"Easy as that."
+	],
+	stories: {
+		alert: Ut,
+		"alert.warning": {
+			...Ut,
+			kicker: "Uh-oh"
+		},
+		"alert.task": {
+			kicker: "To-do",
+			head: [
+				"Job for you",
+				"Sort it out",
+				"Chop chop"
+			],
+			deck: "{name}: {message}",
+			body: "Waiting since {since}."
+		},
+		recovered: {
+			kicker: "Phew",
+			head: [
+				"Panic over",
+				"And relax",
+				"Stand down"
+			],
+			deck: "{name} back to normal. The drama started at {since}."
+		},
+		"sighting.alarm": {
+			kicker: "Alarm",
+			head: ["ALARM!", "Hear that?"],
+			deck: "{name} heard a smoke or CO alarm at {at}. Go and LOOK."
+		},
+		"sighting.doorbell": {
+			kicker: "Ding dong",
+			head: [
+				"Ding dong!",
+				"Who's there?",
+				"Knock knock"
+			],
+			deck: "Someone's at the door. {name} got the snap at {at}."
+		},
+		"sighting.person": {
+			kicker: "Spotted",
+			head: [
+				"Who goes there?",
+				"Caught on camera",
+				"Smile!"
+			],
+			deck: "{name} snaps mystery figure at {at}."
+		},
+		"sighting.vehicle": {
+			kicker: "Wheels",
+			head: [
+				"Park life",
+				"Vroom!",
+				"On the drive"
+			],
+			deck: "Motor caught on {name} at {at}."
+		},
+		"sighting.animal": {
+			kicker: "Beast",
+			head: [
+				"Paws for thought",
+				"Beast on the loose",
+				"Fur real"
+			],
+			deck: "Creature caught on {name} at {at}."
+		},
+		triggered: {
+			kicker: "Red alert",
+			head: [
+				"ALARM!",
+				"Burglars?!",
+				"It's going off!"
+			],
+			deck: "{name} alarm GOING OFF in the {room}. Go and LOOK."
+		},
+		unlocked: {
+			kicker: "Exclusive",
+			head: [
+				"Lock shock",
+				"Come on in!",
+				"Open house"
+			],
+			deck: "{name} left UNLOCKED as household carries on regardless.",
+			act: "Lock it NOW"
+		},
+		offline: {
+			kicker: "Vanished",
+			head: [
+				"Gone quiet",
+				"Missing in action",
+				"Hello? Anyone?"
+			],
+			deck: "{n} device{s} not answering since {since}: {names}."
+		},
+		appliance: {
+			kicker: "Power mad",
+			head: [
+				"Full steam ahead",
+				"Watt a whopper",
+				"Going large"
+			],
+			deck: "{name} guzzles {kw}kW in {room} power binge.",
+			act: "Pull the plug"
+		},
+		ablaze: {
+			kicker: "Bill shock",
+			head: [
+				"Lit up like a Christmas tree",
+				"Who's paying for this?",
+				"Blaze of glory"
+			],
+			deck: "{n} lights on AT ONCE in bill-busting bonanza.",
+			act: "Kill the lights"
+		},
+		lights: {
+			kicker: "Still on",
+			head: [
+				"{n} and counting",
+				"Left on again",
+				"Switched on"
+			],
+			deck: "{n} light{s} burn{v} while the meter ticks.",
+			act: "Kill the lights"
+		},
+		dark: {
+			kicker: "Blackout",
+			head: [
+				"Lights out!",
+				"Dark days",
+				"Who turned out the lights?"
+			],
+			deck: "Not a single bulb on in the WHOLE house."
+		},
+		cold: {
+			kicker: "Chilly",
+			head: [
+				"Brrr!",
+				"Cold comfort",
+				"Frozen out"
+			],
+			deck: "{room} shivers at {temp}°, a full {short}° short."
+		},
+		power: {
+			kicker: "Kerching",
+			head: [
+				"Watt a carry on",
+				"Meter madness",
+				"Power trip"
+			],
+			deck: "House burns {kw}kW. Who's paying?"
+		},
+		weather: {
+			kicker: "Weather",
+			head: ["Not bad out", "Can't complain"],
+			deck: "{temp}° outside."
+		},
+		"weather.freezing": {
+			kicker: "Weather",
+			head: ["Big freeze", "Brass monkeys"],
+			deck: "{temp}° outside. Stay in."
+		},
+		"weather.cold": {
+			kicker: "Weather",
+			head: [
+				"Coat weather",
+				"Bit nippy",
+				"Grey day"
+			],
+			deck: "{temp}° outside."
+		},
+		"weather.hot": {
+			kicker: "Weather",
+			head: ["What a scorcher", "Hot hot hot"],
+			deck: "{temp}° outside. Ice creams all round."
+		},
+		quiet: {
+			kicker: "Yawn",
+			head: [
+				"Slow news day",
+				"Nothing to see here",
+				"All quiet"
+			],
+			deck: "Nothing going on. {n} device{s} behaving."
+		}
+	}
+}, Kt = {
+	kicker: "Breaking",
+	head: ["{name}: what we know so far", "Live: {name}"],
+	deck: "{message}",
+	body: "The latest reading in the {area} is {reading}. It began at {since}.",
+	plain: "It began in the {area} at {since}.",
+	worse: "Update: it has got worse."
+}, qt = {
+	broadsheet: Wt,
+	tabloid: Gt,
+	rolling: {
+		label: "Rolling news",
+		name: "The Thermostat",
+		strap: "Live from every room",
+		price: "Free to read",
+		flash: "Breaking",
+		ticker: "Headlines",
 		titles: {
-			more: "Other news",
-			briefs: "In brief",
-			late: "Late news",
-			archive: "Thirty minutes ago",
-			temps: "The temperatures",
-			board: "The switchboard",
-			notices: "Notices",
-			elsewhere: "Elsewhere",
-			gaps: "Corrections and clarifications",
-			personal: "Personal",
-			celebrity: "Amusements"
+			more: "Top stories",
+			briefs: "More headlines",
+			late: "Live updates",
+			archive: "Last 30 minutes",
+			temps: "Temperatures",
+			board: "Controls",
+			notices: "Quick actions",
+			elsewhere: "Other rooms",
+			gaps: "Needs attention",
+			personal: "People",
+			celebrity: "Now playing"
 		},
-		join: "; ",
+		join: ", ",
 		end: ".",
-		nothing: "Nothing has happened yet.",
-		rest: "In {n_word} room{s} nothing is switched on.",
+		nothing: "No updates yet.",
+		rest: "Nothing to report from {n} room{s}.",
 		gaps: {
-			loose: "{N} device{s} of no fixed abode",
-			plumbing: "{N} suspected of being plumbing",
-			clash: "{N} device{s} sharing a name with a neighbour",
-			floorless: "{N} room{s} on no floor",
-			cold: "{N} room{s} without a thermometer"
+			loose: "{n} device{s} without a room",
+			plumbing: "{n} setting{s} listed as devices",
+			clash: "{n} device{s} with a name another has",
+			floorless: "{n} room{s} not on a floor",
+			cold: "{n} room{s} with no temperature sensor"
 		},
-		mend: "Each opens where it is put right. An area, a floor, a name or a temperature sensor in Home Assistant, and this paper reports the better for it.",
+		mend: "Select one to put it right in Home Assistant: an area, a floor, a name or a temperature sensor.",
 		words: {
-			percent: "{n} per cent",
+			percent: "{n}%",
 			degrees: "{n}°",
 			"climate.on": "the {name} is set to {level}",
-			"climate.plain": "the {name} is at work",
+			"climate.plain": "the {name} is on",
 			"climate.off": "the {name} is off",
 			"media_player.on": "the {name} is playing at {level}",
 			"media_player.plain": "the {name} is playing",
-			"media_player.off": "the {name} is silent",
-			"camera.off": "the {camera} keeps watch",
-			"fan.on": "the {name} turn{v} at {level}",
-			"fan.plain": "the {name} {is} turning",
-			"fan.off": "the {name} {is} still",
-			"valve.on": "the {name} stand{v} {level} open",
+			"media_player.off": "the {name} is not playing",
+			"camera.off": "the {camera} is watching",
+			"fan.on": "the {name} {is} running at {level}",
+			"fan.plain": "the {name} {is} running",
+			"fan.off": "the {name} {is} off",
+			"valve.on": "the {name} {is} {level} open",
 			"valve.plain": "the {name} {is} open",
 			"valve.off": "the {name} {is} shut",
 			"vacuum.on": "the {name} is cleaning",
-			"vacuum.off": "the {name} is at rest",
+			"vacuum.off": "the {name} is idle",
 			"vacuum.docked": "the {name} is docked",
-			"vacuum.returning": "the {name} is on its way home",
-			"vacuum.paused": "the {name} has paused",
-			"vacuum.error": "the {name} has come to grief",
+			"vacuum.returning": "the {name} is returning to its dock",
+			"vacuum.paused": "the {name} is paused",
+			"vacuum.error": "the {name} has reported a problem",
 			"lawn_mower.on": "the {name} is mowing",
-			"lawn_mower.off": "the {name} is at rest",
+			"lawn_mower.off": "the {name} is idle",
 			"lawn_mower.docked": "the {name} is docked",
-			"lawn_mower.returning": "the {name} is on its way home",
-			"lawn_mower.paused": "the {name} has paused",
-			"lawn_mower.error": "the {name} has come to grief",
+			"lawn_mower.returning": "the {name} is returning to its dock",
+			"lawn_mower.paused": "the {name} is paused",
+			"lawn_mower.error": "the {name} has reported a problem",
 			"water_heater.on": "the {name} is set to {level}",
 			"water_heater.plain": "the {name} is heating",
 			"water_heater.off": "the {name} is off",
 			"humidifier.on": "the {name} is set to {level}",
-			"humidifier.plain": "the {name} is running",
+			"humidifier.plain": "the {name} is on",
 			"humidifier.off": "the {name} is off",
 			"siren.on": "the {name} is sounding",
 			"siren.off": "the {name} is silent",
@@ -1686,640 +2387,261 @@ var Vt = (e, t) => X(t.level === "nominal" ? e.wire.clear : e.wire.trouble, {
 			"alarm_control_panel.arming": "the {alarm} is being set",
 			"alarm_control_panel.pending": "the {alarm} is about to sound",
 			"alarm_control_panel.triggered": "the {alarm} is sounding",
-			"light.on": "the {lamp} burn{v} at {level}",
-			"light.plain": "the {lamp} {is} lit",
-			"light.off": "the {lamp} {is} out",
-			"light.many": "{n_word} lights are lit",
-			"switch.many": "{n_word} switches are running",
-			"cover.on": "the {name} stand{v} {level} open",
+			"light.on": "the {lamp} {is} on at {level}",
+			"light.plain": "the {lamp} {is} on",
+			"light.off": "the {lamp} {is} off",
+			"light.many": "{n} lights are on",
+			"switch.many": "{n} switches are on",
+			"cover.on": "the {name} {is} {level} open",
 			"cover.plain": "the {name} {is} open",
 			"cover.off": "the {name} {is} closed",
 			"lock.on": "the {name} {is} locked",
-			"lock.off": "the {name} stand{v} unlocked",
-			"switch.on": "the {name} {is} running",
-			"switch.off": "the {name} {is} idle",
-			away: "the {name} {is} not answering"
+			"lock.off": "the {name} {is} unlocked",
+			"switch.on": "the {name} {is} on",
+			"switch.off": "the {name} {is} off",
+			away: "the {name} {is} not responding"
 		},
 		polls: {
 			light: {
-				ask: "Readers are invited to say whether the {lamp} {is} too bright.",
+				ask: "Have your say: {is} the {lamp} too bright?",
 				less: "Too bright",
-				more: "Not bright enough"
+				more: "Too dim"
 			},
 			cover: {
-				ask: "Readers are invited to say whether the {name} stand{v} too far open.",
+				ask: "Have your say: {is} the {name} open too far?",
 				less: "Too far",
 				more: "Not far enough"
 			},
 			climate: {
-				ask: "Readers are invited to say whether the {name} is set too warm.",
+				ask: "Have your say: is the {name} set too warm?",
 				less: "Too warm",
 				more: "Too cold"
 			},
 			media_player: {
-				ask: "Readers are invited to say whether the {name} is too loud.",
+				ask: "Have your say: is the {name} too loud?",
 				less: "Too loud",
-				more: "Not loud enough"
+				more: "Too quiet"
 			},
 			fan: {
-				ask: "Readers are invited to say whether the {name} turn{v} too fast.",
+				ask: "Have your say: {is} the {name} too fast?",
 				less: "Too fast",
-				more: "Not fast enough"
+				more: "Too slow"
 			},
 			water_heater: {
-				ask: "Readers are invited to say whether the {name} is set too hot.",
+				ask: "Have your say: is the {name} set too hot?",
 				less: "Too hot",
 				more: "Not hot enough"
 			},
 			humidifier: {
-				ask: "Readers are invited to say whether the {name} is set too damp.",
+				ask: "Have your say: is the {name} set too damp?",
 				less: "Too damp",
 				more: "Too dry"
 			}
 		},
 		acts: {
-			"light.on": "Put it out",
-			"light.off": "Light it",
-			"switch.on": "Switch it off",
-			"switch.off": "Switch it on",
-			"cover.on": "Close it",
-			"cover.off": "Open it",
-			"lock.on": "Unlock it",
-			"lock.off": "Lock it",
-			"climate.on": "Turn it off",
-			"climate.off": "Turn it on",
-			"media_player.on": "Pause it",
-			"media_player.off": "Play on",
-			"fan.on": "Stop it",
-			"fan.off": "Start it",
-			"valve.on": "Shut it",
-			"valve.off": "Open it",
-			"vacuum.on": "Send it home",
-			"vacuum.off": "Set it cleaning",
-			"lawn_mower.on": "Send it home",
-			"lawn_mower.off": "Set it mowing",
-			"water_heater.on": "Turn it off",
-			"water_heater.off": "Turn it on",
-			"humidifier.on": "Turn it off",
-			"humidifier.off": "Turn it on",
-			"siren.on": "Silence it",
-			"siren.off": "Sound it"
+			"light.on": "Turn off",
+			"light.off": "Turn on",
+			"switch.on": "Turn off",
+			"switch.off": "Turn on",
+			"cover.on": "Close",
+			"cover.off": "Open",
+			"lock.on": "Unlock",
+			"lock.off": "Lock",
+			"climate.on": "Turn off",
+			"climate.off": "Turn on",
+			"media_player.on": "Pause",
+			"media_player.off": "Play",
+			"fan.on": "Turn off",
+			"fan.off": "Turn on",
+			"valve.on": "Shut",
+			"valve.off": "Open",
+			"vacuum.on": "Send home",
+			"vacuum.off": "Start cleaning",
+			"lawn_mower.on": "Send home",
+			"lawn_mower.off": "Start mowing",
+			"water_heater.on": "Turn off",
+			"water_heater.off": "Turn on",
+			"humidifier.on": "Turn off",
+			"humidifier.off": "Turn on",
+			"siren.on": "Silence",
+			"siren.off": "Sound"
 		},
 		clipping: {
-			since: "So it has stood since {at}.",
-			record: "The record",
-			wait: "Our archivist is consulting the files.",
-			none: "Nothing is recorded of the last day.",
-			ago: "This time yesterday",
+			since: "Since {at}.",
+			record: "Timeline",
+			wait: "Loading the timeline…",
+			none: "No changes in the last 24 hours.",
+			ago: "24 hours ago",
 			now: "Now",
-			reads: "The glass reads {temp}°.",
-			playing: "On the air: {title}.",
+			reads: "It is {temp}° in the room.",
+			playing: "Now playing: {title}.",
 			sure: "Press again to confirm",
-			more: "Home Assistant's own page",
-			shut: "Fold away",
-			closer: "Pinch, or tap twice, for a closer look.",
-			live: "See the camera as it is now"
+			more: "Open in Home Assistant",
+			shut: "Close",
+			closer: "Pinch or double-tap to zoom.",
+			live: "Watch live"
 		},
 		celebrity: {
-			song: "{song} was heard in the {room}.",
-			"song.live": "{song} is being heard in the {room}.",
-			show: "“{title}” was shown in the {room}.",
-			"show.live": "“{title}” is being shown in the {room}.",
-			love: "Admired by {name}.",
-			loathe: "Deplored by {name}."
+			song: "{song} played in the {room}",
+			"song.live": "Live in the {room}: {song}",
+			show: "“{title}” was on in the {room}",
+			"show.live": "Live in the {room}: “{title}”",
+			love: "{name} loved it",
+			loathe: "{name} loathed it"
 		},
 		wire: {
 			trouble: "{name}: {message}",
-			clear: "{name}: all is well again."
+			clear: "{name}: back to normal"
 		},
 		personal: {
-			home: "{name} has arrived home.",
-			left: "{name} has left the house.",
-			zone: "{name} has arrived at {place}.",
-			love: "{name} wishes it known that {song} is greatly to their liking.",
-			loathe: "{name} begs that {song} be played no more.",
+			home: "{name} arrived home",
+			left: "{name} left home",
+			zone: "{name} arrived at {place}",
+			love: "{name} loved {song}",
+			loathe: "{name} loathed {song}",
 			song: "“{title}” by {artist}",
 			tune: "“{title}”"
 		},
 		notices: [
-			"Arranged at a touch. Apply within.",
-			"By appointment to the household.",
-			"Satisfaction assured.",
-			"Enquire at this office."
+			"Tap to run",
+			"Runs at once",
+			"One tap",
+			"Ready to run"
 		],
 		stories: {
-			alert: Ht,
+			alert: Kt,
 			"alert.warning": {
-				...Ht,
-				kicker: "Late report",
-				head: ["{name} gives cause for concern"]
+				...Kt,
+				kicker: "Developing",
+				head: ["{name} needs checking", "{name}: what we know so far"]
 			},
 			"alert.task": {
-				kicker: "Notice",
-				head: ["{name} wants attention"],
+				kicker: "To do",
+				head: ["{name} needs attention"],
 				deck: "{message}",
-				body: "It has been so since {since}."
+				body: "Outstanding since {since}."
 			},
 			recovered: {
-				kicker: "Resolved",
-				head: ["{name} returns to normal"],
-				deck: "Calm is restored in the {area}. The trouble began at {since}."
+				kicker: "Update",
+				head: ["{name} is back to normal"],
+				deck: "It began at {since} in the {area}. Nothing more needs doing."
 			},
 			"sighting.alarm": {
-				kicker: "Alarm heard",
-				head: ["An alarm is heard sounding"],
-				deck: "A smoke or carbon monoxide alarm was heard by the {name} at {at}. Readers are urged to look at once."
+				kicker: "Breaking",
+				head: ["An alarm has been heard"],
+				deck: "The {name} heard a smoke or carbon monoxide alarm at {at}. Check now."
 			},
 			"sighting.doorbell": {
 				kicker: "At the door",
-				head: ["A caller rings the bell", "A visitor presents at the door"],
-				deck: "The bell was rung at {at}, and the {name} obliged with a likeness."
+				head: ["Someone is at the door"],
+				deck: "The doorbell rang at {at}. Picture from the {name}."
 			},
 			"sighting.person": {
-				kicker: "Person seen",
-				head: ["A figure is observed", "Person seen on the premises"],
-				deck: "Photographed by the {name} at {at}. Identity unconfirmed as this edition went to press."
+				kicker: "On camera",
+				head: ["A person has been seen"],
+				deck: "Picture from the {name} at {at}. Not yet identified."
 			},
 			"sighting.vehicle": {
-				kicker: "Vehicle seen",
-				head: ["A vehicle draws up", "Motor traffic is reported"],
-				deck: "Photographed by the {name} at {at}."
+				kicker: "On camera",
+				head: ["A vehicle has been seen"],
+				deck: "Picture from the {name} at {at}."
 			},
 			"sighting.animal": {
-				kicker: "Nature notes",
-				head: ["Wildlife reported in the grounds", "A creature is observed"],
-				deck: "Photographed by the {name} at {at}. It declined to comment."
+				kicker: "On camera",
+				head: ["An animal has been seen"],
+				deck: "Picture from the {name} at {at}."
 			},
 			triggered: {
-				kicker: "Stop press",
+				kicker: "Breaking",
 				head: ["The alarm is sounding"],
-				deck: "The {name} alarm was set off in the {room}. Readers are urged to look at once."
+				deck: "The {name} alarm was triggered in the {room}. Check now."
 			},
 			unlocked: {
 				kicker: "Security",
-				head: ["{name} found unlocked"],
-				deck: "{room} in uproar as the household is urged to turn the key.",
+				head: ["{name} is unlocked"],
+				deck: "Reported in: {room}.",
 				act: "Lock it"
 			},
 			offline: {
-				kicker: "Missing",
-				head: ["{N} device{s} not answering"],
-				deck: "Silent since {since}: {names}."
+				kicker: "Outage",
+				head: ["{N} device{s} not responding"],
+				deck: "Not responding since {since}: {names}."
 			},
 			appliance: {
-				kicker: "Industry",
-				head: ["{name} draws {kw} kilowatts"],
-				deck: "{room} sources confirm that the meter is spinning in a good cause.",
-				act: "Switch it off"
+				kicker: "Energy",
+				head: ["{name} is using {kw} kW"],
+				deck: "Reported in: {room}.",
+				act: "Turn it off"
 			},
 			ablaze: {
-				kicker: "Economy",
-				head: ["House ablaze with light"],
-				deck: "With {n_word} lamps burning at once, questions are asked about the bill.",
-				act: "Put them all out"
+				kicker: "Energy",
+				head: ["{N} lights are on at once"],
+				deck: "Most of the lights in the house are on.",
+				act: "Turn them all off"
 			},
 			lights: {
-				kicker: "Home affairs",
-				head: ["{N} light{s} still burning at this hour"],
-				deck: "The remainder of the house is reported quiet and in good order.",
-				act: "Lights out"
+				kicker: "At home",
+				head: ["{N} light{s} on"],
+				deck: "Everything else is as expected.",
+				act: "Turn off"
 			},
 			dark: {
-				kicker: "Home affairs",
-				head: ["Darkness falls on entire household"],
-				deck: "Not one lamp is left burning, our correspondent reports from the landing."
+				kicker: "At home",
+				head: ["All the lights are off"],
+				deck: "No light is on anywhere in the house."
 			},
 			cold: {
-				kicker: "Climate",
-				head: ["{room} falls short of its target"],
-				deck: "At {temp}°, the room is {short} degrees below what was asked of it."
+				kicker: "Heating",
+				head: ["{room} is {short}° below its target"],
+				deck: "It is {temp}° there now."
 			},
 			power: {
 				kicker: "Energy",
-				head: ["House draws {kw} kilowatts"],
-				deck: "The meter was read as this edition went to press."
-			},
-			weather: {
-				kicker: "Outlook",
-				head: ["{temp}° outside"],
-				deck: "Fair."
-			},
-			"weather.freezing": {
-				kicker: "Outlook",
-				head: ["{temp}° outside"],
-				deck: "Frost is likely. Mind the step."
-			},
-			"weather.cold": {
-				kicker: "Outlook",
-				head: ["{temp}° outside"],
-				deck: "A coat is advised."
-			},
-			"weather.hot": {
-				kicker: "Outlook",
-				head: ["{temp}° outside"],
-				deck: "Readers are advised to seek the shade."
-			},
-			quiet: {
-				kicker: "Home affairs",
-				head: ["All quiet in the house"],
-				deck: "Nothing of note has occurred. {N} device{s} stand{v} ready."
-			}
-		}
-	},
-	tabloid: {
-		label: "Red-top",
-		name: "Daily Fuse",
-		strap: "The paper that's always switched on",
-		price: "Still FREE!",
-		flash: "Breaking",
-		titles: {
-			more: "Also today",
-			briefs: "Quick ones",
-			late: "Latest",
-			archive: "Rewind",
-			temps: "Hot or not",
-			board: "Flick a switch",
-			notices: "Do it now",
-			elsewhere: "Everywhere else",
-			gaps: "Sort it out",
-			personal: "Goss",
-			celebrity: "Showbiz"
-		},
-		join: " • ",
-		end: "",
-		nothing: "Nothing yet. Give it a minute.",
-		rest: "{n} room{s} with NOTHING ON!",
-		gaps: {
-			loose: "{n} device{s} HOMELESS!",
-			plumbing: "{n} FAKE gadget{s} exposed",
-			clash: "{n} device{s} in name mix-up",
-			floorless: "{n} room{s} floating in mid-air",
-			cold: "{n} room{s}: hot or not? No idea"
-		},
-		mend: "Tap one to fix it. Give it an area, a floor, a name or a thermometer in Home Assistant.",
-		words: {
-			percent: "{n}%",
-			degrees: "{n}°",
-			"climate.on": "{name} set to {level}",
-			"climate.plain": "{name} ON",
-			"climate.off": "{name} off",
-			"media_player.on": "{name} BLARING at {level}",
-			"media_player.plain": "{name} playing",
-			"media_player.off": "{name} quiet",
-			"camera.off": "{camera} watching",
-			"fan.on": "{name} SPINNING at {level}",
-			"fan.plain": "{name} spinning",
-			"fan.off": "{name} off",
-			"valve.on": "{name} {level} open",
-			"valve.plain": "{name} OPEN",
-			"valve.off": "{name} shut",
-			"vacuum.on": "{name} HOOVERING",
-			"vacuum.off": "{name} slacking",
-			"vacuum.docked": "{name} docked",
-			"vacuum.returning": "{name} heading home",
-			"vacuum.paused": "{name} on a break",
-			"vacuum.error": "{name} STUCK!",
-			"lawn_mower.on": "{name} MOWING",
-			"lawn_mower.off": "{name} slacking",
-			"lawn_mower.docked": "{name} docked",
-			"lawn_mower.returning": "{name} heading home",
-			"lawn_mower.paused": "{name} on a break",
-			"lawn_mower.error": "{name} STUCK!",
-			"water_heater.on": "{name} set to {level}",
-			"water_heater.plain": "{name} ON",
-			"water_heater.off": "{name} off",
-			"humidifier.on": "{name} set to {level}",
-			"humidifier.plain": "{name} ON",
-			"humidifier.off": "{name} off",
-			"siren.on": "{name} WAILING!",
-			"siren.off": "{name} quiet",
-			"alarm_control_panel.on": "{alarm} SET",
-			"alarm_control_panel.off": "{alarm} off",
-			"alarm_control_panel.arming": "{alarm} setting…",
-			"alarm_control_panel.pending": "{alarm} about to GO OFF",
-			"alarm_control_panel.triggered": "{alarm} GOING OFF!",
-			"light.on": "{lamp} ON at {level}",
-			"light.plain": "{lamp} ON",
-			"light.off": "{lamp} off",
-			"light.many": "{n} lights ON",
-			"switch.many": "{n} switches ON",
-			"cover.on": "{name} {level} open",
-			"cover.plain": "{name} open",
-			"cover.off": "{name} shut",
-			"lock.on": "{name} locked",
-			"lock.off": "{name} UNLOCKED!",
-			"switch.on": "{name} ON",
-			"switch.off": "{name} off",
-			away: "{name} GONE QUIET"
-		},
-		polls: {
-			light: {
-				ask: "{lamp}: TOO BRIGHT? You decide!",
-				less: "Dim it",
-				more: "Crank it up"
-			},
-			cover: {
-				ask: "{name}: TOO OPEN? You decide!",
-				less: "Shut it a bit",
-				more: "Open up"
-			},
-			climate: {
-				ask: "{name}: TOO HOT? You decide!",
-				less: "Cool it",
-				more: "Warm it up"
-			},
-			media_player: {
-				ask: "{name}: TOO LOUD? You decide!",
-				less: "Pipe down",
-				more: "Louder!"
-			},
-			fan: {
-				ask: "{name}: TOO FAST? You decide!",
-				less: "Slow down",
-				more: "Faster!"
-			},
-			water_heater: {
-				ask: "{name}: TOO HOT? You decide!",
-				less: "Cool it",
-				more: "Hotter!"
-			},
-			humidifier: {
-				ask: "{name}: TOO DAMP? You decide!",
-				less: "Dry it out",
-				more: "Damper!"
-			}
-		},
-		acts: {
-			"light.on": "Kill it",
-			"light.off": "Light it up",
-			"switch.on": "Off!",
-			"switch.off": "On!",
-			"cover.on": "Shut it",
-			"cover.off": "Open up",
-			"lock.on": "Unlock it",
-			"lock.off": "Lock it",
-			"climate.on": "Kill the heat",
-			"climate.off": "Heat on!",
-			"media_player.on": "Shush!",
-			"media_player.off": "Play it!",
-			"fan.on": "Kill it",
-			"fan.off": "Spin it",
-			"valve.on": "Shut it",
-			"valve.off": "Open up",
-			"vacuum.on": "Go home!",
-			"vacuum.off": "Get hoovering",
-			"lawn_mower.on": "Go home!",
-			"lawn_mower.off": "Get mowing",
-			"water_heater.on": "Kill the heat",
-			"water_heater.off": "Heat on!",
-			"humidifier.on": "Off!",
-			"humidifier.off": "On!",
-			"siren.on": "SHUT IT UP",
-			"siren.off": "Sound it"
-		},
-		clipping: {
-			since: "Been that way since {at}.",
-			record: "The story so far",
-			wait: "Digging the dirt…",
-			none: "Nothing all day. Dull!",
-			ago: "Yesterday",
-			now: "Now",
-			reads: "It's {temp}° in there.",
-			playing: "Now playing: {title}.",
-			sure: "SURE? Press again",
-			more: "Home Assistant's page",
-			shut: "Bin it",
-			closer: "Pinch or double-tap to ZOOM IN",
-			live: "Watch it LIVE"
-		},
-		celebrity: {
-			song: "{song} rocked the {room}",
-			"song.live": "ON NOW in the {room}: {song}",
-			show: "“{title}” was on in the {room}",
-			"show.live": "ON NOW in the {room}: “{title}”",
-			love: "{name} LOVES it",
-			loathe: "{name} HATES it"
-		},
-		wire: {
-			trouble: "{name}: {level}!",
-			clear: "{name}: PANIC OVER"
-		},
-		personal: {
-			home: "{name}'s HOME!",
-			left: "{name} has LEFT the building",
-			zone: "{name} spotted at {place}",
-			love: "{name} LOVES {song}",
-			loathe: "{name} can't STAND {song}",
-			song: "“{title}” by {artist}",
-			tune: "“{title}”"
-		},
-		notices: [
-			"Go on, press it.",
-			"One tap. Job done.",
-			"You know you want to.",
-			"Easy as that."
-		],
-		stories: {
-			alert: Ut,
-			"alert.warning": {
-				...Ut,
-				kicker: "Uh-oh"
-			},
-			"alert.task": {
-				kicker: "To-do",
-				head: [
-					"Job for you",
-					"Sort it out",
-					"Chop chop"
-				],
-				deck: "{name}: {message}",
-				body: "Waiting since {since}."
-			},
-			recovered: {
-				kicker: "Phew",
-				head: [
-					"Panic over",
-					"And relax",
-					"Stand down"
-				],
-				deck: "{name} back to normal. The drama started at {since}."
-			},
-			"sighting.alarm": {
-				kicker: "Alarm",
-				head: ["ALARM!", "Hear that?"],
-				deck: "{name} heard a smoke or CO alarm at {at}. Go and LOOK."
-			},
-			"sighting.doorbell": {
-				kicker: "Ding dong",
-				head: [
-					"Ding dong!",
-					"Who's there?",
-					"Knock knock"
-				],
-				deck: "Someone's at the door. {name} got the snap at {at}."
-			},
-			"sighting.person": {
-				kicker: "Spotted",
-				head: [
-					"Who goes there?",
-					"Caught on camera",
-					"Smile!"
-				],
-				deck: "{name} snaps mystery figure at {at}."
-			},
-			"sighting.vehicle": {
-				kicker: "Wheels",
-				head: [
-					"Park life",
-					"Vroom!",
-					"On the drive"
-				],
-				deck: "Motor caught on {name} at {at}."
-			},
-			"sighting.animal": {
-				kicker: "Beast",
-				head: [
-					"Paws for thought",
-					"Beast on the loose",
-					"Fur real"
-				],
-				deck: "Creature caught on {name} at {at}."
-			},
-			triggered: {
-				kicker: "Red alert",
-				head: [
-					"ALARM!",
-					"Burglars?!",
-					"It's going off!"
-				],
-				deck: "{name} alarm GOING OFF in the {room}. Go and LOOK."
-			},
-			unlocked: {
-				kicker: "Exclusive",
-				head: [
-					"Lock shock",
-					"Come on in!",
-					"Open house"
-				],
-				deck: "{name} left UNLOCKED as household carries on regardless.",
-				act: "Lock it NOW"
-			},
-			offline: {
-				kicker: "Vanished",
-				head: [
-					"Gone quiet",
-					"Missing in action",
-					"Hello? Anyone?"
-				],
-				deck: "{n} device{s} not answering since {since}: {names}."
-			},
-			appliance: {
-				kicker: "Power mad",
-				head: [
-					"Full steam ahead",
-					"Watt a whopper",
-					"Going large"
-				],
-				deck: "{name} guzzles {kw}kW in {room} power binge.",
-				act: "Pull the plug"
-			},
-			ablaze: {
-				kicker: "Bill shock",
-				head: [
-					"Lit up like a Christmas tree",
-					"Who's paying for this?",
-					"Blaze of glory"
-				],
-				deck: "{n} lights on AT ONCE in bill-busting bonanza.",
-				act: "Kill the lights"
-			},
-			lights: {
-				kicker: "Still on",
-				head: [
-					"{n} and counting",
-					"Left on again",
-					"Switched on"
-				],
-				deck: "{n} light{s} burn{v} while the meter ticks.",
-				act: "Kill the lights"
-			},
-			dark: {
-				kicker: "Blackout",
-				head: [
-					"Lights out!",
-					"Dark days",
-					"Who turned out the lights?"
-				],
-				deck: "Not a single bulb on in the WHOLE house."
-			},
-			cold: {
-				kicker: "Chilly",
-				head: [
-					"Brrr!",
-					"Cold comfort",
-					"Frozen out"
-				],
-				deck: "{room} shivers at {temp}°, a full {short}° short."
-			},
-			power: {
-				kicker: "Kerching",
-				head: [
-					"Watt a carry on",
-					"Meter madness",
-					"Power trip"
-				],
-				deck: "House burns {kw}kW. Who's paying?"
+				head: ["The house is using {kw} kW"],
+				deck: "A live reading."
 			},
 			weather: {
 				kicker: "Weather",
-				head: ["Not bad out", "Can't complain"],
-				deck: "{temp}° outside."
+				head: ["{temp}° outside"],
+				deck: "Mild."
 			},
 			"weather.freezing": {
 				kicker: "Weather",
-				head: ["Big freeze", "Brass monkeys"],
-				deck: "{temp}° outside. Stay in."
+				head: ["{temp}° outside"],
+				deck: "Freezing. There may be ice."
 			},
 			"weather.cold": {
 				kicker: "Weather",
-				head: [
-					"Coat weather",
-					"Bit nippy",
-					"Grey day"
-				],
-				deck: "{temp}° outside."
+				head: ["{temp}° outside"],
+				deck: "Cold."
 			},
 			"weather.hot": {
 				kicker: "Weather",
-				head: ["What a scorcher", "Hot hot hot"],
-				deck: "{temp}° outside. Ice creams all round."
+				head: ["{temp}° outside"],
+				deck: "Hot."
 			},
 			quiet: {
-				kicker: "Yawn",
-				head: [
-					"Slow news day",
-					"Nothing to see here",
-					"All quiet"
-				],
-				deck: "Nothing going on. {n} device{s} behaving."
+				kicker: "At home",
+				head: ["Nothing to report"],
+				deck: "No changes. Devices watched: {n}."
 			}
 		}
 	}
-}, Gt = {
+}, Jt = {
 	s: 1,
 	x: 0,
 	y: 0
-}, Kt = 6, qt = 1.2, Jt = 2.5;
-function Yt(e, t, n, r, i, a, o, s) {
-	let c = Math.min(Kt, Math.max(1, e.s * t)), l = c / e.s, u = (e, t) => Math.min(t, Math.max(-t, e)) || 0;
+}, Yt = 6, Xt = 1.2, Zt = 2.5;
+function Qt(e, t, n, r, i, a, o, s) {
+	let c = Math.min(Yt, Math.max(1, e.s * t)), l = c / e.s, u = (e, t) => Math.min(t, Math.max(-t, e)) || 0;
 	return {
 		s: c,
 		x: u(n - (n - e.x - i) * l, (c - 1) * o / 2),
 		y: u(r - (r - e.y - a) * l, (c - 1) * s / 2)
 	};
 }
-var Z = Gt, Q = /* @__PURE__ */ new Map();
-function Xt() {
+var Z = Jt, Q = /* @__PURE__ */ new Map();
+function $t() {
 	let e = [...Q.values()], t = (t) => e.reduce((e, n) => e + n[t], 0) / e.length;
 	return [
 		t(0),
@@ -2327,63 +2649,63 @@ function Xt() {
 		e.length > 1 ? Math.hypot(e[0][0] - e[1][0], e[0][1] - e[1][1]) : 0
 	];
 }
-function Zt(e, t, n, r, i = 0, a = 0) {
+function en(e, t, n, r, i = 0, a = 0) {
 	let o = e.getBoundingClientRect();
-	Z = Yt(Z, t, n - o.left - o.width / 2, r - o.top - o.height / 2, i, a, o.width, o.height), e.firstElementChild.style.transform = `translate(${Z.x}px, ${Z.y}px) scale(${Z.s})`, e.classList.toggle("near", Z.s > 1);
+	Z = Qt(Z, t, n - o.left - o.width / 2, r - o.top - o.height / 2, i, a, o.width, o.height), e.firstElementChild.style.transform = `translate(${Z.x}px, ${Z.y}px) scale(${Z.s})`, e.classList.toggle("near", Z.s > 1);
 }
-var Qt = (e) => e.currentTarget, $ = {
+var tn = (e) => e.currentTarget, $ = {
 	whole() {
-		Z = Gt, Q.clear();
+		Z = Jt, Q.clear();
 	},
 	down(e) {
-		Qt(e).setPointerCapture(e.pointerId), Q.set(e.pointerId, [e.clientX, e.clientY]);
+		tn(e).setPointerCapture(e.pointerId), Q.set(e.pointerId, [e.clientX, e.clientY]);
 	},
 	move(e) {
 		if (!Q.has(e.pointerId)) return;
-		let [t, n, r] = Xt();
+		let [t, n, r] = $t();
 		Q.set(e.pointerId, [e.clientX, e.clientY]);
-		let [i, a, o] = Xt();
-		Zt(Qt(e), r && o ? o / r : 1, i, a, i - t, a - n);
+		let [i, a, o] = $t();
+		en(tn(e), r && o ? o / r : 1, i, a, i - t, a - n);
 	},
 	up(e) {
 		Q.delete(e.pointerId);
 	},
 	wheel(e) {
-		e.preventDefault(), Zt(Qt(e), e.deltaY < 0 ? qt : 1 / qt, e.clientX, e.clientY);
+		e.preventDefault(), en(tn(e), e.deltaY < 0 ? Xt : 1 / Xt, e.clientX, e.clientY);
 	},
 	twice(e) {
-		Zt(Qt(e), Z.s > 1 ? 1 / Z.s : Jt, e.clientX, e.clientY);
+		en(tn(e), Z.s > 1 ? 1 / Z.s : Zt, e.clientX, e.clientY);
 	}
-}, $t = 5, en = /* @__PURE__ */ new Map();
-function tn(e) {
-	let t = en.get(e);
+}, nn = 5, rn = /* @__PURE__ */ new Map();
+function an(e) {
+	let t = rn.get(e);
 	if (t) return t;
-	let n = [...e].reduce((e, t) => e * 31 + t.charCodeAt(0) >>> 0, 7), r = () => (n = n * 1664525 + 1013904223 >>> 0) / 2 ** 32, i = (e) => Array.from({ length: e }, (t, n) => ((n + r() * .8) / e * 100).toFixed(1)), a = () => (r() * $t).toFixed(1), o = `polygon(${[
+	let n = [...e].reduce((e, t) => e * 31 + t.charCodeAt(0) >>> 0, 7), r = () => (n = n * 1664525 + 1013904223 >>> 0) / 2 ** 32, i = (e) => Array.from({ length: e }, (t, n) => ((n + r() * .8) / e * 100).toFixed(1)), a = () => (r() * nn).toFixed(1), o = `polygon(${[
 		...i(30).map((e) => `${e}% ${a()}px`),
 		...i(22).map((e) => `calc(100% - ${a()}px) ${e}%`),
 		...i(30).map((e) => `calc(100% - ${e}%) calc(100% - ${a()}px)`),
 		...i(22).map((e) => `${a()}px calc(100% - ${e}%)`)
 	].join(",")})`;
-	return en.set(e, o), o;
+	return rn.set(e, o), o;
 }
-var nn = (e, t, n, r, i = "") => F`<dialog class="clipping ${i}" @close=${n} @click=${(e) => e.target === e.currentTarget && n()}>
-    <div class="cutting" style="clip-path:${tn(e)}">
+var on = (e, t, n, r, i = "") => F`<dialog class="clipping ${i}" @close=${n} @click=${(e) => e.target === e.currentTarget && n()}>
+    <div class="cutting" style="clip-path:${an(e)}">
       <div class="scrap above" aria-hidden="true">${t.above}</div>
       <div class="story">${r}</div>
       <div class="scrap beside" aria-hidden="true"><span>${t.beside}</span></div>
       <div class="scrap below" aria-hidden="true">${t.below}</div>
     </div>
   </dialog>`;
-function rn(e, t, n, r) {
+function sn(e, t, n, r) {
 	let i = e.clipping;
-	return nn(t.src, n, r.shut, F`<p class="kicker">${t.caption}</p>
+	return on(t.src, n, r.shut, F`<p class="kicker">${t.caption}</p>
     <div class="zoom" @pointerdown=${$.down} @pointermove=${$.move} @pointerup=${$.up} @pointercancel=${$.up} @wheel=${$.wheel} @dblclick=${$.twice}>
       <img src=${t.src} alt=${t.caption} draggable="false" @load=${$.whole} />
     </div>
     <p class="hint">${i.closer}</p>
     <div class="foot">${t.see ? F`<button class="mend" @click=${r.more}>${i.live}</button>` : F`<span></span>`}<button class="act" @click=${r.shut}>${i.shut}</button></div>`, "shot");
 }
-function an(e, t, n, r, i, a, o) {
+function cn(e, t, n, r, i, a, o) {
 	let s = e.clipping, c = (n) => J(Rt(e, {
 		...t,
 		on: n.on,
@@ -2391,7 +2713,7 @@ function an(e, t, n, r, i, a, o) {
 		level: n.level,
 		away: n.away
 	})), l = n.record, u = e.acts[`${t.kind}.${t.on ? "on" : "off"}`];
-	return nn(t.id, a, o.shut, F`<p class="kicker">${t.room}</p>
+	return on(t.id, a, o.shut, F`<p class="kicker">${t.room}</p>
       <h4 class="title">${t.name}</h4>
       <p class="deck">${J(Rt(e, t))}. ${t.since && t.kind !== "camera" ? X(s.since, { at: q(t.since) }) : ""}
         ${t.temp === void 0 ? "" : X(s.reads, { temp: t.temp.toFixed(1) })} ${t.title ? X(s.playing, { title: t.title }) : ""}</p>
@@ -2406,7 +2728,7 @@ function an(e, t, n, r, i, a, o) {
 }
 //#endregion
 //#region src/dash-bored/styles.ts
-var on = h`
+var ln = h`
   :host { display: block; container-type: inline-size; }
   :host([panel]) { height: 100vh; overflow-y: auto; }
   .paper { --paper: #f3eee0; --ink: #1c1a17; --flash: #8c1c13; --mark: #f6d95a; --head: "Bodoni 72", "Didot", "Playfair Display", serif;
@@ -2599,27 +2921,85 @@ var on = h`
   [data-style="tabloid"] .ad { border: 3px solid var(--ink); } [data-style="tabloid"] .ad b { font: 400 24px/1 var(--head); letter-spacing: .02em; }
   [data-style="tabloid"] .ad:hover { background: var(--mark); color: #111; }
 
+  /* ---------- the rolling news site ---------- */
+  [data-style="rolling"] { --paper: #fff; --ink: #16181d; --flash: #c8102e; --site: #0b5cad; --mark: #ffe9a8; --head: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: var(--head); background-image: none; }
+  /* Blue is the site's own colour. Red is kept for what is wrong (breaking news, a fault, a
+     device not answering, a press that waits for its second), so that here red always means trouble. */
+  [data-style="rolling"] .kicker { color: var(--site); }
+  [data-style="rolling"] .mark.loathe { color: inherit; }
+  [data-style="rolling"] :focus-visible { outline-color: var(--site); }
+  [data-style="rolling"] .scale input::-webkit-slider-thumb { background: var(--site); } [data-style="rolling"] .scale input::-moz-range-thumb { background: var(--site); }
+  [data-style="rolling"] .breaking { border: 0; background: var(--flash); color: #fff; font-weight: 600; text-align: left; animation-name: none; }
+  [data-style="rolling"] .breaking b { background: #fff; color: var(--flash); padding: 1px 8px; border-radius: 3px; letter-spacing: .04em; }
+  [data-style="rolling"] .masthead { text-align: left; border: 0; padding: 0 0 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
+  [data-style="rolling"] .masthead h1 { font: 800 34px/1 var(--head); letter-spacing: -.03em; background: var(--ink); color: #fff; padding: 6px 12px; border-radius: 4px; }
+  /* The site says it is live: a red light beside its strapline. */
+  [data-style="rolling"] .masthead p { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--site); }
+  [data-style="rolling"] .masthead p::before { content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 7px; border-radius: 50%; background: var(--site); animation: live 1.6s ease-in-out infinite; }
+  @keyframes live { 50% { opacity: .25; } }
+  [data-style="rolling"] .dateline { border: 0; border-top: 3px solid var(--site); background: #f1f2f4; padding: 6px 10px; letter-spacing: .04em; font-weight: 600; margin-bottom: 0; }
+  [data-style="rolling"] .styles button { border: 0; border-radius: 3px; } [data-style="rolling"] .styles button[aria-pressed="true"] { background: var(--site); color: #fff; }
+  [data-style="rolling"] .page { gap: 0 24px; margin-top: 14px; }
+  [data-style="rolling"] .page > * + * { border-left-color: #d9dce1; padding-left: 24px; }
+  [data-style="rolling"] .kicker { font-weight: 800; letter-spacing: .06em; }
+  [data-style="rolling"] h2 { font: 800 40px/1.06 var(--head); text-transform: none; letter-spacing: -.02em; animation-name: none; }
+  [data-style="rolling"] .deck { font-style: normal; color: #454a54; }
+  [data-style="rolling"] .figure { border: 0; border-left: 4px solid var(--site); background: #f1f2f4; text-align: left; padding: 10px 12px; }
+  [data-style="rolling"] .figure b { font: 800 32px/1 var(--head); } [data-style="rolling"] .figure span { letter-spacing: .06em; font-weight: 600; }
+  [data-style="rolling"] .act { border: 0; border-radius: 4px; background: var(--ink); color: #fff; padding: 6px 14px; font-weight: 700; letter-spacing: .03em; text-transform: none; }
+  [data-style="rolling"] .act:hover { background: var(--site); } [data-style="rolling"] .act[disabled] { opacity: .4; }
+  [data-style="rolling"] .act.sure { background: var(--flash); }
+  [data-style="rolling"] .photo img, [data-style="rolling"] .archive img, [data-style="rolling"] .cutting .still { filter: none; border: 0; border-radius: 4px; }
+  [data-style="rolling"] .photo figcaption { font-style: normal; color: #454a54; }
+  [data-style="rolling"] .copy { column-rule-color: #d9dce1; }
+  [data-style="rolling"] .fact { border-bottom: 1px solid #9aa0aa; } [data-style="rolling"] .fact:hover { background: var(--mark); }
+  [data-style="rolling"] .fact.level { border: 0; background: #e8eaee; border-radius: 3px; padding: 0 2px; font-weight: 700; }
+  [data-style="rolling"] h3 { text-align: left; border: 0; border-top: 3px solid var(--ink); padding: 6px 0 2px; font: 800 14px/1.2 var(--head); letter-spacing: .04em; }
+  [data-style="rolling"] h5 { font: 700 12px/1 var(--head); font-style: normal; text-align: left; text-transform: uppercase; letter-spacing: .08em; color: var(--site); }
+  [data-style="rolling"] h5::before, [data-style="rolling"] h5::after { content: none; }
+  [data-style="rolling"] .item h4, [data-style="rolling"] .cutting .title { font: 800 22px/1.12 var(--head); }
+  [data-style="rolling"] li, [data-style="rolling"] td, [data-style="rolling"] details { border-bottom: 1px solid #e3e5e9; }
+  [data-style="rolling"] time { color: var(--site); }
+  [data-style="rolling"] .chip { border: 1px solid #b8bdc6; border-radius: 4px; } [data-style="rolling"] .chip.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+  [data-style="rolling"] .pair .chip:first-child { border-radius: 4px 0 0 4px; } [data-style="rolling"] .chip.tab { border-radius: 0 4px 4px 0; }
+  [data-style="rolling"] .ad { border: 1px solid #b8bdc6; border-radius: 4px; text-align: left; } [data-style="rolling"] .ad b { font: 700 15px var(--head); letter-spacing: 0; text-transform: none; }
+  [data-style="rolling"] .ad:hover { background: var(--ink); color: #fff; }
+  [data-style="rolling"] .mark, [data-style="rolling"] .hint, [data-style="rolling"] p.mend { font-style: normal; }
+  /* A clipping here is a card, as a site's are: straight edges, and nothing torn away with it. */
+  [data-style="rolling"] .cutting { clip-path: none !important; rotate: none; border-radius: 8px; background-image: none; grid-template-columns: minmax(0, 1fr); }
+  [data-style="rolling"] .scrap { display: none; } [data-style="rolling"] .story { border: 0; padding: 18px 20px; }
+  /* The ticker: the headlines passing under the dateline. Still, for a reader who has asked for less motion. */
+  .ticker { display: flex; align-items: stretch; margin-top: 2px; background: var(--ink); color: #fff; font: 600 13px/1 var(--head); overflow: hidden; }
+  .ticker b { flex: none; background: var(--site); padding: 7px 10px; text-transform: uppercase; letter-spacing: .06em; }
+  .ticker div { flex: 1; min-width: 0; overflow: hidden; white-space: pre; padding: 7px 0; }
+  .ticker span { display: inline-block; padding-left: 100%; animation: tick 40s linear infinite; }
+  @keyframes tick { to { transform: translateX(-100%); } }
+  @media (prefers-reduced-motion: reduce) { .ticker span { animation: none; padding-left: 10px; } [data-style="rolling"] .masthead p::before { animation: none; } }
+
   /* ---------- narrow: one column, in reading order ---------- */
   @container (max-width: 900px) {
     .paper { padding: 10px 14px 20px; }
     .page { grid-template-columns: 1fr; } .page > * + * { border-left: 0; padding-left: 0; margin-top: 18px; } .solo > article { grid-column: auto; }
     .copy { columns: 1; } h2 { font-size: 34px; }
     [data-style="tabloid"] h2 { font-size: 62px; } [data-style="tabloid"] .masthead h1 { font-size: 36px; }
+    [data-style="rolling"] h2 { font-size: 30px; } [data-style="rolling"] .masthead h1 { font-size: 26px; }
+    [data-style="rolling"] .page > * + * { padding-left: 0; }
     .figure, [data-style="tabloid"] .figure { width: 104px; } .figure b, [data-style="tabloid"] .figure b { font-size: 28px; }
   }
-`, sn = "dash-bored-gazette", cn = "casa_mia_dash_bored/alerts", ln = "casa_mia_dash_bored/sightings", un = "casa_mia_dash_bored/personal", dn = "casa_mia_dash_bored/playing", fn = 18e5, pn = 10, mn = "dash-bored-style", hn = "/casa_mia_dash_bored/fonts/ManufacturingConsent-Regular.ttf", gn = !1;
-function _n() {
-	if (gn) return;
-	gn = !0;
-	let e = new FontFace("Dash-Bored Masthead", `url(${hn})`);
+`, un = "dash-bored-gazette", dn = "casa_mia_dash_bored/alerts", fn = "casa_mia_dash_bored/sightings", pn = "casa_mia_dash_bored/personal", mn = "casa_mia_dash_bored/playing", hn = 18e5, gn = 10, _n = "dash-bored-style", vn = "/casa_mia_dash_bored/fonts/ManufacturingConsent-Regular.ttf", yn = !1;
+function bn() {
+	if (yn) return;
+	yn = !0;
+	let e = new FontFace("Dash-Bored Masthead", `url(${vn})`);
 	document.fonts.add(e), e.load().catch((e) => console.error("Dash-Bored: the masthead's font could not be loaded", e));
 }
-var vn = 30, yn = 3, bn = 6e3, xn = 350, Sn = /* @__PURE__ */ new Set([
+var xn = 30, Sn = 3, Cn = 6e3, wn = 350, Tn = /* @__PURE__ */ new Set([
 	"climate",
 	"camera",
 	"water_heater",
 	"alarm_control_panel"
-]), Cn = /* @__PURE__ */ new Set(["docked"]), wn = (e) => e.away || !!e.phase && !Cn.has(e.phase) || !Sn.has(e.kind) && (e.kind === "lock" ? !e.on : e.on), Tn = (e) => e.kind !== "camera" || e.away, En = /* @__PURE__ */ new Set([
+]), En = /* @__PURE__ */ new Set(["docked"]), Dn = (e) => e.away || !!e.phase && !En.has(e.phase) || !Tn.has(e.kind) && (e.kind === "lock" ? !e.on : e.on), On = (e) => e.kind !== "camera" || e.away, kn = /* @__PURE__ */ new Set([
 	"climate",
 	"media_player",
 	"camera",
@@ -2627,12 +3007,12 @@ var vn = 30, yn = 3, bn = 6e3, xn = 350, Sn = /* @__PURE__ */ new Set([
 	"vacuum",
 	"lawn_mower",
 	"alarm_control_panel"
-]), Dn = class extends H {
+]), An = class extends H {
 	constructor(...e) {
 		super(...e), this.narrow = !1, this._played = [], this._style = "broadsheet", this._alerts = [], this._seen = [], this._rated = [], this._fault = "", this._lost = 0, this._config = {}, this._late = [], this._turn = /* @__PURE__ */ new Map(), this._showing = /* @__PURE__ */ new Set(), this._feeds = /* @__PURE__ */ new Map(), this._primed = !1, this._seenPrimed = !1, this._timers = /* @__PURE__ */ new Set();
 	}
 	static {
-		this.styles = on;
+		this.styles = ln;
 	}
 	static {
 		this.properties = {
@@ -2697,7 +3077,7 @@ var vn = 30, yn = 3, bn = 6e3, xn = 350, Sn = /* @__PURE__ */ new Set([
 		}
 	}
 	connectedCallback() {
-		super.connectedCallback(), _n(), this._choose(), this._hass?.connected !== !1 && this._listen();
+		super.connectedCallback(), bn(), this._choose(), this._hass?.connected !== !1 && this._listen();
 	}
 	disconnectedCallback() {
 		super.disconnectedCallback();
@@ -2709,14 +3089,14 @@ var vn = 30, yn = 3, bn = 6e3, xn = 350, Sn = /* @__PURE__ */ new Set([
 	_choose() {
 		let e = this._config.style;
 		try {
-			e ??= localStorage.getItem(mn) ?? void 0;
+			e ??= localStorage.getItem(_n) ?? void 0;
 		} catch {}
-		e && e in Wt && (this._style = e);
+		e && e in qt && (this._style = e);
 	}
 	_dress(e) {
 		this._style = e;
 		try {
-			localStorage.setItem(mn, e);
+			localStorage.setItem(_n, e);
 		} catch {}
 	}
 	_listen() {
@@ -2729,9 +3109,9 @@ var vn = 30, yn = 3, bn = 6e3, xn = 350, Sn = /* @__PURE__ */ new Set([
 				this._feeds.delete(t), console.error(`Dash-Bored: the feed ${t} failed`, e), this._fault = `${n} are not reaching this page (${e?.message ?? e}).`;
 			});
 		};
-		t(cn, "Sensor Watch's alerts", (e) => this._take(e)), t(ln, "The cameras' sightings", (e) => this._sight(e));
+		t(dn, "Sensor Watch's alerts", (e) => this._take(e)), t(fn, "The cameras' sightings", (e) => this._sight(e));
 		let n = (e, t) => [...new Map(e.map((e) => [t(e), e])).values()];
-		t(un, "The Personal column's announcements", (e) => this._rated = n([...this._rated, ...e], (e) => `${e.at} ${e.name} ${e.title}`)), t(dn, "What the players have played", (e) => this._played = n([...this._played, ...e], (e) => e.id));
+		t(pn, "The Personal column's announcements", (e) => this._rated = n([...this._rated, ...e], (e) => `${e.at} ${e.name} ${e.title}`)), t(mn, "What the players have played", (e) => this._played = n([...this._played, ...e], (e) => e.id));
 	}
 	_sight(e) {
 		let t = new Map(this._seen.map((e) => [e.id, e])), n = Date.now();
@@ -2747,7 +3127,7 @@ var vn = 30, yn = 3, bn = 6e3, xn = 350, Sn = /* @__PURE__ */ new Set([
 				seen: a
 			});
 		}
-		this._seenPrimed = !0, this._seen = [...t.values()].filter((e) => n - e.at * 1e3 < fn);
+		this._seenPrimed = !0, this._seen = [...t.values()].filter((e) => n - e.at * 1e3 < hn);
 	}
 	_take(e) {
 		let t = new Map(this._alerts.map((e) => [e.entity_id, e]));
@@ -2786,7 +3166,7 @@ var vn = 30, yn = 3, bn = 6e3, xn = 350, Sn = /* @__PURE__ */ new Set([
 		});
 	}
 	_press(e) {
-		e.guarded || e.away || En.has(e.kind) ? this._story(e) : this._call(ht(e), `${e.room} ${e.name}`);
+		e.guarded || e.away || kn.has(e.kind) ? this._story(e) : this._call(ht(e), `${e.room} ${e.name}`);
 	}
 	_story(e) {
 		this._open = { id: e.id }, this._scale = e.dims && !e.away ? { id: e.id } : void 0;
@@ -2821,7 +3201,7 @@ var vn = 30, yn = 3, bn = 6e3, xn = 350, Sn = /* @__PURE__ */ new Set([
 					...this._open,
 					armed: !1
 				});
-			}, bn);
+			}, Cn);
 			this._timers.add(n);
 			return;
 		}
@@ -2837,7 +3217,7 @@ var vn = 30, yn = 3, bn = 6e3, xn = 350, Sn = /* @__PURE__ */ new Set([
 	_ask(e, t) {
 		clearTimeout(this._asking), this._timers.delete(this._asking), this._asking = setTimeout(() => {
 			this._timers.delete(this._asking), this._call(_t(e, t), `${e.room} ${e.name}`);
-		}, xn), this._timers.add(this._asking);
+		}, wn), this._timers.add(this._asking);
 	}
 	_measure(e) {
 		this._scale = this._scale?.id === e.id ? void 0 : { id: e.id };
@@ -2846,9 +3226,9 @@ var vn = 30, yn = 3, bn = 6e3, xn = 350, Sn = /* @__PURE__ */ new Set([
 		(e.key === "Enter" || e.key === " ") && (e.preventDefault(), e.currentTarget.click());
 	}
 	render() {
-		let e = this._hass, t = this._house, n = Wt[this._style];
+		let e = this._hass, t = this._house, n = qt[this._style];
 		if (!e || !t) return F`<div class="paper" data-style=${this._style}><p class="wait">Waiting for Home Assistant.</p></div>`;
-		let a = Date.now(), o = lt(this._survey, this._seen).filter((e) => a - e.at < fn), s = [...o].sort((e, t) => t.at - e.at).slice(0, pn), c = (e) => (n.stories[`sighting.${e}`]?.kicker ?? e).toLowerCase(), l = jt(t, this._alerts, a, o);
+		let a = Date.now(), o = lt(this._survey, this._seen).filter((e) => a - e.at < hn), s = [...o].sort((e, t) => t.at - e.at).slice(0, gn), c = (e) => (n.stories[`sighting.${e}`]?.kicker ?? e).toLowerCase(), l = jt(t, this._alerts, a, o);
 		for (let e of l) this._showing.has(e.id) || this._turn.set(e.id, (this._turn.get(e.id) ?? -1) + 1);
 		this._showing = new Set(l.map((e) => e.id));
 		let u = l.map((e) => ({
@@ -2889,9 +3269,9 @@ var vn = 30, yn = 3, bn = 6e3, xn = 350, Sn = /* @__PURE__ */ new Set([
 		})} @keydown=${this._key}>
             <img src=${e.photo} alt=${e.figure[1]} loading="lazy" @error=${() => this._fault = `The photograph from ${e.figure[1]} could not be fetched.`} />
             <figcaption>${e.figure[1]}, ${e.figure[0]}</figcaption>
-          </figure>` : L, v = t.rooms.filter((e) => e.temp !== void 0), y = Tt(t.people, this._rated, a), b = t.rooms.filter((e) => e.devices.length), x = b.reduce((e, t) => e + t.devices.length, 0) > vn, S = b.map((e) => ({
+          </figure>` : L, v = t.rooms.filter((e) => e.temp !== void 0), y = Tt(t.people, this._rated, a), b = t.rooms.filter((e) => e.devices.length), x = b.reduce((e, t) => e + t.devices.length, 0) > xn, S = b.map((e) => ({
 			...e,
-			devices: e.devices.filter(x ? wn : Tn)
+			devices: e.devices.filter(x ? Dn : On)
 		})).filter((e) => e.devices.length), ee = b.some((e) => e.floor), C = (e, t, r = (e) => e) => {
 			let i = /* @__PURE__ */ new Map();
 			for (let t of e) i.set(t.floor ?? "", [...i.get(t.floor ?? "") ?? [], t]);
@@ -2899,7 +3279,7 @@ var vn = 30, yn = 3, bn = 6e3, xn = 350, Sn = /* @__PURE__ */ new Set([
 		}, te = (e) => {
 			let t = (t) => {
 				let n = e.devices.filter((e) => x && e.kind === t && e.on && !e.away);
-				return n.length > yn ? n : [];
+				return n.length > Sn ? n : [];
 			}, r = t("light"), i = t("switch"), a = e.devices.filter((e) => !r.includes(e) && !i.includes(e)).map((e, t) => h(e, !t && !r.length && !i.length));
 			return i.length && a.unshift(r.length ? X(n.words["switch.many"], Y(i.length)) : J(X(n.words["switch.many"], Y(i.length)))), r.length && a.unshift(F`<span class="fact" role="button" tabindex="0" @click=${() => this._call({
 				domain: "light",
@@ -2926,9 +3306,10 @@ var vn = 30, yn = 3, bn = 6e3, xn = 350, Sn = /* @__PURE__ */ new Set([
 			month: "long",
 			year: "numeric"
 		})}</span>
-        ${this._config.style ? L : F`<span class="styles">${Object.entries(Wt).map(([e, t]) => F`<button aria-pressed=${e === this._style} @click=${() => this._dress(e)}>${t.label}</button>`)}</span>`}
+        ${this._config.style ? L : F`<span class="styles">${Object.entries(qt).map(([e, t]) => F`<button aria-pressed=${e === this._style} @click=${() => this._dress(e)}>${t.label}</button>`)}</span>`}
         <span>${n.price} · ${q(Date.now())}</span>
       </div>
+      ${n.ticker ? F`<div class="ticker" aria-hidden="true"><b>${n.ticker}</b><div><span>${u.map((e) => e.head).join("  •  ")}</span></div></div>` : L}
       <main class="page ${f.length ? "" : "solo"}">
         <article>
           <div class="figure"><b>${d.s.figure[0]}</b><span>${d.s.figure[1]}</span></div>
@@ -2981,7 +3362,7 @@ var vn = 30, yn = 3, bn = 6e3, xn = 350, Sn = /* @__PURE__ */ new Set([
         </aside>
         ${x ? F`<section class="board">${O}</section>` : L}
       </main>
-      ${T ? an(n, T, this._open, a, g(T), re, {
+      ${T ? cn(n, T, this._open, a, g(T), re, {
 			flip: () => this._flip(T),
 			more: () => this._live(T.id),
 			picture: () => this._look({
@@ -2990,12 +3371,12 @@ var vn = 30, yn = 3, bn = 6e3, xn = 350, Sn = /* @__PURE__ */ new Set([
 				see: T.id
 			}),
 			shut: () => this._shut()
-		}) : this._shot ? rn(n, this._shot, re, {
+		}) : this._shot ? sn(n, this._shot, re, {
 			more: () => this._live(this._shot.see),
 			shut: () => this._shut()
 		}) : L}
     </div>`;
 	}
-}, On = new URL(import.meta.url).searchParams.get("v") || "dev";
-a(sn, Dn), o(sn, "Casa Mia Dash-Bored Gazette", "Your house as a newspaper: what matters most is the headline, and every underlined fact is a switch. Best in a panel view."), t("Dash-Bored", "casa_mia_dash_bored/cards", On);
+}, jn = new URL(import.meta.url).searchParams.get("v") || "dev";
+a(un, An), o(un, "Casa Mia Dash-Bored Gazette", "Your house as a newspaper: what matters most is the headline, and every underlined fact is a switch. Best in a panel view."), t("Dash-Bored", "casa_mia_dash_bored/cards", jn);
 //#endregion
