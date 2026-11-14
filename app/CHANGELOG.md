@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.11.8-b11
+
+- **Dash-Bored: a device's clipping, in place of Home Assistant's dialog.** Every device has a story of its own, laid over the page: how it stands and since when, a button that puts it the other way, its poll and scale if it has a level, and **The record**, a band of the last 24 hours with its latest changes from Home Assistant's history (which keeps a blind's positions, but not a light's brightness). It opens from the tab now beside every device on the switchboard, and from a line about the device in the late news. Home Assistant's own dialog is a link at its foot.
+- **Dash-Bored: a lock, a garage door and a gate are worked from their clipping.** Pressing one used to open Home Assistant's dialog. Unlocking or opening takes two presses; locking and closing take one.
+- **Dash-Bored: the scale on the switchboard is now in the clipping.** A tab used to open the scale under its row.
+
 ## 2026.11.8-b10
 
 - **Dash-Bored: dim a light or part-open a blind from the page.** A dimmable light's level, or a positionable cover's, is now a press of its own: in the report it is underlined twice (highlighted in the red-top), and on the switchboard it is a tab beside the device's button. Either opens a scale under the sentence or the row, with a readers' poll over it: a question in the paper's own words and a vote each way, each vote moving the level by 10 per cent. The level is sent once the handle or the voting has been still for a moment, not at every step. The figure shown is the device's own, with the level asked for after an arrow until the device reports that it has moved. A garage door or a gate has no scale.

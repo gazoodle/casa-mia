@@ -85,6 +85,24 @@ export const STYLES = css`
   .scale output { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
   .scale > button { padding: 4px 8px; font-size: 18px; line-height: 1; }
   .copy .scale { margin-bottom: 0; }
+  /* The clipping: one device's story, cut out and laid over the page a little askew. */
+  dialog.clipping { width: min(540px, calc(100vw - 24px)); max-height: calc(100vh - 24px); padding: 0; border: 0; background: none; color: var(--ink); font: inherit; overflow: visible; }
+  dialog.clipping::backdrop { background: rgba(0, 0, 0, .5); }
+  .cutting { max-height: calc(100vh - 40px); overflow-y: auto; padding: 16px 20px; background: var(--paper); border: 1px solid var(--ink); box-shadow: 5px 7px 0 rgba(0, 0, 0, .4); rotate: -.5deg; }
+  .cutting .title { margin: 0 0 6px; font: 900 32px/1.02 var(--head); text-wrap: balance; overflow-wrap: anywhere; }
+  .cutting .deck { font-size: 17px; }
+  .cutting .act { margin: 0 0 12px; }
+  .act.sure { background: var(--flash); color: #fff; border-color: var(--flash); }
+  .cutting .scale > button { display: none; }
+  .cutting .scale { margin: 0 0 12px; }
+  .cutting ol { max-height: 232px; overflow-y: auto; margin-bottom: 10px; }
+  /* The record's band: the last day from left to right, inked where the device was on, with a mark at each hour. */
+  .band { position: relative; height: 20px; border: 1px solid var(--ink); background: repeating-linear-gradient(90deg, rgba(0, 0, 0, .3) 0 1px, transparent 1px calc(100% / 24)); }
+  .band i { position: absolute; top: 0; bottom: 0; background: var(--ink); }
+  .span { display: flex; justify-content: space-between; margin: 2px 0 6px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; font-variant-numeric: tabular-nums; }
+  .foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+  .foot .act { margin: 0; }
+  li[role="button"] { cursor: pointer; }
 
   h3 { margin: 0 0 8px; font-size: 13px; letter-spacing: .3em; text-transform: uppercase; text-align: center;
     border-top: 2px solid var(--ink); border-bottom: 1px solid var(--ink); padding: 4px 0; }

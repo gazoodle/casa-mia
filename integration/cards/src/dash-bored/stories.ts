@@ -20,6 +20,12 @@ export type Alert = {
 };
 /** A service call that would put the story right. */
 export type Press = { domain: string; service: string; ids: string[]; data?: Record<string, unknown> };
+/** The call that puts a device the other way: on or off, open or closed, locked or unlocked. */
+export const flip = (d: Device): Press => ({
+  domain: d.kind,
+  service: d.kind === "lock" ? (d.on ? "unlock" : "lock") : d.kind === "cover" ? (d.on ? "close_cover" : "open_cover") : d.on ? "turn_off" : "turn_on",
+  ids: [d.id],
+});
 /** The call that sets a light's brightness or a cover's position, in per cent. A light
  * asked for nothing is switched off by name: not every light takes a brightness of 0. */
 export const setting = (d: Device, level: number): Press =>

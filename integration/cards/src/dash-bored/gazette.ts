@@ -6,8 +6,10 @@ import { LitElement, html, nothing, type TemplateResult } from "lit";
 import { keyed } from "lit/directives/keyed.js";
 import { live } from "lit/directives/live.js";
 import { fire, navigate, type Hass } from "../ha.ts";
+import { clipping, type Open } from "./clipping.ts";
 import { read, sighted, survey, type Device, type House, type Options, type Room, type Seen, type Sighting, type Survey } from "./house.ts";
-import { NOMINAL, RECOVERED, cap, clock, counted, flavourOf, setting, stories, type Alert, type Press, type Story } from "./stories.ts";
+import { recorded } from "./record.ts";
+import { NOMINAL, RECOVERED, cap, clock, counted, flavourOf, flip, setting, stories, type Alert, type Press, type Story } from "./stories.ts";
 import { STYLES } from "./styles.ts";
 import { FIXES, VOICES, clause, fill, percent, poll, tell, wired, words, type Told } from "./voices.ts";
 
@@ -35,6 +37,7 @@ function masthead() {
 const BIG = 30;
 const MANY = 3; // more lights lit in one of its rooms than this are a count, not a list
 const VOTE = 10; // per cent: what one vote in a level's poll moves it by
+const ARMED = 6000; // ms: how long a first press to unlock or open waits for its second
 const SETTLE = 350; // ms: a level on the scale is asked for once it has been still this long
 const notable = (d: Device) => d.away || (d.kind === "lock" ? !d.on : d.on);
 type Config = Options & { type?: string; style?: string };
@@ -42,12 +45,14 @@ type Line = { time: number; device?: Device; alert?: Alert; seen?: Sighting };
 
 export class Gazette extends LitElement {
   static styles = STYLES;
-  static properties = { narrow: { type: Boolean }, _house: { state: true }, _style: { state: true }, _alerts: { state: true }, _seen: { state: true }, _fault: { state: true }, _lost: { state: true }, _scale: { state: true } };
+  static properties = { narrow: { type: Boolean }, _house: { state: true }, _style: { state: true }, _alerts: { state: true }, _seen: { state: true }, _fault: { state: true }, _lost: { state: true }, _scale: { state: true }, _open: { state: true } };
   narrow = false;
   _house?: House;
-  // The one scale that is open: for which device, under its sentence or (`board`) its
-  // chip, and the level asked for that the device has not yet said it has come to.
-  _scale?: { id: string; board: boolean; want?: number };
+  // The one scale that is open: for which device, and the level asked for that the
+  // device has not yet said it has come to. It is under the device's sentence, or in
+  // its clipping when that is open.
+  _scale?: { id: string; want?: number };
+  _open?: Open; // the clipping that is open: see clipping.ts
   _style = "broadsheet";
   _alerts: Alert[] = [];
   _seen: Seen[] = []; // the feed's sightings of the last half hour
@@ -113,6 +118,8 @@ export class Gazette extends LitElement {
       this._note({ time: Date.now(), device: d });
       // The device has moved: what was asked of it is answered, and the scale shows where it is.
       if (this._scale?.id === d.id) this._scale = { ...this._scale, want: undefined };
+      // Its clipping's record goes on, and a press that was waiting for its second is forgotten.
+      if (this._open?.id === d.id) this._open = { ...this._open, armed: false, record: this._open.record && [...this._open.record, { at: Date.now(), on: d.on, level: d.level, away: d.away }] };
     }
   }
 
@@ -234,9 +241,53 @@ export class Gazette extends LitElement {
 
   private _press(d: Device) {
     // A lock or a garage door is never moved from a sentence, and a device that isn't
-    // answering can't be: Home Assistant's own dialog, with its own confirmation.
-    if (d.guarded || d.away) fire(this, "hass-more-info", { entityId: d.id });
-    else this._call({ domain: d.kind, service: "toggle", ids: [d.id] }, `${d.room} ${d.name}`);
+    // answering can't be: its clipping, where unlocking or opening takes two presses.
+    if (d.guarded || d.away) this._story(d);
+    else this._call(flip(d), `${d.room} ${d.name}`);
+  }
+
+  /** Open a device's clipping, and ask Home Assistant for its record. */
+  private _story(d: Device) {
+    this._open = { id: d.id };
+    this._scale = d.dims && !d.away ? { id: d.id } : undefined;
+    const mine = (more: Partial<Open>) => {
+      if (this._open?.id === d.id) this._open = { ...this._open, ...more };
+    };
+    recorded(this._hass!, d, Date.now()).then(
+      (record) => mine({ record }),
+      (err: any) => {
+        console.error(`Dash-Bored: the history of ${d.id} could not be read`, err);
+        mine({ fault: err?.message ?? String(err) });
+      },
+    );
+  }
+
+  private _shut() {
+    this._open = this._scale = undefined;
+  }
+
+  /** The clipping's button. To unlock a lock, or open a garage door or a gate, it must
+   * be pressed twice: the first press arms it, for a few seconds. */
+  private _flip(d: Device) {
+    const open = this._open!;
+    const risky = d.guarded && (d.kind === "lock" ? d.on : !d.on);
+    if (risky && !open.armed) {
+      this._open = { ...open, armed: true };
+      const timer = setTimeout(() => {
+        this._timers.delete(timer);
+        if (this._open?.id === d.id) this._open = { ...this._open, armed: false };
+      }, ARMED);
+      this._timers.add(timer);
+      return;
+    }
+    this._open = { ...open, armed: false };
+    this._call(flip(d), `${d.room} ${d.name}`);
+  }
+
+  /** A dialog is modal only when opened by its method, not by being drawn. */
+  protected updated() {
+    const cutting = this.renderRoot.querySelector("dialog");
+    if (cutting && !cutting.open) cutting.showModal();
   }
 
   /** Ask a device for a level, once the level has stopped changing: a drag asks when the
@@ -253,8 +304,8 @@ export class Gazette extends LitElement {
   }
 
   /** Open the scale for a device, or close it if it is the one that is open. */
-  private _measure(d: Device, board: boolean) {
-    this._scale = this._scale?.id === d.id && this._scale.board === board ? undefined : { id: d.id, board };
+  private _measure(d: Device) {
+    this._scale = this._scale?.id === d.id ? undefined : { id: d.id };
   }
 
   private _key(event: KeyboardEvent) {
@@ -289,15 +340,14 @@ export class Gazette extends LitElement {
       const [before, level, after] = d.dims && !d.away ? clause(voice, d) : [words(voice, d), "", ""];
       const part = (text: string, how: string, press: () => void) =>
         text ? html`<span class="fact ${how}" role="button" tabindex="0" @click=${press} @keydown=${this._key}>${text}</span>` : nothing;
-      return html`${part(first ? cap(before) : before, d.away ? "away" : "", () => this._press(d))}${part(level, "level", () => this._measure(d, false))}${part(after, "", () => this._press(d))}`;
+      return html`${part(first ? cap(before) : before, d.away ? "away" : "", () => this._press(d))}${part(level, "level", () => this._measure(d))}${part(after, "", () => this._press(d))}`;
     };
-    // The scale and its poll, under the sentence or the row of chips they were opened from. In the report
-    // it is inside the room's paragraph, so that the two stay in one column. The figure is
-    // the device's own, with what was asked beside it until the device says it has moved.
-    const scale = (r: Room, board: boolean) => {
+    // The scale and its poll, for the device they are open for. In the report they are
+    // inside the room's paragraph, so that the two stay in one column. The figure is the
+    // device's own, with what was asked beside it until the device says it has moved.
+    const scale = (d?: Device) => {
       const open = this._scale;
-      const d = open?.board === board ? r.devices.find((d) => d.id === open.id && d.dims && !d.away) : undefined;
-      if (!d || !open) return nothing;
+      if (!d || !open || open.id !== d.id || !d.dims || d.away) return nothing;
       const at = d.on ? (d.level ?? 0) : 0;
       const ask = (event: Event) => Number((event.target as HTMLInputElement).value);
       // The readers' poll: each vote moves the level a step from where it was last asked
@@ -351,16 +401,17 @@ export class Gazette extends LitElement {
       if (running.length) parts.unshift(lit.length ? fill(voice.words["switch.many"], counted(running.length)) : cap(fill(voice.words["switch.many"], counted(running.length))));
       if (lit.length)
         parts.unshift(html`<span class="fact" role="button" tabindex="0" @click=${() => this._call({ domain: "light", service: "turn_off", ids: lit.map((d) => d.id) }, r.name)} @keydown=${this._key}>${cap(fill(voice.words["light.many"], counted(lit.length)))}</span>`);
-      return html`<p><b>${r.name}.</b> ${parts.map((part, i) => html`${i ? voice.join : ""}${part}`)}${voice.end}${scale(r, false)}</p>`;
+      return html`<p><b>${r.name}.</b> ${parts.map((part, i) => html`${i ? voice.join : ""}${part}`)}${voice.end}${this._open ? nothing : scale(r.devices.find((d) => d.id === this._scale?.id))}</p>`;
     };
-    // A chip switches its device. One whose level can be set has a tab that opens the scale.
-    const chip = (d: Device) => {
-      const button = html`<button class="chip ${d.on ? "on" : ""} ${d.away ? "away" : ""}" aria-pressed=${d.on} @click=${() => this._press(d)}>${d.name}</button>`;
-      if (!d.dims || d.away) return button;
-      return html`<div class="pair">${button}<button class="chip tab" aria-label="${d.name}: set the level" aria-expanded=${this._scale?.id === d.id && this._scale.board} @click=${() => this._measure(d, true)}>${d.on ? (d.level ?? "") : 0}%</button></div>`;
-    };
+    // A chip switches its device, and its tab opens the device's clipping. The tab shows
+    // the level where there is one to set.
+    const chip = (d: Device) =>
+      html`<div class="pair"><button class="chip ${d.on ? "on" : ""} ${d.away ? "away" : ""}" aria-pressed=${d.on} @click=${() => this._press(d)}>${d.name}</button
+        ><button class="chip tab" aria-label="${d.name}: its story" @click=${() => this._story(d)}>${d.dims && !d.away ? `${d.on ? (d.level ?? "") : 0}%` : "›"}</button></div>`;
+    const devices = new Map(house.rooms.flatMap((r) => r.devices).map((d) => [d.id, d]));
+    const subject = this._open && devices.get(this._open.id);
     const board = html`<h3>${voice.titles.board}</h3>
-      ${byFloor(rooms, (r) => html`<div class="row"><span>${r.name}</span>${r.devices.map(chip)}</div>${scale(r, true)}`,
+      ${byFloor(rooms, (r) => html`<div class="row"><span>${r.name}</span>${r.devices.map(chip)}</div>`,
         (drawn) => html`<div class="rows">${drawn}</div>`)}`;
 
     return html`<div class="paper" data-style=${this._style}>
@@ -401,7 +452,11 @@ export class Gazette extends LitElement {
         <aside>
           <h3>${voice.titles.late}</h3>
           <ol>${this._late.length
-            ? this._late.map((l) => html`<li><time>${clock(l.time)}</time>${l.alert ? wired(voice, l.alert) : l.seen ? `${l.seen.name}: ${sort(l.seen.kind)}` : `${l.device!.room}: ${words(voice, l.device!)}`}</li>`)
+            ? this._late.map((l) => {
+                // A line about a device opens that device's clipping.
+                const d = l.device && devices.get(l.device.id);
+                return html`<li role=${d ? "button" : nothing} tabindex=${d ? 0 : nothing} @click=${() => d && this._story(d)} @keydown=${this._key}><time>${clock(l.time)}</time>${l.alert ? wired(voice, l.alert) : l.seen ? `${l.seen.name}: ${sort(l.seen.kind)}` : `${l.device!.room}: ${words(voice, l.device!)}`}</li>`;
+              })
             : html`<li>${voice.nothing}</li>`}</ol>
           ${past.length
             ? html`<h3>${voice.titles.archive}</h3>
@@ -428,6 +483,14 @@ export class Gazette extends LitElement {
         </aside>
         ${big ? html`<section class="board">${board}</section>` : nothing}
       </main>
+      ${subject
+        ? clipping(voice, subject, this._open!, now, scale(subject), {
+            flip: () => this._flip(subject),
+            // Home Assistant's dialog would open beneath a modal one: this is folded away first.
+            more: () => (this._shut(), fire(this, "hass-more-info", { entityId: subject.id })),
+            shut: () => this._shut(),
+          })
+        : nothing}
     </div>`;
   }
 }

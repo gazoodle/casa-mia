@@ -322,11 +322,11 @@ var l = globalThis, u = l.ShadowRoot && (l.ShadyCSS === void 0 || l.ShadyCSS.nat
 	let t = "";
 	for (let n of e.cssRules) t += n.cssText;
 	return m(t);
-})(e) : e, { is: v, defineProperty: y, getOwnPropertyDescriptor: b, getOwnPropertyNames: x, getOwnPropertySymbols: ee, getPrototypeOf: S } = Object, C = globalThis, w = C.trustedTypes, T = w ? w.emptyScript : "", te = C.reactiveElementPolyfillSupport, E = (e, t) => e, D = {
+})(e) : e, { is: ee, defineProperty: v, getOwnPropertyDescriptor: y, getOwnPropertyNames: b, getOwnPropertySymbols: te, getPrototypeOf: x } = Object, S = globalThis, C = S.trustedTypes, w = C ? C.emptyScript : "", T = S.reactiveElementPolyfillSupport, E = (e, t) => e, ne = {
 	toAttribute(e, t) {
 		switch (t) {
 			case Boolean:
-				e = e ? T : null;
+				e = e ? w : null;
 				break;
 			case Object:
 			case Array: e = e == null ? e : JSON.stringify(e);
@@ -351,30 +351,30 @@ var l = globalThis, u = l.ShadowRoot && (l.ShadyCSS === void 0 || l.ShadyCSS.nat
 		}
 		return n;
 	}
-}, ne = (e, t) => !v(e, t), re = {
+}, re = (e, t) => !ee(e, t), ie = {
 	attribute: !0,
 	type: String,
-	converter: D,
+	converter: ne,
 	reflect: !1,
 	useDefault: !1,
-	hasChanged: ne
+	hasChanged: re
 };
-Symbol.metadata ??= Symbol("metadata"), C.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap();
-var O = class extends HTMLElement {
+Symbol.metadata ??= Symbol("metadata"), S.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap();
+var D = class extends HTMLElement {
 	static addInitializer(e) {
 		this._$Ei(), (this.l ??= []).push(e);
 	}
 	static get observedAttributes() {
 		return this.finalize(), this._$Eh && [...this._$Eh.keys()];
 	}
-	static createProperty(e, t = re) {
+	static createProperty(e, t = ie) {
 		if (t.state && (t.attribute = !1), this._$Ei(), this.prototype.hasOwnProperty(e) && ((t = Object.create(t)).wrapped = !0), this.elementProperties.set(e, t), !t.noAccessor) {
 			let n = Symbol(), r = this.getPropertyDescriptor(e, n, t);
-			r !== void 0 && y(this.prototype, e, r);
+			r !== void 0 && v(this.prototype, e, r);
 		}
 	}
 	static getPropertyDescriptor(e, t, n) {
-		let { get: r, set: i } = b(this.prototype, e) ?? {
+		let { get: r, set: i } = y(this.prototype, e) ?? {
 			get() {
 				return this[t];
 			},
@@ -393,17 +393,17 @@ var O = class extends HTMLElement {
 		};
 	}
 	static getPropertyOptions(e) {
-		return this.elementProperties.get(e) ?? re;
+		return this.elementProperties.get(e) ?? ie;
 	}
 	static _$Ei() {
 		if (this.hasOwnProperty(E("elementProperties"))) return;
-		let e = S(this);
+		let e = x(this);
 		e.finalize(), e.l !== void 0 && (this.l = [...e.l]), this.elementProperties = new Map(e.elementProperties);
 	}
 	static finalize() {
 		if (this.hasOwnProperty(E("finalized"))) return;
 		if (this.finalized = !0, this._$Ei(), this.hasOwnProperty(E("properties"))) {
-			let e = this.properties, t = [...x(e), ...ee(e)];
+			let e = this.properties, t = [...b(e), ...te(e)];
 			for (let n of t) this.createProperty(n, e[n]);
 		}
 		let e = this[Symbol.metadata];
@@ -464,14 +464,14 @@ var O = class extends HTMLElement {
 	_$ET(e, t) {
 		let n = this.constructor.elementProperties.get(e), r = this.constructor._$Eu(e, n);
 		if (r !== void 0 && !0 === n.reflect) {
-			let i = (n.converter?.toAttribute === void 0 ? D : n.converter).toAttribute(t, n.type);
+			let i = (n.converter?.toAttribute === void 0 ? ne : n.converter).toAttribute(t, n.type);
 			this._$Em = e, i == null ? this.removeAttribute(r) : this.setAttribute(r, i), this._$Em = null;
 		}
 	}
 	_$AK(e, t) {
 		let n = this.constructor, r = n._$Eh.get(e);
 		if (r !== void 0 && this._$Em !== r) {
-			let e = n.getPropertyOptions(r), i = typeof e.converter == "function" ? { fromAttribute: e.converter } : e.converter?.fromAttribute === void 0 ? D : e.converter;
+			let e = n.getPropertyOptions(r), i = typeof e.converter == "function" ? { fromAttribute: e.converter } : e.converter?.fromAttribute === void 0 ? ne : e.converter;
 			this._$Em = r;
 			let a = i.fromAttribute(t, e.type);
 			this[r] = a ?? this._$Ej?.get(r) ?? a, this._$Em = null;
@@ -480,7 +480,7 @@ var O = class extends HTMLElement {
 	requestUpdate(e, t, n, r = !1, i) {
 		if (e !== void 0) {
 			let a = this.constructor;
-			if (!1 === r && (i = this[e]), n ??= a.getPropertyOptions(e), !((n.hasChanged ?? ne)(i, t) || n.useDefault && n.reflect && i === this._$Ej?.get(e) && !this.hasAttribute(a._$Eu(e, n)))) return;
+			if (!1 === r && (i = this[e]), n ??= a.getPropertyOptions(e), !((n.hasChanged ?? re)(i, t) || n.useDefault && n.reflect && i === this._$Ej?.get(e) && !this.hasAttribute(a._$Eu(e, n)))) return;
 			this.C(e, t, n);
 		}
 		!1 === this.isUpdatePending && (this._$ES = this._$EP());
@@ -544,17 +544,17 @@ var O = class extends HTMLElement {
 	updated(e) {}
 	firstUpdated(e) {}
 };
-O.elementStyles = [], O.shadowRootOptions = { mode: "open" }, O[E("elementProperties")] = /* @__PURE__ */ new Map(), O[E("finalized")] = /* @__PURE__ */ new Map(), te?.({ ReactiveElement: O }), (C.reactiveElementVersions ??= []).push("2.1.2");
+D.elementStyles = [], D.shadowRootOptions = { mode: "open" }, D[E("elementProperties")] = /* @__PURE__ */ new Map(), D[E("finalized")] = /* @__PURE__ */ new Map(), T?.({ ReactiveElement: D }), (S.reactiveElementVersions ??= []).push("2.1.2");
 //#endregion
 //#region node_modules/lit-html/lit-html.js
-var ie = globalThis, ae = (e) => e, k = ie.trustedTypes, oe = k ? k.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, se = "$lit$", A = `lit$${Math.random().toFixed(9).slice(2)}$`, ce = "?" + A, le = `<${ce}>`, j = document, M = () => j.createComment(""), N = (e) => e === null || typeof e != "object" && typeof e != "function", P = Array.isArray, ue = (e) => P(e) || typeof e?.[Symbol.iterator] == "function", F = "[ 	\n\f\r]", I = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, de = /-->/g, fe = />/g, L = RegExp(`>|${F}(?:([^\\s"'>=/]+)(${F}*=${F}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`, "g"), pe = /'/g, me = /"/g, he = /^(?:script|style|textarea|title)$/i, R = ((e) => (t, ...n) => ({
+var ae = globalThis, oe = (e) => e, O = ae.trustedTypes, se = O ? O.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, ce = "$lit$", k = `lit$${Math.random().toFixed(9).slice(2)}$`, A = "?" + k, le = `<${A}>`, j = document, M = () => j.createComment(""), N = (e) => e === null || typeof e != "object" && typeof e != "function", P = Array.isArray, ue = (e) => P(e) || typeof e?.[Symbol.iterator] == "function", F = "[ 	\n\f\r]", I = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, de = /-->/g, fe = />/g, L = RegExp(`>|${F}(?:([^\\s"'>=/]+)(${F}*=${F}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`, "g"), pe = /'/g, me = /"/g, he = /^(?:script|style|textarea|title)$/i, R = ((e) => (t, ...n) => ({
 	_$litType$: e,
 	strings: t,
 	values: n
 }))(1), z = Symbol.for("lit-noChange"), B = Symbol.for("lit-nothing"), ge = /* @__PURE__ */ new WeakMap(), V = j.createTreeWalker(j, 129);
 function _e(e, t) {
 	if (!P(e) || !e.hasOwnProperty("raw")) throw Error("invalid template strings array");
-	return oe === void 0 ? t : oe.createHTML(t);
+	return se === void 0 ? t : se.createHTML(t);
 }
 var ve = (e, t) => {
 	let n = e.length - 1, r = [], i, a = t === 2 ? "<svg>" : t === 3 ? "<math>" : "", o = I;
@@ -562,7 +562,7 @@ var ve = (e, t) => {
 		let n = e[t], s, c, l = -1, u = 0;
 		for (; u < n.length && (o.lastIndex = u, c = o.exec(n), c !== null);) u = o.lastIndex, o === I ? c[1] === "!--" ? o = de : c[1] === void 0 ? c[2] === void 0 ? c[3] !== void 0 && (o = L) : (he.test(c[2]) && (i = RegExp("</" + c[2], "g")), o = L) : o = fe : o === L ? c[0] === ">" ? (o = i ?? I, l = -1) : c[1] === void 0 ? l = -2 : (l = o.lastIndex - c[2].length, s = c[1], o = c[3] === void 0 ? L : c[3] === "\"" ? me : pe) : o === me || o === pe ? o = L : o === de || o === fe ? o = I : (o = L, i = void 0);
 		let d = o === L && e[t + 1].startsWith("/>") ? " " : "";
-		a += o === I ? n + le : l >= 0 ? (r.push(s), n.slice(0, l) + se + n.slice(l) + A + d) : n + A + (l === -2 ? t : d);
+		a += o === I ? n + le : l >= 0 ? (r.push(s), n.slice(0, l) + ce + n.slice(l) + k + d) : n + k + (l === -2 ? t : d);
 	}
 	return [_e(e, a + (e[n] || "<?>") + (t === 2 ? "</svg>" : t === 3 ? "</math>" : "")), r];
 }, H = class e {
@@ -576,8 +576,8 @@ var ve = (e, t) => {
 		}
 		for (; (i = V.nextNode()) !== null && c.length < s;) {
 			if (i.nodeType === 1) {
-				if (i.hasAttributes()) for (let e of i.getAttributeNames()) if (e.endsWith(se)) {
-					let t = u[o++], n = i.getAttribute(e).split(A), r = /([.?@])?(.*)/.exec(t);
+				if (i.hasAttributes()) for (let e of i.getAttributeNames()) if (e.endsWith(ce)) {
+					let t = u[o++], n = i.getAttribute(e).split(k), r = /([.?@])?(.*)/.exec(t);
 					c.push({
 						type: 1,
 						index: a,
@@ -585,14 +585,14 @@ var ve = (e, t) => {
 						strings: n,
 						ctor: r[1] === "." ? be : r[1] === "?" ? xe : r[1] === "@" ? Se : G
 					}), i.removeAttribute(e);
-				} else e.startsWith(A) && (c.push({
+				} else e.startsWith(k) && (c.push({
 					type: 6,
 					index: a
 				}), i.removeAttribute(e));
 				if (he.test(i.tagName)) {
-					let e = i.textContent.split(A), t = e.length - 1;
+					let e = i.textContent.split(k), t = e.length - 1;
 					if (t > 0) {
-						i.textContent = k ? k.emptyScript : "";
+						i.textContent = O ? O.emptyScript : "";
 						for (let n = 0; n < t; n++) i.append(e[n], M()), V.nextNode(), c.push({
 							type: 2,
 							index: ++a
@@ -601,16 +601,16 @@ var ve = (e, t) => {
 					}
 				}
 			} else if (i.nodeType === 8) {
-				if (i.data === ce) c.push({
+				if (i.data === A) c.push({
 					type: 2,
 					index: a
 				});
 				else {
 					let e = -1;
-					for (; (e = i.data.indexOf(A, e + 1)) !== -1;) c.push({
+					for (; (e = i.data.indexOf(k, e + 1)) !== -1;) c.push({
 						type: 7,
 						index: a
-					}), e += A.length - 1;
+					}), e += k.length - 1;
 				}
 			}
 			a++;
@@ -702,8 +702,8 @@ var ye = class {
 	}
 	_$AR(e = this._$AA.nextSibling, t) {
 		for (this._$AP?.(!1, !0, t); e !== this._$AB;) {
-			let t = ae(e).nextSibling;
-			ae(e).remove(), e = t;
+			let t = oe(e).nextSibling;
+			oe(e).remove(), e = t;
 		}
 	}
 	setConnected(e) {
@@ -768,9 +768,9 @@ var ye = class {
 		U(this, e);
 	}
 }, we = {
-	M: se,
-	P: A,
-	A: ce,
+	M: ce,
+	P: k,
+	A,
 	C: 1,
 	L: ve,
 	R: ye,
@@ -782,8 +782,8 @@ var ye = class {
 	U: Se,
 	B: be,
 	F: Ce
-}, Te = ie.litHtmlPolyfillSupport;
-Te?.(H, W), (ie.litHtmlVersions ??= []).push("3.3.3");
+}, Te = ae.litHtmlPolyfillSupport;
+Te?.(H, W), (ae.litHtmlVersions ??= []).push("3.3.3");
 var Ee = (e, t, n) => {
 	let r = n?.renderBefore ?? t, i = r._$litPart$;
 	if (i === void 0) {
@@ -791,7 +791,7 @@ var Ee = (e, t, n) => {
 		r._$litPart$ = i = new W(t.insertBefore(M(), e), e, void 0, n ?? {});
 	}
 	return i._$AI(e), i;
-}, K = globalThis, q = class extends O {
+}, De = globalThis, K = class extends D {
 	constructor() {
 		super(...arguments), this.renderOptions = { host: this }, this._$Do = void 0;
 	}
@@ -813,22 +813,22 @@ var Ee = (e, t, n) => {
 		return z;
 	}
 };
-q._$litElement$ = !0, q.finalized = !0, K.litElementHydrateSupport?.({ LitElement: q });
-var De = K.litElementPolyfillSupport;
-De?.({ LitElement: q }), (K.litElementVersions ??= []).push("4.2.2");
+K._$litElement$ = !0, K.finalized = !0, De.litElementHydrateSupport?.({ LitElement: K });
+var Oe = De.litElementPolyfillSupport;
+Oe?.({ LitElement: K }), (De.litElementVersions ??= []).push("4.2.2");
 //#endregion
 //#region node_modules/lit-html/directive.js
-var J = {
+var q = {
 	ATTRIBUTE: 1,
 	CHILD: 2,
 	PROPERTY: 3,
 	BOOLEAN_ATTRIBUTE: 4,
 	EVENT: 5,
 	ELEMENT: 6
-}, Oe = (e) => (...t) => ({
+}, ke = (e) => (...t) => ({
 	_$litDirective$: e,
 	values: t
-}), ke = class {
+}), Ae = class {
 	constructor(e) {}
 	get _$AU() {
 		return this._$AM._$AU;
@@ -842,7 +842,7 @@ var J = {
 	update(e, t) {
 		return this.render(...t);
 	}
-}, { I: Ae } = we, je = (e) => e.strings === void 0, Me = {}, Ne = (e, t = Me) => e._$AH = t, Pe = Oe(class extends ke {
+}, { I: je } = we, Me = (e) => e.strings === void 0, Ne = {}, Pe = (e, t = Ne) => e._$AH = t, Fe = ke(class extends Ae {
 	constructor() {
 		super(...arguments), this.key = B;
 	}
@@ -850,12 +850,12 @@ var J = {
 		return this.key = e, t;
 	}
 	update(e, [t, n]) {
-		return t !== this.key && (Ne(e), this.key = t), n;
+		return t !== this.key && (Pe(e), this.key = t), n;
 	}
-}), Fe = Oe(class extends ke {
+}), Ie = ke(class extends Ae {
 	constructor(e) {
-		if (super(e), e.type !== J.PROPERTY && e.type !== J.ATTRIBUTE && e.type !== J.BOOLEAN_ATTRIBUTE) throw Error("The `live` directive is not allowed on child or event bindings");
-		if (!je(e)) throw Error("`live` bindings can only contain a single expression");
+		if (super(e), e.type !== q.PROPERTY && e.type !== q.ATTRIBUTE && e.type !== q.BOOLEAN_ATTRIBUTE) throw Error("The `live` directive is not allowed on child or event bindings");
+		if (!Me(e)) throw Error("`live` bindings can only contain a single expression");
 	}
 	render(e) {
 		return e;
@@ -863,29 +863,29 @@ var J = {
 	update(e, [t]) {
 		if (t === z || t === B) return t;
 		let n = e.element, r = e.name;
-		if (e.type === J.PROPERTY) {
+		if (e.type === q.PROPERTY) {
 			if (t === n[r]) return z;
-		} else if (e.type === J.BOOLEAN_ATTRIBUTE) {
+		} else if (e.type === q.BOOLEAN_ATTRIBUTE) {
 			if (!!t === n.hasAttribute(r)) return z;
-		} else if (e.type === J.ATTRIBUTE && n.getAttribute(r) === t + "") return z;
-		return Ne(e), t;
+		} else if (e.type === q.ATTRIBUTE && n.getAttribute(r) === t + "") return z;
+		return Pe(e), t;
 	}
-}), Ie = "dash_bored_hide", Le = "casa_mia_dash_bored", Re = /\b(led|relay|screen|screensaver|in use|enabled|watching|mode|program(me)?|charge)\b/i, ze = /* @__PURE__ */ new Set([
+}), Le = "dash_bored_hide", Re = "casa_mia_dash_bored", ze = /\b(led|relay|screen|screensaver|in use|enabled|watching|mode|program(me)?|charge)\b/i, Be = /* @__PURE__ */ new Set([
 	"light",
 	"switch",
 	"cover",
 	"lock"
-]), Be = /* @__PURE__ */ new Set([
+]), Ve = /* @__PURE__ */ new Set([
 	"garage",
 	"gate",
 	"door"
 ]);
-function Ve(e, t, n) {
+function He(e, t, n) {
 	let r = e.slice(t.length), i = (e.toLowerCase().startsWith(t.toLowerCase()) && !/^[a-z0-9]/i.test(r) ? r.replace(/^[\s\-–—:,.]+/, "") : e).replace(n === "light" ? /\s+lights?$/i : n === "switch" ? /\s+switch$/i : /$^/, ""), a = !i || RegExp(`^${n}s?$`, "i").test(i) ? n : i;
 	return a[0].toUpperCase() + a.slice(1);
 }
-function He(e, t) {
-	let n = /* @__PURE__ */ new Map(), r = [], i = [], a = /* @__PURE__ */ new Map(), o = /* @__PURE__ */ new Map(), s = t.weather, c = [], l = [], u = [], d = (e) => !!e?.labels?.includes(Ie);
+function Ue(e, t) {
+	let n = /* @__PURE__ */ new Map(), r = [], i = [], a = /* @__PURE__ */ new Map(), o = /* @__PURE__ */ new Map(), s = t.weather, c = [], l = [], u = [], d = (e) => !!e?.labels?.includes(Le);
 	for (let l of Object.values(e.entities ?? {})) {
 		let f = l.entity_id, p = e.states[f];
 		if (!p || l.hidden || l.entity_category) continue;
@@ -893,22 +893,22 @@ function He(e, t) {
 		m === "scene" && r.push(f), m === "weather" && (!s || f === "weather.home") && !t.weather && (s = f), m === "sensor" && p.attributes.device_class === "power" && l.device_id && a.set(l.device_id, f);
 		let h = e.devices?.[l.device_id], g = e.areas?.[l.area_id ?? h?.area_id];
 		if (d(l) || d(h) || d(g)) continue;
-		if (m === "image" && l.platform === Le && !d(e.entities[p.attributes.camera]) && i.push({
+		if (m === "image" && l.platform === Re && !d(e.entities[p.attributes.camera]) && i.push({
 			id: f,
 			name: h?.name_by_user ?? h?.name ?? f,
 			room: g?.name
-		}), ze.has(m)) {
+		}), Be.has(m)) {
 			let e = p.attributes.friendly_name ?? l.name ?? f;
 			g || c.push({
 				id: f,
 				name: e
-			}), Re.test(e) && u.push({
+			}), ze.test(e) && u.push({
 				id: f,
 				name: e,
 				via: l.platform
 			});
 		}
-		if (!g || m !== "climate" && !ze.has(m)) continue;
+		if (!g || m !== "climate" && !Be.has(m)) continue;
 		if (!n.has(g.area_id)) {
 			let t = e.floors?.[g.floor_id];
 			n.set(g.area_id, {
@@ -927,9 +927,9 @@ function He(e, t) {
 			let e = p.attributes.friendly_name ?? l.name ?? f, t = {
 				id: f,
 				kind: m,
-				name: Ve(e, g.name, m),
+				name: He(e, g.name, m),
 				full: e,
-				guarded: m === "lock" || Be.has(p.attributes.device_class)
+				guarded: m === "lock" || Ve.has(p.attributes.device_class)
 			};
 			_.devices.push(t), m === "switch" && l.device_id && o.set(t, l.device_id);
 		}
@@ -992,7 +992,15 @@ function He(e, t) {
 		].filter((e) => !!e)
 	};
 }
-function Ue(e, t) {
+function We(e, t) {
+	let n = !t || t.state === "unavailable", r = !n && (e === "lock" ? t.state === "locked" : e === "cover" ? t.state !== "closed" : t.state === "on"), i = e === "light" ? t?.attributes.brightness : e === "cover" ? t?.attributes.current_position : void 0;
+	return {
+		on: r,
+		level: typeof i == "number" ? e === "light" ? Math.round(i / 255 * 100) : i : void 0,
+		away: n
+	};
+}
+function Ge(e, t) {
 	let n = (e) => {
 		let n = e ? t.states[e] : void 0, r = Number(n?.state);
 		return n && n.state !== "" && Number.isFinite(r) ? r : void 0;
@@ -1001,20 +1009,20 @@ function Ue(e, t) {
 		return r === void 0 ? void 0 : t.states[e].attributes.unit_of_measurement === "kW" ? r : r / 1e3;
 	}, i = [], a = e.rooms.map((e) => {
 		let a = e.climate ? t.states[e.climate] : void 0, o = a?.attributes.temperature, s = e.devices.map((n) => {
-			let a = t.states[n.id], o = !a || a.state === "unavailable", s = !o && (n.kind === "lock" ? a.state === "locked" : n.kind === "cover" ? a.state !== "closed" : a.state === "on"), c = n.kind === "light" ? a?.attributes.brightness : n.kind === "cover" ? a?.attributes.current_position : void 0, l = typeof c == "number" ? n.kind === "light" ? Math.round(c / 255 * 100) : c : void 0, u = a?.attributes.supported_color_modes ?? [], d = !n.guarded && (n.kind === "light" ? u.some((e) => e !== "onoff") : n.kind === "cover" && !!(a?.attributes.supported_features & 4)), f = s ? r(n.power) : void 0;
-			return f !== void 0 && f >= 1 && i.push({
+			let a = t.states[n.id], { on: o, level: s, away: c } = We(n.kind, a), l = a?.attributes.supported_color_modes ?? [], u = !n.guarded && (n.kind === "light" ? l.some((e) => e !== "onoff") : n.kind === "cover" && !!(a?.attributes.supported_features & 4)), d = o ? r(n.power) : void 0;
+			return d !== void 0 && d >= 1 && i.push({
 				id: n.id,
 				name: n.name,
 				room: e.name,
-				kw: f
+				kw: d
 			}), {
 				id: n.id,
 				name: n.name,
 				kind: n.kind,
-				on: s,
-				level: l,
-				dims: d,
-				away: o,
+				on: o,
+				level: s,
+				dims: u,
+				away: c,
 				since: Date.parse(a?.last_changed ?? "") || 0,
 				guarded: n.guarded,
 				room: e.name
@@ -1045,10 +1053,10 @@ function Ue(e, t) {
 		kw: r(e.power)
 	};
 }
-function We(e, t) {
+function Ke(e, t) {
 	let n = new Map(e.sightings.map((e) => [e.id, e]));
 	return t.flatMap((e) => {
-		let t = n.get(e.entity), r = e.photo ? `/api/${Le}/photo/${e.id}?v=${e.changed}` : void 0;
+		let t = n.get(e.entity), r = e.photo ? `/api/${Re}/photo/${e.id}?v=${e.changed}` : void 0;
 		return t ? [{
 			id: e.id,
 			camera: e.camera,
@@ -1061,8 +1069,46 @@ function We(e, t) {
 	});
 }
 //#endregion
+//#region src/dash-bored/record.ts
+var qe = 864e5;
+function Je(e, t) {
+	let n = [];
+	for (let r of t) {
+		let t = {
+			at: r.lu * 1e3,
+			...We(e, {
+				state: r.s,
+				attributes: r.a ?? {}
+			})
+		}, i = n.at(-1);
+		(!i || i.on !== t.on || i.level !== t.level || i.away !== t.away) && n.push(t);
+	}
+	return n;
+}
+function Ye(e, t, n) {
+	let r = [];
+	return e.forEach((i, a) => {
+		let o = Math.max(i.at, t), s = Math.min(e[a + 1]?.at ?? n, n);
+		i.on && s > o && r.push([(o - t) / (n - t) * 100, (s - o) / (n - t) * 100]);
+	}), r;
+}
+async function Xe(e, t, n) {
+	let r = await e.connection.sendMessagePromise({
+		type: "history/history_during_period",
+		start_time: (/* @__PURE__ */ new Date(n - qe)).toISOString(),
+		entity_ids: [t.id],
+		significant_changes_only: !1,
+		no_attributes: t.kind !== "cover"
+	});
+	return Je(t.kind, r[t.id] ?? []);
+}
+//#endregion
 //#region src/dash-bored/stories.ts
-var Ge = (e, t) => e.kind === "cover" ? {
+var Ze = (e) => ({
+	domain: e.kind,
+	service: e.kind === "lock" ? e.on ? "unlock" : "lock" : e.kind === "cover" ? e.on ? "close_cover" : "open_cover" : e.on ? "turn_off" : "turn_on",
+	ids: [e.id]
+}), Qe = (e, t) => e.kind === "cover" ? {
 	domain: "cover",
 	service: "set_cover_position",
 	ids: [e.id],
@@ -1076,18 +1122,18 @@ var Ge = (e, t) => e.kind === "cover" ? {
 	domain: "light",
 	service: "turn_off",
 	ids: [e.id]
-}, Ke = 6e5, qe = {
+}, $e = 6e5, et = {
 	critical: 100,
 	error: 95,
 	warning: 70,
 	task: 40
-}, Y = {
+}, J = {
 	alarm: 92,
 	doorbell: 80,
 	person: 62,
 	vehicle: 42,
 	animal: 41
-}, Je = [
+}, tt = [
 	"no",
 	"one",
 	"two",
@@ -1101,18 +1147,18 @@ var Ge = (e, t) => e.kind === "cover" ? {
 	"ten",
 	"eleven",
 	"twelve"
-], X = (e) => new Date(e).toTimeString().slice(0, 5), Z = (e) => e && e[0].toUpperCase() + e.slice(1);
-function Q(e) {
-	let t = Je[e] ?? String(e);
+], Y = (e) => new Date(e).toTimeString().slice(0, 5), X = (e) => e && e[0].toUpperCase() + e.slice(1);
+function Z(e) {
+	let t = tt[e] ?? String(e);
 	return {
 		n: String(e),
-		N: Z(t),
+		N: X(t),
 		n_word: t,
 		s: e === 1 ? "" : "s",
 		v: e === 1 ? "s" : ""
 	};
 }
-function Ye(e) {
+function nt(e) {
 	return {
 		temperature: "temperature",
 		moisture: "moisture",
@@ -1124,10 +1170,10 @@ function Ye(e) {
 		smoke: "smoke"
 	}[String(e)] ?? "";
 }
-function Xe(e) {
+function rt(e) {
 	return typeof e.value == "number" || typeof e.value == "string" && e.value.trim() !== "" && Number.isFinite(Number(e.value)) ? `${e.value}${e.unit ? ` ${e.unit}` : ""}` : "";
 }
-function Ze(e, t, n, r = []) {
+function it(e, t, n, r = []) {
 	let i = [], a = (e) => i.push({
 		variant: "",
 		flavour: "",
@@ -1137,11 +1183,11 @@ function Ze(e, t, n, r = []) {
 		let t = {
 			name: e.name,
 			area: (e.area ?? "house").toLowerCase(),
-			message: e.message || `${Z(e.level)}.`,
-			reading: Xe(e),
-			since: X(e.began),
+			message: e.message || `${X(e.level)}.`,
+			reading: rt(e),
+			since: Y(e.began),
 			escalated: e.escalated ? "yes" : ""
-		}, r = Xe(e) ? [Xe(e), e.area ?? e.name] : [Z(e.level), e.name];
+		}, r = rt(e) ? [rt(e), e.area ?? e.name] : [X(e.level), e.name];
 		e.level === "nominal" ? n - e.at < 6e5 && a({
 			kind: "recovered",
 			id: e.entity_id + ".ok",
@@ -1156,28 +1202,28 @@ function Ze(e, t, n, r = []) {
 			variant: e.level,
 			flavour: e.flavour,
 			id: e.entity_id,
-			rank: qe[e.level] ?? 70,
+			rank: et[e.level] ?? 70,
 			vars: t,
 			figure: r
 		});
 	}
 	let s = /* @__PURE__ */ new Map();
 	for (let e of r) {
-		if (n - e.at >= 6e5 || !(e.kind in Y)) continue;
+		if (n - e.at >= 6e5 || !(e.kind in J)) continue;
 		let t = s.get(e.camera);
-		(!t || Y[e.kind] > Y[t.kind] || Y[e.kind] === Y[t.kind] && e.at > t.at) && s.set(e.camera, e);
+		(!t || J[e.kind] > J[t.kind] || J[e.kind] === J[t.kind] && e.at > t.at) && s.set(e.camera, e);
 	}
 	for (let e of [...s.values()].sort((e, t) => t.at - e.at)) a({
 		kind: "sighting",
 		variant: e.kind,
 		id: "sighting." + e.camera,
-		rank: Y[e.kind],
+		rank: J[e.kind],
 		vars: {
 			name: e.name,
 			room: (e.room ?? "house").toLowerCase(),
-			at: X(e.at)
+			at: Y(e.at)
 		},
-		figure: [X(e.at), e.name],
+		figure: [Y(e.at), e.name],
 		photo: e.photo,
 		see: e.camera
 	});
@@ -1205,9 +1251,9 @@ function Ze(e, t, n, r = []) {
 			rank: 65,
 			figure: [String(c.length), "not answering"],
 			vars: {
-				...Q(c.length),
+				...Z(c.length),
 				names: c.length > 3 ? `${e} and ${c.length - 3} more` : e,
-				since: X(Math.min(...c.map((e) => e.since)))
+				since: Y(Math.min(...c.map((e) => e.since)))
 			}
 		});
 	}
@@ -1238,7 +1284,7 @@ function Ze(e, t, n, r = []) {
 				lights: 30,
 				dark: 35
 			}[e],
-			vars: Q(u.length),
+			vars: Z(u.length),
 			figure: [String(u.length), u.length === 1 ? "light on" : "lights on"],
 			press: u.length ? {
 				domain: "light",
@@ -1279,190 +1325,29 @@ function Ze(e, t, n, r = []) {
 		kind: "quiet",
 		id: "quiet",
 		rank: 1,
-		vars: Q(o.length),
+		vars: Z(o.length),
 		figure: [String(e.rooms.length), e.rooms.length === 1 ? "room" : "rooms"]
 	}), i.sort((e, t) => t.rank - e.rank);
 }
 //#endregion
-//#region src/dash-bored/styles.ts
-var Qe = h`
-  :host { display: block; container-type: inline-size; }
-  :host([panel]) { height: 100vh; overflow-y: auto; }
-  .paper { --paper: #f3eee0; --ink: #1c1a17; --flash: #8c1c13; --mark: #f6d95a; --head: "Bodoni 72", "Didot", "Playfair Display", serif;
-    box-sizing: border-box; min-height: 100%; padding: 14px 30px 24px; background: var(--paper); color: var(--ink);
-    font-family: "Hoefler Text", "Baskerville", "Times New Roman", serif;
-    background-image: radial-gradient(rgba(0,0,0,.05) 1px, transparent 1px); background-size: 4px 4px; }
-  .paper * { box-sizing: border-box; }
-  button { all: unset; cursor: pointer; }
-  :focus-visible { outline: 2px solid var(--flash); outline-offset: 2px; }
-  .wait { font-size: 18px; font-style: italic; }
-
-  /* What must never be missed: breaking news, a lost connection, a refused action. */
-  .breaking { border: 3px double var(--flash); color: var(--flash); padding: 6px 12px; margin-bottom: 10px; font-size: 17px; text-align: center;
-    animation: flash 1.6s ease-out; overflow-wrap: anywhere; }
-  .breaking b { letter-spacing: .3em; text-transform: uppercase; margin-right: 12px; }
-  @keyframes flash { 0%, 45% { background: var(--mark); } }
-  .fault { background: var(--flash); color: #fff; padding: 6px 12px; margin-bottom: 10px; font: 600 15px/1.3 system-ui, sans-serif; overflow-wrap: anywhere; }
-
-  .masthead { text-align: center; border-bottom: 4px double var(--ink); padding-bottom: 6px; }
-  /* The masthead's blackletter is the page's own font (gazette.ts loads it), sized to the
-     paper's width so that the name stays on one line on a phone. Never the browser's
-     "fantasy": on an iPhone that is a script whose swashes ran up over the breaking news. */
-  .masthead h1 { margin: 0; font: 400 clamp(30px, 10.5cqi, 62px)/1.1 "Dash-Bored Masthead", var(--head); overflow-wrap: anywhere; }
-  .masthead p { margin: 0; } .masthead p:empty { display: none; }
-  .dateline { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; justify-content: space-between; font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
-    border-bottom: 1px solid var(--ink); padding: 5px 2px; margin-bottom: 14px; }
-  .styles button { padding: 1px 8px; border-bottom: 1.5px dotted; }
-  .styles button[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: transparent; }
-
-  .page { display: grid; grid-template-columns: 2.1fr 1.4fr 1.1fr; gap: 0 26px; }
-  .page > * { min-width: 0; }
-  .page > * + * { border-left: 1px solid var(--ink); padding-left: 26px; }
-  .kicker { margin: 0 0 6px; font-size: 12px; letter-spacing: .3em; text-transform: uppercase; color: var(--flash); }
-  h2 { margin: 0 0 8px; font: 900 46px/.98 var(--head); text-transform: uppercase; letter-spacing: -.01em; text-wrap: balance; overflow-wrap: anywhere; animation: ink 1.2s ease-out; }
-  @keyframes ink { from { background: var(--mark); } }
-  .deck { font-size: 19px; font-style: italic; margin: 0 0 12px; line-height: 1.25; }
-  /* The figure: the story's one number, set like an engraving. */
-  .figure { float: right; width: 150px; margin: 4px 0 8px 16px; border: 3px double var(--ink); text-align: center; padding: 10px 6px;
-    background: repeating-linear-gradient(45deg, transparent 0 3px, rgba(0,0,0,.07) 3px 4px); }
-  .figure b { display: block; font: 900 38px/1 var(--head); overflow-wrap: anywhere; }
-  .figure span { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; }
-  .act { display: inline-block; border: 1.5px solid var(--ink); padding: 3px 12px; margin-bottom: 10px; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; }
-  .act:hover { background: var(--ink); color: var(--paper); }
-  /* A photograph: printed in black and white, as a broadsheet's are. */
-  .photo { margin: 0 0 12px; clear: both; cursor: pointer; }
-  .photo img { display: block; width: 100%; border: 1px solid var(--ink); filter: grayscale(1) contrast(1.15); }
-  .photo figcaption { padding-top: 3px; font-size: 12px; font-style: italic; overflow-wrap: anywhere; }
-  .item .photo { margin-bottom: 6px; }
-  /* The archive: the last half hour's sightings, each with its photograph small. */
-  .archive li { display: grid; grid-template-columns: 72px 1fr; gap: 8px; align-items: center; cursor: pointer; overflow-wrap: anywhere; }
-  .archive img, .archive i { width: 72px; aspect-ratio: 16 / 9; object-fit: cover; border: 1px solid var(--ink); filter: grayscale(1) contrast(1.15); }
-  .archive i { background: repeating-linear-gradient(45deg, transparent 0 3px, rgba(0,0,0,.07) 3px 4px); }
-  .copy { columns: 2; column-gap: 22px; column-rule: 1px solid rgba(0,0,0,.25); font-size: 15px; line-height: 1.42; clear: both; }
-  .copy p { margin: 0 0 8px; break-inside: avoid; }
-  [data-style="broadsheet"] .copy p:first-of-type::first-letter { font-size: 52px; float: left; line-height: .82; padding: 4px 6px 0 0; font-family: var(--head); }
-  .copy b { text-transform: uppercase; font-size: 12px; letter-spacing: .12em; }
-  /* A crosshead: the floor, over its rooms in the report and on the switchboard. */
-  h5 { margin: 12px 0 6px; font: italic 400 16px/1.2 var(--head); text-align: center; break-after: avoid; }
-  h5::before, h5::after { content: " — "; }
-  h5:first-child { margin-top: 0; }
-  /* Anything in the report that can be switched is set like a correction: underlined, and pressable. */
-  .fact { border-bottom: 1.5px dotted var(--ink); cursor: pointer; }
-  .fact:hover { background: var(--ink); color: var(--paper); }
-  .fact.away { border-bottom-style: solid; border-bottom-color: var(--flash); color: var(--flash); }
-  /* A level that can be set is ruled twice: pressing it opens the scale, not the switch. */
-  .fact.level { border-bottom: 3px double var(--ink); }
-  /* The scale: a printed rule with a mark at every ten, and a slide in the paper's red. */
-  .scale { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; margin: 6px 0 8px; padding: 4px 8px; border: 1px solid var(--ink); break-inside: avoid; font-size: 13px; }
-  /* The readers' poll over it: a question, and a vote each way. */
-  .poll { flex: 1 1 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
-  .poll i { flex: 1 1 100%; font-size: 14px; }
-  .poll .act { margin: 0; font-size: 11px; padding: 6px 10px; }
-  .poll .act[disabled] { opacity: .35; cursor: default; pointer-events: none; }
-  .scale input { flex: 1 1 130px; min-width: 0; height: 34px; margin: 0; appearance: none; -webkit-appearance: none; cursor: pointer;
-    background: repeating-linear-gradient(90deg, var(--ink) 0 1px, transparent 1px 10%) bottom / 100% 9px no-repeat, linear-gradient(var(--ink), var(--ink)) bottom / 100% 1px no-repeat; }
-  .scale input::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 34px; background: var(--flash); border: 0; border-radius: 0; }
-  .scale input::-moz-range-thumb { width: 14px; height: 34px; background: var(--flash); border: 0; border-radius: 0; }
-  .scale output { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
-  .scale > button { padding: 4px 8px; font-size: 18px; line-height: 1; }
-  .copy .scale { margin-bottom: 0; }
-
-  h3 { margin: 0 0 8px; font-size: 13px; letter-spacing: .3em; text-transform: uppercase; text-align: center;
-    border-top: 2px solid var(--ink); border-bottom: 1px solid var(--ink); padding: 4px 0; }
-  .item { border-bottom: 1px solid var(--ink); padding-bottom: 8px; margin-bottom: 10px; }
-  .item h4 { margin: 0 0 4px; font: 900 24px/1.05 var(--head); text-wrap: balance; overflow-wrap: anywhere; }
-  .item p { margin: 0 0 6px; font-size: 15px; line-height: 1.35; }
-  .item .act { margin-bottom: 2px; font-size: 11px; }
-  ul, ol { list-style: none; padding: 0; margin: 0 0 16px; font-size: 14px; line-height: 1.35; }
-  li { padding: 4px 0; border-bottom: 1px dotted rgba(0,0,0,.4); }
-  time { font-variant-numeric: tabular-nums; font-weight: 700; margin-right: 6px; }
-  table { width: 100%; border-collapse: collapse; font-size: 15px; margin-bottom: 16px; }
-  td { padding: 4px 2px; border-bottom: 1px dotted rgba(0,0,0,.4); } td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
-  /* What Home Assistant isn't told about the house: a count that opens into its list. */
-  details { border-bottom: 1px dotted rgba(0,0,0,.4); padding: 5px 0; font-size: 15px; }
-  summary { cursor: pointer; font-weight: 700; }
-  details ul { margin: 4px 0 0 16px; max-height: 260px; overflow-y: auto; }
-  details li { border: 0; padding: 2px 0; }
-  details li.via { font-style: italic; margin: 6px 0 2px; overflow-wrap: anywhere; }
-  button.mend { border-bottom: 1.5px dotted var(--ink); overflow-wrap: anywhere; }
-  p.mend { margin: 6px 0 16px; font-size: 13px; font-style: italic; line-height: 1.3; }
-  /* The switchboard: every device as a plain button, for when you only want a switch. */
-  .row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; break-inside: avoid; }
-  /* A big house: the switchboard is a spread across the foot of the page, in columns. */
-  .page > .board { grid-column: 1 / -1; border-left: 0; padding-left: 0; margin-top: 18px; }
-  .board .rows { columns: 230px; column-gap: 26px; column-rule: 1px solid rgba(0,0,0,.25); }
-  /* One story and no others: it takes the empty column too. */
-  .solo > article { grid-column: span 2; }
-  .row > span { flex: 0 0 100%; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; }
-  .chip { border: 1.5px solid var(--ink); padding: 3px 7px; font-size: 13px; }
-  .chip.on { background: var(--ink); color: var(--paper); }
-  .pair { display: inline-flex; } .chip.tab { border-left: 0; font-variant-numeric: tabular-nums; }
-  .chip.tab[aria-expanded="true"] { background: var(--mark); color: #111; }
-  .chip.away { border-style: dashed; border-color: var(--flash); color: var(--flash); text-decoration: line-through; }
-  .ad { display: block; width: 100%; border: 1px solid var(--ink); padding: 8px 10px; margin-bottom: 8px; text-align: center; font-size: 14px; line-height: 1.3; }
-  .ad b { display: block; font: 400 17px var(--head); letter-spacing: .14em; text-transform: uppercase; }
-  .ad:hover { background: var(--ink); color: var(--paper); }
-
-  /* ---------- the red-top ---------- */
-  [data-style="tabloid"] { --paper: #fff; --ink: #111; --flash: #d7141a; --mark: #ffe600; --head: Impact, "Haettenschweiler", "Arial Narrow Bold", "Arial Black", sans-serif;
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; background-image: none; }
-  [data-style="tabloid"] .breaking { border: 0; background: var(--flash); color: #fff; font-weight: 800; text-align: left; text-transform: uppercase; animation-name: none; }
-  [data-style="tabloid"] .breaking b { background: var(--mark); color: #111; padding: 2px 8px; letter-spacing: 0; font-style: italic; }
-  [data-style="tabloid"] .masthead { text-align: left; border: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; }
-  [data-style="tabloid"] .masthead h1 { font: italic 900 52px/1 "Arial Black", "Helvetica Neue", sans-serif; background: var(--flash); color: #fff; padding: 6px 20px 8px 14px; letter-spacing: -.05em; text-transform: uppercase; }
-  [data-style="tabloid"] .masthead p { font: italic 800 16px/1.1 inherit; }
-  [data-style="tabloid"] .dateline { background: var(--ink); color: #fff; border: 0; padding: 5px 10px; letter-spacing: .06em; font-weight: 700; }
-  [data-style="tabloid"] .styles button[aria-pressed="true"] { background: var(--mark); color: #111; }
-  [data-style="tabloid"] .page { gap: 0 22px; }
-  [data-style="tabloid"] .page > * + * { border-left: 0; padding-left: 0; }
-  [data-style="tabloid"] .kicker { display: inline-block; background: var(--mark); color: #111; font: italic 900 15px/1 "Arial Black", sans-serif; padding: 5px 10px; rotate: -2deg; letter-spacing: 0; }
-  [data-style="tabloid"] h2 { font: 400 92px/.88 var(--head); letter-spacing: 0; }
-  [data-style="tabloid"] .deck { font: 800 22px/1.15 inherit; }
-  [data-style="tabloid"] .figure { border: 0; color: #fff; rotate: 2deg; width: 120px; background: radial-gradient(#fff3 1.2px, transparent 1.6px) 0 0 / 6px 6px, #111; }
-  [data-style="tabloid"] .photo img { filter: none; border: 4px solid #111; }
-  [data-style="tabloid"] .archive img { filter: none; }
-  [data-style="tabloid"] .photo figcaption { font: 700 11px/1.3 system-ui, sans-serif; text-transform: uppercase; letter-spacing: .06em; }
-  [data-style="tabloid"] .figure b { font: 400 36px/1 var(--head); color: var(--mark); }
-  [data-style="tabloid"] .act { background: var(--flash); color: #fff; border: 0; font-weight: 900; font-style: italic; padding: 7px 14px; }
-  [data-style="tabloid"] .act:hover { background: var(--ink); }
-  [data-style="tabloid"] .copy { column-rule: 0; font-size: 14px; }
-  [data-style="tabloid"] .fact { border-bottom: 2px solid var(--flash); }
-  [data-style="tabloid"] h5 { font: italic 900 14px/1 "Arial Black", sans-serif; text-transform: uppercase; text-align: left; color: var(--flash); }
-  [data-style="tabloid"] h5::before, [data-style="tabloid"] h5::after { content: none; }
-  [data-style="tabloid"] .board .rows { column-rule: 0; }
-  [data-style="tabloid"] .fact:hover { background: var(--mark); color: #111; }
-  [data-style="tabloid"] .fact.level { border: 0; background: var(--mark); color: #111; padding: 0 3px; font-weight: 800; }
-  [data-style="tabloid"] h3 { text-align: left; border: 0; background: var(--flash); color: #fff; padding: 5px 8px; letter-spacing: .02em; font: italic 900 14px/1 "Arial Black", sans-serif; }
-  [data-style="tabloid"] .item h4 { font: 400 34px/.95 var(--head); text-transform: uppercase; }
-  [data-style="tabloid"] .chip.on { background: var(--mark); color: #111; font-weight: 800; }
-  [data-style="tabloid"] .ad { border: 3px solid var(--ink); } [data-style="tabloid"] .ad b { font: 400 24px/1 var(--head); letter-spacing: .02em; }
-  [data-style="tabloid"] .ad:hover { background: var(--mark); color: #111; }
-
-  /* ---------- narrow: one column, in reading order ---------- */
-  @container (max-width: 900px) {
-    .paper { padding: 10px 14px 20px; }
-    .page { grid-template-columns: 1fr; } .page > * + * { border-left: 0; padding-left: 0; margin-top: 18px; } .solo > article { grid-column: auto; }
-    .copy { columns: 1; } h2 { font-size: 34px; }
-    [data-style="tabloid"] h2 { font-size: 62px; } [data-style="tabloid"] .masthead h1 { font-size: 36px; }
-    .figure, [data-style="tabloid"] .figure { width: 104px; } .figure b, [data-style="tabloid"] .figure b { font-size: 28px; }
-  }
-`, $ = (e, t) => e.replace(/\{(\w+)\}/g, (e, n) => t[n] ?? ""), $e = {
+//#region src/dash-bored/voices.ts
+var Q = (e, t) => e.replace(/\{(\w+)\}/g, (e, n) => t[n] ?? ""), at = {
 	esphome: "ESPHome. Add entity_category: config (or diagnostic) to each in its device's YAML",
 	knx: "KNX. Add entity_category: config to each in the KNX YAML",
 	"": "Give each the label Dash-Bored hide, or hide it in Home Assistant"
 };
-function et(e, t, n) {
+function ot(e, t, n) {
 	let r = e.stories[`${t.kind}.${t.variant}`] ?? e.stories[t.kind], i = r.flavours?.[t.flavour] ?? r.head, a = t.vars.escalated && r.worse ? " " + r.worse : "";
 	return {
 		kicker: r.kicker,
-		head: $(i[n % i.length], t.vars),
-		deck: $(r.deck, t.vars),
-		body: r.body ? $(t.vars.reading === "" && r.plain ? r.plain : r.body, t.vars) + a : "",
+		head: Q(i[n % i.length], t.vars),
+		deck: Q(r.deck, t.vars),
+		body: r.body ? Q(t.vars.reading === "" && r.plain ? r.plain : r.body, t.vars) + a : "",
 		act: t.press && r.act ? r.act : ""
 	};
 }
-var tt = (e, t) => $(e.words.percent, { n: String(t) });
-function nt(e) {
+var st = (e, t) => Q(e.words.percent, { n: String(t) });
+function ct(e) {
 	let t = e.name.toLowerCase(), n = /lamp|light/i.test(t) ? t : `${t} light`, r = /s$/i.test((e.kind === "light" ? n : t).split(" - ")[0]);
 	return {
 		name: t,
@@ -1471,17 +1356,17 @@ function nt(e) {
 		v: r ? "" : "s"
 	};
 }
-function rt(e, t) {
+function lt(e, t) {
 	let { ask: n, less: r, more: i } = e.polls[t.kind];
 	return {
-		ask: $(n, nt(t)),
+		ask: Q(n, ct(t)),
 		less: r,
 		more: i
 	};
 }
-function it(e, t) {
-	let n = t.away ? "away" : t.on ? t.level === void 0 && (t.kind === "light" || t.kind === "cover") ? `${t.kind}.plain` : `${t.kind}.on` : `${t.kind}.off`, [r, i] = $(e.words[n], {
-		...nt(t),
+function ut(e, t) {
+	let n = t.away ? "away" : t.on ? t.level === void 0 && (t.kind === "light" || t.kind === "cover") ? `${t.kind}.plain` : `${t.kind}.on` : `${t.kind}.off`, [r, i] = Q(e.words[n], {
+		...ct(t),
 		level: "\0"
 	}).replace(/^the (?=\S+['’]s )/, "").split("\0");
 	return i === void 0 ? [
@@ -1490,22 +1375,22 @@ function it(e, t) {
 		""
 	] : [
 		r,
-		tt(e, t.level),
+		st(e, t.level),
 		i
 	];
 }
-var at = (e, t) => it(e, t).join(""), ot = (e, t) => $(t.level === "nominal" ? e.wire.clear : e.wire.trouble, {
+var $ = (e, t) => ut(e, t).join(""), dt = (e, t) => Q(t.level === "nominal" ? e.wire.clear : e.wire.trouble, {
 	name: t.name,
 	message: t.message || t.level,
 	level: t.level.toUpperCase()
-}), st = {
+}), ft = {
 	kicker: "Stop press",
 	head: ["{name} gives cause for alarm"],
 	deck: "{message}",
 	body: "The reading stood at {reading} in the {area} as this edition went to press, and the trouble dates from {since}.",
 	plain: "The trouble in the {area} dates from {since}.",
 	worse: "Matters have worsened since our earlier report."
-}, ct = {
+}, pt = {
 	kicker: "Red alert",
 	head: [
 		"{name} shock",
@@ -1539,7 +1424,7 @@ var at = (e, t) => it(e, t).join(""), ot = (e, t) => $(t.level === "nominal" ? e
 	body: "It's {reading} in the {area} and it's been going on since {since}.",
 	plain: "It's been going on in the {area} since {since}.",
 	worse: "And it's getting WORSE."
-}, lt = {
+}, mt = {
 	broadsheet: {
 		label: "Broadsheet",
 		name: "The Casa Courier",
@@ -1597,6 +1482,27 @@ var at = (e, t) => it(e, t).join(""), ot = (e, t) => $(t.level === "nominal" ? e
 				more: "Not far enough"
 			}
 		},
+		acts: {
+			"light.on": "Put it out",
+			"light.off": "Light it",
+			"switch.on": "Switch it off",
+			"switch.off": "Switch it on",
+			"cover.on": "Close it",
+			"cover.off": "Open it",
+			"lock.on": "Unlock it",
+			"lock.off": "Lock it"
+		},
+		clipping: {
+			since: "So it has stood since {at}.",
+			record: "The record",
+			wait: "Our archivist is consulting the files.",
+			none: "Nothing is recorded of the last day.",
+			ago: "This time yesterday",
+			now: "Now",
+			sure: "Press again to confirm",
+			more: "Home Assistant's own page",
+			shut: "Fold away"
+		},
 		wire: {
 			trouble: "{name}: {message}",
 			clear: "{name}: all is well again."
@@ -1608,9 +1514,9 @@ var at = (e, t) => it(e, t).join(""), ot = (e, t) => $(t.level === "nominal" ? e
 			"Enquire at this office."
 		],
 		stories: {
-			alert: st,
+			alert: ft,
 			"alert.warning": {
-				...st,
+				...ft,
 				kicker: "Late report",
 				head: ["{name} gives cause for concern"]
 			},
@@ -1778,6 +1684,27 @@ var at = (e, t) => it(e, t).join(""), ot = (e, t) => $(t.level === "nominal" ? e
 				more: "Open up"
 			}
 		},
+		acts: {
+			"light.on": "Kill it",
+			"light.off": "Light it up",
+			"switch.on": "Off!",
+			"switch.off": "On!",
+			"cover.on": "Shut it",
+			"cover.off": "Open up",
+			"lock.on": "Unlock it",
+			"lock.off": "Lock it"
+		},
+		clipping: {
+			since: "Been that way since {at}.",
+			record: "The story so far",
+			wait: "Digging the dirt…",
+			none: "Nothing all day. Dull!",
+			ago: "Yesterday",
+			now: "Now",
+			sure: "SURE? Press again",
+			more: "Home Assistant's page",
+			shut: "Bin it"
+		},
 		wire: {
 			trouble: "{name}: {level}!",
 			clear: "{name}: PANIC OVER"
@@ -1789,9 +1716,9 @@ var at = (e, t) => it(e, t).join(""), ot = (e, t) => $(t.level === "nominal" ? e
 			"Easy as that."
 		],
 		stories: {
-			alert: ct,
+			alert: pt,
 			"alert.warning": {
-				...ct,
+				...pt,
 				kicker: "Uh-oh"
 			},
 			"alert.task": {
@@ -1965,19 +1892,225 @@ var at = (e, t) => it(e, t).join(""), ot = (e, t) => $(t.level === "nominal" ? e
 			}
 		}
 	}
-}, ut = "dash-bored-gazette", dt = "casa_mia_dash_bored/alerts", ft = "casa_mia_dash_bored/sightings", pt = 18e5, mt = 10, ht = "dash-bored-style", gt = "/casa_mia_dash_bored/fonts/UnifrakturCook-Bold.ttf", _t = !1;
-function vt() {
-	if (_t) return;
-	_t = !0;
-	let e = new FontFace("Dash-Bored Masthead", `url(${gt})`);
+};
+//#endregion
+//#region src/dash-bored/clipping.ts
+function ht(e, t, n, r, i, a) {
+	let o = e.clipping, s = (n) => X($(e, {
+		...t,
+		on: n.on,
+		level: n.level,
+		away: n.away
+	})), c = n.record;
+	return R`<dialog class="clipping" @close=${a.shut} @click=${(e) => e.target === e.currentTarget && a.shut()}>
+    <div class="cutting">
+      <p class="kicker">${t.room}</p>
+      <h4 class="title">${t.name}</h4>
+      <p class="deck">${X($(e, t))}. ${t.since ? Q(o.since, { at: Y(t.since) }) : ""}</p>
+      ${t.away ? B : R`<button class="act ${n.armed ? "sure" : ""}" @click=${a.flip}>${n.armed ? o.sure : e.acts[`${t.kind}.${t.on ? "on" : "off"}`]}</button>`}
+      ${i}
+      <h3>${o.record}</h3>
+      ${n.fault ? R`<p class="fault" role="alert">Home Assistant's history could not be read (${n.fault}).</p>` : c ? R`<div class="band">${Ye(c, r - qe, r).map(([e, t]) => R`<i style="left:${e}%;width:${t}%"></i>`)}</div>
+              <div class="span"><span>${o.ago}</span><span>${o.now}</span></div>
+              <ol>${c.length ? c.slice(-12).reverse().map((e) => R`<li><time>${Y(e.at)}</time>${s(e)}</li>`) : R`<li>${o.none}</li>`}</ol>` : R`<p class="wait">${o.wait}</p>`}
+      <div class="foot"><button class="mend" @click=${a.more}>${o.more}</button><button class="act" @click=${a.shut}>${o.shut}</button></div>
+    </div>
+  </dialog>`;
+}
+//#endregion
+//#region src/dash-bored/styles.ts
+var gt = h`
+  :host { display: block; container-type: inline-size; }
+  :host([panel]) { height: 100vh; overflow-y: auto; }
+  .paper { --paper: #f3eee0; --ink: #1c1a17; --flash: #8c1c13; --mark: #f6d95a; --head: "Bodoni 72", "Didot", "Playfair Display", serif;
+    box-sizing: border-box; min-height: 100%; padding: 14px 30px 24px; background: var(--paper); color: var(--ink);
+    font-family: "Hoefler Text", "Baskerville", "Times New Roman", serif;
+    background-image: radial-gradient(rgba(0,0,0,.05) 1px, transparent 1px); background-size: 4px 4px; }
+  .paper * { box-sizing: border-box; }
+  button { all: unset; cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--flash); outline-offset: 2px; }
+  .wait { font-size: 18px; font-style: italic; }
+
+  /* What must never be missed: breaking news, a lost connection, a refused action. */
+  .breaking { border: 3px double var(--flash); color: var(--flash); padding: 6px 12px; margin-bottom: 10px; font-size: 17px; text-align: center;
+    animation: flash 1.6s ease-out; overflow-wrap: anywhere; }
+  .breaking b { letter-spacing: .3em; text-transform: uppercase; margin-right: 12px; }
+  @keyframes flash { 0%, 45% { background: var(--mark); } }
+  .fault { background: var(--flash); color: #fff; padding: 6px 12px; margin-bottom: 10px; font: 600 15px/1.3 system-ui, sans-serif; overflow-wrap: anywhere; }
+
+  .masthead { text-align: center; border-bottom: 4px double var(--ink); padding-bottom: 6px; }
+  /* The masthead's blackletter is the page's own font (gazette.ts loads it), sized to the
+     paper's width so that the name stays on one line on a phone. Never the browser's
+     "fantasy": on an iPhone that is a script whose swashes ran up over the breaking news. */
+  .masthead h1 { margin: 0; font: 400 clamp(30px, 10.5cqi, 62px)/1.1 "Dash-Bored Masthead", var(--head); overflow-wrap: anywhere; }
+  .masthead p { margin: 0; } .masthead p:empty { display: none; }
+  .dateline { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; justify-content: space-between; font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+    border-bottom: 1px solid var(--ink); padding: 5px 2px; margin-bottom: 14px; }
+  .styles button { padding: 1px 8px; border-bottom: 1.5px dotted; }
+  .styles button[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: transparent; }
+
+  .page { display: grid; grid-template-columns: 2.1fr 1.4fr 1.1fr; gap: 0 26px; }
+  .page > * { min-width: 0; }
+  .page > * + * { border-left: 1px solid var(--ink); padding-left: 26px; }
+  .kicker { margin: 0 0 6px; font-size: 12px; letter-spacing: .3em; text-transform: uppercase; color: var(--flash); }
+  h2 { margin: 0 0 8px; font: 900 46px/.98 var(--head); text-transform: uppercase; letter-spacing: -.01em; text-wrap: balance; overflow-wrap: anywhere; animation: ink 1.2s ease-out; }
+  @keyframes ink { from { background: var(--mark); } }
+  .deck { font-size: 19px; font-style: italic; margin: 0 0 12px; line-height: 1.25; }
+  /* The figure: the story's one number, set like an engraving. */
+  .figure { float: right; width: 150px; margin: 4px 0 8px 16px; border: 3px double var(--ink); text-align: center; padding: 10px 6px;
+    background: repeating-linear-gradient(45deg, transparent 0 3px, rgba(0,0,0,.07) 3px 4px); }
+  .figure b { display: block; font: 900 38px/1 var(--head); overflow-wrap: anywhere; }
+  .figure span { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; }
+  .act { display: inline-block; border: 1.5px solid var(--ink); padding: 3px 12px; margin-bottom: 10px; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; }
+  .act:hover { background: var(--ink); color: var(--paper); }
+  /* A photograph: printed in black and white, as a broadsheet's are. */
+  .photo { margin: 0 0 12px; clear: both; cursor: pointer; }
+  .photo img { display: block; width: 100%; border: 1px solid var(--ink); filter: grayscale(1) contrast(1.15); }
+  .photo figcaption { padding-top: 3px; font-size: 12px; font-style: italic; overflow-wrap: anywhere; }
+  .item .photo { margin-bottom: 6px; }
+  /* The archive: the last half hour's sightings, each with its photograph small. */
+  .archive li { display: grid; grid-template-columns: 72px 1fr; gap: 8px; align-items: center; cursor: pointer; overflow-wrap: anywhere; }
+  .archive img, .archive i { width: 72px; aspect-ratio: 16 / 9; object-fit: cover; border: 1px solid var(--ink); filter: grayscale(1) contrast(1.15); }
+  .archive i { background: repeating-linear-gradient(45deg, transparent 0 3px, rgba(0,0,0,.07) 3px 4px); }
+  .copy { columns: 2; column-gap: 22px; column-rule: 1px solid rgba(0,0,0,.25); font-size: 15px; line-height: 1.42; clear: both; }
+  .copy p { margin: 0 0 8px; break-inside: avoid; }
+  [data-style="broadsheet"] .copy p:first-of-type::first-letter { font-size: 52px; float: left; line-height: .82; padding: 4px 6px 0 0; font-family: var(--head); }
+  .copy b { text-transform: uppercase; font-size: 12px; letter-spacing: .12em; }
+  /* A crosshead: the floor, over its rooms in the report and on the switchboard. */
+  h5 { margin: 12px 0 6px; font: italic 400 16px/1.2 var(--head); text-align: center; break-after: avoid; }
+  h5::before, h5::after { content: " — "; }
+  h5:first-child { margin-top: 0; }
+  /* Anything in the report that can be switched is set like a correction: underlined, and pressable. */
+  .fact { border-bottom: 1.5px dotted var(--ink); cursor: pointer; }
+  .fact:hover { background: var(--ink); color: var(--paper); }
+  .fact.away { border-bottom-style: solid; border-bottom-color: var(--flash); color: var(--flash); }
+  /* A level that can be set is ruled twice: pressing it opens the scale, not the switch. */
+  .fact.level { border-bottom: 3px double var(--ink); }
+  /* The scale: a printed rule with a mark at every ten, and a slide in the paper's red. */
+  .scale { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; margin: 6px 0 8px; padding: 4px 8px; border: 1px solid var(--ink); break-inside: avoid; font-size: 13px; }
+  /* The readers' poll over it: a question, and a vote each way. */
+  .poll { flex: 1 1 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+  .poll i { flex: 1 1 100%; font-size: 14px; }
+  .poll .act { margin: 0; font-size: 11px; padding: 6px 10px; }
+  .poll .act[disabled] { opacity: .35; cursor: default; pointer-events: none; }
+  .scale input { flex: 1 1 130px; min-width: 0; height: 34px; margin: 0; appearance: none; -webkit-appearance: none; cursor: pointer;
+    background: repeating-linear-gradient(90deg, var(--ink) 0 1px, transparent 1px 10%) bottom / 100% 9px no-repeat, linear-gradient(var(--ink), var(--ink)) bottom / 100% 1px no-repeat; }
+  .scale input::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 34px; background: var(--flash); border: 0; border-radius: 0; }
+  .scale input::-moz-range-thumb { width: 14px; height: 34px; background: var(--flash); border: 0; border-radius: 0; }
+  .scale output { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+  .scale > button { padding: 4px 8px; font-size: 18px; line-height: 1; }
+  .copy .scale { margin-bottom: 0; }
+  /* The clipping: one device's story, cut out and laid over the page a little askew. */
+  dialog.clipping { width: min(540px, calc(100vw - 24px)); max-height: calc(100vh - 24px); padding: 0; border: 0; background: none; color: var(--ink); font: inherit; overflow: visible; }
+  dialog.clipping::backdrop { background: rgba(0, 0, 0, .5); }
+  .cutting { max-height: calc(100vh - 40px); overflow-y: auto; padding: 16px 20px; background: var(--paper); border: 1px solid var(--ink); box-shadow: 5px 7px 0 rgba(0, 0, 0, .4); rotate: -.5deg; }
+  .cutting .title { margin: 0 0 6px; font: 900 32px/1.02 var(--head); text-wrap: balance; overflow-wrap: anywhere; }
+  .cutting .deck { font-size: 17px; }
+  .cutting .act { margin: 0 0 12px; }
+  .act.sure { background: var(--flash); color: #fff; border-color: var(--flash); }
+  .cutting .scale > button { display: none; }
+  .cutting .scale { margin: 0 0 12px; }
+  .cutting ol { max-height: 232px; overflow-y: auto; margin-bottom: 10px; }
+  /* The record's band: the last day from left to right, inked where the device was on, with a mark at each hour. */
+  .band { position: relative; height: 20px; border: 1px solid var(--ink); background: repeating-linear-gradient(90deg, rgba(0, 0, 0, .3) 0 1px, transparent 1px calc(100% / 24)); }
+  .band i { position: absolute; top: 0; bottom: 0; background: var(--ink); }
+  .span { display: flex; justify-content: space-between; margin: 2px 0 6px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; font-variant-numeric: tabular-nums; }
+  .foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+  .foot .act { margin: 0; }
+  li[role="button"] { cursor: pointer; }
+
+  h3 { margin: 0 0 8px; font-size: 13px; letter-spacing: .3em; text-transform: uppercase; text-align: center;
+    border-top: 2px solid var(--ink); border-bottom: 1px solid var(--ink); padding: 4px 0; }
+  .item { border-bottom: 1px solid var(--ink); padding-bottom: 8px; margin-bottom: 10px; }
+  .item h4 { margin: 0 0 4px; font: 900 24px/1.05 var(--head); text-wrap: balance; overflow-wrap: anywhere; }
+  .item p { margin: 0 0 6px; font-size: 15px; line-height: 1.35; }
+  .item .act { margin-bottom: 2px; font-size: 11px; }
+  ul, ol { list-style: none; padding: 0; margin: 0 0 16px; font-size: 14px; line-height: 1.35; }
+  li { padding: 4px 0; border-bottom: 1px dotted rgba(0,0,0,.4); }
+  time { font-variant-numeric: tabular-nums; font-weight: 700; margin-right: 6px; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; margin-bottom: 16px; }
+  td { padding: 4px 2px; border-bottom: 1px dotted rgba(0,0,0,.4); } td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+  /* What Home Assistant isn't told about the house: a count that opens into its list. */
+  details { border-bottom: 1px dotted rgba(0,0,0,.4); padding: 5px 0; font-size: 15px; }
+  summary { cursor: pointer; font-weight: 700; }
+  details ul { margin: 4px 0 0 16px; max-height: 260px; overflow-y: auto; }
+  details li { border: 0; padding: 2px 0; }
+  details li.via { font-style: italic; margin: 6px 0 2px; overflow-wrap: anywhere; }
+  button.mend { border-bottom: 1.5px dotted var(--ink); overflow-wrap: anywhere; }
+  p.mend { margin: 6px 0 16px; font-size: 13px; font-style: italic; line-height: 1.3; }
+  /* The switchboard: every device as a plain button, for when you only want a switch. */
+  .row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; break-inside: avoid; }
+  /* A big house: the switchboard is a spread across the foot of the page, in columns. */
+  .page > .board { grid-column: 1 / -1; border-left: 0; padding-left: 0; margin-top: 18px; }
+  .board .rows { columns: 230px; column-gap: 26px; column-rule: 1px solid rgba(0,0,0,.25); }
+  /* One story and no others: it takes the empty column too. */
+  .solo > article { grid-column: span 2; }
+  .row > span { flex: 0 0 100%; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; }
+  .chip { border: 1.5px solid var(--ink); padding: 3px 7px; font-size: 13px; }
+  .chip.on { background: var(--ink); color: var(--paper); }
+  .pair { display: inline-flex; } .chip.tab { border-left: 0; font-variant-numeric: tabular-nums; }
+  .chip.tab[aria-expanded="true"] { background: var(--mark); color: #111; }
+  .chip.away { border-style: dashed; border-color: var(--flash); color: var(--flash); text-decoration: line-through; }
+  .ad { display: block; width: 100%; border: 1px solid var(--ink); padding: 8px 10px; margin-bottom: 8px; text-align: center; font-size: 14px; line-height: 1.3; }
+  .ad b { display: block; font: 400 17px var(--head); letter-spacing: .14em; text-transform: uppercase; }
+  .ad:hover { background: var(--ink); color: var(--paper); }
+
+  /* ---------- the red-top ---------- */
+  [data-style="tabloid"] { --paper: #fff; --ink: #111; --flash: #d7141a; --mark: #ffe600; --head: Impact, "Haettenschweiler", "Arial Narrow Bold", "Arial Black", sans-serif;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; background-image: none; }
+  [data-style="tabloid"] .breaking { border: 0; background: var(--flash); color: #fff; font-weight: 800; text-align: left; text-transform: uppercase; animation-name: none; }
+  [data-style="tabloid"] .breaking b { background: var(--mark); color: #111; padding: 2px 8px; letter-spacing: 0; font-style: italic; }
+  [data-style="tabloid"] .masthead { text-align: left; border: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; }
+  [data-style="tabloid"] .masthead h1 { font: italic 900 52px/1 "Arial Black", "Helvetica Neue", sans-serif; background: var(--flash); color: #fff; padding: 6px 20px 8px 14px; letter-spacing: -.05em; text-transform: uppercase; }
+  [data-style="tabloid"] .masthead p { font: italic 800 16px/1.1 inherit; }
+  [data-style="tabloid"] .dateline { background: var(--ink); color: #fff; border: 0; padding: 5px 10px; letter-spacing: .06em; font-weight: 700; }
+  [data-style="tabloid"] .styles button[aria-pressed="true"] { background: var(--mark); color: #111; }
+  [data-style="tabloid"] .page { gap: 0 22px; }
+  [data-style="tabloid"] .page > * + * { border-left: 0; padding-left: 0; }
+  [data-style="tabloid"] .kicker { display: inline-block; background: var(--mark); color: #111; font: italic 900 15px/1 "Arial Black", sans-serif; padding: 5px 10px; rotate: -2deg; letter-spacing: 0; }
+  [data-style="tabloid"] h2 { font: 400 92px/.88 var(--head); letter-spacing: 0; }
+  [data-style="tabloid"] .deck { font: 800 22px/1.15 inherit; }
+  [data-style="tabloid"] .figure { border: 0; color: #fff; rotate: 2deg; width: 120px; background: radial-gradient(#fff3 1.2px, transparent 1.6px) 0 0 / 6px 6px, #111; }
+  [data-style="tabloid"] .photo img { filter: none; border: 4px solid #111; }
+  [data-style="tabloid"] .archive img { filter: none; }
+  [data-style="tabloid"] .photo figcaption { font: 700 11px/1.3 system-ui, sans-serif; text-transform: uppercase; letter-spacing: .06em; }
+  [data-style="tabloid"] .figure b { font: 400 36px/1 var(--head); color: var(--mark); }
+  [data-style="tabloid"] .act { background: var(--flash); color: #fff; border: 0; font-weight: 900; font-style: italic; padding: 7px 14px; }
+  [data-style="tabloid"] .act:hover { background: var(--ink); }
+  [data-style="tabloid"] .copy { column-rule: 0; font-size: 14px; }
+  [data-style="tabloid"] .fact { border-bottom: 2px solid var(--flash); }
+  [data-style="tabloid"] h5 { font: italic 900 14px/1 "Arial Black", sans-serif; text-transform: uppercase; text-align: left; color: var(--flash); }
+  [data-style="tabloid"] h5::before, [data-style="tabloid"] h5::after { content: none; }
+  [data-style="tabloid"] .board .rows { column-rule: 0; }
+  [data-style="tabloid"] .fact:hover { background: var(--mark); color: #111; }
+  [data-style="tabloid"] .fact.level { border: 0; background: var(--mark); color: #111; padding: 0 3px; font-weight: 800; }
+  [data-style="tabloid"] h3 { text-align: left; border: 0; background: var(--flash); color: #fff; padding: 5px 8px; letter-spacing: .02em; font: italic 900 14px/1 "Arial Black", sans-serif; }
+  [data-style="tabloid"] .item h4 { font: 400 34px/.95 var(--head); text-transform: uppercase; }
+  [data-style="tabloid"] .chip.on { background: var(--mark); color: #111; font-weight: 800; }
+  [data-style="tabloid"] .ad { border: 3px solid var(--ink); } [data-style="tabloid"] .ad b { font: 400 24px/1 var(--head); letter-spacing: .02em; }
+  [data-style="tabloid"] .ad:hover { background: var(--mark); color: #111; }
+
+  /* ---------- narrow: one column, in reading order ---------- */
+  @container (max-width: 900px) {
+    .paper { padding: 10px 14px 20px; }
+    .page { grid-template-columns: 1fr; } .page > * + * { border-left: 0; padding-left: 0; margin-top: 18px; } .solo > article { grid-column: auto; }
+    .copy { columns: 1; } h2 { font-size: 34px; }
+    [data-style="tabloid"] h2 { font-size: 62px; } [data-style="tabloid"] .masthead h1 { font-size: 36px; }
+    .figure, [data-style="tabloid"] .figure { width: 104px; } .figure b, [data-style="tabloid"] .figure b { font-size: 28px; }
+  }
+`, _t = "dash-bored-gazette", vt = "casa_mia_dash_bored/alerts", yt = "casa_mia_dash_bored/sightings", bt = 18e5, xt = 10, St = "dash-bored-style", Ct = "/casa_mia_dash_bored/fonts/UnifrakturCook-Bold.ttf", wt = !1;
+function Tt() {
+	if (wt) return;
+	wt = !0;
+	let e = new FontFace("Dash-Bored Masthead", `url(${Ct})`);
 	document.fonts.add(e), e.load().catch((e) => console.error("Dash-Bored: the masthead's font could not be loaded", e));
 }
-var yt = 30, bt = 3, xt = 10, St = 350, Ct = (e) => e.away || (e.kind === "lock" ? !e.on : e.on), wt = class extends q {
+var Et = 30, Dt = 3, Ot = 10, kt = 6e3, At = 350, jt = (e) => e.away || (e.kind === "lock" ? !e.on : e.on), Mt = class extends K {
 	constructor(...e) {
 		super(...e), this.narrow = !1, this._style = "broadsheet", this._alerts = [], this._seen = [], this._fault = "", this._lost = 0, this._config = {}, this._late = [], this._turn = /* @__PURE__ */ new Map(), this._showing = /* @__PURE__ */ new Set(), this._feeds = /* @__PURE__ */ new Map(), this._primed = !1, this._seenPrimed = !1, this._timers = /* @__PURE__ */ new Set();
 	}
 	static {
-		this.styles = Qe;
+		this.styles = gt;
 	}
 	static {
 		this.properties = {
@@ -1988,7 +2121,8 @@ var yt = 30, bt = 3, xt = 10, St = 350, Ct = (e) => e.away || (e.kind === "lock"
 			_seen: { state: !0 },
 			_fault: { state: !0 },
 			_lost: { state: !0 },
-			_scale: { state: !0 }
+			_scale: { state: !0 },
+			_open: { state: !0 }
 		};
 	}
 	static getStubConfig() {
@@ -2012,10 +2146,10 @@ var yt = 30, bt = 3, xt = 10, St = 350, Ct = (e) => e.away || (e.kind === "lock"
 			this._lost ||= Date.now();
 			return;
 		}
-		if (this._lost = 0, this._listen(), !this._survey || !t || t.entities !== e.entities || t.areas !== e.areas || t.devices !== e.devices || t.floors !== e.floors) this._survey = He(e, this._config);
+		if (this._lost = 0, this._listen(), !this._survey || !t || t.entities !== e.entities || t.areas !== e.areas || t.devices !== e.devices || t.floors !== e.floors) this._survey = Ue(e, this._config);
 		else if (t.states === e.states || !this._survey.watched.some((n) => t.states[n] !== e.states[n])) return;
 		let n = new Map(this._house?.rooms.flatMap((e) => e.devices).map((e) => [e.id, e]));
-		this._house = Ue(this._survey, e);
+		this._house = Ge(this._survey, e);
 		for (let e of this._house.rooms.flatMap((e) => e.devices)) {
 			let t = n.get(e.id);
 			!t || t.on === e.on && t.level === e.level && t.away === e.away || (this._note({
@@ -2024,11 +2158,20 @@ var yt = 30, bt = 3, xt = 10, St = 350, Ct = (e) => e.away || (e.kind === "lock"
 			}), this._scale?.id === e.id && (this._scale = {
 				...this._scale,
 				want: void 0
+			}), this._open?.id === e.id && (this._open = {
+				...this._open,
+				armed: !1,
+				record: this._open.record && [...this._open.record, {
+					at: Date.now(),
+					on: e.on,
+					level: e.level,
+					away: e.away
+				}]
 			}));
 		}
 	}
 	connectedCallback() {
-		super.connectedCallback(), vt(), this._choose(), this._hass?.connected !== !1 && this._listen();
+		super.connectedCallback(), Tt(), this._choose(), this._hass?.connected !== !1 && this._listen();
 	}
 	disconnectedCallback() {
 		super.disconnectedCallback();
@@ -2040,14 +2183,14 @@ var yt = 30, bt = 3, xt = 10, St = 350, Ct = (e) => e.away || (e.kind === "lock"
 	_choose() {
 		let e = this._config.style;
 		try {
-			e ??= localStorage.getItem(ht) ?? void 0;
+			e ??= localStorage.getItem(St) ?? void 0;
 		} catch {}
-		e && e in lt && (this._style = e);
+		e && e in mt && (this._style = e);
 	}
 	_dress(e) {
 		this._style = e;
 		try {
-			localStorage.setItem(ht, e);
+			localStorage.setItem(St, e);
 		} catch {}
 	}
 	_listen() {
@@ -2060,7 +2203,7 @@ var yt = 30, bt = 3, xt = 10, St = 350, Ct = (e) => e.away || (e.kind === "lock"
 				this._feeds.delete(t), console.error(`Dash-Bored: the feed ${t} failed`, e), this._fault = `${n} are not reaching this page (${e?.message ?? e}).`;
 			});
 		};
-		t(dt, "Sensor Watch's alerts", (e) => this._take(e)), t(ft, "The cameras' sightings", (e) => this._sight(e));
+		t(vt, "Sensor Watch's alerts", (e) => this._take(e)), t(yt, "The cameras' sightings", (e) => this._sight(e));
 	}
 	_sight(e) {
 		let t = new Map(this._seen.map((e) => [e.id, e])), n = Date.now();
@@ -2069,14 +2212,14 @@ var yt = 30, bt = 3, xt = 10, St = 350, Ct = (e) => e.away || (e.kind === "lock"
 			t.set(r.id, r);
 			let i = n - r.at * 1e3;
 			if (e || i >= 6e5) continue;
-			this._later(Ke - i);
-			let [a] = this._seenPrimed && this._survey ? We(this._survey, [r]) : [];
+			this._later($e - i);
+			let [a] = this._seenPrimed && this._survey ? Ke(this._survey, [r]) : [];
 			a && this._note({
 				time: a.at,
 				seen: a
 			});
 		}
-		this._seenPrimed = !0, this._seen = [...t.values()].filter((e) => n - e.at * 1e3 < pt);
+		this._seenPrimed = !0, this._seen = [...t.values()].filter((e) => n - e.at * 1e3 < bt);
 	}
 	_take(e) {
 		let t = new Map(this._alerts.map((e) => [e.entity_id, e]));
@@ -2085,12 +2228,12 @@ var yt = 30, bt = 3, xt = 10, St = 350, Ct = (e) => e.away || (e.kind === "lock"
 				...n,
 				at: n.at * 1e3,
 				began: n.began * 1e3,
-				flavour: Ye(this._hass?.states[n.entity_id]?.attributes.device_class)
+				flavour: nt(this._hass?.states[n.entity_id]?.attributes.device_class)
 			};
 			t.set(e.entity_id, e), this._primed && (this._note({
 				time: e.at,
 				alert: e
-			}), e.level === "nominal" ? this._later(Ke) : this.scrollIntoView({
+			}), e.level === "nominal" ? this._later($e) : this.scrollIntoView({
 				block: "start",
 				behavior: "smooth"
 			}));
@@ -2115,92 +2258,123 @@ var yt = 30, bt = 3, xt = 10, St = 350, Ct = (e) => e.away || (e.kind === "lock"
 		});
 	}
 	_press(e) {
-		e.guarded || e.away ? r(this, "hass-more-info", { entityId: e.id }) : this._call({
-			domain: e.kind,
-			service: "toggle",
-			ids: [e.id]
-		}, `${e.room} ${e.name}`);
+		e.guarded || e.away ? this._story(e) : this._call(Ze(e), `${e.room} ${e.name}`);
+	}
+	_story(e) {
+		this._open = { id: e.id }, this._scale = e.dims && !e.away ? { id: e.id } : void 0;
+		let t = (t) => {
+			this._open?.id === e.id && (this._open = {
+				...this._open,
+				...t
+			});
+		};
+		Xe(this._hass, e, Date.now()).then((e) => t({ record: e }), (n) => {
+			console.error(`Dash-Bored: the history of ${e.id} could not be read`, n), t({ fault: n?.message ?? String(n) });
+		});
+	}
+	_shut() {
+		this._open = this._scale = void 0;
+	}
+	_flip(e) {
+		let t = this._open;
+		if (e.guarded && (e.kind === "lock" ? e.on : !e.on) && !t.armed) {
+			this._open = {
+				...t,
+				armed: !0
+			};
+			let n = setTimeout(() => {
+				this._timers.delete(n), this._open?.id === e.id && (this._open = {
+					...this._open,
+					armed: !1
+				});
+			}, kt);
+			this._timers.add(n);
+			return;
+		}
+		this._open = {
+			...t,
+			armed: !1
+		}, this._call(Ze(e), `${e.room} ${e.name}`);
+	}
+	updated() {
+		let e = this.renderRoot.querySelector("dialog");
+		e && !e.open && e.showModal();
 	}
 	_ask(e, t) {
 		clearTimeout(this._asking), this._timers.delete(this._asking), this._asking = setTimeout(() => {
-			this._timers.delete(this._asking), this._call(Ge(e, t), `${e.room} ${e.name}`);
-		}, St), this._timers.add(this._asking);
+			this._timers.delete(this._asking), this._call(Qe(e, t), `${e.room} ${e.name}`);
+		}, At), this._timers.add(this._asking);
 	}
-	_measure(e, t) {
-		this._scale = this._scale?.id === e.id && this._scale.board === t ? void 0 : {
-			id: e.id,
-			board: t
-		};
+	_measure(e) {
+		this._scale = this._scale?.id === e.id ? void 0 : { id: e.id };
 	}
 	_key(e) {
 		(e.key === "Enter" || e.key === " ") && (e.preventDefault(), e.currentTarget.click());
 	}
 	render() {
-		let e = this._hass, t = this._house, n = lt[this._style];
+		let e = this._hass, t = this._house, n = mt[this._style];
 		if (!e || !t) return R`<div class="paper" data-style=${this._style}><p class="wait">Waiting for Home Assistant.</p></div>`;
-		let a = Date.now(), o = We(this._survey, this._seen).filter((e) => a - e.at < pt), s = [...o].sort((e, t) => t.at - e.at).slice(0, mt), c = (e) => (n.stories[`sighting.${e}`]?.kicker ?? e).toLowerCase(), l = Ze(t, this._alerts, a, o);
+		let a = Date.now(), o = Ke(this._survey, this._seen).filter((e) => a - e.at < bt), s = [...o].sort((e, t) => t.at - e.at).slice(0, xt), c = (e) => (n.stories[`sighting.${e}`]?.kicker ?? e).toLowerCase(), l = it(t, this._alerts, a, o);
 		for (let e of l) this._showing.has(e.id) || this._turn.set(e.id, (this._turn.get(e.id) ?? -1) + 1);
 		this._showing = new Set(l.map((e) => e.id));
 		let u = l.map((e) => ({
 			s: e,
-			...et(n, e, this._turn.get(e.id))
+			...ot(n, e, this._turn.get(e.id))
 		})), [d, ...f] = u, p = u.find((e) => e.s.kind === "alert"), m = (e) => e.act ? R`<button class="act" @click=${() => this._call(e.s.press, e.head)}>${e.act}</button>` : B, h = (e, t) => {
-			let [r, i, a] = e.dims && !e.away ? it(n, e) : [
-				at(n, e),
+			let [r, i, a] = e.dims && !e.away ? ut(n, e) : [
+				$(n, e),
 				"",
 				""
 			], o = (e, t, n) => e ? R`<span class="fact ${t}" role="button" tabindex="0" @click=${n} @keydown=${this._key}>${e}</span>` : B;
-			return R`${o(t ? Z(r) : r, e.away ? "away" : "", () => this._press(e))}${o(i, "level", () => this._measure(e, !1))}${o(a, "", () => this._press(e))}`;
-		}, g = (e, t) => {
-			let r = this._scale, i = r?.board === t ? e.devices.find((e) => e.id === r.id && e.dims && !e.away) : void 0;
-			if (!i || !r) return B;
-			let a = i.on ? i.level ?? 0 : 0, o = (e) => Number(e.target.value), s = r.want ?? a, c = rt(n, i), l = (e, t) => {
-				let n = Math.min(100, Math.max(0, s + t));
-				return R`<button class="act" ?disabled=${n === s} @click=${() => (this._scale = {
-					...r,
-					want: n
-				}, this._ask(i, n))}>${e}</button>`;
+			return R`${o(t ? X(r) : r, e.away ? "away" : "", () => this._press(e))}${o(i, "level", () => this._measure(e))}${o(a, "", () => this._press(e))}`;
+		}, g = (e) => {
+			let t = this._scale;
+			if (!e || !t || t.id !== e.id || !e.dims || e.away) return B;
+			let r = e.on ? e.level ?? 0 : 0, i = (e) => Number(e.target.value), a = t.want ?? r, o = lt(n, e), s = (n, r) => {
+				let i = Math.min(100, Math.max(0, a + r));
+				return R`<button class="act" ?disabled=${i === a} @click=${() => (this._scale = {
+					...t,
+					want: i
+				}, this._ask(e, i))}>${n}</button>`;
 			};
 			return R`<span class="scale">
-        <span class="poll"><i>${Z(c.ask)}</i>${l(c.less, -10)}${l(c.more, xt)}</span>
-        <input type="range" min="0" max="100" aria-label=${i.name} .value=${Fe(String(s))}
+        <span class="poll"><i>${X(o.ask)}</i>${s(o.less, -10)}${s(o.more, Ot)}</span>
+        <input type="range" min="0" max="100" aria-label=${e.name} .value=${Ie(String(a))}
           @input=${(e) => this._scale = {
-				...r,
-				want: o(e)
+				...t,
+				want: i(e)
 			}}
-          @change=${(e) => this._ask(i, o(e))} />
-        <output>${tt(n, a)}${r.want === void 0 || r.want === a ? "" : ` → ${r.want}`}</output>
+          @change=${(t) => this._ask(e, i(t))} />
+        <output>${st(n, r)}${t.want === void 0 || t.want === r ? "" : ` → ${t.want}`}</output>
         <button aria-label="Close" @click=${() => this._scale = void 0}>×</button>
       </span>`;
 		}, _ = (e) => e.photo ? R`<figure class="photo" role="button" tabindex="0" @click=${() => r(this, "hass-more-info", { entityId: e.see })} @keydown=${this._key}>
             <img src=${e.photo} alt=${e.figure[1]} loading="lazy" @error=${() => this._fault = `The photograph from ${e.figure[1]} could not be fetched.`} />
             <figcaption>${e.figure[1]}, ${e.figure[0]}</figcaption>
-          </figure>` : B, v = t.rooms.filter((e) => e.temp !== void 0), y = t.rooms.filter((e) => e.devices.length), b = y.reduce((e, t) => e + t.devices.length, 0) > yt, x = b ? y.map((e) => ({
+          </figure>` : B, ee = t.rooms.filter((e) => e.temp !== void 0), v = t.rooms.filter((e) => e.devices.length), y = v.reduce((e, t) => e + t.devices.length, 0) > Et, b = y ? v.map((e) => ({
 			...e,
-			devices: e.devices.filter(Ct)
-		})).filter((e) => e.devices.length) : y, ee = y.some((e) => e.floor), S = (e, t, r = (e) => e) => {
+			devices: e.devices.filter(jt)
+		})).filter((e) => e.devices.length) : v, te = v.some((e) => e.floor), x = (e, t, r = (e) => e) => {
 			let i = /* @__PURE__ */ new Map();
 			for (let t of e) i.set(t.floor ?? "", [...i.get(t.floor ?? "") ?? [], t]);
-			return [...i].map(([e, i]) => R`${ee ? R`<h5>${e || n.titles.elsewhere}</h5>` : B}${r(i.map(t))}`);
-		}, C = (e) => {
+			return [...i].map(([e, i]) => R`${te ? R`<h5>${e || n.titles.elsewhere}</h5>` : B}${r(i.map(t))}`);
+		}, S = (e) => {
 			let t = (t) => {
-				let n = e.devices.filter((e) => b && e.kind === t && e.on && !e.away);
-				return n.length > bt ? n : [];
+				let n = e.devices.filter((e) => y && e.kind === t && e.on && !e.away);
+				return n.length > Dt ? n : [];
 			}, r = t("light"), i = t("switch"), a = e.devices.filter((e) => !r.includes(e) && !i.includes(e)).map((e, t) => h(e, !t && !r.length && !i.length));
-			return i.length && a.unshift(r.length ? $(n.words["switch.many"], Q(i.length)) : Z($(n.words["switch.many"], Q(i.length)))), r.length && a.unshift(R`<span class="fact" role="button" tabindex="0" @click=${() => this._call({
+			return i.length && a.unshift(r.length ? Q(n.words["switch.many"], Z(i.length)) : X(Q(n.words["switch.many"], Z(i.length)))), r.length && a.unshift(R`<span class="fact" role="button" tabindex="0" @click=${() => this._call({
 				domain: "light",
 				service: "turn_off",
 				ids: r.map((e) => e.id)
-			}, e.name)} @keydown=${this._key}>${Z($(n.words["light.many"], Q(r.length)))}</span>`), R`<p><b>${e.name}.</b> ${a.map((e, t) => R`${t ? n.join : ""}${e}`)}${n.end}${g(e, !1)}</p>`;
-		}, w = (e) => {
-			let t = R`<button class="chip ${e.on ? "on" : ""} ${e.away ? "away" : ""}" aria-pressed=${e.on} @click=${() => this._press(e)}>${e.name}</button>`;
-			return !e.dims || e.away ? t : R`<div class="pair">${t}<button class="chip tab" aria-label="${e.name}: set the level" aria-expanded=${this._scale?.id === e.id && this._scale.board} @click=${() => this._measure(e, !0)}>${e.on ? e.level ?? "" : 0}%</button></div>`;
-		}, T = R`<h3>${n.titles.board}</h3>
-      ${S(y, (e) => R`<div class="row"><span>${e.name}</span>${e.devices.map(w)}</div>${g(e, !0)}`, (e) => R`<div class="rows">${e}</div>`)}`;
+			}, e.name)} @keydown=${this._key}>${X(Q(n.words["light.many"], Z(r.length)))}</span>`), R`<p><b>${e.name}.</b> ${a.map((e, t) => R`${t ? n.join : ""}${e}`)}${n.end}${this._open ? B : g(e.devices.find((e) => e.id === this._scale?.id))}</p>`;
+		}, C = (e) => R`<div class="pair"><button class="chip ${e.on ? "on" : ""} ${e.away ? "away" : ""}" aria-pressed=${e.on} @click=${() => this._press(e)}>${e.name}</button
+        ><button class="chip tab" aria-label="${e.name}: its story" @click=${() => this._story(e)}>${e.dims && !e.away ? `${e.on ? e.level ?? "" : 0}%` : "›"}</button></div>`, w = new Map(t.rooms.flatMap((e) => e.devices).map((e) => [e.id, e])), T = this._open && w.get(this._open.id), E = R`<h3>${n.titles.board}</h3>
+      ${x(v, (e) => R`<div class="row"><span>${e.name}</span>${e.devices.map(C)}</div>`, (e) => R`<div class="rows">${e}</div>`)}`;
 		return R`<div class="paper" data-style=${this._style}>
-      ${this._lost ? R`<div class="fault" role="alert">Not connected to Home Assistant since ${X(this._lost)}. What follows is how things stood then.</div>` : B}
+      ${this._lost ? R`<div class="fault" role="alert">Not connected to Home Assistant since ${Y(this._lost)}. What follows is how things stood then.</div>` : B}
       ${this._fault ? R`<div class="fault" role="alert">${this._fault}</div>` : B}
-      ${p ? Pe(p.s.id + p.s.variant, R`<div class="breaking" role="status"><b>${n.flash}</b>${p.head}${/[!?]$/.test(p.head) ? "" : ":"} ${p.s.vars.message}</div>`) : B}
+      ${p ? Fe(p.s.id + p.s.variant, R`<div class="breaking" role="status"><b>${n.flash}</b>${p.head}${/[!?]$/.test(p.head) ? "" : ":"} ${p.s.vars.message}</div>`) : B}
       <header class="masthead"><h1>${n.name}</h1><p>${n.strap}</p></header>
       <div class="dateline">
         ${this.hasAttribute("panel") ? R`<ha-menu-button .hass=${e} .narrow=${this.narrow}></ha-menu-button>` : B}
@@ -2210,22 +2384,22 @@ var yt = 30, bt = 3, xt = 10, St = 350, Ct = (e) => e.away || (e.kind === "lock"
 			month: "long",
 			year: "numeric"
 		})}</span>
-        ${this._config.style ? B : R`<span class="styles">${Object.entries(lt).map(([e, t]) => R`<button aria-pressed=${e === this._style} @click=${() => this._dress(e)}>${t.label}</button>`)}</span>`}
-        <span>${n.price} · ${X(Date.now())}</span>
+        ${this._config.style ? B : R`<span class="styles">${Object.entries(mt).map(([e, t]) => R`<button aria-pressed=${e === this._style} @click=${() => this._dress(e)}>${t.label}</button>`)}</span>`}
+        <span>${n.price} · ${Y(Date.now())}</span>
       </div>
       <main class="page ${f.length ? "" : "solo"}">
         <article>
           <div class="figure"><b>${d.s.figure[0]}</b><span>${d.s.figure[1]}</span></div>
           <p class="kicker">${d.kicker}</p>
-          ${Pe(d.head, R`<h2>${d.head}</h2>`)}
+          ${Fe(d.head, R`<h2>${d.head}</h2>`)}
           <p class="deck">${d.deck}</p>
           ${m(d)}
           ${_(d.s)}
           <div class="copy">
             ${d.body ? R`<p>${d.body}</p>` : B}
-            ${S(x, C)}
-            ${y.length > x.length ? R`<p>${$(n.rest, Q(y.length - x.length))}</p>` : B}
-            ${y.length ? B : R`<p>No areas with lights, switches, covers or locks were found. Give your devices areas in Home Assistant's settings and this page fills itself in.</p>`}
+            ${x(b, S)}
+            ${v.length > b.length ? R`<p>${Q(n.rest, Z(v.length - b.length))}</p>` : B}
+            ${v.length ? B : R`<p>No areas with lights, switches, covers or locks were found. Give your devices areas in Home Assistant's settings and this page fills itself in.</p>`}
           </div>
         </article>
         ${f.length ? R`<section>
@@ -2235,15 +2409,18 @@ var yt = 30, bt = 3, xt = 10, St = 350, Ct = (e) => e.away || (e.kind === "lock"
             </section>` : B}
         <aside>
           <h3>${n.titles.late}</h3>
-          <ol>${this._late.length ? this._late.map((e) => R`<li><time>${X(e.time)}</time>${e.alert ? ot(n, e.alert) : e.seen ? `${e.seen.name}: ${c(e.seen.kind)}` : `${e.device.room}: ${at(n, e.device)}`}</li>`) : R`<li>${n.nothing}</li>`}</ol>
+          <ol>${this._late.length ? this._late.map((e) => {
+			let t = e.device && w.get(e.device.id);
+			return R`<li role=${t ? "button" : B} tabindex=${t ? 0 : B} @click=${() => t && this._story(t)} @keydown=${this._key}><time>${Y(e.time)}</time>${e.alert ? dt(n, e.alert) : e.seen ? `${e.seen.name}: ${c(e.seen.kind)}` : `${e.device.room}: ${$(n, e.device)}`}</li>`;
+		}) : R`<li>${n.nothing}</li>`}</ol>
           ${s.length ? R`<h3>${n.titles.archive}</h3>
                 <ol class="archive">${s.map((e) => R`<li role="button" tabindex="0" @click=${() => r(this, "hass-more-info", { entityId: e.camera })} @keydown=${this._key}>
-                    ${e.photo ? R`<img src=${e.photo} alt="" loading="lazy" />` : R`<i></i>`}<span><time>${X(e.at)}</time>${e.name}: ${c(e.kind)}</span></li>`)}</ol>` : B}
-          ${v.length ? R`<h3>${n.titles.temps}</h3><table>${v.map((e) => R`<tr><td>${e.name}</td><td>${e.temp.toFixed(1)}° ${e.target === void 0 ? "" : e.temp < e.target - .5 ? "▼" : e.temp > e.target + .5 ? "▲" : "="}</td></tr>`)}</table>` : B}
-          ${b ? B : T}
+                    ${e.photo ? R`<img src=${e.photo} alt="" loading="lazy" />` : R`<i></i>`}<span><time>${Y(e.at)}</time>${e.name}: ${c(e.kind)}</span></li>`)}</ol>` : B}
+          ${ee.length ? R`<h3>${n.titles.temps}</h3><table>${ee.map((e) => R`<tr><td>${e.name}</td><td>${e.temp.toFixed(1)}° ${e.target === void 0 ? "" : e.temp < e.target - .5 ? "▼" : e.temp > e.target + .5 ? "▲" : "="}</td></tr>`)}</table>` : B}
+          ${y ? B : E}
           ${t.gaps.length ? R`<h3>${n.titles.gaps}</h3>
-                ${t.gaps.map((e) => R`<details><summary>${$(n.gaps[e.kind], Q(e.items.length))}</summary>
-                  <ul>${e.items.map((t, n) => R`${e.kind === "plumbing" && t.via !== e.items[n - 1]?.via ? R`<li class="via">${$e[t.via ?? ""] ?? `${t.via}. ${$e[""]}`}:</li>` : B}<li><button class="mend" @click=${() => e.kind === "floorless" || e.kind === "cold" ? i(`/config/areas/area/${t.id}`) : r(this, "hass-more-info", { entityId: t.id })}>${t.name}</button></li>`)}</ul></details>`)}
+                ${t.gaps.map((e) => R`<details><summary>${Q(n.gaps[e.kind], Z(e.items.length))}</summary>
+                  <ul>${e.items.map((t, n) => R`${e.kind === "plumbing" && t.via !== e.items[n - 1]?.via ? R`<li class="via">${at[t.via ?? ""] ?? `${t.via}. ${at[""]}`}:</li>` : B}<li><button class="mend" @click=${() => e.kind === "floorless" || e.kind === "cold" ? i(`/config/areas/area/${t.id}`) : r(this, "hass-more-info", { entityId: t.id })}>${t.name}</button></li>`)}</ul></details>`)}
                 <p class="mend">${n.mend}</p>` : B}
           ${t.scenes.length ? R`<h3>${n.titles.notices}</h3>${t.scenes.slice(0, 8).map((e, t) => R`<button class="ad" @click=${() => this._call({
 			domain: "scene",
@@ -2251,10 +2428,15 @@ var yt = 30, bt = 3, xt = 10, St = 350, Ct = (e) => e.away || (e.kind === "lock"
 			ids: [e.id]
 		}, e.name)}><b>${e.name}</b>${n.notices[t % n.notices.length]}</button>`)}` : B}
         </aside>
-        ${b ? R`<section class="board">${T}</section>` : B}
+        ${y ? R`<section class="board">${E}</section>` : B}
       </main>
+      ${T ? ht(n, T, this._open, a, g(T), {
+			flip: () => this._flip(T),
+			more: () => (this._shut(), r(this, "hass-more-info", { entityId: T.id })),
+			shut: () => this._shut()
+		}) : B}
     </div>`;
 	}
-}, Tt = new URL(import.meta.url).searchParams.get("v") || "dev";
-a(ut, wt), o(ut, "Casa Mia Dash-Bored Gazette", "Your house as a newspaper: what matters most is the headline, and every underlined fact is a switch. Best in a panel view."), t("Dash-Bored", "casa_mia_dash_bored/cards", Tt);
+}, Nt = new URL(import.meta.url).searchParams.get("v") || "dev";
+a(_t, Mt), o(_t, "Casa Mia Dash-Bored Gazette", "Your house as a newspaper: what matters most is the headline, and every underlined fact is a switch. Best in a panel view."), t("Dash-Bored", "casa_mia_dash_bored/cards", Nt);
 //#endregion

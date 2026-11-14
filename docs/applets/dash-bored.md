@@ -60,8 +60,8 @@ Some stories have a button that puts them right, such as **Lock it** or **Lights
 
 A light that can be dimmed, or a blind that can be set to a position, has its level as a
 separate press. In the report the level is underlined twice (highlighted in the red-top):
-press "40 per cent" and a scale opens under the sentence. On the switchboard such a device
-has a tab beside its button showing its level, which opens the same scale. That is how to
+press "40 per cent" and a scale opens under the sentence. On the switchboard such a device's
+tab shows its level and opens its clipping (see below), which has the same scale. That is how to
 bring a light that is off on at a low level.
 
 Over the scale is a readers' poll: a question, such as "Readers are invited to say whether
@@ -157,9 +157,29 @@ Assistant's settings, so the suspected plumbing is grouped by integration:
 ### What a press will never do
 
 A lock, a garage door or a gate is never operated by a press on a sentence or on the
-switchboard, because a stray touch must not unlock the house. Pressing one opens Home
-Assistant's own dialog. The same happens for a device that is not answering. The
-**Lock it** button under an unlocked door does lock it.
+switchboard, because a stray touch must not unlock the house. Pressing one opens its
+clipping, where unlocking or opening takes two presses: the button changes to **Press
+again to confirm** for a few seconds. Locking and closing take one. A device that is not
+answering opens its clipping too. The **Lock it** button under an unlocked door does lock
+it.
+
+### A device's clipping
+
+Every device has a story of its own, laid over the page like a cutting. It opens from the
+tab beside the device's button on the switchboard, and from a line about the device in
+the late news.
+
+The clipping says how the device stands and since when, and has a button that puts it the
+other way. A light that can be dimmed or a blind that takes a position has its poll and
+scale there. Under those is **The record**: a band for the last 24 hours, inked where the
+device was on, open or locked, and its latest changes with their times. The record comes
+from Home Assistant's history when the clipping is opened, and goes on as things happen.
+Home Assistant's history keeps a blind's positions but not a light's brightness, so a
+light's record is of when it was lit, and shows a dimming only if it happens while the
+clipping is open.
+
+**Home Assistant's own page** at the foot opens Home Assistant's dialog for the device,
+for its settings. Escape, **Fold away** or a press outside the clipping closes it.
 
 ### Two papers
 
@@ -196,8 +216,6 @@ On a phone, or in a narrow column, the paper is a single column.
 
 ## Not built yet
 
-- A detail view and history of Dash-Bored's own: for now the lock and garage door use
-  Home Assistant's dialog.
 - Thermostats, media players and cameras as devices in a room.
 - Choosing which rooms and devices appear, and their order.
 - Changing the wording, and other languages. The text is English only.

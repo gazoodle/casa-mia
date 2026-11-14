@@ -350,14 +350,32 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   gives a device's wording in three pieces so the level is its own press; a voice's
   `percent` says a level and is every clause's `{level}`. One scale is open at a time
   (`_scale` in `gazette.ts`), a native range input inside the room's paragraph (so it
-  stays in its column) or under the switchboard's row. `_ask` sends one call when the
+  stays in its column) or in the device's clipping. `_ask` sends one call when the
   level has been still for `SETTLE`: an arrow key reports a change at every step. Over
   the scale is a readers' poll (owner's idea, 2026-11-13, to sit beside the scale, not
   replace it): a voice's `polls` by kind, each vote `VOTE` per cent from `want`. The
   figure is the device's own, and `want` shows beside it until the device's state
-  changes. **Seen** in headless Chromium on an invented room, both papers, 1100 and
-  390 px wide. **Not seen:** a real dimmer or blind, touch on a tablet, Safari.
-- **Not done:** publishing by itself, a detail view and history of its own, other languages. BACKLOG has the list.
+  changes.
+- **The clipping** (2026.11.8-b11): one device's story in a native `<dialog>`, in
+  place of Home Assistant's dialog (`clipping.ts` draws it; `_open` in `gazette.ts` is
+  the one that is open). It opens from the tab beside every chip, from a late-news line
+  about a device, and from a press on a guarded or unanswering device. `record.ts`
+  asks `history/history_during_period` once on opening (no admin needed;
+  `significant_changes_only: false`, or a cover's changes of position are left out;
+  Home Assistant does not record a light's brightness at all, found on the VM); the page's own
+  `hass` updates add to the record after that. `standing` in `house.ts` reads a state
+  for both `read` and the record. `flip` in `stories.ts` is the one call that puts a
+  device the other way. Unlocking, or opening a guarded cover, takes two presses
+  (`_flip`, armed for `ARMED`); my ruling again, and no looser than Home Assistant's
+  dialog, which does it in one. A voice's `acts` and `clipping` are its words.
+  Cameras, photographs and the gaps' entities still open Home Assistant's dialog.
+- **Seen on the test VM, 2026-11-14** (it now has Home Assistant's demo devices in rooms
+  on four floors, and a dimmable Pendant and a Blind as template helpers): floors as
+  crossheads, votes and the scale moving a light and a blind, a clipping's record from
+  real history growing by push, Escape closing it, and the demo garage door staying
+  closed after one press and opening on the second. **Not seen:** a real dimmer, blind
+  or lock, touch on a tablet, Safari, a history failure (the path is written, not run).
+- **Not done:** publishing by itself, other languages. BACKLOG has the list.
 - **Tests:** `src/dash-bored/stories.test.ts` (house, ranking, every voice tells every
   story), `tests_ha/test_dash_bored.py` (set-up, the panel, the alerts feed).
 

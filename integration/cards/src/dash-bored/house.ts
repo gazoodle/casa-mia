@@ -167,6 +167,15 @@ export function survey(hass: Hass, options: Options): Survey {
   };
 }
 
+/** How a device stands, by one of its states: the one it is in now, or one from its history. */
+export function standing(kind: Kind, state?: { state: string; attributes: Record<string, any> }): { on: boolean; level?: number; away: boolean } {
+  const away = !state || state.state === "unavailable";
+  const on = !away && (kind === "lock" ? state.state === "locked" : kind === "cover" ? state.state !== "closed" : state.state === "on");
+  const raw = kind === "light" ? state?.attributes.brightness : kind === "cover" ? state?.attributes.current_position : undefined;
+  const level = typeof raw !== "number" ? undefined : kind === "light" ? Math.round((raw / 255) * 100) : raw;
+  return { on, level, away };
+}
+
 export function read(found: Survey, hass: Hass): House {
   const number = (id?: string) => {
     const state = id ? hass.states[id] : undefined;
@@ -185,10 +194,7 @@ export function read(found: Survey, hass: Hass): House {
     const set = climate?.attributes.temperature;
     const devices = room.devices.map((d): Device => {
       const state = hass.states[d.id];
-      const away = !state || state.state === "unavailable";
-      const on = !away && (d.kind === "lock" ? state.state === "locked" : d.kind === "cover" ? state.state !== "closed" : state.state === "on");
-      const raw = d.kind === "light" ? state?.attributes.brightness : d.kind === "cover" ? state?.attributes.current_position : undefined;
-      const level = typeof raw !== "number" ? undefined : d.kind === "light" ? Math.round((raw / 255) * 100) : raw;
+      const { on, level, away } = standing(d.kind, state);
       // A light with a colour mode other than on/off has a brightness; 4 is a cover's
       // SET_POSITION feature. A guarded cover is not set from the page either.
       const modes: string[] = state?.attributes.supported_color_modes ?? [];

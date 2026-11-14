@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { read, survey } from "./house.ts";
-import { RECOVERED, setting, stories, type Alert } from "./stories.ts";
+import { RECOVERED, flip, setting, stories, type Alert } from "./stories.ts";
 import { VOICES, clause, poll, tell, words } from "./voices.ts";
 
 // An invented house, as Home Assistant's page would hold it.
@@ -175,4 +175,12 @@ test("a level can be set on a dimmable light and a cover that takes a position, 
   assert.deepEqual(setting(ceiling, 40), { domain: "light", service: "turn_on", ids: ["light.kitchen_ceiling"], data: { brightness_pct: 40 } });
   assert.deepEqual(setting(ceiling, 0), { domain: "light", service: "turn_off", ids: ["light.kitchen_ceiling"] });
   assert.deepEqual(setting({ ...ceiling, kind: "cover", id: "cover.blind" }, 0), { domain: "cover", service: "set_cover_position", ids: ["cover.blind"], data: { position: 0 } });
+});
+
+test("a device is put the other way by its own kind of call, and every paper has a word for each", () => {
+  const [garage, front] = house().rooms[0].devices;
+  const [ceiling, counter] = house().rooms[1].devices;
+  assert.deepEqual([front, garage, ceiling, counter].map((d) => flip(d).service), ["unlock", "open_cover", "turn_off", "turn_on"]);
+  assert.deepEqual(flip({ ...front, on: false }), { domain: "lock", service: "lock", ids: ["lock.front_door"] });
+  for (const voice of Object.values(VOICES)) for (const kind of ["light", "switch", "cover", "lock"]) for (const state of ["on", "off"]) assert.ok(voice.acts[`${kind}.${state}`]);
 });

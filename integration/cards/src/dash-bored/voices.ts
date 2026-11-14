@@ -26,6 +26,8 @@ export type Voice = {
   mend: string; // under them: what to do about it
   words: Record<string, string>; // one device, by `kind.state`; `kind.many` is a room's count of them, in a big house; `percent` is how a level is said, and is a clause's {level}
   polls: Record<string, { ask: string; less: string; more: string }>; // by kind: the question over a level's scale, and its two votes
+  acts: Record<string, string>; // on a device's clipping: the button that puts it the other way, by `kind.on` or `kind.off` as it stands
+  clipping: { since: string; record: string; wait: string; none: string; ago: string; now: string; sure: string; more: string; shut: string }; // the rest of a clipping's words; `ago` and `now` are the ends of the record's band, and `sure` is the second press that unlocks or opens
   wire: { trouble: string; clear: string }; // an alert in the late news
   notices: string[]; // under each scene, in turn
   stories: Record<string, Entry>; // by `kind.variant`, else `kind`
@@ -136,6 +138,9 @@ const broadsheet: Voice = {
     light: { ask: "Readers are invited to say whether the {lamp} {is} too bright.", less: "Too bright", more: "Not bright enough" },
     cover: { ask: "Readers are invited to say whether the {name} stand{v} too far open.", less: "Too far", more: "Not far enough" },
   },
+  acts: { "light.on": "Put it out", "light.off": "Light it", "switch.on": "Switch it off", "switch.off": "Switch it on", "cover.on": "Close it", "cover.off": "Open it", "lock.on": "Unlock it", "lock.off": "Lock it" },
+  clipping: { since: "So it has stood since {at}.", record: "The record", wait: "Our archivist is consulting the files.", none: "Nothing is recorded of the last day.", ago: "This time yesterday", now: "Now",
+    sure: "Press again to confirm", more: "Home Assistant's own page", shut: "Fold away" },
   wire: { trouble: "{name}: {message}", clear: "{name}: all is well again." },
   notices: ["Arranged at a touch. Apply within.", "By appointment to the household.", "Satisfaction assured.", "Enquire at this office."],
   stories: {
@@ -197,6 +202,9 @@ const tabloid: Voice = {
     light: { ask: "{lamp}: TOO BRIGHT? You decide!", less: "Dim it", more: "Crank it up" },
     cover: { ask: "{name}: TOO OPEN? You decide!", less: "Shut it a bit", more: "Open up" },
   },
+  acts: { "light.on": "Kill it", "light.off": "Light it up", "switch.on": "Off!", "switch.off": "On!", "cover.on": "Shut it", "cover.off": "Open up", "lock.on": "Unlock it", "lock.off": "Lock it" },
+  clipping: { since: "Been that way since {at}.", record: "The story so far", wait: "Digging the dirt…", none: "Nothing all day. Dull!", ago: "Yesterday", now: "Now",
+    sure: "SURE? Press again", more: "Home Assistant's page", shut: "Bin it" },
   wire: { trouble: "{name}: {level}!", clear: "{name}: PANIC OVER" },
   notices: ["Go on, press it.", "One tap. Job done.", "You know you want to.", "Easy as that."],
   stories: {
