@@ -1,0 +1,27 @@
+{
+  "last_updated": "2026-11-14T10:17:13Z",
+  "downloads": 125,
+  "downloads_month": 48,
+  "amd64": {
+    "last_updated": "2026-11-13T06:41:00-08:00",
+    "downloads": 57,
+    "downloads_compact": "57",
+    "downloads_day": 1,
+    "downloads_day_compact": "1",
+    "downloads_week": 12,
+    "downloads_week_compact": "12",
+    "downloads_month": 34,
+    "downloads_month_compact": "34"
+  },
+  "aarch64": {
+    "last_updated": "2026-11-13T06:40:55-08:00",
+    "downloads": 68,
+    "downloads_compact": "68",
+    "downloads_day": 1,
+    "downloads_day_compact": "1",
+    "downloads_week": 12,
+    "downloads_week_compact": "12",
+    "downloads_month": 14,
+    "downloads_month_compact": "14"
+  }
+}
