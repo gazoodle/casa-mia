@@ -442,3 +442,9 @@ Ideas where one module makes another better. Each module still works alone; each
 ## Modules from the charter
 
 `fona` (first), `alarm`, `gitproxy`, `compositor`, `knx`, `knx-bms`, `esphome-gen`, `radio`, `tablet-provision`, `kiosks`. See README.
+
+## A test that fails now and then
+
+`tests/test_compositor.py::test_the_pages_controls_restart_flush_and_forget` failed once
+in a full run on 2026-11-15 (`assert not out["live"]["pictures"]` after a flush), then
+passed alone and in three more full runs. Find the race before it is trusted again.

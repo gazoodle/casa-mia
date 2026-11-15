@@ -222,7 +222,7 @@ async def test_a_loathed_song_is_muted_until_the_next_track(hass):
     play(hass, "Last Christmas", "Wham!")
     await settled(hass)
     [mute] = calls["volume_mute"]
-    assert mute.data == {"entity_id": PLAYER, "is_volume_muted": True}
+    assert mute.data == {"entity_id": [PLAYER], "is_volume_muted": True}
     [event] = events
     assert event.data["group"] == "Christmas" and event.data["feeling"] == "loathe"
     assert event.data["result"] == "muted until the next track"
@@ -511,11 +511,21 @@ async def test_only_a_groups_leader_acts_and_a_player_with_no_title_is_named(has
         hass, a_group("Christmas", patterns=XMAS), players=(PLAYER, other)
     )
 
+    # The leader acts, for every speaker in its group: Sonos mutes each by itself.
     members = [PLAYER, other]
     play(hass, "Last Christmas", "Wham!", group_members=members)
     play(hass, "Last Christmas", "Wham!", entity=other, group_members=members)
     await settled(hass)
-    assert [c.data["entity_id"] for c in calls["volume_mute"]] == [PLAYER]
+    assert [c.data["entity_id"] for c in calls["volume_mute"]] == [members]
+
+    # And each still muted is unmuted at the next track.
+    play(hass, "Wonderwall", "Oasis", entity=other, is_volume_muted=True)
+    play(hass, "Wonderwall", "Oasis", group_members=members)
+    await settled(hass)
+    assert calls["volume_mute"][-1].data == {
+        "entity_id": [other],
+        "is_volume_muted": False,
+    }
 
     play(hass, "", entity=other)
     await settled(hass)

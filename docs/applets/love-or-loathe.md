@@ -232,13 +232,20 @@ The player is not switched back if someone chose something else while it was awa
 if it is no longer playing. A restart of Home Assistant while a player is away doesn't
 lose the return.
 
-For speakers playing as one group, only the group's leader acts.
+For speakers playing as one group, the group's leader acts for all of them. A mute or a volume change is made on every speaker in the group. Sonos mutes each speaker by itself, so muting the leader alone would leave the rest of the group playing.
 
 ## Songs played too often
 
 For a station with a short playlist, each entry can strike any song that has been played
-a number of times in the last so many hours. A repetition is a strike, whatever your
-groups say about the song: a song you love is struck too, the time it reaches the count.
+a number of times in the last so many hours. A repetition is a strike, to keep a
+station from getting boring: a song you love is struck too, the time it reaches the count.
+
+What a song gets is decided in this order, the first that has it:
+
+1. A loathed group: its own action, played too often or not. A Christmas group set to
+   switch station switches, rather than taking the strike's action.
+2. Played too often: the strike's action.
+3. A loved group: its own action, usually turning it up.
 
 It is set with the entry's other settings: the entry's **Configure** in Home Assistant,
 under **Songs played too often**, or **Settings** on the page in Casa Mia. **Times

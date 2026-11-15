@@ -66,6 +66,17 @@ over Home Assistant's own websocket, and a store's user simply has no such page.
 publication (the release's last step, which asks first), and a run on Home Assistant
 2026.3.0, the floor its `hacs.json` names.
 
+## The third item: Dash-Bored
+
+Declared on 2026-11-15 in 2026.11.9-b1 (`components.PUBLISHED`), at the owner's word.
+Its mirror is `gazoodle/casa-mia-dash-bored`. Like Love it or Loathe it, it was built
+standalone and imports nothing from `casa_mia`, so there is no old install to hand over.
+It is still In development, and its guide says so at the top; the guide is the mirror's
+README. `tools/mirror.py --dry-run` passes for it, hassfest included, once its manifest's
+keys were put in hassfest's order (they were not, and nothing here had checked). Not yet
+done: its first publication (the release's last step, which asks first), and a run on
+the Home Assistant floor its `hacs.json` names.
+
 ## Sensor Watch today
 
 As built by 2026.11.3-b2 (2026-11-10). `HANDOVER.md`'s Sensor Watch section has the detail.

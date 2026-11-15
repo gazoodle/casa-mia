@@ -225,7 +225,7 @@ export function PlayersDialog({ entry, view, onClose, onSave }: { entry: Entry; 
       <Field label="Name" help="Shown on its device and entities in Home Assistant.">
         <input value={name} onChange={(e) => setName(e.target.value)} />
       </Field>
-      <Field label="Media players to watch" help="Any player that reports the title of what it is playing. For speakers playing as one group, only the group's leader acts.">
+      <Field label="Media players to watch" help="Any player that reports the title of what it is playing. For speakers playing as one group, the group's leader acts for all of them: a mute or a volume change is made on every speaker in the group.">
         <div className={css.players}>
           {all.map((p) => (
             <label key={p.entity_id} className={guest.check}>
@@ -248,7 +248,7 @@ export function PlayersDialog({ entry, view, onClose, onSave }: { entry: Entry; 
       </Field>
       <Field
         label="Songs played too often"
-        help="For a station with a short playlist. Any song played this many times in the last so many hours is struck, whatever your groups say about it, even a song you love. At 0 times this is off; its switch turns it off and on and keeps the numbers."
+        help="For a station with a short playlist. Any song played this many times in the last so many hours is struck, even a song you love. A song a loathed group has gets that group's own action instead. At 0 times this is off; its switch turns it off and on and keeps the numbers."
       >
         <span className={css.often}>
           <Switch on={on} label="Songs played too often are struck" onChange={setOn} />

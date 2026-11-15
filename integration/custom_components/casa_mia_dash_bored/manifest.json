@@ -1,8 +1,8 @@
 {
   "domain": "casa_mia_dash_bored",
   "name": "Dash-Bored",
-  "codeowners": ["@gazoodle"],
   "after_dependencies": ["camera"],
+  "codeowners": ["@gazoodle"],
   "config_flow": true,
   "dependencies": ["frontend", "http", "image", "panel_custom", "websocket_api"],
   "documentation": "https://github.com/gazoodle/casa-mia/blob/main/docs/applets/dash-bored.md",
@@ -11,5 +11,5 @@
   "issue_tracker": "https://github.com/gazoodle/casa-mia/issues",
   "requirements": [],
   "single_config_entry": true,
-  "version": "2026.11.8"
+  "version": "2026.11.9-b1"
 }

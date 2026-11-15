@@ -271,6 +271,11 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   gallery; `house.js` the house). The owner chose three families to build out: Gazette,
   Bakelite and Fridge, in that order, for the family first and the community after.
   Movement (a watch movement in three.js) and Contraption are the showpieces, not built.
+- **Published by itself** (2026.11.9-b1; owner, 2026-11-15): in `components.PUBLISHED`,
+  mirror `gazoodle/casa-mia-dash-bored`, made by `tools/mirror.py` at a release
+  (`docs/design/marketplace-mirrors.md`). The dry run passes; nothing is published yet.
+  So the "no downgrade" rule covers it, and its guide is the mirror's README: keep the
+  guide's links and pictures ones the mirror can carry.
 - **The Gazette has a column by a ZenOS-AI house's agent** (2026.11.8-b40, a prototype
   the owner means to show ZenOS's author). `katas.ts` reads the Kata sensor's attributes
   (`variables.<component>.value`, and `zen_summary`), found by ZenOS's labels

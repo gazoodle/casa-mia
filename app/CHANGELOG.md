@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.11.9-b1
+
+- Dash-Bored is to be published by itself too, from a repository of its own made at each release, for HACS and Home Assistant's Marketplace. A newer Dash-Bored installed from there is no longer replaced by the one this app bundles.
+- Dash-Bored: its manifest's keys are in the order Home Assistant's validation asks for.
+- **Love it or Loathe it: a mute or a volume change reaches every speaker in a group.** Sonos mutes each speaker by itself, so muting the group's leader left the speakers grouped with it playing the song. The leader now mutes, turns up or turns down each speaker in its group, and puts back each one at the next track unless someone has changed it since.
+- **Love it or Loathe it: a loathed group's own action comes before the strike.** A Christmas song played twice was muted by the strike, when its group said to switch station. Now a song a loathed group has always gets that group's action; the strike comes next, for any other song played too often, loved ones included; then a loved group's action.
+
 ## 2026.11.8
 
 - **Breaking:** Love it or Loathe it: songs played too often are now a setting of each entry, not of a group, and its match has no group (`group` is empty in the event and on the Last match sensor, with `repeats` the times played). An automation that looked for the name of a group like "Heard too often" should look for `repeats` above 0 instead.

@@ -238,18 +238,23 @@ class Engine:
     # --- following the players ---------------------------------------------------
 
     def judge(self, title: str, artist: str) -> tuple[Group | None, int]:
-        """What has a song now: the strike, when it has been played too often, however a
-        group feels about it (owner, 2026-11-15: "a repetition is a strike"); else the
-        group that has it. The second answer is how many times it was played, for the
-        strike (else 0)."""
+        """What has a song now, the first of (owner, 2026-11-15): a loathed group, whose
+        own action it gets (a Christmas group's switch, not the strike's mute); the
+        strike, when it has been played too often, loved or not ("repetition is to
+        prevent boredom"); a loved group. The second answer is how many times it was
+        played, for the strike (else 0)."""
         if not title:
             return None, 0
+        group = pick(self.groups, title, artist)
+        if group and group.feeling == LOATHE:
+            return group, 0
+
         if self.strike:
             now = dt_util.utcnow().timestamp()
             played = self.history.count(title, artist, now, self.hours)
             if played >= self.times:
                 return self.strike, played
-        return pick(self.groups, title, artist), 0
+        return group, 0
 
     @callback
     def afresh(self) -> None:
@@ -405,7 +410,7 @@ class Engine:
 
     # --- the actions: each answers what it did -----------------------------------
 
-    async def _call(self, service: str, entity: str, **data: Any) -> None:
+    async def _call(self, service: str, entity: str | list[str], **data: Any) -> None:
         await self.hass.services.async_call(
             "media_player", service, {ATTR_ENTITY_ID: entity, **data}, blocking=True
         )
@@ -413,20 +418,29 @@ class Engine:
     async def _volume(
         self, entity: str, player: Player, group: Group, state: State
     ) -> str:
-        was = state.attributes.get("volume_level")
-        if was is None:
+        """Each speaker of the group by the same share, from its own volume."""
+        if state.attributes.get("volume_level") is None:
             raise HomeAssistantError("the player reports no volume")
-        to = scaled(was, group.act.amount)
-        await self._call("volume_set", entity, volume_level=to)
-        player.undo = ["volume", was, to]
-        return f"volume {was:.0%} to {to:.0%} until the next track"
+        undo: dict[str, list[float]] = {}
+        for speaker in _speakers(state):
+            now = self.hass.states.get(speaker)
+            was = now.attributes.get("volume_level") if now else None
+            if was is None:
+                continue  # a member that says nothing of its volume is left alone
+            to = scaled(was, group.act.amount)
+            await self._call("volume_set", speaker, volume_level=to)
+            undo[speaker] = [was, to]
+        player.undo = ["volume", undo]
+        was, to = undo[entity]
+        return f"volume {was:.0%} to {to:.0%}{_on(undo)} until the next track"
 
     async def _mute(
         self, entity: str, player: Player, group: Group, state: State
     ) -> str:
-        await self._call("volume_mute", entity, is_volume_muted=True)
-        player.undo = ["mute"]
-        return "muted until the next track"
+        speakers = _speakers(state)
+        await self._call("volume_mute", speakers, is_volume_muted=True)
+        player.undo = ["mute", speakers]
+        return f"muted{_on(speakers)} until the next track"
 
     async def _switch(
         self, entity: str, player: Player, group: Group, state: State
@@ -465,30 +479,52 @@ class Engine:
         return f"switched to {station.name} until {back:%H:%M}"
 
     async def _undo(self, entity: str, player: Player) -> None:
+        """Each speaker the action changed, put back unless someone has since."""
         undo, player.undo = player.undo, None
-        state = self.hass.states.get(entity)
-        if undo is None or state is None:
+        if undo is None or self.hass.states.get(entity) is None:
             return
+
+        # As 2026.11.8 and before kept it: the one player, ["mute"] or ["volume", was, to].
+        if undo == ["mute"]:
+            undo = ["mute", [entity]]
+        elif undo[0] == "volume" and len(undo) == 3:
+            undo = ["volume", {entity: undo[1:]}]
 
         try:
             if undo[0] == "mute":
-                if state.attributes.get("is_volume_muted"):
-                    await self._call("volume_mute", entity, is_volume_muted=False)
-                    self._note(trail.BACK, "Unmuted", entity)
+                muted = [s for s in undo[1] if self._attr(s, "is_volume_muted")]
+                if muted:
+                    await self._call("volume_mute", muted, is_volume_muted=False)
+                    self._note(trail.BACK, f"Unmuted{_on(muted)}", entity)
                 else:
                     self._note(trail.BACK, "Already unmuted by someone", entity)
                 return
-            _, was, to = undo
-            now = state.attributes.get("volume_level")
-            if now is not None and abs(now - to) < SAME_VOLUME:
-                await self._call("volume_set", entity, volume_level=was)
-                self._note(trail.BACK, f"Volume put back to {was:.0%}", entity)
-            else:
+
+            back, moved = {}, []
+            for speaker, (was, to) in undo[1].items():
+                now = self._attr(speaker, "volume_level")
+                if now is not None and abs(now - to) < SAME_VOLUME:
+                    await self._call("volume_set", speaker, volume_level=was)
+                    back[speaker] = was
+                else:
+                    moved.append(speaker)
+            if back:
+                was = back.get(entity, next(iter(back.values())))
                 self._note(
-                    trail.BACK, "Volume moved by someone since: left alone", entity
+                    trail.BACK, f"Volume put back to {was:.0%}{_on(back)}", entity
+                )
+            if moved:
+                self._note(
+                    trail.BACK,
+                    f"Volume moved by someone since: left alone{_on(moved)}",
+                    entity,
                 )
         except HomeAssistantError as exc:
             self._problem(entity, f"could not put back {undo[0]}: {exc}")
+
+    def _attr(self, entity: str, name: str) -> Any:
+        state = self.hass.states.get(entity)
+        return state.attributes.get(name) if state else None
 
     # --- coming back from another station ----------------------------------------
 
@@ -587,6 +623,19 @@ def ordered(entry: ConfigEntry) -> list[ConfigSubentry]:
 def store_key(entry: ConfigEntry) -> str:
     """Each entry's own file in Home Assistant's storage."""
     return f"{DOMAIN}.{entry.entry_id}"
+
+
+def _speakers(state: State) -> list[str]:
+    """The player and every speaker grouped with it, which hear what it plays. Sonos
+    mutes and sets the volume of each speaker by itself, so a mute of the leader alone
+    left the rest of its group playing (2026-11-15)."""
+    members = state.attributes.get("group_members") or []
+    return [state.entity_id, *(m for m in members if m != state.entity_id)]
+
+
+def _on(speakers: Any) -> str:
+    """ " on 2 speakers", for an action on more than the player."""
+    return f" on {len(speakers)} speakers" if len(speakers) > 1 else ""
 
 
 def _track(state: State) -> tuple[str, str]:
