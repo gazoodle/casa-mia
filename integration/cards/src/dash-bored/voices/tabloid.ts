@@ -14,7 +14,7 @@ export const tabloid: Voice = {
   price: "Still FREE!",
   flash: "Breaking",
   ticker: "",
-  titles: { more: "Also today", briefs: "Quick ones", late: "Latest", archive: "Rewind", temps: "Hot or not", board: "Flick a switch", notices: "Do it now", elsewhere: "Everywhere else", gaps: "Sort it out", personal: "Goss", celebrity: "Showbiz", weather: "Brolly watch" },
+  titles: { more: "Also today", briefs: "Quick ones", late: "Latest", archive: "Rewind", temps: "Hot or not", board: "Flick a switch", notices: "Do it now", elsewhere: "Everywhere else", gaps: "Sort it out", personal: "Goss", celebrity: "Showbiz", weather: "Brolly watch", desk: "The inside line" },
   join: " • ",
   end: "",
   nothing: "Nothing yet. Give it a minute.",
@@ -100,6 +100,7 @@ export const tabloid: Voice = {
   personal: { home: "{name}'s HOME!", left: "{name} has LEFT the building", zone: "{name} spotted at {place}",
     love: "{name} LOVES {song}", loathe: "{name} can't STAND {song}", song: "“{title}” by {artist}", tune: "“{title}”" },
   notices: ["Go on, press it.", "One tap. Job done.", "You know you want to.", "Easy as that."],
+  desk: { by: "By {name}", staff: "our insider", filed: "In at {time}", lapsed: "Gone quiet since {time}", unsure: "Rumour", failed: "No comment" },
   stories: {
     alert: SHOCK,
     "alert.warning": { ...SHOCK, kicker: "Uh-oh" },

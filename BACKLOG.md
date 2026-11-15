@@ -44,6 +44,12 @@ the Gazette's own work is parked below it.
     Nixie: nixie tubes.
   - The sizes `console/balance.ts` counts on are Bakelite's; an era with other sizes
     needs its own.
+- **The agent's column, what's left** (prototype, 2026.11.8-b40). Only the Gazette draws
+  it: the Fridge's notepad and a Console ticker could. An urgent Kata is not yet a story
+  or breaking news. The lapsed by-line, a doubted piece and a hidden sensor are covered by
+  unit tests only. Kata text reads as a machine's log, which is for ZenOS's author to
+  change, not us. A wall tablet shows whatever the agent wrote, alarm and lock states
+  included: decide whether that needs a choice of which parts may print.
 - **The Fridge, what's left** (built 2026.11.8-b37, in three households; not yet seen
   by the owner, nor on a tablet). A sighting's photograph, a sounding alarm and a
   critical note have not been seen, since the test VM makes none. A room's drawn picture

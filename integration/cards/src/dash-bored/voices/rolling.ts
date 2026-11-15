@@ -12,7 +12,7 @@ export const rolling: Voice = {
   price: "Free to read",
   flash: "Breaking",
   ticker: "Headlines",
-  titles: { more: "Top stories", briefs: "More headlines", late: "Live updates", archive: "Last 30 minutes", temps: "Temperatures", board: "Controls", notices: "Quick actions", elsewhere: "Other rooms", gaps: "Needs attention", personal: "People", celebrity: "Now playing", weather: "Forecast" },
+  titles: { more: "Top stories", briefs: "More headlines", late: "Live updates", archive: "Last 30 minutes", temps: "Temperatures", board: "Controls", notices: "Quick actions", elsewhere: "Other rooms", gaps: "Needs attention", personal: "People", celebrity: "Now playing", weather: "Forecast", desk: "Analysis" },
   join: ", ",
   end: ".",
   nothing: "No updates yet.",
@@ -98,6 +98,7 @@ export const rolling: Voice = {
   personal: { home: "{name} arrived home", left: "{name} left home", zone: "{name} arrived at {place}",
     love: "{name} loved {song}", loathe: "{name} loathed {song}", song: "“{title}” by {artist}", tune: "“{title}”" },
   notices: ["Tap to run", "Runs at once", "One tap", "Ready to run"],
+  desk: { by: "{name}", staff: "House correspondent", filed: "Updated {time}", lapsed: "Not updated since {time}", unsure: "Unconfirmed", failed: "No report" },
   stories: {
     alert: LIVE,
     "alert.warning": { ...LIVE, kicker: "Developing", head: ["{name} needs checking", "{name}: what we know so far"] },

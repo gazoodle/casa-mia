@@ -12,6 +12,7 @@ import { clipping, photograph } from "./clipping.ts";
 import { Acts } from "./gazette/acts.ts";
 import { ARCHIVE, PAST } from "./gazette/page.ts";
 import { DEGREES, sighted, type Device, type Room } from "./house.ts";
+import { lapsed } from "./katas.ts";
 import { cap, clock, counted, billing, personal, stories, type Press, type Story } from "./stories.ts";
 import { FIXES, VOICES, amount, announce, billed, clause, fill, poll, sky, tell, wired, words, type Told } from "./voices.ts";
 
@@ -99,6 +100,13 @@ export class Gazette extends Acts {
         : nothing;
     const warm = house.rooms.filter((r) => r.temp !== undefined);
     const column = personal(house.people, this._rated, now);
+    // The agent's column, where the house has one (katas.ts). What a model wrote is set
+    // apart from what this paper worked out for itself, under the agent's own name.
+    const desk = house.desk;
+    const old = !!desk?.lead && lapsed(desk.lead, now);
+    // A time alone would pass yesterday's piece off as today's.
+    const when = (at: number) => (new Date(at).toDateString() === new Date(now).toDateString() ? clock(at) : `${new Date(at).toLocaleDateString(hass.locale?.language ?? "en-GB", { day: "numeric", month: "short" })}, ${clock(at)}`);
+    const doubt = (of: { unsure: boolean; failed?: boolean }) => (of.failed ? html`<i>${voice.desk.failed}:</i> ` : of.unsure ? html`<i>${voice.desk.unsure}:</i> ` : nothing);
 
     const rooms = house.rooms.filter((r) => r.devices.length);
     const big = rooms.reduce((n, r) => n + r.devices.length, 0) > BIG;
@@ -141,6 +149,21 @@ export class Gazette extends Acts {
       ${byFloor(rooms, (r) => html`<div class="row"><span>${r.name}</span>${r.devices.map(chip)}</div>`,
         (drawn) => html`<div class="rows">${drawn}</div>`)}`;
 
+    // It goes in the middle of the page, after the paper's own news.
+    const correspondent = desk
+      ? html`<h3>${voice.titles.desk}</h3>
+                <div class="desk">
+                  <p class="by">${fill(voice.desk.by, { name: desk.by ?? voice.desk.staff })}${desk.lead
+                    ? html` · <span class=${old ? "old" : ""} role=${old ? "alert" : nothing}>${fill(old ? voice.desk.lapsed : voice.desk.filed, { time: when(desk.lead.at) })}</span>`
+                    : nothing}</p>
+                  ${desk.lead ? html`<p class="lead">${doubt(desk.lead)}${desk.lead.text}</p>${[desk.lead.attention, desk.lead.objective].map((more) => (more ? html`<p>${more}</p>` : nothing))}` : nothing}
+                  ${desk.lead?.errors.map((error) => html`<p class="error">${error}</p>`)}
+                  ${desk.pieces.length
+                    ? html`<ul>${desk.pieces.map((p) => html`<li><time>${when(p.at)}</time><b>${p.name}.</b> ${doubt(p)}${p.text}${p.attention ? ` ${p.attention}` : ""}</li>`)}</ul>`
+                    : nothing}
+                </div>`
+      : nothing;
+
     return html`<div class="paper" data-style=${this._style}>
       ${this._lost ? html`<div class="fault" role="alert">Not connected to Home Assistant since ${clock(this._lost)}. What follows is how things stood then.</div>` : nothing}
       ${this._fault ? html`<div class="fault" role="alert">${this._fault}</div>` : nothing}
@@ -155,7 +178,7 @@ export class Gazette extends Acts {
         <span>${voice.price} · ${clock(Date.now())}</span>
       </div>
       ${voice.ticker ? html`<div class="ticker" aria-hidden="true"><b>${voice.ticker}</b><div><span>${told.map((t) => t.head).join("  •  ")}</span></div></div>` : nothing}
-      <main class="page ${rest.length ? "" : "solo"}">
+      <main class="page ${rest.length || desk ? "" : "solo"}">
         <article>
           <div class="figure"><b>${lead.s.figure[0]}</b><span>${lead.s.figure[1]}</span></div>
           <p class="kicker">${lead.kicker}</p>
@@ -170,11 +193,12 @@ export class Gazette extends Acts {
             ${rooms.length ? nothing : html`<p>No areas with lights, switches or other devices were found. Give your devices areas in Home Assistant's settings and this page fills itself in.</p>`}
           </div>
         </article>
-        ${rest.length
+        ${rest.length || desk
           ? html`<section>
-              <h3>${voice.titles.more}</h3>
+              ${rest.length ? html`<h3>${voice.titles.more}</h3>` : nothing}
               ${rest.slice(0, 3).map((t) => html`<div class="item"><p class="kicker">${t.kicker}</p><h4>${t.head}</h4>${photo(t.s)}<p>${t.deck}</p>${act(t)}</div>`)}
               ${rest.length > 3 ? html`<h3>${voice.titles.briefs}</h3><ul>${rest.slice(3).map((t) => html`<li><b>${t.head}.</b> ${t.deck}</li>`)}</ul>` : nothing}
+              ${correspondent}
             </section>`
           : nothing}
         <aside>

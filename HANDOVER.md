@@ -271,6 +271,14 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   gallery; `house.js` the house). The owner chose three families to build out: Gazette,
   Bakelite and Fridge, in that order, for the family first and the community after.
   Movement (a watch movement in three.js) and Contraption are the showpieces, not built.
+- **The Gazette has a column by a ZenOS-AI house's agent** (2026.11.8-b40, a prototype
+  the owner means to show ZenOS's author). `katas.ts` reads the Kata sensor's attributes
+  (`variables.<component>.value`, and `zen_summary`), found by ZenOS's labels
+  `zen_kata_cabinet` and `zen_dojo_cabinet`; `house.ts` watches them and fills
+  `house.desk`, so any family can draw it. The test VM runs ZenOS for this: its
+  summarizers use a local model on the owner's network, its agent uses the owner's paid
+  API account with six tools exposed, and installing it needed several manual steps that
+  its guide doesn't give (the owner has the list).
 - **The Fridge is the third family** (2026.11.8-b37; the owner asked for it on 2026-11-15
   and it was built while he slept, so he has not seen it). `fridge.ts` on `family.ts`;
   `fridge/magnets.ts` draws the button magnets (a picture for each kind) and the novelty

@@ -433,6 +433,28 @@ breaking news: a banner across the top with the message you gave that sensor, an
 story placed by its level. A page opened later is still told of every alert that holds.
 Dash-Bored works without Sensor Watch; there is then no breaking news.
 
+### A column by the house's own agent (ZenOS-AI)
+
+This is a prototype (2026.11.8-b40), in the Gazette only.
+
+If the house runs [ZenOS-AI](https://github.com/nathan-curtis/zenos-ai), its agent has a
+column in the middle of the page, under the agent's own name. ZenOS writes a summary of
+the whole house and a short account of each part of it (it calls these Katas), and the
+column prints them as they are written:
+
+- The summary comes first, with when it was written. When it is more than an hour old
+  the by-line says "Nothing filed since" and the time.
+- Each part's account follows, the most urgent first. ZenOS's accounts of its own workings
+  are left out.
+- A piece is marked "Unconfirmed" where the model gave it low confidence, and "No report"
+  where it only said why it had nothing to say.
+- The column is in italics, because a model wrote it and the rest of the paper is worked
+  out from the house itself.
+
+There is nothing to set up: the page finds ZenOS's Kata sensor by the label ZenOS gives
+it. To keep the column off the page, give that sensor the Dash-Bored hide label. A house
+without ZenOS has no column.
+
 ### When something is wrong with the page itself
 
 - If the connection to Home Assistant is lost, a red line says so and since when. What

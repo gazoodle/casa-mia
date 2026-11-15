@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.8-b40
+
+- Dash-Bored: in a house that runs ZenOS-AI, the Gazette has a column by the house's own agent, under its name. It prints the agent's summary of the whole house and its short accounts of each part, with when each was written, and says so when the summary is more than an hour old. The hide label on the Kata sensor takes the column off the page. A prototype: the other families don't show it yet.
+
 ## 2026.11.8-b39
 
 - **Love it or Loathe it: only songs are struck for being played too often.** What a station puts out between songs (its name, the show's name, an advert) has no artist, and was counted as a song played all day: a speaker was muted for a show's title "played 17 times in the last 4 hours". Now only a track with an artist, or a title such as "Artist - Title", is counted.

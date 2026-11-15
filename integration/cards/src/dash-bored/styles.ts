@@ -137,6 +137,15 @@ export const STYLES = css`
   time { font-variant-numeric: tabular-nums; font-weight: 700; margin-right: 6px; }
   table { width: 100%; border-collapse: collapse; font-size: 15px; margin-bottom: 16px; }
   td { padding: 4px 2px; border-bottom: 1px dotted rgba(0,0,0,.4); } td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+  /* The agent's column: a model's account, in italics so that it isn't taken for the paper's own. */
+  .desk { margin: 0 0 16px; }
+  .desk p { margin: 0 0 6px; font-size: 14px; line-height: 1.4; font-style: italic; overflow-wrap: anywhere; }
+  .desk .by { font-style: normal; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+  .desk .old { font-weight: 700; border-bottom: 1.5px dotted var(--ink); }
+  .desk .lead { font-size: 16px; line-height: 1.35; }
+  .desk .error { font-size: 13px; padding-left: 8px; border-left: 2px solid var(--ink); }
+  .desk ul { margin: 0; font-size: 14px; line-height: 1.35; font-style: italic; overflow-wrap: anywhere; }
+  .desk li b, .desk li time { font-style: normal; }
   /* The weather: the sky now, then the forecast's days, each with its sky and its high and low. */
   .now { margin: 0 0 6px; font-size: 15px; line-height: 1.35; }
   .days td:nth-child(2) { font-style: italic; } .days td:last-child { white-space: nowrap; }

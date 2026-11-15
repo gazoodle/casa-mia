@@ -4,6 +4,7 @@
 // registries: which entities are shown, in which room. `read` reads the states of those
 // entities alone.
 import type { Hass } from "../ha.ts";
+import { DOJO, KATAS, PERSONA, filed, type Desk } from "./katas.ts";
 
 export type Kind = "light" | "switch" | "cover" | "lock" | "climate" | "media_player" | "camera" | "fan" | "valve" | "vacuum" | "lawn_mower" | "water_heater" | "humidifier" | "siren" | "alarm_control_panel";
 export type Device = {
@@ -44,6 +45,7 @@ export type House = {
   appliances: Appliance[];
   outside?: { temp: number; humidity?: number; sky: string; id: string; daily: boolean }; // sky: Home Assistant's word for the weather now; daily: its entity gives a forecast by the day
   kw?: number;
+  desk?: Desk; // what a ZenOS-AI house's agent has written about it (katas.ts)
 };
 /** What Home Assistant doesn't know about the house, that an automatic dashboard needs:
  * devices in no area, areas on no floor (in a house that has floors), devices in one room
@@ -62,7 +64,7 @@ export type Options = { weather?: string; power?: string; floors?: string[]; roo
 type Found = { id: string; kind: Kind; name: string; full: string; guarded: boolean; power?: string };
 type FoundRoom = { id: string; name: string; floor?: string; floorId?: string; level: number; temp?: string; humidity?: string; climate?: string; devices: Found[] };
 type FoundSighting = { id: string; name: string; room?: string };
-export type Survey = { rooms: FoundRoom[]; people: string[]; sightings: FoundSighting[]; gaps: Gap[]; scenes: string[]; weather?: string; power?: string; watched: string[] };
+export type Survey = { rooms: FoundRoom[]; people: string[]; sightings: FoundSighting[]; gaps: Gap[]; scenes: string[]; weather?: string; power?: string; desk?: string; dojo?: string; watched: string[] };
 
 const FORECAST_DAILY = 1; // a weather entity's supported_features bit for a forecast by the day
 /** A day of the forecast: its start, Home Assistant's word for its weather, and its high and low. */
@@ -116,6 +118,8 @@ export function survey(hass: Hass, options: Options): Survey {
   const meters = new Map<string, string>(); // device id -> its power sensor
   const owner = new Map<Found, string>(); // a switch -> its device id
   let weather = options.weather;
+  let desk: string | undefined; // the sensor that holds a ZenOS-AI house's Katas
+  let dojo: string | undefined; // and the one that names what they are about
   const loose: Gap["items"] = [];
   const clash: Gap["items"] = [];
   const plumbing: Gap["items"] = [];
@@ -124,6 +128,9 @@ export function survey(hass: Hass, options: Options): Survey {
   for (const entry of Object.values<any>(hass.entities ?? {})) {
     const id: string = entry.entity_id;
     const state = hass.states[id];
+    // The hide label on the sensor itself keeps the agent's column off the page.
+    if (entry.labels?.includes(KATAS) && !hidden(entry)) desk = id;
+    if (entry.labels?.includes(DOJO)) dojo = id;
     // Hidden, or a device's settings and diagnostics: not for a dashboard.
     if (!state || entry.hidden || entry.entity_category) continue;
 
@@ -213,7 +220,9 @@ export function survey(hass: Hass, options: Options): Survey {
     scenes: scenes.sort(),
     weather,
     power: options.power,
-    watched: [...watched, ...scenes, ...people, weather, options.power].filter((id): id is string => !!id),
+    desk,
+    dojo,
+    watched: [...watched, ...scenes, ...people, weather, options.power, desk, desk && PERSONA, desk && dojo].filter((id): id is string => !!id),
   };
 }
 
@@ -327,6 +336,7 @@ export function read(found: Survey, hass: Hass): House {
     appliances,
     outside: typeof sky?.attributes.temperature === "number" ? { temp: sky.attributes.temperature, humidity: sky.attributes.humidity, sky: sky.state, id: found.weather!, daily: !!(sky.attributes.supported_features & FORECAST_DAILY) } : undefined,
     kw: kilowatts(found.power),
+    desk: found.desk ? filed(hass.states[found.desk], hass.states[PERSONA]?.state, found.dojo ? hass.states[found.dojo] : undefined) : undefined,
   };
 }
 

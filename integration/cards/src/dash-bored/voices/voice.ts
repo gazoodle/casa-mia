@@ -11,7 +11,7 @@ export type Voice = {
   price: string;
   flash: string; // the word before breaking news
   ticker: string; // the word before a ticker of the headlines; empty in a paper that has none
-  titles: { more: string; briefs: string; late: string; archive: string; temps: string; board: string; notices: string; elsewhere: string; gaps: string; personal: string; celebrity: string; weather: string }; // archive: the last half hour's sightings; elsewhere: the rooms on no floor
+  titles: { more: string; briefs: string; late: string; archive: string; temps: string; board: string; notices: string; elsewhere: string; gaps: string; personal: string; celebrity: string; weather: string; desk: string }; // archive: the last half hour's sightings; elsewhere: the rooms on no floor
   join: string; // between a room's devices
   end: string;
   nothing: string; // the late news before anything has happened
@@ -28,6 +28,7 @@ export type Voice = {
   celebrity: Record<string, string>; // the celebrity column, by a Billing's kind, `kind.live` while it is on, and a rating's kind for what was said of it
   personal: Record<string, string>; // the Personal column, by a Notice's kind; `song` and `tune` are how a song is named, with its artist and without
   notices: string[]; // under each scene, in turn
+  desk: { by: string; staff: string; filed: string; lapsed: string; unsure: string; failed: string }; // the agent's column (katas.ts): its by-line, the name where the agent has none, when it was written, that it is out of date, and the words before a piece the model doubted or could not write
   stories: Record<string, Entry>; // by `kind.variant`, else `kind`
 };
 export type Told = { kicker: string; head: string; deck: string; body: string; act: string; vote: string };

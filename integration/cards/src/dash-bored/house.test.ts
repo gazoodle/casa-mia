@@ -145,3 +145,13 @@ test("the floors and rooms come in the order asked for, and a card may show only
   assert.deepEqual(order({ floors: ["top", "ground"], floor_order: ["below"] }), ["attic", "hall", "kitchen"]);
   assert.deepEqual(order({ rooms: ["shed", "kitchen"], room_order: ["hall"] }), ["kitchen", "shed"]);
 });
+
+test("a ZenOS-AI house's Kata sensor is found by its label and watched with the agent's name, unless it is hidden", () => {
+  const h = hass({ "light.a": ["den", "Lamp"], "sensor.katas": ["", "Katas"] }, { den: { name: "Den" } });
+  Object.assign(h.entities["sensor.katas"], { labels: ["zen_kata_cabinet"] });
+  const found = survey(h, {});
+  assert.equal(found.desk, "sensor.katas");
+  assert.ok(found.watched.includes("sensor.katas") && found.watched.includes("input_text.zenos_persona_name"));
+  Object.assign(h.entities["sensor.katas"], { labels: ["zen_kata_cabinet", HIDE] });
+  assert.equal(survey(h, {}).desk, undefined);
+});
