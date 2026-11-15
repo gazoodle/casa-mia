@@ -28,7 +28,7 @@ documentation.
 <td width="25%" valign="top">
 <h4><a href="docs/applets/dash-bored.md">Dash-Bored</a> <a href="docs/README.md#maturity"><img src="docs/maturity/development.svg" alt="In development" align="absmiddle"></a><!--dash_bored--></h4>
 <a href="docs/applets/dash-bored.md"><img src="docs/screenshots/dash-bored-gazette.webp" alt="Dash-Bored's Gazette: the house as a broadsheet newspaper, leading on a boiler fault, with the rooms' devices in its columns" width="100%"></a>
-<p>Yet another dashboard designer: eighteen ways of controlling the same house, from a newspaper to a 1950s instrument panel. Two are being built and the rest are mock-ups.</p>
+<p>Yet another dashboard designer: eighteen ways of controlling the same house, from a newspaper to a 1950s instrument panel to a fridge door. Three are built and the rest are mock-ups.</p>
 </td>
 <td width="25%" valign="top">
 <h4><a href="docs/tablet-layout.md#showing-and-hiding">Garnish</a> <a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta" align="absmiddle"></a><!--garnish--></h4>

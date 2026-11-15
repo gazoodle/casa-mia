@@ -4,8 +4,8 @@
 
 > **Maturity: In development.** Being built: parts work, it changes often, and an update may break it. For the curious. ([The levels](../README.md#maturity))
 
-> **This is a work in progress.** Of the eighteen, one runs in Home Assistant today (the
-> Gazette) and a second is about half built (Bakelite). The other sixteen are mock-ups:
+> **This is a work in progress.** Of the eighteen, three run in Home Assistant today: the
+> Gazette, Bakelite and the Fridge. The other fifteen are mock-ups:
 > designs that work against an invented house but don't talk to Home Assistant yet. They
 > are being built one at a time, and what is here changes often.
 
@@ -40,7 +40,7 @@ the Casa Mia integration.
 
 ## The eighteen, and where each has got to
 
-The first two can be used. The pictures of the others are of their mock-ups.
+The Gazette, Bakelite and the Fridge can be used. The pictures of the others are of their mock-ups.
 
 <table>
 <tr>
@@ -81,8 +81,8 @@ The first two can be used. The pictures of the others are of their mock-ups.
 <p><b>Dusk</b> · Mock-up<br>A storybook picture of the house from the garden. Lit rooms have glowing windows, curtains draw, the door stands ajar when unlocked, and the sky follows the time of day.</p>
 </td>
 <td width="33%" valign="top">
-<img src="../screenshots/dash-bored-mock-fridge.webp" alt="Fridge, as a mock-up" width="100%">
-<p><b>Fridge</b> · Mock-up<br>The fridge door: a polaroid per room, button magnets for devices, a notepad of the day's facts and fridge-poetry words for scenes.</p>
+<a href="#the-fridge"><img src="../screenshots/dash-bored-fridge-family.webp" alt="Fridge" width="100%"></a>
+<p><b><a href="#the-fridge">Fridge</a></b> · Being built: every kind of device, in three households<br>The fridge door: a polaroid per room, button magnets for devices, sticky notes for what is wrong, the cameras' pictures under a butterfly, a notepad of the day's facts and fridge-poetry words for scenes.</p>
 </td>
 </tr>
 <tr>
@@ -152,10 +152,11 @@ of the page, on a part of it that is not a button or another control. A choice o
 a small drawing of each family; press one and the page becomes it.
 
 The choice is remembered by the browser it was made in. A tablet on the wall, a phone and
-a desktop each keep their own. There are two families: the Gazette and the Console. The
-Gazette's three papers are a separate choice, made on the paper itself (see
-[Three papers](#three-papers)), and so is the Console's era, made with a switch on the
-panel (see [The Console](#the-console)).
+a desktop each keep their own. There are three families: the Gazette, the Console and
+the Fridge. Each has a choice of its own, made on the thing itself: the Gazette's three
+papers (see [Three papers](#three-papers)), the Console's era, on a switch on the panel
+(see [The Console](#the-console)), and whose fridge it is, on three magnets in the door's
+corner (see [The Fridge](#the-fridge)).
 
 ## The Gazette
 
@@ -567,6 +568,72 @@ how they are drawn:
 | A black-and-white television for a camera | A colour television |
 | A chart recorder on paper | An oscilloscope, with a green trace for each device |
 
+## The Fridge
+
+![A young family's fridge door: three sticky notes, a polaroid for each room with magnets under it, the entrance camera's photograph held by a butterfly, number magnets for the alarm, a notepad, word magnets and a star chart](../screenshots/dash-bored-fridge-family.webp)
+
+The house as what is stuck to a fridge door. It shows every kind of device the Gazette
+does.
+
+- **A polaroid for each room**, held up by a novelty magnet, with the room's name and
+  temperature written under the picture. The picture is the area's own from Home
+  Assistant if it has one, and a drawn window and lamp if not. It is dark while the room's
+  lights are off and warm while any is on. Press it to turn the room's lights all off, or
+  all on if none were.
+- **A button magnet for each device**, under its room's polaroid, with a picture of what
+  it is: a lamp, a plug, a blind, a padlock, a thermometer, a fan and so on. It is grey
+  while its device is off and coloured while it is on, with the device's name and how it
+  stands under it. Press it to switch the device; it wobbles.
+- **A paper strip** under a magnet whose device has a level: a light's brightness, a
+  blind's position, a fan's speed, a player's volume, the temperature the heating is set
+  to. Slide the small magnet along it.
+- **Locks, garage doors, gates, valves and sirens** take two presses to unlock, open or
+  sound. The first lifts the magnet off the door and a note asks "again to open?"; the
+  second does it. If nothing is pressed for six seconds the magnet drops back. Locking,
+  shutting and silencing take one press.
+- **A camera's latest picture** is a photograph held by a butterfly. With more than one
+  camera, the others are held by a ladybird, a bee, a frog and the rest. If the camera
+  saw something in the last half hour, the photograph is of that, and the writing under
+  it says what and when. Press it for Home Assistant's own dialog, with the live picture.
+- **An alarm** has a note of how it stands, number magnets to press its code out with if
+  it takes one in figures (and an arrow to take the last one off), and a word magnet for
+  each thing it can be told: away, home and night, or unset. The code is taken off the
+  door when it is sent, and after 30 seconds if it is left. An alarm whose code is words
+  is not on the door, and its room says so.
+- **Sticky notes** along the top, one for each sensor that
+  [Sensor Watch](sensor-watch.md) has above its normal level, the worst first: yellow for
+  a task, orange for a warning, pink for an error, and a red one that won't keep still
+  for critical.
+- **A notepad** beside the rooms with the day jotted on it: how many lights are on, what
+  the house is using, the weather outside, the warmest and coldest rooms, who is in, and
+  any lock that is undone.
+- **Word magnets**, as for fridge poetry. The ones with a coloured edge are your scenes:
+  press one to run it. The others are only words.
+
+If the connection to Home Assistant is lost, or Home Assistant refuses a press, a torn
+sheet in red at the top says so.
+
+### Three households
+
+The same door can be a young family's, a pair of yuppies' or grandparents'. Press one of
+the three magnets in the top right corner: the teddy, the briefcase or the teacup. The
+choice is remembered by the browser it was made in.
+
+| | Young family | Yuppies | Grandparents |
+|---|---|---|---|
+| The door | White enamel | Brushed steel, which shows every finger | Cream enamel with a chrome pull |
+| The writing | Felt pen | Printed, on labels | Joined-up handwriting |
+| The magnets | Bright, and all the animals | Black and grey, with one orange | Muted, with the flowers |
+| The notes | Sticky notes | White cards with a coloured edge | Lined paper from a pad |
+| Also on it | A star chart, crayon, and chocolate spread | A shopping list | A postcard, and a tea ring on the pad |
+
+![The yuppies' fridge: brushed steel with printed labels and black magnets](../screenshots/dash-bored-fridge-yuppies.webp)
+
+![The grandparents' fridge: cream enamel with handwriting and notes on lined paper](../screenshots/dash-bored-fridge-grandparents.webp)
+
+Nothing on the door is straight or clean. Everything is turned a little, each photograph
+is creased in its own way, and the door has fingerprints by its handle.
+
 ## The order of floors and rooms
 
 Floors are shown from the lowest up and the rooms on each by name. To change that, open
@@ -597,6 +664,10 @@ weather: weather.home     # optional: which weather entity gives the outside tem
 floors: [First floor]     # optional: show only these floors, in this order
 rooms: [Kitchen, Hall]    # optional: show only these rooms, in this order on their floor
 ```
+
+The Fridge is a card too, **Casa Mia Dash-Bored Fridge** (`type: custom:dash-bored-fridge`).
+Give it `style: family`, `style: yuppies` or `style: grandparents` and it is that household's
+with no magnets to choose another.
 
 The Console is a card too, **Casa Mia Dash-Bored Console** (`type: custom:dash-bored-console`),
 with its era switch. Give it `era: bakelite` or `era: silverface` and it is that era with no

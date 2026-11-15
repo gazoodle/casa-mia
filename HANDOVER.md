@@ -271,6 +271,14 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   gallery; `house.js` the house). The owner chose three families to build out: Gazette,
   Bakelite and Fridge, in that order, for the family first and the community after.
   Movement (a watch movement in three.js) and Contraption are the showpieces, not built.
+- **The Fridge is the third family** (2026.11.8-b37; the owner asked for it on 2026-11-15
+  and it was built while he slept, so he has not seen it). `fridge.ts` on `family.ts`;
+  `fridge/magnets.ts` draws the button magnets (a picture for each kind) and the novelty
+  ones, `fridge/skins.ts` is the three households as data (young family, yuppies,
+  grandparents; a fourth is another entry there and a block in `fridge/styles.ts`).
+  Everything is turned by `tilt(id)`, the same each time. A guarded device takes two
+  presses to unlock, open or sound, as in the Gazette, not the Console's rule. It does
+  not hold to the Console's rule that controls never move for their lettering.
   Bakelite is the 1950s of a family of control panels, the **Console**, a decade each
   to the 1990s: Bakelite, Nixie, Silverface, Bargraph, Beige (names agreed with the
   owner, 2026-11-14). `console/host.ts` is the family's element and its era switch

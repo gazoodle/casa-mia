@@ -44,8 +44,12 @@ the Gazette's own work is parked below it.
     Nixie: nixie tubes.
   - The sizes `console/balance.ts` counts on are Bakelite's; an era with other sizes
     needs its own.
-- **Fridge** (asked 2026-11-13): the family after Bakelite. It needs drawn magnets in
-  place of the mock-up's emoji, and could use each area's own picture for its polaroid.
+- **The Fridge, what's left** (built 2026.11.8-b37, in three households; not yet seen
+  by the owner, nor on a tablet). A sighting's photograph, a sounding alarm and a
+  critical note have not been seen, since the test VM makes none. A room's drawn picture
+  is the same window and lamp for every room. A thermostat's modes and a player's source
+  are not on the door, nor is a device's history. The novelty magnets are twelve; more
+  would suit (the owner: "other animals, objects etc").
 
 **The Gazette, parked** (owner, 2026-11-14):
 

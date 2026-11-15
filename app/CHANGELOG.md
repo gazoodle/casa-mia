@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.8-b37
+
+- **Dash-Bored: a third family, the Fridge.** The house as what is stuck to a fridge door: a polaroid for each room, a button magnet for each device, a paper strip to slide for a level, the cameras' pictures as photographs held by a butterfly, Sensor Watch's alerts as sticky notes, scenes as word magnets, number magnets for an alarm's code and a notepad of the day. It can be dressed as a young family's, a pair of yuppies' or grandparents', chosen on three magnets in the door's corner. Press twice in the top right corner of the Dash-Bored page to choose it. It is also a card, **Casa Mia Dash-Bored Fridge** (`custom:dash-bored-fridge`).
+
 ## 2026.11.8-b36
 
 - **Dash-Bored: Silverface's needles waver half as far as Bakelite's.** A meter's wobble now falls with the Console's decade: most in the 1950s, half of that in the 1970s, and none by the 1990s.
