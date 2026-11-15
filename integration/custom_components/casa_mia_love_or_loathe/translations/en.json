@@ -23,7 +23,7 @@
   "options": {
     "step": {
       "init": {
-        "title": "Media players to watch, and who may rate",
+        "title": "Media players to watch, who may rate, and songs played too often",
         "data": {
           "players": "Media players to watch (one or more)",
           "delay": "Delay",
@@ -35,11 +35,31 @@
           "delay": "Seconds to wait after a player reports a new track before acting. Leave it at 0 unless the title changes before the song does.",
           "raters": "The people whose loves and loathes count here. Only they can rate a song, with the thumbs or the rate action, and only they get loved and loathed groups. Left empty, nobody can.",
           "screens": "The logins that may rate for one of those people by naming them, such as a wall tablet's. Anyone else can only rate as themselves; an administrator may always name a person."
+        },
+        "sections": {
+          "repeats": {
+            "name": "Songs played too often",
+            "description": "For a station with a short playlist. Any song played this many times in the last so many hours is a strike, whatever your groups say about it, even a song you love. The Repeats switch turns this off and on without losing the numbers.",
+            "data": {
+              "times": "Times played",
+              "hours": "In the last",
+              "action": "When one comes on",
+              "amount": "Volume change",
+              "minutes": "Minutes on the other station"
+            },
+            "data_description": {
+              "times": "0 switches this off. At 3, a song is struck the third time it is played.",
+              "hours": "Hours to look back, up to 48.",
+              "amount": "For Change the volume: a percentage of the volume at the time, so 10 turns it up a tenth and -50 halves it. It is put back at the next track.",
+              "minutes": "For Switch station: how long to stay away before going back."
+            }
+          }
         }
       }
     },
     "error": {
-      "player_taken": "One of those players is already watched by another Love it or Loathe it entry. Two entries acting on one player would undo each other's work."
+      "player_taken": "One of those players is already watched by another Love it or Loathe it entry. Two entries acting on one player would undo each other's work.",
+      "no_stations": "Add a station to switch to first, from the integration's page."
     }
   },
   "config_subentries": {
@@ -72,18 +92,6 @@
             "person": "Optional. The rate action adds the song that is playing to this person's loved group or loathed group. Give a person one group set to Love and one set to Loathe."
           },
           "sections": {
-            "repeats": {
-              "name": "Songs played too often",
-              "description": "For a station with a short playlist: this group also has any song that has been played this many times in the last so many hours, whatever the song. A song that a group names is treated as that group says.",
-              "data": {
-                "times": "Times played",
-                "hours": "In the last"
-              },
-              "data_description": {
-                "times": "0 switches this off. At 3, a song is the group's the third time it is played.",
-                "hours": "Hours to look back, up to 48."
-              }
-            },
             "love": {
               "name": "While loved",
               "data": {
@@ -185,6 +193,9 @@
     "switch": {
       "watching": {
         "name": "Watching"
+      },
+      "repeats": {
+        "name": "Repeats"
       }
     }
   },

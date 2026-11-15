@@ -40,18 +40,23 @@ from .const import (
     CONF_PATTERNS,
     CONF_PERSON,
     CONF_RATERS,
+    CONF_REPEATS,
+    CONF_REPEATS_ON,
+    CONF_TIMES,
     DEFAULT_ACTS,
+    DEFAULT_REPEATS,
     DOMAIN,
     GROUP,
+    IGNORE,
     INSTALLED_EVENT,
     LOATHE,
     LOVE,
     RATE,
 )
-from .engine import Engine, store_key
+from .engine import Engine, ordered, store_key
 from .pure import libraries
 from .restart_notice import async_check_restart, manifest_version
-from .switch import enabled_id
+from .switch import switch_ids
 
 _LOGGER = logging.getLogger(__name__)
 PLATFORMS = [Platform.SELECT, Platform.SENSOR, Platform.SWITCH]
@@ -152,12 +157,62 @@ async def _convert(hass: HomeAssistant, entry: ConfigEntry) -> None:
             entry, options={**entry.options, CONF_RATERS: owners}
         )
 
+    _repeats_to_entry(hass, entry)
+
     # The switch each group had; its select takes the switch's place.
     registry = er.async_get(hass)
     for entity in er.async_entries_for_config_entry(registry, entry.entry_id):
-        if entity.domain == "switch" and entity.unique_id != enabled_id(entry):
+        if entity.domain == "switch" and entity.unique_id not in switch_ids(entry):
             registry.async_remove(entity.entity_id)
 
 
+def _repeats_to_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Songs played too often, from each group (2026.11.7) to the entry's strike
+    (2026.11.8-b38), once. The first group in the page's order with times set gives
+    the times, the hours and its loathed action, a loathed group before a loved one and
+    an ignored one last (the strike then starts switched off, as that group was); any
+    other's are dropped, and said. A group left with no songs and nobody's is
+    removed, with its select: it was there only for the repeats."""
+    if CONF_REPEATS in entry.options:
+        return
+    groups = [s for s in ordered(entry) if s.subentry_type == GROUP]
+    had = [g for g in groups if g.data.get(CONF_REPEATS, {}).get(CONF_TIMES)]
+    # Stable: the page's order within each feeling.
+    had.sort(
+        key=lambda g: (g.data[CONF_FEELING] != LOATHE, g.data[CONF_FEELING] == IGNORE)
+    )
+
+    options = {**entry.options, CONF_REPEATS: dict(DEFAULT_REPEATS)}
+    if had:
+        first = had[0]
+        options[CONF_REPEATS] = {**first.data[CONF_REPEATS], **first.data[LOATHE]}
+        options[CONF_REPEATS_ON] = first.data[CONF_FEELING] != IGNORE
+        dropped = ", ".join(g.title for g in had[1:])
+        moved = f"Songs played too often moved here from the group {first.title}" + (
+            f"; the settings of {dropped} were dropped" if dropped else ""
+        )
+        _LOGGER.info("%s: %s", entry.title, moved)
+        trail.note(hass, entry, trail.EDIT, moved)
+    hass.config_entries.async_update_entry(entry, options=options)
+
+    for group in groups:
+        if CONF_REPEATS not in group.data:
+            continue
+        empty = not group.data.get(CONF_PATTERNS) and not group.data.get(CONF_PERSON)
+        if group in had and empty:
+            hass.config_entries.async_remove_subentry(entry, group.subentry_id)
+            _LOGGER.info("%s removed: it only had songs played too often", group.title)
+            continue
+        data = {k: v for k, v in group.data.items() if k != CONF_REPEATS}
+        hass.config_entries.async_update_subentry(entry, group, data=data)
+
+
 async def _reload(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    await hass.config_entries.async_reload(entry.entry_id)
+    """Start again with the new settings, after whatever made the change has finished:
+    started eagerly, a reload can complete inside the change's own call, and the trail
+    then says what the change did before it says what the change was (2026-11-13)."""
+    hass.async_create_task(
+        hass.config_entries.async_reload(entry.entry_id),
+        f"{DOMAIN} reload",
+        eager_start=False,
+    )

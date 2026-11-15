@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.11.8-b38
+
+- **Breaking:** Love it or Loathe it: songs played too often are now a setting of each entry, not of a group, and its match has no group (`group` is empty in the event and on the Last match sensor, with `repeats` the times played). An automation that looked for the name of a group like "Heard too often" should look for `repeats` above 0 instead.
+- **Love it or Loathe it: a repetition is a strike.** Any song played the entry's number of times in its hours gets the entry's action, whatever a group says about it, so a song you love is struck too when a station plays it to death. It is set with the entry's other settings (**Configure** in Home Assistant, **Settings** on the page in Casa Mia), and a new **Repeats** switch turns it off and on without losing the numbers. At the first start the settings move from the first group that had them, and a group kept only for them is removed; **What happened** says so.
+- **Love it or Loathe it: a return names the station.** "Switched back to Harbour FM", where it said the station's address.
+- **Love it or Loathe it: a change from the page is written before what it caused.** **What happened** could show the restart a change caused before the change itself.
+- **Love it or Loathe it's page: Players is now Settings**, since it holds songs played too often too, and a song struck for being played too often says "Played 3 times" under Playing now.
+
 ## 2026.11.8-b37
 
 - **Dash-Bored: a third family, the Fridge.** The house as what is stuck to a fridge door: a polaroid for each room, a button magnet for each device, a paper strip to slide for a level, the cameras' pictures as photographs held by a butterfly, Sensor Watch's alerts as sticky notes, scenes as word magnets, number magnets for an alarm's code and a notepad of the day. It can be dressed as a young family's, a pair of yuppies' or grandparents', chosen on three magnets in the door's corner. Press twice in the top right corner of the Dash-Bored page to choose it. It is also a card, **Casa Mia Dash-Bored Fridge** (`custom:dash-bored-fridge`).

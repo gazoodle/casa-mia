@@ -121,8 +121,9 @@ There are two places to change them, and both change the same thing:
 | To | In Home Assistant | On the page in Casa Mia |
 |---|---|---|
 | Add an entry, or delete one | **Add integration**; an entry's menu → Delete | Not on the page: it links to Home Assistant |
-| Change an entry's players and delay | The entry's **Configure** | **Players** |
-| Choose who may rate | The entry's **Configure** | **Players** |
+| Change an entry's players and delay | The entry's **Configure** | **Settings** |
+| Choose who may rate | The entry's **Configure** | **Settings** |
+| Set songs played too often | The entry's **Configure** | **Settings** |
 | Add a group of songs | **Add a group of songs** | **+ Add a group** |
 | Change a group | The group's menu → **Reconfigure** | Click the group |
 | Change a group's feeling | The group's select, or its form | Love, Loathe or Ignore on its row |
@@ -130,6 +131,7 @@ There are two places to change them, and both change the same thing:
 | Remove a group or a station | Its menu → Delete | **Remove** |
 | Put groups or stations in order | Not possible: they stay in the order made | The up and down buttons |
 | Switch an entry off | Its **Watching** switch | The switch beside its name |
+| Switch songs played too often off | Its **Repeats** switch | The switch on the **Songs played too often** row |
 | Rate the song playing | The thumbs card, the thumbs in a player's dialog, or the `rate` action | The same, and **Love it** and **Loathe it** on the page |
 | See what happened | The Logbook, under the entry's Last match sensor | **What happened** |
 
@@ -151,9 +153,10 @@ integration has been added, and the tile opens a page with all of it on one scre
 - **Groups of songs:** each group with its feeling to click, and its form when the row
   is clicked. The up and down buttons change the order, which decides which group has
   a song that is in two. Home Assistant's own screens can't change the order.
+- **Songs played too often:** the entry's strike, with its switch.
 - **Stations to switch to**, in the order they are tried, with the same buttons.
-- **Players** changes an entry's name, its players and its delay, and the switch
-  beside it turns the entry's watching off and on.
+- **Settings** changes an entry's name, its players, its delay, who may rate and songs
+  played too often, and the switch beside it turns the entry's watching off and on.
 - **What happened:** what the entry did, line by line.
 
 The page keeps nothing of its own. It changes what Home Assistant holds, so a group
@@ -201,26 +204,6 @@ When a song is in more than one group:
 So to loathe `*christmas*` but keep "Last Christmas", put `Last Christmas` in a loved
 group. Ignored groups take no part.
 
-### Songs played too often
-
-For a station with a short playlist, a group can also have any song that has been
-played a number of times in the last so many hours, whatever the song. On its form this
-is **Songs played too often**: **Times played** and **In the last** (hours, up to 48).
-Set to 3 times in 4 hours, a song is the group's the third time it comes round in four
-hours, and the group's action is taken then. At 0 times this is off.
-
-A group for this needs no songs of its own: call it "Heard too often", leave **Songs**
-empty, set it to Loathed and its action to switch station.
-
-<img src="../screenshots/love-or-loathe-group.webp" alt="A group's form on the page in Casa Mia, for a group named Heard too often: Loathe chosen, no songs, Songs played too often set to 3 times in the last 4 hours, belonging to nobody, with its action while loved (change the volume by 10) and while loathed (switch station)" width="800">
-
-- A song that any group names is treated as that group says, however often it is
-  played. Only songs that no group names are counted against this.
-- The count is kept for each entry, over all its players, and through a restart of
-  Home Assistant. Two players on the same station hear a song once, not twice.
-- What a player plays while it is away on another station counts as well.
-- Only tracks that report a title are counted.
-
 A song that is already playing counts too: add it to a group's list and save, or change
 the group's feeling, and it is acted on at once.
 
@@ -246,6 +229,35 @@ if it is no longer playing. A restart of Home Assistant while a player is away d
 lose the return.
 
 For speakers playing as one group, only the group's leader acts.
+
+## Songs played too often
+
+For a station with a short playlist, each entry can strike any song that has been played
+a number of times in the last so many hours. A repetition is a strike, whatever your
+groups say about the song: a song you love is struck too, the time it reaches the count.
+
+It is set with the entry's other settings: the entry's **Configure** in Home Assistant,
+under **Songs played too often**, or **Settings** on the page in Casa Mia. **Times
+played** and **In the last** (hours, up to 48) say when; **When one comes on** says what
+is done, with the same choices as a group's action. Set to 3 times in 4 hours, a song is
+struck the third time it comes round in four hours. At 0 times this is off.
+
+Each entry's **Repeats** switch turns it off and on without losing the numbers, so an
+automation can leave a station's favourites alone for an evening. On the page in Casa
+Mia the same switch is on the **Songs played too often** row.
+
+- The count is kept for each entry, over all its players, and through a restart of
+  Home Assistant. Two players on the same station hear a song once, not twice.
+- What a player plays while it is away on another station counts as well.
+- Only tracks that report a title are counted.
+- A strike belongs to no group: the event and the Last match sensor give `group` empty,
+  and `repeats` says how many times the song was played.
+
+Before 2026.11.8 this was set on each group. The first start of 2026.11.8 moves it to
+the entry: the first group in the list with it set gives the times, the hours and its
+action while loathed (a loathed group before a loved one, an ignored one last, which
+leaves the Repeats switch off). A group that had no songs and belonged to nobody, kept
+only for this, is removed, and **What happened** says where the settings came from.
 
 ## Changing how you feel about a group
 
@@ -286,7 +298,7 @@ which you can then change.
 
 ### Who may rate
 
-Nobody may rate until you say who. Each entry has two lists, on its **Players** dialog
+Nobody may rate until you say who. Each entry has two lists, on its **Settings** dialog
 on the page in Casa Mia and under **Configure** on the integration's page in Home
 Assistant:
 
@@ -296,7 +308,7 @@ Assistant:
   by naming them, such as a wall tablet's. Any other login can only rate as the person
   it belongs to. An administrator may always name a person, and so may an automation.
 
-<img src="../screenshots/love-or-loathe-who-may-rate.webp" alt="The foot of an entry's Players dialog: Who may rate, with Ann and Ben switched on, and Screens that may rate for them, with two logins switched off" width="800">
+<img src="../screenshots/love-or-loathe-who-may-rate.webp" alt="The foot of an entry's Settings dialog: Who may rate, with Ann and Ben switched on, and Screens that may rate for them, with two logins switched off" width="800">
 
 So a guest's login can't rate: it belongs to nobody on the first list, and it isn't on
 the second, so it can't name someone who is. A rating that isn't allowed is refused with
@@ -420,18 +432,18 @@ a song named outright beats `*christmas*`.
 
 ### A station with a short playlist
 
-1. **Add a group of songs** called *Heard too often*, starting with an empty list, and
-   leave **Songs** empty.
-2. Under **Songs played too often**, set 3 times in the last 4 hours.
-3. Set it to **Loathed**, and **While loathed** to switch station for 10 minutes.
+1. Add at least one station to switch to.
+2. In the entry's settings, under **Songs played too often**, set 3 times in the last
+   4 hours, and **When one comes on** to switch station for 10 minutes.
 
 The third time any song comes round in four hours, the player goes to another station
-for ten minutes. Songs you have named in other groups are not counted: a favourite is
-still turned up however often it is played.
+for ten minutes. That includes a song you love: three times in four hours is too often
+for anything. To spare the favourites on a night in, turn the entry's **Repeats** switch
+off from an automation, as below for **Watching**.
 
 ### Thumbs for the family
 
-1. On the page in Casa Mia, open the entry's **Players** and tick the family under
+1. On the page in Casa Mia, open the entry's **Settings** and tick the family under
    **Who may rate**.
 2. Add the **Casa Mia Love it or Loathe it** card to a dashboard each of them uses,
    and choose the player. Or add nothing: the thumbs are in the player's own dialog.
@@ -448,7 +460,7 @@ groups to `ignore` from an automation on the person's state.
 
 A wall tablet is signed in as nobody in particular, so it has to say whose song it is.
 
-1. In the entry's **Players**, tick the tablet's login under **Screens that may rate
+1. In the entry's **Settings**, tick the tablet's login under **Screens that may rate
    for them**.
 2. On the tablet's dashboard, add one card for each person, with **Whose song it is**
    set to that person and **Only the thumbs** ticked, beside the media card:
@@ -504,9 +516,9 @@ Its attributes:
 | Attribute | Holds |
 |---|---|
 | `entity_id`, `title`, `artist` | The player and the track. |
-| `group`, `feeling`, `action` | The group it matched, whether it was loved or loathed at the time, and the action taken. |
+| `group`, `feeling`, `action` | The group it matched (empty for a song struck for being played too often), whether it was loved or loathed at the time (loathed for a strike), and the action taken. |
 | `result` | What was done, or `failed:` and the reason. |
-| `repeats` | How many times the song has been played in the group's hours, when that is why the group had it; 0 when the group names the song. |
+| `repeats` | How many times the song has been played in the entry's hours, when that is why it was struck; 0 when a group had it. |
 | `at` | When. |
 | `away` | Each player now on another station, and when it goes back. |
 | `no_titles` | Players that are playing but report no title, so nothing can be matched. |
@@ -545,7 +557,7 @@ the track changed within the entry's delay, or the group's action only fires the
 So each entry keeps a record with a line for each of these:
 
 - its watching started, or stopped (at every save, and at a restart),
-- a song a group had, and why if it was for being played too often,
+- a song a group had, or one struck for being played too often,
 - what was done to the player, or why nothing was,
 - what was put back at the next track, or that someone had changed it since,
 - a return from another station, or why there was none,

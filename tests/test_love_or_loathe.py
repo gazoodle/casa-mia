@@ -122,7 +122,7 @@ def test_an_ignored_group_remembers_which_list_it_was():
     assert pure.home(pure.felt({}, {"feeling": "ignore"})) == "ignore"
 
 
-def test_a_song_heard_often_enough_is_a_groups_and_plays_are_forgotten():
+def test_plays_are_counted_once_each_and_forgotten():
     hour = 3600.0
     history = pure.History()
     for at in (0, 0.05, 1, 2, 5):  # 0.05 h: within ten minutes, the same play
@@ -130,21 +130,6 @@ def test_a_song_heard_often_enough_is_a_groups_and_plays_are_forgotten():
     assert history.count("round again", "a band", 5 * hour, 4.5) == 3
     assert history.count("Round Again", "A Band", 5 * hour, 3.5) == 2
     assert history.count("Round Again", "Another Band", 5 * hour, 48) == 0
-
-    act = pure.Act("mute", 0, 5)
-    split = pure.Matcher.split([])
-    bored = pure.Group("bored", "Bored", "loathe", "", act, act, *split, 3, 4.5)
-    fond = pure.Group("fond", "Fond", "love", "", act, act, *split, 2, 48)
-
-    def heard(hours):
-        return history.count("Round Again", "A Band", 5 * hour, hours)
-
-    assert pure.repeated([bored], heard) is bored
-    assert pure.repeated([bored, fond], heard) is fond  # love beats loathe
-    assert (
-        pure.repeated([pure.Group("off", "Off", "loathe", "", act, act, *split)], heard)
-        is None
-    )
 
     # Kept through storage, and forgotten after two days.
     again = pure.History(history.dump(5 * hour))

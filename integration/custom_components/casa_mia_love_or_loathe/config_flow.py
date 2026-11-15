@@ -113,15 +113,27 @@ def taken(hass: HomeAssistant, players: list[str], own: str = "") -> bool:
     )
 
 
+def _stationless(entry: ConfigEntry, *acts: dict[str, Any]) -> bool:
+    """Whether one of these actions switches station, and the entry has none."""
+    stations = any(s.subentry_type == STATION for s in entry.subentries.values())
+    return not stations and any(act[CONF_ACTION] == SWITCH for act in acts)
+
+
 def group_errors(entry: ConfigEntry, group: dict[str, Any]) -> dict[str, str]:
     """What is wrong with a group about to be saved, as its form's errors. The page's
     save (admin.py) is refused for the same."""
     _good, bad = parse(group.get(CONF_PATTERNS, "").splitlines())
     if bad:
         return {CONF_PATTERNS: "bad_pattern"}
-    stations = [s for s in entry.subentries.values() if s.subentry_type == STATION]
-    switches = any(group[f][CONF_ACTION] == SWITCH for f in (LOVE, LOATHE))
-    if switches and not stations:
+    if _stationless(entry, group[LOVE], group[LOATHE]):
+        return {"base": "no_stations"}
+    return {}
+
+
+def entry_errors(entry: ConfigEntry, options: dict[str, Any]) -> dict[str, str]:
+    """What is wrong with an entry's options about to be saved, here and on the page."""
+    repeats = options.get(CONF_REPEATS)
+    if repeats and repeats[CONF_TIMES] and _stationless(entry, repeats):
         return {"base": "no_stations"}
     return {}
 
@@ -167,18 +179,21 @@ class LoveOrLoatheOptionsFlow(OptionsFlow):
         errors: dict[str, str] = {}
         if user_input is not None:
             own = self.config_entry.entry_id
-            if not taken(self.hass, user_input[CONF_PLAYERS], own):
+            errors = entry_errors(self.config_entry, user_input)
+            if taken(self.hass, user_input[CONF_PLAYERS], own):
+                errors[CONF_PLAYERS] = "player_taken"
+            if not errors:
                 # With what the form doesn't show: the order the page gave (admin.py).
                 # A list of who may rate that was emptied comes back as no key at all.
                 emptied = {CONF_RATERS: [], CONF_SCREENS: []}
                 return self.async_create_entry(
                     data={**self.config_entry.options, **emptied, **user_input}
                 )
-            errors[CONF_PLAYERS] = "player_taken"
+        schema = PLAYERS.extend(await _raters(self.hass))
         return self.async_show_form(
             step_id="init",
             data_schema=self.add_suggested_values_to_schema(
-                PLAYERS.extend(await _raters(self.hass)),
+                schema.extend({vol.Optional(CONF_REPEATS): _REPEATS}),
                 user_input or self.config_entry.options,
             ),
             errors=errors,
@@ -288,7 +303,6 @@ class GroupFlow(_NamedFlow):
                 vol.Optional(CONF_PERSON): EntitySelector(
                     EntitySelectorConfig(domain="person")
                 ),
-                vol.Optional(CONF_REPEATS): _REPEATS,
                 vol.Required(LOVE): _act_section(LOVE),
                 vol.Required(LOATHE): _act_section(LOATHE),
             }
@@ -313,8 +327,41 @@ def _number(least: float, most: float, unit: str = "") -> NumberSelector:
     return NumberSelector(config)
 
 
-# Any song heard so many times in so many hours is the group's too. The most hours is
-# how long the plays are remembered (pure.KEPT).
+def _act_fields(usual: dict[str, Any]) -> dict[Any, Any]:
+    """An action and its amount and minutes, starting at `usual`."""
+    return {
+        vol.Required(CONF_ACTION, default=usual[CONF_ACTION]): SelectSelector(
+            SelectSelectorConfig(options=list(ACTIONS), translation_key=CONF_ACTION)
+        ),
+        vol.Required(CONF_AMOUNT, default=usual[CONF_AMOUNT]): NumberSelector(
+            NumberSelectorConfig(
+                min=-100,
+                max=200,
+                step=5,
+                unit_of_measurement="%",
+                mode=NumberSelectorMode.BOX,
+            )
+        ),
+        vol.Required(CONF_MINUTES, default=usual[CONF_MINUTES]): NumberSelector(
+            NumberSelectorConfig(
+                min=1,
+                max=120,
+                step=1,
+                unit_of_measurement="min",
+                mode=NumberSelectorMode.BOX,
+            )
+        ),
+    }
+
+
+def _act_section(feeling: str) -> section:
+    """What to do while the group is loved, or loathed: one part of its form."""
+    return section(vol.Schema(_act_fields(DEFAULT_ACTS[feeling])), {"collapsed": False})
+
+
+# The entry's strike: any song played so many times in so many hours, and what is then
+# done, whatever a group says of the song. The most hours is how long the plays are
+# remembered (pure.KEPT).
 _REPEATS = section(
     vol.Schema(
         {
@@ -324,45 +371,11 @@ _REPEATS = section(
             vol.Required(CONF_HOURS, default=DEFAULT_REPEATS[CONF_HOURS]): _number(
                 1, 48, "h"
             ),
+            **_act_fields(DEFAULT_REPEATS),
         }
     ),
     {"collapsed": True},
 )
-
-
-def _act_section(feeling: str) -> section:
-    """What to do while the group is loved, or loathed: one part of its form."""
-    usual = DEFAULT_ACTS[feeling]
-    return section(
-        vol.Schema(
-            {
-                vol.Required(CONF_ACTION, default=usual[CONF_ACTION]): SelectSelector(
-                    SelectSelectorConfig(
-                        options=list(ACTIONS), translation_key=CONF_ACTION
-                    )
-                ),
-                vol.Required(CONF_AMOUNT, default=usual[CONF_AMOUNT]): NumberSelector(
-                    NumberSelectorConfig(
-                        min=-100,
-                        max=200,
-                        step=5,
-                        unit_of_measurement="%",
-                        mode=NumberSelectorMode.BOX,
-                    )
-                ),
-                vol.Required(CONF_MINUTES, default=usual[CONF_MINUTES]): NumberSelector(
-                    NumberSelectorConfig(
-                        min=1,
-                        max=120,
-                        step=1,
-                        unit_of_measurement="min",
-                        mode=NumberSelectorMode.BOX,
-                    )
-                ),
-            }
-        ),
-        {"collapsed": False},
-    )
 
 
 class StationFlow(_NamedFlow):

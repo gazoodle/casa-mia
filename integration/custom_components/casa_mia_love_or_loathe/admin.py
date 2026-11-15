@@ -33,7 +33,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.translation import async_get_translations
 
 from . import trail
-from .config_flow import group_errors, taken
+from .config_flow import entry_errors, group_errors, taken
 from .const import (
     ACTIONS,
     CONF_ACTION,
@@ -50,6 +50,7 @@ from .const import (
     CONF_PLAYERS,
     CONF_RATERS,
     CONF_REPEATS,
+    CONF_REPEATS_ON,
     CONF_SCREENS,
     CONF_TIMES,
     DEFAULT_REPEATS,
@@ -163,6 +164,9 @@ def _entry(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:
         # Who may rate: the people, and the logins that may rate for them.
         CONF_RATERS: entry.options.get(CONF_RATERS, []),
         CONF_SCREENS: entry.options.get(CONF_SCREENS, []),
+        # The strike: a song played too often, whatever a group says of it.
+        CONF_REPEATS: {**DEFAULT_REPEATS, **entry.options.get(CONF_REPEATS, {})},
+        CONF_REPEATS_ON: entry.options.get(CONF_REPEATS_ON, True),
         "groups": [
             # `home`: love or loathe, which list it is even while ignored.
             {
@@ -200,8 +204,9 @@ def _playing(hass: HomeAssistant, engine: Engine, entity: str) -> dict[str, Any]
         "state": state.state,
         "title": title,
         "artist": artist,
+        # The group that has it, "" for the strike (and `repeats` the times played).
         "group": group.id if group else None,
-        "repeats": repeats,  # how often it has been played, when that is why
+        "repeats": repeats,
         ID: state.attributes.get(ID),
         TYPE: state.attributes.get(TYPE),
     }
@@ -327,10 +332,6 @@ def _subentry(entry: ConfigEntry, id: str, kind: str | None = None) -> ConfigSub
         vol.Required(CONF_FEELING): vol.In((LOVE, LOATHE, IGNORE)),
         vol.Optional(CONF_PATTERNS, default=""): str,
         vol.Optional(CONF_PERSON, default=""): str,
-        vol.Optional(CONF_REPEATS, default=lambda: dict(DEFAULT_REPEATS)): {
-            vol.Required(CONF_TIMES): vol.All(vol.Coerce(int), vol.Range(0, 20)),
-            vol.Required(CONF_HOURS): vol.All(vol.Coerce(float), vol.Range(1, 48)),
-        },
         vol.Required(LOVE): _ACT,
         vol.Required(LOATHE): _ACT,
     },
@@ -342,7 +343,6 @@ def _save_group(hass: HomeAssistant, entry: ConfigEntry, msg: dict[str, Any]) ->
             CONF_FEELING,
             CONF_PATTERNS,
             CONF_PERSON,
-            CONF_REPEATS,
             LOVE,
             LOATHE,
         )
@@ -395,23 +395,50 @@ def _order(hass: HomeAssistant, entry: ConfigEntry, msg: dict[str, Any]) -> str:
         vol.Required(CONF_DELAY): vol.All(vol.Coerce(float), vol.Range(0, 60)),
         vol.Required(CONF_RATERS): [str],
         vol.Required(CONF_SCREENS): [str],
+        # Optional: a page from before 2026.11.8-b38 has neither, and they are kept.
+        vol.Optional(CONF_REPEATS): {
+            vol.Required(CONF_TIMES): vol.All(vol.Coerce(int), vol.Range(0, 20)),
+            vol.Required(CONF_HOURS): vol.All(vol.Coerce(float), vol.Range(1, 48)),
+            **_ACT,
+        },
+        vol.Optional(CONF_REPEATS_ON): bool,
     },
 )
 def _save_entry(hass: HomeAssistant, entry: ConfigEntry, msg: dict[str, Any]) -> str:
     if taken(hass, msg[CONF_PLAYERS], entry.entry_id):
         raise Refused("config.error.player_taken")
-    kept = (CONF_PLAYERS, CONF_DELAY, CONF_RATERS, CONF_SCREENS)
-    options = {key: msg[key] for key in kept}
+    for error in entry_errors(entry, msg).values():
+        raise Refused(f"options.error.{error}")
+    kept = (
+        CONF_PLAYERS,
+        CONF_DELAY,
+        CONF_RATERS,
+        CONF_SCREENS,
+        CONF_REPEATS,
+        CONF_REPEATS_ON,
+    )
+    options = {key: msg[key] for key in kept if key in msg}
     hass.config_entries.async_update_entry(
         entry, title=msg[CONF_NAME], options={**entry.options, **options}
     )
-    return "its name, players, delay or who may rate"
+    return "its name, players, delay, who may rate or songs played too often"
 
 
-@_change("enable", {vol.Required(CONF_ENABLED): bool})
+@_change(
+    "enable",
+    {
+        vol.Exclusive(CONF_ENABLED, "switch"): bool,
+        vol.Exclusive(CONF_REPEATS_ON, "switch"): bool,
+    },
+)
 def _enable(hass: HomeAssistant, entry: ConfigEntry, msg: dict[str, Any]) -> str:
-    """Whether the entry watches its players at all: what its switch does (switch.py)."""
+    """One of the entry's switches (switch.py): whether it watches its players at all,
+    or whether songs played too often are struck."""
+    option = CONF_ENABLED if CONF_ENABLED in msg else CONF_REPEATS_ON
+    if option not in msg:
+        raise Refused("Say which switch: enabled or repeats_on.")
     hass.config_entries.async_update_entry(
-        entry, options={**entry.options, CONF_ENABLED: msg[CONF_ENABLED]}
+        entry, options={**entry.options, option: msg[option]}
     )
-    return "switched on" if msg[CONF_ENABLED] else "switched off"
+    what = "switched" if option == CONF_ENABLED else "songs played too often switched"
+    return f"{what} {'on' if msg[option] else 'off'}"

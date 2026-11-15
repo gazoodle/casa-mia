@@ -34,10 +34,8 @@ from .const import (
     CONF_PERSON,
     CONF_PLAYERS,
     CONF_RATERS,
-    CONF_REPEATS,
     CONF_SCREENS,
     DEFAULT_ACTS,
-    DEFAULT_REPEATS,
     DOMAIN,
     GROUP,
     LOATHE,
@@ -201,7 +199,6 @@ async def rate(hass: HomeAssistant, call: ServiceCall) -> None:
                     CONF_FEELING: feeling,
                     CONF_PATTERNS: with_song("", title, artist),
                     CONF_PERSON: person,
-                    CONF_REPEATS: dict(DEFAULT_REPEATS),
                     LOVE: dict(DEFAULT_ACTS[LOVE]),
                     LOATHE: dict(DEFAULT_ACTS[LOATHE]),
                 }

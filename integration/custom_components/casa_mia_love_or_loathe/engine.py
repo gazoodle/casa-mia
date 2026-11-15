@@ -51,18 +51,21 @@ from .const import (
     CONF_PERSON,
     CONF_PLAYERS,
     CONF_REPEATS,
+    CONF_REPEATS_ON,
     CONF_TIMES,
+    DEFAULT_REPEATS,
     DOMAIN,
     EVENT,
     GROUP,
     LOATHE,
     LOVE,
     MUTE,
+    PLAYED_TOO_OFTEN,
     STATION,
     SWITCH,
     VOLUME,
 )
-from .pure import Act, Group, History, Matcher, leads, pick, repeated, scaled
+from .pure import Act, Group, History, Matcher, leads, pick, scaled
 
 _LOGGER = logging.getLogger(__name__)
 ID = "media_content_id"
@@ -118,19 +121,39 @@ class Engine:
                 _act(s.data[LOVE]),
                 _act(s.data[LOATHE]),
                 *Matcher.split(s.data.get(CONF_PATTERNS, "").splitlines()),
-                int(s.data.get(CONF_REPEATS, {}).get(CONF_TIMES, 0)),
-                float(s.data.get(CONF_REPEATS, {}).get(CONF_HOURS, 0)),
             )
             for s in subentries
             if s.subentry_type == GROUP
         ]
+
+        # The strike: a song played `times` times in the last `hours` (CONF_REPEATS),
+        # as a loathed group of no songs, so the actions take it as they take any group.
+        # None while it is off or set to 0 times.
+        repeats = {**DEFAULT_REPEATS, **entry.options.get(CONF_REPEATS, {})}
+        self.times, self.hours = int(repeats[CONF_TIMES]), float(repeats[CONF_HOURS])
+        nothing = Matcher.of([])
+        on = entry.options.get(CONF_REPEATS_ON, True) and self.times
+        self.strike = (
+            Group(
+                "",
+                PLAYED_TOO_OFTEN,
+                LOATHE,
+                "",
+                _act(repeats),
+                _act(repeats),
+                nothing,
+                nothing,
+            )
+            if on
+            else None
+        )
 
         self.last: dict[str, Any] | None = None  # the last match, for the sensor
         self.silent: set[str] = set()  # playing, but reporting no title
         # The content id each station turned out to have on a player, which can differ
         # from the one it was started with: how a station already playing is recognised.
         self.learned: dict[str, str] = {}
-        # What has been played, for the groups that act on a song heard too often.
+        # What has been played, for the strike.
         self.history = History()
         self._store: Store[dict[str, Any]] = Store(hass, 1, store_key(entry))
         self._listeners: list[Callable[[], None]] = []
@@ -215,22 +238,18 @@ class Engine:
     # --- following the players ---------------------------------------------------
 
     def judge(self, title: str, artist: str) -> tuple[Group | None, int]:
-        """The group that has a song now. A group that names it comes first; failing
-        that, one that has it for how often it has been played, and then the second
-        answer is how many times that is (else 0)."""
+        """What has a song now: the strike, when it has been played too often, however a
+        group feels about it (owner, 2026-11-15: "a repetition is a strike"); else the
+        group that has it. The second answer is how many times it was played, for the
+        strike (else 0)."""
         if not title:
             return None, 0
-        named = pick(self.groups, title, artist)
-        if named:
-            return named, 0
-
-        now = dt_util.utcnow().timestamp()
-
-        def heard(hours: float) -> int:
-            return self.history.count(title, artist, now, hours)
-
-        often = repeated(self.groups, heard)
-        return often, heard(often.hours) if often else 0
+        if self.strike:
+            now = dt_util.utcnow().timestamp()
+            played = self.history.count(title, artist, now, self.hours)
+            if played >= self.times:
+                return self.strike, played
+        return pick(self.groups, title, artist), 0
 
     @callback
     def afresh(self) -> None:
@@ -324,13 +343,13 @@ class Engine:
             group, repeats = self.judge(title, artist)
             if group is None:
                 return
-            often = f", played {repeats} times in {group.hours:g} h" if repeats else ""
             by = f" by {artist}" if artist else ""
-            self._note(
-                trail.MATCH,
-                f"{title}{by} is in {group.name} ({group.feeling}{often})",
-                entity,
+            why = (
+                f"played {repeats} times in the last {self.hours:g} hours"
+                if repeats
+                else f"is in {group.name} ({group.feeling})"
             )
+            self._note(trail.MATCH, f"{title}{by} {why}", entity)
 
             # Every reason nothing is then done is said: a match with no action after it
             # otherwise looks like a fault.
@@ -372,12 +391,12 @@ class Engine:
             ATTR_ENTITY_ID: entity,
             "title": title,
             "artist": artist,
-            "group": group.name,
+            # No group for the strike: `repeats` then says how many times it was played
+            # in the entry's hours (else 0), and the feeling is loathe.
+            "group": "" if repeats else group.name,
             "feeling": group.feeling,
             "action": action,
             "result": result,
-            # How many times it has been played in the group's hours, when that is why
-            # the group has it; 0 when the group names it.
             "repeats": repeats,
             "at": dt_util.utcnow().isoformat(),
         }
@@ -519,8 +538,21 @@ class Engine:
                 except HomeAssistantError as exc:
                     self._problem(entity, f"could not switch back: {exc}")
                 else:
-                    self._note(trail.RETURN, f"Switched back to {origin[ID]}", entity)
+                    self._note(
+                        trail.RETURN, f"Switched back to {self._named(origin)}", entity
+                    )
         self._tell()
+
+    def _named(self, media: dict[str, str]) -> str:
+        """A station's name for what a player is to play, else what it is."""
+        return next(
+            (
+                s.name
+                for s in self.stations
+                if media[ID] in (s.media[ID], self.learned.get(s.id))
+            ),
+            media[ID],
+        )
 
     def _problem(self, entity: str, what: str) -> None:
         """A failure after the match was reported: shown on the sensor as its result."""
@@ -533,9 +565,7 @@ class Engine:
 def _said(result: str) -> str:
     """An action's own account of itself, as a line of the trail."""
     if result == "event only":
-        return (
-            "Nothing done to the player: the group's action is to fire the event only"
-        )
+        return "Nothing done to the player: the action is to fire the event only"
     return result[0].upper() + result[1:]
 
 
