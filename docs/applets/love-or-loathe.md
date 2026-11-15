@@ -21,7 +21,8 @@ notifications of what happened!
 
 <img src="../screenshots/love-or-loathe-detail.webp" alt="Love it or Loathe it's page in Casa Mia for an entry named Downstairs. Playing now: the kitchen is away on another station until 14:10, the living room is playing a song in the group Loathed by Ben, and the garden a song in Loved by Ann, each with Love it and Loathe it buttons. Under them the groups of songs, each with Love, Loathe and Ignore to click: Christmas songs, Heard too often, Loved by Ann and Loathed by Ben" width="800">
 
-**Not built yet:** shunting the adverts, and the fade. Casa Mia's local radio station
+**Not built yet:** the fade. Adverts can be shunted for a station that names them
+(see "Adverts" under the worked examples). Casa Mia's local radio station
 is a Casa Mia feature still to come, not part of this integration: when it exists, it
 is one more station to switch to. The rest of this guide describes what works today.
 
@@ -185,7 +186,10 @@ and what to do while it is loathed. Ignored, the group does nothing.
 
 Capitals, accents and punctuation don't matter. Text in brackets after a title, such as
 "(Remastered 2011)", is ignored unless your pattern has it too. A radio stream that sends
-"Artist - Title" as the title is understood.
+"Artist - Title" as the title is understood. So is a station whose songs reach the
+player with the title and artist swapped, as some do on Sonos: a `Title | Artist` line
+matches them either way round. A line with only a title doesn't, or `*love*` would take
+in every song by an artist with "love" in their name.
 
 When you add a group you are first asked what to start with: an empty list, or a
 shipped list. A shipped list is put into the **Songs** box on the next screen, and from
@@ -249,7 +253,10 @@ Mia the same switch is on the **Songs played too often** row.
 - The count is kept for each entry, over all its players, and through a restart of
   Home Assistant. Two players on the same station hear a song once, not twice.
 - What a player plays while it is away on another station counts as well.
-- Only tracks that report a title are counted.
+- Only songs are counted: a track with an artist, or a title such as "Artist - Title".
+  What a station puts out between songs (its name, the show's name, an advert) comes
+  with no artist, and is never struck, however often it comes round.
+- A song is the same song whichever way round the station sends its title and artist.
 - A strike belongs to no group: the event and the Last match sensor give `group` empty,
   and `repeats` says how many times the song was played.
 
@@ -441,6 +448,25 @@ for ten minutes. That includes a song you love: three times in four hours is too
 for anything. To spare the favourites on a night in, turn the entry's **Repeats** switch
 off from an automation, as below for **Watching**.
 
+### Adverts
+
+Some stations name their adverts. Planet Rock, for one, sends "Ad 1" to "Ad 10" and
+"STOP ADBREAK 1" to "STOP ADBREAK 3" while they play. A loathed group mutes them:
+
+1. **Add a group of songs** called *Adverts*, set to **Loathed**, with these songs:
+
+   ```
+   Ad *
+   Stop adbreak *
+   ```
+
+2. Set **While loathed** to mute (or to switch station, to hear something else
+   instead).
+
+Each advert is muted until the next track, so the break is silent and the song after
+it plays as normal. Look at what your own station sends first: the player's
+`media_title` in Developer tools → States shows it as it plays.
+
 ### Thumbs for the family
 
 1. On the page in Casa Mia, open the entry's **Settings** and tick the family under
@@ -598,8 +624,8 @@ another name before changing it.
 - Tell a person's choice from a station whose `media_content_id` changes with every
   track. Such a player is not switched back.
 - Fade between stations. The switch is immediate.
-- Tell an advert from a song. A group can only match what a station reports as the
-  title.
+- Tell an advert from a song by itself. A group can only match what a station reports
+  as the title, so a station that doesn't name its adverts can't have them shunted.
 - Change a group's feeling by the calendar. That is an automation's work: the example
   under "Changing how you feel about a group" does it for Christmas.
 - Put the thumbs on other cards themselves. They are a card of their own, to place

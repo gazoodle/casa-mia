@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.11.8-b39
+
+- **Love it or Loathe it: only songs are struck for being played too often.** What a station puts out between songs (its name, the show's name, an advert) has no artist, and was counted as a song played all day: a speaker was muted for a show's title "played 17 times in the last 4 hours". Now only a track with an artist, or a title such as "Artist - Title", is counted.
+- **Love it or Loathe it: songs that arrive with the title and artist swapped are recognised.** Some stations reach a Sonos back to front (the artist as the title). A `Title | Artist` line now matches either way round, and a song is counted as one song whichever way round it comes. A line with only a title still matches only the title.
+- **Love it or Loathe it's guide: adverts.** For a station that names its adverts ("Ad 7", "STOP ADBREAK 2"), a loathed group of `Ad *` and `Stop adbreak *` mutes them.
+
 ## 2026.11.8-b38
 
 - **Breaking:** Love it or Loathe it: songs played too often are now a setting of each entry, not of a group, and its match has no group (`group` is empty in the event and on the Last match sensor, with `repeats` the times played). An automation that looked for the name of a group like "Heard too often" should look for `repeats` above 0 instead.
