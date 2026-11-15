@@ -49,7 +49,9 @@ export const STYLES = css`
   /* The needle swings to a new reading and settles by its easing. Inside it, the pointer
      wavers a little all the time, as a moving coil does: it glides between seven places
      in about a second (owner, 2026-11-14: smooth, not in steps). Each meter has a period
-     of its own (kit.ts), so they are never in step. The browser draws it; no script runs. */
+     of its own (kit.ts), so they are never in step. The browser draws it; no script runs.
+     This is the most a needle wavers in any era: the wobble falls by a quarter with each
+     decade, to none in the 1990s (owner, 2026-11-15). */
   .needle { transform-origin: 60px 84px; transition: transform 1.1s cubic-bezier(.3, 1.7, .5, 1); }
   .waver { transform-origin: 60px 84px; animation: waver 1.2s ease-in-out infinite; }
   @keyframes waver { 0% { transform: rotate(0deg); } 14% { transform: rotate(.5deg); } 29% { transform: rotate(-.3deg); } 43% { transform: rotate(.7deg); } 57% { transform: rotate(-.6deg); } 71% { transform: rotate(.2deg); } 86% { transform: rotate(-.4deg); } }

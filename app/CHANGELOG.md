@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.8-b36
+
+- **Dash-Bored: Silverface's needles waver half as far as Bakelite's.** A meter's wobble now falls with the Console's decade: most in the 1950s, half of that in the 1970s, and none by the 1990s.
+
 ## 2026.11.8-b35
 
 - **Dash-Bored: the Console's controls stay where they are, in both eras.** A switch no longer moves when its name grows to two lines, and nothing moves when a song starts or a camera sees something. A thermostat's display always has the same number of digits, enough for its whole range, and stays in place, dark, when the thermostat is off.

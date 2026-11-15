@@ -553,7 +553,7 @@ how they are drawn:
 |---|---|
 | A Bakelite chassis on green enamel | A brushed aluminium faceplate in a teak cabinet |
 | A valve that glows with the room's lights | A row of five red LEDs: the more light, the more are lit |
-| A round moving-coil meter | A rectangular meter with a lit blue-green face and the top of its scale in red |
+| A round moving-coil meter, whose needle wavers | A rectangular meter with a lit blue-green face and the top of its scale in red, whose needle wavers half as far |
 | A fluted knob, coloured by its kind | A machined aluminium knob with a coloured centre: black for a light, blue for a blind, red for the heating, amber for a player, green for a fan |
 | The setting engraved on the knob's plate | The setting in red digits under the knob, on a display that always has the same number of digits and goes dark, in place, when the thermostat is off |
 | A red knob for the heating | A dial of its own: a white face with its cooler half in green and its warmer half in red, a black pointer knob for the target and a thin red hand for what it reads now |

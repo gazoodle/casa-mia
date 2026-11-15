@@ -37,6 +37,9 @@ the Gazette's own work is parked below it.
   - `family.ts` has `typeface`, which Bakelite's handwriting uses. The Gazette's masthead
     still loads its font with its own copy of that code (`masthead` in `gazette/page.ts`):
     move it onto `typeface`, as a refactor commit of its own.
+  - **A needle's wobble falls with the decade** (owner, 2026-11-15): all of it in the
+    1950s, three quarters in the 1960s, half in the 1970s, a quarter in the 1980s and none
+    in the 1990s. Bakelite and Silverface do this; the other three are to when built.
   - Kept for Bargraph: LED bar graphs, fluorescent displays, membrane keys. Kept for
     Nixie: nixie tubes.
   - The sizes `console/balance.ts` counts on are Bakelite's; an era with other sizes

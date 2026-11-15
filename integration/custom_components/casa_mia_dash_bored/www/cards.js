@@ -1155,7 +1155,9 @@ var Nt = y`
   /* The needle swings to a new reading and settles by its easing. Inside it, the pointer
      wavers a little all the time, as a moving coil does: it glides between seven places
      in about a second (owner, 2026-11-14: smooth, not in steps). Each meter has a period
-     of its own (kit.ts), so they are never in step. The browser draws it; no script runs. */
+     of its own (kit.ts), so they are never in step. The browser draws it; no script runs.
+     This is the most a needle wavers in any era: the wobble falls by a quarter with each
+     decade, to none in the 1990s (owner, 2026-11-15). */
   .needle { transform-origin: 60px 84px; transition: transform 1.1s cubic-bezier(.3, 1.7, .5, 1); }
   .waver { transform-origin: 60px 84px; animation: waver 1.2s ease-in-out infinite; }
   @keyframes waver { 0% { transform: rotate(0deg); } 14% { transform: rotate(.5deg); } 29% { transform: rotate(-.3deg); } 43% { transform: rotate(.7deg); } 57% { transform: rotate(-.6deg); } 71% { transform: rotate(.2deg); } 86% { transform: rotate(-.4deg); } }
@@ -2775,12 +2777,14 @@ var Gr = y`
   .leds .on { background: radial-gradient(circle at 35% 30%, #ffd9d2, #ff2a1a 55%, #a30f08); box-shadow: 0 0 0 1.5px var(--ink), 0 0 8px #ff3a22; }
 
   /* Panel meters: the window is drawn in kit.ts, the lettering set here. The needle
-     wavers as Bakelite's does, each meter at a pace of its own. */
+     wavers, each meter at a pace of its own, but half as far as Bakelite's: a needle's
+     wobble falls with the decade, from all of it in the 1950s to none in the 1990s
+     (owner, 2026-11-15). */
   .meter { text-align: center; }
   .meter svg { width: 100%; height: auto; margin-bottom: 5px; filter: drop-shadow(0 3px 4px rgba(0,0,0,.45)); }
   .needle { transform-origin: 60px 74px; transition: transform 1.1s cubic-bezier(.3, 1.7, .5, 1); }
   .waver { transform-origin: 60px 74px; animation: waver 1.2s ease-in-out infinite; }
-  @keyframes waver { 0% { transform: rotate(0deg); } 14% { transform: rotate(.5deg); } 29% { transform: rotate(-.3deg); } 43% { transform: rotate(.7deg); } 57% { transform: rotate(-.6deg); } 71% { transform: rotate(.2deg); } 86% { transform: rotate(-.4deg); } }
+  @keyframes waver { 0% { transform: rotate(0deg); } 14% { transform: rotate(.25deg); } 29% { transform: rotate(-.15deg); } 43% { transform: rotate(.35deg); } 57% { transform: rotate(-.3deg); } 71% { transform: rotate(.1deg); } 86% { transform: rotate(-.2deg); } }
   .meter text { fill: #101614; font-size: 6px; font-weight: 600; text-anchor: middle; }
   .meter .legend { font-size: 4.2px; letter-spacing: .14em; }
 
