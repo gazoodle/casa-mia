@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026.11.8-b35
+
+- **Dash-Bored: the Console's controls stay where they are, in both eras.** A switch no longer moves when its name grows to two lines, and nothing moves when a song starts or a camera sees something. A thermostat's display always has the same number of digits, enough for its whole range, and stays in place, dark, when the thermostat is off.
+- **Dash-Bored: Silverface's thermostat is a dial.** A round white face in a square black housing, with a scale from the thermostat's lowest setting to its highest, green in its cooler half and red in its warmer. A black pointer knob in the middle sets the target, and a thin red hand shows what the thermostat reads now.
+- **Dash-Bored: on Silverface each device's name is on a white engraved strip**, as an installer fixes over a control.
+- **Dash-Bored: a lifted guard only lets its own switch be thrown.** After the first press has lifted a guard, the second must be on the switch itself. A press anywhere else, on the guard or elsewhere on the panel, drops the guard and changes nothing.
+- **Dash-Bored: Silverface's alert lamps are annunciator windows.** Each is a milky lens in a stepped black bezel, with error, warning or task engraved on it and the lamp behind it. What is wrong is still on label tape beside it.
+- **Dash-Bored: on Bakelite a second row of knife switches no longer overlaps the first.** With more scenes than fit in one row, the raised blades of the lower row lay across the plates of the row above.
+- **Dash-Bored: on Silverface a thermostat's reading is printed.** The "now 25°" under a heating knob was drawn as label tape, as if somebody had stuck it on; it is a reading, so it is printed like the other legends. What a player has on is still tape.
+
 ## 2026.11.8-b34
 
 - **Dash-Bored: Silverface's thumbwheels are of their time.** The alarm's code is set on a row of black modules, each with one white figure in a window and a push button above it to step it on and one below to step it back.

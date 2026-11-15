@@ -50,7 +50,7 @@ The first two can be used. The pictures of the others are of their mock-ups.
 </td>
 <td width="33%" valign="top">
 <a href="#the-console"><img src="../screenshots/dash-bored-bakelite.webp" alt="Bakelite" width="100%"></a>
-<p><b><a href="#the-console">Bakelite</a></b> · Being built: every kind of device the Gazette shows, with Sensor Watch's alerts and a chart recorder<br>A 1950s instrument panel: glowing valves, moving-coil meters, fluted dimmer knobs, tumbler switches and knife switches for scenes.</p>
+<p><b><a href="#the-console">Bakelite</a></b> · Being built: every kind of device the Gazette shows. Now the first era of the Console, with Silverface (1970s) as its second<br>A 1950s instrument panel: glowing valves, moving-coil meters, fluted dimmer knobs, tumbler switches and knife switches for scenes.</p>
 </td>
 <td width="33%" valign="top">
 <img src="../screenshots/dash-bored-mock-calibre.webp" alt="Calibre, as a mock-up" width="100%">
@@ -159,7 +159,7 @@ panel (see [The Console](#the-console)).
 
 ## The Gazette
 
-![The Gazette's broadsheet: a boiler fault leads, with the rooms' devices in the columns below it and the other news, the late news and the weather beside](../screenshots/dash-bored-gazette.webp)
+![The Gazette's broadsheet: a boiler fault leads, with the rooms' devices in the columns below it and the other news, the amusements and the weather beside](../screenshots/dash-bored-gazette.webp)
 
 The page works out what is worth saying about the house and puts the most important
 thing at the top:
@@ -457,11 +457,15 @@ The era is chosen with the rotary switch at the top right of the panel, lettered
 shows a plate saying so. The choice is remembered by the browser it was made in, as the
 family is.
 
+In every era the controls are fixed to the panel. A switch, a knob or a display stays
+exactly where it is whatever its lettering says: when a name grows to two lines, a
+thermostat is switched off or a song starts, nothing moves.
+
 ### Bakelite
 
 The Console of the 1950s. It shows every kind of device the Gazette does.
 
-![Bakelite: a meter for the outside air over a chassis for each room, each with a valve, knobs and tumbler switches](../screenshots/dash-bored-bakelite.webp)
+![Bakelite: three alerts on handwritten cards beside their lamps, meters for the mains and the outside air, four knife switches for scenes and the era switch, over a chassis for each room with a valve and its knobs](../screenshots/dash-bored-bakelite.webp)
 
 At the very top is a warning lamp for each sensor that [Sensor Watch](sensor-watch.md)
 has above its normal level, the worst first. Beside each is a card in a brass holder,
@@ -494,8 +498,9 @@ is far taller than the others. Each chassis has:
 - **A tumbler switch under a red guard** for each lock, garage door, gate, valve and siren.
   The guard is shut only while the device is at rest: a lock locked, a door, gate or
   valve shut, a siren silent. To change that takes two presses: the first lifts the
-  guard and the second throws the switch. A guard that is lifted and then left alone
-  drops again after six seconds. While the device is away from rest the guard stays up,
+  guard and the second, on the switch itself, throws it. If the second press is anywhere
+  else, on the guard or on another part of the panel, the guard drops and nothing is
+  changed. A guard that is lifted and then left alone drops again after six seconds. While the device is away from rest the guard stays up,
   with the switch thrown and its lamp lit, and one press puts it back: the guard is shut,
   which knocks the switch over. The guard shuts on the panel when the device says it is
   at rest again, so a garage door's stays up until the door has closed.
@@ -538,6 +543,8 @@ Assistant refuses a press, a red lamp and a plate at the top say so.
 
 ### Silverface
 
+![Silverface: three alerts on lit tiles with label tape, two lit meters, four scene buttons and the era switch, over aluminium faceplates with knobs, toggle switches, a television and an alarm's thumbwheels](../screenshots/dash-bored-silverface.webp)
+
 The Console of the 1970s, after the hi-fi and bench instruments of the time. It has the
 same controls as Bakelite in the same places, and each works the same way; what differs is
 how they are drawn:
@@ -548,11 +555,13 @@ how they are drawn:
 | A valve that glows with the room's lights | A row of five red LEDs: the more light, the more are lit |
 | A round moving-coil meter | A rectangular meter with a lit blue-green face and the top of its scale in red |
 | A fluted knob, coloured by its kind | A machined aluminium knob with a coloured centre: black for a light, blue for a blind, red for the heating, amber for a player, green for a fan |
-| The setting engraved on the knob's plate | The setting in red digits under the knob |
+| The setting engraved on the knob's plate | The setting in red digits under the knob, on a display that always has the same number of digits and goes dark, in place, when the thermostat is off |
+| A red knob for the heating | A dial of its own: a white face with its cooler half in green and its warmer half in red, a black pointer knob for the target and a thin red hand for what it reads now |
+| Each device's name on an engraved black plate | Each device's name on a white engraved strip |
 | A tumbler switch, down for on | A chrome toggle switch, up for on, with a red lamp beside it |
 | A tumbler under a red guard | The toggle under a switch guard: a red cover on a hinged steel plate, which flips up at the first press. Its ends are lettered for what it works: OPEN and SHUT, UNLOCKED and LOCKED |
 | A knife switch for a scene | A push button that lights when pressed, with the scene's name on it |
-| A pilot lamp and a handwritten card for an alert | A lit tile saying error, warning or task, with what is wrong on a strip of embossed label tape |
+| A pilot lamp and a handwritten card for an alert | An annunciator window, a lit lens in a black bezel engraved error, warning or task, with what is wrong on a strip of embossed label tape |
 | Engraved plates for the names of floors and rooms | Embossed label tape |
 | Brass thumbwheels for an alarm's code | Black thumbwheels with white figures |
 | A black-and-white television for a camera | A colour television |

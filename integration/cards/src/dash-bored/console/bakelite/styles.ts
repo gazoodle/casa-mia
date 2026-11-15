@@ -33,8 +33,11 @@ export const STYLES = css`
   .room { flex: var(--wide, 1) 1 calc(var(--wide, 1) * 172px - 12px); max-width: min(100%, calc(var(--wide, 1) * 250px));
     background: linear-gradient(170deg, #4a2a1d, var(--bake2)); border-radius: 14px; padding: 10px 10px 14px; text-align: center;
     box-shadow: inset 0 2px 0 rgba(255,255,255,.15), inset 0 -4px 8px rgba(0,0,0,.5), 0 8px 14px rgba(0,0,0,.35); }
-  /* A room's meter, knobs and switches share rows where the chassis is wide enough. */
-  .works { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 6px; }
+  /* A room's meter, knobs and switches share rows where the chassis is wide enough. Every
+     control is fixed to the panel: it hangs from the top of its row and keeps the same
+     height whatever its plate says, with room under it for a plate of two lines, so a
+     name that grows or a setting that changes moves nothing (owner, 2026-11-15). */
+  .works { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 4px 6px; }
   .works > .meter { flex: 0 1 150px; margin-top: 8px; }
   .more { margin-top: 10px; opacity: .7; }
   .more .label { font-size: 8.5px; letter-spacing: .12em; }
@@ -90,7 +93,10 @@ export const STYLES = css`
 
   /* The dimmer: a fluted knob over an engraved scale. */
   .dials, .dollies { display: contents; }
-  .dial { flex: 0 1 104px; min-width: 0; }
+  .dial { flex: 0 1 104px; min-width: 0; min-height: 152px; }
+  .dial.heat { min-height: 174px; }
+  /* A player's note has three lines' room kept for it, and anything longer is cut off there. */
+  .dial.sound .note { height: 42px; overflow: hidden; }
   .dimmer { position: relative; width: 104px; height: 104px; margin: 8px auto 6px; }
   .dimmer svg { position: absolute; inset: 0; }
   /* A fluted Bakelite knob, in layers. The flutes and the pointer turn with the level. The
@@ -125,8 +131,9 @@ export const STYLES = css`
   .knob.air { --k1: #121a16; --k2: #3b4e43; --k3: #7f9d8b; --c1: #86a391; --c2: #1b2620; }
 
   /* Dolly switches: a stepped round base, a dome with a slot, a lever in the slot. */
-  .dolly { width: 92px; margin-top: 10px; text-align: center; }
-  .dolly svg { width: 60px; height: 70px; filter: drop-shadow(0 4px 4px rgba(0,0,0,.55)); }
+  /* A button centres what is in it. The switch is pinned to the top instead, with its plate under it. */
+  .dolly { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; width: 92px; min-height: 100px; margin-top: 10px; text-align: center; }
+  .dolly svg { flex: none; width: 60px; height: 70px; margin: 0 0 3px; filter: drop-shadow(0 4px 4px rgba(0,0,0,.55)); }
   .dolly .label { font-size: 8px; letter-spacing: .1em; padding: 2px 5px; }
   .dolly .lever { transform-origin: 32px 32px; transition: transform .1s cubic-bezier(.5, 0, 1, .5); }
   .dolly.on .lever { transform: scaleY(-1); }
@@ -140,6 +147,8 @@ export const STYLES = css`
 
   /* An alarm: a plate saying how it stands, thumbwheels for its code, and push buttons. */
   .alarm { flex: 0 1 140px; display: flex; flex-direction: column; align-items: center; gap: 7px; margin-top: 10px; }
+  /* The alarm's plate is the same size whatever it says, since the thumbwheels are under it. */
+  .alarm > .label { display: flex; align-items: center; justify-content: center; width: 132px; min-height: 34px; }
   .alarm.sounding > .label { background: #c8281e; }
   /* Thumbwheels: brass barrels seen from the front. The shading makes the barrel round,
      and the digits above and below are squashed as they curve away. */
@@ -168,10 +177,12 @@ export const STYLES = css`
 
   /* A television screen: a camera's picture in black and white, behind a curved glass
      with its lines and a reflection. The surround is Bakelite with a brass trim. */
-  .tv { flex: 0 1 150px; margin-top: 10px; text-align: center; }
-  .tube { display: block; position: relative; aspect-ratio: 4 / 3; margin: 0 6px 8px; overflow: hidden; border-radius: 22% / 26%; background: radial-gradient(#27302b, #0a0d0b);
+  .tv { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; flex: 0 1 150px; min-height: 146px; margin-top: 10px; text-align: center; }
+  /* The screen's height is set from its width by padding, with the picture laid over it:
+     an aspect ratio with a picture as tall as its box grows without end in WebKit. */
+  .tube { display: block; position: relative; flex: none; align-self: stretch; height: 0; padding-top: calc((100% - 12px) * .75); margin: 0 6px 8px; overflow: hidden; border-radius: 22% / 26%; background: radial-gradient(#27302b, #0a0d0b);
     box-shadow: 0 0 0 5px #1c0f0a, 0 0 0 6px var(--brass), 0 6px 10px rgba(0,0,0,.6); }
-  .tube img { display: block; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.15) brightness(1.05) sepia(.14); }
+  .tube img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.15) brightness(1.05) sepia(.14); }
   .tube::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
     background: linear-gradient(125deg, rgba(255,255,255,.2), transparent 32%), repeating-linear-gradient(rgba(0,0,0,.2) 0 1px, transparent 1px 3px), radial-gradient(transparent 55%, rgba(0,0,0,.6));
     box-shadow: inset 0 0 14px #000; }
@@ -190,7 +201,8 @@ export const STYLES = css`
   .paper .lane { font-size: 9px; text-anchor: end; letter-spacing: .04em; } .paper .hour { font-size: 8px; text-anchor: middle; }
 
   /* Knife switches: the scenes. */
-  .knives { display: flex; flex: 1 1 300px; flex-wrap: wrap; gap: 14px; justify-content: space-around; align-items: flex-end; padding: 12px 18px 10px;
+  /* An open blade stands well above its own switch: a second row of them is set that far below the first. */
+  .knives { display: flex; flex: 1 1 300px; flex-wrap: wrap; gap: 46px 14px; justify-content: space-around; align-items: flex-end; padding: 38px 18px 10px;
     background: linear-gradient(170deg, #2b1811, #120906); border-radius: 12px; box-shadow: inset 0 2px 0 rgba(255,255,255,.14), 0 8px 14px rgba(0,0,0,.4); }
   .knife { text-align: center; max-width: 130px; }
   .knife svg { width: 130px; height: 84px; margin-bottom: 4px; }

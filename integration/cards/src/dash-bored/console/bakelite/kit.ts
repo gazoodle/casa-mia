@@ -119,16 +119,18 @@ export const valve = (heat: number) => html`<svg class="valve" viewBox="0 0 80 1
  * device that is not answering has its pilot out and its label struck through. `guard`
  * is for a switch under a red guard, which is "shut" over it or lifted "up"; `says` is
  * what a screen reader is told of it beside its name. Under a guard, `on` is thrown:
- * away from rest. Bakelite's switches are not lettered, so `_ends` is not used. */
-export const dolly = (name: string, on: boolean, away: boolean, press: () => void, guard: "" | "shut" | "up" = "", says = "", _ends = ["On", "Off"]) => html`<button class="dolly ${on ? "on" : ""} ${away ? "away" : ""} ${guard}" aria-pressed=${on} aria-label=${away ? `${name}: not answering` : name + says} @click=${press}>
+ * away from rest. Bakelite's switches are not lettered, so `_ends` is not used. The
+ * dome and its lever are the switch itself (`throw`): under a lifted guard, a press
+ * there is the one that throws it. */
+export const dolly = (name: string, on: boolean, away: boolean, press: (e: Event) => void, guard: "" | "shut" | "up" = "", says = "", _ends = ["On", "Off"]) => html`<button class="dolly ${on ? "on" : ""} ${away ? "away" : ""} ${guard}" aria-pressed=${on} aria-label=${away ? `${name}: not answering` : name + says} @click=${press}>
   <svg viewBox="0 -8 64 74"><circle class="pilot" cx="32" cy="-3" r="3.6" stroke="#c9a24b" stroke-width="1.2"/>
     <circle cx="32" cy="34" r="30" fill="#0e0705"/><circle cx="32" cy="32" r="30" fill="url(#bake)"/>
     <circle cx="32" cy="32" r="29" fill="none" stroke="#fff" stroke-opacity=".16"/><circle cx="32" cy="32" r="23.5" fill="none" stroke="#000" stroke-opacity=".55" stroke-width="1.6"/>
     <g fill="#8a8473" stroke="#2a1a10" stroke-width=".8"><circle cx="9.5" cy="45" r="3"/><circle cx="54.5" cy="19" r="3"/></g>
     <path d="M7.4,43.6 l4.2,2.8 M52.4,20.4 l4.2,-2.8" stroke="#2a1a10" stroke-width="1.1"/>
-    <circle cx="32" cy="32" r="19" fill="url(#dome)"/><rect x="25" y="19" width="14" height="26" rx="3" fill="#050201" stroke="#9a6a50" stroke-opacity=".5" stroke-width=".8"/>
+    <g class="throw"><circle cx="32" cy="32" r="19" fill="url(#dome)"/><rect x="25" y="19" width="14" height="26" rx="3" fill="#050201" stroke="#9a6a50" stroke-opacity=".5" stroke-width=".8"/>
     <g class="lever"><path d="M26.5,34 L28,9 Q32,5 36,9 L37.5,34 Z" fill="url(#lever)" stroke="#060302" stroke-width=".8"/>
-      <path d="M30,11 L29.2,31" stroke="#fff" stroke-opacity=".35" stroke-width="1.6" stroke-linecap="round"/></g>
+      <path d="M30,11 L29.2,31" stroke="#fff" stroke-opacity=".35" stroke-width="1.6" stroke-linecap="round"/></g></g>
     ${guard ? svg`<g class="guard"><rect x="17" y="4" width="30" height="56" rx="5" fill="#c8281e" fill-opacity=".82" stroke="#5a0f0a" stroke-width="1.2"/><path d="M21,9 h22" stroke="#fff" stroke-opacity=".4" stroke-width="2" stroke-linecap="round"/><rect x="14" y="1" width="36" height="6" rx="2" fill="#8a8473" stroke="#2a1a10" stroke-width=".8"/></g>` : nothing}
     <ellipse cx="24" cy="23" rx="5" ry="3" fill="#fff" opacity=".22" transform="rotate(-35 24 23)"/></svg>
   ${label(name)}
@@ -148,12 +150,16 @@ const TICKS = Array.from({ length: 11 }, (_, i) => {
  * word for what it sets. `on` are the knob's event handlers; `held` is true while it is
  * being dragged, when it follows the finger without easing. `said` is its setting in
  * words, for a screen reader, and `note` a second plate under its name. The knob is in
- * layers: its flutes and its pointer turn, and the light on it (styles.ts) stays where it is. */
-export const knob = (name: string, sort: string, what: string, level: number, held: boolean, said: string, note: string, on: { down(e: PointerEvent): void; move(e: PointerEvent): void; up(e: PointerEvent): void; drop(): void; key(e: KeyboardEvent): void }) => html`<div class="dial">
+ * layers: its flutes and its pointer turn, and the light on it (styles.ts) stays where it is.
+ * `_scale` is what its travel runs over, in the device's own units, and `_reads` what a
+ * thermostat reads now: an era that draws a scale of its own uses them, and Bakelite does not.
+ * A player has a place kept for its note whether or not anything is playing, so that a
+ * song starting moves nothing. */
+export const knob = (name: string, sort: string, what: string, level: number, held: boolean, said: string, note: string, on: { down(e: PointerEvent): void; move(e: PointerEvent): void; up(e: PointerEvent): void; drop(): void; key(e: KeyboardEvent): void }, _scale: number[] = [0, 100], _reads?: number) => html`<div class="dial ${sort}">
   <div class="dimmer"><svg viewBox="0 0 104 104" aria-hidden="true">${TICKS}</svg>
     <div class="knob ${sort} ${held ? "drag" : ""}" role="slider" tabindex="0" aria-label="${name} ${what}" aria-valuemin="0" aria-valuemax="100" aria-valuenow=${Math.round(level)} aria-valuetext=${said} style="--lvl: ${level.toFixed(1)}"
       @pointerdown=${on.down} @pointermove=${on.move} @pointerup=${on.up} @pointercancel=${on.drop} @keydown=${on.key}><span class="flutes"></span><span class="cap"></span><span class="mark"></span></div></div>
-  ${label(name)}${note ? html`<span class="note">${label(note)}</span>` : nothing}
+  ${label(name)}${note || sort === "sound" ? html`<span class="note">${note ? label(note) : nothing}</span>` : nothing}
 </div>`;
 
 /** A television screen, for a camera: the picture in black and white behind a curved

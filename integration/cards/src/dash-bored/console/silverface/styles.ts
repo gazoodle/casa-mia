@@ -19,6 +19,11 @@ export const STYLES = css`
   .label { display: inline-block; max-width: 100%; padding: 3px 8px; border-radius: 2px; background: linear-gradient(#e2e4e6, #b9bcbf); color: var(--ink);
     font-size: 10px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; box-shadow: 0 1px 2px rgba(0,0,0,.5); overflow-wrap: anywhere; }
   .room .label, dialog .label { padding: 2px 4px; background: none; box-shadow: none; }
+  /* A device's name is an engraved strip: white laminate with black capitals cut through
+     to its core, fixed over the control by whoever fitted the panel. */
+  .dial > .label, .dolly > .label, .tv > .label, .alarm > .label, .push > .label, .meter > .label { padding: 2.5px 7px 2px; border-radius: 1px; background: linear-gradient(#fbfaf5, #e9e7de); color: #17181a;
+    font-size: 8.5px; font-weight: 600; letter-spacing: .1em; text-shadow: 0 .6px 0 rgba(255,255,255,.9); box-shadow: 0 1px 1.5px rgba(0,0,0,.45), inset 0 0 0 .5px rgba(0,0,0,.3), inset 0 1px 0 #fff; }
+  .meter > .label { font-size: 9.5px; }
 
   .label .word { display: inline-block; white-space: nowrap; }
   .label i { font-style: normal; }
@@ -28,7 +33,7 @@ export const STYLES = css`
      what a player has on. --tape is the letter's size; everything else follows from it.
      The tape is glossy black vinyl: a bright line along its upper edge where it curves
      over, a band of sheen across it, and a duller lower edge. */
-  .floor .label, .room > .label, .alert .label, .note .label { --tape: 12px; padding: calc(var(--tape) * .42) calc(var(--tape) * .9) calc(var(--tape) * .34) calc(var(--tape) * .7); border-radius: 1px;
+  .floor .label, .room > .label, .alert .label, .note:not(.reading) .label { --tape: 12px; padding: calc(var(--tape) * .42) calc(var(--tape) * .9) calc(var(--tape) * .34) calc(var(--tape) * .7); border-radius: 1px;
     color: #8b9196; font: 500 var(--tape)/1.5 "Avenir Next", "DIN Alternate", "Helvetica Neue", Helvetica, Arial, sans-serif; letter-spacing: 0; text-transform: uppercase; word-spacing: calc(var(--tape) * .5);
     background: linear-gradient(101deg, transparent 0 8%, rgba(255,255,255,.3) 15%, rgba(255,255,255,.07) 23%, transparent 34%, transparent 52%, rgba(255,255,255,.2) 61%, rgba(255,255,255,.05) 70%, transparent 82%),
       linear-gradient(180deg, rgba(255,255,255,.8) 0, rgba(255,255,255,.34) 6%, rgba(255,255,255,.14) 20%, rgba(255,255,255,.02) 42%, transparent 66%, rgba(255,255,255,.12) 86%, rgba(255,255,255,.4) 96%, rgba(0,0,0,.5)), #08090b;
@@ -38,7 +43,7 @@ export const STYLES = css`
      off the line. It is raised: lit from the upper left, with its shadow to the lower
      right, and its edges are white where the vinyl has stretched. Round it is the pale
      patch the die leaves. */
-  .floor .label i, .room > .label i, .alert .label i, .note .label i { display: inline-block; width: calc(var(--tape) * .98); text-align: center; transform: translateY(var(--y)) rotate(var(--r));
+  .floor .label i, .room > .label i, .alert .label i, .note:not(.reading) .label i { display: inline-block; width: calc(var(--tape) * .98); text-align: center; transform: translateY(var(--y)) rotate(var(--r));
     background: radial-gradient(ellipse 62% 58% at 50% 52%, rgba(255,255,255,.13), rgba(255,255,255,.05) 55%, transparent 78%);
     /* The stroke is the bright rim of the raised letter, and the fill its greyer face. */
     -webkit-text-stroke: calc(var(--tape) * .055) #cfd3d6; paint-order: stroke fill;
@@ -49,7 +54,8 @@ export const STYLES = css`
   /* A message too long for one strip is cut into a strip for each line. */
   .alert .label { display: inline; line-height: 2.25; clip-path: none; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
   .alert:nth-child(odd) { transform: rotate(.25deg); } .alert:nth-child(even) { transform: rotate(-.3deg); }
-  .note .label { --tape: 9px; transform: rotate(-.8deg); }
+  .note:not(.reading) .label { --tape: 9px; transform: rotate(-.8deg); }
+  .note.reading .label { font-size: 8px; font-weight: 500; letter-spacing: .08em; text-transform: none; }
 
   /* What must never be missed: a lost connection, a refused action. A red lamp and a plate. */
   .warn { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
@@ -66,7 +72,10 @@ export const STYLES = css`
       radial-gradient(circle at 9px calc(100% - 9px), #2a2c2e 0 1.6px, #8e9296 1.7px 3.6px, transparent 4px), radial-gradient(circle at calc(100% - 9px) calc(100% - 9px), #2a2c2e 0 1.6px, #8e9296 1.7px 3.6px, transparent 4px),
       repeating-linear-gradient(90deg, rgba(255,255,255,.07) 0 1px, rgba(0,0,0,.035) 1px 2px, transparent 2px 3px), linear-gradient(180deg, #dfe1e3, #bfc2c5 55%, #d3d5d7);
     box-shadow: inset 0 1px 0 rgba(255,255,255,.7), inset 0 -1px 0 rgba(0,0,0,.3), 0 6px 12px rgba(0,0,0,.45); }
-  .works { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 6px; }
+  /* Every control is fixed to the plate. It hangs from the top of its row and keeps the
+     same height whatever its lettering says, with room under it for a strip of two lines,
+     so a name that grows or a display that changes moves nothing (owner, 2026-11-15). */
+  .works { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 4px 6px; }
   .works > .meter { flex: 0 1 150px; margin-top: 8px; }
   .more { margin-top: 10px; opacity: .7; }
   .more .label, .rec .label { font-size: 8.5px; letter-spacing: .12em; }
@@ -89,14 +98,21 @@ export const STYLES = css`
   .meter .legend { font-size: 4.2px; letter-spacing: .14em; }
 
   /* The annunciator: Sensor Watch's alerts, a lit window and a plate each. A critical one flashes. */
-  .lamps { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-bottom: 16px; }
-  .alert { position: relative; max-width: 100%; min-height: 24px; padding-left: 80px; }
-  .alert .jewel { position: absolute; left: 0; top: 0; min-height: 24px; border-radius: 2px; }
-  .jewel { display: flex; flex: none; align-items: center; justify-content: center; min-width: 70px; padding: 5px 8px; border-radius: 2px 0 0 2px; color: #2a0705; background: var(--glow);
-    font-size: 9px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; box-shadow: inset 0 0 0 1px rgba(0,0,0,.45), inset 0 7px 8px rgba(255,255,255,.4), 0 0 12px var(--glow); }
-  .jewel.task { --glow: #f3efe0; } .jewel.warning { --glow: #ffb226; } .jewel.error, .jewel.critical { --glow: #ff4a35; }
+  .lamps { display: flex; flex-wrap: wrap; gap: 9px 16px; margin-bottom: 16px; }
+  .alert { position: relative; max-width: 100%; min-height: 36px; padding: 5px 0 0 98px; }
+  .alert .jewel { position: absolute; left: 4px; top: 4px; height: 30px; }
+  /* An annunciator window, after a ship's control board: a stepped black bezel standing
+     proud of the panel, and recessed in it a milky lens with the level engraved in dark
+     capitals. The lamp is behind the lens: brightest in the middle, and the level's
+     colour (--glow). The border is the bezel, lighter along its top where the light falls. */
+  .jewel { display: flex; flex: none; align-items: center; justify-content: center; width: 74px; padding: 0 3px; border: 5px solid #141516; border-top-color: #2f3134; border-bottom-color: #08090a; border-radius: 4px;
+    color: rgba(34, 26, 20, .9); font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; text-shadow: 0 1px 0 rgba(255,255,255,.55);
+    background: radial-gradient(ellipse 70% 90% at 50% 45%, rgba(255,255,255,.85), rgba(255,255,255,.25) 60%, rgba(0,0,0,.14)), var(--glow); background-clip: padding-box;
+    box-shadow: 0 0 0 1px #000, 0 0 0 2.5px #2b2d30, 0 0 0 3.5px #000, 0 3px 4px 3px rgba(0,0,0,.5), inset 0 0 0 1px rgba(0,0,0,.55), inset 0 3px 5px rgba(0,0,0,.35), 0 0 16px 2px var(--glow); }
+  .jewel.task { --glow: #f1ede2; } .jewel.warning { --glow: #ffb326; } .jewel.error, .jewel.critical { --glow: #ff4b36; }
+  /* A critical one flashes: between lit and the grey-white of a lens with no lamp behind it. */
   .jewel.critical { animation: flash 1s steps(2, jump-none) infinite; }
-  @keyframes flash { 0% { box-shadow: inset 0 0 0 1px rgba(0,0,0,.45); filter: brightness(.45); } 100% { filter: none; } }
+  @keyframes flash { 0% { background: linear-gradient(#d9d6cd, #b9b6ad); background-clip: padding-box; box-shadow: 0 0 0 1px #000, 0 0 0 2.5px #2b2d30, 0 0 0 3.5px #000, 0 3px 4px 3px rgba(0,0,0,.5), inset 0 0 0 1px rgba(0,0,0,.55), inset 0 3px 5px rgba(0,0,0,.35); } }
 
   /* A machined knob, in layers. Its knurled edge and its line turn with the level; the
      light on its spun face and its shadow stay where they are. --dot is the colour of its
@@ -119,15 +135,28 @@ export const STYLES = css`
   .mark { z-index: 3; pointer-events: none; }
   .mark::after { content: ""; position: absolute; left: 50%; top: 5%; width: 3px; height: 30%; margin-left: -1.5px; border-radius: 1px; background: var(--ink); box-shadow: 0 0 0 .5px rgba(255,255,255,.5); }
   .knob:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
-  .knob.wind { --dot: #2f6fd0; } .knob.heat { --dot: #d0291c; } .knob.sound { --dot: #e3a21a; } .knob.air { --dot: #2f9a5a; }
+  .knob.wind { --dot: #2f6fd0; } .knob.sound { --dot: #e3a21a; } .knob.air { --dot: #2f9a5a; }
+  /* The heating's knob is the pointer knob in the middle of its dial: black, with a white
+     line that reaches to the scale. The dial's face and hand are drawn in kit.ts. */
+  .knob.heat { inset: 29px; }
+  .knob.heat .flutes { background: repeating-conic-gradient(#0b0b0b 0deg, #303234 6deg, #0b0b0b 12deg); }
+  .knob.heat .cap { inset: 16%; background: radial-gradient(circle at 34% 28%, #55585b, #0e0f10 72%); box-shadow: 0 0 0 1px #000, inset 0 2px 2px rgba(255,255,255,.25), inset 0 -3px 4px rgba(0,0,0,.6); }
+  .knob.heat .cap::after { display: none; }
+  .knob.heat .mark::after { top: -7px; width: 3.2px; height: 58%; margin-left: -1.6px; background: linear-gradient(#f6f6f3 0 46%, #0e0f10 46%); box-shadow: 0 0 0 .5px rgba(0,0,0,.6); }
+  .face { fill: #f8f7f1; } .figures text { font-size: 6.2px; font-weight: 700; text-anchor: middle; }
+  .hand { transform-origin: 52px 52px; transition: transform 1.1s cubic-bezier(.3, 1.4, .5, 1); }
   .note { display: block; margin-top: 4px; }
+  /* A player's tape has three lines' room kept for it, and anything longer is cut off there. */
+  .dial.sound .note { height: 50px; overflow: hidden; }
   /* A setting in red digits, with the glow of the LEDs behind the window. */
   .readout { margin: 3px auto 0; filter: drop-shadow(0 0 2px rgba(255,58,34,.55)); }
 
   /* Toggle switches: up is on. The lever is drawn up and thrown over for off. */
-  .dolly { width: 92px; margin-top: 8px; text-align: center; }
-  .dolly svg { width: 62px; height: auto; filter: drop-shadow(0 3px 3px rgba(0,0,0,.4)); }
-  .dolly .label { font-size: 8px; letter-spacing: .1em; }
+  /* A button centres what is in it. The drawing is pinned to the top instead, with the strip under it. */
+  .dolly { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; width: 92px; min-height: 116px; margin-top: 8px; text-align: center; }
+  .dolly.shut, .dolly.up { min-height: 145px; }
+  .dolly svg { flex: none; width: 62px; height: auto; margin: 0; filter: drop-shadow(0 3px 3px rgba(0,0,0,.4)); }
+  .dolly > .label { font-size: 8px; }
   .onoff { fill: #f4f4f2; font-size: 4.4px; font-weight: 700; letter-spacing: .04em; text-anchor: middle; text-transform: uppercase; }
   .dolly .lever { transform-origin: 29px 46px; transform: scaleY(-1); transition: transform .09s cubic-bezier(.5, 0, 1, .5); }
   .dolly.on .lever { transform: none; }
@@ -137,6 +166,9 @@ export const STYLES = css`
      drawn twice: shut, it folds away towards the hinge, and then the open one unfolds
      above it, which reads as one cover swinging over. */
   .dolly .shell { transform-origin: 29px 4.5px; }
+  /* The cover that is folded away takes no presses. Why: WebKit still took a tap on one
+     folded to nothing, so a press on the switch under a lifted cover never reached it (2026-11-15). */
+  .dolly.up .shut-shell, .dolly.shut .up-shell { pointer-events: none; }
   .dolly .shut-shell { transition: transform .12s ease-in .1s; }
   .dolly.up .shut-shell { transform: scaleY(0); transition-delay: 0s; }
   .dolly .up-shell { transform: scaleY(0); transition: transform .12s ease-in; }
@@ -147,7 +179,9 @@ export const STYLES = css`
   /* An alarm: how it stands, thumbwheels for its code, and keys. The thumbwheels are black
      plastic with white figures, as the switches of the time were. */
   .alarm { flex: 0 1 140px; display: flex; flex-direction: column; align-items: center; gap: 7px; margin-top: 10px; }
-  .alarm.sounding > .label { background: #ff4a35; padding: 2px 6px; }
+  /* The alarm's strip is the same size whatever it says, since the thumbwheels are under it. */
+  .alarm > .label { display: flex; align-items: center; justify-content: center; width: 132px; min-height: 33px; }
+  .alarm.sounding > .label { background: #ff4a35; }
   .wheels { display: flex; gap: 1.5px; padding: 3px; border-radius: 2px; background: #000; box-shadow: 0 0 0 1px #8e9296, 0 2px 3px rgba(0,0,0,.5); }
   /* One module: a window with one white figure, and a push button above it to step it on
      and one below to step it back. The figure rolls past the window when it is stepped. */
@@ -165,18 +199,21 @@ export const STYLES = css`
   .push { text-align: center; }
   .push .key { display: block; width: 30px; height: 22px; margin: 3px auto 5px; border-radius: 3px; background: linear-gradient(#f1f2f3, #a9adb1); box-shadow: 0 0 0 2px var(--ink), inset 0 1px 0 #fff, 0 3px 4px rgba(0,0,0,.5); }
   .push:active .key { transform: translateY(1px); }
-  .push .label { font-size: 8px; letter-spacing: .1em; }
+  .push > .label { font-size: 7.5px; }
   .push:focus-visible .key { outline: 2px solid var(--ink); outline-offset: 4px; }
 
   /* A colour television: a camera's picture behind a rounded glass, with its lines. */
-  .tv { flex: 0 1 150px; margin-top: 10px; text-align: center; }
-  .tube { display: block; position: relative; aspect-ratio: 4 / 3; margin: 0 6px 7px; overflow: hidden; border-radius: 13% / 16%; background: radial-gradient(#1c2428, #06090b);
+  .tv { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; flex: 0 1 150px; min-height: 146px; margin-top: 10px; text-align: center; }
+  /* The screen's height is set from its width by padding, with the picture laid over it.
+     Why: with an aspect ratio and a picture as tall as its box, WebKit grew the screen
+     without end (2026-11-15), and an old WebView has no aspect ratio at all. */
+  .tube { display: block; position: relative; flex: none; align-self: stretch; height: 0; padding-top: calc((100% - 12px) * .75); margin: 0 6px 7px; overflow: hidden; border-radius: 13% / 16%; background: radial-gradient(#1c2428, #06090b);
     box-shadow: 0 0 0 4px var(--ink), 0 0 0 5.5px #e6e8ea, 0 5px 8px rgba(0,0,0,.5); }
-  .tube img { display: block; width: 100%; height: 100%; object-fit: cover; filter: saturate(1.35) contrast(1.06) sepia(.2) hue-rotate(-8deg) brightness(1.05); }
+  .tube img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; filter: saturate(1.35) contrast(1.06) sepia(.2) hue-rotate(-8deg) brightness(1.05); }
   .tube::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
     background: linear-gradient(125deg, rgba(255,255,255,.22), transparent 30%), repeating-linear-gradient(rgba(0,0,0,.16) 0 1px, transparent 1px 3px), radial-gradient(transparent 60%, rgba(0,0,0,.5));
     box-shadow: inset 0 0 12px #000; }
-  .tv .label { font-size: 8.5px; letter-spacing: .1em; }
+  .tv > .label { font-size: 8px; }
   .tv:focus-visible .tube { outline: 2px solid var(--ink); outline-offset: 7px; }
   .top .tv { flex-basis: 170px; }
 
@@ -197,5 +234,11 @@ export const STYLES = css`
   .scope text { fill: #7dffc0; font-size: 9px; }
   .scope .lane { text-anchor: end; letter-spacing: .04em; } .scope .hour { font-size: 8px; text-anchor: middle; opacity: .7; }
 
+  /* On a phone an alert's window sits over its tape, which is cut narrower, so that one
+     long word (an entity's id) still fits across the screen. */
+  @media (max-width: 520px) {
+    .alert { padding: 44px 0 0; }
+    .alert .label { --tape: 10px; }
+  }
   @media (prefers-reduced-motion: reduce) { .waver, .jewel.critical { animation: none; } .needle, .wheel span { transition: none; } }
 `;

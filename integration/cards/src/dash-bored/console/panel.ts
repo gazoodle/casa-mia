@@ -156,12 +156,18 @@ export class Panel extends Family {
   /** A press on a guarded switch (a lock, a garage door, a valve). Its guard is shut only
    * while the device is at rest: locked, shut, silent (owner, 2026-11-15). From rest it
    * takes two presses: the first lifts the guard, for a few seconds, and the second throws
-   * the switch. `thrown`, it takes one: the guard is shut, which knocks the switch back.
-   * The guard is drawn from how the device stands, so it shuts when the device says it is
-   * at rest again, and not before. */
-  private _guarded(d: Device, thrown: boolean) {
+   * the switch. The second must be on the switch itself (the kit's `.throw`): one anywhere
+   * else is a change of mind, and the guard drops (owner, 2026-11-15). From a keyboard
+   * there is no where, so the second press throws. `thrown`, it takes one press anywhere
+   * on it: the guard is shut, which knocks the switch back. The guard is drawn from how
+   * the device stands, so it shuts when the device says it is at rest again, and not before. */
+  private _guarded(d: Device, thrown: boolean, e: Event) {
     if (thrown) return this._call(flip(d), `${d.room} ${d.name}`);
-    if (this._armed === d.id) this._call(flip(d), `${d.room} ${d.name}`);
+    if (this._armed === d.id) {
+      const meant = (e as MouseEvent).detail === 0 || !!(e.target as Element).closest?.(".throw");
+      if (!meant) return void (this._armed = "");
+      this._call(flip(d), `${d.room} ${d.name}`);
+    }
 
     // The guard is up: until the next press, and once the switch is thrown until the
     // device answers. If neither comes, it drops again.
@@ -174,6 +180,11 @@ export class Panel extends Family {
     }, ARMED);
     this._timers.add(this._dropping);
   }
+
+  /** A press anywhere on the panel that is not on a guarded switch drops a lifted guard. */
+  private _elsewhere = (e: Event) => {
+    if (this._armed && !(e.target as Element).closest?.(".dolly.shut, .dolly.up")) this._armed = "";
+  };
 
   /** Put a knob at a level and ask its device for it. The knob goes back to where the
    * device really is if it has not answered in a few seconds. */
@@ -303,7 +314,7 @@ export class Panel extends Family {
           const degrees = DEGREES.has(d.kind);
           const plate = degrees ? (d.on ? `${d.name} ${dial.level}°` : `${d.name}: off`) : d.kind === "humidifier" ? `${d.name} ${dial.level}%` : d.name;
           const note = d.title ?? (degrees && d.temp !== undefined ? `now ${d.temp}°` : "");
-          return knob(plate, sort, what, dial.turn, dial.held, degrees ? `${dial.level} degrees` : `${dial.level} per cent`, note, dial.on);
+          return knob(plate, sort, what, dial.turn, dial.held, degrees ? `${dial.level} degrees` : `${dial.level} per cent`, note, dial.on, [d.span.min, d.span.max], d.temp);
         })}</div>
         <div class="dollies">${shown.filter(switched).map((d) => {
           // A robot's switch says where it has got to: returning, docked.
@@ -314,8 +325,8 @@ export class Panel extends Family {
           // door or a valve open, a siren sounding. Its guard is up then, and while it waits for its second press.
           const thrown = d.kind === "lock" ? !d.on : d.on;
           const up = thrown || this._armed === d.id;
-          const next = thrown ? "press to shut it, which puts the switch back" : up ? "press again to throw the switch" : "press to lift it";
-          return dolly(name, thrown, d.away, () => d.away || this._guarded(d, thrown), up ? "up" : "shut", `${says}. Under a guard: ${next}`, ENDS[d.kind]);
+          const next = thrown ? "press to shut it, which puts the switch back" : up ? "press the switch to throw it, or anywhere else to shut the guard" : "press to lift it";
+          return dolly(name, thrown, d.away, (e) => d.away || this._guarded(d, thrown, e), up ? "up" : "shut", `${says}. Under a guard: ${next}`, ENDS[d.kind]);
         })}</div>
         ${shown.filter(camera).map((d) => {
           const s = seen.get(d.id);
@@ -333,7 +344,7 @@ export class Panel extends Family {
       return html`${first ? html`<div class="floor">${label(r.floor ?? "Elsewhere")}</div>` : nothing}${drawn}`;
     });
 
-    return html`<div class="panel">
+    return html`<div class="panel" @click=${this._elsewhere}>
       ${DEFS}
       ${this._lost ? html`<div class="warn"><span class="lamp"></span>${label(`No connection to Home Assistant since ${clock(this._lost)}. What is shown is as it was then.`)}</div>` : nothing}
       ${this._fault ? html`<div class="warn"><span class="lamp"></span>${label(this._fault)}</div>` : nothing}

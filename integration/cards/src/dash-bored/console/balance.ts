@@ -7,11 +7,11 @@ export type Load = { knobs: number; dollies: number; alarms: number; tvs: number
 // bakelite/styles.ts: change them together. Every era keeps to these sizes.
 const ROOM = [140, 312, 484];
 const METER = [156, 185];
-const KNOB = [110, 140];
-const DOLLY = [98, 100];
+const KNOB = [110, 156];
+const DOLLY = [98, 126];
 const ALARM = [146, 170];
-const TV = [156, 150];
-const LEAST = 300; // px: a house of small rooms keeps them one wide, up to this height
+const TV = [156, 158];
+const LEAST = 2 * KNOB[1]; // px: a house of small rooms keeps them one wide, up to this height
 
 /** The height of a room's controls in a chassis `wide` widths across (1 to 3). They are
  * laid in rows as they come, the meter first, and a row is as tall as its tallest. */

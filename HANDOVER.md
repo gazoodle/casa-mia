@@ -279,6 +279,16 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   with `console/silverface/`); it takes `tv`, `wheels` and `swing` from Bakelite's kit,
   where the markup is the same and only the stylesheet differs. Why: they are the same panel in different skins, as
   the Gazette's papers are. Bakelite is completed first and keeps its name.
+  - **A panel's controls never move for their lettering** (owner, 2026-11-15: "it's
+    drilled into the panel"; true of the Console's eras, perhaps not of other families).
+    Each hangs from the top of its row with a fixed height and room for a two-line
+    plate; a display has fixed cells (`panel` in `silverface/kit.ts`). Check a change
+    by measuring, not by eye: record every control's box, change a label, compare.
+  - **Test the Console in WebKit as well as Chromium.** Why: on 2026-11-15 a camera's
+    screen (an aspect ratio with a picture as tall as its box, in a column flexbox) grew
+    without end in WebKit only, and a cover folded to nothing still took taps there, so
+    on the owner's iPad a guarded switch could not be thrown. Playwright's WebKit is in
+    `~/Library/Caches/ms-playwright/webkit-2359` (pass its `pw_run.sh` as the executable).
 - **The page and the families** (2026.11.8-b23). The sidebar's page (`panel_custom`, not in
   a frame, for every user) is `dash-bored-page` (`shell.ts`). It shows one family's
   element and holds the choice between them: two presses within `TWICE` in its top right
