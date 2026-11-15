@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.11.8-b33
+
+- **Dash-Bored: the Console's guarded switches take two presses one way and one the other.** A guard is shut only while its device is at rest: locked, shut or silent. Two presses change that, the first lifting the guard and the second throwing the switch. While the device is away from rest its guard stays up, and one press shuts it, which puts the switch back. Before, both directions took two presses, and a guard could be shut over a switch that was on.
+- **Dash-Bored: the Console has a second era, Silverface.** The 1970s, after the hi-fi and bench instruments of the time: brushed aluminium faceplates in a teak cabinet, machined knobs with a coloured centre, chrome toggle switches (under a red flip-up cover for a lock, a garage door or a valve), meters with a lit blue-green face, a row of red LEDs for a room's lights, red digits for a setting, illuminated push buttons for scenes, lit tiles for Sensor Watch's alerts, a colour television for a camera and an oscilloscope for a room's day. The names of floors and rooms, and what is wrong with a sensor, are strips of embossed label tape. Turn the era switch to 70.
+- **Dash-Bored: Bakelite's alerts are written on cards.** What is wrong with each sensor is handwritten in ink on a card in a brass holder, beside its lamp. The hand is a typeface that comes with Dash-Bored (Homemade Apple, under the Apache Licence 2.0), so it is the same on every screen.
+
 ## 2026.11.8-b32
 
 - **Dash-Bored: Bakelite is now the first era of a family, the Console.** The Console is the house as a control panel in the style of a decade: Bakelite (1950s), Nixie (1960s), Silverface (1970s), Bargraph (1980s) and Beige (1990s). Only Bakelite is built. A rotary switch at the top right of the panel chooses the era, and an era that is not built yet says so. A browser that had chosen Bakelite opens the Console at Bakelite.

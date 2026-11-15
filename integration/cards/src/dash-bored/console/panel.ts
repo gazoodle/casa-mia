@@ -26,9 +26,11 @@ const RECENT = 30 * 60_000; // ms: how long what a camera saw stays on its scree
 const SETS: [string, number, string][] = [["alarm_arm_away", 2, "Away"], ["alarm_arm_home", 1, "Home"], ["alarm_arm_night", 4, "Night"]];
 const WHEELS = 6; // thumbwheels for a code: a shorter code leaves some blank
 const SHOWING = 30_000; // ms: how long a code stays on its wheels with nothing pressed
-// What a screen reader is told a guarded switch does when it is down, and when it is up.
+// How a screen reader is told these kinds stand: when on, and when off.
 const STANDS: Record<string, [string, string]> = { lock: ["locked", "unlocked"], cover: ["open", "closed"], valve: ["open", "closed"], siren: ["sounding", "silent"] };
-const ARMED = 6000; // ms: how long a lifted guard waits for the press that throws its switch
+// What a guarded switch's two ends are lettered: thrown, and at rest.
+const ENDS: Record<string, [string, string]> = { lock: ["Unlocked", "Locked"], cover: ["Open", "Shut"], valve: ["Open", "Shut"], siren: ["On", "Off"] };
+const ARMED = 6000; // ms: how long a lifted guard waits for the press that throws its switch, and then for the device to answer
 const SWEEP = 270; // degrees: how far a knob turns from nothing to full, as it is drawn (styles.ts)
 const MOVED = 4; // px: a press that travels less than this is a press, not a drag
 const THROWN = 1200; // ms: how long a knife switch stays closed once thrown
@@ -52,6 +54,7 @@ export class Panel extends Family {
   // as it is turned (kit.ts's `face` says what a place shows).
   _code?: { id: string; wheels: number[] };
   private _hiding?: ReturnType<typeof setTimeout>;
+  private _dropping?: ReturnType<typeof setTimeout>; // when a lifted guard drops again
   _alerts: Alert[] = []; // what Sensor Watch has said of each sensor it has spoken of
   _seen: Seen[] = []; // what the cameras have seen lately
   // The chart recorder that is open: for which room, the day up to when, and each device's record as it comes.
@@ -150,19 +153,26 @@ export class Panel extends Family {
     </div>`;
   }
 
-  /** A press on a guarded switch (a lock, a garage door, a valve). The first lifts its
-   * guard, for a few seconds; the second throws the switch. */
-  private _guarded(d: Device) {
-    if (this._armed === d.id) {
-      this._armed = "";
-      return this._call(flip(d), `${d.room} ${d.name}`);
-    }
+  /** A press on a guarded switch (a lock, a garage door, a valve). Its guard is shut only
+   * while the device is at rest: locked, shut, silent (owner, 2026-11-15). From rest it
+   * takes two presses: the first lifts the guard, for a few seconds, and the second throws
+   * the switch. `thrown`, it takes one: the guard is shut, which knocks the switch back.
+   * The guard is drawn from how the device stands, so it shuts when the device says it is
+   * at rest again, and not before. */
+  private _guarded(d: Device, thrown: boolean) {
+    if (thrown) return this._call(flip(d), `${d.room} ${d.name}`);
+    if (this._armed === d.id) this._call(flip(d), `${d.room} ${d.name}`);
+
+    // The guard is up: until the next press, and once the switch is thrown until the
+    // device answers. If neither comes, it drops again.
     this._armed = d.id;
-    const timer = setTimeout(() => {
-      this._timers.delete(timer);
+    clearTimeout(this._dropping);
+    this._timers.delete(this._dropping!);
+    this._dropping = setTimeout(() => {
+      this._timers.delete(this._dropping!);
       if (this._armed === d.id) this._armed = "";
     }, ARMED);
-    this._timers.add(timer);
+    this._timers.add(this._dropping);
   }
 
   /** Put a knob at a level and ask its device for it. The knob goes back to where the
@@ -300,8 +310,12 @@ export class Panel extends Family {
           const name = d.phase ? `${d.name}: ${d.phase}` : d.name;
           const says = STANDS[d.kind] ? `: ${STANDS[d.kind][d.on ? 0 : 1]}` : "";
           if (!d.guarded) return dolly(name, d.on, d.away, () => d.away || this._call(flip(d), `${r.name} ${d.name}`), "", says);
-          const up = this._armed === d.id;
-          return dolly(name, d.on, d.away, () => d.away || this._guarded(d), up ? "up" : "shut", `${says}. Under a guard: ${up ? "press again to throw it" : "press to lift it"}`);
+          // A guarded switch is thrown when its device is away from rest: a lock unlocked, a
+          // door or a valve open, a siren sounding. Its guard is up then, and while it waits for its second press.
+          const thrown = d.kind === "lock" ? !d.on : d.on;
+          const up = thrown || this._armed === d.id;
+          const next = thrown ? "press to shut it, which puts the switch back" : up ? "press again to throw the switch" : "press to lift it";
+          return dolly(name, thrown, d.away, () => d.away || this._guarded(d, thrown), up ? "up" : "shut", `${says}. Under a guard: ${next}`, ENDS[d.kind]);
         })}</div>
         ${shown.filter(camera).map((d) => {
           const s = seen.get(d.id);

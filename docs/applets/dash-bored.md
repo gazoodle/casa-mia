@@ -448,7 +448,7 @@ in the same places, drawn as the equipment of their time:
 |---|---|---|
 | Bakelite | 1950s | Being built, and described below |
 | Nixie | 1960s | Not built yet |
-| Silverface | 1970s | Not built yet; the next to be built |
+| Silverface | 1970s | Being built, and described below |
 | Bargraph | 1980s | Not built yet |
 | Beige | 1990s | Not built yet |
 
@@ -464,8 +464,8 @@ The Console of the 1950s. It shows every kind of device the Gazette does.
 ![Bakelite: a meter for the outside air over a chassis for each room, each with a valve, knobs and tumbler switches](../screenshots/dash-bored-bakelite.webp)
 
 At the very top is a warning lamp for each sensor that [Sensor Watch](sensor-watch.md)
-has above its normal level, the worst first, with a plate giving the sensor's name, what
-is wrong and since when. The lamp is red for an error, red and flashing for a critical
+has above its normal level, the worst first. Beside each is a card in a brass holder,
+handwritten in ink, giving the sensor's name, what is wrong and since when. The lamp is red for an error, red and flashing for a critical
 one, amber for a warning and white for a task. When nothing is wrong there are no lamps.
 
 Under the lamps are a meter for the outside air, from a weather entity, a meter for the
@@ -492,10 +492,13 @@ is far taller than the others. Each chassis has:
   Down is on, or open. One whose device is not answering is faded, with its name struck
   through, and can't be pressed.
 - **A tumbler switch under a red guard** for each lock, garage door, gate, valve and siren.
-  The first press lifts the guard and the second throws the switch. A guard that is
-  lifted and then left alone drops again after six seconds. Down is locked for a lock,
-  open for a door or a valve, and sounding for a siren. Both directions take two presses,
-  locking as well as unlocking.
+  The guard is shut only while the device is at rest: a lock locked, a door, gate or
+  valve shut, a siren silent. To change that takes two presses: the first lifts the
+  guard and the second throws the switch. A guard that is lifted and then left alone
+  drops again after six seconds. While the device is away from rest the guard stays up,
+  with the switch thrown and its lamp lit, and one press puts it back: the guard is shut,
+  which knocks the switch over. The guard shuts on the panel when the device says it is
+  at rest again, so a garage door's stays up until the door has closed.
 - **An alarm** has a plate saying how it stands (unset, arming, set, pending or sounding)
   and a push button for each way it can be set: Away, Home and Night, as the alarm has
   them. Once it is set there is one button, Unset. If the alarm takes a code in digits,
@@ -533,6 +536,28 @@ The Gazette's columns (the weather forecast, Personal, Amusements) are not on th
 how many, such as "and 4 more". If the connection to Home Assistant is lost, or Home
 Assistant refuses a press, a red lamp and a plate at the top say so.
 
+### Silverface
+
+The Console of the 1970s, after the hi-fi and bench instruments of the time. It has the
+same controls as Bakelite in the same places, and each works the same way; what differs is
+how they are drawn:
+
+| Bakelite | Silverface |
+|---|---|
+| A Bakelite chassis on green enamel | A brushed aluminium faceplate in a teak cabinet |
+| A valve that glows with the room's lights | A row of five red LEDs: the more light, the more are lit |
+| A round moving-coil meter | A rectangular meter with a lit blue-green face and the top of its scale in red |
+| A fluted knob, coloured by its kind | A machined aluminium knob with a coloured centre: black for a light, blue for a blind, red for the heating, amber for a player, green for a fan |
+| The setting engraved on the knob's plate | The setting in red digits under the knob |
+| A tumbler switch, down for on | A chrome toggle switch, up for on, with a red lamp beside it |
+| A tumbler under a red guard | The toggle under a switch guard: a red cover on a hinged steel plate, which flips up at the first press. Its ends are lettered for what it works: OPEN and SHUT, UNLOCKED and LOCKED |
+| A knife switch for a scene | A push button that lights when pressed, with the scene's name on it |
+| A pilot lamp and a handwritten card for an alert | A lit tile saying error, warning or task, with what is wrong on a strip of embossed label tape |
+| Engraved plates for the names of floors and rooms | Embossed label tape |
+| Brass thumbwheels for an alarm's code | Black thumbwheels with white figures |
+| A black-and-white television for a camera | A colour television |
+| A chart recorder on paper | An oscilloscope, with a green trace for each device |
+
 ## The order of floors and rooms
 
 Floors are shown from the lowest up and the rooms on each by name. To change that, open
@@ -565,7 +590,8 @@ rooms: [Kitchen, Hall]    # optional: show only these rooms, in this order on th
 ```
 
 The Console is a card too, **Casa Mia Dash-Bored Console** (`type: custom:dash-bored-console`),
-with its era switch. Give it `era: bakelite` and it is that era with no switch, which is
+with its era switch. Give it `era: bakelite` or `era: silverface` and it is that era with no
+switch; the first is
 also what **Casa Mia Dash-Bored Bakelite** (`type: custom:dash-bored-bakelite`) is.
 It takes `power`, `weather`, `floors` and `rooms` in the same way, and has no `style`.
 

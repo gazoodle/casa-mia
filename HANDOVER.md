@@ -275,7 +275,9 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   to the 1990s: Bakelite, Nixie, Silverface, Bargraph, Beige (names agreed with the
   owner, 2026-11-14). `console/host.ts` is the family's element and its era switch
   (`ERAS`); an era is an element on `console/panel.ts`, shown in the host with the
-  switch in its `era` slot. Silverface is next, to the design agreed that day (BACKLOG). Why: they are the same panel in different skins, as
+  switch in its `era` slot. Silverface (1970s) is built to the design agreed that day (`console/silverface.ts`
+  with `console/silverface/`); it takes `tv`, `wheels` and `swing` from Bakelite's kit,
+  where the markup is the same and only the stylesheet differs. Why: they are the same panel in different skins, as
   the Gazette's papers are. Bakelite is completed first and keeps its name.
 - **The page and the families** (2026.11.8-b23). The sidebar's page (`panel_custom`, not in
   a frame, for every user) is `dash-bored-page` (`shell.ts`). It shows one family's
@@ -290,8 +292,8 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   newspapers' work to the backlog). `console/panel.ts` is the panel, the same in every era; an era is a kit to the shape
   in `console/kit.ts` and a stylesheet (`console/bakelite.ts` with `console/bakelite/`),
   after `docs/design/dash-bored/bakelite.html`.
-  It has lights, switches, covers, the guarded kinds (`SHOWN`; a guarded one takes two
-  presses both ways, `_guarded`) and alarms (`_alarm`: thumbwheels for a code in digits,
+  It has lights, switches, covers, the guarded kinds (a guard is shut only at rest; two
+  presses leave rest and one returns, `_guarded`; owner, 2026-11-15) and alarms (`_alarm`: thumbwheels for a code in digits,
   which is held only in `_code` and never logged); what's left is in BACKLOG. Knobs
   are cranked round their middle (`bearing`). Sensor Watch's alerts are pilot lamps
   along the top (`_alerts`, straight from the feed, so in seconds). A meter is lit only

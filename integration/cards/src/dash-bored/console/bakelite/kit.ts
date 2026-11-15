@@ -118,8 +118,9 @@ export const valve = (heat: number) => html`<svg class="valve" viewBox="0 0 80 1
 /** A tumbler switch with a pilot lamp over it. Down is on, as on a British wall. A
  * device that is not answering has its pilot out and its label struck through. `guard`
  * is for a switch under a red guard, which is "shut" over it or lifted "up"; `says` is
- * what a screen reader is told of it beside its name. */
-export const dolly = (name: string, on: boolean, away: boolean, press: () => void, guard: "" | "shut" | "up" = "", says = "") => html`<button class="dolly ${on ? "on" : ""} ${away ? "away" : ""} ${guard}" aria-pressed=${on} aria-label=${away ? `${name}: not answering` : name + says} @click=${press}>
+ * what a screen reader is told of it beside its name. Under a guard, `on` is thrown:
+ * away from rest. Bakelite's switches are not lettered, so `_ends` is not used. */
+export const dolly = (name: string, on: boolean, away: boolean, press: () => void, guard: "" | "shut" | "up" = "", says = "", _ends = ["On", "Off"]) => html`<button class="dolly ${on ? "on" : ""} ${away ? "away" : ""} ${guard}" aria-pressed=${on} aria-label=${away ? `${name}: not answering` : name + says} @click=${press}>
   <svg viewBox="0 -8 64 74"><circle class="pilot" cx="32" cy="-3" r="3.6" stroke="#c9a24b" stroke-width="1.2"/>
     <circle cx="32" cy="34" r="30" fill="#0e0705"/><circle cx="32" cy="32" r="30" fill="url(#bake)"/>
     <circle cx="32" cy="32" r="29" fill="none" stroke="#fff" stroke-opacity=".16"/><circle cx="32" cy="32" r="23.5" fill="none" stroke="#000" stroke-opacity=".55" stroke-width="1.6"/>

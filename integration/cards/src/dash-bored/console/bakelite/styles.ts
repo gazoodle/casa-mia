@@ -57,9 +57,26 @@ export const STYLES = css`
   /* Warning lamps: Sensor Watch's alerts, a pilot lamp and a plate each. The glass takes the
      level's colour; the lamp behind it is the white spot, and the light it throws on the
      panel is the shadow. A critical one flashes, as an annunciator's does. */
-  .lamps { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 16px; }
+  .lamps { display: flex; flex-wrap: wrap; gap: 13px 16px; margin-bottom: 18px; }
   .alert { display: flex; align-items: center; gap: 8px; max-width: 100%; }
-  .alert .label { font-size: 11px; letter-spacing: .1em; text-transform: none; }
+  /* What is wrong is written by hand, in India ink on thick card, and slid into a brass
+     card holder: a bevelled frame with an ear and a screw at each end. No two cards sit
+     quite square. */
+  .alert .label { position: relative; margin: 0 17px; padding: 5px 14px 3px; border: 5px solid; border-image: linear-gradient(160deg, #f6e3a0, #b8923c 35%, #7a5c1e 60%, #e2c070) 1; border-radius: 0;
+    background: var(--blots, none), linear-gradient(175deg, #f7efd9, #e9dcba); color: #17110a; text-shadow: 0 0 .7px rgba(23,17,10,.75), var(--smear, 0 0 0 transparent); font: 400 14px/1.55 "Dash-Bored Hand", "Snell Roundhand", "Segoe Script", "Lucida Handwriting", cursive; letter-spacing: 0; text-transform: none;
+    box-shadow: inset 0 2px 3px rgba(0,0,0,.45), inset 0 0 0 1px rgba(60,40,5,.5), 0 2px 3px rgba(0,0,0,.6); }
+  .alert .label::before, .alert .label::after { content: ""; position: absolute; top: 50%; width: 17px; height: 24px; margin-top: -12px;
+    background: radial-gradient(circle at var(--screw) 50%, #20140a 0 2.3px, #6b5018 2.4px 3.2px, transparent 3.4px), linear-gradient(160deg, #f1d98d, #b08a35 50%, #7a5c1e); box-shadow: 0 2px 3px rgba(0,0,0,.6); }
+  .alert .label::before { --screw: 7px; left: -22px; border-radius: 12px 0 0 12px; }
+  .alert .label::after { --screw: 10px; right: -22px; border-radius: 0 12px 12px 0; }
+  .alert:nth-child(3n + 1) .label { transform: rotate(-.35deg); } .alert:nth-child(3n + 2) .label { transform: rotate(.3deg); }
+  /* Nobody wrote them that neatly. The ink has bled a little into the card everywhere;
+     here and there is a blot where the nib was rested, a faint smear where a hand went
+     over wet ink, and a line of writing dragged a little to the right. Three cards in
+     four have something, each a different thing. */
+  .alert:nth-child(4n + 1) .label { --blots: radial-gradient(ellipse 4px 3px at 86% 72%, rgba(23,17,10,.5), rgba(23,17,10,.12) 70%, transparent), radial-gradient(ellipse 30px 5px at 34% 78%, rgba(23,17,10,.09), transparent 75%); }
+  .alert:nth-child(4n + 2) .label { --smear: 2px .6px 2.5px rgba(23,17,10,.2); --blots: radial-gradient(ellipse 9px 7px at 12% 30%, rgba(23,17,10,.07), transparent 80%); }
+  .alert:nth-child(4n + 3) .label { --blots: radial-gradient(ellipse 2.5px 2.5px at 58% 22%, rgba(23,17,10,.45), transparent), radial-gradient(ellipse 1.5px 1.5px at 60% 34%, rgba(23,17,10,.4), transparent), radial-gradient(ellipse 40px 6px at 70% 66%, rgba(23,17,10,.08), transparent 75%); }
   .jewel { flex: none; margin: 0; filter: drop-shadow(0 0 4px var(--glow)) drop-shadow(0 0 14px var(--glow)); }
   .jewel .glass { fill: var(--glow); }
   .jewel.task { --glow: #efe7cc; } .jewel.warning { --glow: #ff9d14; } .jewel.error, .jewel.critical { --glow: #ff3b1f; }

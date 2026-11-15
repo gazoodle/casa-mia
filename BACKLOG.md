@@ -28,15 +28,15 @@ the Gazette's own work is parked below it.
   to be designed with care, and each design agreed with the owner before it is drawn.
   The era switch is in (2026.11.8-b32) and shows the unbuilt ones as not built yet; it
   is drawn one way for every era, not in each era's own style.
-  - **Silverface is next**, the 1960s being skipped for now. Agreed 2026-11-14: brushed
-    aluminium faceplates with black screen-printed legends and teak cheeks; a row of red
-    LEDs for a room's lights; rectangular meters with a backlit blue-green face; machined
-    aluminium knobs with a coloured cap for the kind; chrome bat-handle toggles, and for
-    the guarded kinds the same toggle under a red flip-up cover with a red pilot lamp
-    (after the owner's picture); square illuminated push buttons for scenes; annunciator
-    tiles for alerts; black plastic thumbwheels for the alarm; red seven-segment digits
-    for a setting; a colour television for a camera; a green-phosphor oscilloscope for a
-    room's day. Helvetica capitals.
+  - **Silverface is built** (2026.11.8-b33) to the design agreed on 2026-11-14, the
+    1960s being skipped for now. Seen on the test VM only, and not by the owner yet. A
+    thumbwheel's figures still sit a little off true, as Bakelite's do, which suits a
+    padlock better than a switch. A guarded switch is at rest when its lock is locked or its door, valve or siren is off
+    (`_guarded` in `console/panel.ts`). The owner wondered (2026-11-15) whether Sensor Watch
+    should say what a device's rest is, for one that is normally open: not built.
+  - `family.ts` has `typeface`, which Bakelite's handwriting uses. The Gazette's masthead
+    still loads its font with its own copy of that code (`masthead` in `gazette/page.ts`):
+    move it onto `typeface`, as a refactor commit of its own.
   - Kept for Bargraph: LED bar graphs, fluorescent displays, membrane keys. Kept for
     Nixie: nixie tubes.
   - The sizes `console/balance.ts` counts on are Bakelite's; an era with other sizes

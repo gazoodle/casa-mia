@@ -4,6 +4,7 @@
 import * as kit from "./bakelite/kit.ts";
 import { recorder } from "./bakelite/recorder.ts";
 import { STYLES } from "./bakelite/styles.ts";
+import { typeface } from "../family.ts";
 import { Panel } from "./panel.ts";
 
 export const CARD = "dash-bored-bakelite";
@@ -11,4 +12,10 @@ export const CARD = "dash-bored-bakelite";
 export class Bakelite extends Panel {
   static styles = STYLES;
   protected kit = { ...kit, recorder };
+
+  connectedCallback() {
+    super.connectedCallback();
+    // The hand the alerts' cards are written in (Homemade Apple, Apache Licence 2.0).
+    typeface("Dash-Bored Hand", "HomemadeApple-Regular.ttf");
+  }
 }

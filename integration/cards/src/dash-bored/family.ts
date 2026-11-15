@@ -14,6 +14,18 @@ export const SIGHTINGS = "casa_mia_dash_bored/sightings"; // and of what the cam
 const SETTINGS = "casa_mia_dash_bored/settings"; // the integration's feed of the house's settings (settings.py)
 const SETTLE = 350; // ms: a level is asked for once it has been still this long
 
+const typefaces = new Set<string>();
+/** Give the document a typeface the integration serves beside this file (www/fonts),
+ * once. A shadow root can't declare a font, so the document is given it. Without it the
+ * text is set in the next face its style names: said in the console, not hidden. */
+export function typeface(name: string, file: string) {
+  if (typefaces.has(name)) return;
+  typefaces.add(name);
+  const face = new FontFace(name, `url(/casa_mia_dash_bored/fonts/${file})`);
+  document.fonts.add(face);
+  face.load().catch((err) => console.error(`Dash-Bored: the typeface ${name} could not be loaded`, err));
+}
+
 export class Family extends LitElement {
   static properties: PropertyDeclarations = { narrow: { type: Boolean }, _house: { state: true }, _fault: { state: true }, _lost: { state: true } };
   narrow = false;
