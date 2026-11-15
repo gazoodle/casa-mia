@@ -7,6 +7,9 @@ TITLE = "Love it or Loathe it"
 # Bus event on each match, for automations: the player, the track, the group and what
 # was done about it.
 EVENT = DOMAIN
+# Bus event when somebody rates a song (rating.py): who, the feeling (love, loathe or
+# clear), the song and the player. For automations, and for any page that announces it.
+RATED_EVENT = f"{DOMAIN}_rated"
 # Fired by the Casa Mia app when it has written newer files for its components: the
 # moment to look for this one's restart marker (restart_notice.py).
 INSTALLED_EVENT = "casa_mia_components_installed"
@@ -37,11 +40,6 @@ CONF_BEFORE = (
 CONF_PERSON = "person"  # the person entity whose ratings it collects
 CONF_LIBRARY = "library"  # the shipped list a new group starts from (not kept)
 CONF_PATTERNS = "patterns"
-# It also has any song heard CONF_TIMES times in the last CONF_HOURS hours (0 times: off).
-CONF_REPEATS = "repeats"
-CONF_TIMES = "times"
-CONF_HOURS = "hours"
-DEFAULT_REPEATS = {CONF_TIMES: 0, CONF_HOURS: 4}
 # Under LOVE and under LOATHE, what to do while the group is that:
 CONF_ACTION = "action"
 CONF_AMOUNT = "amount"
@@ -56,6 +54,18 @@ DEFAULT_ACTS = {
     LOVE: {CONF_ACTION: VOLUME, CONF_AMOUNT: 10, CONF_MINUTES: 5},
     LOATHE: {CONF_ACTION: MUTE, CONF_AMOUNT: -50, CONF_MINUTES: 5},
 }
+
+# The entry's strike (an option, beside the players): any song played CONF_TIMES times in
+# the last CONF_HOURS hours gets the action that follows, however a group feels about the
+# song (owner, 2026-11-15: "a repetition is a strike"). 0 times: no strike. Its switch,
+# CONF_REPEATS_ON, turns it off and on without losing the numbers. Until 2026.11.8-b38
+# each group had its own times and hours (__init__._convert moves them here).
+CONF_REPEATS = "repeats"
+CONF_REPEATS_ON = "repeats_on"  # on if absent
+CONF_TIMES = "times"
+CONF_HOURS = "hours"
+DEFAULT_REPEATS = {CONF_TIMES: 0, CONF_HOURS: 4, **DEFAULT_ACTS[LOATHE]}
+PLAYED_TOO_OFTEN = "Played too often"  # the strike's name, as a group's is shown
 
 CLEAR = "clear"  # the rate action's third feeling: take the rating away
 RATE = "rate"  # casa_mia_love_or_loathe.rate: add the song playing to a person's group

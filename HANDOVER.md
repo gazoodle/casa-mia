@@ -259,6 +259,281 @@ imported from `casa_mia`, no app option. Guide: `docs/applets/love-or-loathe.md`
 - **Tests:** `tests/test_love_or_loathe.py` (matching), `tests_ha/test_love_or_loathe.py`
   (the page's commands too, through a websocket client).
 
+## Dash-Bored
+
+Its own integration, `casa_mia_dash_bored`, since 2026.11.8-b1 (2026-11-13; name and
+sidebar label agreed with the owner). Standalone like Sensor Watch: nothing imported from
+`casa_mia`, no app option, no entities. In development. Guide: `docs/applets/dash-bored.md`.
+
+- **Why it exists** (owner, 2026-11-13): dashboards that write themselves from the house,
+  in styles people enjoy using; "it must not look cheap". The looks were tried first as
+  working mock-ups on an invented house, in `docs/design/dash-bored/` (`index.html` is the
+  gallery; `house.js` the house). The owner chose three families to build out: Gazette,
+  Bakelite and Fridge, in that order, for the family first and the community after.
+  Movement (a watch movement in three.js) and Contraption are the showpieces, not built.
+- **The Gazette has a column by a ZenOS-AI house's agent** (2026.11.8-b40, a prototype
+  the owner means to show ZenOS's author). `katas.ts` reads the Kata sensor's attributes
+  (`variables.<component>.value`, and `zen_summary`), found by ZenOS's labels
+  `zen_kata_cabinet` and `zen_dojo_cabinet`; `house.ts` watches them and fills
+  `house.desk`, so any family can draw it. The test VM runs ZenOS for this: its
+  summarizers use a local model on the owner's network, its agent uses the owner's paid
+  API account with six tools exposed, and installing it needed several manual steps that
+  its guide doesn't give (the owner has the list).
+- **The Fridge is the third family** (2026.11.8-b37; the owner asked for it on 2026-11-15
+  and it was built while he slept, so he has not seen it). `fridge.ts` on `family.ts`;
+  `fridge/magnets.ts` draws the button magnets (a picture for each kind) and the novelty
+  ones, `fridge/skins.ts` is the three households as data (young family, yuppies,
+  grandparents; a fourth is another entry there and a block in `fridge/styles.ts`).
+  Everything is turned by `tilt(id)`, the same each time. A guarded device takes two
+  presses to unlock, open or sound, as in the Gazette, not the Console's rule. It does
+  not hold to the Console's rule that controls never move for their lettering.
+  Bakelite is the 1950s of a family of control panels, the **Console**, a decade each
+  to the 1990s: Bakelite, Nixie, Silverface, Bargraph, Beige (names agreed with the
+  owner, 2026-11-14). `console/host.ts` is the family's element and its era switch
+  (`ERAS`); an era is an element on `console/panel.ts`, shown in the host with the
+  switch in its `era` slot. Silverface (1970s) is built to the design agreed that day (`console/silverface.ts`
+  with `console/silverface/`); it takes `tv`, `wheels` and `swing` from Bakelite's kit,
+  where the markup is the same and only the stylesheet differs. Why: they are the same panel in different skins, as
+  the Gazette's papers are. Bakelite is completed first and keeps its name.
+  - **A panel's controls never move for their lettering** (owner, 2026-11-15: "it's
+    drilled into the panel"; true of the Console's eras, perhaps not of other families).
+    Each hangs from the top of its row with a fixed height and room for a two-line
+    plate; a display has fixed cells (`panel` in `silverface/kit.ts`). Check a change
+    by measuring, not by eye: record every control's box, change a label, compare.
+  - **Test the Console in WebKit as well as Chromium.** Why: on 2026-11-15 a camera's
+    screen (an aspect ratio with a picture as tall as its box, in a column flexbox) grew
+    without end in WebKit only, and a cover folded to nothing still took taps there, so
+    on the owner's iPad a guarded switch could not be thrown. Playwright's WebKit is in
+    `~/Library/Caches/ms-playwright/webkit-2359` (pass its `pw_run.sh` as the executable).
+- **The page and the families** (2026.11.8-b23). The sidebar's page (`panel_custom`, not in
+  a frame, for every user) is `dash-bored-page` (`shell.ts`). It shows one family's
+  element and holds the choice between them: two presses within `TWICE` in its top right
+  corner, on nothing in `PRESSED`, open a dialog; the choice is in the browser's storage
+  (`dash-bored-family`). A new family is an entry in `FAMILIES` there, an element defined
+  in `index.ts`, and a class on `family.ts`, which holds what they all need: the house
+  (`survey`/`read`, with `_surveyed` and `_moved` to override), the settings feed,
+  `_follow` for a feed, `_call`, `_ask`, `_fault` and `_lost`. Each family's element is
+  also a dashboard card.
+- **Bakelite is the second family, begun** (owner, 2026-11-14: Bakelite now, the
+  newspapers' work to the backlog). `console/panel.ts` is the panel, the same in every era; an era is a kit to the shape
+  in `console/kit.ts` and a stylesheet (`console/bakelite.ts` with `console/bakelite/`),
+  after `docs/design/dash-bored/bakelite.html`.
+  It has lights, switches, covers, the guarded kinds (a guard is shut only at rest; two
+  presses leave rest and one returns, `_guarded`; owner, 2026-11-15) and alarms (`_alarm`: thumbwheels for a code in digits,
+  which is held only in `_code` and never logged); what's left is in BACKLOG. Knobs
+  are cranked round their middle (`bearing`). Sensor Watch's alerts are pilot lamps
+  along the top (`_alerts`, straight from the feed, so in seconds). A meter is lit only
+  while the connection is up. Since b30 every kind is on it: `_dial` works in a device's
+  own span (per cent or degrees), a camera is a `tv` that shows its last sighting for
+  half an hour (`_seen`), and Chart opens a room's day (`console/plot.ts`, drawn by the era's `recorder`). Needles
+  swing by a CSS easing and waver smoothly by a CSS animation (owner, 2026-11-14: smooth, not in steps, and each
+  meter's period from a prime so that none are in step: `BEATS` in kit.ts).
+  A chassis is one to three widths across (`console/balance.ts`, `widths`): its sizes
+  are a model of `styles.ts`, so change the two together.
+  Seen on the test VM at desktop and phone widths, and by the owner on an iPad
+  (2026-11-14), not yet on a wall tablet.
+- **Gazette is the first family.** Its element is
+  `dash-bored-gazette` (`integration/cards/src/dash-bored/`, its own `www/cards.js`).
+  Three layers, kept apart on purpose:
+  - `house.ts`: `survey` reads the registries (areas, shown entities) once per registry
+    change; `read` reads only those entities' states.
+  - `stories.ts`: what is worth saying, ranked. No wording.
+  - `voices.ts`: each paper as **data** (text with `{placeholders}`, pools of headlines).
+    The owner wants the jokes and sentences configurable later (2026-11-13): keep voices
+    as data so that stays possible. Nothing configures them yet.
+  - `styles.ts` is the look; a new paper is a voice and a block of CSS.
+- **A big house** (2026.11.8-b2, found on the owner's own). Over 30 devices (`BIG` in `gazette.ts`) the report is by
+  exception, a room's many lit lights are one pressable count (`MANY`), and the
+  switchboard goes across the foot in columns. Floors are the crossheads. Test any
+  change to the page at that size as well as on four rooms.
+- **What the house is missing** (owner's idea, 2026-11-13; b3 and b4): `survey` also
+  returns `gaps` (no area, suspected plumbing, shared names, no floor, no thermometer),
+  shown as Corrections and clarifications. Suspected plumbing is a guess from English
+  names (`PLUMBING` in `house.ts`), grouped by integration, because an entity's category
+  is set at its source (ESPHome and KNX YAML). The label **Dash-Bored hide**
+  (`HIDE_LABEL` in `const.py`, id `HIDE` in `house.ts`; a tests_ha test ties the two) is
+  for the rest. The page changes nothing in the registries: the owner was told so.
+- **Guarded devices** (my ruling for a live house, told to the owner): a lock, or a cover
+  whose class is garage, gate or door, is never operated by a press on a sentence or a
+  chip; that opens Home Assistant's dialog. The story's own remedy button may lock.
+- **Sensor Watch's alerts come through `alerts.py`, not straight to the page.** Home
+  Assistant lets only admins subscribe to a custom bus event, and a wall tablet's login
+  is not one. `alerts.py` listens for `casa_mia_sensor_watch`, keeps the latest per
+  sensor for this run (Sensor Watch says them all again at each start), and feeds any
+  signed-in page (`casa_mia_dash_bored/alerts`). The two integrations name each other's
+  event and nothing else.
+- **Seen on the test VM** (2026-11-13, Home Assistant 2026.11.1): set up through its
+  flow, the page in the sidebar at tablet and phone widths, and Sensor Watch's real alerts
+  from the invented house as breaking news, ranked. **Not seen:** rooms and devices from
+  real areas (the VM's lights and locks have no areas), a press reaching a real device,
+  Safari, a wall tablet. Its folder is still on the VM, copied by hand.
+- **Photographs** (owner's idea, 2026-11-13; 2026.11.8-b6, option 2 of three: a still
+  at the moment of detection, any brand). `image.py` gives each device with a camera and
+  a detection worth a photograph one image entity, "Last sighting", joined to the
+  camera's device the way a helper's entity is (`device_entry`; device info with another
+  integration's identifiers makes a second device in current Home Assistant). `kind_of`
+  tells the sort from English words in the detection's translation key or name. The
+  page finds the entities by platform (`OURS` in `house.ts`); `SEEN` in `stories.ts`
+  ranks them. The still goes through `image.still`, which tests replace: the test Home
+  Assistant can't import the camera integration (no turbojpeg). **Not seen:** any of it
+  on a real camera. **With the app** (owner's idea, 2026-11-13; 2026.11.8-b7): the
+  compositor's cache is asked first, through Home Assistant only, since Dash-Bored
+  stands alone: `Cache.recent` → the read `/compositor/picture` (`compositor/api.py`
+  `picture`) → the service `casa_mia.camera_picture` → `image.cached`, which falls
+  back to `from_camera`. The cache is new only for cameras a watched commander shows,
+  and UniFi Protect's own snapshot is 640 x 360 (the cache's `keep` says so), which is
+  the gain. **UniFi Protect's thumbnail** (2026.11.8-b8): a Protect detection's state
+  carries `event_id`; `protect_thumbnail` fetches that event's thumbnail through
+  Protect's own config entry (`runtime_data.api`, as its view does: another
+  integration's insides, so any failure leaves the first photograph). It follows in a
+  background task, never awaited; the entity's state is then the photograph's time and
+  `seen` the sighting's. Not known: how soon Protect has a thumbnail, its size, and
+  whether it beats the compositor's frame. The log gives both sizes. **The half hour's log** (2026.11.8-b9, from the box's log: sightings come many to the
+  minute, and "animal" a moment after "person" took the person's photograph away):
+  every sighting is its own item with its own photograph in `sightings.py` (`Log`, 30
+  minutes, 40 at most), fed to the pages by the `sightings` websocket command and served
+  at `/api/casa_mia_dash_bored/photo/<id>` (no sign-in: the id is random). The page no
+  longer reads sightings from the image entities, only which cameras there are
+  (`sighted` in `house.ts`); `stories` tells one per camera, and the column Thirty
+  minutes ago lists the rest. Protect names its event on the camera's **event entity**,
+  not on the detection sensor, so event entities are triggers too, their kind told by
+  `event_type` at each firing (`BY_EVENT`). The box's core log is read at
+  `/api/hassio/core/logs`. Still unknown: how often the owner's cameras report a person
+  (is ten minutes right?) and how fast a still comes back. Not done: cameras added after set-up.
+- **The masthead's font** (2026.11.8-b8, the owner's iPhone; changed in b13): Manufacturing
+  Consent, a textura (the English blackletter of a Victorian nameplate; UnifrakturCook
+  before it was a Fraktur, the German kind, which the owner questioned 2026-11-14), is
+  bundled in `www/fonts` with its licence and given to the document by `masthead()` in
+  `gazette.ts` (a shadow root can't declare a font). Never name a generic family such
+  as `fantasy` in a stack: each platform maps it to something different.
+- **Brand** (2026.11.8-b5): a bored face on a tile, drawn by `tools/brand_children.py`.
+- **Levels** (2026.11.8-b10): `read` marks a device `dims` (a light with a colour mode
+  beyond on/off, a cover with SET_POSITION; never a guarded one). `clause` in `voices.ts`
+  gives a device's wording in three pieces so the level is its own press; a voice's
+  `percent` says a level and is every clause's `{level}`. One scale is open at a time
+  (`_scale` in `gazette.ts`), a native range input inside the room's paragraph (so it
+  stays in its column) or in the device's clipping. `_ask` sends one call when the
+  level has been still for `SETTLE`: an arrow key reports a change at every step. Over
+  the scale is a readers' poll (owner's idea, 2026-11-13, to sit beside the scale, not
+  replace it): a voice's `polls` by kind, each vote `VOTE` per cent from `want`. The
+  figure is the device's own, and `want` shows beside it until the device's state
+  changes. A story can carry a gentler remedy too (`Story.vote`, an entry's `vote`,
+  2026.11.8-b21): the lights' stories dim the lit lights that are brighter than `DIMMED`.
+- **The clipping** (2026.11.8-b11): one device's story in a native `<dialog>`, in
+  place of Home Assistant's dialog (`clipping.ts` draws it; `_open` in `gazette.ts` is
+  the one that is open). It opens from the tab beside every chip, from a late-news line
+  about a device, and from a press on a guarded or unanswering device. `record.ts`
+  asks `history/history_during_period` once on opening (no admin needed;
+  `significant_changes_only: false`, or a cover's changes of position are left out;
+  Home Assistant does not record a light's brightness at all, found on the VM); the page's own
+  `hass` updates add to the record after that. `standing` in `house.ts` reads a state
+  for both `read` and the record. `flip` in `stories.ts` is the one call that puts a
+  device the other way. Unlocking, or opening a guarded cover, takes two presses
+  (`_flip`, armed for `ARMED`); my ruling again, and no looser than Home Assistant's
+  dialog, which does it in one. A voice's `acts` and `clipping` are its words.
+  Cameras, photographs and the gaps' entities still open Home Assistant's dialog.
+  Its edges are torn and it carries scraps of the neighbouring stories (owner, 2026-11-14,
+  so it feels less like a computer's dialog): `ragged` gives a clip-path worked out from
+  the device's id, so it never changes between draws, and `scraps` are the paper's own
+  other stories. The shadow is a `drop-shadow` on the dialog, since a clip-path cuts a
+  box's own shadow off.
+- **Thermostats, media players and cameras** (2026.11.8-b14) are kinds like the first
+  four. Each kind's ways are tables: `ON`, `LEVEL`, `DIMS` and `span` in `house.ts`
+  (a thermostat's level is its target in degrees, a player's its volume), `FLIP` and
+  `SET` in `stories.ts`. A device carries its `span` (ends, step, and what a vote moves
+  it by), so the scale and poll need know nothing of kinds. A new kind is a row in each
+  table, its words in each voice (`kind.on`, `.off`, `.plain` if it has a level, a poll,
+  two `acts`) and, in `gazette.ts`, whether a press opens its clipping (`OPENS`: my
+  ruling for heating and music, as for locks) and whether it is news (`UNREMARKABLE`,
+  `reportable`). A thermostat is still the source of its room's temperature and target.
+  **The rest** (2026.11.8-b15, built while the owner slept, so these rulings are mine
+  and are his to overturn): fan and humidifier toggle like a light; water heater is a
+  thermostat by another name (`DEGREES`); valve and siren are guarded
+  (`GUARDED_KINDS`: two presses to open or sound, and a valve's position is told, not
+  set); vacuum and lawn mower open their clipping; an alarm panel has no `acts`, so no
+  button, because the page is every user's and has no keypad. `phase` is a state
+  between on and off that a voice words (`PHASES`: a robot docked, returning, paused or
+  in error; an alarm arming, pending or triggered). A triggered alarm is the story
+  `triggered`, rank 110. Not kinds: `input_boolean`, `remote`, `button`, `script`.
+- **The Personal column** (owner's idea, 2026-11-14; 2026.11.8-b14): `personal` in
+  `stories.ts` joins each person's latest move (`House.people`, read from the person
+  entities, which are in `watched`) with the songs rated, for twelve hours. The songs
+  come by a third feed: Love it or Loathe it fires `casa_mia_love_or_loathe_rated`
+  (`rating.py` `told`), Dash-Bored's `personal.py` keeps the latest 20 for this run and
+  feeds them (`casa_mia_dash_bored/personal`). `feed.py` `follow` is the subscription
+  all four feeds make (`alerts.py` and `sightings.py` moved to it in 2026.11.8-b17). A voice's `personal` words it. Known: after a restart every person's
+  `last_changed` is the restart's time, so each "arrives" then. The owner was told the
+  column shows guests who is at home.
+- **The house's settings** (2026.11.8-b19; owner, 2026-11-14: they must serve every
+  family of dashboard, not the Gazette alone). The config entry's options
+  (`config_flow.py` `DashBoredOptions`: `floor_order`, `room_order`) are fed whole to
+  every page by `settings.py` (`casa_mia_dash_bored/settings`), at subscribing and at
+  each save, with no reload. `survey` in `house.ts` does the ordering, so a later
+  family gets it for nothing; a card's `floors` and `rooms` show only those and come
+  before the house's. A setting of one family (a masthead's name) is not to go in
+  `settings.py`'s house settings without a section of its own. Leaving out is still
+  the hide label only: a second way to hide was not added. Seen on the VM: an order
+  saved through the options flow's API reordering an open page at once, and cleared
+  again. Not seen: the dialog itself in a browser (its fields and their wording), a
+  card with `floors` or `rooms`.
+- **The weather column** (owner, 2026-11-14: "All papers cover that too"; in
+  2026.11.8-b19). `House.outside` now has the sky and whether its entity gives a daily
+  forecast; the page follows Home Assistant's own `weather/subscribe_forecast`
+  (`_outlook` in `gazette.ts`, pushed, any user's) and `days` in `house.ts` keeps the
+  first four. A voice's `skies` words Home Assistant's fifteen conditions and
+  `forecast` the rest. Seen on the VM with the demo's weather, in all three papers.
+  Not seen: an entity with no daily forecast, the forecast failing.
+- **The third paper, Rolling news** (asked 2026-11-13; 2026.11.8-b18): the voice
+  `rolling` ("The Thermostat") in `voices.ts` and the block `[data-style="rolling"]` in
+  `styles.ts`. It needed one thing the page did not have, a ticker of the headlines:
+  a voice's `ticker` is its label, and empty in a paper without one. Its clipping is a
+  card (the torn outline is switched off in CSS, the scraps hidden). Its colour is blue (`--site`; owner, 2026-11-14: red was "too similar to the red-top"),
+  and red (`--flash`) is kept there for what is wrong. The wording did
+  prove to be all data: no code names a paper. The owner saw the Gazette on a wall
+  tablet on 2026-11-14 ("It looks fantastic"), before this paper. Split in 2026.11.8-b20 (a
+  refactor, code moved as it was): each voice is `voices/<name>.ts` to the shape in
+  `voices/voice.ts`, with `voices.ts` keeping the functions and `VOICES`; and the page
+  is three layers, `gazette/page.ts` (state, `hass`, the feeds) under `gazette/acts.ts`
+  (what a press does) under `gazette.ts` (`render`). Members shared between layers
+  are `protected`. A new feed goes in page.ts, a new press in acts.ts.
+- **A photograph's clipping, and the Amusements column** (owner's ideas, 2026-11-14;
+  2026.11.8-b16). A press on a photograph (a story's, the archive's, a camera
+  clipping's still) opens it as a clipping (`photograph` in `clipping.ts`, `_shot` in
+  the page); "See the camera as it is now" goes on to Home Assistant's dialog.
+  `zoom.ts` does the pinch, drag, wheel and double tap itself, because Home
+  Assistant's page turns the browser's zoom off; `zoomed` is the tested arithmetic.
+  The column: `playing.py` keeps the last 30 titles the media players began and feeds
+  them (`casa_mia_dash_bored/playing`); `billing` in `stories.ts` makes the lines and
+  `verdicts` is each person's latest word on a song, which the Personal column now
+  uses too (`personal.py` feeds `clear`). **Lesson:** `async_track_state_change_filtered`
+  by domain does not report an entity's first state, so what was playing at start-up
+  was missed, and a test that set the state twice hid it; the feed listens to
+  `EVENT_STATE_CHANGED` with an `event_filter`. My rulings: the enlarged photograph
+  is in colour in both papers (it is for looking closely), and nothing is rated from
+  the page.
+- **Seen on the test VM, 2026-11-14** (it now has Home Assistant's demo devices in rooms
+  on four floors, and a dimmable Pendant and a Blind as template helpers): floors as
+  crossheads, votes and the scale moving a light and a blind, a clipping's record from
+  real history growing by push, Escape closing it, and the demo garage door staying
+  closed after one press and opening on the second (a sprinkler valve the same), a vote
+  moving a fan's speed and a water heater's target, a vacuum started and sent home, the
+  alarm's clipping with no button, the big-house report with every kind (42 devices), a vote moving a thermostat's target
+  and a player's volume, a player pausing, a camera's picture, and two songs rated through
+  Love it or Loathe it's action reaching the Personal column. **Not seen:** a humidifier or a siren (the demo's are in no registry), an alarm
+  sounding, a person
+  truly coming or going (the VM's people have no trackers; their states were set by hand), a real dimmer, blind
+  or lock, touch on a tablet, Safari, a history failure (the path is written, not run).
+  **b16, seen:** the column filled from what was playing at start-up, four speakers on
+  one line, a rating and its taking away changing the line and the Personal column at
+  once, a camera's still opened large, zoomed by the wheel, dragged, reset by a double
+  click, and its link opening Home Assistant's dialog, at desktop and phone widths.
+  **b16, not seen:** a pinch by real fingers (only the arithmetic is tested, and the
+  wheel in a browser), a sighting's photograph opened (the VM had no sighting; it is
+  the same code as a camera's still), a television's programme.
+- **Not done:** publishing by itself, other languages. BACKLOG has the list.
+- **Tests:** `src/dash-bored/stories.test.ts` (house, ranking, every voice tells every
+  story), `tests_ha/test_dash_bored.py` (set-up, the panel, the alerts feed).
+
 ## Guest login
 
 `modules/guest_login/`, layered: `common.py` → `signin.py` (HA's login flow, 2FA,
@@ -383,6 +658,9 @@ CLAUDE.md has them all. What trips agents here:
 
 ## What happened
 
+- **2026-11-13: Dash-Bored started** (2026.11.8-b1): seventeen mock-ups, then the Gazette
+  as a real integration. b2 to b4 the same day made it fit the owner's house and added
+  the report on what the house is missing. See its section above.
 - **2026-11-13: Love it or Loathe it built** (2026.11.7-b2, reworked to b5 the same day as
   the owner used it; its page in Casa Mia in b6). See its section above. Left for later in
   BACKLOG: the page's song rows and "who would take this", the thumbs card, the fade,
@@ -582,6 +860,16 @@ CLAUDE.md has them all. What trips agents here:
   submission is hacs/default#13883 (2026-11-11; reviews take months). Until then testers
   add it as a custom repository; the test VM installed and updated it that way from the
   Marketplace on 2026-11-11.
+  Love it or Loathe it is published the same way at `gazoodle/casa-mia-love-or-loathe`
+  (2026.11.7, released 2026-11-13); its catalog submission is hacs/default#14085.
+  2026.11.8-b38 made songs played too often the entry's strike (owner, 2026-11-15: "a
+  repetition is a strike", whatever a group says of the song), with a Repeats switch;
+  `__init__._repeats_to_entry` moves 2026.11.7's group settings once. **Screenshots to
+  take again on the test VM once it runs b38:** the page (`love-or-loathe.webp`,
+  `-detail`: a Settings button, the Songs played too often row, no "Heard too often"
+  group), the Settings dialog's strike (the guide's section has no picture yet), and
+  the Activity page (`love-or-loathe-logbook.webp`, uncommitted: its return line now
+  names the station), which then goes into the guide under "What happened".
   The live box handed Sensor Watch over correctly on a b3 build. Installing
   2026.11.2 or earlier now removes Sensor Watch's folder: restore a backup instead.
 - **The test VM** (Home Assistant 2026.11.1 on 2026-11-11) has Sensor Watch's

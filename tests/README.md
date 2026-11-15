@@ -25,6 +25,10 @@ flows, the device and entity registries, services, the websocket commands and th
 Sensor Watch's move out of the Casa Mia integration (2026.11.3) is tested there.
 
 - Run them with `.venv-ha/bin/pytest tests_ha`. They have their own `pytest.ini`.
+- On the owner's Mac `.venv-ha` carries its own Python 3.14, in `.venv-ha/cpython/`
+  (2026-11-15). Why: the Python it was first built on had been downloaded into a
+  temporary folder, which was cleared four days later, and the suite stopped starting.
+  Never build a venv on a Python that lives under `/tmp`.
 - Home Assistant needs a newer Python than the app's 3.11, so they have a venv of their
   own, `.venv-ha`. `tools/setup` makes it when `python3.14` is installed (or the Python
   named by `HA_PYTHON`), and says so when it isn't. It is a large download, because the

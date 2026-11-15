@@ -2,6 +2,83 @@
 
 Not scheduled. Sections are in order of their latest change; newest ideas first within each. Move an item into the README or code when it is started, and remove it when it is done. The headline ideas are also in the README's "What does the future hold?": keep the two in step.
 
+## Dash-Bored (in development)
+
+Started 2026-11-13 (2026.11.8-b1) with the Gazette. HANDOVER has how it is built; the
+mock-ups are in `docs/design/dash-bored/`. The owner is on Bakelite now (2026-11-14), and
+the Gazette's own work is parked below it.
+
+- **Bakelite, what's left** (every kind of device, Sensor Watch's alerts, the cameras'
+  sightings and a chart recorder are built, to 2026.11.8-b30). The owner tried it on an iPad on 2026-11-14: the cranked
+  knobs, the thumbwheels' size and the motion were all right. Not yet on a wall tablet.
+  Small things known: an alarm's thumbwheels turn by a press
+  on their top or bottom half, not by a drag; an alarm with a code in words is left off;
+  the chart is of the day up to when it was opened and does not run on; a thermostat's
+  modes (heat, cool, auto) and a player's source are not on the panel; the Gazette's
+  columns (forecast, Personal, Amusements) have no place on it.
+- **The choice of family, further**: an address for each family, so that a tablet can be
+  fixed to one from its kiosk settings (offered 2026-11-14, not asked for). A scene made
+  without a unique id (in YAML, or by `scene.create`) is in no registry, so no family
+  shows it.
+- **The Console's other eras** (owner, 2026-11-14). The Console is the family and its
+  eras are Bakelite (1950s, built), Nixie (1960s), Silverface (1970s), Bargraph (1980s)
+  and Beige (1990s). They are the same panel underneath (`console/panel.ts`), each with
+  its own kit and stylesheet and a few controls or lights that mark its time: from valves
+  to LEDs, and from a phosphor oscilloscope or television to a digital panel. They are
+  to be designed with care, and each design agreed with the owner before it is drawn.
+  The era switch is in (2026.11.8-b32) and shows the unbuilt ones as not built yet; it
+  is drawn one way for every era, not in each era's own style.
+  - **Silverface is built** (2026.11.8-b33) to the design agreed on 2026-11-14, the
+    1960s being skipped for now. Seen on the test VM only, and not by the owner yet. A
+    thumbwheel's figures still sit a little off true, as Bakelite's do, which suits a
+    padlock better than a switch. A guarded switch is at rest when its lock is locked or its door, valve or siren is off
+    (`_guarded` in `console/panel.ts`). The owner wondered (2026-11-15) whether Sensor Watch
+    should say what a device's rest is, for one that is normally open: not built.
+  - `family.ts` has `typeface`, which Bakelite's handwriting uses. The Gazette's masthead
+    still loads its font with its own copy of that code (`masthead` in `gazette/page.ts`):
+    move it onto `typeface`, as a refactor commit of its own.
+  - **A needle's wobble falls with the decade** (owner, 2026-11-15): all of it in the
+    1950s, three quarters in the 1960s, half in the 1970s, a quarter in the 1980s and none
+    in the 1990s. Bakelite and Silverface do this; the other three are to when built.
+  - Kept for Bargraph: LED bar graphs, fluorescent displays, membrane keys. Kept for
+    Nixie: nixie tubes.
+  - The sizes `console/balance.ts` counts on are Bakelite's; an era with other sizes
+    needs its own.
+- **The agent's column, what's left** (prototype, 2026.11.8-b40). Only the Gazette draws
+  it: the Fridge's notepad and a Console ticker could. An urgent Kata is not yet a story
+  or breaking news. The lapsed by-line, a doubted piece and a hidden sensor are covered by
+  unit tests only. Kata text reads as a machine's log, which is for ZenOS's author to
+  change, not us. A wall tablet shows whatever the agent wrote, alarm and lock states
+  included: decide whether that needs a choice of which parts may print.
+- **The Fridge, what's left** (built 2026.11.8-b37, in three households; not yet seen
+  by the owner, nor on a tablet). A sighting's photograph, a sounding alarm and a
+  critical note have not been seen, since the test VM makes none. A room's drawn picture
+  is the same window and lamp for every room. A thermostat's modes and a player's source
+  are not on the door, nor is a device's history. The novelty magnets are twelve; more
+  would suit (the owner: "other animals, objects etc").
+
+**The Gazette, parked** (owner, 2026-11-14):
+
+- **The house's settings, further** (2026-11-14): the Configure dialog now holds the order
+  of floors and rooms (2026.11.8-b19). Parked by the owner the same day ("Not yet"): the
+  Gazette's masthead names there, one for each paper, which is a family's setting and
+  not the house's; then the strap line and the tone.
+- **Photographs, further** (2026-11-13, not asked for yet): Protect's snapshot at the
+  event's own timestamp, if its thumbnails prove poor; an entity for a camera added after set-up
+  without a reload; detections named in other languages.
+- **What the house is missing, further** (discussed 2026-11-13, not asked for yet): the
+  report as a page of its own; fixing from the page (setting an area or the label in
+  bulk), which needs the owner's say as it writes to the registries; the ESPHome
+  generator setting `entity_category` on status LEDs, relays and screensaver switches.
+- **Configurable wording** (asked 2026-11-13, "future"): the jokes and sentences. The
+  voices are data so this needs a place to keep the owner's text and a page to edit it.
+  Other languages go the same way.
+**After the families:**
+
+- **The showpieces** (owner, 2026-11-13: "we're not leaving it behind"): Contraption, and
+  Movement, which ran at 60 fps on the owner's iPad.
+- **Publish it by itself** once it is past In development, as Sensor Watch is.
+
 ## Sensor Watch (beta)
 
 Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it does. What's next:
@@ -218,7 +295,7 @@ Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it d
 
 - **ProxyStick module** (asked 2026-10-16). Host ProxyStick's headless server (the `proxystick` package, a separate public repo) as a module, so an ESP32-S3 ProxyStick can present a folder under `/media` to a photo frame as a USB drive. A thin adapter (start, stop, health, its own port). Open: how the package reaches the box (a pip dependency from its GitHub URL for releases; for development, the Docker build reaching ProxyStick's fake git host).
 - **Entities Casa Mia makes: a registry** (asked 2026-10-11; name to agree; not "auto-entities", which is Thomas Lovén's card). One place that creates entities in HA for the other modules and records each: first the template helpers "Watch a template" needs. Created HA's own way (config flows over the websocket), labelled Casa Mia (and per module), listed on a page (what made it, whether anything uses it), removable in one go through HA's registries, never `.storage`, logged. Feeds "take it all out".
-- **Love it or Loathe it: what's left** (asked 2026-10-10; the integration was built in 2026.11.7, its page in Casa Mia in 2026.11.7-b6). **On the page** (agreed 2026-11-13, to follow the first build): a group's songs as rows with a search, delete a line, and which lines matched lately, in place of the one text box; and "who would take this?", a title and artist typed in to see which group wins and why. Also not on the page: adding or deleting an entry, and browsing for a station. **Docs: rating with ordinary dashboard buttons, step by step** (asked 2026-11-13): the guide has the buttons' YAML under "The action behind it", but not the walk-through given to the owner in chat: edit the dashboard, Add card, Manual, paste, put in your own player; the wall-tablet version with `person` and a pair of buttons per person; what a tap then does (the song added and taken out of the other list, the first tap making the group, the song acted on at once, a refusal shown with its reason); and when to use buttons in place of the thumbs card (a button already on a dashboard, an automation, a card that takes actions). A fade over to the other station instead of an immediate switch (a volume ramp either side of `play_media`). **Adverts** (owner, 2026-11-13: a nice-to-have, and only for a station that says so in its metadata, an "adbreak" or the like): today a track with no title is never matched, and a group can only match what the station reports as the title. More shipped lists beside the Christmas songs, as they are asked for. **Not this integration's:** the house's own radio station is a Casa Mia item (owner, 2026-11-13: never part of this integration); when it exists it is one more station to switch to, and the guide's opening already says so.
+- **Love it or Loathe it: what's left** (asked 2026-10-10; the integration was built in 2026.11.7, its page in Casa Mia in 2026.11.7-b6). **On the page** (agreed 2026-11-13, to follow the first build): a group's songs as rows with a search, delete a line, and which lines matched lately, in place of the one text box; and "who would take this?", a title and artist typed in to see which group wins and why. Also not on the page: adding or deleting an entry, and browsing for a station. **Collapsible sections** (asked 2026-11-14): each entry, and each section under it (Playing now, Groups of songs, Stations to switch to, What happened), folds away, remembered per section, using the compositor's `FoldArea` (`app/web/src/compositor/fold.tsx`, the shared `fold` styles in `ui.module.css`); move it out of the compositor if it is to be shared, never copy it. **Docs: rating with ordinary dashboard buttons, step by step** (asked 2026-11-13): the guide has the buttons' YAML under "The action behind it", but not the walk-through given to the owner in chat: edit the dashboard, Add card, Manual, paste, put in your own player; the wall-tablet version with `person` and a pair of buttons per person; what a tap then does (the song added and taken out of the other list, the first tap making the group, the song acted on at once, a refusal shown with its reason); and when to use buttons in place of the thumbs card (a button already on a dashboard, an automation, a card that takes actions). A fade over to the other station instead of an immediate switch (a volume ramp either side of `play_media`). **Adverts** (owner, 2026-11-13: only for a station that says so in its metadata): done as a group for a station that names them (the guide's "Adverts", 2026.11.8-b39, from Planet Rock's "Ad 7" and "STOP ADBREAK 2"); a shipped Adverts list once other stations' names for them are known. More shipped lists beside the Christmas songs, as they are asked for. **Not this integration's:** the house's own radio station is a Casa Mia item (owner, 2026-11-13: never part of this integration); when it exists it is one more station to switch to, and the guide's opening already says so.
 - **Entity clean-up: orphaned and disabled entities** (asked 2026-10-10). A page listing them by kind (orphaned, disabled, unavailable for N days), integration and device, with last seen; remove one or a selection after a confirmation. A service for automations, with a dry run. Through HA's entity registry (`config/entity_registry/remove`), never `.storage`, logged. Look at the AI-generated clean-up app the owner has used; fold in what's useful, respecting its licence.
 - **"What's eating your recorder space?"** (asked 2026-10-10). The recorder's database by entity: rows and bytes, the noisiest entities, growth, and what an `exclude` or `recorder.purge_entities` would save. Pairs with the clean-up.
 - **A doorbell that answers itself** (asked 2026-11-03). When nobody answers the doorbell, Casa Mia does: speech to text on the caller, a local AI (inference on the house's own hardware, no cloud) deciding what to say and do, and text to speech back through the doorbell. It helps callers in place of the family: tells a delivery driver where to leave a parcel and opens the gates for them, takes a message, says nobody's in. Open: which doorbells give two-way audio to HA (UniFi Protect's talkback, others), the speech engines and the model and where they run, what the AI may do (open the gates? only for a delivery it can check against an expected order?), how it hands over to the family (a notification with the live conversation, take over by voice), and how every call is logged with its transcript. Shares the audio plumbing with "FONA voice calls into the voice assistant" and the gate action with `casa_mia.check_plate`.

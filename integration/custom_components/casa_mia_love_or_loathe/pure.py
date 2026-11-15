@@ -16,7 +16,7 @@ import fnmatch
 import json
 import re
 import unicodedata
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -100,9 +100,17 @@ class Matcher:
         return cls.of(p for p in good if p not in wild), cls.of(wild)
 
     def matches(self, tracks: set[tuple[str, str]]) -> bool:
+        """A `Title | Artist` pattern takes a track the other way round too: some
+        stations' streams reach the player with the two swapped (Planet Rock on Sonos,
+        2026-11-15). A title-only one doesn't, or `*love*` would take all of Courtney
+        Love's songs."""
         return any(
             (self.titles is not None and self.titles.match(title))
-            or any(t.match(title) and a.match(artist) for t, a in self.pairs)
+            or any(
+                (t.match(title) and a.match(artist))
+                or (artist and t.match(artist) and a.match(title))
+                for t, a in self.pairs
+            )
             for title, artist in tracks
         )
 
@@ -126,9 +134,6 @@ class Group:
     loathe: Act
     exact: Matcher  # its patterns with no *
     wild: Matcher
-    # It also has any song heard `times` times in the last `hours` hours (0: it doesn't).
-    times: int = 0
-    hours: float = 0
 
     @property
     def act(self) -> Act:
@@ -154,26 +159,46 @@ def pick(groups: Iterable[Group], title: str, artist: str) -> Group | None:
 # A song heard again within this many seconds is the same play, not another: two players
 # on one station report it together, and a save of a group judges it afresh.
 SAME_PLAY = 600.0
-KEPT = 48 * 3600.0  # seconds a play is remembered: the longest a group can look back
+KEPT = 48 * 3600.0  # seconds a play is remembered: the longest the strike can look back
+
+
+def song(title: str, artist: str) -> tuple[str, str] | None:
+    """The song a player reports, as the strike counts it: its title and artist folded,
+    in a fixed order, so that a station sending them swapped is the same song. None
+    for anything with no artist, given or in a title like "Artist - Title": what a
+    station puts out between songs (its name, a show's, "Ad 7", "STOP ADBREAK 2") has
+    none, and would otherwise be counted as one song played all day (2026-11-15)."""
+    if not artist and " - " in title:
+        title, _, artist = title.partition(" - ")
+    pair = sorted((fold(title), fold(artist)))
+    return (pair[0], pair[1]) if all(pair) else None
 
 
 class History:
-    """The songs an entry's players have played and when, for the groups that act on a
-    song heard too often. Times are seconds (a timestamp), given by the caller."""
+    """The songs an entry's players have played and when, for its strike: a song
+    played too often. Times are seconds (a timestamp), given by the caller."""
 
     def __init__(self, plays: Iterable[tuple[float, str, str]] = ()) -> None:
         self._at: dict[tuple[str, str], list[float]] = {}
+        # Through song() again: what 2026.11.8-b38 kept had no fixed order, and kept
+        # what has no artist.
         for at, title, artist in plays:
-            self._at.setdefault((title, artist), []).append(at)
+            if key := song(title, artist):
+                self._at.setdefault(key, []).append(at)
 
     def heard(self, title: str, artist: str, now: float) -> None:
-        times = self._at.setdefault((fold(title), fold(artist)), [])
+        key = song(title, artist)
+        if key is None:
+            return
+        times = self._at.setdefault(key, [])
         if not times or now - times[-1] > SAME_PLAY:
             times.append(now)
 
     def count(self, title: str, artist: str, now: float, hours: float) -> int:
-        """How many times it was played in the last `hours`, this play included."""
-        times = self._at.get((fold(title), fold(artist)), ())
+        """How many times it was played in the last `hours`, this play included; 0 for
+        what isn't a song."""
+        key = song(title, artist)
+        times = self._at.get(key, ()) if key else ()
         return sum(at > now - hours * 3600 for at in times)
 
     def dump(self, now: float) -> list[tuple[float, str, str]]:
@@ -184,19 +209,6 @@ class History:
         }
         self._at = {song: times for song, times in kept.items() if times}
         return [(at, *song) for song, times in self._at.items() for at in times]
-
-
-def repeated(groups: Iterable[Group], heard: Callable[[float], int]) -> Group | None:
-    """The group that has a song for how often it has been played: `heard` says how
-    many times in the last so many hours. Asked only when no group names the song
-    (pick): a song you named is treated as you said, however often it comes round.
-    Ignored groups have none; a loved group beats a loathed one, then group order."""
-    found = [
-        g
-        for g in groups
-        if g.feeling != IGNORE and g.times and heard(g.hours) >= g.times
-    ]
-    return next((g for g in found if g.feeling == LOVE), found[0] if found else None)
 
 
 def _names(line: str, title: str, artist: str) -> bool:

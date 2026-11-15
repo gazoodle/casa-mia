@@ -112,7 +112,7 @@ function EntryArea({ entry, view, current, act, show }: { entry: Entry; view: Vi
           <span className={css.headControls}>
             <Switch on={entry.enabled} label={`${entry.title} is watching its players`} onChange={(on) => act(() => change("enable", entry, { enabled: on }), on ? `${entry.title} is watching` : `${entry.title} is switched off`)} />
             <button className={ui.button} onClick={() => show(<PlayersDialog entry={entry} view={view} onClose={close} onSave={(body) => save("save_entry", body, `${body.name} saved`)} />)}>
-              Players
+              Settings
             </button>
           </span>
         }
@@ -163,6 +163,29 @@ function EntryArea({ entry, view, current, act, show }: { entry: Entry; view: Vi
         </ul>
       )}
       {entry.groups.length > 1 && <p className={guest.notice}>When a song is in two groups: a line with no * beats one with a *, then a loved group beats a loathed one, then the group higher up here.</p>}
+
+      <div className={css.subHead}>
+        <h3 className={css.sub}>Songs played too often</h3>
+      </div>
+      <ul className={css.rows}>
+        <li className={`${css.row} ${css.fixed}`}>
+          <span className={css.main}>
+            <span className={css.title}>{entry.repeats.times ? `Any song played ${entry.repeats.times} times in the last ${entry.repeats.hours} hours` : "Off: no number of times is set"}</span>
+            <span className={guest.rowMeta}>
+              {entry.repeats.times ? `${inShort(entry.repeats)}, whatever the groups say about the song` : "Set it under Settings, for a station with a short playlist."}
+            </span>
+          </span>
+          {!!entry.repeats.times && (
+            <span className={css.controls}>
+              <Switch
+                on={entry.repeats_on}
+                label="Songs played too often are struck"
+                onChange={(on) => act(() => change("enable", entry, { repeats_on: on }), on ? "Songs played too often are struck" : "Songs played too often are left alone")}
+              />
+            </span>
+          )}
+        </li>
+      </ul>
 
       <div className={css.subHead}>
         <h3 className={css.sub}>Stations to switch to</h3>
@@ -269,6 +292,7 @@ function NowPlaying({ entry, view, act, station }: { entry: Entry; view: View; a
           const name = nameOf(view.players, id);
           const on = playing.state === "playing";
           const group = entry.groups.find((g) => g.id === playing.group);
+          const struck = playing.group === "";
           const away = entry.away[id];
           const known = entry.stations.some((s) => s.media_content_id === playing.media_content_id);
           return (
@@ -280,10 +304,11 @@ function NowPlaying({ entry, view, act, station }: { entry: Entry; view: View; a
                     <span className="cm-pill cm-bad">Not in Home Assistant</span>
                   ) : !on ? (
                     <span className="cm-pill">{STATES[playing.state] ?? playing.state}</span>
+                  ) : struck ? (
+                    <span className="cm-pill cm-bad">Played {playing.repeats} times</span>
                   ) : group ? (
                     <span className={`cm-pill ${TONE[group.feeling]}`}>
                       {group.feeling === "love" ? "Loved" : "Loathed"}: {group.name}
-                      {!!playing.repeats && ` (played ${playing.repeats} times)`}
                     </span>
                   ) : null}
                   {away && <span className="cm-pill cm-warn">Away until {new Date(away).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>}
@@ -319,7 +344,7 @@ function NowPlaying({ entry, view, act, station }: { entry: Entry; view: View; a
           );
         })}
       </ul>
-      {!rated && <p className={guest.notice}>Nobody may rate songs here yet. Choose who under Players: Who may rate.</p>}
+      {!rated && <p className={guest.notice}>Nobody may rate songs here yet. Choose who under Settings: Who may rate.</p>}
     </>
   );
 }

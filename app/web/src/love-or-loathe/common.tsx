@@ -31,22 +31,21 @@ export type Group = {
   home: Feeling;
   patterns?: string;
   person?: string;
-  /** It also has any song played `times` times in the last `hours` hours (0: it doesn't). */
-  repeats?: Repeats;
   love: Act;
   loathe: Act;
 };
-export type Repeats = { times: number; hours: number };
-export const NO_REPEATS: Repeats = { times: 0, hours: 4 };
+/** The entry's strike: any song played `times` times in the last `hours` hours (0: none),
+ * and what is then done, whatever a group says of the song. */
+export type Repeats = Act & { times: number; hours: number };
 export type Station = { id: string; name: string; media_content_id: string; media_content_type: string };
 export type Playing = {
   /** Home Assistant's state for the player; null when it has none. */
   state: string | null;
   title?: string;
   artist?: string;
-  /** The group that has the track. */
+  /** The group that has the track; "" for the strike. */
   group?: string | null;
-  /** How many times it has been played lately, when that is why the group has it. */
+  /** How many times it has been played lately, when that is why it is struck. */
   repeats?: number;
   media_content_id?: string | null;
   media_content_type?: string | null;
@@ -66,6 +65,9 @@ export type Entry = {
   raters: string[];
   screens: string[];
   delay: number;
+  repeats: Repeats;
+  /** Off: the strike does nothing, its numbers kept (its Repeats switch). */
+  repeats_on: boolean;
   groups: Group[];
   stations: Station[];
   playing: Record<string, Playing>;
@@ -123,12 +125,10 @@ export function inShort(act: Act): string {
 
 export const nameOf = (all: Named[], id: string) => all.find((n) => n.entity_id === id)?.name ?? id;
 
-/** "3 songs", "any song played 3 times in 4 h", or both. */
+/** "1 song", "3 songs". */
 export function holds(group: Group): string {
   const named = songs(group.patterns);
-  const often = group.repeats?.times ? `any song played ${group.repeats.times} times in ${group.repeats.hours} h` : "";
-  const names = `${named} ${named === 1 ? "song" : "songs"}`;
-  return often ? (named ? `${names} · ${often}` : often) : names;
+  return `${named} ${named === 1 ? "song" : "songs"}`;
 }
 
 /** How many songs a group names. */

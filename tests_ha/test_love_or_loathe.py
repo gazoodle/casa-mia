@@ -5,7 +5,8 @@ media_player services are caught, so each test says what the player then reports
 from datetime import timedelta
 
 import pytest
-from custom_components.casa_mia_love_or_loathe.const import DOMAIN, EVENT
+from custom_components.casa_mia_love_or_loathe import trail
+from custom_components.casa_mia_love_or_loathe.const import DOMAIN, EVENT, RATED_EVENT
 from custom_components.casa_mia_love_or_loathe.pure import libraries
 from homeassistant.config_entries import (
     SOURCE_USER,
@@ -358,10 +359,23 @@ async def test_rating_the_song_playing_into_a_persons_groups(hass):
         await settled(hass)
 
     # Whoever pressed: Ann loathes it, and it is muted at once.
+    rated = []
+    hass.bus.async_listen(RATED_EVENT, lambda event: rated.append(dict(event.data)))
     play(hass, "Dreadful Song", "A Band")
     await settled(hass)
     await rate("loathe", "ann-login")
     assert songs("Ann loathes") == "Old Song\n*awful*\nDreadful Song | A Band"
+    # And it is said on the bus, for automations and for pages that announce it.
+    assert rated == [
+        {
+            "entity_id": PLAYER,
+            "person": "person.ann",
+            "name": "ann",
+            "feeling": "loathe",
+            "title": "Dreadful Song",
+            "artist": "A Band",
+        }
+    ]
     assert songs("Ben loathes") == ""
     assert [c.data["is_volume_muted"] for c in calls["volume_mute"]] == [True]
     # Pressed twice, it is there once.
@@ -403,59 +417,6 @@ async def test_rating_the_song_playing_into_a_persons_groups(hass):
     assert len(entry.subentries) == groups
 
 
-async def test_a_song_heard_too_often_is_the_groups_too(hass, freezer):
-    often = a_group("Heard too often", repeats={"times": 3, "hours": 4})
-    entry, calls = await add(
-        hass, often, a_group("Loved", "love", "event", patterns="Agadoo")
-    )
-    events = async_capture_events(hass, EVENT)
-
-    fillers = iter(range(100))
-
-    async def hear(title, after=30):
-        """The song, half an hour after the last; "" for one never heard before."""
-        freezer.tick(timedelta(minutes=after))
-        title = title or f"Filler {next(fillers)}"
-        play(hass, title, "A Band")
-        await settled(hass)
-
-    # Twice is not three times, and the same play judged afresh is not another.
-    await hear("Round Again")
-    await hear("")
-    await hear("Round Again")
-    await hass.config_entries.async_reload(entry.entry_id)
-    await settled(hass)
-    assert not calls["volume_mute"]
-
-    # The third time in four hours it is muted, and the event says why.
-    await hear("")
-    await hear("Round Again")
-    assert [c.data["is_volume_muted"] for c in calls["volume_mute"]] == [True]
-    assert (events[-1].data["group"], events[-1].data["repeats"]) == (
-        "Heard too often",
-        3,
-    )
-
-    # A song a group names is treated as that group says, however often it comes.
-    for _ in range(3):
-        await hear("Agadoo")
-        await hear("")
-    assert events[-1].data["group"] == "Loved" and events[-1].data["repeats"] == 0
-
-    # Four hours on, the early plays no longer count: it is the first again.
-    await hear("Round Again", after=300)
-    assert events[-1].data["group"] == "Loved"
-
-    # A restart of Home Assistant keeps what was played.
-    await hear("")
-    await hear("Round Again")
-    await hass.config_entries.async_reload(entry.entry_id)
-    await settled(hass)
-    await hear("")
-    await hear("Round Again")
-    assert (events[-1].data["title"], events[-1].data["repeats"]) == ("Round Again", 3)
-
-
 async def test_the_notify_blueprint_is_installed(hass):
     await add(hass)
     await settled(hass)
@@ -470,7 +431,7 @@ async def test_the_notify_blueprint_is_installed(hass):
 
 
 async def test_a_switch_of_station_and_back_when_its_minutes_are_up(hass, freezer):
-    _, calls = await add(
+    entry, calls = await add(
         hass,
         a_group("Christmas", patterns=XMAS, action="switch", minutes=5),
         a_station("Home", HOME),
@@ -497,6 +458,8 @@ async def test_a_switch_of_station_and_back_when_its_minutes_are_up(hass, freeze
     await settled(hass)
     assert calls["play_media"][2].data == {"entity_id": PLAYER, **HOME}
     assert hass.states.get(SENSOR).attributes["away"] == {}
+    # Said by the station's name, not its address.
+    assert trail.lines(hass, entry)[-1]["text"] == "Switched back to Home"
 
 
 async def test_no_switching_back_over_a_persons_own_choice(hass, freezer):

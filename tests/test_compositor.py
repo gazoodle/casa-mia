@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import io
 import json
 import threading
@@ -328,6 +329,36 @@ def test_a_kept_still_has_its_real_age(tmp_path):
     image, age = comp.gather.pick("camera.a")
     assert image and 9 < age < 11
     assert comp.gather.pick("camera.b") == (None, float("inf"))
+
+
+def test_a_recent_picture_of_a_camera_is_given_and_an_old_one_is_not(tmp_path):
+    """For the integration's camera_picture service: a camera's largest picture, asked
+    for by any of its channels, only while it is new."""
+    from casa_mia.modules.compositor import picture
+
+    comp = Compositor(tmp_path, "http://127.0.0.1:1", "t", port=0)
+    gather, now = comp.gather, time.monotonic()
+    gather.cfg.entities["camera.a"] = {"medium": "camera.a_medium"}
+    gather.shots |= {
+        "camera.a": (now - 1, jpeg()),
+        "camera.a_medium": (now - 2, jpeg("blue")),
+    }
+    gather.res |= {"camera.a": (160, 90), "camera.a_medium": (1280, 720)}
+    read = picture(comp)
+
+    got = read({"camera": ["camera.a"], "w": ["120"]})
+    assert got["type"] == "image/jpeg" and 1.9 < got["age"] < 2.5  # the medium one
+    assert Image.open(io.BytesIO(base64.b64decode(got["picture"]))).width == 120
+    channel = lambda entity, within: (gather.recent(entity, within) or [None])[0]  # noqa: E731
+    assert channel("camera.a_medium", 5) == "camera.a_medium"
+
+    # Only the small one is new enough; then neither; and never a "(Waiting …)".
+    assert channel("camera.a", 1.5) == "camera.a"
+    gone = read({"camera": ["camera.a"], "fresh": ["0.5"]})
+    assert gone == {"picture": None, "why": "no picture of camera.a in the last 0.5 s"}
+    gather._waiting |= {"camera.a", "camera.a_medium"}
+    assert gather.recent("camera.a", 60) is None
+    assert read({"camera": ["camera.none"]})["picture"] is None
 
 
 def test_the_pages_controls_restart_flush_and_forget(compositor):

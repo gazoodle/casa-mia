@@ -48,7 +48,7 @@ blueprint:
         More actions (a light, a speaker), with these variables: title and text (the
         notification's), song, player, entity_id, song_title, artist, group, feeling,
         action, result, repeats (how many times it has been played, when that is why
-        the group had it) and failed.
+        it was struck; group is then empty) and failed.
       default: []
       selector:
         action: {}
@@ -76,10 +76,12 @@ variables:
   failed: "{{ result.startswith('failed') }}"
   song: "{{ song_title ~ (' by ' ~ artist if artist else '') }}"
   player: "{{ state_attr(entity_id, 'friendly_name') or entity_id }}"
-  title: "{{ 'Loved' if feeling == 'love' else 'Loathed' }}: {{ song }}"
+  title: >-
+    {{ 'Played too often' if repeats | int > 0 else 'Loved' if feeling == 'love'
+    else 'Loathed' }}: {{ song }}
   text: >-
-    {{ player }}: {{ result }} · {{ group }}{{
-    ' · played ' ~ repeats ~ ' times lately' if repeats | int > 0 else '' }}
+    {{ player }}: {{ result }} · {{ 'played ' ~ repeats ~ ' times lately'
+    if repeats | int > 0 else group }}
   notification_id: "love_or_loathe_{{ entity_id | slugify }}"
 
 conditions:

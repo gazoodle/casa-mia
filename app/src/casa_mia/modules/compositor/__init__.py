@@ -56,6 +56,7 @@ from .. import streams
 from .api import (
     admin_api,
     control,
+    picture,
 )
 from .common import (
     BENCH,
@@ -231,6 +232,7 @@ __all__ = [
     "Generator",
     "admin_api",
     "control",
+    "picture",
     "streams",
     "swap",
 ]
