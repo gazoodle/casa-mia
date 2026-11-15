@@ -7,6 +7,7 @@ NEVER TEST THIS: run it after changing a design, and look at the results.
     .venv/bin/python tools/brand_children.py
 
 - Camera Commander: a security camera on a wall bracket.
+- Dash-Bored: a bored face on a dashboard tile.
 - Guest Login: a QR code (a drawing of one, not a real code).
 - Intercom: an intercom panel.
 - Love it or Loathe it: a heart on the left and a vomiting face on the right.
@@ -203,8 +204,29 @@ def _love_and_loathe(image: Image.Image, s: float) -> None:
     draw.ellipse(at(362, 448, 438, 478), fill=VOMIT)
 
 
+def _bored(image: Image.Image, s: float) -> None:
+    """A bored face on a dashboard tile: heavy eyelids and a flat mouth."""
+    draw = ImageDraw.Draw(image)
+
+    def at(*points: float) -> list[float]:
+        return [p * s for p in points]
+
+    draw.rounded_rectangle(at(126, 236, 386, 496), radius=62 * s, fill=CREAM)
+    draw.rounded_rectangle(at(144, 254, 368, 478), radius=46 * s, fill=GREEN)
+    # Each eye is a disc with the lid drawn over its top half, the pupil looking aside.
+    for x in (206, 306):
+        draw.ellipse(at(x - 34, 316, x + 34, 384), fill=CREAM)
+        draw.ellipse(at(x - 4, 352, x + 20, 376), fill=DARK_LENS)
+        draw.rectangle(at(x - 38, 312, x + 38, 350), fill=GREEN)
+        draw.line(at(x - 38, 350, x + 38, 350), fill=CREAM, width=round(10 * s))
+    draw.line(at(212, 428, 300, 428), fill=CREAM, width=round(12 * s))
+    draw.ellipse(at(206, 422, 218, 434), fill=CREAM)
+    draw.ellipse(at(294, 422, 306, 434), fill=CREAM)
+
+
 OVERLAYS: dict[str, Callable[[Image.Image, float], None]] = {
     "casa_mia_commander": lambda image, s: _camera(ImageDraw.Draw(image), s),
+    "casa_mia_dash_bored": _bored,
     "casa_mia_guest_login": lambda image, s: _qr(ImageDraw.Draw(image), s),
     "casa_mia_intercom": lambda image, s: _panel(ImageDraw.Draw(image), s),
     "casa_mia_love_or_loathe": _love_and_loathe,
@@ -212,6 +234,7 @@ OVERLAYS: dict[str, Callable[[Image.Image, float], None]] = {
 }
 WORDS = {
     "casa_mia_commander": "Camera Commander",
+    "casa_mia_dash_bored": "Dash-Bored",
     "casa_mia_guest_login": "Guest Login",
     "casa_mia_intercom": "Intercom",
     "casa_mia_love_or_loathe": "Love it or Loathe it",

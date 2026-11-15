@@ -478,6 +478,25 @@ class Cache:
         best = max(come, key=lambda c: self.res.get(c, (0, 0))[0])
         return best, self.shots[best][1]
 
+    def recent(self, entity: str, within: float) -> tuple[str, Picture, float] | None:
+        """The largest picture of a camera that came in the last `within` seconds, with
+        its channel and its age (s). `entity` is the camera or any of its channels.
+        None when it has none so new: a camera no watched commander shows is not being
+        fetched, and what the cache holds of it is old."""
+        now = time.monotonic()
+        camera = self._channel(entity)[0]
+        come = [
+            c
+            for c in {entity, *channels(self.cfg, camera).values()}
+            if c in self.shots
+            and c not in self._waiting
+            and now - self.shots[c][0] <= within
+        ]
+        if not come:
+            return None
+        best = max(come, key=lambda c: self.res.get(c, (0, 0))[0])
+        return best, self.shots[best][1], now - self.shots[best][0]
+
     def pick(
         self, camera: str, channel: str | None = None
     ) -> tuple[Picture | None, float]:

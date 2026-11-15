@@ -1,3 +1,17 @@
+camera_picture:
+  fields:
+    entity_id:
+      required: true
+      selector:
+        entity:
+          domain: camera
+    fresh:
+      default: 5
+      selector:
+        number:
+          min: 0
+          max: 60
+          unit_of_measurement: s
 check_plate:
   fields:
     plate:

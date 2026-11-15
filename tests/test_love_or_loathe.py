@@ -34,6 +34,35 @@ def test_a_pattern_is_a_title_or_a_title_and_an_artist():
     assert pure.pick([songs], "Club Tropicana", "Someone Else") is None
 
 
+def test_a_title_and_artist_pattern_takes_them_swapped_a_title_alone_does_not():
+    # As Planet Rock reaches a Sonos (2026-11-15): the artist as the title.
+    songs = group(
+        "mine", ["Sledgehammer | Peter Gabriel", "* | Cliff Richard", "*love*"]
+    )
+    assert pure.pick([songs], "Peter Gabriel", "Sledgehammer") is songs
+    assert pure.pick([songs], "Cliff Richard", "Mistletoe and Wine") is songs
+    assert pure.pick([songs], "Doll Parts", "Courtney Love") is None
+
+
+def test_only_a_song_is_counted_whichever_way_round():
+    sonos = pure.song("Peter Gabriel", "Sledgehammer")
+    assert sonos == pure.song("Sledgehammer", "Peter Gabriel")
+    assert sonos == pure.song("Sledgehammer - Peter Gabriel", "")
+    # What a station puts out between songs has no artist.
+    for text in ("Planet Rock • The Late Show", "Ad 7", "STOP ADBREAK 2", "Capital"):
+        assert pure.song(text, "") is None
+
+    history = pure.History()
+    for at in (0, 1000, 2000):
+        history.heard("Ad 7", "", at)
+        history.heard("Peter Gabriel", "Sledgehammer", at)
+    assert history.count("Ad 7", "", 2000, 4) == 0
+    assert history.count("Sledgehammer - Peter Gabriel", "", 2000, 4) == 3
+    # What b38 kept is read the same way: in either order, and without the rest.
+    kept = [(0, "sledgehammer", "peter gabriel"), (0, "ad 7", "")]
+    assert pure.History(kept).dump(0) == [(0, "peter gabriel", "sledgehammer")]
+
+
 def test_what_a_player_adds_to_a_title_is_seen_through():
     songs = group("mine", ["Last Night", "Happy Day (Live)"])
     assert pure.pick([songs], "Last Night (Remastered 2011)", "A Band") is songs
@@ -122,7 +151,7 @@ def test_an_ignored_group_remembers_which_list_it_was():
     assert pure.home(pure.felt({}, {"feeling": "ignore"})) == "ignore"
 
 
-def test_a_song_heard_often_enough_is_a_groups_and_plays_are_forgotten():
+def test_plays_are_counted_once_each_and_forgotten():
     hour = 3600.0
     history = pure.History()
     for at in (0, 0.05, 1, 2, 5):  # 0.05 h: within ten minutes, the same play
@@ -131,25 +160,10 @@ def test_a_song_heard_often_enough_is_a_groups_and_plays_are_forgotten():
     assert history.count("Round Again", "A Band", 5 * hour, 3.5) == 2
     assert history.count("Round Again", "Another Band", 5 * hour, 48) == 0
 
-    act = pure.Act("mute", 0, 5)
-    split = pure.Matcher.split([])
-    bored = pure.Group("bored", "Bored", "loathe", "", act, act, *split, 3, 4.5)
-    fond = pure.Group("fond", "Fond", "love", "", act, act, *split, 2, 48)
-
-    def heard(hours):
-        return history.count("Round Again", "A Band", 5 * hour, hours)
-
-    assert pure.repeated([bored], heard) is bored
-    assert pure.repeated([bored, fond], heard) is fond  # love beats loathe
-    assert (
-        pure.repeated([pure.Group("off", "Off", "loathe", "", act, act, *split)], heard)
-        is None
-    )
-
     # Kept through storage, and forgotten after two days.
     again = pure.History(history.dump(5 * hour))
     assert again.count("Round Again", "A Band", 5 * hour, 48) == 4
-    assert again.dump(50 * hour) == [(5 * hour, "round again", "a band")]
+    assert again.dump(50 * hour) == [(5 * hour, "a band", "round again")]  # in order
 
 
 def test_the_notify_blueprint_is_sound_and_reads_only_what_the_event_carries():

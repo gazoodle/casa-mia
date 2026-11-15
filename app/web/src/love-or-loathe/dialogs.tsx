@@ -1,13 +1,13 @@
-/** The page's three dialogs: a group of songs, a station, and an entry's players. Each
+/** The page's three dialogs: a group of songs, a station, and an entry's settings. Each
  * hands back what to save; the page sends it, and keeps the dialog open if it is refused. */
 
 import { useState } from "react";
 import { Select } from "../controls";
-import { Dialog, Field, Segmented } from "../ui";
+import { Dialog, Field, Segmented, Switch } from "../ui";
 import guest from "../guest.module.css";
 import ui from "../ui.module.css";
 import css from "./love-or-loathe.module.css";
-import { ACTIONS, FEELINGS, NO_REPEATS, USUAL, nameOf, type Act, type Action, type Entry, type Feeling, type Group, type Station, type View } from "./common";
+import { ACTIONS, FEELINGS, USUAL, nameOf, type Act, type Action, type Entry, type Feeling, type Group, type Repeats, type Station, type View } from "./common";
 
 function Buttons({ onClose, onSave, ready }: { onClose: () => void; onSave: () => void; ready: boolean }) {
   return (
@@ -24,8 +24,9 @@ function Buttons({ onClose, onSave, ready }: { onClose: () => void; onSave: () =
 
 const number = (text: string) => (Number.isFinite(Number(text)) ? Number(text) : 0);
 
-/** What to do while the group is loved, or loathed: only the numbers its action uses. */
-function ActEditor({ title, act, onChange, stations }: { title: string; act: Act; onChange: (act: Act) => void; stations: number }) {
+/** What to do while the group is loved, or loathed, or for a strike: only the numbers its
+ * action uses. */
+function ActEditor<A extends Act>({ title, act, onChange, stations }: { title: string; act: A; onChange: (act: A) => void; stations: number }) {
   return (
     <div className={css.act}>
       <h3>{title}</h3>
@@ -74,7 +75,6 @@ export function GroupDialog({
   const [person, setPerson] = useState(group?.person ?? "");
   const [love, setLove] = useState<Act>(group?.love ?? USUAL.love);
   const [loathe, setLoathe] = useState<Act>(group?.loathe ?? USUAL.loathe);
-  const [repeats, setRepeats] = useState(group?.repeats ?? NO_REPEATS);
   const [shipped, setShipped] = useState("");
 
   // A shipped list fills the box, and from then on its songs are this group's own.
@@ -91,7 +91,7 @@ export function GroupDialog({
       title={group ? `Change ${group.name}` : "Add a group of songs"}
       wide
       onClose={onClose}
-      footer={<Buttons onClose={onClose} ready={!!name.trim()} onSave={() => onSave({ name: name.trim(), feeling, patterns, person, repeats, love, loathe })} />}
+      footer={<Buttons onClose={onClose} ready={!!name.trim()} onSave={() => onSave({ name: name.trim(), feeling, patterns, person, love, loathe })} />}
     >
       {!group && (
         <Field label="Start with" help="A shipped list is put into the Songs box below, and from then on the songs are yours to add to and cut.">
@@ -116,21 +116,6 @@ export function GroupDialog({
         help="One per line: a title, or a title and an artist as Title | Artist. Use * for anything, for example *love* or * | Black Lace. Capitals and punctuation don't matter. It can be left empty for a person's list that fills up as they rate songs."
       >
         <textarea className={css.songs} value={patterns} spellCheck={false} onChange={(e) => setPatterns(e.target.value)} />
-      </Field>
-      <Field
-        label="Songs played too often"
-        help={
-          repeats.times
-            ? "For a station with a short playlist: any song is this group's the time it reaches this count, whatever the song. A song that a group names is treated as that group says."
-            : "For a station with a short playlist: set a number of times, and any song played that often is this group's too. At 0 this is off."
-        }
-      >
-        <span className={css.often}>
-          <input type="number" min={0} max={20} value={repeats.times} aria-label="Times played" onChange={(e) => setRepeats({ ...repeats, times: number(e.target.value) })} />
-          times in the last
-          <input type="number" min={1} max={48} value={repeats.hours} aria-label="Hours" onChange={(e) => setRepeats({ ...repeats, hours: number(e.target.value) })} />
-          hours
-        </span>
       </Field>
       <Field label="Belongs to" help="Optional. Rating a song adds it to this person's loved group or loathed group. Give a person one group set to Love and one set to Loathe.">
         <Select value={person} onChange={setPerson}>
@@ -213,7 +198,7 @@ export function StationDialog({
   );
 }
 
-export type EntryBody = { name: string; players: string[]; delay: number; raters: string[]; screens: string[] };
+export type EntryBody = { name: string; players: string[]; delay: number; raters: string[]; screens: string[]; repeats: Repeats; repeats_on: boolean };
 
 export function PlayersDialog({ entry, view, onClose, onSave }: { entry: Entry; view: View; onClose: () => void; onSave: (body: EntryBody) => void }) {
   const [name, setName] = useState(entry.title);
@@ -221,6 +206,8 @@ export function PlayersDialog({ entry, view, onClose, onSave }: { entry: Entry; 
   const [delay, setDelay] = useState(entry.delay);
   const [raters, setRaters] = useState(entry.raters);
   const [screens, setScreens] = useState(entry.screens);
+  const [repeats, setRepeats] = useState(entry.repeats);
+  const [on, setOn] = useState(entry.repeats_on);
   const tick = (set: (change: (was: string[]) => string[]) => void, id: string) => (e: { target: { checked: boolean } }) =>
     set((was) => (e.target.checked ? [...was, id] : was.filter((other) => other !== id)));
   // Another entry's players can't be taken: two acting on one would undo each other.
@@ -230,10 +217,10 @@ export function PlayersDialog({ entry, view, onClose, onSave }: { entry: Entry; 
 
   return (
     <Dialog
-      title={`${entry.title}: its players, and who may rate`}
+      title={`${entry.title}: its settings`}
       wide
       onClose={onClose}
-      footer={<Buttons onClose={onClose} ready={!!name.trim() && players.length > 0} onSave={() => onSave({ name: name.trim(), players, delay, raters, screens })} />}
+      footer={<Buttons onClose={onClose} ready={!!name.trim() && players.length > 0} onSave={() => onSave({ name: name.trim(), players, delay, raters, screens, repeats, repeats_on: on })} />}
     >
       <Field label="Name" help="Shown on its device and entities in Home Assistant.">
         <input value={name} onChange={(e) => setName(e.target.value)} />
@@ -259,6 +246,19 @@ export function PlayersDialog({ entry, view, onClose, onSave }: { entry: Entry; 
       <Field label="Delay, in seconds" help="How long to wait after a player reports a new track before acting. Leave it at 0 unless the title changes before the song does.">
         <input type="number" min={0} max={60} value={delay} onChange={(e) => setDelay(number(e.target.value))} />
       </Field>
+      <Field
+        label="Songs played too often"
+        help="For a station with a short playlist. Any song played this many times in the last so many hours is struck, whatever your groups say about it, even a song you love. At 0 times this is off; its switch turns it off and on and keeps the numbers."
+      >
+        <span className={css.often}>
+          <Switch on={on} label="Songs played too often are struck" onChange={setOn} />
+          <input type="number" min={0} max={20} value={repeats.times} aria-label="Times played" onChange={(e) => setRepeats({ ...repeats, times: number(e.target.value) })} />
+          times in the last
+          <input type="number" min={1} max={48} value={repeats.hours} aria-label="Hours" onChange={(e) => setRepeats({ ...repeats, hours: number(e.target.value) })} />
+          hours
+        </span>
+      </Field>
+      <ActEditor title="When one is struck" act={repeats} onChange={setRepeats} stations={entry.stations.length} />
       <Field
         label="Who may rate"
         help="The people whose loves and loathes count here. Only they can rate a song, with the thumbs or the rate action, and only they get loved and loathed groups. With nobody ticked, nobody can."

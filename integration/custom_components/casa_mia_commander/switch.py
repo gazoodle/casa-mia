@@ -6,6 +6,7 @@ from typing import Any
 
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
@@ -32,6 +33,8 @@ class TrackMotionSwitch(CommanderEntity, SwitchEntity, RestoreEntity):
     while the alarm is set). Kept by Home Assistant over restarts; see motion.py."""
 
     _attr_translation_key = "track_motion"
+    # A setting, not something in a room: automatic dashboards leave configuration out.
+    _attr_entity_category = EntityCategory.CONFIG
 
     def __init__(
         self, coordinator: CasaMiaCoordinator, entry: ConfigEntry, cid: str

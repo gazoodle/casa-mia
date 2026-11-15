@@ -49,6 +49,12 @@ SEND_SMS_SCHEMA = vol.Schema(
     }
 )
 CHECK_PLATE_SCHEMA = vol.Schema({vol.Required("plate"): cv.string})
+CAMERA_PICTURE_SCHEMA = vol.Schema(
+    {
+        vol.Required("entity_id"): cv.entity_id,
+        vol.Optional("fresh", default=5): vol.All(vol.Coerce(float), vol.Range(0, 60)),
+    }
+)
 
 PLATFORMS = [
     Platform.ALARM_CONTROL_PANEL,
@@ -173,6 +179,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         schema=CHECK_PLATE_SCHEMA,
         supports_response=SupportsResponse.ONLY,
     )
+
+    async def camera_picture(call: ServiceCall) -> ServiceResponse:
+        return await _camera_picture(
+            hass, coordinator, call.data["entity_id"], call.data["fresh"]
+        )
+
+    hass.services.async_register(
+        DOMAIN,
+        "camera_picture",
+        camera_picture,
+        schema=CAMERA_PICTURE_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
     return True
 
 
@@ -291,6 +310,27 @@ async def _check_plate(
     except (aiohttp.ClientError, TimeoutError, ValueError) as exc:
         _LOGGER.warning("plate %s not checked: the app did not answer: %s", plate, exc)
         raise HomeAssistantError(f"Plate not checked: Casa Mia app: {exc}") from exc
+
+
+async def _camera_picture(
+    hass: HomeAssistant, coordinator: CasaMiaCoordinator, entity_id: str, fresh: float
+) -> ServiceResponse:
+    """A camera's picture from the app's compositor, which is already fetching the
+    cameras its commanders show: `picture` (base64), `type` and `age`, or `picture`
+    None and `why` when it holds none from the last `fresh` seconds. How another
+    integration gets a photograph without asking the camera again (Dash-Bored's
+    sightings do). No answer from the app is an error."""
+    try:
+        async with async_get_clientsession(hass).get(
+            f"{coordinator.url}/compositor/picture",
+            params={"camera": entity_id, "fresh": str(fresh)},
+            timeout=aiohttp.ClientTimeout(total=5),
+        ) as response:
+            response.raise_for_status()
+            return await response.json()
+    except (aiohttp.ClientError, TimeoutError, ValueError) as exc:
+        _LOGGER.warning("no picture of %s: the app did not answer: %s", entity_id, exc)
+        raise HomeAssistantError(f"No picture: Casa Mia app: {exc}") from exc
 
 
 def _pong(hass: HomeAssistant, coordinator: CasaMiaCoordinator):
