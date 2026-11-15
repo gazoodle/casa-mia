@@ -152,8 +152,9 @@ export const STYLES = css`
   .wheel::before { top: 16px; } .wheel::after { bottom: 17px; }
   /* The digits are engraved: dark in the cut, with a bright edge below where the light
      catches it. They roll to their new places when a wheel is turned, a little past and back. */
-  .wheel span { position: absolute; left: 0; right: 0; top: 22px; height: 18px; color: rgba(46, 28, 4, .88);
+  .wheel span { position: absolute; left: 0; right: 0; top: 22px; height: 18px; color: rgba(46, 28, 4, .88); transform: translateY(calc(var(--n) * 27px + var(--off))) scaleY(.6);
     text-shadow: 0 1px 0 rgba(255, 246, 205, .85), 0 -.6px 0 rgba(0, 0, 0, .45); transition: transform .6s cubic-bezier(.45, 0, .3, 1.25); }
+  .wheel span.at { transform: translateY(var(--off)); }
   .wheel span:not(.at) { opacity: .7; }
   .wheel button { position: absolute; left: 0; right: 0; height: 50%; } .wheel button:first-of-type { top: 0; } .wheel button:last-of-type { bottom: 0; }
   .wheel button:focus-visible { outline: 2px solid var(--cream); outline-offset: -2px; }

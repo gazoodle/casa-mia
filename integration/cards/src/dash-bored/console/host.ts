@@ -42,6 +42,16 @@ export class Console extends LitElement {
       background: linear-gradient(90deg, #1a1a1a, #6a6a6a 45%, #1a1a1a); box-shadow: inset 0 4px 0 #f4f0e4, 0 1px 2px rgba(0,0,0,.6); }
     .stop:focus-visible, .switch:focus-visible { outline: 2px solid #f4f0e4; outline-offset: 2px; }
     .named { position: absolute; left: 0; right: 0; bottom: 0; text-align: center; font-size: 9px; letter-spacing: .2em; text-transform: uppercase; }
+    /* In Silverface the switch is of its time: a machined knob on an aluminium plate, with printed legends. */
+    .eras.silverface { color: #141516; border-radius: 3px; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      background: repeating-linear-gradient(90deg, rgba(255,255,255,.07) 0 1px, rgba(0,0,0,.035) 1px 2px, transparent 2px 3px), linear-gradient(180deg, #dfe1e3, #bfc2c5 55%, #d3d5d7);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 5px 10px rgba(0,0,0,.45); }
+    .eras.silverface .stop { opacity: .7; }
+    .eras.silverface .stop[aria-checked="true"] { opacity: 1; background: #141516; color: #f4f4f2; box-shadow: none; }
+    .eras.silverface .switch { background: conic-gradient(from 25deg, #f4f5f6, #9a9ea2 11%, #e6e8e9 24%, #84888c 38%, #f1f2f3 51%, #9da1a5 63%, #e2e4e6 76%, #868a8e 89%, #f4f5f6);
+      box-shadow: 0 6px 8px rgba(0,0,0,.4), 0 0 0 1px rgba(0,0,0,.6), 0 0 0 4px #b2b5b8, 0 0 0 5px rgba(0,0,0,.45); }
+    .eras.silverface .switch span::after { top: 3px; width: 3px; height: 20px; margin-left: -1.5px; border-radius: 1px; background: #141516; box-shadow: none; }
+    .eras.silverface .named { font-weight: 700; letter-spacing: .18em; }
     .unbuilt-era { box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; min-height: 240px; padding: 18px 22px; background: #2b2d30; color: #f4f0e4;
       font: 15px/1.4 "Gill Sans", "Gill Sans MT", "Helvetica Neue", sans-serif; }
     :host([panel]) .unbuilt-era { min-height: 100vh; }
@@ -122,7 +132,7 @@ export class Console extends LitElement {
     const choice = (slot: string) =>
       this._config.era
         ? nothing
-        : html`<div slot=${slot} class="eras" role="radiogroup" aria-label="The Console's era" style="--at: ${at}">
+        : html`<div slot=${slot} class="eras ${era.draw ? era.id : ""}" role="radiogroup" aria-label="The Console's era" style="--at: ${at}">
             ${ERAS.map((e, i) => html`<button class="stop ${e.draw ? "" : "unbuilt"}" role="radio" aria-checked=${i === at} aria-label="${e.name}, the ${e.decade}${e.draw ? "" : ": not built yet"}" style="--i: ${i}" @click=${() => this._turn(e.id)}>${e.decade.slice(2, 4)}</button>`)}
             <button class="switch" aria-label="The next era" @click=${() => this._turn(ERAS[(at + 1) % ERAS.length].id)}><span></span></button>
             <span class="named">${era.name}</span>

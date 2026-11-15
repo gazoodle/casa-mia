@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.8-b34
+
+- **Dash-Bored: Silverface's thumbwheels are of their time.** The alarm's code is set on a row of black modules, each with one white figure in a window and a push button above it to step it on and one below to step it back.
+- **Dash-Bored: on Silverface the era switch is a machined knob on an aluminium plate**, and a long alert is cut into a strip of label tape for each line.
+
 ## 2026.11.8-b33
 
 - **Dash-Bored: the Console's guarded switches take two presses one way and one the other.** A guard is shut only while its device is at rest: locked, shut or silent. Two presses change that, the first lifting the guard and the second throwing the switch. While the device is away from rest its guard stays up, and one press shuts it, which puts the switch back. Before, both directions took two presses, and a guard could be shut over a switch that was on.

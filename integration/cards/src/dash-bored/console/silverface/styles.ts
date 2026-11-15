@@ -46,7 +46,9 @@ export const STYLES = css`
   .floor .label { --tape: 14px; transform: rotate(-.5deg); }
   .room > .label { margin-bottom: 5px; transform: rotate(.6deg); }
   .room:nth-child(even) > .label { transform: rotate(-.7deg); }
-  .alert:nth-child(odd) .label { transform: rotate(.35deg); } .alert:nth-child(even) .label { transform: rotate(-.4deg); }
+  /* A message too long for one strip is cut into a strip for each line. */
+  .alert .label { display: inline; line-height: 2.25; clip-path: none; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+  .alert:nth-child(odd) { transform: rotate(.25deg); } .alert:nth-child(even) { transform: rotate(-.3deg); }
   .note .label { --tape: 9px; transform: rotate(-.8deg); }
 
   /* What must never be missed: a lost connection, a refused action. A red lamp and a plate. */
@@ -88,9 +90,8 @@ export const STYLES = css`
 
   /* The annunciator: Sensor Watch's alerts, a lit window and a plate each. A critical one flashes. */
   .lamps { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-bottom: 16px; }
-  .alert { display: flex; max-width: 100%; }
-  .alert { gap: 8px; align-items: center; box-shadow: none; }
-  .alert .jewel { border-radius: 2px; }
+  .alert { position: relative; max-width: 100%; min-height: 24px; padding-left: 80px; }
+  .alert .jewel { position: absolute; left: 0; top: 0; min-height: 24px; border-radius: 2px; }
   .jewel { display: flex; flex: none; align-items: center; justify-content: center; min-width: 70px; padding: 5px 8px; border-radius: 2px 0 0 2px; color: #2a0705; background: var(--glow);
     font-size: 9px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; box-shadow: inset 0 0 0 1px rgba(0,0,0,.45), inset 0 7px 8px rgba(255,255,255,.4), 0 0 12px var(--glow); }
   .jewel.task { --glow: #f3efe0; } .jewel.warning { --glow: #ffb226; } .jewel.error, .jewel.critical { --glow: #ff4a35; }
@@ -147,15 +148,19 @@ export const STYLES = css`
      plastic with white figures, as the switches of the time were. */
   .alarm { flex: 0 1 140px; display: flex; flex-direction: column; align-items: center; gap: 7px; margin-top: 10px; }
   .alarm.sounding > .label { background: #ff4a35; padding: 2px 6px; }
-  .wheels { display: flex; gap: 2px; padding: 4px; border-radius: 3px; background: #050505; box-shadow: 0 0 0 1px #6d7175, 0 2px 3px rgba(0,0,0,.5); }
-  .wheel { position: relative; width: 19px; height: 62px; overflow: hidden; border-radius: 2px; color: #f4f4f2; font: bold 15px/18px "Helvetica Neue", Helvetica, Arial, sans-serif; text-align: center;
-    background: linear-gradient(#000, #2c2e30 22%, #4a4d50 50%, #2c2e30 78%, #000); box-shadow: inset 0 0 0 1px #000; }
-  .wheel::before, .wheel::after { content: ""; position: absolute; left: 0; right: 0; height: 1px; background: rgba(0,0,0,.8); box-shadow: 0 1px 0 rgba(255,255,255,.12); }
-  .wheel::before { top: 16px; } .wheel::after { bottom: 17px; }
-  .wheel span { position: absolute; left: 0; right: 0; top: 22px; height: 18px; transition: transform .6s cubic-bezier(.45, 0, .3, 1.25); }
-  .wheel span:not(.at) { opacity: .55; }
-  .wheel button { position: absolute; left: 0; right: 0; height: 50%; } .wheel button:first-of-type { top: 0; } .wheel button:last-of-type { bottom: 0; }
-  .wheel button:focus-visible { outline: 2px solid #f4f4f2; outline-offset: -2px; }
+  .wheels { display: flex; gap: 1.5px; padding: 3px; border-radius: 2px; background: #000; box-shadow: 0 0 0 1px #8e9296, 0 2px 3px rgba(0,0,0,.5); }
+  /* One module: a window with one white figure, and a push button above it to step it on
+     and one below to step it back. The figure rolls past the window when it is stepped. */
+  .wheel { position: relative; width: 20px; height: 62px; overflow: hidden; border-radius: 1.5px; background: #17181a; color: #f4f4f2; font: 700 14px/20px "Helvetica Neue", Helvetica, Arial, sans-serif; text-align: center;
+    box-shadow: inset 0 0 0 1px #000, inset 0 1px 0 rgba(255,255,255,.14); }
+  .wheel::before { content: ""; position: absolute; left: 2px; right: 2px; top: 20px; height: 22px; border-radius: 1px; background: linear-gradient(#000, #101112 60%, #1d1e20); box-shadow: inset 0 2px 3px #000, 0 1px 0 rgba(255,255,255,.12); }
+  .wheel span { position: absolute; left: 0; right: 0; top: 21px; height: 20px; transform: translateY(calc(var(--n) * 24px)); transition: transform .35s cubic-bezier(.45, 0, .3, 1.15); }
+  .wheel button { position: absolute; left: 2.5px; right: 2.5px; height: 14px; border-radius: 2px; background: linear-gradient(#5b5e62, #2b2d2f); box-shadow: 0 0 0 1px #000, inset 0 1px 0 rgba(255,255,255,.3), 0 1px 1px rgba(0,0,0,.6); }
+  .wheel button:first-of-type { top: 3px; } .wheel button:last-of-type { bottom: 3px; }
+  .wheel button::after { position: absolute; inset: 0; color: #f4f4f2; font: 700 11px/13px "Helvetica Neue", Helvetica, Arial, sans-serif; }
+  .wheel button:first-of-type::after { content: "+"; } .wheel button:last-of-type::after { content: "−"; }
+  .wheel button:active { transform: translateY(.5px); background: linear-gradient(#3a3c3f, #1d1e20); }
+  .wheel button:focus-visible { outline: 2px solid #f4f4f2; outline-offset: -1px; }
   .pushes { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
   .push { text-align: center; }
   .push .key { display: block; width: 30px; height: 22px; margin: 3px auto 5px; border-radius: 3px; background: linear-gradient(#f1f2f3, #a9adb1); box-shadow: 0 0 0 2px var(--ink), inset 0 1px 0 #fff, 0 3px 4px rgba(0,0,0,.5); }

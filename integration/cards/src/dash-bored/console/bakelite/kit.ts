@@ -163,7 +163,6 @@ export const tv = (caption: string, picture: string, press: () => void) => html`
   ${label(caption)}
 </button>`;
 
-const PITCH = 27; // px: from one digit to the next round the barrel (styles.ts sets the rest)
 // How far each wheel's digits sit off true, in px: no two the same, as on a worn padlock.
 const OFF = [0.9, -1.3, 0.4, 1.6, -0.7, -1.7];
 
@@ -171,14 +170,16 @@ const OFF = [0.9, -1.3, 0.4, 1.6, -0.7, -1.7];
  * with a digit engraved on the front and its neighbours curving away above and below.
  * `places` is where each wheel stands. A press on a wheel's top half turns it on by one
  * and on its bottom half back: `turn`. The digits are keyed by their place, so that when
- * a wheel is turned they are the same elements moved, and are seen to roll. */
+ * a wheel is turned they are the same elements moved, and are seen to roll. Each says
+ * how many places it is from the front (`--n`) and how far this wheel sits off true
+ * (`--off`); the era's stylesheet places it from those. */
 export const wheels = (name: string, places: number[], turn: (i: number, by: number) => void) => html`<div class="wheels" role="group" aria-label="${name} code">${places.map(
   (place, i) => html`<div class="wheel">
     ${repeat(
       [-2, -1, 0, 1, 2].map((d) => place + d),
       (at) => at,
       (at) => html`<span class=${at === place ? "at" : ""} aria-hidden=${at === place ? nothing : "true"} aria-label=${at === place ? `Wheel ${i + 1}: ${face(at) || "blank"}` : nothing}
-        style="transform: translateY(${((at - place) * PITCH + OFF[i % OFF.length]).toFixed(1)}px) scaleY(${at === place ? 1 : 0.6})">${face(at)}</span>`,
+        style="--n: ${at - place}; --off: ${OFF[i % OFF.length]}px">${face(at)}</span>`,
     )}
     <button aria-label="Wheel ${i + 1} on" @click=${() => turn(i, 1)}></button><button aria-label="Wheel ${i + 1} back" @click=${() => turn(i, -1)}></button>
   </div>`,
