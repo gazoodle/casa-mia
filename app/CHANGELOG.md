@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.9-b2
+
+- **Dash-Bored: Bargraph, the Console of the 1980s.** The era switch's 80 now shows a panel of black hi-fi separates. A level is set with a fader, which is slid, with a ladder of LEDs beside it; the heating keeps a knob, in a ring of LEDs, with its setting in fluorescent figures. Switches are soft-touch keys with an LED, under a flap of smoked perspex where they are guarded, and scenes are a tuner's numbered presets. The meters have fine orange needles, with a fluorescent display in every third room. Alerts are on a dot-matrix line, and a room's chart is a spectrum analyser.
+- Dash-Bored: the Console card's description named Bakelite as the only era built.
+
 ## 2026.11.9-b1
 
 - Dash-Bored is to be published by itself too, from a repository of its own made at each release, for HACS and Home Assistant's Marketplace. A newer Dash-Bored installed from there is no longer replaced by the one this app bundles.

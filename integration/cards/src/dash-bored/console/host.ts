@@ -17,7 +17,7 @@ export const ERAS: Era[] = [
   { id: "bakelite", name: "Bakelite", decade: "1950s", draw: (hass, narrow, choice) => html`<dash-bored-bakelite class="era" .hass=${hass} .narrow=${narrow}>${choice}</dash-bored-bakelite>` },
   { id: "nixie", name: "Nixie", decade: "1960s" },
   { id: "silverface", name: "Silverface", decade: "1970s", draw: (hass, narrow, choice) => html`<dash-bored-silverface class="era" .hass=${hass} .narrow=${narrow}>${choice}</dash-bored-silverface>` },
-  { id: "bargraph", name: "Bargraph", decade: "1980s" },
+  { id: "bargraph", name: "Bargraph", decade: "1980s", draw: (hass, narrow, choice) => html`<dash-bored-bargraph class="era" .hass=${hass} .narrow=${narrow}>${choice}</dash-bored-bargraph>` },
   { id: "beige", name: "Beige", decade: "1990s" },
 ];
 type Config = Options & { type?: string; era?: string };

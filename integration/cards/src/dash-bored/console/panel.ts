@@ -1,7 +1,7 @@
 // The Console's panel, the same in every era: a chassis for each room, with a lamp that
 // glows with the room's lights, a meter for its temperature, a knob for each device with
 // a level that can be set, a switch for each that is only on or off, a screen for each
-// camera and thumbwheels for an alarm. Scenes are switches along the top, Sensor Watch's
+// camera and thumbwheels for an alarm (in an era that has them, a fader is a knob that is slid). Scenes are switches along the top, Sensor Watch's
 // alerts are lamps, and a room's history is a recorder. It is built on what every family
 // shares (../family.ts), and draws with its era's kit (kit.ts): Bakelite's is the 1950s.
 import { html, nothing } from "lit";
@@ -111,7 +111,7 @@ export class Panel extends Family {
     const chart = this.renderRoot.querySelector("dialog");
     if (chart && !chart.open) chart.showModal();
   }
-  private _grip?: { id: string; level: number; angle: number; x: number; y: number; moved: boolean };
+  private _grip?: { id: string; level: number; angle: number; x: number; y: number; at: number; moved: boolean };
   private _waiting?: ReturnType<typeof setTimeout>;
 
   protected _moved(d: Device) {
@@ -214,7 +214,7 @@ export class Panel extends Family {
       on: {
         down: (e: PointerEvent) => {
           (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-          this._grip = { id: d.id, level: stands(), angle: bearing(e), x: e.clientX, y: e.clientY, moved: false };
+          this._grip = { id: d.id, level: stands(), angle: bearing(e), x: e.clientX, y: e.clientY, at: e.clientY, moved: false };
         },
         // The knob is cranked: it turns as far as the finger has gone round its middle,
         // clockwise for more. Each move adds the little it turned since the last, so a
@@ -224,10 +224,15 @@ export class Panel extends Family {
           if (grip?.id !== d.id) return;
           grip.moved ||= Math.hypot(e.clientX - grip.x, e.clientY - grip.y) > MOVED;
           if (!grip.moved) return;
+          // An era's fader (its kit's `slide`) is slid, not cranked: it goes as far up its
+          // track, which is as tall as its element, as the finger has gone since the last move.
+          const track = e.currentTarget as HTMLElement;
+          const slid = track.classList.contains("slide") ? (grip.at - e.clientY) / track.getBoundingClientRect().height : undefined;
+          grip.at = e.clientY;
           const angle = bearing(e);
           const turned = ((angle - grip.angle + 540) % 360) - 180;
           grip.angle = angle;
-          grip.level = Math.min(max, Math.max(min, grip.level + (turned / SWEEP) * (max - min)));
+          grip.level = Math.min(max, Math.max(min, grip.level + (slid ?? turned / SWEEP) * (max - min)));
           this._turn(d, snap(grip.level));
         },
         // Let go: a knob that was turned asks for its level, and one that was only pressed switches its device.

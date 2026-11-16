@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Beige</title>
+<style>
+/* The Console's 1990s: moulded beige plastic, as a desktop computer or a building's
+   controller. Recessed bays, grey print, grey LCDs, rubber buttons, a green LED, and
+   nothing that moves unless it is pressed. */
+body { background: #8d8676; }
+.panel { --lcd: #aeb79e; --ink: #1d261a; min-height: 100vh; padding: 16px 20px; color: #5b5648; font-family: Helvetica, Arial, sans-serif;
+  background: radial-gradient(rgba(0,0,0,.04) 1px, transparent 1.4px) 0 0 / 3px 3px, linear-gradient(175deg, #e6dfcb, #d5ccb5); }
+.bay { border-radius: 7px; background: linear-gradient(180deg, #dad1bb, #cec4ac); box-shadow: inset 0 2px 3px rgba(0,0,0,.28), inset 0 -1px 0 rgba(255,255,255,.6), 0 1px 0 rgba(255,255,255,.65); }
+/* A row of cooling slots moulded into each room's bay. */
+.room { padding-bottom: 34px; } .room::after { content: ""; position: absolute; right: 14px; bottom: 11px; width: 66px; height: 14px; background: repeating-linear-gradient(90deg, #8f8672 0 2px, transparent 2px 6px); }
+.label { margin-top: 6px; font-size: 10px; letter-spacing: .03em; } .head .label { margin: 0; font-size: 14px; font-weight: 700; font-style: italic; }
+
+/* A needle meter of the time: a white face in a plastic bezel, a red hair of a needle, and it does not waver. */
+.needle-m { --needle: #d42a20; --needle-w: .3; } .waver { animation: none; }
+.win { border: 5px solid #b9b09a; border-radius: 3px; box-shadow: inset 0 2px 4px rgba(0,0,0,.35), 0 1px 0 rgba(255,255,255,.7); }
+.needle-m .win { background: #fbfaf5; }
+.arc, .tick { fill: none; stroke: #333; stroke-width: .35; } .red { fill: none; stroke: #d42a20; stroke-width: 1.2; }
+.face text { fill: #333; font-size: 5.6px; } .face .unit { font-size: 6px; }
+.cowl { height: 9%; background: #b9b09a; }
+/* The same reading on an LCD: black figures on grey-green, over a row of blocks. */
+.display-m .win, .dial .figs, .lights, .wheel .num { background: var(--lcd); --seg-on: var(--ink); --seg-off: rgba(29,38,26,.07); --dim: .08; }
+.display-m .win { --fig: 30px; } .display-m .unit { align-self: flex-end; margin-bottom: 6px; color: var(--ink); font: 700 11px Helvetica, Arial, sans-serif; }
+.sweep i { height: 7px; background: var(--ink); }
+
+/* A room's lights: strength bars on a small LCD, as a mobile telephone shows its signal. */
+.lights { display: flex; align-items: flex-end; gap: 2px; padding: 4px 7px; border-radius: 2px; box-shadow: inset 0 1px 3px rgba(0,0,0,.45); }
+.lights i { width: 5px; height: calc(4px + var(--i) * 3px); background: var(--ink); }
+
+/* A jog dial, as a video recorder's: a ridged disc with a dimple for the finger that turns it, and its setting on an LCD. */
+.crank { width: 72px; height: 72px; margin: 6px auto 0; border-radius: 50%; background: #c2b9a3; box-shadow: inset 0 2px 4px rgba(0,0,0,.4), 0 1px 0 #fff; }
+.turn { inset: 5px; z-index: 1; background: repeating-radial-gradient(circle, #8f897b 0 1px, #aaa496 1px 3px); }
+/* The light does not turn with a knob: its shadow, and the shine on it, are on a layer under the part that turns. */
+.crank::after { content: ""; position: absolute; inset: 5px; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,.45); }
+.turn::after { content: ""; position: absolute; left: 50%; top: 7%; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; background: radial-gradient(circle at 50% 30%, #6c675b, #b9b3a3); box-shadow: inset 0 2px 3px rgba(0,0,0,.55);
+  /* The dimple goes round with the dial, but is turned back by as much, so that it stays lit from above. */
+  transform: rotate(calc(135deg - var(--lvl, 0) * 2.7deg)); }
+.dial .figs { --fig: 15px; margin-top: 7px; padding: 3px 5px; border-radius: 2px; box-shadow: inset 0 1px 3px rgba(0,0,0,.45); }
+
+/* A rocker marked I and O, with a green LED over it. */
+.led { display: block; width: 6px; height: 6px; margin: 8px auto 5px; border-radius: 50%; background: #3d4a2c; } .on .led { background: #4cf04c; box-shadow: 0 0 5px #4cf04c; }
+.rk { display: flex; flex-direction: column; width: 30px; height: 46px; margin: 0 auto; border: 3px solid #2b2b2b; border-radius: 4px; background: linear-gradient(180deg, #f3eddc 0 50%, #aaa28d 50%); box-shadow: 0 2px 2px rgba(0,0,0,.3); }
+.on .rk { background: linear-gradient(180deg, #aaa28d 0 50%, #f3eddc 50%); }
+.rk b { flex: 1; display: grid; place-items: center; color: #555; font: 700 11px Helvetica, Arial, sans-serif; }
+/* Its guard: the case's keylock beside it. The first press turns the key. */
+.guarded .sw { margin-right: 24px; }
+.guard { position: absolute; right: -27px; top: 32px; width: 20px; height: 20px; border: 2px solid #777; border-radius: 50%; background: radial-gradient(circle at 40% 30%, #f2f2f2, #8d8d8d); transition: transform .18s; }
+.guard::after { content: ""; position: absolute; left: 50%; top: 14%; width: 3px; height: 72%; margin-left: -1.5px; border-radius: 1px; background: #222; }
+.up .guard { transform: rotate(90deg); }
+
+/* Scenes: function keys, under a paper strip that says what each one does. */
+.scenes { gap: 6px; } .scene { width: 56px; }
+.strip { display: block; margin-bottom: 6px; padding: 2px 0; border: 1px solid #9a9a9a; background: #fff; color: #111; font: 9px Helvetica, Arial, sans-serif; }
+.cap { display: block; height: 36px; margin: 0 4px; border-radius: 4px; background: linear-gradient(#ece5d3, #d2c9b3); box-shadow: 0 3px 0 #a79f8a, 0 4px 5px rgba(0,0,0,.35), inset 0 1px 0 #fff; color: #555; font: 10px/30px Helvetica, Arial, sans-serif; }
+.closed .cap { transform: translateY(2px); box-shadow: 0 1px 0 #a79f8a, inset 0 1px 0 #fff; }
+
+/* Alerts: a red LED, and what is wrong on a character LCD. */
+.alert { display: flex; align-items: center; gap: 9px; }
+.lamp { flex: none; width: 8px; height: 8px; border-radius: 50%; background: #e3291c; box-shadow: 0 0 5px #e3291c; } .warning .lamp { background: #f0a51a; box-shadow: 0 0 5px #f0a51a; }
+.critical .lamp { animation: blink 1s steps(2, jump-none) infinite; } @keyframes blink { 0% { opacity: .25; } }
+.msg { width: 25ch; padding: 5px 9px; border: 3px solid #3a3a3a; border-radius: 2px; background: #b9cc2a; color: #1c2408; font: 13px/1.3 Menlo, "Courier New", monospace; }
+
+/* A beige monitor with its power LED, and a note on labeller tape. */
+.tube { border: 10px solid #d8cfb8; border-bottom-width: 20px; border-radius: 6px; background: #222; box-shadow: 0 2px 4px rgba(0,0,0,.4), 0 0 0 1px #a79f8a; }
+.tube::after { content: ""; position: absolute; right: 4px; bottom: -13px; width: 6px; height: 6px; border-radius: 50%; background: #4cf04c; }
+.tv .label { display: inline-block; margin-top: 9px; padding: 2px 8px; background: #fff; color: #111; font: 700 10px Helvetica, Arial, sans-serif; box-shadow: 0 1px 1px rgba(0,0,0,.35); transform: rotate(-1deg); }
+
+/* The alarm's code: LCD figures, each with a rubber button over and under it. */
+.wheel { margin: 0 2px; } .wheel button { width: 22px; height: 13px; border-radius: 4px; background: linear-gradient(#9a9486, #7d776a); box-shadow: 0 2px 0 #5d584e; color: #f1ecdd; font-size: 6px; line-height: 13px; }
+.wheel .num { display: flex; justify-content: center; margin: 5px 0 3px; padding: 3px 2px; font-size: 18px; box-shadow: inset 0 1px 3px rgba(0,0,0,.45); }
+.key { display: block; width: 40px; height: 22px; margin: 0 auto 3px; border-radius: 5px; background: linear-gradient(#9a9486, #7d776a); box-shadow: 0 2px 0 #5d584e; }
+
+/* The chart: in a window of a sixteen-colour desktop. */
+.chartbox { display: flex; flex-direction: column; padding: 0; border: 2px solid; border-color: #fff #404040 #404040 #fff; border-radius: 0; background: #c0c0c0; box-shadow: none; }
+.chartbox .label { order: -1; margin: 2px; padding: 3px 6px; background: #000080; color: #fff; font: 700 12px Tahoma, Helvetica, sans-serif; text-align: left; }
+.chart { margin: 6px; border: 2px solid; border-color: #404040 #fff #fff #404040; background: #fff; }
+.grid line { stroke: #008080; stroke-width: .4; stroke-dasharray: 1 2; } .trace { fill: none; stroke: #f00; stroke-width: 1.2; } .halo { display: none; }
+@media (prefers-reduced-motion: reduce) { .critical .lamp { animation: none; } }
+</style>
+</head>
+<body>
+<script src="house.js"></script>
+<script src="eras.js"></script>
+<script>
+Era({
+  num: Era.seg7, reads: true, meters: "display",
+  lights: (r) => `<div class="lights segs" data-lights="${r.id}" style="--n:5">${Era.segs(5)}</div>`,
+  key: `<i class="led"></i><span class="rk"><b>I</b><b>O</b></span>`,
+  scene: (s) => `<button class="scene" data-scene="${s.id}"><span class="strip">${s.name}</span><span class="cap">F${House.scenes.indexOf(s) + 1}</span></button>`,
+});
+</script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { panel } from "./kit.ts";
+import { panel, plate } from "./kit.ts";
 
 test("a display has the same cells whatever it shows", () => {
   // A thermostat from 7 to 35 degrees: two figures, a point and a decimal place.
@@ -15,4 +15,13 @@ test("a display has the same cells whatever it shows", () => {
   // Per cent has no decimal place, and room for a hundred.
   assert.equal(panel("45", "%", [0, 100]), " 45%");
   assert.equal(panel("100", "%", [0, 100]), "100%");
+  // A meter's reading has places of its own, and no unit on its display.
+  assert.equal(panel("0.5", "", [0, 3], 2), "0.50");
+  assert.equal(panel("", "", [-10, 30], 1), "   . ");
+});
+
+test("a knob's plate is its legend and what its display shows", () => {
+  assert.deepEqual(plate("Thermostat 21°", "heat", [7, 35]), { legend: "Thermostat", shown: "21.0°", lit: true });
+  assert.deepEqual(plate("Thermostat: off", "heat", [7, 35]), { legend: "Thermostat", shown: "  . °", lit: false });
+  assert.deepEqual(plate("Ceiling", "", [0, 100]), { legend: "Ceiling", shown: undefined, lit: false });
 });

@@ -21,13 +21,26 @@ the Gazette's own work is parked below it.
   without a unique id (in YAML, or by `scene.create`) is in no registry, so no family
   shows it.
 - **The Console's other eras** (owner, 2026-11-14). The Console is the family and its
-  eras are Bakelite (1950s, built), Nixie (1960s), Silverface (1970s), Bargraph (1980s)
-  and Beige (1990s). They are the same panel underneath (`console/panel.ts`), each with
+  eras are Bakelite (1950s, built), Nixie (1960s), Silverface (1970s, built), Bargraph
+  (1980s, built 2026.11.9-b2) and Beige (1990s). They are the same panel underneath (`console/panel.ts`), each with
   its own kit and stylesheet and a few controls or lights that mark its time: from valves
   to LEDs, and from a phosphor oscilloscope or television to a digital panel. They are
   to be designed with care, and each design agreed with the owner before it is drawn.
   The era switch is in (2026.11.8-b32) and shows the unbuilt ones as not built yet; it
   is drawn one way for every era, not in each era's own style.
+  - **Bargraph, what's left** (built 2026.11.9-b2). Not yet seen by the owner, nor on a
+    real Home Assistant or a tablet, and the guide has no screenshot of it. The era
+    switch is not drawn in its style. A press on a fader that does not move it switches
+    its device, as a knob's does: the owner has not said whether a fader should.
+  - **Nixie and Beige are to build next**, from their mock-ups. **All three have mock-ups** (2026-11-15: `docs/design/dash-bored/`
+    `nixie.html`, `bargraph.html` and `beige.html`, on `eras.js`), not yet agreed. The
+    owner's rulings that day: Bargraph has sliders ("it's important"); and needle meters span the decades, with a
+    thinner and more delicate pointer in the later ones. Each mock-up shows a needle
+    meter and a display one, with a switch between them for the rooms. The owner chose
+    (2026-11-15): Nixie's meters are nixie tubes, with all ten figures to be seen in each
+    tube, the lit one a little obscured by those in front, as in a real one; Bargraph's
+    are needles ("so classy"), with a fluorescent display put in now and then (every
+    third room in the mock-up); Beige's are LCDs, unlit segments showing.
   - **Silverface is built** (2026.11.8-b33) to the design agreed on 2026-11-14, the
     1960s being skipped for now. Seen on the test VM only, and not by the owner yet. A
     thumbwheel's figures still sit a little off true, as Bakelite's do, which suits a
@@ -40,16 +53,40 @@ the Gazette's own work is parked below it.
   - **A needle's wobble falls with the decade** (owner, 2026-11-15): all of it in the
     1950s, three quarters in the 1960s, half in the 1970s, a quarter in the 1980s and none
     in the 1990s. Bakelite and Silverface do this; the other three are to when built.
-  - Kept for Bargraph: LED bar graphs, fluorescent displays, membrane keys. Kept for
-    Nixie: nixie tubes.
   - The sizes `console/balance.ts` counts on are Bakelite's; an era with other sizes
     needs its own.
 - **The agent's column, what's left** (prototype, 2026.11.8-b40). Only the Gazette draws
   it: the Fridge's notepad and a Console ticker could. An urgent Kata is not yet a story
   or breaking news. The lapsed by-line, a doubted piece and a hidden sensor are covered by
-  unit tests only. Kata text reads as a machine's log, which is for ZenOS's author to
-  change, not us. A wall tablet shows whatever the agent wrote, alarm and lock states
+  unit tests only. A wall tablet shows whatever the agent wrote, alarm and lock states
   included: decide whether that needs a choice of which parts may print.
+- **The agent's column, written by a model** (owner, 2026-11-15: agreed, and promised to
+  ZenOS's author in the forum thread). Kata text reads as a machine's log, and ZenOS's
+  author will not add a field for a reader: "tell the agent to interpret it for your
+  newspaper". So the column stops printing Katas as they are.
+  - When the SuperSummary changes, Dash-Bored's integration asks a model once to write
+    the column from the Katas, keeps the result and pushes it to every open page. It is
+    written once per change, not per page or per paper opened, in all three papers'
+    voices.
+  - It uses Home Assistant's AI Task service with the entity ZenOS already holds in
+    `input_text.zenos_ai_task_entity`, so it runs on the model the summarizers use.
+  - It only reads ZenOS: the cabinets by their labels, and the persona name for the
+    by-line. It writes nothing back (owner, 2026-11-15, after ZenOS's author suggested
+    a chained tool that writes the column to a drawer: "we stay read only, but ZenOS can
+    write if he wants"). If ZenOS ships a reporter that writes such a drawer, read it and
+    drop our own model call.
+  - To try first: gather the Katas with one read-only tapestry call (`mode=weave` with
+    inline `weave_sources`, the file cabinet's "print shop" example) instead of reading
+    each cabinet. Not yet proven that an integration gets the response back.
+  - Build it against ZenOS-AI 11.1 (the item below), not the copy we have.
+  - The column keeps its by-line and the time it was written. A failed model or a
+    summary that is out of date is said on the page, never covered by the raw Katas. A
+    house without ZenOS has no column, as now.
+  - This replaces the raw-Kata column of 2026.11.8-b40 (`katas.ts`, `gazette.ts`).
+- **ZenOS-AI 11.1, a clean reinstall** (promised 2026-11-15). When it is out, install it
+  from scratch on a clean VM and report to its author how it goes. The fresh-install
+  report of 2026-11-15 listed 13 problems; he says most are fixed or coming in 11.1, and
+  that the `cert_bypass` override stays the only way through without a phone.
 - **The Fridge, what's left** (built 2026.11.8-b37, in three households; not yet seen
   by the owner, nor on a tablet). A sighting's photograph, a sounding alarm and a
   critical note have not been seen, since the test VM makes none. A room's drawn picture

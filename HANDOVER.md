@@ -299,7 +299,15 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   switch in its `era` slot. Silverface (1970s) is built to the design agreed that day (`console/silverface.ts`
   with `console/silverface/`); it takes `tv`, `wheels` and `swing` from Bakelite's kit,
   where the markup is the same and only the stylesheet differs. Why: they are the same panel in different skins, as
-  the Gazette's papers are. Bakelite is completed first and keeps its name.
+  the Gazette's papers are. Bargraph (1980s, 2026.11.9-b2: `console/bargraph.ts` with
+  `console/bargraph/`) is built to the mock-up the owner chose from on 2026-11-15
+  (`docs/design/dash-bored/bargraph.html`). Its levels are faders: a kit's control with
+  the class `slide` is slid, not cranked, by `_dial` in `console/panel.ts`, which moves
+  the level by how far the finger went along the element's height. Its needle is a layer
+  of its own over a still face, and it has no CSS filter: the pattern for the other eras
+  if the iPad's sluggishness (reported 2026-11-15, not yet measured) is the meters. Seen
+  only on a throw-away harness with an invented house, in WebKit and Chromium; not on a
+  real Home Assistant, and it has no screenshot in the guide. Bakelite is completed first and keeps its name.
   - **A panel's controls never move for their lettering** (owner, 2026-11-15: "it's
     drilled into the panel"; true of the Console's eras, perhaps not of other families).
     Each hangs from the top of its row with a fixed height and room for a two-line
