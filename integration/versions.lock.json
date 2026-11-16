@@ -1,15 +1,15 @@
 {
   "casa_mia": {
-    "digest": "5d08b8ba1f586690a9536785acaccb1148c36334c82b6625db0cafc6e130566a",
-    "version": "2026.11.8"
+    "digest": "b9b06ffba4b851d5fa73bbdca36bbf7a7abaea066099c681c92d8e14657fc70c",
+    "version": "2026.11.9-b11"
   },
   "casa_mia_commander": {
     "digest": "b0c344fd7199a626ffd549a7c88c72fa555785782bde15f8376483b25c319ed6",
     "version": "2026.11.8"
   },
   "casa_mia_dash_bored": {
-    "digest": "1b3528adb95933c7a9fab8d1cd31123f5ffdc512c8005675bd53f0292b39e067",
-    "version": "2026.11.9-b10"
+    "digest": "4ae630b99c40dbfa7304f45dc2271e0c1a24450737ecc54e0cfa0dc53cfed490",
+    "version": "2026.11.9-b11"
   },
   "casa_mia_guest_login": {
     "digest": "d6f2c3ccefd94beb06d3cc97d5a9e3b6696ee9654a1bed36cc9f26a2431d9378",

@@ -4,8 +4,10 @@
 // room's controls are in a chassis of each width.
 import { bays, rows, type Bay, type Placed } from "../pack.ts";
 
-/** What a room has on its chassis. `selectors` is how many stops each selector switch has. */
-export type Load = { knobs: number; dollies: number; alarms: number; tvs: number; meter: boolean; knives: number; selectors: number[] };
+/** What a room has on its chassis. `selectors` is how many stops each selector switch has,
+ * and `presets` how many lines each camera's preset selector has in its legend: its stops,
+ * and the line that names the camera. */
+export type Load = { knobs: number; dollies: number; alarms: number; tvs: number; meter: boolean; knives: number; selectors: number[]; presets: number[] };
 
 // The sizes are a model of the stylesheets: a column of the panel's grid with the gap
 // beside it, what of a chassis one column wide is no room for controls (its padding and
@@ -32,7 +34,7 @@ export const columns = (px: number) => Math.max(1, Math.floor((px + 12) / COLUMN
 export function tall(r: Load, wide: number): number {
   const room = COLUMN * wide - EDGES;
   let height = 0, used = room, row = 0;
-  for (const [w, h] of [...(r.meter ? [METER] : []), ...Array(r.knives).fill(KNIFE), ...r.selectors.map(selector), ...Array(r.knobs).fill(KNOB), ...Array(r.dollies).fill(DOLLY), ...Array(r.tvs).fill(TV), ...Array(r.alarms).fill(ALARM)]) {
+  for (const [w, h] of [...(r.meter ? [METER] : []), ...Array(r.knives).fill(KNIFE), ...r.selectors.map(selector), ...Array(r.knobs).fill(KNOB), ...Array(r.dollies).fill(DOLLY), ...Array(r.tvs).fill(TV), ...r.presets.map(selector), ...Array(r.alarms).fill(ALARM)]) {
     if (used + w > room) {
       height += row;
       used = row = 0;

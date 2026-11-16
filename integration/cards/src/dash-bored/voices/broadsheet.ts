@@ -90,7 +90,7 @@ export const broadsheet: Voice = {
     "lawn_mower.on": "Send it home", "lawn_mower.off": "Set it mowing", "water_heater.on": "Turn it off", "water_heater.off": "Turn it on",
     "humidifier.on": "Turn it off", "humidifier.off": "Turn it on", "siren.on": "Silence it", "siren.off": "Sound it" },
   clipping: { since: "So it has stood since {at}.", record: "The record", wait: "Our archivist is consulting the files.", none: "Nothing is recorded of the last day.", ago: "This time yesterday", now: "Now", reads: "The glass reads {temp}°.", playing: "On the air: {title}.",
-    sure: "Press again to confirm", more: "Home Assistant's own page", shut: "Fold away", closer: "Pinch, or tap twice, for a closer look.", live: "See the camera as it is now" },
+    sure: "Press again to confirm", more: "Home Assistant's own page", shut: "Fold away", closer: "Pinch, or tap twice, for a closer look.", live: "See the camera as it is now", presets: "Our photographer may be directed to", zoom: "The lens", controls: "Within the photographer's reach" },
   celebrity: { song: "{song} was heard in the {room}.", "song.live": "{song} is being heard in the {room}.", show: "“{title}” was shown in the {room}.", "show.live": "“{title}” is being shown in the {room}.",
     love: "Admired by {name}.", loathe: "Deplored by {name}." },
   wire: { trouble: "{name}: {message}", clear: "{name}: all is well again." },

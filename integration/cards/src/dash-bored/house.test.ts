@@ -239,3 +239,44 @@ test("a camera with several streams is one camera, named for its device: the pho
   // The first by id; the one whose sightings are photographed; and one alone keeps its own name.
   assert.deepEqual(found.rooms[0].devices.map((d) => [d.id, d.name]), [["camera.drive_high", "Cam"], ["camera.gate_low", "Gate cam"], ["camera.lone", "Shed"]]);
 });
+
+test("a camera that Casa Mia lists is shown in place of the one found: its stream, its title, its zoom, presets and controls", () => {
+  const h = hass(
+    {
+      "camera.drive_high": ["drive", "Drive cam High resolution channel"],
+      "camera.drive_low": ["drive", "Drive cam Low resolution channel"],
+      "camera.gate_high": ["drive", "Gate cam High resolution channel"],
+      "camera.gate_low": ["drive", "Gate cam Low resolution channel"],
+      "camera.lone": ["drive", "Drive Shed"],
+      "image.gate": ["drive", "Gate cam Last sighting"],
+      "lock.side": ["hall", "Side door"],
+    },
+    { drive: { name: "Drive" }, hall: { name: "Hall" } },
+  );
+  const on = (id: string, device_id: string) => Object.assign((h.entities as any)[id], { device_id });
+  on("camera.drive_high", "d1"), on("camera.drive_low", "d1"), on("camera.gate_high", "d2"), on("camera.gate_low", "d2"), on("camera.lone", "d3"), on("image.gate", "d2");
+  (h.entities as any)["image.gate"].platform = "casa_mia_dash_bored";
+  (h.states as any)["image.gate"].attributes.camera = "camera.gate_high";
+  (h as any).devices = { d1: { name: "Drive cam" }, d2: { name: "Gate cam" }, d3: { name: "Shed cam" } };
+  // What goes with a camera need be in no room, nor a kind of thing a room shows.
+  Object.assign(h.states, { "number.drive_zoom": { state: "3", attributes: { min: 1, max: 8, step: 0.5 } }, "button.gate": { state: "unknown", attributes: { friendly_name: "Gate opener" } } });
+  const preset = { name: "Road", action: "unifiprotect.ptz_goto_preset", data: { device_id: "d1", preset: "Road" } };
+  const cameras = [
+    { entity: "camera.drive_low", title: "Front drive", zoom: "number.drive_zoom", presets: [preset], controls: [{ entity: "button.gate", name: "" }, { entity: "lock.side", name: "Side" }, { entity: "switch.gone", name: "Gone" }] },
+    // Listed by one stream only: it is still the camera whose other stream is photographed.
+    { entity: "camera.gate_low", title: "The gate", presets: [], controls: [] },
+  ];
+
+  const found = survey(h as any, { cameras });
+  // Casa Mia's stream, not the first by id; the photographed stream, under Casa Mia's title; one it does not list is as it was.
+  assert.deepEqual(found.rooms[0].devices.map((d) => [d.id, d.name]), [["camera.drive_low", "Front drive"], ["camera.lone", "Shed"], ["camera.gate_high", "The gate"]]);
+  for (const id of ["number.drive_zoom", "button.gate", "lock.side"]) assert.ok(found.watched.includes(id), id);
+
+  const [drive, lone, gate] = read(found, h as any).rooms[0].devices;
+  assert.deepEqual(drive.zoom, { id: "number.drive_zoom", level: 3, span: { min: 1, max: 8, step: 0.5, vote: 0.5 } });
+  assert.deepEqual(drive.presets, [preset]);
+  // A control gone from Home Assistant is left out; a lock among them is a device, and guarded.
+  assert.deepEqual(drive.controls!.map((c) => [c.id, c.name, c.device?.kind, c.device?.guarded]), [["button.gate", "Gate opener", undefined, undefined], ["lock.side", "Side", "lock", true]]);
+  assert.deepEqual([gate.zoom, gate.presets, gate.controls], [undefined, [], []]);
+  assert.equal(lone.presets, undefined);
+});

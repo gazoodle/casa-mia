@@ -459,6 +459,34 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
     iPad or a wall tablet. On the VM there were no alerts (Sensor Watch was not loaded
     there that day), no scenes and no power sensor: those three were seen on the harness
     only.
+- **Casa Mia's own data on every family** (owner, 2026-11-16: every view is to take what
+  Casa Mia and its other integrations have, where they are installed). Dash-Bored still
+  stands alone: each source is found through Home Assistant by name, lands in `House`
+  (`house.ts`), and the families draw from that. Three steps, agreed in this order:
+  - **Cameras, built for the Console and the Gazette** (2026.11.9-b11). The app's
+    cameras ride `/health` (`cameras.py` `for_pages`, as `modules.cameras.list`; each
+    PTZ preset is the call that goes to it, built once with the dashboard's by
+    `preset_data`). `casa_mia/cameras/subscribe` feeds them to any user (`_follow` in
+    the integration's `__init__.py`, shared with the settings feed). `family.ts`
+    follows it only where `casa_mia` is among `hass.config.components`; a Casa Mia too
+    old to have the feed is said once in the console and is no fault on the page
+    (`newer` in `_follow`). **A camera Casa Mia lists replaces the one found** (owner,
+    2026-11-16): its title, and a `Device`'s `zoom`, `presets` and `controls`. The
+    entity kept is still the photographed stream where there is one, since sightings
+    are told by that entity (`rank` in `survey`), then Casa Mia's. A control that is a
+    kind a room shows is a `Device` (guarded as any); another is only pressed
+    (`pressing` in `stories.ts`: the page is no dashboard, so Lovelace's toggle action
+    is not there to use). On the Console (`_lenses` in `panel.ts`) a zoom is a knob, a
+    button or script a knife switch, a device a dolly, and the presets a selector with
+    a head line (`presets` in `balance.ts`'s `Load`); the controls stand in the order
+    `tall` counts them, so change the two together. Seen on a throw-away harness with
+    an invented house (Chromium and WebKit, 1024 and 390 px, Bakelite and Bargraph: no
+    control outside its chassis, and each press made the right call). **Not seen:** a
+    real PTZ camera, the feed from a real app, the test VM, Nixie, Silverface or
+    Beige, a tablet.
+  - **Not built:** the Fridge and Aurora (they show the title only), the Console's
+    one-entity card, and steps 2 (Guest Login) and 3 (Sensor Watch's bands). BACKLOG
+    has them.
 - **The page and the families** (2026.11.8-b23). The sidebar's page (`panel_custom`, not in
   a frame, for every user) is `dash-bored-page` (`shell.ts`). It shows one family's
   element and holds the choice between them: two presses within `TWICE` in its top right

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { days, read, survey } from "./house.ts";
-import { RECOVERED, billing, flip, personal, setting, stories, type Alert, type Rated } from "./stories.ts";
+import { RECOVERED, billing, flip, personal, pressing, setting, stories, turning, zooming, type Alert, type Rated } from "./stories.ts";
 import { VOICES, announce, billed, clause, poll, sky, tell, words } from "./voices.ts";
 
 // An invented house, as Home Assistant's page would hold it.
@@ -383,4 +383,13 @@ test("the weather column has the forecast's days, and every paper a word for eve
   // An entity that gives a forecast by the day says so, and the page then follows it.
   const h = hass({ "weather.home": state("rainy", { temperature: 9.3, humidity: 81, supported_features: 3 }) });
   assert.deepEqual(read(survey(h, {}), h).outside, { temp: 9.3, humidity: 81, sky: "rainy", id: "weather.home", daily: true });
+});
+
+test("a camera's zoom, presets and controls are each the call their own entity takes", () => {
+  const camera = { id: "camera.drive", zoom: { id: "number.drive_zoom", level: 2, span: { min: 1, max: 8, step: 1, vote: 1 } } } as any;
+  assert.deepEqual(zooming(camera, 4), { domain: "number", service: "set_value", ids: ["number.drive_zoom"], data: { value: 4 } });
+  // A preset names its camera in its own data, so the call names no entity.
+  assert.deepEqual(turning({ name: "Road", action: "unifiprotect.ptz_goto_preset", data: { device_id: "d1", preset: "Road" } }), { domain: "unifiprotect", service: "ptz_goto_preset", ids: [], data: { device_id: "d1", preset: "Road" } });
+  const control = (id: string) => pressing({ id, name: "", away: false });
+  assert.deepEqual([control("button.gate"), control("script.open"), control("input_boolean.away")].map((p) => `${p.domain}.${p.service}`), ["button.press", "script.turn_on", "homeassistant.toggle"]);
 });

@@ -2,7 +2,7 @@
 // Assistant's dialog. What it is and since when, what can be done to it, and the record
 // of its last day. gazette.ts holds what is open and acts on what is pressed.
 import { html, nothing, type TemplateResult } from "lit";
-import type { Device } from "./house.ts";
+import type { Control, Device, Preset } from "./house.ts";
 import { DAY, lit, type Change } from "./record.ts";
 import { cap, clock } from "./stories.ts";
 import { fill, words, type Voice } from "./voices.ts";
@@ -66,8 +66,17 @@ export function photograph(voice: Voice, shot: Shot, scraps: Scraps, on: { more(
     <div class="foot">${shot.see ? html`<button class="mend" @click=${on.more}>${c.live}</button>` : html`<span></span>`}<button class="act" @click=${on.shut}>${c.shut}</button></div>`, "shot");
 }
 
-export function clipping(voice: Voice, d: Device, open: Open, now: number, scale: unknown, scraps: Scraps, on: { flip(): void; more(): void; picture(): void; shut(): void }): TemplateResult {
+export function clipping(voice: Voice, d: Device, open: Open, now: number, scale: unknown, scraps: Scraps, on: { flip(): void; more(): void; picture(): void; shut(): void; turn(preset: Preset): void; zoom(level: number): void; control(control: Control): void }): TemplateResult {
   const c = voice.clipping;
+  // What Casa Mia's app lists with a camera: where it can be turned to, its zoom, and
+  // what belongs with what it sees. A lock or a gate among them opens its own clipping
+  // (gazette.ts), where it takes its two presses.
+  const lens = html`${d.presets?.length ? html`<p class="turn"><i>${c.presets}</i>${d.presets.map((p) => html`<button class="mend" @click=${() => on.turn(p)}>${p.name}</button>`)}</p>` : nothing}
+    ${d.zoom
+      ? html`<label class="scale"><i>${c.zoom}</i><input type="range" min=${d.zoom.span.min} max=${d.zoom.span.max} step=${d.zoom.span.step} .value=${String(d.zoom.level)}
+          @change=${(e: Event) => on.zoom(Number((e.target as HTMLInputElement).value))} /><output>${d.zoom.level}</output></label>`
+      : nothing}
+    ${d.controls?.length ? html`<p class="turn"><i>${c.controls}</i>${d.controls.map((k) => html`<button class="mend" ?disabled=${k.away} @click=${() => on.control(k)}>${k.name}</button>`)}</p>` : nothing}`;
   const told = (change: Change) => cap(words(voice, { ...d, on: change.on, phase: change.phase, level: change.level, away: change.away }));
   const record = open.record;
   // A camera has no button and no record: nothing puts it the other way, and it has no
@@ -79,6 +88,7 @@ export function clipping(voice: Voice, d: Device, open: Open, now: number, scale
       <p class="deck">${cap(words(voice, d))}. ${d.since && d.kind !== "camera" ? fill(c.since, { at: clock(d.since) }) : ""}
         ${d.temp === undefined ? "" : fill(c.reads, { temp: d.temp.toFixed(1) })} ${d.title ? fill(c.playing, { title: d.title }) : ""}</p>
       ${d.picture ? html`<img class="still" src=${d.picture} alt=${d.name} role="button" tabindex="0" @click=${on.picture} @keydown=${(e: KeyboardEvent) => e.key === "Enter" && on.picture()} />` : nothing}
+      ${d.away ? nothing : lens}
       ${d.away || !act ? nothing : html`<button class="act ${open.armed ? "sure" : ""}" @click=${on.flip}>${open.armed ? c.sure : act}</button>`}
       ${scale}
       ${d.kind === "camera" ? nothing : html`<h3>${c.record}</h3>`}

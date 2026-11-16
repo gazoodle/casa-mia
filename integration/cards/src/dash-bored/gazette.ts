@@ -13,7 +13,7 @@ import { Acts } from "./gazette/acts.ts";
 import { ARCHIVE, PAST } from "./gazette/page.ts";
 import { scenes, DEGREES, sighted, type Device, type Room } from "./house.ts";
 import { lapsed } from "./katas.ts";
-import { cap, clock, counted, billing, personal, stories, type Press, type Story } from "./stories.ts";
+import { cap, clock, counted, billing, personal, pressing, stories, turning, zooming, type Press, type Story } from "./stories.ts";
 import { FIXES, VOICES, amount, announce, billed, clause, fill, poll, sky, tell, wired, words, type Told } from "./voices.ts";
 
 export const CARD = "dash-bored-gazette";
@@ -139,7 +139,9 @@ export class Gazette extends Acts {
     const chip = (d: Device) =>
       html`<div class="pair"><button class="chip ${d.on ? "on" : ""} ${d.away ? "away" : ""}" aria-pressed=${d.on} @click=${() => this._press(d)}>${d.name}</button
         ><button class="chip tab" aria-label="${d.name}: its story" @click=${() => this._story(d)}>${d.dims && !d.away ? `${d.level ?? d.span.min}${DEGREES.has(d.kind) ? "°" : "%"}` : "›"}</button></div>`;
-    const devices = new Map(house.rooms.flatMap((r) => r.devices).map((d) => [d.id, d]));
+    // A camera's control that is a device has a clipping too, though it may be in no room: a room's own device comes first.
+    const placed = house.rooms.flatMap((r) => r.devices);
+    const devices = new Map([...placed.flatMap((d) => (d.controls ?? []).flatMap((c) => (c.device ? [c.device] : []))), ...placed].map((d) => [d.id, d]));
     const subject = this._open && devices.get(this._open.id);
     const bill = billing(this._played, this._rated, devices);
     // What comes away with a clipping: the paper's own stories, from round where it was cut.
@@ -257,6 +259,9 @@ export class Gazette extends Acts {
             more: () => this._live(subject.id),
             picture: () => this._look({ src: subject.picture!, caption: `${subject.room}: ${subject.name}`, see: subject.id }),
             shut: () => this._shut(),
+            turn: (preset) => this._call(turning(preset), `${subject.room} ${subject.name} to ${preset.name}`),
+            zoom: (level) => this._ask(subject, level, zooming),
+            control: (control) => (control.device ? this._press(control.device) : this._call(pressing(control), `${subject.room} ${control.name}`)),
           })
         : this._shot
           ? photograph(voice, this._shot, scraps, { more: () => this._live(this._shot!.see!), shut: () => this._shut() })

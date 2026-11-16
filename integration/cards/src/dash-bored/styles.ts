@@ -116,6 +116,9 @@ export const STYLES = css`
   .act.sure { background: var(--flash); color: #fff; border-color: var(--flash); }
   .cutting .scale > button { display: none; }
   .cutting .scale { margin: 0 0 12px; }
+  .cutting .turn { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 12px; font-size: 13px; }
+  .cutting .turn i { flex: 0 0 100%; }
+  .cutting .turn button:disabled { opacity: .5; }
   .cutting ol { max-height: 232px; overflow-y: auto; margin-bottom: 10px; }
   /* The record's band: the last day from left to right, inked where the device was on, with a mark at each hour. */
   .band { position: relative; height: 20px; border: 1px solid var(--ink); background: repeating-linear-gradient(90deg, rgba(0, 0, 0, .3) 0 1px, transparent 1px calc(100% / 24)); }

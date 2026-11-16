@@ -34,6 +34,28 @@ the Gazette's own work is parked below it.
     grows a chassis, and is chosen from the survey so that nothing moves with a state.
   - Not seen on the owner's house or on a tablet: only on a harness with an invented
     house (Chromium and WebKit). The Fridge's sizes in `fridge/rows.ts` are estimates.
+- **Casa Mia's data on every family, what's left** (owner, 2026-11-16; the cameras are
+  built for the Console and the Gazette in 2026.11.9-b11, see HANDOVER).
+  - **Cameras:** the Fridge and Aurora show a Casa Mia camera under its title but not
+    its presets, zoom or controls (Aurora opens Home Assistant's dialog for a camera;
+    it would need its sheet). The Console's one-entity card shows the screen alone. Not
+    yet seen with a real PTZ camera or on the test VM.
+  - **Guest Login, a visitor's pass** (design agreed in outline, not built): a
+    house-level item with a guarded key switch for an endpoint's Access switch, a lamp,
+    a count of sign-ins, and the code from `casa_mia_guest_login/qr` (any user's, given
+    only while the endpoint is open). The Gazette prints it as a coupon in the
+    classifieds, the Fridge pins the guest card under a magnet, Aurora has a tile. On
+    the Console the code is never on the panel: while access is open a printed card
+    stands in a slot (a card holder on Bakelite, a punched card on Nixie, a printout on
+    Silverface and Bargraph), and Beige shows it on its LCD, since the QR code dates
+    from 1994. To settle with the owner: whether every user of the page may open guest
+    access from it.
+  - **Sensor Watch's bands and watched sensors:** the bands drawn on the meters, and the
+    watched sensors chosen first for the back pocket below. It needs to know what is
+    watched, with bands: Sensor Watch's feed of every level is admins only, and its
+    one-entity feed is any user's. Check first whether its event already says enough.
+  - **FONA's calls and texts** (a Telegrams column, say): they are entities already,
+    so no new feed is needed.
 - **Aurora, what's left** (built 2026.11.9-b9; seen on a harness and on the test VM's
   page, see HANDOVER).
   - **The home screen is thin on a big screen** (owner, 2026-11-16: "leave it for now;
@@ -409,7 +431,7 @@ Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it d
 
 - **PTZ presets on the commander's main camera** (asked 2026-11-12; the owner: "we need to do this"). A camera's PTZ presets show only on its page on the camera dashboard (`auto_dashboards/dashboard.py`: `preset_entries`, `preset_action`). The Camera Commander card shows none, over the main camera or on its full screen, so a PTZ camera can't be moved from a commander.
   - **The design (owner):** one button in the bar with the others (the camera's controls, Sound, Full screen; `integration/cards/src/commander/full.ts`: `controlsBar`), which opens a drop-down or menu of the camera's presets. A tap on a preset performs the camera's PTZ action with that preset, as its page's tile does.
-  - **What it needs:** the presets and their action are not in the card's data today (`Card.cameras` carries `controls` and `controls_at`), so the app sends each camera's `ptz` too. The button is shown only for a camera that has presets. Build the action once and share it with the dashboard's, not a second copy.
+  - **What it needs:** the presets and their action are not in the card's data today (`Card.cameras` carries `controls` and `controls_at`). Since 2026.11.9-b11 the app builds each preset as a call for pages (`cameras.py` `for_pages`, fed by `casa_mia/cameras/subscribe`, which Dash-Bored uses): give the card the same list. The button is shown only for a camera that has presets. Build the action once and share it with the dashboard's, not a second copy.
   - **To settle when built:** whether it is a card option like the Sound button or always shown with the controls; and the menu, which is new chrome on the card (none of its buttons opens one today) and must stay inside the card to be seen while the commander is full screen.
 
 - **A commander on a guest Wi-Fi: live video is slow to start and keeps dropping** (found 2026-11-12, an iPad in Safari signed in as a guest). On the main network the same iPad and page are instant, so the cause is what the guest network may reach, not Safari or the card. Where it stands:

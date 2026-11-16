@@ -433,6 +433,27 @@ breaking news: a banner across the top with the message you gave that sensor, an
 story placed by its level. A page opened later is still told of every alert that holds.
 Dash-Bored works without Sensor Watch; there is then no breaking news.
 
+### Casa Mia's cameras
+
+If the Casa Mia app is installed and you use its [Cameras](cameras.md) page, a camera
+listed there is shown in place of the one Dash-Bored finds in Home Assistant. It has the
+title you gave it on that page, and it brings what you set up for it there:
+
+- its **PTZ presets**: the places it can be turned to;
+- its **zoom**;
+- its **page controls**: the things that belong with what it sees, such as a gate or a
+  light.
+
+In the Gazette these are in the camera's clipping, under its picture. A page control that
+is a lock, a gate or a garage door opens its own clipping, where it takes two presses.
+The Console has them on the camera's room: see [The Console](#the-console). The Fridge and
+Aurora show the camera under its title, and do not have the presets, zoom or controls yet.
+
+A camera is still shown in the room its area gives it, so one with no area in Home
+Assistant is not on the page. A change on the Cameras page reaches an open Dash-Bored page
+in a moment. Dash-Bored works without Casa Mia; the cameras are then the ones Home
+Assistant has, under their own names.
+
 ### A column by the house's own agent (ZenOS-AI)
 
 This is a prototype (2026.11.8-b40), in the Gazette only.
@@ -483,6 +504,14 @@ family is.
 In every era the controls are fixed to the panel. A switch, a knob or a display stays
 exactly where it is whatever its lettering says: when a name grows to two lines, a
 thermostat is switched off or a song starts, nothing moves.
+
+A camera from [Casa Mia's Cameras page](#casa-mias-cameras) has more on its room's panel,
+in every era. Its zoom is a knob, lettered with the camera's name. Its PTZ presets are a
+selector switch with the camera's name over its legend: press a number, or its line of the
+legend, to turn the camera there. Home Assistant does not say where a camera is pointing,
+so the pointer shows the preset last chosen on this panel, and hangs straight down until
+one is. Each of its page controls that the room does not already have is a switch: a knife
+switch for a button or a script, and a guarded switch for a lock, a gate or a garage door.
 
 ### Bakelite
 

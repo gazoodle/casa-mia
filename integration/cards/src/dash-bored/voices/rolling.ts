@@ -89,7 +89,7 @@ export const rolling: Voice = {
     "lawn_mower.on": "Send home", "lawn_mower.off": "Start mowing", "water_heater.on": "Turn off", "water_heater.off": "Turn on",
     "humidifier.on": "Turn off", "humidifier.off": "Turn on", "siren.on": "Silence", "siren.off": "Sound" },
   clipping: { since: "Since {at}.", record: "Timeline", wait: "Loading the timeline…", none: "No changes in the last 24 hours.", ago: "24 hours ago", now: "Now", reads: "It is {temp}° in the room.", playing: "Now playing: {title}.",
-    sure: "Press again to confirm", more: "Open in Home Assistant", shut: "Close", closer: "Pinch or double-tap to zoom.", live: "Watch live" },
+    sure: "Press again to confirm", more: "Open in Home Assistant", shut: "Close", closer: "Pinch or double-tap to zoom.", live: "Watch live", presets: "Camera positions", zoom: "Zoom", controls: "Controls" },
   celebrity: { song: "{song} played in the {room}", "song.live": "Live in the {room}: {song}", show: "“{title}” was on in the {room}", "show.live": "Live in the {room}: “{title}”",
     love: "{name} loved it", loathe: "{name} loathed it" },
   wire: { trouble: "{name}: {message}", clear: "{name}: back to normal" },

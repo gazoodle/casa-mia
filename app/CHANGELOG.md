@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.9-b11
+
+- **Dash-Bored: the cameras from Casa Mia's Cameras page.** Where the Casa Mia app is installed, a camera on its Cameras page is shown in place of the one Dash-Bored found in Home Assistant, under the title it has on that page. It also brings what is set up for it there: its PTZ presets, its zoom and its page controls. On the Console the presets are a selector switch under the camera's name, the zoom is a knob, and each page control that the room does not already have is a switch (a button or a script is a knife switch; a lock, a gate or a garage door keeps its guard). In the Gazette they are in the camera's clipping. The Fridge and Aurora show the camera under its title, and do not have its presets, zoom or controls yet. A change on the Cameras page reaches an open page in a moment. Without the Casa Mia app, Dash-Bored's cameras are as they were.
+- **A feed of the cameras for dashboard pages.** The integration has a new subscription, `casa_mia/cameras/subscribe`, that any signed-in page may follow: each camera's title, streams, zoom entity, page controls, and its PTZ presets as ready-made calls.
+
 ## 2026.11.9-b10
 
 - **Dash-Bored: Aurora suits a big screen.** On a large window each tile grew into a mostly empty slab, and a floor with two rooms had a whole screen to itself. Each screen now has a grid to suit what is on it, floors with few rooms share a screen (named for all of them, or Rooms when every room fits), and on a big screen the lettering and controls on a tile are bigger, up to 1.6 times.

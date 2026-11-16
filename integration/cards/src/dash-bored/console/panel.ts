@@ -9,20 +9,22 @@
 import { html, nothing, type TemplateResult } from "lit";
 import { fire } from "../../ha.ts";
 import { ALERTS, Family, SIGHTINGS } from "../family.ts";
-import { DEGREES, scenes, sighted, type Device, type Options, type Room, type Scene, type Seen, type Sighting } from "../house.ts";
+import { DEGREES, scenes, sighted, type Control, type Device, type Options, type Room, type Scene, type Seen, type Sighting } from "../house.ts";
 import { recorded, type Change } from "../record.ts";
-import { NOMINAL, RANK, clock, flip, type Alert } from "../stories.ts";
+import { NOMINAL, RANK, clock, flip, pressing, turning, zooming, type Alert, type Press } from "../stories.ts";
 import { columns, laid, racks as fitted, type Load } from "./balance.ts";
 import { face, type Kit } from "./kit.ts";
 import { STOPS, selector } from "./selector.ts";
 
 const ALARM = "alarm_control_panel";
 const CAMERA = "camera";
+
 // Each kind's knob, for one whose level can be set: its class in styles.ts, and the word
 // for what it sets.
 const KNOBS: Record<string, [string, string]> = { light: ["", "dimmer"], cover: ["wind", "position"], climate: ["heat", "target"], water_heater: ["heat", "target"], media_player: ["sound", "volume"], fan: ["air", "speed"], humidifier: ["air", "target"] };
 // These keep their setting while they are off or paused, so their knob stays where it was put.
-const KEEPS = new Set(["climate", "water_heater", "humidifier", "media_player"]);
+// A camera's knob is its zoom, which is where it is whatever the camera is doing.
+const KEEPS = new Set(["climate", "water_heater", "humidifier", "media_player", CAMERA]);
 const RECENT = 30 * 60_000; // ms: how long what a camera saw stays on its screen
 // An alarm's ways of being set, in the order of their buttons: Home Assistant's service,
 // the bit of the alarm's supported features that says it has it, and the button's plate.
@@ -71,12 +73,13 @@ function bearing(e: PointerEvent) {
 export class Panel extends Family {
   protected kit!: Kit; // the era's controls: set by the era's own class
   declare protected _config: Config;
-  static properties = { _cols: { state: true }, _want: { state: true }, _thrown: { state: true }, _armed: { state: true }, _code: { state: true }, _alerts: { state: true }, _heard: { state: true }, _seen: { state: true }, _chart: { state: true } };
+  static properties = { _cols: { state: true }, _want: { state: true }, _thrown: { state: true }, _turned: { state: true }, _armed: { state: true }, _code: { state: true }, _alerts: { state: true }, _heard: { state: true }, _seen: { state: true }, _chart: { state: true } };
   _cols = 1; // how many columns of chassis the panel has room for across
   private _rows?: { key: string; racks: ReturnType<typeof fitted> }; // the bays the rooms stand in, kept while the rooms and the columns are the same
   _heard = false; // Sensor Watch's feed has said what it holds: until then, no lamp says all is well
   _want?: { id: string; level: number }; // where a knob was put, until its light says it is there
-  _thrown = ""; // the scene whose knife switch is closed
+  _thrown = ""; // the scene, or the camera's control, whose knife switch is closed
+  _turned: Record<string, string> = {}; // the preset each camera was last turned to from this panel
   _armed = ""; // the device whose switch has its guard lifted
   // The code on an alarm's thumbwheels: the place each wheel stands at, counted on and on
   // as it is turned (kit.ts's `face` says what a place shows).
@@ -253,6 +256,8 @@ export class Panel extends Family {
   /** A knob for a device: where it stands, in the device's own units (per cent, or
    * degrees) and as a part of the knob's travel, and what a finger or a key does to it. */
   private _dial(d: Device) {
+    // A camera's knob (_zoom) asks its zoom for a level, and a press on it switches nothing.
+    const lens = camera(d) ? zooming : undefined;
     const { min, max, step, vote } = d.span;
     const rest = KEEPS.has(d.kind) ? (d.level ?? min) : d.on ? (d.level ?? max) : min;
     const stands = () => (this._want?.id === d.id ? this._want.level : rest);
@@ -291,8 +296,8 @@ export class Panel extends Family {
           const grip = this._grip;
           this._grip = undefined;
           if (grip?.id !== d.id) return;
-          if (grip.moved && this._want) this._ask(d, this._want.level);
-          else this._call(flip(d), said(d));
+          if (grip.moved && this._want) this._ask(d, this._want.level, lens);
+          else if (!lens) this._call(flip(d), said(d));
         },
         drop: () => {
           this._grip = this._want = undefined;
@@ -303,8 +308,8 @@ export class Panel extends Family {
             e.preventDefault();
             const to = snap(stands() + by);
             this._turn(d, to);
-            this._ask(d, to);
-          } else if (e.key === "Enter" || e.key === " ") {
+            this._ask(d, to, lens);
+          } else if (!lens && (e.key === "Enter" || e.key === " ")) {
             e.preventDefault();
             this._call(flip(d), said(d));
           }
@@ -314,13 +319,58 @@ export class Panel extends Family {
   }
 
   private _throw(scene: Scene) {
-    this._call({ domain: "scene", service: "turn_on", ids: [scene.id] }, scene.full);
-    this._thrown = scene.id;
+    this._close(scene.id, { domain: "scene", service: "turn_on", ids: [scene.id] }, scene.full);
+  }
+
+  /** Make a call from a knife switch, which stays closed for a moment after. */
+  private _close(id: string, press: Press, what: string) {
+    this._call(press, what);
+    this._thrown = id;
     const timer = setTimeout(() => {
       this._timers.delete(timer);
-      if (this._thrown === scene.id) this._thrown = "";
+      if (this._thrown === id) this._thrown = "";
     }, THROWN);
     this._timers.add(timer);
+  }
+
+  /** What the cameras that Casa Mia's app lists bring to a room's chassis (house.ts's
+   * Lens): a knob for each zoom, a selector switch for each camera with presets, and the
+   * cameras' controls that the room has not got already, each once. A control that is a
+   * device is a switch like any other, guarded if it is that sort; one that is only
+   * pressed (a button, a script) is a knife switch, as a scene is. */
+  private _lenses(shown: Device[]) {
+    const cameras = shown.filter(camera);
+    const here = new Set(shown.map((d) => d.id));
+    const controls = cameras.flatMap((d) => d.controls ?? []).filter((c, i, all) => !here.has(c.id) && all.findIndex((other) => other.id === c.id) === i);
+    return { zooms: cameras.filter((d) => d.zoom && !d.away), turned: cameras.filter((d) => d.presets?.length), switches: controls.flatMap((c) => (c.device ? [c.device] : [])), pressed: controls.filter((c) => !c.device) };
+  }
+
+  /** The knob for a camera's zoom: it is the camera's number entity that is asked. */
+  private _zoom(d: Device) {
+    const { level, span } = d.zoom!;
+    const dial = this._dial({ ...d, id: d.zoom!.id, name: `${d.name} zoom`, level, span });
+    return this.kit.knob(`${d.name} zoom`, "", "zoom", dial.turn, dial.held, `zoom ${dial.level}`, "", dial.on, [span.min, span.max]);
+  }
+
+  /** A camera's presets: a selector switch, or several where there are more than one has
+   * stops for. Home Assistant does not say where a camera is turned, so the pointer is at
+   * the preset last chosen on this panel, and hangs at no stop until one is. */
+  private _presets(d: Device) {
+    const presets = d.presets!;
+    const sizes = banks(presets.length);
+    return sizes.map((size, bank) => {
+      const stops = presets.slice(bank * sizes[0], bank * sizes[0] + size);
+      const turn = (i: number) => {
+        this._call(turning(stops[i]), `${said(d)} to ${stops[i].name}`);
+        this._turned = { ...this._turned, [d.id]: stops[i].name };
+      };
+      return selector(`${d.name} presets`, stops.map((p) => p.name), stops.findIndex((p) => p.name === this._turned[d.id]), turn, d.name);
+    });
+  }
+
+  /** A knife switch for a camera's control that is only pressed. */
+  private _pressed(c: Control, room: string) {
+    return this.kit.knife(c.away ? `${c.name}: not answering` : c.name, this._thrown === c.id, () => c.away || this._close(c.id, pressing(c), `${room} ${c.name}`));
   }
 
   /** The devices of a room the panel shows: an alarm whose code is words can't be set on wheels. */
@@ -379,15 +429,18 @@ export class Panel extends Family {
       const stops = r.scenes.slice(bank * banks(r.scenes.length)[0], bank * banks(r.scenes.length)[0] + size);
       const last = stops.reduce((best, s, i) => (s.at > (stops[best]?.at ?? 0) ? i : best), -1);
       const pressed = stops.findIndex((s) => s.id === this._thrown);
-      return selector(r.name, stops.map((s) => s.name), pressed < 0 ? last : pressed, (i) => this._throw(stops[i]));
+      return selector(`${r.name} scenes`, stops.map((s) => s.name), pressed < 0 ? last : pressed, (i) => this._throw(stops[i]));
     });
   }
 
   /** What a room has on its chassis, for balance.ts. */
   private _load(r: Room): Load {
     const shown = this._shows(r);
-    return { knobs: shown.filter(dims).length, dollies: shown.filter(switched).length, alarms: shown.filter(alarm).length, tvs: shown.filter(camera).length, meter: r.temp !== undefined,
-      knives: r.scenes.length === 1 ? 1 : 0, selectors: r.scenes.length > 1 ? banks(r.scenes.length) : [] };
+    const lenses = this._lenses(shown);
+    return { knobs: shown.filter(dims).length + lenses.zooms.length, dollies: shown.filter(switched).length + lenses.switches.length, alarms: shown.filter(alarm).length, tvs: shown.filter(camera).length, meter: r.temp !== undefined,
+      knives: (r.scenes.length === 1 ? 1 : 0) + lenses.pressed.length, selectors: r.scenes.length > 1 ? banks(r.scenes.length) : [],
+      // A preset selector's legend has a line more than its stops: the camera's name.
+      presets: lenses.turned.flatMap((d) => banks(d.presets!.length).map((stops) => stops + 1)) };
   }
 
   /** The rooms' chassis, in rows, with a plate where each floor begins if the house has floors. */
@@ -416,13 +469,15 @@ export class Panel extends Family {
       const lit = lights.reduce((sum, d) => sum + (d.on ? (d.level ?? 100) : 0), 0) / (lights.length * 100 || 1);
       const more = r.devices.length - shown.length;
       const charts = shown.filter((d) => !camera(d)); // a camera has no day to chart
+      // The controls stand in the order balance.ts counts them in: change the two together.
+      const lenses = this._lenses(shown);
       return html`<section class="room">
         ${valve(lit ? 0.35 + lit * 0.65 : 0)}${label(r.name)}
         <div class="works">${r.temp === undefined ? nothing : meter(`${r.temp.toFixed(1)}°`, 5, 30, r.temp, "°C", ++beat, live)}
-        ${r.scenes.length ? this._scenes(r) : nothing}
-        <div class="dials">${shown.filter(dims).map((d) => this._knob(d))}</div>
-        <div class="dollies">${shown.filter(switched).map((d) => this._dolly(d))}</div>
-        ${shown.filter(camera).map((d) => this._screen(d, seen))}${shown.filter(alarm).map((d) => this._alarm(d))}</div>
+        ${lenses.pressed.map((c) => this._pressed(c, r.name))}${r.scenes.length ? this._scenes(r) : nothing}
+        <div class="dials">${shown.filter(dims).map((d) => this._knob(d))}${lenses.zooms.map((d) => this._zoom(d))}</div>
+        <div class="dollies">${shown.filter(switched).map((d) => this._dolly(d))}${lenses.switches.map((d) => this._dolly(d))}</div>
+        ${shown.filter(camera).map((d) => this._screen(d, seen))}${lenses.turned.map((d) => this._presets(d))}${shown.filter(alarm).map((d) => this._alarm(d))}</div>
         ${more ? html`<div class="more" title="An alarm whose code is not in digits is not on this panel.">${label(`and ${more} more`)}</div>` : nothing}
         ${charts.length ? html`<button class="rec" aria-label="${r.name}: chart of the last day" @click=${() => this._record(r, charts)}>${label("Chart")}</button>` : nothing}
       </section>`;

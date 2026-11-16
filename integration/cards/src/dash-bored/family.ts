@@ -4,7 +4,7 @@
 // page when the shell shows it (shell.ts) and a dashboard card when a dashboard does.
 import { LitElement, css, type PropertyDeclarations } from "lit";
 import type { Hass } from "../ha.ts";
-import { read, survey, type Device, type House, type Options, type Survey } from "./house.ts";
+import { read, survey, type Device, type House, type Lens, type Options, type Survey } from "./house.ts";
 import { setting, type Press } from "./stories.ts";
 
 // The integration's feed of Sensor Watch's alerts (alerts.py). A family follows it as it
@@ -12,6 +12,10 @@ import { setting, type Press } from "./stories.ts";
 export const ALERTS = "casa_mia_dash_bored/alerts";
 export const SIGHTINGS = "casa_mia_dash_bored/sightings"; // and of what the cameras have seen (sightings.py)
 const SETTINGS = "casa_mia_dash_bored/settings"; // the integration's feed of the house's settings (settings.py)
+// Casa Mia's own integration, where the house has it, and its feed of the app's cameras.
+// Dash-Bored stands alone: it knows these two names of Casa Mia's and nothing else.
+const CASA_MIA = "casa_mia";
+const CAMERAS = "casa_mia/cameras/subscribe";
 const SETTLE = 350; // ms: a level is asked for once it has been still this long
 
 /** What every family's element is on the page: a block, and as Dash-Bored's page at least a
@@ -54,6 +58,7 @@ export class Family extends LitElement {
   protected _hass?: Hass;
   protected _config: Options & { type?: string } = {};
   protected _settings: Options = {}; // the house's, from the integration: a card's own come before them
+  protected _cameras: Lens[] = []; // Casa Mia's cameras, where it is installed: they come before the ones found
   protected _survey?: Survey;
   protected _feeds = new Map<string, Promise<() => void>>(); // by the feed's command
   protected _timers = new Set<ReturnType<typeof setTimeout>>();
@@ -116,7 +121,7 @@ export class Family extends LitElement {
       return;
     }
 
-    if (!this._survey || !was || was.entities !== hass.entities || was.areas !== hass.areas || was.devices !== hass.devices || was.floors !== hass.floors) this._survey = survey(hass, { ...this._settings, ...this._config, sample: this._sample });
+    if (!this._survey || !was || was.entities !== hass.entities || was.areas !== hass.areas || was.devices !== hass.devices || was.floors !== hass.floors) this._survey = survey(hass, { ...this._settings, ...this._config, cameras: this._cameras, sample: this._sample });
     // ponytail: `hass` is set at every state change in the house, and the page isn't told
     // which entity changed, so this looks at each watched one. If that ever shows in a
     // profile, follow the entities with a subscription of our own instead.
@@ -167,12 +172,19 @@ export class Family extends LitElement {
 
   /** Follow one of the integration's feeds, once. Home Assistant's connection subscribes
    * again by itself after a break, and each feed then says all it holds again. */
-  protected _follow<T>(type: string, what: string, take: (items: T[]) => void) {
+  protected _follow<T>(type: string, what: string, take: (items: T[]) => void, newer = false) {
     const connection = this._hass?.connection;
     if (!connection || !this.isConnected || this._feeds.has(type) || this._sample) return;
     const feed: Promise<() => void> = connection.subscribeMessage(take, { type });
     this._feeds.set(type, feed);
     feed.catch((err: any) => {
+      // Another integration's feed that its installed version does not have yet (`newer`)
+      // is no fault of this page's: it is said once in the console, and not asked for again.
+      if (newer && err?.code === "unknown_command") {
+        this._feeds.set(type, Promise.resolve(() => undefined));
+        console.info(`Dash-Bored: ${what} are not fed by the version installed (${type})`);
+        return;
+      }
       this._feeds.delete(type);
       console.error(`Dash-Bored: the feed ${type} failed`, err);
       this._fault = `${what} are not reaching this page (${err?.message ?? err}).`;
@@ -187,6 +199,14 @@ export class Family extends LitElement {
       this._survey = undefined;
       if (this._hass) this.hass = this._hass;
     });
+    // Casa Mia's cameras, whole at each change: the house is read again by them. With no
+    // Casa Mia the cameras are the ones Home Assistant has, as before.
+    if (this._hass?.config?.components?.includes(CASA_MIA))
+      this._follow(CAMERAS, "Casa Mia's cameras", (cameras: Lens[]) => {
+        this._cameras = cameras;
+        this._survey = undefined;
+        if (this._hass) this.hass = this._hass;
+      }, true);
   }
 
   /** Do something once `ms` have passed, unless the element has gone by then. */
@@ -208,7 +228,8 @@ export class Family extends LitElement {
   }
 
   protected _call(press: Press, what: string) {
-    this._hass!.callService(press.domain, press.service, { entity_id: press.ids, ...press.data }).then(
+    // A call that names no entity (a camera's preset names its camera in its own data) is sent none.
+    this._hass!.callService(press.domain, press.service, { ...(press.ids.length ? { entity_id: press.ids } : {}), ...press.data }).then(
       () => (this._fault = ""),
       (err: any) => {
         console.error(`Dash-Bored: ${press.domain}.${press.service} refused`, err);
@@ -220,12 +241,12 @@ export class Family extends LitElement {
   /** Ask a device for a level, once the level has stopped changing: a drag asks when the
    * handle is let go, but an arrow key held down reports a change at every step, and a
    * bus of real dimmers would be sent them all. */
-  protected _ask(d: Device, level: number) {
+  protected _ask(d: Device, level: number, press: (d: Device, level: number) => Press = setting) {
     clearTimeout(this._asking);
     this._timers.delete(this._asking!);
     this._asking = setTimeout(() => {
       this._timers.delete(this._asking!);
-      this._call(setting(d, level), `${d.room} ${d.name}`);
+      this._call(press(d, level), `${d.room} ${d.name}`);
     }, SETTLE);
     this._timers.add(this._asking);
   }

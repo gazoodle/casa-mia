@@ -6,6 +6,7 @@ from typing import Any
 
 import yaml
 
+from ..cameras import preset_data, preset_entries
 from ..commander import COMMANDER_SELECT, commander_selects
 from ..compositor import (
     EMPTY_COMMANDER,
@@ -371,21 +372,12 @@ def build_dashboard(
     }
 
 
-def preset_entries(ptz: dict) -> list[tuple[str, str]]:
-    """(label on the tile, preset name). A preset is a name, or {"preset", "label"} when
-    the tile needs another label (a "Home" preset would clash with the Home button)."""
-    return [
-        (p, p) if isinstance(p, str) else (p.get("label") or p["preset"], p["preset"])
-        for p in ptz.get("presets", [])
-    ]
-
-
 def preset_action(ptz: dict, preset: str) -> dict:
     return {
         "action": "perform-action",
         "perform_action": ptz["action"],
         "target": {},
-        "data": {**ptz.get("data", {}), "preset": preset},
+        "data": preset_data(ptz, preset),
     }
 
 

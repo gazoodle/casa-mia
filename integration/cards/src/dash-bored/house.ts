@@ -23,7 +23,21 @@ export type Device = {
   since: number; // ms: when it came to this state
   guarded: boolean; // never operated by a tap on a sentence: see GUARDED
   room: string;
+  // A camera that Casa Mia's app lists, where it has them (Lens below):
+  zoom?: { id: string; level: number; span: Span }; // its zoom, while the number entity is answering
+  presets?: Preset[]; // where it can be turned to
+  controls?: Control[]; // what belongs with what it sees: a gate, a light
 };
+/** A place a camera can be turned to, as the call that turns it there. */
+export type Preset = { name: string; action: string; data: Record<string, unknown> };
+/** Something that belongs with what a camera sees. One of the kinds a room shows is a
+ * `device` like any other; anything else (a button, a script) is only pressed. */
+export type Control = { id: string; name: string; away: boolean; device?: Device };
+/** A camera as Casa Mia's app has it (its Cameras page), where that is installed: its
+ * integration feeds them (family.ts). `entity` is the stream its tiles use, `medium` and
+ * `high` its other streams, `zoom` a number entity. Such a camera is shown in place of
+ * the one found in Home Assistant, under the title it was given there (owner, 2026-11-16). */
+export type Lens = { entity: string; title: string; medium?: string; high?: string; zoom?: string; presets: Preset[]; controls: { entity: string; name: string }[] };
 /** What a level runs over: its ends, the step of its scale, and what one vote in its poll moves it by. */
 export type Span = { min: number; max: number; step: number; vote: number };
 /** A scene: what it is called where it is shown (`name`, without its room's or its floor's
@@ -64,12 +78,13 @@ export type Gap = { kind: "loose" | "plumbing" | "clash" | "floorless" | "cold";
  * those and in that order. The house's, set once in the integration and fed to every page
  * (settings.py): `floor_order` and `room_order`, which leave nothing out. A floor or a
  * room is named by its id or by its name. `entity`: that one entity and nothing else, for
- * a card that shows one (console/cards.ts). `sample` is no option of a card's: an element
+ * a card that shows one (console/cards.ts). `cameras` is no option of a card's either: Casa
+ * Mia's cameras, from its feed. `sample` is no option of a card's: an element
  * sets it for itself while Home Assistant's card picker shows it (family.ts), and the
  * house is then cut down to a specimen (`specimen` below). */
-export type Options = { weather?: string; power?: string; floors?: string[]; rooms?: string[]; floor_order?: string[]; room_order?: string[]; entity?: string; sample?: boolean };
+export type Options = { weather?: string; power?: string; floors?: string[]; rooms?: string[]; floor_order?: string[]; room_order?: string[]; entity?: string; cameras?: Lens[]; sample?: boolean };
 
-type Found = { id: string; kind: Kind; name: string; full: string; guarded: boolean; power?: string };
+type Found = { id: string; kind: Kind; name: string; full: string; guarded: boolean; power?: string; lens?: Lens; controls?: { id: string; name: string; found?: Found }[] };
 type FoundScene = { id: string; name: string; full: string; floor?: string };
 type FoundRoom = { id: string; name: string; floor?: string; floorId?: string; level: number; temp?: string; humidity?: string; climate?: string; devices: Found[]; scenes: FoundScene[] };
 type FoundSighting = { id: string; name: string; room?: string };
@@ -142,6 +157,15 @@ export function survey(hass: Hass, options: Options): Survey {
   const clash: Gap["items"] = [];
   const plumbing: Gap["items"] = [];
   const hidden = (thing?: { labels?: string[] }) => !!thing?.labels?.includes(HIDE);
+  // Casa Mia's cameras, by each of their streams and by their device.
+  const mine = new Map<string, Lens>();
+  const lensed = new Map<string, Lens>();
+  for (const cam of options.cameras ?? []) {
+    for (const id of [cam.entity, cam.medium, cam.high]) if (id) mine.set(id, cam);
+    const device = hass.entities?.[cam.entity]?.device_id;
+    if (device) lensed.set(device, cam);
+  }
+  const guards = (domain: string, state: { attributes: Record<string, any> }) => GUARDED_KINDS.has(domain) || (domain === "cover" && GUARDED.has(state.attributes.device_class));
 
   for (const entry of Object.values<any>(hass.entities ?? {})) {
     const id: string = entry.entity_id;
@@ -199,7 +223,7 @@ export function survey(hass: Hass, options: Options): Survey {
       // Shown alone, a thing has no room's plate to say the rest of its name.
       name: alone ? full : short(full, area.name, domain as Kind),
       full,
-      guarded: GUARDED_KINDS.has(domain) || (domain === "cover" && GUARDED.has(state.attributes.device_class)),
+      guarded: guards(domain, state),
     };
     room.devices.push(found);
     if (domain === "switch" && entry.device_id) owner.set(found, entry.device_id);
@@ -208,16 +232,18 @@ export function survey(hass: Hass, options: Options): Survey {
   // A camera that sends several streams is several camera entities on one device (high,
   // medium and low resolution), and each was a screen: a room had three screens for each
   // camera (seen 2026-11-16). One is kept for each device, named for the device: the one
-  // whose sightings are photographed, or else the first by its id.
+  // whose sightings are photographed (what it saw is told by that entity), or else the
+  // stream Casa Mia's app uses, or else the first by its id.
   // ponytail: a device with two lenses that look at different things shows one of them.
   // If that is ever wanted, tell them apart by their stream's size, not by their names.
+  const rank = (d: Found) => (photographed.has(d.id) ? 2 : 0) + (mine.get(d.id)?.entity === d.id ? 1 : 0);
   for (const room of rooms.values()) {
     const kept = new Map<string, Found>();
     for (const d of [...room.devices].sort((a, b) => a.id.localeCompare(b.id))) {
       const lens = lenses.get(d);
       if (!lens) continue;
       const was = kept.get(lens.device);
-      if (!was || (photographed.has(d.id) && !photographed.has(was.id))) kept.set(lens.device, d);
+      if (!was || rank(d) > rank(was)) kept.set(lens.device, d);
     }
     const shared = new Set([...lenses].filter(([d, lens]) => kept.get(lens.device) !== d && room.devices.includes(d)).map(([, lens]) => lens.device));
     room.devices = room.devices.filter((d) => !lenses.has(d) || kept.get(lenses.get(d)!.device) === d);
@@ -225,6 +251,23 @@ export function survey(hass: Hass, options: Options): Survey {
       const d = kept.get(device)!;
       d.full = lenses.get(d)!.name;
       d.name = short(d.full, room.name, "camera");
+    }
+    // A camera that Casa Mia's app lists is that camera: its title, and what goes with it.
+    // A control is whatever entity was chosen for it, shown or not; one that is gone from
+    // Home Assistant is left out.
+    for (const d of room.devices) {
+      const cam = d.kind === "camera" ? (mine.get(d.id) ?? lensed.get(lenses.get(d)?.device ?? "")) : undefined;
+      if (!cam) continue;
+      d.lens = cam;
+      d.full = cam.title;
+      d.name = short(cam.title, room.name, "camera");
+      d.controls = cam.controls.flatMap((c) => {
+        const state = hass.states[c.entity];
+        if (!state) return [];
+        const domain = c.entity.split(".")[0];
+        const name: string = c.name || state.attributes.friendly_name || c.entity;
+        return [{ id: c.entity, name, found: KINDS.has(domain) ? { id: c.entity, kind: domain as Kind, name, full: name, guarded: guards(domain, state) } : undefined }];
+      });
     }
   }
   // A switch with a power sensor on the same device is a smart plug: its load is news.
@@ -277,7 +320,7 @@ export function survey(hass: Hass, options: Options): Survey {
   }
   // A card of chosen floors or rooms counts the lights in those alone.
   const loosed = floors || chosen ? [] : strays;
-  const watched = kept.flatMap((r) => [r.temp, r.humidity, r.climate, ...r.devices.flatMap((d) => [d.id, d.power])]);
+  const watched = kept.flatMap((r) => [r.temp, r.humidity, r.climate, ...r.devices.flatMap((d) => [d.id, d.power, d.lens?.zoom, ...(d.controls ?? []).map((c) => c.id)])]);
   const areas = (list: FoundRoom[]) => list.map((r) => ({ id: r.id, name: r.name }));
   const gaps: Gap[] = [
     { kind: "loose", items: loose },
@@ -391,6 +434,12 @@ export function read(found: Survey, hass: Hass): House {
     return value === undefined ? undefined : hass.states[id!].attributes.unit_of_measurement === "kW" ? value : value / 1000;
   };
   const appliances: Appliance[] = [];
+  // A camera's zoom is a number entity: its level and its span are that entity's own.
+  const zoom = (id?: string): Device["zoom"] => {
+    const level = number(id);
+    const a = id ? (hass.states[id]?.attributes ?? {}) : {};
+    return level === undefined ? undefined : { id: id!, level, span: { min: a.min ?? 0, max: a.max ?? 100, step: a.step ?? 1, vote: a.step ?? 1 } };
+  };
   const device = (d: Found, room: string): Device => {
     const state = hass.states[d.id];
     const { on, phase, level, away } = standing(d.kind, state);
@@ -401,7 +450,8 @@ export function read(found: Survey, hass: Hass): House {
     const kw = on ? kilowatts(d.power) : undefined;
     if (kw !== undefined && kw >= 1) appliances.push({ id: d.id, name: d.name, room, kw });
     return { id: d.id, name: d.name, kind: d.kind, on, phase, level, dims, span: span(d.kind, a), temp: DEGREES.has(d.kind) && typeof a.current_temperature === "number" ? a.current_temperature : undefined,
-      title: d.kind === "media_player" && on ? [a.media_title, a.media_artist].filter(Boolean).join(", ") || undefined : undefined, picture: d.kind === "camera" ? a.entity_picture : undefined, away, since: Date.parse(state?.last_changed ?? "") || 0, guarded: d.guarded, room };
+      title: d.kind === "media_player" && on ? [a.media_title, a.media_artist].filter(Boolean).join(", ") || undefined : undefined, picture: d.kind === "camera" ? a.entity_picture : undefined, away, since: Date.parse(state?.last_changed ?? "") || 0, guarded: d.guarded, room,
+      ...(d.lens ? { zoom: zoom(d.lens.zoom), presets: d.lens.presets, controls: (d.controls ?? []).map((c): Control => ({ id: c.id, name: c.name, away: (hass.states[c.id]?.state ?? "unavailable") === "unavailable", device: c.found && device(c.found, room) })) } : {}) };
   };
 
   // A scene's state is when Home Assistant last set it. One that is gone from the states is left out.

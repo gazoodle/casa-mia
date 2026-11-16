@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { columns, laid, racks, tall } from "./balance.ts";
 
-const room = (knobs: number, dollies = 0, meter = false, alarms = 0, tvs = 0, selectors: number[] = [], knives = 0) => ({ knobs, dollies, meter, alarms, tvs, selectors, knives });
+const room = (knobs: number, dollies = 0, meter = false, alarms = 0, tvs = 0, selectors: number[] = [], knives = 0, presets: number[] = []) => ({ knobs, dollies, meter, alarms, tvs, selectors, knives, presets });
 const wide = (rooms: ReturnType<typeof room>[], across: number) => laid(rooms, across).map((p) => p.wide);
 
 test("a house of small rooms keeps every chassis one wide, in one row", () => {
@@ -44,4 +44,11 @@ test("a room with many controls is widened, and no row is taller for a room that
 
 test("a panel has as many columns as fit across it, and never none", () => {
   assert.deepEqual([100, 332, 344, 980, 1236].map(columns), [1, 2, 2, 5, 7]);
+});
+
+test("a camera's preset selector is as tall as its stops and the line that names it", () => {
+  // A screen and a selector of three presets side by side in two columns: the selector is the taller.
+  assert.equal(tall(room(0, 0, false, 0, 1, [], 0, [4]), 2), 124 + 4 * 15);
+  // In one column the selector is under the screen.
+  assert.equal(tall(room(0, 0, false, 0, 1, [], 0, [4]), 1), 158 + 124 + 4 * 15);
 });
