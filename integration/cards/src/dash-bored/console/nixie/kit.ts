@@ -4,7 +4,7 @@
 // what is pressed; styles.ts is their look and how they move.
 import { html, nothing, type TemplateResult } from "lit";
 import { needle } from "../needle.ts";
-import { panel, plate } from "../silverface/kit.ts";
+import { panel, plate } from "../figures.ts";
 
 // A screen and thumbwheels are the same parts in every era, dressed by the era's
 // stylesheet: here a black-and-white tube, and black wheels with white figures.

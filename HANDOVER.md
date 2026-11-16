@@ -313,7 +313,14 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   own files: `console/needle.ts` (the layered needle meter: Nixie's two top meters and
   Bargraph's), `console/scope.ts` (the oscilloscope recorder, made with an era's `label`
   and `push`: Nixie's and Silverface's), `BEATS` in `console/kit.ts`, and `panel` and
-  `plate` in `silverface/kit.ts` (a display's fixed cells, and a knob's plate taken apart). Bakelite is completed first and keeps its name.
+  `plate` in `console/figures.ts` (a display's fixed cells, and a knob's plate taken apart).
+  Beige (1990s, 2026.11.9-b4: `console/beige.ts` with `console/beige/`) completes the five,
+  from `docs/design/dash-bored/beige.html`. `console/figures.ts` also has what Bargraph's
+  fluorescent displays and Beige's LCDs share: the figures of seven bars (`figs`, with
+  the stylesheet fragment `FIGURES`, whose sizes are whole pixels: the owner saw bars of
+  different sizes when they were fractions of the type size), the meter that is a display
+  and the alarm's code as figures with keys (`keyed`). Beige's chart is `scope.ts`'s
+  oscilloscope dressed by its stylesheet, through the class names on the scope's parts. Bakelite is completed first and keeps its name.
   - **A panel's controls never move for their lettering** (owner, 2026-11-15: "it's
     drilled into the panel"; true of the Console's eras, perhaps not of other families).
     Each hangs from the top of its row with a fixed height and room for a two-line

@@ -4,13 +4,14 @@
 // puts the controls on the panel and acts on what is pressed; styles.ts is their look and
 // how they move.
 import { html, nothing, type TemplateResult } from "lit";
-import { face } from "../kit.ts";
 import { needle } from "../needle.ts";
-import { BARS, panel, plate } from "../silverface/kit.ts";
+import { display, figs, plate } from "../figures.ts";
 
 // A screen is the same part in every era, dressed by the era's stylesheet: here a small
-// colour monitor in a black case.
+// colour monitor in a black case. An alarm's code is figures with a key over and under
+// each, as Beige's is: here fluorescent, with + and − on the keys.
 export { tv } from "../bakelite/kit.ts";
+export { figs, keyed as wheels } from "../figures.ts";
 
 /** Nothing here is filled from a gradient: the stylesheet draws it all. */
 export const DEFS = html``;
@@ -19,34 +20,16 @@ export const DEFS = html``;
 export const label = (text: string) => html`<span class="label">${text}</span>`;
 
 const TEN = Array.from({ length: 10 }, (_, i) => i);
-const TWENTY = Array.from({ length: 20 }, (_, i) => i);
-
-/** Figures on a fluorescent display, each of seven bars: the bars that are not lit can
- * just be seen. A space is a figure with none lit, and a display that is not `lit` has
- * them all dark. `says` is what a screen reader is told it shows. */
-export const figs = (text: string, lit = true, says = text.trim()) => html`<span class="figs ${lit ? "" : "dark"}" role="img" aria-label=${says}>${[...text].map((ch) =>
-  ch === "." ? html`<i class="dp"></i>` : ch === "°" ? html`<i class="deg"></i>` : ch === "%" ? html`<i class="pc">%</i>` : html`<i class="d">${[..."abcdefg"].map((bar) => html`<b class="s${bar} ${lit && BARS[ch]?.includes(bar) ? "lit" : ""}"></b>`)}</i>`,
-)}</span>`;
-
 /** A meter with a scale from `lo` to `hi`. Most are needle meters of the time: a black
  * face printed in white and lit warm from below, with a hair of an orange needle that
  * hardly wavers (../needle.ts). Every third of the rooms'
  * meters is a fluorescent display instead (owner, 2026-11-15: needles, with a display
- * now and then): large figures over a sweep of twenty segments, the last four red.
+ * now and then): large figures over a sweep of twenty segments, the last four red
+ * (../figures.ts).
  * `beat` is which meter on the panel this is: the two at the top are 0 and 1. A meter
  * that is not `lit` is dark: its reading is not to be believed. */
 export function meter(title: string, lo: number, hi: number, value: number, unit: string, beat = 0, lit = true): TemplateResult {
-  const part = Math.min(1, Math.max(0, (value - lo) / (hi - lo)));
-  if (beat >= 2 && beat % 3 === 1) {
-    const places = unit === "kW" ? 2 : 1;
-    const upto = Math.round(part * 20);
-    return html`<div class="meter display ${lit ? "" : "unlit"}">
-      <div class="win" role="img" aria-label="${title}: ${value} ${unit}">${figs(panel(lit ? String(value) : "", "", [lo, hi], places), lit, "")}<span class="unit">${unit}</span>
-        <div class="sweep">${TWENTY.map((i) => html`<i class="${lit && i < upto ? "lit" : ""} ${lit && i === upto - 1 ? "tip" : ""}"></i>`)}</div></div>
-      ${label(title)}
-    </div>`;
-  }
-
+  if (beat >= 2 && beat % 3 === 1) return display(title, lo, hi, value, unit, lit, label(title));
   return needle(title, lo, hi, value, unit, beat, lit, label(title));
 }
 
@@ -94,17 +77,6 @@ export const knob = (name: string, sort: string, what: string, level: number, he
     ${label(legend)}${shown === undefined ? nothing : figs(shown, lit)}${tape ? html`<span class="note">${note ? label(note) : nothing}</span>` : nothing}
   </div>`;
 };
-
-/** An alarm's code: a fluorescent figure for each place, with a membrane key over it to
- * step it on and one under it to step it back. `places` is where each stands, and `turn`
- * steps one. The code is said to a screen reader a figure at a time, and nowhere else. */
-export const wheels = (name: string, places: number[], turn: (i: number, by: number) => void) => html`<div class="wheels" role="group" aria-label="${name} code">${places.map(
-  (place, i) => html`<div class="wheel">
-    <button aria-label="Figure ${i + 1} on" @click=${() => turn(i, 1)}>+</button>
-    ${figs(face(place) || " ", true, `Figure ${i + 1}: ${face(place) || "blank"}`)}
-    <button aria-label="Figure ${i + 1} back" @click=${() => turn(i, -1)}>−</button>
-  </div>`,
-)}</div>`;
 
 /** A membrane key, with its legend printed on it. */
 export const push = (name: string, press: () => void) => html`<button class="push" @click=${press}><span class="key">${name}</span></button>`;

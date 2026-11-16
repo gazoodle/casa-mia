@@ -21,8 +21,8 @@ the Gazette's own work is parked below it.
   without a unique id (in YAML, or by `scene.create`) is in no registry, so no family
   shows it.
 - **The Console's other eras** (owner, 2026-11-14). The Console is the family and its
-  eras are Bakelite (1950s, built), Nixie (1960s, built 2026.11.9-b3), Silverface (1970s,
-  built), Bargraph (1980s, built 2026.11.9-b2) and Beige (1990s). They are the same panel underneath (`console/panel.ts`), each with
+  eras are Bakelite (1950s), Nixie (1960s, built 2026.11.9-b3), Silverface (1970s),
+  Bargraph (1980s, built 2026.11.9-b2) and Beige (1990s, built 2026.11.9-b4): all built. They are the same panel underneath (`console/panel.ts`), each with
   its own kit and stylesheet and a few controls or lights that mark its time: from valves
   to LEDs, and from a phosphor oscilloscope or television to a digital panel. They are
   to be designed with care, and each design agreed with the owner before it is drawn.
@@ -38,7 +38,11 @@ the Gazette's own work is parked below it.
     owner's "meters do span decades", which he has not seen. The order the figures are
     stacked in a tube is from memory of a common tube, not checked against a datasheet.
     A minus has a tube of its own, which a real one had not.
-  - **Beige is to build next**, from its mock-up. **All three have mock-ups** (2026-11-15: `docs/design/dash-bored/`
+  - **Beige, what's left** (built 2026.11.9-b4). Not yet seen by the owner, nor on a
+    tablet, and the guide has no screenshot of it. Every dial has an LCD of its level in
+    per cent, as the mock-up had; the rocker is lettered I and O whatever it works, so a
+    lock's does not say Locked.
+  - **The three later eras' mock-ups** (2026-11-15: `docs/design/dash-bored/`
     `nixie.html`, `bargraph.html` and `beige.html`, on `eras.js`), not yet agreed. The
     owner's rulings that day: Bargraph has sliders ("it's important"); and needle meters span the decades, with a
     thinner and more delicate pointer in the later ones. Each mock-up shows a needle

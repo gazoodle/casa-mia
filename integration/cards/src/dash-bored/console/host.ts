@@ -18,7 +18,7 @@ export const ERAS: Era[] = [
   { id: "nixie", name: "Nixie", decade: "1960s", draw: (hass, narrow, choice) => html`<dash-bored-nixie class="era" .hass=${hass} .narrow=${narrow}>${choice}</dash-bored-nixie>` },
   { id: "silverface", name: "Silverface", decade: "1970s", draw: (hass, narrow, choice) => html`<dash-bored-silverface class="era" .hass=${hass} .narrow=${narrow}>${choice}</dash-bored-silverface>` },
   { id: "bargraph", name: "Bargraph", decade: "1980s", draw: (hass, narrow, choice) => html`<dash-bored-bargraph class="era" .hass=${hass} .narrow=${narrow}>${choice}</dash-bored-bargraph>` },
-  { id: "beige", name: "Beige", decade: "1990s" },
+  { id: "beige", name: "Beige", decade: "1990s", draw: (hass, narrow, choice) => html`<dash-bored-beige class="era" .hass=${hass} .narrow=${narrow}>${choice}</dash-bored-beige>` },
 ];
 type Config = Options & { type?: string; era?: string };
 
@@ -52,6 +52,9 @@ export class Console extends LitElement {
       box-shadow: 0 6px 8px rgba(0,0,0,.4), 0 0 0 1px rgba(0,0,0,.6), 0 0 0 4px #b2b5b8, 0 0 0 5px rgba(0,0,0,.45); }
     .eras.silverface .switch span::after { top: 3px; width: 3px; height: 20px; margin-left: -1.5px; border-radius: 1px; background: #141516; box-shadow: none; }
     .eras.silverface .named { font-weight: 700; letter-spacing: .18em; }
+    /* On Beige's pale panel the lettering is dark, but for the stop that is chosen, which is on black. */
+    .eras.beige { color: #3a362c; }
+    .eras.beige .stop[aria-checked="true"] { color: #f4f0e4; }
     .unbuilt-era { box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; min-height: 240px; padding: 18px 22px; background: #2b2d30; color: #f4f0e4;
       font: 15px/1.4 "Gill Sans", "Gill Sans MT", "Helvetica Neue", sans-serif; }
     :host([panel]) .unbuilt-era { min-height: 100vh; }

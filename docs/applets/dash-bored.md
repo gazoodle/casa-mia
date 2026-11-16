@@ -50,7 +50,7 @@ The Gazette, Bakelite and the Fridge can be used. The pictures of the others are
 </td>
 <td width="33%" valign="top">
 <a href="#the-console"><img src="../screenshots/dash-bored-bakelite.webp" alt="Bakelite" width="100%"></a>
-<p><b><a href="#the-console">Bakelite</a></b> · Being built: every kind of device the Gazette shows. Now the first era of the Console, with Nixie (1960s), Silverface (1970s) and Bargraph (1980s) after it<br>A 1950s instrument panel: glowing valves, moving-coil meters, fluted dimmer knobs, tumbler switches and knife switches for scenes.</p>
+<p><b><a href="#the-console">Bakelite</a></b> · Being built: every kind of device the Gazette shows. Now the first era of the Console, with Nixie (1960s), Silverface (1970s), Bargraph (1980s) and Beige (1990s) after it<br>A 1950s instrument panel: glowing valves, moving-coil meters, fluted dimmer knobs, tumbler switches and knife switches for scenes.</p>
 </td>
 <td width="33%" valign="top">
 <img src="../screenshots/dash-bored-mock-calibre.webp" alt="Calibre, as a mock-up" width="100%">
@@ -473,7 +473,7 @@ in the same places, drawn as the equipment of their time:
 | Nixie | 1960s | Being built, and described below |
 | Silverface | 1970s | Being built, and described below |
 | Bargraph | 1980s | Being built, and described below |
-| Beige | 1990s | Not built yet |
+| Beige | 1990s | Being built, and described below |
 
 The era is chosen with the rotary switch at the top right of the panel, lettered 50 to
 90: press a decade, or press the knob to step to the next. An era that is not built yet
@@ -638,6 +638,32 @@ knob does.
 The meters and displays go dark if the connection to Home Assistant is lost, as the
 other eras' do.
 
+### Beige
+
+The Console of the 1990s, after the moulded plastic of the time: a desktop computer, or
+the controller in a building's plant room. It has the same controls as Bakelite in the
+same places, and each works the same way; what differs is how they are drawn. Nothing on
+it moves unless it is pressed.
+
+| Bakelite | Beige |
+|---|---|
+| A Bakelite chassis on green enamel | A recessed bay in beige plastic, with a row of cooling slots at its foot |
+| A valve that glows with the room's lights | Five strength bars on a small LCD, as a mobile telephone shows its signal |
+| A round moving-coil meter, whose needle wavers | An LCD: black figures on grey-green over a row of twenty blocks. The segments that are not lit can still be seen, and nothing wavers |
+| A fluted knob, coloured by its kind | A jog dial, as a video recorder's: a ridged disc with a dimple for the finger that turns it |
+| The setting engraved on the knob's plate | An LCD under every dial: the heating's setting in degrees, blank when it is off, and any other dial's level in per cent |
+| A second plate under a knob, for what a player is playing | White labeller tape |
+| A tumbler switch, down for on | A rocker marked I and O, with a green LED over it |
+| A tumbler under a red guard | The rocker beside a keylock: the first press turns the key |
+| A knife switch for a scene | A function key, F1 onwards, under a paper strip that says what it does |
+| A pilot lamp and a handwritten card for an alert | An LED, with what is wrong on a yellow-green character LCD |
+| Brass thumbwheels for an alarm's code | An LCD figure for each place, with a rubber key over it and one under it |
+| A black-and-white television for a camera | A beige monitor with a green power LED, and its name on labeller tape |
+| A chart recorder on paper | A chart in a window of a sixteen-colour desktop, with a line in its own colour for each device |
+
+The LCDs go blank if the connection to Home Assistant is lost, as the other eras' meters
+go dark.
+
 ## The Fridge
 
 ![A young family's fridge door: three sticky notes, a polaroid for each room with magnets under it, the entrance camera's photograph held by a butterfly, number magnets for the alarm, a notepad, word magnets and a star chart](../screenshots/dash-bored-fridge-family.webp)
@@ -740,7 +766,7 @@ Give it `style: family`, `style: yuppies` or `style: grandparents` and it is tha
 with no magnets to choose another.
 
 The Console is a card too, **Casa Mia Dash-Bored Console** (`type: custom:dash-bored-console`),
-with its era switch. Give it `era: bakelite`, `era: nixie`, `era: silverface` or `era: bargraph` and it is that era with no
+with its era switch. Give it `era: bakelite`, `era: nixie`, `era: silverface`, `era: bargraph` or `era: beige` and it is that era with no
 switch; the first is
 also what **Casa Mia Dash-Bored Bakelite** (`type: custom:dash-bored-bakelite`) is.
 It takes `power`, `weather`, `floors` and `rooms` in the same way, and has no `style`.

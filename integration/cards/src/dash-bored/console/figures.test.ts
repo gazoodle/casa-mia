@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { panel, plate } from "./kit.ts";
+import { panel, plate } from "./figures.ts";
 
 test("a display has the same cells whatever it shows", () => {
   // A thermostat from 7 to 35 degrees: two figures, a point and a decimal place.

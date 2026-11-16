@@ -4,11 +4,12 @@
 // room here that they take there. Nothing has a filter, and the only things that move by
 // themselves are a needle's layer, a critical alert's lamp and a display's last segment.
 import { css } from "lit";
+import { FIGURES } from "../figures.ts";
 
 export const STYLES = css`
   :host { display: block; }
   :host([panel]) { height: 100vh; overflow-y: auto; }
-  .panel { --vfd: #7df7e6; --amber: #ff7a1a; --ink: #e8e8e8; --glass: #04100f; box-sizing: border-box; min-height: 100%; padding: 18px 22px; color: var(--ink);
+  .panel { --vfd: #7df7e6; --amber: #ff7a1a; --ink: #e8e8e8; --glass: #04100f; --seg-on: var(--vfd); --seg-off: rgba(125,247,230,.07); --seg-glow: 0 0 5px rgba(125,247,230,.8); box-sizing: border-box; min-height: 100%; padding: 18px 22px; color: var(--ink);
     font-family: "Helvetica Neue", "Arial Narrow", Arial, sans-serif; background: #070708; }
   .panel * { box-sizing: border-box; }
   button { all: unset; cursor: pointer; }
@@ -71,27 +72,12 @@ export const STYLES = css`
   .display .win { display: flex; flex-wrap: wrap; align-items: center; align-content: center; justify-content: center; gap: 5px 6px; background: var(--glass); }
   .display .unit { align-self: flex-end; margin-bottom: 4px; color: var(--vfd); font-size: 11px; font-weight: 600; text-shadow: 0 0 5px var(--vfd); }
   .display.unlit .unit { opacity: .12; text-shadow: none; }
-  .sweep { display: flex; align-items: flex-end; justify-content: center; gap: 2px; width: 100%; }
-  .sweep i { width: 4px; background: var(--vfd); opacity: .1; transform: skewX(-12deg); }
-  .sweep i:nth-child(n + 17) { background: #ff6a3a; } .sweep .lit { opacity: 1; }
-  /* The segments rise along the sweep. Each is a whole number of pixels tall. */
-  .sweep i:nth-child(-n + 5) { height: 5px; } .sweep i:nth-child(n + 6) { height: 8px; } .sweep i:nth-child(n + 11) { height: 11px; } .sweep i:nth-child(n + 16) { height: 14px; }
+  /* The fluorescent figures and the sweep (../figures.ts): the sweep's segments lean, and its last four are red. */
+  ${FIGURES}
+  .sweep i { transform: skewX(-12deg); } .sweep i:nth-child(n + 17) { background: #ff6a3a; }
   /* The last lit segment flickers now and then: all that is left of a needle's waver. */
   .sweep .tip { animation: tip 5.3s steps(1) infinite; }
   @keyframes tip { 0%, 73%, 89% { opacity: 1; } 71% { opacity: .4; } 88% { opacity: .6; } }
-
-  /* Figures of seven bars. --t is a bar's thickness, --h an upright's length and --w a
-     figure's width, each a whole number of pixels so that no two bars of a kind differ. */
-  .figs { --t: 2px; --h: 6px; --w: 10px; display: inline-flex; align-items: flex-end; }
-  .display .figs { --t: 3px; --h: 11px; --w: 17px; }
-  .d { position: relative; width: var(--w); height: calc(2 * var(--h) + 3 * var(--t)); margin: 0 2px; transform: skewX(-5deg); }
-  .d b { position: absolute; border-radius: 1px; background: rgba(125,247,230,.07); } .d .lit { background: var(--vfd); box-shadow: 0 0 5px rgba(125,247,230,.8); }
-  .sa, .sg, .sd { left: var(--t); right: var(--t); height: var(--t); } .sa { top: 0; } .sg { top: calc(var(--t) + var(--h)); } .sd { bottom: 0; }
-  .sf, .sb, .se, .sc { width: var(--t); height: var(--h); } .sf, .sb { top: var(--t); } .se, .sc { bottom: var(--t); } .sf, .se { left: 0; } .sb, .sc { right: 0; }
-  .dp { width: var(--t); height: var(--t); margin: 0 1px; border-radius: 50%; background: var(--vfd); }
-  .deg { align-self: flex-start; width: calc(var(--t) * 3); height: calc(var(--t) * 3); margin-left: 1px; border: var(--t) solid var(--vfd); border-radius: 50%; }
-  .pc { margin-left: 2px; color: var(--vfd); font: 600 9px/1 "Helvetica Neue", Arial, sans-serif; }
-  .dark .dp, .dark .deg, .dark .pc { opacity: .1; }
 
   /* Alerts: an LED, and what is wrong on a dot-matrix fluorescent line. A critical one flashes. */
   .lamps { display: flex; flex-wrap: wrap; gap: 10px 24px; margin-bottom: 14px; padding: 10px 12px; }
@@ -159,6 +145,7 @@ export const STYLES = css`
   .wheels { display: flex; gap: 3px; }
   .wheel { display: flex; flex-direction: column; align-items: center; gap: 3px; }
   .wheel button { width: 18px; height: 13px; border: 1px solid #777; border-radius: 7px; color: #ccc; font-size: 10px; line-height: 11px; text-align: center; }
+  .wheel button:first-of-type::after { content: "+"; } .wheel button:last-of-type::after { content: "−"; }
   .wheel button:active, .push:active .key { background: #2c2d30; }
   .wheel button:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
   .wheel .figs { padding: 3px 1px; background: var(--glass); }

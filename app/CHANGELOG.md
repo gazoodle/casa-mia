@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.9-b4
+
+- **Dash-Bored: Beige, the Console of the 1990s.** The era switch's 90 now shows a panel of moulded beige plastic, so every decade from the 1950s is built. The meters are LCDs, with the segments that are not lit still to be seen, and nothing on the panel moves unless it is pressed. A level is set with a jog dial, with its setting on an LCD under it. Switches are rockers marked I and O, beside a keylock where they are guarded, and scenes are function keys under a paper strip. Alerts are on a character LCD, and a room's chart is in a window, with a line in its own colour for each device.
+
 ## 2026.11.9-b3
 
 - **Dash-Bored: Nixie, the Console of the 1960s.** The era switch's 60 now shows a rack of test instruments. A room's temperature is in nixie tubes, each with all ten figures to be seen in it, one behind another; the two meters at the top have needles. A room's lights are a magic eye, knobs are instrument knobs on a skirt with the heating's setting in tubes, switches are lever keys under a neon lamp, with a red cover where they are guarded, and scenes are round lit pushes. Alerts are on a strip from a teleprinter, and a room's chart is an oscilloscope.
