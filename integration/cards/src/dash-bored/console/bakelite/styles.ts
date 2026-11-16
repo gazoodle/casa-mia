@@ -23,13 +23,19 @@ export const STYLES = css`
 
   .top { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-end; margin-bottom: 16px; }
   .top .meter { flex: 0 1 170px; }
-  .floor { flex: 0 0 100%; margin-top: 6px; }
   .floor .label { font-size: 12px; }
-  /* A chassis is one, two or three widths across (balance.ts chooses, and counts on these
-     sizes). They wrap and share out a row's spare width, but one alone on a row is not stretched right across. */
-  .rooms { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
-  .room { flex: var(--wide, 1) 1 calc(var(--wide, 1) * 172px - 12px); max-width: min(100%, calc(var(--wide, 1) * 250px));
-    background: linear-gradient(170deg, #4a2a1d, var(--bake2)); border-radius: 14px; padding: 10px 10px 14px; text-align: center;
+  /* Between two floors in one row, a brass rod held off the enamel by two brass saddles,
+     a tenth of its length in from each end, each with a slotted screw either side of the rod. */
+  .bar { opacity: 1; background: linear-gradient(90deg, #6a4f18, #f6e3a0 36%, #c9a24b 62%, #5a4210); box-shadow: 3px 4px 4px rgba(0,0,0,.45), inset 0 0 0 .5px rgba(60,40,5,.6); }
+  .bar::before, .bar::after { content: ""; position: absolute; left: 50%; width: 24px; height: 13px; margin-left: -12px; border-radius: 6.5px;
+    background: linear-gradient(100deg, transparent 43%, rgba(30,18,4,.75) 44% 56%, transparent 57%) 2px 50% / 6px 6px no-repeat, linear-gradient(80deg, transparent 43%, rgba(30,18,4,.75) 44% 56%, transparent 57%) calc(100% - 2px) 50% / 6px 6px no-repeat,
+      radial-gradient(circle at 5px 50%, #8a6a22 0 3.4px, transparent 3.8px), radial-gradient(circle at calc(100% - 5px) 50%, #8a6a22 0 3.4px, transparent 3.8px),
+      linear-gradient(90deg, #b08a35, #f1d98d 30%, #fff3c4 50%, #e2c070 68%, #8a6a22);
+    box-shadow: 0 3px 4px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.5), inset 0 -1.5px 1px rgba(60,40,5,.6), 0 0 0 .6px #3a2808; }
+  .bar::before { top: 10%; } .bar::after { bottom: 10%; }
+  /* A chassis is some of the panel's columns across (views.ts lays the rooms out, and
+     balance.ts chooses). */
+  .room { background: linear-gradient(170deg, #4a2a1d, var(--bake2)); border-radius: 14px; padding: 10px 10px 14px; text-align: center;
     box-shadow: inset 0 2px 0 rgba(255,255,255,.15), inset 0 -4px 8px rgba(0,0,0,.5), 0 8px 14px rgba(0,0,0,.35); }
   /* A room's meter, knobs and switches share rows where the chassis is wide enough. Every
      control is fixed to the panel: it hangs from the top of its row and keeps the same

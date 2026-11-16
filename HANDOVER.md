@@ -362,6 +362,96 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
     picture, which depends on what is drawn. Headless WebKit never showed the stutter;
     it was found on the iPad with a test page of switches (the Console, 100 invented
     rooms), which is the way to look for the next one.
+- **Rooms stand in rows chosen by `pack.ts`** (2026.11.9-b9; owner, 2026-11-16: the
+  Console had "too much open space" on his house). `rows` takes how tall each room is at
+  each width and the number of columns, and gives each a width and a row for the least
+  height, order kept. Each family tells it its own sizes: the Console's exact ones in
+  `console/balance.ts` (`laid`), the Fridge's estimates in `fridge/rows.ts`. The columns
+  come from the element's width (`_resized` in `family.ts`, a ResizeObserver), and the
+  rows are kept until the rooms or the columns change. The grid itself is CSS, once for
+  all five eras in `console/views.ts` (it was copied in each era's stylesheet), and in
+  `fridge/styles.ts`, where the rows are left ragged on purpose.
+  - **Small rooms stack, floors run on, and nothing is stretched** (owner, 2026-11-16:
+    floors may share a row, with a separator; and the test VM "must look great", since
+    his video is shot there). A row is columns (`bays` in `pack.ts`), and a column holds
+    up to three small rooms (`STACK`), never across a floor (`apart`). A floor's plate is
+    in a lane over the row it begins in, and each bay is placed by its own grid row and
+    column, so a floor begins wherever the one before ends, with `.bar` to its left (brass
+    in Bakelite; a plain line in the other four eras, to be decided with him). On the
+    Console a chassis keeps its own height, and `racks` in `balance.ts` fits a blanking
+    plate (`.blank`, the era's chassis with a vent) under a bay with 96 px or more to
+    spare. Why: stretched to its row, a room of two switches was a tenth full. The plate
+    is where the back pocket's sensors are to go.
+  - Measured on the owner's house at 1024 px before the change: Console 25,655 px tall
+    and about 30% controls, Fridge 31,274 px. Sorting rooms by height within a floor was
+    simulated and saved 2% to 4% more, so the order is kept (his call was that rooms
+    could move within a floor; he asked for guidance, and that was it).
+  - The survey (`house.ts`) keeps one camera for each device, and gives each scene to its
+    room (by area, or by its name beginning with the room's), its floor (by name) or the
+    house. `scenes(house)` is all of them, for a family that lists them (the Gazette).
+    A new family that reads `house.scenes` alone shows only the house's and the floors'.
+  - A room's scenes on the Console are `console/selector.ts`, the same in every era and
+    not in the kits. Its pointer is the scene last set (a scene's state is that time).
+  - What's left is in BACKLOG. Checked on a throw-away harness with an invented house of
+    22 rooms, in all five eras, at 390 and 1024 px, in Chromium and WebKit: no control
+    outside its chassis. Bakelite also seen on the test VM (the bundle copied to its
+    share; 2,918 px before the stacks and plates, 2,605 after). Not seen on the owner's
+    house or a tablet, and the Fridge not on the VM.
+- **Aurora is the fourth family** (2026.11.9-b9; the owner asked for it on 2026-11-16).
+  `aurora.ts` on `family.ts`, after `docs/design/dash-bored/aurora.html`. In `aurora/`:
+  `bento.ts` packs tiles into screens, `pages.ts` says what the screens are, `words.ts`
+  is what it says (the hero's sentence, the power's line) and `styles.ts` the look.
+  - **It is screens, each full** (owner, 2026-11-16: the first build had "loads of space
+    around"; he expected none free, as in the mock-up). `bento` puts each tile where it
+    first fits at the size it wants, then grows the tiles into the cells left. Tall
+    tiles can box a free cell in (about one screen in fifty): that screen is laid out
+    again with every tile one row tall, which can't. A sweep of 12,600 cases left no
+    cell free. Sizes come from the survey alone (how many devices a room has), never
+    from how the house stands: a tile must not move because a light was switched.
+    `_lay` works the screens out again only when the survey or the cells change.
+  - **A set of rooms is not a floor** (owner, 2026-11-16: "arbitrary splits" was to stop
+    floor or area being built in; the other way is not yet specified). `splits` in
+    `pages.ts` is the one place that knows a set is a floor today. A set takes no more
+    screens than the fewest it can (`fewest`).
+  - **The way round** (owner, 2026-11-16): a tab at the left and the right edge that
+    names its neighbour, and a bar that floats at the foot with a drop shadow, which
+    also has the search and a button for the choice of family. That button fires
+    `CHOOSE` (`shell.ts`), since a full screen leaves the shell's corner no free place
+    to press. The screens stand side by side in a box the browser snaps sideways
+    (`.pages`); no script moves them. `updated` puts the pager back in place only when
+    the layout changed, or it would fight a swipe.
+  - **A tile that has the room holds the room's controls** (`holds` in `pages.ts`, by
+    the tile's size in px, down to 170 px tall each): my addition, after the first
+    packed screens had big tiles that were mostly empty glass. Its columns must stay the
+    sheet's (`.controls`), which is what `holds` counts by.
+  - **Where it leaves the mock-up, for a tablet's sake** (my choices, told to the owner):
+    the sky is gradients moved by transform, with no blur filter; a tile has no
+    `backdrop-filter` (only the sky is behind it); and the tile grows into the sheet by
+    an animation of the dialog's transform, since a view transition can't be styled from
+    a shadow root.
+  - A guarded device's dot opens the sheet, where its key takes two presses; a camera or
+    an alarm opens Home Assistant's dialog, with the sheet shut first (a modal dialog is
+    over anything Home Assistant opens). The ring is the first thermostat in the house's
+    order of rooms: the owner has not said which it should be.
+  - The power's line is asked from history once per sensor and then grows by what is
+    pushed, a point at most every 30 s (`thinned`, `GAP`).
+  - Shared with the Fridge: `_after` and `_instead` are now in `family.ts`; `STANDS` and
+    `AGAIN` are exported from `fridge.ts`, and `picture` from `fridge/magnets.ts` (the
+    white line pictures, coloured by Aurora's stylesheet).
+  - **What the browsers taught:** a `<dialog>` given a class with `position: relative`
+    is placed from the top of the document, not of the screen (`.sheet` is fixed by
+    name). Headless WebKit paints no `backdrop-filter`, so anything that needs the blur
+    to be read can't be judged there: the sheet, the bar and the edge tabs are nearly
+    opaque by themselves. A dot's class must not be a device's kind: `climate` is also
+    the thermostat tile's class (a light's dot is `lamp`).
+  - Seen on a throw-away harness with an invented house (Chromium and WebKit; tablet,
+    desktop and phone sizes; 8 and 48 rooms; light and dark), and on the test VM's page
+    in Home Assistant (2026-11-16, both browsers, wide and phone, light theme,
+    hand-copied `cards.js`). **Not seen:** a finger's swipe on any real device, the
+    dark theme in Home Assistant, the card and the card picker since the screens, an
+    iPad or a wall tablet. On the VM there were no alerts (Sensor Watch was not loaded
+    there that day), no scenes and no power sensor: those three were seen on the harness
+    only.
 - **The page and the families** (2026.11.8-b23). The sidebar's page (`panel_custom`, not in
   a frame, for every user) is `dash-bored-page` (`shell.ts`). It shows one family's
   element and holds the choice between them: two presses within `TWICE` in its top right
@@ -410,6 +500,11 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   is set at its source (ESPHome and KNX YAML). The label **Dash-Bored hide**
   (`HIDE_LABEL` in `const.py`, id `HIDE` in `house.ts`; a tests_ha test ties the two) is
   for the rest. The page changes nothing in the registries: the owner was told so.
+- **A light in no area still counts** (2026.11.9-b8; found when ZenOS's summary said 8
+  lights were on and the Gazette 7). `survey` keeps such lights as `strays`: on no room's
+  card, but in `lights(house)`, which the Gazette's lights story (and its turn-off button)
+  and the Fridge's notepad count with. A card of chosen floors or rooms leaves them out.
+  Other kinds in no area (a lock, a cover) are still in no story.
 - **Guarded devices** (my ruling for a live house, told to the owner): a lock, or a cover
   whose class is garage, gate or door, is never operated by a press on a sentence or a
   chip; that opens Home Assistant's dialog. The story's own remedy button may lock.
@@ -937,6 +1032,9 @@ CLAUDE.md has them all. What trips agents here:
   notify automation). The docs' screenshots come from it: don't clear it. Left there
   earlier and not checked since: the stable app installed and stopped, and a test
   automation (`cm_old_trigger`) using the old device trigger.
+  Since 2026-11-16 it also runs ZenOS-AI 2026.11.1 Beta 1, installed clean (persona
+  Juniper, invented household, Claude agent with only the DojoTools exposed, summaries
+  on the local Ollama model), so Dash-Bored's agent column has real Katas to show.
 - **Never silently stuck: go one step at a time** (2026-10-12). The owner wants it slow and
   methodical: one agreed step, built, recorded in `docs/never-silently-stuck.md`, seen on
   the test tablet, never redone; nothing planned beyond it; analyse before code, change

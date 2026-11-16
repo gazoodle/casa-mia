@@ -46,14 +46,23 @@ export const STYLES = css`
   .postit.warning { --lv: #ffc56b; } .postit.error { --lv: #ff9db0; } .postit.critical { --lv: #ff6464; animation: flap 1.2s ease-in-out infinite; }
   @keyframes flap { 50% { transform: rotate(calc(var(--r) + 2.500deg)) translateY(-2px); } }
 
-  /* The door's two parts: the rooms, and beside them the notepad and the rest. */
-  .board { display: grid; grid-template-columns: minmax(0, 3fr) minmax(210px, 1fr); gap: 28px; align-items: start; }
-  .photos { display: flex; flex-wrap: wrap; gap: 30px 14px; align-items: flex-start; }
+  /* The door's two parts: the notepad, the word magnets and the rest across the top, and
+     under them the rooms. (The notepad was a column down the side until 2026.11.9-b9: on a
+     big house it ended a seventh of the way down, and a quarter of the door was bare below it.)
+     The rooms stand on a grid of columns (--cols, as many as fit: fridge.ts). A bay is some
+     of them across, where fridge/rows.ts says (fridge.ts places each by its row and
+     column), and holds one room or a few small ones, one under another. The rows are
+     left ragged: nothing on a fridge lines up. */
+  .photos { display: grid; grid-template-columns: repeat(var(--cols, 1), minmax(0, 1fr)); column-gap: 14px; align-items: start; }
+  .bay { display: flex; flex-direction: column; gap: 30px; min-width: 0; margin-bottom: 30px; }
   /* A floor's name, on a strip of masking tape torn off by hand. */
-  .floor { flex: 0 0 100%; margin-bottom: -12px; }
+  .floor { margin-bottom: -12px; min-width: 0; }
+  /* A floor that begins part of the way along a row has a strip of the same tape down its left, as long as its tape is tall. */
+  .floor.beside { padding-left: 10px; border-left: 5px solid rgba(232, 219, 170, .92); }
   .floor span { display: inline-block; padding: 3px 22px 4px; background: rgba(232, 219, 170, .92); font-size: 16px; transform: rotate(var(--r)); box-shadow: 0 1px 2px rgba(0,0,0,.2);
     clip-path: polygon(0 12%, 2% 0, 4% 14%, 96% 6%, 98% 0, 100% 16%, 99% 60%, 100% 100%, 97% 88%, 3% 100%, 0 84%, 1.500% 50%); }
-  .room { flex: 1 1 200px; max-width: 330px; }
+  .room { min-width: 0; }
+  .room .poetry { margin-top: 12px; }
 
   /* A room's polaroid. Its edges have curled and it has been handled, so its outline is
      not square, it is creased once across, and a corner has gone dark. */
@@ -131,8 +140,9 @@ export const STYLES = css`
     text-shadow: 0 2px 0 rgba(0,0,0,.28), 2px 3px 4px rgba(0,0,0,.25); -webkit-text-stroke: 1px rgba(0,0,0,.14); }
   .keys button:active, .poetry button:active, .words button:active { transform: rotate(var(--r, 0deg)) scale(.9); }
 
-  /* Beside the rooms: the notepad on its clip, the word magnets, and whatever else is up. */
-  .side { display: flex; flex-direction: column; align-items: center; gap: 28px; }
+  /* Above the rooms: the notepad on its clip, the word magnets, and whatever else is up. */
+  .side { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 28px; margin-bottom: 30px; }
+  .side > .poetry { flex: 1 1 300px; max-width: 560px; }
   .pad { position: relative; width: 100%; max-width: 290px; padding: 46px 16px 14px 26px; border-left: 3px double #e88; font-size: 18px; line-height: 30px;
     background: repeating-linear-gradient(#fffbe0 0 29px, #b9d3ea 29px 30px); transform: rotate(1.500deg); box-shadow: 2px 5px 10px rgba(0,0,0,.25); }
   .pad::before { content: ""; position: absolute; left: 50%; top: -12px; width: 86px; height: 34px; margin-left: -43px; border-radius: 6px; background: linear-gradient(#3d3d3d, #111); box-shadow: 0 3px 5px rgba(0,0,0,.4); }
@@ -221,7 +231,6 @@ export const STYLES = css`
   @media (max-width: 760px) {
     .door { padding-left: 18px; padding-right: 18px; }
     .handle { display: none; }
-    .board { grid-template-columns: minmax(0, 1fr); }
     .who { justify-content: center; }
     /* Two notes to a row on a phone. */
     .notes { gap: 14px 12px; }

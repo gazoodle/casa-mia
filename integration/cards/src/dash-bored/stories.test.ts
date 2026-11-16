@@ -49,7 +49,7 @@ test("the house is read from areas, with names shortened and settings left out",
   assert.deepEqual(kitchen.devices.map((d) => [d.name, d.kind, d.on, d.level]), [["Thermostat", "climate", true, 21], ["Ceiling", "light", true, 80], ["Counter", "light", false, undefined], ["Kettle", "switch", true, undefined]]);
   assert.equal(kitchen.temp, 19.6);
   assert.equal(kitchen.target, 21);
-  assert.deepEqual(h.scenes, [{ id: "scene.evening", name: "Evening" }]);
+  assert.deepEqual(h.scenes.map((s) => [s.id, s.name, s.at]), [["scene.evening", "Evening", 0]]);
   assert.deepEqual(h.outside, { temp: 9.3, humidity: 81, sky: "cloudy", id: "weather.home", daily: false });
   // A plug drawing a kilowatt or more is an appliance at work.
   assert.deepEqual(h.appliances, [{ id: "switch.kettle", name: "Kettle", room: "Kitchen", kw: 2.2 }]);

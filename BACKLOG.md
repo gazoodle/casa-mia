@@ -16,6 +16,56 @@ the Gazette's own work is parked below it.
   the chart is of the day up to when it was opened and does not run on; a thermostat's
   modes (heat, cool, auto) and a player's source are not on the panel; the Gazette's
   columns (forecast, Personal, Amusements) have no place on it.
+- **The Console's and the Fridge's open space, what's left** (owner, 2026-11-16; the survey's
+  cuts, the rows from `pack.ts`, the selector switch and the Fridge's layout are built, in
+  2026.11.9-b9). Agreed with the owner that day and not built:
+  - Rooms with one or two controls sharing one chassis, a small plate over each: they
+    stand one under another now (b9), but each still has its own lamp, plate and Chart
+    button, about 120 px. Not measured.
+  - The bar between two floors in a row is brass in Bakelite and a plain line in the
+    other four eras: theirs are to be decided with the owner (offered: a machined groove
+    for Silverface, Bargraph's orange line, a moulded seam for Beige; none for Nixie yet).
+  - Switches by what they are, not one dolly for all: gang plates (several of a sort on
+    one long plate at a tighter pitch), power feeds as a row of breakers, pumps and fans
+    as a start and stop pair. Each new control is drawn in five eras, so few of them.
+  - The back pocket: a chassis's spare cells filled from the room's sensors that the
+    panel doesn't show, the ones Sensor Watch watches first; a binary sensor as the kit's
+    `jewel`, a reading as a small meter, on the blanking plates that b9 fits. Never
+    grows a chassis, and is chosen from the survey so that nothing moves with a state.
+  - Not seen on the owner's house or on a tablet: only on a harness with an invented
+    house (Chromium and WebKit). The Fridge's sizes in `fridge/rows.ts` are estimates.
+- **Aurora, what's left** (built 2026.11.9-b9; seen on a harness and on the test VM's
+  page, see HANDOVER).
+  - **To measure on the owner's iPad before more is built on it:** a finger's swipe
+    between screens (nothing but a script has moved them yet); whether a swipe from the
+    left edge opens Home Assistant's sidebar or goes back instead; and how the sideways
+    box scrolls with a big house, since the stutter rule in HANDOVER came from a box
+    that scrolled. The sky's four moving gradients and the sheet's blur are the other
+    things to measure on a wall tablet.
+  - A big set's screens are plain: when every room must be one cell to save a screen,
+    the tiles grow into columns of much the same shape. A phone's bar runs off its
+    right edge and is scrolled to reach the search.
+  - Not looked at since the screens: the card (its height is in proportion to its
+    width) and the card picker's specimen. The guide's picture is still the mock-up's.
+  - Not on it: a device's history, a thermostat's modes, a player's source, the
+    cameras' sightings, the Gazette's columns, people, the weather. The ring is the
+    first thermostat in the order of rooms: the owner to say if it should be chosen
+    another way. A thermostat that takes a range and not one target is a key that
+    switches it off or on, as on the Fridge. A press anywhere on a fader sets its
+    level. Guarded presses are now written three times (the Fridge, Aurora, and the
+    Gazette's own): one in `family.ts` would do, as a refactor commit of its own.
+- **Aurora, the owner's review** (2026-11-16, after seeing it on the test VM; not yet
+  designed or agreed in detail). It is the family closest to the dashboards other people
+  publish, so look at those for ideas.
+  - **More bento, and screens with a bar and edge tabs:** built the same day (HANDOVER).
+    How the house is split into sets of rooms is still only by floor: the owner means
+    there to be another way, which he has not yet specified.
+  - **Its skins are varieties of colour**, after HA Dial's themes (`../ha-dial`,
+    `custom_components/ha_dial/scene.py` `THEMES`: ember, verdant, cobalt, rose, acid,
+    alloy), and there are to be themes for holidays and seasons.
+  - **Mode and style open to automation, for every family** (the family, and a family's
+    own choice: paper, era, household, theme). Today each is in the browser's storage,
+    where nothing in Home Assistant can reach it. Aurora may be the first to have it.
 - **The choice of family, further**: an address for each family, so that a tablet can be
   fixed to one from its kiosk settings (offered 2026-11-14, not asked for). A scene made
   without a unique id (in YAML, or by `scene.create`) is in no registry, so no family
@@ -88,15 +138,18 @@ the Gazette's own work is parked below it.
   - To try first: gather the Katas with one read-only tapestry call (`mode=weave` with
     inline `weave_sources`, the file cabinet's "print shop" example) instead of reading
     each cabinet. Not yet proven that an integration gets the response back.
-  - Build it against ZenOS-AI 11.1 (the item below), not the copy we have.
+  - Build it against ZenOS-AI 11.1, which the test VM now runs (2026.11.1 Beta 1,
+    installed clean on 2026-11-16, with Katas flowing).
   - The column keeps its by-line and the time it was written. A failed model or a
     summary that is out of date is said on the page, never covered by the raw Katas. A
     house without ZenOS has no column, as now.
   - This replaces the raw-Kata column of 2026.11.8-b40 (`katas.ts`, `gazette.ts`).
-- **ZenOS-AI 11.1, a clean reinstall** (promised 2026-11-15). When it is out, install it
-  from scratch on a clean VM and report to its author how it goes. The fresh-install
-  report of 2026-11-15 listed 13 problems; he says most are fixed or coming in 11.1, and
-  that the `cert_bypass` override stays the only way through without a phone.
+- **ZenOS-AI 11.1, post the report** (promised 2026-11-15). Installed from scratch on
+  the test VM on 2026-11-16 from Beta 1 (`feat/2026.11.1`, 318c6f4; not yet released).
+  It reached summaries and component Katas, but only through two console workarounds and
+  four restarts. The owner posts the report to its author: the draft is
+  `~/Documents/zenos-2026.11.1-report-draft.md`, the full notes
+  `~/Documents/zenos-2026.11.1-install-notes.md` (both outside the repo).
 - **The Fridge, what's left** (built 2026.11.8-b37, in three households; not yet seen
   by the owner, nor on a tablet). A sighting's photograph, a sounding alarm and a
   critical note have not been seen, since the test VM makes none. A room's drawn picture

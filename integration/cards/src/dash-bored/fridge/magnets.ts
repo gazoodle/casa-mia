@@ -39,12 +39,16 @@ const PICTURES: Record<Kind, TemplateResult> = {
 // A padlock that is undone, for a lock that is unlocked.
 const UNDONE = svg`${line("M6.5,11 h11 v9 h-11 z M8.8,11 V8 a3.2,3.2 0 0 1 6.2,-1")}<circle cx="12" cy="15.5" r="1.4" fill="#fff"/>`;
 
+/** The picture for a kind of device by itself, on its 24 by 24 square: Aurora's, which
+ * colours the white line with its own stylesheet (aurora/styles.ts). */
+export const picture = (kind: Kind, undone = false) => (kind === "lock" && undone ? UNDONE : PICTURES[kind]);
+
 /** A round button magnet with the picture for a kind of device. Its colour is the
  * element's `--c`, and styles.ts dulls it while its device is off. */
 export const button = (kind: Kind, undone = false) => svg`<svg class="button" viewBox="0 0 48 48" aria-hidden="true">
   <circle cx="24" cy="26" r="21" fill="#000" opacity=".28"/><circle class="disc" cx="24" cy="24" r="21"/>
   <circle cx="24" cy="24" r="21" fill="url(#dome)"/><circle cx="24" cy="24" r="17.5" fill="none" stroke="#000" stroke-opacity=".12" stroke-width="1.2"/>
-  <g transform="translate(12 12)">${kind === "lock" && undone ? UNDONE : PICTURES[kind]}</g>
+  <g transform="translate(12 12)">${picture(kind, undone)}</g>
   <ellipse cx="16.5" cy="13.5" rx="7" ry="3.6" fill="#fff" opacity=".4" transform="rotate(-32 16.5 13.5)"/></svg>`;
 
 // The novelty magnets: moulded and painted, each with a shine on its upper left.

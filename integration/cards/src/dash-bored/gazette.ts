@@ -11,7 +11,7 @@ import { fire, navigate } from "../ha.ts";
 import { clipping, photograph } from "./clipping.ts";
 import { Acts } from "./gazette/acts.ts";
 import { ARCHIVE, PAST } from "./gazette/page.ts";
-import { DEGREES, sighted, type Device, type Room } from "./house.ts";
+import { scenes, DEGREES, sighted, type Device, type Room } from "./house.ts";
 import { lapsed } from "./katas.ts";
 import { cap, clock, counted, billing, personal, stories, type Press, type Story } from "./stories.ts";
 import { FIXES, VOICES, amount, announce, billed, clause, fill, poll, sky, tell, wired, words, type Told } from "./voices.ts";
@@ -244,8 +244,8 @@ export class Gazette extends Acts {
                     html`${g.kind === "plumbing" && item.via !== g.items[i - 1]?.via ? html`<li class="via">${FIXES[item.via ?? ""] ?? `${item.via}. ${FIXES[""]}`}:</li>` : nothing}<li><button class="mend" @click=${() => (g.kind === "floorless" || g.kind === "cold" ? navigate(`/config/areas/area/${item.id}`) : fire(this, "hass-more-info", { entityId: item.id }))}>${item.name}</button></li>`)}</ul></details>`)}
                 <p class="mend">${voice.mend}</p>`
             : nothing}
-          ${house.scenes.length
-            ? html`<h3>${voice.titles.notices}</h3>${house.scenes.slice(0, 8).map((s, i) =>
+          ${house.scenes.length || house.rooms.some((r) => r.scenes.length)
+            ? html`<h3>${voice.titles.notices}</h3>${scenes(house).slice(0, 8).map((s, i) =>
                 html`<button class="ad" @click=${() => this._call({ domain: "scene", service: "turn_on", ids: [s.id] }, s.name)}><b>${s.name}</b>${voice.notices[i % voice.notices.length]}</button>`)}`
             : nothing}
         </aside>

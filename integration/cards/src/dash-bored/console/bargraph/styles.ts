@@ -25,12 +25,10 @@ export const STYLES = css`
     box-shadow: inset 0 1px 0 rgba(255,255,255,.16), inset 0 -1px 0 #000, 0 2px 5px #000; }
   .top { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 14px; }
   .top > .meter { flex: 0 1 190px; padding: 10px 10px 8px; }
-  .floor { flex: 0 0 100%; margin-top: 6px; }
   .floor .label { font-size: 12px; font-style: italic; letter-spacing: .24em; color: var(--amber); }
-  /* A chassis is one, two or three widths across (balance.ts chooses, and counts on these
-     sizes). Its lights are at its top left and its name at its top right, over an orange line. */
-  .rooms { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
-  .room { display: grid; grid-template-columns: auto 1fr; align-items: center; flex: var(--wide, 1) 1 calc(var(--wide, 1) * 172px - 12px); max-width: min(100%, calc(var(--wide, 1) * 250px)); padding: 12px 10px 14px; text-align: center; }
+  /* A chassis is some of the panel's columns across (views.ts lays the rooms out, and
+     balance.ts chooses). Its lights are at its top left and its name at its top right, over an orange line. */
+  .room { display: grid; grid-template-columns: auto 1fr; align-items: center; padding: 12px 10px 14px; text-align: center; }
   .room > .label { justify-self: end; font-size: 13px; font-style: italic; letter-spacing: .2em; text-align: right; }
   .room > :not(.leds, .label) { grid-column: 1 / -1; }
   /* Every control is fixed to the panel: it hangs from the top of its row and keeps the

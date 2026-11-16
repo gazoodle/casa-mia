@@ -7,6 +7,8 @@ import { LitElement, css, html, nothing, type TemplateResult } from "lit";
 import type { Hass } from "../ha.ts";
 
 export const PAGE = "dash-bored-page";
+/** The event a family fires to have the choice of family opened: for one whose page leaves no corner free to press (Aurora's bar has a button for it). */
+export const CHOOSE = "dash-bored-choose";
 const REMEMBERED = "dash-bored-family"; // this browser's choice
 const CORNER = 120; // px: how far the corner reaches along the top and down the side
 const TWICE = 450; // ms: two presses within this are one double press
@@ -48,6 +50,16 @@ const FAMILIES: Family[] = [
       <rect x="128" y="18" width="26" height="26" fill="#fff48f" transform="rotate(5 141 31)"/><rect x="130" y="52" width="24" height="24" fill="#ff9db0" transform="rotate(-6 142 64)"/>
       <g><circle cx="34" cy="80" r="7" fill="#457b9d"/><circle cx="54" cy="82" r="7" fill="#b9b9b2"/><circle cx="92" cy="78" r="7" fill="#f4a261"/><circle cx="112" cy="81" r="7" fill="#9b5de5"/></g></svg>`,
   },
+  {
+    id: "aurora", name: "Aurora", says: "The house in the current web style: glass tiles over a sky that warms as the lights come on. A room's tile grows into a sheet of faders.",
+    draw: (hass, narrow) => html`<dash-bored-aurora .hass=${hass} .narrow=${narrow} .panel=${true}></dash-bored-aurora>`,
+    still: html`<svg viewBox="0 0 160 100" aria-hidden="true"><rect width="160" height="100" fill="#0b0d16"/>
+      <circle cx="28" cy="22" r="46" fill="#5b6cf0" opacity=".45"/><circle cx="136" cy="30" r="42" fill="#22b8c8" opacity=".4"/><circle cx="92" cy="96" r="44" fill="#e0559c" opacity=".4"/><circle cx="140" cy="88" r="26" fill="#f2c14e" opacity=".5"/>
+      <g fill="#fff" fill-opacity=".14" stroke="#fff" stroke-opacity=".35" stroke-width=".6"><rect x="8" y="8" width="62" height="46" rx="8"/><rect x="8" y="60" width="62" height="12" rx="6"/><rect x="8" y="78" width="36" height="14" rx="6"/><rect x="48" y="78" width="22" height="14" rx="6"/>
+        <rect x="76" y="8" width="36" height="40" rx="8"/><rect x="116" y="8" width="36" height="40" rx="8"/><rect x="76" y="52" width="36" height="40" rx="8"/><rect x="116" y="52" width="36" height="40" rx="8"/></g>
+      <rect x="14" y="24" width="40" height="6" rx="3" fill="#fff"/><rect x="14" y="36" width="48" height="3" rx="1.5" fill="#fff" opacity=".6"/><rect x="14" y="42" width="34" height="3" rx="1.5" fill="#fff" opacity=".6"/>
+      <circle cx="84" cy="40" r="3.5" fill="#fff"/><circle cx="94" cy="40" r="3.5" fill="#fff" opacity=".3"/><circle cx="124" cy="40" r="3.5" fill="#fff" opacity=".3"/><circle cx="84" cy="84" r="3.5" fill="#fff"/><circle cx="124" cy="84" r="3.5" fill="#fff"/></svg>`,
+  },
 ];
 
 export class Shell extends LitElement {
@@ -87,12 +99,16 @@ export class Shell extends LitElement {
     }
     // In the capture phase: a family may stop a press from going further up than itself.
     this.addEventListener("click", this._tap, true);
+    this.addEventListener(CHOOSE, this._asked);
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
     this.removeEventListener("click", this._tap, true);
+    this.removeEventListener(CHOOSE, this._asked);
   }
+
+  private _asked = () => (this._choosing = true);
 
   private _tap = (event: MouseEvent) => {
     const box = this.getBoundingClientRect();

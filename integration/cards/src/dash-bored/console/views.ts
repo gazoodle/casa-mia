@@ -1,12 +1,42 @@
-// How the cards that show less than the whole panel (cards.ts) are laid out, the same in
-// every era. Each era's element takes these before its own styles, so where an era says
-// otherwise (a label on a plate of its own colour) the era's word stands.
+// What is laid out the same in every era: the grid the rooms' chassis stand in, the
+// selector switch, and the cards that show less than the whole panel (cards.ts). Each
+// era's element takes these before its own styles, so where an era says otherwise (a
+// label on a plate of its own colour) the era's word stands.
 import { css } from "lit";
+import { SELECTOR } from "./selector.ts";
 
-export const VIEWS = css`
+const LAYOUT = css`
+  /* The rooms stand on a grid of columns (--cols, as many as fit: panel.ts). A bay is some
+     of them across, where balance.ts says (panel.ts places each by its row and column),
+     and holds one chassis or a few small ones, one under another. The bays of a row are
+     stretched to one height, as panels in a rack are. Where a bay's chassis are shorter
+     than that by enough, they keep their own height and a blanking plate is fitted under
+     them (.blanked: balance.ts says); otherwise they share what is spare. balance.ts
+     counts on these sizes: change them together. */
+  .rooms { display: grid; grid-template-columns: repeat(var(--cols, 1), minmax(0, 1fr)); column-gap: 12px; align-items: stretch; }
+  .bay { display: flex; flex-direction: column; gap: 12px; min-width: 0; margin-bottom: 12px; }
+  .room { flex: 1 1 auto; min-width: 0; align-content: start; }
+  .blanked > .room { flex: 0 0 auto; }
+  /* The plate is a chassis with nothing on it but a vent: its look is its era's chassis. */
+  .blanked > .room.blank { flex: 1 1 0; display: flex; align-items: center; justify-content: center; min-height: 0; padding: 14px; overflow: hidden; }
+  .blank::before, .blank::after { content: none; }
+  .vent { display: block; width: min(64%, 240px); height: min(100%, 132px); border-radius: 5px;
+    background: repeating-linear-gradient(rgba(0,0,0,.5) 0 5px, rgba(255,255,255,.1) 5px 6px, transparent 6px 13px); box-shadow: inset 0 0 0 1px rgba(0,0,0,.35); }
+  /* A floor's plate, in the lane over the row its floor begins in, with a push button for
+     each of the floor's own scenes beside it. */
+  .floor { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 4px 18px; min-width: 0; margin: 6px 0; }
+  /* The bar between two floors that share a row: on the panel itself, between their
+     chassis, from the plate down. The bay before it (.bars) and the floor it begins
+     (.barred) each stand 17 px off, so that the bar has 20 px of panel on each side
+     (owner, 2026-11-16: twice the 10 px it had). An era may make it of its own stuff. */
+  .barred { padding-left: 17px; }
+  .bars { padding-right: 17px; }
+  .bar { position: relative; justify-self: start; width: 6px; margin: 6px 0 12px -9px; border-radius: 3px; background: currentColor; opacity: .4; }
+  /* A room's one scene has a knife switch among its controls. An open blade stands well above its switch. */
+  .works > .knife { flex: 0 0 130px; min-height: 124px; margin-top: 38px; }
+
   /* A card for one room, one instrument or the lamps is no page: no page's height, and a narrower margin. */
   .panel.as-room, .panel.as-instrument, .panel.as-lamps { min-height: 0; padding: 12px; }
-  .as-room .room { max-width: none; }
   .as-instrument { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 8px; }
   .as-instrument > .warn { flex-basis: 100%; }
   .as-lamps .lamps { margin-bottom: 0; }
@@ -15,3 +45,5 @@ export const VIEWS = css`
   .panel.bare { padding: 0; background: none; box-shadow: none; border: 0; }
   :where(.bare) .label { color: var(--primary-text-color); }
 `;
+
+export const VIEWS = [LAYOUT, SELECTOR];

@@ -27,12 +27,10 @@ export const STYLES = css`
   .room::before, .knives::before, .lamps::before { left: 3px; } .room::after, .knives::after, .lamps::after { right: 3px; }
   .top { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 14px; }
   .top > .meter { flex: 0 1 190px; padding: 12px 12px 8px; }
-  .floor { flex: 0 0 100%; margin-top: 6px; }
   .floor .label { font-size: 13px; letter-spacing: .3em; }
-  /* A chassis is one, two or three widths across (balance.ts chooses, and counts on these
-     sizes). Its magic eye is at its top left and its name at its top right. */
-  .rooms { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
-  .room { display: grid; grid-template-columns: auto 1fr; align-items: center; flex: var(--wide, 1) 1 calc(var(--wide, 1) * 172px - 12px); max-width: min(100%, calc(var(--wide, 1) * 250px)); padding: 14px 10px 14px; text-align: center; }
+  /* A chassis is some of the panel's columns across (views.ts lays the rooms out, and
+     balance.ts chooses). Its magic eye is at its top left and its name at its top right. */
+  .room { display: grid; grid-template-columns: auto 1fr; align-items: center; padding: 14px 10px 14px; text-align: center; }
   .room > .label { justify-self: end; font-size: 12px; text-align: right; }
   .room > :not(.eye, .label) { grid-column: 1 / -1; }
   /* Every control is fixed to the panel: it hangs from the top of its row and keeps the

@@ -62,10 +62,8 @@ export const STYLES = css`
 
   .top { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-end; margin-bottom: 16px; }
   .top .meter { flex: 0 1 190px; }
-  .floor { flex: 0 0 100%; margin-top: 6px; }
-  .rooms { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
   /* A faceplate: brushed aluminium, a socket screw in each corner. */
-  .room { flex: var(--wide, 1) 1 calc(var(--wide, 1) * 172px - 12px); max-width: min(100%, calc(var(--wide, 1) * 250px)); padding: 16px 10px 14px; border-radius: 3px; text-align: center;
+  .room { padding: 16px 10px 14px; border-radius: 3px; text-align: center;
     background: radial-gradient(circle at 9px 9px, #2a2c2e 0 1.6px, #8e9296 1.7px 3.6px, transparent 4px), radial-gradient(circle at calc(100% - 9px) 9px, #2a2c2e 0 1.6px, #8e9296 1.7px 3.6px, transparent 4px),
       radial-gradient(circle at 9px calc(100% - 9px), #2a2c2e 0 1.6px, #8e9296 1.7px 3.6px, transparent 4px), radial-gradient(circle at calc(100% - 9px) calc(100% - 9px), #2a2c2e 0 1.6px, #8e9296 1.7px 3.6px, transparent 4px),
       repeating-linear-gradient(90deg, rgba(255,255,255,.07) 0 1px, rgba(0,0,0,.035) 1px 2px, transparent 2px 3px), linear-gradient(180deg, #dfe1e3, #bfc2c5 55%, #d3d5d7);

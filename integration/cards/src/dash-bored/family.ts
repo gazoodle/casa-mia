@@ -59,6 +59,7 @@ export class Family extends LitElement {
   protected _timers = new Set<ReturnType<typeof setTimeout>>();
   protected _asking?: ReturnType<typeof setTimeout>; // the level waiting to be asked for: see _ask
   private _picked = false; // in Home Assistant's card picker: see `picked`
+  private _sizes?: ResizeObserver; // watches the element's width while it is on the page
 
   static getStubConfig() {
     return {};
@@ -146,10 +147,18 @@ export class Family extends LitElement {
       if (this._hass) this.hass = this._hass;
     }
     if (this._hass?.connected !== false) this._listen();
+    // The element's width, for a family that lays its rooms out by it: now, and whenever it changes.
+    this._resized(this.clientWidth || window.innerWidth);
+    this._sizes = new ResizeObserver(([box]) => this._resized(box.contentRect.width));
+    this._sizes.observe(this);
   }
+
+  /** The element is `px` wide: for a family that chooses its rooms' rows by its width (pack.ts). */
+  protected _resized(_px: number) {}
 
   disconnectedCallback() {
     super.disconnectedCallback();
+    this._sizes?.disconnect();
     for (const feed of this._feeds.values()) feed.then((stop) => stop()).catch(() => undefined);
     this._feeds.clear();
     for (const timer of this._timers) clearTimeout(timer);
@@ -178,6 +187,24 @@ export class Family extends LitElement {
       this._survey = undefined;
       if (this._hass) this.hass = this._hass;
     });
+  }
+
+  /** Do something once `ms` have passed, unless the element has gone by then. */
+  protected _after(ms: number, then: () => void) {
+    if (ms <= 0) return undefined;
+    const timer = setTimeout(() => {
+      this._timers.delete(timer);
+      then();
+    }, ms);
+    this._timers.add(timer);
+    return timer;
+  }
+
+  /** The same, in place of an earlier wait of the same kind. */
+  protected _instead(was: ReturnType<typeof setTimeout> | undefined, ms: number, then: () => void) {
+    clearTimeout(was);
+    this._timers.delete(was!);
+    return this._after(ms, then);
   }
 
   protected _call(press: Press, what: string) {

@@ -4,18 +4,18 @@
 
 > **Maturity: In development.** Being built: parts work, it changes often, and an update may break it. For the curious. ([The levels](../README.md#maturity))
 
-> **This is a work in progress.** Of the eighteen, three run in Home Assistant today: the
-> Gazette, Bakelite and the Fridge. The other fifteen are mock-ups:
+> **This is a work in progress.** Of the eighteen, four run in Home Assistant today: the
+> Gazette, Bakelite, the Fridge and Aurora. The other fourteen are mock-ups:
 > designs that work against an invented house but don't talk to Home Assistant yet. They
 > are being built one at a time, and what is here changes often.
 
 Aren't you bored with the endless proliferation of Home Assistant dashboards being churned
-out by AI? Often by well-meaning folk, mostly similar, all beautiful, but sadly forgettable
-in today's ecosystem.
+out by AI? Often by well-meaning folk, the systems they build are mostly similar, all beautiful, 
+but sadly forgettable.
 
-I was.
+I know that I was.
 
-But taking the pee is much more fun than shouting into the wind.
+But having a laugh is much more fun than shouting into the wind.
 
 So I decided to have some fun.
 
@@ -40,7 +40,7 @@ the Casa Mia integration.
 
 ## The eighteen, and where each has got to
 
-The Gazette, Bakelite and the Fridge can be used. The pictures of the others are of their mock-ups.
+The Gazette, Bakelite, the Fridge and Aurora can be used. The pictures of the others, and Aurora's for now, are of their mock-ups.
 
 <table>
 <tr>
@@ -64,7 +64,7 @@ The Gazette, Bakelite and the Fridge can be used. The pictures of the others are
 </td>
 <td width="33%" valign="top">
 <img src="../screenshots/dash-bored-mock-aurora.webp" alt="Aurora, as a mock-up" width="100%">
-<p><b>Aurora</b> · Mock-up<br>Current web style: glass tiles in a bento grid over a sky that warms as lights come on. A room tile grows into a sheet of faders.</p>
+<p><b><a href="#aurora">Aurora</a></b> · Being built (the picture is of its mock-up)<br>Current web style: glass tiles in a bento grid over a sky that warms as lights come on. A room tile grows into a sheet of faders.</p>
 </td>
 <td width="33%" valign="top">
 <img src="../screenshots/dash-bored-mock-pcb.webp" alt="Board, as a mock-up" width="100%">
@@ -152,8 +152,8 @@ of the page, on a part of it that is not a button or another control. A choice o
 a small drawing of each family; press one and the page becomes it.
 
 The choice is remembered by the browser it was made in. A tablet on the wall, a phone and
-a desktop each keep their own. There are three families: the Gazette, the Console and
-the Fridge. Each has a choice of its own, made on the thing itself: the Gazette's three
+a desktop each keep their own. There are four families: the Gazette, the Console, the
+Fridge and Aurora. The first three each have a choice of their own, made on the thing itself: the Gazette's three
 papers (see [Three papers](#three-papers)), the Console's era, on a switch on the panel
 (see [The Console](#the-console)), and whose fridge it is, on three magnets in the door's
 corner (see [The Fridge](#the-fridge)).
@@ -496,12 +496,34 @@ handwritten in ink, giving the sensor's name, what is wrong and since when. The 
 one, amber for a warning and white for a task. When nothing is wrong there are no lamps.
 
 Under the lamps are a meter for the outside air, from a weather entity, a meter for the
-house's power if a card names a power sensor, and a knife switch for each scene. Press a
-knife switch and the scene is turned on; the blade closes for a moment and opens again.
+house's power if a card names a power sensor, and a knife switch for each scene that
+belongs to the whole house. Press a knife switch and the scene is turned on; the blade
+closes for a moment and opens again.
 
-Below is a chassis for each room, under a plate for each floor. A room with many controls
-has a chassis two or three times as wide, with its controls side by side, so that no room
-is far taller than the others. Each chassis has:
+A scene that belongs to a room is on that room's chassis, and one that belongs to a floor
+is a push button on that floor's plate. A scene belongs to a room if it is in the room's
+area, or if its name begins with the room's name: "Kitchen - Dining" is the kitchen's
+"Dining". It belongs to a floor if its name begins with the floor's name. The label
+**Dash-Bored hide** on a scene keeps it off every page.
+
+Below is a chassis for each room. The panel is a grid of columns, as many as fit across
+it. A room with many controls has a chassis several columns wide, with its controls side
+by side, and up to three small rooms stand one under another in one column. The widths
+and the rows are chosen so that the page is as short as it can be. The rooms keep their
+order.
+
+A plate with the floor's name is over the first room of each floor. A floor does not
+begin a new row: its first room follows the last room of the floor before, where there
+is room, with a bar between the two floors (brass, in Bakelite). Where a column's chassis
+are shorter than their row, a blanking plate with a vent in it fills the space under
+them. Each chassis has:
+
+- A selector switch for the room's scenes, if it has more than one: a pointer knob with
+  a numbered stop for each scene, and a list under it that says which number is which.
+  Press a number or a line of the list to turn the scene on. The pointer shows which of
+  the room's scenes Home Assistant turned on last. It does not mean the room is still as
+  that scene left it. A room with one scene has a knife switch for it, and a room with
+  more than ten has a second selector.
 
 - **A valve**, which glows with the room's lights: brighter the more of them are lit and
   the higher they are set.
@@ -700,11 +722,17 @@ does.
   [Sensor Watch](sensor-watch.md) has above its normal level, the worst first: yellow for
   a task, orange for a warning, pink for an error, and a red one that won't keep still
   for critical.
-- **A notepad** beside the rooms with the day jotted on it: how many lights are on, what
+- **A notepad** above the rooms with the day jotted on it: how many lights are on, what
   the house is using, the weather outside, the warmest and coldest rooms, who is in, and
   any lock that is undone.
 - **Word magnets**, as for fridge poetry. The ones with a coloured edge are your scenes:
-  press one to run it. The others are only words.
+  press one to run it. The others are only words. A scene that belongs to a room (see
+  [The Console](#the-console) for how that is decided) is under that room's magnets.
+
+The rooms are in rows, a room with many magnets is wider, and small rooms are one
+under another, so that the door is not much taller than it needs to be. A floor's name
+is on its strip of tape over the first of its rooms, and a floor begins where the one
+before it ends.
 
 If the connection to Home Assistant is lost, or Home Assistant refuses a press, a torn
 sheet in red at the top says so.
@@ -729,6 +757,78 @@ choice is remembered by the browser it was made in.
 
 Nothing on the door is straight or clean. Everything is turned a little, each photograph
 is creased in its own way, and the door has fingerprints by its handle.
+
+## Aurora
+
+The house in the style of today's web pages: tiles of glass over a coloured sky. It is
+being built, and its picture in the table above is still of its mock-up.
+
+The sky behind the tiles changes with how much light is on in the house. With everything
+off it is blue, green and pink, and it turns warmer, towards amber, as lights come on. A
+light at half brightness counts as half a light.
+
+Aurora is a set of screens, and each screen is filled with tiles of different sizes, with
+no space left over. The page does not scroll down. To go from one screen to the next:
+
+- **Swipe** sideways.
+- **Press the tab** at the left or the right edge, which names the screen on that side.
+  A phone has no tabs.
+- **Use the bar** that floats at the foot of the page. It has an entry for the home
+  screen and one for each floor, and the one you are on is filled in. A floor with more
+  rooms than fit a screen has several screens, shown as spots under its name.
+
+The first screen is the home screen:
+
+- **The greeting**, with the date and the time, and a sentence that says how many lights
+  are on, what the house is drawing if the card names a power sensor, and which room is
+  warmest if more than one room has a thermometer.
+- **Sensor Watch's alerts**, the worst first, each with what is wrong and since when. The
+  tile says so when nothing needs attention, and when Sensor Watch is not installed.
+- **The house's scenes**, a button each. A button that was pressed is dark for a moment,
+  to show that the press was taken. A scene that belongs to a room (see
+  [The Console](#the-console) for how that is decided) is on that room's sheet.
+- **Drawing now**: the house's power, with a line of its last hour, if the card names a
+  power sensor.
+- **A thermostat's ring**, with − and + to change its target. It is the first thermostat
+  in the house's order of rooms.
+- **A tile for each floor**, with its rooms and how many lights are on in each. Press it
+  to go to that floor's first screen.
+
+The other screens have a tile for each room, with its name, how many of its lights are
+on and its temperature. The tile glows from one corner in proportion to the light that
+is on in the room. How big a room's tile is depends on how much is in the room and on
+how many rooms share the screen, and the tiles grow to fill it.
+
+- **A small tile** has a round button for each of its first few devices. Press one and
+  its device is switched. Press anywhere else on the tile and it grows into a sheet with
+  everything in the room.
+- **A tile with the room for them** has the room's controls on it, as the sheet has, so
+  there is nothing to open.
+
+A room's controls, on its sheet or on its tile, are:
+
+- **The room's scenes**, a button each (on the sheet only).
+- **A fader** for anything with a level: a light's brightness, a blind's position, a
+  fan's speed, a player's volume. Put a finger on it and the level follows the finger.
+  The device is asked for the level once the finger is still. With a keyboard, the up and
+  down arrows move it.
+- **− and +** for a thermostat or a water heater.
+- **A key** for everything else. Press it and the device is switched.
+
+A lock, a garage door, a gate, a valve or a siren is not worked by its round button on a
+tile. That button opens the sheet, and its key takes two presses to unlock, open or
+sound. A camera or an alarm opens Home Assistant's own dialog.
+
+The bar also has a search. It dims every room that doesn't match what you type: a room's
+name, or the name of a device or a scene in it. Press Enter and it goes to the first
+screen with a match. On a keyboard, `/` goes to the search. The last button on the bar
+opens the choice of style, the same as pressing twice in the page's top right corner.
+
+Aurora follows Home Assistant's light or dark theme. If the page loses its connection, or
+Home Assistant refuses something, it says so in a box at the top of the page.
+
+Not on it yet: a device's history, a thermostat's modes, a player's source, the cameras'
+sightings and the Gazette's columns.
 
 ## The order of floors and rooms
 
@@ -765,6 +865,9 @@ The Fridge is a card too, **Casa Mia Dash-Bored Fridge** (`type: custom:dash-bor
 Give it `style: family`, `style: yuppies` or `style: grandparents` and it is that household's
 with no magnets to choose another.
 
+Aurora is a card too, **Casa Mia Dash-Bored Aurora** (`type: custom:dash-bored-aurora`). It
+takes `power`, `floors` and `rooms` in the same way, and has no `style`.
+
 The Console is a card too, **Casa Mia Dash-Bored Console** (`type: custom:dash-bored-console`),
 with its era switch. Give it `era: bakelite`, `era: nixie`, `era: silverface`, `era: bargraph` or `era: beige` and it is that era with no
 switch; the first is
@@ -772,8 +875,8 @@ also what the older `type: custom:dash-bored-bakelite` is. That card still works
 dashboard that has it, but it is no longer offered when you add a card.
 It takes `power`, `weather`, `floors` and `rooms` in the same way, and has no `style`.
 
-When you add a card, Home Assistant shows a preview of each one. The Gazette, the Fridge
-and the Console preview with one room and a few of its devices, so that you can see the
+When you add a card, Home Assistant shows a preview of each one. The Gazette, the Fridge,
+the Console and Aurora preview with one room and a few of its devices, so that you can see the
 look without the whole house being drawn in a narrow column. The card you add shows the
 whole house.
 

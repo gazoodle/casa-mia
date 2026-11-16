@@ -26,7 +26,11 @@ export type Device = {
 };
 /** What a level runs over: its ends, the step of its scale, and what one vote in its poll moves it by. */
 export type Span = { min: number; max: number; step: number; vote: number };
-export type Room = { id: string; name: string; floor?: string; temp?: number; target?: number; humidity?: number; devices: Device[] };
+/** A scene: what it is called where it is shown (`name`, without its room's or its floor's
+ * name), its whole name, and when Home Assistant last set it (ms; 0 if it never has). A
+ * scene of the house's may be a floor's: `floor` is that floor's name. */
+export type Scene = { id: string; name: string; full: string; at: number; floor?: string };
+export type Room = { id: string; name: string; floor?: string; temp?: number; target?: number; humidity?: number; devices: Device[]; scenes: Scene[] };
 export type Appliance = { id: string; name: string; room: string; kw: number };
 /** Something a camera saw that was worth a photograph. `kind` is alarm, doorbell, person,
  * vehicle or animal; `photo` is its photograph's address. */
@@ -42,7 +46,7 @@ export type House = {
   strays: Device[]; // lights in no room: on no room's card, but in the house's count of lights (`lights` below)
   people: Person[];
   gaps: Gap[];
-  scenes: { id: string; name: string }[];
+  scenes: Scene[]; // the house's own and its floors': a room's are with the room (`scenes` below is all of them)
   appliances: Appliance[];
   outside?: { temp: number; humidity?: number; sky: string; id: string; daily: boolean }; // sky: Home Assistant's word for the weather now; daily: its entity gives a forecast by the day
   kw?: number;
@@ -66,9 +70,10 @@ export type Gap = { kind: "loose" | "plumbing" | "clash" | "floorless" | "cold";
 export type Options = { weather?: string; power?: string; floors?: string[]; rooms?: string[]; floor_order?: string[]; room_order?: string[]; entity?: string; sample?: boolean };
 
 type Found = { id: string; kind: Kind; name: string; full: string; guarded: boolean; power?: string };
-type FoundRoom = { id: string; name: string; floor?: string; floorId?: string; level: number; temp?: string; humidity?: string; climate?: string; devices: Found[] };
+type FoundScene = { id: string; name: string; full: string; floor?: string };
+type FoundRoom = { id: string; name: string; floor?: string; floorId?: string; level: number; temp?: string; humidity?: string; climate?: string; devices: Found[]; scenes: FoundScene[] };
 type FoundSighting = { id: string; name: string; room?: string };
-export type Survey = { rooms: FoundRoom[]; strays: Found[]; people: string[]; sightings: FoundSighting[]; gaps: Gap[]; scenes: string[]; weather?: string; power?: string; desk?: string; dojo?: string; watched: string[] };
+export type Survey = { rooms: FoundRoom[]; strays: Found[]; people: string[]; sightings: FoundSighting[]; gaps: Gap[]; scenes: FoundScene[]; weather?: string; power?: string; desk?: string; dojo?: string; watched: string[] };
 
 const FORECAST_DAILY = 1; // a weather entity's supported_features bit for a forecast by the day
 /** A day of the forecast: its start, Home Assistant's word for its weather, and its high and low. */
@@ -105,18 +110,26 @@ const GUARDED = new Set(["garage", "gate", "door"]);
 /** "Kitchen Ceiling Light" in the kitchen is "Ceiling": the room and the kind of thing are
  * said by where it is shown. "Landing - Left" is "Left", and "Kitchen" alone is "Light". */
 function short(name: string, room: string, kind: Kind): string {
-  const after = name.slice(room.length);
-  // "Kitchenette lamp" is not in the kitchen: the room's name must end where a word does.
-  const inRoom = name.toLowerCase().startsWith(room.toLowerCase()) && !/^[a-z0-9]/i.test(after);
-  const rest = (inRoom ? after.replace(/^[\s\-–—:,.]+/, "") : name).replace(kind === "light" ? /\s+lights?$/i : kind === "switch" ? /\s+switch$/i : /$^/, "");
+  const rest = (after(name, room) ?? name).replace(kind === "light" ? /\s+lights?$/i : kind === "switch" ? /\s+switch$/i : /$^/, "");
   const noun = NOUN[kind] ?? kind;
-  const left = !rest || new RegExp(`^${noun}s?$`, "i").test(rest) ? noun : rest;
-  return left[0].toUpperCase() + left.slice(1);
+  return capital(!rest || new RegExp(`^${noun}s?$`, "i").test(rest) ? noun : rest);
+}
+const capital = (word: string) => word[0].toUpperCase() + word.slice(1);
+
+/** What is left of a name that begins with a place's name, less the punctuation between
+ * them: nothing, if it does not begin with it. "Kitchenette lamp" is not in the kitchen:
+ * the place's name must end where a word does. */
+function after(name: string, place: string): string | undefined {
+  const rest = name.slice(place.length);
+  if (!place || !name.toLowerCase().startsWith(place.toLowerCase()) || /^[a-z0-9]/i.test(rest)) return undefined;
+  return rest.replace(/^[\s\-–—:,.]+/, "");
 }
 
 export function survey(hass: Hass, options: Options): Survey {
   const rooms = new Map<string, FoundRoom>();
-  const scenes: string[] = [];
+  const scenes: { id: string; name: string; area?: string }[] = [];
+  const lenses = new Map<Found, { device: string; name: string }>(); // a camera -> its device, and that device's name
+  const photographed = new Set<string>(); // the cameras whose sightings are photographed
   const people: string[] = [];
   const sightings: FoundSighting[] = [];
   const meters = new Map<string, string>(); // device id -> its power sensor
@@ -144,7 +157,6 @@ export function survey(hass: Hass, options: Options): Survey {
     if (!state || (!alone && (entry.hidden || entry.entity_category))) continue;
 
     const domain = id.split(".")[0];
-    if (domain === "scene") scenes.push(id);
     if (domain === "weather" && (!weather || id === "weather.home") && !options.weather) weather = id;
     if (domain === "sensor" && state.attributes.device_class === "power" && entry.device_id) meters.set(entry.device_id, id);
 
@@ -152,9 +164,14 @@ export function survey(hass: Hass, options: Options): Survey {
     const area = hass.areas?.[entry.area_id ?? device?.area_id];
     if (!alone && (hidden(entry) || hidden(device) || hidden(area))) continue;
     if (domain === "person") people.push(id);
+    // A scene is kept off the page by the label as a device is: on itself or on its area.
+    // (Until 2026.11.9-b9 the label did nothing on a scene.)
+    if (domain === "scene") scenes.push({ id, name: state.attributes.friendly_name ?? entry.name ?? id, area: alone ? undefined : area?.area_id });
     // A sighting is named for its camera, and a camera kept off the page takes it along.
-    if (domain === "image" && entry.platform === OURS && !hidden(hass.entities[state.attributes.camera]))
+    if (domain === "image" && entry.platform === OURS && !hidden(hass.entities[state.attributes.camera])) {
       sightings.push({ id, name: device?.name_by_user ?? device?.name ?? id, room: area?.name });
+      photographed.add(state.attributes.camera);
+    }
     if (KINDS.has(domain)) {
       const name: string = state.attributes.friendly_name ?? entry.name ?? id;
       if (!area) loose.push({ id, name });
@@ -166,10 +183,10 @@ export function survey(hass: Hass, options: Options): Survey {
     if (!KINDS.has(domain) || (!area && !alone)) continue;
     // One entity's card shows no room round it: a room of no name, with no sensors to watch.
     const at: string = alone ? "" : area.area_id;
-    if (alone) rooms.set(at, { id: at, name: "", level: Infinity, devices: [] });
+    if (alone) rooms.set(at, { id: at, name: "", level: Infinity, devices: [], scenes: [] });
     if (!rooms.has(at)) {
       const floor = hass.floors?.[area.floor_id];
-      rooms.set(at, { id: at, name: area.name, floor: floor?.name, floorId: floor?.floor_id, level: floor ? (floor.level ?? 0) : Infinity, temp: area.temperature_entity_id ?? undefined, humidity: area.humidity_entity_id ?? undefined, devices: [] });
+      rooms.set(at, { id: at, name: area.name, floor: floor?.name, floorId: floor?.floor_id, level: floor ? (floor.level ?? 0) : Infinity, temp: area.temperature_entity_id ?? undefined, humidity: area.humidity_entity_id ?? undefined, devices: [], scenes: [] });
     }
     const room = rooms.get(at)!;
 
@@ -186,6 +203,29 @@ export function survey(hass: Hass, options: Options): Survey {
     };
     room.devices.push(found);
     if (domain === "switch" && entry.device_id) owner.set(found, entry.device_id);
+    if (domain === "camera" && device && !alone) lenses.set(found, { device: entry.device_id, name: device.name_by_user ?? device.name ?? full });
+  }
+  // A camera that sends several streams is several camera entities on one device (high,
+  // medium and low resolution), and each was a screen: a room had three screens for each
+  // camera (seen 2026-11-16). One is kept for each device, named for the device: the one
+  // whose sightings are photographed, or else the first by its id.
+  // ponytail: a device with two lenses that look at different things shows one of them.
+  // If that is ever wanted, tell them apart by their stream's size, not by their names.
+  for (const room of rooms.values()) {
+    const kept = new Map<string, Found>();
+    for (const d of [...room.devices].sort((a, b) => a.id.localeCompare(b.id))) {
+      const lens = lenses.get(d);
+      if (!lens) continue;
+      const was = kept.get(lens.device);
+      if (!was || (photographed.has(d.id) && !photographed.has(was.id))) kept.set(lens.device, d);
+    }
+    const shared = new Set([...lenses].filter(([d, lens]) => kept.get(lens.device) !== d && room.devices.includes(d)).map(([, lens]) => lens.device));
+    room.devices = room.devices.filter((d) => !lenses.has(d) || kept.get(lenses.get(d)!.device) === d);
+    for (const device of shared) {
+      const d = kept.get(device)!;
+      d.full = lenses.get(d)!.name;
+      d.name = short(d.full, room.name, "camera");
+    }
   }
   // A switch with a power sensor on the same device is a smart plug: its load is news.
   // A device with several switches is something else (a controller, a car), and its
@@ -219,6 +259,22 @@ export function survey(hass: Hass, options: Options): Survey {
     }
   }
   for (const room of kept) room.devices.sort((a, b) => a.kind.localeCompare(b.kind) || a.name.localeCompare(b.name));
+
+  // A scene is its room's if it is in that room's area or its name begins with the room's
+  // name ("Kitchen - Dining" is the kitchen's "Dining"); or else its floor's, by its name
+  // ("First floor all off"); or else the house's. The longest name that fits is the one:
+  // "Barn Loft New" is the barn loft's, not the barn's. Why: on a big house the scenes were
+  // one block at the top of the Console, over 2,000 px tall before the first room (measured 2026-11-16).
+  const longest = <T>(list: T[], name: (item: T) => string) => [...list].sort((a, b) => name(b).length - name(a).length);
+  const byName = longest(kept, (r) => r.name);
+  const floorNames = longest([...new Set(kept.flatMap((r) => (r.floor ? [r.floor] : [])))], (f) => f);
+  const housed: FoundScene[] = [];
+  for (const s of scenes.sort((a, b) => a.name.localeCompare(b.name))) {
+    const room = kept.find((r) => r.id === s.area) ?? byName.find((r) => after(s.name, r.name) !== undefined);
+    const floor = room ? undefined : floorNames.find((f) => after(s.name, f) !== undefined);
+    const rest = after(s.name, room?.name ?? floor ?? "");
+    (room?.scenes ?? housed).push({ id: s.id, name: rest ? capital(rest) : s.name, full: s.name, floor });
+  }
   // A card of chosen floors or rooms counts the lights in those alone.
   const loosed = floors || chosen ? [] : strays;
   const watched = kept.flatMap((r) => [r.temp, r.humidity, r.climate, ...r.devices.flatMap((d) => [d.id, d.power])]);
@@ -236,13 +292,13 @@ export function survey(hass: Hass, options: Options): Survey {
     people,
     sightings,
     gaps: gaps.filter((g) => g.items.length),
-    scenes: scenes.sort(),
+    scenes: housed,
     weather,
     power: options.power,
     desk,
     dojo,
     // The one entity is watched whatever it is: a sensor is no device, but its card shows it.
-    watched: [...new Set([...watched, ...loosed.map((d) => d.id), ...scenes, ...people, weather, options.power, desk, desk && PERSONA, desk && dojo, options.entity])].filter((id): id is string => !!id),
+    watched: [...new Set([...watched, ...loosed.map((d) => d.id), ...scenes.map((s) => s.id), ...people, weather, options.power, desk, desk && PERSONA, desk && dojo, options.entity])].filter((id): id is string => !!id),
   };
   return options.sample ? specimen(found) : found;
 }
@@ -261,9 +317,10 @@ function specimen(found: Survey): Survey {
 
   const firsts = room.devices.filter((d, at) => room.devices.findIndex((o) => o.kind === d.kind) === at);
   const devices = [...firsts, ...room.devices.filter((d) => !firsts.includes(d))].slice(0, SPECIMEN);
-  const scenes = found.scenes.slice(0, SCENES);
-  const watched = [room.temp, room.humidity, room.climate, ...devices.flatMap((d) => [d.id, d.power]), ...scenes, ...found.people, found.weather, found.power];
-  return { ...found, rooms: [{ ...room, devices }], strays: [], sightings: [], gaps: [], scenes, desk: undefined, dojo: undefined, watched: watched.filter((id): id is string => !!id) };
+  const scenes = found.scenes.filter((s) => !s.floor).slice(0, SCENES);
+  const mine = room.scenes.slice(0, SCENES);
+  const watched = [room.temp, room.humidity, room.climate, ...devices.flatMap((d) => [d.id, d.power]), ...[...scenes, ...mine].map((s) => s.id), ...found.people, found.weather, found.power];
+  return { ...found, rooms: [{ ...room, devices, scenes: mine }], strays: [], sightings: [], gaps: [], scenes, desk: undefined, dojo: undefined, watched: watched.filter((id): id is string => !!id) };
 }
 
 // Each kind's own way of being on, of having a level, and of letting it be set.
@@ -347,6 +404,8 @@ export function read(found: Survey, hass: Hass): House {
       title: d.kind === "media_player" && on ? [a.media_title, a.media_artist].filter(Boolean).join(", ") || undefined : undefined, picture: d.kind === "camera" ? a.entity_picture : undefined, away, since: Date.parse(state?.last_changed ?? "") || 0, guarded: d.guarded, room };
   };
 
+  // A scene's state is when Home Assistant last set it. One that is gone from the states is left out.
+  const scene = (s: FoundScene): Scene[] => (hass.states[s.id] ? [{ ...s, at: Date.parse(hass.states[s.id].state) || 0 }] : []);
   const rooms = found.rooms.map((room): Room => {
     const climate = room.climate ? hass.states[room.climate] : undefined;
     const set = climate?.attributes.temperature;
@@ -360,6 +419,7 @@ export function read(found: Survey, hass: Hass): House {
       target: climate && climate.state !== "off" && typeof set === "number" ? set : undefined,
       humidity: number(room.humidity),
       devices,
+      scenes: room.scenes.flatMap(scene),
     };
   });
 
@@ -374,7 +434,7 @@ export function read(found: Survey, hass: Hass): House {
     strays: found.strays.map((d) => device(d, "")),
     people,
     gaps: found.gaps,
-    scenes: found.scenes.filter((id) => hass.states[id]).map((id) => ({ id, name: hass.states[id].attributes.friendly_name ?? id })),
+    scenes: found.scenes.flatMap(scene),
     appliances,
     outside: typeof sky?.attributes.temperature === "number" ? { temp: sky.attributes.temperature, humidity: sky.attributes.humidity, sky: sky.state, id: found.weather!, daily: !!(sky.attributes.supported_features & FORECAST_DAILY) } : undefined,
     kw: kilowatts(found.power),
@@ -396,3 +456,6 @@ export function sighted(found: Survey, feed: Seen[]): Sighting[] {
 
 /** Every light in the house that is answering: those in its rooms, and those in none. */
 export const lights = (house: House): Device[] => [...house.rooms.flatMap((r) => r.devices), ...house.strays].filter((d) => d.kind === "light" && !d.away);
+
+/** Every scene in the house under its whole name: the house's, its floors' and its rooms'. */
+export const scenes = (house: House): Scene[] => [...house.scenes, ...house.rooms.flatMap((r) => r.scenes)].map((s) => ({ ...s, name: s.full }));

@@ -1,7 +1,7 @@
 // The survey of the house: which room and floor a device is in, and what it is called there.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { HIDE, sighted, survey } from "./house.ts";
+import { HIDE, read, scenes, sighted, survey } from "./house.ts";
 
 const named = (friendly_name: string) => ({ state: "off", attributes: { friendly_name } });
 
@@ -181,4 +181,61 @@ test("for the card picker the house is cut to a specimen: the room with the most
   assert.deepEqual(s.gaps, []);
   // Whole, without it.
   assert.equal(survey(h, {}).rooms.length, 2);
+});
+
+test("a scene is its room's by its area or its name, or its floor's, or the house's, and the label hides it", () => {
+  const h = hass(
+    {
+      "light.a": ["barn", "Barn Light"],
+      "light.b": ["loft", "Barn Loft Light"],
+      "light.c": ["snug", "Snug Light"],
+      "scene.one": ["", "Barn - All Off"],
+      "scene.two": ["", "Barn Loft New"],
+      "scene.three": ["snug", "Film night"],
+      "scene.four": ["", "Upstairs all off"],
+      "scene.five": ["", "Barnyard party"],
+      "scene.six": ["", "Barn"],
+      "scene.seven": ["", "Barn Hidden"],
+    },
+    { barn: { name: "Barn" }, loft: { name: "Barn Loft" }, snug: { name: "Snug", floor_id: "up" } },
+    { up: { floor_id: "up", name: "Upstairs", level: 1 } },
+  );
+  (h.entities as any)["scene.seven"].labels = [HIDE];
+  for (const id of Object.keys(h.states)) if (id.startsWith("scene.")) (h.states as any)[id].state = id === "scene.one" ? "2026-11-16T10:00:00+00:00" : "unknown";
+  const found = survey(h as any, {});
+  const room = (name: string) => found.rooms.find((r) => r.name === name)!.scenes.map((s) => [s.id, s.name]);
+  // A room's name on its own is no name for a scene: it keeps its whole name.
+  assert.deepEqual(room("Barn"), [["scene.six", "Barn"], ["scene.one", "All Off"]]);
+  // The longest room name that fits is the room.
+  assert.deepEqual(room("Barn Loft"), [["scene.two", "New"]]);
+  assert.deepEqual(room("Snug"), [["scene.three", "Film night"]]);
+  // "Barnyard" is not the barn; the floor's scene says which floor.
+  assert.deepEqual(found.scenes, [{ id: "scene.five", name: "Barnyard party", full: "Barnyard party", floor: undefined }, { id: "scene.four", name: "All off", full: "Upstairs all off", floor: "Upstairs" }]);
+  assert.ok(found.watched.includes("scene.one") && !found.watched.includes("scene.seven"));
+
+  const house = read(found, h as any);
+  assert.deepEqual(house.rooms.find((r) => r.name === "Barn")!.scenes.map((s) => s.at), [0, Date.parse("2026-11-16T10:00:00+00:00")]);
+  assert.deepEqual(scenes(house).map((s) => s.name).sort(), ["Barn", "Barn - All Off", "Barn Loft New", "Barnyard party", "Film night", "Upstairs all off"]);
+});
+
+test("a camera with several streams is one camera, named for its device: the photographed one if there is one", () => {
+  const h = hass(
+    {
+      "camera.drive_high": ["drive", "Drive cam High resolution channel"],
+      "camera.drive_low": ["drive", "Drive cam Low resolution channel"],
+      "camera.gate_high": ["drive", "Gate cam High resolution channel"],
+      "camera.gate_low": ["drive", "Gate cam Low resolution channel"],
+      "camera.lone": ["drive", "Drive Shed"],
+      "image.gate": ["drive", "Gate cam Last sighting"],
+    },
+    { drive: { name: "Drive" } },
+  );
+  const on = (id: string, device_id: string) => Object.assign((h.entities as any)[id], { device_id });
+  on("camera.drive_high", "d1"), on("camera.drive_low", "d1"), on("camera.gate_high", "d2"), on("camera.gate_low", "d2"), on("camera.lone", "d3"), on("image.gate", "d2");
+  (h.entities as any)["image.gate"].platform = "casa_mia_dash_bored";
+  (h.states as any)["image.gate"].attributes.camera = "camera.gate_low";
+  (h as any).devices = { d1: { name: "Drive cam" }, d2: { name: "Gate cam" }, d3: { name: "Shed cam" } };
+  const found = survey(h as any, {});
+  // The first by id; the one whose sightings are photographed; and one alone keeps its own name.
+  assert.deepEqual(found.rooms[0].devices.map((d) => [d.id, d.name]), [["camera.drive_high", "Cam"], ["camera.gate_low", "Gate cam"], ["camera.lone", "Shed"]]);
 });

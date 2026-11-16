@@ -9,11 +9,12 @@
 import { html, nothing, type TemplateResult } from "lit";
 import { fire } from "../../ha.ts";
 import { ALERTS, Family, SIGHTINGS } from "../family.ts";
-import { DEGREES, sighted, type Device, type Options, type Room, type Seen, type Sighting } from "../house.ts";
+import { DEGREES, scenes, sighted, type Device, type Options, type Room, type Scene, type Seen, type Sighting } from "../house.ts";
 import { recorded, type Change } from "../record.ts";
 import { NOMINAL, RANK, clock, flip, type Alert } from "../stories.ts";
-import { widths } from "./balance.ts";
+import { columns, laid, racks as fitted, type Load } from "./balance.ts";
 import { face, type Kit } from "./kit.ts";
+import { STOPS, selector } from "./selector.ts";
 
 const ALARM = "alarm_control_panel";
 const CAMERA = "camera";
@@ -50,6 +51,14 @@ const dims = (d: Device) => d.dims && !d.away;
 const alarm = (d: Device) => d.kind === ALARM;
 const camera = (d: Device) => d.kind === CAMERA;
 const switched = (d: Device) => !dims(d) && !alarm(d) && !camera(d);
+// A blanking plate, under the chassis of a bay that is shorter than its row: a plate of the era's own stuff with a vent in it.
+const BLANK = html`<div class="room blank" aria-hidden="true"><i class="vent"></i></div>`;
+/** How many stops each of a room's selector switches has: as few switches as will do, the scenes shared evenly between them. */
+const banks = (count: number): number[] => {
+  const switches = Math.ceil(count / STOPS);
+  const size = Math.ceil(count / switches);
+  return Array.from({ length: switches }, (_, i) => Math.min(size, count - i * size));
+};
 /** How a device is named in what the page says of it: by its room too, if it has one. */
 const said = (d: Device) => (d.room ? `${d.room} ${d.name}` : d.name);
 
@@ -62,7 +71,9 @@ function bearing(e: PointerEvent) {
 export class Panel extends Family {
   protected kit!: Kit; // the era's controls: set by the era's own class
   declare protected _config: Config;
-  static properties = { _want: { state: true }, _thrown: { state: true }, _armed: { state: true }, _code: { state: true }, _alerts: { state: true }, _heard: { state: true }, _seen: { state: true }, _chart: { state: true } };
+  static properties = { _cols: { state: true }, _want: { state: true }, _thrown: { state: true }, _armed: { state: true }, _code: { state: true }, _alerts: { state: true }, _heard: { state: true }, _seen: { state: true }, _chart: { state: true } };
+  _cols = 1; // how many columns of chassis the panel has room for across
+  private _rows?: { key: string; racks: ReturnType<typeof fitted> }; // the bays the rooms stand in, kept while the rooms and the columns are the same
   _heard = false; // Sensor Watch's feed has said what it holds: until then, no lamp says all is well
   _want?: { id: string; level: number }; // where a knob was put, until its light says it is there
   _thrown = ""; // the scene whose knife switch is closed
@@ -79,6 +90,14 @@ export class Panel extends Family {
 
   private get _view(): View {
     return this._config.view ?? "panel";
+  }
+
+  /** The panel is as many columns across as fit in the width its rooms have, which is the
+   * era's own to say (its padding): so it is read from the page once the rooms are drawn,
+   * and guessed from the element's width before that. */
+  protected _resized(px: number) {
+    const cols = columns(this.renderRoot?.querySelector(".rooms")?.clientWidth || px - 44);
+    if (cols !== this._cols) this._cols = cols;
   }
 
   /** The lamps alone are no part of the house. */
@@ -140,6 +159,8 @@ export class Panel extends Family {
   protected updated() {
     const chart = this.renderRoot.querySelector("dialog");
     if (chart && !chart.open) chart.showModal();
+    // The rooms are drawn: the columns are counted from their own width, which was a guess until now.
+    this._resized(this.clientWidth);
   }
   private _grip?: { id: string; level: number; angle: number; x: number; y: number; at: number; moved: boolean };
   private _waiting?: ReturnType<typeof setTimeout>;
@@ -292,8 +313,8 @@ export class Panel extends Family {
     };
   }
 
-  private _throw(scene: { id: string; name: string }) {
-    this._call({ domain: "scene", service: "turn_on", ids: [scene.id] }, scene.name);
+  private _throw(scene: Scene) {
+    this._call({ domain: "scene", service: "turn_on", ids: [scene.id] }, scene.full);
     this._thrown = scene.id;
     const timer = setTimeout(() => {
       this._timers.delete(timer);
@@ -349,24 +370,56 @@ export class Panel extends Family {
     return this.kit.tv(s ? `${d.name}: ${s.kind} ${clock(s.at)}` : d.away ? `${d.name}: not answering` : d.name, s?.photo ?? (d.away ? "" : (d.picture ?? "")), this._look(d.id));
   }
 
-  /** The rooms' chassis, with a plate for each floor between them where the house has floors. */
-  private _rooms(rooms: Room[], seen: Map<string, Sighting>, floors: boolean) {
-    const { label, meter, valve } = this.kit;
-    // A room with many controls has a wider chassis, so that none is far taller than the rest.
-    const wide = widths(rooms.map((r) => ({ knobs: this._shows(r).filter(dims).length, dollies: this._shows(r).filter(switched).length, alarms: this._shows(r).filter(alarm).length, tvs: this._shows(r).filter(camera).length, meter: r.temp !== undefined })));
+  /** A room's scenes among its controls: one alone has a knife switch, and more share a
+   * selector switch, or several where there are more than one has stops for. A selector's
+   * pointer is at the scene just pressed, or else at the one Home Assistant set last. */
+  private _scenes(r: Room) {
+    if (r.scenes.length === 1) return this.kit.knife(r.scenes[0].name, this._thrown === r.scenes[0].id, () => this._throw(r.scenes[0]));
+    return banks(r.scenes.length).map((size, bank) => {
+      const stops = r.scenes.slice(bank * banks(r.scenes.length)[0], bank * banks(r.scenes.length)[0] + size);
+      const last = stops.reduce((best, s, i) => (s.at > (stops[best]?.at ?? 0) ? i : best), -1);
+      const pressed = stops.findIndex((s) => s.id === this._thrown);
+      return selector(r.name, stops.map((s) => s.name), pressed < 0 ? last : pressed, (i) => this._throw(stops[i]));
+    });
+  }
+
+  /** What a room has on its chassis, for balance.ts. */
+  private _load(r: Room): Load {
+    const shown = this._shows(r);
+    return { knobs: shown.filter(dims).length, dollies: shown.filter(switched).length, alarms: shown.filter(alarm).length, tvs: shown.filter(camera).length, meter: r.temp !== undefined,
+      knives: r.scenes.length === 1 ? 1 : 0, selectors: r.scenes.length > 1 ? banks(r.scenes.length) : [] };
+  }
+
+  /** The rooms' chassis, in rows, with a plate where each floor begins if the house has floors. */
+  private _rooms(rooms: Room[], seen: Map<string, Sighting>, floors: boolean, scenes: Scene[] = []) {
+    const { label, meter, valve, push } = this.kit;
+    const drawn = rooms.filter((r) => this._shows(r).length || r.temp !== undefined || r.scenes.length);
+    // Rooms come sorted by floor (house.ts). A house with no floors has no plates for them.
+    const floored = floors && drawn.some((r) => r.floor);
+    const begins = (i: number) => floored && drawn[i].floor !== drawn[i - 1]?.floor;
+
+    // The places are chosen once for these rooms at this many columns, not at every drawing.
+    // A floor's first room follows the last of the floor before in the same row, where
+    // there is room: it does not stand under it.
+    const loads = drawn.map((r) => this._load(r));
+    const key = JSON.stringify([this._cols, floored, this._view, loads, drawn.map((r) => r.floor)]);
+    // One room alone, on a card of its own, is as wide as the card.
+    if (this._rows?.key !== key) this._rows = { key, racks: fitted(loads, this._view === "room" ? [{ wide: this._cols, first: true, under: false }] : laid(loads, this._cols, begins)) };
+    const { racks } = this._rows;
+
     // A meter is lit while Home Assistant is answering: a dark one is not to be believed.
     const live = !this._lost;
     let beat = 1; // the meters are numbered as they are drawn, the two at the top first: see kit.ts
-    const chassis = (r: Room, i: number) => {
+    const chassis = (r: Room) => {
       const shown = this._shows(r);
-      if (!shown.length && r.temp === undefined) return nothing;
       const lights = shown.filter((d) => d.kind === "light" && !d.away);
       const lit = lights.reduce((sum, d) => sum + (d.on ? (d.level ?? 100) : 0), 0) / (lights.length * 100 || 1);
       const more = r.devices.length - shown.length;
       const charts = shown.filter((d) => !camera(d)); // a camera has no day to chart
-      return html`<section class="room" style="--wide: ${wide[i]}">
+      return html`<section class="room">
         ${valve(lit ? 0.35 + lit * 0.65 : 0)}${label(r.name)}
         <div class="works">${r.temp === undefined ? nothing : meter(`${r.temp.toFixed(1)}°`, 5, 30, r.temp, "°C", ++beat, live)}
+        ${r.scenes.length ? this._scenes(r) : nothing}
         <div class="dials">${shown.filter(dims).map((d) => this._knob(d))}</div>
         <div class="dollies">${shown.filter(switched).map((d) => this._dolly(d))}</div>
         ${shown.filter(camera).map((d) => this._screen(d, seen))}${shown.filter(alarm).map((d) => this._alarm(d))}</div>
@@ -374,13 +427,23 @@ export class Panel extends Family {
         ${charts.length ? html`<button class="rec" aria-label="${r.name}: chart of the last day" @click=${() => this._record(r, charts)}>${label("Chart")}</button>` : nothing}
       </section>`;
     };
-    // Rooms come sorted by floor (house.ts). A house with no floors has no plates for them.
-    const floored = floors && rooms.some((r) => r.floor);
-    return rooms.map((r, i) => {
-      const drawn = chassis(r, i);
-      const first = floored && drawn !== nothing && r.floor !== rooms[i - 1]?.floor;
-      return html`${first ? html`<div class="floor">${label(r.floor ?? "Elsewhere")}</div>` : nothing}${drawn}`;
-    });
+    // Each row of chassis has a lane over it, for the plate of a floor that begins in it: a
+    // lane with no plate is no height. A floor's own scenes are push buttons on its plate,
+    // which runs as far along the row as its floor does. A floor that begins part of the
+    // way along a row has a bar down its left, between it and the floor before.
+    const plate = (rack: number) => {
+      const { row, column } = racks[rack];
+      const floor = drawn[racks[rack].things[0]].floor;
+      let span = 0;
+      for (let k = rack; k < racks.length && racks[k].row === row && (k === rack || !begins(racks[k].things[0])); k++) span += racks[k].wide;
+      return html`<div class="floor ${column > 1 ? "barred" : ""}" style="grid-row: ${row * 2 + 1}; grid-column: ${column} / span ${span}">${label(floor ?? "Elsewhere")}${floor ? html`<span class="pushes">${scenes.filter((s) => s.floor === floor).map((s) => push(s.name, () => this._throw(s)))}</span>` : nothing}</div>
+        ${column > 1 ? html`<i class="bar" style="grid-row: ${row * 2 + 1} / span 2; grid-column: ${column}"></i>` : nothing}`;
+    };
+    // A bay that begins a floor part of the way along a row has the bar before it, and the bay before that one has it after.
+    const barred = (k: number) => !!racks[k] && racks[k].column > 1 && begins(racks[k].things[0]);
+    return html`<div class="rooms" style="--cols: ${this._cols}">${racks.map(
+      (rack, k) => html`${begins(rack.things[0]) ? plate(k) : nothing}<div class="bay ${rack.blank ? "blanked" : ""} ${barred(k) ? "barred" : ""} ${barred(k + 1) ? "bars" : ""}" style="grid-row: ${rack.row * 2 + 2}; grid-column: ${rack.column} / span ${rack.wide}">${rack.things.map((i) => chassis(drawn[i]))}${rack.blank ? BLANK : nothing}</div>`,
+    )}</div>`;
   }
 
   /** The sensors in trouble, the worst first, each a lamp. The feed counts in seconds. The
@@ -395,13 +458,13 @@ export class Panel extends Family {
 
   /** One room's chassis, alone. The survey has kept that room and no other (cards.ts). */
   private _room(rooms: Room[]) {
-    if (rooms[0]) return html`<div class="rooms">${this._rooms(rooms.slice(0, 1), this._sights(), false)}</div>`;
+    if (rooms[0]) return this._rooms(rooms.slice(0, 1), this._sights(), false);
     return this.kit.label(this._config.rooms?.length ? "This room has nothing the Console can show" : "Choose a room in the card's options");
   }
 
   /** One entity's control, alone: a device's as on the panel, a scene's knife switch, or a
    * sensor's meter. The survey has read that entity and no other (house.ts). */
-  private _instrument(devices: Device[], scenes: { id: string; name: string }[]) {
+  private _instrument(devices: Device[], scenes: Scene[]) {
     const { knife, label, meter } = this.kit;
     const id = this._config.entity;
     if (!id) return label("Choose an entity in the card's options");
@@ -437,15 +500,19 @@ export class Panel extends Family {
     const seen = this._sights();
     const placed = new Set(house.rooms.flatMap((r) => r.devices.filter(camera).map((d) => d.id)));
     const live = !this._lost;
+    // A floor's scenes are on its plate, and a room's on its chassis: the knives are the house's own.
+    // In a house with no floor plates (none of its rooms on a floor), a floor's scenes are knives too.
+    const plates = new Set(house.rooms.map((r) => r.floor));
+    const whole = house.scenes.filter((s) => !s.floor || !plates.has(s.floor));
     return html`${this._lamps(false)}
       <div class="top">
         ${house.kw === undefined ? nothing : meter("Mains draw", 0, MAINS.find((top) => house.kw! <= top) ?? MAINS.at(-1)!, house.kw, "kW", 0, live)}
         ${house.outside ? meter("Outside air", -10, 30, house.outside.temp, "°C", 1, live) : nothing}
         ${[...seen.values()].filter((s) => !placed.has(s.camera)).map((s) => tv(`${s.name}: ${s.kind} ${clock(s.at)}`, s.photo ?? "", this._look(s.camera)))}
-        ${house.scenes.length ? html`<div class="knives">${house.scenes.map((s) => knife(s.name, this._thrown === s.id, () => this._throw(s)))}</div>` : nothing}
+        ${whole.length ? html`<div class="knives">${whole.map((s) => knife(s.name, this._thrown === s.id, () => this._throw(s)))}</div>` : nothing}
         <slot name="era"></slot>
       </div>
-      <div class="rooms">${this._rooms(house.rooms, seen, true)}</div>`;
+      ${this._rooms(house.rooms, seen, true, house.scenes)}`;
   }
 
   render() {
@@ -463,7 +530,7 @@ export class Panel extends Family {
     if (!this._hass) return frame(label("Waiting for Home Assistant"));
     if (view === "lamps") return frame(this._lamps(true));
     if (!house) return frame(label("Waiting for Home Assistant"));
-    if (view === "instrument") return frame(this._instrument(house.rooms.flatMap((r) => r.devices), house.scenes));
+    if (view === "instrument") return frame(this._instrument(house.rooms.flatMap((r) => r.devices), scenes(house)));
 
     // The chart recorder, if it is open: a lane for each of its room's devices.
     const charted = house.rooms.find((r) => r.name === this._chart?.room);
