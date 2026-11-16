@@ -2,7 +2,7 @@
 // They know nothing of wording. Each carries a `kind` (and a `variant` of it) for a voice
 // to look up, the `vars` a voice's sentences are filled from, the one number that goes
 // in the figure, and what the reader can do about it.
-import type { Device, House, Kind, Person, Sighting } from "./house.ts";
+import { lights as houseLights, type Device, type House, type Kind, type Person, type Sighting } from "./house.ts";
 
 /** One of Sensor Watch's alerts, as Dash-Bored's integration feeds it (alerts.py). */
 export type Alert = {
@@ -196,7 +196,7 @@ export function stories(house: House, alerts: Alert[], now: number, sightings: S
   for (const a of house.appliances)
     add({ kind: "appliance", id: "load." + a.id, rank: 55, vars: { name: a.name, room: a.room, kw: a.kw.toFixed(1) }, figure: [a.kw.toFixed(1), "kilowatts"], press: { domain: "switch", service: "turn_off", ids: [a.id] } });
 
-  const lights = devices.filter((d) => d.kind === "light" && !d.away);
+  const lights = houseLights(house);
   const lit = lights.filter((d) => d.on);
   if (lights.length) {
     // Ablaze is most of the lights in the house, not merely several.

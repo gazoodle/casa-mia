@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.11.9-b8
+
+- **Dash-Bored: its cards are a sensible size where you add a card.** Home Assistant previews every card there, and the Gazette, the Fridge and the Console each drew the whole house in a narrow column, thousands of pixels tall. They now preview with one room and a few of its devices, in a window 400 pixels tall, and follow no live feeds there. The card you add still shows the whole house.
+- **Dash-Bored: a light in no area is counted with the house's lights.** The Gazette's lights story and the Fridge's notepad left it out, so they could say 7 lights were on when 8 were, and the Gazette's button to turn them all off left that one on. A light in no area is still shown on no room's card, and is still listed among the things to put in an area. A card that shows only chosen floors or rooms counts only the lights in those.
+- Dash-Bored: the separate Bakelite card is no longer offered where you add a card, since the Console card shows every era. A dashboard that already has it keeps it.
+
 ## 2026.11.9-b7
 
 - **Love it or Loathe it: switch back at the end of a song.** A new setting for each entry, with its players and delay. With it on, a player that was switched to another station no longer goes back the moment its minutes are up, which could be in the middle of a song: it waits for that song to end. If no new song comes on within 10 minutes, it goes back then.

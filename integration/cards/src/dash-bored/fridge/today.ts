@@ -1,10 +1,10 @@
 // The Fridge's notepad: what the day comes to.
-import type { House } from "../house.ts";
+import { lights, type House } from "../house.ts";
 
 /** The notepad's lines: what the day comes to, said as somebody would jot it down. */
 export function today(house: House): string[] {
   const devices = house.rooms.flatMap((r) => r.devices);
-  const lit = devices.filter((d) => d.kind === "light" && d.on).length;
+  const lit = lights(house).filter((d) => d.on).length;
   const undone = devices.filter((d) => d.kind === "lock" && !d.on && !d.away);
   const warm = house.rooms.filter((r) => r.temp !== undefined).sort((a, b) => b.temp! - a.temp!);
   const home = house.people.filter((p) => p.place === "home").map((p) => p.name);

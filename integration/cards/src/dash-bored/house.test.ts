@@ -168,3 +168,17 @@ test("a card for one entity surveys it alone, by its full name, even when hidden
   // A sensor is no device: it is only watched, for its meter.
   assert.deepEqual([one("sensor.out").rooms, one("sensor.out").watched], [[], ["sensor.out"]]);
 });
+
+test("for the card picker the house is cut to a specimen: the room with the most kinds of thing, four devices, one of each kind first", () => {
+  const h = hass(
+    { "light.a": ["den", "Den Lamp"], "light.b": ["den", "Den Spot"], "light.c": ["den", "Den Strip"], "light.d": ["den", "Den Desk"], "switch.e": ["den", "Den Fan"], "cover.f": ["den", "Den Blind"], "light.g": ["hall", "Hall Lamp"] },
+    { den: { name: "Den" }, hall: { name: "Hall" } },
+  );
+  const s = survey(h, { sample: true });
+  assert.deepEqual(s.rooms.map((r) => r.name), ["Den"]);
+  assert.deepEqual(s.rooms[0].devices.map((d) => d.kind), ["cover", "light", "switch", "light"]);
+  assert.ok(!s.watched.includes("light.g") && s.watched.includes("cover.f"));
+  assert.deepEqual(s.gaps, []);
+  // Whole, without it.
+  assert.equal(survey(h, {}).rooms.length, 2);
+});

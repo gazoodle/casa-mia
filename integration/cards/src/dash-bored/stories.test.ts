@@ -68,11 +68,23 @@ test("only the states of what is shown are watched", () => {
   assert.equal(watched.includes("light.hidden") || watched.includes("sensor.kettle_signal"), false);
 });
 
+test("a light in no room is on no room's card, but counted with the house's lights", () => {
+  const h = hass({ "light.lounge_lamp": state("on", { friendly_name: "Lounge lamp" }) });
+  h.entities["light.lounge_lamp"] = { entity_id: "light.lounge_lamp" };
+  const found = read(survey(h, {}), h);
+  assert.equal(found.rooms.some((r) => r.devices.some((d) => d.id === "light.lounge_lamp")), false);
+  const lights = stories(found, [], 2000).find((s) => s.kind === "lights")!;
+  assert.deepEqual(lights.figure, ["2", "lights on"]);
+  assert.deepEqual(lights.press?.ids, ["light.kitchen_ceiling", "light.lounge_lamp"]);
+  // A card of chosen rooms counts the lights in those alone.
+  assert.deepEqual(read(survey(h, { rooms: ["Kitchen"] }), h).strays, []);
+});
+
 test("what matters most leads", () => {
   const kinds = (h = house(), alerts: Alert[] = [], now = 2000) => stories(h, alerts, now).map((s) => s.kind);
   assert.deepEqual(kinds(), ["appliance", "lights", "cold", "weather"]);
   // A house with nothing to report still has a front page.
-  assert.deepEqual(kinds({ rooms: [], scenes: [], appliances: [] }), ["quiet"]);
+  assert.deepEqual(kinds({ rooms: [], strays: [], scenes: [], appliances: [] }), ["quiet"]);
   assert.equal(kinds(house({ "lock.front_door": state("unlocked", { friendly_name: "Front door" }) }))[0], "unlocked");
   assert.equal(kinds(house({ "lock.front_door": state("unlocked", { friendly_name: "Front door" }) }), [raised("critical")])[0], "alert");
   // A warning is below an unlocked door; a job to do is below a kettle.
@@ -144,7 +156,7 @@ test("every voice can tell every story and describe every device, with nothing l
   const alerts = ["critical", "error", "warning", "task", "nominal"].map((level, i) => raised(level, { entity_id: `sensor.s${i}`, escalated: i === 0, flavour: i ? "" : "temperature" }));
   const dark = house({ "light.kitchen_ceiling": state("off", { friendly_name: "Kitchen Ceiling" }) });
   const sights = ["alarm", "doorbell", "person", "vehicle", "animal"].map((kind) => seen(kind));
-  const all = [...stories(troubled, alerts, 2000), ...stories(dark, [], 2000, sights).filter((s) => s.kind === "sighting"), ...stories(dark, [], 2000), ...stories({ rooms: [], scenes: [], appliances: [] }, [], 2000), ...["freezing", "hot", "mild"].map((variant) => ({ ...stories(dark, [], 2000).find((s) => s.kind === "weather")!, variant }))];
+  const all = [...stories(troubled, alerts, 2000), ...stories(dark, [], 2000, sights).filter((s) => s.kind === "sighting"), ...stories(dark, [], 2000), ...stories({ rooms: [], strays: [], scenes: [], appliances: [] }, [], 2000), ...["freezing", "hot", "mild"].map((variant) => ({ ...stories(dark, [], 2000).find((s) => s.kind === "weather")!, variant }))];
 
   for (const [id, voice] of Object.entries(VOICES)) {
     for (const story of all) for (const turn of [0, 1, 2]) {

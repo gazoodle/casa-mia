@@ -333,6 +333,15 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
     in all five eras, in Chromium and WebKit, on the light and dark themes. The editors'
     entity and room pickers could not be seen there: no picker drew on that headless page,
     even a plain one, so they are unchecked in HA's own card editor.
+  - **In HA's card picker a family draws a specimen** (2026.11.9-b8; owner, 2026-11-16:
+    the previews were "too big to be useful"). Each whole-house card was 3,200 to 7,500 px
+    tall there. `picked` in `family.ts` sees that the element is in `hui-card-picker` (HA
+    tells a card nothing), `survey` then cuts the house to one room and four devices
+    (`specimen` in `house.ts`, by the internal `sample` option), no feed is followed, and
+    the element is a 400 px window. The Console host tells its era's element `sample`.
+    The part cards are left whole: they are small. Bakelite's own card is no longer
+    registered for the picker; its element stays for dashboards that have it. Measured in
+    the test VM's picker (Chromium): 400 px each. Not checked in WebKit.
   - **A panel's controls never move for their lettering** (owner, 2026-11-15: "it's
     drilled into the panel"; true of the Console's eras, perhaps not of other families).
     Each hangs from the top of its row with a fixed height and room for a two-line

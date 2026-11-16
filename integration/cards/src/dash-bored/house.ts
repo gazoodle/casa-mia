@@ -39,6 +39,7 @@ export type Seen = { id: string; entity: string; camera: string; kind: string; a
 export type Person = { id: string; name: string; place: string; since: number };
 export type House = {
   rooms: Room[];
+  strays: Device[]; // lights in no room: on no room's card, but in the house's count of lights (`lights` below)
   people: Person[];
   gaps: Gap[];
   scenes: { id: string; name: string }[];
@@ -59,13 +60,15 @@ export type Gap = { kind: "loose" | "plumbing" | "clash" | "floorless" | "cold";
  * those and in that order. The house's, set once in the integration and fed to every page
  * (settings.py): `floor_order` and `room_order`, which leave nothing out. A floor or a
  * room is named by its id or by its name. `entity`: that one entity and nothing else, for
- * a card that shows one (console/cards.ts). */
-export type Options = { weather?: string; power?: string; floors?: string[]; rooms?: string[]; floor_order?: string[]; room_order?: string[]; entity?: string };
+ * a card that shows one (console/cards.ts). `sample` is no option of a card's: an element
+ * sets it for itself while Home Assistant's card picker shows it (family.ts), and the
+ * house is then cut down to a specimen (`specimen` below). */
+export type Options = { weather?: string; power?: string; floors?: string[]; rooms?: string[]; floor_order?: string[]; room_order?: string[]; entity?: string; sample?: boolean };
 
 type Found = { id: string; kind: Kind; name: string; full: string; guarded: boolean; power?: string };
 type FoundRoom = { id: string; name: string; floor?: string; floorId?: string; level: number; temp?: string; humidity?: string; climate?: string; devices: Found[] };
 type FoundSighting = { id: string; name: string; room?: string };
-export type Survey = { rooms: FoundRoom[]; people: string[]; sightings: FoundSighting[]; gaps: Gap[]; scenes: string[]; weather?: string; power?: string; desk?: string; dojo?: string; watched: string[] };
+export type Survey = { rooms: FoundRoom[]; strays: Found[]; people: string[]; sightings: FoundSighting[]; gaps: Gap[]; scenes: string[]; weather?: string; power?: string; desk?: string; dojo?: string; watched: string[] };
 
 const FORECAST_DAILY = 1; // a weather entity's supported_features bit for a forecast by the day
 /** A day of the forecast: its start, Home Assistant's word for its weather, and its high and low. */
@@ -122,6 +125,7 @@ export function survey(hass: Hass, options: Options): Survey {
   let desk: string | undefined; // the sensor that holds a ZenOS-AI house's Katas
   let dojo: string | undefined; // and the one that names what they are about
   const loose: Gap["items"] = [];
+  const strays: Found[] = [];
   const clash: Gap["items"] = [];
   const plumbing: Gap["items"] = [];
   const hidden = (thing?: { labels?: string[] }) => !!thing?.labels?.includes(HIDE);
@@ -154,6 +158,9 @@ export function survey(hass: Hass, options: Options): Survey {
     if (KINDS.has(domain)) {
       const name: string = state.attributes.friendly_name ?? entry.name ?? id;
       if (!area) loose.push({ id, name });
+      // A light in no room is still a light on in the house: the Gazette once said 7 lights
+      // were on when 8 were, and its button to turn them off left the eighth on.
+      if (!area && !alone && domain === "light") strays.push({ id, kind: "light", name, full: name, guarded: false });
       if (PLUMBING.test(name)) plumbing.push({ id, name, via: entry.platform });
     }
     if (!KINDS.has(domain) || (!area && !alone)) continue;
@@ -212,6 +219,8 @@ export function survey(hass: Hass, options: Options): Survey {
     }
   }
   for (const room of kept) room.devices.sort((a, b) => a.kind.localeCompare(b.kind) || a.name.localeCompare(b.name));
+  // A card of chosen floors or rooms counts the lights in those alone.
+  const loosed = floors || chosen ? [] : strays;
   const watched = kept.flatMap((r) => [r.temp, r.humidity, r.climate, ...r.devices.flatMap((d) => [d.id, d.power])]);
   const areas = (list: FoundRoom[]) => list.map((r) => ({ id: r.id, name: r.name }));
   const gaps: Gap[] = [
@@ -221,8 +230,9 @@ export function survey(hass: Hass, options: Options): Survey {
     { kind: "floorless", items: kept.some((r) => r.floor) ? areas(kept.filter((r) => !r.floor)) : [] },
     { kind: "cold", items: areas(kept.filter((r) => !r.temp && !r.climate)) },
   ];
-  return {
+  const found: Survey = {
     rooms: kept,
+    strays: loosed,
     people,
     sightings,
     gaps: gaps.filter((g) => g.items.length),
@@ -232,8 +242,28 @@ export function survey(hass: Hass, options: Options): Survey {
     desk,
     dojo,
     // The one entity is watched whatever it is: a sensor is no device, but its card shows it.
-    watched: [...new Set([...watched, ...scenes, ...people, weather, options.power, desk, desk && PERSONA, desk && dojo, options.entity])].filter((id): id is string => !!id),
+    watched: [...new Set([...watched, ...loosed.map((d) => d.id), ...scenes, ...people, weather, options.power, desk, desk && PERSONA, desk && dojo, options.entity])].filter((id): id is string => !!id),
   };
+  return options.sample ? specimen(found) : found;
+}
+
+const SPECIMEN = 4; // devices, and SCENES scenes, in the card picker's specimen
+const SCENES = 2;
+/** The house cut down to a specimen, for Home Assistant's card picker, which shows every
+ * card at once in a narrow column: a whole house there was over 7,000 px tall for each
+ * family (measured 2026-11-16). One room, the one with the most kinds of thing in it, and
+ * SPECIMEN of its devices, one of each kind before a second of any. No gaps, sightings or
+ * agent's desk: a specimen shows the look, not the house's news. */
+function specimen(found: Survey): Survey {
+  const kinds = (r: FoundRoom) => new Set(r.devices.map((d) => d.kind)).size;
+  const room = found.rooms.reduce<FoundRoom | undefined>((best, r) => (!best || kinds(r) > kinds(best) ? r : best), undefined);
+  if (!room) return found;
+
+  const firsts = room.devices.filter((d, at) => room.devices.findIndex((o) => o.kind === d.kind) === at);
+  const devices = [...firsts, ...room.devices.filter((d) => !firsts.includes(d))].slice(0, SPECIMEN);
+  const scenes = found.scenes.slice(0, SCENES);
+  const watched = [room.temp, room.humidity, room.climate, ...devices.flatMap((d) => [d.id, d.power]), ...scenes, ...found.people, found.weather, found.power];
+  return { ...found, rooms: [{ ...room, devices }], strays: [], sightings: [], gaps: [], scenes, desk: undefined, dojo: undefined, watched: watched.filter((id): id is string => !!id) };
 }
 
 // Each kind's own way of being on, of having a level, and of letting it be set.
@@ -304,22 +334,23 @@ export function read(found: Survey, hass: Hass): House {
     return value === undefined ? undefined : hass.states[id!].attributes.unit_of_measurement === "kW" ? value : value / 1000;
   };
   const appliances: Appliance[] = [];
+  const device = (d: Found, room: string): Device => {
+    const state = hass.states[d.id];
+    const { on, phase, level, away } = standing(d.kind, state);
+    const a = state?.attributes ?? {};
+    // A guarded cover is not set from the page either.
+    const dims = !d.guarded && !!DIMS[d.kind]?.(a);
+
+    const kw = on ? kilowatts(d.power) : undefined;
+    if (kw !== undefined && kw >= 1) appliances.push({ id: d.id, name: d.name, room, kw });
+    return { id: d.id, name: d.name, kind: d.kind, on, phase, level, dims, span: span(d.kind, a), temp: DEGREES.has(d.kind) && typeof a.current_temperature === "number" ? a.current_temperature : undefined,
+      title: d.kind === "media_player" && on ? [a.media_title, a.media_artist].filter(Boolean).join(", ") || undefined : undefined, picture: d.kind === "camera" ? a.entity_picture : undefined, away, since: Date.parse(state?.last_changed ?? "") || 0, guarded: d.guarded, room };
+  };
 
   const rooms = found.rooms.map((room): Room => {
     const climate = room.climate ? hass.states[room.climate] : undefined;
     const set = climate?.attributes.temperature;
-    const devices = room.devices.map((d): Device => {
-      const state = hass.states[d.id];
-      const { on, phase, level, away } = standing(d.kind, state);
-      const a = state?.attributes ?? {};
-      // A guarded cover is not set from the page either.
-      const dims = !d.guarded && !!DIMS[d.kind]?.(a);
-
-      const kw = on ? kilowatts(d.power) : undefined;
-      if (kw !== undefined && kw >= 1) appliances.push({ id: d.id, name: d.name, room: room.name, kw });
-      return { id: d.id, name: d.name, kind: d.kind, on, phase, level, dims, span: span(d.kind, a), temp: DEGREES.has(d.kind) && typeof a.current_temperature === "number" ? a.current_temperature : undefined,
-        title: d.kind === "media_player" && on ? [a.media_title, a.media_artist].filter(Boolean).join(", ") || undefined : undefined, picture: d.kind === "camera" ? a.entity_picture : undefined, away, since: Date.parse(state?.last_changed ?? "") || 0, guarded: d.guarded, room: room.name };
-    });
+    const devices = room.devices.map((d) => device(d, room.name));
     return {
       id: room.id,
       name: room.name,
@@ -340,6 +371,7 @@ export function read(found: Survey, hass: Hass): House {
   });
   return {
     rooms,
+    strays: found.strays.map((d) => device(d, "")),
     people,
     gaps: found.gaps,
     scenes: found.scenes.filter((id) => hass.states[id]).map((id) => ({ id, name: hass.states[id].attributes.friendly_name ?? id })),
@@ -361,3 +393,6 @@ export function sighted(found: Survey, feed: Seen[]): Sighting[] {
     return camera ? [{ id: s.id, camera: s.camera, name: camera.name, room: camera.room, kind: s.kind, at: s.at * 1000, photo }] : [];
   });
 }
+
+/** Every light in the house that is answering: those in its rooms, and those in none. */
+export const lights = (house: House): Device[] => [...house.rooms.flatMap((r) => r.devices), ...house.strays].filter((d) => d.kind === "light" && !d.away);

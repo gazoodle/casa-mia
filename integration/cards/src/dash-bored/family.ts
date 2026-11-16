@@ -21,7 +21,17 @@ const SETTLE = 350; // ms: a level is asked for once it has been still this long
 export const PAGE = css`
   :host { display: block; }
   :host([panel]) > :first-child { min-height: 100vh; }
+  /* In the card picker (picked below) a window on the top of the specimen: in its narrow
+     column even one room of a family is about 1,000 px tall. */
+  :host([sample]) { max-height: 400px; overflow: hidden; }
 `;
+
+/** Whether Home Assistant's card picker is showing this element: it is then a specimen of
+ * the card, among every other card there is, and draws a sample of the house and follows
+ * no feed. The picker tells a card nothing, so this goes by the element it is put in
+ * (found 2026-11-16, Home Assistant 2026.11). Should that be renamed, the card is drawn
+ * whole there, as it was before. */
+export const picked = (el: Element) => ((el.getRootNode() as ShadowRoot).host as Element | undefined)?.localName === "hui-card-picker";
 
 const typefaces = new Set<string>();
 /** Give the document a typeface the integration serves beside this file (www/fonts),
@@ -48,6 +58,7 @@ export class Family extends LitElement {
   protected _feeds = new Map<string, Promise<() => void>>(); // by the feed's command
   protected _timers = new Set<ReturnType<typeof setTimeout>>();
   protected _asking?: ReturnType<typeof setTimeout>; // the level waiting to be asked for: see _ask
+  private _picked = false; // in Home Assistant's card picker: see `picked`
 
   static getStubConfig() {
     return {};
@@ -63,6 +74,12 @@ export class Family extends LitElement {
   /** The options as a property: the Console gives them in its template (console/host.ts). */
   set config(config: Options & { type?: string }) {
     this.setConfig(config);
+  }
+
+  /** Whether this is a specimen in the card picker: by where it is, or told so by the
+   * Console that holds it (console/host.ts). */
+  protected get _sample() {
+    return this._picked || !!this._config.sample;
   }
 
   /** Whether this element shows the house at all: one that shows only a feed reads none of it. */
@@ -98,7 +115,7 @@ export class Family extends LitElement {
       return;
     }
 
-    if (!this._survey || !was || was.entities !== hass.entities || was.areas !== hass.areas || was.devices !== hass.devices || was.floors !== hass.floors) this._survey = survey(hass, { ...this._settings, ...this._config });
+    if (!this._survey || !was || was.entities !== hass.entities || was.areas !== hass.areas || was.devices !== hass.devices || was.floors !== hass.floors) this._survey = survey(hass, { ...this._settings, ...this._config, sample: this._sample });
     // ponytail: `hass` is set at every state change in the house, and the page isn't told
     // which entity changed, so this looks at each watched one. If that ever shows in a
     // profile, follow the entities with a subscription of our own instead.
@@ -121,6 +138,13 @@ export class Family extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
+    // The picker gives a card its house before it puts it on the page: read it again, cut down.
+    if (picked(this) !== this._picked) {
+      this._picked = !this._picked;
+      this.toggleAttribute("sample", this._picked);
+      this._survey = undefined;
+      if (this._hass) this.hass = this._hass;
+    }
     if (this._hass?.connected !== false) this._listen();
   }
 
@@ -136,7 +160,7 @@ export class Family extends LitElement {
    * again by itself after a break, and each feed then says all it holds again. */
   protected _follow<T>(type: string, what: string, take: (items: T[]) => void) {
     const connection = this._hass?.connection;
-    if (!connection || !this.isConnected || this._feeds.has(type)) return;
+    if (!connection || !this.isConnected || this._feeds.has(type) || this._sample) return;
     const feed: Promise<() => void> = connection.subscribeMessage(take, { type });
     this._feeds.set(type, feed);
     feed.catch((err: any) => {

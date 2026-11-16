@@ -7,6 +7,7 @@
 import { LitElement, css, html, nothing } from "lit";
 import { html as tagged, unsafeStatic } from "lit/static-html.js";
 import type { Hass } from "../../ha.ts";
+import { picked } from "../family.ts";
 import type { Config as Told } from "./panel.ts";
 
 export const CARD = "dash-bored-console";
@@ -29,6 +30,8 @@ export class Console extends LitElement {
   // The switch looks like none of the eras' own controls: it belongs to the family.
   static styles = css`
     :host { display: block; }
+    /* In the card picker, a window on the top of the specimen (family.ts PAGE). */
+    :host([sample]) { max-height: 400px; overflow: hidden; }
     .eras { position: relative; flex: none; width: 132px; height: 100px; margin-left: auto; color: #f4f0e4; font: 600 10px "Gill Sans", "Gill Sans MT", "Helvetica Neue", sans-serif; }
     /* The stops and the switch are named with .eras so that they outrank this reset. */
     .eras button { all: unset; position: absolute; cursor: pointer; }
@@ -83,9 +86,11 @@ export class Console extends LitElement {
     this.requestUpdate();
   }
 
-  /** What the era's element is told: the card's options. A card that shows less of the panel says which part. */
+  /** What the era's element is told: the card's options, and in Home Assistant's card
+   * picker to draw a specimen of the house, not all of it (family.ts `picked`). A card that
+   * shows less of the panel says which part, and is small enough there as it is. */
   protected _tell(config: Config): Told {
-    return config;
+    return picked(this) ? { ...config, sample: true } : config;
   }
 
   /** Whether the card carries the switch that chooses the era: the whole panel does, unless its card names one. */
@@ -111,6 +116,9 @@ export class Console extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     this._recall();
+    // The picker gives a card its options before it puts it on the page.
+    if (picked(this)) this._told = this._tell(this._config);
+    this.toggleAttribute("sample", this._told.sample === true);
   }
 
   /** Which era: the card's own, else the one this browser last chose. */

@@ -768,8 +768,14 @@ with no magnets to choose another.
 The Console is a card too, **Casa Mia Dash-Bored Console** (`type: custom:dash-bored-console`),
 with its era switch. Give it `era: bakelite`, `era: nixie`, `era: silverface`, `era: bargraph` or `era: beige` and it is that era with no
 switch; the first is
-also what **Casa Mia Dash-Bored Bakelite** (`type: custom:dash-bored-bakelite`) is.
+also what the older `type: custom:dash-bored-bakelite` is. That card still works on a
+dashboard that has it, but it is no longer offered when you add a card.
 It takes `power`, `weather`, `floors` and `rooms` in the same way, and has no `style`.
+
+When you add a card, Home Assistant shows a preview of each one. The Gazette, the Fridge
+and the Console preview with one room and a few of its devices, so that you can see the
+look without the whole house being drawn in a narrow column. The card you add shows the
+whole house.
 
 Three smaller cards show part of the Console, each with an editor. Each takes `era` as the
 Console does. Without it, the card is drawn in the era last chosen on the Console in that
