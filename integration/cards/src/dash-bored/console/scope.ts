@@ -1,17 +1,19 @@
-// Silverface's recorder: how a room's devices stood through the last day, as traces on an
-// oscilloscope. A green phosphor line for each device over a graticule, on a tube with a
-// little glow. The traces are ../plot.ts's.
+// An oscilloscope for an era's recorder: how a room's devices stood through the last day,
+// as traces. A green phosphor line for each device over a graticule, on a tube with a
+// little glow. Nixie's and Silverface's recorders are this, each with its own legends and
+// keys and dressed by its own stylesheet. The traces are plot.ts's.
 import { html, nothing, svg, type TemplateResult } from "lit";
-import { plot, type Lane } from "../plot.ts";
-import { label, push } from "./kit.ts";
+import type { Kit } from "./kit.ts";
+import { plot, type Lane } from "./plot.ts";
 
 const LEFT = 104; // the screen's margin, where the channels are named
 const WIDE = 640;
 const LANE = 34;
 const HOUR = 3_600_000;
 
-/** The recorder's dialog: the room's day up to `to` on the screen, or why there is none. */
-export function recorder(room: string, lanes: Lane[], to: number, fault: string, shut: () => void): TemplateResult {
+/** An era's recorder, made with its `label` and its `push`. Its dialog is the room's day
+ * up to `to` on the screen, or why there is none. */
+export const scope = (label: Kit["label"], push: Kit["push"]) => (room: string, lanes: Lane[], to: number, fault: string, shut: () => void): TemplateResult => {
   const from = to - 24 * HOUR;
   const across = (at: number) => LEFT + ((at - from) / (to - from)) * (WIDE - LEFT - 10);
   const first = Math.ceil(from / HOUR) * HOUR;
@@ -40,4 +42,4 @@ export function recorder(room: string, lanes: Lane[], to: number, fault: string,
     </svg>
     ${push("Close", shut)}
   </dialog>`;
-}
+};

@@ -4,7 +4,7 @@
 // the panel and acts on what is pressed; styles.ts is their look and how they move.
 import { html, nothing, svg, type TemplateResult } from "lit";
 import { repeat } from "lit/directives/repeat.js";
-import { face } from "../kit.ts";
+import { BEATS, face } from "../kit.ts";
 
 /** The gradients the controls are filled with. Once in each shadow root that draws any. */
 export const DEFS = html`<svg class="defs" width="0" height="0" aria-hidden="true"><defs>
@@ -40,10 +40,6 @@ export const swing = (value: number, lo: number, hi: number) => -50 + 100 * Math
 
 // A meter's unit as its maker would have lettered it round the top of the face.
 const LEGEND: Record<string, string> = { "°C": "Degrees Celsius", kW: "Kilowatts" };
-// How long each meter's pointer takes to waver through its seven places, in units of
-// 16 ms. They are primes so that no two meters fall into step with each other; the
-// eleventh meter on a panel shares the first's.
-export const BEATS = [53, 97, 61, 83, 71, 59, 89, 67, 79, 73];
 // The scale is a ladder: two arcs with a rung every 2°, a longer one at each tenth of it.
 const RUNGS = Array.from({ length: 51 }, (_, i) => svg`<path class="scale" d="M${xy(36, -50 + i * 2)} L${xy(i % 5 ? 40 : 43, -50 + i * 2)}"/>`);
 

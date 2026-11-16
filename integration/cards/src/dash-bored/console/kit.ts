@@ -7,6 +7,11 @@
  * it shows, and its file says what each argument is. `recorder` is a room's history. */
 export type Kit = Pick<typeof import("./bakelite/kit.ts"), "DEFS" | "label" | "meter" | "valve" | "dolly" | "knob" | "tv" | "wheels" | "push" | "knife" | "jewel"> & { recorder: typeof import("./bakelite/recorder.ts").recorder };
 
+// How long each needle meter's pointer takes to waver through its seven places, in units
+// of 16 ms. They are primes so that no two meters fall into step with each other; the
+// eleventh meter on a panel shares the first's.
+export const BEATS = [53, 97, 61, 83, 71, 59, 89, 67, 79, 73];
+
 // A thumbwheel has eleven places round it: a blank, then the digits.
 const PLACES = 11;
 /** What a thumbwheel shows at a place: nothing at its blank, then the digits. A wheel's

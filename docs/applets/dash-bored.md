@@ -50,7 +50,7 @@ The Gazette, Bakelite and the Fridge can be used. The pictures of the others are
 </td>
 <td width="33%" valign="top">
 <a href="#the-console"><img src="../screenshots/dash-bored-bakelite.webp" alt="Bakelite" width="100%"></a>
-<p><b><a href="#the-console">Bakelite</a></b> · Being built: every kind of device the Gazette shows. Now the first era of the Console, with Silverface (1970s) and Bargraph (1980s) after it<br>A 1950s instrument panel: glowing valves, moving-coil meters, fluted dimmer knobs, tumbler switches and knife switches for scenes.</p>
+<p><b><a href="#the-console">Bakelite</a></b> · Being built: every kind of device the Gazette shows. Now the first era of the Console, with Nixie (1960s), Silverface (1970s) and Bargraph (1980s) after it<br>A 1950s instrument panel: glowing valves, moving-coil meters, fluted dimmer knobs, tumbler switches and knife switches for scenes.</p>
 </td>
 <td width="33%" valign="top">
 <img src="../screenshots/dash-bored-mock-calibre.webp" alt="Calibre, as a mock-up" width="100%">
@@ -470,7 +470,7 @@ in the same places, drawn as the equipment of their time:
 | Era | Decade | Stage |
 |---|---|---|
 | Bakelite | 1950s | Being built, and described below |
-| Nixie | 1960s | Not built yet |
+| Nixie | 1960s | Being built, and described below |
 | Silverface | 1970s | Being built, and described below |
 | Bargraph | 1980s | Being built, and described below |
 | Beige | 1990s | Not built yet |
@@ -563,6 +563,28 @@ lost their lamps go out and the faces turn grey, so a dark meter is one not to b
 The Gazette's columns (the weather forecast, Personal, Amusements) are not on the panel. A room with devices that are not shown has a small plate saying
 how many, such as "and 4 more". If the connection to Home Assistant is lost, or Home
 Assistant refuses a press, a red lamp and a plate at the top say so.
+
+### Nixie
+
+The Console of the 1960s, after the test instruments of the time. It has the same
+controls as Bakelite in the same places, and each works the same way; what differs is how
+they are drawn:
+
+| Bakelite | Nixie |
+|---|---|
+| A Bakelite chassis on green enamel | A blue-grey plate with a screw in each top corner, on a wrinkle-finish rack |
+| A valve that glows with the room's lights | A magic eye: two green bars that close on each other as the lights come up |
+| A round moving-coil meter for a room's temperature | The temperature in nixie tubes. Each tube holds all ten figures, one behind another: the unlit ones can be seen as faint wire, and those in front of the lit one cross it as fine lines |
+| The meters at the top of the panel | Clear-fronted meters with a cream face, whose needles waver three quarters as far |
+| A fluted knob, coloured by its kind | An instrument knob on a pale skirt with an index line. Its middle is coloured: grey for a light, brass for a blind, red for the heating, ivory for a player, green for a fan |
+| The setting engraved on the knob's plate | The setting in nixie tubes under the knob, which are there, dark, when the thermostat is off |
+| A tumbler switch, down for on | A lever key, down for on, under a neon pilot lamp |
+| A tumbler under a red guard | The key under a red cover, which lifts at the first press |
+| A knife switch for a scene | A large round push that lights when pressed, with the scene's name on it |
+| A pilot lamp and a handwritten card for an alert | A neon lamp, with what is wrong on a strip torn from a teleprinter |
+| Brass thumbwheels for an alarm's code | Black thumbwheels with white figures |
+| A black-and-white television for a camera | A black-and-white tube with rounder corners |
+| A chart recorder on paper | An oscilloscope, with a green trace for each device |
 
 ### Silverface
 
@@ -718,7 +740,7 @@ Give it `style: family`, `style: yuppies` or `style: grandparents` and it is tha
 with no magnets to choose another.
 
 The Console is a card too, **Casa Mia Dash-Bored Console** (`type: custom:dash-bored-console`),
-with its era switch. Give it `era: bakelite`, `era: silverface` or `era: bargraph` and it is that era with no
+with its era switch. Give it `era: bakelite`, `era: nixie`, `era: silverface` or `era: bargraph` and it is that era with no
 switch; the first is
 also what **Casa Mia Dash-Bored Bakelite** (`type: custom:dash-bored-bakelite`) is.
 It takes `power`, `weather`, `floors` and `rooms` in the same way, and has no `style`.

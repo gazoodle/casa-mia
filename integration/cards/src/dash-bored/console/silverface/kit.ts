@@ -4,6 +4,7 @@
 // on the panel and acts on what is pressed; styles.ts is their look and how they move.
 import { html, nothing, svg, type TemplateResult } from "lit";
 import { swing } from "../bakelite/kit.ts";
+import { BEATS } from "../kit.ts";
 
 // A thumbwheel and a screen are the same parts in every era, dressed by the era's
 // stylesheet: black plastic wheels here, and a colour tube.
@@ -82,8 +83,6 @@ const at = (r: number, deg: number) => {
   return `${(60 + r * Math.cos(a)).toFixed(1)},${(74 + r * Math.sin(a)).toFixed(1)}`;
 };
 const LEGEND: Record<string, string> = { "°C": "TEMPERATURE °C", kW: "POWER kW" };
-// As Bakelite's: a prime for each meter, so that no two needles waver in step.
-const BEATS = [53, 97, 61, 83, 71, 59, 89, 67, 79, 73];
 const MARKS = Array.from({ length: 21 }, (_, i) => svg`<path d="M${at(50, -50 + i * 5)} L${at(i % 4 ? 53 : 56, -50 + i * 5)}" stroke=${i > 16 ? "#c9170f" : "#101614"} stroke-width=${i % 4 ? 0.6 : 1.1}/>`);
 
 /** A panel meter of the 1970s, with a scale from `lo` to `hi`: a rectangular window with

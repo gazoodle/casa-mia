@@ -306,8 +306,14 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   the level by how far the finger went along the element's height. Its needle is a layer
   of its own over a still face, and it has no CSS filter: the pattern for the other eras
   if the iPad's sluggishness (reported 2026-11-15, not yet measured) is the meters. Seen
-  only on a throw-away harness with an invented house, in WebKit and Chromium; not on a
-  real Home Assistant, and it has no screenshot in the guide. Bakelite is completed first and keeps its name.
+  on a throw-away harness with an invented house, in WebKit and Chromium, and on the
+  test VM; it has no screenshot in the guide. Nixie (1960s, 2026.11.9-b3:
+  `console/nixie.ts` with `console/nixie/`) is built the same way, from
+  `docs/design/dash-bored/nixie.html`. What the rectangular eras share is in the Console's
+  own files: `console/needle.ts` (the layered needle meter: Nixie's two top meters and
+  Bargraph's), `console/scope.ts` (the oscilloscope recorder, made with an era's `label`
+  and `push`: Nixie's and Silverface's), `BEATS` in `console/kit.ts`, and `panel` and
+  `plate` in `silverface/kit.ts` (a display's fixed cells, and a knob's plate taken apart). Bakelite is completed first and keeps its name.
   - **A panel's controls never move for their lettering** (owner, 2026-11-15: "it's
     drilled into the panel"; true of the Console's eras, perhaps not of other families).
     Each hangs from the top of its row with a fixed height and room for a two-line

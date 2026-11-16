@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.9-b3
+
+- **Dash-Bored: Nixie, the Console of the 1960s.** The era switch's 60 now shows a rack of test instruments. A room's temperature is in nixie tubes, each with all ten figures to be seen in it, one behind another; the two meters at the top have needles. A room's lights are a magic eye, knobs are instrument knobs on a skirt with the heating's setting in tubes, switches are lever keys under a neon lamp, with a red cover where they are guarded, and scenes are round lit pushes. Alerts are on a strip from a teleprinter, and a room's chart is an oscilloscope.
+
 ## 2026.11.9-b2
 
 - **Dash-Bored: Bargraph, the Console of the 1980s.** The era switch's 80 now shows a panel of black hi-fi separates. A level is set with a fader, which is slid, with a ladder of LEDs beside it; the heating keeps a knob, in a ring of LEDs, with its setting in fluorescent figures. Switches are soft-touch keys with an LED, under a flap of smoked perspex where they are guarded, and scenes are a tuner's numbered presets. The meters have fine orange needles, with a fluorescent display in every third room. Alerts are on a dot-matrix line, and a room's chart is a spectrum analyser.

@@ -21,8 +21,8 @@ the Gazette's own work is parked below it.
   without a unique id (in YAML, or by `scene.create`) is in no registry, so no family
   shows it.
 - **The Console's other eras** (owner, 2026-11-14). The Console is the family and its
-  eras are Bakelite (1950s, built), Nixie (1960s), Silverface (1970s, built), Bargraph
-  (1980s, built 2026.11.9-b2) and Beige (1990s). They are the same panel underneath (`console/panel.ts`), each with
+  eras are Bakelite (1950s, built), Nixie (1960s, built 2026.11.9-b3), Silverface (1970s,
+  built), Bargraph (1980s, built 2026.11.9-b2) and Beige (1990s). They are the same panel underneath (`console/panel.ts`), each with
   its own kit and stylesheet and a few controls or lights that mark its time: from valves
   to LEDs, and from a phosphor oscilloscope or television to a digital panel. They are
   to be designed with care, and each design agreed with the owner before it is drawn.
@@ -32,7 +32,13 @@ the Gazette's own work is parked below it.
     real Home Assistant or a tablet, and the guide has no screenshot of it. The era
     switch is not drawn in its style. A press on a fader that does not move it switches
     its device, as a knob's does: the owner has not said whether a fader should.
-  - **Nixie and Beige are to build next**, from their mock-ups. **All three have mock-ups** (2026-11-15: `docs/design/dash-bored/`
+  - **Nixie, what's left** (built 2026.11.9-b3). Not yet seen by the owner, nor on a
+    tablet, and the guide has no screenshot of it. The two meters at the top of the
+    panel are needle meters and only the rooms' are nixie tubes: my choice, from the
+    owner's "meters do span decades", which he has not seen. The order the figures are
+    stacked in a tube is from memory of a common tube, not checked against a datasheet.
+    A minus has a tube of its own, which a real one had not.
+  - **Beige is to build next**, from its mock-up. **All three have mock-ups** (2026-11-15: `docs/design/dash-bored/`
     `nixie.html`, `bargraph.html` and `beige.html`, on `eras.js`), not yet agreed. The
     owner's rulings that day: Bargraph has sliders ("it's important"); and needle meters span the decades, with a
     thinner and more delicate pointer in the later ones. Each mock-up shows a needle

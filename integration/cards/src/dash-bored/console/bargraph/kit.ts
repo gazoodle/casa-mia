@@ -3,9 +3,9 @@
 // ladder beside each, soft-touch keys, fluorescent displays and membrane keys. ../panel.ts
 // puts the controls on the panel and acts on what is pressed; styles.ts is their look and
 // how they move.
-import { html, nothing, svg, type TemplateResult } from "lit";
-import { BEATS } from "../bakelite/kit.ts";
+import { html, nothing, type TemplateResult } from "lit";
 import { face } from "../kit.ts";
+import { needle } from "../needle.ts";
 import { BARS, panel, plate } from "../silverface/kit.ts";
 
 // A screen is the same part in every era, dressed by the era's stylesheet: here a small
@@ -28,21 +28,9 @@ export const figs = (text: string, lit = true, says = text.trim()) => html`<span
   ch === "." ? html`<i class="dp"></i>` : ch === "°" ? html`<i class="deg"></i>` : ch === "%" ? html`<i class="pc">%</i>` : html`<i class="d">${[..."abcdefg"].map((bar) => html`<b class="s${bar} ${lit && BARS[ch]?.includes(bar) ? "lit" : ""}"></b>`)}</i>`,
 )}</span>`;
 
-// A point on a needle meter's face, `r` from the needle's pivot and `deg` from straight
-// up. The pivot is well below the window, so the needle is long and its arc is shallow.
-const at = (r: number, deg: number): [string, string] => {
-  const a = ((deg - 90) * Math.PI) / 180;
-  return [(60 + r * Math.cos(a)).toFixed(1), (96 + r * Math.sin(a)).toFixed(1)];
-};
-const HALF = 33; // degrees: how far the scale runs each side of straight up
-// The scale: an arc with a mark every twentieth of it, a longer one at each quarter, and its last fifth in red.
-const SCALE = svg`<path class="scale" d="M${at(80, -HALF)} A80,80 0 0 1 ${at(80, HALF)}"/><path class="over" d="M${at(77.5, HALF * 0.6)} A77.5,77.5 0 0 1 ${at(77.5, HALF)}"/>
-  ${TWENTY.concat(20).map((i) => svg`<path class="scale" d="M${at(i % 5 ? 77 : 74, -HALF + i * HALF * 0.1)} L${at(80, -HALF + i * HALF * 0.1)}"/>`)}`;
-
 /** A meter with a scale from `lo` to `hi`. Most are needle meters of the time: a black
  * face printed in white and lit warm from below, with a hair of an orange needle that
- * hardly wavers. The needle is a layer of its own over a face that does not change, so
- * that the browser moves it without drawing the meter again. Every third of the rooms'
+ * hardly wavers (../needle.ts). Every third of the rooms'
  * meters is a fluorescent display instead (owner, 2026-11-15: needles, with a display
  * now and then): large figures over a sweep of twenty segments, the last four red.
  * `beat` is which meter on the panel this is: the two at the top are 0 and 1. A meter
@@ -59,18 +47,7 @@ export function meter(title: string, lo: number, hi: number, value: number, unit
     </div>`;
   }
 
-  const figures = [0, 1, 2, 3, 4].map((i) => {
-    const [x, y] = at(68, -HALF + i * HALF * 0.5);
-    return svg`<text x=${x} y=${Number(y) + 2}>${+(lo + ((hi - lo) * i) / 4).toFixed(1)}</text>`;
-  });
-  return html`<div class="meter ${lit ? "" : "unlit"}">
-    <div class="win" role="img" aria-label="${title}: ${value} ${unit}">
-      <svg class="face" viewBox="0 0 120 70" aria-hidden="true">${SCALE}${figures}<text class="unit" x="60" y="52">${unit}</text></svg>
-      <div class="needle" style="transform: rotate(${(-HALF + 2 * HALF * part).toFixed(1)}deg)"><svg class="waver" viewBox="0 0 120 70" aria-hidden="true" style="animation-duration: ${BEATS[beat % BEATS.length] * 16}ms"><path d="M60,96 V19"/></svg></div>
-      <i class="cowl"></i>
-    </div>
-    ${label(title)}
-  </div>`;
+  return needle(title, lo, hi, value, unit, beat, lit, label(title));
 }
 
 /** A lamp for an alert: an LED. Its colour is its level's, set by its class in styles.ts. */
