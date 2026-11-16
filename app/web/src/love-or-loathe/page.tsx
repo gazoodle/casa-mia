@@ -5,7 +5,8 @@
 import { useCallback, useState, type ReactNode } from "react";
 import { confirmBox } from "../confirm";
 import { Select } from "../controls";
-import { AreaHead, Empty, Shell } from "../page";
+import { FoldArea } from "../compositor/fold";
+import { Empty, Shell } from "../page";
 import { Segmented, Switch, Toasts, type Toast } from "../ui";
 import guest from "../guest.module.css";
 import ui from "../ui.module.css";
@@ -103,20 +104,23 @@ function EntryArea({ entry, view, current, act, show }: { entry: Entry; view: Vi
   const remove = async (what: { id: string; name: string }, question: string) =>
     (await confirmBox(question, { action: "Remove", danger: true })) && act(() => change("remove", entry, { subentry_id: what.id }), `${what.name} removed`);
 
+  // Folded to its heading (kept in this browser), so that a page of several entries is
+  // easy to find one's way about.
   return (
-    <section className={guest.area}>
-      <AreaHead
-        title={entry.title}
-        blurb={`Watching ${names || "no players"}${entry.delay ? `, acting ${entry.delay} s after a new track` : ""}.`}
-        action={
-          <span className={css.headControls}>
-            <Switch on={entry.enabled} label={`${entry.title} is watching its players`} onChange={(on) => act(() => change("enable", entry, { enabled: on }), on ? `${entry.title} is watching` : `${entry.title} is switched off`)} />
-            <button className={ui.button} onClick={() => show(<PlayersDialog entry={entry} view={view} onClose={close} onSave={(body) => save("save_entry", body, `${body.name} saved`)} />)}>
-              Settings
-            </button>
-          </span>
-        }
-      />
+    <FoldArea
+      id={entry.id}
+      scope="love-or-loathe"
+      title={entry.title}
+      blurb={`Watching ${names || "no players"}${entry.delay ? `, acting ${entry.delay} s after a new track` : ""}${entry.back_at_end ? ", switching back at the end of a song" : ""}.`}
+      action={
+        <span className={css.headControls}>
+          <Switch on={entry.enabled} label={`${entry.title} is watching its players`} onChange={(on) => act(() => change("enable", entry, { enabled: on }), on ? `${entry.title} is watching` : `${entry.title} is switched off`)} />
+          <button className={ui.button} onClick={() => show(<PlayersDialog entry={entry} view={view} onClose={close} onSave={(body) => save("save_entry", body, `${body.name} saved`)} />)}>
+            Settings
+          </button>
+        </span>
+      }
+    >
       {!entry.running && <div className={guest.warning}>This entry isn't running in Home Assistant, so nothing is being watched. Its groups and stations can still be changed.</div>}
       {entry.running && !entry.enabled && <div className={guest.warning}>Switched off: nothing is watched and nothing is done until it is switched on again, here or with its Watching switch in Home Assistant.</div>}
 
@@ -238,7 +242,7 @@ function EntryArea({ entry, view, current, act, show }: { entry: Entry; view: Vi
         A match is a song that a group has; the line after it says what was done, or why nothing was. This list holds the last 100 lines since Home Assistant started; its Logbook keeps
         them all, under this entry's Last match sensor.
       </p>
-    </section>
+    </FoldArea>
   );
 }
 
@@ -311,7 +315,13 @@ function NowPlaying({ entry, view, act, station }: { entry: Entry; view: View; a
                       {group.feeling === "love" ? "Loved" : "Loathed"}: {group.name}
                     </span>
                   ) : null}
-                  {away && <span className="cm-pill cm-warn">Away until {new Date(away).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>}
+                  {away && (
+                    <span className="cm-pill cm-warn">
+                      Away until {entry.back_at_end && "the song on at "}
+                      {new Date(away).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      {entry.back_at_end && " ends"}
+                    </span>
+                  )}
                 </span>
                 <span className={css.song}>
                   {!on ? "Nothing playing" : playing.title ? `${playing.title}${playing.artist ? ` by ${playing.artist}` : ""}` : "Playing, but it reports no title, so nothing can be matched"}

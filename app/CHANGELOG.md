@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.9-b7
+
+- **Love it or Loathe it: switch back at the end of a song.** A new setting for each entry, with its players and delay. With it on, a player that was switched to another station no longer goes back the moment its minutes are up, which could be in the middle of a song: it waits for that song to end. If no new song comes on within 10 minutes, it goes back then.
+- Love it or Loathe it: on its page in Casa Mia, each entry folds away to its heading, so a page of several entries is easier to find your way around. Each browser remembers which entries are folded.
+
 ## 2026.11.9-b6
 
 - **Dash-Bored: scrolling no longer stutters on an iPad.** As its own page, each family (the Gazette, the Console and the Fridge) made itself one screen tall and scrolled inside that box, and Safari on an iPad stopped for over a second at a time to paint it. The page itself scrolls now. Nothing looks different.

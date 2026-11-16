@@ -40,6 +40,7 @@ from . import trail
 from .const import (
     CONF_ACTION,
     CONF_AMOUNT,
+    CONF_BACK_AT_END,
     CONF_DELAY,
     CONF_ENABLED,
     CONF_FEELING,
@@ -72,6 +73,9 @@ ID = "media_content_id"
 TYPE = "media_content_type"
 # A player rounds the volume it is given; within this it is still the one set here.
 SAME_VOLUME = 0.011
+# Back at the end of a song (CONF_BACK_AT_END): the longest the return waits for the next
+# track, for a station whose title never changes.
+LONGEST_SONG = timedelta(minutes=10)
 
 
 @dataclass(frozen=True, slots=True)
@@ -91,7 +95,8 @@ class Player:
     undo: list[Any] | None = None
     # Switched to another station: {"until": ISO time, "origin": media to go back to or
     # None, "tried": station ids, "was": the content id before the switch, "ours": the
-    # one the player reported after it}.
+    # one the player reported after it, "waiting": true once the time is up and the
+    # return waits for "song", [title, artist], to end (CONF_BACK_AT_END)}.
     away: dict[str, Any] | None = None
     back: CALLBACK_TYPE | None = None  # the timer for the return
     # One track's work at a time: the undo of the last before the action of the next.
@@ -103,6 +108,7 @@ class Engine:
         self.hass = hass
         self.entry = entry
         self.delay = float(entry.options.get(CONF_DELAY, 0))
+        self.at_end: bool = entry.options.get(CONF_BACK_AT_END, False)
         self.enabled: bool = entry.options.get(CONF_ENABLED, True)
         self.players = {e: Player() for e in entry.options.get(CONF_PLAYERS, [])}
 
@@ -341,6 +347,16 @@ class Engine:
         title, artist = track
         async with player.lock:
             await self._undo(entity, player)
+
+            # The song that was on when the time was up has ended: back now. This track,
+            # on the other station, is gone at once, so it isn't heard or judged. The
+            # same song again is a restart hearing it afresh, not its end.
+            away = player.away
+            if away and away.get("waiting") and list(track) != away.get("song"):
+                await self._back(entity, player)
+                self._tell()
+                return
+
             if title:
                 self.history.heard(title, artist, dt_util.utcnow().timestamp())
             await self._save()
@@ -476,6 +492,8 @@ class Engine:
         back = dt_util.as_local(
             dt_util.parse_datetime(away["until"]) or dt_util.utcnow()
         )
+        if self.at_end:
+            return f"switched to {station.name} until the song on at {back:%H:%M} ends"
         return f"switched to {station.name} until {back:%H:%M}"
 
     async def _undo(self, entity: str, player: Player) -> None:
@@ -529,14 +547,38 @@ class Engine:
     # --- coming back from another station ----------------------------------------
 
     def _arm(self, entity: str, player: Player) -> None:
-        """The return, at its time; at once when that passed while nothing ran."""
-        assert player.away is not None
-        until = dt_util.parse_datetime(player.away["until"])
+        """The return, at its time; at once when that passed while nothing ran. With the
+        entry's back at the end of a song, the time only starts the wait for the next
+        track (_heard goes back then), and this goes back after LONGEST_SONG anyway."""
+        away = player.away
+        assert away is not None
+        until = dt_util.parse_datetime(away["until"])
         assert until is not None
+        if away.get("waiting"):
+            until += LONGEST_SONG
 
         @callback
         def due(_now: datetime) -> None:
             player.back = None
+            if self.at_end and not away.get("waiting"):
+                away.update(waiting=True, song=list(player.track or ()))
+                self._arm(entity, player)
+                self._note(
+                    trail.RETURN,
+                    "Time is up: switching back when this song ends",
+                    entity,
+                )
+                self.entry.async_create_background_task(self.hass, self._save(), DOMAIN)
+                self._tell()
+                return
+
+            if away.get("waiting"):
+                self._note(
+                    trail.RETURN,
+                    f"No new song within {LONGEST_SONG.seconds // 60} minutes: "
+                    "switching back now",
+                    entity,
+                )
             self.entry.async_create_background_task(
                 self.hass, self._return(entity, player), f"{DOMAIN} return {entity}"
             )
@@ -551,33 +593,35 @@ class Engine:
 
     async def _return(self, entity: str, player: Player) -> None:
         async with player.lock:
-            away = player.away
-            if away is None:
-                return
-            self._home(player)
-            await self._save()
-
-            state = self.hass.states.get(entity)
-            origin = away["origin"]
-            if state is None or state.state != STATE_PLAYING:
-                self._note(
-                    trail.RETURN, "No longer playing: not switching it back", entity
-                )
-            elif origin is None:
-                self._problem(
-                    entity,
-                    "can't switch back: the player never said what it was playing",
-                )
-            else:
-                try:
-                    await self._call("play_media", entity, **origin)
-                except HomeAssistantError as exc:
-                    self._problem(entity, f"could not switch back: {exc}")
-                else:
-                    self._note(
-                        trail.RETURN, f"Switched back to {self._named(origin)}", entity
-                    )
+            await self._back(entity, player)
         self._tell()
+
+    async def _back(self, entity: str, player: Player) -> None:
+        """Back to where it was, holding the player's lock."""
+        away = player.away
+        if away is None:
+            return
+        self._home(player)
+        await self._save()
+
+        state = self.hass.states.get(entity)
+        origin = away["origin"]
+        if state is None or state.state != STATE_PLAYING:
+            self._note(trail.RETURN, "No longer playing: not switching it back", entity)
+        elif origin is None:
+            self._problem(
+                entity,
+                "can't switch back: the player never said what it was playing",
+            )
+        else:
+            try:
+                await self._call("play_media", entity, **origin)
+            except HomeAssistantError as exc:
+                self._problem(entity, f"could not switch back: {exc}")
+            else:
+                self._note(
+                    trail.RETURN, f"Switched back to {self._named(origin)}", entity
+                )
 
     def _named(self, media: dict[str, str]) -> str:
         """A station's name for what a player is to play, else what it is."""

@@ -108,6 +108,12 @@ The **Delay** set with the players is the number of seconds to wait after a play
 reports a new track before acting. Leave it at 0 unless a player changes its title
 before the song itself changes.
 
+**Switch back at the end of a song**, set with the players too, is for a player that has
+been switched to another station. With it on, the player doesn't go back the moment its
+minutes are up, which can be in the middle of a song. It waits for the song playing then
+to end, and goes back when the next track starts. A station that never reports a new
+title would keep it waiting, so after 10 minutes it goes back anyway.
+
 ## Two ways to change its settings
 
 The settings are kept in Home Assistant, whichever way the integration was installed.
@@ -122,7 +128,7 @@ There are two places to change them, and both change the same thing:
 | To | In Home Assistant | On the page in Casa Mia |
 |---|---|---|
 | Add an entry, or delete one | **Add integration**; an entry's menu → Delete | Not on the page: it links to Home Assistant |
-| Change an entry's players and delay | The entry's **Configure** | **Settings** |
+| Change an entry's players, delay and switching back | The entry's **Configure** | **Settings** |
 | Choose who may rate | The entry's **Configure** | **Settings** |
 | Set songs played too often | The entry's **Configure** | **Settings** |
 | Add a group of songs | **Add a group of songs** | **+ Add a group** |
@@ -156,9 +162,13 @@ integration has been added, and the tile opens a page with all of it on one scre
   a song that is in two. Home Assistant's own screens can't change the order.
 - **Songs played too often:** the entry's strike, with its switch.
 - **Stations to switch to**, in the order they are tried, with the same buttons.
-- **Settings** changes an entry's name, its players, its delay, who may rate and songs
-  played too often, and the switch beside it turns the entry's watching off and on.
+- **Settings** changes an entry's name, its players, its delay, whether it switches back
+  at the end of a song, who may rate and songs played too often, and the switch beside it
+  turns the entry's watching off and on.
 - **What happened:** what the entry did, line by line.
+
+Each entry's name folds it away to its heading, which helps on a page with several
+entries. The page remembers which are folded in that browser.
 
 The page keeps nothing of its own. It changes what Home Assistant holds, so a group
 made on the page is the same group on Home Assistant's screens, with the same select,
@@ -222,7 +232,8 @@ the group's feeling, and it is acted on at once.
   added, unless changed on the page in Casa Mia). If that station is playing a loathed song as
   well, it moves on to the next. When every station has been tried, the song is muted
   instead. After **Minutes on the other station**, counted from the first switch, the
-  player goes back to what it was playing.
+  player goes back to what it was playing, or at the end of the song then playing if
+  the entry's **Switch back at the end of a song** is on.
 - **Only fire the event.**
 
 A switch can't end at the next track, as a mute does, because once the player has left

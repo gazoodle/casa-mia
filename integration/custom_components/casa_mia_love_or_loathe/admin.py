@@ -38,6 +38,7 @@ from .const import (
     ACTIONS,
     CONF_ACTION,
     CONF_AMOUNT,
+    CONF_BACK_AT_END,
     CONF_DELAY,
     CONF_ENABLED,
     CONF_FEELING,
@@ -161,6 +162,7 @@ def _entry(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:
         "trail": list(reversed(trail.lines(hass, entry))),
         "players": players,
         "delay": entry.options.get(CONF_DELAY, 0),
+        CONF_BACK_AT_END: entry.options.get(CONF_BACK_AT_END, False),
         # Who may rate: the people, and the logins that may rate for them.
         CONF_RATERS: entry.options.get(CONF_RATERS, []),
         CONF_SCREENS: entry.options.get(CONF_SCREENS, []),
@@ -402,6 +404,8 @@ def _order(hass: HomeAssistant, entry: ConfigEntry, msg: dict[str, Any]) -> str:
             **_ACT,
         },
         vol.Optional(CONF_REPEATS_ON): bool,
+        # Optional: a page from before 2026.11.9-b7 has none, and it is kept.
+        vol.Optional(CONF_BACK_AT_END): bool,
     },
 )
 def _save_entry(hass: HomeAssistant, entry: ConfigEntry, msg: dict[str, Any]) -> str:
@@ -412,6 +416,7 @@ def _save_entry(hass: HomeAssistant, entry: ConfigEntry, msg: dict[str, Any]) ->
     kept = (
         CONF_PLAYERS,
         CONF_DELAY,
+        CONF_BACK_AT_END,
         CONF_RATERS,
         CONF_SCREENS,
         CONF_REPEATS,
@@ -421,7 +426,7 @@ def _save_entry(hass: HomeAssistant, entry: ConfigEntry, msg: dict[str, Any]) ->
     hass.config_entries.async_update_entry(
         entry, title=msg[CONF_NAME], options={**entry.options, **options}
     )
-    return "its name, players, delay, who may rate or songs played too often"
+    return "its name, players, delay, switching back, who may rate or songs played too often"
 
 
 @_change(

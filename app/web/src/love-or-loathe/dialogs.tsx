@@ -198,12 +198,13 @@ export function StationDialog({
   );
 }
 
-export type EntryBody = { name: string; players: string[]; delay: number; raters: string[]; screens: string[]; repeats: Repeats; repeats_on: boolean };
+export type EntryBody = { name: string; players: string[]; delay: number; back_at_end: boolean; raters: string[]; screens: string[]; repeats: Repeats; repeats_on: boolean };
 
 export function PlayersDialog({ entry, view, onClose, onSave }: { entry: Entry; view: View; onClose: () => void; onSave: (body: EntryBody) => void }) {
   const [name, setName] = useState(entry.title);
   const [players, setPlayers] = useState(entry.players);
   const [delay, setDelay] = useState(entry.delay);
+  const [atEnd, setAtEnd] = useState(entry.back_at_end);
   const [raters, setRaters] = useState(entry.raters);
   const [screens, setScreens] = useState(entry.screens);
   const [repeats, setRepeats] = useState(entry.repeats);
@@ -220,7 +221,7 @@ export function PlayersDialog({ entry, view, onClose, onSave }: { entry: Entry; 
       title={`${entry.title}: its settings`}
       wide
       onClose={onClose}
-      footer={<Buttons onClose={onClose} ready={!!name.trim() && players.length > 0} onSave={() => onSave({ name: name.trim(), players, delay, raters, screens, repeats, repeats_on: on })} />}
+      footer={<Buttons onClose={onClose} ready={!!name.trim() && players.length > 0} onSave={() => onSave({ name: name.trim(), players, delay, back_at_end: atEnd, raters, screens, repeats, repeats_on: on })} />}
     >
       <Field label="Name" help="Shown on its device and entities in Home Assistant.">
         <input value={name} onChange={(e) => setName(e.target.value)} />
@@ -245,6 +246,12 @@ export function PlayersDialog({ entry, view, onClose, onSave }: { entry: Entry; 
       </Field>
       <Field label="Delay, in seconds" help="How long to wait after a player reports a new track before acting. Leave it at 0 unless the title changes before the song does.">
         <input type="number" min={0} max={60} value={delay} onChange={(e) => setDelay(number(e.target.value))} />
+      </Field>
+      <Field
+        label="Switch back at the end of a song"
+        help="When a player has been switched to another station, it goes back when the song playing at the end of its minutes ends, not in the middle of it. If no new song comes on within 10 minutes after that, it goes back then."
+      >
+        <Switch on={atEnd} label="Switch back at the end of a song" onChange={setAtEnd} />
       </Field>
       <Field
         label="Songs played too often"

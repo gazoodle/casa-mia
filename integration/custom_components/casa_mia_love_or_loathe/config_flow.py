@@ -24,6 +24,7 @@ from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import section
 from homeassistant.helpers.selector import (
+    BooleanSelector,
     EntitySelector,
     EntitySelectorConfig,
     MediaSelector,
@@ -41,6 +42,7 @@ from .const import (
     ACTIONS,
     CONF_ACTION,
     CONF_AMOUNT,
+    CONF_BACK_AT_END,
     CONF_DELAY,
     CONF_FEELING,
     CONF_HOURS,
@@ -81,6 +83,7 @@ PLAYERS = vol.Schema(
                 mode=NumberSelectorMode.BOX,
             )
         ),
+        vol.Required(CONF_BACK_AT_END, default=False): BooleanSelector(),
     }
 )
 
