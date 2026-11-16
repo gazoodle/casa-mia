@@ -36,6 +36,10 @@ the Gazette's own work is parked below it.
     house (Chromium and WebKit). The Fridge's sizes in `fridge/rows.ts` are estimates.
 - **Aurora, what's left** (built 2026.11.9-b9; seen on a harness and on the test VM's
   page, see HANDOVER).
+  - **The home screen is thin on a big screen** (owner, 2026-11-16: "leave it for now;
+    we'll find stuff to put on there"). On a Mac's window the Sensor Watch tile is
+    mostly empty and one floor's tile is twice the others' height. The answer is more
+    to show, to be chosen by the owner, not more stretching.
   - **To measure on the owner's iPad before more is built on it:** a finger's swipe
     between screens (nothing but a script has moved them yet); whether a swipe from the
     left edge opens Home Assistant's sidebar or goes back instead; and how the sideways

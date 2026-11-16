@@ -68,7 +68,8 @@ export const STYLES = css`
   /* The foot of a screen is left for the bar, so that the tiles fill what can be seen and none is under it. */
   .page { flex: 0 0 100%; height: 100%; scroll-snap-align: start; scroll-snap-stop: always; display: grid; gap: 14px; padding: 18px 18px 88px;
     grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); grid-template-rows: repeat(var(--rows), minmax(0, 1fr)); }
-  .page > * { min-width: 0; min-height: 0; margin: 0; }
+  /* A tile's contents are enlarged with its cell (zoom, in pages.ts): the tile still fills its cells. */
+  .page > * { min-width: 0; min-height: 0; margin: 0; zoom: var(--zoom, 1); }
   .label { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--soft); font-weight: 600; }
   .none { color: var(--soft); font-size: 14px; }
   .dim { opacity: .3; }

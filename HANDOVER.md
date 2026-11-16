@@ -408,7 +408,14 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
     again with every tile one row tall, which can't. A sweep of 12,600 cases left no
     cell free. Sizes come from the survey alone (how many devices a room has), never
     from how the house stands: a tile must not move because a light was switched.
-    `_lay` works the screens out again only when the survey or the cells change.
+    `_lay` works the screens out again only when the survey or the element's size change.
+  - **The grid is chosen for the tiles, not for the window** (owner, 2026-11-16, of a
+    Mac's window: "soo bad"). A window that could hold 8×6 cells gave seven tiles 48
+    cells to share, and they grew into empty slabs. `fitted` in `pages.ts` now picks,
+    per screen, the grid with the fewest cells to spare and cells near 1.3:1; small
+    sets next to each other share a screen while they fit one (`FULL`); and a tile's
+    contents are enlarged with its cell by CSS `zoom` (`zoom`, at most 1.6). Test any
+    change at 2560×1300 as well as at a tablet's and a phone's size.
   - **A set of rooms is not a floor** (owner, 2026-11-16: "arbitrary splits" was to stop
     floor or area being built in; the other way is not yet specified). `splits` in
     `pages.ts` is the one place that knows a set is a floor today. A set takes no more

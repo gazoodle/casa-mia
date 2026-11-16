@@ -46,7 +46,7 @@ test("a sensor that reports every second gives the line a point every half minut
 
 // ---------- the bento and its screens ----------
 const { bento } = await import("./aurora/bento.ts");
-const { dots, grid, screens, splits } = await import("./aurora/pages.ts");
+const { dots, grid, screens, splits, zoom } = await import("./aurora/pages.ts");
 
 /** How many tiles cover each cell of a screen. */
 const cover = (placed: { col: number; row: number; w: number; h: number }[], cols: number, rows: number) => {
@@ -87,17 +87,17 @@ test("the house is split by floor today, and a house with no floors is one set",
 
 test("the home screen comes first with a tile for each set, and every room is on one screen", () => {
   const house = found([room("gym", "Basement", 1), room("hall", "Ground", 5, "climate.hall"), room("kitchen", "Ground", 9), ...Array.from({ length: 30 }, (_, i) => room(`r${i}`, "First", i % 11))], { power: "sensor.power", scenes: [{}] });
-  const all = screens(house, 5, 4);
+  const all = screens(house, 1100, 830); // at most 5 cells by 4
   assert.equal(all[0].name, "Home");
   assert.deepEqual(all[0].tiles.map((t) => t.id), ["hero", "alerts", "scenes", "energy", "climate", "split:Basement", "split:Ground", "split:First"]);
   assert.deepEqual(all.flatMap((s) => s.tiles).filter((t) => t.id.startsWith("room:")).map((t) => t.id.slice(5)), house.rooms.map((r: any) => r.id));
-  for (const screen of all) assert.ok(cover(screen.tiles, 5, 4).every((times) => times === 1), screen.name);
+  for (const screen of all) assert.ok(cover(screen.tiles, screen.cols, screen.rows).every((times) => times === 1), screen.name);
   // A set too big for a screen has several, numbered.
-  const first = all.filter((s) => s.split === "First");
+  const first = all.filter((s) => s.splits.includes("First"));
   assert.ok(first.length > 1);
   assert.deepEqual(first.map((s) => [s.part, s.parts]), first.map((_, i) => [i, first.length]));
   // A house with no scenes, power sensor or thermostat has none of their tiles.
-  assert.deepEqual(screens(found([room("a", undefined, 1)]), 4, 3)[0].tiles.map((t) => t.id), ["hero", "alerts", "split:Rooms"]);
+  assert.deepEqual(screens(found([room("a", undefined, 1)]), 900, 700)[0].tiles.map((t) => t.id), ["hero", "alerts", "split:Rooms"]);
 });
 
 test("a screen has at least two cells each way, and a bigger tile has room for more round buttons", () => {
@@ -111,11 +111,11 @@ test("a set of rooms takes no more screens than it must, and a big tile holds it
   const { holds } = await import("./aurora/pages.ts");
   // 18 rooms that would each like two cells, on screens of 18: one screen, not two.
   const house = found(Array.from({ length: 18 }, (_, i) => room(`r${i}`, "Ground", 5)));
-  const all = screens(house, 6, 3);
+  const all = screens(house, 1300, 690); // at most 6 cells by 3
   assert.deepEqual(all.map((s) => s.name), ["Home", "Ground"]);
-  assert.ok(cover(all[1].tiles, 6, 3).every((times) => times === 1));
+  assert.ok(cover(all[1].tiles, all[1].cols, all[1].rows).every((times) => times === 1));
   // Four rooms on the same screen are as big as they like, and grow.
-  assert.ok(screens(found([room("a", "G", 9), room("b", "G", 1)]), 6, 3)[1].tiles.every((t) => t.w * t.h > 1));
+  assert.ok(screens(found([room("a", "G", 9), room("b", "G", 1)]), 1300, 690)[1].tiles.every((t) => t.w * t.h > 1));
 
   assert.equal(holds(200, 180, 1), 0); // one cell is not tall enough for a fader
   assert.equal(holds(640, 455, 6), 250); // three cells by two, on a tablet: a row of six, as tall as on a sheet
@@ -124,4 +124,25 @@ test("a set of rooms takes no more screens than it must, and a big tile holds it
   assert.equal(holds(410, 455, 9), 0); // three rows would be too short to use
   assert.equal(holds(178, 559, 2), 225); // a phone's tall tile: two, one above the other
   assert.equal(holds(420, 420, 0), 0); // nothing to hold
+});
+
+test("a big window has a grid for what is on the screen, not as many cells as it could hold", () => {
+  // A Mac's window could hold 8 cells by 6. The owner's verdict on seven tiles sharing those 48 (2026-11-16): "soo bad".
+  const house = found([room("gym", "Basement", 1), room("sauna", "Basement", 1), room("hall", "Ground", 5, "climate.hall"), room("kitchen", "Ground", 9), room("bed", "First", 2)], { scenes: [{}] });
+  const all = screens(house, 2304, 1300);
+  for (const screen of all) {
+    const asked = screen.tiles.length; // each tile asked for a cell at the least
+    assert.ok(screen.cols * screen.rows <= asked * 4, `${screen.name}: ${screen.cols} by ${screen.rows} for ${asked} tiles`);
+    assert.ok(cover(screen.tiles, screen.cols, screen.rows).every((times) => times === 1), screen.name);
+  }
+  // Sets that fit one screen together share it, and it is named for all of them: the two rooms of the basement have no screen to themselves.
+  assert.deepEqual(all.map((s) => [s.name, s.splits]), [["Home", []], ["Rooms", ["Basement", "Ground", "First"]]]);
+  // On a phone they don't fit together.
+  assert.ok(screens(house, 390, 844).filter((s) => s.splits.length).every((s) => s.splits.length === 1));
+});
+
+test("a tile's contents are enlarged with its cell, within limits", () => {
+  assert.equal(zoom(200, 175), 1); // never made smaller
+  assert.equal(zoom(450, 300), 1.2); // by the tighter of the two ways
+  assert.equal(zoom(900, 900), 1.6); // and no more than this
 });

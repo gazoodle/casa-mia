@@ -774,8 +774,10 @@ no space left over. The page does not scroll down. To go from one screen to the 
 - **Press the tab** at the left or the right edge, which names the screen on that side.
   A phone has no tabs.
 - **Use the bar** that floats at the foot of the page. It has an entry for the home
-  screen and one for each floor, and the one you are on is filled in. A floor with more
-  rooms than fit a screen has several screens, shown as spots under its name.
+  screen and one for each screen of rooms, and the one you are on is filled in. A floor
+  with more rooms than fit a screen has several screens, shown as spots under its name.
+  Floors with few rooms share a screen when they fit one together, and it is named for
+  all of them. When every room fits one screen it is called Rooms.
 
 The first screen is the home screen:
 
@@ -792,12 +794,13 @@ The first screen is the home screen:
 - **A thermostat's ring**, with − and + to change its target. It is the first thermostat
   in the house's order of rooms.
 - **A tile for each floor**, with its rooms and how many lights are on in each. Press it
-  to go to that floor's first screen.
+  to go to the screen that floor's rooms are on.
 
 The other screens have a tile for each room, with its name, how many of its lights are
 on and its temperature. The tile glows from one corner in proportion to the light that
 is on in the room. How big a room's tile is depends on how much is in the room and on
-how many rooms share the screen, and the tiles grow to fill it.
+how many rooms share the screen, and the tiles grow to fill it. On a big screen the
+lettering and the controls on a tile are bigger too, up to 1.6 times their size.
 
 - **A small tile** has a round button for each of its first few devices. Press one and
   its device is switched. Press anywhere else on the tile and it grows into a sheet with

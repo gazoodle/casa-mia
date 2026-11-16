@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.9-b10
+
+- **Dash-Bored: Aurora suits a big screen.** On a large window each tile grew into a mostly empty slab, and a floor with two rooms had a whole screen to itself. Each screen now has a grid to suit what is on it, floors with few rooms share a screen (named for all of them, or Rooms when every room fits), and on a big screen the lettering and controls on a tile are bigger, up to 1.6 times.
+
 ## 2026.11.9-b9
 
 - **Dash-Bored: a fourth family, Aurora.** The house in the current web style: tiles of glass over a sky that turns warmer as lights come on. It is a set of screens, each filled with tiles of different sizes with no space left over. The home screen has a greeting that says how the house stands, Sensor Watch's alerts, the house's scenes, the power being drawn with a line of its last hour (if the card names a power sensor), a thermostat's ring and a tile for each floor. Each floor then has its own screens of room tiles. A small tile has a round button for each of its first few devices and opens a sheet with the room's scenes, a fader for everything that has a level and a key for the rest; a tile with the room for them has those faders and keys on it. Swipe between screens, press the tab at the left or right edge, or use the bar that floats at the foot of the page, which also has a search and a button to choose another style. A lock, a garage door, a valve or a siren takes two presses on its key. Press twice in the top right corner of the Dash-Bored page to choose it. It is also a card, **Casa Mia Dash-Bored Aurora** (`custom:dash-bored-aurora`). It has been seen on the test Home Assistant in a desktop browser, not yet on a tablet.

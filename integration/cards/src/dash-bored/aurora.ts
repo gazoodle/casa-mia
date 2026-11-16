@@ -9,7 +9,7 @@ import { html, nothing } from "lit";
 import { fire } from "../ha.ts";
 import { SPRING, STYLES } from "./aurora/styles.ts";
 import type { Placed } from "./aurora/bento.ts";
-import { ALERTS as ALERTED, CLIMATE, ENERGY, HERO, ROOM, SCENES, SPLIT, dots, grid, holds, screens, splits, type Screen, type Split } from "./aurora/pages.ts";
+import { ALERTS as ALERTED, CLIMATE, ENERGY, HERO, ROOM, SCENES, SPLIT, dots, holds, screens, splits, zoom, type Screen, type Split } from "./aurora/pages.ts";
 import { glow, greeting, said, spark, thinned } from "./aurora/words.ts";
 import { ALERTS, Family, PAGE } from "./family.ts";
 import { AGAIN, STANDS } from "./fridge.ts";
@@ -51,7 +51,7 @@ export class Aurora extends Family {
   _at = 0; // the screen the pager is on
   _wide = 0; // px: how wide the element is
   private _traced = ""; // the power sensor whose last hour was asked for
-  private _laid?: { found: Survey; cols: number; rows: number; screens: Screen[]; entries: { name: string; split?: string; first: number; parts: number }[]; sets: Map<string, Split> };
+  private _laid?: { found: Survey; wide: number; tall: number; screens: Screen[]; entries: { name: string; splits: string[]; first: number; parts: number }[]; sets: Map<string, Split> };
   private _kept = ""; // the layout the pager was last put in place for
   private _again = () => this.requestUpdate(); // the window is another size: the page may be another height
   private _dropping?: ReturnType<typeof setTimeout>;
@@ -228,7 +228,7 @@ export class Aurora extends Family {
     // When the screens have been laid out again, or are another size, the pager is put
     // back on the screen it was showing. Not at any other time: it would fight a swipe.
     const pages = this.renderRoot.querySelector<HTMLElement>(".pages");
-    const key = this._laid ? `${this._laid.cols}x${this._laid.rows} ${this._wide}x${this._tall}` : "";
+    const key = this._laid ? `${this._laid.screens.length} ${this._wide}x${this._tall}` : "";
     if (pages && key !== this._kept) {
       this._kept = key;
       pages.scrollLeft = Math.min(this._at, this._laid!.screens.length - 1) * pages.clientWidth;
@@ -240,8 +240,9 @@ export class Aurora extends Family {
     const glass = event.pointerType === "mouse" ? (event.target as Element).closest<HTMLElement>(".glass") : null;
     if (!glass) return;
     const box = glass.getBoundingClientRect();
-    glass.style.setProperty("--mx", `${event.clientX - box.left}px`);
-    glass.style.setProperty("--my", `${event.clientY - box.top}px`);
+    // As shares of the glass, not px: a tile's own px are enlarged with it (pages.ts `zoom`).
+    glass.style.setProperty("--mx", `${((event.clientX - box.left) / box.width) * 100}%`);
+    glass.style.setProperty("--my", `${((event.clientY - box.top) / box.height) * 100}%`);
   }
 
   /** A scene's button. `name` is what it is called where it is shown. */
@@ -305,12 +306,12 @@ export class Aurora extends Family {
   /** The screens, worked out again only when the registries or the screen's size have
    * changed: not when a light is switched, which is when the page is otherwise drawn. */
   private _lay(found: Survey) {
-    const [cols, rows] = grid(this._wide, this._tall);
-    if (this._laid?.found === found && this._laid.cols === cols && this._laid.rows === rows) return this._laid;
-    const all = screens(found, cols, rows);
+    const [wide, tall] = [this._wide, this._tall];
+    if (this._laid?.found === found && this._laid.wide === wide && this._laid.tall === tall) return this._laid;
+    const all = screens(found, wide, tall);
     // The bar has one entry for the home screen and one for each set of rooms, however many screens the set has.
-    const entries = all.flatMap((s, first) => (s.part === 0 ? [{ name: s.name, split: s.split, first, parts: s.parts }] : []));
-    return (this._laid = { found, cols, rows, screens: all, entries, sets: new Map(splits(found).map((set) => [set.id, set])) });
+    const entries = all.flatMap((s, first) => (s.part === 0 ? [{ name: s.name, splits: s.splits, first, parts: s.parts }] : []));
+    return (this._laid = { found, wide, tall, screens: all, entries, sets: new Map(splits(found).map((set) => [set.id, set])) });
   }
 
   /** The pager was swiped, or is on its way somewhere: the screen nearest the middle is the one it is on. */
@@ -360,9 +361,14 @@ export class Aurora extends Family {
     if (!hass || !house || !found) return html`<div class=${looks} style="height: ${tall}px"><div class="urgent over">Waiting for Home Assistant…</div></div>`;
 
     const laid = this._lay(found);
-    // A cell's size in px, and the gap between two: the screen less its edges and the bar's room (styles.ts), shared out.
+    // A screen's cell in px and the gap between two (the screen less its edges and the
+    // bar's room, shared out: styles.ts), as its tiles see them, and how much the tiles' contents are enlarged.
     const [edge, gap, foot] = this._wide < 520 ? [12, 10, 84] : [18, 14, 88];
-    const cell: [number, number, number] = [(this._wide - 2 * edge - (laid.cols - 1) * gap) / laid.cols, (tall - edge - foot - (laid.rows - 1) * gap) / laid.rows, gap];
+    const sized = (s: Screen) => {
+      const [wide, high] = [(this._wide - 2 * edge - (s.cols - 1) * gap) / s.cols, (tall - edge - foot - (s.rows - 1) * gap) / s.rows];
+      const by = zoom(wide, high);
+      return { by, cell: [wide / by, high / by, gap / by] as [number, number, number] };
+    };
     const at = Math.min(this._at, laid.screens.length - 1);
     const now = Date.now();
     const when = new Date(this._now);
@@ -419,7 +425,7 @@ export class Aurora extends Family {
       const lamps = inside.flatMap((r) => r.devices).filter((d) => d.kind === "light" && !d.away);
       const on = lamps.filter((d) => d.on).length;
       const share = glow(lamps);
-      return html`<button class="set glass ${find && !inside.some(hit) ? "dim" : ""}" style="${place(p)}; --hue: 60; --lit: ${share ? (0.35 + share * 0.65).toFixed(2) : 0}" @click=${() => this._go(laid.entries.find((e) => e.split === one.id)!.first)}>
+      return html`<button class="set glass ${find && !inside.some(hit) ? "dim" : ""}" style="${place(p)}; --hue: 60; --lit: ${share ? (0.35 + share * 0.65).toFixed(2) : 0}" @click=${() => this._go(laid.entries.find((e) => e.splits.includes(one.id))!.first)}>
         <span><h2>${one.name}</h2><span class="sub">${things(inside.length, "room")}${lamps.length ? ` · ${on ? `${things(on, "light")} on` : "lights off"}` : ""}</span></span>
         <span class="in">${inside.map((r) => {
           const lit = r.devices.filter((d) => d.kind === "light" && d.on && !d.away).length;
@@ -427,7 +433,7 @@ export class Aurora extends Family {
         })}</span>
       </button>`;
     };
-    const tile = (p: Placed) => {
+    const tile = (p: Placed, cell: [number, number, number]) => {
       if (p.id.startsWith(SPLIT)) return set(p);
       if (!p.id.startsWith(ROOM)) return home[p.id](p);
       const here = rooms.get(p.id.slice(ROOM.length));
@@ -443,8 +449,11 @@ export class Aurora extends Family {
 
     return html`<div class=${looks} style="height: ${tall}px; --warm: ${glow(lights(house)).toFixed(3)}" @pointermove=${this._shine}>
       <div class="sky" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-      <div class="pages" style="--cols: ${laid.cols}; --rows: ${laid.rows}" @scroll=${this._scrolled}>
-        ${laid.screens.map((s) => html`<div class="page" role="group" aria-label=${title(s)}>${s.tiles.map(tile)}</div>`)}
+      <div class="pages" @scroll=${this._scrolled}>
+        ${laid.screens.map((s) => {
+          const { by, cell } = sized(s);
+          return html`<div class="page" role="group" aria-label=${title(s)} style="--cols: ${s.cols}; --rows: ${s.rows}; --zoom: ${by.toFixed(3)}">${s.tiles.map((p) => tile(p, cell))}</div>`;
+        })}
       </div>
       ${urgent.length ? html`<div class="urgent over" role="alert">${urgent.map((text) => html`<div>${text}</div>`)}</div>` : nothing}
       ${at > 0 ? html`<button class="edge left" aria-label="Back to ${title(laid.screens[at - 1])}" @click=${() => this._go(at - 1)}>${title(laid.screens[at - 1])}</button>` : nothing}
@@ -452,7 +461,7 @@ export class Aurora extends Family {
       <nav class="bar" aria-label="Screens">
         ${laid.entries.map((e) => {
           const here = at >= e.first && at < e.first + e.parts;
-          const none = !!find && !!e.split && !laid.sets.get(e.split)!.rooms.some((id) => hit(rooms.get(id)?.r));
+          const none = !!find && e.splits.length > 0 && !e.splits.some((id) => laid.sets.get(id)!.rooms.some((room) => hit(rooms.get(room)?.r)));
           return html`<button class="${here ? "here" : ""} ${none ? "dim" : ""}" aria-current=${here ? "page" : nothing} @click=${() => this._go(e.first)}>${e.name}${e.parts > 1 ? html`<i>${Array.from({ length: e.parts }, (_, part) => html`<b class=${e.first + part === at ? "on" : ""}></b>`)}</i>` : nothing}</button>`;
         })}
         ${this._sample || house.rooms.length < 2
