@@ -6,7 +6,7 @@
 // magnets, and fridge/styles.ts is the door and how things sit on it.
 import { html, nothing, type TemplateResult } from "lit";
 import { fire } from "../ha.ts";
-import { ALERTS, Family, SIGHTINGS, typeface } from "./family.ts";
+import { ALERTS, Family, PAGE, SIGHTINGS, typeface } from "./family.ts";
 import { DEFS, button, novelty, pick, tilt } from "./fridge/magnets.ts";
 import { SKINS, type Skin } from "./fridge/skins.ts";
 import { today } from "./fridge/today.ts";
@@ -35,7 +35,7 @@ const CODE = 8; // the most figures an alarm's code is taken to have
 type Config = Options & { type?: string; style?: string };
 
 export class Fridge extends Family {
-  static styles = STYLES;
+  static styles = [PAGE, STYLES];
   static properties = { _skin: { state: true }, _alerts: { state: true }, _seen: { state: true }, _armed: { state: true }, _want: { state: true }, _code: { state: true }, _tapped: { state: true } };
   _skin = SKINS[0].id;
   _alerts: Alert[] = []; // what Sensor Watch has said of each sensor it has spoken of

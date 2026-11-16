@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.9-b6
+
+- **Dash-Bored: scrolling no longer stutters on an iPad.** As its own page, each family (the Gazette, the Console and the Fridge) made itself one screen tall and scrolled inside that box, and Safari on an iPad stopped for over a second at a time to paint it. The page itself scrolls now. Nothing looks different.
+
 ## 2026.11.9-b5
 
 - **Dash-Bored: three cards that show part of the Console.** The Console instrument card shows one entity as its control: a knob, a switch, a screen, thumbwheels, a knife switch for a scene, or a meter for a temperature, humidity or power sensor. It is drawn on its era's panel, or with that option off on the dashboard's own card. The Console room card shows one room's chassis, and the Console warning lamps card shows Sensor Watch's warnings, with a green lamp when all is well. Each card has an editor, and draws in the era it names, or else in the one last chosen on the Console in that browser.

@@ -5,12 +5,13 @@
 import * as kit from "./bargraph/kit.ts";
 import { recorder } from "./bargraph/recorder.ts";
 import { STYLES } from "./bargraph/styles.ts";
+import { PAGE } from "../family.ts";
 import { Panel } from "./panel.ts";
 import { VIEWS } from "./views.ts";
 
 export const CARD = "dash-bored-bargraph";
 
 export class Bargraph extends Panel {
-  static styles = [VIEWS, STYLES];
+  static styles = [PAGE, VIEWS, STYLES];
   protected kit = { ...kit, recorder };
 }

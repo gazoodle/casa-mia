@@ -343,6 +343,16 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
     without end in WebKit only, and a cover folded to nothing still took taps there, so
     on the owner's iPad a guarded switch could not be thrown. Playwright's WebKit is in
     `~/Library/Caches/ms-playwright/webkit-2359` (pass its `pw_run.sh` as the executable).
+  - **A family's page is scrolled by the document, never by a box of its own**
+    (2026.11.9-b6; `PAGE` in `family.ts`). Why: on the owner's iPad a family one screen
+    tall with `overflow-y: auto` stopped for over a second at a time while scrolling.
+    Don't give the Console's rooms `content-visibility: auto`: it was tried the same day,
+    and each room swapping its stand-in height for its real one moved the page under
+    the owner's finger (Safari on iOS does not hold the page steady).
+    A full-page screenshot's time is not a paint time: most of it is compressing the
+    picture, which depends on what is drawn. Headless WebKit never showed the stutter;
+    it was found on the iPad with a test page of switches (the Console, 100 invented
+    rooms), which is the way to look for the next one.
 - **The page and the families** (2026.11.8-b23). The sidebar's page (`panel_custom`, not in
   a frame, for every user) is `dash-bored-page` (`shell.ts`). It shows one family's
   element and holds the choice between them: two presses within `TWICE` in its top right

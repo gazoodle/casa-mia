@@ -5,6 +5,7 @@
 // pressed. The panel itself is ../panel.ts; this is its kit and its look.
 import * as kit from "./beige/kit.ts";
 import { STYLES } from "./beige/styles.ts";
+import { PAGE } from "../family.ts";
 import { Panel } from "./panel.ts";
 import { VIEWS } from "./views.ts";
 import { scope } from "./scope.ts";
@@ -12,6 +13,6 @@ import { scope } from "./scope.ts";
 export const CARD = "dash-bored-beige";
 
 export class Beige extends Panel {
-  static styles = [VIEWS, STYLES];
+  static styles = [PAGE, VIEWS, STYLES];
   protected kit = { ...kit, recorder: scope(kit.label, kit.push) };
 }

@@ -2,7 +2,7 @@
 // the paper holds beside the house, and how that reaches it. The integration's feeds and
 // the forecast are followed here. acts.ts does what is pressed, and gazette.ts draws it.
 import type { Open, Shot } from "../clipping.ts";
-import { ALERTS, Family, SIGHTINGS } from "../family.ts";
+import { ALERTS, Family, PAGE, SIGHTINGS } from "../family.ts";
 import { days, sighted, type Day, type Device, type Options, type Seen, type Sighting } from "../house.ts";
 import { NOMINAL, RECOVERED, flavourOf, type Alert, type Played, type Rated } from "../stories.ts";
 import { STYLES } from "../styles.ts";
@@ -31,7 +31,7 @@ export type Config = Options & { type?: string; style?: string };
 export type Line = { time: number; device?: Device; alert?: Alert; seen?: Sighting };
 
 export class Page extends Family {
-  static styles = STYLES;
+  static styles = [PAGE, STYLES];
   static properties = { _style: { state: true }, _alerts: { state: true }, _seen: { state: true }, _scale: { state: true }, _open: { state: true }, _shot: { state: true }, _rated: { state: true }, _played: { state: true }, _days: { state: true } };
   // The one scale that is open: for which device, and the level asked for that the
   // device has not yet said it has come to. It is under the device's sentence, or in

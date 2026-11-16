@@ -2,7 +2,7 @@
 // now, the house's settings from the integration, and the calls that change a device.
 // A family (the Gazette, Bakelite) extends this and draws the house its own way. It is a
 // page when the shell shows it (shell.ts) and a dashboard card when a dashboard does.
-import { LitElement, type PropertyDeclarations } from "lit";
+import { LitElement, css, type PropertyDeclarations } from "lit";
 import type { Hass } from "../ha.ts";
 import { read, survey, type Device, type House, type Options, type Survey } from "./house.ts";
 import { setting, type Press } from "./stories.ts";
@@ -13,6 +13,15 @@ export const ALERTS = "casa_mia_dash_bored/alerts";
 export const SIGHTINGS = "casa_mia_dash_bored/sightings"; // and of what the cameras have seen (sightings.py)
 const SETTINGS = "casa_mia_dash_bored/settings"; // the integration's feed of the house's settings (settings.py)
 const SETTLE = 350; // ms: a level is asked for once it has been still this long
+
+/** What every family's element is on the page: a block, and as Dash-Bored's page at least a
+ * screen tall, so that it is the page itself that scrolls. A family that made itself one
+ * screen tall and scrolled inside that box stuttered on an iPad, where Safari stopped for
+ * over a second at a time to paint it (measured with the owner, 2026-11-16). */
+export const PAGE = css`
+  :host { display: block; }
+  :host([panel]) > :first-child { min-height: 100vh; }
+`;
 
 const typefaces = new Set<string>();
 /** Give the document a typeface the integration serves beside this file (www/fonts),

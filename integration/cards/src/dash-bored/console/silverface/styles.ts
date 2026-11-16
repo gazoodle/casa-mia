@@ -5,8 +5,6 @@
 import { css } from "lit";
 
 export const STYLES = css`
-  :host { display: block; }
-  :host([panel]) { height: 100vh; overflow-y: auto; }
   .panel { --ink: #141516; --plate: #c9cccf; box-sizing: border-box; min-height: 100%; padding: 18px 22px; color: var(--ink);
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
     /* Teak veneer: long grain across the cabinet. */

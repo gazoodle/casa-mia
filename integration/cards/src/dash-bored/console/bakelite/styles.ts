@@ -4,8 +4,6 @@
 import { css } from "lit";
 
 export const STYLES = css`
-  :host { display: block; }
-  :host([panel]) { height: 100vh; overflow-y: auto; }
   .panel { --cream: #e9dfc3; --bake2: #1c0f0a; --brass: #c9a24b; box-sizing: border-box; min-height: 100%; padding: 18px 22px; color: var(--cream);
     font-family: "Gill Sans", "Gill Sans MT", "Futura", sans-serif;
     /* Hammer-finish enamel: the grey-green of a 1950s instrument panel. */

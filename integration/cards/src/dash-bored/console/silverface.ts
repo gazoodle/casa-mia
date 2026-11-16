@@ -2,6 +2,7 @@
 // aluminium faceplates in a teak cabinet, machined knobs, chrome toggle switches (under
 // red flip-up covers where a press must not be an accident), back-lit meters, red LEDs
 // and an oscilloscope. The panel itself is ../panel.ts; this is its kit and its look.
+import { PAGE } from "../family.ts";
 import { Panel } from "./panel.ts";
 import { VIEWS } from "./views.ts";
 import { scope } from "./scope.ts";
@@ -11,6 +12,6 @@ import { STYLES } from "./silverface/styles.ts";
 export const CARD = "dash-bored-silverface";
 
 export class Silverface extends Panel {
-  static styles = [VIEWS, STYLES];
+  static styles = [PAGE, VIEWS, STYLES];
   protected kit = { ...kit, recorder: scope(kit.label, kit.push) };
 }

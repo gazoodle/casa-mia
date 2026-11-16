@@ -6,7 +6,6 @@ import { css } from "lit";
 
 export const STYLES = css`
   :host { display: block; container-type: inline-size; }
-  :host([panel]) { height: 100vh; overflow-y: auto; }
   .paper { --paper: #f3eee0; --ink: #1c1a17; --flash: #8c1c13; --mark: #f6d95a; --head: "Bodoni 72", "Didot", "Playfair Display", serif;
     box-sizing: border-box; min-height: 100%; padding: 14px 30px 24px; background: var(--paper); color: var(--ink);
     font-family: "Hoefler Text", "Baskerville", "Times New Roman", serif;

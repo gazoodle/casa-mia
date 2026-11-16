@@ -7,8 +7,6 @@ import { css } from "lit";
 import { FIGURES } from "../figures.ts";
 
 export const STYLES = css`
-  :host { display: block; }
-  :host([panel]) { height: 100vh; overflow-y: auto; }
   .panel { --vfd: #7df7e6; --amber: #ff7a1a; --ink: #e8e8e8; --glass: #04100f; --seg-on: var(--vfd); --seg-off: rgba(125,247,230,.07); --seg-glow: 0 0 5px rgba(125,247,230,.8); box-sizing: border-box; min-height: 100%; padding: 18px 22px; color: var(--ink);
     font-family: "Helvetica Neue", "Arial Narrow", Arial, sans-serif; background: #070708; }
   .panel * { box-sizing: border-box; }
