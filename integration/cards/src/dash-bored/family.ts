@@ -47,6 +47,18 @@ export class Family extends LitElement {
   setConfig(config: Options & { type?: string }) {
     this._config = { ...config };
     this._survey = undefined;
+    // An editor changes the options as they are typed: the house is read again by them now.
+    if (this._hass) this.hass = this._hass;
+  }
+
+  /** The options as a property: the Console gives them in its template (console/host.ts). */
+  set config(config: Options & { type?: string }) {
+    this.setConfig(config);
+  }
+
+  /** Whether this element shows the house at all: one that shows only a feed reads none of it. */
+  protected get _reads() {
+    return true;
   }
 
   getCardSize() {
@@ -72,6 +84,10 @@ export class Family extends LitElement {
     }
     this._lost = 0;
     this._listen();
+    if (!this._reads) {
+      if (!was) this.requestUpdate();
+      return;
+    }
 
     if (!this._survey || !was || was.entities !== hass.entities || was.areas !== hass.areas || was.devices !== hass.devices || was.floors !== hass.floors) this._survey = survey(hass, { ...this._settings, ...this._config });
     // ponytail: `hass` is set at every state change in the house, and the page isn't told

@@ -6,11 +6,12 @@ import { recorder } from "./bakelite/recorder.ts";
 import { STYLES } from "./bakelite/styles.ts";
 import { typeface } from "../family.ts";
 import { Panel } from "./panel.ts";
+import { VIEWS } from "./views.ts";
 
 export const CARD = "dash-bored-bakelite";
 
 export class Bakelite extends Panel {
-  static styles = STYLES;
+  static styles = [VIEWS, STYLES];
   protected kit = { ...kit, recorder };
 
   connectedCallback() {

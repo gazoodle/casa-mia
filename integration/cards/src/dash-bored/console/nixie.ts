@@ -5,11 +5,12 @@
 import * as kit from "./nixie/kit.ts";
 import { STYLES } from "./nixie/styles.ts";
 import { Panel } from "./panel.ts";
+import { VIEWS } from "./views.ts";
 import { scope } from "./scope.ts";
 
 export const CARD = "dash-bored-nixie";
 
 export class Nixie extends Panel {
-  static styles = STYLES;
+  static styles = [VIEWS, STYLES];
   protected kit = { ...kit, recorder: scope(kit.label, kit.push) };
 }

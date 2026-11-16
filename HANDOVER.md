@@ -321,6 +321,18 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   different sizes when they were fractions of the type size), the meter that is a display
   and the alarm's code as figures with keys (`keyed`). Beige's chart is `scope.ts`'s
   oscilloscope dressed by its stylesheet, through the class names on the scope's parts. Bakelite is completed first and keeps its name.
+  - **Part cards** (2026.11.9-b5, names agreed with the owner 2026-11-16):
+    `dash-bored-console-instrument`, `-room` and `-lamps` (`console/cards.ts`). Each is
+    the host without its switch, telling the era's element a `view` (`Config` in
+    `panel.ts`). The element gets its options as a `.config` property in the host's
+    template, before it is on the page, so that each view follows only the feeds it shows.
+    One entity is surveyed alone by `entity` in `house.ts` (it is shown even if it is
+    hidden or in no room). A room uses the existing `rooms` option, and the lamps read no
+    house at all (`_reads` in `family.ts`). Their layout and `backing: false` are in
+    `console/views.ts`, which each era takes before its own styles. Checked on the test VM
+    in all five eras, in Chromium and WebKit, on the light and dark themes. The editors'
+    entity and room pickers could not be seen there: no picker drew on that headless page,
+    even a plain one, so they are unchecked in HA's own card editor.
   - **A panel's controls never move for their lettering** (owner, 2026-11-15: "it's
     drilled into the panel"; true of the Console's eras, perhaps not of other families).
     Each hangs from the top of its row with a fixed height and room for a two-line

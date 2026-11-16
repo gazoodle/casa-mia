@@ -58,8 +58,9 @@ export type Gap = { kind: "loose" | "plumbing" | "clash" | "floorless" | "cold";
  * weather entity, a whole-house power sensor, and `floors` and `rooms`, which show only
  * those and in that order. The house's, set once in the integration and fed to every page
  * (settings.py): `floor_order` and `room_order`, which leave nothing out. A floor or a
- * room is named by its id or by its name. */
-export type Options = { weather?: string; power?: string; floors?: string[]; rooms?: string[]; floor_order?: string[]; room_order?: string[] };
+ * room is named by its id or by its name. `entity`: that one entity and nothing else, for
+ * a card that shows one (console/cards.ts). */
+export type Options = { weather?: string; power?: string; floors?: string[]; rooms?: string[]; floor_order?: string[]; room_order?: string[]; entity?: string };
 
 type Found = { id: string; kind: Kind; name: string; full: string; guarded: boolean; power?: string };
 type FoundRoom = { id: string; name: string; floor?: string; floorId?: string; level: number; temp?: string; humidity?: string; climate?: string; devices: Found[] };
@@ -128,11 +129,15 @@ export function survey(hass: Hass, options: Options): Survey {
   for (const entry of Object.values<any>(hass.entities ?? {})) {
     const id: string = entry.entity_id;
     const state = hass.states[id];
+    // A card for one entity reads that one alone. It was chosen by name, so it is shown
+    // even where the rest of the house would leave it out: hidden, or in no room.
+    const alone = id === options.entity;
+    if (options.entity && !alone) continue;
     // The hide label on the sensor itself keeps the agent's column off the page.
     if (entry.labels?.includes(KATAS) && !hidden(entry)) desk = id;
     if (entry.labels?.includes(DOJO)) dojo = id;
     // Hidden, or a device's settings and diagnostics: not for a dashboard.
-    if (!state || entry.hidden || entry.entity_category) continue;
+    if (!state || (!alone && (entry.hidden || entry.entity_category))) continue;
 
     const domain = id.split(".")[0];
     if (domain === "scene") scenes.push(id);
@@ -141,7 +146,7 @@ export function survey(hass: Hass, options: Options): Survey {
 
     const device = hass.devices?.[entry.device_id];
     const area = hass.areas?.[entry.area_id ?? device?.area_id];
-    if (hidden(entry) || hidden(device) || hidden(area)) continue;
+    if (!alone && (hidden(entry) || hidden(device) || hidden(area))) continue;
     if (domain === "person") people.push(id);
     // A sighting is named for its camera, and a camera kept off the page takes it along.
     if (domain === "image" && entry.platform === OURS && !hidden(hass.entities[state.attributes.camera]))
@@ -151,12 +156,15 @@ export function survey(hass: Hass, options: Options): Survey {
       if (!area) loose.push({ id, name });
       if (PLUMBING.test(name)) plumbing.push({ id, name, via: entry.platform });
     }
-    if (!area || !KINDS.has(domain)) continue;
-    if (!rooms.has(area.area_id)) {
+    if (!KINDS.has(domain) || (!area && !alone)) continue;
+    // One entity's card shows no room round it: a room of no name, with no sensors to watch.
+    const at: string = alone ? "" : area.area_id;
+    if (alone) rooms.set(at, { id: at, name: "", level: Infinity, devices: [] });
+    if (!rooms.has(at)) {
       const floor = hass.floors?.[area.floor_id];
-      rooms.set(area.area_id, { id: area.area_id, name: area.name, floor: floor?.name, floorId: floor?.floor_id, level: floor ? (floor.level ?? 0) : Infinity, temp: area.temperature_entity_id ?? undefined, humidity: area.humidity_entity_id ?? undefined, devices: [] });
+      rooms.set(at, { id: at, name: area.name, floor: floor?.name, floorId: floor?.floor_id, level: floor ? (floor.level ?? 0) : Infinity, temp: area.temperature_entity_id ?? undefined, humidity: area.humidity_entity_id ?? undefined, devices: [] });
     }
-    const room = rooms.get(area.area_id)!;
+    const room = rooms.get(at)!;
 
     // A thermostat is a device in its room, and the first of them tells the room's temperature.
     if (domain === "climate") room.climate ??= id;
@@ -164,7 +172,8 @@ export function survey(hass: Hass, options: Options): Survey {
     const found: Found = {
       id,
       kind: domain as Kind,
-      name: short(full, area.name, domain as Kind),
+      // Shown alone, a thing has no room's plate to say the rest of its name.
+      name: alone ? full : short(full, area.name, domain as Kind),
       full,
       guarded: GUARDED_KINDS.has(domain) || (domain === "cover" && GUARDED.has(state.attributes.device_class)),
     };
@@ -222,7 +231,8 @@ export function survey(hass: Hass, options: Options): Survey {
     power: options.power,
     desk,
     dojo,
-    watched: [...watched, ...scenes, ...people, weather, options.power, desk, desk && PERSONA, desk && dojo].filter((id): id is string => !!id),
+    // The one entity is watched whatever it is: a sensor is no device, but its card shows it.
+    watched: [...new Set([...watched, ...scenes, ...people, weather, options.power, desk, desk && PERSONA, desk && dojo, options.entity])].filter((id): id is string => !!id),
   };
 }
 

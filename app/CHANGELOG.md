@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.9-b5
+
+- **Dash-Bored: three cards that show part of the Console.** The Console instrument card shows one entity as its control: a knob, a switch, a screen, thumbwheels, a knife switch for a scene, or a meter for a temperature, humidity or power sensor. It is drawn on its era's panel, or with that option off on the dashboard's own card. The Console room card shows one room's chassis, and the Console warning lamps card shows Sensor Watch's warnings, with a green lamp when all is well. Each card has an editor, and draws in the era it names, or else in the one last chosen on the Console in that browser.
+- Dash-Bored: a card's preview follows its editor at once, without waiting for something in the house to change.
+
 ## 2026.11.9-b4
 
 - **Dash-Bored: Beige, the Console of the 1990s.** The era switch's 90 now shows a panel of moulded beige plastic, so every decade from the 1950s is built. The meters are LCDs, with the segments that are not lit still to be seen, and nothing on the panel moves unless it is pressed. A level is set with a jog dial, with its setting on an LCD under it. Switches are rockers marked I and O, beside a keylock where they are guarded, and scenes are function keys under a paper strip. Alerts are on a character LCD, and a room's chart is in a window, with a line in its own colour for each device.

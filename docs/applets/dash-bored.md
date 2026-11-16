@@ -771,6 +771,33 @@ switch; the first is
 also what **Casa Mia Dash-Bored Bakelite** (`type: custom:dash-bored-bakelite`) is.
 It takes `power`, `weather`, `floors` and `rooms` in the same way, and has no `style`.
 
+Three smaller cards show part of the Console, each with an editor. Each takes `era` as the
+Console does. Without it, the card is drawn in the era last chosen on the Console in that
+browser, and changes when the Console's switch is turned.
+
+```yaml
+type: custom:dash-bored-console-instrument  # Casa Mia Dash-Bored Console instrument
+entity: light.den_lamp
+era: nixie        # optional
+backing: false    # optional: on the dashboard's own card, not on its era's panel
+---
+type: custom:dash-bored-console-room        # Casa Mia Dash-Bored Console room
+room: den         # the room's id or name
+---
+type: custom:dash-bored-console-lamps       # Casa Mia Dash-Bored Console warning lamps
+```
+
+An instrument is the entity's control as it is on the panel: a knob, a switch (under its
+guard for a lock, a valve, a siren or a garage door), a camera's screen, an alarm's
+thumbwheels or a scene's knife switch. A temperature sensor has a meter from 5 to 30 °C, a
+humidity sensor one from 0 to 100 %, and a power sensor the mains meter. An entity that is
+hidden from Dash-Bored, or in no room, is still shown on its own card. Without its era's
+panel behind it, the instrument's lettering is in the dashboard's colour, except where its
+era prints it on a plate.
+
+The warning lamps card shows a green lamp when Sensor Watch has nothing to warn of. Until
+Sensor Watch has answered, it says it is waiting.
+
 `floors` and `rooms` are for a screen that should show part of the house, such as a
 tablet upstairs. Each takes names or ids, and on that card they take the place of the
 house's order. The cameras' sightings and the Personal column are still of the whole

@@ -3,6 +3,7 @@
 // red flip-up covers where a press must not be an accident), back-lit meters, red LEDs
 // and an oscilloscope. The panel itself is ../panel.ts; this is its kit and its look.
 import { Panel } from "./panel.ts";
+import { VIEWS } from "./views.ts";
 import { scope } from "./scope.ts";
 import * as kit from "./silverface/kit.ts";
 import { STYLES } from "./silverface/styles.ts";
@@ -10,6 +11,6 @@ import { STYLES } from "./silverface/styles.ts";
 export const CARD = "dash-bored-silverface";
 
 export class Silverface extends Panel {
-  static styles = STYLES;
+  static styles = [VIEWS, STYLES];
   protected kit = { ...kit, recorder: scope(kit.label, kit.push) };
 }

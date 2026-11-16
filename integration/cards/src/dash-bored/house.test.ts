@@ -155,3 +155,16 @@ test("a ZenOS-AI house's Kata sensor is found by its label and watched with the 
   Object.assign(h.entities["sensor.katas"], { labels: ["zen_kata_cabinet", HIDE] });
   assert.equal(survey(h, {}).desk, undefined);
 });
+
+test("a card for one entity surveys it alone, by its full name, even when hidden or in no room, and watches nothing else", () => {
+  const h = hass({ "light.a": ["den", "Den Lamp"], "light.b": ["den", "Den Spot"], "light.c": ["", "Stray lamp"] }, { den: { name: "Den" } });
+  Object.assign(h.states, { "sensor.t": { state: "20", attributes: {} }, "sensor.out": { state: "9", attributes: { device_class: "temperature" } } });
+  Object.assign(h.areas.den, { temperature_entity_id: "sensor.t" });
+  Object.assign(h.entities["light.a"], { labels: [HIDE] });
+  const one = (entity: string) => survey(h, { entity });
+  assert.deepEqual(one("light.a").rooms.map((r) => [r.name, r.temp, r.devices.map((d) => [d.id, d.name])]), [["", undefined, [["light.a", "Den Lamp"]]]]);
+  assert.deepEqual(one("light.a").watched, ["light.a"]);
+  assert.deepEqual(one("light.c").rooms.map((r) => r.devices.map((d) => d.name)), [["Stray lamp"]]);
+  // A sensor is no device: it is only watched, for its meter.
+  assert.deepEqual([one("sensor.out").rooms, one("sensor.out").watched], [[], ["sensor.out"]]);
+});

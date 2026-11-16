@@ -2,25 +2,27 @@
 // the family's page and card. It shows one era's panel and carries the switch that
 // chooses the era, as the Gazette carries its choice of paper. The choice is this
 // browser's own, unless a card names its era. An era is an element built on panel.ts
-// (Bakelite is console/bakelite.ts); one that is not built yet says so.
-import { LitElement, css, html, nothing, type TemplateResult } from "lit";
+// (Bakelite is console/bakelite.ts); one that is not built yet says so. The cards that
+// show less of the panel (cards.ts) are this element too, without the switch.
+import { LitElement, css, html, nothing } from "lit";
+import { html as tagged, unsafeStatic } from "lit/static-html.js";
 import type { Hass } from "../../ha.ts";
-import type { Options } from "../house.ts";
+import type { Config as Told } from "./panel.ts";
 
 export const CARD = "dash-bored-console";
 const REMEMBERED = "dash-bored-era"; // this browser's choice
 
-type Era = { id: string; name: string; decade: string; draw?: (hass: Hass, narrow: boolean, choice: TemplateResult | typeof nothing) => TemplateResult };
+type Era = { id: string; name: string; decade: string; tag?: string };
 // The eras, in order (owner, 2026-11-14). A new one is its element, defined in index.ts,
-// and its `draw` here; `choice` goes in the panel's slot for it.
+// and named by its `tag` here.
 export const ERAS: Era[] = [
-  { id: "bakelite", name: "Bakelite", decade: "1950s", draw: (hass, narrow, choice) => html`<dash-bored-bakelite class="era" .hass=${hass} .narrow=${narrow}>${choice}</dash-bored-bakelite>` },
-  { id: "nixie", name: "Nixie", decade: "1960s", draw: (hass, narrow, choice) => html`<dash-bored-nixie class="era" .hass=${hass} .narrow=${narrow}>${choice}</dash-bored-nixie>` },
-  { id: "silverface", name: "Silverface", decade: "1970s", draw: (hass, narrow, choice) => html`<dash-bored-silverface class="era" .hass=${hass} .narrow=${narrow}>${choice}</dash-bored-silverface>` },
-  { id: "bargraph", name: "Bargraph", decade: "1980s", draw: (hass, narrow, choice) => html`<dash-bored-bargraph class="era" .hass=${hass} .narrow=${narrow}>${choice}</dash-bored-bargraph>` },
-  { id: "beige", name: "Beige", decade: "1990s", draw: (hass, narrow, choice) => html`<dash-bored-beige class="era" .hass=${hass} .narrow=${narrow}>${choice}</dash-bored-beige>` },
+  { id: "bakelite", name: "Bakelite", decade: "1950s", tag: "dash-bored-bakelite" },
+  { id: "nixie", name: "Nixie", decade: "1960s", tag: "dash-bored-nixie" },
+  { id: "silverface", name: "Silverface", decade: "1970s", tag: "dash-bored-silverface" },
+  { id: "bargraph", name: "Bargraph", decade: "1980s", tag: "dash-bored-bargraph" },
+  { id: "beige", name: "Beige", decade: "1990s", tag: "dash-bored-beige" },
 ];
-type Config = Options & { type?: string; era?: string };
+export type Config = Told & { era?: string; room?: string };
 
 export class Console extends LitElement {
   static properties = { hass: { attribute: false }, narrow: { type: Boolean }, _era: { state: true } };
@@ -64,25 +66,38 @@ export class Console extends LitElement {
   hass?: Hass;
   narrow = false;
   _era = ERAS[0].id;
-  private _config: Config = {};
+  protected _config: Config = {};
+  // What the era's element is told, made once for each config: a new object at every
+  // drawing would have it read the house again each time.
+  private _told: Told = {};
   private _page = false;
-  private _handed?: Element; // the era's element that has been told whether it is a page or a card
 
-  static getStubConfig() {
+  static getStubConfig(_hass?: Hass): Config {
     return {};
   }
 
   setConfig(config: Config) {
     this._config = { ...config };
-    this._handed = undefined;
+    this._told = this._tell(this._config);
     this._recall();
+    this.requestUpdate();
+  }
+
+  /** What the era's element is told: the card's options. A card that shows less of the panel says which part. */
+  protected _tell(config: Config): Told {
+    return config;
+  }
+
+  /** Whether the card carries the switch that chooses the era: the whole panel does, unless its card names one. */
+  protected get _switched() {
+    return !this._config.era;
   }
 
   getCardSize() {
     return 12;
   }
 
-  getGridOptions() {
+  getGridOptions(): { columns: number | "full"; min_columns?: number } {
     return { columns: "full" };
   }
 
@@ -118,29 +133,25 @@ export class Console extends LitElement {
     }
   }
 
-  /** An era's element is a page or a card as this one is: it is told once, when it is first drawn. */
-  protected updated() {
-    const era = this.renderRoot.querySelector<Element & { setConfig(config: Config): void }>(".era");
-    if (!era || era === this._handed) return;
-    this._handed = era;
-    if (this._page) era.toggleAttribute("panel", true);
-    else era.setConfig(this._config);
-  }
-
   render() {
     if (!this.hass) return nothing;
     const at = Math.max(0, ERAS.findIndex((e) => e.id === this._era));
     const era = ERAS[at];
     // A card that names its era has no switch: it is that era's panel and no other.
     const choice = (slot: string) =>
-      this._config.era
+      !this._switched
         ? nothing
-        : html`<div slot=${slot} class="eras ${era.draw ? era.id : ""}" role="radiogroup" aria-label="The Console's era" style="--at: ${at}">
-            ${ERAS.map((e, i) => html`<button class="stop ${e.draw ? "" : "unbuilt"}" role="radio" aria-checked=${i === at} aria-label="${e.name}, the ${e.decade}${e.draw ? "" : ": not built yet"}" style="--i: ${i}" @click=${() => this._turn(e.id)}>${e.decade.slice(2, 4)}</button>`)}
+        : html`<div slot=${slot} class="eras ${era.tag ? era.id : ""}" role="radiogroup" aria-label="The Console's era" style="--at: ${at}">
+            ${ERAS.map((e, i) => html`<button class="stop ${e.tag ? "" : "unbuilt"}" role="radio" aria-checked=${i === at} aria-label="${e.name}, the ${e.decade}${e.tag ? "" : ": not built yet"}" style="--i: ${i}" @click=${() => this._turn(e.id)}>${e.decade.slice(2, 4)}</button>`)}
             <button class="switch" aria-label="The next era" @click=${() => this._turn(ERAS[(at + 1) % ERAS.length].id)}><span></span></button>
             <span class="named">${era.name}</span>
           </div>`;
-    if (era.draw) return era.draw(this.hass, this.narrow, choice("era"));
+    // The era's element is told its options first, before it is on the page, so that it
+    // follows only the feeds its view shows; and whether it is the page or a card.
+    if (era.tag) {
+      const tag = unsafeStatic(era.tag);
+      return tagged`<${tag} class="era" .config=${this._told} .hass=${this.hass} .narrow=${this.narrow} ?panel=${this._page}>${choice("era")}</${tag}>`;
+    }
     return html`<div class="unbuilt-era">
       <div class="plate"><b>${era.name}</b>The Console of the ${era.decade} is not built yet. Turn the switch to another era.</div>
       ${choice("")}
