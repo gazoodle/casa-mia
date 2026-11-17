@@ -280,3 +280,23 @@ test("a camera that Casa Mia lists is shown in place of the one found: its strea
   assert.deepEqual([gate.zoom, gate.presets, gate.controls], [undefined, [], []]);
   assert.equal(lone.presets, undefined);
 });
+
+test("a device's choices: a thermostat's mode is its state, a player's source an attribute, and one option is no choice", async () => {
+  const { choices, choosing, worded } = await import("./choices.ts");
+  const stat = { state: "heat", attributes: { hvac_modes: ["off", "heat", "heat_cool"], preset_modes: ["eco"], fan_modes: ["low", "high"], fan_mode: "low" } };
+  assert.deepEqual(choices("climate", stat).map((c) => [c.what, c.options, c.now]), [["Mode", ["off", "heat", "heat_cool"], "heat"], ["Fan", ["low", "high"], "low"]]);
+  const [mode] = choices("climate", stat);
+  assert.deepEqual(choosing("climate.hall", mode, "heat_cool"), { domain: "climate", service: "set_hvac_mode", ids: ["climate.hall"], data: { hvac_mode: "heat_cool" } });
+  assert.equal(worded("heat_cool"), "heat cool");
+
+  const player = { state: "playing", attributes: { source_list: ["Radio", "Line in"], source: "Radio" } };
+  assert.deepEqual(choices("media_player", player).map((c) => [c.what, c.now]), [["Source", "Radio"]]);
+  // A light's effect is chosen by turning the light on with it. None stands when none is running.
+  const [effect] = choices("light", { state: "on", attributes: { effect_list: ["colorloop", "blink"], effect: null } });
+  assert.equal(effect.now, undefined);
+  assert.deepEqual(choosing("light.shelf", effect, "blink"), { domain: "light", service: "turn_on", ids: ["light.shelf"], data: { effect: "blink" } });
+  // Nothing for a kind with none, an entity that is away, or one that is gone.
+  assert.deepEqual(choices("lock", { state: "locked", attributes: {} }), []);
+  assert.deepEqual(choices("climate", { ...stat, state: "unavailable" }), []);
+  assert.deepEqual(choices("climate", undefined), []);
+});

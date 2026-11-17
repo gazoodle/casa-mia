@@ -73,8 +73,10 @@ the Gazette's own work is parked below it.
     right edge and is scrolled to reach the search.
   - Not looked at since the screens: the card (its height is in proportion to its
     width) and the card picker's specimen. The guide's picture is still the mock-up's.
-  - Not on it: a device's history, a thermostat's modes, a player's source, the
-    cameras' sightings, the Gazette's columns, people, the weather. The ring is the
+  - Not on it: a device's history, a light's colour, a cover's tilt, a fan's
+    direction, the Gazette's columns, people, the weather. The choices from a list
+    (`choices.ts`, 2026.11.9-b12) are on Aurora's sheet only: the other families could
+    show them. The ring is the
     first thermostat in the order of rooms: the owner to say if it should be chosen
     another way. A thermostat that takes a range and not one target is a key that
     switches it off or on, as on the Fridge. A press anywhere on a fader sets its
@@ -86,9 +88,13 @@ the Gazette's own work is parked below it.
   - **More bento, and screens with a bar and edge tabs:** built the same day (HANDOVER).
     How the house is split into sets of rooms is still only by floor: the owner means
     there to be another way, which he has not yet specified.
-  - **Its skins are varieties of colour**, after HA Dial's themes (`../ha-dial`,
-    `custom_components/ha_dial/scene.py` `THEMES`: ember, verdant, cobalt, rose, acid,
-    alloy), and there are to be themes for holidays and seasons.
+  - **Its skins are varieties of colour**, after HA Dial's themes: built 2026.11.9-b12
+    (`aurora/skins.ts`: Aurora, Ember, Verdant, Cobalt, Rose, Acid, Alloy). Their hues
+    are my reading of HA Dial's colours on a light page, not yet seen by the owner, nor
+    in Home Assistant's dark theme. The season and holiday skins and the Almanac were
+    built in the same build (HANDOVER); the owner has not yet seen them. Fireworks is
+    the weakest on a light page: a burst over a tile can look like something loading.
+    Ideas not built: Diwali, Hanukkah, Bonfire Night's guy, a birthday from a calendar.
   - **Mode and style open to automation, for every family** (the family, and a family's
     own choice: paper, era, household, theme). Today each is in the browser's storage,
     where nothing in Home Assistant can reach it. Aurora may be the first to have it.

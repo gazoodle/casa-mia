@@ -6,6 +6,10 @@ HACS and Home Assistant's Marketplace take one item per repository, so a compone
 as it was released, a README from its guide, `hacs.json`, the licence and a workflow that
 validates it. Nothing in a mirror is edited by hand (docs/design/marketplace-mirrors.md).
 
+A store's review wants the manifest's `documentation` and `issue_tracker` to name the
+repository the store lists, not Casa Mia (HACS's review of the first two mirrors,
+2026-11-17). So the README is the whole guide, and the mirror takes its own issues.
+
     tools/mirror.py --dry-run [ref]   generate from ref (HEAD) and check it; publishes nothing
     tools/mirror.py [version]         publish the mirrors of a release (this checkout's)
 
@@ -102,16 +106,6 @@ jobs:
       - uses: home-assistant/actions/hassfest@master
 """
 
-# Issues stay on in a mirror, because HACS's validation refuses a repository with them off.
-# With no blank issues and no template, the only choice it offers is this link.
-ISSUES = """\
-blank_issues_enabled: false
-contact_links:
-  - name: Report a problem with {name}
-    url: {tracker}
-    about: {name} is part of Casa Mia, and its issues are kept there.
-"""
-
 # Under the README's title: the same set, in the same style and colours, as Casa Mia's own
 # README has, each about the mirror. Downloads stands where Casa Mia has its image pulls,
 # and the mirror's Validate workflow where Casa Mia has its build.
@@ -126,7 +120,8 @@ BADGES = """\
 </p>
 """
 
-README = """\
+# Put after the guide's opening, so that how to install it is near the top of the README.
+INSTALLING = """\
 
 ## Installing
 
@@ -141,18 +136,23 @@ update and every repeat download adds to it, so it isn't the number of houses us
 2. Download {name} there, then restart Home Assistant.
 3. In Settings → Devices & services, choose Add integration and pick {name}.
 
-The [guide]({guide}) covers setting it up and everything it does.
+"""
+
+# The README's last section, after the rest of the guide.
+PART = """\
 
 ## Part of Casa Mia
 
 {name} is part of [Casa Mia](https://github.com/{repo}), where it is written and
 released. This repository is generated from Casa Mia {version} (commit `{commit}`) and
-isn't edited by hand, so [issues]({tracker}) and changes go to Casa Mia.
+isn't edited by hand, so a change to {name} is made in Casa Mia. A problem with it is
+reported here, in this repository's [issues](https://github.com/{mirror}/issues).
 
 The Casa Mia app installs this same integration itself. A house with both needs to do
-nothing about it: [With HACS or the Marketplace]({guide}#with-hacs-or-the-marketplace)
-says what happens.
+nothing about it{both}
 """
+# Said only by a guide that has the section.
+BOTH = "With HACS or the Marketplace"
 
 
 def guide_of(domain: str) -> str:
@@ -165,10 +165,29 @@ def manifest_at(domain: str, ref: str) -> dict:
 
 def mirror_owner(origin: str, issue_tracker: str, named: str | None) -> str | None:
     """Whose account a mirror goes in: the one named (CM_MIRROR_OWNER), else origin's owner
-    when origin is the repository the component calls its own (its issue tracker's). None
-    for a fork that names nobody: it has no mirror."""
-    ours = issue_tracker.lower().startswith(f"https://github.com/{origin.lower()}/")
-    return named or (origin.split("/")[0] if ours else None)
+    when that is the account the component's issue tracker (its mirror's) is in. None for
+    a fork that names nobody: it has no mirror."""
+    owner = origin.split("/")[0]
+    ours = issue_tracker.lower().startswith(f"https://github.com/{owner.lower()}/")
+    return named or (owner if ours else None)
+
+
+def home_problems(manifest: dict, domain: str) -> list[str]:
+    """What a store's review would refuse in the manifest's links: `documentation` is the
+    mirror itself and `issue_tracker` its issues, in whoever's account."""
+    home = manifest.get("documentation", "")
+    found = []
+    if not re.fullmatch(rf"https://github\.com/[^/]+/{PUBLISHED[domain]}", home):
+        found.append(
+            f"manifest.json's documentation is {home}, not the {PUBLISHED[domain]}"
+            " repository"
+        )
+    if manifest.get("issue_tracker") != f"{home}/issues":
+        found.append(
+            f"manifest.json's issue_tracker is {manifest.get('issue_tracker')},"
+            " not its documentation's address with /issues"
+        )
+    return found
 
 
 def mirror_url(origin_url: str, mirror: str) -> str:
@@ -187,17 +206,16 @@ def decide(new: str, tagged: str, head: str) -> str:
 
 
 def absolute(text: str, guide: str, repo: str, ref: str) -> str:
-    """A piece of the guide with each link and picture made to work from another
-    repository: a path in Casa Mia becomes its address on GitHub at `ref`, and an anchor
-    points into the whole guide, since the section it names may not have come along."""
+    """The guide with each link and picture made to work from another repository: a path
+    in Casa Mia becomes its address on GitHub at `ref`. An anchor alone is left as it is,
+    since the whole guide comes along."""
 
     def swap(found: re.Match[str]) -> str:
         lead, target = found.groups()
-        if re.match(r"[a-z]+:", target):
+        if re.match(r"[a-z]+:|#", target):
             return found.group(0)
         path, _, anchor = target.partition("#")
-        # An anchor alone is a place in the guide itself.
-        path = posixpath.normpath(posixpath.join(guide, "..", path)) if path else guide
+        path = posixpath.normpath(posixpath.join(guide, "..", path))
         base = (
             f"https://raw.githubusercontent.com/{repo}/{ref}"
             if path.endswith(PICTURES)
@@ -214,18 +232,12 @@ def badged(text: str, badges: str) -> str:
     return f"{title}\n{badges}{rest}"
 
 
-def opening(guide_text: str) -> str:
-    """The guide down to its second section (what it is, and what it's for), with the
-    definitions of the reference links used there."""
+def opening(guide_text: str) -> tuple[str, str]:
+    """The guide in two: down to its second section (what it is, and what it's for), and
+    the rest. The README has how to install it between them."""
     heads = [found.start() for found in re.finditer(r"^## ", guide_text, re.M)]
-    top = guide_text[: heads[1]] if len(heads) > 1 else guide_text
-    used = set(re.findall(r"\]\[([^\]]+)\]", top))
-    definitions = [
-        line
-        for line in guide_text.splitlines()
-        if (found := re.match(r"\[([^\]]+)\]: ", line)) and found[1] in used
-    ]
-    return top.rstrip() + "\n" + "".join(f"\n{line}" for line in definitions) + "\n"
+    cut = heads[1] if len(heads) > 1 else len(guide_text)
+    return guide_text[:cut].rstrip() + "\n", guide_text[cut:].rstrip() + "\n"
 
 
 def zip_name(domain: str) -> str:
@@ -312,23 +324,24 @@ def build(domain: str, repo: str, ref: str, owner: str, out: Path) -> dict:
     )
     if not minimum:
         raise Stop(f"app/config.yaml at {ref} names no minimum Home Assistant.")
+    top, rest = opening(absolute(git("show", f"{ref}:{guide}"), guide, repo, at))
     words = {
         "name": manifest["name"],
-        "tracker": manifest["issue_tracker"],
         "minimum": minimum[1],
         "mirror": f"{owner}/{PUBLISHED[domain]}",
-        "guide": f"https://github.com/{repo}/blob/{at}/{guide}",
         "repo": repo,
         "version": version_at(ref),
         "commit": commit[:10],
+        "both": f": [{BOTH}](#{BOTH.lower().replace(' ', '-')}) says what happens."
+        if f"\n### {BOTH}\n" in rest
+        else ".",
     }
 
     files = {
-        "README.md": badged(
-            absolute(opening(git("show", f"{ref}:{guide}")), guide, repo, at),
-            BADGES.format(**words),
-        )
-        + README.format(**words),
+        "README.md": badged(top, BADGES.format(**words))
+        + INSTALLING.format(**words)
+        + rest
+        + PART.format(**words),
         # zip_release: a store downloads the release's ZIP rather than the repository's
         # files. That has no default branch to come from, so it isn't offered.
         "hacs.json": json.dumps(
@@ -344,7 +357,6 @@ def build(domain: str, repo: str, ref: str, owner: str, out: Path) -> dict:
         + "\n",
         "LICENSE": git("show", f"{ref}:LICENSE") + "\n",
         ".github/workflows/validate.yml": WORKFLOW,
-        ".github/ISSUE_TEMPLATE/config.yml": ISSUES.format(**words),
     }
     for path, text in files.items():
         (out / path).parent.mkdir(parents=True, exist_ok=True)
@@ -365,13 +377,13 @@ def problems(out: Path, domain: str, repo: str, ref: str) -> list[str]:
     if manifest.get("domain") != domain:
         found.append(f"manifest.json's domain is {manifest.get('domain')}")
 
-    # Every link leaves the mirror for a real address; one into Casa Mia names a file
-    # that is there at this ref.
+    # Every link is a place in the README or a real address; one into Casa Mia names a
+    # file that is there at this ref.
     inside = re.compile(
         rf"https://(?:github\.com/{repo}/blob|raw\.githubusercontent\.com/{repo})/[^/]+/([^#]+)"
     )
     for _, target in LINK.findall((out / "README.md").read_text("utf-8")):
-        if not target.startswith("https://"):
+        if not target.startswith(("https://", "#")):
             found.append(f"README.md links to {target}, which works only in Casa Mia")
         elif (path := inside.match(target)) and not git(
             "ls-tree", "--name-only", ref, "--", path[1], check=False
@@ -459,6 +471,7 @@ def publish(domain: str, repo: str, owner: str, version: str) -> str:
         )
         wrong = (
             problems(work, domain, repo, version)
+            + home_problems(manifest, domain)
             + archive_problems(archive, domain, version)
             + hassfest(work)
         )
@@ -657,6 +670,7 @@ def dry_run(repo: str, ref: str) -> int:
 
         found = (
             problems(out, domain, repo, ref)
+            + home_problems(manifest, domain)
             + archive_problems(archive, domain, ref)
             + hassfest(out)
         )

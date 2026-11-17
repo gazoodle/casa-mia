@@ -4,7 +4,7 @@
 // page when the shell shows it (shell.ts) and a dashboard card when a dashboard does.
 import { LitElement, css, type PropertyDeclarations } from "lit";
 import type { Hass } from "../ha.ts";
-import { read, survey, type Device, type House, type Lens, type Options, type Survey } from "./house.ts";
+import { read, sighted, survey, type Device, type House, type Lens, type Options, type Seen, type Sighting, type Survey } from "./house.ts";
 import { setting, type Press } from "./stories.ts";
 
 // The integration's feed of Sensor Watch's alerts (alerts.py). A family follows it as it
@@ -16,6 +16,7 @@ const SETTINGS = "casa_mia_dash_bored/settings"; // the integration's feed of th
 // Dash-Bored stands alone: it knows these two names of Casa Mia's and nothing else.
 const CASA_MIA = "casa_mia";
 const CAMERAS = "casa_mia/cameras/subscribe";
+const RECENT = 30 * 60_000; // ms: how long what a camera saw stays with its camera
 const SETTLE = 350; // ms: a level is asked for once it has been still this long
 
 /** What every family's element is on the page: a block, and as Dash-Bored's page at least a
@@ -60,6 +61,7 @@ export class Family extends LitElement {
   protected _settings: Options = {}; // the house's, from the integration: a card's own come before them
   protected _cameras: Lens[] = []; // Casa Mia's cameras, where it is installed: they come before the ones found
   protected _survey?: Survey;
+  protected _spotted: Seen[] = []; // what the cameras have seen lately, for a family that watches (_watch)
   protected _feeds = new Map<string, Promise<() => void>>(); // by the feed's command
   protected _timers = new Set<ReturnType<typeof setTimeout>>();
   protected _asking?: ReturnType<typeof setTimeout>; // the level waiting to be asked for: see _ask
@@ -207,6 +209,29 @@ export class Family extends LitElement {
         this._survey = undefined;
         if (this._hass) this.hass = this._hass;
       }, true);
+  }
+
+  /** Follow what the cameras have seen: for a family to call from its `_listen`. The
+   * Console and the Fridge each have this written out of their own, from before it was here. */
+  protected _watch() {
+    this._follow(SIGHTINGS, "The cameras' sightings", (seen: Seen[]) => {
+      const held = new Map(this._spotted.map((s) => [s.id, s]));
+      const now = Date.now();
+      for (const s of seen) {
+        held.set(s.id, s);
+        // A date coming due, not a poll: what a camera saw leaves the page when its time is up.
+        this._after(RECENT - (now - s.at * 1000) + 1000, () => this.requestUpdate());
+      }
+      this._spotted = [...held.values()].filter((s) => now - s.at * 1000 < RECENT);
+      this.requestUpdate();
+    });
+  }
+
+  /** The latest thing each camera saw that is still recent, by the camera's id. */
+  protected _sighted(now = Date.now()) {
+    const seen = new Map<string, Sighting>();
+    for (const s of this._survey ? sighted(this._survey, this._spotted) : []) if (now - s.at < RECENT && s.at >= (seen.get(s.camera)?.at ?? 0)) seen.set(s.camera, s);
+    return seen;
   }
 
   /** Do something once `ms` have passed, unless the element has gone by then. */

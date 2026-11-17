@@ -3,6 +3,7 @@
 // In two steps, so that neither is done more often than it must be. `survey` reads the
 // registries: which entities are shown, in which room. `read` reads the states of those
 // entities alone.
+import { choices, type Choice } from "./choices.ts";
 import type { Hass } from "../ha.ts";
 import { DOJO, KATAS, PERSONA, filed, type Desk } from "./katas.ts";
 
@@ -27,6 +28,7 @@ export type Device = {
   zoom?: { id: string; level: number; span: Span }; // its zoom, while the number entity is answering
   presets?: Preset[]; // where it can be turned to
   controls?: Control[]; // what belongs with what it sees: a gate, a light
+  choices?: Choice[]; // its settings that are a choice from a list (choices.ts): a mode, a source, an effect
 };
 /** A place a camera can be turned to, as the call that turns it there. */
 export type Preset = { name: string; action: string; data: Record<string, unknown> };
@@ -450,7 +452,7 @@ export function read(found: Survey, hass: Hass): House {
     const kw = on ? kilowatts(d.power) : undefined;
     if (kw !== undefined && kw >= 1) appliances.push({ id: d.id, name: d.name, room, kw });
     return { id: d.id, name: d.name, kind: d.kind, on, phase, level, dims, span: span(d.kind, a), temp: DEGREES.has(d.kind) && typeof a.current_temperature === "number" ? a.current_temperature : undefined,
-      title: d.kind === "media_player" && on ? [a.media_title, a.media_artist].filter(Boolean).join(", ") || undefined : undefined, picture: d.kind === "camera" ? a.entity_picture : undefined, away, since: Date.parse(state?.last_changed ?? "") || 0, guarded: d.guarded, room,
+      title: d.kind === "media_player" && on ? [a.media_title, a.media_artist].filter(Boolean).join(", ") || undefined : undefined, picture: d.kind === "camera" ? a.entity_picture : undefined, away, since: Date.parse(state?.last_changed ?? "") || 0, guarded: d.guarded, room, choices: choices(d.kind, state),
       ...(d.lens ? { zoom: zoom(d.lens.zoom), presets: d.lens.presets, controls: (d.controls ?? []).map((c): Control => ({ id: c.id, name: c.name, away: (hass.states[c.id]?.state ?? "unavailable") === "unavailable", device: c.found && device(c.found, room) })) } : {}) };
   };
 

@@ -17,6 +17,7 @@ export const ALERTS = "alerts";
 export const SCENES = "scenes";
 export const ENERGY = "energy";
 export const CLIMATE = "climate";
+export const CAMERAS = "cameras";
 export const SPLIT = "split:";
 export const ROOM = "room:";
 
@@ -54,7 +55,7 @@ export function splits(found: Survey): Split[] {
 }
 
 /** The size a room's tile would like, by how much is in the room. */
-const wanted = (devices: number): [number, number] => (devices >= 9 ? [2, 2] : devices >= 4 ? [2, 1] : [1, 1]);
+const wanted = (devices: number, camera: boolean): [number, number] => (devices >= 9 || camera ? [2, 2] : devices >= 4 ? [2, 1] : [1, 1]); // a camera's picture is behind its room's tile, and needs the room
 
 /** How many round buttons a tile of this size has room for: three across each cell, and
  * a row of them for each cell down but the first, which shares its cell with the name. */
@@ -100,14 +101,15 @@ export function screens(found: Survey, width: number, height: number): Screen[] 
   const shape = width / Math.max(1, height - BAR);
   const sets = splits(found);
   const home: Want[] = [
-    { id: HERO, w: cols >= 4 ? 3 : 2, h: 2 },
+    { id: HERO, w: cols >= 6 ? 3 : 2, h: 2 },
     { id: ALERTS, w: 2, h: 1 },
     ...(found.scenes.length ? [{ id: SCENES, w: 2, h: 1 }] : []),
     ...(found.power ? [{ id: ENERGY, w: 2, h: 1 }] : []),
     ...(found.rooms.some((r) => r.climate) ? [{ id: CLIMATE, w: 1, h: 2 }] : []),
+    ...(found.rooms.some((r) => r.devices.some((d) => d.kind === "camera")) ? [{ id: CAMERAS, w: 2, h: 1 }] : []),
     ...sets.map((set) => ({ id: SPLIT + set.id, w: 1, h: 1 })),
   ];
-  const sizes = new Map(found.rooms.map((r) => [r.id, wanted(r.devices.length)]));
+  const sizes = new Map(found.rooms.map((r) => [r.id, wanted(r.devices.length, r.devices.some((d) => d.kind === "camera"))]));
 
   const want = (set: Split): Want[] => set.rooms.map((id) => ({ id: ROOM + id, w: sizes.get(id)![0], h: sizes.get(id)![1] }));
 
@@ -125,12 +127,14 @@ export function screens(found: Survey, width: number, height: number): Screen[] 
     return lay(tiles).map((placed, part, all) => ({ name, splits: ids, part, parts: all.length, cols, rows, tiles: placed }));
   };
 
-  // Small sets next to each other share a screen while they fit one at the sizes their
-  // rooms would like: two rooms would otherwise have a whole screen between them.
+  // Small sets next to each other share a screen while they fit one with each room as wide
+  // as it would like, if only a row tall: two rooms would otherwise have a whole screen
+  // between them. (At the height they would like too, a floor with two cameras kept a
+  // tablet's screen to itself and left the basement's two fans one of their own.)
   const shared: Split[][] = [];
   for (const set of sets) {
-    const tiles = [...(shared.at(-1) ?? []), set].flatMap(want);
-    const fits = shared.length > 0 && tiles.reduce((sum, t) => sum + t.w * t.h, 0) <= cols * rows * FULL && bento(tiles, cols, rows).length === 1;
+    const tiles = [...(shared.at(-1) ?? []), set].flatMap(want).map((t) => ({ ...t, h: 1 }));
+    const fits = shared.length > 0 && tiles.reduce((sum, t) => sum + t.w, 0) <= cols * rows * FULL && bento(tiles, cols, rows).length === 1;
     if (fits) shared.at(-1)!.push(set);
     else shared.push([set]);
   }

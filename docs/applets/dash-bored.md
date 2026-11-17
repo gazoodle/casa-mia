@@ -796,6 +796,48 @@ The sky behind the tiles changes with how much light is on in the house. With ev
 off it is blue, green and pink, and it turns warmer, towards amber, as lights come on. A
 light at half brightness counts as half a light.
 
+Aurora has seven skins, which are sets of colours: Aurora, Ember, Verdant, Cobalt, Rose,
+Acid and Alloy. In the Aurora skin the sky turns from cold colours to warm ones as lights
+come on; the others keep their colour and get brighter. The round button on the bar shows
+the colours in use. Press it and the bar offers all seven; press Done to get the screens'
+names back. The choice is kept by the browser, so a tablet and a phone can differ. A card
+can name its skin instead, and then has no button:
+
+```yaml
+type: custom:dash-bored-aurora
+style: cobalt
+```
+
+After the seven skins of colour, the bar offers nine for the seasons and the holidays:
+Snow, Christmas, Fireworks, Valentine, Spring, Easter, Summer, Autumn and Halloween.
+Each has its own colours and decorations. Something drifts over the page, such as
+snowflakes, leaves or bats. A strip runs along the foot of the page either side of the
+bar, such as a snowdrift, a meadow of daisies or the sea. A drawing stands in the top
+right corner of the greeting, such as a snowman, a sandcastle or a hedgehog; the clock
+in the Fireworks skin tells the time. Christmas has a string of fairy lights along the
+top, Halloween a cobweb with a spider, and Summer the sun. The decorations can't be
+pressed and cover nothing that can. If the device is set to reduce motion, nothing moves.
+Fireworks and Halloween are skins of the night, so their page is dark whichever theme
+Home Assistant is using.
+
+**Almanac**, between the two groups on the bar, wears the skin the date calls for:
+
+| When | Skin |
+|---|---|
+| 1 to 26 December | Christmas |
+| 31 December and 1 January | Fireworks |
+| 14 February | Valentine |
+| Good Friday to Easter Monday | Easter |
+| 25 to 31 October | Halloween |
+| 5 November in the United Kingdom, 4 July in the United States | Fireworks |
+| Any other day | The season's: Snow from December, Spring from March, Summer from June, Autumn from September |
+
+South of the equator the seasons are the other way round, by the latitude Home Assistant
+has for the house. A card can name any of these as its `style`, `almanac` included.
+
+A skin changes colours and decorations only. Every screen is laid out the same in each
+of them.
+
 Aurora is a set of screens, and each screen is filled with tiles of different sizes, with
 no space left over. The page does not scroll down. To go from one screen to the next:
 
@@ -831,6 +873,20 @@ is on in the room. How big a room's tile is depends on how much is in the room a
 how many rooms share the screen, and the tiles grow to fill it. On a big screen the
 lettering and the controls on a tile are bigger too, up to 1.6 times their size.
 
+A room with a camera has the camera's picture behind its tile, and a bigger tile to show
+it. The home screen has a tile of every camera, with those that saw something in the
+last half hour first. A picture is a still, not a live picture: under the camera's name
+it says what the camera last saw and when, or the time the still was fetched. Press a
+picture to see the camera live in Home Assistant's own dialog.
+
+A room's sheet has each camera's picture at the top. Where the Casa Mia app is
+installed, what its Cameras page set up for the camera is under the picture: a button
+for each PTZ preset, a slider for the zoom, and the camera's page controls. Under the
+room's faders and keys the sheet has a row of buttons for each setting that is a choice
+from a list, with the one in use filled in: a thermostat's mode, preset and fan, a
+player's source and sound mode, a fan's or a humidifier's mode, a water heater's mode, a
+vacuum's suction and a light's effect.
+
 - **A small tile** has a round button for each of its first few devices. Press one and
   its device is switched. Press anywhere else on the tile and it grows into a sheet with
   everything in the room.
@@ -856,7 +912,8 @@ name, or the name of a device or a scene in it. Press Enter and it goes to the f
 screen with a match. On a keyboard, `/` goes to the search. The last button on the bar
 opens the choice of style, the same as pressing twice in the page's top right corner.
 
-Aurora follows Home Assistant's light or dark theme. If the page loses its connection, or
+Aurora follows Home Assistant's light or dark theme, except in the Fireworks and
+Halloween skins, which are always dark. If the page loses its connection, or
 Home Assistant refuses something, it says so in a box at the top of the page.
 
 Not on it yet: a device's history, a thermostat's modes, a player's source, the cameras'

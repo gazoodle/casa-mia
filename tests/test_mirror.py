@@ -57,10 +57,20 @@ def test_the_tree_is_the_component_and_what_a_store_needs(tmp_path):
     ):
         assert badge in badges, badge
     assert "isn't the number of houses" in readme
-    assert (
-        manifest["issue_tracker"]
-        in (out / ".github/ISSUE_TEMPLATE/config.yml").read_text()
-    )
+
+    # The whole guide, since the manifest's documentation link comes here: how to install
+    # it after the opening, the guide's last section before the README's own.
+    guide = mirror.git("show", f"HEAD:{GUIDE}")
+    heads = [line for line in guide.splitlines() if line.startswith("## ")]
+    assert [line for line in readme.splitlines() if line.startswith("## ")] == [
+        heads[0],
+        "## Installing",
+        *heads[1:],
+        "## Part of Casa Mia",
+    ]
+    # Its issues are its own: nothing sends them to Casa Mia.
+    assert "https://github.com/example/casa-mia-sensor-watch/issues" in readme
+    assert not (out / ".github/ISSUE_TEMPLATE").exists()
     assert mirror.problems(out, WATCH, REPO, "HEAD") == []
 
     # A link that works only inside Casa Mia, or names nothing there, is caught.
@@ -135,7 +145,7 @@ def test_links_are_made_to_work_from_another_repository():
         (
             f"[texts]({blob}/docs/applets/phone-and-sms.md)"
             f" [garnish]({blob}/docs/tablet-layout.md#showing-and-hiding)",
-            f"[the event]({blob}/{GUIDE}#the-event) [elsewhere](https://example.org/a.md)",
+            "[the event](#the-event) [elsewhere](https://example.org/a.md)",
             f'<img src="https://raw.githubusercontent.com/{REPO}/2026.12.1'
             '/docs/screenshots/card.webp" alt="A card">',
             "[shop]: https://example.org/shop",
@@ -143,12 +153,29 @@ def test_links_are_made_to_work_from_another_repository():
         )
     )
 
-    # Only the guide's opening goes into the README, with the definitions it uses.
+    # The guide is cut after its opening, where the README says how to install it.
     guide = "# T\n\nOne [shop][shop].\n\n## For\n\nTwo.\n\n## Later\n\n[x][other]\n\n[shop]: s\n[other]: o\n"
-    assert (
-        mirror.opening(guide)
-        == "# T\n\nOne [shop][shop].\n\n## For\n\nTwo.\n\n[shop]: s\n"
+    assert mirror.opening(guide) == (
+        "# T\n\nOne [shop][shop].\n\n## For\n\nTwo.\n",
+        "## Later\n\n[x][other]\n\n[shop]: s\n[other]: o\n",
     )
+    assert mirror.opening("# T\n\nOne.\n") == ("# T\n\nOne.\n", "\n")
+
+
+def test_a_published_manifest_names_its_own_repository():
+    # What a store's review asks (HACS, 2026-11-17): the documentation and the issues
+    # are the mirror's, not Casa Mia's. Read from the files here, not from HEAD.
+    for domain, name in mirror.PUBLISHED.items():
+        manifest = json.loads(
+            (mirror.ROOT / mirror.COMPONENTS / domain / "manifest.json").read_text()
+        )
+        assert mirror.home_problems(manifest, domain) == [], domain
+
+    wrong = {
+        "documentation": f"https://github.com/{REPO}/blob/main/{GUIDE}",
+        "issue_tracker": f"https://github.com/{REPO}/issues",
+    }
+    assert len(mirror.home_problems(wrong, WATCH)) == 2
 
 
 def test_a_retry_carries_on_and_a_published_version_is_never_changed():
@@ -161,7 +188,7 @@ def test_a_retry_carries_on_and_a_published_version_is_never_changed():
 
 
 def test_a_fork_publishes_no_mirror_unless_it_names_an_owner():
-    tracker = "https://github.com/example/casa-mia/issues"
+    tracker = "https://github.com/example/casa-mia-sensor-watch/issues"
     assert mirror.mirror_owner("Example/casa-mia", tracker, None) == "Example"
     assert mirror.mirror_owner("someone/casa-mia", tracker, None) is None
     assert mirror.mirror_owner("someone/casa-mia", tracker, "someone") == "someone"
@@ -183,8 +210,8 @@ def test_publishing_is_safe_to_run_again(tmp_path, monkeypatch):
         "domain": WATCH,
         "name": "Sensor Watch",
         "codeowners": [],
-        "documentation": "https://example.org/guide",
-        "issue_tracker": f"https://github.com/{REPO}/issues",
+        "documentation": "https://github.com/example/casa-mia-sensor-watch",
+        "issue_tracker": "https://github.com/example/casa-mia-sensor-watch/issues",
     }
     asked, followed = [], []
     monkeypatch.setattr(release_tool, "ROOT", source)

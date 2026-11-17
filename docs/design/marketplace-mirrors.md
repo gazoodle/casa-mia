@@ -447,18 +447,40 @@ has been run: `tools/mirror.py --dry-run` generated the mirror from `HEAD` (48 f
 own checks passed and so did hassfest, in docker. Where it differs:
 
 - **Issues stay on in the mirror.** HACS's validation fails a repository with issues off
-  (its `issues` check, HACS 2.0.5), and the plan wants no check ignored. The mirror has an
-  issue form that allows no blank issue and offers one link, to Casa Mia's issues.
+  (its `issues` check, HACS 2.0.5), and the plan wants no check ignored. Until 2026-11-17
+  the mirror had an issue form that allowed no blank issue and offered one link, to Casa
+  Mia's issues; see "The mirror is its own home" below.
 - **The repository's description and topics** are set at every publish, because HACS
   checks for both. The description is the guide's first paragraph.
-- **The README** is the guide from its top to the end of its first section, with every
-  link and picture pointed at Casa Mia on GitHub at the release's tag, then generated
-  sections for installing and for its place in Casa Mia. An anchor always points into the
-  whole guide, even when its section came along.
+- **The README** was the guide from its top to the end of its first section, then
+  generated sections for installing and for its place in Casa Mia. Since 2026-11-17 it is
+  the whole guide (below).
+- **The mirror is its own home (2026-11-17).** HACS's review of the Sensor Watch and Love
+  it or Loathe it submissions asked for changes: the manifest's `documentation` and
+  `issue_tracker` named Casa Mia, a different repository from the one submitted, and Home
+  Assistant shows those links to users for docs and bug reports. The owner decided to
+  bring the documentation over and take issues in each mirror. So:
+  - **The manifests** of the published components name their mirror
+    (`https://github.com/<owner>/casa-mia-<name>`) and its `/issues`, in Casa Mia's own
+    source. They are not rewritten when the mirror is made, so the app's copy and a
+    store's copy of one version are the same files. `mirror.home_problems` refuses
+    anything else before publishing, and a test checks the manifests here.
+  - **The README is the whole guide:** its opening, the generated Installing section, the
+    rest of the guide, then "Part of Casa Mia". An anchor stays a place in the README; a
+    link to another Casa Mia file or picture still points at Casa Mia at the release's
+    tag. The guide stays the one source, in `docs/applets/`.
+  - **The mirror takes real issues.** The issue form that sent people to Casa Mia is no
+    longer generated. An issue that belongs to the app can be moved with
+    `gh issue transfer`, since both repositories have one owner.
+  - **A fork** is now an origin whose owner differs from the owner in `issue_tracker`.
+  - **To satisfy the review** a new release must publish the mirrors, which happens for a
+    component whose manifest version is the release's. All three were restamped in
+    2026.11.9-b12.
 - **A component's guide** is found by name: `docs/applets/` plus the mirror's name without
   `casa-mia-`.
-- **A fork** is an origin that isn't the repository named in the component's
-  `issue_tracker`. It publishes no mirror unless `CM_MIRROR_OWNER` is set.
+- **A fork** was an origin that isn't the repository named in the component's
+  `issue_tracker` (changed 2026-11-17, above). It publishes no mirror unless
+  `CM_MIRROR_OWNER` is set.
 - **It asks before publishing**, as every other step of `release.py` does.
 - **Retries compare git trees:** the generated files are committed on the mirror's own
   history, and git says whether that is new, already pushed, or already tagged. A test
@@ -498,7 +520,8 @@ own checks passed and so did hassfest, in docker. Where it differs:
   mirror carries Sensor Watch's `brand/` folder. The mirror's workflow uses
   `hacs/action@main`. Its first run (step 5) is the proof.
 - **Issues on, with a link to Casa Mia: agreed** (owner, 2026-11-10). Why: HACS's
-  validation fails a repository with issues off.
+  validation fails a repository with issues off. **Replaced 2026-11-17:** issues are
+  taken in the mirror, because HACS's review wants the manifest's links to name it.
 - **"No downgrade" covers published components only: agreed** (owner, 2026-11-10). Why:
   only the app installs the others, so a newer copy of one means the app was rolled
   back, and `casa_mia` must match the app it talks to.

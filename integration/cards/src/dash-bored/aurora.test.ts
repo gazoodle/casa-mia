@@ -137,12 +137,81 @@ test("a big window has a grid for what is on the screen, not as many cells as it
   }
   // Sets that fit one screen together share it, and it is named for all of them: the two rooms of the basement have no screen to themselves.
   assert.deepEqual(all.map((s) => [s.name, s.splits]), [["Home", []], ["Rooms", ["Basement", "Ground", "First"]]]);
-  // On a phone they don't fit together.
-  assert.ok(screens(house, 390, 844).filter((s) => s.splits.length).every((s) => s.splits.length === 1));
+  // A phone's screen has not the room for them all: the first two sets share one, at a row a room, and the third has its own.
+  assert.deepEqual(screens(house, 390, 844).filter((s) => s.splits.length).map((s) => s.splits), [["Basement", "Ground"], ["First"]]);
 });
 
 test("a tile's contents are enlarged with its cell, within limits", () => {
   assert.equal(zoom(200, 175), 1); // never made smaller
   assert.equal(zoom(450, 300), 1.2); // by the tighter of the two ways
   assert.equal(zoom(900, 900), 1.6); // and no more than this
+});
+
+// ---------- cameras ----------
+test("a camera's picture is what it saw lately, else its still with when it came, and a failure is said", async () => {
+  const { shot } = await import("./aurora/cameras.ts");
+  const cam: any = { id: "camera.drive", name: "Drive", kind: "camera", away: false, picture: "/still?token=a" };
+  const at = new Date(2026, 10, 16, 21, 5).getTime();
+  const none = new Map<string, any>();
+  // A still says nothing until it has come, then when it came: it is no live picture.
+  assert.deepEqual(shot(cam, none, new Map(), new Set()), { d: cam, src: "/still?token=a", says: "", at: 0 });
+  assert.equal(shot(cam, none, new Map([["/still?token=a", at]]), new Set()).says, "as at 21:05");
+  // What it saw lately comes before its still, with its photograph if it has one.
+  const saw = new Map([["camera.drive", { id: "1", camera: "camera.drive", name: "Drive", kind: "person", at, photo: "/photo/1" }]]);
+  assert.deepEqual(shot(cam, saw, new Map(), new Set()), { d: cam, src: "/photo/1", says: "person 21:05", at });
+  // A picture that could not be fetched is not shown, and that is said. A camera that is away shows none.
+  assert.deepEqual(shot(cam, none, new Map(), new Set(["/still?token=a"])), { d: cam, src: "", says: "its picture could not be fetched", at: 0 });
+  assert.deepEqual(shot({ ...cam, away: true }, saw, new Map(), new Set()), { d: { ...cam, away: true }, src: "", says: "not answering", at: 0 });
+  assert.equal(shot({ ...cam, picture: undefined }, none, new Map(), new Set()).says, "no picture");
+});
+
+test("a house with a camera has a tile of them on its home screen, and the camera's room a tile with room for its picture", () => {
+  const drive = { ...room("drive", "Ground", 1), devices: [{ kind: "camera" }] };
+  const all = screens(found([drive, room("hall", "Ground", 1)]), 1300, 690);
+  assert.ok(all[0].tiles.some((t) => t.id === "cameras"));
+  const tile = all[1].tiles.find((t) => t.id === "room:drive")!;
+  assert.ok(tile.w >= 2 && tile.h >= 2);
+  assert.ok(!screens(found([room("hall", "Ground", 1)]), 1300, 690)[0].tiles.some((t) => t.id === "cameras"));
+});
+
+// ---------- skins ----------
+test("a skin is its sky's colours as custom properties, and each has a name and an id of its own", async () => {
+  const { SKINS, paint, skinned, swatch } = await import("./aurora/skins.ts");
+  assert.deepEqual(SKINS.map((s) => s.id), ["aurora", "ember", "verdant", "cobalt", "rose", "acid", "alloy"]);
+  assert.equal(new Set(SKINS.map((s) => s.name)).size, SKINS.length);
+  // The first is what the stylesheet has for an element with no skin yet (styles.ts): the two must agree.
+  assert.equal(paint(SKINS[0]), "--h1: 265; --m1: -60; --h2: 190; --m2: -120; --h3: 330; --m3: 50; --hw: 85; --strength: 1");
+  assert.equal(skinned("cobalt")?.name, "Cobalt");
+  assert.equal(skinned("no such skin"), undefined);
+  assert.match(swatch(skinned("alloy")!), /^background: conic-gradient\(oklch\(\.72 0\.034 240\)/);
+  for (const s of SKINS) assert.ok(s.rooms.length > 0 && s.strength > 0, s.id);
+});
+
+test("each season's skin has its decorations, and every drawing one names is drawn", async () => {
+  const { SEASONAL, SKINS } = await import("./aurora/skins.ts");
+  const { DECORS } = await import("./aurora/seasons.ts");
+  const { FEET, GLYPHS, HEROES } = await import("./aurora/art.ts");
+  assert.deepEqual(SEASONAL.map((s) => s.id).sort(), Object.keys(DECORS).sort());
+  // The skins of the night bring their own dark page.
+  assert.deepEqual([...SKINS, ...SEASONAL].filter((s) => s.dark).map((s) => s.id), ["fireworks", "halloween"]);
+  assert.ok(SKINS.every((s) => !DECORS[s.id])); // a skin of colours has none
+  for (const [id, decor] of Object.entries(DECORS)) {
+    assert.ok(!decor.drift || GLYPHS[decor.drift.glyph], id);
+    assert.ok(!decor.foot || FEET[decor.foot], id);
+    assert.ok(!decor.hero || HEROES[decor.hero], id);
+  }
+});
+
+test("the Almanac wears a holiday's skin on its days, else the season's, the other way round in the south", async () => {
+  const { almanac, easter } = await import("./aurora/seasons.ts");
+  const on = (month: number, day: number, year = 2026) => new Date(year, month - 1, day, 12);
+  assert.deepEqual([easter(2026), easter(2027), easter(2038)], [[4, 5], [3, 28], [4, 25]]);
+  // The seasons, by the month.
+  assert.deepEqual([on(1, 20), on(3, 1), on(5, 31), on(6, 1), on(9, 1), on(11, 30), on(12, 28)].map((d) => almanac(d)), ["snow", "spring", "spring", "summer", "autumn", "autumn", "snow"]);
+  assert.deepEqual([on(1, 20), on(7, 10)].map((d) => almanac(d, true)), ["summer", "snow"]);
+  // The holidays. Easter is from Good Friday to Easter Monday.
+  assert.deepEqual([on(12, 1), on(12, 26), on(12, 27), on(12, 31), on(1, 1), on(2, 14), on(10, 25), on(10, 31)].map((d) => almanac(d)), ["christmas", "christmas", "snow", "fireworks", "fireworks", "valentine", "halloween", "halloween"]);
+  assert.deepEqual([on(4, 2), on(4, 3), on(4, 5), on(4, 6), on(4, 7)].map((d) => almanac(d)), ["spring", "easter", "easter", "easter", "spring"]);
+  // A day kept in one country is that country's alone.
+  assert.deepEqual([almanac(on(11, 5), false, "GB"), almanac(on(11, 5), false, "FR"), almanac(on(7, 4), false, "US"), almanac(on(7, 4), false, "GB")], ["fireworks", "autumn", "fireworks", "summer"]);
 });

@@ -182,6 +182,11 @@ imported from `casa_mia`, no app option. Guide: `docs/applets/love-or-loathe.md`
   (`custom_components/cm_demo_players`, on the VM only) give it Kitchen, Living room,
   Bedroom and Garden to watch, with the people Ann and Ben, the entry Downstairs and
   the dashboard `music-demo`. Keep them there for the next pictures.
+- **A mirror is its own home** (b12, 2026-11-17; HACS's review asked for it): a published
+  component's manifest names its mirror for `documentation` and `issue_tracker`, the
+  mirror's README is the whole guide, and the mirror takes its own issues
+  (`docs/design/marketplace-mirrors.md`, "The mirror is its own home"). The review needs
+  a release that publishes all three mirrors, then a re-request on each pull request.
 - **The mirrors' READMEs** carry Casa Mia's set of badges under the title
   (`tools/mirror.py` `BADGES`: Stars, Downloads, version, Validated, Licence), and each
   release has the integration as a ZIP (`hacs.json` `zip_release`).
@@ -416,6 +421,27 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
     sets next to each other share a screen while they fit one (`FULL`); and a tile's
     contents are enlarged with its cell by CSS `zoom` (`zoom`, at most 1.6). Test any
     change at 2560×1300 as well as at a tablet's and a phone's size.
+  - **Skins are varieties of colour** (owner, 2026-11-16, after HA Dial's themes), built
+    2026.11.9-b12 as data in `aurora/skins.ts`: a skin is the sky's three hues, how far
+    each turns as lights come on, the warm light's hue, a strength and the rooms' glow
+    hues, given to the stylesheet as custom properties (`paint`). A skin must change no
+    size or place. Chosen from the bar, kept in the browser, or named by a card's
+    `style`. **Not built:** the choice being open to automation (BACKLOG).
+  - **Season and holiday skins** (owner, 2026-11-16: "be creative"), built
+    2026.11.9-b12: nine in `SEASONAL` (`skins.ts`), each with decorations of the same
+    name in `DECORS` (`aurora/seasons.ts`); the drawings are in `aurora/art.ts`, by
+    hand, and `aurora/season-styles.ts` moves them. **A decoration never moves a tile
+    or takes a press:** it drifts over the page, runs along the foot either side of the
+    bar, stands in the greeting's top right corner (at the foot it stood on the
+    sentence), or is along the top. Nothing is random (`spread`), so a flake keeps its
+    place when the page is drawn again. `almanac` picks the skin for a date. Seen on
+    the test VM in Chromium and WebKit at 1340 px, light theme. **Fireworks and Halloween
+    are always dark** (`Skin.dark`; owner, 2026-11-17), because on a light page they came
+    out pastel. **Not seen:** Home Assistant's dark theme, a phone, a tablet's frame rate
+    with 26 flakes falling.
+  - **The device controls are a layer of their own**, `aurora/controls.ts`
+    (`Controls extends Family`), which `Aurora` extends: split out verbatim on
+    2026-11-17 when `aurora.ts` reached 569 lines.
   - **A set of rooms is not a floor** (owner, 2026-11-16: "arbitrary splits" was to stop
     floor or area being built in; the other way is not yet specified). `splits` in
     `pages.ts` is the one place that knows a set is a floor today. A set takes no more
@@ -484,7 +510,19 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
     control outside its chassis, and each press made the right call). **Not seen:** a
     real PTZ camera, the feed from a real app, the test VM, Nixie, Silverface or
     Beige, a tablet.
-  - **Not built:** the Fridge and Aurora (they show the title only), the Console's
+  - **Aurora, built 2026.11.9-b12:** a camera's picture behind its room's tile, a tile
+    of every camera on the home screen, and on the room's sheet the picture with its
+    presets, zoom and controls (`aurora/cameras.ts`). A still is not live: it says what
+    the camera last saw, or when the still was fetched (`shot`). The sightings feed is
+    followed by `_watch` and `_sighted` in `family.ts`; the Console and the Fridge
+    still have their own copies of both, to be moved onto it in a refactor commit.
+    Seen on the test VM (Chromium and WebKit, 2560, 1340 and 390 px). **Not seen:** a
+    sighting (the VM's cameras report none), presets, zoom or controls (the VM has no
+    Casa Mia app), a real camera.
+  - **A device's choices** (2026.11.9-b12): `Device.choices` holds every setting that
+    is a choice from a list, from one table in `choices.ts` (a new one is a row).
+    Only Aurora's sheet shows them (`aurora/settings.ts`).
+  - **Not built:** the Fridge (it shows the title only), the Console's
     one-entity card, and steps 2 (Guest Login) and 3 (Sensor Watch's bands). BACKLOG
     has them.
 - **The page and the families** (2026.11.8-b23). The sidebar's page (`panel_custom`, not in
