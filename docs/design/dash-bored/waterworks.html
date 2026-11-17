@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Contraption: the Kitchen, by water</title>
+<style>
+/* A skin is a set of these: the paper, the line, and what each material looks like. The
+   drawing names its parts by what they are made of (brass, iron, wood, glass, cloth,
+   copper, water, flame, lit), never by how they are drawn, so a skin needs no new art. */
+body[data-skin="patent"] {
+  --bg: #eadcbc; --line: #2b2118; --w: 1.7; --font: "Bradley Hand", "Segoe Print", "Chalkboard SE", cursive;
+  --title: "Snell Roundhand", "Apple Chancery", "Lucida Calligraphy", cursive;
+  --paper: #eadcbc; --brass: #dcc694; --copper: #d4b17c; --iron: url(#cross); --wood: url(#hatch); --glass: rgba(255,255,255,.28);
+  --cloth: #c79a8a; --cast: #b3a488; --water: #4f8996; --pool: rgba(79,137,150,.5); --flame: #e98a2b; --lit: #f2c84b; --duck: #f3ead3; --label: #f3ead3; --red: #a8452f;
+}
+body[data-skin="blueprint"] {
+  --bg: #1d4f91; --line: #e8f1ff; --w: 1.2; --font: "Courier New", ui-monospace, monospace; --title: "Courier New", ui-monospace, monospace;
+  --paper: #1d4f91; --brass: #1d4f91; --copper: #1d4f91; --iron: url(#blue); --wood: #1d4f91; --glass: rgba(255,255,255,.07);
+  --cloth: url(#blue); --cast: #1d4f91; --water: #9fd0ff; --pool: rgba(159,208,255,.4); --flame: rgba(255,255,255,.3); --lit: #fff3b0; --duck: #1d4f91; --label: #1d4f91; --red: #e8f1ff;
+  background-image: linear-gradient(rgba(255,255,255,.09) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.09) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+body[data-skin="tin"] {
+  --bg: #f3e6c4; --line: #1c2a4a; --w: 2.6; --font: "Arial Rounded MT Bold", "Trebuchet MS", sans-serif; --title: "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
+  --paper: #fff8e6; --brass: #f0b830; --copper: #e2703a; --iron: #8da0b3; --wood: #c0703a; --glass: rgba(170,228,232,.6);
+  --cloth: #d8352a; --cast: #8da0b3; --water: #19a3d1; --pool: #19a3d1; --flame: #ff7a1a; --lit: #ffe14d; --duck: #ffd21f; --label: #fff8e6; --red: #d8352a;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+/* The page is as tall as the screen, and the drawing has whatever the header leaves. */
+body { color: var(--line); background-color: var(--bg); font-family: var(--font); padding: 10px 20px 12px;
+  display: flex; flex-direction: column; height: 100dvh; }
+/* Foxed paper, for the engraving only: grain over everything, darker towards the edges. */
+.grain { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: .5; mix-blend-mode: multiply; display: none; }
+body[data-skin="patent"] .grain { display: block; }
+body[data-skin="patent"]::after { content: ""; position: fixed; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(110,70,20,.35)); }
+body[data-skin="blueprint"] { text-transform: uppercase; letter-spacing: .04em; }
+
+header { display: flex; align-items: flex-end; gap: 6px 20px; flex-wrap: wrap; padding: 0 6px 6px; }
+h1 { font: 400 30px/1 var(--title); margin: 0; }
+header p { margin: 0 0 4px; font-size: 13.5px; font-style: italic; flex: 1; min-width: 220px; }
+#skins { display: flex; gap: 6px; }
+#skins button { font: inherit; font-size: 13px; color: inherit; background: none; border: 2px solid var(--line); border-radius: 4px; padding: 3px 9px; cursor: pointer; }
+#skins button[aria-pressed="true"] { background: var(--line); color: var(--bg); }
+.cords { display: flex; gap: 14px; align-items: flex-start; }
+.cord { all: unset; cursor: pointer; text-align: center; font-size: 12.5px; transform-origin: top center; }
+.cord::before { content: ""; display: block; width: 2px; height: 8px; margin: 0 auto; background: var(--line); }
+.cord::after { content: ""; display: block; width: 12px; height: 18px; margin: 0 auto 2px;
+  border: 2px dashed var(--line); border-radius: 3px 3px 8px 8px; }
+.cord span { display: block; max-width: 110px; line-height: 1.1; }
+.cord.pulled { animation: tug .7s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes tug { 30% { translate: 0 14px; } 60% { rotate: 5deg; } 80% { rotate: -3deg; } }
+.cord:focus-visible, .hot:focus-visible, #skins button:focus-visible { outline: 2px dashed var(--line); outline-offset: 3px; }
+.notice:empty { display: none; }
+.notice { margin: 4px 6px; padding: 6px 10px; font-size: 15px; background: var(--red); color: var(--bg); border: 2px solid var(--line); overflow-wrap: anywhere; }
+
+/* One drawing, 1200 by 780, fitted to the screen. It keeps a width at which a finger can
+   find a valve, and the page scrolls sideways on anything narrower. */
+#stage { flex: 1; min-height: 0; overflow-x: auto; }
+svg { display: block; overflow: visible; }
+.sheet { position: relative; min-width: 900px; height: 100%; }
+.sheet svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* The patent skin shows the still drawing as bitmaps with the wobble baked in (bake.js). */
+.sheet canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: none; }
+body[data-skin="patent"].baked .sheet canvas.on { display: block; }
+body[data-skin="patent"].baked .wob { visibility: hidden; }
+.ink * { stroke: var(--line); stroke-width: var(--w); stroke-linecap: round; stroke-linejoin: round; fill: none; }
+.ink .paper, .ink .fill { fill: var(--paper); }
+.ink .solid { fill: var(--line); }
+.ink .brass { fill: var(--brass); }
+.ink .copper { fill: var(--copper); }
+.ink .iron { fill: var(--iron); }
+.ink .wood { fill: var(--wood); }
+.ink .glass { fill: var(--glass); }
+.ink .cloth { fill: var(--cloth); }
+.ink .cast { fill: var(--cast); }
+.ink .bare { stroke: none; }
+.ink .wheel * { stroke-width: calc(var(--w) * .65); }
+.ink .spark { fill: var(--lit); }
+.ink .drop { stroke: none; fill: var(--water); }
+.ink .splash { stroke: var(--water); stroke-width: 2; transform-box: fill-box; transform-origin: bottom center; animation: splash .4s ease-out infinite; }
+.ink .duck { fill: var(--duck); }
+.ink .flame { fill: var(--flame); }
+.ink .label { fill: var(--label); }
+.ink .lit { stroke: none; fill: var(--lit); opacity: 0; }
+.ink .pool { stroke: none; fill: var(--pool); }
+.ink .stream { stroke: var(--water); stroke-width: 5; stroke-linecap: butt; }
+.ink .ripple { stroke: var(--bg); stroke-width: 1.4; stroke-dasharray: 5 9; opacity: .9; animation: run .5s linear infinite; }
+.ink .rope { stroke-width: calc(var(--w) * .8); }
+.ink .rope.run { stroke-dasharray: 5 4; animation: run .3s linear infinite; }
+.ink .pipe { stroke-width: 5; }
+.ink .thin { stroke-width: calc(var(--w) * .6); }
+.ink .hit { stroke: none; fill: transparent; }
+/* Words keep a halo of paper, so a line that passes behind them doesn't strike them out. */
+.ink text, .ink tspan { stroke: var(--bg); stroke-width: 4px; paint-order: stroke; fill: var(--line); font-size: 14px; font-family: var(--font); }
+.ink .oo text, .ink .oo tspan { stroke: none; }
+.ink .title { font-size: 23px; font-family: var(--title); }
+.ink tspan.state { font-size: 12px; font-style: italic; opacity: .85; }
+.ink .small { font-size: 9px; }
+.ink [data-p="quack"], .ink [data-p="coo"] { font-style: italic; }
+/* Dimension lines belong to the blueprint alone. */
+.ink .dim { display: none; }
+body[data-skin="blueprint"] .ink .dim { display: inline; }
+.ink .dim * { stroke-width: .7; }
+.ink .dim text { font-size: 10px; text-anchor: middle; }
+.ink .oo { opacity: 0; pointer-events: none; }
+
+.hot { cursor: pointer; touch-action: none; }
+.hot[role="slider"] { cursor: ew-resize; }
+.nope { animation: nope .35s; }
+@keyframes nope { 25% { translate: -5px 0; } 75% { translate: 5px 0; } }
+.puff { transform-box: fill-box; transform-origin: center; animation: puff 2.4s ease-out infinite; opacity: 0; }
+@keyframes puff { 0% { opacity: .8; translate: 0 0; scale: .5; } 100% { opacity: 0; translate: 10px -34px; scale: 1.6; } }
+.flick { transform-box: fill-box; transform-origin: bottom center; animation: flick .28s ease-in-out infinite alternate; }
+@keyframes flick { to { scale: .86 1.12; } }
+@keyframes run { to { stroke-dashoffset: -14; } }
+@keyframes splash { 0% { scale: .3; opacity: 1; } 100% { scale: 1.3; opacity: 0; } }
+/* No data: the whole machine fades, and what was animated by the page stops. */
+.stale #stage { opacity: .5; }
+.stale .flick, .stale .puff, .stale .ripple, .stale .run, .stale .splash { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .puff, .flick, .ripple, .rope.run, .splash { animation: none; } }
+</style>
+</head>
+<body>
+<svg class="grain"><filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="3"/>
+  <feColorMatrix values="0 0 0 0 .45  0 0 0 0 .32  0 0 0 0 .15  0 0 0 .5 0"/></filter>
+  <rect width="100%" height="100%" filter="url(#grain)"/></svg>
+<svg width="0" height="0" style="position:absolute"><defs>
+  <filter id="wobble" x="-2%" y="-2%" width="104%" height="104%">
+    <feTurbulence type="fractalNoise" baseFrequency=".03" numOctaves="2" seed="4"/>
+    <feDisplacementMap in="SourceGraphic" scale="3"/></filter>
+  <pattern id="hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(40)">
+    <rect width="5" height="5" fill="#eadcbc"/><line y2="5" stroke="#2b2118" stroke-width="1"/></pattern>
+  <pattern id="cross" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+    <rect width="4" height="4" fill="#eadcbc"/><path d="M0,0 V4 M0,0 H4" stroke="#2b2118" stroke-width=".9"/></pattern>
+  <pattern id="blue" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+    <rect width="6" height="6" fill="#1d4f91"/><line y2="6" stroke="#e8f1ff" stroke-width=".7"/></pattern>
+</defs></svg>
+
+<header>
+  <h1>The Kitchen, by water</h1>
+  <p>Turn a valve's handwheel to let the water in: a tap switches, and a drag sideways sets how much. The dashed cords are for trying the works.</p>
+  <div id="skins"></div>
+  <div class="cords" id="cords"></div>
+</header>
+<p class="notice" id="notice" role="status"></p>
+<main id="stage"></main>
+
+<script src="house.js"></script>
+<script src="contraption/kit.js"></script>
+<script src="contraption/house.js"></script>
+<script src="waterworks/room.js"></script>
+<script src="waterworks/machines.js"></script>
+<script src="waterworks/bot.js"></script>
+<script src="waterworks/bake.js"></script>
+<script src="waterworks/main.js"></script>
+</body>
+</html>

@@ -221,6 +221,35 @@ Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it d
   - **More options, to match the better gauges around** (asked 2026-11-11): a gradient across the bands as well as steps; a horseshoe (an arc of about 270°) as well as the half circle; where the value, the name and the level go (above, inside the arc, below, or hidden); and which Sensor Watch data shows (the level pill, its message, the stale or not-current notice) and which doesn't. Look at what Home Assistant's own gauge and the popular custom gauges offer first, take what is worth having, and give each option a field in the editor (`gauge-editor.ts`). Needs a design pass before building.
 
 - **Tidying left by the move into Home Assistant** (2026.11.3-b1; refactors, each its own commit). `LEVELS`, `displayed` and `UNAVAILABLE_HOLD` are defined in both `records/common.py` and `levels.py` (a test holds them together): one definition now that both are in the integration. `Store._sent`'s `with_legacy()` served integrations older than the push, which can't exist any more. Some `records/` docstrings still say "the integration" for what is now the same process. The page's one websocket command carries method and path as the app's routes did; a command per route would let HA validate each.
+  - **Contraption's second mock-up** (2026-11-16; the owner wants it "absolutely crazy",
+    mocked up before it is built): `docs/design/dash-bored/contraption.html` with
+    `contraption/`. It has a mechanism for each of the fifteen kinds, and its header
+    comments say how a cell is driven (`contraption/machine.js`). What it settles for the
+    build: the lever shows what was asked and the mechanism shows the state; a linkage
+    is theatre between the two and nothing ever waits for it or for the bot; the line
+    shaft turns only while data is fresh. Not yet seen on a tablet: the wobble filter is
+    the likely cost (`?plain` draws without it, to compare).
+  - **Contraption by water, a trial of one room** (2026-11-17): `waterworks.html` with
+    `waterworks/`. The owner found the second mock-up "not quite right": a grid of
+    same-sized gadgets with tricks that were too short. What the owner decided, and the
+    trial shows for the Kitchen:
+    - A room is one machine, with set pieces of different sizes and long chains.
+    - It is driven by water: a petal valve lets water into a device's machine, and water
+      runs for as long as the device is on. Steam stays in the engine house only.
+    - It is primarily for a laugh. A quick route is allowed, but fun and quirkiness are
+      not to be traded for usability, "otherwise the overall joke gets lost".
+    - Always something moving, movement when the house changes, and something silly now
+      and then.
+    - Skins from one drawing: parts are named by material, never by how they are drawn.
+      Patent engraving, blueprint and tin toy so far.
+    - The wobble filter must never be live. WebKit runs it again on every frame in which
+      anything moves (4.5 frames a second, measured), so the still parts are baked
+      through it into bitmaps once (`waterworks/bake.js`). Measure in WebKit, not only
+      Chromium: Chromium hid this.
+    - Still to do: the navigation page (a waterworks seen from far off; a tap opens a
+      gate, something rides the flow to the room and the view follows it), and laying a
+      room out by rule from tiles of several sizes that each declare a way in, a way out
+      and a behaviour. The Kitchen is placed by hand.
 
 - **A backup-health sensor, so Sensor Watch can whinge when backups stop** (asked 2026-10-22). A Mac's Time Machine destinations say nowhere in HA when each last completed. A sensor per destination with the age of its last backup, and a profile (warn after a day, error after a few). The reading must be pushed in (a launchd job running `tmutil latestbackup -d <destination>` after each backup, posting to HA by webhook or MQTT), with the sensor unavailable, not fine, when no report arrives. Catch an unmounted destination (`tmutil` reports it as an error). The same pattern covers a NAS's backup jobs and the secrets copy.
 - **NAS drive health in Home Assistant** (asked 2026-10-22). Each NAS's drive status, SMART health, temperature and volume state as HA sensors, with profiles that go critical at once on a degraded volume or failing drive. Existing solutions first: HA's Synology DSM integration; SNMP for a NAS without one. Open: whether either needs a low-privilege read-only user, and where its credentials live (a secret, never in the repo).
