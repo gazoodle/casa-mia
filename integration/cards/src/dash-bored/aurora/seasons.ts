@@ -5,22 +5,23 @@
 // empty corner, and the top is along the page's top edge. art.ts has the drawings.
 // The Almanac wears whichever of them the date calls for.
 import { html, nothing, svg } from "lit";
-import { FEET, GLYPHS, HEROES } from "./art.ts";
+import { FEET, GLYPHS, HEROES, MACHINES } from "./art.ts";
+import { MOVES, PILE } from "./drift.ts";
 
-/** How a thing drifts: down the page, up it, across it, or bursting where it is. */
-type Drift = { glyph: keyof typeof GLYPHS; how: "fall" | "rise" | "cross" | "burst"; count: number; hues?: number[]; colour?: string };
+/** What drifts, and how many. How it moves is its drawing's (drift.ts MOVES); one with no move there bursts where it is. */
+type Drift = { glyph: keyof typeof GLYPHS; count: number; hues?: number[]; colour?: string };
 export type Decor = { drift?: Drift; foot?: keyof typeof FEET; hero?: keyof typeof HEROES; top?: "lights" | "web" | "sun" };
 
 export const DECORS: Record<string, Decor> = {
-  snow: { drift: { glyph: "flake", how: "fall", count: 26 }, foot: "drift", hero: "snowman" },
-  christmas: { drift: { glyph: "flake", how: "fall", count: 10 }, foot: "presents", hero: "tree", top: "lights" },
-  fireworks: { drift: { glyph: "burst", how: "burst", count: 9, hues: [20, 60, 140, 200, 300, 340] }, foot: "skyline", hero: "clock" },
-  valentine: { drift: { glyph: "heart", how: "rise", count: 14, hues: [0, 350, 15, 330] }, hero: "heart" },
-  spring: { drift: { glyph: "petal", how: "fall", count: 12, colour: "#f3a6c4" }, foot: "meadow", hero: "daisies" },
-  easter: { drift: { glyph: "petal", how: "fall", count: 8, colour: "#c9b6f0" }, foot: "eggs", hero: "bunny" },
-  summer: { drift: { glyph: "gull", how: "cross", count: 3, colour: "#51606e" }, foot: "sea", hero: "sandcastle", top: "sun" },
-  autumn: { drift: { glyph: "leaf", how: "fall", count: 16, hues: [35, 55, 25, 80] }, foot: "leaves", hero: "hedgehog" },
-  halloween: { drift: { glyph: "bat", how: "cross", count: 5, colour: "#1b1422" }, foot: "graves", hero: "lantern", top: "web" },
+  snow: { drift: { glyph: "flake", count: 26 }, foot: "drift", hero: "snowman" },
+  christmas: { drift: { glyph: "flake", count: 10 }, foot: "presents", hero: "tree", top: "lights" },
+  fireworks: { drift: { glyph: "burst", count: 9, hues: [20, 60, 140, 200, 300, 340] }, foot: "skyline", hero: "clock" },
+  valentine: { drift: { glyph: "heart", count: 14, hues: [0, 350, 15, 330] }, hero: "heart" },
+  spring: { drift: { glyph: "petal", count: 12, colour: "#f3a6c4" }, foot: "meadow", hero: "daisies" },
+  easter: { drift: { glyph: "petal", count: 8, colour: "#c9b6f0" }, foot: "eggs", hero: "bunny" },
+  summer: { drift: { glyph: "gull", count: 3, colour: "#51606e" }, foot: "sea", hero: "sandcastle", top: "sun" },
+  autumn: { drift: { glyph: "leaf", count: 16, hues: [35, 55, 25, 80] }, foot: "leaves", hero: "hedgehog" },
+  halloween: { drift: { glyph: "bat", count: 5, colour: "#1b1422" }, foot: "graves", hero: "lantern", top: "web" },
 };
 
 /** Easter Sunday of a year, as [month from 1, day] (the Gregorian reckoning, by Meeus's method). */
@@ -56,17 +57,24 @@ export function almanac(at: Date, south = false, country = ""): string {
   return SEASONS[(Math.floor((month % 12) / 3) + (south ? 2 : 0)) % 4];
 }
 
-/** A number from 0 up to 1 for the `i`th of something, the same each time: nothing here
- * is random, so a page drawn again has each flake where it was. */
+/** A number from 0 up to 1 for the `i`th of something, the same each time, so a page drawn again has each thing the size it was. */
 const spread = (i: number, salt: number) => ((i * 61.803 + salt * 37.7) % 100) / 100;
 
-const drifting = ({ glyph, how, count, hues, colour }: Drift) =>
-  Array.from({ length: count }, (_, i) => {
-    const size = how === "burst" ? 90 + spread(i, 1) * 110 : how === "cross" ? 22 + spread(i, 1) * 16 : 10 + spread(i, 1) * 16;
-    const lasts = how === "burst" ? 2.4 + spread(i, 2) * 1.6 : how === "cross" ? 22 + spread(i, 2) * 16 : 9 + spread(i, 2) * 9;
+// A firework is where it is, and bursts by the stylesheet alone. Anything else is moved by
+// drifting.ts: as many drawings as are in the air, and as many again as can lie about
+// if a machine tidies them, with the machine and somewhere for the heaps to be drawn.
+function drifting({ glyph, count, hues, colour }: Drift) {
+  const move = MOVES[glyph];
+  const many = count + (move?.tidy ? PILE : 0);
+  const things = Array.from({ length: many }, (_, i) => {
     const paint = colour ? `color: ${colour}` : hues ? `color: oklch(.72 .2 ${hues[i % hues.length]})` : "";
-    return html`<svg class="p ${how}" viewBox="0 0 24 24" style="--x: ${(spread(i, 3) * 100).toFixed(1)}%; --y: ${(8 + spread(i, 4) * 55).toFixed(1)}%; --s: ${size.toFixed(0)}px; --d: ${lasts.toFixed(1)}s; --w: -${(spread(i, 5) * lasts * (how === "burst" ? 3 : 1)).toFixed(1)}s; --sway: ${(spread(i, 6) * 120 - 60).toFixed(0)}px; --turn: ${(spread(i, 7) * 720 - 360).toFixed(0)}deg; ${paint}">${GLYPHS[glyph]}</svg>`;
+    if (move) return html`<svg class="m" viewBox="0 0 24 24" style="--s: ${((move.how === "cross" ? 22 : 10) + spread(i, 1) * 16).toFixed(0)}px; ${paint}">${GLYPHS[glyph]}</svg>`;
+
+    const lasts = 2.4 + spread(i, 2) * 1.6;
+    return html`<svg class="p" viewBox="0 0 24 24" style="--x: ${(spread(i, 3) * 100).toFixed(1)}%; --y: ${(8 + spread(i, 4) * 55).toFixed(1)}%; --s: ${(90 + spread(i, 1) * 110).toFixed(0)}px; --d: ${lasts.toFixed(1)}s; --w: -${(spread(i, 5) * lasts * 3).toFixed(1)}s; ${paint}">${GLYPHS[glyph]}</svg>`;
   });
+  return [move?.tidy ? html`<svg class="heaps" width="100%" height="100%"></svg>` : nothing, things, move?.tidy ? html`<svg class="machine" viewBox="0 -12 60 56">${MACHINES[move.tidy]}</svg>` : nothing];
+}
 
 // A string of fairy lights along the top, a bulb every 40 px: it hangs in loops of 120.
 const lights = (wide: number) =>
@@ -89,9 +97,9 @@ const sun = html`<svg class="top right" width="150" height="150" viewBox="-75 -7
     <circle r="36" fill="#f7d355"/>
   </svg>`;
 
-/** A skin's decorations over a page `wide` by `tall` px. They take no press, and are nothing to a screen reader. */
-export function decorated(decor: Decor, wide: number, tall: number) {
-  return html`<div class="season" aria-hidden="true" style="--drop: ${tall + 90}px; --span: ${wide + 140}px">
+/** A skin's decorations over a page `wide` px. They take no press, and are nothing to a screen reader. */
+export function decorated(decor: Decor, wide: number) {
+  return html`<div class="season" aria-hidden="true" data-glyph=${decor.drift?.glyph ?? ""} data-count=${decor.drift?.count ?? 0}>
     ${decor.foot ? html`<svg class="foot" width="100%" height="74"><defs><pattern id="aurora-foot" width="240" height="74" patternUnits="userSpaceOnUse">${FEET[decor.foot]}</pattern></defs><rect width="100%" height="74" fill="url(#aurora-foot)"/></svg>` : nothing}
     ${decor.top === "lights" ? lights(wide) : decor.top === "web" ? web : decor.top === "sun" ? sun : nothing}
     ${decor.drift ? drifting(decor.drift) : nothing}

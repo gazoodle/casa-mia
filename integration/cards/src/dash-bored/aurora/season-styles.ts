@@ -1,6 +1,6 @@
 // How Aurora's season and holiday skins are decorated (seasons.ts): where each
 // decoration is, and how it moves. Everything moves by transform or opacity alone, and
-// nothing moves for somebody who has asked for less motion.
+// nothing moves for somebody who has asked for less motion (drifting.ts sees to its own).
 import { css } from "lit";
 
 export const SEASONS = css`
@@ -11,15 +11,17 @@ export const SEASONS = css`
   .top.flip { left: auto; right: 0; scale: -1 1; } /* drawn for the left corner, shown in the right */
   .top.right { left: auto; right: -40px; top: -40px; }
 
-  /* What drifts: each has its own place, size, time and start (seasons.ts gives them). */
-  .p { left: var(--x); top: -40px; width: var(--s); height: var(--s); animation: fall var(--d) linear var(--w) infinite; }
-  @keyframes fall { to { translate: var(--sway) var(--drop); rotate: var(--turn); } }
-  .p.rise { top: auto; bottom: -40px; animation-name: rise; }
-  @keyframes rise { to { translate: var(--sway) calc(-1 * var(--drop)); } }
-  .p.cross { left: -70px; top: var(--y); animation-name: cross; }
-  @keyframes cross { 25% { translate: calc(var(--span) * .25) -34px; } 50% { translate: calc(var(--span) * .5) 12px; } 75% { translate: calc(var(--span) * .75) -26px; } 100% { translate: var(--span) 0; } }
-  .p.burst { top: var(--y); animation-name: burst; animation-timing-function: ease-out; }
-  /* Faint, and gone quickly: a firework that lingers over a tile looks like something loading. */
+  /* What drifts is placed each frame by drifting.ts, about its own middle. One that is not on the page is hidden. */
+  .m { left: 0; top: 0; width: var(--s); height: var(--s); margin: calc(var(--s) / -2); visibility: hidden; will-change: transform; }
+  .machine { left: -30px; top: 0; width: 60px; height: 56px; visibility: hidden; }
+  .machine .prop { display: none; }
+  .machine.flying .prop { display: inline; }
+  .whirr { animation: whirr .12s linear infinite alternate; }
+  @keyframes whirr { to { scale: .25 1; } }
+  .heaps { left: 0; top: 0; }
+  .heaps path { stroke-width: 1; }
+  /* A firework bursts where it is. Faint, and gone quickly: one that lingers over a tile looks like something loading. */
+  .p { left: var(--x); top: var(--y); width: var(--s); height: var(--s); animation: burst var(--d) ease-out var(--w) infinite; }
   @keyframes burst { 0% { scale: 0; opacity: .7; } 40% { opacity: .6; } 100% { scale: 1; opacity: 0; } }
 
   /* The drawing in the greeting tile's top right corner, which the date, the greeting and
@@ -37,7 +39,7 @@ export const SEASONS = css`
   @keyframes turn { to { rotate: 360deg; } }
 
   @media (prefers-reduced-motion: reduce) {
-    .p, .twinkle, .bob, .beat, .wave, .turn { animation: none; }
-    .p.burst { display: none; }
+    .twinkle, .bob, .beat, .wave, .turn, .whirr { animation: none; }
+    .p { display: none; }
   }
 `;

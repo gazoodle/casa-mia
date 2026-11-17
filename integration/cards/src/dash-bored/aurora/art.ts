@@ -1,5 +1,5 @@
 // The drawings Aurora's season and holiday skins are decorated with (seasons.ts says which
-// skin has which). Three kinds: what drifts over the page (GLYPHS, each drawn in a box of
+// skin has which). Four kinds: the machines that tidy the ground (MACHINES), what drifts over the page (GLYPHS, each drawn in a box of
 // 24), what stands in the greeting tile's empty corner (HEROES, each in a box 200 by 160
 // with the ground at its foot), and a strip along the foot of the page (FEET, each a
 // pattern 240 by 74 that is repeated across). All are drawn here, by hand, in plain
@@ -33,6 +33,24 @@ export const GLYPHS: Record<string, TemplateResult> = {
   // A firework: sparks flying out from where it burst.
   burst: svg`${range(12).map((i) => svg`<path d="M12 7V2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" transform="rotate(${i * 30} 12 12)"/>`)}
     ${range(6).map((i) => svg`<circle cx="12" cy="5.5" r=".9" fill="#fff" transform="rotate(${i * 60 + 15} 12 12)"/>`)}`,
+};
+
+// A propeller on a mast: a machine flies from one ledge to the next by it, and it is shown only then (season-styles.ts).
+const prop = (x: number, y: number) => svg`<g class="prop"><path d="M${x} ${y}V${y - 9}" stroke=${INK} stroke-width="1.6"/><ellipse class="whirr" cx=${x} cy=${y - 10} rx="17" ry="2.600" fill="#9aa3b2" opacity=".8" style="transform-origin: ${x}px ${y - 10}px"/></g>`;
+
+/** What tidies the ledges (drift.ts), each in a box 60 by 56, facing right with its wheels at the foot and room over it for its propeller. */
+export const MACHINES: Record<string, TemplateResult> = {
+  // A robot that collects leaves and petals: a scoop in front, one eye, and a lamp on its aerial.
+  robot: svg`${prop(30, 12)}<path d="M46 22l12 7v9H44z" fill="#9aa3b2" stroke=${INK} stroke-width="1.4" stroke-linejoin="round"/>
+    <rect x="8" y="12" width="40" height="22" rx="7" fill="#e8ecf2" stroke=${INK} stroke-width="1.6"/><path d="M13 19h9" stroke="#3f9a3f" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="37" cy="21" r="5.500" fill="#fff" stroke=${INK} stroke-width="1.4"/><circle cx="38.500" cy="21" r="2.200" fill=${INK}/>
+    <path d="M20 12V5" stroke=${INK} stroke-width="1.6"/><circle class="twinkle" cx="20" cy="4" r="2.800" fill="#e2483d"/>
+    <circle cx="18" cy="36" r="6" fill=${INK}/><circle cx="18" cy="36" r="2" fill="#9aa3b2"/><circle cx="38" cy="36" r="6" fill=${INK}/><circle cx="38" cy="36" r="2" fill="#9aa3b2"/>`,
+  // A snow blower: the auger in front, and a chute that throws the snow up behind it.
+  blower: svg`${prop(36, 14)}<path d="M28 15V8q0-5-8-5" fill="none" stroke="#c9342c" stroke-width="6" stroke-linecap="round"/><path d="M13 20L3 9" stroke=${INK} stroke-width="2.600" stroke-linecap="round"/>
+    <rect x="12" y="14" width="30" height="19" rx="4" fill="#e2483d" stroke=${INK} stroke-width="1.6"/>
+    <path d="M42 17h11a5 5 0 0 1 5 5v16H42z" fill="#f5c542" stroke=${INK} stroke-width="1.6" stroke-linejoin="round"/><path d="M45 24l10 5m-10 2l10 5" stroke=${INK} stroke-width="1.6" stroke-linecap="round"/>
+    <circle cx="22" cy="36" r="6" fill=${INK}/><circle cx="22" cy="36" r="2" fill="#9aa3b2"/>`,
 };
 
 /** What stands in the greeting tile's corner. `at` is the time, for the one drawing that tells it. */

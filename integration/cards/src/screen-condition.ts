@@ -2,6 +2,7 @@
 import { html } from "lit";
 import { whenConnected } from "./connection.ts";
 import { fire, warnOnce } from "./ha.ts";
+import { ALONE, OWN } from "./own.ts";
 
 type Orientation = "any" | "portrait" | "landscape";
 
@@ -99,8 +100,9 @@ if (!page.cmScreenOrientation) {
       if (on !== enabled) console.info(`CASA-MIA CARDS: screen orientation conditions ${on ? "on" : "off"}`);
       enabled = on;
     }, { type: "casa_mia/settings/subscribe" }).catch((err: unknown) => {
-      enabled = false;
-      console.warn("CASA-MIA CARDS: screen orientation settings unavailable", err);
+      enabled = OWN.screen_orientation;
+      // Alone there is no integration to ask, and own.ts has the answer.
+      if (!ALONE) console.warn("CASA-MIA CARDS: screen orientation settings unavailable", err);
     }),
   );
 }

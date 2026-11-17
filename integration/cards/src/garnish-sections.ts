@@ -12,6 +12,7 @@
 import { whenConnected } from "./connection.ts";
 import { inTablet, onlyGarnish } from "./garnish.ts";
 import { holdsPanelLayer } from "./over-layer/common.ts";
+import { OWN } from "./own.ts";
 
 let everywhere = false;
 const seen = new Set<any>(); // the sections drawn, to look again when the switch changes
@@ -51,11 +52,11 @@ function set(on: boolean) {
   }
 }
 
-// The app's settings, now and at each change (none without the integration: off).
+// The app's settings, now and at each change (without the integration: own.ts).
 // ponytail: the subscription follows the integration as it was when the page opened; after
 // an integration reload a page picks up a change at its next load.
 whenConnected("garnish on all section dashboards", ({ conn }) =>
   conn
     .subscribeMessage((s: any) => set(!!s?.dashboards?.garnish_everywhere), { type: "casa_mia/settings/subscribe" })
-    .catch(() => set(false)),
+    .catch(() => set(OWN.garnish_everywhere)),
 );

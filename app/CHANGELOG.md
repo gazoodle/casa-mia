@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.11.9-b13
+
+- **Dash-Bored: what drifts over Aurora's season skins moves as the real thing does.** A leaf, a petal or a snowflake swings from side to side as it comes down, nearly hanging at the end of each swing, and the wind pushes it about in gusts that never repeat. Not all of them go the way the wind does, and each comes down at its own speed. What comes down lands on the top of a tile, on the bar or on the ground, lies there a few seconds and then becomes part of a heap. Hovering over a tile or pressing it tips off what is on it, and so does swiping to another screen. Every five to eight minutes a machine flies to each place that has something on it and drives along it: a robot collects the leaves and petals, missing the odd one, and a snow blower throws the snow up behind it. Hearts wobble as they rise, gulls glide and bats flit. If the device asks for less motion, everything stays where it is.
+
+- **Tablet Layout, garnish and the Over layer are also built as a file of their own,** `casa-mia-tablet-layout.js`, to be published as a dashboard plugin for a house without Casa Mia. It isn't published yet. With Casa Mia nothing changes: its own copy in `cm-cards.js` is the one in use. If both files are loaded, the browser's console says which one is in use and to remove the other from the dashboard's resources.
+
 ## 2026.11.9-b12
 
 - **Sensor Watch, Love it or Loathe it and Dash-Bored: the Documentation and Known issues links go to each one's own repository.** Each is also published in a repository of its own for HACS and the Marketplace, and HACS's review asks that these links name that repository, not Casa Mia. So from the next release each repository's front page is the whole guide, not only its opening, and a problem with one of the three is reported in its own repository's issues. Casa Mia's own issues are where they were.

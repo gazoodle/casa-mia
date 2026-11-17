@@ -182,6 +182,11 @@ imported from `casa_mia`, no app option. Guide: `docs/applets/love-or-loathe.md`
   (`custom_components/cm_demo_players`, on the VM only) give it Kitchen, Living room,
   Bedroom and Garden to watch, with the people Ann and Ben, the entry Downstairs and
   the dashboard `music-demo`. Keep them there for the next pictures.
+- **Tablet Layout by itself** (b13, 2026-11-17): `integration/plugins/casa-mia-tablet-layout.js`,
+  built by `tools/build_cards` from `integration/cards/src/alone.ts`, to be published as a
+  dashboard plugin. Not published; what is left is in `BACKLOG.md` ("The layout bundle,
+  next"). A change to the view, garnish or the Over layer must keep working with no
+  integration answering (`own.ts`).
 - **A mirror is its own home** (b12, 2026-11-17; HACS's review asked for it): a published
   component's manifest names its mirror for `documentation` and `issue_tracker`, the
   mirror's README is the whole guide, and the mirror takes its own issues
@@ -433,12 +438,36 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
     hand, and `aurora/season-styles.ts` moves them. **A decoration never moves a tile
     or takes a press:** it drifts over the page, runs along the foot either side of the
     bar, stands in the greeting's top right corner (at the foot it stood on the
-    sentence), or is along the top. Nothing is random (`spread`), so a flake keeps its
-    place when the page is drawn again. `almanac` picks the skin for a date. Seen on
+    sentence), or is along the top. `almanac` picks the skin for a date. Seen on
     the test VM in Chromium and WebKit at 1340 px, light theme. **Fireworks and Halloween
     are always dark** (`Skin.dark`; owner, 2026-11-17), because on a light page they came
     out pastel. **Not seen:** Home Assistant's dark theme, a phone, a tablet's frame rate
     with 26 flakes falling.
+  - **What drifts is a simulation** (owner, 2026-11-17: leaves "flutter side to side",
+    look irregular, "settle on the ground", a robot collects them and a blower the
+    snow; then piles on tile tops, knocked off by a hover), built 2026.11.9-b13.
+    `aurora/drift.ts` is the model, with no page in it and its own test: each thing is
+    a van der Pol oscillator (it keeps swinging) and the wind is one Lorenz system (it
+    never repeats). A new thing that drifts is a row in `MOVES`. `aurora/drifting.ts`
+    places the drawings each frame. Owner's rulings, all 2026-11-17:
+    - **Artistic licence over physics:** each thing takes its own share of the wind,
+      some against it, and has its own speed, because everything going one way at once
+      "looks odd".
+    - **Ledges:** things land on the tops of the showing screen's tiles, the bar and
+      the ground. The bar hides the foot of the page, which is why it is one. Ledges
+      are measured when Aurora draws itself and by a ResizeObserver, not each frame. A
+      tile within 56 px of the page's top is no ledge: the machine could not stand there.
+    - **Heaps, not a blizzard:** a thing lies about for some seconds and then joins its
+      ledge's heap, one path however much is in it (`outline`), so at most `PILE`
+      things lie about.
+    - **Shaking:** a hover, a press, or a ledge that is gone (a swipe) drops what was
+      on it.
+    - **The machine flies** to each ledge with something on it, every 5 to 8 minutes.
+    - **Not built:** things lying on a room's sheet or on buttons. The sheet is a modal
+      dialog in the browser's top layer, so it would need a layer of its own inside it.
+    Fireworks still burst by CSS alone. Seen on the test VM at 60 frames a second in
+    Chromium and WebKit on a Mac. **Not seen:** a tablet's frame rate, a phone, a real
+    swipe, a machine's whole visit at its own time.
   - **The device controls are a layer of their own**, `aurora/controls.ts`
     (`Controls extends Family`), which `Aurora` extends: split out verbatim on
     2026-11-17 when `aurora.ts` reached 569 lines.

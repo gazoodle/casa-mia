@@ -841,15 +841,17 @@ var qe = b`
   .top.flip { left: auto; right: 0; scale: -1 1; } /* drawn for the left corner, shown in the right */
   .top.right { left: auto; right: -40px; top: -40px; }
 
-  /* What drifts: each has its own place, size, time and start (seasons.ts gives them). */
-  .p { left: var(--x); top: -40px; width: var(--s); height: var(--s); animation: fall var(--d) linear var(--w) infinite; }
-  @keyframes fall { to { translate: var(--sway) var(--drop); rotate: var(--turn); } }
-  .p.rise { top: auto; bottom: -40px; animation-name: rise; }
-  @keyframes rise { to { translate: var(--sway) calc(-1 * var(--drop)); } }
-  .p.cross { left: -70px; top: var(--y); animation-name: cross; }
-  @keyframes cross { 25% { translate: calc(var(--span) * .25) -34px; } 50% { translate: calc(var(--span) * .5) 12px; } 75% { translate: calc(var(--span) * .75) -26px; } 100% { translate: var(--span) 0; } }
-  .p.burst { top: var(--y); animation-name: burst; animation-timing-function: ease-out; }
-  /* Faint, and gone quickly: a firework that lingers over a tile looks like something loading. */
+  /* What drifts is placed each frame by drifting.ts, about its own middle. One that is not on the page is hidden. */
+  .m { left: 0; top: 0; width: var(--s); height: var(--s); margin: calc(var(--s) / -2); visibility: hidden; will-change: transform; }
+  .machine { left: -30px; top: 0; width: 60px; height: 56px; visibility: hidden; }
+  .machine .prop { display: none; }
+  .machine.flying .prop { display: inline; }
+  .whirr { animation: whirr .12s linear infinite alternate; }
+  @keyframes whirr { to { scale: .25 1; } }
+  .heaps { left: 0; top: 0; }
+  .heaps path { stroke-width: 1; }
+  /* A firework bursts where it is. Faint, and gone quickly: one that lingers over a tile looks like something loading. */
+  .p { left: var(--x); top: var(--y); width: var(--s); height: var(--s); animation: burst var(--d) ease-out var(--w) infinite; }
   @keyframes burst { 0% { scale: 0; opacity: .7; } 40% { opacity: .6; } 100% { scale: 1; opacity: 0; } }
 
   /* The drawing in the greeting tile's top right corner, which the date, the greeting and
@@ -867,8 +869,8 @@ var qe = b`
   @keyframes turn { to { rotate: 360deg; } }
 
   @media (prefers-reduced-motion: reduce) {
-    .p, .twinkle, .bob, .beat, .wave, .turn { animation: none; }
-    .p.burst { display: none; }
+    .twinkle, .bob, .beat, .wave, .turn, .whirr { animation: none; }
+    .p { display: none; }
   }
 `, Je = "linear(0, .009, .035 2.1%, .141 4.4%, .723 12.9%, .938 16.7%, 1.017, 1.077, 1.121, 1.149 24.3%, 1.159, 1.163, 1.161, 1.154 29.9%, 1.129 32.8%, 1.051 39.6%, 1.017 43.1%, .991, .977 51%, .974 53.8%, .975 57.1%, .997 69.8%, 1.003 76.9%, 1.004 83.8%, 1)", Ye = b`
   .aurora {
@@ -1127,7 +1129,17 @@ var qe = b`
 	gull: N`<path d="M1 14q6-9 11-1 5-8 11 1" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>`,
 	burst: N`${Xe(12).map((e) => N`<path d="M12 7V2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" transform="rotate(${e * 30} 12 12)"/>`)}
     ${Xe(6).map((e) => N`<circle cx="12" cy="5.5" r=".9" fill="#fff" transform="rotate(${e * 60 + 15} 12 12)"/>`)}`
-}, rt = {
+}, rt = (e, t) => N`<g class="prop"><path d="M${e} ${t}V${t - 9}" stroke=${I} stroke-width="1.6"/><ellipse class="whirr" cx=${e} cy=${t - 10} rx="17" ry="2.600" fill="#9aa3b2" opacity=".8" style="transform-origin: ${e}px ${t - 10}px"/></g>`, it = {
+	robot: N`${rt(30, 12)}<path d="M46 22l12 7v9H44z" fill="#9aa3b2" stroke=${I} stroke-width="1.4" stroke-linejoin="round"/>
+    <rect x="8" y="12" width="40" height="22" rx="7" fill="#e8ecf2" stroke=${I} stroke-width="1.6"/><path d="M13 19h9" stroke="#3f9a3f" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="37" cy="21" r="5.500" fill="#fff" stroke=${I} stroke-width="1.4"/><circle cx="38.500" cy="21" r="2.200" fill=${I}/>
+    <path d="M20 12V5" stroke=${I} stroke-width="1.6"/><circle class="twinkle" cx="20" cy="4" r="2.800" fill="#e2483d"/>
+    <circle cx="18" cy="36" r="6" fill=${I}/><circle cx="18" cy="36" r="2" fill="#9aa3b2"/><circle cx="38" cy="36" r="6" fill=${I}/><circle cx="38" cy="36" r="2" fill="#9aa3b2"/>`,
+	blower: N`${rt(36, 14)}<path d="M28 15V8q0-5-8-5" fill="none" stroke="#c9342c" stroke-width="6" stroke-linecap="round"/><path d="M13 20L3 9" stroke=${I} stroke-width="2.600" stroke-linecap="round"/>
+    <rect x="12" y="14" width="30" height="19" rx="4" fill="#e2483d" stroke=${I} stroke-width="1.6"/>
+    <path d="M42 17h11a5 5 0 0 1 5 5v16H42z" fill="#f5c542" stroke=${I} stroke-width="1.6" stroke-linejoin="round"/><path d="M45 24l10 5m-10 2l10 5" stroke=${I} stroke-width="1.6" stroke-linecap="round"/>
+    <circle cx="22" cy="36" r="6" fill=${I}/><circle cx="22" cy="36" r="2" fill="#9aa3b2"/>`
+}, at = {
 	snowman: () => N`<ellipse cx="100" cy="155" rx="84" ry="7" fill="#fff"/>
     <path d="M64 110L34 88m8 6l-2-12m2 12l-12 2M136 110l30-22m-8 6l2-12m-2 12l12 2" stroke="#6b4a2f" stroke-width="3" fill="none" stroke-linecap="round"/>
     <circle cx="100" cy="118" r="38" fill="#fff" stroke="#b9cfe6" stroke-width="1.5"/><circle cx="100" cy="66" r="27" fill="#fff" stroke="#b9cfe6" stroke-width="1.5"/>
@@ -1236,7 +1248,7 @@ var qe = b`
       <path d="M42 120l10 8 8-8 10 9 10-9 10 9 10-9 8 8 10-8q-8 28-38 28t-38-28z" fill="#ffe27a"/></g>
     <g class="bob"><path d="M150 150V92a22 22 0 0 1 44 0v58l-7.5-8-7 8-7.5-8-7 8-7.5-8z" fill="#fff" opacity=".93"/>
       <circle cx="165" cy="92" r="4" fill=${I}/><circle cx="180" cy="92" r="4" fill=${I}/><ellipse cx="172" cy="107" rx="4" ry="6" fill=${I}/></g>`
-}, it = {
+}, ot = {
 	drift: tt,
 	presents: N`${tt}
     <rect x="28" y="38" width="26" height="24" rx="2" fill="#d8413c"/><rect x="39" y="38" width="4" height="24" fill="#f5c542"/><path d="M41 38q-8-9-10-2t10 2q8-9 10-2t-10 2" fill="none" stroke="#f5c542" stroke-width="2.5"/>
@@ -1324,7 +1336,7 @@ var qe = b`
 		[214, 46],
 		[230, 52]
 	].map(([e, t]) => N`<rect x=${e} y=${t} width="4" height="5" fill="#ffe27a"/>`)}`
-}, at = {
+}, st = {
 	climate: [
 		[
 			"Mode",
@@ -1397,8 +1409,8 @@ var qe = b`
 		"effect"
 	]]
 };
-function ot(e, t) {
-	return !t || t.state === "unavailable" ? [] : (at[e] ?? []).flatMap(([e, n, r, i, a]) => {
+function ct(e, t) {
+	return !t || t.state === "unavailable" ? [] : (st[e] ?? []).flatMap(([e, n, r, i, a]) => {
 		let o = Array.isArray(t.attributes[n]) ? t.attributes[n].filter((e) => typeof e == "string") : [], s = r ? t.attributes[r] : t.state;
 		return o.length > 1 ? [{
 			what: e,
@@ -1409,13 +1421,13 @@ function ot(e, t) {
 		}] : [];
 	});
 }
-var st = (e, t, n) => ({
+var lt = (e, t, n) => ({
 	domain: t.service.split(".")[0],
 	service: t.service.split(".")[1],
 	ids: [e],
 	data: { [t.key]: n }
-}), ct = (e) => e.replace(/_/g, " "), lt = "input_text.zenos_persona_name", ut = "zen_summary", dt = 36e5, ft = .5, L = (e) => typeof e == "string" && e.trim() ? e.trim() : void 0, pt = (e) => (Number(e) || 0) < ft, mt = (e) => e[0].toUpperCase() + e.slice(1).replace(/_/g, " "), ht = (e, t) => t - e.at > dt;
-function gt(e, t, n) {
+}), ut = (e) => e.replace(/_/g, " "), dt = "input_text.zenos_persona_name", ft = "zen_summary", pt = 36e5, mt = .5, L = (e) => typeof e == "string" && e.trim() ? e.trim() : void 0, ht = (e) => (Number(e) || 0) < mt, gt = (e) => e[0].toUpperCase() + e.slice(1).replace(/_/g, " "), _t = (e, t) => t - e.at > pt;
+function vt(e, t, n) {
 	let r = e?.attributes?.variables;
 	if (!r || typeof r != "object") return;
 	let i = n?.attributes?.variables ?? {}, a = Object.entries(r).flatMap(([e, t]) => {
@@ -1428,22 +1440,22 @@ function gt(e, t, n) {
 		let s = L(n.attention);
 		return [{
 			id: e,
-			name: L(r?.friendly_name) ?? mt(e),
+			name: L(r?.friendly_name) ?? gt(e),
 			text: a ?? o,
 			attention: a && s !== a ? s : void 0,
 			urgency: Number(n.urgency) || 0,
-			unsure: pt(n.confidence),
+			unsure: ht(n.confidence),
 			failed: !a,
 			at: Date.parse(t.timestamp) || 0
 		}];
-	}).sort((e, t) => t.urgency - e.urgency || t.at - e.at), o = r[ut]?.value?.zen_summary, s = L(o?.summary), c = s ? {
+	}).sort((e, t) => t.urgency - e.urgency || t.at - e.at), o = r[ft]?.value?.zen_summary, s = L(o?.summary), c = s ? {
 		text: s,
 		attention: L(o.attention),
 		objective: L(o.objective),
 		urgency: Number(o.urgency) || 0,
-		unsure: pt(o.confidence),
+		unsure: ht(o.confidence),
 		errors: (Array.isArray(o.errors) ? o.errors : []).flatMap((e) => L(e) ?? []),
-		at: Date.parse(o.timestamp ?? r[ut].timestamp) || 0
+		at: Date.parse(o.timestamp ?? r[ft].timestamp) || 0
 	} : void 0;
 	if (!c && !a.length) return;
 	let l = L(t);
@@ -1455,41 +1467,41 @@ function gt(e, t, n) {
 }
 //#endregion
 //#region src/dash-bored/house.ts
-var _t = 1, vt = 4;
-function yt(e) {
-	return (Array.isArray(e) ? e : []).filter((e) => typeof e?.temperature == "number" && Date.parse(e.datetime)).slice(0, vt).map((e) => ({
+var yt = 1, bt = 4;
+function xt(e) {
+	return (Array.isArray(e) ? e : []).filter((e) => typeof e?.temperature == "number" && Date.parse(e.datetime)).slice(0, bt).map((e) => ({
 		at: Date.parse(e.datetime),
 		sky: String(e.condition ?? ""),
 		high: e.temperature,
 		low: typeof e.templow == "number" ? e.templow : void 0
 	}));
 }
-var bt = "dash_bored_hide", xt = "casa_mia_dash_bored", St = /\b(led|relay|screen|screensaver|in use|enabled|watching|mode|program(me)?|charge)\b/i, Ct = {
+var St = "dash_bored_hide", Ct = "casa_mia_dash_bored", wt = /\b(led|relay|screen|screensaver|in use|enabled|watching|mode|program(me)?|charge)\b/i, Tt = {
 	climate: "thermostat",
 	media_player: "player",
 	lawn_mower: "mower",
 	water_heater: "water heater",
 	alarm_control_panel: "alarm"
-}, wt = /* @__PURE__ */ new Set(["climate", "water_heater"]), Tt = /* @__PURE__ */ new Set([
+}, Et = /* @__PURE__ */ new Set(["climate", "water_heater"]), Dt = /* @__PURE__ */ new Set([
 	"lock",
 	"valve",
 	"siren"
-]), Et = /* @__PURE__ */ new Set([
+]), Ot = /* @__PURE__ */ new Set([
 	"garage",
 	"gate",
 	"door"
 ]);
-function Dt(e, t, n) {
-	let r = (kt(e, t) ?? e).replace(n === "light" ? /\s+lights?$/i : n === "switch" ? /\s+switch$/i : /$^/, ""), i = Ct[n] ?? n;
-	return Ot(!r || RegExp(`^${i}s?$`, "i").test(r) ? i : r);
+function kt(e, t, n) {
+	let r = (jt(e, t) ?? e).replace(n === "light" ? /\s+lights?$/i : n === "switch" ? /\s+switch$/i : /$^/, ""), i = Tt[n] ?? n;
+	return At(!r || RegExp(`^${i}s?$`, "i").test(r) ? i : r);
 }
-var Ot = (e) => e[0].toUpperCase() + e.slice(1);
-function kt(e, t) {
+var At = (e) => e[0].toUpperCase() + e.slice(1);
+function jt(e, t) {
 	let n = e.slice(t.length);
 	if (t && e.toLowerCase().startsWith(t.toLowerCase()) && !/^[a-z0-9]/i.test(n)) return n.replace(/^[\s\-–—:,.]+/, "");
 }
-function At(e, t) {
-	let n = /* @__PURE__ */ new Map(), r = [], i = /* @__PURE__ */ new Map(), a = /* @__PURE__ */ new Set(), o = [], s = [], c = /* @__PURE__ */ new Map(), l = /* @__PURE__ */ new Map(), u = t.weather, d, f, p = [], m = [], h = [], g = [], _ = (e) => !!e?.labels?.includes(bt), v = /* @__PURE__ */ new Map(), y = /* @__PURE__ */ new Map();
+function Mt(e, t) {
+	let n = /* @__PURE__ */ new Map(), r = [], i = /* @__PURE__ */ new Map(), a = /* @__PURE__ */ new Set(), o = [], s = [], c = /* @__PURE__ */ new Map(), l = /* @__PURE__ */ new Map(), u = t.weather, d, f, p = [], m = [], h = [], g = [], _ = (e) => !!e?.labels?.includes(St), v = /* @__PURE__ */ new Map(), y = /* @__PURE__ */ new Map();
 	for (let n of t.cameras ?? []) {
 		for (let e of [
 			n.entity,
@@ -1499,7 +1511,7 @@ function At(e, t) {
 		let t = e.entities?.[n.entity]?.device_id;
 		t && y.set(t, n);
 	}
-	let b = (e, t) => Tt.has(e) || e === "cover" && Et.has(t.attributes.device_class);
+	let b = (e, t) => Dt.has(e) || e === "cover" && Ot.has(t.attributes.device_class);
 	for (let h of Object.values(e.entities ?? {})) {
 		let v = h.entity_id, y = e.states[v], x = v === t.entity;
 		if (t.entity && !x || (h.labels?.includes("zen_kata_cabinet") && !_(h) && (d = v), h.labels?.includes("zen_dojo_cabinet") && (f = v), !y || !x && (h.hidden || h.entity_category))) continue;
@@ -1511,11 +1523,11 @@ function At(e, t) {
 			id: v,
 			name: y.attributes.friendly_name ?? h.name ?? v,
 			area: x ? void 0 : w?.area_id
-		}), S === "image" && h.platform === xt && !_(e.entities[y.attributes.camera]) && (s.push({
+		}), S === "image" && h.platform === Ct && !_(e.entities[y.attributes.camera]) && (s.push({
 			id: v,
 			name: C?.name_by_user ?? C?.name ?? v,
 			room: w?.name
-		}), a.add(y.attributes.camera)), It.has(S)) {
+		}), a.add(y.attributes.camera)), Rt.has(S)) {
 			let e = y.attributes.friendly_name ?? h.name ?? v;
 			w || p.push({
 				id: v,
@@ -1526,13 +1538,13 @@ function At(e, t) {
 				name: e,
 				full: e,
 				guarded: !1
-			}), St.test(e) && g.push({
+			}), wt.test(e) && g.push({
 				id: v,
 				name: e,
 				via: h.platform
 			});
 		}
-		if (!It.has(S) || !w && !x) continue;
+		if (!Rt.has(S) || !w && !x) continue;
 		let T = x ? "" : w.area_id;
 		if (x && n.set(T, {
 			id: T,
@@ -1559,7 +1571,7 @@ function At(e, t) {
 		let D = y.attributes.friendly_name ?? h.name ?? v, O = {
 			id: v,
 			kind: S,
-			name: x ? D : Dt(D, w.name, S),
+			name: x ? D : kt(D, w.name, S),
 			full: D,
 			guarded: b(S, y)
 		};
@@ -1581,18 +1593,18 @@ function At(e, t) {
 		t.devices = t.devices.filter((e) => !i.has(e) || n.get(i.get(e).device) === e);
 		for (let e of r) {
 			let r = n.get(e);
-			r.full = i.get(r).name, r.name = Dt(r.full, t.name, "camera");
+			r.full = i.get(r).name, r.name = kt(r.full, t.name, "camera");
 		}
 		for (let n of t.devices) {
 			let r = n.kind === "camera" ? v.get(n.id) ?? y.get(i.get(n)?.device ?? "") : void 0;
-			r && (n.lens = r, n.full = r.title, n.name = Dt(r.title, t.name, "camera"), n.controls = r.controls.flatMap((t) => {
+			r && (n.lens = r, n.full = r.title, n.name = kt(r.title, t.name, "camera"), n.controls = r.controls.flatMap((t) => {
 				let n = e.states[t.entity];
 				if (!n) return [];
 				let r = t.entity.split(".")[0], i = t.name || n.attributes.friendly_name || t.entity;
 				return [{
 					id: t.entity,
 					name: i,
-					found: It.has(r) ? {
+					found: Rt.has(r) ? {
 						id: t.entity,
 						kind: r,
 						name: i,
@@ -1621,10 +1633,10 @@ function At(e, t) {
 	for (let e of O) e.devices.sort((e, t) => e.kind.localeCompare(t.kind) || e.name.localeCompare(t.name));
 	let ee = (e, t) => [...e].sort((e, n) => t(n).length - t(e).length), te = ee(O, (e) => e.name), ne = ee([...new Set(O.flatMap((e) => e.floor ? [e.floor] : []))], (e) => e), k = [];
 	for (let e of r.sort((e, t) => e.name.localeCompare(t.name))) {
-		let t = O.find((t) => t.id === e.area) ?? te.find((t) => kt(e.name, t.name) !== void 0), n = t ? void 0 : ne.find((t) => kt(e.name, t) !== void 0), r = kt(e.name, t?.name ?? n ?? "");
+		let t = O.find((t) => t.id === e.area) ?? te.find((t) => jt(e.name, t.name) !== void 0), n = t ? void 0 : ne.find((t) => jt(e.name, t) !== void 0), r = jt(e.name, t?.name ?? n ?? "");
 		(t?.scenes ?? k).push({
 			id: e.id,
-			name: r ? Ot(r) : e.name,
+			name: r ? At(r) : e.name,
 			full: e.name,
 			floor: n
 		});
@@ -1687,13 +1699,13 @@ function At(e, t) {
 			t.entity
 		])].filter((e) => !!e)
 	};
-	return t.sample ? Nt(ae) : ae;
+	return t.sample ? Ft(ae) : ae;
 }
-var jt = 4, Mt = 2;
-function Nt(e) {
+var Nt = 4, Pt = 2;
+function Ft(e) {
 	let t = (e) => new Set(e.devices.map((e) => e.kind)).size, n = e.rooms.reduce((e, n) => !e || t(n) > t(e) ? n : e, void 0);
 	if (!n) return e;
-	let r = n.devices.filter((e, t) => n.devices.findIndex((t) => t.kind === e.kind) === t), i = [...r, ...n.devices.filter((e) => !r.includes(e))].slice(0, jt), a = e.scenes.filter((e) => !e.floor).slice(0, Mt), o = n.scenes.slice(0, Mt), s = [
+	let r = n.devices.filter((e, t) => n.devices.findIndex((t) => t.kind === e.kind) === t), i = [...r, ...n.devices.filter((e) => !r.includes(e))].slice(0, Nt), a = e.scenes.filter((e) => !e.floor).slice(0, Pt), o = n.scenes.slice(0, Pt), s = [
 		n.temp,
 		n.humidity,
 		n.climate,
@@ -1719,36 +1731,36 @@ function Nt(e) {
 		watched: s.filter((e) => !!e)
 	};
 }
-var R = (e) => (t) => t === e, Pt = (e) => (t) => t !== e, Ft = {
+var R = (e) => (t) => t === e, It = (e) => (t) => t !== e, Lt = {
 	light: R("on"),
 	switch: R("on"),
 	lock: R("locked"),
-	cover: Pt("closed"),
-	climate: Pt("off"),
+	cover: It("closed"),
+	climate: It("off"),
 	media_player: R("playing"),
 	camera: () => !1,
 	fan: R("on"),
-	valve: Pt("closed"),
+	valve: It("closed"),
 	vacuum: R("cleaning"),
 	lawn_mower: R("mowing"),
-	water_heater: Pt("off"),
+	water_heater: It("off"),
 	humidifier: R("on"),
 	siren: R("on"),
 	alarm_control_panel: (e) => e.startsWith("armed")
-}, It = new Set(Object.keys(Ft)), Lt = [
+}, Rt = new Set(Object.keys(Lt)), zt = [
 	"docked",
 	"returning",
 	"paused",
 	"error"
-], Rt = {
-	vacuum: Lt,
-	lawn_mower: Lt,
+], Bt = {
+	vacuum: zt,
+	lawn_mower: zt,
 	alarm_control_panel: [
 		"triggered",
 		"pending",
 		"arming"
 	]
-}, zt = {
+}, Vt = {
 	light: ["brightness", (e) => Math.round(e / 255 * 100)],
 	cover: ["current_position", (e) => e],
 	climate: ["temperature", (e) => e],
@@ -1757,7 +1769,7 @@ var R = (e) => (t) => t === e, Pt = (e) => (t) => t !== e, Ft = {
 	valve: ["current_position", (e) => e],
 	water_heater: ["temperature", (e) => e],
 	humidifier: ["humidity", (e) => e]
-}, Bt = (e) => e in zt, Vt = {
+}, Ht = (e) => e in Vt, Ut = {
 	light: (e) => (e.supported_color_modes ?? []).some((e) => e !== "onoff"),
 	cover: (e) => !!(e.supported_features & 4),
 	climate: (e) => !!(e.supported_features & 1),
@@ -1765,12 +1777,12 @@ var R = (e) => (t) => t === e, Pt = (e) => (t) => t !== e, Ft = {
 	fan: (e) => !!(e.supported_features & 1),
 	water_heater: (e) => !!(e.supported_features & 1),
 	humidifier: () => !0
-}, Ht = {
+}, Wt = {
 	min: 0,
 	max: 100,
 	step: 1,
 	vote: 10
-}, Ut = {
+}, Gt = {
 	climate: (e) => ({
 		min: e.min_temp ?? 7,
 		max: e.max_temp ?? 35,
@@ -1790,20 +1802,20 @@ var R = (e) => (t) => t === e, Pt = (e) => (t) => t !== e, Ft = {
 		vote: 5
 	}),
 	media_player: () => ({
-		...Ht,
+		...Wt,
 		vote: 5
 	})
-}, Wt = (e, t) => Ut[e]?.(t) ?? Ht;
-function Gt(e, t) {
-	let n = !t || t.state === "unavailable", r = !n && Ft[e](t.state), [i, a] = zt[e] ?? [], o = i && t?.attributes[i];
+}, Kt = (e, t) => Gt[e]?.(t) ?? Wt;
+function qt(e, t) {
+	let n = !t || t.state === "unavailable", r = !n && Lt[e](t.state), [i, a] = Vt[e] ?? [], o = i && t?.attributes[i];
 	return {
 		on: r,
-		phase: t && Rt[e]?.includes(t.state) ? t.state : void 0,
+		phase: t && Bt[e]?.includes(t.state) ? t.state : void 0,
 		level: typeof o == "number" && a ? a(o) : void 0,
 		away: n
 	};
 }
-function Kt(e, t) {
+function Jt(e, t) {
 	let n = (e) => {
 		let n = e ? t.states[e] : void 0, r = Number(n?.state);
 		return n && n.state !== "" && Number.isFinite(r) ? r : void 0;
@@ -1823,7 +1835,7 @@ function Kt(e, t) {
 			}
 		};
 	}, o = (e, n) => {
-		let s = t.states[e.id], { on: c, phase: l, level: u, away: d } = Gt(e.kind, s), f = s?.attributes ?? {}, p = !e.guarded && !!Vt[e.kind]?.(f), m = c ? r(e.power) : void 0;
+		let s = t.states[e.id], { on: c, phase: l, level: u, away: d } = qt(e.kind, s), f = s?.attributes ?? {}, p = !e.guarded && !!Ut[e.kind]?.(f), m = c ? r(e.power) : void 0;
 		return m !== void 0 && m >= 1 && i.push({
 			id: e.id,
 			name: e.name,
@@ -1837,15 +1849,15 @@ function Kt(e, t) {
 			phase: l,
 			level: u,
 			dims: p,
-			span: Wt(e.kind, f),
-			temp: wt.has(e.kind) && typeof f.current_temperature == "number" ? f.current_temperature : void 0,
+			span: Kt(e.kind, f),
+			temp: Et.has(e.kind) && typeof f.current_temperature == "number" ? f.current_temperature : void 0,
 			title: e.kind === "media_player" && c && [f.media_title, f.media_artist].filter(Boolean).join(", ") || void 0,
 			picture: e.kind === "camera" ? f.entity_picture : void 0,
 			away: d,
 			since: Date.parse(s?.last_changed ?? "") || 0,
 			guarded: e.guarded,
 			room: n,
-			choices: ot(e.kind, s),
+			choices: ct(e.kind, s),
 			...e.lens ? {
 				zoom: a(e.lens.zoom),
 				presets: e.lens.presets,
@@ -1893,16 +1905,16 @@ function Kt(e, t) {
 			humidity: l.attributes.humidity,
 			sky: l.state,
 			id: e.weather,
-			daily: !!(l.attributes.supported_features & _t)
+			daily: !!(l.attributes.supported_features & yt)
 		} : void 0,
 		kw: r(e.power),
-		desk: e.desk ? gt(t.states[e.desk], t.states[lt]?.state, e.dojo ? t.states[e.dojo] : void 0) : void 0
+		desk: e.desk ? vt(t.states[e.desk], t.states[dt]?.state, e.dojo ? t.states[e.dojo] : void 0) : void 0
 	};
 }
-function qt(e, t) {
+function Yt(e, t) {
 	let n = new Map(e.sightings.map((e) => [e.id, e]));
 	return t.flatMap((e) => {
-		let t = n.get(e.entity), r = e.photo ? `/api/${xt}/photo/${e.id}?v=${e.changed}` : void 0;
+		let t = n.get(e.entity), r = e.photo ? `/api/${Ct}/photo/${e.id}?v=${e.changed}` : void 0;
 		return t ? [{
 			id: e.id,
 			camera: e.camera,
@@ -1914,10 +1926,10 @@ function qt(e, t) {
 		}] : [];
 	});
 }
-var Jt = (e) => [...e.rooms.flatMap((e) => e.devices), ...e.strays].filter((e) => e.kind === "light" && !e.away), Yt = (e) => [...e.scenes, ...e.rooms.flatMap((e) => e.scenes)].map((e) => ({
+var Xt = (e) => [...e.rooms.flatMap((e) => e.devices), ...e.strays].filter((e) => e.kind === "light" && !e.away), Zt = (e) => [...e.scenes, ...e.rooms.flatMap((e) => e.scenes)].map((e) => ({
 	...e,
 	name: e.full
-})), Xt = {
+})), Qt = {
 	lock: ["unlock", "lock"],
 	cover: ["close_cover", "open_cover"],
 	media_player: ["media_pause", "media_play"],
@@ -1926,9 +1938,9 @@ var Jt = (e) => [...e.rooms.flatMap((e) => e.devices), ...e.strays].filter((e) =
 	lawn_mower: ["dock", "start_mowing"]
 }, z = (e) => ({
 	domain: e.kind,
-	service: (Xt[e.kind] ?? ["turn_off", "turn_on"])[+!e.on],
+	service: (Qt[e.kind] ?? ["turn_off", "turn_on"])[+!e.on],
 	ids: [e.id]
-}), Zt = {
+}), $t = {
 	light: ["turn_on", (e) => ({ brightness_pct: e })],
 	cover: ["set_cover_position", (e) => ({ position: e })],
 	climate: ["set_temperature", (e) => ({ temperature: e })],
@@ -1937,13 +1949,13 @@ var Jt = (e) => [...e.rooms.flatMap((e) => e.devices), ...e.strays].filter((e) =
 	water_heater: ["set_temperature", (e) => ({ temperature: e })],
 	humidifier: ["set_humidity", (e) => ({ humidity: e })]
 };
-function Qt(e, t) {
+function en(e, t) {
 	if (e.kind === "light" && !t) return {
 		domain: "light",
 		service: "turn_off",
 		ids: [e.id]
 	};
-	let [n, r] = Zt[e.kind];
+	let [n, r] = $t[e.kind];
 	return {
 		domain: e.kind,
 		service: n,
@@ -1951,44 +1963,44 @@ function Qt(e, t) {
 		data: r(t)
 	};
 }
-var $t = (e, t) => ({
+var tn = (e, t) => ({
 	domain: "number",
 	service: "set_value",
 	ids: [e.zoom.id],
 	data: { value: t }
-}), en = (e) => ({
+}), nn = (e) => ({
 	domain: e.action.split(".")[0],
 	service: e.action.split(".")[1] ?? "",
 	ids: [],
 	data: e.data
-}), tn = {
+}), rn = {
 	button: "button.press",
 	input_button: "input_button.press",
 	script: "script.turn_on",
 	scene: "scene.turn_on"
 };
-function nn(e) {
-	let [t, n] = (tn[e.id.split(".")[0]] ?? "homeassistant.toggle").split(".");
+function an(e) {
+	let [t, n] = (rn[e.id.split(".")[0]] ?? "homeassistant.toggle").split(".");
 	return {
 		domain: t,
 		service: n,
 		ids: [e.id]
 	};
 }
-var rn = 6, an = 60, B = (e) => e.trim().toLowerCase(), on = (e, t) => B(e.title) === B(t.title) && (!e.artist || !t.artist || B(e.artist) === B(t.artist));
-function sn(e) {
+var on = 6, sn = 60, B = (e) => e.trim().toLowerCase(), cn = (e, t) => B(e.title) === B(t.title) && (!e.artist || !t.artist || B(e.artist) === B(t.artist));
+function ln(e) {
 	let t = /* @__PURE__ */ new Map();
 	for (let n of [...e].sort((e, t) => e.at - t.at)) t.set(`${B(n.name)}\n${B(n.title)}\n${B(n.artist)}`, n);
 	return [...t.values()].filter((e) => e.kind !== "clear");
 }
-function cn(e, t, n) {
-	let r = sn(t), i = /* @__PURE__ */ new Map();
+function un(e, t, n) {
+	let r = ln(t), i = /* @__PURE__ */ new Map();
 	for (let t of [...e].sort((e, t) => e.at - t.at)) i.set(t.entity_id, t.id);
 	let a = [];
 	for (let t of [...e].sort((e, t) => t.at - e.at)) {
 		let e = n.get(t.entity_id);
 		if (!e) continue;
-		let o = e.on && i.get(e.id) === t.id && (!e.title || B(e.title).startsWith(B(t.title))), s = e.room.toLowerCase(), c = a.find((e) => e.live === o && e.vars.title === t.title && e.vars.artist === t.artist && e.at - t.at * 1e3 < an * 1e3);
+		let o = e.on && i.get(e.id) === t.id && (!e.title || B(e.title).startsWith(B(t.title))), s = e.room.toLowerCase(), c = a.find((e) => e.live === o && e.vars.title === t.title && e.vars.artist === t.artist && e.at - t.at * 1e3 < sn * 1e3);
 		c ? (c.rooms.includes(s) || c.rooms.unshift(s), c.vars.room = c.rooms.length > 1 ? `${c.rooms.slice(0, -1).join(", ")} and ${c.rooms.at(-1)}` : s) : a.push({
 			id: e.id,
 			at: t.at * 1e3,
@@ -2001,13 +2013,13 @@ function cn(e, t, n) {
 				name: e.name,
 				room: s
 			},
-			marks: t.show ? [] : r.filter((e) => on(e, t))
+			marks: t.show ? [] : r.filter((e) => cn(e, t))
 		});
 	}
-	return a.slice(0, rn);
+	return a.slice(0, on);
 }
-var ln = 432e5, un = 8;
-function dn(e, t, n) {
+var dn = 432e5, fn = 8;
+function pn(e, t, n) {
 	let r = e.map((e) => ({
 		kind: e.place === "home" ? "home" : e.place === "not_home" ? "left" : "zone",
 		at: e.since,
@@ -2015,7 +2027,7 @@ function dn(e, t, n) {
 			name: e.name,
 			place: e.place
 		}
-	})), i = sn(t).map((e) => ({
+	})), i = ln(t).map((e) => ({
 		kind: e.kind,
 		at: e.at * 1e3,
 		vars: {
@@ -2024,20 +2036,20 @@ function dn(e, t, n) {
 			artist: e.artist
 		}
 	}));
-	return [...r, ...i].filter((e) => e.at && n - e.at < ln).sort((e, t) => t.at - e.at).slice(0, un);
+	return [...r, ...i].filter((e) => e.at && n - e.at < dn).sort((e, t) => t.at - e.at).slice(0, fn);
 }
-var fn = "nominal", pn = 6e5, mn = {
+var mn = "nominal", hn = 6e5, gn = {
 	critical: 100,
 	error: 95,
 	warning: 70,
 	task: 40
-}, hn = {
+}, _n = {
 	alarm: 92,
 	doorbell: 80,
 	person: 62,
 	vehicle: 42,
 	animal: 41
-}, gn = 30, _n = [
+}, vn = 30, yn = [
 	"no",
 	"one",
 	"two",
@@ -2053,7 +2065,7 @@ var fn = "nominal", pn = 6e5, mn = {
 	"twelve"
 ], V = (e) => new Date(e).toTimeString().slice(0, 5), H = (e) => e && e[0].toUpperCase() + e.slice(1);
 function U(e) {
-	let t = _n[e] ?? String(e);
+	let t = yn[e] ?? String(e);
 	return {
 		n: String(e),
 		N: H(t),
@@ -2062,7 +2074,7 @@ function U(e) {
 		v: e === 1 ? "s" : ""
 	};
 }
-function vn(e) {
+function bn(e) {
 	return {
 		temperature: "temperature",
 		moisture: "moisture",
@@ -2074,10 +2086,10 @@ function vn(e) {
 		smoke: "smoke"
 	}[String(e)] ?? "";
 }
-function yn(e) {
+function xn(e) {
 	return typeof e.value == "number" || typeof e.value == "string" && e.value.trim() !== "" && Number.isFinite(Number(e.value)) ? `${e.value}${e.unit ? ` ${e.unit}` : ""}` : "";
 }
-function bn(e, t, n, r = []) {
+function Sn(e, t, n, r = []) {
 	let i = [], a = (e) => i.push({
 		variant: "",
 		flavour: "",
@@ -2088,10 +2100,10 @@ function bn(e, t, n, r = []) {
 			name: e.name,
 			area: (e.area ?? "house").toLowerCase(),
 			message: e.message || `${H(e.level)}.`,
-			reading: yn(e),
+			reading: xn(e),
 			since: V(e.began),
 			escalated: e.escalated ? "yes" : ""
-		}, r = yn(e) ? [yn(e), e.area ?? e.name] : [H(e.level), e.name];
+		}, r = xn(e) ? [xn(e), e.area ?? e.name] : [H(e.level), e.name];
 		e.level === "nominal" ? n - e.at < 6e5 && a({
 			kind: "recovered",
 			id: e.entity_id + ".ok",
@@ -2106,22 +2118,22 @@ function bn(e, t, n, r = []) {
 			variant: e.level,
 			flavour: e.flavour,
 			id: e.entity_id,
-			rank: mn[e.level] ?? 70,
+			rank: gn[e.level] ?? 70,
 			vars: t,
 			figure: r
 		});
 	}
 	let s = /* @__PURE__ */ new Map();
 	for (let e of r) {
-		if (n - e.at >= 6e5 || !(e.kind in hn)) continue;
+		if (n - e.at >= 6e5 || !(e.kind in _n)) continue;
 		let t = s.get(e.camera);
-		(!t || hn[e.kind] > hn[t.kind] || hn[e.kind] === hn[t.kind] && e.at > t.at) && s.set(e.camera, e);
+		(!t || _n[e.kind] > _n[t.kind] || _n[e.kind] === _n[t.kind] && e.at > t.at) && s.set(e.camera, e);
 	}
 	for (let e of [...s.values()].sort((e, t) => t.at - e.at)) a({
 		kind: "sighting",
 		variant: e.kind,
 		id: "sighting." + e.camera,
-		rank: hn[e.kind],
+		rank: _n[e.kind],
 		vars: {
 			name: e.name,
 			room: (e.room ?? "house").toLowerCase(),
@@ -2187,9 +2199,9 @@ function bn(e, t, n, r = []) {
 			ids: [t.id]
 		}
 	});
-	let l = Jt(e), u = l.filter((e) => e.on);
+	let l = Xt(e), u = l.filter((e) => e.on);
 	if (l.length) {
-		let e = u.filter((e) => e.dims && (e.level ?? 100) > gn), t = u.length >= 7 && u.length * 2 >= l.length ? "ablaze" : u.length ? "lights" : "dark";
+		let e = u.filter((e) => e.dims && (e.level ?? 100) > vn), t = u.length >= 7 && u.length * 2 >= l.length ? "ablaze" : u.length ? "lights" : "dark";
 		a({
 			kind: t,
 			id: t,
@@ -2209,7 +2221,7 @@ function bn(e, t, n, r = []) {
 				domain: "light",
 				service: "turn_on",
 				ids: e.map((e) => e.id),
-				data: { brightness_pct: gn }
+				data: { brightness_pct: vn }
 			} : void 0
 		});
 	}
@@ -2251,20 +2263,20 @@ function bn(e, t, n, r = []) {
 }
 //#endregion
 //#region src/dash-bored/family.ts
-var xn = "casa_mia_dash_bored/alerts", Sn = "casa_mia_dash_bored/sightings", Cn = "casa_mia_dash_bored/settings", wn = "casa_mia", Tn = "casa_mia/cameras/subscribe", En = 18e5, Dn = 350, W = b`
+var Cn = "casa_mia_dash_bored/alerts", wn = "casa_mia_dash_bored/sightings", Tn = "casa_mia_dash_bored/settings", En = "casa_mia", Dn = "casa_mia/cameras/subscribe", On = 18e5, kn = 350, W = b`
   :host { display: block; }
   :host([panel]) > :first-child { min-height: 100vh; }
   /* In the card picker (picked below) a window on the top of the specimen: in its narrow
      column even one room of a family is about 1,000 px tall. */
   :host([sample]) { max-height: 400px; overflow: hidden; }
-`, On = (e) => e.getRootNode().host?.localName === "hui-card-picker", kn = /* @__PURE__ */ new Set();
-function An(e, t) {
-	if (kn.has(e)) return;
-	kn.add(e);
+`, An = (e) => e.getRootNode().host?.localName === "hui-card-picker", jn = /* @__PURE__ */ new Set();
+function Mn(e, t) {
+	if (jn.has(e)) return;
+	jn.add(e);
 	let n = new FontFace(e, `url(/casa_mia_dash_bored/fonts/${t})`);
 	document.fonts.add(n), n.load().catch((t) => console.error(`Dash-Bored: the typeface ${e} could not be loaded`, t));
 }
-var jn = class extends Ge {
+var Nn = class extends Ge {
 	constructor(...e) {
 		super(...e), this.narrow = !1, this._fault = "", this._lost = 0, this._config = {}, this._settings = {}, this._cameras = [], this._spotted = [], this._feeds = /* @__PURE__ */ new Map(), this._timers = /* @__PURE__ */ new Set(), this._picked = !1;
 	}
@@ -2310,7 +2322,7 @@ var jn = class extends Ge {
 			t || this.requestUpdate();
 			return;
 		}
-		if (!this._survey || !t || t.entities !== e.entities || t.areas !== e.areas || t.devices !== e.devices || t.floors !== e.floors) this._survey = At(e, {
+		if (!this._survey || !t || t.entities !== e.entities || t.areas !== e.areas || t.devices !== e.devices || t.floors !== e.floors) this._survey = Mt(e, {
 			...this._settings,
 			...this._config,
 			cameras: this._cameras,
@@ -2318,7 +2330,7 @@ var jn = class extends Ge {
 		});
 		else if (t.states === e.states || !this._survey.watched.some((n) => t.states[n] !== e.states[n])) return;
 		let n = new Map(this._house?.rooms.flatMap((e) => e.devices).map((e) => [e.id, e]));
-		this._house = Kt(this._survey, e), this._surveyed();
+		this._house = Jt(this._survey, e), this._surveyed();
 		for (let e of this._house.rooms.flatMap((e) => e.devices)) {
 			let t = n.get(e.id);
 			t && (t.on !== e.on || t.phase !== e.phase || t.level !== e.level || t.away !== e.away) && this._moved(e);
@@ -2327,7 +2339,7 @@ var jn = class extends Ge {
 	_surveyed() {}
 	_moved(e) {}
 	connectedCallback() {
-		super.connectedCallback(), On(this) !== this._picked && (this._picked = !this._picked, this.toggleAttribute("sample", this._picked), this._survey = void 0, this._hass && (this.hass = this._hass)), this._hass?.connected !== !1 && this._listen(), this._resized(this.clientWidth || window.innerWidth), this._sizes = new ResizeObserver(([e]) => this._resized(e.contentRect.width)), this._sizes.observe(this);
+		super.connectedCallback(), An(this) !== this._picked && (this._picked = !this._picked, this.toggleAttribute("sample", this._picked), this._survey = void 0, this._hass && (this.hass = this._hass)), this._hass?.connected !== !1 && this._listen(), this._resized(this.clientWidth || window.innerWidth), this._sizes = new ResizeObserver(([e]) => this._resized(e.contentRect.width)), this._sizes.observe(this);
 	}
 	_resized(e) {}
 	disconnectedCallback() {
@@ -2350,22 +2362,22 @@ var jn = class extends Ge {
 		});
 	}
 	_listen() {
-		this._follow(Cn, "Dash-Bored's settings", (e) => {
+		this._follow(Tn, "Dash-Bored's settings", (e) => {
 			this._settings = e.at(-1) ?? this._settings, this._survey = void 0, this._hass && (this.hass = this._hass);
-		}), this._hass?.config?.components?.includes(wn) && this._follow(Tn, "Casa Mia's cameras", (e) => {
+		}), this._hass?.config?.components?.includes(En) && this._follow(Dn, "Casa Mia's cameras", (e) => {
 			this._cameras = e, this._survey = void 0, this._hass && (this.hass = this._hass);
 		}, !0);
 	}
 	_watch() {
-		this._follow(Sn, "The cameras' sightings", (e) => {
+		this._follow(wn, "The cameras' sightings", (e) => {
 			let t = new Map(this._spotted.map((e) => [e.id, e])), n = Date.now();
-			for (let r of e) t.set(r.id, r), this._after(En - (n - r.at * 1e3) + 1e3, () => this.requestUpdate());
-			this._spotted = [...t.values()].filter((e) => n - e.at * 1e3 < En), this.requestUpdate();
+			for (let r of e) t.set(r.id, r), this._after(On - (n - r.at * 1e3) + 1e3, () => this.requestUpdate());
+			this._spotted = [...t.values()].filter((e) => n - e.at * 1e3 < On), this.requestUpdate();
 		});
 	}
 	_sighted(e = Date.now()) {
 		let t = /* @__PURE__ */ new Map();
-		for (let n of this._survey ? qt(this._survey, this._spotted) : []) e - n.at < En && n.at >= (t.get(n.camera)?.at ?? 0) && t.set(n.camera, n);
+		for (let n of this._survey ? Yt(this._survey, this._spotted) : []) e - n.at < On && n.at >= (t.get(n.camera)?.at ?? 0) && t.set(n.camera, n);
 		return t;
 	}
 	_after(e, t) {
@@ -2386,20 +2398,20 @@ var jn = class extends Ge {
 			console.error(`Dash-Bored: ${e.domain}.${e.service} refused`, n), this._fault = `${t}: Home Assistant refused (${n?.message ?? n}).`;
 		});
 	}
-	_ask(e, t, n = Qt) {
+	_ask(e, t, n = en) {
 		clearTimeout(this._asking), this._timers.delete(this._asking), this._asking = setTimeout(() => {
 			this._timers.delete(this._asking), this._call(n(e, t), `${e.room} ${e.name}`);
-		}, Dn), this._timers.add(this._asking);
+		}, kn), this._timers.add(this._asking);
 	}
 };
 //#endregion
 //#region src/dash-bored/fridge/magnets.ts
-function Mn(e, t) {
+function Pn(e, t) {
 	let n = 0;
 	for (let t of e) n = n * 31 + t.charCodeAt(0) >>> 0;
 	return n % t;
 }
-var G = (e, t = 4) => (Mn(e, 2 * t * 10 + 1) / 10 - t || .4).toFixed(1), K = (e) => N`<path d=${e} fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>`, Nn = {
+var G = (e, t = 4) => (Pn(e, 2 * t * 10 + 1) / 10 - t || .4).toFixed(1), K = (e) => N`<path d=${e} fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>`, Fn = {
 	light: N`${K("M8.5,14.5 a5.6,5.6 0 1 1 7,0 v2.2 h-7 z M9.8,19.3 h4.4 M10.8,21.4 h2.4")}`,
 	switch: N`${K("M6,9 h12 v4 a6,6 0 0 1 -12,0 z M9,9 V4.5 M15,9 V4.5 M12,19 v2.5")}`,
 	cover: N`${K("M4.5,4.5 h15 M6,4.5 v14 h12 v-14 M6,8.5 h12 M6,12 h12 M6,15.5 h12 M12,18.5 v2.5")}<circle cx="12" cy="21.4" r="1" fill="#fff"/>`,
@@ -2415,11 +2427,11 @@ var G = (e, t = 4) => (Mn(e, 2 * t * 10 + 1) / 10 - t || .4).toFixed(1), K = (e)
 	humidifier: N`${K("M7,14 a4,4 0 0 1 1,-7.8 a5,5 0 0 1 9.4,1.2 a3.4,3.4 0 0 1 -.4,6.6 z M9,17.5 v2 M12,18.5 v2.5 M15,17.5 v2")}`,
 	siren: N`${K("M6.5,17 v-5.5 a5.5,5.5 0 0 1 11,0 V17 z M4.5,17 h15 M10.5,20 a1.6,1.6 0 0 0 3,0")}`,
 	alarm_control_panel: N`${K("M12,3.5 l7,2.5 v5.5 c0,4.5 -3,7.5 -7,9 c-4,-1.5 -7,-4.500 -7,-9 V6 z M9,12 l2.2,2.2 l4,-4.4")}`
-}, Pn = N`${K("M6.5,11 h11 v9 h-11 z M8.8,11 V8 a3.2,3.2 0 0 1 6.2,-1")}<circle cx="12" cy="15.5" r="1.4" fill="#fff"/>`, Fn = (e, t = !1) => e === "lock" && t ? Pn : Nn[e], In = (e, t = !1) => N`<svg class="button" viewBox="0 0 48 48" aria-hidden="true">
+}, In = N`${K("M6.5,11 h11 v9 h-11 z M8.8,11 V8 a3.2,3.2 0 0 1 6.2,-1")}<circle cx="12" cy="15.5" r="1.4" fill="#fff"/>`, Ln = (e, t = !1) => e === "lock" && t ? In : Fn[e], Rn = (e, t = !1) => N`<svg class="button" viewBox="0 0 48 48" aria-hidden="true">
   <circle cx="24" cy="26" r="21" fill="#000" opacity=".28"/><circle class="disc" cx="24" cy="24" r="21"/>
   <circle cx="24" cy="24" r="21" fill="url(#dome)"/><circle cx="24" cy="24" r="17.5" fill="none" stroke="#000" stroke-opacity=".12" stroke-width="1.2"/>
-  <g transform="translate(12 12)">${Fn(e, t)}</g>
-  <ellipse cx="16.5" cy="13.5" rx="7" ry="3.6" fill="#fff" opacity=".4" transform="rotate(-32 16.5 13.5)"/></svg>`, q = (e, t) => N`<ellipse cx=${e} cy=${t} rx="4" ry="2.2" fill="#fff" opacity=".55" transform="rotate(-30 ${e} ${t})"/>`, Ln = (e, t, n) => N`<circle cx=${e} cy=${n} r="1.9" fill="#1d1d1d"/><circle cx=${t} cy=${n} r="1.9" fill="#1d1d1d"/><circle cx=${e + .6} cy=${n - .6} r=".6" fill="#fff"/><circle cx=${t + .6} cy=${n - .6} r=".6" fill="#fff"/>`, Rn = {
+  <g transform="translate(12 12)">${Ln(e, t)}</g>
+  <ellipse cx="16.5" cy="13.5" rx="7" ry="3.6" fill="#fff" opacity=".4" transform="rotate(-32 16.5 13.5)"/></svg>`, q = (e, t) => N`<ellipse cx=${e} cy=${t} rx="4" ry="2.2" fill="#fff" opacity=".55" transform="rotate(-30 ${e} ${t})"/>`, zn = (e, t, n) => N`<circle cx=${e} cy=${n} r="1.9" fill="#1d1d1d"/><circle cx=${t} cy=${n} r="1.9" fill="#1d1d1d"/><circle cx=${e + .6} cy=${n - .6} r=".6" fill="#fff"/><circle cx=${t + .6} cy=${n - .6} r=".6" fill="#fff"/>`, Bn = {
 	butterfly: N`<path d="M24,24 C14,6 2,10 5,22 C6,28 14,28 24,24 C14,30 8,40 16,43 C22,44 24,34 24,24 Z" fill="#f08a24" stroke="#5a2d05" stroke-width="1.4"/>
     <path d="M24,24 C34,6 46,10 43,22 C42,28 34,28 24,24 C34,30 40,40 32,43 C26,44 24,34 24,24 Z" fill="#f6a93b" stroke="#5a2d05" stroke-width="1.4"/>
     <circle cx="11" cy="18" r="3" fill="#fff3c9"/><circle cx="37" cy="18" r="3" fill="#fff3c9"/><circle cx="16" cy="36" r="2.2" fill="#3a1c04"/><circle cx="32" cy="36" r="2.2" fill="#3a1c04"/>
@@ -2430,12 +2442,12 @@ var G = (e, t = 4) => (Mn(e, 2 * t * 10 + 1) / 10 - t || .4).toFixed(1), K = (e)
     <circle cx="21" cy="10.5" r="1.6" fill="#fff"/><circle cx="27" cy="10.5" r="1.6" fill="#fff"/>${q(15, 19)}`,
 	bee: N`<ellipse cx="15" cy="15" rx="9" ry="6" fill="#dff1fb" stroke="#6b8794" stroke-width="1.1" transform="rotate(-25 15 15)"/><ellipse cx="33" cy="15" rx="9" ry="6" fill="#dff1fb" stroke="#6b8794" stroke-width="1.1" transform="rotate(25 33 15)"/>
     <ellipse cx="24" cy="28" rx="13" ry="14" fill="#ffc928" stroke="#5a3c05" stroke-width="1.4"/><path d="M12.5,23 h23 M11,29 h26 M13,35 h22" stroke="#2a1d05" stroke-width="3.4" stroke-linecap="round"/>
-    ${Ln(20, 28, 20)}<path d="M21,24.500 q3,2 6,0" fill="none" stroke="#2a1d05" stroke-width="1.1" stroke-linecap="round"/>${q(17, 22)}`,
+    ${zn(20, 28, 20)}<path d="M21,24.500 q3,2 6,0" fill="none" stroke="#2a1d05" stroke-width="1.1" stroke-linecap="round"/>${q(17, 22)}`,
 	fish: N`<path d="M6,24 C12,12 28,10 36,24 C28,38 12,36 6,24 Z" fill="#2aa6c9" stroke="#0c4a5e" stroke-width="1.4"/><path d="M35,24 L45,15 V33 Z" fill="#2390b0" stroke="#0c4a5e" stroke-width="1.4" stroke-linejoin="round"/>
     <path d="M18,14.500 q4,-5 8,-.5" fill="#2390b0" stroke="#0c4a5e" stroke-width="1.2"/><path d="M22,20 q4,4 0,8 M27,20 q4,4 0,8" fill="none" stroke="#0c4a5e" stroke-opacity=".5" stroke-width="1.1"/>
     <circle cx="13" cy="22" r="2.6" fill="#fff"/><circle cx="13.400" cy="22" r="1.3" fill="#1d1d1d"/>${q(18, 18)}`,
 	cat: N`<path d="M9,18 L8,6 L19,12 Z M39,18 L40,6 L29,12 Z" fill="#8a8f98" stroke="#33363b" stroke-width="1.4" stroke-linejoin="round"/><ellipse cx="24" cy="27" rx="17" ry="15" fill="#9aa0a9" stroke="#33363b" stroke-width="1.4"/>
-    ${Ln(17, 31, 24)}<path d="M22.500,29.500 h3 l-1.500,2 z" fill="#e58a9a"/><path d="M24,31.500 q-3,3 -6,1 M24,31.500 q3,3 6,1 M8,27 h7 M9,31 l6,-1 M40,27 h-7 M39,31 l-6,-1" fill="none" stroke="#33363b" stroke-width="1" stroke-linecap="round"/>${q(16, 17)}`,
+    ${zn(17, 31, 24)}<path d="M22.500,29.500 h3 l-1.500,2 z" fill="#e58a9a"/><path d="M24,31.500 q-3,3 -6,1 M24,31.500 q3,3 6,1 M8,27 h7 M9,31 l6,-1 M40,27 h-7 M39,31 l-6,-1" fill="none" stroke="#33363b" stroke-width="1" stroke-linecap="round"/>${q(16, 17)}`,
 	frog: N`<circle cx="15" cy="13" r="7" fill="#57b947" stroke="#1f5a17" stroke-width="1.4"/><circle cx="33" cy="13" r="7" fill="#57b947" stroke="#1f5a17" stroke-width="1.4"/><ellipse cx="24" cy="28" rx="18" ry="14" fill="#63c552" stroke="#1f5a17" stroke-width="1.4"/>
     <circle cx="15" cy="13" r="3.6" fill="#fff"/><circle cx="33" cy="13" r="3.6" fill="#fff"/><circle cx="15.500" cy="13.500" r="1.8" fill="#1d1d1d"/><circle cx="33.500" cy="13.500" r="1.8" fill="#1d1d1d"/>
     <path d="M13,31 q11,8 22,0" fill="none" stroke="#1f5a17" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="29" r="2.4" fill="#f28ba0" opacity=".7"/><circle cx="36" cy="29" r="2.4" fill="#f28ba0" opacity=".7"/>${q(18, 22)}`,
@@ -2444,20 +2456,20 @@ var G = (e, t = 4) => (Mn(e, 2 * t * 10 + 1) / 10 - t || .4).toFixed(1), K = (e)
     <g fill="#ffe08a"><ellipse cx="17" cy="23" rx="1.1" ry="1.7"/><ellipse cx="24" cy="24" rx="1.1" ry="1.7"/><ellipse cx="31" cy="23" rx="1.1" ry="1.7"/><ellipse cx="20" cy="30" rx="1.1" ry="1.7"/><ellipse cx="28" cy="30" rx="1.1" ry="1.7"/><ellipse cx="24" cy="36" rx="1.1" ry="1.7"/></g>${q(15, 20)}`,
 	apple: N`<path d="M24,15 C16,8 5,13 6,25 C7,36 15,44 24,40 C33,44 41,36 42,25 C43,13 32,8 24,15 Z" fill="#7cc242" stroke="#2e5c12" stroke-width="1.4"/><path d="M24,15 C24,10 26,7 29,5" fill="none" stroke="#5a3a12" stroke-width="2" stroke-linecap="round"/>
     <path d="M27,9 C32,4 38,6 39,8 C36,12 30,12 27,9 Z" fill="#3fa63a" stroke="#1f5a17" stroke-width="1.1"/>${q(15, 20)}`,
-	star: N`<path d="M24,4 L29.900,17.200 L44,18.900 L33.500,28.600 L36.400,42.700 L24,35.600 L11.600,42.700 L14.500,28.600 L4,18.900 L18.100,17.200 Z" fill="#ffd23f" stroke="#8a6a05" stroke-width="1.4" stroke-linejoin="round"/>${Ln(20, 28, 24)}<path d="M20,29 q4,3 8,0" fill="none" stroke="#5a4503" stroke-width="1.2" stroke-linecap="round"/>${q(18, 17)}`,
+	star: N`<path d="M24,4 L29.900,17.200 L44,18.900 L33.500,28.600 L36.400,42.700 L24,35.600 L11.600,42.700 L14.500,28.600 L4,18.900 L18.100,17.200 Z" fill="#ffd23f" stroke="#8a6a05" stroke-width="1.4" stroke-linejoin="round"/>${zn(20, 28, 24)}<path d="M20,29 q4,3 8,0" fill="none" stroke="#5a4503" stroke-width="1.2" stroke-linecap="round"/>${q(18, 17)}`,
 	heart: N`<path d="M24,42 C6,30 2,18 9,11 C15,6 22,9 24,15 C26,9 33,6 39,11 C46,18 42,30 24,42 Z" fill="#f0486a" stroke="#7a0f28" stroke-width="1.4"/>${q(14, 17)}`,
 	flower: N`<g fill="#f6a5c0" stroke="#8a3355" stroke-width="1.2"><circle cx="24" cy="10" r="8"/><circle cx="37" cy="19" r="8"/><circle cx="32" cy="35" r="8"/><circle cx="16" cy="35" r="8"/><circle cx="11" cy="19" r="8"/></g><circle cx="24" cy="24" r="8" fill="#ffd23f" stroke="#8a6a05" stroke-width="1.2"/>${q(21, 8)}`,
-	sun: N`<g stroke="#e08a12" stroke-width="3.4" stroke-linecap="round"><path d="M24,3 v6 M24,39 v6 M3,24 h6 M39,24 h6 M9,9 l4.500,4.500 M34.500,34.500 l4.500,4.500 M39,9 l-4.500,4.500 M13.500,34.500 l-4.500,4.500"/></g><circle cx="24" cy="24" r="12.500" fill="#ffd23f" stroke="#8a6a05" stroke-width="1.4"/>${Ln(20, 28, 22)}<path d="M19.500,27 q4.500,4 9,0" fill="none" stroke="#5a4503" stroke-width="1.3" stroke-linecap="round"/>${q(19, 17)}`,
+	sun: N`<g stroke="#e08a12" stroke-width="3.4" stroke-linecap="round"><path d="M24,3 v6 M24,39 v6 M3,24 h6 M39,24 h6 M9,9 l4.500,4.500 M34.500,34.500 l4.500,4.500 M39,9 l-4.500,4.500 M13.500,34.500 l-4.500,4.500"/></g><circle cx="24" cy="24" r="12.500" fill="#ffd23f" stroke="#8a6a05" stroke-width="1.4"/>${zn(20, 28, 22)}<path d="M19.500,27 q4.500,4 9,0" fill="none" stroke="#5a4503" stroke-width="1.3" stroke-linecap="round"/>${q(19, 17)}`,
 	briefcase: N`<path d="M18,14 v-4 a3,3 0 0 1 3,-3 h6 a3,3 0 0 1 3,3 v4" fill="none" stroke="#1d1d1d" stroke-width="2.6"/><rect x="5" y="14" width="38" height="26" rx="4" fill="#3b3f46" stroke="#111" stroke-width="1.4"/><path d="M5,25 h38" stroke="#111" stroke-width="1.4"/><rect x="20.500" y="22" width="7" height="6" rx="1.5" fill="#c9a24b" stroke="#5a4310" stroke-width="1"/>${q(13, 19)}`,
 	teddy: N`<circle cx="12" cy="11" r="6.500" fill="#b9793f" stroke="#5a3412" stroke-width="1.4"/><circle cx="36" cy="11" r="6.500" fill="#b9793f" stroke="#5a3412" stroke-width="1.4"/><circle cx="12" cy="11" r="3" fill="#e6b98a"/><circle cx="36" cy="11" r="3" fill="#e6b98a"/>
-    <circle cx="24" cy="26" r="17" fill="#c58a4d" stroke="#5a3412" stroke-width="1.4"/><ellipse cx="24" cy="31.500" rx="7.500" ry="6" fill="#edc9a0"/>${Ln(17.5, 30.5, 23)}<ellipse cx="24" cy="29" rx="2.600" ry="1.900" fill="#2a1705"/><path d="M24,31 v2.500 q-3,2 -4.500,.2 M24,33.500 q3,2 4.500,.2" fill="none" stroke="#2a1705" stroke-width="1.1" stroke-linecap="round"/>${q(15, 17)}`,
+    <circle cx="24" cy="26" r="17" fill="#c58a4d" stroke="#5a3412" stroke-width="1.4"/><ellipse cx="24" cy="31.500" rx="7.500" ry="6" fill="#edc9a0"/>${zn(17.5, 30.5, 23)}<ellipse cx="24" cy="29" rx="2.600" ry="1.900" fill="#2a1705"/><path d="M24,31 v2.500 q-3,2 -4.500,.2 M24,33.500 q3,2 4.500,.2" fill="none" stroke="#2a1705" stroke-width="1.1" stroke-linecap="round"/>${q(15, 17)}`,
 	teacup: N`<path d="M34,22 h4 a5.500,5.500 0 0 1 0,11 h-5" fill="none" stroke="#3a5a8a" stroke-width="3"/><path d="M7,18 h28 v9 a12,12 0 0 1 -12,12 h-4 a12,12 0 0 1 -12,-12 z" fill="#fdfaf2" stroke="#3a5a8a" stroke-width="1.4"/>
     <path d="M9,24 q12,5 24,0" fill="none" stroke="#3a5a8a" stroke-width="1.2"/><g fill="#e36a8a"><circle cx="15" cy="30" r="1.800"/><circle cx="21" cy="33" r="1.800"/><circle cx="27" cy="30" r="1.800"/></g><path d="M5,41 h32" stroke="#3a5a8a" stroke-width="2.400" stroke-linecap="round"/>
     <path d="M15,13 c-2,-3 2,-4 0,-7 M22,13 c-2,-3 2,-4 0,-7 M29,13 c-2,-3 2,-4 0,-7" fill="none" stroke="#9aa5b5" stroke-width="1.400" stroke-linecap="round"/>${q(13, 22)}`
-}, zn = (e) => N`<svg class="novelty" viewBox="0 0 48 48" aria-hidden="true">${Rn[e]}</svg>`, Bn = N`<svg class="defs" width="0" height="0" aria-hidden="true"><defs>
+}, Vn = (e) => N`<svg class="novelty" viewBox="0 0 48 48" aria-hidden="true">${Bn[e]}</svg>`, Hn = N`<svg class="defs" width="0" height="0" aria-hidden="true"><defs>
   <radialGradient id="dome" cx=".36" cy=".28" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".38"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset=".8" stop-color="#000" stop-opacity=".08"/><stop offset="1" stop-color="#000" stop-opacity=".3"/></radialGradient>
-</defs></svg>`, Vn = 3;
-function Hn(e, t, n, r = 0, i = () => !1) {
+</defs></svg>`, Un = 3;
+function Wn(e, t, n, r = 0, i = () => !1) {
 	let a = Array.from({ length: e }, (e, r) => Array.from({ length: n }, (e, n) => t(r, n + 1))), o = (e, t) => {
 		let n = a[e].findIndex((e) => e <= t);
 		return n < 0 ? Infinity : n + 1;
@@ -2467,7 +2479,7 @@ function Hn(e, t, n, r = 0, i = () => !1) {
 			let e = o(l, s);
 			if (u += e, u > n) return;
 			let d = 1;
-			for (let n = a[l++][e - 1]; l < t && d < Vn && !i(l) && n + r + a[l][e - 1] <= s; l++, d++) n += r + a[l][e - 1];
+			for (let n = a[l++][e - 1]; l < t && d < Un && !i(l) && n + r + a[l][e - 1] <= s; l++, d++) n += r + a[l][e - 1];
 			c.push({
 				wide: e,
 				holds: d
@@ -2486,7 +2498,7 @@ function Hn(e, t, n, r = 0, i = () => !1) {
 	}, l = Array(e + 1).fill(0), u = [];
 	for (let t = e - 1; t >= 0; t--) {
 		l[t] = Infinity;
-		for (let i = t + 1; i <= Math.min(e, t + n * Vn); i++) {
+		for (let i = t + 1; i <= Math.min(e, t + n * Un); i++) {
 			let e = c(t, i);
 			e && e.height + r + l[i] <= l[t] && (l[t] = e.height + r + l[i], u[t] = e.stacks);
 		}
@@ -2509,7 +2521,7 @@ function Hn(e, t, n, r = 0, i = () => !1) {
 	}
 	return d;
 }
-function Un(e) {
+function Gn(e) {
 	let t = [], n = 0, r = 1;
 	return e.forEach((e, i) => {
 		if (e.under) return void t.at(-1).things.push(i);
@@ -2523,12 +2535,12 @@ function Un(e) {
 }
 //#endregion
 //#region src/dash-bored/fridge/rows.ts
-var Wn = 228, Gn = 14, Kn = 30, qn = 220, Jn = [80, 108], Yn = 30, Xn = [144, 172], Zn = 250, Qn = [110, 40], $n = (e) => Math.max(1, Math.floor((e + Gn) / Wn));
-function er(e, t) {
-	let n = Wn * t - Gn, r = (e, t) => Math.ceil(e / Math.max(1, Math.floor(n / t))), i = r(e.magnets, Jn[0]), a = Math.min(i, r(e.strips, Jn[0]) * 2);
-	return qn + r(e.prints, Xn[0]) * Xn[1] + i * Jn[1] + a * Yn + e.alarms * Zn + r(e.words, Qn[0]) * Qn[1];
+var Kn = 228, qn = 14, Jn = 30, Yn = 220, Xn = [80, 108], Zn = 30, Qn = [144, 172], $n = 250, er = [110, 40], tr = (e) => Math.max(1, Math.floor((e + qn) / Kn));
+function nr(e, t) {
+	let n = Kn * t - qn, r = (e, t) => Math.ceil(e / Math.max(1, Math.floor(n / t))), i = r(e.magnets, Xn[0]), a = Math.min(i, r(e.strips, Xn[0]) * 2);
+	return Yn + r(e.prints, Qn[0]) * Qn[1] + i * Xn[1] + a * Zn + e.alarms * $n + r(e.words, er[0]) * er[1];
 }
-var tr = (e, t, n) => Hn(e.length, (t, n) => er(e[t], n), t, Kn, n), nr = [
+var rr = (e, t, n) => Wn(e.length, (t, n) => nr(e[t], n), t, Jn, n), ir = [
 	{
 		id: "family",
 		label: "Young family",
@@ -2650,8 +2662,8 @@ var tr = (e, t, n) => Hn(e.length, (t, n) => er(e[t], n), t, Kn, n), nr = [
 ];
 //#endregion
 //#region src/dash-bored/fridge/today.ts
-function rr(e) {
-	let t = e.rooms.flatMap((e) => e.devices), n = Jt(e).filter((e) => e.on).length, r = t.filter((e) => e.kind === "lock" && !e.on && !e.away), i = e.rooms.filter((e) => e.temp !== void 0).sort((e, t) => t.temp - e.temp), a = e.people.filter((e) => e.place === "home").map((e) => e.name);
+function ar(e) {
+	let t = e.rooms.flatMap((e) => e.devices), n = Xt(e).filter((e) => e.on).length, r = t.filter((e) => e.kind === "lock" && !e.on && !e.away), i = e.rooms.filter((e) => e.temp !== void 0).sort((e, t) => t.temp - e.temp), a = e.people.filter((e) => e.place === "home").map((e) => e.name);
 	return [
 		n ? `${n} ${n === 1 ? "light" : "lights"} on` : "All the lights are off",
 		...e.kw === void 0 ? [] : [`Using ${e.kw.toFixed(2)} kW`],
@@ -2663,7 +2675,7 @@ function rr(e) {
 }
 //#endregion
 //#region src/dash-bored/fridge/styles.ts
-var ir = b`
+var or = b`
   .door { --ink: #2b2b2b; --paper: #fdfdf8; --grease: rgba(90, 70, 50, .22); --hand: "Chalkboard SE", "Marker Felt", "Comic Sans MS", "Bradley Hand", cursive;
     position: relative; box-sizing: border-box; min-height: 100%; padding: 16px 26px 34px 76px; overflow: hidden; color: var(--ink); font-family: var(--hand); font-size: 15px;
     background: linear-gradient(90deg, rgba(0,0,0,.1), transparent 3%, transparent 96%, rgba(0,0,0,.12)), linear-gradient(175deg, #fcfcf9, #e7e7e1); }
@@ -2894,12 +2906,12 @@ var ir = b`
     .door .postit { width: calc(50% - 6px); min-height: 96px; }
   }
   @media (prefers-reduced-motion: reduce) { .postit.critical, .alarm.sounding .status, .mag.tapped .press, .poetry .tapped { animation: none; } }
-`, ar = "dash-bored-fridge", or = "dash-bored-fridge", sr = "alarm_control_panel", cr = "camera", lr = /* @__PURE__ */ new Set([
+`, sr = "dash-bored-fridge", cr = "dash-bored-fridge", lr = "alarm_control_panel", ur = "camera", dr = /* @__PURE__ */ new Set([
 	"climate",
 	"water_heater",
 	"humidifier",
 	"media_player"
-]), ur = {
+]), fr = {
 	lock: ["locked", "unlocked"],
 	cover: ["open", "shut"],
 	valve: ["open", "shut"],
@@ -2907,12 +2919,12 @@ var ir = b`
 	vacuum: ["cleaning", "home"],
 	lawn_mower: ["mowing", "home"],
 	media_player: ["playing", "paused"]
-}, dr = {
+}, pr = {
 	lock: "unlock",
 	cover: "open",
 	valve: "open",
 	siren: "sound"
-}, fr = [
+}, mr = [
 	[
 		"alarm_arm_away",
 		2,
@@ -2928,12 +2940,12 @@ var ir = b`
 		4,
 		"night"
 	]
-], pr = 6e3, mr = 5e3, hr = 3e4, gr = 18e5, _r = 8, vr = class extends jn {
+], hr = 6e3, gr = 5e3, _r = 3e4, vr = 18e5, yr = 8, br = class extends Nn {
 	constructor(...e) {
-		super(...e), this._skin = nr[0].id, this._alerts = [], this._seen = [], this._armed = "", this._tapped = "", this._cols = 1;
+		super(...e), this._skin = ir[0].id, this._alerts = [], this._seen = [], this._armed = "", this._tapped = "", this._cols = 1;
 	}
 	static {
-		this.styles = [W, ir];
+		this.styles = [W, or];
 	}
 	static {
 		this.properties = {
@@ -2951,37 +2963,37 @@ var ir = b`
 		super.setConfig(e), this._recall();
 	}
 	connectedCallback() {
-		super.connectedCallback(), this._recall(), An("Dash-Bored Hand", "HomemadeApple-Regular.ttf");
+		super.connectedCallback(), this._recall(), Mn("Dash-Bored Hand", "HomemadeApple-Regular.ttf");
 	}
 	_recall() {
 		let e = this._config.style;
 		try {
-			e ??= localStorage.getItem(or) ?? void 0;
+			e ??= localStorage.getItem(cr) ?? void 0;
 		} catch {}
-		nr.some((t) => t.id === e) && (this._skin = e);
+		ir.some((t) => t.id === e) && (this._skin = e);
 	}
 	_dress(e) {
 		this._skin = e;
 		try {
-			localStorage.setItem(or, e);
+			localStorage.setItem(cr, e);
 		} catch {}
 	}
 	_resized(e) {
-		let t = $n(this.renderRoot?.querySelector(".photos")?.clientWidth || e - 102);
+		let t = tr(this.renderRoot?.querySelector(".photos")?.clientWidth || e - 102);
 		t !== this._cols && (this._cols = t);
 	}
 	updated() {
 		this._resized(this.clientWidth);
 	}
 	_listen() {
-		super._listen(), this._follow(xn, "Sensor Watch's alerts", (e) => {
+		super._listen(), this._follow(Cn, "Sensor Watch's alerts", (e) => {
 			let t = new Map(this._alerts.map((e) => [e.entity_id, e]));
 			for (let n of e) t.set(n.entity_id, n);
 			this._alerts = [...t.values()];
-		}), this._follow(Sn, "The cameras' sightings", (e) => {
+		}), this._follow(wn, "The cameras' sightings", (e) => {
 			let t = new Map(this._seen.map((e) => [e.id, e])), n = Date.now();
-			for (let r of e) t.set(r.id, r), this._after(gr - (n - r.at * 1e3) + 1e3, () => this.requestUpdate());
-			this._seen = [...t.values()].filter((e) => n - e.at * 1e3 < gr);
+			for (let r of e) t.set(r.id, r), this._after(vr - (n - r.at * 1e3) + 1e3, () => this.requestUpdate());
+			this._seen = [...t.values()].filter((e) => n - e.at * 1e3 < vr);
 		});
 	}
 	_moved(e) {
@@ -2990,7 +3002,7 @@ var ir = b`
 	_press(e) {
 		if (!e.away) {
 			if (this._tapped = e.id, this._after(520, () => this._tapped === e.id && (this._tapped = "")), e.guarded && (e.kind === "lock" ? e.on : !e.on) && this._armed !== e.id) {
-				this._armed = e.id, this._dropping = this._instead(this._dropping, pr, () => this._armed === e.id && (this._armed = ""));
+				this._armed = e.id, this._dropping = this._instead(this._dropping, hr, () => this._armed === e.id && (this._armed = ""));
 				return;
 			}
 			this._armed = "", this._call(z(e), `${e.room} ${e.name}`);
@@ -3005,21 +3017,21 @@ var ir = b`
 		}, `${e.name} lights`);
 	}
 	_level(e) {
-		return this._want?.id === e.id ? this._want.level : lr.has(e.kind) ? e.level ?? e.span.min : e.on ? e.level ?? e.span.max : e.span.min;
+		return this._want?.id === e.id ? this._want.level : dr.has(e.kind) ? e.level ?? e.span.min : e.on ? e.level ?? e.span.max : e.span.min;
 	}
 	_slide(e, t) {
 		let n = Number(t.target.value);
 		this._want = {
 			id: e.id,
 			level: n
-		}, this._waiting = this._instead(this._waiting, mr, () => this._want = void 0), this._ask(e, n);
+		}, this._waiting = this._instead(this._waiting, gr, () => this._want = void 0), this._ask(e, n);
 	}
 	_figure(e, t) {
 		let n = this._code?.id === e.id ? this._code.figures : "";
 		this._code = {
 			id: e.id,
-			figures: t === "" ? n.slice(0, -1) : (n + t).slice(0, _r)
-		}, this._hiding = this._instead(this._hiding, hr, () => this._code = void 0);
+			figures: t === "" ? n.slice(0, -1) : (n + t).slice(0, yr)
+		}, this._hiding = this._instead(this._hiding, _r, () => this._code = void 0);
 	}
 	_throw(e) {
 		this._call({
@@ -3029,30 +3041,30 @@ var ir = b`
 		}, e.name), this._tapped = e.id, this._after(520, () => this._tapped === e.id && (this._tapped = ""));
 	}
 	_magnet(e, t) {
-		let n = wt.has(e.kind), r = this._level(e), i = e.away ? "not answering" : e.dims ? n ? e.on ? `${r}°` : "off" : e.kind === "media_player" ? e.on ? `vol ${r}` : "paused" : e.on || lr.has(e.kind) ? `${Math.round(r)}%` : ur[e.kind]?.[1] ?? "off" : e.phase ?? ur[e.kind]?.[+!e.on] ?? (e.on ? "on" : "off"), a = e.title ?? (n && e.temp !== void 0 ? `now ${e.temp}°` : ""), o = this._armed === e.id;
-		return M`<div class="mag ${e.on ? "on" : ""} ${e.away ? "away" : ""} ${o ? "armed" : ""} ${this._tapped === e.id ? "tapped" : ""}" style="--c: ${t.colours[Mn(e.id, t.colours.length)]}; --r: ${G(e.id, 7)}deg">
-      <button class="press" aria-pressed=${e.on} aria-label="${e.name}: ${i}${o ? `. Press again to ${dr[e.kind]}` : ""}" @click=${() => this._press(e)}>${In(e.kind, e.kind === "lock" && !e.on)}</button>
+		let n = Et.has(e.kind), r = this._level(e), i = e.away ? "not answering" : e.dims ? n ? e.on ? `${r}°` : "off" : e.kind === "media_player" ? e.on ? `vol ${r}` : "paused" : e.on || dr.has(e.kind) ? `${Math.round(r)}%` : fr[e.kind]?.[1] ?? "off" : e.phase ?? fr[e.kind]?.[+!e.on] ?? (e.on ? "on" : "off"), a = e.title ?? (n && e.temp !== void 0 ? `now ${e.temp}°` : ""), o = this._armed === e.id;
+		return M`<div class="mag ${e.on ? "on" : ""} ${e.away ? "away" : ""} ${o ? "armed" : ""} ${this._tapped === e.id ? "tapped" : ""}" style="--c: ${t.colours[Pn(e.id, t.colours.length)]}; --r: ${G(e.id, 7)}deg">
+      <button class="press" aria-pressed=${e.on} aria-label="${e.name}: ${i}${o ? `. Press again to ${pr[e.kind]}` : ""}" @click=${() => this._press(e)}>${Rn(e.kind, e.kind === "lock" && !e.on)}</button>
       <span class="name">${e.name}<small>${i}</small>${a ? M`<small class="also">${a}</small>` : F}</span>
-      ${o ? M`<span class="again" role="status">again to ${dr[e.kind]}?</span>` : F}
+      ${o ? M`<span class="again" role="status">again to ${pr[e.kind]}?</span>` : F}
       ${e.dims && !e.away ? M`<input class="strip" type="range" min=${e.span.min} max=${e.span.max} step=${e.span.step} .value=${String(r)} aria-label="${e.name}: ${n ? "temperature" : e.kind === "media_player" ? "volume" : "level"}" @input=${(t) => this._slide(e, t)} />` : F}
     </div>`;
 	}
 	_print(e, t, n, r, i, a = !1) {
 		return M`<button class="print ${a ? "away" : ""}" style="--r: ${G(i, 5)}deg" aria-label="${e}${n ? `: ${n}` : ""}" @click=${() => s(this, "hass-more-info", { entityId: i })}>
-      <span class="photo worn${Mn(i + "worn", 4)}">${t ? M`<img src=${t} alt="" loading="lazy" />` : M`<span class="blank">${a ? "no picture" : "…"}</span>`}</span>
-      ${zn(r)}
+      <span class="photo worn${Pn(i + "worn", 4)}">${t ? M`<img src=${t} alt="" loading="lazy" />` : M`<span class="blank">${a ? "no picture" : "…"}</span>`}</span>
+      ${Vn(r)}
       <span class="tab">${e}${n ? M`<small>${n}</small>` : F}</span>
     </button>`;
 	}
 	_alarm(e, t) {
 		let n = this._hass.states[e.id]?.attributes ?? {}, r = e.away ? "not answering" : e.phase === "triggered" ? "SOUNDING" : e.phase ?? (e.on ? "set" : "unset"), i = this._code?.id === e.id ? this._code.figures : "", a = (t, n) => () => {
 			this._call({
-				domain: sr,
+				domain: lr,
 				service: t,
 				ids: [e.id],
 				data: i ? { code: i } : void 0
 			}, `${e.room} ${e.name} (${n})`), this._code = void 0;
-		}, o = e.on || e.phase ? [["alarm_disarm", "unset"]] : fr.filter(([, e]) => n.supported_features & e).map(([e, , t]) => [e, t]);
+		}, o = e.on || e.phase ? [["alarm_disarm", "unset"]] : mr.filter(([, e]) => n.supported_features & e).map(([e, , t]) => [e, t]);
 		return M`<div class="alarm ${e.phase === "triggered" ? "sounding" : ""}" style="--r: ${G(e.id, 3)}deg">
       <div class="status">${e.name}: <b>${r}</b></div>
       ${n.code_format === "number" && !e.away ? M`<div class="code" role="status" aria-label="Code: ${i.length} figures">${i || "code?"}</div>
@@ -3062,12 +3074,12 @@ var ir = b`
     </div>`;
 	}
 	render() {
-		let e = this._house, t = nr.find((e) => e.id === this._skin) ?? nr[0];
+		let e = this._house, t = ir.find((e) => e.id === this._skin) ?? ir[0];
 		if (!this._hass || !e) return M`<div class="door ${t.id}"><div class="urgent">Waiting for Home Assistant…</div></div>`;
-		let n = (e) => e.kind === cr, r = (e) => e.devices.filter((e) => e.kind !== sr || this._hass.states[e.id]?.attributes.code_format !== "text"), i = Date.now(), a = /* @__PURE__ */ new Map();
-		for (let e of this._survey ? qt(this._survey, this._seen) : []) i - e.at < gr && e.at >= (a.get(e.camera)?.at ?? 0) && a.set(e.camera, e);
+		let n = (e) => e.kind === ur, r = (e) => e.devices.filter((e) => e.kind !== lr || this._hass.states[e.id]?.attributes.code_format !== "text"), i = Date.now(), a = /* @__PURE__ */ new Map();
+		for (let e of this._survey ? Yt(this._survey, this._seen) : []) i - e.at < vr && e.at >= (a.get(e.camera)?.at ?? 0) && a.set(e.camera, e);
 		let o = new Set(e.rooms.flatMap((e) => e.devices.filter(n).map((e) => e.id))), s = 0, c = (e, t) => M`<button class=${this._tapped === e.id ? "tapped" : ""} style="--r: ${G(e.id, 5)}deg" aria-label="Scene: ${e.full}" @click=${() => this._throw(e)}>${t}</button>`, l = e.rooms.filter((e) => r(e).length || e.temp !== void 0 || e.scenes.length), u = l.some((e) => e.floor), d = (e) => u && l[e].floor !== l[e - 1]?.floor, f = l.map((e) => {
-			let t = r(e), i = t.filter((e) => !n(e) && e.kind !== sr);
+			let t = r(e), i = t.filter((e) => !n(e) && e.kind !== lr);
 			return {
 				magnets: i.length,
 				strips: i.filter((e) => e.dims).length,
@@ -3082,27 +3094,27 @@ var ir = b`
 		]);
 		this._rows?.key !== p && (this._rows = {
 			key: p,
-			placed: tr(f, this._cols, d)
+			placed: rr(f, this._cols, d)
 		});
-		let m = Un(this._rows.placed), h = (e) => {
+		let m = Gn(this._rows.placed), h = (e) => {
 			let i = r(e), o = i.filter((e) => e.kind === "light" && !e.away), l = o.some((e) => e.on), u = this._hass.areas?.[e.id]?.picture ?? void 0, d = e.devices.length - i.length;
 			return M`<section class="room">
         <div class="snap" style="--r: ${G(e.id, 3)}deg">
-          <div class="polaroid ${l ? "lit" : ""} worn${Mn(e.id + "worn", 4)}">
+          <div class="polaroid ${l ? "lit" : ""} worn${Pn(e.id + "worn", 4)}">
             <button class="pic" ?disabled=${!o.length} aria-label="${e.name}: ${o.length ? `lights ${l ? "on" : "off"}. Press to turn them all ${l ? "off" : "on"}` : "no lights"}" @click=${() => this._lights(e)}>
               ${u ? M`<img src=${u} alt="" loading="lazy" />` : M`<span class="scene"><i class="window"></i><i class="lamp"></i></span>`}
             </button>
             <div class="cap"><span>${e.name}</span>${e.temp === void 0 ? F : M`<small>${e.temp.toFixed(1)}°</small>`}</div>
           </div>
-          ${zn(t.holders[Mn(e.id, t.holders.length)])}
+          ${Vn(t.holders[Pn(e.id, t.holders.length)])}
         </div>
         <div class="magnets">
           ${i.filter(n).map((e) => {
 				let n = a.get(e.id);
 				return this._print(e.name, n?.photo ?? (e.away ? "" : e.picture ?? ""), n ? `${n.kind} ${V(n.at)}` : e.away ? "not answering" : "", t.holders[s++ % t.holders.length], e.id, e.away);
 			})}
-          ${i.filter((e) => !n(e) && e.kind !== sr).map((e) => this._magnet(e, t))}
-          ${i.filter((e) => e.kind === sr).map((e) => this._alarm(e, t))}
+          ${i.filter((e) => !n(e) && e.kind !== lr).map((e) => this._magnet(e, t))}
+          ${i.filter((e) => e.kind === lr).map((e) => this._alarm(e, t))}
           ${d ? M`<span class="more">and ${d} more that the door has no magnet for</span>` : F}
         </div>
         ${e.scenes.length ? M`<div class="poetry">${e.scenes.map((e) => c(e, e.name))}</div>` : F}
@@ -3110,33 +3122,33 @@ var ir = b`
 		}, g = m.map((e) => {
 			let t = l[e.things[0]].floor;
 			return M`${d(e.things[0]) ? M`<div class="floor ${e.column > 1 ? "beside" : ""}" style="grid-row: ${e.row * 2 + 1}; grid-column: ${e.column} / span ${e.wide}"><span style="--r: ${G(t ?? "elsewhere", 2)}deg">${t ?? "Elsewhere"}</span></div>` : F}<div class="bay" style="grid-row: ${e.row * 2 + 2}; grid-column: ${e.column} / span ${e.wide}">${e.things.map((e) => h(l[e]))}</div>`;
-		}), _ = this._alerts.filter((e) => e.level !== fn).sort((e, t) => (mn[t.level] ?? 0) - (mn[e.level] ?? 0) || e.began - t.began), v = e.scenes.flatMap((e, n) => [t.words[n % t.words.length], e]);
+		}), _ = this._alerts.filter((e) => e.level !== mn).sort((e, t) => (gn[t.level] ?? 0) - (gn[e.level] ?? 0) || e.began - t.began), v = e.scenes.flatMap((e, n) => [t.words[n % t.words.length], e]);
 		return M`<div class="door ${t.id}">
-      ${Bn}
+      ${Hn}
       <div class="wear" aria-hidden="true"><i class="fingers a"></i><i class="fingers b"></i><i class="fingers c"></i><i class="fingers d"></i><i class="smear"></i><i class="dab"></i><i class="streak"></i><i class="scribble"></i></div>
       <div class="handle" aria-hidden="true"></div>
       <div class="who" role="radiogroup" aria-label="Whose fridge this is">
-        ${this._config.style ? F : nr.map((e) => M`<button role="radio" aria-checked=${e.id === t.id} style="--r: ${G(e.id, 6)}deg" @click=${() => this._dress(e.id)}>${zn(e.picker)}<span>${e.label}</span></button>`)}
+        ${this._config.style ? F : ir.map((e) => M`<button role="radio" aria-checked=${e.id === t.id} style="--r: ${G(e.id, 6)}deg" @click=${() => this._dress(e.id)}>${Vn(e.picker)}<span>${e.label}</span></button>`)}
       </div>
       ${this._lost ? M`<div class="urgent" role="alert">No connection to Home Assistant since ${V(this._lost)}. What is on the door is as it was then.</div>` : F}
       ${this._fault ? M`<div class="urgent" role="alert">${this._fault}</div>` : F}
       ${_.length ? M`<div class="notes">${_.map((e) => M`<div class="postit ${e.level}" role="status" style="--r: ${G(e.entity_id, 4)}deg"><b>${e.name}</b>${e.message || e.level}<small>since ${V(e.began * 1e3)}</small></div>`)}</div>` : F}
       <div class="board">
         <aside class="side">
-          <div class="pad"><h2>${t.pad}</h2><ul>${rr(e).map((e) => M`<li>${e}</li>`)}</ul><i class="ring" aria-hidden="true"></i></div>
+          <div class="pad"><h2>${t.pad}</h2><ul>${ar(e).map((e) => M`<li>${e}</li>`)}</ul><i class="ring" aria-hidden="true"></i></div>
           ${v.length ? M`<div class="poetry">${v.map((e, t) => typeof e == "string" ? M`<span style="--r: ${G(e + t, 5)}deg">${e}</span>` : c(e, e.full))}</div>` : F}
           ${[...a.values()].filter((e) => !o.has(e.camera)).map((e, n) => this._print(e.name, e.photo ?? "", `${e.kind} ${V(e.at)}`, t.holders[(s + n) % t.holders.length], e.camera))}
-          <div class="extra" style="--r: ${G(t.extra.title, 4)}deg" aria-hidden="true"><b>${t.extra.title}</b>${t.extra.lines.map((e) => M`<span>${e}</span>`)}${zn(t.extra.holder)}</div>
+          <div class="extra" style="--r: ${G(t.extra.title, 4)}deg" aria-hidden="true"><b>${t.extra.title}</b>${t.extra.lines.map((e) => M`<span>${e}</span>`)}${Vn(t.extra.holder)}</div>
         </aside>
         <div class="photos" style="--cols: ${this._cols}">${g}</div>
       </div>
     </div>`;
 	}
-}, yr = {
-	...ur,
+}, xr = {
+	...fr,
 	alarm_control_panel: ["set", "unset"],
 	camera: ["look", "look"]
-}, br = /* @__PURE__ */ new Set(["camera", "alarm_control_panel"]), xr = 6e3, Sr = 5e3, Cr = 1500, wr = class extends jn {
+}, Sr = /* @__PURE__ */ new Set(["camera", "alarm_control_panel"]), Cr = 6e3, wr = 5e3, Tr = 1500, Er = class extends Nn {
 	constructor(...e) {
 		super(...e), this._open = "", this._armed = "", this._dragging = "", this._thrown = "";
 	}
@@ -3160,7 +3172,7 @@ var ir = b`
 		this._want = {
 			id: e.id,
 			level: a
-		}, this._waiting = this._instead(this._waiting, Sr, () => this._dragging || (this._want = void 0)), this._ask(e, a);
+		}, this._waiting = this._instead(this._waiting, wr, () => this._dragging || (this._want = void 0)), this._ask(e, a);
 	}
 	_drag(e, t) {
 		let n = t.currentTarget;
@@ -3170,13 +3182,13 @@ var ir = b`
 		this._set(e, e.span.min + (r.bottom - t.clientY) / r.height * (e.span.max - e.span.min));
 	}
 	_drop() {
-		this._dragging = "", this._waiting = this._instead(this._waiting, Sr, () => this._want = void 0);
+		this._dragging = "", this._waiting = this._instead(this._waiting, wr, () => this._want = void 0);
 	}
 	_press(e) {
 		if (!e.away) {
-			if (br.has(e.kind)) return this._open = "", s(this, "hass-more-info", { entityId: e.id });
+			if (Sr.has(e.kind)) return this._open = "", s(this, "hass-more-info", { entityId: e.id });
 			if (e.guarded && (e.kind === "lock" ? e.on : !e.on) && this._armed !== e.id) {
-				this._armed = e.id, this._dropping = this._instead(this._dropping, xr, () => this._armed === e.id && (this._armed = ""));
+				this._armed = e.id, this._dropping = this._instead(this._dropping, Cr, () => this._armed === e.id && (this._armed = ""));
 				return;
 			}
 			this._armed = "", this._call(z(e), `${e.room} ${e.name}`);
@@ -3187,20 +3199,20 @@ var ir = b`
 			domain: "scene",
 			service: "turn_on",
 			ids: [e.id]
-		}, e.full), this._thrown = e.id, this._after(Cr, () => this._thrown === e.id && (this._thrown = ""));
+		}, e.full), this._thrown = e.id, this._after(Tr, () => this._thrown === e.id && (this._thrown = ""));
 	}
 	_scene(e, t) {
 		return M`<button class=${this._thrown === e.id ? "thrown" : ""} @click=${() => this._throw(e)}>${t}</button>`;
 	}
 	_stands(e) {
-		return e.away ? "not answering" : e.dims && e.on && e.kind !== "media_player" ? wt.has(e.kind) ? `${this._level(e)}°` : `${Math.round(this._level(e))}%` : e.phase ?? yr[e.kind]?.[+!e.on] ?? (e.on ? "on" : "off");
+		return e.away ? "not answering" : e.dims && e.on && e.kind !== "media_player" ? Et.has(e.kind) ? `${this._level(e)}°` : `${Math.round(this._level(e))}%` : e.phase ?? xr[e.kind]?.[+!e.on] ?? (e.on ? "on" : "off");
 	}
 	_pic(e) {
-		return M`<svg class="pic" viewBox="0 0 24 24" aria-hidden="true">${Fn(e.kind, e.kind === "lock" && !e.on)}</svg>`;
+		return M`<svg class="pic" viewBox="0 0 24 24" aria-hidden="true">${Ln(e.kind, e.kind === "lock" && !e.on)}</svg>`;
 	}
 	_control(e) {
 		let t = this._level(e), n = this._stands(e);
-		if (e.dims && !e.away && wt.has(e.kind)) return M`<div class="key ${e.on ? "on" : ""}">
+		if (e.dims && !e.away && Et.has(e.kind)) return M`<div class="key ${e.on ? "on" : ""}">
         <b>${this._pic(e)}</b><span class="deg">${t}°</span>
         <div class="steps"><button aria-label="${e.name}: cooler" @click=${() => this._set(e, t - e.span.step)}>−</button><button aria-label="${e.name}: warmer" @click=${() => this._set(e, t + e.span.step)}>+</button></div>
         <span>${e.name}<em>${e.on ? e.temp === void 0 ? "" : `now ${e.temp}°` : "off"}</em></span>
@@ -3220,11 +3232,11 @@ var ir = b`
 		}
 		let r = this._armed === e.id;
 		return M`<button class="key ${e.on ? "on" : ""} ${e.away ? "away" : ""} ${r ? "armed" : ""}" aria-pressed=${e.on} ?disabled=${e.away} @click=${() => this._press(e)}>
-      <b>${this._pic(e)}</b><span>${e.name}<em role=${r ? "status" : F}>${r ? `again to ${dr[e.kind]}?` : n}</em></span>
+      <b>${this._pic(e)}</b><span>${e.name}<em role=${r ? "status" : F}>${r ? `again to ${pr[e.kind]}?` : n}</em></span>
     </button>`;
 	}
-}, Tr = (e) => e.rooms.flatMap((e) => e.devices).filter((e) => e.kind === "camera");
-function Er(e, t, n, r) {
+}, Dr = (e) => e.rooms.flatMap((e) => e.devices).filter((e) => e.kind === "camera");
+function Or(e, t, n, r) {
 	let i = t.get(e.id), a = i?.photo ?? (e.away ? "" : e.picture ?? "");
 	return e.away ? {
 		d: e,
@@ -3248,10 +3260,10 @@ function Er(e, t, n, r) {
 		at: i?.at ?? 0
 	};
 }
-var Dr = (e, t, n = "") => e.src ? M`<img class=${n} src=${e.src} alt="" loading="lazy" @load=${() => t.came(e.src)} @error=${() => t.failed(e.src)} />` : F, Or = (e, t) => M`<button class="shot" aria-label="${e.d.name}${e.says ? `: ${e.says}` : ""}. See it live" ?disabled=${e.d.away} @click=${() => t.look(e.d)}>
-    ${Dr(e, t)}<span><b>${e.d.name}</b>${e.says}</span>
+var kr = (e, t, n = "") => e.src ? M`<img class=${n} src=${e.src} alt="" loading="lazy" @load=${() => t.came(e.src)} @error=${() => t.failed(e.src)} />` : F, Ar = (e, t) => M`<button class="shot" aria-label="${e.d.name}${e.says ? `: ${e.says}` : ""}. See it live" ?disabled=${e.d.away} @click=${() => t.look(e.d)}>
+    ${kr(e, t)}<span><b>${e.d.name}</b>${e.says}</span>
   </button>`;
-function kr(e, t) {
+function jr(e, t) {
 	let n = e.zoom;
 	return M`${e.presets?.length ? M`<nav class="scenes" aria-label="${e.name}: where it can be turned to">${e.presets.map((n) => M`<button @click=${() => t.turn(e, n)}>${n.name}</button>`)}</nav>` : F}
     ${n ? M`<label class="zoomer">Zoom<input type="range" min=${n.span.min} max=${n.span.max} step=${n.span.step} .value=${String(n.level)}
@@ -3260,14 +3272,365 @@ function kr(e, t) {
 }
 //#endregion
 //#region src/dash-bored/aurora/settings.ts
-var Ar = (e, t) => e.flatMap((e) => (e.choices ?? []).map((n) => M`<div class="choice"><span class="label">${e.name} · ${n.what}</span>
+var Mr = (e, t) => e.flatMap((e) => (e.choices ?? []).map((n) => M`<div class="choice"><span class="label">${e.name} · ${n.what}</span>
         <nav class="scenes" aria-label="${e.name}: ${n.what}">
-          ${n.options.map((r) => M`<button class=${r === n.now ? "thrown" : ""} aria-pressed=${r === n.now} @click=${() => t(e, n, r)}>${ct(r)}</button>`)}
-        </nav></div>`)), jr = {
+          ${n.options.map((r) => M`<button class=${r === n.now ? "thrown" : ""} aria-pressed=${r === n.now} @click=${() => t(e, n, r)}>${ut(r)}</button>`)}
+        </nav></div>`)), Nr = {
+	leaf: {
+		how: "fall",
+		speed: 85,
+		swing: .55,
+		rate: 2.3,
+		snap: .9,
+		slide: 42,
+		wind: 55,
+		tidy: "robot"
+	},
+	petal: {
+		how: "fall",
+		speed: 60,
+		swing: .45,
+		rate: 2.9,
+		snap: .7,
+		slide: 30,
+		wind: 70,
+		tidy: "robot"
+	},
+	flake: {
+		how: "fall",
+		speed: 42,
+		swing: .2,
+		rate: 1.5,
+		snap: .4,
+		slide: 22,
+		wind: 95,
+		tidy: "blower"
+	},
+	heart: {
+		how: "rise",
+		speed: 48,
+		swing: .25,
+		rate: 1.8,
+		snap: .5,
+		slide: 26,
+		wind: 35
+	},
+	gull: {
+		how: "cross",
+		speed: 46,
+		swing: .3,
+		rate: .7,
+		snap: .3,
+		slide: 26,
+		wind: 20
+	},
+	bat: {
+		how: "cross",
+		speed: 95,
+		swing: .5,
+		rate: 2.4,
+		snap: 3.5,
+		slide: 38,
+		wind: 25
+	}
+}, Pr = "ground", Fr = 40, Ir = 24, Lr = 12, Rr = 2.5, zr = 7, Br = .35, Vr = 160, Hr = 260, Ur = 18, Wr = 1 / 7;
+function J(e) {
+	e.seed = e.seed + 1831565813 | 0;
+	let t = Math.imul(e.seed ^ e.seed >>> 15, 1 | e.seed);
+	return t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t, ((t ^ t >>> 14) >>> 0) / 4294967296;
+}
+function Gr(e, t, n = !1) {
+	let { how: r, swing: i, rate: a } = e.move;
+	Object.assign(t, {
+		state: "air",
+		dir: J(e) < .5 ? -1 : 1,
+		rate: a * (.7 + J(e) * .6),
+		a: (J(e) - .5) * i * 2,
+		vx: 0,
+		vy: 0,
+		rest: J(e) * 14,
+		blow: J(e) * 2 - 1,
+		pace: .55 + J(e) * .9,
+		off: ""
+	}), t.w = (J(e) - .5) * t.rate, r === "cross" ? (t.x = n ? J(e) * e.wide : t.dir > 0 ? -40 : e.wide + Fr, t.y = e.tall * (.08 + J(e) * .55)) : (t.x = J(e) * e.wide, t.y = n ? J(e) * e.tall * .9 : r === "rise" ? e.tall + Fr : -40 - J(e) * 60);
+}
+var Kr = (e) => 300 + J(e) * 180, qr = (e, t) => e.ledges.find((e) => e.id === t), Jr = (e, t) => Math.max(0, Math.min(e.heap.length - 1, Math.floor((t - e.from) / (e.to - e.from) * e.heap.length))), Yr = (e, t) => e.top - 4 - e.heap[Jr(e, t)], Xr = (e, t) => ({
+	...e,
+	heap: t ?? Array(Math.max(1, Math.ceil((e.to - e.from) / Ir))).fill(0)
+});
+function Zr(e, t, n) {
+	let r = Jr(t, n);
+	for (let [e, n] of [
+		[r - 1, Rr / 2],
+		[r, Rr],
+		[r + 1, Rr / 2]
+	]) t.heap[e] !== void 0 && (t.heap[e] = Math.min(Lr, t.heap[e] + n));
+	e.changed.add(t.id);
+}
+function Qr(e, t, n, r, i = 1) {
+	let a = {
+		move: e,
+		count: t,
+		wide: n,
+		tall: r,
+		ledges: [],
+		changed: /* @__PURE__ */ new Set(),
+		motes: Array.from({ length: t + (e.tidy ? 30 : 0) }, () => ({
+			state: "spare",
+			x: 0,
+			y: 0,
+			vx: 0,
+			vy: 0,
+			a: 0,
+			w: 0,
+			rate: 1,
+			dir: 1,
+			rest: 0,
+			blow: 1,
+			pace: 1,
+			on: "",
+			off: "",
+			age: 0
+		})),
+		air: [
+			1,
+			1,
+			20
+		],
+		seed: i,
+		since: 0,
+		every: 0
+	};
+	a.every = Kr(a), ei(a, n, r);
+	for (let e of a.motes.slice(0, t)) Gr(a, e, !0);
+	return a;
+}
+function $r(e, t) {
+	let n = qr(e, t);
+	if (!n) return;
+	let r = (n, r, i) => Object.assign(n, {
+		state: "air",
+		x: r,
+		y: i,
+		vx: (J(e) - .5) * 140,
+		vy: J(e) * 150 - 90,
+		pace: .55 + J(e) * .9,
+		off: t,
+		on: ""
+	});
+	for (let n of e.motes) n.state === "down" && n.on === t && r(n, n.x, n.y);
+	n.heap.forEach((t, i) => {
+		let a = t > 3 ? e.motes.find((e) => e.state === "spare") : void 0;
+		a && r(a, n.from + (i + .5) * (n.to - n.from) / n.heap.length, n.top - t);
+	}), n.heap.some((e) => e) && e.changed.add(t), n.heap.fill(0);
+}
+function ei(e, t, n, r = []) {
+	let i = [...r, {
+		id: Pr,
+		from: -40,
+		to: t + Fr,
+		top: n - 14
+	}].map((e) => Xr(e));
+	for (let t of e.ledges) {
+		let n = i.find((e) => e.id === t.id);
+		n?.heap.length === t.heap.length ? n.heap = t.heap : $r(e, t.id), (n?.top !== t.top || n?.from !== t.from) && e.changed.add(t.id);
+	}
+	Object.assign(e, {
+		wide: t,
+		tall: n,
+		ledges: i
+	});
+	for (let t of e.motes) t.state === "down" && (t.y = Yr(qr(e, t.on), t.x) - t.rest / 2);
+}
+function ti(e) {
+	if (!e.heap.some((e) => e)) return "";
+	let t = (e.to - e.from) / e.heap.length, n = (n) => [e.from + (n + .5) * t, e.top - (e.heap[n] ?? 0)], r = e.heap.map((t, r) => {
+		let [[i, a], [o, s]] = [n(r), n(r + 1)];
+		return r === e.heap.length - 1 ? `Q${i.toFixed(1)} ${a.toFixed(1)} ${e.to.toFixed(1)} ${e.top}` : `Q${i.toFixed(1)} ${a.toFixed(1)} ${((i + o) / 2).toFixed(1)} ${((a + s) / 2).toFixed(1)}`;
+	});
+	return `M${e.from.toFixed(1)} ${e.top}${r.join("")}Z`;
+}
+function ni(e, t) {
+	let [n, r, i] = e.air;
+	return e.move.wind * (t.blow * (n / 18) * (1.2 - .5 * t.y / e.tall) + r / 25 * .3 * Math.sin(t.x / 170 + i / 8));
+}
+var ri = (e, t) => e.move.how === "cross" ? t.vy / 160 * t.dir : t.a, ii = (e) => e.motes.filter((e) => e.state === "air" || e.state === "thrown").length;
+function ai(e, t, n) {
+	for (let r of e.ledges) {
+		if (r.id === t.off || t.x < r.from || t.x > r.to) continue;
+		let i = Yr(r, t.x);
+		if (n >= i || t.y < i) continue;
+		let a = J(e) < Br, o = ii(e) > e.count;
+		if (a) {
+			let n = e.motes.find((e) => e.state === "spare");
+			return !n && !o ? Zr(e, r, t.x) : Object.assign(t, {
+				state: "down",
+				on: r.id,
+				age: 0,
+				y: i - t.rest / 2,
+				a: (J(e) - .5) * .6
+			}), o ? void 0 : Gr(e, n ?? t);
+		}
+		if (r.id === "ground") {
+			o ? t.state = "spare" : Gr(e, t);
+			return;
+		}
+	}
+}
+function oi(e, t, n, r) {
+	let { how: i, swing: a, snap: o, slide: s } = e.move, c = e.move.speed * t.pace;
+	t.w += (o * (1 - (t.a / a) ** 2) * t.w - t.rate ** 2 * t.a) * n + r * a * 1.5 * n, t.a = Math.max(-3 * a, Math.min(3 * a, t.a + t.w * n));
+	let l = Math.min(1, Math.abs(t.w) / (2 * a * t.rate)), u = ni(e, t), [d, f] = i === "cross" ? [t.dir * c + .3 * u, s * t.w] : [u + s * t.w, (i === "rise" ? -1 : 1) * c * (.4 + .6 * l)], p = Math.min(1, 3 * n), m = t.y;
+	if (t.vx += (d - t.vx) * p, t.vy += (f - t.vy) * p, t.x += t.vx * n, t.y += t.vy * n, i === "cross") {
+		t.y = Math.max(e.tall * .04, Math.min(e.tall * .7, t.y)), (t.x < -40 || t.x > e.wide + Fr) && Gr(e, t);
+		return;
+	}
+	t.x < -40 && (t.x += e.wide + 80), t.x > e.wide + Fr && (t.x -= e.wide + 80), i === "fall" ? ai(e, t, m) : t.y < -40 && Gr(e, t);
+}
+function si(e, t) {
+	e.vy += 520 * t, e.x += e.vx * t, e.y += e.vy * t, e.a += e.w * t, e.vy >= 0 && Object.assign(e, {
+		state: "air",
+		w: 0
+	});
+}
+function ci(e, t, n) {
+	t.age += n, !(t.age < zr + t.rest / 4) && (Zr(e, qr(e, t.on), t.x), t.state = "spare");
+}
+var li = (e, t) => ({
+	state: "thrown",
+	on: "",
+	off: "",
+	vx: -t.dir * (60 + J(e) * 160),
+	vy: -(300 + J(e) * 260),
+	w: (J(e) - .5) * 12
+});
+function ui(e, t, n) {
+	let r = e.move.tidy === "blower";
+	for (let i of e.motes) i.state !== "down" || i.on !== n.id || Math.abs(i.x - t.x) > Ur || (r || J(e) < Wr ? Object.assign(i, li(e, t)) : i.state = "spare");
+	let i = Jr(n, t.x);
+	if (!n.heap[i] || t.x < n.from || t.x > n.to) return;
+	let a = r && n.heap[i] > 3 ? e.motes.find((e) => e.state === "spare") : void 0;
+	a && Object.assign(a, li(e, t), {
+		x: t.x,
+		y: n.top - n.heap[i]
+	}), n.heap[i] = 0, e.changed.add(n.id);
+}
+function di(e, t) {
+	if (e.since += t, !e.tidy && e.since > e.every) {
+		let t = e.ledges.filter((t) => t.heap.some((e) => e) || e.motes.some((e) => e.state === "down" && e.on === t.id));
+		if (!t.length) return;
+		let n = J(e) < .5 ? -1 : 1;
+		e.tidy = {
+			x: n > 0 ? -80 : e.wide + 80,
+			y: t[0].top - 4,
+			dir: n,
+			route: t.sort((e, t) => e.top - t.top || e.from - t.from).map((e) => e.id),
+			driving: !1
+		};
+	}
+	let n = e.tidy;
+	if (!n) return;
+	for (; n.route.length && !qr(e, n.route[0]);) Object.assign(n, {
+		route: n.route.slice(1),
+		driving: !1
+	});
+	let r = qr(e, n.route[0] ?? ""), [i, a] = r ? [Math.max(r.from, -40), Math.min(r.to, e.wide + Fr)] : [0, 0];
+	if (r && n.driving) {
+		n.x += n.dir * Vr * t, n.y = r.top - 4, ui(e, n, r), (n.dir > 0 ? n.x >= a : n.x <= i) && Object.assign(n, {
+			route: n.route.slice(1),
+			driving: !1
+		});
+		return;
+	}
+	let [o, s] = r ? [Math.abs(n.x - i) < Math.abs(n.x - a) ? i : a, r.top - 4] : [n.x < e.wide / 2 ? -80 : e.wide + 80, n.y], c = Math.hypot(o - n.x, s - n.y), l = Math.min(1, Hr * t / (c || 1));
+	Math.abs(o - n.x) > 1 && (n.dir = o > n.x ? 1 : -1), n.x += (o - n.x) * l, n.y += (s - n.y) * l, !(l < 1) && (r ? Object.assign(n, {
+		driving: !0,
+		dir: o === i ? 1 : -1
+	}) : Object.assign(e, {
+		tidy: void 0,
+		since: 0,
+		every: Kr(e)
+	}));
+}
+function fi(e, t) {
+	t = Math.min(t, .05);
+	let [n, r, i] = e.air, a = t * .3;
+	e.air = [
+		n + 10 * (r - n) * a,
+		r + (n * (28 - i) - r) * a,
+		i + (n * r - 8 / 3 * i) * a
+	];
+	let o = t ? (e.air[0] - n) / 18 / t : 0;
+	for (let n of e.motes) n.state === "air" ? oi(e, n, t, o) : n.state === "thrown" ? si(n, t) : n.state === "down" && ci(e, n, t);
+	return e.move.tidy && di(e, t), e;
+}
+//#endregion
+//#region src/dash-bored/aurora/drifting.ts
+var pi = 22, mi = 56, hi = {
+	flake: ["#fff", "#cfe0f1"],
+	leaf: ["#c9742a", "#8a4a17"],
+	petal: ["#f8cfe0", "#e9a3c1"]
+}, gi = class {
+	constructor() {
+		this._ledges = [], this._ids = /* @__PURE__ */ new WeakMap(), this._named = 0, this._sizes = new ResizeObserver(() => this._measure()), this._watching = !1, this._things = [], this._machine = null, this._heaps = /* @__PURE__ */ new Map(), this._drawn = [], this._frame = 0, this._last = 0, this._tick = (e) => {
+			fi(this._field, this._last ? (e - this._last) / 1e3 : 0), this._last = e, this._paint(), this._frame = requestAnimationFrame(this._tick);
+		};
+	}
+	over(e, t) {
+		let n = Nr[e?.dataset.glyph ?? ""];
+		if (!e || !n) return this.stop();
+		let r = e !== this._host || n !== this._field?.move;
+		if (r && (this._field = Qr(n, Number(e.dataset.count), e.clientWidth, e.clientHeight, Date.now() | 0), this._things = [...e.querySelectorAll(".m")], this._machine = e.querySelector(".machine"), this._drawn = [], e.querySelector(".heaps")?.replaceChildren(), this._heaps.clear()), r || !this._watching) {
+			this._watching = !0, this._sizes.disconnect();
+			for (let n of [e, t[0]]) n && this._sizes.observe(n);
+		}
+		return [this._host, this._ledges] = [e, t], this._measure(), matchMedia("(prefers-reduced-motion: reduce)").matches ? this.stop()._paint() : (this._frame ||= (this._last = 0, requestAnimationFrame(this._tick)), this);
+	}
+	shake(e) {
+		let t = e && this._ids.get(e);
+		return t && this._field && $r(this._field, t), this;
+	}
+	stop() {
+		return cancelAnimationFrame(this._frame), this._frame = 0, this._sizes.disconnect(), this._watching = !1, this;
+	}
+	_measure() {
+		if (!this._field || !this._host?.isConnected) return;
+		let e = this._host.getBoundingClientRect(), t = this._ledges.flatMap((t) => {
+			let n = t.getBoundingClientRect();
+			return n.width < 88 || n.top - e.top < mi ? [] : (this._ids.has(t) || this._ids.set(t, `l${++this._named}`), [{
+				id: this._ids.get(t),
+				from: n.left - e.left + pi,
+				to: n.right - e.left - pi,
+				top: n.top - e.top
+			}]);
+		});
+		ei(this._field, e.width, e.height, t);
+	}
+	_set(e, t, n) {
+		t && this._drawn[e] !== n && (this._drawn[e] = n, t.style.transform = n, t.style.visibility = n ? "visible" : "hidden");
+	}
+	_heap() {
+		let e = this._field, [t, n] = hi[this._host.dataset.glyph] ?? ["#fff", "#ccc"];
+		for (let r of e.changed) {
+			let i = e.ledges.find((e) => e.id === r), a = this._heaps.get(r);
+			if (!i) {
+				a?.remove(), this._heaps.delete(r);
+				continue;
+			}
+			a || (a = document.createElementNS("http://www.w3.org/2000/svg", "path"), a.setAttribute("fill", t), a.setAttribute("stroke", n), this._host.querySelector(".heaps")?.append(a), this._heaps.set(r, a)), a.setAttribute("d", ti(i));
+		}
+		e.changed.clear();
+	}
+	_paint() {
+		let e = this._field;
+		e.motes.forEach((t, n) => this._set(n, this._things[n], t.state === "spare" ? "" : `translate(${t.x.toFixed(1)}px, ${t.y.toFixed(1)}px) rotate(${ri(e, t).toFixed(2)}rad)`)), e.changed.size && this._heap();
+		let t = e.tidy;
+		return this._set(e.motes.length, this._machine, t ? `translate(${t.x.toFixed(1)}px, ${(t.y - 50).toFixed(1)}px) scaleX(${t.dir})` : ""), this._machine?.classList.toggle("flying", !!t && !t.driving), this;
+	}
+}, _i = {
 	snow: {
 		drift: {
 			glyph: "flake",
-			how: "fall",
 			count: 26
 		},
 		foot: "drift",
@@ -3276,7 +3639,6 @@ var Ar = (e, t) => e.flatMap((e) => (e.choices ?? []).map((n) => M`<div class="c
 	christmas: {
 		drift: {
 			glyph: "flake",
-			how: "fall",
 			count: 10
 		},
 		foot: "presents",
@@ -3286,7 +3648,6 @@ var Ar = (e, t) => e.flatMap((e) => (e.choices ?? []).map((n) => M`<div class="c
 	fireworks: {
 		drift: {
 			glyph: "burst",
-			how: "burst",
 			count: 9,
 			hues: [
 				20,
@@ -3303,7 +3664,6 @@ var Ar = (e, t) => e.flatMap((e) => (e.choices ?? []).map((n) => M`<div class="c
 	valentine: {
 		drift: {
 			glyph: "heart",
-			how: "rise",
 			count: 14,
 			hues: [
 				0,
@@ -3317,7 +3677,6 @@ var Ar = (e, t) => e.flatMap((e) => (e.choices ?? []).map((n) => M`<div class="c
 	spring: {
 		drift: {
 			glyph: "petal",
-			how: "fall",
 			count: 12,
 			colour: "#f3a6c4"
 		},
@@ -3327,7 +3686,6 @@ var Ar = (e, t) => e.flatMap((e) => (e.choices ?? []).map((n) => M`<div class="c
 	easter: {
 		drift: {
 			glyph: "petal",
-			how: "fall",
 			count: 8,
 			colour: "#c9b6f0"
 		},
@@ -3337,7 +3695,6 @@ var Ar = (e, t) => e.flatMap((e) => (e.choices ?? []).map((n) => M`<div class="c
 	summer: {
 		drift: {
 			glyph: "gull",
-			how: "cross",
 			count: 3,
 			colour: "#51606e"
 		},
@@ -3348,7 +3705,6 @@ var Ar = (e, t) => e.flatMap((e) => (e.choices ?? []).map((n) => M`<div class="c
 	autumn: {
 		drift: {
 			glyph: "leaf",
-			how: "fall",
 			count: 16,
 			hues: [
 				35,
@@ -3363,7 +3719,6 @@ var Ar = (e, t) => e.flatMap((e) => (e.choices ?? []).map((n) => M`<div class="c
 	halloween: {
 		drift: {
 			glyph: "bat",
-			how: "cross",
 			count: 5,
 			colour: "#1b1422"
 		},
@@ -3372,11 +3727,11 @@ var Ar = (e, t) => e.flatMap((e) => (e.choices ?? []).map((n) => M`<div class="c
 		top: "web"
 	}
 };
-function Mr(e) {
+function vi(e) {
 	let t = e % 19, [n, r] = [Math.floor(e / 100), e % 100], i = (19 * t + n - Math.floor(n / 4) - Math.floor((n - Math.floor((n + 8) / 25) + 1) / 3) + 15) % 30, a = (32 + n % 4 * 2 + 2 * Math.floor(r / 4) - i - r % 4) % 7, o = Math.floor((t + 11 * i + 22 * a) / 451), s = i + a - 7 * o + 114;
 	return [Math.floor(s / 31), s % 31 + 1];
 }
-var Nr = [
+var yi = [
 	[
 		"fireworks",
 		12,
@@ -3428,22 +3783,33 @@ var Nr = [
 		10,
 		31
 	]
-], Pr = [
+], bi = [
 	"snow",
 	"spring",
 	"summer",
 	"autumn"
 ];
-function Fr(e, t = !1, n = "") {
-	let [r, i] = [e.getMonth() + 1, e.getDate()], a = r * 100 + i, o = Nr.find(([, e, t, r, i, o]) => a >= e * 100 + t && a <= r * 100 + i && (!o || o === n));
+function xi(e, t = !1, n = "") {
+	let [r, i] = [e.getMonth() + 1, e.getDate()], a = r * 100 + i, o = yi.find(([, e, t, r, i, o]) => a >= e * 100 + t && a <= r * 100 + i && (!o || o === n));
 	if (o) return o[0];
-	let [s, c] = Mr(e.getFullYear()), l = Math.round((new Date(e.getFullYear(), r - 1, i).getTime() - new Date(e.getFullYear(), s - 1, c).getTime()) / 864e5);
-	return l >= -2 && l <= 1 ? "easter" : Pr[(Math.floor(r % 12 / 3) + (t ? 2 : 0)) % 4];
+	let [s, c] = vi(e.getFullYear()), l = Math.round((new Date(e.getFullYear(), r - 1, i).getTime() - new Date(e.getFullYear(), s - 1, c).getTime()) / 864e5);
+	return l >= -2 && l <= 1 ? "easter" : bi[(Math.floor(r % 12 / 3) + (t ? 2 : 0)) % 4];
 }
-var J = (e, t) => (e * 61.803 + t * 37.7) % 100 / 100, Ir = ({ glyph: e, how: t, count: n, hues: r, colour: i }) => Array.from({ length: n }, (n, a) => {
-	let o = t === "burst" ? 90 + J(a, 1) * 110 : t === "cross" ? 22 + J(a, 1) * 16 : 10 + J(a, 1) * 16, s = t === "burst" ? 2.4 + J(a, 2) * 1.6 : t === "cross" ? 22 + J(a, 2) * 16 : 9 + J(a, 2) * 9, c = i ? `color: ${i}` : r ? `color: oklch(.72 .2 ${r[a % r.length]})` : "";
-	return M`<svg class="p ${t}" viewBox="0 0 24 24" style="--x: ${(J(a, 3) * 100).toFixed(1)}%; --y: ${(8 + J(a, 4) * 55).toFixed(1)}%; --s: ${o.toFixed(0)}px; --d: ${s.toFixed(1)}s; --w: -${(J(a, 5) * s * (t === "burst" ? 3 : 1)).toFixed(1)}s; --sway: ${(J(a, 6) * 120 - 60).toFixed(0)}px; --turn: ${(J(a, 7) * 720 - 360).toFixed(0)}deg; ${c}">${nt[e]}</svg>`;
-}), Lr = (e) => M`<svg class="top" width=${e} height="46" viewBox="0 0 ${e} 46">
+var Si = (e, t) => (e * 61.803 + t * 37.7) % 100 / 100;
+function Ci({ glyph: e, count: t, hues: n, colour: r }) {
+	let i = Nr[e], a = t + (i?.tidy ? 30 : 0), o = Array.from({ length: a }, (t, a) => {
+		let o = r ? `color: ${r}` : n ? `color: oklch(.72 .2 ${n[a % n.length]})` : "";
+		if (i) return M`<svg class="m" viewBox="0 0 24 24" style="--s: ${((i.how === "cross" ? 22 : 10) + Si(a, 1) * 16).toFixed(0)}px; ${o}">${nt[e]}</svg>`;
+		let s = 2.4 + Si(a, 2) * 1.6;
+		return M`<svg class="p" viewBox="0 0 24 24" style="--x: ${(Si(a, 3) * 100).toFixed(1)}%; --y: ${(8 + Si(a, 4) * 55).toFixed(1)}%; --s: ${(90 + Si(a, 1) * 110).toFixed(0)}px; --d: ${s.toFixed(1)}s; --w: -${(Si(a, 5) * s * 3).toFixed(1)}s; ${o}">${nt[e]}</svg>`;
+	});
+	return [
+		i?.tidy ? M`<svg class="heaps" width="100%" height="100%"></svg>` : F,
+		o,
+		i?.tidy ? M`<svg class="machine" viewBox="0 -12 60 56">${it[i.tidy]}</svg>` : F
+	];
+}
+var wi = (e) => M`<svg class="top" width=${e} height="46" viewBox="0 0 ${e} 46">
     <path d="M0 6${Array.from({ length: Math.ceil(e / 120) }, () => "q60 26 120 0").join("")}" fill="none" stroke="#3a3f4a" stroke-width="1.6"/>
     ${Array.from({ length: Math.ceil(e / 40) }, (e, t) => {
 	let n = (t * 40 + 20) % 120 / 120;
@@ -3455,22 +3821,22 @@ var J = (e, t) => (e * 61.803 + t * 37.7) % 100 / 100, Ir = ({ glyph: e, how: t,
 		330
 	][t % 5]})" style="animation-delay: -${t * .7 % 3}s"/>`;
 })}
-  </svg>`, Rr = M`<svg class="top flip" width="150" height="190" viewBox="0 0 150 190">
+  </svg>`, Ti = M`<svg class="top flip" width="150" height="190" viewBox="0 0 150 190">
     <path d="M0 0L140 20M0 0L110 70M0 0L60 120M0 0L10 140M132 19Q104 34 104 66 76 72 57 113 30 108 9 132M90 13Q72 24 71 45 52 50 39 78 22 74 6 90M46 6Q38 12 36 23 26 26 20 40 10 38 3 46" fill="none" stroke="#fff" stroke-width="1.3" opacity=".8"/>
     <g class="bob"><path d="M84 46V150" stroke="#fff" stroke-width="1" opacity=".8"/><circle cx="84" cy="158" r="9" fill="#1b1422"/><circle cx="84" cy="148" r="5" fill="#1b1422"/>
       <path d="M76 154l-12-6m12 10l-13 0m13 4l-11 7M92 154l12-6m-12 10l13 0m-13 4l11 7" stroke="#1b1422" stroke-width="2" stroke-linecap="round"/></g>
-  </svg>`, zr = M`<svg class="top right" width="150" height="150" viewBox="-75 -75 150 150">
+  </svg>`, Ei = M`<svg class="top right" width="150" height="150" viewBox="-75 -75 150 150">
     <g class="turn">${Array.from({ length: 12 }, (e, t) => N`<path d="M0-46V-66" stroke="#f5c542" stroke-width="6" stroke-linecap="round" transform="rotate(${t * 30})"/>`)}</g>
     <circle r="36" fill="#f7d355"/>
   </svg>`;
-function Br(e, t, n) {
-	return M`<div class="season" aria-hidden="true" style="--drop: ${n + 90}px; --span: ${t + 140}px">
-    ${e.foot ? M`<svg class="foot" width="100%" height="74"><defs><pattern id="aurora-foot" width="240" height="74" patternUnits="userSpaceOnUse">${it[e.foot]}</pattern></defs><rect width="100%" height="74" fill="url(#aurora-foot)"/></svg>` : F}
-    ${e.top === "lights" ? Lr(t) : e.top === "web" ? Rr : e.top === "sun" ? zr : F}
-    ${e.drift ? Ir(e.drift) : F}
+function Di(e, t) {
+	return M`<div class="season" aria-hidden="true" data-glyph=${e.drift?.glyph ?? ""} data-count=${e.drift?.count ?? 0}>
+    ${e.foot ? M`<svg class="foot" width="100%" height="74"><defs><pattern id="aurora-foot" width="240" height="74" patternUnits="userSpaceOnUse">${ot[e.foot]}</pattern></defs><rect width="100%" height="74" fill="url(#aurora-foot)"/></svg>` : F}
+    ${e.top === "lights" ? wi(t) : e.top === "web" ? Ti : e.top === "sun" ? Ei : F}
+    ${e.drift ? Ci(e.drift) : F}
   </div>`;
 }
-var Vr = (e, t) => e.hero ? M`<svg class="motif" viewBox="0 0 200 160" aria-hidden="true">${rt[e.hero](t)}</svg>` : F, Hr = "almanac", Ur = [
+var Oi = (e, t) => e.hero ? M`<svg class="motif" viewBox="0 0 200 160" aria-hidden="true">${at[e.hero](t)}</svg>` : F, ki = "almanac", Ai = [
 	{
 		id: "aurora",
 		name: "Aurora",
@@ -3627,7 +3993,7 @@ var Vr = (e, t) => e.hero ? M`<svg class="motif" viewBox="0 0 200 160" aria-hidd
 			250
 		]
 	}
-], Wr = [
+], ji = [
 	{
 		id: "snow",
 		name: "Snow",
@@ -3824,18 +4190,18 @@ var Vr = (e, t) => e.hero ? M`<svg class="motif" viewBox="0 0 200 160" aria-hidd
 		],
 		dark: !0
 	}
-], Gr = (e) => [...Ur, ...Wr].find((t) => t.id === e), Kr = (e) => `${e.sky.map((t, n) => `--h${n + 1}: ${t}; --m${n + 1}: ${e.moves[n]}`).join("; ")}; --hw: ${e.warm}; --strength: ${e.strength}`, qr = (e) => `background: conic-gradient(${[...e.sky, e.sky[0]].map((t) => `oklch(.72 ${(.19 * e.strength).toFixed(3)} ${t})`).join(", ")})`;
+], Mi = (e) => [...Ai, ...ji].find((t) => t.id === e), Ni = (e) => `${e.sky.map((t, n) => `--h${n + 1}: ${t}; --m${n + 1}: ${e.moves[n]}`).join("; ")}; --hw: ${e.warm}; --strength: ${e.strength}`, Pi = (e) => `background: conic-gradient(${[...e.sky, e.sky[0]].map((t) => `oklch(.72 ${(.19 * e.strength).toFixed(3)} ${t})`).join(", ")})`;
 //#endregion
 //#region src/dash-bored/aurora/bento.ts
-function Jr(e, t, n, r, i, a, o) {
+function Fi(e, t, n, r, i, a, o) {
 	if (r < 0 || i < 0 || r + a > t || i + o > n) return !1;
 	for (let n = i; n < i + o; n++) for (let i = r; i < r + a; i++) if (e[n * t + i]) return !1;
 	return !0;
 }
-function Yr(e, t, n) {
+function Ii(e, t, n) {
 	for (let r = n.row; r < n.row + n.h; r++) for (let i = n.col; i < n.col + n.w; i++) e[r * t + i] = !0;
 }
-function Xr(e, t, n) {
+function Li(e, t, n) {
 	let r = Array(t * n).fill(!1), i = [];
 	for (let a of e) {
 		let e = Math.min(a.w, t), o = Math.min(a.h, n), s;
@@ -3844,7 +4210,7 @@ function Xr(e, t, n) {
 			[e, 1],
 			[1, 1]
 		]) {
-			for (let e = 0; e < t * n && !s; e++) Jr(r, t, n, e % t, Math.floor(e / t), i, c) && (s = {
+			for (let e = 0; e < t * n && !s; e++) Fi(r, t, n, e % t, Math.floor(e / t), i, c) && (s = {
 				id: a.id,
 				col: e % t,
 				row: Math.floor(e / t),
@@ -3854,14 +4220,14 @@ function Xr(e, t, n) {
 			if (s) break;
 		}
 		if (!s) break;
-		Yr(r, t, s), i.push(s);
+		Ii(r, t, s), i.push(s);
 	}
 	return {
 		placed: i,
 		taken: r
 	};
 }
-function Zr(e, t, n, r) {
+function Ri(e, t, n, r) {
 	for (let i = !0; i && t.includes(!1);) {
 		i = !1;
 		for (let a of [...e].sort((e, t) => e.w * e.h - t.w * t.h)) {
@@ -3896,36 +4262,36 @@ function Zr(e, t, n, r) {
 					row: a.row - 1,
 					h: a.h + 1
 				}]
-			].find(([e]) => Jr(t, n, r, ...e));
-			e && (Object.assign(a, e[1]), Yr(t, n, a), i = !0);
+			].find(([e]) => Fi(t, n, r, ...e));
+			e && (Object.assign(a, e[1]), Ii(t, n, a), i = !0);
 		}
 	}
 }
-function Qr(e, t, n) {
+function zi(e, t, n) {
 	let r = 0;
-	for (let i = e; i.length; r++) i = i.slice(Xr(i, t, n).placed.length || 1);
+	for (let i = e; i.length; r++) i = i.slice(Li(i, t, n).placed.length || 1);
 	let i = [];
 	for (let a = e; a.length;) {
-		let e = Math.ceil(a.length / Math.max(1, r - i.length)), { placed: o, taken: s } = Xr(a.slice(0, e), t, n);
-		Zr(o, s, t, n), s.includes(!1) && ({placed: o, taken: s} = Xr(a.slice(0, e).map((e) => ({
+		let e = Math.ceil(a.length / Math.max(1, r - i.length)), { placed: o, taken: s } = Li(a.slice(0, e), t, n);
+		Ri(o, s, t, n), s.includes(!1) && ({placed: o, taken: s} = Li(a.slice(0, e).map((e) => ({
 			...e,
 			h: 1
-		})), t, n), Zr(o, s, t, n)), i.push(o), a = a.slice(o.length || 1);
+		})), t, n), Ri(o, s, t, n)), i.push(o), a = a.slice(o.length || 1);
 	}
 	return i;
 }
 //#endregion
 //#region src/dash-bored/aurora/pages.ts
-var $r = "hero", ei = "alerts", ti = "scenes", ni = "energy", ri = "climate", ii = "cameras", ai = "split:", oi = "room:", si = [200, 175], ci = 106, li = 1.3, ui = .85, di = [
+var Bi = "hero", Vi = "alerts", Hi = "scenes", Ui = "energy", Wi = "climate", Gi = "cameras", Ki = "split:", qi = "room:", Ji = [200, 175], Yi = 106, Xi = 1.3, Zi = .85, Qi = [
 	300,
 	250,
 	1.6
-], fi = (e, t) => Math.min(di[2], Math.max(1, Math.min(e / di[0], t / di[1])));
-function pi(e, t) {
+], $i = (e, t) => Math.min(Qi[2], Math.max(1, Math.min(e / Qi[0], t / Qi[1])));
+function ea(e, t) {
 	let n = (e, t, n) => Math.min(n, Math.max(2, Math.floor(e / t)));
-	return [n(e, si[0], 8), n(t - ci, si[1], 6)];
+	return [n(e, Ji[0], 8), n(t - Yi, Ji[1], 6)];
 }
-function mi(e) {
+function ta(e) {
 	let t = e.rooms.some((e) => e.floor), n = /* @__PURE__ */ new Map();
 	for (let r of e.rooms) {
 		let e = t ? r.floor ?? "Elsewhere" : "Rooms";
@@ -3937,23 +4303,23 @@ function mi(e) {
 	}
 	return [...n.values()];
 }
-var hi = (e, t) => e >= 9 || t ? [2, 2] : e >= 4 ? [2, 1] : [1, 1], gi = (e) => e.w * 3 * (e.h * 2 - 1), _i = [
+var na = (e, t) => e >= 9 || t ? [2, 2] : e >= 4 ? [2, 1] : [1, 1], ra = (e) => e.w * 3 * (e.h * 2 - 1), ia = [
 	84,
 	170,
 	250
-], vi = 12, yi = 96;
-function bi(e, t, n) {
-	let r = Math.floor((e - 32 + vi) / (_i[0] + vi));
+], aa = 12, oa = 96;
+function sa(e, t, n) {
+	let r = Math.floor((e - 32 + aa) / (ia[0] + aa));
 	if (!n || r < 1) return 0;
-	let i = Math.ceil(n / r), a = Math.floor((t - yi - (i - 1) * vi) / i);
-	return a >= _i[1] ? Math.min(_i[2], a) : 0;
+	let i = Math.ceil(n / r), a = Math.floor((t - oa - (i - 1) * aa) / i);
+	return a >= ia[1] ? Math.min(ia[2], a) : 0;
 }
-function xi(e, t, n, r) {
+function ca(e, t, n, r) {
 	let i = e.reduce((e, t) => e + t.w * t.h, 0), a;
 	for (let o = Math.max(...e.map((e) => e.w)); o <= t; o++) for (let t = Math.max(...e.map((e) => e.h)); t <= n; t++) {
-		let n = (o * t - i) / i + Math.abs(Math.log(r * t / o / li));
+		let n = (o * t - i) / i + Math.abs(Math.log(r * t / o / Xi));
 		if (o * t < i || a && n >= a.cost) continue;
-		let s = Qr(e, o, t);
+		let s = zi(e, o, t);
 		s.length === 1 && (a = {
 			cost: n,
 			cols: o,
@@ -3963,45 +4329,45 @@ function xi(e, t, n, r) {
 	}
 	return a;
 }
-function Si(e, t, n) {
-	let [r, i] = pi(t, n), a = t / Math.max(1, n - ci), o = mi(e), s = [
+function la(e, t, n) {
+	let [r, i] = ea(t, n), a = t / Math.max(1, n - Yi), o = ta(e), s = [
 		{
-			id: $r,
+			id: Bi,
 			w: r >= 6 ? 3 : 2,
 			h: 2
 		},
 		{
-			id: ei,
+			id: Vi,
 			w: 2,
 			h: 1
 		},
 		...e.scenes.length ? [{
-			id: ti,
+			id: Hi,
 			w: 2,
 			h: 1
 		}] : [],
 		...e.power ? [{
-			id: ni,
+			id: Ui,
 			w: 2,
 			h: 1
 		}] : [],
 		...e.rooms.some((e) => e.climate) ? [{
-			id: ri,
+			id: Wi,
 			w: 1,
 			h: 2
 		}] : [],
 		...e.rooms.some((e) => e.devices.some((e) => e.kind === "camera")) ? [{
-			id: ii,
+			id: Gi,
 			w: 2,
 			h: 1
 		}] : [],
 		...o.map((e) => ({
-			id: ai + e.id,
+			id: Ki + e.id,
 			w: 1,
 			h: 1
 		}))
-	], c = new Map(e.rooms.map((e) => [e.id, hi(e.devices.length, e.devices.some((e) => e.kind === "camera"))])), l = (e) => e.rooms.map((e) => ({
-		id: oi + e,
+	], c = new Map(e.rooms.map((e) => [e.id, na(e.devices.length, e.devices.some((e) => e.kind === "camera"))])), l = (e) => e.rooms.map((e) => ({
+		id: qi + e,
 		w: c.get(e)[0],
 		h: c.get(e)[1]
 	})), u = (e) => {
@@ -4016,10 +4382,10 @@ function Si(e, t, n) {
 				w: 1,
 				h: 1
 			}))
-		].map((e) => Qr(e, r, i));
+		].map((e) => zi(e, r, i));
 		return t.find((e) => e.length === t[2].length);
 	}, d = (e, t, n, o = u) => {
-		let s = xi(t, r, i, a);
+		let s = ca(t, r, i, a);
 		return s ? [{
 			name: e,
 			splits: n,
@@ -4043,27 +4409,27 @@ function Si(e, t, n) {
 			...e,
 			h: 1
 		}));
-		f.length > 0 && t.reduce((e, t) => e + t.w, 0) <= r * i * ui && Qr(t, r, i).length === 1 ? f.at(-1).push(e) : f.push([e]);
+		f.length > 0 && t.reduce((e, t) => e + t.w, 0) <= r * i * Zi && zi(t, r, i).length === 1 ? f.at(-1).push(e) : f.push([e]);
 	}
 	let p = (e) => e.length === o.length && e.length > 1 ? "Rooms" : e.map((e) => e.name).join(" · ");
-	return [...d("Home", s, [], (e) => Qr(e, r, i)), ...f.flatMap((e) => d(p(e), e.flatMap(l), e.map((e) => e.id)))];
+	return [...d("Home", s, [], (e) => zi(e, r, i)), ...f.flatMap((e) => d(p(e), e.flatMap(l), e.map((e) => e.id)))];
 }
 //#endregion
 //#region src/dash-bored/aurora/words.ts
-var Ci = (e) => e < 12 ? "Good morning." : e < 18 ? "Good afternoon." : "Good evening.", wi = (e) => e.length ? e.reduce((e, t) => e + (t.on ? t.level ?? 100 : 0), 0) / (e.length * 100) : 0;
-function Ti(e) {
-	let t = Jt(e).filter((e) => e.on).length, { N: n, s: r } = U(t), i = e.rooms.filter((e) => e.temp !== void 0).sort((e, t) => t.temp - e.temp), a = [[[`${n} light${r} ${t === 1 ? "is" : "are"} on`, !0]]];
+var ua = (e) => e < 12 ? "Good morning." : e < 18 ? "Good afternoon." : "Good evening.", da = (e) => e.length ? e.reduce((e, t) => e + (t.on ? t.level ?? 100 : 0), 0) / (e.length * 100) : 0;
+function fa(e) {
+	let t = Xt(e).filter((e) => e.on).length, { N: n, s: r } = U(t), i = e.rooms.filter((e) => e.temp !== void 0).sort((e, t) => t.temp - e.temp), a = [[[`${n} light${r} ${t === 1 ? "is" : "are"} on`, !0]]];
 	return e.kw !== void 0 && a.push([[`the house is drawing ${e.kw.toFixed(1)} kW`, !1]]), i.length > 1 && a.push([[`the warmest room is ${i[0].name} at `, !1], [`${i[0].temp.toFixed(1)}°`, !0]]), [...a.flatMap((e, t) => [...t ? [[t === a.length - 1 ? " and " : ", ", !1]] : [], ...e]), [".", !1]];
 }
-function Ei(e, t) {
+function pa(e, t) {
 	let n = [];
 	for (let r of e) (!n.length || r[0] - n.at(-1)[0] >= t) && n.push(r);
 	return n;
 }
-var Di = .9;
-function Oi(e, t, n, r = 300, i = 90) {
+var ma = .9;
+function ha(e, t, n, r = 300, i = 90) {
 	if (e.length < 2 || n <= t) return;
-	let a = Math.max(Di, ...e.map(([, e]) => e)), o = e.map(([e, o]) => [Math.round(Math.max(0, e - t) / (n - t) * r * 10) / 10, Math.round((i - 6 - Math.max(0, o) / a * (i - 16)) * 10) / 10]), s = `M${o[0]}`;
+	let a = Math.max(ma, ...e.map(([, e]) => e)), o = e.map(([e, o]) => [Math.round(Math.max(0, e - t) / (n - t) * r * 10) / 10, Math.round((i - 6 - Math.max(0, o) / a * (i - 16)) * 10) / 10]), s = `M${o[0]}`;
 	for (let e = 1; e < o.length; e++) s += ` Q${o[e - 1]} ${(o[e - 1][0] + o[e][0]) / 2},${(o[e - 1][1] + o[e][1]) / 2}`;
 	return s += ` L${o.at(-1)}`, {
 		line: s,
@@ -4072,7 +4438,7 @@ function Oi(e, t, n, r = 300, i = 90) {
 }
 //#endregion
 //#region src/dash-bored/shell.ts
-var ki = "dash-bored-page", Ai = "dash-bored-choose", ji = "dash-bored-family", Mi = 120, Ni = 450, Pi = "button, a, input, textarea, summary, dialog, [role=button], [role=slider]", Fi = (e, t, n, r) => e <= n && e > n - Mi && t >= r && t < r + Mi, Ii = [
+var ga = "dash-bored-page", _a = "dash-bored-choose", va = "dash-bored-family", ya = 120, ba = 450, xa = "button, a, input, textarea, summary, dialog, [role=button], [role=slider]", Sa = (e, t, n, r) => e <= n && e > n - ya && t >= r && t < r + ya, Ca = [
 	{
 		id: "gazette",
 		name: "The Gazette",
@@ -4119,12 +4485,12 @@ var ki = "dash-bored-page", Ai = "dash-bored-choose", ji = "dash-bored-family", 
       <rect x="14" y="24" width="40" height="6" rx="3" fill="#fff"/><rect x="14" y="36" width="48" height="3" rx="1.5" fill="#fff" opacity=".6"/><rect x="14" y="42" width="34" height="3" rx="1.5" fill="#fff" opacity=".6"/>
       <circle cx="84" cy="40" r="3.5" fill="#fff"/><circle cx="94" cy="40" r="3.5" fill="#fff" opacity=".3"/><circle cx="124" cy="40" r="3.5" fill="#fff" opacity=".3"/><circle cx="84" cy="84" r="3.5" fill="#fff"/><circle cx="124" cy="84" r="3.5" fill="#fff"/></svg>`
 	}
-], Li = class extends Ge {
+], wa = class extends Ge {
 	constructor(...e) {
-		super(...e), this.narrow = !1, this._family = Ii[0].id, this._choosing = !1, this._last = 0, this._asked = () => this._choosing = !0, this._tap = (e) => {
+		super(...e), this.narrow = !1, this._family = Ca[0].id, this._choosing = !1, this._last = 0, this._asked = () => this._choosing = !0, this._tap = (e) => {
 			let t = this.getBoundingClientRect();
-			if (e.composedPath().some((e) => e instanceof Element && e.matches(Pi)) || !Fi(e.clientX, e.clientY, t.right, Math.max(0, t.top))) return void (this._last = 0);
-			e.timeStamp - this._last < Ni && (this._choosing = !0), this._last = this._choosing ? 0 : e.timeStamp;
+			if (e.composedPath().some((e) => e instanceof Element && e.matches(xa)) || !Sa(e.clientX, e.clientY, t.right, Math.max(0, t.top))) return void (this._last = 0);
+			e.timeStamp - this._last < ba && (this._choosing = !0), this._last = this._choosing ? 0 : e.timeStamp;
 		};
 	}
 	static {
@@ -4155,18 +4521,18 @@ var ki = "dash-bored-page", Ai = "dash-bored-choose", ji = "dash-bored-family", 
 	connectedCallback() {
 		super.connectedCallback();
 		try {
-			let e = localStorage.getItem(ji)?.replace(/^bakelite$/, "console");
-			Ii.some((t) => t.id === e) && (this._family = e);
+			let e = localStorage.getItem(va)?.replace(/^bakelite$/, "console");
+			Ca.some((t) => t.id === e) && (this._family = e);
 		} catch {}
-		this.addEventListener("click", this._tap, !0), this.addEventListener(Ai, this._asked);
+		this.addEventListener("click", this._tap, !0), this.addEventListener(_a, this._asked);
 	}
 	disconnectedCallback() {
-		super.disconnectedCallback(), this.removeEventListener("click", this._tap, !0), this.removeEventListener(Ai, this._asked);
+		super.disconnectedCallback(), this.removeEventListener("click", this._tap, !0), this.removeEventListener(_a, this._asked);
 	}
 	_choose(e) {
 		this._family = e, this._choosing = !1;
 		try {
-			localStorage.setItem(ji, e);
+			localStorage.setItem(va, e);
 		} catch {}
 	}
 	updated() {
@@ -4175,34 +4541,37 @@ var ki = "dash-bored-page", Ai = "dash-bored-choose", ji = "dash-bored-family", 
 	}
 	render() {
 		if (!this.hass) return F;
-		let e = Ii.find((e) => e.id === this._family);
+		let e = Ca.find((e) => e.id === this._family);
 		return M`${e.draw(this.hass, this.narrow)}
       ${this._choosing ? M`<dialog @close=${() => this._choosing = !1} @click=${(e) => e.target === e.currentTarget && (this._choosing = !1)}>
             <h2>Dash-Bored</h2>
             <div class="choices">
-              ${Ii.map((t) => M`<button aria-current=${t.id === e.id} @click=${() => this._choose(t.id)}>${t.still}<b>${t.name}</b><span>${t.says}</span></button>`)}
+              ${Ca.map((t) => M`<button aria-current=${t.id === e.id} @click=${() => this._choose(t.id)}>${t.still}<b>${t.name}</b><span>${t.says}</span></button>`)}
             </div>
             <p>To choose again, press twice in the top right corner of the page.</p>
           </dialog>` : F}`;
 	}
-}, Ri = "dash-bored-aurora", zi = "dash-bored-aurora-skin", Bi = 36e5, Vi = 3e4, Hi = 6e4, Ui = 200, Wi = (e) => jr[e]?.drift ? M`<svg viewBox="0 0 24 24" aria-hidden="true">${nt[jr[e].drift.glyph]}</svg>` : F, Gi = (e, t) => `${e} ${t}${e === 1 ? "" : "s"}`, Ki = (e) => `grid-area: ${e.row + 1} / ${e.col + 1} / span ${e.h} / span ${e.w}`, qi = class extends wr {
+}, Ta = "dash-bored-aurora", Ea = "dash-bored-aurora-skin", Da = 36e5, Oa = 3e4, ka = 6e4, Aa = 200, ja = (e) => _i[e]?.drift ? M`<svg viewBox="0 0 24 24" aria-hidden="true">${nt[_i[e].drift.glyph]}</svg>` : F, Ma = (e, t) => `${e} ${t}${e === 1 ? "" : "s"}`, Na = (e) => `grid-area: ${e.row + 1} / ${e.col + 1} / span ${e.h} / span ${e.w}`, Pa = class extends Er {
 	constructor(...e) {
-		super(...e), this._alerts = [], this._find = "", this._trace = [], this._now = Date.now(), this._at = 0, this._wide = 0, this._skin = Ur[0].id, this._dressing = !1, this._traced = "", this._kept = "", this._again = () => this.requestUpdate(), this._came = /* @__PURE__ */ new Map(), this._failed = /* @__PURE__ */ new Set(), this._looks = {
+		super(...e), this._alerts = [], this._find = "", this._trace = [], this._now = Date.now(), this._at = 0, this._wide = 0, this._skin = Ai[0].id, this._dressing = !1, this._traced = "", this._kept = "", this._again = () => this.requestUpdate(), this._came = /* @__PURE__ */ new Map(), this._failed = /* @__PURE__ */ new Set(), this._drift = new gi(), this._looks = {
 			look: (e) => this._press(e),
 			came: (e) => this._noted(this._came, e, Date.now()),
 			failed: (e) => this._noted(this._failed, e)
 		}, this._works = {
-			turn: (e, t) => this._call(en(t), `${e.room} ${e.name}: ${t.name}`),
-			zoom: (e, t) => this._ask(e, t, $t),
-			press: (e, t) => this._call(nn(t), `${e.room} ${t.name}`),
+			turn: (e, t) => this._call(nn(t), `${e.room} ${e.name}: ${t.name}`),
+			zoom: (e, t) => this._ask(e, t, tn),
+			press: (e, t) => this._call(an(t), `${e.room} ${t.name}`),
 			device: (e) => this._control(e)
 		}, this._tick = () => {
-			this._now = Date.now(), this._after(Hi - this._now % Hi + 50, this._tick);
+			this._now = Date.now(), this._after(ka - this._now % ka + 50, this._tick);
 		}, this._slash = (e) => {
 			let t = e.composedPath()[0];
 			if (e.key !== "/" || t instanceof HTMLElement && (t.matches("input, textarea, select") || t.isContentEditable)) return;
 			let n = this.renderRoot.querySelector(".ask input");
 			n && (e.preventDefault(), n.focus());
+		}, this._nudge = (e) => {
+			let t = e.target.closest(".page > *");
+			t && !(e.type === "pointerover" && t.contains(e.relatedTarget)) && this._drift.shake(t);
 		};
 	}
 	static {
@@ -4226,50 +4595,50 @@ var ki = "dash-bored-page", Ai = "dash-bored-choose", ji = "dash-bored-family", 
 	_wear() {
 		let e = this._config.style;
 		try {
-			e ??= localStorage.getItem(zi) ?? void 0;
+			e ??= localStorage.getItem(Ea) ?? void 0;
 		} catch {}
-		this._skin = e === "almanac" || Gr(e) ? e : Ur[0].id;
+		this._skin = e === "almanac" || Mi(e) ? e : Ai[0].id;
 	}
 	_dress(e) {
 		this._skin = e;
 		try {
-			localStorage.setItem(zi, e);
+			localStorage.setItem(Ea, e);
 		} catch {}
 	}
 	connectedCallback() {
 		super.connectedCallback(), this._wear(), this._tick(), window.addEventListener("keydown", this._slash), window.addEventListener("resize", this._again);
 	}
 	disconnectedCallback() {
-		super.disconnectedCallback(), window.removeEventListener("keydown", this._slash), window.removeEventListener("resize", this._again);
+		super.disconnectedCallback(), this._drift.stop(), window.removeEventListener("keydown", this._slash), window.removeEventListener("resize", this._again);
 	}
 	_listen() {
-		super._listen(), this._follow(xn, "Sensor Watch's alerts", (e) => {
+		super._listen(), this._follow(Cn, "Sensor Watch's alerts", (e) => {
 			let t = new Map(this._alerts.map((e) => [e.entity_id, e]));
 			for (let n of e) t.set(n.entity_id, n);
 			this._alerts = [...t.values()];
 		}), this._watch();
 	}
 	_noted(e, t, n = 0) {
-		e.has(t) || (e instanceof Map ? e.set(t, n) : e.add(t), e.size > Ui && e.delete(e.keys().next().value), this.requestUpdate());
+		e.has(t) || (e instanceof Map ? e.set(t, n) : e.add(t), e.size > Aa && e.delete(e.keys().next().value), this.requestUpdate());
 	}
 	_surveyed() {
 		let e = this._survey?.power;
 		if (!e || this._sample) return;
 		this._traced !== e && (this._traced = e, this._trace = [], this._recall(e));
 		let t = this._house?.kw, n = Date.now(), r = this._trace.at(-1);
-		t !== void 0 && (!r || r[1] !== t && n - r[0] >= Vi) && (this._trace = [...this._trace.filter(([e]) => e > n - Bi), [n, t]]);
+		t !== void 0 && (!r || r[1] !== t && n - r[0] >= Oa) && (this._trace = [...this._trace.filter(([e]) => e > n - Da), [n, t]]);
 	}
 	async _recall(e) {
 		let t = Date.now();
 		try {
 			let n = await this._hass.connection.sendMessagePromise({
 				type: "history/history_during_period",
-				start_time: (/* @__PURE__ */ new Date(t - Bi)).toISOString(),
+				start_time: (/* @__PURE__ */ new Date(t - Da)).toISOString(),
 				entity_ids: [e],
 				minimal_response: !0,
 				no_attributes: !0
-			}), r = this._hass.states[e]?.attributes.unit_of_measurement === "kW" ? 1 : 1e3, i = (n[e] ?? []).filter((e) => e.s !== "" && Number.isFinite(Number(e.s))).map((e) => [Math.max(e.lu * 1e3, t - Bi), Number(e.s) / r]);
-			this._traced === e && (this._trace = Ei([...i, ...this._trace.filter(([e]) => e >= t)], Vi));
+			}), r = this._hass.states[e]?.attributes.unit_of_measurement === "kW" ? 1 : 1e3, i = (n[e] ?? []).filter((e) => e.s !== "" && Number.isFinite(Number(e.s))).map((e) => [Math.max(e.lu * 1e3, t - Da), Number(e.s) / r]);
+			this._traced === e && (this._trace = pa([...i, ...this._trace.filter(([e]) => e >= t)], Oa));
 		} catch (e) {
 			console.error("Dash-Bored: the power's last hour could not be read", e), this._fault = `The last hour of the house's power could not be read (${e?.message ?? e}).`;
 		}
@@ -4299,10 +4668,12 @@ var ki = "dash-bored-page", Ai = "dash-bored-choose", ji = "dash-bored-family", 
 		n ? n.finished.then(t, t) : t();
 	}
 	updated() {
-		let e = this.renderRoot.querySelector("dialog");
-		e && !e.open && (e.showModal(), this._grow(e, !1));
-		let t = this.renderRoot.querySelector(".pages"), n = this._laid ? `${this._laid.screens.length} ${this._wide}x${this._tall}` : "";
-		t && n !== this._kept && (this._kept = n, t.scrollLeft = Math.min(this._at, this._laid.screens.length - 1) * t.clientWidth);
+		let e = this.renderRoot.querySelectorAll(".page")[this._at]?.children ?? [];
+		this._drift.over(this.renderRoot.querySelector(".season"), [this.renderRoot.querySelector(".bar"), ...e].filter((e) => !!e));
+		let t = this.renderRoot.querySelector("dialog");
+		t && !t.open && (t.showModal(), this._grow(t, !1));
+		let n = this.renderRoot.querySelector(".pages"), r = this._laid ? `${this._laid.screens.length} ${this._wide}x${this._tall}` : "";
+		n && r !== this._kept && (this._kept = r, n.scrollLeft = Math.min(this._at, this._laid.screens.length - 1) * n.clientWidth);
 	}
 	_shine(e) {
 		let t = e.pointerType === "mouse" ? e.target.closest(".glass") : null;
@@ -4319,7 +4690,7 @@ var ki = "dash-bored-page", Ai = "dash-bored-choose", ji = "dash-bored-family", 
 	_lay(e) {
 		let [t, n] = [this._wide, this._tall];
 		if (this._laid?.found === e && this._laid.wide === t && this._laid.tall === n) return this._laid;
-		let r = Si(e, t, n), i = r.flatMap((e, t) => e.part === 0 ? [{
+		let r = la(e, t, n), i = r.flatMap((e, t) => e.part === 0 ? [{
 			name: e.name,
 			splits: e.splits,
 			first: t,
@@ -4331,7 +4702,7 @@ var ki = "dash-bored-page", Ai = "dash-bored-choose", ji = "dash-bored-family", 
 			tall: n,
 			screens: r,
 			entries: i,
-			sets: new Map(mi(e).map((e) => [e.id, e]))
+			sets: new Map(ta(e).map((e) => [e.id, e]))
 		};
 	}
 	_scrolled(e) {
@@ -4346,9 +4717,9 @@ var ki = "dash-bored-page", Ai = "dash-bored-choose", ji = "dash-bored-family", 
 		});
 	}
 	_tile(e, t, n, r, i, a) {
-		let o = e.devices.filter((e) => e.kind === "light" && !e.away), s = o.filter((e) => e.on).length, c = wi(o), l = o.length ? s ? `${s} of ${Gi(o.length, "light")} on` : o.length === 1 ? "Light off" : "All lights off" : e.devices.length ? Gi(e.devices.length, "device") : "", u = [...e.devices].sort((e, t) => Number(t.kind === "light") - Number(e.kind === "light")), d = gi(t), f = u.length > d ? u.length - (d - 1) : 0, p = () => this._open = e.id, m = bi(t.w * i[0] + (t.w - 1) * i[2], t.h * i[1] + (t.h - 1) * i[2], e.devices.length), h = [l, a && a.at ? `${a.d.name}: ${a.says}` : ""].filter(Boolean).join(" · ");
-		return M`<article class="room glass w${Math.min(t.w, 2)} h${Math.min(t.h, 2)} ${r ? "dim" : ""} ${a?.src ? "pictured" : ""}" data-room=${e.id} style="${Ki(t)}; --hue: ${n}; --lit: ${c ? (.35 + c * .65).toFixed(2) : 0}">
-      ${a ? Dr(a, this._looks, "back") : F}
+		let o = e.devices.filter((e) => e.kind === "light" && !e.away), s = o.filter((e) => e.on).length, c = da(o), l = o.length ? s ? `${s} of ${Ma(o.length, "light")} on` : o.length === 1 ? "Light off" : "All lights off" : e.devices.length ? Ma(e.devices.length, "device") : "", u = [...e.devices].sort((e, t) => Number(t.kind === "light") - Number(e.kind === "light")), d = ra(t), f = u.length > d ? u.length - (d - 1) : 0, p = () => this._open = e.id, m = sa(t.w * i[0] + (t.w - 1) * i[2], t.h * i[1] + (t.h - 1) * i[2], e.devices.length), h = [l, a && a.at ? `${a.d.name}: ${a.says}` : ""].filter(Boolean).join(" · ");
+		return M`<article class="room glass w${Math.min(t.w, 2)} h${Math.min(t.h, 2)} ${r ? "dim" : ""} ${a?.src ? "pictured" : ""}" data-room=${e.id} style="${Na(t)}; --hue: ${n}; --lit: ${c ? (.35 + c * .65).toFixed(2) : 0}">
+      ${a ? kr(a, this._looks, "back") : F}
       <button class="open" aria-label="${e.name}${h ? `: ${h}` : ""}. Open its controls" @click=${p}></button>
       <div class="head"><div><h2>${e.name}</h2><span class="sub">${h}</span></div>${e.temp === void 0 ? F : M`<div class="temp">${e.temp.toFixed(1)}°</div>`}</div>
       ${m ? M`<div class="controls" style="--tall: ${m}px">${e.devices.map((e) => this._control(e))}</div>` : M`<div class="dots">
@@ -4370,7 +4741,7 @@ var ki = "dash-bored-page", Ai = "dash-bored-choose", ji = "dash-bored-family", 
 			14,
 			88
 		], d = (e) => {
-			let [t, n] = [(this._wide - 2 * c - (e.cols - 1) * l) / e.cols, (r - c - u - (e.rows - 1) * l) / e.rows], i = fi(t, n);
+			let [t, n] = [(this._wide - 2 * c - (e.cols - 1) * l) / e.cols, (r - c - u - (e.rows - 1) * l) / e.rows], i = $i(t, n);
 			return {
 				by: i,
 				cell: [
@@ -4379,21 +4750,21 @@ var ki = "dash-bored-page", Ai = "dash-bored-choose", ji = "dash-bored-family", 
 					l / i
 				]
 			};
-		}, f = Math.min(this._at, o.screens.length - 1), p = Date.now(), m = new Date(this._now), h = Gr(this._skin === "almanac" ? Fr(m, (t.config?.latitude ?? 0) < 0, t.config?.country ?? "") : this._skin) ?? Ur[0], g = jr[h.id], _ = new Map(e.rooms.map((e, t) => [e.id, {
+		}, f = Math.min(this._at, o.screens.length - 1), p = Date.now(), m = new Date(this._now), h = Mi(this._skin === "almanac" ? xi(m, (t.config?.latitude ?? 0) < 0, t.config?.country ?? "") : this._skin) ?? Ai[0], g = _i[h.id], _ = new Map(e.rooms.map((e, t) => [e.id, {
 			r: e,
 			hue: h.rooms[t % h.rooms.length]
-		}])), v = this._alerts.filter((e) => e.level !== fn).sort((e, t) => (mn[t.level] ?? 0) - (mn[e.level] ?? 0) || e.began - t.began), y = e.rooms.flatMap((e) => e.devices).find((e) => e.kind === "climate" && e.dims && !e.away), b = Oi(this._trace, p - Bi, p), x = this._find.trim().toLowerCase(), S = (e) => !!e && (!x || [
+		}])), v = this._alerts.filter((e) => e.level !== mn).sort((e, t) => (gn[t.level] ?? 0) - (gn[e.level] ?? 0) || e.began - t.began), y = e.rooms.flatMap((e) => e.devices).find((e) => e.kind === "climate" && e.dims && !e.away), b = ha(this._trace, p - Da, p), x = this._find.trim().toLowerCase(), S = (e) => !!e && (!x || [
 			e.name,
 			...e.devices.map((e) => e.name),
 			...e.scenes.map((e) => e.name)
 		].some((e) => e.toLowerCase().includes(x))), C = (e) => e.parts > 1 ? `${e.name} ${e.part + 1}` : e.name, w = (e) => {
 			let t = e.currentTarget.getBoundingClientRect();
 			return e.target === e.currentTarget && (e.clientX < t.left || e.clientX > t.right || e.clientY < t.top || e.clientY > t.bottom);
-		}, T = this._sighted(p), E = new Map(Tr(e).map((e) => [e.id, Er(e, T, this._came, this._failed)])), D = new Map(e.rooms.flatMap((e) => {
+		}, T = this._sighted(p), E = new Map(Dr(e).map((e) => [e.id, Or(e, T, this._came, this._failed)])), D = new Map(e.rooms.flatMap((e) => {
 			let t = e.devices.flatMap((e) => E.has(e.id) ? [E.get(e.id)] : []), n = t.find((e) => e.src) ?? t[0];
 			return n ? [[e.id, n]] : [];
 		})), O = {
-			[$r]: (n) => M`<section class="hero glass" style=${Ki(n)}>
+			[Bi]: (n) => M`<section class="hero glass" style=${Na(n)}>
         <time>${m.toLocaleString(t.locale?.language, {
 				weekday: "long",
 				day: "numeric",
@@ -4401,31 +4772,31 @@ var ki = "dash-bored-page", Ai = "dash-bored-choose", ji = "dash-bored-family", 
 				hour: "2-digit",
 				minute: "2-digit"
 			})}</time>
-        <h1>${Ci(m.getHours())}</h1>
-        <p>${Ti(e).map(([e, t]) => t ? M`<b>${e}</b>` : e)}</p>
-        ${g ? Vr(g, m) : F}
+        <h1>${ua(m.getHours())}</h1>
+        <p>${fa(e).map(([e, t]) => t ? M`<b>${e}</b>` : e)}</p>
+        ${g ? Oi(g, m) : F}
       </section>`,
-			[ei]: (e) => M`<section class="alerts glass" style=${Ki(e)}><span class="label">Sensor Watch</span>
+			[Vi]: (e) => M`<section class="alerts glass" style=${Na(e)}><span class="label">Sensor Watch</span>
         ${v.length ? v.map((e) => M`<div class="note ${e.level}" role="status"><b>${e.name}</b>${e.message || e.level}<small>since ${V(e.began * 1e3)}</small></div>`) : M`<div class="none">${t.config?.components?.includes("casa_mia_sensor_watch") ? "Nothing needs attention." : "Sensor Watch is not installed, so nothing is watched from here."}</div>`}
       </section>`,
-			[ti]: (t) => M`<nav class="scenes glass" style=${Ki(t)} aria-label="Scenes">${e.scenes.map((e) => this._scene(e, e.floor ? e.full : e.name))}</nav>`,
-			[ni]: (t) => M`<section class="energy glass" style=${Ki(t)}><span class="label">Drawing now</span>
+			[Hi]: (t) => M`<nav class="scenes glass" style=${Na(t)} aria-label="Scenes">${e.scenes.map((e) => this._scene(e, e.floor ? e.full : e.name))}</nav>`,
+			[Ui]: (t) => M`<section class="energy glass" style=${Na(t)}><span class="label">Drawing now</span>
         ${e.kw === void 0 ? M`<div class="none">The power sensor is not answering.</div>` : M`<div class="big">${e.kw.toFixed(2)}<small>kW</small></div>
               ${b ? M`<svg viewBox="0 0 300 90" preserveAspectRatio="none" role="img" aria-label="The power drawn over the last hour">
                     <defs><linearGradient id="aurora-fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="currentColor" stop-opacity=".35"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></linearGradient></defs>
                     <path d=${b.area} fill="url(#aurora-fade)"/><path d=${b.line} fill="none" stroke="currentColor" stroke-width="2.5" vector-effect="non-scaling-stroke"/></svg>` : M`<div class="none">No readings from the last hour yet.</div>`}`}
       </section>`,
-			[ri]: (e) => M`<section class="climate glass" style=${Ki(e)}>
+			[Wi]: (e) => M`<section class="climate glass" style=${Na(e)}>
         ${y ? M`<div class="ringwrap"><div class="ring" style="--pct: ${(this._level(y) - y.span.min) / (y.span.max - y.span.min)}"></div>
                 <div class="read"><b>${this._level(y)}°</b><span>${y.room}${y.on ? y.temp === void 0 ? "" : ` · now ${y.temp.toFixed(1)}°` : " · off"}</span></div></div>
               <div class="steps"><button aria-label="${y.room} ${y.name}: cooler" @click=${() => this._set(y, this._level(y) - y.span.step)}>−</button><button aria-label="${y.room} ${y.name}: warmer" @click=${() => this._set(y, this._level(y) + y.span.step)}>+</button></div>` : M`<div class="none">No thermostat here takes a target just now.</div>`}
       </section>`
 		};
-		O[ii] = (e) => M`<section class="cameras glass" style=${Ki(e)} aria-label="Cameras">${[...E.values()].sort((e, t) => t.at - e.at).map((e) => Or(e, this._looks))}</section>`;
+		O[Gi] = (e) => M`<section class="cameras glass" style=${Na(e)} aria-label="Cameras">${[...E.values()].sort((e, t) => t.at - e.at).map((e) => Ar(e, this._looks))}</section>`;
 		let ee = (e) => {
-			let t = o.sets.get(e.id.slice(ai.length)), n = t.rooms.flatMap((e) => _.has(e) ? [_.get(e).r] : []), r = n.flatMap((e) => e.devices).filter((e) => e.kind === "light" && !e.away), i = r.filter((e) => e.on).length, a = wi(r);
-			return M`<button class="set glass ${x && !n.some(S) ? "dim" : ""}" style="${Ki(e)}; --hue: ${h.warm}; --lit: ${a ? (.35 + a * .65).toFixed(2) : 0}" @click=${() => this._go(o.entries.find((e) => e.splits.includes(t.id)).first)}>
-        <span><h2>${t.name}</h2><span class="sub">${Gi(n.length, "room")}${r.length ? ` · ${i ? `${Gi(i, "light")} on` : "lights off"}` : ""}</span></span>
+			let t = o.sets.get(e.id.slice(Ki.length)), n = t.rooms.flatMap((e) => _.has(e) ? [_.get(e).r] : []), r = n.flatMap((e) => e.devices).filter((e) => e.kind === "light" && !e.away), i = r.filter((e) => e.on).length, a = da(r);
+			return M`<button class="set glass ${x && !n.some(S) ? "dim" : ""}" style="${Na(e)}; --hue: ${h.warm}; --lit: ${a ? (.35 + a * .65).toFixed(2) : 0}" @click=${() => this._go(o.entries.find((e) => e.splits.includes(t.id)).first)}>
+        <span><h2>${t.name}</h2><span class="sub">${Ma(n.length, "room")}${r.length ? ` · ${i ? `${Ma(i, "light")} on` : "lights off"}` : ""}</span></span>
         <span class="in">${n.map((e) => {
 				let t = e.devices.filter((e) => e.kind === "light" && e.on && !e.away).length;
 				return M`<span class=${t ? "lit" : ""}>${e.name}${t ? M`<b>${t}</b>` : F}</span>`;
@@ -4434,28 +4805,28 @@ var ki = "dash-bored-page", Ai = "dash-bored-choose", ji = "dash-bored-family", 
 		}, te = (e, t) => {
 			if (e.id.startsWith("split:")) return ee(e);
 			if (!e.id.startsWith("room:")) return O[e.id](e);
-			let n = _.get(e.id.slice(oi.length));
+			let n = _.get(e.id.slice(qi.length));
 			return n ? this._tile(n.r, e, n.hue, !S(n.r), t, D.get(n.r.id)) : F;
 		}, ne = (e) => {
 			let t = e.key === "Enter" && x ? o.screens.findIndex((e) => e.tiles.some((e) => e.id.startsWith("room:") && S(_.get(e.id.slice(5))?.r))) : -1;
 			t >= 0 && this._go(t);
 		}, k = e.rooms.find((e) => e.id === this._open), A = [this._lost ? `No connection to Home Assistant since ${V(this._lost)}. What is shown is as it was then.` : "", this._fault].filter(Boolean);
-		return M`<div class=${i(h.dark || t.themes?.darkMode)} style="height: ${r}px; --warm: ${wi(Jt(e)).toFixed(3)}; ${Kr(h)}" @pointermove=${this._shine}>
+		return M`<div class=${i(h.dark || t.themes?.darkMode)} style="height: ${r}px; --warm: ${da(Xt(e)).toFixed(3)}; ${Ni(h)}" @pointermove=${this._shine}>
       <div class="sky" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-      <div class="pages" @scroll=${this._scrolled}>
+      <div class="pages" @scroll=${this._scrolled} @pointerover=${this._nudge} @pointerdown=${this._nudge}>
         ${o.screens.map((e) => {
 			let { by: t, cell: n } = d(e);
 			return M`<div class="page" role="group" aria-label=${C(e)} style="--cols: ${e.cols}; --rows: ${e.rows}; --zoom: ${t.toFixed(3)}">${e.tiles.map((e) => te(e, n))}</div>`;
 		})}
       </div>
-      ${g ? Br(g, this._wide, r) : F}
+      ${g ? Di(g, this._wide) : F}
       ${A.length ? M`<div class="urgent over" role="alert">${A.map((e) => M`<div>${e}</div>`)}</div>` : F}
       ${f > 0 ? M`<button class="edge left" aria-label="Back to ${C(o.screens[f - 1])}" @click=${() => this._go(f - 1)}>${C(o.screens[f - 1])}</button>` : F}
       ${f < o.screens.length - 1 ? M`<button class="edge right" aria-label="On to ${C(o.screens[f + 1])}" @click=${() => this._go(f + 1)}>${C(o.screens[f + 1])}</button>` : F}
       ${this._dressing ? M`<nav class="bar" aria-label="Colours">
-            ${Ur.map((e) => M`<button class="skin" style=${qr(e)} title=${e.name} aria-label=${e.name} aria-pressed=${e.id === this._skin} @click=${() => this._dress(e.id)}></button>`)}
-            <button class="${this._skin === "almanac" ? "here" : ""}" aria-pressed=${this._skin === Hr} title="The season's or the holiday's skin, by the date" @click=${() => this._dress(Hr)}>Almanac</button>
-            ${Wr.map((e) => M`<button class="skin" style=${qr(e)} title=${e.name} aria-label=${e.name} aria-pressed=${e.id === this._skin} @click=${() => this._dress(e.id)}>${Wi(e.id)}</button>`)}
+            ${Ai.map((e) => M`<button class="skin" style=${Pi(e)} title=${e.name} aria-label=${e.name} aria-pressed=${e.id === this._skin} @click=${() => this._dress(e.id)}></button>`)}
+            <button class="${this._skin === "almanac" ? "here" : ""}" aria-pressed=${this._skin === ki} title="The season's or the holiday's skin, by the date" @click=${() => this._dress(ki)}>Almanac</button>
+            ${ji.map((e) => M`<button class="skin" style=${Pi(e)} title=${e.name} aria-label=${e.name} aria-pressed=${e.id === this._skin} @click=${() => this._dress(e.id)}>${ja(e.id)}</button>`)}
             <button class="done" @click=${() => this._dressing = !1}>Done</button>
           </nav>` : M`<nav class="bar" aria-label="Screens">
         ${o.entries.map((e) => {
@@ -4463,31 +4834,31 @@ var ki = "dash-bored-page", Ai = "dash-bored-choose", ji = "dash-bored-family", 
 			return M`<button class="${t ? "here" : ""} ${n ? "dim" : ""}" aria-current=${t ? "page" : F} @click=${() => this._go(e.first)}>${e.name}${e.parts > 1 ? M`<i>${Array.from({ length: e.parts }, (t, n) => M`<b class=${e.first + n === f ? "on" : ""}></b>`)}</i>` : F}</button>`;
 		})}
         ${this._sample || e.rooms.length < 2 ? F : M`<label class="ask"><input placeholder="Find…" aria-label="Find a room, a device or a scene" autocomplete="off" .value=${this._find} @input=${(e) => this._find = e.target.value} @keydown=${ne} /><kbd>/</kbd></label>`}
-        ${this._sample || this._config.style ? F : M`<button class="skin" style=${qr(h)} title="Colours" aria-label="Choose its colours. Now ${this._skin === "almanac" ? `the Almanac's, ${h.name}` : h.name}" @click=${() => this._dressing = !0}>${Wi(h.id)}</button>`}
-        ${this.hasAttribute("panel") ? M`<button class="other" aria-label="Choose another style of Dash-Bored" title="Another style" @click=${() => s(this, Ai)}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4,4 h7 v7 h-7 z M13,4 h7 v7 h-7 z M4,13 h7 v7 h-7 z M13,13 h7 v7 h-7 z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></button>` : F}
+        ${this._sample || this._config.style ? F : M`<button class="skin" style=${Pi(h)} title="Colours" aria-label="Choose its colours. Now ${this._skin === "almanac" ? `the Almanac's, ${h.name}` : h.name}" @click=${() => this._dressing = !0}>${ja(h.id)}</button>`}
+        ${this.hasAttribute("panel") ? M`<button class="other" aria-label="Choose another style of Dash-Bored" title="Another style" @click=${() => s(this, _a)}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4,4 h7 v7 h-7 z M13,4 h7 v7 h-7 z M4,13 h7 v7 h-7 z M13,13 h7 v7 h-7 z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></button>` : F}
       </nav>`}
       ${k ? M`<dialog class="sheet glass" aria-label=${k.name} @cancel=${(e) => (e.preventDefault(), this._shut())} @click=${(e) => w(e) && this._shut()}>
             <header><h2>${k.name}</h2><button class="close" @click=${this._shut}>Done</button></header>
             ${this._fault ? M`<div class="urgent" role="alert">${this._fault}</div>` : F}
             ${k.scenes.length ? M`<nav class="scenes" aria-label="${k.name}'s scenes">${k.scenes.map((e) => this._scene(e, e.name))}</nav>` : F}
-            ${k.devices.some((e) => E.has(e.id)) ? M`<div class="shots">${k.devices.flatMap((e) => E.has(e.id) ? [M`<div class="cam">${Or(E.get(e.id), this._looks)}${kr(e, this._works)}</div>`] : [])}</div>` : F}
+            ${k.devices.some((e) => E.has(e.id)) ? M`<div class="shots">${k.devices.flatMap((e) => E.has(e.id) ? [M`<div class="cam">${Ar(E.get(e.id), this._looks)}${jr(e, this._works)}</div>`] : [])}</div>` : F}
             <div class="controls">${k.devices.filter((e) => !E.has(e.id)).map((e) => this._control(e))}</div>
-            ${Ar(k.devices, (e, t, n) => this._call(st(e.id, t, n), `${e.room} ${e.name}: ${t.what}`))}
+            ${Mr(k.devices, (e, t, n) => this._call(lt(e.id, t, n), `${e.room} ${e.name}: ${t.what}`))}
             ${k.devices.length || k.scenes.length ? F : M`<p class="none">Nothing in this room can be worked from here.</p>`}
           </dialog>` : F}
     </div>`;
 	}
-}, Ji = {
+}, Fa = {
 	ATTRIBUTE: 1,
 	CHILD: 2,
 	PROPERTY: 3,
 	BOOLEAN_ATTRIBUTE: 4,
 	EVENT: 5,
 	ELEMENT: 6
-}, Yi = (e) => (...t) => ({
+}, Ia = (e) => (...t) => ({
 	_$litDirective$: e,
 	values: t
-}), Xi = class {
+}), La = class {
 	constructor(e) {}
 	get _$AU() {
 		return this._$AM._$AU;
@@ -4501,9 +4872,9 @@ var ki = "dash-bored-page", Ai = "dash-bored-choose", ji = "dash-bored-family", 
 	update(e, t) {
 		return this.render(...t);
 	}
-}, { I: Zi } = Ve, Qi = (e) => e, $i = (e) => e.strings === void 0, ea = () => document.createComment(""), ta = (e, t, n) => {
+}, { I: Ra } = Ve, za = (e) => e, Ba = (e) => e.strings === void 0, Va = () => document.createComment(""), Ha = (e, t, n) => {
 	let r = e._$AA.parentNode, i = t === void 0 ? e._$AB : t._$AA;
-	if (n === void 0) n = new Zi(r.insertBefore(ea(), i), r.insertBefore(ea(), i), e, e.options);
+	if (n === void 0) n = new Ra(r.insertBefore(Va(), i), r.insertBefore(Va(), i), e, e.options);
 	else {
 		let t = n._$AB.nextSibling, a = n._$AM, o = a !== e;
 		if (o) {
@@ -4513,21 +4884,21 @@ var ki = "dash-bored-page", Ai = "dash-bored-choose", ji = "dash-bored-family", 
 		if (t !== i || o) {
 			let e = n._$AA;
 			for (; e !== t;) {
-				let t = Qi(e).nextSibling;
-				Qi(r).insertBefore(e, i), e = t;
+				let t = za(e).nextSibling;
+				za(r).insertBefore(e, i), e = t;
 			}
 		}
 	}
 	return n;
-}, na = (e, t, n = e) => (e._$AI(t, n), e), ra = {}, ia = (e, t = ra) => e._$AH = t, aa = (e) => e._$AH, oa = (e) => {
+}, Ua = (e, t, n = e) => (e._$AI(t, n), e), Wa = {}, Ga = (e, t = Wa) => e._$AH = t, Ka = (e) => e._$AH, qa = (e) => {
 	e._$AR(), e._$AA.remove();
-}, sa = (e, t, n) => {
+}, Ja = (e, t, n) => {
 	let r = /* @__PURE__ */ new Map();
 	for (let i = t; i <= n; i++) r.set(e[i], i);
 	return r;
-}, ca = Yi(class extends Xi {
+}, Ya = Ia(class extends La {
 	constructor(e) {
-		if (super(e), e.type !== Ji.CHILD) throw Error("repeat() can only be used in text expressions");
+		if (super(e), e.type !== Fa.CHILD) throw Error("repeat() can only be used in text expressions");
 	}
 	dt(e, t, n) {
 		let r;
@@ -4543,36 +4914,36 @@ var ki = "dash-bored-page", Ai = "dash-bored-choose", ji = "dash-bored-family", 
 		return this.dt(e, t, n).values;
 	}
 	update(e, [t, n, r]) {
-		let i = aa(e), { values: a, keys: o } = this.dt(t, n, r);
+		let i = Ka(e), { values: a, keys: o } = this.dt(t, n, r);
 		if (!Array.isArray(i)) return this.ut = o, a;
 		let s = this.ut ??= [], c = [], l, u, d = 0, f = i.length - 1, p = 0, m = a.length - 1;
 		for (; d <= f && p <= m;) if (i[d] === null) d++;
 		else if (i[f] === null) f--;
-		else if (s[d] === o[p]) c[p] = na(i[d], a[p]), d++, p++;
-		else if (s[f] === o[m]) c[m] = na(i[f], a[m]), f--, m--;
-		else if (s[d] === o[m]) c[m] = na(i[d], a[m]), ta(e, c[m + 1], i[d]), d++, m--;
-		else if (s[f] === o[p]) c[p] = na(i[f], a[p]), ta(e, i[d], i[f]), f--, p++;
-		else if (l === void 0 && (l = sa(o, p, m), u = sa(s, d, f)), l.has(s[d])) {
+		else if (s[d] === o[p]) c[p] = Ua(i[d], a[p]), d++, p++;
+		else if (s[f] === o[m]) c[m] = Ua(i[f], a[m]), f--, m--;
+		else if (s[d] === o[m]) c[m] = Ua(i[d], a[m]), Ha(e, c[m + 1], i[d]), d++, m--;
+		else if (s[f] === o[p]) c[p] = Ua(i[f], a[p]), Ha(e, i[d], i[f]), f--, p++;
+		else if (l === void 0 && (l = Ja(o, p, m), u = Ja(s, d, f)), l.has(s[d])) {
 			if (l.has(s[f])) {
 				let t = u.get(o[p]), n = t === void 0 ? null : i[t];
 				if (n === null) {
-					let t = ta(e, i[d]);
-					na(t, a[p]), c[p] = t;
-				} else c[p] = na(n, a[p]), ta(e, i[d], n), i[t] = null;
+					let t = Ha(e, i[d]);
+					Ua(t, a[p]), c[p] = t;
+				} else c[p] = Ua(n, a[p]), Ha(e, i[d], n), i[t] = null;
 				p++;
-			} else oa(i[f]), f--;
-		} else oa(i[d]), d++;
+			} else qa(i[f]), f--;
+		} else qa(i[d]), d++;
 		for (; p <= m;) {
-			let t = ta(e, c[m + 1]);
-			na(t, a[p]), c[p++] = t;
+			let t = Ha(e, c[m + 1]);
+			Ua(t, a[p]), c[p++] = t;
 		}
 		for (; d <= f;) {
 			let e = i[d++];
-			e !== null && oa(e);
+			e !== null && qa(e);
 		}
-		return this.ut = o, ia(e, c), P;
+		return this.ut = o, Ga(e, c), P;
 	}
-}), la = [
+}), Xa = [
 	53,
 	97,
 	61,
@@ -4583,23 +4954,23 @@ var ki = "dash-bored-page", Ai = "dash-bored-choose", ji = "dash-bored-family", 
 	67,
 	79,
 	73
-], ua = 11, da = (e) => {
-	let t = (e % ua + ua) % ua;
+], Za = 11, Qa = (e) => {
+	let t = (e % Za + Za) % Za;
 	return t ? String(t - 1) : "";
-}, fa = /* @__PURE__ */ t({
-	DEFS: () => pa,
-	dolly: () => Ca,
-	jewel: () => ba,
-	knife: () => Aa,
-	knob: () => Ta,
+}, $a = /* @__PURE__ */ t({
+	DEFS: () => eo,
+	dolly: () => uo,
+	jewel: () => so,
+	knife: () => vo,
+	knob: () => po,
 	label: () => Y,
-	meter: () => ya,
-	push: () => ka,
-	swing: () => ga,
-	tv: () => Ea,
-	valve: () => Sa,
-	wheels: () => Oa
-}), pa = M`<svg class="defs" width="0" height="0" aria-hidden="true"><defs>
+	meter: () => oo,
+	push: () => _o,
+	swing: () => ro,
+	tv: () => mo,
+	valve: () => lo,
+	wheels: () => go
+}), eo = M`<svg class="defs" width="0" height="0" aria-hidden="true"><defs>
   <radialGradient id="hot"><stop offset="0" stop-color="#fff2b0"/><stop offset=".4" stop-color="#ff8a1e"/><stop offset="1" stop-color="#ff4a00" stop-opacity="0"/></radialGradient>
   <radialGradient id="bake" cx=".32" cy=".25"><stop offset="0" stop-color="#6a3f2c"/><stop offset=".5" stop-color="#34190f"/><stop offset="1" stop-color="#150a06"/></radialGradient>
   <radialGradient id="dome" cx=".35" cy=".28"><stop offset="0" stop-color="#8a5740"/><stop offset=".55" stop-color="#3a1d12"/><stop offset="1" stop-color="#1a0c07"/></radialGradient>
@@ -4614,16 +4985,16 @@ var ki = "dash-bored-page", Ai = "dash-bored-choose", ji = "dash-bored-family", 
   <linearGradient id="sepia" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#efe0b9"/><stop offset=".6" stop-color="#e3cf9f"/><stop offset="1" stop-color="#d2b983"/></linearGradient>
   <path id="arch" d="M24.9,39.1 A57,57 0 0 1 95.1,39.1"/>
   <linearGradient id="lever" x1="0" x2="1"><stop offset="0" stop-color="#b98a6c"/><stop offset=".4" stop-color="#6a3f2c"/><stop offset="1" stop-color="#2a140c"/></linearGradient>
-</defs></svg>`, Y = (e) => M`<span class="label">${e}</span>`, ma = (e, t) => {
+</defs></svg>`, Y = (e) => M`<span class="label">${e}</span>`, to = (e, t) => {
 	let n = (t - 90) * Math.PI / 180;
 	return [60 + e * Math.cos(n), 84 + e * Math.sin(n)];
-}, ha = (e, t) => ma(e, t).map((e) => e.toFixed(1)).join(","), ga = (e, t, n) => -50 + 100 * Math.min(1, Math.max(0, (e - t) / (n - t))), _a = {
+}, no = (e, t) => to(e, t).map((e) => e.toFixed(1)).join(","), ro = (e, t, n) => -50 + 100 * Math.min(1, Math.max(0, (e - t) / (n - t))), io = {
 	"°C": "Degrees Celsius",
 	kW: "Kilowatts"
-}, va = Array.from({ length: 51 }, (e, t) => N`<path class="scale" d="M${ha(36, -50 + t * 2)} L${ha(t % 5 ? 40 : 43, -50 + t * 2)}"/>`);
-function ya(e, t, n, r, i, a = 0, o = !0) {
+}, ao = Array.from({ length: 51 }, (e, t) => N`<path class="scale" d="M${no(36, -50 + t * 2)} L${no(t % 5 ? 40 : 43, -50 + t * 2)}"/>`);
+function oo(e, t, n, r, i, a = 0, o = !0) {
 	let s = Array.from({ length: 6 }, (e, r) => {
-		let [i, a] = ma(48, -50 + r * 20);
+		let [i, a] = to(48, -50 + r * 20);
 		return N`<text x=${i.toFixed(1)} y=${(a + 2).toFixed(1)}>${+(t + (n - t) * r / 5).toFixed(1)}</text>`;
 	});
 	return M`<div class="meter">
@@ -4632,10 +5003,10 @@ function ya(e, t, n, r, i, a = 0, o = !0) {
       ${o ? N`<circle cx="60" cy="62" r="50.5" fill="none" stroke="#ffb347" stroke-opacity=".28" stroke-width="2"/>` : F}
       <path fill="url(#${o ? "lit" : "unlit"})" d="M17,78 A46,46 0 1 1 103,78 Q100,92 86,92 C76,92 78,75 60,75 C42,75 44,92 34,92 Q20,92 17,78 Z"/>
       ${o ? N`<ellipse cx="60" cy="24" rx="24" ry="9" fill="url(#spot)" opacity=".55"/>` : F}
-      <path class="scale" d="M${ha(36, -50)} A36,36 0 0 1 ${ha(36, 50)} M${ha(40, -50)} A40,40 0 0 1 ${ha(40, 50)}"/>${va}${s}
-      <text class="legend"><textPath href="#arch" startOffset="50%">${_a[i] ?? i}</textPath></text>
+      <path class="scale" d="M${no(36, -50)} A36,36 0 0 1 ${no(36, 50)} M${no(40, -50)} A40,40 0 0 1 ${no(40, 50)}"/>${ao}${s}
+      <text class="legend"><textPath href="#arch" startOffset="50%">${io[i] ?? i}</textPath></text>
       <text class="unit" x="60" y="66">${i}</text><text class="small" x="33" y="84">MOVING COIL</text><text class="small" x="87" y="84">DASH-BORED</text>
-      <g class="needle" style="transform: rotate(${ga(r, t, n).toFixed(1)}deg)"><g class="waver" style="animation-duration: ${la[a % la.length] * 16}ms">
+      <g class="needle" style="transform: rotate(${ro(r, t, n).toFixed(1)}deg)"><g class="waver" style="animation-duration: ${Xa[a % Xa.length] * 16}ms">
         <path d="M60,84 V51" stroke="#b4b1a4" stroke-width=".8"/><path d="M60,51 V42" stroke="#111" stroke-width=".8" stroke-linecap="round"/><circle cx="60" cy="50" r="1.5" fill="#111"/></g></g>
       <path d="M17,78 A46,46 0 1 1 103,78" fill="none" stroke="#000" stroke-opacity=".3" stroke-width="2.4"/><path d="M26,44 A40,40 0 0 1 58,20" fill="none" stroke="#fff" stroke-opacity=".16" stroke-width="2.5" stroke-linecap="round"/>
       <path d="M17,79 Q20,93 34,93 C45,93 43,76 60,76 C77,76 75,93 86,93 Q100,93 103,79 A46,46 0 0 1 17,79 Z" fill="url(#ebon)"/>
@@ -4645,13 +5016,13 @@ function ya(e, t, n, r, i, a = 0, o = !0) {
     ${Y(e)}
   </div>`;
 }
-var ba = (e) => M`<svg class="jewel ${e}" viewBox="0 0 40 40" width="34" aria-hidden="true">
+var so = (e) => M`<svg class="jewel ${e}" viewBox="0 0 40 40" width="34" aria-hidden="true">
   <circle cx="20" cy="21.2" r="18" fill="#000" opacity=".5"/><circle cx="20" cy="20" r="18" fill="url(#brass)"/>
   <g fill="none" stroke="#3a2808"><circle cx="20" cy="20" r="17.6" stroke-width=".7"/><circle cx="20" cy="20" r="15.4" stroke-width=".6" stroke-opacity=".7"/><circle cx="20" cy="20" r="13.6" stroke-width=".9"/></g>
   <circle cx="20" cy="20" r="16.5" fill="none" stroke="#fff" stroke-opacity=".28" stroke-width=".5" stroke-dasharray="14 90" transform="rotate(200 20 20)"/>
   <circle cx="20" cy="20" r="12.6" fill="#120805"/><circle class="glass" cx="20" cy="20" r="11.8"/>
   <circle cx="20" cy="20" r="11.8" fill="url(#rim)"/><circle cx="20" cy="21" r="8.5" fill="url(#spot)"/><circle cx="20" cy="21" r="4" fill="url(#spot)"/>
-  <path d="M12.2,15.5 A9.5,9.5 0 0 1 19,10.6" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="1.5" stroke-linecap="round"/></svg>`, xa = Array.from({ length: 19 }, (e, t) => `M36.4,${(41.5 + t * 1.4).toFixed(1)} h7.2`).join(" "), Sa = (e) => M`<svg class="valve" viewBox="0 0 80 100" width="74" aria-hidden="true" style="--heat: ${e.toFixed(2)}">
+  <path d="M12.2,15.5 A9.5,9.5 0 0 1 19,10.6" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="1.5" stroke-linecap="round"/></svg>`, co = Array.from({ length: 19 }, (e, t) => `M36.4,${(41.5 + t * 1.4).toFixed(1)} h7.2`).join(" "), lo = (e) => M`<svg class="valve" viewBox="0 0 80 100" width="74" aria-hidden="true" style="--heat: ${e.toFixed(2)}">
   <ellipse class="halo" cx="40" cy="54" rx="25" ry="33" fill="url(#hot)"/>
   <ellipse cx="40" cy="93" rx="15" ry="2.6" fill="#120805"/><path d="M29,92 v6 M33.5,93 v6 M40,93.5 v6 M46.5,93 v6 M51,92 v6" stroke="#c9c2b0" stroke-width="1.3" stroke-linecap="round"/>
   <path d="M24,91 V26 Q24,10 36,7 L38,3 Q40,1 42,3 L44,7 Q56,10 56,26 V91 Q40,95 24,91 Z" fill="#0c0806" fill-opacity=".35"/>
@@ -4662,13 +5033,13 @@ var ba = (e) => M`<svg class="jewel ${e}" viewBox="0 0 40 40" width="34" aria-hi
   <path d="M28.4,40 V69 M46.2,40 V69" stroke="#fff" stroke-opacity=".2" stroke-width="1.6"/><path d="M26.5,47 h9.2 M26.5,62 h9.2 M44.3,47 h9.2 M44.3,62 h9.2" stroke="#000" stroke-opacity=".35" stroke-width=".5"/><path d="M35.2,40 V69 M44.8,40 V69" stroke="#000" stroke-opacity=".5" stroke-width=".8"/>
   <rect x="35.7" y="40" width="8.6" height="29" fill="#150c08"/>
   <ellipse class="heater" cx="40" cy="54" rx="9" ry="20" fill="url(#hot)"/>
-  <path d="M36.4,33 V73 M43.6,33 V73" stroke="#b87a3a" stroke-width=".9"/><path d="${xa}" stroke="#d9b98a" stroke-width=".35" stroke-opacity=".8"/>
+  <path d="M36.4,33 V73 M43.6,33 V73" stroke="#b87a3a" stroke-width=".9"/><path d="${co}" stroke="#d9b98a" stroke-width=".35" stroke-opacity=".8"/>
   <rect class="heater" x="38.7" y="35" width="2.6" height="38" rx="1.3" fill="#ff7a1a"/><rect class="heater" x="39.4" y="36" width="1.2" height="36" rx=".6" fill="#ffd28a"/><circle class="heater" cx="40" cy="35.5" r="2.3" fill="#fff4c4"/>
   <g fill="#cdbfa6" fill-opacity=".9" stroke="#7d6e55" stroke-width=".5"><ellipse cx="40" cy="39" rx="15" ry="2.5"/><ellipse cx="40" cy="70" rx="15" ry="2.5"/></g>
   <path d="M24,34 V26 Q24,10 36,7 L38,3 Q40,1 42,3 L44,7 Q56,10 56,26 V34 Q40,29 24,34 Z" fill="url(#getter)"/>
   <path d="M24,91 V26 Q24,10 36,7 L38,3 Q40,1 42,3 L44,7 Q56,10 56,26 V91 Q40,95 24,91 Z" fill="url(#tube)" stroke="#e6eef2" stroke-opacity=".55" stroke-width=".7"/>
   <path d="M27.3,24 V86" stroke="#fff" stroke-opacity=".42" stroke-width="1.5" stroke-linecap="round"/><path d="M53.2,30 V84" stroke="#fff" stroke-opacity=".16" stroke-width="1" stroke-linecap="round"/>
-  <path d="M29,17 Q32,10.5 38,9" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="1.2" stroke-linecap="round"/></svg>`, Ca = (e, t, n, r, i = "", a = "", o = ["On", "Off"]) => M`<button class="dolly ${t ? "on" : ""} ${n ? "away" : ""} ${i}" aria-pressed=${t} aria-label=${n ? `${e}: not answering` : e + a} @click=${r}>
+  <path d="M29,17 Q32,10.5 38,9" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="1.2" stroke-linecap="round"/></svg>`, uo = (e, t, n, r, i = "", a = "", o = ["On", "Off"]) => M`<button class="dolly ${t ? "on" : ""} ${n ? "away" : ""} ${i}" aria-pressed=${t} aria-label=${n ? `${e}: not answering` : e + a} @click=${r}>
   <svg viewBox="0 -8 64 74"><circle class="pilot" cx="32" cy="-3" r="3.6" stroke="#c9a24b" stroke-width="1.2"/>
     <circle cx="32" cy="34" r="30" fill="#0e0705"/><circle cx="32" cy="32" r="30" fill="url(#bake)"/>
     <circle cx="32" cy="32" r="29" fill="none" stroke="#fff" stroke-opacity=".16"/><circle cx="32" cy="32" r="23.5" fill="none" stroke="#000" stroke-opacity=".55" stroke-width="1.6"/>
@@ -4680,35 +5051,35 @@ var ba = (e) => M`<svg class="jewel ${e}" viewBox="0 0 40 40" width="34" aria-hi
     ${i ? N`<g class="guard"><rect x="17" y="4" width="30" height="56" rx="5" fill="#c8281e" fill-opacity=".82" stroke="#5a0f0a" stroke-width="1.2"/><path d="M21,9 h22" stroke="#fff" stroke-opacity=".4" stroke-width="2" stroke-linecap="round"/><rect x="14" y="1" width="36" height="6" rx="2" fill="#8a8473" stroke="#2a1a10" stroke-width=".8"/></g>` : F}
     <ellipse cx="24" cy="23" rx="5" ry="3" fill="#fff" opacity=".22" transform="rotate(-35 24 23)"/></svg>
   ${Y(e)}
-</button>`, wa = Array.from({ length: 11 }, (e, t) => {
+</button>`, fo = Array.from({ length: 11 }, (e, t) => {
 	let n = (-135 + t * 27 - 90) * Math.PI / 180, r = (e) => [(52 + e * Math.cos(n)).toFixed(1), (52 + e * Math.sin(n)).toFixed(1)], [i, a] = r(40), [o, s] = r(47);
 	return N`<line x1=${i} y1=${a} x2=${o} y2=${s} stroke="#e9dfc3" stroke-width=${t % 5 ? 1 : 2.2}/>`;
-}), Ta = (e, t, n, r, i, a, o, s, c = [0, 100], l) => M`<div class="dial ${t}">
-  <div class="dimmer"><svg viewBox="0 0 104 104" aria-hidden="true">${wa}</svg>
+}), po = (e, t, n, r, i, a, o, s, c = [0, 100], l) => M`<div class="dial ${t}">
+  <div class="dimmer"><svg viewBox="0 0 104 104" aria-hidden="true">${fo}</svg>
     <div class="knob ${t} ${i ? "drag" : ""}" role="slider" tabindex="0" aria-label="${e} ${n}" aria-valuemin="0" aria-valuemax="100" aria-valuenow=${Math.round(r)} aria-valuetext=${a} style="--lvl: ${r.toFixed(1)}"
       @pointerdown=${s.down} @pointermove=${s.move} @pointerup=${s.up} @pointercancel=${s.drop} @keydown=${s.key}><span class="flutes"></span><span class="cap"></span><span class="mark"></span></div></div>
   ${Y(e)}${o || t === "sound" ? M`<span class="note">${o ? Y(o) : F}</span>` : F}
-</div>`, Ea = (e, t, n) => M`<button class="tv" aria-label=${e} @click=${n}>
+</div>`, mo = (e, t, n) => M`<button class="tv" aria-label=${e} @click=${n}>
   <span class="tube">${t ? M`<img src=${t} alt="" loading="lazy" />` : F}</span>
   ${Y(e)}
-</button>`, Da = [
+</button>`, ho = [
 	.9,
 	-1.3,
 	.4,
 	1.6,
 	-.7,
 	-1.7
-], Oa = (e, t, n) => M`<div class="wheels" role="group" aria-label="${e} code">${t.map((e, t) => M`<div class="wheel">
-    ${ca([
+], go = (e, t, n) => M`<div class="wheels" role="group" aria-label="${e} code">${t.map((e, t) => M`<div class="wheel">
+    ${Ya([
 	-2,
 	-1,
 	0,
 	1,
 	2
-].map((t) => e + t), (e) => e, (n) => M`<span class=${n === e ? "at" : ""} aria-hidden=${n === e ? F : "true"} aria-label=${n === e ? `Wheel ${t + 1}: ${da(n) || "blank"}` : F}
-        style="--n: ${n - e}; --off: ${Da[t % Da.length]}px">${da(n)}</span>`)}
+].map((t) => e + t), (e) => e, (n) => M`<span class=${n === e ? "at" : ""} aria-hidden=${n === e ? F : "true"} aria-label=${n === e ? `Wheel ${t + 1}: ${Qa(n) || "blank"}` : F}
+        style="--n: ${n - e}; --off: ${ho[t % ho.length]}px">${Qa(n)}</span>`)}
     <button aria-label="Wheel ${t + 1} on" @click=${() => n(t, 1)}></button><button aria-label="Wheel ${t + 1} back" @click=${() => n(t, -1)}></button>
-  </div>`)}</div>`, ka = (e, t) => M`<button class="push" @click=${t}><span class="cap"></span>${Y(e)}</button>`, Aa = (e, t, n) => M`<button class="knife ${t ? "closed" : ""}" @click=${n}>
+  </div>`)}</div>`, _o = (e, t) => M`<button class="push" @click=${t}><span class="cap"></span>${Y(e)}</button>`, vo = (e, t, n) => M`<button class="knife ${t ? "closed" : ""}" @click=${n}>
   <svg viewBox="0 0 130 84" aria-hidden="true"><rect x="4" y="62" width="122" height="18" rx="3" fill="#3c4142" stroke="#111"/>
     <path d="M100,62 v-16 M108,62 v-16" stroke="#c9a24b" stroke-width="4"/><path d="M18,62 v-8 h8 v8" fill="#c9a24b"/>
     <circle class="spark" cx="104" cy="46" r="7" fill="url(#hot)"/>
@@ -4718,7 +5089,7 @@ var ba = (e) => M`<svg class="jewel ${e}" viewBox="0 0 40 40" width="34" aria-hi
 </button>`;
 //#endregion
 //#region src/dash-bored/console/plot.ts
-function ja(e, t, n, r, i) {
+function yo(e, t, n, r, i) {
 	let a = [], o;
 	return e.forEach((s, c) => {
 		let l = Math.max(s.at, t), u = Math.min(e[c + 1]?.at ?? n, n);
@@ -4730,36 +5101,36 @@ function ja(e, t, n, r, i) {
 }
 //#endregion
 //#region src/dash-bored/console/bakelite/recorder.ts
-var Ma = [
+var bo = [
 	"#a3261a",
 	"#1f3f7a",
 	"#2c6b3a",
 	"#6a2a6a"
-], Na = 96, Pa = 640, Fa = 34, Ia = 36e5;
-function La(e, t, n, r, i) {
-	let a = n - 24 * Ia, o = (e) => Na + (e - a) / (n - a) * 536, s = Math.ceil(a / Ia) * Ia, c = Array.from({ length: 24 }, (e, t) => s + t * Ia).filter((e) => e <= n), l = t.length * Fa + 26;
+], xo = 96, So = 640, Co = 34, wo = 36e5;
+function To(e, t, n, r, i) {
+	let a = n - 24 * wo, o = (e) => xo + (e - a) / (n - a) * 536, s = Math.ceil(a / wo) * wo, c = Array.from({ length: 24 }, (e, t) => s + t * wo).filter((e) => e <= n), l = t.length * Co + 26;
 	return M`<dialog class="recorder" aria-label="${e}: the last day" @close=${i} @click=${(e) => e.target === e.currentTarget && i()}>
     ${Y(`${e}: the last day`)}
     ${r ? M`<div class="warn"><span class="lamp"></span>${Y(`The record could not be read (${r}).`)}</div>` : F}
-    <svg class="paper" viewBox="0 0 ${Pa} ${l}" role="img" aria-label="A chart of when each device in ${e} was on">
-      <rect width=${Pa} height=${l} fill="url(#sepia)"/>
+    <svg class="paper" viewBox="0 0 ${So} ${l}" role="img" aria-label="A chart of when each device in ${e} was on">
+      <rect width=${So} height=${l} fill="url(#sepia)"/>
       ${c.map((e) => {
 		let t = new Date(e).getHours() % 3 == 0;
 		return N`<path d="M${o(e).toFixed(1)},4 V${l - 16}" stroke="#7a5a2c" stroke-opacity=${t ? .5 : .2} stroke-width=".6"/>${t ? N`<text class="hour" x=${o(e).toFixed(1)} y=${l - 5}>${String(new Date(e).getHours()).padStart(2, "0")}</text>` : F}`;
 	})}
       ${t.map((e, t) => {
-		let i = (t + 1) * Fa, o = ja(e.changes ?? [], a, n, e.lo, e.hi).map((e) => e.map(([e, t], n) => `${n ? "L" : "M"}${(Na + e * 536).toFixed(1)},${(i - t * 22).toFixed(1)}`).join(" ")).join(" "), s = Ma[t % Ma.length];
-		return N`<path d="M${Na},${i} H${632}" stroke="#7a5a2c" stroke-opacity=".35" stroke-width=".5" stroke-dasharray="1 3"/>
+		let i = (t + 1) * Co, o = yo(e.changes ?? [], a, n, e.lo, e.hi).map((e) => e.map(([e, t], n) => `${n ? "L" : "M"}${(xo + e * 536).toFixed(1)},${(i - t * 22).toFixed(1)}`).join(" ")).join(" "), s = bo[t % bo.length];
+		return N`<path d="M${xo},${i} H${632}" stroke="#7a5a2c" stroke-opacity=".35" stroke-width=".5" stroke-dasharray="1 3"/>
           <text class="lane" x=${90} y=${i - 3}>${e.name}</text>
           ${e.changes ? N`<path d=${o} fill="none" stroke=${s} stroke-width="1.3" stroke-linejoin="round" stroke-opacity=".9"/>` : N`<text class="hour" x=${136} y=${i - 3}>${r ? "" : "reading…"}</text>`}`;
 	})}
     </svg>
-    ${ka("Close", i)}
+    ${_o("Close", i)}
   </dialog>`;
 }
 //#endregion
 //#region src/dash-bored/console/bakelite/styles.ts
-var Ra = b`
+var Eo = b`
   .panel { --cream: #e9dfc3; --bake2: #1c0f0a; --brass: #c9a24b; box-sizing: border-box; min-height: 100%; padding: 18px 22px; color: var(--cream);
     font-family: "Gill Sans", "Gill Sans MT", "Futura", sans-serif;
     /* Hammer-finish enamel: the grey-green of a 1950s instrument panel. */
@@ -4974,13 +5345,13 @@ var Ra = b`
   @keyframes spark { 10% { opacity: 1; } 100% { opacity: 0; transform: scale(2); } }
   .knife:focus-visible { outline: 2px solid var(--cream); outline-offset: 3px; }
   @media (prefers-reduced-motion: reduce) { .valve .halo, .waver, .jewel.critical { animation: none; } .needle { transition: none; } }
-`, za = 864e5;
-function Ba(e, t) {
+`, Do = 864e5;
+function Oo(e, t) {
 	let n = [];
 	for (let r of t) {
 		let t = {
 			at: r.lu * 1e3,
-			...Gt(e, {
+			...qt(e, {
 				state: r.s,
 				attributes: r.a ?? {}
 			})
@@ -4989,55 +5360,55 @@ function Ba(e, t) {
 	}
 	return n;
 }
-function Va(e, t, n) {
+function ko(e, t, n) {
 	let r = [];
 	return e.forEach((i, a) => {
 		let o = Math.max(i.at, t), s = Math.min(e[a + 1]?.at ?? n, n);
 		i.on && s > o && r.push([(o - t) / (n - t) * 100, (s - o) / (n - t) * 100]);
 	}), r;
 }
-async function Ha(e, t, n) {
+async function Ao(e, t, n) {
 	let r = await e.connection.sendMessagePromise({
 		type: "history/history_during_period",
-		start_time: (/* @__PURE__ */ new Date(n - za)).toISOString(),
+		start_time: (/* @__PURE__ */ new Date(n - Do)).toISOString(),
 		entity_ids: [t.id],
 		significant_changes_only: !1,
-		no_attributes: t.kind === "light" || !Bt(t.kind)
+		no_attributes: t.kind === "light" || !Ht(t.kind)
 	});
-	return Ba(t.kind, r[t.id] ?? []);
+	return Oo(t.kind, r[t.id] ?? []);
 }
 //#endregion
 //#region src/dash-bored/console/balance.ts
-var Ua = 172, Wa = 32, Ga = [156, 185], Ka = [110, 156], qa = [98, 126], Ja = [146, 170], Ya = [156, 158], Xa = [136, 166], Za = (e) => [140, 124 + e * 15], Qa = 12, $a = 120, eo = (e) => Math.max(1, Math.floor((e + 12) / Ua));
-function to(e, t) {
-	let n = Ua * t - Wa, r = 0, i = n, a = 0;
+var jo = 172, Mo = 32, No = [156, 185], Po = [110, 156], Fo = [98, 126], Io = [146, 170], Lo = [156, 158], Ro = [136, 166], zo = (e) => [140, 124 + e * 15], Bo = 12, Vo = 120, Ho = (e) => Math.max(1, Math.floor((e + 12) / jo));
+function Uo(e, t) {
+	let n = jo * t - Mo, r = 0, i = n, a = 0;
 	for (let [t, o] of [
-		...e.meter ? [Ga] : [],
-		...Array(e.knives).fill(Xa),
-		...e.selectors.map(Za),
-		...Array(e.knobs).fill(Ka),
-		...Array(e.dollies).fill(qa),
-		...Array(e.tvs).fill(Ya),
-		...e.presets.map(Za),
-		...Array(e.alarms).fill(Ja)
+		...e.meter ? [No] : [],
+		...Array(e.knives).fill(Ro),
+		...e.selectors.map(zo),
+		...Array(e.knobs).fill(Po),
+		...Array(e.dollies).fill(Fo),
+		...Array(e.tvs).fill(Lo),
+		...e.presets.map(zo),
+		...Array(e.alarms).fill(Io)
 	]) i + t > n && (r += a, i = a = 0), i += t, a = Math.max(a, o);
 	return r + a;
 }
-var no = 96;
-function ro(e, t) {
-	let n = Un(t), r = n.map((t) => t.things.reduce((n, r) => n + Qa + $a + to(e[r], t.wide), -12)), i = /* @__PURE__ */ new Map();
+var Wo = 96;
+function Go(e, t) {
+	let n = Gn(t), r = n.map((t) => t.things.reduce((n, r) => n + Bo + Vo + Uo(e[r], t.wide), -12)), i = /* @__PURE__ */ new Map();
 	return n.forEach((e, t) => i.set(e.row, Math.max(i.get(e.row) ?? 0, r[t]))), n.map((e, t) => ({
 		...e,
-		blank: i.get(e.row) - r[t] - Qa >= no
+		blank: i.get(e.row) - r[t] - Bo >= Wo
 	}));
 }
-var io = (e, t, n = () => !1) => Hn(e.length, (t, n) => $a + to(e[t], n), t, Qa, n), ao = 270, oo = 180, so = (e, t) => t < 2 ? 0 : -135 + ao * e / (t - 1), co = (e, t, n, r, i = "") => M`<div class="selector" role="radiogroup" aria-label=${e}>
+var Ko = (e, t, n = () => !1) => Wn(e.length, (t, n) => Vo + Uo(e[t], n), t, Bo, n), qo = 270, Jo = 180, Yo = (e, t) => t < 2 ? 0 : -135 + qo * e / (t - 1), Xo = (e, t, n, r, i = "") => M`<div class="selector" role="radiogroup" aria-label=${e}>
   <div class="rotary">
-    ${t.map((e, n) => M`<button class="stop" tabindex="-1" aria-hidden="true" style="--a: ${so(n, t.length)}deg" @click=${() => r(n)}>${n + 1}</button>`)}
-    <span class="pointer" style="--a: ${n < 0 ? oo : so(n, t.length)}deg"></span>
+    ${t.map((e, n) => M`<button class="stop" tabindex="-1" aria-hidden="true" style="--a: ${Yo(n, t.length)}deg" @click=${() => r(n)}>${n + 1}</button>`)}
+    <span class="pointer" style="--a: ${n < 0 ? Jo : Yo(n, t.length)}deg"></span>
   </div>
   <ol class="legend">${i ? M`<li class="head" title=${i}>${i}</li>` : F}${t.map((e, t) => M`<li><button role="radio" aria-checked=${t === n} title=${e} @click=${() => r(t)}><b>${t + 1}</b><span>${e}</span></button></li>`)}</ol>
-</div>`, lo = b`
+</div>`, Zo = b`
   /* It gives up a little width in a chassis that stands off from a floor's bar: its legend is cut short there. */
   .selector { flex: 0 1 134px; min-width: 104px; margin-top: 8px; text-align: left; }
   .rotary { position: relative; width: 104px; height: 104px; margin: 0 auto 6px; }
@@ -5055,7 +5426,7 @@ var io = (e, t, n = () => !1) => Hn(e.length, (t, n) => $a + to(e[t], n), t, Qa,
   .legend button[aria-checked="true"] { opacity: 1; font-weight: 700; }
   .legend button:focus-visible, .rotary .stop:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; }
   @media (prefers-reduced-motion: reduce) { .pointer { transition: none; } }
-`, uo = "alarm_control_panel", fo = "camera", po = {
+`, Qo = "alarm_control_panel", $o = "camera", es = {
 	light: ["", "dimmer"],
 	cover: ["wind", "position"],
 	climate: ["heat", "target"],
@@ -5063,13 +5434,13 @@ var io = (e, t, n = () => !1) => Hn(e.length, (t, n) => $a + to(e[t], n), t, Qa,
 	media_player: ["sound", "volume"],
 	fan: ["air", "speed"],
 	humidifier: ["air", "target"]
-}, mo = /* @__PURE__ */ new Set([
+}, ts = /* @__PURE__ */ new Set([
 	"climate",
 	"water_heater",
 	"humidifier",
 	"media_player",
-	fo
-]), ho = 18e5, go = [
+	$o
+]), ns = 18e5, rs = [
 	[
 		"alarm_arm_away",
 		2,
@@ -5085,23 +5456,23 @@ var io = (e, t, n = () => !1) => Hn(e.length, (t, n) => $a + to(e[t], n), t, Qa,
 		4,
 		"Night"
 	]
-], _o = 6, vo = 3e4, yo = {
+], is = 6, as = 3e4, os = {
 	lock: ["locked", "unlocked"],
 	cover: ["open", "closed"],
 	valve: ["open", "closed"],
 	siren: ["sounding", "silent"]
-}, bo = {
+}, ss = {
 	lock: ["Unlocked", "Locked"],
 	cover: ["Open", "Shut"],
 	valve: ["Open", "Shut"],
 	siren: ["On", "Off"]
-}, xo = 6e3, So = 270, Co = 4, wo = 1200, To = 5e3, Eo = [
+}, cs = 6e3, ls = 270, us = 4, ds = 1200, fs = 5e3, ps = [
 	3,
 	6,
 	12,
 	24,
 	48
-], Do = {
+], ms = {
 	temperature: [
 		5,
 		30,
@@ -5112,15 +5483,15 @@ var io = (e, t, n = () => !1) => Hn(e.length, (t, n) => $a + to(e[t], n), t, Qa,
 		100,
 		"%"
 	]
-}, Oo = (e) => e.dims && !e.away, ko = (e) => e.kind === uo, X = (e) => e.kind === fo, Ao = (e) => !Oo(e) && !ko(e) && !X(e), jo = M`<div class="room blank" aria-hidden="true"><i class="vent"></i></div>`, Mo = (e) => {
+}, hs = (e) => e.dims && !e.away, gs = (e) => e.kind === Qo, X = (e) => e.kind === $o, _s = (e) => !hs(e) && !gs(e) && !X(e), vs = M`<div class="room blank" aria-hidden="true"><i class="vent"></i></div>`, ys = (e) => {
 	let t = Math.ceil(e / 10), n = Math.ceil(e / t);
 	return Array.from({ length: t }, (t, r) => Math.min(n, e - r * n));
-}, No = (e) => e.room ? `${e.room} ${e.name}` : e.name;
-function Po(e) {
+}, bs = (e) => e.room ? `${e.room} ${e.name}` : e.name;
+function xs(e) {
 	let t = e.currentTarget.getBoundingClientRect();
 	return Math.atan2(e.clientY - (t.top + t.height / 2), e.clientX - (t.left + t.width / 2)) * 180 / Math.PI;
 }
-var Fo = class extends jn {
+var Ss = class extends Nn {
 	constructor(...e) {
 		super(...e), this._cols = 1, this._heard = !1, this._thrown = "", this._turned = {}, this._armed = "", this._alerts = [], this._seen = [], this._elsewhere = (e) => {
 			this._armed && !e.target.closest?.(".dolly.shut, .dolly.up") && (this._armed = "");
@@ -5144,7 +5515,7 @@ var Fo = class extends jn {
 		return this._config.view ?? "panel";
 	}
 	_resized(e) {
-		let t = eo(this.renderRoot?.querySelector(".rooms")?.clientWidth || e - 44);
+		let t = Ho(this.renderRoot?.querySelector(".rooms")?.clientWidth || e - 44);
 		t !== this._cols && (this._cols = t);
 	}
 	get _reads() {
@@ -5153,14 +5524,14 @@ var Fo = class extends jn {
 	_listen() {
 		super._listen();
 		let e = this._view;
-		(e === "panel" || e === "lamps") && this._follow(xn, "Sensor Watch's alerts", (e) => {
+		(e === "panel" || e === "lamps") && this._follow(Cn, "Sensor Watch's alerts", (e) => {
 			let t = new Map(this._alerts.map((e) => [e.entity_id, e]));
 			for (let n of e) t.set(n.entity_id, n);
 			this._alerts = [...t.values()], this._heard = !0;
-		}), (e === "panel" || e === "room" || this._config.entity?.startsWith(`${fo}.`)) && this._follow(Sn, "The cameras' sightings", (e) => {
+		}), (e === "panel" || e === "room" || this._config.entity?.startsWith(`${$o}.`)) && this._follow(wn, "The cameras' sightings", (e) => {
 			let t = new Map(this._seen.map((e) => [e.id, e])), n = Date.now();
-			for (let r of e) t.set(r.id, r), this._later(ho - (n - r.at * 1e3));
-			this._seen = [...t.values()].filter((e) => n - e.at * 1e3 < ho);
+			for (let r of e) t.set(r.id, r), this._later(ns - (n - r.at * 1e3));
+			this._seen = [...t.values()].filter((e) => n - e.at * 1e3 < ns);
 		});
 	}
 	_later(e) {
@@ -5179,7 +5550,7 @@ var Fo = class extends jn {
 			fault: ""
 		};
 		let r = () => this._chart?.at === n;
-		for (let e of t) Ha(this._hass, e, n).then((t) => r() && (this._chart = {
+		for (let e of t) Ao(this._hass, e, n).then((t) => r() && (this._chart = {
 			...this._chart,
 			records: {
 				...this._chart.records,
@@ -5200,21 +5571,21 @@ var Fo = class extends jn {
 		this._want?.id === e.id && (this._want = void 0), this._armed === e.id && (this._armed = ""), this._code?.id === e.id && (this._code = void 0);
 	}
 	_spin(e, t, n) {
-		let r = this._code?.id === e.id ? this._code.wheels : Array(_o).fill(0);
+		let r = this._code?.id === e.id ? this._code.wheels : Array(is).fill(0);
 		this._code = {
 			id: e.id,
 			wheels: r.map((e, r) => r === t ? e + n : e)
 		}, clearTimeout(this._hiding), this._timers.delete(this._hiding), this._hiding = setTimeout(() => {
 			this._timers.delete(this._hiding), this._code = void 0;
-		}, vo), this._timers.add(this._hiding);
+		}, as), this._timers.add(this._hiding);
 	}
 	_alarm(e) {
-		let t = this._hass.states[e.id]?.attributes ?? {}, n = e.away ? "not answering" : e.phase === "triggered" ? "sounding" : e.phase ?? (e.on ? "set" : "unset"), { label: r, push: i, wheels: a } = this.kit, o = this._code?.id === e.id ? this._code.wheels : Array(_o).fill(0), s = o.map(da).join(""), c = (t, n) => () => this._call({
-			domain: uo,
+		let t = this._hass.states[e.id]?.attributes ?? {}, n = e.away ? "not answering" : e.phase === "triggered" ? "sounding" : e.phase ?? (e.on ? "set" : "unset"), { label: r, push: i, wheels: a } = this.kit, o = this._code?.id === e.id ? this._code.wheels : Array(is).fill(0), s = o.map(Qa).join(""), c = (t, n) => () => this._call({
+			domain: Qo,
 			service: t,
 			ids: [e.id],
 			data: s ? { code: s } : void 0
-		}, `${No(e)} (${n})`), l = go.filter(([, e]) => t.supported_features & e), u = e.on || e.phase ? [i("Unset", c("alarm_disarm", "unset"))] : l.map(([e, , t]) => i(t, c(e, t.toLowerCase())));
+		}, `${bs(e)} (${n})`), l = rs.filter(([, e]) => t.supported_features & e), u = e.on || e.phase ? [i("Unset", c("alarm_disarm", "unset"))] : l.map(([e, , t]) => i(t, c(e, t.toLowerCase())));
 		return M`<div class="alarm ${n}">
       ${r(`${e.name}: ${n}`)}
       ${t.code_format === "number" && !e.away ? a(e.name, o, (t, n) => this._spin(e, t, n)) : F}
@@ -5222,14 +5593,14 @@ var Fo = class extends jn {
     </div>`;
 	}
 	_guarded(e, t, n) {
-		if (t) return this._call(z(e), No(e));
+		if (t) return this._call(z(e), bs(e));
 		if (this._armed === e.id) {
 			if (!(n.detail === 0 || n.target.closest?.(".throw"))) return void (this._armed = "");
-			this._call(z(e), No(e));
+			this._call(z(e), bs(e));
 		}
 		this._armed = e.id, clearTimeout(this._dropping), this._timers.delete(this._dropping), this._dropping = setTimeout(() => {
 			this._timers.delete(this._dropping), this._armed === e.id && (this._armed = "");
-		}, xo), this._timers.add(this._dropping);
+		}, cs), this._timers.add(this._dropping);
 	}
 	_turn(e, t) {
 		this._want = {
@@ -5237,10 +5608,10 @@ var Fo = class extends jn {
 			level: t
 		}, clearTimeout(this._waiting), this._timers.delete(this._waiting), this._waiting = setTimeout(() => {
 			this._timers.delete(this._waiting), this._grip || (this._want = void 0);
-		}, To), this._timers.add(this._waiting);
+		}, fs), this._timers.add(this._waiting);
 	}
 	_dial(e) {
-		let t = X(e) ? $t : void 0, { min: n, max: r, step: i, vote: a } = e.span, o = mo.has(e.kind) ? e.level ?? n : e.on ? e.level ?? r : n, s = () => this._want?.id === e.id ? this._want.level : o, c = (e) => +(Math.round(Math.min(r, Math.max(n, e)) / i) * i).toFixed(2);
+		let t = X(e) ? tn : void 0, { min: n, max: r, step: i, vote: a } = e.span, o = ts.has(e.kind) ? e.level ?? n : e.on ? e.level ?? r : n, s = () => this._want?.id === e.id ? this._want.level : o, c = (e) => +(Math.round(Math.min(r, Math.max(n, e)) / i) * i).toFixed(2);
 		return {
 			level: s(),
 			turn: (s() - n) / (r - n) * 100,
@@ -5250,7 +5621,7 @@ var Fo = class extends jn {
 					t.currentTarget.setPointerCapture(t.pointerId), this._grip = {
 						id: e.id,
 						level: s(),
-						angle: Po(t),
+						angle: xs(t),
 						x: t.clientX,
 						y: t.clientY,
 						at: t.clientY,
@@ -5259,15 +5630,15 @@ var Fo = class extends jn {
 				},
 				move: (t) => {
 					let i = this._grip;
-					if (i?.id !== e.id || (i.moved ||= Math.hypot(t.clientX - i.x, t.clientY - i.y) > Co, !i.moved)) return;
+					if (i?.id !== e.id || (i.moved ||= Math.hypot(t.clientX - i.x, t.clientY - i.y) > us, !i.moved)) return;
 					let a = t.currentTarget, o = a.classList.contains("slide") ? (i.at - t.clientY) / a.getBoundingClientRect().height : void 0;
 					i.at = t.clientY;
-					let s = Po(t), l = (s - i.angle + 540) % 360 - 180;
-					i.angle = s, i.level = Math.min(r, Math.max(n, i.level + (o ?? l / So) * (r - n))), this._turn(e, c(i.level));
+					let s = xs(t), l = (s - i.angle + 540) % 360 - 180;
+					i.angle = s, i.level = Math.min(r, Math.max(n, i.level + (o ?? l / ls) * (r - n))), this._turn(e, c(i.level));
 				},
 				up: () => {
 					let n = this._grip;
-					this._grip = void 0, n?.id === e.id && (n.moved && this._want ? this._ask(e, this._want.level, t) : t || this._call(z(e), No(e)));
+					this._grip = void 0, n?.id === e.id && (n.moved && this._want ? this._ask(e, this._want.level, t) : t || this._call(z(e), bs(e)));
 				},
 				drop: () => {
 					this._grip = this._want = void 0;
@@ -5283,7 +5654,7 @@ var Fo = class extends jn {
 						n.preventDefault();
 						let i = c(s() + r);
 						this._turn(e, i), this._ask(e, i, t);
-					} else !t && (n.key === "Enter" || n.key === " ") && (n.preventDefault(), this._call(z(e), No(e)));
+					} else !t && (n.key === "Enter" || n.key === " ") && (n.preventDefault(), this._call(z(e), bs(e)));
 				}
 			}
 		};
@@ -5299,7 +5670,7 @@ var Fo = class extends jn {
 		this._call(t, n), this._thrown = e;
 		let r = setTimeout(() => {
 			this._timers.delete(r), this._thrown === e && (this._thrown = "");
-		}, wo);
+		}, ds);
 		this._timers.add(r);
 	}
 	_lenses(e) {
@@ -5322,11 +5693,11 @@ var Fo = class extends jn {
 		return this.kit.knob(`${e.name} zoom`, "", "zoom", r.turn, r.held, `zoom ${r.level}`, "", r.on, [n.min, n.max]);
 	}
 	_presets(e) {
-		let t = e.presets, n = Mo(t.length);
+		let t = e.presets, n = ys(t.length);
 		return n.map((r, i) => {
 			let a = t.slice(i * n[0], i * n[0] + r);
-			return co(`${e.name} presets`, a.map((e) => e.name), a.findIndex((t) => t.name === this._turned[e.id]), (t) => {
-				this._call(en(a[t]), `${No(e)} to ${a[t].name}`), this._turned = {
+			return Xo(`${e.name} presets`, a.map((e) => e.name), a.findIndex((t) => t.name === this._turned[e.id]), (t) => {
+				this._call(nn(a[t]), `${bs(e)} to ${a[t].name}`), this._turned = {
 					...this._turned,
 					[e.id]: a[t].name
 				};
@@ -5334,47 +5705,47 @@ var Fo = class extends jn {
 		});
 	}
 	_pressed(e, t) {
-		return this.kit.knife(e.away ? `${e.name}: not answering` : e.name, this._thrown === e.id, () => e.away || this._close(e.id, nn(e), `${t} ${e.name}`));
+		return this.kit.knife(e.away ? `${e.name}: not answering` : e.name, this._thrown === e.id, () => e.away || this._close(e.id, an(e), `${t} ${e.name}`));
 	}
 	_shows(e) {
-		return e.devices.filter((e) => !(ko(e) && this._hass.states[e.id]?.attributes.code_format === "text"));
+		return e.devices.filter((e) => !(gs(e) && this._hass.states[e.id]?.attributes.code_format === "text"));
 	}
 	_sights() {
 		let e = Date.now(), t = /* @__PURE__ */ new Map();
-		for (let n of this._survey ? qt(this._survey, this._seen) : []) e - n.at < ho && n.at >= (t.get(n.camera)?.at ?? 0) && t.set(n.camera, n);
+		for (let n of this._survey ? Yt(this._survey, this._seen) : []) e - n.at < ns && n.at >= (t.get(n.camera)?.at ?? 0) && t.set(n.camera, n);
 		return t;
 	}
 	_knob(e) {
-		let t = this._dial(e), [n, r] = po[e.kind], i = wt.has(e.kind), a = i ? e.on ? `${e.name} ${t.level}°` : `${e.name}: off` : e.kind === "humidifier" ? `${e.name} ${t.level}%` : e.name, o = e.title ?? (i && e.temp !== void 0 ? `now ${e.temp}°` : "");
+		let t = this._dial(e), [n, r] = es[e.kind], i = Et.has(e.kind), a = i ? e.on ? `${e.name} ${t.level}°` : `${e.name}: off` : e.kind === "humidifier" ? `${e.name} ${t.level}%` : e.name, o = e.title ?? (i && e.temp !== void 0 ? `now ${e.temp}°` : "");
 		return this.kit.knob(a, n, r, t.turn, t.held, i ? `${t.level} degrees` : `${t.level} per cent`, o, t.on, [e.span.min, e.span.max], e.temp);
 	}
 	_dolly(e) {
-		let { dolly: t } = this.kit, n = e.phase ? `${e.name}: ${e.phase}` : e.name, r = yo[e.kind] ? `: ${yo[e.kind][+!e.on]}` : "";
-		if (!e.guarded) return t(n, e.on, e.away, () => e.away || this._call(z(e), No(e)), "", r);
+		let { dolly: t } = this.kit, n = e.phase ? `${e.name}: ${e.phase}` : e.name, r = os[e.kind] ? `: ${os[e.kind][+!e.on]}` : "";
+		if (!e.guarded) return t(n, e.on, e.away, () => e.away || this._call(z(e), bs(e)), "", r);
 		let i = e.kind === "lock" ? !e.on : e.on, a = i || this._armed === e.id, o = i ? "press to shut it, which puts the switch back" : a ? "press the switch to throw it, or anywhere else to shut the guard" : "press to lift it";
-		return t(n, i, e.away, (t) => e.away || this._guarded(e, i, t), a ? "up" : "shut", `${r}. Under a guard: ${o}`, bo[e.kind]);
+		return t(n, i, e.away, (t) => e.away || this._guarded(e, i, t), a ? "up" : "shut", `${r}. Under a guard: ${o}`, ss[e.kind]);
 	}
 	_screen(e, t) {
 		let n = t.get(e.id);
 		return this.kit.tv(n ? `${e.name}: ${n.kind} ${V(n.at)}` : e.away ? `${e.name}: not answering` : e.name, n?.photo ?? (e.away ? "" : e.picture ?? ""), this._look(e.id));
 	}
 	_scenes(e) {
-		return e.scenes.length === 1 ? this.kit.knife(e.scenes[0].name, this._thrown === e.scenes[0].id, () => this._throw(e.scenes[0])) : Mo(e.scenes.length).map((t, n) => {
-			let r = e.scenes.slice(n * Mo(e.scenes.length)[0], n * Mo(e.scenes.length)[0] + t), i = r.reduce((e, t, n) => t.at > (r[e]?.at ?? 0) ? n : e, -1), a = r.findIndex((e) => e.id === this._thrown);
-			return co(`${e.name} scenes`, r.map((e) => e.name), a < 0 ? i : a, (e) => this._throw(r[e]));
+		return e.scenes.length === 1 ? this.kit.knife(e.scenes[0].name, this._thrown === e.scenes[0].id, () => this._throw(e.scenes[0])) : ys(e.scenes.length).map((t, n) => {
+			let r = e.scenes.slice(n * ys(e.scenes.length)[0], n * ys(e.scenes.length)[0] + t), i = r.reduce((e, t, n) => t.at > (r[e]?.at ?? 0) ? n : e, -1), a = r.findIndex((e) => e.id === this._thrown);
+			return Xo(`${e.name} scenes`, r.map((e) => e.name), a < 0 ? i : a, (e) => this._throw(r[e]));
 		});
 	}
 	_load(e) {
 		let t = this._shows(e), n = this._lenses(t);
 		return {
-			knobs: t.filter(Oo).length + n.zooms.length,
-			dollies: t.filter(Ao).length + n.switches.length,
-			alarms: t.filter(ko).length,
+			knobs: t.filter(hs).length + n.zooms.length,
+			dollies: t.filter(_s).length + n.switches.length,
+			alarms: t.filter(gs).length,
 			tvs: t.filter(X).length,
 			meter: e.temp !== void 0,
 			knives: +(e.scenes.length === 1) + n.pressed.length,
-			selectors: e.scenes.length > 1 ? Mo(e.scenes.length) : [],
-			presets: n.turned.flatMap((e) => Mo(e.presets.length).map((e) => e + 1))
+			selectors: e.scenes.length > 1 ? ys(e.scenes.length) : [],
+			presets: n.turned.flatMap((e) => ys(e.presets.length).map((e) => e + 1))
 		};
 	}
 	_rooms(e, t, n, r = []) {
@@ -5387,11 +5758,11 @@ var Fo = class extends jn {
 		]);
 		this._rows?.key !== f && (this._rows = {
 			key: f,
-			racks: ro(d, this._view === "room" ? [{
+			racks: Go(d, this._view === "room" ? [{
 				wide: this._cols,
 				first: !0,
 				under: !1
-			}] : io(d, this._cols, u))
+			}] : Ko(d, this._cols, u))
 		});
 		let { racks: p } = this._rows, m = !this._lost, h = 1, g = (e) => {
 			let n = this._shows(e), r = n.filter((e) => e.kind === "light" && !e.away), s = r.reduce((e, t) => e + (t.on ? t.level ?? 100 : 0), 0) / (r.length * 100 || 1), c = e.devices.length - n.length, l = n.filter((e) => !X(e)), u = this._lenses(n);
@@ -5399,9 +5770,9 @@ var Fo = class extends jn {
         ${o(s ? .35 + s * .65 : 0)}${i(e.name)}
         <div class="works">${e.temp === void 0 ? F : a(`${e.temp.toFixed(1)}°`, 5, 30, e.temp, "°C", ++h, m)}
         ${u.pressed.map((t) => this._pressed(t, e.name))}${e.scenes.length ? this._scenes(e) : F}
-        <div class="dials">${n.filter(Oo).map((e) => this._knob(e))}${u.zooms.map((e) => this._zoom(e))}</div>
-        <div class="dollies">${n.filter(Ao).map((e) => this._dolly(e))}${u.switches.map((e) => this._dolly(e))}</div>
-        ${n.filter(X).map((e) => this._screen(e, t))}${u.turned.map((e) => this._presets(e))}${n.filter(ko).map((e) => this._alarm(e))}</div>
+        <div class="dials">${n.filter(hs).map((e) => this._knob(e))}${u.zooms.map((e) => this._zoom(e))}</div>
+        <div class="dollies">${n.filter(_s).map((e) => this._dolly(e))}${u.switches.map((e) => this._dolly(e))}</div>
+        ${n.filter(X).map((e) => this._screen(e, t))}${u.turned.map((e) => this._presets(e))}${n.filter(gs).map((e) => this._alarm(e))}</div>
         ${c ? M`<div class="more" title="An alarm whose code is not in digits is not on this panel.">${i(`and ${c} more`)}</div>` : F}
         ${l.length ? M`<button class="rec" aria-label="${e.name}: chart of the last day" @click=${() => this._record(e, l)}>${i("Chart")}</button>` : F}
       </section>`;
@@ -5411,11 +5782,11 @@ var Fo = class extends jn {
 			return M`<div class="floor ${n > 1 ? "barred" : ""}" style="grid-row: ${t * 2 + 1}; grid-column: ${n} / span ${o}">${i(a ?? "Elsewhere")}${a ? M`<span class="pushes">${r.filter((e) => e.floor === a).map((e) => s(e.name, () => this._throw(e)))}</span>` : F}</div>
         ${n > 1 ? M`<i class="bar" style="grid-row: ${t * 2 + 1} / span 2; grid-column: ${n}"></i>` : F}`;
 		}, v = (e) => !!p[e] && p[e].column > 1 && u(p[e].things[0]);
-		return M`<div class="rooms" style="--cols: ${this._cols}">${p.map((e, t) => M`${u(e.things[0]) ? _(t) : F}<div class="bay ${e.blank ? "blanked" : ""} ${v(t) ? "barred" : ""} ${v(t + 1) ? "bars" : ""}" style="grid-row: ${e.row * 2 + 2}; grid-column: ${e.column} / span ${e.wide}">${e.things.map((e) => g(c[e]))}${e.blank ? jo : F}</div>`)}</div>`;
+		return M`<div class="rooms" style="--cols: ${this._cols}">${p.map((e, t) => M`${u(e.things[0]) ? _(t) : F}<div class="bay ${e.blank ? "blanked" : ""} ${v(t) ? "barred" : ""} ${v(t + 1) ? "bars" : ""}" style="grid-row: ${e.row * 2 + 2}; grid-column: ${e.column} / span ${e.wide}">${e.things.map((e) => g(c[e]))}${e.blank ? vs : F}</div>`)}</div>`;
 	}
 	_lamps(e) {
-		let { jewel: t, label: n } = this.kit, r = this._alerts.filter((e) => e.level !== fn).sort((e, t) => (mn[t.level] ?? 0) - (mn[e.level] ?? 0) || e.began - t.began);
-		return r.length ? M`<div class="lamps">${r.map((e) => M`<div class="alert" role="status">${t(e.level)}${n(`${e.name}: ${e.message || e.level}, since ${V(e.began * 1e3)}`)}</div>`)}</div>` : e ? M`<div class="lamps"><div class="alert" role="status">${t(this._heard ? fn : "")}${n(this._heard ? "Sensor Watch: all well" : "Waiting for Sensor Watch")}</div></div>` : F;
+		let { jewel: t, label: n } = this.kit, r = this._alerts.filter((e) => e.level !== mn).sort((e, t) => (gn[t.level] ?? 0) - (gn[e.level] ?? 0) || e.began - t.began);
+		return r.length ? M`<div class="lamps">${r.map((e) => M`<div class="alert" role="status">${t(e.level)}${n(`${e.name}: ${e.message || e.level}, since ${V(e.began * 1e3)}`)}</div>`)}</div>` : e ? M`<div class="lamps"><div class="alert" role="status">${t(this._heard ? mn : "")}${n(this._heard ? "Sensor Watch: all well" : "Waiting for Sensor Watch")}</div></div>` : F;
 	}
 	_room(e) {
 		return e[0] ? this._rooms(e.slice(0, 1), this._sights(), !1) : this.kit.label(this._config.rooms?.length ? "This room has nothing the Console can show" : "Choose a room in the card's options");
@@ -5426,23 +5797,23 @@ var Fo = class extends jn {
 		let o = this._hass.states[a];
 		if (!o) return r(`${a} is not in Home Assistant`);
 		let s = e.find((e) => e.id === a);
-		if (s && ko(s) && o.attributes.code_format === "text") return r(`${s.name}: its code is in words, and the Console has only thumbwheels for digits`);
-		if (s) return X(s) ? this._screen(s, this._sights()) : ko(s) ? this._alarm(s) : Oo(s) ? M`<div class="dials">${this._knob(s)}</div>` : M`<div class="dollies">${this._dolly(s)}</div>`;
+		if (s && gs(s) && o.attributes.code_format === "text") return r(`${s.name}: its code is in words, and the Console has only thumbwheels for digits`);
+		if (s) return X(s) ? this._screen(s, this._sights()) : gs(s) ? this._alarm(s) : hs(s) ? M`<div class="dials">${this._knob(s)}</div>` : M`<div class="dollies">${this._dolly(s)}</div>`;
 		let c = t.find((e) => e.id === a);
 		if (c) return M`<div class="knives">${n(c.name, this._thrown === a, () => this._throw(c))}</div>`;
 		let l = o.attributes.friendly_name ?? a, u = o.attributes.device_class, d = o.attributes.unit_of_measurement ?? "", f = Number(o.state);
-		if (u !== "power" && !Do[u]) return r(`${l}: the Console has no meter for this`);
+		if (u !== "power" && !ms[u]) return r(`${l}: the Console has no meter for this`);
 		if (o.state === "" || !Number.isFinite(f)) return r(`${l}: not answering`);
 		let p = [...a].reduce((e, t) => e + t.charCodeAt(0), 0), m = `${l}: ${o.state} ${d}`.trim();
-		if (u !== "power") return i(m, Do[u][0], Do[u][1], f, Do[u][2], p, !this._lost);
+		if (u !== "power") return i(m, ms[u][0], ms[u][1], f, ms[u][2], p, !this._lost);
 		let h = d === "kW" ? f : f / 1e3;
-		return i(m, 0, Eo.find((e) => h <= e) ?? Eo.at(-1), h, "kW", p, !this._lost);
+		return i(m, 0, ps.find((e) => h <= e) ?? ps.at(-1), h, "kW", p, !this._lost);
 	}
 	_whole() {
 		let { knife: e, meter: t, tv: n } = this.kit, r = this._house, i = this._sights(), a = new Set(r.rooms.flatMap((e) => e.devices.filter(X).map((e) => e.id))), o = !this._lost, s = new Set(r.rooms.map((e) => e.floor)), c = r.scenes.filter((e) => !e.floor || !s.has(e.floor));
 		return M`${this._lamps(!1)}
       <div class="top">
-        ${r.kw === void 0 ? F : t("Mains draw", 0, Eo.find((e) => r.kw <= e) ?? Eo.at(-1), r.kw, "kW", 0, o)}
+        ${r.kw === void 0 ? F : t("Mains draw", 0, ps.find((e) => r.kw <= e) ?? ps.at(-1), r.kw, "kW", 0, o)}
         ${r.outside ? t("Outside air", -10, 30, r.outside.temp, "°C", 1, o) : F}
         ${[...i.values()].filter((e) => !a.has(e.camera)).map((e) => n(`${e.name}: ${e.kind} ${V(e.at)}`, e.photo ?? "", this._look(e.camera)))}
         ${c.length ? M`<div class="knives">${c.map((t) => e(t.name, this._thrown === t.id, () => this._throw(t)))}</div>` : F}
@@ -5460,7 +5831,7 @@ var Fo = class extends jn {
 		if (!this._hass) return a(t("Waiting for Home Assistant"));
 		if (r === "lamps") return a(this._lamps(!0));
 		if (!i) return a(t("Waiting for Home Assistant"));
-		if (r === "instrument") return a(this._instrument(i.rooms.flatMap((e) => e.devices), Yt(i)));
+		if (r === "instrument") return a(this._instrument(i.rooms.flatMap((e) => e.devices), Zt(i)));
 		let o = i.rooms.find((e) => e.name === this._chart?.room), s = this._chart && o ? n(o.name, this._shows(o).filter((e) => !X(e)).map((e) => ({
 			name: e.name,
 			lo: e.span.min,
@@ -5469,7 +5840,7 @@ var Fo = class extends jn {
 		})), this._chart.at, this._chart.fault, () => this._chart = void 0) : F;
 		return a(M`${r === "room" ? this._room(i.rooms) : this._whole()}${s}`);
 	}
-}, Io = [b`
+}, Cs = [b`
   /* The rooms stand on a grid of columns (--cols, as many as fit: panel.ts). A bay is some
      of them across, where balance.ts says (panel.ts places each by its row and column),
      and holds one chassis or a few small ones, one under another. The bays of a row are
@@ -5508,29 +5879,29 @@ var Fo = class extends jn {
      in the dashboard's colour where its era doesn't print it on a plate of its own. */
   .panel.bare { padding: 0; background: none; box-shadow: none; border: 0; }
   :where(.bare) .label { color: var(--primary-text-color); }
-`, lo], Lo = "dash-bored-bakelite", Ro = class extends Fo {
+`, Zo], ws = "dash-bored-bakelite", Ts = class extends Ss {
 	constructor(...e) {
 		super(...e), this.kit = {
-			...fa,
-			recorder: La
+			...$a,
+			recorder: To
 		};
 	}
 	static {
 		this.styles = [
 			W,
-			Io,
-			Ra
+			Cs,
+			Eo
 		];
 	}
 	connectedCallback() {
-		super.connectedCallback(), An("Dash-Bored Hand", "HomemadeApple-Regular.ttf");
+		super.connectedCallback(), Mn("Dash-Bored Hand", "HomemadeApple-Regular.ttf");
 	}
-}, zo = (e, t) => {
+}, Es = (e, t) => {
 	let n = (t - 90) * Math.PI / 180;
 	return [(60 + e * Math.cos(n)).toFixed(1), (96 + e * Math.sin(n)).toFixed(1)];
-}, Bo = 33, Vo = N`<path class="scale" d="M${zo(80, -33)} A80,80 0 0 1 ${zo(80, Bo)}"/><path class="over" d="M${zo(77.5, Bo * .6)} A77.5,77.5 0 0 1 ${zo(77.5, Bo)}"/>
-  ${Array.from({ length: 21 }, (e, t) => N`<path class="scale" d="M${zo(t % 5 ? 77 : 74, -33 + t * Bo * .1)} L${zo(80, -33 + t * Bo * .1)}"/>`)}`;
-function Ho(e, t, n, r, i, a, o, s) {
+}, Ds = 33, Os = N`<path class="scale" d="M${Es(80, -33)} A80,80 0 0 1 ${Es(80, Ds)}"/><path class="over" d="M${Es(77.5, Ds * .6)} A77.5,77.5 0 0 1 ${Es(77.5, Ds)}"/>
+  ${Array.from({ length: 21 }, (e, t) => N`<path class="scale" d="M${Es(t % 5 ? 77 : 74, -33 + t * Ds * .1)} L${Es(80, -33 + t * Ds * .1)}"/>`)}`;
+function ks(e, t, n, r, i, a, o, s) {
 	let c = Math.min(1, Math.max(0, (r - t) / (n - t))), l = [
 		0,
 		1,
@@ -5538,13 +5909,13 @@ function Ho(e, t, n, r, i, a, o, s) {
 		3,
 		4
 	].map((e) => {
-		let [r, i] = zo(68, -33 + e * Bo * .5);
+		let [r, i] = Es(68, -33 + e * Ds * .5);
 		return N`<text x=${r} y=${Number(i) + 2}>${+(t + (n - t) * e / 4).toFixed(1)}</text>`;
 	});
 	return M`<div class="meter ${o ? "" : "unlit"}">
     <div class="win" role="img" aria-label="${e}: ${r} ${i}">
-      <svg class="face" viewBox="0 0 120 70" aria-hidden="true">${Vo}${l}<text class="unit" x="60" y="52">${i}</text></svg>
-      <div class="needle" style="transform: rotate(${(-33 + 66 * c).toFixed(1)}deg)"><svg class="waver" viewBox="0 0 120 70" aria-hidden="true" style="animation-duration: ${la[a % la.length] * 16}ms"><path d="M60,96 V19"/></svg></div>
+      <svg class="face" viewBox="0 0 120 70" aria-hidden="true">${Os}${l}<text class="unit" x="60" y="52">${i}</text></svg>
+      <div class="needle" style="transform: rotate(${(-33 + 66 * c).toFixed(1)}deg)"><svg class="waver" viewBox="0 0 120 70" aria-hidden="true" style="animation-duration: ${Xa[a % Xa.length] * 16}ms"><path d="M60,96 V19"/></svg></div>
       <i class="cowl"></i>
     </div>
     ${s}
@@ -5552,7 +5923,7 @@ function Ho(e, t, n, r, i, a, o, s) {
 }
 //#endregion
 //#region src/dash-bored/console/figures.ts
-var Uo = {
+var As = {
 	0: "abcdef",
 	1: "bc",
 	2: "abged",
@@ -5565,32 +5936,32 @@ var Uo = {
 	9: "abcdfg",
 	"-": "g"
 };
-function Wo(e, t, n, r = +(t === "°")) {
+function js(e, t, n, r = +(t === "°")) {
 	let i = Math.max(...n.map((e) => String(Math.trunc(Math.abs(e))).length)) + +(n[0] < 0), a = i + (r ? 1 + r : 0), o = " ".repeat(i) + (r ? "." + " ".repeat(r) : "");
 	return (e === "" ? o : Number(e).toFixed(r).padStart(a, " ")) + t;
 }
-function Go(e, t, n) {
+function Ms(e, t, n) {
 	let r = /^(.*?) (-?[\d.]+)([°%])$/.exec(e), i = t === "heat" ? /^(.*): off$/.exec(e) : null;
 	return {
 		legend: r?.[1] ?? i?.[1] ?? e,
-		shown: r ? Wo(r[2], r[3], n) : i ? Wo("", "°", n) : void 0,
+		shown: r ? js(r[2], r[3], n) : i ? js("", "°", n) : void 0,
 		lit: !!r
 	};
 }
-var Ko = (e, t = !0, n = e.trim()) => M`<span class="figs ${t ? "" : "dark"}" role="img" aria-label=${n}>${[...e].map((e) => e === "." ? M`<i class="dp"></i>` : e === "°" ? M`<i class="deg"></i>` : e === "%" ? M`<i class="pc">%</i>` : M`<i class="d">${[..."abcdefg"].map((n) => M`<b class="s${n} ${t && Uo[e]?.includes(n) ? "lit" : ""}"></b>`)}</i>`)}</span>`, qo = Array.from({ length: 20 }, (e, t) => t);
-function Jo(e, t, n, r, i, a, o) {
+var Ns = (e, t = !0, n = e.trim()) => M`<span class="figs ${t ? "" : "dark"}" role="img" aria-label=${n}>${[...e].map((e) => e === "." ? M`<i class="dp"></i>` : e === "°" ? M`<i class="deg"></i>` : e === "%" ? M`<i class="pc">%</i>` : M`<i class="d">${[..."abcdefg"].map((n) => M`<b class="s${n} ${t && As[e]?.includes(n) ? "lit" : ""}"></b>`)}</i>`)}</span>`, Ps = Array.from({ length: 20 }, (e, t) => t);
+function Fs(e, t, n, r, i, a, o) {
 	let s = Math.round(Math.min(1, Math.max(0, (r - t) / (n - t))) * 20);
 	return M`<div class="meter display ${a ? "" : "unlit"}">
-    <div class="win" role="img" aria-label="${e}: ${r} ${i}">${Ko(Wo(a ? String(r) : "", "", [t, n], i === "kW" ? 2 : 1), a, "")}<span class="unit">${i}</span>
-      <div class="sweep">${qo.map((e) => M`<i class="${a && e < s ? "lit" : ""} ${a && e === s - 1 ? "tip" : ""}"></i>`)}</div></div>
+    <div class="win" role="img" aria-label="${e}: ${r} ${i}">${Ns(js(a ? String(r) : "", "", [t, n], i === "kW" ? 2 : 1), a, "")}<span class="unit">${i}</span>
+      <div class="sweep">${Ps.map((e) => M`<i class="${a && e < s ? "lit" : ""} ${a && e === s - 1 ? "tip" : ""}"></i>`)}</div></div>
     ${o}
   </div>`;
 }
-var Yo = (e, t, n) => M`<div class="wheels" role="group" aria-label="${e} code">${t.map((e, t) => M`<div class="wheel">
+var Is = (e, t, n) => M`<div class="wheels" role="group" aria-label="${e} code">${t.map((e, t) => M`<div class="wheel">
     <button aria-label="Figure ${t + 1} on" @click=${() => n(t, 1)}></button>
-    ${Ko(da(e) || " ", !0, `Figure ${t + 1}: ${da(e) || "blank"}`)}
+    ${Ns(Qa(e) || " ", !0, `Figure ${t + 1}: ${Qa(e) || "blank"}`)}
     <button aria-label="Figure ${t + 1} back" @click=${() => n(t, -1)}></button>
-  </div>`)}</div>`, Xo = b`
+  </div>`)}</div>`, Ls = b`
   .figs { --t: 2px; --h: 6px; --w: 10px; display: inline-flex; align-items: flex-end; }
   .display .figs { --t: 3px; --h: 11px; --w: 17px; }
   .d { position: relative; width: var(--w); height: calc(2 * var(--h) + 3 * var(--t)); margin: 0 2px; transform: skewX(-5deg); }
@@ -5604,38 +5975,38 @@ var Yo = (e, t, n) => M`<div class="wheels" role="group" aria-label="${e} code">
   .sweep { display: flex; align-items: flex-end; justify-content: center; gap: 2px; width: 100%; }
   .sweep i { width: 4px; background: var(--seg-on); opacity: .1; } .sweep .lit { opacity: 1; }
   .sweep i:nth-child(-n + 5) { height: 5px; } .sweep i:nth-child(n + 6) { height: 8px; } .sweep i:nth-child(n + 11) { height: 11px; } .sweep i:nth-child(n + 16) { height: 14px; }
-`, Zo = /* @__PURE__ */ t({
-	DEFS: () => Qo,
-	dolly: () => rs,
-	figs: () => Ko,
-	jewel: () => ts,
-	knife: () => os,
-	knob: () => is,
+`, Rs = /* @__PURE__ */ t({
+	DEFS: () => zs,
+	dolly: () => Ws,
+	figs: () => Ns,
+	jewel: () => Hs,
+	knife: () => qs,
+	knob: () => Gs,
 	label: () => Z,
-	meter: () => es,
-	push: () => as,
-	tv: () => Ea,
-	valve: () => ns,
-	wheels: () => Yo
-}), Qo = M``, Z = (e) => M`<span class="label">${e}</span>`, $o = Array.from({ length: 10 }, (e, t) => t);
-function es(e, t, n, r, i, a = 0, o = !0) {
-	return a >= 2 && a % 3 == 1 ? Jo(e, t, n, r, i, o, Z(e)) : Ho(e, t, n, r, i, a, o, Z(e));
+	meter: () => Vs,
+	push: () => Ks,
+	tv: () => mo,
+	valve: () => Us,
+	wheels: () => Is
+}), zs = M``, Z = (e) => M`<span class="label">${e}</span>`, Bs = Array.from({ length: 10 }, (e, t) => t);
+function Vs(e, t, n, r, i, a = 0, o = !0) {
+	return a >= 2 && a % 3 == 1 ? Fs(e, t, n, r, i, o, Z(e)) : ks(e, t, n, r, i, a, o, Z(e));
 }
-var ts = (e) => M`<span class="jewel ${e}" aria-hidden="true"></span>`, ns = (e) => {
+var Hs = (e) => M`<span class="jewel ${e}" aria-hidden="true"></span>`, Us = (e) => {
 	let t = e ? Math.max(1, Math.round((e - .35) / .65 * 10)) : 0;
-	return M`<div class="leds" role="img" aria-label="Lights: ${t} of 10">${$o.map((e) => M`<span class=${e < t ? "on" : ""}></span>`)}</div>`;
-}, rs = (e, t, n, r, i = "", a = "", o = ["On", "Off"]) => M`<button class="dolly ${t ? "on" : ""} ${n ? "away" : ""} ${i}" aria-pressed=${t} aria-label=${n ? `${e}: not answering` : e + a} @click=${r}>
+	return M`<div class="leds" role="img" aria-label="Lights: ${t} of 10">${Bs.map((e) => M`<span class=${e < t ? "on" : ""}></span>`)}</div>`;
+}, Ws = (e, t, n, r, i = "", a = "", o = ["On", "Off"]) => M`<button class="dolly ${t ? "on" : ""} ${n ? "away" : ""} ${i}" aria-pressed=${t} aria-label=${n ? `${e}: not answering` : e + a} @click=${r}>
   <span class="soft"><span class="throw"><i class="pilot"></i></span>${i ? M`<i class="flap"></i>` : F}</span>
   ${Z(e)}
-</button>`, is = (e, t, n, r, i, a, o, s, c = [0, 100], l) => {
-	let { legend: u, shown: d, lit: f } = Go(e, t, c), p = Math.round(r / 10), m = o || t === "sound", h = (o, c) => M`<div class="${o} ${t} ${i ? "drag" : ""}" role="slider" tabindex="0" aria-orientation=${o === "slide" ? "vertical" : F} aria-label="${e} ${n}" aria-valuemin="0" aria-valuemax="100" aria-valuenow=${Math.round(r)} aria-valuetext=${a} style="--lvl: ${r.toFixed(1)}"
+</button>`, Gs = (e, t, n, r, i, a, o, s, c = [0, 100], l) => {
+	let { legend: u, shown: d, lit: f } = Ms(e, t, c), p = Math.round(r / 10), m = o || t === "sound", h = (o, c) => M`<div class="${o} ${t} ${i ? "drag" : ""}" role="slider" tabindex="0" aria-orientation=${o === "slide" ? "vertical" : F} aria-label="${e} ${n}" aria-valuemin="0" aria-valuemax="100" aria-valuenow=${Math.round(r)} aria-valuetext=${a} style="--lvl: ${r.toFixed(1)}"
     @pointerdown=${s.down} @pointermove=${s.move} @pointerup=${s.up} @pointercancel=${s.drop} @keydown=${s.key}>${c}</div>`;
 	return M`<div class="dial ${t}">
-    <div class="dimmer">${t === "heat" ? h("knob", M`<span class="mark"></span>`) : M`<div class="ladder ${t}" aria-hidden="true">${$o.map((e) => M`<i class=${e < p ? "lit" : ""}></i>`)}</div>${h("slide", M`<i class="cap"></i>`)}`}</div>
-    ${Z(u)}${d === void 0 ? F : Ko(d, f)}${m ? M`<span class="note">${o ? Z(o) : F}</span>` : F}
+    <div class="dimmer">${t === "heat" ? h("knob", M`<span class="mark"></span>`) : M`<div class="ladder ${t}" aria-hidden="true">${Bs.map((e) => M`<i class=${e < p ? "lit" : ""}></i>`)}</div>${h("slide", M`<i class="cap"></i>`)}`}</div>
+    ${Z(u)}${d === void 0 ? F : Ns(d, f)}${m ? M`<span class="note">${o ? Z(o) : F}</span>` : F}
   </div>`;
-}, as = (e, t) => M`<button class="push" @click=${t}><span class="key">${e}</span></button>`, os = (e, t, n) => M`<button class="knife ${t ? "closed" : ""}" @click=${n}><i class="bar"></i><span class="key"></span>${Z(e)}</button>`, ss = 96, cs = 6, ls = 6, us = 36e5;
-function ds(e, t = ss) {
+}, Ks = (e, t) => M`<button class="push" @click=${t}><span class="key">${e}</span></button>`, qs = (e, t, n) => M`<button class="knife ${t ? "closed" : ""}" @click=${n}><i class="bar"></i><span class="key"></span>${Z(e)}</button>`, Js = 96, Ys = 6, Xs = 6, Zs = 36e5;
+function Qs(e, t = Js) {
 	let n = Array(t).fill(void 0);
 	for (let r of e) for (let e = 0; e + 1 < r.length; e += 2) {
 		let [i, a] = r[e], o = r[e + 1][0];
@@ -5643,22 +6014,22 @@ function ds(e, t = ss) {
 	}
 	return n;
 }
-function fs(e, t, n, r, i) {
-	let a = n - 24 * us, o = Math.ceil(a / us) * us, s = Array.from({ length: 24 }, (e, t) => o + t * us).filter((e) => e <= n && new Date(e).getHours() % 3 == 0);
+function $s(e, t, n, r, i) {
+	let a = n - 24 * Zs, o = Math.ceil(a / Zs) * Zs, s = Array.from({ length: 24 }, (e, t) => o + t * Zs).filter((e) => e <= n && new Date(e).getHours() % 3 == 0);
 	return M`<dialog class="recorder" aria-label="${e}: the last day" @close=${i} @click=${(e) => e.target === e.currentTarget && i()}>
     ${Z(`${e}: the last day`)}
     ${r ? M`<div class="warn"><span class="lamp"></span>${Z(`The record could not be read (${r}).`)}</div>` : F}
     <div class="analyser" role="img" aria-label="When each device in ${e} was on">
       ${t.map((e) => M`<div class="lane"><span class="name">${e.name}</span>
-          ${e.changes ? M`<span class="columns">${ds(ja(e.changes, a, n, e.lo, e.hi)).map((e) => M`<i class=${e === void 0 ? "gap" : ""} style="--n: ${Math.round((e ?? 0) * ls)}"></i>`)}</span>` : M`<span class="columns reading">${r ? "" : "reading…"}</span>`}</div>`)}
-      <div class="lane hours"><span class="name"></span><span class="columns">${s.map((e) => M`<b style="left: ${((e - a) / (n - a) * ss * cs).toFixed(0)}px">${String(new Date(e).getHours()).padStart(2, "0")}</b>`)}</span></div>
+          ${e.changes ? M`<span class="columns">${Qs(yo(e.changes, a, n, e.lo, e.hi)).map((e) => M`<i class=${e === void 0 ? "gap" : ""} style="--n: ${Math.round((e ?? 0) * Xs)}"></i>`)}</span>` : M`<span class="columns reading">${r ? "" : "reading…"}</span>`}</div>`)}
+      <div class="lane hours"><span class="name"></span><span class="columns">${s.map((e) => M`<b style="left: ${((e - a) / (n - a) * Js * Ys).toFixed(0)}px">${String(new Date(e).getHours()).padStart(2, "0")}</b>`)}</span></div>
     </div>
-    ${as("Close", i)}
+    ${Ks("Close", i)}
   </dialog>`;
 }
 //#endregion
 //#region src/dash-bored/console/bargraph/styles.ts
-var ps = b`
+var ec = b`
   .panel { --vfd: #7df7e6; --amber: #ff7a1a; --ink: #e8e8e8; --glass: #04100f; --seg-on: var(--vfd); --seg-off: rgba(125,247,230,.07); --seg-glow: 0 0 5px rgba(125,247,230,.8); box-sizing: border-box; min-height: 100%; padding: 18px 22px; color: var(--ink);
     font-family: "Helvetica Neue", "Arial Narrow", Arial, sans-serif; background: #070708; }
   .panel * { box-sizing: border-box; }
@@ -5721,7 +6092,7 @@ var ps = b`
   .display .unit { align-self: flex-end; margin-bottom: 4px; color: var(--vfd); font-size: 11px; font-weight: 600; text-shadow: 0 0 5px var(--vfd); }
   .display.unlit .unit { opacity: .12; text-shadow: none; }
   /* The fluorescent figures and the sweep (../figures.ts): the sweep's segments lean, and its last four are red. */
-  ${Xo}
+  ${Ls}
   .sweep i { transform: skewX(-12deg); } .sweep i:nth-child(n + 17) { background: #ff6a3a; }
   /* The last lit segment flickers now and then: all that is left of a needle's waver. */
   .sweep .tip { animation: tip 5.3s steps(1) infinite; }
@@ -5836,44 +6207,44 @@ var ps = b`
   .hours .columns { height: 11px; } .hours b { position: absolute; top: 0; font-weight: 400; opacity: .7; transform: translateX(-50%); }
 
   @media (prefers-reduced-motion: reduce) { .waver, .jewel.critical, .sweep .tip { animation: none; } .needle, .cap, .mark { transition: none; } }
-`, ms = "dash-bored-bargraph", hs = class extends Fo {
+`, tc = "dash-bored-bargraph", nc = class extends Ss {
 	constructor(...e) {
 		super(...e), this.kit = {
-			...Zo,
-			recorder: fs
+			...Rs,
+			recorder: $s
 		};
 	}
 	static {
 		this.styles = [
 			W,
-			Io,
-			ps
+			Cs,
+			ec
 		];
 	}
-}, gs = /* @__PURE__ */ t({
-	DEFS: () => _s,
-	dolly: () => js,
-	jewel: () => Es,
-	knife: () => Bs,
-	knob: () => Rs,
-	label: () => vs,
-	meter: () => Ts,
-	push: () => zs,
-	readout: () => xs,
-	tv: () => Ea,
-	valve: () => Ds,
-	wheels: () => Oa
-}), _s = M`<svg class="defs" width="0" height="0" aria-hidden="true"><defs>
+}, rc = /* @__PURE__ */ t({
+	DEFS: () => ic,
+	dolly: () => vc,
+	jewel: () => pc,
+	knife: () => Dc,
+	knob: () => Tc,
+	label: () => ac,
+	meter: () => fc,
+	push: () => Ec,
+	readout: () => cc,
+	tv: () => mo,
+	valve: () => mc,
+	wheels: () => go
+}), ic = M`<svg class="defs" width="0" height="0" aria-hidden="true"><defs>
   <linearGradient id="chrome" x1="0" x2="1"><stop offset="0" stop-color="#6d7175"/><stop offset=".28" stop-color="#f4f6f7"/><stop offset=".5" stop-color="#a9adb1"/><stop offset=".72" stop-color="#e3e6e8"/><stop offset="1" stop-color="#55595d"/></linearGradient>
   <linearGradient id="nut" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f2f4f5"/><stop offset=".5" stop-color="#8d9195"/><stop offset="1" stop-color="#d5d8da"/></linearGradient>
   <linearGradient id="dial" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e9fbf4"/><stop offset=".45" stop-color="#9fe3d2"/><stop offset="1" stop-color="#3f9d94"/></linearGradient>
   <linearGradient id="dark" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8b9390"/><stop offset="1" stop-color="#565d5b"/></linearGradient>
   <linearGradient id="moulded" x1="0" x2="1"><stop offset="0" stop-color="#a51013"/><stop offset=".2" stop-color="#f0322e"/><stop offset=".55" stop-color="#d81b1d"/><stop offset=".85" stop-color="#b01316"/><stop offset="1" stop-color="#8a0c0f"/></linearGradient>
   <radialGradient id="lens" cx=".4" cy=".35"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/></radialGradient>
-</defs></svg>`, vs = (e) => M`<span class="label" role="img" aria-label=${e}>${e.split(" ").map((e, t) => M`<span class="word">${[...e].map((e, n) => {
+</defs></svg>`, ac = (e) => M`<span class="label" role="img" aria-label=${e}>${e.split(" ").map((e, t) => M`<span class="word">${[...e].map((e, n) => {
 	let r = e.charCodeAt(0) * 31 + n * 17 + t * 7;
 	return M`<i style="--y: ${((r % 11 - 5) * .22).toFixed(2)}px; --r: ${((r % 7 - 3) * .55).toFixed(2)}deg">${e}</i>`;
-})}</span> `)}</span>`, ys = "#3a0d0a", bs = {
+})}</span> `)}</span>`, oc = "#3a0d0a", sc = {
 	a: "M2.5,1 H7.5",
 	b: "M9,2.5 V8",
 	c: "M9,10 V15.5",
@@ -5882,23 +6253,23 @@ var ps = b`
 	f: "M1,2.5 V8",
 	g: "M2.5,9 H7.5"
 };
-function xs(e, t = !0) {
-	let n = 3, r = t ? "#ff3a22" : ys, i = [...e.replace("%", "")].map((e) => {
+function cc(e, t = !0) {
+	let n = 3, r = t ? "#ff3a22" : oc, i = [...e.replace("%", "")].map((e) => {
 		let t = n;
-		return e === "." ? (n += 4, N`<circle cx=${t} cy="17" r="1" fill=${r}/>`) : (n += 12, e === "°" ? N`<path d="M${t + 1},1 h4 v4 h-4 z" fill="none" stroke=${r} stroke-width="1.3"/>` : N`<g transform="translate(${t} 0)" stroke-width="1.7" stroke-linecap="round">${Object.entries(bs).map(([t, n]) => N`<path d=${n} stroke=${Uo[e]?.includes(t) ? r : ys}/>`)}</g>`);
+		return e === "." ? (n += 4, N`<circle cx=${t} cy="17" r="1" fill=${r}/>`) : (n += 12, e === "°" ? N`<path d="M${t + 1},1 h4 v4 h-4 z" fill="none" stroke=${r} stroke-width="1.3"/>` : N`<g transform="translate(${t} 0)" stroke-width="1.7" stroke-linecap="round">${Object.entries(sc).map(([t, n]) => N`<path d=${n} stroke=${As[e]?.includes(t) ? r : oc}/>`)}</g>`);
 	});
 	return M`<svg class="readout" viewBox="0 -3 ${n + 2} 24" height="22" role="img" aria-label=${e}><rect x="0" y="-3" width=${n + 2} height="24" rx="2" fill="#160504"/>${i}</svg>`;
 }
-var Ss = (e, t) => {
+var lc = (e, t) => {
 	let n = (t - 90) * Math.PI / 180;
 	return `${(60 + e * Math.cos(n)).toFixed(1)},${(74 + e * Math.sin(n)).toFixed(1)}`;
-}, Cs = {
+}, uc = {
 	"°C": "TEMPERATURE °C",
 	kW: "POWER kW"
-}, ws = Array.from({ length: 21 }, (e, t) => N`<path d="M${Ss(50, -50 + t * 5)} L${Ss(t % 4 ? 53 : 56, -50 + t * 5)}" stroke=${t > 16 ? "#c9170f" : "#101614"} stroke-width=${t % 4 ? .6 : 1.1}/>`);
-function Ts(e, t, n, r, i, a = 0, o = !0) {
+}, dc = Array.from({ length: 21 }, (e, t) => N`<path d="M${lc(50, -50 + t * 5)} L${lc(t % 4 ? 53 : 56, -50 + t * 5)}" stroke=${t > 16 ? "#c9170f" : "#101614"} stroke-width=${t % 4 ? .6 : 1.1}/>`);
+function fc(e, t, n, r, i, a = 0, o = !0) {
 	let s = Array.from({ length: 6 }, (e, r) => {
-		let [i, a] = Ss(41, -50 + r * 20).split(",");
+		let [i, a] = lc(41, -50 + r * 20).split(",");
 		return N`<text x=${i} y=${Number(a) + 2}>${+(t + (n - t) * r / 5).toFixed(1)}</text>`;
 	});
 	return M`<div class="meter">
@@ -5906,17 +6277,17 @@ function Ts(e, t, n, r, i, a = 0, o = !0) {
       <rect x="1" y="1" width="118" height="82" rx="4" fill="#101112"/><rect x="1.5" y="1.5" width="117" height="81" rx="3.5" fill="none" stroke="#fff" stroke-opacity=".2"/>
       <rect x="7" y="7" width="106" height="58" rx="2" fill="url(#${o ? "dial" : "dark"})"/>
       ${o ? N`<rect x="7" y="7" width="106" height="20" rx="2" fill="#fff" opacity=".22"/>` : F}
-      <path d="M${Ss(50, -50)} A50,50 0 0 1 ${Ss(50, 34)}" fill="none" stroke="#101614" stroke-width=".8"/><path d="M${Ss(50, 34)} A50,50 0 0 1 ${Ss(50, 50)}" fill="none" stroke="#c9170f" stroke-width="2"/>
-      ${ws}${s}<text class="legend" x="60" y="60">${Cs[i] ?? i}</text>
+      <path d="M${lc(50, -50)} A50,50 0 0 1 ${lc(50, 34)}" fill="none" stroke="#101614" stroke-width=".8"/><path d="M${lc(50, 34)} A50,50 0 0 1 ${lc(50, 50)}" fill="none" stroke="#c9170f" stroke-width="2"/>
+      ${dc}${s}<text class="legend" x="60" y="60">${uc[i] ?? i}</text>
       <clipPath id="window"><rect x="7" y="7" width="106" height="58" rx="2"/></clipPath>
-      <g clip-path="url(#window)"><g class="needle" style="transform: rotate(${ga(r, t, n).toFixed(1)}deg)"><g class="waver" style="animation-duration: ${la[a % la.length] * 16}ms"><path d="M60,74 V19" stroke="#0b0d0c" stroke-width=".9"/></g></g></g>
+      <g clip-path="url(#window)"><g class="needle" style="transform: rotate(${ro(r, t, n).toFixed(1)}deg)"><g class="waver" style="animation-duration: ${Xa[a % Xa.length] * 16}ms"><path d="M60,74 V19" stroke="#0b0d0c" stroke-width=".9"/></g></g></g>
       <rect x="7" y="7" width="106" height="58" rx="2" fill="none" stroke="#000" stroke-opacity=".45" stroke-width="1.6"/><path d="M11,10 L52,10 L38,34 L11,34 Z" fill="#fff" opacity=".1"/>
       <circle cx="60" cy="74" r="4" fill="#1d1f20" stroke="#000"/><path d="M57,74 h6" stroke="#000" stroke-width="1.1"/>
     </svg>
-    ${vs(e)}
+    ${ac(e)}
   </div>`;
 }
-var Es = (e) => M`<span class="jewel ${e}" aria-hidden="true">${e}</span>`, Ds = (e) => {
+var pc = (e) => M`<span class="jewel ${e}" aria-hidden="true">${e}</span>`, mc = (e) => {
 	let t = e ? Math.max(1, Math.round((e - .35) / .65 * 5)) : 0;
 	return M`<div class="leds" role="img" aria-label="Lights: ${t} of 5">${[
 		0,
@@ -5925,19 +6296,19 @@ var Es = (e) => M`<span class="jewel ${e}" aria-hidden="true">${e}</span>`, Ds =
 		3,
 		4
 	].map((e) => M`<span class=${e < t ? "on" : ""}></span>`)}</div>`;
-}, Os = (e) => +(e.length * 3.05 + 5).toFixed(1), ks = [
+}, hc = (e) => +(e.length * 3.05 + 5).toFixed(1), gc = [
 	7.4,
 	6.6,
 	5.8
-].map((e) => N`<circle cx="29" cy="46" r=${e} fill="none" stroke="#4b4f53" stroke-width=".45"/>`), As = Array.from({ length: 7 }, (e, t) => `M${25.4 + t * 1.2},1.6 v5.8`).join(" "), js = (e, t, n, r, i = "", a = "", o = ["On", "Off"]) => M`<button class="dolly ${t ? "on" : ""} ${n ? "away" : ""} ${i}" aria-pressed=${t} aria-label=${n ? `${e}: not answering` : e + a} @click=${r}>
+].map((e) => N`<circle cx="29" cy="46" r=${e} fill="none" stroke="#4b4f53" stroke-width=".45"/>`), _c = Array.from({ length: 7 }, (e, t) => `M${25.4 + t * 1.2},1.6 v5.8`).join(" "), vc = (e, t, n, r, i = "", a = "", o = ["On", "Off"]) => M`<button class="dolly ${t ? "on" : ""} ${n ? "away" : ""} ${i}" aria-pressed=${t} aria-label=${n ? `${e}: not answering` : e + a} @click=${r}>
   <svg viewBox=${i ? "0 -30 64 114" : "0 0 64 84"}>
     ${i ? N`<path d="M12.5,-3 h33 q2,0 2,2 v82 q0,2 -2,2 h-33 q-2,0 -2,-2 v-82 q0,-2 2,-2 z" fill="#1d1e20" stroke="#000" stroke-width=".6"/><path d="M11.4,-1 v80" stroke="#fff" stroke-opacity=".16" stroke-width=".8"/>` : N`<rect x="12" y="9" width="34" height="74" rx="2" fill="#141516"/>`}
-    <rect x=${29 - Os(o[0]) / 2} y="12.4" width=${Os(o[0])} height="7.2" rx="1" fill="#c9170f"/><text class="onoff" x="29" y="18">${o[0]}</text>
-    <rect x=${29 - Os(o[1]) / 2} y="73.4" width=${Os(o[1])} height="7.2" rx="1" fill="#050505" stroke="#e9e9e7" stroke-width=".4"/><text class="onoff" x="29" y="79">${o[1]}</text>
+    <rect x=${29 - hc(o[0]) / 2} y="12.4" width=${hc(o[0])} height="7.2" rx="1" fill="#c9170f"/><text class="onoff" x="29" y="18">${o[0]}</text>
+    <rect x=${29 - hc(o[1]) / 2} y="73.4" width=${hc(o[1])} height="7.2" rx="1" fill="#050505" stroke="#e9e9e7" stroke-width=".4"/><text class="onoff" x="29" y="79">${o[1]}</text>
     <circle cx="54" cy="76" r="6.5" fill="url(#nut)" stroke="#444" stroke-width=".6"/><circle class="pilot" cx="54" cy="76" r="4.3"/><circle cx="54" cy="76" r="4.3" fill="url(#lens)"/>
     <g class="throw"><circle cx="29" cy="46" r="17" fill="transparent"/><circle cx="29" cy="46.8" r="12.4" fill="#000" opacity=".45"/>
     <path d="M29,34.6 l9.9,5.7 v11.4 l-9.9,5.7 l-9.9,-5.7 v-11.4 z" fill="url(#nut)" stroke="#33363a" stroke-width=".7"/><path d="M29,34.6 l9.9,5.7 M19.1,51.7 l9.9,5.7" stroke="#fff" stroke-opacity=".6" stroke-width=".7"/>
-    <circle cx="29" cy="46" r="8.4" fill="url(#chrome)" stroke="#33363a" stroke-width=".6"/>${ks}<circle cx="29" cy="46" r="4.6" fill="#0d0e0f"/><circle cx="29" cy="46" r="3.5" fill="url(#nut)"/>
+    <circle cx="29" cy="46" r="8.4" fill="url(#chrome)" stroke="#33363a" stroke-width=".6"/>${gc}<circle cx="29" cy="46" r="4.6" fill="#0d0e0f"/><circle cx="29" cy="46" r="3.5" fill="url(#nut)"/>
     <g class="lever"><path d="M28.6,48 L27.2,31 Q27.2,26 31.2,26 Q35.2,26 35.2,31 L33.4,48 Z" fill="#000" opacity=".3"/>
       <path d="M26.7,46 L24.9,29.5 Q24.9,23.6 29,23.6 Q33.1,23.6 33.1,29.5 L31.3,46 Z" fill="url(#chrome)" stroke="#2f3235" stroke-width=".6"/>
       <path d="M27,29 L28,44" stroke="#fff" stroke-opacity=".75" stroke-width="1.1" stroke-linecap="round"/><ellipse cx="29" cy="26.8" rx="3.3" ry="2.2" fill="#fff" opacity=".6"/></g></g>
@@ -5953,21 +6324,21 @@ var Es = (e) => M`<span class="jewel ${e}" aria-hidden="true">${e}</span>`, Ds =
             <path d="M25,-23 H33 L33.8,-3 Q29,-1.6 24.2,-3 Z" fill="#3f0607" opacity=".85"/><path d="M25.4,-22 L24.8,-4" stroke="#000" stroke-opacity=".4" stroke-width=".9"/>
             <path d="M14.8,-10 Q14.4,-25.6 24,-25.6 H34" fill="none" stroke="#ffa59a" stroke-opacity=".8" stroke-width="1.1" stroke-linecap="round"/><path d="M43.6,-9 Q43.8,-20 39.5,-24.2" fill="none" stroke="#6a080a" stroke-opacity=".7" stroke-width="1.6" stroke-linecap="round"/></g>
           <path d="M14.5,-.4 h6 v9.6 h-6 z M37.5,-.4 h6 v9.6 h-6 z" fill="#27282a" stroke="#000" stroke-width=".5"/><path d="M12.5,4.5 H45" stroke="url(#chrome)" stroke-width="2.3"/><path d="M12.5,3.7 H45" stroke="#fff" stroke-opacity=".7" stroke-width=".5"/>
-          <rect x="25" y="1.4" width="8.4" height="6.2" rx="1" fill="#aeb2b6"/><path d="${As}" stroke="#4d5154" stroke-width=".55"/>
+          <rect x="25" y="1.4" width="8.4" height="6.2" rx="1" fill="#aeb2b6"/><path d="${_c}" stroke="#4d5154" stroke-width=".55"/>
           <circle cx="46" cy="4.5" r="2.7" fill="url(#nut)" stroke="#2f3235" stroke-width=".5"/><path d="M44.4,4.5 h3.2 M46,2.9 v3.2" stroke="#2f3235" stroke-width=".7"/><circle cx="12.4" cy="4.5" r="1.7" fill="url(#nut)" stroke="#2f3235" stroke-width=".4"/>` : F}
   </svg>
-  ${vs(e)}
-</button>`, Ms = Array.from({ length: 11 }, (e, t) => {
+  ${ac(e)}
+</button>`, yc = Array.from({ length: 11 }, (e, t) => {
 	let n = (-135 + t * 27 - 90) * Math.PI / 180, r = (e) => `${(52 + e * Math.cos(n)).toFixed(1)},${(52 + e * Math.sin(n)).toFixed(1)}`;
 	return N`<path d="M${r(41)} L${r(t % 5 ? 46 : 49)}" stroke="#141516" stroke-width=${t % 5 ? .9 : 1.8}/>`;
-}), Ns = (e, t) => {
+}), bc = (e, t) => {
 	let n = (t - 90) * Math.PI / 180;
 	return `${(52 + e * Math.cos(n)).toFixed(1)},${(52 + e * Math.sin(n)).toFixed(1)}`;
-}, Ps = "#1f8f45", Fs = "#e2512a", Is = Array.from({ length: 21 }, (e, t) => {
+}, xc = "#1f8f45", Sc = "#e2512a", Cc = Array.from({ length: 21 }, (e, t) => {
 	let n = -135 + t * 13.5;
-	return N`<path d="M${Ns(t % 5 ? 26.5 : 25, n)} L${Ns(30, n)}" stroke=${t < 10 ? Ps : t > 10 ? Fs : "#141516"} stroke-width=${t % 5 ? .8 : 1.4}/>`;
+	return N`<path d="M${bc(t % 5 ? 26.5 : 25, n)} L${bc(30, n)}" stroke=${t < 10 ? xc : t > 10 ? Sc : "#141516"} stroke-width=${t % 5 ? .8 : 1.4}/>`;
 });
-function Ls(e, t, n) {
+function wc(e, t, n) {
 	let r = [
 		0,
 		1,
@@ -5975,8 +6346,8 @@ function Ls(e, t, n) {
 		3,
 		4
 	].map((n) => {
-		let [r, i] = Ns(37.2, -135 + n * 67.5).split(",");
-		return N`<text x=${r} y=${Number(i) + 2.2} fill=${n < 2 ? Ps : n > 2 ? Fs : "#141516"}>${Math.round(e + (t - e) * n / 4)}</text>`;
+		let [r, i] = bc(37.2, -135 + n * 67.5).split(",");
+		return N`<text x=${r} y=${Number(i) + 2.2} fill=${n < 2 ? xc : n > 2 ? Sc : "#141516"}>${Math.round(e + (t - e) * n / 4)}</text>`;
 	}), i = n === void 0 ? void 0 : -135 + 270 * Math.min(1, Math.max(0, (n - e) / (t - e)));
 	return N`<rect x="2.5" y="2.5" width="99" height="99" rx="7" fill="#121314" stroke="#000"/><rect x="3.5" y="3.5" width="97" height="97" rx="6" fill="none" stroke="#fff" stroke-opacity=".16"/>
     ${[
@@ -5986,46 +6357,46 @@ function Ls(e, t, n) {
 		[94, 94]
 	].map(([e, t]) => N`<circle cx=${e} cy=${t} r="2.6" fill="url(#nut)" stroke="#000" stroke-width=".4"/><path d="M${e - 1.6},${t - 1.1} l3.2,2.2" stroke="#2a2c2e" stroke-width=".8"/>`)}
     <circle cx="52" cy="52" r="44.5" fill="#000"/><circle class="face" cx="52" cy="52" r="42.5"/>
-    <path d="M${Ns(31.3, -135)} A31.3,31.3 0 0 1 ${Ns(31.3, 0)}" fill="none" stroke=${Ps} stroke-width="2.4"/><path d="M${Ns(31.3, 0)} A31.3,31.3 0 0 1 ${Ns(31.3, 135)}" fill="none" stroke=${Fs} stroke-width="2.4"/>
-    ${Is}<g class="figures">${r}</g>
+    <path d="M${bc(31.3, -135)} A31.3,31.3 0 0 1 ${bc(31.3, 0)}" fill="none" stroke=${xc} stroke-width="2.4"/><path d="M${bc(31.3, 0)} A31.3,31.3 0 0 1 ${bc(31.3, 135)}" fill="none" stroke=${Sc} stroke-width="2.4"/>
+    ${Cc}<g class="figures">${r}</g>
     ${i === void 0 ? F : N`<g class="hand" style="transform: rotate(${i.toFixed(1)}deg)"><path d="M52,52 V14" stroke="#d0180f" stroke-width=".9"/><path d="M52,10.5 l-1.9,4.4 h3.8 z" fill="#d0180f"/></g>`}
     <path d="M20,30 A38,38 0 0 1 48,13" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="3" stroke-linecap="round"/>`;
 }
-var Rs = (e, t, n, r, i, a, o, s, c = [0, 100], l) => {
-	let { legend: u, shown: d, lit: f } = Go(e, t, c), p = d === void 0 ? F : xs(d, f), m = o || t === "sound";
+var Tc = (e, t, n, r, i, a, o, s, c = [0, 100], l) => {
+	let { legend: u, shown: d, lit: f } = Ms(e, t, c), p = d === void 0 ? F : cc(d, f), m = o || t === "sound";
 	return M`<div class="dial ${t}">
-    <div class="dimmer"><svg viewBox="0 0 104 104" aria-hidden="true">${t === "heat" ? Ls(c[0], c[1], l) : Ms}</svg>
+    <div class="dimmer"><svg viewBox="0 0 104 104" aria-hidden="true">${t === "heat" ? wc(c[0], c[1], l) : yc}</svg>
       <div class="knob ${t} ${i ? "drag" : ""}" role="slider" tabindex="0" aria-label="${e} ${n}" aria-valuemin="0" aria-valuemax="100" aria-valuenow=${Math.round(r)} aria-valuetext=${a} style="--lvl: ${r.toFixed(1)}"
         @pointerdown=${s.down} @pointermove=${s.move} @pointerup=${s.up} @pointercancel=${s.drop} @keydown=${s.key}><span class="flutes"></span><span class="cap"></span><span class="mark"></span></div></div>
-    ${vs(u)}${p}${m ? M`<span class="note ${/^now /.test(o) ? "reading" : ""}">${o ? vs(o) : F}</span>` : F}
+    ${ac(u)}${p}${m ? M`<span class="note ${/^now /.test(o) ? "reading" : ""}">${o ? ac(o) : F}</span>` : F}
   </div>`;
-}, zs = (e, t) => M`<button class="push" @click=${t}><span class="key"></span>${vs(e)}</button>`, Bs = (e, t, n) => M`<button class="knife ${t ? "closed" : ""}" @click=${n}><span class="key">${e}</span></button>`, Vs = /* @__PURE__ */ t({
-	DEFS: () => Hs,
-	dolly: () => Ks,
-	jewel: () => Gs,
-	knife: () => Ys,
-	knob: () => qs,
-	label: () => Us,
-	meter: () => Ws,
-	push: () => Js,
-	tv: () => Ea,
-	valve: () => Ds,
-	wheels: () => Yo
-}), Hs = M``, Us = (e) => M`<span class="label">${e}</span>`;
-function Ws(e, t, n, r, i, a = 0, o = !0) {
-	return Jo(e, t, n, r, i, o, Us(e));
+}, Ec = (e, t) => M`<button class="push" @click=${t}><span class="key"></span>${ac(e)}</button>`, Dc = (e, t, n) => M`<button class="knife ${t ? "closed" : ""}" @click=${n}><span class="key">${e}</span></button>`, Oc = /* @__PURE__ */ t({
+	DEFS: () => kc,
+	dolly: () => Nc,
+	jewel: () => Mc,
+	knife: () => Ic,
+	knob: () => Pc,
+	label: () => Ac,
+	meter: () => jc,
+	push: () => Fc,
+	tv: () => mo,
+	valve: () => mc,
+	wheels: () => Is
+}), kc = M``, Ac = (e) => M`<span class="label">${e}</span>`;
+function jc(e, t, n, r, i, a = 0, o = !0) {
+	return Fs(e, t, n, r, i, o, Ac(e));
 }
-var Gs = (e) => M`<span class="jewel ${e}" aria-hidden="true"></span>`, Ks = (e, t, n, r, i = "", a = "", o = ["On", "Off"]) => M`<button class="dolly ${t ? "on" : ""} ${n ? "away" : ""} ${i}" aria-pressed=${t} aria-label=${n ? `${e}: not answering` : e + a} @click=${r}>
+var Mc = (e) => M`<span class="jewel ${e}" aria-hidden="true"></span>`, Nc = (e, t, n, r, i = "", a = "", o = ["On", "Off"]) => M`<button class="dolly ${t ? "on" : ""} ${n ? "away" : ""} ${i}" aria-pressed=${t} aria-label=${n ? `${e}: not answering` : e + a} @click=${r}>
   <span class="rocker"><i class="pilot"></i><span class="throw"><b>I</b><b>O</b></span>${i ? M`<i class="lock"></i>` : F}</span>
-  ${Us(e)}
-</button>`, qs = (e, t, n, r, i, a, o, s, c = [0, 100], l) => {
-	let { legend: u, shown: d, lit: f } = Go(e, t, c), p = o || t === "sound";
+  ${Ac(e)}
+</button>`, Pc = (e, t, n, r, i, a, o, s, c = [0, 100], l) => {
+	let { legend: u, shown: d, lit: f } = Ms(e, t, c), p = o || t === "sound";
 	return M`<div class="dial ${t}">
     <div class="dimmer"><div class="knob ${t} ${i ? "drag" : ""}" role="slider" tabindex="0" aria-label="${e} ${n}" aria-valuemin="0" aria-valuemax="100" aria-valuenow=${Math.round(r)} aria-valuetext=${a} style="--lvl: ${r.toFixed(1)}"
       @pointerdown=${s.down} @pointermove=${s.move} @pointerup=${s.up} @pointercancel=${s.drop} @keydown=${s.key}><span class="disc"></span></div></div>
-    ${Us(u)}${d === void 0 ? Ko(Wo(String(Math.round(r)), "%", [0, 100])) : Ko(d, f)}${p ? M`<span class="note">${o ? Us(o) : F}</span>` : F}
+    ${Ac(u)}${d === void 0 ? Ns(js(String(Math.round(r)), "%", [0, 100])) : Ns(d, f)}${p ? M`<span class="note">${o ? Ac(o) : F}</span>` : F}
   </div>`;
-}, Js = (e, t) => M`<button class="push" @click=${t}><span class="key"></span>${Us(e)}</button>`, Ys = (e, t, n) => M`<button class="knife ${t ? "closed" : ""}" @click=${n}><span class="strip">${e}</span><span class="key"></span></button>`, Xs = b`
+}, Fc = (e, t) => M`<button class="push" @click=${t}><span class="key"></span>${Ac(e)}</button>`, Ic = (e, t, n) => M`<button class="knife ${t ? "closed" : ""}" @click=${n}><span class="strip">${e}</span><span class="key"></span></button>`, Lc = b`
   .panel { --lcd: #aeb79e; --lcd-ink: #1d261a; --ink: #5b5648; --seg-on: var(--lcd-ink); --seg-off: rgba(29,38,26,.07); box-sizing: border-box; min-height: 100%; padding: 18px 22px; color: var(--ink);
     font-family: Helvetica, Arial, sans-serif; background: radial-gradient(rgba(0,0,0,.04) 1px, transparent 1.4px) 0 0 / 3px 3px, linear-gradient(175deg, #e6dfcb, #d5ccb5); }
   .panel * { box-sizing: border-box; }
@@ -6077,7 +6448,7 @@ var Gs = (e) => M`<span class="jewel ${e}" aria-hidden="true"></span>`, Ks = (e,
   .win { position: relative; display: flex; flex-wrap: wrap; align-items: center; align-content: center; justify-content: center; gap: 5px 6px; aspect-ratio: 120 / 70; max-width: 100%; border: 5px solid #b9b09a; border-radius: 3px; }
   .display .unit { align-self: flex-end; margin-bottom: 4px; color: var(--lcd-ink); font-size: 11px; font-weight: 700; }
   .display.unlit .unit { opacity: .1; }
-  ${Xo}
+  ${Ls}
   .sweep i:nth-child(n) { height: 7px; }
 
   /* Alerts: an LED, and what is wrong on a character LCD. A critical one flashes. */
@@ -6182,57 +6553,57 @@ var Gs = (e) => M`<span class="jewel ${e}" aria-hidden="true"></span>`, Ks = (e,
   dialog.recorder .push:focus-visible .label { outline: 1px dotted #000; outline-offset: -5px; }
 
   @media (prefers-reduced-motion: reduce) { .jewel.critical { animation: none; } .disc, .disc::after, .lock { transition: none; } }
-`, Zs = 104, Qs = 640, $s = 34, ec = 36e5, tc = (e, t) => (n, r, i, a, o) => {
-	let s = i - 24 * ec, c = (e) => Zs + (e - s) / (i - s) * 526, l = Math.ceil(s / ec) * ec, u = Array.from({ length: 24 }, (e, t) => l + t * ec).filter((e) => e <= i), d = r.length * $s + 30;
+`, Rc = 104, zc = 640, Bc = 34, Vc = 36e5, Hc = (e, t) => (n, r, i, a, o) => {
+	let s = i - 24 * Vc, c = (e) => Rc + (e - s) / (i - s) * 526, l = Math.ceil(s / Vc) * Vc, u = Array.from({ length: 24 }, (e, t) => l + t * Vc).filter((e) => e <= i), d = r.length * Bc + 30;
 	return M`<dialog class="recorder" aria-label="${n}: the last day" @close=${o} @click=${(e) => e.target === e.currentTarget && o()}>
     ${e(`${n}: the last day`)}
     ${a ? M`<div class="warn"><span class="lamp"></span>${e(`The record could not be read (${a}).`)}</div>` : F}
-    <svg class="scope" viewBox="0 0 ${Qs} ${d}" role="img" aria-label="Traces of when each device in ${n} was on">
-      <rect class="screen" width=${Qs} height=${d} rx="14" fill="#04140d"/>
+    <svg class="scope" viewBox="0 0 ${zc} ${d}" role="img" aria-label="Traces of when each device in ${n} was on">
+      <rect class="screen" width=${zc} height=${d} rx="14" fill="#04140d"/>
       ${u.map((e) => {
 		let t = new Date(e).getHours() % 3 == 0;
 		return N`<path class="grid" d="M${c(e).toFixed(1)},6 V${d - 18}" stroke="#7dffc0" stroke-opacity=${t ? .28 : .1} stroke-width=".6"/>${t ? N`<text class="hour" x=${c(e).toFixed(1)} y=${d - 6}>${String(new Date(e).getHours()).padStart(2, "0")}</text>` : F}`;
 	})}
       ${r.map((e, t) => {
-		let n = (t + 1) * $s, r = ja(e.changes ?? [], s, i, e.lo, e.hi).map((e) => e.map(([e, t], r) => `${r ? "L" : "M"}${(Zs + e * 526).toFixed(1)},${(n - t * 22).toFixed(1)}`).join(" ")).join(" ");
-		return N`<g class="channel"><path class="grid" d="M${Zs},${n} H${630}" stroke="#7dffc0" stroke-opacity=".16" stroke-width=".5"/>
+		let n = (t + 1) * Bc, r = yo(e.changes ?? [], s, i, e.lo, e.hi).map((e) => e.map(([e, t], r) => `${r ? "L" : "M"}${(Rc + e * 526).toFixed(1)},${(n - t * 22).toFixed(1)}`).join(" ")).join(" ");
+		return N`<g class="channel"><path class="grid" d="M${Rc},${n} H${630}" stroke="#7dffc0" stroke-opacity=".16" stroke-width=".5"/>
           <text class="lane" x=${96} y=${n - 3}>${e.name}</text>
           ${e.changes ? N`<path class="glow" d=${r} fill="none" stroke="#3dff9a" stroke-opacity=".3" stroke-width="4" stroke-linejoin="round"/><path class="trace" d=${r} fill="none" stroke="#c9ffe2" stroke-width="1.1" stroke-linejoin="round"/>` : N`<text class="hour" x=${144} y=${n - 3}>${a ? "" : "reading…"}</text>`}</g>`;
 	})}
     </svg>
     ${t("Close", o)}
   </dialog>`;
-}, nc = "dash-bored-beige", rc = class extends Fo {
+}, Uc = "dash-bored-beige", Wc = class extends Ss {
 	constructor(...e) {
 		super(...e), this.kit = {
-			...Vs,
-			recorder: tc(Us, Js)
+			...Oc,
+			recorder: Hc(Ac, Fc)
 		};
 	}
 	static {
 		this.styles = [
 			W,
-			Io,
-			Xs
+			Cs,
+			Lc
 		];
 	}
-}, ic = Symbol.for(""), ac = (e) => {
-	if (e?.r === ic) return e?._$litStatic$;
-}, oc = (e) => ({
+}, Gc = Symbol.for(""), Kc = (e) => {
+	if (e?.r === Gc) return e?._$litStatic$;
+}, qc = (e) => ({
 	_$litStatic$: e,
-	r: ic
-}), sc = /* @__PURE__ */ new Map(), cc = ((e) => (t, ...n) => {
+	r: Gc
+}), Jc = /* @__PURE__ */ new Map(), Yc = ((e) => (t, ...n) => {
 	let r = n.length, i, a, o = [], s = [], c, l = 0, u = !1;
 	for (; l < r;) {
-		for (c = t[l]; l < r && (a = n[l], (i = ac(a)) !== void 0);) c += i + t[++l], u = !0;
+		for (c = t[l]; l < r && (a = n[l], (i = Kc(a)) !== void 0);) c += i + t[++l], u = !0;
 		l !== r && s.push(a), o.push(c), l++;
 	}
 	if (l === r && o.push(t[r]), u) {
 		let e = o.join("$$lit$$");
-		(t = sc.get(e)) === void 0 && (o.raw = o, sc.set(e, t = o)), n = s;
+		(t = Jc.get(e)) === void 0 && (o.raw = o, Jc.set(e, t = o)), n = s;
 	}
 	return e(t, ...n);
-})(M), lc = "dash-bored-console", uc = "dash-bored-era", dc = [
+})(M), Xc = "dash-bored-console", Zc = "dash-bored-era", Qc = [
 	{
 		id: "bakelite",
 		name: "Bakelite",
@@ -6263,9 +6634,9 @@ var Gs = (e) => M`<span class="jewel ${e}" aria-hidden="true"></span>`, Ks = (e,
 		decade: "1990s",
 		tag: "dash-bored-beige"
 	}
-], fc = class extends Ge {
+], $c = class extends Ge {
 	constructor(...e) {
-		super(...e), this.narrow = !1, this._era = dc[0].id, this._config = {}, this._told = {}, this._page = !1;
+		super(...e), this.narrow = !1, this._era = Qc[0].id, this._config = {}, this._told = {}, this._page = !1;
 	}
 	static {
 		this.properties = {
@@ -6321,7 +6692,7 @@ var Gs = (e) => M`<span class="jewel ${e}" aria-hidden="true"></span>`, Ks = (e,
 		this._config = { ...e }, this._told = this._tell(this._config), this._recall(), this.requestUpdate();
 	}
 	_tell(e) {
-		return On(this) ? {
+		return An(this) ? {
 			...e,
 			sample: !0
 		} : e;
@@ -6339,38 +6710,38 @@ var Gs = (e) => M`<span class="jewel ${e}" aria-hidden="true"></span>`, Ks = (e,
 		this._page = !0, this.toggleAttribute("panel", !0), this.requestUpdate();
 	}
 	connectedCallback() {
-		super.connectedCallback(), this._recall(), On(this) && (this._told = this._tell(this._config)), this.toggleAttribute("sample", this._told.sample === !0);
+		super.connectedCallback(), this._recall(), An(this) && (this._told = this._tell(this._config)), this.toggleAttribute("sample", this._told.sample === !0);
 	}
 	_recall() {
 		let e = this._config.era;
 		try {
-			e ??= localStorage.getItem(uc) ?? void 0;
+			e ??= localStorage.getItem(Zc) ?? void 0;
 		} catch {}
-		dc.some((t) => t.id === e) && (this._era = e);
+		Qc.some((t) => t.id === e) && (this._era = e);
 	}
 	_turn(e) {
 		this._era = e;
 		try {
-			localStorage.setItem(uc, e);
+			localStorage.setItem(Zc, e);
 		} catch {}
 	}
 	render() {
 		if (!this.hass) return F;
-		let e = Math.max(0, dc.findIndex((e) => e.id === this._era)), t = dc[e], n = (n) => this._switched ? M`<div slot=${n} class="eras ${t.tag ? t.id : ""}" role="radiogroup" aria-label="The Console's era" style="--at: ${e}">
-            ${dc.map((t, n) => M`<button class="stop ${t.tag ? "" : "unbuilt"}" role="radio" aria-checked=${n === e} aria-label="${t.name}, the ${t.decade}${t.tag ? "" : ": not built yet"}" style="--i: ${n}" @click=${() => this._turn(t.id)}>${t.decade.slice(2, 4)}</button>`)}
-            <button class="switch" aria-label="The next era" @click=${() => this._turn(dc[(e + 1) % dc.length].id)}><span></span></button>
+		let e = Math.max(0, Qc.findIndex((e) => e.id === this._era)), t = Qc[e], n = (n) => this._switched ? M`<div slot=${n} class="eras ${t.tag ? t.id : ""}" role="radiogroup" aria-label="The Console's era" style="--at: ${e}">
+            ${Qc.map((t, n) => M`<button class="stop ${t.tag ? "" : "unbuilt"}" role="radio" aria-checked=${n === e} aria-label="${t.name}, the ${t.decade}${t.tag ? "" : ": not built yet"}" style="--i: ${n}" @click=${() => this._turn(t.id)}>${t.decade.slice(2, 4)}</button>`)}
+            <button class="switch" aria-label="The next era" @click=${() => this._turn(Qc[(e + 1) % Qc.length].id)}><span></span></button>
             <span class="named">${t.name}</span>
           </div>` : F;
 		if (t.tag) {
-			let e = oc(t.tag);
-			return cc`<${e} class="era" .config=${this._told} .hass=${this.hass} .narrow=${this.narrow} ?panel=${this._page}>${n("era")}</${e}>`;
+			let e = qc(t.tag);
+			return Yc`<${e} class="era" .config=${this._told} .hass=${this.hass} .narrow=${this.narrow} ?panel=${this._page}>${n("era")}</${e}>`;
 		}
 		return M`<div class="unbuilt-era">
       <div class="plate"><b>${t.name}</b>The Console of the ${t.decade} is not built yet. Turn the switch to another era.</div>
       ${n("")}
     </div>`;
 	}
-}, pc = "dash-bored-console-instrument", mc = "dash-bored-console-room", hc = "dash-bored-console-lamps", gc = [
+}, el = "dash-bored-console-instrument", tl = "dash-bored-console-room", nl = "dash-bored-console-lamps", rl = [
 	"light",
 	"switch",
 	"cover",
@@ -6387,21 +6758,21 @@ var Gs = (e) => M`<span class="jewel ${e}" aria-hidden="true"></span>`, Ks = (e,
 	"siren",
 	"alarm_control_panel",
 	"scene"
-], _c = {
+], il = {
 	name: "era",
 	selector: { select: {
 		mode: "dropdown",
-		options: dc.map((e) => ({
+		options: Qc.map((e) => ({
 			value: e.id,
 			label: `${e.name}, the ${e.decade}`
 		}))
 	} }
-}, vc = {
-	[pc]: [
+}, al = {
+	[el]: [
 		{
 			name: "entity",
 			required: !0,
-			selector: { entity: { filter: [{ domain: gc }, {
+			selector: { entity: { filter: [{ domain: rl }, {
 				domain: "sensor",
 				device_class: [
 					"temperature",
@@ -6410,29 +6781,29 @@ var Gs = (e) => M`<span class="jewel ${e}" aria-hidden="true"></span>`, Ks = (e,
 				]
 			}] } }
 		},
-		_c,
+		il,
 		{
 			name: "backing",
 			default: !0,
 			selector: { boolean: {} }
 		}
 	],
-	[mc]: [{
+	[tl]: [{
 		name: "room",
 		required: !0,
 		selector: { area: {} }
-	}, _c],
-	[hc]: [_c]
-}, yc = {
+	}, il],
+	[nl]: [il]
+}, ol = {
 	entity: "Entity",
 	room: "Room",
 	era: "Era",
 	backing: "On the era's panel"
-}, bc = {
+}, sl = {
 	entity: "A light, switch, cover, lock, thermostat, player, fan, camera, alarm or scene, or a temperature, humidity or power sensor.",
 	era: "Left empty, the card is in the era last chosen on the Console in this browser, and follows its switch.",
 	backing: "Off, the instrument stands on the dashboard's own card, lettered in its colours."
-}, xc = class extends fc {
+}, cl = class extends $c {
 	get _switched() {
 		return !1;
 	}
@@ -6445,13 +6816,13 @@ var Gs = (e) => M`<span class="jewel ${e}" aria-hidden="true"></span>`, Ks = (e,
 			min_columns: 3
 		};
 	}
-}, Sc = class extends xc {
+}, ll = class extends cl {
 	static getConfigElement() {
-		return document.createElement(`${pc}-editor`);
+		return document.createElement(`${el}-editor`);
 	}
 	static getStubConfig(e) {
 		let t = Object.keys(e.states);
-		return { entity: t.find((t) => t.startsWith("light.") && (e.states[t].attributes.supported_color_modes ?? []).some((e) => e !== "onoff")) ?? t.find((e) => gc.includes(e.split(".")[0])) ?? "" };
+		return { entity: t.find((t) => t.startsWith("light.") && (e.states[t].attributes.supported_color_modes ?? []).some((e) => e !== "onoff")) ?? t.find((e) => rl.includes(e.split(".")[0])) ?? "" };
 	}
 	_tell(e) {
 		return {
@@ -6466,9 +6837,9 @@ var Gs = (e) => M`<span class="jewel ${e}" aria-hidden="true"></span>`, Ks = (e,
 			min_columns: 3
 		};
 	}
-}, Cc = class extends xc {
+}, ul = class extends cl {
 	static getConfigElement() {
-		return document.createElement(`${mc}-editor`);
+		return document.createElement(`${tl}-editor`);
 	}
 	static getStubConfig(e) {
 		return { room: Object.keys(e.areas ?? {})[0] ?? "" };
@@ -6479,9 +6850,9 @@ var Gs = (e) => M`<span class="jewel ${e}" aria-hidden="true"></span>`, Ks = (e,
 			view: "room"
 		};
 	}
-}, wc = class extends xc {
+}, dl = class extends cl {
 	static getConfigElement() {
-		return document.createElement(`${hc}-editor`);
+		return document.createElement(`${nl}-editor`);
 	}
 	_tell() {
 		return { view: "lamps" };
@@ -6492,7 +6863,7 @@ var Gs = (e) => M`<span class="jewel ${e}" aria-hidden="true"></span>`, Ks = (e,
 			min_columns: 6
 		};
 	}
-}, Tc = class extends Ge {
+}, fl = class extends Ge {
 	constructor(...e) {
 		super(...e), this._ready = !1, this.schema = [];
 	}
@@ -6517,8 +6888,8 @@ var Gs = (e) => M`<span class="jewel ${e}" aria-hidden="true"></span>`, Ks = (e,
 			...this._config
 		}}
       .schema=${this.schema}
-      .computeLabel=${(e) => yc[e.name] ?? e.name}
-      .computeHelper=${(e) => bc[e.name]}
+      .computeLabel=${(e) => ol[e.name] ?? e.name}
+      .computeHelper=${(e) => sl[e.name]}
       @value-changed=${(e) => {
 			e.stopPropagation();
 			let t = Object.fromEntries(Object.entries(e.detail.value).filter(([e, t]) => t != null && t !== "" && (e !== "backing" || t !== !0)));
@@ -6526,26 +6897,26 @@ var Gs = (e) => M`<span class="jewel ${e}" aria-hidden="true"></span>`, Ks = (e,
 		}}
     ></ha-form>`;
 	}
-}, Ec = (e) => class extends Tc {
+}, pl = (e) => class extends fl {
 	constructor(...t) {
-		super(...t), this.schema = vc[e];
+		super(...t), this.schema = al[e];
 	}
-}, Dc = /* @__PURE__ */ t({
-	DEFS: () => Oc,
-	dolly: () => Ic,
-	jewel: () => Pc,
-	knife: () => zc,
-	knob: () => Lc,
-	label: () => kc,
-	meter: () => Nc,
-	nixies: () => Mc,
-	push: () => Rc,
-	tubes: () => jc,
-	tv: () => Ea,
-	valve: () => Fc,
-	wheels: () => Oa
-}), Oc = M``, kc = (e) => M`<span class="label">${e}</span>`, Ac = [..."1029348576"];
-function jc(e) {
+}, ml = /* @__PURE__ */ t({
+	DEFS: () => hl,
+	dolly: () => Cl,
+	jewel: () => xl,
+	knife: () => El,
+	knob: () => wl,
+	label: () => gl,
+	meter: () => bl,
+	nixies: () => yl,
+	push: () => Tl,
+	tubes: () => vl,
+	tv: () => mo,
+	valve: () => Sl,
+	wheels: () => go
+}), hl = M``, gl = (e) => M`<span class="label">${e}</span>`, _l = [..."1029348576"];
+function vl(e) {
 	let t = [];
 	for (let n of e.replace(/[°%]/g, "")) n === "." ? t.length && (t.at(-1).point = !0) : t.push({
 		figure: n.trim(),
@@ -6553,30 +6924,30 @@ function jc(e) {
 	});
 	return t;
 }
-var Mc = (e, t = !0, n = e.trim()) => M`<span class="nixies" role="img" aria-label=${n}>${jc(e).map(({ figure: e, point: n }) => M`<i class="nix ${t && e ? "on" : ""}">${Ac.map((n, r) => M`<b class=${t && n === e ? "lit" : ""} style="--z: ${r}">${n}</b>`)}${t && e === "-" ? M`<b class="lit">−</b>` : F}<u class=${t && n ? "lit" : ""}></u></i>`)}</span>`;
-function Nc(e, t, n, r, i, a = 0, o = !0) {
-	return a < 2 ? Ho(e, t, n, r, i, a, o, kc(e)) : M`<div class="meter display ${o ? "" : "unlit"}">
-    <div class="win" role="img" aria-label="${e}: ${r} ${i}">${Mc(Wo(o ? String(r) : "", "", [t, n], 1), o, "")}<span class="unit">${i}</span></div>
-    ${kc(e)}
+var yl = (e, t = !0, n = e.trim()) => M`<span class="nixies" role="img" aria-label=${n}>${vl(e).map(({ figure: e, point: n }) => M`<i class="nix ${t && e ? "on" : ""}">${_l.map((n, r) => M`<b class=${t && n === e ? "lit" : ""} style="--z: ${r}">${n}</b>`)}${t && e === "-" ? M`<b class="lit">−</b>` : F}<u class=${t && n ? "lit" : ""}></u></i>`)}</span>`;
+function bl(e, t, n, r, i, a = 0, o = !0) {
+	return a < 2 ? ks(e, t, n, r, i, a, o, gl(e)) : M`<div class="meter display ${o ? "" : "unlit"}">
+    <div class="win" role="img" aria-label="${e}: ${r} ${i}">${yl(js(o ? String(r) : "", "", [t, n], 1), o, "")}<span class="unit">${i}</span></div>
+    ${gl(e)}
   </div>`;
 }
-var Pc = (e) => M`<span class="jewel ${e}" aria-hidden="true"></span>`, Fc = (e) => {
+var xl = (e) => M`<span class="jewel ${e}" aria-hidden="true"></span>`, Sl = (e) => {
 	let t = e ? Math.max(.08, (e - .35) / .65) : 0;
 	return M`<div class="eye" role="img" aria-label="Lights: ${Math.round(t * 100)} per cent" style="--shut: ${t.toFixed(2)}"><i></i><i></i></div>`;
-}, Ic = (e, t, n, r, i = "", a = "", o = ["On", "Off"]) => M`<button class="dolly ${t ? "on" : ""} ${n ? "away" : ""} ${i}" aria-pressed=${t} aria-label=${n ? `${e}: not answering` : e + a} @click=${r}>
+}, Cl = (e, t, n, r, i = "", a = "", o = ["On", "Off"]) => M`<button class="dolly ${t ? "on" : ""} ${n ? "away" : ""} ${i}" aria-pressed=${t} aria-label=${n ? `${e}: not answering` : e + a} @click=${r}>
   <span class="key"><svg viewBox="0 0 44 66" aria-hidden="true"><circle class="glow" cx="22" cy="6" r="9"/><circle class="pilot" cx="22" cy="6" r="4.2"/>
     <g class="throw"><rect x="8" y="16" width="28" height="48" rx="3" fill="#cfd3d6" stroke="#4a5257"/><path d="M10,18 h24" stroke="#fff" stroke-opacity=".7"/>
       <circle cx="13" cy="21" r="1.6" fill="#6d757a"/><circle cx="31" cy="59" r="1.6" fill="#6d757a"/><rect x="18" y="24" width="8" height="30" rx="4" fill="#0b0b0b"/>
       <g class="lever"><path d="M19.5,40 L18,21 Q18,12 22,12 Q26,12 26,21 L24.5,40 Z" fill="#141414" stroke="#000" stroke-width=".7"/><path d="M20.3,16 L20.8,36" stroke="#fff" stroke-opacity=".3" stroke-width="1.4" stroke-linecap="round"/></g></g></svg>${i ? M`<i class="cover"></i>` : F}</span>
-  ${kc(e)}
-</button>`, Lc = (e, t, n, r, i, a, o, s, c = [0, 100], l) => {
-	let { legend: u, shown: d, lit: f } = Go(e, t, c), p = o || t === "sound";
+  ${gl(e)}
+</button>`, wl = (e, t, n, r, i, a, o, s, c = [0, 100], l) => {
+	let { legend: u, shown: d, lit: f } = Ms(e, t, c), p = o || t === "sound";
 	return M`<div class="dial ${t}">
     <div class="dimmer"><div class="knob ${t} ${i ? "drag" : ""}" role="slider" tabindex="0" aria-label="${e} ${n}" aria-valuemin="0" aria-valuemax="100" aria-valuenow=${Math.round(r)} aria-valuetext=${a} style="--lvl: ${r.toFixed(1)}"
       @pointerdown=${s.down} @pointermove=${s.move} @pointerup=${s.up} @pointercancel=${s.drop} @keydown=${s.key}><span class="grip"></span></div></div>
-    ${kc(u)}${d === void 0 ? F : Mc(d, f)}${p ? M`<span class="note">${o ? kc(o) : F}</span>` : F}
+    ${gl(u)}${d === void 0 ? F : yl(d, f)}${p ? M`<span class="note">${o ? gl(o) : F}</span>` : F}
   </div>`;
-}, Rc = (e, t) => M`<button class="push" @click=${t}><span class="key"></span>${kc(e)}</button>`, zc = (e, t, n) => M`<button class="knife ${t ? "closed" : ""}" @click=${n}><span class="key">${e}</span></button>`, Bc = b`
+}, Tl = (e, t) => M`<button class="push" @click=${t}><span class="key"></span>${gl(e)}</button>`, El = (e, t, n) => M`<button class="knife ${t ? "closed" : ""}" @click=${n}><span class="key">${e}</span></button>`, Dl = b`
   .panel { --ink: #f3f1e6; --case: #17191b; box-sizing: border-box; min-height: 100%; padding: 18px 22px; color: var(--ink); font-family: "Gill Sans", "Gill Sans MT", "Helvetica Neue", sans-serif;
     /* Wrinkle finish: the dark blue-grey of an instrument rack. */
     background: radial-gradient(rgba(255,255,255,.05) 1px, transparent 1.7px) 0 0 / 4px 4px, radial-gradient(rgba(0,0,0,.2) 1px, transparent 1.7px) 2px 2px / 4px 4px, linear-gradient(170deg, #4c5961, #333d44); }
@@ -6757,21 +7128,21 @@ var Pc = (e) => M`<span class="jewel ${e}" aria-hidden="true"></span>`, Fc = (e)
   .scope .lane { text-anchor: end; letter-spacing: .04em; } .scope .hour { font-size: 8px; text-anchor: middle; opacity: .7; }
 
   @media (prefers-reduced-motion: reduce) { .waver, .jewel.critical { animation: none; } .needle, .grip, .wheel span, .eye i { transition: none; } }
-`, Vc = "dash-bored-nixie", Hc = class extends Fo {
+`, Ol = "dash-bored-nixie", kl = class extends Ss {
 	constructor(...e) {
 		super(...e), this.kit = {
-			...Dc,
-			recorder: tc(kc, Rc)
+			...ml,
+			recorder: Hc(gl, Tl)
 		};
 	}
 	static {
 		this.styles = [
 			W,
-			Io,
-			Bc
+			Cs,
+			Dl
 		];
 	}
-}, Uc = b`
+}, Al = b`
   .panel { --ink: #141516; --plate: #c9cccf; box-sizing: border-box; min-height: 100%; padding: 18px 22px; color: var(--ink);
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
     /* Teak veneer: long grain across the cabinet. */
@@ -7006,21 +7377,21 @@ var Pc = (e) => M`<span class="jewel ${e}" aria-hidden="true"></span>`, Fc = (e)
     .alert .label { --tape: 10px; }
   }
   @media (prefers-reduced-motion: reduce) { .waver, .jewel.critical { animation: none; } .needle, .wheel span { transition: none; } }
-`, Wc = "dash-bored-silverface", Gc = class extends Fo {
+`, jl = "dash-bored-silverface", Ml = class extends Ss {
 	constructor(...e) {
 		super(...e), this.kit = {
-			...gs,
-			recorder: tc(vs, zs)
+			...rc,
+			recorder: Hc(ac, Ec)
 		};
 	}
 	static {
 		this.styles = [
 			W,
-			Io,
-			Uc
+			Cs,
+			Al
 		];
 	}
-}, Kc = Yi(class extends Xi {
+}, Nl = Ia(class extends La {
 	constructor() {
 		super(...arguments), this.key = F;
 	}
@@ -7028,12 +7399,12 @@ var Pc = (e) => M`<span class="jewel ${e}" aria-hidden="true"></span>`, Fc = (e)
 		return this.key = e, t;
 	}
 	update(e, [t, n]) {
-		return t !== this.key && (ia(e), this.key = t), n;
+		return t !== this.key && (Ga(e), this.key = t), n;
 	}
-}), qc = Yi(class extends Xi {
+}), Pl = Ia(class extends La {
 	constructor(e) {
-		if (super(e), e.type !== Ji.PROPERTY && e.type !== Ji.ATTRIBUTE && e.type !== Ji.BOOLEAN_ATTRIBUTE) throw Error("The `live` directive is not allowed on child or event bindings");
-		if (!$i(e)) throw Error("`live` bindings can only contain a single expression");
+		if (super(e), e.type !== Fa.PROPERTY && e.type !== Fa.ATTRIBUTE && e.type !== Fa.BOOLEAN_ATTRIBUTE) throw Error("The `live` directive is not allowed on child or event bindings");
+		if (!Ba(e)) throw Error("`live` bindings can only contain a single expression");
 	}
 	render(e) {
 		return e;
@@ -7041,21 +7412,21 @@ var Pc = (e) => M`<span class="jewel ${e}" aria-hidden="true"></span>`, Fc = (e)
 	update(e, [t]) {
 		if (t === P || t === F) return t;
 		let n = e.element, r = e.name;
-		if (e.type === Ji.PROPERTY) {
+		if (e.type === Fa.PROPERTY) {
 			if (t === n[r]) return P;
-		} else if (e.type === Ji.BOOLEAN_ATTRIBUTE) {
+		} else if (e.type === Fa.BOOLEAN_ATTRIBUTE) {
 			if (!!t === n.hasAttribute(r)) return P;
-		} else if (e.type === Ji.ATTRIBUTE && n.getAttribute(r) === t + "") return P;
-		return ia(e), t;
+		} else if (e.type === Fa.ATTRIBUTE && n.getAttribute(r) === t + "") return P;
+		return Ga(e), t;
 	}
-}), Jc = {
+}), Fl = {
 	kicker: "Stop press",
 	head: ["{name} gives cause for alarm"],
 	deck: "{message}",
 	body: "The reading stood at {reading} in the {area} as this edition went to press, and the trouble dates from {since}.",
 	plain: "The trouble in the {area} dates from {since}.",
 	worse: "Matters have worsened since our earlier report."
-}, Yc = {
+}, Il = {
 	label: "Broadsheet",
 	name: "The Casa Courier",
 	strap: "",
@@ -7284,9 +7655,9 @@ var Pc = (e) => M`<span class="jewel ${e}" aria-hidden="true"></span>`, Fc = (e)
 		failed: "No report"
 	},
 	stories: {
-		alert: Jc,
+		alert: Fl,
 		"alert.warning": {
-			...Jc,
+			...Fl,
 			kicker: "Late report",
 			head: ["{name} gives cause for concern"]
 		},
@@ -7403,14 +7774,14 @@ var Pc = (e) => M`<span class="jewel ${e}" aria-hidden="true"></span>`, Fc = (e)
 			deck: "Nothing of note has occurred. {N} device{s} stand{v} ready."
 		}
 	}
-}, Xc = {
+}, Ll = {
 	kicker: "Breaking",
 	head: ["{name}: what we know so far", "Live: {name}"],
 	deck: "{message}",
 	body: "The latest reading in the {area} is {reading}. It began at {since}.",
 	plain: "It began in the {area} at {since}.",
 	worse: "Update: it has got worse."
-}, Zc = {
+}, Rl = {
 	label: "Rolling news",
 	name: "The Thermostat",
 	strap: "Live from every room",
@@ -7639,9 +8010,9 @@ var Pc = (e) => M`<span class="jewel ${e}" aria-hidden="true"></span>`, Fc = (e)
 		failed: "No report"
 	},
 	stories: {
-		alert: Xc,
+		alert: Ll,
 		"alert.warning": {
-			...Xc,
+			...Ll,
 			kicker: "Developing",
 			head: ["{name} needs checking", "{name}: what we know so far"]
 		},
@@ -7758,7 +8129,7 @@ var Pc = (e) => M`<span class="jewel ${e}" aria-hidden="true"></span>`, Fc = (e)
 			deck: "No changes. Devices watched: {n}."
 		}
 	}
-}, Qc = {
+}, zl = {
 	kicker: "Red alert",
 	head: [
 		"{name} shock",
@@ -7792,7 +8163,7 @@ var Pc = (e) => M`<span class="jewel ${e}" aria-hidden="true"></span>`, Fc = (e)
 	body: "It's {reading} in the {area} and it's been going on since {since}.",
 	plain: "It's been going on in the {area} since {since}.",
 	worse: "And it's getting WORSE."
-}, $c = {
+}, Bl = {
 	label: "Red-top",
 	name: "Daily Fuse",
 	strap: "The paper that's always switched on",
@@ -8021,9 +8392,9 @@ var Pc = (e) => M`<span class="jewel ${e}" aria-hidden="true"></span>`, Fc = (e)
 		failed: "No comment"
 	},
 	stories: {
-		alert: Qc,
+		alert: zl,
 		"alert.warning": {
-			...Qc,
+			...zl,
 			kicker: "Uh-oh"
 		},
 		"alert.task": {
@@ -8207,12 +8578,12 @@ var Pc = (e) => M`<span class="jewel ${e}" aria-hidden="true"></span>`, Fc = (e)
 			deck: "Nothing going on. {n} device{s} behaving."
 		}
 	}
-}, Q = (e, t) => e.replace(/\{(\w+)\}/g, (e, n) => t[n] ?? ""), el = {
+}, Q = (e, t) => e.replace(/\{(\w+)\}/g, (e, n) => t[n] ?? ""), Vl = {
 	esphome: "ESPHome. Add entity_category: config (or diagnostic) to each in its device's YAML",
 	knx: "KNX. Add entity_category: config to each in the KNX YAML",
 	"": "Give each the label Dash-Bored hide, or hide it in Home Assistant"
 };
-function tl(e, t, n) {
+function Hl(e, t, n) {
 	let r = e.stories[`${t.kind}.${t.variant}`] ?? e.stories[t.kind], i = r.flavours?.[t.flavour] ?? r.head, a = t.vars.escalated && r.worse ? " " + r.worse : "";
 	return {
 		kicker: r.kicker,
@@ -8223,8 +8594,8 @@ function tl(e, t, n) {
 		vote: t.vote && r.vote ? r.vote : ""
 	};
 }
-var nl = (e, t, n) => Q(e.words[wt.has(t) ? "degrees" : "percent"], { n: String(n) });
-function rl(e) {
+var Ul = (e, t, n) => Q(e.words[Et.has(t) ? "degrees" : "percent"], { n: String(n) });
+function Wl(e) {
 	let t = e.name.toLowerCase(), n = /lamp|light/i.test(t) ? t : `${t} light`, r = /s$/i.test((e.kind === "light" ? n : t).split(" - ")[0]);
 	return {
 		name: t,
@@ -8235,17 +8606,17 @@ function rl(e) {
 		v: r ? "" : "s"
 	};
 }
-function il(e, t) {
+function Gl(e, t) {
 	let { ask: n, less: r, more: i } = e.polls[t.kind];
 	return {
-		ask: Q(n, rl(t)),
+		ask: Q(n, Wl(t)),
 		less: r,
 		more: i
 	};
 }
-function al(e, t) {
+function Kl(e, t) {
 	let n = (n) => `${t.kind}.${n}` in e.words, r = t.away ? "away" : t.phase && n(t.phase) ? `${t.kind}.${t.phase}` : t.on ? t.level === void 0 && n("plain") ? `${t.kind}.plain` : `${t.kind}.on` : `${t.kind}.off`, [i, a] = Q(e.words[r], {
-		...rl(t),
+		...Wl(t),
 		level: "\0"
 	}).replace(/^the (?=\S+['’]s )/, "").split("\0");
 	return a === void 0 ? [
@@ -8254,139 +8625,139 @@ function al(e, t) {
 		""
 	] : [
 		i,
-		nl(e, t.kind, t.level),
+		Ul(e, t.kind, t.level),
 		a
 	];
 }
-var ol = (e, t) => al(e, t).join(""), sl = (e, t) => e.skies[t] ?? H(t.replace(/[-_]/g, " "));
-function cl(e, t) {
+var ql = (e, t) => Kl(e, t).join(""), Jl = (e, t) => e.skies[t] ?? H(t.replace(/[-_]/g, " "));
+function Yl(e, t) {
 	let n = Q(t.vars.artist ? e.personal.song : e.personal.tune, t.vars);
 	return [Q(e.celebrity[t.live ? `${t.kind}.live` : t.kind], {
 		...t.vars,
 		song: n
 	}), t.marks.map((t) => Q(e.celebrity[t.kind], { name: t.name }))];
 }
-function ll(e, t) {
+function Xl(e, t) {
 	let n = Q(t.vars.artist ? e.personal.song : e.personal.tune, t.vars);
 	return Q(e.personal[t.kind], {
 		...t.vars,
 		song: n
 	});
 }
-var ul = (e, t) => Q(t.level === "nominal" ? e.wire.clear : e.wire.trouble, {
+var Zl = (e, t) => Q(t.level === "nominal" ? e.wire.clear : e.wire.trouble, {
 	name: t.name,
 	message: t.message || t.level,
 	level: t.level.toUpperCase()
-}), dl = {
-	broadsheet: Yc,
-	tabloid: $c,
-	rolling: Zc
-}, fl = {
+}), Ql = {
+	broadsheet: Il,
+	tabloid: Bl,
+	rolling: Rl
+}, $l = {
 	s: 1,
 	x: 0,
 	y: 0
-}, pl = 6, ml = 1.2, hl = 2.5;
-function gl(e, t, n, r, i, a, o, s) {
-	let c = Math.min(pl, Math.max(1, e.s * t)), l = c / e.s, u = (e, t) => Math.min(t, Math.max(-t, e)) || 0;
+}, eu = 6, tu = 1.2, nu = 2.5;
+function ru(e, t, n, r, i, a, o, s) {
+	let c = Math.min(eu, Math.max(1, e.s * t)), l = c / e.s, u = (e, t) => Math.min(t, Math.max(-t, e)) || 0;
 	return {
 		s: c,
 		x: u(n - (n - e.x - i) * l, (c - 1) * o / 2),
 		y: u(r - (r - e.y - a) * l, (c - 1) * s / 2)
 	};
 }
-var $ = fl, _l = /* @__PURE__ */ new Map();
-function vl() {
-	let e = [..._l.values()], t = (t) => e.reduce((e, n) => e + n[t], 0) / e.length;
+var $ = $l, iu = /* @__PURE__ */ new Map();
+function au() {
+	let e = [...iu.values()], t = (t) => e.reduce((e, n) => e + n[t], 0) / e.length;
 	return [
 		t(0),
 		t(1),
 		e.length > 1 ? Math.hypot(e[0][0] - e[1][0], e[0][1] - e[1][1]) : 0
 	];
 }
-function yl(e, t, n, r, i = 0, a = 0) {
+function ou(e, t, n, r, i = 0, a = 0) {
 	let o = e.getBoundingClientRect();
-	$ = gl($, t, n - o.left - o.width / 2, r - o.top - o.height / 2, i, a, o.width, o.height), e.firstElementChild.style.transform = `translate(${$.x}px, ${$.y}px) scale(${$.s})`, e.classList.toggle("near", $.s > 1);
+	$ = ru($, t, n - o.left - o.width / 2, r - o.top - o.height / 2, i, a, o.width, o.height), e.firstElementChild.style.transform = `translate(${$.x}px, ${$.y}px) scale(${$.s})`, e.classList.toggle("near", $.s > 1);
 }
-var bl = (e) => e.currentTarget, xl = {
+var su = (e) => e.currentTarget, cu = {
 	whole() {
-		$ = fl, _l.clear();
+		$ = $l, iu.clear();
 	},
 	down(e) {
-		bl(e).setPointerCapture(e.pointerId), _l.set(e.pointerId, [e.clientX, e.clientY]);
+		su(e).setPointerCapture(e.pointerId), iu.set(e.pointerId, [e.clientX, e.clientY]);
 	},
 	move(e) {
-		if (!_l.has(e.pointerId)) return;
-		let [t, n, r] = vl();
-		_l.set(e.pointerId, [e.clientX, e.clientY]);
-		let [i, a, o] = vl();
-		yl(bl(e), r && o ? o / r : 1, i, a, i - t, a - n);
+		if (!iu.has(e.pointerId)) return;
+		let [t, n, r] = au();
+		iu.set(e.pointerId, [e.clientX, e.clientY]);
+		let [i, a, o] = au();
+		ou(su(e), r && o ? o / r : 1, i, a, i - t, a - n);
 	},
 	up(e) {
-		_l.delete(e.pointerId);
+		iu.delete(e.pointerId);
 	},
 	wheel(e) {
-		e.preventDefault(), yl(bl(e), e.deltaY < 0 ? ml : 1 / ml, e.clientX, e.clientY);
+		e.preventDefault(), ou(su(e), e.deltaY < 0 ? tu : 1 / tu, e.clientX, e.clientY);
 	},
 	twice(e) {
-		yl(bl(e), $.s > 1 ? 1 / $.s : hl, e.clientX, e.clientY);
+		ou(su(e), $.s > 1 ? 1 / $.s : nu, e.clientX, e.clientY);
 	}
-}, Sl = 5, Cl = /* @__PURE__ */ new Map();
-function wl(e) {
-	let t = Cl.get(e);
+}, lu = 5, uu = /* @__PURE__ */ new Map();
+function du(e) {
+	let t = uu.get(e);
 	if (t) return t;
-	let n = [...e].reduce((e, t) => e * 31 + t.charCodeAt(0) >>> 0, 7), r = () => (n = n * 1664525 + 1013904223 >>> 0) / 2 ** 32, i = (e) => Array.from({ length: e }, (t, n) => ((n + r() * .8) / e * 100).toFixed(1)), a = () => (r() * Sl).toFixed(1), o = `polygon(${[
+	let n = [...e].reduce((e, t) => e * 31 + t.charCodeAt(0) >>> 0, 7), r = () => (n = n * 1664525 + 1013904223 >>> 0) / 2 ** 32, i = (e) => Array.from({ length: e }, (t, n) => ((n + r() * .8) / e * 100).toFixed(1)), a = () => (r() * lu).toFixed(1), o = `polygon(${[
 		...i(30).map((e) => `${e}% ${a()}px`),
 		...i(22).map((e) => `calc(100% - ${a()}px) ${e}%`),
 		...i(30).map((e) => `calc(100% - ${e}%) calc(100% - ${a()}px)`),
 		...i(22).map((e) => `${a()}px calc(100% - ${e}%)`)
 	].join(",")})`;
-	return Cl.set(e, o), o;
+	return uu.set(e, o), o;
 }
-var Tl = (e, t, n, r, i = "") => M`<dialog class="clipping ${i}" @close=${n} @click=${(e) => e.target === e.currentTarget && n()}>
-    <div class="cutting" style="clip-path:${wl(e)}">
+var fu = (e, t, n, r, i = "") => M`<dialog class="clipping ${i}" @close=${n} @click=${(e) => e.target === e.currentTarget && n()}>
+    <div class="cutting" style="clip-path:${du(e)}">
       <div class="scrap above" aria-hidden="true">${t.above}</div>
       <div class="story">${r}</div>
       <div class="scrap beside" aria-hidden="true"><span>${t.beside}</span></div>
       <div class="scrap below" aria-hidden="true">${t.below}</div>
     </div>
   </dialog>`;
-function El(e, t, n, r) {
+function pu(e, t, n, r) {
 	let i = e.clipping;
-	return Tl(t.src, n, r.shut, M`<p class="kicker">${t.caption}</p>
-    <div class="zoom" @pointerdown=${xl.down} @pointermove=${xl.move} @pointerup=${xl.up} @pointercancel=${xl.up} @wheel=${xl.wheel} @dblclick=${xl.twice}>
-      <img src=${t.src} alt=${t.caption} draggable="false" @load=${xl.whole} />
+	return fu(t.src, n, r.shut, M`<p class="kicker">${t.caption}</p>
+    <div class="zoom" @pointerdown=${cu.down} @pointermove=${cu.move} @pointerup=${cu.up} @pointercancel=${cu.up} @wheel=${cu.wheel} @dblclick=${cu.twice}>
+      <img src=${t.src} alt=${t.caption} draggable="false" @load=${cu.whole} />
     </div>
     <p class="hint">${i.closer}</p>
     <div class="foot">${t.see ? M`<button class="mend" @click=${r.more}>${i.live}</button>` : M`<span></span>`}<button class="act" @click=${r.shut}>${i.shut}</button></div>`, "shot");
 }
-function Dl(e, t, n, r, i, a, o) {
+function mu(e, t, n, r, i, a, o) {
 	let s = e.clipping, c = M`${t.presets?.length ? M`<p class="turn"><i>${s.presets}</i>${t.presets.map((e) => M`<button class="mend" @click=${() => o.turn(e)}>${e.name}</button>`)}</p>` : F}
     ${t.zoom ? M`<label class="scale"><i>${s.zoom}</i><input type="range" min=${t.zoom.span.min} max=${t.zoom.span.max} step=${t.zoom.span.step} .value=${String(t.zoom.level)}
           @change=${(e) => o.zoom(Number(e.target.value))} /><output>${t.zoom.level}</output></label>` : F}
-    ${t.controls?.length ? M`<p class="turn"><i>${s.controls}</i>${t.controls.map((e) => M`<button class="mend" ?disabled=${e.away} @click=${() => o.control(e)}>${e.name}</button>`)}</p>` : F}`, l = (n) => H(ol(e, {
+    ${t.controls?.length ? M`<p class="turn"><i>${s.controls}</i>${t.controls.map((e) => M`<button class="mend" ?disabled=${e.away} @click=${() => o.control(e)}>${e.name}</button>`)}</p>` : F}`, l = (n) => H(ql(e, {
 		...t,
 		on: n.on,
 		phase: n.phase,
 		level: n.level,
 		away: n.away
 	})), u = n.record, d = e.acts[`${t.kind}.${t.on ? "on" : "off"}`];
-	return Tl(t.id, a, o.shut, M`<p class="kicker">${t.room}</p>
+	return fu(t.id, a, o.shut, M`<p class="kicker">${t.room}</p>
       <h4 class="title">${t.name}</h4>
-      <p class="deck">${H(ol(e, t))}. ${t.since && t.kind !== "camera" ? Q(s.since, { at: V(t.since) }) : ""}
+      <p class="deck">${H(ql(e, t))}. ${t.since && t.kind !== "camera" ? Q(s.since, { at: V(t.since) }) : ""}
         ${t.temp === void 0 ? "" : Q(s.reads, { temp: t.temp.toFixed(1) })} ${t.title ? Q(s.playing, { title: t.title }) : ""}</p>
       ${t.picture ? M`<img class="still" src=${t.picture} alt=${t.name} role="button" tabindex="0" @click=${o.picture} @keydown=${(e) => e.key === "Enter" && o.picture()} />` : F}
       ${t.away ? F : c}
       ${t.away || !d ? F : M`<button class="act ${n.armed ? "sure" : ""}" @click=${o.flip}>${n.armed ? s.sure : d}</button>`}
       ${i}
       ${t.kind === "camera" ? F : M`<h3>${s.record}</h3>`}
-      ${t.kind === "camera" ? F : n.fault ? M`<p class="fault" role="alert">Home Assistant's history could not be read (${n.fault}).</p>` : u ? M`<div class="band">${Va(u, r - za, r).map(([e, t]) => M`<i style="left:${e}%;width:${t}%"></i>`)}</div>
+      ${t.kind === "camera" ? F : n.fault ? M`<p class="fault" role="alert">Home Assistant's history could not be read (${n.fault}).</p>` : u ? M`<div class="band">${ko(u, r - Do, r).map(([e, t]) => M`<i style="left:${e}%;width:${t}%"></i>`)}</div>
               <div class="span"><span>${s.ago}</span><span>${s.now}</span></div>
               <ol>${u.length ? u.slice(-12).reverse().map((e) => M`<li><time>${V(e.at)}</time>${l(e)}</li>`) : M`<li>${s.none}</li>`}</ol>` : M`<p class="wait">${s.wait}</p>`}
       <div class="foot"><button class="mend" @click=${o.more}>${s.more}</button><button class="act" @click=${o.shut}>${s.shut}</button></div>`);
 }
 //#endregion
 //#region src/dash-bored/styles.ts
-var Ol = b`
+var hu = b`
   :host { display: block; container-type: inline-size; }
   .paper { --paper: #f3eee0; --ink: #1c1a17; --flash: #8c1c13; --mark: #f6d95a; --head: "Bodoni 72", "Didot", "Playfair Display", serif;
     box-sizing: border-box; min-height: 100%; padding: 14px 30px 24px; background: var(--paper); color: var(--ink);
@@ -8659,19 +9030,19 @@ var Ol = b`
     [data-style="rolling"] .page > * + * { padding-left: 0; }
     .figure, [data-style="tabloid"] .figure { width: 104px; } .figure b, [data-style="tabloid"] .figure b { font-size: 28px; }
   }
-`, kl = "casa_mia_dash_bored/personal", Al = "casa_mia_dash_bored/playing", jl = "weather/subscribe_forecast", Ml = 18e5, Nl = "dash-bored-style", Pl = "/casa_mia_dash_bored/fonts/ManufacturingConsent-Regular.ttf", Fl = !1;
-function Il() {
-	if (Fl) return;
-	Fl = !0;
-	let e = new FontFace("Dash-Bored Masthead", `url(${Pl})`);
+`, gu = "casa_mia_dash_bored/personal", _u = "casa_mia_dash_bored/playing", vu = "weather/subscribe_forecast", yu = 18e5, bu = "dash-bored-style", xu = "/casa_mia_dash_bored/fonts/ManufacturingConsent-Regular.ttf", Su = !1;
+function Cu() {
+	if (Su) return;
+	Su = !0;
+	let e = new FontFace("Dash-Bored Masthead", `url(${xu})`);
 	document.fonts.add(e), e.load().catch((e) => console.error("Dash-Bored: the masthead's font could not be loaded", e));
 }
-var Ll = class extends jn {
+var wu = class extends Nn {
 	constructor(...e) {
 		super(...e), this._played = [], this._days = [], this._style = "broadsheet", this._alerts = [], this._seen = [], this._rated = [], this._late = [], this._turn = /* @__PURE__ */ new Map(), this._showing = /* @__PURE__ */ new Set(), this._primed = !1, this._seenPrimed = !1;
 	}
 	static {
-		this.styles = [W, Ol];
+		this.styles = [W, hu];
 	}
 	static {
 		this.properties = {
@@ -8712,7 +9083,7 @@ var Ll = class extends jn {
 		});
 	}
 	connectedCallback() {
-		super.connectedCallback(), Il(), this._choose();
+		super.connectedCallback(), Cu(), this._choose();
 	}
 	disconnectedCallback() {
 		super.disconnectedCallback(), this._primed = this._seenPrimed = !1, this._forecastOf = void 0;
@@ -8720,31 +9091,31 @@ var Ll = class extends jn {
 	_choose() {
 		let e = this._config.style;
 		try {
-			e ??= localStorage.getItem(Nl) ?? void 0;
+			e ??= localStorage.getItem(bu) ?? void 0;
 		} catch {}
-		e && e in dl && (this._style = e);
+		e && e in Ql && (this._style = e);
 	}
 	_dress(e) {
 		this._style = e;
 		try {
-			localStorage.setItem(Nl, e);
+			localStorage.setItem(bu, e);
 		} catch {}
 	}
 	_listen() {
-		super._listen(), this._follow(xn, "Sensor Watch's alerts", (e) => this._take(e)), this._follow(Sn, "The cameras' sightings", (e) => this._sight(e));
+		super._listen(), this._follow(Cn, "Sensor Watch's alerts", (e) => this._take(e)), this._follow(wn, "The cameras' sightings", (e) => this._sight(e));
 		let e = (e, t) => [...new Map(e.map((e) => [t(e), e])).values()];
-		this._follow(kl, "The Personal column's announcements", (t) => this._rated = e([...this._rated, ...t], (e) => `${e.at} ${e.name} ${e.title}`)), this._follow(Al, "What the players have played", (t) => this._played = e([...this._played, ...t], (e) => e.id));
+		this._follow(gu, "The Personal column's announcements", (t) => this._rated = e([...this._rated, ...t], (e) => `${e.at} ${e.name} ${e.title}`)), this._follow(_u, "What the players have played", (t) => this._played = e([...this._played, ...t], (e) => e.id));
 	}
 	_outlook() {
 		let e = this._hass?.connection, t = this._house?.outside, n = t?.daily ? t.id : void 0;
-		if (!e || !this.isConnected || n === this._forecastOf || (this._feeds.get(jl)?.then((e) => e()).catch(() => void 0), this._feeds.delete(jl), this._forecastOf = n, this._days = [], !n)) return;
-		let r = e.subscribeMessage((e) => this._days = yt(e.forecast), {
-			type: jl,
+		if (!e || !this.isConnected || n === this._forecastOf || (this._feeds.get(vu)?.then((e) => e()).catch(() => void 0), this._feeds.delete(vu), this._forecastOf = n, this._days = [], !n)) return;
+		let r = e.subscribeMessage((e) => this._days = xt(e.forecast), {
+			type: vu,
 			forecast_type: "daily",
 			entity_id: n
 		});
-		this._feeds.set(jl, r), r.catch((e) => {
-			this._feeds.delete(jl), console.error(`Dash-Bored: the forecast of ${n} failed`, e), this._fault = `The weather forecast is not reaching this page (${e?.message ?? e}).`;
+		this._feeds.set(vu, r), r.catch((e) => {
+			this._feeds.delete(vu), console.error(`Dash-Bored: the forecast of ${n} failed`, e), this._fault = `The weather forecast is not reaching this page (${e?.message ?? e}).`;
 		});
 	}
 	_sight(e) {
@@ -8754,14 +9125,14 @@ var Ll = class extends jn {
 			t.set(r.id, r);
 			let i = n - r.at * 1e3;
 			if (e || i >= 6e5) continue;
-			this._later(pn - i);
-			let [a] = this._seenPrimed && this._survey ? qt(this._survey, [r]) : [];
+			this._later(hn - i);
+			let [a] = this._seenPrimed && this._survey ? Yt(this._survey, [r]) : [];
 			a && this._note({
 				time: a.at,
 				seen: a
 			});
 		}
-		this._seenPrimed = !0, this._seen = [...t.values()].filter((e) => n - e.at * 1e3 < Ml);
+		this._seenPrimed = !0, this._seen = [...t.values()].filter((e) => n - e.at * 1e3 < yu);
 	}
 	_take(e) {
 		let t = new Map(this._alerts.map((e) => [e.entity_id, e]));
@@ -8770,12 +9141,12 @@ var Ll = class extends jn {
 				...n,
 				at: n.at * 1e3,
 				began: n.began * 1e3,
-				flavour: vn(this._hass?.states[n.entity_id]?.attributes.device_class)
+				flavour: bn(this._hass?.states[n.entity_id]?.attributes.device_class)
 			};
 			t.set(e.entity_id, e), this._primed && (this._note({
 				time: e.at,
 				alert: e
-			}), e.level === "nominal" ? this._later(pn) : this.scrollIntoView({
+			}), e.level === "nominal" ? this._later(hn) : this.scrollIntoView({
 				block: "start",
 				behavior: "smooth"
 			}));
@@ -8791,7 +9162,7 @@ var Ll = class extends jn {
 	_note(e) {
 		this._late = [e, ...this._late].slice(0, 8);
 	}
-}, Rl = 6e3, zl = /* @__PURE__ */ new Set([
+}, Tu = 6e3, Eu = /* @__PURE__ */ new Set([
 	"climate",
 	"media_player",
 	"camera",
@@ -8799,9 +9170,9 @@ var Ll = class extends jn {
 	"vacuum",
 	"lawn_mower",
 	"alarm_control_panel"
-]), Bl = class extends Ll {
+]), Du = class extends wu {
 	_press(e) {
-		e.guarded || e.away || zl.has(e.kind) ? this._story(e) : this._call(z(e), `${e.room} ${e.name}`);
+		e.guarded || e.away || Eu.has(e.kind) ? this._story(e) : this._call(z(e), `${e.room} ${e.name}`);
 	}
 	_story(e) {
 		this._open = { id: e.id }, this._scale = e.dims && !e.away ? { id: e.id } : void 0;
@@ -8811,7 +9182,7 @@ var Ll = class extends jn {
 				...t
 			});
 		};
-		e.kind !== "camera" && Ha(this._hass, e, Date.now()).then((e) => t({ record: e }), (n) => {
+		e.kind !== "camera" && Ao(this._hass, e, Date.now()).then((e) => t({ record: e }), (n) => {
 			console.error(`Dash-Bored: the history of ${e.id} could not be read`, n), t({ fault: n?.message ?? String(n) });
 		});
 	}
@@ -8836,7 +9207,7 @@ var Ll = class extends jn {
 					...this._open,
 					armed: !1
 				});
-			}, Rl);
+			}, Tu);
 			this._timers.add(n);
 			return;
 		}
@@ -8855,27 +9226,27 @@ var Ll = class extends jn {
 	_key(e) {
 		(e.key === "Enter" || e.key === " ") && (e.preventDefault(), e.currentTarget.click());
 	}
-}, Vl = "dash-bored-gazette", Hl = 30, Ul = 3, Wl = /* @__PURE__ */ new Set([
+}, Ou = "dash-bored-gazette", ku = 30, Au = 3, ju = /* @__PURE__ */ new Set([
 	"climate",
 	"camera",
 	"water_heater",
 	"alarm_control_panel"
-]), Gl = /* @__PURE__ */ new Set(["docked"]), Kl = (e) => e.away || !!e.phase && !Gl.has(e.phase) || !Wl.has(e.kind) && (e.kind === "lock" ? !e.on : e.on), ql = (e) => e.kind !== "camera" || e.away, Jl = class extends Bl {
+]), Mu = /* @__PURE__ */ new Set(["docked"]), Nu = (e) => e.away || !!e.phase && !Mu.has(e.phase) || !ju.has(e.kind) && (e.kind === "lock" ? !e.on : e.on), Pu = (e) => e.kind !== "camera" || e.away, Fu = class extends Du {
 	render() {
-		let e = this._hass, t = this._house, n = dl[this._style];
+		let e = this._hass, t = this._house, n = Ql[this._style];
 		if (!e || !t) return M`<div class="paper" data-style=${this._style}><p class="wait">Waiting for Home Assistant.</p></div>`;
-		let r = Date.now(), i = qt(this._survey, this._seen).filter((e) => r - e.at < Ml), a = [...i].sort((e, t) => t.at - e.at).slice(0, 10), o = (e) => (n.stories[`sighting.${e}`]?.kicker ?? e).toLowerCase(), l = bn(t, this._alerts, r, i);
+		let r = Date.now(), i = Yt(this._survey, this._seen).filter((e) => r - e.at < yu), a = [...i].sort((e, t) => t.at - e.at).slice(0, 10), o = (e) => (n.stories[`sighting.${e}`]?.kicker ?? e).toLowerCase(), l = Sn(t, this._alerts, r, i);
 		for (let e of l) this._showing.has(e.id) || this._turn.set(e.id, (this._turn.get(e.id) ?? -1) + 1);
 		this._showing = new Set(l.map((e) => e.id));
 		let u = l.map((e) => ({
 			s: e,
-			...tl(n, e, this._turn.get(e.id))
+			...Hl(n, e, this._turn.get(e.id))
 		})), [d, ...f] = u, p = u.find((e) => e.s.kind === "alert"), m = (e) => {
 			let t = (t, n) => t ? M`<button class="act" @click=${() => this._call(n, e.head)}>${t}</button>` : F;
 			return M`${t(e.act, e.s.press)}${t(e.vote, e.s.vote)}`;
 		}, h = (e, t) => {
-			let [r, i, a] = e.dims && !e.away ? al(n, e) : [
-				ol(n, e),
+			let [r, i, a] = e.dims && !e.away ? Kl(n, e) : [
+				ql(n, e),
 				"",
 				""
 			], o = (e, t, n) => e ? M`<span class="fact ${t}" role="button" tabindex="0" @click=${n} @keydown=${this._key}>${e}</span>` : F;
@@ -8883,7 +9254,7 @@ var Ll = class extends jn {
 		}, g = (e) => {
 			let t = this._scale;
 			if (!e || !t || t.id !== e.id || !e.dims || e.away) return F;
-			let { min: r, max: i, step: a, vote: o } = e.span, s = e.level ?? r, c = (e) => Number(e.target.value), l = t.want ?? s, u = il(n, e), d = (n, a) => {
+			let { min: r, max: i, step: a, vote: o } = e.span, s = e.level ?? r, c = (e) => Number(e.target.value), l = t.want ?? s, u = Gl(n, e), d = (n, a) => {
 				let o = Math.min(i, Math.max(r, Math.round((l + a) * 10) / 10));
 				return M`<button class="act" ?disabled=${o === l} @click=${() => (this._scale = {
 					...t,
@@ -8892,13 +9263,13 @@ var Ll = class extends jn {
 			};
 			return M`<span class="scale">
         <span class="poll"><i>${H(u.ask)}</i>${d(u.less, -o)}${d(u.more, o)}</span>
-        <input type="range" min=${r} max=${i} step=${a} aria-label=${e.name} .value=${qc(String(l))}
+        <input type="range" min=${r} max=${i} step=${a} aria-label=${e.name} .value=${Pl(String(l))}
           @input=${(e) => this._scale = {
 				...t,
 				want: c(e)
 			}}
           @change=${(t) => this._ask(e, c(t))} />
-        <output>${nl(n, e.kind, s)}${t.want === void 0 || t.want === s ? "" : ` → ${t.want}`}</output>
+        <output>${Ul(n, e.kind, s)}${t.want === void 0 || t.want === s ? "" : ` → ${t.want}`}</output>
         <button aria-label="Close" @click=${() => this._scale = void 0}>×</button>
       </span>`;
 		}, _ = (e) => e.photo ? M`<figure class="photo" role="button" tabindex="0" @click=${() => this._look({
@@ -8908,12 +9279,12 @@ var Ll = class extends jn {
 		})} @keydown=${this._key}>
             <img src=${e.photo} alt=${e.figure[1]} loading="lazy" @error=${() => this._fault = `The photograph from ${e.figure[1]} could not be fetched.`} />
             <figcaption>${e.figure[1]}, ${e.figure[0]}</figcaption>
-          </figure>` : F, v = t.rooms.filter((e) => e.temp !== void 0), y = dn(t.people, this._rated, r), b = t.desk, x = !!b?.lead && ht(b.lead, r), S = (t) => new Date(t).toDateString() === new Date(r).toDateString() ? V(t) : `${new Date(t).toLocaleDateString(e.locale?.language ?? "en-GB", {
+          </figure>` : F, v = t.rooms.filter((e) => e.temp !== void 0), y = pn(t.people, this._rated, r), b = t.desk, x = !!b?.lead && _t(b.lead, r), S = (t) => new Date(t).toDateString() === new Date(r).toDateString() ? V(t) : `${new Date(t).toLocaleDateString(e.locale?.language ?? "en-GB", {
 			day: "numeric",
 			month: "short"
-		})}, ${V(t)}`, C = (e) => e.failed ? M`<i>${n.desk.failed}:</i> ` : e.unsure ? M`<i>${n.desk.unsure}:</i> ` : F, w = t.rooms.filter((e) => e.devices.length), T = w.reduce((e, t) => e + t.devices.length, 0) > Hl, E = w.map((e) => ({
+		})}, ${V(t)}`, C = (e) => e.failed ? M`<i>${n.desk.failed}:</i> ` : e.unsure ? M`<i>${n.desk.unsure}:</i> ` : F, w = t.rooms.filter((e) => e.devices.length), T = w.reduce((e, t) => e + t.devices.length, 0) > ku, E = w.map((e) => ({
 			...e,
-			devices: e.devices.filter(T ? Kl : ql)
+			devices: e.devices.filter(T ? Nu : Pu)
 		})).filter((e) => e.devices.length), D = w.some((e) => e.floor), O = (e, t, r = (e) => e) => {
 			let i = /* @__PURE__ */ new Map();
 			for (let t of e) i.set(t.floor ?? "", [...i.get(t.floor ?? "") ?? [], t]);
@@ -8921,7 +9292,7 @@ var Ll = class extends jn {
 		}, ee = (e) => {
 			let t = (t) => {
 				let n = e.devices.filter((e) => T && e.kind === t && e.on && !e.away);
-				return n.length > Ul ? n : [];
+				return n.length > Au ? n : [];
 			}, r = t("light"), i = t("switch"), a = e.devices.filter((e) => !r.includes(e) && !i.includes(e)).map((e, t) => h(e, !t && !r.length && !i.length));
 			return i.length && a.unshift(r.length ? Q(n.words["switch.many"], U(i.length)) : H(Q(n.words["switch.many"], U(i.length)))), r.length && a.unshift(M`<span class="fact" role="button" tabindex="0" @click=${() => this._call({
 				domain: "light",
@@ -8929,7 +9300,7 @@ var Ll = class extends jn {
 				ids: r.map((e) => e.id)
 			}, e.name)} @keydown=${this._key}>${H(Q(n.words["light.many"], U(r.length)))}</span>`), M`<p><b>${e.name}.</b> ${a.map((e, t) => M`${t ? n.join : ""}${e}`)}${n.end}${this._open ? F : g(e.devices.find((e) => e.id === this._scale?.id))}</p>`;
 		}, te = (e) => M`<div class="pair"><button class="chip ${e.on ? "on" : ""} ${e.away ? "away" : ""}" aria-pressed=${e.on} @click=${() => this._press(e)}>${e.name}</button
-        ><button class="chip tab" aria-label="${e.name}: its story" @click=${() => this._story(e)}>${e.dims && !e.away ? `${e.level ?? e.span.min}${wt.has(e.kind) ? "°" : "%"}` : "›"}</button></div>`, ne = t.rooms.flatMap((e) => e.devices), k = new Map([...ne.flatMap((e) => (e.controls ?? []).flatMap((e) => e.device ? [e.device] : [])), ...ne].map((e) => [e.id, e])), A = this._open && k.get(this._open.id), re = cn(this._played, this._rated, k), ie = f.length ? f : u, ae = {
+        ><button class="chip tab" aria-label="${e.name}: its story" @click=${() => this._story(e)}>${e.dims && !e.away ? `${e.level ?? e.span.min}${Et.has(e.kind) ? "°" : "%"}` : "›"}</button></div>`, ne = t.rooms.flatMap((e) => e.devices), k = new Map([...ne.flatMap((e) => (e.controls ?? []).flatMap((e) => e.device ? [e.device] : [])), ...ne].map((e) => [e.id, e])), A = this._open && k.get(this._open.id), re = un(this._played, this._rated, k), ie = f.length ? f : u, ae = {
 			above: ie[0].deck,
 			beside: [...ie, ...u].map((e) => `${e.head}. ${e.deck}`).join(" "),
 			below: ie.at(-1).head
@@ -8944,7 +9315,7 @@ var Ll = class extends jn {
 		return M`<div class="paper" data-style=${this._style}>
       ${this._lost ? M`<div class="fault" role="alert">Not connected to Home Assistant since ${V(this._lost)}. What follows is how things stood then.</div>` : F}
       ${this._fault ? M`<div class="fault" role="alert">${this._fault}</div>` : F}
-      ${p ? Kc(p.s.id + p.s.variant, M`<div class="breaking" role="status"><b>${n.flash}</b>${p.head}${/[!?]$/.test(p.head) ? "" : ":"} ${p.s.vars.message}</div>`) : F}
+      ${p ? Nl(p.s.id + p.s.variant, M`<div class="breaking" role="status"><b>${n.flash}</b>${p.head}${/[!?]$/.test(p.head) ? "" : ":"} ${p.s.vars.message}</div>`) : F}
       <header class="masthead"><h1>${n.name}</h1><p>${n.strap}</p></header>
       <div class="dateline">
         ${this.hasAttribute("panel") ? M`<ha-menu-button .hass=${e} .narrow=${this.narrow}></ha-menu-button>` : F}
@@ -8954,7 +9325,7 @@ var Ll = class extends jn {
 			month: "long",
 			year: "numeric"
 		})}</span>
-        ${this._config.style ? F : M`<span class="styles">${Object.entries(dl).map(([e, t]) => M`<button aria-pressed=${e === this._style} @click=${() => this._dress(e)}>${t.label}</button>`)}</span>`}
+        ${this._config.style ? F : M`<span class="styles">${Object.entries(Ql).map(([e, t]) => M`<button aria-pressed=${e === this._style} @click=${() => this._dress(e)}>${t.label}</button>`)}</span>`}
         <span>${n.price} · ${V(Date.now())}</span>
       </div>
       ${n.ticker ? M`<div class="ticker" aria-hidden="true"><b>${n.ticker}</b><div><span>${u.map((e) => e.head).join("  •  ")}</span></div></div>` : F}
@@ -8962,7 +9333,7 @@ var Ll = class extends jn {
         <article>
           <div class="figure"><b>${d.s.figure[0]}</b><span>${d.s.figure[1]}</span></div>
           <p class="kicker">${d.kicker}</p>
-          ${Kc(d.head, M`<h2>${d.head}</h2>`)}
+          ${Nl(d.head, M`<h2>${d.head}</h2>`)}
           <p class="deck">${d.deck}</p>
           ${m(d)}
           ${_(d.s)}
@@ -8983,7 +9354,7 @@ var Ll = class extends jn {
           <h3>${n.titles.late}</h3>
           <ol>${this._late.length ? this._late.map((e) => {
 			let t = e.device && k.get(e.device.id);
-			return M`<li role=${t ? "button" : F} tabindex=${t ? 0 : F} @click=${() => t && this._story(t)} @keydown=${this._key}><time>${V(e.time)}</time>${e.alert ? ul(n, e.alert) : e.seen ? `${e.seen.name}: ${o(e.seen.kind)}` : `${e.device.room}: ${ol(n, e.device)}`}</li>`;
+			return M`<li role=${t ? "button" : F} tabindex=${t ? 0 : F} @click=${() => t && this._story(t)} @keydown=${this._key}><time>${V(e.time)}</time>${e.alert ? Zl(n, e.alert) : e.seen ? `${e.seen.name}: ${o(e.seen.kind)}` : `${e.device.room}: ${ql(n, e.device)}`}</li>`;
 		}) : M`<li>${n.nothing}</li>`}</ol>
           ${a.length ? M`<h3>${n.titles.archive}</h3>
                 <ol class="archive">${a.map((e) => M`<li role="button" tabindex="0" @click=${() => e.photo ? this._look({
@@ -8992,25 +9363,25 @@ var Ll = class extends jn {
 			see: e.camera
 		}) : s(this, "hass-more-info", { entityId: e.camera })} @keydown=${this._key}>
                     ${e.photo ? M`<img src=${e.photo} alt="" loading="lazy" />` : M`<i></i>`}<span><time>${V(e.at)}</time>${e.name}: ${o(e.kind)}</span></li>`)}</ol>` : F}
-          ${y.length ? M`<h3>${n.titles.personal}</h3><ol>${y.map((e) => M`<li><time>${V(e.at)}</time>${ll(n, e)}</li>`)}</ol>` : F}
+          ${y.length ? M`<h3>${n.titles.personal}</h3><ol>${y.map((e) => M`<li><time>${V(e.at)}</time>${Xl(n, e)}</li>`)}</ol>` : F}
           ${re.length ? M`<h3>${n.titles.celebrity}</h3><ol>${re.map((e) => {
-			let [t, r] = cl(n, e);
+			let [t, r] = Yl(n, e);
 			return M`<li role="button" tabindex="0" @click=${() => this._story(k.get(e.id))} @keydown=${this._key}><time>${V(e.at)}</time>${t}${r.map((t, n) => M` <span class="mark ${e.marks[n].kind}">${t}</span>`)}</li>`;
 		})}</ol>` : F}
           ${t.outside ? M`<h3>${n.titles.weather}</h3>
                 <p class="now">${Q(n.forecast.now, {
-			sky: sl(n, t.outside.sky),
+			sky: Jl(n, t.outside.sky),
 			temp: t.outside.temp.toFixed(1)
 		})}</p>
                 ${this._days.length ? M`<table class="days">${this._days.map((t) => M`<tr><td>${new Date(t.at).toDateString() === new Date(r).toDateString() ? n.forecast.today : new Date(t.at).toLocaleDateString(e.locale?.language ?? "en-GB", { weekday: "long" })}</td>
-                        <td>${sl(n, t.sky)}</td><td>${Math.round(t.high)}°${t.low === void 0 ? "" : ` / ${Math.round(t.low)}°`}</td></tr>`)}</table>` : F}` : F}
+                        <td>${Jl(n, t.sky)}</td><td>${Math.round(t.high)}°${t.low === void 0 ? "" : ` / ${Math.round(t.low)}°`}</td></tr>`)}</table>` : F}` : F}
           ${v.length ? M`<h3>${n.titles.temps}</h3><table>${v.map((e) => M`<tr><td>${e.name}</td><td>${e.temp.toFixed(1)}° ${e.target === void 0 ? "" : e.temp < e.target - .5 ? "▼" : e.temp > e.target + .5 ? "▲" : "="}</td></tr>`)}</table>` : F}
           ${T ? F : oe}
           ${t.gaps.length ? M`<h3>${n.titles.gaps}</h3>
                 ${t.gaps.map((e) => M`<details><summary>${Q(n.gaps[e.kind], U(e.items.length))}</summary>
-                  <ul>${e.items.map((t, n) => M`${e.kind === "plumbing" && t.via !== e.items[n - 1]?.via ? M`<li class="via">${el[t.via ?? ""] ?? `${t.via}. ${el[""]}`}:</li>` : F}<li><button class="mend" @click=${() => e.kind === "floorless" || e.kind === "cold" ? c(`/config/areas/area/${t.id}`) : s(this, "hass-more-info", { entityId: t.id })}>${t.name}</button></li>`)}</ul></details>`)}
+                  <ul>${e.items.map((t, n) => M`${e.kind === "plumbing" && t.via !== e.items[n - 1]?.via ? M`<li class="via">${Vl[t.via ?? ""] ?? `${t.via}. ${Vl[""]}`}:</li>` : F}<li><button class="mend" @click=${() => e.kind === "floorless" || e.kind === "cold" ? c(`/config/areas/area/${t.id}`) : s(this, "hass-more-info", { entityId: t.id })}>${t.name}</button></li>`)}</ul></details>`)}
                 <p class="mend">${n.mend}</p>` : F}
-          ${t.scenes.length || t.rooms.some((e) => e.scenes.length) ? M`<h3>${n.titles.notices}</h3>${Yt(t).slice(0, 8).map((e, t) => M`<button class="ad" @click=${() => this._call({
+          ${t.scenes.length || t.rooms.some((e) => e.scenes.length) ? M`<h3>${n.titles.notices}</h3>${Zt(t).slice(0, 8).map((e, t) => M`<button class="ad" @click=${() => this._call({
 			domain: "scene",
 			service: "turn_on",
 			ids: [e.id]
@@ -9018,7 +9389,7 @@ var Ll = class extends jn {
         </aside>
         ${T ? M`<section class="board">${oe}</section>` : F}
       </main>
-      ${A ? Dl(n, A, this._open, r, g(A), ae, {
+      ${A ? mu(n, A, this._open, r, g(A), ae, {
 			flip: () => this._flip(A),
 			more: () => this._live(A.id),
 			picture: () => this._look({
@@ -9027,21 +9398,21 @@ var Ll = class extends jn {
 				see: A.id
 			}),
 			shut: () => this._shut(),
-			turn: (e) => this._call(en(e), `${A.room} ${A.name} to ${e.name}`),
-			zoom: (e) => this._ask(A, e, $t),
-			control: (e) => e.device ? this._press(e.device) : this._call(nn(e), `${A.room} ${e.name}`)
-		}) : this._shot ? El(n, this._shot, ae, {
+			turn: (e) => this._call(nn(e), `${A.room} ${A.name} to ${e.name}`),
+			zoom: (e) => this._ask(A, e, tn),
+			control: (e) => e.device ? this._press(e.device) : this._call(an(e), `${A.room} ${e.name}`)
+		}) : this._shot ? pu(n, this._shot, ae, {
 			more: () => this._live(this._shot.see),
 			shut: () => this._shut()
 		}) : F}
     </div>`;
 	}
-}, Yl = new URL(import.meta.url).searchParams.get("v") || "dev";
-u(Vl, Jl), u(Lo, Ro), u(ms, hs), u(nc, rc), u(lc, fc), u(Vc, Hc), u(Wc, Gc), u(ar, vr), u(Ri, qi), u(ki, Li);
+}, Iu = new URL(import.meta.url).searchParams.get("v") || "dev";
+u(Ou, Fu), u(ws, Ts), u(tc, nc), u(Uc, Wc), u(Xc, $c), u(Ol, kl), u(jl, Ml), u(sr, br), u(Ta, Pa), u(ga, wa);
 for (let [e, t] of [
-	[pc, Sc],
-	[mc, Cc],
-	[hc, wc]
-]) u(e, t), u(`${e}-editor`, Ec(e));
-d(Vl, "Casa Mia Dash-Bored Gazette", "Your house as a newspaper: what matters most is the headline, and every underlined fact is a switch. Best in a panel view."), d(lc, "Casa Mia Dash-Bored Console", "Your house as a control panel, in the style of a decade, with a switch to choose which. Every decade from the 1950s to the 1990s is built. Best in a panel view."), d(ar, "Casa Mia Dash-Bored Fridge", "Your house as a fridge door: a polaroid for each room, a magnet for each device, sticky notes for what is wrong and the cameras' pictures held up by a butterfly. Dress it as a young family's, a pair of yuppies' or grandparents'. Best in a panel view."), d(Ri, "Casa Mia Dash-Bored Aurora", "Your house in the current web style: glass tiles over a sky that warms as the lights come on, with the scenes, the power being drawn and a thermostat. A room's tile has a dot for each device and grows into a sheet of faders. Best in a panel view."), d(pc, "Casa Mia Dash-Bored Console instrument", "One light, switch, thermostat, lock, camera, alarm, scene or sensor as an instrument on the Console, in the style of a decade: a knob, a switch, a screen or a meter. On its era's panel, or on the dashboard's own card."), d(mc, "Casa Mia Dash-Bored Console room", "One room as a chassis on the Console, in the style of a decade: a lamp for its lights, a meter for its temperature, and a control for each of its devices."), d(hc, "Casa Mia Dash-Bored Console warning lamps", "Sensor Watch's warnings as the Console's warning lamps, in the style of a decade, the worst first. A green lamp says when all is well."), a("Dash-Bored", "casa_mia_dash_bored/cards", Yl);
+	[el, ll],
+	[tl, ul],
+	[nl, dl]
+]) u(e, t), u(`${e}-editor`, pl(e));
+d(Ou, "Casa Mia Dash-Bored Gazette", "Your house as a newspaper: what matters most is the headline, and every underlined fact is a switch. Best in a panel view."), d(Xc, "Casa Mia Dash-Bored Console", "Your house as a control panel, in the style of a decade, with a switch to choose which. Every decade from the 1950s to the 1990s is built. Best in a panel view."), d(sr, "Casa Mia Dash-Bored Fridge", "Your house as a fridge door: a polaroid for each room, a magnet for each device, sticky notes for what is wrong and the cameras' pictures held up by a butterfly. Dress it as a young family's, a pair of yuppies' or grandparents'. Best in a panel view."), d(Ta, "Casa Mia Dash-Bored Aurora", "Your house in the current web style: glass tiles over a sky that warms as the lights come on, with the scenes, the power being drawn and a thermostat. A room's tile has a dot for each device and grows into a sheet of faders. Best in a panel view."), d(el, "Casa Mia Dash-Bored Console instrument", "One light, switch, thermostat, lock, camera, alarm, scene or sensor as an instrument on the Console, in the style of a decade: a knob, a switch, a screen or a meter. On its era's panel, or on the dashboard's own card."), d(tl, "Casa Mia Dash-Bored Console room", "One room as a chassis on the Console, in the style of a decade: a lamp for its lights, a meter for its temperature, and a control for each of its devices."), d(nl, "Casa Mia Dash-Bored Console warning lamps", "Sensor Watch's warnings as the Console's warning lamps, in the style of a decade, the worst first. A green lamp says when all is well."), a("Dash-Bored", "casa_mia_dash_bored/cards", Iu);
 //#endregion

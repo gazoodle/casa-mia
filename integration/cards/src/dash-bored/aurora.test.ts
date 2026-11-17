@@ -190,15 +190,114 @@ test("a skin is its sky's colours as custom properties, and each has a name and 
 test("each season's skin has its decorations, and every drawing one names is drawn", async () => {
   const { SEASONAL, SKINS } = await import("./aurora/skins.ts");
   const { DECORS } = await import("./aurora/seasons.ts");
-  const { FEET, GLYPHS, HEROES } = await import("./aurora/art.ts");
+  const { FEET, GLYPHS, HEROES, MACHINES } = await import("./aurora/art.ts");
+  const { MOVES } = await import("./aurora/drift.ts");
   assert.deepEqual(SEASONAL.map((s) => s.id).sort(), Object.keys(DECORS).sort());
   // The skins of the night bring their own dark page.
   assert.deepEqual([...SKINS, ...SEASONAL].filter((s) => s.dark).map((s) => s.id), ["fireworks", "halloween"]);
   assert.ok(SKINS.every((s) => !DECORS[s.id])); // a skin of colours has none
   for (const [id, decor] of Object.entries(DECORS)) {
     assert.ok(!decor.drift || GLYPHS[decor.drift.glyph], id);
+    assert.ok(!MOVES[decor.drift?.glyph ?? ""]?.tidy || MACHINES[MOVES[decor.drift!.glyph].tidy!], id);
     assert.ok(!decor.foot || FEET[decor.foot], id);
     assert.ok(!decor.hero || HEROES[decor.hero], id);
+  }
+});
+
+test("what drifts flutters and lands on a ledge, becomes a heap, falls off a shaken ledge, and a machine comes to tidy it away", async () => {
+  const { GROUND, MOVES, PILE, begin, fit, outline, shake, step } = await import("./aurora/drift.ts");
+  type Field = ReturnType<typeof begin>;
+  const FRAME = 1 / 30;
+  const run = (f: Field, seconds: number, until: (f: Field) => boolean = () => false) => {
+    for (let i = 0; i < seconds / FRAME && !until(f); i++) step(f, FRAME);
+    return f;
+  };
+  const lying = (f: Field, on?: string) => f.motes.filter((m) => m.state === "down" && (!on || m.on === on));
+  const heaped = (f: Field, id: string) => f.ledges.find((l) => l.id === id)!.heap.reduce((sum, deep) => sum + deep, 0);
+  const TILE = { id: "tile", from: 300, to: 700, top: 400 };
+  const BAR = { id: "bar", from: 200, to: 800, top: 730 };
+
+  // A leaf goes from side to side as it comes down.
+  const one = begin(MOVES.leaf, 1, 1000, 800, 7);
+  const leaf = one.motes[0];
+  leaf.y = 0;
+  let [turns, was] = [0, 0];
+  run(one, 5, () => {
+    if (leaf.vx * was < 0) turns++;
+    was = leaf.vx || was;
+    return false;
+  });
+  assert.ok(turns >= 3, `it turned ${turns} times`);
+  assert.ok(leaf.y > 100);
+
+  // Not all go the way the wind does, and they come down at different speeds.
+  const many = begin(MOVES.flake, 26, 1000, 800, 7);
+  assert.ok(many.motes.some((m) => m.blow < -0.3) && many.motes.some((m) => m.blow > 0.3));
+  assert.ok(Math.max(...many.motes.slice(0, 26).map((m) => m.pace)) > 1.5 * Math.min(...many.motes.slice(0, 26).map((m) => m.pace)));
+
+  // Leaves come down on a tile, the bar and the ground, lie there, and become a heap: never many lying about.
+  const leaves = begin(MOVES.leaf, 16, 1000, 800, 7);
+  fit(leaves, 1000, 800, [TILE, BAR]);
+  let most = 0;
+  run(leaves, 200, (f) => ((most = Math.max(most, lying(f).length)), false));
+  assert.ok(most > 0 && most <= PILE, `${most} lay about at once`);
+  for (const id of ["tile", "bar", GROUND]) assert.ok(heaped(leaves, id) > 0, id);
+  assert.ok(leaves.ledges.every((l) => l.heap.every((deep) => deep <= 12)));
+  assert.ok(lying(leaves, "tile").every((m) => m.x >= 300 && m.x <= 700 && m.y < 400));
+  assert.equal(leaves.motes.filter((m) => m.state === "air").length, 16); // and as many are in the air as ever
+  assert.match(outline(leaves.ledges[0]), /^M300\.0 400Q.*700\.0 400Z$/);
+  assert.equal(outline({ ...TILE, heap: [0, 0] }), "");
+  leaves.changed.clear();
+
+  // A ledge that only moves keeps its heap. One that is shaken drops it: more are in the air for a while, and then as many as ever.
+  const had = heaped(leaves, "tile");
+  fit(leaves, 1000, 800, [{ ...TILE, top: 380 }, BAR]);
+  assert.equal(heaped(leaves, "tile"), had);
+  shake(leaves, "tile");
+  assert.equal(heaped(leaves, "tile") + lying(leaves, "tile").length, 0);
+  assert.ok(leaves.changed.has("tile"));
+  assert.ok(leaves.motes.filter((m) => m.state === "air").length > 16);
+  assert.equal(run(leaves, 40).motes.filter((m) => m.state === "air").length, 16);
+  // One that is gone drops it too, and nothing is left lying on it.
+  fit(leaves, 1000, 800, [BAR]);
+  assert.deepEqual([leaves.ledges.map((l) => l.id), lying(leaves, "tile").length], [["bar", GROUND], 0]);
+
+  // The robot comes in its own time, flies to each ledge and drives along it, and leaves next to nothing.
+  assert.equal(leaves.tidy, undefined);
+  run(leaves, 500, (f) => !!f.tidy);
+  assert.deepEqual(leaves.tidy?.route, ["bar", GROUND]);
+  let [flew, drove] = [false, false];
+  run(leaves, 60, (f) => ((flew ||= !!f.tidy && !f.tidy.driving), (drove ||= !!f.tidy?.driving), !f.tidy));
+  assert.deepEqual([leaves.tidy, flew, drove], [undefined, true, true]);
+  assert.ok(heaped(leaves, "bar") + heaped(leaves, GROUND) < 30, `${heaped(leaves, "bar")} and ${heaped(leaves, GROUND)} are left`);
+  assert.ok(leaves.since < 1);
+
+  // The blower throws the snow up.
+  const snow = begin(MOVES.flake, 26, 1000, 800, 3);
+  fit(snow, 1000, 800, [TILE, BAR]);
+  run(snow, 600, (f) => !!f.tidy);
+  let thrown = 0;
+  run(snow, 60, (f) => ((thrown = Math.max(thrown, f.motes.filter((m) => m.state === "thrown").length)), !f.tidy));
+  assert.ok(thrown > 0);
+  assert.equal(snow.tidy, undefined);
+
+  // The wind does not keep time: the gaps between its changes of side are all different lengths.
+  const gaps = new Set<string>();
+  let [side, at, now] = [1, 0, 0];
+  run(begin(MOVES.leaf, 1, 1000, 800), 300, (f) => {
+    now += FRAME;
+    if (f.air[0] * side < 0) [side, at] = [-side, (gaps.add((now - at).toFixed(1)), now)];
+    return false;
+  });
+  assert.ok(gaps.size >= 8, `${gaps.size} lengths of gap`);
+
+  // Hearts rise and bats cross, and neither lands. Nothing ever leaves the numbers, and the same start has the same end.
+  for (const glyph of ["heart", "bat", "gull", "petal"]) {
+    const f = run(begin(MOVES[glyph], 8, 1000, 800, 5), 120);
+    assert.ok(f.motes.every((m) => [m.x, m.y, m.a, m.w].every(Number.isFinite)), glyph);
+    if (!MOVES[glyph].tidy) assert.ok(f.motes.length === 8 && f.motes.every((m) => m.state === "air"), glyph);
+    if (MOVES[glyph].how === "cross") assert.ok(f.motes.every((m) => m.y >= 32 && m.y <= 560), glyph);
+    assert.deepEqual(run(begin(MOVES[glyph], 8, 1000, 800, 5), 120).motes, f.motes, glyph);
   }
 });
 

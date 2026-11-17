@@ -13,6 +13,7 @@ import { GLYPHS } from "./aurora/art.ts";
 import { Controls } from "./aurora/controls.ts";
 import { cameras, extras, frame, shot, still, type Looks, type Shot, type Works } from "./aurora/cameras.ts";
 import { settings } from "./aurora/settings.ts";
+import { Drifting } from "./aurora/drifting.ts";
 import { DECORS, almanac, decorated, motif } from "./aurora/seasons.ts";
 import { ALMANAC, SEASONAL, SKINS, paint, skinned, swatch, type Skin } from "./aurora/skins.ts";
 import { ALERTS as ALERTED, CAMERAS, CLIMATE, ENERGY, HERO, ROOM, SCENES, SPLIT, dots, holds, screens, splits, zoom, type Screen, type Split } from "./aurora/pages.ts";
@@ -55,6 +56,7 @@ export class Aurora extends Controls {
   private _again = () => this.requestUpdate(); // the window is another size: the page may be another height
   private _came = new Map<string, number>(); // ms: when each still was given to this page, by its address
   private _failed = new Set<string>(); // the pictures that could not be fetched, by address
+  private _drift = new Drifting(); // moves what drifts over a season's skin
   // A camera's picture: a press shows it live in Home Assistant's dialog, and when a still came, or did not, is kept to be said.
   private _looks: Looks = {
     look: (d) => this._press(d),
@@ -104,6 +106,7 @@ export class Aurora extends Controls {
 
   disconnectedCallback() {
     super.disconnectedCallback();
+    this._drift.stop();
     window.removeEventListener("keydown", this._slash);
     window.removeEventListener("resize", this._again);
   }
@@ -203,6 +206,9 @@ export class Aurora extends Controls {
 
   /** A dialog is modal only when opened by its method, not by being drawn. */
   protected updated() {
+    // What drifts over a season's skin lies on the bar and on the tiles of the screen that is showing.
+    const tiles = this.renderRoot.querySelectorAll(".page")[this._at]?.children ?? [];
+    this._drift.over(this.renderRoot.querySelector<HTMLElement>(".season"), [this.renderRoot.querySelector<HTMLElement>(".bar"), ...tiles].filter((el): el is HTMLElement => !!el));
     const sheet = this.renderRoot.querySelector("dialog");
     if (sheet && !sheet.open) {
       sheet.showModal();
@@ -219,6 +225,12 @@ export class Aurora extends Controls {
   }
 
   /** The glass catches the light where a mouse is over it. */
+  /** A tile is hovered over or pressed: what drifted onto it falls off. Moving about inside a tile is not hovering over it again. */
+  private _nudge = (event: PointerEvent) => {
+    const tile = (event.target as Element).closest(".page > *");
+    if (tile && !(event.type === "pointerover" && tile.contains(event.relatedTarget as Node | null))) this._drift.shake(tile);
+  };
+
   private _shine(event: PointerEvent) {
     const glass = event.pointerType === "mouse" ? (event.target as Element).closest<HTMLElement>(".glass") : null;
     if (!glass) return;
@@ -405,13 +417,13 @@ export class Aurora extends Controls {
 
     return html`<div class=${dress(skin.dark || hass.themes?.darkMode)} style="height: ${tall}px; --warm: ${glow(lights(house)).toFixed(3)}; ${paint(skin)}" @pointermove=${this._shine}>
       <div class="sky" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-      <div class="pages" @scroll=${this._scrolled}>
+      <div class="pages" @scroll=${this._scrolled} @pointerover=${this._nudge} @pointerdown=${this._nudge}>
         ${laid.screens.map((s) => {
           const { by, cell } = sized(s);
           return html`<div class="page" role="group" aria-label=${title(s)} style="--cols: ${s.cols}; --rows: ${s.rows}; --zoom: ${by.toFixed(3)}">${s.tiles.map((p) => tile(p, cell))}</div>`;
         })}
       </div>
-      ${decor ? decorated(decor, this._wide, tall) : nothing}
+      ${decor ? decorated(decor, this._wide) : nothing}
       ${urgent.length ? html`<div class="urgent over" role="alert">${urgent.map((text) => html`<div>${text}</div>`)}</div>` : nothing}
       ${at > 0 ? html`<button class="edge left" aria-label="Back to ${title(laid.screens[at - 1])}" @click=${() => this._go(at - 1)}>${title(laid.screens[at - 1])}</button>` : nothing}
       ${at < laid.screens.length - 1 ? html`<button class="edge right" aria-label="On to ${title(laid.screens[at + 1])}" @click=${() => this._go(at + 1)}>${title(laid.screens[at + 1])}</button>` : nothing}

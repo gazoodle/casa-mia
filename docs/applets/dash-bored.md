@@ -19,23 +19,25 @@ But having a laugh is much more fun than shouting into the wind.
 
 So I decided to have some fun.
 
-Eighteen wildly different ways of controlling the same house. From a mechanical watch
-movement to a Heath Robinson contraption, a 1980s circuit board, a railway departures
-board, a modular synthesiser, and even a newspaper that reports on the goings-on in your
+I conceived the ideas and asked Claude to build these (currently) eighteen wildly different ways of controlling 
+the same house. From a mechanical watch movement to a Heath Robinson contraption, a 1980s circuit board, a railway
+departures device, a modular synthesiser, and even a newspaper that reports on the goings-on in your
 house.
 
-Some are beautiful. Some are bonkers. A few might actually be useful.
+Some are beautiful. Some are bonkers. A few might actually be useful. 
 
 And they're not just pictures. The switches switch, the levers lever, the lights light, and
 the house responds.
 
-It's free, it's open source, and there's no business model lurking behind it.
+We tried to maintain a sense of fun while building them, and where they looked like they might be genuinely 
+useful, we took more care on the UX, but make no mistake, if you actually use any of these to control your 
+house, you're daft ... just like us; we have the broadsheet gazette always on the wall tablet home page now.
 
-Dash-Bored. Because the world clearly needed another dashboard designer.
+Dash-Bored. Because the world clearly needed another dashboard designer. MIT. Forever.
 
 Part of Casa Mia.
 
-Dash-Bored is an integration of its own. It installs without the Casa Mia app and without
+Dash-Bored is also an integration of its own. It installs without the Casa Mia app and without
 the Casa Mia integration.
 
 ## The eighteen, and where each has got to
@@ -817,6 +819,19 @@ right corner of the greeting, such as a snowman, a sandcastle or a hedgehog; the
 in the Fireworks skin tells the time. Christmas has a string of fairy lights along the
 top, Halloween a cobweb with a spider, and Summer the sun. The decorations can't be
 pressed and cover nothing that can. If the device is set to reduce motion, nothing moves.
+
+What drifts does not follow a fixed path. A leaf, a petal or a snowflake swings from side
+to side as it comes down and is pushed about by a wind whose gusts never repeat. It
+lands on the top of a tile, on the bar or on the ground. It lies there for a few seconds
+and then becomes part of a heap, which grows as more lands. The tiles in the top row
+hold nothing, because the machine below would have no room to stand on them.
+
+Hovering over a tile or pressing it tips off whatever is on it, and so does swiping to
+another screen. Every five to eight minutes a machine flies to each place that has
+something on it and drives along it: a robot collects the leaves and petals, and a snow
+blower throws the snow up behind it. The robot misses about one leaf in seven. Nothing
+lies on a room's sheet, which the browser draws above everything else on the page. Hearts wobble as they rise, gulls
+glide and bats flit.
 Fireworks and Halloween are skins of the night, so their page is dark whichever theme
 Home Assistant is using.
 

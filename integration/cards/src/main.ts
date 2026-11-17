@@ -4,6 +4,7 @@
 // (vite.sensor-watch.config.ts).
 import { VERSION } from "./commander/index.ts";
 import { offerReload } from "./connection.ts";
+import { claim } from "./own.ts";
 import "./view/index.ts";
 import "./garnish-editor.ts";
 import "./garnish-sections.ts";
@@ -22,5 +23,7 @@ console.info(
 );
 
 offerReload("Casa Mia", "casa_mia/cards", VERSION);
+
+claim("cm-cards.js");
 
 watchForGoodbye();
