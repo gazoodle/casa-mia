@@ -98,7 +98,7 @@ export const rolling: Voice = {
   personal: { home: "{name} arrived home", left: "{name} left home", zone: "{name} arrived at {place}",
     love: "{name} loved {song}", loathe: "{name} loathed {song}", song: "“{title}” by {artist}", tune: "“{title}”" },
   notices: ["Tap to run", "Runs at once", "One tap", "Ready to run"],
-  desk: { by: "{name}", staff: "House correspondent", filed: "Updated {time}", lapsed: "Not updated since {time}", unsure: "Unconfirmed", failed: "No report" },
+  desk: { by: "{name}", staff: "House correspondent", filed: "Updated {time}", lapsed: "Not updated since {time}", awaited: "Update pending", late: "Analysis delayed: {reason} (since {time})" },
   stories: {
     alert: LIVE,
     "alert.warning": { ...LIVE, kicker: "Developing", head: ["{name} needs checking", "{name}: what we know so far"] },

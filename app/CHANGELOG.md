@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.9-b14
+
+- **Dash-Bored: a model writes the agent's column.** Where the house runs ZenOS-AI, the Gazette's column used to print ZenOS's summaries as they were, which read like a machine's log. Now, each time ZenOS writes a new summary of the house, Dash-Bored asks the model ZenOS uses to write the column from it, once, in the style of each paper: a headline, a short article and up to three items about what most needs attention. Every open page is sent it straight away, and it is kept through a restart. If the model fails, the last column stays with a line saying why the next is late. It is one call to the model per summary, about 100 a day; to stop it, switch off **Write the agent's column** in Dash-Bored's Configure dialog. Dash-Bored only reads ZenOS, and never writes to it.
+
 ## 2026.11.9-b13
 
 - **Dash-Bored: what drifts over Aurora's season skins moves as the real thing does.** A leaf, a petal or a snowflake swings from side to side as it comes down, nearly hanging at the end of each swing, and the wind pushes it about in gusts that never repeat. Not all of them go the way the wind does, and each comes down at its own speed. What comes down lands on the top of a tile, on the bar or on the ground, lies there a few seconds and then becomes part of a heap. Hovering over a tile or pressing it tips off what is on it, and so does swiping to another screen. Every five to eight minutes a machine flies to each place that has something on it and drives along it: a robot collects the leaves and petals, missing the odd one, and a snow blower throws the snow up behind it. Hearts wobble as they rise, gulls glide and bats flit. If the device asks for less motion, everything stays where it is.

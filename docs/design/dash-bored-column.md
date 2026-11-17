@@ -1,6 +1,6 @@
 # Dash-Bored: the agent's column, written by a model
 
-Status: design, for the owner's approval (2026-11-16). Nothing is built yet.
+Status: approved by the owner (2026-11-16), built in 2026.11.9-b14.
 
 ## What it replaces, and why
 
@@ -162,12 +162,13 @@ time it has now.
 - Choosing which parts a wall tablet may print (still in BACKLOG).
 - A ZenOS-written reporter drawer. If ZenOS ships one, read it and drop our call.
 
-## Decisions for the owner
+## The owner's decisions
 
-1. **A switch to turn it off.** It calls a model about 100 times a day. That's free on a
-   local model, but not on a paid one. My recommendation: on by default when ZenOS is
+1. **A switch to turn it off. Decided (owner, 2026-11-16):** on by default when ZenOS is
    present, with a "Write the agent's column" switch in Dash-Bored's Configure dialog. With
-   the switch off, the page shows no column at all, rather than the raw Katas.
-2. **The shape.** I recommend a headline, a short article and up to three items, rather
-   than one article only. The items keep a single urgent part of the house from being
-   lost in the prose.
+   the switch off, the page shows no column at all, rather than the raw Katas. Why: it
+   calls a model about 100 times a day, which is free on a local model but not on a paid
+   one.
+2. **The shape. Decided (owner, 2026-11-16):** a headline, a short article and up to three
+   items, rather than one article only. Why: the items keep a single urgent part of the
+   house from being lost in the prose.

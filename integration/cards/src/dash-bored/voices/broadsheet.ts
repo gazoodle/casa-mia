@@ -99,7 +99,7 @@ export const broadsheet: Voice = {
   personal: { home: "{name} has arrived home.", left: "{name} has left the house.", zone: "{name} has arrived at {place}.",
     love: "{name} wishes it known that {song} is greatly to their liking.", loathe: "{name} begs that {song} be played no more.", song: "“{title}” by {artist}", tune: "“{title}”" },
   notices: ["Arranged at a touch. Apply within.", "By appointment to the household.", "Satisfaction assured.", "Enquire at this office."],
-  desk: { by: "By {name}", staff: "our own correspondent", filed: "Filed at {time}", lapsed: "Nothing filed since {time}", unsure: "Unconfirmed", failed: "No report" },
+  desk: { by: "By {name}", staff: "our own correspondent", filed: "Filed at {time}", lapsed: "Nothing filed since {time}", awaited: "Copy awaited", late: "Our correspondent's copy is late: {reason} (since {time})" },
   stories: {
     alert: ALARM,
     "alert.warning": { ...ALARM, kicker: "Late report", head: ["{name} gives cause for concern"] },

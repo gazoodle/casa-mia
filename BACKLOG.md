@@ -8,6 +8,40 @@ Started 2026-11-13 (2026.11.8-b1) with the Gazette. HANDOVER has how it is built
 mock-ups are in `docs/design/dash-bored/`. The owner is on Bakelite now (2026-11-14), and
 the Gazette's own work is parked below it.
 
+- **Every family gets every capability** (owner, 2026-11-17; the rule is in HANDOVER and
+  the table in `docs/design/dash-bored-survey.md`). `tests/test_dash_bored_parity.py`
+  lists each of these in its `OWED`, and fails when a family starts to show something
+  the others do not: an entry there goes when its item here is built. What is missing:
+  - **The Console: the weather.** It has an Outside air meter for the temperature and
+    nothing for the sky, which the Gazette and the Fridge show (`house.outside`). To be drawn in five eras, so agree the instrument with the owner
+    first (a barometer and an outside thermometer suggest themselves). The forecast by
+    the day too.
+  - **The Console: who is at home** (`house.people`), and their comings and goings.
+  - **Aurora: the weather, the forecast and who is at home**, on its home screen, which
+    is thin (owner, 2026-11-16: "we'll find stuff to put on there").
+  - **The Fridge: the forecast**, and comings and goings with their times.
+  - **Console, Fridge and Aurora: what the players played lately, what is playing with
+    pause and play, and Love it or Loathe it's ratings.** Only the Gazette has them.
+  - **Gazette, Console and Fridge: a thermostat's modes and a player's source**
+    (`Device.choices`, which only Aurora's sheet shows).
+  - **Gazette, Console and Fridge: finding a device by typing**, if it suits them: ask.
+  - **The agent's column (ZenOS-AI)** on the other three: ask the owner whether it
+    belongs anywhere but a newspaper.
+  - **The Fridge: a camera's presets, zoom and controls** (the test found this,
+    2026-11-17).
+  - **Console, Fridge and Aurora: what the house is missing** (`house.gaps`) **and which
+    appliances are drawing power** (`house.appliances`). Only the Gazette has them.
+  - **Fill in the cells still marked `?`** from the source before starting on their rows.
+    The test cannot answer them: it sees what a family reads, not what it draws.
+- **From the survey of other dashboards** (2026-11-17, same document), in the order
+  recommended; each is for every family:
+  - The next calendar event.
+  - A light's colour and colour temperature.
+  - The family, and Aurora's skin, readable and settable by Home Assistant (a sensor and
+    a service, as Seasonal Glass has), so an automation can choose them.
+  - Birthdays from a calendar as an Almanac day.
+  - Low batteries and pending updates, if Sensor Watch does not already cover them.
+  - Not wanted for now: per-user visibility, a screensaver, favourites.
 - **Bakelite, what's left** (every kind of device, Sensor Watch's alerts, the cameras'
   sightings and a chart recorder are built, to 2026.11.8-b30). The owner tried it on an iPad on 2026-11-14: the cranked
   knobs, the thumbwheels' size and the motion were all right. Not yet on a wall tablet.
@@ -147,35 +181,17 @@ the Gazette's own work is parked below it.
     in the 1990s. Bakelite and Silverface do this; the other three are to when built.
   - The sizes `console/balance.ts` counts on are Bakelite's; an era with other sizes
     needs its own.
-- **The agent's column, what's left** (prototype, 2026.11.8-b40). Only the Gazette draws
-  it: the Fridge's notepad and a Console ticker could. An urgent Kata is not yet a story
-  or breaking news. The lapsed by-line, a doubted piece and a hidden sensor are covered by
-  unit tests only. A wall tablet shows whatever the agent wrote, alarm and lock states
-  included: decide whether that needs a choice of which parts may print.
-- **The agent's column, written by a model** (owner, 2026-11-15: agreed, and promised to
-  ZenOS's author in the forum thread). Kata text reads as a machine's log, and ZenOS's
-  author will not add a field for a reader: "tell the agent to interpret it for your
-  newspaper". So the column stops printing Katas as they are.
-  - When the SuperSummary changes, Dash-Bored's integration asks a model once to write
-    the column from the Katas, keeps the result and pushes it to every open page. It is
-    written once per change, not per page or per paper opened, in all three papers'
-    voices.
-  - It uses Home Assistant's AI Task service with the entity ZenOS already holds in
-    `input_text.zenos_ai_task_entity`, so it runs on the model the summarizers use.
-  - It only reads ZenOS: the cabinets by their labels, and the persona name for the
-    by-line. It writes nothing back (owner, 2026-11-15, after ZenOS's author suggested
-    a chained tool that writes the column to a drawer: "we stay read only, but ZenOS can
-    write if he wants"). If ZenOS ships a reporter that writes such a drawer, read it and
-    drop our own model call.
-  - To try first: gather the Katas with one read-only tapestry call (`mode=weave` with
-    inline `weave_sources`, the file cabinet's "print shop" example) instead of reading
-    each cabinet. Not yet proven that an integration gets the response back.
-  - Build it against ZenOS-AI 11.1, which the test VM now runs (2026.11.1 Beta 1,
-    installed clean on 2026-11-16, with Katas flowing).
-  - The column keeps its by-line and the time it was written. A failed model or a
-    summary that is out of date is said on the page, never covered by the raw Katas. A
-    house without ZenOS has no column, as now.
-  - This replaces the raw-Kata column of 2026.11.8-b40 (`katas.ts`, `gazette.ts`).
+- **The agent's column, what's left.** Since 2026.11.9-b14 a model writes it
+  (`docs/design/dash-bored-column.md`). Still to do:
+  - Try it on the test VM with ZenOS's local model, and tune the brief from what it writes.
+  - Only the Gazette draws it: the Fridge's notepad and a Console ticker could follow the
+    same feed.
+  - An urgent Kata is not yet a story or breaking news.
+  - A wall tablet shows whatever the model wrote, alarm and lock states included: decide
+    whether that needs a choice of which parts may print.
+  - If ZenOS ships a reporter that writes the column to a drawer, read it and drop our
+    own model call (owner, 2026-11-15: "we stay read only, but ZenOS can write if he
+    wants").
 - **ZenOS-AI 11.1, post the report** (promised 2026-11-15). Installed from scratch on
   the test VM on 2026-11-16 from Beta 1 (`feat/2026.11.1`, 318c6f4; not yet released).
   It reached summaries and component Katas, but only through two console workarounds and
@@ -209,18 +225,6 @@ the Gazette's own work is parked below it.
 
 - **The showpieces** (owner, 2026-11-13: "we're not leaving it behind"): Contraption, and
   Movement, which ran at 60 fps on the owner's iPad.
-- **Publish it by itself** once it is past In development, as Sensor Watch is.
-
-## Sensor Watch (beta)
-
-Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it does. What's next:
-
-- **Stale, what's left** (built in 2026.11.5-b1: no report or no change for a time, per watch or profile; not yet seen working on a box). The library's profiles carry none: add sensible ones where a device reports on a schedule (battery sensors), and perhaps a scan default by device class. Escalation's "nominal for too long" (asked 2026-10-11) is not built. **The limit:** a Core restart re-stamps every restored entity, so a sensor that died before one is caught a full wait later; remembering each entity's last report across restarts would close it.
-
-- **The gauge card, what's left** (built in 2026.11.5-b1 as `custom:casa-mia-sensor-watch-gauge`, drawing its own arc). Seen only injected into a page on the test VM: look at it on a real dashboard, in the card picker and its editor, in a dark theme and on a wall tablet. The eye and `tools/dev_cards` with Sensor Watch's bundle were changed in the same build and not looked at either.
-  - **More options, to match the better gauges around** (asked 2026-11-11): a gradient across the bands as well as steps; a horseshoe (an arc of about 270°) as well as the half circle; where the value, the name and the level go (above, inside the arc, below, or hidden); and which Sensor Watch data shows (the level pill, its message, the stale or not-current notice) and which doesn't. Look at what Home Assistant's own gauge and the popular custom gauges offer first, take what is worth having, and give each option a field in the editor (`gauge-editor.ts`). Needs a design pass before building.
-
-- **Tidying left by the move into Home Assistant** (2026.11.3-b1; refactors, each its own commit). `LEVELS`, `displayed` and `UNAVAILABLE_HOLD` are defined in both `records/common.py` and `levels.py` (a test holds them together): one definition now that both are in the integration. `Store._sent`'s `with_legacy()` served integrations older than the push, which can't exist any more. Some `records/` docstrings still say "the integration" for what is now the same process. The page's one websocket command carries method and path as the app's routes did; a command per route would let HA validate each.
   - **Contraption's second mock-up** (2026-11-16; the owner wants it "absolutely crazy",
     mocked up before it is built): `docs/design/dash-bored/contraption.html` with
     `contraption/`. It has a mechanism for each of the fifteen kinds, and its header
@@ -246,10 +250,47 @@ Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it d
       anything moves (4.5 frames a second, measured), so the still parts are baked
       through it into bitmaps once (`waterworks/bake.js`). Measure in WebKit, not only
       Chromium: Chromium hid this.
-    - Still to do: the navigation page (a waterworks seen from far off; a tap opens a
-      gate, something rides the flow to the room and the view follows it), and laying a
-      room out by rule from tiles of several sizes that each declare a way in, a way out
-      and a behaviour. The Kitchen is placed by hand.
+    - Still to do: laying a room out by rule from tiles of several sizes that each
+      declare a way in, a way out and a behaviour. The Kitchen is placed by hand. The
+      navigation page became the whole house, below.
+  - **Contraption, the whole house on one sheet** (2026-11-17): `whole-house.html` with
+    `whole-house/`. The owner's idea: draw the house and grounds on one page fitted to
+    the screen, where a tap on an area zooms in as you watch and more detail opens up.
+    It replaces a separate navigation page. What the trial settles:
+    - One river, laid out by rule (`whole-house/plan.js`). Rooms go in rows in the
+      house's order, each 60 lower than the one before, so one trough falls 1 in 20
+      through a whole row at the height every room's machines expect. A chute under the
+      row brings the water back to the next row, the last one empties into the pond,
+      and the lift raises it to the tank. Rooms out of doors come last.
+    - Two distances, one drawing. The view is the SVG's viewBox. Far off, a room is a
+      glyph for each device, switched by a class when the device changes, with CSS doing
+      the moving. Close up, a room drawn in full fades in over its glyphs, and it is the
+      only room worked frame by frame.
+    - A tap sends the duck round the water to the room and the view follows it; a second
+      tap gets there at once. The show comes first, as the owner asked.
+    - A room with a device out of order flies a flag that can be read from far off, with
+      what and since when. Stale data dries the whole river.
+    - The patent skin bakes like map tiles: the whole house once, and the room in view
+      on arrival, dropped on leaving. The house's bitmap is stretched during the zoom.
+    - Measured in headless WebKit on the Mac, 2026-11-17: 61 frames a second far off, 56
+      to 62 during the zoom and 58 to 61 in the Kitchen, in all three skins. Not yet
+      seen on the iPad or in Safari itself.
+    - Still to do: the other five rooms in full, which is the tiles work above; a
+      place for scenes and guarded devices; a phone held sideways leaves the sheet about
+      300 px wide under the header; a house too big for one far view may need a third
+      distance.
+- **Publish it by itself** once it is past In development, as Sensor Watch is.
+
+## Sensor Watch (beta)
+
+Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it does. What's next:
+
+- **Stale, what's left** (built in 2026.11.5-b1: no report or no change for a time, per watch or profile; not yet seen working on a box). The library's profiles carry none: add sensible ones where a device reports on a schedule (battery sensors), and perhaps a scan default by device class. Escalation's "nominal for too long" (asked 2026-10-11) is not built. **The limit:** a Core restart re-stamps every restored entity, so a sensor that died before one is caught a full wait later; remembering each entity's last report across restarts would close it.
+
+- **The gauge card, what's left** (built in 2026.11.5-b1 as `custom:casa-mia-sensor-watch-gauge`, drawing its own arc). Seen only injected into a page on the test VM: look at it on a real dashboard, in the card picker and its editor, in a dark theme and on a wall tablet. The eye and `tools/dev_cards` with Sensor Watch's bundle were changed in the same build and not looked at either.
+  - **More options, to match the better gauges around** (asked 2026-11-11): a gradient across the bands as well as steps; a horseshoe (an arc of about 270°) as well as the half circle; where the value, the name and the level go (above, inside the arc, below, or hidden); and which Sensor Watch data shows (the level pill, its message, the stale or not-current notice) and which doesn't. Look at what Home Assistant's own gauge and the popular custom gauges offer first, take what is worth having, and give each option a field in the editor (`gauge-editor.ts`). Needs a design pass before building.
+
+- **Tidying left by the move into Home Assistant** (2026.11.3-b1; refactors, each its own commit). `LEVELS`, `displayed` and `UNAVAILABLE_HOLD` are defined in both `records/common.py` and `levels.py` (a test holds them together): one definition now that both are in the integration. `Store._sent`'s `with_legacy()` served integrations older than the push, which can't exist any more. Some `records/` docstrings still say "the integration" for what is now the same process. The page's one websocket command carries method and path as the app's routes did; a command per route would let HA validate each.
 
 - **A backup-health sensor, so Sensor Watch can whinge when backups stop** (asked 2026-10-22). A Mac's Time Machine destinations say nowhere in HA when each last completed. A sensor per destination with the age of its last backup, and a profile (warn after a day, error after a few). The reading must be pushed in (a launchd job running `tmutil latestbackup -d <destination>` after each backup, posting to HA by webhook or MQTT), with the sensor unavailable, not fine, when no report arrives. Catch an unmounted destination (`tmutil` reports it as an error). The same pattern covers a NAS's backup jobs and the secrets copy.
 - **NAS drive health in Home Assistant** (asked 2026-10-22). Each NAS's drive status, SMART health, temperature and volume state as HA sensors, with profiles that go critical at once on a degraded volume or failing drive. Existing solutions first: HA's Synology DSM integration; SNMP for a NAS without one. Open: whether either needs a low-privilege read-only user, and where its credentials live (a secret, never in the repo).

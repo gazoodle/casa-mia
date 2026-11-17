@@ -458,25 +458,28 @@ Assistant has, under their own names.
 
 ### A column by the house's own agent (ZenOS-AI)
 
-This is a prototype (2026.11.8-b40), in the Gazette only.
+If the house runs [ZenOS-AI](https://github.com/nathan-curtis/zenos-ai), the Gazette has a
+column in the middle of the page under the agent's own name. ZenOS writes a summary of the
+whole house a few times an hour, and a short account of each part of it (it calls these
+Katas). Each time a new summary arrives, Dash-Bored asks the model ZenOS uses to write the
+column from it and from the Katas, once, in the style of all three papers. Every open page
+is sent the new column straight away.
 
-If the house runs [ZenOS-AI](https://github.com/nathan-curtis/zenos-ai), its agent has a
-column in the middle of the page, under the agent's own name. ZenOS writes a summary of
-the whole house and a short account of each part of it (it calls these Katas), and the
-column prints them as they are written:
+- The column has a headline, a short article and up to three one-line items about the
+  parts of the house that most need attention.
+- The by-line says when the summary it was written from was filed. When that is more than
+  an hour old, it says "Nothing filed since" and the time.
+- If the model fails or doesn't answer within two minutes, the last column stays, with a
+  line saying why the next one is late and since when.
+- Until the first column is written, the by-line says the copy is awaited.
+- Dash-Bored only reads ZenOS's sensors. It never writes to ZenOS.
 
-- The summary comes first, with when it was written. When it is more than an hour old
-  the by-line says "Nothing filed since" and the time.
-- Each part's account follows, the most urgent first. ZenOS's accounts of its own workings
-  are left out.
-- A piece is marked "Unconfirmed" where the model gave it low confidence, and "No report"
-  where it only said why it had nothing to say.
-- The column is in italics, because a model wrote it and the rest of the paper is worked
-  out from the house itself.
-
-There is nothing to set up: the page finds ZenOS's Kata sensor by the label ZenOS gives
-it. To keep the column off the page, give that sensor the Dash-Bored hide label. A house
-without ZenOS has no column.
+There is nothing to set up: Dash-Bored finds ZenOS's Kata sensor by the label ZenOS gives
+it, and uses the model named in ZenOS's `input_text.zenos_ai_task_entity`. That is one call
+to the model per summary, about 100 a day, which costs nothing on a local model but does on
+a paid one. To stop it, switch off **Write the agent's column** in Dash-Bored's Configure
+dialog; the Gazette then has no column. Giving the Kata sensor the Dash-Bored hide label
+does the same. A house without ZenOS has no column.
 
 ### When something is wrong with the page itself
 
@@ -1023,3 +1026,28 @@ On a phone, or in a narrow column, the paper is a single column.
 - The order of the devices in a room.
 - Changing the wording, and other languages. The text is English only.
 - The rest of Bakelite, and the sixteen styles that are still mock-ups (see the list at the top).
+
+## Inspiration
+
+There are so many to mention who have given inspiration to this [and I'm not without
+a nice dose of irony flooding my system as I called out how ]
+
+| System | Main inspiration |
+|---|---|
+| [HomeDeck](https://github.com/rodrigo-wa/homedeck) | Automatic room dashboards, visual editing, seasonal decorations and Pro features |
+| [Seasonal Glass](https://github.com/pietroguidetti02/ha-seasonal-glass) | Holiday themes, snow, Halloween effects and seasonal calendars |
+| [Ultra Card](https://github.com/WJDDesigns/Ultra-Card) | Visual card builder, extensive controls, free-form layouts and Pro modules |
+| [CardBuilder Pro](https://www.cardbuilder.pro/) | Block-based card design, reusable bindings, styling and animation |
+| [Casora](https://github.com/SH1FT-W/casora) | Automatic room layouts, visual Studio and device previews |
+| [Oriel Dashboard](https://github.com/TheDave94/oriel-dashboard) | Automatic generation with extensive visual configuration |
+| [Dwains Dashboard Next](https://github.com/dwainscheeren/dwains-dashboard-next) | Whole-house generation, navigation and reusable blueprints |
+| [Dwains Dashboard 3](https://github.com/dwainscheeren/dwains-lovelace-dashboard) | Earlier automatic dashboard approach |
+| [SMARTi](https://github.com/Prosono/SMARTi_BaseComponent) | Automatic dashboards, themes, kiosk and paid functionality |
+| [Mushroom Strategy](https://github.com/DigiLive/mushroom-strategy) | Automatic dashboards using Mushroom cards |
+| [Bonbon Strategy](https://github.com/trashbytes/bonbon-strategy) | Automatic Bubble Card dashboards |
+| [Linus Dashboard](https://github.com/Thank-you-Linus/Linus-Dashboard) | Automatic floor, room and device organisation |
+| [Simon42 Dashboard Strategy](https://github.com/TheRealSimon42/simon42-dashboard-strategy) | Metadata-driven dashboard generation |
+| [Hass Dashboard Pro](https://github.com/SecSunshine/hass-dashboard-pro) | Automatic area pages and visual theme editing |
+| [HA Fusion](https://github.com/knowald/ha-fusion) | Drag-and-drop dashboard application |
+| [Dashboard Studio](https://github.com/leofleischmann/Home-Assistant-Dashboard-Studio) | Code-based dashboard design with live preview |
+| [LCARdS](https://lcards.unimatrix01.ca/cards/layout-view/) | Visual grid editing and console-style interfaces |

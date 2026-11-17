@@ -21,6 +21,8 @@ HIDE_LABEL = "Dash-Bored hide"
 # The entry's options, which the pages know by these names (Options in house.ts).
 CONF_FLOOR_ORDER = "floor_order"
 CONF_ROOM_ORDER = "room_order"
+# Whether a model writes the agent's column (column.py): on unless switched off.
+CONF_COLUMN = "column"
 
 # Websocket commands, any signed-in user's.
 CARDS_VERSION = f"{DOMAIN}/cards"  # which version of cards.js is served
@@ -29,6 +31,7 @@ SIGHTINGS = f"{DOMAIN}/sightings"  # the feed of what the cameras have seen
 PERSONAL = f"{DOMAIN}/personal"  # the feed of the Personal column's announcements
 SETTINGS = f"{DOMAIN}/settings"  # the feed of the house's settings (settings.py)
 PLAYING = f"{DOMAIN}/playing"  # the feed of what the media players have played
+COLUMN = f"{DOMAIN}/column"  # the feed of the agent's column (column.py)
 
 # Sensor Watch's bus event, and the level it gives a sensor with nothing wrong. Named
 # here and not imported: the two integrations meet only through Home Assistant, and each

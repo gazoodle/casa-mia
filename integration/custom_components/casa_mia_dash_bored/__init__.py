@@ -7,7 +7,8 @@ by tools/build_cards). It is the Dash-Bored entry in the sidebar, and shows one 
 dashboard at a time (the Gazette, Bakelite); each family is a dashboard card too. It reads areas, entities and states from the connection every Home
 Assistant page already has; all this side does is serve it, feed it Sensor Watch's
 alerts (alerts.py), the songs people rate (personal.py) and what the players have
-played (playing.py), and take the photographs of what the cameras see (image.py).
+played (playing.py), take the photographs of what the cameras see (image.py), and have
+a model write the agent's column where the house runs ZenOS-AI (column.py).
 
 An integration of its own, wholly in Home Assistant: it imports nothing from Casa Mia
 and works with no app, and with or without Sensor Watch.
@@ -29,9 +30,10 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import label_registry as lr
 from homeassistant.helpers.typing import ConfigType
 
-from . import alerts, personal, playing, settings, sightings
+from . import alerts, column, personal, playing, settings, sightings
 from .const import (
     CARDS_VERSION,
+    CONF_COLUMN,
     DOMAIN,
     ELEMENT,
     HIDE_LABEL,
@@ -62,6 +64,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     personal.setup(hass)
     playing.setup(hass)
     settings.setup(hass)
+    column.setup(hass)
     return True
 
 
@@ -89,9 +92,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # The house's settings: as they stand now, and each time the Configure dialog saves.
     house: settings.Settings = hass.data[settings.KEY]
     house.tell(entry.options)
+    # The agent's column, while the entry is loaded and its switch is on.
+    desk: column.Column = hass.data[column.KEY]
+    await desk.start(entry)
 
     async def saved(hass: HomeAssistant, entry: ConfigEntry) -> None:
         house.tell(entry.options)
+        desk.switch(entry.options.get(CONF_COLUMN, True))
 
     entry.async_on_unload(entry.add_update_listener(saved))
 

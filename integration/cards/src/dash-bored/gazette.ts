@@ -12,7 +12,7 @@ import { clipping, photograph } from "./clipping.ts";
 import { Acts } from "./gazette/acts.ts";
 import { ARCHIVE, PAST } from "./gazette/page.ts";
 import { scenes, DEGREES, sighted, type Device, type Room } from "./house.ts";
-import { lapsed } from "./katas.ts";
+import { desk as deskOf } from "./column.ts";
 import { cap, clock, counted, billing, personal, pressing, stories, turning, zooming, type Press, type Story } from "./stories.ts";
 import { FIXES, VOICES, amount, announce, billed, clause, fill, poll, sky, tell, wired, words, type Told } from "./voices.ts";
 
@@ -100,13 +100,11 @@ export class Gazette extends Acts {
         : nothing;
     const warm = house.rooms.filter((r) => r.temp !== undefined);
     const column = personal(house.people, this._rated, now);
-    // The agent's column, where the house has one (katas.ts). What a model wrote is set
+    // The agent's column, where the house has one (column.ts). What a model wrote is set
     // apart from what this paper worked out for itself, under the agent's own name.
-    const desk = house.desk;
-    const old = !!desk?.lead && lapsed(desk.lead, now);
+    const desk = deskOf(this._column, this._style, now);
     // A time alone would pass yesterday's piece off as today's.
     const when = (at: number) => (new Date(at).toDateString() === new Date(now).toDateString() ? clock(at) : `${new Date(at).toLocaleDateString(hass.locale?.language ?? "en-GB", { day: "numeric", month: "short" })}, ${clock(at)}`);
-    const doubt = (of: { unsure: boolean; failed?: boolean }) => (of.failed ? html`<i>${voice.desk.failed}:</i> ` : of.unsure ? html`<i>${voice.desk.unsure}:</i> ` : nothing);
 
     const rooms = house.rooms.filter((r) => r.devices.length);
     const big = rooms.reduce((n, r) => n + r.devices.length, 0) > BIG;
@@ -152,17 +150,18 @@ export class Gazette extends Acts {
         (drawn) => html`<div class="rows">${drawn}</div>`)}`;
 
     // It goes in the middle of the page, after the paper's own news.
+    // With no column yet, the copy is awaited, since the write began. A failed write
+    // leaves the last column, and says why the next is late.
+    const paper = desk?.paper;
     const correspondent = desk
       ? html`<h3>${voice.titles.desk}</h3>
                 <div class="desk">
-                  <p class="by">${fill(voice.desk.by, { name: desk.by ?? voice.desk.staff })}${desk.lead
-                    ? html` · <span class=${old ? "old" : ""} role=${old ? "alert" : nothing}>${fill(old ? voice.desk.lapsed : voice.desk.filed, { time: when(desk.lead.at) })}</span>`
-                    : nothing}</p>
-                  ${desk.lead ? html`<p class="lead">${doubt(desk.lead)}${desk.lead.text}</p>${[desk.lead.attention, desk.lead.objective].map((more) => (more ? html`<p>${more}</p>` : nothing))}` : nothing}
-                  ${desk.lead?.errors.map((error) => html`<p class="error">${error}</p>`)}
-                  ${desk.pieces.length
-                    ? html`<ul>${desk.pieces.map((p) => html`<li><time>${when(p.at)}</time><b>${p.name}.</b> ${doubt(p)}${p.text}${p.attention ? ` ${p.attention}` : ""}</li>`)}</ul>`
-                    : nothing}
+                  <p class="by">${fill(voice.desk.by, { name: desk.by ?? voice.desk.staff })} · ${desk.at
+                    ? html`<span class=${desk.lapsed ? "old" : ""} role=${desk.lapsed ? "alert" : nothing}>${fill(desk.lapsed ? voice.desk.lapsed : voice.desk.filed, { time: when(desk.at) })}</span>`
+                    : `${voice.desk.awaited}${desk.writing ? ` (${when(desk.writing)})` : ""}`}</p>
+                  ${paper ? html`<p class="lead">${paper.head}</p>${paper.body.map((p) => html`<p>${p}</p>`)}` : nothing}
+                  ${paper?.items.length ? html`<ul>${paper.items.map((item) => html`<li>${item}</li>`)}</ul>` : nothing}
+                  ${desk.late ? html`<p class="error" role="alert">${fill(voice.desk.late, { reason: desk.late.reason, time: when(desk.late.since) })}</p>` : nothing}
                 </div>`
       : nothing;
 

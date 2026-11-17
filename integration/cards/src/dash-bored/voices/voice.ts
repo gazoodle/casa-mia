@@ -28,7 +28,7 @@ export type Voice = {
   celebrity: Record<string, string>; // the celebrity column, by a Billing's kind, `kind.live` while it is on, and a rating's kind for what was said of it
   personal: Record<string, string>; // the Personal column, by a Notice's kind; `song` and `tune` are how a song is named, with its artist and without
   notices: string[]; // under each scene, in turn
-  desk: { by: string; staff: string; filed: string; lapsed: string; unsure: string; failed: string }; // the agent's column (katas.ts): its by-line, the name where the agent has none, when it was written, that it is out of date, and the words before a piece the model doubted or could not write
+  desk: { by: string; staff: string; filed: string; lapsed: string; awaited: string; late: string }; // the agent's column (column.ts): its by-line, the name where the agent has none, when it was written, that it is out of date, that none is written yet, and why a newer one is late
   stories: Record<string, Entry>; // by `kind.variant`, else `kind`
 };
 export type Told = { kicker: string; head: string; deck: string; body: string; act: string; vote: string };

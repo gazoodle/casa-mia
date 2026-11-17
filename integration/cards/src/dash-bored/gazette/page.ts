@@ -2,6 +2,7 @@
 // the paper holds beside the house, and how that reaches it. The integration's feeds and
 // the forecast are followed here. acts.ts does what is pressed, and gazette.ts draws it.
 import type { Open, Shot } from "../clipping.ts";
+import type { Column } from "../column.ts";
 import { ALERTS, Family, PAGE, SIGHTINGS } from "../family.ts";
 import { days, sighted, type Day, type Device, type Options, type Seen, type Sighting } from "../house.ts";
 import { NOMINAL, RECOVERED, flavourOf, type Alert, type Played, type Rated } from "../stories.ts";
@@ -10,6 +11,7 @@ import { VOICES } from "../voices.ts";
 
 const PERSONAL = "casa_mia_dash_bored/personal"; // the integration's feeds for the columns: the songs people have rated (personal.py)
 const PLAYING = "casa_mia_dash_bored/playing"; // what the players have played (playing.py)
+const COLUMN = "casa_mia_dash_bored/column"; // the agent's column, where the house has one (column.py)
 const FORECAST = "weather/subscribe_forecast"; // Home Assistant's own: a weather entity's forecast, pushed
 export const ARCHIVE = 30 * 60_000; // ms: how far back the column of past sightings goes
 export const PAST = 10; // and how many of them it lists
@@ -32,7 +34,7 @@ export type Line = { time: number; device?: Device; alert?: Alert; seen?: Sighti
 
 export class Page extends Family {
   static styles = [PAGE, STYLES];
-  static properties = { _style: { state: true }, _alerts: { state: true }, _seen: { state: true }, _scale: { state: true }, _open: { state: true }, _shot: { state: true }, _rated: { state: true }, _played: { state: true }, _days: { state: true } };
+  static properties = { _style: { state: true }, _alerts: { state: true }, _seen: { state: true }, _scale: { state: true }, _open: { state: true }, _shot: { state: true }, _rated: { state: true }, _played: { state: true }, _days: { state: true }, _column: { state: true } };
   // The one scale that is open: for which device, and the level asked for that the
   // device has not yet said it has come to. It is under the device's sentence, or in
   // its clipping when that is open.
@@ -46,6 +48,7 @@ export class Page extends Family {
   _alerts: Alert[] = [];
   _seen: Seen[] = []; // the feed's sightings of the last half hour
   _rated: Rated[] = []; // the feed's rated songs
+  _column: Column = {}; // the agent's column, as the feed last told it
   declare protected _config: Config;
   protected _late: Line[] = [];
   protected _turn = new Map<string, number>();
@@ -111,6 +114,7 @@ export class Page extends Family {
     const once = <T>(items: T[], key: (item: T) => string) => [...new Map(items.map((item) => [key(item), item])).values()];
     this._follow(PERSONAL, "The Personal column's announcements", (rated: Rated[]) => (this._rated = once([...this._rated, ...rated], (r) => `${r.at} ${r.name} ${r.title}`)));
     this._follow(PLAYING, "What the players have played", (played: Played[]) => (this._played = once([...this._played, ...played], (p) => p.id)));
+    this._follow(COLUMN, "The agent's column", (told: Column[]) => (this._column = told.at(-1) ?? {}));
   }
 
   /** Follow the forecast of the weather entity the page reads, if it gives one by the day.

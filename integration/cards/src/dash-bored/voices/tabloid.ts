@@ -100,7 +100,7 @@ export const tabloid: Voice = {
   personal: { home: "{name}'s HOME!", left: "{name} has LEFT the building", zone: "{name} spotted at {place}",
     love: "{name} LOVES {song}", loathe: "{name} can't STAND {song}", song: "“{title}” by {artist}", tune: "“{title}”" },
   notices: ["Go on, press it.", "One tap. Job done.", "You know you want to.", "Easy as that."],
-  desk: { by: "By {name}", staff: "our insider", filed: "In at {time}", lapsed: "Gone quiet since {time}", unsure: "Rumour", failed: "No comment" },
+  desk: { by: "By {name}", staff: "our insider", filed: "In at {time}", lapsed: "Gone quiet since {time}", awaited: "Story on its way", late: "Our insider's gone quiet: {reason} (since {time})" },
   stories: {
     alert: SHOCK,
     "alert.warning": { ...SHOCK, kicker: "Uh-oh" },

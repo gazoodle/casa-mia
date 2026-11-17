@@ -275,6 +275,15 @@ Its own integration, `casa_mia_dash_bored`, since 2026.11.8-b1 (2026-11-13; name
 sidebar label agreed with the owner). Standalone like Sensor Watch: nothing imported from
 `casa_mia`, no app option, no entities. In development. Guide: `docs/applets/dash-bored.md`.
 
+- **Every family gets every capability** (owner, 2026-11-17). When a capability is built
+  for one family, add its row to the table in `docs/design/dash-bored-survey.md` and a
+  backlog entry for each family that lacks it, in the same piece of work. Before calling
+  a family done, read its column. Why: the Gazette had the weather and who is at home,
+  and Aurora and the Console were built without either although both are in `House`,
+  which every family is given. Nobody noticed until Aurora was compared with other
+  dashboards. `tests/test_dash_bored_parity.py` enforces what it can read from the
+  sources (the fields of `House`, a device's optional fields, the feeds): what a family
+  lacks is in its `OWED` with the reason. The table still has cells marked `?`.
 - **Why it exists** (owner, 2026-11-13): dashboards that write themselves from the house,
   in styles people enjoy using; "it must not look cheap". The looks were tried first as
   working mock-ups on an invented house, in `docs/design/dash-bored/` (`index.html` is the
@@ -286,14 +295,15 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   (`docs/design/marketplace-mirrors.md`). The dry run passes; nothing is published yet.
   So the "no downgrade" rule covers it, and its guide is the mirror's README: keep the
   guide's links and pictures ones the mirror can carry.
-- **The Gazette has a column by a ZenOS-AI house's agent** (2026.11.8-b40, a prototype
-  the owner means to show ZenOS's author). `katas.ts` reads the Kata sensor's attributes
-  (`variables.<component>.value`, and `zen_summary`), found by ZenOS's labels
-  `zen_kata_cabinet` and `zen_dojo_cabinet`; `house.ts` watches them and fills
-  `house.desk`, so any family can draw it. The test VM runs ZenOS for this: its
-  summarizers use a local model on the owner's network, its agent uses the owner's paid
-  API account with six tools exposed, and installing it needed several manual steps that
-  its guide doesn't give (the owner has the list).
+- **The Gazette's agent's column is written by a model** (2026.11.9-b14;
+  `docs/design/dash-bored-column.md`). The integration's `column.py` follows ZenOS's Kata
+  cabinet (found by the label `zen_kata_cabinet`) and, on each newer `zen_summary`, makes
+  one `ai_task.generate_data` call with the model in `input_text.zenos_ai_task_entity`.
+  `katas.py` picks the Katas and writes the brief. The column is kept in a Store and fed
+  as `casa_mia_dash_bored/column`; `column.ts` turns it into the desk. It is read-only
+  towards ZenOS (owner, 2026-11-15). On the test VM's local model one call took 61 s
+  (2026-11-17), inside the 120 s limit. The test VM runs ZenOS, with its summarisers on a
+  local model on the owner's network.
 - **The Fridge is the third family** (2026.11.8-b37; the owner asked for it on 2026-11-15
   and it was built while he slept, so he has not seen it). `fridge.ts` on `family.ts`;
   `fridge/magnets.ts` draws the button magnets (a picture for each kind) and the novelty

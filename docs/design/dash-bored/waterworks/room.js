@@ -13,20 +13,9 @@ window.Room = (() => {
 
   // The lift is a loop of chain round two sprockets. Buckets go up the left side, tip
   // over the top into the tank and come down the right side empty.
-  const LX = 100, LR = 20, TOP = 60, BOT = 722, SIDE = BOT - TOP, HALF = Math.PI * LR, LOOP = 2 * SIDE + 2 * HALF;
+  const LX = 100, LR = 20, TOP = 60, BOT = 722;
+  const { side: SIDE, half: HALF, loop: LOOP, mod, at: onLift } = Kit.chain(LX, LR, TOP, BOT);
   const N = 8, PACE = 110; // buckets, and px a second
-  const mod = (s) => ((s % LOOP) + LOOP) % LOOP;
-
-  // Where a point `s` px round the loop is, and how far a bucket there has turned over.
-  function onLift(s) {
-    if (s < SIDE) return { x: LX - LR, y: BOT - s, a: 0 };
-    s -= SIDE;
-    if (s < HALF) return { x: LX - LR * Math.cos(s / LR), y: TOP - LR * Math.sin(s / LR), a: (s / LR) * 57.3 };
-    s -= HALF;
-    if (s < SIDE) return { x: LX + LR, y: TOP + s, a: 180 };
-    s -= SIDE;
-    return { x: LX + LR * Math.cos(s / LR), y: BOT + LR * Math.sin(s / LR), a: 180 + (s / LR) * 57.3 };
-  }
 
   // The duck's way round, as [x, y, how fast]: along the trough, down the pipe and back
   // along the gutter to the sump (DOWN), where it waits for a bucket; and from where the
@@ -38,6 +27,9 @@ window.Room = (() => {
   const SILLY = { fish: 0.9, cuckoo: 2.4, quack: 1.3 }, left = { fish: 0, cuckoo: 0, quack: 0 };
   let lift = 0, sillies = 0;
 
+  const DUCK = `<ellipse class="duck" cy="-5" rx="10" ry="6"/><circle class="duck" cx="8" cy="-13" r="4.5"/>
+    <path class="flame" d="M12,-14 l6,1.5 l-6,1.5 z"/><circle class="solid" cx="9" cy="-14" r="1"/>`;
+  const FISH = `<path class="iron" d="M-9,0 q9,-8 16,0 q-7,8 -16,0 z M-9,0 l-6,-5 v10 z"/>`;
   const bucket = (i) => `<g data-p="lb${i}"><path class="iron" d="M-9,-2 h18 l-3,14 h-12 z"/><path class="pool" data-p="lw${i}" d="M-7,1 h14 l-2,9 h-10 z"/></g>`;
   const all = (fn) => Array.from({ length: N }, (_, i) => fn(i)).join("");
 
@@ -68,12 +60,11 @@ window.Room = (() => {
       <rect class="pool" x="42" y="730" width="122" height="40"/>
       <g data-p="flow"><path class="stream" d="M306,88 V${A}"/><path class="stream" d="${way}"/><path class="ripple" d="${way}"/></g>
       ${cog(100, TOP, 13, 8, "spT")}${cog(100, BOT, 13, 8, "spB")}${all(bucket)}
-      <g data-p="fish"><path class="iron" d="M-9,0 q9,-8 16,0 q-7,8 -16,0 z M-9,0 l-6,-5 v10 z"/></g>
+      <g data-p="fish">${FISH}</g>
       <g transform="translate(1130,70) scale(-1,1)"><path class="thin" data-p="tongs"/>
         <g data-p="cuckoo"><ellipse class="cloth" rx="9" ry="6"/><path class="flame" d="M8,-2 l7,2 l-7,2 z"/><circle class="solid" cx="4" cy="-2" r="1.2"/></g></g>
       <text data-p="coo" x="1046" y="30" text-anchor="end">cuckoo!</text>
-      <g data-p="duck"><ellipse class="duck" cy="-5" rx="10" ry="6"/><circle class="duck" cx="8" cy="-13" r="4.5"/>
-        <path class="flame" d="M12,-14 l6,1.5 l-6,1.5 z"/><circle class="solid" cx="9" cy="-14" r="1"/></g>
+      <g data-p="duck">${DUCK}</g>
       <text data-p="quack" text-anchor="middle">quack</text>`;
   }
 
@@ -139,5 +130,5 @@ window.Room = (() => {
   // Something silly, a different thing each time.
   function surprise() { const name = Object.keys(SILLY)[sillies++ % 3]; left[name] = SILLY[name]; }
 
-  return { ty, FLOOR, still, live, tick, surprise };
+  return { ty, FLOOR, DUCK, FISH, still, live, tick, surprise };
 })();

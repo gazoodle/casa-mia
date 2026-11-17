@@ -267,6 +267,20 @@ orientation controls, the switches and the compatibility limits.
 - The [Home Assistant](https://www.home-assistant.io) project and its community, for the
   platform all of this plugs into.
 
+## AI use
+
+Most of Casa Mia's code and much of its documentation were written by AI coding agents
+(Claude and Codex), working to the author's direction. The author decides what is built,
+how it behaves and how it looks, and it runs in the author's own home.
+
+- The rules the agents work to are in this repository: [CLAUDE.md](CLAUDE.md) and
+  [AGENTS.core.md](AGENTS.core.md).
+- Each commit names the model that worked on it in a `Co-Authored-By` line.
+- The agents write tests with the code, and the tests run on every pull request.
+
+The idea of saying this plainly in the README comes from
+[LCARdS](https://github.com/snootched/LCARdS).
+
 ## Licence
 
 [MIT](LICENSE). © 2026 Gazoodle.

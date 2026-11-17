@@ -146,16 +146,6 @@ test("the floors and rooms come in the order asked for, and a card may show only
   assert.deepEqual(order({ rooms: ["shed", "kitchen"], room_order: ["hall"] }), ["kitchen", "shed"]);
 });
 
-test("a ZenOS-AI house's Kata sensor is found by its label and watched with the agent's name, unless it is hidden", () => {
-  const h = hass({ "light.a": ["den", "Lamp"], "sensor.katas": ["", "Katas"] }, { den: { name: "Den" } });
-  Object.assign(h.entities["sensor.katas"], { labels: ["zen_kata_cabinet"] });
-  const found = survey(h, {});
-  assert.equal(found.desk, "sensor.katas");
-  assert.ok(found.watched.includes("sensor.katas") && found.watched.includes("input_text.zenos_persona_name"));
-  Object.assign(h.entities["sensor.katas"], { labels: ["zen_kata_cabinet", HIDE] });
-  assert.equal(survey(h, {}).desk, undefined);
-});
-
 test("a card for one entity surveys it alone, by its full name, even when hidden or in no room, and watches nothing else", () => {
   const h = hass({ "light.a": ["den", "Den Lamp"], "light.b": ["den", "Den Spot"], "light.c": ["", "Stray lamp"] }, { den: { name: "Den" } });
   Object.assign(h.states, { "sensor.t": { state: "20", attributes: {} }, "sensor.out": { state: "9", attributes: { device_class: "temperature" } } });

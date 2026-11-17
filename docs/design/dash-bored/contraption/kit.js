@@ -50,10 +50,31 @@ window.Kit = (() => {
     return d;
   }
 
+  // A loop of chain round two sprockets of radius `r`, one above the other at `x`. `at(s)`
+  // is where a point `s` px round it is, going up the left side first, and how far a
+  // bucket hung there has turned over.
+  function chain(x, r, top, bot) {
+    const side = bot - top, half = Math.PI * r, loop = 2 * side + 2 * half;
+    const mod = (s) => ((s % loop) + loop) % loop;
+
+    function at(s) {
+      s = mod(s);
+      if (s < side) return { x: x - r, y: bot - s, a: 0 };
+      s -= side;
+      if (s < half) return { x: x - r * Math.cos(s / r), y: top - r * Math.sin(s / r), a: (s / r) * 57.3 };
+      s -= half;
+      if (s < side) return { x: x + r, y: top + s, a: 180 };
+      s -= side;
+      return { x: x + r * Math.cos(s / r), y: bot + r * Math.sin(s / r), a: 180 + (s / r) * 57.3 };
+    }
+
+    return { side, half, loop, mod, at };
+  }
+
   const set = (el, name, value) => el.setAttribute(name, value);
   const move = (el, x, y, more = "") => el.setAttribute("transform", `translate(${x.toFixed(1)},${y.toFixed(1)}) ${more}`);
   const turn = (el, deg, cx = 0, cy = 0) => el.setAttribute("transform", `rotate(${deg.toFixed(1)} ${cx} ${cy})`);
   const show = (el, opacity) => { el.style.opacity = opacity; };
 
-  return { hash, pick, clamp, ease, phase, spring, toward, scissor, wheel, cog, set, move, turn, show };
+  return { hash, pick, clamp, ease, phase, spring, toward, scissor, chain, wheel, cog, set, move, turn, show };
 })();
