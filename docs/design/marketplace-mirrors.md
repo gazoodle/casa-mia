@@ -489,21 +489,36 @@ own checks passed and so did hassfest, in docker. Where it differs:
     hassfest: there is no component. HACS looks for a plugin's file in the release's
     assets, then the repository's root, then `dist/` (`repositories/plugin.py`
     `update_filenames`, read 2026-11-18), so the release carries the same file.
-  - **When it is published:** it has no manifest and so no version. A release publishes
-    it when the file in the mirror isn't the one at the release's tag, by git's id of
-    each (`mirror.changed`).
+  - **When it is published:** as a component is, when its version is the release's
+    (2026-11-18, b16). It has no manifest, so its version is in the built file, as the
+    marker `cm-plugin-version@<version>`. `tools/component_versions.py` stamps it when
+    the file changes and at a release, and keeps it in `versions.lock.json` under the
+    file's name. The build reads the version back from the lock, so building unchanged
+    sources again gives the same file. Before that (2026-11-18, never released) a
+    release published it when git's id of the file in the mirror differed.
   - **Its name** is in the tool, since there is no manifest to hold it. Its account is
     the one the components' mirrors are in.
-  - **Its README** is `docs/tablet-layout.md`. The Over layer's guide is linked from it
-    and stays in Casa Mia.
+  - **Its README** is `docs/tablet-layout.md`, then `docs/over-layer.md` as a section
+    of it, with its headings one level down (2026-11-18). A link from one of the two to
+    the other is a place on the page. A mirror can have several guides (`PLUGINS`); the
+    components have one each.
+  - **With Casa Mia too:** `casa_mia` raises a Repair while the plugin's file is in the
+    dashboard's resources (`layout_resource.py`, 2026.11.9-b16), following the
+    resources as they change.
+  - **Its name is free** in HACS's default list of plugins (1,182 of them, read
+    2026-11-18): nothing there is called a tablet layout.
   - **It has nothing to set** (owner, 2026-11-18). With no integration to ask, garnish
     on every Sections dashboard and the screen orientation conditions are both on
     (`integration/cards/src/own.ts`). Why: they were first read from the file's own
     address in the dashboard's resources, but HACS replaces that address whole at every
     update (`update_dashboard_resources`), so they would have been lost each time with
     nothing said. Garnish changes only cards marked as garnish, so it costs nothing on.
-  - **Not checked:** HACS's action on GitHub, and whether Home Assistant's Marketplace
-    takes a plugin at all.
+  - **The Marketplace takes it too.** Core's `marketplace` has the category `plugin`
+    ("Dashboard resources") and finds the file as HACS does: `hacs.json`'s `filename`,
+    in the release's assets, then the root, then `dist/` (`repositories/plugin.py` and
+    `enums.py` on core's `dev`, read 2026-11-18). Both replace the resource's address
+    whole at an update.
+  - **Not checked:** HACS's action on GitHub, and an install from either store.
 - **A fork** was an origin that isn't the repository named in the component's
   `issue_tracker` (changed 2026-11-17, above). It publishes no mirror unless
   `CM_MIRROR_OWNER` is set.

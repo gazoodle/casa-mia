@@ -8,7 +8,7 @@ validates it. Nothing in a mirror is edited by hand (docs/design/marketplace-mir
 
 A dashboard plugin (`PLUGINS`: Tablet Layout) has a mirror too. It is one built file, so
 its mirror holds that in `dist/`, with no manifest and nothing for hassfest, and a release
-publishes it when the file isn't the one the mirror already holds.
+publishes it when the version stamped in the file is the release's, as a component's is.
 
 A store's review wants the manifest's `documentation` and `issue_tracker` to name the
 repository the store lists, not Casa Mia (HACS's review of the first two mirrors,
@@ -53,7 +53,8 @@ from pathlib import Path
 from casa_mia.components import PUBLISHED
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import versioning  # tools/, next to this script
+import component_versions  # tools/, next to this script
+import versioning
 from mirrors.texts import (
     BADGES,
     BOTH,
@@ -65,7 +66,10 @@ from mirrors.texts import (
     WORKFLOW,
     absolute,
     badged,
+    demoted,
     opening,
+    slug,
+    titled,
 )
 from release import (
     ROOT,
@@ -83,9 +87,15 @@ from release import (
 COMPONENTS = "integration/custom_components"
 GUIDES = "docs/applets"
 # A dashboard plugin published by itself, built by tools/build_cards into this folder as
-# <name>.js: its name -> what a store calls it, and its guide. It has no manifest to say.
+# <name>.js: its name -> what a store calls it, and its guides (the first is the README,
+# the rest follow as sections of it). It has no manifest to say.
 PLUGIN_FILES = "integration/plugins"
-PLUGINS = {"casa-mia-tablet-layout": ("Tablet Layout", "docs/tablet-layout.md")}
+PLUGINS = {
+    "casa-mia-tablet-layout": (
+        "Tablet Layout",
+        ("docs/tablet-layout.md", "docs/over-layer.md"),
+    )
+}
 # Every mirror: what it is made from (a component's domain, or a plugin's name) -> its
 # repository's name.
 MIRRORS = PUBLISHED | {name: name for name in PLUGINS}
@@ -107,33 +117,25 @@ def kind_of(domain: str) -> str:
     return "plugin" if domain in PLUGINS else "integration"
 
 
-def guide_of(domain: str) -> str:
+def guides_of(domain: str) -> tuple[str, ...]:
+    """The guides a mirror's README is made of, the main one first."""
     if domain in PLUGINS:
         return PLUGINS[domain][1]
-    return f"{GUIDES}/{PUBLISHED[domain].removeprefix('casa-mia-')}.md"
+    return (f"{GUIDES}/{PUBLISHED[domain].removeprefix('casa-mia-')}.md",)
 
 
 def manifest_at(domain: str, ref: str) -> dict:
     """A component's manifest. A plugin has none: this is what the rest asks of one, its
-    name here and its account the one the components' mirrors are in."""
+    name here, its account the one the components' mirrors are in, and its version the
+    one stamped in its built file (tools/component_versions.py)."""
     if domain in PLUGINS:
+        built = git("show", f"{ref}:{PLUGIN_FILES}/{domain}.js").encode()
         return {
             "name": PLUGINS[domain][0],
             "issue_tracker": manifest_at(next(iter(PUBLISHED)), ref)["issue_tracker"],
-            "version": version_at(ref),
+            "version": component_versions.plugin_version(built),
         }
     return json.loads(git("show", f"{ref}:{COMPONENTS}/{domain}/manifest.json"))
-
-
-def changed(domain: str, manifest: dict, mirror: str, version: str) -> bool:
-    """Whether release `version` brings the mirror anything. A component says so itself:
-    its manifest's version is the release's. A plugin has no version, so git says: the
-    file the mirror holds isn't the one at the release's tag."""
-    if domain not in PLUGINS:
-        return manifest["version"] == version
-    path = f"repos/{mirror}/contents/dist/{domain}.js"
-    theirs = run("gh", "api", path, "--jq", ".sha", check=False)  # no mirror yet: no id
-    return theirs != git("rev-parse", f"{version}:{PLUGIN_FILES}/{domain}.js")
 
 
 def mirror_owner(origin: str, issue_tracker: str, named: str | None) -> str | None:
@@ -286,13 +288,18 @@ def build(domain: str, repo: str, ref: str, owner: str, out: Path) -> dict:
     # Links name the release's tag when there is one, so they still work when main moves on.
     commit = git("rev-parse", f"{ref}^{{commit}}")
     at = ref if git("tag", "--list", ref) else commit
-    guide = guide_of(domain)
+    guides = {path: git("show", f"{ref}:{path}") for path in guides_of(domain)}
+    here = {path: slug(titled(text)) for path, text in guides.items()}
+    guide, *others = (
+        absolute(text, path, repo, at, here) for path, text in guides.items()
+    )
     minimum = re.search(
         r'^homeassistant: "(.+)"', git("show", f"{ref}:app/config.yaml"), re.M
     )
     if not minimum:
         raise Stop(f"app/config.yaml at {ref} names no minimum Home Assistant.")
-    top, rest = opening(absolute(git("show", f"{ref}:{guide}"), guide, repo, at))
+    top, rest = opening(guide)
+    rest += "".join(f"\n{demoted(other)}" for other in others)
     words = {
         "name": manifest["name"],
         "minimum": minimum[1],
@@ -449,7 +456,7 @@ def publish(domain: str, repo: str, owner: str, version: str) -> str:
             run("gh", "repo", "create", mirror, "--public")
             good(f"{mirror} created")
         about = " ".join(
-            git("show", f"{version}:{guide_of(domain)}").split("\n\n")[1].split()
+            git("show", f"{version}:{guides_of(domain)[0]}").split("\n\n")[1].split()
         )
         about = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", about)  # a link's words only
         run(
@@ -580,14 +587,13 @@ def publish_all(repo: str, version: str) -> int:
         owner = mirror_owner(
             repo, manifest["issue_tracker"], os.environ.get("CM_MIRROR_OWNER")
         )
-        if not owner:
+        if manifest["version"] != version:
+            say(f"  {name}: not changed in {version} (it is at {manifest['version']}).")
+        elif not owner:
             say(
                 f"  {name}: skipped. {repo} is a fork of the repository it belongs to;"
                 " set CM_MIRROR_OWNER to publish a mirror of your own."
             )
-        elif not changed(domain, manifest, f"{owner}/{name}", version):
-            was = "" if domain in PLUGINS else f" (it is at {manifest['version']})"
-            say(f"  {name}: not changed in {version}{was}.")
         else:
             todo[domain] = owner
     if not todo:
@@ -645,10 +651,7 @@ def dry_run(repo: str, ref: str) -> int:
         wrong += found
 
         say(
-            f"  {manifest['name']} has no version of its own. A release publishes it when"
-            "\n  its file isn't the one the mirror already holds."
-            if domain in PLUGINS
-            else f"  {manifest['name']} is at {manifest['version']}. A release publishes it when"
+            f"  {manifest['name']} is at {manifest['version']}. A release publishes it when"
             "\n  that is the release's own version, as it is for a component changed in it."
         )
         if not owner:

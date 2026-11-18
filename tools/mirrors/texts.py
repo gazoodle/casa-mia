@@ -102,9 +102,10 @@ nothing about it{both}""",
 It is a dashboard plugin: one file, which Home Assistant's dashboards load. It needs
 nothing else of Casa Mia.
 
-1. In HACS, add `https://github.com/{mirror}` as a custom repository of the type
-   Dashboard.
-2. Download {name} there, and reload the page when HACS asks.
+1. In HACS, or in Home Assistant's Marketplace (2026.11 and later), add
+   `https://github.com/{mirror}` as a custom repository. It is a dashboard resource:
+   HACS calls that type Dashboard.
+2. Download {name} there, and reload the page when asked.
 3. The rest of this page says how to use it.
 """,
         "with_app": """\
@@ -115,10 +116,31 @@ browser's console says which: take this one out of the dashboard's resources."""
 }
 
 
-def absolute(text: str, guide: str, repo: str, ref: str) -> str:
+def slug(heading: str) -> str:
+    """The anchor GitHub gives a heading."""
+    return re.sub(r"[^\w\- ]", "", heading.lower()).replace(" ", "-")
+
+
+def titled(text: str) -> str:
+    """A guide's title: its first line, without the #."""
+    return text.partition("\n")[0].lstrip("# ").strip()
+
+
+def demoted(text: str) -> str:
+    """A guide with each heading one level down, to follow another guide in one README
+    as a section of it. A # in a code block is a comment, and is left."""
+    out, fenced = [], False
+    for line in text.splitlines():
+        fenced ^= line.startswith("```")
+        out.append("#" + line if line.startswith("#") and not fenced else line)
+    return "\n".join(out) + "\n"
+
+
+def absolute(text: str, guide: str, repo: str, ref: str, here: dict[str, str]) -> str:
     """The guide with each link and picture made to work from another repository: a path
     in Casa Mia becomes its address on GitHub at `ref`. An anchor alone is left as it is,
-    since the whole guide comes along."""
+    since the whole guide comes along. `here` is the guides in the same README, each
+    with its title's anchor: a link to one of them is a place on the page."""
 
     def swap(found: re.Match[str]) -> str:
         lead, target = found.groups()
@@ -126,6 +148,8 @@ def absolute(text: str, guide: str, repo: str, ref: str) -> str:
             return found.group(0)
         path, _, anchor = target.partition("#")
         path = posixpath.normpath(posixpath.join(guide, "..", path))
+        if path in here:
+            return f"{lead}#{anchor or here[path]}"
         base = (
             f"https://raw.githubusercontent.com/{repo}/{ref}"
             if path.endswith(PICTURES)

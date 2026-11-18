@@ -97,8 +97,11 @@ def test_a_plugins_mirror_is_its_one_file(tmp_path, monkeypatch):
     assert "category: plugin" in workflow and "hassfest" not in workflow
     readme = (out / "README.md").read_text()
     assert readme.startswith("# Tablet Layout\n")
-    assert "custom repository of the type\n   Dashboard" in readme
+    assert "HACS calls that type Dashboard" in readme
     assert f"https://github.com/example/{name}/issues" in readme
+    # The Over layer's guide follows Tablet Layout's, as a section, before the last one.
+    assert readme.index("\n## Over layer\n") < readme.index("\n## Part of Casa Mia\n")
+    assert "\n### Adding one\n" in readme and "over-layer.md" not in readme
 
     # Checked without hassfest, which has nothing to check; a changed file is caught.
     monkeypatch.setattr(mirror, "hassfest", lambda out: ["hassfest was run"])
@@ -108,14 +111,10 @@ def test_a_plugins_mirror_is_its_one_file(tmp_path, monkeypatch):
         f"{name}.js differs from the committed one"
     ]
 
-    # A release publishes it when the mirror's file isn't this one: git's id of each.
-    ours = mirror.git("rev-parse", f"HEAD:{mirror.PLUGIN_FILES}/{name}.js")
-    for theirs, due in ((ours, False), ("an-older-one", True), ("", True)):
-        monkeypatch.setattr(mirror, "run", lambda *_, **__: theirs)
-        assert mirror.changed(name, manifest, f"example/{name}", "HEAD") is due
-    # A component says so itself, by its manifest's version.
-    assert mirror.changed(WATCH, {"version": "2026.12.1"}, "example/m", "2026.12.1")
-    assert not mirror.changed(WATCH, {"version": "2026.12.1"}, "example/m", "2026.12.2")
+    # Its version is the one stamped in its built file, as a component's is its
+    # manifest's: a release publishes it when that is the release's own.
+    built = mirror.git("show", f"HEAD:{mirror.PLUGIN_FILES}/{name}.js").encode()
+    assert manifest["version"] == mirror.component_versions.plugin_version(built)
 
 
 def test_the_release_zip_is_the_component_at_its_root(tmp_path):
@@ -179,7 +178,7 @@ def test_links_are_made_to_work_from_another_repository():
             "[levels]: ../README.md#maturity",
         )
     )
-    assert mirror.absolute(text, GUIDE, REPO, "2026.12.1") == "\n".join(
+    assert mirror.absolute(text, GUIDE, REPO, "2026.12.1", {}) == "\n".join(
         (
             f"[texts]({blob}/docs/applets/phone-and-sms.md)"
             f" [garnish]({blob}/docs/tablet-layout.md#showing-and-hiding)",
@@ -189,6 +188,30 @@ def test_links_are_made_to_work_from_another_repository():
             "[shop]: https://example.org/shop",
             f"[levels]: {blob}/docs/README.md#maturity",
         )
+    )
+
+    # A link to a guide in the same README is a place on the page: the place it names
+    # there, or that guide's title.
+    here = {
+        "docs/tablet-layout.md": "tablet-layout",
+        "docs/over-layer.md": "over-layer",
+    }
+    assert (
+        mirror.absolute(
+            "[a](over-layer.md) [b](tablet-layout.md#debugging) [c](applets/x.md)",
+            "docs/tablet-layout.md",
+            REPO,
+            "2026.12.1",
+            here,
+        )
+        == f"[a](#over-layer) [b](#debugging) [c]({blob}/docs/applets/x.md)"
+    )
+    # A guide that follows another is a section of it; a comment in a code block is left.
+    assert mirror.demoted(
+        "# Over layer\n\n```yaml\n# a comment\n```\n## Adding one\n"
+    ) == ("## Over layer\n\n```yaml\n# a comment\n```\n### Adding one\n")
+    assert mirror.slug(mirror.titled("# Love it or Loathe it?\n\nText.")) == (
+        "love-it-or-loathe-it"
     )
 
     # The guide is cut after its opening, where the README says how to install it.
