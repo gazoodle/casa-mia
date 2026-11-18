@@ -24,7 +24,10 @@ jobs:
     steps:
       - uses: hacs/action@main
         with:
-          category: integration
+          category: {category}
+"""
+# An integration's workflow has Home Assistant's own check too.
+HASSFEST_JOB = """\
   hassfest:
     runs-on: ubuntu-latest
     steps:
@@ -57,11 +60,7 @@ update and every repeat download adds to it, so it isn't the number of houses us
 
 {name} needs Home Assistant {minimum} or later.
 
-1. In HACS, or in Home Assistant's Marketplace (2026.11 and later), add
-   `https://github.com/{mirror}` as a custom repository of the type Integration.
-2. Download {name} there, then restart Home Assistant.
-3. In Settings → Devices & services, choose Add integration and pick {name}.
-
+{steps}
 """
 
 # The README's last section, after the rest of the guide.
@@ -74,11 +73,46 @@ released. This repository is generated from Casa Mia {version} (commit `{commit}
 isn't edited by hand, so a change to {name} is made in Casa Mia. A problem with it is
 reported here, in this repository's [issues](https://github.com/{mirror}/issues).
 
-The Casa Mia app installs this same integration itself. A house with both needs to do
-nothing about it{both}
+{with_app}
 """
 # Said only by a guide that has the section.
 BOTH = "With HACS or the Marketplace"
+
+# What differs between the two kinds of mirror: HACS's category for it (its validation's,
+# and the workflow's), the repository's topics, how it is installed, and what a house that
+# also has the Casa Mia app should know.
+KINDS = {
+    "integration": {
+        "category": "integration",
+        "topics": "home-assistant,hacs,custom-integration",
+        "steps": """\
+1. In HACS, or in Home Assistant's Marketplace (2026.11 and later), add
+   `https://github.com/{mirror}` as a custom repository of the type Integration.
+2. Download {name} there, then restart Home Assistant.
+3. In Settings → Devices & services, choose Add integration and pick {name}.
+""",
+        "with_app": """\
+The Casa Mia app installs this same integration itself. A house with both needs to do
+nothing about it{both}""",
+    },
+    "plugin": {
+        "category": "plugin",
+        "topics": "home-assistant,hacs,lovelace,dashboard",
+        "steps": """\
+It is a dashboard plugin: one file, which Home Assistant's dashboards load. It needs
+nothing else of Casa Mia.
+
+1. In HACS, add `https://github.com/{mirror}` as a custom repository of the type
+   Dashboard.
+2. Download {name} there, and reload the page when HACS asks.
+3. The rest of this page says how to use it.
+""",
+        "with_app": """\
+A house with the Casa Mia app has {name} already, in the file Casa Mia's own integration
+loads, and doesn't need this one. If both are loaded, the first one is used and the
+browser's console says which: take this one out of the dashboard's resources.""",
+    },
+}
 
 
 def absolute(text: str, guide: str, repo: str, ref: str) -> str:

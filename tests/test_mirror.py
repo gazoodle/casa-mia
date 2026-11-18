@@ -39,9 +39,8 @@ def test_the_tree_is_the_component_and_what_a_store_needs(tmp_path):
     assert hacs["zip_release"] is True and hacs["filename"] == "sensor_watch.zip"
     assert hacs["hide_default_branch"] is True  # a ZIP release has no branch to offer
     assert (out / "LICENSE").read_text().startswith("MIT License")
-    assert (
-        "category: integration" in (out / ".github/workflows/validate.yml").read_text()
-    )
+    workflow = (out / ".github/workflows/validate.yml").read_text()
+    assert "category: integration" in workflow and "actions/hassfest" in workflow
     readme = (out / "README.md").read_text()
     assert readme.startswith(f"# {manifest['name']}\n")
     assert "https://github.com/example/casa-mia-sensor-watch" in readme
@@ -78,6 +77,45 @@ def test_the_tree_is_the_component_and_what_a_store_needs(tmp_path):
         f"[a](other.md) [b](https://github.com/{REPO}/blob/HEAD/docs/nowhere.md)"
     )
     assert len(mirror.problems(out, WATCH, REPO, "HEAD")) == 2
+
+
+def test_a_plugins_mirror_is_its_one_file(tmp_path, monkeypatch):
+    # A dashboard plugin: no component and no manifest, so its name is the tool's own.
+    name = "casa-mia-tablet-layout"
+    out = tmp_path / "out"
+    manifest = mirror.build(name, REPO, "HEAD", "example", out)
+    assert manifest["name"] == "Tablet Layout"
+
+    # Its file where HACS looks for a plugin's, and nothing of an integration.
+    file = mirror.asset(name, out, tmp_path / "spare")
+    assert file == out / "dist" / f"{name}.js"
+    assert not (out / "custom_components").exists()
+    hacs = json.loads((out / "hacs.json").read_text())
+    assert hacs["name"] == "Tablet Layout" and hacs["filename"] == f"{name}.js"
+    assert "zip_release" not in hacs  # an integration's: a plugin is its file
+    workflow = (out / ".github/workflows/validate.yml").read_text()
+    assert "category: plugin" in workflow and "hassfest" not in workflow
+    readme = (out / "README.md").read_text()
+    assert readme.startswith("# Tablet Layout\n")
+    assert "custom repository of the type\n   Dashboard" in readme
+    assert f"https://github.com/example/{name}/issues" in readme
+
+    # Checked without hassfest, which has nothing to check; a changed file is caught.
+    monkeypatch.setattr(mirror, "hassfest", lambda out: ["hassfest was run"])
+    assert mirror.all_problems(name, manifest, out, file, REPO, "HEAD") == []
+    file.write_bytes(file.read_bytes() + b"//")
+    assert mirror.all_problems(name, manifest, out, file, REPO, "HEAD") == [
+        f"{name}.js differs from the committed one"
+    ]
+
+    # A release publishes it when the mirror's file isn't this one: git's id of each.
+    ours = mirror.git("rev-parse", f"HEAD:{mirror.PLUGIN_FILES}/{name}.js")
+    for theirs, due in ((ours, False), ("an-older-one", True), ("", True)):
+        monkeypatch.setattr(mirror, "run", lambda *_, **__: theirs)
+        assert mirror.changed(name, manifest, f"example/{name}", "HEAD") is due
+    # A component says so itself, by its manifest's version.
+    assert mirror.changed(WATCH, {"version": "2026.12.1"}, "example/m", "2026.12.1")
+    assert not mirror.changed(WATCH, {"version": "2026.12.1"}, "example/m", "2026.12.2")
 
 
 def test_the_release_zip_is_the_component_at_its_root(tmp_path):

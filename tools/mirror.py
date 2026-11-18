@@ -6,6 +6,10 @@ HACS and Home Assistant's Marketplace take one item per repository, so a compone
 as it was released, a README from its guide, `hacs.json`, the licence and a workflow that
 validates it. Nothing in a mirror is edited by hand (docs/design/marketplace-mirrors.md).
 
+A dashboard plugin (`PLUGINS`: Tablet Layout) has a mirror too. It is one built file, so
+its mirror holds that in `dist/`, with no manifest and nothing for hassfest, and a release
+publishes it when the file isn't the one the mirror already holds.
+
 A store's review wants the manifest's `documentation` and `issue_tracker` to name the
 repository the store lists, not Casa Mia (HACS's review of the first two mirrors,
 2026-11-17). So the README is the whole guide, and the mirror takes its own issues.
@@ -53,7 +57,9 @@ import versioning  # tools/, next to this script
 from mirrors.texts import (
     BADGES,
     BOTH,
+    HASSFEST_JOB,
     INSTALLING,
+    KINDS,
     LINK,
     PART,
     WORKFLOW,
@@ -76,7 +82,13 @@ from release import (
 
 COMPONENTS = "integration/custom_components"
 GUIDES = "docs/applets"
-TOPICS = "home-assistant,hacs,custom-integration"
+# A dashboard plugin published by itself, built by tools/build_cards into this folder as
+# <name>.js: its name -> what a store calls it, and its guide. It has no manifest to say.
+PLUGIN_FILES = "integration/plugins"
+PLUGINS = {"casa-mia-tablet-layout": ("Tablet Layout", "docs/tablet-layout.md")}
+# Every mirror: what it is made from (a component's domain, or a plugin's name) -> its
+# repository's name.
+MIRRORS = PUBLISHED | {name: name for name in PLUGINS}
 HASSFEST = "ghcr.io/home-assistant/hassfest"
 # Every member's time in a release's ZIP, so the same files always give the same bytes.
 ZIP_TIME = (1980, 1, 1, 0, 0, 0)
@@ -91,12 +103,37 @@ MANIFEST_KEYS = (
 )
 
 
+def kind_of(domain: str) -> str:
+    return "plugin" if domain in PLUGINS else "integration"
+
+
 def guide_of(domain: str) -> str:
+    if domain in PLUGINS:
+        return PLUGINS[domain][1]
     return f"{GUIDES}/{PUBLISHED[domain].removeprefix('casa-mia-')}.md"
 
 
 def manifest_at(domain: str, ref: str) -> dict:
+    """A component's manifest. A plugin has none: this is what the rest asks of one, its
+    name here and its account the one the components' mirrors are in."""
+    if domain in PLUGINS:
+        return {
+            "name": PLUGINS[domain][0],
+            "issue_tracker": manifest_at(next(iter(PUBLISHED)), ref)["issue_tracker"],
+            "version": version_at(ref),
+        }
     return json.loads(git("show", f"{ref}:{COMPONENTS}/{domain}/manifest.json"))
+
+
+def changed(domain: str, manifest: dict, mirror: str, version: str) -> bool:
+    """Whether release `version` brings the mirror anything. A component says so itself:
+    its manifest's version is the release's. A plugin has no version, so git says: the
+    file the mirror holds isn't the one at the release's tag."""
+    if domain not in PLUGINS:
+        return manifest["version"] == version
+    path = f"repos/{mirror}/contents/dist/{domain}.js"
+    theirs = run("gh", "api", path, "--jq", ".sha", check=False)  # no mirror yet: no id
+    return theirs != git("rev-parse", f"{version}:{PLUGIN_FILES}/{domain}.js")
 
 
 def mirror_owner(origin: str, issue_tracker: str, named: str | None) -> str | None:
@@ -113,9 +150,9 @@ def home_problems(manifest: dict, domain: str) -> list[str]:
     mirror itself and `issue_tracker` its issues, in whoever's account."""
     home = manifest.get("documentation", "")
     found = []
-    if not re.fullmatch(rf"https://github\.com/[^/]+/{PUBLISHED[domain]}", home):
+    if not re.fullmatch(rf"https://github\.com/[^/]+/{MIRRORS[domain]}", home):
         found.append(
-            f"manifest.json's documentation is {home}, not the {PUBLISHED[domain]}"
+            f"manifest.json's documentation is {home}, not the {MIRRORS[domain]}"
             " repository"
         )
     if manifest.get("issue_tracker") != f"{home}/issues":
@@ -146,12 +183,22 @@ def zip_name(domain: str) -> str:
     return PUBLISHED[domain].removeprefix("casa-mia-").replace("-", "_") + ".zip"
 
 
-def component_at(domain: str, ref: str, into: Path) -> Path:
+def asset(domain: str, tree: Path, spare: Path) -> Path:
+    """The file a store downloads from a release of the mirror generated in `tree`: a
+    plugin's own file, or a component as a ZIP made in `spare`, outside the mirror's tree
+    (a release asset, never a committed file)."""
+    if domain in PLUGINS:
+        return tree / "dist" / f"{domain}.js"
+    return package(tree / "custom_components" / domain, spare / zip_name(domain))
+
+
+def component_at(domain: str, ref: str, into: Path, within: str = COMPONENTS) -> Path:
     """Writes the component exactly as committed at `ref`, compiled assets included, into
-    `into`/<domain>, and returns that folder."""
+    `into`/<domain>, and returns that folder. With `within`, a file or folder of that
+    name from another folder of Casa Mia."""
     into.mkdir(parents=True, exist_ok=True)
     archive = subprocess.run(
-        ["git", "archive", f"{ref}:{COMPONENTS}", domain],
+        ["git", "archive", f"{ref}:{within}", domain],
         cwd=ROOT,
         capture_output=True,
     )
@@ -179,7 +226,13 @@ def archive_problems(archive: Path, domain: str, ref: str) -> list[str]:
     """What is wrong with a release's ZIP, against the component as committed at `ref`
     (the files the Casa Mia app installs): each of them at the archive's root, byte for
     byte, and nothing else. Compared by git's own blob ids, so the check doesn't share
-    the code that built the archive."""
+    the code that built the archive. A plugin's asset is its one file, compared the
+    same way."""
+    if domain in PLUGINS:
+        committed = git("rev-parse", f"{ref}:{PLUGIN_FILES}/{archive.name}")
+        same = git("hash-object", str(archive)) == committed
+        return [] if same else [f"{archive.name} differs from the committed one"]
+
     want = {}
     for line in git("ls-tree", "-r", f"{ref}:{COMPONENTS}/{domain}").splitlines():
         info, path = line.split("\t", 1)
@@ -213,8 +266,22 @@ def archive_problems(archive: Path, domain: str, ref: str) -> list[str]:
 def build(domain: str, repo: str, ref: str, owner: str, out: Path) -> dict:
     """Writes `domain`'s mirror, as Casa Mia was at `ref`, into the empty folder `out`.
     Returns the component's manifest."""
-    component = component_at(domain, ref, out / "custom_components")
-    manifest = json.loads((component / "manifest.json").read_text("utf-8"))
+    kind = KINDS[kind_of(domain)]
+    if domain in PLUGINS:
+        # Where HACS looks for a plugin's file: dist/, under the repository's name.
+        component_at(f"{domain}.js", ref, out / "dist", PLUGIN_FILES)
+        manifest = manifest_at(domain, ref)
+        hacs = {"filename": f"{domain}.js"}
+    else:
+        component = component_at(domain, ref, out / "custom_components")
+        manifest = json.loads((component / "manifest.json").read_text("utf-8"))
+        # zip_release: a store downloads the release's ZIP rather than the repository's
+        # files. That has no default branch to come from, so it isn't offered.
+        hacs = {
+            "zip_release": True,
+            "filename": zip_name(domain),
+            "hide_default_branch": True,
+        }
 
     # Links name the release's tag when there is one, so they still work when main moves on.
     commit = git("rev-parse", f"{ref}^{{commit}}")
@@ -229,7 +296,7 @@ def build(domain: str, repo: str, ref: str, owner: str, out: Path) -> dict:
     words = {
         "name": manifest["name"],
         "minimum": minimum[1],
-        "mirror": f"{owner}/{PUBLISHED[domain]}",
+        "mirror": f"{owner}/{MIRRORS[domain]}",
         "repo": repo,
         "version": version_at(ref),
         "commit": commit[:10],
@@ -237,27 +304,20 @@ def build(domain: str, repo: str, ref: str, owner: str, out: Path) -> dict:
         if f"\n### {BOTH}\n" in rest
         else ".",
     }
+    words |= {key: kind[key].format(**words) for key in ("steps", "with_app")}
 
     files = {
         "README.md": badged(top, BADGES.format(**words))
         + INSTALLING.format(**words)
         + rest
         + PART.format(**words),
-        # zip_release: a store downloads the release's ZIP rather than the repository's
-        # files. That has no default branch to come from, so it isn't offered.
         "hacs.json": json.dumps(
-            {
-                "name": manifest["name"],
-                "homeassistant": minimum[1],
-                "zip_release": True,
-                "filename": zip_name(domain),
-                "hide_default_branch": True,
-            },
-            indent=2,
+            {"name": manifest["name"], "homeassistant": minimum[1]} | hacs, indent=2
         )
         + "\n",
         "LICENSE": git("show", f"{ref}:LICENSE") + "\n",
-        ".github/workflows/validate.yml": WORKFLOW,
+        ".github/workflows/validate.yml": WORKFLOW.format(category=kind["category"])
+        + (HASSFEST_JOB if domain not in PLUGINS else ""),
     }
     for path, text in files.items():
         (out / path).parent.mkdir(parents=True, exist_ok=True)
@@ -269,14 +329,17 @@ def problems(out: Path, domain: str, repo: str, ref: str) -> list[str]:
     """What is wrong with a generated mirror, as far as its files show. What HACS checks
     of the repository itself (its description, topics, issues and brand) only GitHub can."""
     found = []
-    manifest = json.loads(
-        (out / "custom_components" / domain / "manifest.json").read_text("utf-8")
-    )
-    found += [
-        f"manifest.json has no {key}" for key in MANIFEST_KEYS if key not in manifest
-    ]
-    if manifest.get("domain") != domain:
-        found.append(f"manifest.json's domain is {manifest.get('domain')}")
+    if domain not in PLUGINS:
+        manifest = json.loads(
+            (out / "custom_components" / domain / "manifest.json").read_text("utf-8")
+        )
+        found += [
+            f"manifest.json has no {key}"
+            for key in MANIFEST_KEYS
+            if key not in manifest
+        ]
+        if manifest.get("domain") != domain:
+            found.append(f"manifest.json's domain is {manifest.get('domain')}")
 
     # Every link is a place in the README or a real address; one into Casa Mia names a
     # file that is there at this ref.
@@ -290,6 +353,16 @@ def problems(out: Path, domain: str, repo: str, ref: str) -> list[str]:
             "ls-tree", "--name-only", ref, "--", path[1], check=False
         ):
             found.append(f"README.md links to {path[1]}, which isn't in Casa Mia")
+    return found
+
+
+def all_problems(
+    domain: str, manifest: dict, out: Path, archive: Path, repo: str, ref: str
+) -> list[str]:
+    """Every check that can be run here on a generated mirror and its release's file."""
+    found = problems(out, domain, repo, ref) + archive_problems(archive, domain, ref)
+    if domain not in PLUGINS:  # a plugin has no manifest, and nothing for hassfest
+        found += home_problems(manifest, domain) + hassfest(out)
     return found
 
 
@@ -359,23 +432,15 @@ def follow(repo: str, what: str, *narrow: str, **match: str) -> None:
 def publish(domain: str, repo: str, owner: str, version: str) -> str:
     """Brings one mirror to `version`, from Casa Mia's tag of that name. Returns what was
     done, in a word or two; Stop says why it wasn't."""
-    mirror = f"{owner}/{PUBLISHED[domain]}"
+    mirror = f"{owner}/{MIRRORS[domain]}"
     with (
         tempfile.TemporaryDirectory() as folder,
         tempfile.TemporaryDirectory() as spare,
     ):
         work = Path(folder)
         manifest = build(domain, repo, version, owner, work)
-        # Outside the mirror's tree: a release asset, never a committed file.
-        archive = package(
-            work / "custom_components" / domain, Path(spare) / zip_name(domain)
-        )
-        wrong = (
-            problems(work, domain, repo, version)
-            + home_problems(manifest, domain)
-            + archive_problems(archive, domain, version)
-            + hassfest(work)
-        )
+        archive = asset(domain, work, Path(spare))
+        wrong = all_problems(domain, manifest, work, archive, repo, version)
         if wrong:
             raise Stop("\n    ".join(wrong))
 
@@ -386,8 +451,10 @@ def publish(domain: str, repo: str, owner: str, version: str) -> str:
         about = " ".join(
             git("show", f"{version}:{guide_of(domain)}").split("\n\n")[1].split()
         )
+        about = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", about)  # a link's words only
         run(
-            "gh", "repo", "edit", mirror, "--description", about, "--add-topic", TOPICS,
+            "gh", "repo", "edit", mirror, "--description", about,
+            "--add-topic", KINDS[kind_of(domain)]["topics"],
             "--enable-wiki=false", "--enable-projects=false",
         )  # fmt: skip
 
@@ -438,7 +505,10 @@ def publish(domain: str, repo: str, owner: str, version: str) -> str:
             )
             at("tag", version)
             at("push", "-q", "origin", f"refs/tags/{version}")
-        attach_missing(domain, mirror, at, Path(spare))
+        if (
+            domain not in PLUGINS
+        ):  # a plugin's releases have had its file from the first
+            attach_missing(domain, mirror, at, Path(spare))
         if not run(
             "gh",
             "release",
@@ -505,24 +575,25 @@ def publish_all(repo: str, version: str) -> int:
 
     # Which mirrors this release brings, and whose they are.
     todo, outcome = {}, {}
-    for domain, name in PUBLISHED.items():
+    for domain, name in MIRRORS.items():
         manifest = manifest_at(domain, version)
         owner = mirror_owner(
             repo, manifest["issue_tracker"], os.environ.get("CM_MIRROR_OWNER")
         )
-        if manifest["version"] != version:
-            say(f"  {name}: not changed in {version} (it is at {manifest['version']}).")
-        elif not owner:
+        if not owner:
             say(
                 f"  {name}: skipped. {repo} is a fork of the repository it belongs to;"
                 " set CM_MIRROR_OWNER to publish a mirror of your own."
             )
+        elif not changed(domain, manifest, f"{owner}/{name}", version):
+            was = "" if domain in PLUGINS else f" (it is at {manifest['version']})"
+            say(f"  {name}: not changed in {version}{was}.")
         else:
             todo[domain] = owner
     if not todo:
         say("  No mirror to publish.")
         return 0
-    names = ", ".join(f"{owner}/{PUBLISHED[domain]}" for domain, owner in todo.items())
+    names = ", ".join(f"{owner}/{MIRRORS[domain]}" for domain, owner in todo.items())
     if ask(f"Publish {version} to {names}?", "yn") != "y":
         say(f"  Not published. Later: tools/mirror.py {version}")
         return 1
@@ -535,7 +606,7 @@ def publish_all(repo: str, version: str) -> int:
         headBranch=version,
     )
     for domain, owner in todo.items():
-        mirror = f"{owner}/{PUBLISHED[domain]}"
+        mirror = f"{owner}/{MIRRORS[domain]}"
         try:
             outcome[mirror] = publish(domain, repo, owner, version)
         except Stop as stop:
@@ -553,7 +624,7 @@ def dry_run(repo: str, ref: str) -> int:
     app = version_at(ref)
     say(f"Dry run from {ref} ({commit[:10]}, Casa Mia {app}). Nothing is published.")
     wrong = []
-    for domain, name in PUBLISHED.items():
+    for domain, name in MIRRORS.items():
         manifest = manifest_at(domain, ref)
         owner = mirror_owner(
             repo, manifest["issue_tracker"], os.environ.get("CM_MIRROR_OWNER")
@@ -563,18 +634,10 @@ def dry_run(repo: str, ref: str) -> int:
         build(domain, repo, ref, mirror.split("/")[0], out)
         count = sum(1 for path in out.rglob("*") if path.is_file())
         say(f"\n  {mirror}: {count} files in {out}")
-        archive = package(
-            out / "custom_components" / domain,
-            out.with_name(f"{out.name}-{zip_name(domain)}"),
-        )
-        say(f"  its release's ZIP: {archive} ({archive.stat().st_size // 1024} KB)")
+        archive = asset(domain, out, Path(tempfile.mkdtemp(prefix=f"{name}-file-")))
+        say(f"  its release's file: {archive} ({archive.stat().st_size // 1024} KB)")
 
-        found = (
-            problems(out, domain, repo, ref)
-            + home_problems(manifest, domain)
-            + archive_problems(archive, domain, ref)
-            + hassfest(out)
-        )
+        found = all_problems(domain, manifest, out, archive, repo, ref)
         for problem in found:
             warn(problem)
         if not found:
@@ -582,7 +645,10 @@ def dry_run(repo: str, ref: str) -> int:
         wrong += found
 
         say(
-            f"  {manifest['name']} is at {manifest['version']}. A release publishes it when"
+            f"  {manifest['name']} has no version of its own. A release publishes it when"
+            "\n  its file isn't the one the mirror already holds."
+            if domain in PLUGINS
+            else f"  {manifest['name']} is at {manifest['version']}. A release publishes it when"
             "\n  that is the release's own version, as it is for a component changed in it."
         )
         if not owner:
@@ -592,12 +658,18 @@ def dry_run(repo: str, ref: str) -> int:
         say(
             "  At a release, after its Release workflow has succeeded:"
             f"\n    gh repo create {mirror} --public          (if it is missing)"
-            f"\n    gh repo edit {mirror} --description … --add-topic {TOPICS}"
+            f"\n    gh repo edit {mirror} --description … --add-topic {KINDS[kind_of(domain)]['topics']}"
             "\n    git push origin main                      (the files above, one commit)"
-            "\n    wait for the mirror's Validate workflow   (HACS's action and hassfest)"
-            "\n    git push origin <version>; gh release create <version> <its ZIP>"
-            "\n    gh release upload <tag> <its ZIP>       (each release without one)"
-            "\n  Checked only on GitHub, by HACS's action: the repository's description,"
+            "\n    wait for the mirror's Validate workflow   (HACS's action"
+            + ("" if domain in PLUGINS else " and hassfest")
+            + ")"
+            "\n    git push origin <version>; gh release create <version> <its file>"
+            + (
+                ""
+                if domain in PLUGINS
+                else "\n    gh release upload <tag> <its ZIP>       (each release without one)"
+            )
+            + "\n  Checked only on GitHub, by HACS's action: the repository's description,"
             "\n  topics and issues, and its brand."
         )
     return int(bool(wrong))
