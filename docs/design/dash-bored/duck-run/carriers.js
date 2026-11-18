@@ -7,6 +7,7 @@
   {
     const way = track([0, 130, 260], [0.35, 130, 150, 95], [0.75, 218, 130], [1, 260, 130]);
     add("toaster", {
+      io: "BR", faults: [{ kind: "bolt", at: [96, 240] }],
       still: `<path class="thin" d="M118,236 V260 M142,236 V260"/>
         <rect class="iron" x="82" y="150" width="96" height="86" rx="12"/><path d="M98,150 h64 M96,236 v8 M164,236 v8"/>
         <text x="130" y="200" text-anchor="middle">TOAST</text>
@@ -25,6 +26,7 @@
 
   // ---- The mangle: in from the left, out to the right, flat, and springing back.
   add("mangle", {
+    io: "LR", faults: [{ kind: "oil", at: [130, 129] }, { kind: "bolt", at: [90, 215] }],
     still: `<path class="wood" d="M84,40 h12 v170 h-12 z M164,40 h12 v170 h-12 z M70,210 h120 v10 h-120 z"/>
       <path class="wood" d="M0,132 h84 v6 h-84 z M176,132 h84 v6 h-84 z"/>`,
     live: `${cog(130, 98, 28, 10, "mangle-a")}${cog(130, 160, 28, 10, "mangle-b")}`,
@@ -41,6 +43,7 @@
     const way = track([0, 130, 0], [0.2, 92, 62, 14], [0.4, 168, 112, 14], [0.6, 92, 164, 14], [0.8, 168, 214, 14], [1, 130, 260]);
     const spoon = (x, y, left) => `<g transform="translate(${x},${y}) ${left ? "scale(-1,1)" : ""} rotate(-8)"><path d="M10,0 H62"/><ellipse class="iron" rx="15" ry="7"/></g>`;
     add("pegs", {
+      io: "TB",
       still: `<path class="thin" d="M30,40 V200 M230,90 V245"/>${spoon(92, 69, true)}${spoon(168, 119)}${spoon(92, 171, true)}${spoon(168, 221)}`,
       live: `<text data-p="pegs-ting" class="small">ting!</text>`,
       duck({ p }) { const at = way(p); return { ...at, r: (at.i % 2 ? 25 : -25) * Math.sin(Math.PI * at.u) }; },
@@ -56,6 +59,7 @@
   {
     const way = track([0, 260, 130], [0.3, 150, 130, 10], [0.38, 130, 120], [0.6, 130, 120], [1, 130, 0]);
     add("cork", {
+      io: "RT",
       still: `<path class="wood" d="M150,132 h110 v7 h-110 z M86,250 h88 v7 h-88 z"/><path class="thin" d="M158,139 l-10,30 V139"/>`,
       live: `<g data-p="cork-bottle"><path class="glass" d="M112,250 V172 q0,-14 10,-22 V132 h16 v18 q10,8 10,22 V250 z"/>
           <rect class="paper" x="114" y="190" width="32" height="30"/><text class="small" x="130" y="208" text-anchor="middle">FIZZ</text></g>
@@ -76,6 +80,7 @@
   {
     const way = track([0, 260, 130], [0.2, 212, 130]);
     add("plug", {
+      io: "RB",
       still: `<path class="wood" d="M222,132 h38 v6 h-38 z"/>
         <path class="glass" d="M40,136 H220 L138,214 V260 H122 V214 z"/>
         <ellipse class="thin" cx="130" cy="152" rx="66" ry="6"/><ellipse class="thin" cx="130" cy="176" rx="40" ry="4"/><ellipse class="thin" cx="130" cy="198" rx="17" ry="3"/>
@@ -99,6 +104,7 @@
     const board = (k) => `<g data-p="waiter-${k}"><path class="wood" d="M-34,0 h68 v6 h-68 z"/><path class="rope" d="M-30,0 L0,-36 L30,0"/></g>`;
     const ties = [65, 130, 195, 260, 325, 390, 455].map((y) => `M92,${y} h76`).join(" ");
     add("waiter", {
+      io: "BT", tall: 2, steady: true, faults: [{ kind: "cord", loop: [[130, 520], [130, 0]], run: (t) => t * 100 }],
       still: `<path d="M92,0 V520 M168,0 V520"/><path class="thin" d="${ties}"/>
         <path class="wood" d="M168,392 h92 v7 h-92 z"/><path class="thin" d="M250,399 l-12,36 V399"/>
         <text x="60" y="260" transform="rotate(-90 60 260)" text-anchor="middle">DUMB WAITER</text>`,
@@ -106,6 +112,42 @@
       duck: ({ p }) => ({ x: 130, y: 260 - 260 * p }),
       pose(q, { p }) { for (const k of [0, 1]) move(q(`waiter-${k}`), 130, 520 - 260 * (p + k)); },
     });
-    add("waiterLow", { duck: ({ p }) => ledge(p) });
+    add("waiterLow", { io: "RT", steady: true, duck: ({ p }) => ledge(p) });
+  }
+
+  // ---- The trampoline: in from above, out to the left, by way of the ceiling.
+  {
+    const way = track([0, 130, 0], [0.28, 136, 168, 92], [0.72, 30, 130], [1, 0, 130]);
+    add("trampoline", {
+      io: "TL", faults: [{ kind: "bolt", at: [96, 214] }],
+      still: `<path d="M96,170 V214 M176,170 V214 M84,214 h24 M164,214 h24"/><path class="thin" d="M96,196 H176"/>
+        <path class="wood" d="M0,132 h52 v6 h-52 z"/><path class="thin" d="M44,138 l-10,30 V138"/>`,
+      live: `<path class="rope" data-p="mat"/><text data-p="boing" class="small" x="150" y="150">boing</text>`,
+      duck({ p }) { const at = way(p); return { ...at, r: at.i === 1 ? -at.u * 360 : 0 }; },
+      pose(q, { p }) {
+        const since = p - 0.28, dip = since < 0 ? 0 : 16 * Math.exp(-since * 9) * Math.cos(since * 42);
+        set(q("mat"), "d", `M96,170 Q136,${(170 + dip * 2).toFixed(1)} 176,170`);
+        show(q("boing"), between(p, 0.28, 0.5));
+      },
+    });
+  }
+
+  // ---- The ladle: in from the left, out to the right, flung from one to the other.
+  {
+    const way = track([0, 0, 130], [0.3, 62, 130], [0.45, 62, 130, 86], [0.8, 204, 130], [1, 260, 130]);
+    add("ladle", {
+      io: "LR", faults: [{ kind: "oil", at: [112, 150] }],
+      still: `<path class="wood" d="M0,132 h40 v6 h-40 z M176,138 h84 v6 h-84 z"/><path class="iron" d="M112,150 l-12,30 h24 z"/><path d="M84,180 h56"/>
+        <ellipse class="cloth" cx="204" cy="134" rx="26" ry="8"/>`,
+      live: `<g data-p="ladle"><path d="M-44,0 H40"/><path class="iron" d="M-64,-4 h22 q0,14 -11,14 q-11,0 -11,-14 z"/><circle class="solid" cx="40" r="4"/></g>
+        <text data-p="hup" class="small" x="120" y="60">hup!</text>`,
+      duck({ p }) { const at = way(p); return { ...at, r: at.i === 2 ? at.u * 360 : 0 }; },
+      pose(q, { p }) {
+        // It is pulled back as the duck steps on, lets go, and settles.
+        const swing = p < 0.3 ? 0 : p < 0.45 ? -8 * ((p - 0.3) / 0.15) : p < 0.52 ? -8 + 60 * ((p - 0.45) / 0.07) : 52 * (1 - clamp((p - 0.52) / 0.3));
+        move(q("ladle"), 112, 148, `rotate(${swing.toFixed(1)})`);
+        show(q("hup"), between(p, 0.45, 0.65));
+      },
+    });
   }
 })();

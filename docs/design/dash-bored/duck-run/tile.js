@@ -3,12 +3,14 @@
 // of another as it ends. What happens in between is the tile's own business, and no two
 // tiles do the same thing.
 //
-// A tile is { device, still, live, duck(c), pose(q, c), mode(d) }:
+// A tile is { io, device, still, live, duck(c), pose(q, c), mode(d) }:
+//   io      the edges it is drawn to go in and out by, as two of L, R, T and B. The page
+//           mirrors it where the route needs left and right the other way about
 //   device  the id of the house's device it shows, if it shows one
 //   still   what never moves, and `live` what does (two layers, as on the water pages)
 //   duck    where the duck is: { x, y } and, if it wants, r (turned), sx, sy (squashed)
 //           and o (0 when out of sight)
-//   pose    puts its moving parts where they belong
+//   pose    puts its moving parts where they belong (`q` finds a part of this tile by name)
 //   mode    which way the duck is to go for the device as it is (else: is it on)
 // `c` is { p, on, d, dt, now }: how far through the period (0 to 1), which way the duck
 // goes this period (fixed as it comes in, so that it never jumps), the device, and time.
@@ -48,7 +50,8 @@ window.Tile = (() => {
   // A device that has stopped answering is still a tile the ducks must get through, or
   // everything after it would stop too. So its machine goes under a dust sheet, and a
   // tube is clamped across from the way in to the way out (`from` and `to`, as [x, y]).
-  // `through(p)` is where the duck is in the tube. One drawing serves every tile.
+  // `through(p)` is where the duck is in the tube. One drawing serves every tile. The
+  // page writes the sign's second and third lines.
   function broken(d, from, to) {
     const through = (p) => { const u = 1 - p; return { x: u * u * from[0] + 2 * u * p * 130 + p * p * to[0], y: u * u * from[1] + 2 * u * p * 130 + p * p * to[1], o: 0 }; };
     const way = `M${from} Q130,130 ${to}`, half = through(0.5);
@@ -60,7 +63,7 @@ window.Tile = (() => {
       <path class="thin" d="M90,32 q-8,60 6,110 M174,30 q10,80 -8,150 M60,120 q20,60 4,116 M214,90 q-12,70 6,140"/>
       <path class="tube" d="${way}"/><path class="bore" d="${way}"/><circle class="paper" data-p="lump-${d.id}" r="17"/>
       <g data-p="sign-${d.id}"><g transform="translate(${sx},${sy}) rotate(-4)"><path d="M0,-28 V-40"/><rect class="label" x="-58" y="-28" width="116" height="56"/>
-        <text text-anchor="middle" y="-8">${d.name}</text><text class="small" text-anchor="middle" y="6">OUT OF ORDER</text>
+        <text text-anchor="middle" y="-8">${d.name}</text><text class="small" data-p="word-${d.id}" text-anchor="middle" y="6"></text>
         <text class="small" data-p="since-${d.id}" text-anchor="middle" y="19"></text></g></g></g>`;
     return { art, through };
   }

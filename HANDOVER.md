@@ -302,6 +302,9 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   gallery; `house.js` the house). The owner chose three families to build out: Gazette,
   Bakelite and Fridge, in that order, for the family first and the community after.
   Movement (a watch movement in three.js) and Contraption are the showpieces, not built.
+  Contraption is designed and tried (2026-11-18) and is to be the sixth family. Its brief,
+  with what is decided, measured, dropped and left to do, and which mock-up shows each
+  thing, is `docs/design/dash-bored-contraption.md`. Read it before building any of it.
 - **Digs is to be the fifth family** (name agreed with the owner 2026-11-18; he asked for
   it for his grandson). The house in section, built of square blocks in the style of
   block-building games. Only the mock-up exists, `docs/design/dash-bored/digs.html`, which

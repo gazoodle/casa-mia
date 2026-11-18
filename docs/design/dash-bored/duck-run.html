@@ -11,11 +11,28 @@
 .stale .ink .zz { opacity: 1; }
 .ink [data-p="honk"] { font-style: italic; }
 /* The slider for how big a tile is drawn. Bigger than the screen, the drawing scrolls. */
-#stage { overflow: auto; }
-.sheet { margin: 0 auto; }
+/* The sheet is the shape of the room's route (`--shape`, main.js) and fits the screen. */
+#stage { overflow: auto; container-type: size; }
+.sheet { margin: 0 auto; min-width: 0; height: auto; aspect-ratio: var(--shape); width: min(100cqw, 100cqh * var(--shape)); }
+#rooms { display: flex; gap: 10px; font-size: 13px; }
+#rooms a { color: inherit; }
+#rooms a[aria-current] { font-weight: bold; text-decoration: none; }
+/* The far view: the machinery as one bitmap, in place of the drawing of it (main.js). */
+.sheet canvas.farmap { display: none; }
+.sheet.far canvas.farmap { display: block; }
+.sheet.far .wob, .sheet.far [data-live], .sheet.far canvas[data-turn] { display: none !important; }
+/* Something working loose shakes until the bot has seen to it. */
+.jitter { animation: jitter .12s linear infinite alternate; }
+@keyframes jitter { from { translate: -1.5px 0; } to { translate: 1.5px 1px; } }
+.stale .jitter { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .jitter { animation: none; } }
+/* What lights up in a lamp: the opacity is set on the group. */
+.ink .shine { opacity: 0; }
+.ink .shine * { stroke: none; fill: var(--lit); }
 #size { display: flex; align-items: center; gap: 6px; font-size: 13px; }
 #size input { accent-color: var(--line); width: 140px; }
 #size output { min-width: 4.5em; }
+#rate { font-size: 12px; opacity: .8; }
 /* A device that is not answering: its machine under a sheet, and a tube for the ducks. */
 .broken { display: none; }
 .broken.is { display: inline; animation: drape .45s ease-out; }
@@ -42,24 +59,21 @@
 
 <header>
   <h1>The Kitchen, by duck</h1>
-  <p>The ducks go through every device in turn, and what happens to them says what it is doing. Tap a device to switch it; the next duck in goes the other way. The dashed cords are for trying the works.</p>
+  <p>The ducks go through every device in turn and are its engine. Tap a device to throw its clutch. The dashed cords are for trying the works.</p>
+  <nav id="rooms" aria-label="Rooms"></nav>
   <label id="size">Tile size <input type="range" min="100" max="520" step="10"> <output></output></label>
+  <output id="rate"></output>
   <div id="skins"></div>
   <div class="cords" id="cords"></div>
 </header>
 <p class="notice" id="notice" role="status"></p>
 <main id="stage"></main>
 
-<script src="house.js"></script>
-<script src="contraption/kit.js"></script>
-<script src="contraption/house.js"></script>
-<script src="waterworks/room.js"></script>
-<script src="waterworks/bake.js"></script>
-<script src="waterworks/page.js"></script>
-<script src="duck-run/tile.js"></script>
-<script src="duck-run/carriers.js"></script>
-<script src="duck-run/ceiling.js"></script>
-<script src="duck-run/devices.js"></script>
-<script src="duck-run/main.js"></script>
+<script>
+// Each script is asked for afresh. Safari on the iPad kept an old copy of one of them
+// beside new copies of the rest (2026-11-18), and the page it made of the mixture was
+// wrong in a way that looked like a fault in the drawing.
+for (const src of ["house.js", "contraption/kit.js", "contraption/house.js", "waterworks/room.js", "waterworks/bot.js", "waterworks/bake.js", "waterworks/page.js", "duck-run/tile.js", "duck-run/carriers.js", "duck-run/light.js", "duck-run/group.js", "duck-run/devices.js", "duck-run/layout.js", "duck-run/rooms.js", "duck-run/faults.js", "duck-run/main.js"]) document.write(`<script src="${src}?${Date.now()}"><\/script>`);
+</script>
 </body>
 </html>

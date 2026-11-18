@@ -275,38 +275,20 @@ the Gazette's own work is parked below it.
       place for scenes and guarded devices; a phone held sideways leaves the sheet about
       300 px wide under the header; a house too big for one far view may need a third
       distance.
-  - **Contraption, the Kitchen by duck** (2026-11-18): `duck-run.html` with `duck-run/`.
-    The owner found the whole house "nuts, but too regular still" and pointed at the Blue
-    Ball Machine for the feel. Why it was regular: one trough with every device hung
-    under it is a bus with taps, water gives the eye nothing to follow, and everything
-    goes the same way. What this trial does instead:
-    - The ducks go *through* every device in turn. A tile's only rule is at its edges
-      (`duck-run/tile.js`): a duck comes in at the middle of one edge as the period
-      starts and leaves by the middle of another as it ends. Inside, each tile is drawn
-      by hand and does its own thing.
-    - Every tile runs on one period with one duck to a tile, so the room moves in step.
-    - A device's state is read from what happens to the duck (the ceiling light on: it
-      runs on the belt that turns the dynamo; off: the belt carries it over), and at a
-      glance from a glow or a fire, which follows the device at once.
-    - A device that stops answering still passes its ducks (owner, 2026-11-18: a pile-up
-      takes the motive power from everything after it). Its machine goes under a dust
-      sheet with a sign saying what and since when, and a tube clamped from the way in
-      to the way out carries the ducks; one drawing serves every tile (`Tile.broken`).
-      Not dimmed, because dimming means no data at all: then the ducks stop and sleep.
-    - The duck is the engine (owner, 2026-11-18: more detail in each tile, machinery
-      pertinent to the device, driven by the ducks). The ceiling light is redrawn that
-      way as the sample (`duck-run/ceiling.js`): belt, flywheel, clutch, dynamo, wire,
-      governor and meter. On is the clutch in, thrown at once by a tap; the flywheel
-      keeps the lamp lit between ducks; the level is how long the duck is kept running.
-    - Twelve tiles: five devices, six that only carry ducks (one two tiles tall).
-    - Measured in headless WebKit and Chromium on the Mac, 2026-11-18: 61 frames a
-      second in all three skins. Not yet seen on the iPad or in Safari itself.
-    - Still to do, if the owner likes the sample tile: the other four devices redrawn
-      the same way, one file each (kettle: bellows; boiler: pump; blind: treadwheel and
-      counterweight; counter light: hammer, dominoes and a match), and more in the six
-      carrier tiles; setting a level from the page (a tap only switches); the route
-      and tiles are placed by hand; then the house as clumps of tiles, where a hundred
-      tiles may need CSS animation or sprite strips in place of the frame loop.
+  - **Contraption, by duck** (2026-11-18): the design the owner settled on, and it
+    supersedes the two trials above. It is in `duck-run.html` with `duck-run/` (the
+    Kitchen, a Long Gallery of eight lights laid out by rule, and a Big House of 300
+    tiles) and `sprite-trial.html` (drawn by placing bitmaps: 5,000 tiles at 26 frames a
+    second on the owner's iPad). What is decided, what was measured, what was dropped
+    and what is left are in `docs/design/dash-bored-contraption.md`, which is the brief
+    for building it.
+    - Next: build it in the card as the sixth family, after the build that is open
+      (Digs, b16). First the renderer, the tiles there are and one room, the owner's
+      kitchen.
+    - Then, from the brief's "What is left to do": left-to-right tiles for the other
+      kinds of device, a stand-in tile for a kind with none, more carriers, setting a
+      level, a crew of bots, one stream through the house, and a place for scenes and
+      guarded devices.
 - **Publish it by itself** once it is past In development, as Sensor Watch is.
 
 ## Sensor Watch (beta)
