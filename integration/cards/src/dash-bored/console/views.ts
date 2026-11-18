@@ -35,15 +35,46 @@ const LAYOUT = css`
   /* A room's one scene has a knife switch among its controls. An open blade stands well above its switch. */
   .works > .knife { flex: 0 0 130px; min-height: 124px; margin-top: 38px; }
 
-  /* A card for one room, one instrument or the lamps is no page: no page's height, and a narrower margin. */
-  .panel.as-room, .panel.as-instrument, .panel.as-lamps { min-height: 0; padding: 12px; }
+  /* A card for one room, one instrument, the lamps or a meter panel is no page: no page's height, and a narrower margin. */
+  .panel.as-room, .panel.as-instrument, .panel.as-lamps, .panel.as-meters { min-height: 0; padding: 12px; }
   .as-instrument { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 8px; }
   .as-instrument > .warn { flex-basis: 100%; }
+  .as-meters > .warn { margin-bottom: 10px; }
   .as-lamps .lamps { margin-bottom: 0; }
   /* An instrument with no backing stands on the dashboard's own card, and its lettering is
      in the dashboard's colour where its era doesn't print it on a plate of its own. */
   .panel.bare { padding: 0; background: none; box-shadow: none; border: 0; }
   :where(.bare) .label { color: var(--primary-text-color); }
+
+  /* A meter panel (metered.ts): its chassis side by side where there is room, one with
+     phases wanting more of it than one with none. */
+  .rack { display: flex; flex-wrap: wrap; align-items: stretch; gap: 12px; }
+  .metered { flex: 1 1 440px; } .metered.phased { flex-basis: 520px; }
+  /* Its works are measured, so that the strips stand by the width the chassis has. */
+  .metered > .works { display: block; container-type: inline-size; }
+  /* A strip is one phase's meters, standing as a column. Laid flat (a meter with no
+     phases) it is a row that wraps, and so a column again only in a chassis too narrow
+     for two meters abreast (owner, 2026-11-18: no tall thin panel unless it is needed). */
+  .strip { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; }
+  .strip.flat { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+  /* A cell is a meter, and under it Sensor Watch's lamp when it has something to say of it. */
+  .cell { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 0 1 auto; width: 150px; max-width: 100%; min-width: 0; }
+  .cell > .meter { flex: none; width: 100%; margin: 0; }
+  .strip.flat .cell { flex: 1 1 130px; width: auto; max-width: 150px; }
+  /* The phases' strips share their rows (--rows, as many as a strip has meters), so that a
+     quantity's meters are in a line across them whatever is lettered under each. */
+  .phases { display: grid; grid-template-columns: repeat(var(--strips), minmax(0, 1fr)); gap: 8px 10px; align-items: start; }
+  .phases > .strip { display: grid; grid-template-rows: subgrid; grid-row: span var(--rows); justify-items: center; align-items: start; }
+  .phases > .whole { display: flex; }
+  .registers { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 6px 8px; }
+  .flat .registers { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+  .register { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  /* Too narrow for the whole meter's strip beside the phases': it lies under them. */
+  @container (max-width: 600px) {
+    .phases { grid-template-columns: repeat(var(--phases), minmax(0, 1fr)); }
+    .phases > .whole { grid-row: auto; grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; justify-content: center; }
+    .whole .registers { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+  }
 `;
 
 export const VIEWS = [LAYOUT, SELECTOR];

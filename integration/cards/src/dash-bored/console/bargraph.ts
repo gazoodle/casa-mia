@@ -6,6 +6,7 @@ import * as kit from "./bargraph/kit.ts";
 import { recorder } from "./bargraph/recorder.ts";
 import { STYLES } from "./bargraph/styles.ts";
 import { PAGE } from "../family.ts";
+import { register } from "./metered.ts";
 import { Panel } from "./panel.ts";
 import { VIEWS } from "./views.ts";
 import { WEATHER, weather } from "./weather.ts";
@@ -14,5 +15,5 @@ export const CARD = "dash-bored-bargraph";
 
 export class Bargraph extends Panel {
   static styles = [PAGE, VIEWS, STYLES, WEATHER];
-  protected kit = { ...kit, recorder, ...weather(kit.label, kit.figs) };
+  protected kit = { ...kit, recorder, ...weather(kit.label, kit.figs), register: register(kit.label, kit.figs) };
 }

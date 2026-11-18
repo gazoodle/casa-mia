@@ -6,6 +6,7 @@
 import * as kit from "./beige/kit.ts";
 import { STYLES } from "./beige/styles.ts";
 import { PAGE } from "../family.ts";
+import { register } from "./metered.ts";
 import { Panel } from "./panel.ts";
 import { VIEWS } from "./views.ts";
 import { WEATHER, weather } from "./weather.ts";
@@ -16,5 +17,5 @@ export const CARD = "dash-bored-beige";
 
 export class Beige extends Panel {
   static styles = [PAGE, VIEWS, STYLES, WEATHER];
-  protected kit = { ...kit, recorder: scope(kit.label, kit.push), ...weather(kit.label, figs) };
+  protected kit = { ...kit, recorder: scope(kit.label, kit.push), ...weather(kit.label, figs), register: register(kit.label, figs) };
 }

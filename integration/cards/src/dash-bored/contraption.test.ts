@@ -71,6 +71,9 @@ test("machinery on the y-axis: a device stands upright where the stream goes dow
   const upright = ROOMS.flatMap((devices) => route("kitchen", devices).way.filter((s) => s.tile.device && /^(TB|BT)$/.test(s.tile.io)));
   assert.ok(upright.some((s) => s.tile.io === "TB") && upright.some((s) => s.tile.io === "BT"), "one going down and one going up");
   assert.ok(upright.some((s) => s.tile.device!.startsWith("light.")) && upright.some((s) => !s.tile.device!.startsWith("light.")), "a light and a crate");
+  // Whatever the room is called: some rooms of 24 once had none.
+  for (const id of ["kitchen", "study", "a", "long gallery"])
+    assert.ok(route(id, room(24)).way.filter((s) => s.tile.device && /^(TB|BT)$/.test(s.tile.io)).length >= 2, `${id}: two or more upright in a room of 24`);
 });
 
 test("the machine is clean: run for 200 periods, every way has one duck a period and none is made or lost", () => {

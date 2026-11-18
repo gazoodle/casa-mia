@@ -5,6 +5,7 @@
 import * as kit from "./nixie/kit.ts";
 import { STYLES } from "./nixie/styles.ts";
 import { PAGE } from "../family.ts";
+import { register } from "./metered.ts";
 import { Panel } from "./panel.ts";
 import { VIEWS } from "./views.ts";
 import { WEATHER, weather } from "./weather.ts";
@@ -14,5 +15,5 @@ export const CARD = "dash-bored-nixie";
 
 export class Nixie extends Panel {
   static styles = [PAGE, VIEWS, STYLES, WEATHER];
-  protected kit = { ...kit, recorder: scope(kit.label, kit.push), ...weather(kit.label, kit.nixies) };
+  protected kit = { ...kit, recorder: scope(kit.label, kit.push), ...weather(kit.label, kit.nixies), register: register(kit.label, kit.nixies) };
 }

@@ -178,15 +178,30 @@ const OFF = [0.9, -1.3, 0.4, 1.6, -0.7, -1.7];
  * (`--off`); the era's stylesheet places it from those. */
 export const wheels = (name: string, places: number[], turn: (i: number, by: number) => void) => html`<div class="wheels" role="group" aria-label="${name} code">${places.map(
   (place, i) => html`<div class="wheel">
-    ${repeat(
-      [-2, -1, 0, 1, 2].map((d) => place + d),
-      (at) => at,
-      (at) => html`<span class=${at === place ? "at" : ""} aria-hidden=${at === place ? nothing : "true"} aria-label=${at === place ? `Wheel ${i + 1}: ${face(at) || "blank"}` : nothing}
-        style="--n: ${at - place}; --off: ${OFF[i % OFF.length]}px">${face(at)}</span>`,
-    )}
+    ${barrel(place, i, `Wheel ${i + 1}: ${face(place) || "blank"}`)}
     <button aria-label="Wheel ${i + 1} on" @click=${() => turn(i, 1)}></button><button aria-label="Wheel ${i + 1} back" @click=${() => turn(i, -1)}></button>
   </div>`,
 )}</div>`;
+
+// One wheel's digits: the one at the front, `said` to a screen reader if it is to be, and its neighbours.
+const barrel = (place: number, i: number, said?: string) => repeat(
+  [-2, -1, 0, 1, 2].map((d) => place + d),
+  (at) => at,
+  (at) => html`<span class=${at === place ? "at" : ""} aria-hidden=${at === place && said ? nothing : "true"} aria-label=${at === place && said ? said : nothing}
+    style="--n: ${at - place}; --off: ${OFF[i % OFF.length]}px">${face(at)}</span>`,
+);
+
+/** A number on counter wheels, as an electricity meter's register has: the same barrels as
+ * the thumbwheels, with nothing to press, a nought where a figure is blank, and the wheel
+ * after the point marked as tenths (styles.ts). It takes what every era's figures take
+ * (../metered.ts): one that is not `lit` stands at noughts, and its plate says why. */
+export const counter = (text: string, _lit = true, says = text.trim()) => {
+  const point = text.indexOf(".");
+  const digits = [...text.replace(".", "")];
+  return html`<div class="wheels" role="img" aria-label=${says}>${digits.map(
+    (ch, i) => html`<div class="wheel ${point >= 0 && i >= point ? "tenth" : ""}">${barrel((Number(ch) || 0) + 1, i)}</div>`,
+  )}</div>`;
+};
 
 /** A push button over its plate. */
 export const push = (name: string, press: () => void) => html`<button class="push" @click=${press}><span class="cap"></span>${label(name)}</button>`;

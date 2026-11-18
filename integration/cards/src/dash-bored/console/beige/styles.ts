@@ -43,7 +43,8 @@ export const STYLES = css`
   .rec:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
   /* An LCD: black on grey-green, sunk a little into the case. */
-  .win, .leds, .dial > .figs, .wheel .figs, .alert .label { background: var(--lcd); box-shadow: inset 0 2px 4px rgba(0,0,0,.4); }
+  .win, .leds, .dial > .figs, .wheel .figs, .register .figs, .alert .label { background: var(--lcd); box-shadow: inset 0 2px 4px rgba(0,0,0,.4); }
+  .register .figs { padding: 4px 5px; border-radius: 2px; }
   /* A room's lights: five strength bars, as a mobile telephone shows its signal. */
   .leds { display: flex; align-items: flex-end; gap: 2px; padding: 4px 7px; border-radius: 2px; }
   .leds span { width: 5px; background: var(--lcd-ink); opacity: .08; }

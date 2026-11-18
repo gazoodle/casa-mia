@@ -92,6 +92,8 @@ export const STYLES = css`
   .panel .sky .win i { width: 6px; height: 10px; border-radius: 3px; }
   .panel .sky .pic, .panel .day .pic { display: none; }
   .panel .days .nixies { --fig: 28px; }
+  /* On a meter panel (../metered.ts) a reading's tubes are smaller, so that four fit a strip's meter. */
+  .metered .display .nixies { --fig: 26px; }
   .jewel { flex: none; width: 12px; height: 20px; border-radius: 6px; background: radial-gradient(ellipse at 50% 40%, #ffe2b0, var(--glow) 60%, #7a2a00); box-shadow: 0 0 10px var(--glow); }
   .jewel.nominal { --glow: #4fdc4f; } .jewel.task { --glow: #e9c98a; } .jewel.warning { --glow: #ff9a1e; } .jewel.error, .jewel.critical { --glow: #ff4a1e; }
   .jewel.critical { animation: flash 1s steps(2, jump-none) infinite; }

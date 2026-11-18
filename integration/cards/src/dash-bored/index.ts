@@ -13,7 +13,7 @@ import { CARD as AURORA, Aurora } from "./aurora.ts";
 import { Bakelite, CARD as BAKELITE } from "./console/bakelite.ts";
 import { Bargraph, CARD as BARGRAPH } from "./console/bargraph.ts";
 import { Beige, CARD as BEIGE } from "./console/beige.ts";
-import { INSTRUMENT, Instrument, LAMPS, Lamps, ROOM, RoomCard, editor } from "./console/cards.ts";
+import { INSTRUMENT, Instrument, LAMPS, Lamps, METERS, MeterPanel, ROOM, RoomCard, editor } from "./console/cards.ts";
 import { CARD as CONSOLE, Console } from "./console/host.ts";
 import { CARD as NIXIE, Nixie } from "./console/nixie.ts";
 import { CARD as SILVERFACE, Silverface } from "./console/silverface.ts";
@@ -42,7 +42,7 @@ define(AURORA, Aurora);
 define(DIGS, Digs);
 define(CONTRAPTION, Contraption);
 define(PAGE, Shell);
-for (const [tag, card] of [[INSTRUMENT, Instrument], [ROOM, RoomCard], [LAMPS, Lamps]] as const) {
+for (const [tag, card] of [[INSTRUMENT, Instrument], [ROOM, RoomCard], [LAMPS, Lamps], [METERS, MeterPanel]] as const) {
   define(tag, card);
   define(`${tag}-editor`, editor(tag));
 }
@@ -72,4 +72,5 @@ register(CONTRAPTION, "Casa Mia Dash-Bored Contraption", "One room as an absurd 
 register(INSTRUMENT, "Casa Mia Dash-Bored Console instrument", "One light, switch, thermostat, lock, camera, alarm, scene or sensor as an instrument on the Console, in the style of a decade: a knob, a switch, a screen or a meter. On its era's panel, or on the dashboard's own card.");
 register(ROOM, "Casa Mia Dash-Bored Console room", "One room as a chassis on the Console, in the style of a decade: a lamp for its lights, a meter for its temperature, and a control for each of its devices.");
 register(LAMPS, "Casa Mia Dash-Bored Console warning lamps", "Sensor Watch's warnings as the Console's warning lamps, in the style of a decade, the worst first. A green lamp says when all is well.");
+register(METERS, "Casa Mia Dash-Bored Console meter panel", "An electricity meter as a chassis on the Console, in the style of a decade: a meter for each phase's voltage, current and power, and a register for each total of energy. Choose the meter's device; several make several chassis.");
 offerReload("Dash-Bored", "casa_mia_dash_bored/cards", VERSION);

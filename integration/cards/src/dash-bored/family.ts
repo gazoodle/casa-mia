@@ -133,7 +133,7 @@ export class Family extends LitElement {
     this._lost = 0;
     this._listen();
     if (!this._reads) {
-      if (!was) this.requestUpdate();
+      if (!was || this._shown(was, hass)) this.requestUpdate();
       return;
     }
 
@@ -150,6 +150,11 @@ export class Family extends LitElement {
       const old = before.get(d.id);
       if (old && (old.on !== d.on || old.phase !== d.phase || old.level !== d.level || old.away !== d.away)) this._moved(d);
     }
+  }
+
+  /** For an element that reads no house: whether what it shows of Home Assistant's is not as it `was`. */
+  protected _shown(_was: Hass, _hass: Hass) {
+    return false;
   }
 
   /** The house has been read again: for a family that follows something by what it holds. */

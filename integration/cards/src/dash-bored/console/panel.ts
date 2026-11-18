@@ -7,13 +7,16 @@
 // A card that shows less of it (cards.ts) names its view: one room, one instrument, or the
 // lamps alone.
 import { html, nothing, type TemplateResult } from "lit";
-import { fire } from "../../ha.ts";
+import { fire, type Hass } from "../../ha.ts";
+import { follow, type Watch } from "../../sensor-watch/common.ts";
 import { ALERTS, Family, SIGHTINGS } from "../family.ts";
 import { DEGREES, scenes, sighted, type Control, type Device, type Options, type Room, type Scene, type Seen, type Sighting } from "../house.ts";
 import { recorded, type Change } from "../record.ts";
 import { NOMINAL, RANK, clock, flip, pressing, turning, zooming, type Alert, type Press } from "../stories.ts";
 import { columns, laid, racks as fitted, type Load } from "./balance.ts";
 import { face, type Kit } from "./kit.ts";
+import { metered } from "./metered.ts";
+import { chassis, type Options as Metered } from "./meters.ts";
 import { STOPS, selector } from "./selector.ts";
 
 const ALARM = "alarm_control_panel";
@@ -46,8 +49,8 @@ const MAINS = [3, 6, 12, 24, 48];
 // A room's temperature has its scale on the panel; power has the mains meter's.
 const SCALES: Record<string, [number, number, string]> = { temperature: [5, 30, "°C"], humidity: [0, 100, "%"] };
 
-export type View = "panel" | "room" | "instrument" | "lamps";
-export type Config = Options & { type?: string; view?: View; backing?: boolean };
+export type View = "panel" | "room" | "instrument" | "lamps" | "meters";
+export type Config = Options & Metered & { type?: string; view?: View; backing?: boolean; devices?: string[] };
 
 const dims = (d: Device) => d.dims && !d.away;
 const alarm = (d: Device) => d.kind === ALARM;
@@ -73,7 +76,7 @@ function bearing(e: PointerEvent) {
 export class Panel extends Family {
   protected kit!: Kit; // the era's controls: set by the era's own class
   declare protected _config: Config;
-  static properties = { _cols: { state: true }, _want: { state: true }, _thrown: { state: true }, _turned: { state: true }, _armed: { state: true }, _code: { state: true }, _alerts: { state: true }, _heard: { state: true }, _seen: { state: true }, _chart: { state: true } };
+  static properties = { _cols: { state: true }, _want: { state: true }, _thrown: { state: true }, _turned: { state: true }, _armed: { state: true }, _code: { state: true }, _alerts: { state: true }, _heard: { state: true }, _seen: { state: true }, _chart: { state: true }, _watches: { state: true }, _lapsed: { state: true } };
   _cols = 1; // how many columns of chassis the panel has room for across
   private _rows?: { key: string; racks: ReturnType<typeof fitted> }; // the bays the rooms stand in, kept while the rooms and the columns are the same
   _heard = false; // Sensor Watch's feed has said what it holds: until then, no lamp says all is well
@@ -87,6 +90,12 @@ export class Panel extends Family {
   private _hiding?: ReturnType<typeof setTimeout>;
   private _dropping?: ReturnType<typeof setTimeout>; // when a lifted guard drops again
   _alerts: Alert[] = []; // what Sensor Watch has said of each sensor it has spoken of
+  private _metered: string[] = []; // the sensors a meter panel has on it, as last drawn
+  private _dials: string[] = []; // those of them that have a meter: Sensor Watch is asked about each
+  _watches: ReadonlyMap<string, Watch> = new Map(); // what Sensor Watch has said of each, where it watches it
+  // The sensors whose watch is a memory: Sensor Watch gave one, then said it could give none. Why, and since when.
+  _lapsed: ReadonlyMap<string, { why: string; since: number }> = new Map();
+  private _held = new Map<string, [number, number]>(); // each of its scales' ends, while it is on the page (meters.ts `limits`)
   _seen: Seen[] = []; // what the cameras have seen lately
   // The chart recorder that is open: for which room, the day up to when, and each device's record as it comes.
   _chart?: { room: string; at: number; records: Record<string, Change[]>; fault: string };
@@ -108,9 +117,21 @@ export class Panel extends Family {
     if (this._view === "panel") this._outlook();
   }
 
-  /** The lamps alone are no part of the house. */
+  /** The lamps alone are no part of the house, and nor is a meter panel, which reads its own devices. */
   protected get _reads() {
-    return this._view !== "lamps";
+    return this._view !== "lamps" && this._view !== "meters";
+  }
+
+  /** A meter panel is drawn again when one of its sensors says something new, or Home
+   * Assistant's devices or entities change (a sensor added to a meter). */
+  protected _shown(was: Hass, hass: Hass) {
+    return this._view === "meters" && (was.entities !== hass.entities || was.devices !== hass.devices || this._metered.some((id) => was.states[id] !== hass.states[id]));
+  }
+
+  /** New options: the scales begin again from them. */
+  setConfig(config: Config) {
+    this._held.clear();
+    super.setConfig(config);
   }
 
   /** The feeds: Sensor Watch's alerts, for the warning lamps, and the cameras' sightings,
@@ -126,6 +147,7 @@ export class Panel extends Family {
         this._alerts = [...held.values()];
         this._heard = true;
       });
+    if (view === "meters") this._consult();
     if (view === "panel" || view === "room" || this._config.entity?.startsWith(`${CAMERA}.`)) this._follow(SIGHTINGS, "The cameras' sightings", (seen: Seen[]) => {
       const held = new Map(this._seen.map((s) => [s.id, s]));
       const now = Date.now();
@@ -169,6 +191,45 @@ export class Panel extends Family {
     if (chart && !chart.open) chart.showModal();
     // The rooms are drawn: the columns are counted from their own width, which was a guess until now.
     this._resized(this.clientWidth);
+    // A meter panel's sensors are known once it is drawn.
+    if (this._view === "meters") this._consult();
+  }
+
+  /** Follow what Sensor Watch says of each sensor that has a meter, and stop for those
+   * that no longer have one. Each is one of the family's feeds, so leaving the page stops
+   * them all. Sensor Watch sends a watch at once, then at each change of its level or
+   * record; with no Sensor Watch in this Home Assistant nothing is said, and the scales
+   * are the card's own. */
+  private _consult() {
+    const connection = this._hass?.connection;
+    if (!connection || !this.isConnected || this._sample) return;
+    const key = (id: string) => `watch ${id}`;
+    const wanted = new Set(this._dials.map(key));
+    for (const [feed, stop] of this._feeds) {
+      if (!feed.startsWith("watch ") || wanted.has(feed)) continue;
+      stop.then((off) => off()).catch(() => undefined);
+      this._feeds.delete(feed);
+      this._told(feed.slice(6));
+    }
+    for (const id of this._dials) if (!this._feeds.has(key(id))) this._feeds.set(key(id), Promise.resolve(follow(connection, id, (watch, why) => this._told(id, watch, why))));
+  }
+
+  /** Sensor Watch has said of a sensor: its `watch`; or `why` it can give none, which
+   * makes one it gave before a memory (a lease that has lapsed: shown with since when);
+   * or neither, when the sensor has left the panel. */
+  private _told(id: string, watch?: Watch, why?: string) {
+    const lapsed = new Map(this._lapsed);
+    const watches = new Map(this._watches);
+    if (watch) {
+      watches.set(id, watch);
+      lapsed.delete(id);
+    } else if (why === undefined) {
+      watches.delete(id);
+      lapsed.delete(id);
+    } else if (watches.get(id)?.watched && !lapsed.has(id)) lapsed.set(id, { why, since: Date.now() });
+    else return;
+    this._watches = watches;
+    this._lapsed = lapsed;
   }
   private _grip?: { id: string; level: number; angle: number; x: number; y: number; at: number; moved: boolean };
   private _waiting?: ReturnType<typeof setTimeout>;
@@ -552,6 +613,21 @@ export class Panel extends Family {
     return meter(reading, 0, MAINS.find((top) => kw <= top) ?? MAINS.at(-1)!, kw, "kW", beat, !this._lost);
   }
 
+  /** A chassis for each of the card's devices (meters.ts says what is on it, metered.ts draws it). */
+  private _meters() {
+    const devices = this._config.devices ?? [];
+    if (!devices.length) return this.kit.label("Choose a meter's device in the card's options");
+    const all = devices.map((d) => chassis(this._hass!, d, this._config, this._held, this._watches));
+    this._dials = all.flatMap((c) => [...c.strips.flatMap((s) => s.meters), ...c.whole].map((m) => m.id));
+    this._metered = [...this._dials, ...all.flatMap((c) => c.registers.map((r) => r.id))];
+    // What Sensor Watch gave and can no longer vouch for is still shown, and said to be as it was.
+    const [lapse] = [...this._lapsed.values()].sort((a, b) => a.since - b.since);
+    const warn = lapse ? html`<div class="warn"><span class="lamp"></span>${this.kit.label(`Sensor Watch has not answered since ${clock(lapse.since)} (${lapse.why}). The scales and warning lamps are as it last said.`)}</div>` : nothing;
+    // Numbered from 2: Nixie's first two meters are the needle meters at the top of its panel.
+    let beat = 1;
+    return html`${warn}<div class="rack">${all.map((c) => metered(this.kit, c, !this._lost, () => ++beat))}</div>`;
+  }
+
   /** The whole house: the meters, screens and scenes along the top, then the rooms. */
   private _whole() {
     const { barometer, calendar, knife, meter, tv } = this.kit;
@@ -594,6 +670,7 @@ export class Panel extends Family {
     </div>`;
     if (!this._hass) return frame(label("Waiting for Home Assistant"));
     if (view === "lamps") return frame(this._lamps(true));
+    if (view === "meters") return frame(this._meters());
     if (!house) return frame(label("Waiting for Home Assistant"));
     if (view === "instrument") return frame(this._instrument(house.rooms.flatMap((r) => r.devices), scenes(house)));
 

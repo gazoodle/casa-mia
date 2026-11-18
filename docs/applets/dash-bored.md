@@ -33,7 +33,7 @@ We tried to maintain a sense of fun while building them, and where they looked l
 useful, we took more care on the UX, but make no mistake, if you actually use any of these to control your 
 house, you're daft ... just like us; we have the broadsheet gazette always on the wall tablet home page now.
 
-Dash-Bored. Because the world clearly needed another dashboard designer. MIT. Forever.
+Dash-Bored. Because the world clearly needed another dashboard designer.
 
 Part of Casa Mia.
 
@@ -1190,7 +1190,8 @@ the Console, Aurora and Digs preview with one room and a few of its devices, so 
 look without the whole house being drawn in a narrow column. The card you add shows the
 whole house.
 
-Three smaller cards show part of the Console, each with an editor. Each takes `era` as the
+Three smaller cards show part of the Console, each with an editor, and a fourth shows an
+electricity meter in the Console's style ("A meter panel", below). Each takes `era` as the
 Console does. Without it, the card is drawn in the era last chosen on the Console in that
 browser, and changes when the Console's switch is turned.
 
@@ -1216,6 +1217,66 @@ era prints it on a plate.
 
 The warning lamps card shows a green lamp when Sensor Watch has nothing to warn of. Until
 Sensor Watch has answered, it says it is waiting.
+
+### A meter panel
+
+A fourth card shows something that is not on the Console's own page: an electricity meter,
+as a chassis of the era's meters. It is for an ordinary dashboard, beside your other cards.
+It is in the card picker as **Casa Mia Dash-Bored Console meter panel**, and has an editor.
+
+```yaml
+type: custom:dash-bored-console-meters
+devices:                 # chosen in the editor: each device that is a meter
+  - 0123456789abcdef0123456789abcdef
+era: silverface          # optional, as on the other cards
+show: [voltage, current, power, energy]   # optional: this is what is shown without it
+limits:                  # optional
+  voltage: { min: 200, max: 260 }
+  current: { max: 32 }
+```
+
+You choose the device and the card works out the rest. Nothing has to be said about the
+make or model of meter. It uses the device's sensors by their device class:
+
+- **Voltage, current and power** each have a meter. Add `apparent_power`, `power_factor`
+  or `frequency` to `show` for a meter of those too.
+- **Energy** sensors are registers, in kWh to one decimal place: counter wheels in
+  Bakelite, nixie tubes in Nixie and figures of seven bars in the later eras.
+- A sensor belongs to a **phase** when its name or entity id has `L1`, `L2` or `L3` in it
+  (or `Phase 1` to `Phase 3`). A meter with phases has a column of meters for each phase,
+  side by side, so the three voltmeters are in a row. The readings that are of the whole
+  meter (total power, the registers) are in a column of their own, which moves under the
+  phases on a narrow card.
+- A meter with no phases is laid out as a row, with its registers after it. In a card too
+  narrow for two meters side by side it becomes a single column.
+
+Several devices on one card are several chassis, side by side where there is room.
+
+**The limits of a scale.** All the phases of one quantity share a scale, so the needles
+can be compared. Without `limits`, a voltage is on the scale of the mains voltage it is
+near (105 to 130 V, 210 to 260 V or 360 to 460 V), a power factor is from 0 to 1 and a
+frequency from 45 to 65 Hz. Current and power go from nothing to the first round number
+that holds the reading. That top only goes up while the card is on the page, so the scale
+does not jump when a load switches off. To fix a scale, give its ends in `limits`, in
+volts, amps, watts, volt-amps or hertz. Either end may be left out.
+
+A sensor that is not answering has a dark meter lettered "not answering", and a device
+that is gone, or has no sensor the card can show, has a chassis that says so.
+
+**With Sensor Watch.** The card works without Sensor Watch. Where it is installed, the
+card asks it about each sensor that has a meter, and is told at once when anything changes:
+
+- A sensor watched by bands takes its scale from them, so you need give no `limits`. The
+  scale covers the bands and is moved out to five round steps. Your own `limits` still
+  come first.
+- When Sensor Watch's level for a sensor is not nominal, the era's warning lamp is lit
+  under that meter. Hover over it for what Sensor Watch says.
+- A sensor that Sensor Watch calls stale has a dark meter, because its reading is an old
+  one.
+- If Sensor Watch stops answering, the scales and lamps stay as it last said, and the
+  panel says so, with the time it stopped.
+
+The bands are not drawn on the scales as coloured zones yet.
 
 ### A card for one room
 

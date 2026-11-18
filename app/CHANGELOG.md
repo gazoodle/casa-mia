@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.11.9-b23
+
+- **Fixed: Dash-Bored: some rooms in Contraption had no upright machines at all.** Whether the stream left the middle row, which it must for a device to stand upright, was left to chance that went the same way every time for some rooms. It now does so every other time in every room.
+
+- **Dash-Bored: a meter panel card, for an electricity meter in the Console's style.** The new card **Casa Mia Dash-Bored Console meter panel** draws a chassis for each device you choose: the era's meter for each voltage, current and power, and a register for each total of energy. A three-phase meter has a column of meters for each phase. Scales are chosen from the readings, or set with `limits`. Where Sensor Watch watches a sensor, its bands set the scale, its warning lights a lamp under the meter, and a stale sensor's meter goes dark. The guide's "A meter panel" has the options.
+
 ## 2026.11.9-b22
 
 - **Fixed: Dash-Bored: Contraption's mangle turned its rollers against the duck, and in jerks.** The rollers now turn the way the duck goes, and smoothly.

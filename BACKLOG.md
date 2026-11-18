@@ -5,7 +5,7 @@ Not scheduled. Sections are in order of their latest change; newest ideas first 
 ## Topology (an idea, not started)
 
 The owner's idea, 2026-11-18. The brief is `docs/design/topology.md`: what is agreed, what
-is only proposed, and the questions still open. Agree its contract before any code.
+is only proposed, and the questions still open. Its contract was agreed on 2026-11-18.
 
 - **Topology, the applet:** buildings and sites above Home Assistant's floors and areas,
   and connections between areas with an optional direction. Digs is its first consumer;
@@ -33,6 +33,12 @@ Started 2026-11-13 (2026.11.8-b1) with the Gazette. HANDOVER has how it is built
 mock-ups are in `docs/design/dash-bored/`. The owner is on Bakelite now (2026-11-14), and
 the Gazette's own work is parked below it.
 
+- **The Console's meter panel, what's left** (asked 2026-11-18; the plan, with each step's
+  detail, is `docs/design/console-meter-panel.md`; steps 1 and 2 were built in
+  2026.11.9-b23):
+  - Step 3: the bands drawn as zones on the scale, in all five eras' `meter`.
+  - Step 4: stand-in meters on the test VM, a picture for the guide, and the guide saying
+    the card is in daily use in the author's house once it is on the live dashboards.
 - **Every family gets every capability** (owner, 2026-11-17; the rule is in HANDOVER and
   the table in `docs/design/dash-bored-survey.md`). `tests/test_dash_bored_parity.py`
   lists each of these in its `OWED`, and fails when a family starts to show something

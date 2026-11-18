@@ -191,6 +191,8 @@ export const STYLES = css`
   .wheel span:not(.at) { opacity: .7; }
   .wheel button { position: absolute; left: 0; right: 0; height: 50%; } .wheel button:first-of-type { top: 0; } .wheel button:last-of-type { bottom: 0; }
   .wheel button:focus-visible { outline: 2px solid var(--cream); outline-offset: -2px; }
+  /* A register's wheel of tenths (kit.ts counter) has red figures, as an electricity meter's has. */
+  .wheel.tenth span { color: #8f1a10; }
   .pushes { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
   .push { text-align: center; }
   .push .cap { display: block; width: 28px; height: 28px; margin: 4px auto 6px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #b8433a, #4a0f0a);

@@ -509,6 +509,21 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   different sizes when they were fractions of the type size), the meter that is a display
   and the alarm's code as figures with keys (`keyed`). Beige's chart is `scope.ts`'s
   oscilloscope dressed by its stylesheet, through the class names on the scope's parts. Bakelite is completed first and keeps its name.
+  - **The meter panel** (2026.11.9-b23, asked 2026-11-18; plan in
+    `docs/design/console-meter-panel.md`): `dash-bored-console-meters`, a fifth view,
+    `meters`. It is for ordinary dashboards and is not on the Console's page. A chassis
+    for each device in `devices`: `console/meters.ts` (no Lit, tested in node) says what
+    is on it from each sensor's device class and the phase in its name, with the limits
+    of each scale; `console/metered.ts` draws it, and holds `register`, which every era's
+    kit now has (its figures; Bakelite's is `counter`). It reads no house: `_shown` in
+    `family.ts` says when to draw again. Each meter's sensor is followed with Sensor
+    Watch's own `follow` (`_consult` in `panel.ts`; the feeds are in the family's `_feeds`,
+    so leaving the page stops them): its bands give the scale, its level a `jewel` under
+    the meter, and a watch that Sensor Watch can no longer give is kept and said to be
+    lapsed (`_lapsed`). Steps 1 and 2 of the plan are built. Steps 3 and 4 (zones on the
+    scales, a picture for the guide) are in BACKLOG. Seen in all five eras in a scratch harness
+    with a fake Home Assistant, not yet in a real one. The owner agreed the name
+    (2026-11-18).
   - **Part cards** (2026.11.9-b5, names agreed with the owner 2026-11-16):
     `dash-bored-console-instrument`, `-room` and `-lamps` (`console/cards.ts`). Each is
     the host without its switch, telling the era's element a `view` (`Config` in

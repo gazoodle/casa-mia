@@ -76,7 +76,7 @@ export function route(id: string, devices: Dev[]): Layout {
   }
 
   const way: Step[] = [], joins: [from: number, to: number][][] = [], ends: number[][] = [];
-  let picks = hash(id), drives = hash(id);
+  let picks = hash(id), drives = hash(id), leaves = 0;
   // A tile is drawn for a stream going one way: it is mirrored where the wing goes the other.
   const leftward = (tile: Tile) => edges(tile.io).ins.includes("R") || edges(tile.io).outs.includes("L");
   const made = (item: Dev[], upright?: "TB" | "BT") => {
@@ -125,13 +125,13 @@ export function route(id: string, devices: Dev[]): Layout {
       if (i === wing.length || fanned) continue;
 
       // After a device by itself the stream changes row: to the middle one if a fan comes next.
-      // The next device can stand upright in the row between, if the stream is at the top or the bottom. With
-      // more devices to come that is done every other time, or there would be no fans away from the middle row.
-      const more = wing.length - i;
-      const stands = row !== 1 && singles(i) >= 1 && (more === 1 || picks++ % 2 === 0);
-      // Several devices to come are for a fan, on the middle row: but one time in three the stream leaves the
-      // middle row all the same, since only from the top or the bottom can a device stand upright.
-      const fan = more >= 2 && (row !== 1 || picks++ % 3 !== 0);
+      // The next device stands upright in the row between, if the stream is at the top or the bottom.
+      const more = wing.length - i, stands = row !== 1 && singles(i) >= 1;
+      // Several things to come are for a fan, on the middle row: but every other time the stream leaves the
+      // middle row instead, since only from the top or the bottom can a device stand upright. It is counted
+      // and not left to the room's own choices: by those, some rooms had fans every time and nothing
+      // upright at all, the owner's kitchen among them (2026-11-18).
+      const fan = more >= 2 && (row !== 1 || leaves++ % 2 === 0);
       const next = stands ? 2 - row : fan ? 1 : (row + 1 + (picks++ % 2)) % DEEP, up = next < row;
       if (next === row) put(col, row, STRAIGHT[picks++ % 2]);
       else {
