@@ -8861,5 +8861,5 @@ function el() {
 		n && (console.info("CASA-MIA CARDS: this guest's endpoint closed; going to the goodbye page"), location.replace(n));
 	}, Zc);
 }
-console.info(`%cCASA-MIA CARDS\n%ccommander, tablet layout (${Xn})`, "color: green; font-weight: bold;", ""), ti("Casa Mia", "casa_mia/cards", Xn), ri("cm-cards.js"), el();
+console.info(`%cCASA-MIA CARDS\n%ccommander, tablet layout (${Xn})`, "color: green; font-weight: bold;", ""), ti("Casa Mia", "casa_mia/cards", Xn), ri(`cm-cards.js ${Xn}`), el();
 //#endregion

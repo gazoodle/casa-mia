@@ -1,12 +1,13 @@
 {
   "domain": "casa_mia",
   "name": "Casa Mia",
+  "after_dependencies": ["hassio"],
   "codeowners": [],
   "config_flow": true,
-  "dependencies": ["frontend", "http"],
+  "dependencies": ["frontend", "http", "lovelace"],
   "documentation": "https://github.com/gazoodle/casa-mia",
   "integration_type": "service",
   "iot_class": "local_polling",
   "requirements": [],
-  "version": "2026.11.9-b15"
+  "version": "2026.11.9-b16"
 }

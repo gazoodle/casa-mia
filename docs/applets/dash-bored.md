@@ -4,8 +4,8 @@
 
 > **Maturity: In development.** Being built: parts work, it changes often, and an update may break it. For the curious. ([The levels](../README.md#maturity))
 
-> **This is a work in progress.** Of the eighteen, four run in Home Assistant today: the
-> Gazette, Bakelite, the Fridge and Aurora. The other fourteen are mock-ups:
+> **This is a work in progress.** Of the eighteen, five run in Home Assistant today: the
+> Gazette, Bakelite, the Fridge, Aurora and Digs. The other thirteen are mock-ups:
 > designs that work against an invented house but don't talk to Home Assistant yet. They
 > are being built one at a time, and what is here changes often.
 
@@ -42,7 +42,7 @@ the Casa Mia integration.
 
 ## The eighteen, and where each has got to
 
-The Gazette, Bakelite, the Fridge and Aurora can be used. The pictures of the others, and Aurora's for now, are of their mock-ups.
+The Gazette, Bakelite, the Fridge, Aurora and Digs can be used. The pictures of the others, and Aurora's and Digs' for now, are of their mock-ups.
 
 <table>
 <tr>
@@ -125,8 +125,8 @@ The Gazette, Bakelite, the Fridge and Aurora can be used. The pictures of the ot
 <p><b>Arcade</b> · Mock-up<br>A fixed-shooter cabinet. Devices hang in formation by room; aim and fire to switch one.</p>
 </td>
 <td width="33%" valign="top">
-<img src="../screenshots/dash-bored-mock-maze.webp" alt="Moth, as a mock-up" width="100%">
-<p><b>Moth</b> · Mock-up<br>The house as a maze. Press a lamp and a moth flies to it through the doorways and switches it.</p>
+<img src="../screenshots/dash-bored-mock-digs.webp" alt="Digs, as a mock-up" width="100%">
+<p><b><a href="#digs">Digs</a></b> · Being built (the picture is of its mock-up)<br>The house in section, built of square blocks sixteen pixels across. A lamp lights the blocks round it, a level is a stack of ten blocks, hearts are the house's health and the sky keeps the real time. Unlocking the door takes two hits.</p>
 </td>
 </tr>
 </table>
@@ -154,8 +154,8 @@ of the page, on a part of it that is not a button or another control. A choice o
 a small drawing of each family; press one and the page becomes it.
 
 The choice is remembered by the browser it was made in. A tablet on the wall, a phone and
-a desktop each keep their own. There are four families: the Gazette, the Console, the
-Fridge and Aurora. The first three each have a choice of their own, made on the thing itself: the Gazette's three
+a desktop each keep their own. There are five families: the Gazette, the Console, the
+Fridge, Aurora and Digs. The first three each have a choice of their own, made on the thing itself: the Gazette's three
 papers (see [Three papers](#three-papers)), the Console's era, on a switch on the panel
 (see [The Console](#the-console)), and whose fridge it is, on three magnets in the door's
 corner (see [The Fridge](#the-fridge)).
@@ -964,6 +964,105 @@ Home Assistant refuses something, it says so in a box at the top of the page.
 Not on it yet: a device's history, a thermostat's modes, a player's source, the cameras'
 sightings and the Gazette's columns.
 
+
+## Digs
+
+The house cut through from the side and built of square blocks, standing in its garden.
+It is being built, and its picture in the table above is still of its mock-up. Its
+textures are a pack called 4², because a block is sixteen pixels across. The page draws
+every texture, figure and letter itself, so nothing in it comes from a game.
+
+Each floor is a storey and each room is three blocks high, with its name and its
+temperature over it. An area whose name says it is out of doors (garden, drive, patio,
+yard, terrace, balcony, porch, deck, lawn or pond) is in the garden, to the left of the
+house, with its name over it too. The page is as tall as the screen, and a house wider
+than the screen is scrolled sideways. A house of three storeys has less sky over it, so
+that its blocks can be as big as a smaller house's.
+
+Digs goes by the floors that Home Assistant has for your areas, and a house whose areas
+are not yet on floors is still drawn:
+
+- An area on no floor whose name says it is an outbuilding (garage, barn, shed, workshop,
+  stable, annexe, studio, lodge, cabin, greenhouse or summer house) is a building by
+  itself, to the right of the house.
+- The other areas on no floor are one more building, in up to three storeys, so that
+  they are not one very long row. Give an area a floor in Home Assistant and it moves
+  into the house.
+- A board in the garden says how many rooms are on no floor and how many devices are in
+  no area. Pressing it says so in full at the foot of the screen. Devices in no area
+  have no block.
+
+A room's name is pressed twice in the same way: the first press says how many of its
+lights are on, and the second switches them all off, or on if none were on.
+
+A room with more than eight lights has one chandelier for them all, which glows when any
+is on and lights the room by how many are. A room with more than eight switches, or with
+scenes of its own, has a chest. Pressing the chandelier or the chest opens a list of
+everything in the room: each device's block with its name and how it stands, and the
+room's scenes. In the list each block has its name beside it, so one press switches it.
+
+When the house is wider than the screen there is a map of all of it over the scenes,
+with a light for each lamp that is on and a frame round the part on the screen. Pressing
+the map goes to that part of the house.
+
+Each device is a block. The blocks have no names on them, so the first press on a block
+only chooses it: it gets a white edge and its name over it, and the line at the foot of
+the screen says what it is and how it stands. A press on the chosen block switches it,
+and each press after that switches it again. A block stays chosen for eight seconds
+after the last press.
+
+- **A light** is a lamp on the ceiling. When it is on it lights the blocks round it in its
+  own room and the walls, but not the room next door. A dimmed lamp gives less light.
+- **A blind or a curtain** is a window, with its slats as far down as it is closed. A room
+  with a blind open is lighter by day.
+- **A lock** is a door, and so is a garage door or a gate.
+- **A thermostat or a water heater** is a stove, with a fire in it while it is heating.
+- **A switch** is a lever. A switch that Home Assistant says is an outlet is a machine, as
+  is a player, a fan, a vacuum and anything else.
+- **A camera** (one press, since it changes nothing) is a picture in a frame, three blocks wide and two tall, on the wall of
+  its room or on a post in the garden. The picture is the camera's latest still, drawn
+  as coarsely as the blocks are, with the camera's name under it, so that one camera can
+  be told from another. Pressing it opens Home Assistant's own dialog, where the camera
+  is live. A camera whose still can't be fetched has a cracked grey picture.
+- **An alarm** is a block that opens Home Assistant's own dialog for it.
+
+A lock, a garage door, a gate, a valve and a siren take one press more to unlock, open
+or sound. The press that would switch another block cracks this one and the line at the foot of the screen says "Hit
+again to unlock". If the next press does not come within three seconds the crack goes.
+Locking, closing and silencing need no extra press.
+
+When you choose a device whose level can be set (a dimmable light, a blind, a thermostat's
+target, a player's volume), a stack of ten blocks appears at the right of the screen.
+Pressing a block in the stack sets the level to that tenth of its range.
+
+A device that is not answering is a cracked grey block. Pressing it does nothing but say
+so in the line at the foot of the screen.
+
+Around the house:
+
+- **Hearts**, top left, are the house's health. There are ten, and one is lost for each
+  door left unlocked, each alert from Sensor Watch and each device not answering. Press
+  the hearts to be told what each lost heart is for, one at a time.
+- **The power bar**, top right, is the power in use, at 300 W to a bolt, with the figure
+  beside it. It is there when the house has a power sensor.
+- **The clock and the weather** are at the top. The sky is light by day and dark at night,
+  with a sun or a moon, and it rains or snows on the house when Home Assistant's weather
+  entity says so.
+- **The forecast** is a row of signs in the garden, one for each of the next four days,
+  with the day, a picture of its weather and its high.
+- **Your scenes** are the buttons along the bottom: the house's and its floors'. The one
+  set most recently has a white edge. A room's own scenes are in its chest.
+- **The people at home** are figures in the house, each with their name over their head.
+  Home Assistant knows only that somebody is at home, not which room they are in, so the
+  figures walk about in the rooms that have a light on, or on the ground floor when no
+  light is on. Somebody who is away is not drawn.
+- **The signpost** in the garden, lettered DASH BORED, opens the choice of family. Two
+  presses in the top right corner of the page do the same.
+
+Digs does not yet have what a camera last saw, Casa Mia's presets, zoom and
+controls for a camera, a thermostat's modes or a player's source, an alarm's code on the
+page, or a device's history.
+
 ## The order of floors and rooms
 
 Floors are shown from the lowest up and the rooms on each by name. To change that, open
@@ -1002,6 +1101,10 @@ with no magnets to choose another.
 Aurora is a card too, **Casa Mia Dash-Bored Aurora** (`type: custom:dash-bored-aurora`). It
 takes `power`, `floors` and `rooms` in the same way, and has no `style`.
 
+Digs is a card too, **Casa Mia Dash-Bored Digs** (`type: custom:dash-bored-digs`). It takes
+`power`, `weather`, `floors` and `rooms` in the same way, and has no `style`. As a card its
+blocks are 32 pixels across, and its signpost is not pressed.
+
 The Console is a card too, **Casa Mia Dash-Bored Console** (`type: custom:dash-bored-console`),
 with its era switch. Give it `era: bakelite`, `era: nixie`, `era: silverface`, `era: bargraph` or `era: beige` and it is that era with no
 switch; the first is
@@ -1010,7 +1113,7 @@ dashboard that has it, but it is no longer offered when you add a card.
 It takes `power`, `weather`, `floors` and `rooms` in the same way, and has no `style`.
 
 When you add a card, Home Assistant shows a preview of each one. The Gazette, the Fridge,
-the Console and Aurora preview with one room and a few of its devices, so that you can see the
+the Console, Aurora and Digs preview with one room and a few of its devices, so that you can see the
 look without the whole house being drawn in a narrow column. The card you add shows the
 whole house.
 

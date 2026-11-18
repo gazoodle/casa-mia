@@ -91,6 +91,10 @@
     }
   },
   "issues": {
+    "standalone_layout": {
+      "title": "Tablet Layout is loaded twice",
+      "description": "The dashboard's resources have `casa-mia-tablet-layout.js` ({url}), which is Tablet Layout published by itself for a house without Casa Mia. Casa Mia loads Tablet Layout, garnish and the Over layer itself, so both are loaded and the browser uses whichever comes first. That may be an older one than this version of Casa Mia has.\n\nRemove it: if HACS installed it, remove Tablet Layout there; otherwise delete it in Settings → Dashboards → Resources. This goes away by itself when it is gone."
+    },
     "restart_required": {
       "title": "Restart Home Assistant to finish updating Casa Mia",
       "fix_flow": {

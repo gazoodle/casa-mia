@@ -4,7 +4,7 @@
 // page when the shell shows it (shell.ts) and a dashboard card when a dashboard does.
 import { LitElement, css, type PropertyDeclarations } from "lit";
 import type { Hass } from "../ha.ts";
-import { days, read, sighted, survey, type Day, type Device, type House, type Lens, type Options, type Seen, type Sighting, type Survey } from "./house.ts";
+import { days, read, sighted, survey, type Day, type Device, type House, type Lens, type Options, type Room, type Seen, type Sighting, type Survey } from "./house.ts";
 import { setting, type Press } from "./stories.ts";
 
 // The integration's feed of Sensor Watch's alerts (alerts.py). A family follows it as it
@@ -289,6 +289,14 @@ export class Family extends LitElement {
         this._fault = `${what}: Home Assistant refused (${err?.message ?? err}).`;
       },
     );
+  }
+
+  /** A room's lights, all at once: off, or on if none were. The Fridge's photograph of a room does this, and Digs' name over one. */
+  protected _lights(r: Room) {
+    const lights = r.devices.filter((d) => d.kind === "light" && !d.away);
+    const on = lights.some((d) => d.on);
+    const ids = lights.filter((d) => d.on === on).map((d) => d.id);
+    if (ids.length) this._call({ domain: "light", service: on ? "turn_off" : "turn_on", ids }, `${r.name} lights`);
   }
 
   /** Ask a device for a level, once the level has stopped changing: a drag asks when the

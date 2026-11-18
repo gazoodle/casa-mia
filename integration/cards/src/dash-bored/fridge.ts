@@ -139,14 +139,6 @@ export class Fridge extends Family {
     this._call(flip(d), `${d.room} ${d.name}`);
   }
 
-  /** A room's photograph is its lights: a press turns them all off, or all on if none were. */
-  private _lights(r: Room) {
-    const lights = r.devices.filter((d) => d.kind === "light" && !d.away);
-    const on = lights.some((d) => d.on);
-    const ids = lights.filter((d) => d.on === on).map((d) => d.id);
-    if (ids.length) this._call({ domain: "light", service: on ? "turn_off" : "turn_on", ids }, `${r.name} lights`);
-  }
-
   /** Where a device's strip stands, in the device's own units. */
   private _level(d: Device) {
     if (this._want?.id === d.id) return this._want.level;

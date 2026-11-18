@@ -27,7 +27,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from . import sensor_watch
+from . import layout_resource, sensor_watch
 from .children import discover_children, reload_children
 from .const import CARDS_JS, DOMAIN, FONA_EVENT, SCRIPTS_URL, SETTINGS_EVENT
 from .coordinator import (
@@ -123,6 +123,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     sensor_watch.old_services(hass, entry)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     await _load_scripts(hass, entry, loaded_version, helpers)
+    await layout_resource.watch(hass, entry)
 
     @callback
     def reload_on_switch() -> None:

@@ -9,6 +9,10 @@ import "./garnish-sections.ts";
 import "./screen-condition.ts";
 import "./over-layer/index.ts";
 
-console.info("%cCASA-MIA TABLET LAYOUT", "color: green; font-weight: bold;");
+// The marker is kept whole in the built file, where its version is stamped.
+const STAMP = __CM_STAMP__;
+const VERSION = STAMP.slice(STAMP.indexOf("@") + 1);
 
-claim("casa-mia-tablet-layout.js");
+console.info(`%cCASA-MIA TABLET LAYOUT%c ${VERSION}`, "color: green; font-weight: bold;", "");
+
+claim(`casa-mia-tablet-layout.js ${VERSION}`);

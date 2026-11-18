@@ -200,6 +200,41 @@ the Gazette's own work is parked below it.
   is the same window and lamp for every room. A thermostat's modes and a player's source
   are not on the door, nor is a device's history. The novelty magnets are twelve; more
   would suit (the owner: "other animals, objects etc").
+- **Digs, the fifth family, what's left** (built 2026.11.9-b16 from the mock-up the owner
+  liked on 2026-11-18; how it is built is in HANDOVER). He has not seen the build, and it
+  has been seen only on a harness: not in Home Assistant, on the test VM or on a tablet.
+  - **Owed from the capability table** (`OWED` in `tests/test_dash_bored_parity.py`): a
+    what a camera last saw (it has the latest picture); Casa Mia's presets, zoom and controls; a
+    device's choices (a thermostat's modes, a player's source); the appliances drawing
+    power; what the house is missing by name (the board only counts); the comings and goings, what the players played,
+    the ratings and the agent's column (a book on a lectern was one thought for the
+    column); a device's history; finding a device by typing; an alarm's code on the page.
+  - **A user's own sprites** (owner, 2026-11-18): a person's figure can be a picture the
+    household supplies, so that someone can put a game's own character in at home. We
+    ship only our own drawings; what a user adds stays in their own Home Assistant and
+    never comes into the repo or the mirror. Where the pictures live and how a person is
+    given one are not designed.
+  - **Buildings as a setting** (2026-11-18): which floors, or areas, make up an
+    outbuilding, in the Configure dialog beside the order of floors and rooms. Today an
+    outbuilding is told by its area's name and only when it is on no floor, so one with
+    a loft cannot be two storeys. It waits for the owner's areas to have floors.
+  - **The owner's house is not yet sorted into floors** (2026-11-18). Digs draws such a
+    house as one wrapped building until it is. Sorting it helps every family; setting
+    floors from the page was discussed for the Gazette and needs his say, as it writes
+    to the registries.
+  - The hearts run out on a big house: ten, and one lost for each device not answering.
+    The tip still counts them all.
+  - Open from the mock-up: a larger font, and a block of its own for each kind of
+    appliance (a player, a fan, a vacuum and the rest are all the machine).
+  - Later texture packs are named the same way as 4² (2³ at half the detail): proposed,
+    not agreed.
+  - Many cameras in one area (2026-11-18): each is a picture three blocks wide, so an
+    area with a dozen is 36 blocks of pictures. Nothing gathers them as the chandelier
+    gathers lights; decide with the owner once it is seen on his house.
+  - Known and left: a device in no room has no block (the board counts them); the clock
+    and the hearts lie over the top storey's roof on a house of three storeys; the sun is up from six to six all year (Home Assistant's sun
+    entity has the real hours); out of doors is told by an area's name in English; a
+    lit lamp behind a ladder hides part of it.
 
 **The Gazette, parked** (owner, 2026-11-14):
 
@@ -460,7 +495,9 @@ Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it d
   - **The layout bundle, next** (owner, 2026-11-17: Tablet Layout is the next piece to publish; nothing may be lost from Casa Mia, and nothing changes when it is installed with Casa Mia).
     - **Built in 2026.11.9-b13:** `integration/plugins/casa-mia-tablet-layout.js` (name agreed 2026-11-17; listed as "Tablet Layout"), a second Vite entry (`src/alone.ts`) from the same sources as `cm-cards.js`: the view, garnish, the screen condition and the Over layer. It is the same code, not a cut-down copy. The first file loaded defines the elements and the other says so in the console (`own.ts` `claim`). Alone, the two dashboard settings are simply on (`own.ts`; owner, 2026-11-18). Seen on the test VM with every `casa_mia/` command refused: elements defined, a view laid out, no errors.
     - **The plugin kind is in `tools/mirror.py`** (2026-11-18; `docs/design/marketplace-mirrors.md`, "A dashboard plugin has a mirror too"). Its dry run passes. Nothing is published.
-    - **Still to do:** check the catalog's `plugin` list for a name clash; a Repair in `casa_mia` when the stand-alone file is in the Lovelace resources; its version (it has none: `?v=` is only on Casa Mia's copy); whether the README should carry `docs/over-layer.md` too; whether the Marketplace takes a plugin.
+    - **Done 2026-11-18 (b16):** no name clash in HACS's list of plugins; the Repair in `casa_mia` when the stand-alone file is in the dashboard's resources; the README carries the Over layer's guide too.
+    - **Also done 2026-11-18 (b16):** it has a version, stamped in the built file as a component's is in its manifest; the Marketplace takes a plugin (read in core's source); garnish needs no guide of its own, as `docs/tablet-layout.md` has it ("Showing and hiding" and the options reference).
+    - **Still to do:** its first publication, at a release, which is when HACS's action first runs on it and an install from a store can first be tried. The Repair has been seen in tests inside Home Assistant, not on a box.
 - **Log viewer page:** the app's own log, live (follow, level filter, search), without going to Settings > Apps > Log. Through the Supervisor's `/addons/self/logs`, or an in-memory ring buffer.
 - **Graphlets elsewhere.** `app/web/src/Graphlet.tsx` is the general history graph: use it, not a new one, wherever a page shows a figure over time (FONA's signal, the kiosks' battery and memory, guest logins, firmware downloads, the app's CPU and memory). Each needs its history kept on the box, so the graph is full when the page opens.
 

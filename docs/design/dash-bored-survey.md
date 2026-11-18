@@ -17,7 +17,7 @@ every family is given, so showing them needed no new data.
 
 `tests/test_dash_bored_parity.py` enforces the part of this it can read from the sources:
 the fields of `House`, a device's optional fields, the integration's feeds and the
-forecast. One that any family reads must be read by all four, or be in the test's `OWED`
+forecast. One that any family reads must be read by all five, or be in the test's `OWED`
 list with the reason. It sees what a family reads and not what it draws, so this table is
 still kept by hand.
 
@@ -25,32 +25,38 @@ How to read it: **yes** means built, **no** means not built, **part** is explain
 the table, and **?** means it was not checked when this was written. Check a **?** in the
 source before relying on it, and replace it.
 
-| Capability | Gazette | Console | Fridge | Aurora |
-|---|---|---|---|---|
-| All fifteen kinds of device | yes | yes | yes | yes |
-| Levels: brightness, position, speed, volume, target temperature | yes | yes | yes | yes |
-| Two presses to unlock, open or sound | yes | yes | yes | yes |
-| Scenes | yes | yes | yes | yes |
-| Sensor Watch's alerts | yes | yes | yes | yes |
-| A camera's latest picture and what it last saw | yes | yes | yes | yes |
-| Casa Mia's cameras: presets, zoom and controls | yes | yes | no | yes |
-| The weather now | yes | yes | yes | no |
-| The forecast by the day | yes | yes | no | no |
-| Who is at home | yes | no | yes | no |
-| People's comings and goings, with times | yes | no | no | no |
-| What the players played lately | yes | no | no | no |
-| What is playing, and pause or play | yes | ? | ? | no |
-| Which appliances are drawing power | yes | no | no | no |
-| Love it or Loathe it's ratings | yes | no | no | no |
-| Power in use | yes | ? | yes | yes |
-| A device's history | yes | part | ? | part |
-| A door found unlocked, said on the front | yes | ? | yes | ? |
-| Devices not answering, said on the front | yes | ? | ? | ? |
-| What the house is missing (devices in no area and the like) | yes | no | no | no |
-| A thermostat's modes and a player's source | no | no | no | yes |
-| Finding a device by typing | ? | no | no | yes |
-| The house's own agent's column (ZenOS-AI) | yes | no | no | no |
+| Capability | Gazette | Console | Fridge | Aurora | Digs |
+|---|---|---|---|---|---|
+| All fifteen kinds of device | yes | yes | yes | yes | part |
+| Levels: brightness, position, speed, volume, target temperature | yes | yes | yes | yes | yes |
+| Two presses to unlock, open or sound | yes | yes | yes | yes | yes |
+| Scenes | yes | yes | yes | yes | yes |
+| Sensor Watch's alerts | yes | yes | yes | yes | yes |
+| A camera's latest picture and what it last saw | yes | yes | yes | yes || part |
+| Casa Mia's cameras: presets, zoom and controls | yes | yes | no | yes | no |
+| The weather now | yes | yes | yes | no | yes |
+| The forecast by the day | yes | yes | no | no | yes |
+| Who is at home | yes | no | yes | no | yes |
+| People's comings and goings, with times | yes | no | no | no | no |
+| What the players played lately | yes | no | no | no | no |
+| What is playing, and pause or play | yes | ? | ? | no | yes |
+| Which appliances are drawing power | yes | no | no | no | no |
+| Love it or Loathe it's ratings | yes | no | no | no | no |
+| Power in use | yes | ? | yes | yes | yes |
+| A device's history | yes | part | ? | part | no |
+| A door found unlocked, said on the front | yes | ? | yes | ? | yes |
+| Devices not answering, said on the front | yes | ? | ? | ? | yes |
+| What the house is missing (devices in no area and the like) | yes | no | no | no || part |
+| A thermostat's modes and a player's source | no | no | no | yes | no |
+| Finding a device by typing | ? | no | no | yes | no |
+| The house's own agent's column (ZenOS-AI) | yes | no | no | no | no |
 
+- **All fifteen kinds of device:** Digs has a block for each, but a camera's picture and an
+  alarm's block only open Home Assistant's own dialog: neither is worked from the page.
+- **A camera's latest picture and what it last saw:** Digs has the latest picture, in the
+  camera's frame, and not what it last saw.
+- **What the house is missing:** Digs has a board that counts the rooms on no floor and the
+  devices in no area, and names none of them.
 - **A device's history:** the Console has a chart recorder for a room. Aurora has the
   last hour of the house's power and nothing for a device.
 - Each family's own varieties (the Gazette's three papers, the Console's five eras, the

@@ -18,7 +18,7 @@ const PRESSED = "button, a, input, textarea, summary, dialog, [role=button], [ro
 /** Whether a point is in the top right corner of a box whose right edge and top are given. */
 export const cornered = (x: number, y: number, right: number, top: number) => x <= right && x > right - CORNER && y >= top && y < top + CORNER;
 
-type Family = { id: string; name: string; says: string; draw(hass: Hass, narrow: boolean): TemplateResult; still: TemplateResult };
+type Family = { id: string; name: string; beside?: string; says: string; draw(hass: Hass, narrow: boolean): TemplateResult; still: TemplateResult };
 // Each family, with a small drawing of it for the choice. A new family is an entry here,
 // and its element is defined in index.ts.
 const FAMILIES: Family[] = [
@@ -60,6 +60,16 @@ const FAMILIES: Family[] = [
       <rect x="14" y="24" width="40" height="6" rx="3" fill="#fff"/><rect x="14" y="36" width="48" height="3" rx="1.5" fill="#fff" opacity=".6"/><rect x="14" y="42" width="34" height="3" rx="1.5" fill="#fff" opacity=".6"/>
       <circle cx="84" cy="40" r="3.5" fill="#fff"/><circle cx="94" cy="40" r="3.5" fill="#fff" opacity=".3"/><circle cx="124" cy="40" r="3.5" fill="#fff" opacity=".3"/><circle cx="84" cy="84" r="3.5" fill="#fff"/><circle cx="124" cy="84" r="3.5" fill="#fff"/></svg>`,
   },
+  {
+    // 4² is its texture pack (a block is sixteen texels square): said beside the name, and no part of it.
+    id: "digs", name: "Digs", beside: "4²", says: "The house in section, built of square blocks: a block for each device, lit by its lamps, with the household walking about in it.",
+    draw: (hass, narrow) => html`<dash-bored-digs .hass=${hass} .narrow=${narrow} .panel=${true}></dash-bored-digs>`,
+    still: html`<svg viewBox="0 0 160 100" aria-hidden="true" shape-rendering="crispEdges"><rect width="160" height="100" fill="#7fb2ff"/><rect x="10" y="10" width="20" height="20" fill="#ffe45c"/>
+      <rect y="80" width="160" height="10" fill="#5aa13c"/><rect y="90" width="160" height="10" fill="#7a5536"/><rect x="20" y="50" width="10" height="30" fill="#6b4a2b"/><rect x="10" y="30" width="30" height="20" fill="#3f7d2c"/>
+      <rect x="60" y="30" width="90" height="50" fill="#b98a4e"/><rect x="60" y="20" width="90" height="10" fill="#9a3b2e"/><rect x="70" y="10" width="70" height="10" fill="#9a3b2e"/><rect x="60" y="50" width="90" height="5" fill="#7d5a30"/>
+      <rect x="65" y="30" width="38" height="20" fill="#9c927c"/><rect x="107" y="30" width="38" height="20" fill="#5c5648"/><rect x="65" y="55" width="38" height="25" fill="#5c5648"/><rect x="107" y="55" width="38" height="25" fill="#9c927c"/>
+      <rect x="80" y="30" width="10" height="10" fill="#ffe9a0"/><rect x="120" y="55" width="10" height="10" fill="#ffe9a0"/><rect x="135" y="60" width="10" height="20" fill="#9a6a34"/><rect x="122" y="66" width="6" height="14" fill="#e0913a"/></svg>`,
+  },
 ];
 
 export class Shell extends LitElement {
@@ -76,7 +86,7 @@ export class Shell extends LitElement {
     button:hover, button:focus-visible { border-color: #9aa3ad; }
     button[aria-current="true"] { border-color: #6cb6ff; }
     svg { display: block; width: 100%; border-radius: 4px; margin-bottom: 8px; }
-    b { display: block; } span { opacity: .75; font-size: 13px; }
+    b { display: block; } small { font-weight: 400; opacity: .6; } span { opacity: .75; font-size: 13px; }
     p { margin: 14px 0 0; opacity: .6; font-size: 13px; overflow-wrap: anywhere; }
   `;
   hass?: Hass;
@@ -143,7 +153,7 @@ export class Shell extends LitElement {
         ? html`<dialog @close=${() => (this._choosing = false)} @click=${(e: Event) => e.target === e.currentTarget && (this._choosing = false)}>
             <h2>Dash-Bored</h2>
             <div class="choices">
-              ${FAMILIES.map((f) => html`<button aria-current=${f.id === family.id} @click=${() => this._choose(f.id)}>${f.still}<b>${f.name}</b><span>${f.says}</span></button>`)}
+              ${FAMILIES.map((f) => html`<button aria-current=${f.id === family.id} @click=${() => this._choose(f.id)}>${f.still}<b>${f.name}${f.beside ? html` <small>${f.beside}</small>` : nothing}</b><span>${f.says}</span></button>`)}
             </div>
             <p>To choose again, press twice in the top right corner of the page.</p>
           </dialog>`

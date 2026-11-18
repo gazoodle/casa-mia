@@ -24,6 +24,6 @@ console.info(
 
 offerReload("Casa Mia", "casa_mia/cards", VERSION);
 
-claim("cm-cards.js");
+claim(`cm-cards.js ${VERSION}`);
 
 watchForGoodbye();

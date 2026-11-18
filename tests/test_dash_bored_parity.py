@@ -32,6 +32,7 @@ FAMILIES = {
     "console": ["console"],
     "fridge": ["fridge.ts", "fridge"],
     "aurora": ["aurora.ts", "aurora"],
+    "digs": ["digs.ts", "digs"],
 }
 COMMENT = re.compile(r"/\*.*?\*/|//[^\n]*", re.S)
 FEED = re.compile(r'const (\w+) = "(casa_mia_dash_bored/\w+)"')
@@ -65,8 +66,20 @@ OWED = {
     ("fridge", "device.choices"): PARITY,
     **{
         (family, f"feed casa_mia_dash_bored/{feed}"): PARITY
-        for family in ("console", "fridge", "aurora")
+        for family in ("console", "fridge", "aurora", "digs")
         for feed in ("personal", "playing", "column")
+    },
+    # Digs' first build (2026.11.9-b16): BACKLOG.md, "Digs, the fifth family".
+    **{
+        ("digs", what): PARITY
+        for what in (
+            "house.appliances",
+            "device.zoom",
+            "device.presets",
+            "device.controls",
+            "device.choices",
+            "feed casa_mia_dash_bored/sightings",
+        )
     },
 }
 

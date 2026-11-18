@@ -187,7 +187,9 @@ imported from `casa_mia`, no app option. Guide: `docs/applets/love-or-loathe.md`
   dashboard plugin. `tools/mirror.py` makes its mirror (`PLUGINS`; the kinds' differences
   are in `tools/mirrors/texts.py`). Not published; what is left is in `BACKLOG.md` ("The
   layout bundle, next"). Alone it has nothing to set: garnish everywhere and the orientation
-  conditions are on. A change to the view, garnish or the Over layer must keep working with no
+  conditions are on. With Casa Mia as well, `casa_mia/layout_resource.py` raises a Repair
+  while the file is in the dashboard's resources (b16). Its version is stamped in the built
+  file by `tools/component_versions.py`, as a component's is in its manifest. A change to the view, garnish or the Over layer must keep working with no
   integration answering (`own.ts`).
 - **A mirror is its own home** (b12, 2026-11-17; HACS's review asked for it): a published
   component's manifest names its mirror for `documentation` and `issue_tracker`, the
@@ -305,15 +307,82 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   Contraption is designed and tried (2026-11-18) and is to be the sixth family. Its brief,
   with what is decided, measured, dropped and left to do, and which mock-up shows each
   thing, is `docs/design/dash-bored-contraption.md`. Read it before building any of it.
-- **Digs is to be the fifth family** (name agreed with the owner 2026-11-18; he asked for
-  it for his grandson). The house in section, built of square blocks in the style of
-  block-building games. Only the mock-up exists, `docs/design/dash-bored/digs.html`, which
-  the owner has not yet seen. Its first texture pack is to be called 4² (a block is sixteen
-  texels square), shown beside the name in the chooser and not part of the name.
-  Everything is our own and made in code (textures, figures, lettering): no name, texture,
-  creature or font from any game, because Dash-Bored is published. Still to decide: how a
-  house wider than the screen scrolls, and a larger font (three texels by five can't tell
-  M, N, W and H apart well).
+- **Digs is the fifth family** (2026.11.9-b16; name agreed with the owner 2026-11-18, who
+  asked for it for his grandson and has not yet seen the build). The house in section,
+  built of square blocks in the style of block-building games, after
+  `docs/design/dash-bored/digs.html`. `digs.ts` on `family.ts`, with `digs/`:
+  - `world.ts` lays the house out as a grid of blocks, and works out the light
+    (`shades`). It has no page in it and its own test. The world is built once for a
+    `Survey` (by its identity, in `_surveyed`), never for a state: a block must not move
+    because a light was switched. A floor is a storey, in the survey's order (lowest
+    first, unless the house's `floor_order` says otherwise: then the first named is the
+    ground). A room is three blocks high and as wide as its devices need: lamps and
+    windows share the ceiling, blocks and doors the floor. An area out of doors by its
+    name (`OUTDOORS`, English) is in the garden.
+  - `textures.ts` is the texture pack 4² (a block is sixteen texels square; the name is
+    shown beside "Digs" in the chooser, `beside` in `shell.ts`, and is no part of the
+    name) and the lettering, three texels by five, as pictures. Everything is our own
+    and made in code: no name, texture, creature or font from any game, because
+    Dash-Bored is published. A new block is a row in `PAINTS`.
+  - **A big house, or one not sorted into floors** (owner, 2026-11-18: his has
+    outbuildings, three floors and very many lights, and most of its areas are on no
+    floor yet). All in `world.ts`:
+    - Over `MANY` (8) lights a room has one chandelier (`LAMPS` + the room's id in
+      `slots`), and over `MANY` switches, or with scenes of its own, a chest (`CHEST`).
+      Either opens the room's list (`digs/chest.ts`): every device's block with its name,
+      and the room's scenes. Up to `MANY` lamps are a block each, two deep.
+    - Rooms on no floor are a building of their own, wrapped into up to three storeys
+      (`wrapped`). One that is an outbuilding by its name (`OUTBUILDING`, English) is a
+      building by itself. **Not built:** a setting that says which floors are which
+      building (BACKLOG); it is no use until the areas have floors.
+    - A storey is as wide as its own rooms, and at least as wide as any over it; the
+      roof covers what has nothing above. Three storeys have one row of sky and no
+      pitched roof, so the world is 16 rows and a block 48 px on a 768 px screen.
+    - A board in the garden counts `house.gaps` (`floorless`, `loose`). A room's name is
+      a button for its lights (`_lights`, now in `family.ts` and shared with the Fridge).
+      The bar holds `house.scenes` only. The map (`.map`, 3 px a block, drawn from the
+      two canvases in `updated`) is shown while the world is wider than the screen.
+    - Measured on an invented house of 33 rooms, 29 of them on no floor: 112 blocks
+      wide, 5.3 screens of a 1024 px tablet at 48 px. Before these changes a like house
+      had 32 px blocks and one storey.
+  - **The first press chooses, the next switches** (owner, 2026-11-18: the blocks can't
+    all be lettered, and finding out what one is must not change the house). `_sel` is
+    the chosen device, or `ROOM` and a room's id for its name; it lapses `CHOSEN` (8 s)
+    after the last press (`_point`), so that a block chosen long ago does not switch at
+    one press beside one that takes two. The chosen block has a tag: a white edge and
+    its name, over the dark. A guarded block's crack comes after the choosing, so
+    unlocking is three presses. One press still does it where nothing is in doubt or
+    nothing changes: a scene, the level's stack, a chandelier or chest, a camera, an
+    alarm, and a block in a room's list (`named` in `_press`). Choosing a thermostat
+    brings its stack up without switching it.
+  - **A camera is a picture on the wall** (owner, 2026-11-18: "artistic licence", since
+    one camera's block was like another's). Its slot is `PICTURE` (3) blocks wide and two
+    tall (`Slot.w`), on a post out of doors. `digs/shots.ts` draws its `picture` into a
+    canvas of 44 by 22 texels when the address changes, cut to fill, over its name. No
+    still is the camera block in the frame; a still that fails is the cracked grey block
+    and a line in the console (the address without its token). Not in a room's list,
+    where it is the plain camera block. A room of many cameras is three blocks wide for
+    each: nothing gathers them.
+  - Each device is a real button over one canvas of the blocks, with a second canvas of
+    the dark over them (a pixel to a block). A block's size is a multiple of 8 px (half
+    texels) from 16 to 64, fitted to the screen's height as the page, and 32 px as a card.
+  - **Agreed with the owner on 2026-11-18:** a house wider than the screen is walked
+    along sideways (`.scroll`, the one family with a box that scrolls: sideways only);
+    a heart is lost for each unlocked door, each Sensor Watch alert and each device not
+    answering; a thermostat is a stove and a switch a lever (one whose `device_class`
+    is `outlet` is a machine: `Device` does not say which switches are appliances); the
+    forecast is signs in the garden; the household walk about in the lit rooms, or the
+    ground floor with none lit (`_lived`); and a signpost in the garden fires `CHOOSE`.
+  - My choices, told to the owner: a camera or an alarm opens Home Assistant's dialog;
+    every guarded kind cracks, not only a lock; a device not answering is a cracked grey
+    block that takes no press; the level's stack is at the screen's right edge and is
+    there only for a device whose level can be set; a fault is said in plain type so
+    that it wraps.
+  - Seen on a throw-away harness with an invented house (Chromium and WebKit; 1344,
+    1024 and 390 px; day, night, rain and snow; as a card; the small house and the big
+    one), where each kind of press made the right call. **Not seen:** inside Home Assistant, the test VM, the owner's
+    house, a tablet, the card picker, a real finger's sideways scroll, a house of three
+    storeys or of thirty rooms. What is owed is in BACKLOG ("Digs, the fifth family").
 - **Published by itself** (2026.11.9-b1; owner, 2026-11-15): in `components.PUBLISHED`,
   mirror `gazoodle/casa-mia-dash-bored`, made by `tools/mirror.py` at a release
   (`docs/design/marketplace-mirrors.md`). The dry run passes; nothing is published yet.

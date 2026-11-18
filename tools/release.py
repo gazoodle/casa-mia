@@ -57,6 +57,7 @@ RELEASE_FILES = (
     "app/CHANGELOG.md",
     "integration/versions.lock.json",
     "integration/custom_components/*/manifest.json",
+    "integration/plugins/*.js",
 )
 CHECKS = (
     ("Lint", [VENV / "ruff", "check", "."]),
