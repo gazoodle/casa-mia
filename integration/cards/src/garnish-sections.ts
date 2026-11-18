@@ -12,7 +12,7 @@
 import { whenConnected } from "./connection.ts";
 import { inTablet, onlyGarnish } from "./garnish.ts";
 import { holdsPanelLayer } from "./over-layer/common.ts";
-import { OWN } from "./own.ts";
+import { ALONE } from "./own.ts";
 
 let everywhere = false;
 const seen = new Set<any>(); // the sections drawn, to look again when the switch changes
@@ -58,5 +58,5 @@ function set(on: boolean) {
 whenConnected("garnish on all section dashboards", ({ conn }) =>
   conn
     .subscribeMessage((s: any) => set(!!s?.dashboards?.garnish_everywhere), { type: "casa_mia/settings/subscribe" })
-    .catch(() => set(OWN.garnish_everywhere)),
+    .catch(() => set(ALONE)),
 );

@@ -103,6 +103,14 @@ export const STYLES = css`
      proud of the panel, and recessed in it a milky lens with the level engraved in dark
      capitals. The lamp is behind the lens: brightest in the middle, and the level's
      colour (--glow). The border is the bezel, lighter along its top where the light falls. */
+  /* The weather (../weather.ts): a tuner's dial, lit in its blue-green behind a black bezel. Its lamps are pointers: red for now, black for tomorrow. */
+  .panel { --sky-ink: #101614; --sky-on: #c9170f; --sky-next: #101614; --sky-off: transparent; }
+  .panel .sky .win, .panel .days .win { border: 7px solid #101112; border-radius: 4px; background: linear-gradient(#f2fffa, #9fdccd 45%, #58ab9b); box-shadow: 0 0 0 .5px rgba(255,255,255,.2), 0 3px 4px rgba(0,0,0,.45), inset 0 0 0 1px rgba(0,0,0,.45); }
+  .panel .sky.unlit .win { background: #8a8f8d; }
+  .panel .sky .win i { width: 2px; height: 13px; border-radius: 1px; }
+  .panel .sky .win { background-image: linear-gradient(rgba(16,22,20,.55), rgba(16,22,20,.55)), linear-gradient(#f2fffa, #9fdccd 45%, #58ab9b); background-size: calc(100% - 64px) 1px, auto; background-position: 52px 23px, 0 0; background-repeat: no-repeat; }
+  .panel .top .sky, .panel .top .days { flex: 0 1 250px; } .panel .top .days { flex-basis: 290px; }
+  .panel .days .readout { height: 16px; }
   .jewel { display: flex; flex: none; align-items: center; justify-content: center; width: 74px; padding: 0 3px; border: 5px solid #141516; border-top-color: #2f3134; border-bottom-color: #08090a; border-radius: 4px;
     color: rgba(34, 26, 20, .9); font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; text-shadow: 0 1px 0 rgba(255,255,255,.55);
     background: radial-gradient(ellipse 70% 90% at 50% 45%, rgba(255,255,255,.85), rgba(255,255,255,.25) 60%, rgba(0,0,0,.14)), var(--glow); background-clip: padding-box;

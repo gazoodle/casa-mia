@@ -8,11 +8,13 @@ import { STYLES } from "./beige/styles.ts";
 import { PAGE } from "../family.ts";
 import { Panel } from "./panel.ts";
 import { VIEWS } from "./views.ts";
+import { WEATHER, weather } from "./weather.ts";
+import { figs } from "./figures.ts";
 import { scope } from "./scope.ts";
 
 export const CARD = "dash-bored-beige";
 
 export class Beige extends Panel {
-  static styles = [PAGE, VIEWS, STYLES];
-  protected kit = { ...kit, recorder: scope(kit.label, kit.push) };
+  static styles = [PAGE, VIEWS, STYLES, WEATHER];
+  protected kit = { ...kit, recorder: scope(kit.label, kit.push), ...weather(kit.label, figs) };
 }

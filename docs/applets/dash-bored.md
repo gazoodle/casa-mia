@@ -534,6 +534,33 @@ house's power if a card names a power sensor, and a knife switch for each scene 
 belongs to the whole house. Press a knife switch and the scene is turned on; the blade
 closes for a moment and opens again.
 
+The weather has two more instruments beside the outside air meter, from the same weather
+entity. On the 1950s panel they are these:
+
+- **A barometer**, lettered Stormy, Rain, Change, Fair and Set fair. Its black hand points
+  at the weather now. Its brass hand points at tomorrow's weather: on a real barometer
+  that hand is set by the knob to mark an earlier reading. A slip in the window under the
+  hands has Home Assistant's own word for the weather now, such as Snow or Fog, because
+  the dial's five places cannot tell snow from rain.
+- **A desk calendar** with a card for each of the next four days of the forecast: the
+  day, a picture, the weather in a word, and the high and low.
+
+On the other four panels the weather is a window with the same five words across it. Under
+them is a row of lamps for now and a row for tomorrow, and under those Home Assistant's
+own word for the weather now. The forecast is a second window with a column for each of
+the next four days: the day, the high in the era's figures, the weather in a word and the
+low.
+
+| Era | The windows | The lamps | The figures |
+|---|---|---|---|
+| 1960s | Dark glass, with no pictures | Neon | Nixie tubes |
+| 1970s | A tuner's lit dial | A red pointer for now, a black one for tomorrow | Red LED |
+| 1980s | A fluorescent display | A green LED for now, an amber one for tomorrow | Fluorescent |
+| 1990s | An LCD | Blocks of the LCD | LCD |
+
+A weather entity that gives no forecast by the day has the weather now only: nothing for
+tomorrow, and no forecast.
+
 A scene that belongs to a room is on that room's chassis, and one that belongs to a floor
 is a push button on that floor's plate. A scene belongs to a room if it is in the room's
 area, or if its name begins with the room's name: "Kitchen - Dining" is the kitchen's
@@ -616,7 +643,7 @@ them. Each chassis has:
 The meters are lit from behind while Home Assistant is answering. If the connection is
 lost their lamps go out and the faces turn grey, so a dark meter is one not to believe.
 
-The Gazette's columns (the weather forecast, Personal, Amusements) are not on the panel. A room with devices that are not shown has a small plate saying
+The Gazette's Personal and Amusements columns are not on the panel. A room with devices that are not shown has a small plate saying
 how many, such as "and 4 more". If the connection to Home Assistant is lost, or Home
 Assistant refuses a press, a red lamp and a plate at the top say so.
 

@@ -12,10 +12,6 @@ the Gazette's own work is parked below it.
   the table in `docs/design/dash-bored-survey.md`). `tests/test_dash_bored_parity.py`
   lists each of these in its `OWED`, and fails when a family starts to show something
   the others do not: an entry there goes when its item here is built. What is missing:
-  - **The Console: the weather.** It has an Outside air meter for the temperature and
-    nothing for the sky, which the Gazette and the Fridge show (`house.outside`). To be drawn in five eras, so agree the instrument with the owner
-    first (a barometer and an outside thermometer suggest themselves). The forecast by
-    the day too.
   - **The Console: who is at home** (`house.people`), and their comings and goings.
   - **Aurora: the weather, the forecast and who is at home**, on its home screen, which
     is thin (owner, 2026-11-16: "we'll find stuff to put on there").
@@ -279,6 +275,38 @@ the Gazette's own work is parked below it.
       place for scenes and guarded devices; a phone held sideways leaves the sheet about
       300 px wide under the header; a house too big for one far view may need a third
       distance.
+  - **Contraption, the Kitchen by duck** (2026-11-18): `duck-run.html` with `duck-run/`.
+    The owner found the whole house "nuts, but too regular still" and pointed at the Blue
+    Ball Machine for the feel. Why it was regular: one trough with every device hung
+    under it is a bus with taps, water gives the eye nothing to follow, and everything
+    goes the same way. What this trial does instead:
+    - The ducks go *through* every device in turn. A tile's only rule is at its edges
+      (`duck-run/tile.js`): a duck comes in at the middle of one edge as the period
+      starts and leaves by the middle of another as it ends. Inside, each tile is drawn
+      by hand and does its own thing.
+    - Every tile runs on one period with one duck to a tile, so the room moves in step.
+    - A device's state is read from what happens to the duck (the ceiling light on: it
+      runs on the belt that turns the dynamo; off: the belt carries it over), and at a
+      glance from a glow or a fire, which follows the device at once.
+    - A device that stops answering still passes its ducks (owner, 2026-11-18: a pile-up
+      takes the motive power from everything after it). Its machine goes under a dust
+      sheet with a sign saying what and since when, and a tube clamped from the way in
+      to the way out carries the ducks; one drawing serves every tile (`Tile.broken`).
+      Not dimmed, because dimming means no data at all: then the ducks stop and sleep.
+    - The duck is the engine (owner, 2026-11-18: more detail in each tile, machinery
+      pertinent to the device, driven by the ducks). The ceiling light is redrawn that
+      way as the sample (`duck-run/ceiling.js`): belt, flywheel, clutch, dynamo, wire,
+      governor and meter. On is the clutch in, thrown at once by a tap; the flywheel
+      keeps the lamp lit between ducks; the level is how long the duck is kept running.
+    - Twelve tiles: five devices, six that only carry ducks (one two tiles tall).
+    - Measured in headless WebKit and Chromium on the Mac, 2026-11-18: 61 frames a
+      second in all three skins. Not yet seen on the iPad or in Safari itself.
+    - Still to do, if the owner likes the sample tile: the other four devices redrawn
+      the same way, one file each (kettle: bellows; boiler: pump; blind: treadwheel and
+      counterweight; counter light: hammer, dominoes and a match), and more in the six
+      carrier tiles; setting a level from the page (a tap only switches); the route
+      and tiles are placed by hand; then the house as clumps of tiles, where a hundred
+      tiles may need CSS animation or sprite strips in place of the frame loop.
 - **Publish it by itself** once it is past In development, as Sensor Watch is.
 
 ## Sensor Watch (beta)
@@ -448,8 +476,9 @@ Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it d
   - **Sensor Watch first, being built:** the design, decisions and phases are in `docs/design/marketplace-mirrors.md`. Later items go out through the same mirror pipeline.
   - **What else can stand alone:** the Tablet Layout, Over layer and garnish (pure frontend; a trial entry built at 40 KB gzipped against `cm-cards.js`'s 54 KB). Camera Commander needs the app and integration; Guest login, Kiosks, FONA, firmware and the git proxy need the app.
   - **The layout bundle, next** (owner, 2026-11-17: Tablet Layout is the next piece to publish; nothing may be lost from Casa Mia, and nothing changes when it is installed with Casa Mia).
-    - **Built in 2026.11.9-b13:** `integration/plugins/casa-mia-tablet-layout.js` (name agreed 2026-11-17; listed as "Tablet Layout"), a second Vite entry (`src/alone.ts`) from the same sources as `cm-cards.js`: the view, garnish, the screen condition and the Over layer. It is the same code, not a cut-down copy. The first file loaded defines the elements and the other says so in the console (`own.ts` `claim`). The two dashboard settings come from the file's own address when no integration answers (`own.ts` `OWN`). Seen on the test VM with every `casa_mia/` command refused: elements defined, a view laid out, no errors.
-    - **Still to do:** a plugin kind in `tools/mirror.py` (no `custom_components`, no manifest or hassfest; HACS's `plugin` category; check the catalog's `plugin` list for a name clash); its README from `docs/tablet-layout.md` and `docs/over-layer.md`, saying how to set the two settings and that `debug: true` outlines the panels; a Repair in `casa_mia` when the stand-alone file is in the Lovelace resources; its version (it has none: `?v=` is only on Casa Mia's copy).
+    - **Built in 2026.11.9-b13:** `integration/plugins/casa-mia-tablet-layout.js` (name agreed 2026-11-17; listed as "Tablet Layout"), a second Vite entry (`src/alone.ts`) from the same sources as `cm-cards.js`: the view, garnish, the screen condition and the Over layer. It is the same code, not a cut-down copy. The first file loaded defines the elements and the other says so in the console (`own.ts` `claim`). Alone, the two dashboard settings are simply on (`own.ts`; owner, 2026-11-18). Seen on the test VM with every `casa_mia/` command refused: elements defined, a view laid out, no errors.
+    - **The plugin kind is in `tools/mirror.py`** (2026-11-18; `docs/design/marketplace-mirrors.md`, "A dashboard plugin has a mirror too"). Its dry run passes. Nothing is published.
+    - **Still to do:** check the catalog's `plugin` list for a name clash; a Repair in `casa_mia` when the stand-alone file is in the Lovelace resources; its version (it has none: `?v=` is only on Casa Mia's copy); whether the README should carry `docs/over-layer.md` too; whether the Marketplace takes a plugin.
 - **Log viewer page:** the app's own log, live (follow, level filter, search), without going to Settings > Apps > Log. Through the Supervisor's `/addons/self/logs`, or an in-memory ring buffer.
 - **Graphlets elsewhere.** `app/web/src/Graphlet.tsx` is the general history graph: use it, not a new one, wherever a page shows a figure over time (FONA's signal, the kiosks' battery and memory, guest logins, firmware downloads, the app's CPU and memory). Each needs its history kept on the box, so the graph is full when the page opens.
 

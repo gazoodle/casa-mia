@@ -5,6 +5,7 @@
 import { PAGE } from "../family.ts";
 import { Panel } from "./panel.ts";
 import { VIEWS } from "./views.ts";
+import { WEATHER, weather } from "./weather.ts";
 import { scope } from "./scope.ts";
 import * as kit from "./silverface/kit.ts";
 import { STYLES } from "./silverface/styles.ts";
@@ -12,6 +13,6 @@ import { STYLES } from "./silverface/styles.ts";
 export const CARD = "dash-bored-silverface";
 
 export class Silverface extends Panel {
-  static styles = [PAGE, VIEWS, STYLES];
-  protected kit = { ...kit, recorder: scope(kit.label, kit.push) };
+  static styles = [PAGE, VIEWS, STYLES, WEATHER];
+  protected kit = { ...kit, recorder: scope(kit.label, kit.push), ...weather(kit.label, kit.readout) };
 }

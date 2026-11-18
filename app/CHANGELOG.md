@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.11.9-b15
+
+- **Tablet Layout by itself has nothing to set.** In `casa-mia-tablet-layout.js`, the file for a house without Casa Mia, garnish on every Sections dashboard and the Orientation choice in a Screen condition are always on. With Casa Mia nothing changes: both are still switches on its Settings page.
+- **Dash-Bored: the weather and the forecast on the Console, in every era.** They are beside the Outside air meter, which is as it was, and use the weather entity it reads; one that gives no forecast by the day has the weather now and nothing for tomorrow or the days after.
+- **On the 1950s panel** Beside the Outside air meter there is now a barometer, lettered Stormy, Rain, Change, Fair and Set fair. Its black hand points at the weather now and its brass hand at tomorrow's, and a slip in its window has Home Assistant's own word for the weather now (Snow, Fog, Thunder). Beside it the forecast is a desk calendar with a card for each of the next four days: the day, a picture, the weather in a word and the high and low.
+- **On the other four panels** the weather is a window with the same five words across it, a row of lamps for now and a row for tomorrow, and Home Assistant's own word beneath. The forecast is a window with a column for each of the next four days. Each era makes them from its own parts: neon lamps and nixie tubes behind dark glass in the 1960s, a tuner's lit dial with pointers and red LED figures in the 1970s, a fluorescent display with a green and an amber LED in the 1980s, and an LCD like a home weather station's in the 1990s.
+
 ## 2026.11.9-b14
 
 - **Dash-Bored: a model writes the agent's column.** Where the house runs ZenOS-AI, the Gazette's column used to print ZenOS's summaries as they were, which read like a machine's log. Now, each time ZenOS writes a new summary of the house, Dash-Bored asks the model ZenOS uses to write the column from it, once, in the style of each paper: a headline, a short article and up to three items about what most needs attention. Every open page is sent it straight away, and it is kept through a restart. If the model fails, the last column stays with a line saying why the next is late. It is one call to the model per summary, about 100 a day; to stop it, switch off **Write the agent's column** in Dash-Bored's Configure dialog. Dash-Bored only reads ZenOS, and never writes to it.

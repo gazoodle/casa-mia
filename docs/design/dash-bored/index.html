@@ -32,6 +32,7 @@ const PAGES = [
   ["contraption", "Contraption", "Finished", "A Heath Robinson apparatus in pen and wash, with a mechanism for every kind of device. A lever sets off dominoes, a marble, a burnt string or a boxing glove; a crank turns cogs; a unicycle bot rides round putting it all right again."],
   ["waterworks", "Contraption, by water", "Trial", "One room of Contraption redrawn as a single machine driven by water, to try the idea: a bucket lift, a header tank, and a petal valve for each device that lets water into a machine of its own size. Three skins from one drawing: patent engraving, blueprint and tin toy."],
   ["whole-house", "Contraption, the whole house", "Trial", "Every room on one sheet, laid out by rule along one river: a trough falls through each row of rooms, a chute brings the water back for the next, and a lift raises it from the pond. Tap a room and the duck goes there with the view after it. Only the Kitchen is drawn in full; the rest are a glyph for each device."],
+  ["duck-run", "Contraption, the Kitchen by duck", "Trial", "A grid of tiles with one rule at their edges, and ducks going through every device in turn: toasted, mangled, corked and sent up the dumb waiter. What happens to a duck says what the device is doing. A device that stops answering gets a pile of ducks in front of it."],
   ["aurora", "Aurora", "Finished", "Current web style: glass tiles in a bento grid over a sky that warms as lights come on. A room tile grows into a sheet of faders."],
   ["pcb", "Board", "Finished", "A 1984 circuit board. Starburst and seven-segment LED displays, DIP switches for devices and traces that carry a signal while a room is on."],
   ["movement", "Movement", "Sketch", "A watch movement that fills the screen, rendered as real 3D metal under one lamp. A going train, lever and balance run across the middle; each room is a bridge, with screws for switches and jewels for pilot lamps."],
@@ -51,6 +52,7 @@ const PAGES = [
   ["arcade", "Arcade", "Sketch", "A fixed-shooter cabinet. Devices hang in formation by room; aim and fire to switch one."],
   ["maze", "Moth", "Sketch", "The house as a maze. Press a lamp and a moth flies to it through the doorways and switches it."],
   ["gazette", "Gazette", "Sketch", "The house as a newspaper. Stories are ranked, so what matters most leads; a Sensor Watch alert is breaking news. Two papers from the same stories: a broadsheet and a red-top. One column on a phone."],
+  ["digs", "Digs", "Sketch", "The house in section, built of square blocks sixteen pixels across. A lamp lights the blocks round it, a level is a stack of ten blocks, hearts are the house's health and the sky keeps the real time. Unlocking the door takes two hits."],
 ];
 document.getElementById("grid").innerHTML = PAGES.map(([file, name, level, text]) => `<a href="${file}.html">
   <div class="thumb"><iframe src="${file}.html" loading="lazy" tabindex="-1" title="${name}"></iframe></div>

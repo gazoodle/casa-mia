@@ -103,6 +103,11 @@ export class Panel extends Family {
     if (cols !== this._cols) this._cols = cols;
   }
 
+  /** The forecast, for the panel: its calendar shows it. */
+  protected _surveyed() {
+    if (this._view === "panel") this._outlook();
+  }
+
   /** The lamps alone are no part of the house. */
   protected get _reads() {
     return this._view !== "lamps";
@@ -549,8 +554,11 @@ export class Panel extends Family {
 
   /** The whole house: the meters, screens and scenes along the top, then the rooms. */
   private _whole() {
-    const { knife, meter, tv } = this.kit;
+    const { barometer, calendar, knife, meter, tv } = this.kit;
     const house = this._house!;
+    // The barometer's second hand points at the first day of the forecast that is not today.
+    const today = new Date().toDateString();
+    const tomorrow = this._days.find((d) => new Date(d.at).toDateString() !== today);
     // What a camera that is in no room saw has a screen at the top.
     const seen = this._sights();
     const placed = new Set(house.rooms.flatMap((r) => r.devices.filter(camera).map((d) => d.id)));
@@ -563,6 +571,8 @@ export class Panel extends Family {
       <div class="top">
         ${house.kw === undefined ? nothing : meter("Mains draw", 0, MAINS.find((top) => house.kw! <= top) ?? MAINS.at(-1)!, house.kw, "kW", 0, live)}
         ${house.outside ? meter("Outside air", -10, 30, house.outside.temp, "°C", 1, live) : nothing}
+        ${house.outside ? barometer(house.outside.sky, tomorrow?.sky, live) : nothing}
+        ${this._days.length ? calendar(this._days, this._hass!.locale?.language ?? "en-GB") : nothing}
         ${[...seen.values()].filter((s) => !placed.has(s.camera)).map((s) => tv(`${s.name}: ${s.kind} ${clock(s.at)}`, s.photo ?? "", this._look(s.camera)))}
         ${whole.length ? html`<div class="knives">${whole.map((s) => knife(s.name, this._thrown === s.id, () => this._throw(s)))}</div>` : nothing}
         <slot name="era"></slot>

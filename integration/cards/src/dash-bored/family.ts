@@ -4,7 +4,7 @@
 // page when the shell shows it (shell.ts) and a dashboard card when a dashboard does.
 import { LitElement, css, type PropertyDeclarations } from "lit";
 import type { Hass } from "../ha.ts";
-import { read, sighted, survey, type Device, type House, type Lens, type Options, type Seen, type Sighting, type Survey } from "./house.ts";
+import { days, read, sighted, survey, type Day, type Device, type House, type Lens, type Options, type Seen, type Sighting, type Survey } from "./house.ts";
 import { setting, type Press } from "./stories.ts";
 
 // The integration's feed of Sensor Watch's alerts (alerts.py). A family follows it as it
@@ -16,6 +16,7 @@ const SETTINGS = "casa_mia_dash_bored/settings"; // the integration's feed of th
 // Dash-Bored stands alone: it knows these two names of Casa Mia's and nothing else.
 const CASA_MIA = "casa_mia";
 const CAMERAS = "casa_mia/cameras/subscribe";
+const FORECAST = "weather/subscribe_forecast"; // Home Assistant's own: a weather entity's forecast, pushed
 const RECENT = 30 * 60_000; // ms: how long what a camera saw stays with its camera
 const SETTLE = 350; // ms: a level is asked for once it has been still this long
 
@@ -51,9 +52,10 @@ export function typeface(name: string, file: string) {
 }
 
 export class Family extends LitElement {
-  static properties: PropertyDeclarations = { narrow: { type: Boolean }, _house: { state: true }, _fault: { state: true }, _lost: { state: true } };
+  static properties: PropertyDeclarations = { narrow: { type: Boolean }, _house: { state: true }, _days: { state: true }, _fault: { state: true }, _lost: { state: true } };
   narrow = false;
   _house?: House;
+  _days: Day[] = []; // the forecast, by the day, for a family that follows it (_outlook)
   _fault = ""; // an action Home Assistant refused, or a feed that failed, in words
   _lost = 0; // ms: since when there has been no connection (0: connected)
   protected _hass?: Hass;
@@ -61,6 +63,7 @@ export class Family extends LitElement {
   protected _settings: Options = {}; // the house's, from the integration: a card's own come before them
   protected _cameras: Lens[] = []; // Casa Mia's cameras, where it is installed: they come before the ones found
   protected _survey?: Survey;
+  protected _forecastOf?: string; // the weather entity whose forecast is followed
   protected _spotted: Seen[] = []; // what the cameras have seen lately, for a family that watches (_watch)
   protected _feeds = new Map<string, Promise<() => void>>(); // by the feed's command
   protected _timers = new Set<ReturnType<typeof setTimeout>>();
@@ -168,6 +171,7 @@ export class Family extends LitElement {
     this._sizes?.disconnect();
     for (const feed of this._feeds.values()) feed.then((stop) => stop()).catch(() => undefined);
     this._feeds.clear();
+    this._forecastOf = undefined;
     for (const timer of this._timers) clearTimeout(timer);
     this._timers.clear();
   }
@@ -209,6 +213,30 @@ export class Family extends LitElement {
         this._survey = undefined;
         if (this._hass) this.hass = this._hass;
       }, true);
+  }
+
+  /** Follow the forecast of the weather entity the page reads, if it gives one by the day:
+   * for a family to call from its `_surveyed`. Home Assistant pushes it, at subscribing
+   * and whenever it changes. */
+  protected _outlook() {
+    const connection = this._hass?.connection;
+    const outside = this._house?.outside;
+    const entity = outside?.daily ? outside.id : undefined;
+    if (!connection || !this.isConnected || entity === this._forecastOf) return;
+
+    // Another entity, or none: the old forecast is no longer this page's.
+    this._feeds.get(FORECAST)?.then((stop) => stop()).catch(() => undefined);
+    this._feeds.delete(FORECAST);
+    this._forecastOf = entity;
+    this._days = [];
+    if (!entity) return;
+    const feed: Promise<() => void> = connection.subscribeMessage((told: { forecast?: unknown }) => (this._days = days(told.forecast)), { type: FORECAST, forecast_type: "daily", entity_id: entity });
+    this._feeds.set(FORECAST, feed);
+    feed.catch((err: any) => {
+      this._feeds.delete(FORECAST);
+      console.error(`Dash-Bored: the forecast of ${entity} failed`, err);
+      this._fault = `The weather forecast is not reaching this page (${err?.message ?? err}).`;
+    });
   }
 
   /** Follow what the cameras have seen: for a family to call from its `_listen`. The

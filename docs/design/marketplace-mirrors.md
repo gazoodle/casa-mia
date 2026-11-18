@@ -478,6 +478,32 @@ own checks passed and so did hassfest, in docker. Where it differs:
     2026.11.9-b12.
 - **A component's guide** is found by name: `docs/applets/` plus the mirror's name without
   `casa-mia-`.
+- **A dashboard plugin has a mirror too (2026-11-17, built 2026-11-18).** Tablet Layout,
+  garnish and the Over layer are frontend only, so they go out as a HACS plugin, not an
+  integration: `integration/plugins/casa-mia-tablet-layout.js`, built by
+  `tools/build_cards` from the same sources as `cm-cards.js`. `tools/mirror.py` names it in
+  `PLUGINS`, and what differs from an integration's mirror is in one table
+  (`tools/mirrors/texts.py` `KINDS`).
+  - **Its tree:** the file in `dist/`, `hacs.json` naming it (`filename`), the README,
+    the licence and a workflow running HACS's action with `category: plugin`. No
+    hassfest: there is no component. HACS looks for a plugin's file in the release's
+    assets, then the repository's root, then `dist/` (`repositories/plugin.py`
+    `update_filenames`, read 2026-11-18), so the release carries the same file.
+  - **When it is published:** it has no manifest and so no version. A release publishes
+    it when the file in the mirror isn't the one at the release's tag, by git's id of
+    each (`mirror.changed`).
+  - **Its name** is in the tool, since there is no manifest to hold it. Its account is
+    the one the components' mirrors are in.
+  - **Its README** is `docs/tablet-layout.md`. The Over layer's guide is linked from it
+    and stays in Casa Mia.
+  - **It has nothing to set** (owner, 2026-11-18). With no integration to ask, garnish
+    on every Sections dashboard and the screen orientation conditions are both on
+    (`integration/cards/src/own.ts`). Why: they were first read from the file's own
+    address in the dashboard's resources, but HACS replaces that address whole at every
+    update (`update_dashboard_resources`), so they would have been lost each time with
+    nothing said. Garnish changes only cards marked as garnish, so it costs nothing on.
+  - **Not checked:** HACS's action on GitHub, and whether Home Assistant's Marketplace
+    takes a plugin at all.
 - **A fork** was an origin that isn't the repository named in the component's
   `issue_tracker` (changed 2026-11-17, above). It publishes no mirror unless
   `CM_MIRROR_OWNER` is set.

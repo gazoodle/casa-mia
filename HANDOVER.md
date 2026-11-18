@@ -184,8 +184,10 @@ imported from `casa_mia`, no app option. Guide: `docs/applets/love-or-loathe.md`
   the dashboard `music-demo`. Keep them there for the next pictures.
 - **Tablet Layout by itself** (b13, 2026-11-17): `integration/plugins/casa-mia-tablet-layout.js`,
   built by `tools/build_cards` from `integration/cards/src/alone.ts`, to be published as a
-  dashboard plugin. Not published; what is left is in `BACKLOG.md` ("The layout bundle,
-  next"). A change to the view, garnish or the Over layer must keep working with no
+  dashboard plugin. `tools/mirror.py` makes its mirror (`PLUGINS`; the kinds' differences
+  are in `tools/mirrors/texts.py`). Not published; what is left is in `BACKLOG.md` ("The
+  layout bundle, next"). Alone it has nothing to set: garnish everywhere and the orientation
+  conditions are on. A change to the view, garnish or the Over layer must keep working with no
   integration answering (`own.ts`).
 - **A mirror is its own home** (b12, 2026-11-17; HACS's review asked for it): a published
   component's manifest names its mirror for `documentation` and `issue_tracker`, the
@@ -284,12 +286,31 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   dashboards. `tests/test_dash_bored_parity.py` enforces what it can read from the
   sources (the fields of `House`, a device's optional fields, the feeds): what a family
   lacks is in its `OWED` with the reason. The table still has cells marked `?`.
+- **The forecast is `Family`'s** (2026.11.9-b15): `_outlook()`, called from a family's
+  `_surveyed`, follows Home Assistant's `weather/subscribe_forecast` and fills `_days`.
+  The Gazette and the Console use it; the Fridge and Aurora are to.
+- **The Console's weather** (2026.11.9-b15; the owner agreed the 1950s mock-up,
+  `docs/design/dash-bored/console-weather.html`, and approved the rest on 2026-11-17).
+  An era's kit gives `barometer` and `calendar`. Bakelite's are its own
+  (`console/bakelite/weather.ts`: a barometer and a desk calendar). The other four eras
+  share `console/weather.ts`, dressed by each stylesheet. Its `WEATHER` styles are listed
+  after the era's own, so an era overrides them under `.panel`. The Outside air meter is
+  not to change (owner, 2026-11-17).
 - **Why it exists** (owner, 2026-11-13): dashboards that write themselves from the house,
   in styles people enjoy using; "it must not look cheap". The looks were tried first as
   working mock-ups on an invented house, in `docs/design/dash-bored/` (`index.html` is the
   gallery; `house.js` the house). The owner chose three families to build out: Gazette,
   Bakelite and Fridge, in that order, for the family first and the community after.
   Movement (a watch movement in three.js) and Contraption are the showpieces, not built.
+- **Digs is to be the fifth family** (name agreed with the owner 2026-11-18; he asked for
+  it for his grandson). The house in section, built of square blocks in the style of
+  block-building games. Only the mock-up exists, `docs/design/dash-bored/digs.html`, which
+  the owner has not yet seen. Its first texture pack is to be called 4² (a block is sixteen
+  texels square), shown beside the name in the chooser and not part of the name.
+  Everything is our own and made in code (textures, figures, lettering): no name, texture,
+  creature or font from any game, because Dash-Bored is published. Still to decide: how a
+  house wider than the screen scrolls, and a larger font (three texels by five can't tell
+  M, N, W and H apart well).
 - **Published by itself** (2026.11.9-b1; owner, 2026-11-15): in `components.PUBLISHED`,
   mirror `gazoodle/casa-mia-dash-bored`, made by `tools/mirror.py` at a release
   (`docs/design/marketplace-mirrors.md`). The dry run passes; nothing is published yet.

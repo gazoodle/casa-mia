@@ -78,6 +78,10 @@ export const STYLES = css`
   /* Alerts: an LED, and what is wrong on a dot-matrix fluorescent line. A critical one flashes. */
   .lamps { display: flex; flex-wrap: wrap; gap: 10px 24px; margin-bottom: 14px; padding: 10px 12px; }
   .alert { display: flex; align-items: center; gap: 9px; max-width: 100%; }
+  /* The weather (../weather.ts): a fluorescent display, with a green LED for now and an amber one for tomorrow. */
+  .panel { --sky-ink: var(--vfd); --sky-on: #4fdc4f; --sky-next: var(--amber); --sky-off: rgba(255,255,255,.09); --sky-glow: 0 0 6px currentColor; }
+  .panel .sky .win, .panel .days .win { text-shadow: 0 0 5px rgba(125,247,230,.7); }
+  .panel .sky .win i.lit { color: var(--sky-on); } .panel .sky .win em:nth-of-type(2) ~ i.lit { color: var(--sky-next); }
   .jewel { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--glow); box-shadow: 0 0 7px var(--glow); }
   .jewel.nominal { --glow: #4fdc4f; } .jewel.task { --glow: #e8e8e8; } .jewel.warning { --glow: #ffc21a; } .jewel.error, .jewel.critical { --glow: #ff3a2a; }
   .jewel.critical { animation: flash 1s steps(2, jump-none) infinite; }

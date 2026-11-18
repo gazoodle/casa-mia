@@ -8,10 +8,11 @@ import { STYLES } from "./bargraph/styles.ts";
 import { PAGE } from "../family.ts";
 import { Panel } from "./panel.ts";
 import { VIEWS } from "./views.ts";
+import { WEATHER, weather } from "./weather.ts";
 
 export const CARD = "dash-bored-bargraph";
 
 export class Bargraph extends Panel {
-  static styles = [PAGE, VIEWS, STYLES];
-  protected kit = { ...kit, recorder };
+  static styles = [PAGE, VIEWS, STYLES, WEATHER];
+  protected kit = { ...kit, recorder, ...weather(kit.label, kit.figs) };
 }

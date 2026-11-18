@@ -63,6 +63,24 @@ export const STYLES = css`
   .meter .legend { font-size: 5.6px; letter-spacing: .12em; text-transform: uppercase; }
   .meter .unit { font-size: 6.5px; } .meter .small { font-size: 2.6px; letter-spacing: .1em; }
 
+  /* The barometer (weather.ts): a meter's case with a whole dial. Its hands turn about the dial's middle. */
+  .baro .word { font-size: 5.4px; letter-spacing: .14em; text-transform: uppercase; }
+  .baro .slip { fill: #1a1209; font-size: 5px; letter-spacing: .16em; text-transform: uppercase; }
+  .hand { transform-origin: 60px 61px; transition: transform 1.1s cubic-bezier(.3, 1.7, .5, 1); }
+  /* The forecast: a desk calendar on a Bakelite stand, a card for each day on two brass rings. */
+  .days { text-align: center; }
+  .cards { display: flex; gap: 8px; padding: 12px 10px 8px; margin-bottom: 6px; border-radius: 8px; background: linear-gradient(170deg, #4a2a1d, var(--bake2));
+    box-shadow: inset 0 2px 0 rgba(255,255,255,.15), inset 0 -4px 8px rgba(0,0,0,.5), 0 8px 14px rgba(0,0,0,.35); }
+  .card { position: relative; width: 74px; padding: 12px 4px 7px; border-radius: 2px; color: #2a1a10; text-align: center;
+    background: linear-gradient(#f6ecd0, #e3cf9f); box-shadow: 0 2px 0 #cdb785, 0 4px 0 #b9a271, 0 6px 5px rgba(0,0,0,.5); }
+  .card::before, .card::after { content: ""; position: absolute; top: -7px; width: 7px; height: 15px; border-radius: 4px; border: 2px solid var(--brass); border-bottom-color: #7a5c1e; }
+  .card::before { left: 16px; } .card::after { right: 16px; }
+  .card b { display: block; font-size: 10px; font-weight: normal; letter-spacing: .22em; text-transform: uppercase; color: #a3261b; }
+  .card svg { width: 26px; height: 26px; margin: 2px auto; fill: #2a1a10; }
+  .card .line { fill: none; stroke: #2a1a10; stroke-width: 1.5; stroke-linecap: round; }
+  .card u { display: block; margin: 3px 3px 0; padding-top: 3px; border-top: 1px solid rgba(42,26,16,.35); font-size: 8.5px; letter-spacing: .04em; text-decoration: none; text-transform: uppercase; }
+  .card s { display: block; font-size: 9px; text-decoration: none; opacity: .7; }
+
   /* Warning lamps: Sensor Watch's alerts, a pilot lamp and a plate each. The glass takes the
      level's colour; the lamp behind it is the white spot, and the light it throws on the
      panel is the shadow. A critical one flashes, as an annunciator's does. */

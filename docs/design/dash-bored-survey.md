@@ -34,8 +34,8 @@ source before relying on it, and replace it.
 | Sensor Watch's alerts | yes | yes | yes | yes |
 | A camera's latest picture and what it last saw | yes | yes | yes | yes |
 | Casa Mia's cameras: presets, zoom and controls | yes | yes | no | yes |
-| The weather now | yes | part | yes | no |
-| The forecast by the day | yes | no | no | no |
+| The weather now | yes | yes | yes | no |
+| The forecast by the day | yes | yes | no | no |
 | Who is at home | yes | no | yes | no |
 | People's comings and goings, with times | yes | no | no | no |
 | What the players played lately | yes | no | no | no |
@@ -51,8 +51,6 @@ source before relying on it, and replace it.
 | Finding a device by typing | ? | no | no | yes |
 | The house's own agent's column (ZenOS-AI) | yes | no | no | no |
 
-- **The weather now:** the Console has an Outside air meter for the temperature, and
-  nothing for the sky.
 - **A device's history:** the Console has a chart recorder for a room. Aurora has the
   last hour of the house's power and nothing for a device.
 - Each family's own varieties (the Gazette's three papers, the Console's five eras, the

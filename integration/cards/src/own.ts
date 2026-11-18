@@ -2,19 +2,14 @@
 // garnish and the Over layer are in two files from these same sources: cm-cards.js, which
 // Casa Mia's integration loads, and casa-mia-tablet-layout.js, published by itself as a
 // dashboard plugin (alone.ts) for a house without Casa Mia.
-const url = new URL(import.meta.url);
 
-/** This is the file published by itself. */
-export const ALONE = url.pathname.includes("casa-mia-tablet-layout");
-
-/** The dashboard settings to use when the integration doesn't answer. Casa Mia's Settings
- * page has them otherwise; alone, they are on the file's own address in the dashboard's
- * resources (`…/casa-mia-tablet-layout.js?garnish_everywhere=1&screen_orientation=0`).
- * In cm-cards.js both are off, as they were before there was a second file. */
-export const OWN = {
-  garnish_everywhere: url.searchParams.get("garnish_everywhere") === "1",
-  screen_orientation: ALONE && url.searchParams.get("screen_orientation") !== "0",
-};
+/** This is the file published by itself. It is also the answer for the two dashboard
+ * settings Casa Mia's Settings page has, when no integration answers: alone, garnish on
+ * every Sections dashboard and the screen orientation conditions are both on, with
+ * nothing to set (owner, 2026-11-18). They are not parameters on the file's address,
+ * because HACS replaces that address at every update. In cm-cards.js both are off without
+ * the integration, as they were before there was a second file. */
+export const ALONE = new URL(import.meta.url).pathname.includes("casa-mia-tablet-layout");
 
 /** Says which file is in charge when both are loaded: the first one defines the elements
  * (ha.ts `define` leaves a tag that is taken), so the other is running nothing. */

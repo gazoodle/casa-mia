@@ -37,7 +37,7 @@ COMMENT = re.compile(r"/\*.*?\*/|//[^\n]*", re.S)
 FEED = re.compile(r'const (\w+) = "(casa_mia_dash_bored/\w+)"')
 # What has no field or feed of its own, by how a family is seen to use it.
 MORE = {
-    "the forecast by the day": r"\bdays\(",
+    "the forecast by the day": r"\b_days\b",
     # family.ts follows the cameras' sightings for a family that asks it to.
     "feed casa_mia_dash_bored/sightings": r"_follow\(SIGHTINGS\b|_watch\(",
 }
@@ -54,7 +54,6 @@ OWED = {
     ("console", "house.appliances"): PARITY,
     ("fridge", "house.appliances"): PARITY,
     ("aurora", "house.appliances"): PARITY,
-    ("console", "the forecast by the day"): PARITY,
     ("fridge", "the forecast by the day"): PARITY,
     ("aurora", "the forecast by the day"): PARITY,
     ("fridge", "device.zoom"): PARITY,

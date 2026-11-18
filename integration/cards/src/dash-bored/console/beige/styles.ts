@@ -63,6 +63,9 @@ export const STYLES = css`
   /* Alerts: an LED, and what is wrong on a character LCD. A critical one flashes. */
   .lamps { display: flex; flex-wrap: wrap; gap: 10px 24px; margin-bottom: 14px; padding: 12px 14px; }
   .alert { display: flex; align-items: center; gap: 9px; max-width: 100%; }
+  /* The weather (../weather.ts): an LCD, as a weather station for the home had, its lamps blocks of the display. */
+  .panel { --sky-ink: var(--lcd-ink); --sky-on: var(--lcd-ink); --sky-off: rgba(29,38,26,.09); }
+  .panel .sky .win i { width: 12px; height: 7px; border-radius: 1px; }
   .jewel { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--glow); box-shadow: 0 0 5px var(--glow); }
   .jewel.nominal { --glow: #4fdc4f; } .jewel.task { --glow: #4cf04c; } .jewel.warning { --glow: #f0a51a; } .jewel.error, .jewel.critical { --glow: #e3291c; }
   .jewel.critical { animation: flash 1s steps(2, jump-none) infinite; }
