@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { CHEST, LAMPS, MANY, build, shades } from "./digs/world.ts";
+import { CHEST, LAMPS, MANY, build, rng, shades } from "./digs/world.ts";
 
 const device = (kind: string, name: string, on = false, extra = {}) => ({ id: `${kind}.${name}`, name, kind, on, dims: false, span: { min: 0, max: 100, step: 1, vote: 10 }, away: false, since: 0, guarded: kind === "lock", room: "", ...extra });
 const room = (id: string, floor: string | undefined, devices: any[]) => ({ id, name: id[0].toUpperCase() + id.slice(1), floor, devices, scenes: [] });
@@ -100,4 +100,25 @@ test("rooms on no floor are a building of a few storeys, an outbuilding stands b
   // Three storeys leave less sky and roof, so that the blocks can be bigger on the same screen.
   assert.equal(world.h, 16);
   assert.equal(build([room("kitchen", "Ground", [])] as any[]).h, 12);
+});
+
+test("the imp's crate stands where nothing else is, on what is on the screen, and breaks no device's block", async () => {
+  // prank.ts draws with lit, which this test has no page for: only its planning is asked of it.
+  const { plan } = await import("./digs/prank.ts");
+  const world = build(house(), true);
+  const kitchen = world.zones.find((z) => z.id === "kitchen")!;
+  const taken = new Set([...world.slots.values()].flatMap((s) => Array.from({ length: s.h * (s.w ?? 1) }, (_, i) => `${s.x + (i % (s.w ?? 1))},${s.y + Math.floor(i / (s.w ?? 1))}`)));
+  for (let seed = 1; seed < 200; seed++) {
+    const p = plan(world, kitchen.x0, kitchen.x1, rng(seed))!;
+    // The study is over the kitchen: it is on one floor or the other, in a room.
+    const room = world.zones.find((z) => p.tnt.x >= z.x0 && p.tnt.x <= z.x1 && p.tnt.y === z.y1)!;
+    assert.ok(room && p.tnt.x >= kitchen.x0 && p.tnt.x <= kitchen.x1, "on a room's floor, in the columns on the screen");
+    assert.ok(p.imp.x >= room.x0 && p.imp.x <= room.x1 && p.imp.y === p.tnt.y && p.imp.x !== p.tnt.x, "the imp stays in the room, clear of its crate");
+    assert.ok(p.holes.length > 0);
+    for (const c of [p.tnt, ...p.holes]) assert.ok(!taken.has(`${c.x},${c.y}`), `a device's block at ${c.x},${c.y}`);
+    for (const c of p.holes) assert.ok(world.blocks[c.y][c.x], "only a block can be broken");
+  }
+  // With nothing of the house on the screen it happens somewhere all the same, and a world with no house has its garden.
+  assert.ok(plan(world, 900, 950, rng(1)));
+  assert.ok(plan(build([]), 0, 10, rng(1))!.holes.length > 0);
 });

@@ -46,6 +46,23 @@ export const STYLES = css`
   .tag img { position: absolute; bottom: 100%; left: 50%; translate: -50% calc(var(--t) * -1); background: rgba(0,0,0,.6); padding: var(--t); }
   .who img { position: absolute; bottom: 100%; left: 50%; translate: -50% calc(var(--t) * -1); }
 
+  /* The prank: a show in the world that takes no press. The imp runs, its crate's fuse blinks, the bits fly, the bot comes down. */
+  .prank, .prank i { pointer-events: none; }
+  .prank i { background: 0 0 / 100% 100% no-repeat; image-rendering: pixelated; }
+  .imp { transition: left .8s steps(6); animation: arrive .3s steps(3); }
+  .imp.laugh { animation: hop .35s steps(2) infinite; }
+  .tnt { transition: top .3s steps(3); }
+  .tnt.lit { animation: fuse .3s steps(2) infinite; }
+  .bot { transition: left .6s, top .6s; animation: arrive .6s; }
+  .bang b { position: absolute; left: 40%; top: 40%; width: calc(var(--t) * 3); height: calc(var(--t) * 3); animation: fly .8s ease-out forwards; }
+  .bang { background: radial-gradient(circle, #fff 0 30%, #ffd83a 45%, transparent 70%); animation: burst .5s steps(4) forwards; }
+  .shake { animation: shake .4s steps(4); }
+  @keyframes arrive { from { translate: 0 calc(var(--b) * -3); opacity: 0; } }
+  @keyframes hop { 50% { translate: 0 calc(var(--t) * -4); } }
+  @keyframes fuse { 50% { filter: brightness(1.8); } }
+  @keyframes burst { from { scale: 1; } 60% { scale: 4; opacity: 1; } to { scale: 4.5; opacity: 0; } }
+  @keyframes fly { to { transform: rotate(var(--a)) translateX(calc(var(--b) * 1)) rotate(180deg); opacity: 0; } }
+  @keyframes shake { 25% { translate: calc(var(--t) * 2) calc(var(--t) * -1); } 50% { translate: calc(var(--t) * -2) var(--t); } 75% { translate: var(--t) 0; } }
   /* The bars, the clock, the tip and the scenes, over the world and still while it is walked along. */
   .hud > * { position: absolute; }
   .bar { display: flex; gap: var(--t); align-items: center; top: calc(var(--t) * 4); pointer-events: auto; }

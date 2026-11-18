@@ -101,6 +101,16 @@ const PAINTS: Record<string, [number, number, Paint]> = {
   heart0: bitmap(HEART, "rgba(0,0,0,.5)"),
   bolt: bitmap(BOLT, "#ffd83a"),
   bolt0: bitmap(BOLT, "rgba(0,0,0,.5)"),
+  // The prank (prank.ts): an imp with horns and a tail, the hole its crate leaves, and the bot that mends it.
+  imp: [16, 16, (x, y) => ((y < 3 && (x === 4 || x === 11)) || (y === 1 && (x === 5 || x === 10)) ? "#5a1420" : y > 2 && y < 9 && x > 3 && x < 12 ? (y === 5 && (x === 6 || x === 9) ? "#ffe45c" : y === 7 && x > 5 && x < 10 ? "#2a0a10" : "#c8323c")
+    : y > 8 && y < 14 && x > 4 && x < 11 ? "#a02630" : y > 13 && (x === 5 || x === 6 || x === 9 || x === 10) ? "#5a1420" : (y === 11 && x > 10 && x < 14) || (x === 13 && y > 8 && y < 11) || (y === 8 && x > 12) ? "#5a1420" : null)],
+  // Our own crate: a bundle of red sticks tied with a paper band, with a fuse. Drawn here from nothing; no game's block.
+  tnt: [16, 16, (x, y) => (y < 3 ? ((x === 8 && y > 0) || (x === 9 && y === 0) ? "#2a2018" : null)
+    : y > 4 && y < 12 ? (y > 5 && y < 11 && x > 1 && x < 14 && (x - 2) % 4 < 3 && Number("72222 65555 72222".split(" ")[(x - 2) >> 2][y - 6]) & (4 >> ((x - 2) % 4)) ? "#2a2018" : "#f0e6c8")
+    : x % 4 === 3 ? "#7a1418" : y === 3 || y === 15 ? "#a01c22" : x % 4 === 0 ? "#e85a50" : "#d0282e")],
+  hole: [16, 16, (x, y, r) => (edge(x, y) && r() < 0.5 ? null : r() < 0.12 ? "#3a3632" : "#16141a")],
+  bot: [16, 16, (x, y) => (y === 0 && x > 2 && x < 13 ? "#b9bcc4" : y < 3 && (x === 7 || x === 8) ? "#5a5d66" : y > 2 && y < 11 && x > 3 && x < 12 ? (y > 4 && y < 8 && x > 5 && x < 10 ? "#5ad8ff" : edge(x - 4, y - 3, 8, 8) ? "#5a5d66" : "#9a9da6")
+    : y > 10 && y < 15 && (x === 5 || x === 10) ? "#5a5d66" : (y === 14 && x > 3 && x < 12) || (y > 11 && x > 11 && x < 15 && x - y === 0) ? "#ffd83a" : null)],
   // The sun and the moon, two blocks across: as round as texels let them be. The moon has its dark limb and three craters.
   sun: [32, 32, (x, y) => (round(x, y, 15.5, 15.5) > 15.6 ? null : round(x, y, 15.5, 15.5) > 12 ? "#ffd020" : "#ffe45c")],
   moon: [32, 32, (x, y) => (round(x, y, 15.5, 15.5) > 15.6 ? null : round(x, y, 11, 12) > 16 ? "#b9c3da" : [[10, 10, 3], [21, 17, 3.5], [13, 23, 2.2]].some(([cx, cy, r]) => round(x, y, cx, cy) < r) ? "#cbd3e6" : "#e3e9f6")],

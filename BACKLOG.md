@@ -231,6 +231,8 @@ the Gazette's own work is parked below it.
   - Many cameras in one area (2026-11-18): each is a picture three blocks wide, so an
     area with a dozen is 36 blocks of pictures. Nothing gathers them as the chandelier
     gathers lights; decide with the owner once it is seen on his house.
+  - The imp's prank can't be turned off (2026.11.9-b18). A card option and a choice on the
+    page, if the owner or anyone using it live asks.
   - Known and left: a device in no room has no block (the board counts them); the clock
     and the hearts lie over the top storey's roof on a house of three storeys; the sun is up from six to six all year (Home Assistant's sun
     entity has the real hours); out of doors is told by an area's name in English; a
@@ -317,13 +319,20 @@ the Gazette's own work is parked below it.
     second on the owner's iPad). What is decided, what was measured, what was dropped
     and what is left are in `docs/design/dash-bored-contraption.md`, which is the brief
     for building it.
-    - Next: build it in the card as the sixth family, after the build that is open
-      (Digs, b16). First the renderer, the tiles there are and one room, the owner's
-      kitchen.
-    - Then, from the brief's "What is left to do": left-to-right tiles for the other
-      kinds of device, a stand-in tile for a kind with none, more carriers, setting a
-      level, a crew of bots, one stream through the house, and a place for scenes and
-      guarded devices.
+    - **Contraption, the sixth family, what's left** (first build 2026.11.9-b18: the
+      renderer, the tiles there were, a stand-in tile, and one room read from Home
+      Assistant). From the brief's "What is left to do": left-to-right tiles for the
+      other kinds of device, more carriers (the cutlery and the dumb waiter are drawn in
+      the mock-up and no rule places them), setting a level, a crew of bots, one stream
+      through the house, and a place for scenes and guarded devices.
+    - Owed to the capability table (`tests/test_dash_bored_parity.py` `OWED`): everything
+      but a room's devices. People, the weather and forecast, scenes, power, appliances,
+      what the house is missing, Sensor Watch's alerts, the cameras' pictures and
+      sightings, Casa Mia's camera controls, a device's choices, what is playing, the
+      ratings and the agent's column.
+    - Not seen yet: the owner's kitchen, the iPad, inside Home Assistant, the test VM,
+      the card picker, the bot pulling a sheet off, the engraving's grain (left out for
+      a tablet's sake).
 - **Publish it by itself** once it is past In development, as Sensor Watch is.
 
 ## Sensor Watch (beta)

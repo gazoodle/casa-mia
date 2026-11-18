@@ -303,10 +303,38 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   working mock-ups on an invented house, in `docs/design/dash-bored/` (`index.html` is the
   gallery; `house.js` the house). The owner chose three families to build out: Gazette,
   Bakelite and Fridge, in that order, for the family first and the community after.
-  Movement (a watch movement in three.js) and Contraption are the showpieces, not built.
-  Contraption is designed and tried (2026-11-18) and is to be the sixth family. Its brief,
+  Movement (a watch movement in three.js) is a showpiece, not built.
+  Contraption is the sixth family, begun (see below). Its brief,
   with what is decided, measured, dropped and left to do, and which mock-up shows each
   thing, is `docs/design/dash-bored-contraption.md`. Read it before building any of it.
+- **Contraption is the sixth family, begun** (2026.11.9-b18; the owner asked on 2026-11-18
+  for the renderer, the tiles there are and one room, and has not seen the build).
+  `contraption.ts` on `family.ts`, with `contraption/`:
+  - A tile is written as SVG with named parts (`data-p`), in `light.ts`, `group.ts`,
+    `carriers.ts` and `devices.ts` (the stand-in crate, where each kind's own tile is to
+    go). `tile.ts` states the two rules a drawing must keep for the bitmaps: everything
+    that moves is inside a named part, and a named element has no transform of its own.
+  - `sprites.ts` measures a drawing on an unseen bench in the page and makes the atlas;
+    `stage.ts` places it. A bitmap is never turned as it is drawn: `data-ring` says how a
+    part is turned ahead of time (`kit.ts` `ringOf`). A bitmap whose words or colour change
+    is made again in its slot (`rebake`), through one queue in `run.ts`, so that it never
+    lands in an atlas that is being replaced. Such a drawing carries its device's id, which
+    is what stops it sharing a bitmap with one that looks the same.
+  - `run.ts` is the machine (cells, ducks, covers, the goose), with no Home Assistant in
+    it. `layout.ts` is the rule and has the node test, with every tile's edge rule.
+  - The page keeps one `Dev` for each device and changes it in place (`_told`), so a tile
+    holds its own. The machine is built once for a survey, never for a state.
+  - **My choices, to be told to the owner:** the room is the area with "kitchen" in its
+    name, else the first, or a card's `rooms`; lights switched together are a Home
+    Assistant light group, whose own entity then has no tile; a guarded device, a camera
+    or an alarm opens Home Assistant's dialog, since where they go is not designed; a tile
+    is drawn to fit the width but no smaller than 140 px, and the sheet is then scrolled
+    sideways (the second family with a box that scrolls, sideways only).
+  - Seen on a throw-away harness with an invented kitchen (Chromium and WebKit; 1366, 1024
+    and 390 px; all three skins; a press on a light, a lock and a dead device; a device
+    coming back; the connection lost): 60 frames a second in both. **Not seen:** the
+    owner's kitchen, an iPad, inside Home Assistant, the test VM, the card picker. What
+    is owed is in BACKLOG ("Contraption, the sixth family").
 - **Digs is the fifth family** (2026.11.9-b16; name agreed with the owner 2026-11-18, who
   asked for it for his grandson and has not yet seen the build). The house in section,
   built of square blocks in the style of block-building games, after
@@ -355,6 +383,19 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
     nothing changes: a scene, the level's stack, a chandelier or chest, a camera, an
     alarm, and a block in a room's list (`named` in `_press`). Choosing a thermostat
     brings its stack up without switching it.
+  - **The imp's prank** (2026.11.9-b18; owner, 2026-11-18: "a bit more crazy", for his
+    grandson). `digs/prank.ts`: `plan` (no page in it, tested) picks a free place on a
+    room's floor or the grass among the columns on the screen, where the imp runs to,
+    and the blocks broken, never a device's, a sign's or a post's. `Prank` runs it as
+    dates coming due through the element's `_after`: the first after 20 s, then 3 to 6
+    minutes apart. **It is a show only**, as Aurora's decorations are: no press, no
+    device hidden, nothing called. None in the card picker, while a room's list is open,
+    or where less movement is asked for. The imp, the crate and the bot are our own
+    drawings (the crate is a red bundle of sticks with a paper band lettered TNT, drawn
+    from nothing; the owner asked on 2026-11-18 about a game's own TNT block with a
+    credit, and its maker's terms do not allow its textures in other software). **Not
+    built:** a way to turn it off. Seen on the harness in WebKit; `el._prank._begin()`
+    in the console starts one at once.
   - **A camera is a picture on the wall** (owner, 2026-11-18: "artistic licence", since
     one camera's block was like another's). Its slot is `PICTURE` (3) blocks wide and two
     tall (`Slot.w`), on a post out of doors. `digs/shots.ts` draws its `picture` into a

@@ -4,8 +4,8 @@ Contraption is to be Dash-Bored's sixth family: the house as one absurd machine 
 go through, where what happens to a duck says what a device is doing. It was worked out
 with the owner on 2026-11-16 to 2026-11-18 in mock-ups on an invented house. This page is
 what a new session needs to build it in the card: what is decided, what was tried and
-dropped, what was measured, and which example shows each thing. Nothing of it is in the
-card yet.
+dropped, what was measured, and which example shows each thing. The first build is in the
+card (2026.11.9-b18): see "What the card has" at the end.
 
 The owner's direction, which outranks everything below: "this is primarily for a laugh so
 the animations are key to that ... don't compromise fun & quirky for useability otherwise,
@@ -211,7 +211,32 @@ one the atlas uses), `style.css` (the skins), `page.js` (skin buttons and cords)
 - The first build the owner asked for (2026-11-18): the renderer, the tiles there are,
   and one room, his own kitchen, read live from Home Assistant. Nothing of his house goes
   in the repo (CLAUDE.md, RULE MINUS ONE); the mock-ups' house is invented and stays so.
-- When this was written another build was open in the same three files (Digs, the fifth
-  family, as 2026.11.9-b16). Start Contraption as the build after it, not inside it.
+- Digs, the fifth family, went in as 2026.11.9-b16 (2026-11-18) and is the newest example
+  of adding a family to those three files. Contraption starts as the build after it.
 - Measure in WebKit before and after, and on the iPad before calling it done. The Mac's
   headless figures were lower than the iPad's, so they are a safe floor.
+
+## What the card has
+
+The first build, 2026.11.9-b18 (2026-11-18), in `integration/cards/src/dash-bored/`:
+`contraption.ts` and `contraption/`. `HANDOVER.md` has its shape. Against "What is left to
+do":
+
+- **The renderer is built.** Poses write to a list of parts (`kit.ts`) and a frame places
+  it (`stage.ts`). A part that turns says how it is made into bitmaps with `data-ring`: all
+  round, round a part of the circle for a wheel whose spokes repeat, or between two ends
+  for a lever. A shape that changes is a line drawn on the canvas (the rod, the cog arm,
+  the slack belt, the trampoline's mat, the bot's tongs) or a move (the knob, the jockey,
+  the drips). A caption is in its tile's still bitmap, which is made again in its place
+  when the words change. The atlas is in pages of at most 4,096 px a side, and is made no
+  finer than 2 px to the unit. Each tile has a real button over it.
+- **Not as the mock-up:** the patent skin's lines wobble but do not boil, and it has no
+  grain. The bot has no puff of steam. The bottle shakes from side to side, not by turning.
+- **Tiles:** lights, lights switched together (a Home Assistant light group), six carriers
+  and a stand-in crate for every other kind. The cutlery and the dumb waiter are not
+  carried over, because no rule places a tile that goes straight up or down. The
+  Kitchen's own device tiles are still to be redrawn.
+- **Measured** on a throw-away harness with an invented kitchen of 13 devices (28 tiles),
+  headless on the owner's Mac at 1366 by 900 and two px to the px: 60 frames a second in
+  Chromium and in WebKit, with the atlas in one page at 140 px a tile and two at 260.
+  Not measured on the iPad.

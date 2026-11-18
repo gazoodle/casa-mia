@@ -5,7 +5,7 @@
 > **Maturity: In development.** Being built: parts work, it changes often, and an update may break it. For the curious. ([The levels](../README.md#maturity))
 
 > **This is a work in progress.** Of the eighteen, five run in Home Assistant today: the
-> Gazette, Bakelite, the Fridge, Aurora and Digs. The other thirteen are mock-ups:
+> Gazette, Bakelite, the Fridge, Aurora and Digs. Contraption runs for one room. The other twelve are mock-ups:
 > designs that work against an invented house but don't talk to Home Assistant yet. They
 > are being built one at a time, and what is here changes often.
 
@@ -62,7 +62,7 @@ The Gazette, Bakelite, the Fridge, Aurora and Digs can be used. The pictures of 
 <tr>
 <td width="33%" valign="top">
 <img src="../screenshots/dash-bored-mock-contraption.webp" alt="Contraption, as a mock-up" width="100%">
-<p><b>Contraption</b> · Mock-up<br>A Heath Robinson apparatus in pen and wash. Pull a lever and a rope lifts a boot, a kipper or a small anvil off a candle to light the room.</p>
+<p><b><a href="#contraption">Contraption</a></b> · Being built: one room so far (the picture is of an earlier mock-up)<br>A Heath Robinson apparatus in pen and wash. Pull a lever and a rope lifts a boot, a kipper or a small anvil off a candle to light the room.</p>
 </td>
 <td width="33%" valign="top">
 <img src="../screenshots/dash-bored-mock-aurora.webp" alt="Aurora, as a mock-up" width="100%">
@@ -1059,9 +1059,51 @@ Around the house:
 - **The signpost** in the garden, lettered DASH BORED, opens the choice of family. Two
   presses in the top right corner of the page do the same.
 
+Every few minutes an imp turns up with a crate of TNT, puts it down somewhere on the
+part of the house that is on the screen, runs off and blows a hole in it. A repair bot
+then flies in and mends the hole a block at a time. It is only a show: it switches
+nothing in your house, hides no device's block and takes no press, and it does not
+happen while a room's list is open or where the browser asks for less movement. The
+first one comes twenty seconds after the page is opened, and the rest three to six
+minutes apart. It can't be turned off yet.
+
 Digs does not yet have what a camera last saw, Casa Mia's presets, zoom and
 controls for a camera, a thermostat's modes or a player's source, an alarm's code on the
 page, or a device's history.
+
+
+## Contraption
+
+Contraption is being built. So far it draws one room as a machine that ducks go through:
+the kitchen, which it finds as the area with "kitchen" in its name. If there is none it
+draws the first room.
+
+Each device is a tile, and the duck passing through a tile is that device's engine. For a
+light, the duck runs on a belt, jumps on a sprung board or walks in a treadwheel, and
+that turns a dynamo. The light being on is its clutch being in, so a tap on the tile
+throws the clutch and switches the light. A dimmable light keeps its duck at work for
+longer the brighter it is, and has a voltmeter. A light with a colour glows in it. Lights
+in a Home Assistant light group are one machine with a shared shaft and a clutch for each.
+
+A device that is not a light is a packing crate for now, with the kind of thing written
+on it. Its flag is up and its lamp is lit while it is on. A tap on a lock, a garage door,
+a camera or an alarm opens Home Assistant's own dialog and changes nothing.
+
+A device that stops answering is put under a dust sheet, with a sign that says since
+when, and its ducks go through a tube so that the rest of the machine keeps running. When
+it answers again the sign says so, and the sheet stays until the bot has pulled it off.
+If the page loses its connection the ducks go to sleep, the sheet is dimmed and a notice
+says since when.
+
+The buttons at the top choose a skin: patent engraving, blueprint or tin toy. The slider
+sets how big a tile is drawn. A sheet wider than the screen is scrolled sideways.
+
+It is a card too, **Casa Mia Dash-Bored Contraption** (`type: custom:dash-bored-contraption`).
+Give it `rooms` with one room's name to draw that room, and `style` (`patent`, `blueprint`
+or `tin`) to fix its skin.
+
+Contraption does not yet have the rest of the house, scenes, a way to set a level, or
+anything the other families show besides a room's devices.
 
 ## The order of floors and rooms
 

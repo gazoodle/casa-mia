@@ -17,7 +17,7 @@ every family is given, so showing them needed no new data.
 
 `tests/test_dash_bored_parity.py` enforces the part of this it can read from the sources:
 the fields of `House`, a device's optional fields, the integration's feeds and the
-forecast. One that any family reads must be read by all five, or be in the test's `OWED`
+forecast. One that any family reads must be read by all six, or be in the test's `OWED`
 list with the reason. It sees what a family reads and not what it draws, so this table is
 still kept by hand.
 
@@ -25,32 +25,37 @@ How to read it: **yes** means built, **no** means not built, **part** is explain
 the table, and **?** means it was not checked when this was written. Check a **?** in the
 source before relying on it, and replace it.
 
-| Capability | Gazette | Console | Fridge | Aurora | Digs |
-|---|---|---|---|---|---|
-| All fifteen kinds of device | yes | yes | yes | yes | part |
-| Levels: brightness, position, speed, volume, target temperature | yes | yes | yes | yes | yes |
-| Two presses to unlock, open or sound | yes | yes | yes | yes | yes |
-| Scenes | yes | yes | yes | yes | yes |
-| Sensor Watch's alerts | yes | yes | yes | yes | yes |
-| A camera's latest picture and what it last saw | yes | yes | yes | yes || part |
-| Casa Mia's cameras: presets, zoom and controls | yes | yes | no | yes | no |
-| The weather now | yes | yes | yes | no | yes |
-| The forecast by the day | yes | yes | no | no | yes |
-| Who is at home | yes | no | yes | no | yes |
-| People's comings and goings, with times | yes | no | no | no | no |
-| What the players played lately | yes | no | no | no | no |
-| What is playing, and pause or play | yes | ? | ? | no | yes |
-| Which appliances are drawing power | yes | no | no | no | no |
-| Love it or Loathe it's ratings | yes | no | no | no | no |
-| Power in use | yes | ? | yes | yes | yes |
-| A device's history | yes | part | ? | part | no |
-| A door found unlocked, said on the front | yes | ? | yes | ? | yes |
-| Devices not answering, said on the front | yes | ? | ? | ? | yes |
-| What the house is missing (devices in no area and the like) | yes | no | no | no || part |
-| A thermostat's modes and a player's source | no | no | no | yes | no |
-| Finding a device by typing | ? | no | no | yes | no |
-| The house's own agent's column (ZenOS-AI) | yes | no | no | no | no |
+| Capability | Gazette | Console | Fridge | Aurora | Digs | Contraption |
+|---|---|---|---|---|---| --- |
+| All fifteen kinds of device | yes | yes | yes | yes | part | part |
+| Levels: brightness, position, speed, volume, target temperature | yes | yes | yes | yes | yes | part |
+| Two presses to unlock, open or sound | yes | yes | yes | yes | yes | no |
+| Scenes | yes | yes | yes | yes | yes | no |
+| Sensor Watch's alerts | yes | yes | yes | yes | yes | no |
+| A camera's latest picture and what it last saw | yes | yes | yes | yes || part | no |
+| Casa Mia's cameras: presets, zoom and controls | yes | yes | no | yes | no | no |
+| The weather now | yes | yes | yes | no | yes | no |
+| The forecast by the day | yes | yes | no | no | yes | no |
+| Who is at home | yes | no | yes | no | yes | no |
+| People's comings and goings, with times | yes | no | no | no | no | no |
+| What the players played lately | yes | no | no | no | no | no |
+| What is playing, and pause or play | yes | ? | ? | no | yes | part |
+| Which appliances are drawing power | yes | no | no | no | no | no |
+| Love it or Loathe it's ratings | yes | no | no | no | no | no |
+| Power in use | yes | ? | yes | yes | yes | no |
+| A device's history | yes | part | ? | part | no | no |
+| A door found unlocked, said on the front | yes | ? | yes | ? | yes | no |
+| Devices not answering, said on the front | yes | ? | ? | ? | yes | yes |
+| What the house is missing (devices in no area and the like) | yes | no | no | no || part | no |
+| A thermostat's modes and a player's source | no | no | no | yes | no | no |
+| Finding a device by typing | ? | no | no | yes | no | no |
+| The house's own agent's column (ZenOS-AI) | yes | no | no | no | no | no |
 
+- **Contraption** (first build, 2026.11.9-b18) shows one room's devices and nothing of the
+  house round them. Every kind has a tile, but only a light's is its own machine: the rest
+  are a stand-in crate. A level is shown (how long the duck is kept at work, a meter, the
+  words under the name) and not set. A lock, a garage door, a camera and an alarm open
+  Home Assistant's own dialog. A player is paused or played by a tap.
 - **All fifteen kinds of device:** Digs has a block for each, but a camera's picture and an
   alarm's block only open Home Assistant's own dialog: neither is worked from the page.
 - **A camera's latest picture and what it last saw:** Digs has the latest picture, in the

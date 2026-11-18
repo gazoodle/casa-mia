@@ -4,10 +4,12 @@
 // keeps the time and the weather. After the mock-up, docs/design/dash-bored/digs.html.
 // It is built on what every family shares (family.ts): digs/world.ts lays the house out,
 // digs/textures.ts paints the blocks and the lettering, digs/chest.ts is a room's list,
-// digs/shots.ts draws the cameras' pictures and digs/styles.ts is the look.
+// digs/shots.ts draws the cameras' pictures, digs/prank.ts is the imp's show and
+// digs/styles.ts is the look.
 import { html, nothing } from "lit";
 import { fire, room as below, watchRoom } from "../ha.ts";
 import { ALARM, chest, said, shown } from "./digs/chest.ts";
+import { Prank } from "./digs/prank.ts";
 import { SHOT, shots } from "./digs/shots.ts";
 import { STYLES } from "./digs/styles.ts";
 import { bg, figure, say, texture } from "./digs/textures.ts";
@@ -73,11 +75,23 @@ export class Digs extends Family {
   private _dropping?: ReturnType<typeof setTimeout>;
   private _lapsing?: ReturnType<typeof setTimeout>;
   private _unwatch?: () => void;
+  // The imp and its crate (digs/prank.ts): told what it may know of the page, and no more.
+  private _prank = new Prank({
+    after: (ms, then) => void this._after(ms, then),
+    requestUpdate: () => this.requestUpdate(),
+    world: () => this._world,
+    seen: () => {
+      const scroll = this.renderRoot.querySelector(".scroll");
+      return scroll ? [Math.ceil(scroll.scrollLeft / this._b), Math.floor((scroll.scrollLeft + scroll.clientWidth) / this._b) - 1] : [0, 0];
+    },
+    still: () => this._sample || !!this._open || matchMedia("(prefers-reduced-motion: reduce)").matches,
+  });
 
   connectedCallback() {
     super.connectedCallback();
     this._tick();
     this._after(STEP, this._stroll);
+    this._prank.start();
     this._unwatch = watchRoom(this._fit);
   }
 
@@ -354,7 +368,7 @@ export class Digs extends Family {
         <div class="cloud" style="top:8%"></div><div class="cloud" style="top:18%;animation-delay:-80s"></div>
         ${sky === "rain" || sky === "snow" ? html`<div class="fall ${sky}" style="background-image:${bg(sky)}"></div>` : nothing}
       </div>
-      <div class="scroll" @scroll=${this._framed}><div class="stage" style="--crack:${bg("crack")}">
+      <div class="scroll" @scroll=${this._framed}><div class="stage ${this._prank.shaking ? "shake" : ""}" style="--crack:${bg("crack")}">
         <canvas class="world" .width=${world.w * 16} .height=${world.h * 16}></canvas>
         ${world.zones.map((z) => label(z.id, z.name, z.x0, z.y0 - 1, z.x1 - z.x0 + 1))}
         ${world.plots.map((p) => label(p.id, p.name, p.x0, p.y, p.x1 - p.x0 + 1))}
@@ -373,6 +387,7 @@ export class Digs extends Family {
             <div class="at board" role="img" aria-label="${name}: ${day.sky}, ${high}" style="${place(x, y)};background-image:${bg("board")}">${say(name)}${say(high)}</div>`;
         })}
         ${[...world.slots].map(([id, at]) => (byId.has(id) ? this._block(byId.get(id)!, at) : this._crowd(id, at, rooms.get(id.replace(LAMPS, "").replace(CHEST, "")))))}
+        ${this._prank.draw()}
         ${lived.length
           ? house.people.filter((p) => p.place === "home").map((p) => {
               const { zone, x } = this._stands(p, lived);

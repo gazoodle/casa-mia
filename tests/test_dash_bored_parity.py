@@ -33,6 +33,7 @@ FAMILIES = {
     "fridge": ["fridge.ts", "fridge"],
     "aurora": ["aurora.ts", "aurora"],
     "digs": ["digs.ts", "digs"],
+    "contraption": ["contraption.ts", "contraption"],
 }
 COMMENT = re.compile(r"/\*.*?\*/|//[^\n]*", re.S)
 FEED = re.compile(r'const (\w+) = "(casa_mia_dash_bored/\w+)"')
@@ -79,6 +80,30 @@ OWED = {
             "device.controls",
             "device.choices",
             "feed casa_mia_dash_bored/sightings",
+        )
+    },
+    # Contraption's first build (2026.11.9-b18) is one room's devices and nothing of the
+    # house round them: BACKLOG.md, "Contraption, the sixth family".
+    **{
+        ("contraption", what): PARITY
+        for what in (
+            "house.people",
+            "house.outside",
+            "house.gaps",
+            "house.scenes",
+            "house.appliances",
+            "house.kw",
+            "the forecast by the day",
+            "device.phase",
+            "device.picture",
+            "device.zoom",
+            "device.presets",
+            "device.controls",
+            "device.choices",
+            *(
+                f"feed casa_mia_dash_bored/{feed}"
+                for feed in ("alerts", "sightings", "personal", "playing", "column")
+            ),
         )
     },
 }
