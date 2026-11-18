@@ -27,7 +27,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from . import layout_resource, sensor_watch
+from . import layout_resource, sensor_watch, topology
 from .children import discover_children, reload_children
 from .const import CARDS_JS, DOMAIN, FONA_EVENT, SCRIPTS_URL, SETTINGS_EVENT
 from .coordinator import (
@@ -73,6 +73,15 @@ PLATFORMS = [
 # setup again with this same code, so reading the manifest then would take the newer
 # version the app may since have installed as loaded, and drop its restart Repair.
 LOADED_VERSION = manifest_version()
+# Set up from config entries only; async_setup is here for Topology alone.
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+
+async def async_setup(hass: HomeAssistant, _config: dict[str, Any]) -> bool:
+    """What belongs to Home Assistant and not the app, so is there while the app is
+    down: the entry's set-up fails then (its first refresh asks the app)."""
+    await topology.set_up(hass)
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

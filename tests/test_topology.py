@@ -104,3 +104,14 @@ def test_what_was_saved_gives_the_same_feed():
     record["connections"] = [c for c in record["connections"] if c["b"] in AREAS]
     saved = model.check(record, AREAS, FLOORS)
     assert model.view(saved, 1, AREAS, FLOORS)["exits"] == CASES["view"]["exits"]
+
+
+def test_a_building_is_kept_whole():
+    saved = model.check(
+        {"sites": [], "buildings": [{"id": "shed", "name": "Shed"}], "connections": []},
+        AREAS,
+        FLOORS,
+    )
+    assert saved["buildings"] == [
+        {"id": "shed", "name": "Shed", "site": None, "floors": [], "areas": []}
+    ]

@@ -239,9 +239,11 @@ the group's feeling, and it is acted on at once.
 A switch can't end at the next track, as a mute does, because once the player has left
 a station nothing reports what that station is playing.
 
-The player is not switched back if someone chose something else while it was away, or
-if it is no longer playing. A restart of Home Assistant while a player is away doesn't
-lose the return.
+The player is not switched back if someone chose something else while it was away. If
+it is paused when the time comes, it is switched back when it next plays. The same
+happens when the player can't be reached, or when Home Assistant was restarting at the
+time and the player has not been found again yet. A switch back that fails is tried
+again at the player's next track. Each of these is a line in **What happened**.
 
 For speakers playing as one group, the group's leader acts for all of them. A mute or a volume change is made on every speaker in the group. Sonos mutes each speaker by itself, so muting the leader alone would leave the rest of the group playing.
 

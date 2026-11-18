@@ -77,7 +77,11 @@ def check(
     sites = [dict(s) for s in record.get("sites", [])]
     site_ids = [s["id"] for s in sites]
     problems += [f"two sites are {i!r}" for i in _twice(site_ids)]
-    buildings = [dict(b) for b in record.get("buildings", [])]
+    # A building is kept whole, so that what reads it never has to supply what's missing.
+    buildings = [
+        {"site": None, "floors": [], "areas": [], **b}
+        for b in record.get("buildings", [])
+    ]
     problems += [
         f"two buildings are {i!r}" for i in _twice([b["id"] for b in buildings])
     ]

@@ -377,6 +377,14 @@ centre and feed both left and right".
   about every 30 to 55 seconds; flowers stop at five. Seen in stills: the poop with its
   flies, and the tongs with a duck. Not seen: the hop over it, the bot's shovel and peg,
   the bin being filled, the poop in a tube.
+- **Carriers out of step (2026.11.9-b24).** The owner, 2026-11-18: "Toast and trampoline
+  ducks are still synchronised ... I thought we had added some de-sync work?" What
+  there was is the bend (a tile runs up to a fifth of a period early or late in its
+  middle), which is too little to see between two of a kind. A tile cannot run on a
+  clock of its own, since ducks cross every edge on the one beat and the shaft joins
+  every tile. So each carrier is now made for its place with a timing of its own
+  (`carriers.ts`): when the toaster pops, when the trampoline is hit, and so on. The
+  beat at the edges is untouched. Not looked at running.
 - **Measured** on the harness: 19 devices are 57 tiles in three bands with eight tunnels,
   at 60 frames a second in headless WebKit, and the same with the tubes (13 devices, 38
   tiles). Not measured on the iPad, where the tubes are the new cost: two wide strokes

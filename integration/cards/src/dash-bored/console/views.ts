@@ -50,31 +50,39 @@ const LAYOUT = css`
      phases wanting more of it than one with none. */
   .rack { display: flex; flex-wrap: wrap; align-items: stretch; gap: 12px; }
   .metered { flex: 1 1 440px; } .metered.phased { flex-basis: 520px; }
-  /* Its works are measured, so that the strips stand by the width the chassis has. */
-  .metered > .works { display: block; container-type: inline-size; }
+  /* Its works are laid out at their natural width (a meter is 150 px, and 10 px from the
+     next: meters.ts CELL and GAP, change them together) and the whole of them zoomed to
+     the width the chassis has (sized in metered.ts, which also names the form as a class).
+     A stopgap until every control can be drawn at any size: BACKLOG. */
+  .metered > .works { display: block; }
+  .fit { margin: 0 auto; }
   /* A strip is one phase's meters, standing as a column. Laid flat (a meter with no
-     phases) it is a row that wraps, and so a column again only in a chassis too narrow
-     for two meters abreast (owner, 2026-11-18: no tall thin panel unless it is needed). */
-  .strip { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; }
+     phases) it is a row, with its registers under it or after it. */
+  .strip { display: flex; flex-direction: column; align-items: center; gap: 8px 10px; min-width: 0; }
   .strip.flat { flex-direction: row; flex-wrap: wrap; justify-content: center; }
   /* A cell is a meter, and under it Sensor Watch's lamp when it has something to say of it. */
-  .cell { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 0 1 auto; width: 150px; max-width: 100%; min-width: 0; }
+  .cell { display: flex; flex: none; flex-direction: column; align-items: center; gap: 4px; width: 150px; min-width: 0; }
   .cell > .meter { flex: none; width: 100%; margin: 0; }
-  .strip.flat .cell { flex: 1 1 130px; width: auto; max-width: 150px; }
   /* The phases' strips share their rows (--rows, as many as a strip has meters), so that a
-     quantity's meters are in a line across them whatever is lettered under each. */
-  .phases { display: grid; grid-template-columns: repeat(var(--strips), minmax(0, 1fr)); gap: 8px 10px; align-items: start; }
-  .phases > .strip { display: grid; grid-template-rows: subgrid; grid-row: span var(--rows); justify-items: center; align-items: start; }
+     quantity's meters are in a line across them whatever is lettered under each. Each
+     strip's own column is its place's width and no more: left to its content, the strips
+     overlapped each other in a narrow card (owner's phone, 2026-11-18). */
+  .phases { display: grid; grid-template-columns: repeat(var(--strips), 150px); gap: 8px 10px; align-items: start; }
+  .phases > .strip { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: subgrid; grid-row: span var(--rows); justify-items: center; align-items: start; }
   .phases > .whole { display: flex; }
   .registers { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 6px 8px; }
   .flat .registers { flex-direction: row; flex-wrap: wrap; justify-content: center; }
   .register { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-  /* Too narrow for the whole meter's strip beside the phases': it lies under them. */
-  @container (max-width: 600px) {
-    .phases { grid-template-columns: repeat(var(--phases), minmax(0, 1fr)); }
-    .phases > .whole { grid-row: auto; grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; justify-content: center; }
-    .whole .registers { flex-direction: row; flex-wrap: wrap; justify-content: center; }
-  }
+  /* Too small with everything abreast: the whole meter's strip lies under the phases'. */
+  .under > .phases { grid-template-columns: repeat(var(--phases), 150px); }
+  .under > .phases > .whole { grid-row: auto; grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; justify-content: center; }
+  .under .registers { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+  /* Too small for that as well: every meter in one column (owner, 2026-11-18: no tall thin
+     panel unless it is needed). */
+  .column > .phases { display: flex; flex-direction: column; align-items: center; }
+  .column > .phases > .strip { display: flex; }
+  .column > .strip.flat { flex-direction: column; flex-wrap: nowrap; }
+  .column .registers { flex-direction: column; }
 `;
 
 export const VIEWS = [LAYOUT, SELECTOR];

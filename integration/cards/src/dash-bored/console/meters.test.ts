@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { chassis, limits, metered, phase, step } from "./meters.ts";
+import { abreast, chassis, fit, limits, metered, phase, step } from "./meters.ts";
 
 // An invented house: a three-phase meter on the supply and a single-phase one on a fan.
 const sensor = (device: string, id: string, name: string, kind: string, state: string, unit: string) => ({ device, id: `sensor.${id}`, name, kind, state, unit });
@@ -126,4 +126,19 @@ test("a watch that is switched off, or not of the sensor's state, says nothing o
   assert.equal(chassis(hass(), "fan", {}, new Map(), off).whole[0].level, undefined);
   const other = new Map([["sensor.fan_voltage", { ...watching("nominal"), attribute: "battery" }]]);
   assert.deepEqual([chassis(hass(), "fan", {}, new Map(), other).whole[0].lo, chassis(hass(), "fan", {}, new Map(), other).whole[0].hi], [210, 260]);
+});
+
+test("a chassis is zoomed to the width it has, and changes form only when it would be too small", () => {
+  const [wide, under] = [abreast(4), abreast(3)]; // three phases and the whole meter: 630, or 470 with it under them
+  assert.deepEqual([wide, under, abreast(1)], [630, 470, 150]);
+  assert.deepEqual(fit(630, wide, under), { form: "wide", width: 630, zoom: 1 });
+  assert.deepEqual(fit(1260, wide, under), { form: "wide", width: 630, zoom: 1.6 }); // never coarse
+  assert.deepEqual(fit(480, wide, under), { form: "wide", width: 630, zoom: 0.762 });
+  assert.deepEqual(fit(440, wide, under), { form: "under", width: 470, zoom: 0.936 });
+  assert.deepEqual(fit(310, wide, under), { form: "under", width: 470, zoom: 0.66 }); // a phone
+  assert.deepEqual(fit(250, wide, under), { form: "column", width: 150, zoom: 1 });
+  // A meter with no phases has no other form but the column.
+  assert.deepEqual(fit(310, abreast(3)), { form: "wide", width: 470, zoom: 0.66 });
+  assert.deepEqual(fit(200, abreast(3)), { form: "column", width: 150, zoom: 1 });
+  assert.deepEqual(fit(60, abreast(3)), { form: "column", width: 150, zoom: 0.6 });
 });

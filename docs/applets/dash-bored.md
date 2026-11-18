@@ -1245,12 +1245,18 @@ make or model of meter. It uses the device's sensors by their device class:
 - A sensor belongs to a **phase** when its name or entity id has `L1`, `L2` or `L3` in it
   (or `Phase 1` to `Phase 3`). A meter with phases has a column of meters for each phase,
   side by side, so the three voltmeters are in a row. The readings that are of the whole
-  meter (total power, the registers) are in a column of their own, which moves under the
-  phases on a narrow card.
-- A meter with no phases is laid out as a row, with its registers after it. In a card too
-  narrow for two meters side by side it becomes a single column.
+  meter (total power, the registers) are in a column of their own beside them.
+- A meter with no phases is laid out as a row, with its registers after it.
 
 Several devices on one card are several chassis, side by side where there is room.
+
+**The size of the meters.** A chassis is drawn to fit the width its card gives it. The
+whole of it is made smaller or larger together, from six tenths of its natural size to
+one and six tenths, so the meters fill a wide card and still fit side by side on a phone.
+When a three-phase chassis would be too small with everything side by side, the whole
+meter's column moves under the phases. When that is too small as well, or a meter with no
+phases is in a very narrow card, every meter stands in a single column at its natural
+size. On a phone the lettering under the meters is small.
 
 **The limits of a scale.** All the phases of one quantity share a scale, so the needles
 can be compared. Without `limits`, a voltage is on the scale of the mains voltage it is

@@ -31,7 +31,7 @@
 // What it gives is a block in its own columns and rows, which the machine places on the
 // sheet. Nothing here says how rooms adjoin: that is to come from Topology
 // (docs/design/topology.md), and the shaft is where a floor above or below would join.
-import { CARRIERS } from "./carriers.ts";
+import { CARRIERS, type Carrier } from "./carriers.ts";
 import { escalator, lift, pegs, slide } from "./climbs.ts";
 import { standin } from "./devices.ts";
 import { group } from "./group.ts";
@@ -50,10 +50,11 @@ export type Layout = { way: Step[]; tunnels: Tunnel[] };
 
 const LONG = 8; // about how many columns of devices a wing holds before the room has another wing
 const DEEP = 3; // rows to a band
-const { cork, toaster, plug, trampoline, mangle, ladle } = CARRIERS;
-const STRAIGHT = [mangle, ladle];
+// A carrier is named here and made where it is put, each with a timing of its own (carriers.ts).
+type Piece = Tile | Carrier;
+const STRAIGHT: Carrier[] = ["mangle", "ladle"];
 // A row up, and a row down: the tile the stream leaves the row by, and the one it comes into the next by.
-const UP = [[cork, toaster], escalator], DOWN = [[plug, trampoline], slide];
+const UP: Piece[][] = [["cork", "toaster"], escalator], DOWN: Piece[][] = [["plug", "trampoline"], slide];
 /** About how many columns something takes with the gap after it. */
 const takes = (item: Dev[]) => item.length + 1;
 
@@ -76,7 +77,7 @@ export function route(id: string, devices: Dev[]): Layout {
   }
 
   const way: Step[] = [], joins: [from: number, to: number][][] = [], ends: number[][] = [];
-  let picks = hash(id), drives = hash(id), leaves = 0;
+  let picks = hash(id), drives = hash(id), leaves = 0, carried = 0;
   // A tile is drawn for a stream going one way: it is mirrored where the wing goes the other.
   const leftward = (tile: Tile) => edges(tile.io).ins.includes("R") || edges(tile.io).outs.includes("L");
   const made = (item: Dev[], upright?: "TB" | "BT") => {
@@ -87,7 +88,10 @@ export function route(id: string, devices: Dev[]): Layout {
   wings.forEach((wing, k) => {
     const band = k >> 1, dir = k % 2 ? -1 : 1;
     let col = 1, row = 1, fanned = true; // a wing starts with a device by itself
-    const put = (c: number, r: number, tile: Tile) => way.push({ col: dir * c, row: band * DEEP + r, tile, flip: dir < 0 !== leftward(tile) }) - 1;
+    const put = (c: number, r: number, piece: Piece) => {
+      const tile = typeof piece === "string" ? CARRIERS[piece](hash(`${id}.carrier${carried++}`)) : piece;
+      return way.push({ col: dir * c, row: band * DEEP + r, tile, flip: dir < 0 !== leftward(tile) }) - 1;
+    };
     /** How many devices by themselves come next: lights switched together are not for a lane. */
     const singles = (i: number) => {
       let n = 0;
@@ -102,15 +106,15 @@ export function route(id: string, devices: Dev[]): Layout {
         const lanes = Math.min(3, left), deep = left >= 2 * lanes && picks++ % 2 ? 2 : 1;
         const rows = lanes === 3 ? [1, 0, 2] : [1, picks++ % 2 ? 0 : 2], sides = rows.map((r) => "RTB"[r === 1 ? 0 : r === 0 ? 1 : 2]).join("");
         // What each lane holds: its tiles, with a carrier between two things.
-        const loads = rows.map(() => Array.from({ length: deep }, (_, n) => [...(n ? [STRAIGHT[picks++ % 2]] : []), ...made(wing[i++])]).flat());
+        const loads = rows.map(() => Array.from({ length: deep }, (_, n): Piece[] => [...(n ? [STRAIGHT[picks++ % 2]] : []), ...made(wing[i++])]).flat());
         const end = col + 1 + Math.max(...loads.map((load) => load.length)), parts = put(col, 1, redirector("L", sides)), meets = put(end, 1, collector(sides.replace("R", "L")));
         // The collector has a duck too many for every lane but one, and the redirector one too few.
         for (let spare = 1; spare < lanes; spare++) (joins[band] ??= []).push([meets, parts]);
 
         rows.forEach((r, lane) => {
           if (r !== 1) {
-            put(col, r, r ? trampoline : toaster);
-            put(end, r, r ? cork : plug);
+            put(col, r, r ? "trampoline" : "toaster");
+            put(end, r, r ? "cork" : "plug");
           }
           // A lane shorter than the longest is made up with carriers.
           for (let c = col + 1; c < end; c++) put(c, r, loads[lane][c - col - 1] ?? STRAIGHT[picks++ % 2]);

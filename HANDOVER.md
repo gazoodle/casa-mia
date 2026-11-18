@@ -174,6 +174,9 @@ imported from `casa_mia`, no app option. Guide: `docs/applets/love-or-loathe.md`
   track, or a switch of station for some minutes. `undo` and `away` are kept in HA's
   storage, so a restart loses neither; unloading puts volumes and mutes back at once.
   It never puts back over a person's change.
+  `_back` forgets a return only once `play_media` has worked: a player not playing, not
+  yet there after a restart, or refusing the call keeps `away` with `due`, and the
+  return is made when it next plays (b24; before, the return was cleared first and lost).
   `afresh` judges what is playing now at every start, so at each save of a group,
   change of feeling and rating (owner, 2026-11-13: a song added to a list while it
   plays must be acted on then). Safe because unloading undoes volumes and mutes first.
@@ -272,6 +275,32 @@ imported from `casa_mia`, no app option. Guide: `docs/applets/love-or-loathe.md`
   - Not on the page: adding or deleting an entry, and browsing for a station.
 - **Tests:** `tests/test_love_or_loathe.py` (matching), `tests_ha/test_love_or_loathe.py`
   (the page's commands too, through a websocket client).
+
+## Topology
+
+Inside `casa_mia`, wholly in Home Assistant (owner, 2026-11-18). Begun 2026.11.9-b23. The
+brief, with the agreed contract and the order of building, is `docs/design/topology.md`.
+
+- **The rules** are `casa_mia/topology/model.py`, with no Home Assistant in it: `check`
+  (a save), `view` (the feed: `exits` and `broken` worked out once per change),
+  `direction` (any spelling to one form, "sse"). **The glue** is `topology/__init__.py`:
+  its Store, the `rev` check, the registry events that resend the feed.
+- **Set up by `casa_mia`'s `async_setup`, not its entry**, so it answers while the app is
+  down (the entry's first refresh fails then).
+- **One invented house is the contract**, `tests/topology_cases.json`: the model
+  (`tests/test_topology.py`) and the real storage and registries
+  (`tests_ha/test_topology.py`) both pass it, and Dash-Bored's tests are to read it.
+- **A save tells every page before it answers**, so a page's own feed has the new rev
+  before its save's result.
+- **The editor** is the admin page `app/web/src/topology/` (2026.11.9-b24), talking to
+  Home Assistant through `homeConnection` as Love it or Loathe it's does; the Home page
+  follows the same feed for its tile. A save sends the whole record, rebuilt from the
+  feed (`savedOf`), so what is broken is dropped by the next save: it couldn't be saved.
+  Room and floor names come from Home Assistant's registry lists, listed again on its
+  registry events. Mermaid 12 is loaded only for the picture and has ELK built in (no
+  `@mermaid-js/layout-elk`); it adds ~5 MB of chunks to the committed build, of which a
+  flowchart fetches only its own.
+- Next: Digs (step 3), then the guide, maturity and README (step 6).
 
 ## Dash-Bored
 
@@ -520,7 +549,11 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
     Watch's own `follow` (`_consult` in `panel.ts`; the feeds are in the family's `_feeds`,
     so leaving the page stops them): its bands give the scale, its level a `jewel` under
     the meter, and a watch that Sensor Watch can no longer give is kept and said to be
-    lapsed (`_lapsed`). Steps 1 and 2 of the plan are built. Steps 3 and 4 (zones on the
+    lapsed (`_lapsed`). A chassis's works are laid out at their natural width and
+    zoomed to fit (b24: `fit` in `meters.ts` chooses the form and the zoom, `sized` in
+    `metered.ts` applies them, and `_fit` in `panel.ts` watches each chassis's width). That
+    is a stopgap the owner chose on 2026-11-18 to get the card working on a phone; BACKLOG
+    has sizing every control properly. Steps 1 and 2 of the plan are built. Steps 3 and 4 (zones on the
     scales, a picture for the guide) are in BACKLOG. Seen in all five eras in a scratch harness
     with a fake Home Assistant, not yet in a real one. The owner agreed the name
     (2026-11-18).

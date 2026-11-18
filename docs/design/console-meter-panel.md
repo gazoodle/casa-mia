@@ -38,11 +38,16 @@ board as their model, so a model filter would not find them.
   `phase 1` to `phase 3` as a word. One with none belongs to the whole meter.
 - The unit of layout is a strip: one phase's meters, in the order of the table.
 - **A meter with no phases** is one strip laid along the chassis, with its registers after
-  it. The strip wraps as the card narrows, and stands up as a column only when the card is
-  too narrow for two meters side by side.
+  it.
 - **A meter with phases** has a strip for each phase standing side by side, so that the
   three voltmeters are in a row, and a strip for the whole meter (total power, registers)
-  beside them. Where four strips do not fit, the whole meter's strip lies under the phases.
+  beside them.
+- **Fitting the card** (2026.11.9-b24, a stopgap the owner chose on 2026-11-18): the works
+  are laid out at their natural width and the whole of them zoomed to the chassis's width,
+  between 0.6 and 1.6. A meter with phases puts the whole meter's strip under the phases
+  when everything abreast would be under 0.75. When no form fits at 0.6, the meters stand
+  in one column, which is the only time the panel is tall and thin. Doing it properly,
+  with every control drawn at the size its place gives it, is in BACKLOG.
 - Several devices on one card are several chassis, side by side where there is room.
 - A register shows kWh with one decimal place. Wh and MWh are converted.
 

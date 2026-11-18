@@ -4,7 +4,7 @@
 import { html, nothing, type TemplateResult } from "lit";
 import { NOMINAL } from "../stories.ts";
 import type { Kit } from "./kit.ts";
-import type { Chassis, Meter } from "./meters.ts";
+import { abreast, fit, type Chassis, type Meter } from "./meters.ts";
 
 const FIGURES = 6; // a register's whole kilowatt-hours, before its one decimal place
 
@@ -36,11 +36,33 @@ export function metered(kit: Kit, c: Chassis, live: boolean, beat: () => number)
   </div>`;
   const registers = c.registers.length ? html`<div class="registers">${c.registers.map((r) => kit.register(r.name, live ? r.kwh : undefined))}</div>` : nothing;
   const whole = c.whole.length || c.registers.length;
-  const works = c.strips.length
-    ? html`<div class="phases" style="--phases: ${c.strips.length}; --strips: ${c.strips.length + (whole ? 1 : 0)}; --rows: ${Math.max(...c.strips.map((s) => s.meters.length))}">
+  const phases = c.strips.length;
+  const works = phases
+    ? html`<div class="phases" style="--phases: ${phases}; --strips: ${phases + (whole ? 1 : 0)}; --rows: ${Math.max(...c.strips.map((s) => s.meters.length))}">
         ${c.strips.map((s) => html`<div class="strip">${s.meters.map(dial)}</div>`)}
         ${whole ? html`<div class="strip whole">${c.whole.map(dial)}${registers}</div>` : nothing}
       </div>`
     : html`<div class="strip flat">${c.whole.map(dial)}${registers}</div>`;
-  return html`<section class="room metered ${c.strips.length ? "phased" : ""}">${label(c.name)}<div class="works">${works}</div></section>`;
+  // The works' natural widths, for `sized`: with everything abreast, and for a meter with
+  // phases with the whole meter's strip under them. One with no phases is never laid out
+  // narrower than two meters, so that its registers have room under one meter alone.
+  const wide = phases ? abreast(phases + (whole ? 1 : 0)) : abreast(Math.max(2, c.whole.length));
+  const under = phases && whole ? abreast(phases) : nothing;
+  return html`<section class="room metered ${phases ? "phased" : ""}">${label(c.name)}<div class="works"><div class="fit" data-wide=${wide} data-under=${under}>${works}</div></div></section>`;
+}
+
+/** Fit a chassis's works (its `.works` element) to the width they have now: the form
+ * meters.ts `fit` chooses is the wrapper's class (views.ts lays each out), at the width
+ * and zoom it gives. `changed`: only if the works' natural widths are not those last
+ * fitted, which asks the page nothing, so it can be done at every drawing. */
+export function sized(works: HTMLElement, changed = false) {
+  const inner = works.firstElementChild as HTMLElement | null;
+  if (!inner?.dataset.wide) return;
+  const key = `${inner.dataset.wide} ${inner.dataset.under ?? ""}`;
+  if (changed && inner.dataset.fitted === key) return;
+  const { form, width, zoom } = fit(works.clientWidth, Number(inner.dataset.wide), Number(inner.dataset.under) || undefined);
+  inner.dataset.fitted = key;
+  inner.className = `fit ${form}`;
+  inner.style.width = `${width}px`;
+  inner.style.zoom = String(zoom);
 }

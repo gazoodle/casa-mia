@@ -76,6 +76,16 @@ test("machinery on the y-axis: a device stands upright where the stream goes dow
     assert.ok(route(id, room(24)).way.filter((s) => s.tile.device && /^(TB|BT)$/.test(s.tile.io)).length >= 2, `${id}: two or more upright in a room of 24`);
 });
 
+test("two carriers of a kind do not do the same thing at the same moment: each has its own timing", () => {
+  const { way } = route("kitchen", room(40));
+  for (const io of ["BR", "TL"]) {
+    // Toasters and trampolines, by where their duck is part of the way through the period.
+    const some = way.filter((s) => s.tile.io === io && !s.tile.device && !s.tile.steady);
+    const where = some.map((s) => { const d = s.tile.duck({ p: 0.42, on: false, dt: 0, now: 0, from: 0, to: 0, turn: 0 }); return `${Math.round(d.x)},${Math.round(d.y)}`; });
+    assert.ok(some.length >= 3 && new Set(where).size >= some.length - 1, `${io}: ${where.join(" ")}`);
+  }
+});
+
 test("the machine is clean: run for 200 periods, every way has one duck a period and none is made or lost", () => {
   for (const devices of ROOMS) {
     const layout = route("kitchen", devices), { io, next, up, down } = links(layout);

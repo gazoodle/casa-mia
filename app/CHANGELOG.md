@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026.11.9-b24
+
+- **Fixed: Dash-Bored: a three-phase meter panel's meters overlapped each other on a phone.** A meter panel's chassis is now drawn to fit the width of its card: all of it is made smaller or larger together, so the meters fill a wide card and fit side by side in a narrow one. A very narrow card has them in one column.
+- **Fixed: Love it or Loathe it: a player switched to another station sometimes never went back.** The return was given up if the player wasn't playing at the moment it was due. That happened when Home Assistant was restarting at the time, because the player had not been found again yet, and when the player was paused or between tracks. A switch back that the player refused was not tried again either. The return is now kept until the player has been switched back: it is made when the player next plays, and a failed one is tried again at the next track. A paused player therefore goes back to its station when it is started again, unless someone has put something else on. **What happened** says when a return is waiting and why.
+
+- **Dash-Bored: Contraption's toasters no longer all pop together.** Each toaster, trampoline, bottle, plughole, mangle and ladle now has its own timing for its trick, so two of a kind in view do it at different moments. The ducks still come in and go out of every tile on the same beat.
+
+- **Topology, begun: how a home's rooms fit together, kept in Home Assistant.** Casa Mia now keeps a record of the buildings and sites above Home Assistant's floors, and of which area leads to which, with an optional direction at each end (any of the sixteen points of the compass, up or down). It has a page of its own in the app, with a tile on the app's home page: each room with its ways out, where adding a way to one room adds it to the other too; the buildings and sites; anything that names a room or floor Home Assistant no longer has; and a picture of it all, drawn by Mermaid, whose text can be copied. Dash-Bored's use of it comes in a later build. Programs can follow it over Home Assistant's websocket (`casa_mia/topology/subscribe`), and it is there even while the app is stopped.
+
 ## 2026.11.9-b23
 
 - **Fixed: Dash-Bored: some rooms in Contraption had no upright machines at all.** Whether the stream left the middle row, which it must for a device to stand upright, was left to chance that went the same way every time for some rooms. It now does so every other time in every room.

@@ -36,6 +36,15 @@ the Gazette's own work is parked below it.
 - **The Console's meter panel, what's left** (asked 2026-11-18; the plan, with each step's
   detail, is `docs/design/console-meter-panel.md`; steps 1 and 2 were built in
   2026.11.9-b23):
+  - **Size the Console's controls properly** (owner, 2026-11-18: "like we ought to have
+    done to start with"). A control should be drawn at whatever size its place gives it.
+    Today only the needle meters are (they are SVG in a `viewBox`). The seven-bar figures
+    (`console/figures.ts`), Nixie's tubes, Bakelite's wheels, Silverface's readout, every
+    era's plates and the warning lamps are fixed pixel sizes. Make each of them scale with
+    its container, in all five eras, then take the stopgap out: the meter panel zooms its
+    whole chassis to fit (`fit` in `console/meters.ts`, 2026.11.9-b24), which makes
+    everything smaller together and leaves lettering very small on a phone. Why it was
+    found: on the owner's phone a three-phase panel's meters overlapped each other.
   - Step 3: the bands drawn as zones on the scale, in all five eras' `meter`.
   - Step 4: stand-in meters on the test VM, a picture for the guide, and the guide saying
     the card is in daily use in the author's house once it is on the live dashboards.

@@ -12,6 +12,7 @@ import { PeoplePage } from "./PeoplePage";
 import { useSummary } from "./sensor-watch/summary";
 import { SettingsPage } from "./SettingsPage";
 import { SwapPage } from "./SwapPage";
+import { TopologyPage, useTopology, type Fed as TopologyFed } from "./topology";
 import { Developer, useHealth, type ModuleHealth } from "./health";
 import { ModuleIcon, SettingsIcon } from "./icons";
 import { Maturity } from "./maturity";
@@ -54,6 +55,7 @@ const PAGES: Record<string, string> = {
   compositor: "/compositor",
   kiosk_mode: "/kiosk-mode",
   love_or_loathe: "/love-or-loathe",
+  topology: "/topology",
 };
 /** Module pages in Home Assistant's own sidebar (the integration's panels). */
 const HA_PAGES: Record<string, string> = { sensor_watch: "/sensor-watch" };
@@ -97,7 +99,18 @@ export function App() {
       last_song: last && `${last.title}${last.artist ? ` by ${last.artist}` : ""}`,
     };
   }
-  const page = pageFor(route, health?.modules ?? {}, loveOrLoathe);
+  // Topology is kept in Home Assistant too, by Casa Mia's integration.
+  const topology = useTopology();
+  const house = topology.feed;
+  if (house) {
+    watch.topology = {
+      state: "running",
+      buildings: house.buildings.length,
+      connections: Object.values(house.exits).reduce((n, exits) => n + exits.length, 0) / 2,
+      broken: house.broken.length,
+    };
+  }
+  const page = pageFor(route, health?.modules ?? {}, loveOrLoathe, topology);
   if (page) return <Developer.Provider value={!!health?.developer}>{page}</Developer.Provider>;
   const modules = Object.entries<ModuleHealth>({ ...health?.modules, ...watch });
   const on = modules.filter(([, h]) => h.state && h.state !== "disabled");
@@ -172,7 +185,7 @@ export function App() {
 }
 
 /** The page for a route other than home (undefined for home). */
-function pageFor(route: string, modules: Record<string, ModuleHealth>, loveOrLoathe: Fed): ReactNode {
+function pageFor(route: string, modules: Record<string, ModuleHealth>, loveOrLoathe: Fed, topology: TopologyFed): ReactNode {
   if (route === "/guest") return <GuestPage state={modules.guest_login?.state} />;
   if (route === "/people") return <PeoplePage />;
   if (route === "/kiosks") return <KiosksPage state={modules.kiosks?.state} />;
@@ -182,6 +195,7 @@ function pageFor(route: string, modules: Record<string, ModuleHealth>, loveOrLoa
   if (route === "/auto-dashboards") return <AutoDashboardsPage state={modules.auto_dashboards?.state} />;
   if (route === "/compositor") return <CompositorPage state={modules.compositor?.state} />;
   if (route === "/love-or-loathe") return <LoveOrLoathePage fed={loveOrLoathe} />;
+  if (route === "/topology") return <TopologyPage fed={topology} />;
   if (route === "/kiosk-mode") return <KioskModePage state={modules.kiosk_mode?.state} />;
   if (route === "/settings") return <SettingsPage />;
   if (route === "/swap") return <SwapPage />;

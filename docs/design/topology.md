@@ -171,11 +171,11 @@ Following the repo's rule for a module with a contract. The contract was agreed 
    be two storeys. Rooms on a storey are placed beside their neighbours. It follows the
    feed as it does Casa Mia's cameras: only when `casa_mia` is installed, and an older
    Casa Mia that lacks it is no fault.
-4. **The real storage and feed**, which pass the same cases, and
+4. **Done 2026-11-18 (2026.11.9-b24).** **The real storage and feed**, which pass the same cases, and
    `tests_ha/test_topology.py`. Registered in a new `async_setup` of `casa_mia`, not
    its entry, so that it still answers while the app is down: the entry's set-up fails
    then, and Topology needs nothing of the app's.
-5. **The editor**, a page of the admin UI that reaches Home Assistant through
+5. **Done 2026-11-18 (2026.11.9-b24).** **The editor**, a page of the admin UI that reaches Home Assistant through
    `homeConnection`, as Love it or Loathe it's does: the list, the buildings and sites,
    what is broken, and the Mermaid picture, loaded only when the page is opened.
 6. **The guide** (`docs/applets/topology.md`), maturity, HANDOVER, BACKLOG, README.
@@ -209,7 +209,9 @@ tedious, and whether anyone fills it in depends on how quick that is.
   the directions sit in the middle of their lines, and a few long lines between
   buildings run outside the boxes but can be followed. **ELK** (owner, 2026-11-18). Why:
   the picture is there to show a mistake at a glance, and dagre's misplaced labels
-  hide one; the cost is paid only when the Topology page is opened.
+  hide one; the cost is paid only when the Topology page is opened. Mermaid 12 has the
+  ELK layout built in, which the trial didn't know: the separate `@mermaid-js/layout-elk`
+  only added a second copy, and the editor does without it (checked 2026-11-18).
 
 ## Open questions
 

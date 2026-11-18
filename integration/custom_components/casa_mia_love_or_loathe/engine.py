@@ -7,6 +7,11 @@ or a mute at the player's next track, a switch of station at a time kept in Home
 Assistant's storage, so a restart in between loses neither. Nothing is put back over a
 person's own change: a volume someone has moved since is left alone, and a player that
 is no longer playing what was put on is not switched back.
+
+A return is forgotten only once the player has been switched back (or someone has chosen
+something else). One that can't be made at its time, because the player is not playing,
+has not turned up yet after a restart or refuses the call, is kept as due and made when
+the player next plays.
 """
 
 from __future__ import annotations
@@ -96,7 +101,9 @@ class Player:
     # Switched to another station: {"until": ISO time, "origin": media to go back to or
     # None, "tried": station ids, "was": the content id before the switch, "ours": the
     # one the player reported after it, "waiting": true once the time is up and the
-    # return waits for "song", [title, artist], to end (CONF_BACK_AT_END)}.
+    # return waits for "song", [title, artist], to end (CONF_BACK_AT_END), "home": the
+    # content id before the first switch, "due": true once the return was tried and
+    # could not be made, so it is made when the player next plays (_back)}.
     away: dict[str, Any] | None = None
     back: CALLBACK_TYPE | None = None  # the timer for the return
     # One track's work at a time: the undo of the last before the action of the next.
@@ -204,6 +211,7 @@ class Engine:
             player.undo, player.away = was.get("undo"), was.get("away")
             if player.away:
                 self._arm(entity, player)
+        self._tell()  # the sensor was made before this: it shows who is away
 
         if not self.enabled:
             # Returns stay armed above, so a player that is away still comes back.
@@ -295,6 +303,14 @@ class Engine:
         if track == player.track:
             if started:
                 self._tell()
+                # Playing again, the song it stopped on: no new track for _heard to
+                # make a due return at, so it is made here.
+                if player.away and player.away.get("due"):
+                    self.entry.async_create_background_task(
+                        self.hass,
+                        self._return(entity, player),
+                        f"{DOMAIN} return {entity}",
+                    )
             return
         player.track = track
         _LOGGER.debug("%s: now %r by %r", entity, *track)
@@ -350,12 +366,16 @@ class Engine:
 
             # The song that was on when the time was up has ended: back now. This track,
             # on the other station, is gone at once, so it isn't heard or judged. The
-            # same song again is a restart hearing it afresh, not its end.
+            # same song again is a restart hearing it afresh, not its end. A return that
+            # is due (_back) is made at any track. When the player wasn't switched,
+            # this track plays on, so it is judged like any other.
             away = player.away
-            if away and away.get("waiting") and list(track) != away.get("song"):
-                await self._back(entity, player)
+            ended = away and away.get("waiting") and list(track) != away.get("song")
+            if away and (ended or away.get("due")):
+                switched = await self._back(entity, player)
                 self._tell()
-                return
+                if switched:
+                    return
 
             if title:
                 self.history.heard(title, artist, dt_util.utcnow().timestamp())
@@ -485,7 +505,11 @@ class Engine:
             if origin is None and now:
                 origin = {ID: now, TYPE: state.attributes.get(TYPE) or "music"}
             until = dt_util.utcnow() + timedelta(minutes=group.act.minutes)
-            away = player.away = {"until": until.isoformat(), "origin": origin}
+            away = player.away = {
+                "until": until.isoformat(),
+                "origin": origin,
+                "home": now,
+            }
             self._arm(entity, player)
         away.update(tried=[*tried, station.id], was=now, ours=None)
         # In words for the trail, the sensor and the event: the time as the house reads it.
@@ -596,32 +620,62 @@ class Engine:
             await self._back(entity, player)
         self._tell()
 
-    async def _back(self, entity: str, player: Player) -> None:
-        """Back to where it was, holding the player's lock."""
+    async def _back(self, entity: str, player: Player) -> bool:
+        """Back to where it was, holding the player's lock; whether it was switched now.
+
+        The return is forgotten (_home) only when it has been made or never can be.
+        While the player is not playing (paused, or not yet there after a restart) or
+        refuses the call, it is kept as due, and _look and _heard make it when the
+        player next plays. Forgetting it first lost the return at every restart that
+        the time passed in (2026.11.9)."""
         away = player.away
         if away is None:
-            return
-        self._home(player)
-        await self._save()
-
+            return False
         state = self.hass.states.get(entity)
         origin = away["origin"]
-        if state is None or state.state != STATE_PLAYING:
-            self._note(trail.RETURN, "No longer playing: not switching it back", entity)
-        elif origin is None:
+
+        # Never possible, or already done by someone: nothing left to wait for.
+        if origin is None:
+            self._home(player)
+            await self._save()
             self._problem(
                 entity,
                 "can't switch back: the player never said what it was playing",
             )
-        else:
-            try:
-                await self._call("play_media", entity, **origin)
-            except HomeAssistantError as exc:
-                self._problem(entity, f"could not switch back: {exc}")
-            else:
+            return False
+        home = away.get("home")
+        if state is not None and home and state.attributes.get(ID) == home:
+            self._home(player)
+            await self._save()
+            self._note(trail.RETURN, f"Already back on {self._named(origin)}", entity)
+            return False
+
+        # Not now: kept, and said once.
+        again = away.get("due")
+        if state is None or state.state != STATE_PLAYING:
+            if not again:
+                away["due"] = True
+                await self._save()
                 self._note(
-                    trail.RETURN, f"Switched back to {self._named(origin)}", entity
+                    trail.RETURN,
+                    "Not playing: switching back when it next plays",
+                    entity,
                 )
+            return False
+        try:
+            await self._call("play_media", entity, **origin)
+        except HomeAssistantError as exc:
+            away["due"] = True
+            await self._save()
+            self._problem(
+                entity, f"could not switch back: {exc}. Trying again at the next track"
+            )
+            return False
+
+        self._home(player)
+        await self._save()
+        self._note(trail.RETURN, f"Switched back to {self._named(origin)}", entity)
+        return True
 
     def _named(self, media: dict[str, str]) -> str:
         """A station's name for what a player is to play, else what it is."""

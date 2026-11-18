@@ -15,7 +15,7 @@ import { recorded, type Change } from "../record.ts";
 import { NOMINAL, RANK, clock, flip, pressing, turning, zooming, type Alert, type Press } from "../stories.ts";
 import { columns, laid, racks as fitted, type Load } from "./balance.ts";
 import { face, type Kit } from "./kit.ts";
-import { metered } from "./metered.ts";
+import { metered, sized } from "./metered.ts";
 import { chassis, type Options as Metered } from "./meters.ts";
 import { STOPS, selector } from "./selector.ts";
 
@@ -92,6 +92,8 @@ export class Panel extends Family {
   _alerts: Alert[] = []; // what Sensor Watch has said of each sensor it has spoken of
   private _metered: string[] = []; // the sensors a meter panel has on it, as last drawn
   private _dials: string[] = []; // those of them that have a meter: Sensor Watch is asked about each
+  private _fits?: ResizeObserver; // watches each chassis's width, to fit its works to it (metered.ts `sized`)
+  private _fitting = new WeakSet<Element>(); // the works it watches
   _watches: ReadonlyMap<string, Watch> = new Map(); // what Sensor Watch has said of each, where it watches it
   // The sensors whose watch is a memory: Sensor Watch gave one, then said it could give none. Why, and since when.
   _lapsed: ReadonlyMap<string, { why: string; since: number }> = new Map();
@@ -191,8 +193,38 @@ export class Panel extends Family {
     if (chart && !chart.open) chart.showModal();
     // The rooms are drawn: the columns are counted from their own width, which was a guess until now.
     this._resized(this.clientWidth);
-    // A meter panel's sensors are known once it is drawn.
-    if (this._view === "meters") this._consult();
+    // A meter panel's sensors are known once it is drawn, and its chassis are there to be fitted.
+    if (this._view === "meters") {
+      this._consult();
+      this._fit();
+    }
+  }
+
+  /** Fit each chassis of a meter panel to its width: when it is first drawn and whenever
+   * its width changes (the observer says so at once for one it has just been given), and
+   * at a drawing that changed what is on it. */
+  private _fit() {
+    this._fits ??= new ResizeObserver((entries) => entries.forEach((e) => sized(e.target as HTMLElement)));
+    for (const works of this.renderRoot.querySelectorAll<HTMLElement>(".metered > .works")) {
+      if (this._fitting.has(works)) sized(works, true);
+      else {
+        this._fitting.add(works);
+        this._fits.observe(works);
+      }
+    }
+  }
+
+  /** Back on the page: a meter panel is drawn again, which has its chassis watched again. */
+  connectedCallback() {
+    super.connectedCallback();
+    if (this._view === "meters") this.requestUpdate();
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this._fits?.disconnect();
+    this._fits = undefined;
+    this._fitting = new WeakSet();
   }
 
   /** Follow what Sensor Watch says of each sensor that has a meter, and stop for those

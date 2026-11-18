@@ -170,3 +170,30 @@ export function metered(hass: Hass): string[] {
   }
   return [...has].filter(([, kinds]) => kinds.size === 2).map(([device]) => device);
 }
+
+// --- how a chassis fits the width it has -------------------------------------------------
+// A stopgap (owner, 2026-11-18; BACKLOG has doing it properly): the works are laid out at
+// their natural width and the whole of them zoomed to fit, since not every control can be
+// drawn at any size yet.
+export const CELL = 150; // px: a meter's natural width
+export const GAP = 10; // px: between two meters side by side
+const SMALLEST = 0.6; // below this zoom the lettering can't be read, so the form changes
+const LARGEST = 1.6; // above this a meter is coarse
+const ABREAST = 0.75; // the whole meter's strip stays beside the phases down to this zoom
+
+/** How wide `count` meters side by side are, at their natural size. */
+export const abreast = (count: number) => count * CELL + Math.max(0, count - 1) * GAP;
+
+export type Fit = { form: "wide" | "under" | "column"; width: number; zoom: number };
+
+/** The form a chassis takes in `available` px, the width it is laid out at, and the zoom
+ * that then fits it. `wide` is its natural width with everything abreast. `under`, for a
+ * meter with phases, is its width with the whole meter's strip under the phases': that
+ * form is taken when everything abreast would be too small. When that is too small as
+ * well (or there is no such form), the meters stand in one column, never larger than life. */
+export function fit(available: number, wide: number, under?: number): Fit {
+  const zoom = (width: number, most = LARGEST) => +Math.min(most, available / width).toFixed(3);
+  if (available >= wide * (under ? ABREAST : SMALLEST)) return { form: "wide", width: wide, zoom: zoom(wide) };
+  if (under && available >= under * SMALLEST) return { form: "under", width: under, zoom: zoom(under) };
+  return { form: "column", width: CELL, zoom: Math.max(SMALLEST, zoom(CELL, 1)) };
+}
