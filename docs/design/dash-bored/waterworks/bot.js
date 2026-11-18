@@ -2,11 +2,18 @@
 // machine asks for it (`ask`) with a job: { x, rise, start(), work(p), done() }, where
 // `p` goes from 0 to 1 as it works. Nothing waits for it. With no job it potters about
 // the room attending to things that don't need it.
+//
+// A page with more than one floor says so (`setup`) and gives each job its `floor`; the
+// bot gets from one to another by a pole at `pole`. A job may also say which way the
+// bot is to `face` as it works.
 window.Bot = (() => {
-  const { spring, scissor, hash } = Kit;
-  const SPEED = 260, LIFT = 460, WORK = 1.5, LO = 330, HI = 1140; // px a second riding and rising; how far it roams
+  const { spring, scissor, hash, toward } = Kit;
+  const LIFT = 460, WORK = 1.5; // px a second rising, and seconds at a job
+  // Px a second riding, how far it roams, the floor it starts on (the room's, if none is
+  // given) and where the pole is.
+  const roam = { speed: 260, lo: 330, hi: 1140, floor: null, pole: 0 };
   const queue = [], lean = { x: 0, v: 0 }, parts = {};
-  let x = 600, h = 0, job = null, stage = "idle", t = 1.5, goal = 600, facing = 1, roll = 0, trips = 0;
+  let x = 600, y = null, h = 0, job = null, stage = "idle", t = 1.5, goal = 600, facing = 1, roll = 0, trips = 0;
 
   // Its origin is where the wheel meets the floor.
   // The wheel is kept out of the group that is mirrored to turn the bot round (`bot_flip`):
@@ -21,18 +28,26 @@ window.Bot = (() => {
     </g></g></g>`;
 
   function ask(j) { if (job !== j && !queue.includes(j)) queue.push(j); }
+  function setup(more) { Object.assign(roam, more); x = goal = (roam.lo + roam.hi) / 2; y = roam.floor; }
 
   function tick(q, dt, now) {
     let riding = 0;
     t -= dt;
+    y ??= Room.FLOOR;
+    const elsewhere = () => job && (job.floor ?? y) !== y;
 
     if (stage === "idle") {
-      if (queue.length) { job = queue.shift(); goal = job.x; stage = "ride"; }
-      else if (t <= 0) { goal = LO + (hash(`potter${trips++}`) % (HI - LO)); stage = "ride"; }
+      if (queue.length) { job = queue.shift(); goal = elsewhere() ? roam.pole : job.x; stage = "ride"; }
+      else if (t <= 0) { goal = roam.lo + (hash(`potter${trips++}`) % (roam.hi - roam.lo)); stage = "ride"; }
     } else if (stage === "ride") {
-      const dx = goal - x, step = SPEED * dt;
+      const dx = goal - x, step = roam.speed * dt;
       if (Math.abs(dx) > step) { facing = Math.sign(dx); x += facing * step; riding = facing; roll += facing * step * 6.37; } // degrees, for a wheel of radius 9
-      else { x = goal; stage = job ? "up" : "work"; t = 0.9; job?.start(); }
+      else if (elsewhere()) { x = goal; stage = "slide"; }
+      else { x = goal; stage = job ? "up" : "work"; t = 0.9; facing = job?.face ?? facing; job?.start(); }
+    } else if (stage === "slide") {
+      // On the pole, to the job's floor, and then on to the job.
+      y = toward(y, job.floor, LIFT * dt);
+      if (y === job.floor) { goal = job.x; stage = "ride"; }
     } else if (stage === "up") {
       h = Math.min(job.rise, h + LIFT * dt);
       if (h >= job.rise) { stage = "work"; t = WORK; }
@@ -46,7 +61,7 @@ window.Bot = (() => {
 
     // With nothing to do it rocks to and fro to stay up, as a unicyclist must.
     const idle = stage === "idle" ? Math.sin(now * 2.2) * 6 : 0, part = (name) => (parts[name] ??= q(name));
-    part("bot").setAttribute("transform", `translate(${(x + idle).toFixed(1)},${Room.FLOOR})`);
+    part("bot").setAttribute("transform", `translate(${(x + idle).toFixed(1)},${y.toFixed(1)})`);
     part("bot_lean").setAttribute("transform", `rotate(${(spring(lean, riding * 10, dt, 60, 10) + idle).toFixed(1)})`);
     part("bot_flip").setAttribute("transform", `scale(${facing},1)`);
     part("bot_wheel").setAttribute("transform", `rotate(${((roll + idle * 7) % 360).toFixed(1)})`);
@@ -55,5 +70,5 @@ window.Bot = (() => {
     part("bot_arm").setAttribute("transform", `rotate(${stage === "work" ? (Math.sin(now * 18) * 30).toFixed(1) : 0})`);
   }
 
-  return { art, ask, tick };
+  return { art, ask, setup, tick };
 })();
