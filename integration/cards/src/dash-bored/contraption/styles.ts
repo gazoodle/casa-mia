@@ -7,6 +7,8 @@ export const STYLES = css`
   .contraption { position: relative; box-sizing: border-box; padding: 10px 16px 12px; color: var(--line); background-color: var(--bg); font-family: var(--font); }
   .contraption[data-skin="blueprint"] { text-transform: uppercase; letter-spacing: .04em; background-size: 24px 24px;
     background-image: linear-gradient(rgba(255,255,255,.09) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.09) 1px, transparent 1px); }
+  /* Printed tin: a ground of dots. */
+  .contraption[data-skin="tin"] { background-size: 22px 22px; background-image: radial-gradient(rgba(255,255,255,.22) 2.2px, transparent 2.8px); }
   /* Foxed paper, for the engraving only: darker towards the edges. */
   .contraption[data-skin="patent"]::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 55%, rgba(110,70,20,.35)); }
 

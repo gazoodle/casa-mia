@@ -44,7 +44,7 @@ export function redirector(inn: "L" | "B", outs: string): Tile {
     if (!shaft) return 0.5 + (slot - (n - 1) / 2) * 0.12;
     if (!slot) return goes(0, turns) === "T" ? 0.5 : 0.4;
     if (n === 2) return 0.3;
-    return goes(slot, turns) === "T" || (slot === 2 && goes(1, turns) !== "T") ? 0.36 : 0.2;
+    return goes(slot, turns) === "T" || (slot === 2 && goes(1, turns) !== "T") ? 0.34 : 0.14;
   };
 
   const made = new Map<string, (p: number) => At>();
@@ -55,7 +55,7 @@ export function redirector(inn: "L" | "B", outs: string): Tile {
       const spare = (...rest: Parameters<typeof track>) => track([0, pit[0], pit[1] - 2], [0.08, pit[0], pit[1] - 12], [t * 0.55, ...join], [t, ...HUB], ...rest);
       made.set(key, !shaft ? (slot ? spare([1, ...out]) : track([0, ...EDGE.L], [t, ...HUB], [1, ...out]))
         : side === "T" ? (slot ? spare([0.5, ...HUB], [1, ...out]) : track([0, ...EDGE.B], [1, ...out]))
-        : slot ? spare([1, ...out]) : track([0, ...EDGE.B], [0.3, 130, 182, 22], [0.45, side === "R" ? 178 : 82, 130], [1, ...out]));
+        : slot ? spare([1, ...out]) : track([0, ...EDGE.B], [0.3, 130, 182, 22], [0.45, side === "R" ? 196 : 64, 130], [1, ...out]));
     }
     return made.get(key)!;
   };

@@ -2611,14 +2611,16 @@ var sr = (e, t, n) => Jn(e.length, (t, n) => or(e[t], n), t, Qn, n), cr = "dash-
 		back: "Contraption's lever",
 		says: "A room as one absurd machine that ducks go through. Each duck is the engine of the device it is passing. So far, one room.",
 		draw: (e, t) => j`<dash-bored-contraption .hass=${e} .narrow=${t} .panel=${!0}></dash-bored-contraption>`,
-		still: j`<svg viewBox="0 0 160 100" aria-hidden="true"><rect width="160" height="100" fill="#f3e6c4"/>
-      <g fill="none" stroke="#1c2a4a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M0,52 h56 M104,52 h56" stroke-width="4" stroke="#c0703a"/><path d="M30,84 h112 M52,74 h44"/>
-        <circle cx="42" cy="74" r="10" fill="#f0b830"/><path d="M42,64 v20 M32,74 h20"/><circle cx="106" cy="74" r="8" fill="#8da0b3"/><path d="M106,66 v16 M98,74 h16"/>
-        <rect x="118" y="66" width="20" height="16" rx="3" fill="#e2703a"/><path d="M138,74 h10 V16 h-22 v8"/>
-        <circle cx="126" cy="34" r="16" fill="#ffe14d" stroke="none" opacity=".6"/><circle cx="126" cy="34" r="10" fill="#fff8e6"/>
-        <ellipse cx="78" cy="42" rx="12" ry="7" fill="#ffd21f"/><circle cx="88" cy="32" r="5.5" fill="#ffd21f"/><path d="M93,31 l7,2 l-7,2 z" fill="#ff7a1a"/>
-        <ellipse cx="20" cy="45" rx="9" ry="5" fill="#ffd21f"/><circle cx="27" cy="38" r="4" fill="#ffd21f"/></g></svg>`
+		still: j`<svg viewBox="0 0 160 100" aria-hidden="true"><rect width="160" height="100" fill="#1d4f91"/>
+      <path d="M0,20 h160 M0,40 h160 M0,60 h160 M0,80 h160 M20,0 v100 M40,0 v100 M60,0 v100 M80,0 v100 M100,0 v100 M120,0 v100 M140,0 v100" stroke="#fff" stroke-opacity=".1" stroke-width=".6"/>
+      <g fill="#1d4f91" stroke="#e8f1ff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M0,52 h56 v4 h-56 M160,52 h-56 v4 h56"/><path d="M30,84 h112 M52,74 h44"/>
+        <circle cx="42" cy="74" r="10"/><path d="M42,64 v20 M32,74 h20"/><circle cx="106" cy="74" r="8"/><path d="M106,66 v16 M98,74 h16"/>
+        <rect x="118" y="66" width="20" height="16" rx="3"/><path d="M122,70 l12,8 M122,78 l12,-8" stroke-width=".7"/><path d="M138,74 h10 V16 h-22 v8" fill="none"/>
+        <circle cx="126" cy="34" r="16" fill="#fff3b0" stroke="none" opacity=".35"/><circle cx="126" cy="34" r="10" fill="#fff3b0"/>
+        <ellipse cx="78" cy="42" rx="12" ry="7"/><circle cx="88" cy="32" r="5.5"/><path d="M93,31 l7,2 l-7,2 z"/>
+        <ellipse cx="20" cy="45" rx="9" ry="5"/><circle cx="27" cy="38" r="4"/>
+        <path d="M60,96 h40 M60,93 v6 M100,93 v6" stroke-width=".7"/></g></svg>`
 	}
 ], gr = class extends Xe {
 	constructor(...e) {
@@ -8881,7 +8883,7 @@ var zd = ([e, t], n) => `<ellipse class="solid" cx="${e}" cy="${t}" rx="28" ry="
 	B: "M127,176 h6 v84 h-6 z"
 }, Gd = (e) => e * e * (3 - 2 * e);
 function Kd(e, t) {
-	let n = t.length, r = e === "B", i = r ? [50, 222] : [44, 216], a = r ? [74, 130] : [36, 130], o = (e, r) => t[Bu(e, r, n)], s = (e, t) => r ? e ? n === 2 ? .3 : o(e, t) === "T" || e === 2 && o(1, t) !== "T" ? .36 : .2 : o(0, t) === "T" ? .5 : .4 : .5 + (e - (n - 1) / 2) * .12, c = /* @__PURE__ */ new Map(), l = (e, t, n) => {
+	let n = t.length, r = e === "B", i = r ? [50, 222] : [44, 216], a = r ? [74, 130] : [36, 130], o = (e, r) => t[Bu(e, r, n)], s = (e, t) => r ? e ? n === 2 ? .3 : o(e, t) === "T" || e === 2 && o(1, t) !== "T" ? .34 : .14 : o(0, t) === "T" ? .5 : .4 : .5 + (e - (n - 1) / 2) * .12, c = /* @__PURE__ */ new Map(), l = (e, t, n) => {
 		let o = `${e}${t}${n}`, s = Ru[t];
 		if (!c.has(o)) {
 			let l = (...e) => K([
@@ -8900,7 +8902,7 @@ function Kd(e, t) {
 				22
 			], [
 				.45,
-				t === "R" ? 178 : 82,
+				t === "R" ? 196 : 64,
 				130
 			], [1, ...s]) : e ? l([1, ...s]) : K([0, ...Ru.L], [n, ...Hd], [1, ...s]));
 		}
@@ -9566,25 +9568,25 @@ var Xf = [
 	{
 		id: "tin",
 		name: "Tin toy",
-		line: "#1c2a4a",
-		w: 2.6,
+		line: "#10162e",
+		w: 3.2,
 		vars: {
-			bg: "#f3e6c4",
+			bg: "#18b3a4",
 			font: "\"Arial Rounded MT Bold\", \"Trebuchet MS\", sans-serif",
 			title: "\"Arial Rounded MT Bold\", \"Trebuchet MS\", sans-serif",
-			paper: "#fff8e6",
-			brass: "#f0b830",
-			copper: "#e2703a",
-			iron: "#8da0b3",
-			wood: "#c0703a",
-			glass: "rgba(170,228,232,.6)",
-			cloth: "#d8352a",
+			paper: "#ffffff",
+			brass: "#ffd21f",
+			copper: "#ff7a1a",
+			iron: "#c9d2dc",
+			wood: "#e8302a",
+			glass: "rgba(255,255,255,.5)",
+			cloth: "#ff5fa2",
 			flame: "#ff7a1a",
-			lit: "#ffe14d",
+			lit: "#fff06a",
 			duck: "#ffd21f",
-			label: "#fff8e6",
-			water: "#19a3d1",
-			red: "#d8352a"
+			label: "#ffffff",
+			water: "#1657e0",
+			red: "#e8302a"
 		}
 	}
 ], Zf = (e) => `--line:${e.line};--w:${e.w};${Object.entries(e.vars).map(([e, t]) => `--${e}:${t.replaceAll("\"", "'")}`).join(";")}`, Qf = "\n.ink * { stroke: var(--line); stroke-width: var(--w); stroke-linecap: round; stroke-linejoin: round; fill: none; }\n.ink .paper, .ink .fill { fill: var(--paper); }\n.ink .solid { fill: var(--line); }\n.ink .brass { fill: var(--brass); }\n.ink .copper { fill: var(--copper); }\n.ink .iron { fill: var(--iron); }\n.ink .wood { fill: var(--wood); }\n.ink .glass { fill: var(--glass); }\n.ink .cloth { fill: var(--cloth); }\n.ink .bare { stroke: none; }\n.ink .spark { fill: var(--lit); }\n.ink .drop { stroke: none; fill: var(--water); }\n.ink .duck { fill: var(--duck); }\n.ink .flame { fill: var(--flame); }\n.ink .label { fill: var(--label); }\n.ink .shine * { stroke: none; fill: var(--lit); }\n.ink .ghost * { fill: none; stroke-dasharray: 2.2 2.2; stroke-width: calc(var(--w) * .5); }\n.ink .rope { stroke-width: calc(var(--w) * .8); }\n.ink .thin { stroke-width: calc(var(--w) * .6); }\n.ink .tube { stroke-width: 26; stroke-linecap: butt; }\n.ink .bore { stroke: var(--paper); stroke-width: 21; stroke-linecap: butt; }\n.ink text, .ink tspan { stroke: var(--bg); stroke-width: 4px; paint-order: stroke; fill: var(--line); font-size: 14px; font-family: var(--font); }\n.ink .title { font-size: 23px; font-family: var(--title); }\n.ink tspan.state { font-size: 12px; font-style: italic; }\n.ink .small { font-size: 9px; }\n.ink .said { font-style: italic; }\n", $f = "\n<filter id=\"wobble\" x=\"-2%\" y=\"-2%\" width=\"104%\" height=\"104%\"><feTurbulence type=\"fractalNoise\" baseFrequency=\".03\" numOctaves=\"2\" seed=\"4\"/>\n  <feDisplacementMap in=\"SourceGraphic\" scale=\"3\"/></filter>\n<pattern id=\"hatch\" width=\"5\" height=\"5\" patternUnits=\"userSpaceOnUse\" patternTransform=\"rotate(40)\">\n  <rect width=\"5\" height=\"5\" fill=\"#eadcbc\"/><line y2=\"5\" stroke=\"#2b2118\" stroke-width=\"1\"/></pattern>\n<pattern id=\"cross\" width=\"4\" height=\"4\" patternUnits=\"userSpaceOnUse\" patternTransform=\"rotate(45)\">\n  <rect width=\"4\" height=\"4\" fill=\"#eadcbc\"/><path d=\"M0,0 V4 M0,0 H4\" stroke=\"#2b2118\" stroke-width=\".9\"/></pattern>\n<pattern id=\"blue\" width=\"6\" height=\"6\" patternUnits=\"userSpaceOnUse\" patternTransform=\"rotate(45)\">\n  <rect width=\"6\" height=\"6\" fill=\"#1d4f91\"/><line y2=\"6\" stroke=\"#e8f1ff\" stroke-width=\".7\"/></pattern>\n", ep = 4, tp = 4096, np = 1, rp = (e) => new XMLSerializer().serializeToString(e);
@@ -9756,29 +9758,19 @@ function gp(e, t, n, r = 1) {
 	}
 	for (let n of t.kids) gp(e, n, i, a);
 }
-var _p = 22, vp = [
-	[10, 7],
-	[5, 7],
-	[
-		14,
-		5,
-		3,
-		5
-	]
-];
-function yp(e, t, n, r, i) {
-	let { g: a, k: o } = e;
-	a.setTransform(o, 0, 0, o, -e.ox, 0), Object.assign(a, {
-		globalAlpha: r,
+var _p = 22, vp = [10, 7];
+function yp(e, t, n) {
+	let { g: r, k: i } = e;
+	r.setTransform(i, 0, 0, i, -e.ox, 0), Object.assign(r, {
+		globalAlpha: n,
 		lineWidth: _p + 2.4 * e.w,
-		lineCap: "butt",
-		lineDashOffset: -i
-	}), a.setLineDash(vp[n % vp.length]), a.stroke(t), a.setLineDash([]), Object.assign(a, {
+		lineCap: "butt"
+	}), r.setLineDash(vp), r.stroke(t), r.setLineDash([]), Object.assign(r, {
 		globalAlpha: 1,
 		lineWidth: _p,
 		lineCap: "round",
 		globalCompositeOperation: "destination-out"
-	}), a.stroke(t), a.globalCompositeOperation = "source-over";
+	}), r.stroke(t), r.globalCompositeOperation = "source-over";
 }
 function bp(e) {
 	let { g: t } = e;
@@ -10032,7 +10024,7 @@ var xp = (e) => [...e.looks, ...e.kids.flatMap(xp)], Sp = 66, Cp = "<ellipse cla
 			});
 		}
 		this.was = s, bp(e);
-		for (let t = 2; t >= 0; t--) yp(e, this.tubes[t], t, Op[t], (this.turn + s) * 28);
+		for (let t = 2; t >= 0; t--) yp(e, this.tubes[t], Op[t]);
 		for (let t of this.ducks) {
 			if (t.at.tunnel < 0) continue;
 			let n = this.burrows[t.at.tunnel], r = bf(n.ways[t.at.way], t.at.age + s);
@@ -10104,6 +10096,8 @@ var xp = (e) => [...e.looks, ...e.kids.flatMap(xp)], Sp = 66, Cp = "<ellipse cla
   .contraption { position: relative; box-sizing: border-box; padding: 10px 16px 12px; color: var(--line); background-color: var(--bg); font-family: var(--font); }
   .contraption[data-skin="blueprint"] { text-transform: uppercase; letter-spacing: .04em; background-size: 24px 24px;
     background-image: linear-gradient(rgba(255,255,255,.09) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.09) 1px, transparent 1px); }
+  /* Printed tin: a ground of dots. */
+  .contraption[data-skin="tin"] { background-size: 22px 22px; background-image: radial-gradient(rgba(255,255,255,.22) 2.2px, transparent 2.8px); }
   /* Foxed paper, for the engraving only: darker towards the edges. */
   .contraption[data-skin="patent"]::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 55%, rgba(110,70,20,.35)); }
 

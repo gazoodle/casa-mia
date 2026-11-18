@@ -280,7 +280,7 @@ export class Machine {
     clear(pen);
     // Behind the scenes first: the tunnels, their dashes creeping the way the ducks go, and the ducks in them.
     // The deepest first: a tube that crosses one below it is drawn over it.
-    for (let layer = LAYERS - 1; layer >= 0; layer--) tube(pen, this.tubes[layer], layer, DIM[layer], (this.turn + p) * 28);
+    for (let layer = LAYERS - 1; layer >= 0; layer--) tube(pen, this.tubes[layer], DIM[layer]);
     for (const k of this.ducks) {
       if (k.at.tunnel < 0) continue;
       // It may be waiting out of sight in a hole, for the beat it is to come up on.

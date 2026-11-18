@@ -43,14 +43,15 @@ export function place(pen: Pen, part: Part, m: Mat, alpha = 1) {
 
 /** The tunnels of one layer under the sheet, as tubes: dim, dashed walls with nothing
  * between them. The inside is rubbed out and not painted, so that the sheet shows through
- * it, and so that a tube drawn later goes over one drawn before where they cross. Each
- * layer has its own dashes, and they creep along by `crept`. */
-const BORE = 22, DASHES = [[10, 7], [5, 7], [14, 5, 3, 5]];
-export function tube(pen: Pen, path: Path2D, layer: number, alpha: number, crept: number) {
+ * it, and so that a tube drawn later goes over one drawn before where they cross. The
+ * dashes are the same on every layer and stay where they are (owner, 2026-11-18: "the
+ * tunnel lines don't need to move, and they can all be the same dashed style"). */
+const BORE = 22, DASHES = [10, 7];
+export function tube(pen: Pen, path: Path2D, alpha: number) {
   const { g, k } = pen;
   g.setTransform(k, 0, 0, k, -pen.ox, 0);
-  Object.assign(g, { globalAlpha: alpha, lineWidth: BORE + 2.4 * pen.w, lineCap: "butt", lineDashOffset: -crept });
-  g.setLineDash(DASHES[layer % DASHES.length]);
+  Object.assign(g, { globalAlpha: alpha, lineWidth: BORE + 2.4 * pen.w, lineCap: "butt" });
+  g.setLineDash(DASHES);
   g.stroke(path);
 
   g.setLineDash([]);

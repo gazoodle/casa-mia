@@ -75,14 +75,17 @@ const FAMILIES: Family[] = [
   {
     id: "contraption", name: "Contraption", back: "Contraption's lever", says: "A room as one absurd machine that ducks go through. Each duck is the engine of the device it is passing. So far, one room.",
     draw: (hass, narrow) => html`<dash-bored-contraption .hass=${hass} .narrow=${narrow} .panel=${true}></dash-bored-contraption>`,
-    still: html`<svg viewBox="0 0 160 100" aria-hidden="true"><rect width="160" height="100" fill="#f3e6c4"/>
-      <g fill="none" stroke="#1c2a4a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M0,52 h56 M104,52 h56" stroke-width="4" stroke="#c0703a"/><path d="M30,84 h112 M52,74 h44"/>
-        <circle cx="42" cy="74" r="10" fill="#f0b830"/><path d="M42,64 v20 M32,74 h20"/><circle cx="106" cy="74" r="8" fill="#8da0b3"/><path d="M106,66 v16 M98,74 h16"/>
-        <rect x="118" y="66" width="20" height="16" rx="3" fill="#e2703a"/><path d="M138,74 h10 V16 h-22 v8"/>
-        <circle cx="126" cy="34" r="16" fill="#ffe14d" stroke="none" opacity=".6"/><circle cx="126" cy="34" r="10" fill="#fff8e6"/>
-        <ellipse cx="78" cy="42" rx="12" ry="7" fill="#ffd21f"/><circle cx="88" cy="32" r="5.5" fill="#ffd21f"/><path d="M93,31 l7,2 l-7,2 z" fill="#ff7a1a"/>
-        <ellipse cx="20" cy="45" rx="9" ry="5" fill="#ffd21f"/><circle cx="27" cy="38" r="4" fill="#ffd21f"/></g></svg>`,
+    // Drawn as its blueprint skin is (owner, 2026-11-18).
+    still: html`<svg viewBox="0 0 160 100" aria-hidden="true"><rect width="160" height="100" fill="#1d4f91"/>
+      <path d="M0,20 h160 M0,40 h160 M0,60 h160 M0,80 h160 M20,0 v100 M40,0 v100 M60,0 v100 M80,0 v100 M100,0 v100 M120,0 v100 M140,0 v100" stroke="#fff" stroke-opacity=".1" stroke-width=".6"/>
+      <g fill="#1d4f91" stroke="#e8f1ff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M0,52 h56 v4 h-56 M160,52 h-56 v4 h56"/><path d="M30,84 h112 M52,74 h44"/>
+        <circle cx="42" cy="74" r="10"/><path d="M42,64 v20 M32,74 h20"/><circle cx="106" cy="74" r="8"/><path d="M106,66 v16 M98,74 h16"/>
+        <rect x="118" y="66" width="20" height="16" rx="3"/><path d="M122,70 l12,8 M122,78 l12,-8" stroke-width=".7"/><path d="M138,74 h10 V16 h-22 v8" fill="none"/>
+        <circle cx="126" cy="34" r="16" fill="#fff3b0" stroke="none" opacity=".35"/><circle cx="126" cy="34" r="10" fill="#fff3b0"/>
+        <ellipse cx="78" cy="42" rx="12" ry="7"/><circle cx="88" cy="32" r="5.5"/><path d="M93,31 l7,2 l-7,2 z"/>
+        <ellipse cx="20" cy="45" rx="9" ry="5"/><circle cx="27" cy="38" r="4"/>
+        <path d="M60,96 h40 M60,93 v6 M100,93 v6" stroke-width=".7"/></g></svg>`,
   },
 ];
 

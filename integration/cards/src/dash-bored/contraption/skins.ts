@@ -25,11 +25,14 @@ export const SKINS: Skin[] = [
     },
   },
   {
-    id: "tin", name: "Tin toy", line: "#1c2a4a", w: 2.6,
+    // Printed tin: flat, bright paint with a heavy black keyline, on a coloured ground. It
+    // was on cream with muted paint at first, and the owner found it "very much like the
+    // patent-engraving" (2026-11-18), so nothing in it is the colour of paper or wood.
+    id: "tin", name: "Tin toy", line: "#10162e", w: 3.2,
     vars: {
-      bg: "#f3e6c4", font: '"Arial Rounded MT Bold", "Trebuchet MS", sans-serif', title: '"Arial Rounded MT Bold", "Trebuchet MS", sans-serif',
-      paper: "#fff8e6", brass: "#f0b830", copper: "#e2703a", iron: "#8da0b3", wood: "#c0703a", glass: "rgba(170,228,232,.6)",
-      cloth: "#d8352a", flame: "#ff7a1a", lit: "#ffe14d", duck: "#ffd21f", label: "#fff8e6", water: "#19a3d1", red: "#d8352a",
+      bg: "#18b3a4", font: '"Arial Rounded MT Bold", "Trebuchet MS", sans-serif', title: '"Arial Rounded MT Bold", "Trebuchet MS", sans-serif',
+      paper: "#ffffff", brass: "#ffd21f", copper: "#ff7a1a", iron: "#c9d2dc", wood: "#e8302a", glass: "rgba(255,255,255,.5)",
+      cloth: "#ff5fa2", flame: "#ff7a1a", lit: "#fff06a", duck: "#ffd21f", label: "#ffffff", water: "#1657e0", red: "#e8302a",
     },
   },
 ];

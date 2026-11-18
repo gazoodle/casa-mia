@@ -393,6 +393,15 @@ the Gazette's own work is parked below it.
         layout algorithms and clash detection"). Tunnels cross freely, each on a layer.
       - *The toaster:* "the duck ought to come out sweating and then get a quick cooldown
         from a hose spurt nearby". One tile's drawing, no change to the engine.
+      - *Follow a duck or the bot* (owner, 2026-11-18): "selecting a duck or the bot and
+        then if we're zoomed, the selected sprite stays kind of centred, not exactly,
+        but enough so that the picture pans around the view following the path of the
+        selected thing". Not built. It is no more than that (owner, the same day:
+        "Don't confuse this with anything else, it's literally piggy-backed off
+        whatever safari does for scrolling a view larger than the viewport"): when the
+        sheet is drawn bigger than the screen it already scrolls, and following is
+        moving that scroll so the chosen sprite stays near the middle. No view or zoom
+        of Contraption's own.
       - *Asked after seeing b20's first tunnels, and built in b20* (the brief has how):
         "Could tunnels be a tube rather than just a single dotted line? And we ought to
         try to keep them away from each other. And we could also have a pointless tunnel

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.11.9-b21
+
+- **Dash-Bored: Contraption's tin toy skin looks like printed tin.** It is bright flat paint with a heavy black outline on a turquoise ground with dots, where it was muted colours on cream and looked much like the patent engraving.
+- **Dash-Bored: Contraption's tunnels are drawn the same and stay still.** Every tube has the same dashes, which no longer creep along; the layers differ only in how dim they are.
+- **Dash-Bored: Contraption's picture in the choice of family is a blueprint.**
+
 ## 2026.11.9-b20
 
 - **Dash-Bored: the choice of family fits the screen's shape.** On a screen that is wider than it is tall the six families are shown three across and two down, and on an upright one two across and three down as before.

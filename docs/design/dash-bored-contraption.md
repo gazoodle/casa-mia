@@ -332,6 +332,17 @@ centre and feed both left and right".
 - **Ready for Topology** (`docs/design/topology.md`): a layout is a block in its own
   columns and rows that the machine places, and nothing in Contraption says how rooms
   adjoin. The shaft is where a floor above or below would join.
+- **Owner, 2026-11-18, on seeing the tubes (2026.11.9-b21):**
+  - "The tunnel lines don't need to move, and they can all be the same dashed style."
+    The dashes no longer creep and are one pattern; a layer shows only by how dim it is.
+  - "We need to make tin-toy substantially different, it feels very much like the
+    patent-engraving." It was muted paint on cream. It is now bright flat paint with a
+    heavy keyline on a turquoise ground with dots (`skins.ts`). A skin is still only
+    data, so a tile needed no new drawing. Why it matters: a skin that shares the
+    engraving's ground reads as the same skin whatever its paint.
+  - "The family switcher should probably use blue-print as its style guide for the
+    actual image." Contraption's picture in the choice of family (`shell.ts`) is drawn
+    as the blueprint skin is.
 - **Measured** on the harness: 19 devices are 57 tiles in three bands with eight tunnels,
   at 60 frames a second in headless WebKit, and the same with the tubes (13 devices, 38
   tiles). Not measured on the iPad, where the tubes are the new cost: two wide strokes
