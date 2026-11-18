@@ -56,6 +56,7 @@ export const INK = `
 .ink .flame { fill: var(--flame); }
 .ink .label { fill: var(--label); }
 .ink .shine * { stroke: none; fill: var(--lit); }
+.ink .ghost * { fill: none; stroke-dasharray: 2.2 2.2; stroke-width: calc(var(--w) * .5); }
 .ink .rope { stroke-width: calc(var(--w) * .8); }
 .ink .thin { stroke-width: calc(var(--w) * .6); }
 .ink .tube { stroke-width: 26; stroke-linecap: butt; }

@@ -8,6 +8,7 @@ import { html, nothing, type TemplateResult } from "lit";
 import { keyed } from "lit/directives/keyed.js";
 import { live } from "lit/directives/live.js";
 import { fire, navigate } from "../ha.ts";
+import { CHOOSE } from "./shell.ts";
 import { clipping, photograph } from "./clipping.ts";
 import { Acts } from "./gazette/acts.ts";
 import { ARCHIVE, PAST } from "./gazette/page.ts";
@@ -169,7 +170,8 @@ export class Gazette extends Acts {
       ${this._lost ? html`<div class="fault" role="alert">Not connected to Home Assistant since ${clock(this._lost)}. What follows is how things stood then.</div>` : nothing}
       ${this._fault ? html`<div class="fault" role="alert">${this._fault}</div>` : nothing}
       ${alert ? keyed(alert.s.id + alert.s.variant, html`<div class="breaking" role="status"><b>${voice.flash}</b>${alert.head}${/[!?]$/.test(alert.head) ? "" : ":"} ${alert.s.vars.message}</div>`) : nothing}
-      <header class="masthead"><h1>${voice.name}</h1><p>${voice.strap}</p></header>
+      <header class="masthead"><h1>${voice.name}</h1><p>${voice.strap}</p>
+        ${this.hasAttribute("panel") ? html`<button class="ear" aria-label="Choose another style of Dash-Bored" @click=${() => fire(this, CHOOSE)}><b>Other editions</b>Dash-Bored in another style</button>` : nothing}</header>
       <div class="dateline">
         ${this.hasAttribute("panel") ? html`<ha-menu-button .hass=${hass} .narrow=${this.narrow}></ha-menu-button>` : nothing}
         <span>${new Date().toLocaleDateString(hass.locale?.language ?? "en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</span>

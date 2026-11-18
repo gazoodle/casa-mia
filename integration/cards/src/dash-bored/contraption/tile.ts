@@ -16,9 +16,11 @@ export const S = 260;
 export type Dev = { id: string; name: string; kind: string; on: boolean; level: number; dims: boolean; colour?: string; group?: string };
 /** What a tile is told each frame: how far through the period (0 to 1), which way the
  * duck goes this period (fixed as it comes in, so that it never jumps), and the time.
- * For a tile with several ways in or out: which way in this duck came by (`from`, -1 if
- * it joined from the tile's hole), which way out it is to go (`to`, -1 if it leaves by
- * the hole), and how many periods the tile has seen (`turn`). */
+ * For a tile with several ways in or out: which way in this duck came by (`from`), which
+ * way out it is to go (`to`), and how many periods the machine has run (`turn`). A duck
+ * that came up out of the tile's hole has a `from` below nought (-1 for the first tunnel
+ * that comes up there, -2 for the second), and one that is to go down it a `to` below
+ * nought, likewise. */
 export type Ctx = { p: number; on: boolean; dt: number; now: number; from: number; to: number; turn: number };
 /** Where the duck is: and, if the tile wants, turned (`r`), squashed, or out of sight (`o` 0). */
 export type At = { x: number; y: number; r?: number; sx?: number; sy?: number; o?: number; i?: number; u?: number };
@@ -28,9 +30,10 @@ export type Fault = { kind: "oil" | "bolt"; at: [number, number] } | { kind: "co
 export type Tile = {
   // The edges it is drawn to go in and out by, of L, R, T and B: "LR" is in by the left and
   // out by the right. One with several ways says them either side of ">": "L>RTB" has
-  // three ways out, ">R" none in (ducks join the game there) and "L>" none out (they
-  // leave it). The layout mirrors a tile where the stream runs the other way (`edges`).
+  // three ways out, ">T" none in (its ducks all come up out of its hole) and "L>" none out
+  // (they all go down it). The layout mirrors a tile where the stream runs the other way.
   io: string;
+  pit?: [number, number]; // where its hole is, for a tile that has one: a tunnel ends there
   device?: string; // the id of the device it shows, if it shows one
   still?: string; // what never moves
   live?: string; // what does
@@ -51,6 +54,13 @@ export function edges(io: string, flip = false) {
   const turned = (sides: string) => (flip ? sides.replace(/[LR]/g, (side) => (side === "L" ? "R" : "L")) : sides);
   return { ins: turned(ins), outs: turned(outs) };
 }
+
+/** Taking turns. The ducks that come into a tile in one period are numbered: those from
+ * its ways in first, then those from its hole. Where they can go is numbered too: its
+ * ways out first, then down its hole. Duck `slot` goes to place `dealt` of `n`, and the
+ * turn moves everyone on by one each period. The flow (flow.ts) and the tiles that show
+ * it (points.ts) both go by this. */
+export const dealt = (slot: number, turn: number, n: number) => (slot + turn) % n;
 
 type Frame = [p: number, x: number, y: number, hop?: number];
 /** A way through a tile, as [p, x, y, hop]: straight from each point to the next, or over

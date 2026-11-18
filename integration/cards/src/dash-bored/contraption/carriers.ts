@@ -5,17 +5,25 @@
 import { clamp, cog, draw, move, show, turn } from "./kit.ts";
 import { between, track, type Tile } from "./tile.ts";
 
-// ---- The toaster: in from below, out to the right. The duck is toasted and popped.
+// ---- The toaster: in from below, out to the right. The duck is toasted and popped. It
+// comes out sweating, and a bucket by the way out tips over it to cool it down. The water
+// falls straight down, and the duck walks through it (owner, 2026-11-18: "it can be a
+// tipping bucket if that's more humorous, ala Mouse Trap").
 const toasted = track([0, 130, 260], [0.35, 130, 150, 95], [0.75, 218, 130], [1, 260, 130]);
+const PIVOT = [232, 62], SWEAT = [-1, 0, 1], WATER = [0, 1, 2, 3];
+const drop = (name: string, r: number) => `<g data-p="${name}"><circle class="drop" r="${r}"/></g>`;
 const toaster: Tile = {
   io: "BR", faults: [{ kind: "bolt", at: [96, 240] }],
   still: `<path class="thin" d="M118,236 V260 M142,236 V260"/>
     <rect class="iron" x="82" y="150" width="96" height="86" rx="12"/><path d="M98,150 h64 M96,236 v8 M164,236 v8"/>
     <text x="130" y="200" text-anchor="middle">TOAST</text>
-    <path class="wood" d="M196,132 h64 v7 h-64 z"/><path class="thin" d="M202,139 l-12,38 V139"/>`,
+    <path class="wood" d="M196,132 h64 v7 h-64 z"/><path class="thin" d="M202,139 l-12,38 V139"/>
+    <path d="M254,132 V44 h-22 V${PIVOT[1]}"/><path class="thin" d="M254,60 l-14,-16"/>`,
   live: `<path class="flame bare" data-p="toast-glow" d="M100,145 h60 v5 h-60 z"/>
     <g data-p="toast-lever"><path d="M178,0 h8"/><rect class="brass" x="186" y="-5" width="12" height="10" rx="2"/></g>
-    <text data-p="toast-pop" x="152" y="104">pop!</text>`,
+    <text data-p="toast-pop" x="152" y="104">pop!</text>${SWEAT.map((k) => drop(`sweat${k}`, 2.2)).join("")}${WATER.map((k) => drop(`water${k}`, 3.4)).join("")}
+    <g data-p="bucket" data-ring="0..110:23"><path class="iron" d="M-13,0 h26 l-4,24 h-18 z"/><circle class="solid" r="2.5"/></g>
+    <text data-p="splosh" class="small said" x="176" y="100">splosh</text>`,
   duck({ p }) {
     const at = toasted(p);
     return { ...at, o: p < 0.35 ? 0 : 1, r: at.i === 1 ? at.u * 360 : 0 };
@@ -24,6 +32,25 @@ const toaster: Tile = {
     move(q("toast-lever"), 0, p < 0.3 ? 168 + 146 * p : p < 0.35 ? 212 : 168);
     show(q("toast-glow"), between(p, 0, 0.35) * clamp(p / 0.3));
     show(q("toast-pop"), between(p, 0.35, 0.55));
+
+    // Sweat flies off it while it is in the air.
+    const at = toasted(p), flying = between(p, 0.38, 0.75);
+    for (const k of SWEAT) {
+      const u = ((p - 0.38) * 5 + (k + 1) / 3) % 1;
+      show(q(`sweat${k}`), flying * (1 - u));
+      move(q(`sweat${k}`), at.x + k * 18 * u + 4, at.y - 20 - 26 * u + 40 * u * u);
+    }
+
+    // The bucket tips as the duck lands, empties straight down, and rights itself.
+    const tip = clamp((p - 0.7) / 0.07) - clamp((p - 0.92) / 0.08), wet = between(p, 0.76, 0.93);
+    move(q("bucket"), PIVOT[0], PIVOT[1]);
+    turn(q("bucket"), 110 * tip);
+    for (const k of WATER) {
+      const u = ((p - 0.76) * 9 + k / WATER.length) % 1;
+      show(q(`water${k}`), wet);
+      move(q(`water${k}`), PIVOT[0] - 6, PIVOT[1] + 14 + 56 * u * u);
+    }
+    show(q("splosh"), wet);
   },
 };
 

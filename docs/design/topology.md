@@ -52,9 +52,11 @@ else:
 - **In the integration, with no part in the app** (proposed). It works on Home
   Assistant's registries and its data is small, so it belongs in Home Assistant's own
   storage (architecture: each piece of work goes where it fits best).
-- **As a component of its own, importing nothing from `casa_mia`** (proposed), as Sensor
-  Watch is. Dash-Bored is to be published by itself and will read Topology, so the two
-  can only meet through Home Assistant.
+- **Inside Casa Mia, not a component of its own** (agreed 2026-11-18). By itself Topology
+  has little to show: it is an editor and a store. The owner's reasoning: "you can
+  install it, create your topology, and the Dash-Boreds get better and you get the
+  game". Dash-Bored installed without Casa Mia finds no topology and stays as it is
+  today, without the games. A component of its own was proposed and dropped.
 
 ## The contract
 
@@ -69,11 +71,12 @@ Four consumers are expected, so what they can ask is the thing to agree first. P
    polls for it (RULE FOUR).
 
 It is to be reachable over Home Assistant's websocket, or as an action that returns a
-response, because one of the consumers runs outside Home Assistant. A Python import
-between components would not serve it and would break the stand-alone rule above.
+response, because one of the consumers runs outside Home Assistant, and Dash-Bored is a component
+of its own that imports nothing from `casa_mia`. A Python import would serve neither.
 
-**An empty topology is normal.** A house with nothing entered gives an empty tree and no
-neighbours, and each consumer then behaves as it does today.
+**An empty topology is normal, and so is none at all.** A house with nothing entered
+gives an empty tree and no neighbours, and a Home Assistant without Casa Mia does not
+answer. In both cases a consumer behaves as it does today.
 
 ## Who will use it
 
@@ -121,10 +124,27 @@ Proposed, following the repo's rule for a module with a contract:
 4. Build the real storage, which must pass the same tests, and the editor.
 5. Routes when House Manual or a game first needs one.
 
+## The editor
+
 The editor is most of the work. Entering the connections for a house of thirty rooms is
-tedious, and whether anyone fills it in depends on how quick that is: choosing an area's
-neighbours from a list, with each connection appearing on both rooms at once, and a
-direction set by one more press.
+tedious, and whether anyone fills it in depends on how quick that is.
+
+- **A plain list for the first version** (agreed 2026-11-18). Each room has an "add exit"
+  that asks which room and, optionally, which direction. The exit appears on both rooms
+  at once. Other ways of entering connections can come later over the same data.
+- **A picture beside it, drawn by Mermaid** (agreed 2026-11-18, the owner's idea). Sites,
+  buildings and floors are nested boxes, rooms are nodes, connections are lines labelled
+  with their directions. The Mermaid text is generated from the records and never
+  stored or read back, so it is not a second source of truth. It shows a mistake at
+  once: a room with no exits stands apart. The same text can be copied out for House
+  Manual or a document.
+- **What the picture does not do.** Mermaid chooses where everything goes, so an exit
+  marked north is not drawn upwards. It shows what joins what, not where things are.
+- **Its cost.** Neither the admin UI nor the cards has Mermaid or any graph library
+  today (checked 2026-11-18). It is a large dependency, to be loaded only when the
+  Topology page is opened.
+- **To check before building:** that Mermaid draws boxes nested three deep with lines
+  between rooms in different boxes legibly, on a house of thirty rooms.
 
 ## Open questions
 
@@ -136,6 +156,12 @@ For the owner:
   which needs nothing new, or needs something of its own.
 - Whether a connection should say what it is (a door, an open arch, stairs). Up and down
   already describe stairs. Nothing planned needs more.
-- Where the editor goes: a panel in Home Assistant, as Sensor Watch's page is, follows
-  from a component of its own.
+- Other ways of joining rooms, after the plain list ("The editor" above). The owner wants
+  this to be good, and playful (2026-11-18). Offered and not yet chosen: walking the house as the text adventure in
+  map-making mode; connections suggested from motion sensors' history, offered and never
+  applied unasked. **Not a board of room tiles dragged together** (owner, 2026-11-18):
+  it was his own thought too, but it leads towards building a CAD package for houses,
+  and he wants to think about it more before anything like it is tried.
+- Whether a connection can carry a door's sensor or lock, since a door belongs to the
+  join and not to either room.
 - Whether diagonal directions (north-east) are wanted, or the six are enough.

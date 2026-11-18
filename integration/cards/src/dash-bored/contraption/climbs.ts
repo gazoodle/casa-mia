@@ -91,11 +91,13 @@ export const pegs: Tile = {
 
 // ---- The lift: in from below, out above, on a board that a rope hauls up. Another
 // board comes in at the bottom as one goes out at the top.
+/** A board of the dumb waiter, as the part "board". Every tile of the shaft has one, and moves it at the same pace. */
+export const BOARD = `<g data-p="board"><path class="wood" d="M-34,0 h68 v6 h-68 z"/><path class="rope" d="M-30,0 L0,-36 L30,0"/></g>`;
 export const lift: Tile = {
   io: "BT", steady: true, faults: [{ kind: "cord", loop: [[130, 260], [130, 0]], run: (t) => t * 100 }],
   still: `<path d="M92,0 V260 M168,0 V260"/><path class="thin" d="M92,52 h76 M92,104 h76 M92,156 h76 M92,208 h76"/><path class="rope" d="M130,0 V260"/>
     <text class="small" x="60" y="130" transform="rotate(-90 60 130)" text-anchor="middle">DUMB WAITER</text>`,
-  live: `<g data-p="board"><path class="wood" d="M-34,0 h68 v6 h-68 z"/><path class="rope" d="M-30,0 L0,-36 L30,0"/></g>`,
+  live: BOARD,
   duck: ({ p }) => ({ x: 130, y: 260 - 260 * p }),
   pose(q, { p }) {
     move(q("board"), 130, 262 - 260 * p);

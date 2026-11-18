@@ -10,6 +10,7 @@ import { ALERTS, Family, PAGE, SIGHTINGS, typeface } from "./family.ts";
 import { DEFS, button, novelty, pick, tilt } from "./fridge/magnets.ts";
 import { columns, laid } from "./fridge/rows.ts";
 import { bays } from "./pack.ts";
+import { CHOOSE } from "./shell.ts";
 import { SKINS, type Skin } from "./fridge/skins.ts";
 import { today } from "./fridge/today.ts";
 import { STYLES } from "./fridge/styles.ts";
@@ -314,6 +315,7 @@ export class Fridge extends Family {
       <div class="handle" aria-hidden="true"></div>
       <div class="who" role="radiogroup" aria-label="Whose fridge this is">
         ${this._config.style ? nothing : SKINS.map((s) => html`<button role="radio" aria-checked=${s.id === skin.id} style="--r: ${tilt(s.id, 6)}deg" @click=${() => this._dress(s.id)}>${novelty(s.picker)}<span>${s.label}</span></button>`)}
+        ${this.hasAttribute("panel") ? html`<button class="menu" aria-label="Choose another style of Dash-Bored" style="--r: ${tilt("menu", 6)}deg" @click=${() => fire(this, CHOOSE)}>${novelty("menu")}<span>Other styles</span></button>` : nothing}
       </div>
       ${urgent}
       ${notes.length

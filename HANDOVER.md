@@ -337,14 +337,22 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
     is what stops it sharing a bitmap with one that looks the same.
   - `run.ts` is the machine (cells, ducks, covers, the goose), with no Home Assistant in
     it. `layout.ts` is the rule and has the node test, with every tile's edge rule.
-  - **A stream with holes, not a loop** (2026.11.9-b19; owner, 2026-11-18, who found the
-    first build "too conveyor belt-ish"). Ducks join the game by a hole and leave by one
-    (`points.ts`), so none is ever slowed or hurried: a redirector's spare ways are fed
-    from its hole and a collector's surplus goes down its hole. A tile's `io` may name
-    several ways ("L>RTB"); `layout.ts` `links` works out what leads where and throws on
-    a route that does not join up, and `run.ts` `deal` says which way each duck goes.
-    `climbs.ts` has the escalator, slide, lift and cutlery. Seen on the harness in WebKit
-    (13 and 19 devices, two skins); not seen on the owner's house or the iPad.
+  - **A network of loops** (2026.11.9-b20; owner, 2026-11-18, who found the first build
+    "too conveyor belt-ish" and then asked for loops "engineered to be clean"). The rule:
+    every way in, way out and tunnel carries one duck a period. `flow.ts` is that, with
+    no drawing in it, and its node test runs 200 periods. A tile's `io` may name several
+    ways ("B>RLT") and a tile may have a hole (`pit`); `layout.ts` `links` throws on a
+    layout that does not join up or balance. A change to the layout rule must keep that
+    test and `links` passing: they are what "clean" means. `points.ts` has the
+    redirector (spares queue up a ramp; on the shaft a board goes through it), the
+    roundabout collector, a wing's end and the dumb waiter's foot and top; `climbs.ts`
+    the escalator, slide, lift and cutlery; `underground.ts` the tunnels: tubes placed
+    to keep apart (`placed`), timed so a duck keeps the sheet's pace (`Way.lead`), and
+    the dumb waiter's return, which forks and wanders the empty places (`wander`; a
+    tunnel may have several ways, taken in turn, `flow.ts` `beats`). Turns are taken by `tile.ts` `dealt`, in the flow and
+    in the tiles alike. Seen on the harness in WebKit (13 and 19 devices) and put on the
+    test VM; not seen on the owner's house or the iPad. What he asked for next, in order,
+    is in BACKLOG.
   - The page keeps one `Dev` for each device and changes it in place (`_told`), so a tile
     holds its own. The machine is built once for a survey, never for a state.
   - **My choices, to be told to the owner:** the room is the area with "kitchen" in its
@@ -725,7 +733,13 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   a frame, for every user) is `dash-bored-page` (`shell.ts`). It shows one family's
   element and holds the choice between them: two presses within `TWICE` in its top right
   corner, on nothing in `PRESSED`, open a dialog; the choice is in the browser's storage
-  (`dash-bored-family`). A new family is an entry in `FAMILIES` there, an element defined
+  (`dash-bored-family`). Since 2026.11.9-b20 a browser with nothing stored is shown the
+  dialog first, and every family has a thing of its own on the page (never on a card)
+  that fires `CHOOSE`: the Gazette's ear, the Console's maker's plate (`host.ts`), the
+  Fridge's takeaway menu, Aurora's bar button, Digs' signboard, Contraption's lever. A new
+  family needs one, and says it in its entry's `back`, which the dialog's last line lists.
+  The dialog is three families across in landscape and two in portrait.
+  A new family is an entry in `FAMILIES` there, an element defined
   in `index.ts`, and a class on `family.ts`, which holds what they all need: the house
   (`survey`/`read`, with `_surveyed` and `_moved` to override), the settings feed,
   `_follow` for a feed, `_call`, `_ask`, `_fault` and `_lost`. Each family's element is

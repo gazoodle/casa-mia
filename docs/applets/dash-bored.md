@@ -149,13 +149,28 @@ missing).
 
 ## Choosing a family
 
-The page opens as the Gazette. To change it, press twice quickly in the top right corner
-of the page, on a part of it that is not a button or another control. A choice opens with
-a small drawing of each family; press one and the page becomes it.
+The first time a browser opens the page it shows a choice, with a small drawing of each
+family; press one and the page becomes it. If you close the choice without pressing one,
+the page is the Gazette.
+
+Each family has something on its page that opens the choice again:
+
+| Family | What to press |
+|---|---|
+| The Gazette | The ruled box marked "Other editions", beside the paper's name |
+| The Console | The maker's plate, after the era switch |
+| The Fridge | The takeaway menu under a magnet, in the door's top right corner |
+| Aurora | The four squares at the end of the bar |
+| Digs | The signboard that says "Dash Bored" |
+| Contraption | The lever marked "Change machine", at the end of the heading |
+
+Pressing twice quickly in the top right corner of the page, on a part of it that is not a
+button or another control, opens it in any of them. On a screen that is wider than it is
+tall the choice is three families across, and on an upright one it is two.
 
 The choice is remembered by the browser it was made in. A tablet on the wall, a phone and
-a desktop each keep their own. There are five families: the Gazette, the Console, the
-Fridge, Aurora and Digs. The first three each have a choice of their own, made on the thing itself: the Gazette's three
+a desktop each keep their own. There are six families: the Gazette, the Console, the
+Fridge, Aurora, Digs and Contraption. The first three each have a choice of their own, made on the thing itself: the Gazette's three
 papers (see [Three papers](#three-papers)), the Console's era, on a switch on the panel
 (see [The Console](#the-console)), and whose fridge it is, on three magnets in the door's
 corner (see [The Fridge](#the-fridge)).
@@ -1078,11 +1093,15 @@ Contraption is being built. So far it draws one room as a machine that ducks go 
 the kitchen, which it finds as the area with "kitchen" in its name. If there is none it
 draws the first room.
 
-The ducks come up out of a hole at one end of the room and go down a hole at the other.
-On the way the stream climbs and drops by escalators, slides and a lift. Where several
-devices come together it parts: a redirector sends the ducks out by two or three ways in
-turn, spare ducks climb out of its hole for the other ways, and further on a collector
-lets one duck through and sends the rest down a hole.
+A dumb waiter carries ducks up a shaft in the middle of the room. At each level an arrow
+sends one out along a wing to the right, one to the left and one on up. Along a wing the
+stream climbs and drops by escalators, slides and a lift. Where several devices come
+together it parts: an arrow sends a duck out by each of two or three ways, and further
+on a roundabout lets one duck through and sends the rest down a hole. A wing ends at a
+hole too. The dim dashed tubes behind the machine are tunnels, which take the ducks
+that go down one hole to the hole they come up at. The longest of them starts at the
+top of the dumb waiter and takes its ducks back to the foot. It forks, wanders through
+the empty parts of the sheet and winds into a spiral on the way.
 
 Each device is a tile, and the duck passing through a tile is that device's engine. For a
 light, the duck runs on a belt, jumps on a sprung board or walks in a treadwheel, and

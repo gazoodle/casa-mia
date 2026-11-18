@@ -268,3 +268,79 @@ closed loop, and there is no longer one duck to a tile.
 - **Left:** the redirector and collector are plain drawings; more plain bends are wanted
   (the corners are still the toaster, the bottle, the plughole and the trampoline); a fan's
   lanes run flat; the first band of a room with several starts part-way along the sheet.
+
+### A network of loops (2026.11.9-b20, 2026-11-18)
+
+The owner saw b19 on the test VM and asked for what replaces most of it: "a network of
+loops, some on the main screen, like the dumb-waiter, some in the underground in tunnels
+of dim dashed lines [with dashed ducks too] ... engineered to be clean". The spares were
+"always colliding at the entry and stuttering at the exits" and were to "merge in turn";
+the collector was to be "a little roundabout affair"; the dumb waiter "could be in the
+centre and feed both left and right".
+
+- **Clean is a rule, and it is tested** (`flow.ts`, with no drawing in it). Every way in,
+  every way out and every tunnel carries one duck a period, on the one beat. A tile that
+  sends out more than it takes in gets the rest up its hole; one that takes in more puts
+  the rest down. `layout.ts` `links` refuses a layout that does not balance. The node
+  test runs 200 periods of every room and finds one duck on every way and in every place
+  of every tunnel, with none made or lost. The two end holes of b19 are gone.
+- **Taking turns is one line** (`tile.ts` `dealt`), which the flow and the tiles that
+  show it both go by, so the arrow points where the duck goes.
+- **The shaft and the wings** are in `layout.ts`'s header. A wing's end feeds its own
+  band's redirector on the shaft. The shaft has a top tile, where the duck that rode up
+  goes down a hole, and the tunnel from there feeds the foot.
+- **Tunnels** (`underground.ts`) are made of level, upright and 45 degree runs, on three
+  layers (owner: "so you don't have to have complex network layout algorithms and clash
+  detection").
+- **Tubes, and keeping them apart.** The owner saw the first tunnels and asked: "Could
+  tunnels be a tube rather than just a single dotted line? And we ought to try to keep
+  them away from each other", and later "I have no problem with the underground tunnels
+  having Y-junctions, T-junctions or anything else needs to fill it up".
+  - A layer's tunnels are stroked wide and dashed, and then their inside is rubbed out
+    of the canvas (`stage.ts` `tube`). So the sheet shows through a tube, runs on one
+    layer that meet are open to each other as a junction, and a nearer layer goes over
+    a deeper one. A run that several ways share is drawn once (`run.ts`).
+  - A tunnel is placed by trying about fifty ways and keeping the one that crowds the
+    runs already there least (`placed`, `crowds`). A tunnel may join one bound for the
+    same hole at a bend and share the rest of its way. It is a best try and not a
+    proof. The node test asks that in its sixteen rooms no two tubes bound for
+    different holes run alongside closer than 40 units, and that holds.
+  - A duck in a tube goes a tile's length a period, as on the sheet. A way is seldom a
+    whole number of tiles long, so the duck waits out the odd part of a period out of
+    sight in a hole (`Way.lead`). Tunnels bound for one hole arrive a part of a period
+    apart, so that in a tube they share their ducks go alternately. This replaced my
+    first plan, of making each tunnel a whole number of tiles long with a kink.
+- **The long way round** (`underground.ts` `wander`; owner: "a pointless tunnel system
+  to fill blank spaces, driven from the top exit of the dumb waiter"). It is the dumb
+  waiter's return, so it costs the flow nothing. It forks under the top hole, one way
+  for each side of the shaft, and a side with eight or more empty places forks again;
+  the ducks take the two or four ways in turn. Each way calls at the places with no
+  tile, row by row, and the one that reaches the emptiest place winds into an
+  eight-sided spiral there. The ways do not join again before the foot's hole: they
+  would need lengths exact to the tile for their ducks not to meet. `flow.ts` `beats`
+  gives each way a number of periods such that one duck still comes up each period.
+- **The shaft keeps one pace** (owner: "The duck doesn't travel at the same speed as the
+  dumb waiter, either it must or the waiter goes in favour of stairs or escalator").
+  Every tile of the shaft moves a board at the lift's pace, and a duck on a board moves
+  with it. At an arrow the duck that rode in stays on to go up, or hops off before the
+  arrow to go sideways. A spare that is to go up is the last spare to the arrow and
+  waits there for the board to come up under it.
+- **The toaster's bucket** (owner: "The water shower should just run its water
+  downwards, not track the duck, and it can be a tipping bucket if that's more
+  humorous, ala Mouse Trap game"). It tips as the duck lands and the water falls
+  straight down.
+- **Ready for Topology** (`docs/design/topology.md`): a layout is a block in its own
+  columns and rows that the machine places, and nothing in Contraption says how rooms
+  adjoin. The shaft is where a floor above or below would join.
+- **Measured** on the harness: 19 devices are 57 tiles in three bands with eight tunnels,
+  at 60 frames a second in headless WebKit, and the same with the tubes (13 devices, 38
+  tiles). Not measured on the iPad, where the tubes are the new cost: two wide strokes
+  of every layer each frame.
+- **Judged from stills only:** the hop off the board and the spare boarding at a shaft
+  arrow, and the bucket. The tests prove where the ducks are at the edges, not that it
+  looks right in between.
+- **Known:** a tube can pass behind a caption; the long way round can cross itself and
+  the other tunnels as much as it likes, and only running alongside is kept down.
+- **Not built, in the order agreed** (BACKLOG has each in the owner's words): machinery on
+  the y-axis; lanes with anything on them and holes that feed any other hole; the poop,
+  the compost bin and the gantry's tongs.

@@ -10,7 +10,8 @@ is only proposed, and the questions still open. Agree its contract before any co
 - **Topology, the applet:** buildings and sites above Home Assistant's floors and areas,
   and connections between areas with an optional direction. Digs is its first consumer;
   the other Dash-Bored families, Auto Dashboards, House Manual and Gang-O-Gals follow.
-  The name is final (owner, 2026-11-18).
+  The name is final, and it lives inside Casa Mia, not as a component of its own (owner,
+  2026-11-18).
 - **Sections in the Gazette** (owner, 2026-11-18): the papers have no room card, since a
   newspaper is an overview, but they might be divided into sections once Topology says
   how the house is divided. Not designed.
@@ -351,8 +352,12 @@ the Gazette's own work is parked below it.
       other kinds of device, more plain bends and a better drawing for the
       redirector and the collector, setting a level, a crew of bots, one stream
       through the house, and a place for scenes and guarded devices.
-    - **Asked by the owner on 2026-11-18 after seeing 2026.11.9-b19 on the test VM, talked
-      through and not built.** He has not yet said to start. In the order proposed:
+    - **Asked by the owner on 2026-11-18 after seeing 2026.11.9-b19 on the test VM.** Built
+      in 2026.11.9-b20: the network of loops, merge in turn, the roundabout, the dumb
+      waiter in the centre, the layers underground and the toaster's hose. **Still to
+      build, in this order:** machinery on the y-axis; lanes with anything on them and
+      holes that feed any other hole; the poop, the compost bin and the tongs. All of it
+      as he asked for it:
       - *A network of loops, engineered to be clean.* The main stream is a loop again,
         closed by a dumb waiter up the side ("I like the normal return line on the
         dumb-waiter"), and the two end holes go. Holes stay beside redirectors and
@@ -388,6 +393,18 @@ the Gazette's own work is parked below it.
         layout algorithms and clash detection"). Tunnels cross freely, each on a layer.
       - *The toaster:* "the duck ought to come out sweating and then get a quick cooldown
         from a hose spurt nearby". One tile's drawing, no change to the engine.
+      - *Asked after seeing b20's first tunnels, and built in b20* (the brief has how):
+        "Could tunnels be a tube rather than just a single dotted line? And we ought to
+        try to keep them away from each other. And we could also have a pointless tunnel
+        system to fill blank spaces, driven from the top exit of the dumb waiter?"; "The
+        duck doesn't travel at the same speed as the dumb waiter, either it must or the
+        waiter goes in favour of stairs or escalator"; "The water shower should just run
+        its water downwards, not track the duck, and it can be a tipping bucket"; and
+        "no problem with the underground tunnels having Y-junctions, T-junctions or
+        anything else". **Left of these:** the ways of the long way round fork and do
+        not join again before the foot; joining needs lengths exact to the tile. To
+        look at on the owner's screen: the hop at a shaft arrow, and the tubes' cost on
+        the iPad.
       - *Ready for Topology* (`docs/design/topology.md`): a room's layout is a block the
         machine places, the loop's closure is one replaceable piece, and no setting of
         Contraption's own says which rooms adjoin. East and west would be the sheet's

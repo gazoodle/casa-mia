@@ -34,6 +34,8 @@ export const STYLES = css`
   .who button { width: 62px; text-align: center; font-size: 10.5px; line-height: 1.1; opacity: .7; transform: rotate(var(--r)) scale(.8); transition: transform .25s, opacity .25s; }
   .who button[aria-checked="true"] { opacity: 1; transform: rotate(0deg) scale(1); }
   .who .novelty { width: 44px; margin: 0 auto 2px; }
+  /* The takeaway menu beside them opens the choice of family (shell.ts): it is no one's fridge, so it is never the biggest. */
+  .who .menu:hover, .who .menu:focus-visible { opacity: 1; }
   .novelty { filter: drop-shadow(1px 3px 2px rgba(0,0,0,.4)); }
 
   /* What must never be missed: a lost connection, a refused action. A torn sheet in red marker. */

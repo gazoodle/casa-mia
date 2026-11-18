@@ -9,7 +9,7 @@
 // skins.ts and styles.ts are the look.
 import { html, nothing } from "lit";
 import { fire } from "../ha.ts";
-import { route, type Step } from "./contraption/layout.ts";
+import { route, type Layout } from "./contraption/layout.ts";
 import { Machine } from "./contraption/run.ts";
 import { SKINS, worn, type Skin } from "./contraption/skins.ts";
 import type { Pen } from "./contraption/stage.ts";
@@ -17,6 +17,7 @@ import { STYLES } from "./contraption/styles.ts";
 import { S, type Dev } from "./contraption/tile.ts";
 import { ALARM, said } from "./digs/chest.ts";
 import { Family, PAGE } from "./family.ts";
+import { CHOOSE } from "./shell.ts";
 import type { Device, Options, Room, Survey } from "./house.ts";
 import { clock, flip } from "./stories.ts";
 
@@ -47,7 +48,7 @@ export class Contraption extends Family {
   _rate = ""; // how it is going, in words
   _room?: Room; // the room shown
   private _built?: Survey; // the survey the machine was built for
-  private _way?: Step[]; // the room's way round, waiting to be made a machine
+  private _way?: Layout; // the room's network, waiting to be made a machine
   private _machine?: Machine;
   private _devs = new Map<string, Dev>(); // each device as its tile holds it, changed in place
   private _pen?: Pen;
@@ -276,6 +277,9 @@ export class Contraption extends Family {
               <label class="size">Tile size <input type="range" min="100" max=${BIG} step="10" .value=${String(this._tile)} @change=${sized} /> <output>${this._size ? `${this._size} px` : "to fit"}</output></label>
               <output class="rate">${this._rate}</output>`}
         ${this._config.style || this._sample || this._alone ? nothing : html`<div class="skins">${SKINS.map((s) => html`<button aria-pressed=${s.id === skin.id} @click=${() => this._dress(s.id)}>${s.name}</button>`)}</div>`}
+        ${this.hasAttribute("panel")
+          ? html`<button class="lever" aria-label="Choose another style of Dash-Bored" @click=${() => fire(this, CHOOSE)}><svg viewBox="0 0 30 26" aria-hidden="true"><path d="M3,23 h24 M8,23 a7,7 0 0 1 14,0 M15,18 L23,5" /><circle cx="24" cy="4" r="3" /></svg>Change machine</button>`
+          : nothing}
       </header>
       ${notices.map((words) => html`<p class="notice" role="status">${words}</p>`)}
       <div class="scroll" @scroll=${this._look}>

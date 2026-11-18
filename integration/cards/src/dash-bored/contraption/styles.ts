@@ -20,6 +20,12 @@ export const STYLES = css`
   .skins { display: flex; gap: 6px; }
   .skins button { font: inherit; font-size: 13px; color: inherit; background: none; border: 2px solid var(--line); border-radius: 4px; padding: 3px 9px; cursor: pointer; }
   .skins button[aria-pressed="true"] { background: var(--line); color: var(--bg); }
+  /* The lever opens the choice of family (shell.ts), on the page only: it is drawn in the skin's own line, and leans over under the hand. */
+  .lever { display: flex; align-items: center; gap: 6px; font: inherit; font-size: 13px; color: inherit; background: none; border: 2px solid var(--line); border-radius: 4px; padding: 2px 9px 2px 6px; cursor: pointer; }
+  .lever svg { width: 30px; height: 26px; fill: none; stroke: var(--line); stroke-width: 2; stroke-linecap: round; overflow: visible; }
+  .lever circle { fill: var(--red); }
+  .lever:hover svg, .lever:active svg { transform: scaleX(-1); }
+  .lever:focus-visible { outline: 2px dashed var(--line); outline-offset: 2px; }
   .skins button:focus-visible, .hit:focus-visible { outline: 2px dashed var(--line); outline-offset: -4px; }
   .notice { margin: 4px 0; padding: 6px 10px; font-size: 15px; background: var(--red); color: var(--bg); border: 2px solid var(--line); overflow-wrap: anywhere; }
 

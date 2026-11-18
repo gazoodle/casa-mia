@@ -28,6 +28,15 @@ export const STYLES = css`
      "fantasy": on an iPhone that is a script whose swashes ran up over the breaking news. */
   .masthead h1 { margin: 0; font: 400 clamp(32px, 12cqi, 74px)/1.1 "Dash-Bored Masthead", var(--head); overflow-wrap: anywhere; }
   .masthead p { margin: 0; } .masthead p:empty { display: none; }
+  /* The ear: the ruled box a paper prints beside its name. It opens the choice of family (shell.ts), on the page only. */
+  .masthead { position: relative; }
+  .ear { position: absolute; right: 0; top: 50%; transform: translateY(-50%); box-sizing: border-box; width: 124px; padding: 6px 8px; border: 1px solid var(--ink); outline: 1px solid var(--ink); outline-offset: 2px;
+    text-align: center; font-size: 11px; line-height: 1.25; font-style: italic; }
+  .ear b { display: block; font-style: normal; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
+  .ear:hover, .ear:focus-visible { background: var(--ink); color: var(--paper); }
+  /* The tabloid's and the rolling news's mastheads are a row: the ear is at its end. */
+  [data-style="tabloid"] .ear, [data-style="rolling"] .ear { position: static; transform: none; margin-left: auto; font-style: normal; }
+  [data-style="rolling"] .ear { border: 0; outline: 0; border-radius: 4px; background: var(--site); color: #fff; }
   .dateline { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; justify-content: space-between; font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
     border-bottom: 1px solid var(--ink); padding: 5px 2px; margin-bottom: 14px; }
   .styles button { padding: 1px 8px; border-bottom: 1.5px dotted; }
@@ -272,6 +281,8 @@ export const STYLES = css`
     .paper { padding: 10px 14px 20px; }
     .page { grid-template-columns: 1fr; } .page > * + * { border-left: 0; padding-left: 0; margin-top: 18px; } .solo > article { grid-column: auto; }
     .copy { columns: 1; } h2 { font-size: 34px; }
+    /* No room beside the name: the ear goes under it. */
+    .ear { position: static; transform: none; display: block; margin: 8px auto 2px; } [data-style="tabloid"] .ear, [data-style="rolling"] .ear { margin: 0 0 0 auto; }
     [data-style="tabloid"] h2 { font-size: 62px; } [data-style="tabloid"] .masthead h1 { font-size: 36px; }
     [data-style="rolling"] h2 { font-size: 30px; } [data-style="rolling"] .masthead h1 { font-size: 26px; }
     [data-style="rolling"] .page > * + * { padding-left: 0; }

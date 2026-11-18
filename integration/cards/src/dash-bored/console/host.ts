@@ -6,8 +6,9 @@
 // show less of the panel (cards.ts) are this element too, without the switch.
 import { LitElement, css, html, nothing } from "lit";
 import { html as tagged, unsafeStatic } from "lit/static-html.js";
-import type { Hass } from "../../ha.ts";
+import { fire, type Hass } from "../../ha.ts";
 import { picked } from "../family.ts";
+import { CHOOSE } from "../shell.ts";
 import type { Config as Told } from "./panel.ts";
 
 export const CARD = "dash-bored-console";
@@ -63,6 +64,12 @@ export class Console extends LitElement {
     .unbuilt-era { box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; min-height: 240px; padding: 18px 22px; background: #2b2d30; color: #f4f0e4;
       font: 15px/1.4 "Gill Sans", "Gill Sans MT", "Helvetica Neue", sans-serif; }
     :host([panel]) .unbuilt-era { min-height: 100vh; }
+    /* The maker's plate, with a screw at each end: it opens the choice of family (shell.ts), on the page only. */
+    .own { flex: none; display: flex; flex-direction: column; align-items: center; gap: 10px; margin-left: auto; }
+    .maker { all: unset; flex: none; box-sizing: border-box; cursor: pointer; padding: 8px 22px; border-radius: 3px; text-align: center; color: #f4f0e4; font: 600 9px/1.5 "Gill Sans", "Gill Sans MT", "Helvetica Neue", sans-serif; letter-spacing: .2em; text-transform: uppercase;
+      background: radial-gradient(circle at 9px 50%, #8f8f86 0 3px, transparent 3.5px), radial-gradient(circle at calc(100% - 9px) 50%, #8f8f86 0 3px, transparent 3.5px), #111; box-shadow: 0 0 0 1px #777, 0 3px 5px rgba(0,0,0,.5); }
+    .maker b { display: block; font-size: 12px; } .maker i { display: block; font-style: normal; opacity: .65; }
+    .maker:hover i, .maker:focus-visible i { opacity: 1; } .maker:focus-visible { outline: 2px solid #f4f0e4; outline-offset: 2px; }
     .plate { padding: 10px 16px; border-radius: 3px; background: #111; box-shadow: 0 0 0 1px #777; overflow-wrap: anywhere; }
     .plate b { display: block; font-size: 18px; letter-spacing: .2em; text-transform: uppercase; }
   `;
@@ -154,15 +161,20 @@ export class Console extends LitElement {
             <button class="switch" aria-label="The next era" @click=${() => this._turn(ERAS[(at + 1) % ERAS.length].id)}><span></span></button>
             <span class="named">${era.name}</span>
           </div>`;
+    // The family's own: the switch, and on the page the maker's plate under it, which opens the choice of family.
+    const own = (slot: string) =>
+      this._page
+        ? html`<div slot=${slot} class="own">${choice("")}<button class="maker" aria-label="Choose another style of Dash-Bored" @click=${() => fire(this, CHOOSE)}><b>Dash-Bored</b>Instrument Co.<i>Other models ▸</i></button></div>`
+        : choice(slot);
     // The era's element is told its options first, before it is on the page, so that it
     // follows only the feeds its view shows; and whether it is the page or a card.
     if (era.tag) {
       const tag = unsafeStatic(era.tag);
-      return tagged`<${tag} class="era" .config=${this._told} .hass=${this.hass} .narrow=${this.narrow} ?panel=${this._page}>${choice("era")}</${tag}>`;
+      return tagged`<${tag} class="era" .config=${this._told} .hass=${this.hass} .narrow=${this.narrow} ?panel=${this._page}>${own("era")}</${tag}>`;
     }
     return html`<div class="unbuilt-era">
       <div class="plate"><b>${era.name}</b>The Console of the ${era.decade} is not built yet. Turn the switch to another era.</div>
-      ${choice("")}
+      ${own("")}
     </div>`;
   }
 }

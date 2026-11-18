@@ -41,6 +41,24 @@ export function place(pen: Pen, part: Part, m: Mat, alpha = 1) {
   for (const kid of part.kids) place(pen, kid, w, a);
 }
 
+/** The tunnels of one layer under the sheet, as tubes: dim, dashed walls with nothing
+ * between them. The inside is rubbed out and not painted, so that the sheet shows through
+ * it, and so that a tube drawn later goes over one drawn before where they cross. Each
+ * layer has its own dashes, and they creep along by `crept`. */
+const BORE = 22, DASHES = [[10, 7], [5, 7], [14, 5, 3, 5]];
+export function tube(pen: Pen, path: Path2D, layer: number, alpha: number, crept: number) {
+  const { g, k } = pen;
+  g.setTransform(k, 0, 0, k, -pen.ox, 0);
+  Object.assign(g, { globalAlpha: alpha, lineWidth: BORE + 2.4 * pen.w, lineCap: "butt", lineDashOffset: -crept });
+  g.setLineDash(DASHES[layer % DASHES.length]);
+  g.stroke(path);
+
+  g.setLineDash([]);
+  Object.assign(g, { globalAlpha: 1, lineWidth: BORE, lineCap: "round", globalCompositeOperation: "destination-out" });
+  g.stroke(path);
+  g.globalCompositeOperation = "source-over";
+}
+
 /** Ready the canvas for a frame: cleared, and inked as the skin's lines are. */
 export function clear(pen: Pen) {
   const { g } = pen;
