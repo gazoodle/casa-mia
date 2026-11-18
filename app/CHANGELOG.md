@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.11.9-b22
+
+- **Fixed: Dash-Bored: Contraption's mangle turned its rollers against the duck, and in jerks.** The rollers now turn the way the duck goes, and smoothly.
+- **Dash-Bored: Contraption's ducks leave the odd poop, and tongs pluck them out of holes.** Now and then a duck leaves a poop on the boards, and the ducks behind hop over it. The bot comes with a shovel and a peg on its nose and takes it to a compost bin at the foot of its pole, where a flower comes up for each load. Every third time it throws it down a hole instead, and has to fetch it from the hole at the tunnel's other end. Along the top there is a gantry with lazy tongs, which now and then pull a duck back out of a hole it has just gone down and set it down at the hole its tunnel comes up at.
+- **Dash-Bored: Contraption's lanes hold anything, and a hole feeds its neighbour's.** Where the stream fans out, a lane can hold lights that are switched together or two devices, and a shorter lane is made up with a mangle or a ladle. The tunnel from a hole no longer goes back to the arrow before it: within a level each hole feeds the next one along, so the tubes go further and cross more.
+- **Dash-Bored: Contraption has machinery that works up and down.** Where the stream goes down or up two rows past a device, that device now stands upright in the row between. A light going down has a paddle wheel that the falling duck turns, and one going up has a ladder that runs down under the duck as it climbs. Any other device is a crate hung on ropes that the duck goes down or up through. The stream leaves the middle row more often, so that there is somewhere for them to stand.
+
 ## 2026.11.9-b21
 
 - **Dash-Bored: Contraption's tin toy skin looks like printed tin.** It is bright flat paint with a heavy black outline on a turquoise ground with dots, where it was muted colours on cream and looked much like the patent engraving.

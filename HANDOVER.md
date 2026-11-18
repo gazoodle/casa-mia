@@ -351,8 +351,11 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
     the dumb waiter's return, which forks and wanders the empty places (`wander`; a
     tunnel may have several ways, taken in turn, `flow.ts` `beats`). Turns are taken by `tile.ts` `dealt`, in the flow and
     in the tiles alike. Seen on the harness in WebKit (13 and 19 devices) and put on the
-    test VM; not seen on the owner's house or the iPad. What he asked for next, in order,
-    is in BACKLOG.
+    test VM; not seen on the owner's house or the iPad. A device may stand upright where the stream goes
+    down or up two rows (2026.11.9-b22: `light.ts` `UPRIGHT`, `devices.ts`; the upright
+    light drives have not been looked at). `shows.ts` (b22) has the poop the bot shovels to a compost
+    bin and the gantry's tongs: they draw, and never touch the flow. What is left is in
+    BACKLOG.
   - The page keeps one `Dev` for each device and changes it in place (`_told`), so a tile
     holds its own. The machine is built once for a survey, never for a state.
   - **My choices, to be told to the owner:** the room is the area with "kitchen" in its

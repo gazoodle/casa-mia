@@ -67,6 +67,12 @@ test("a room is not a conveyor belt: it climbs, drops, fans out and has wings ei
   assert.ok(way.some((s) => s.flip && s.tile.device) && way.some((s) => !s.flip && s.tile.device), "a wing each way");
 });
 
+test("machinery on the y-axis: a device stands upright where the stream goes down or up past it, of both kinds", () => {
+  const upright = ROOMS.flatMap((devices) => route("kitchen", devices).way.filter((s) => s.tile.device && /^(TB|BT)$/.test(s.tile.io)));
+  assert.ok(upright.some((s) => s.tile.io === "TB") && upright.some((s) => s.tile.io === "BT"), "one going down and one going up");
+  assert.ok(upright.some((s) => s.tile.device!.startsWith("light.")) && upright.some((s) => !s.tile.device!.startsWith("light.")), "a light and a crate");
+});
+
 test("the machine is clean: run for 200 periods, every way has one duck a period and none is made or lost", () => {
   for (const devices of ROOMS) {
     const layout = route("kitchen", devices), { io, next, up, down } = links(layout);
@@ -135,8 +141,8 @@ test("tubes keep apart: two that run alongside are a tube's width apart, or are 
         for (const b of other.ways.flatMap((w) => legs(w.path))) {
           if (Math.hypot(a[1][0] - a[0][0], a[1][1] - a[0][1]) < 1) continue;
           const close = lie(a, b).beside;
-          // Two bound for the same hole come together under it, and that is all.
-          if (close > 1 && t.to !== other.to) beside += close;
+          // Two bound for the same hole come together by it, two from the same hole leave it together, and that is all.
+          if (close > 1 && t.to !== other.to && t.from !== other.from) beside += close;
           pairs++;
         }
     }));

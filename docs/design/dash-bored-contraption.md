@@ -343,6 +343,40 @@ centre and feed both left and right".
   - "The family switcher should probably use blue-print as its style guide for the
     actual image." Contraption's picture in the choice of family (`shell.ts`) is drawn
     as the blueprint skin is.
+- **Machinery on the y-axis (2026.11.9-b22).** The owner, 2026-11-18: "all machinery is
+  either left-right or right-left, but there is no reason to not have top-bottom or
+  bottom-top". This overturns "device tiles go left to right only", which was decided
+  when every turn was a carrier's. Why: with devices only on the level, a room read as
+  rows however much the stream climbed between them.
+  - A device stands upright in the row between, where the stream goes two rows down or
+    up (`layout.ts`). The stream can only do that from the top or bottom row, so one
+    time in three it leaves the middle row instead of fanning out there, and a device
+    stands upright every other time it could.
+  - A light's upright drives are in `light.ts` `UPRIGHT`, drawn for the way gravity
+    points: a paddle wheel for a duck going down, a ladder on rollers for one going up.
+    They turn the same pulley, so the trains and fittings are the same eleven drawings,
+    and the duck goes by in front of the train.
+  - The stand-in crate hangs on ropes (`devices.ts`).
+  - Lights switched together stay level.
+  - Seen in one still on the harness (a crate going down). The two light drives are
+    tested for where the duck is at the edges and have not been looked at.
+- **Freer routing (2026.11.9-b22).** A lane of a fan holds one thing or two, of any
+  kind, and a lane shorter than the longest is made up with carriers (owner: "no need
+  to limit the branches to single items"). Which hole feeds which does not matter to
+  the flow so long as each tile gets its number, so within a band each hole feeds the
+  next one along. I kept it within a band so that tunnels stay short enough to place
+  apart; across bands is one line to change. Tunnels now try up to four times as many
+  ways while they still run alongside another, and may leave a hole upwards. Two from
+  the same hole may leave it together, which the spacing test allows.
+- **The shows (2026.11.9-b22, `shows.ts`).** The header there has what they do, in the
+  owner's words. Neither touches the flow. The tongs only draw a duck somewhere else
+  while it is in its tunnel, for exactly the tunnel's time, which is how the far hole
+  gets its duck on the beat. The poop's bin is at the foot of the bot's pole, as
+  proposed, so it needed no layout work. My choices: the first poop comes after about
+  20 seconds and then every 40 to 70; every third goes down a tunnel; the tongs come
+  about every 30 to 55 seconds; flowers stop at five. Seen in stills: the poop with its
+  flies, and the tongs with a duck. Not seen: the hop over it, the bot's shovel and peg,
+  the bin being filled, the poop in a tube.
 - **Measured** on the harness: 19 devices are 57 tiles in three bands with eight tunnels,
   at 60 frames a second in headless WebKit, and the same with the tubes (13 devices, 38
   tiles). Not measured on the iPad, where the tubes are the new cost: two wide strokes
@@ -352,6 +386,5 @@ centre and feed both left and right".
   looks right in between.
 - **Known:** a tube can pass behind a caption; the long way round can cross itself and
   the other tunnels as much as it likes, and only running alongside is kept down.
-- **Not built, in the order agreed** (BACKLOG has each in the owner's words): machinery on
-  the y-axis; lanes with anything on them and holes that feed any other hole; the poop,
-  the compost bin and the gantry's tongs.
+- **Built since, in the order agreed:** machinery on the y-axis, the freer routing and
+  the shows, all in 2026.11.9-b22 (below).

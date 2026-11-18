@@ -12,14 +12,18 @@ const LIFT = 460, WORK = 1.5; // px a second rising, and seconds at a job
 
 // Its origin is where the wheel meets the floor. The wheel is kept out of the group that
 // is mirrored to turn the bot round (`bot_flip`): mirrored, it turned backwards whenever
-// the bot faced left. The body and the arm lean with the bot, so they are rings too.
+// the bot faced left. The body and the arm lean with the bot, so they are rings too. The
+// peg for its nose, the shovel and what is on it are for one job only (shows.ts), which
+// shows and hides them.
 export const BOT = `<g data-p="bot"><g data-p="bot_lean">
   <g transform="translate(0,-9)"><g data-p="bot_wheel" data-ring="90:18"><circle class="paper" r="9"/><path d="M-9,0 H9 M0,-9 V9"/><circle class="solid" r="1.6"/></g></g>
   <g data-p="bot_flip"><g transform="translate(0,-18) rotate(-90)"><path class="thin" data-p="bot_sc"/></g>
   <g data-p="bot_body" data-ring="-24..24:25"><path class="iron" d="M-9,0 h18 v-18 h-18 z"/><path class="brass" d="M-7,-18 q0,-11 7,-11 q7,0 7,11 z"/>
     <circle class="solid" cx="3" cy="-23" r="1.5"/><path d="M-3,-29 l-3,-5 h12 l-3,5"/>
     <path d="M-9,-12 l-7,6"/><path class="brass" d="M-21,-7 h6 v6 h-6 z"/>
-    <g transform="translate(9,-12)"><g data-p="bot_arm" data-ring="-60..60:41"><path d="M0,0 l11,6 m0,0 l4,-2 m-4,2 l3,4"/></g></g></g>
+    <g transform="translate(9,-12)"><g data-p="bot_arm" data-ring="-60..60:41"><path d="M0,0 l11,6 m0,0 l4,-2 m-4,2 l3,4"/></g></g>
+    <g data-p="bot_peg"><path class="cloth" d="M5,-27 l9,-3 l1,3 l-9,3 z"/></g>
+    <g data-p="bot_shovel"><path d="M16,-8 l16,9"/><path class="iron" d="M30,-3 l11,6 l-4,8 l-11,-6 z"/><g data-p="bot_load"><path class="copper" d="M29,0 q5,-11 10,4 z"/></g></g></g>
   </g></g></g>`;
 
 /** A bot on a sheet. `q` finds its parts; `tick` is one frame of it. */

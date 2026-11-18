@@ -59,15 +59,17 @@ const mangle: Tile = {
   io: "LR", faults: [{ kind: "oil", at: [130, 129] }, { kind: "bolt", at: [90, 215] }],
   still: `<path class="wood" d="M84,40 h12 v170 h-12 z M164,40 h12 v170 h-12 z M70,210 h120 v10 h-120 z"/>
     <path class="wood" d="M0,132 h84 v6 h-84 z M176,132 h84 v6 h-84 z"/>`,
-  live: `${cog(130, 98, 28, 10, "mangle-a")}${cog(130, 160, 28, 10, "mangle-b")}`,
+  // Big and slow, so they are made at 72 angles: at the 24 a small cog has, they were seen to go round in jerks.
+  live: `${cog(130, 98, 28, 10, "mangle-a", "72")}${cog(130, 160, 28, 10, "mangle-b", "72")}`,
   duck({ p }) {
     const back = clamp((p - 0.62) / 0.25);
     const sy = p < 0.62 ? 1 - 0.75 * clamp((p - 0.38) / 0.12) : 1 - 0.75 * (1 - back) * Math.cos(back * 10);
     return { x: 260 * p, y: 130, sy, sx: 1 + (1 - sy) * 0.8 };
   },
   pose(q, { p }) {
-    turn(q("mangle-a"), p * 360);
-    turn(q("mangle-b"), -p * 360);
+    // They draw the duck through: the top one's underside and the bottom one's top both go the duck's way.
+    turn(q("mangle-a"), -p * 360);
+    turn(q("mangle-b"), p * 360);
   },
 };
 

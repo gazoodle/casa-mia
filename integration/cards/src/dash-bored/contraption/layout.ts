@@ -15,11 +15,19 @@
 //   - Along a wing, a device by itself is followed by a climb or a drop to another row:
 //     an escalator, a slide, or a pop up or a fall by way of two carriers. So no two
 //     device tiles touch along the stream, and the gap costs one column.
-//   - Two or more devices in a row fan out: a redirector, a lane for each of two or three
-//     of them (or twice that, two to a lane), and a collector, whose hole is joined to
-//     the redirector's by a tunnel for each duck it has too many.
+//   - Two or more things in a row fan out: a redirector, two or three lanes, and a
+//     collector. A lane holds one device or two, or lights switched together (owner,
+//     2026-11-18: "no need to limit the branches to single items"), and a lane shorter
+//     than the longest is made up with carriers, so that they all meet at the collector.
+//   - A collector has a duck too many for each lane but one, and a redirector as many too
+//     few. A tunnel takes each from a hole to a hole. Which hole feeds which does not
+//     matter to the flow so long as each gets its number, so within a band every hole
+//     feeds the next one along and not its own (owner: a hole may feed any other).
 //   - Lights that are switched together (the same `group`) make one wide tile.
-//   - Device tiles are drawn left to right only, and every turn is a carrier's.
+//   - A device tile is drawn left to right, and every turn is a carrier's. Where the
+//     stream goes up or down two rows and one device by itself comes next, that device
+//     stands in the row between, upright (owner, 2026-11-18: "no reason to not have
+//     top-bottom or bottom-top"), and so the stream goes that way whenever it can.
 // What it gives is a block in its own columns and rows, which the machine places on the
 // sheet. Nothing here says how rooms adjoin: that is to come from Topology
 // (docs/design/topology.md), and the shaft is where a floor above or below would join.
@@ -67,13 +75,13 @@ export function route(id: string, devices: Dev[]): Layout {
     filled += takes(item);
   }
 
-  const way: Step[] = [], joins: [from: number, to: number][] = [], ends: number[][] = [];
+  const way: Step[] = [], joins: [from: number, to: number][][] = [], ends: number[][] = [];
   let picks = hash(id), drives = hash(id);
   // A tile is drawn for a stream going one way: it is mirrored where the wing goes the other.
   const leftward = (tile: Tile) => edges(tile.io).ins.includes("R") || edges(tile.io).outs.includes("L");
-  const made = (item: Dev[]) => {
+  const made = (item: Dev[], upright?: "TB" | "BT") => {
     const n = drives++;
-    return item.length > 1 ? group(item, n) : [item[0].kind === "light" ? light(item[0], n) : standin(item[0])];
+    return item.length > 1 ? group(item, n) : [item[0].kind === "light" ? light(item[0], n, upright) : standin(item[0], upright)];
   };
 
   wings.forEach((wing, k) => {
@@ -88,25 +96,25 @@ export function route(id: string, devices: Dev[]): Layout {
     };
 
     for (let i = 0; i < wing.length; ) {
-      const lone = singles(i);
-      if (!fanned && lone >= 2 && row === 1) {
+      const left = wing.length - i;
+      if (!fanned && left >= 2 && row === 1) {
         // ---- A fan: the middle row straight on, and a lane above it, below it or both.
-        const lanes = Math.min(3, lone), deep = lone >= 2 * lanes && picks++ % 2 ? 2 : 1;
+        const lanes = Math.min(3, left), deep = left >= 2 * lanes && picks++ % 2 ? 2 : 1;
         const rows = lanes === 3 ? [1, 0, 2] : [1, picks++ % 2 ? 0 : 2], sides = rows.map((r) => "RTB"[r === 1 ? 0 : r === 0 ? 1 : 2]).join("");
-        const end = col + 2 * deep, parts = put(col, 1, redirector("L", sides)), meets = put(end, 1, collector(sides.replace("R", "L")));
+        // What each lane holds: its tiles, with a carrier between two things.
+        const loads = rows.map(() => Array.from({ length: deep }, (_, n) => [...(n ? [STRAIGHT[picks++ % 2]] : []), ...made(wing[i++])]).flat());
+        const end = col + 1 + Math.max(...loads.map((load) => load.length)), parts = put(col, 1, redirector("L", sides)), meets = put(end, 1, collector(sides.replace("R", "L")));
         // The collector has a duck too many for every lane but one, and the redirector one too few.
-        for (let spare = 1; spare < lanes; spare++) joins.push([meets, parts]);
+        for (let spare = 1; spare < lanes; spare++) (joins[band] ??= []).push([meets, parts]);
 
-        for (const r of rows) {
+        rows.forEach((r, lane) => {
           if (r !== 1) {
             put(col, r, r ? trampoline : toaster);
             put(end, r, r ? cork : plug);
           }
-          for (let n = 0; n < deep; n++) {
-            put(col + 1 + 2 * n, r, made(wing[i++])[0]);
-            if (n < deep - 1) put(col + 2 + 2 * n, r, STRAIGHT[picks++ % 2]);
-          }
-        }
+          // A lane shorter than the longest is made up with carriers.
+          for (let c = col + 1; c < end; c++) put(c, r, loads[lane][c - col - 1] ?? STRAIGHT[picks++ % 2]);
+        });
         col = end + 1;
         fanned = true;
       } else {
@@ -117,12 +125,19 @@ export function route(id: string, devices: Dev[]): Layout {
       if (i === wing.length || fanned) continue;
 
       // After a device by itself the stream changes row: to the middle one if a fan comes next.
-      const next = singles(i) >= 2 ? 1 : (row + 1 + (picks++ % 2)) % DEEP, up = next < row;
+      // The next device can stand upright in the row between, if the stream is at the top or the bottom. With
+      // more devices to come that is done every other time, or there would be no fans away from the middle row.
+      const more = wing.length - i;
+      const stands = row !== 1 && singles(i) >= 1 && (more === 1 || picks++ % 2 === 0);
+      // Several devices to come are for a fan, on the middle row: but one time in three the stream leaves the
+      // middle row all the same, since only from the top or the bottom can a device stand upright.
+      const fan = more >= 2 && (row !== 1 || picks++ % 3 !== 0);
+      const next = stands ? 2 - row : fan ? 1 : (row + 1 + (picks++ % 2)) % DEEP, up = next < row;
       if (next === row) put(col, row, STRAIGHT[picks++ % 2]);
       else {
         const [first, last] = Math.abs(next - row) > 1 ? (up ? UP : DOWN)[0] : (up ? UP : DOWN)[picks++ % 2];
         put(col, row, first);
-        for (let r = row + Math.sign(next - row); r !== next; r += Math.sign(next - row)) put(col, r, up ? lift : pegs);
+        for (let r = row + Math.sign(next - row); r !== next; r += Math.sign(next - row)) put(col, r, stands ? made(wing[i++], up ? "BT" : "TB")[0] : up ? lift : pegs);
         put(col, next, last);
       }
       [col, row] = [col + 1, next];
@@ -135,7 +150,7 @@ export function route(id: string, devices: Dev[]): Layout {
   const base = shaft((bands - 1) * DEEP + 2, foot), roof = shaft(0, top);
   for (let band = 0; band < bands; band++) {
     const node = shaft(band * DEEP + 1, redirector("B", "R" + (wings[2 * band + 1] ? "L" : "") + "T"));
-    for (const end of ends[band]) joins.push([end, node]);
+    for (const end of ends[band]) (joins[band] ??= []).push([end, node]);
     if (band) for (const row of [band * DEEP - 1, band * DEEP]) shaft(row, lift);
   }
 
@@ -150,12 +165,14 @@ export function route(id: string, devices: Dev[]): Layout {
   const round = wander(pit(way[roof]), pit(way[base]), blank, way[base].col, id);
   const tunnels: Tunnel[] = [{ from: roof, to: base, ways: round, layer: LAYERS - 1 }], there: Leg[] = round.flatMap((w) => legs(w.path));
 
-  const holes = [...new Set(joins.map(([, to]) => to))];
-  joins.forEach(([from, to], i) => {
+  // Within a band, each hole that takes ducks feeds the next hole along that gives them.
+  const fed = joins.flatMap((band) => band.map(([from], n): [number, number] => [from, band[(n + 1) % band.length][1]]));
+  const holes = [...new Set(fed.map(([, to]) => to))];
+  fed.forEach(([from, to], i) => {
     // Tunnels bound for one hole are on one layer, where they may share a tube; two between the same holes share all of it.
     const kin = tunnels.filter((t) => t.to === to), twin = kin.find((t) => t.from === from);
     const path = twin?.ways[0].path ?? placed(pit(way[from]), pit(way[to]), `${id}.${i}`, there, kin.map((t) => t.ways[0].path));
-    tunnels.push({ from, to, ways: [timed(path, kin.length, joins.filter((j) => j[1] === to).length)], layer: holes.indexOf(to) % (LAYERS - 1) });
+    tunnels.push({ from, to, ways: [timed(path, kin.length, fed.filter((j) => j[1] === to).length)], layer: holes.indexOf(to) % (LAYERS - 1) });
     there.push(...legs(path));
   });
   return { way, tunnels };

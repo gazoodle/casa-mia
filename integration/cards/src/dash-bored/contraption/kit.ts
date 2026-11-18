@@ -59,13 +59,13 @@ export const esc = (s: string) => s.replace(/[&<>"]/g, (ch) => `&#${ch.charCodeA
 
 /** A cog of `n` teeth, turned as the part `name`. Its hub turns with it: everything in a
  * tile's moving layer has to be inside a part, or it is not drawn. */
-export function cog(x: number, y: number, r: number, n: number, name: string) {
+export function cog(x: number, y: number, r: number, n: number, name: string, ring = "24") {
   let teeth = "";
   for (let i = 0; i < n; i++) {
     const a = (i / n) * 2 * Math.PI, c = Math.cos(a), s = Math.sin(a);
     teeth += `M${(c * r).toFixed(1)},${(s * r).toFixed(1)} L${(c * (r + 3.5)).toFixed(1)},${(s * (r + 3.5)).toFixed(1)} `;
   }
-  return `<g transform="translate(${x},${y})"><g data-p="${name}" data-ring="24"><circle class="fill" r="${r}"/>
+  return `<g transform="translate(${x},${y})"><g data-p="${name}" data-ring="${ring}"><circle class="fill" r="${r}"/>
     <path d="${teeth}M0,0 L${r - 3},0"/><circle class="solid" r="1.8"/></g></g>`;
 }
 

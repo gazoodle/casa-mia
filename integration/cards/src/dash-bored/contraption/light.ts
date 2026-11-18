@@ -10,8 +10,14 @@
 // Every part keeps to its own ground, so any drive goes with any train and any fitting:
 // the drive is on the duck's way at the left and turns the pulley at 70,196; the train
 // runs along the bottom from there to the dynamo at 202,196; the fitting is top right,
-// fed by the wire up the right-hand wall. A light's tile always goes left to right; the
-// page mirrors it where the route runs the other way.
+// fed by the wire up the right-hand wall. A light's tile goes left to right, and the page
+// mirrors it where the route runs the other way.
+//
+// A light can stand in an upright part of the stream too, with the duck coming in at the
+// top or the bottom (owner, 2026-11-18: "machinery that functions on the y-axis"). It
+// then has a drive of its own, drawn for the way gravity points (`UPRIGHT`): a falling
+// duck turns a paddle wheel, and a climbing one works a ladder that runs down under it.
+// The train and the fitting are the same ones, and the duck goes by in front of them.
 import { clamp, cog, draw, esc, hash, move, pick, show, toward, turn, type Part } from "./kit.ts";
 import { between, caption, lamp, track, wheel, type Dev, type Tile } from "./tile.ts";
 
@@ -56,6 +62,32 @@ export const DRIVES: Record<string, Drive> = {
       <path class="thin" d="M-46,0 H46 M0,-46 V46 M-32,-32 L32,32 M-32,32 L32,-32"/><circle class="solid" r="3"/>`, "45:9"),
     pose(q, s) {
       turn(q("tw"), -s.spin * 0.5);
+    },
+  },
+};
+
+// ---- Drives for a duck going down, and for one going up. Both turn the same pulley.
+const RUNGS = [0, 1, 2, 3];
+export const UPRIGHT: Record<string, Drive> = {
+  // A paddle wheel beside the way down: the duck comes down on its paddles and is held up by them while it turns.
+  TB: {
+    points: [[130, 0], [126, 92], [130, 260]], at: 1, hop: (t) => Math.abs(Math.sin(t * 16)) * 9,
+    still: `<path d="M84,112 L62,172 M84,112 L106,172 M52,172 h64"/><path class="rope" d="M77,116 L62,190 M91,118 L79,192"/><path class="thin" d="M118,0 V40 M142,0 V40"/>`,
+    live: wheel(84, 112, "pw", `<circle class="thin" r="30"/><path d="M-44,0 H44 M0,-44 V44 M-31,-31 L31,31 M-31,31 L31,-31"/>
+      <path class="wood" d="M38,-6 h8 v12 h-8 z M-46,-6 h8 v12 h-8 z M-6,38 h12 v8 h-12 z M-6,-46 h12 v8 h-12 z"/><circle class="solid" r="3"/>`, "90:18"),
+    pose(q, s) {
+      turn(q("pw"), s.spin * 0.5);
+    },
+  },
+  // A ladder on two rollers beside the way up: it runs down as the duck climbs it, so the duck stays where it is.
+  BT: {
+    points: [[130, 260], [104, 104], [130, 0]], at: 1, hop: (t) => Math.abs(Math.sin(t * 14)) * 6,
+    still: `<path d="M88,52 V166 M120,52 V166"/><path class="rope" d="M97,168 L62,190 M110,170 L79,192"/><path class="thin" d="M118,220 V260 M142,220 V260"/>`,
+    live: `${cog(104, 52, 9, 6, "l1")}${cog(104, 166, 9, 6, "l2")}${RUNGS.map((k) => `<g data-p="rung${k}"><path class="wood" d="M-16,-2 h32 v4 h-32 z"/></g>`).join("")}`,
+    pose(q, s) {
+      turn(q("l1"), s.spin);
+      turn(q("l2"), s.spin);
+      for (const k of RUNGS) move(q(`rung${k}`), 104, 62 + ((((s.spin / 400 + k / RUNGS.length) % 1) + 1) % 1) * 96);
     },
   },
 };
@@ -157,9 +189,10 @@ export function step(s: Works, working: boolean, on: boolean, dt: number, t: num
 }
 
 /** The tile for the light `d`. `n` chooses the drive, and the layout counts it up along
- * the route, so that two lights next to each other never have the same one. */
-export function light(d: Dev, n: number): Tile {
-  const drive = Object.values(DRIVES)[n % 3], train = Object.values(TRAINS)[hash(d.id) % 3], fit = fitting(d), s = works();
+ * the route, so that two lights next to each other never have the same one. With
+ * `upright` it stands where the stream goes down ("TB") or up ("BT"). */
+export function light(d: Dev, n: number, upright?: "TB" | "BT"): Tile {
+  const drive = upright ? UPRIGHT[upright] : Object.values(DRIVES)[n % 3], train = Object.values(TRAINS)[hash(d.id) % 3], fit = fitting(d), s = works();
   const until = () => 0.25 + 0.5 * (d.level / 100), idle = stroll(drive);
   let worked = idle, level = -1;
   // A light whose level can be set has a meter that shows it.
@@ -168,14 +201,14 @@ export function light(d: Dev, n: number): Tile {
     : { still: "", live: "" };
 
   return {
-    device: d.id, io: "LR",
+    device: d.id, io: upright ?? "LR",
     // The pulley wants oil, the dynamo's bed works loose, and a belt drive's belt frays.
     faults: [{ kind: "oil", at: [70, 196] }, { kind: "bolt", at: [184, 220] },
       ...(drive === DRIVES.belt ? [{ kind: "cord" as const, loop: [[56, 131], [144, 131], [144, 153], [56, 153]] as [number, number][], run: () => s.spin * 0.1745 }] : [])],
-    still: `<path class="wood" d="M0,132 h44 v6 h-44 z M156,132 h104 v6 h-104 z"/><path d="M14,226 H250"/>
+    still: `${upright ? `<path d="M14,226 H112 M148,226 H250"/>` : `<path class="wood" d="M0,132 h44 v6 h-44 z M156,132 h104 v6 h-104 z"/><path d="M14,226 H250"/>`}
       <rect class="copper" x="180" y="178" width="44" height="36" rx="6"/><path class="thin" d="M188,178 v36 M196,178 v36 M208,178 v36 M216,178 v36"/>
       <path class="iron" d="M176,214 h52 v12 h-52 z"/><path class="thin" d="M224,196 H246 V14 H${fit.hang}"/>
-      <circle class="paper" cx="246" cy="160" r="3"/><circle class="paper" cx="246" cy="110" r="3"/>${drive.still}${train.still}${fit.still}${meter.still}${caption(d, 92, 30)}`,
+      <circle class="paper" cx="246" cy="160" r="3"/><circle class="paper" cx="246" cy="110" r="3"/>${drive.still}${train.still}${fit.still}${meter.still}${upright ? caption(d, 62, 242) : caption(d, 92, 30)}`,
     // A colour light glows in its colour (`data-glow`: the page sets it again when the colour changes).
     live: `<g class="shine" data-p="glow" data-glow="${esc(d.id)}" style="${d.colour ? `--lit:${d.colour}` : ""}">${fit.glow}</g>${cog(70, 196, 10, 6, "a")}${drive.live}${train.live}
       ${cog(202, 196, 8, 8, "dyn")}<path class="spark" data-p="spark" d="M202,160 l3,6 l6,-2 l-4,5 l4,5 l-6,-2 l-3,6 l-3,-6 l-6,2 l4,-5 l-4,-5 l6,2 z"/>${meter.live}`,

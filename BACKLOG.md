@@ -354,9 +354,13 @@ the Gazette's own work is parked below it.
       through the house, and a place for scenes and guarded devices.
     - **Asked by the owner on 2026-11-18 after seeing 2026.11.9-b19 on the test VM.** Built
       in 2026.11.9-b20: the network of loops, merge in turn, the roundabout, the dumb
-      waiter in the centre, the layers underground and the toaster's hose. **Still to
-      build, in this order:** machinery on the y-axis; lanes with anything on them and
-      holes that feed any other hole; the poop, the compost bin and the tongs. All of it
+      waiter in the centre, the layers underground and the toaster's hose. Machinery on
+      the y-axis was built in 2026.11.9-b22 (the two upright light drives are to be
+      looked at). Lanes with
+      anything on them, holes that feed another's, the poop, the compost bin and the
+      tongs were built in b22 too. **Left of them:** a hole feeds another only within
+      its own band; and most of the shows have not been watched (the brief lists
+      which). All of it
       as he asked for it:
       - *A network of loops, engineered to be clean.* The main stream is a loop again,
         closed by a dumb waiter up the side ("I like the normal return line on the
@@ -393,6 +397,18 @@ the Gazette's own work is parked below it.
         layout algorithms and clash detection"). Tunnels cross freely, each on a layer.
       - *The toaster:* "the duck ought to come out sweating and then get a quick cooldown
         from a hose spurt nearby". One tile's drawing, no change to the engine.
+      - *Machines for the other kinds of device* (owner, 2026-11-18, asked whether more
+        is planned "for other domains, e.g. say we have a sauna heater and thermostat
+        control", and wanted it on this list; nothing is scheduled). Everything but a
+        light is a crate today. A kind keeps the lights' rules: the duck is the engine,
+        on is the clutch being in, a level is how long the duck works. Proposed for a
+        heater with a thermostat, as one tile: heating, the duck works a bellows on a
+        stove; at temperature, it ladles water on the stones and walks out sweating;
+        off, a cold stove; a thermometer on the wall with the mercury at the room's
+        temperature and a marker at the target. Open: how any level is set (one design
+        for every kind), what a press on a heater does (proposed: Home Assistant's own
+        dialog, not a switch), and telling a sauna from a room thermostat (proposed: by
+        its name, as a light's fitting is).
       - *Follow a duck or the bot* (owner, 2026-11-18): "selecting a duck or the bot and
         then if we're zoomed, the selected sprite stays kind of centred, not exactly,
         but enough so that the picture pans around the view following the path of the

@@ -1109,6 +1109,8 @@ that turns a dynamo. The light being on is its clutch being in, so a tap on the 
 throws the clutch and switches the light. A dimmable light keeps its duck at work for
 longer the brighter it is, and has a voltmeter. A light with a colour glows in it. Lights
 in a Home Assistant light group are one machine with a shared shaft and a clutch for each.
+Where the stream goes down or up past a light, the light stands upright: a duck going
+down turns a paddle wheel, and one going up climbs a ladder that runs down under it.
 
 A device that is not a light is a packing crate for now, with the kind of thing written
 on it. Its flag is up and its lamp is lit while it is on. A tap on a lock, a garage door,
@@ -1119,6 +1121,10 @@ when, and its ducks go through a tube so that the rest of the machine keeps runn
 it answers again the sign says so, and the sheet stays until the bot has pulled it off.
 If the page loses its connection the ducks go to sleep, the sheet is dimmed and a notice
 says since when.
+
+Now and then a duck leaves a poop, which the ducks behind hop over until the bot has
+shovelled it into the compost bin at the foot of its pole. Tongs on a rail along the top
+sometimes pull a duck out of a hole and carry it to the hole it was going to.
 
 The buttons at the top choose a skin: patent engraving, blueprint or tin toy. The slider
 sets how big a tile is drawn. A sheet wider than the screen is scrolled sideways.

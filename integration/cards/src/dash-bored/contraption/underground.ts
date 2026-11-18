@@ -25,7 +25,7 @@ export type Leg = [Point, Point];
 export type Way = { path: Point[]; periods: number; lead: number };
 export const LAYERS = 3;
 export const GAP = 40; // how far apart two tubes that run alongside are to keep, middle to middle
-const TRIES = 48;
+const TRIES = 48, CLOSE = 300; // how many ways are tried for a tunnel, and what running alongside another costs one
 
 /** From one point to another by two level or upright runs and two slanting ones, in an
  * order and at lengths that are the tunnel's own (`seed`). The first point is not given back. */
@@ -48,8 +48,11 @@ function runs(start: Point, end: Point, seed: string): Point[] {
   return way.slice(1);
 }
 
-/** The first bend of a tunnel under a hole: straight below it or off to one side on a slant, and `k` says which and how deep. */
-const under = ([x, y]: Point, k: number): Point => [x + ((k % 3) - 1) * (34 + 12 * (k % 8)), y + 34 + 12 * (k % 8)];
+/** The first bend of a tunnel by a hole: below it for the most part, sometimes above, straight or off to one side on a slant. `k` says which and how far. */
+const under = ([x, y]: Point, k: number): Point => {
+  const far = 34 + 12 * (k % 8), side = (k % 3) - 1, up = Math.floor(k / 24) % 3 === 0 ? -1 : 1;
+  return [x + side * far, y + up * far];
+};
 
 /** A tunnel's way from one hole to another, in the sheet's units: it drops from the first and comes up under the second. */
 export function burrow(from: Point, to: Point, seed: string): Point[] {
@@ -85,7 +88,7 @@ export function crowds(path: Point[], there: Leg[]) {
     if (far(leg) < 1) continue;
     for (const other of there) {
       const { beside, cross } = lie(leg, other);
-      score += (beside ? 300 + 4 * beside : 0) + (cross ? 20 : 0);
+      score += (beside ? CLOSE + 4 * beside : 0) + (cross ? 20 : 0);
     }
   }
   return score;
@@ -95,11 +98,8 @@ export function crowds(path: Point[], there: Leg[]) {
  * there. `kin` are the ways of tunnels bound for the same hole: this one may join one of
  * them at a bend and share the rest of its way. */
 export function placed(from: Point, to: Point, seed: string, there: Leg[], kin: Point[][]): Point[] {
-  // What is tried: [the way, how much of it is its own, counted from the start].
-  const tries: [Point[], number][] = Array.from({ length: TRIES }, (_, k) => {
-    const path = burrow(from, to, `${seed}.${k}`);
-    return [path, path.length];
-  });
+  // What is tried: [the way, how much of it is its own, counted from the start]. First the joins.
+  const tries: [Point[], number][] = [];
   for (const other of kin)
     for (let bend = 2; bend < other.length - 1; bend++)
       for (let k = 0; k < 3; k++) {
@@ -107,10 +107,16 @@ export function placed(from: Point, to: Point, seed: string, there: Leg[], kin: 
         tries.push([[...own, ...other.slice(bend + 1)], own.length]);
       }
 
-  let best = tries[0][0], least = Infinity;
-  for (const [path, own] of tries) {
+  let best: Point[] = [], least = Infinity;
+  const tried = ([path, own]: [Point[], number]) => {
     const score = crowds(path.slice(0, own), there);
     if (score < least) [best, least] = [path, score];
+  };
+  tries.forEach(tried);
+  // Then ways of its own: more of them, up to four times as many, while the best yet still runs alongside another.
+  for (let k = 0; k < TRIES * 4 && (k < TRIES || least >= CLOSE); k++) {
+    const path = burrow(from, to, `${seed}.${k}`);
+    tried([path, path.length]);
   }
   return best;
 }

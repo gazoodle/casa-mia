@@ -18,6 +18,7 @@ import { advance, begin, type Duck as Flow, type Net } from "./flow.ts";
 import { links, type Layout } from "./layout.ts";
 import type { Skin } from "./skins.ts";
 import { atlas, measure, rebake, refresh, stills } from "./sprites.ts";
+import { SHOWS, shows } from "./shows.ts";
 import { SAME, clear, pieces, place, put, tube, type Pen } from "./stage.ts";
 import { EDGE, S, broken, type At, type Dev, type Tile } from "./tile.ts";
 import { LAYERS, legs, within, type Way } from "./underground.ts";
@@ -51,7 +52,7 @@ export type Cell = {
 /** A duck as it is drawn: where the network has it (`at`), where it was drawn last, which way it faces and how big it is. */
 type Duck = { at: Flow; x: number; y: number; facing: number; size: number; body: Part; ghost: Part };
 /** A tunnel as it is drawn: its ways, where they are on the sheet. */
-type Burrow = { ways: Way[]; layer: number };
+type Burrow = { from: number; to: number; ways: Way[]; layer: number };
 
 const mode = (c: Cell) => (c.d ? (c.tile.mode ? c.tile.mode() : c.d.on) : false);
 /** A part of a drawing by its name. A name nothing has is a mistake in a tile. */
@@ -79,6 +80,7 @@ export class Machine {
   private extras: Part[];
   private bot: ReturnType<typeof bot>;
   private loose: (dt: number, now: number) => void;
+  private shows: ReturnType<typeof shows>;
   private queue: Promise<unknown> = Promise.resolve();
   private scale = 1;
   private skin!: Skin;
@@ -106,7 +108,7 @@ export class Machine {
     }));
     this.net = { nodes: way.map((_, i) => ({ ins: io[i].ins.length, next: next[i], up: up[i], down: down[i] })), tunnels: layout.tunnels };
     // The layout is a block in its own columns and rows: here it is put on the sheet.
-    this.burrows = layout.tunnels.map(({ ways, layer }) => ({ layer, ways: ways.map((w) => ({ ...w, path: w.path.map(([x, y]): [number, number] => [x + X0, y - top * S]) })) }));
+    this.burrows = layout.tunnels.map(({ from, to, ways, layer }) => ({ from, to, layer, ways: ways.map((w) => ({ ...w, path: w.path.map(([x, y]): [number, number] => [x + X0, y - top * S]) })) }));
     // A run that several ways share is one tube, and is drawn once.
     this.tubes = Array.from({ length: LAYERS }, (_, layer) => {
       const drawn = new Set<string>();
@@ -134,7 +136,7 @@ export class Machine {
     const covers = cells.map((c, i) => (c.d ? broken(c.d, EDGE[io[i].ins[0]], EDGE[io[i].outs[0]]) : undefined));
     const wrong = faults(cells);
     bench.innerHTML = cells.map((c, i) => `<g data-cell="${i}"><g data-still>${c.tile.still ?? ""}</g><g data-live>${c.tile.live ?? ""}</g><g data-cover>${covers[i]?.art ?? ""}</g></g>`).join("")
-      + `<g data-extra="duck">${duck("")}</g><g data-extra="hat">${duck(HAT)}</g><g data-extra="ghost">${GHOST}</g><g data-extra="faults">${wrong.art}</g><g data-extra="bot">${BOT}</g>
+      + `<g data-extra="duck">${duck("")}</g><g data-extra="hat">${duck(HAT)}</g><g data-extra="ghost">${GHOST}</g><g data-extra="faults">${wrong.art}</g><g data-extra="bot">${BOT}</g><g data-extra="shows">${SHOWS}</g>
         <g data-extra="words"><text data-p="zz" class="small said" x="8" y="-34">z z z</text><text data-p="honk" class="said" text-anchor="middle">HONK</text></g>
         <g data-margin="left"><path d="M${POLE},0 V${high}"/><text class="title" x="44" y="${high / 2}" transform="rotate(-90 44 ${high / 2})" text-anchor="middle">Fig. 3. ${esc(title)}</text></g>
         <g data-margin="right"><text data-note x="${wide - 40}" y="${high / 2}" transform="rotate(90 ${wide - 40} ${high / 2})" text-anchor="middle"></text></g>`;
@@ -158,14 +160,15 @@ export class Machine {
     const plain = measure(group('extra="duck"')).tops[0], hatted = measure(group('extra="hat"')).tops[0], ghost = measure(group('extra="ghost"')).tops[0];
     // The ducks there are now are all there will ever be: none is made and none is lost (flow.ts).
     this.ducks = begin(this.net).map((at) => ({ at, x: 0, y: 0, facing: 1, size: 0.9 + (hash(`size${at.id}`) % 21) / 100, body: { ...(at.id % HATTED === 3 ? hatted : plain) }, ghost: { ...ghost } }));
-    const words = measure(group('extra="words"')), others = measure(group('extra="faults"')), rider = measure(group('extra="bot"'));
+    const words = measure(group('extra="words"')), others = measure(group('extra="faults"')), rider = measure(group('extra="bot"')), acts = measure(group('extra="shows"'));
     this.zz = words.named.get("zz")!;
     this.honk = words.named.get("honk")!;
-    this.extras = [...others.tops, ...rider.tops];
+    this.extras = [...others.tops, ...acts.tops, ...rider.tops];
 
     // The bot rides along the foot of each row, and changes rows by the pole in the margin.
     this.bot = bot(finder(rider.named, "the bot"), { speed: 420, lo: X0 + 20, hi: wide - X0 - 20, floor: high - 4, pole: POLE });
     this.loose = wrong.start(finder(others.named, "the faults"), this.bot.ask);
+    this.shows = shows(finder(acts.named, "the shows"), finder(rider.named, "the bot"), { cells, burrows: this.burrows, ducks: this.ducks, ask: this.bot.ask, period, wide, high, pole: POLE, left: X0 });
 
     this.margins = [{ markup: "", box: [0, 0, X0, high], from: group('margin="left"') }, { markup: "", box: [wide - X0, 0, X0, high], from: group('margin="right"') }];
     this.margins.forEach(refresh);
@@ -285,7 +288,7 @@ export class Machine {
       if (k.at.tunnel < 0) continue;
       // It may be waiting out of sight in a hole, for the beat it is to come up on.
       const b = this.burrows[k.at.tunnel], at = within(b.ways[k.at.way], k.at.age + p);
-      if (!at) continue;
+      if (!at || this.shows.carried(k)) continue;
       const [x, y] = at, size = k.size * SMALL;
       if (Math.abs(x - k.x) > 0.4) k.facing = Math.sign(x - k.x);
       Object.assign(k, { x, y });
@@ -312,7 +315,7 @@ export class Machine {
       if (!c.seen) continue;
       const at = c.tubed ? c.cover!.through(c.p) : c.tile.duck({ p: c.p, on: c.on, dt: step, now: now * c.rate + c.lag, from: k.at.from, to: k.at.to, turn: this.turn });
       // A mirrored tile's duck is mirrored with it; the tube is not, being drawn for the edges.
-      const over = c.flip && !c.tubed, x = c.x + (over ? S - at.x : at.x), y = c.y + at.y, big = k.size * (k === this.goose ? 1.5 : 1);
+      const over = c.flip && !c.tubed, x = c.x + (over ? S - at.x : at.x), y = c.y + at.y - (c.tubed ? 0 : this.shows.hop(c, c.x + (over ? S - at.x : at.x))), big = k.size * (k === this.goose ? 1.5 : 1);
       if (Math.abs(x - k.x) > 0.4) k.facing = Math.sign(x - k.x);
       Object.assign(k, { x, y });
       if (at.o === 0) continue;
@@ -343,6 +346,15 @@ export class Machine {
 
     this.loose(step, now);
     this.bot.tick(step, now);
+    this.shows.tick(step, now, p);
+    // A duck the tongs have is drawn hanging from them, and not in its tunnel.
+    for (const k of this.ducks) {
+      const hung = this.shows.carried(k);
+      if (!hung) continue;
+      Object.assign(k, { x: hung[0], y: hung[1] });
+      Object.assign(k.body, { x: hung[0], y: hung[1], deg: 0, sx: k.facing * k.size, sy: k.size });
+      place(pen, k.body, SAME);
+    }
     for (const part of this.extras) place(pen, part, SAME);
   }
 
