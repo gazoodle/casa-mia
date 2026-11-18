@@ -2,9 +2,10 @@
 // this browser last chose on the Console: one instrument (an entity's control), one room's
 // chassis, and Sensor Watch's warning lamps. Each is the Console (host.ts) without its
 // switch, telling its era's element which view to draw (panel.ts). Their editor is
-// Home Assistant's ha-form.
-import { LitElement, html, nothing } from "lit";
-import { fire, type Hass, haForm } from "../../ha.ts";
+// Home Assistant's ha-form (editor.ts).
+import type { Hass } from "../../ha.ts";
+import { editor as form } from "../editor.ts";
+import { roomy } from "../room.ts";
 import { Console, ERAS, type Config } from "./host.ts";
 import type { Config as Told } from "./panel.ts";
 
@@ -73,7 +74,7 @@ export class RoomCard extends Part {
   }
 
   static getStubConfig(hass: Hass) {
-    return { room: Object.keys(hass.areas ?? {})[0] ?? "" };
+    return { room: roomy(hass) };
   }
 
   // The survey keeps that room alone (house.ts `rooms`).
@@ -96,45 +97,6 @@ export class Lamps extends Part {
   }
 }
 
-/** The editor for each of the three, by its schema. */
-export class PartEditor extends LitElement {
-  static properties = { hass: { attribute: false }, _config: { state: true }, _ready: { state: true } };
-  hass?: Hass;
-  _config?: Config;
-  _ready = false;
-  protected schema: object[] = [];
-
-  setConfig(config: Config) {
-    this._config = config;
-  }
-
-  connectedCallback() {
-    super.connectedCallback();
-    haForm().then(() => (this._ready = true));
-  }
-
-  render() {
-    if (!this.hass || !this._config || !this._ready) return nothing;
-    return html`<ha-form
-      .hass=${this.hass}
-      .data=${{ backing: true, ...this._config }}
-      .schema=${this.schema}
-      .computeLabel=${(s: { name: string }) => LABELS[s.name] ?? s.name}
-      .computeHelper=${(s: { name: string }) => HELP[s.name]}
-      @value-changed=${(ev: CustomEvent) => {
-        ev.stopPropagation();
-        // An emptied field is no option at all, and the panel behind an instrument is its
-        // default, so only its absence is written down.
-        const config = Object.fromEntries(Object.entries(ev.detail.value).filter(([k, v]) => v !== undefined && v !== null && v !== "" && !(k === "backing" && v === true))) as Config;
-        this._config = config;
-        fire(this, "config-changed", { config });
-      }}
-    ></ha-form>`;
-  }
-}
-
-/** Each card's editor: the one editor, with that card's schema. */
-export const editor = (card: string) =>
-  class extends PartEditor {
-    protected schema = SCHEMAS[card];
-  };
+/** Each card's editor: the one editor (editor.ts), with that card's schema. The panel
+ * behind an instrument is its default, so only its absence is written down. */
+export const editor = (card: string) => form(SCHEMAS[card], LABELS, HELP, { backing: true });

@@ -25,6 +25,16 @@ export const STYLES = css`
   .scroll { position: relative; overflow-x: auto; overflow-y: hidden; }
   .stage { position: relative; margin: 0 auto; width: calc(var(--b) * var(--w)); height: calc(var(--b) * var(--h)); }
   .stage > canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+  /* A room's card (room.ts): the world cut down to the one room (--rx, --ry, --rw and --rh,
+     in blocks: _cut in digs.ts). It has no map, and its level's stack is as tall as the
+     card, down its right edge, with the tip and the scenes clear of it. */
+  .cut { overflow: hidden; margin: 0 auto; width: calc(var(--b) * var(--rw)); height: calc(var(--b) * var(--rh)); }
+  .cut .stage { margin: calc(var(--b) * var(--ry) * -1) 0 0 calc(var(--b) * var(--rx) * -1); }
+  .alone .map { display: none; }
+  .alone .levels { top: 0; bottom: 0; }
+  .alone .levels button { flex: 1; height: auto; }
+  .alone .tips { right: var(--b); }
+  .alone .hot { left: 0; right: var(--b); translate: none; justify-content: safe center; }
   .dark { pointer-events: none; }
   .at { position: absolute; left: calc(var(--b) * var(--x)); top: calc(var(--b) * var(--y)); width: calc(var(--b) * var(--cw, 1)); height: calc(var(--b) * var(--ch, 1)); }
   .dev { overflow: hidden; }

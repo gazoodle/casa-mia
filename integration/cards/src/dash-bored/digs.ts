@@ -13,7 +13,7 @@ import { Prank } from "./digs/prank.ts";
 import { SHOT, shots } from "./digs/shots.ts";
 import { STYLES } from "./digs/styles.ts";
 import { bg, figure, say, texture } from "./digs/textures.ts";
-import { CHEST, LAMPS, build, hash, shades, type Slot, type World, type Zone } from "./digs/world.ts";
+import { CHEST, LAMPS, build, cutout, hash, shades, type Slot, type World, type Zone } from "./digs/world.ts";
 import { ALERTS, Family, PAGE } from "./family.ts";
 import { AGAIN } from "./fridge.ts";
 import type { Device, House, Kind, Person, Room, Survey } from "./house.ts";
@@ -32,6 +32,7 @@ const LEVELS = 10; // blocks in a level's stack
 const TIGHT = 0.75; // the least a room's name and temperature are shrunk to, to fit over the room
 const BLOCK = 32; // px: a block on a dashboard's card; the page's is fitted to the screen's height
 const [SMALL, BIG] = [16, 64]; // px: the least and the most a block is on the page
+const ROOMY = 48; // px: the most a block is on a room's card, which is fitted to the card's width
 const MAP = 2; // px: a block on the map
 
 // Each kind's block, on and off. A kind not here is a machine.
@@ -84,7 +85,7 @@ export class Digs extends Family {
       const scroll = this.renderRoot.querySelector(".scroll");
       return scroll ? [Math.ceil(scroll.scrollLeft / this._b), Math.floor((scroll.scrollLeft + scroll.clientWidth) / this._b) - 1] : [0, 0];
     },
-    still: () => this._sample || !!this._open || matchMedia("(prefers-reduced-motion: reduce)").matches,
+    still: () => this._sample || this._alone || !!this._open || matchMedia("(prefers-reduced-motion: reduce)").matches,
   });
 
   connectedCallback() {
@@ -106,10 +107,19 @@ export class Digs extends Family {
     this._after(MINUTE - (this._now % MINUTE) + 50, this._tick);
   };
 
+  /** A room's card (room.ts) shows the world cut down to its one room (world.ts `cutout`):
+   * the tip and the room's scenes are over the earth under it. */
+  private get _cut() {
+    return this._alone && this._world ? cutout(this._world) : undefined;
+  }
+
   /** As the page, a block is as big as lets the whole world's height on the screen, and the sky has what is left over. */
   private _fit = () => {
     // In half texels: a block of 50 px would have texels of quite different sizes side by side.
-    const b = this.hasAttribute("panel") && this._world ? clamp(Math.floor(below(this) / this._world.h / 8) * 8, SMALL, BIG) : BLOCK;
+    const cut = this._cut;
+    // A room's card is fitted to its width, less a block for the level's stack down its right edge.
+    const b = cut && this.clientWidth ? clamp(Math.floor(this.clientWidth / (cut.w + 1) / 8) * 8, SMALL, ROOMY)
+      : this.hasAttribute("panel") && this._world ? clamp(Math.floor(below(this) / this._world.h / 8) * 8, SMALL, BIG) : BLOCK;
     if (b !== this._b) this._b = b;
     this._framed();
   };
@@ -121,21 +131,24 @@ export class Digs extends Family {
   /** Sensor Watch's alerts, each a heart lost: all it holds at first, then each as it changes. */
   protected _listen() {
     super._listen();
-    this._follow(ALERTS, "Sensor Watch's alerts", (alerts: Alert[]) => {
-      const held = new Map(this._alerts.map((a) => [a.entity_id, a]));
-      for (const a of alerts) held.set(a.entity_id, a);
-      this._alerts = [...held.values()];
-    });
+    // The hearts are the whole house's health: a room's card has none.
+    if (!this._alone)
+      this._follow(ALERTS, "Sensor Watch's alerts", (alerts: Alert[]) => {
+        const held = new Map(this._alerts.map((a) => [a.entity_id, a]));
+        for (const a of alerts) held.set(a.entity_id, a);
+        this._alerts = [...held.values()];
+      });
   }
 
   /** The world is built once for a survey: the registries changed, not a state. */
   protected _surveyed() {
     if (this._built !== this._survey) {
       this._built = this._survey;
-      this._world = build(this._house!.rooms, !!this._survey?.weather);
+      this._world = build(this._house!.rooms, !this._alone && !!this._survey?.weather);
       this._fit();
     }
-    this._outlook();
+    // The forecast's signs are in the garden, which a room's card does not show.
+    if (!this._alone) this._outlook();
   }
 
   protected _moved(d: Device) {
@@ -288,7 +301,7 @@ export class Digs extends Family {
       // A world wider than the screen is first seen with the first building's wall two fifths of the way across: the garden is a walk to the left.
       const wall = Math.min(...world.zones.map((z) => z.x0)) - 1;
       const scroll = this.renderRoot.querySelector(".scroll")!;
-      if (Number.isFinite(wall)) scroll.scrollLeft = wall * this._b - scroll.clientWidth * 0.4;
+      if (Number.isFinite(wall) && !this._alone) scroll.scrollLeft = wall * this._b - scroll.clientWidth * 0.4;
     }
 
     const g = dark.getContext("2d")!;
@@ -319,6 +332,8 @@ export class Digs extends Family {
   render() {
     const house = this._house, world = this._world;
     if (!house || !world) return nothing;
+    const alone = this._alone, cut = this._cut;
+    if (alone && !cut) return html`<div class="digs"><div class="fault">${this._vacant}</div></div>`;
     const rooms = new Map(house.rooms.map((r) => [r.id, r]));
     const devices = house.rooms.flatMap((r) => r.devices);
     const byId = new Map(devices.map((d) => [d.id, d]));
@@ -328,7 +343,9 @@ export class Digs extends Family {
     const armed = byId.get(this._armed);
     const hurts = this._hurts(devices);
     const hurt = hurts[this._hurt];
-    const latest = house.scenes.reduce((at, s) => Math.max(at, s.at), 0);
+    // Along the bottom: the house's scenes, or on a room's card that room's.
+    const hot = alone ? house.rooms[0].scenes : house.scenes;
+    const latest = hot.reduce((at, s) => Math.max(at, s.at), 0);
     const lived = this._lived(world);
     const open = rooms.get(this._open);
     const throwing = (s: { id: string; name: string }) => this._call({ domain: "scene", service: "turn_on", ids: [s.id] }, s.name);
@@ -362,16 +379,8 @@ export class Digs extends Family {
 
     const tip = this._lost ? `No connection since ${clock(this._lost)}` : armed ? `Hit again to ${AGAIN[armed.kind]}` : hurt ? `${this._hurt + 1}/${hurts.length} ${hurt}` : this._told
       || (sel ? `${sel.room} ${sel.name}: ${said(sel)}` : picked ? `${picked.name}: ${lamps.filter((d) => d.on).length} of ${lamps.length} lights on` : "Press a block to name it, again to switch it");
-    return html`<div class="digs" style="--b:${this._b}px;--w:${world.w};--h:${world.h};--sky:rgb(${colour.join()})">
-      <div class="sky">
-        ${dull ? nothing : html`<div class="orb" style="background-image:${bg(up ? "sun" : "moon")};left:calc((100% - var(--b) * 2) * ${across});top:${85 - Math.sin(Math.PI * across) * 78}%"></div>`}
-        <div class="cloud" style="top:8%"></div><div class="cloud" style="top:18%;animation-delay:-80s"></div>
-        ${sky === "rain" || sky === "snow" ? html`<div class="fall ${sky}" style="background-image:${bg(sky)}"></div>` : nothing}
-      </div>
-      <div class="scroll" @scroll=${this._framed}><div class="stage ${this._prank.shaking ? "shake" : ""}" style="--crack:${bg("crack")}">
-        <canvas class="world" .width=${world.w * 16} .height=${world.h * 16}></canvas>
-        ${world.zones.map((z) => label(z.id, z.name, z.x0, z.y0 - 1, z.x1 - z.x0 + 1))}
-        ${world.plots.map((p) => label(p.id, p.name, p.x0, p.y, p.x1 - p.x0 + 1))}
+    // What stands in the garden: the signpost, the board that says what the house is missing, and the forecast's signs.
+    const garden = () => html`
         ${this.hasAttribute("panel")
           ? html`<button class="at board" style="${place(world.sign.x, world.sign.y, 2)};background-image:${bg("board")}" aria-label="Choose another Dash-Bored" @click=${() => fire(this, CHOOSE)}>${say("Dash")}${say("Bored")}</button>`
           : html`<div class="at board" style="${place(world.sign.x, world.sign.y, 2)};background-image:${bg("board")}">${say("Dash")}${say("Bored")}</div>`}
@@ -385,10 +394,15 @@ export class Digs extends Family {
           const [name, high] = [new Date(day.at).toLocaleDateString("en", { weekday: "short" }), `${Math.round(day.high)}°`];
           return html`<div class="at icon" style="${place(x, y - 1)};background-image:${bg(ICONS[weather(day.sky)])}"></div>
             <div class="at board" role="img" aria-label="${name}: ${day.sky}, ${high}" style="${place(x, y)};background-image:${bg("board")}">${say(name)}${say(high)}</div>`;
-        })}
+        })}`;
+    const stage = html`<div class="stage ${this._prank.shaking ? "shake" : ""}" style="--crack:${bg("crack")}">
+        <canvas class="world" .width=${world.w * 16} .height=${world.h * 16}></canvas>
+        ${world.zones.map((z) => label(z.id, z.name, z.x0, z.y0 - 1, z.x1 - z.x0 + 1))}
+        ${world.plots.map((p) => label(p.id, p.name, p.x0, p.y, p.x1 - p.x0 + 1))}
+        ${alone ? nothing : garden()}
         ${[...world.slots].map(([id, at]) => (byId.has(id) ? this._block(byId.get(id)!, at) : this._crowd(id, at, rooms.get(id.replace(LAMPS, "").replace(CHEST, "")))))}
         ${this._prank.draw()}
-        ${lived.length
+        ${lived.length && !alone
           ? house.people.filter((p) => p.place === "home").map((p) => {
               const { zone, x } = this._stands(p, lived);
               return html`<div class="at who" style="${place(x, zone.y1 - 1, 1, 2)};background-image:${figure(p.name)}">${say(p.name)}</div>`;
@@ -396,9 +410,16 @@ export class Digs extends Family {
           : nothing}
         <canvas class="dark" .width=${world.w} .height=${world.h}></canvas>
         ${sel && world.slots.has(sel.id) ? html`<div class="at tag" style=${place(world.slots.get(sel.id)!.x, world.slots.get(sel.id)!.y, world.slots.get(sel.id)!.w, world.slots.get(sel.id)!.h)}>${say(sel.name)}</div>` : nothing}
-      </div></div>
+      </div>`;
+    return html`<div class="digs ${alone ? "alone" : ""}" style="--b:${this._b}px;--w:${world.w};--h:${world.h};--sky:rgb(${colour.join()})${cut ? `;--rx:${cut.x};--ry:${cut.y};--rw:${cut.w};--rh:${cut.h}` : ""}">
+      <div class="sky">
+        ${dull || alone ? nothing : html`<div class="orb" style="background-image:${bg(up ? "sun" : "moon")};left:calc((100% - var(--b) * 2) * ${across});top:${85 - Math.sin(Math.PI * across) * 78}%"></div>`}
+        ${alone ? nothing : html`<div class="cloud" style="top:8%"></div><div class="cloud" style="top:18%;animation-delay:-80s"></div>`}
+        ${(sky === "rain" || sky === "snow") && !alone ? html`<div class="fall ${sky}" style="background-image:${bg(sky)}"></div>` : nothing}
+      </div>
+      <div class="scroll" @scroll=${this._framed}>${cut ? html`<div class="cut">${stage}</div>` : stage}</div>
       <div class="hud">
-        <button class="bar hearts" aria-label="${hurts.length ? `${hurts.length} wrong: ${hurts.join("; ")}` : "Nothing is wrong"}" @click=${() => {
+        ${alone ? nothing : html`<button class="bar hearts" aria-label="${hurts.length ? `${hurts.length} wrong: ${hurts.join("; ")}` : "Nothing is wrong"}" @click=${() => {
           const next = hurts.length ? (this._hurt + 1) % hurts.length : -1;
           this._point();
           this._hurt = next;
@@ -408,13 +429,13 @@ export class Digs extends Family {
         ${house.kw === undefined
           ? nothing
           : html`<div class="bar power">${Array.from({ length: 10 }, (_, i) => html`<i style="background-image:${bg(i < Math.round(house.kw! / BOLT) ? "bolt" : "bolt0")}"></i>`)}${say(` ${house.kw.toFixed(2)} kW`)}</div>`}
-        <div class="row top"><div class="box">${say(clock(this._now))}</div>${house.outside ? html`<div class="box">${say(`${sky} ${house.outside.temp.toFixed(1)}°`)}</div>` : nothing}</div>
+        <div class="row top"><div class="box">${say(clock(this._now))}</div>${house.outside ? html`<div class="box">${say(`${sky} ${house.outside.temp.toFixed(1)}°`)}</div>` : nothing}</div>`}
         <div class="tips">
           ${this._fault ? html`<div class="fault" role="alert">${this._fault}</div>` : nothing}
           <div class="tip" role="status">${say(tip)}</div>
           <button class="map" hidden aria-label="Map of the house. Press to go there" @click=${this._jump}><canvas .width=${world.w * MAP} .height=${world.h * MAP}></canvas><i></i></button>
         </div>
-        <div class="row hot">${house.scenes.map((s) => html`<button class="box ${latest && s.at === latest ? "sel" : ""}" aria-label="Scene: ${s.name}" @click=${() => throwing(s)}>${say(s.name)}</button>`)}</div>
+        <div class="row hot">${hot.map((s) => html`<button class="box ${latest && s.at === latest ? "sel" : ""}" aria-label="Scene: ${s.name}" @click=${() => throwing(s)}>${say(s.name)}</button>`)}</div>
         ${open ? chest(open, { block: this._block, throw: throwing, shut: () => (this._open = "") }) : nothing}
         ${sel?.dims && !sel.away ? this._levels(sel) : nothing}
       </div>

@@ -90,7 +90,7 @@ export class Contraption extends Family {
     // In the capture phase: a scroll does not bubble, and Home Assistant scrolls a view in a box of its own.
     window.addEventListener("scroll", this._look, { passive: true, capture: true });
     this._raf = requestAnimationFrame(this._frame);
-    this._after(1000, this._count);
+    if (!this._alone) this._after(1000, this._count); // a room's card does not show how it is going
   }
 
   disconnectedCallback() {
@@ -260,7 +260,7 @@ export class Contraption extends Family {
     const notices = [
       this._lost ? `No word from the house since ${clock(this._lost)}. The ducks are asleep, and nothing shown here is current.` : "",
       this._fault,
-      room ? "" : "There is no room with a device in it to make a machine of.",
+      room ? "" : this._alone ? this._vacant : "There is no room with a device in it to make a machine of.",
     ].filter(Boolean);
     const sized = (e: Event) => {
       this._size = Number((e.target as HTMLInputElement).value);
@@ -270,10 +270,12 @@ export class Contraption extends Family {
     return html`<div class="contraption ${this._lost ? "stale" : ""}" data-skin=${skin.id} style=${worn(skin)}>
       <header>
         <h1>${room ? `The ${room.name}, by duck` : "Contraption"}</h1>
-        <p>The ducks go through every device in turn and are its engine. Tap a device to throw its clutch.</p>
-        <label class="size">Tile size <input type="range" min="100" max=${BIG} step="10" .value=${String(this._tile)} @change=${sized} /> <output>${this._size ? `${this._size} px` : "to fit"}</output></label>
-        <output class="rate">${this._rate}</output>
-        ${this._config.style || this._sample ? nothing : html`<div class="skins">${SKINS.map((s) => html`<button aria-pressed=${s.id === skin.id} @click=${() => this._dress(s.id)}>${s.name}</button>`)}</div>`}
+        ${this._alone
+          ? nothing // a room's card (room.ts) has the machine and its name, drawn to fit the card
+          : html`<p>The ducks go through every device in turn and are its engine. Tap a device to throw its clutch.</p>
+              <label class="size">Tile size <input type="range" min="100" max=${BIG} step="10" .value=${String(this._tile)} @change=${sized} /> <output>${this._size ? `${this._size} px` : "to fit"}</output></label>
+              <output class="rate">${this._rate}</output>`}
+        ${this._config.style || this._sample || this._alone ? nothing : html`<div class="skins">${SKINS.map((s) => html`<button aria-pressed=${s.id === skin.id} @click=${() => this._dress(s.id)}>${s.name}</button>`)}</div>`}
       </header>
       ${notices.map((words) => html`<p class="notice" role="status">${words}</p>`)}
       <div class="scroll" @scroll=${this._look}>

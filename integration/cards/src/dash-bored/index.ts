@@ -21,7 +21,11 @@ import { CARD as CONTRAPTION, Contraption } from "./contraption.ts";
 import { CARD as DIGS, Digs } from "./digs.ts";
 import { CARD as FRIDGE, Fridge } from "./fridge.ts";
 import { CARD, Gazette } from "./gazette.ts";
+import { roomCard, roomEditor } from "./room.ts";
 import { PAGE, Shell } from "./shell.ts";
+import { ALMANAC, SEASONAL, SKINS as SKIES } from "./aurora/skins.ts";
+import { SKINS as INKS } from "./contraption/skins.ts";
+import { SKINS as HOUSEHOLDS } from "./fridge/skins.ts";
 
 // The address this file was loaded from carries the version served (?v=).
 const VERSION = new URL(import.meta.url).searchParams.get("v") || "dev";
@@ -41,6 +45,21 @@ define(PAGE, Shell);
 for (const [tag, card] of [[INSTRUMENT, Instrument], [ROOM, RoomCard], [LAMPS, Lamps]] as const) {
   define(tag, card);
   define(`${tag}-editor`, editor(tag));
+}
+// A room's card for each family that has one (room.ts): its element, what the card picker
+// calls it and says of it, and the styles its editor offers. The Console's is among its
+// part cards above, and the Gazette has none.
+const named = (skins: { id: string; name: string }[]): [string, string][] => skins.map((s) => [s.id, s.name]);
+const ROOMS: [whole: string, element: CustomElementConstructor, name: string, says: string, styles?: [string, string][]][] = [
+  [FRIDGE, roomCard(Fridge, `${FRIDGE}-room`), "Fridge", "One room on a piece of the fridge door: its polaroid, a magnet for each of its devices and its scenes as word magnets.", HOUSEHOLDS.map((s) => [s.id, s.label])],
+  [AURORA, roomCard(Aurora, `${AURORA}-room`), "Aurora", "One room in the current web style: a fader or a key for each of its devices, its scenes and its cameras, on glass over a sky that warms as its lights come on.", [...named(SKIES), [ALMANAC, "Almanac"], ...named(SEASONAL)]],
+  [DIGS, roomCard(Digs, `${DIGS}-room`), "Digs", "One room built of square blocks: a block to hit for each of its devices, lit by its lamps, with its scenes along the bottom."],
+  [CONTRAPTION, roomCard(Contraption, `${CONTRAPTION}-room`), "Contraption", "One room as an absurd machine that ducks go through: each duck is the engine of the device it is passing, and a tap on a device throws its clutch.", named(INKS)],
+];
+for (const [whole, element, name, says, styles] of ROOMS) {
+  define(`${whole}-room`, element);
+  define(`${whole}-room-editor`, roomEditor(styles));
+  register(`${whole}-room`, `Casa Mia Dash-Bored ${name} room`, `${says} For a page that is about that room.`);
 }
 register(CARD, "Casa Mia Dash-Bored Gazette", "Your house as a newspaper: what matters most is the headline, and every underlined fact is a switch. Best in a panel view.");
 register(CONSOLE, "Casa Mia Dash-Bored Console", "Your house as a control panel, in the style of a decade, with a switch to choose which. Every decade from the 1950s to the 1990s is built. Best in a panel view.");

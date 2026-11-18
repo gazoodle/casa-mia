@@ -50,7 +50,12 @@ source before relying on it, and replace it.
 | A thermostat's modes and a player's source | no | no | no | yes | no | no |
 | Finding a device by typing | ? | no | no | yes | no | no |
 | The house's own agent's column (ZenOS-AI) | yes | no | no | no | no | no |
+| A card for one room alone | never | yes | yes | yes | yes | yes |
 
+- **A card for one room alone** (2026.11.9-b19; `room.ts`, and the Console's in
+  `console/cards.ts`): the Gazette is not to have one (owner, 2026-11-18). A newspaper is
+  an overview and does not fit a page about one room, and its rooms have their own
+  headings already. It may be given sections once Topology is built (BACKLOG).
 - **Contraption** (first build, 2026.11.9-b18) shows one room's devices and nothing of the
   house round them. Every kind has a tile, but only a light's is its own machine: the rest
   are a stand-in crate. A level is shown (how long the duck is kept at work, a meter, the

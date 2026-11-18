@@ -126,7 +126,7 @@ export const STYLES = css`
     --lit: 0; --hue: 60; transition: scale .6s var(--spring), opacity .3s; }
   @media (hover: hover) { .room:hover, .set:hover { scale: 1.02; } }
   /* The tile glows from a corner in proportion to the light actually on in it. */
-  .room::after, .set::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: var(--lit); transition: opacity .8s;
+  .room::after, .set::after, .lone::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: var(--lit); transition: opacity .8s;
     background: radial-gradient(120% 90% at 100% 0%, oklch(.86 calc(.17 * var(--strength)) var(--hue) / .85), transparent 62%); }
   /* The whole tile is pressed to open its sheet; its round buttons sit over that. */
   .room .open { position: absolute; inset: 0; background: none; border-radius: inherit; }
@@ -248,6 +248,16 @@ export const STYLES = css`
   div.key:active { scale: none; }
   .key.armed { outline: 2px solid oklch(.7 .2 25); outline-offset: -2px; }
   .none { color: var(--soft); }
+
+  /* ---------- one room alone (a room's card, room.ts) ---------- */
+  /* The room's sheet on the card itself, as tall as what is in it. Its faders are shorter
+     than a sheet's, since the card stands among a page's other cards. */
+  .alone { padding: 14px; display: grid; gap: 12px; }
+  .lone { padding: 22px; --lit: 0; --hue: 60; }
+  .lone header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 18px; }
+  .lone .scenes { padding: 0 0 18px; overflow: visible; }
+  .lone .controls { --tall: 190px; }
+  .narrow .lone { padding: 16px; }
 
   .narrow .page { gap: 10px; padding: 12px 12px 84px; }
   .narrow .hero { padding: 18px 20px; }

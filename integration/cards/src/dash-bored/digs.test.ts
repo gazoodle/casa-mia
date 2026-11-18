@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { CHEST, LAMPS, MANY, build, rng, shades } from "./digs/world.ts";
+import { CHEST, LAMPS, MANY, build, cutout, rng, shades } from "./digs/world.ts";
 
 const device = (kind: string, name: string, on = false, extra = {}) => ({ id: `${kind}.${name}`, name, kind, on, dims: false, span: { min: 0, max: 100, step: 1, vote: 10 }, away: false, since: 0, guarded: kind === "lock", room: "", ...extra });
 const room = (id: string, floor: string | undefined, devices: any[]) => ({ id, name: id[0].toUpperCase() + id.slice(1), floor, devices, scenes: [] });
@@ -121,4 +121,25 @@ test("the imp's crate stands where nothing else is, on what is on the screen, an
   // With nothing of the house on the screen it happens somewhere all the same, and a world with no house has its garden.
   assert.ok(plan(world, 900, 950, rng(1)));
   assert.ok(plan(build([]), 0, 10, rng(1))!.holes.length > 0);
+});
+
+test("a room's card is its room and no more: every block of it is inside the cut, indoors or out", () => {
+  for (const r of house()) {
+    const world = build([r]);
+    const cut = cutout(world)!;
+    const spot = world.zones[0] ?? world.plots[0];
+    assert.equal(spot.id, r.id);
+    // Its walls are in the cut, and so is the row its name is on.
+    assert.ok(cut.x < spot.x0 && cut.x + cut.w - 1 > spot.x1, r.id);
+    const named = "y0" in spot ? spot.y0 - 1 : spot.y;
+    assert.ok(named >= cut.y && named < cut.y + cut.h, `${r.id}: its name`);
+    assert.equal(cut.y + cut.h, world.h);
+    for (const d of r.devices) {
+      const at = world.slots.get(d.id)!;
+      assert.ok(at.x >= cut.x && at.x + (at.w ?? 1) <= cut.x + cut.w && at.y >= cut.y && at.y + at.h <= cut.y + cut.h, `${d.id} is cut off`);
+    }
+    // The garden's boards are not: a room's card has none of them.
+    assert.ok(world.notice.x + 3 <= cut.x, r.id);
+  }
+  assert.equal(cutout(build([])), undefined);
 });

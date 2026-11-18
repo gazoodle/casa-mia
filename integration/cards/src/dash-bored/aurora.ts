@@ -130,11 +130,13 @@ export class Aurora extends Controls {
   /** Sensor Watch's alerts: all it holds at first, then each as it changes. */
   protected _listen() {
     super._listen();
-    this._follow(ALERTS, "Sensor Watch's alerts", (alerts: Alert[]) => {
-      const held = new Map(this._alerts.map((a) => [a.entity_id, a]));
-      for (const a of alerts) held.set(a.entity_id, a);
-      this._alerts = [...held.values()];
-    });
+    // Sensor Watch's tile is on the home screen, which a room's card has not.
+    if (!this._alone)
+      this._follow(ALERTS, "Sensor Watch's alerts", (alerts: Alert[]) => {
+        const held = new Map(this._alerts.map((a) => [a.entity_id, a]));
+        for (const a of alerts) held.set(a.entity_id, a);
+        this._alerts = [...held.values()];
+      });
     this._watch();
   }
 
@@ -152,7 +154,7 @@ export class Aurora extends Controls {
    * is first known. */
   protected _surveyed() {
     const id = this._survey?.power;
-    if (!id || this._sample) return;
+    if (!id || this._sample || this._alone) return;
     if (this._traced !== id) {
       this._traced = id;
       this._trace = [];
@@ -311,9 +313,9 @@ export class Aurora extends Controls {
     const tall = this._tall;
     const dress = (dark?: boolean) => `aurora ${dark ? "dark" : ""} ${this._wide < 520 ? "narrow" : ""}`;
     const looks = dress(hass?.themes?.darkMode);
-    if (!hass || !house || !found) return html`<div class=${looks} style="height: ${tall}px"><div class="urgent over">Waiting for Home Assistant…</div></div>`;
+    // A room's card is as tall as what is in it, not a screen.
+    if (!hass || !house || !found) return this._alone ? html`<div class="${looks} alone"><div class="urgent">Waiting for Home Assistant…</div></div>` : html`<div class=${looks} style="height: ${tall}px"><div class="urgent over">Waiting for Home Assistant…</div></div>`;
 
-    const laid = this._lay(found);
     // A screen's cell in px and the gap between two (the screen less its edges and the
     // bar's room, shared out: styles.ts), as its tiles see them, and how much the tiles' contents are enlarged.
     const [edge, gap, foot] = this._wide < 520 ? [12, 10, 84] : [18, 14, 88];
@@ -322,7 +324,6 @@ export class Aurora extends Controls {
       const by = zoom(wide, high);
       return { by, cell: [wide / by, high / by, gap / by] as [number, number, number] };
     };
-    const at = Math.min(this._at, laid.screens.length - 1);
     const now = Date.now();
     const when = new Date(this._now);
     // The skin worn: the one chosen, or for the Almanac the one today calls for (the seasons are the other way round south of the equator).
@@ -414,6 +415,35 @@ export class Aurora extends Controls {
     };
     const open = house.rooms.find((r) => r.id === this._open);
     const urgent = [this._lost ? `No connection to Home Assistant since ${clock(this._lost)}. What is shown is as it was then.` : "", this._fault].filter(Boolean);
+    // What a room's sheet holds under its name: its scenes, its cameras, a control for each device and their settings.
+    const inside = (r: Room) => html`${r.scenes.length ? html`<nav class="scenes" aria-label="${r.name}'s scenes">${r.scenes.map((s) => this._scene(s, s.name))}</nav>` : nothing}
+      ${r.devices.some((d) => shots.has(d.id))
+        ? html`<div class="shots">${r.devices.flatMap((d) => (shots.has(d.id) ? [html`<div class="cam">${frame(shots.get(d.id)!, this._looks)}${extras(d, this._works)}</div>`] : []))}</div>`
+        : nothing}
+      <div class="controls">${r.devices.filter((d) => !shots.has(d.id)).map((d) => this._control(d))}</div>
+      ${settings(r.devices, (d, c, option) => this._call(choosing(d.id, c, option), `${d.room} ${d.name}: ${c.what}`))}
+      ${r.devices.length || r.scenes.length ? nothing : html`<p class="none">Nothing in this room can be worked from here.</p>`}`;
+
+    // A room's card (room.ts): the room's sheet, on the card and always open, over the
+    // sky, which warms with that room's lights. No screens, and no bar to go between them.
+    if (this._alone) {
+      const [only] = house.rooms;
+      const lamps = only?.devices.filter((d) => d.kind === "light" && !d.away) ?? [];
+      const share = glow(lamps);
+      return html`<div class="${dress(skin.dark || hass.themes?.darkMode)} alone" style="--warm: ${share.toFixed(3)}; ${paint(skin)}" @pointermove=${this._shine}>
+        <div class="sky" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+        ${urgent.map((text) => html`<div class="urgent" role="alert">${text}</div>`)}
+        ${only
+          ? html`<section class="lone glass" aria-label=${only.name} style="--hue: ${skin.rooms[0]}; --lit: ${share ? (0.35 + share * 0.65).toFixed(2) : 0}">
+              <header><h2>${only.name}</h2>${only.temp === undefined ? nothing : html`<div class="temp">${only.temp.toFixed(1)}°</div>`}</header>
+              ${inside(only)}
+            </section>`
+          : html`<div class="urgent">${this._vacant}</div>`}
+      </div>`;
+    }
+
+    const laid = this._lay(found);
+    const at = Math.min(this._at, laid.screens.length - 1);
 
     return html`<div class=${dress(skin.dark || hass.themes?.darkMode)} style="height: ${tall}px; --warm: ${glow(lights(house)).toFixed(3)}; ${paint(skin)}" @pointermove=${this._shine}>
       <div class="sky" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
@@ -452,13 +482,7 @@ export class Aurora extends Controls {
         ? html`<dialog class="sheet glass" aria-label=${open.name} @cancel=${(e: Event) => (e.preventDefault(), this._shut())} @click=${(e: MouseEvent) => outside(e) && this._shut()}>
             <header><h2>${open.name}</h2><button class="close" @click=${this._shut}>Done</button></header>
             ${this._fault ? html`<div class="urgent" role="alert">${this._fault}</div>` : nothing}
-            ${open.scenes.length ? html`<nav class="scenes" aria-label="${open.name}'s scenes">${open.scenes.map((s) => this._scene(s, s.name))}</nav>` : nothing}
-            ${open.devices.some((d) => shots.has(d.id))
-              ? html`<div class="shots">${open.devices.flatMap((d) => (shots.has(d.id) ? [html`<div class="cam">${frame(shots.get(d.id)!, this._looks)}${extras(d, this._works)}</div>`] : []))}</div>`
-              : nothing}
-            <div class="controls">${open.devices.filter((d) => !shots.has(d.id)).map((d) => this._control(d))}</div>
-            ${settings(open.devices, (d, c, option) => this._call(choosing(d.id, c, option), `${d.room} ${d.name}: ${c.what}`))}
-            ${open.devices.length || open.scenes.length ? nothing : html`<p class="none">Nothing in this room can be worked from here.</p>`}
+            ${inside(open)}
           </dialog>`
         : nothing}
     </div>`;

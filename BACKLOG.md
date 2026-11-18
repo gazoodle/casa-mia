@@ -2,6 +2,30 @@
 
 Not scheduled. Sections are in order of their latest change; newest ideas first within each. Move an item into the README or code when it is started, and remove it when it is done. The headline ideas are also in the README's "What does the future hold?": keep the two in step.
 
+## Topology (an idea, not started)
+
+The owner's idea, 2026-11-18. The brief is `docs/design/topology.md`: what is agreed, what
+is only proposed, and the questions still open. Agree its contract before any code.
+
+- **Topology, the applet:** buildings and sites above Home Assistant's floors and areas,
+  and connections between areas with an optional direction. Digs is its first consumer;
+  the other Dash-Bored families, Auto Dashboards, House Manual and Gang-O-Gals follow.
+  The name is final (owner, 2026-11-18).
+- **Sections in the Gazette** (owner, 2026-11-18): the papers have no room card, since a
+  newspaper is an overview, but they might be divided into sections once Topology says
+  how the house is divided. Not designed.
+- **Routes between two areas**, when House Manual or a game first needs one.
+- **Layout data** (walls, sizes, positions): later. Only the first-person game needs it.
+- **House Manual** (named by the owner 2026-11-18, not designed): a consumer of Topology's
+  routes. It needs a brief of its own.
+- **Adventure games in Dash-Bored, played in the user's own house** (owner, 2026-11-18),
+  in this order, each in the style of its kind with our own text and drawings:
+  - A text adventure: rooms and exits from Topology, an area's devices as the things in
+    the room, commands that call their actions.
+  - A point-and-click adventure: a screen for each room, which needs directions and a
+    picture of each room.
+  - A first-person walk through the house, which needs the layout data above.
+
 ## Dash-Bored (in development)
 
 Started 2026-11-13 (2026.11.8-b1) with the Gazette. HANDOVER has how it is built; the
@@ -217,7 +241,9 @@ the Gazette's own work is parked below it.
   - **Buildings as a setting** (2026-11-18): which floors, or areas, make up an
     outbuilding, in the Configure dialog beside the order of floors and rooms. Today an
     outbuilding is told by its area's name and only when it is on no floor, so one with
-    a loft cannot be two storeys. It waits for the owner's areas to have floors.
+    a loft cannot be two storeys. It waits for the owner's areas to have floors. If
+    Topology is built (the section above), Digs reads its buildings from there and this
+    setting is not needed.
   - **The owner's house is not yet sorted into floors** (2026-11-18). Digs draws such a
     house as one wrapped building until it is. Sorting it helps every family; setting
     floors from the page was discussed for the Gazette and needs his say, as it writes
@@ -322,9 +348,56 @@ the Gazette's own work is parked below it.
     - **Contraption, the sixth family, what's left** (first build 2026.11.9-b18: the
       renderer, the tiles there were, a stand-in tile, and one room read from Home
       Assistant). From the brief's "What is left to do": left-to-right tiles for the
-      other kinds of device, more carriers (the cutlery and the dumb waiter are drawn in
-      the mock-up and no rule places them), setting a level, a crew of bots, one stream
+      other kinds of device, more plain bends and a better drawing for the
+      redirector and the collector, setting a level, a crew of bots, one stream
       through the house, and a place for scenes and guarded devices.
+    - **Asked by the owner on 2026-11-18 after seeing 2026.11.9-b19 on the test VM, talked
+      through and not built.** He has not yet said to start. In the order proposed:
+      - *A network of loops, engineered to be clean.* The main stream is a loop again,
+        closed by a dumb waiter up the side ("I like the normal return line on the
+        dumb-waiter"), and the two end holes go. Holes stay beside redirectors and
+        collectors, joined underground by "dim dashed" tunnels "with dashed ducks too",
+        made of horizontal, vertical and 45 degree runs. A tunnel is real track: one duck
+        a period, on the beat. A collector's hole may feed any redirector's, so the
+        tunnels cross. The test to write: ducks in equal ducks out at every hole.
+      - *Merge in turn.* The spares "are always colliding at the entry and stuttering at
+        the exits". They are to walk a drawn path from the hole to the tile's entry and
+        pass the arrow one after another. The collector is to be "a little roundabout
+        affair" that carries up to three ducks round: one steps off at the exit, the
+        rest drop into the hole. The redirector's arrow stays as it is.
+      - *Lanes with anything on them:* "no need to limit the branches to single items".
+        Lanes still have to meet at the collector, so a shorter one is made up with
+        carriers.
+      - *Machinery on the y-axis:* device tiles that go top to bottom or bottom to top,
+        drawn anew, since gravity points down (a falling duck turns a paddle wheel; a
+        climbing one works a ladder treadmill). This overturns "device tiles go left to
+        right only" in the brief. A crate first, then two light drives with a train of
+        their own. Lights switched together stay horizontal.
+      - *Lazy tongs on a gantry along the top,* which "whips along and plucks occasional
+        ducks from their collector" and takes them to an entry hole. With real tunnel
+        ducks it must deliver to that tunnel's far hole when the gap arrives, or a
+        redirector is a spare short.
+      - *A poop for the bot to clean* ("the bot needs a shovel and a nose peg"): left by
+        a duck where it stands, hopped over by the ducks behind, one at a time and only
+        in view. Open: into a bucket, or down the nearest hole.
+      - *The bot may chuck it down a tunnel* (owner, later the same day), "but would then
+        have to collect it at the other end", and "ultimately it needs to dispose of it
+        somewhere, a compostor or something". Proposed: a compost bin at the foot of the
+        bot's pole, which needs no layout work.
+      - *Several layers underground* (owner: "so you don't have to have complex network
+        layout algorithms and clash detection"). Tunnels cross freely, each on a layer.
+      - *The toaster:* "the duck ought to come out sweating and then get a quick cooldown
+        from a hose spurt nearby". One tile's drawing, no change to the engine.
+      - *Ready for Topology* (`docs/design/topology.md`): a room's layout is a block the
+        machine places, the loop's closure is one replaceable piece, and no setting of
+        Contraption's own says which rooms adjoin. East and west would be the sheet's
+        sides, up and down the lift and the slide, north and south the tunnels.
+      - *The dumb waiter in the centre* (owner, later still: "no reason why the dumb
+        waiter has to be at the left edge, it could be in the centre and feed both left
+        and right with a director"). Proposed in answer: a central shaft with a
+        redirector at each band sending one duck left, one right and one on up; each
+        wing runs outwards and ends at a hole whose tunnel feeds that redirector. This
+        replaces the left-edge return in the plan, and needs no even number of bands.
     - Owed to the capability table (`tests/test_dash_bored_parity.py` `OWED`): everything
       but a room's devices. People, the weather and forecast, scenes, power, appliances,
       what the house is missing, Sensor Watch's alerts, the cameras' pictures and

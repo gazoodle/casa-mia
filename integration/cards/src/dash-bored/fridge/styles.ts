@@ -16,6 +16,8 @@ export const STYLES = css`
   .defs { position: absolute; }
   button:focus-visible, input:focus-visible { outline: 3px solid #2b6cb0; outline-offset: 3px; }
   .who, .urgent, .notes, .board { position: relative; z-index: 1; }
+  /* A room's card: a piece of the door with one room on it, and no handle to leave room for. */
+  .door.alone { padding: 6px 18px 22px; }
 
   /* The handle, down the door's opening edge. */
   .handle { position: absolute; left: 24px; top: 150px; width: 22px; height: 380px; border-radius: 11px; background: linear-gradient(90deg, #fafafa, #b9bcc0 45%, #7d8186); box-shadow: 4px 6px 10px rgba(0,0,0,.3); }

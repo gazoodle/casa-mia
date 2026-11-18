@@ -71,7 +71,7 @@ export class Family extends LitElement {
   private _picked = false; // in Home Assistant's card picker: see `picked`
   private _sizes?: ResizeObserver; // watches the element's width while it is on the page
 
-  static getStubConfig() {
+  static getStubConfig(_hass?: Hass): object {
     return {};
   }
 
@@ -98,11 +98,22 @@ export class Family extends LitElement {
     return true;
   }
 
+  /** Whether this is a card for one room (room.ts): the family then draws that room and
+   * nothing of the rest of the house, and follows no feed that is about the whole house. */
+  protected get _alone() {
+    return false;
+  }
+
+  /** What a room's card says when it has no room to draw. */
+  protected get _vacant() {
+    return this._config.rooms?.length ? "This room has nothing in it that can be shown here." : "Choose a room in the card's options.";
+  }
+
   getCardSize() {
     return 12;
   }
 
-  getGridOptions() {
+  getGridOptions(): { columns: number | "full"; min_columns?: number } {
     return { columns: "full" };
   }
 

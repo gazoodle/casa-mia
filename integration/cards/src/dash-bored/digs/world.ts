@@ -218,6 +218,14 @@ export function build(rooms: Room[], forecast = false): World {
   return world;
 }
 
+/** A world of one room cut down to that room, in blocks: its walls, the roof that has its
+ * name on, and the earth under it. A place out of doors is cut the same way round its plot.
+ * Nothing if the world has no room. For a room's card (room.ts). */
+export function cutout(world: World): { x: number; y: number; w: number; h: number } | undefined {
+  const spot = world.zones[0] ?? world.plots[0];
+  return spot && { x: spot.x0 - 1, y: world.ground - 4, w: spot.x1 - spot.x0 + 3, h: world.h - world.ground + 4 };
+}
+
 /** How dark each block is, from 0 (lit) to 0.8, by row; -1 where there is no block and the
  * open sky shows. `day` is how much daylight there is, from 0 to 1. A lamp lights its own
  * room and the building's walls round it, never the room next door; a dimmed lamp is

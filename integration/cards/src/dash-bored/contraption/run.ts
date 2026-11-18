@@ -1,28 +1,31 @@
-// A room's machine, put together and run: the way round as tiles on a sheet, a duck to
-// each tile, the cover over a device that has stopped answering, the small things that go
-// wrong and the bot that mends them.
+// A room's machine, put together and run: the way through as tiles on a sheet, the ducks,
+// the cover over a device that has stopped answering, the small things that go wrong and
+// the bot that mends them.
 //
-// Every tile runs on the same period and there is one duck to a tile, so all the ducks
-// come in together and go out together: that is the machine's beat. So that it is not all
-// in step besides, each tile runs a little early or late between its two ends, each
-// tile's duck bounces to its own time, and the ducks are not all one size.
+// Every tile runs on the same period, and a duck is in a tile for exactly one period, so
+// all the ducks come in together and go out together: that is the machine's beat. No duck
+// is ever slowed or hurried. They join the game by a hole and leave it by one (points.ts):
+// that is how a stream that parts has a duck for every way, and how it comes together
+// again without two ducks in one place. So that it is not all in step besides, each tile
+// runs a little early or late between its two ends, each tile's duck bounces to its own
+// time, and the ducks are not all one size.
 //
 // Only the tiles in view are worked (`look`): the rest keep their place in the period.
 import { BOT, bot } from "./bot.ts";
 import { faults } from "./faults.ts";
 import { clamp, esc, facing, hash, move, show, spring, type Mat, type Part, type Piece } from "./kit.ts";
-import { fits, type Step } from "./layout.ts";
+import { links, type Step } from "./layout.ts";
 import type { Skin } from "./skins.ts";
 import { atlas, measure, rebake, refresh, stills } from "./sprites.ts";
 import { SAME, clear, pieces, place, put, type Pen } from "./stage.ts";
-import { S, broken, type At, type Dev, type Tile } from "./tile.ts";
+import { EDGE, S, broken, type At, type Dev, type Tile } from "./tile.ts";
 
 export const X0 = 80; // the margin either side of the tiles
 const POLE = 66; // where the bot's pole is in it
 const DUCK = `<ellipse class="duck" cy="-5" rx="10" ry="6"/><circle class="duck" cx="8" cy="-13" r="4.5"/>
   <path class="flame" d="M12,-14 l6,1.5 l-6,1.5 z"/><circle class="solid" cx="9" cy="-14" r="1"/>`;
 const HAT = `<path class="solid" d="M3,-18 h10 M5,-18 v-8 h6 v8 z"/>`; // one duck wears a hat
-const HATTED = 3; // which
+const HATTED = 11; // one in this many
 const duck = (hat: string) => `<g data-p="body" data-ring="24"><g transform="scale(1.6)">${DUCK}${hat}</g></g>`;
 
 /** A device's cover (tile.ts): `fell` is how far its sheet has dropped into place, `pull`
@@ -32,13 +35,16 @@ type Cover = { through(p: number): At; out: Part; lump: Part; sign: Part; on: bo
  * its device has not answered, `sheeted` whether its dust sheet is on, and `tubed` whether
  * this period's duck goes through the tube. `bend` is how far it runs ahead of the period
  * in the middle of it (or behind, below nought): by a fifth at most, or its duck would
- * have to go backwards. `rate` and `lag` are its own clock, for whatever in it bounces. */
+ * have to go backwards. `rate` and `lag` are its own clock, for whatever in it bounces.
+ * `ins` is how many ways in it has, `next` where each way out leads (layout.ts `links`),
+ * and `turn` how many periods it has seen, by which a tile with several ways takes turns. */
 export type Cell = {
   col: number; row: number; x: number; y: number; tile: Tile; d?: Dev; flip: boolean; m: Mat; plain: Mat; turned: ReturnType<typeof facing>;
   on: boolean; away: string; sheeted: boolean; tubed: boolean; seen: boolean; p: number; bend: number; rate: number; lag: number;
-  after: Cell; stills: Piece[]; tops: Part[]; q(name: string): Part; cover?: Cover;
+  ins: number; next: { to: Cell; from: number }[]; turn: number; stills: Piece[]; tops: Part[]; q(name: string): Part; cover?: Cover;
 };
-type Duck = { cell: Cell; x: number; y: number; facing: number; size: number; body: Part };
+/** A duck: the tile it is in, the way it came in by and the way it is to go out by (-1: by the tile's hole). */
+type Duck = { cell: Cell; from: number; to: number; x: number; y: number; facing: number; size: number; body: Part };
 
 const mode = (c: Cell) => (c.d ? (c.tile.mode ? c.tile.mode() : c.d.on) : false);
 /** A part of a drawing by its name. A name nothing has is a mistake in a tile. */
@@ -54,7 +60,9 @@ export class Machine {
   high: number;
   made = { pages: 0, px: 0 }; // what the atlas came to
   ready = false; // the atlas is made
-  private ducks: Duck[];
+  private ducks: Duck[] = [];
+  private bodies!: [plain: Part, hatted: Part];
+  private born = 0; // how many ducks there have been
   private all: Piece[];
   private margins: Piece[];
   private zz: Part;
@@ -77,17 +85,17 @@ export class Machine {
   /** `bench` is the page's unseen drawing, where the tiles are measured. `period` is the
    * seconds a duck spends in a tile, and `fail` is told of a bitmap that could not be made. */
   constructor(private bench: SVGSVGElement, way: Step[], devs: Map<string, Dev>, title: string, private period: number, private fail: (err: unknown) => void) {
-    const flips = fits(way), top = Math.min(...way.map(([, row]) => row));
-    const cells = (this.cells = way.map(([col, row, tile], i): Cell => {
-      const x = X0 + col * S, y = (row - top) * S, flip = flips[i], m: Mat = flip ? [-1, 0, 0, 1, x + S, y] : [1, 0, 0, 1, x, y];
+    const { io, next } = links(way), top = Math.min(...way.map((s) => s.row));
+    const cells = (this.cells = way.map(({ col, row, tile, flip }, i): Cell => {
+      const x = X0 + col * S, y = (row - top) * S, m: Mat = flip ? [-1, 0, 0, 1, x + S, y] : [1, 0, 0, 1, x, y];
       return {
         col, row, x, y, tile, d: tile.device ? devs.get(tile.device) : undefined, flip, m, plain: [1, 0, 0, 1, x, y], turned: facing(m),
         on: false, away: "", sheeted: false, tubed: false, seen: true, p: 0,
         bend: tile.steady ? 0 : ((hash(`bend${i}`) % 401) - 200) / 1000, rate: 0.85 + (hash(`rate${i}`) % 300) / 1000, lag: hash(`lag${i}`) % 7,
-        after: undefined!, stills: [], tops: [], q: undefined!,
+        ins: io[i].ins.length, next: [], turn: 0, stills: [], tops: [], q: undefined!,
       };
     }));
-    cells.forEach((c, i) => (c.after = cells[(i + 1) % cells.length]));
+    cells.forEach((c, i) => (c.next = next[i].map(({ to, from }) => ({ to: cells[to], from }))));
     for (const c of cells) c.on = mode(c);
     this.wide = (Math.max(...cells.map((c) => c.col)) + 1) * S + 2 * X0;
     this.high = Math.max(...cells.map((c) => c.y)) + S;
@@ -95,8 +103,7 @@ export class Machine {
 
     // ---- The drawing, on the bench: each tile's still and moving layers and its cover
     // (drawn for the edges its ducks really use), then what belongs to the whole sheet.
-    const edge = (c: Cell, other: Cell) => [S / 2 + ((other.col - c.col) * S) / 2, S / 2 + ((other.row - c.row) * S) / 2];
-    const covers = cells.map((c, i) => (c.d ? broken(c.d, edge(c, cells.at(i - 1)!), edge(c, c.after)) : undefined));
+    const covers = cells.map((c, i) => (c.d ? broken(c.d, EDGE[io[i].ins[0]], EDGE[io[i].outs[0]]) : undefined));
     const wrong = faults(cells);
     bench.innerHTML = cells.map((c, i) => `<g data-cell="${i}"><g data-still>${c.tile.still ?? ""}</g><g data-live>${c.tile.live ?? ""}</g><g data-cover>${covers[i]?.art ?? ""}</g></g>`).join("")
       + `<g data-extra="duck">${duck("")}</g><g data-extra="hat">${duck(HAT)}</g><g data-extra="faults">${wrong.art}</g><g data-extra="bot">${BOT}</g>
@@ -121,7 +128,9 @@ export class Machine {
     });
 
     const plain = measure(group('extra="duck"')).tops[0], hatted = measure(group('extra="hat"')).tops[0];
-    this.ducks = cells.map((cell, n) => ({ cell, x: 0, y: 0, facing: 1, size: 0.9 + (hash(`size${n}`) % 21) / 100, body: { ...(n === HATTED ? hatted : plain) } }));
+    this.bodies = [plain, hatted];
+    // To begin with every tile is as it would be in the middle of a long run: a duck from each way in.
+    for (const c of cells) this.deal(c, Array.from({ length: c.ins }, (_, from) => this.hatch(c, from)));
     const words = measure(group('extra="words"')), others = measure(group('extra="faults"')), rider = measure(group('extra="bot"'));
     this.zz = words.named.get("zz")!;
     this.honk = words.named.get("honk")!;
@@ -135,6 +144,29 @@ export class Machine {
     this.margins.forEach(refresh);
     this.all = [...this.margins, ...cells.flatMap((c) => [...c.stills, ...c.tops.flatMap(pieces), ...(c.cover ? pieces(c.cover.out) : [])]),
       ...[plain, hatted, ...words.tops, ...this.extras].flatMap(pieces)];
+  }
+
+  /** A new duck in a tile, come in by the way `from` (-1: up out of the tile's hole). */
+  private hatch(cell: Cell, from: number): Duck {
+    const n = this.born++;
+    const duck = { cell, from, to: 0, x: cell.x + S / 2, y: cell.y + S / 2, facing: 1, size: 0.9 + (hash(`size${n}`) % 21) / 100, body: { ...this.bodies[n % HATTED === 3 ? 1 : 0] } };
+    this.ducks.push(duck);
+    return duck;
+  }
+
+  /** Say which way each duck that has just come into a tile is to go out, and bring up
+   * the ducks that join the game there. A tile with no way in is where they all join.
+   * One with several ways out sends the duck that came out by each in turn, and a spare
+   * joins for each of the others. One with several ways in lets the duck from each go on
+   * in turn, and the others leave. One with no way out is where they all leave. */
+  private deal(c: Cell, here: Duck[]) {
+    const outs = c.next.length;
+    if (!c.ins) here = [this.hatch(c, -1)];
+    if (outs > 1) {
+      const sent = c.turn % outs;
+      here[0].to = sent;
+      for (let way = 0; way < outs; way++) if (way !== sent) this.hatch(c, -1).to = way;
+    } else for (const k of here) k.to = outs && (c.ins < 2 || k.from === c.turn % c.ins) ? 0 : -1;
   }
 
   /** Do one thing to the atlas after another: a bitmap made again must not land in an atlas that is being replaced. */
@@ -231,13 +263,22 @@ export class Machine {
   frame(pen: Pen, dt: number, now: number, stale: boolean) {
     const { cells } = this, fresh = clamp(spring(this.steam, stale ? 0 : 1, dt, 6, 5)), step = dt * fresh;
 
-    // When the period comes round, each duck goes on to the next tile, and each tile
-    // fixes which way its new duck is to go.
+    // When the period comes round, each duck goes on to the tile its way out leads to (or
+    // has left the game), and each tile fixes which way its new ducks are to go.
     this.ph += step / this.period;
     const p = this.ph % 1;
     if (p < this.was) {
-      for (const c of cells) Object.assign(c, { on: mode(c), tubed: c.sheeted });
-      for (const k of this.ducks) k.cell = k.cell.after;
+      const arrived = new Map<Cell, Duck[]>(cells.map((c) => [c, []]));
+      this.ducks = this.ducks.filter((k) => k.to >= 0);
+      for (const k of this.ducks) {
+        const way = k.cell.next[k.to];
+        Object.assign(k, { cell: way.to, from: way.from });
+        arrived.get(way.to)!.push(k);
+      }
+      for (const c of cells) {
+        Object.assign(c, { on: mode(c), tubed: c.sheeted, turn: c.turn + 1 });
+        this.deal(c, arrived.get(c)!);
+      }
     }
     this.was = p;
 
@@ -251,7 +292,7 @@ export class Machine {
     for (const c of cells) {
       c.p = p + c.bend * Math.sin(Math.PI * p);
       if (!c.seen) continue;
-      if (!(c.tubed || c.sheeted) || c.tile.wide) c.tile.pose?.(c.q, { p: c.p, on: c.on, dt: step, now: now * c.rate + c.lag });
+      if (!(c.tubed || c.sheeted) || c.tile.wide) c.tile.pose?.(c.q, { p: c.p, on: c.on, dt: step, now: now * c.rate + c.lag, from: 0, to: 0, turn: c.turn });
       for (const part of c.tops) place(pen, part, c.m);
     }
     for (const c of cells) if (c.cover) this.covered(pen, c, c.cover, dt);
@@ -259,7 +300,7 @@ export class Machine {
     for (const k of this.ducks) {
       const c = k.cell;
       if (!c.seen) continue;
-      const at = c.tubed ? c.cover!.through(c.p) : c.tile.duck({ p: c.p, on: c.on, dt: step, now: now * c.rate + c.lag });
+      const at = c.tubed ? c.cover!.through(c.p) : c.tile.duck({ p: c.p, on: c.on, dt: step, now: now * c.rate + c.lag, from: k.from, to: k.to, turn: c.turn });
       // A mirrored tile's duck is mirrored with it; the tube is not, being drawn for the edges.
       const over = c.flip && !c.tubed, x = c.x + (over ? S - at.x : at.x), y = c.y + at.y, big = k.size * (k === this.goose ? 1.5 : 1);
       if (Math.abs(x - k.x) > 0.4) k.facing = Math.sign(x - k.x);
@@ -276,10 +317,10 @@ export class Machine {
       }
     }
 
-    // Something silly, every half minute or so: one of the ducks is a goose for a lap.
+    // Something silly, every half minute or so: one of the ducks is a goose for a while.
     if ((this.silly -= step) < 0) {
       this.goose = this.ducks[hash(`goose${this.sillies}`) % this.ducks.length];
-      this.lap = this.period * cells.length;
+      this.lap = this.period * 12;
       this.honking = 1.4;
       this.silly = 25 + (hash(`silly${this.sillies++}`) % 20);
     }

@@ -100,11 +100,13 @@ export class Fridge extends Family {
 
   protected _listen() {
     super._listen();
-    this._follow(ALERTS, "Sensor Watch's alerts", (alerts: Alert[]) => {
-      const held = new Map(this._alerts.map((a) => [a.entity_id, a]));
-      for (const a of alerts) held.set(a.entity_id, a);
-      this._alerts = [...held.values()];
-    });
+    // The sticky notes are the whole house's: a room's card has none.
+    if (!this._alone)
+      this._follow(ALERTS, "Sensor Watch's alerts", (alerts: Alert[]) => {
+        const held = new Map(this._alerts.map((a) => [a.entity_id, a]));
+        for (const a of alerts) held.set(a.entity_id, a);
+        this._alerts = [...held.values()];
+      });
     this._follow(SIGHTINGS, "The cameras' sightings", (seen: Seen[]) => {
       const held = new Map(this._seen.map((s) => [s.id, s]));
       const now = Date.now();
@@ -284,6 +286,16 @@ export class Fridge extends Family {
         ${r.scenes.length ? html`<div class="poetry">${r.scenes.map((s) => word(s, s.name))}</div>` : nothing}
       </section>`;
     };
+    const urgent = html`${this._lost ? html`<div class="urgent" role="alert">No connection to Home Assistant since ${clock(this._lost)}. What is on the door is as it was then.</div>` : nothing}
+      ${this._fault ? html`<div class="urgent" role="alert">${this._fault}</div>` : nothing}`;
+    // A room's card (room.ts): that room's polaroid and magnets on a piece of the door, and nothing of the house's.
+    if (this._alone)
+      return html`<div class="door ${skin.id} alone">
+        ${DEFS}
+        ${urgent}
+        ${drawn[0] ? room(drawn[0]) : html`<div class="urgent">${this._vacant}</div>`}
+      </div>`;
+
     // Each row of rooms has a lane over it, for the tape of a floor that begins in it; a lane with no tape is no height.
     const rooms: TemplateResult[] = clusters.map((c) => {
       const floor = drawn[c.things[0]].floor;
@@ -303,8 +315,7 @@ export class Fridge extends Family {
       <div class="who" role="radiogroup" aria-label="Whose fridge this is">
         ${this._config.style ? nothing : SKINS.map((s) => html`<button role="radio" aria-checked=${s.id === skin.id} style="--r: ${tilt(s.id, 6)}deg" @click=${() => this._dress(s.id)}>${novelty(s.picker)}<span>${s.label}</span></button>`)}
       </div>
-      ${this._lost ? html`<div class="urgent" role="alert">No connection to Home Assistant since ${clock(this._lost)}. What is on the door is as it was then.</div>` : nothing}
-      ${this._fault ? html`<div class="urgent" role="alert">${this._fault}</div>` : nothing}
+      ${urgent}
       ${notes.length
         ? html`<div class="notes">${notes.map((a) => html`<div class="postit ${a.level}" role="status" style="--r: ${tilt(a.entity_id, 4)}deg"><b>${a.name}</b>${a.message || a.level}<small>since ${clock(a.began * 1000)}</small></div>`)}</div>`
         : nothing}

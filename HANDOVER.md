@@ -288,6 +288,21 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
   dashboards. `tests/test_dash_bored_parity.py` enforces what it can read from the
   sources (the fields of `House`, a device's optional fields, the feeds): what a family
   lacks is in its `OWED` with the reason. The table still has cells marked `?`.
+- **A card for one room** (2026.11.9-b19; owner, 2026-11-18: any family should be usable
+  on an ordinary page that is about one room). `room.ts` `roomCard(Family, tag)` makes a
+  family's `-room` card: it tells the family's element `rooms: [room]` and that it is
+  `_alone` (`family.ts`). Each family's `render` then draws the one room without the
+  house's furniture, and follows no feed that is about the whole house. The Fridge,
+  Aurora, Digs (`digs/world.ts` `cutout`) and Contraption have one; the Console's is
+  older (`console/cards.ts`). Their editor is `editor.ts`, which the Console's part cards
+  use too. A new family gets one by a branch on `_alone` and a row in `ROOMS` in
+  `index.ts`.
+  - **The Gazette has none, and is not to** (owner, 2026-11-18). Why: a newspaper is an
+    overview and does not fit a page about one room, and its rooms have their own
+    headings already. It may be given sections after Topology (BACKLOG).
+  - Seen on the test VM's house at 480 and 360 px, by loading the local build into its
+    page (nothing copied there). Not seen: Home Assistant's own card picker and editor
+    (no picker draws on a headless page), the dark theme, a tablet.
 - **The forecast is `Family`'s** (2026.11.9-b15): `_outlook()`, called from a family's
   `_surveyed`, follows Home Assistant's `weather/subscribe_forecast` and fills `_days`.
   The Gazette and the Console use it; the Fridge and Aurora are to.
@@ -322,6 +337,14 @@ sidebar label agreed with the owner). Standalone like Sensor Watch: nothing impo
     is what stops it sharing a bitmap with one that looks the same.
   - `run.ts` is the machine (cells, ducks, covers, the goose), with no Home Assistant in
     it. `layout.ts` is the rule and has the node test, with every tile's edge rule.
+  - **A stream with holes, not a loop** (2026.11.9-b19; owner, 2026-11-18, who found the
+    first build "too conveyor belt-ish"). Ducks join the game by a hole and leave by one
+    (`points.ts`), so none is ever slowed or hurried: a redirector's spare ways are fed
+    from its hole and a collector's surplus goes down its hole. A tile's `io` may name
+    several ways ("L>RTB"); `layout.ts` `links` works out what leads where and throws on
+    a route that does not join up, and `run.ts` `deal` says which way each duck goes.
+    `climbs.ts` has the escalator, slide, lift and cutlery. Seen on the harness in WebKit
+    (13 and 19 devices, two skins); not seen on the owner's house or the iPad.
   - The page keeps one `Dev` for each device and changes it in place (`_told`), so a tile
     holds its own. The machine is built once for a survey, never for a state.
   - **My choices, to be told to the owner:** the room is the area with "kitchen" in its

@@ -233,10 +233,38 @@ do":
 - **Not as the mock-up:** the patent skin's lines wobble but do not boil, and it has no
   grain. The bot has no puff of steam. The bottle shakes from side to side, not by turning.
 - **Tiles:** lights, lights switched together (a Home Assistant light group), six carriers
-  and a stand-in crate for every other kind. The cutlery and the dumb waiter are not
-  carried over, because no rule places a tile that goes straight up or down. The
-  Kitchen's own device tiles are still to be redrawn.
+  and a stand-in crate for every other kind. The Kitchen's own device tiles are still to
+  be redrawn.
 - **Measured** on a throw-away harness with an invented kitchen of 13 devices (28 tiles),
   headless on the owner's Mac at 1366 by 900 and two px to the px: 60 frames a second in
   Chromium and in WebKit, with the atlas in one page at 140 px a tile and two at 260.
   Not measured on the iPad.
+
+### Height, turns and a stream that parts (2026.11.9-b19, 2026-11-18)
+
+The owner saw the first build on his own house and found it "too conveyor belt-ish": it
+wanted more movement up and down, escalators and slides, direction shifts, 90 degree
+bends, and a block that sends a duck to one of two or three exits. He then settled how a
+stream that parts is kept fed: "we don't need to slow down, or speed up ducks, we can have
+a 'leave the game' and 'join the game' hole in the canvas". This replaces three things
+decided above: the ducks no longer go through every device in turn, a room is no longer a
+closed loop, and there is no longer one duck to a tile.
+
+- **Holes** (`points.ts`). A room's stream starts at a hole and ends at one. A redirector
+  sends the duck that arrives out by each of its ways in turn, and a spare climbs out of
+  its hole for each of the others. A collector lets one duck go on and the rest go down
+  its hole. So every tile still has a duck every period, on every way, and the lengths of
+  two ways between a redirector and a collector need not match.
+- **A tile may have several ways in or out** (`tile.ts`: `io` is "L>RTB" for three ways
+  out). `duck` is told which way in this duck came by and which way out it goes.
+- **Carriers that change row** (`climbs.ts`): an escalator and a slide, each two tiles that
+  meet at the middle of the edge between them; a lift; and the mock-up's cutlery.
+- **The layout rule** is in `layout.ts`'s header: a band three rows deep, a climb or a drop
+  after each device by itself, a fan of two or three lanes for devices that come
+  together, and a new band running back the other way after about seven columns.
+- **Measured** on the harness: 19 devices are 51 tiles in three bands, 60 frames a second
+  in headless WebKit at 1366 px wide, and the sheet fits that width at 140 px a tile.
+  Not measured on the iPad.
+- **Left:** the redirector and collector are plain drawings; more plain bends are wanted
+  (the corners are still the toaster, the bottle, the plughole and the trampoline); a fan's
+  lanes run flat; the first band of a room with several starts part-way along the sheet.

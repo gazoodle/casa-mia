@@ -1078,6 +1078,12 @@ Contraption is being built. So far it draws one room as a machine that ducks go 
 the kitchen, which it finds as the area with "kitchen" in its name. If there is none it
 draws the first room.
 
+The ducks come up out of a hole at one end of the room and go down a hole at the other.
+On the way the stream climbs and drops by escalators, slides and a lift. Where several
+devices come together it parts: a redirector sends the ducks out by two or three ways in
+turn, spare ducks climb out of its hole for the other ways, and further on a collector
+lets one duck through and sends the rest down a hole.
+
 Each device is a tile, and the duck passing through a tile is that device's engine. For a
 light, the duck runs on a belt, jumps on a sprung board or walks in a treadwheel, and
 that turns a dynamo. The light being on is its clutch being in, so a tap on the tile
@@ -1186,8 +1192,54 @@ era prints it on a plate.
 The warning lamps card shows a green lamp when Sensor Watch has nothing to warn of. Until
 Sensor Watch has answered, it says it is waiting.
 
-`floors` and `rooms` are for a screen that should show part of the house, such as a
-tablet upstairs. Each takes names or ids, and on that card they take the place of the
+### A card for one room
+
+Each family except the Gazette has a card that shows one room and nothing else. It is
+for a dashboard page that is about that room, and it is the size of an ordinary card, so
+it can stand among the page's other cards. Each has an editor, where you choose the room.
+
+```yaml
+type: custom:dash-bored-fridge-room       # Casa Mia Dash-Bored Fridge room
+room: kitchen     # the room's id or name
+style: yuppies    # optional
+---
+type: custom:dash-bored-aurora-room       # Casa Mia Dash-Bored Aurora room
+room: kitchen
+---
+type: custom:dash-bored-digs-room         # Casa Mia Dash-Bored Digs room
+room: kitchen
+---
+type: custom:dash-bored-contraption-room  # Casa Mia Dash-Bored Contraption room
+room: kitchen
+```
+
+The Console's is `dash-bored-console-room`, above.
+
+- **Fridge room:** the room's polaroid on a piece of the door, with a magnet for each of
+  its devices and its scenes as word magnets. It has no notepad and no sticky notes.
+- **Aurora room:** the room's sheet of controls, on the card and always open: a fader or
+  a key for each device, the room's scenes, its cameras and its devices' settings. The
+  sky behind warms with that room's lights alone. `style` takes a skin's name in small
+  letters (`ember`, `cobalt`), or `almanac`.
+- **Digs room:** the room cut out of the house, with its walls, its roof and the ground
+  under it. The blocks are as big as the card's width allows. The room's scenes are
+  along the bottom, and a level's stack is down the right edge. It has no hearts, no
+  household walking about and no imp.
+- **Contraption room:** the room's machine under its title, drawn to fit the card, with
+  no slider. `style` is `patent`, `blueprint` or `tin`.
+
+Without `style`, a room card is in the style last chosen on Dash-Bored's page in that
+browser. A room card shows a room's devices, levels, scenes, cameras and temperature. It
+does not show the weather, the power in use, Sensor Watch's alerts or anything else that
+is about the whole house. A lost connection, or an action Home Assistant refused, is
+still said on the card.
+
+The Gazette has no room card. A newspaper is an overview of the house, and each room
+already has its own heading in it.
+
+`floors` and `rooms` on a whole-house card are for a screen that should show part of
+the house, such as a tablet upstairs. The house's furniture stays round those rooms (the
+masthead, the notepad, the home screen); for one room alone, use its room card. Each takes names or ids, and on that card they take the place of the
 house's order. The cameras' sightings and the Personal column are still of the whole
 house.
 

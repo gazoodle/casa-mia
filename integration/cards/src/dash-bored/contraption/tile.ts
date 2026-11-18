@@ -15,15 +15,22 @@ export const S = 260;
  * in place, so a tile can hold on to its own. `level` is in per cent. */
 export type Dev = { id: string; name: string; kind: string; on: boolean; level: number; dims: boolean; colour?: string; group?: string };
 /** What a tile is told each frame: how far through the period (0 to 1), which way the
- * duck goes this period (fixed as it comes in, so that it never jumps), and the time. */
-export type Ctx = { p: number; on: boolean; dt: number; now: number };
+ * duck goes this period (fixed as it comes in, so that it never jumps), and the time.
+ * For a tile with several ways in or out: which way in this duck came by (`from`, -1 if
+ * it joined from the tile's hole), which way out it is to go (`to`, -1 if it leaves by
+ * the hole), and how many periods the tile has seen (`turn`). */
+export type Ctx = { p: number; on: boolean; dt: number; now: number; from: number; to: number; turn: number };
 /** Where the duck is: and, if the tile wants, turned (`r`), squashed, or out of sight (`o` 0). */
 export type At = { x: number; y: number; r?: number; sx?: number; sy?: number; o?: number; i?: number; u?: number };
 /** Something that can work loose (faults.ts). `loop` is the way a cord goes round, and
  * `run` how far it has gone, in px, `t` seconds in. */
 export type Fault = { kind: "oil" | "bolt"; at: [number, number] } | { kind: "cord"; loop: [number, number][]; run(t: number): number };
 export type Tile = {
-  io: string; // the edges it is drawn to go in and out by, two of L, R, T and B. The page mirrors it where the route runs the other way
+  // The edges it is drawn to go in and out by, of L, R, T and B: "LR" is in by the left and
+  // out by the right. One with several ways says them either side of ">": "L>RTB" has
+  // three ways out, ">R" none in (ducks join the game there) and "L>" none out (they
+  // leave it). The layout mirrors a tile where the stream runs the other way (`edges`).
+  io: string;
   device?: string; // the id of the device it shows, if it shows one
   still?: string; // what never moves
   live?: string; // what does
@@ -35,6 +42,15 @@ export type Tile = {
   pose?(q: (name: string) => Part, c: Ctx): void;
   mode?(): boolean; // which way the duck is to go, where that is not just the device being on
 };
+
+/** The middle of each edge, where a duck crosses it. */
+export const EDGE: Record<string, [number, number]> = { L: [0, S / 2], R: [S, S / 2], T: [S / 2, 0], B: [S / 2, S] };
+/** A tile's ways in and out, as it is drawn or mirrored. */
+export function edges(io: string, flip = false) {
+  const [ins, outs] = io.includes(">") ? io.split(">") : [io[0], io[1]];
+  const turned = (sides: string) => (flip ? sides.replace(/[LR]/g, (side) => (side === "L" ? "R" : "L")) : sides);
+  return { ins: turned(ins), outs: turned(outs) };
+}
 
 type Frame = [p: number, x: number, y: number, hop?: number];
 /** A way through a tile, as [p, x, y, hop]: straight from each point to the next, or over
