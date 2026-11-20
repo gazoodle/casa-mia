@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.11-b3
+
+- **Dash-Bored: Digs shows who is about the house.** Someone Home Assistant tracks is in the house while they are at home and walks out when they leave. Someone it has no way of placing, such as a child or a pet with no phone, is always about. This replaces b2's whole household walking about when nobody was home: a house with everyone out is now shown empty.
+
 ## 2026.11.11-b2
 
 - **Dash-Bored: Digs is never empty.** With nobody at home, the whole household walks about the house all the same, including anyone Home Assistant has no way of placing. When someone comes home, they are the only one about again.

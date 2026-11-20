@@ -229,3 +229,8 @@ test("a light's name says what kind of lamp it is, and a standing lamp stands on
   const garden = build([room("garden", undefined, [device("light", "Lamp")])] as any[]);
   assert.equal(garden.slots.get("light.Lamp")!.h, 1);
 });
+
+test("somebody is about the house when they are at home or can't be placed, and not when they are out", async () => {
+  const { about } = await import("./digs/walk.ts");
+  assert.deepEqual(["home", "unknown", "unavailable", undefined, "not_home", "Work"].map(about), [true, true, true, true, false, false]);
+});

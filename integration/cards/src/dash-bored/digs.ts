@@ -16,7 +16,7 @@ import { Prank } from "./digs/prank.ts";
 import { SHOT, shots } from "./digs/shots.ts";
 import { STYLES } from "./digs/styles.ts";
 import { bg, figure, say, texture } from "./digs/textures.ts";
-import { Walks } from "./digs/walk.ts";
+import { Walks, about } from "./digs/walk.ts";
 import { CHEST, LAMPS, build, cutout, lamp, shades, type Slot, type World } from "./digs/world.ts";
 import { ALERTS, Family, PAGE } from "./family.ts";
 import { AGAIN } from "./fridge.ts";
@@ -195,11 +195,14 @@ export class Digs extends Family {
     if (this._armed === d.id) this._armed = "";
   }
 
-  /** With nobody at home, the whole household walks about all the same, so that the house
-   * is never empty (owner, 2026-11-20): every person Home Assistant has, even one it can't
-   * place (`house.people` leaves those out, as the other families can't say where they are). */
+  /** Who is about the house: everybody Home Assistant has at home, and everybody it can't
+   * place at all (walk.ts `about`). `house.people` leaves the second out, as the other
+   * families can't say where they are. */
   private _household(): Person[] {
-    return (this._survey?.people ?? []).map((id) => ({ id, name: this._hass?.states[id]?.attributes.friendly_name ?? id, place: "home", since: 0 }));
+    return (this._survey?.people ?? []).flatMap((id) => {
+      const state = this._hass?.states[id];
+      return about(state?.state) ? [{ id, name: state?.attributes.friendly_name ?? id, place: "home", since: 0 }] : [];
+    });
   }
 
   /** The rooms the household is most likely in: Home Assistant says only that somebody is
@@ -332,8 +335,7 @@ export class Digs extends Family {
     const [house, world] = this._synced ?? [];
     if (!this._alone && (!this._synced || house !== this._house || world !== this._world)) {
       this._synced = [this._house, this._world];
-      const home = this._house?.people.filter((p) => p.place === "home") ?? [];
-      this._walks.sync(home.length ? home : this._household());
+      this._walks.sync(this._household());
     }
   }
 

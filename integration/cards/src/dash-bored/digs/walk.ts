@@ -11,6 +11,13 @@ import type { Person } from "../house.ts";
 import type { Cell } from "./prank.ts";
 import type { World, Zone } from "./world.ts";
 
+/** Whether somebody is about the house, by their person's state: at home, or not to be
+ * placed at all (no tracker, or its integration not answering), as a child or a pet with
+ * no phone is always about. Away or in a zone of their own ("Work"), they are out
+ * (owner, 2026-11-20). It replaced, in 2026.11.11-b3, the whole household walking about
+ * whenever nobody was at home: an empty house is worth seeing as empty. */
+export const about = (state?: string) => state === "home" || state === undefined || state === "unknown" || state === "unavailable";
+
 const PACE = 450; // ms: a block walked
 const CLIMB = 700; // ms: a rung climbed
 const [SOONEST, LATEST] = [10_000, 40_000]; // ms: how long somebody stays where they got to (owner, 2026-11-20: 20–90 s left nobody walking 60% of the time)
