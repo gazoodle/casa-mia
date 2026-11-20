@@ -1,7 +1,7 @@
 {
   "casa-mia-tablet-layout": {
     "digest": "1e978e8b25a88b044660655911c92eec3fdc1cdcbb98901a3ba910da2964ce37",
-    "version": "2026.11.10-b2"
+    "version": "2026.11.10"
   },
   "casa_mia": {
     "digest": "83ead74b307fa5788d66a64bd3eb6967c45a6b0cf988011c9f5a1e776b785f84",
@@ -13,7 +13,7 @@
   },
   "casa_mia_dash_bored": {
     "digest": "ff233650fd5ce518d92e4fcc434522048ad4e15ce5922a23d437b01e567de635",
-    "version": "2026.11.10-b5"
+    "version": "2026.11.10"
   },
   "casa_mia_guest_login": {
     "digest": "d6f2c3ccefd94beb06d3cc97d5a9e3b6696ee9654a1bed36cc9f26a2431d9378",

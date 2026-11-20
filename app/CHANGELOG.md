@@ -1,27 +1,11 @@
 # Changelog
 
-## 2026.11.10-b5
+## 2026.11.10
 
-- **Dash-Bored: Digs draws each light as the kind of lamp its name says.** A light whose name has "lamp", "floor light" or "uplighter" in it is a standing lamp on the floor, two blocks tall. One called a spotlight, spot or downlight is a spotlight in the ceiling, and one called a strip, plinth or under-cupboard light is a strip of light under the ceiling. Any other light is a pendant, as before, and out of doors every light is a lantern on its post. The names are read in English. A room with a standing lamp is a block wider to make room for it.
-
-## 2026.11.10-b4
-
-- **Dash-Bored: Digs' household walks more often.** Each person now stays 10 to 40 seconds where they get to, instead of 20 to 90, so that someone is usually on the move for the tour to follow.
-
-## 2026.11.10-b3
-
-- **Dash-Bored: Digs' household walks and climbs instead of sliding.** Each figure takes steps as it goes, faces the way it is walking, and climbs the ladders hand over hand, seen from behind. Standing still, it faces you as before.
-- **Dash-Bored: Digs' tour now keeps to whoever is walking.** In 2026.11.10-b1 the view could go over to someone standing still and stay with them while others walked about. Now, when the person it follows stops and someone else sets off, it goes over to them. While it is touring, the line at the foot of the screen says whom it is following and that a touch takes over. It now starts a minute after the last touch instead of two.
-
-## 2026.11.10-b2
-
+- **Dash-Bored: Digs' household walks all over the house.** Each person at home walks from room to room, up and down the ladders, and out through a door at each end of the ground floor into the garden and over to the outbuildings. They take steps as they go, face the way they are walking and climb the ladders hand over hand, and stay 10 to 40 seconds where they get to. Most trips end in a room with a light on, and nobody goes out of doors after dark or while it is raining or snowing. Someone who leaves home walks off the left of the garden, and someone who comes home walks in from there.
+- **Dash-Bored: Digs shows you round when nobody is using it.** On the page, a minute after the last touch, the view follows one of the household about the house, and goes over to whoever sets off when the one it follows stops. When the imp turns up, it follows the imp until the bot has mended his hole. The line at the foot of the screen says whom it is following. Any touch, scroll wheel or key gives the view back to you at once, and the tour starts again after another minute with nothing pressed. It does not run on a dashboard's card, on a room's card, or where the device asks for less movement.
+- **Dash-Bored: Digs' lights look like lamps, of the kind their names say.** A light whose name has "lamp", "floor light" or "uplighter" in it is a standing lamp on the floor. One called a spotlight, spot or downlight is a spotlight in the ceiling, and one called a strip, plinth or under-cupboard light is a strip of light under the ceiling. Any other light is a pendant hanging from the ceiling, and out of doors every light is a lantern on its post. A lit lamp casts a pool of light, brighter the further up it is turned. The names are read in English. A room with a standing lamp is a block wider to make room for it.
 - **Tablet Layout by itself: its repository's front page no longer says it isn't published.** That page is made from Tablet Layout's guide, which still said so in 2026.11.9 after the repository was published. A change to the guide now counts as a change to Tablet Layout, so the next release publishes it again with the guide as it is.
-
-## 2026.11.10-b1
-
-- **Dash-Bored: Digs' household walks all over the house.** Each person at home walks from room to room, up and down the ladders, out through a door at each end of the ground floor into the garden and over to the outbuildings, and stays a while where they get to. Most trips end in a room with a light on, and nobody goes out of doors after dark or while it is raining or snowing. Someone who leaves home walks off the left of the garden, and someone who comes home walks in from there.
-- **Dash-Bored: Digs shows you round when nobody is using it.** On the page, two minutes after the last touch, the view follows one of the household about the house, and goes over to someone else when they get where they were going. When the imp turns up, it follows the imp until the bot has mended his hole. Any touch, scroll wheel or key gives the view back to you at once, and the tour starts again after two more minutes with nothing pressed. It does not run on a dashboard's card, on a room's card, or where the device asks for less movement.
-- **Dash-Bored: Digs' lamps look like lamps.** A light indoors is now a pendant hanging from the ceiling, with a pool of light under it when it is on. The pool is brighter the further up the light is turned. A light out of doors is a lantern on its post.
 
 ## 2026.11.9
 
