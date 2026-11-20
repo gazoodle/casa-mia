@@ -406,7 +406,28 @@ centre and feed both left and right".
   - **Left:** laying the room out (`route`) still takes one frame of 1.3 s in
     Playwright's WebKit, but 0.1 s in Node, in macOS's own `jsc` and in headless
     Chromium on the same room, so it is that build of WebKit that is slow. Not yet
-    measured in Safari itself or on a wall tablet.
+    measured in Safari itself.
+- **On a wall tablet (2026.11.9-b27).** The owner, 2026-11-20: "The wall tablets can't
+  reliably render the contraption". Measured on a Lenovo Tab M9 (Android System WebView
+  157, Mali-G52) over USB, through Kiosk Satellite's Remote API, on a big room:
+  - The machine was drawn, at about a frame a second, and Kiosk Satellite's own watchdog
+    (`KSWebViewRecovery` in the tablet's log) killed the page's renderer and reloaded it
+    every two minutes or so. Nothing ran out of memory.
+  - A frame's JavaScript took about 20 ms. With the drawing stopped the page ran at 53
+    frames a second. Drawing the tubes solid, or no lines at all, changed nothing; nor
+    did a CPU canvas, ImageBitmaps for the atlas, a canvas the height of the screen, the
+    vignette, the tiles' buttons, the bench or the sideways scroller taken away.
+  - What mattered was the size of a page of the atlas. One page nearly 4,096 px square: a
+    frame a second. The same pieces cut into pages of 2,048: 13. Of 1,024: 33. Tiles
+    made small enough for the whole atlas to be 3.3 million px: 37, with every tile in
+    view. So `SIDE` is 1,024.
+  - Most of that page was empty. The sheet's margins were one piece each, as tall as the
+    sheet, so the first shelf was as tall as the page, with small pieces along it and
+    nothing above them. The margins are now cut into bands a tile tall (`bands`), as a
+    wide still is cut into tiles' widths, and the same room's atlas is 4 pages with a
+    quarter of the px of the one page it was (in WebKit at one px to the px).
+  - Fable's measurements above were made in headless browsers on the Mac and on the
+    owner's iPad, not on a wall tablet.
 - **Carriers out of step (2026.11.9-b24).** The owner, 2026-11-18: "Toast and trampoline
   ducks are still synchronised ... I thought we had added some de-sync work?" What
   there was is the bend (a tile runs up to a fifth of a period early or late in its

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.9-b27
+
+- **Fixed: Dash-Bored: Contraption was too slow to use on a wall tablet, and kept reloading.** On an Android tablet it drew about one frame a second, and Kiosk Satellite took the page for stuck and reloaded it every two minutes or so. The cause was the size of each picture the machine's parts are copied from: the tablet's browser slows right down once one is much over a million pixels. They are now at most 1,024 pixels across and down, and a lot of empty space in them is gone, so a big room needs about a quarter of the memory it did. On the same tablet, cutting the pictures this small took it from one frame a second to 33.
+
 ## 2026.11.9-b26
 
 - **Dash-Bored: Contraption's gauge moves while the machine is made ready, and stays in the middle of the screen.** In b25 the needle stood still for seconds at a time on a big room while the machine was built and its bitmaps printed, and then the gauge went below the bottom of the screen. Now the work is done a step at a time and the page is drawn between the steps, so the needle follows each tile built and each strip of bitmaps printed, and the count is under the stages ("Strip 3 of 12"). The needle trembles as a pressure gauge's does, and the gauge stays in the middle of what is on the screen. On a big room in a test browser the machine was ready in 4.5 s, where it took 6.8 s.

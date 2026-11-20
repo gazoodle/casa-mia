@@ -18,7 +18,7 @@ import { clamp, esc, facing, hash, move, show, spring, type Mat, type Part, type
 import { advance, begin, type Duck as Flow, type Net } from "./flow.ts";
 import { links, type Layout } from "./layout.ts";
 import type { Skin } from "./skins.ts";
-import { atlas, measure, rebake, refresh, stills } from "./sprites.ts";
+import { atlas, bands, measure, rebake, refresh, stills } from "./sprites.ts";
 import { SHOWS, shows } from "./shows.ts";
 import { SAME, clear, pieces, place, put, tube, type Pen } from "./stage.ts";
 import { EDGE, S, broken, type At, type Dev, type Tile } from "./tile.ts";
@@ -78,6 +78,7 @@ export class Machine {
   private ducks!: Duck[];
   private all!: Piece[];
   private margins!: Piece[];
+  private notes!: Piece[]; // the right-hand margin's, where the room's air is written
   private zz!: Part;
   private honk!: Part;
   private extras!: Part[];
@@ -184,7 +185,8 @@ export class Machine {
     this.loose = wrong.start(finder(others.named, "the faults"), this.bot.ask);
     this.shows = shows(finder(acts.named, "the shows"), finder(rider.named, "the bot"), { cells, burrows: this.burrows, ducks: this.ducks, ask: this.bot.ask, period, wide, high, pole: POLE, left: X0 });
 
-    this.margins = [{ markup: "", box: [0, 0, X0, high], from: group('margin="left"') }, { markup: "", box: [wide - X0, 0, X0, high], from: group('margin="right"') }];
+    this.notes = bands(group('margin="right"'), wide - X0, X0, high);
+    this.margins = [...bands(group('margin="left"'), 0, X0, high), ...this.notes];
     this.margins.forEach(refresh);
     this.all = [...this.margins, ...cells.flatMap((c) => [...c.stills, ...c.tops.flatMap(pieces), ...(c.cover ? pieces(c.cover.out) : [])]),
       ...[plain, hatted, ghost, ...words.tops, ...this.extras].flatMap(pieces)];
@@ -224,7 +226,7 @@ export class Machine {
     const line = this.bench.querySelector("[data-note]")!;
     if (line.textContent === words) return;
     line.textContent = words;
-    this.again(this.margins[1]);
+    this.again(...this.notes);
   }
 
   /** A light's colour, for its glow. */

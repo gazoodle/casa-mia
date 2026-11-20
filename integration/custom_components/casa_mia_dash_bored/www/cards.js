@@ -10145,14 +10145,14 @@ var Bp = [
 			red: "#e8302a"
 		}
 	}
-], Vp = (e) => `--line:${e.line};--w:${e.w};${Object.entries(e.vars).map(([e, t]) => `--${e}:${t.replaceAll("\"", "'")}`).join(";")}`, Hp = "\n.ink * { stroke: var(--line); stroke-width: var(--w); stroke-linecap: round; stroke-linejoin: round; fill: none; }\n.ink .paper, .ink .fill { fill: var(--paper); }\n.ink .solid { fill: var(--line); }\n.ink .brass { fill: var(--brass); }\n.ink .copper { fill: var(--copper); }\n.ink .iron { fill: var(--iron); }\n.ink .wood { fill: var(--wood); }\n.ink .glass { fill: var(--glass); }\n.ink .cloth { fill: var(--cloth); }\n.ink .bare { stroke: none; }\n.ink .spark { fill: var(--lit); }\n.ink .drop { stroke: none; fill: var(--water); }\n.ink .duck { fill: var(--duck); }\n.ink .flame { fill: var(--flame); }\n.ink .label { fill: var(--label); }\n.ink .shine * { stroke: none; fill: var(--lit); }\n.ink .ghost * { fill: none; stroke-dasharray: 2.2 2.2; stroke-width: calc(var(--w) * .5); }\n.ink .rope { stroke-width: calc(var(--w) * .8); }\n.ink .thin { stroke-width: calc(var(--w) * .6); }\n.ink .tube { stroke-width: 26; stroke-linecap: butt; }\n.ink .bore { stroke: var(--paper); stroke-width: 21; stroke-linecap: butt; }\n.ink text, .ink tspan { stroke: var(--bg); stroke-width: 4px; paint-order: stroke; fill: var(--line); font-size: 14px; font-family: var(--font); }\n.ink .title { font-size: 23px; font-family: var(--title); }\n.ink tspan.state { font-size: 12px; font-style: italic; }\n.ink .small { font-size: 9px; }\n.ink .said { font-style: italic; }\n", Up = "\n<filter id=\"wobble\" x=\"-2%\" y=\"-2%\" width=\"104%\" height=\"104%\"><feTurbulence type=\"fractalNoise\" baseFrequency=\".03\" numOctaves=\"2\" seed=\"4\"/>\n  <feDisplacementMap in=\"SourceGraphic\" scale=\"3\"/></filter>\n<pattern id=\"hatch\" width=\"5\" height=\"5\" patternUnits=\"userSpaceOnUse\" patternTransform=\"rotate(40)\">\n  <rect width=\"5\" height=\"5\" fill=\"#eadcbc\"/><line y2=\"5\" stroke=\"#2b2118\" stroke-width=\"1\"/></pattern>\n<pattern id=\"cross\" width=\"4\" height=\"4\" patternUnits=\"userSpaceOnUse\" patternTransform=\"rotate(45)\">\n  <rect width=\"4\" height=\"4\" fill=\"#eadcbc\"/><path d=\"M0,0 V4 M0,0 H4\" stroke=\"#2b2118\" stroke-width=\".9\"/></pattern>\n<pattern id=\"blue\" width=\"6\" height=\"6\" patternUnits=\"userSpaceOnUse\" patternTransform=\"rotate(45)\">\n  <rect width=\"6\" height=\"6\" fill=\"#1d4f91\"/><line y2=\"6\" stroke=\"#e8f1ff\" stroke-width=\".7\"/></pattern>\n", Wp = 4, Gp = 4096, Kp = 1, qp = 1024, Jp = (e) => new XMLSerializer().serializeToString(e);
-function Yp(e) {
+], Vp = (e) => `--line:${e.line};--w:${e.w};${Object.entries(e.vars).map(([e, t]) => `--${e}:${t.replaceAll("\"", "'")}`).join(";")}`, Hp = "\n.ink * { stroke: var(--line); stroke-width: var(--w); stroke-linecap: round; stroke-linejoin: round; fill: none; }\n.ink .paper, .ink .fill { fill: var(--paper); }\n.ink .solid { fill: var(--line); }\n.ink .brass { fill: var(--brass); }\n.ink .copper { fill: var(--copper); }\n.ink .iron { fill: var(--iron); }\n.ink .wood { fill: var(--wood); }\n.ink .glass { fill: var(--glass); }\n.ink .cloth { fill: var(--cloth); }\n.ink .bare { stroke: none; }\n.ink .spark { fill: var(--lit); }\n.ink .drop { stroke: none; fill: var(--water); }\n.ink .duck { fill: var(--duck); }\n.ink .flame { fill: var(--flame); }\n.ink .label { fill: var(--label); }\n.ink .shine * { stroke: none; fill: var(--lit); }\n.ink .ghost * { fill: none; stroke-dasharray: 2.2 2.2; stroke-width: calc(var(--w) * .5); }\n.ink .rope { stroke-width: calc(var(--w) * .8); }\n.ink .thin { stroke-width: calc(var(--w) * .6); }\n.ink .tube { stroke-width: 26; stroke-linecap: butt; }\n.ink .bore { stroke: var(--paper); stroke-width: 21; stroke-linecap: butt; }\n.ink text, .ink tspan { stroke: var(--bg); stroke-width: 4px; paint-order: stroke; fill: var(--line); font-size: 14px; font-family: var(--font); }\n.ink .title { font-size: 23px; font-family: var(--title); }\n.ink tspan.state { font-size: 12px; font-style: italic; }\n.ink .small { font-size: 9px; }\n.ink .said { font-style: italic; }\n", Up = "\n<filter id=\"wobble\" x=\"-2%\" y=\"-2%\" width=\"104%\" height=\"104%\"><feTurbulence type=\"fractalNoise\" baseFrequency=\".03\" numOctaves=\"2\" seed=\"4\"/>\n  <feDisplacementMap in=\"SourceGraphic\" scale=\"3\"/></filter>\n<pattern id=\"hatch\" width=\"5\" height=\"5\" patternUnits=\"userSpaceOnUse\" patternTransform=\"rotate(40)\">\n  <rect width=\"5\" height=\"5\" fill=\"#eadcbc\"/><line y2=\"5\" stroke=\"#2b2118\" stroke-width=\"1\"/></pattern>\n<pattern id=\"cross\" width=\"4\" height=\"4\" patternUnits=\"userSpaceOnUse\" patternTransform=\"rotate(45)\">\n  <rect width=\"4\" height=\"4\" fill=\"#eadcbc\"/><path d=\"M0,0 V4 M0,0 H4\" stroke=\"#2b2118\" stroke-width=\".9\"/></pattern>\n<pattern id=\"blue\" width=\"6\" height=\"6\" patternUnits=\"userSpaceOnUse\" patternTransform=\"rotate(45)\">\n  <rect width=\"6\" height=\"6\" fill=\"#1d4f91\"/><line y2=\"6\" stroke=\"#e8f1ff\" stroke-width=\".7\"/></pattern>\n", Wp = 4, Gp = 1024, Kp = 1, qp = (e) => new XMLSerializer().serializeToString(e);
+function Jp(e) {
 	let t = e.cloneNode(!0);
 	for (let e of t.querySelectorAll("[data-p]")) e.remove();
 	for (let e of ["data-p", "data-ring"]) t.removeAttribute(e);
 	return t;
 }
-function Xp(e, t, n) {
+function Yp(e, t, n) {
 	let [r, i, a, o] = e.box, s = r + a / 2, c = i + o / 2, l = Math.hypot(a, o), u = t.span / (t.wrap ? n : n - 1);
 	return Array.from({ length: n }, (n, r) => ({
 		markup: `<g transform="rotate(${t.lo + r * u} ${s} ${c})">${e.markup}</g>`,
@@ -10164,7 +10164,7 @@ function Xp(e, t, n) {
 		]
 	}));
 }
-function Zp(e, t = !1) {
+function Xp(e, t = !1) {
 	let n = [], r = /* @__PURE__ */ new Map(), i = /* @__PURE__ */ new Map();
 	for (let a of e.querySelectorAll("[data-p]")) {
 		let o = a.parentElement.closest("[data-p]"), s = o && i.has(o) ? o : e, c = s.getCTM().inverse().multiply(a.parentNode.getCTM()), l = {
@@ -10191,12 +10191,12 @@ function Zp(e, t = !1) {
 		};
 		if (a.localName === "path" && !a.hasAttribute("d")) l.line = a.classList.contains("rope") ? .8 : a.classList.contains("thin") ? .6 : 1;
 		else {
-			let e = Yp(a);
+			let e = Jp(a);
 			a.after(e);
 			let n = e.getBBox();
 			if (e.remove(), n.width || n.height) {
 				let r = {
-					markup: t && (e.localName === "text" || e.querySelector("text")) ? `<g transform="translate(${2 * n.x + n.width},0) scale(-1,1)">${Jp(e)}</g>` : Jp(e),
+					markup: t && (e.localName === "text" || e.querySelector("text")) ? `<g transform="translate(${2 * n.x + n.width},0) scale(-1,1)">${qp(e)}</g>` : qp(e),
 					box: [
 						n.x - Wp,
 						n.y - Wp,
@@ -10205,7 +10205,7 @@ function Zp(e, t = !1) {
 					],
 					from: a
 				}, i = a.dataset.ring ? jd(a.dataset.ring) : void 0;
-				l.ring = i?.ring, l.looks = i ? Xp(r, i.ring, i.steps) : [r];
+				l.ring = i?.ring, l.looks = i ? Yp(r, i.ring, i.steps) : [r];
 			}
 		}
 		i.set(a, l), r.set(l.name, l), (s === e ? n : i.get(s).kids).push(l);
@@ -10215,8 +10215,8 @@ function Zp(e, t = !1) {
 		named: r
 	};
 }
-function Qp(e, t) {
-	let n = Jp(Yp(e));
+function Zp(e, t) {
+	let n = qp(Jp(e));
 	return Array.from({ length: t }, (t, r) => ({
 		markup: n,
 		box: [
@@ -10227,6 +10227,18 @@ function Qp(e, t) {
 		],
 		from: e,
 		wob: !0
+	}));
+}
+function Qp(e, t, n, r) {
+	return Array.from({ length: Math.ceil(r / 260) }, (i, a) => ({
+		markup: "",
+		box: [
+			t,
+			a * 260,
+			n,
+			Math.min(260, r - a * 260)
+		],
+		from: e
 	}));
 }
 var $p = (e, t, n, r) => `<svg x="${t.x / n}" y="${t.y / n}" width="${t.w / n}" height="${t.h / n}" viewBox="${e.box.join(" ")}" preserveAspectRatio="none">${e.wob && r.wob ? `<g filter="url(#wobble)">${e.markup}</g>` : e.markup}</svg>`;
@@ -10260,7 +10272,7 @@ async function nm(e, t, n, r) {
 			w: e,
 			h: l
 		}, f = u.strips.at(-1);
-		(!f || f.y !== s || o + e - f.x > qp || l < f.tall / 2) && u.strips.push({
+		(!f || f.y !== s || l < f.tall / 2) && u.strips.push({
 			x: o,
 			y: s,
 			wide: 0,
@@ -10289,7 +10301,7 @@ async function nm(e, t, n, r) {
 		px: a.reduce((e, t) => e + t.wide * t.high, 0)
 	};
 }
-var rm = (e) => void (e.markup = Jp(Yp(e.from)));
+var rm = (e) => void (e.markup = qp(Jp(e.from)));
 async function im(e, t, n) {
 	let r = e.at;
 	if (!r) return;
@@ -10542,12 +10554,12 @@ var vm = (e) => [...e.looks, ...e.kids.flatMap(vm)], ym = 66, bm = "<ellipse cla
 		for (let [e, i] of r.entries()) {
 			let a = n.querySelector(`[data-cell="${e}"] [data-still]`);
 			if (i.flip) for (let e of a.querySelectorAll("text")) e.setAttribute("transform", `translate(${2 * Number(e.getAttribute("x") ?? 0)},0) scale(-1,1)`);
-			i.tile.still && (i.stills = Qp(a, i.tile.span ?? 1));
-			let o = Zp(n.querySelector(`[data-cell="${e}"] [data-live]`), i.flip);
+			i.tile.still && (i.stills = Zp(a, i.tile.span ?? 1));
+			let o = Xp(n.querySelector(`[data-cell="${e}"] [data-live]`), i.flip);
 			i.tops = o.tops, i.q = Om(o.named, `the tile at column ${i.col}, row ${i.row}`);
 			let s = l[e];
 			if (s) {
-				let t = Om(Zp(n.querySelector(`[data-cell="${e}"] [data-cover]`)).named, "a cover");
+				let t = Om(Xp(n.querySelector(`[data-cell="${e}"] [data-cover]`)).named, "a cover");
 				i.cover = {
 					through: s.through,
 					out: t("out"),
@@ -10561,7 +10573,7 @@ var vm = (e) => [...e.looks, ...e.kids.flatMap(vm)], ym = 66, bm = "<ellipse cla
 			}
 			t(e + 1, r.length), await c();
 		}
-		let f = Zp(d("extra=\"duck\"")).tops[0], p = Zp(d("extra=\"hat\"")).tops[0], m = Zp(d("extra=\"ghost\"")).tops[0];
+		let f = Xp(d("extra=\"duck\"")).tops[0], p = Xp(d("extra=\"hat\"")).tops[0], m = Xp(d("extra=\"ghost\"")).tops[0];
 		this.ducks = np(this.net).map((e) => ({
 			at: e,
 			x: 0,
@@ -10571,7 +10583,7 @@ var vm = (e) => [...e.looks, ...e.kids.flatMap(vm)], ym = 66, bm = "<ellipse cla
 			body: { ...e.id % Sm === 3 ? p : f },
 			ghost: { ...m }
 		}));
-		let h = Zp(d("extra=\"words\"")), g = Zp(d("extra=\"faults\"")), _ = Zp(d("extra=\"bot\"")), v = Zp(d("extra=\"shows\""));
+		let h = Xp(d("extra=\"words\"")), g = Xp(d("extra=\"faults\"")), _ = Xp(d("extra=\"bot\"")), v = Xp(d("extra=\"shows\""));
 		return this.zz = h.named.get("zz"), this.honk = h.named.get("honk"), this.extras = [
 			...g.tops,
 			...v.tops,
@@ -10592,25 +10604,7 @@ var vm = (e) => [...e.looks, ...e.kids.flatMap(vm)], ym = 66, bm = "<ellipse cla
 			high: o,
 			pole: ym,
 			left: 80
-		}), this.margins = [{
-			markup: "",
-			box: [
-				0,
-				0,
-				80,
-				o
-			],
-			from: d("margin=\"left\"")
-		}, {
-			markup: "",
-			box: [
-				a - 80,
-				0,
-				80,
-				o
-			],
-			from: d("margin=\"right\"")
-		}], this.margins.forEach(rm), this.all = [
+		}), this.notes = Qp(d("margin=\"right\""), a - 80, 80, o), this.margins = [...Qp(d("margin=\"left\""), 0, 80, o), ...this.notes], this.margins.forEach(rm), this.all = [
 			...this.margins,
 			...r.flatMap((e) => [
 				...e.stills,
@@ -10647,7 +10641,7 @@ var vm = (e) => [...e.looks, ...e.kids.flatMap(vm)], ym = 66, bm = "<ellipse cla
 	}
 	note(e) {
 		let t = this.bench.querySelector("[data-note]");
-		t.textContent !== e && (t.textContent = e, this.again(this.margins[1]));
+		t.textContent !== e && (t.textContent = e, this.again(...this.notes));
 	}
 	glow(e, t = "") {
 		let n = this.bench.querySelector(`[data-glow="${CSS.escape(e)}"]`), r = this.cells.find((t) => t.d?.id === e);

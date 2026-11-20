@@ -14,11 +14,13 @@ import { DEFS, INK, worn, type Skin } from "./skins.ts";
 import { S } from "./tile.ts";
 
 const EDGE = 4; // room left round a piece for its line's width, in the drawing's units
-// The most a page of the atlas is across or down, in px. Safari on a tablet refuses a
-// canvas of more than 16.7 million px, which a square of this side is just inside.
-const SIDE = 4096;
+// The most a page of the atlas is across or down, in px. A wall tablet (Lenovo Tab M9,
+// Android System WebView 157) drew a frame a second from one page nearly 4,096 px square,
+// 13 a second from pages of 2,048 and 33 from pages of 1,024, at the same size and with
+// the same pieces in view (measured 2026-11-20). Its WebView ran out of patience with
+// the page so slowed, and threw it away every two minutes or so.
+const SIDE = 1024;
 const GUTTER = 1; // px between pieces, so that one never bleeds into the next
-const STRIP = 1024; // px: the most a strip of a page is across, printed as one picture (atlas)
 
 const text = (el: Element) => new XMLSerializer().serializeToString(el);
 
@@ -88,6 +90,12 @@ export function stills(root: SVGGraphicsElement, span: number): Piece[] {
   return Array.from({ length: span }, (_, k) => ({ markup, box: [k * S, 0, S, S], from: root, wob: true }));
 }
 
+/** A drawing `high` tall as pieces, one for each tile's height of it: a sheet's margin is
+ * as tall as the sheet, which would not fit a page of the atlas whole. */
+export function bands(from: SVGGraphicsElement, x: number, wide: number, high: number): Piece[] {
+  return Array.from({ length: Math.ceil(high / S) }, (_, k) => ({ markup: "", box: [x, k * S, wide, Math.min(S, high - k * S)], from }));
+}
+
 /** One piece, in the atlas at `at` (px), seen through its box and nothing outside it. */
 const nest = (p: Piece, at: { x: number; y: number; w: number; h: number }, scale: number, skin: Skin) =>
   `<svg x="${at.x / scale}" y="${at.y / scale}" width="${at.w / scale}" height="${at.h / scale}" viewBox="${p.box.join(" ")}" preserveAspectRatio="none">${p.wob && skin.wob ? `<g filter="url(#wobble)">${p.markup}</g>` : p.markup}</svg>`;
@@ -114,9 +122,8 @@ const key = (p: Piece) => `${p.box}|${p.markup}`;
  * another, and `tell` is told as each is done. A page printed as one picture held the
  * page up for 2.0 s on a big room (one page nearly SIDE px square, measured
  * 2026-11-20) and needed that picture and the page in memory at once. A strip is a run
- * along a shelf, no wider than STRIP and of pieces of a height: a sheet's margins are as
- * tall as the sheet, and a shelf of them with the small pieces beside them was nearly
- * the whole page again (0.8 s). */
+ * along a shelf of pieces of a height: a tall piece with small ones beside it made a
+ * picture nearly the whole page again (0.8 s). */
 export async function atlas(pieces: Piece[], scale: number, skin: Skin, tell?: (done: number, of: number) => void) {
   type Strip = { x: number; y: number; wide: number; tall: number; inner: string };
   type Page = { wide: number; high: number; strips: Strip[]; slots: Slot[] };
@@ -134,7 +141,7 @@ export async function atlas(pieces: Piece[], scale: number, skin: Skin, tell?: (
       [x, y, tall] = [0, 0, 0];
     }
     const page = pages.at(-1)!, slot = { x, y, w, h } as Slot, last = page.strips.at(-1);
-    if (!last || last.y !== y || x + w - last.x > STRIP || h < last.tall / 2) page.strips.push({ x, y, wide: 0, tall: 0, inner: "" });
+    if (!last || last.y !== y || h < last.tall / 2) page.strips.push({ x, y, wide: 0, tall: 0, inner: "" });
     const strip = page.strips.at(-1)!;
     strip.inner += nest(piece, { ...slot, x: x - strip.x, y: 0 }, scale, skin); // placed in its strip's picture
     strip.wide = x + w - strip.x;
