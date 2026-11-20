@@ -31,16 +31,26 @@ export const STYLES = css`
   .skins button:focus-visible, .hit:focus-visible { outline: 2px dashed var(--line); outline-offset: -4px; }
   .notice { margin: 4px 0; padding: 6px 10px; font-size: 15px; background: var(--red); color: var(--bg); border: 2px solid var(--line); overflow-wrap: anywhere; }
 
-  /* The gauge, while a machine is made ready (gauge.ts): in the middle, over whatever is there. */
+  /* The gauge, while a machine is made ready (gauge.ts): over whatever is there, in the
+     middle of what is seen of the element. Its top is set by the element (_centre), as the
+     element may be far taller than the screen. */
   .getting { min-height: 300px; }
-  .getting[data-page] { min-height: 70vh; }
-  .gauge { position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 16px; pointer-events: none; }
-  .gauge svg { width: min(280px, 70%); overflow: visible; fill: none; stroke: var(--line); stroke-width: 2.5; stroke-linecap: round; filter: drop-shadow(0 3px 0 rgba(0,0,0,.18)); }
+  .gauge { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 16px; pointer-events: none; }
+  .gauge .dial { position: relative; width: min(280px, 70vw); }
+  .gauge svg { display: block; width: 100%; overflow: visible; fill: none; stroke: var(--line); stroke-width: 2.5; stroke-linecap: round; }
+  .gauge .dial > svg { filter: drop-shadow(0 3px 0 rgba(0,0,0,.18)); }
   .gauge .pipe { stroke-width: 9; } .gauge .flange { stroke-width: 5; }
   .gauge .bezel { fill: var(--brass); } .gauge .face { fill: var(--paper); stroke-width: 1.5; }
   .gauge .hot { stroke: var(--red); stroke-width: 6; stroke-linecap: butt; } .gauge .ticks { stroke-width: 1.6; }
-  .gauge .needle { transform-origin: 110px 84px; transition: transform .45s cubic-bezier(.3,1.5,.5,1); stroke: var(--red); stroke-width: 3; }
-  .gauge .tip { fill: var(--red); } .gauge .hub { fill: var(--brass); }
+  /* The needle turns about the hub, which is the middle of the dial's box. Both boxes are
+     moved by transform only, which the browser animates by itself while the page is busy. */
+  .gauge .quiver, .gauge .needle { position: absolute; inset: 0; will-change: transform; }
+  .gauge .quiver { animation: quiver .7s ease-in-out infinite alternate; }
+  .gauge .needle { transition: transform .45s cubic-bezier(.3,1.5,.5,1); }
+  .gauge .needle svg { stroke: var(--red); stroke-width: 3; }
+  @keyframes quiver { from { transform: rotate(-1.5deg); } to { transform: rotate(1.5deg); } }
+  .gauge .tip { fill: var(--red); } .gauge .hub { fill: var(--brass); stroke: var(--line); stroke-width: 2.5; }
+  .gauge .say { margin: 0; min-height: 1.3em; font-size: 13px; font-variant-numeric: tabular-nums; }
   .gauge text { stroke: none; fill: var(--line); font-family: var(--font); }
   .gauge .maker { font-size: 7px; letter-spacing: .08em; } .gauge .read { font-size: 20px; }
   .gauge ol { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 8px; margin: 0; padding: 0; list-style: none; max-width: 640px; }
@@ -48,7 +58,7 @@ export const STYLES = css`
   .gauge li::before { content: "○ "; }
   .gauge li.done { opacity: 1; } .gauge li.done::before { content: "● "; }
   .gauge li.now { opacity: 1; background: var(--line); color: var(--bg); } .gauge li.now::before { content: "◐ "; }
-  @media (prefers-reduced-motion: reduce) { .gauge .needle { transition: none; } }
+  @media (prefers-reduced-motion: reduce) { .gauge .needle { transition: none; } .gauge .quiver { animation: none; } }
 
   /* The sheet is as big as the tiles are drawn, and is walked along sideways where it is
      wider than the screen. The canvas is only as wide as what is seen of it, and stays

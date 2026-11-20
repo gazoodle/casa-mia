@@ -8,6 +8,7 @@
 // The tiles are still drawn and written as SVG: that is what the bitmaps are made from.
 // A tile's drawing is put on the page's unseen bench to be measured, and stays there, so
 // that a piece whose words or colour change can be made again from it.
+import { breather } from "./gauge.ts";
 import { ringOf, type Part, type Piece, type Ring, type Slot } from "./kit.ts";
 import { DEFS, INK, worn, type Skin } from "./skins.ts";
 import { S } from "./tile.ts";
@@ -17,6 +18,7 @@ const EDGE = 4; // room left round a piece for its line's width, in the drawing'
 // canvas of more than 16.7 million px, which a square of this side is just inside.
 const SIDE = 4096;
 const GUTTER = 1; // px between pieces, so that one never bleeds into the next
+const STRIP = 1024; // px: the most a strip of a page is across, printed as one picture (atlas)
 
 const text = (el: Element) => new XMLSerializer().serializeToString(el);
 
@@ -106,9 +108,18 @@ const key = (p: Piece) => `${p.box}|${p.markup}`;
  * each told where it is (`at`). Pieces that are alike are drawn once. They go along a
  * shelf until it is full, then a new shelf under it, then a new page. Answers with how
  * many pages and px it came to. No piece is told anything until every page is made, so a
- * frame drawn meanwhile uses the atlas before this one, whole. */
+ * frame drawn meanwhile uses the atlas before this one, whole.
+ *
+ * A page is printed a strip at a time, each strip a picture of its own, one after
+ * another, and `tell` is told as each is done. A page printed as one picture held the
+ * page up for 2.0 s on a big room (one page nearly SIDE px square, measured
+ * 2026-11-20) and needed that picture and the page in memory at once. A strip is a run
+ * along a shelf, no wider than STRIP and of pieces of a height: a sheet's margins are as
+ * tall as the sheet, and a shelf of them with the small pieces beside them was nearly
+ * the whole page again (0.8 s). */
 export async function atlas(pieces: Piece[], scale: number, skin: Skin, tell?: (done: number, of: number) => void) {
-  type Page = { inner: string; wide: number; high: number; slots: Slot[] };
+  type Strip = { x: number; y: number; wide: number; tall: number; inner: string };
+  type Page = { wide: number; high: number; strips: Strip[]; slots: Slot[] };
   const slots = new Map<string, Slot>(), pages: Page[] = [];
   let x = 0, y = 0, tall = 0;
 
@@ -119,11 +130,15 @@ export async function atlas(pieces: Piece[], scale: number, skin: Skin, tell?: (
 
     if (x + w > SIDE) [x, y, tall] = [0, y + tall + GUTTER, 0];
     if (!pages.length || y + h > SIDE) {
-      pages.push({ inner: "", wide: 0, high: 0, slots: [] });
+      pages.push({ wide: 0, high: 0, strips: [], slots: [] });
       [x, y, tall] = [0, 0, 0];
     }
-    const page = pages.at(-1)!, slot = { x, y, w, h } as Slot;
-    page.inner += nest(piece, slot, scale, skin);
+    const page = pages.at(-1)!, slot = { x, y, w, h } as Slot, last = page.strips.at(-1);
+    if (!last || last.y !== y || x + w - last.x > STRIP || h < last.tall / 2) page.strips.push({ x, y, wide: 0, tall: 0, inner: "" });
+    const strip = page.strips.at(-1)!;
+    strip.inner += nest(piece, { ...slot, x: x - strip.x, y: 0 }, scale, skin); // placed in its strip's picture
+    strip.wide = x + w - strip.x;
+    strip.tall = Math.max(strip.tall, h);
     page.slots.push(slot);
     slots.set(key(piece), slot);
 
@@ -137,13 +152,17 @@ export async function atlas(pieces: Piece[], scale: number, skin: Skin, tell?: (
   // being made, and its bitmap is then made again in the slot it was given here.
   const homes = pieces.map((piece) => [piece, slots.get(key(piece))] as const);
 
+  const of = pages.reduce((sum, page) => sum + page.strips.length, 0), breathe = breather();
   let done = 0;
-  await Promise.all(pages.map(async (page) => {
-    const canvas = Object.assign(document.createElement("canvas"), { width: page.wide, height: page.high });
-    canvas.getContext("2d")!.drawImage(await bake(page.inner, page.wide, page.high, scale, skin), 0, 0);
+  for (const page of pages) {
+    const canvas = Object.assign(document.createElement("canvas"), { width: page.wide, height: page.high }), g = canvas.getContext("2d")!;
+    for (const strip of page.strips) {
+      g.drawImage(await bake(strip.inner, strip.wide, strip.tall, scale, skin), strip.x, strip.y);
+      tell?.(++done, of);
+      await breathe();
+    }
     for (const slot of page.slots) slot.page = canvas;
-    tell?.(++done, pages.length);
-  }));
+  }
   for (const [piece, slot] of homes) piece.at = slot;
   return { pages: pages.length, px: pages.reduce((sum, page) => sum + page.wide * page.high, 0) };
 }

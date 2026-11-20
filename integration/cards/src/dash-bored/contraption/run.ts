@@ -13,6 +13,7 @@
 // Only the tiles in view are worked (`look`): the rest keep their place in the period.
 import { BOT, bot } from "./bot.ts";
 import { faults } from "./faults.ts";
+import { breather } from "./gauge.ts";
 import { clamp, esc, facing, hash, move, show, spring, type Mat, type Part, type Piece } from "./kit.ts";
 import { advance, begin, type Duck as Flow, type Net } from "./flow.ts";
 import { links, type Layout } from "./layout.ts";
@@ -68,19 +69,21 @@ export class Machine {
   high: number;
   made = { pages: 0, px: 0 }; // what the atlas came to
   ready = false; // the atlas is made
-  private ducks: Duck[];
   private net: Net;
+  private io: ReturnType<typeof links>["io"];
   private burrows: Burrow[];
   private tubes: Path2D[]; // every tunnel's runs, layer by layer
   private turn = 0; // how many periods the machine has run
-  private all: Piece[];
-  private margins: Piece[];
-  private zz: Part;
-  private honk: Part;
-  private extras: Part[];
-  private bot: ReturnType<typeof bot>;
-  private loose: (dt: number, now: number) => void;
-  private shows: ReturnType<typeof shows>;
+  // What the drawing is made of, once it has been put together (assemble).
+  private ducks!: Duck[];
+  private all!: Piece[];
+  private margins!: Piece[];
+  private zz!: Part;
+  private honk!: Part;
+  private extras!: Part[];
+  private bot!: ReturnType<typeof bot>;
+  private loose!: (dt: number, now: number) => void;
+  private shows!: ReturnType<typeof shows>;
   private queue: Promise<unknown> = Promise.resolve();
   private scale = 1;
   private skin!: Skin;
@@ -94,9 +97,11 @@ export class Machine {
   private sillies = 0;
 
   /** `bench` is the page's unseen drawing, where the tiles are measured. `period` is the
-   * seconds a duck spends in a tile, and `fail` is told of a bitmap that could not be made. */
-  constructor(private bench: SVGSVGElement, layout: Layout, devs: Map<string, Dev>, title: string, private period: number, private fail: (err: unknown) => void) {
+   * seconds a duck spends in a tile, and `fail` is told of a bitmap that could not be made.
+   * The tiles are placed here; the drawing is put together by `assemble`, which is slow. */
+  constructor(private bench: SVGSVGElement, layout: Layout, devs: Map<string, Dev>, private period: number, private fail: (err: unknown) => void) {
     const { way } = layout, { io, next, up, down } = links(layout), top = Math.min(...way.map((s) => s.row));
+    this.io = io;
     const cells = (this.cells = way.map(({ col, row, tile, flip }, i): Cell => {
       const x = X0 + col * S, y = (row - top) * S, m: Mat = flip ? [-1, 0, 0, 1, x + S, y] : [1, 0, 0, 1, x, y];
       return {
@@ -129,10 +134,15 @@ export class Machine {
     for (const c of cells) c.on = mode(c);
     this.wide = (Math.max(...cells.map((c) => c.col)) + 1) * S + 2 * X0;
     this.high = Math.max(...cells.map((c) => c.y)) + S;
-    const { wide, high } = this;
+  }
 
-    // ---- The drawing, on the bench: each tile's still and moving layers and its cover
-    // (drawn for the edges its ducks really use), then what belongs to the whole sheet.
+  /** Put the drawing together on the bench, titled `title`: each tile's still and moving
+   * layers and its cover (drawn for the edges its ducks really use), then what belongs to
+   * the whole sheet. Measuring a tile holds the page up, so it is done a tile at a time,
+   * the page painted between them now and then, and `tell` told as each tile is done
+   * (measured on a big room, 2026-11-20: 2.8 s as one piece of work). */
+  async assemble(title: string, tell: (done: number, of: number) => void) {
+    const { bench, cells, io, wide, high, period } = this, breathe = breather();
     const covers = cells.map((c, i) => (c.d ? broken(c.d, EDGE[io[i].ins[0]], EDGE[io[i].outs[0]]) : undefined));
     const wrong = faults(cells);
     bench.innerHTML = cells.map((c, i) => `<g data-cell="${i}"><g data-still>${c.tile.still ?? ""}</g><g data-live>${c.tile.live ?? ""}</g><g data-cover>${covers[i]?.art ?? ""}</g></g>`).join("")
@@ -142,7 +152,7 @@ export class Machine {
         <g data-margin="right"><text data-note x="${wide - 40}" y="${high / 2}" transform="rotate(90 ${wide - 40} ${high / 2})" text-anchor="middle"></text></g>`;
     const group = (name: string) => bench.querySelector<SVGGraphicsElement>(`[data-${name}]`)!;
 
-    cells.forEach((c, i) => {
+    for (const [i, c] of cells.entries()) {
       const still = bench.querySelector<SVGGraphicsElement>(`[data-cell="${i}"] [data-still]`)!;
       // Words in a mirrored tile are turned back, each about its own place, to be read.
       if (c.flip) for (const words of still.querySelectorAll("text")) words.setAttribute("transform", `translate(${2 * Number(words.getAttribute("x") ?? 0)},0) scale(-1,1)`);
@@ -152,10 +162,14 @@ export class Machine {
       c.tops = live.tops;
       c.q = finder(live.named, `the tile at column ${c.col}, row ${c.row}`);
 
-      if (!covers[i]) return;
-      const q = finder(measure(bench.querySelector<SVGGraphicsElement>(`[data-cell="${i}"] [data-cover]`)!).named, "a cover");
-      c.cover = { through: covers[i].through, out: q("out"), lump: q("lump"), sign: q("sign"), on: false, fell: 1, pull: 0, shake: 0 };
-    });
+      const cover = covers[i];
+      if (cover) {
+        const q = finder(measure(bench.querySelector<SVGGraphicsElement>(`[data-cell="${i}"] [data-cover]`)!).named, "a cover");
+        c.cover = { through: cover.through, out: q("out"), lump: q("lump"), sign: q("sign"), on: false, fell: 1, pull: 0, shake: 0 };
+      }
+      tell(i + 1, cells.length);
+      await breathe();
+    }
 
     const plain = measure(group('extra="duck"')).tops[0], hatted = measure(group('extra="hat"')).tops[0], ghost = measure(group('extra="ghost"')).tops[0];
     // The ducks there are now are all there will ever be: none is made and none is lost (flow.ts).
@@ -174,6 +188,7 @@ export class Machine {
     this.margins.forEach(refresh);
     this.all = [...this.margins, ...cells.flatMap((c) => [...c.stills, ...c.tops.flatMap(pieces), ...(c.cover ? pieces(c.cover.out) : [])]),
       ...[plain, hatted, ghost, ...words.tops, ...this.extras].flatMap(pieces)];
+    return this;
   }
 
   /** Do one thing to the atlas after another: a bitmap made again must not land in an atlas that is being replaced. */

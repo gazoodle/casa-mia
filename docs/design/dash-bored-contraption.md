@@ -386,6 +386,27 @@ centre and feed both left and right".
   for 400 ms over the running machine. The bitmaps report page by page, so a room of
   one page goes from nought to done in one step. Seen in one still, at the last
   stage; not seen on a slow device, which is where it matters.
+  - **Reworked in 2026.11.9-b26** (owner, 2026-11-20: "I expected it to be centered,
+    active, progressing and useful. Instead it just seemed to draw something
+    gauge-like that then stuck there"). Measured on a big room (one page of bitmaps,
+    nearly 4,096 px square) in Playwright's WebKit, b25: nothing for 1.9 s, Build
+    at 20 for 2.8 s in one frame, then Print drawn below the screen (it was centred
+    over the whole sheet) for 2.0 s in one frame; ready at 6.8 s. Now each piece of
+    work lets the page paint between steps (`breather` in `gauge.ts`): the first
+    reading of the house waits for the gauge to be painted (`set hass`), the plans are
+    drawn after a paint, the machine is put together a tile at a time
+    (`Machine.assemble`), and the atlas is printed a strip at a time (`atlas`: a run
+    along a shelf, no wider than 1,024 px, of pieces of a height). The line under the
+    stages counts them ("Strip 3 of 12"). The gauge is centred on what is seen of
+    the element (`_centre`). Its needle is an HTML box turned and trembled by CSS,
+    which a browser animates apart from the page's own work. b26 on the same room:
+    every stage seen, the gauge in the middle throughout, 24 readings while printing
+    with the longest frame 495 ms (827 ms with shelves as tall as the sheet's
+    margins), ready at 4.5 s.
+  - **Left:** laying the room out (`route`) still takes one frame of 1.3 s in
+    Playwright's WebKit, but 0.1 s in Node, in macOS's own `jsc` and in headless
+    Chromium on the same room, so it is that build of WebKit that is slow. Not yet
+    measured in Safari itself or on a wall tablet.
 - **Carriers out of step (2026.11.9-b24).** The owner, 2026-11-18: "Toast and trampoline
   ducks are still synchronised ... I thought we had added some de-sync work?" What
   there was is the bend (a tile runs up to a fifth of a period early or late in its

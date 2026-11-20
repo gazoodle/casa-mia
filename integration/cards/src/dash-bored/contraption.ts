@@ -8,8 +8,8 @@
 // and stage.ts places them; faults.ts and bot.ts are what works loose and what mends it;
 // skins.ts and styles.ts are the look.
 import { html, nothing } from "lit";
-import { fire } from "../ha.ts";
-import { STAGE, gauge } from "./contraption/gauge.ts";
+import { fire, type Hass } from "../ha.ts";
+import { STAGE, gauge, painted } from "./contraption/gauge.ts";
 import { route, type Layout } from "./contraption/layout.ts";
 import { Machine } from "./contraption/run.ts";
 import { SKINS, worn, type Skin } from "./contraption/skins.ts";
@@ -41,7 +41,7 @@ const air = (r: Room) => [r.temp === undefined ? "" : `${r.temp}° within${r.tar
 
 export class Contraption extends Family {
   static styles = [PAGE, STYLES];
-  static properties = { _skin: { state: true }, _size: { state: true }, _tile: { state: true }, _rate: { state: true }, _room: { state: true }, _stage: { state: true }, _share: { state: true } };
+  static properties = { _skin: { state: true }, _size: { state: true }, _tile: { state: true }, _rate: { state: true }, _room: { state: true }, _stage: { state: true }, _share: { state: true }, _say: { state: true } };
   declare protected _config: Options & { type?: string; style?: string };
   _skin = SKINS[0].id;
   _size = 0; // px: how big a tile is drawn, by the slider (0: to fit the screen)
@@ -50,7 +50,9 @@ export class Contraption extends Family {
   _room?: Room; // the room shown
   _stage = STAGE.SURVEY; // what is being done to make the machine ready (gauge.ts), or -1 when it is
   _share = 0; // how far through that it is, 0 to 1
-  private _building = false; // the machine is about to be built
+  _say = ""; // and in numbers, under the stages
+  private _held?: Hass; // the first house given, held until the gauge has been painted
+  private _building = false; // the machine is being built
   private _built?: Survey; // the survey the machine was built for
   private _way?: Layout; // the room's network, waiting to be made a machine
   private _machine?: Machine;
@@ -61,6 +63,23 @@ export class Contraption extends Family {
   private _raf = 0;
   private _last = 0;
   private _frames = 0;
+
+  /** The first reading of the house (family.ts) holds the page up, by over a second on a big
+   * house (measured 2026-11-20), so it waits until the gauge has been painted saying so. */
+  set hass(hass: Hass) {
+    if (this._built || this._stage !== STAGE.SURVEY) {
+      super.hass = hass;
+      return;
+    }
+    const waiting = this._held;
+    this._held = hass;
+    if (waiting) return;
+    painted().then(() => {
+      const held = this._held!;
+      this._held = undefined;
+      super.hass = held;
+    });
+  }
 
   setConfig(config: Options & { type?: string; style?: string }) {
     super.setConfig(config);
@@ -128,9 +147,16 @@ export class Contraption extends Family {
     this._room = room;
     if (this._built === this._survey) return this._told();
     this._built = this._survey;
-    Object.assign(this, { _machine: undefined, _way: undefined, _pen: undefined, _baked: "", _building: false, _stage: room ? STAGE.PLANS : -1, _share: 0 });
+    Object.assign(this, { _machine: undefined, _way: undefined, _pen: undefined, _baked: "", _building: false, _stage: room ? STAGE.PLANS : -1, _share: 0, _say: "" });
     if (!room) return;
 
+    // Laying the room out holds the page up too: the gauge is painted saying so first.
+    const survey = this._survey;
+    painted().then(() => void (this._built === survey && this._plan(room)));
+  }
+
+  /** The room's network: its devices, the lights switched together, and the way through them all. */
+  private _plan(room: Room) {
     // Lights switched together are one machine: in Home Assistant that is a group of
     // lights, which names its lights. The group's own entity then has no tile, since
     // each of its lights has one, and they stand together, where the first of them was.
@@ -146,7 +172,7 @@ export class Contraption extends Family {
     this._devs = new Map(shown.map(({ d }) => [d.id, this._view(d, group.get(d.id))]));
     try {
       this._way = route(room.id, [...this._devs.values()]);
-      this._stage = STAGE.BUILD;
+      Object.assign(this, { _stage: STAGE.BUILD, _say: `${this._devs.size} devices` });
     } catch (err) {
       this._stopped(err);
     }
@@ -214,12 +240,12 @@ export class Contraption extends Family {
     const scale = Math.min(k * sharp, FINE), baked = `${scale}|${skin.id}`;
     if (baked !== this._baked) {
       this._baked = baked;
-      Object.assign(this, { _stage: STAGE.PRINT, _share: 0 });
+      Object.assign(this, { _stage: STAGE.PRINT, _share: 0, _say: "" });
       // Should the size or the skin have changed again meanwhile, the later printing says when it is done.
       const mine = () => this._baked === baked && this._machine === machine;
-      machine.bake(scale, skin, (done, of) => void (mine() && (this._share = done / of))).then(() => {
+      machine.bake(scale, skin, (done, of) => void (mine() && Object.assign(this, { _share: done / of, _say: `Strip ${done} of ${of}` }))).then(() => {
         if (!mine() || this._stage < 0) return;
-        Object.assign(this, { _stage: STAGE.DUCKS, _share: 1 });
+        Object.assign(this, { _stage: STAGE.DUCKS, _share: 1, _say: `${machine.cells.length} tiles` });
         this._after(400, () => void (mine() && (this._stage = -1))); // long enough for the full gauge to be seen
       });
     }
@@ -228,6 +254,7 @@ export class Contraption extends Family {
 
   /** Which of the sheet is on the screen: asked at a scroll or a change of size, never frame by frame. */
   private _look = () => {
+    this._centre();
     const machine = this._machine, scroll = this.renderRoot?.querySelector<HTMLElement>(".scroll"), pen = this._pen;
     if (!machine || !scroll || !pen) return;
     const box = scroll.getBoundingClientRect(), u = S / this._tile;
@@ -252,24 +279,39 @@ export class Contraption extends Family {
   /** The machine is made once its drawing's bench is on the page, and the canvas fitted when its size may have changed. */
   protected updated() {
     const bench = this.renderRoot.querySelector<SVGSVGElement>(".bench");
+    this._centre();
     if (this._way && !this._machine && bench && this._room && !this._building) {
-      // Building it holds the page up for a moment: it is put off until the gauge has been painted saying so.
       this._building = true;
-      const way = this._way, room = this._room;
-      this._after(30, () => {
-        if (this._way !== way || this._machine) return;
-        try {
-          this._machine = new Machine(bench, way, this._devs, `The ${room.name}, by duck`, PERIOD(), this._stopped);
-        } catch (err) {
-          return this._stopped(err);
-        }
-        this._told(true);
-        this._dirty = true;
-        this.requestUpdate(); // the tiles' buttons, now that there are tiles
-      });
+      this._make(bench, this._way, this._room);
       return;
     }
     if (this._dirty) this._fit();
+  }
+
+  /** Build the machine for `way`, after the gauge has been painted saying so. A newer house
+   * meanwhile (`_surveyed`) makes its own, and this one is dropped, whatever became of it. */
+  private async _make(bench: SVGSVGElement, way: Layout, room: Room) {
+    const mine = () => this._way === way;
+    try {
+      await painted();
+      const machine = new Machine(bench, way, this._devs, PERIOD(), this._stopped);
+      await machine.assemble(`The ${room.name}, by duck`, (done, of) => void (mine() && Object.assign(this, { _share: done / of, _say: `Tile ${done} of ${of}` })));
+      if (!mine()) return;
+      this._machine = machine;
+    } catch (err) {
+      return void (mine() && this._stopped(err));
+    }
+    this._told(true);
+    this._dirty = true;
+    this.requestUpdate(); // the tiles' buttons, now that there are tiles
+  }
+
+  /** The gauge in the middle of what is seen of the element, which may be far taller than the screen. */
+  private _centre() {
+    const box = this.renderRoot.querySelector<HTMLElement>(".contraption"), gauge = this.renderRoot.querySelector<HTMLElement>(".gauge");
+    if (!box || !gauge) return;
+    const r = box.getBoundingClientRect(), top = Math.max(r.top, 0), foot = Math.min(r.bottom, innerHeight);
+    gauge.style.top = `${(foot > top ? (top + foot) / 2 : (r.top + r.bottom) / 2) - r.top}px`;
   }
 
   render() {
@@ -311,7 +353,7 @@ export class Contraption extends Family {
             </div>`
           : nothing}
       </div>
-      ${getting ? gauge(this._stage, this._share) : nothing}
+      ${getting ? gauge(this._stage, this._share, this._say) : nothing}
       <svg class="bench ink" aria-hidden="true"></svg>
     </div>`;
   }
