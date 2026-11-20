@@ -74,6 +74,11 @@ export class Prank {
     return this._stage === 3;
   }
 
+  /** Where the prank is, while there is one, for the view to follow (follow.ts): its crate. */
+  get spot() {
+    return this._stage ? this._plan?.tnt : undefined;
+  }
+
   private _set(stage: number, mended = this._mended) {
     this._stage = stage;
     this._mended = mended;

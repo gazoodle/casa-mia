@@ -18,7 +18,16 @@ const WOOD = "#b98a4e", DARK = "#7d5a30", GREY = "#868686", SKIN = "#e0b088", IN
 /** How far a texel is from a point. */
 const round = (x: number, y: number, cx: number, cy: number) => Math.hypot(x - cx, y - cy);
 const plank = (hex: string): Paint => (x, y, r) => (y % 4 === 3 || x === ((y >> 2) * 7 + 3) % 16 ? shade(hex, 0.7) : j(hex, r, 0.06));
-const lamp = (frame: string, grid: string, inner: string, a: number): Paint => (x, y, r) => (edge(x, y) ? frame : x % 5 === 0 || y % 5 === 0 ? grid : j(inner, r, a));
+// A lantern on a post out of doors: panes in a frame, lit from within.
+const lantern = (frame: string, grid: string, inner: string, a: number): Paint => (x, y, r) => (edge(x, y) ? frame : x % 5 === 0 || y % 5 === 0 ? grid : j(inner, r, a));
+// A pendant hung from the ceiling: a cord, a shade that widens to its rim, and a bulb under it.
+const pendant = (on: boolean): Paint => (x, y, r) => {
+  const mid = Math.abs(x - 7.5);
+  if (y < 5) return mid < 1 ? "#3a2a18" : null;
+  if (y < 10) return mid < 2.5 + (y - 5) * 1.2 ? (y === 9 ? (on ? "#8a5a1c" : "#3a2410") : j(on ? "#c8963a" : "#5a3c1c", r, 0.08)) : null;
+  if (y < 12) return mid < 2 ? (on ? (y === 10 ? "#fff8d8" : "#ffe9a0") : "#8a8a80") : null;
+  return on && y === 12 && mid < 2 ? "rgba(255,233,160,.5)" : null;
+};
 // A machine with a window in its front, a stove with a fire in its mouth, and a block with a lamp in it.
 const machine = (on: boolean): Paint => (x, y, r) => (edge(x, y) ? shade(GREY, 0.55) : x > 3 && x < 12 && y > 5 && y < 13 ? (on ? j("#ffb030", r, 0.2) : "#26262a") : y < 3 ? shade(GREY, 1.15) : j("#7c7f86", r, 0.06));
 const stove = (on: boolean): Paint => (x, y, r) =>
@@ -33,10 +42,61 @@ const lever = (on: boolean): Paint => (x, y) => {
 };
 const chandelier = (glow: string): Paint => (x, y) =>
   (x === 7 || x === 8) && y < 6 ? "#4a3016" : y > 5 && y < 9 && x > 0 && x < 15 ? "#a8742a" : y > 8 && y < 14 && x % 4 > 0 && x % 4 < 3 && x > 0 && x < 15 ? glow : null;
-const person = (hair: string, top: string, legs: string): Paint => (x, y) =>
+// A person, facing us: the standing frame.
+const facing = (hair: string, top: string, legs: string): Paint => (x, y) =>
   y < 8 ? (x < 4 || x > 11 ? null : y < 3 ? hair : y === 4 && (x === 6 || x === 9) ? INK : SKIN)
   : y < 20 ? (x > 3 && x < 12 ? top : x > 1 && x < 14 ? (y < 18 ? shade(top, 0.85) : SKIN) : null)
   : x < 4 || x > 11 ? null : y > 29 ? INK : x === 7 || x === 8 ? shade(legs, 0.8) : legs;
+// Walking to the right, seen from the side: `stride` texels between the feet (one leg
+// forward, then the other) and the near arm swung the other way. Flipped to walk left.
+const walking = (hair: string, top: string, legs: string, stride: number): Paint => (x, y) => {
+  if (y < 8) return x < 5 || x > 10 ? null : y < 3 || (x < 7 && y < 6) ? hair : y === 4 && x === 9 ? INK : SKIN;
+  if (y < 20) {
+    const arm = 7.5 - (stride * (y - 8)) / 24; // the arm swings against the near leg
+    if (Math.abs(x - arm) < 1 && y > 8) return y > 17 ? SKIN : shade(top, 0.8);
+    return x > 4 && x < 11 ? top : null;
+  }
+  const k = (stride * (y - 20)) / 11;
+  const [near, far] = [7.5 + k / 2, 7.5 - k / 2];
+  const on = (c: number) => Math.abs(x - c) < 1.3;
+  return on(near) ? (y > 29 ? INK : legs) : on(far) ? (y > 29 ? INK : shade(legs, 0.75)) : null;
+};
+// Climbing, seen from behind: one hand up and the other knee raised, then the other way.
+const climbing = (hair: string, top: string, legs: string, left: boolean): Paint => (x, y) => {
+  if ((x > 1 && x < 4) || (x > 11 && x < 14)) {
+    const sleeve = shade(top, 0.85);
+    // The raised arm reaches for the rung over the head; the other hangs.
+    if (left === x < 4) return y > 0 && y < 16 ? (y < 3 ? SKIN : sleeve) : null;
+    return y > 8 && y < 20 ? (y < 18 ? sleeve : SKIN) : null;
+  }
+  if (x < 4 || x > 11) return null;
+  if (y < 8) return y < 6 ? hair : SKIN;
+  if (y < 20) return top;
+  const raised = left ? x > 7 : x < 8;
+  return raised && y > 27 ? null : y > (raised ? 25 : 29) ? INK : legs;
+};
+// A spotlight set in the ceiling: a ring with its lamp under it, and a faint beam when it is on.
+const spot = (on: boolean): Paint => (x, y) => {
+  const mid = Math.abs(x - 7.5);
+  if (y < 2) return mid < 4 ? (y === 0 || mid > 3 ? "#7c7f86" : "#b9bcc4") : null;
+  if (y === 2) return mid < 2.5 ? (on ? "#fff8d8" : "#5a5a5a") : null;
+  return on && y < 9 && mid < 1.5 + (y - 3) * 0.6 ? "rgba(255,240,190,.22)" : null;
+};
+// A strip of light along the top of the wall, under the ceiling.
+const strip = (on: boolean): Paint => (_x, y) => (y === 1 ? "#7c7f86" : y === 2 ? (on ? "#fff3c0" : "#6a6a66") : on && y === 3 ? "rgba(255,233,160,.45)" : null);
+// A standing lamp, two blocks tall: a shade that widens to its rim, a pole and a foot.
+const standing = (on: boolean): Paint => (x, y, r) => {
+  const mid = Math.abs(x - 7.5);
+  if (y > 1 && y < 11) return mid < 2.5 + (y - 2) * 0.5 ? (y === 10 ? (on ? "#d8a43a" : "#8a8478") : j(on ? "#ffe9a0" : "#c9c2b4", r, 0.05)) : null;
+  if (y === 11) return mid < 2 ? (on ? "#fff8d8" : "#3a2a18") : null;
+  if (y > 11 && y < 29) return mid < 1 ? "#3a2a18" : null;
+  return y > 28 && y < 31 && mid < 4 ? "#3a2a18" : null;
+};
+const FRAMES = 7; // standing, four of walking, two of climbing: one strip, a block wide each
+const person = (hair: string, top: string, legs: string): Paint => {
+  const frames = [facing(hair, top, legs), ...[4, 0, -4, 0].map((stride) => walking(hair, top, legs, stride)), climbing(hair, top, legs, true), climbing(hair, top, legs, false)];
+  return (x, y, r) => frames[x >> 4](x & 15, y, r);
+};
 const bitmap = (rows: string[], colour: string): [number, number, Paint] => [rows[0].length, rows.length, (x, y) => (rows[y][x] === "#" ? colour : null)];
 const HEART = [".##.##.", "#######", "#######", ".#####.", "..###..", "...#..."], BOLT = ["..##", ".##.", "####", ".##.", "##..", "#..."];
 const cloud = (hex: string): Paint => (x, y) => (y > 4 && y < 10 && x > 1 && x < 14 && !(y === 5 && (x < 5 || x > 10)) ? hex : null);
@@ -72,8 +132,16 @@ const PAINTS: Record<string, [number, number, Paint]> = {
   board: [16, 16, (x, y, r) => (edge(x, y) ? shade(WOOD, 0.55) : j(WOOD, r, 0.05))],
   glass: [16, 32, (x, y) => (edge(x, y, 16, 32) || y === 15 ? "#dff1ff" : (x + y) % 16 === 8 && x > 2 && x < 8 ? "rgba(255,255,255,.8)" : "rgba(170,215,255,.25)")],
   slat: [16, 16, (_x, y) => (y % 3 === 2 ? shade("#e8e0c8", 0.7) : "#e8e0c8")],
-  lampOff: [16, 16, lamp("#4a3016", "#4f3a1c", "#7a5a2a", 0.06)],
-  lampOn: [16, 16, lamp("#a8742a", "#e0a93a", "#ffe9a0", 0.05)],
+  lampOff: [16, 16, pendant(false)],
+  lampOn: [16, 16, pendant(true)],
+  spotOff: [16, 16, spot(false)],
+  spotOn: [16, 16, spot(true)],
+  stripOff: [16, 16, strip(false)],
+  stripOn: [16, 16, strip(true)],
+  standingOff: [16, 32, standing(false)],
+  standingOn: [16, 32, standing(true)],
+  lanternOff: [16, 16, lantern("#4a3016", "#4f3a1c", "#7a5a2a", 0.06)],
+  lanternOn: [16, 16, lantern("#a8742a", "#e0a93a", "#ffe9a0", 0.05)],
   machOff: [16, 16, machine(false)],
   machOn: [16, 16, machine(true)],
   stoveOff: [16, 16, stove(false)],
@@ -151,10 +219,11 @@ const kept = (key: string, make: () => HTMLCanvasElement) => {
 };
 /** A texture as a CSS background. */
 export const bg = (name: string) => `url(${kept(name, () => texture(name))})`;
-/** A person's figure as a CSS background: sixteen texels by thirty-two, dressed by their name. */
+/** A person's figure as a CSS background, dressed by their name: a strip of FRAMES
+ * frames, each sixteen texels by thirty-two (styles.ts steps through them). */
 export function figure(name: string) {
   const n = hash(name);
-  return `url(${kept(`who:${name}`, () => painted(`who:${name}`, 16, 32, person(HAIR[n % HAIR.length], TOPS[(n >> 3) % TOPS.length], LEGS[(n >> 6) % LEGS.length])))})`;
+  return `url(${kept(`who:${name}`, () => painted(`who:${name}`, 16 * FRAMES, 32, person(HAIR[n % HAIR.length], TOPS[(n >> 3) % TOPS.length], LEGS[(n >> 6) % LEGS.length])))})`;
 }
 
 // ---- Lettering: three texels by five, a row to an octal digit. ----

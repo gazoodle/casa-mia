@@ -1,3 +1,4 @@
+import hashlib
 import json
 import subprocess
 import sys
@@ -78,6 +79,27 @@ def test_a_plugin_is_stamped_in_its_built_file(tmp_path, monkeypatch):
     # A build that lost the marker is said, not passed over.
     plugin.write_text("var b = 2;\n")
     assert "no cm-plugin-version@ marker" in cv.problems(cv.current(), {})[0]
+
+
+def test_a_plugins_guides_count_as_its_files(tmp_path, monkeypatch):
+    """Its mirror's README is made of its guides, so a changed guide is a new version."""
+    sys.path.insert(0, str(ROOT / "tools"))
+    import component_versions as cv
+    import mirror
+
+    guide = tmp_path / "docs" / "demo.md"
+    guide.parent.mkdir()
+    guide.write_text("It isn't published there yet.\n")
+    monkeypatch.setattr(cv, "ROOT", tmp_path)
+    monkeypatch.setattr(mirror, "PLUGINS", {"demo-card": ("Demo", ("docs/demo.md",))})
+    built = b'var a = "cm-plugin-version@1";\n'
+
+    was = cv.plugin_digest("demo-card", built)
+    guide.write_text("Add that repository in HACS.\n")
+    assert cv.plugin_digest("demo-card", built) != was
+    # A plugin with no mirror is its file alone, without its version.
+    alone = hashlib.sha256(b'var a = "cm-plugin-version@";\n').hexdigest()
+    assert cv.plugin_digest("other", built) == alone
 
 
 def test_a_release_gives_its_version_to_the_components_its_builds_changed(

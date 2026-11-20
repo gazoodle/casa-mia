@@ -430,7 +430,7 @@ top or bottom panel's fixed Width counts in) and `debug: true` (see [Debugging](
 
 Tablet Layout is also published by itself, in the repository
 [gazoodle/casa-mia-tablet-layout](https://github.com/gazoodle/casa-mia-tablet-layout),
-for a house without Casa Mia. It isn't published there yet. Add that repository in HACS,
+for a house without Casa Mia. Add that repository in HACS,
 or in Home Assistant's Marketplace (2026.11 and later), as a custom repository, and
 download it. It is a dashboard resource, which HACS calls the type Dashboard.
 
