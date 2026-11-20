@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Digs</title>
+<style>
+html, body { margin: 0; height: 100%; overflow: hidden; }
+body { background: #7fb2ff; transition: background 1s; }
+/* Everything is drawn at 16 texels to a block and shown three times the size, unsmoothed. */
+canvas, button, i, .px, #fall, .spout, .who { image-rendering: pixelated; }
+[hidden] { display: none !important; }
+#stage { position: absolute; left: 50%; bottom: 0; width: 1344px; height: 768px; translate: -50%; transform-origin: 50% 100%; }
+#stage > * { position: absolute; left: 0; top: 0; }
+#world, #dark { width: 1344px; height: 768px; }
+#dark, #hud, #sky { pointer-events: none; }
+#sky, #things, #hud { width: 100%; height: 100%; }
+#orb { position: absolute; width: 96px; height: 96px; transition: left 1s, top 1s; }
+#orb.sun { background: #ffe45c; box-shadow: inset 0 0 0 12px #ffd020; }
+#orb.moon { background: #e3e9f6; box-shadow: inset -24px -12px 0 0 #b9c3da; }
+.cloud { position: absolute; left: -240px; width: 144px; height: 48px; background: #fff; opacity: .9; box-shadow: 48px -24px 0 0 #fff; animation: drift 140s linear infinite; }
+@keyframes drift { to { translate: 1700px; } }
+#fall { position: absolute; inset: 0; background-size: 48px 96px; animation: fall .5s linear infinite; }
+#fall.snow { background-size: 48px 48px; animation-duration: 5s; }
+@keyframes fall { to { background-position: 0 96px; } }
+
+#things > *, #hud > * { position: absolute; }
+button { border: 0; padding: 0; margin: 0; background: transparent 0 0 / 100% 100% no-repeat; cursor: pointer; font: inherit; color: inherit; }
+button:hover, button:focus-visible { outline: 3px solid #fff; outline-offset: -3px; }
+.dev { overflow: hidden; }
+.dev .blind { position: absolute; left: 0; top: 0; width: 100%; background-size: 48px 48px; transition: height .4s steps(8); }
+/* A guarded block cracks at the first hit and gives way at the second. */
+.dev.cracked::after { content: ""; position: absolute; inset: 0; background: var(--crack) 0 0 / 100% 100%; }
+.who { background-size: 100% 100%; transition: left .5s steps(4); pointer-events: none; }
+.who canvas { position: absolute; bottom: 100%; left: 50%; translate: -50% -3px; }
+.spout { background-size: 100% 100%; animation: bob .4s steps(2) infinite; pointer-events: none; }
+@keyframes bob { 50% { translate: 0 3px; } }
+
+.label { display: flex; justify-content: center; align-items: center; height: 48px; }
+.bar { display: flex; gap: 3px; align-items: center; top: 12px; }
+.bar i { width: 21px; height: 18px; background-size: 100% 100%; }
+.bar.power i { width: 12px; }
+#hud button, #tip { pointer-events: auto; display: flex; align-items: center; justify-content: center; height: 48px; padding: 0 16px;
+  background: rgba(0,0,0,.55); box-shadow: inset 0 0 0 3px #8b8b8b; }
+#hud button.sel { box-shadow: inset 0 0 0 3px #fff; }
+.row { display: flex; gap: 6px; left: 50%; translate: -50%; }
+#tip { pointer-events: none; height: 30px; box-shadow: none; left: 50%; translate: -50%; bottom: 70px; white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .cloud, #fall, .spout { animation: none; } }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="sky"><div id="orb"></div><div class="cloud" style="top:30px"></div><div class="cloud" style="top:84px;animation-delay:-80s"></div><div id="fall" hidden></div></div>
+  <canvas id="world" width="448" height="256"></canvas>
+  <div id="things"></div>
+  <canvas id="dark" width="28" height="16"></canvas>
+  <div id="hud">
+    <div class="bar" id="hearts" style="left:12px"></div>
+    <div class="bar power" id="power" style="right:12px"></div>
+    <div class="row" style="top:6px"><button id="clock" title="Three hours later"></button><button id="weather" title="Change the weather"></button></div>
+    <div id="tip"></div>
+    <div class="row" id="hotbar" style="bottom:10px"></div>
+  </div>
+</div>
+
+<script src="house.js"></script>
+<script>
+const W = 28, H = 16, B = 48;   // the world in blocks, and a block on the screen
+const $ = (id) => document.getElementById(id);
+const el = (tag, props = {}) => Object.assign(document.createElement(tag), props);
+const canvas = (w, h) => el("canvas", { width: w, height: h });
+
+// ---- Textures: all made here from a seeded pattern, so the page needs no pictures. ----
+
+const rng = (a) => () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+const shade = (hex, k) => { const n = parseInt(hex.slice(1), 16); return `rgb(${[n >> 16, n >> 8 & 255, n & 255].map((v) => Math.min(255, Math.round(v * k))).join()})`; };
+// A colour a step or two lighter or darker, in four steps as pixel art has.
+const j = (hex, r, a = .1) => shade(hex, 1 + (Math.floor(r() * 4) - 1.5) * a);
+
+const texs = {}, urls = {};
+function tex(name, w, h, fn) {
+  const c = canvas(w, h), g = c.getContext("2d"), r = rng([...name].reduce((s, ch) => s * 31 + ch.charCodeAt(0) | 0, 7));
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const p = fn(x, y, r); if (p) { g.fillStyle = p; g.fillRect(x, y, 1, 1); } }
+  return texs[name] = c;
+}
+const bg = (name) => urls[name] ??= `url(${texs[name].toDataURL()})`;
+const edge = (x, y, w = 16, h = 16) => x === 0 || y === 0 || x === w - 1 || y === h - 1;
+const WOOD = "#b98a4e", DARK = "#7d5a30", GREY = "#868686";
+const plank = (hex) => (x, y, r) => y % 4 === 3 || x === ((y >> 2) * 7 + 3) % 16 ? shade(hex, .7) : j(hex, r, .06);
+
+tex("dirt", 16, 16, (x, y, r) => j("#7a5536", r));
+tex("grass", 16, 16, (x, y, r) => y < 3 + (r() * 3 | 0) ? j("#5aa13c", r) : j("#7a5536", r));
+tex("stone", 16, 16, (x, y, r) => y % 4 === 3 || (x + (y >> 2) * 5) % 8 === 0 ? shade(GREY, .72) : j(GREY, r, .07));
+tex("ore", 16, 16, (x, y, r) => r() < .1 && !edge(x, y) ? "#e0913a" : j(GREY, r, .08));
+tex("plank", 16, 16, plank(WOOD));
+tex("beam", 16, 16, plank(DARK));
+tex("wall", 16, 16, (x, y, r) => j("#9c927c", r, .04));
+tex("roof", 16, 16, (x, y, r) => y % 4 === 3 || (x + (y >> 2) % 2 * 4) % 8 === 0 ? shade("#9a3b2e", .65) : j("#9a3b2e", r, .08));
+tex("brick", 16, 16, (x, y, r) => y % 4 === 3 || (x + (y >> 2) % 2 * 4) % 8 === 7 ? "#c9c2b4" : j("#a4553c", r, .08));
+tex("trunk", 16, 16, (x) => shade("#6b4a2b", 1 + ((x * 37 % 5) - 2) * .08));
+tex("leaves", 16, 16, (x, y, r) => r() < .1 ? null : j("#3f7d2c", r, .16));
+tex("water", 16, 16, (x, y, r) => y % 5 === 1 && r() < .6 ? "#7fa8f0" : j("#3a6fd8", r, .05));
+tex("glass", 16, 32, (x, y) => edge(x, y, 16, 32) || y === 15 ? "#dff1ff" : (x + y) % 16 === 8 && x > 2 && x < 8 ? "rgba(255,255,255,.8)" : "rgba(170,215,255,.25)");
+const lamp = (frame, grid, inner, a) => (x, y, r) => edge(x, y) ? frame : x % 5 === 0 || y % 5 === 0 ? grid : j(inner, r, a);
+tex("lampOff", 16, 16, lamp("#4a3016", "#4f3a1c", "#7a5a2a", .06));
+tex("lampOn", 16, 16, lamp("#a8742a", "#e0a93a", "#ffe9a0", .05));
+const machine = (on) => (x, y, r) => edge(x, y) ? shade(GREY, .55) : x > 3 && x < 12 && y > 5 && y < 13 ? (on ? j("#ffb030", r, .2) : "#26262a") : y < 3 ? shade(GREY, 1.15) : j("#7c7f86", r, .06);
+tex("machOff", 16, 16, machine(false));
+tex("machOn", 16, 16, machine(true));
+tex("door", 16, 32, (x, y, r) => x < 1 || x > 14 || y < 1 ? "#5e3d18" : (x > 2 && x < 7 || x > 8 && x < 13) && y > 3 && y < 10 ? "rgba(190,225,255,.6)"
+  : x > 10 && x < 13 && y > 16 && y < 19 ? "#e6c65a" : y === 14 || y === 30 ? "#5e3d18" : j("#9a6a34", r, .06));
+tex("doorOpen", 16, 32, (x, y, r) => x < 3 ? j("#9a6a34", r, .06) : null);
+tex("slat", 16, 16, (x, y) => y % 3 === 2 ? shade("#e8e0c8", .7) : "#e8e0c8");
+tex("post", 16, 16, (x, y, r) => x > 5 && x < 10 ? j(DARK, r, .08) : null);
+tex("ladder", 16, 16, (x, y) => x === 2 || x === 3 || x === 12 || x === 13 || (y % 4 === 1 && x > 1 && x < 14) ? "#8a6536" : null);
+tex("bed", 32, 16, (x, y, r) => y < 6 ? null : y < 12 ? (x < 9 ? "#f4f1ea" : j("#b8323a", r, .06)) : y < 14 ? DARK : x < 3 || x > 28 ? DARK : null);
+tex("shelf", 16, 16, (x, y) => edge(x, y) || y === 1 || y === 14 || y === 7 || y === 8 ? WOOD : shade(["#b8323a", "#3a6fd8", "#3f7d2c", "#e0913a", "#e8e0c8"][(x * 3 + (y > 8 ? 2 : 0)) % 5], x % 2 ? 1 : .85));
+tex("crate", 16, 16, (x, y, r) => edge(x, y) ? shade(WOOD, .6) : x === y || x === 15 - y ? shade(WOOD, .75) : j(WOOD, r, .06));
+tex("spout", 16, 16, (x, y, r) => (x > 5 && x < 10 && r() < .8) || r() < .06 ? "#9cc4ff" : null);
+tex("rain", 16, 16, (x, y, r) => r() < .04 ? "rgba(200,220,255,.85)" : null);
+tex("snow", 16, 16, (x, y, r) => r() < .03 ? "#fff" : null);
+tex("ghost", 16, 16, (x, y) => edge(x, y) && (x + y) % 2 ? "rgba(255,255,255,.45)" : null);
+{ // A crack that wanders down a door.
+  const r = rng(11), at = new Set(); let x = 8;
+  for (let y = 0; y < 32; y++) { x += Math.floor(r() * 3) - 1; at.add(`${x},${y}`); if (y % 9 === 4) at.add(`${x + 1},${y}`).add(`${x + 2},${y - 1}`); }
+  tex("crack", 16, 32, (x, y) => at.has(`${x},${y}`) ? "rgba(20,10,0,.85)" : null);
+}
+const person = (hair, top, legs) => (x, y) => y < 8 ? (x < 4 || x > 11 ? null : y < 3 ? hair : (y === 4 && (x === 6 || x === 9)) ? "#2a2018" : "#e0b088")
+  : y < 20 ? (x > 3 && x < 12 ? top : x > 1 && x < 14 ? (y < 18 ? shade(top, .85) : "#e0b088") : null)
+  : x < 4 || x > 11 ? null : y > 29 ? "#2a2018" : x === 7 || x === 8 ? shade(legs, .8) : legs;
+tex("ada", 16, 32, person("#5a2d1a", "#e0913a", "#3f6d4c"));
+tex("bram", 16, 32, person("#c9c2b4", "#7a4fa8", "#4a5a78"));
+const bmp = (name, rows, col) => tex(name, rows[0].length, rows.length, (x, y) => rows[y][x] === "#" ? col : null);
+const HEART = [".##.##.", "#######", "#######", ".#####.", "..###..", "...#..."], BOLT = ["..##", ".##.", "####", ".##.", "##..", "#..."];
+bmp("heart", HEART, "#e02c3c"); bmp("heart0", HEART, "rgba(0,0,0,.5)"); bmp("bolt", BOLT, "#ffd83a"); bmp("bolt0", BOLT, "rgba(0,0,0,.5)");
+
+// ---- Lettering: three texels by five, a row to an octal digit. ----
+
+const FONT = { A: "25755", B: "65656", C: "34443", D: "65556", E: "74647", F: "74644", G: "34553", H: "55755", I: "72227", J: "11152", K: "55655", L: "44447",
+  M: "57755", N: "65555", O: "25552", P: "65644", Q: "25573", R: "65655", S: "34216", T: "72222", U: "55557", V: "55552", W: "55775", X: "55255", Y: "55222", Z: "71247",
+  0: "75557", 1: "26227", 2: "61247", 3: "61216", 4: "55711", 5: "74616", 6: "34757", 7: "71222", 8: "75757", 9: "75716",
+  ".": "00002", ":": "02020", "%": "51245", "°": "25200", "-": "00700", ",": "00024" };
+function txt(s, scale = 3) {
+  s = String(s).toUpperCase();
+  const c = canvas(s.length * 4, 6), g = c.getContext("2d");
+  // Twice: a shadow one texel down and across, then the letters.
+  for (const [o, col] of [[1, "rgba(0,0,0,.7)"], [0, "#fff"]]) {
+    g.fillStyle = col;
+    [...s].forEach((ch, i) => [...(FONT[ch] ?? "00000")].forEach((row, y) => { for (let b = 0; b < 3; b++) if (row & (4 >> b)) g.fillRect(i * 4 + b + o, y + o, 1, 1); }));
+  }
+  c.className = "px"; c.style.width = `${c.width * scale}px`;
+  return c;
+}
+const say = (node, s, scale) => { node.replaceChildren(txt(s, scale)); node.setAttribute("aria-label", s); };
+
+// ---- The world: the house in section, standing in its garden. ----
+
+const world = Array.from({ length: H }, () => Array(W).fill(null));
+const put = (x0, y0, x1, y1, t) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) world[y][x] = typeof t === "function" ? t(x, y) : t; };
+// A room's inside, corner to corner. Each is three blocks high.
+const ROOMS = { kitchen: [9, 10, 13, 12], sitting: [15, 10, 19, 12], hall: [21, 10, 25, 12], study: [9, 6, 16, 8], bedroom: [18, 6, 25, 8] };
+// Where each device's block is, and how many blocks tall.
+const PLACE = { k_ceiling: [11, 10], k_counter: [13, 10], k_kettle: [13, 12], k_blind: [9, 10, 2],
+  s_lamp: [15, 11], s_ceiling: [17, 10], s_tv: [19, 12], s_curtain: [19, 10, 2],
+  st_desk: [10, 7], st_shelf: [15, 6], st_printer: [12, 8],
+  h_ceiling: [23, 10], h_porch: [26, 10], h_lock: [26, 11, 2],
+  b_bedside: [19, 7], b_ceiling: [22, 6], b_blind: [24, 6, 2],
+  g_path: [5, 11], g_pond: [2, 12], g_water: [6, 12] };
+// Furniture and the like: a texture, where, and how many blocks wide.
+const DECO = [["post", 15, 12], ["post", 19, 8], ["post", 5, 12], ["bed", 20, 8, 2], ["crate", 10, 8],
+  ["shelf", 15, 7], ["shelf", 16, 7], ["shelf", 15, 8], ["shelf", 16, 8], ...[9, 10, 11, 12].map((y) => ["ladder", 25, y])];
+
+{
+  const r = rng(3);
+  put(0, 13, 27, 13, "grass"); put(0, 14, 27, 14, () => r() < .15 ? "stone" : "dirt"); put(0, 15, 27, 15, () => r() < .12 ? "ore" : r() < .6 ? "stone" : "dirt");
+  put(0, 13, 1, 13, "water");
+  put(3, 10, 3, 12, "trunk"); put(2, 7, 4, 9, "leaves"); put(3, 6, 3, 6, "leaves");
+  put(8, 5, 26, 13, "plank"); put(8, 13, 26, 13, "stone"); put(8, 9, 26, 9, "beam");
+  put(8, 5, 26, 5, "roof"); put(10, 4, 24, 4, "roof"); put(12, 3, 22, 3, "roof"); put(21, 2, 21, 2, "brick");
+  for (const [x0, y0, x1, y1] of Object.values(ROOMS)) put(x0, y0, x1, y1, "wall");
+  put(14, 11, 14, 12, "wall"); put(20, 11, 20, 12, "wall"); put(17, 7, 17, 8, "wall"); put(25, 9, 25, 9, "wall"); put(26, 11, 26, 12, "wall");   // doorways, the ladder's hole and the front door's
+
+  const g = $("world").getContext("2d");
+  world.forEach((row, y) => row.forEach((t, x) => t && g.drawImage(texs[t], x * 16, y * 16)));
+  for (const [t, x, y] of DECO) g.drawImage(texs[t], x * 16, y * 16);
+}
+
+const things = $("things");
+const at = (node, x, y, w = 1, h = 1) => { Object.assign(node.style, { left: `${x * B}px`, top: `${y * B}px`, width: `${w * B}px`, height: `${h * B}px` }); return node; };
+things.style.setProperty("--crack", bg("crack"));
+
+// The people at home. They are the mock-up's own: house.js has none.
+const people = [{ name: "Ada", tex: "ada", room: "kitchen", x: 11 }, { name: "Bram", tex: "bram", room: "study", x: 13 }];
+for (const p of people) {
+  const [x0, , x1, y1] = ROOMS[p.room];
+  p.node = things.appendChild(at(el("div", { className: "who" }), p.x, y1 - 1, 1, 2));
+  p.node.style.backgroundImage = bg(p.tex);
+  p.node.append(txt(p.name, 2));
+  setInterval(() => { p.x = Math.max(x0, Math.min(x1 - 1, p.x + Math.floor(Math.random() * 3) - 1)); p.node.style.left = `${p.x * B}px`; }, 4000 + Math.random() * 3000);
+}
+
+const els = {}, spouts = {};
+for (const d of House.devices) {
+  const [x, y, h = 1] = PLACE[d.id];
+  const b = els[d.id] = things.appendChild(at(el("button", { className: "dev" }), x, y, 1, h));
+  b.dataset.id = d.id;
+  if (d.kind === "cover") { b.style.backgroundImage = bg("glass"); b.append(el("span", { className: "blind" })); b.firstChild.style.backgroundImage = bg("slat"); }
+  if (d.room.id === "garden" && d.kind === "switch") {   // water comes out beside the pump and above the sprinkler
+    spouts[d.id] = things.appendChild(at(el("div", { className: "spout" }), d.id === "g_pond" ? 1 : x, y - (d.id === "g_pond" ? 0 : 1)));
+    spouts[d.id].style.backgroundImage = bg("spout");
+  }
+}
+
+// The level of the device last pressed is a stack of ten blocks beside the house.
+const stack = Array.from({ length: 10 }, (_, i) => { const b = things.appendChild(at(el("button", { className: "lvl" }), 27, 12 - i)); b.dataset.n = i + 1; return b; });
+
+// ---- The bars, the clock and the scenes. ----
+
+const hud = $("hud");
+const icons = (node, n) => Array.from({ length: n }, () => node.appendChild(el("i")));
+const hearts = icons($("hearts"), 10), bolts = icons($("power"), 10), kw = $("power").appendChild(el("span"));
+for (const [id, [x0, y0, x1]] of Object.entries(ROOMS)) {
+  const room = House.rooms.find((r) => r.id === id);
+  say(hud.appendChild(at(el("div", { className: "label" }), x0, y0 - 1, x1 - x0 + 1)), `${room.name} ${room.temp.toFixed(1)}°`);
+}
+const garden = House.rooms.find((r) => r.id === "garden");
+say(hud.appendChild(at(el("div", { className: "label" }), 0, 4, 8)), `Garden ${garden.temp.toFixed(1)}°`);
+for (const s of House.scenes) { const b = $("hotbar").appendChild(el("button")); b.dataset.scene = s.id; say(b, s.name); }
+
+let sel = null, armed = null, skip = 0, day = 1, sky = 0;
+const SKIES = ["Clear", "Rain", "Snow"];
+
+// ---- Light: each block is as bright as the sky or the nearest lit lamp makes it. ----
+
+const zone = (x, y) => Object.keys(ROOMS).find((id) => { const [x0, y0, x1, y1] = ROOMS[id]; return x >= x0 && x <= x1 && y >= y0 && y <= y1; })
+  ?? (x >= 8 && x <= 26 && y >= 3 && y <= 13 ? "struct" : "out");
+const zones = world.map((row, y) => row.map((_, x) => zone(x, y)));
+const filled = world.map((row) => row.map(Boolean));
+for (const [, x, y, w = 1] of DECO) for (let i = 0; i < w; i++) filled[y][x + i] = true;
+for (const [x, y, h = 1] of Object.values(PLACE)) for (let i = 0; i < h; i++) filled[y + i][x] = true;
+
+function light() {
+  const g = $("dark").getContext("2d");
+  // A lamp lights its own room and the walls round it, never the room next door.
+  const lamps = House.devices.filter((d) => d.kind === "light" && d.on).map((d) =>
+    ({ x: PLACE[d.id][0], y: PLACE[d.id][1], k: .6 + .4 * d.level / 100, zone: d.room.id === "garden" || d.id === "h_porch" ? "out" : d.room.id }));
+  g.clearRect(0, 0, W, H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (!filled[y][x]) continue;   // the open sky is the page's own colour
+    const z = zones[y][x], blind = House.rooms.find((r) => r.id === z)?.devices.find((d) => d.kind === "cover");
+    let v = z === "out" ? Math.max(.15, day) : z === "struct" ? Math.max(.3, day) : .15 + .45 * day + (blind?.on ? .3 * day * blind.level / 100 : 0);
+    for (const l of lamps) if (z === l.zone || z === "struct") v = Math.max(v, l.k * (1 - Math.hypot(x - l.x, y - l.y) / (l.zone === "out" ? 4 : 6)));
+    g.fillStyle = `rgba(6,8,26,${(1 - Math.min(1, v)) * .8})`;
+    g.fillRect(x, y, 1, 1);
+  }
+}
+
+// ---- Painting and pressing. ----
+
+function paint() {
+  for (const d of House.devices) {
+    const b = els[d.id];
+    if (d.kind === "light") b.style.backgroundImage = bg(d.on ? "lampOn" : "lampOff");
+    if (d.kind === "switch") { b.style.backgroundImage = bg(d.on ? "machOn" : "machOff"); if (spouts[d.id]) spouts[d.id].hidden = !d.on; }
+    if (d.kind === "cover") b.firstChild.style.height = `${d.on ? 100 - d.level : 100}%`;
+    if (d.kind === "lock") b.style.backgroundImage = bg(d.on ? "door" : "doorOpen");
+    b.classList.toggle("cracked", armed === d.id);
+    b.setAttribute("aria-label", `${d.room.name} ${d.name}: ${House.state(d)}`);
+  }
+
+  // A heart is lost for each door left unlocked; the bolts are the power in use, 300 W each.
+  const open = House.devices.filter((d) => d.kind === "lock" && !d.on).length, watts = House.watts();
+  hearts.forEach((h, i) => h.style.backgroundImage = bg(i < 10 - open ? "heart" : "heart0"));
+  bolts.forEach((b, i) => b.style.backgroundImage = bg(i < Math.round(watts / 300) ? "bolt" : "bolt0"));
+  kw.replaceChildren(txt(` ${(watts / 1000).toFixed(2)} kW`));
+
+  const levelled = sel && (sel.kind === "light" || sel.kind === "cover");
+  stack.forEach((b, i) => {
+    b.disabled = !levelled;
+    b.style.backgroundImage = bg(levelled && sel.on && sel.level >= (i + 1) * 10 - 5 ? (sel.kind === "light" ? "lampOn" : "slat") : "ghost");
+    b.setAttribute("aria-label", levelled ? `${sel.name} to ${(i + 1) * 10}%` : "No level");
+  });
+  say($("tip"), armed ? "Hit again to unlock" : sel ? `${sel.room.name} ${sel.name}: ${House.state(sel)}` : "Press a block", 2);
+  light();
+}
+
+things.addEventListener("click", (e) => {
+  const lvl = e.target.closest(".lvl"), dev = e.target.closest(".dev");
+  if (lvl && sel) return House.set(sel.id, lvl.dataset.n * 10);
+  if (!dev) return;
+  sel = House.find(dev.dataset.id);
+  // Unlocking takes two hits within three seconds. Locking takes one.
+  if (sel.kind === "lock" && sel.on && armed !== sel.id) {
+    armed = sel.id;
+    setTimeout(() => { armed = null; paint(); }, 3000);
+    return paint();
+  }
+  armed = null;
+  House.toggle(sel.id);
+});
+$("hotbar").addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  House.scene(b.dataset.scene);
+  for (const o of $("hotbar").children) o.classList.toggle("sel", o === b);
+  paint();
+});
+
+// ---- The sky: the real time of day, and three hours on at each press of the clock. ----
+
+const mix = (a, b, k) => `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * k)).join()})`;
+function tick() {
+  const now = new Date(), h = (now.getHours() + now.getMinutes() / 60 + skip) % 24, up = h >= 6 && h < 18, f = ((h + (up ? 18 : 6)) % 24) / 12;
+  day = Math.max(0, Math.min(1, Math.sin(Math.PI * (h - 6) / 12) * 1.5 + .15)) * (sky ? .8 : 1);
+  document.body.style.background = mix(mix([10, 15, 44], [127, 178, 255], day).match(/\d+/g).map(Number), [125, 135, 148], sky ? .5 : 0);
+  Object.assign($("orb").style, { left: `${f * (W * B - 96)}px`, top: `${640 - Math.sin(Math.PI * f) * 600}px` });
+  $("orb").className = up ? "sun" : "moon";
+  $("orb").hidden = sky > 0;
+  say($("clock"), `${String(Math.floor(h)).padStart(2, 0)}:${String(Math.floor(h % 1 * 60)).padStart(2, 0)}`);
+  say($("weather"), `${SKIES[sky]} ${garden.temp.toFixed(1)}°`);
+  $("fall").hidden = !sky;
+  $("fall").className = sky === 2 ? "snow" : "";
+  $("fall").style.backgroundImage = sky ? bg(sky === 2 ? "snow" : "rain") : "";
+  light();
+}
+$("clock").addEventListener("click", () => { skip += 3; tick(); });
+$("weather").addEventListener("click", () => { sky = (sky + 1) % 3; tick(); });
+setInterval(tick, 30000);
+
+// Smaller than a wall tablet: the whole stage is shrunk to fit.
+const fit = () => { const k = Math.min(innerWidth / 1340, innerHeight / 768); $("stage").style.scale = k >= 1 ? 1 : k; };
+addEventListener("resize", fit);
+
+House.on(paint);
+fit(); tick(); paint();
+</script>
+</body>
+</html>

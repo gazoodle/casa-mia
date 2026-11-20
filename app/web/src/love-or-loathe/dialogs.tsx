@@ -198,12 +198,13 @@ export function StationDialog({
   );
 }
 
-export type EntryBody = { name: string; players: string[]; delay: number; raters: string[]; screens: string[]; repeats: Repeats; repeats_on: boolean };
+export type EntryBody = { name: string; players: string[]; delay: number; back_at_end: boolean; raters: string[]; screens: string[]; repeats: Repeats; repeats_on: boolean };
 
 export function PlayersDialog({ entry, view, onClose, onSave }: { entry: Entry; view: View; onClose: () => void; onSave: (body: EntryBody) => void }) {
   const [name, setName] = useState(entry.title);
   const [players, setPlayers] = useState(entry.players);
   const [delay, setDelay] = useState(entry.delay);
+  const [atEnd, setAtEnd] = useState(entry.back_at_end);
   const [raters, setRaters] = useState(entry.raters);
   const [screens, setScreens] = useState(entry.screens);
   const [repeats, setRepeats] = useState(entry.repeats);
@@ -220,12 +221,12 @@ export function PlayersDialog({ entry, view, onClose, onSave }: { entry: Entry; 
       title={`${entry.title}: its settings`}
       wide
       onClose={onClose}
-      footer={<Buttons onClose={onClose} ready={!!name.trim() && players.length > 0} onSave={() => onSave({ name: name.trim(), players, delay, raters, screens, repeats, repeats_on: on })} />}
+      footer={<Buttons onClose={onClose} ready={!!name.trim() && players.length > 0} onSave={() => onSave({ name: name.trim(), players, delay, back_at_end: atEnd, raters, screens, repeats, repeats_on: on })} />}
     >
       <Field label="Name" help="Shown on its device and entities in Home Assistant.">
         <input value={name} onChange={(e) => setName(e.target.value)} />
       </Field>
-      <Field label="Media players to watch" help="Any player that reports the title of what it is playing. For speakers playing as one group, only the group's leader acts.">
+      <Field label="Media players to watch" help="Any player that reports the title of what it is playing. For speakers playing as one group, the group's leader acts for all of them: a mute or a volume change is made on every speaker in the group.">
         <div className={css.players}>
           {all.map((p) => (
             <label key={p.entity_id} className={guest.check}>
@@ -247,8 +248,14 @@ export function PlayersDialog({ entry, view, onClose, onSave }: { entry: Entry; 
         <input type="number" min={0} max={60} value={delay} onChange={(e) => setDelay(number(e.target.value))} />
       </Field>
       <Field
+        label="Switch back at the end of a song"
+        help="When a player has been switched to another station, it goes back when the song playing at the end of its minutes ends, not in the middle of it. If no new song comes on within 10 minutes after that, it goes back then."
+      >
+        <Switch on={atEnd} label="Switch back at the end of a song" onChange={setAtEnd} />
+      </Field>
+      <Field
         label="Songs played too often"
-        help="For a station with a short playlist. Any song played this many times in the last so many hours is struck, whatever your groups say about it, even a song you love. At 0 times this is off; its switch turns it off and on and keeps the numbers."
+        help="For a station with a short playlist. Any song played this many times in the last so many hours is struck, even a song you love. A song a loathed group has gets that group's own action instead. At 0 times this is off; its switch turns it off and on and keeps the numbers."
       >
         <span className={css.often}>
           <Switch on={on} label="Songs played too often are struck" onChange={setOn} />

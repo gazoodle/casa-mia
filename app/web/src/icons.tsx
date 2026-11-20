@@ -163,3 +163,13 @@ export const HeartIcon = () => (
     <path d="M12 7.8v12.7" />
   </svg>
 );
+
+/** Topology: three rooms, joined. */
+export const TopologyIcon = () => (
+  <svg {...base}>
+    <rect x="3" y="3" width="7" height="6" rx="1.5" />
+    <rect x="14" y="3" width="7" height="6" rx="1.5" />
+    <rect x="8.5" y="15" width="7" height="6" rx="1.5" />
+    <path d="M10 6h4M6.5 9v3.5h5.5V15M17.5 9v3.5H12" />
+  </svg>
+);

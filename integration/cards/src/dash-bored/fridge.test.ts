@@ -32,9 +32,9 @@ test("the notepad says what the day comes to, and shouts about a lock that is un
   const house: any = {
     rooms: [{ id: "hall", name: "Hall", temp: 18.5, devices: [device("light", "Wall", true), device("light", "Porch", false), device("lock", "Front door", false)] }, { id: "study", name: "Study", temp: 21, devices: [] }],
     people: [{ id: "person.ann", name: "Ann", place: "home", since: 0 }, { id: "person.ben", name: "Ben", place: "not_home", since: 0 }],
-    gaps: [], scenes: [], appliances: [], kw: 0.531, outside: { temp: 9.26, sky: "partlycloudy", id: "weather.home", daily: false },
+    strays: [], gaps: [], scenes: [], appliances: [], kw: 0.531, outside: { temp: 9.26, sky: "partlycloudy", id: "weather.home", daily: false },
   };
   assert.deepEqual(today(house), ["1 light on", "Using 0.53 kW", "Hall Front door is UNLOCKED!", "Outside: 9.3°, partly cloudy", "Warmest: Study 21.0°", "Coldest: Hall 18.5°", "In: Ann"]);
   // An empty house has little to say, and says nothing it doesn't know.
-  assert.deepEqual(today({ rooms: [], people: [], gaps: [], scenes: [], appliances: [] }), ["All the lights are off"]);
+  assert.deepEqual(today({ rooms: [], strays: [], people: [], gaps: [], scenes: [], appliances: [] }), ["All the lights are off"]);
 });

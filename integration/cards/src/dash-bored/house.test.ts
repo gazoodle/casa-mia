@@ -1,7 +1,7 @@
 // The survey of the house: which room and floor a device is in, and what it is called there.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { HIDE, sighted, survey } from "./house.ts";
+import { HIDE, read, scenes, sighted, survey } from "./house.ts";
 
 const named = (friendly_name: string) => ({ state: "off", attributes: { friendly_name } });
 
@@ -146,12 +146,147 @@ test("the floors and rooms come in the order asked for, and a card may show only
   assert.deepEqual(order({ rooms: ["shed", "kitchen"], room_order: ["hall"] }), ["kitchen", "shed"]);
 });
 
-test("a ZenOS-AI house's Kata sensor is found by its label and watched with the agent's name, unless it is hidden", () => {
-  const h = hass({ "light.a": ["den", "Lamp"], "sensor.katas": ["", "Katas"] }, { den: { name: "Den" } });
-  Object.assign(h.entities["sensor.katas"], { labels: ["zen_kata_cabinet"] });
-  const found = survey(h, {});
-  assert.equal(found.desk, "sensor.katas");
-  assert.ok(found.watched.includes("sensor.katas") && found.watched.includes("input_text.zenos_persona_name"));
-  Object.assign(h.entities["sensor.katas"], { labels: ["zen_kata_cabinet", HIDE] });
-  assert.equal(survey(h, {}).desk, undefined);
+test("a card for one entity surveys it alone, by its full name, even when hidden or in no room, and watches nothing else", () => {
+  const h = hass({ "light.a": ["den", "Den Lamp"], "light.b": ["den", "Den Spot"], "light.c": ["", "Stray lamp"] }, { den: { name: "Den" } });
+  Object.assign(h.states, { "sensor.t": { state: "20", attributes: {} }, "sensor.out": { state: "9", attributes: { device_class: "temperature" } } });
+  Object.assign(h.areas.den, { temperature_entity_id: "sensor.t" });
+  Object.assign(h.entities["light.a"], { labels: [HIDE] });
+  const one = (entity: string) => survey(h, { entity });
+  assert.deepEqual(one("light.a").rooms.map((r) => [r.name, r.temp, r.devices.map((d) => [d.id, d.name])]), [["", undefined, [["light.a", "Den Lamp"]]]]);
+  assert.deepEqual(one("light.a").watched, ["light.a"]);
+  assert.deepEqual(one("light.c").rooms.map((r) => r.devices.map((d) => d.name)), [["Stray lamp"]]);
+  // A sensor is no device: it is only watched, for its meter.
+  assert.deepEqual([one("sensor.out").rooms, one("sensor.out").watched], [[], ["sensor.out"]]);
+});
+
+test("for the card picker the house is cut to a specimen: the room with the most kinds of thing, four devices, one of each kind first", () => {
+  const h = hass(
+    { "light.a": ["den", "Den Lamp"], "light.b": ["den", "Den Spot"], "light.c": ["den", "Den Strip"], "light.d": ["den", "Den Desk"], "switch.e": ["den", "Den Fan"], "cover.f": ["den", "Den Blind"], "light.g": ["hall", "Hall Lamp"] },
+    { den: { name: "Den" }, hall: { name: "Hall" } },
+  );
+  const s = survey(h, { sample: true });
+  assert.deepEqual(s.rooms.map((r) => r.name), ["Den"]);
+  assert.deepEqual(s.rooms[0].devices.map((d) => d.kind), ["cover", "light", "switch", "light"]);
+  assert.ok(!s.watched.includes("light.g") && s.watched.includes("cover.f"));
+  assert.deepEqual(s.gaps, []);
+  // Whole, without it.
+  assert.equal(survey(h, {}).rooms.length, 2);
+});
+
+test("a scene is its room's by its area or its name, or its floor's, or the house's, and the label hides it", () => {
+  const h = hass(
+    {
+      "light.a": ["barn", "Barn Light"],
+      "light.b": ["loft", "Barn Loft Light"],
+      "light.c": ["snug", "Snug Light"],
+      "scene.one": ["", "Barn - All Off"],
+      "scene.two": ["", "Barn Loft New"],
+      "scene.three": ["snug", "Film night"],
+      "scene.four": ["", "Upstairs all off"],
+      "scene.five": ["", "Barnyard party"],
+      "scene.six": ["", "Barn"],
+      "scene.seven": ["", "Barn Hidden"],
+    },
+    { barn: { name: "Barn" }, loft: { name: "Barn Loft" }, snug: { name: "Snug", floor_id: "up" } },
+    { up: { floor_id: "up", name: "Upstairs", level: 1 } },
+  );
+  (h.entities as any)["scene.seven"].labels = [HIDE];
+  for (const id of Object.keys(h.states)) if (id.startsWith("scene.")) (h.states as any)[id].state = id === "scene.one" ? "2026-11-16T10:00:00+00:00" : "unknown";
+  const found = survey(h as any, {});
+  const room = (name: string) => found.rooms.find((r) => r.name === name)!.scenes.map((s) => [s.id, s.name]);
+  // A room's name on its own is no name for a scene: it keeps its whole name.
+  assert.deepEqual(room("Barn"), [["scene.six", "Barn"], ["scene.one", "All Off"]]);
+  // The longest room name that fits is the room.
+  assert.deepEqual(room("Barn Loft"), [["scene.two", "New"]]);
+  assert.deepEqual(room("Snug"), [["scene.three", "Film night"]]);
+  // "Barnyard" is not the barn; the floor's scene says which floor.
+  assert.deepEqual(found.scenes, [{ id: "scene.five", name: "Barnyard party", full: "Barnyard party", floor: undefined }, { id: "scene.four", name: "All off", full: "Upstairs all off", floor: "Upstairs" }]);
+  assert.ok(found.watched.includes("scene.one") && !found.watched.includes("scene.seven"));
+
+  const house = read(found, h as any);
+  assert.deepEqual(house.rooms.find((r) => r.name === "Barn")!.scenes.map((s) => s.at), [0, Date.parse("2026-11-16T10:00:00+00:00")]);
+  assert.deepEqual(scenes(house).map((s) => s.name).sort(), ["Barn", "Barn - All Off", "Barn Loft New", "Barnyard party", "Film night", "Upstairs all off"]);
+});
+
+test("a camera with several streams is one camera, named for its device: the photographed one if there is one", () => {
+  const h = hass(
+    {
+      "camera.drive_high": ["drive", "Drive cam High resolution channel"],
+      "camera.drive_low": ["drive", "Drive cam Low resolution channel"],
+      "camera.gate_high": ["drive", "Gate cam High resolution channel"],
+      "camera.gate_low": ["drive", "Gate cam Low resolution channel"],
+      "camera.lone": ["drive", "Drive Shed"],
+      "image.gate": ["drive", "Gate cam Last sighting"],
+    },
+    { drive: { name: "Drive" } },
+  );
+  const on = (id: string, device_id: string) => Object.assign((h.entities as any)[id], { device_id });
+  on("camera.drive_high", "d1"), on("camera.drive_low", "d1"), on("camera.gate_high", "d2"), on("camera.gate_low", "d2"), on("camera.lone", "d3"), on("image.gate", "d2");
+  (h.entities as any)["image.gate"].platform = "casa_mia_dash_bored";
+  (h.states as any)["image.gate"].attributes.camera = "camera.gate_low";
+  (h as any).devices = { d1: { name: "Drive cam" }, d2: { name: "Gate cam" }, d3: { name: "Shed cam" } };
+  const found = survey(h as any, {});
+  // The first by id; the one whose sightings are photographed; and one alone keeps its own name.
+  assert.deepEqual(found.rooms[0].devices.map((d) => [d.id, d.name]), [["camera.drive_high", "Cam"], ["camera.gate_low", "Gate cam"], ["camera.lone", "Shed"]]);
+});
+
+test("a camera that Casa Mia lists is shown in place of the one found: its stream, its title, its zoom, presets and controls", () => {
+  const h = hass(
+    {
+      "camera.drive_high": ["drive", "Drive cam High resolution channel"],
+      "camera.drive_low": ["drive", "Drive cam Low resolution channel"],
+      "camera.gate_high": ["drive", "Gate cam High resolution channel"],
+      "camera.gate_low": ["drive", "Gate cam Low resolution channel"],
+      "camera.lone": ["drive", "Drive Shed"],
+      "image.gate": ["drive", "Gate cam Last sighting"],
+      "lock.side": ["hall", "Side door"],
+    },
+    { drive: { name: "Drive" }, hall: { name: "Hall" } },
+  );
+  const on = (id: string, device_id: string) => Object.assign((h.entities as any)[id], { device_id });
+  on("camera.drive_high", "d1"), on("camera.drive_low", "d1"), on("camera.gate_high", "d2"), on("camera.gate_low", "d2"), on("camera.lone", "d3"), on("image.gate", "d2");
+  (h.entities as any)["image.gate"].platform = "casa_mia_dash_bored";
+  (h.states as any)["image.gate"].attributes.camera = "camera.gate_high";
+  (h as any).devices = { d1: { name: "Drive cam" }, d2: { name: "Gate cam" }, d3: { name: "Shed cam" } };
+  // What goes with a camera need be in no room, nor a kind of thing a room shows.
+  Object.assign(h.states, { "number.drive_zoom": { state: "3", attributes: { min: 1, max: 8, step: 0.5 } }, "button.gate": { state: "unknown", attributes: { friendly_name: "Gate opener" } } });
+  const preset = { name: "Road", action: "unifiprotect.ptz_goto_preset", data: { device_id: "d1", preset: "Road" } };
+  const cameras = [
+    { entity: "camera.drive_low", title: "Front drive", zoom: "number.drive_zoom", presets: [preset], controls: [{ entity: "button.gate", name: "" }, { entity: "lock.side", name: "Side" }, { entity: "switch.gone", name: "Gone" }] },
+    // Listed by one stream only: it is still the camera whose other stream is photographed.
+    { entity: "camera.gate_low", title: "The gate", presets: [], controls: [] },
+  ];
+
+  const found = survey(h as any, { cameras });
+  // Casa Mia's stream, not the first by id; the photographed stream, under Casa Mia's title; one it does not list is as it was.
+  assert.deepEqual(found.rooms[0].devices.map((d) => [d.id, d.name]), [["camera.drive_low", "Front drive"], ["camera.lone", "Shed"], ["camera.gate_high", "The gate"]]);
+  for (const id of ["number.drive_zoom", "button.gate", "lock.side"]) assert.ok(found.watched.includes(id), id);
+
+  const [drive, lone, gate] = read(found, h as any).rooms[0].devices;
+  assert.deepEqual(drive.zoom, { id: "number.drive_zoom", level: 3, span: { min: 1, max: 8, step: 0.5, vote: 0.5 } });
+  assert.deepEqual(drive.presets, [preset]);
+  // A control gone from Home Assistant is left out; a lock among them is a device, and guarded.
+  assert.deepEqual(drive.controls!.map((c) => [c.id, c.name, c.device?.kind, c.device?.guarded]), [["button.gate", "Gate opener", undefined, undefined], ["lock.side", "Side", "lock", true]]);
+  assert.deepEqual([gate.zoom, gate.presets, gate.controls], [undefined, [], []]);
+  assert.equal(lone.presets, undefined);
+});
+
+test("a device's choices: a thermostat's mode is its state, a player's source an attribute, and one option is no choice", async () => {
+  const { choices, choosing, worded } = await import("./choices.ts");
+  const stat = { state: "heat", attributes: { hvac_modes: ["off", "heat", "heat_cool"], preset_modes: ["eco"], fan_modes: ["low", "high"], fan_mode: "low" } };
+  assert.deepEqual(choices("climate", stat).map((c) => [c.what, c.options, c.now]), [["Mode", ["off", "heat", "heat_cool"], "heat"], ["Fan", ["low", "high"], "low"]]);
+  const [mode] = choices("climate", stat);
+  assert.deepEqual(choosing("climate.hall", mode, "heat_cool"), { domain: "climate", service: "set_hvac_mode", ids: ["climate.hall"], data: { hvac_mode: "heat_cool" } });
+  assert.equal(worded("heat_cool"), "heat cool");
+
+  const player = { state: "playing", attributes: { source_list: ["Radio", "Line in"], source: "Radio" } };
+  assert.deepEqual(choices("media_player", player).map((c) => [c.what, c.now]), [["Source", "Radio"]]);
+  // A light's effect is chosen by turning the light on with it. None stands when none is running.
+  const [effect] = choices("light", { state: "on", attributes: { effect_list: ["colorloop", "blink"], effect: null } });
+  assert.equal(effect.now, undefined);
+  assert.deepEqual(choosing("light.shelf", effect, "blink"), { domain: "light", service: "turn_on", ids: ["light.shelf"], data: { effect: "blink" } });
+  // Nothing for a kind with none, an entity that is away, or one that is gone.
+  assert.deepEqual(choices("lock", { state: "locked", attributes: {} }), []);
+  assert.deepEqual(choices("climate", { ...stat, state: "unavailable" }), []);
+  assert.deepEqual(choices("climate", undefined), []);
 });

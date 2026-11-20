@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { days, read, survey } from "./house.ts";
-import { RECOVERED, billing, flip, personal, setting, stories, type Alert, type Rated } from "./stories.ts";
+import { RECOVERED, billing, flip, personal, pressing, setting, stories, turning, zooming, type Alert, type Rated } from "./stories.ts";
 import { VOICES, announce, billed, clause, poll, sky, tell, words } from "./voices.ts";
 
 // An invented house, as Home Assistant's page would hold it.
@@ -49,7 +49,7 @@ test("the house is read from areas, with names shortened and settings left out",
   assert.deepEqual(kitchen.devices.map((d) => [d.name, d.kind, d.on, d.level]), [["Thermostat", "climate", true, 21], ["Ceiling", "light", true, 80], ["Counter", "light", false, undefined], ["Kettle", "switch", true, undefined]]);
   assert.equal(kitchen.temp, 19.6);
   assert.equal(kitchen.target, 21);
-  assert.deepEqual(h.scenes, [{ id: "scene.evening", name: "Evening" }]);
+  assert.deepEqual(h.scenes.map((s) => [s.id, s.name, s.at]), [["scene.evening", "Evening", 0]]);
   assert.deepEqual(h.outside, { temp: 9.3, humidity: 81, sky: "cloudy", id: "weather.home", daily: false });
   // A plug drawing a kilowatt or more is an appliance at work.
   assert.deepEqual(h.appliances, [{ id: "switch.kettle", name: "Kettle", room: "Kitchen", kw: 2.2 }]);
@@ -68,11 +68,23 @@ test("only the states of what is shown are watched", () => {
   assert.equal(watched.includes("light.hidden") || watched.includes("sensor.kettle_signal"), false);
 });
 
+test("a light in no room is on no room's card, but counted with the house's lights", () => {
+  const h = hass({ "light.lounge_lamp": state("on", { friendly_name: "Lounge lamp" }) });
+  h.entities["light.lounge_lamp"] = { entity_id: "light.lounge_lamp" };
+  const found = read(survey(h, {}), h);
+  assert.equal(found.rooms.some((r) => r.devices.some((d) => d.id === "light.lounge_lamp")), false);
+  const lights = stories(found, [], 2000).find((s) => s.kind === "lights")!;
+  assert.deepEqual(lights.figure, ["2", "lights on"]);
+  assert.deepEqual(lights.press?.ids, ["light.kitchen_ceiling", "light.lounge_lamp"]);
+  // A card of chosen rooms counts the lights in those alone.
+  assert.deepEqual(read(survey(h, { rooms: ["Kitchen"] }), h).strays, []);
+});
+
 test("what matters most leads", () => {
   const kinds = (h = house(), alerts: Alert[] = [], now = 2000) => stories(h, alerts, now).map((s) => s.kind);
   assert.deepEqual(kinds(), ["appliance", "lights", "cold", "weather"]);
   // A house with nothing to report still has a front page.
-  assert.deepEqual(kinds({ rooms: [], scenes: [], appliances: [] }), ["quiet"]);
+  assert.deepEqual(kinds({ rooms: [], strays: [], scenes: [], appliances: [] }), ["quiet"]);
   assert.equal(kinds(house({ "lock.front_door": state("unlocked", { friendly_name: "Front door" }) }))[0], "unlocked");
   assert.equal(kinds(house({ "lock.front_door": state("unlocked", { friendly_name: "Front door" }) }), [raised("critical")])[0], "alert");
   // A warning is below an unlocked door; a job to do is below a kettle.
@@ -144,7 +156,7 @@ test("every voice can tell every story and describe every device, with nothing l
   const alerts = ["critical", "error", "warning", "task", "nominal"].map((level, i) => raised(level, { entity_id: `sensor.s${i}`, escalated: i === 0, flavour: i ? "" : "temperature" }));
   const dark = house({ "light.kitchen_ceiling": state("off", { friendly_name: "Kitchen Ceiling" }) });
   const sights = ["alarm", "doorbell", "person", "vehicle", "animal"].map((kind) => seen(kind));
-  const all = [...stories(troubled, alerts, 2000), ...stories(dark, [], 2000, sights).filter((s) => s.kind === "sighting"), ...stories(dark, [], 2000), ...stories({ rooms: [], scenes: [], appliances: [] }, [], 2000), ...["freezing", "hot", "mild"].map((variant) => ({ ...stories(dark, [], 2000).find((s) => s.kind === "weather")!, variant }))];
+  const all = [...stories(troubled, alerts, 2000), ...stories(dark, [], 2000, sights).filter((s) => s.kind === "sighting"), ...stories(dark, [], 2000), ...stories({ rooms: [], strays: [], scenes: [], appliances: [] }, [], 2000), ...["freezing", "hot", "mild"].map((variant) => ({ ...stories(dark, [], 2000).find((s) => s.kind === "weather")!, variant }))];
 
   for (const [id, voice] of Object.entries(VOICES)) {
     for (const story of all) for (const turn of [0, 1, 2]) {
@@ -371,4 +383,13 @@ test("the weather column has the forecast's days, and every paper a word for eve
   // An entity that gives a forecast by the day says so, and the page then follows it.
   const h = hass({ "weather.home": state("rainy", { temperature: 9.3, humidity: 81, supported_features: 3 }) });
   assert.deepEqual(read(survey(h, {}), h).outside, { temp: 9.3, humidity: 81, sky: "rainy", id: "weather.home", daily: true });
+});
+
+test("a camera's zoom, presets and controls are each the call their own entity takes", () => {
+  const camera = { id: "camera.drive", zoom: { id: "number.drive_zoom", level: 2, span: { min: 1, max: 8, step: 1, vote: 1 } } } as any;
+  assert.deepEqual(zooming(camera, 4), { domain: "number", service: "set_value", ids: ["number.drive_zoom"], data: { value: 4 } });
+  // A preset names its camera in its own data, so the call names no entity.
+  assert.deepEqual(turning({ name: "Road", action: "unifiprotect.ptz_goto_preset", data: { device_id: "d1", preset: "Road" } }), { domain: "unifiprotect", service: "ptz_goto_preset", ids: [], data: { device_id: "d1", preset: "Road" } });
+  const control = (id: string) => pressing({ id, name: "", away: false });
+  assert.deepEqual([control("button.gate"), control("script.open"), control("input_boolean.away")].map((p) => `${p.domain}.${p.service}`), ["button.press", "script.turn_on", "homeassistant.toggle"]);
 });

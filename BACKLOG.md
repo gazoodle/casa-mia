@@ -2,12 +2,93 @@
 
 Not scheduled. Sections are in order of their latest change; newest ideas first within each. Move an item into the README or code when it is started, and remove it when it is done. The headline ideas are also in the README's "What does the future hold?": keep the two in step.
 
+## Topology (an idea, not started)
+
+The owner's idea, 2026-11-18. The brief is `docs/design/topology.md`: what is agreed, what
+is only proposed, and the questions still open. Its contract was agreed on 2026-11-18.
+
+- **Topology, the applet:** buildings and sites above Home Assistant's floors and areas,
+  and connections between areas with an optional direction. Digs is its first consumer;
+  the other Dash-Bored families, Auto Dashboards, House Manual and Gang-O-Gals follow.
+  The name is final, and it lives inside Casa Mia, not as a component of its own (owner,
+  2026-11-18).
+- **Sections in the Gazette** (owner, 2026-11-18): the papers have no room card, since a
+  newspaper is an overview, but they might be divided into sections once Topology says
+  how the house is divided. Not designed.
+- **Routes between two areas**, when House Manual or a game first needs one.
+- **Layout data** (walls, sizes, positions): later. Only the first-person game needs it.
+- **House Manual** (named by the owner 2026-11-18, not designed): a consumer of Topology's
+  routes. It needs a brief of its own.
+- **Adventure games in Dash-Bored, played in the user's own house** (owner, 2026-11-18),
+  in this order, each in the style of its kind with our own text and drawings:
+  - A text adventure: rooms and exits from Topology, an area's devices as the things in
+    the room, commands that call their actions.
+  - A point-and-click adventure: a screen for each room, which needs directions and a
+    picture of each room.
+  - A first-person walk through the house, which needs the layout data above.
+
 ## Dash-Bored (in development)
 
 Started 2026-11-13 (2026.11.8-b1) with the Gazette. HANDOVER has how it is built; the
 mock-ups are in `docs/design/dash-bored/`. The owner is on Bakelite now (2026-11-14), and
 the Gazette's own work is parked below it.
 
+- **The Console's meter panel, what's left** (asked 2026-11-18; the plan, with each step's
+  detail, is `docs/design/console-meter-panel.md`; steps 1 and 2 were built in
+  2026.11.9-b23):
+  - **Size the Console's controls properly** (owner, 2026-11-18: "like we ought to have
+    done to start with"). A control should be drawn at whatever size its place gives it.
+    Today only the needle meters are (they are SVG in a `viewBox`). The seven-bar figures
+    (`console/figures.ts`), Nixie's tubes, Bakelite's wheels, Silverface's readout, every
+    era's plates and the warning lamps are fixed pixel sizes. Make each of them scale with
+    its container, in all five eras, then take the stopgap out: the meter panel zooms its
+    whole chassis to fit (`fit` in `console/meters.ts`, 2026.11.9-b24), which makes
+    everything smaller together and leaves lettering very small on a phone. Why it was
+    found: on the owner's phone a three-phase panel's meters overlapped each other.
+  - Step 3: the bands drawn as zones on the scale, in all five eras' `meter`.
+  - Step 4: stand-in meters on the test VM, a picture for the guide, and the guide saying
+    the card is in daily use in the author's house once it is on the live dashboards.
+- **The Console's cards, made clear for someone building their own dashboard** (owner,
+  2026-11-20: the gauges and controls "are currently there but a bit confusing to use").
+  Revisit all of Dash-Bored's Home Assistant cards so that it is clear which card to pick
+  and what each one will draw: the part cards (`dash-bored-console-instrument`, `-room`,
+  `-lamps` in `console/cards.ts`), the meter panel and their editors. The owner expects
+  this to mean taking out the way a control picks its own form from its entity, so the
+  user chooses the control and then the entity it shows, not the other way round. Why:
+  the entity-first way suits generating a whole dashboard automatically, but someone
+  putting one card on a page of their own can't tell what they will get. Agree the new
+  shape with the owner before building it, and keep the automatic choice wherever a
+  family draws the whole house.
+- **Every family gets every capability** (owner, 2026-11-17; the rule is in HANDOVER and
+  the table in `docs/design/dash-bored-survey.md`). `tests/test_dash_bored_parity.py`
+  lists each of these in its `OWED`, and fails when a family starts to show something
+  the others do not: an entry there goes when its item here is built. What is missing:
+  - **The Console: who is at home** (`house.people`), and their comings and goings.
+  - **Aurora: the weather, the forecast and who is at home**, on its home screen, which
+    is thin (owner, 2026-11-16: "we'll find stuff to put on there").
+  - **The Fridge: the forecast**, and comings and goings with their times.
+  - **Console, Fridge and Aurora: what the players played lately, what is playing with
+    pause and play, and Love it or Loathe it's ratings.** Only the Gazette has them.
+  - **Gazette, Console and Fridge: a thermostat's modes and a player's source**
+    (`Device.choices`, which only Aurora's sheet shows).
+  - **Gazette, Console and Fridge: finding a device by typing**, if it suits them: ask.
+  - **The agent's column (ZenOS-AI)** on the other three: ask the owner whether it
+    belongs anywhere but a newspaper.
+  - **The Fridge: a camera's presets, zoom and controls** (the test found this,
+    2026-11-17).
+  - **Console, Fridge and Aurora: what the house is missing** (`house.gaps`) **and which
+    appliances are drawing power** (`house.appliances`). Only the Gazette has them.
+  - **Fill in the cells still marked `?`** from the source before starting on their rows.
+    The test cannot answer them: it sees what a family reads, not what it draws.
+- **From the survey of other dashboards** (2026-11-17, same document), in the order
+  recommended; each is for every family:
+  - The next calendar event.
+  - A light's colour and colour temperature.
+  - The family, and Aurora's skin, readable and settable by Home Assistant (a sensor and
+    a service, as Seasonal Glass has), so an automation can choose them.
+  - Birthdays from a calendar as an Almanac day.
+  - Low batteries and pending updates, if Sensor Watch does not already cover them.
+  - Not wanted for now: per-user visibility, a screensaver, favourites.
 - **Bakelite, what's left** (every kind of device, Sensor Watch's alerts, the cameras'
   sightings and a chart recorder are built, to 2026.11.8-b30). The owner tried it on an iPad on 2026-11-14: the cranked
   knobs, the thumbwheels' size and the motion were all right. Not yet on a wall tablet.
@@ -16,18 +97,130 @@ the Gazette's own work is parked below it.
   the chart is of the day up to when it was opened and does not run on; a thermostat's
   modes (heat, cool, auto) and a player's source are not on the panel; the Gazette's
   columns (forecast, Personal, Amusements) have no place on it.
+  - **The knife switches go** (owner, 2026-11-20: "I dislike the knife switches on
+    Bakelite"). A scene, button or script gets a 1950s push button about the size of a
+    thumb, or something like it, instead (`_lenses` in `console/panel.ts` gives them the
+    knife switch). Agree the look with a mock-up first. The guide's Bakelite section and
+    its screenshot (`dash-bored-bakelite.webp`) describe and show knife switches, so they
+    change with it. Its height may differ from the knife switch's, so check `tall` and
+    `console/balance.ts`.
+- **The Console's and the Fridge's open space, what's left** (owner, 2026-11-16; the survey's
+  cuts, the rows from `pack.ts`, the selector switch and the Fridge's layout are built, in
+  2026.11.9-b9). Agreed with the owner that day and not built:
+  - Rooms with one or two controls sharing one chassis, a small plate over each: they
+    stand one under another now (b9), but each still has its own lamp, plate and Chart
+    button, about 120 px. Not measured.
+  - The bar between two floors in a row is brass in Bakelite and a plain line in the
+    other four eras: theirs are to be decided with the owner (offered: a machined groove
+    for Silverface, Bargraph's orange line, a moulded seam for Beige; none for Nixie yet).
+  - Switches by what they are, not one dolly for all: gang plates (several of a sort on
+    one long plate at a tighter pitch), power feeds as a row of breakers, pumps and fans
+    as a start and stop pair. Each new control is drawn in five eras, so few of them.
+  - The back pocket: a chassis's spare cells filled from the room's sensors that the
+    panel doesn't show, the ones Sensor Watch watches first; a binary sensor as the kit's
+    `jewel`, a reading as a small meter, on the blanking plates that b9 fits. Never
+    grows a chassis, and is chosen from the survey so that nothing moves with a state.
+  - Not seen on the owner's house or on a tablet: only on a harness with an invented
+    house (Chromium and WebKit). The Fridge's sizes in `fridge/rows.ts` are estimates.
+- **Casa Mia's data on every family, what's left** (owner, 2026-11-16; the cameras are
+  built for the Console and the Gazette in 2026.11.9-b11, see HANDOVER).
+  - **Cameras:** the Fridge and Aurora show a Casa Mia camera under its title but not
+    its presets, zoom or controls (Aurora opens Home Assistant's dialog for a camera;
+    it would need its sheet). The Console's one-entity card shows the screen alone. Not
+    yet seen with a real PTZ camera or on the test VM.
+  - **Guest Login, a visitor's pass** (design agreed in outline, not built): a
+    house-level item with a guarded key switch for an endpoint's Access switch, a lamp,
+    a count of sign-ins, and the code from `casa_mia_guest_login/qr` (any user's, given
+    only while the endpoint is open). The Gazette prints it as a coupon in the
+    classifieds, the Fridge pins the guest card under a magnet, Aurora has a tile. On
+    the Console the code is never on the panel: while access is open a printed card
+    stands in a slot (a card holder on Bakelite, a punched card on Nixie, a printout on
+    Silverface and Bargraph), and Beige shows it on its LCD, since the QR code dates
+    from 1994. To settle with the owner: whether every user of the page may open guest
+    access from it.
+  - **Sensor Watch's bands and watched sensors:** the bands drawn on the meters, and the
+    watched sensors chosen first for the back pocket below. It needs to know what is
+    watched, with bands: Sensor Watch's feed of every level is admins only, and its
+    one-entity feed is any user's. Check first whether its event already says enough.
+  - **FONA's calls and texts** (a Telegrams column, say): they are entities already,
+    so no new feed is needed.
+- **Aurora, what's left** (built 2026.11.9-b9; seen on a harness and on the test VM's
+  page, see HANDOVER).
+  - **The home screen is thin on a big screen** (owner, 2026-11-16: "leave it for now;
+    we'll find stuff to put on there"). On a Mac's window the Sensor Watch tile is
+    mostly empty and one floor's tile is twice the others' height. The answer is more
+    to show, to be chosen by the owner, not more stretching.
+  - **To measure on the owner's iPad before more is built on it:** a finger's swipe
+    between screens (nothing but a script has moved them yet); whether a swipe from the
+    left edge opens Home Assistant's sidebar or goes back instead; and how the sideways
+    box scrolls with a big house, since the stutter rule in HANDOVER came from a box
+    that scrolled. The sky's four moving gradients and the sheet's blur are the other
+    things to measure on a wall tablet.
+  - A big set's screens are plain: when every room must be one cell to save a screen,
+    the tiles grow into columns of much the same shape. A phone's bar runs off its
+    right edge and is scrolled to reach the search.
+  - Not looked at since the screens: the card (its height is in proportion to its
+    width) and the card picker's specimen. The guide's picture is still the mock-up's.
+  - Not on it: a device's history, a light's colour, a cover's tilt, a fan's
+    direction, the Gazette's columns, people, the weather. The choices from a list
+    (`choices.ts`, 2026.11.9-b12) are on Aurora's sheet only: the other families could
+    show them. The ring is the
+    first thermostat in the order of rooms: the owner to say if it should be chosen
+    another way. A thermostat that takes a range and not one target is a key that
+    switches it off or on, as on the Fridge. A press anywhere on a fader sets its
+    level. Guarded presses are now written three times (the Fridge, Aurora, and the
+    Gazette's own): one in `family.ts` would do, as a refactor commit of its own.
+- **Aurora, the owner's review** (2026-11-16, after seeing it on the test VM; not yet
+  designed or agreed in detail). It is the family closest to the dashboards other people
+  publish, so look at those for ideas.
+  - **More bento, and screens with a bar and edge tabs:** built the same day (HANDOVER).
+    How the house is split into sets of rooms is still only by floor: the owner means
+    there to be another way, which he has not yet specified.
+  - **Its skins are varieties of colour**, after HA Dial's themes: built 2026.11.9-b12
+    (`aurora/skins.ts`: Aurora, Ember, Verdant, Cobalt, Rose, Acid, Alloy). Their hues
+    are my reading of HA Dial's colours on a light page, not yet seen by the owner, nor
+    in Home Assistant's dark theme. The season and holiday skins and the Almanac were
+    built in the same build (HANDOVER); the owner has not yet seen them. Fireworks is
+    the weakest on a light page: a burst over a tile can look like something loading.
+    Ideas not built: Diwali, Hanukkah, Bonfire Night's guy, a birthday from a calendar.
+  - **Mode and style open to automation, for every family** (the family, and a family's
+    own choice: paper, era, household, theme). Today each is in the browser's storage,
+    where nothing in Home Assistant can reach it. Aurora may be the first to have it.
 - **The choice of family, further**: an address for each family, so that a tablet can be
   fixed to one from its kiosk settings (offered 2026-11-14, not asked for). A scene made
   without a unique id (in YAML, or by `scene.create`) is in no registry, so no family
   shows it.
 - **The Console's other eras** (owner, 2026-11-14). The Console is the family and its
-  eras are Bakelite (1950s, built), Nixie (1960s), Silverface (1970s), Bargraph (1980s)
-  and Beige (1990s). They are the same panel underneath (`console/panel.ts`), each with
+  eras are Bakelite (1950s), Nixie (1960s, built 2026.11.9-b3), Silverface (1970s),
+  Bargraph (1980s, built 2026.11.9-b2) and Beige (1990s, built 2026.11.9-b4): all built. They are the same panel underneath (`console/panel.ts`), each with
   its own kit and stylesheet and a few controls or lights that mark its time: from valves
   to LEDs, and from a phosphor oscilloscope or television to a digital panel. They are
   to be designed with care, and each design agreed with the owner before it is drawn.
   The era switch is in (2026.11.8-b32) and shows the unbuilt ones as not built yet; it
   is drawn one way for every era, not in each era's own style.
+  - **Bargraph, what's left** (built 2026.11.9-b2). Not yet seen by the owner, nor on a
+    real Home Assistant or a tablet, and the guide has no screenshot of it. The era
+    switch is not drawn in its style. A press on a fader that does not move it switches
+    its device, as a knob's does: the owner has not said whether a fader should.
+  - **Nixie, what's left** (built 2026.11.9-b3). Not yet seen by the owner, nor on a
+    tablet, and the guide has no screenshot of it. The two meters at the top of the
+    panel are needle meters and only the rooms' are nixie tubes: my choice, from the
+    owner's "meters do span decades", which he has not seen. The order the figures are
+    stacked in a tube is from memory of a common tube, not checked against a datasheet.
+    A minus has a tube of its own, which a real one had not.
+  - **Beige, what's left** (built 2026.11.9-b4). Not yet seen by the owner, nor on a
+    tablet, and the guide has no screenshot of it. Every dial has an LCD of its level in
+    per cent, as the mock-up had; the rocker is lettered I and O whatever it works, so a
+    lock's does not say Locked.
+  - **The three later eras' mock-ups** (2026-11-15: `docs/design/dash-bored/`
+    `nixie.html`, `bargraph.html` and `beige.html`, on `eras.js`), not yet agreed. The
+    owner's rulings that day: Bargraph has sliders ("it's important"); and needle meters span the decades, with a
+    thinner and more delicate pointer in the later ones. Each mock-up shows a needle
+    meter and a display one, with a switch between them for the rooms. The owner chose
+    (2026-11-15): Nixie's meters are nixie tubes, with all ten figures to be seen in each
+    tube, the lit one a little obscured by those in front, as in a real one; Bargraph's
+    are needles ("so classy"), with a fluorescent display put in now and then (every
+    third room in the mock-up); Beige's are LCDs, unlit segments showing.
   - **Silverface is built** (2026.11.8-b33) to the design agreed on 2026-11-14, the
     1960s being skipped for now. Seen on the test VM only, and not by the owner yet. A
     thumbwheel's figures still sit a little off true, as Bakelite's do, which suits a
@@ -40,22 +233,70 @@ the Gazette's own work is parked below it.
   - **A needle's wobble falls with the decade** (owner, 2026-11-15): all of it in the
     1950s, three quarters in the 1960s, half in the 1970s, a quarter in the 1980s and none
     in the 1990s. Bakelite and Silverface do this; the other three are to when built.
-  - Kept for Bargraph: LED bar graphs, fluorescent displays, membrane keys. Kept for
-    Nixie: nixie tubes.
   - The sizes `console/balance.ts` counts on are Bakelite's; an era with other sizes
     needs its own.
-- **The agent's column, what's left** (prototype, 2026.11.8-b40). Only the Gazette draws
-  it: the Fridge's notepad and a Console ticker could. An urgent Kata is not yet a story
-  or breaking news. The lapsed by-line, a doubted piece and a hidden sensor are covered by
-  unit tests only. Kata text reads as a machine's log, which is for ZenOS's author to
-  change, not us. A wall tablet shows whatever the agent wrote, alarm and lock states
-  included: decide whether that needs a choice of which parts may print.
+- **The agent's column, what's left.** Since 2026.11.9-b14 a model writes it
+  (`docs/design/dash-bored-column.md`). Still to do:
+  - Try it on the test VM with ZenOS's local model, and tune the brief from what it writes.
+  - Only the Gazette draws it: the Fridge's notepad and a Console ticker could follow the
+    same feed.
+  - An urgent Kata is not yet a story or breaking news.
+  - A wall tablet shows whatever the model wrote, alarm and lock states included: decide
+    whether that needs a choice of which parts may print.
+  - If ZenOS ships a reporter that writes the column to a drawer, read it and drop our
+    own model call (owner, 2026-11-15: "we stay read only, but ZenOS can write if he
+    wants").
+- **ZenOS-AI 11.1, post the report** (promised 2026-11-15). Installed from scratch on
+  the test VM on 2026-11-16 from Beta 1 (`feat/2026.11.1`, 318c6f4; not yet released).
+  It reached summaries and component Katas, but only through two console workarounds and
+  four restarts. The owner posts the report to its author: the draft is
+  `~/Documents/zenos-2026.11.1-report-draft.md`, the full notes
+  `~/Documents/zenos-2026.11.1-install-notes.md` (both outside the repo).
 - **The Fridge, what's left** (built 2026.11.8-b37, in three households; not yet seen
   by the owner, nor on a tablet). A sighting's photograph, a sounding alarm and a
   critical note have not been seen, since the test VM makes none. A room's drawn picture
   is the same window and lamp for every room. A thermostat's modes and a player's source
   are not on the door, nor is a device's history. The novelty magnets are twelve; more
   would suit (the owner: "other animals, objects etc").
+- **Digs, the fifth family, what's left** (built 2026.11.9-b16 from the mock-up the owner
+  liked on 2026-11-18; how it is built is in HANDOVER). He has not seen the build, and it
+  has been seen only on a harness: not in Home Assistant, on the test VM or on a tablet.
+  - **Owed from the capability table** (`OWED` in `tests/test_dash_bored_parity.py`): a
+    what a camera last saw (it has the latest picture); Casa Mia's presets, zoom and controls; a
+    device's choices (a thermostat's modes, a player's source); the appliances drawing
+    power; what the house is missing by name (the board only counts); the comings and goings, what the players played,
+    the ratings and the agent's column (a book on a lectern was one thought for the
+    column); a device's history; finding a device by typing; an alarm's code on the page.
+  - **A user's own sprites** (owner, 2026-11-18): a person's figure can be a picture the
+    household supplies, so that someone can put a game's own character in at home. We
+    ship only our own drawings; what a user adds stays in their own Home Assistant and
+    never comes into the repo or the mirror. Where the pictures live and how a person is
+    given one are not designed.
+  - **Buildings as a setting** (2026-11-18): which floors, or areas, make up an
+    outbuilding, in the Configure dialog beside the order of floors and rooms. Today an
+    outbuilding is told by its area's name and only when it is on no floor, so one with
+    a loft cannot be two storeys. It waits for the owner's areas to have floors. If
+    Topology is built (the section above), Digs reads its buildings from there and this
+    setting is not needed.
+  - **The owner's house is not yet sorted into floors** (2026-11-18). Digs draws such a
+    house as one wrapped building until it is. Sorting it helps every family; setting
+    floors from the page was discussed for the Gazette and needs his say, as it writes
+    to the registries.
+  - The hearts run out on a big house: ten, and one lost for each device not answering.
+    The tip still counts them all.
+  - Open from the mock-up: a larger font, and a block of its own for each kind of
+    appliance (a player, a fan, a vacuum and the rest are all the machine).
+  - Later texture packs are named the same way as 4² (2³ at half the detail): proposed,
+    not agreed.
+  - Many cameras in one area (2026-11-18): each is a picture three blocks wide, so an
+    area with a dozen is 36 blocks of pictures. Nothing gathers them as the chandelier
+    gathers lights; decide with the owner once it is seen on his house.
+  - The imp's prank can't be turned off (2026.11.9-b18). A card option and a choice on the
+    page, if the owner or anyone using it live asks.
+  - Known and left: a device in no room has no block (the board counts them); the clock
+    and the hearts lie over the top storey's roof on a house of three storeys; the sun is up from six to six all year (Home Assistant's sun
+    entity has the real hours); out of doors is told by an area's name in English; a
+    lit lamp behind a ladder hides part of it.
 
 **The Gazette, parked** (owner, 2026-11-14):
 
@@ -77,6 +318,169 @@ the Gazette's own work is parked below it.
 
 - **The showpieces** (owner, 2026-11-13: "we're not leaving it behind"): Contraption, and
   Movement, which ran at 60 fps on the owner's iPad.
+  - **Contraption's second mock-up** (2026-11-16; the owner wants it "absolutely crazy",
+    mocked up before it is built): `docs/design/dash-bored/contraption.html` with
+    `contraption/`. It has a mechanism for each of the fifteen kinds, and its header
+    comments say how a cell is driven (`contraption/machine.js`). What it settles for the
+    build: the lever shows what was asked and the mechanism shows the state; a linkage
+    is theatre between the two and nothing ever waits for it or for the bot; the line
+    shaft turns only while data is fresh. Not yet seen on a tablet: the wobble filter is
+    the likely cost (`?plain` draws without it, to compare).
+  - **Contraption by water, a trial of one room** (2026-11-17): `waterworks.html` with
+    `waterworks/`. The owner found the second mock-up "not quite right": a grid of
+    same-sized gadgets with tricks that were too short. What the owner decided, and the
+    trial shows for the Kitchen:
+    - A room is one machine, with set pieces of different sizes and long chains.
+    - It is driven by water: a petal valve lets water into a device's machine, and water
+      runs for as long as the device is on. Steam stays in the engine house only.
+    - It is primarily for a laugh. A quick route is allowed, but fun and quirkiness are
+      not to be traded for usability, "otherwise the overall joke gets lost".
+    - Always something moving, movement when the house changes, and something silly now
+      and then.
+    - Skins from one drawing: parts are named by material, never by how they are drawn.
+      Patent engraving, blueprint and tin toy so far.
+    - The wobble filter must never be live. WebKit runs it again on every frame in which
+      anything moves (4.5 frames a second, measured), so the still parts are baked
+      through it into bitmaps once (`waterworks/bake.js`). Measure in WebKit, not only
+      Chromium: Chromium hid this.
+    - Still to do: laying a room out by rule from tiles of several sizes that each
+      declare a way in, a way out and a behaviour. The Kitchen is placed by hand. The
+      navigation page became the whole house, below.
+  - **Contraption, the whole house on one sheet** (2026-11-17): `whole-house.html` with
+    `whole-house/`. The owner's idea: draw the house and grounds on one page fitted to
+    the screen, where a tap on an area zooms in as you watch and more detail opens up.
+    It replaces a separate navigation page. What the trial settles:
+    - One river, laid out by rule (`whole-house/plan.js`). Rooms go in rows in the
+      house's order, each 60 lower than the one before, so one trough falls 1 in 20
+      through a whole row at the height every room's machines expect. A chute under the
+      row brings the water back to the next row, the last one empties into the pond,
+      and the lift raises it to the tank. Rooms out of doors come last.
+    - Two distances, one drawing. The view is the SVG's viewBox. Far off, a room is a
+      glyph for each device, switched by a class when the device changes, with CSS doing
+      the moving. Close up, a room drawn in full fades in over its glyphs, and it is the
+      only room worked frame by frame.
+    - A tap sends the duck round the water to the room and the view follows it; a second
+      tap gets there at once. The show comes first, as the owner asked.
+    - A room with a device out of order flies a flag that can be read from far off, with
+      what and since when. Stale data dries the whole river.
+    - The patent skin bakes like map tiles: the whole house once, and the room in view
+      on arrival, dropped on leaving. The house's bitmap is stretched during the zoom.
+    - Measured in headless WebKit on the Mac, 2026-11-17: 61 frames a second far off, 56
+      to 62 during the zoom and 58 to 61 in the Kitchen, in all three skins. Not yet
+      seen on the iPad or in Safari itself.
+    - Still to do: the other five rooms in full, which is the tiles work above; a
+      place for scenes and guarded devices; a phone held sideways leaves the sheet about
+      300 px wide under the header; a house too big for one far view may need a third
+      distance.
+  - **Contraption, by duck** (2026-11-18): the design the owner settled on, and it
+    supersedes the two trials above. It is in `duck-run.html` with `duck-run/` (the
+    Kitchen, a Long Gallery of eight lights laid out by rule, and a Big House of 300
+    tiles) and `sprite-trial.html` (drawn by placing bitmaps: 5,000 tiles at 26 frames a
+    second on the owner's iPad). What is decided, what was measured, what was dropped
+    and what is left are in `docs/design/dash-bored-contraption.md`, which is the brief
+    for building it.
+    - **Contraption, the sixth family, what's left** (first build 2026.11.9-b18: the
+      renderer, the tiles there were, a stand-in tile, and one room read from Home
+      Assistant). From the brief's "What is left to do": left-to-right tiles for the
+      other kinds of device, more plain bends and a better drawing for the
+      redirector and the collector, setting a level, a crew of bots, one stream
+      through the house, and a place for scenes and guarded devices.
+    - **Asked by the owner on 2026-11-18 after seeing 2026.11.9-b19 on the test VM.** Built
+      in 2026.11.9-b20: the network of loops, merge in turn, the roundabout, the dumb
+      waiter in the centre, the layers underground and the toaster's hose. Machinery on
+      the y-axis was built in 2026.11.9-b22 (the two upright light drives are to be
+      looked at). Lanes with
+      anything on them, holes that feed another's, the poop, the compost bin and the
+      tongs were built in b22 too. **Left of them:** a hole feeds another only within
+      its own band; and most of the shows have not been watched (the brief lists
+      which). All of it
+      as he asked for it:
+      - *A network of loops, engineered to be clean.* The main stream is a loop again,
+        closed by a dumb waiter up the side ("I like the normal return line on the
+        dumb-waiter"), and the two end holes go. Holes stay beside redirectors and
+        collectors, joined underground by "dim dashed" tunnels "with dashed ducks too",
+        made of horizontal, vertical and 45 degree runs. A tunnel is real track: one duck
+        a period, on the beat. A collector's hole may feed any redirector's, so the
+        tunnels cross. The test to write: ducks in equal ducks out at every hole.
+      - *Merge in turn.* The spares "are always colliding at the entry and stuttering at
+        the exits". They are to walk a drawn path from the hole to the tile's entry and
+        pass the arrow one after another. The collector is to be "a little roundabout
+        affair" that carries up to three ducks round: one steps off at the exit, the
+        rest drop into the hole. The redirector's arrow stays as it is.
+      - *Lanes with anything on them:* "no need to limit the branches to single items".
+        Lanes still have to meet at the collector, so a shorter one is made up with
+        carriers.
+      - *Machinery on the y-axis:* device tiles that go top to bottom or bottom to top,
+        drawn anew, since gravity points down (a falling duck turns a paddle wheel; a
+        climbing one works a ladder treadmill). This overturns "device tiles go left to
+        right only" in the brief. A crate first, then two light drives with a train of
+        their own. Lights switched together stay horizontal.
+      - *Lazy tongs on a gantry along the top,* which "whips along and plucks occasional
+        ducks from their collector" and takes them to an entry hole. With real tunnel
+        ducks it must deliver to that tunnel's far hole when the gap arrives, or a
+        redirector is a spare short.
+      - *A poop for the bot to clean* ("the bot needs a shovel and a nose peg"): left by
+        a duck where it stands, hopped over by the ducks behind, one at a time and only
+        in view. Open: into a bucket, or down the nearest hole.
+      - *The bot may chuck it down a tunnel* (owner, later the same day), "but would then
+        have to collect it at the other end", and "ultimately it needs to dispose of it
+        somewhere, a compostor or something". Proposed: a compost bin at the foot of the
+        bot's pole, which needs no layout work.
+      - *Several layers underground* (owner: "so you don't have to have complex network
+        layout algorithms and clash detection"). Tunnels cross freely, each on a layer.
+      - *The toaster:* "the duck ought to come out sweating and then get a quick cooldown
+        from a hose spurt nearby". One tile's drawing, no change to the engine.
+      - *Machines for the other kinds of device* (owner, 2026-11-18, asked whether more
+        is planned "for other domains, e.g. say we have a sauna heater and thermostat
+        control", and wanted it on this list; nothing is scheduled). Everything but a
+        light is a crate today. A kind keeps the lights' rules: the duck is the engine,
+        on is the clutch being in, a level is how long the duck works. Proposed for a
+        heater with a thermostat, as one tile: heating, the duck works a bellows on a
+        stove; at temperature, it ladles water on the stones and walks out sweating;
+        off, a cold stove; a thermometer on the wall with the mercury at the room's
+        temperature and a marker at the target. Open: how any level is set (one design
+        for every kind), what a press on a heater does (proposed: Home Assistant's own
+        dialog, not a switch), and telling a sauna from a room thermostat (proposed: by
+        its name, as a light's fitting is).
+      - *Follow a duck or the bot* (owner, 2026-11-18): "selecting a duck or the bot and
+        then if we're zoomed, the selected sprite stays kind of centred, not exactly,
+        but enough so that the picture pans around the view following the path of the
+        selected thing". Not built. It is no more than that (owner, the same day:
+        "Don't confuse this with anything else, it's literally piggy-backed off
+        whatever safari does for scrolling a view larger than the viewport"): when the
+        sheet is drawn bigger than the screen it already scrolls, and following is
+        moving that scroll so the chosen sprite stays near the middle. No view or zoom
+        of Contraption's own.
+      - *Asked after seeing b20's first tunnels, and built in b20* (the brief has how):
+        "Could tunnels be a tube rather than just a single dotted line? And we ought to
+        try to keep them away from each other. And we could also have a pointless tunnel
+        system to fill blank spaces, driven from the top exit of the dumb waiter?"; "The
+        duck doesn't travel at the same speed as the dumb waiter, either it must or the
+        waiter goes in favour of stairs or escalator"; "The water shower should just run
+        its water downwards, not track the duck, and it can be a tipping bucket"; and
+        "no problem with the underground tunnels having Y-junctions, T-junctions or
+        anything else". **Left of these:** the ways of the long way round fork and do
+        not join again before the foot; joining needs lengths exact to the tile. To
+        look at on the owner's screen: the hop at a shaft arrow, and the tubes' cost on
+        the iPad.
+      - *Ready for Topology* (`docs/design/topology.md`): a room's layout is a block the
+        machine places, the loop's closure is one replaceable piece, and no setting of
+        Contraption's own says which rooms adjoin. East and west would be the sheet's
+        sides, up and down the lift and the slide, north and south the tunnels.
+      - *The dumb waiter in the centre* (owner, later still: "no reason why the dumb
+        waiter has to be at the left edge, it could be in the centre and feed both left
+        and right with a director"). Proposed in answer: a central shaft with a
+        redirector at each band sending one duck left, one right and one on up; each
+        wing runs outwards and ends at a hole whose tunnel feeds that redirector. This
+        replaces the left-edge return in the plan, and needs no even number of bands.
+    - Owed to the capability table (`tests/test_dash_bored_parity.py` `OWED`): everything
+      but a room's devices. People, the weather and forecast, scenes, power, appliances,
+      what the house is missing, Sensor Watch's alerts, the cameras' pictures and
+      sightings, Casa Mia's camera controls, a device's choices, what is playing, the
+      ratings and the agent's column.
+    - Not seen yet: the owner's kitchen, the iPad, inside Home Assistant, the test VM,
+      the card picker, the bot pulling a sheet off, the engraving's grain (left out for
+      a tablet's sake).
 - **Publish it by itself** once it is past In development, as Sensor Watch is.
 
 ## Sensor Watch (beta)
@@ -245,7 +649,12 @@ Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it d
   - **Decided (owner, 2026-11-10): it's part of the plan.** Casa Mia's features go out through HACS so more people find them and can use them. Why: an app reaches only HA OS and Supervised users, and only those who find Casa Mia; one feature in HACS is visible to everyone who browses there. This replaces the 2026-10-21 gate ("see the appetite first").
   - **Sensor Watch first, being built:** the design, decisions and phases are in `docs/design/marketplace-mirrors.md`. Later items go out through the same mirror pipeline.
   - **What else can stand alone:** the Tablet Layout, Over layer and garnish (pure frontend; a trial entry built at 40 KB gzipped against `cm-cards.js`'s 54 KB). Camera Commander needs the app and integration; Guest login, Kiosks, FONA, firmware and the git proxy need the app.
-  - **The layout bundle, when its turn comes:** a second Vite entry, `casa-mia-layout.js`, from the same sources, as a plugin mirror (check the catalog's `plugin` list for a name clash). Two copies at once: keep the element names; each bundle sets `window.casaMiaCards = {version, source}` and warns when it finds the other; the integration raises a Repair when the standalone file is in the Lovelace resources. Settings without the app: read them from the resource URL's query (`import.meta.url`); leave out `main.ts`'s update toast.
+  - **The layout bundle, next** (owner, 2026-11-17: Tablet Layout is the next piece to publish; nothing may be lost from Casa Mia, and nothing changes when it is installed with Casa Mia).
+    - **Built in 2026.11.9-b13:** `integration/plugins/casa-mia-tablet-layout.js` (name agreed 2026-11-17; listed as "Tablet Layout"), a second Vite entry (`src/alone.ts`) from the same sources as `cm-cards.js`: the view, garnish, the screen condition and the Over layer. It is the same code, not a cut-down copy. The first file loaded defines the elements and the other says so in the console (`own.ts` `claim`). Alone, the two dashboard settings are simply on (`own.ts`; owner, 2026-11-18). Seen on the test VM with every `casa_mia/` command refused: elements defined, a view laid out, no errors.
+    - **The plugin kind is in `tools/mirror.py`** (2026-11-18; `docs/design/marketplace-mirrors.md`, "A dashboard plugin has a mirror too"). Its dry run passes. Nothing is published.
+    - **Done 2026-11-18 (b16):** no name clash in HACS's list of plugins; the Repair in `casa_mia` when the stand-alone file is in the dashboard's resources; the README carries the Over layer's guide too.
+    - **Also done 2026-11-18 (b16):** it has a version, stamped in the built file as a component's is in its manifest; the Marketplace takes a plugin (read in core's source); garnish needs no guide of its own, as `docs/tablet-layout.md` has it ("Showing and hiding" and the options reference).
+    - **Still to do:** its first publication, at a release, which is when HACS's action first runs on it and an install from a store can first be tried. The Repair has been seen in tests inside Home Assistant, not on a box.
 - **Log viewer page:** the app's own log, live (follow, level filter, search), without going to Settings > Apps > Log. Through the Supervisor's `/addons/self/logs`, or an in-memory ring buffer.
 - **Graphlets elsewhere.** `app/web/src/Graphlet.tsx` is the general history graph: use it, not a new one, wherever a page shows a figure over time (FONA's signal, the kiosks' battery and memory, guest logins, firmware downloads, the app's CPU and memory). Each needs its history kept on the box, so the graph is full when the page opens.
 
@@ -305,7 +714,7 @@ Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it d
 
 - **PTZ presets on the commander's main camera** (asked 2026-11-12; the owner: "we need to do this"). A camera's PTZ presets show only on its page on the camera dashboard (`auto_dashboards/dashboard.py`: `preset_entries`, `preset_action`). The Camera Commander card shows none, over the main camera or on its full screen, so a PTZ camera can't be moved from a commander.
   - **The design (owner):** one button in the bar with the others (the camera's controls, Sound, Full screen; `integration/cards/src/commander/full.ts`: `controlsBar`), which opens a drop-down or menu of the camera's presets. A tap on a preset performs the camera's PTZ action with that preset, as its page's tile does.
-  - **What it needs:** the presets and their action are not in the card's data today (`Card.cameras` carries `controls` and `controls_at`), so the app sends each camera's `ptz` too. The button is shown only for a camera that has presets. Build the action once and share it with the dashboard's, not a second copy.
+  - **What it needs:** the presets and their action are not in the card's data today (`Card.cameras` carries `controls` and `controls_at`). Since 2026.11.9-b11 the app builds each preset as a call for pages (`cameras.py` `for_pages`, fed by `casa_mia/cameras/subscribe`, which Dash-Bored uses): give the card the same list. The button is shown only for a camera that has presets. Build the action once and share it with the dashboard's, not a second copy.
   - **To settle when built:** whether it is a card option like the Sound button or always shown with the controls; and the menu, which is new chrome on the card (none of its buttons opens one today) and must stay inside the card to be seen while the commander is full screen.
 
 - **A commander on a guest Wi-Fi: live video is slow to start and keeps dropping** (found 2026-11-12, an iPad in Safari signed in as a guest). On the main network the same iPad and page are instant, so the cause is what the guest network may reach, not Safari or the card. Where it stands:
@@ -442,3 +851,9 @@ Ideas where one module makes another better. Each module still works alone; each
 ## Modules from the charter
 
 `fona` (first), `alarm`, `gitproxy`, `compositor`, `knx`, `knx-bms`, `esphome-gen`, `radio`, `tablet-provision`, `kiosks`. See README.
+
+## A test that fails now and then
+
+`tests/test_compositor.py::test_the_pages_controls_restart_flush_and_forget` failed once
+in a full run on 2026-11-15 (`assert not out["live"]["pictures"]` after a flush), then
+passed alone and in three more full runs. Find the race before it is trusted again.

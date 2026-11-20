@@ -43,6 +43,43 @@ def test_update_stamps_a_changed_component_with_the_app_version(tmp_path, monkey
     assert '"2026.10.1-b4"' in (comp / "manifest.json").read_text()
 
 
+def test_a_plugin_is_stamped_in_its_built_file(tmp_path, monkeypatch):
+    sys.path.insert(0, str(ROOT / "tools"))
+    import component_versions as cv
+
+    plugin = tmp_path / "integration" / "plugins" / "demo-card.js"
+    plugin.parent.mkdir(parents=True)
+    (tmp_path / "integration" / "custom_components").mkdir()
+    plugin.write_text('var a = "cm-plugin-version@0", b = 1;\n')
+    (tmp_path / "pyproject.toml").write_text('[project]\nversion = "2026.11.9-b16"\n')
+    monkeypatch.setattr(cv, "ROOT", tmp_path)
+    monkeypatch.setattr(
+        cv, "COMPONENTS", tmp_path / "integration" / "custom_components"
+    )
+    monkeypatch.setattr(cv, "LOCK", tmp_path / "integration" / "versions.lock.json")
+    monkeypatch.setattr(sys, "argv", ["component_versions.py", "--update"])
+
+    # New: stamped with the app's version, the rest of the file as it was.
+    assert cv.main() == 0
+    assert plugin.read_text() == 'var a = "cm-plugin-version@2026.11.9-b16", b = 1;\n'
+    assert cv.current()["demo-card"]["version"] == "2026.11.9-b16"
+    assert cv.problems(cv.current(), json.loads(cv.LOCK.read_text())) == []
+
+    # Its version is no part of what counts as a change; its code is.
+    was = cv.current()["demo-card"]["digest"]
+    assert cv.restamp("2026.11.9-b17", "2026.11.9") == ["demo-card"]
+    assert 'cm-plugin-version@2026.11.9"' in plugin.read_text()
+    assert cv.current()["demo-card"]["digest"] == was
+    plugin.write_text(plugin.read_text().replace("b = 1", "b = 2"))
+    assert cv.problems(cv.current(), json.loads(cv.LOCK.read_text())) == [
+        "demo-card: files changed since the lock (run --update)"
+    ]
+
+    # A build that lost the marker is said, not passed over.
+    plugin.write_text("var b = 2;\n")
+    assert "no cm-plugin-version@ marker" in cv.problems(cv.current(), {})[0]
+
+
 def test_a_release_gives_its_version_to_the_components_its_builds_changed(
     tmp_path, monkeypatch
 ):

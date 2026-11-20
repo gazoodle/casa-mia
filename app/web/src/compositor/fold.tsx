@@ -1,5 +1,6 @@
-/** A section of the Camera compositor page that folds to its heading, and the choice kept
- * in this browser: the sections are long, and the one wanted is often a long way down. */
+/** A section of a page that folds to its heading, and the choice kept in this browser: the
+ * Camera compositor's sections are long, and the one wanted is often a long way down. Love
+ * it or Loathe it's entries fold too. */
 
 import { useState, type ReactNode } from "react";
 import guest from "../guest.module.css";
@@ -25,10 +26,24 @@ export function useKept<T extends string>(key: string, fallback: T): [T, (v: T) 
   return [value, set];
 }
 
-/** One section: its heading folds it (the fold kept for this browser, by `id`). Folded,
- * its heading and its action (pause, purge) stay; its blurb and body go. */
-export function FoldArea({ id, title, blurb, action, children }: { id: string; title: string; blurb: ReactNode; action?: ReactNode; children: ReactNode }) {
-  const [kept, keep] = useKept<"open" | "shut">(`cm.compositor.${id}`, "open");
+/** One section: its heading folds it (the fold kept for this browser, by the page's `scope`
+ * and `id`). Folded, its heading and its action (pause, purge) stay; its blurb and body go. */
+export function FoldArea({
+  id,
+  scope = "compositor",
+  title,
+  blurb,
+  action,
+  children,
+}: {
+  id: string;
+  scope?: string;
+  title: string;
+  blurb: ReactNode;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
+  const [kept, keep] = useKept<"open" | "shut">(`cm.${scope}.${id}`, "open");
   const open = kept === "open";
   return (
     <section className={guest.area}>

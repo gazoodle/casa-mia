@@ -9,46 +9,58 @@
 * { box-sizing: border-box; }
 body { margin: 0; padding: 32px 36px 48px; background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; }
 h1 { margin: 0 0 6px; font-size: 30px; letter-spacing: -.02em; }
-p.lead { margin: 0 0 26px; color: var(--soft); max-width: 78ch; line-height: 1.5; }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 22px; }
+p.lead { margin: 0 0 12px; color: var(--soft); max-width: 78ch; line-height: 1.5; }
+.grid { margin-top: 26px; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 22px; }
 a { color: inherit; text-decoration: none; display: block; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; transition: translate .2s, box-shadow .2s; }
 a:hover, a:focus-visible { translate: 0 -3px; box-shadow: 0 12px 24px -12px rgba(0,0,0,.5); outline: 0; border-color: var(--text); }
 /* A live thumbnail: the real page at tablet size, scaled down and not clickable. */
 .thumb { aspect-ratio: 1340 / 800; overflow: hidden; position: relative; background: #000; container-type: inline-size; }
 .thumb iframe { width: 1340px; height: 800px; border: 0; transform-origin: 0 0; scale: calc(100cqw / 1340px); pointer-events: none; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
 .text { padding: 12px 14px 14px; }
-h2 { margin: 0 0 4px; font-size: 17px; display: flex; gap: 8px; align-items: center; }
-h2 small { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; border: 1px solid currentColor; border-radius: 20px; padding: 1px 7px; font-weight: 600; }
+h2 { margin: 0 0 4px; font-size: 17px; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+h2 small { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; border: 1px solid currentColor; border-radius: 20px; padding: 1px 7px; font-weight: 600; white-space: nowrap; }
 .text p { margin: 0; font-size: 13.5px; color: var(--soft); line-height: 1.45; }
 </style>
 </head>
 <body>
-<h1>Dash-Bored: eighteen directions</h1>
-<p class="lead">Each page is a working mock-up of the same invented house at wall-tablet size (1340 × 800). Everything can be pressed: lights switch, scenes run and the page reacts. None of them talks to Home Assistant. The first four are finished to a higher standard; the other fourteen are sketches of an idea. Movement is rendered in 3D and needs an internet connection to load.</p>
+<h1>Dash-Bored: the directions</h1>
+<p class="lead">Each page is a working mock-up of the same invented house at wall-tablet size (1340 × 800). Everything can be pressed: lights switch, scenes run and the page reacts. None of them talks to Home Assistant. Movement is rendered in 3D and needs an internet connection to load.</p>
+<p class="lead">The label beside a name says how far the idea has got. A <b>sketch</b> shows an idea. A <b>trial</b> tries one part of another design. A <b>designed</b> page is worked out in enough detail to build from. An <b>implemented</b> one has been built into Dash-Bored, and its label adds how mature that build is, on the same scale as Casa Mia's applets. The page here is still the mock-up, not the build.</p>
 <div class="grid" id="grid"></div>
 <script>
 const PAGES = [
-  ["calibre", "Calibre", "Finished", "A watch movement. Each room is a bridge wound open by a pinion and rack, the going train runs faster as the house draws more, and a lever escapement ticks while data is fresh."],
-  ["contraption", "Contraption", "Finished", "A Heath Robinson apparatus in pen and wash. Pull a lever and a rope lifts a boot, a kipper or a small anvil off a candle to light the room."],
-  ["aurora", "Aurora", "Finished", "Current web style: glass tiles in a bento grid over a sky that warms as lights come on. A room tile grows into a sheet of faders."],
-  ["pcb", "Board", "Finished", "A 1984 circuit board. Starburst and seven-segment LED displays, DIP switches for devices and traces that carry a signal while a room is on."],
+  ["calibre", "Calibre", "Designed", "A watch movement. Each room is a bridge wound open by a pinion and rack, the going train runs faster as the house draws more, and a lever escapement ticks while data is fresh."],
+  ["contraption", "Contraption", "Sketch", "A Heath Robinson apparatus in pen and wash, with a mechanism for every kind of device. A lever sets off dominoes, a marble, a burnt string or a boxing glove; a crank turns cogs; a unicycle bot rides round putting it all right again."],
+  ["waterworks", "Contraption, by water", "Trial", "One room of Contraption redrawn as a single machine driven by water, to try the idea: a bucket lift, a header tank, and a petal valve for each device that lets water into a machine of its own size. Three skins from one drawing: patent engraving, blueprint and tin toy."],
+  ["whole-house", "Contraption, the whole house", "Trial", "Every room on one sheet, laid out by rule along one river: a trough falls through each row of rooms, a chute brings the water back for the next, and a lift raises it from the pond. Tap a room and the duck goes there with the view after it. Only the Kitchen is drawn in full; the rest are a glyph for each device."],
+  ["duck-run", "Contraption, the Kitchen by duck", "Implemented · In development", "A grid of tiles with one rule at their edges, and ducks going through every device in turn: toasted, mangled, corked and sent up the dumb waiter. What happens to a duck says what the device is doing. A device that stops answering gets a pile of ducks in front of it."],
+  ["aurora", "Aurora", "Implemented · In development", "Current web style: glass tiles in a bento grid over a sky that warms as lights come on. A room tile grows into a sheet of faders."],
+  ["pcb", "Board", "Designed", "A 1984 circuit board. Starburst and seven-segment LED displays, DIP switches for devices and traces that carry a signal while a room is on."],
   ["movement", "Movement", "Sketch", "A watch movement that fills the screen, rendered as real 3D metal under one lamp. A going train, lever and balance run across the middle; each room is a bridge, with screws for switches and jewels for pilot lamps."],
   ["dusk", "Dusk", "Sketch", "A storybook picture of the house from the garden. Lit rooms have glowing windows, curtains draw, the door stands ajar when unlocked, and the sky follows the time of day."],
-  ["fridge", "Fridge", "Sketch", "The fridge door: a polaroid per room, button magnets for devices, a notepad of the day's facts and fridge-poetry words for scenes."],
+  ["fridge", "Fridge", "Implemented · In development", "The fridge door: a polaroid per room, button magnets for devices, a notepad of the day's facts and fridge-poetry words for scenes."],
   ["levers", "Lever Frame", "Sketch", "A railway signal box: an illuminated diagram, block instruments for temperature and a frame of coloured levers to pull."],
   ["patchbay", "Patch Bay", "Sketch", "A modular synthesiser. Knobs for lights, toggles for switches, and scenes patched to rooms with hanging cables."],
   ["departures", "Departures", "Sketch", "A split-flap station board that turns through every letter to reach the new state."],
   ["cutaway", "Cutaway", "Sketch", "A blueprint section through the house. Lit rooms fill with warm light; fittings are numbered as on a drawing."],
   ["orrery", "Orrery", "Sketch", "Rooms as planets and devices as moons, on brass arms around a sun that grows with the power drawn."],
-  ["bakelite", "Bakelite", "Sketch", "A 1950s instrument panel: glowing valves, moving-coil meters whose pointers never sit still, fluted dimmer knobs, dolly switches and knife switches for scenes."],
+  ["bakelite", "Bakelite", "Implemented · In development", "A 1950s instrument panel: glowing valves, moving-coil meters whose pointers never sit still, fluted dimmer knobs, dolly switches and knife switches for scenes."],
+  ["nixie", "Nixie", "Implemented · In development", "The Console's 1960s: a rack of test instruments, with clear-fronted meters, nixie tubes, a magic eye for a room's lights, lever keys and an oscilloscope's trace."],
+  ["../../screenshots/dash-bored-silverface.webp", "Silverface", "Implemented · In development", "The Console's 1970s: aluminium faceplates after the hi-fi and bench instruments of the time, with knobs, toggle switches, lit meters, a television and thumbwheels for the alarm. It was built without a mock-up, so this is a picture of the build."],
+  ["bargraph", "Bargraph", "Implemented · In development", "The Console's 1980s: black hi-fi separates, with faders and LED ladders, fluorescent displays, soft-touch keys and a tuner's presets for scenes."],
+  ["beige", "Beige", "Implemented · In development", "The Console's 1990s: moulded beige plastic, with grey LCDs, jog dials, rocker switches, function keys for scenes and a chart in a window."],
   ["scope", "Scope", "Sketch", "A 1970s bench oscilloscope. Each room is a channel: its temperature history as a phosphor trace, its lights as a square wave, with rotary switches for the time base and scale."],
   ["textmode", "Text Mode", "Sketch", "An 80 by 25 character worksheet driven from the keyboard, on a choice of four tubes: business blue, green, amber and white phosphor."],
   ["arcade", "Arcade", "Sketch", "A fixed-shooter cabinet. Devices hang in formation by room; aim and fire to switch one."],
-  ["maze", "Moth", "Sketch", "The house as a maze. Press a lamp and a moth flies to it through the doorways and switches it."],
-  ["gazette", "Gazette", "Sketch", "The house as a newspaper. Stories are ranked, so what matters most leads; a Sensor Watch alert is breaking news. Two papers from the same stories: a broadsheet and a red-top. One column on a phone."],
+  ["digs", "Digs", "Implemented · In development", "The house in section, built of square blocks sixteen pixels across. A lamp lights the blocks round it, a level is a stack of ten blocks, hearts are the house's health and the sky keeps the real time. Unlocking the door takes two hits."],
+  ["playroom", "Play Room", "Sketch", "A nursery carpet with roads and a wooden railway. Stacking rings are lights, a jack-in-the-box is a switch, a puppet theatre is a blind and the shape sorter runs scenes. The train runs while the house answers, and the cars go faster as it draws more."],
+  ["gazette", "Gazette", "Implemented · In development", "The house as a newspaper. Stories are ranked, so what matters most leads; a Sensor Watch alert is breaking news. Two papers from the same stories: a broadsheet and a red-top. One column on a phone."],
 ];
-document.getElementById("grid").innerHTML = PAGES.map(([file, name, level, text]) => `<a href="${file}.html">
-  <div class="thumb"><iframe src="${file}.html" loading="lazy" tabindex="-1" title="${name}"></iframe></div>
+// A page is a mock-up beside this file, or a picture of the build where there never was one.
+document.getElementById("grid").innerHTML = PAGES.map(([file, name, level, text]) => file.endsWith(".webp") ? [file, `<img src="${file}" loading="lazy" alt="${name}">`, name, level, text]
+  : [`${file}.html`, `<iframe src="${file}.html" loading="lazy" tabindex="-1" title="${name}"></iframe>`, name, level, text]).map(([href, thumb, name, level, text]) => `<a href="${href}">
+  <div class="thumb">${thumb}</div>
   <div class="text"><h2>${name} <small>${level}</small></h2><p>${text}</p></div></a>`).join("");
 </script>
 </body>

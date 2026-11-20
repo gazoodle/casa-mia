@@ -8,12 +8,13 @@ import { html, nothing, type TemplateResult } from "lit";
 import { keyed } from "lit/directives/keyed.js";
 import { live } from "lit/directives/live.js";
 import { fire, navigate } from "../ha.ts";
+import { CHOOSE } from "./shell.ts";
 import { clipping, photograph } from "./clipping.ts";
 import { Acts } from "./gazette/acts.ts";
 import { ARCHIVE, PAST } from "./gazette/page.ts";
-import { DEGREES, sighted, type Device, type Room } from "./house.ts";
-import { lapsed } from "./katas.ts";
-import { cap, clock, counted, billing, personal, stories, type Press, type Story } from "./stories.ts";
+import { scenes, DEGREES, sighted, type Device, type Room } from "./house.ts";
+import { desk as deskOf } from "./column.ts";
+import { cap, clock, counted, billing, personal, pressing, stories, turning, zooming, type Press, type Story } from "./stories.ts";
 import { FIXES, VOICES, amount, announce, billed, clause, fill, poll, sky, tell, wired, words, type Told } from "./voices.ts";
 
 export const CARD = "dash-bored-gazette";
@@ -100,13 +101,11 @@ export class Gazette extends Acts {
         : nothing;
     const warm = house.rooms.filter((r) => r.temp !== undefined);
     const column = personal(house.people, this._rated, now);
-    // The agent's column, where the house has one (katas.ts). What a model wrote is set
+    // The agent's column, where the house has one (column.ts). What a model wrote is set
     // apart from what this paper worked out for itself, under the agent's own name.
-    const desk = house.desk;
-    const old = !!desk?.lead && lapsed(desk.lead, now);
+    const desk = deskOf(this._column, this._style, now);
     // A time alone would pass yesterday's piece off as today's.
     const when = (at: number) => (new Date(at).toDateString() === new Date(now).toDateString() ? clock(at) : `${new Date(at).toLocaleDateString(hass.locale?.language ?? "en-GB", { day: "numeric", month: "short" })}, ${clock(at)}`);
-    const doubt = (of: { unsure: boolean; failed?: boolean }) => (of.failed ? html`<i>${voice.desk.failed}:</i> ` : of.unsure ? html`<i>${voice.desk.unsure}:</i> ` : nothing);
 
     const rooms = house.rooms.filter((r) => r.devices.length);
     const big = rooms.reduce((n, r) => n + r.devices.length, 0) > BIG;
@@ -139,7 +138,9 @@ export class Gazette extends Acts {
     const chip = (d: Device) =>
       html`<div class="pair"><button class="chip ${d.on ? "on" : ""} ${d.away ? "away" : ""}" aria-pressed=${d.on} @click=${() => this._press(d)}>${d.name}</button
         ><button class="chip tab" aria-label="${d.name}: its story" @click=${() => this._story(d)}>${d.dims && !d.away ? `${d.level ?? d.span.min}${DEGREES.has(d.kind) ? "°" : "%"}` : "›"}</button></div>`;
-    const devices = new Map(house.rooms.flatMap((r) => r.devices).map((d) => [d.id, d]));
+    // A camera's control that is a device has a clipping too, though it may be in no room: a room's own device comes first.
+    const placed = house.rooms.flatMap((r) => r.devices);
+    const devices = new Map([...placed.flatMap((d) => (d.controls ?? []).flatMap((c) => (c.device ? [c.device] : []))), ...placed].map((d) => [d.id, d]));
     const subject = this._open && devices.get(this._open.id);
     const bill = billing(this._played, this._rated, devices);
     // What comes away with a clipping: the paper's own stories, from round where it was cut.
@@ -150,17 +151,18 @@ export class Gazette extends Acts {
         (drawn) => html`<div class="rows">${drawn}</div>`)}`;
 
     // It goes in the middle of the page, after the paper's own news.
+    // With no column yet, the copy is awaited, since the write began. A failed write
+    // leaves the last column, and says why the next is late.
+    const paper = desk?.paper;
     const correspondent = desk
       ? html`<h3>${voice.titles.desk}</h3>
                 <div class="desk">
-                  <p class="by">${fill(voice.desk.by, { name: desk.by ?? voice.desk.staff })}${desk.lead
-                    ? html` · <span class=${old ? "old" : ""} role=${old ? "alert" : nothing}>${fill(old ? voice.desk.lapsed : voice.desk.filed, { time: when(desk.lead.at) })}</span>`
-                    : nothing}</p>
-                  ${desk.lead ? html`<p class="lead">${doubt(desk.lead)}${desk.lead.text}</p>${[desk.lead.attention, desk.lead.objective].map((more) => (more ? html`<p>${more}</p>` : nothing))}` : nothing}
-                  ${desk.lead?.errors.map((error) => html`<p class="error">${error}</p>`)}
-                  ${desk.pieces.length
-                    ? html`<ul>${desk.pieces.map((p) => html`<li><time>${when(p.at)}</time><b>${p.name}.</b> ${doubt(p)}${p.text}${p.attention ? ` ${p.attention}` : ""}</li>`)}</ul>`
-                    : nothing}
+                  <p class="by">${fill(voice.desk.by, { name: desk.by ?? voice.desk.staff })} · ${desk.at
+                    ? html`<span class=${desk.lapsed ? "old" : ""} role=${desk.lapsed ? "alert" : nothing}>${fill(desk.lapsed ? voice.desk.lapsed : voice.desk.filed, { time: when(desk.at) })}</span>`
+                    : `${voice.desk.awaited}${desk.writing ? ` (${when(desk.writing)})` : ""}`}</p>
+                  ${paper ? html`<p class="lead">${paper.head}</p>${paper.body.map((p) => html`<p>${p}</p>`)}` : nothing}
+                  ${paper?.items.length ? html`<ul>${paper.items.map((item) => html`<li>${item}</li>`)}</ul>` : nothing}
+                  ${desk.late ? html`<p class="error" role="alert">${fill(voice.desk.late, { reason: desk.late.reason, time: when(desk.late.since) })}</p>` : nothing}
                 </div>`
       : nothing;
 
@@ -168,7 +170,8 @@ export class Gazette extends Acts {
       ${this._lost ? html`<div class="fault" role="alert">Not connected to Home Assistant since ${clock(this._lost)}. What follows is how things stood then.</div>` : nothing}
       ${this._fault ? html`<div class="fault" role="alert">${this._fault}</div>` : nothing}
       ${alert ? keyed(alert.s.id + alert.s.variant, html`<div class="breaking" role="status"><b>${voice.flash}</b>${alert.head}${/[!?]$/.test(alert.head) ? "" : ":"} ${alert.s.vars.message}</div>`) : nothing}
-      <header class="masthead"><h1>${voice.name}</h1><p>${voice.strap}</p></header>
+      <header class="masthead"><h1>${voice.name}</h1><p>${voice.strap}</p>
+        ${this.hasAttribute("panel") ? html`<button class="ear" aria-label="Choose another style of Dash-Bored" @click=${() => fire(this, CHOOSE)}><b>Other editions</b>Dash-Bored in another style</button>` : nothing}</header>
       <div class="dateline">
         ${this.hasAttribute("panel") ? html`<ha-menu-button .hass=${hass} .narrow=${this.narrow}></ha-menu-button>` : nothing}
         <span>${new Date().toLocaleDateString(hass.locale?.language ?? "en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</span>
@@ -244,8 +247,8 @@ export class Gazette extends Acts {
                     html`${g.kind === "plumbing" && item.via !== g.items[i - 1]?.via ? html`<li class="via">${FIXES[item.via ?? ""] ?? `${item.via}. ${FIXES[""]}`}:</li>` : nothing}<li><button class="mend" @click=${() => (g.kind === "floorless" || g.kind === "cold" ? navigate(`/config/areas/area/${item.id}`) : fire(this, "hass-more-info", { entityId: item.id }))}>${item.name}</button></li>`)}</ul></details>`)}
                 <p class="mend">${voice.mend}</p>`
             : nothing}
-          ${house.scenes.length
-            ? html`<h3>${voice.titles.notices}</h3>${house.scenes.slice(0, 8).map((s, i) =>
+          ${house.scenes.length || house.rooms.some((r) => r.scenes.length)
+            ? html`<h3>${voice.titles.notices}</h3>${scenes(house).slice(0, 8).map((s, i) =>
                 html`<button class="ad" @click=${() => this._call({ domain: "scene", service: "turn_on", ids: [s.id] }, s.name)}><b>${s.name}</b>${voice.notices[i % voice.notices.length]}</button>`)}`
             : nothing}
         </aside>
@@ -257,6 +260,9 @@ export class Gazette extends Acts {
             more: () => this._live(subject.id),
             picture: () => this._look({ src: subject.picture!, caption: `${subject.room}: ${subject.name}`, see: subject.id }),
             shut: () => this._shut(),
+            turn: (preset) => this._call(turning(preset), `${subject.room} ${subject.name} to ${preset.name}`),
+            zoom: (level) => this._ask(subject, level, zooming),
+            control: (control) => (control.device ? this._press(control.device) : this._call(pressing(control), `${subject.room} ${control.name}`)),
           })
         : this._shot
           ? photograph(voice, this._shot, scraps, { more: () => this._live(this._shot!.see!), shut: () => this._shut() })

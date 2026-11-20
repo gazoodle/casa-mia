@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bargraph</title>
+<style>
+/* The Console's 1980s: a stack of black hi-fi separates. Brushed black fronts with fine
+   white legends and an orange line, faders, LED ladders, fluorescent displays, membrane keys. */
+body { background: #000; }
+.panel { --vfd: #7df7e6; --amber: #ff7a1a; min-height: 100vh; padding: 16px 20px; color: #e8e8e8; font-family: "Helvetica Neue", "Arial Narrow", Arial, sans-serif; background: #070708; }
+.bay { border-radius: 2px; background: repeating-linear-gradient(0deg, rgba(255,255,255,.03) 0 1px, transparent 1px 3px), linear-gradient(180deg, #252628, #131415); box-shadow: inset 0 1px 0 rgba(255,255,255,.16), inset 0 -1px 0 #000, 0 2px 5px #000; }
+.label { margin-top: 6px; font-size: 9.5px; font-stretch: condensed; letter-spacing: .14em; text-transform: uppercase; }
+.head { padding-bottom: 8px; border-bottom: 1px solid var(--amber); } .head .label { margin: 0; font-size: 13px; font-style: italic; letter-spacing: .2em; }
+
+/* A needle meter of the time: a black face printed in white, lit warm from below, and a hair of an orange needle. */
+.needle-m { --wob: .25; --needle: #ff8a2a; --needle-w: .4; }
+.win { border: 1px solid #3a3b3d; border-radius: 2px; box-shadow: inset 0 0 12px #000; }
+.needle-m .win { background: radial-gradient(ellipse at 50% 130%, #6b5216, #17130a 70%); }
+.arc, .tick { fill: none; stroke: #f3ead0; stroke-width: .4; } .red { fill: none; stroke: #ff4a2a; stroke-width: 1.4; }
+.face text { fill: #f3ead0; font-size: 5.6px; } .face .unit { font-size: 6px; letter-spacing: .1em; }
+.cowl { height: 9%; background: #000; }
+/* The same reading on a fluorescent display: large figures over a sweep of segments, the last of them red. */
+.display-m .win, .dial .figs, .num, .msg, .cols { background: #04100f; --seg-on: var(--vfd); --seg-off: rgba(125,247,230,.07); --seg-glow: 0 0 5px rgba(125,247,230,.8); }
+.display-m .win { --fig: 30px; } .display-m .unit { align-self: flex-end; margin-bottom: 6px; color: var(--vfd); font-size: 11px; text-shadow: 0 0 5px var(--vfd); }
+.sweep i { height: calc(5px + var(--i) * .6px); background: var(--vfd); box-shadow: 0 0 4px rgba(125,247,230,.7); transform: skewX(-12deg); }
+.sweep i:nth-child(n + 17) { background: #ff6a3a; box-shadow: 0 0 4px #ff6a3a; }
+
+/* A room's lights: a ten-segment LED bar, green then amber then red. */
+.lights { display: flex; gap: 2px; padding: 4px 5px; border: 1px solid #333; background: #000; }
+.lights i { width: 5px; height: 12px; background: #35e35a; } .lights i:nth-child(n + 7) { background: #ffc21a; } .lights i:nth-child(n + 9) { background: #ff3a2a; }
+
+/* A fader for each level, with an LED ladder beside it that says where it is. */
+.dial { width: 74px; } .chan { display: flex; justify-content: center; gap: 7px; height: 118px; }
+.ladder { --frac: calc(var(--lvl, 0) / 100); display: flex; flex-direction: column-reverse; gap: 2px; justify-content: center; } .ladder i { flex: none; width: 8px; height: 8px; background: var(--amber); }
+.slide { width: 34px; height: 100%; margin: 0; border-radius: 2px; cursor: ns-resize;
+  background: linear-gradient(90deg, transparent 14px, #000 14px 20px, transparent 20px), repeating-linear-gradient(0deg, #8a8a8a 0 1px, transparent 1px 10.2px) 0 11px / 8px calc(100% - 21px) no-repeat, repeating-linear-gradient(0deg, #8a8a8a 0 1px, transparent 1px 10.2px) 100% 11px / 8px calc(100% - 21px) no-repeat; }
+.cap { position: absolute; left: 4px; right: 4px; bottom: calc((100% - 22px) * var(--lvl, 0) / 100); height: 22px; border-radius: 2px; background: linear-gradient(180deg, #5a5b5e, #2a2b2d 42%, #f4f4f4 42% 56%, #232426 56%, #0f0f10); box-shadow: 0 4px 5px #000, inset 0 1px 0 rgba(255,255,255,.35); transition: bottom .2s; }
+.drag .cap { transition: none; }
+
+/* The heating keeps a knob: smooth and black, in a ring of LEDs lit as far as it is turned, with its setting in fluorescent figures. */
+.dial.stat { width: 96px; } .crank { width: 66px; height: 66px; margin: 14px auto 4px; border-radius: 50%; }
+.crank::before { content: ""; position: absolute; inset: -12px; border-radius: 50%; background: conic-gradient(from 225deg, var(--amber) 0 calc(var(--lvl, 0) * 2.7deg), #3a2410 0 270deg, transparent 0);
+  -webkit-mask: radial-gradient(circle, transparent 0 60%, #000 61% 68%, transparent 69%), repeating-conic-gradient(from 225deg, #000 0 9deg, transparent 9deg 15deg); -webkit-mask-composite: source-in; mask-composite: intersect; }
+.turn { inset: 3px; z-index: 1; }
+/* The light does not turn with a knob: its shadow, and the shine on it, are on a layer under the part that turns. */
+.crank::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #4d4e51, #0d0d0e 70%); box-shadow: 0 5px 8px #000, inset 0 1px 0 rgba(255,255,255,.25); }
+.turn::after { content: ""; position: absolute; left: 50%; top: 6%; width: 2px; height: 22%; margin-left: -1px; background: var(--amber); }
+.dial .figs { --fig: 18px; margin-top: 12px; padding: 4px 6px; border: 1px solid #333; }
+
+/* A soft-touch key with an LED in its corner. */
+.keyc { display: block; width: 54px; height: 26px; margin-top: 10px; border-radius: 3px; background: linear-gradient(180deg, #414245, #1c1d1f); box-shadow: inset 0 1px 0 rgba(255,255,255,.28), 0 2px 3px #000; }
+.led { position: absolute; left: 6px; top: 15px; width: 9px; height: 4px; background: #4a0f0a; } .on .led { background: #ff3a2a; box-shadow: 0 0 6px #ff3a2a; }
+/* Its guard: a flap of smoked perspex, hinged at the top. */
+.guard { position: absolute; inset: 6px -4px -4px; border: 1px solid rgba(255,255,255,.3); border-radius: 2px; background: linear-gradient(120deg, rgba(255,255,255,.22), rgba(70,50,30,.6) 30%, rgba(40,28,18,.7)); transform-origin: top; transition: transform .18s; }
+.up .guard { transform: scaleY(.14); }
+
+/* Scenes: a tuner's presets, numbered, each with a bar that lights for the one chosen. */
+.scene { width: 62px; } .scene .led { position: static; display: block; width: 26px; height: 3px; margin: 0 auto 4px; } .closed .led { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+.scene .num { display: block; height: 24px; border: 1px solid #555; border-radius: 12px; background: none; font: 600 12px/22px "Helvetica Neue", Arial, sans-serif; }
+
+/* Alerts: a red LED, and what is wrong on a dot-matrix fluorescent line. */
+.alert { display: flex; align-items: center; gap: 9px; }
+.lamp { flex: none; width: 8px; height: 8px; border-radius: 50%; background: #ff3a2a; box-shadow: 0 0 7px #ff3a2a; } .warning .lamp { background: #ffc21a; box-shadow: 0 0 7px #ffc21a; }
+.critical .lamp { animation: blink 1s steps(2, jump-none) infinite; } @keyframes blink { 0% { opacity: .25; } }
+.msg { position: relative; padding: 5px 9px; border: 1px solid #333; color: var(--vfd); font: 700 14px/1.2 Menlo, "Courier New", monospace; letter-spacing: .12em; text-transform: uppercase; text-shadow: 0 0 5px var(--vfd); }
+/* The figures are made of dots: dark lines across them, both ways. */
+.msg::after { content: ""; position: absolute; inset: 0; background: linear-gradient(rgba(4,16,15,.5) .6px, transparent .6px) 0 0 / 100% 2.6px, linear-gradient(90deg, rgba(4,16,15,.5) .6px, transparent .6px) 0 0 / 2.6px 100%; }
+
+/* A small colour monitor in a black case, with what it is showing written over the picture. */
+.tube { border: 8px solid #101011; border-radius: 6px; box-shadow: 0 0 0 1px #3a3b3d; }
+.tube::before { content: "CAM 1 \25CF"; position: absolute; left: 6px; top: 4px; color: #4f6; font: 700 9px Menlo, monospace; text-shadow: 0 0 3px #000; }
+.tube::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(0,0,0,.2) 0 1px, transparent 1px 3px); }
+
+/* The alarm's code: fluorescent figures, each with a membrane key over and under it. */
+.wheel { margin: 0 2px; } .wheel button { width: 22px; height: 14px; border: 1px solid #777; border-radius: 7px; color: #ccc; font-size: 10px; line-height: 12px; }
+.wheel .num { display: flex; justify-content: center; margin: 3px 0; padding: 3px 2px; font-size: 18px; }
+.key { display: block; width: 46px; height: 20px; margin: 0 auto; border: 1px solid #999; border-radius: 10px; }
+
+/* The chart: columns of segments, as a spectrum analyser shows them. */
+.cols { display: flex; justify-content: center; gap: 3px; padding: 8px; border: 1px solid #333; } .col { flex: none; width: round(down, calc((100% - 69px) / 24), 1px); display: flex; flex-direction: column-reverse; gap: 2px; }
+.col i { flex: none; height: 8px; background: var(--vfd); box-shadow: 0 0 3px rgba(125,247,230,.6); } .col i:nth-child(n + 7) { background: #ff6a3a; box-shadow: 0 0 3px #ff6a3a; }
+@media (prefers-reduced-motion: reduce) { .critical .lamp { animation: none; } }
+</style>
+</head>
+<body>
+<script src="house.js"></script>
+<script src="eras.js"></script>
+<script>
+Era({
+  num: Era.seg7, up: "+", down: "&minus;",
+  odd: 3, // a fluorescent display in every third room, among the needles
+  level: (d) => `<div class="dial"><div class="chan"><div class="ladder segs" style="--n:10">${Era.segs(10)}</div><div class="slide" data-id="${d.id}" role="slider" tabindex="0" aria-label="${d.name}"><i class="cap"></i></div></div><span class="label">${d.name}</span></div>`,
+  key: `<i class="led"></i><i class="keyc"></i>`,
+  scene: (s) => `<button class="scene" data-scene="${s.id}"><i class="led"></i><span class="num">${House.scenes.indexOf(s) + 1}</span><span class="label">${s.name}</span></button>`,
+  chart: () => `<div class="cols">${Era.day.filter((_, i) => i % 2 === 0).map((v) => `<span class="col segs" style="--n:8;--frac:${((v - 15.5) / 7).toFixed(2)}">${Era.segs(8)}</span>`).join("")}</div>`,
+});
+</script>
+</body>
+</html>

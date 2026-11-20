@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Contraption: a trial of drawing by bitmaps</title>
+<link rel="stylesheet" href="waterworks/style.css">
+<style>
+/* A trial (duck-run/trial.js): one canvas, and a line saying how it is going. */
+body { padding: 0; display: block; overflow: hidden; }
+#rate { display: block; height: 40px; padding: 10px 14px; font-size: 14px; }
+#view { display: block; width: 100vw; height: calc(100vh - 40px); }
+#measure { position: absolute; visibility: hidden; width: 10px; height: 10px; overflow: visible; }
+.ink .shine { opacity: 1; }
+.ink .shine * { stroke: none; fill: var(--lit); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs>
+  <filter id="wobble" x="-2%" y="-2%" width="104%" height="104%">
+    <feTurbulence type="fractalNoise" baseFrequency=".03" numOctaves="2" seed="4"/>
+    <feDisplacementMap in="SourceGraphic" scale="3"/></filter>
+  <pattern id="hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(40)">
+    <rect width="5" height="5" fill="#eadcbc"/><line y2="5" stroke="#2b2118" stroke-width="1"/></pattern>
+  <pattern id="cross" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+    <rect width="4" height="4" fill="#eadcbc"/><path d="M0,0 V4 M0,0 H4" stroke="#2b2118" stroke-width=".9"/></pattern>
+  <pattern id="blue" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+    <rect width="6" height="6" fill="#1d4f91"/><line y2="6" stroke="#e8f1ff" stroke-width=".7"/></pattern>
+</defs></svg>
+<output id="rate">Making the bitmaps.</output>
+<canvas id="view"></canvas>
+<svg id="measure" class="ink"><g id="bench"></g></svg>
+<script>
+for (const src of ["house.js", "contraption/kit.js", "contraption/house.js", "waterworks/room.js", "waterworks/bake.js", "duck-run/tile.js", "duck-run/carriers.js", "duck-run/light.js", "duck-run/group.js", "duck-run/layout.js", "duck-run/rooms.js", "duck-run/sprites.js", "duck-run/trial.js"]) document.write(`<script src="${src}?${Date.now()}"><\/script>`);
+</script>
+</body>
+</html>

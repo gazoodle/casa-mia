@@ -33,6 +33,7 @@ INSTALLED_EVENT = "casa_mia_components_installed"
 PUBLISHED = {
     "casa_mia_sensor_watch": "casa-mia-sensor-watch",
     "casa_mia_love_or_loathe": "casa-mia-love-or-loathe",
+    "casa_mia_dash_bored": "casa-mia-dash-bored",
 }
 _VERSION = re.compile(r"(\d+)\.(\d+)\.(\d+)(?:-b(\d+))?")
 # HA's notification service through the Supervisor proxy. The notice needs no dismissing:

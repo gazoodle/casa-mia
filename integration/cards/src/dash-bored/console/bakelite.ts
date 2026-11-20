@@ -4,14 +4,18 @@
 import * as kit from "./bakelite/kit.ts";
 import { recorder } from "./bakelite/recorder.ts";
 import { STYLES } from "./bakelite/styles.ts";
+import { barometer, calendar } from "./bakelite/weather.ts";
 import { typeface } from "../family.ts";
+import { PAGE } from "../family.ts";
+import { register } from "./metered.ts";
 import { Panel } from "./panel.ts";
+import { VIEWS } from "./views.ts";
 
 export const CARD = "dash-bored-bakelite";
 
 export class Bakelite extends Panel {
-  static styles = STYLES;
-  protected kit = { ...kit, recorder };
+  static styles = [PAGE, VIEWS, STYLES];
+  protected kit = { ...kit, recorder, barometer, calendar, register: register(kit.label, kit.counter) };
 
   connectedCallback() {
     super.connectedCallback();

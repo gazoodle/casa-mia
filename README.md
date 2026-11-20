@@ -28,7 +28,7 @@ documentation.
 <td width="25%" valign="top">
 <h4><a href="docs/applets/dash-bored.md">Dash-Bored</a> <a href="docs/README.md#maturity"><img src="docs/maturity/development.svg" alt="In development" align="absmiddle"></a><!--dash_bored--></h4>
 <a href="docs/applets/dash-bored.md"><img src="docs/screenshots/dash-bored-gazette.webp" alt="Dash-Bored's Gazette: the house as a broadsheet newspaper, leading on a boiler fault, with the rooms' devices in its columns" width="100%"></a>
-<p>Yet another dashboard designer: eighteen ways of controlling the same house, from a newspaper to a 1950s instrument panel to a fridge door. Three are built and the rest are mock-ups.</p>
+<p>Yet another dashboard designer: eighteen ways of controlling the same house, from a newspaper to a 1950s instrument panel to a fridge door. Four are built and the rest are mock-ups.</p>
 </td>
 <td width="25%" valign="top">
 <h4><a href="docs/tablet-layout.md#showing-and-hiding">Garnish</a> <a href="docs/README.md#maturity"><img src="docs/maturity/beta.svg" alt="Beta" align="absmiddle"></a><!--garnish--></h4>
@@ -266,6 +266,20 @@ orientation controls, the switches and the compatibility limits.
   heart of the phone and SMS line.
 - The [Home Assistant](https://www.home-assistant.io) project and its community, for the
   platform all of this plugs into.
+
+## AI use
+
+Most of Casa Mia's code and much of its documentation were written by AI coding agents
+(Claude and Codex), working to the author's direction. The author decides what is built,
+how it behaves and how it looks, and it runs in the author's own home.
+
+- The rules the agents work to are in this repository: [CLAUDE.md](CLAUDE.md) and
+  [AGENTS.core.md](AGENTS.core.md).
+- Each commit names the model that worked on it in a `Co-Authored-By` line.
+- The agents write tests with the code, and the tests run on every pull request.
+
+The idea of saying this plainly in the README comes from
+[LCARdS](https://github.com/snootched/LCARdS).
 
 ## Licence
 

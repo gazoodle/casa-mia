@@ -9,7 +9,7 @@ from custom_components.casa_mia_love_or_loathe.const import EVENT
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import async_capture_events
 
-from test_love_or_loathe import a_group, add, play, settled
+from test_love_or_loathe import PLAYER, a_group, add, play, settled
 
 
 async def test_a_song_played_too_often_is_struck_whatever_a_group_says(hass, freezer):
@@ -77,6 +77,58 @@ async def test_a_song_played_too_often_is_struck_whatever_a_group_says(hass, fre
     await hear("")
     await hear("Round Again")
     assert (events[-1].data["title"], events[-1].data["repeats"]) == ("Round Again", 3)
+
+
+async def test_a_loathed_group_acts_before_the_strike_and_a_loved_one_after(
+    hass, freezer
+):
+    """Owner, 2026-11-15: a loathed song gets its group's own action, the strike is for
+    boredom, a loved song is boosted. Seen when a Christmas group's switch of station
+    was beaten by the strike's mute."""
+    strike = {"times": 2, "hours": 4, "action": "mute", "amount": 0, "minutes": 5}
+    entry, calls = await add(
+        hass,
+        a_group("Xmas", action="volume", amount=-50, patterns="Last Christmas"),
+        a_group("Fond", "love", action="volume", amount=10, patterns="Agadoo"),
+        repeats=strike,
+    )
+    events = async_capture_events(hass, EVENT)
+
+    for title in ("Last Christmas", "Agadoo", "Last Christmas", "Agadoo"):
+        freezer.tick(timedelta(minutes=30))
+        play(hass, title, "A Band")
+        await settled(hass)
+    said = [(e.data["group"], e.data["action"]) for e in events]
+    assert said == [
+        ("Xmas", "volume"),
+        ("Fond", "volume"),
+        ("Xmas", "volume"),  # played twice, but loathed: its own action
+        ("", "mute"),  # loved, but played twice: struck
+    ]
+
+
+async def test_a_volume_change_is_made_on_each_speaker_of_a_group(hass):
+    other = "media_player.dining"
+    members = [PLAYER, other]
+    play(hass, "Something Ordinary", "A Band", entity=other, volume_level=0.2)
+    _, calls = await add(hass, a_group("Fond", "love", "volume", patterns="Agadoo"))
+
+    play(hass, "Agadoo", "Black Lace", group_members=members)
+    await settled(hass)
+    assert [
+        (c.data["entity_id"], c.data["volume_level"]) for c in calls["volume_set"]
+    ] == [
+        (PLAYER, 0.44),
+        (other, 0.22),
+    ]
+
+    # Put back where nobody moved it since; the other left as someone set it.
+    play(hass, "Something Ordinary", "A Band", entity=other, volume_level=0.5)
+    play(hass, "Wonderwall", "Oasis", group_members=members, volume_level=0.44)
+    await settled(hass)
+    assert [
+        (c.data["entity_id"], c.data["volume_level"]) for c in calls["volume_set"][2:]
+    ] == [(PLAYER, 0.4)]
 
 
 async def test_each_groups_repeats_move_to_its_entry_once(hass):

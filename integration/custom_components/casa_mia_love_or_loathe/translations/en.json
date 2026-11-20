@@ -7,11 +7,13 @@
         "data": {
           "name": "Name",
           "players": "Media players to watch (one or more)",
-          "delay": "Delay"
+          "delay": "Delay",
+          "back_at_end": "Switch back at the end of a song"
         },
         "data_description": {
-          "players": "Any player that reports the title of what it is playing. Choose as many as you like: after the first, the box offers another. For speakers playing as one group, only the group's leader acts.",
+          "players": "Any player that reports the title of what it is playing. Choose as many as you like: after the first, the box offers another. For speakers playing as one group, the group's leader acts for all of them: a mute or a volume change is made on every speaker in the group.",
           "delay": "Seconds to wait after a player reports a new track before acting. Leave it at 0 unless the title changes before the song does.",
+          "back_at_end": "When a player has been switched to another station, it goes back when the song playing at the end of its minutes ends, not in the middle of it. If no new song comes on within 10 minutes after that, it goes back then.",
           "name": "Shown on its device and entities. It matters when you add the integration more than once."
         }
       }
@@ -27,19 +29,21 @@
         "data": {
           "players": "Media players to watch (one or more)",
           "delay": "Delay",
+          "back_at_end": "Switch back at the end of a song",
           "raters": "Who may rate",
           "screens": "Screens that may rate for them"
         },
         "data_description": {
-          "players": "Any player that reports the title of what it is playing. Choose as many as you like: after the first, the box offers another. For speakers playing as one group, only the group's leader acts.",
+          "players": "Any player that reports the title of what it is playing. Choose as many as you like: after the first, the box offers another. For speakers playing as one group, the group's leader acts for all of them: a mute or a volume change is made on every speaker in the group.",
           "delay": "Seconds to wait after a player reports a new track before acting. Leave it at 0 unless the title changes before the song does.",
+          "back_at_end": "When a player has been switched to another station, it goes back when the song playing at the end of its minutes ends, not in the middle of it. If no new song comes on within 10 minutes after that, it goes back then.",
           "raters": "The people whose loves and loathes count here. Only they can rate a song, with the thumbs or the rate action, and only they get loved and loathed groups. Left empty, nobody can.",
           "screens": "The logins that may rate for one of those people by naming them, such as a wall tablet's. Anyone else can only rate as themselves; an administrator may always name a person."
         },
         "sections": {
           "repeats": {
             "name": "Songs played too often",
-            "description": "For a station with a short playlist. Any song played this many times in the last so many hours is a strike, whatever your groups say about it, even a song you love. The Repeats switch turns this off and on without losing the numbers.",
+            "description": "For a station with a short playlist. Any song played this many times in the last so many hours is a strike, even a song you love. A song a loathed group has gets that group's own action instead. The Repeats switch turns this off and on without losing the numbers.",
             "data": {
               "times": "Times played",
               "hours": "In the last",

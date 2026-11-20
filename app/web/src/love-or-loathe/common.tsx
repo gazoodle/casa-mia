@@ -65,6 +65,8 @@ export type Entry = {
   raters: string[];
   screens: string[];
   delay: number;
+  /** A player switched to another station goes back when a song ends, not mid-song. */
+  back_at_end: boolean;
   repeats: Repeats;
   /** Off: the strike does nothing, its numbers kept (its Repeats switch). */
   repeats_on: boolean;

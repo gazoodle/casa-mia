@@ -3,11 +3,11 @@
   "name": "Casa Mia Camera Commander",
   "codeowners": [],
   "config_flow": true,
-  "dependencies": ["casa_mia"],
+  "dependencies": ["casa_mia", "http"],
   "documentation": "https://github.com/gazoodle/casa-mia/blob/main/docs/applets/camera-commander.md",
   "integration_type": "service",
   "iot_class": "local_polling",
   "requirements": [],
   "single_config_entry": true,
-  "version": "2026.11.8"
+  "version": "2026.11.9"
 }

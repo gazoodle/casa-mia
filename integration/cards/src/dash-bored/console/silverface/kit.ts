@@ -4,6 +4,8 @@
 // on the panel and acts on what is pressed; styles.ts is their look and how they move.
 import { html, nothing, svg, type TemplateResult } from "lit";
 import { swing } from "../bakelite/kit.ts";
+import { BARS, plate } from "../figures.ts";
+import { BEATS } from "../kit.ts";
 
 // A thumbwheel and a screen are the same parts in every era, dressed by the era's
 // stylesheet: black plastic wheels here, and a colour tube.
@@ -32,23 +34,8 @@ export const label = (text: string) => html`<span class="label" role="img" aria-
   })}</span> `,
 )}</span>`;
 
-// Which of a seven-segment digit's bars are lit, a to g: top, the two right, bottom, the
-// two left, middle.
-const BARS: Record<string, string> = { "0": "abcdef", "1": "bc", "2": "abged", "3": "abgcd", "4": "fgbc", "5": "afgcd", "6": "afgedc", "7": "abc", "8": "abcdefg", "9": "abcdfg", "-": "g" };
 const DIM = "#3a0d0a"; // a bar that is not lit
 const BAR: Record<string, string> = { a: "M2.5,1 H7.5", b: "M9,2.5 V8", c: "M9,10 V15.5", d: "M2.5,17 H7.5", e: "M1,10 V15.5", f: "M1,2.5 V8", g: "M2.5,9 H7.5" };
-
-/** What a display shows for a setting, in cells that never change in number: as many
- * figures as the top of the device's `scale` needs, a place for a minus if the scale
- * goes below nothing, and for degrees a decimal place, whether or not this value uses
- * them. A value of "" is a dark display. */
-export function panel(value: string, unit: string, scale: number[]): string {
-  const places = unit === "°" ? 1 : 0;
-  const figures = Math.max(...scale.map((n) => String(Math.trunc(Math.abs(n))).length)) + (scale[0] < 0 ? 1 : 0);
-  const wide = figures + (places ? 1 + places : 0);
-  const dark = " ".repeat(figures) + (places ? "." + " ".repeat(places) : "");
-  return (value === "" ? dark : Number(value).toFixed(places).padStart(wide, " ")) + unit;
-}
 
 /** A setting in red seven-segment digits behind a dark window: "21.5°", "45%". The bars
  * that are not lit can just be seen, as on the real thing: a space is a figure with
@@ -73,8 +60,6 @@ const at = (r: number, deg: number) => {
   return `${(60 + r * Math.cos(a)).toFixed(1)},${(74 + r * Math.sin(a)).toFixed(1)}`;
 };
 const LEGEND: Record<string, string> = { "°C": "TEMPERATURE °C", kW: "POWER kW" };
-// As Bakelite's: a prime for each meter, so that no two needles waver in step.
-const BEATS = [53, 97, 61, 83, 71, 59, 89, 67, 79, 73];
 const MARKS = Array.from({ length: 21 }, (_, i) => svg`<path d="M${at(50, -50 + i * 5)} L${at(i % 4 ? 53 : 56, -50 + i * 5)}" stroke=${i > 16 ? "#c9170f" : "#101614"} stroke-width=${i % 4 ? 0.6 : 1.1}/>`);
 
 /** A panel meter of the 1970s, with a scale from `lo` to `hi`: a rectangular window with
@@ -213,10 +198,8 @@ function thermostat(lo: number, hi: number, reads?: number) {
 export const knob = (name: string, sort: string, what: string, level: number, held: boolean, said: string, note: string, on: { down(e: PointerEvent): void; move(e: PointerEvent): void; up(e: PointerEvent): void; drop(): void; key(e: KeyboardEvent): void }, scale: number[] = [0, 100], reads?: number) => {
   // The display is part of the panel: it is there whether the device is on or off, and
   // always as wide. A thermostat that is off has a dark display.
-  const set = /^(.*?) (-?[\d.]+)([°%])$/.exec(name);
-  const off = sort === "heat" ? /^(.*): off$/.exec(name) : null;
-  const legend = set?.[1] ?? off?.[1] ?? name;
-  const display = set ? readout(panel(set[2], set[3], scale)) : off ? readout(panel("", "°", scale), false) : nothing;
+  const { legend, shown, lit } = plate(name, sort, scale);
+  const display = shown === undefined ? nothing : readout(shown, lit);
   // A player's tape has a place kept for it, so that a song starting moves nothing.
   const tape = note || sort === "sound";
   return html`<div class="dial ${sort}">

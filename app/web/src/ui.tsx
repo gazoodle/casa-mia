@@ -1,6 +1,6 @@
 /** Small shared UI pieces: dialog, field with help, switch, toasts, copy. */
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import css from "./ui.module.css";
 
@@ -173,6 +173,16 @@ export function Segmented<T extends string>({
 }
 
 export type Toast = { text: string; tone: "good" | "bad" };
+
+/** A page's toasts, and how it says something: each goes after six seconds. */
+export function useToasts(): [Toast[], (text: string, tone?: Toast["tone"]) => void] {
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const say = useCallback((text: string, tone: Toast["tone"] = "good") => {
+    setToasts((t) => [...t, { text, tone }]);
+    setTimeout(() => setToasts((t) => t.slice(1)), 6000);
+  }, []);
+  return [toasts, say];
+}
 
 export function Toasts({ toasts }: { toasts: Toast[] }) {
   // A popover, so it sits in the top layer: under a dialog's blurred backdrop, the error

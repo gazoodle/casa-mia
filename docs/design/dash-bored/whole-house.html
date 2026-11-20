@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Contraption: the whole house, by water</title>
+<link rel="stylesheet" href="waterworks/style.css">
+<style>
+/* The sheet keeps the shape of one room (1200 by 780), which is also the shape of the
+   whole house, so a view of either fills it. */
+#stage { container-type: size; display: grid; place-items: center; overflow: hidden; }
+.sheet { width: min(100cqw, 100cqh * 1200 / 780); height: auto; aspect-ratio: 1200 / 780; min-width: 0; overflow: hidden; }
+#back { font: inherit; font-size: 13px; color: inherit; background: none; border: 2px solid var(--line); border-radius: 4px; padding: 3px 9px; cursor: pointer; }
+#back:disabled { opacity: .35; cursor: default; }
+/* A phone held sideways has little height to spare: the explanation goes. */
+@media (max-height: 500px) { header p { display: none; } h1 { font-size: 20px; } }
+.ink rect.hit:focus { outline: none; }
+#back:focus-visible, .ink rect.hit:focus-visible { outline: 2px dashed var(--line); outline-offset: -6px; }
+
+/* What is drawn for the far view keeps its weight on the screen whatever the distance:
+   `--px` is how many of the drawing's units make one px (main.js). */
+.ink .far *, .ink .frame * { stroke-width: calc(var(--w) * var(--px, 1)); }
+.ink .far .thin, .ink .frame .thin { stroke-width: calc(var(--w) * var(--px, 1) * .6); }
+.ink .far .pipe { stroke-width: calc(var(--w) * var(--px, 1) * 2.4); }
+.ink .far .stream, .ink .frame .stream { stroke-width: calc((var(--px, 1) * 3 + 2) * 1px); }
+.ink .frame .trickle { stroke-width: calc((var(--px, 1) * 1.2 + 1) * 1px); }
+.ink .far .ripple, .ink .frame .ripple { stroke-width: calc(var(--px, 1) * 1.2px); stroke-dasharray: calc(var(--px, 1) * 5px) calc(var(--px, 1) * 9px); animation: flow .5s linear infinite; }
+.ink .frame .rain { stroke: var(--water); stroke-dasharray: 34 46; animation: fall .5s linear infinite; }
+.ink .ftext { font-size: calc(var(--px, 1) * 14px); stroke-width: calc(var(--px, 1) * 4px); }
+.ink .fname { font-size: calc(var(--px, 1) * 19px); stroke-width: calc(var(--px, 1) * 4px); }
+.ink .ftitle { font-size: calc(var(--px, 1) * 30px); stroke-width: calc(var(--px, 1) * 4px); font-family: var(--title); }
+.ink .flag { opacity: 0; }
+@keyframes flow { to { stroke-dashoffset: calc(var(--px, 1) * -14px); } }
+@keyframes fall { to { stroke-dashoffset: -80; } }
+
+/* Close up, a room that has been drawn in full shows that drawing in place of its
+   glyphs: `--near` goes from 0 to 1 as the view closes on a room. */
+.ink .near { opacity: var(--near, 0); }
+.ink .detailed .far { opacity: calc(1 - var(--near, 0)); }
+body.afar .near { display: none; }
+body:not(.afar) .detailed .far { pointer-events: none; }
+.room { cursor: pointer; }
+
+/* A device's glyph: what it does while its device is on. */
+.fd .feed, .fd .when { opacity: 0; transition: opacity .5s; }
+.fd.on .feed, .fd.on .when { opacity: 1; }
+.fd.away .feed, .stale .fd .feed, .stale .flow { opacity: 0; }
+.flow { transition: opacity 1s; }
+.spin, .nod { transform-box: fill-box; transform-origin: center; }
+.shake { transform-box: fill-box; transform-origin: top center; }
+.shackle { transition: translate .3s; }
+.fd:not(.on) .shackle { translate: 0 -26px; }
+.fd.on .spin, .engine .spin { animation: spin 2.4s linear infinite; }
+.fd.on .spin.back { animation-direction: reverse; animation-duration: 1.4s; }
+.fd.on .spin.fast { animation-duration: .7s; }
+.fd.on .shake { animation: ring .12s ease-in-out infinite alternate; }
+.fd.on .nod { animation: nod .5s ease-in-out infinite alternate; }
+@keyframes spin { to { rotate: 360deg; } }
+@keyframes ring { from { rotate: -5deg; } to { rotate: 5deg; } }
+@keyframes nod { to { translate: 0 14px; } }
+.stale .spin, .stale .shake, .stale .nod, .stale .rain { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .spin, .shake, .nod, .rain { animation: none !important; } }
+
+/* The patent skin's baked bitmaps (bake.js): the house, moved and stretched with the
+   view, and the room the view has settled on, which takes its place while it is there. */
+.bake { position: absolute; inset: 0; transform-origin: 0 0; }
+#nearbake, body.nearbaked #farbake { display: none; }
+body.nearbaked #nearbake { display: block; }
+</style>
+</head>
+<body>
+<svg class="grain"><filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="3"/>
+  <feColorMatrix values="0 0 0 0 .45  0 0 0 0 .32  0 0 0 0 .15  0 0 0 .5 0"/></filter>
+  <rect width="100%" height="100%" filter="url(#grain)"/></svg>
+<svg width="0" height="0" style="position:absolute"><defs>
+  <filter id="wobble" x="-2%" y="-2%" width="104%" height="104%">
+    <feTurbulence type="fractalNoise" baseFrequency=".03" numOctaves="2" seed="4"/>
+    <feDisplacementMap in="SourceGraphic" scale="3"/></filter>
+  <pattern id="hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(40)">
+    <rect width="5" height="5" fill="#eadcbc"/><line y2="5" stroke="#2b2118" stroke-width="1"/></pattern>
+  <pattern id="cross" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+    <rect width="4" height="4" fill="#eadcbc"/><path d="M0,0 V4 M0,0 H4" stroke="#2b2118" stroke-width=".9"/></pattern>
+  <pattern id="blue" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+    <rect width="6" height="6" fill="#1d4f91"/><line y2="6" stroke="#e8f1ff" stroke-width=".7"/></pattern>
+</defs></svg>
+
+<header>
+  <h1>The House, by water</h1>
+  <p>Tap a room and the duck goes there, with the view after it; tap again to be there at once. Only the Kitchen has been drawn in full.</p>
+  <button id="back" disabled>The whole house</button>
+  <div id="skins"></div>
+  <div class="cords" id="cords"></div>
+</header>
+<p class="notice" id="notice" role="status"></p>
+<main id="stage"></main>
+
+<script src="house.js"></script>
+<script src="contraption/kit.js"></script>
+<script src="contraption/house.js"></script>
+<script src="waterworks/room.js"></script>
+<script src="waterworks/machines.js"></script>
+<script src="waterworks/bot.js"></script>
+<script src="waterworks/bake.js"></script>
+<script src="waterworks/works.js"></script>
+<script src="waterworks/page.js"></script>
+<script src="whole-house/plan.js"></script>
+<script src="whole-house/far.js"></script>
+<script src="whole-house/main.js"></script>
+</body>
+</html>

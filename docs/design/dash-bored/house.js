@@ -58,6 +58,10 @@ window.House = (() => {
         .forEach((d) => { if (d.on !== want.has(d.id)) { d.on = !d.on; emit(d); } });
     },
     on(fn) { listeners.add(fn); return () => listeners.delete(fn); },
+    // For a page that shows more than the common house: a device of its own in a room,
+    // and a way to say that something else about a device changed.
+    add(room, d) { d.room = rooms.find((r) => r.id === room); d.room.devices.push(d); devices.push(d); byId[d.id] = d; return d; },
+    changed(d) { emit(d); },
     lightsOn: (room) => room.devices.filter((d) => d.kind === "light" && d.on).length,
     lights: (room) => room.devices.filter((d) => d.kind === "light"),
     // Watts drawn now: a base load plus whatever is switched on.
