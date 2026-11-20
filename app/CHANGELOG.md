@@ -1,6 +1,13 @@
 # Changelog
 
+## 2026.11.11-b9
+
+- **People: a date of birth can be the year and month.** The year and month alone (`1984-03`) can now be saved, as well as the whole date, the year alone, or the day and month. A day without its month, or a month on its own, shows a warning saying what is missing, instead of only leaving Save greyed out.
+- **People: the home page's People tile shows whose birthday is next**, and in how many days.
+
 ## 2026.11.11-b8
+
+- No changes of its own: b7's changes went out under this number by mistake.
 
 ## 2026.11.11-b7
 

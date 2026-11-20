@@ -30,6 +30,11 @@ app's Configuration tab. Open **People** and add the people who should be known.
 To receive calls or texts, set up the FONA hardware and enable **Phone and SMS (FONA)**.
 You can prepare and check the permission list before the hardware is connected.
 
+## On the home page
+
+The People tile shows how many people are known, how many may call and text, and whose
+birthday comes next ("Alex and Ann, in 2 days", or "today").
+
 ## On the page
 
 ### People
@@ -50,8 +55,10 @@ Press **+ Add person** and enter:
 - **Pronouns:** she/her, he/him or they/them, or any others with all five forms typed
   in, such as `ze/hir/hir/hirs/hirself`. When pronouns aren't set, messages use
   they/them. They are never guessed from the gender.
-- **Date of birth:** the day, month and year, or only the parts you know. The year on its
-  own gives an age, and the day and month on their own give a birthday.
+- **Date of birth:** the day, month and year, or only the parts you know: the year, the
+  year and month, or the day and month. The year gives an age, and the day and month give
+  a birthday. A day without its month, or a month on its own, can't be saved, and the
+  dialog says so.
 
 A person needs a phone number, a number plate or a Home Assistant person. Press **Save**
 in the dialog.
@@ -143,9 +150,10 @@ Each entry in `people` has:
 - `pronouns`: `subject` (she), `object` (her), `determiner` (her coat), `possessive`
   (hers), `reflexive` (herself), and `plural`, true for they/them, so you can choose
   between "they are" and "she is". When pronouns aren't set, these are they/them.
-- `born`, as entered: `1984-03-07`, `1984` for the year only, or `--03-07` for a
-  birthday with no year. These are the ISO 8601 and vCard forms.
-- `age`: none without a year. With the year only, it is the age they reach this year.
+- `born`, as entered: `1984-03-07`, `1984` for the year only, `1984-03` for the year and
+  month, or `--03-07` for a birthday with no year. These are the ISO 8601 and vCard forms.
+- `age`: none without a year. With the year only, it is the age they reach this year;
+  with the year and month, the age they reach at the start of that month.
 - `days_to_birthday`: 0 on the day, none without a day and month. Someone born on
   29 February has their birthday on 1 March in other years.
 

@@ -16,8 +16,8 @@ standards rather than inventing one:
 - pronouns: all five forms a sentence needs, she/her/her/hers/herself (subject, object,
   possessive determiner, possessive pronoun, reflexive). Unset is they/them, never a
   guess from the gender.
-- born: ISO 8601 with reduced precision, as FHIR's birthDate: 1984 or 1984-03-07; or
-  vCard's --03-07 (RFC 6350 BDAY), a birthday with no year.
+- born: ISO 8601 with reduced precision, as FHIR's birthDate: 1984, 1984-03 or
+  1984-03-07; or vCard's --03-07 (RFC 6350 BDAY), a birthday with no year.
 """
 
 from __future__ import annotations
@@ -45,8 +45,8 @@ MAX_NAME = 60
 GENDERS = ("female", "male", "other")
 FORMS = ("subject", "object", "determiner", "possessive", "reflexive")
 THEY = "they/them/their/theirs/themselves"
-# 1984, 1984-03-07 or --03-07: the year (or "-" for none), then the month and day.
-BORN = re.compile(r"(\d{4}|-)(?:-(\d\d)-(\d\d))?")
+# 1984, 1984-03, 1984-03-07 or --03-07: the year (or "-" for none), the month, the day.
+BORN = re.compile(r"(\d{4}|-)(?:-(\d\d)(?:-(\d\d))?)?")
 # A letter of any alphabet, and words such as xe's or e-m.
 WORD = re.compile(r"[^\W\d_]+(?:['-][^\W\d_]+)*")
 
@@ -123,7 +123,7 @@ def pronouns(raw: Any) -> str | None:
 def _parts(born: str) -> tuple[int | None, int | None, int | None]:
     """The year, month and day of a stored date of birth; None for each part unknown."""
     m = BORN.fullmatch(born)
-    if m is None or (m[1] == "-" and not m[2]):
+    if m is None or (m[1] == "-" and not m[3]):  # with no year, the day and month
         raise ValueError(born)
     year = None if m[1] == "-" else int(m[1])
     return year, int(m[2]) if m[2] else None, int(m[3]) if m[3] else None
@@ -139,7 +139,7 @@ def born(raw: Any, today: date) -> str | None:
         when = date(year or 2000, month or 1, day or 1)
     except ValueError:
         raise BadRequest(
-            f"{raw} is not a date of birth. Give the year, the day and month, or all three."
+            f"{raw} is not a date of birth. Give the year, the year and month, the day and month, or all three."
         ) from None
     if year is not None and not (1900 <= year and when <= today):
         raise BadRequest(
@@ -159,7 +159,8 @@ def _birthday(year: int, month: int, day: int) -> date:
 def about(person: dict[str, Any], today: date) -> dict[str, Any]:
     """What a message needs to know about a person (no number or plates), for the
     integration's people service. With only the year of birth, `age` is the age they
-    reach this year; `days_to_birthday` is 0 on the day, None with no day and month."""
+    reach this year, and with the year and month it is that from the start of the month;
+    `days_to_birthday` is 0 on the day, None with no day and month."""
     forms = (person.get("pronouns") or THEY).split("/")
     year, month, day = _parts(person["born"]) if person.get("born") else (None,) * 3
 
@@ -172,6 +173,8 @@ def about(person: dict[str, Any], today: date) -> dict[str, Any]:
         if birthday < today:
             birthday = _birthday(today.year + 1, month, day)
         days = (birthday - today).days
+    elif month:  # 1984-03
+        to_come = month > today.month
 
     return {
         "name": person["name"],
@@ -182,6 +185,20 @@ def about(person: dict[str, Any], today: date) -> dict[str, Any]:
         "age": None if year is None else today.year - year - to_come,
         "days_to_birthday": days,
     }
+
+
+def next_birthday(people: list[dict[str, Any]], today: date) -> dict[str, Any] | None:
+    """Whose birthday comes next, for the People tile on the home page: their names and
+    the days to it (0 on the day), or None when nobody's day and month are known."""
+    due = [
+        (facts["days_to_birthday"], facts["name"])
+        for facts in (about(p, today) for p in people)
+        if facts["days_to_birthday"] is not None
+    ]
+    if not due:
+        return None
+    days = min(due)[0]
+    return {"who": sorted(name for d, name in due if d == days), "days": days}
 
 
 class People:
@@ -217,6 +234,7 @@ class People:
                 "callers": sum(1 for p in self.people if p.get("call")),
                 "texters": sum(1 for p in self.people if p.get("text")),
                 "gates": sum(1 for p in self.people if p.get("gate")),
+                "next_birthday": next_birthday(self.people, date.today()),
             }
 
     def check(self, number: str | None, kind: str) -> dict[str, Any]:

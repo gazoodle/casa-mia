@@ -3,7 +3,13 @@ from datetime import date
 
 import pytest
 
-from casa_mia.modules.people import People, about, normalise, plate_key
+from casa_mia.modules.people import (
+    People,
+    about,
+    next_birthday,
+    normalise,
+    plate_key,
+)
 
 
 @pytest.mark.parametrize(
@@ -203,7 +209,7 @@ def test_gender_pronouns_and_birth_are_kept_and_checked(tmp_path):
         k: view["people"][0][k] for k in ("gender", "pronouns", "born")
     } == dict.fromkeys(("gender", "pronouns", "born"))
 
-    for born in ("1984", "1984-03-07"):
+    for born in ("1984", "1984-03", "1984-03-07"):
         assert (
             call(p, "POST", "", {"name": born, "person": "x", "born": born})[0] == 201
         )
@@ -215,6 +221,8 @@ def test_gender_pronouns_and_birth_are_kept_and_checked(tmp_path):
         {"born": "1984-02-30"},
         {"born": "--13-01"},
         {"born": "-"},
+        {"born": "--03"},  # a month alone
+        {"born": "1984--07"},
         {"born": "1850"},
         {"born": "2999-01-01"},
     ):
@@ -233,6 +241,8 @@ TODAY = date(2026, 3, 7)
         ("1984-03-08", 41, 1),  # still to come
         ("1984-03-06", 42, 364),  # just gone
         ("--03-08", None, 1),
+        ("1984-03", 42, None),  # the birth month: taken from its start
+        ("1984-04", 41, None),
         ("2000-02-29", 26, 359),  # 1 March 2027, not a leap year
     ],
 )
@@ -285,3 +295,14 @@ def test_every_saved_change_is_announced_and_a_refused_one_is_not(tmp_path):
     assert len(changes) == 3
     assert call(p, "DELETE", who)[0] == 404
     assert len(changes) == 3
+
+
+def test_next_birthday_for_the_tile():
+    people = [
+        {"name": "Sam", "born": "1990"},
+        {"name": "Ann", "born": "--03-09"},
+        {"name": "Alex", "born": "1984-03-09"},
+        {"name": "Kim", "born": "2001-12-25"},
+    ]
+    assert next_birthday(people, TODAY) == {"who": ["Alex", "Ann"], "days": 2}
+    assert next_birthday(people[:1], TODAY) is None

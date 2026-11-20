@@ -50,7 +50,7 @@ export type Person = {
   gender: "female" | "male" | "other" | null;
   /** All five forms, she/her/her/hers/herself; null reads as they/them. */
   pronouns: string | null;
-  /** ISO 8601, as precise as known: 1984 or 1984-03-07; or vCard's --03-07, no year. */
+  /** ISO 8601, as precise as known: 1984, 1984-03 or 1984-03-07; or vCard's --03-07, no year. */
   born: string | null;
 };
 

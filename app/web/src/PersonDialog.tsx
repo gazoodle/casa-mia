@@ -13,20 +13,21 @@ const PRONOUNS = ["she/her/her/hers/herself", "he/him/his/his/himself", "they/th
 const TYPED = "typed";
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-/** The year, month and day of a stored date of birth (1984, 1984-03-07 or --03-07). */
+/** The year, month and day of a stored date of birth (1984, 1984-03, 1984-03-07 or --03-07). */
 function bornParts(born: string | null) {
-  const m = /^(\d{4}|-)(?:-(\d\d)-(\d\d))?$/.exec(born ?? "");
+  const m = /^(\d{4}|-)(?:-(\d\d)(?:-(\d\d))?)?$/.exec(born ?? "");
   return { year: m && m[1] !== "-" ? m[1] : "", month: m?.[2] ? String(+m[2]) : "", day: m?.[3] ? String(+m[3]) : "" };
 }
 
-/** Back to the stored form: null when nothing is given, undefined when a day comes
- * without its month or a month without its day. */
-function bornOf(year: string, month: string, day: string): string | null | undefined {
+/** Back to the stored form: null when nothing is given, or what is missing when the parts
+ * given don't make a date (a day without its month, or a month alone). */
+function bornOf(year: string, month: string, day: string): { born: string | null } | { missing: string } {
   const y = year.trim();
   const d = day.trim();
-  if (!month !== !d) return undefined;
-  const dayMonth = month ? `-${month.padStart(2, "0")}-${d.padStart(2, "0")}` : "";
-  return y ? y + dayMonth : dayMonth ? `-${dayMonth}` : null;
+  if (d && !month) return { missing: "A day needs its month." };
+  if (month && !d && !y) return { missing: "A month needs its year or its day." };
+  const parts = [month, d].filter(Boolean).map((n) => `-${n.padStart(2, "0")}`).join("");
+  return { born: y ? y + parts : parts ? `-${parts}` : null };
 }
 
 export function PersonDialog({
@@ -52,7 +53,7 @@ export function PersonDialog({
   const [pronouns, setPronouns] = useState(person?.pronouns ?? "");
   const [typed, setTyped] = useState(!!person?.pronouns && !PRONOUNS.includes(person.pronouns));
   const [birth, setBirth] = useState(bornParts(person?.born ?? null));
-  const born = bornOf(birth.year, birth.month, birth.day);
+  const birthDate = bornOf(birth.year, birth.month, birth.day);
   return (
     <Dialog
       title={person ? `Edit ${person.name}` : "Add a person"}
@@ -64,7 +65,7 @@ export function PersonDialog({
           </button>
           <button
             className={ui.primary}
-            disabled={!name.trim() || (!phone.trim() && !cars.length && !link) || born === undefined}
+            disabled={!name.trim() || (!phone.trim() && !cars.length && !link) || "missing" in birthDate}
             onClick={() =>
               onSave({
                 name: name.trim(),
@@ -76,7 +77,7 @@ export function PersonDialog({
                 person: link || null,
                 gender: (gender || null) as Person["gender"],
                 pronouns: pronouns.trim() || null,
-                born: born ?? null,
+                born: "born" in birthDate ? birthDate.born : null,
               })
             }
           >
@@ -167,11 +168,7 @@ export function PersonDialog({
       )}
       <Field
         label="Date of birth"
-        help={
-          born === undefined
-            ? "Give the day and the month together."
-            : "Optional. The year alone gives their age, the day and month alone their birthday."
-        }
+        help="Optional. Give what you know: the year alone gives their age, the day and month alone their birthday."
       >
         <span className={css.born}>
           <input type="number" min={1} max={31} placeholder="Day" aria-label="Day of birth" value={birth.day} onChange={(e) => setBirth({ ...birth, day: e.target.value })} />
@@ -186,6 +183,7 @@ export function PersonDialog({
           <input type="number" min={1900} placeholder="Year" aria-label="Year of birth" value={birth.year} onChange={(e) => setBirth({ ...birth, year: e.target.value })} />
         </span>
       </Field>
+      {"missing" in birthDate && <div className={ui.calloutWarn}>{birthDate.missing} It can't be saved until then.</div>}
     </Dialog>
   );
 }
