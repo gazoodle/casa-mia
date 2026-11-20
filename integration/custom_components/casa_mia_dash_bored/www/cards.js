@@ -297,7 +297,7 @@ function d(e, t, n) {
 		name: t,
 		description: n,
 		preview: !0,
-		documentationURL: "https://github.com/gazoodle/casa-mia"
+		documentationURL: "https://github.com/gazoodle/casa-mia-dash-bored"
 	});
 }
 var f = o.main, p = o.panel;

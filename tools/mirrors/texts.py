@@ -86,10 +86,12 @@ KINDS = {
         "category": "integration",
         "topics": "home-assistant,hacs,custom-integration",
         "steps": """\
-1. In HACS, or in Home Assistant's Marketplace (2026.11 and later), add
-   `https://github.com/{mirror}` as a custom repository of the type Integration.
-2. Download {name} there, then restart Home Assistant.
-3. In Settings → Devices & services, choose Add integration and pick {name}.
+1. In HACS, or in Home Assistant's Marketplace (2026.11 and later), search for {name},
+   download it, then restart Home Assistant.
+2. In Settings → Devices & services, choose Add integration and pick {name}.
+
+A search finds it once it is in HACS's default list. Until then, add
+`https://github.com/{mirror}` as a custom repository of the type Integration first.
 """,
         "with_app": """\
 The Casa Mia app installs this same integration itself. A house with both needs to do
@@ -102,11 +104,13 @@ nothing about it{both}""",
 It is a dashboard plugin: one file, which Home Assistant's dashboards load. It needs
 nothing else of Casa Mia.
 
-1. In HACS, or in Home Assistant's Marketplace (2026.11 and later), add
-   `https://github.com/{mirror}` as a custom repository. It is a dashboard resource:
-   HACS calls that type Dashboard.
-2. Download {name} there, and reload the page when asked.
-3. The rest of this page says how to use it.
+1. In HACS, or in Home Assistant's Marketplace (2026.11 and later), search for {name}
+   and download it, then reload the page when asked.
+2. The rest of this page says how to use it.
+
+A search finds it once it is in HACS's default list. Until then, add
+`https://github.com/{mirror}` as a custom repository first. It is a dashboard resource:
+HACS calls that type Dashboard.
 """,
         "with_app": """\
 A house with the Casa Mia app has {name} already, in the file Casa Mia's own integration

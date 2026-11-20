@@ -289,7 +289,7 @@ function c(e, t, n) {
 		name: t,
 		description: n,
 		preview: !0,
-		documentationURL: "https://github.com/gazoodle/casa-mia"
+		documentationURL: "https://github.com/gazoodle/casa-mia-love-or-loathe"
 	});
 }
 var l = n.main, u = n.panel;

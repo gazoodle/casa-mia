@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.11.11-b1
+
+- **Sensor Watch and Love it or Loathe it: a notify blueprint you have changed is kept.** Each integration installed its blueprint and replaced it whenever it differed from its own copy, so changes you made to it were lost at the next start of Home Assistant (and, for Sensor Watch, whenever its groups or notify actions changed). Now a copy is kept up to date only while nobody has changed it. A changed copy is left as it is, and Home Assistant's log says so; Sensor Watch's then no longer offers new groups and notify actions in its lists, though typing one still works. Delete it to have the current one again.
+- **Sensor Watch, Love it or Loathe it, Dash-Bored and Tablet Layout: a card's help link goes to its own repository.** Where you add a card, Home Assistant links each card to its documentation, and every card linked to Casa Mia's repository. Each now links to the repository it is published in; Casa Mia's own cards still link to Casa Mia.
+- Sensor Watch, Love it or Loathe it, Dash-Bored and Tablet Layout: the install steps on each one's own repository start with searching for it in HACS or the Marketplace, with adding the repository by hand as the way until it is in HACS's default list.
+
 ## 2026.11.10
 
 - **Dash-Bored: Digs' household walks all over the house.** Each person at home walks from room to room, up and down the ladders, and out through a door at each end of the ground floor into the garden and over to the outbuildings. They take steps as they go, face the way they are walking and climb the ladders hand over hand, and stay 10 to 40 seconds where they get to. Most trips end in a room with a light on, and nobody goes out of doors after dark or while it is raining or snowing. Someone who leaves home walks off the left of the garden, and someone who comes home walks in from there.

@@ -4,8 +4,8 @@ blueprint:
   description: >-
     Tell someone when Love it or Loathe it acts on a song: the song, the player, the
     group that had it and what was done. The Love it or Loathe it integration installs
-    this file and replaces it when it changes: to change it, copy it under another name
-    first.
+    this file and keeps it up to date until you change it. A copy you have changed is
+    left as it is; delete it to have the current one again.
   domain: automation
   homeassistant:
     min_version: "2024.10.0"

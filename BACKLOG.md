@@ -776,12 +776,12 @@ Beta since 2026.10.11. Its guide (`docs/applets/sensor-watch.md`) says what it d
 
 ## Next: Casa Mia, the public release
 
-- **After 2026.11.10 is released (owner: once Digs is complete, 2026-11-20).** That
-  release republishes Tablet Layout's mirror without "It isn't published there yet"
-  (2026.11.10-b2). Then, asking first: submit `gazoodle/casa-mia-tablet-layout` to
-  hacs/default's `plugin` list as Dash-Bored's was (hacs/default#14577, opened
-  2026-11-20), and re-request Frenck's review on #13883 and #14085, whose
-  `documentation` and `issue_tracker` were put right in 2026.11.9.
+- **The HACS catalog submissions (2026-11-20).** Open: Sensor Watch hacs/default#13883,
+  Love it or Loathe it #14085, Dash-Bored #14577 and Tablet Layout #14586 (and ha-dial
+  #14569, not Casa Mia's). Frenck put #13883 and #14085 in draft asking for their own
+  repository in `documentation` and `issue_tracker`; 2026.11.9 published that, checked
+  at each tag and in each release's ZIP, and the owner marks them ready for review.
+  Don't request a review otherwise: HACS's template says that gets a pull request closed.
 
 Decided (2026-10-02): **ship everything.** Every module is off until enabled; no private edition: the house runs the public release like everyone else. House-specific values go to configuration (the alarm's entity ids, the compositor's cameras, the house photo). FONA's hardware is published with its sketch ("FONA Arduino firmware into the repo"). The costs: security reports (guest login hands out HA sessions), docs and support for other setups.
 

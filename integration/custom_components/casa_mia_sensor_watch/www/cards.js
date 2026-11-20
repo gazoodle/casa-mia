@@ -292,7 +292,7 @@ function l(e, t, n) {
 		name: t,
 		description: n,
 		preview: !0,
-		documentationURL: "https://github.com/gazoodle/casa-mia"
+		documentationURL: "https://github.com/gazoodle/casa-mia-sensor-watch"
 	});
 }
 var u = n.main, d = n.panel;
