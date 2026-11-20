@@ -107,7 +107,7 @@ const key = (p: Piece) => `${p.box}|${p.markup}`;
  * shelf until it is full, then a new shelf under it, then a new page. Answers with how
  * many pages and px it came to. No piece is told anything until every page is made, so a
  * frame drawn meanwhile uses the atlas before this one, whole. */
-export async function atlas(pieces: Piece[], scale: number, skin: Skin) {
+export async function atlas(pieces: Piece[], scale: number, skin: Skin, tell?: (done: number, of: number) => void) {
   type Page = { inner: string; wide: number; high: number; slots: Slot[] };
   const slots = new Map<string, Slot>(), pages: Page[] = [];
   let x = 0, y = 0, tall = 0;
@@ -137,10 +137,12 @@ export async function atlas(pieces: Piece[], scale: number, skin: Skin) {
   // being made, and its bitmap is then made again in the slot it was given here.
   const homes = pieces.map((piece) => [piece, slots.get(key(piece))] as const);
 
+  let done = 0;
   await Promise.all(pages.map(async (page) => {
     const canvas = Object.assign(document.createElement("canvas"), { width: page.wide, height: page.high });
     canvas.getContext("2d")!.drawImage(await bake(page.inner, page.wide, page.high, scale, skin), 0, 0);
     for (const slot of page.slots) slot.page = canvas;
+    tell?.(++done, pages.length);
   }));
   for (const [piece, slot] of homes) piece.at = slot;
   return { pages: pages.length, px: pages.reduce((sum, page) => sum + page.wide * page.high, 0) };

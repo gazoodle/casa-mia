@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.11.9-b25
+
+- **Dash-Bored: Contraption shows a gauge while it gets a machine ready.** A pressure gauge in the skin's own style is in the middle of the page from the moment it opens, with its needle at how far along it is and the five stages named underneath: survey the room, draw up the plans, build the machine, print the bitmaps, let the ducks in. It comes back while the bitmaps are printed again for a new size or skin. The page was blank until the machine was ready.
+
 ## 2026.11.9-b24
 
 - **Fixed: Dash-Bored: a three-phase meter panel's meters overlapped each other on a phone.** A meter panel's chassis is now drawn to fit the width of its card: all of it is made smaller or larger together, so the meters fill a wide card and fit side by side in a narrow one. A very narrow card has them in one column.

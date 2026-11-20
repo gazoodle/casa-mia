@@ -9,6 +9,7 @@
 // skins.ts and styles.ts are the look.
 import { html, nothing } from "lit";
 import { fire } from "../ha.ts";
+import { STAGE, gauge } from "./contraption/gauge.ts";
 import { route, type Layout } from "./contraption/layout.ts";
 import { Machine } from "./contraption/run.ts";
 import { SKINS, worn, type Skin } from "./contraption/skins.ts";
@@ -40,13 +41,16 @@ const air = (r: Room) => [r.temp === undefined ? "" : `${r.temp}° within${r.tar
 
 export class Contraption extends Family {
   static styles = [PAGE, STYLES];
-  static properties = { _skin: { state: true }, _size: { state: true }, _tile: { state: true }, _rate: { state: true }, _room: { state: true } };
+  static properties = { _skin: { state: true }, _size: { state: true }, _tile: { state: true }, _rate: { state: true }, _room: { state: true }, _stage: { state: true }, _share: { state: true } };
   declare protected _config: Options & { type?: string; style?: string };
   _skin = SKINS[0].id;
   _size = 0; // px: how big a tile is drawn, by the slider (0: to fit the screen)
   _tile = SMALL; // px: how big it is drawn now
   _rate = ""; // how it is going, in words
   _room?: Room; // the room shown
+  _stage = STAGE.SURVEY; // what is being done to make the machine ready (gauge.ts), or -1 when it is
+  _share = 0; // how far through that it is, 0 to 1
+  private _building = false; // the machine is about to be built
   private _built?: Survey; // the survey the machine was built for
   private _way?: Layout; // the room's network, waiting to be made a machine
   private _machine?: Machine;
@@ -124,7 +128,7 @@ export class Contraption extends Family {
     this._room = room;
     if (this._built === this._survey) return this._told();
     this._built = this._survey;
-    Object.assign(this, { _machine: undefined, _way: undefined, _pen: undefined, _baked: "" });
+    Object.assign(this, { _machine: undefined, _way: undefined, _pen: undefined, _baked: "", _building: false, _stage: room ? STAGE.PLANS : -1, _share: 0 });
     if (!room) return;
 
     // Lights switched together are one machine: in Home Assistant that is a group of
@@ -142,6 +146,7 @@ export class Contraption extends Family {
     this._devs = new Map(shown.map(({ d }) => [d.id, this._view(d, group.get(d.id))]));
     try {
       this._way = route(room.id, [...this._devs.values()]);
+      this._stage = STAGE.BUILD;
     } catch (err) {
       this._stopped(err);
     }
@@ -150,7 +155,7 @@ export class Contraption extends Family {
   /** Something in the machine failed: it is said on the page, and the machine is taken down, not left half drawn. */
   private _stopped = (err: unknown) => {
     console.error("Dash-Bored: Contraption has stopped", err);
-    Object.assign(this, { _machine: undefined, _way: undefined });
+    Object.assign(this, { _machine: undefined, _way: undefined, _stage: -1 });
     this._fault = `Contraption has stopped (${(err as Error)?.message ?? err}).`;
   };
 
@@ -209,7 +214,14 @@ export class Contraption extends Family {
     const scale = Math.min(k * sharp, FINE), baked = `${scale}|${skin.id}`;
     if (baked !== this._baked) {
       this._baked = baked;
-      machine.bake(scale, skin);
+      Object.assign(this, { _stage: STAGE.PRINT, _share: 0 });
+      // Should the size or the skin have changed again meanwhile, the later printing says when it is done.
+      const mine = () => this._baked === baked && this._machine === machine;
+      machine.bake(scale, skin, (done, of) => void (mine() && (this._share = done / of))).then(() => {
+        if (!mine() || this._stage < 0) return;
+        Object.assign(this, { _stage: STAGE.DUCKS, _share: 1 });
+        this._after(400, () => void (mine() && (this._stage = -1))); // long enough for the full gauge to be seen
+      });
     }
     this._look();
   }
@@ -240,35 +252,41 @@ export class Contraption extends Family {
   /** The machine is made once its drawing's bench is on the page, and the canvas fitted when its size may have changed. */
   protected updated() {
     const bench = this.renderRoot.querySelector<SVGSVGElement>(".bench");
-    if (this._way && !this._machine && bench && this._room) {
-      try {
-        this._machine = new Machine(bench, this._way, this._devs, `The ${this._room.name}, by duck`, PERIOD(), this._stopped);
-      } catch (err) {
-        return this._stopped(err);
-      }
-      this._told(true);
-      this._dirty = true;
-      this.requestUpdate(); // the tiles' buttons, now that there are tiles
+    if (this._way && !this._machine && bench && this._room && !this._building) {
+      // Building it holds the page up for a moment: it is put off until the gauge has been painted saying so.
+      this._building = true;
+      const way = this._way, room = this._room;
+      this._after(30, () => {
+        if (this._way !== way || this._machine) return;
+        try {
+          this._machine = new Machine(bench, way, this._devs, `The ${room.name}, by duck`, PERIOD(), this._stopped);
+        } catch (err) {
+          return this._stopped(err);
+        }
+        this._told(true);
+        this._dirty = true;
+        this.requestUpdate(); // the tiles' buttons, now that there are tiles
+      });
       return;
     }
     if (this._dirty) this._fit();
   }
 
   render() {
-    if (!this._house) return nothing;
     const room = this._room, machine = this._machine, skin = SKINS.find((s) => s.id === this._skin) as Skin;
     const devices = new Map(room?.devices.map((d) => [d.id, d]));
     const notices = [
       this._lost ? `No word from the house since ${clock(this._lost)}. The ducks are asleep, and nothing shown here is current.` : "",
       this._fault,
-      room ? "" : this._alone ? this._vacant : "There is no room with a device in it to make a machine of.",
+      room || !this._house ? "" : this._alone ? this._vacant : "There is no room with a device in it to make a machine of.",
     ].filter(Boolean);
     const sized = (e: Event) => {
       this._size = Number((e.target as HTMLInputElement).value);
       this._dirty = true;
     };
 
-    return html`<div class="contraption ${this._lost ? "stale" : ""}" data-skin=${skin.id} style=${worn(skin)}>
+    const getting = this._stage >= 0;
+    return html`<div class="contraption ${this._lost ? "stale" : ""} ${getting ? "getting" : ""}" ?data-page=${this.hasAttribute("panel")} data-skin=${skin.id} style=${worn(skin)}>
       <header>
         <h1>${room ? `The ${room.name}, by duck` : "Contraption"}</h1>
         ${this._alone
@@ -293,6 +311,7 @@ export class Contraption extends Family {
             </div>`
           : nothing}
       </div>
+      ${getting ? gauge(this._stage, this._share) : nothing}
       <svg class="bench ink" aria-hidden="true"></svg>
     </div>`;
   }

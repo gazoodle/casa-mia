@@ -182,10 +182,10 @@ export class Machine {
     return this.queue;
   }
 
-  /** Make every bitmap, `scale` px to the drawing's unit, in `skin`. */
-  bake(scale: number, skin: Skin) {
+  /** Make every bitmap, `scale` px to the drawing's unit, in `skin`. `tell` is told as each page of them is done. */
+  bake(scale: number, skin: Skin, tell?: (done: number, of: number) => void) {
     return this.todo(async () => {
-      this.made = await atlas(this.all, scale, skin);
+      this.made = await atlas(this.all, scale, skin, tell);
       Object.assign(this, { scale, skin, ready: true });
     });
   }

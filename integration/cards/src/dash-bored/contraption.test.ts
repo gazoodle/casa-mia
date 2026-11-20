@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { round } from "./contraption/faults.ts";
 import { chosen, facing, mul, posed, ringOf, type Mat, type Part } from "./contraption/kit.ts";
 import { advance, begin } from "./contraption/flow.ts";
+import { STAGES, progress } from "./contraption/gauge.ts";
 import { links, route } from "./contraption/layout.ts";
 import { EDGE, edges, type Dev } from "./contraption/tile.ts";
 import { GAP, legs, lie, long, within } from "./contraption/underground.ts";
@@ -208,4 +209,13 @@ test("a knot goes round its cord", () => {
   assert.deepEqual(round(loop, 15), [10, 5]);
   assert.deepEqual(round(loop, 45), [5, 0]);
   assert.deepEqual(round(loop, -5), [0, 5]);
+});
+
+test("the gauge goes from nought to a hundred through its stages, and never back", () => {
+  assert.equal(STAGES.reduce((sum, [, share]) => sum + share, 0), 100);
+  assert.equal(progress(0, 0), 0);
+  assert.equal(progress(STAGES.length - 1, 1), 100);
+  const along = STAGES.flatMap((_, stage) => [0, 0.5, 1].map((share) => progress(stage, share)));
+  assert.deepEqual(along, [...along].sort((a, b) => a - b));
+  assert.equal(progress(3, 7), progress(3, 1)); // a share past the end is the end
 });

@@ -377,6 +377,15 @@ centre and feed both left and right".
   about every 30 to 55 seconds; flowers stop at five. Seen in stills: the poop with its
   flies, and the tongs with a duck. Not seen: the hop over it, the bot's shovel and peg,
   the bin being filled, the poop in a tube.
+- **A gauge while it gets ready (2026.11.9-b25, `gauge.ts`).** The owner, 2026-11-18:
+  "an in-style progress bar ... in the middle of the page, shown immediately that the
+  page first renders, progress in a super nice progress gauge with stages called out
+  underneath". The stages are real ones, and none is padded out: on a fast machine the
+  first three go by too quickly to read. Building the machine holds the page up, so it
+  is put off by 30 ms for the gauge to be painted first, and the full gauge is held
+  for 400 ms over the running machine. The bitmaps report page by page, so a room of
+  one page goes from nought to done in one step. Seen in one still, at the last
+  stage; not seen on a slow device, which is where it matters.
 - **Carriers out of step (2026.11.9-b24).** The owner, 2026-11-18: "Toast and trampoline
   ducks are still synchronised ... I thought we had added some de-sync work?" What
   there was is the bend (a tile runs up to a fifth of a period early or late in its
